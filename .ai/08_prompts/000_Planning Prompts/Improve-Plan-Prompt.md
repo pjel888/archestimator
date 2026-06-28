@@ -392,6 +392,14 @@ Use these categories:
     - Red/green or characterization strategy for risky behavior changes
     - Test data, fixtures, mocks vs real-chain coverage, and flake strategy
     - Exact commands and expected evidence
+    - Validation command inventory verified from the repository's actual
+      scripts; do not omit sub-steps from broad validation commands
+    - Known-red broad validation posture. If project state says a broad command
+      is already red, require targeted checks to pass and require unrelated
+      pre-existing failures to be captured rather than claiming a green broad
+      gate.
+    - Numeric coverage gates only when an executable coverage command and
+      artifact path are named
     - Manual QA only where automation cannot prove the claim
     - Independent review and adversarial scenario coverage
 
@@ -480,11 +488,14 @@ dimension is irrelevant, explicitly mark it "Not applicable" with a reason.
 - Requirements-to-implementation-unit traceability
 - Requirements-to-test traceability
 - Requirement source citations
+- Source-strength classification for each requirement (`brief`, `repo evidence`,
+  `assumption`, or `derived`) so inferred requirements are not presented as
+  direct source facts
 - Open decisions with owner, deadline/trigger, and implementation impact
 
 The traceability matrix must include these columns:
 
-`Source ID | Requirement | Source evidence | Plan section | Work item | Acceptance criteria | Test/proof | Risk | Status | Gap/decision`
+`Source ID | Requirement | Source evidence | Source strength | Plan section | Work item | Acceptance criteria | Test/proof | Risk | Status | Gap/decision`
 
 Completion is invalid if any requirement lacks source evidence, acceptance
 criteria, and a planned proof path, or if any work item cannot be traced back to
@@ -561,6 +572,10 @@ For any React / Next.js work, require explicit planning for:
 - Cache strategy for `fetch`, non-fetch data, React `cache`, `use cache`,
   `cacheLife`, `cacheTag`, private/remote cache directives, and host-specific
   cache behavior
+- URL-state and pagination semantics. Do not describe a cursor or query param
+  as shareable unless reload/share/back-forward can reproduce the same visible
+  list. If append pagination is transient, specify the state owner and any
+  authenticated loader/DTO contract.
 - Serialization boundaries for Server Components, Client Components, cached
   functions, and Server Action return values
 - Image, font, script, metadata, sitemap, robots, and OG behavior when relevant
@@ -605,6 +620,11 @@ When data is touched, require:
 - Schema changes, generated types, migrations, backfills, and data retention
 - RLS policies, grants, RPCs, triggers, storage policies, and least privilege
   where relevant
+- A per-table/RPC access-path matrix for every planned source:
+  `Source | Chosen API/client | Client role | Required grants | Latest RLS/policy posture | Proof source | Fallback`.
+  If the chosen client role cannot actually read/call the source after the
+  latest migrations and deny policies, treat it as a P0 blocker and either add
+  a scoped policy/RPC/migration path or remove the source from v1.
 - Transaction boundaries and race-condition handling
 - Idempotency and duplicate-submission behavior
 - Concurrency model and conflict resolution
@@ -673,7 +693,8 @@ Require measurable performance planning:
 
 - Baseline to measure
 - Target budget
-- Measurement command or method
+- Measurement command or method, including auth/session setup for authenticated
+  routes and exact statistic definitions for p50/p95 or other percentiles
 - Regression threshold
 - Owner and enforcement point
 - Cost/resource budget when provider usage, storage, AI, maps, email, uploads,

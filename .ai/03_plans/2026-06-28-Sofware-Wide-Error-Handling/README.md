@@ -4,7 +4,7 @@
 **Status:** CONDITIONALLY READY (planning/audit only — no code, tests, migrations, provider state, or runtime data changed in this pack)
 **Profile:** standard (cross-cutting infra, bounded blast radius, MVP pre-launch)
 **Scope:** planning, audit, and readiness only.
-**Verification mode:** `independent-council-improved` (the original pack was lead-authored; this 2026-06-28 Codex pass used native read-only council reviewers plus a final verifier gate before completion — see `13_FINAL_AUDIT_SCORECARD.md`).
+**Verification mode:** `independent` (council-improved: the original pack was lead-authored; this 2026-06-28 Codex pass used native read-only council reviewers plus a final verifier gate before completion — see `13_FINAL_AUDIT_SCORECARD.md`).
 
 ## Master result
 
@@ -13,6 +13,7 @@ Define the first coherent software-wide error-handling layer for Archestimator, 
 Approved implementation scope from this repaired planning pack:
 - P1 foundation modules, without changing current behavior.
 - A pilot vertical after P1: `publication/actions.ts`, one representative route handler selected by the implementer, and one root/segment UI error surface.
+- P4 dev logging pilot: NDJSON file writer, `PERF_TRACE` integration, AI tail command, and logger perf proof.
 - Full all-actions/all-routes migration only after pilot evidence is captured and this plan is upgraded.
 
 The four product outcomes the plan delivers:

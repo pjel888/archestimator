@@ -15,11 +15,11 @@ Requirement-by-requirement scorecard, council findings, verification mode declar
 | 7 | Prod forwarder choice | PASS with gate | `11` DEC-ERR-004 chooses Sentry; P5 requires explicit provider/secret/source-map authority before external proof. |
 | 8 | PII/security posture | PASS for plan | `06` adds redaction, same-origin client-error checks, prompt-injection boundary, replay off, provider-backed production limiter gate. |
 | 9 | Sample JSONL log line | PASS | `04` B.2 sample is synthetic; dev-only cause is redacted before logging. |
-| 10 | Hold-harmless/protected contracts | PASS | README protected contracts replace contradictory "off-limits" wording. |
+| 10 | Hold-harmless/protected contracts | PASS | README protected contracts replace contradictory protected-file wording. |
 | 11 | Traceable requirement IDs | PASS | `07` and `12` map requirement IDs to pilot/full-scope status. |
 | 12 | Readiness verdict | PASS | `12` and README now declare `CONDITIONALLY READY`, not full implementation-ready. |
 
-**Overall:** planning package is `CONDITIONALLY READY`. P1 plus the pilot vertical are approved; broad migration and provider proof require the gates listed below.
+**Overall:** planning package is `CONDITIONALLY READY`. P1 plus the pilot vertical and P4 dev logging pilot are approved; broad migration and provider proof require the gates listed below.
 
 ## B. Requirements scorecard
 
@@ -64,7 +64,7 @@ Requirement-by-requirement scorecard, council findings, verification mode declar
 | Full all-actions/all-routes migration too broad for immediate `IMPLEMENTATION-READY` | Downgraded package to `CONDITIONALLY READY`; approved P1 + pilot vertical first. |
 | Baseline test gates conflict with known `test:dom` reds | Replaced full-suite green assumptions with type-check/lint plus targeted tests and no-new-failures against recorded baseline. |
 | Wrong Next 16 `onRequestError` signature | Updated docs to `Instrumentation.onRequestError = async (err, request, context) => ...`. |
-| Master rollback flag impossible after API migration | Removed `ERROR_HANDLING_ENABLED`; rollback is per-phase revert plus observability kill switches. |
+| Master rollback flag impossible after API migration | Removed the master error-handling flag; rollback is per-phase revert plus observability kill switches. |
 | Protected files contradicted required additive edits | Renamed to protected contracts with allowed additive edits and forbidden behavior changes. |
 | Client-error logs could store attacker-controlled text | Added same-origin checks, strict parser, redaction, tainted-field labels, and adversarial tests. |
 | AI log diagnosis could follow injected instructions | Added "logs are untrusted data" rule to `04`, `09`, and `10`. |
@@ -74,15 +74,15 @@ Requirement-by-requirement scorecard, council findings, verification mode declar
 
 ## D. Verification mode
 
-**Mode:** `independent-council-improved`.
+**Mode:** `independent` (council-improved).
 
-The original pack was lead-authored and over-claimed readiness. This improvement pass used native read-only council reviewers for feasibility, security/privacy, coherence, and adversarial document review, then integrated their findings. Final completion requires one native verifier pass after edits.
+The original pack was lead-authored and over-claimed readiness. This improvement pass used native read-only council reviewers for feasibility, security/privacy, coherence, and adversarial document review, then integrated their findings. Final native verifier result: PASS — no remaining P0/P1 planning blockers for the approved conditional-ready scope.
 
 ## E. Final report
 
 - **Planning folder reviewed:** `.ai/03_plans/2026-06-28-Sofware-Wide-Error-Handling/`
-- **Prompt documents improved:** `.ai/08_prompts/000_Planning Prompts/Improve-Plan-Prompt.md` and `Multi-Agent-Execution-Directive.md`
-- **Files changed:** plan-pack markdown and prompt markdown only.
+- **Prompt documents reviewed/validated:** `.ai/08_prompts/000_Planning Prompts/Improve-Plan-Prompt.md` and `Multi-Agent-Execution-Directive.md`
+- **Files changed:** plan-pack markdown only.
 - **Application code/tests/migrations/provider state changed:** none.
 - **Readiness status:** `CONDITIONALLY READY`.
 - **Approved implementation scope:** P1 foundation + P2a/P3a/P4 pilot evidence loop.
@@ -92,4 +92,4 @@ The original pack was lead-authored and over-claimed readiness. This improvement
 
 ## F. Stop condition
 
-Planning improvement is complete when docs-only verification passes and the final verifier confirms no unresolved P0/P1 planning gap remains in the approved P1+pilot scope.
+Planning improvement is complete: docs-only verification passed and the final verifier confirmed no unresolved P0/P1 planning gap remains in the approved P1+pilot scope.

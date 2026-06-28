@@ -77,6 +77,6 @@ Test execution matrix + adversarial scenario matrix. Per `Creating-Plan-Prompt.m
 
 The test plan above is the minimum that proves the requirements. Adding more tests "for completeness" is debt unless they catch a real bug class. Each test file targets one requirement and one failure mode.
 
-## G. Off-limits (per README)
+## G. Protected contracts (per README)
 
-Existing tests in `tests/vitest/` are preserved. The plan adds NEW test files; it does not modify existing ones (except `route-error-smoke-gate.test.ts` extension in P2-WP8, which is additive — new test cases, no removal).
+Existing tests in `tests/vitest/` are preserved unless the pilot explicitly requires additive assertions. The plan adds new test files first; `route-error-smoke-gate.test.ts` all-handler expansion waits until after P2a evidence.

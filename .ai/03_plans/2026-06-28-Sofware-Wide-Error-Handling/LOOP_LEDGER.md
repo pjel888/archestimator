@@ -4,7 +4,7 @@ Per `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`. Documents the DISCOVER → PLAN
 
 **Loop surface used:** original in-session loop plus 2026-06-28 Codex improvement loop. The improvement loop used native read-only council lanes for feasibility, security/privacy, coherence, adversarial review, and final verification where available.
 
-**Verification mode:** `independent-council-improved` — the original lead-emulated package was repaired with distinct native reviewer findings before final completion.
+**Verification mode:** `independent` — council-improved via distinct native reviewer findings before final completion.
 
 ## Iteration log
 
@@ -24,7 +24,7 @@ Executed in parallel via bash/grep + websearch + context7. Captured grounded inv
 - 9× `error.tsx` files using `WorkshopRouteErrorState`
 - 22 server action files + 22 route handlers + 1 middleware
 - `action-errors.ts`, `auth/error-mapping.ts`, `perf/server-timing.ts` existing patterns
-- Missing: `global-error.tsx`, `instrumentation.ts`, structured logger dep, Sentry, Zod
+- Missing: `global-error.tsx`, `instrumentation.ts`, structured logger module, Sentry, formal validation library
 - Inconsistent server action return shapes (7 distinct patterns catalogued)
 - Industry research: Next.js 16 instrumentation hooks, useActionState, OTel logs data model, Sentry 2026 fit, GenAI semantic conventions, AI-decision tracing pattern
 
@@ -41,8 +41,8 @@ Wrote each plan document with content grounded in the audit + research above. Or
 ### Iteration 5 — VERIFY/REPAIR (2026-06-28 Codex)
 Reviewer gate: native council review found feasibility, security/privacy, coherence, and adversarial issues. The lead integrated fixes and downgraded full-package readiness to `CONDITIONALLY READY`.
 
-### Iteration 6 — RECORD + DECIDE (pending final verifier)
-- Update this ledger with final verifier result.
+### Iteration 6 — RECORD + DECIDE (verifier PASS)
+- Final native verifier result: PASS — no remaining P0/P1 planning blockers for the approved conditional-ready scope.
 - Keep README and `12_TRACEABILITY_AND_READINESS_REVIEW.md` at `CONDITIONALLY READY`.
 - Full `IMPLEMENTATION-READY` requires P1+pilot evidence plus a fresh independent review.
 
@@ -50,11 +50,11 @@ Reviewer gate: native council review found feasibility, security/privacy, cohere
 
 All planning-only owner decisions resolved — see `11_RISKS_DECISIONS_ALTERNATIVES.md` for `DEC-ERR-001` through `DEC-ERR-015` with rejected alternatives.
 
-## Skipped validation
+## Skipped runtime validation
 
 | Validation skipped | Why | Risk | Strongest substitute |
 |---|---|---|---|
-| Independent reviewer agent | Available in this Codex improvement pass | Distinct reviewers found feasibility/security contradictions | Lead integrates, then final verifier checks no P0/P1 remain |
+| Browser proof of Toast rendering | Out of scope for planning-only repair | None for this docs task; implementation phase owns runtime UI proof | Documented in `09_TEST_QA_ULTRAQA_PLAN.md` as future P3a evidence |
 
 ## Iteration 5 — Council repair pass (2026-06-28 Codex)
 
@@ -65,5 +65,3 @@ PLAN: Treat the user's owner-delegation as planning-only authority. Resolve open
 EXECUTE: Update the plan pack and prompt pair to align contracts, settle deferred decisions, and add explicit untrusted-content boundaries.
 
 VERIFY: Run docs-only grep checks, `git diff --check`, and a final native verifier pass before claiming completion.
-| Plan agent graph | Same runtime issue | Plan structure may be less optimal than what a dedicated plan agent would produce | Lead applied plan-graph pattern from prior canonical packs |
-| Browser proof of Toast rendering | Out of scope (planning only) | None — implementation phase will own this | Documented in `09_TEST_QA_ULTRAQA_PLAN.md` as future P3 evidence |

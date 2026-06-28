@@ -349,6 +349,9 @@ Build a traceability model before broad edits:
 Every behavior-bearing requirement must map to:
 
 - Source evidence.
+- Source strength (`brief`, `repo evidence`, `official docs`, `provider proof`,
+  `assumption`, `derived`, or `owner-delegated decision`) so inferred or
+  delegated requirements are not presented as direct repo facts.
 - User or system outcome.
 - Work package or implementation unit.
 - Acceptance criterion.
@@ -450,6 +453,10 @@ React and Next.js:
   pattern.
 - Define cache owner, cache key, privacy dimensions, staleness tolerance,
   invalidation primitive, and read-your-own-writes behavior.
+- Define URL-state and pagination semantics. Do not call a cursor or query
+  param shareable unless reload/share/back-forward reproduces the same visible
+  state. If pagination is transient, name the client state owner, loader/API
+  boundary, DTO, authz, and reset behavior.
 - Treat Server Actions as directly reachable POST endpoints that must validate
   auth, authorization, ownership, input, idempotency, and return DTOs.
 - Avoid effects for render derivation. Use effects for synchronization with
@@ -480,6 +487,11 @@ Data, Supabase, API, and integrations:
 - Define data ownership, lifecycle, retention, deletion, audit, recovery,
   transaction boundaries, idempotency, concurrency, RLS, grants, RPCs, triggers,
   indexes, storage policies, generated types, and provider-proof requirements.
+- For multi-source plans, include a per-table/RPC access-path matrix:
+  `Source | Chosen API/client | Client role | Required grants | Latest RLS/policy posture | Proof source | Fallback`.
+  If the chosen client role cannot read or call a source after the latest
+  migrations and deny policies, treat it as a P0 planning defect and either add
+  a scoped policy/RPC/migration path or remove that source from the plan.
 - Use migrations that are ordered, compatible with existing data, and paired
   with rollback or fix-forward strategy.
 - Define request/response DTOs, validation, status codes, errors, retries,
@@ -506,6 +518,9 @@ Performance, reliability, and operations:
 - Define user-visible performance goals before optimizing.
 - Capture or plan baseline, target, evaluator, fixture/data volume, regression
   threshold, rollback trigger, and evidence artifact.
+- Performance evaluators for authenticated routes must name auth/session setup,
+  fixture identity, warmup behavior, sample count, and exact statistic
+  definitions for p50/p95 or other percentiles.
 - Consider TTFB, LCP, INP, CLS, route transition duration, hydration cost, RSC
   payload size, client JS size, API duration, DB query count, query latency,
   payload size, memory, error rate, retry rate, and queue latency when relevant.
@@ -529,6 +544,13 @@ Choose the smallest proof that actually proves the claim:
 - Hosted/production proof only from actual hosted/production evidence.
 - Inferred evidence only when labeled as inference and not used as proof of a
   stronger claim.
+
+Before prescribing validation commands, verify the actual repo scripts and
+test layers from source files. If a broad command is known-red, flaky, slow, or
+hanging, record the known-red command, date/source, failure class, and narrower
+proof that replaces it for the current claim. Do not invent coverage thresholds,
+score gates, or "green validate" claims unless the executable command and
+expected artifact are named.
 
 Do not state that a command passed unless it was actually run, exited
 successfully, and its output was read. Success-looking text with a non-zero exit

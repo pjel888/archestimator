@@ -2,7 +2,7 @@
 
 Authoritative execution guide for the implementation AI. Phased with ultragoal-style per-phase contract. Ponytail-aware: smallest coherent change per phase.
 
-**Readiness status:** `CONDITIONALLY READY`. Approved execution scope is P1 plus the pilot vertical (`publication/actions.ts`, one representative route handler, and one UI error surface). Full all-actions/all-routes migration is intentionally gated on pilot evidence.
+**Readiness status:** `CONDITIONALLY READY`. Approved execution scope is P1 plus the pilot vertical (`publication/actions.ts`, one representative route handler, and one UI error surface), plus the P4 dev logging pilot. Full all-actions/all-routes migration is intentionally gated on pilot evidence.
 
 ## Phase order and dependency graph
 
@@ -43,8 +43,7 @@ P2a and P3a pilot work may run in parallel after P1 lands (no shared-file confli
 | P1-WP9 | Create `src/lib/observability/logger.ts` interface + redaction path + no-op/dev-console transport; no file writer yet | new | M |
 | P1-WP10 | Tests: `tests/vitest/{app-error,unwrap-supabase,with-action-errors,redact}.test.ts` | new | M |
 | P1-WP11 | Characterization: record current targeted baseline for nearby existing auth/library error tests | docs/test output | S |
-| P1-WP12 | Add `pino-pretty` to devDependencies (dev-only pretty printer) | package.json | XS |
-| P1-WP13 | Add `observability/` to `tsconfig.json` paths if needed; verify `bun run type-check` passes | tsconfig.json | XS |
+| P1-WP12 | Add `observability/` to `tsconfig.json` paths if needed; verify `bun run type-check` passes | tsconfig.json | XS |
 
 **Parallelizable:** P1-WP1, WP6, WP7, WP8 are independent.
 **Sequential:** WP4/WP5 depend on WP1. WP9 depends on WP1, WP6, WP7.
@@ -62,7 +61,7 @@ bun run test:dom -- tests/vitest/app-error.test.ts tests/vitest/unwrap-supabase.
 - Targeted existing regression tests above show no new failures against the recorded baseline.
 - `./logs/dev.ndjson` not yet written (file writer belongs to P4).
 
-**Rollback:** delete `src/lib/observability/` directory + remove `pino-pretty` from devDeps. No other code touched.
+**Rollback:** delete `src/lib/observability/` directory. No other code touched.
 
 **Risks:**
 - RISK-ERR-001 — Over-engineering the taxonomy. Mitigation: 9 public kinds / 12 concrete subclasses max; revisit at pilot boundary.

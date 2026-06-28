@@ -14,7 +14,7 @@ Maps every requirement to source evidence, work package, acceptance criterion, v
 | FR-006 | `03` Section C | P3a-WP3 | `toast-apperror.test.tsx` | specified |
 | FR-007 | `01` Section B.7 | P2b follow-on after pilot | existing `auth-error-mapping.test.ts` | conditional |
 | ARCH-001 | `DEC-ERR-001` | P1-WP1..9 | directory exists; type-check | specified |
-| ARCH-002 | README | all phases | `git diff -- <off-limits>` empty | specified |
+| ARCH-002 | README | all phases | protected-contract diff review | specified |
 | LOG-001 | `02` Section C, `DEC-ERR-009` | P4-WP2, 3, 7 | `logger.test.ts` | pilot specified |
 | LOG-002 | `06` Section B, `DEC-ERR-005` | P1-WP7 | `redact.test.ts` | specified |
 | LOG-003 | `04` Section D | P4-WP4, 6 | `tests/unit/tail-dev-logs.test.ts` | specified |
@@ -23,19 +23,19 @@ Maps every requirement to source evidence, work package, acceptance criterion, v
 | OBS-002 | `02` Section D, `DEC-ERR-004` | P5-WP1..5, 7, 9 | `sentry-redact.test.ts`; manual dashboard only after owner/provider authority | owner/provider-gated |
 | OBS-003 | `02` Section E | deferred | n/a | deferred |
 | SEC-001 | `06` Section B | P1-WP7 | `redact.test.ts` property test | specified |
-| SEC-002 | `06` Section D, `DEC-ERR-011` | P5-WP1 + P6 probe | `e2e/source-map-leak.spec.ts` | specified |
-| SEC-003 | `06` Section F | P3-WP4 | `client-error.test.ts` | specified |
-| SEC-004 | `06` Section B.5 | P5-WP3, 4 | `sentry-redact.test.ts` | specified |
-| UX-001 | `03` Section C | P1-WP8, P3-WP5 | `toast-apperror.test.tsx` | specified |
+| SEC-002 | `06` Section D, `DEC-ERR-011` | P5-WP1 + P6a probe after authority | `e2e/source-map-leak.spec.ts` | owner/provider-gated |
+| SEC-003 | `06` Section F | P3a-WP2 | `client-error.test.ts` | pilot specified |
+| SEC-004 | `06` Section B.5 | P5-WP4, 5, 9 | `sentry-redact.test.ts` | specified |
+| UX-001 | `03` Section C | P1-WP8, P3a-WP3 | `toast-apperror.test.tsx` | specified |
 | UX-002 | existing API | preserved | existing tests | specified |
-| A11Y-001 | existing API compliance | P3-WP8 | `toast-a11y.test.tsx` | specified |
-| A11Y-002 | `05` Section A.5, A.6 | P3-WP1, 2 | Playwright focus assertion | specified |
+| A11Y-001 | existing API compliance | P3a-WP4 | `toast-a11y.test.tsx` | specified |
+| A11Y-002 | `05` Section A.5, A.6 | P3a-WP1 | DOM/browser focus assertion | pilot specified |
 | TEST-001 | `09` Section B | P1-WP10 | each test green | specified |
-| TEST-002 | `09` Section B | P3-WP8, P5-WP8 | each test green | specified |
-| TEST-003 | `09` Section C | P6-WP2 | each ADV row passes | specified |
-| PERF-001 | `04` Section G | P1-WP11 | `logger-perf.test.ts` | specified |
-| PERF-002 | `05` Section F | P5-WP9 | CI bundle-analyzer gate | specified |
-| DOC-001 | repo convention | P6-WP5 | current-state.md entry | specified |
+| TEST-002 | `09` Section B | P3a-WP4, P5-WP9 | each test green | pilot/provider-gated |
+| TEST-003 | `09` Section C | P6a-WP2 | pilot ADV rows pass | pilot specified |
+| PERF-001 | `04` Section G | P4-WP7 | `logger-perf.test.ts` | specified |
+| PERF-002 | `05` Section F | P5-WP10 | CI bundle-analyzer gate | owner/provider-gated |
+| DOC-001 | repo convention | P6a-WP5 | current-state.md entry | specified |
 | DOC-002 | repo convention | conditional | n/a unless tokens added | conditional |
 
 ## B. Source → Requirement reverse map
@@ -96,10 +96,10 @@ Maps every requirement to source evidence, work package, acceptance criterion, v
 - Council-raised P0/P1 blockers resolved by narrowing readiness and adding owner/provider gates.
 - No unresolved P0/P1 remains inside the approved P1+pilot scope. Provider/prod proof is explicitly gated for P5.
 
-**Verification mode declaration:** `independent-council-improved`
+**Verification mode declaration:** `independent` (council-improved)
 - Original package was lead-authored and over-claimed readiness.
 - Native feasibility, security/privacy, coherence, and adversarial document reviewers were used in this Codex improvement pass.
-- Final verifier must confirm no unresolved P0/P1 remains before the planning task is complete.
+- Final native verifier confirmed PASS: no remaining P0/P1 planning blockers for the approved conditional-ready scope.
 
 **Conditions for `CONDITIONALLY READY` (met):**
 - Every requirement has a stable ID, source evidence, WP, test.

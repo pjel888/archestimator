@@ -30,9 +30,9 @@ Per `Multi-Agent-Execution-Directive.md` Section 2, the original pack used lead-
 | Security/privacy reviewer | native `ce-security-lens-reviewer` | completed | P1/P2 security gaps resolved in this improvement pass |
 | Coherence reviewer | native `ce-coherence-reviewer` | requested | Results integrated if returned before final gate |
 | Adversarial document reviewer | native `ce-adversarial-document-reviewer` | requested | Results integrated if returned before final gate |
-| Final verifier | native `verifier` | required before completion | Validates no P0/P1 planning gaps remain |
+| Final verifier | native `verifier` | completed | PASS: no remaining P0/P1 planning blockers for the approved conditional-ready scope |
 
-**Verification mode declaration:** `independent-council-improved`. The previous `emulated` cap no longer describes this repaired package because native reviewer output was available and used.
+**Verification mode declaration:** `independent` (council-improved). The previous `emulated` cap no longer describes this repaired package because native reviewer output was available and used.
 
 ## Skill discipline
 
@@ -69,7 +69,7 @@ Per `Creating-Plan-Prompt.md` Section 4A:
 
 | Lane | Goal | Owned scope | Dependencies | Findings | Decisions | Status |
 |---|---|---|---|---|---|---|
-| Lead | Master plan | Full pack | None | Audit + research + council repair complete | Profile=standard, 16 files, conditional-ready pilot scope | COMPLETE pending final verifier |
+| Lead | Master plan | Full pack | None | Audit + research + council repair + verifier PASS complete | Profile=standard, 16 files, conditional-ready pilot scope | COMPLETE |
 | Plan agent (attempted) | Plan graph | n/a | None | n/a (failed) | n/a | superseded |
 | Explore client (attempted) | Client audit | src/components, src/hooks, src/app | None | n/a (failed) | n/a | superseded |
 | Explore server (attempted) | Server audit | src/lib, src/app/api, src/proxy.ts | None | n/a (failed) | n/a | superseded |
@@ -81,10 +81,10 @@ Per `Creating-Plan-Prompt.md` Section 4A:
 
 | Conflict | Resolution |
 |---|---|
-| Original pack claimed native agents were unavailable; current Codex session had native subagents. | Reclassified verification as independent-council-improved and recorded actual reviewer lanes. |
+| Original pack claimed native agents were unavailable; current Codex session had native subagents. | Reclassified verification as independent with council review and recorded actual reviewer lanes. |
 | Baseline gates required full `test`/`test:dom` green while the repo FAST PATH records known `test:dom` reds. | Replaced full-suite baseline assumptions with type-check/lint plus targeted tests and no-new-failures against the recorded baseline. |
 | Next.js `onRequestError` snippets used the wrong parameter order. | Updated snippets to the local Next 16 docs signature: `(err, request, context)`. |
-| `ERROR_HANDLING_ENABLED=false` claimed to restore legacy behavior after exported Server Action signatures change. | Removed master rollback flag; rollback is now per-phase revert plus observability kill switches. |
+| Obsolete master rollback flag claimed to restore legacy behavior after exported Server Action signatures change. | Removed master rollback flag; rollback is now per-phase revert plus observability kill switches. |
 | Client-error logs and AI log explanations treated attacker-controlled text as trusted. | Added same-origin, schema, redaction, tainted-field, and prompt-injection requirements. |
 | Sentry replay was enabled before privacy controls were defined. | Defaulted replay sampling to `0` until a separate owner-approved privacy posture exists. |
 

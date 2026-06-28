@@ -4,7 +4,7 @@ Feature flag strategy, rollout rings, runbook, monitoring thresholds, support im
 
 ## A. Feature flag strategy
 
-The plan uses observability kill switches only. It does **not** use a master `ERROR_HANDLING_ENABLED` switch because P2 changes exported Server Action return contracts to `ActionResult<T>`; an env var cannot safely restore legacy thrown-error behavior after callers migrate.
+The plan uses observability kill switches only. It does **not** use a master error-handling switch because P2 changes exported Server Action return contracts to `ActionResult<T>`; an env var cannot safely restore legacy thrown-error behavior after callers migrate.
 
 | Flag | Default | Purpose | Phase introduced |
 |---|---|---|---|
@@ -128,8 +128,9 @@ If still stuck, paste the full log record into the agent's context with the prom
 - **`trace_id` is shareable.** Users can include `trace_id` in support tickets; it correlates to a Sentry event and a dev log line.
 - **PII minimization in logs.** AI agents reading dev logs should see hashes, redacted values, and tainted-field labels. Real captured auth/database failure logs require a redaction review before broad AI-log use.
 
-## G. Operational checklist (pre-launch)
+## G. Operational checklist (pre-launch, after P5 owner/provider gate)
 
+- [ ] Owner/provider gate recorded for Sentry project, DSN, auth token, source-map policy, retention, and access controls
 - [ ] `SENTRY_DSN` set in Vercel env (production)
 - [ ] `SENTRY_AUTH_TOKEN` set in GitHub Actions secret (for sourcemap upload)
 - [ ] `SENTRY_ENABLED=true` in Vercel env (production)
@@ -143,9 +144,9 @@ If still stuck, paste the full log record into the agent's context with the prom
 
 ## H. Ponytail counterweight
 
-The operational design uses what's free:
+The operational design uses free/local defaults until provider gates are explicitly passed:
 - Sentry free tier (5k errors/mo)
-- Vercel built-ins (preview deploys, log drain to Axiom)
+- Vercel built-ins (preview deploys; Log Drain/Axiom deferred)
 - Local filesystem for dev logs (no extra infra)
 
 Deferred:

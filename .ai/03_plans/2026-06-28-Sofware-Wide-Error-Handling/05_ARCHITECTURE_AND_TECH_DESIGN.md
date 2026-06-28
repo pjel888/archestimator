@@ -229,10 +229,9 @@ Add the `sentry` key. CSP/headers/redirects untouched.
 
 Add `logs/` entry.
 
-### B.9 `package.json` (P1, P5)
+### B.9 `package.json` (P5 only)
 
-P1: add `pino-pretty` as devDependency (dev-only pretty-printer).
-P5: add `@sentry/nextjs` as dep.
+P1 uses native file writing and no new logger dependency. P5 adds `@sentry/nextjs` only after the owner/provider gate.
 
 ## C. Module dependency graph
 
@@ -309,29 +308,28 @@ Next.js 16 catches via the nearest `error.tsx` boundary. The `error.tsx` shows a
 | `unwrapSupabase` maps every Postgres code we care about | `tests/vitest/unwrap-supabase.test.ts` (new P1) |
 | `withActionErrors` returns `ActionResult<T>` shape | `tests/vitest/with-action-errors.test.ts` (new P1) |
 | Dev logger writes valid NDJSON to `./logs/dev.ndjson` | `tests/vitest/logger.test.ts` (new P4) |
-| `toast.appError` picks correct tone per kind | `tests/vitest/toast-apperror.test.tsx` (new P3) |
-| `global-error.tsx` renders without root layout | Playwright `e2e/global-error.spec.ts` (new P3) |
+| `toast.appError` picks correct tone per kind | `tests/vitest/toast-apperror.test.tsx` (new P3a) |
+| Selected pilot boundary renders safely | DOM/static test or Playwright `e2e/global-error.spec.ts` when browser proof is required (new P3a) |
 | `instrumentation.ts` register + onRequestError wires Sentry | `tests/vitest/instrumentation.test.ts` (new P5) |
 | `scripts/tail-dev-logs.mjs` parses every record shape | `tests/unit/tail-dev-logs.test.ts` (new P4) |
-| Server action migration preserves existing tests | All existing `tests/vitest/*-actions.test.ts` still GREEN |
+| Pilot server action migration preserves behavior | Targeted existing tests show no new failures against the recorded baseline |
 
 ## F. Bundle impact (verified by `@next/bundle-analyzer` in P5)
 
-- pino (server-only): does not enter client bundle
 - @sentry/nextjs client: ~20 KB gzipped, additive
 - @sentry/nextjs server: serverless function size; ~50 KB additive
 - Plan adds bundle-analyzer CI gate to fail if delta > 60 KB
 
-## G. Off-limits reminder
+## G. Protected-contract reminder
 
-Per README, these stay unchanged:
+Per README, these contracts stay stable:
 - `src/components/ui/toast.tsx` base API (extended only)
-- `src/app/providers.tsx` ToastProvider mount
+- `src/app/providers.tsx` ToastProvider mount behavior
 - `src/lib/auth/error-mapping.ts` existing codes (bridge added, not replaced)
 - `src/lib/auth/account-audit.ts`
 - `src/middleware.ts` / `src/proxy.ts` runtime behavior
 - All 67 Supabase migrations
 - All RLS policies
 - `vercel.json` regions/crons
-- `next.config.ts` CSP/headers/redirects
-- `.github/workflows/*` existing steps
+- `next.config.ts` CSP/headers/redirects (Sentry additions are P5 owner/provider-gated)
+- `.github/workflows/*` existing steps (source-map upload is P5 owner/provider-gated)

@@ -56,7 +56,7 @@ Risk register + Architecture Decision Records (ADRs) with rejected alternatives.
 **Rationale:** Public maps let attackers reverse-engineer the client bundle. Sentry stores them privately.
 
 ### DEC-ERR-012 — Readiness posture after council review
-**Decision:** Whole pack is `CONDITIONALLY READY`; approved implementation scope is P1 plus the pilot vertical (`publication/actions.ts`, one representative route handler, one UI error surface).
+**Decision:** Whole pack is `CONDITIONALLY READY`; approved implementation scope is P1 plus the pilot vertical (`publication/actions.ts`, one representative route handler, one UI error surface) plus the P4 dev logging pilot.
 **Rationale:** The all-actions/all-routes migration is high-blast-radius and conflicts with the repo's fast-iteration posture if attempted as one sweep. Pilot evidence must precede broad migration.
 **Rejected:** Declare the full cross-codebase migration `IMPLEMENTATION-READY` now.
 **Status:** owner-delegated planning decision, 2026-06-28.
@@ -70,7 +70,7 @@ Risk register + Architecture Decision Records (ADRs) with rejected alternatives.
 ### DEC-ERR-014 — Session Replay default
 **Decision:** Sentry Replay sampling defaults to `0` for MVP.
 **Rationale:** Replay has separate privacy, consent, retention, provider-access, and DOM/network metadata risks that are not solved by `maskAllText`.
-**Rejected:** Enable `replaysSessionSampleRate: 0.05` / `replaysOnErrorSampleRate: 1.0` in this plan.
+**Rejected:** Enable nonzero Sentry Replay sampling in this plan.
 **Status:** owner-delegated planning decision, 2026-06-28.
 
 ### DEC-ERR-015 — AI log trust boundary

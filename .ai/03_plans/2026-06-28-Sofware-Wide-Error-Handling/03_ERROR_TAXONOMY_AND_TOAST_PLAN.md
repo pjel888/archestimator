@@ -45,6 +45,8 @@ AppError (abstract root)
 
 ```ts
 // src/lib/observability/app-error.ts (new in P1)
+import { redactForLog } from './redact';
+import type { AppErrorLogRecord } from './types';
 
 export type AppErrorKind =
   | 'auth' | 'validation' | 'not_found' | 'conflict'

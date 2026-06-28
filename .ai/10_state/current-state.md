@@ -45,6 +45,19 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Project Activity Page plan package is implementation-ready (2026-06-28):**
+
+- Plan package `.ai/03_plans/2026-06-28-Project-Activity-Page/` is now `IMPLEMENTATION-READY` for `/workshop/projects/{projectId}/activity` as the project Activity History home with project/estimate scope selectors, action/user/client filters, authenticated transient Load more pagination, and existing dashboard chrome.
+- Scope was planning/documentation only: no app source, tests, migrations, provider state, deployment, or browser proof changed or claimed.
+- Key implementation contracts are recorded: `collaboration_audit_events` direct reads remain denied and require a scoped `read_project_collaboration_audit_events(...)` RPC; filters/scope are shareable URL state while cursor is transient loader state; recipient disambiguation is non-PII only; exact counts use `loadedCount`, `filteredTotalCount`, and `scopeTotalCount`; no `use cache`/`cacheTag` on the request-time auth/search route.
+- Independent verifier `019f0e82-50d0-7940-a0c9-d59bd8d72f31` returned `IMPLEMENTATION-READY` with no P0/P1 planning blockers. Implementation still must prove RPC/direct-deny behavior, exact counts, focused tests, authenticated performance timing, and browser QA before feature completion.
+
+**Software-wide error handling plan repaired to conditionally ready (2026-06-28):**
+
+- Plan folder `.ai/03_plans/2026-06-28-Sofware-Wide-Error-Handling/` is now `CONDITIONALLY READY` for P1 foundation, the P2a/P3a pilot vertical, and the P4 dev logging pilot; full all-actions/all-routes migration remains gated on pilot evidence plus a fresh independent review.
+- Repair narrowed over-broad implementation claims, fixed Next.js 16 `onRequestError(err, request, context)` guidance, removed the impossible master rollback flag, kept Sentry/Replays/provider proof owner-gated, and made client-error/AI-log data explicitly untrusted.
+- Final native verifier result: PASS — no remaining P0/P1 planning blockers for the approved conditional-ready scope. This was docs-only; no app code, tests, migrations, provider state, deployment, or browser proof changed.
+
 **Estimate row image upload RPC binding fixed (2026-06-28):**
 
 - Root cause for `Cannot read properties of undefined (reading 'rest')` after uploading an image on a newly created project-level row was detached Supabase `rpc` usage in estimate-row image asset validation.

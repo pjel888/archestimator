@@ -77,13 +77,14 @@ Required fields per the data model:
 - `Attributes` (key-value; for AI-diagnosability include `error.type`, `error.code`, `route`, `server_action`, `user_id_hashed`)
 - `Resource` (immutable emitter metadata: `service.name`, `service.version`, `deployment.environment`)
 
-### C.2 Pino (recommended Node.js JSON logger)
+### C.2 Pino (researched; not adopted for the pilot)
 
 Source: [libre-devops logging-standards](https://github.com/libre-devops/libredevops-dot-org/blob/main/content/docs/documents/logging-standards.mdx), [getpino.io](https://getpino.io/).
 
 - De-facto high-performance JSON logger for Node.js.
 - Emits NDJSON to `stdout`.
-- `formatters`, `redact`, `mixin` options shape records to canonical schema + inject active trace context + scrub PII.
+- `formatters`, `redact`, `mixin` options can shape records to canonical schema + inject active trace context + scrub PII.
+- Archestimator's approved pilot uses a native NDJSON writer instead of adding a logger dependency. Pino remains a future option only if log volume or transport features justify the dependency.
 
 ### C.3 Elastic Common Schema (ECS) alternative
 

@@ -193,7 +193,7 @@ export const logger = {
 };
 ```
 
-`src/lib/perf/server-timing.ts` itself is **off-limits** per README — only consumed.
+`src/lib/perf/server-timing.ts` itself is a protected contract per README — only consumed.
 
 ## F. Production forwarder
 
@@ -237,11 +237,11 @@ export const logger = {
 
 ### F.3 OpenTelemetry direct (out of scope for MVP)
 
-Full OTel SDK with OTLP exporter is explicitly deferred. Plan adopts OTel *data model* (schema), not the OTel *runtime*. Justification: Pino + Sentry covers pre-launch needs at lower complexity.
+Full OTel SDK with OTLP exporter is explicitly deferred. Plan adopts OTel *data model* (schema), not the OTel *runtime*. Justification: a native NDJSON writer plus owner-gated Sentry covers pre-launch needs at lower complexity.
 
 ## G. Bundle/perf budgets
 
-- Logger module bundle add: **<50 KB** gzipped (Pino is ~30 KB; Sentry client ~20 KB).
+- Logger module bundle add: **<10 KB** gzipped equivalent for the native writer; no client bundle impact until owner-gated Sentry, whose client SDK budget is ~20 KB.
 - Per-call overhead: **<1 ms p95** for logger.error (file append is fast; Sentry capture is fire-and-forget with batched sends).
 - Async — every log call returns immediately; I/O is non-blocking.
 - Verified by `tests/vitest/logger-perf.test.ts` (new in P4).
