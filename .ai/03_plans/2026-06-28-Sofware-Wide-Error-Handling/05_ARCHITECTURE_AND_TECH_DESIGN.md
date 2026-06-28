@@ -193,7 +193,9 @@ Per `04_LOGGING_PIPELINE_AND_AI_LOOP.md` Section D.
 
 ## B. Modified modules
 
-### B.1 `src/lib/component-library/action-errors.ts` (P2a pilot)
+### B.1 `src/lib/component-library/action-errors.ts` (P2b follow-on after pilot)
+
+**NOT in approved P2a pilot scope.** The approved P2a pilot is limited to `publication/actions.ts` + one representative route handler per `README` and `08` P2a. The `throwActionError` shim migration below is part of the broad P2b migration that follows pilot evidence. Included here as the reference shape so the post-pilot implementer does not have to re-litigate the contract.
 
 Existing `throwActionError` becomes a thin shim that throws a typed `AppError.InternalError`:
 

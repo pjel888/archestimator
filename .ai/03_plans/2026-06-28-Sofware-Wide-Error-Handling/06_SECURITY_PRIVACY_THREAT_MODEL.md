@@ -190,8 +190,12 @@ export async function POST(req: NextRequest) {
   // Field names match `05` Section A.8 canonical contract:
   //   client_message_redacted, digest, path_normalized, user_agent_hashed
   // All client-supplied text is treated as untrusted and labeled tainted.
+  // `parseClientErrorReport` (local parser in this route file) returns an
+  // already-sanitized shape: it strips control chars, masks emails/tokens/
+  // URL secrets, removes prompt-injection patterns, and truncates to 1024
+  // chars per `07` FR-003 AC-003.2 and `09` SEC-003/ADV-06 expectations.
   const report = {
-    client_message_redacted: stripControlChars(body.value.message).slice(0, 1024),
+    client_message_redacted: body.value.message, // already sanitized by parseClientErrorReport
     digest: body.value.digest,
     path_normalized: normalizePath(body.value.path),
   };
