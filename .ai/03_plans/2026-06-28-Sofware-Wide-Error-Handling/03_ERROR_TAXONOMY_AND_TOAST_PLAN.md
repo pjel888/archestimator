@@ -92,6 +92,12 @@ export abstract class AppError extends Error {
 
   /** Convert to a structured log record for the dev NDJSON / prod forwarder. */
   toLogRecord(): AppErrorLogRecord {
+    // AppErrorLogRecord is a *partial* DevLogRecord — it omits `record_id`
+    // and `severity_number`, which the logger adds at emit time:
+    //   - `record_id` is generated per-emit (see `04` Section C.2)
+    //   - `severity_number` is derived from `level` per the OTel map in `04` Section B.3
+    // The logger's `error(record)`/`warn(record)`/etc. signatures accept
+    // AppErrorLogRecord and return the fully-shaped DevLogRecord after enrichment.
     return {
       timestamp: this.timestamp,
       level: 'ERROR',
@@ -108,6 +114,25 @@ export abstract class AppError extends Error {
     };
   }
 }
+```
+
+`AppErrorLogRecord` and `DevLogRecord` (defined in `04` Section B.1) compose like so:
+
+```ts
+// src/lib/observability/types.ts (new in P1)
+export interface AppErrorLogRecord {
+  timestamp: string;
+  level: 'TRACE' | 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'FATAL';
+  message: string;
+  error?: DevLogRecord['error'];
+  context?: DevLogRecord['context'];
+  agent_decision?: DevLogRecord['agent_decision'];
+  attributes?: DevLogRecord['attributes'];
+}
+
+// The logger enriches AppErrorLogRecord → DevLogRecord at emit time:
+//   record_id     = `${timestampNs}-${processCounter++}`
+//   severity_number = SEVERITY_BY_LEVEL[level]  // per `04` Section B.3
 ```
 
 ### B.2 Concrete subclass example

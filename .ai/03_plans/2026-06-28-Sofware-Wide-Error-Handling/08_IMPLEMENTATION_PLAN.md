@@ -224,7 +224,7 @@ bun run test:dom -- tests/vitest/instrumentation.test.ts tests/vitest/sentry-red
 - `beforeSend` redaction works (test fixture with auth header).
 - Bundle size delta <60KB.
 
-**Rollback:** set `SENTRY_DSN=` (empty) — Sentry becomes no-op; logger still writes dev NDJSON.
+**Rollback:** set `SENTRY_ENABLED=false` (the P5 kill switch — see `10_ROLLOUT_ROLLBACK_OPS.md` Section A and C). The guard in `sentry.server.config.ts` `register()` and `captureRequestError()` short-circuits, so Sentry becomes a no-op while the dev NDJSON logger keeps working. `SENTRY_DSN=` (empty) achieves the same effect at the SDK level but is not the canonical rollback path; the dedicated kill switch is preferred because it does not require changing provider env vars.
 
 ## P6a — Pilot verification: targeted vitest + browser/adversarial + AI-diagnosability
 

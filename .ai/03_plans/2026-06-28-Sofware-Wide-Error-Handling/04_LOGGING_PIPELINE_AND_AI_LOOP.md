@@ -203,14 +203,19 @@ export const logger = {
 ### F.1 Sentry (P5)
 
 - Install `@sentry/nextjs` (dep).
-- Add `instrumentation.ts` at project root:
+- Add `instrumentation.ts` at project root (canonical snippet lives in `05` Section A.2; reproduced here for reference):
   ```ts
   // instrumentation.ts (new in P5)
   import { type Instrumentation } from 'next';
 
   export async function register() {
     if (process.env.NEXT_RUNTIME === 'nodejs') {
-      await import('./sentry.server.config');
+      const sentry = await import('./sentry.server.config');
+      // sentry.server.config.ts exports its own register() that calls Sentry.init().
+      // The import alone does not run it — call it explicitly.
+      if (typeof sentry.register === 'function') {
+        await sentry.register();
+      }
     }
   }
 
