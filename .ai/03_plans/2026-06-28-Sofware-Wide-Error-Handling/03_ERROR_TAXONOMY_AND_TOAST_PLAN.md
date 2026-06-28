@@ -353,14 +353,18 @@ import { TOAST_CONFIG, TOAST_FALLBACK_BY_KIND } from '@/lib/observability/toast-
 toast.appError = (err: unknown) => {
   // Accepts three input shapes:
   //   1. AppError instance — uses err.code / err.kind directly
-  //   2. Serialized ActionResult error arm {kind, code, message} from server action —
-  //      looks up config by code, falls back by kind, then uses the serialized message
+  //   2. Serialized AppError wire shape `{kind, code, message}` — this is the
+  //      INNER `error` field of an ActionResult error arm or route-handler
+  //      JSON body, NOT the full envelope. Callers receiving the envelope
+  //      `{ok:false, error:{kind,code,message}, trace_id}` must pass
+  //      `body.error` (not `body`) to this function. The type guard below
+  //      rejects envelopes so a misuse falls to the generic fallback rather
+  //      than silently misclassifying.
   //   3. Error instance or unknown — generic fallback
   if (err instanceof AppError) {
     const cfg = TOAST_CONFIG[err.code] ?? TOAST_FALLBACK_BY_KIND[err.kind];
     toast({ message: err.userMessage, tone: cfg.tone, durationMs: cfg.durationMs });
   } else if (isSerializedAppError(err)) {
-    // err is the wire shape from ActionResult error arm or route handler JSON body.
     const cfg = TOAST_CONFIG[err.code] ?? TOAST_FALLBACK_BY_KIND[err.kind];
     toast({ message: err.message, tone: cfg.tone, durationMs: cfg.durationMs });
   } else if (err instanceof Error) {
@@ -370,10 +374,15 @@ toast.appError = (err: unknown) => {
   }
 };
 
-// Type guard for the serialized AppError wire shape ({kind, code, message}).
+// Type guard for the serialized AppError INNER wire shape ({kind, code, message}).
+// Rejects the full route-handler envelope `{ok:false, error:{...}, trace_id}` —
+// callers must extract `.error` first (see usage comment above).
 function isSerializedAppError(value: unknown): value is { kind: AppError['kind']; code: string; message: string } {
   if (typeof value !== 'object' || value === null) return false;
   const v = value as Record<string, unknown>;
+  // Reject envelopes: presence of `ok` or `trace_id` means caller passed the
+  // full body, not the inner error. Fall to generic fallback in that case.
+  if ('ok' in v || 'trace_id' in v) return false;
   return typeof v.kind === 'string' && typeof v.code === 'string' && typeof v.message === 'string';
 }
 ```
