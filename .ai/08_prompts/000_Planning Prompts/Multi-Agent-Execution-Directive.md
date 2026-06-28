@@ -370,6 +370,20 @@ path matrix when the task risk warrants it:
 Do not leave a requirement untraced. If it is intentionally not implemented,
 record the defer/reject rationale and owner.
 
+For any requirement that touches auth, public links, invitations, tokens,
+hashes, encrypted secrets, cookies, share URLs, password unlocks, magic links,
+API keys, OAuth state, or session handoff, add a credential material taxonomy:
+
+| Material | Raw/hash/encrypted/derived/public marker | Created by | Stored in | Read by | Client-visible? | Used for URL/cookie/session? | Rotation/revocation | Proof |
+|---|---|---|---|---|---|---|---|---|
+
+Do not collapse raw tokens, hashes, encrypted tokens, recipient credentials,
+session cookies, and public IDs into one generic "token" concept. If a public
+route requires a raw bearer value, state that a stored hash is not a substitute.
+If a Server Action must recover raw material, it must authorize first and keep
+the recovery server-only. Any client-visible credential material needs explicit
+source evidence, owner acceptance, and leak-proof validation.
+
 ======================================================================
 8. EXECUTION LOOP
 ======================================================================
@@ -459,6 +473,11 @@ React and Next.js:
   boundary, DTO, authz, and reset behavior.
 - Treat Server Actions as directly reachable POST endpoints that must validate
   auth, authorization, ownership, input, idempotency, and return DTOs.
+- For Server Actions that set cookies, mutate headers, call `redirect()`, or
+  bridge into a public/authenticated surface, define the exact success transport
+  and the no-JS/progressive-enhancement behavior. Unit tests are not enough for
+  browser-only claims; require browser proof for cookie persistence, redirects,
+  focus, routing, and session establishment.
 - Avoid effects for render derivation. Use effects for synchronization with
   cleanup.
 - Use memoization only for a real render-cost or referential-stability reason.
@@ -507,6 +526,9 @@ Security and privacy:
   boundaries.
 - Minimize client DTOs and redact sensitive data from logs, errors, analytics,
   screenshots, and artifacts.
+- Treat credential hashes, encrypted tokens, raw bearer tokens, session cookies,
+  OAuth state, magic links, password-reset links, and non-secret marker cookies
+  as distinct materials with distinct visibility rules.
 - Consider CSRF, XSS, injection, SSRF, path traversal, replay, enumeration,
   abuse/rate limits, clickjacking, CSP, open redirects, uploads, secrets, and
   dependency risks when applicable.

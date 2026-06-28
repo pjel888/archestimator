@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { WarningCircle } from "@phosphor-icons/react/dist/ssr";
 
@@ -8,7 +8,6 @@ import { ProposalsEmptyState } from "@/components/workshop/proposals-page/Propos
 import { ProposalsErrorState } from "@/components/workshop/proposals-page/ProposalsErrorState";
 import { ProposalsList } from "@/components/workshop/proposals-page/ProposalsList";
 import { loadRecipientProposals } from "@/lib/recipient-proposals/actions";
-import type { OpenRecipientProposalActionState } from "@/lib/publication/actions";
 import type { RecipientProposalsResult } from "@/lib/repositories/recipient-proposals-repository";
 
 type ProposalsPageClientProps = {
@@ -25,8 +24,9 @@ export function ProposalsPageClient({ initialResult, userEmail }: ProposalsPageC
   const queryKey = useMemo(() => ["recipient-proposals", userEmail] as const, [userEmail]);
   const retryButtonRef = useRef<HTMLButtonElement | null>(null);
   const focusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const focusRetryAfterFailureRef = useRef(false);
   const refreshInFlightRef = useRef(false);
-  const [lastOkResult, setLastOkResult] = useState<Extract<RecipientProposalsResult, { ok: true }> | null>(
+  const lastOkResultRef = useRef<Extract<RecipientProposalsResult, { ok: true }> | null>(
     initialResult.ok ? initialResult : null,
   );
 
@@ -39,9 +39,7 @@ export function ProposalsPageClient({ initialResult, userEmail }: ProposalsPageC
     retry: false,
   });
 
-  useEffect(() => {
-    if (query.data?.ok) setLastOkResult(query.data);
-  }, [query.data]);
+  if (query.data?.ok) lastOkResultRef.current = query.data;
 
   const refresh = useCallback(
     async (options: { focusOnFailure?: boolean } = {}) => {
@@ -50,7 +48,7 @@ export function ProposalsPageClient({ initialResult, userEmail }: ProposalsPageC
       try {
         const result = await query.refetch();
         const failed = Boolean(result.error) || result.data?.ok === false;
-        if (options.focusOnFailure && failed) retryButtonRef.current?.focus();
+        if (options.focusOnFailure && failed) focusRetryAfterFailureRef.current = true;
       } finally {
         refreshInFlightRef.current = false;
       }
@@ -61,7 +59,7 @@ export function ProposalsPageClient({ initialResult, userEmail }: ProposalsPageC
   useEffect(() => {
     const scheduleFocusRefresh = () => {
       if (document.visibilityState === "hidden") return;
-      if (!query.isStale || query.isFetching) return;
+      if (query.isFetching) return;
       if (focusTimerRef.current) return;
 
       focusTimerRef.current = setTimeout(() => {
@@ -78,23 +76,29 @@ export function ProposalsPageClient({ initialResult, userEmail }: ProposalsPageC
       document.removeEventListener("visibilitychange", scheduleFocusRefresh);
       if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
     };
-  }, [query.isFetching, query.isStale, refresh]);
+  }, [query.isFetching, refresh]);
 
   const currentResult = query.data ?? initialResult;
   const currentError = currentResult.ok ? null : currentResult.error;
+
+  useEffect(() => {
+    if (!focusRetryAfterFailureRef.current || !currentError) return;
+    focusRetryAfterFailureRef.current = false;
+    retryButtonRef.current?.focus();
+  }, [currentError]);
 
   const handleRetry = () => {
     void refresh({ focusOnFailure: true });
   };
 
   const handleActionError = useCallback(
-    (_error: Exclude<OpenRecipientProposalActionState, null>["error"]) => {
+    () => {
       void refresh();
     },
     [refresh],
   );
 
-  if (!lastOkResult && currentError) {
+  if (!lastOkResultRef.current && currentError) {
     return (
       <div className="min-h-0 flex-1 overflow-auto p-3">
         <ProposalsErrorState
@@ -107,7 +111,7 @@ export function ProposalsPageClient({ initialResult, userEmail }: ProposalsPageC
     );
   }
 
-  const rows = lastOkResult?.rows ?? [];
+  const rows = lastOkResultRef.current?.rows ?? [];
 
   return (
     <div className="flex h-full min-h-0 flex-col">

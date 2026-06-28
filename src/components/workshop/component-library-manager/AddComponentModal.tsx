@@ -178,6 +178,7 @@ const OPENDESIGN_TEXTAREA_CLASS =
   "min-h-14 rounded-[6px] border-0 bg-[rgba(61,61,61,0.05)] px-2 py-2 !text-[10px] font-medium shadow-none hover:bg-[rgba(61,61,61,0.064)] focus:bg-[rgba(61,61,61,0.058)] focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]";
 const OPENDESIGN_SECTION_CLASS = "grid gap-[10px] rounded-[3px] bg-[rgba(61,61,61,0.035)] p-2";
 const OPENDESIGN_SECTION_TITLE_CLASS = "flex items-center gap-2 text-[10px] font-medium normal-case text-secondary";
+const OPENDESIGN_FIELD_LABEL_CLASS = "normal-case";
 const OPENDESIGN_IMAGE_WELL_CLASS =
   "relative grid aspect-square place-items-center overflow-hidden rounded-[3px] border-0 bg-[rgba(61,61,61,0.04)] shadow-[inset_0_1px_0_rgba(255,255,255,0.72),inset_0_0_0_1px_rgba(61,61,61,0.035)]";
 
@@ -1161,7 +1162,7 @@ function OpenAddComponentModal({
                       <Package size={11} weight="regular" aria-hidden="true" />
                       Component
                     </div>
-                    <ControlField label="Name" errorText={visibleValidationErrors.name}>
+                    <ControlField label="Name" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS} errorText={visibleValidationErrors.name}>
                       <ControlInput
                         ref={initialFocusRef}
                         aria-label="Name"
@@ -1174,7 +1175,7 @@ function OpenAddComponentModal({
                         className={OPENDESIGN_INPUT_CLASS}
                       />
                     </ControlField>
-                    <ControlField label="Description">
+                    <ControlField label="Description" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS}>
                       <ControlTextarea
                         aria-label="Description"
                         value={defaultVariant?.description ?? ""}
@@ -1194,7 +1195,7 @@ function OpenAddComponentModal({
                         Cost
                       </div>
                       <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-                        <ControlField label="Unit cost" errorText={visibleValidationErrors.unitCost}>
+                        <ControlField label="Unit cost" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS} errorText={visibleValidationErrors.unitCost}>
                           <div className="grid grid-cols-[38px_minmax(0,1fr)] overflow-hidden rounded-[6px] bg-[rgba(61,61,61,0.05)]">
                             <span className="grid place-items-center border-r border-[rgba(61,61,61,0.08)] text-[10px] font-medium text-tertiary">PHP</span>
                             <ControlInput
@@ -1212,7 +1213,7 @@ function OpenAddComponentModal({
                             />
                           </div>
                         </ControlField>
-                        <ControlField as="div" label="Unit" errorText={visibleValidationErrors.unit}>
+                        <ControlField as="div" label="Unit" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS} errorText={visibleValidationErrors.unit}>
                           <CreatableCombobox
                             ariaLabel="Unit"
                             ariaRequired
@@ -1244,7 +1245,7 @@ function OpenAddComponentModal({
 
                   <section className={OPENDESIGN_SECTION_CLASS} aria-label="Catalogue fields">
                     <div className={OPENDESIGN_SECTION_TITLE_CLASS}>Catalogue</div>
-                    <ControlField as="div" label="Category" errorText={visibleValidationErrors.category}>
+                    <ControlField as="div" label="Category" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS} errorText={visibleValidationErrors.category}>
                       <CreatableCombobox
                         ariaLabel="Category"
                         ariaRequired
@@ -1262,7 +1263,7 @@ function OpenAddComponentModal({
                         showDropdownIndicator
                       />
                     </ControlField>
-                    <ControlField as="div" label="Supplier" errorText={visibleValidationErrors.supplier}>
+                    <ControlField as="div" label="Supplier" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS} errorText={visibleValidationErrors.supplier}>
                       <CreatableCombobox
                         ariaLabel="Supplier"
                         value={selectedSupplier?.name ?? draft.supplierName}
@@ -1277,7 +1278,7 @@ function OpenAddComponentModal({
                         showDropdownIndicator
                       />
                     </ControlField>
-                    <ControlField as="div" label="Brand" errorText={visibleValidationErrors.brand}>
+                    <ControlField as="div" label="Brand" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS} errorText={visibleValidationErrors.brand}>
                       <CreatableCombobox
                         ariaLabel="Brand"
                         value={selectedBrand?.name ?? draft.brand}
@@ -1309,7 +1310,7 @@ function OpenAddComponentModal({
           ) : (
             <div role="tabpanel" aria-label="Activity" className="min-h-0 flex-1 overflow-auto p-[14px]">
               <section className="mx-auto grid w-full max-w-[520px] gap-3" aria-label="Component lifecycle">
-                <ControlField label="Component state">
+                <ControlField label="Component state" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS}>
                   <DropdownSelect
                     aria-label="Component state"
                     options={LIFECYCLE_OPTIONS}
@@ -1318,7 +1319,7 @@ function OpenAddComponentModal({
                     className={OPENDESIGN_INPUT_CLASS}
                   />
                 </ControlField>
-                <ControlField label="Effective date">
+                <ControlField label="Effective date" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS}>
                   <ControlInput
                     aria-label="Effective date"
                     type="date"
@@ -1327,7 +1328,7 @@ function OpenAddComponentModal({
                     className={OPENDESIGN_INPUT_CLASS}
                   />
                 </ControlField>
-                <ControlField label="Currency">
+                <ControlField label="Currency" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS}>
                   <ControlInput
                     aria-label="Currency"
                     disabled
@@ -1336,7 +1337,7 @@ function OpenAddComponentModal({
                     className={cn(OPENDESIGN_INPUT_CLASS, "opacity-100 disabled:opacity-100")}
                   />
                 </ControlField>
-                <ControlField label="Change note">
+                <ControlField label="Change note" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS}>
                   <ControlTextarea
                     aria-label="Change note"
                     value={draft.changeReason}
@@ -1369,7 +1370,7 @@ function OpenAddComponentModal({
             aria-modal="false"
             aria-hidden={!variantDrawerOpen}
             className={cn(
-              "absolute bottom-0 left-[calc(100%-1px)] top-[32px] z-20 flex w-[min(533px,calc(100vw-32px))] flex-col overflow-visible rounded-r-[6px] border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.94)] shadow-[22px_24px_60px_-28px_rgba(23,29,40,0.42)] backdrop-blur-[18px] transition max-lg:left-0 max-lg:right-0 max-lg:w-full max-lg:rounded-[6px] max-lg:border-l",
+              "absolute bottom-0 left-[calc(100%-1px)] top-[33px] z-20 flex w-[min(533px,calc(100vw-32px))] flex-col overflow-visible rounded-r-[6px] border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.94)] shadow-[22px_24px_60px_-28px_rgba(23,29,40,0.42)] backdrop-blur-[18px] transition max-lg:left-0 max-lg:right-0 max-lg:w-full max-lg:rounded-[6px] max-lg:border-l",
               variantDrawerOpen ? "translate-x-0 opacity-100" : "pointer-events-none -translate-x-2 opacity-0",
             )}
           >
@@ -1519,7 +1520,7 @@ function OpenAddComponentModal({
                   </section>
 
                   <section className={OPENDESIGN_SECTION_CLASS} aria-label="Variant identity">
-                    <ControlField label="Variant Name">
+                    <ControlField label="Variant Name" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS}>
                       <ControlInput
                         aria-label="Variant Name"
                         aria-required="true"
@@ -1529,7 +1530,7 @@ function OpenAddComponentModal({
                         className={OPENDESIGN_INPUT_CLASS}
                       />
                     </ControlField>
-                    <ControlField label="Variant Description">
+                    <ControlField label="Variant Description" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS}>
                       <ControlTextarea
                         aria-label="Variant Description"
                         value={activeVariant.description}
@@ -1537,7 +1538,7 @@ function OpenAddComponentModal({
                         className={OPENDESIGN_TEXTAREA_CLASS}
                       />
                     </ControlField>
-                    <ControlField label="SKU / Reference">
+                    <ControlField label="SKU / Reference" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS}>
                       <ControlInput
                         aria-label="SKU / Reference"
                         value={activeVariant.sku}
@@ -1557,7 +1558,7 @@ function OpenAddComponentModal({
                           : "md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]",
                       )}
                     >
-                      <ControlField label="Unit cost" errorText={showValidationErrors && activeVariant.id === defaultVariant?.id ? quickAddValidation.errors.unitCost : undefined}>
+                      <ControlField label="Unit cost" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS} errorText={showValidationErrors && activeVariant.id === defaultVariant?.id ? quickAddValidation.errors.unitCost : undefined}>
                         <div className="grid grid-cols-[38px_minmax(0,1fr)] overflow-hidden rounded-[6px] bg-[rgba(61,61,61,0.05)]">
                           <span className="grid place-items-center border-r border-[rgba(61,61,61,0.08)] text-[10px] font-medium text-tertiary">PHP</span>
                           <ControlInput
@@ -1572,7 +1573,7 @@ function OpenAddComponentModal({
                           />
                         </div>
                       </ControlField>
-                      <ControlField as="div" label="Unit" errorText={showValidationErrors && activeVariant.id === defaultVariant?.id ? quickAddValidation.errors.unit : undefined}>
+                      <ControlField as="div" label="Unit" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS} errorText={showValidationErrors && activeVariant.id === defaultVariant?.id ? quickAddValidation.errors.unit : undefined}>
                         <CreatableCombobox
                           ariaLabel="Variant unit"
                           ariaRequired
@@ -1601,7 +1602,7 @@ function OpenAddComponentModal({
                               <span>=</span>
                             </div>
                             <div className="grid gap-1 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)]">
-                              <ControlField label="Equivalent quantity">
+                              <ControlField label="Equivalent quantity" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS}>
                                 <ControlInput
                                   aria-label="Equivalent quantity"
                                   inputMode="decimal"
@@ -1612,7 +1613,7 @@ function OpenAddComponentModal({
                                   placeholder="12"
                                 />
                               </ControlField>
-                              <ControlField as="div" label="Equivalent unit">
+                              <ControlField as="div" label="Equivalent unit" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS}>
                                 <CreatableCombobox
                                   ariaLabel="Equivalent unit"
                                   value={activeVariant.packageUnit}

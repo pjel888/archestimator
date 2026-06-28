@@ -45,12 +45,42 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
-**Project Activity Page implemented locally with focused evidence (2026-06-28):**
+**Add Component OpenDesign visual proof passed (2026-06-29):**
+
+- The Add Component modal now matches the OpenDesign composition closely enough for handoff: 793px main modal, 533px attached variant drawer, 30px right-side rail, Component/Cost/Catalogue main field order, external `V1` rail labels, and flatter OpenDesign section/image surfaces.
+- OpenDesign remains the field contract. Non-OpenDesign fields stay removed from this create surface and stripped from the `fieldContract: "opendesign-add-component"` Supabase RPC JSON. Equivalency is retained because the OpenDesign HTML includes it, but it is visible only for package/content-conversion units such as `box`; normal `piece/unit` states hide it and send no package quantity/unit.
+- Visual evidence: `.omx/artifacts/visual-ralph/add-component-modal/reference.png`, `current-before.png`, and `current-after-4.png`; verdict `.omx/state/add-component-modal/ralph-progress.json` scored `92`.
+- Fresh evidence passed: targeted DOM/action matrix `3` files / `32` tests; scoped modal lint; scoped modal/action/test lint (0 errors; existing `actions.ts` warnings only); `git diff --check`.
+
+**Project Activity Page plan archived (2026-06-29):**
+
+- Archived the completed plan package from `.ai/03_plans/2026-06-28-Project-Activity-Page/` to `.ai/09_archive/2026-06-28-Project-Activity-Page/` after implementation, provider proof, build, and browser proof passed.
+- Completion evidence is preserved in `.ai/09_archive/2026-06-28-Project-Activity-Page/19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md` and `.omx/artifacts/project-activity-page/project-activity-route-browser-2026-06-28T163016Z/project-activity-route-browser-proof.json`.
+- No app, provider, migration, or test behavior changed as part of the archive move.
+
+**Project Activity Page implementation and browser proof passed (2026-06-28):**
+
+- `/workshop/projects/{projectId}/activity` is implemented with authenticated Server Component prefetch, URL-backed scope/action/actor/client filters, transient Load more via `/api/projects/{projectId}/activity`, route skeleton, friendly retry/error states, and focused project-activity tests.
+- Data/security implementation includes server-only `readProjectActivityFeed`, scoped collaboration-audit RPC migrations, generated RPC typing, direct-deny preservation for `collaboration_audit_events`, exact count contracts, non-PII recipient labels, project-only shared-comment filtering, viewed-event filtering, and index `collaboration_audit_events_project_created_id_idx`.
+- Protected-route performance hardening landed in `src/proxy.ts` / `src/app/workshop/layout.tsx`: proxy verifies `/workshop`, uses Supabase `auth.getClaims()` where supported, stamps trusted internal gate headers, and uses a short-lived HMAC-signed HttpOnly Terms gate cookie with DB fallback.
+- Fresh evidence passed: `bun run type-check`; scoped lint for touched activity/proxy/legal/proof files; focused auth/legal gate tests; `bun run test:dom -- tests/vitest/project-activity-page` (7 files / 38 tests); `bun run build`; production browser proof `.omx/artifacts/project-activity-page/project-activity-route-browser-2026-06-28T163016Z/project-activity-route-browser-proof.json`.
+- Browser proof details: temporary Supabase auth user cleanup succeeded; desktop/mobile route behavior, URL filters, invalid query tolerance, Load more/Refresh controls, no horizontal overflow, and screenshots passed; TTFB p50 `45ms` and p95 `140ms` against `300/600ms` thresholds. Remaining warnings were repeated 404 console resource warnings with no page errors.
+- Known unrelated validation noise: full `auth-proxy.test.ts` still has pre-existing `/beta/access-required` expectations while the current built route is `/access-required`; unrelated Add Component/OpenDesign work remains dirty in the worktree.
+
+**Add Component OpenDesign field contract landed locally (2026-06-28):**
+
+- `Add Component` now treats the OpenDesign artifact as the field contract: visible create fields are thumbnail/shared-image, `Name`, `Description`, `Category`, `Supplier`, `Brand`, base `Unit cost`/`Unit`, Activity `Component state`/`Effective date`/disabled `Currency`/`Change note`, and a variant drawer for variant thumbnail, identity, SKU/reference, variant cost/unit, equivalency, and attachments.
+- Removed from this create surface: separate nesting tree/hidden `libraryFolderId`, pricing date/source/confidence, cost manager and dated cost entries, misc cost, source URL, notes, dimensions/computed measurements, and dimension unit.
+- `createCostLibraryComponent` now supports `fieldContract: "opendesign-add-component"` and strips non-contract component/price-option fields from the final Supabase RPC JSON for this flow. Shared Supabase columns/tables were not dropped because local evidence shows those structures still support library browse/inspector, estimates, trust review, AI package, and legacy surfaces.
+- Fresh local evidence passed: targeted DOM/action matrix `3` files / `32` tests; post-helper action regression `1` file / `3` tests; scoped `bun run lint` for the modal/action/test files (0 errors; existing action warnings only); `git diff --check`. `bun run type-check` is red on unrelated Supabase type incompatibilities in `src/lib/legal/terms-acceptance.ts` and `src/proxy.ts`. Browser visual proof was not run in this pass.
+
+**Project Activity Page implemented with provider RPC proof (2026-06-28):**
 
 - `/workshop/projects/{projectId}/activity` now has a real authenticated Activity page: editor-gated Server Component prefetch, URL-backed scope/action/actor/client filters, compact timeline UI, transient Load more cursor via `/api/projects/{projectId}/activity`, and a route skeleton.
-- Added server-only `readProjectActivityFeed` with six-source fan-out, scoped collaboration audit access through new RPC migration `20260628223000_project_activity_collaboration_audit_rpc.sql`, generated RPC typing, non-PII recipient labels, per-source opaque cursor markers, dropdown helpers, and static contract tests forbidding direct `collaboration_audit_events` reads / recipient email DTO paths.
-- Fresh local evidence passed: `bun run type-check`; `bun run lint` (0 errors, existing warnings only); `bun run lint:design`; `bun run test`; `bun run test:dom -- tests/vitest/project-activity-page` (5 files / 26 tests); shared activity/dashboard regression matrix (8 files / 109 tests); `bun run build`; `git diff --check`.
-- Validation gap: full `bun run validate` is still red because repo-wide `lint:design-system` fails on pre-existing unrelated `src/components/workshop/estimate-sheet/rows/cells.tsx:478 uses rounded-full`. No project-activity design-system findings remain. Browser/provider RPC proof and authenticated perf timing were not run in this local implementation pass.
+- Added server-only `readProjectActivityFeed` with six-source fan-out, exact per-source count queries, scoped collaboration audit access through RPC migrations `20260628223000_project_activity_collaboration_audit_rpc.sql` and repair `20260628224500_project_activity_collaboration_audit_rpc_cursor_qualification.sql`, generated RPC typing, non-PII recipient labels, per-source opaque cursor markers, dropdown helpers, and static contract tests forbidding direct `collaboration_audit_events` reads / recipient email DTO paths.
+- Provider proof on Supabase project `ebxxqidacheyapmmzavr`: migrations applied as `20260628144520 project_activity_collaboration_audit_rpc` and `20260628144819 project_activity_collaboration_audit_rpc_cursor_qualification`; RPC signature is security-definer/stable with `target_action_buckets`; execute grants include authenticated/postgres/service_role only; direct app-role table privileges on `collaboration_audit_events` are empty; restrictive `deny direct api access` policy remains; simulated authorized RPC returned `returned_rows=1`, `source_total_count=1`; simulated non-member subject hit the expected permission-denied path.
+- Fresh local evidence passed: `bun run type-check`; `bun run lint` (0 errors, existing warnings only); `bun run lint:design`; `bun run test`; `bun run test:dom -- tests/vitest/project-activity-page` (5 files / 29 tests); shared activity/dashboard regression matrix (8 files / 109 tests); `bun run build`; `git diff --check`.
+- Validation gap: full `bun run validate` is still red because repo-wide `lint:design-system` fails on pre-existing unrelated `src/components/workshop/estimate-sheet/rows/cells.tsx:478 uses rounded-full`. No project-activity design-system findings remain. Browser visual/perf timing proof was not run because local static/type/test/build/provider evidence covered the changed behavior.
 
 **Project Activity Page plan package is implementation-ready (2026-06-28):**
 

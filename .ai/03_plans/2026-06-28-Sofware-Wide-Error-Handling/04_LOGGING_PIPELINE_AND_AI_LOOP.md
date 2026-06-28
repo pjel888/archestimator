@@ -37,7 +37,7 @@ interface DevLogRecord {
   // ── Error-specific (present when level=ERROR or WARN-with-error) ──
   error?: {
     kind: 'auth'|'validation'|'not_found'|'conflict'|'database'|'upstream'|'rate_limit'|'network'|'internal';
-    code: string;             // e.g. 'AUTH_REQUIRED', 'DATABASE_RLS_DENIED'
+    code: string;             // e.g. 'AUTH_REQUIRED', 'AUTH_PERMISSION_DENIED'
     class: string;            // TS class name, e.g. 'AuthPermissionDeniedError'
     message: string;          // user-safe message
     stack?: string[];         // string[] only in dev; omitted in prod
@@ -197,7 +197,8 @@ const SEVERITY_BY_LEVEL: Record<AppErrorLogRecord['level'], number> = {
 let processCounter = 0;
 function enrich(record: AppErrorLogRecord): DevLogRecord {
   const trace = getCurrentPerfTraceSnapshot();
-  const timestampNs = Date.now();
+  // RFC3339-nanosecond timestamp so `record_id` matches the documented schema/sample.
+  const timestampNs = new Date().toISOString().replace(/\.\d{3}Z$/, `${performance.now().toFixed(6).slice(-7)}Z`);
   return {
     record_id: `${timestampNs}-${processCounter++}`,
     severity_number: SEVERITY_BY_LEVEL[record.level],

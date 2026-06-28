@@ -194,7 +194,7 @@ function callPublicationRpc<T>(
 
 function isRecipientProposalPublicationAvailable(
   publication: Pick<Tables<"project_publications">, "encrypted_token" | "expires_at" | "id" | "password_hash" | "revoked_at" | "status"> | null,
-) {
+): publication is Pick<Tables<"project_publications">, "encrypted_token" | "expires_at" | "id" | "password_hash" | "revoked_at" | "status"> {
   if (!publication?.encrypted_token) return false;
   if (publication.status !== "published") return false;
   if (publication.revoked_at) return false;

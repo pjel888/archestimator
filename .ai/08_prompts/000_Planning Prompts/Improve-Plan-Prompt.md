@@ -173,6 +173,29 @@ on exact details.
 Unsupported implementation details may not be converted into requirements.
 Unsupported recommendations may not be made blockers.
 
+Credential material taxonomy is mandatory for any plan touching auth, public
+links, invitations, tokens, hashes, encrypted secrets, cookies, share URLs,
+password unlocks, magic links, API keys, OAuth state, or session handoff. Before
+scoring such a package as ready, require a table that distinguishes at least:
+
+- raw bearer material versus hashes, encrypted forms, public IDs, non-secret
+  markers, and derived cookie/session values;
+- where each value is created, stored, read, rotated, logged, and destroyed;
+- which boundary may see it: database, server-only code, Server Action, Route
+  Handler, browser URL, client props, DOM, network payload, logs, analytics,
+  tests, screenshots, provider console, or external user;
+- whether a hash is merely a lookup key or is actually accepted by a public
+  route;
+- whether an encrypted value can be decrypted only after an authorization check;
+- how direct POST, replay, copy/paste URL, expired, revoked, duplicate-click,
+  and cross-recipient cases are handled.
+
+If the plan cannot explain which raw value is required to construct a public
+URL or session cookie, treat the package as `NOT READY` for that flow. If a
+credential hash, encrypted token, session cookie, or recipient credential is
+returned to client-visible surfaces without a source-cited reason and explicit
+proof gate, cap security readiness below 70.
+
 MANDATORY ORCHESTRATION
 
 This task must cover multiple analysis workstreams. Use live independent
@@ -653,6 +676,11 @@ Require explicit contracts for:
   malformed responses
 - No mutation during render; mutations belong in Server Actions, Route Handlers,
   or explicit POST flows.
+- Any action or route that bridges a user into another authenticated/public
+  surface must state whether success returns a DTO, calls `redirect()`, sets
+  cookies, mutates headers, or depends on client navigation. Browser proof is
+  required when the success claim depends on real browser navigation, cookie
+  persistence, focus behavior, or redirect behavior.
 
 For Server Actions, Route Handlers, public routes, exports, upload/storage, or
 provider-backed data, include an Attack Surface Inventory table with:

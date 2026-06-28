@@ -20,6 +20,7 @@ type ControlFieldProps = {
   controlId?: string;
   as?: "label" | "div";
   className?: string;
+  labelClassName?: string;
   helperText?: ReactNode;
   errorText?: ReactNode;
   reserveHelperSpace?: boolean;
@@ -60,6 +61,7 @@ export function ControlField({
   controlId: explicitControlId,
   as = "label",
   className,
+  labelClassName,
   helperText,
   errorText,
   reserveHelperSpace,
@@ -124,7 +126,7 @@ export function ControlField({
 
   return (
     <FieldTag className={cn("flex min-w-0 flex-col gap-1", className)} {...fieldProps}>
-      <span id={labelId} className="block min-h-3 truncate text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary">
+      <span id={labelId} className={cn("block min-h-3 truncate text-[9px] font-medium uppercase leading-3 tracking-normal text-secondary", labelClassName)}>
         {label}
         {required ? <span aria-hidden="true" className="ml-0.5 text-danger">*</span> : null}
       </span>

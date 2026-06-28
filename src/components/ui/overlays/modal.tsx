@@ -187,10 +187,6 @@ export function AppModal({
   );
 }
 
-function BlurModal(props: Omit<AppModalProps, "blurBackdrop"> & { blurBackdrop?: boolean }) {
-  return <AppModal {...props} blurBackdrop={props.blurBackdrop ?? true} />;
-}
-
 export function Modal(props: AppModalProps) {
   return <AppModal {...props} />;
 }
