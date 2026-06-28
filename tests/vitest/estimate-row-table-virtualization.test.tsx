@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -116,6 +116,44 @@ describe("estimate row table virtualization", () => {
     expect(screen.getByRole("textbox", { name: `${rowLabel} contingency percentage` })).toBeDisabled();
     expect(screen.getByRole("textbox", { name: `${rowLabel} adjustment percentage` })).toBeDisabled();
     expect(screen.getByRole("textbox", { name: `${rowLabel} misc cost` })).toBeDisabled();
+  });
+
+  it("pluralizes quantity column units without changing material per-unit labels", () => {
+    const row = {
+      ...estimateLibraryItems[0],
+      id: "box-row-1",
+      material: "Carton box",
+      quantity: 12,
+      unit: "box",
+    };
+
+    render(
+      <EstimateRowItemsTable
+        items={[row]}
+        editableRows={{}}
+        setEditableRows={noop}
+        targetNodeId="box-node"
+        onInsertLibraryItem={noop}
+        onReplaceRowItem={noop}
+        onDeleteRowItem={noop}
+        onUpdateRowItem={noop}
+        onMarkRowDirty={noop}
+        onOpenRowDetails={noop}
+        onClearRowComponent={noop}
+        onRequestProjectSpecific={noop}
+        onMoveRowComponent={noop}
+        selectedRowIds={new Set()}
+        onToggleRowSelection={noop}
+        onToggleRowsSelection={noop}
+        virtualization={{ enabled: false }}
+      />,
+    );
+
+    const quantityCell = screen.getByRole("textbox", { name: "Carton box quantity" }).closest("td");
+    expect(quantityCell).toBeInstanceOf(HTMLElement);
+    expect(within(quantityCell as HTMLElement).getByText("boxes")).toHaveClass("!text-[10px]");
+    expect(within(quantityCell as HTMLElement).queryByText("/ box")).not.toBeInTheDocument();
+    expect(screen.getByText("/ box")).toBeInTheDocument();
   });
 
   it("renders left-edge resize handles in each node table header when column resizing is enabled", () => {

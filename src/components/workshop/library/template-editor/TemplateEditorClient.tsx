@@ -78,6 +78,56 @@ function TemplateEditorDockFallback({ onActivate }: { onActivate?: () => void })
   );
 }
 
+function TemplateEditorProjectSourcesUnavailable() {
+  const surfaceVariant = useLibrarySurfaceVariant();
+  return (
+    <section
+      className={cn("rounded-xs border border-dashed border-hairline bg-surfaceMuted/30 p-2", librarySurfaceClass(surfaceVariant, "contentTile"))}
+      aria-label="Project source unavailable"
+    >
+      <label className="block text-[9px] font-medium uppercase tracking-normal text-tertiary" htmlFor="template-editor-project-source-selector">
+        Project
+      </label>
+      <select
+        id="template-editor-project-source-selector"
+        className="mt-1 h-7 w-full rounded-xs border border-hairline bg-surface px-2 text-[10px] text-tertiary"
+        disabled
+        aria-label="Project source project"
+      >
+        <option>No project selected</option>
+      </select>
+      <p className="mt-2 text-[9px] leading-4 text-tertiary">
+        Project sources are unavailable until this template editor has a selected project scope.
+      </p>
+    </section>
+  );
+}
+
+function TemplateEditorReadOnlySourceDock() {
+  const surfaceVariant = useLibrarySurfaceVariant();
+  return (
+    <ResizableSidePanel
+      side="right"
+      ariaLabel="Sources"
+      storageKey="template_editor_read_only_sources_width"
+      defaultWidth={380}
+      minWidth={360}
+      maxWidth={560}
+      persistWidth={false}
+      compactDrawer={false}
+    >
+      <aside className={cn("hidden h-full min-h-0 w-[380px] shrink-0 flex-col overflow-hidden p-2 lg:flex", librarySurfaceClass(surfaceVariant, "rightDock"))} aria-label="Read-only sources">
+        <section className="rounded-xs border border-dashed border-hairline bg-surfaceMuted/30 p-2" aria-label="Read-only template">
+          <p className="text-[10px] font-medium leading-4 text-ink">Read-only template</p>
+          <p className="mt-1 text-[9px] leading-4 text-tertiary">
+            Source insertion and template mutation controls are unavailable for this access level.
+          </p>
+        </section>
+      </aside>
+    </ResizableSidePanel>
+  );
+}
+
 type TemplateEditorTextPrompt = {
   title: string;
   label: string;
@@ -164,16 +214,32 @@ function templateEditorUiReducer(
  * estimate-style editable sheet in the center. The right Components dock
  * arrives with the editor's drag/drop phase.
  */
-export function TemplateEditorClient({ template: serverTemplate, workspaceId }: { template: EstimateTemplate; workspaceId: string }) {
+export function TemplateEditorClient({
+  template: serverTemplate,
+  workspaceId,
+  canEditTemplate = true,
+}: {
+  template: EstimateTemplate;
+  workspaceId: string;
+  canEditTemplate?: boolean;
+}) {
   return (
     <LibrarySurfaceVariantProvider variant="glass">
-      <TemplateEditorSurface template={serverTemplate} workspaceId={workspaceId} />
+      <TemplateEditorSurface template={serverTemplate} workspaceId={workspaceId} canEditTemplate={canEditTemplate} />
     </LibrarySurfaceVariantProvider>
   );
 }
 
 // react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
-function TemplateEditorSurface({ template: serverTemplate, workspaceId }: { template: EstimateTemplate; workspaceId: string }) {
+function TemplateEditorSurface({
+  template: serverTemplate,
+  workspaceId,
+  canEditTemplate,
+}: {
+  template: EstimateTemplate;
+  workspaceId: string;
+  canEditTemplate: boolean;
+}) {
   const editor = useTemplateEditor(serverTemplate);
   const template = editor.template;
   const surfaceVariant = useLibrarySurfaceVariant();
@@ -236,6 +302,7 @@ function TemplateEditorSurface({ template: serverTemplate, workspaceId }: { temp
 
   const addNode = useCallback(
     (parentId: string | null, kind: "group" | "area") => {
+      if (!canEditTemplate) return;
       openTextPrompt({
         title: kind === "group" ? "Add group" : "Add area",
         label: kind === "group" ? "Group name" : "Area name",
@@ -249,11 +316,12 @@ function TemplateEditorSurface({ template: serverTemplate, workspaceId }: { temp
           },
       });
     },
-    [editor, openTextPrompt],
+    [canEditTemplate, editor, openTextPrompt],
   );
 
   const renameNode = useCallback(
     (node: EstimateTreeNode) => {
+      if (!canEditTemplate) return;
       openTextPrompt({
         title: node.kind === "group" ? "Rename group" : "Rename area",
         label: node.kind === "group" ? "Group name" : "Area name",
@@ -265,19 +333,21 @@ function TemplateEditorSurface({ template: serverTemplate, workspaceId }: { temp
         },
       });
     },
-    [editor, openTextPrompt],
+    [canEditTemplate, editor, openTextPrompt],
   );
 
   const deleteNode = useCallback((node: EstimateTreeNode) => {
+    if (!canEditTemplate) return;
     dispatchUi({ type: "setDeleteNodeTarget", node });
-  }, []);
+  }, [canEditTemplate]);
 
   const confirmDeleteNode = useCallback(() => {
+    if (!canEditTemplate) return;
     const node = deleteNodeTarget;
     if (!node) return;
     void editor.deleteNode(node.id);
     dispatchUi({ type: "confirmDeleteNode", nodeId: node.id });
-  }, [deleteNodeTarget, editor]);
+  }, [canEditTemplate, deleteNodeTarget, editor]);
 
   // Dock dataset: same lazy query + cache key as the estimate workspace, so
   // switching between the two surfaces reuses one fetch.
@@ -304,17 +374,20 @@ function TemplateEditorSurface({ template: serverTemplate, workspaceId }: { temp
   const templateTargetGroup = selectedNode?.kind === "group" ? selectedNode : null;
 
   const handleInsertComponent = useStableCallback((item: EstimateRowItem) => {
+    if (!canEditTemplate) return false;
     if (!componentTargetArea) return false;
     void editor.addLibraryItems(componentTargetArea.id, [item]);
     return true;
   });
   const handleInsertTemplate = useStableCallback((sourceTemplate: EstimateTemplate) => {
+    if (!canEditTemplate) return false;
     if (sourceTemplate.id === template.id) return false;
     void editor.insertTemplate(sourceTemplate.id, templateTargetGroup?.id ?? null);
     return true;
   });
   const handleInsertTemplateNode = useStableCallback(
     (sourceTemplate: EstimateTemplate, sourceNode: EstimateTreeNode) => {
+      if (!canEditTemplate) return false;
       if (sourceTemplate.id === template.id) return false;
       void editor.insertTemplate(sourceTemplate.id, templateTargetGroup?.id ?? null, sourceNode.id);
       return true;
@@ -326,11 +399,20 @@ function TemplateEditorSurface({ template: serverTemplate, workspaceId }: { temp
       onAddNode: addNode,
       onRenameNode: renameNode,
       onDeleteNode: deleteNode,
-      onUpdateRow: (rowId, patch) => void editor.updateRow(rowId, patch),
-      onRemoveRow: (rowId) => void editor.removeRow(rowId),
-      onAddAllowanceRow: (nodeId, material) => void editor.addAllowanceRow(nodeId, material),
-      onDropLibraryItem: (nodeId, item) => void editor.addLibraryItems(nodeId, [item]),
+      onUpdateRow: (rowId, patch) => {
+        if (canEditTemplate) void editor.updateRow(rowId, patch);
+      },
+      onRemoveRow: (rowId) => {
+        if (canEditTemplate) void editor.removeRow(rowId);
+      },
+      onAddAllowanceRow: (nodeId, material) => {
+        if (canEditTemplate) void editor.addAllowanceRow(nodeId, material);
+      },
+      onDropLibraryItem: (nodeId, item) => {
+        if (canEditTemplate) void editor.addLibraryItems(nodeId, [item]);
+      },
       onDropTemplate: (targetGroupId, payload) => {
+        if (!canEditTemplate) return;
         if (payload.kind === "template-node") {
           if (payload.templateId === template.id) return;
           void editor.insertTemplate(payload.templateId, targetGroupId, payload.templateNodeId);
@@ -342,7 +424,7 @@ function TemplateEditorSurface({ template: serverTemplate, workspaceId }: { temp
         }
       },
     }),
-    [addNode, deleteNode, editor, renameNode, template.id],
+    [addNode, canEditTemplate, deleteNode, editor, renameNode, template.id],
   );
 
   return (
@@ -390,13 +472,13 @@ function TemplateEditorSurface({ template: serverTemplate, workspaceId }: { temp
             showDefaultActions={false}
             onExpandAll={() => dispatchUi({ type: "setExpanded", nodeIds: getTemplateStructureAllNodeIds(template) })}
             onCollapseAll={() => dispatchUi({ type: "setExpanded", nodeIds: [] })}
-            addActions={[
+            addActions={canEditTemplate ? [
               {
                 label: "Add group",
                 icon: <FolderSimple size={12} weight="regular" aria-hidden="true" />,
                 onClick: () => addNode(null, "group"),
               },
-            ]}
+            ] : []}
           />
           <div className="min-h-0 flex-1 overflow-auto p-2">
             <TemplateStructureTree
@@ -410,15 +492,20 @@ function TemplateEditorSurface({ template: serverTemplate, workspaceId }: { temp
                 onRenameNode: renameNode,
                 onDeleteNode: deleteNode,
                 onMoveNode: (nodeId, parentId, orderedSiblingIds) =>
-                  void editor.moveNode(nodeId, parentId, orderedSiblingIds),
+                  canEditTemplate ? void editor.moveNode(nodeId, parentId, orderedSiblingIds) : undefined,
               }}
+              canEdit={canEditTemplate}
             />
           </div>
         </div>
       </ResizableSidePanel>
-      <TemplateEditorSheet template={template} selectedNodeId={selectedNodeId} handlers={sheetHandlers} />
-      {dockRequested && libraryData ? (
+      <TemplateEditorSheet template={template} selectedNodeId={selectedNodeId} handlers={sheetHandlers} canEdit={canEditTemplate} />
+      {!canEditTemplate ? (
+        <TemplateEditorReadOnlySourceDock />
+      ) : dockRequested && libraryData ? (
         <EstimateRightSidebar
+          visibleTabs={["components", "project"]}
+          initialActiveTab="components"
           selectedNodeId={componentTargetArea?.id ?? null}
           selectedNodeKind={componentTargetArea?.kind ?? null}
           selectedNodeName={componentTargetArea?.name ?? null}
@@ -435,6 +522,7 @@ function TemplateEditorSurface({ template: serverTemplate, workspaceId }: { temp
           brands={libraryData.brands}
           libraryFolders={libraryData.libraryFolders}
           onLibraryDataChanged={handleLibraryDataChanged}
+          projectTabUnavailable={<TemplateEditorProjectSourcesUnavailable />}
         />
       ) : (
         <TemplateEditorDockFallback onActivate={requestDock} />

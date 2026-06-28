@@ -1451,7 +1451,7 @@ async function validateEstimateRowImageAssetPatch({
   const uploadSessionId = readDescriptorText(candidate, "uploadSessionId");
   if (!assetId || !uploadSessionId) throw new Error("Reference image asset is invalid.");
 
-  const rpc = supabase.rpc as UploadAssetValidationRpc;
+  const rpc = supabase.rpc.bind(supabase) as UploadAssetValidationRpc;
   const { data, error } = await rpc("validate_estimate_row_image_asset", {
     target_asset_id: assetId,
     target_upload_session_id: uploadSessionId,
@@ -1496,7 +1496,7 @@ async function removeUnvalidatedEstimateRowImageAsset({
   const uploadSessionId = readDescriptorText(candidate, "uploadSessionId");
   if (!assetId || !uploadSessionId) return withoutImageAsset;
 
-  const rpc = supabase.rpc as UploadAssetValidationRpc;
+  const rpc = supabase.rpc.bind(supabase) as UploadAssetValidationRpc;
   const { data, error } = await rpc("validate_estimate_row_image_asset", {
     target_asset_id: assetId,
     target_upload_session_id: uploadSessionId,

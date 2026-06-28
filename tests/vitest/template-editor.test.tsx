@@ -139,11 +139,11 @@ function buildTemplate(): EstimateTemplate {
   };
 }
 
-function renderEditor(template: EstimateTemplate) {
+function renderEditor(template: EstimateTemplate, props: { canEditTemplate?: boolean } = {}) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <TemplateEditorClient template={template} workspaceId="workspace-1" />
+      <TemplateEditorClient template={template} workspaceId="workspace-1" {...props} />
     </QueryClientProvider>,
   );
 }
@@ -188,17 +188,46 @@ describe("TemplateEditorClient", () => {
     await waitFor(() => expect(componentLibraryMocks.estimateRightSidebar).toHaveBeenCalled());
     const props = componentLibraryMocks.estimateRightSidebar.mock.calls.at(-1)?.[0] as {
       templateCreateMode?: string;
+      visibleTabs?: string[];
       projectId?: string;
       estimateId?: string;
       projectSources?: unknown[];
       onInsertProjectSource?: unknown;
+      projectTabUnavailable?: unknown;
     };
 
     expect(props.templateCreateMode).toBe("scratch");
+    expect(props.visibleTabs).toEqual(["components", "project"]);
     expect(props.projectId).toBeUndefined();
     expect(props.estimateId).toBeUndefined();
     expect(props.projectSources).toBeUndefined();
     expect(props.onInsertProjectSource).toBeUndefined();
+    expect(props.projectTabUnavailable).toBeDefined();
+  });
+
+  it("hides template mutation affordances when rendered read-only", async () => {
+    renderEditor(buildTemplate(), { canEditTemplate: false });
+
+    const sheet = screen.getByRole("region", { name: "Template content" });
+    expect(within(sheet).queryByRole("button", { name: "Add group" })).not.toBeInTheDocument();
+    expect(within(sheet).queryByRole("button", { name: "Add area" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Remove row GROHE Lavatory Faucet" })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("GROHE Lavatory Faucet quantity")).toBeDisabled();
+    expect(screen.getByLabelText("GROHE Lavatory Faucet unit cost")).toBeDisabled();
+    expect(screen.queryByLabelText("Add row to Toilet + Bath")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Load components dock" })).not.toBeInTheDocument();
+
+    act(() => beginEstimateWorkshopDrag({ kind: "library-item" }));
+    expect(screen.queryByText("Drop to add the component to Toilet + Bath")).not.toBeInTheDocument();
+    act(() => endEstimateWorkshopDrag());
+
+    fireEvent.change(screen.getByLabelText("GROHE Lavatory Faucet quantity"), { target: { value: "3" } });
+    fireEvent.blur(screen.getByLabelText("GROHE Lavatory Faucet quantity"));
+
+    await waitFor(() => {
+      expect(actionMocks.updateEstimateTemplateRowItem).not.toHaveBeenCalled();
+    });
+    expect(componentLibraryMocks.estimateRightSidebar).not.toHaveBeenCalled();
   });
 
   it("does not auto-load the components dock before user intent", async () => {

@@ -377,6 +377,23 @@ function makeCanonicalReplaceResult(rowId: string, item: EstimateRowItem, rowRev
   };
 }
 
+function uploadedImageAsset(url: string, assetId = "asset-1") {
+  return {
+    kind: "upload-asset",
+    schemaVersion: 1,
+    assetId,
+    uploadSessionId: `${assetId}-session`,
+    bucket: "project-images",
+    path: `workspace-1/user-1/project-images/${projectId}/estimate-row-images/${estimateId}/${assetId}.webp`,
+    thumbnailPath: `workspace-1/user-1/project-images/${projectId}/estimate-row-images/${estimateId}/${assetId}-thumb.webp`,
+    url,
+    thumbnailUrl: `${url}?thumb=1`,
+    contentType: "image/webp",
+    sizeBytes: 128,
+    scanStatus: "not_required",
+  };
+}
+
 async function dragCabinetOntoSink(sheetNodes = nodesWithRow) {
   renderPersistedEstimateSheet(sheetNodes);
 
@@ -450,6 +467,7 @@ describe("estimate sheet library insertion persistence", () => {
     cleanup();
     resetEstimateWorkspaceState();
     setLibraryTelemetrySink(null);
+    vi.unstubAllGlobals();
     vi.clearAllMocks();
   });
 
@@ -760,6 +778,88 @@ describe("estimate sheet library insertion persistence", () => {
       rowId: insertInput.rowId,
       material: "Custom Vanity",
       expectedRowRevision: 1,
+    }));
+  });
+
+  it("uploads a selected image for a newly inserted express row with the inserted row revision", async () => {
+    process.env.NEXT_PUBLIC_EXPRESS_COMPONENTS_ENABLED = "true";
+    vi.stubGlobal("URL", {
+      ...URL,
+      createObjectURL: vi.fn(() => "blob:express-reference-preview"),
+      revokeObjectURL: vi.fn(),
+    });
+    const uploadedUrl = "https://assets.example.test/new-express-reference.webp";
+    const imageAsset = uploadedImageAsset(uploadedUrl, "asset-new-express");
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ url: uploadedUrl, imageAsset }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const user = userEvent.setup();
+    const insert = deferred<Awaited<ReturnType<typeof actionMocks.insertEstimateRowItemFromLibrary>>>();
+    actionMocks.insertEstimateRowItemFromLibrary.mockReturnValueOnce(insert.promise);
+    renderPersistedEstimateSheet();
+
+    await user.click(screen.getByRole("button", { name: "Add blank estimate row to Kitchen" }));
+    const insertInput = actionMocks.insertEstimateRowItemFromLibrary.mock.calls[0][0];
+    actionMocks.updateEstimateRowItem.mockImplementationOnce(async (input) => ({
+      rowId: input.rowId,
+      nodeId: targetNodeId,
+      material: "",
+      description: "",
+      supplier: "",
+      unit: "",
+      quantity: 1,
+      itemCost: 0,
+      contingencyPercentage: 0,
+      contingencyValue: 0,
+      miscCost: 0,
+      sourceSnapshot: input.sourceSnapshot,
+      metadata: insertInput.libraryItem.metadata,
+      linkState: "unlinked",
+      rowRevision: 2,
+    }));
+
+    await user.click(screen.getByRole("button", { name: "Add reference image for Project Component" }));
+    const dialog = screen.getByRole("dialog", { name: "Reference image" });
+    fireEvent.change(within(dialog).getByLabelText("Upload reference image"), {
+      target: { files: [new File(["image"], "reference.png", { type: "image/png" })] },
+    });
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Reference image" })).not.toBeInTheDocument());
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(actionMocks.updateEstimateRowItem).not.toHaveBeenCalled();
+
+    await act(async () => {
+      insert.resolve({
+        rowId: insertInput.rowId,
+        nodeId: targetNodeId,
+        material: "",
+        description: "",
+        supplier: "",
+        unit: "",
+        quantity: 1,
+        itemCost: 0,
+        contingencyPercentage: 0,
+        contingencyValue: 0,
+        miscCost: 0,
+        sourceSnapshot: null,
+        metadata: insertInput.libraryItem.metadata,
+        linkState: "unlinked",
+        rowRevision: 1,
+      });
+      await insert.promise;
+    });
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/estimate-row-images", expect.objectContaining({ method: "POST" })));
+    await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(1));
+    expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledWith(expect.objectContaining({
+      rowId: insertInput.rowId,
+      expectedRowRevision: 1,
+      sourceSnapshot: {
+        imageUrl: uploadedUrl,
+        imageAsset,
+      },
     }));
   });
 

@@ -99,11 +99,13 @@ const QUIET_CELL_INPUT_CLASS =
 function TemplateEditableRow({
   item,
   isTemporary,
+  readOnly,
   onUpdateRow,
   onRemoveRow,
 }: {
   item: EstimateRowItem;
   isTemporary: boolean;
+  readOnly: boolean;
   onUpdateRow: TemplateSheetHandlers["onUpdateRow"];
   onRemoveRow: TemplateSheetHandlers["onRemoveRow"];
 }) {
@@ -163,7 +165,7 @@ function TemplateEditableRow({
         value={draft.material}
         aria-label={`${item.material} row name`}
         className={cn(QUIET_CELL_INPUT_CLASS, "text-ink")}
-        disabled={isTemporary}
+        disabled={readOnly || isTemporary}
         onChange={(event) => setDraft((current) => ({ ...current, material: event.target.value }))}
         onBlur={() => commitText("material")}
         onKeyDown={blurOnEnter}
@@ -176,7 +178,7 @@ function TemplateEditableRow({
         aria-label={`${item.material} quantity`}
         align="right"
         className={cn(QUIET_CELL_INPUT_CLASS, "tabular-nums")}
-        disabled={isTemporary}
+        disabled={readOnly || isTemporary}
         onChange={(event) => setDraft((current) => ({ ...current, quantity: event.target.value }))}
         onBlur={() => commitNumber("quantity")}
         onKeyDown={blurOnEnter}
@@ -185,7 +187,7 @@ function TemplateEditableRow({
         value={draft.unit}
         aria-label={`${item.material} unit`}
         className={cn(QUIET_CELL_INPUT_CLASS, "text-secondary")}
-        disabled={isTemporary}
+        disabled={readOnly || isTemporary}
         onChange={(event) => setDraft((current) => ({ ...current, unit: event.target.value }))}
         onBlur={() => commitText("unit")}
         onKeyDown={blurOnEnter}
@@ -198,7 +200,7 @@ function TemplateEditableRow({
         aria-label={`${item.material} unit cost`}
         align="right"
         className={cn(QUIET_CELL_INPUT_CLASS, "tabular-nums")}
-        disabled={isTemporary}
+        disabled={readOnly || isTemporary}
         onChange={(event) => setDraft((current) => ({ ...current, unitCost: event.target.value }))}
         onBlur={() => commitNumber("unitCost")}
         onKeyDown={blurOnEnter}
@@ -207,6 +209,7 @@ function TemplateEditableRow({
         {pesoFormatter.format(item.totalItemCosts)}
       </span>
       <span className="flex items-center justify-center">
+        {!readOnly ? (
         <Button
           type="button"
           variant="ghost"
@@ -218,6 +221,7 @@ function TemplateEditableRow({
         >
           <Trash size={12} weight="regular" aria-hidden="true" />
         </Button>
+        ) : null}
       </span>
     </div>
   );
@@ -262,6 +266,7 @@ function TemplateSheetBranch({
   onToggleCollapsed,
   handlers,
   surfaceVariant,
+  canEdit,
 }: {
   node: EstimateTreeNode;
   depth: number;
@@ -269,6 +274,7 @@ function TemplateSheetBranch({
   onToggleCollapsed: (nodeId: string) => void;
   handlers: TemplateSheetHandlers;
   surfaceVariant: LibrarySurfaceVariant;
+  canEdit: boolean;
 }) {
   const collapsed = collapsedNodeIds.has(node.id);
   const isGroup = node.kind === "group";
@@ -277,8 +283,8 @@ function TemplateSheetBranch({
   const total = computeTemplateNodeTotal(node);
   const displayKind = isGroup ? "group" : "area";
   const activeDrag = useEstimateWorkshopDrag();
-  const componentDragActive = activeDrag?.kind === "library-item";
-  const templateDragActive = activeDrag?.kind === "estimate-template";
+  const componentDragActive = canEdit && activeDrag?.kind === "library-item";
+  const templateDragActive = canEdit && activeDrag?.kind === "estimate-template";
   const activeTemplateName = activeDrag?.kind === "estimate-template" ? activeDrag.templateName : "";
   const [dragOverCount, setDragOverCount] = useState(0);
   // A cancelled drag never delivers the balancing dragleave; reset once the
@@ -316,6 +322,7 @@ function TemplateSheetBranch({
   }
 
   function handleNodeDrop(event: DragEvent<HTMLElement>) {
+    if (!canEdit) return;
     setDragOverCount(0);
     if (acceptsComponentDrop) {
       const item = readLibraryItemDropPayload(event);
@@ -369,11 +376,14 @@ function TemplateSheetBranch({
         </span>
         <p
           className={cn("min-w-0 flex-1", nodeNameClasses())}
-          onDoubleClick={() => handlers.onRenameNode(node)}
-          title="Double-click to rename"
+          onDoubleClick={() => {
+            if (canEdit) handlers.onRenameNode(node);
+          }}
+          title={canEdit ? "Double-click to rename" : undefined}
         >
           {node.name}
         </p>
+        {canEdit ? (
         <span className="flex items-center gap-1 opacity-0 transition focus-within:opacity-100 group-hover/node:opacity-100">
           {isGroup ? (
             <>
@@ -413,6 +423,7 @@ function TemplateSheetBranch({
             <Trash size={12} weight="regular" aria-hidden="true" />
           </Button>
         </span>
+        ) : null}
         <span className={nodeTotalClasses()}>{pesoFormatter.format(total)}</span>
       </div>
 
@@ -427,6 +438,7 @@ function TemplateSheetBranch({
               onToggleCollapsed={onToggleCollapsed}
               handlers={handlers}
               surfaceVariant={surfaceVariant}
+              canEdit={canEdit}
             />
           ))}
           {node.kind === "area" ? (
@@ -436,11 +448,12 @@ function TemplateSheetBranch({
                   key={item.id}
                   item={item}
                   isTemporary={item.id.startsWith("temp-")}
+                  readOnly={!canEdit}
                   onUpdateRow={handlers.onUpdateRow}
                   onRemoveRow={handlers.onRemoveRow}
                 />
               ))}
-              {!isTemporary ? (
+              {canEdit && !isTemporary ? (
                 <TemplateGhostRow nodeId={node.id} nodeName={node.name} onAddAllowanceRow={handlers.onAddAllowanceRow} />
               ) : null}
             </div>
@@ -486,10 +499,12 @@ export function TemplateEditorSheet({
   template,
   selectedNodeId,
   handlers,
+  canEdit = true,
 }: {
   template: EstimateTemplate;
   selectedNodeId: string | null;
   handlers: TemplateSheetHandlers;
+  canEdit?: boolean;
 }) {
   const surfaceVariant = useLibrarySurfaceVariant();
   const [searchQuery, setSearchQuery] = useState("");
@@ -506,12 +521,13 @@ export function TemplateEditorSheet({
   const summary = useMemo(() => summarizeEstimateTemplate(template), [template]);
   const isEmpty = template.nodes.length === 0;
   const activeDrag = useEstimateWorkshopDrag();
-  const rootTemplateDragActive = activeDrag?.kind === "estimate-template";
+  const rootTemplateDragActive = canEdit && activeDrag?.kind === "estimate-template";
   const rootActiveTemplateName = activeDrag?.kind === "estimate-template" ? activeDrag.templateName : "";
   const [rootDragOverCount, setRootDragOverCount] = useState(0);
   if (!rootTemplateDragActive && rootDragOverCount !== 0) setRootDragOverCount(0);
 
   function handleRootTemplateDrop(event: DragEvent<HTMLElement>) {
+    if (!canEdit) return;
     setRootDragOverCount(0);
     const payload = readEstimateTemplateDragPayload(event.dataTransfer.getData(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE));
     if (!payload) return;
@@ -588,7 +604,7 @@ export function TemplateEditorSheet({
           showDefaultActions={false}
           onExpandAll={() => setCollapsedNodeIds(new Set())}
           onCollapseAll={() => setCollapsedNodeIds(new Set(collectTemplateNodeIds(template.nodes)))}
-          addActions={[
+          addActions={canEdit ? [
             {
               label: "Add group",
               visibleLabel: "Add group",
@@ -608,7 +624,7 @@ export function TemplateEditorSheet({
                 if (areaTargetGroup) handlers.onAddNode(areaTargetGroup.id, "area");
               },
             },
-          ]}
+          ] : []}
         />
         <div
           className={cn(
@@ -664,6 +680,7 @@ export function TemplateEditorSheet({
                 onToggleCollapsed={toggleCollapsed}
                 handlers={handlers}
                 surfaceVariant={surfaceVariant}
+                canEdit={canEdit}
               />
             ))}
             {rootTemplateDropZone}

@@ -678,6 +678,48 @@ describe("component library UI", () => {
     expect(within(viewMode).getByRole("menuitemradio", { name: "Brand" })).toHaveAttribute("aria-checked", "false");
   });
 
+  it("supports hosts that expose only Library and Project source tabs", async () => {
+    const sidebarTemplates: EstimateTemplate[] = [
+      {
+        id: "hidden-template-tab-template",
+        name: "Hidden template tab fixture",
+        category: "Rooms",
+        createdAt: "2026-06-28T00:00:00.000Z",
+        nodes: [],
+      },
+    ];
+    window.localStorage.setItem(LIBRARY_PREFS_KEY, JSON.stringify({ activeTab: "templates", componentViewMode: "default" }));
+    window.localStorage.setItem("estimate_library_active_tab", "templates");
+    reusableSourceActionMocks.listReusableProjectSources.mockResolvedValue({ sources: [] });
+
+    renderSidebar({
+      visibleTabs: ["components", "project"],
+      initialActiveTab: "templates",
+      templates: sidebarTemplates,
+      projectId: "project-1",
+      estimateId: "estimate-1",
+    });
+
+    const tabs = screen.getByRole("tablist", { name: "Estimate source sections" });
+    expect(within(tabs).getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Library", "Project"]);
+    expect(within(tabs).getByRole("tab", { name: "Library" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByRole("tab", { name: "Templates" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tree", { name: "Reusable estimate sources" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add Template" })).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(JSON.parse(window.localStorage.getItem(LIBRARY_PREFS_KEY) ?? "{}").activeTab).toBe("components");
+    });
+    expect(reusableSourceActionMocks.listReusableProjectSources).not.toHaveBeenCalled();
+    expect(reusableSourceActionMocks.searchReusableProjectSources).not.toHaveBeenCalled();
+
+    fireEvent.click(within(tabs).getByRole("tab", { name: "Project" }));
+
+    expect(within(tabs).getByRole("tab", { name: "Project" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByRole("button", { name: "Add Template" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tree", { name: "Reusable estimate sources" })).not.toBeInTheDocument();
+  });
+
   it("keeps the Library view-by menu open for real pointer interactions", async () => {
     const user = userEvent.setup();
     renderSidebar();

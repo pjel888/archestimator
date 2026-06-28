@@ -77,6 +77,7 @@ export function TemplateStructureTree({
   expandedIds,
   onToggle,
   handlers,
+  canEdit = true,
 }: {
   template: EstimateTemplate;
   selectedNodeId: string | null;
@@ -84,6 +85,7 @@ export function TemplateStructureTree({
   expandedIds: string[];
   onToggle: (nodeId: string) => void;
   handlers: TemplateStructureTreeHandlers;
+  canEdit?: boolean;
 }) {
   const [contextMenuNodeId, setContextMenuNodeId] = useState<string | null>(null);
   // U12 (UX-5): polite SR announcement after a keyboard reorder.
@@ -135,6 +137,7 @@ export function TemplateStructureTree({
   }
 
   function canDropNode(draggedId: string, targetId: string, position: TreeDropPosition) {
+    if (!canEdit) return false;
     const dragged = structureIndex.nodeById.get(draggedId);
     const target = resolveDropTarget(targetId, position);
     if (!dragged || !target) return false;
@@ -144,6 +147,7 @@ export function TemplateStructureTree({
   }
 
   function handleDropNode(draggedId: string, targetId: string, position: TreeDropPosition) {
+    if (!canEdit) return;
     const target = resolveDropTarget(targetId, position);
     if (!target) return;
     const currentSiblings =
@@ -163,6 +167,7 @@ export function TemplateStructureTree({
   }
 
   const contextMenuGroups = useMemo<ActionMenuGroup[]>(() => {
+    if (!canEdit) return [];
     if (!contextMenuNodeId) return [];
 
     if (contextMenuNodeId === TEMPLATE_EDITOR_ROOT_NODE_ID) {
@@ -265,7 +270,7 @@ export function TemplateStructureTree({
         ],
       },
     ];
-  }, [contextMenuNodeId, handlers, structureIndex]);
+  }, [canEdit, contextMenuNodeId, handlers, structureIndex]);
 
   return (
     <>
@@ -289,8 +294,8 @@ export function TemplateStructureTree({
             currentId={selectedNodeId}
             onRowClick={(nodeId) => onSelectNode(nodeId)}
             onContextMenu={(nodeId) => setContextMenuNodeId(nodeId)}
-            draggable
-            canDrag={(node) => node.id !== TEMPLATE_EDITOR_ROOT_NODE_ID}
+            draggable={canEdit}
+            canDrag={(node) => canEdit && node.id !== TEMPLATE_EDITOR_ROOT_NODE_ID}
             canDrop={canDropNode}
             onDrop={handleDropNode}
             renderRow={(treeNode) => (

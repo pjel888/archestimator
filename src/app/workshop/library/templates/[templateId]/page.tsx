@@ -20,5 +20,5 @@ export default async function TemplateEditorPage({ params, searchParams }: Templ
   if (!template) notFound();
   if (!template.workspaceId) notFound();
 
-  return <TemplateEditorClient template={template} workspaceId={template.workspaceId} />;
+  return <TemplateEditorClient template={template} workspaceId={template.workspaceId} canEditTemplate />;
 }

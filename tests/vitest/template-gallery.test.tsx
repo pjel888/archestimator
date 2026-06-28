@@ -7,15 +7,23 @@ import type { EstimateTemplate } from "@/components/workshop/component-library/t
 import type { EstimateRowItem, EstimateTreeNode } from "@/lib/estimates/types";
 
 const componentLibraryActionMocks = vi.hoisted(() => ({
+  createLibraryFolder: vi.fn(),
   createEstimateTemplate: vi.fn(),
   createEstimateTemplateFromEstimateNode: vi.fn(),
+  executeBulkArchiveLibraryComponents: vi.fn(),
   deleteEstimateTemplate: vi.fn(),
   duplicateEstimateTemplate: vi.fn(),
   listEstimateInsertTargets: vi.fn(),
+  loadComponentLibraryUserPreferences: vi.fn(),
   moveEstimateTemplateToCategory: vi.fn(),
+  previewBulkArchiveLibraryComponents: vi.fn(),
+  recordComponentLibraryTelemetryEvent: vi.fn(),
   renameEstimateTemplate: vi.fn(),
+  renameLibraryFolder: vi.fn(),
   renameTemplateCategory: vi.fn(),
+  reorderLibraryFolders: vi.fn(),
   resolveEstimateTemplateInsertTarget: vi.fn(),
+  saveComponentLibraryUserPreferences: vi.fn(),
 }));
 
 const estimateActionMocks = vi.hoisted(() => ({
@@ -28,9 +36,41 @@ const navigationMocks = vi.hoisted(() => ({
   replace: vi.fn(),
 }));
 
-vi.mock("@/lib/component-library/actions", () => componentLibraryActionMocks);
+const reusableSourceActionMocks = vi.hoisted(() => ({
+  getReusableEstimateOutline: vi.fn(),
+  listReusableProjectEstimateSources: vi.fn(),
+  listReusableProjectSources: vi.fn(),
+  searchReusableProjectSources: vi.fn(),
+}));
+
+vi.mock("@/hooks/use-media-query", () => ({
+  useMediaQuery: () => false,
+}));
+
+vi.mock("@/lib/component-library/actions", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/component-library/actions")>()),
+  createLibraryFolder: componentLibraryActionMocks.createLibraryFolder,
+  createEstimateTemplate: componentLibraryActionMocks.createEstimateTemplate,
+  createEstimateTemplateFromEstimateNode: componentLibraryActionMocks.createEstimateTemplateFromEstimateNode,
+  deleteEstimateTemplate: componentLibraryActionMocks.deleteEstimateTemplate,
+  duplicateEstimateTemplate: componentLibraryActionMocks.duplicateEstimateTemplate,
+  executeBulkArchiveLibraryComponents: componentLibraryActionMocks.executeBulkArchiveLibraryComponents,
+  listEstimateInsertTargets: componentLibraryActionMocks.listEstimateInsertTargets,
+  loadComponentLibraryUserPreferences: componentLibraryActionMocks.loadComponentLibraryUserPreferences,
+  moveEstimateTemplateToCategory: componentLibraryActionMocks.moveEstimateTemplateToCategory,
+  previewBulkArchiveLibraryComponents: componentLibraryActionMocks.previewBulkArchiveLibraryComponents,
+  recordComponentLibraryTelemetryEvent: componentLibraryActionMocks.recordComponentLibraryTelemetryEvent,
+  renameEstimateTemplate: componentLibraryActionMocks.renameEstimateTemplate,
+  renameLibraryFolder: componentLibraryActionMocks.renameLibraryFolder,
+  renameTemplateCategory: componentLibraryActionMocks.renameTemplateCategory,
+  reorderLibraryFolders: componentLibraryActionMocks.reorderLibraryFolders,
+  resolveEstimateTemplateInsertTarget: componentLibraryActionMocks.resolveEstimateTemplateInsertTarget,
+  saveComponentLibraryUserPreferences: componentLibraryActionMocks.saveComponentLibraryUserPreferences,
+}));
 
 vi.mock("@/lib/estimates/actions", () => estimateActionMocks);
+
+vi.mock("@/lib/reusable-sources/actions", () => reusableSourceActionMocks);
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -169,6 +209,7 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
     navigationMocks.refresh.mockReset();
     navigationMocks.replace.mockReset();
     for (const mock of Object.values(componentLibraryActionMocks)) mock.mockReset();
+    for (const mock of Object.values(reusableSourceActionMocks)) mock.mockReset();
     estimateActionMocks.insertEstimateTemplateIntoEstimate.mockReset();
     vi.spyOn(window, "prompt").mockReturnValue(null);
   });
@@ -187,12 +228,13 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
     expect(contextStrip).toHaveTextContent("Sorted by group");
   });
 
-  it("renders only the custom-template tree with no project sources section", () => {
+  it("renders the template inventory plus a Library and Project source dock", () => {
     renderManager();
 
     expect(screen.getByRole("treeitem", { name: "All Templates" })).toBeInTheDocument();
-    // The standalone library route browses custom templates only; the
-    // project-derived "Projects" section lives solely in the in-estimate panel.
+    const sourceTabs = screen.getByRole("tablist", { name: "Estimate source sections" });
+    expect(within(sourceTabs).getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Library", "Project"]);
+    expect(screen.queryByRole("tab", { name: "Templates" })).not.toBeInTheDocument();
     expect(screen.queryByRole("treeitem", { name: "Projects reusable sources" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open Condo Starter" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Insert Condo Starter into estimate" })).toBeInTheDocument();
@@ -362,7 +404,7 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
     await waitFor(() => {
       expect(componentLibraryActionMocks.duplicateEstimateTemplate).toHaveBeenCalledWith({ templateId: "template-condo" });
     });
-    expect(await within(getGallery()).findByText("Condo Starter copy")).toBeInTheDocument();
+    expect(await within(screen.getByRole("list", { name: "All Templates template rows" })).findByText("Condo Starter copy")).toBeInTheDocument();
   });
 
   it("matches row content in the gallery search (material/supplier extension)", async () => {

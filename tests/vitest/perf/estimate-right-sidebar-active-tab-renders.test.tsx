@@ -190,4 +190,28 @@ describe("EstimateRightSidebar active-tab render scope (F-13)", () => {
     expect(treeRenderCounts.library).toBeGreaterThan(0);
     expect(treeRenderCounts.templates).toBe(0);
   });
+
+  it("does not render the Templates tree when a host hides the Templates tab", () => {
+    renderProfiledSidebar({
+      visibleTabs: ["components", "project"],
+      initialActiveTab: "templates",
+      enableReusableProjectSources: true,
+      projectId: "project-profiler",
+      estimateId: "estimate-profiler",
+    });
+
+    const tabs = screen.getByRole("tablist", { name: "Estimate source sections" });
+    expect(screen.queryByRole("tab", { name: "Templates" })).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Library" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByTestId("templates-tree")).not.toBeInTheDocument();
+    expect(treeRenderCounts.templates).toBe(0);
+
+    treeRenderCounts.reset();
+    fireEvent.click(screen.getByRole("tab", { name: "Project" }));
+
+    expect(screen.getByRole("tab", { name: "Project" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByTestId("templates-tree")).not.toBeInTheDocument();
+    expect(treeRenderCounts.templates).toBe(0);
+    expect(tabs).toBeInTheDocument();
+  });
 });

@@ -37,6 +37,19 @@ export type LibraryEditingFolderMode = "create" | "rename" | null;
 
 const EMPTY_LIBRARY_TREE_ORDER: Record<ComponentViewMode, LibraryTreeOrder> = { default: {}, suppliers: {}, brand: {} };
 
+export function isEstimateLibraryTab(value: string | null | undefined): value is EstimateLibraryTab {
+  return value === "components" || value === "project" || value === "templates";
+}
+
+export function resolveVisibleEstimateLibraryTab(
+  value: string | null | undefined,
+  visibleTabs: readonly EstimateLibraryTab[],
+  fallback: EstimateLibraryTab = "components",
+): EstimateLibraryTab {
+  const fallbackTab = visibleTabs.includes(fallback) ? fallback : visibleTabs[0] ?? "components";
+  return isEstimateLibraryTab(value) && visibleTabs.includes(value) ? value : fallbackTab;
+}
+
 export type EstimateRightSidebarChromeState = {
   activeTab: EstimateLibraryTab;
   searchQuery: string;
@@ -151,9 +164,9 @@ function bindSidebarSetters<State extends object>(
   return setters;
 }
 
-function createInitialChromeState(): EstimateRightSidebarChromeState {
+function createInitialChromeState(initialActiveTab: EstimateLibraryTab = "components"): EstimateRightSidebarChromeState {
   return {
-    activeTab: "components",
+    activeTab: initialActiveTab,
     searchQuery: "",
     searchOpen: false,
     previewItemId: null,
@@ -251,8 +264,8 @@ export function getInitialTemplatesExpandedIds(templates: EstimateTemplate[]) {
   ]));
 }
 
-export function useEstimateRightSidebarChromeState() {
-  const [state, setField] = useSidebarSlice(createInitialChromeState);
+export function useEstimateRightSidebarChromeState(initialActiveTab?: EstimateLibraryTab) {
+  const [state, setField] = useSidebarSlice(() => createInitialChromeState(initialActiveTab));
   const actions = useMemo(
     () => bindSidebarSetters<EstimateRightSidebarChromeState>(
       ["activeTab", "searchQuery", "searchOpen", "previewItemId", "previewProjectSourceKey"],

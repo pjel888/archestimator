@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { memo, useCallback, useDeferredValue, useEffect, useEffectEvent, useMemo, useRef, useState, type SetStateAction } from "react";
+import { memo, useCallback, useDeferredValue, useEffect, useEffectEvent, useMemo, useRef, useState, type ReactNode, type SetStateAction } from "react";
 import { FolderSimple, Package, Plus, Rows, StackPlus, StackSimple, Trash, X } from "@phosphor-icons/react/dist/ssr";
 
 import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
@@ -82,6 +82,8 @@ import {
 } from "./templates";
 import {
   hydrateSidebarLibraryItems,
+  isEstimateLibraryTab,
+  resolveVisibleEstimateLibraryTab,
   useEstimateRightSidebarChromeState,
   useLibraryTabState,
   useProjectTabState,
@@ -177,15 +179,25 @@ import {
   safeSetJsonStorage,
 } from "./helpers";
 
-const LIBRARY_TREE_TABS = [
-  { id: "components", label: "Library" },
-  { id: "project", label: "Project" },
-  { id: "templates", label: "Templates" },
-] as const;
-const PUBLIC_LIBRARY_TREE_TABS = [
-  { id: "components", label: "Library" },
-  { id: "templates", label: "Templates" },
-] as const;
+const DEFAULT_LIBRARY_TREE_TABS: readonly EstimateLibraryTab[] = ["components", "project", "templates"];
+const PUBLIC_LIBRARY_TREE_TABS: readonly EstimateLibraryTab[] = ["components", "templates"];
+const LIBRARY_TREE_TAB_LABELS: Record<EstimateLibraryTab, string> = {
+  components: "Library",
+  project: "Project",
+  templates: "Templates",
+};
+
+function normalizeVisibleLibraryTabs(tabs: readonly EstimateLibraryTab[]): EstimateLibraryTab[] {
+  const normalized: EstimateLibraryTab[] = [];
+  for (const tab of tabs) {
+    if (!normalized.includes(tab)) normalized.push(tab);
+  }
+  return normalized.length > 0 ? normalized : ["components"];
+}
+
+function buildLibraryTreeTabs(tabs: readonly EstimateLibraryTab[]) {
+  return tabs.map((id) => ({ id, label: LIBRARY_TREE_TAB_LABELS[id] }));
+}
 
 const EMPTY_REUSABLE_PROJECT_SOURCES: ReusableEstimateSource[] = [];
 const EMPTY_SUPPLIER_OPTIONS: ComponentLibrarySupplierOption[] = [];
@@ -626,6 +638,12 @@ type EstimateRightSidebarProps = {
   useStoredPreferences?: boolean;
   /** Enables browsing reusable sources pulled from real projects. Disable for public/mockup embeds. */
   enableReusableProjectSources?: boolean;
+  /** Restricts the source tabs a host can show; defaults preserve the estimate sidebar contract. */
+  visibleTabs?: readonly EstimateLibraryTab[];
+  /** Initial source tab before stored preferences hydrate. Hidden tabs are clamped to the first visible tab. */
+  initialActiveTab?: EstimateLibraryTab;
+  /** Route-local unavailable state for hosts that expose Project before scoped project data exists. */
+  projectTabUnavailable?: ReactNode;
   /** Reads/writes the user's saved sidebar width. Disable for public/mockup embeds. */
   usePersistentPanelWidth?: boolean;
   /** Product-specific compact drawer state controlled by EstimateSheetContent. */
@@ -818,6 +836,9 @@ function useEstimateRightSidebarContent({
   libraryDataLoading = false,
   useStoredPreferences = true,
   enableReusableProjectSources = true,
+  visibleTabs,
+  initialActiveTab,
+  projectTabUnavailable,
   usePersistentPanelWidth = true,
   mobileDrawerOpen = false,
   onMobileDrawerOpenChange,
@@ -830,11 +851,20 @@ function useEstimateRightSidebarContent({
   const compactViewport = useMediaQuery("(max-width: 1023px)");
   const sourcesDrawerOpen = Boolean(mobileDrawerOpen && compactViewport);
   const effectiveProjectSources = enableReusableProjectSources ? projectSources : EMPTY_REUSABLE_PROJECT_SOURCES;
+  const effectiveVisibleLibraryTabs = useMemo(
+    () => normalizeVisibleLibraryTabs(visibleTabs ?? (enableReusableProjectSources ? DEFAULT_LIBRARY_TREE_TABS : PUBLIC_LIBRARY_TREE_TABS)),
+    [enableReusableProjectSources, visibleTabs],
+  );
+  const resolveVisibleTab = useCallback(
+    (tab: string | null | undefined) => resolveVisibleEstimateLibraryTab(tab, effectiveVisibleLibraryTabs),
+    [effectiveVisibleLibraryTabs],
+  );
+  const initialVisibleActiveTab = resolveVisibleTab(initialActiveTab);
   // Initial state must not read localStorage: SSR renders the fallbacks, so a
   // storage-aware initializer makes the client's first render diverge and
   // throws a hydration mismatch. Stored prefs apply in the mount effect below.
   const folderEditCommitInFlightRef = useRef(false);
-  const { state: chromeState, actions: chromeActions } = useEstimateRightSidebarChromeState();
+  const { state: chromeState, actions: chromeActions } = useEstimateRightSidebarChromeState(initialVisibleActiveTab);
   const { state: libraryState, actions: libraryActions } = useLibraryTabState({
     initialLibraryItems,
     categoryTree,
@@ -957,7 +987,11 @@ function useEstimateRightSidebarContent({
     setDeleteTemplateError,
     setDeleteTemplatePending,
   } = templatesActions;
+  const visibleActiveTab = resolveVisibleTab(activeTab);
   const { toast } = useToast();
+  useEffect(() => {
+    if (activeTab !== visibleActiveTab) setActiveTab(visibleActiveTab);
+  }, [activeTab, setActiveTab, visibleActiveTab]);
   useEffect(() => {
     if (process.env.NODE_ENV === "test") return undefined;
     setLibraryTelemetrySink((record) => {
@@ -1165,7 +1199,7 @@ function useEstimateRightSidebarContent({
   const effectiveTemplateSourceFilter = templateSourceFilter === "projects" && !projectSourcesLoading && !hasLoadedProjectSources
     ? "all"
     : templateSourceFilter;
-  const projectSourceSearchQuery = activeTab === "templates" && effectiveTemplateSourceFilter !== "custom"
+  const projectSourceSearchQuery = visibleActiveTab === "templates" && effectiveTemplateSourceFilter !== "custom"
     ? searchQuery.trim()
     : "";
 
@@ -1194,10 +1228,16 @@ function useEstimateRightSidebarContent({
     }
 
     const storedTab = stored.storedPrefs.activeTab ?? stored.legacyStoredTab;
-    if (storedTab === "templates") setActiveTab("templates");
-    // Guard the "project" tab at the point it is chosen rather than correcting
-    // it later with an effect: if project sources are disabled, never land here.
-    else if (storedTab === "project" && enableReusableProjectSources) setActiveTab("project");
+    if (isEstimateLibraryTab(storedTab)) {
+      const resolvedStoredTab = resolveVisibleTab(storedTab);
+      setActiveTab(resolvedStoredTab);
+      if (storedTab !== resolvedStoredTab && useStoredPreferences) {
+        safeSetJsonStorage(LIBRARY_PREFS_KEY, {
+          activeTab: resolvedStoredTab,
+          componentViewMode: stored.storedPrefs.componentViewMode,
+        });
+      }
+    }
 
     const storedMode = stored.storedPrefs.componentViewMode ?? stored.legacyStoredTab;
     if (storedMode === "brand") setComponentViewMode("brand");
@@ -1227,7 +1267,7 @@ function useEstimateRightSidebarContent({
           if (cancelled || !preferences) return;
           libraryAccountPrefsSaveSnapshotRef.current = serializeLibraryAccountPrefs(preferences);
           safeSetJsonStorage(LIBRARY_PREFS_KEY, {
-            activeTab: preferences.activeTab,
+            activeTab: resolveVisibleTab(preferences.activeTab),
             componentViewMode: preferences.componentViewMode,
           });
           safeSetJsonStorage(LIBRARY_FAVORITES_KEY, preferences.favoriteItemIds);
@@ -1241,14 +1281,14 @@ function useEstimateRightSidebarContent({
       cancelled = true;
     };
     // Stored prefs hydrate exactly once, after the SSR markup is committed.
-  }, [useStoredPreferences]);
+  }, [resolveVisibleTab, useStoredPreferences]);
 
   useEffect(() => {
     // Persisting before stored prefs hydrate would clobber them with the
     // defaults (Strict Mode runs this effect before the hydrate microtask).
     if (!useStoredPreferences || !libraryPrefsHydratedRef.current) return;
-    safeSetJsonStorage(LIBRARY_PREFS_KEY, { activeTab, componentViewMode });
-  }, [activeTab, componentViewMode, useStoredPreferences]);
+    safeSetJsonStorage(LIBRARY_PREFS_KEY, { activeTab: visibleActiveTab, componentViewMode });
+  }, [componentViewMode, useStoredPreferences, visibleActiveTab]);
 
   useEffect(() => {
     if (
@@ -1379,7 +1419,7 @@ function useEstimateRightSidebarContent({
     // (replaces the manual "Refresh project sources" button). Keyed only off the
     // activeTab transition, so it fires on each open but not on unrelated
     // re-renders while already on Templates (loadProjectSources is stable).
-    if (activeTab !== "templates" || !canLoadProjectSourcesFromActions) return;
+    if (visibleActiveTab !== "templates" || !canLoadProjectSourcesFromActions) return;
     let cancelled = false;
     const timer = window.setTimeout(() => {
       if (!cancelled) void loadProjectSources(() => cancelled);
@@ -1388,7 +1428,7 @@ function useEstimateRightSidebarContent({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [activeTab, canLoadProjectSourcesFromActions, loadProjectSources]);
+  }, [canLoadProjectSourcesFromActions, loadProjectSources, visibleActiveTab]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1454,13 +1494,13 @@ function useEstimateRightSidebarContent({
   );
   useEffect(() => {
     if (!useStoredPreferences || !libraryPrefsHydratedRef.current) return undefined;
-    safeSetJsonStorage(LIBRARY_PREFS_KEY, { activeTab, componentViewMode });
+    safeSetJsonStorage(LIBRARY_PREFS_KEY, { activeTab: visibleActiveTab, componentViewMode });
     safeSetJsonStorage(LIBRARY_FAVORITES_KEY, favoriteIds);
     safeSetJsonStorage(LIBRARY_RECENTS_KEY, recentIds);
     safeSetJsonStorage(LIBRARY_TREE_ORDER_KEY, customOrderByViewMode);
 
     const preferences: ComponentLibraryUserPreferences = {
-      activeTab,
+      activeTab: visibleActiveTab,
       componentViewMode,
       favoriteItemIds: favoriteIds,
       recentItemIds: recentIds,
@@ -1475,7 +1515,7 @@ function useEstimateRightSidebarContent({
       void saveComponentLibraryUserPreferences(preferences).catch(() => undefined);
     }, 350);
     return () => window.clearTimeout(timer);
-  }, [activeTab, componentViewMode, customOrderByViewMode, favoriteIds, recentIds, useStoredPreferences]);
+  }, [componentViewMode, customOrderByViewMode, favoriteIds, recentIds, useStoredPreferences, visibleActiveTab]);
 
   const componentTreeTab = getComponentTreeTab(componentViewMode);
   const splitComponentItems = useMemo(() => splitSidebarComponentItems(libraryItems), [libraryItems]);
@@ -1489,9 +1529,9 @@ function useEstimateRightSidebarContent({
     () => effectiveLibraryFolders.filter((folder) => !isProjectComponentFolderRecord(folder)),
     [effectiveLibraryFolders],
   );
-  const isLibraryTab = activeTab === "components";
-  const isProjectTab = activeTab === "project";
-  const isTemplatesTab = activeTab === "templates";
+  const isLibraryTab = visibleActiveTab === "components";
+  const isProjectTab = visibleActiveTab === "project";
+  const isTemplatesTab = visibleActiveTab === "templates";
 
   // D1: Facet filter state — mirrors ComponentLibraryManager wiring.
   const facetOptions = useMemo(() => buildComponentFacetOptions(reusableLibraryItems), [reusableLibraryItems]);
@@ -1505,10 +1545,11 @@ function useEstimateRightSidebarContent({
 
   const treeNodes = useMemo(() => {
     if (isTemplatesTab) return [];
+    if (isProjectTab && projectTabUnavailable) return [];
     if (isProjectTab) return buildProjectComponentTree(projectComponentItems, { libraryFolders: effectiveLibraryFolders });
     const tree = buildLibraryTreeWithComponentRows(componentTreeTab, facetFilteredItems, favoriteIds, recentIds, { categoryTree, suppliers, brands, libraryFolders: effectiveLibraryFolders, pruneEmptyFolders: true });
     return applyLibraryTreeOrder(tree, customOrderByViewMode[componentViewMode]);
-  }, [brands, categoryTree, componentTreeTab, componentViewMode, customOrderByViewMode, effectiveLibraryFolders, facetFilteredItems, favoriteIds, isProjectTab, isTemplatesTab, projectComponentItems, recentIds, suppliers]);
+  }, [brands, categoryTree, componentTreeTab, componentViewMode, customOrderByViewMode, effectiveLibraryFolders, facetFilteredItems, favoriteIds, isProjectTab, isTemplatesTab, projectComponentItems, projectTabUnavailable, recentIds, suppliers]);
 
   const filteredTreeNodes = useMemo(() => filterTree(treeNodes, deferredSearchQuery), [treeNodes, deferredSearchQuery]);
 
@@ -2128,7 +2169,7 @@ function useEstimateRightSidebarContent({
 
   const handleTemplateCreated = useCallback((template: EstimateTemplate) => {
     setTemplateList((current) => [...current.filter((entry) => entry.id !== template.id), template]);
-    setActiveTab("templates");
+    setActiveTab(resolveVisibleTab("templates"));
     setTemplatesExpandedIds((current) => Array.from(new Set([
       ...current,
       templatesTreeSectionId("custom-templates"),
@@ -2136,7 +2177,7 @@ function useEstimateRightSidebarContent({
     ])));
     setLastActionMessage(`${template.name} saved to templates.`);
     onLibraryDataChanged?.();
-  }, [onLibraryDataChanged, setActiveTab, setLastActionMessage, setTemplateList, setTemplatesExpandedIds]);
+  }, [onLibraryDataChanged, resolveVisibleTab, setActiveTab, setLastActionMessage, setTemplateList, setTemplatesExpandedIds]);
 
   const startRenameTemplate = useCallback((template: EstimateTemplate) => {
     setRenameTemplateTarget(template);
@@ -2258,10 +2299,7 @@ function useEstimateRightSidebarContent({
   );
 
   const handleTabChange = useCallback((tab: EstimateLibraryTab) => {
-    // Guard the "project" tab at the point it is chosen, instead of correcting
-    // it later with an effect: when project sources are disabled the tab is
-    // unreachable in the UI, so this only defends the call site directly.
-    setActiveTab(tab === "project" && !enableReusableProjectSources ? "components" : tab);
+    setActiveTab(resolveVisibleTab(tab));
     setSearchQuery("");
     setSearchOpen(false);
     setPreviewItemId(null);
@@ -2270,7 +2308,7 @@ function useEstimateRightSidebarContent({
     setViewModeMenuOpen(false);
     setBulkSelectedNodeIds(new Set());
   }, [
-    enableReusableProjectSources,
+    resolveVisibleTab,
     setActiveTab,
     setBulkSelectedNodeIds,
     setPreviewItemId,
@@ -2283,7 +2321,7 @@ function useEstimateRightSidebarContent({
 
   const handleComponentViewModeChange = useCallback((mode: ComponentViewMode) => {
     setComponentViewMode(mode);
-    setActiveTab("components");
+    setActiveTab(resolveVisibleTab("components"));
     setSearchQuery("");
     setSearchOpen(false);
     setPreviewItemId(null);
@@ -2291,6 +2329,7 @@ function useEstimateRightSidebarContent({
     setViewModeMenuOpen(false);
     setBulkSelectedNodeIds(new Set());
   }, [
+    resolveVisibleTab,
     setActiveTab,
     setBulkSelectedNodeIds,
     setComponentViewMode,
@@ -2715,7 +2754,10 @@ function useEstimateRightSidebarContent({
   const activeExpandedNodeIds = isProjectTab ? projectExpandedNodeIds : expandedNodeIdsByViewMode[componentViewMode];
   const activeLibraryTreeAriaLabel = isProjectTab ? "Project sources" : "Library sources";
   const activeSourceScopeLabel = isProjectTab || projectId === "hero-sanitized-project" ? "" : "Library";
-  const visibleLibraryTreeTabs = enableReusableProjectSources ? LIBRARY_TREE_TABS : PUBLIC_LIBRARY_TREE_TABS;
+  const visibleLibraryTreeTabs = useMemo(
+    () => buildLibraryTreeTabs(effectiveVisibleLibraryTabs),
+    [effectiveVisibleLibraryTabs],
+  );
 
   const sourceSidebarBody = (
     /* group/tree on the panel keeps the tree's drag/select rail space open
@@ -2741,7 +2783,7 @@ function useEstimateRightSidebarContent({
           showDefaultActions={false}
           addActions={[]}
           tabs={visibleLibraryTreeTabs}
-          activeTab={activeTab}
+          activeTab={visibleActiveTab}
           tabVariant="tabs"
           tabsAriaLabel="Estimate source sections"
           onTabChange={(tab) => handleTabChange(tab as EstimateLibraryTab)}
@@ -2811,7 +2853,11 @@ function useEstimateRightSidebarContent({
         <div className="relative flex min-h-0 flex-1 flex-col">
         <div className="min-h-0 flex-1 overflow-auto">
           <div className={cn("px-2 pt-0", bulkSelectionCount > 0 ? "pb-16" : "pb-1")}>
-            {isTemplatesTab ? (
+            {isProjectTab && projectTabUnavailable ? (
+              <div className="p-2" data-project-tab-unavailable="true">
+                {projectTabUnavailable}
+              </div>
+            ) : isTemplatesTab ? (
               <>
                 {templatesSourceFilterControls}
                 <TemplatesTree

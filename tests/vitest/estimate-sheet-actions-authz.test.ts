@@ -84,7 +84,13 @@ vi.mock("@/lib/auth/session", () => ({
   getCurrentUserContext: requireCurrentUserContext,
 }));
 vi.mock("@/lib/supabase/server", () => ({
-  createSupabaseServerClient: vi.fn(async () => ({ from: fromSpy, rpc: rpcSpy })),
+  createSupabaseServerClient: vi.fn(async () => ({
+    from: fromSpy,
+    rest: { rpc: rpcSpy },
+    rpc(this: { rest: { rpc: typeof rpcSpy } }, ...args: Parameters<typeof rpcSpy>) {
+      return this.rest.rpc(...args);
+    },
+  })),
 }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 

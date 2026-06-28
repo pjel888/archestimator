@@ -29,6 +29,7 @@ import {
 import { WORKSHOP_TREE_VIRTUALIZATION } from "@/lib/workshop/virtualization-flags";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import { ResizableSidePanel } from "@/components/workshop/ResizableSidePanel";
+import { EstimateRightSidebar } from "@/components/workshop/component-library";
 import { pesoFormatter } from "@/components/workshop/component-library/helpers";
 import {
   useLibrarySurfaceVariant,
@@ -47,7 +48,6 @@ import {
   renameTemplateCategory,
 } from "@/lib/component-library/actions";
 import { TemplateGallery, type TemplatesBrowseStatus } from "./TemplateGallery";
-import { TemplatePreviewDock } from "./TemplatePreviewDock";
 import { cn } from "@/lib/ui/cn";
 
 const NewTemplateModal = dynamic(
@@ -64,6 +64,31 @@ const TEMPLATE_LIBRARY_TREE_WIDTH_OFFSET = 104;
 const ALL_TEMPLATES_NODE_ID = "all-templates";
 const noopTemplatesMutated = () => {};
 const noopTemplatesInvalidated = () => {};
+
+function TemplateProjectSourcesUnavailable() {
+  const surfaceVariant = useLibrarySurfaceVariant();
+  return (
+    <section
+      className={cn("rounded-xs border border-dashed border-hairline bg-surfaceMuted/30 p-2", librarySurfaceClass(surfaceVariant, "contentTile"))}
+      aria-label="Project source unavailable"
+    >
+      <label className="block text-[9px] font-medium uppercase tracking-normal text-tertiary" htmlFor="template-project-source-selector">
+        Project
+      </label>
+      <select
+        id="template-project-source-selector"
+        className="mt-1 h-7 w-full rounded-xs border border-hairline bg-surface px-2 text-[10px] text-tertiary"
+        disabled
+        aria-label="Project source project"
+      >
+        <option>No project selected</option>
+      </select>
+      <p className="mt-2 text-[9px] leading-4 text-tertiary">
+        Project sources are unavailable until this template workbench has a selected project scope.
+      </p>
+    </section>
+  );
+}
 
 type BrowseTreeDatum =
   | { type: "all" }
@@ -718,9 +743,9 @@ function templatesBrowseManagerReducer(
 }
 
 /**
- * Templates browse tab (Library unification Phase 2): left templates tree,
- * center `TemplateGallery`, right `TemplatePreviewDock`. Selection state
- * lives here so the tree, gallery, and preview dock stay in sync.
+ * Templates browse tab (Library unification Phase 2): left templates inventory,
+ * center `TemplateGallery` with selected-template preview, and right source
+ * dock. Selection state lives here so the tree, gallery, and preview stay in sync.
  */
 // react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 export function TemplatesBrowseManager({
@@ -1048,8 +1073,10 @@ export function TemplatesBrowseManager({
               scopeLabel={scopeLabel}
               templates={scopedTemplates}
               selectedTemplateId={selectedTemplateId}
+              selectedTemplate={selectedTemplate}
               status={status}
               onSelectTemplate={selectTemplate}
+              onClosePreview={closePreview}
               onOpenTemplate={openTemplate}
               onInsertIntoEstimate={openInsertTarget}
               onRenameTemplate={renameTemplate}
@@ -1058,14 +1085,18 @@ export function TemplatesBrowseManager({
               onNewTemplate={openNewTemplateForSelection}
             />
           </div>
-          {selectedTemplate ? (
-            <TemplatePreviewDock
-              template={selectedTemplate}
-              onClose={closePreview}
-              onOpenTemplate={openTemplate}
-              onInsertIntoEstimate={openInsertTarget}
+          <div className="hidden min-h-0 lg:flex" data-template-source-dock="true">
+            <EstimateRightSidebar
+              visibleTabs={["components", "project"]}
+              initialActiveTab="components"
+              templates={[]}
+              enableReusableProjectSources={false}
+              useStoredPreferences={false}
+              usePersistentPanelWidth={false}
+              templateCreateMode="scratch"
+              projectTabUnavailable={<TemplateProjectSourcesUnavailable />}
             />
-          ) : null}
+          </div>
         </section>
       </div>
 

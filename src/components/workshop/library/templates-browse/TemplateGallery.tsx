@@ -1,11 +1,12 @@
 "use client";
 
 import { memo, useEffect, useMemo, useRef, useState } from "react";
-import { DotsThree, Plus } from "@phosphor-icons/react/dist/ssr";
+import { Circle, DotsThree, Package, Plus, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
+import { TREE_ROW_ICON_SIZE } from "@/components/ui/tree";
 import { pesoFormatter } from "@/components/workshop/component-library/helpers";
 import {
   filterTemplatesByQuery,
@@ -18,7 +19,9 @@ import {
 import { librarySurfaceClass } from "@/components/workshop/library/library-surface-class";
 import { SourceTrustChips } from "@/components/workshop/library/source-trust-chips";
 import { getTemplateSourceTrustChips } from "@/components/workshop/library/source-trust-model";
+import type { EstimateTreeNode } from "@/lib/estimates/types";
 import { cn } from "@/lib/ui/cn";
+import { buildTemplatePreviewNodeTotals } from "./TemplatePreviewDockModel";
 
 export type TemplatesBrowseStatus =
   | { state: "idle" }
@@ -40,6 +43,131 @@ function formatTemplateStructureCounts(summary: EstimateTemplateSummary) {
 function getTemplateChips(template: EstimateTemplate) {
   const rootNames = template.nodes.slice(0, 2).map((node) => node.name);
   return [template.category, ...rootNames.filter((name) => name !== template.category)].slice(0, 3);
+}
+
+function NodeKindIcon() {
+  return <Circle size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />;
+}
+
+function SelectedTemplateStructureNode({
+  node,
+  depth,
+  totalsByNodeId,
+}: {
+  node: EstimateTreeNode;
+  depth: number;
+  totalsByNodeId: ReadonlyMap<string, number>;
+}) {
+  return (
+    <>
+      <li
+        className="flex min-h-6 items-center gap-1.5 py-0.5"
+        style={{ paddingLeft: `${depth * 12}px` }}
+        data-template-preview-node={node.id}
+      >
+        <NodeKindIcon />
+        <span className="min-w-0 flex-1 truncate text-[10px] leading-4 text-ink">{node.name}</span>
+        <span className="shrink-0 text-[9px] leading-3 tabular-nums text-tertiary">
+          {pesoFormatter.format(totalsByNodeId.get(node.id) ?? 0)}
+        </span>
+      </li>
+      {(node.estimateRowItems ?? []).map((row) => (
+        <li
+          key={row.id}
+          className="flex min-h-6 items-center gap-1.5 py-0.5"
+          style={{ paddingLeft: `${(depth + 1) * 12}px` }}
+        >
+          <Package size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
+          <span className="min-w-0 flex-1 truncate text-[10px] leading-4 text-secondary">{row.name ?? row.material}</span>
+          <span className="shrink-0 text-[9px] leading-3 tabular-nums text-tertiary">
+            {row.quantity} {row.unit}
+          </span>
+        </li>
+      ))}
+      {(node.children ?? []).map((child) => (
+        <SelectedTemplateStructureNode key={child.id} node={child} depth={depth + 1} totalsByNodeId={totalsByNodeId} />
+      ))}
+    </>
+  );
+}
+
+function SelectedTemplatePreview({
+  template,
+  onClose,
+  onOpen,
+  onInsert,
+}: {
+  template: EstimateTemplate;
+  onClose: () => void;
+  onOpen: (templateId: string) => void;
+  onInsert: (template: EstimateTemplate) => void;
+}) {
+  const surfaceVariant = useLibrarySurfaceVariant();
+  const summary = summarizeEstimateTemplate(template);
+  const totalsByNodeId = useMemo(() => buildTemplatePreviewNodeTotals(template.nodes), [template.nodes]);
+
+  return (
+    <section
+      className={cn("m-2 mb-0 shrink-0 overflow-hidden", librarySurfaceClass(surfaceVariant, "contentTile"))}
+      aria-label="Template preview"
+      data-template-center-preview="true"
+    >
+      <header className="flex min-h-8 items-start gap-2 border-b border-hairline px-2 py-1.5">
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-[12px] font-medium leading-4 text-ink">{template.name}</h3>
+          <p className="mt-0.5 truncate text-[9px] leading-3 text-tertiary" title={template.category}>
+            {template.category}
+          </p>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="size-6 rounded-xs p-0 text-tertiary"
+          aria-label="Close template preview"
+          onClick={onClose}
+        >
+          <X size={11} weight="regular" aria-hidden="true" />
+        </Button>
+      </header>
+
+      <div className="max-h-[36vh] overflow-y-auto px-2 py-2">
+        {template.description ? (
+          <p className="mb-2 text-[9px] leading-4 text-tertiary">{template.description}</p>
+        ) : null}
+        <SourceTrustChips
+          chips={getTemplateSourceTrustChips(template)}
+          ariaLabel={`Source trust for ${template.name}`}
+          className="mb-2"
+        />
+        <ul className="border-t border-hairline pt-2" aria-label={`${template.name} structure outline`}>
+          {template.nodes.length > 0 ? (
+            template.nodes.map((node) => (
+              <SelectedTemplateStructureNode key={node.id} node={node} depth={0} totalsByNodeId={totalsByNodeId} />
+            ))
+          ) : (
+            <li className="py-1 text-[10px] leading-4 text-tertiary">
+              No structure yet. Open the template to add Areas.
+            </li>
+          )}
+        </ul>
+      </div>
+
+      <footer className="flex shrink-0 items-center gap-2 border-t border-hairline px-2 py-1.5">
+        <div className="mr-auto min-w-0">
+          <p className="text-[9px] font-medium leading-3 text-tertiary">Template total</p>
+          <p className="text-[12px] font-medium leading-4 tabular-nums text-ink" data-template-preview-total="true">
+            {pesoFormatter.format(summary.total)}
+          </p>
+        </div>
+        <Button type="button" variant="primary" size="xs" className="min-w-0 px-2" onClick={() => onOpen(template.id)}>
+          Open template
+        </Button>
+        <Button type="button" variant="secondary" size="xs" className="min-w-0 px-2" onClick={() => onInsert(template)}>
+          Insert into estimate
+        </Button>
+      </footer>
+    </section>
+  );
 }
 
 const TemplateGalleryRow = memo(function TemplateGalleryRow({
@@ -161,8 +289,10 @@ export type TemplateGalleryProps = {
   scopeLabel: string;
   templates: EstimateTemplate[];
   selectedTemplateId: string | null;
+  selectedTemplate?: EstimateTemplate | null;
   status: TemplatesBrowseStatus;
   onSelectTemplate: (templateId: string) => void;
+  onClosePreview: () => void;
   onOpenTemplate: (templateId: string) => void;
   onInsertIntoEstimate: (template: EstimateTemplate) => void;
   onRenameTemplate: (template: EstimateTemplate) => void;
@@ -180,8 +310,10 @@ export function TemplateGallery({
   scopeLabel,
   templates,
   selectedTemplateId,
+  selectedTemplate = null,
   status,
   onSelectTemplate,
+  onClosePreview,
   onOpenTemplate,
   onInsertIntoEstimate,
   onRenameTemplate,
@@ -276,6 +408,15 @@ export function TemplateGallery({
           </output>
         ) : null}
       </header>
+
+      {selectedTemplate ? (
+        <SelectedTemplatePreview
+          template={selectedTemplate}
+          onClose={onClosePreview}
+          onOpen={onOpenTemplate}
+          onInsert={onInsertIntoEstimate}
+        />
+      ) : null}
 
       <div className="min-h-0 flex-1 overflow-auto p-2">
         <ul className="flex flex-col gap-1.5" aria-label={`${scopeLabel} template rows`}>
