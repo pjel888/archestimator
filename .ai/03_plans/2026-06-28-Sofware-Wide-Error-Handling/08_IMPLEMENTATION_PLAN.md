@@ -156,7 +156,7 @@ bun run test:e2e -- e2e/global-error.spec.ts
 
 **Goal:** AI coding agents can `tail -f ./logs/dev.ndjson` and diagnose failures.
 
-**Requirements covered:** LOG-001, LOG-003, LOG-004, ARCH-002 (server-timing consumed). (LOG-001 NDJSON logger is implemented here by P4-WP2/3/7; LOG-002 redact is already P1-WP7.)
+**Requirements covered:** LOG-001, LOG-003, LOG-004, ARCH-001 AC-001.2 (server-timing consumed). (LOG-001 NDJSON logger is implemented here by P4-WP2/3/7; LOG-002 redact is already P1-WP7. ARCH-001 AC-001.2 is the server-timing-consumed contract per `07`.)
 
 **Prerequisites:** P1 complete.
 
@@ -177,7 +177,12 @@ bun run test:e2e -- e2e/global-error.spec.ts
 ```bash
 bun run test -- tests/unit/tail-dev-logs.test.ts
 bun run test:dom -- tests/vitest/logger.test.ts tests/vitest/logger-perf.test.ts
-bun run dev &  # background; generate a test error via GET /?forceGlobalError=1 (dev-only trigger per `05` Section A.5 note); kill dev
+bun run dev &  # background; generate a synthetic test record via the logger-owned
+              # emit path (per `04` Section D.2): from a separate process,
+              # `node -e "import('./src/lib/observability/logger.ts').then(m=>m.logger.error({timestamp:new Date().toISOString(),level:'ERROR',message:'synthetic P4 validation',error:{kind:'internal',code:'INTERNAL',class:'InternalError',message:'test'}}))"`
+              # OR run `bun run logs:emit-test` if P4-WP5 added that script.
+              # This does NOT depend on P3a's global-error trigger.
+kill %1
 bun run logs:tail --last 5
 ```
 

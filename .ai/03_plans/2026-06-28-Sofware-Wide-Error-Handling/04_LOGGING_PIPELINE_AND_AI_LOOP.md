@@ -59,6 +59,7 @@ interface DevLogRecord {
     user_agent_hashed?: string;  // SHA-256(UA)[:16] for client-error reports (06 F)
     deployment_environment?: 'development'|'test'|'production';
     service_version?: string; // package.json version
+    dev_session_id?: string;  // ppid or DEV_SESSION_ID; tags session-start records
   };
 
   // ── AI-decision tracing (when AI agent is the actor) ──────────────
