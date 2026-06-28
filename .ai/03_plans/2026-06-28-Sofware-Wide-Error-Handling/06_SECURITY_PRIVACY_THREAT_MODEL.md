@@ -11,9 +11,10 @@ PII redaction rules, OWASP logging risks, source-map handling, threat model for 
 | Server-side secrets (Supabase service role, JWTs) | Env vars → server | Accidentally logged in error cause | Logger `redact.ts` strips known secret patterns |
 | Source maps | Build artifact → public CDN | Attackers reverse-engineer minified bundles | Upload to Sentry only; never to public CDN; `.map` files in `.gitignore` |
 | Auth session token | Cookie → middleware | Logged in `request.headers.cookie` | Logger redacts `cookie`, `authorization`, `set-cookie` headers |
-| Client error reports | Browser → `/api/internal/client-error` | Malicious payload, DoS | Rate limit per-IP; payload size cap; validate via Zod schema |
+| Client error reports | Browser → `/api/internal/client-error` | Malicious payload, DoS, PII/log poisoning, AI prompt injection | Same-origin/Fetch Metadata checks; rate limit per-IP; payload size cap; strict local parser; redact all client fields; tainted-field labeling |
 | Sentry event payload | Server → Sentry servers | PII leak to third party | `maskAllText: true` in prod; `beforeSend` redaction hook; data scrubbers |
 | Dev NDJSON file | Local filesystem | Accidentally committed to git | `.gitignore` entry; pre-commit check |
+| AI diagnosis prompt | Dev log → AI agent | Log text instructs agent to bypass safety or exfiltrate secrets | Logs are untrusted data; `--explain` labels tainted fields; tests include prompt-injection strings |
 
 ## B. PII redaction rules (`src/lib/observability/redact.ts`)
 
@@ -150,6 +151,8 @@ Plan preserves all of this. The `mapAuthCodeToAppError` bridge carries the same 
 
 ## F. Client-side rate limiting
 
+Owner-delegated decision for this planning pack: use the in-memory limiter only for local dev and preview smoke proof. Production rollout of `/api/internal/client-error` is blocked until a provider-backed limiter is selected and authorized; preferred options are Vercel KV or Upstash Redis depending on the then-current cost posture.
+
 `/api/internal/client-error` route (new P3):
 
 ```ts
@@ -158,6 +161,10 @@ const MAX_PER_IP_PER_MIN = 10;
 const rateLimiter = new Map<string, { count: number; resetAt: number }>();
 
 export async function POST(req: NextRequest) {
+  if (!isSameOriginClientReport(req)) {
+    return new Response(null, { status: 403 });
+  }
+
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
   const now = Date.now();
   const entry = rateLimiter.get(ip) ?? { count: 0, resetAt: now + 60_000 };
@@ -168,10 +175,16 @@ export async function POST(req: NextRequest) {
     return new Response(null, { status: 429 });
   }
 
-  const body = await req.json().catch(() => null);
-  if (!body || typeof body.message !== 'string' || body.message.length > 4096) {
+  const body = parseClientErrorReport(await req.text().catch(() => ''));
+  if (!body.ok) {
     return new Response(null, { status: 400 });
   }
+
+  const report = redactForLog({
+    client_message: stripControlChars(body.value.message).slice(0, 1024),
+    client_digest: body.value.digest,
+    path: body.value.path,
+  });
 
   logger.warn({
     timestamp: new Date().toISOString(),
@@ -183,8 +196,8 @@ export async function POST(req: NextRequest) {
       user_agent_hashed: hashUA(req.headers.get('user-agent')),
     },
     attributes: {
-      client_message: body.message.slice(0, 1024),
-      client_digest: typeof body.digest === 'string' ? body.digest.slice(0, 64) : undefined,
+      tainted_client_report: true,
+      ...report,
     },
   });
 
@@ -192,7 +205,7 @@ export async function POST(req: NextRequest) {
 }
 ```
 
-For production, the in-memory `rateLimiter` Map should be replaced with an Upstash Redis or Vercel KV counter (P5 task).
+Production must not rely on the in-memory `rateLimiter` Map because serverless instances do not share memory. P5/Pilot-Gate decides Vercel KV vs Upstash Redis and records the provider/cost decision before production enablement.
 
 ## G. Validation
 
@@ -201,16 +214,18 @@ For production, the in-memory `rateLimiter` Map should be replaced with an Upsta
 | `redactForLog` redacts every key in `NEVER_LOG_KEYS` | `tests/vitest/redact.test.ts` (new P1) |
 | `redactForLog` hashes user_id consistently | same test |
 | Logger never writes raw email/phone/IP | property test: random PII inputs → no leaks |
-| `/api/internal/client-error` rate-limits at 10/min | `tests/vitest/client-error.test.ts` (new P3) |
+| `/api/internal/client-error` rejects cross-site reports, malformed JSON, oversized payloads, secret/token/email/URL strings, control characters, and prompt-injection strings | `tests/vitest/client-error.test.ts` (new P3 pilot) |
+| `/api/internal/client-error` rate-limits at 10/min | `tests/vitest/client-error.test.ts` (new P3 pilot) |
 | Sentry `beforeSend` strips auth headers | `tests/vitest/sentry-redact.test.ts` (new P5) |
 | Source maps absent from public CDN | Playwright probe in P6 |
 
 ## H. Ponytail counterweight
 
 The redaction layer covers the realistic threats for an MVP pre-launch:
-- PII never reaches dev logs or Sentry.
+- PII is minimized and tested before logs are used for AI diagnosis; captured real auth/database failure logs require a manual redaction review before broad enablement.
 - Source maps stay private.
 - Rate-limit client error reports.
+- Dev NDJSON retention defaults to a single local session plus one 50MB rotated file; developers may delete `./logs/` at any time.
 
 Out of scope for MVP:
 - HSM-backed key management for hash salts.

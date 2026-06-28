@@ -1,14 +1,19 @@
 # Software-Wide Error Handling Plan
 
 **Date:** 2026-06-28
-**Status:** IMPLEMENTATION-READY (planning/audit only — no code, tests, migrations, provider state, or runtime data changed in this pack)
+**Status:** CONDITIONALLY READY (planning/audit only — no code, tests, migrations, provider state, or runtime data changed in this pack)
 **Profile:** standard (cross-cutting infra, bounded blast radius, MVP pre-launch)
 **Scope:** planning, audit, and readiness only.
 **Verification mode:** `independent-council-improved` (the original pack was lead-authored; this 2026-06-28 Codex pass used native read-only council reviewers plus a final verifier gate before completion — see `13_FINAL_AUDIT_SCORECARD.md`).
 
 ## Master result
 
-Establish the first coherent software-wide error-handling layer for Archestimator so that every runtime failure — on client, server action, route handler, middleware, edge runtime, or auth callback — flows through one typed taxonomy, surfaces to the user via the existing Toast primitive with consistent tone+copy, and emits a structured NDJSON log record that a human or AI coding agent can tail in dev mode and root-cause without further instrumentation.
+Define the first coherent software-wide error-handling layer for Archestimator, then roll it out pilot-first. The target architecture is that runtime failures on client, server action, route handler, middleware, edge runtime, or auth callback flow through one typed taxonomy, surface to the user via the existing Toast primitive with consistent tone+copy, and emit structured NDJSON diagnostics that a human or AI coding agent can tail in dev mode and root-cause without further instrumentation.
+
+Approved implementation scope from this repaired planning pack:
+- P1 foundation modules, without changing current behavior.
+- A pilot vertical after P1: `publication/actions.ts`, one representative route handler selected by the implementer, and one root/segment UI error surface.
+- Full all-actions/all-routes migration only after pilot evidence is captured and this plan is upgraded.
 
 The four product outcomes the plan delivers:
 
@@ -42,38 +47,40 @@ The four product outcomes the plan delivers:
 ```
 P1 — Foundation: typed AppError + logger module (no behavior change; pure addition)
    ↓
-P2 — Server unification: actionErrors wrapper applied to all 22 server action modules + 22 route handlers
+P2a — Pilot server unification: publication/actions.ts + one representative route handler
    ↓
-P3 — Client wiring: error.tsx uses AppError; add root global-error.tsx; Toast copy catalog
+P3a — Pilot client wiring: one root/segment error surface + Toast copy catalog
    ↓
 P4 — Dev logging pipeline: NDJSON file writer + PERF_TRACE integration + AI tail command
    ↓
-P5 — Prod observability: instrumentation.ts onRequestError + Sentry integration behind flag
+P5 — Prod observability decision: Sentry integration design; provider credentials/prod enablement owner-gated
    ↓
-P6 — Verification: targeted vitest + Playwright smoke + adversarial + AI-diagnosability test
+P6 — Pilot verification: targeted vitest + browser smoke where needed + adversarial + AI-diagnosability test
 ```
 
-Dependency graph: P1 is the prerequisite for all later phases. P2/P3 are independent after P1. P4 depends on P1 only. P5 depends on P1 + P4 (logger interface). P6 depends on all prior.
+Dependency graph: P1 is the prerequisite for all later phases. P2a/P3a are independent after P1. P4 depends on P1 only. P5 depends on P1 + P4 (logger interface) but cannot enable production provider state without execution-time owner authority. P6 depends on all approved pilot phases. Full P2/P3 migration is a follow-on plan update after pilot pass.
 
 ## Stop condition
 
-This plan is complete when an implementer can:
+This conditionally ready plan is complete for the approved pilot when an implementer can:
 - Build the AppError hierarchy + logger module without re-litigating the taxonomy.
-- Apply the wrapper to server actions knowing exactly which 22 files + which return shape is canonical.
+- Apply the wrapper to `publication/actions.ts` and one representative route handler knowing the canonical return/response shape.
 - Add `global-error.tsx` + `instrumentation.ts` knowing the exact contract.
 - Tell an AI coding agent the dev log path + tail command and have it diagnose a real failure end-to-end.
 
-## Files off-limits (hold-harmless)
+The all-actions/all-routes migration becomes implementation-ready only after the pilot evidence is recorded and this pack is updated.
 
-- `src/components/ui/toast.tsx` — preserve existing `toast({id?, message, tone, durationMs?})` API surface; only extend, never rename.
-- `src/app/providers.tsx` ToastProvider mount — unchanged.
-- `src/lib/auth/error-mapping.ts` and the auth callback audit pattern — unchanged (the plan *extends* it via AppError, never replaces).
-- `src/middleware.ts` / `src/proxy.ts` — runtime behavior unchanged; only error-context enrichment.
+## Protected contracts (hold-harmless)
+
+- `src/components/ui/toast.tsx` — preserve existing `toast({id?, message, tone, durationMs?})` API surface; additive `toast.appError` is allowed, renames/removals are forbidden.
+- `src/app/providers.tsx` ToastProvider mount — existing mount behavior must stay; additive unhandled-rejection reporting is allowed only after pilot proof.
+- `src/lib/auth/error-mapping.ts` and the auth callback audit pattern — existing codes and audit calls stay; additive AppError bridge is allowed.
+- `src/middleware.ts` / `src/proxy.ts` — runtime behavior unchanged; only error-context enrichment after pilot evidence.
 - All Supabase migrations (67 files) — no schema changes planned.
 - All RLS policies — no policy changes planned.
 - `vercel.json` regions/crons — unchanged.
-- `next.config.ts` CSP / headers / redirects — unchanged.
-- `.github/workflows/*` — may add a step in P5, but no removal/rewrite of existing.
+- `next.config.ts` CSP / headers / redirects — unchanged; Sentry config additions require P5 owner/provider gate.
+- `.github/workflows/*` — no removal/rewrite of existing; sourcemap upload step requires P5 owner/provider gate.
 
 ## Files and systems intentionally unaffected
 
@@ -97,7 +104,7 @@ Archive `.ai/03_plans/2026-06-28-Sofware-Wide-Error-Handling/` to `.ai/09_archiv
 - The dev JSONL → AI diagnose loop is proven end-to-end on a real failure, AND
 - The prod Sentry integration is live and the first real production error appears in the dashboard with a useful stack trace.
 
-Until then, this plan stays in `03_plans/` as the active reference.
+Until then, this plan stays in `03_plans/` as a conditionally ready reference. Upgrade it to `IMPLEMENTATION-READY` only after the P1+pilot slice passes and a fresh independent review accepts the full migration.
 
 ## Pre-implementation commands
 
