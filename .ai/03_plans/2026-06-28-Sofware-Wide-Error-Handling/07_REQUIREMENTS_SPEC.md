@@ -57,10 +57,11 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 - **AC-004.2:** Tested via DOM/static test or Playwright (`e2e/global-error.spec.ts`) only when browser behavior is the claim being proven.
 - **Affected:** new file `src/app/global-error.tsx`.
 
-### FR-005 — not-found.tsx (follow-on)
-- **Statement:** `not-found.tsx` is a follow-on after pilot; not pilot-blocking.
+### FR-005 — Post-pilot follow-on boundaries (`not-found.tsx` + segment `error.tsx`)
+- **Statement:** Both `not-found.tsx` (404 page for unmatched routes) and per-segment `error.tsx` (segment-level client error boundary with POST-to-/api/internal/client-error) are follow-on deliverables AFTER pilot evidence; neither is pilot-blocking. The singular P3a pilot boundary is `global-error.tsx` per FR-004.
 - **Priority:** Follow-on after P3a pilot.
 - **AC-005.1:** `not-found.tsx` may be added later without re-litigating the taxonomy.
+- **AC-005.2:** Segment `error.tsx` may be added per route segment following the pattern in `05` Section A.6.
 
 ### FR-006 — Toast.appError convenience
 - **Statement:** `src/components/ui/toast.tsx` exports `toast.appError(err)`.

@@ -194,7 +194,7 @@ Next.js middleware as `src/proxy.ts` (Next 16 supports this name). 5472 bytes. H
 - 67 migration files; 50+ RPC functions; RLS on every user-data table.
 - DB mandate active for `ebxxqidacheyapmmzavr`.
 
-**Gap:** Supabase-js returns `{data, error}` — current code either rethrows raw error (leaking DB internals) or swallows it. Plan adds a `unwrapSupabase` helper that converts to typed `AppError.DatabaseError`.
+**Gap:** Supabase-js returns `{data, error}` — current code either rethrows raw error (leaking DB internals) or swallows it. Plan adds a `unwrapSupabase` helper that converts to typed `AppError` subclasses per `03` Section B.4: auth/RLS (42501) → `AuthPermissionDeniedError`, auth-expired/JWT → `AuthRequiredError`, rate-limit → `RateLimitError`, residual DB failures → `DatabaseError`.
 
 ### B.5 Edge runtime
 
