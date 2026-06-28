@@ -458,7 +458,7 @@ export function errorResponse(err: unknown, traceIdOverride?: string): NextRespo
   // without requiring every call site to thread the trace manually.
   // The trace_id is computed BEFORE logger.error so the same value lands in the
   // dev log AND in the route-handler JSON response AND in Sentry — keeping the
-  // correlation promise in `10` Section F.1 intact even when PERF_TRACE is absent.
+  // correlation promise in `10` Section F intact even when PERF_TRACE is absent.
   const traceId = traceIdOverride ?? getCurrentPerfTraceSnapshot()?.requestId ?? generateTraceId();
   logger.error({
     ...appError.toLogRecord(),
