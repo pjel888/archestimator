@@ -8,7 +8,8 @@ The plan uses observability kill switches only. It does **not** use a master err
 
 | Flag | Default | Purpose | Phase introduced |
 |---|---|---|---|
-| `SENTRY_ENABLED` | `false` | When `false`, `sentry.*.config.ts` `init()` is a no-op. | P5 |
+| `SENTRY_ENABLED` | `false` | When `false`, server-side `sentry.server.config.ts` `register()`/`captureRequestError()` are no-ops. | P5 |
+| `NEXT_PUBLIC_SENTRY_ENABLED` | `false` | When `false`, client-side `sentry.client.config.ts` is a no-op. Required because Next.js client bundle cannot read non-`NEXT_PUBLIC_` env vars; set at build time. | P5 |
 | `ERROR_LOG_FILE_ENABLED` | `true` in dev | When `false`, dev file writes are disabled but logger interface remains available. | P4 |
 | `DEV_LOG_FILE` | `./logs/dev.ndjson` | Override dev log path. | P1 |
 

@@ -83,7 +83,7 @@ export async function captureRequestError(error, request, context) {
 
 ### A.4 `sentry.client.config.ts` (new in P5)
 
-Mirrors server config; loaded by the Next.js Sentry wizard. Same `SENTRY_ENABLED` kill switch and redaction rules.
+Mirrors server config; loaded by the Next.js Sentry wizard. Same redaction rules. **Client-side kill switch uses `NEXT_PUBLIC_SENTRY_ENABLED`** (not `SENTRY_ENABLED`) because Next.js docs require the `NEXT_PUBLIC_` prefix for env vars available in the browser bundle (`node_modules/next/dist/docs/01-app/02-guides/environment-variables.md`). Operators set both `SENTRY_ENABLED=false` (server) and `NEXT_PUBLIC_SENTRY_ENABLED=false` (client) for a full rollback; the client var must be set at build time.
 
 ### A.5 `src/app/global-error.tsx` (new in P3a)
 

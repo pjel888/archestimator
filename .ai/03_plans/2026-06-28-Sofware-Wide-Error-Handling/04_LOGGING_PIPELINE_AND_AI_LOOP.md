@@ -203,14 +203,20 @@ function enrich(record: AppErrorLogRecord): DevLogRecord {
   // we extend the fractional part with performance.now() microseconds while preserving
   // the decimal point so the result remains valid RFC3339 (e.g. `...12:34:56.123456Z`).
   // The logger OWNS the final timestamp — caller-supplied `record.timestamp` is ignored.
+  // The logger also redacts `error.cause` here (using server-only `redactForLog` from
+  // `redact.ts`) so `app-error.ts` stays client-safe (no node:crypto dependency).
   const iso = new Date().toISOString();                       // ...ss.sssZ
   const micro = performance.now().toFixed(6).slice(-6);       // 6-digit microsecond suffix
   const timestamp = iso.replace(/\d{3}Z$/, `${micro}Z`);      // swap ms for µs, keep decimal point
+  const redacted = record.error?.cause
+    ? { ...record.error, cause: redactForLog(record.error.cause) }
+    : record.error;
   return {
     ...record,                                                  // caller fields first
     record_id: `${timestamp}-${WORKER_ID}-${processCounter++}`, // logger stamps record_id
     timestamp,                                                  // logger stamps timestamp (overrides caller)
     severity_number: SEVERITY_BY_LEVEL[record.level],           // logger stamps severity_number
+    error: redacted,                                            // logger redacts cause
     context: trace
       ? { ...record.context, request_id: trace.requestId, route: trace.scope }
       : record.context,

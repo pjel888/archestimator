@@ -45,7 +45,9 @@ AppError (abstract root)
 
 ```ts
 // src/lib/observability/app-error.ts (new in P1)
-import { redactForLog } from './redact';
+// CLIENT-SAFE — no node: imports. Redaction of `cause` is done by the
+// server-only logger.enrich() at emit time (per `04` Section E), not here,
+// so this module can be imported from Client Components like toast.tsx.
 import type { AppErrorLogRecord } from './types';
 
 export type AppErrorKind =
@@ -105,6 +107,9 @@ export abstract class AppError extends Error {
     // `level` is sourced from `toLogLevel()` so each AppError subclass maps
     // to the correct OTel severity (auth/validation/not_found → INFO, conflict/
     // rate_limit/network → WARN, database/upstream/internal → ERROR; see `04` B.3).
+    // NOTE: `cause` is NOT redacted here — that keeps this module client-safe
+    // (no node:crypto dependency). The server-only logger.enrich() applies
+    // `redactForLog(String(this.cause))` during enrichment (per `04` Section E).
     return {
       timestamp: this.timestamp,
       level: this.toLogLevel(),
@@ -115,7 +120,7 @@ export abstract class AppError extends Error {
         class: this.name,
         message: this.userMessage,
         stack: process.env.NODE_ENV === 'development' ? this.stack?.split('\n').slice(0, 50) : undefined,
-        cause: process.env.NODE_ENV === 'development' ? String(redactForLog(this.cause)) : undefined,
+        cause: process.env.NODE_ENV === 'development' ? String(this.cause) : undefined,  // raw; logger redacts
       },
       context: this.context,
     };
