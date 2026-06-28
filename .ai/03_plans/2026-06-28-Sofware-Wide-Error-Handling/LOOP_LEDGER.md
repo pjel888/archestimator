@@ -2,9 +2,9 @@
 
 Per `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`. Documents the DISCOVER → PLAN → EXECUTE → VERIFY → RECORD → DECIDE loop for this planning task.
 
-**Loop surface used:** in-session loop (lead only). Background `explore` / `librarian` / `plan` agents were attempted but the agent runtime was unavailable this session (5 background + 1 sync all returned zero output after 30min inactivity timeout). Lead executed the loop directly with bash/grep/read/websearch/context7.
+**Loop surface used:** original in-session loop plus 2026-06-28 Codex improvement loop. The improvement loop used native read-only council lanes for feasibility, security/privacy, coherence, adversarial review, and final verification where available.
 
-**Verification mode:** `emulated` — lead performed all lanes as separated passes. Readiness capped at 97 per `.ai/08_prompts/000_Planning Prompts/Multi-Agent-Execution-Directive.md` Section 2.
+**Verification mode:** `independent-council-improved` — the original lead-emulated package was repaired with distinct native reviewer findings before final completion.
 
 ## Iteration log
 
@@ -39,7 +39,7 @@ Executed in parallel via bash/grep + websearch + context7. Captured grounded inv
 Writing each plan document with content grounded in the audit + research above. Ponytail mode: tight docs, no fluff.
 
 ### Iteration 5 — VERIFY (planned)
-Reviewer gate: re-read every doc against the user's verbatim requirements + rubric. Since agent runtime is unavailable, lead does this as a separated pass.
+Reviewer gate: re-read every doc against the user's verbatim requirements + rubric, then incorporate native council findings from feasibility and security/privacy reviewers plus any returned coherence/adversarial findings.
 
 ### Iteration 6 — RECORD + DECIDE (planned)
 - Update this ledger with verdict.
@@ -54,6 +54,16 @@ All resolved — see `11_RISKS_DECISIONS_ALTERNATIVES.md` for `DEC-ERR-001` thro
 
 | Validation skipped | Why | Risk | Strongest substitute |
 |---|---|---|---|
-| Independent reviewer agent | Agent runtime unavailable | Plan may have blind spots an independent reviewer would catch | Lead does emulated reviewer pass with fresh context |
+| Independent reviewer agent | Available in this Codex improvement pass | Distinct reviewers found feasibility/security contradictions | Lead integrates, then final verifier checks no P0/P1 remain |
+
+## Iteration 5 — Council repair pass (2026-06-28 Codex)
+
+DISCOVER: Native feasibility and security/privacy reviewers found blocking planning contradictions: stale baseline gates, incorrect Next.js `onRequestError` signature, impossible master rollback flag, client-error log poisoning risk, AI-log prompt-injection risk, replay privacy risk, and Sentry query-detail leakage.
+
+PLAN: Treat the user's owner-delegation as planning-only authority. Resolve open owner decisions in docs, not by changing code or provider state.
+
+EXECUTE: Update the plan pack and prompt pair to align contracts, settle deferred decisions, and add explicit untrusted-content boundaries.
+
+VERIFY: Run docs-only grep checks, `git diff --check`, and a final native verifier pass before claiming completion.
 | Plan agent graph | Same runtime issue | Plan structure may be less optimal than what a dedicated plan agent would produce | Lead applied plan-graph pattern from prior canonical packs |
 | Browser proof of Toast rendering | Out of scope (planning only) | None — implementation phase will own this | Documented in `09_TEST_QA_ULTRAQA_PLAN.md` as future P3 evidence |

@@ -4,17 +4,17 @@
 **Status:** IMPLEMENTATION-READY (planning/audit only — no code, tests, migrations, provider state, or runtime data changed in this pack)
 **Profile:** standard (cross-cutting infra, bounded blast radius, MVP pre-launch)
 **Scope:** planning, audit, and readiness only.
-**Verification mode:** `emulated` (background agent runtime was unavailable this session; the lead planned, wrote, and reviewed in separated passes; readiness cap = 97 — see `13_FINAL_AUDIT_SCORECARD.md`).
+**Verification mode:** `independent-council-improved` (the original pack was lead-authored; this 2026-06-28 Codex pass used native read-only council reviewers plus a final verifier gate before completion — see `13_FINAL_AUDIT_SCORECARD.md`).
 
 ## Master result
 
-Establish the first coherent software-wide error-handling layer for Archestimator so that every runtime failure — on client, server action, route handler, middleware, edge runtime, or auth callback — flows through one typed taxonomy, surfaces to the user via the existing Toast primitive with consistent tone+copy, and emits a structured NDJSON log record that a human OR an AI coding agent (Claude/Codex/OpenCode) can tail in dev mode and root-cause without further instrumentation.
+Establish the first coherent software-wide error-handling layer for Archestimator so that every runtime failure — on client, server action, route handler, middleware, edge runtime, or auth callback — flows through one typed taxonomy, surfaces to the user via the existing Toast primitive with consistent tone+copy, and emits a structured NDJSON log record that a human or AI coding agent can tail in dev mode and root-cause without further instrumentation.
 
 The four product outcomes the plan delivers:
 
 1. **Typed AppError hierarchy** that every throw site and every server-action return uses. The user always sees a toast with a known tone and safe copy; the server always logs the real cause with full context.
 2. **Structured NDJSON logging** in dev mode, written to a known file path that an AI agent can `tail -f` and parse — purpose-built for AI-agent-driven development.
-3. **Production observability** via `instrumentation.ts` `onRequestError` + Sentry (chosen for free-tier fit + Next.js 16 first-class integration + source maps), deferred until first paying user but pre-wired in this plan.
+3. **Production observability** via `instrumentation.ts` `onRequestError` + Sentry (chosen for free-tier fit + Next.js 16 first-class integration + private source-map upload), with Vercel Log Drain still deferred until first paying user.
 4. **No regression** to existing Toast API, auth callback audit pattern, RLS, migrations, Vercel region, or pre-existing red tests.
 
 ## Package map
@@ -87,7 +87,7 @@ This plan is complete when an implementer can:
 ## External proof that remains required before production rollout
 
 - Sentry DSN procurement + next.config sourcemap upload verification (P5 task).
-- Vercel log drain configuration for prod JSONL forwarding (P5 task).
+- Vercel Log Drain configuration for prod JSONL forwarding after first paying user (deferred; not a P5 blocker).
 - PII review pass on the dev NDJSON schema with a real auth-failure log line in hand (P4 task).
 
 ## Archive policy
@@ -104,10 +104,9 @@ Until then, this plan stays in `03_plans/` as the active reference.
 Before any code edit in P1, an implementer must run:
 
 ```bash
-cd /Users/philiplewis/Documents/archestimator
-git status --short --branch           # confirm clean tree on main
+git status --short --branch           # inspect branch and preserve unrelated worktree changes
 bun run type-check                    # confirm baseline tsc green
 bun run lint                          # confirm baseline ESLint green
 ```
 
-If any of these fail before implementation, stop and resolve first; the plan assumes baseline green.
+If type-check or lint fails before implementation, stop and characterize the baseline failure before editing. The worktree does not need to be clean; unrelated local changes must be preserved.

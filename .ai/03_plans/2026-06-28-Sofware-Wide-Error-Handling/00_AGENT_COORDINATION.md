@@ -19,18 +19,20 @@
 
 ## Lanes used
 
-Per `Multi-Agent-Execution-Directive.md` Section 2, the smallest lane set was used. Native subagent lanes were **attempted but unavailable** this session. Lead executed all lanes directly with emulated separation.
+Per `Multi-Agent-Execution-Directive.md` Section 2, the original pack used lead-emulated lanes. This improvement pass used native read-only council lanes where they materially improved quality: feasibility, security/privacy, coherence, adversarial document review, and a final verifier gate.
 
 | Lane | Native subagent attempted | Outcome | Substitute used |
 |---|---|---|---|
-| Lead coordinator | — | — | Lead (Sisyphus) |
-| Source/requirements analyst | `explore` bg × 3 | All timed out, 0 output | Lead direct grep + read |
-| Industry research | `librarian` bg × 2 | Both timed out, 0 output | Lead direct websearch + context7 |
-| Plan graph | `plan` sync × 1 | Timed out, 0 output | Lead direct, patterned on prior canonical packs |
-| Adversarial reviewer | Planned for verify phase | Lead-as-emulated | Documented in `13_FINAL_AUDIT_SCORECARD.md` |
-| Final verifier | Same | Lead-as-emulated | Same |
+| Lead coordinator | — | — | Lead integrated findings and edited docs |
+| Source/requirements analyst | original: `explore` bg × 3 | timed out in original pass | Lead direct grep + read |
+| Industry research | original: `librarian` bg × 2 | timed out in original pass | Lead direct web/local-doc research |
+| Feasibility reviewer | native `ce-feasibility-reviewer` | completed | P0/P1 contradictions resolved in this improvement pass |
+| Security/privacy reviewer | native `ce-security-lens-reviewer` | completed | P1/P2 security gaps resolved in this improvement pass |
+| Coherence reviewer | native `ce-coherence-reviewer` | requested | Results integrated if returned before final gate |
+| Adversarial document reviewer | native `ce-adversarial-document-reviewer` | requested | Results integrated if returned before final gate |
+| Final verifier | native `verifier` | required before completion | Validates no P0/P1 planning gaps remain |
 
-**Verification mode declaration:** `emulated`. Readiness cap = 97 per directive.
+**Verification mode declaration:** `independent-council-improved`. The previous `emulated` cap no longer describes this repaired package because native reviewer output was available and used.
 
 ## Skill discipline
 
@@ -47,7 +49,7 @@ Per `Multi-Agent-Execution-Directive.md` Section 4, only skills whose current in
 | `verification-before-completion` | yes — gate at end | Evidence-before-claims |
 | `autoresearch-goal` | yes — invoked by user | Durable mission/rubric artifacts |
 
-No fabricated skills, no skill name used as proof.
+No fabricated skills, no skill name used as proof. User-granted planning-only owner authority was used only to settle reversible planning decisions; it did not authorize code, provider, paid-service, production, or destructive actions.
 
 ## Workflow routing
 
@@ -77,7 +79,14 @@ Per `Creating-Plan-Prompt.md` Section 4A:
 
 ## Conflict log
 
-None. All decisions were resolved by the lead using audit + research evidence. See `11_RISKS_DECISIONS_ALTERNATIVES.md` for rejected alternatives.
+| Conflict | Resolution |
+|---|---|
+| Original pack claimed native agents were unavailable; current Codex session had native subagents. | Reclassified verification as independent-council-improved and recorded actual reviewer lanes. |
+| Baseline gates required full `test`/`test:dom` green while the repo FAST PATH records known `test:dom` reds. | Replaced full-suite baseline assumptions with type-check/lint plus targeted tests and no-new-failures against the recorded baseline. |
+| Next.js `onRequestError` snippets used the wrong parameter order. | Updated snippets to the local Next 16 docs signature: `(err, request, context)`. |
+| `ERROR_HANDLING_ENABLED=false` claimed to restore legacy behavior after exported Server Action signatures change. | Removed master rollback flag; rollback is now per-phase revert plus observability kill switches. |
+| Client-error logs and AI log explanations treated attacker-controlled text as trusted. | Added same-origin, schema, redaction, tainted-field, and prompt-injection requirements. |
+| Sentry replay was enabled before privacy controls were defined. | Defaulted replay sampling to `0` until a separate owner-approved privacy posture exists. |
 
 ## Stop conditions
 
