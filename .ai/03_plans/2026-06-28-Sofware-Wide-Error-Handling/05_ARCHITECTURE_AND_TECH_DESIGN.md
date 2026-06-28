@@ -70,11 +70,14 @@ export async function register() {
 export async function captureRequestError(error, request, context) {
   // Honor the same kill switch on the capture path.
   if (process.env.SENTRY_ENABLED === 'false') return;
+  // Sanitize before capture: use context.routePath (parameter-free Next.js
+  // route pattern) instead of request.path (which may include query string
+  // per node_modules/next/dist/docs/.../instrumentation.md). Method and
+  // routerKind are low-cardinality. No raw URL, no query, no headers.
   Sentry.captureException(error, {
     extra: {
       method: request.method,
-      path: request.path,
-      routePath: context.routePath,
+      routePath: context.routePath,  // parameter-free; safe per `10` E.1 runbook
       routerKind: context.routerKind,
     },
   });
