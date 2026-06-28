@@ -139,7 +139,7 @@ export function WorkshopDashboard({
   const projectCount = homebase.projects.length;
 
   return (
-    <div className="dashboard-canvas-wash h-full min-h-0 overflow-y-auto">
+    <div className="h-full min-h-0 overflow-y-auto">
       <div className="dashboard-root w-full p-2">
         {/* Destination field — a big Projects mountain hero (2×2), three
             supporting color blocks, the Library hub, and a wide display

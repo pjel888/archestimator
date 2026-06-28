@@ -20,6 +20,8 @@ import type { EstimateRowItem } from "@/lib/estimates/types";
 import { cn } from "@/lib/ui/cn";
 
 const PRICE_HISTORY_PREVIEW_COUNT = 5;
+const INSPECTOR_GLASS_DIVIDER_CLASS = "border-[color:var(--glass-border)]";
+const INSPECTOR_GLASS_THUMBNAIL_CLASS = "border-[color:var(--glass-border)] bg-white/45";
 
 const pesoFormatter = new Intl.NumberFormat("en-PH", {
   style: "currency",
@@ -174,7 +176,12 @@ export function ComponentInspectorDock({
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-3">
-          <div className="relative h-[120px] w-[120px] overflow-hidden rounded-xs border border-hairline bg-white">
+          <div
+            className={cn(
+              "relative h-[120px] w-[120px] overflow-hidden rounded-xs border",
+              surfaceVariant === "glass" ? INSPECTOR_GLASS_THUMBNAIL_CLASS : "border-hairline bg-white",
+            )}
+          >
             {item.imageUrl && isNextImageSafeSource(item.imageUrl) ? (
               <Image src={item.imageUrl} alt={`${name} thumbnail`} fill sizes="120px" className="object-cover" />
             ) : item.imageUrl ? (
@@ -202,7 +209,7 @@ export function ComponentInspectorDock({
             className="mt-2"
           />
 
-          <dl className="mt-3 border-t border-hairline pt-2">
+          <dl className={cn("mt-3 border-t pt-2", surfaceVariant === "glass" ? INSPECTOR_GLASS_DIVIDER_CLASS : "border-hairline")}>
             <DetailRow label="Unit cost">
               <span className="font-medium tabular-nums">{pesoFormatter.format(item.itemCost)}</span>
               <span className="ml-1 text-[8px] text-tertiary">/ {item.unit}</span>
@@ -223,7 +230,10 @@ export function ComponentInspectorDock({
             {item.pricingSource?.trim() ? <DetailRow label="Source">{item.pricingSource}</DetailRow> : null}
           </dl>
 
-          <section className="mt-3 border-t border-hairline pt-2" aria-label="Price history">
+          <section
+            className={cn("mt-3 border-t pt-2", surfaceVariant === "glass" ? INSPECTOR_GLASS_DIVIDER_CLASS : "border-hairline")}
+            aria-label="Price history"
+          >
             <h4 className="text-[9px] font-medium leading-3 text-tertiary">Price history</h4>
             {priceHistory.length === 0 ? (
               <p className="mt-1 text-[10px] leading-4 text-tertiary">No recorded price changes.</p>
@@ -261,7 +271,10 @@ export function ComponentInspectorDock({
             )}
           </section>
 
-          <section className="mt-3 border-t border-hairline pt-2" aria-label="Used in">
+          <section
+            className={cn("mt-3 border-t pt-2", surfaceVariant === "glass" ? INSPECTOR_GLASS_DIVIDER_CLASS : "border-hairline")}
+            aria-label="Used in"
+          >
             <h4 className="text-[9px] font-medium leading-3 text-tertiary">Used in</h4>
             <p className="mt-1 text-[10px] leading-4 text-ink" aria-live="polite">
               {usageError
@@ -273,7 +286,12 @@ export function ComponentInspectorDock({
           </section>
         </div>
 
-        <footer className="flex shrink-0 items-center gap-2 border-t border-hairline p-2">
+        <footer
+          className={cn(
+            "flex shrink-0 items-center gap-2 border-t p-2",
+            surfaceVariant === "glass" ? "border-[color:var(--glass-border)] bg-white/30" : "border-hairline",
+          )}
+        >
           {promoteAction ? (
             <Button
               type="button"

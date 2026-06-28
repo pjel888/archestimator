@@ -126,10 +126,16 @@ const COMPONENT_LIBRARY_TREE_WIDTH_OFFSET = 104;
 const CATALOGUE_UNASSIGNED_LABEL = "Unassigned";
 const CATALOGUE_CARD_GRID_CLASS = "mt-2 grid list-none grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-2 p-0";
 const CATALOGUE_CARD_SHELL_CLASS =
-  "flex min-h-[236px] flex-col overflow-hidden rounded-xs border border-hairline bg-white text-left shadow-[0_10px_24px_-22px_rgba(17,24,39,0.55)]";
-const CATALOGUE_CARD_BODY_HEIGHT_CLASS = "h-[132px]";
+  "flex min-h-[236px] flex-col overflow-hidden rounded-xs border text-left";
 const LIBRARY_DISPLAY_MODE_STORAGE_KEY = "archestimator_component_library_display_mode_v1";
 const EMPTY_LIBRARY_ITEMS: EstimateRowItem[] = [];
+const LIBRARY_GLASS_DIVIDER_CLASS = "border-[color:var(--glass-border)]";
+const LIBRARY_GLASS_CONTROL_CLASS =
+  "border-[color:var(--glass-border)] bg-white/60 hover:border-[color:var(--brand-orange)] hover:bg-white/75";
+const LIBRARY_GLASS_SELECTED_CLASS =
+  "border-[color:var(--brand-orange)] bg-white/80 shadow-[inset_2px_0_0_var(--brand-orange)]";
+const LIBRARY_GLASS_TILE_CLASS = "estimate-glass-chrome border-[color:var(--glass-border)] shadow-none";
+const LIBRARY_GLASS_TABLE_CLASS = "border-[color:var(--glass-border)] bg-white/30";
 
 type CatalogueFolderMeta = {
   folderId: string;
@@ -732,14 +738,24 @@ function ComponentCatalogueCard({
   return (
     <li
       data-component-catalogue-card-id={item.id}
+      data-library-card-selected={inspectorSelected ? "true" : undefined}
       className={cn(
-        "group cursor-pointer transition hover:border-divider hover:shadow-[0_16px_32px_-24px_rgba(17,24,39,0.65)]",
+        "group cursor-pointer transition",
+        surfaceVariant === "glass"
+          ? "hover:border-[color:var(--glass-border)] hover:bg-white/75"
+          : "hover:border-divider hover:shadow-[0_16px_32px_-24px_rgba(17,24,39,0.65)]",
         CATALOGUE_CARD_SHELL_CLASS,
         librarySurfaceClass(surfaceVariant, "contentTile"),
-        inspectorSelected && (surfaceVariant === "glass" ? "border-ink bg-white/90" : "border-ink bg-surfaceMuted/40"),
+        surfaceVariant === "glass" && LIBRARY_GLASS_TILE_CLASS,
+        inspectorSelected && (surfaceVariant === "glass" ? LIBRARY_GLASS_SELECTED_CLASS : "border-ink bg-surfaceMuted/40"),
       )}
     >
-      <div className="relative aspect-square w-full overflow-hidden border-b border-hairline bg-white">
+      <div
+        className={cn(
+          "relative aspect-square w-full overflow-hidden border-b",
+          surfaceVariant === "glass" ? "border-[color:var(--glass-border)] bg-white/35" : "border-hairline bg-white",
+        )}
+      >
         {lifecycleBadge ? (
           <span
             className={cn(
@@ -751,7 +767,14 @@ function ComponentCatalogueCard({
             {lifecycleBadge.label}
           </span>
         ) : null}
-        <label className="absolute left-2 top-2 z-10 grid size-7 cursor-pointer place-items-center rounded-xs border border-white/70 bg-white/86 shadow-sm backdrop-blur hover:bg-white">
+        <label
+          className={cn(
+            "absolute left-2 top-2 z-10 grid size-7 cursor-pointer place-items-center rounded-xs border",
+            surfaceVariant === "glass"
+              ? LIBRARY_GLASS_CONTROL_CLASS
+              : "border-white/70 bg-white/86 shadow-sm backdrop-blur hover:bg-white",
+          )}
+        >
           <span className="sr-only">{`Select ${item.name ?? item.material} for archive`}</span>
           <input
             type="checkbox"
@@ -792,7 +815,13 @@ function ComponentCatalogueCard({
               className="object-cover transition duration-200 group-hover:scale-[1.02]"
             />
           ) : (
-            <span className="flex h-full w-full items-center justify-center bg-white text-tertiary" aria-hidden="true">
+            <span
+              className={cn(
+                "flex h-full w-full items-center justify-center text-tertiary",
+                surfaceVariant === "glass" ? "bg-transparent" : "bg-white",
+              )}
+              aria-hidden="true"
+            >
               <ImageSquare size={24} weight="regular" />
             </span>
           )}
@@ -827,7 +856,7 @@ function ComponentCatalogueCard({
             {brand}
           </p>
         </div>
-        <div className="mt-auto border-t border-hairline pt-1.5">
+        <div className={cn("mt-auto border-t pt-1.5", surfaceVariant === "glass" ? LIBRARY_GLASS_DIVIDER_CLASS : "border-hairline")}>
           <p className="font-sans text-[11px] font-medium leading-4 tabular-nums text-ink">
             {pesoFormatter.format(getComponentPrice(item))}
           </p>
@@ -837,7 +866,10 @@ function ComponentCatalogueCard({
           {canPromote ? (
             <button
               type="button"
-              className="mt-1 inline-flex h-6 items-center justify-center rounded-xs border border-hairline bg-white px-2 text-[9px] font-medium leading-none text-secondary transition hover:border-accent hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60"
+              className={cn(
+                "mt-1 inline-flex h-6 items-center justify-center rounded-xs border px-2 text-[9px] font-medium leading-none text-secondary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60",
+                surfaceVariant === "glass" ? LIBRARY_GLASS_CONTROL_CLASS : "border-hairline bg-white hover:border-accent",
+              )}
               aria-label={`Promote ${name} to library`}
               title={`Promote ${name} to library`}
               disabled={promotePending}
@@ -849,7 +881,7 @@ function ComponentCatalogueCard({
               {promotePending ? "Promoting…" : "Promote"}
             </button>
           ) : null}
-          <div className="mt-1 space-y-0.5 border-t border-hairline pt-1">
+          <div className={cn("mt-1 space-y-0.5 border-t pt-1", surfaceVariant === "glass" ? LIBRARY_GLASS_DIVIDER_CLASS : "border-hairline")}>
             <SourceTrustChips
               chips={getComponentSourceTrustChips(item)}
               ariaLabel={`Source trust for ${name}`}
@@ -936,8 +968,8 @@ function DenseSortableHeader({
       scope="col"
       aria-sort={getDenseAriaSort(sort, sortKey)}
       className={cn(
-        "sticky top-0 z-10 border-b border-hairline px-2 py-1 text-left text-[9px] font-medium leading-3 text-tertiary",
-        surfaceVariant === "glass" ? "estimate-glass-headchrome" : "bg-white",
+        "sticky top-0 z-10 border-b px-2 py-1 text-left text-[9px] font-medium leading-3 text-tertiary",
+        surfaceVariant === "glass" ? "estimate-glass-headchrome border-[color:var(--glass-border)]" : "border-hairline bg-white",
         className,
       )}
     >
@@ -1032,8 +1064,10 @@ function ComponentCatalogueDenseTable({
     <div
       ref={scrollContainerRef}
       className={cn(
-        "h-full max-h-full min-h-0 overflow-auto rounded-xs border border-hairline",
+        "h-full max-h-full min-h-0 overflow-auto rounded-xs border",
+        surfaceVariant === "glass" ? "border-[color:var(--glass-border)]" : "border-hairline",
         librarySurfaceClass(surfaceVariant, "denseTable"),
+        surfaceVariant === "glass" && LIBRARY_GLASS_TABLE_CLASS,
       )}
       data-component-dense-scroll-container="true"
       data-library-virtualization-source="WORKSHOP_VIRTUALIZATION_FLAGS"
@@ -1071,8 +1105,8 @@ function ComponentCatalogueDenseTable({
             <th
               scope="col"
               className={cn(
-                "sticky top-0 z-10 border-b border-hairline px-2 py-1 text-left text-[9px] font-medium leading-3 text-tertiary",
-                surfaceVariant === "glass" ? "estimate-glass-headchrome" : "bg-white",
+                "sticky top-0 z-10 border-b px-2 py-1 text-left text-[9px] font-medium leading-3 text-tertiary",
+                surfaceVariant === "glass" ? "estimate-glass-headchrome border-[color:var(--glass-border)]" : "border-hairline bg-white",
               )}
             >
               <span className="sr-only">Select</span>
@@ -1090,8 +1124,8 @@ function ComponentCatalogueDenseTable({
             <th
               scope="col"
               className={cn(
-                "sticky top-0 z-10 border-b border-hairline px-2 py-1 text-left text-[9px] font-medium leading-3 text-tertiary",
-                surfaceVariant === "glass" ? "estimate-glass-headchrome" : "bg-white",
+                "sticky top-0 z-10 border-b px-2 py-1 text-left text-[9px] font-medium leading-3 text-tertiary",
+                surfaceVariant === "glass" ? "estimate-glass-headchrome border-[color:var(--glass-border)]" : "border-hairline bg-white",
               )}
             >
               Actions
@@ -1126,8 +1160,12 @@ function ComponentCatalogueDenseTable({
                 data-component-dense-virtual-row={virtualEnabled ? item.id : undefined}
                 aria-selected={inspectorSelected || selected}
                 className={cn(
-                  "border-b border-hairline transition hover:bg-surfaceMuted/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus",
-                  inspectorSelected && "bg-surfaceMuted/70",
+                  "border-b transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus",
+                  surfaceVariant === "glass"
+                    ? "border-[color:var(--glass-border)] hover:bg-white/40"
+                    : "border-hairline hover:bg-surfaceMuted/55",
+                  selected && surfaceVariant === "glass" && "bg-white/30",
+                  inspectorSelected && (surfaceVariant === "glass" ? "bg-white/55 shadow-[inset_2px_0_0_var(--brand-orange)]" : "bg-surfaceMuted/70"),
                 )}
                 onClick={(event) => {
                   if ((event.target as HTMLElement).closest("label, button, a, input")) return;
@@ -1214,7 +1252,10 @@ function ComponentCatalogueDenseTable({
                   <div className="flex min-w-0 items-center gap-1">
                     <button
                       type="button"
-                      className="inline-flex h-6 items-center justify-center rounded-xs border border-hairline bg-white px-2 text-[9px] font-medium leading-none text-secondary transition hover:border-accent hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                      className={cn(
+                        "inline-flex h-6 items-center justify-center rounded-xs border px-2 text-[9px] font-medium leading-none text-secondary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+                        surfaceVariant === "glass" ? LIBRARY_GLASS_CONTROL_CLASS : "border-hairline bg-white hover:border-accent",
+                      )}
                       data-component-card-inspect={item.id}
                       aria-label={`View details for ${name}`}
                       onClick={() => onInspect(item.id)}
@@ -1224,7 +1265,10 @@ function ComponentCatalogueDenseTable({
                     {canPromote ? (
                       <button
                         type="button"
-                        className="inline-flex h-6 items-center justify-center rounded-xs border border-hairline bg-white px-2 text-[9px] font-medium leading-none text-secondary transition hover:border-accent hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60"
+                        className={cn(
+                          "inline-flex h-6 items-center justify-center rounded-xs border px-2 text-[9px] font-medium leading-none text-secondary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60",
+                          surfaceVariant === "glass" ? LIBRARY_GLASS_CONTROL_CLASS : "border-hairline bg-white hover:border-accent",
+                        )}
                         aria-label={`Promote ${name} to library`}
                         title={`Promote ${name} to library`}
                         disabled={promotingItemId === item.id}
@@ -1289,6 +1333,7 @@ function ComponentCatalogueBranch({
         className={cn(
           "flex min-h-[72px] min-w-0 items-center gap-2 px-3 py-2.5",
           librarySurfaceClass(surfaceVariant, "contentTile"),
+          surfaceVariant === "glass" && LIBRARY_GLASS_TILE_CLASS,
         )}
       >
         <button
@@ -1725,7 +1770,10 @@ function ComponentLibrarySheet({
                 <span className="hidden sm:inline">{partialLoadLabel}</span>
                 <button
                   type="button"
-                  className="inline-flex h-6 shrink-0 items-center gap-1 rounded-xs border border-hairline bg-white px-2 text-[9px] font-medium leading-none text-secondary transition hover:border-accent hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-wait disabled:opacity-60"
+                  className={cn(
+                    "inline-flex h-6 shrink-0 items-center gap-1 rounded-xs border px-2 text-[9px] font-medium leading-none text-secondary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-wait disabled:opacity-60",
+                    surfaceVariant === "glass" ? LIBRARY_GLASS_CONTROL_CLASS : "border-hairline bg-white hover:border-accent",
+                  )}
                   disabled={componentRowsLoadState?.isLoading}
                   onClick={componentRowsLoadState?.onLoadAll}
                 >
@@ -1739,13 +1787,17 @@ function ComponentLibrarySheet({
               <div
                 role="group"
                 aria-label="Component display mode"
-                className={cn("flex h-6 shrink-0 items-center overflow-hidden", librarySurfaceClass(surfaceVariant, "segmentedControl"))}
+                className={cn(
+                  "flex h-6 shrink-0 items-center overflow-hidden",
+                  librarySurfaceClass(surfaceVariant, "segmentedControl"),
+                  surfaceVariant === "glass" && LIBRARY_GLASS_TILE_CLASS,
+                )}
               >
                 <button
                   type="button"
                   className={cn(
                     "inline-flex h-full items-center gap-1 px-2 text-[9px] font-medium leading-none text-tertiary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-                    effectiveDisplayMode === "cards" && "bg-surfaceMuted text-ink",
+                    effectiveDisplayMode === "cards" && (surfaceVariant === "glass" ? "bg-white/70 text-ink" : "bg-surfaceMuted text-ink"),
                   )}
                   aria-pressed={effectiveDisplayMode === "cards"}
                   onClick={() => changeDisplayMode("cards")}
@@ -1756,8 +1808,9 @@ function ComponentLibrarySheet({
                 <button
                   type="button"
                   className={cn(
-                    "inline-flex h-full items-center gap-1 border-l border-hairline px-2 text-[9px] font-medium leading-none text-tertiary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-                    effectiveDisplayMode === "dense" && "bg-surfaceMuted text-ink",
+                    "inline-flex h-full items-center gap-1 border-l px-2 text-[9px] font-medium leading-none text-tertiary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+                    surfaceVariant === "glass" ? "border-[color:var(--glass-border)]" : "border-hairline",
+                    effectiveDisplayMode === "dense" && (surfaceVariant === "glass" ? "bg-white/70 text-ink" : "bg-surfaceMuted text-ink"),
                   )}
                   aria-pressed={effectiveDisplayMode === "dense"}
                   onClick={() => changeDisplayMode("dense")}
@@ -1783,12 +1836,14 @@ function ComponentLibrarySheet({
           options={facetOptions}
           onFiltersChange={(filters) => dispatchSheet({ type: "facetFiltersChanged", filters })}
           className={surfaceVariant === "glass" ? "estimate-glass-chrome estimate-glass-divider border-b-0 bg-transparent" : undefined}
+          chipClassName={surfaceVariant === "glass" ? LIBRARY_GLASS_CONTROL_CLASS : undefined}
         />
         {status.state !== "idle" ? (
           <output
             aria-live="polite"
             className={cn(
-              "border-b border-hairline px-2 py-1 text-[10px] leading-4",
+              "border-b px-2 py-1 text-[10px] leading-4",
+              surfaceVariant === "glass" ? "border-[color:var(--glass-border)] bg-white/20" : "border-hairline",
               status.state === "error" ? "text-red-700" : "text-tertiary",
             )}
           >
@@ -1824,6 +1879,7 @@ function ComponentLibrarySheet({
             className={cn(
               "grid h-full min-h-[240px] place-items-center border-dashed p-4 text-center",
               librarySurfaceClass(surfaceVariant, "emptyState"),
+              surfaceVariant === "glass" && LIBRARY_GLASS_TILE_CLASS,
             )}
             data-component-card-scale-fallback="true"
             data-component-card-scale-fallback-count={visibleItems.length}
@@ -1836,7 +1892,10 @@ function ComponentLibrarySheet({
               </p>
               <button
                 type="button"
-                className="inline-flex h-8 items-center gap-1 rounded-xs border border-hairline bg-white px-3 text-[10px] font-medium leading-none text-secondary transition hover:border-accent hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                className={cn(
+                  "inline-flex h-8 items-center gap-1 rounded-xs border px-3 text-[10px] font-medium leading-none text-secondary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+                  surfaceVariant === "glass" ? LIBRARY_GLASS_CONTROL_CLASS : "border-hairline bg-white hover:border-accent",
+                )}
                 onClick={() => changeDisplayMode("dense")}
               >
                 <Rows size={12} weight="regular" aria-hidden="true" />
@@ -1866,6 +1925,7 @@ function ComponentLibrarySheet({
                   className={cn(
                     "flex min-h-[72px] min-w-0 items-center gap-2 px-3 py-2.5",
                     librarySurfaceClass(surfaceVariant, "contentTile"),
+                    surfaceVariant === "glass" && LIBRARY_GLASS_TILE_CLASS,
                     surfaceVariant === "paper" && "bg-surfaceMuted/70",
                   )}
                 >
@@ -2665,7 +2725,10 @@ export function ComponentLibraryManager({
       data-library-surface={surfaceVariant}
     >
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-transparent">
-        <section className="flex h-full min-h-0 overflow-hidden bg-transparent" aria-label="Component library workspace">
+        <section
+          className={cn("flex h-full min-h-0 overflow-hidden bg-transparent", surfaceVariant === "glass" && "gap-2")}
+          aria-label="Component library workspace"
+        >
           <ComponentLibraryTreePanel
             supplierNodes={supplierTree}
             brandNodes={brandTree}

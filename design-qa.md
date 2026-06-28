@@ -1,3 +1,43 @@
+## 2026-06-28 dashboard shell continuity QA
+
+source visual truth path:
+- User reference: /Users/philiplewis/.codex/attachments/1036cb6f-cb40-4df0-af63-e6ed5d5b86f2/image-1.png
+- Live projects reference after reload: /Users/philiplewis/Documents/archestimator/.omx/artifacts/dashboard-continuity/projects-reference-live.png
+
+implementation screenshot path:
+- /Users/philiplewis/Documents/archestimator/.omx/artifacts/dashboard-continuity/dashboard-after.png
+
+viewport: authenticated desktop Chrome window, cropped to the app surface, approximately 2294x1352 screen pixels.
+
+state: `/workshop` dashboard compared against `/workshop/projects`; left workshop sidebar, top title/header row, dashboard/projects body, and bottom feedback footer visible.
+
+full-view comparison evidence:
+- The projects page reference paints the route wash at the shared workshop shell level, so the header, content, and footer sit on one continuous plane.
+- The dashboard previously painted `dashboard-canvas-wash` only inside `WorkshopDashboard`, leaving the shell header and footer on a different material.
+- After the patch, `/workshop` passes `canvasClassName="dashboard-canvas-wash"` into `WorkshopPageShell`; the dashboard scroller no longer paints its own route-level background.
+
+focused region comparison evidence:
+- Header seam: the dashboard greeting/header row now shares the same warm dashboard wash as the body instead of starting above a separate body-only wash.
+- Body transition: dashboard tiles remain unchanged, but their surrounding canvas now continues behind the chrome rows like projects.
+- Footer seam: the footer sits on the same route-level wash instead of an isolated bottom strip.
+- The macOS screen-recording notification appears in the saved screenshots; it is outside the app surface and not an app visual defect.
+
+findings:
+- No actionable P0/P1/P2 findings remain for the requested dashboard header/body/footer continuity.
+
+patches made since previous QA pass:
+- Added `canvasClassName="dashboard-canvas-wash"` to the `/workshop` `WorkshopPageShell`.
+- Removed the duplicate `dashboard-canvas-wash` class from the inner dashboard overflow container.
+- Left dashboard card layout, content hierarchy, interactions, and projects page styling untouched.
+
+verification:
+- `bunx eslint src/app/workshop/page.tsx src/components/workshop/dashboard/WorkshopDashboard.tsx` passed.
+- `bun run type-check` passed.
+- `git diff --check` passed.
+- Live authenticated Chrome visual check passed for `/workshop` and `/workshop/projects`; screenshots saved under `.omx/artifacts/dashboard-continuity/`.
+
+final result: passed
+
 ## 2026-06-27 estimate sheet header/footer continuity QA
 
 source visual truth path:

@@ -18,6 +18,8 @@ import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import { TREE_ROW_ICON_SIZE, Tree, type TreeDropPosition, type TreeNode as UiTreeNode } from "@/components/ui/tree";
 import { TreeBulkActionBar } from "@/components/workshop/tree-row-affordances";
 import { WORKSHOP_TREE_ICON_SLOT_CLASS, WORKSHOP_TREE_ROW_GAP_CLASS } from "@/components/workshop/tree-visual-style";
+import { librarySurfaceClass } from "@/components/workshop/library/library-surface-class";
+import { useLibrarySurfaceVariant } from "@/components/workshop/library/library-surface-variant";
 import { reorderLibraryFolders } from "@/lib/component-library/actions";
 import {
   buildLibraryFolderReorderPlan,
@@ -1058,6 +1060,25 @@ export function LibraryFolderTreeSurface({
   });
   const isFolderMode = viewMode === "default";
   const isBrandMode = viewMode === "brand";
+  const surfaceVariant = useLibrarySurfaceVariant();
+  const isGlassSurface = surfaceVariant === "glass";
+  const toolbarIconClassName = isGlassSurface
+    ? "text-secondary hover:bg-white/45 hover:text-ink focus-visible:bg-white/55 focus-visible:text-ink"
+    : undefined;
+  const activeToolbarIconClassName = isGlassSurface
+    ? "bg-white/60 text-ink hover:bg-white/70 focus-visible:bg-white/70"
+    : "bg-surfaceMuted text-ink";
+  const treeListItemClassName = cn(
+    "flex min-h-7 w-full items-center gap-1 rounded-xs px-2 text-left text-[10px] leading-4 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+    isGlassSurface ? "hover:bg-white/45" : "hover:bg-surfaceMuted",
+  );
+  const treeListSelectedClassName = isGlassSurface
+    ? "bg-transparent font-medium text-ink shadow-[inset_2px_0_0_var(--brand-orange)]"
+    : "bg-accentSoft font-medium text-ink";
+  const treeEmptyStateClassName = cn(
+    "rounded-xs border border-dashed p-2 text-[10px] leading-4 text-tertiary",
+    isGlassSurface ? "border-[color:var(--glass-border)] bg-white/30" : "border-hairline bg-surfaceMuted",
+  );
 
   const changeViewMode = useCallback((nextMode: ComponentViewMode) => {
     if (controlledViewMode === undefined) dispatchSurface({ type: "internalViewModeChanged", mode: nextMode });
@@ -1110,9 +1131,10 @@ export function LibraryFolderTreeSurface({
         icon: <FolderActionIcon />,
         onClick: handleCreateFolder,
         disabled: treeMutationPending,
+        className: toolbarIconClassName,
       },
     ];
-  }, [handleCreateFolder, onCreateFolder, treeMutationPending]);
+  }, [handleCreateFolder, onCreateFolder, toolbarIconClassName, treeMutationPending]);
 
   const supplierListTree = filteredSuppliers.length > 0 ? (
     <div role="tree" aria-label="Add component supplier tree" className={WORKSHOP_TREE_ROW_GAP_CLASS}>
@@ -1127,8 +1149,8 @@ export function LibraryFolderTreeSurface({
             aria-label={supplier.name}
             onClick={() => onSelectSupplier?.(supplier.id, supplier.name)}
             className={cn(
-              "flex min-h-7 w-full items-center gap-1 rounded-xs px-2 text-left text-[10px] leading-4 transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-              selected ? "bg-accentSoft font-medium text-ink" : "font-normal text-ink",
+              treeListItemClassName,
+              selected ? treeListSelectedClassName : "font-normal text-ink",
             )}
           >
             <span className={cn("mr-1", WORKSHOP_TREE_ICON_SLOT_CLASS)} aria-hidden="true">
@@ -1140,7 +1162,7 @@ export function LibraryFolderTreeSurface({
       })}
     </div>
   ) : (
-    <div className="rounded-xs border border-dashed border-hairline bg-surfaceMuted p-2 text-[10px] leading-4 text-tertiary">
+    <div className={treeEmptyStateClassName}>
       {noSupplierMatchesLabel ?? "No suppliers match"} &quot;{searchQuery}&quot;.
     </div>
   );
@@ -1157,7 +1179,7 @@ export function LibraryFolderTreeSurface({
         showItemAddAction={false}
       />
     ) : (
-      <div className="rounded-xs border border-dashed border-hairline bg-surfaceMuted p-2 text-[10px] leading-4 text-tertiary">
+      <div className={treeEmptyStateClassName}>
         No tree matches for &quot;{searchQuery}&quot;.
       </div>
     )
@@ -1176,8 +1198,8 @@ export function LibraryFolderTreeSurface({
             aria-label={brand.name}
             onClick={() => onSelectBrand?.(brand.id, brand.name)}
             className={cn(
-              "flex min-h-7 w-full items-center gap-1 rounded-xs px-2 text-left text-[10px] leading-4 transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-              selected ? "bg-accentSoft font-medium text-ink" : "font-normal text-ink",
+              treeListItemClassName,
+              selected ? treeListSelectedClassName : "font-normal text-ink",
             )}
           >
             <span className={cn("mr-1", WORKSHOP_TREE_ICON_SLOT_CLASS)} aria-hidden="true">
@@ -1189,7 +1211,7 @@ export function LibraryFolderTreeSurface({
       })}
     </div>
   ) : (
-    <div className="rounded-xs border border-dashed border-hairline bg-surfaceMuted p-2 text-[10px] leading-4 text-tertiary">
+    <div className={treeEmptyStateClassName}>
       {noBrandMatchesLabel ?? "No brands match"} &quot;{searchQuery}&quot;.
     </div>
   );
@@ -1206,7 +1228,7 @@ export function LibraryFolderTreeSurface({
         showItemAddAction={false}
       />
     ) : (
-      <div className="rounded-xs border border-dashed border-hairline bg-surfaceMuted p-2 text-[10px] leading-4 text-tertiary">
+      <div className={treeEmptyStateClassName}>
         No tree matches for &quot;{searchQuery}&quot;.
       </div>
     )
@@ -1215,9 +1237,17 @@ export function LibraryFolderTreeSurface({
   const treeSearchPlaceholder = isFolderMode ? folderSearchPlaceholder : isBrandMode ? brandSearchPlaceholder : supplierSearchPlaceholder;
 
   return (
-    <div className={cn("flex h-full min-h-0 flex-col overflow-hidden bg-white", className)}>
+    <div
+      className={cn(
+        "group/tree flex h-full min-h-0 flex-col overflow-hidden",
+        isGlassSurface ? "bg-transparent" : "bg-white",
+        className,
+      )}
+    >
       <TreePanelHeader
         ref={headerRef}
+        className={librarySurfaceClass(surfaceVariant, "railPanelHeader")}
+        toolbarClassName={librarySurfaceClass(surfaceVariant, "toolbar")}
         ariaLabel={toolbarAriaLabel}
         labelPrefix={resolveModeValue(toolbarLabelPrefix, viewMode)}
         searchValue={searchQuery}
@@ -1225,6 +1255,8 @@ export function LibraryFolderTreeSurface({
         searchPlaceholder={treeSearchPlaceholder}
         searchLabel={resolveModeValue(searchAriaLabel, viewMode)}
         showDefaultActions={false}
+        showBottomBorder={isGlassSurface ? false : undefined}
+        showToolbarBottomBorder={isGlassSurface ? true : undefined}
         onExpandAll={() => {
           if (isFolderMode) dispatchSurface({ type: "expandedFolderItemIdsChanged", ids: getAllFolderTreeItemIds(displayedFolderNodes) });
           else if (isBrandMode && brandNodes.length > 0) dispatchSurface({ type: "expandedBrandNodeIdsChanged", ids: getAllNodeIds(brandNodes) });
@@ -1241,17 +1273,26 @@ export function LibraryFolderTreeSurface({
             icon: <SquaresFour size={12} weight="regular" aria-hidden="true" />,
             onClick: () => dispatchSurface({ type: "viewModeMenuToggled" }),
             pressed: viewModeMenuOpen,
+            className: viewModeMenuOpen ? activeToolbarIconClassName : toolbarIconClassName,
           },
         ]}
         leadingActionsLabel="Component tree view mode"
         addActions={addActions}
       >
-        {viewModeMenuOpen ? <ComponentViewControls mode={viewMode} ariaLabel={viewModeAriaLabel} onModeChange={changeViewMode} /> : null}
+        {viewModeMenuOpen ? (
+          <ComponentViewControls
+            mode={viewMode}
+            ariaLabel={viewModeAriaLabel}
+            onModeChange={changeViewMode}
+            className={librarySurfaceClass(surfaceVariant, "popup")}
+          />
+        ) : null}
         {reorderStatus.state !== "idle" ? (
           <output
             aria-live="polite"
             className={cn(
-              "border-b border-hairline px-2 py-1 text-[10px] leading-4",
+              "border-b px-2 py-1 text-[10px] leading-4",
+              isGlassSurface ? "border-[color:var(--glass-border)] bg-white/20" : "border-hairline",
               reorderStatus.state === "error" ? "text-red-700" : "text-tertiary",
             )}
           >

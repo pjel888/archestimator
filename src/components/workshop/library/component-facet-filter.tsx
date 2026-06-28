@@ -138,11 +138,13 @@ export function ComponentAppliedFacetChips({
   options,
   onFiltersChange,
   className,
+  chipClassName,
 }: {
   filters: ComponentFacetFilters;
   options: ComponentFacetOptions;
   onFiltersChange: (filters: ComponentFacetFilters) => void;
   className?: string;
+  chipClassName?: string;
 }) {
   const chips = useMemo(() => buildComponentAppliedFacetChips(filters, options), [filters, options]);
   if (chips.length === 0) return null;
@@ -161,7 +163,10 @@ export function ComponentAppliedFacetChips({
           <li key={chip.id} className="min-w-0">
             <button
               type="button"
-              className="inline-flex max-w-[min(220px,80vw)] items-center gap-1 rounded-xs border border-hairline bg-white/75 px-1.5 py-0.5 text-[9px] font-medium leading-3 text-secondary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+              className={cn(
+                "inline-flex max-w-[min(220px,80vw)] items-center gap-1 rounded-xs border px-1.5 py-0.5 text-[9px] font-medium leading-3 text-secondary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+                chipClassName ?? "border-hairline bg-white/75 hover:bg-surfaceMuted",
+              )}
               onClick={() => onFiltersChange(removeAppliedFacetChip(filters, chip))}
               aria-label={`Remove ${chip.label} filter`}
             >

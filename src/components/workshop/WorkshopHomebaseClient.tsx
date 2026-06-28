@@ -102,7 +102,7 @@ export function WorkshopHomebaseClient({
     homebase.pendingInvites.length > 0;
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col bg-white">
+    <div className="flex h-full min-h-0 w-full flex-col">
       {hasBanners ? (
         <div className="flex flex-col gap-2 p-2 pb-0">
           <InviteResolutionBanner inviteBanner={inviteBanner} />

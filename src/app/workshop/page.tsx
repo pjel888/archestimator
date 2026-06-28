@@ -121,6 +121,7 @@ export default async function WorkshopPage({ searchParams }: WorkshopPageProps) 
       hideTitle
       titleSlot={<WorkshopHeaderGreeting displayName={currentUser.displayName} />}
       breadcrumbs={["Workshop"]}
+      canvasClassName="dashboard-transparent-shell"
       contentClassName="overflow-hidden"
       sidebarStatus={{ projectsBadgeCount: homebase.receivedPendingInviteCount }}
     >

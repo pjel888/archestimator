@@ -502,6 +502,10 @@ body:has([data-workshop-page-shell-root]) {
   overflow: hidden;
 }
 
+body:has(.dashboard-transparent-shell) {
+  background: transparent;
+}
+
 @layer base {
   button,
   input,
@@ -1496,6 +1500,16 @@ input[type="number"] {
   backdrop-filter: none;
   border-color: var(--glass-border);
   box-shadow: var(--glass-shadow), var(--glass-inset-hi);
+}
+
+.dashboard-transparent-shell .workshop-workspace-glass-surface,
+.dashboard-transparent-shell .workshop-shell-glass-chrome {
+  background: transparent;
+}
+
+.dashboard-transparent-shell {
+  --workshop-page-canvas-wash: transparent;
+  --workshop-page-canvas-wash-fallback: transparent;
 }
 
 /* Estimate routes have their own filled three-pane workspace inside the shell.
