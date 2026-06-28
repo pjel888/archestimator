@@ -3947,6 +3947,28 @@ export type Database = {
         Args: { target_project_id: string }
         Returns: boolean
       }
+      read_project_collaboration_audit_events: {
+        Args: {
+          cursor_created_at?: string | null
+          cursor_id?: string | null
+          page_limit?: number
+          target_action_buckets?: string[] | null
+          target_actor_user_id?: string | null
+          target_estimate_id?: string | null
+          target_project_id: string
+          target_project_only?: boolean
+        }
+        Returns: {
+          actor_user_id: string | null
+          created_at: string
+          estimate_id: string | null
+          event_type: string
+          id: string
+          metadata: Json
+          project_id: string | null
+          source_total_count: number
+        }[]
+      }
       estimate_node_route_context: {
         Args: {
           max_node_count?: number | null

@@ -3,20 +3,24 @@
 import { createHash } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { redirect } from "next/navigation";
 
 import { requireAuth, requireCurrentUserContext } from "@/lib/auth/session";
 import { isUuid } from "@/lib/ids";
 import {
   createPublicationToken,
   decryptPublicationToken,
+  deriveCredentialVersion,
   encryptPublicationToken,
+  getSharedLinkSessionCookieParts,
   hashPublicationPassword,
   hashPublicationToken,
   readPublicationTokenEncryptionSecret,
   readPublicationTokenHashSecret,
   validatePublicationPassword,
 } from "@/lib/publication/security";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   buildProjectPublicationSnapshot,
   normalizeProjectPublicationLocationVisibility,
@@ -134,6 +138,19 @@ type PublicationRpcResult<T> = Promise<{ data: T | null; error: { message?: stri
 type PublicationRpcClient = {
   rpc(functionName: string, args: Record<string, unknown>): PublicationRpcResult<unknown>;
 };
+export type OpenRecipientProposalActionState =
+  | { ok: false; error: "invalid" | "not-a-recipient" | "unavailable" | "unknown" }
+  | null;
+type RecipientPublicationAuthorizationRow = {
+  publication_id: string;
+  recipient_id: string;
+};
+type RecipientPublicationAuthorizationRpcClient = {
+  rpc(
+    functionName: "authorize_recipient_publication_for_current_user",
+    args: { p_publication_id: string },
+  ): Promise<{ data: RecipientPublicationAuthorizationRow[] | null; error: { code?: string; message?: string } | null }>;
+};
 
 const roleRank = {
   owner: 40,
@@ -173,6 +190,86 @@ function callPublicationRpc<T>(
   args: Record<string, unknown>,
 ): PublicationRpcResult<T> {
   return (admin as unknown as PublicationRpcClient).rpc(functionName, args) as PublicationRpcResult<T>;
+}
+
+function isRecipientProposalPublicationAvailable(
+  publication: Pick<Tables<"project_publications">, "encrypted_token" | "expires_at" | "id" | "password_hash" | "revoked_at" | "status"> | null,
+) {
+  if (!publication?.encrypted_token) return false;
+  if (publication.status !== "published") return false;
+  if (publication.revoked_at) return false;
+  if (!publication.expires_at) return true;
+
+  const expiresAt = Date.parse(publication.expires_at);
+  if (!Number.isFinite(expiresAt)) return false;
+  return expiresAt > Date.now();
+}
+
+export async function openRecipientProposalAction(
+  _previousState: OpenRecipientProposalActionState,
+  formData: FormData,
+): Promise<Exclude<OpenRecipientProposalActionState, null>> {
+  await requireCurrentUserContext();
+
+  const rawPublicationId = formData.get("publicationId");
+  if (typeof rawPublicationId !== "string" || !isUuid(rawPublicationId)) {
+    return { ok: false, error: "invalid" };
+  }
+
+  let redirectPath: string | null = null;
+
+  try {
+    const supabase = (await createSupabaseServerClient()) as unknown as RecipientPublicationAuthorizationRpcClient;
+    const { data: authorizationRows, error: authorizationError } = await supabase.rpc(
+      "authorize_recipient_publication_for_current_user",
+      { p_publication_id: rawPublicationId },
+    );
+
+    if (authorizationError) return { ok: false, error: "unknown" };
+
+    const authorization = authorizationRows?.[0] ?? null;
+    if (!authorization?.recipient_id || authorization.publication_id !== rawPublicationId) {
+      return { ok: false, error: "not-a-recipient" };
+    }
+
+    const admin = createPublicationAdminClient();
+    const { data: publication, error: publicationError } = await admin
+      .from("project_publications")
+      .select("id, encrypted_token, password_hash, status, revoked_at, expires_at")
+      .eq("id", rawPublicationId)
+      .maybeSingle();
+
+    if (publicationError) return { ok: false, error: "unknown" };
+    if (!isRecipientProposalPublicationAvailable(publication)) {
+      return { ok: false, error: "unavailable" };
+    }
+
+    const token = decryptPublicationToken(publication.encrypted_token, readPublicationTokenEncryptionSecret());
+    const credentialVersion = deriveCredentialVersion(publication.password_hash);
+    const parts = getSharedLinkSessionCookieParts({
+      token,
+      publicationId: publication.id,
+      credentialVersion,
+      recipientId: authorization.recipient_id,
+    });
+    const cookieStore = await cookies();
+
+    cookieStore.set(parts.name, parts.value, parts.cookieOptions);
+    cookieStore.set(`${parts.name}_ok`, "1", {
+      path: "/",
+      httpOnly: false,
+      sameSite: "lax",
+      maxAge: 86400,
+      secure: process.env.NODE_ENV === "production",
+    });
+
+    redirectPath = `/share/${encodeURIComponent(token)}`;
+  } catch {
+    return { ok: false, error: "unknown" };
+  }
+
+  if (redirectPath) redirect(redirectPath);
+  return { ok: false, error: "unknown" };
 }
 
 function assertUuid(value: string, label: string) {
