@@ -45,6 +45,43 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Library Templates Page plan package is implementation-ready (2026-06-28):**
+
+- Plan package `.ai/03_plans/2026-06-28-Library-Templates-Page/` is now `IMPLEMENTATION-READY` for the conservative track: `/workshop/library/templates` becomes a three-zone Library Templates workbench, while `/workshop/library/templates/[templateId]` remains the full editor with explicit read-only capability gating.
+- Scope is planning/documentation only; no source code, provider state, migrations, or production/browser proof were changed or claimed.
+- Key implementation contracts are recorded: exact right dock tabs are `Library` + `Project`, hidden `Templates` tab resurrection must be clamped across stored/account prefs, Project tab uses an authorized selected-project source contract, mobile v1 must avoid squeezed three-pane layout, and proof rows map requirements to targeted Vitest/static checks.
+- Independent verifier lane returned `IMPLEMENTATION-READY` with no unresolved P0/P1 blockers; final planning readiness is recorded as `98/100` with implementation/browser/provider proof intentionally out of scope until execution.
+
+**Sidebar favorite sheets now create project groupings (2026-06-28):**
+
+- Main sidebar Favorites tree now shows favorited estimate sheets under their project even when the project itself is not favorited; `projectFavoriteCreatedAt: null` represents a sheet-only project grouping.
+- Added bounded RPC migration `20260628153000_main_sidebar_favorite_projects.sql`; the repository calls `main_sidebar_favorite_projects` first and falls back to a bounded app path only when the RPC is unavailable or returns an incompatible payload.
+- Optimistic sidebar cache now creates/removes sheet-only project containers, preserves nested sheets when a project favorite is removed, and uses the newest project/sheet favorite timestamp for container ordering.
+- Fresh evidence passed: focused DOM matrix (`8` files / `52` tests), `bun run type-check`, scoped ESLint, `git diff --check`, stale-copy scan, and temporary Postgres 16 migration/RPC proof returning a sheet-only container with `project_favorite_created_at: null`.
+
+**Lewis-only Supabase cleanup completed by owner request (2026-06-28):**
+
+- Supabase project boundary confirmed before mutation: only Archestimator project `ebxxqidacheyapmmzavr` was touched; `SlateCamp` and other projects were not touched.
+- Provider inventory confirmed one active project path before cleanup: active workspace `b40d0170-a2f3-4021-a42d-31fb45851ca4`, project `Lewis Residence` (`0139e1e5-951d-4f2f-9081-6c953d288d8a`), estimate `ES-001 Estimate` (`3d71c8f0-8698-4af8-b18b-21e66f438ab4`), with `5` estimate nodes, `3` estimate rows, and `1` tab.
+- Cleanup SQL deleted `2` duplicate empty `public.workspaces` rows, cascading `2` duplicate `workspace_members` rows; deleted all `21` `component_library_telemetry_events`; deleted `4` empty `library_folders` (`Fixtures`, `Furniture`, `New Folder`, `Trial`); and deleted `1` unreferenced `component_suppliers` row named `E2E Supplier`.
+- Fresh provider readback confirmed `0` duplicate workspaces, `0` component-library telemetry events, `0` component suppliers, `0` library folders, `0` non-Lewis projects, and `0` non-Lewis estimates. Remaining active path is `1` workspace, `1` workspace member, `1` project, `1` estimate, `5` estimate nodes, `3` estimate rows, and `1` tab.
+- Intentionally retained rows: `78` `estimate_sheet_events` for the active Lewis estimate history, `49` `account_security_events`, `6` `collaboration_audit_events`, `5` `profiles` including auth-facing/orphan profile records, `5` `mass_deletion_events`, `3` `security_rate_limit_events`, and one-row user preference/legal/onboarding/group/location/favorite records. These are audit/account/history surfaces and should only be hard-reset with a narrower explicit owner instruction.
+
+**Estimate Row E2E database fixtures purged by owner request (2026-06-28):**
+
+- Supabase project boundary confirmed before mutation: only Archestimator project `ebxxqidacheyapmmzavr` was touched; `SlateCamp` and other projects were not touched.
+- Owner requested deletion of the visible `Estimate Row E2E ...` database entries shown in the component library Templates tree. Provider SQL deleted `7` rows from `public.projects` in workspace `36d98533-8989-4d0e-8d73-a34e21849e38`.
+- Existing foreign keys cascaded `5` child rows from `public.estimates`, `15` rows from `public.estimate_nodes`, `20` rows from `public.estimate_row_items`, and `5` rows from `public.estimate_tabs`.
+- Fresh provider readback confirmed `0` remaining `Estimate Row E2E ...` projects and `0` remaining `Estimate Row Proof ...` estimates, estimate nodes, or estimate row items. Remaining totals after cleanup: `1` project and `1` estimate.
+
+**Component library provider data purged by owner request (2026-06-28):**
+
+- Supabase project boundary confirmed before mutation: only Archestimator project `ebxxqidacheyapmmzavr` was touched; `SlateCamp` and other projects were not touched.
+- Owner requested deletion of all current database components. Provider SQL deleted `8` rows from `public.cost_library_items`; existing foreign keys cascaded component versions, price options, price/state history, variant attachments, variant cost entries, and attachment review events.
+- Existing `ON DELETE SET NULL` behavior detached `2` estimate rows from their deleted library component ids without deleting estimate rows; readback confirmed `estimate_row_items.source_library_item_id` and `estimate_template_row_items.source_library_item_id` now have `0` linked rows.
+- Orphan cleanup deleted `7` `public.component_brands` rows. `public.component_suppliers` still has `1` row because estimate rows still reference it; deleting it would mutate estimate metadata beyond the component purge.
+- Fresh provider readback confirmed `cost_library_items`, all component-library child tables, `component_brands`, component links from estimates/templates, and `component_category_nodes` are all at `0` rows.
+
 **Upload plan production hosted proof advanced; closeout still blocked at 3/8 gates (2026-06-28):**
 
 - Production deployment/readback is no longer the blocker. Vercel production deployment `dpl_GmehH3stHXoaZFNpjuM71xu2JhYh` is READY, aliases `www.archestimator.com`/`archestimator.com`, and is recorded with deployment fingerprints `sha256:b7adc2c77880ead4` and `sha256:e6eacf64be80f08f`.
