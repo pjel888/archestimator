@@ -25,7 +25,7 @@ document: 16
 | R-015 Rollback required | 12, 13, 17 | Rollback rehearsal |
 | R-016 Provider proof replaced | 03, 12, 18 | New readiness scripts |
 | R-017 Prompt updated | Prompt changes outside plan folder | `Improve-Plan-Prompt.md` and `Multi-Agent-Execution-Directive.md` diffs |
-| R-018 Cloudflare source refresh | 00, 06, 09, 11, 12, 18, 19, 20 | Execution-date docs/changelog/schema refresh |
+| R-018 Cloudflare source refresh | 00, 06, 09, 11, 12, 18, 19, 20 | Installed Cloudflare skill refresh plus execution-date docs/changelog/schema/type-source refresh |
 | R-019 Worker toolchain proof | 06, 08, 09, 11, 12, 18, 21 | Wrangler config/types/runtime proof |
 
 ## User Story Traceability

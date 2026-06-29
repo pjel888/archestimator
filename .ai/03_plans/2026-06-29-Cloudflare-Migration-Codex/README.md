@@ -52,9 +52,9 @@ Cloudflare skill update: future execution must start by loading the installed Cl
 - [20_COST_MODEL_AND_PRICING_INPUTS.md](20_COST_MODEL_AND_PRICING_INPUTS.md) - cost workbook inputs and current official pricing facts.
 - [21_PROVIDER_PARITY_MATRIX.md](21_PROVIDER_PARITY_MATRIX.md) - provider parity matrix.
 
-## Stop Condition
+## Production Cutover Stop Condition
 
-Do not start implementation from this plan until:
+This package may feed scoped discovery, cost modeling, and reversible proof-spike implementation plans. It must not be used as authority for production provider replacement, full Cloudflare runtime cutover, or irreversible data/auth migration until:
 
 - A usage-based cost model exists and has been reviewed.
 - Cloudflare official docs, product changelogs, Wrangler schema, and relevant installed Cloudflare skills have been refreshed for the exact execution date.
@@ -62,3 +62,5 @@ Do not start implementation from this plan until:
 - D1 has been proven against the app's Postgres/RLS/RPC/triggers/realtime requirements or deliberately scoped out.
 - Better Auth has been proven against the app's Supabase Auth/session/claims/SSR requirements.
 - R2, Queues, Email Service, and WAF/rate-limit behavior each have rollback paths.
+
+Allowed before those full-cutover gates: Phase 0A skill/source refresh, Phase 0 cost workbook, Phase 1 front-door proof planning, and other slice-specific proof plans that preserve current providers and have their own rollback and evidence gates.
