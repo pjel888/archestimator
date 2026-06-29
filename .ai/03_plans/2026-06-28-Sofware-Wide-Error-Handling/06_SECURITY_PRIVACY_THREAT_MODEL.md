@@ -180,6 +180,11 @@ Owner-delegated decision for this planning pack: use the in-memory limiter only 
 // src/app/api/internal/client-error/route.ts
 const MAX_PER_IP_PER_MIN = 10;
 const rateLimiter = new Map<string, { count: number; resetAt: number }>();
+// digestCache dedups POSTs with the same error.digest from the same IP within
+// 60s — prevents double-logging when both onRequestError AND boundary POST fire
+// for the same server-render failure (per `05` D.4 + `10` E.2 promise).
+// In-memory: local/preview only; production should use the provider-backed limiter.
+const digestCache = new Map<string, number>();  // key=`${ip}:${digest}` → expiresAt (ms)
 
 export async function POST(req: NextRequest) {
   if (!isSameOriginClientReport(req)) {
@@ -207,6 +212,22 @@ export async function POST(req: NextRequest) {
   const body = parseClientErrorReport(await req.text().catch(() => ''));
   if (!body.ok) {
     return new Response(null, { status: 400 });
+  }
+
+  // Digest-based dedup (per `05` D.4 + `10` E.2 promise): if the boundary
+  // POSTs the same error.digest twice in 60s (e.g., because both an
+  // onRequestError server-capture AND the boundary POST fired for the same
+  // server-render failure), short-circuit. Production-grade dedup should use
+  // the provider-backed limiter (Vercel KV / Upstash per `10` Section A);
+  // this in-memory cache is for local/preview smoke only.
+  const digestTtl = 60_000;
+  if (body.value.digest) {
+    const key = `${ip}:${body.value.digest}`;
+    const seen = digestCache.get(key);
+    if (seen && now < seen) {
+      return new Response(null, { status: 204 });  // already logged; suppress duplicate
+    }
+    digestCache.set(key, now + digestTtl);
   }
 
   // Field names match `05` Section A.8 canonical contract:
