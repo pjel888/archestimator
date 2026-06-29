@@ -1,5 +1,5 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import LibraryRouteError from "@/app/workshop/library/error";
 import TemplatesRouteError from "@/app/workshop/library/templates/error";
@@ -33,6 +33,11 @@ function expectSanitizedRetryUi(routeLabel: string) {
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
+
+beforeEach(() => {
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 202 })));
 });
 
 describe("workshop route error boundaries", () => {
@@ -42,18 +47,19 @@ describe("workshop route error boundaries", () => {
     ["Project data", DataRouteError],
     ["Project estimates", EstimatesListRouteError],
     ["Estimate workspace", EstimateRouteError],
-  ])("renders sanitized retry UI for %s route failures", (routeLabel, ErrorComponent) => {
+  ])("renders sanitized retry UI for %s route failures", async (routeLabel, ErrorComponent) => {
     vi.spyOn(console, "error").mockImplementation(() => {});
-    const reset = vi.fn();
+    const unstableRetry = vi.fn();
 
-    render(<ErrorComponent error={sensitiveError} reset={reset} />);
+    render(<ErrorComponent error={sensitiveError} unstable_retry={unstableRetry} />);
 
     expectSanitizedRetryUi(routeLabel);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Retry" })).toHaveFocus());
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
-    expect(reset).toHaveBeenCalledTimes(1);
+    expect(unstableRetry).toHaveBeenCalledTimes(1);
   });
 
-  it("logs only sanitized development error metadata", () => {
+  it("logs only sanitized development error metadata and posts to the client-error endpoint", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
 
     render(<WorkshopRouteErrorState error={sensitiveError} reset={vi.fn()} routeLabel="Library" />);
@@ -66,5 +72,14 @@ describe("workshop route error boundaries", () => {
     expect(JSON.stringify(consoleError.mock.calls)).not.toContain("secret-token");
     expect(JSON.stringify(consoleError.mock.calls)).not.toContain("/Users/philiplewis");
     expect(JSON.stringify(consoleError.mock.calls)).not.toContain("private_tokens");
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/internal/client-error", expect.any(Object)));
+    const [, init] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(String(init.body));
+    expect(body).toMatchObject({
+      digest: "route-digest-123",
+      route: "Library",
+      source: "workshop-route-error",
+    });
+    expect(JSON.stringify(body)).not.toMatch(/secret-token|private_tokens|\/Users\/philiplewis/i);
   });
 });

@@ -4,6 +4,7 @@ import { buildProposalExportModel, defaultProposalExportSettings } from "@/lib/p
 import { createProposalWorkbookBuffer } from "@/lib/proposal-export/create-proposal-workbook";
 import { buildUniqueWorksheetNames } from "@/lib/proposal-export/worksheet-name";
 import { getCurrentUserContext } from "@/lib/auth/session";
+import { logAppError } from "@/lib/observability/logger";
 import { checkProposalExportRateLimit } from "@/lib/publication/public-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getEstimateTabs, getEstimateTabTree, getEstimateTreesForTabs, getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
@@ -427,6 +428,16 @@ export async function GET(request: NextRequest, context: ProposalExportRouteCont
       durationMs: Date.now() - startedAt,
       outcome: "error",
       message: error instanceof Error ? error.message : String(error),
+    });
+    logAppError(error, {
+      event: "route_error",
+      context: {
+        estimate_id: estimateId,
+        invalid_identifier: isInvalidIdentifier,
+        project_id: projectId,
+        route: "/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx",
+        route_handler: "GET /api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx",
+      },
     });
     return NextResponse.json(
       { error: isInvalidIdentifier ? "Invalid estimate or tab identifier." : "Failed to generate the spreadsheet export. Please try again." },

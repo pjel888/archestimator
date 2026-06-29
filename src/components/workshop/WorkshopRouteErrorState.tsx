@@ -1,16 +1,25 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useId } from "react";
 
 import { Button } from "@/components/ui/button";
+import { buildClientErrorPayload, postClientErrorReport } from "@/lib/observability/client-error-report";
 
 type WorkshopRouteErrorStateProps = {
   error: Error & { digest?: string };
-  reset: () => void;
+  reset?: () => void;
   routeLabel: string;
+  unstable_retry?: () => void;
 };
 
-export function WorkshopRouteErrorState({ error, reset, routeLabel }: WorkshopRouteErrorStateProps) {
+export function WorkshopRouteErrorState({ error, reset, routeLabel, unstable_retry }: WorkshopRouteErrorStateProps) {
+  const retryButtonId = useId();
+  const retry = unstable_retry ?? reset ?? (() => undefined);
+
+  useEffect(() => {
+    document.getElementById(retryButtonId)?.focus();
+  }, [retryButtonId]);
+
   useEffect(() => {
     if (process.env.NODE_ENV !== "production") {
       console.error("Workshop route error", {
@@ -19,6 +28,15 @@ export function WorkshopRouteErrorState({ error, reset, routeLabel }: WorkshopRo
         digest: error.digest ?? null,
       });
     }
+  }, [error, routeLabel]);
+
+  useEffect(() => {
+    void postClientErrorReport(
+      buildClientErrorPayload(error, {
+        route: routeLabel,
+        source: "workshop-route-error",
+      }),
+    ).catch(() => undefined);
   }, [error, routeLabel]);
 
   return (
@@ -33,7 +51,7 @@ export function WorkshopRouteErrorState({ error, reset, routeLabel }: WorkshopRo
         <p className="mt-1 text-[10px] font-normal leading-4 tracking-normal text-tertiary">
           Refresh this section and continue from the current workspace.
         </p>
-        <Button type="button" variant="secondary" size="md" className="mt-3 h-8 w-full rounded-xs" onClick={reset}>
+        <Button id={retryButtonId} type="button" variant="secondary" size="md" className="mt-3 h-8 w-full rounded-xs" onClick={retry}>
           Retry
         </Button>
       </div>

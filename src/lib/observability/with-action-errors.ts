@@ -9,6 +9,10 @@ type WithActionErrorsOptions = {
   failureMode?: "action-result" | "passthrough-message";
 };
 
+type WithActionErrorLoggingOptions = {
+  logger?: AppLogger;
+};
+
 type PassthroughFailure = ActionFailure & {
   message: string;
 };
@@ -56,6 +60,26 @@ export function withActionErrors<Args extends unknown[], T>(
         return { ...failure, message: appError.message };
       }
       return failure;
+    }
+  };
+}
+
+export function withActionErrorLogging<Args extends unknown[], T>(
+  actionName: string,
+  action: (...args: Args) => Promise<T>,
+  options: WithActionErrorLoggingOptions = {},
+): (...args: Args) => Promise<T> {
+  return async (...args: Args) => {
+    try {
+      return await action(...args);
+    } catch (error) {
+      if (shouldRethrowFrameworkError(error)) throw error;
+      logAppError(error, {
+        logger: options.logger,
+        event: "action_error",
+        action: actionName,
+      });
+      throw error;
     }
   };
 }

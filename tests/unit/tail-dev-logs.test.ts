@@ -48,6 +48,7 @@ describe("tail-dev-logs helpers", () => {
     expect(summary).toContain("createEstimateRow");
     expect(summary).toContain("/workshop/projects/p1");
     expect(summary).toContain("Top frame:     at createEstimateRow (actions.ts:10:1)");
+    expect(summary).toContain("Likely next step: open the source location in the top frame");
   });
 
   test("marks tainted fields as untrusted", () => {

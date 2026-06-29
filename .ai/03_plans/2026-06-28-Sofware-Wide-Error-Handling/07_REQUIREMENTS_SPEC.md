@@ -31,22 +31,23 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 - **Affected:** `src/lib/observability/app-error.ts` (new).
 - **Risk:** Subclasses too fine → switch-statement fatigue; too coarse → lossy taxonomy. Plan targets 9 public kinds and 12 concrete classes.
 
-### FR-002 — Unified Server Action return shape
-- **Statement:** Pilot scope: `publication/actions.ts` exports actions wrapped with `withActionErrors` returning `ActionResult<T>`. Full scope after pilot: all 22 server action files.
+### FR-002 — Server Action error contracts
+- **Statement:** Canonical pilot scope: `publication/actions.ts` exports actions wrapped with `withActionErrors` returning `ActionResult<T>`. Compatibility rollout scope: actions that must preserve custom return shapes may use `withActionErrorLogging(...)` to emit structured logs without changing public contracts. Full strict `ActionResult<T>` migration across all server action files requires caller-by-caller review.
 - **Rationale:** `01` Section B.1 — 7+ inconsistent shapes; client code cannot write a single error handler.
-- **Priority:** P2a pilot; P2b full migration after pilot.
+- **Priority:** P2a pilot plus compatibility logging; P2b strict migration is separate follow-on.
 - **Dependencies:** FR-001.
 - **AC-002.1:** `withActionErrors(fn)` returns a function returning `{ok:true,data} | {ok:false,error:{kind,code,message}}`.
 - **AC-002.2:** Pilot action module migrated; no raw Supabase details returned to clients.
-- **AC-002.3:** Targeted pilot server-action tests pass with no new failures against the known baseline.
+- **AC-002.3:** Compatibility wrapper logs non-framework exceptions and rethrows while preserving existing return contracts.
+- **AC-002.4:** Targeted pilot server-action tests pass with no new failures against the known baseline.
 - **Validation:** `bun run type-check` + targeted pilot tests.
 - **Affected:** all 22 files listed in `01` B.1; `src/lib/observability/with-action-errors.ts` (new).
 
-### FR-003 — Unified Route Handler error response
-- **Statement:** Pilot scope: one representative route handler uses `errorResponse(err)` for error responses. Full scope after pilot: all 22 route handlers.
-- **Priority:** P2a pilot; P2b full migration after pilot.
-- **AC-003.1:** Every handler returns `{ok:false, error:{kind,code,message}, trace_id}` with mapped HTTP status.
-- **AC-003.2:** Pilot route-handler test covers the selected handler; all-22 smoke-gate coverage follows after pilot evidence.
+### FR-003 — Route Handler error responses and logging
+- **Statement:** Pilot scope: one representative route handler uses `errorResponse(err)` for canonical error responses. Compatibility rollout scope: existing route handlers with public response contracts may call `logAppError(...)` inside catch blocks and preserve their existing response body/status shape.
+- **Priority:** P2a pilot plus compatibility logging; strict response-shape migration is separate follow-on.
+- **AC-003.1:** Canonical migrated handlers return `{ok:false, error:{kind,code,message}, trace_id}` with mapped HTTP status.
+- **AC-003.2:** Pilot route-handler test covers the selected handler; compatibility routes keep their response contracts and emit structured logs for unexpected failures.
 - **Affected:** all 22 files in `01` B.2; `src/lib/observability/route-error.ts` (new).
 
 ### FR-004 — Root global-error.tsx
@@ -57,11 +58,12 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 - **AC-004.2:** Tested via DOM/static test or Playwright (`e2e/global-error.spec.ts`) only when browser behavior is the claim being proven.
 - **Affected:** new file `src/app/global-error.tsx`.
 
-### FR-005 — Post-pilot follow-on boundaries (`not-found.tsx` + segment `error.tsx`)
-- **Statement:** Both `not-found.tsx` (404 page for unmatched routes) and per-segment `error.tsx` (segment-level client error boundary with POST-to-/api/internal/client-error) are follow-on deliverables AFTER pilot evidence; neither is pilot-blocking. The singular P3a pilot boundary is `global-error.tsx` per FR-004.
-- **Priority:** Follow-on after P3a pilot.
-- **AC-005.1:** `not-found.tsx` may be added later without re-litigating the taxonomy.
-- **AC-005.2:** Segment `error.tsx` may be added per route segment following the pattern in `05` Section A.6.
+### FR-005 — Root not-found and segment error boundaries
+- **Statement:** `not-found.tsx` handles unmatched routes, and existing workshop segment `error.tsx` boundaries use the shared safe error state with POST-to-/api/internal/client-error. The singular P3a pilot boundary remains `global-error.tsx` per FR-004, but the local follow-up rollout has now landed the root 404 and existing workshop segment reporting path.
+- **Priority:** Local follow-up implemented.
+- **AC-005.1:** `src/app/not-found.tsx` renders safe recovery copy and a workshop recovery link.
+- **AC-005.2:** Existing workshop segment `error.tsx` files accept the Next 16 `unstable_retry` contract while preserving compatibility with `reset`.
+- **AC-005.3:** Segment error reporting redacts client-side message/stack text before POSTing to `/api/internal/client-error`.
 
 ### FR-006 — Toast.appError convenience
 - **Statement:** `src/components/ui/toast.tsx` exports `toast.appError(err)`.
@@ -74,7 +76,7 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 
 ### FR-007 — Auth error bridge
 - **Statement:** `src/lib/auth/error-mapping.ts` exports `mapAuthCodeToAppError(code, cause)` that returns `AppError.AuthError` subclass.
-- **Priority:** P2b after pilot.
+- **Priority:** Local follow-up implemented.
 - **AC-007.1:** Existing `mapAuthErrorToCode` function preserved unchanged.
 - **AC-007.2:** `recordAccountSecurityEvent` calls preserved unchanged.
 - **AC-007.3:** New bridge maps every existing code in `src/lib/auth/error-mapping.ts` (`email_required`, `auth_request_failed`, `google_request_failed`, `callback_missing_code`, `callback_exchange_failed`, `invalid_redirect`). Codes not present in the source today (e.g. Supabase-native `otp_expired`, future `beta_access_required`) are added to the bridge only when the source emits them.
@@ -115,10 +117,11 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 - **Priority:** P4.
 
 ### OBS-001 — instrumentation.ts with onRequestError
-- **Statement:** `instrumentation.ts` at project root exports `register()` and `onRequestError()`.
-- **Priority:** P5 (owner/provider-gated for prod observability).
-- **AC-001.1:** `onRequestError` captures via Sentry.
-- **AC-001.2:** Tested via `tests/vitest/instrumentation.test.ts`.
+- **Statement:** `src/instrumentation.ts` exports `register()` and `onRequestError()`.
+- **Priority:** P5a local implemented; P5b Sentry forwarding owner/provider-gated.
+- **AC-001.1:** Local `onRequestError` logs to `logAppError(...)` in Node runtime and avoids Node-only imports on edge runtime.
+- **AC-001.2:** Future Sentry capture is added only after provider authority.
+- **AC-001.3:** Tested via `tests/vitest/instrumentation.test.ts`.
 
 ### OBS-002 — Sentry integration
 - **Statement:** `@sentry/nextjs` installed; `sentry.{server,client}.config.ts` exist; `SENTRY_DSN` env documented. Real DSN, GitHub secret, Vercel env, source-map upload, and dashboard proof are owner/provider-gated.
@@ -139,9 +142,9 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 - **AC-002.1:** Playwright probe in P6a verifies `/_next/static/chunks/*.map` returns 404 on production deploy. (Note: `/_next/` is the Next.js runtime URL prefix; `/.next/` is the build-output directory on disk. The probe must hit the public URL path, not the filesystem path.)
 
 ### SEC-003 — Client error endpoint hardened
-- **Statement:** `/api/internal/client-error` is same-origin checked, strictly parsed, size-capped, redacted, tainted-field labeled, and rate-limited to 10 requests/min/IP for local/preview. Production enablement requires provider-backed rate limiting.
+- **Statement:** `/api/internal/client-error` is origin/fetch-metadata checked, strictly parsed, size-capped, redacted, tainted-field labeled, and rate-limited to 10 requests/min/IP for local/preview. Production enablement requires provider-backed rate limiting.
 - **AC-003.1:** Test verifies 11th request in a minute returns 429.
-- **AC-003.2:** Tests verify malformed, cross-site, oversized, email/token/URL, control-character, and prompt-injection payloads do not produce trusted/raw log fields.
+- **AC-003.2:** Tests verify malformed, cross-site, oversized, email/token/URL/local-path/private-id, control-character, and prompt-injection payloads do not produce trusted/raw log fields.
 
 ### SEC-004 — PII masking in Sentry
 - **Statement:** `maskAllText: true` in prod; replay sampling remains `0`; `data-private` attribute respected; `beforeSend` strips auth headers.
@@ -157,9 +160,9 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 - **Statement:** Toast container uses `role="status"` for non-critical tones and `role="alert"` for `error` tone, with `aria-live="polite"` and `aria-live="assertive"` respectively.
 - **AC-001.1:** Existing toast.tsx already complies (verified in audit). P3a task: explicit test in `tests/vitest/toast-a11y.test.tsx`.
 
-### A11Y-002 — Error boundary focusable (pilot scope)
-- **Statement:** The P3a pilot boundary (`src/app/global-error.tsx` — the singular approved pilot surface per `08` P3a-WP1; segment `error.tsx` is post-pilot per `05` A.6) moves focus to the error container on mount so screen-reader users hear the failure immediately. Full A11Y-002 (segment `error.tsx` boundaries too) is a follow-on after pilot evidence.
-- **AC-002.1:** Pilot boundary Playwright/DOM test verifies `document.activeElement` is inside the selected boundary after navigation.
+### A11Y-002 — Error boundary focusable
+- **Statement:** The P3a pilot boundary (`src/app/global-error.tsx`) and shared workshop segment error state move focus to the recovery control on mount so screen-reader users hear and can act on the failure immediately.
+- **AC-002.1:** DOM tests verify focus moves to the selected boundary/retry control.
 
 ### TEST-001 — New test files for P1
 - **Statement:** `tests/vitest/{app-error,unwrap-supabase,with-action-errors,redact}.test.ts` are created in P1 and pass. (These files are planned deliverables of P1, not pre-existing on `main`. The `logger.test.ts` and `logger-perf.test.ts` files are P4 deliverables — see TEST-002 and `08` P4-WP7.)
@@ -191,12 +194,12 @@ For the canonical flows this plan affects:
 
 | Flow | Happy path | Nil/missing input | Empty input/result | Invalid input | Auth denied | Upstream/network error | Concurrency/race | Retry/idempotency | User-visible result | Test |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Server action `createProject` | 200 `{ok,data}` | `ValidationError` 400 | n/a | `ValidationError` 400 | `AuthRequiredError`/`AuthPermissionDeniedError` 401/403 | `UpstreamError` 502 | `ConflictError` 409 | Idempotency token in P5 | Toast.appError | `tests/vitest/projects-actions.test.ts` |
-| Route `POST /api/share/[token]/comment` | 200 `{ok}` | `ValidationError` 400 | n/a | `ValidationError` 400 | 401/403 | 502 | 409 | n/a | errorResponse JSON | `tests/vitest/share-comment.test.ts` |
+| Server action `createProject` | existing public shape unless migrated | compatibility log + rethrow for unexpected errors | n/a | existing validation shape unless migrated | existing auth shape unless migrated | logged and preserved/mapped per module | existing module behavior | Idempotency token in future scope | Toast.appError only where caller consumes AppError/ActionResult | module-specific tests |
+| Route `POST /api/share/[token]/comment` | existing JSON shape | existing public error shape + structured log for unexpected catch | n/a | existing validation shape | existing auth shape | logged then safe public response | existing behavior | n/a | existing response body preserved | route-specific tests |
 | Auth callback | redirect to workshop | redirect to `/login?code=callback_missing_code` | n/a | redirect with code | redirect | redirect with `service_unavailable` | n/a | n/a | Browser redirect | `tests/vitest/auth-error-mapping.test.ts` |
 | Toast.appError(err) | tone+copy rendered | n/a | n/a | n/a | n/a | n/a | n/a | n/a | Visible toast | `tests/vitest/toast-apperror.test.tsx` |
-| `global-error.tsx` | HTML renders, POST logs | n/a | n/a | n/a | n/a | POST swallowed | n/a | n/a | Page | `tests/vitest/global-error.test.tsx` (DOM/static primary) + `e2e/global-error.spec.ts` (Playwright, conditional per AC-004.2) |
-| `instrumentation.onRequestError` | Sentry capture | n/a | n/a | n/a | n/a | Sentry unavailable → swallow | n/a | n/a | Sentry dashboard | `tests/vitest/instrumentation.test.ts` |
+| `global-error.tsx` / segment `error.tsx` | HTML/screen renders, POST logs | n/a | n/a | n/a | n/a | POST swallowed | n/a | retry via `unstable_retry` | Safe recovery UI | `tests/vitest/global-error.test.tsx`, `tests/vitest/workshop-route-error-boundaries.test.tsx` |
+| `instrumentation.onRequestError` | Local `logAppError` capture | n/a | n/a | n/a | n/a | logger unavailable → swallow/log minimal edge record | n/a | n/a | dev NDJSON record | `tests/vitest/instrumentation.test.ts` |
 
 ## Out-of-scope (deferred)
 

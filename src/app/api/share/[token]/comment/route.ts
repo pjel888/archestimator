@@ -17,6 +17,7 @@ import {
   hashPublicTelemetryValue,
 } from "@/lib/publication/public-repository";
 import { sanitizeSharedLinkRecipientText } from "@/lib/share/sanitize-recipient-text";
+import { logAppError } from "@/lib/observability/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -377,6 +378,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     const ipHash = getIpHash(request);
     if (status === 500) {
       record5xx(Date.now());
+      logAppError(error, {
+        event: "route_error",
+        context: {
+          public_error: "INSERT_FAILED",
+          route: "/api/share/[token]/comment",
+          route_handler: "POST /api/share/[token]/comment",
+          status,
+        },
+      });
     }
     logStructured("error", "/api/share/[token]/comment", status === 500 ? "INSERT_FAILED" : "POST_ERROR", ipHash, { status, msg: msg.slice(0, 120) });
     // SEC-15 (AC-SEC-15): never echo a raw RPC/DB error to the public client. The detailed

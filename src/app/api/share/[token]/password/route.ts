@@ -14,6 +14,7 @@ import {
   recordPasswordFailure,
   recordPasswordSuccess,
 } from "@/lib/publication/security";
+import { logAppError } from "@/lib/observability/logger";
 import { after } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -111,6 +112,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   try {
     await clearProjectPublicationPasswordFailures({ token, request });
   } catch (error) {
+    logAppError(error, {
+      event: "route_error",
+      context: {
+        route: "/api/share/[token]/password",
+        route_handler: "POST /api/share/[token]/password",
+      },
+    });
     console.error("[share] failed to clear password failure lockout state after successful unlock", error);
     return Response.json({ error: "Unable to unlock publication." }, { status: 500, headers: noStoreHeaders });
   }

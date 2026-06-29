@@ -1,3 +1,10 @@
+import {
+  AuthPermissionDeniedError,
+  AuthRequiredError,
+  AuthSessionExpiredError,
+  type AppError,
+} from "@/lib/observability/app-error";
+
 const AUTH_ERROR_CODES = [
   "email_required",
   "auth_request_failed",
@@ -34,6 +41,17 @@ export function mapAuthErrorToCode({
   rawError?: unknown;
 }) {
   return fallbackCode;
+}
+
+export function mapAuthCodeToAppError(code: AuthErrorCode | string | null | undefined, cause?: unknown): AppError {
+  const publicError = getPublicAuthError(code);
+  if (publicError.code === "invalid_redirect") {
+    return new AuthPermissionDeniedError(publicError.message, { cause });
+  }
+  if (publicError.code === "callback_missing_code" || publicError.code === "callback_exchange_failed") {
+    return new AuthSessionExpiredError(publicError.message, { cause });
+  }
+  return new AuthRequiredError(publicError.message, { cause });
 }
 
 function isAuthErrorCode(value: unknown): value is AuthErrorCode {

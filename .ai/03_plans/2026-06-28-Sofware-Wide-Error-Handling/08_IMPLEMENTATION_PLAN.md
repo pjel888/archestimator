@@ -2,7 +2,7 @@
 
 Authoritative execution guide for the implementation AI. Phased with ultragoal-style per-phase contract. Ponytail-aware: smallest coherent change per phase.
 
-**Readiness status:** `CONDITIONALLY READY`. Approved execution scope is P1 plus the pilot vertical (`publication/actions.ts`, one representative route handler, and `src/app/global-error.tsx` as the **singular** P3a UI boundary — segment `error.tsx` and `not-found.tsx` are post-pilot follow-on per `07` FR-005 and `05` A.6/A.7), plus the P4 dev logging pilot. Full all-actions/all-routes migration is intentionally gated on pilot evidence.
+**Readiness status:** `LOCAL NON-SENTRY ROLLOUT IMPLEMENTED`. Approved execution scope began as P1 plus the pilot vertical (`publication/actions.ts`, one representative route handler, and `src/app/global-error.tsx` as the P3a UI boundary), plus the P4 dev logging pilot. The 2026-06-29 follow-up implemented the local non-Sentry rollout: root `not-found.tsx`, existing workshop segment `error.tsx` reporting, auth AppError bridge, Next `onRequestError` local logging, and compatibility logging for selected caught route failures. Full strict all-actions/all-routes response-shape migration is intentionally gated on separate caller-by-caller contract review.
 
 ## Phase order and dependency graph
 
@@ -13,12 +13,13 @@ P1 (Foundation)  ──┬──▶ P2a (Pilot server unification, parallel-safe
                    │
                    ├──▶ P4 (Dev logging pipeline)
                    │
-                   └──▶ P5 (Prod observability design; depends on P1 + P4 and owner/provider gate)
+                   └──▶ P5a (Local Next request instrumentation; depends on P1 + P4)
+                            └──▶ P5b (Prod observability design; owner/provider gate)
 
-P6a (Pilot verification) — depends on P1, P2a, P3a, P4; P5 provider proof is separately gated
+P6a (Local rollout verification) — depends on P1, P2a, P3a/follow-up, P4, P5a; P5b provider proof is separately gated
 ```
 
-P2a and P3a pilot work may run in parallel after P1 lands (no shared-file conflicts). P4 may run in parallel with pilot P2a/P3a (depends only on P1's logger interface). P5 is a design/provider gate after P1 + P4; production credentials, GitHub secrets, Vercel env changes, and preview/production deploy proof require explicit execution-time authority.
+P2a and P3a pilot work may run in parallel after P1 lands (no shared-file conflicts). P4 may run in parallel with pilot P2a/P3a (depends only on P1's logger interface). P5a is local-only and implemented without provider state. P5b is the design/provider gate after P1 + P4; production credentials, GitHub secrets, Vercel env changes, and preview/production deploy proof require explicit execution-time authority.
 
 ## P1 — Foundation: typed AppError + logger module
 
@@ -105,9 +106,13 @@ bun run test:dom -- <pilot action test> <pilot route-handler test> tests/vitest/
 - RISK-ERR-003 — Wrapping a function changes its TS signature; caller breaks. Mitigation: preserve argument types via `Args extends unknown[]`.
 - RISK-ERR-004 — Existing tests expect `throw` behavior, not `{ok:false}`. Mitigation: tests use the helper `_createProject` directly OR are updated to call the wrapped version with `useActionState`.
 
-## P2b — Full server migration (blocked until pilot pass)
+## P2b — Full strict server contract migration (separate follow-on)
 
-The original all-22-actions/all-22-route-handlers migration is not approved as a single first implementation sweep. After P2a passes, update this plan with actual pilot evidence, then migrate in small module groups:
+The original all-22-actions/all-22-route-handlers migration is not approved as a single response-shape sweep because existing actions/routes expose custom public contracts. The local rollout uses two paths:
+- canonical migration where callers can consume `ActionResult` / `errorResponse` safely (`publication/actions.ts`, `/api/share/[token]`);
+- compatibility logging where public response shapes must stay stable (`withActionErrorLogging(...)` and `logAppError(...)` in existing catch blocks).
+
+Strict migration remains a separate follow-on. Migrate in small module groups only after each caller contract is reviewed:
 - auth + auth bridge
 - collaboration
 - component library
@@ -115,11 +120,11 @@ The original all-22-actions/all-22-route-handlers migration is not approved as a
 - remaining low-risk actions
 - remaining route handlers
 
-## P3a — Pilot client wiring: one error surface + toast.appError
+## P3a + local follow-up — Client wiring: global, segment, not-found, toast.appError
 
-**Goal:** Prove the client error-surface pattern on `global-error.tsx` (the singular P3a pilot boundary) before broad rollout.
+**Goal:** Prove the client error-surface pattern on `global-error.tsx`, then wire the local follow-up surfaces that reuse the same reporting path.
 
-**Requirements covered:** FR-004, FR-006, UX-001, A11Y-001, A11Y-002, SEC-003. (FR-005 not-found.tsx is follow-on, NOT in P3a scope per `07` FR-005. SEC-003 client-error hardening is delivered by P3a-WP2.)
+**Requirements covered:** FR-004, FR-005, FR-006, UX-001, A11Y-001, A11Y-002, SEC-003. SEC-003 client-error hardening is delivered by P3a-WP2 and follow-up hardening.
 
 **Prerequisites:** P1 complete. (Does NOT depend on P2.)
 
@@ -132,6 +137,10 @@ The original all-22-actions/all-22-route-handlers migration is not approved as a
 | P3a-WP3 | Extend `src/components/ui/toast.tsx` to add `toast.appError(err)` (preserves existing API) | extend | S |
 | P3a-WP4 | Tests: `tests/vitest/{global-error,toast-apperror,toast-a11y,client-error}.test.ts(x)`. The `global-error.test.tsx` is the PRIMARY FR-004 deliverable (DOM/static); `e2e/global-error.spec.ts` is conditional per AC-004.2. | new | M |
 | P3a-WP5 | Browser smoke (`e2e/global-error.spec.ts`) ONLY if DOM/static tests cannot prove the chosen boundary behavior. **Includes the dev-only `?forceGlobalError=1` trigger** in `src/app/layout.tsx` (or a tiny mounted helper component) that throws when the query param is present AND `process.env.NODE_ENV === 'development'` (per `05` Section A.5 note). Production builds MUST exclude the hook via the NODE_ENV gate. | optional | M |
+| P3a-FU1 | Add root `src/app/not-found.tsx` with safe recovery path | new | S |
+| P3a-FU2 | Update existing workshop segment `error.tsx` boundaries to pass `unstable_retry`/`reset` into shared `WorkshopRouteErrorState` | extend | S |
+| P3a-FU3 | Move client error payload building/sanitization to a shared client-safe helper and post segment boundary reports to `/api/internal/client-error` | new/extend | M |
+| P3a-FU4 | Harden `/api/internal/client-error` with Fetch Metadata, payload-size precheck, local-path/private-id redaction, normalized path, route, and hashed user agent fields | extend | M |
 
 **Parallelization:** WP1 and WP2 can split. WP3 touches a protected contract and should serialize with other toast edits.
 
@@ -140,15 +149,17 @@ The original all-22-actions/all-22-route-handlers migration is not approved as a
 bun run type-check
 bun run lint
 bun run test:dom -- tests/vitest/global-error.test.tsx tests/vitest/toast-apperror.test.tsx tests/vitest/toast-a11y.test.tsx tests/vitest/client-error.test.ts
+-- tests/vitest/workshop-route-error-boundaries.test.tsx tests/vitest/not-found.test.tsx
 # Browser proof only when the chosen boundary behavior cannot be proven by DOM/static tests:
 bun run test:e2e -- e2e/global-error.spec.ts
 ```
 
 **Exit criteria:**
 - One selected error boundary renders safe fallback copy and recovery action.
+- Root 404 and existing workshop segment boundaries render safe recovery paths.
 - `toast.appError(err)` picks correct tone per `code` (with `kind` fallback) per `03` Section C.1.
 - `/api/internal/client-error` rate-limits correctly.
-- `/api/internal/client-error` redacts client text and labels tainted fields.
+- `/api/internal/client-error` redacts client text/local identifiers and labels tainted fields.
 
 **Rollback:** `git revert <P3a commit(s)>` is the canonical mechanism — restores `global-error.tsx`, `error.tsx` (if added), `not-found.tsx` (if added), `/api/internal/client-error`, `toast.tsx` (reverts appError addition), and any P3a-added tests atomically. Existing toast API unchanged by revert.
 
@@ -193,11 +204,11 @@ bun run logs:tail --last 5
 
 **Rollback:** `git revert <P4 commit(s)>` is the canonical mechanism — reverts `.gitignore` (logs/ entry), `package.json` (logs:* scripts), `src/lib/observability/logger.ts` (file-writer wiring), `scripts/tail-dev-logs.mjs`, and P4-added tests atomically. After revert, the logger becomes a no-op for file writes; no runtime impact.
 
-## P5 — Production observability: Sentry design + owner/provider gate
+## P5a — Local Next request instrumentation
 
-**Goal:** Prepare Sentry integration safely, but do not enable external provider state, GitHub secrets, Vercel env vars, or production proof without explicit execution-time authority.
+**Goal:** Capture framework-level Next request errors locally through the existing structured dev logger, without adding Sentry or provider state.
 
-**Requirements covered:** OBS-001, OBS-002, SEC-002, SEC-004, PERF-002.
+**Requirements covered:** OBS-001.
 
 **Prerequisites:** P1 + P4 complete.
 
@@ -205,35 +216,29 @@ bun run logs:tail --last 5
 
 | WP | Task | File(s) | Complexity |
 |---|---|---|---|
-| P5-WP1 | Confirm owner-approved Sentry project, DSN, auth-token/secret handling, source-map policy, replay-off policy, retention/access controls | decision record | M |
-| P5-WP2 | `bun add @sentry/nextjs`; run Sentry wizard only after P5-WP1 is approved | package.json, next.config.ts, sentry.*.config.ts | M |
-| P5-WP3 | Add `SENTRY_DSN` to `.env.example`; document procurement; do not write real secrets | .env.example, README.md | XS |
-| P5-WP4 | Configure `sentry.server.config.ts` per `05` Section A.3 + redaction `beforeSend`; replay sampling remains `0` | extend | M |
-| P5-WP5 | Configure `sentry.client.config.ts` with same redaction + maskAllText in prod + replay off | extend | S |
-| P5-WP6 | Create `instrumentation.ts` per `05` Section A.2 | new | S |
-| P5-WP7 | Add sourcemap upload CI step only after GitHub secret and owner-approved policy exist | extend ci.yml | M |
-| P5-WP8 | Replace `/api/internal/client-error` local/preview Map with selected provider-backed limiter before production enablement | conditional/provider-gated | M |
-| P5-WP9 | Tests: `tests/vitest/{instrumentation,sentry-redact}.test.ts` | new | M |
-| P5-WP10 | Add bundle-analyzer CI gate: fail build if client delta > 60KB vs main | extend ci.yml | S |
+| P5a-WP1 | Create `src/instrumentation.ts` with `register()` and `onRequestError(err, request, context)` | new | S |
+| P5a-WP2 | In Node runtime, dynamically import the logger and write `next_request_error` records with route/render/revalidate context | new | M |
+| P5a-WP3 | In edge runtime, avoid Node-only imports and write a minimal console JSON fallback | new | S |
+| P5a-WP4 | Tests: `tests/vitest/instrumentation.test.ts` | new | M |
 
 **Validation:**
 ```bash
-SENTRY_DSN=... bun run build  # only after P5-WP1 owner/provider gate
-bun run test:dom -- tests/vitest/instrumentation.test.ts tests/vitest/sentry-redact.test.ts
-# Manual preview/provider proof only after explicit owner authority:
-# deploy to Vercel preview; trigger an error via a preview-safe mechanism.
-# NOTE: ?forceGlobalError=1 is DEV-ONLY (NODE_ENV=development gate per `05`
-# Section A.5 note) and is excluded from preview/production builds, so it
-# CANNOT be used here. The implementer must add a separate preview-safe
-# trigger as part of P5-WP1 owner-gate work — e.g., a tiny authenticated
-# `/api/internal/trigger-error` route gated to VERCEL_ENV=preview and
-# behind an owner-approved test token. Verify Sentry receives the event.
+bun run test:dom -- tests/vitest/instrumentation.test.ts
 ```
 
 **Exit criteria:**
-- Sentry dashboard receives a real test error with source-mapped stack only when P5 owner/provider authority is granted.
-- `beforeSend` redaction works (test fixture with auth header).
-- Bundle size delta <60KB.
+- Next `onRequestError` records to the local structured logger in Node runtime.
+- Edge runtime path does not import the Node-only logger.
+
+## P5b — Production observability: Sentry design + owner/provider gate
+
+**Goal:** Prepare Sentry integration safely, but do not enable external provider state, GitHub secrets, Vercel env vars, or production proof without explicit execution-time authority.
+
+**Requirements covered:** OBS-002, SEC-002, SEC-004, PERF-002.
+
+**Deferred work packages:** Sentry project/DSN decision, `@sentry/nextjs`, `sentry.*.config.ts`, `beforeSend` redaction, source-map upload CI, provider-backed client-error limiter, `sentry-redact.test.ts`, bundle-analyzer CI gate, preview/provider proof.
+
+**Exit criteria:** Sentry dashboard receives a real test error with source-mapped stack only when P5b owner/provider authority is granted; redaction and bundle budget tests pass.
 
 **Rollback:** set `SENTRY_ENABLED=false` (server) AND `NEXT_PUBLIC_SENTRY_ENABLED=false` (client, requires rebuild/redeploy because Next.js client bundle reads `NEXT_PUBLIC_*` at build time) — see `10_ROLLOUT_ROLLBACK_OPS.md` Section A and C. The guards in `sentry.server.config.ts` `register()`/`captureRequestError()` and `sentry.client.config.ts` short-circuit, so both sides become no-ops while the dev NDJSON logger keeps working. `SENTRY_DSN=` (empty) is a non-canonical fallback at the SDK level; the dedicated kill switches are preferred because they are explicit and survive SDK default behavior changes.
 
@@ -249,8 +254,8 @@ bun run test:dom -- tests/vitest/instrumentation.test.ts tests/vitest/sentry-red
 
 | WP | Task | Complexity |
 |---|---|---|
-| P6a-WP1 | Execute the pilot rows in `09` Section B; record PASS/PARTIAL/MISSING per row | M |
-| P6a-WP2 | Execute pilot-relevant adversarial rows in `09` Section C; capture artifacts | M |
+| P6a-WP1 | Execute the local rollout rows in `09` Section B; record PASS/PARTIAL/MISSING per row | M |
+| P6a-WP2 | Execute pilot/local-rollout adversarial rows in `09` Section C; capture artifacts | M |
 | P6a-WP3 | Manual AI-diagnosability proof: induce an error in dev; run `bun run logs:explain`; verify an AI agent can read the output and propose the correct fix while ignoring tainted instructions | M |
 | P6a-WP4 | Update `13_FINAL_AUDIT_SCORECARD.md` with pilot PASS/FAIL and full-migration blockers | S |
 | P6a-WP5 | Update `.ai/10_state/current-state.md` with a closeout entry | S |
@@ -258,7 +263,7 @@ bun run test:dom -- tests/vitest/instrumentation.test.ts tests/vitest/sentry-red
 **Exit criteria:**
 - Approved pilot rubric items in `13` show PASS.
 - AI-diagnosability proof logged in `13`.
-- README status may be upgraded only to "PILOT IMPLEMENTED"; full `IMPLEMENTED` remains out of scope until the broad migration passes.
+- README status may be upgraded to "LOCAL NON-SENTRY ROLLOUT IMPLEMENTED"; provider/prod `IMPLEMENTED` remains out of scope until P5b passes or is explicitly waived.
 
 ## Pre-implementation gates (must pass before any code edit in any phase)
 
@@ -276,11 +281,12 @@ If type-check or lint fails, stop and characterize the baseline before editing. 
 |---|---|
 | P1 | All WPs complete; new tests green; targeted existing error tests show no new failures |
 | P2a | Pilot action + route handler migrated; targeted tests green; pilot findings recorded |
-| P2b | Blocked until P2a pass and plan update |
-| P3a | Selected boundary + toast.appError + client-error endpoint work; targeted tests green |
+| P2b | Separate caller-by-caller contract migration; compatibility logging is complete for current local rollout |
+| P3a | Selected boundary + root 404 + existing workshop segment boundaries + toast.appError + client-error endpoint work; targeted tests green |
 | P4 | `./logs/dev.ndjson` populates; `logs:explain` works; AI agent can diagnose |
-| P5 | Static Sentry config tests pass; real dashboard/source-map proof only after owner/provider authority |
-| P6a | Pilot rubric items PASS in `13_FINAL_AUDIT_SCORECARD.md`; full migration remains conditional |
+| P5a | Local Next request instrumentation tests pass |
+| P5b | Static Sentry config tests pass; real dashboard/source-map proof only after owner/provider authority |
+| P6a | Local non-Sentry rubric items PASS in `13_FINAL_AUDIT_SCORECARD.md`; provider/prod proof remains conditional |
 
 ## Implementation notes for the implementer
 

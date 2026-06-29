@@ -12,6 +12,7 @@ function request(body: unknown, init: RequestInit = {}) {
       origin: "https://archestimator.test",
       host: "archestimator.test",
       "content-type": "application/json",
+      "user-agent": "vitest-client-error",
       "x-forwarded-for": "203.0.113.10",
       ...init.headers,
     },
@@ -39,6 +40,28 @@ describe("/api/internal/client-error", () => {
     expect(await response.json()).toEqual({ ok: false, error: "same_origin_required" });
   });
 
+  it("rejects Fetch Metadata cross-site reports even when origin is forged", async () => {
+    const { POST } = await loadRoute();
+
+    const response = await POST(
+      request({ message: "boom" }, { headers: { "sec-fetch-site": "cross-site" } }),
+    );
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({ ok: false, error: "same_origin_required" });
+  });
+
+  it("rejects oversized payloads before accepting the report", async () => {
+    const { POST } = await loadRoute();
+
+    const response = await POST(
+      request({ message: "boom" }, { headers: { "content-length": String(17 * 1024) } }),
+    );
+
+    expect(response.status).toBe(413);
+    expect(await response.json()).toEqual({ ok: false, error: "payload_too_large" });
+  });
+
   it("rejects malformed JSON", async () => {
     const { POST } = await loadRoute();
 
@@ -55,6 +78,7 @@ describe("/api/internal/client-error", () => {
       request({
         name: "Error",
         message: "Bearer provider-secret failed for client@example.com",
+        path: "/workshop?token=raw-secret",
         stack: "stack token=raw-secret",
         source: "global-error",
       }),
@@ -68,7 +92,13 @@ describe("/api/internal/client-error", () => {
       event: "client_error",
       level: "error",
     });
-    expect(record.tainted_fields).toEqual(expect.arrayContaining(["context.message", "context.stack"]));
+    expect(record.context).toMatchObject({
+      client_name: "Error",
+      path_normalized: "/workshop?[REDACTED_QUERY]",
+      source: "global-error",
+    });
+    expect(record.context.user_agent_hashed).toHaveLength(16);
+    expect(record.tainted_fields).toEqual(expect.arrayContaining(["context.client_message_redacted", "context.client_stack_redacted"]));
     expect(JSON.stringify(record)).not.toMatch(/provider-secret|client@example.com|raw-secret/i);
   });
 
@@ -85,8 +115,8 @@ describe("/api/internal/client-error", () => {
 
     expect(response.status).toBe(202);
     const record = JSON.parse(String(vi.mocked(console.error).mock.calls[0]?.[0]));
-    expect(record.context.message).toContain("[UNTRUSTED_INSTRUCTION]");
-    expect(record.tainted_fields).toEqual(expect.arrayContaining(["context.message"]));
+    expect(record.context.client_message_redacted).toContain("[UNTRUSTED_INSTRUCTION]");
+    expect(record.tainted_fields).toEqual(expect.arrayContaining(["context.client_message_redacted"]));
   });
 
   it("rate limits the 11th request from one client key", async () => {

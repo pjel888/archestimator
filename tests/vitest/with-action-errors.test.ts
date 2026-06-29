@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { InternalError, ValidationError } from "@/lib/observability/app-error";
 import type { AppLogger, LogRecord } from "@/lib/observability/logger";
-import { withActionErrors } from "@/lib/observability/with-action-errors";
+import { withActionErrorLogging, withActionErrors } from "@/lib/observability/with-action-errors";
 
 function createTestLogger() {
   const records: LogRecord[] = [];
@@ -57,5 +57,23 @@ describe("withActionErrors", () => {
     expect(JSON.stringify(result)).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
     expect(records[0]?.error?.cause).toBeDefined();
     expect(JSON.stringify(records[0])).not.toContain("secret");
+  });
+
+  it("logs and rethrows for custom-contract actions without changing return shape", async () => {
+    const { logger, records } = createTestLogger();
+    const action = withActionErrorLogging("customAction", async () => {
+      throw new ValidationError("Custom action failed.");
+    }, { logger });
+
+    await expect(action()).rejects.toBeInstanceOf(ValidationError);
+    expect(records).toHaveLength(1);
+    expect(records[0]).toMatchObject({
+      level: "info",
+      event: "action_error",
+      action: "customAction",
+      error: {
+        code: "VALIDATION_FAILED",
+      },
+    });
   });
 });

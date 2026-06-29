@@ -2,35 +2,12 @@
 
 import { useEffect, useRef } from "react";
 
+import { buildClientErrorPayload, postClientErrorReport } from "@/lib/observability/client-error-report";
+
 type GlobalErrorProps = {
   error: Error & { digest?: string };
   unstable_retry: () => void;
 };
-
-function sanitizeClientErrorText(value: string | undefined, maxLength: number) {
-  if (!value) return undefined;
-  return value
-    .slice(0, maxLength)
-    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, "[EMAIL]")
-    .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [REDACTED_TOKEN]")
-    .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, "[REDACTED_JWT]")
-    .replace(/([?&](?:password|token|api_key|secret)=)([^&#\\\s]*)/gi, "$1[REDACTED]")
-    .replace(/\b(?:password|token|api_key|secret|service_role_key|supabase_service_role_key)=[^\s,;&\\]+/gi, (match) => {
-      const [key] = match.split("=");
-      return `${key}=[REDACTED]`;
-    })
-    .replace(/[\r\n\t]/g, " ");
-}
-
-function buildClientErrorPayload(error: GlobalErrorProps["error"]) {
-  return {
-    digest: sanitizeClientErrorText(error.digest, 160),
-    message: sanitizeClientErrorText(error.message, 2000),
-    name: sanitizeClientErrorText(error.name, 120),
-    source: "global-error",
-    stack: sanitizeClientErrorText(error.stack, 6000),
-  };
-}
 
 export default function GlobalError({ error, unstable_retry }: GlobalErrorProps) {
   const retryButtonRef = useRef<HTMLButtonElement>(null);
@@ -40,12 +17,7 @@ export default function GlobalError({ error, unstable_retry }: GlobalErrorProps)
   }, []);
 
   useEffect(() => {
-    void fetch("/api/internal/client-error", {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(buildClientErrorPayload(error)),
-    }).catch(() => undefined);
+    void postClientErrorReport(buildClientErrorPayload(error, { source: "global-error" })).catch(() => undefined);
   }, [error]);
 
   return (

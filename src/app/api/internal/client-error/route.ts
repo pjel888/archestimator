@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { NextResponse } from "next/server";
 
 import { consoleAppLogger } from "@/lib/observability/logger";
@@ -12,6 +14,8 @@ type ClientErrorPayload = {
   digest?: string;
   message?: string;
   name?: string;
+  path?: string;
+  route?: string;
   source?: string;
   stack?: string;
 };
@@ -24,6 +28,11 @@ function sameOrigin(request: Request) {
   const origin = request.headers.get("origin");
   if (!origin) return false;
   return origin === new URL(request.url).origin;
+}
+
+function passesFetchMetadata(request: Request) {
+  const site = request.headers.get("sec-fetch-site");
+  return !site || site === "same-origin" || site === "same-site" || site === "none";
 }
 
 function clientKey(request: Request) {
@@ -47,8 +56,30 @@ function rateLimitAllows(request: Request) {
   return true;
 }
 
+function bodyLengthTooLarge(request: Request) {
+  const rawLength = request.headers.get("content-length");
+  if (!rawLength) return false;
+  const parsed = Number(rawLength);
+  return Number.isFinite(parsed) && parsed > MAX_BODY_BYTES;
+}
+
 function safeString(value: unknown, maxLength: number) {
   return typeof value === "string" ? value.slice(0, maxLength) : undefined;
+}
+
+function normalizePath(value: string | undefined) {
+  if (!value) return undefined;
+  try {
+    const parsed = value.startsWith("http") ? new URL(value) : new URL(value, "https://archestimator.local");
+    return `${parsed.pathname}${parsed.search ? "?[REDACTED_QUERY]" : ""}`;
+  } catch {
+    return value.split("?")[0]?.slice(0, 500);
+  }
+}
+
+function hashValue(value: string | null) {
+  if (!value) return undefined;
+  return createHash("sha256").update(value).digest("hex").slice(0, 16);
 }
 
 function normalizePayload(value: unknown): ClientErrorPayload | null {
@@ -58,23 +89,27 @@ function normalizePayload(value: unknown): ClientErrorPayload | null {
     digest: safeString(record.digest, 160),
     message: safeString(record.message, 2000),
     name: safeString(record.name, 120),
+    path: safeString(record.path, 500),
+    route: safeString(record.route, 160),
     source: safeString(record.source, 120),
     stack: safeString(record.stack, 6000),
   };
 }
 
-async function parsePayload(request: Request): Promise<ClientErrorPayload | null> {
+async function parsePayload(request: Request): Promise<{ payload: ClientErrorPayload } | { tooLarge: true } | null> {
+  if (bodyLengthTooLarge(request)) return { tooLarge: true };
   const raw = await request.text();
-  if (raw.length > MAX_BODY_BYTES) return null;
+  if (Buffer.byteLength(raw, "utf8") > MAX_BODY_BYTES) return { tooLarge: true };
   try {
-    return normalizePayload(JSON.parse(raw));
+    const payload = normalizePayload(JSON.parse(raw));
+    return payload ? { payload } : null;
   } catch {
     return null;
   }
 }
 
 export async function POST(request: Request) {
-  if (!sameOrigin(request)) {
+  if (!sameOrigin(request) || !passesFetchMetadata(request)) {
     return noStoreJson({ ok: false, error: "same_origin_required" }, 403);
   }
 
@@ -82,12 +117,26 @@ export async function POST(request: Request) {
     return noStoreJson({ ok: false, error: "rate_limited" }, 429);
   }
 
-  const payload = await parsePayload(request);
-  if (!payload) {
+  const parsed = await parsePayload(request);
+  if (parsed && "tooLarge" in parsed) {
+    return noStoreJson({ ok: false, error: "payload_too_large" }, 413);
+  }
+  if (!parsed) {
     return noStoreJson({ ok: false, error: "invalid_json" }, 400);
   }
+  const { payload } = parsed;
 
-  const redacted = redactForLog(payload);
+  const logContext = {
+    client_digest: payload.digest,
+    client_message_redacted: payload.message,
+    client_name: payload.name,
+    client_stack_redacted: payload.stack,
+    path_normalized: normalizePath(payload.path),
+    route: payload.route,
+    source: payload.source,
+    user_agent_hashed: hashValue(request.headers.get("user-agent")),
+  };
+  const redacted = redactForLog(logContext);
   consoleAppLogger.log({
     timestamp: new Date().toISOString(),
     level: "error",

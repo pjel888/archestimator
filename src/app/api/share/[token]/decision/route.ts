@@ -17,6 +17,7 @@ import {
   hashPublicTelemetryValue,
 } from "@/lib/publication/public-repository";
 import { sanitizeSharedLinkRecipientText } from "@/lib/share/sanitize-recipient-text";
+import { logAppError } from "@/lib/observability/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -331,6 +332,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     const knownRecipientFailure = DECISION_RECIPIENT_ERROR_MESSAGES.has(msg);
     const status = knownRecipientFailure ? 403 : 500;
     const ipHash = getIpHash(request);
+    if (status === 500) {
+      logAppError(error, {
+        event: "route_error",
+        context: {
+          public_error: "SUBMIT_FAILED",
+          route: "/api/share/[token]/decision",
+          route_handler: "POST /api/share/[token]/decision",
+          status,
+        },
+      });
+    }
     logStructured("error", "/api/share/[token]/decision", "SUBMIT_FAILED", ipHash, { status, msg: msg.slice(0, 120) });
     // SEC-15 (AC-SEC-15): never echo a raw RPC/DB error to the public client. The detailed
     // message is logged server-side (above). Only exact app-authored failure strings can affect

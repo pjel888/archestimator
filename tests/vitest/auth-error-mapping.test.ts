@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   getPublicAuthError,
+  mapAuthCodeToAppError,
   mapAuthErrorToCode,
 } from "@/lib/auth/error-mapping";
+import { AuthPermissionDeniedError, AuthRequiredError, AuthSessionExpiredError } from "@/lib/observability/app-error";
 
 describe("auth error mapping", () => {
   it("returns stable public copy for known auth errors", () => {
@@ -34,5 +36,19 @@ describe("auth error mapping", () => {
       code: "auth_request_failed",
       message: "We could not start sign-in. Try again in a moment.",
     });
+  });
+
+  it("maps public auth codes to AppError auth subclasses without leaking causes", () => {
+    expect(mapAuthCodeToAppError("email_required")).toBeInstanceOf(AuthRequiredError);
+    expect(mapAuthCodeToAppError("callback_exchange_failed")).toBeInstanceOf(AuthSessionExpiredError);
+    expect(mapAuthCodeToAppError("invalid_redirect")).toBeInstanceOf(AuthPermissionDeniedError);
+
+    const error = mapAuthCodeToAppError("unexpected raw database error", "refresh_token=secret");
+    expect(error.toClientJSON()).toEqual({
+      kind: "auth",
+      code: "AUTH_REQUIRED",
+      message: "We could not start sign-in. Try again in a moment.",
+    });
+    expect(JSON.stringify(error.toClientJSON())).not.toMatch(/refresh_token|secret/i);
   });
 });
