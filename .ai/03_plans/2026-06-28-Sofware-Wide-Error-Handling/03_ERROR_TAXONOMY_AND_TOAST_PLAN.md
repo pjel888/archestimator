@@ -134,21 +134,27 @@ export abstract class AppError extends Error {
 **Per-subclass `toLogLevel()` overrides** (matches the severity table in `04` Section B.3):
 
 ```ts
-// Auth family — INFO for required/expired, WARN for denied/rate-limited
-export class AuthRequiredError extends AppError {
+// Auth family base — abstract, groups the four concrete auth subclasses.
+// All auth subclasses share `kind: 'auth'`; this base exists so the auth
+// bridge (`mapAuthCodeToAppError` in Section F) can return a typed union.
+export abstract class AuthError extends AppError {
   readonly kind = 'auth' as const;
+}
+
+// Auth family — INFO for required/expired, WARN for denied/rate-limited
+export class AuthRequiredError extends AuthError {
   toLogLevel() { return 'INFO' as const; }
   // ... constructor per B.2
 }
-export class AuthSessionExpiredError extends AppError {
+export class AuthSessionExpiredError extends AuthError {
   readonly kind = 'auth' as const;
   toLogLevel() { return 'INFO' as const; }
 }
-export class AuthPermissionDeniedError extends AppError {
+export class AuthPermissionDeniedError extends AuthError {
   readonly kind = 'auth' as const;
   toLogLevel() { return 'WARN' as const; }
 }
-export class AuthRateLimitedError extends AppError {
+export class AuthRateLimitedError extends AuthError {
   readonly kind = 'auth' as const;
   toLogLevel() { return 'WARN' as const; }
 }
