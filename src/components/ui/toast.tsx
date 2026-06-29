@@ -19,9 +19,12 @@ import {
 } from "react";
 
 import { cn } from "@/lib/ui/cn";
+import { AppError, InternalError } from "@/lib/observability/app-error";
+import { readAppErrorToastConfig } from "@/lib/observability/toast-config";
+import type { AppErrorClientJSON, AppErrorKind } from "@/lib/observability/types";
 import { Button } from "./button";
 
-type ToastTone = "neutral" | "loading" | "success" | "error";
+type ToastTone = "neutral" | "loading" | "success" | "info" | "warning" | "error";
 
 type ToastRecord = {
   id: string;
@@ -39,13 +42,17 @@ type ToastInput = {
   action?: ToastAction;
 };
 
+type ToastFunction = ((input: ToastInput) => string) & {
+  appError: (error: unknown) => string;
+};
+
 type ToastAction = {
   label: string;
   onClick: () => void;
 };
 
 type ToastContextValue = {
-  toast: (input: ToastInput) => string;
+  toast: ToastFunction;
   dismissToast: (id: string) => void;
   clearToasts: () => void;
 };
@@ -55,13 +62,32 @@ type ToastProviderProps = {
   viewportClassName?: string;
 };
 
+type ToastController = {
+  showToast: (input: ToastInput) => string;
+};
+
 const DEFAULT_TOAST_DURATION_MS = 3200;
 const ERROR_TOAST_DURATION_MS = 5200;
 const SUCCESS_TOAST_DURATION_MS = 2400;
 const MAX_VISIBLE_TOASTS = 4;
+const APP_ERROR_KINDS = new Set<AppErrorKind>([
+  "auth",
+  "validation",
+  "not_found",
+  "conflict",
+  "database",
+  "upstream",
+  "rate_limit",
+  "network",
+  "internal",
+]);
+
+const noopToast = Object.assign((input: ToastInput) => input.id ?? "toast-unavailable", {
+  appError: () => "toast-unavailable",
+});
 
 const noopToastContext: ToastContextValue = {
-  toast: (input) => input.id ?? "toast-unavailable",
+  toast: noopToast,
   dismissToast: () => undefined,
   clearToasts: () => undefined,
 };
@@ -82,20 +108,58 @@ function makeToastId() {
 function ToastIcon({ tone }: { tone: ToastTone }) {
   if (tone === "loading") return <CircleNotch size={13} weight="regular" className="animate-spin" aria-hidden="true" />;
   if (tone === "success") return <CheckCircle size={13} weight="regular" aria-hidden="true" />;
-  if (tone === "error") return <WarningCircle size={13} weight="regular" aria-hidden="true" />;
+  if (tone === "error" || tone === "warning") return <WarningCircle size={13} weight="regular" aria-hidden="true" />;
   return <Info size={13} weight="regular" aria-hidden="true" />;
 }
 
 function toastToneClassName(tone: ToastTone) {
   if (tone === "success") return "border-successSoft bg-white text-success shadow-[0_8px_24px_rgba(21,128,61,0.12)]";
   if (tone === "error") return "border-dangerSoft bg-white text-danger shadow-[0_8px_24px_rgba(185,28,28,0.14)]";
+  if (tone === "warning") return "border-accentSoft bg-white text-warning shadow-[0_8px_24px_rgba(255,122,26,0.12)]";
+  if (tone === "info") return "border-blue-200 bg-white text-blue-700 shadow-[0_8px_24px_rgba(37,99,235,0.10)]";
   if (tone === "loading") return "border-accentSoft bg-white text-warning shadow-[0_8px_24px_rgba(255,122,26,0.12)]";
   return "border-hairline bg-white text-ink shadow-[0_8px_24px_rgba(17,17,17,0.10)]";
+}
+
+function isSerializedAppError(value: unknown): value is AppErrorClientJSON {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  if ("ok" in value || "trace_id" in value) return false;
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.kind === "string" &&
+    APP_ERROR_KINDS.has(record.kind as AppErrorKind) &&
+    typeof record.code === "string" &&
+    typeof record.message === "string"
+  );
+}
+
+function toastInputFromAppError(error: unknown): ToastInput {
+  const clientError = error instanceof AppError
+    ? error.toClientJSON()
+    : isSerializedAppError(error)
+      ? error
+      : new InternalError().toClientJSON();
+  const config = readAppErrorToastConfig(clientError);
+  return {
+    message: clientError.message,
+    tone: config.tone,
+    durationMs: config.durationMs,
+  };
+}
+
+function createToastFunction(showToast: (input: ToastInput) => string): ToastFunction {
+  return Object.assign((input: ToastInput) => showToast(input), {
+    appError: (error: unknown) => showToast(toastInputFromAppError(error)),
+  });
 }
 
 export function ToastProvider({ children, viewportClassName }: ToastProviderProps) {
   const [toasts, setToasts] = useState<ToastRecord[]>([]);
   const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(null!);
+  const [toastController] = useState<ToastController>(() => ({
+    showToast: () => "toast-unavailable",
+  }));
+  const [toast] = useState<ToastFunction>(() => createToastFunction((input) => toastController.showToast(input)));
   if (timersRef.current === null) timersRef.current = new Map();
 
   const clearToastTimer = useCallback((id: string) => {
@@ -122,7 +186,7 @@ export function ToastProvider({ children, viewportClassName }: ToastProviderProp
     );
   }, [clearToastTimer]);
 
-  const toast = useCallback((input: ToastInput) => {
+  const showToast = useCallback((input: ToastInput) => {
     const id = input.id ?? makeToastId();
     const tone = input.tone ?? "neutral";
     const durationMs = input.durationMs === undefined ? getDefaultDuration(tone) : input.durationMs;
@@ -141,6 +205,11 @@ export function ToastProvider({ children, viewportClassName }: ToastProviderProp
     scheduleDismiss(id, durationMs);
     return id;
   }, [scheduleDismiss]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/immutability -- the controller is an event-time delegate, not render state.
+    toastController.showToast = showToast;
+  }, [showToast, toastController]);
 
   const clearToasts = useCallback(() => {
     timersRef.current.forEach((timer) => clearTimeout(timer));
@@ -176,6 +245,7 @@ export function ToastProvider({ children, viewportClassName }: ToastProviderProp
             role={toastRecord.tone === "error" ? "alert" : "status"}
             aria-live={toastRecord.tone === "error" ? "assertive" : "polite"}
             data-toast-id={toastRecord.id}
+            data-toast-tone={toastRecord.tone}
             className={cn(
               "pointer-events-auto flex min-h-8 items-start gap-1.5 rounded-xs border px-2 py-1.5 text-[10px] font-medium leading-4",
               toastToneClassName(toastRecord.tone),

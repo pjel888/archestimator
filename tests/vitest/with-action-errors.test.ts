@@ -1,0 +1,61 @@
+import { describe, expect, it, vi } from "vitest";
+
+import { InternalError, ValidationError } from "@/lib/observability/app-error";
+import type { AppLogger, LogRecord } from "@/lib/observability/logger";
+import { withActionErrors } from "@/lib/observability/with-action-errors";
+
+function createTestLogger() {
+  const records: LogRecord[] = [];
+  const logger: AppLogger = {
+    log: vi.fn((record) => {
+      records.push(record);
+    }),
+  };
+  return { logger, records };
+}
+
+describe("withActionErrors", () => {
+  it("returns ok false with safe AppError JSON when a wrapped action throws", async () => {
+    const { logger, records } = createTestLogger();
+    const action = withActionErrors("saveEstimate", async () => {
+      throw new ValidationError("Enter a project name.");
+    }, { logger });
+
+    await expect(action()).resolves.toEqual({
+      ok: false,
+      error: {
+        kind: "validation",
+        code: "VALIDATION_FAILED",
+        message: "Enter a project name.",
+      },
+    });
+    expect(records).toHaveLength(1);
+    expect(records[0]).toMatchObject({
+      level: "info",
+      event: "action_error",
+      action: "saveEstimate",
+      error: {
+        class: "ValidationError",
+        code: "VALIDATION_FAILED",
+        message: "Enter a project name.",
+      },
+    });
+  });
+
+  it("logs generic thrown errors without exposing raw details to the client", async () => {
+    const { logger, records } = createTestLogger();
+    const action = withActionErrors("publishProject", async () => {
+      throw new Error("SUPABASE_SERVICE_ROLE_KEY=secret database constraint failed");
+    }, { logger });
+
+    const result = await action();
+
+    expect(result).toEqual({
+      ok: false,
+      error: new InternalError().toClientJSON(),
+    });
+    expect(JSON.stringify(result)).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
+    expect(records[0]?.error?.cause).toBeDefined();
+    expect(JSON.stringify(records[0])).not.toContain("secret");
+  });
+});

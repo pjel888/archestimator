@@ -32,6 +32,7 @@
 /data/local/*.json
 !/data/local/seed.json
 !/data/local/README.md
+/logs/
 
 # legacy research clone working trees are local-only; reports remain tracked
 /.ai/13_research/github-legacy-repos/clones/
