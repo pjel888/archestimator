@@ -168,7 +168,7 @@ bun run test:e2e -- e2e/global-error.spec.ts
 | P4-WP2 | Wire the dev logger to write to `./logs/dev.ndjson` | extend logger.ts | M |
 | P4-WP3 | Implement append-only session-start + 50MB rotation (NO truncation-on-start per `04` Section C.2 race-free design) | extend logger.ts | M |
 | P4-WP4 | Create `scripts/tail-dev-logs.mjs` per `04` Section D | new | M |
-| P4-WP5 | Add `logs:tail`, `logs:explain`, `logs:dev` scripts to `package.json` | extend package.json | XS |
+| P4-WP5 | Add `logs:tail`, `logs:explain`, `logs:dev`, `logs:emit-test` scripts to `package.json` | extend package.json | XS |
 | P4-WP6 | Tests: `tests/unit/tail-dev-logs.test.ts` (parsing, --explain summary, tainted-field labeling) | new | M |
 | P4-WP7 | Tests: `tests/vitest/{logger,logger-perf}.test.ts` (NDJSON schema + p95 budget with file writer enabled) | new | M |
 | P4-WP8 | Append a sample session to `./logs/dev.ndjson` during a `bun run dev` smoke test | manual smoke | XS |

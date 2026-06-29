@@ -526,12 +526,12 @@ For each of the 22 server action files (`01_SOURCE_AUDIT.md` B.1):
 | `legal/actions.ts` | Wrap |
 | `notifications/actions.ts` | Already returns `{ok:false,code}` — refactor to typed shape |
 | `projects/{actions,location-actions}.ts` | Wrap; replace raw throws |
-| `publication/actions.ts` | **HIGHEST PRIORITY** — has 7 raw `throw projectError` sites that leak DB internals. Wrap + `unwrapSupabase` |
+| `publication/actions.ts` | **HIGHEST PRIORITY** — has 8 raw `throw projectError` sites (per `01` Section B.1) that leak DB internals. Wrap + `unwrapSupabase` |
 | `publisher/{activity-actions,drawer-actions}.ts` | Wrap |
 | `reusable-sources/actions.ts` | Wrap |
 | `workshop/{actions,beta-feedback,beta-feedback-review,group-actions}.ts` | Wrap |
 
-Each of the 22 route handlers gets `try { ... } catch (err) { return errorResponse(err, traceId) }`.
+Each of the 22 route handlers gets `try { ... } catch (err) { return errorResponse(err) }` (the `traceId` second argument is optional per Section E; `errorResponse()` auto-derives it from PERF_TRACE or generates a fallback).
 
 ## H. Off-limits (per README)
 
