@@ -27,7 +27,7 @@ Per `Multi-Agent-Execution-Directive.md` Section 2, the original pack used lead-
 | Source/requirements analyst | original: `explore` bg × 3 | timed out in original pass | Lead direct grep + read |
 | Industry research | original: `librarian` bg × 2 | timed out in original pass | Lead direct web/local-doc research |
 | Feasibility reviewer | native `ce-feasibility-reviewer` | completed | P0/P1 contradictions resolved in this improvement pass |
-| Security/privacy reviewer | native `ce-security-lens-reviewer` | completed | P1/P2 security gaps resolved in this improvement pass |
+| Security/privacy reviewer | native `ce-security-lens-reviewer` | completed | P1/broad-P2 (P2a+P2b) security gaps resolved in this improvement pass |
 | Coherence reviewer | native `ce-coherence-reviewer` | requested | Results integrated if returned before final gate |
 | Adversarial document reviewer | native `ce-adversarial-document-reviewer` | requested | Results integrated if returned before final gate |
 | Final verifier | native `verifier` | completed | PASS: no remaining P0/P1 planning blockers for the approved conditional-ready scope |

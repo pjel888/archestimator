@@ -45,6 +45,21 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Proposals Page plan archived (2026-06-29):**
+
+- Archived the completed plan package from `.ai/03_plans/2026-06-28-Proposals-Page/` to `.ai/09_archive/2026-06-28-Proposals-Page/` after implementation, linked Supabase provider proof, focused tests, build/type/lint checks, static leak checks, and browser proof passed.
+- Completion evidence is preserved in `.ai/09_archive/2026-06-28-Proposals-Page/LOOP_LEDGER.md` and `.omx/artifacts/recipient-proposals-page/recipient-proposals-browser-2026-06-28T183402Z/recipient-proposals-browser-proof.json`.
+- No app, migration, provider, or test behavior changed as part of the archive move.
+
+**Proposals Page implementation and provider/browser proof passed (2026-06-29):**
+
+- `/workshop/proposals` is implemented as the signed-in recipient inbox for shared proposal publications, backed by RPC feed `list_recipient_publications_for_current_user`, route/client/sidebar UI, and `openRecipientProposalAction` authorization through `authorize_recipient_publication_for_current_user`.
+- Security boundary: the client and feed DTO receive only safe proposal metadata; publication token recovery stays server-side after email-recipient authorization, then sets the shared-link session cookie and redirects to `/share/[token]`.
+- Linked Supabase project `ebxxqidacheyapmmzavr` has migration `recipient_proposals_rpc` applied; provider proof confirmed both RPCs are stable security-definer functions with `search_path=public`, authenticated execute grants, and the lower-email recipient index.
+- Fresh evidence passed: focused recipient proposal Vitest matrix (`5` files / `18` tests), `bun run type-check`, `bun run lint` (existing unrelated warnings only), `bun run build`, `git diff --check`, static credential leak checks, and browser proof `.omx/artifacts/recipient-proposals-page/recipient-proposals-browser-2026-06-28T183402Z/recipient-proposals-browser-proof.json`.
+- Browser proof used a temporary provider workspace/project/publication/recipient fixture and cleaned it up. In local Next dev, the client transition initially observed the share loading shell after the Server Action redirect; the proof recorded this, reloaded the same `/share/[token]` URL with the action-created cookies, and verified the share page rendered. Tokens and email-like strings are redacted in the retained artifact.
+- Known unrelated validation noise: Supabase CLI/local reset/typegen exits 137 in this environment, so generated RPC types were patched manually after connector/provider proof. `bun run lint:design-system` remains red only on pre-existing Add Component/estimate-sheet findings, not Proposals.
+
 **Add Component OpenDesign exact visual proof passed (2026-06-29):**
 
 - The Add Component modal now matches the OpenDesign active-V1 composition by measured geometry: 793px main modal, 533px attached variant drawer, 30px right rail, 44px title band, 32px tab rail, 49px footers, and 30x32/30x34/30x34 manager/add/V1 rail controls.

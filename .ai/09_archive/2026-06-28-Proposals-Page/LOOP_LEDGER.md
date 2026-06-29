@@ -47,3 +47,29 @@ Initial evidence:
 - Read-only subagents confirmed no existing recipient-proposals implementation and identified local test patterns.
 
 Stop condition: pass the focused repository/action/route/client/sidebar tests plus type/lint/build/static leak checks, then complete provider and browser proof if the local Supabase/Vercel/browser credentials and services are available in this environment. Any unavailable proof must be reported as an explicit validation gap.
+
+## Implementation proof - 2026-06-29
+
+Status: implemented and provider/browser-proven locally for the linked Archestimator Supabase project.
+
+Delivered surface:
+- `/workshop/proposals` recipient inbox route, loading state, TanStack Query client refresh, empty/error/list states, and sidebar entry.
+- Server-only RPC repository plus Server Action bridge for recipient proposal loading.
+- `openRecipientProposalAction` authorizes the signed-in email through `authorize_recipient_publication_for_current_user`, recovers the existing publication token server-side only, sets the shared-link session cookies, and redirects to `/share/[token]`.
+- Supabase migration `20260629000000_recipient_proposals_rpc.sql` adds the lower-email recipient index plus `list_recipient_publications_for_current_user` and `authorize_recipient_publication_for_current_user`.
+
+Evidence:
+- Focused Vitest: `bun run test:dom tests/vitest/recipient-proposals-repository.test.ts tests/vitest/recipient-proposals-route-gate.test.ts tests/vitest/recipient-proposals-page.test.tsx tests/vitest/recipient-proposals-action.test.ts tests/vitest/main-sidebar-proposals-item.test.tsx` passed (`5` files / `18` tests).
+- `bun run type-check` passed.
+- `bun run lint` passed with existing unrelated warnings only.
+- `bun run build` passed and included `ƒ /workshop/proposals`.
+- `git diff --check` passed.
+- Static credential leak checks found no token/hash/service-role terms in the proposals route/client/repository/migration surface; action tests contain credential terms only as source-contract assertions.
+- Linked Supabase provider proof on project `ebxxqidacheyapmmzavr` confirmed both RPCs are `security definer`, stable, `search_path=public`, executable by authenticated/postgres/service_role, and that `shared_link_recipients_lower_email_idx` exists.
+- Browser proof passed via `scripts/prove-recipient-proposals-browser.mjs`; artifact: `.omx/artifacts/recipient-proposals-page/recipient-proposals-browser-2026-06-28T183402Z/recipient-proposals-browser-proof.json`.
+
+Browser proof note: the local Next dev client transition reached `/share/[token]` and set both shared-link cookies, but initially observed the share loading shell. The proof recorded this and then reloaded the same `/share/[token]` URL with the action-created cookies; the share page rendered `main[aria-label="Proposal review"]`, the expected project content, no-estimates state, and no browser/page errors. Tokens and email-like strings are redacted in the retained artifact.
+
+Validation gaps and unrelated reds:
+- Supabase CLI/local reset/type generation remained unavailable in this environment (`supabase`/`npx supabase`/`bunx supabase` exited 137; local Postgres was not responding). RPC types were patched manually and linked-provider SQL proof was collected through the Supabase connector.
+- `bun run lint:design-system` remains red only on unrelated pre-existing Add Component/estimate-sheet design-system findings; no Proposals files remain in that output.
