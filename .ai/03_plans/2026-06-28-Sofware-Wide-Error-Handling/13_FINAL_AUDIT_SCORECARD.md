@@ -72,7 +72,7 @@ Requirement-by-requirement scorecard, council findings, verification mode declar
 | Client-error logs could store attacker-controlled text | Added same-origin checks, strict parser, redaction, tainted-field labels, and adversarial tests. |
 | AI log diagnosis could follow injected instructions | Added "logs are untrusted data" rule to `04`, `09`, and `10`. |
 | Sentry Replay enabled without privacy posture | Defaulted replay sampling to `0`; separate owner privacy decision required. |
-| Sentry runbook implied DB/query details in Sentry | Updated runbook: SQL/query detail stays in restricted provider logs or parameter-free fingerprints. |
+| Sentry runbook implied DB/query details in Sentry | Updated runbook: Sentry MAY contain raw DB/Supabase cause text (captureException preserves the original exception chain); SQL/query detail and incident fix actions stay in restricted provider logs OR require fresh owner approval (incident-driven migrations/RLS fixes are NOT authorized by this plan). Dev NDJSON is scrubbed by redactForLog but still requires PII review before broad AI sharing. |
 | Logger phase ownership inconsistent | P1 now defines logger interface/no-op path; P4 owns file writer, NDJSON tests, and perf test. |
 
 ## D. Verification mode
