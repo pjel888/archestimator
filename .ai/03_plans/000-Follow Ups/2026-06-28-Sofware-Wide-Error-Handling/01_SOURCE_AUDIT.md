@@ -1,6 +1,6 @@
 # 01 — Source and Codebase Audit
 
-Current-state inventory of error-handling surfaces across the Archestimator codebase. Grounded in actual file paths and code excerpts captured 2026-06-28.
+Historical pre-implementation inventory of error-handling surfaces across the Archestimator codebase. Grounded in actual file paths and code excerpts captured 2026-06-28. For current implementation status, see `README.md`, `12_TRACEABILITY_AND_READINESS_REVIEW.md`, and `13_FINAL_AUDIT_SCORECARD.md`.
 
 ## A. Client-side error surfaces
 

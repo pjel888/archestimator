@@ -125,13 +125,13 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 
 ### OBS-002 — Sentry integration
 - **Statement:** `@sentry/nextjs` installed; `sentry.{server,client}.config.ts` exist; `SENTRY_DSN` env documented. Real DSN, GitHub secret, Vercel env, source-map upload, and dashboard proof are owner/provider-gated.
-- **Priority:** P5 conditional.
+- **Priority:** P5b conditional.
 - **AC-002.1:** Source maps uploaded in CI.
 - **AC-002.2:** `beforeSend` hook redacts PII per `06`.
 
 ### OBS-003 — Vercel Log Drain (deferred)
 - **Statement:** Vercel dashboard Log Drain config forwarder to Axiom/Better Stack.
-- **Priority:** Deferred (not in P5; triggered by first paying user).
+- **Priority:** Deferred (not in P5b; triggered by first paying user).
 
 ### SEC-001 — Never log secrets
 - **Statement:** `NEVER_LOG_KEYS` set covers all env-var-named secrets.
@@ -167,8 +167,8 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 ### TEST-001 — New test files for P1
 - **Statement:** `tests/vitest/{app-error,unwrap-supabase,with-action-errors,redact}.test.ts` are created in P1 and pass. (These files are planned deliverables of P1, not pre-existing on `main`. The `logger.test.ts` and `logger-perf.test.ts` files are P4 deliverables — see TEST-002 and `08` P4-WP7.)
 
-### TEST-002 — New test files for P3a–P5
-- **Statement:** `tests/vitest/{toast-apperror.test.tsx, toast-a11y.test.tsx, client-error.test.ts, instrumentation.test.ts, sentry-redact.test.ts}` + `tests/unit/tail-dev-logs.test.ts` are created across P3a–P5 and pass. (These files are planned deliverables of their respective phases, not pre-existing on `main`. Toast tests use `.test.tsx` because they render React components via Testing Library; the rest are logic-only `.test.ts`.)
+### TEST-002 — New test files for P3a–P5b
+- **Statement:** `tests/vitest/{toast-apperror.test.tsx, toast-a11y.test.tsx, client-error.test.ts, instrumentation.test.ts}` + `tests/unit/tail-dev-logs.test.ts` are created across P3a–P5a and pass. Future P5b adds `sentry-redact.test.ts`. Toast tests use `.test.tsx` because they render React components via Testing Library; the rest are logic-only `.test.ts`.
 
 ### TEST-003 — Adversarial QA matrix
 - **Statement:** `09_TEST_QA_ULTRAQA_PLAN.md` matrix executed; zero P0/P1 findings unresolved at P6a.
@@ -178,11 +178,11 @@ Stable IDs for every requirement. Each ID maps to source evidence, acceptance cr
 - **AC-001.1:** `tests/vitest/logger-perf.test.ts` measures 1000 calls in P4; p95 < 1ms.
 
 ### PERF-002 — Bundle size budget
-- **Statement:** Client bundle delta <60KB gzipped after P5.
+- **Statement:** Client bundle delta <60KB gzipped after future P5b.
 - **AC-002.1:** Bundle-analyzer CI gate fails build if delta exceeded.
 
 ### DOC-001 — Update `.ai/10_state/current-state.md`
-- **Statement:** At P6a closeout (after pilot evidence is captured and the pack is upgraded to PILOT IMPLEMENTED), append an entry to current-state.md describing the implemented observability module + pilot outcomes. NOT a P1 deliverable — `08` P6a-WP5, `12` DOC-001 row, and `13` DOC-001 row all map DOC-001 to P6a closeout.
+- **Statement:** At P6a closeout (after local rollout evidence is captured and the pack is upgraded to LOCAL NON-SENTRY ROLLOUT IMPLEMENTED), append an entry to current-state.md describing the implemented observability module + local rollout outcomes. NOT a P1 deliverable — `08` P6a-WP5, `12` DOC-001 row, and `13` DOC-001 row all map DOC-001 to P6a closeout.
 
 ### DOC-002 — Update `DESIGN.md` (only if Toast catalog changes UI tokens)
 - **Statement:** Toast copy catalog in `toast-config.ts` may reuse existing tokens; if it introduces new tokens, update DESIGN.md.

@@ -21,30 +21,45 @@ src/lib/observability/
 
 Total new code in P1: ~600 lines.
 
-### A.2 `instrumentation.ts` at project root (new in P5)
+### A.2 `src/instrumentation.ts` local request instrumentation (new in P5a)
 
 ```ts
-// instrumentation.ts
 import { type Instrumentation } from 'next';
 
-export async function register() {
-  if (process.env.NEXT_RUNTIME === 'nodejs') {
-    const sentry = await import('./sentry.server.config');
-    // sentry.server.config.ts exports its own register() that calls Sentry.init().
-    // The import alone does not run it — call it explicitly.
-    if (typeof sentry.register === 'function') {
-      await sentry.register();
-    }
-  }
+export function register() {
+  // Sentry/provider registration is intentionally deferred.
 }
 
-export const onRequestError: Instrumentation.onRequestError = async (err, request, context) => {
-  const { captureRequestError } = await import('./sentry.server.config');
-  await captureRequestError(err, request, context);
+export const onRequestError: Instrumentation.onRequestError = async (error, request, context) => {
+  if (process.env.NEXT_RUNTIME === 'edge') {
+    console.error(JSON.stringify({
+      event: 'next_request_error',
+      level: 'error',
+      message: error instanceof Error ? error.message : 'Unhandled Next.js request error.',
+      context: { method: request.method, path: request.path, route_path: context.routePath, runtime: 'edge' },
+    }));
+    return;
+  }
+
+  const { logAppError } = await import('@/lib/observability/logger');
+  logAppError(error, {
+    event: 'next_request_error',
+    context: {
+      method: request.method,
+      path: request.path,
+      route: context.routePath,
+      route_handler: context.routeType === 'route' ? `${request.method} ${context.routePath}` : undefined,
+      route_path: context.routePath,
+      route_type: context.routeType,
+      router_kind: context.routerKind,
+      render_source: context.renderSource,
+      revalidate_reason: context.revalidateReason,
+    },
+  });
 };
 ```
 
-### A.3 `sentry.server.config.ts` (new in P5)
+### A.3 `sentry.server.config.ts` (future P5b)
 
 ```ts
 // sentry.server.config.ts
@@ -94,7 +109,7 @@ export async function captureRequestError(error, request, context) {
 }
 ```
 
-### A.4 `sentry.client.config.ts` (new in P5)
+### A.4 `sentry.client.config.ts` (future P5b)
 
 Mirrors server config; loaded by the Next.js Sentry wizard. Same redaction rules. **Client-side kill switch uses `NEXT_PUBLIC_SENTRY_ENABLED`** (not `SENTRY_ENABLED`) because Next.js docs require the `NEXT_PUBLIC_` prefix for env vars available in the browser bundle (`node_modules/next/dist/docs/01-app/02-guides/environment-variables.md`). Operators set both `SENTRY_ENABLED=false` (server) and `NEXT_PUBLIC_SENTRY_ENABLED=false` (client) for a full rollback; the client var must be set at build time.
 
@@ -288,7 +303,7 @@ Add `toast.appError(err)` convenience. Existing API untouched.
 
 Consumed by the logger; not modified.
 
-### B.7 `next.config.ts` (P5 only)
+### B.7 `next.config.ts` (future P5b only)
 
 Add the `sentry` key. CSP/headers/redirects untouched.
 
@@ -296,21 +311,25 @@ Add the `sentry` key. CSP/headers/redirects untouched.
 
 Add `logs/` entry.
 
-### B.9 `package.json` (P4 scripts + P5 dep)
+### B.9 `package.json` (P4 scripts + future P5b dep)
 
 - **P4** adds local `logs:tail`, `logs:explain`, `logs:dev` scripts (per `08` P4-WP5) — no new dependencies, just script entries.
-- **P5** adds the `@sentry/nextjs` dependency only after the owner/provider gate.
+- **P5b** adds the `@sentry/nextjs` dependency only after the owner/provider gate.
 - P1 uses native file writing and no new logger dependency.
 
 ## C. Module dependency graph
 
 ```
-instrumentation.ts ───▶ sentry.server.config.ts ─▶ @sentry/nextjs
-                                                └▶ src/lib/observability/redact.ts
+src/instrumentation.ts ─▶ src/lib/observability/logger.ts (node runtime)
+                         └▶ console.error minimal JSON fallback (edge runtime)
+
+future P5b:
+instrumentation/Sentry forwarder ─▶ sentry.server.config.ts ─▶ @sentry/nextjs
+                                                            └▶ src/lib/observability/redact.ts
 
 src/lib/observability/
 ├── logger.ts ─────▶ src/lib/perf/server-timing.ts (unchanged)
-│                └─▶ @sentry/nextjs (P5)
+│                └─▶ @sentry/nextjs (P5b)
 ├── app-error.ts ─▶ (none)
 ├── action-result.ts
 ├── unwrap-supabase.ts ─▶ app-error.ts
@@ -348,7 +367,7 @@ src/app/api/**/route.ts (22 files) ─▶ src/lib/observability/route-error.ts
    (Note: `logger.error(record, originalError)` passes the original Error/AppError so Sentry.captureException preserves the real stack/cause; the wrapper is the SOLE log owner for caught failures — inner throw sites must NOT pre-log.)
 5. logger.error writes:
    - DEV: append to ./logs/dev.ndjson
-   - PROD (P5): forward to Sentry via captureException
+   - PROD (P5b): forward to Sentry via captureException
 6. Client receives { ok:false, error:{ kind, code, message } }
 7. useActionState surfaces error.message → render in form
 8. ALSO: if the calling component opts in, toast.appError(err) shows the toast
@@ -362,8 +381,8 @@ Similar to server action, but uses `errorResponse(err, traceId)` to produce a `N
 
 Next.js 16 catches via the nearest `error.tsx` boundary. The two sub-cases have DIFFERENT server-notify behavior:
 
-- **Server-render/RSC throw:** `error.tsx` shows fallback UI + calls `toast.appError`. The Next.js 16 `instrumentation.ts` `onRequestError(err, request, context)` hook **DOES fire** (server-scope captures RSC/render errors per local Next 16 docs) → Sentry receives the event via the uncaught-server path in `04` Section E.1. No explicit POST from `error.tsx` is needed for this case.
-- **Client-side render-time error** (e.g., a state-rendering bug in a Client Component that throws during the React render phase, AFTER hydration): `error.tsx` shows fallback UI + `toast.appError`. `onRequestError` does **NOT** fire (render-time client throws after hydration are not server-captured). For server-side diagnosis, the boundary must explicitly POST to `/api/internal/client-error`. The approved P3a pilot boundary (`global-error.tsx` per D.4) opts in to this POST; segment `error.tsx` POST is post-pilot per A.6. **Note:** Next.js error boundaries do NOT catch event-handler or async-code errors (per `node_modules/next/dist/docs/01-app/01-getting-started/10-error-handling.md:340-344`) — those must be caught manually or via a global unhandledrejection handler (follow-on per `09` ADV-09).
+- **Server-render/RSC throw:** `error.tsx` shows fallback UI + calls `toast.appError`. The Next.js 16 `src/instrumentation.ts` `onRequestError(err, request, context)` hook **DOES fire** (server-scope captures RSC/render errors per local Next 16 docs) and writes to the local structured logger in P5a. Future P5b may also forward this event to Sentry. No explicit POST from `error.tsx` is needed for this server-render case.
+- **Client-side render-time error** (e.g., a state-rendering bug in a Client Component that throws during the React render phase, AFTER hydration): `error.tsx` shows fallback UI + `toast.appError`. `onRequestError` does **NOT** fire (render-time client throws after hydration are not server-captured). For server-side diagnosis, the boundary explicitly POSTs to `/api/internal/client-error`; the P3 follow-up wires this for `global-error.tsx` and existing workshop segment boundaries. **Note:** Next.js error boundaries do NOT catch event-handler or async-code errors (per `node_modules/next/dist/docs/01-app/01-getting-started/10-error-handling.md:340-344`) — those must be caught manually or via a global unhandledrejection handler (follow-on per `09` ADV-09).
 
 ### D.4 Root layout / providers throw
 
@@ -371,7 +390,7 @@ Next.js 16 catches via the nearest `error.tsx` boundary. The two sub-cases have 
 
 ### D.5 Production error reaches Sentry
 
-`instrumentation.ts`'s `onRequestError(err, request, context)` fires whenever Next.js server captures an error. Sentry captures the exception with sanitized request/context breadcrumbs only.
+`src/instrumentation.ts`'s `onRequestError(err, request, context)` fires whenever Next.js server captures an error. P5a writes a local structured `next_request_error` record. Future P5b may also send sanitized request/context breadcrumbs to Sentry.
 
 ## E. Validation contracts (drives `08_IMPLEMENTATION_PLAN.md`)
 
@@ -383,11 +402,11 @@ Next.js 16 catches via the nearest `error.tsx` boundary. The two sub-cases have 
 | Dev logger writes valid NDJSON to `./logs/dev.ndjson` | `tests/vitest/logger.test.ts` (new P4) |
 | `toast.appError` picks correct tone per `code` (with `kind` fallback) per `03` Section C.1 | `tests/vitest/toast-apperror.test.tsx` (new P3a) |
 | Selected pilot boundary renders safely | DOM/static test or Playwright `e2e/global-error.spec.ts` when browser proof is required (new P3a) |
-| `instrumentation.ts` register + onRequestError wires Sentry | `tests/vitest/instrumentation.test.ts` (new P5) |
+| `src/instrumentation.ts` register + onRequestError wires local logger and edge fallback | `tests/vitest/instrumentation.test.ts` (new P5a) |
 | `scripts/tail-dev-logs.mjs` parses every record shape | `tests/unit/tail-dev-logs.test.ts` (new P4) |
 | Pilot server action migration preserves behavior | Targeted existing tests show no new failures against the recorded baseline |
 
-## F. Bundle impact (verified by `@next/bundle-analyzer` in P5)
+## F. Bundle impact (verified by `@next/bundle-analyzer` in future P5b)
 
 - @sentry/nextjs client: ~20 KB gzipped, additive
 - @sentry/nextjs server: serverless function size; ~50 KB additive
@@ -404,5 +423,5 @@ Per README, these contracts stay stable:
 - All 67 Supabase migrations
 - All RLS policies
 - `vercel.json` regions/crons
-- `next.config.ts` CSP/headers/redirects (Sentry additions are P5 owner/provider-gated)
-- `.github/workflows/*` existing steps (source-map upload is P5 owner/provider-gated)
+- `next.config.ts` CSP/headers/redirects (Sentry additions are P5b owner/provider-gated)
+- `.github/workflows/*` existing steps (source-map upload is P5b owner/provider-gated)

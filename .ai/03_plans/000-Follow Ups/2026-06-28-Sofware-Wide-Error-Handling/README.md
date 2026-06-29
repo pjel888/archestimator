@@ -99,8 +99,8 @@ This plan is complete for the local non-Sentry rollout because the implementer c
 - All Supabase migrations (67 files) — no schema changes planned by this pack. (Incident-driven RLS/migration fixes are NOT authorized by this plan; they require fresh owner approval per `10` Section E.1.)
 - All RLS policies — no policy changes planned by this pack. (Same owner-gate as migrations applies to incident-driven policy fixes.)
 - `vercel.json` regions/crons — unchanged.
-- `next.config.ts` CSP / headers / redirects — unchanged; Sentry config additions require P5 owner/provider gate.
-- `.github/workflows/*` — no removal/rewrite of existing; sourcemap upload step requires P5 owner/provider gate.
+- `next.config.ts` CSP / headers / redirects — unchanged; Sentry config additions require P5b owner/provider gate.
+- `.github/workflows/*` — no removal/rewrite of existing; sourcemap upload step requires P5b owner/provider gate.
 
 ## Files and systems intentionally unaffected
 
@@ -114,12 +114,12 @@ This plan is complete for the local non-Sentry rollout because the implementer c
 ## External proof that remains required before production rollout
 
 - Sentry DSN procurement + next.config sourcemap upload verification (P5b task).
-- Vercel Log Drain configuration for prod JSONL forwarding after first paying user (deferred; not a P5 blocker).
+- Vercel Log Drain configuration for prod JSONL forwarding after first paying user (deferred; not a P5b blocker).
 - PII review pass on the dev NDJSON schema with a real auth-failure log line in hand before broad AI-log sharing beyond local agents.
 
 ## Archive policy
 
-Archive `.ai/03_plans/2026-06-28-Sofware-Wide-Error-Handling/` to `.ai/09_archive/` once:
+Archive `.ai/03_plans/000-Follow Ups/2026-06-28-Sofware-Wide-Error-Handling/` to `.ai/09_archive/` once:
 - P1–P6a plus the local follow-up rollout are implemented and committed, AND
 - The dev JSONL → AI diagnose loop is proven end-to-end on a real failure, AND
 - Either the prod Sentry integration is live with the first real production error in the dashboard, or the owner explicitly declares Sentry out of scope and accepts local-only observability as the archive condition.

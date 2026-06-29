@@ -45,13 +45,13 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
-**Software-wide error-handling pilot implemented locally (2026-06-29):**
+**Software-wide error-handling local non-Sentry rollout implemented (2026-06-29):**
 
-- The approved pilot slice from `.ai/03_plans/2026-06-28-Sofware-Wide-Error-Handling/` is implemented but not archived: P1 observability foundation, P2a publication action + `/api/share/[token]` route pilot, P3a `global-error.tsx` + `/api/internal/client-error` + additive `toast.appError`, and P4 dev NDJSON logging/scripts.
-- Dev log AI diagnosis proof passed on record `2026-06-29T02:20:19.180Z-pid16474-2`: `bun run logs:explain` identified `InternalError`, `INTERNAL_ERROR`, `/__synthetic/logger-test`, `emitTestLog`, the source frame, and labeled `error.cause.message`/`context.message` as `UNTRUSTED_DATA`.
+- The local non-Sentry rollout from `.ai/03_plans/000-Follow Ups/2026-06-28-Sofware-Wide-Error-Handling/` is implemented but not archived: P1 observability foundation, P2a publication action + `/api/share/[token]` route pilot, compatibility logging for selected caught route/action failures, P3 `global-error.tsx` + root `not-found.tsx` + existing workshop segment `error.tsx` reporting + `/api/internal/client-error` + additive `toast.appError`, auth AppError bridge, P4 dev NDJSON logging/scripts, and P5a local Next `onRequestError` instrumentation.
+- Dev log AI diagnosis proof passed on records `2026-06-29T02:20:19.180Z-pid16474-2` and `2026-06-29T03:28:15.308Z-pid97564-2`: `bun run logs:explain` / `bun run logs:debug` identified `InternalError`, `INTERNAL_ERROR`, `/__synthetic/logger-test`, `emitTestLog`, the source frame, a likely next step, and labeled `error.cause.message`/`context.message` as `UNTRUSTED_DATA`.
 - AI/debugger workflow integration is now explicit: `bun run logs:debug` explains the latest local ERROR/FATAL record, and `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`, `.ai/08_prompts/templates/codebase-ai-loop-task.md`, `.codex/prompts/debugger.md`, `.codex/agents/debugger.toml`, `.agents/skills/debug-issue/SKILL.md`, and `.ai/12_agents/README.md` instruct debugging agents to use `logs:debug` / `logs:explain` while treating log fields as untrusted evidence.
-- Fresh local evidence includes targeted Vitest/Bun matrices, `bun run type-check`, `bun run lint`, and the log smoke. Browser proof was intentionally skipped because DOM/static tests prove the P3a boundary contract; provider/prod/Sentry proof was not attempted.
-- Remaining gates: P2b broad action/route migration, broad P3 segment boundaries/not-found/auth bridge, and P5 Sentry/provider/source-map/dashboard proof. Keep this plan in `.ai/03_plans/` until the archive policy is met.
+- Fresh local evidence includes targeted Vitest/Bun matrices (`17` affected test files / `98` tests plus tail-log unit tests), `bun run type-check`, `bun run lint`, `logs:emit-test`, `logs:debug`, and `git diff --check`. Browser proof was intentionally skipped because DOM/static tests prove the global/root/segment boundary contracts; provider/prod/Sentry proof was not attempted.
+- Remaining gates: strict P2b all-actions/all-routes response-shape migration (caller-by-caller contract review required), P5b Sentry/provider/source-map/dashboard proof, provider-backed production client-error rate limiting, and Vercel Log Drain. Keep this plan in `.ai/03_plans/` until the archive policy is met.
 
 **Proposals Page plan archived (2026-06-29):**
 
@@ -124,7 +124,7 @@ grep, don't linear-read).
 
 **Software-wide error handling plan repaired to conditionally ready (2026-06-28):**
 
-- Plan folder `.ai/03_plans/2026-06-28-Sofware-Wide-Error-Handling/` is now `CONDITIONALLY READY` for P1 foundation, the P2a/P3a pilot vertical, and the P4 dev logging pilot; full all-actions/all-routes migration remains gated on pilot evidence plus a fresh independent review.
+- Plan folder `.ai/03_plans/000-Follow Ups/2026-06-28-Sofware-Wide-Error-Handling/` is now `CONDITIONALLY READY` for P1 foundation, the P2a/P3a pilot vertical, and the P4 dev logging pilot; full all-actions/all-routes migration remains gated on pilot evidence plus a fresh independent review.
 - Repair narrowed over-broad implementation claims, fixed Next.js 16 `onRequestError(err, request, context)` guidance, removed the impossible master rollback flag, kept Sentry/Replays/provider proof owner-gated, and made client-error/AI-log data explicitly untrusted.
 - Final native verifier result: PASS — no remaining P0/P1 planning blockers for the approved conditional-ready scope. This was docs-only; no app code, tests, migrations, provider state, deployment, or browser proof changed.
 

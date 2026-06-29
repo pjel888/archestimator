@@ -47,7 +47,7 @@ Source: [Next.js API Reference > File Conventions > instrumentation](https://nex
 - `register()` — runs once at server init. Used to init Sentry, OTel, etc.
 - `onRequestError(err, request, context)` — invoked when the Next.js server captures an error in a route handler, server action, or page render. Must `await` async work. `err.digest` can identify the error type when React processed it. Local Next 16 docs define the parameter order as `error`, `request`, `context`.
 
-This is the load-bearing hook for production error forwarding. Plan adds `instrumentation.ts` in P5.
+This is the load-bearing hook for request-error forwarding. The local P5a implementation writes Next request errors to the structured dev logger; future P5b may forward the same class of event to Sentry.
 
 ## B. React 19 error boundaries
 
@@ -127,8 +127,9 @@ Recommended stack at launch (cost: $0):
 
 Graduate to Datadog/full OTel when: 50+ paying customers, $20k MRR, or 3+ services need correlated tracing.
 
-**Plan's recommendation for Archestimator (P5 scope):**
-- Phase in Sentry only for now (closes the error-visibility gap).
+**Plan's recommendation for Archestimator (P5a/P5b scope):**
+- Phase in local `onRequestError` logging now (P5a).
+- Phase in Sentry later after owner/provider authority (P5b).
 - Wire Vercel Log Drain → Axiom in a later phase when log volume justifies.
 - PostHog + Vercel Analytics are out of scope for this plan (separate analytics work).
 
@@ -179,7 +180,7 @@ Archestimator plan adopts these in `06_SECURITY_PRIVACY_THREAT_MODEL.md`.
 
 The plan is sized to MVP pre-launch (no external users). Industry standards are aspirational at scale; the plan adopts the minimum subset that delivers the user's stated outcomes:
 - AI-diagnosability now (dev NDJSON + tail command)
-- Production error visibility through P5 Sentry once owner/provider authority exists; Vercel Log Drain after first paying user
+- Production error visibility through P5b Sentry once owner/provider authority exists; Vercel Log Drain after first paying user
 - Full OTel/Axiom/PostHog stack deferred until justified by usage
 
 Full Datadog, multi-trace-backend, full session-replay, full GenAI semantic-conventions adoption are explicitly out of scope (`11_RISKS_DECISIONS_ALTERNATIVES.md`).

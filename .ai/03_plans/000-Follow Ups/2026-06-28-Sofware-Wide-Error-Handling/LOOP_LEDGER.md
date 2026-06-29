@@ -74,10 +74,41 @@ Targeted evidence captured:
 
 ### Iteration 9 — RECORD + DECIDE (pilot PASS; full rollout gated)
 
-- Update README status to `PILOT IMPLEMENTED`, not full `IMPLEMENTED`.
+- Update README status to `PILOT IMPLEMENTED`, not full `IMPLEMENTED` (superseded by Iterations 10-11 local rollout closeout).
 - Update `13_FINAL_AUDIT_SCORECARD.md` with the P6a pilot evidence and ADV-14 proof.
 - Update `.ai/10_state/current-state.md` with a closeout entry while preserving unrelated Add Component state changes already present in the worktree.
-- Keep P2b, broad P3, and P5 provider/prod proof explicitly gated. Do not archive this plan pack until the README archive policy is met.
+- Keep P2b strict response-shape migration and P5b provider/prod proof explicitly gated. Do not archive this plan pack until the README archive policy is met.
+
+### Iteration 10 — EXECUTE local non-Sentry follow-up (2026-06-29 Codex)
+
+DISCOVER:
+- Re-read the current plan pack, local Next 16 docs for `error.tsx`, `not-found.tsx`, route handlers, and `instrumentation.ts`, plus existing workflow/debugger instructions.
+- Used bounded read-only lanes to map server routes/actions and existing client boundary gaps.
+- Found the original strict all-actions/all-routes response-shape migration would break existing custom public contracts, so selected a compatibility path for non-pilot modules.
+
+EXECUTE:
+- Added shared client-safe error-report payload building/redaction and reused it from `global-error.tsx` and `WorkshopRouteErrorState`.
+- Updated existing workshop segment `error.tsx` files to accept Next 16 `unstable_retry` while preserving `reset` compatibility.
+- Added root `src/app/not-found.tsx`.
+- Hardened `/api/internal/client-error` with Fetch Metadata rejection, payload-size precheck, local-path/private-id redaction, normalized path/route/source context, and hashed user agent context.
+- Added `src/instrumentation.ts` for local Next `onRequestError` logging, with an edge-runtime fallback that avoids Node-only imports.
+- Added `mapAuthCodeToAppError(...)` without changing existing auth-code behavior.
+- Added `withActionErrorLogging(...)` and structured `logAppError(...)` catch logging for selected share/export route failures while preserving public response shapes.
+- Updated `logs:debug` output with a likely-next-step line for AI debugging.
+
+### Iteration 11 — VERIFY + RECORD local non-Sentry rollout (2026-06-29 Codex)
+
+Fresh evidence captured:
+- Focused new follow-up matrix passed: `bun run test:dom -- tests/vitest/global-error.test.tsx tests/vitest/workshop-route-error-boundaries.test.tsx tests/vitest/client-error.test.ts tests/vitest/auth-error-mapping.test.ts tests/vitest/with-action-errors.test.ts tests/vitest/not-found.test.tsx tests/vitest/instrumentation.test.ts` (`7` files / `26` tests).
+- Broader affected observability matrix passed: `bun run test:dom -- tests/vitest/app-error.test.ts tests/vitest/redact.test.ts tests/vitest/unwrap-supabase.test.ts tests/vitest/with-action-errors.test.ts tests/vitest/route-error.test.ts tests/vitest/project-publication-actions.test.ts tests/vitest/project-publication-route.test.ts tests/vitest/global-error.test.tsx tests/vitest/client-error.test.ts tests/vitest/toast-apperror.test.tsx tests/vitest/toast-a11y.test.tsx tests/vitest/logger.test.ts tests/vitest/logger-perf.test.ts tests/vitest/workshop-route-error-boundaries.test.tsx tests/vitest/not-found.test.tsx tests/vitest/instrumentation.test.ts tests/vitest/auth-error-mapping.test.ts` (`17` files / `98` tests).
+- Tail-log unit proof passed: `bun test tests/unit/tail-dev-logs.test.ts` (`6` tests / `14` expects).
+- Static gates passed: `bun run type-check`; `bun run lint` exited `0` with known unrelated warnings only.
+- AI-diagnosability proof passed: `bun run logs:emit-test` then `bun run logs:debug` explained record `2026-06-29T03:28:15.308Z-pid97564-2`, identified `InternalError`, `INTERNAL_ERROR`, `/__synthetic/logger-test`, `emitTestLog`, top frame `scripts/emit-test-log.mjs:4:17`, likely next step, and untrusted-field warnings.
+
+DECIDE:
+- Mark the local non-Sentry rollout implemented.
+- Keep Sentry/provider/source-map/dashboard proof gated as P5b.
+- Keep forced all-actions/all-routes canonical response-shape migration gated behind caller-by-caller contract review; current compatibility logging is the implemented local path.
 
 ## Open decisions
 

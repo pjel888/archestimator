@@ -267,7 +267,7 @@ export async function POST(req: NextRequest) {
 }
 ```
 
-Production must not rely on the in-memory `rateLimiter` Map because serverless instances do not share memory. P5/Pilot-Gate decides Vercel KV vs Upstash Redis and records the provider/cost decision before production enablement.
+Production must not rely on the in-memory `rateLimiter` Map because serverless instances do not share memory. P5b decides Vercel KV vs Upstash Redis and records the provider/cost decision before production enablement.
 
 ## G. Validation
 
@@ -278,7 +278,7 @@ Production must not rely on the in-memory `rateLimiter` Map because serverless i
 | Logger never writes raw email/phone/IP | property test: random PII inputs → no leaks |
 | `/api/internal/client-error` rejects cross-site reports, malformed JSON, oversized payloads, secret/token/email/URL strings, control characters, and prompt-injection strings | `tests/vitest/client-error.test.ts` (new P3a pilot) |
 | `/api/internal/client-error` rate-limits at 10/min | `tests/vitest/client-error.test.ts` (new P3a pilot) |
-| Sentry `beforeSend` strips auth headers | `tests/vitest/sentry-redact.test.ts` (new P5) |
+| Sentry `beforeSend` strips auth headers | `tests/vitest/sentry-redact.test.ts` (future P5b) |
 | Source maps absent from public CDN | Playwright probe in P6a |
 
 ## H. Ponytail counterweight

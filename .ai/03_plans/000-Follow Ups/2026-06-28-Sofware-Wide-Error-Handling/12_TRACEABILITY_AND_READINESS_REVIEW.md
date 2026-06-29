@@ -7,34 +7,34 @@ Maps every requirement to source evidence, work package, acceptance criterion, v
 | Req ID | Source evidence | WP | Test | Status |
 |---|---|---|---|---|
 | FR-001 | `01` Section E gaps 1, 2, 9, 10 | P1-WP1, P1-WP3 | `tests/vitest/app-error.test.ts`, `unwrap-supabase.test.ts` | specified |
-| FR-002 | `01` Section B.1 | P2a-WP1 | `with-action-errors.test.ts` + pilot action regression | pilot specified; full migration conditional |
-| FR-003 | `01` Section B.2 | P2a-WP2, 3 | `route-error.test.ts` + selected handler test | pilot specified; full migration conditional |
-| FR-004 | `01` Section A.2 | P3a-WP1, WP4 (primary DOM/static test), WP5 (optional browser) | `tests/vitest/global-error.test.tsx` (primary) + `e2e/global-error.spec.ts` (conditional) | pilot specified |
-| FR-005 | `01` Section A.2 | Follow-on (post-P3a) | DOM/static or Playwright (when implemented) | follow-on — `not-found.tsx` and segment `error.tsx` are NOT in P3a pilot scope |
+| FR-002 | `01` Section B.1 | P2a-WP1 + compatibility follow-up | `with-action-errors.test.ts` + pilot action regression | local canonical pilot + compatibility logging implemented; strict migration conditional |
+| FR-003 | `01` Section B.2 | P2a-WP2, 3 + compatibility follow-up | `route-error.test.ts` + selected handler test | local canonical pilot + compatibility logging implemented; strict migration conditional |
+| FR-004 | `01` Section A.2 | P3a-WP1, WP4 (primary DOM/static test), WP5 (optional browser) | `tests/vitest/global-error.test.tsx` (primary) + `e2e/global-error.spec.ts` (conditional) | implemented |
+| FR-005 | `01` Section A.2 | P3a follow-up | `workshop-route-error-boundaries.test.tsx`, `not-found.test.tsx` | local follow-up implemented |
 | FR-006 | `03` Section C | P3a-WP3 | `toast-apperror.test.tsx` | specified |
-| FR-007 | `01` Section B.7 | P2b follow-on after pilot | existing `auth-error-mapping.test.ts` | conditional |
+| FR-007 | `01` Section B.7 | local follow-up | `auth-error-mapping.test.ts` | implemented |
 | ARCH-001 | `DEC-ERR-001` | P1-WP1..9 | directory exists; type-check | specified |
 | ARCH-002 | README | all phases | protected-contract diff review | specified |
 | LOG-001 | `02` Section C, `DEC-ERR-009` | P4-WP2, 3, 7 | `logger.test.ts` | pilot specified |
 | LOG-002 | `06` Section B, `DEC-ERR-005` | P1-WP7 | `redact.test.ts` | specified |
 | LOG-003 | `04` Section D | P4-WP4, 6 | `tests/unit/tail-dev-logs.test.ts` | specified |
 | LOG-004 | `04` Section C | P4-WP1 | grep `logs/` in .gitignore | specified |
-| OBS-001 | `02` Section A.3 | P5-WP6 | `instrumentation.test.ts` | owner/provider-gated |
-| OBS-002 | `02` Section D, `DEC-ERR-004` | P5-WP1..5, 7, 9 | `sentry-redact.test.ts`; manual dashboard only after owner/provider authority | owner/provider-gated |
+| OBS-001 | `02` Section A.3 | P5a-WP1..4 | `instrumentation.test.ts` | local instrumentation implemented; Sentry forwarding gated |
+| OBS-002 | `02` Section D, `DEC-ERR-004` | P5b deferred work | `sentry-redact.test.ts`; manual dashboard only after owner/provider authority | owner/provider-gated |
 | OBS-003 | `02` Section E | deferred | n/a | deferred |
 | SEC-001 | `06` Section B | P1-WP7 | `redact.test.ts` property test | specified |
-| SEC-002 | `06` Section D, `DEC-ERR-011` | P5-WP1 + P6a probe after authority | `e2e/source-map-leak.spec.ts` | owner/provider-gated |
-| SEC-003 | `06` Section F | P3a-WP2 | `client-error.test.ts` | pilot specified |
-| SEC-004 | `06` Section B.5 | P5-WP4, 5, 9 | `sentry-redact.test.ts` | specified |
+| SEC-002 | `06` Section D, `DEC-ERR-011` | P5b provider proof + probe after authority | `e2e/source-map-leak.spec.ts` | owner/provider-gated |
+| SEC-003 | `06` Section F | P3a-WP2 + follow-up hardening | `client-error.test.ts` | local endpoint hardening implemented; provider-backed prod limiter gated |
+| SEC-004 | `06` Section B.5 | P5b deferred work | `sentry-redact.test.ts` | provider-gated |
 | UX-001 | `03` Section C | P1-WP8, P3a-WP3 | `toast-apperror.test.tsx` | specified |
 | UX-002 | existing API | preserved | existing tests | specified |
 | A11Y-001 | existing API compliance | P3a-WP4 | `toast-a11y.test.tsx` | specified |
-| A11Y-002 | `05` Section A.5, A.6 | P3a-WP1 | DOM/browser focus assertion | pilot specified |
+| A11Y-002 | `05` Section A.5, A.6 | P3a-WP1 + P3a-FU2 | DOM focus assertions | implemented for global and existing workshop segment surfaces |
 | TEST-001 | `09` Section B | P1-WP10 | each test green | specified |
-| TEST-002 | `09` Section B | P3a-WP4, P5-WP9 | each test green | pilot/provider-gated |
+| TEST-002 | `09` Section B | P3a-WP4, follow-up tests, P5a-WP4 | each test green | local tests green; provider-gated Sentry tests deferred |
 | TEST-003 | `09` Section C | P6a-WP2 | pilot ADV rows pass | pilot specified |
 | PERF-001 | `04` Section G | P4-WP7 | `logger-perf.test.ts` | specified |
-| PERF-002 | `05` Section F | P5-WP10 | CI bundle-analyzer gate | owner/provider-gated |
+| PERF-002 | `05` Section F | P5b deferred work | CI bundle-analyzer gate | owner/provider-gated |
 | DOC-001 | repo convention | P6a-WP5 | current-state.md entry | specified |
 | DOC-002 | repo convention | conditional | n/a unless tokens added | conditional |
 
@@ -85,16 +85,16 @@ Maps every requirement to source evidence, work package, acceptance criterion, v
 
 ## D. Readiness review
 
-**Verdict:** `PILOT IMPLEMENTED` for the approved P1/P2a/P3a/P4/P6a local scope. Full implementation remains gated.
+**Verdict:** `LOCAL NON-SENTRY ROLLOUT IMPLEMENTED` for P1/P2a/P3/P4/P5a/P6a local scope. Provider/prod implementation remains gated.
 
 **Scope of readiness:**
-- P1 foundation plus pilot vertical are traceable to source + WP + test.
-- Full all-actions/all-routes migration remains conditional on pilot evidence and plan update.
+- P1 foundation plus the local rollout are traceable to source + WP + test.
+- Strict all-actions/all-routes response-shape migration remains conditional on caller-by-caller contract review.
 - 15 ADRs documented with rejected alternatives.
 - 17 risks logged with mitigations.
 - All user-pointed framework sections addressed.
 - Council-raised P0/P1 blockers resolved by narrowing readiness and adding owner/provider gates.
-- No unresolved P0/P1 remains inside the approved P1+pilot scope. Provider/prod proof is explicitly gated for P5.
+- No unresolved P0/P1 remains inside the approved local non-Sentry scope. Provider/prod proof is explicitly gated for P5b.
 
 **Verification mode declaration:** `independent` (council-improved)
 - Original package was lead-authored and over-claimed readiness.
@@ -115,24 +115,29 @@ Maps every requirement to source evidence, work package, acceptance criterion, v
 - P2a/P3a/P4 pilot passes targeted and adversarial evidence.
 - P6a ADV-14 dev-log diagnosis proof is recorded in `13_FINAL_AUDIT_SCORECARD.md`.
 
-**Conditions for full `IMPLEMENTATION-READY`:**
-- P5 owner/provider gate is resolved before external/prod proof.
-- Fresh independent review accepts the full P2b/P3 broad migration plan.
+**Conditions for upgrade to local non-Sentry rollout implemented (met on 2026-06-29 follow-up):**
+- Root `not-found.tsx`, existing workshop segment error boundaries, auth AppError bridge, local Next request instrumentation, and compatibility route/action logging are implemented.
+- Focused rollout matrix passes, including `workshop-route-error-boundaries.test.tsx`, `not-found.test.tsx`, `instrumentation.test.ts`, and the broader observability matrix.
+- `logs:debug` proves the latest local ERROR/FATAL record includes a likely next step and untrusted-field warnings.
+
+**Conditions for full provider/prod `IMPLEMENTATION-READY`:**
+- P5b owner/provider gate is resolved before external/prod proof.
+- Fresh independent review accepts any strict P2b contract migration plan.
 
 **Residual risks:**
 - `RISK-ERR-013` — plan drift between writing and implementation. Implementer must re-read.
 - `RISK-ERR-014` — agent runtime may still be broken at implementation time. All implementation is direct (no agent delegation required).
-- Provider/prod behavior remains unproven until P5 evidence is captured; this is why the package is pilot-implemented rather than fully implementation-ready.
+- Provider/prod behavior remains unproven until P5b evidence is captured; this is why the package is local-rollout implemented rather than provider/prod implemented.
 
-**Stop conditions for the approved pilot (P1 + P2a + P3a + P4):**
+**Stop conditions for the approved local rollout (P1 + P2a + P3 + P4 + P5a):**
 - P6a exit criteria all met.
-- `13_FINAL_AUDIT_SCORECARD.md` shows every PILOT rubric item PASS with both RED→GREEN proof and real-surface artifact captured.
-- README status flipped to "PILOT IMPLEMENTED" (NOT full "IMPLEMENTED" — full status requires the broad P2b/P3 migration which is gated on pilot evidence + fresh independent review per `08` P2b and `DEC-ERR-012`).
+- `13_FINAL_AUDIT_SCORECARD.md` shows every local non-Sentry rubric item PASS with proof and real-surface artifact captured.
+- README status flipped to "LOCAL NON-SENTRY ROLLOUT IMPLEMENTED" (NOT provider/prod "IMPLEMENTED" — provider/prod status requires P5b evidence or explicit owner waiver).
 
-**Stop conditions for full IMPLEMENTED** (separate, post-pilot):
-- All-actions/all-routes migration passes (P2b + full P3).
-- Provider/prod proof captured after owner/provider authority for P5.
-- Fresh independent review accepts the full migration.
+**Stop conditions for provider/prod IMPLEMENTED** (separate):
+- Provider/prod proof captured after owner/provider authority for P5b, or the owner explicitly waives Sentry/prod proof.
+- Any strict all-actions/all-routes migration passes only after a separate caller-contract review.
+- Fresh independent review accepts the full provider/strict-migration scope.
 
 ## E. Pre-implementation revalidation checklist
 

@@ -72,7 +72,7 @@ bun run test:dom -- tests/vitest/app-error.test.ts tests/vitest/unwrap-supabase.
 
 **Goal:** Prove the canonical server contract on the riskiest server action module and one representative route handler before broad migration.
 
-**Requirements covered:** FR-002, FR-003. (Acceptance criteria qualified by parent requirement: FR-002 AC-002.1–3, FR-003 AC-003.1–2. FR-007 auth-bridge is P2b follow-on per `07` and `12`.)
+**Requirements covered:** FR-002, FR-003. (Acceptance criteria qualified by parent requirement: FR-002 AC-002.1–3, FR-003 AC-003.1–2. FR-007 auth-bridge was originally follow-on and is now implemented in the local rollout.)
 
 **Prerequisites:** P1 complete; logger interface stable.
 
@@ -148,8 +148,7 @@ Strict migration remains a separate follow-on. Migrate in small module groups on
 ```bash
 bun run type-check
 bun run lint
-bun run test:dom -- tests/vitest/global-error.test.tsx tests/vitest/toast-apperror.test.tsx tests/vitest/toast-a11y.test.tsx tests/vitest/client-error.test.ts
--- tests/vitest/workshop-route-error-boundaries.test.tsx tests/vitest/not-found.test.tsx
+bun run test:dom -- tests/vitest/global-error.test.tsx tests/vitest/toast-apperror.test.tsx tests/vitest/toast-a11y.test.tsx tests/vitest/client-error.test.ts tests/vitest/workshop-route-error-boundaries.test.tsx tests/vitest/not-found.test.tsx
 # Browser proof only when the chosen boundary behavior cannot be proven by DOM/static tests:
 bun run test:e2e -- e2e/global-error.spec.ts
 ```
@@ -242,13 +241,13 @@ bun run test:dom -- tests/vitest/instrumentation.test.ts
 
 **Rollback:** set `SENTRY_ENABLED=false` (server) AND `NEXT_PUBLIC_SENTRY_ENABLED=false` (client, requires rebuild/redeploy because Next.js client bundle reads `NEXT_PUBLIC_*` at build time) — see `10_ROLLOUT_ROLLBACK_OPS.md` Section A and C. The guards in `sentry.server.config.ts` `register()`/`captureRequestError()` and `sentry.client.config.ts` short-circuit, so both sides become no-ops while the dev NDJSON logger keeps working. `SENTRY_DSN=` (empty) is a non-canonical fallback at the SDK level; the dedicated kill switches are preferred because they are explicit and survive SDK default behavior changes.
 
-## P6a — Pilot verification: targeted vitest + browser/adversarial + AI-diagnosability
+## P6a — Local rollout verification: targeted vitest + adversarial + AI-diagnosability
 
-**Goal:** Prove the approved pilot requirements via the test matrix in `09_TEST_QA_ULTRAQA_PLAN.md`.
+**Goal:** Prove the approved local non-Sentry requirements via the test matrix in `09_TEST_QA_ULTRAQA_PLAN.md`.
 
 **Requirements covered:** TEST-003.
 
-**Prerequisites:** P1, P2a, P3a, and P4 complete. P5 provider proof is separate and owner-gated.
+**Prerequisites:** P1, P2a, P3a/local follow-up, P4, and P5a complete. P5b provider proof is separate and owner-gated.
 
 **Work packages:**
 

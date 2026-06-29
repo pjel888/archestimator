@@ -63,7 +63,7 @@ Risk register + Architecture Decision Records (ADRs) with rejected alternatives.
 **Status:** owner-delegated planning decision, 2026-06-28.
 
 ### DEC-ERR-013 — Client-error rate limiter
-**Decision:** In-memory limiter is allowed only for local dev and preview smoke. Production enablement requires Vercel KV or Upstash Redis selected at P5.
+**Decision:** In-memory limiter is allowed only for local dev and preview smoke. Production enablement requires Vercel KV or Upstash Redis selected at P5b.
 **Rationale:** Serverless instances do not share memory; production abuse control requires a shared counter.
 **Rejected:** "Use in-memory until scale" for production.
 **Status:** owner-delegated planning decision, 2026-06-28.
@@ -124,6 +124,6 @@ Risk register + Architecture Decision Records (ADRs) with rejected alternatives.
 
 | ID | Question | Owner | Resolution path |
 |---|---|---|---|
-| OPEN-001 | `/api/internal/client-error` production rate limiter: Vercel KV or Upstash Redis? | implementer | P5-WP8; in-memory is local/preview only |
+| OPEN-001 | `/api/internal/client-error` production rate limiter: Vercel KV or Upstash Redis? | implementer | P5b provider gate; in-memory is local/preview only |
 | OPEN-002 | Dev logger also write to stdout for parity? | lead | P4-WP2 |
 | OPEN-003 | Toast dedupe in P3a or deferred? | lead | Deferred (RISK-ERR-012) |

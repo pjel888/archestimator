@@ -8,8 +8,8 @@ The plan uses observability kill switches only. It does **not** use a master err
 
 | Flag | Default | Purpose | Phase introduced |
 |---|---|---|---|
-| `SENTRY_ENABLED` | `false` | When `false`, server-side `sentry.server.config.ts` `register()`/`captureRequestError()` are no-ops. | P5 |
-| `NEXT_PUBLIC_SENTRY_ENABLED` | `false` | When `false`, client-side `sentry.client.config.ts` is a no-op. Required because Next.js client bundle cannot read non-`NEXT_PUBLIC_` env vars; set at build time. | P5 |
+| `SENTRY_ENABLED` | `false` | When `false`, server-side `sentry.server.config.ts` `register()`/`captureRequestError()` are no-ops. | P5b |
+| `NEXT_PUBLIC_SENTRY_ENABLED` | `false` | When `false`, client-side `sentry.client.config.ts` is a no-op. Required because Next.js client bundle cannot read non-`NEXT_PUBLIC_` env vars; set at build time. | P5b |
 | `ERROR_LOG_FILE_ENABLED` | `true` in dev | When `false`, dev file writes are disabled but logger interface remains available. | P4 |
 | `DEV_LOG_FILE` | `./logs/dev.ndjson` | Override dev log path. | P1 |
 
@@ -21,8 +21,8 @@ Pre-launch MVP. No external users. Rings collapse to:
 |---|---|---|---|
 | Ring 0 | Local dev (`bun run dev`) | P1 ship | n/a |
 | Ring 1 | CI / targeted tests | P2a pilot ship | n/a |
-| Ring 2 | Vercel preview deploys | P3a pilot ship + owner/provider authority if external proof is needed | each preview |
-| Ring 3 | Vercel production (`main`) | P5 owner/provider gate + pilot evidence + owner sign-off | continuous |
+| Ring 2 | Vercel preview deploys | P3a/local rollout ship + owner/provider authority if external proof is needed | each preview |
+| Ring 3 | Vercel production (`main`) | P5b owner/provider gate + local evidence + owner sign-off | continuous |
 
 No percentage rollout needed (single-tenant MVP). After first paying user, introduce ring 4 (10% of users via Vercel Preview Banner or similar) before full rollout.
 
@@ -34,9 +34,10 @@ No percentage rollout needed (single-tenant MVP). After first paying user, intro
 |---|---|---|
 | P1 | `git revert` P1 commits; delete `src/lib/observability/` | No behavior change was made; revert is clean |
 | P2a | `git revert` the pilot action/route commits | Pilot module returns to legacy behavior; no broad migration touched |
-| P3a | Delete `global-error.tsx`, `/api/internal/client-error`; revert toast.appError addition | Next.js default error page returns for root errors; per-route segment `error.tsx` (if any added post-pilot) still works as before. `not-found.tsx` and segment `error.tsx` are NOT in P3a scope (follow-on per `07` FR-005 and `05` A.6) |
+| P3a/local follow-up | Revert `global-error.tsx`, root `not-found.tsx`, `/api/internal/client-error`, shared client-error report helper, `WorkshopRouteErrorState` reporting edits, segment `error.tsx` wrapper edits, and toast.appError addition | Next.js default error pages return; existing public routes keep working; local client-error reporting stops |
 | P4 | Delete `scripts/tail-dev-logs.mjs`; revert logger wiring (becomes no-op) | Dev logs stop being written; no runtime impact |
-| P5 | Set `SENTRY_ENABLED=false` (server) AND `NEXT_PUBLIC_SENTRY_ENABLED=false` (client, requires rebuild/redeploy); both Sentry configs become no-op | Sentry dashboard stops receiving events from server and client; logger still writes dev NDJSON |
+| P5a | Revert `src/instrumentation.ts` | Next request errors stop flowing into the local dev logger; app runtime otherwise unchanged |
+| P5b | Set `SENTRY_ENABLED=false` (server) AND `NEXT_PUBLIC_SENTRY_ENABLED=false` (client, requires rebuild/redeploy); both Sentry configs become no-op | Sentry dashboard stops receiving events from server and client; logger still writes dev NDJSON |
 
 ### C.2 Full rollback
 
@@ -62,7 +63,7 @@ Therefore no data rollback is needed. `./logs/dev.ndjson` can be deleted at any 
 
 ## D. Monitoring thresholds
 
-### D.1 Sentry alert thresholds (P5)
+### D.1 Sentry alert thresholds (P5b)
 
 | Condition | Threshold | Action |
 |---|---|---|
@@ -75,7 +76,7 @@ Sentry dashboard: filter by `environment=production`, `release=<latest>`.
 
 ### D.2 Health endpoint
 
-`src/app/api/health/route.ts` already returns `{ok:true}`. Plan extends it in P5 (out of scope for this plan but documented as follow-up) to:
+`src/app/api/health/route.ts` already returns `{ok:true}`. Future P5b may extend it (out of scope for the local rollout but documented as follow-up) to:
 - Check Sentry connectivity
 - Check log file writability
 - Return degraded status if any check fails
@@ -134,7 +135,7 @@ If still stuck, paste the full log record into the agent's context with the prom
 - **`trace_id` is shareable.** Users can include `trace_id` (returned in route-handler JSON per `07` FR-003 AC-003.1) in support tickets. When PERF_TRACE is active, `trace_id` correlates to the Sentry event's `request_id` tag (attached by both `forwardToProd()` for wrapped paths and `captureRequestError()` for uncaught paths per `04` E.1 + `05` A.3) AND to the dev log line's `context.request_id` (stamped by `errorResponse()` per `03` Section E). When PERF_TRACE is absent, `trace_id` uses the generated fallback (`generateTraceId()` per `03` Section E) — it still matches the dev log line (the wrapper stamps it) but the uncaught `onRequestError` path does NOT attach a fallback tag, so Sentry-side correlation is best-effort in that case.
 - **PII minimization in logs.** AI agents reading dev logs should see hashes, redacted values, and tainted-field labels. Real captured auth/database failure logs require a redaction review before broad AI-log use.
 
-## G. Operational checklist (pre-launch, after P5 owner/provider gate)
+## G. Operational checklist (pre-launch, after P5b owner/provider gate)
 
 - [ ] Owner/provider gate recorded for Sentry project, DSN, auth token, source-map policy, retention, and access controls
 - [ ] `SENTRY_DSN` set in Vercel env (production)
