@@ -131,7 +131,7 @@ The original all-22-actions/all-22-route-handlers migration is not approved as a
 | P3a-WP2 | Create `src/app/api/internal/client-error/route.ts` with same-origin checks, strict local parser, redaction, tainted-field labeling, and local/preview rate limit | new | M |
 | P3a-WP3 | Extend `src/components/ui/toast.tsx` to add `toast.appError(err)` (preserves existing API) | extend | S |
 | P3a-WP4 | Tests: `tests/vitest/{global-error,toast-apperror,toast-a11y,client-error}.test.ts(x)`. The `global-error.test.tsx` is the PRIMARY FR-004 deliverable (DOM/static); `e2e/global-error.spec.ts` is conditional per AC-004.2. | new | M |
-| P3a-WP5 | Browser smoke (`e2e/global-error.spec.ts`) ONLY if DOM/static tests cannot prove the chosen boundary behavior | optional | M |
+| P3a-WP5 | Browser smoke (`e2e/global-error.spec.ts`) ONLY if DOM/static tests cannot prove the chosen boundary behavior. **Includes the dev-only `?forceGlobalError=1` trigger** in `src/app/layout.tsx` (or a tiny mounted helper component) that throws when the query param is present AND `process.env.NODE_ENV === 'development'` (per `05` Section A.5 note). Production builds MUST exclude the hook via the NODE_ENV gate. | optional | M |
 
 **Parallelization:** WP1 and WP2 can split. WP3 touches a protected contract and should serialize with other toast edits.
 
