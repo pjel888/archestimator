@@ -35,6 +35,7 @@ Cloudflare:
 - [R2 consistency](https://developers.cloudflare.com/r2/reference/consistency/)
 - [Queues pricing](https://developers.cloudflare.com/queues/platform/pricing/)
 - [Queues limits](https://developers.cloudflare.com/queues/platform/limits/)
+- [Durable Objects](https://developers.cloudflare.com/durable-objects/)
 - [Hyperdrive overview](https://developers.cloudflare.com/hyperdrive/)
 - [Hyperdrive pricing](https://developers.cloudflare.com/hyperdrive/platform/pricing/)
 - [Hyperdrive limits](https://developers.cloudflare.com/hyperdrive/platform/limits/)
@@ -47,6 +48,8 @@ Cloudflare:
 - [WAF](https://developers.cloudflare.com/waf/)
 - [Rate limiting rules](https://developers.cloudflare.com/waf/rate-limiting-rules/)
 - [WAF rate limiting troubleshooting](https://developers.cloudflare.com/waf/rate-limiting-rules/troubleshooting/)
+- [Turnstile](https://developers.cloudflare.com/turnstile/)
+- [Web Analytics](https://developers.cloudflare.com/web-analytics/)
 
 Better Auth:
 
@@ -87,11 +90,25 @@ F-010 Better Auth has Cloudflare Workers and D1 support signals, but D1 transact
 
 F-011 Cloudflare execution plans must include Wrangler/schema/type evidence. The installed Workers guidance flags `wrangler.jsonc`, generated `Env` types, compatibility flags, secrets handling, binding access patterns, observability, startup checks, and `workerd` preview proof as first-class gates.
 
+F-012 A full Cloudflare-native target is plausible prelaunch, but it is an architecture redesign across runtime, data, auth, realtime, storage, jobs, email, security, and observability.
+
+F-013 Durable Objects/WebSockets are the likely Cloudflare-native route for realtime rooms, presence, cursors, and coordination. They need their own authorization, persistence, reconnect, and latency proof.
+
+F-014 "Very fast" must be proven with route and Web Vitals budgets, not inferred from edge deployment alone.
+
+F-015 Second-pass repo inventory found enough provider coupling to require worksheets before execution: `126` source files matched Supabase/realtime/storage/RPC coupling, and app code references `76` distinct RPC names.
+
+F-016 SQL migration inventory is broad enough to block any direct D1 port: `181` applied migration files, `15` pending-review SQL files, `346` SQL function declaration/update matches, and `655` RLS/policy/storage/auth-related SQL matches.
+
+F-017 Completion audit separates document quality from execution readiness: planning artifact quality is acceptable, but production migration remains NO-GO.
+
+F-018 Existing tests and provider proof scripts are reusable evidence surfaces for future Cloudflare proof spikes; they do not prove Cloudflare parity by themselves.
+
 ## Adversarial Review
 
 Objection: "Cloudflare is cheaper, so migrate everything."
 
-Response: Pricing pages are not enough. The app's core risk is data/auth/provider semantics, not only monthly bill size.
+Response: With no users, preparing the full path is reasonable. Production cutover still needs usage-based cost, data/auth/realtime parity, and performance proof.
 
 Objection: "D1 is SQL, so it should replace Postgres."
 
@@ -115,4 +132,4 @@ Response: No. Cloudflare product limits, pricing, adapter support, Wrangler conf
 
 ## QA Verdict
 
-This plan is sufficiently grounded for review and next-step proof planning. It is not sufficient for implementation of production migration without Phase 0 usage data and provider proof spikes.
+This plan is sufficiently grounded for review and next-step proof planning for a full Cloudflare-native redesign. The documentation-quality loop can stop after the completion audit. The plan is not sufficient for implementation of production migration without usage data, provider proof spikes, D1/Auth/Realtime redesign evidence, and speed-budget proof.

@@ -530,6 +530,19 @@ Data, Supabase, API, and integrations:
   bindings/secrets, compatibility date/flags, observability config, local
   simulation limits, Cloudflare preview/provider proof, and rollback before a
   Worker slice is production-ready.
+- If the owner explicitly wants a full Cloudflare-native prelaunch redesign,
+  do not default to a hybrid recommendation. Plan the all-Cloudflare target
+  first, including Workers/OpenNext, D1, Better Auth, R2, Queues/Cron,
+  Durable Objects/WebSockets, KV-only-safe-cache, Email Service, WAF/rate
+  limiting/DDoS, Turnstile, Web Analytics, Workers Observability, provider
+  fallback, and performance budgets. Treat D1 as a data/auth/realtime redesign,
+  not a Postgres port, and preserve current providers as rollback/comparison
+  surfaces until proof gates pass.
+- Require execution-grade Cloudflare plans to include inventory worksheets for
+  routes/actions, provider coupling, SQL/RLS/RPC/policies, storage, realtime,
+  email, readiness scripts, cost inputs, performance fixtures, and proof-spike
+  pass/fail criteria. Do not call the plan close to complete while those
+  worksheets are missing or unfilled.
 
 Security and privacy:
 

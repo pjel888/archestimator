@@ -10,13 +10,13 @@ document: 04
 
 R-001: The migration strategy must preserve first-user launch readiness for auth, estimating workflows, cost library, proposal publication, collaboration, uploads, email, and data recovery.
 
-R-002: The plan must support a hybrid target if hybrid is cheaper and safer than full provider replacement.
+R-002: The plan must prefer a full Cloudflare-native prelaunch proof target while retaining hybrid/current-provider fallback paths if proof fails.
 
 R-003: The plan must quantify Cloudflare cost using real usage before recommending production cutover.
 
 R-004: Cloudflare front-door adoption must be separable from application hosting/database/auth migration.
 
-R-005: Workers adoption must start with sidecars or bounded services unless Next.js 16 route parity is proven.
+R-005: Workers adoption must prove Next.js 16 route/runtime parity before production hosting; sidecars remain a fallback path, not the preferred final target.
 
 R-006: D1 must not replace Supabase Postgres until the app's Postgres features are mapped to SQLite/D1-compatible behavior or explicitly redesigned.
 
@@ -45,6 +45,22 @@ R-017: The planning prompt must be updated so future provider-migration plans re
 R-018: Any future Cloudflare execution slice must refresh installed Cloudflare skill guidance, official Cloudflare docs, product changelogs, and Wrangler config schema before relying on exact limits, pricing, API fields, binding shapes, or compatibility behavior.
 
 R-019: Any Worker-based slice must treat `wrangler.jsonc`, generated `Env` binding types, compatibility date/flags, secrets handling, observability config, and `workerd`/preview behavior as required planning and proof surfaces.
+
+R-020: The full Cloudflare-native target must cover runtime, database, auth, realtime, storage, jobs, email, edge security, observability, and cost proof.
+
+R-021: The D1 path must be documented as a redesign away from Supabase/Postgres semantics, including app-layer authorization, RPC replacement, generated type strategy, backup/restore, and realtime replacement.
+
+R-022: The migration plan must include explicit performance budgets and Cloudflare-side evidence for TTFB, LCP, INP, CLS, route duration, database query count/latency, Worker CPU/startup/subrequests, queue latency, and error rate.
+
+R-023: Before implementation, the team must complete an inventory worksheet for every route/action, current provider dependency, Cloudflare target, binding/env need, proof command, rollback path, and owner.
+
+R-024: Before D1 implementation, the team must complete an RPC/RLS/policy/function worksheet for every active Postgres behavior that current app code calls or relies on.
+
+R-025: Before production cutover, the team must complete a proof-spike backlog with explicit pass/fail criteria and decide whether each slice continues, falls back to hybrid, or is rejected.
+
+R-026: Before calling the planning package complete, the plan must attach current local evidence for provider coupling, app-code RPCs, relevant tests, readiness scripts, and proof surfaces.
+
+R-027: Before stopping the planning-quality loop, the plan must include a completion audit that separates planning artifact quality from proof-program readiness and production migration readiness.
 
 ## User And Operator Stories
 
@@ -85,3 +101,9 @@ NFR-007: No email migration without deliverability and webhook/event parity.
 NFR-008: No D1 migration without a database restore and backup strategy.
 
 NFR-009: No Cloudflare production slice may hard-code stale pricing or quota numbers without an execution-date source refresh.
+
+NFR-010: No full-native Cloudflare cutover unless measured performance is equal to or better than the current baseline for protected workshop flows and public/share flows.
+
+NFR-011: No "100%" readiness claim without attached evidence for inventory completion, provider proof, rollback proof, cost model, performance baseline, and security denial tests.
+
+NFR-012: No docs-only audit may imply provider, hosted, production, DNS, billing, or runtime proof.

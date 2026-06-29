@@ -8,7 +8,7 @@ document: 14
 
 | ID | Risk | Severity | Likelihood | Mitigation |
 | --- | --- | --- | --- | --- |
-| RISK-001 | D1 does not replace Postgres RLS/RPC/triggers/realtime semantics | Critical | High | Keep Postgres; require compatibility matrix before D1 use |
+| RISK-001 | D1 does not replace Postgres RLS/RPC/triggers/realtime semantics | Critical | High | Treat D1 as redesign; keep Postgres as fallback until compatibility and denial proof pass |
 | RISK-002 | Better Auth session model does not match current Supabase SSR/proxy gates | Critical | Medium | Auth proof before cutover; route-gate tests |
 | RISK-003 | Cloudflare front-door caches protected or share responses | Critical | Low-Med | Explicit bypass/no-store rules; targeted browser/API proof |
 | RISK-004 | R2 object access exposes private assets | Critical | Medium | App-owned authorization, private buckets, signed access tests |
@@ -25,10 +25,13 @@ document: 14
 | RISK-015 | Migration consumes launch time without clear savings | Medium | Medium | Phase 0 cost gate before implementation |
 | RISK-016 | Cloudflare pricing, limits, API fields, or adapter support drift after this plan date | High | Medium | Execution-date docs/changelog/Wrangler schema refresh before each slice |
 | RISK-017 | Worker config or binding types drift from deployed resources | High | Medium | Review `wrangler.jsonc`, generate `Env` types, and prove bindings in preview before production |
+| RISK-018 | Full-native rewrite slows launch without enough bill savings | High | Medium | Require cost workbook, proof budgets, and fallback decision point before implementation |
+| RISK-019 | D1 redesign causes slower hot paths through chatty queries | High | Medium | Set query-count budgets, measure p95 route/action latency, denormalize or redesign before cutover |
+| RISK-020 | App-layer authorization misses a tenant/workspace boundary previously covered by RLS | Critical | Medium | Require shared authorization helpers plus positive/denial tests for every protected access path |
 
 ## Risk Posture
 
-The risk profile supports staged exploration but rejects production cutover until proof gates pass.
+The risk profile supports a full-native prelaunch proof program but rejects production cutover until proof gates pass.
 
 Highest unresolved risks:
 

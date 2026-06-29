@@ -8,7 +8,7 @@ document: 02
 
 ## Brief
 
-The owner is considering a migration to Cloudflare because it may be more affordable. Candidate services:
+The owner wants to prepare the cheapest/full Cloudflare redesign while Archestimator has not launched. Candidate services:
 
 - Workers for compute.
 - D1 for SQL database.
@@ -19,8 +19,11 @@ The owner is considering a migration to Cloudflare because it may be more afford
 - Hyperdrive for database acceleration.
 - Email Routing/Sending.
 - WAF and DDoS protection.
+- Durable Objects/WebSockets for realtime.
+- Turnstile for abuse protection.
+- Web Analytics and Workers Observability for speed/ops proof.
 
-The requested output is a research-backed planning package and an update to the generic planning prompt so future planning work handles provider migrations correctly.
+The requested output is a research-backed planning package and an update to the generic planning prompt so future planning work handles provider migrations correctly. This task is planning only.
 
 ## In Scope
 
@@ -34,6 +37,9 @@ The requested output is a research-backed planning package and an update to the 
 - Rollback strategy.
 - Risk register.
 - Prompt update for future provider-migration planning.
+- Full Cloudflare-native target design.
+- D1/Auth/Realtime redesign plan.
+- Performance budget and "super fast" proof plan.
 
 ## Out Of Scope
 
@@ -59,9 +65,9 @@ The requested output is a research-backed planning package and an update to the 
 
 A-001: Cost is a driver, but the owner has not supplied current monthly usage/spend yet.
 
-A-002: The product is pre-launch/closed-beta, so staged migration is possible if safety is preserved.
+A-002: The product is pre-launch/closed-beta, so a deeper redesign is acceptable if safety is preserved and current providers remain available as fallback during proof.
 
-A-003: Supabase/Postgres remains the safest durable data source until a detailed D1 compatibility proof exists.
+A-003: Supabase/Postgres remains the current durable baseline until a detailed D1 redesign proof exists.
 
 A-004: Cloudflare Email Service must be evaluated separately from older Email Routing assumptions because current Cloudflare docs describe outbound sending through Email Service.
 
@@ -69,8 +75,8 @@ A-005: Cloudflare's Next.js path should be treated as adapter-dependent and vers
 
 ## Non-Goals
 
-- No provider purity goal. The target may be hybrid if hybrid is cheaper and safer.
+- No production provider cutover during this planning task.
 - No rewrite for its own sake.
-- No D1 adoption unless it passes data-integrity and authorization requirements.
+- No D1 adoption unless it passes data-integrity, authorization, backup/restore, and performance requirements.
 - No auth replacement unless session, claims, invite, closed-beta, legal terms, and RLS identity behavior can be preserved or redesigned with proof.
-
+- No hybrid default if full Cloudflare-native proof is viable, fast enough, and cheaper; hybrid remains the fallback.

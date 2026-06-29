@@ -116,11 +116,11 @@ Scenario D: Workers runtime + external Postgres through Hyperdrive.
 - Potential Vercel reduction.
 - Database cost remains.
 
-Scenario E: full Cloudflare candidate.
+Scenario E: preferred full Cloudflare-native target.
 
-- Workers + D1 + Better Auth + R2 + KV + Queues + Email Service.
+- Workers/OpenNext + D1 + Better Auth + R2 + KV for safe cache + Queues/Cron + Durable Objects/WebSockets + Email Service + WAF/rate limiting/DDoS + Turnstile + Web Analytics/Workers Observability.
 - Highest rewrite cost.
-- Only evaluate after parity proof.
+- Evaluate before implementation using current usage assumptions, then refresh after proof spikes with observed operation counts.
 
 ## Cost Decision Rules
 
@@ -130,6 +130,8 @@ CDR-002: If R2 savings are material and private access proof passes, prioritize 
 
 CDR-003: If queue/retry reliability improves and cost is acceptable, prioritize Queues for background jobs.
 
-CDR-004: If D1 savings require rewriting RLS/RPC/realtime/auth, require explicit owner approval after proof.
+CDR-004: If D1 savings require rewriting RLS/RPC/realtime/auth, treat that as expected for the preferred full-native path, but require proof before production cutover.
 
 CDR-005: Include engineering time as cost. A cheaper bill can still be more expensive if migration delays launch.
+
+CDR-006: Do not choose the full-native target on bill savings alone. It must also meet or beat performance budgets for critical flows.

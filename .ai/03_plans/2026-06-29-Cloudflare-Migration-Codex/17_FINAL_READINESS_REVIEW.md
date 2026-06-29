@@ -8,18 +8,21 @@ document: 17
 
 ## Readiness Classification
 
-Planning package: **CONDITIONALLY READY**.
+Planning package: **CONDITIONALLY READY** for full Cloudflare-native redesign review and proof planning.
 
 Production migration: **NOT READY**.
+
+Documentation-quality loop: **PASS**. The completion audit says another broad docs-only pass is not useful unless the next task narrows to a specific first proof slice.
 
 ## Ready For
 
 - Owner review.
 - Cost workbook creation.
-- Architecture review of staged Cloudflare adoption.
-- Low-risk front-door proof planning.
-- R2/Queues/Workers sidecar spike planning.
-- Auth/D1/Next-on-Workers proof planning.
+- Architecture review of full Cloudflare-native target.
+- D1/Auth/Realtime redesign planning.
+- Next-on-Workers, R2, Queues, Durable Objects, Email Service, WAF, Turnstile, and observability proof planning.
+- Performance baseline and speed-budget planning.
+- Hybrid/current-provider fallback planning.
 
 ## Not Ready For
 
@@ -43,6 +46,12 @@ Production migration: **NOT READY**.
 - Traceability matrix created: yes.
 - Cost model inputs defined: yes.
 - Provider parity matrix created: yes.
+- Execution scorecard created: yes.
+- Inventory worksheets created: yes.
+- Proof-spike backlog created: yes.
+- Cost/performance workbook template created: yes.
+- Current evidence inventory created: yes.
+- Completion audit created: yes.
 - Rollback strategy defined: yes.
 - Risk register created: yes.
 - Implementation code changed: no, by design.
@@ -65,12 +74,20 @@ B-007 WAF/rate-limit plan tier and rule quotas need owner/provider confirmation.
 
 B-008 Execution-date Cloudflare docs, changelogs, Wrangler schema, and Worker type refresh must be rerun before any slice leaves planning.
 
+B-009 Inventory worksheets need owner/provider data and route-by-route completion before implementation.
+
+B-010 Performance budgets need baseline and Cloudflare proof measurements before speed claims.
+
 ## Recommendation
 
-Proceed with Phase 0 and Phase 1 planning only:
+Proceed with planning and reversible proof preparation for the full-native path:
 
 - Build the usage/cost workbook.
+- Complete the route/provider/RPC/SQL inventory worksheets.
+- Complete the proof-spike backlog rows for the first execution slice.
 - Run the Cloudflare skill/source refresh for the chosen proof slice.
-- Prepare a Cloudflare front-door proof with rollback.
+- Prepare D1/Auth/Realtime redesign artifacts.
+- Prepare Next-on-Workers and performance proof fixtures.
+- Keep provider fallback paths documented until proof passes.
 
 Do not proceed to D1/Auth/runtime production cutover until all blockers above are resolved.

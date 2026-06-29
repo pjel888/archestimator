@@ -8,7 +8,7 @@ document: 07
 
 ## Database Stance
 
-Keep Supabase Postgres as the system of record during initial Cloudflare adoption.
+The preferred end state is D1 as the Cloudflare-native system of record. The current Supabase/Postgres database remains the baseline and rollback/comparison surface until D1 redesign proof passes.
 
 Reason:
 
@@ -19,6 +19,8 @@ Reason:
 - It has provider-readback proof scripts.
 - It has realtime collaboration on Supabase channels.
 - Current migrations count is 181 SQL files, making behavioral drift likely in a direct port.
+
+Therefore the plan is not "convert Postgres SQL to D1 SQL." It is "redesign Archestimator's data authority for D1 and prove parity before cutover."
 
 ## D1 Compatibility Concerns
 
@@ -42,6 +44,16 @@ Recommended D1 uses before core migration:
 - Read-mostly feature flag snapshots.
 - Public marketing or non-sensitive operational metadata.
 - Per-tenant small datasets if the data model can be designed for D1 from scratch.
+
+Preferred D1 redesign work:
+
+- Split domains into estimating core, cost library, publication/share, upload metadata, collaboration metadata, audit/events, auth/session support, and operational tables.
+- For each domain, choose D1 table shape, indexes, access paths, authorization checks, transaction boundary, idempotency key, backup/export path, and realtime/event requirements.
+- Rewrite RLS into explicit server-side authorization functions that check workspace/project ownership on every protected read and write.
+- Rewrite RPCs into service functions or Worker/D1 repository functions with denial tests and transaction proof.
+- Generate database types from the chosen D1 schema/tooling instead of relying on Supabase CLI output.
+- Rehearse export/import, restore, and destructive rollback before any user data is moved.
+- Keep a one-time prelaunch data migration path simple; avoid long-lived dual writes unless production users exist.
 
 ## API Plan
 
@@ -94,6 +106,12 @@ Phase 3 hosting proof:
 
 - Browser to Cloudflare Workers-hosted Next.js app.
 - Workers to Supabase/Hyperdrive, R2, Queues, Email Service, KV, or D1 depending on slice.
+
+Full-native network after proof:
+
+- Browser to Cloudflare DNS/CDN/WAF/rate limiting/DDoS/Turnstile.
+- Cloudflare Workers/OpenNext app to D1, R2, Queues, Cron Triggers, Durable Objects, KV, and Email Service through bindings.
+- No runtime dependency on Supabase/Vercel/Resend after cutover, unless a fallback slice is intentionally kept.
 
 ## Data Integrity Requirements
 

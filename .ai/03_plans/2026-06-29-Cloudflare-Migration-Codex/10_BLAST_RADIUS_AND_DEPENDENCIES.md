@@ -72,6 +72,18 @@ D1 cannot be evaluated only by schema conversion. It depends on:
 - Generated type replacement.
 - Backup/restore replacement.
 
+Full-native Cloudflare proof depends on:
+
+- Next-on-Workers route/runtime parity.
+- D1 data authority redesign.
+- Better Auth session and identity parity.
+- Durable Objects/WebSockets realtime room design.
+- R2 private object authorization.
+- Queue/Cron idempotency.
+- Email Service deliverability and event parity.
+- WAF/rate-limit/Turnstile false-positive handling.
+- Web Analytics/Workers Observability replacement for current speed/readiness checks.
+
 Better Auth cannot be evaluated only by login success. It depends on:
 
 - SSR cookie/session semantics.
@@ -96,4 +108,3 @@ Queues cannot be evaluated only by message delivery. They depend on:
 - Duplicate handling.
 - Job visibility.
 - Dead-letter/recovery design.
-

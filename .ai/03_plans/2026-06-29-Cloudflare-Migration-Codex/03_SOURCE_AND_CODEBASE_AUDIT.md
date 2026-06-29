@@ -24,7 +24,7 @@ document: 03
 `README.md:35` and `README.md:180` still say 67 local migration files. Live read-only count on 2026-06-29 found:
 
 - `supabase/migrations`: 181 SQL files.
-- `supabase/migrations-pending-review`: 10 SQL files.
+- `supabase/migrations-pending-review`: 15 SQL files.
 
 This count gap should be corrected in a separate documentation cleanup, not in this planning task.
 
@@ -165,4 +165,3 @@ Provider migration impact:
 4. Vercel cron for scheduled internal jobs.
 5. Resend webhook/event contracts.
 6. Next.js 16 platform semantics and Cloudflare adapter fidelity.
-

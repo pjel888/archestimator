@@ -8,29 +8,29 @@ document: 15
 
 ## Key Technical Decisions
 
-KTD-001: Use a staged migration strategy.
+KTD-001: Prepare a full Cloudflare-native target with staged proof.
 
-- Decision: Do not big-bang migrate to Cloudflare.
-- Reason: Current provider coupling is high across Supabase Auth/Postgres/RLS/RPC/Storage/Realtime, Vercel cron, Resend, and Next.js runtime.
-- Rejected: Full rewrite to Workers + D1 + Better Auth as first move.
+- Decision: Aim for Workers + D1 + Better Auth + R2 + Queues + Durable Objects/WebSockets + Email Service + Cloudflare security/observability as the preferred prelaunch target.
+- Reason: No external users means the team can still absorb provider redesign before launch.
+- Rejected: Production big-bang cutover without route/data/auth/realtime/performance proof.
 
-KTD-002: Keep Supabase Postgres as source of truth through discovery.
+KTD-002: Treat D1 as a redesign, not a Postgres port.
 
-- Decision: Do not move core data to D1 until a compatibility proof passes.
+- Decision: Do not move core data to D1 until the data model, authorization, RPC behavior, generated types, backup/restore, and realtime paths are redesigned and proven.
 - Reason: D1 is SQLite-shaped and does not replace Postgres RLS/RPC/realtime semantics.
 - Rejected: Schema conversion as sufficient proof.
 
-KTD-003: Adopt Cloudflare front door first if cost/security review supports it.
+KTD-003: Keep current providers as fallback during proof.
 
-- Decision: Front-door DNS/CDN/WAF/DDoS is the lowest-risk Cloudflare entry.
-- Reason: It can be rolled back without changing app data or auth.
-- Rejected: Hosting/runtime cutover before front-door proof.
+- Decision: Use Vercel/Supabase/Resend as comparison and rollback surfaces until Cloudflare-native proof passes.
+- Reason: Planning can be ambitious while production state remains safe.
+- Rejected: Removing providers before the replacement has provider proof.
 
-KTD-004: Pilot R2 and Queues before database/auth migration.
+KTD-004: Prove runtime, data, auth, realtime, and speed before production migration.
 
-- Decision: R2 and Queues are strong candidates for bounded proof.
-- Reason: They target discrete surfaces with rollback options.
-- Rejected: Treating R2/Queues as incidental details of a full rewrite.
+- Decision: Full-native execution starts with proof spikes and performance budgets.
+- Reason: A cheaper platform is not acceptable if protected routes, estimates, realtime, or uploads get slower or less reliable.
+- Rejected: Pricing-only migration decision.
 
 KTD-005: Treat Better Auth as a separate auth architecture decision.
 
@@ -56,7 +56,7 @@ A-001: The owner wants affordability, but not at the cost of launch-blocking ris
 
 A-002: Current usage may still be low enough that migration engineering cost can exceed provider savings.
 
-A-003: Cloudflare may be valuable even if core database/auth stays on Supabase for now.
+A-003: Cloudflare may be valuable even if core database/auth stays on Supabase as a fallback or transitional shape.
 
 A-004: Better Auth and D1 support is promising but must be tested in Archestimator's specific flows.
 
@@ -74,7 +74,7 @@ ALT-002: Hybrid Cloudflare edge plus current app/providers.
 
 - Pros: low risk, quick WAF/DDoS/CDN gains.
 - Cons: does not reduce all provider spend.
-- Recommendation: first practical migration option.
+- Recommendation: fallback or transition option if full-native proof does not pass.
 
 ALT-003: Workers sidecars plus Supabase Postgres.
 
@@ -86,11 +86,10 @@ ALT-004: Full Workers + D1 + Better Auth.
 
 - Pros: maximum Cloudflare consolidation.
 - Cons: highest rewrite and data-integrity risk.
-- Recommendation: reject until proof gates pass.
+- Recommendation: preferred prelaunch proof target; reject only as an unproven production cutover.
 
 ALT-005: Workers + external Postgres via Hyperdrive.
 
 - Pros: Cloudflare compute with relational DB continuity.
 - Cons: still pays for external database, and Workers runtime proof remains.
 - Recommendation: plausible medium-term path if hosting moves.
-

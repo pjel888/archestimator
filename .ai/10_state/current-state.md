@@ -45,6 +45,15 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Cloudflare-native migration planning pack updated (2026-06-29):**
+
+- Planning-only package `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/` now treats a full Cloudflare-native prelaunch redesign as the preferred proof target, with hybrid/current providers retained as fallback and comparison surfaces until proof passes.
+- New planning docs cover the full target (`22_FULL_CLOUDFLARE_NATIVE_TARGET.md`), Supabase-to-D1/Auth/Realtime redesign (`23_D1_AUTH_REALTIME_REDESIGN_PLAN.md`), and speed budgets/proof (`24_SUPERFAST_CLOUDFLARE_PERFORMANCE_PLAN.md`).
+- Second-pass hardening adds execution-readiness scoring (`25_EXECUTION_READINESS_SCORECARD.md`), inventory worksheets (`26_INVENTORY_WORKSHEETS.md`), proof-spike backlog (`27_PROOF_SPIKE_BACKLOG.md`), and cost/performance workbook template (`28_COST_AND_PERFORMANCE_WORKBOOK_TEMPLATE.md`).
+- Final planning-quality pass adds a current evidence inventory (`29_CURRENT_EVIDENCE_INVENTORY.md`) and completion audit (`30_COMPLETION_AUDIT.md`); the docs loop is PASS for planning quality but still NO-GO for production migration.
+- Key stance: moving the database away from Supabase is possible in principle, but only as a D1-centered redesign with app-layer authorization, RPC replacement, restore proof, realtime replacement, and performance proof; no provider/app/source/test changes were made.
+- The reusable planning directive `.ai/08_prompts/000_Planning Prompts/Multi-Agent-Execution-Directive.md` now says full Cloudflare-native prelaunch requests should plan the all-Cloudflare target first instead of defaulting to hybrid.
+
 **Software-wide error-handling local non-Sentry rollout implemented (2026-06-29):**
 
 - The local non-Sentry rollout from `.ai/03_plans/000-Follow Ups/2026-06-28-Sofware-Wide-Error-Handling/` is implemented but not archived: P1 observability foundation, P2a publication action + `/api/share/[token]` route pilot, compatibility logging for selected caught route/action failures, P3 `global-error.tsx` + root `not-found.tsx` + existing workshop segment `error.tsx` reporting + `/api/internal/client-error` + additive `toast.appError`, auth AppError bridge, P4 dev NDJSON logging/scripts, and P5a local Next `onRequestError` instrumentation.

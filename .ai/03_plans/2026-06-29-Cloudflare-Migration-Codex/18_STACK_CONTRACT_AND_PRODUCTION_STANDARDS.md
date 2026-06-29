@@ -71,7 +71,9 @@ D1:
 
 - Treat as SQLite, not Postgres.
 - Do not rely on RLS/RPC/triggers/realtime parity.
-- Use only after compatibility proof.
+- Use for the preferred full-native target only after redesign proof.
+- Authorization must be explicit app/server logic with denial tests.
+- Backup/export/restore and destructive restore behavior must be rehearsed.
 
 KV:
 
@@ -107,6 +109,19 @@ WAF/DDoS:
 - Monitor false positives and fail-open behavior.
 - Keep rollback route.
 
+Durable Objects/WebSockets:
+
+- Use for realtime/presence/cursor/coordination only with room ownership, reconnect, backpressure, persistence, and authorization proof.
+- Do not hide durable business state only in memory.
+
+Turnstile:
+
+- Use for abuse-sensitive public or auth-adjacent flows only after accessibility, false-positive, and bypass/recovery behavior is defined.
+
+Web Analytics/Workers Observability:
+
+- Track the metrics needed to prove speed and reliability, with redaction rules and ownership.
+
 ## Production Standard
 
 No Cloudflare slice is production-ready until it has:
@@ -119,3 +134,4 @@ No Cloudflare slice is production-ready until it has:
 - Rollback.
 - Observability.
 - Cost model update.
+- Performance budget evidence for the affected user flow.

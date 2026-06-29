@@ -8,24 +8,26 @@ owner: Archestimator
 
 # Cloudflare Migration Planning Package
 
-Readiness: **CONDITIONALLY READY** for discovery, cost modeling, and staged proof spikes. **NOT READY** for a production cutover to Cloudflare Workers + D1 + Better Auth.
+Readiness: **CONDITIONALLY READY** for a full Cloudflare-native redesign proof program. **NOT READY** for production cutover or irreversible provider removal.
+
+Planning-quality loop status: **PASS** as of the completion audit in `30_COMPLETION_AUDIT.md`. Execution and production readiness remain blocked until real provider, cost, performance, and rollback proof exists.
 
 This package evaluates whether Archestimator should migrate from the current Next.js/Vercel/Supabase/Resend shape toward Cloudflare Workers, D1, KV, R2, Queues, Hyperdrive, Email Service, WAF, and DDoS protection.
 
-The short answer: Cloudflare is a strong candidate for front-door security, edge sidecars, object storage, queues, and selected cache/background workloads. A full D1/Auth replacement is high risk and should not be attempted as a big-bang migration. The current product depends on Supabase Postgres, RLS, RPCs, Auth, Storage, Realtime, Vercel cron, and Resend webhook semantics across core estimating, collaboration, publication, uploads, and security workflows.
+The short answer: because Archestimator has not launched yet, the risky full-Cloudflare path is worth preparing now. The target should be a Cloudflare-native redesign proof, not a blind production cutover. D1 can potentially replace Supabase Postgres only if the domain model is redesigned for SQLite/D1, authorization moves out of Postgres RLS into explicit app-layer checks, RPC/realtime behavior is replaced, and restore/performance proof passes.
 
 Cloudflare skill update: future execution must start by loading the installed Cloudflare, Workers best-practices, Wrangler, Cloudflare One, and migration guidance surfaces, then refreshing the official Cloudflare docs for exact limits, pricing, API shapes, compatibility dates, binding schemas, and WAF/rate-limit behavior. The package deliberately treats current numeric facts as planning inputs, not durable production constants.
 
 ## Recommended Direction
 
-1. Put Cloudflare in front of the existing app for DNS/CDN/WAF/DDoS after a no-cache/no-auth regression plan.
+1. Make the preferred prelaunch target Cloudflare-native: Workers/OpenNext, D1, Better Auth, R2, Queues/Cron Triggers, Durable Objects/WebSockets, KV only for safe cache, Email Service, WAF/rate limiting, DDoS protection, Turnstile, Web Analytics, and Workers Observability.
 2. Build a cost workbook using real usage: requests, CPU, storage, rows read/written, object operations, queue operations, email sends, and current Vercel/Supabase/Resend spend.
-3. Pilot R2 for one non-critical asset class behind app-owned authorization and rollback.
-4. Pilot Queues for upload scan/cleanup work that is currently scheduled by Vercel cron.
-5. Keep Supabase Postgres as the system of record until D1, Better Auth, and Realtime replacement proof gates pass.
-6. Treat Hyperdrive as a Worker-to-Postgres accelerator only. It does not accelerate D1 and does not replace Postgres.
-7. Keep Resend until Cloudflare Email Service proves outbound deliverability, webhooks, bounces, retries, and analytics parity.
-8. Treat Wrangler config/schema, generated Worker binding types, compatibility flags, and `workerd` preview behavior as first-class proof artifacts for any Worker slice.
+3. Treat D1 as a domain/database redesign, not a Postgres port. Map RLS, RPCs, triggers, generated types, backups, provider proof, and realtime before moving core data.
+4. Keep current providers as rollback and comparison boundaries until each Cloudflare-native proof passes.
+5. Use hybrid architecture only as a fallback if full-native proof fails, becomes too slow, or is not cheaper after realistic usage modeling.
+6. Treat Hyperdrive as a transitional Worker-to-external-Postgres path only. It is not needed for the final all-Cloudflare target unless an external database remains.
+7. Keep Resend until Cloudflare Email Service proves outbound deliverability, events/webhooks, bounces, retries, analytics, and arbitrary-recipient eligibility.
+8. Treat Wrangler config/schema, generated Worker binding types, compatibility flags, observability, and `workerd`/Cloudflare preview behavior as first-class proof artifacts for any Worker slice.
 
 ## Document Index
 
@@ -51,6 +53,15 @@ Cloudflare skill update: future execution must start by loading the installed Cl
 - [19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md](19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md) - research sources and QA review.
 - [20_COST_MODEL_AND_PRICING_INPUTS.md](20_COST_MODEL_AND_PRICING_INPUTS.md) - cost workbook inputs and current official pricing facts.
 - [21_PROVIDER_PARITY_MATRIX.md](21_PROVIDER_PARITY_MATRIX.md) - provider parity matrix.
+- [22_FULL_CLOUDFLARE_NATIVE_TARGET.md](22_FULL_CLOUDFLARE_NATIVE_TARGET.md) - preferred full Cloudflare-native target and proof gates.
+- [23_D1_AUTH_REALTIME_REDESIGN_PLAN.md](23_D1_AUTH_REALTIME_REDESIGN_PLAN.md) - Supabase-to-D1/Auth/Realtime redesign plan.
+- [24_SUPERFAST_CLOUDFLARE_PERFORMANCE_PLAN.md](24_SUPERFAST_CLOUDFLARE_PERFORMANCE_PLAN.md) - performance budgets and speed proof plan.
+- [25_EXECUTION_READINESS_SCORECARD.md](25_EXECUTION_READINESS_SCORECARD.md) - second-pass quality scorecard and remaining gaps.
+- [26_INVENTORY_WORKSHEETS.md](26_INVENTORY_WORKSHEETS.md) - route, provider, RPC, SQL, and script inventory worksheets.
+- [27_PROOF_SPIKE_BACKLOG.md](27_PROOF_SPIKE_BACKLOG.md) - sequenced proof spikes before any production migration.
+- [28_COST_AND_PERFORMANCE_WORKBOOK_TEMPLATE.md](28_COST_AND_PERFORMANCE_WORKBOOK_TEMPLATE.md) - cost/performance workbook fields and formulas.
+- [29_CURRENT_EVIDENCE_INVENTORY.md](29_CURRENT_EVIDENCE_INVENTORY.md) - local repo evidence inventory and proof-surface map.
+- [30_COMPLETION_AUDIT.md](30_COMPLETION_AUDIT.md) - final documentation-quality audit and stop condition.
 
 ## Production Cutover Stop Condition
 
@@ -62,5 +73,8 @@ This package may feed scoped discovery, cost modeling, and reversible proof-spik
 - D1 has been proven against the app's Postgres/RLS/RPC/triggers/realtime requirements or deliberately scoped out.
 - Better Auth has been proven against the app's Supabase Auth/session/claims/SSR requirements.
 - R2, Queues, Email Service, and WAF/rate-limit behavior each have rollback paths.
+- Inventory worksheets are complete for routes/actions, Supabase access paths, RPCs, SQL/RLS/policies, storage, realtime, email, and readiness scripts.
+- Performance and cost workbooks use current provider/dashboard inputs plus Cloudflare proof-spike measurements.
+- Completion audit remains PASS for planning quality and NO-GO for production readiness.
 
-Allowed before those full-cutover gates: Phase 0A skill/source refresh, Phase 0 cost workbook, Phase 1 front-door proof planning, and other slice-specific proof plans that preserve current providers and have their own rollback and evidence gates.
+Allowed before those full-cutover gates: Cloudflare-native architecture planning, read-only provider inventory, usage/cost workbook creation, route/data/auth/realtime proof plans, D1 schema-redesign plans, and reversible proof spikes that preserve current providers as rollback/comparison surfaces.

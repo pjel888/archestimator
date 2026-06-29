@@ -30,9 +30,11 @@ Goal: decide whether Cloudflare is materially cheaper for Archestimator's actual
 
 Tasks:
 
+- Complete `26_INVENTORY_WORKSHEETS.md`.
+- Complete `28_COST_AND_PERFORMANCE_WORKBOOK_TEMPLATE.md`.
 - Inventory current Vercel, Supabase, Resend, storage, and bandwidth spend.
 - Capture monthly requests, dynamic route requests, CPU/build usage if available, storage GB, object operations, database size, rows read/written estimates, email sends, webhook volume, and cron/job counts.
-- Build cost scenarios for current stack, hybrid stack, and full Cloudflare candidate.
+- Build cost scenarios for current stack, hybrid stack, and the preferred full Cloudflare-native target.
 - Identify break-even points and hidden costs.
 - Replace any stale numeric assumptions in this package with execution-date pricing and limit inputs from Cloudflare and current provider docs.
 
@@ -40,123 +42,81 @@ Exit gate:
 
 - Owner can compare current monthly cost against Cloudflare projected monthly cost with assumptions listed.
 
-## Phase 1: Cloudflare Front Door
+## Phase 1: Full-Native Target Architecture
 
-Goal: get WAF/DDoS/CDN benefit without replacing app/runtime/database/auth.
-
-Tasks:
-
-- Design DNS/proxy path to existing origin.
-- Define cache bypass for auth, workshop, share, API, upload, OAuth, and webhook routes.
-- Stage WAF/rate-limit rules.
-- Define allowlists for OAuth, Resend/webhooks, Supabase callbacks if applicable, and owner IPs where needed.
-- Define rollback to direct origin.
-
-Exit gate:
-
-- No protected-route caching.
-- No auth/OAuth/share/upload/email regression.
-- Security events visible.
-- Rollback tested.
-
-## Phase 2: R2 Storage Pilot
-
-Goal: prove R2 with a non-critical or easily reversible asset class.
+Goal: turn the owner preference into a concrete Cloudflare-native architecture while keeping current providers as fallback.
 
 Tasks:
 
-- Choose one asset class.
-- Design object-key scheme.
-- Design private access and signed URL/session behavior.
-- Design scan/cleanup lifecycle.
-- Preserve Supabase Storage fallback until parity passes.
-- Update future proof scripts before production use.
+- Produce route/action/provider ownership matrix.
+- Define final product ownership: Workers/OpenNext, D1, Better Auth, R2, Queues/Cron, Durable Objects/WebSockets, KV, Email Service, WAF/rate limiting/DDoS, Turnstile, Web Analytics/Workers Observability.
+- Define rollback/comparison path to current Vercel/Supabase/Resend stack.
+- Define protected-route no-cache policy and public/static cache policy.
+- Define performance budgets and proof fixtures.
 
 Exit gate:
 
-- Upload, download, authorization, scan, delete, rollback, and cost are proven.
+- Architecture explains every current provider responsibility and its Cloudflare replacement or fallback.
+- No provider is removed.
+- Performance budgets and rollback map are reviewable.
 
-## Phase 3: Queues Pilot
+## Phase 2: D1, Auth, And Realtime Redesign
 
-Goal: move retryable background work from cron-only routes to durable queues.
+Goal: decide how to move the database away from Supabase without losing authorization, transaction, realtime, or restore guarantees.
 
 Tasks:
 
-- Choose upload scan/cleanup or webhook fanout as first queue.
-- Define message schema and idempotency key.
-- Define retries, poison messages, dead-letter handling, and operator visibility.
-- Preserve current scheduled route fallback until proof passes.
+- Build table/RPC/RLS/trigger/typegen inventory.
+- Redesign app-layer authorization for D1.
+- Redesign RPCs as service/repository functions with transaction/idempotency proof.
+- Choose generated type strategy.
+- Choose backup/export/restore strategy.
+- Design Better Auth identity/session mapping.
+- Design Durable Objects/WebSockets rooms for realtime presence/cursors/collaboration.
 
 Exit gate:
 
-- Duplicate delivery does not corrupt data.
-- Failures are visible.
-- Fallback works.
+- Every current Supabase data/auth/realtime responsibility has a Cloudflare-native design, explicit fallback, or blocker.
 
-## Phase 4: Workers Sidecars And Hyperdrive
+## Phase 3: Cloudflare Product Proof Spikes
 
-Goal: use Workers where they add value without moving the full app.
+Goal: prove the Cloudflare products on realistic slices before production routing.
 
 Tasks:
 
-- Identify sidecar candidates: upload signing, webhook intake, queue producer/consumer, cache warmer, lightweight API.
-- If sidecar needs Postgres, evaluate Hyperdrive with Supabase Postgres or an external Postgres origin.
-- Measure latency, error rate, and query count.
-- Define `wrangler.jsonc`, compatibility date/flags, generated `Env` types, bindings, service bindings, secrets, observability, startup check, and local/preview parity requirements before implementation.
+- Execute proof spikes in the order defined in `27_PROOF_SPIKE_BACKLOG.md`.
+- Next.js on Workers/OpenNext route proof.
+- Better Auth on Workers/D1 session and route-gate proof.
+- D1 schema/data/action proof on representative domains.
+- R2 private object proof.
+- Queues/Cron idempotency and retry proof.
+- Durable Objects/WebSockets realtime proof.
+- Email Service deliverability and event proof.
+- WAF/rate-limit/DDoS/Turnstile staging proof.
 
 Exit gate:
 
-- Worker sidecar can be disabled without breaking core app.
-- Current Wrangler/types/runtime proof exists and no secret or binding drift remains.
+- Each proof has targeted tests, provider evidence, observed performance, and rollback.
 
-## Phase 5: Next.js On Workers Proof
+## Phase 4: Performance And Cost Proof
 
-Goal: determine whether Cloudflare Workers can host the primary Next.js 16 app safely.
+Goal: prove the redesign is fast and cheaper enough before production migration.
 
 Tasks:
 
-- Build a preview proof using Cloudflare OpenNext adapter.
-- Verify App Router, RSC, Server Actions, streaming, middleware/proxy, image handling, cache behavior, environment variables, `sharp`/image dependencies, CSP headers, and route handlers.
-- Compare against local Next.js platform docs and adapter feature matrix.
+- Measure current baseline for public routes, share routes, workshop routes, key Server Actions, uploads, realtime, and email.
+- Measure Cloudflare preview/proof equivalents.
+- Fill the scorecard in `25_EXECUTION_READINESS_SCORECARD.md`.
+- Model Workers CPU, requests, subrequests, D1 rows read/written, R2 ops/GB, Queues ops, Email Service volume, and WAF/rate-limit plan needs.
+- Tune route caching, bundle size, data access, and queue boundaries until budgets pass or blocker is recorded.
 
 Exit gate:
 
-- All critical routes match current behavior or differences are documented with approved changes.
+- Full-native target is equal or faster for critical flows and has a cost case that justifies migration effort.
 
-## Phase 6: Better Auth Proof
+## Phase 5: Production Migration Slices
 
-Goal: decide whether Better Auth should replace Supabase Auth.
-
-Tasks:
-
-- Map Supabase Auth behaviors and code paths.
-- Prototype Better Auth for Workers and current origin context.
-- Prove OAuth, magic links, SSR sessions, proxy route gate, closed-beta access, legal terms gate, invite flows, admin operations, and test mocks.
-- Decide database backing: existing Postgres, D1, or transitional dual mode.
-
-Exit gate:
-
-- Unauthorized access fails closed.
-- Session migration strategy exists.
-- Data authorization identity is proven.
-
-## Phase 7: D1 Decision Gate
-
-Goal: decide whether D1 should hold any production domain data.
-
-Tasks:
-
-- Convert schema map to compatibility matrix.
-- Identify blockers: RLS, RPCs, triggers, extensions, transactions, realtime, typegen.
-- Choose between no D1, D1 for bounded new data, or full domain redesign.
-
-Exit gate:
-
-- Either D1 is rejected for core data, or a separate D1 migration plan is approved with complete parity proof.
-
-## Phase 8: Production Migration Slices
-
-Goal: only after proofs, migrate one reversible slice at a time.
+Goal: only after proofs, migrate one reversible slice at a time toward the full-native target.
 
 Tasks:
 

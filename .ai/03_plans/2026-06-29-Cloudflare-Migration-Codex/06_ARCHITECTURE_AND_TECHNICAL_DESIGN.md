@@ -23,9 +23,28 @@ flowchart LR
   InternalJobs --> SupabaseStorage
 ```
 
-## Staged Target Architecture
+## Preferred Full Cloudflare-Native Target
 
-Recommended first target is hybrid:
+The preferred prelaunch target is Cloudflare-native, subject to proof gates:
+
+```mermaid
+flowchart LR
+  User["Browser"] --> CloudflareEdge["Cloudflare DNS/CDN/WAF/DDoS"]
+  CloudflareEdge --> NextWorkers["Next.js via Cloudflare OpenNext on Workers"]
+  NextWorkers --> BetterAuth["Better Auth on Workers"]
+  NextWorkers --> D1["D1 redesigned domain database"]
+  NextWorkers --> R2["R2 private assets"]
+  NextWorkers --> KV["KV eventual cache only"]
+  NextWorkers --> Queues["Queues + Cron Triggers"]
+  NextWorkers --> DO["Durable Objects/WebSockets realtime rooms"]
+  NextWorkers --> EmailService["Cloudflare Email Service"]
+  CloudflareEdge --> Turnstile["Turnstile where abuse risk exists"]
+  NextWorkers --> Observability["Workers Observability + Web Analytics"]
+```
+
+## Fallback Hybrid Architecture
+
+Use hybrid only if full-native proof fails, is too slow, or is not cheaper enough:
 
 ```mermaid
 flowchart LR
@@ -35,32 +54,13 @@ flowchart LR
   Origin --> SupabaseDB["Supabase Postgres"]
   Origin --> SupabaseStorage["Supabase Storage"]
   Origin --> Resend["Resend"]
-  WorkerSidecars["Cloudflare Workers sidecars"] --> R2["R2 pilot bucket"]
+  WorkerSidecars["Cloudflare Workers sidecars"] --> R2["R2"]
   WorkerSidecars --> Queues["Queues"]
-  QueueConsumer["Queue consumers"] --> SupabaseDB
   WorkerSidecars --> Hyperdrive["Hyperdrive if Worker-to-Postgres needed"]
   Hyperdrive --> SupabaseDB
-  KV["KV"] --> WorkerSidecars
 ```
 
-## Future Full-Cloudflare Candidate
-
-Only after proof gates:
-
-```mermaid
-flowchart LR
-  User["Browser"] --> CloudflareEdge["Cloudflare DNS/CDN/WAF/DDoS"]
-  CloudflareEdge --> NextWorkers["Next.js via Cloudflare OpenNext"]
-  NextWorkers --> BetterAuth["Better Auth"]
-  NextWorkers --> D1["D1 candidate data stores"]
-  NextWorkers --> R2["R2"]
-  NextWorkers --> KV["KV"]
-  NextWorkers --> Queues["Queues"]
-  NextWorkers --> EmailService["Cloudflare Email Service"]
-  NextWorkers --> RealtimeReplacement["Durable Objects/WebSockets or chosen realtime provider"]
-```
-
-This is a candidate, not an approved target.
+This is a fallback and transition shape, not the preferred final target.
 
 ## Technical Design Principles
 
@@ -68,13 +68,13 @@ TD-001: Migration slices must be reversible.
 
 TD-002: Keep data ownership clear. Cache and queues never own authorization truth.
 
-TD-003: Replace one provider behavior at a time.
+TD-003: Replace one provider behavior at a time during proof, even when the preferred end state is full-native.
 
-TD-004: Prefer sidecars before moving the primary Next.js runtime.
+TD-004: Prove the primary Next.js runtime on Workers early because it determines the value of an all-Cloudflare path.
 
 TD-005: Preserve the current server-actions-first model unless Next-on-Workers proof identifies required changes.
 
-TD-006: Keep Postgres as source of truth until D1 compatibility is proven or D1 is deliberately scoped to new/low-risk data.
+TD-006: Keep Postgres as the current baseline until D1 compatibility is proven through redesign and dry-run evidence.
 
 TD-007: Any auth migration must preserve route gates before database migration.
 

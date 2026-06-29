@@ -8,7 +8,7 @@ document: 00
 
 ## Master Goal
 
-Create a planning-only, research-backed migration package for moving some or all of Archestimator's platform surface to Cloudflare because cost may be lower.
+Create a planning-only, research-backed migration package for preparing a cheapest/full Cloudflare-native redesign while Archestimator has not launched and can still absorb deeper provider changes.
 
 This is not a coding task. This package must not modify application code, tests, schemas, migrations, infrastructure, provider resources, branches, or runtime state.
 
@@ -16,10 +16,12 @@ This is not a coding task. This package must not modify application code, tests,
 
 Primary user brief:
 
-- Evaluate Cloudflare Workers, D1, KV, R2, Queues, Hyperdrive, Email Routing/Sending, WAF, and DDoS protection.
+- Evaluate Cloudflare Workers, D1, KV, R2, Queues, Hyperdrive, Email Service, WAF, DDoS protection, Turnstile, Durable Objects/WebSockets, Web Analytics, and Workers Observability.
 - Consider Better Auth as part of the database/auth migration.
+- Aim for everything in Cloudflare if proof shows it is cheaper, fast enough, and safe enough.
+- Confirm whether the database can move away from Supabase into Cloudflare.
+- Make performance a first-class target, not an afterthought.
 - Put the result in `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex`.
-- Update `.ai/08_prompts/000_Planning Prompts/Improve-Plan-Prompt.md`.
 - Update `.ai/08_prompts/000_Planning Prompts/Multi-Agent-Execution-Directive.md`.
 - Treat this as planning, not coding.
 
@@ -66,6 +68,22 @@ WS-02 Official-doc research:
 WS-03 Planning synthesis:
 
 - Converted findings into requirements, risk register, parity matrix, cost model, staged rollout, rollback, and validation gates.
+- Reframed the plan around a preferred full Cloudflare-native proof program because the product has no external users yet.
+- Added D1/Auth/Realtime redesign and performance proof tracks.
+
+WS-04 Second-pass quality hardening:
+
+- Added an execution readiness scorecard.
+- Added worksheets for route/provider/RPC/SQL/script inventory.
+- Added a sequenced proof-spike backlog.
+- Added a cost and performance workbook template.
+- Grounded the worksheets with repo counts: `107` files under `src/app`, `27` files under `src/app/api`, `126` source files matching Supabase/realtime/storage/RPC coupling, `76` distinct app-code RPC names, `181` applied migration files, `15` pending-review SQL files, `346` SQL function declaration/update matches, and `655` RLS/policy/storage/auth-related SQL matches.
+
+WS-05 Completion audit:
+
+- Added a local evidence inventory with the full app-code RPC catalog, high-signal provider-coupled source areas, reusable test surfaces, and current provider proof script inventory.
+- Added a completion audit that separates planning artifact quality from proof-program readiness and production migration readiness.
+- Marked the documentation-quality loop PASS while keeping execution and production migration NO-GO until provider proof, cost data, performance evidence, and rollback rehearsals exist.
 
 ## No-Code Guardrail
 
@@ -91,6 +109,7 @@ Not allowed in this task:
 
 ## Status
 
-- Planning package status: CONDITIONALLY READY for review.
+- Planning package status: CONDITIONALLY READY for full Cloudflare-native redesign review and proof planning.
+- Documentation-quality loop status: PASS.
 - Implementation status: NOT STARTED by design.
-- Main blocker before execution: usage-based cost model and provider parity proof.
+- Main blocker before execution: usage-based cost model, D1/Auth/Realtime redesign proof, Next-on-Workers proof, and provider parity proof.

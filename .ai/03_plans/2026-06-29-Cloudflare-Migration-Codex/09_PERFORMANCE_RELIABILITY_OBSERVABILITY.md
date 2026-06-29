@@ -20,6 +20,22 @@ H-005 Hyperdrive may improve Worker-to-Postgres connection behavior when Workers
 
 H-006 D1 may improve latency for small local SQLite-shaped data but may not fit core relational/RLS workloads.
 
+H-007 A full Cloudflare-native design can make Archestimator faster if the app reduces origin hops, controls protected-route caching, keeps Worker bundles small, avoids chatty D1 queries, and measures p95 user flows under realistic data.
+
+## Proposed Speed Budgets
+
+These are planning targets. Baseline measurements must be captured before implementation and the targets may be tightened after real data.
+
+- Public/static route p95 TTFB: under 200 ms from target regions.
+- Authenticated workshop route p95 TTFB: under 600 ms with realistic session setup.
+- API/action p95 duration for common estimating reads/writes: under 500 ms.
+- LCP: under 2.5 s on target devices/networks.
+- INP: under 200 ms.
+- CLS: under 0.1.
+- Worker cold/startup issues: no user-visible regression in critical routes.
+- D1 query count: capped per route/action, with slow query review for any hot path.
+- Queue latency: defined per job type with alert thresholds.
+
 ## Cloudflare Limits To Respect
 
 Numbers in this section are categories to model. Refresh official Cloudflare docs, product changelogs, and Wrangler schema immediately before implementation or purchasing decisions; do not treat this package's date-stamped limits as durable constants.
@@ -96,6 +112,8 @@ OBS-005 Every auth migration proof needs login success, refresh success, route g
 OBS-006 Every database proof needs representative query latency and error rates at realistic volumes.
 
 OBS-007 Every Worker slice needs Cloudflare-side evidence for startup/runtime health, binding availability, error rate, CPU/duration pressure, subrequest pressure, and tail/log sampling posture.
+
+OBS-008 Full-native proof needs Core Web Vitals, route timing, D1 query count/latency, R2 operation latency, queue age, Durable Object room latency, email send/event latency, WAF challenge/block rates, and error budget evidence.
 
 ## Reliability Requirements
 

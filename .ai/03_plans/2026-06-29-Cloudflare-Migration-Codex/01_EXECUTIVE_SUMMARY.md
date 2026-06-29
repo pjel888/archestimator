@@ -8,19 +8,20 @@ document: 01
 
 ## Verdict
 
-Cloudflare is worth pursuing, but not as a single-stack replacement yet.
+Cloudflare is worth pursuing as the preferred prelaunch redesign target.
 
-The practical route is a staged migration:
+Because Archestimator has not launched and has no external users yet, the team can prepare the higher-risk full-Cloudflare path now. The practical route is not a production big-bang; it is a proof program whose target end state is Cloudflare-native:
 
-1. Adopt Cloudflare at the front door first: DNS, CDN, WAF, DDoS, rate limiting, and selected cache rules.
-2. Pilot R2 for object storage in a bounded asset class.
-3. Pilot Queues for background jobs currently represented by Vercel cron routes.
-4. Use Workers for sidecar services before hosting the entire Next.js app there.
-5. Keep Supabase Postgres as the source of truth until D1/Better Auth/Realtime replacement proof is complete.
+1. Host the app on Cloudflare Workers through the current Cloudflare/OpenNext path if route proof passes.
+2. Move durable relational data to D1 only through a domain redesign, not schema conversion.
+3. Replace Supabase Auth with Better Auth only after SSR/session/claims/closed-beta/invite proof passes.
+4. Replace Supabase Realtime with Durable Objects/WebSockets or another Cloudflare-native realtime design.
+5. Move storage to R2, background work to Queues/Cron Triggers, email to Cloudflare Email Service, and edge protection to WAF/rate limiting/DDoS/Turnstile.
+6. Keep current providers as rollback and comparison surfaces until each proof gate passes.
 
-Readiness classification: **CONDITIONALLY READY** for discovery and proof spikes. **NOT READY** for full cutover.
+Readiness classification: **CONDITIONALLY READY** for full-native redesign planning and reversible proof spikes. **NOT READY** for production cutover.
 
-## Why Not Big-Bang
+## Why Proof Before Cutover
 
 The current application is not just "Next.js plus SQL." It is a coupled product system:
 
@@ -38,27 +39,27 @@ Local evidence:
 - `src/lib/supabase/server.ts:31-56` creates request-scoped Supabase SSR clients.
 - `src/lib/supabase/client.ts:4-20` shares one browser Supabase client because Realtime auth depends on it.
 - `vercel.json:3-11` defines scheduled upload cleanup and scan routes.
-- Current repo count: 181 SQL files in `supabase/migrations` and 10 SQL files in `supabase/migrations-pending-review`.
+- Current repo count: 181 SQL files in `supabase/migrations` and 15 SQL files in `supabase/migrations-pending-review`.
 
-## Most Attractive Cloudflare Moves
+## Target Cloudflare Moves
 
-Near-term:
+Preferred target:
 
-- WAF/DDoS/CDN in front of existing deployment.
-- R2 for large object storage where signed access can be controlled by the app.
-- Queues for retryable, idempotent background jobs.
-- Workers as isolated edge sidecars for upload signing, webhook ingestion, lightweight API aggregation, or queue consumers.
-- KV only for eventually consistent cache entries where stale reads are acceptable.
+- Workers/OpenNext for the main app runtime.
+- D1 for redesigned relational domains after RLS/RPC/realtime parity decisions are made.
+- Better Auth for auth if Workers + D1/session proof passes.
+- Durable Objects/WebSockets for collaboration, presence, cursors, or strongly coordinated realtime rooms.
+- R2 for private assets, generated exports, attachments, and image delivery.
+- Queues and Cron Triggers for upload scans, cleanup, retries, email fanout, and long-running background jobs.
+- KV only for eventually consistent cache/config, never auth/session/permission/lock authority.
+- Cloudflare Email Service for outbound email only after deliverability/event proof.
+- WAF/rate limiting/DDoS/Turnstile for abuse protection.
+- Web Analytics, Workers Observability, logs, and custom metrics for speed and operations proof.
 
-Medium-term:
+Fallback target:
 
-- Hyperdrive if Workers need to talk to Supabase Postgres or another external Postgres database.
-- Full Next.js-on-Workers proof using Cloudflare's OpenNext adapter.
-- Better Auth proof of parity with existing Supabase Auth/session/claims/SSR gates.
-
-Long-term:
-
-- D1 only if the app can tolerate SQLite semantics, per-database size limits, lack of Postgres RLS/RPC/triggers/realtime parity, and a rewritten authorization model.
+- Hybrid Cloudflare edge/storage/jobs with Supabase/Vercel/Resend retained if the full-native proof is slower, riskier, or more expensive than expected.
+- Workers + external Postgres via Hyperdrive if D1 is rejected for core data.
 
 ## Cost Recommendation
 
@@ -78,14 +79,13 @@ Cloudflare can be cheaper for several surfaces, especially R2 egress, Workers st
 
 ## Recommendation
 
-Approve a **Cloudflare discovery and staged proof program**, not a full migration.
+Approve a **full Cloudflare-native redesign proof program**, not a production cutover.
 
 The first implementation plan should be a proof program with explicit rollback:
 
-- Phase 0: cost/inventory workbook.
-- Phase 1: front-door Cloudflare with no origin/provider replacement.
-- Phase 2: R2 and Queues pilots.
-- Phase 3: Workers sidecars plus Hyperdrive to existing Postgres if useful.
-- Phase 4: Next-on-Workers proof.
-- Phase 5: Better Auth/D1 decision gate.
-- Phase 6: only then consider production migration slices.
+- Phase 0: source refresh, provider inventory, cost workbook, performance baseline.
+- Phase 1: Cloudflare-native target architecture, route map, and rollback map.
+- Phase 2: D1 domain redesign and auth/realtime replacement design.
+- Phase 3: Next-on-Workers, Better Auth, D1, R2, Queues, Email Service, and Durable Objects proof spikes.
+- Phase 4: performance proof against explicit speed budgets.
+- Phase 5: only then consider production migration slices.

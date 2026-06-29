@@ -18,6 +18,8 @@ Every future migration slice must prove the behavior it changes. Do not use broa
 - Current cost and usage baseline.
 - Current error-rate and latency baseline.
 - Current official Cloudflare docs, product changelog, installed Cloudflare skill guidance, Wrangler schema, and Workers type evidence for the touched Cloudflare products.
+- Completed inventory row in `26_INVENTORY_WORKSHEETS.md`.
+- Completed proof-spike row in `27_PROOF_SPIKE_BACKLOG.md`.
 
 ## Cloudflare Toolchain And Source Validation
 
@@ -119,6 +121,27 @@ Required:
 - Type strategy.
 - Realtime replacement plan.
 
+For full database replacement, also required:
+
+- Table/RPC/RLS/trigger inventory reconciles with current migrations.
+- Every protected read/write has a positive test and a cross-workspace denial test.
+- Every rewritten RPC/action has idempotency and transaction-boundary proof.
+- Export/import and restore rehearsal passes.
+- Representative data volume tests cover current, 10x, 100x, and 1000x launch assumptions or a documented lower cap.
+
+## Full-Native Performance Validation
+
+Required:
+
+- Current baseline for public/static, share, protected workshop, upload, realtime, email, and common mutation flows.
+- Cloudflare preview/provider measurement for the same fixtures.
+- Worker startup, CPU, duration, memory, and subrequest evidence.
+- D1 query count and p50/p95 latency.
+- Core Web Vitals for critical pages.
+- Queue age/retry/dead-letter evidence.
+- Durable Object room latency and reconnect behavior if realtime uses Durable Objects/WebSockets.
+- Cost model updated from observed operation counts.
+
 ## Email Validation
 
 Required:
@@ -144,3 +167,4 @@ No production cutover unless:
 - Observability is live.
 - Security review has no unresolved P0/P1 findings.
 - Cloudflare docs/schema/type refresh is attached to the slice evidence.
+- Scorecard in `25_EXECUTION_READINESS_SCORECARD.md` has no unresolved red or amber item for the slice.
