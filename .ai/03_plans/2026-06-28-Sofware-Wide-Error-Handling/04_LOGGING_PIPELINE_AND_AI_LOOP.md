@@ -239,11 +239,18 @@ export const logger = {
   // chain). The structured `record` is still the dev-log source-of-truth.
   error(record: AppErrorLogRecord, originalError?: unknown) {
     const enriched = enrich(record);
-    writeDevLog(enriched);
-    forwardToProd(enriched, originalError);  // no-op in dev; Sentry captureException in prod (P5)
+    writeDevLog(enriched);       // P1: no-op (interface only); P4: append to ./logs/dev.ndjson per `08` P4-WP2
+    forwardToProd(enriched, originalError);  // P1: no-op; P5: Sentry captureException in prod
   },
   // warn, info, debug similar — each picks its own level and uses the same enrich().
 };
+
+// Phase-conditional writers:
+//   P1 (interface only): writeDevLog = () => {}; forwardToProd = () => {};
+//   P4 (file writer):     writeDevLog writes ./logs/dev.ndjson per `08` P4-WP2/3
+//   P5 (Sentry forward):  forwardToProd calls Sentry.captureException(originalError)
+// The logger interface signature is stable from P1 onward; only the backing
+// implementations change phase-to-phase.
 ```
 
 `src/lib/perf/server-timing.ts` itself is a protected contract per README — only consumed via its existing exports (`getCurrentPerfTraceSnapshot`, `withPerfTraceRequest`, `traced`). The internal `perfTraceStorage` is intentionally not imported by the logger.

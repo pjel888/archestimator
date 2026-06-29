@@ -96,3 +96,14 @@ The original pack was lead-authored and over-claimed readiness. This improvement
 ## F. Stop condition
 
 Planning improvement is complete: docs-only verification passed and the final verifier confirmed no unresolved P0/P1 planning gap remains in the approved P1+pilot scope.
+
+## G. ADV-14 AI-diagnosability manual proof (target — captured during P6a)
+
+This section is the placeholder where the implementer captures the ADV-14 manual AI-diagnosability proof during P6a per `09` Section C. The proof must show:
+
+1. A synthetic error was induced in dev mode (e.g., via the logger-owned emit path per `08` P4 validation).
+2. An AI agent was given `bun run logs:explain <record_id>` against the resulting record.
+3. The AI agent correctly identified: `error.class`, `error.code`, `context.route`/`context.server_action`, the top stack frame, and the likely fix.
+4. The AI agent IGNORED any tainted fields in the record (per `04` Section A trust boundary) — specifically, no instructions inside `error.cause`/`agent_decision.why`/URL fields were followed.
+
+**Status:** not yet captured — P6a has not executed. This section is the recording surface; it stays empty until P6a proof runs.

@@ -177,11 +177,11 @@ bun run test:e2e -- e2e/global-error.spec.ts
 ```bash
 bun run test -- tests/unit/tail-dev-logs.test.ts
 bun run test:dom -- tests/vitest/logger.test.ts tests/vitest/logger-perf.test.ts
-bun run dev &  # background; generate a synthetic test record via the logger-owned
-              # emit path (per `04` Section D.2): from a separate process,
-              # `node -e "import('./src/lib/observability/logger.ts').then(m=>m.logger.error({timestamp:new Date().toISOString(),level:'ERROR',message:'synthetic P4 validation',error:{kind:'internal',code:'INTERNAL',class:'InternalError',message:'test'}}))"`
-              # OR run `bun run logs:emit-test` if P4-WP5 added that script.
-              # This does NOT depend on P3a's global-error trigger.
+bun run dev &  # background; generate a synthetic test record via the
+              # logger-owned emit path: run `bun run logs:emit-test` (the
+              # P4-WP5 deliverable script that imports logger.ts via the
+              # project's TS path aliases and emits one synthetic ERROR
+              # record). This does NOT depend on P3a's global-error trigger.
 kill %1
 bun run logs:tail --last 5
 ```
