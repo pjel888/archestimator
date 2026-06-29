@@ -238,6 +238,32 @@ describe("shared link publication route handlers (Shared Link V2 audit)", () => 
     expect(mocks.resolveProjectPublicationSnapshotByToken).not.toHaveBeenCalled();
   });
 
+  it("returns a safe error envelope when the snapshot route throws unexpectedly", async () => {
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.resolveProjectPublicationAccessByToken.mockRejectedValueOnce(
+      new Error("database password leaked token=provider-secret"),
+    );
+
+    const response = await GET(new Request("https://archestimator.test/api/share/client-token"), params());
+
+    expect(response.status).toBe(500);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    const body = await response.json();
+    expect(body).toEqual({
+      ok: false,
+      trace_id: expect.stringMatching(/^err_/),
+      error: {
+        kind: "internal",
+        code: "INTERNAL_ERROR",
+        message: "Something went wrong. Try again in a moment.",
+      },
+    });
+    expect(JSON.stringify(body)).not.toMatch(/provider-secret|password leaked/i);
+    expect(consoleSpy).toHaveBeenCalled();
+
+    consoleSpy.mockRestore();
+  });
+
   it("does not expose password-protected snapshots until the access cookie is present", async () => {
     mocks.resolveProjectPublicationAccessByToken.mockResolvedValue({
       publicationId: "publication-1",

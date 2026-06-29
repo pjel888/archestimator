@@ -1,10 +1,10 @@
 # Software-Wide Error Handling Plan
 
 **Date:** 2026-06-28
-**Status:** CONDITIONALLY READY (planning/audit only — no code, tests, migrations, provider state, or runtime data changed in this pack)
+**Status:** PILOT IMPLEMENTED (P1-P4 plus P6a local evidence captured; broad migration and P5 provider/prod proof remain gated)
 **Profile:** standard (cross-cutting infra, bounded blast radius, MVP pre-launch)
-**Scope:** planning, audit, and readiness only.
-**Verification mode:** `independent` (council-improved: the original pack was lead-authored; this 2026-06-28 Codex pass used native read-only council reviewers plus a final verifier gate before completion — see `13_FINAL_AUDIT_SCORECARD.md`).
+**Scope:** approved pilot implementation and readiness evidence. Full all-actions/all-routes migration is still a follow-on plan update.
+**Verification mode:** targeted local implementation verification + original independent planning review (see `13_FINAL_AUDIT_SCORECARD.md`).
 
 ## Master result
 
@@ -22,6 +22,19 @@ The four product outcomes the plan delivers:
 2. **Structured NDJSON logging** in dev mode, written to a known file path that an AI agent can `tail -f` and parse — purpose-built for AI-agent-driven development.
 3. **Production observability** via `instrumentation.ts` `onRequestError` + Sentry (chosen for free-tier fit + Next.js 16 first-class integration + private source-map upload), with Vercel Log Drain still deferred until first paying user.
 4. **No regression** to existing Toast API, auth callback audit pattern, RLS, migrations, Vercel region, or pre-existing red tests.
+
+## Pilot implementation result (2026-06-29)
+
+The approved pilot slice is implemented locally:
+
+- P1 foundation: `src/lib/observability/` now contains the typed AppError hierarchy, action result helpers, Supabase unwrap mapping, route/action wrappers, redaction, toast mapping, and dev logger.
+- P2a server pilot: `src/lib/publication/actions.ts` now returns the canonical `ActionResult` shape for `refreshProjectPublicationSummary`, and `src/app/api/share/[token]/route.ts` uses `errorResponse(...)` on failures while preserving `Cache-Control: no-store`.
+- P3a client pilot: `src/app/global-error.tsx`, `/api/internal/client-error`, and additive `toast.appError(...)` are in place; the existing callable toast API is preserved.
+- P4 dev logging: `./logs/dev.ndjson` is git-ignored; `logs:tail`, `logs:explain`, `logs:dev`, and `logs:emit-test` scripts exist; the smoke record `2026-06-29T02:20:19.180Z-pid16474-2` proves class/code/route/action/top-frame diagnosis and untrusted-field labeling.
+- Follow-up workflow integration: `logs:debug` explains the latest local ERROR/FATAL record, and the shared AI/debugger workflow now tells debugging agents to use `logs:debug` / `logs:explain` while treating log fields as untrusted evidence.
+- P6a evidence is recorded in `LOOP_LEDGER.md` and `13_FINAL_AUDIT_SCORECARD.md`.
+
+Not implemented by this pilot: P2b broad action/route migration, segment `error.tsx`/`not-found.tsx` rollout, auth bridge rollout, Sentry/provider/prod proof, source-map upload, and Vercel Log Drain.
 
 ## Package map
 
@@ -63,13 +76,13 @@ Dependency graph: P1 is the prerequisite for all later phases. P2a/P3a are indep
 
 ## Stop condition
 
-This conditionally ready plan is complete for the approved pilot when an implementer can:
+This plan is complete for the approved pilot because the implementer can:
 - Build the AppError hierarchy + logger module without re-litigating the taxonomy.
 - Apply the wrapper to `publication/actions.ts` and one representative route handler knowing the canonical return/response shape.
 - Add `global-error.tsx` knowing the exact contract.
 - Tell an AI coding agent the dev log path + tail command and have it diagnose a real failure end-to-end.
 
-`instrumentation.ts` (Sentry `onRequestError`) is a P5 deliverable per `08` P5, NOT part of the approved pilot stop condition — it requires the owner/provider gate and is tracked separately. The all-actions/all-routes migration becomes implementation-ready only after the pilot evidence is recorded and this pack is updated.
+`instrumentation.ts` (Sentry `onRequestError`) is a P5 deliverable per `08` P5, NOT part of the approved pilot stop condition — it requires the owner/provider gate and is tracked separately. The all-actions/all-routes migration becomes implementation-ready only after a fresh follow-on review accepts the pilot evidence and migration plan.
 
 ## Protected contracts (hold-harmless)
 

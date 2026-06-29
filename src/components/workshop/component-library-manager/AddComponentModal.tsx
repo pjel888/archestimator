@@ -181,6 +181,14 @@ const OPENDESIGN_SECTION_TITLE_CLASS = "flex items-center gap-2 text-[10px] font
 const OPENDESIGN_FIELD_LABEL_CLASS = "normal-case";
 const OPENDESIGN_IMAGE_WELL_CLASS =
   "relative grid aspect-square place-items-center overflow-hidden rounded-[3px] border-0 bg-[rgba(61,61,61,0.04)] shadow-[inset_0_1px_0_rgba(255,255,255,0.72),inset_0_0_0_1px_rgba(61,61,61,0.035)]";
+const OPENDESIGN_MODAL_SHADOW_CLASS =
+  "shadow-[0_28px_70px_-24px_rgba(23,29,40,0.32),0_10px_26px_-18px_rgba(23,29,40,0.24),inset_0_1px_0_rgba(255,255,255,0.82)]";
+const OPENDESIGN_DRAWER_SHADOW_CLASS =
+  "shadow-[28px_26px_58px_-34px_rgba(23,29,40,0.56),inset_0_1px_0_rgba(255,255,255,0.72),inset_0_0_0_1px_rgba(61,61,61,0.025)]";
+const OPENDESIGN_RAIL_SHADOW_CLASS =
+  "shadow-[10px_12px_24px_-19px_rgba(23,29,40,0.42),inset_0_1px_0_rgba(255,255,255,0.72),inset_0_0_0_1px_rgba(61,61,61,0.025)]";
+const OPENDESIGN_RAIL_ACTIVE_SHADOW_CLASS =
+  "shadow-[16px_16px_30px_-24px_rgba(23,29,40,0.56),inset_0_1px_0_rgba(255,255,255,0.72),inset_0_0_0_1px_rgba(61,61,61,0.025)]";
 
 function toUnitComboboxOptions(options: ComponentUnitOption[]): CreatableComboboxOption[] {
   return options.map((option) => ({
@@ -1041,20 +1049,20 @@ function OpenAddComponentModal({
         title="Add Component"
         onOpenChange={requestClose}
         closeLabel="Close add component modal"
-        blurBackdrop={false}
+        blurBackdrop
         transparentBackdrop
         bodyClassName="overflow-visible p-0"
         className={cn(
-          "!w-[min(793px,calc(100vw-16px))] max-w-none overflow-visible rounded-[6px] border border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.88)] shadow-[0_28px_70px_-24px_rgba(23,29,40,0.32),0_10px_26px_-18px_rgba(23,29,40,0.24)] backdrop-blur-[18px] transition-transform duration-200",
+          "!w-[min(793px,calc(100vw-16px))] max-w-none overflow-visible rounded-[6px] border border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.88)] backdrop-blur-[18px]",
+          OPENDESIGN_MODAL_SHADOW_CLASS,
           "[&_[data-archestimator-modal-close-header]]:absolute [&_[data-archestimator-modal-close-header]]:right-2 [&_[data-archestimator-modal-close-header]]:top-2 [&_[data-archestimator-modal-close-header]]:z-40 [&_[data-archestimator-modal-close-header]]:min-h-0 [&_[data-archestimator-modal-close-header]]:border-0 [&_[data-archestimator-modal-close-header]]:bg-transparent [&_[data-archestimator-modal-close-header]]:p-0",
           "[&_[data-archestimator-modal-title-header]]:min-h-[44px] [&_[data-archestimator-modal-title-header]]:border-b [&_[data-archestimator-modal-title-header]]:border-[rgba(61,61,61,0.08)] [&_[data-archestimator-modal-title-header]]:bg-transparent [&_[data-archestimator-modal-title-header]]:px-2 [&_[data-archestimator-modal-title-header]]:py-0",
           "[&_[data-archestimator-modal-title-header]_h2]:!text-[12px] [&_[data-archestimator-modal-title-header]_h2]:!font-medium",
           "[&_[data-archestimator-modal-location-footer]]:hidden",
-          variantDrawerOpen && "lg:-translate-x-[184px]",
         )}
       >
-        <div className="relative flex h-[min(894px,calc(100dvh-62px))] w-full max-w-full flex-col overflow-visible text-[10px] text-secondary">
-          <div className="flex h-8 shrink-0 items-end gap-0 border-b border-[rgba(61,61,61,0.08)] px-[10px]" role="tablist" aria-label="Add component sections">
+        <div className="relative isolate flex h-[min(894px,calc(100dvh-62px))] w-full max-w-full flex-col overflow-visible text-[10px] text-secondary">
+          <div className="relative z-20 flex h-8 shrink-0 items-end gap-0 border-b border-[rgba(61,61,61,0.08)] px-[10px]" role="tablist" aria-label="Add component sections">
             {ADD_COMPONENT_MODAL_TABS.map((tab) => (
               <button
                 key={tab.id}
@@ -1081,15 +1089,16 @@ function OpenAddComponentModal({
               setVariantDrawerView("manager");
             }}
             className={cn(
-              "absolute right-[-30px] top-[-1px] z-30 grid h-[34px] w-[30px] place-items-center rounded-r-[3px] border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.92)] text-tertiary shadow-[6px_8px_18px_rgba(17,17,17,0.10)] transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)] max-lg:right-3 max-lg:top-[50px] max-lg:rounded-[6px] max-lg:border-l",
-              variantDrawerOpen && "border-[#F24405]/30 text-[#F24405]",
+              "absolute right-[-30px] top-[-1px] z-40 grid h-[34px] w-[30px] place-items-center rounded-r-[3px] border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.84)] text-tertiary transition hover:border-[#F24405]/30 hover:bg-[color-mix(in_srgb,#F24405_14%,white)] hover:text-[#c63804] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)] max-lg:right-3 max-lg:top-[50px] max-lg:rounded-[6px] max-lg:border-l",
+              OPENDESIGN_RAIL_SHADOW_CLASS,
+              variantDrawerOpen && "border-[#F24405]/30 bg-[color-mix(in_srgb,#F24405_14%,white)] text-[#F24405]",
             )}
           >
             <Dna size={15} weight="regular" aria-hidden="true" />
           </button>
 
           {activeTab === "component" ? (
-            <div role="tabpanel" aria-label="Component" className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[260px_minmax(0,1fr)]">
+            <div role="tabpanel" aria-label="Component" className="relative z-20 grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[260px_minmax(0,1fr)]">
               <aside className="min-h-0 overflow-auto border-b border-[rgba(61,61,61,0.08)] bg-[rgba(255,255,255,0.54)] p-2 lg:border-b-0 lg:border-r" aria-label="Component image">
                 <div className="grid gap-2">
                   <div className={OPENDESIGN_IMAGE_WELL_CLASS}>
@@ -1157,7 +1166,7 @@ function OpenAddComponentModal({
 
               <main className="min-h-0 overflow-auto p-2" role="form" aria-label="Quick add component">
                 <div className="grid gap-[10px]">
-                  <section className={OPENDESIGN_SECTION_CLASS} aria-label="Component information fields">
+                  <section className={cn(OPENDESIGN_SECTION_CLASS, "min-h-[176px]")} aria-label="Component information fields">
                     <div className={OPENDESIGN_SECTION_TITLE_CLASS}>
                       <Package size={11} weight="regular" aria-hidden="true" />
                       Component
@@ -1308,7 +1317,7 @@ function OpenAddComponentModal({
               </main>
             </div>
           ) : (
-            <div role="tabpanel" aria-label="Activity" className="min-h-0 flex-1 overflow-auto p-[14px]">
+            <div role="tabpanel" aria-label="Activity" className="relative z-20 min-h-0 flex-1 overflow-auto p-[14px]">
               <section className="mx-auto grid w-full max-w-[520px] gap-3" aria-label="Component lifecycle">
                 <ControlField label="Component state" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS}>
                   <DropdownSelect
@@ -1352,7 +1361,7 @@ function OpenAddComponentModal({
             </div>
           )}
 
-          <footer className="flex h-[49px] min-h-[49px] shrink-0 items-center gap-2 border-t border-[rgba(61,61,61,0.08)] px-2">
+          <footer className="relative z-20 flex h-[49px] min-h-[49px] shrink-0 items-center gap-2 border-t border-[rgba(61,61,61,0.08)] px-2">
             <div className={cn("mr-auto min-w-0 truncate text-[9px] font-medium", error || showValidationErrors ? "text-danger" : "text-tertiary")} aria-live="polite">
               {componentStatus}
             </div>
@@ -1364,14 +1373,24 @@ function OpenAddComponentModal({
             </Button>
           </footer>
 
+          <div
+            aria-hidden="true"
+            data-add-component-drawer-seam-shadow
+            className={cn(
+              "pointer-events-none absolute bottom-0 right-[-36px] top-[33px] z-30 w-9 bg-[linear-gradient(90deg,rgba(23,29,40,0.22),rgba(23,29,40,0.08)_52%,transparent)] opacity-0 transition-opacity duration-200",
+              variantDrawerOpen && "opacity-100",
+            )}
+          />
+
           <aside
             role="dialog"
             aria-label="Manage variants"
             aria-modal="false"
             aria-hidden={!variantDrawerOpen}
             className={cn(
-              "absolute bottom-0 left-[calc(100%-1px)] top-[33px] z-20 flex w-[min(533px,calc(100vw-32px))] flex-col overflow-visible rounded-r-[6px] border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.94)] shadow-[22px_24px_60px_-28px_rgba(23,29,40,0.42)] backdrop-blur-[18px] transition max-lg:left-0 max-lg:right-0 max-lg:w-full max-lg:rounded-[6px] max-lg:border-l",
-              variantDrawerOpen ? "translate-x-0 opacity-100" : "pointer-events-none -translate-x-2 opacity-0",
+              "absolute bottom-0 left-[calc(100%-1px)] top-[33px] z-10 flex w-[min(533px,calc(100vw-32px))] flex-col overflow-visible rounded-r-[6px] border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.94)] backdrop-blur-[18px] transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.2,0,0,1)] max-lg:left-0 max-lg:right-0 max-lg:w-full max-lg:rounded-[6px] max-lg:border-l",
+              OPENDESIGN_DRAWER_SHADOW_CLASS,
+              variantDrawerOpen ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-[calc(-100%+1px)] opacity-0",
             )}
           >
             <header className="flex h-[45px] shrink-0 items-center gap-2 border-b border-[rgba(61,61,61,0.08)] px-4">
@@ -1409,8 +1428,9 @@ function OpenAddComponentModal({
                 aria-pressed={variantDrawerView === "manager"}
                 onClick={() => setVariantDrawerView("manager")}
                 className={cn(
-                  "grid h-8 w-[30px] place-items-center rounded-tr-[3px] border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.92)] text-tertiary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]",
-                  variantDrawerView === "manager" && "border-r-2 border-r-[#F24405] bg-white text-[#F24405]",
+                  "grid h-8 w-[30px] place-items-center rounded-tr-[3px] border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.84)] text-tertiary transition hover:border-[#F24405]/30 hover:bg-white hover:text-[#c63804] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]",
+                  OPENDESIGN_RAIL_SHADOW_CLASS,
+                  variantDrawerView === "manager" && cn("border-r-2 border-r-[#F24405] bg-white text-[#F24405]", OPENDESIGN_RAIL_ACTIVE_SHADOW_CLASS),
                 )}
               >
                 <Dna size={13} weight="regular" aria-hidden="true" />
@@ -1419,7 +1439,10 @@ function OpenAddComponentModal({
                 type="button"
                 aria-label="Add variant"
                 onClick={addVariant}
-                className="mt-[-1px] grid h-[34px] w-[30px] place-items-center border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.92)] text-tertiary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]"
+                className={cn(
+                  "mt-[-1px] grid h-[34px] w-[30px] place-items-center border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.84)] text-tertiary transition hover:border-[#F24405]/30 hover:bg-white hover:text-[#c63804] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]",
+                  OPENDESIGN_RAIL_SHADOW_CLASS,
+                )}
               >
                 <Plus size={14} weight="regular" aria-hidden="true" />
               </button>
@@ -1435,8 +1458,9 @@ function OpenAddComponentModal({
                       setVariantDrawerView("variant");
                     }}
                     className={cn(
-                      "mt-[-1px] grid h-[34px] w-[30px] place-items-center border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.58)] text-[9px] font-semibold text-tertiary opacity-60 transition hover:bg-white hover:text-ink hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]",
-                      activeVariant?.id === variant.id && variantDrawerView === "variant" && "border-r-2 border-r-[#F24405] bg-white text-[#F24405] opacity-100",
+                      "mt-[-1px] grid h-[34px] w-[30px] translate-x-[-3px] place-items-center border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.58)] text-[9px] font-semibold text-tertiary opacity-60 transition hover:translate-x-0 hover:bg-white hover:text-ink hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]",
+                      OPENDESIGN_RAIL_SHADOW_CLASS,
+                      activeVariant?.id === variant.id && variantDrawerView === "variant" && cn("translate-x-0 border-r-2 border-r-[#F24405] bg-white text-[#F24405] opacity-100", OPENDESIGN_RAIL_ACTIVE_SHADOW_CLASS),
                     )}
                   >
                     V{index + 1}
@@ -1445,7 +1469,7 @@ function OpenAddComponentModal({
               </div>
             </nav>
 
-            <div className="min-h-0 flex-1 overflow-auto p-2 pl-4">
+            <div className="min-h-0 flex-1 overflow-auto px-2 pb-2 pl-4 pt-[6px]">
               {variantDrawerView === "manager" ? (
                 <div className="grid gap-2" aria-label="Variant manager">
                   {draft.variants.map((variant, index) => (
@@ -1475,8 +1499,8 @@ function OpenAddComponentModal({
                 </div>
               ) : activeVariant ? (
                 <div className="grid gap-2" aria-label="Variant editor">
-                  <section className="grid grid-cols-[96px_minmax(0,1fr)] gap-2 rounded-[3px] bg-[rgba(61,61,61,0.035)] p-2" aria-label="Variant image">
-                    <div className="grid gap-1">
+                  <section className="grid h-[99px] grid-cols-[83px_minmax(0,1fr)] items-center gap-2 rounded-[3px] bg-[rgba(61,61,61,0.035)] p-2" aria-label="Variant image">
+                    <div>
                       <div className={OPENDESIGN_IMAGE_WELL_CLASS}>
                         {activeImageSrc ? (
                           <Image
@@ -1491,9 +1515,10 @@ function OpenAddComponentModal({
                           <ImageSquare size={20} weight="regular" aria-hidden="true" className="text-tertiary" />
                         )}
                       </div>
-                      <span className="truncate text-[9px] font-medium text-tertiary">{activeImagePath || "Variant thumbnail"}</span>
                     </div>
                     <div className="grid content-center gap-1">
+                      <p className="m-0 text-[11px] font-medium leading-[1.25] text-ink">Upload thumbnail</p>
+                      <p className="m-0 text-[9px] font-medium leading-3 text-tertiary">Use a square product photo or catalogue crop for this variant.</p>
                       <input
                         id={variantThumbnailInputId}
                         type="file"
@@ -1510,12 +1535,12 @@ function OpenAddComponentModal({
                       />
                       <label
                         htmlFor={variantThumbnailInputId}
-                        className="inline-flex h-8 cursor-pointer items-center justify-center gap-2 rounded-[6px] bg-[rgba(61,61,61,0.05)] px-3 !text-[10px] font-medium text-ink transition hover:bg-[rgba(61,61,61,0.08)] focus-within:ring-2 focus-within:ring-[rgba(242,68,5,0.32)]"
+                        className="inline-flex h-[26px] cursor-pointer items-center justify-center justify-self-start gap-2 rounded-[6px] bg-[rgba(61,61,61,0.05)] px-3 !text-[10px] font-medium text-ink transition hover:bg-[rgba(61,61,61,0.08)] focus-within:ring-2 focus-within:ring-[rgba(242,68,5,0.32)]"
                       >
                         <UploadSimple size={12} weight="regular" aria-hidden="true" />
                         Choose image
                       </label>
-                      <span className="text-[9px] font-medium leading-3 text-tertiary">JPG, PNG, WebP, or AVIF</span>
+                      <span className="min-h-[13px] truncate text-[9px] font-medium leading-3 text-tertiary">{activeImagePath || "No image selected"}</span>
                     </div>
                   </section>
 

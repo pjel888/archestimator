@@ -46,6 +46,8 @@ import {
 } from "@/lib/publication/activity-helpers";
 import { buildSharedLinkRecipientEmailLinks } from "@/lib/publication/email-links";
 import { getProjectPublicationSummary } from "@/lib/repositories/workspace-repository";
+import { withActionErrors } from "@/lib/observability/with-action-errors";
+import type { ActionResult } from "@/lib/observability/action-result";
 import { filterMap, filterMapBy } from "@/lib/util/array";
 import type {
   ProjectPublicationLocationVisibility,
@@ -939,9 +941,11 @@ export async function revokeProjectPublication({ projectId }: { projectId: strin
 // (it returns null for non-managers / unknown projects) and weakens no authorization.
 export async function refreshProjectPublicationSummary(
   projectId: string,
-): Promise<ProjectPublicationSummary | null> {
-  await requireAuth();
-  return getProjectPublicationSummary(projectId);
+): Promise<ActionResult<ProjectPublicationSummary | null>> {
+  return withActionErrors("refreshProjectPublicationSummary", async () => {
+    await requireAuth();
+    return getProjectPublicationSummary(projectId);
+  })();
 }
 
 // ============================================================================

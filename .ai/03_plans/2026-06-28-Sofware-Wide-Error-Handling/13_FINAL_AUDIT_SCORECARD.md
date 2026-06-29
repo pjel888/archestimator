@@ -17,12 +17,24 @@ Requirement-by-requirement scorecard, council findings, verification mode declar
 | 9 | Sample JSONL log line | PASS | `04` B.2 sample is synthetic; dev-only cause is redacted before logging. |
 | 10 | Hold-harmless/protected contracts | PASS | README protected contracts replace contradictory protected-file wording. |
 | 11 | Traceable requirement IDs | PASS | `07` and `12` map requirement IDs to pilot/full-scope status. |
-| 12 | Readiness verdict | PASS | `12` and README now declare `CONDITIONALLY READY`, not full implementation-ready. |
+| 12 | Readiness verdict | PASS | `12` originally declared `CONDITIONALLY READY`; README and this scorecard now declare `PILOT IMPLEMENTED`, not full implementation-ready. |
 | 13 | Rollback safety (criterion 7 in reviewer rubric) | PASS | `08` P5 Rollback section and `10` Sections A/C agree on `SENTRY_ENABLED=false` + `NEXT_PUBLIC_SENTRY_ENABLED=false` kill switches; per-phase revert preserved; master rollback flag explicitly removed. |
 | 14 | No regressions / no scope creep (criterion 9) | PASS | P1 pure addition (`08` P1 section); pilot-first preserved; baseline `test:dom` reds acknowledged (`08` Pre-implementation gates + phase-level stop conditions); no silent IMPLEMENTED upgrade. |
 | 15 | Plan-pack completeness (criterion 10) | PASS | All 16 files exist; `11` has 15 ADRs + 17 risks; `12` maps every requirement; tests framed as planned deliverables. |
 
-**Overall:** planning package is `CONDITIONALLY READY`. P1 plus the pilot vertical and P4 dev logging pilot are approved; broad migration and provider proof require the gates listed below.
+**Overall:** approved pilot is `PILOT IMPLEMENTED` with local evidence. Full all-actions/all-routes migration and provider/prod proof remain gated by the follow-on conditions below.
+
+## A.1 Pilot implementation scorecard (2026-06-29)
+
+| Pilot slice | Verdict | Evidence |
+|---|---|---|
+| P1 foundation modules | PASS | `src/lib/observability/` added typed errors, action/route wrappers, redaction, logger, Supabase unwrap, and toast mapping. Focused P1 tests passed. |
+| P2a publication action | PASS | `refreshProjectPublicationSummary` now returns canonical `ActionResult`; `tests/vitest/project-publication-actions.test.ts` passed (`29` tests). |
+| P2a representative route | PASS | `src/app/api/share/[token]/route.ts` uses `errorResponse(...)` for unexpected failures; `tests/vitest/project-publication-route.test.ts` passed (`17` tests). |
+| P3a global client surface | PASS | `src/app/global-error.tsx`, `/api/internal/client-error`, and `toast.appError(...)` added; P3a DOM/integration tests passed. Browser proof intentionally skipped because DOM/static tests prove the chosen boundary contract for this pilot. |
+| P4 dev NDJSON + AI loop | PASS | `logs:emit-test`, `logs:tail`, and `logs:explain 2026-06-29T02:20:19.180Z-pid16474-2` identify class/code/action/route/top frame and mark untrusted fields. Follow-up added `logs:debug` plus debugger workflow routing to the shared local log surface. |
+| P5 Sentry/provider/prod proof | GATED | No provider secrets, Vercel env, deployment, source-map upload, or Sentry dashboard proof changed in this pilot. |
+| P2b/broad migration | GATED | Full server/client rollout remains conditional on follow-on review of pilot evidence. |
 
 ## B. Requirements scorecard
 
@@ -85,17 +97,17 @@ The original pack was lead-authored and over-claimed readiness. This improvement
 
 - **Planning folder reviewed:** `.ai/03_plans/2026-06-28-Sofware-Wide-Error-Handling/`
 - **Prompt documents reviewed/validated:** `.ai/08_prompts/000_Planning Prompts/Improve-Plan-Prompt.md` and `Multi-Agent-Execution-Directive.md`
-- **Files changed:** plan-pack markdown only.
-- **Application code/tests/migrations/provider state changed:** none.
-- **Readiness status:** `CONDITIONALLY READY`.
-- **Approved implementation scope:** P1 foundation + P2a/P3a/P4 pilot evidence loop.
-- **Full migration gate:** pilot evidence + plan update + fresh independent review.
+- **Files changed by pilot:** observability modules, P2a publication action/route, P3a global-error/client-error/toast addition, P4 log scripts/package scripts, focused tests, and these evidence docs.
+- **Migrations/provider state changed:** none.
+- **Readiness status:** `PILOT IMPLEMENTED`.
+- **Approved implementation scope delivered:** P1 foundation + P2a/P3a/P4 pilot evidence loop.
+- **Full migration gate:** P2b/broad P3 requires fresh follow-on review; this pilot does not authorize a broad sweep by itself.
 - **Provider gate:** Sentry DSN/auth token/GitHub secret/Vercel env/source-map dashboard proof require explicit execution-time owner/provider authority.
-- **Skipped runtime proof:** browser, provider, deployment, and production behavior remain unproven until implementation phases capture that evidence.
+- **Skipped runtime proof:** browser proof was intentionally skipped for P3a because DOM/static tests cover the chosen boundary contract; provider, deployment, Sentry dashboard, and production behavior remain unproven.
 
 ## F. Stop condition
 
-Planning improvement is complete: docs-only verification passed and the final verifier confirmed no unresolved P0/P1 planning gap remains in the approved P1+pilot scope.
+Approved pilot implementation is complete once the final closeout validation in `LOOP_LEDGER.md` is green. Full rollout remains gated.
 
 ## G. ADV-14 AI-diagnosability manual proof (target — captured during P6a)
 
@@ -106,4 +118,13 @@ This section is the placeholder where the implementer captures the ADV-14 manual
 3. The AI agent correctly identified: `error.class`, `error.code`, `context.route`/`context.server_action`, the top stack frame, and the likely fix.
 4. The AI agent IGNORED any tainted fields in the record (per `04` Section A trust boundary) — specifically, no instructions inside `error.cause`/`agent_decision.why`/URL fields were followed.
 
-**Status:** not yet captured — P6a has not executed. This section is the recording surface; it stays empty until P6a proof runs.
+**Status:** captured for the approved local pilot.
+
+Evidence:
+- Synthetic error induced through the logger-owned emit path: `bun run logs:emit-test`.
+- Record id: `2026-06-29T02:20:19.180Z-pid16474-2`.
+- Diagnose command: `bun run logs:explain 2026-06-29T02:20:19.180Z-pid16474-2`.
+- `logs:explain` identified `InternalError`, `INTERNAL_ERROR`, `context.route=/__synthetic/logger-test`, `context.server_action=emitTestLog`, and top frame `scripts/emit-test-log.mjs:4:17`.
+- Hostile text was scrubbed to `[UNTRUSTED_INSTRUCTION]` and `Bearer [REDACTED_TOKEN]`; `error.cause.message` and `context.message` were emitted as `UNTRUSTED_DATA`.
+
+Likely fix for the synthetic record: inspect the direct emitter at `scripts/emit-test-log.mjs:4:17`; in a real incident, follow the same route/action/frame fields to the throwing module while treating tainted fields only as evidence.

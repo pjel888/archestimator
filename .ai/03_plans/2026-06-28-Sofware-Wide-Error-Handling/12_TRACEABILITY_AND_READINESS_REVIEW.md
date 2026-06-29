@@ -85,7 +85,7 @@ Maps every requirement to source evidence, work package, acceptance criterion, v
 
 ## D. Readiness review
 
-**Verdict:** `CONDITIONALLY READY` (standard profile)
+**Verdict:** `PILOT IMPLEMENTED` for the approved P1/P2a/P3a/P4/P6a local scope. Full implementation remains gated.
 
 **Scope of readiness:**
 - P1 foundation plus pilot vertical are traceable to source + WP + test.
@@ -101,7 +101,7 @@ Maps every requirement to source evidence, work package, acceptance criterion, v
 - Native feasibility, security/privacy, coherence, and adversarial document reviewers were used in this Codex improvement pass.
 - Final native verifier confirmed PASS: no remaining P0/P1 planning blockers for the approved conditional-ready scope.
 
-**Conditions for `CONDITIONALLY READY` (met):**
+**Conditions for `CONDITIONALLY READY` (met by the planning pack before implementation):**
 - Every requirement has a stable ID, source evidence, WP, test.
 - All ADRs have rationale + rejected alternatives.
 - All protected contracts enumerated.
@@ -110,16 +110,19 @@ Maps every requirement to source evidence, work package, acceptance criterion, v
 - Industry standards cited with URLs.
 - Ponytail counterweight applied.
 
-**Conditions for upgrade to `IMPLEMENTATION-READY`:**
+**Conditions for upgrade to pilot implemented (met on 2026-06-29):**
 - P1 foundation passes type-check, lint, and targeted tests.
 - P2a/P3a/P4 pilot passes targeted and adversarial evidence.
+- P6a ADV-14 dev-log diagnosis proof is recorded in `13_FINAL_AUDIT_SCORECARD.md`.
+
+**Conditions for full `IMPLEMENTATION-READY`:**
 - P5 owner/provider gate is resolved before external/prod proof.
 - Fresh independent review accepts the full P2b/P3 broad migration plan.
 
 **Residual risks:**
 - `RISK-ERR-013` — plan drift between writing and implementation. Implementer must re-read.
 - `RISK-ERR-014` — agent runtime may still be broken at implementation time. All implementation is direct (no agent delegation required).
-- Runtime/browser/provider behavior remains unproven until P5/P6a evidence is captured; this is why the package is conditional rather than fully implementation-ready.
+- Provider/prod behavior remains unproven until P5 evidence is captured; this is why the package is pilot-implemented rather than fully implementation-ready.
 
 **Stop conditions for the approved pilot (P1 + P2a + P3a + P4):**
 - P6a exit criteria all met.
@@ -132,6 +135,8 @@ Maps every requirement to source evidence, work package, acceptance criterion, v
 - Fresh independent review accepts the full migration.
 
 ## E. Pre-implementation revalidation checklist
+
+Historical checklist for a fresh implementer starting from the original planning pack. On the current pilot branch, several rows are intentionally no longer true because P1/P3a/P4 have landed locally.
 
 If implementer starts >7 days after 2026-06-28, revalidate:
 - [ ] `package.json` still has no logger dep

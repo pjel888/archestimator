@@ -87,6 +87,13 @@ Supabase/Postgres, TanStack Query, Zustand, and repository-boundary patterns.
 For framework-sensitive Next.js work, consult the relevant local docs under
 `node_modules/next/dist/docs/` before making implementation claims.
 
+For Cloudflare-sensitive work, load the relevant installed Cloudflare skills and
+refresh official Cloudflare docs, product changelogs, Wrangler config schema,
+and Workers type sources before relying on exact limits, pricing, API fields,
+compatibility flags, binding shapes, or deployment behavior. Treat Cloudflare
+skill guidance as retrieval-first: stale plan numbers and model memory are not
+provider facts.
+
 ======================================================================
 1. MASTER GOAL AND EXECUTION CONTRACT
 ======================================================================
@@ -516,6 +523,13 @@ Data, Supabase, API, and integrations:
 - Define request/response DTOs, validation, status codes, errors, retries,
   timeouts, cancellation, pagination, rate limiting, and provider quota behavior.
 - Do not claim provider proof from local checks.
+- For Cloudflare provider work, define product ownership and proof for Workers,
+  D1, KV, R2, Queues, Hyperdrive, Email Service, WAF/rate limiting, DDoS,
+  Turnstile, Access/Gateway/Tunnel, or other Cloudflare products in scope.
+  Require `wrangler.jsonc`/schema review, generated Worker `Env` types, scoped
+  bindings/secrets, compatibility date/flags, observability config, local
+  simulation limits, Cloudflare preview/provider proof, and rollback before a
+  Worker slice is production-ready.
 
 Security and privacy:
 

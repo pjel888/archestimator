@@ -158,17 +158,24 @@ Before revising the package, establish source authority:
    Components, Server Actions, caching, middleware/proxy behavior, build
    behavior, or framework conventions, consult the relevant local docs under
    `node_modules/next/dist/docs/` before finalizing the plan.
-8. Treat official framework/provider docs as evidence for framework behavior,
+8. If a plan touches Cloudflare products, load the relevant installed
+   Cloudflare skills first, then refresh official Cloudflare docs, product
+   changelogs, Wrangler config schema, and Workers type sources before citing
+   exact limits, pricing, API fields, compatibility flags, binding shapes, or
+   deployment behavior. At minimum consider the Cloudflare platform, Workers
+   best-practices, Wrangler, Cloudflare One, and migration skills when those
+   surfaces are in scope.
+9. Treat official framework/provider docs as evidence for framework behavior,
    and treat current repo files as evidence for local architecture and actual
    implementation patterns.
-9. If documentation conflicts with repo reality, record the conflict and decide
+10. If documentation conflicts with repo reality, record the conflict and decide
    which source controls for implementation.
-10. If a claim cannot be verified, label it as `ASSUMPTION`,
+11. If a claim cannot be verified, label it as `ASSUMPTION`,
     `DECISION NEEDED`, or `NOT VERIFIED`.
 
 Do not rely on model memory for current React, Next.js, Supabase, Vercel,
-browser performance, security, or accessibility behavior when the plan depends
-on exact details.
+Cloudflare, browser performance, security, or accessibility behavior when the
+plan depends on exact details.
 
 Unsupported implementation details may not be converted into requirements.
 Unsupported recommendations may not be made blockers.
@@ -744,6 +751,11 @@ Cover:
 - Memory, CPU, network, and storage pressure
 - Background work and queue behavior
 - Provider cost, rate limits, and scaling constraints
+- For Cloudflare: Workers request/CPU/duration/subrequest pressure, static
+  assets, D1 rows read/written/storage, KV operations and consistency, R2 Class
+  A/B/storage/retrieval/egress, Queues operation amplification, Hyperdrive
+  origin DB cost, Email Service send/event eligibility, WAF/rate-limit plan
+  constraints, and Wrangler/startup/runtime proof surfaces
 - Degradation behavior under load
 - Field metrics, `useReportWebVitals`, Lighthouse, bundle analysis, production-
   like smoke checks, or explicit reasons those checks are unnecessary

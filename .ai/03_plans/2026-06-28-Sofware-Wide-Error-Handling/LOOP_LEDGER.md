@@ -46,6 +46,39 @@ Reviewer gate: native council review found feasibility, security/privacy, cohere
 - Keep README and `12_TRACEABILITY_AND_READINESS_REVIEW.md` at `CONDITIONALLY READY`.
 - Full `IMPLEMENTATION-READY` requires P1+pilot evidence plus a fresh independent review.
 
+### Iteration 7 — EXECUTE approved pilot (2026-06-29 Codex)
+
+DISCOVER:
+- Re-read the plan pack scope and local Next 16 docs for `global-error.tsx`, route handlers, Server Actions, and instrumentation boundaries.
+- Confirmed baseline before edits: `bun run type-check` passed; `bun run lint` passed with existing warnings.
+- Selected `src/app/api/share/[token]/route.ts` as the representative route handler because it already had publication coverage and public error-path risk.
+
+EXECUTE:
+- Added P1 observability modules under `src/lib/observability/`: `app-error.ts`, `action-result.ts`, `types.ts`, `redact.ts`, `logger.ts`, `with-action-errors.ts`, `unwrap-supabase.ts`, `route-error.ts`, and `toast-config.ts`.
+- Wrapped the P2a publication pilot: `refreshProjectPublicationSummary` returns `ActionResult<ProjectPublicationSummary | null>` via `withActionErrors`, and `/api/share/[token]` converts unexpected throws to safe `errorResponse(...)` JSON.
+- Added the P3a pilot UI/error surfaces: `src/app/global-error.tsx`, `src/app/api/internal/client-error/route.ts`, and additive `toast.appError(error)` while preserving `toast({ ... })`.
+- Added the P4 dev NDJSON path and scripts: `.gitignore` `/logs/`, `scripts/tail-dev-logs.mjs`, `scripts/emit-test-log.mjs`, and `package.json` `logs:*` scripts.
+- Tightened the log smoke emitter to produce a real AppError-derived record with `error.class`, `error.code`, `context.route`, `context.server_action`, stack frame, and tainted prompt-injection fields.
+
+### Iteration 8 — VERIFY approved pilot (2026-06-29 Codex)
+
+Targeted evidence captured:
+- P1 foundation GREEN: `bun run test:dom -- tests/vitest/app-error.test.ts tests/vitest/redact.test.ts tests/vitest/unwrap-supabase.test.ts tests/vitest/with-action-errors.test.ts tests/vitest/route-error.test.ts` passed (`5` files / `15` tests before later hardening additions).
+- P2a route GREEN: `bun run test:dom -- tests/vitest/project-publication-route.test.ts` passed (`17` tests).
+- P2a action GREEN: `bun run test:dom -- tests/vitest/project-publication-actions.test.ts` passed (`29` tests).
+- P3a GREEN: `bun run test:dom -- tests/vitest/global-error.test.tsx tests/vitest/client-error.test.ts tests/vitest/toast-apperror.test.tsx tests/vitest/toast-a11y.test.tsx` passed (`4` files / `13` tests before the prompt-injection hardening addition).
+- P4 GREEN: `bun run test:dom -- tests/vitest/logger.test.ts tests/vitest/logger-perf.test.ts` passed; logger perf now asserts `1000` file writes with p95 `< 1ms`. `bun test tests/unit/tail-dev-logs.test.ts` passed (`5` tests).
+- Full focused pilot matrix passed after final hardening: `bun run test:dom -- tests/vitest/app-error.test.ts tests/vitest/redact.test.ts tests/vitest/unwrap-supabase.test.ts tests/vitest/with-action-errors.test.ts tests/vitest/route-error.test.ts tests/vitest/project-publication-actions.test.ts tests/vitest/project-publication-route.test.ts tests/vitest/global-error.test.tsx tests/vitest/client-error.test.ts tests/vitest/toast-apperror.test.tsx tests/vitest/toast-a11y.test.tsx tests/vitest/logger.test.ts tests/vitest/logger-perf.test.ts` (`13` files / `82` tests).
+- Static gates passed after implementation: `bun run type-check`; `bun run lint` exited `0` with the same known warning class.
+- AI-diagnosability smoke passed: `bun run logs:emit-test`, `bun run logs:tail --last 2`, and `bun run logs:explain 2026-06-29T02:20:19.180Z-pid16474-2`.
+
+### Iteration 9 — RECORD + DECIDE (pilot PASS; full rollout gated)
+
+- Update README status to `PILOT IMPLEMENTED`, not full `IMPLEMENTED`.
+- Update `13_FINAL_AUDIT_SCORECARD.md` with the P6a pilot evidence and ADV-14 proof.
+- Update `.ai/10_state/current-state.md` with a closeout entry while preserving unrelated Add Component state changes already present in the worktree.
+- Keep P2b, broad P3, and P5 provider/prod proof explicitly gated. Do not archive this plan pack until the README archive policy is met.
+
 ## Open decisions
 
 All planning-only owner decisions resolved — see `11_RISKS_DECISIONS_ALTERNATIVES.md` for `DEC-ERR-001` through `DEC-ERR-015` with rejected alternatives.

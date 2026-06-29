@@ -765,6 +765,26 @@ describe("component library manager UI", () => {
     expect(within(drawer).queryByLabelText("Confidence")).not.toBeInTheDocument();
   });
 
+  it("keeps the OpenDesign modal/drawer motion, shadow, and alignment contracts in source", () => {
+    const addComponentModalSource = readFileSync(join(process.cwd(), "src/components/workshop/component-library-manager/AddComponentModal.tsx"), "utf8");
+
+    expect(addComponentModalSource).toContain("blurBackdrop");
+    expect(addComponentModalSource).toContain("relative isolate flex");
+    expect(addComponentModalSource).not.toContain("lg:-translate-x-[184px]");
+    expect(addComponentModalSource).toContain("translate-x-[calc(-100%+1px)]");
+    expect(addComponentModalSource).toContain("transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.2,0,0,1)]");
+    expect(addComponentModalSource).toContain("OPENDESIGN_MODAL_SHADOW_CLASS");
+    expect(addComponentModalSource).toContain("0_28px_70px_-24px_rgba(23,29,40,0.32)");
+    expect(addComponentModalSource).toContain("OPENDESIGN_DRAWER_SHADOW_CLASS");
+    expect(addComponentModalSource).toContain("28px_26px_58px_-34px_rgba(23,29,40,0.56)");
+    expect(addComponentModalSource).toContain("data-add-component-drawer-seam-shadow");
+    expect(addComponentModalSource).toContain("right-[-36px] top-[33px] z-30 w-9");
+    expect(addComponentModalSource).toContain("top-[33px] z-10 flex w-[min(533px,calc(100vw-32px))]");
+    expect(addComponentModalSource).toContain("min-h-[176px]");
+    expect(addComponentModalSource).toContain("h-[99px] grid-cols-[83px_minmax(0,1fr)]");
+    expect(addComponentModalSource).toContain("pt-[6px]");
+  });
+
   it("updates the lifecycle draft from the Activity tab and keeps the modal open on Escape", async () => {
     await renderLibrary();
 

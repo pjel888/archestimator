@@ -37,6 +37,8 @@ type PublicationHarnessState = {
   revalidatedPaths: string[];
   rpcCalls: Array<{ args: Record<string, unknown>; functionName: string }>;
   rpcData: unknown;
+  summary: Record<string, unknown> | null;
+  summaryError: Error | null;
   currentUserRole: string | null;
   projectRole: string | null;
   snapshot: {
@@ -206,6 +208,8 @@ async function loadPublicationActionsWithHarness(overrides: Partial<PublicationH
     revalidatedPaths: [],
     rpcCalls: [],
     rpcData: 3,
+    summary: { id: PROJECT_ID, name: "Kitchen Renovation" },
+    summaryError: null,
     currentUserRole: "admin",
     projectRole: null,
     snapshot: {
@@ -273,6 +277,12 @@ async function loadPublicationActionsWithHarness(overrides: Partial<PublicationH
   vi.doMock("@/lib/email/resend-client", () => ({
     readEmailDeliveryConfig: vi.fn(() => ({ configured: true })),
     sendEmail: vi.fn(async () => ({ mocked: true, ok: true })),
+  }));
+  vi.doMock("@/lib/repositories/workspace-repository", () => ({
+    getProjectPublicationSummary: vi.fn(async () => {
+      if (state.summaryError) throw state.summaryError;
+      return state.summary;
+    }),
   }));
 
   process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
@@ -559,6 +569,39 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
     await expect(inactiveHarness.publicationActions.loadSharedLinkActivity("public-token")).rejects.toThrow(
       "Publication not found or inactive.",
     );
+  });
+
+  it("wraps the refresh publication summary pilot action in the canonical ActionResult shape", async () => {
+    const { publicationActions, state } = await loadPublicationActionsWithHarness();
+
+    const result = await publicationActions.refreshProjectPublicationSummary(PROJECT_ID);
+
+    expect(result).toEqual({
+      ok: true,
+      data: state.summary,
+    });
+  });
+
+  it("normalizes refresh publication summary thrown errors without leaking raw details", async () => {
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { publicationActions } = await loadPublicationActionsWithHarness({
+      summaryError: new Error("database password leaked token=provider-secret"),
+    });
+
+    const result = await publicationActions.refreshProjectPublicationSummary(PROJECT_ID);
+
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        kind: "internal",
+        code: "INTERNAL_ERROR",
+        message: "Something went wrong. Try again in a moment.",
+      },
+    });
+    expect(JSON.stringify(result)).not.toMatch(/provider-secret|password leaked/i);
+    expect(consoleSpy).toHaveBeenCalled();
+
+    consoleSpy.mockRestore();
   });
 
   it("wires Publisher drawer controls to server actions", () => {

@@ -1,3 +1,56 @@
+## 2026-06-29 add component modal OpenDesign QA
+
+source visual truth path:
+- Open Design project: `/Users/philiplewis/Library/Application Support/Open Design/namespaces/release-stable/data/projects/48c33336-06b3-4b4a-be58-e0bb3014cbfc/add-component-modal.html`
+- Reference screenshot: `.omx/artifacts/visual-ralph/add-component-modal/opendesign-rendered-open-v1.png`
+
+implementation screenshot path:
+- `.omx/artifacts/visual-ralph/add-component-modal/current-after-12-closed-drawer.png`
+- `.omx/artifacts/visual-ralph/add-component-modal/current-after-12-open-drawer.png`
+- Metrics: `.omx/artifacts/visual-ralph/add-component-modal/current-after-12-metrics.json`
+
+viewport: local Chromium, 1920x1040 CSS pixels, actual `AddComponentModal` rendered through a temporary proof harness and then removed.
+
+state: Add Component modal open, variant drawer opened to V1, upload thumbnail region visible.
+
+full-view comparison evidence:
+- Backdrop overlay computes `backdrop-filter: blur(12px)` while staying transparent, matching the requested background blur behavior.
+- Main modal position and size do not move when the drawer opens: x/y/width/height deltas are all `0`.
+- Modal shadow includes OpenDesign layers `rgba(23, 29, 40, 0.32)` and `rgba(23, 29, 40, 0.24)` plus the white inset highlight.
+- Drawer shadow includes the OpenDesign `rgba(23, 29, 40, 0.56)` right-drawer layer plus inset highlights.
+- Drawer opens to the right of the modal with the OpenDesign seam overlap and 533px drawer width.
+- Drawer is layered below the modal surface: drawer `z-index: 10`, component panel `z-index: 20`.
+- A modal seam shadow is visible above the drawer: seam shadow `z-index: 30`, opacity `1`, covering the drawer's left edge by 37px.
+
+focused region comparison evidence:
+- Component group measured `height: 176px`, `bottom: 311px`.
+- Variant upload thumbnail block measured `height: 99px`, `bottom: 311px`.
+- Thumbnail-to-component bottom delta is `0px`.
+
+findings:
+- No actionable P0/P1/P2 findings remain for the requested OpenDesign modal/drawer/shadow/alignment changes.
+- Residual note: the full drawer/rail composition follows the wide OpenDesign desktop canvas; the 1920px proof is the reliable comparison viewport.
+
+patches made since previous QA pass:
+- Enabled modal backdrop blur while keeping the transparent overlay.
+- Removed the conditional modal slide transform when the variant drawer opens.
+- Moved modal, drawer, and rail shadows to named OpenDesign shadow constants.
+- Changed the drawer closed transform to the OpenDesign hidden state and kept open state as `translate-x-0`.
+- Moved the drawer under the modal surface and added the OpenDesign right-edge seam shadow above it.
+- Changed drawer animation to explicit `transform, opacity` easing with OpenDesign-style cubic bezier.
+- Locked the main Component group to 176px and the variant upload thumbnail block to 99px with an 83px image column.
+- Adjusted drawer body top inset to align the variant thumbnail block bottom exactly with the main Component group bottom.
+
+verification:
+- `ADD_COMPONENT_VISUAL_BASE_URL=http://127.0.0.1:3000 node .omx/tmp/add-component-modal-visual-proof.mjs` passed.
+- `bun run test:dom -- tests/vitest/library-add-component-modal-a11y.test.tsx tests/vitest/component-library-manager-ui.test.tsx` passed: 30 tests.
+- `bunx eslint src/components/workshop/component-library-manager/AddComponentModal.tsx tests/vitest/component-library-manager-ui.test.tsx tests/vitest/library-add-component-modal-a11y.test.tsx` passed.
+- `node .agents/skills/impeccable/scripts/detect.mjs --strict src/components/workshop/component-library-manager/AddComponentModal.tsx` passed.
+- `git diff --check` passed.
+- `bun run type-check` is blocked by unrelated worktree file `src/lib/observability/with-action-errors.ts` with TS2352.
+
+final result: passed
+
 ## 2026-06-28 dashboard shell continuity QA
 
 source visual truth path:

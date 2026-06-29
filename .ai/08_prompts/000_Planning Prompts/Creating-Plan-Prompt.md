@@ -41,6 +41,7 @@ Do not produce a generic checklist. Produce a codebase-specific plan that:
 - Converts every requirement into observable behavior, code areas, validation evidence, and rollout checks.
 - Forces clean, simple, maintainable implementation choices instead of novelty, abstraction sprawl, or vague "best practices."
 - Treats React, Next.js, TypeScript, Tailwind, Supabase/Postgres, TanStack Query, Zustand, and deployment/operations as one production system.
+- Treats provider-migration briefs, including Cloudflare migration proposals, as high-blast-radius planning work requiring official-doc research, provider parity, cost modeling, staged proof gates, and rollback before any execution prompt is produced.
 - Defines measurable performance, reliability, security, accessibility, and data-integrity gates.
 - Separates evidence from inference and clearly labels assumptions.
 - Gives the implementation AI enough context to execute without broad rediscovery, while still requiring it to verify current files before editing.
@@ -814,6 +815,25 @@ Archestimator's baseline stack is Next.js 16, React 19, Bun, TypeScript, Tailwin
 
 Before planning framework-sensitive work, read the relevant local Next.js 16 documentation under `node_modules/next/dist/docs/`. Do not rely on older Next.js assumptions for App Router, route handlers, Server Components, caching, revalidation, Server Actions, testing, or deployment behavior.
 
+When a brief proposes migrating any Archestimator provider surface to Cloudflare, Cloudflare Workers, D1, KV, R2, Queues, Hyperdrive, Email Routing/Email Service, Cloudflare WAF/DDoS, Better Auth, or another replacement platform, activate this provider-migration overlay:
+
+- Classify the plan profile as `exhaustive`.
+- Treat the task as planning-only unless the caller separately provides an approved implementation package.
+- Research current official docs and pricing for every proposed provider primitive before making recommendations.
+- Read local Next.js docs because Next.js 16 adapter, runtime, deployment, caching, Server Actions, Middleware/Proxy, image, and platform behavior may differ from older assumptions.
+- Produce a provider parity matrix mapping current Vercel/Supabase/Postgres/Supabase Auth/Supabase Storage/Supabase Realtime/Resend behavior to the proposed target primitives.
+- Produce a usage-based cost model input sheet. Do not claim savings from pricing pages alone.
+- Treat Cloudflare D1 as a SQLite/serverless database, not a drop-in Postgres replacement. Require explicit proof for RLS, RPCs, triggers, generated types, transactions, backups/restore, query performance, and realtime replacement before any core-data cutover.
+- Treat Better Auth as a separate auth architecture decision. Require parity proof for SSR sessions, route gates, OAuth, magic links, claims/user identity, invites, service/admin paths, closed-beta access, legal terms gates, and database authorization identity.
+- Treat KV as eventually consistent cache only. Do not plan KV as a source of truth for sessions, permissions, locks, strong counters, or transactional state.
+- Treat R2 migration as object-storage redesign. Require app-level authorization, signed access, object-key design, scan/cleanup lifecycle, image/CSP behavior, backup, and rollback.
+- Treat Queues migration as background-job redesign. Require idempotency, duplicate delivery handling, retry/dead-letter behavior, backlog visibility, scheduling, and rollback.
+- Treat Hyperdrive as acceleration/pooling for Worker-to-external-Postgres/MySQL paths, not D1 acceleration and not a database replacement.
+- Distinguish inbound Email Routing from outbound Email Service/Sending. Keep the current transactional email provider as baseline until deliverability, webhook/event, retry, bounce, circuit-breaker, and analytics parity is proven.
+- Treat Cloudflare WAF/DDoS/rate limiting as front-door security work with plan-tier limits, false-positive handling, webhook/OAuth allowlists, event review, and rollback.
+- Include a staged migration recommendation that separates front-door adoption, storage pilots, queue pilots, Worker sidecars, runtime hosting proof, auth proof, database proof, and production cutover.
+- Mark the package `CONDITIONALLY READY` or `NOT READY` for implementation when cost inputs or provider parity proof is missing.
+
 If a feature does not touch one of the categories below, state why with evidence. If it does touch the category, the plan must include decisions, affected files, validation, and risks.
 
 NEXT.JS APP ROUTER AND RENDERING
@@ -1118,6 +1138,11 @@ For `exhaustive`, create the following documents inside the new plan directory:
 18_STACK_CONTRACT_AND_PRODUCTION_STANDARDS.md
 19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md
 README.md
+
+For Cloudflare or other provider-migration plans, also create provider-specific appendices when they materially improve reviewability:
+
+- `20_COST_MODEL_AND_PRICING_INPUTS.md`
+- `21_PROVIDER_PARITY_MATRIX.md`
 
 For `standard`, create either the full list above or a smaller set that still
 covers coordination, source map, requirements, architecture, implementation

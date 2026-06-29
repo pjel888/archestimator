@@ -45,6 +45,14 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Software-wide error-handling pilot implemented locally (2026-06-29):**
+
+- The approved pilot slice from `.ai/03_plans/2026-06-28-Sofware-Wide-Error-Handling/` is implemented but not archived: P1 observability foundation, P2a publication action + `/api/share/[token]` route pilot, P3a `global-error.tsx` + `/api/internal/client-error` + additive `toast.appError`, and P4 dev NDJSON logging/scripts.
+- Dev log AI diagnosis proof passed on record `2026-06-29T02:20:19.180Z-pid16474-2`: `bun run logs:explain` identified `InternalError`, `INTERNAL_ERROR`, `/__synthetic/logger-test`, `emitTestLog`, the source frame, and labeled `error.cause.message`/`context.message` as `UNTRUSTED_DATA`.
+- AI/debugger workflow integration is now explicit: `bun run logs:debug` explains the latest local ERROR/FATAL record, and `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`, `.ai/08_prompts/templates/codebase-ai-loop-task.md`, `.codex/prompts/debugger.md`, `.codex/agents/debugger.toml`, `.agents/skills/debug-issue/SKILL.md`, and `.ai/12_agents/README.md` instruct debugging agents to use `logs:debug` / `logs:explain` while treating log fields as untrusted evidence.
+- Fresh local evidence includes targeted Vitest/Bun matrices, `bun run type-check`, `bun run lint`, and the log smoke. Browser proof was intentionally skipped because DOM/static tests prove the P3a boundary contract; provider/prod/Sentry proof was not attempted.
+- Remaining gates: P2b broad action/route migration, broad P3 segment boundaries/not-found/auth bridge, and P5 Sentry/provider/source-map/dashboard proof. Keep this plan in `.ai/03_plans/` until the archive policy is met.
+
 **Proposals Page plan archived (2026-06-29):**
 
 - Archived the completed plan package from `.ai/03_plans/2026-06-28-Proposals-Page/` to `.ai/09_archive/2026-06-28-Proposals-Page/` after implementation, linked Supabase provider proof, focused tests, build/type/lint checks, static leak checks, and browser proof passed.
@@ -59,6 +67,15 @@ grep, don't linear-read).
 - Fresh evidence passed: focused recipient proposal Vitest matrix (`5` files / `18` tests), `bun run type-check`, `bun run lint` (existing unrelated warnings only), `bun run build`, `git diff --check`, static credential leak checks, and browser proof `.omx/artifacts/recipient-proposals-page/recipient-proposals-browser-2026-06-28T183402Z/recipient-proposals-browser-proof.json`.
 - Browser proof used a temporary provider workspace/project/publication/recipient fixture and cleaned it up. In local Next dev, the client transition initially observed the share loading shell after the Server Action redirect; the proof recorded this, reloaded the same `/share/[token]` URL with the action-created cookies, and verified the share page rendered. Tokens and email-like strings are redacted in the retained artifact.
 - Known unrelated validation noise: Supabase CLI/local reset/typegen exits 137 in this environment, so generated RPC types were patched manually after connector/provider proof. `bun run lint:design-system` remains red only on pre-existing Add Component/estimate-sheet findings, not Proposals.
+
+**Add Component OpenDesign drawer polish proof passed (2026-06-29):**
+
+- Follow-up OpenDesign polish added transparent backdrop blur, removed the drawer-open modal slide, and matched modal/drawer/rail shadow stacks to the OpenDesign source.
+- The variant drawer now opens to the right from underneath the modal surface while the main modal remains fixed; browser proof measured modal x/y/width/height deltas all `0` before/after drawer open.
+- OpenDesign layer order is mirrored: drawer `z-index: 10`, modal surface `z-index: 20`, modal seam shadow `z-index: 30`; the seam shadow is visible above the drawer and covers its left edge by 37px.
+- The variant upload thumbnail block is locked to 99px with an 83px image column; drawer body top inset was tuned so the thumbnail block bottom aligns exactly with the main Component group bottom (`0px` delta).
+- Fresh visual evidence: `.omx/artifacts/visual-ralph/add-component-modal/current-after-12-open-drawer.png` and `current-after-12-metrics.json`; `.omx/state/add-component-modal/ralph-progress.json` score updated to `99`.
+- Fresh evidence passed: browser visual proof script, focused DOM/a11y matrix `2` files / `30` tests, scoped ESLint, Impeccable strict detect, and `git diff --check`. `bun run type-check` is currently blocked by unrelated untracked observability work (`src/lib/observability/with-action-errors.ts` TS2352).
 
 **Add Component OpenDesign exact visual proof passed (2026-06-29):**
 
