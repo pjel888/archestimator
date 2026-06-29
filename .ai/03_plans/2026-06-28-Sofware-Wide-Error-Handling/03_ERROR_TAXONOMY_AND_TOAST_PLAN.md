@@ -511,7 +511,7 @@ export function mapAuthCodeToAppError(code: string, cause?: unknown): AuthError 
 
 `recordAccountSecurityEvent` calls stay — they're a complementary audit channel.
 
-## G. Migration inventory (drives P2 implementation)
+## G. Migration inventory (drives broad P2 — P2a pilot + P2b full migration)
 
 For each of the 22 server action files (`01_SOURCE_AUDIT.md` B.1):
 
