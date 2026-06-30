@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-30T01:58:20.529Z",
+  "generatedAt": "2026-06-30T06:29:11.196Z",
   "mode": "cloudflare-wrangler-auth",
   "source": "wrangler-whoami",
   "command": {

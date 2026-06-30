@@ -8,7 +8,7 @@ owner: Archestimator
 
 # Rate Limiting Inventory
 
-Inventory date: 2026-06-30. Route discovery found 30 `route.ts` files under `src/app` and 27 `src/lib/**/*actions.ts` files. This inventory focuses on rate-relevant surfaces and records low-risk static routes as low priority. The method/action worksheet in `19_IMPLEMENTATION_CONTRACT_WORKSHEET.md` is part of this inventory and must be refreshed before implementation.
+Inventory date: 2026-06-30. Route discovery found 30 `route.ts` files under `src/app` and 27 `src/lib/**/*actions.ts` files. This inventory focuses on rate-relevant surfaces and records low-risk static routes as low priority. The method/action/frontend worksheet in `19_IMPLEMENTATION_CONTRACT_WORKSHEET.md` is part of this inventory and must be refreshed before implementation.
 
 ## Current Mechanism Inventory
 
@@ -64,11 +64,14 @@ Every implementation work item must fill these fields before editing the target 
 | Proposed Limit Class | Public token, auth, storage, AI/cost, export, email, webhook/internal, telemetry, or no-policy rationale. |
 | Proposed Window(s) | Starting hypothesis or explicit "none; use idempotency/signature instead". |
 | Proposed Store / Provider | Postgres, RPC, memory supplemental, WAF, Workers RL, Durable Object, D1, provider, none. |
+| Server-Authoritative Gate | The auth/authz/validation/idempotency/rate-limit gate that runs before side effects or provider calls. |
+| Direct Invocation Behavior | Expected behavior when DevTools, scripted `fetch`, direct Server Action invocation, or replay bypasses UI controls. |
+| Client Control Needed | Pending state, keyboard parity, single-flight, debounce/throttle, cancellation, idempotency key, multi-tab coordination, optimistic rollback, cooldown, or no client guard with rationale. |
 | Cloudflare Edge Rule Needed? | Observe-only WAF/Turnstile/Worker candidate and proof gate. |
 | Worker Binding Candidate? | Whether approximate per-location Worker rate limiting is acceptable. |
 | Turnstile Candidate? | Whether human verification is appropriate and accessible. |
 | Failure Response | 429/403/401/503/drop/native action result, with no provider secret leakage. |
-| Retry-After Strategy | Header/body/action field or explicit not applicable. |
+| Retry-After Strategy | Header/body/action field, client cooldown behavior, accessible copy, or explicit not applicable. |
 | Privacy / PII Handling | Raw/hash/encrypted/public marker and retention class. |
 | Observability Event | Policy ID, decision, store, hashes, runtime, and sampling rules. |
 | Test Coverage Needed | Unit, route/action, store, distributed, provider, browser/manual, operations. |

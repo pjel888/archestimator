@@ -1,0 +1,62 @@
+{
+  "Vercel function invocations/duration": {
+    "value": "30d production runtime log counts: middleware=65, function=41, rewrite=2; status samples include 200=51, 304=6, 206=3, 503=2, 204=1; top paths include /=28, /robots.txt=14, /contact=5.",
+    "source": "Vercel runtime logs MCP, project prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E, production, since=30d",
+    "notes": "Runtime log counts are not invoice totals and do not include bandwidth or build-minute billing."
+  },
+  "Supabase DB size": {
+    "value": "40,242,323 bytes (~38.38 MiB) from pg_database_size(current_database()).",
+    "source": "Supabase SQL MCP, project ebxxqidacheyapmmzavr",
+    "notes": "Database footprint only; does not include Supabase plan price or egress."
+  },
+  "Supabase storage GB": {
+    "value": "290,223 bytes (~0.00027 GiB) across 11 storage.objects rows.",
+    "source": "Supabase SQL MCP, project ebxxqidacheyapmmzavr",
+    "notes": "Object metadata footprint only; does not include provider egress."
+  },
+  "Supabase Auth MAU": {
+    "value": "6 auth.users rows present.",
+    "source": "Supabase SQL MCP, project ebxxqidacheyapmmzavr",
+    "notes": "User count is not a monthly-active-user invoice metric."
+  },
+  "Workers requests": {
+    "value": "Proof traffic: 40 public-route GET probes returned HTTP 200; Workers Observability sampled 20 probe events in the 2026-06-30T08:14Z-08:18Z window.",
+    "source": "Cloudflare Workers Observability MCP",
+    "notes": "Proof-scale observed usage only; not projected monthly production requests."
+  },
+  "Workers CPU": {
+    "value": "Observed probe p95 CPU: /contact=40 ms, /trust=101 ms on Worker version 722234d9-7e09-4c31-b1ba-a036fb595006.",
+    "source": "Cloudflare Workers Observability MCP",
+    "notes": "Credential-free proof routes only; authenticated/data route CPU still requires production-like fixtures."
+  },
+  "D1 storage": {
+    "value": "Proof D1 archestimator-proof-db file_size=12,288 bytes, num_tables=0, region=APAC.",
+    "source": "Cloudflare D1 database get MCP, database 9bdb29bb-687e-4f51-ae81-7659c426ea5f",
+    "notes": "Proof DB only; production import/projection is not complete."
+  },
+  "R2 storage": {
+    "value": "Proof buckets exist: archestimator-proof-uploads and archestimator-proof-uploads-dev; runtime proof writes and deletes ephemeral 646-byte media object.",
+    "source": "Cloudflare R2 bucket list MCP plus provider runtime proof",
+    "notes": "Bucket byte totals are not exposed by the available MCP; production object migration is not complete."
+  },
+  "R2 Class A": {
+    "value": "Provider media proof performed one ephemeral put and delete against archestimator-proof-uploads.",
+    "source": "2026-06-30-cloudflare-provider-runtime-proof.json",
+    "notes": "Proof operation count only; not monthly production volume."
+  },
+  "R2 Class B": {
+    "value": "Provider media proof performed one ephemeral get and one post-delete get check against archestimator-proof-uploads.",
+    "source": "2026-06-30-cloudflare-provider-runtime-proof.json",
+    "notes": "Proof operation count only; not monthly production volume."
+  },
+  "Queues operations": {
+    "value": "Jobs proof sent one Queue message, observed one consumer ack receipt, and kept local retry/DLQ proof ready.",
+    "source": "2026-06-30-cloudflare-jobs-runtime-proof.json and 2026-06-30-cloudflare-queues-cron-proof.json",
+    "notes": "Proof operation count only; not monthly job volume."
+  },
+  "Observability/logs": {
+    "value": "Workers Observability sampled 20 proof probe events for current Worker version 722234d9-7e09-4c31-b1ba-a036fb595006.",
+    "source": "2026-06-30-cloudflare-observability-proof.json",
+    "notes": "Proof-scale log volume only; retention and production log volume still need rollout data."
+  }
+}

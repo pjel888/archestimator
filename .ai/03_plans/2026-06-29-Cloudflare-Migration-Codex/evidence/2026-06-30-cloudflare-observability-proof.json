@@ -1,0 +1,69 @@
+{
+  "generatedAt": "2026-06-30T08:17:30.000Z",
+  "mode": "cloudflare-observability-proof",
+  "source": "Cloudflare Workers Observability MCP",
+  "accountId": "7f6229cfea61b59f6f48b517fde86039",
+  "worker": "archestimator-proof",
+  "timeframe": {
+    "from": "2026-06-30T08:14:00Z",
+    "to": "2026-06-30T08:18:00Z"
+  },
+  "trafficProbe": {
+    "sentRequests": 40,
+    "allStatusesOk": true,
+    "statuses": [
+      200
+    ],
+    "maxClientObservedMs": 1721
+  },
+  "observability": {
+    "currentWorkerVersion": "722234d9-7e09-4c31-b1ba-a036fb595006",
+    "scriptVersionValues": [
+      "722234d9-7e09-4c31-b1ba-a036fb595006"
+    ],
+    "sampledProbeEventCount": 20,
+    "sampledProbePaths": [
+      {
+        "path": "/contact",
+        "status": 200,
+        "events": 10,
+        "p95WallTimeMs": 49,
+        "p95CpuTimeMs": 40
+      },
+      {
+        "path": "/trust",
+        "status": 200,
+        "events": 10,
+        "p95WallTimeMs": 110,
+        "p95CpuTimeMs": 101
+      }
+    ],
+    "sampleEvents": [
+      {
+        "path": "/contact",
+        "status": 200,
+        "scriptVersion": "722234d9-7e09-4c31-b1ba-a036fb595006",
+        "outcome": "ok",
+        "cpuTimeMs": 40,
+        "wallTimeMs": 49
+      },
+      {
+        "path": "/trust",
+        "status": 200,
+        "scriptVersion": "722234d9-7e09-4c31-b1ba-a036fb595006",
+        "outcome": "ok",
+        "cpuTimeMs": 101,
+        "wallTimeMs": 110
+      }
+    ]
+  },
+  "readiness": {
+    "workersObservabilityReceivingDataProven": true,
+    "currentWorkerVersionObserved": true,
+    "probeEventsObserved": true,
+    "analyticsReady": true,
+    "productionCutoverReady": false
+  },
+  "blockers": [],
+  "note": "Sanitized Cloudflare Workers Observability proof for the deployed proof Worker. It records sampled provider telemetry for harmless public-route probe traffic and does not expose request IPs, headers, secrets, cookies, DNS mutations, billing changes, or production cutover readiness."
+}

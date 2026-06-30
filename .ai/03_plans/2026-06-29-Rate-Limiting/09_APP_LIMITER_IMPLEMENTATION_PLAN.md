@@ -13,12 +13,13 @@ This is a conceptual implementation plan only. It does not authorize code change
 ## Implementation Strategy
 
 1. Freeze current behavior with targeted tests around existing public/share/invite/upload/AI/export limiters.
-2. Introduce a central policy registry and identity helper without changing thresholds.
-3. Migrate one surface at a time behind behavior-preserving tests.
-4. Add observability events in shadow mode.
-5. Add rollout modes: `off`, `shadow`, `enforce`, `challenge`.
-6. Replace process-local production-critical controls with durable stores.
-7. Add Cloudflare edge layers only after app-layer behavior is proven.
+2. Add a frontend-control inventory for repeat-click, Enter-submit, retry, cancellation, multi-tab, and idempotency behavior on high-risk UI actions.
+3. Introduce a central policy registry and identity helper without changing thresholds.
+4. Migrate one surface at a time behind behavior-preserving tests.
+5. Add observability events in shadow mode.
+6. Add rollout modes: `off`, `shadow`, `enforce`, `challenge`.
+7. Replace process-local production-critical controls with durable stores.
+8. Add Cloudflare edge layers only after app-layer behavior is proven.
 
 ## Conceptual Module
 
@@ -26,22 +27,41 @@ This is a conceptual implementation plan only. It does not authorize code change
 
 | Module | Contract |
 | --- | --- |
-| `types.ts` | Shared `RateLimitPolicy`, `RateLimitResult`, `RateLimitWindow`, `RateLimitMode`. |
-| `policies.ts` | Enumerates all route/action policy IDs and windows. |
+| `types.ts` | Shared `RateLimitPolicy`, `RateLimitResult`, `RateLimitWindow`, `RateLimitMode`, `RateLimitAlgorithm`, `ResponseProfile`, and `ResourceBudget`. |
+| `policies.ts` | Enumerates all route/action policy IDs, algorithms/windows, burst/reset semantics, resource budgets, response profiles, and disclosure posture. |
 | `identity.ts` | Normalizes request identity and hashed dimensions. |
-| `evaluate.ts` | Main `checkRateLimit(policyId, context)` function. |
+| `evaluate.ts` | Main `checkRateLimit(policyId, context)` function, including multi-window combination, retry-after math, algorithm semantics, and overshoot classification. |
+| `budgets.ts` | Resource-budget evaluation for body bytes, item counts, duration, concurrency, provider cost units, queue depth, and circuit breakers. |
 | `stores/postgres-events.ts` | Reuses `security_rate_limit_events`. |
 | `stores/postgres-reservation.ts` | Uses advisory-lock/RPC patterns for exact reservations. |
 | `stores/memory.ts` | Local dev/test or supplemental-only controls. |
 | `stores/cloudflare.ts` | Future Worker/DO adapters after proof. |
-| `responses.ts` | NextResponse/action result helpers. |
+| `responses.ts` | NextResponse/action result helpers for `Retry-After`, Problem Details where selected, draft RateLimit metadata where safe, no-store/cache headers, and server-action domain equivalents. |
 | `telemetry.ts` | Structured events and redaction. |
 | `test-helpers.ts` | Reset/time helpers for tests only. |
+
+## Conceptual Client Module
+
+If implementation creates shared frontend helpers, keep them separate from authoritative rate-limit evaluation. A likely future boundary is `src/lib/client-action-guards/` or a colocated hook under existing feature patterns.
+
+| Concept | Contract |
+| --- | --- |
+| Action key builder | Derive stable client keys from operation, actor/resource IDs already visible to the component, and request intent. No raw secrets or public bearer tokens. |
+| Single-flight guard | Prevent or join duplicate in-flight work for the same key and release on success, handled failure, abort, timeout, navigation cleanup, or rollback/kill-switch refresh. |
+| Cooldown helper | Convert safe server `Retry-After` headers/action fields into scoped retry state, plain-language copy, preserved draft/form state, and retry enablement. |
+| Retry policy helper | Disable automatic unsafe mutation retry unless the same user intent has a valid idempotency key; apply capped attempts, bounded backoff, optional jitter, timeout/abort, and `Retry-After` precedence. |
+| Idempotency helper | Generate operation IDs for retryable expensive/destructive actions, preserve them only for the same user intent, and carry enough stable intent metadata for the server to validate fingerprint, TTL, concurrent same-key, and mismatch behavior. |
+| Precondition/conflict adapter | Attach resource version, revision hash, or `If-Match`/ETag-style precondition fields where the route/action contract requires lost-update protection; preserve draft state on `409`/`412` recovery. |
+| Offline queue governor | Bound any persisted/offline work by max queued items, max age, max bytes, dedupe key, flush order, storage/privacy class, and purge rules for sign-out, workspace switch, token invalidation, and server denial. |
+| Browser lifecycle adapter | Recompute pending, cooldown, queue, optimistic, and kill-switch state on `visibilitychange`, focus, reconnect, navigation cleanup, timeout, and server/config refresh. |
+| Accessibility adapter | Standardize native `disabled`, optional `aria-disabled`, `aria-busy`, live-region status, focus restore, keyboard-submit behavior, separate cooldown explanation text, and no-stuck-disabled assertions for guarded actions. |
+| Multi-tab helper | Share in-flight/cooldown hints only for high-cost same-origin actions with `BroadcastChannel` or storage-event fallback; reserve Web Locks for deliberately chosen high-cost singleton work; stale tabs refresh from server response and never become the source of truth. |
 
 ## Migration Order
 
 | Step | Surface | Reason |
 | --- | --- | --- |
+| 0 | Frontend interaction inventory | Mark each high-risk UI action with pending, single-flight, idempotency, debounce/throttle, cancellation, cooldown, multi-tab, optimistic rollback, or no-guard rationale. |
 | 1 | Shared-link publication helpers | Most mature durable controls; centralize without changing behavior. |
 | 2 | Invite entry helpers | Similar durable store and HMAC IP pattern. |
 | 3 | AI ask and proposal export | Expensive surfaces already durable. |
@@ -60,14 +80,31 @@ This is a conceptual implementation plan only. It does not authorize code change
 - Preserve fail-closed behavior for AI quota storage unavailability.
 - Preserve graceful degradation for email delivery failures.
 - Preserve current Cloudflare migration NO-GO gates.
+- Preserve explicit idempotency fingerprint/TTL/mismatch behavior for expensive and destructive retryable mutations.
+- Preserve resource-version or `If-Match`/ETag-style precondition behavior where lost-update protection is required.
+- Preserve retry caps, backoff bounds, `Retry-After` precedence, and no automatic unsafe mutation retry without idempotency.
+- Preserve offline queue max count, max age, max bytes, purge rules, and privacy/storage boundaries.
+- Preserve `visibilitychange`, focus, reconnect, navigation cleanup, and rollback/kill-switch recomputation for stale client state.
+- Preserve tab-local or `BroadcastChannel`/Web Locks choices as optimizations only; server enforcement remains authoritative when browser coordination is absent.
+- Preserve keyboard submit, visible focus, screen-reader status, form/draft retention, and no-stuck-disabled recovery for frontend guarded actions.
 
 ## Adapter And Response Contract
 
 | Contract | Requirement |
 | --- | --- |
 | Store adapter result | Return `allowed`, `limited`, `store_error`, or `bypass` with `retryAfterSeconds`, evaluated window, policy ID, and store name. |
-| Route response helper | For route handlers, centralize 429 JSON/native body, `Retry-After`, `Cache-Control: no-store` on sensitive/public surfaces, and no provider error details. |
-| Server action helper | For Server Functions, return existing action-result shapes or throw the existing domain error type; do not introduce transport-only response assumptions. |
+| Algorithm/window contract | Store and evaluator adapters must declare fixed-window, sliding-window, token-bucket/GCRA, exact reservation, provider soft limit, or no-generic-quota semantics, including clock source, boundary behavior, burst capacity, multi-window combination, reset/refill, and retry-after math. |
+| Resource-budget contract | Each policy must define applicable request, body-byte, item/page-size, duration, concurrency, provider-cost, queue-depth, and circuit-breaker budgets or mark them not applicable with rationale. |
+| Route response helper | For route handlers, centralize 429 JSON/native/problem-details body, `Retry-After`, optional draft RateLimit metadata, `Cache-Control: no-store` on sensitive/public surfaces, `Vary`/cache posture, and no provider error details. |
+| Server action helper | For Server Functions, return existing action-result shapes or throw the existing domain error type; do not introduce transport-only response assumptions. Each action contract must define same-origin/CSRF posture, direct invocation behavior, and idempotency/replay posture. |
+| Quota disclosure posture | Sensitive auth/token/public flows suppress exact remaining/reset values unless explicitly approved; authenticated expensive routes may expose scoped retry timing after leakage review. |
+| Auth failed-attempt contract | Auth rows must define what counts as a failed attempt, which successes clear counters, how OAuth/magic callback invalid-state attempts are handled, how provider lockouts coordinate, and how beta/support recovery works. |
+| Client cooldown contract | For retryable denials, expose `retryAfterSeconds` or equivalent safe retry timing to the UI; preserve draft/form state; render scoped accessible wait/retry copy; re-enable the operation on expiry or refreshed server state. |
+| Retry-After parser contract | Client helpers must parse delay seconds and HTTP-date, reject invalid values, clamp extreme values, account for stale hidden tabs, and refresh server/config state on visibility/focus/reconnect before trusting local expiry. |
+| Idempotency mismatch contract | Route/action rows must define same-key/same-fingerprint, same-key/different-fingerprint, concurrent same-key, failed, and expired-key results before enabling automatic retry or offline flush. HTTP route candidates should consider `409` for in-progress conflicts and `422` for changed-payload mismatch; Server Functions keep domain-native result shapes. |
+| Precondition conflict contract | Resource-edit rows must define version/precondition inputs and recoverable `409`/`412` UI behavior, or explicitly justify last-writer-wins for that flow. |
+| Offline queue contract | Any queue must document max count, max age, max bytes, dedupe key, flush order, purge triggers, storage/privacy class, and server-denial halt behavior. |
+| Server-authoritative gate | Every route/action row must name the gate that runs before side effects, provider spend, email send, file write, or destructive mutation. |
 | Failure mode | Security, auth, public-token mutation, upload, export, and AI cost controls fail closed; telemetry drops/fails soft. |
 | Rollout mode | Every policy supports `off`, `shadow`, `enforce`, and, only for eligible public flows, `challenge`. |
 | Env/config ownership | Policy defaults live in code; runtime overrides use a reviewed config source, not scattered env reads. Secret peppers remain in provider secrets. |
@@ -80,6 +117,8 @@ This is a conceptual implementation plan only. It does not authorize code change
 | Existing `security_rate_limit_events` event table | Immediate compatibility and audit. |
 | Exact reservation RPC with advisory locks | Strict one-slot or low-rate exact reservations. |
 | Aggregated bucket table | Future optimization if event-table count queries become hot. |
+| Idempotency key/result table | Expensive/destructive replay protection with TTL cleanup and mismatch audit. |
+| Anomaly aggregate table or dashboard materialization | Low-and-slow distributed abuse detection using hashed dimensions and coarse cohorts. |
 | Durable Object counters | Future Cloudflare exact counters. |
 | D1 ledgers | Future lower-rate metadata after D1 proof. |
 
@@ -90,3 +129,4 @@ This is a conceptual implementation plan only. It does not authorize code change
 - No provider cutover.
 - No replacing Cloudflare migration plan gates.
 - No global lock or singleton counter.
+- No client-only protection claim for scripted or direct API requests.

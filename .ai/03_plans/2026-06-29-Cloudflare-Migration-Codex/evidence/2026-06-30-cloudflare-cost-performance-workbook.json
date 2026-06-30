@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-06-30T03:07:59.830Z",
+  "generatedAt": "2026-06-30T09:45:19.666Z",
   "mode": "cloudflare-cost-performance-workbook",
   "sources": {
     "inventory": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-migration-inventory.json",
     "workerPreviewRouteProbe": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-29-cloudflare-worker-preview-route-probe.json",
     "cloudflareHostedPerformance": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-hosted-performance.json",
     "cloudflarePricingSnapshot": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-official-pricing-snapshot.json",
-    "sanitizedUsageInputs": null
+    "sanitizedUsageInputs": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-sanitized-usage-inputs.json"
   },
   "readiness": {
     "currentProviderCostsReady": false,
@@ -43,10 +43,10 @@
     },
     {
       "input": "Vercel function invocations/duration",
-      "source": "Vercel usage",
-      "status": "missing",
-      "value": null,
-      "notes": "Requires sanitized dashboard/invoice/metrics input before cost decisions."
+      "source": "Vercel runtime logs MCP, project prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E, production, since=30d",
+      "status": "provided",
+      "value": "30d production runtime log counts: middleware=65, function=41, rewrite=2; status samples include 200=51, 304=6, 206=3, 503=2, 204=1; top paths include /=28, /robots.txt=14, /contact=5.",
+      "notes": "Runtime log counts are not invoice totals and do not include bandwidth or build-minute billing."
     },
     {
       "input": "Vercel build usage",
@@ -64,17 +64,17 @@
     },
     {
       "input": "Supabase DB size",
-      "source": "Supabase project metrics",
-      "status": "missing",
-      "value": null,
-      "notes": "Requires sanitized dashboard/invoice/metrics input before cost decisions."
+      "source": "Supabase SQL MCP, project ebxxqidacheyapmmzavr",
+      "status": "provided",
+      "value": "40,242,323 bytes (~38.38 MiB) from pg_database_size(current_database()).",
+      "notes": "Database footprint only; does not include Supabase plan price or egress."
     },
     {
       "input": "Supabase storage GB",
-      "source": "Supabase storage metrics",
-      "status": "missing",
-      "value": null,
-      "notes": "Requires sanitized dashboard/invoice/metrics input before cost decisions."
+      "source": "Supabase SQL MCP, project ebxxqidacheyapmmzavr",
+      "status": "provided",
+      "value": "290,223 bytes (~0.00027 GiB) across 11 storage.objects rows.",
+      "notes": "Object metadata footprint only; does not include provider egress."
     },
     {
       "input": "Supabase egress",
@@ -85,10 +85,10 @@
     },
     {
       "input": "Supabase Auth MAU",
-      "source": "Supabase auth metrics",
-      "status": "missing",
-      "value": null,
-      "notes": "Requires sanitized dashboard/invoice/metrics input before cost decisions."
+      "source": "Supabase SQL MCP, project ebxxqidacheyapmmzavr",
+      "status": "provided",
+      "value": "6 auth.users rows present.",
+      "notes": "User count is not a monthly-active-user invoice metric."
     },
     {
       "input": "Supabase Realtime connections/messages",
@@ -115,17 +115,17 @@
   "cloudflareCostInputs": [
     {
       "input": "Workers requests",
-      "source": "Monthly dynamic + static requests by route class",
-      "status": "missing",
-      "value": null,
-      "notes": "Requires hosted Cloudflare proof or sanitized usage input before cost decisions."
+      "source": "Cloudflare Workers Observability MCP",
+      "status": "provided",
+      "value": "Proof traffic: 40 public-route GET probes returned HTTP 200; Workers Observability sampled 20 probe events in the 2026-06-30T08:14Z-08:18Z window.",
+      "notes": "Proof-scale observed usage only; not projected monthly production requests."
     },
     {
       "input": "Workers CPU",
-      "source": "p50/p95 CPU per route/action from hosted proof",
-      "status": "missing",
-      "value": null,
-      "notes": "Requires hosted Cloudflare proof or sanitized usage input before cost decisions."
+      "source": "Cloudflare Workers Observability MCP",
+      "status": "provided",
+      "value": "Observed probe p95 CPU: /contact=40 ms, /trust=101 ms on Worker version 722234d9-7e09-4c31-b1ba-a036fb595006.",
+      "notes": "Credential-free proof routes only; authenticated/data route CPU still requires production-like fixtures."
     },
     {
       "input": "Workers subrequests",
@@ -150,31 +150,31 @@
     },
     {
       "input": "D1 storage",
-      "source": "DB size after import/projection",
-      "status": "missing",
-      "value": null,
-      "notes": "Requires hosted Cloudflare proof or sanitized usage input before cost decisions."
+      "source": "Cloudflare D1 database get MCP, database 9bdb29bb-687e-4f51-ae81-7659c426ea5f",
+      "status": "provided",
+      "value": "Proof D1 archestimator-proof-db file_size=12,288 bytes, num_tables=0, region=APAC.",
+      "notes": "Proof DB only; production import/projection is not complete."
     },
     {
       "input": "R2 storage",
-      "source": "Object bytes by bucket/class",
-      "status": "missing",
-      "value": null,
-      "notes": "Requires hosted Cloudflare proof or sanitized usage input before cost decisions."
+      "source": "Cloudflare R2 bucket list MCP plus provider runtime proof",
+      "status": "provided",
+      "value": "Proof buckets exist: archestimator-proof-uploads and archestimator-proof-uploads-dev; runtime proof writes and deletes ephemeral 646-byte media object.",
+      "notes": "Bucket byte totals are not exposed by the available MCP; production object migration is not complete."
     },
     {
       "input": "R2 Class A",
-      "source": "Creates, lists, uploads, lifecycle operations",
-      "status": "missing",
-      "value": null,
-      "notes": "Requires hosted Cloudflare proof or sanitized usage input before cost decisions."
+      "source": "2026-06-30-cloudflare-provider-runtime-proof.json",
+      "status": "provided",
+      "value": "Provider media proof performed one ephemeral put and delete against archestimator-proof-uploads.",
+      "notes": "Proof operation count only; not monthly production volume."
     },
     {
       "input": "R2 Class B",
-      "source": "Reads/downloads/head operations",
-      "status": "missing",
-      "value": null,
-      "notes": "Requires hosted Cloudflare proof or sanitized usage input before cost decisions."
+      "source": "2026-06-30-cloudflare-provider-runtime-proof.json",
+      "status": "provided",
+      "value": "Provider media proof performed one ephemeral get and one post-delete get check against archestimator-proof-uploads.",
+      "notes": "Proof operation count only; not monthly production volume."
     },
     {
       "input": "KV reads/writes/lists",
@@ -185,10 +185,10 @@
     },
     {
       "input": "Queues operations",
-      "source": "Writes, reads, deletes, retries in 64 KB units",
-      "status": "missing",
-      "value": null,
-      "notes": "Requires hosted Cloudflare proof or sanitized usage input before cost decisions."
+      "source": "2026-06-30-cloudflare-jobs-runtime-proof.json and 2026-06-30-cloudflare-queues-cron-proof.json",
+      "status": "provided",
+      "value": "Jobs proof sent one Queue message, observed one consumer ack receipt, and kept local retry/DLQ proof ready.",
+      "notes": "Proof operation count only; not monthly job volume."
     },
     {
       "input": "Durable Objects",
@@ -220,10 +220,10 @@
     },
     {
       "input": "Observability/logs",
-      "source": "Log volume, retention, analytics needs",
-      "status": "missing",
-      "value": null,
-      "notes": "Requires hosted Cloudflare proof or sanitized usage input before cost decisions."
+      "source": "2026-06-30-cloudflare-observability-proof.json",
+      "status": "provided",
+      "value": "Workers Observability sampled 20 proof probe events for current Worker version 722234d9-7e09-4c31-b1ba-a036fb595006.",
+      "notes": "Proof-scale log volume only; retention and production log volume still need rollout data."
     }
   ],
   "performanceFixtures": [
@@ -234,7 +234,7 @@
       ],
       "currentBaselineP95Ms": null,
       "cloudflareLocalPreviewP95Ms": 168.47,
-      "cloudflareHostedP95Ms": 133.99,
+      "cloudflareHostedP95Ms": 134.25,
       "budget": "under 200 ms",
       "budgetMs": 200,
       "status": "hosted-partial-pass",
@@ -250,7 +250,7 @@
       ],
       "currentBaselineP95Ms": null,
       "cloudflareLocalPreviewP95Ms": 13.68,
-      "cloudflareHostedP95Ms": 94.8,
+      "cloudflareHostedP95Ms": 80.99,
       "budget": "under 200 ms",
       "budgetMs": 200,
       "status": "hosted-partial-pass",
@@ -265,7 +265,7 @@
       ],
       "currentBaselineP95Ms": null,
       "cloudflareLocalPreviewP95Ms": 13.07,
-      "cloudflareHostedP95Ms": 88.89,
+      "cloudflareHostedP95Ms": 66.91,
       "budget": "no worse than baseline",
       "budgetMs": null,
       "status": "hosted-partial-pass",
@@ -280,7 +280,7 @@
       ],
       "currentBaselineP95Ms": null,
       "cloudflareLocalPreviewP95Ms": 327.35,
-      "cloudflareHostedP95Ms": 74.69,
+      "cloudflareHostedP95Ms": 55.16,
       "budget": "under 400 ms",
       "budgetMs": 400,
       "status": "hosted-partial-pass",
@@ -295,7 +295,7 @@
       ],
       "currentBaselineP95Ms": null,
       "cloudflareLocalPreviewP95Ms": 4.03,
-      "cloudflareHostedP95Ms": 151.63,
+      "cloudflareHostedP95Ms": 438.52,
       "budget": "under 600 ms",
       "budgetMs": 600,
       "status": "hosted-partial-pass",

@@ -28,13 +28,16 @@ Prepare an abuse-resistant, observable, false-positive-aware rate-limiting desig
 | Webhooks | Signature, replay, idempotency; rate limiting is secondary. |
 | Internal cron/jobs | Secret/signature auth, replay/idempotency, job duplication; rate limiting secondary. |
 | Server actions | Authenticated mutation and read-fanout surfaces outside API route handlers. |
+| Frontend/client interaction controls | Repeat-click, Enter-submit, multi-tab, retry, cancellation, idempotency, cooldown, and accessibility behavior before requests leave the browser. |
 | Realtime/future Durable Objects | Collaboration rooms and per-room counters. |
 | Current Postgres limiters | `security_rate_limit_events` and related helper functions. |
 | Future Cloudflare architecture | WAF, Workers Rate Limiting, Turnstile, Durable Objects, D1, Observability. |
+| HTTP/resource/auth standards | Response profile, draft RateLimit metadata posture, RFC 9457 compatibility, resource budgets, auth recovery, cache/CDN safety, low-and-slow escalation, and retention/deletion handling. |
 
 ## Out Of Scope
 
 - Implementing code, migrations, tests, scripts, provider resources, environment variables, or deployments.
+- Treating client-side disabled state, debouncing, cooldowns, or local locks as authoritative security controls.
 - Assuming paid plan availability or production Cloudflare entitlements.
 - Replacing Supabase Auth, Supabase/Postgres, D1, Better Auth, Resend, or Vercel.
 - Production cutover or provider cancellation.
@@ -46,7 +49,12 @@ Prepare an abuse-resistant, observable, false-positive-aware rate-limiting desig
 - One policy source of truth for route and server-action controls.
 - Consistent client identity extraction and proxy trust rules.
 - Durable exact counters for security-sensitive or expensive surfaces.
+- Explicit algorithm/window/burst/reset semantics for every policy.
+- Per-route/action HTTP response profile, quota metadata disclosure posture, cache/CDN profile, and resource budget dimensions.
+- Client-side pending, single-flight, idempotency, cooldown, cancellation, and accessibility contracts for high-risk UI actions, always paired with server-side proof.
 - Clear fail-open/fail-closed behavior per surface.
 - Observable denial and near-limit events.
+- Auth failed-attempt recovery and provider-lockout coordination before auth/contact enforcement.
+- Low-and-slow distributed-abuse dashboards and retention/deletion proof before production enforcement.
 - False-positive workflows for client reviewers and beta users.
 - Rollback switches for every enforcement stage.

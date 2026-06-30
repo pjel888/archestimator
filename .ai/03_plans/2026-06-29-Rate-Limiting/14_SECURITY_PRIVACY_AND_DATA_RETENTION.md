@@ -36,6 +36,8 @@ Rate limiting should store the minimum data required to enforce windows and inve
 | Webhook signature/secret | Raw header/secret env | Resend webhook and internal jobs | No | Never log raw; store event ID hash/idempotency status. | Replay and secret-rotation proof. |
 | Provider/API keys | Secret env/provider config | AI, email, Cloudflare, Supabase | No | Never include in limiter events or errors. | Secret scan, provider stub tests, rollback proof. |
 | Operator overrides | Config/audit rows | Admin/operator workflow | No | Store policy, scope hash, reason, owner, expiry; no raw PII. | Expiry job and audit readback proof. |
+| Idempotency keys | Client-generated or server-issued opaque key plus server-side fingerprint | Expensive/destructive route/action retry flows | Sometimes as opaque client header/form value | Store key hash, normalized fingerprint hash, state, expiry, and safe result pointer only; no raw payload or secrets. | TTL cleanup, mismatch audit, and replay-window deletion proof. |
+| Draft RateLimit metadata | Derived response headers/body fields | Route response helper | Yes, only where approved | Suppress or redact on sensitive auth/token/public flows; never reveal raw quota keys. | Response-profile tests verify metadata disclosure posture. |
 
 ## Current Privacy Observations
 
@@ -52,6 +54,9 @@ Rate limiting should store the minimum data required to enforce windows and inve
 | Operational metrics | Denial counts, store latency | Retain according to observability provider defaults and privacy policy. |
 | Turnstile validation | token outcome only | Do not store token; keep challenge outcome and policy ID. |
 | Webhook idempotency | event ID hash and processed status | Retain per provider replay window plus audit need. |
+| Idempotency key/result rows | key hash, fingerprint hash, state, safe result pointer | Retain for the operation replay window, then delete unless scoped security audit exception applies. |
+| Low-and-slow anomaly aggregates | coarse hashed/cohort summaries | Retain only aggregate signal long enough for incident review; avoid reconstructing raw identities. |
+| Cloudflare logs/traces | provider logs with sampled fields | Align retention/sampling with provider plan, privacy policy, and no-secret redaction proof. |
 
 ## Access Control
 
@@ -63,6 +68,8 @@ The existing `security_rate_limit_events` table revokes public/anon/authenticate
 - Raw telemetry can accidentally collect personal data.
 - Aggressive auth/contact controls can interfere with deletion/support requests.
 - Cloudflare logs may add provider-side retention and sampling considerations.
+- Hashed identifiers can still be personal data when linkable to user/account behavior; deletion/anonymization posture must be explicit.
+- Draft quota metadata can disclose whether an account, token, or recipient exists if exposed on sensitive routes.
 
 ## Required Security Review Before Enforcement
 
@@ -71,3 +78,5 @@ The existing `security_rate_limit_events` table revokes public/anon/authenticate
 - Verify RLS/grants/RPC privileges on limiter storage.
 - Verify failure modes do not leak token/account existence.
 - Verify false-positive recovery for support, deletion, unsubscribe, and proposal review.
+- Verify response metadata does not disclose sensitive quota, account, token, or recipient state.
+- Verify retention/deletion/anonymization for expired limiter events, idempotency keys, offline queues, and provider logs.

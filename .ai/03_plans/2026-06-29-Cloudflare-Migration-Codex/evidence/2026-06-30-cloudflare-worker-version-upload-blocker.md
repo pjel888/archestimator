@@ -2,6 +2,8 @@
 
 Generated: 2026-06-30T04:15:10Z
 
+Superseded: yes. Later long-running Wrangler uploads completed successfully; see `evidence/2026-06-30-cloudflare-worker-version-upload-resolved.{json,md}` for current status.
+
 ## Result
 
 - Updated local build ready: yes

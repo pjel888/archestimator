@@ -1,6 +1,8 @@
 {
   "generatedAt": "2026-06-30T04:15:10Z",
   "mode": "cloudflare-worker-version-upload-blocker",
+  "supersededBy": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-worker-version-upload-resolved.json",
+  "supersededReason": "Later long-running Wrangler version uploads completed successfully; the failure mode was a slow Cloudflare version ingestion path, not a persistent upload blocker.",
   "providerBacked": true,
   "accountId": "7f6229cfea61b59f6f48b517fde86039",
   "workerName": "archestimator-proof",

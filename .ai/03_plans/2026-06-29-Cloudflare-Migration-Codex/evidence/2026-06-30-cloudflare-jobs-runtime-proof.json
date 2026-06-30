@@ -1,0 +1,45 @@
+{
+  "generatedAt": "2026-06-30T08:13:10.504Z",
+  "mode": "cloudflare-jobs-runtime-proof-verifier",
+  "baseUrl": "https://archestimator-proof.philipjonlewis.workers.dev",
+  "endpointPath": "/__cloudflare/jobs-proof",
+  "providerBacked": true,
+  "secretInput": {
+    "name": "CRON_SECRET",
+    "present": true,
+    "source": "process.env"
+  },
+  "responseStatus": 200,
+  "responseOk": true,
+  "endpointMode": "cloudflare-jobs-runtime-proof",
+  "endpointProofScope": "queue-send-consumer-r2-receipt",
+  "proofId": "3fc41744-cc77-4ab1-b333-379cae7e5f80",
+  "queue": "archestimator-upload-jobs",
+  "proofReceiptKey": "provider-proof/jobs/3fc41744-cc77-4ab1-b333-379cae7e5f80.json",
+  "result": {
+    "queueSendReady": true,
+    "queueConsumerReceiptReady": true,
+    "cronProviderExecutionProven": true,
+    "consumerOutcome": {
+      "messageId": "09f4dbfdfb00073d39db7682be709515",
+      "action": "ack",
+      "reason": "executed",
+      "attempts": 1,
+      "deadLetterExpected": false,
+      "retryDelaySeconds": null,
+      "executedCount": 1,
+      "skippedCount": 0,
+      "error": null
+    }
+  },
+  "readiness": {
+    "providerBacked": true,
+    "queueSendReady": true,
+    "queueConsumerReceiptReady": true,
+    "cronProviderExecutionProven": true,
+    "productionJobsMessagingReady": true,
+    "productionCutoverReady": false
+  },
+  "blockers": [],
+  "note": "Calls the deployed proof Worker jobs-proof endpoint with a local bearer secret, then records sanitized Queue send, consumer receipt, and scheduled dry-run execution evidence. It does not print secret values, change DNS, delete resources, disable Vercel fallback, or make production cutover ready."
+}

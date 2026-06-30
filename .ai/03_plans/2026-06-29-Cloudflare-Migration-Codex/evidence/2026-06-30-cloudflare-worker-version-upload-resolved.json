@@ -1,0 +1,66 @@
+{
+  "generatedAt": "2026-06-30T06:32:00Z",
+  "mode": "cloudflare-worker-version-upload-resolved",
+  "providerBacked": true,
+  "accountId": "7f6229cfea61b59f6f48b517fde86039",
+  "workerName": "archestimator-proof",
+  "workerUrl": "https://archestimator-proof.philipjonlewis.workers.dev",
+  "supersedes": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-worker-version-upload-blocker.json",
+  "resolution": {
+    "uploadBlockerResolved": true,
+    "rootObservation": "Full OpenNext Worker version uploads can take several minutes without intermediate progress output. Allowing the upload command to continue produced accepted Worker versions.",
+    "latestUploadedVersionId": "79e6814f-51d5-42b2-8d1d-35a643a691ee",
+    "latestUploadedVersionNumber": 26,
+    "latestUploadedVersionCreatedAt": "2026-06-30T06:24:59.465687Z",
+    "latestDeployedVersionId": "79e6814f-51d5-42b2-8d1d-35a643a691ee",
+    "latestDeploymentId": "a31f8161-c41b-4e98-88e9-a55978e54189",
+    "latestDeploymentCreatedAt": "2026-06-30T06:25:27.458601Z",
+    "latestDeploymentPercentage": 100,
+    "latestDeploymentMessage": "Deploy public static cache policy proof Worker"
+  },
+  "successfulUploads": [
+    {
+      "versionId": "fedcc0e2-0a02-4311-8eed-06301eecc5e0",
+      "versionNumber": 25,
+      "tag": "static-public-route-speed",
+      "message": "Static public route speed pass full OpenNext upload retry",
+      "createdAt": "2026-06-30T05:51:09.691876Z",
+      "deployedAt": "2026-06-30T05:54:05.950373Z",
+      "deploymentPercentage": 100,
+      "uploadDurationSeconds": 254.69,
+      "startupTimeMs": 32
+    },
+    {
+      "versionId": "79e6814f-51d5-42b2-8d1d-35a643a691ee",
+      "versionNumber": 26,
+      "tag": "public-static-cache-policy",
+      "message": "Public static cache policy proof Worker",
+      "createdAt": "2026-06-30T06:24:59.465687Z",
+      "deployedAt": "2026-06-30T06:25:27.458601Z",
+      "deploymentPercentage": 100,
+      "uploadDurationSeconds": 529.82,
+      "startupTimeMs": 28,
+      "assetUploadSummary": "Uploaded 1 new asset /BUILD_ID; total upload 14565.93 KiB raw / 4013.70 KiB gzip."
+    }
+  ],
+  "readbackCommands": [
+    "bunx wrangler deployments list --name archestimator-proof --json",
+    "bunx wrangler versions list --name archestimator-proof --json"
+  ],
+  "postResolutionProof": {
+    "hostedRouteProofSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-hosted-route-proof.json",
+    "hostedRouteProofPassed": true,
+    "hostedRouteProofGeneratedAt": "2026-06-30T06:25:50.218Z",
+    "hostedPerformanceSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-hosted-performance.json",
+    "hostedCredentialFreePerformancePassed": true,
+    "hostedPerformanceGeneratedAt": "2026-06-30T06:28:45.927Z",
+    "publicStaticCacheControl": "s-maxage=31536000"
+  },
+  "productionCutoverReady": false,
+  "remainingBlockers": [
+    "No Worker custom-domain routing or Cloudflare nameserver cutover is active.",
+    "Full D1/Auth/Realtime production proof is still incomplete.",
+    "Cloudflare Images provider proof, Cron/Queues provider execution, Web Analytics/Workers Observability receipt, and production cost inputs remain incomplete."
+  ],
+  "note": "This artifact records a resolved Worker version upload blocker. It does not change DNS, purchase plans, mutate secrets, cancel providers, or make production cutover ready."
+}

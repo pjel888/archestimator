@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-30T04:14:30.831Z",
+  "generatedAt": "2026-06-30T09:42:07.995Z",
   "mode": "cloudflare-provider-readiness",
   "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-provider-readiness-source.json",
   "capturedAt": "2026-06-30T02:00:15.745Z",
@@ -71,43 +71,49 @@
       "key": "r2-provider",
       "label": "R2 proof buckets and readback proven",
       "ready": true,
-      "evidence": "r2ProofBucketsCreated=yes, r2HostedReadbackProven=yes, wranglerR2Readback=yes",
+      "evidence": "r2ProofBucketsCreated=yes, r2HostedReadbackProven=yes, wranglerR2Readback=yes, providerRuntimeR2Proof=yes",
       "blocker": null
     },
     {
       "key": "images-provider",
       "label": "Cloudflare Images binding provider-proven",
-      "ready": false,
-      "evidence": "imagesBindingProviderProven=no",
-      "blocker": "Cloudflare Images binding is not provider-proven."
+      "ready": true,
+      "evidence": "imagesBindingProviderProven=no, providerRuntimeImagesProof=yes",
+      "blocker": null
     },
     {
       "key": "jobs-provider",
       "label": "Cron/Queues provider execution proven",
-      "ready": false,
-      "evidence": "cronProviderExecutionProven=no, queuesProofCreated=yes, deadLetterProofCreated=yes",
-      "blocker": "Cloudflare Cron/Queues/dead-letter provider proof is incomplete."
+      "ready": true,
+      "evidence": "cronProviderExecutionProven=no, queuesProofCreated=yes, deadLetterProofCreated=yes, wranglerQueuesReadback=yes, jobsRuntimeProductionProof=yes",
+      "blocker": null
     },
     {
       "key": "analytics-provider",
-      "label": "Web Analytics receiving data",
-      "ready": false,
-      "evidence": "webAnalyticsPropertyCreated=yes, webAnalyticsReceivingDataProven=no",
-      "blocker": "Cloudflare Web Analytics receipt is not provider-proven."
+      "label": "Cloudflare Analytics/Workers Observability receiving data",
+      "ready": true,
+      "evidence": "webAnalyticsPropertyCreated=yes, webAnalyticsReceivingDataProven=no, workersObservabilityReceivingDataProven=yes, observedProbeEvents=20",
+      "blocker": null
     }
   ],
   "dashboardInventoryReady": true,
   "workersDeploymentReady": false,
-  "storageMediaReady": false,
-  "jobsReady": false,
-  "analyticsReady": false,
+  "storageMediaReady": true,
+  "jobsReady": true,
+  "analyticsReady": true,
   "productionCutoverReady": false,
   "dnsDelegationSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-dns-delegation.json",
   "dnsDelegationCapturedAt": "2026-06-30T03:01:35.992Z",
   "wranglerAuthSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-wrangler-auth.json",
-  "wranglerAuthCapturedAt": "2026-06-30T01:58:20.529Z",
+  "wranglerAuthCapturedAt": "2026-06-30T06:29:11.196Z",
   "providerResourceReadbackSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-provider-resource-readback.json",
-  "providerResourceReadbackCapturedAt": "2026-06-30T03:02:11.241Z",
+  "providerResourceReadbackCapturedAt": "2026-06-30T09:42:07.923Z",
+  "providerRuntimeProofSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-provider-runtime-proof.json",
+  "providerRuntimeProofCapturedAt": "2026-06-30T07:48:31.630Z",
+  "jobsRuntimeProofSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-jobs-runtime-proof.json",
+  "jobsRuntimeProofCapturedAt": "2026-06-30T08:13:10.504Z",
+  "observabilityProofSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-observability-proof.json",
+  "observabilityProofCapturedAt": "2026-06-30T08:17:30.000Z",
   "nameserverEvidenceSource": "public-dns",
   "publicDnsNameservers": [
     "dns1.registrar-servers.com",

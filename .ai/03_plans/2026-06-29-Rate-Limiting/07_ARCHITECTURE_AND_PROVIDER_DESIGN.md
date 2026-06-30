@@ -12,13 +12,14 @@ owner: Archestimator
 
 The target is a layered limiter, not a single mechanism:
 
+0. Client UI applies non-authoritative interaction guards for repeated clicks, duplicate submits, request cancellation, and retry UX.
 1. Request enters edge/WAF.
 2. Optional Turnstile challenge gates suspicious public flows.
 3. Route/server action calls a central app policy helper.
 4. Helper normalizes actor, resource, and client identity.
-5. Helper evaluates one or more windows using the configured store.
-6. Helper emits structured allow/deny/near-limit events.
-7. Route returns surface-specific response with `Retry-After`.
+5. Helper evaluates one or more algorithms/windows using the configured store and any resource-budget dimensions.
+6. Helper emits structured allow/deny/near-limit/anomaly events.
+7. Route returns the chosen response profile with `Retry-After` where retryable and quota metadata only where disclosure is safe.
 
 ## App Policy Registry
 
@@ -26,15 +27,32 @@ Future conceptual module: `src/lib/rate-limits/`.
 
 | File concept | Responsibility |
 | --- | --- |
-| `policies.ts` | Policy IDs, windows, key dimensions, failure mode, rollout mode, response profile. |
+| `policies.ts` | Policy IDs, algorithms/windows, burst/reset semantics, key dimensions, resource-budget class, failure mode, rollout mode, response profile. |
 | `identity.ts` | Trusted client IP and country extraction, HMAC hashing, proxy/source trust. |
 | `stores/postgres.ts` | Current `security_rate_limit_events` implementation and atomic slot helpers. |
 | `stores/memory.ts` | Test/dev-only or explicitly local fast path, never production-only for distributed quotas. |
 | `stores/cloudflare-worker.ts` | Workers Rate Limiting soft limiter adapter after proof. |
 | `stores/durable-object.ts` | Exact Cloudflare counter adapter after proof. |
-| `responses.ts` | Route/action result builders, `Retry-After`, no-store headers. |
-| `observability.ts` | Events, metrics, redaction, dashboards. |
+| `responses.ts` | Route/action result builders, `Retry-After`, optional Problem Details, draft RateLimit metadata posture, cache profile, no-store headers. |
+| `resource-budgets.ts` | Request count, body byte, item/page-size, duration, concurrency, provider-cost-unit, queue-depth, and circuit-breaker contracts. |
+| `observability.ts` | Events, metrics, redaction, dashboards, low-and-slow anomaly signals, retention/deletion proof fields. |
 | `rollout.ts` | shadow/log-only/enforce/challenge modes and kill switches. |
+
+## Frontend Interaction Guard Boundary
+
+Future frontend controls should live in a small shared client pattern, not as new security logic in every component. The goal is to reduce accidental duplicate pressure while leaving enforcement at the server boundary.
+
+| Client concern | Planning rule |
+| --- | --- |
+| Pending buttons/forms | Use existing button/form primitives and React pending state where possible. Disable only the triggering control or operation group, not unrelated app regions. |
+| Single-flight operations | Key by action, actor, and resource. Joining, dropping, or reusing an in-flight request is valid only for the same user intent. |
+| Debounce/throttle | Use for non-critical reads, telemetry, collaboration cursors, search, and autosave. Do not debounce destructive confirmation in a way that hides whether the click worked. |
+| Cancellation | Use browser-native abort/latest-wins behavior for superseded reads and previews. Treat cancellation as bandwidth/backpressure only because the server may already have received the request. |
+| Idempotency | Required for expensive or destructive retries: upload session init/finalize, export, AI package Apply, publication email/send, decision submit, and bulk mutations. |
+| `Retry-After` | Route headers or action result payloads must be translated into scoped cooldown UI with accessible status. |
+| Multi-tab | Use same-origin coordination only for high-cost duplicate work such as uploads, exports, AI Apply, and bulk destructive actions. Server enforcement remains authoritative. |
+| Programmatic bypass | Future tests must call the route/action directly while the UI would be disabled and prove server denial or idempotency. |
+| Same-origin and CSRF posture | Each browser-origin mutation must declare its server-side origin, Fetch Metadata, CSRF token, content-type, and body-size posture or an explicit exemption. |
 
 ## Header Trust And Identity
 
@@ -81,7 +99,7 @@ Cloudflare-native enforcement must not outrun the Cloudflare migration package. 
 | Proxy | Proxy can run before routes, but this checkout bypasses `/api` in `src/lib/auth/request-proxy.ts:115-121`; it is not the app-layer limiter. | Local source plus local Next docs `proxy.md:13-21`, `:84-95`. |
 | Request APIs | `headers()` and `cookies()` are request-time signals; cached scopes must not become quota stores or hide per-request limiter state. | Local Next docs `headers.md:48`, `cookies.md:69`, `use-cache.md:196`. |
 | Runtime | Proxy-runtime guidance in the local Next docs has drift; use the Proxy-specific docs for planning and verify Cloudflare adapter behavior separately. | Local docs `proxy.md:219`, `authentication.md:1124`, `edge.md:11`. |
-| Response contract | Sensitive limiter denials must use `Cache-Control: no-store`, no raw identifiers, no token/account existence leaks, and `Retry-After` where retry is allowed. | Plan sections 06, 09, 14, 19. |
+| Response contract | Sensitive limiter denials must use safe response profiles, `Cache-Control: no-store`, no raw identifiers, no token/account existence leaks, and `Retry-After` where retry is allowed; draft `RateLimit` metadata and Problem Details are opt-in by surface. | Plan sections 06, 09, 14, 19, 21. |
 
 ## Avoided Designs
 

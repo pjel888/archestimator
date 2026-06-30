@@ -1,8 +1,8 @@
 # Cloudflare Better Auth D1 Route-Gate Proof
 
-Generated: 2026-06-29T23:17:58.949Z
+Generated: 2026-06-30T09:41:56.035Z
 
-Local-only Better Auth D1 route-gate proof. It reads package, wrangler, generated type, and source files; it does not read env files, print secret values, create or mutate Cloudflare D1 databases, change DNS, deploy Workers, or replace the live Supabase auth gate. The mounted /api/auth route fails closed without a Better Auth secret and ARCH_DB binding.
+Better Auth D1 route-gate proof with hosted Cloudflare provider evidence. It reads package, wrangler, generated type, source files, and sanitized provider-proof output; it does not print secret values, change DNS, replace the live Supabase auth gate, or prove OAuth/magic-link callbacks.
 
 ## Summary
 
@@ -18,12 +18,16 @@ Local-only Better Auth D1 route-gate proof. It reads package, wrangler, generate
 | Route-gate D1 session fixture ready | yes |
 | Better Auth D1 schema SQL generated | yes |
 | Better Auth D1 schema SQL static review ready | yes |
+| Hosted Better Auth D1 schema proof ready | yes |
+| Better Auth provider secret/origin proof ready | yes |
+| Provider-backed session fixture ready | yes |
+| Better Auth provider proof ready | yes |
 | Route-gate parity matrix ready | yes |
 | Current Supabase gate preserved | yes |
 | Local Better Auth route-gate proof ready | yes |
 | Production Better Auth ready | no |
-| Local-only proof | yes |
-| Provider-backed proof | no |
+| Local-only proof | no |
+| Provider-backed proof | yes |
 
 ## Manifest And Mount Snapshot
 
@@ -39,6 +43,29 @@ Local-only Better Auth D1 route-gate proof. It reads package, wrangler, generate
 | Schema SQL SHA-256 | a6e8f988bdc954a9d8c8e02824584921f2d52d92d7493ebd2dff2e5aa948f694 |
 | Schema SQL tables | account, session, user, verification |
 | Schema SQL indexes | account_userId_idx, session_userId_idx, verification_identifier_idx |
+
+## Hosted Provider Proof
+
+| Item | Value |
+| --- | --- |
+| Provider proof artifact | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-better-auth-provider-proof.json |
+| Provider proof present | yes |
+| Provider proof generated | 2026-06-30T09:41:39.264Z |
+| Provider proof base URL | https://archestimator-proof.philipjonlewis.workers.dev |
+| Provider proof endpoint | /__cloudflare/better-auth-proof |
+| Provider proof response status | 200 |
+| Provider proof response OK | yes |
+| Schema apply ready | yes |
+| Expected tables present | yes |
+| Expected indexes present | yes |
+| Secret provider ready | yes |
+| Base URL ready | yes |
+| Trusted origins ready | yes |
+| Provider session fixture ready | yes |
+| Cleanup ready | yes |
+| Provider tables | account, session, user, verification |
+| Provider indexes | account_userId_idx, session_userId_idx, verification_identifier_idx |
+| Provider proof rows remaining | 0 |
 
 ## Route-Gate Parity Matrix
 
@@ -65,7 +92,6 @@ Local-only Better Auth D1 route-gate proof. It reads package, wrangler, generate
 
 ## Blockers
 
-- Better Auth D1 schema SQL is generated and statically reviewed locally, but has not been applied to hosted D1 or restore-tested.
-- Better Auth secret rotation, OAuth providers, magic-link/email provider config, trusted origins, and cookie settings have no sanitized Cloudflare provider evidence.
+- OAuth and magic-link/email callback flow is still not provider-proven end to end on Cloudflare.
 - Existing Supabase callback/actions/session helpers still own live auth behavior.
-- Route-gate tests cover local Better Auth helper denial/success behavior and D1-backed signed-cookie session fixtures, but provider-backed callback/session cutover tests are still missing before replacing Supabase session fixtures.
+- Hosted D1 Better Auth session fixture readback is provider-proven, but provider-backed callback/session cutover tests are still missing before replacing Supabase session fixtures.

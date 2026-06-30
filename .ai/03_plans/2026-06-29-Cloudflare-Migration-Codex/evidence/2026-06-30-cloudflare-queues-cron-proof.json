@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-30T00:06:43.316Z",
+  "generatedAt": "2026-06-30T08:13:30.192Z",
   "mode": "cloudflare-queues-cron-proof",
   "sources": {
     "wranglerConfig": "wrangler.jsonc",
@@ -16,8 +16,15 @@
     "localDuplicateDeliveryReady": true,
     "localPoisonMessageReady": true,
     "localQueuesCronProofReady": true,
-    "providerBacked": false,
-    "productionJobsMessagingReady": false
+    "providerBacked": true,
+    "queueSendProviderReady": true,
+    "queueConsumerReceiptReady": true,
+    "cronProviderExecutionProven": true,
+    "productionJobsMessagingReady": true
+  },
+  "jobsRuntimeProof": {
+    "sourceGeneratedAt": "2026-06-30T08:13:10.504Z",
+    "present": true
   },
   "queueConfig": {
     "producerBindingReady": true,
@@ -90,8 +97,6 @@
       }
     ]
   },
-  "blockers": [
-    "Cloudflare provider-backed Cron/Queues/DLQ execution evidence is still missing."
-  ],
-  "note": "Local Cloudflare Queues/Cron proof only. It validates wrangler queue/DLQ config, Worker queue() wiring, local enqueue, ack, retry, duplicate-idempotency, and poison-message handling without calling Cloudflare APIs, creating queues, reading secrets, deploying Workers, proving provider execution, changing DNS, billing, or replacing the live Vercel cron fallback."
+  "blockers": [],
+  "note": "Cloudflare Queues/Cron proof. It validates wrangler queue/DLQ config, Worker queue() wiring, local enqueue, ack, retry, duplicate-idempotency, poison-message handling, and, when available, a sanitized provider runtime proof without printing secrets, changing DNS, billing, or replacing the live Vercel cron fallback."
 }

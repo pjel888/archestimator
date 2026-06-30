@@ -1,0 +1,81 @@
+{
+  "generatedAt": "2026-06-30T10:15:21.367Z",
+  "mode": "cloudflare-better-auth-provider-proof-verifier",
+  "baseUrl": "https://archestimator-proof.philipjonlewis.workers.dev",
+  "endpointPath": "/__cloudflare/better-auth-proof",
+  "providerBacked": true,
+  "secretInput": {
+    "name": "CRON_SECRET",
+    "present": true,
+    "source": "process.env"
+  },
+  "responseStatus": 500,
+  "responseOk": false,
+  "endpointMode": "cloudflare-better-auth-provider-proof",
+  "endpointProofScope": "hosted-d1-schema-secret-session-fixture",
+  "result": {
+    "d1BindingPresent": true,
+    "schemaApplyReady": true,
+    "expectedTablesPresent": true,
+    "expectedIndexesPresent": true,
+    "secretProviderReady": true,
+    "baseUrlReady": true,
+    "trustedOriginsReady": true,
+    "providerSessionFixtureReady": true,
+    "cleanupReady": true,
+    "tableNames": [
+      "account",
+      "session",
+      "user",
+      "verification"
+    ],
+    "indexNames": [
+      "account_userId_idx",
+      "session_userId_idx",
+      "verification_identifier_idx"
+    ],
+    "magicLinkCutover": {
+      "magicLinkRequestReady": false,
+      "magicLinkTokenCaptured": false,
+      "magicLinkCallbackReady": false,
+      "sessionCookieIssued": false,
+      "routeGateSessionReadbackReady": false,
+      "replayBlockedReady": false,
+      "cleanupReady": true,
+      "providerBackedCallbackSessionCutoverReady": false,
+      "rowsRemaining": 0,
+      "error": "Error: No such module \"better-auth\"."
+    },
+    "rowsRemaining": 0,
+    "error": null
+  },
+  "readiness": {
+    "schemaApplyReady": true,
+    "expectedTablesPresent": true,
+    "expectedIndexesPresent": true,
+    "secretProviderReady": true,
+    "baseUrlReady": true,
+    "trustedOriginsReady": true,
+    "providerSessionFixtureReady": true,
+    "magicLinkRequestReady": false,
+    "magicLinkCallbackReady": false,
+    "sessionCookieIssued": false,
+    "routeGateSessionReadbackReady": false,
+    "replayBlockedReady": false,
+    "providerBackedCallbackSessionCutoverReady": false,
+    "cleanupReady": true,
+    "betterAuthProviderProofReady": false,
+    "productionCutoverReady": false
+  },
+  "blockers": [
+    "Better Auth provider proof endpoint returned HTTP 500.",
+    "Hosted Better Auth provider proof did not pass.",
+    "Hosted Better Auth magic-link request did not pass.",
+    "Hosted Better Auth magic-link callback did not mint a D1-backed session.",
+    "Hosted Better Auth magic-link callback did not issue a session cookie.",
+    "Hosted Better Auth session cookie did not pass route-gate getSession readback.",
+    "Hosted Better Auth magic-link token replay was not blocked.",
+    "Error: No such module \"better-auth\"."
+  ],
+  "note": "Calls the deployed proof Worker Better Auth provider-proof endpoint with a local bearer secret, then records sanitized provider behavior: hosted D1 schema/index readback, Better Auth secret/base URL presence, one ephemeral D1 session fixture readback, magic-link callback/session-cookie/route-gate readback, token replay blocking, and cleanup. It does not print secret values, deploy Workers, change DNS, replace Supabase auth, prove OAuth provider credentials, or make production cutover ready."
+}

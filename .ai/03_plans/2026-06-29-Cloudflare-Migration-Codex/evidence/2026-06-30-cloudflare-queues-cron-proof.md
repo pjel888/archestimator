@@ -1,8 +1,11 @@
 # Cloudflare Queues/Cron Local Proof
 
-Generated: 2026-06-30T00:06:43.316Z
+Generated: 2026-06-30T08:13:30.192Z
 
-Local Cloudflare Queues/Cron proof only. It validates wrangler queue/DLQ config, Worker queue() wiring, local enqueue, ack, retry, duplicate-idempotency, and poison-message handling without calling Cloudflare APIs, creating queues, reading secrets, deploying Workers, proving provider execution, changing DNS, billing, or replacing the live Vercel cron fallback.
+Cloudflare Queues/Cron proof. It validates wrangler queue/DLQ config, Worker queue() wiring, local enqueue, ack, retry, duplicate-idempotency, poison-message handling, and, when available, a sanitized provider runtime proof without printing secrets, changing DNS, billing, or replacing the live Vercel cron fallback.
+
+Jobs runtime proof present: yes
+Jobs runtime proof generated: 2026-06-30T08:13:10.504Z
 
 ## Readiness
 
@@ -17,8 +20,11 @@ Local Cloudflare Queues/Cron proof only. It validates wrangler queue/DLQ config,
 | localDuplicateDeliveryReady | yes |
 | localPoisonMessageReady | yes |
 | localQueuesCronProofReady | yes |
-| providerBacked | no |
-| productionJobsMessagingReady | no |
+| providerBacked | yes |
+| queueSendProviderReady | yes |
+| queueConsumerReceiptReady | yes |
+| cronProviderExecutionProven | yes |
+| productionJobsMessagingReady | yes |
 
 ## Queue Config
 
@@ -50,4 +56,4 @@ Local Cloudflare Queues/Cron proof only. It validates wrangler queue/DLQ config,
 
 ## Blockers
 
-- Cloudflare provider-backed Cron/Queues/DLQ execution evidence is still missing.
+- (none)

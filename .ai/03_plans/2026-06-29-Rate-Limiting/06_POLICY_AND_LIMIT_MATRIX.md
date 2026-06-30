@@ -17,10 +17,29 @@ All numbers below are **starting hypotheses**, not final production constants. T
 | Actor key | Prefer authenticated user/workspace/project/recipient where available. |
 | Client key | Use normalized trusted client IP hash, not raw IP. |
 | Token key | Hash public tokens with HMAC/secret where possible. |
-| Response | Use 429, JSON or surface-native result, `Retry-After`, `Cache-Control: no-store` for sensitive public APIs. |
+| Response | Use 429, JSON/problem-details or surface-native result, `Retry-After`, explicit cache profile, and draft RateLimit metadata only when quota disclosure is safe. |
+| Algorithm/window semantics | Name fixed-window, sliding-window, token-bucket/GCRA, exact reservation, provider soft limit, or no-generic-quota semantics before implementation. |
+| Resource budgets | Define request count, byte, item/page-size, duration, concurrency, provider-cost, queue-depth, and circuit-breaker budgets where applicable. |
+| Auth recovery | Auth/contact policies must coordinate with provider lockouts, generic responses, reset rules, support/unlock path, and beta-user false-positive handling. |
+| Cache/CDN | Sensitive token/auth/personalized/mutation denials default to `Cache-Control: no-store`; any shared or CDN-cacheable denial needs explicit rationale. |
 | Failure mode | Fail closed for auth/security/cost surfaces when limiter storage is unavailable; fail soft only for telemetry. |
 | Logging | Record near-limit, denied, limiter-store-failure, bypass, and operator override events. |
 | Privacy | Store hashed identifiers and coarse metadata only. |
+| Low-and-slow detection | Track cross-key cardinality/anomaly signals so distributed automation cannot hide below every single-key threshold. |
+| Client controls | Use pending, single-flight, cooldown, cancellation, idempotency, optimistic rollback, and keyboard-accessible status as UX/backpressure only; server limits remain authoritative. |
+| Direct bypass | Every high-risk policy must prove direct route/action invocation cannot bypass server gates before side effects. |
+
+## Client Affordance Matrix
+
+| Surface group | Required client affordance | Server truth |
+| --- | --- | --- |
+| Public share password/session/comment/decision/unsubscribe | Pending disable, keyboard parity, scoped `Retry-After`, draft retention for comments, focus recovery for decision dialogs. | Durable token/recipient/client policies and non-enumerating responses. |
+| Invite/auth/contact/beta feedback | Pending submit, preserved input, per-email/token cooldown copy, adaptive challenge only when server asks. | Provider-coordinated throttles, CSRF/same-origin posture, no enumeration. |
+| Upload/images/direct-upload | Active slot display, cancel/retry, cleanup timeout, same-resource single-flight, tab-crash recovery. | Durable capacity, byte/type validation, cleanup, idempotent release. |
+| XLSX export and AI/package-builder | Same-resource pending, idempotency key reuse for retry, abort stale draft/refine where safe, scoped cooldown. | Deny before workbook/provider work; Apply/export duplicate handling. |
+| Estimate/template/project organization editing | Per-resource queues, optimistic rollback or retryable pending item, stale-tab recovery, no global editor lock. | Server action policy preserves normal editing while denying scripted loops. |
+| Publication/email/digest/republish | Recipient/resource cooldown, single-flight, duplicate toast suppression. | Delivery idempotency, provider circuit breaker, email cooldown. |
+| Telemetry/activity | Local throttle/sample/drop without user-blocking UI. | Same-origin/fetch metadata/body-size/rate-limited drop. |
 
 ## Recommended Starting Matrix
 
@@ -59,6 +78,20 @@ All numbers below are **starting hypotheses**, not final production constants. T
 | Turnstile | Suspicious or unauthenticated public flows: password, invite probing, contact, possibly auth. | Authenticated internal workflows unless abuse evidence justifies it. |
 | Durable Objects | Exact counters, realtime room quotas, per-token coordination. | Global singleton bottlenecks or analytics warehouse use. |
 | D1 | Durable metadata, lower-rate ledgers, audit/event joins. | Hot counter store for very high-frequency enforcement unless proven. |
+
+## Standards Posture Matrix
+
+These are not production constants. They are the contract fields P0 must fill before code changes.
+
+| Surface class | Algorithm posture | Response/disclosure posture | Resource-budget posture |
+| --- | --- | --- | --- |
+| Public share password/session/comment/decision/unsubscribe | Exact low-rate event window or reservation; no soft-only edge authority. | Minimal safe body, `Retry-After` where retryable, `no-store`; suppress remaining/reset quota and token-existence clues. | Body size, comment payload, write frequency, recipient/session daily cap, and support override budget. |
+| Invite/auth/contact | Provider-coordinated app windows; auth failed-attempt semantics must define reset and recovery before enforcement. | Generic auth/token response, `Retry-After` only when it does not aid enumeration; no draft RateLimit metadata unless explicitly approved. | Email-send count, provider lockout/challenge threshold, contact body size, beta-user recovery budget. |
+| Upload/images/direct-upload | Active-slot reservation plus request/body/file/transform windows; process-local guards are supplemental only. | Surface-native 429/capacity result with retry or cleanup timing; no provider internals. | Max body bytes, file count, active actor/workspace slots, transform duration, cleanup lag, storage/provider circuit breaker. |
+| XLSX export and AI/package-builder | Deny-before-work exact app policy plus provider-cost budget; idempotent retry semantics for expensive operations. | Authenticated JSON/action result with `Retry-After`; draft RateLimit metadata only after leakage review. | Workbook CPU/DB duration, query count, AI token/model spend, provider calls, daily cost cap. |
+| Estimate/template/project organization editing | Lenient burst with explicit algorithm and stale-write posture; last-writer-wins must be named if accepted. | Domain-native action result; conflicts use recoverable `409`/`412` equivalents. | Per-resource mutation burst, concurrent edits, result-row/page-size, queue depth, stale-client retry budget. |
+| Email/digest/republish/webhook/internal | Idempotency/signature first; quotas secondary except email reputation and provider circuit breakers. | Minimal safe route/action result; no secret, signature, event-id, or provider-window leakage. | Recipient send count, digest reservation, webhook body bytes, retry queue depth, DLQ/circuit thresholds. |
+| Telemetry/activity/client-error | Fail-soft local/drop or sampled app policy; not user-blocking. | Minimal response; no limiter internals. | Body size, event count, sample rate, cardinality cap, storage/log cost. |
 
 ## Performance And Cost Budget Placeholders
 

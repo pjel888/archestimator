@@ -1,0 +1,45 @@
+{
+  "generatedAt": "2026-06-30T07:48:31.630Z",
+  "mode": "cloudflare-provider-runtime-proof-verifier",
+  "baseUrl": "https://archestimator-proof.philipjonlewis.workers.dev",
+  "endpointPath": "/__cloudflare/provider-proof",
+  "providerBacked": true,
+  "secretInput": {
+    "name": "CRON_SECRET",
+    "present": true,
+    "source": "process.env"
+  },
+  "responseStatus": 200,
+  "responseOk": true,
+  "endpointMode": "cloudflare-provider-runtime-proof",
+  "endpointProofScope": "images-binding-and-r2-ephemeral-object",
+  "result": {
+    "imagesBindingPresent": true,
+    "imagesInfoReady": true,
+    "imagesTransformReady": true,
+    "imageFormat": "image/jpeg",
+    "imageDimensions": {
+      "width": 32,
+      "height": 32
+    },
+    "imageOutputBytes": 68,
+    "imagesError": null,
+    "r2BindingPresent": true,
+    "r2PutReady": true,
+    "r2GetReady": true,
+    "r2DeleteReady": true,
+    "r2ObjectBytes": 646,
+    "proofObjectDeleted": true,
+    "r2Error": null,
+    "imagesProviderProofReady": true,
+    "r2ProviderProofReady": true
+  },
+  "readiness": {
+    "imagesProviderProofReady": true,
+    "r2ProviderProofReady": true,
+    "providerRuntimeProofReady": true,
+    "productionCutoverReady": false
+  },
+  "blockers": [],
+  "note": "Calls the deployed proof Worker provider-proof endpoint with a local bearer secret, then records only sanitized provider behavior: Cloudflare Images info/transform readiness and ephemeral R2 put/get/delete readiness. It does not print secret values, upload secrets, deploy Workers, change DNS, purchase plans, delete resources, or make production cutover ready."
+}

@@ -19,7 +19,9 @@ owner: Archestimator
 | Spam/reputation damage | Email invites/resends/digests/contact | Resend/domain reputation | Per-owner/project limits, recipient cooldowns, circuit breaker, webhook idempotency. |
 | Telemetry flood | Client error intake, activity events | Log volume/noise, incident masking | Body size, same-origin, per-IP limiter, sampling. |
 | Replay/duplication | Webhooks, internal cron, upload scans, queue retries | Duplicate side effects | Signatures/secrets, idempotency keys, replay windows; rate limits are secondary. |
+| Frontend bypass | DevTools `fetch`, scripts, direct Server Action invocation, repeated Enter submit | Duplicate side effects, provider spend, false confidence in UI guards | Server-authoritative gates before side effects; client controls are advisory. |
 | Distributed flood | Edge/API floods across instances/regions | Origin overload before app limiter | WAF coarse rules, Workers soft limits, origin shielding, dashboards. |
+| Low-and-slow business-flow abuse | Many accounts/IPs/tokens stay below each per-key threshold while probing invites, auth, share links, feedback, or email sends | Enumeration, account friction, reputation harm, and noisy support without obvious single-key spikes | Cross-key anomaly detection, cardinality dashboards, adaptive challenge, and incident-mode escalation. |
 
 ## Threat Detail Matrix
 
@@ -33,6 +35,8 @@ owner: Archestimator
 | AI spend loop | Authenticated user, automation, compromised session | AI ask/package-builder | Provider token spend, mutation risk | AI ask limiter; package-builder audit/auth | Package-builder branch quotas and daily cost budget | Ask 10/min, 60/hour; package-builder 3/min, 20/hour hypothesis | Postgres/provider ledger now | WAF observe only | Deny before provider call or Apply | `ai_*` provider_usage/deny | Medium. |
 | Webhook/internal replay | Forged sender, retry storm, exposed secret | Resend webhook, internal upload jobs | Duplicate side effects, queue pressure | Signature/body/secret checks | Idempotency/replay proof | No generic quota first | DB idempotency/queue | WAF coarse if attacked | Signature/replay/idempotency primary | `webhook_replay`, `job_duplicate` | Low if scoped. |
 | Telemetry flood | Browser script, malicious client | Client error route/activity events | Log cost/noise, incident masking | Body/same-origin/local 10/min | Standard hashing/sampling/cardinality | 10/min now; future sampled telemetry policy | Memory/drop now; telemetry store later | WAF observe if attacked | Fail soft/drop | `telemetry_drop`, sample rate | Low. |
+| Authenticated console loop | Logged-in user or compromised browser session | Upload/export/AI/estimate/publication routes and actions | Provider spend, duplicate mutations, UI bypass | Surface-specific auth and some existing limiters | Direct-invocation server gate proof and cross-surface idempotency | Same as surface policy; never rely on UI pending state | Postgres/RPC now; DO later | WAF observe only | Authz, idempotency, and rate limit before side effects | `direct_bypass` and policy deny/duplicate result | Medium. |
+| Low-and-slow distributed automation | Botnet, many disposable accounts, or leaked-token list | Auth/magic links, invite resolve, share password/session, beta feedback/contact, email resend | Stays below per-key limits while creating enumeration, mail, or support pressure | None centralized beyond per-surface limiters | Cardinality/anomaly thresholds and incident escalation | Per-key limits plus aggregate cohort thresholds | Event dashboard/warehouse or app aggregate | WAF observe/challenge after proof | Escalate policy/challenge without broad IP-only blocks | `anomaly_low_and_slow`, cohort cardinality, challenge rate | High if shared offices or beta cohorts are over-grouped. |
 
 ## Surface-Specific Scenarios
 
@@ -52,6 +56,16 @@ owner: Archestimator
 | Resend webhook | Forged webhook or replay. | Signature/config/body-size validation. | Needs idempotency/replay proof more than generic rate limit. |
 | Internal cron/jobs | Repeated cleanup/scan invocations. | Secret/config checks. | Needs replay and idempotency tracking; Cloudflare cron/queue proof remains local. |
 | Realtime collaboration | Room spam, connect floods, message storms. | Durable Object scaffold exists in Cloudflare proof config. | Production room quotas and observability not proven. |
+
+## Idempotency And Repeat-Intent Taxonomy
+
+| Repeat path | Example | Primary control |
+| --- | --- | --- |
+| User repeat | Double click, repeated Enter, impatient retry after success. | Client pending/single-flight plus server idempotency or scoped cooldown. |
+| Browser/network retry | Timeout, back/refresh, reconnect flush. | Reuse operation key for the same intent and return existing result or no-op duplicate. |
+| Webhook retry | Provider redelivery. | Signature validation and event-id idempotency. |
+| Queue retry | Job retry after partial failure. | Job idempotency key and dedupe. |
+| Scripted replay | Direct `fetch` or action loop bypassing React state. | Server-authoritative limiter, authz, and idempotency before side effects. |
 
 ## Abuse Priority
 

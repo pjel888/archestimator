@@ -1,0 +1,81 @@
+{
+  "generatedAt": "2026-06-30T09:14:35.402Z",
+  "mode": "cloudflare-d1-runtime-performance-proof-verifier",
+  "baseUrl": "https://archestimator-proof.philipjonlewis.workers.dev",
+  "endpointPath": "/__cloudflare/d1-performance-proof",
+  "providerBacked": true,
+  "secretInput": {
+    "name": "CRON_SECRET",
+    "present": true,
+    "source": "process.env"
+  },
+  "responseStatus": 200,
+  "responseOk": true,
+  "endpointMode": "cloudflare-d1-runtime-performance-proof",
+  "endpointProofScope": "hosted-worker-d1-binding-query-budget-and-p95",
+  "result": {
+    "d1BindingPresent": true,
+    "schemaReady": true,
+    "seedReady": true,
+    "cleanupReady": true,
+    "rowsSeeded": 132,
+    "rowsCleaned": 0,
+    "benchmarkSurfaces": 4,
+    "benchmarkRows": [
+      {
+        "surface": "workspace_homebase_summary",
+        "queryBudget": 3,
+        "plannedQueries": 1,
+        "hostedBudgetMs": 600,
+        "hostedP95Ms": 65,
+        "sampleCount": 9,
+        "rowsReturned": 2,
+        "status": "hosted-pass",
+        "notes": "Workspace summary read model should stay within one grouped D1 query plus authorization guard."
+      },
+      {
+        "surface": "project_estimate_list_summaries",
+        "queryBudget": 3,
+        "plannedQueries": 1,
+        "hostedBudgetMs": 600,
+        "hostedP95Ms": 76,
+        "sampleCount": 9,
+        "rowsReturned": 2,
+        "status": "hosted-pass",
+        "notes": "Project estimate list should avoid per-estimate follow-up queries."
+      },
+      {
+        "surface": "library_overview_summary",
+        "queryBudget": 3,
+        "plannedQueries": 1,
+        "hostedBudgetMs": 600,
+        "hostedP95Ms": 57,
+        "sampleCount": 9,
+        "rowsReturned": 3,
+        "status": "hosted-pass",
+        "notes": "Library overview should stay as a grouped indexed read-model query."
+      },
+      {
+        "surface": "can_edit_project",
+        "queryBudget": 2,
+        "plannedQueries": 1,
+        "hostedBudgetMs": 600,
+        "hostedP95Ms": 61,
+        "sampleCount": 9,
+        "rowsReturned": 1,
+        "status": "hosted-pass",
+        "notes": "Authorization guard should stay as one indexed membership lookup."
+      }
+    ],
+    "error": null
+  },
+  "readiness": {
+    "queryCountBudgetsReady": true,
+    "hostedP95Ready": true,
+    "hostedWorkerD1PerformanceReady": true,
+    "d1RuntimeProofReady": true,
+    "productionCutoverReady": false
+  },
+  "blockers": [],
+  "note": "Calls the deployed proof Worker D1 performance endpoint with a local bearer secret, then records sanitized provider behavior: D1 binding/schema/seed/cleanup readiness and hosted indexed query p95/query-count proof. It does not print secret values, deploy Workers, change DNS, purchase plans, delete provider resources, or make production cutover ready."
+}

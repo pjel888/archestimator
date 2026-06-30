@@ -25,15 +25,17 @@ The current codebase already contains rate-limiting work, but it is not one syst
 | In-memory estimate action limiter exists | `src/lib/estimates/action-rate-limit.ts:14-82`. | May undercount in scaled runtime. |
 | AI ask quota uses security table | `src/lib/ai/rate-limit.ts:17-79`. | Good control, but fails closed on quota storage outage. |
 | Email circuit is process-local | `src/lib/email/resend-client.ts:71-127`. | Protects callers but not distributed. |
+| Frontend repeat-action controls are scattered | Share decisions/comments, notifications, favorites, cursor collaboration, and package-builder have local pending/throttle/idempotency patterns. | Good UX hints exist, but no shared client-control contract or direct-bypass proof requirement exists. |
 
 ## Recommended Layered Model
 
-1. **Route/server-action policy registry**: one canonical catalog for surface, actor key, client key, windows, response behavior, logging, and failure mode.
-2. **Durable app limiter**: immediate store remains `security_rate_limit_events` and/or a future atomic RPC/slot reservation for exact app quotas.
-3. **Edge coarse mitigation**: WAF Rate Limiting Rules for obvious floods and high-cost public paths.
-4. **Human challenge**: Turnstile on suspicious public proposal, invite, auth, contact, and upload paths, with server-side validation.
-5. **Cloudflare-native exact path**: Durable Objects for exact counters only after Cloudflare Worker/provider proof gates pass.
-6. **Observability and false-positive loop**: log hashed dimensions, return `Retry-After`, dashboard denials, and run staged shadow/enforce rollout.
+1. **Frontend interaction guards**: pending state, single-flight, idempotency, cancellation, scoped cooldowns, and accessible recovery for accidental repeated user actions. These are UX/backpressure only.
+2. **Route/server-action policy registry**: one canonical catalog for surface, actor key, client key, algorithm/window/burst semantics, resource budgets, response profile, logging, and failure mode.
+3. **Durable app limiter**: immediate store remains `security_rate_limit_events` and/or a future atomic RPC/slot reservation for exact app quotas.
+4. **Edge coarse mitigation**: WAF Rate Limiting Rules for obvious floods and high-cost public paths.
+5. **Human challenge**: Turnstile on suspicious public proposal, invite, auth, contact, and upload paths, with server-side validation.
+6. **Cloudflare-native exact path**: Durable Objects for exact counters only after Cloudflare Worker/provider proof gates pass.
+7. **Observability, anomaly, and false-positive loop**: log hashed dimensions, return `Retry-After`, dashboard denials, detect distributed low-and-slow pressure, enforce retention/deletion rules, and run staged shadow/enforce rollout.
 
 ## GO / NO-GO
 

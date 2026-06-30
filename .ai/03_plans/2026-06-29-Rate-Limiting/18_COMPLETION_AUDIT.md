@@ -14,14 +14,16 @@ owner: Archestimator
 | --- | --- |
 | Planning-only task respected | PASS. No app code/provider/migration/test implementation is part of this package. |
 | Target directory used | PASS. Package files are under `.ai/03_plans/2026-06-29-Rate-Limiting/`. |
-| Required file list created | PASS. README plus `00` through `18` documents are present; `19` was added as a supplemental implementation-contract worksheet. |
-| YAML frontmatter present | PASS by construction; validation should confirm during final command pass. |
+| Required file list created | PASS. README plus `00` through `21` documents are present, including the supplemental implementation-contract worksheet, frontend/client controls addendum, and HTTP/resource/auth standards-hardening addendum. |
+| YAML frontmatter present | PASS by validation. |
 | Source-backed audit included | PASS. See 03 and 04. |
 | Official Cloudflare/Next doc refresh included | PASS. See 07, 08, and 19; accessed 2026-06-30. |
 | Route/action inventory included | PASS for route files and action files; P0 must still expand high-risk action-file rows to function-level contracts before source edits. |
+| Frontend/client controls included | PASS. See 20, P13 in 10, PROOF-RL-011 and PROOF-RL-012 in 11, and FC rows in 19 for repeat controls plus second-pass idempotency, precondition, retry/offline, lifecycle, multi-tab, and accessibility contracts. |
+| HTTP/resource/auth standards hardening included | PASS. See 21, standards posture in 06, response/budget contracts in 09, P0/P12 updates in 10, PROOF-RL-013 through PROOF-RL-015 in 11, operations/privacy updates in 12/14, traceability rows in 16, and SCE rows in 19. |
 | Traceability included | PASS. See 16 for source-to-requirement-to-work-item-to-proof mapping. |
 | Final readiness review included | PASS. See 17 for verification mode, scorecard, caps, and NO-GO enforcement verdicts. |
-| Evidence-class separation included | PASS. See 19 and this audit. |
+| Evidence-class separation included | PASS. See 19, 20, and this audit. |
 
 ## Validation To Run
 
@@ -37,18 +39,19 @@ git status --short -- .ai/03_plans/2026-06-29-Rate-Limiting
 
 ## Validation Evidence
 
-Run on 2026-06-30 after the improvement pass:
+Run on 2026-06-30 after the frontend/client-controls and HTTP/resource/auth standards-hardening improvement passes:
 
 | Check | Result |
 | --- | --- |
-| Required file list | PASS: `find` returned README plus `00` through `19`. |
-| Markdown file count | PASS: `21` files. |
+| Required file list | PASS: `find` returned README plus `00` through `21`. |
+| Markdown file count | PASS: `23` files. |
 | Frontmatter shape | PASS: all files have opening `---`, expected `plan_id`, `created`, `profile`, `owner`, and closing `---`; the frontmatter check printed no `BAD` rows. |
 | Trailing whitespace | PASS: `rg -n "[[:blank:]]+$"` returned no matches; exit code 1 means no matches for this `rg` check. |
-| Scoped `git diff --check` | PASS: no output for unstaged plan-package edits. |
+| Scoped `git diff --check` | PASS: no output for tracked plan-package edits; untracked `20`/`21` were covered by frontmatter and whitespace checks. |
 | Scoped `git diff --check --cached` | PASS: no output for staged plan-package content. |
-| Targeted contract-string check | PASS: found `verification_mode`, `Evidence Classes`, `Provider Worksheet`, `Credential Material Taxonomy`, `Proof Contract Rows`, `Source IDs`, `Route Contract Inventory`, `Server Action File Inventory`, and `Performance And Cost Budget` in the package. |
-| Scoped `git status --short` | PASS with expected docs-only scope: modified package docs plus added `19_IMPLEMENTATION_CONTRACT_WORKSHEET.md`; no source/app/provider paths are part of this scoped status. |
+| Targeted contract-string check | PASS: found `verification_mode`, `Evidence Classes`, `Provider Worksheet`, `Credential Material Taxonomy`, `Proof Contract Rows`, `Source IDs`, `Route Contract Inventory`, `Server Action File Inventory`, `Frontend Client Contract Rows`, `Frontend Second-Pass Contract Rows`, `Standards Contract Rows`, `FCE-001` through `FCE-007`, `SCE-001` through `SCE-008`, `PROOF-RL-011` through `PROOF-RL-015`, `RL-FR-016` through `RL-FR-022`, `RL-NFR-009` through `RL-NFR-013`, `Direct Invocation Behavior`, `Server-authoritative gate`, `CSRF`, `Fetch Metadata`, `Idempotency Taxonomy`, `Idempotency fingerprint`, `If-Match`, `ETag`, `409`/`412`, `Retry/backoff`, `Offline queue`, `Retry-After` parsing, HTTP-date, `visibilitychange`, `BroadcastChannel`, Web Locks, disabled controls, `aria-live`, `aria-busy`, `Problem Details`, draft `RateLimit`, `RateLimit-Policy`, algorithm/window semantics, resource budgets, cache/CDN, low-and-slow, and retention/deletion in the package. |
+| Scoped `git diff --stat` | PASS: scoped package diff is docs-only; new untracked `20`/`21` appear in scoped status until staged. |
+| Scoped `git status --short` | PASS with expected docs-only scope: modified package docs plus added `20_FRONTEND_CLIENT_CONTROLS_AND_LOW_FRICTION_SECURITY.md` and `21_HTTP_RESOURCE_AUTH_AND_ABUSE_STANDARDS_HARDENING.md`; no source/app/provider paths are part of this scoped status. |
 | Full `git status --short` | CONTEXT: many unrelated pre-existing modified/untracked files exist outside this package, including Cloudflare migration artifacts, app files, tests, and `src/proxy.ts` deletion. |
 | Full repo validation | SKIPPED intentionally: this was docs-only planning work in a dirty repository; broad app/test validation would not prove the plan package and would mix unrelated failures. |
 
@@ -60,6 +63,8 @@ Run on 2026-06-30 after the improvement pass:
 - Cloudflare pricing/plan availability must be refreshed before purchase or deployment.
 - Production enforcement remains blocked until tests, shadow metrics, observability, rollback, and false-positive review exist.
 - Server-action coverage is file-level in this planning package. P0 implementation work must classify each exported action before source edits.
+- Frontend-control coverage is contract-level in this planning package. P0 implementation work must classify each high-risk client action, keyboard path, direct-bypass server proof, idempotency fingerprint/TTL/mismatch behavior, stale-write precondition behavior, retry/backoff policy, offline queue caps, browser lifecycle refresh, multi-tab mechanism, disabled-control accessibility, and retry UX before source edits.
+- HTTP/resource/auth standards coverage is contract-level in this planning package. P0 implementation work must classify each applicable route/action for response profile, quota metadata disclosure, algorithm/window semantics, resource-budget dimensions, auth failed-attempt recovery, cache/CDN posture, low-and-slow escalation, and retention/deletion before source edits.
 - Cloudflare proof remains local/static/provider-doc evidence only. No hosted Worker, WAF, Turnstile, DO, D1, DNS, or production provider state was mutated or verified by this task.
 
 ## Evidence Class Summary
@@ -69,11 +74,11 @@ Run on 2026-06-30 after the improvement pass:
 | Local static | Yes | Package content, route/action file inventory, source references, Next docs, config/source facts. |
 | Local automated | Yes, docs checks only | Markdown/frontmatter/whitespace/diff-check validity for the plan package. |
 | Distributed simulation | No | No distributed runtime behavior claimed. |
-| Browser/manual | No | No UX or browser behavior claimed. |
+| Browser/manual | No | No UX or browser behavior claimed; frontend-control proof is specified for future implementation only. |
 | Provider readback | No | No current Cloudflare/Supabase/provider state claimed from this pass. |
 | Hosted runtime | No | No deployed runtime behavior claimed. |
 | Inferred | Yes | Policy thresholds, rollout stages, Cloudflare suitability, and implementation work packages are planning hypotheses. |
 
-Completion status: PASS for the docs-only planning improvement; CONDITIONALLY READY for a P0 re-inventory/test-lock implementation plan; NOT READY for direct enforcement or Cloudflare cutover.
+Completion status: PASS for the docs-only planning improvement; CONDITIONALLY READY for a P0 re-inventory/test-lock/standards-contract implementation plan; NOT READY for direct enforcement or Cloudflare cutover.
 
-Stop condition: Use this package only as readiness input for a separate P0 implementation plan; do not implement or deploy rate limiting from this task without re-validating the checkout, expanding the action-function contracts, writing regression tests, and clearing the relevant provider/runtime proof gates.
+Stop condition: Use this package only as readiness input for a separate P0 implementation plan; do not implement or deploy rate limiting from this task without re-validating the checkout, expanding the action-function, client-control, and standards contracts including the second-pass operational edge rows and SCE rows, writing regression tests, and clearing the relevant provider/runtime proof gates.

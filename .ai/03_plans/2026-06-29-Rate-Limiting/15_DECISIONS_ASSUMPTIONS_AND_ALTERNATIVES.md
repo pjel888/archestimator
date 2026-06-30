@@ -24,6 +24,9 @@ owner: Archestimator
 | D10 | Use Durable Objects for future exact Cloudflare counters. | DO storage is transactional/strongly consistent per object. |
 | D11 | Treat D1 as metadata/lower-rate ledger unless proven for hot counters. | D1 has single-threaded/query-limit constraints. |
 | D12 | Prioritize false-positive recovery for proposal reviewers and beta auth. | These are business-critical first-user workflows. |
+| D13 | Treat draft RateLimit metadata as opt-in, not default. | Quota metadata can help clients on safe authenticated surfaces but can leak account/token/resource existence on sensitive public/auth flows. |
+| D14 | Require explicit algorithm/window/resource-budget semantics before implementation. | Request-count thresholds alone do not satisfy OWASP resource-exhaustion guidance or make tests deterministic. |
+| D15 | Treat auth throttling as provider-coordinated recovery work. | App limits must not duplicate provider lockouts, reveal account existence, or block beta/support/deletion recovery. |
 
 ## Assumptions
 
@@ -34,6 +37,8 @@ owner: Archestimator
 | A3 | Cloudflare can front some traffic before full app migration. | Confirm zone/DNS/origin setup and rollback. |
 | A4 | First-user beta volume is low enough for Postgres event counting to start. | Shadow metrics and query latency. |
 | A5 | Current thresholds are intentionally conservative but not final. | Beta traffic and support review. |
+| A6 | RFC 9457 Problem Details will be useful for some HTTP route errors but not all server-action results. | P0 response-profile rows decide per surface. |
+| A7 | Low-and-slow abuse can be detected from hashed/coarse event dimensions without raw PII. | Shadow/anomaly dashboard proof. |
 
 ## Alternatives Considered
 
@@ -47,6 +52,8 @@ owner: Archestimator
 | One global limiter policy | Surfaces have very different UX/security/cost tradeoffs. |
 | Raw IP logging | Privacy and compliance risk. |
 | Blocking webhooks by IP | Signature, replay, and idempotency are stronger primary controls. |
+| Emitting quota metadata everywhere | Sensitive auth/token/public flows can leak useful attacker information. |
+| Treating request count as the only budget | Upload, AI, export, email, queue, and search abuse often consumes bytes, CPU, provider spend, concurrency, or rows before request count is high. |
 
 ## Open Questions For Future Implementation
 
@@ -55,3 +62,6 @@ owner: Archestimator
 - Which policies require owner-visible overrides?
 - Which Cloudflare plan/features are actually enabled when rollout begins?
 - What false-positive threshold is acceptable for public reviewers during beta?
+- Which route classes should expose draft `RateLimit` metadata after leakage review?
+- Which exact algorithm and burst semantics preserve current behavior for each existing limiter?
+- What retention/deletion posture applies to hashed limiter events and idempotency rows during user deletion or incident holds?
