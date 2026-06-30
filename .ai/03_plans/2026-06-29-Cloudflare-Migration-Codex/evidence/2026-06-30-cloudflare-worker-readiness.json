@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-30T03:01:22.392Z",
+  "generatedAt": "2026-06-30T13:13:37.892Z",
   "mode": "cloudflare-worker-readiness",
   "sources": {
     "envExample": ".env.example",
@@ -22,6 +22,12 @@
       "ARCHESTIMATOR_AI_ENABLED",
       "NEXT_PUBLIC_ASK_FLIP_UI_ENABLED",
       "NEXT_PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN",
+      "ARCHESTIMATOR_AUTH_PROVIDER",
+      "BETTER_AUTH_URL",
+      "BETTER_AUTH_SECRET",
+      "BETTER_AUTH_TRUSTED_ORIGINS",
+      "BETTER_AUTH_GOOGLE_CLIENT_ID",
+      "BETTER_AUTH_GOOGLE_CLIENT_SECRET",
       "CRON_SECRET",
       "UPLOAD_CLEANUP_JOB_SECRET",
       "UPLOAD_SCAN_JOB_SECRET",
@@ -45,6 +51,12 @@
       "ARCHESTIMATOR_AI_ENABLED",
       "NEXT_PUBLIC_ASK_FLIP_UI_ENABLED",
       "NEXT_PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN",
+      "ARCHESTIMATOR_AUTH_PROVIDER",
+      "BETTER_AUTH_URL",
+      "BETTER_AUTH_SECRET",
+      "BETTER_AUTH_TRUSTED_ORIGINS",
+      "BETTER_AUTH_GOOGLE_CLIENT_ID",
+      "BETTER_AUTH_GOOGLE_CLIENT_SECRET",
       "CRON_SECRET",
       "UPLOAD_CLEANUP_JOB_SECRET",
       "UPLOAD_SCAN_JOB_SECRET",
@@ -65,6 +77,12 @@
       "UPLOAD_JOBS_ENABLED",
       "CLOUDFLARE_UPLOAD_JOBS_DRY_RUN",
       "CLOUDFLARE_UPLOAD_JOBS_ORIGIN",
+      "ARCHESTIMATOR_AUTH_PROVIDER",
+      "BETTER_AUTH_URL",
+      "BETTER_AUTH_SECRET",
+      "BETTER_AUTH_TRUSTED_ORIGINS",
+      "BETTER_AUTH_GOOGLE_CLIENT_ID",
+      "BETTER_AUTH_GOOGLE_CLIENT_SECRET",
       "PUBLICATION_TOKEN_ENCRYPTION_SECRET",
       "PUBLICATION_TOKEN_HASH_SECRET",
       "PUBLICATION_ACCESS_COOKIE_SECRET",
@@ -78,6 +96,12 @@
       "UPLOAD_JOBS_ENABLED",
       "CLOUDFLARE_UPLOAD_JOBS_DRY_RUN",
       "CLOUDFLARE_UPLOAD_JOBS_ORIGIN",
+      "ARCHESTIMATOR_AUTH_PROVIDER",
+      "BETTER_AUTH_URL",
+      "BETTER_AUTH_SECRET",
+      "BETTER_AUTH_TRUSTED_ORIGINS",
+      "BETTER_AUTH_GOOGLE_CLIENT_ID",
+      "BETTER_AUTH_GOOGLE_CLIENT_SECRET",
       "PUBLICATION_TOKEN_ENCRYPTION_SECRET",
       "PUBLICATION_TOKEN_HASH_SECRET",
       "PUBLICATION_ACCESS_COOKIE_SECRET",
@@ -99,6 +123,18 @@
       "ARCH_UPLOADS_R2",
       "IMAGES",
       "UPLOAD_JOBS_QUEUE"
+    ],
+    "missing": [],
+    "ready": true
+  },
+  "wranglerCustomDomains": {
+    "required": [
+      "archestimator.com",
+      "www.archestimator.com"
+    ],
+    "present": [
+      "archestimator.com",
+      "www.archestimator.com"
     ],
     "missing": [],
     "ready": true
@@ -200,7 +236,7 @@
   },
   "providerSecretList": {
     "checked": true,
-    "source": ".wrangler/tmp/archestimator-proof-secret-list.json",
+    "source": "CLOUDFLARE_WORKER_SECRET_LIST_TEXT",
     "deployedWorkerSecrets": {
       "required": [
         "NEXT_PUBLIC_APP_URL",
@@ -215,6 +251,12 @@
         "PUBLICATION_ACCESS_COOKIE_SECRET",
         "ARCHESTIMATOR_AI_ENABLED",
         "NEXT_PUBLIC_ASK_FLIP_UI_ENABLED",
+        "ARCHESTIMATOR_AUTH_PROVIDER",
+        "BETTER_AUTH_URL",
+        "BETTER_AUTH_SECRET",
+        "BETTER_AUTH_TRUSTED_ORIGINS",
+        "BETTER_AUTH_GOOGLE_CLIENT_ID",
+        "BETTER_AUTH_GOOGLE_CLIENT_SECRET",
         "CRON_SECRET",
         "UPLOAD_CLEANUP_JOB_SECRET",
         "UPLOAD_SCAN_JOB_SECRET",
@@ -237,6 +279,10 @@
         "PUBLICATION_ACCESS_COOKIE_SECRET",
         "ARCHESTIMATOR_AI_ENABLED",
         "NEXT_PUBLIC_ASK_FLIP_UI_ENABLED",
+        "ARCHESTIMATOR_AUTH_PROVIDER",
+        "BETTER_AUTH_URL",
+        "BETTER_AUTH_SECRET",
+        "BETTER_AUTH_TRUSTED_ORIGINS",
         "CRON_SECRET",
         "UPLOAD_CLEANUP_JOB_SECRET",
         "UPLOAD_SCAN_JOB_SECRET",
@@ -246,14 +292,17 @@
         "ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER",
         "ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER"
       ],
-      "missing": [],
-      "ready": true
+      "missing": [
+        "BETTER_AUTH_GOOGLE_CLIENT_ID",
+        "BETTER_AUTH_GOOGLE_CLIENT_SECRET"
+      ],
+      "ready": false
     },
-    "ready": true
+    "ready": false
   },
   "manifestReady": true,
   "localPreviewReady": true,
-  "deploymentSecretsReady": true,
-  "deploymentReady": true,
+  "deploymentSecretsReady": false,
+  "deploymentReady": false,
   "note": "Cloudflare Worker readiness checks manifest/env-name alignment and optional sanitized secret-list transcripts only. It never prints secret values, does not create Cloudflare resources, does not prove paid-plan status, hosted deployment, custom-domain routing, R2 bucket existence, Images processing, cron execution, analytics receipt, database migration, nameserver changes, rollback, or provider cancellation."
 }

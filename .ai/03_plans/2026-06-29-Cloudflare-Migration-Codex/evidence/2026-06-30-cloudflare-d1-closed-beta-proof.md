@@ -1,6 +1,6 @@
 # Cloudflare D1 Closed-Beta Allowlist Proof
 
-Generated: 2026-06-29T21:43:33.013Z
+Generated: 2026-06-30T18:52:49.116Z
 
 Local D1 closed-beta allowlist proof only. It uses sanitized temporary SQLite data and does not read env files, print secret values, call provider APIs, create hosted D1 databases, mutate Cloudflare/Supabase, deploy Workers, change DNS, bill, replace live auth gates, or make production D1/Auth ready.
 
@@ -60,10 +60,10 @@ Local D1 closed-beta allowlist proof only. It uses sanitized temporary SQLite da
 
 | Surface | Query budget | Planned queries | Local budget ms | Local p95 ms | Rows | Status | Notes |
 | --- | ---: | ---: | ---: | ---: | ---: | --- | --- |
-| check_closed_beta_access_email_lookup | 2 | 1 | 100 | 5.25 | 1 | local-pass | The beta access gate remains a single normalized-email lookup with caller-email equality enforced by the service. |
-| read_closed_beta_allowlist_queue_by_status | 2 | 1 | 100 | 3.91 | 2 | local-pass | Admin queue reads use the status/created-at index and keep direct table enumeration unavailable to non-admins. |
-| create_closed_beta_allowlist_entry_unique_email | 2 | 1 | 100 | 3.56 | 1 | local-pass | Create retries are naturally bounded by the normalized-email unique index. |
-| update_closed_beta_allowlist_entry_by_id | 2 | 1 | 100 | 3.57 | 1 | local-pass | Admin status updates target a single row by primary key after the app-layer role guard. |
+| check_closed_beta_access_email_lookup | 2 | 1 | 100 | 5.59 | 1 | local-pass | The beta access gate remains a single normalized-email lookup with caller-email equality enforced by the service. |
+| read_closed_beta_allowlist_queue_by_status | 2 | 1 | 100 | 10.14 | 2 | local-pass | Admin queue reads use the status/created-at index and keep direct table enumeration unavailable to non-admins. |
+| create_closed_beta_allowlist_entry_unique_email | 2 | 1 | 100 | 5.72 | 1 | local-pass | Create retries are naturally bounded by the normalized-email unique index. |
+| update_closed_beta_allowlist_entry_by_id | 2 | 1 | 100 | 7.13 | 1 | local-pass | Admin status updates target a single row by primary key after the app-layer role guard. |
 
 ## Query Plan Details
 

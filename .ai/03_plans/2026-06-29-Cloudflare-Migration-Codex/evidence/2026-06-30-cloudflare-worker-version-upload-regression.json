@@ -1,0 +1,93 @@
+{
+  "generatedAt": "2026-06-30T15:43:36Z",
+  "mode": "cloudflare-worker-version-upload-regression",
+  "workerName": "archestimator-proof",
+  "accountId": "7f6229cfea61b59f6f48b517fde86039",
+  "attempts": [
+    {
+      "command": "OPEN_NEXT_DEPLOY=true CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false bunx wrangler versions upload --name archestimator-proof --keep-vars --message \"Refresh Cloudflare migration runtime\"",
+      "result": "interrupted-after-no-version-created",
+      "assetPhase": "uploaded 1 changed static asset",
+      "versionEndpoint": "POST /accounts/7f6229cfea61b59f6f48b517fde86039/workers/scripts/archestimator-proof/versions",
+      "firstPostStartedAt": "2026-06-30T14:00:18.628Z",
+      "firstTimeoutAt": "2026-06-30T14:05:20.112Z",
+      "observedErrorCode": "UND_ERR_HEADERS_TIMEOUT",
+      "newVersionCreated": false
+    },
+    {
+      "command": "OPEN_NEXT_DEPLOY=true CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false bunx wrangler versions upload --name archestimator-proof --keep-vars --no-upload-source-maps --message \"Refresh Cloudflare migration runtime\"",
+      "result": "failed",
+      "assetPhase": "no updated asset files to upload",
+      "versionEndpoint": "POST /accounts/7f6229cfea61b59f6f48b517fde86039/workers/scripts/archestimator-proof/versions",
+      "firstPostStartedAt": "2026-06-30T14:09:39.425Z",
+      "retryStartedAt": "2026-06-30T14:14:40.917Z",
+      "finalErrorAt": "2026-06-30T14:24:45.104Z",
+      "durationMs": 924639,
+      "observedErrorCode": "UND_ERR_HEADERS_TIMEOUT",
+      "wranglerError": "fetch failed",
+      "newVersionCreated": false
+    },
+    {
+      "command": "OPEN_NEXT_DEPLOY=true CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false bunx wrangler deploy --minify --keep-vars --no-upload-source-maps --message \"Minified Cloudflare migration runtime refresh\"",
+      "result": "failed",
+      "assetPhase": "no updated asset files to upload",
+      "versionEndpoint": "POST /accounts/7f6229cfea61b59f6f48b517fde86039/workers/scripts/archestimator-proof/versions",
+      "firstPostStartedAt": "2026-06-30T14:32:19.132Z",
+      "retryStartedAt": "2026-06-30T14:37:20.695Z",
+      "thirdPostStartedAt": "2026-06-30T14:42:23.263Z",
+      "finalErrorAt": "2026-06-30T14:47:24.881Z",
+      "observedErrorCode": "UND_ERR_HEADERS_TIMEOUT",
+      "wranglerError": "fetch failed",
+      "minified": true,
+      "newVersionCreated": false
+    },
+    {
+      "command": "OPEN_NEXT_DEPLOY=true CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false bunx wrangler deploy --config .wrangler/tmp/nobundle-full-wrapper/wrangler.jsonc --keep-vars --no-upload-source-maps --message \"No-bundle Cloudflare migration runtime refresh\"",
+      "result": "failed",
+      "assetPhase": "uploaded 1 changed static asset (/BUILD_ID)",
+      "versionEndpoint": "POST /accounts/7f6229cfea61b59f6f48b517fde86039/workers/scripts/archestimator-proof/versions",
+      "firstPostStartedAt": "2026-06-30T15:14:18Z",
+      "retryStartedAt": "2026-06-30T15:20:48Z",
+      "finalErrorAt": "2026-06-30T15:28:32Z",
+      "observedErrorCode": "UND_ERR_HEADERS_TIMEOUT",
+      "wranglerError": "fetch failed",
+      "noBundle": true,
+      "attachedModuleCount": 19,
+      "newVersionCreated": false
+    }
+  ],
+  "bundle": {
+    "reportedTotalUploadBytes": 31948226,
+    "reportedGzipBytes": 6574033,
+    "dryRunWorkerBytes": 31948262,
+    "dryRunSourceMapBytes": 46580362,
+    "dryRunMetafileBytes": 862063,
+    "sourceMapsExplicitlyDisabledOnSecondAttempt": true,
+    "minifiedDryRunReportedTotalUploadBytes": 22114540,
+    "minifiedDryRunReportedGzipBytes": 5801390,
+    "minifiedDryRunWorkerBytes": 22114536,
+    "minifiedDryRunMetafileBytes": 861692,
+    "minifiedUploadAttempted": true,
+    "noBundleDryRunReportedTotalUploadBytes": 23663500,
+    "noBundleDryRunReportedGzipBytes": 5796450,
+    "noBundleAttachedModuleCount": 19,
+    "noBundleUploadAttempted": true,
+    "currentRebuiltMinifiedDryRunReportedTotalUploadBytes": 22187270,
+    "currentRebuiltMinifiedDryRunReportedGzipBytes": 5784220
+  },
+  "latestVersionReadback": {
+    "count": 10,
+    "latestKnownVersionId": "8c293c50-c45d-47f0-8da1-d126ec041812",
+    "latestKnownVersionNumber": 63,
+    "latestKnownVersionTriggeredBy": "secret",
+    "newRefreshVersionPresent": false
+  },
+  "readiness": {
+    "localCloudflareBuildReady": true,
+    "assetUploadReady": true,
+    "workerVersionUploadReady": false,
+    "productionDeployReady": false
+  },
+  "blocker": "Cloudflare's Worker versions endpoint repeatedly timed out while ingesting the current OpenNext Worker bundle, a minified bundle, and a no-bundle wrapper/module-split upload. Wrangler exited with fetch failed on deploy attempts; readback still shows no new version beyond version 63.",
+  "note": "This artifact records a deployment blocker only. It does not print secrets or raw API payloads, does not change DNS, does not mutate Worker secrets, does not purchase plans, and does not make production cutover ready."
+}

@@ -105,3 +105,21 @@ These are budget contracts for future implementation, not measured baselines fro
 | XLSX export | Workbook fixture before/after limiter check | p95 time before denial, p95 workbook generation time, 429 before generation | Denied requests still perform heavy workbook work | Roll back export limiter integration. |
 | AI routes | Provider stub plus usage ledger | requests/min, tokens/request, daily token spend, provider error rate | Provider call occurs after would-deny, or daily spend exceeds budget | Disable AI policy branch or feature flag. |
 | Cloudflare WAF/Workers | Hosted proof traffic and origin comparison | origin requests during mitigation delay, per-location overshoot, false-positive reports | Origin/app events diverge beyond approved tolerance | Disable rule/binding or revert to observe-only. |
+
+## Third-Pass Advanced Policy Gates
+
+These rows are contract gates, not production thresholds.
+
+| Gate | Default planning decision | Required proof |
+| --- | --- | --- |
+| Client identity canonicalization | Use trusted proxy source order and versioned HMAC inputs; aggregate IPv6 to `/64` by default unless provider/account evidence justifies `/56` or `/48`; never persist raw full IP in limiter logs. | `PROOF-RL-016`. |
+| Supabase Auth provider limits | Treat provider limits as constraints to coordinate with, not replacements for app-level beta-safe throttles; refresh endpoint limits, custom SMTP status, and `Sb-Forwarded-For` configuration before enforcement. | `PROOF-RL-017` and `PROOF-RL-021`. |
+| Secret/timing parity | Security-sensitive token/signature/password checks use timing-safe comparison or equivalent constant-envelope behavior with fake/real parity tests. | `PROOF-RL-018`. |
+| Cache-fill stampede | Expensive cache fills choose coalescing/stale/shed behavior and max waiters before enabling public or authenticated high-cost limits. | `PROOF-RL-019`. |
+| Retry full jitter | Server `Retry-After` has precedence; otherwise retryable clients/workers use capped full-jitter backoff and unsafe mutation retries require idempotency. | `PROOF-RL-020`. |
+| Deep pagination/count | List/search/export reads define max page size, max depth, count policy, query timeout, and index proof before quota enforcement. | `PROOF-RL-022`. |
+| `OPTIONS` and preflight | Same-origin remains default unless a route explicitly opts into CORS; preflight behavior must be body-free, cache-aware, and observable under flood. | `PROOF-RL-023`. |
+| Realtime message/fanout | Realtime policies separate token issue/connect quotas from message, presence, cursor, and fanout quotas. | `PROOF-RL-024`. |
+| Service-worker/offline replay | If no service worker/offline queue exists, record no-SW proof; if one exists or is added, define queue caps, purge, idempotency, and denial halt behavior. | `PROOF-RL-025`. |
+| Chunked/multipart body budgets | Missing `Content-Length`, chunked transfer, multipart part counts, resumable session TTL, transformed bytes, and cleanup paths are explicit. | `PROOF-RL-026`. |
+| Bot-management escalation | Bot signals are observe-first, entitlement-gated, false-positive reviewed, and never treated as proof of human legitimacy. | `PROOF-RL-027`. |

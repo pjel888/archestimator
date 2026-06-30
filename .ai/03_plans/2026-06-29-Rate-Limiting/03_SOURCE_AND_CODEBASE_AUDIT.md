@@ -69,3 +69,18 @@ owner: Archestimator
 ## Audit Conclusion
 
 The repo already has a usable durable security-events substrate, but implementation readiness is blocked by scattered policy, mixed key derivation, process-local limiters, non-atomic insert/count patterns, and Cloudflare production gates. The safest next implementation phase is central policy and identity normalization around existing controls, not immediate provider migration.
+
+## Third-Pass Gap Scan On 2026-06-30
+
+| Topic | Local evidence | Planning implication |
+| --- | --- | --- |
+| IPv6 limiter identity | `rg` found IPv6 only in `supabase/config.toml` comments, not in app limiter identity helpers. | `SCE-010` must define IPv6 parse/canonicalize/mask-before-HMAC behavior before source edits. |
+| `Sb-Forwarded-For` | `rg` found no app source usage of `Sb-Forwarded-For`; current auth actions read `x-forwarded-for` directly. | `SCE-011` must decide whether Supabase Auth forwarding is enabled and prove the server-client `sb_secret_*` constraint. |
+| Trusted header order | Header extraction differs across `src/lib/publication/security.ts`, `src/lib/collaboration/invite-entry.ts`, `src/lib/uploads/admission-control.ts`, `src/lib/publication/actions.ts`, and share route handlers. | P0 needs one trusted-source order with Cloudflare/Vercel/Supabase compatibility and route tests. |
+| Timing-safe equality | `timingSafeEqual` exists in `src/lib/publication/security.ts`, `src/lib/ai/package-builder/draft-token.ts`, and `src/lib/collaboration/pending-invite.ts`, but not as a package-wide limiter contract. | `SCE-013` must define where timing-safe equality and response-time parity are mandatory. |
+| Multipart/resumable upload | `src/lib/uploads/session-strategy.ts` and `src/lib/uploads/provider-portability.ts` include multipart/resumable concepts. | `SCE-017` must distinguish legitimate resumable uploads from abuse and define part/session/cleanup budgets. |
+| Retry behavior | Route handlers emit `Retry-After`, but source scan did not find a shared full-jitter retry helper for limiter clients/workers. | `FCE-008` and `PROOF-RL-020` must define server-hint precedence and jittered fallback. |
+| Deep pagination/count | Source scan found `.range(...)` list queries and `COUNT(*)` in Cloudflare proof routers, but no rate-limiting package contract for deep pagination/count abuse. | `SCE-014` must require page-depth, count, index, and timeout answers before list/search/export enforcement. |
+| Realtime message rates | Collaboration/realtime modules exist, but this scan did not find a global per-message/presence/fanout quota contract. | `SCE-016` must separate token/connect limits from room message-rate limits. |
+| Service-worker replay | No stable app service-worker replay handling surfaced in the scan. | `FCE-009` must either record a no-SW proof or define offline/background replay caps if introduced. |
+| Bot escalation | Bot heuristics are local to publication/security paths; no global Bot Management proof or entitlement evidence exists. | `CP-008` keeps bot products observe-first and provider-proof gated. |

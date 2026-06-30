@@ -64,6 +64,23 @@ The implementation must stop scattering raw header reads. Current patterns diffe
 - Hash client identifiers with HMAC and a dedicated limiter pepper.
 - Record only hashed client values in durable events.
 - Record country/ASN only as coarse metadata when needed for operations.
+- Parse IPv4 and IPv6 with a structured parser rather than string-prefix logic.
+- Normalize IPv4-mapped IPv6 to the chosen IPv4 representation.
+- Mask IPv6 before HMAC, defaulting to `/64` unless P0 records provider/account evidence for `/56` or `/48`.
+- Use explicit separators such as `|` and a version tag in HMAC input material to avoid ambiguous composite keys.
+- Decide whether Supabase Auth server clients pass `Sb-Forwarded-For`, and only through the documented `sb_secret_*` server-key path.
+
+## Advanced Abuse Control Boundary
+
+| Boundary | Architectural rule |
+| --- | --- |
+| Timing-safe comparison | Token, signature, invite, password, draft-token, and challenge comparisons that protect secret material must use timing-safe equality or an equivalent constant-envelope wrapper; length mismatch still follows the same response profile. |
+| Cache-fill stampede | Expensive reads and provider fills need a local or durable single-flight/coalescing plan before rate-limit enforcement changes user-visible behavior. |
+| Retry and backoff | Server-provided `Retry-After` wins; fallback retry uses capped full jitter and requires idempotency for unsafe mutations. |
+| Pagination and counts | List/search/export routes define max page size, max depth, count policy, timeout, and index proof before resource policies enforce. |
+| Protocol/body budget | `OPTIONS`, missing `Content-Length`, chunked transfer, multipart/resumable uploads, and transformed bytes are explicit resource-budget dimensions, not generic "request count" cases. |
+| Realtime and offline replay | Realtime connect quotas do not cover per-message/presence/fanout abuse; service-worker/offline replay is either proven absent or bounded by queue/idempotency/purge contracts. |
+| Bot escalation | Bot Management or Bot Fight products are escalation layers after app policy and observe-only evidence, not source-of-truth enforcement. |
 
 ## Store Consistency
 

@@ -191,3 +191,16 @@ Observability: client guard events are sampled/redacted and never include raw to
 Rollback: disable shared client guard per surface while server limiters remain active.
 Acceptance: accidental duplicate requests drop visibly without blocking unrelated workflows; retry/offline/lifecycle behavior is bounded and accessible; scripted/direct requests are still controlled by server enforcement before side effects or provider calls.
 Risk: medium-high UX risk because overbroad disabling can harm fast editing and public reviewer flows.
+
+## P14 - Provider Identity And Advanced Abuse Gap Closure
+
+Objective: Fill the third-pass contracts before any shared identity, auth, retry, cache, protocol, realtime, offline, multipart, or bot-escalation implementation starts.
+Files likely touched later: limiter policy registry, identity helper, auth actions/routes, upload routes, list/search repositories, realtime/collaboration modules, frontend retry/offline helpers, Cloudflare WAF/Bot runbooks.
+Behavior: no raw client identity persistence; IPv6 canonicalization and masking before HMAC; Supabase Auth built-in limits refreshed; `Sb-Forwarded-For` decided with `sb_secret_*` server-key proof; timing-safe comparison and fake/real parity defined; cache-fill stampede controls specified; full-jitter retry used only where safe; pagination/count, `OPTIONS`, realtime message-rate, service-worker/offline, chunked/multipart, and bot-escalation contracts filled.
+Migration dependency: P0 route/action inventory plus current Supabase and Cloudflare docs/account readback.
+Cloudflare dependency: Bot Management and WAF rate-limiting parameter proof remain provider-readback/hosted proof only.
+Tests: `PROOF-RL-016` through `PROOF-RL-027`, including IPv6 prefix cases, provider auth forwarding, cache stampede, full-jitter retry, OTP/MFA bombing, deep pagination/count, `OPTIONS` flood, realtime message storm, service-worker replay/no-SW proof, multipart/chunked resource pressure, and Bot Management observe/rollback proof.
+Observability: hashed identity version, prefix mask version, provider-auth limit source, `Sb-Forwarded-For` mode, cache-fill wait/shed, retry algorithm, page/count denial, preflight result, realtime message/fanout denial, offline replay drop, multipart abort/cleanup, bot-score/signal bucket, and false-positive outcome.
+Rollback: per-policy disable, identity-key version fallback, disable `Sb-Forwarded-For`, cache coalescing fail-open/fail-closed by surface, retry helper kill switch, Bot Management rule disable, and app-limiter fallback.
+Acceptance: the pasted third-pass gaps are represented by requirement IDs, contract IDs, proof IDs, source IDs, and readiness gates before source implementation begins.
+Risk: high cross-cutting risk because identity, auth, retry, cache, body parsing, and bot signals can change both security and legitimate first-user UX.

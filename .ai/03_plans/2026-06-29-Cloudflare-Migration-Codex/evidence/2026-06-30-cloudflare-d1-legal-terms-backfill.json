@@ -1,0 +1,52 @@
+{
+  "generatedAt": "2026-06-30T19:08:45.686Z",
+  "mode": "cloudflare-d1-legal-terms-backfill",
+  "sourceProjectRef": "ebxxqidacheyapmmzavr",
+  "targetD1Database": "ARCH_DB",
+  "sourceRows": 1,
+  "sourceTermsVersionCounts": {
+    "tos-2026-06-06-beta-v1": 1
+  },
+  "wrangler": {
+    "args": [
+      "wrangler",
+      "d1",
+      "execute",
+      "ARCH_DB",
+      "--remote",
+      "--file",
+      "<redacted-temp-sql-file>"
+    ],
+    "exitCode": 0,
+    "signal": null,
+    "stdoutBytes": 1527,
+    "stderrBytes": 165,
+    "timedOut": false
+  },
+  "d1Readback": {
+    "args": [
+      "wrangler",
+      "d1",
+      "execute",
+      "ARCH_DB",
+      "--remote",
+      "--command",
+      "SELECT COUNT(*) AS rows FROM legal_terms_acceptances;"
+    ],
+    "exitCode": 0,
+    "signal": null,
+    "stdoutBytes": 944,
+    "stderrBytes": 0,
+    "timedOut": false,
+    "rows": 1,
+    "ready": true
+  },
+  "readiness": {
+    "sourceProjectBoundaryReady": true,
+    "upsertSucceeded": true,
+    "d1ReadbackReady": true,
+    "d1BackfillReady": true
+  },
+  "blockers": [],
+  "note": "Provider backfill for the legal Terms acceptance D1 slice. Reads only the expected Archestimator Supabase project, writes idempotent rows to Cloudflare D1, and records sanitized counts only."
+}

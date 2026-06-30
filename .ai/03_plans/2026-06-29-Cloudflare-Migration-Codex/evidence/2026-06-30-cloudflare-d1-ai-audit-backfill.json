@@ -1,0 +1,62 @@
+{
+  "generatedAt": "2026-06-30T19:49:56.185Z",
+  "mode": "cloudflare-d1-ai-audit-backfill",
+  "sourceProjectRef": "ebxxqidacheyapmmzavr",
+  "targetD1Database": "ARCH_DB",
+  "sourceRows": {
+    "aiActionRuns": 0,
+    "aiToolCalls": 0,
+    "aiDataAccessEvents": 0,
+    "securityRateLimitEvents": 22
+  },
+  "sourceModeCounts": {},
+  "sourceStatusCounts": {},
+  "sourceRateLimitScopeCounts": {
+    "project_publication_snapshot": 22
+  },
+  "wrangler": {
+    "args": [
+      "wrangler",
+      "d1",
+      "execute",
+      "ARCH_DB",
+      "--remote",
+      "--file",
+      "<redacted-temp-sql-file>"
+    ],
+    "exitCode": 0,
+    "signal": null,
+    "stdoutBytes": 1605,
+    "stderrBytes": 165,
+    "timedOut": false
+  },
+  "d1Readback": {
+    "args": [
+      "wrangler",
+      "d1",
+      "execute",
+      "ARCH_DB",
+      "--remote",
+      "--command",
+      "SELECT (SELECT COUNT(*) FROM ai_action_runs) AS aiActionRuns, (SELECT COUNT(*) FROM ai_tool_calls) AS aiToolCalls, (SELECT COUNT(*) FROM ai_data_access_events) AS aiDataAccessEvents, (SELECT COUNT(*) FROM security_rate_limit_events) AS securityRateLimitEvents;"
+    ],
+    "exitCode": 0,
+    "signal": null,
+    "stdoutBytes": 1050,
+    "stderrBytes": 0,
+    "timedOut": false,
+    "aiActionRuns": 0,
+    "aiToolCalls": 0,
+    "aiDataAccessEvents": 0,
+    "securityRateLimitEvents": 22,
+    "ready": true
+  },
+  "readiness": {
+    "sourceProjectBoundaryReady": true,
+    "upsertSucceeded": true,
+    "d1ReadbackReady": true,
+    "d1BackfillReady": true
+  },
+  "blockers": [],
+  "note": "Reads only metadata-only AI audit and security rate-limit rows from the Archestimator Supabase project, writes sanitized D1 rows through Wrangler, records counts only, and never stores raw prompts, tool args/results, key hashes, user ids, workspace ids, or secret values in evidence."
+}

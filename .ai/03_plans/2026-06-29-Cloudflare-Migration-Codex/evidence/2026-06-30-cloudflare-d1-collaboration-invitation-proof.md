@@ -1,6 +1,6 @@
 # Cloudflare D1 Collaboration Invitation Proof
 
-Generated: 2026-06-29T21:27:51.787Z
+Generated: 2026-06-30T17:20:33.667Z
 
 Local-only D1 collaboration-invitation domain proof. It uses sanitized temporary SQLite tables to model token issue/revoke-existing, delivery audit, invite resolution, revoked/expired/used terminal states, wrong-account denial, token and by-id acceptance, replay handling, rollback, idempotency, query-budget, index-plan, and export/restore behavior. It does not read env files, call provider APIs, create hosted D1 databases, deploy Workers, replace Supabase-backed live invitation routes/actions, change DNS, bill, or make production D1/Auth/Realtime ready.
 
@@ -34,6 +34,8 @@ Local-only D1 collaboration-invitation domain proof. It uses sanitized temporary
 - `resolve_collaboration_invitation`
 - `accept_collaboration_invitation`
 - `accept_collaboration_invitation_by_id`
+- `accept_collaboration_invitation_for_actor`
+- `accept_collaboration_invitation_by_id_for_actor`
 
 ## Local Fixture
 
@@ -81,10 +83,10 @@ Local-only D1 collaboration-invitation domain proof. It uses sanitized temporary
 
 | Surface | Queries | Local p95 | Rows | Status | Notes |
 | --- | ---: | ---: | ---: | --- | --- |
-| resolve_collaboration_invitation_token_lookup | 1/2 | 7.82ms/100ms | 0 | local-pass | Token resolution stays as one indexed token-hash lookup plus invitation join before the open audit write. |
-| issue_collaboration_invitation_active_token_guard | 1/2 | 4.83ms/100ms | 0 | local-pass | Active-token uniqueness is enforced by a partial unique index and queried directly by invitation id. |
-| list_pending_collaboration_invitations_for_account | 1/2 | 4.12ms/100ms | 3 | local-pass | Pending-invite account lookup uses the email/lifecycle/created-at index and stays explicit in the D1 repository. |
-| accept_collaboration_invitation_membership_guard | 1/2 | 3.88ms/100ms | 1 | local-pass | Accept replay checks natural membership uniqueness before reporting already_member without duplicate side effects. |
+| resolve_collaboration_invitation_token_lookup | 1/2 | 4.36ms/100ms | 0 | local-pass | Token resolution stays as one indexed token-hash lookup plus invitation join before the open audit write. |
+| issue_collaboration_invitation_active_token_guard | 1/2 | 4.31ms/100ms | 0 | local-pass | Active-token uniqueness is enforced by a partial unique index and queried directly by invitation id. |
+| list_pending_collaboration_invitations_for_account | 1/2 | 4.32ms/100ms | 3 | local-pass | Pending-invite account lookup uses the email/lifecycle/created-at index and stays explicit in the D1 repository. |
+| accept_collaboration_invitation_membership_guard | 1/2 | 4.63ms/100ms | 1 | local-pass | Accept replay checks natural membership uniqueness before reporting already_member without duplicate side effects. |
 
 ## Index Plans
 

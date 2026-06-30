@@ -85,6 +85,12 @@ Every policy needs:
 | Cloudflare WAF/Turnstile | Support/accessibility or origin mismatch appears. | Disable or revert to observe-only by provider rule/flag. | Provider readback shows disabled; app limiter still emits decisions. |
 | Low-and-slow anomaly | Many below-threshold cohorts trigger anomaly alert but support/reviewer metrics show legitimate traffic. | De-escalate challenge or cohort threshold; keep per-key app policies. | Anomaly alert quiets and legitimate cohort completes workflow. |
 | Retention/deletion cleanup | Expired limiter/idempotency data or private queued data exceeds retention target. | Pause affected enforcement mode or retention-sensitive feature until cleanup/anonymization proof passes. | Cleanup proof shows expired/private data removed or audit exception recorded. |
+| Identity canonicalization | IPv6 prefix aggregation, trusted header order, or `Sb-Forwarded-For` change causes denial spike or attribution mismatch. | Revert to previous identity-key version or shadow the new key while preserving old behavior; disable `Sb-Forwarded-For` if provider readback fails. | Old/new key comparison stabilizes; raw client values remain absent from logs. |
+| Cache-fill/stampede control | Coalescing creates stuck waiters, stale data harm, or provider pressure. | Reduce max waiters, serve stale, shed earlier, or disable coalescing for the affected expensive key. | Cache-fill leader/waiter/shed metrics return to baseline. |
+| Full-jitter retry | Retry exhaustion or unexpected client retry storms appear. | Lower max attempts/elapsed time, require manual retry, or honor only server `Retry-After` for the affected surface. | Retry telemetry falls and no duplicate side effects appear. |
+| Pagination/count budget | Legitimate search/list/export use is blocked by page/count budget. | Raise budget for the specific surface or switch to cursor/degraded count mode. | Valid workflow completes while expensive query telemetry remains bounded. |
+| Preflight/realtime/multipart/body budget | Legitimate CORS preflight, collaboration, or upload/resumable traffic is blocked. | Shadow the specific budget, adjust limits, or fall back to existing upload/realtime path while preserving auth and body-size checks. | Route/realtime/upload proof passes and support cases close. |
+| Bot Management escalation | Bot-score or bot-signal rule catches legitimate reviewers, beta users, or known provider callbacks. | Disable challenge/block rule or return to observe-only; app limiter remains source of truth. | Provider readback shows rollback and false-positive cohort completes. |
 
 ## Owner Approval Gates
 
@@ -93,5 +99,7 @@ Owner review is required before:
 - Enforcing new auth/login/contact controls.
 - Adding Turnstile to user-facing flows.
 - Enabling Cloudflare WAF blocking mode.
+- Enabling Bot Management challenge/block actions or bot-score based denials.
 - Lowering thresholds on public proposal review.
+- Changing identity key version, IPv6 prefix mask, or `Sb-Forwarded-For` mode for enforced policies.
 - Claiming Cloudflare-native production readiness.

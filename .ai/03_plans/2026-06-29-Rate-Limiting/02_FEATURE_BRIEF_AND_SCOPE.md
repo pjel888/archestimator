@@ -33,6 +33,7 @@ Prepare an abuse-resistant, observable, false-positive-aware rate-limiting desig
 | Current Postgres limiters | `security_rate_limit_events` and related helper functions. |
 | Future Cloudflare architecture | WAF, Workers Rate Limiting, Turnstile, Durable Objects, D1, Observability. |
 | HTTP/resource/auth standards | Response profile, draft RateLimit metadata posture, RFC 9457 compatibility, resource budgets, auth recovery, cache/CDN safety, low-and-slow escalation, and retention/deletion handling. |
+| Provider identity and advanced-abuse gap closure | IPv6 prefix-aware identity, Supabase Auth built-in limit coordination, `Sb-Forwarded-For`, timing-safe equality, cache-fill stampede controls, full-jitter retry, MFA/OTP bombing, deep pagination/count, `OPTIONS`, realtime message rates, service-worker replay, chunked/multipart body handling, and bot-management escalation governance. |
 
 ## Out Of Scope
 
@@ -55,6 +56,9 @@ Prepare an abuse-resistant, observable, false-positive-aware rate-limiting desig
 - Clear fail-open/fail-closed behavior per surface.
 - Observable denial and near-limit events.
 - Auth failed-attempt recovery and provider-lockout coordination before auth/contact enforcement.
+- Supabase Auth built-in provider limits and `Sb-Forwarded-For` behavior refreshed from current docs/account configuration before auth/OTP/magic-link/MFA enforcement.
+- IPv6 client identity canonicalization masks and hashes before persistence, uses trusted proxy source order, and has a versioned migration/rollback path.
+- Cache-fill, retry, pagination/count, preflight, realtime-message, service-worker/offline, multipart/chunked, and bot-escalation contracts are filled before implementation starts.
 - Low-and-slow distributed-abuse dashboards and retention/deletion proof before production enforcement.
 - False-positive workflows for client reviewers and beta users.
 - Rollback switches for every enforcement stage.

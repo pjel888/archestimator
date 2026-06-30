@@ -220,7 +220,7 @@ Expected proof resource names recorded by the artifact: Worker `archestimator-pr
 
 Provider resources now created/read back: D1 `archestimator-proof-db` (`9bdb29bb-687e-4f51-ae81-7659c426ea5f`), preview D1 `archestimator-proof-db-dev` (`363c756a-7c4d-42fe-908f-6d328bfa4acb`), R2 buckets `archestimator-proof-uploads` and `archestimator-proof-uploads-dev`, and Queues `archestimator-upload-jobs` and `archestimator-upload-jobs-dlq`.
 
-Current blockers recorded by the readback: Worker `archestimator-proof` has not been deployed yet, and no sanitized Worker secret-name list has been captured.
+Current blockers recorded by the readback: Worker/D1/R2/Queue resources now read back, but the Worker secret-name gate is still red because `BETTER_AUTH_GOOGLE_CLIENT_ID` and `BETTER_AUTH_GOOGLE_CLIENT_SECRET` are not present on `archestimator-proof`. This keeps the provider resource gate red and blocks Google OAuth/auth cutover.
 
 ## Generated Wrangler Deploy Dry-Run Snapshot
 
@@ -818,10 +818,20 @@ Realtime and collaboration:
 
 Email:
 
+- `tests/vitest/cloudflare-email-readiness-script.test.ts`
+- `tests/vitest/cloudflare-email-client.test.ts`
+- `tests/vitest/transactional-email-client.test.ts`
 - `tests/vitest/resend-readiness-script.test.ts`
 - `tests/vitest/resend-webhook-delivery.test.ts`
 - `tests/vitest/resend-webhook-route.test.ts`
 - `tests/vitest/resend-webhook-scope.test.ts`
+
+Latest Cloudflare Email readiness artifact:
+
+- `evidence/2026-06-30-cloudflare-email-readiness.json`
+- `evidence/2026-06-30-cloudflare-email-readiness.md`
+
+Current email cutover status: Cloudflare Worker `send_email` binding and local client paths exist, including a provider-neutral transactional `sendEmail` wrapper. The Cloudflare email Worker secret names are now present on `archestimator-proof`, but production Email Sending remains **NO-GO** because `wrangler email sending list` reports no onboarded Email Sending domains/subdomains and `wrangler email sending enable archestimator.com` fails while the zone is inactive. Resend remains the rollback/current provider until Cloudflare Email Service proves outbound send, arbitrary-recipient eligibility, bounce/retry/suppression behavior, and analytics/event parity.
 
 Performance:
 

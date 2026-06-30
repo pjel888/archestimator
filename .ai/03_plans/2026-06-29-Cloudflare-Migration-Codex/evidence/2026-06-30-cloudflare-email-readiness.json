@@ -1,0 +1,135 @@
+{
+  "generatedAt": "2026-06-30T21:54:43.717Z",
+  "mode": "cloudflare-email-readiness",
+  "targetDomain": "archestimator.com",
+  "workerName": "archestimator-proof",
+  "sources": {
+    "wranglerConfig": "wrangler.jsonc",
+    "envExample": ".env.example",
+    "devVarsExample": ".dev.vars.example",
+    "cloudflareDocs": [
+      "https://developers.cloudflare.com/email-service/get-started/send-emails/",
+      "https://developers.cloudflare.com/email-service/api/send-emails/workers-api/",
+      "https://developers.cloudflare.com/email-service/observability/metrics-analytics/"
+    ]
+  },
+  "wranglerSendEmailBinding": {
+    "requiredBinding": "EMAIL",
+    "present": true,
+    "ready": true
+  },
+  "envExample": {
+    "required": [
+      "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
+      "ARCHESTIMATOR_EMAIL_PROVIDER",
+      "CLOUDFLARE_EMAIL_FROM",
+      "CLOUDFLARE_EMAIL_REPLY_TO"
+    ],
+    "present": [
+      "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
+      "ARCHESTIMATOR_EMAIL_PROVIDER",
+      "CLOUDFLARE_EMAIL_FROM",
+      "CLOUDFLARE_EMAIL_REPLY_TO"
+    ],
+    "missing": [],
+    "ready": true
+  },
+  "devVarsExample": {
+    "required": [
+      "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
+      "ARCHESTIMATOR_EMAIL_PROVIDER",
+      "CLOUDFLARE_EMAIL_FROM",
+      "CLOUDFLARE_EMAIL_REPLY_TO"
+    ],
+    "present": [
+      "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
+      "ARCHESTIMATOR_EMAIL_PROVIDER",
+      "CLOUDFLARE_EMAIL_FROM",
+      "CLOUDFLARE_EMAIL_REPLY_TO"
+    ],
+    "missing": [],
+    "ready": true
+  },
+  "workerSecretReadback": {
+    "checked": true,
+    "command": [
+      "bunx",
+      "wrangler",
+      "secret",
+      "list",
+      "--name",
+      "archestimator-proof",
+      "--format",
+      "json"
+    ],
+    "ok": true,
+    "workerName": "archestimator-proof",
+    "names": [
+      "ARCHESTIMATOR_AI_ENABLED",
+      "ARCHESTIMATOR_ALLOWED_APP_ORIGINS",
+      "ARCHESTIMATOR_AUTH_PROVIDER",
+      "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
+      "ARCHESTIMATOR_EMAIL_PROVIDER",
+      "ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER",
+      "ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER",
+      "BETTER_AUTH_SECRET",
+      "BETTER_AUTH_TRUSTED_ORIGINS",
+      "BETTER_AUTH_URL",
+      "CLOSED_BETA_ACCESS_ENABLED",
+      "CLOUDFLARE_EMAIL_FROM",
+      "CLOUDFLARE_EMAIL_REPLY_TO",
+      "CLOUDFLARE_UPLOAD_JOBS_DRY_RUN",
+      "CLOUDFLARE_UPLOAD_JOBS_ORIGIN",
+      "CRON_SECRET",
+      "NEXT_PUBLIC_APP_URL",
+      "NEXT_PUBLIC_ASK_FLIP_UI_ENABLED",
+      "NEXT_PUBLIC_SITE_URL",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "PUBLICATION_ACCESS_COOKIE_SECRET",
+      "PUBLICATION_TOKEN_ENCRYPTION_SECRET",
+      "PUBLICATION_TOKEN_HASH_SECRET",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "UPLOAD_CLEANUP_JOB_SECRET",
+      "UPLOAD_JOBS_ENABLED",
+      "UPLOAD_SCAN_JOB_SECRET"
+    ],
+    "requiredEmailSecrets": {
+      "required": [
+        "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
+        "ARCHESTIMATOR_EMAIL_PROVIDER",
+        "CLOUDFLARE_EMAIL_FROM",
+        "CLOUDFLARE_EMAIL_REPLY_TO"
+      ],
+      "present": [
+        "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
+        "ARCHESTIMATOR_EMAIL_PROVIDER",
+        "CLOUDFLARE_EMAIL_FROM",
+        "CLOUDFLARE_EMAIL_REPLY_TO"
+      ],
+      "missing": [],
+      "ready": true
+    }
+  },
+  "emailSendingList": {
+    "checked": true,
+    "command": [
+      "bunx",
+      "wrangler",
+      "email",
+      "sending",
+      "list"
+    ],
+    "ok": true,
+    "noSendingDomainsMessagePresent": true,
+    "targetDomainPresent": false,
+    "discoveredTargetDomains": [],
+    "sanitizedOutput": " ⛅️ wrangler 4.105.0 (update available 4.106.0)\n───────────────────────────────────────────────\nNo sending subdomains found in this account.\n▲ [WARNING] 🚧 `wrangler email sending list` is an open beta command. Please report any issues to https://github.com/cloudflare/workers-sdk/issues/new/choose"
+  },
+  "productionEmailReady": false,
+  "blockers": [
+    "Cloudflare account reports no Email Sending domains/subdomains.",
+    "Email Sending domain archestimator.com is not onboarded/readable."
+  ],
+  "note": "Readiness check records secret names only, never secret values. Cloudflare docs require a send_email Worker binding plus an onboarded sending domain on Cloudflare DNS before production email can be claimed."
+}

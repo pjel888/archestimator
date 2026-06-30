@@ -20,12 +20,12 @@
     "notes": "User count is not a monthly-active-user invoice metric."
   },
   "Workers requests": {
-    "value": "Proof traffic: 40 public-route GET probes returned HTTP 200; Workers Observability sampled 20 probe events in the 2026-06-30T08:14Z-08:18Z window.",
+    "value": "Proof traffic from hosted route/performance probes returned expected 200/307/404 statuses; Workers Observability sampled 60 probe events in the 2026-06-30T11:20Z-11:30Z window.",
     "source": "Cloudflare Workers Observability MCP",
     "notes": "Proof-scale observed usage only; not projected monthly production requests."
   },
   "Workers CPU": {
-    "value": "Observed probe p95 CPU: /contact=40 ms, /trust=101 ms on Worker version 722234d9-7e09-4c31-b1ba-a036fb595006.",
+    "value": "Observed probe p95 CPU on Worker version 0db6e2b7-de5e-4a37-ba67-0e59feecc709: /workshop=5 ms, /access-required=9 ms, /api/share/not-a-real-hosted-worker-share-token=13 ms, /api/projects/images=3 ms.",
     "source": "Cloudflare Workers Observability MCP",
     "notes": "Credential-free proof routes only; authenticated/data route CPU still requires production-like fixtures."
   },
@@ -55,7 +55,7 @@
     "notes": "Proof operation count only; not monthly job volume."
   },
   "Observability/logs": {
-    "value": "Workers Observability sampled 20 proof probe events for current Worker version 722234d9-7e09-4c31-b1ba-a036fb595006.",
+    "value": "Workers Observability sampled 60 proof probe events for current Worker version 0db6e2b7-de5e-4a37-ba67-0e59feecc709.",
     "source": "2026-06-30-cloudflare-observability-proof.json",
     "notes": "Proof-scale log volume only; retention and production log volume still need rollout data."
   }

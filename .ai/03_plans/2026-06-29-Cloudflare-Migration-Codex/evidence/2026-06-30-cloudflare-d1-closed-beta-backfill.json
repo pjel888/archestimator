@@ -1,0 +1,35 @@
+{
+  "generatedAt": "2026-06-30T18:52:09.098Z",
+  "mode": "cloudflare-d1-closed-beta-backfill",
+  "sourceProjectRef": "ebxxqidacheyapmmzavr",
+  "targetD1Database": "ARCH_DB",
+  "sourceRows": 1,
+  "sourceStatusCounts": {
+    "active": 1
+  },
+  "sourceAllowedRows": 1,
+  "wrangler": {
+    "args": [
+      "wrangler",
+      "d1",
+      "execute",
+      "ARCH_DB",
+      "--remote",
+      "--file",
+      "<redacted-temp-sql-file>"
+    ],
+    "exitCode": 0,
+    "signal": null,
+    "stdoutBytes": 1475,
+    "stderrBytes": 159,
+    "timedOut": false
+  },
+  "readiness": {
+    "sourceProjectBoundaryReady": true,
+    "sourceRowsPresent": true,
+    "upsertSucceeded": true,
+    "d1BackfillReady": true
+  },
+  "blockers": [],
+  "note": "Backfill copies closed-beta allowlist rows from the authorized Archestimator Supabase project into Cloudflare D1 without printing or storing email addresses."
+}

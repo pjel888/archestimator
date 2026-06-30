@@ -34,6 +34,18 @@ Every limiter decision should emit a structured event in shadow and enforce mode
 | `store` | `postgres_events`, `postgres_rpc`, `memory`, `waf`, `workers_rl`, `durable_object`, `d1`. |
 | `runtime` | `vercel_node`, `opennext_worker`, `local`, as known. |
 | `request_id` | Existing request/correlation ID if available. |
+| `identity_source` | Trusted source used for client identity, such as Cloudflare, forwarded chain, Supabase-forwarded, direct, or unknown. |
+| `client_prefix_hash_version` | Version marker for IPv6 prefix/HMAC canonicalization. |
+| `ipv6_prefix_mask` | Coarse mask length only where safe and needed for debugging; never raw full IP. |
+| `provider_auth_limit_source` | Provider-doc/account-config version used for Supabase/Auth coordination. |
+| `sb_forwarded_for_mode` | `disabled`, `enabled-readback`, `not-applicable`, or `unknown`; never raw forwarded IP. |
+| `cache_fill_outcome` | `leader`, `waiter`, `stale`, `shed`, `timeout`, `error`, or `not_applicable`. |
+| `retry_algorithm` | `retry_after`, `full_jitter`, `manual_only`, or `not_applicable`. |
+| `page_count_budget` | Safe budget label for page/count decisions, not raw query text. |
+| `preflight_outcome` | `allowed`, `denied`, `not_configured`, or `not_applicable`. |
+| `realtime_budget_dimension` | `token_issue`, `connect`, `message`, `presence`, `cursor`, `fanout`, or `not_applicable`. |
+| `stream_body_budget` | `content_length`, `chunked`, `multipart_parts`, `transformed_bytes`, `session_ttl`, or `not_applicable`. |
+| `bot_signal_bucket` | Coarse bot-signal bucket only after provider proof; never a raw fingerprint. |
 
 ## Dashboards
 
@@ -47,6 +59,8 @@ Every limiter decision should emit a structured event in shadow and enforce mode
 | False positives | Owner/client support reports, manual overrides, retry success after wait. |
 | Low-and-slow abuse | Many actor/client/resource hashes below single-key thresholds, ASN/country/user-agent/email-domain cohorts, token-family probing, challenge escalation rate. |
 | Retention/deletion | Expired event deletion, idempotency-key TTL cleanup, pepper-rotation window, anonymization/deletion queue status, Cloudflare log retention status. |
+| Provider identity gaps | Identity source mix, IPv6 prefix-hash version adoption, `Sb-Forwarded-For` mode, and header-source anomalies. |
+| Advanced abuse budgets | Cache-fill shed/waiter rates, deep pagination/count denials, preflight flood, realtime message/fanout denials, multipart/chunked aborts, full-jitter retry exhaustion, and bot-signal false positives. |
 
 ## Alerts
 
@@ -59,6 +73,9 @@ Every limiter decision should emit a structured event in shadow and enforce mode
 | AI/export cost pressure | Near-limit/deny events increase with provider errors. | Lower thresholds or disable feature temporarily. |
 | Low-and-slow anomaly | Cohort cardinality or cross-resource attempts exceed baseline without one key crossing a hard threshold. | Move affected surfaces to observe/challenge review; avoid country/ASN-only blocking; inspect false-positive cohorts. |
 | Retention cleanup failure | Expired limiter/idempotency rows, private queued work, or provider logs exceed retention target. | Pause new retention-sensitive enforcement, run cleanup/anonymization job, and record audit exception if needed. |
+| Identity-source anomaly | Sudden shift in trusted header source, IPv6 prefix-hash version, or `Sb-Forwarded-For` mode. | Move affected policies to shadow or fallback identity version until deployment/provider path is verified. |
+| Cache-fill stampede | Cache-fill waiters/sheds/timeouts spike on one expensive key family. | Serve stale, increase coalescing, shed earlier, or shadow the affected limiter until provider/store pressure clears. |
+| Bot false-positive spike | Bot-signal challenge/deny cohort overlaps with proposal reviewers or beta users. | Revert bot rule to observe-only, keep app limiter active, and review support cases before re-escalation. |
 
 ## Operations Runbooks
 

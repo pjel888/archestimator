@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-06-30T19:35:10.542Z",
+  "mode": "cloudflare-d1-account-settings-backfill",
+  "sourceProjectRef": "ebxxqidacheyapmmzavr",
+  "targetD1Database": "ARCH_DB",
+  "sourceUserProfileRows": 1,
+  "sourceWorkspaceSettingsRows": 0,
+  "sourceUserCategoryCounts": {
+    "architect": 1
+  },
+  "sourceOrganizationTypeCounts": {},
+  "sourceCompletedOnboardingRows": 1,
+  "wrangler": {
+    "args": [
+      "wrangler",
+      "d1",
+      "execute",
+      "ARCH_DB",
+      "--remote",
+      "--file",
+      "<redacted-temp-sql-file>"
+    ],
+    "exitCode": 0,
+    "signal": null,
+    "stdoutBytes": 1597,
+    "stderrBytes": 165,
+    "timedOut": false
+  },
+  "d1Readback": {
+    "args": [
+      "wrangler",
+      "d1",
+      "execute",
+      "ARCH_DB",
+      "--remote",
+      "--command",
+      "SELECT (SELECT COUNT(*) FROM user_onboarding_profiles) AS userProfileRows, (SELECT COUNT(*) FROM workspace_account_settings) AS workspaceSettingsRows;"
+    ],
+    "exitCode": 0,
+    "signal": null,
+    "stdoutBytes": 991,
+    "stderrBytes": 0,
+    "timedOut": false,
+    "userProfileRows": 1,
+    "workspaceSettingsRows": 0,
+    "ready": true
+  },
+  "readiness": {
+    "sourceProjectBoundaryReady": true,
+    "upsertSucceeded": true,
+    "d1ReadbackReady": true,
+    "d1BackfillReady": true
+  },
+  "blockers": [],
+  "note": "Provider backfill for the account settings D1 slice. Reads only the expected Archestimator Supabase project, writes idempotent rows to Cloudflare D1, and records sanitized aggregate counts only."
+}

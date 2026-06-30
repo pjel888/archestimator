@@ -55,15 +55,15 @@ Local Wrangler/API auth status on 2026-06-30:
 
 - `scripts/check-cloudflare-wrangler-auth.ts` and `bun run cf:check-wrangler-auth` now run a read-only `wrangler whoami` check, sanitize output, and write repeatable CLI auth evidence without reading env files, printing tokens/secrets, creating resources, deploying, changing DNS, purchasing plans, or mutating providers.
 - Evidence in `evidence/2026-06-30-cloudflare-wrangler-auth.json` and `.md` shows Wrangler `4.105.0`, `wranglerCliAvailable=true`, `wranglerAuthCheckCompleted=true`, but `wranglerApiAuthenticated=false`, `providerReadbackReady=false`, and `productionDeployReady=false`.
-- Current blocker: local Wrangler is not authenticated. Run `wrangler login` or configure a scoped token outside the repo before any provider-backed deployment, secret-list, resource, or readback proof can pass.
+- Earlier local Wrangler-auth blocker is superseded: Wrangler OAuth/provider readback is now authenticated for account `7f6229cfea61b59f6f48b517fde86039`. Current provider blockers are narrower: DNS is still delegated to Namecheap, Cloudflare Email Sending has no onboarded active-zone domain, Better Auth Google OAuth secret names are missing on `archestimator-proof`, and legacy Supabase/Resend runtime references remain.
 
 Local provider readiness status on 2026-06-30:
 
 - `scripts/check-cloudflare-provider-readiness.ts` and `bun run cf:check-provider` now evaluate sanitized Cloudflare dashboard facts without calling provider APIs, reading env files, printing secret values, or mutating DNS/resources/billing.
-- `scripts/check-cloudflare-dns-delegation.ts` and `bun run cf:check-dns-delegation` now add a public DNS NS lookup artifact for `archestimator.com` without Cloudflare API calls, env reads, secret printing, provider mutation, deployment, billing, or DNS changes.
-- Evidence in `evidence/2026-06-30-cloudflare-dns-delegation.json` and `.md` shows public DNS is still `dns1.registrar-servers.com` / `dns2.registrar-servers.com`, not Cloudflare's assigned `carl.ns.cloudflare.com` / `ziggy.ns.cloudflare.com`.
+- `scripts/check-cloudflare-dns-delegation.ts` and `bun run cf:check-dns-delegation` now add a public DNS delegation/cutover preflight for `archestimator.com` without Cloudflare API calls, env reads, secret printing, provider mutation, deployment, billing, or DNS changes.
+- Evidence in `evidence/2026-06-30-cloudflare-dns-delegation.json` and `.md` shows public DNS is still `dns1.registrar-servers.com` / `dns2.registrar-servers.com`, not Cloudflare's assigned `carl.ns.cloudflare.com` / `ziggy.ns.cloudflare.com`; it also snapshots public apex/www/MX/TXT records and captures the Cloudflare DNS table: apex/www Worker records point to `archestimator-proof`, while MX/SPF/DMARC preserve the current Namecheap forwarding records.
 - Evidence in `evidence/2026-06-30-cloudflare-provider-readiness-source.json`, `evidence/2026-06-30-cloudflare-provider-readiness.json`, and `.md` now folds in the public DNS and Wrangler auth artifacts when present. Dashboard inventory is ready, but Workers deployment, storage/media, jobs, analytics receipt, and production cutover are not ready.
-- Current blockers remain: public DNS nameservers still do not point at Cloudflare, Workers Paid is not purchased, no Worker project/deployment/custom domain exists, API/Wrangler auth is checked but unauthenticated, sanitized Worker secret-list evidence is missing, R2/Images provider proof is missing, Cron/Queues/dead-letter proof is missing, and Web Analytics receipt is not provider-proven.
+- Current blockers remain: public DNS nameservers still do not point at Cloudflare, Better Auth Google OAuth secret names are missing, Cloudflare Email Sending cannot onboard while the zone is inactive, Supabase/Resend runtime references remain, Cloudflare Images provider proof is missing, and Web Analytics receipt is not provider-proven.
 
 Local D1/Auth/Realtime readiness status on 2026-06-30:
 

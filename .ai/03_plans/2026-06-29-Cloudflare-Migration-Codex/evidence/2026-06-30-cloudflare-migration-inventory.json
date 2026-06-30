@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-30T01:00:00.119Z",
+  "generatedAt": "2026-06-30T19:50:37.767Z",
   "mode": "cloudflare-migration-inventory",
   "sources": {
     "appRoot": "src/app",
@@ -18,16 +18,16 @@
     ]
   },
   "counts": {
-    "appRoutes": 71,
+    "appRoutes": 70,
     "pageRoutes": 39,
-    "routeHandlers": 30,
+    "routeHandlers": 29,
     "metadataRoutes": 2,
-    "providerCoupledFiles": 93,
-    "distinctRpcNames": 80,
-    "packageScripts": 94,
-    "scriptFiles": 110,
-    "cloudflareScripts": 31,
-    "providerReadinessScripts": 8
+    "providerCoupledFiles": 86,
+    "distinctRpcNames": 75,
+    "packageScripts": 103,
+    "scriptFiles": 122,
+    "cloudflareScripts": 42,
+    "providerReadinessScripts": 7
   },
   "appRoutes": [
     {
@@ -90,6 +90,7 @@
       "kind": "route-handler",
       "dynamic": false,
       "providerDependencies": [
+        "cloudflare-local-proof",
         "supabase-client",
         "supabase-rpc"
       ]
@@ -148,8 +149,7 @@
       "kind": "route-handler",
       "dynamic": false,
       "providerDependencies": [
-        "supabase-storage",
-        "vercel-runtime"
+        "cloudflare-local-proof"
       ]
     },
     {
@@ -204,9 +204,7 @@
       "file": "src/app/api/share/[token]/comment/route.ts",
       "kind": "route-handler",
       "dynamic": true,
-      "providerDependencies": [
-        "resend-email"
-      ]
+      "providerDependencies": []
     },
     {
       "route": "/api/share/[token]/decision",
@@ -244,22 +242,11 @@
       "providerDependencies": []
     },
     {
-      "route": "/api/webhooks/resend",
-      "file": "src/app/api/webhooks/resend/route.ts",
-      "kind": "route-handler",
-      "dynamic": false,
-      "providerDependencies": [
-        "resend-email"
-      ]
-    },
-    {
       "route": "/auth/callback",
       "file": "src/app/auth/callback/route.ts",
       "kind": "route-handler",
       "dynamic": false,
-      "providerDependencies": [
-        "vercel-runtime"
-      ]
+      "providerDependencies": []
     },
     {
       "route": "/contact",
@@ -281,6 +268,7 @@
       "kind": "page",
       "dynamic": true,
       "providerDependencies": [
+        "cloudflare-local-proof",
         "supabase-rpc"
       ]
     },
@@ -289,9 +277,7 @@
       "file": "src/app/invite/[token]/accept/route.ts",
       "kind": "route-handler",
       "dynamic": true,
-      "providerDependencies": [
-        "supabase-rpc"
-      ]
+      "providerDependencies": []
     },
     {
       "route": "/invite/[token]/continue",
@@ -305,7 +291,9 @@
       "file": "src/app/invite/[token]/sign-out/route.ts",
       "kind": "route-handler",
       "dynamic": true,
-      "providerDependencies": []
+      "providerDependencies": [
+        "cloudflare-local-proof"
+      ]
     },
     {
       "route": "/login",
@@ -327,8 +315,7 @@
       "kind": "page",
       "dynamic": false,
       "providerDependencies": [
-        "resend-email",
-        "vercel-runtime"
+        "cloudflare-local-proof"
       ]
     },
     {
@@ -372,7 +359,7 @@
       "kind": "page",
       "dynamic": false,
       "providerDependencies": [
-        "supabase-realtime"
+        "cloudflare-local-proof"
       ]
     },
     {
@@ -583,6 +570,7 @@
     {
       "file": "src/app/api/component-library/attachments/direct-upload/route.ts",
       "dependencies": [
+        "cloudflare-local-proof",
         "supabase-client",
         "supabase-rpc"
       ],
@@ -628,8 +616,7 @@
     {
       "file": "src/app/api/internal/upload-runtime/route.ts",
       "dependencies": [
-        "supabase-storage",
-        "vercel-runtime"
+        "cloudflare-local-proof"
       ],
       "rpcNames": [],
       "route": "/api/internal/upload-runtime"
@@ -658,42 +645,9 @@
       "route": "/api/projects/images"
     },
     {
-      "file": "src/app/api/share/[token]/comment/route.ts",
-      "dependencies": [
-        "resend-email"
-      ],
-      "rpcNames": [],
-      "route": "/api/share/[token]/comment"
-    },
-    {
-      "file": "src/app/api/webhooks/resend/route.ts",
-      "dependencies": [
-        "resend-email"
-      ],
-      "rpcNames": [],
-      "route": "/api/webhooks/resend"
-    },
-    {
-      "file": "src/app/auth/callback/route.ts",
-      "dependencies": [
-        "vercel-runtime"
-      ],
-      "rpcNames": [],
-      "route": "/auth/callback"
-    },
-    {
-      "file": "src/app/invite/[token]/accept/route.ts",
-      "dependencies": [
-        "supabase-rpc"
-      ],
-      "rpcNames": [
-        "accept_collaboration_invitation"
-      ],
-      "route": "/invite/[token]/accept"
-    },
-    {
       "file": "src/app/invite/[token]/page.tsx",
       "dependencies": [
+        "cloudflare-local-proof",
         "supabase-rpc"
       ],
       "rpcNames": [
@@ -702,34 +656,25 @@
       "route": "/invite/[token]"
     },
     {
-      "file": "src/app/layout.tsx",
+      "file": "src/app/invite/[token]/sign-out/route.ts",
       "dependencies": [
-        "vercel-runtime"
+        "cloudflare-local-proof"
       ],
       "rpcNames": [],
-      "route": null
+      "route": "/invite/[token]/sign-out"
     },
     {
       "file": "src/app/privacy/page.tsx",
       "dependencies": [
-        "resend-email",
-        "vercel-runtime"
+        "cloudflare-local-proof"
       ],
       "rpcNames": [],
       "route": "/privacy"
     },
     {
-      "file": "src/app/providers.tsx",
-      "dependencies": [
-        "supabase-realtime"
-      ],
-      "rpcNames": [],
-      "route": null
-    },
-    {
       "file": "src/app/trust/page.tsx",
       "dependencies": [
-        "supabase-realtime"
+        "cloudflare-local-proof"
       ],
       "rpcNames": [],
       "route": "/trust"
@@ -765,22 +710,6 @@
       "route": "/workshop/projects/[projectId]"
     },
     {
-      "file": "src/components/analytics/VercelWebAnalytics.tsx",
-      "dependencies": [
-        "vercel-runtime"
-      ],
-      "rpcNames": [],
-      "route": null
-    },
-    {
-      "file": "src/components/landing/claims-ledger/claims-data.ts",
-      "dependencies": [
-        "supabase-realtime"
-      ],
-      "rpcNames": [],
-      "route": null
-    },
-    {
       "file": "src/components/landing/CloudflareWebAnalytics.tsx",
       "dependencies": [
         "cloudflare-local-proof"
@@ -799,39 +728,15 @@
     {
       "file": "src/components/realtime-auth-bridge.tsx",
       "dependencies": [
-        "supabase-realtime"
+        "cloudflare-local-proof"
       ],
       "rpcNames": [],
       "route": null
     },
     {
-      "file": "src/components/ui/dropdown-select.tsx",
+      "file": "src/components/workshop/ProjectDetailsModal.tsx",
       "dependencies": [
-        "supabase-realtime"
-      ],
-      "rpcNames": [],
-      "route": null
-    },
-    {
-      "file": "src/components/workshop/EstimateSheetContent.tsx",
-      "dependencies": [
-        "supabase-realtime"
-      ],
-      "rpcNames": [],
-      "route": null
-    },
-    {
-      "file": "src/components/workshop/ProjectCursorLayer.tsx",
-      "dependencies": [
-        "supabase-realtime"
-      ],
-      "rpcNames": [],
-      "route": null
-    },
-    {
-      "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
-      "dependencies": [
-        "resend-email"
+        "cloudflare-local-proof"
       ],
       "rpcNames": [],
       "route": null
@@ -839,7 +744,7 @@
     {
       "file": "src/hooks/use-estimate-cursor-broadcast.ts",
       "dependencies": [
-        "supabase-realtime"
+        "cloudflare-local-proof"
       ],
       "rpcNames": [],
       "route": null
@@ -847,7 +752,7 @@
     {
       "file": "src/hooks/use-estimate-row-update-broadcast.ts",
       "dependencies": [
-        "supabase-realtime"
+        "cloudflare-local-proof"
       ],
       "rpcNames": [],
       "route": null
@@ -855,7 +760,15 @@
     {
       "file": "src/hooks/use-project-presence.ts",
       "dependencies": [
-        "supabase-realtime"
+        "cloudflare-local-proof"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/ai/audit-d1-store.ts",
+      "dependencies": [
+        "cloudflare-local-proof"
       ],
       "rpcNames": [],
       "route": null
@@ -863,7 +776,7 @@
     {
       "file": "src/lib/ai/audit.ts",
       "dependencies": [
-        "supabase-client"
+        "cloudflare-local-proof"
       ],
       "rpcNames": [],
       "route": null
@@ -887,9 +800,25 @@
       "route": null
     },
     {
-      "file": "src/lib/analytics/vercel-web-analytics.ts",
+      "file": "src/lib/ai/rate-limit.ts",
       "dependencies": [
-        "vercel-runtime"
+        "cloudflare-local-proof"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/auth/account-actions.ts",
+      "dependencies": [
+        "cloudflare-local-proof"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/auth/account-audit-d1-store.ts",
+      "dependencies": [
+        "cloudflare-local-proof"
       ],
       "rpcNames": [],
       "route": null
@@ -897,15 +826,15 @@
     {
       "file": "src/lib/auth/account-audit.ts",
       "dependencies": [
-        "supabase-client"
+        "cloudflare-local-proof"
       ],
       "rpcNames": [],
       "route": null
     },
     {
-      "file": "src/lib/auth/account-service-role.ts",
+      "file": "src/lib/auth/account-settings-d1-store.ts",
       "dependencies": [
-        "supabase-client"
+        "cloudflare-local-proof"
       ],
       "rpcNames": [],
       "route": null
@@ -913,30 +842,17 @@
     {
       "file": "src/lib/auth/actions.ts",
       "dependencies": [
-        "vercel-runtime"
+        "cloudflare-local-proof"
       ],
       "rpcNames": [],
       "route": null
     },
     {
-      "file": "src/lib/auth/beta-allowlist-admin-actions.ts",
+      "file": "src/lib/auth/auth-provider-selection.ts",
       "dependencies": [
-        "supabase-rpc"
+        "cloudflare-local-proof"
       ],
-      "rpcNames": [
-        "create_closed_beta_allowlist_entry",
-        "update_closed_beta_allowlist_entry"
-      ],
-      "route": null
-    },
-    {
-      "file": "src/lib/auth/beta-allowlist-admin.ts",
-      "dependencies": [
-        "supabase-rpc"
-      ],
-      "rpcNames": [
-        "read_closed_beta_allowlist_queue"
-      ],
+      "rpcNames": [],
       "route": null
     },
     {
@@ -948,13 +864,19 @@
       "route": null
     },
     {
-      "file": "src/lib/auth/closed-beta-access.ts",
+      "file": "src/lib/auth/closed-beta-d1-store.ts",
       "dependencies": [
-        "supabase-rpc"
+        "cloudflare-local-proof"
       ],
-      "rpcNames": [
-        "check_closed_beta_access"
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/auth/cloudflare-better-auth-runtime.ts",
+      "dependencies": [
+        "cloudflare-local-proof"
       ],
+      "rpcNames": [],
       "route": null
     },
     {
@@ -966,9 +888,9 @@
       "route": null
     },
     {
-      "file": "src/lib/auth/redirects.ts",
+      "file": "src/lib/auth/profile-d1-store.ts",
       "dependencies": [
-        "vercel-runtime"
+        "cloudflare-local-proof"
       ],
       "rpcNames": [],
       "route": null
@@ -976,7 +898,7 @@
     {
       "file": "src/lib/auth/request-proxy.ts",
       "dependencies": [
-        "supabase-client"
+        "cloudflare-local-proof"
       ],
       "rpcNames": [],
       "route": null
@@ -984,15 +906,69 @@
     {
       "file": "src/lib/auth/session.ts",
       "dependencies": [
-        "supabase-rpc"
+        "cloudflare-local-proof"
       ],
-      "rpcNames": [
-        "ensure_current_user_profile"
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/cloudflare/better-auth-proof-router.ts",
+      "dependencies": [
+        "cloudflare-local-proof"
       ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/cloudflare/collaboration-room-client.ts",
+      "dependencies": [
+        "cloudflare-local-proof"
+      ],
+      "rpcNames": [],
       "route": null
     },
     {
       "file": "src/lib/cloudflare/collaboration-room-router.ts",
+      "dependencies": [
+        "cloudflare-local-proof"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/cloudflare/d1-performance-proof-router.ts",
+      "dependencies": [
+        "cloudflare-local-proof"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/cloudflare/d1.ts",
+      "dependencies": [
+        "cloudflare-local-proof"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/cloudflare/jobs-proof-router.ts",
+      "dependencies": [
+        "cloudflare-local-proof"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/cloudflare/protected-proof-routes.ts",
+      "dependencies": [
+        "cloudflare-local-proof"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/cloudflare/provider-proof-router.ts",
       "dependencies": [
         "cloudflare-local-proof"
       ],
@@ -1016,9 +992,17 @@
       "route": null
     },
     {
+      "file": "src/lib/cloudflare/worker-route-optimizations.ts",
+      "dependencies": [
+        "cloudflare-local-proof"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
       "file": "src/lib/collaboration/actions.ts",
       "dependencies": [
-        "resend-email",
+        "cloudflare-local-proof",
         "supabase-client",
         "supabase-rpc"
       ],
@@ -1029,11 +1013,14 @@
       "route": null
     },
     {
-      "file": "src/lib/collaboration/feature-flags.ts",
+      "file": "src/lib/collaboration/invitation-acceptance.ts",
       "dependencies": [
-        "supabase-realtime"
+        "supabase-rpc"
       ],
-      "rpcNames": [],
+      "rpcNames": [
+        "accept_collaboration_invitation_by_id_for_actor",
+        "accept_collaboration_invitation_for_actor"
+      ],
       "route": null
     },
     {
@@ -1047,69 +1034,9 @@
     {
       "file": "src/lib/collaboration/pending-invite-actions.ts",
       "dependencies": [
-        "supabase-rpc"
-      ],
-      "rpcNames": [
-        "accept_collaboration_invitation_by_id"
-      ],
-      "route": null
-    },
-    {
-      "file": "src/lib/collaboration/presence-surface.ts",
-      "dependencies": [
-        "supabase-realtime"
+        "cloudflare-local-proof"
       ],
       "rpcNames": [],
-      "route": null
-    },
-    {
-      "file": "src/lib/collaboration/realtime-identity-actions.ts",
-      "dependencies": [
-        "supabase-realtime"
-      ],
-      "rpcNames": [],
-      "route": null
-    },
-    {
-      "file": "src/lib/collaboration/realtime-identity-server.ts",
-      "dependencies": [
-        "supabase-realtime"
-      ],
-      "rpcNames": [],
-      "route": null
-    },
-    {
-      "file": "src/lib/collaboration/realtime-identity.ts",
-      "dependencies": [
-        "supabase-realtime"
-      ],
-      "rpcNames": [],
-      "route": null
-    },
-    {
-      "file": "src/lib/collaboration/realtime-telemetry.ts",
-      "dependencies": [
-        "supabase-realtime"
-      ],
-      "rpcNames": [],
-      "route": null
-    },
-    {
-      "file": "src/lib/collaboration/types.ts",
-      "dependencies": [
-        "supabase-realtime"
-      ],
-      "rpcNames": [],
-      "route": null
-    },
-    {
-      "file": "src/lib/collaboration/workshop-pending-invite.ts",
-      "dependencies": [
-        "supabase-rpc"
-      ],
-      "rpcNames": [
-        "accept_collaboration_invitation"
-      ],
       "route": null
     },
     {
@@ -1143,18 +1070,17 @@
       "route": null
     },
     {
-      "file": "src/lib/email/resend-client.ts",
+      "file": "src/lib/email/cloudflare-email-client.ts",
       "dependencies": [
-        "resend-email"
+        "cloudflare-local-proof"
       ],
       "rpcNames": [],
       "route": null
     },
     {
-      "file": "src/lib/email/resend-webhooks.ts",
+      "file": "src/lib/email/transactional-email-client.ts",
       "dependencies": [
-        "resend-email",
-        "supabase-client"
+        "cloudflare-local-proof"
       ],
       "rpcNames": [],
       "route": null
@@ -1219,10 +1145,17 @@
       "route": null
     },
     {
-      "file": "src/lib/mass-deletion/storage-cleanup.ts",
+      "file": "src/lib/legal/terms-acceptance-d1-store.ts",
       "dependencies": [
-        "supabase-client",
-        "supabase-storage"
+        "cloudflare-local-proof"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/legal/terms-acceptance.ts",
+      "dependencies": [
+        "cloudflare-local-proof"
       ],
       "rpcNames": [],
       "route": null
@@ -1230,8 +1163,7 @@
     {
       "file": "src/lib/projects/actions.ts",
       "dependencies": [
-        "supabase-rpc",
-        "supabase-storage"
+        "supabase-rpc"
       ],
       "rpcNames": [
         "execute_bulk_delete_projects",
@@ -1253,7 +1185,7 @@
     {
       "file": "src/lib/publication/actions.ts",
       "dependencies": [
-        "resend-email",
+        "cloudflare-local-proof",
         "supabase-client",
         "supabase-rpc"
       ],
@@ -1263,19 +1195,10 @@
       "route": null
     },
     {
-      "file": "src/lib/publication/email-links.ts",
-      "dependencies": [
-        "vercel-runtime"
-      ],
-      "rpcNames": [],
-      "route": null
-    },
-    {
       "file": "src/lib/publication/public-repository.ts",
       "dependencies": [
         "supabase-client",
-        "supabase-rpc",
-        "vercel-runtime"
+        "supabase-rpc"
       ],
       "rpcNames": [
         "increment_project_publication_open",
@@ -1329,7 +1252,6 @@
     {
       "file": "src/lib/repositories/workspace-repository.ts",
       "dependencies": [
-        "supabase-realtime",
         "supabase-rpc"
       ],
       "rpcNames": [
@@ -1356,8 +1278,8 @@
     {
       "file": "src/lib/supabase/client.ts",
       "dependencies": [
-        "supabase-client",
-        "supabase-realtime"
+        "cloudflare-local-proof",
+        "supabase-client"
       ],
       "rpcNames": [],
       "route": null
@@ -1365,6 +1287,7 @@
     {
       "file": "src/lib/supabase/server.ts",
       "dependencies": [
+        "cloudflare-local-proof",
         "supabase-client"
       ],
       "rpcNames": [],
@@ -1398,14 +1321,6 @@
       "route": null
     },
     {
-      "file": "src/lib/uploads/provider-portability.ts",
-      "dependencies": [
-        "supabase-storage"
-      ],
-      "rpcNames": [],
-      "route": null
-    },
-    {
       "file": "src/lib/uploads/r2-storage-provider.ts",
       "dependencies": [
         "cloudflare-local-proof"
@@ -1424,8 +1339,7 @@
     {
       "file": "src/lib/uploads/scan-job.ts",
       "dependencies": [
-        "supabase-rpc",
-        "supabase-storage"
+        "supabase-rpc"
       ],
       "rpcNames": [
         "record_upload_scan_result"
@@ -1459,14 +1373,6 @@
       "route": null
     },
     {
-      "file": "src/lib/uploads/storage-provider.ts",
-      "dependencies": [
-        "supabase-storage"
-      ],
-      "rpcNames": [],
-      "route": null
-    },
-    {
       "file": "src/lib/uploads/upload-records.ts",
       "dependencies": [
         "supabase-rpc"
@@ -1475,20 +1381,27 @@
         "record_upload_asset"
       ],
       "route": null
+    },
+    {
+      "file": "src/lib/workshop/beta-feedback-d1-store.ts",
+      "dependencies": [
+        "cloudflare-local-proof"
+      ],
+      "rpcNames": [],
+      "route": null
     }
   ],
   "rpcCalls": [
     {
-      "name": "accept_collaboration_invitation",
+      "name": "accept_collaboration_invitation_by_id_for_actor",
       "callerFiles": [
-        "src/app/invite/[token]/accept/route.ts",
-        "src/lib/collaboration/workshop-pending-invite.ts"
+        "src/lib/collaboration/invitation-acceptance.ts"
       ]
     },
     {
-      "name": "accept_collaboration_invitation_by_id",
+      "name": "accept_collaboration_invitation_for_actor",
       "callerFiles": [
-        "src/lib/collaboration/pending-invite-actions.ts"
+        "src/lib/collaboration/invitation-acceptance.ts"
       ]
     },
     {
@@ -1545,21 +1458,9 @@
       ]
     },
     {
-      "name": "check_closed_beta_access",
-      "callerFiles": [
-        "src/lib/auth/closed-beta-access.ts"
-      ]
-    },
-    {
       "name": "create_ai_package_library_components_with_history",
       "callerFiles": [
         "src/lib/ai/package-builder/apply.ts"
-      ]
-    },
-    {
-      "name": "create_closed_beta_allowlist_entry",
-      "callerFiles": [
-        "src/lib/auth/beta-allowlist-admin-actions.ts"
       ]
     },
     {
@@ -1634,12 +1535,6 @@
       "name": "duplicate_estimate_tab_with_history",
       "callerFiles": [
         "src/lib/estimates/actions.ts"
-      ]
-    },
-    {
-      "name": "ensure_current_user_profile",
-      "callerFiles": [
-        "src/lib/auth/session.ts"
       ]
     },
     {
@@ -1823,12 +1718,6 @@
       ]
     },
     {
-      "name": "read_closed_beta_allowlist_queue",
-      "callerFiles": [
-        "src/lib/auth/beta-allowlist-admin.ts"
-      ]
-    },
-    {
       "name": "read_project_collaboration_audit_events",
       "callerFiles": [
         "src/lib/repositories/project-activity-feed-repository.ts"
@@ -1933,12 +1822,6 @@
       ]
     },
     {
-      "name": "update_closed_beta_allowlist_entry",
-      "callerFiles": [
-        "src/lib/auth/beta-allowlist-admin-actions.ts"
-      ]
-    },
-    {
       "name": "update_cost_library_component",
       "callerFiles": [
         "src/lib/component-library/actions.ts"
@@ -1999,6 +1882,11 @@
       "family": "cloudflare"
     },
     {
+      "name": "cf:better-auth-provider-proof",
+      "command": "bun run scripts/verify-cloudflare-better-auth-provider-proof.ts",
+      "family": "cloudflare"
+    },
+    {
       "name": "cf:build",
       "command": "ARCHESTIMATOR_CLOUDFLARE_BUILD=1 opennextjs-cloudflare build",
       "family": "cloudflare"
@@ -2016,6 +1904,11 @@
     {
       "name": "cf:check-dns-delegation",
       "command": "bun run scripts/check-cloudflare-dns-delegation.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:check-email",
+      "command": "bun run scripts/check-cloudflare-email-readiness.ts",
       "family": "cloudflare"
     },
     {
@@ -2041,6 +1934,21 @@
     {
       "name": "cf:check-wrangler-auth",
       "command": "bun run scripts/check-cloudflare-wrangler-auth.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:d1-account-security-events-backfill",
+      "command": "bun run scripts/migrate-account-security-events-to-d1.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:d1-account-settings-backfill",
+      "command": "bun run scripts/migrate-account-settings-to-d1.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:d1-ai-audit-backfill",
+      "command": "bun run scripts/migrate-ai-audit-to-d1.ts",
       "family": "cloudflare"
     },
     {
@@ -2074,8 +1982,18 @@
       "family": "cloudflare"
     },
     {
+      "name": "cf:d1-legal-terms-backfill",
+      "command": "bun run scripts/migrate-legal-terms-acceptances-to-d1.ts",
+      "family": "cloudflare"
+    },
+    {
       "name": "cf:d1-performance-proof",
       "command": "bun run scripts/generate-cloudflare-d1-performance-proof.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:d1-profiles-backfill",
+      "command": "bun run scripts/migrate-profiles-to-d1.ts",
       "family": "cloudflare"
     },
     {
@@ -2094,13 +2012,23 @@
       "family": "cloudflare"
     },
     {
+      "name": "cf:d1-runtime-proof",
+      "command": "bun run scripts/verify-cloudflare-d1-runtime-performance-proof.ts",
+      "family": "cloudflare"
+    },
+    {
       "name": "cf:deploy",
-      "command": "ARCHESTIMATOR_CLOUDFLARE_BUILD=1 opennextjs-cloudflare build && opennextjs-cloudflare deploy -- --keep-vars",
+      "command": "ARCHESTIMATOR_CLOUDFLARE_BUILD=1 opennextjs-cloudflare build && OPEN_NEXT_DEPLOY=true CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false wrangler deploy --keep-vars",
       "family": "cloudflare"
     },
     {
       "name": "cf:inventory",
       "command": "bun run scripts/generate-cloudflare-migration-inventory.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:jobs-proof",
+      "command": "bun run scripts/verify-cloudflare-jobs-proof.ts",
       "family": "cloudflare"
     },
     {
@@ -2114,6 +2042,11 @@
       "family": "cloudflare"
     },
     {
+      "name": "cf:provider-proof",
+      "command": "bun run scripts/verify-cloudflare-provider-proof.ts",
+      "family": "cloudflare"
+    },
+    {
       "name": "cf:queues-cron-proof",
       "command": "bun run scripts/generate-cloudflare-queues-cron-proof.ts",
       "family": "cloudflare"
@@ -2121,6 +2054,11 @@
     {
       "name": "cf:release-gates",
       "command": "bun run scripts/check-cloudflare-release-gates.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:sync-worker-secrets",
+      "command": "bun run scripts/sync-cloudflare-worker-secrets.ts",
       "family": "cloudflare"
     },
     {
@@ -2187,11 +2125,6 @@
       "name": "launch:check-legal-owner",
       "command": "bun run scripts/check-legal-owner-readiness.ts",
       "family": "launch"
-    },
-    {
-      "name": "launch:check-resend-readiness",
-      "command": "bun run scripts/check-resend-readiness.ts",
-      "family": "provider-readiness"
     },
     {
       "name": "launch:check-supabase-backup",
@@ -2301,11 +2234,6 @@
     {
       "name": "perf:check-routes",
       "command": "bun run scripts/check-route-transition-readiness.ts",
-      "family": "performance"
-    },
-    {
-      "name": "perf:check-speed-insights",
-      "command": "bun run scripts/check-vercel-speed-insights-readiness.ts",
       "family": "performance"
     },
     {
@@ -2455,9 +2383,9 @@
     }
   ],
   "sqlInventory": {
-    "appliedMigrationFiles": 181,
+    "appliedMigrationFiles": 182,
     "pendingReviewFiles": 13,
-    "functionDeclarationMatches": 346,
+    "functionDeclarationMatches": 348,
     "rlsPolicyStorageAuthMatches": 684
   },
   "note": "Local repository inventory only. It lists file paths, route paths, RPC names, script names, and counts; it does not read env files, print secret values, mutate providers, prove Cloudflare hosted deployment, prove D1/R2/Images/Email/Workers Paid readiness, change DNS, or make current providers removable."

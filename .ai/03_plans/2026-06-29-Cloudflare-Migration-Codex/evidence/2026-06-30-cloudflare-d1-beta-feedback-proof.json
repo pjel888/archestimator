@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-29T21:00:34.820Z",
+  "generatedAt": "2026-06-30T18:52:48.938Z",
   "mode": "cloudflare-d1-beta-feedback-proof",
   "sources": {
     "plan": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/27_PROOF_SPIKE_BACKLOG.md",
@@ -65,7 +65,7 @@
         "queryBudget": 2,
         "plannedQueries": 1,
         "localBudgetMs": 100,
-        "localP95Ms": 3.67,
+        "localP95Ms": 7.23,
         "rowsReturned": 1,
         "sampleCount": 9,
         "status": "local-pass",
@@ -76,7 +76,7 @@
         "queryBudget": 2,
         "plannedQueries": 1,
         "localBudgetMs": 100,
-        "localP95Ms": 5.62,
+        "localP95Ms": 5.56,
         "rowsReturned": 1,
         "sampleCount": 9,
         "status": "local-pass",
@@ -87,7 +87,7 @@
         "queryBudget": 2,
         "plannedQueries": 1,
         "localBudgetMs": 100,
-        "localP95Ms": 5.22,
+        "localP95Ms": 9.07,
         "rowsReturned": 1,
         "sampleCount": 9,
         "status": "local-pass",

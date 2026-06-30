@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-29T21:27:51.787Z",
+  "generatedAt": "2026-06-30T17:20:33.667Z",
   "mode": "cloudflare-d1-collaboration-invitation-proof",
   "sources": {
     "plan": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/27_PROOF_SPIKE_BACKLOG.md",
@@ -22,7 +22,9 @@
     "record_collaboration_invitation_delivery",
     "resolve_collaboration_invitation",
     "accept_collaboration_invitation",
-    "accept_collaboration_invitation_by_id"
+    "accept_collaboration_invitation_by_id",
+    "accept_collaboration_invitation_for_actor",
+    "accept_collaboration_invitation_by_id_for_actor"
   ],
   "readiness": {
     "schemaReady": true,
@@ -101,7 +103,7 @@
         "queryBudget": 2,
         "plannedQueries": 1,
         "localBudgetMs": 100,
-        "localP95Ms": 7.82,
+        "localP95Ms": 4.36,
         "rowsReturned": 0,
         "sampleCount": 9,
         "status": "local-pass",
@@ -112,7 +114,7 @@
         "queryBudget": 2,
         "plannedQueries": 1,
         "localBudgetMs": 100,
-        "localP95Ms": 4.83,
+        "localP95Ms": 4.31,
         "rowsReturned": 0,
         "sampleCount": 9,
         "status": "local-pass",
@@ -123,7 +125,7 @@
         "queryBudget": 2,
         "plannedQueries": 1,
         "localBudgetMs": 100,
-        "localP95Ms": 4.12,
+        "localP95Ms": 4.32,
         "rowsReturned": 3,
         "sampleCount": 9,
         "status": "local-pass",
@@ -134,7 +136,7 @@
         "queryBudget": 2,
         "plannedQueries": 1,
         "localBudgetMs": 100,
-        "localP95Ms": 3.88,
+        "localP95Ms": 4.63,
         "rowsReturned": 1,
         "sampleCount": 9,
         "status": "local-pass",

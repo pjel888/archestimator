@@ -24,6 +24,8 @@ Official Cloudflare documentation was refreshed on 2026-06-30. Pricing and plan 
 | D1 | D1 is SQLite-backed, single-threaded per database, has per-invocation query limits, and batch/session semantics. | https://developers.cloudflare.com/d1/platform/limits/ and https://developers.cloudflare.com/d1/worker-api/d1-database/ |
 | KV | Eventually consistent and explicitly not suitable for atomic or strongly consistent exact counters. | https://developers.cloudflare.com/kv/concepts/how-kv-works/ |
 | Wrangler config | Binding syntax covers D1 and Durable Objects; observability/traces can be configured in Wrangler. | https://developers.cloudflare.com/workers/wrangler/configuration/ |
+| WAF rate-limiting parameters | Rules have matching/counting expressions, characteristics including IP/NAT support and headers, plan-dependent periods/actions, and request-based vs complexity-based modes. | https://developers.cloudflare.com/waf/rate-limiting-rules/parameters/ |
+| Cloudflare bot products | Bot Fight Mode, Super Bot Fight Mode, and Bot Management have different plan/entitlement and control granularity. Bot Management gives per-request bot-score style controls but must be proven and false-positive reviewed. | https://developers.cloudflare.com/bots/ |
 
 ## Cloudflare Layer Plan
 
@@ -35,6 +37,7 @@ Official Cloudflare documentation was refreshed on 2026-06-30. Pricing and plan 
 | Durable Objects | Exact counters and realtime room quotas. | Hosted Worker DO proof, partitioning design, transaction tests, hibernation/lifecycle tests. |
 | D1 | Durable metadata or lower-rate ledgers. | Query budget proof, sequential consistency tests, restore proof, hot-counter load rejection or mitigation. |
 | Observability | Enforcement evidence and tuning. | Workers Logs/Traces receipt, dashboard fields, sampled and denied events, retention policy. |
+| Bot Management / Bot signals | Observe-first bot-score/signal escalation after app policy and WAF/Turnstile proof. | Entitlement readback, rule expression, false-positive review, support path, rollback by rule ID/flag. |
 
 ## Deployment Implications
 
@@ -56,6 +59,7 @@ Official Cloudflare documentation was refreshed on 2026-06-30. Pricing and plan 
 | D1 limiter metadata | Schema, query budget, backup/restore proof, hot-counter rejection or mitigation. | Keep Postgres event table. | Hosted Worker plus provider readback. | OPEN. |
 | Logs/traces/dashboards | Workers Logs/Traces receipt, redaction sample, retention setting, alert route. | App-side structured events only. | Provider receipt plus dashboard link. | OPEN. |
 | Cache/CDN denial profile | Confirm which 429/403/409/412 responses bypass cache or use `no-store`, and which static/health routes are exempt. | Revert cache rule/header transform; app response profile remains source of truth. | Provider config/readback plus route/header proof. | OPEN; no sensitive denial caching. |
+| Bot Management escalation | Confirm product availability, bot-score/signal fields, observe-only expression, sampled analytics, false-positive cohort review, support path, and challenge/block threshold. | Disable rule by ID or feature flag; app limiter and WAF observe remain active. | Provider readback plus hosted logs/support metrics. | OPEN; escalation only, never P0 prerequisite. |
 
 ## Cloudflare-Specific Risks
 
@@ -67,3 +71,4 @@ Official Cloudflare documentation was refreshed on 2026-06-30. Pricing and plan 
 | DO hotspotting | Partition by policy/resource; avoid singleton global counter. |
 | D1 hot counter contention | Keep hot counters in Postgres/RPC now or DO later. |
 | Observability sampling hides low-volume denials | Emit app-side structured events as well as Worker logs. |
+| Bot heuristics block legitimate reviewers or beta users | Observe first, compare app decisions to bot signals, require false-positive review, and keep owner/support override before challenge/block. |

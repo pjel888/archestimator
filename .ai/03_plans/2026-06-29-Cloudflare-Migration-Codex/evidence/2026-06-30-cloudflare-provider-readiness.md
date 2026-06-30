@@ -1,6 +1,6 @@
 # Cloudflare Provider Readiness
 
-Generated: 2026-06-30T10:49:05.727Z
+Generated: 2026-06-30T21:43:41.946Z
 Source: .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-provider-readiness-source.json
 Captured: 2026-06-30T02:00:15.745Z
 DNS delegation source: .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-dns-delegation.json
@@ -33,20 +33,19 @@ Sanitized provider-readiness check only. It evaluates dashboard facts supplied i
 | Imported DNS reviewed | PASS | dnsImportedReviewed=yes, recordCount=9 |  |
 | Registrar nameservers point at Cloudflare | FAIL | assigned=carl.ns.cloudflare.com, ziggy.ns.cloudflare.com, publicDns=dns1.registrar-servers.com, dns2.registrar-servers.com, sanitizedRegistrar=dns1.registrar-servers.com, dns2.registrar-servers.com | Public DNS nameservers still do not include all Cloudflare-assigned nameservers. |
 | Workers Paid purchased | PASS | workersPlan=Paid, workersPaidPurchased=yes |  |
-| Worker project deployed | PASS | projectCount=0, deployedWorkerUrlPresent=no, wranglerDeploymentReadback=yes |  |
-| Worker custom domain active | FAIL | customDomainActive=no | Worker custom-domain routing is not active. |
+| Worker project deployed | PASS | projectCount=1, deployedWorkerUrlPresent=yes, wranglerDeploymentReadback=yes |  |
+| Worker custom domain active | PASS | customDomainActive=yes |  |
 | Cloudflare API/Wrangler auth configured | PASS | dashboardApiAuthConfigured=yes, wranglerAuthChecked=yes, wranglerApiAuthenticated=yes, wranglerProviderReadback=yes |  |
-| Sanitized Worker secret list captured | PASS | sanitizedSecretListCaptured=no, wranglerSecretNameReadback=yes |  |
+| Sanitized Worker secret list captured | FAIL | sanitizedSecretListCaptured=no, wranglerSecretNameReadback=no | Worker secret name readback is incomplete: Worker secret name list: missing expected names BETTER_AUTH_GOOGLE_CLIENT_ID, BETTER_AUTH_GOOGLE_CLIENT_SECRET. |
 | R2 proof buckets and readback proven | PASS | r2ProofBucketsCreated=yes, r2HostedReadbackProven=yes, wranglerR2Readback=yes, providerRuntimeR2Proof=yes |  |
 | Cloudflare Images binding provider-proven | PASS | imagesBindingProviderProven=no, providerRuntimeImagesProof=yes |  |
 | Cron/Queues provider execution proven | PASS | cronProviderExecutionProven=no, queuesProofCreated=yes, deadLetterProofCreated=yes, wranglerQueuesReadback=yes, jobsRuntimeProductionProof=yes |  |
-| Cloudflare Analytics/Workers Observability receiving data | PASS | webAnalyticsPropertyCreated=yes, webAnalyticsReceivingDataProven=no, workersObservabilityReceivingDataProven=yes, observedProbeEvents=20 |  |
+| Cloudflare Analytics/Workers Observability receiving data | PASS | webAnalyticsPropertyCreated=yes, webAnalyticsReceivingDataProven=no, workersObservabilityReceivingDataProven=yes, observedProbeEvents=60 |  |
 
 ## Actions Intentionally Not Taken
 
 - paid checkout/subscription purchase by Codex
 - API token creation
-- live DNS edits
 - registrar nameserver changes
 - Vercel cancellation
 - Supabase cancellation

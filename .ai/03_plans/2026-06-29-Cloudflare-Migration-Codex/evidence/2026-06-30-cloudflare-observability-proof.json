@@ -1,59 +1,100 @@
 {
-  "generatedAt": "2026-06-30T08:17:30.000Z",
+  "generatedAt": "2026-06-30T11:27:15.000Z",
   "mode": "cloudflare-observability-proof",
   "source": "Cloudflare Workers Observability MCP",
   "accountId": "7f6229cfea61b59f6f48b517fde86039",
   "worker": "archestimator-proof",
   "timeframe": {
-    "from": "2026-06-30T08:14:00Z",
-    "to": "2026-06-30T08:18:00Z"
+    "from": "2026-06-30T11:20:00Z",
+    "to": "2026-06-30T11:30:00Z"
   },
   "trafficProbe": {
-    "sentRequests": 40,
-    "allStatusesOk": true,
+    "source": "cf:verify-hosted-routes and cf:verify-hosted-performance probe traffic",
+    "allStatusesExpected": true,
     "statuses": [
-      200
+      200,
+      307,
+      404
     ],
-    "maxClientObservedMs": 1721
+    "clientObservedP95BudgetsPassed": false,
+    "clientObservedNote": "Credential-free route contracts passed. Strict client p95 budgets still showed local/network jitter on cache HIT static pages; provider Worker telemetry below stayed low for observed Worker-executed paths."
   },
   "observability": {
-    "currentWorkerVersion": "722234d9-7e09-4c31-b1ba-a036fb595006",
+    "currentWorkerVersion": "0db6e2b7-de5e-4a37-ba67-0e59feecc709",
     "scriptVersionValues": [
-      "722234d9-7e09-4c31-b1ba-a036fb595006"
+      "0db6e2b7-de5e-4a37-ba67-0e59feecc709"
     ],
-    "sampledProbeEventCount": 20,
+    "sampledProbeEventCount": 60,
     "sampledProbePaths": [
       {
-        "path": "/contact",
-        "status": 200,
-        "events": 10,
-        "p95WallTimeMs": 49,
-        "p95CpuTimeMs": 40
+        "path": "/workshop",
+        "status": 307,
+        "events": 30,
+        "p95WallTimeMs": 6,
+        "p95CpuTimeMs": 5,
+        "maxWallTimeMs": 6,
+        "maxCpuTimeMs": 5
       },
       {
-        "path": "/trust",
+        "path": "/access-required",
         "status": 200,
         "events": 10,
-        "p95WallTimeMs": 110,
-        "p95CpuTimeMs": 101
+        "p95WallTimeMs": 13,
+        "p95CpuTimeMs": 9,
+        "maxWallTimeMs": 13,
+        "maxCpuTimeMs": 9
+      },
+      {
+        "path": "/api/share/not-a-real-hosted-worker-share-token",
+        "status": 404,
+        "events": 10,
+        "p95WallTimeMs": 316,
+        "p95CpuTimeMs": 13,
+        "maxWallTimeMs": 316,
+        "maxCpuTimeMs": 13
+      },
+      {
+        "path": "/api/projects/images",
+        "status": 404,
+        "events": 10,
+        "p95WallTimeMs": 4,
+        "p95CpuTimeMs": 3,
+        "maxWallTimeMs": 4,
+        "maxCpuTimeMs": 3
       }
     ],
     "sampleEvents": [
       {
-        "path": "/contact",
-        "status": 200,
-        "scriptVersion": "722234d9-7e09-4c31-b1ba-a036fb595006",
+        "path": "/workshop",
+        "status": 307,
+        "scriptVersion": "0db6e2b7-de5e-4a37-ba67-0e59feecc709",
         "outcome": "ok",
-        "cpuTimeMs": 40,
-        "wallTimeMs": 49
+        "cpuTimeMs": 5,
+        "wallTimeMs": 6
       },
       {
-        "path": "/trust",
+        "path": "/access-required",
         "status": 200,
-        "scriptVersion": "722234d9-7e09-4c31-b1ba-a036fb595006",
+        "scriptVersion": "0db6e2b7-de5e-4a37-ba67-0e59feecc709",
         "outcome": "ok",
-        "cpuTimeMs": 101,
-        "wallTimeMs": 110
+        "cpuTimeMs": 9,
+        "wallTimeMs": 13
+      },
+      {
+        "path": "/api/share/not-a-real-hosted-worker-share-token",
+        "status": 404,
+        "scriptVersion": "0db6e2b7-de5e-4a37-ba67-0e59feecc709",
+        "outcome": "ok",
+        "cpuTimeMs": 13,
+        "wallTimeMs": 316
+      },
+      {
+        "path": "/api/projects/images",
+        "status": 404,
+        "scriptVersion": "0db6e2b7-de5e-4a37-ba67-0e59feecc709",
+        "outcome": "ok",
+        "cpuTimeMs": 3,
+        "wallTimeMs": 4
       }
     ]
   },

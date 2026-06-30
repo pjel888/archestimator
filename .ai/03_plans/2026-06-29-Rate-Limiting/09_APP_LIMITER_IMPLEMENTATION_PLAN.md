@@ -56,6 +56,13 @@ If implementation creates shared frontend helpers, keep them separate from autho
 | Browser lifecycle adapter | Recompute pending, cooldown, queue, optimistic, and kill-switch state on `visibilitychange`, focus, reconnect, navigation cleanup, timeout, and server/config refresh. |
 | Accessibility adapter | Standardize native `disabled`, optional `aria-disabled`, `aria-busy`, live-region status, focus restore, keyboard-submit behavior, separate cooldown explanation text, and no-stuck-disabled assertions for guarded actions. |
 | Multi-tab helper | Share in-flight/cooldown hints only for high-cost same-origin actions with `BroadcastChannel` or storage-event fallback; reserve Web Locks for deliberately chosen high-cost singleton work; stale tabs refresh from server response and never become the source of truth. |
+| Client identity canonicalizer | Parse trusted client IP/header input, normalize IPv4/IPv6, mask IPv6 before HMAC, version composite keys, and expose only hashed/coarse dimensions to events. |
+| Provider auth coordinator | Load current Supabase Auth provider-limit decisions, `Sb-Forwarded-For` posture, OTP/MFA send/verify policy, and duplicate-lockout recovery rules into auth/contact contract rows. |
+| Timing-safe comparison wrapper | Centralize length handling, timing-safe equality, and uniform response-envelope hooks for secret/token comparisons where source modules currently differ. |
+| Cache-fill coordinator | Provide single-flight/coalescing, max waiters, stale serve, negative-cache, timeout, shed, and provider/store-outage decisions for expensive reads and provider fills. |
+| Resource/protocol budget helper | Evaluate page depth, count budget, CORS `OPTIONS`, body bytes, missing `Content-Length`, chunked transfer, multipart/resumable state, transformed bytes, and route timeouts before expensive work. |
+| Realtime quota adapter | Separate token/connect quotas from message, presence, cursor, broadcast, fanout, and disconnect-cleanup quotas. |
+| Bot escalation adapter | Consume Cloudflare bot signals only after provider readback and observe-mode proof, and never as a replacement for app policy. |
 
 ## Migration Order
 
@@ -69,7 +76,8 @@ If implementation creates shared frontend helpers, keep them separate from autho
 | 5 | Estimate actions | Preserve burst-friendly editing while making scaled behavior explicit. |
 | 6 | Client error intake | Keep fail-soft/drop semantics; add standardized hashing. |
 | 7 | Auth/contact/email/webhook/internal | Add or document appropriate controls around provider/signature/idempotency boundaries. |
-| 8 | Cloudflare adapters | Only after hosted Worker/provider proof. |
+| 8 | Provider identity and advanced-abuse contracts | Fill `SCE-010` through `SCE-017`, `FCE-008`, `FCE-009`, and `CP-008` before touching shared limiter helpers. |
+| 9 | Cloudflare adapters | Only after hosted Worker/provider proof. |
 
 ## Behavior Preservation Requirements
 
@@ -109,6 +117,10 @@ If implementation creates shared frontend helpers, keep them separate from autho
 | Rollout mode | Every policy supports `off`, `shadow`, `enforce`, and, only for eligible public flows, `challenge`. |
 | Env/config ownership | Policy defaults live in code; runtime overrides use a reviewed config source, not scattered env reads. Secret peppers remain in provider secrets. |
 | Test clock | Unit tests must inject clock/window state; production code must not depend on global mutable counters for exact quotas. |
+| IPv6 and forwarded-header contract | Central identity helper owns `cf-connecting-ip`, `x-forwarded-for`, `x-real-ip`, and optional `Sb-Forwarded-For` decisions; app code must not read them ad hoc for limiter keys after migration. |
+| Full-jitter retry contract | Any shared retry helper must document server `Retry-After` precedence, capped full-jitter fallback, max attempts, max elapsed time, cancellation, and idempotency requirements for unsafe operations. |
+| Cache-fill contract | Any expensive cache/provider fill must declare max waiters, max fill duration, stale/negative cache behavior, and shed status before it is protected only by a request-count limit. |
+| Pagination/body protocol contract | Any route/action that can read many rows or parse large/streaming bodies must declare page/count/body/chunk/multipart/transformed-byte budgets before enforcement mode. |
 
 ## Data Model Options
 

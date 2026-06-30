@@ -1,14 +1,16 @@
 {
-  "generatedAt": "2026-06-30T10:48:06.081Z",
+  "generatedAt": "2026-06-30T17:40:41.447Z",
   "mode": "cloudflare-better-auth-d1-route-gate-proof",
   "sources": {
     "packageJson": "package.json",
     "wranglerConfig": "wrangler.jsonc",
     "generatedTypes": "cloudflare-env.d.ts",
     "scaffoldFiles": [
-      "src/lib/auth/better-auth-cloudflare.ts"
+      "src/lib/auth/better-auth-cloudflare.ts",
+      "src/lib/auth/auth-provider-selection.ts",
+      "src/lib/auth/cloudflare-better-auth-runtime.ts"
     ],
-    "currentSupabaseGateFiles": [
+    "legacySupabaseAuthGateFiles": [
       "src/lib/auth/request-proxy.ts",
       "src/lib/auth/session.ts",
       "src/app/auth/callback/route.ts",
@@ -65,8 +67,9 @@
     "migrationCompilationHelperReady": true,
     "routeGateHelperTestCoverageReady": true,
     "routeGateD1SessionFixtureReady": true,
+    "selectableBetterAuthRuntimeReady": true,
     "routeGateParityRows": 7,
-    "currentSupabaseGatePreserved": true
+    "legacySupabaseAuthGateRetired": true
   },
   "schemaSqlSummary": {
     "generated": true,
@@ -94,7 +97,7 @@
   "providerProofSummary": {
     "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-better-auth-provider-proof.json",
     "present": true,
-    "generatedAt": "2026-06-30T10:47:49.364Z",
+    "generatedAt": "2026-06-30T13:46:31.076Z",
     "baseUrl": "https://archestimator-proof.philipjonlewis.workers.dev",
     "endpointPath": "/__cloudflare/better-auth-proof",
     "responseStatus": 200,
@@ -146,8 +149,9 @@
     "providerBackedSessionFixtureReady": true,
     "providerBackedCallbackSessionCutoverReady": true,
     "betterAuthProviderProofReady": true,
+    "selectableBetterAuthRuntimeReady": true,
     "routeGateParityMatrixReady": true,
-    "currentSupabaseGatePreserved": true,
+    "legacySupabaseAuthGateRetired": true,
     "localBetterAuthRouteGateProofReady": true,
     "productionBetterAuthReady": false
   },
@@ -196,14 +200,12 @@
     }
   ],
   "productionCutoverBlockers": [
-    "OAuth provider credential callback proof is still missing before live Better Auth cutover.",
-    "Existing Supabase callback/actions/session helpers still own live auth behavior."
+    "Provider-backed Better Auth callback/session proof passed, but production cutover is still not marked ready; verify OAuth credential proof, email-domain readiness, and live cutover evidence."
   ],
   "localOnly": false,
   "providerBacked": true,
   "blockers": [
-    "OAuth provider credential callback proof is still missing before live Better Auth cutover.",
-    "Existing Supabase callback/actions/session helpers still own live auth behavior."
+    "Provider-backed Better Auth callback/session proof passed, but production cutover is still not marked ready; verify OAuth credential proof, email-domain readiness, and live cutover evidence."
   ],
-  "note": "Better Auth D1 route-gate proof with hosted Cloudflare provider evidence. It reads package, wrangler, generated type, source files, and sanitized provider-proof output; it does not print secret values, change DNS, replace the live Supabase auth gate, or prove OAuth provider credentials."
+  "note": "Better Auth D1 route-gate proof with hosted Cloudflare provider evidence. It reads package, wrangler, generated type, source files, and sanitized provider-proof output; it does not print secret values, change DNS, make Supabase removable, or prove OAuth provider credentials."
 }

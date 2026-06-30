@@ -1,0 +1,60 @@
+{
+  "generatedAt": "2026-06-30T19:27:09.287Z",
+  "mode": "cloudflare-d1-account-security-events-backfill",
+  "sourceProjectRef": "ebxxqidacheyapmmzavr",
+  "targetD1Database": "ARCH_DB",
+  "sourceRows": 51,
+  "sourceEventTypeCounts": {
+    "auth_callback_missing_code": 5,
+    "auth_google_started": 23,
+    "auth_callback_succeeded": 16,
+    "onboarding_completed": 1,
+    "auth_callback_beta_access_denied": 3,
+    "auth_email_link_requested": 3
+  },
+  "sourceRowsWithUser": 20,
+  "sourceRowsWithWorkspace": 0,
+  "wrangler": {
+    "args": [
+      "wrangler",
+      "d1",
+      "execute",
+      "ARCH_DB",
+      "--remote",
+      "--file",
+      "<redacted-temp-sql-file>"
+    ],
+    "exitCode": 0,
+    "signal": null,
+    "stdoutBytes": 1609,
+    "stderrBytes": 165,
+    "timedOut": false
+  },
+  "d1Readback": {
+    "args": [
+      "wrangler",
+      "d1",
+      "execute",
+      "ARCH_DB",
+      "--remote",
+      "--command",
+      "SELECT COUNT(*) AS rows FROM account_security_events;"
+    ],
+    "exitCode": 0,
+    "signal": null,
+    "stdoutBytes": 945,
+    "stderrBytes": 0,
+    "timedOut": false,
+    "rows": 51,
+    "ready": true
+  },
+  "readiness": {
+    "sourceProjectBoundaryReady": true,
+    "sourceRowsPresent": true,
+    "upsertSucceeded": true,
+    "d1ReadbackReady": true,
+    "d1BackfillReady": true
+  },
+  "blockers": [],
+  "note": "Provider backfill for the account security event D1 slice. Reads only the expected Archestimator Supabase project, writes idempotent rows to Cloudflare D1, and records sanitized aggregate counts only."
+}

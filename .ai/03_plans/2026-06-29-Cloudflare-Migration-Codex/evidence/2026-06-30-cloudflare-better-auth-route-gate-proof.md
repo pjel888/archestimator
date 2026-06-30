@@ -1,8 +1,8 @@
 # Cloudflare Better Auth D1 Route-Gate Proof
 
-Generated: 2026-06-30T10:48:06.081Z
+Generated: 2026-06-30T17:40:41.447Z
 
-Better Auth D1 route-gate proof with hosted Cloudflare provider evidence. It reads package, wrangler, generated type, source files, and sanitized provider-proof output; it does not print secret values, change DNS, replace the live Supabase auth gate, or prove OAuth provider credentials.
+Better Auth D1 route-gate proof with hosted Cloudflare provider evidence. It reads package, wrangler, generated type, source files, and sanitized provider-proof output; it does not print secret values, change DNS, make Supabase removable, or prove OAuth provider credentials.
 
 ## Summary
 
@@ -24,7 +24,7 @@ Better Auth D1 route-gate proof with hosted Cloudflare provider evidence. It rea
 | Provider-backed callback/session cutover proof ready | yes |
 | Better Auth provider proof ready | yes |
 | Route-gate parity matrix ready | yes |
-| Current Supabase gate preserved | yes |
+| Legacy Supabase auth gate retired | yes |
 | Local Better Auth route-gate proof ready | yes |
 | Production Better Auth ready | no |
 | Local-only proof | no |
@@ -51,7 +51,7 @@ Better Auth D1 route-gate proof with hosted Cloudflare provider evidence. It rea
 | --- | --- |
 | Provider proof artifact | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-better-auth-provider-proof.json |
 | Provider proof present | yes |
-| Provider proof generated | 2026-06-30T10:47:49.364Z |
+| Provider proof generated | 2026-06-30T13:46:31.076Z |
 | Provider proof base URL | https://archestimator-proof.philipjonlewis.workers.dev |
 | Provider proof endpoint | /__cloudflare/better-auth-proof |
 | Provider proof response status | 200 |
@@ -100,5 +100,4 @@ Better Auth D1 route-gate proof with hosted Cloudflare provider evidence. It rea
 
 ## Blockers
 
-- OAuth provider credential callback proof is still missing before live Better Auth cutover.
-- Existing Supabase callback/actions/session helpers still own live auth behavior.
+- Provider-backed Better Auth callback/session proof passed, but production cutover is still not marked ready; verify OAuth credential proof, email-domain readiness, and live cutover evidence.

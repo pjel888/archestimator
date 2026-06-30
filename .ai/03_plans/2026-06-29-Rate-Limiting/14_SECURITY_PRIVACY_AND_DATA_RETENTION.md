@@ -17,6 +17,7 @@ Rate limiting should store the minimum data required to enforce windows and inve
 | Data | Required handling |
 | --- | --- |
 | Client IP | HMAC with dedicated rate-limit pepper before storage. |
+| IPv6 prefix | Parse and mask before HMAC; store only hash/version/coarse mask metadata where needed. |
 | Public token | HMAC/hash with purpose-specific secret; never log raw token. |
 | Email | Lowercase/normalize and HMAC before limiter storage. |
 | User/workspace/project IDs | Hash for logs where user-facing operations do not require direct ID. |
@@ -38,6 +39,11 @@ Rate limiting should store the minimum data required to enforce windows and inve
 | Operator overrides | Config/audit rows | Admin/operator workflow | No | Store policy, scope hash, reason, owner, expiry; no raw PII. | Expiry job and audit readback proof. |
 | Idempotency keys | Client-generated or server-issued opaque key plus server-side fingerprint | Expensive/destructive route/action retry flows | Sometimes as opaque client header/form value | Store key hash, normalized fingerprint hash, state, expiry, and safe result pointer only; no raw payload or secrets. | TTL cleanup, mismatch audit, and replay-window deletion proof. |
 | Draft RateLimit metadata | Derived response headers/body fields | Route response helper | Yes, only where approved | Suppress or redact on sensitive auth/token/public flows; never reveal raw quota keys. | Response-profile tests verify metadata disclosure posture. |
+| IPv6 prefix identity | Derived client network prefix after parsing/masking | Central identity helper | No | Never persist raw full IPv6 or raw prefix; store HMAC plus identity schema version and coarse mask length only if needed. | IPv6 canonicalization and pepper-rotation proof. |
+| `Sb-Forwarded-For` value | Raw forwarded client IP header for Supabase Auth server calls | Server-only Supabase client when explicitly enabled | No | Do not log or persist; use only through documented `sb_secret_*` server-key path when approved. | Provider readback and no-raw-forwarded-header log proof. |
+| Bot score or signal | Provider-derived risk signal | Cloudflare edge/provider logs and app event summaries | No | Store only coarse bucket/signal outcome and policy ID after provider proof; never treat as proof of human identity. | Observe-only provider proof, false-positive review, rollback readback. |
+| Service-worker/offline queued work | Client-side persisted mutation intent if introduced | Browser storage | Sometimes | Bound by max count/age/bytes; purge on sign-out, workspace switch, token invalidation, or server denial; avoid raw tokens/secrets. | Queue purge and stale-auth replay proof, or static no-SW proof. |
+| Cache-fill keys | Derived expensive read/provider-fill key | Server cache/coalescing layer | No | Hash or keep process-local only; never include raw token/email/IP/provider key in coalescing metrics. | Cache-fill telemetry redaction proof. |
 
 ## Current Privacy Observations
 
@@ -69,6 +75,8 @@ The existing `security_rate_limit_events` table revokes public/anon/authenticate
 - Aggressive auth/contact controls can interfere with deletion/support requests.
 - Cloudflare logs may add provider-side retention and sampling considerations.
 - Hashed identifiers can still be personal data when linkable to user/account behavior; deletion/anonymization posture must be explicit.
+- IPv6 prefix hashes and bot-signal buckets can still be linkable to client behavior; treat them as privacy-sensitive telemetry with retention and access controls.
+- `Sb-Forwarded-For` can move client identity into Supabase Auth provider processing; enable only after provider/account readback and privacy review.
 - Draft quota metadata can disclose whether an account, token, or recipient exists if exposed on sensitive routes.
 
 ## Required Security Review Before Enforcement
@@ -80,3 +88,6 @@ The existing `security_rate_limit_events` table revokes public/anon/authenticate
 - Verify false-positive recovery for support, deletion, unsubscribe, and proposal review.
 - Verify response metadata does not disclose sensitive quota, account, token, or recipient state.
 - Verify retention/deletion/anonymization for expired limiter events, idempotency keys, offline queues, and provider logs.
+- Verify IPv6 prefix masking happens before HMAC and raw full IP values are absent from logs/events.
+- Verify `Sb-Forwarded-For` is absent or server-only according to the approved provider-auth contract.
+- Verify bot-score/signal storage uses coarse buckets, observe-first proof, and false-positive rollback.

@@ -1,0 +1,32 @@
+{
+  "generatedAt": "2026-06-30T18:55:45.377Z",
+  "mode": "cloudflare-d1-beta-feedback-backfill",
+  "sourceProjectRef": "ebxxqidacheyapmmzavr",
+  "targetD1Database": "ARCH_DB",
+  "sourceRows": 0,
+  "sourceStatusCounts": {},
+  "sourceSeverityCounts": {},
+  "wrangler": {
+    "args": [
+      "wrangler",
+      "d1",
+      "execute",
+      "ARCH_DB",
+      "--remote",
+      "--file",
+      "<redacted-temp-sql-file>"
+    ],
+    "exitCode": 0,
+    "signal": null,
+    "stdoutBytes": 0,
+    "stderrBytes": 0,
+    "timedOut": false
+  },
+  "readiness": {
+    "sourceProjectBoundaryReady": true,
+    "upsertSucceeded": true,
+    "d1BackfillReady": true
+  },
+  "blockers": [],
+  "note": "Backfill copies beta feedback submissions from the authorized Archestimator Supabase project into Cloudflare D1 without printing or storing message bodies, email addresses, or secrets."
+}

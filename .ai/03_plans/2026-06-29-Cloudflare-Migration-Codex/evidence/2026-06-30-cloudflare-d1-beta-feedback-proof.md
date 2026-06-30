@@ -1,6 +1,6 @@
 # Cloudflare D1 Beta Feedback Proof
 
-Generated: 2026-06-29T21:00:34.820Z
+Generated: 2026-06-30T18:52:48.938Z
 
 Local-only D1 beta-feedback domain proof. It uses sanitized temporary SQLite tables to model the current protected feedback submission, forged-context denial, platform-admin review queue, admin-only status update, rollback, idempotency, query-budget, index-plan, and export/restore behavior. It does not read env files, call provider APIs, create hosted D1 databases, deploy Workers, replace Supabase-backed live Server Actions, change DNS, bill, or make production D1/Auth/Realtime ready.
 
@@ -53,9 +53,9 @@ Local-only D1 beta-feedback domain proof. It uses sanitized temporary SQLite tab
 
 | Surface | Planned/query budget | Local p95/budget | Rows returned | Status | Notes |
 | --- | ---: | ---: | ---: | --- | --- |
-| submit_beta_feedback_authz | 1/2 | 3.67ms/100ms | 1 | local-pass | Submission guard stays as one indexed user/workspace/project authorization query before or inside the D1 insert path. |
-| beta_feedback_admin_review_queue | 1/2 | 5.62ms/100ms | 1 | local-pass | Admin review queue uses the status/created-at index and keeps non-admin filtering in the server-side D1 repository. |
-| beta_feedback_status_update_guard | 1/2 | 5.22ms/100ms | 1 | local-pass | Status update guard checks platform-admin authority and target existence before the transactional update/audit write. |
+| submit_beta_feedback_authz | 1/2 | 7.23ms/100ms | 1 | local-pass | Submission guard stays as one indexed user/workspace/project authorization query before or inside the D1 insert path. |
+| beta_feedback_admin_review_queue | 1/2 | 5.56ms/100ms | 1 | local-pass | Admin review queue uses the status/created-at index and keeps non-admin filtering in the server-side D1 repository. |
+| beta_feedback_status_update_guard | 1/2 | 9.07ms/100ms | 1 | local-pass | Status update guard checks platform-admin authority and target existence before the transactional update/audit write. |
 
 ## Review Queue Query Plan
 

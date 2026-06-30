@@ -1,6 +1,6 @@
 # Cloudflare D1 RPC Rewrite Map
 
-Generated: 2026-06-29T22:39:50.592Z
+Generated: 2026-06-30T18:45:05.736Z
 
 Local D1 RPC rewrite map only. It reads sanitized inventory artifacts, local transaction mechanics proof, and Vitest files; it does not read env files, print secret values, call provider APIs, create D1 databases, mutate Cloudflare/Supabase, change DNS, deploy Workers, rewrite every RPC, or make Supabase removable.
 
@@ -8,10 +8,10 @@ Local D1 RPC rewrite map only. It reads sanitized inventory artifacts, local tra
 
 | Item | Value |
 | --- | ---: |
-| Total RPC names | 80 |
-| Mapped RPC names | 80 |
-| RPCs with golden fixture refs | 80 |
-| Transaction-sensitive RPCs | 54 |
+| Total RPC names | 79 |
+| Mapped RPC names | 79 |
+| RPCs with golden fixture refs | 79 |
+| Transaction-sensitive RPCs | 53 |
 | Idempotency-sensitive RPCs | 44 |
 | Golden fixtures ready | yes |
 | Transaction proof ready | yes |
@@ -29,8 +29,8 @@ The JSON artifact contains the full map. This table shows the first 80 sorted ro
 
 | RPC | Status | Domain | Caller files | D1 rewrite strategy | Transaction needs | Idempotency needs | Golden refs | Transaction refs | Rollback refs | Idempotency refs |
 | --- | --- | --- | ---: | --- | --- | --- | ---: | ---: | ---: | ---: |
-| `accept_collaboration_invitation` | mapped | collaboration | 2 | Replace with D1 invitation repository, token hashing, explicit project membership checks, and Durable Object/event fanout when realtime is needed. | D1 transaction covering all state changes currently hidden inside the Postgres RPC | Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution<br>Token/recipient uniqueness to prevent duplicate invitation or decision effects | 6 | 3 | 3 | 4 |
-| `accept_collaboration_invitation_by_id` | mapped | collaboration | 1 | Replace with D1 invitation repository, token hashing, explicit project membership checks, and Durable Object/event fanout when realtime is needed. | D1 transaction covering all state changes currently hidden inside the Postgres RPC | Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution<br>Token/recipient uniqueness to prevent duplicate invitation or decision effects | 6 | 3 | 3 | 4 |
+| `accept_collaboration_invitation_by_id_for_actor` | mapped | collaboration | 1 | Replace with D1 invitation repository, token hashing, explicit project membership checks, and Durable Object/event fanout when realtime is needed. | D1 transaction covering all state changes currently hidden inside the Postgres RPC | Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution<br>Token/recipient uniqueness to prevent duplicate invitation or decision effects | 5 | 3 | 3 | 3 |
+| `accept_collaboration_invitation_for_actor` | mapped | collaboration | 1 | Replace with D1 invitation repository, token hashing, explicit project membership checks, and Durable Object/event fanout when realtime is needed. | D1 transaction covering all state changes currently hidden inside the Postgres RPC | Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution<br>Token/recipient uniqueness to prevent duplicate invitation or decision effects | 5 | 3 | 3 | 3 |
 | `approve_upload_scan_override` | mapped | uploads | 1 | Replace with D1 upload metadata/session/scan repositories coordinated with R2 object authority and Queue/Cron workers. | D1 transaction covering all state changes currently hidden inside the Postgres RPC | Checksum/object-key-bound idempotency across D1 metadata and R2 objects<br>Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution | 5 | 1 | 1 | 4 |
 | `archive_estimate_tab_with_history` | mapped | estimate-history | 1 | Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures. | Audit/history row parity with existing RPC side effects<br>D1 transaction covering all state changes currently hidden inside the Postgres RPC<br>Rollback or cleanup journal for destructive operations | Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution | 6 | 5 | 3 | 3 |
 | `authorize_recipient_publication_for_current_user` | mapped | authorization | 1 | Replace with shared D1 app-layer authorization helpers using server-derived user identity and explicit workspace/project/estimate membership queries. |  |  | 2 | 0 | 0 | 0 |
@@ -38,7 +38,7 @@ The JSON artifact contains the full map. This table shows the first 80 sorted ro
 | `can_access_project` | mapped | authorization | 1 | Replace with shared D1 app-layer authorization helpers using server-derived user identity and explicit workspace/project/estimate membership queries. |  |  | 4 | 2 | 2 | 0 |
 | `can_edit_estimate` | mapped | authorization | 4 | Replace with shared D1 app-layer authorization helpers using server-derived user identity and explicit workspace/project/estimate membership queries. |  |  | 10 | 6 | 5 | 2 |
 | `can_edit_project` | mapped | authorization | 8 | Replace with shared D1 app-layer authorization helpers using server-derived user identity and explicit workspace/project/estimate membership queries. |  |  | 12 | 4 | 4 | 3 |
-| `check_closed_beta_access` | mapped | authorization | 1 | Replace with shared D1 app-layer authorization helpers using server-derived user identity and explicit workspace/project/estimate membership queries. |  |  | 12 | 4 | 8 | 3 |
+| `check_closed_beta_access` | mapped | authorization | 1 | Replace with shared D1 app-layer authorization helpers using server-derived user identity and explicit workspace/project/estimate membership queries. |  |  | 9 | 4 | 6 | 3 |
 | `create_ai_package_library_components_with_history` | mapped | estimate-history | 1 | Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures. | Audit/history row parity with existing RPC side effects<br>D1 transaction covering all state changes currently hidden inside the Postgres RPC | Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution | 6 | 5 | 3 | 5 |
 | `create_closed_beta_allowlist_entry` | mapped | closed-beta | 1 | Replace with D1 beta access repository plus platform-admin mutation guard. | D1 transaction covering all state changes currently hidden inside the Postgres RPC |  | 6 | 4 | 4 | 3 |
 | `create_cost_library_component` | mapped | component-library | 1 | Replace with D1 component-library repositories plus workspace member/editor guards and history/audit writes where needed. | D1 transaction covering all state changes currently hidden inside the Postgres RPC |  | 5 | 2 | 1 | 2 |
@@ -53,7 +53,6 @@ The JSON artifact contains the full map. This table shows the first 80 sorted ro
 | `delete_estimate_tab_with_history` | mapped | estimate-history | 1 | Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures. | Audit/history row parity with existing RPC side effects<br>D1 transaction covering all state changes currently hidden inside the Postgres RPC<br>Rollback or cleanup journal for destructive operations | Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution | 6 | 5 | 3 | 3 |
 | `delete_library_folder` | mapped | component-library | 1 | Replace with D1 component-library repositories plus workspace member/editor guards and history/audit writes where needed. | D1 transaction covering all state changes currently hidden inside the Postgres RPC<br>Rollback or cleanup journal for destructive operations | Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution | 6 | 3 | 3 | 3 |
 | `duplicate_estimate_tab_with_history` | mapped | estimate-history | 1 | Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures. | Audit/history row parity with existing RPC side effects<br>D1 transaction covering all state changes currently hidden inside the Postgres RPC | Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution | 6 | 5 | 3 | 3 |
-| `ensure_current_user_profile` | mapped | auth-profile | 1 | Replace with Better Auth user/profile bootstrap service backed by D1 and request-scoped session identity. | D1 transaction covering all state changes currently hidden inside the Postgres RPC |  | 1 | 1 | 1 | 0 |
 | `estimate_node_route_context` | mapped | estimate-history | 1 | Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures. |  |  | 2 | 1 | 0 | 1 |
 | `execute_bulk_archive_library_components` | mapped | component-library | 1 | Replace with D1 component-library repositories plus workspace member/editor guards and history/audit writes where needed. | D1 transaction covering all state changes currently hidden inside the Postgres RPC<br>Rollback or cleanup journal for destructive operations | Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution | 6 | 4 | 5 | 4 |
 | `execute_bulk_delete_estimate_sheets` | mapped | bulk-delete | 1 | Replace with D1 two-phase preview/execute services, preview hashes, cleanup journals, and rollback/idempotency proof. | D1 transaction covering all state changes currently hidden inside the Postgres RPC<br>Rollback or cleanup journal for destructive operations | Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution | 3 | 2 | 3 | 2 |

@@ -1,0 +1,91 @@
+{
+  "generatedAt": "2026-06-30T12:47:14.302Z",
+  "mode": "cloudflare-worker-custom-domain-provider-proof",
+  "source": "Codex Cloudflare MCP API read/write after owner-authorized Cloudflare migration execution",
+  "zone": {
+    "id": "3c6fcddb743342bfe8b0097ba5ba7c19",
+    "name": "archestimator.com",
+    "status": "pending",
+    "assignedNameservers": [
+      "carl.ns.cloudflare.com",
+      "ziggy.ns.cloudflare.com"
+    ],
+    "observedNameservers": [
+      "dns1.registrar-servers.com.",
+      "dns2.registrar-servers.com."
+    ],
+    "activationFailureReason": "ns_delegated_from_provider"
+  },
+  "preflight": {
+    "initialAttachError": "100117: Hostname 'archestimator.com' already has externally managed DNS records (A, CNAME, etc). Delete them first or try a different hostname.",
+    "docsRequirement": "Cloudflare Workers Custom Domains require an active Cloudflare zone and no existing externally managed DNS record on the custom-domain hostname."
+  },
+  "removedPendingZoneConflicts": [
+    {
+      "id": "67b49203261f372fc3c7fdd15755117c",
+      "type": "A",
+      "name": "archestimator.com",
+      "content": "216.150.1.1",
+      "deleteStatus": 200,
+      "deleteSuccess": true
+    },
+    {
+      "id": "86e8b6eae50b6f5bd4e9db622e4fe445",
+      "type": "CNAME",
+      "name": "www.archestimator.com",
+      "content": "bb7ab57cfa50fcad.vercel-dns-017.com",
+      "deleteStatus": 200,
+      "deleteSuccess": true
+    }
+  ],
+  "workerDomains": [
+    {
+      "id": "89e4aaca46515d1b7309f1f38d522094f3f4d964",
+      "hostname": "archestimator.com",
+      "service": "archestimator-proof",
+      "zoneId": "3c6fcddb743342bfe8b0097ba5ba7c19",
+      "zoneName": "archestimator.com",
+      "environment": "production",
+      "certId": "ca09721e-2d20-4363-9c09-6630263bd70a",
+      "enabled": true
+    },
+    {
+      "id": "37e10b955b39ef91de7dd16008b207e8bad512bc",
+      "hostname": "www.archestimator.com",
+      "service": "archestimator-proof",
+      "zoneId": "3c6fcddb743342bfe8b0097ba5ba7c19",
+      "zoneName": "archestimator.com",
+      "environment": "production",
+      "certId": "ae34920e-d33a-49a5-a92d-32076c3f06ce",
+      "enabled": true
+    }
+  ],
+  "cloudflareCreatedRecords": [
+    {
+      "id": "916262f0a93c20e90fb9ce3e357f1151",
+      "type": "AAAA",
+      "name": "archestimator.com",
+      "content": "100::",
+      "proxied": true
+    },
+    {
+      "id": "083ba913162629d8b48efdc2949da80f",
+      "type": "AAAA",
+      "name": "www.archestimator.com",
+      "content": "100::",
+      "proxied": true
+    }
+  ],
+  "readiness": {
+    "customDomainApiReadbackReady": true,
+    "apexWorkerDomainEnabled": true,
+    "wwwWorkerDomainEnabled": true,
+    "cloudflareDnsRecordsReadyForDelegation": true,
+    "nameserverDelegationActive": false,
+    "productionTrafficCutoverReady": false
+  },
+  "blockers": [
+    "Public DNS still delegates archestimator.com to Namecheap nameservers; the Cloudflare zone remains pending until registrar nameservers are changed to carl.ns.cloudflare.com and ziggy.ns.cloudflare.com."
+  ],
+  "note": "Provider API proof only. It does not prove public DNS delegation, live custom-domain traffic, authenticated production traffic, Vercel/Supabase/Resend removability, or registrar-side nameserver completion."
+}

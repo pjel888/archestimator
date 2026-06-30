@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-30T10:49:05.727Z",
+  "generatedAt": "2026-06-30T21:43:41.946Z",
   "mode": "cloudflare-provider-readiness",
   "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-provider-readiness-source.json",
   "capturedAt": "2026-06-30T02:00:15.745Z",
@@ -43,15 +43,15 @@
       "key": "workers-project",
       "label": "Worker project deployed",
       "ready": true,
-      "evidence": "projectCount=0, deployedWorkerUrlPresent=no, wranglerDeploymentReadback=yes",
+      "evidence": "projectCount=1, deployedWorkerUrlPresent=yes, wranglerDeploymentReadback=yes",
       "blocker": null
     },
     {
       "key": "custom-domain",
       "label": "Worker custom domain active",
-      "ready": false,
-      "evidence": "customDomainActive=no",
-      "blocker": "Worker custom-domain routing is not active."
+      "ready": true,
+      "evidence": "customDomainActive=yes",
+      "blocker": null
     },
     {
       "key": "api-auth",
@@ -63,9 +63,9 @@
     {
       "key": "worker-secrets",
       "label": "Sanitized Worker secret list captured",
-      "ready": true,
-      "evidence": "sanitizedSecretListCaptured=no, wranglerSecretNameReadback=yes",
-      "blocker": null
+      "ready": false,
+      "evidence": "sanitizedSecretListCaptured=no, wranglerSecretNameReadback=no",
+      "blocker": "Worker secret name readback is incomplete: Worker secret name list: missing expected names BETTER_AUTH_GOOGLE_CLIENT_ID, BETTER_AUTH_GOOGLE_CLIENT_SECRET."
     },
     {
       "key": "r2-provider",
@@ -92,7 +92,7 @@
       "key": "analytics-provider",
       "label": "Cloudflare Analytics/Workers Observability receiving data",
       "ready": true,
-      "evidence": "webAnalyticsPropertyCreated=yes, webAnalyticsReceivingDataProven=no, workersObservabilityReceivingDataProven=yes, observedProbeEvents=20",
+      "evidence": "webAnalyticsPropertyCreated=yes, webAnalyticsReceivingDataProven=no, workersObservabilityReceivingDataProven=yes, observedProbeEvents=60",
       "blocker": null
     }
   ],
@@ -103,17 +103,17 @@
   "analyticsReady": true,
   "productionCutoverReady": false,
   "dnsDelegationSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-dns-delegation.json",
-  "dnsDelegationCapturedAt": "2026-06-30T03:01:35.992Z",
+  "dnsDelegationCapturedAt": "2026-06-30T21:43:25.169Z",
   "wranglerAuthSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-wrangler-auth.json",
   "wranglerAuthCapturedAt": "2026-06-30T06:29:11.196Z",
   "providerResourceReadbackSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-provider-resource-readback.json",
-  "providerResourceReadbackCapturedAt": "2026-06-30T10:49:05.674Z",
+  "providerResourceReadbackCapturedAt": "2026-06-30T21:33:44.249Z",
   "providerRuntimeProofSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-provider-runtime-proof.json",
   "providerRuntimeProofCapturedAt": "2026-06-30T07:48:31.630Z",
   "jobsRuntimeProofSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-jobs-runtime-proof.json",
   "jobsRuntimeProofCapturedAt": "2026-06-30T08:13:10.504Z",
   "observabilityProofSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-observability-proof.json",
-  "observabilityProofCapturedAt": "2026-06-30T08:17:30.000Z",
+  "observabilityProofCapturedAt": "2026-06-30T11:27:15.000Z",
   "nameserverEvidenceSource": "public-dns",
   "publicDnsNameservers": [
     "dns1.registrar-servers.com",
@@ -122,7 +122,6 @@
   "actionsIntentionallyNotTaken": [
     "paid checkout/subscription purchase by Codex",
     "API token creation",
-    "live DNS edits",
     "registrar nameserver changes",
     "Vercel cancellation",
     "Supabase cancellation",

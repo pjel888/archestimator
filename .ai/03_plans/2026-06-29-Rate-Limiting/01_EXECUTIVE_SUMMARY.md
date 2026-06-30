@@ -47,3 +47,13 @@ The current codebase already contains rate-limiting work, but it is not one syst
 | Cloudflare WAF/Turnstile proof | CONDITIONAL GO | Reversible proof slice; must not imply full provider cutover. |
 | Cloudflare exact counter migration | NO-GO | Cloudflare migration package still blocks production cutover on hosted Worker, D1/Auth/Realtime, provider, cost, and performance evidence. |
 | Removing current providers | NO-GO | Current Cloudflare plan explicitly keeps Vercel/Supabase/Resend as rollback/comparison boundaries. |
+
+## Third-Pass Gap-Closure Update
+
+The pasted 2026-06-30 review found that the second-pass package was coherent but incomplete for provider identity and advanced-abuse planning. This package now carries those themes explicitly instead of burying them under generic resource-budget language:
+
+- IPv6/client identity canonicalization and trusted proxy/header order, including `cf-connecting-ip`, `x-forwarded-for`, `x-real-ip`, and Supabase `Sb-Forwarded-For` compatibility decisions.
+- Supabase Auth built-in limit enumeration and app/provider lockout coordination before auth, OTP, magic-link, or future MFA enforcement.
+- Timing-safe equality, cache-fill stampede control, full-jitter retry, deep pagination/count budgets, `OPTIONS`/CORS posture, realtime message quotas, service-worker/offline replay, chunked/multipart abuse, and Bot Management escalation.
+
+These additions improve planning traceability but do not change the readiness cap: the safe next step is still a scoped P0 implementation plan with route/action/client/provider contract expansion and tests before any enforcement work.

@@ -1,0 +1,43 @@
+{
+  "generatedAt": "2026-06-30T13:15:30.000Z",
+  "mode": "vercel-telemetry-removal",
+  "scope": "live-runtime-client-telemetry",
+  "removed": {
+    "dependencies": [
+      "@vercel/analytics",
+      "@vercel/speed-insights"
+    ],
+    "runtimeMounts": [
+      "src/app/layout.tsx VercelWebAnalytics",
+      "src/app/layout.tsx SpeedInsights"
+    ],
+    "files": [
+      "src/components/analytics/VercelWebAnalytics.tsx",
+      "src/lib/analytics/vercel-web-analytics.ts",
+      "scripts/check-vercel-speed-insights-readiness.ts"
+    ],
+    "packageScripts": [
+      "perf:check-speed-insights"
+    ]
+  },
+  "retained": {
+    "cloudflareAnalytics": "Consent-gated public-page Cloudflare Web Analytics loader remains active through NEXT_PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN.",
+    "historicalVercelProof": "Existing Vercel provider-readiness scripts/docs remain where they support migration comparison, rollback records, or current-provider cost baselines."
+  },
+  "verification": [
+    "bunx vitest run tests/vitest/vercel-analytics-removed.test.ts tests/vitest/cloudflare-web-analytics-integration.test.ts --maxWorkers=1",
+    "bunx vitest run tests/vitest/vercel-analytics-removed.test.ts tests/vitest/cloudflare-web-analytics-integration.test.ts tests/vitest/cloudflare-worker-readiness-script.test.ts tests/vitest/cloudflare-provider-resources-script.test.ts tests/vitest/cloudflare-release-gates-script.test.ts tests/vitest/cloudflare-better-auth-proof-script.test.ts --maxWorkers=1",
+    "bun run cf:build",
+    "bun run cf:check-deploy-dry-run",
+    "git diff --check",
+    "rg -n \"@vercel/analytics|@vercel/speed-insights|check-vercel-speed-insights|perf:check-speed-insights|VercelWebAnalytics|redactVercelAnalyticsEvent|NEXT_PUBLIC_ENABLE_VERCEL_ANALYTICS_IN_DEV|SpeedInsights\" package.json bun.lock src scripts tests"
+  ],
+  "readiness": {
+    "vercelClientTelemetryRemoved": true,
+    "cloudflareAnalyticsStillConsentGated": true,
+    "productionCutoverReady": false
+  },
+  "blockers": [
+    "Production cutover remains blocked by DNS delegation, missing Google Better Auth OAuth Worker secrets, Better Auth production replacement proof, and cost/performance gates."
+  ]
+}

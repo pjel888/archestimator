@@ -134,6 +134,8 @@ These are mandatory P0 decisions for any high-risk frontend control. The browser
 | FC-PROOF-016 | Receive `Retry-After` as delay seconds, HTTP-date, invalid value, huge value, and stale hidden-tab countdown. | Parser clamps or rejects safely; visibility/focus/reconnect recomputes from current server/config state before enabling retry. |
 | FC-PROOF-017 | Run the same high-cost action from two tabs with `BroadcastChannel` unavailable and with Web Locks unavailable. | Fallback stays usable; server idempotency/limiter remains correct; Web Locks are used only for chosen singleton work. |
 | FC-PROOF-018 | Disable a submit control during cooldown while required form fields remain present elsewhere. | The disabled control is not the only carrier of state; status text is discoverable, keyboard path remains coherent, and form data is not lost. |
+| FC-PROOF-019 | Retry when server `Retry-After` is absent but retry is safe/idempotent. | Capped full-jitter fallback spreads retries and stops at max attempts/elapsed time; unsafe mutations remain manual unless idempotent. |
+| FC-PROOF-020 | Service-worker/offline replay after sign-out or workspace switch. | No service worker/offline queue is proven, or queued work is purged/blocked and cannot replay stale-auth mutations. |
 
 ## Accessible `429` Copy Contract
 
@@ -150,6 +152,8 @@ Every user-visible retryable denial should communicate four things without leaki
 - Every idempotent mutation must define fingerprint fields, TTL, concurrent same-key behavior, and same-key/different-payload mismatch behavior.
 - Every stale-write-sensitive mutation must define resource version or `If-Match`/ETag-style precondition behavior, or explicitly justify last-writer-wins.
 - Every retry/offline flow must define auto-retry eligibility, capped backoff, `Retry-After` precedence, offline queue caps, purge rules, and visibility/focus/reconnect refresh.
+- Every retry/offline flow must define full-jitter fallback behavior when server retry timing is absent, and must prove `Retry-After` still takes precedence.
+- Every service-worker or background-sync claim must either prove the app has no such replay path or define queue/idempotency/purge/server-denial contracts before implementation.
 - Every multi-tab flow must choose tab-local, `BroadcastChannel`, storage-event, or Web Locks behavior with server-authoritative fallback.
 - Every disabled/cooldown flow must expose the explanation and retry status outside disabled controls because native disabled controls are not focusable or submitted.
 - Accessibility proof is required for disabled, pending, cooldown, challenge, optimistic rollback, and retry states on public reviewer, invite, auth, upload, AI, export, estimate/template editing, and destructive mutation flows.

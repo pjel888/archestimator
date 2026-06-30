@@ -22,6 +22,11 @@ owner: Archestimator
 | Frontend bypass | DevTools `fetch`, scripts, direct Server Action invocation, repeated Enter submit | Duplicate side effects, provider spend, false confidence in UI guards | Server-authoritative gates before side effects; client controls are advisory. |
 | Distributed flood | Edge/API floods across instances/regions | Origin overload before app limiter | WAF coarse rules, Workers soft limits, origin shielding, dashboards. |
 | Low-and-slow business-flow abuse | Many accounts/IPs/tokens stay below each per-key threshold while probing invites, auth, share links, feedback, or email sends | Enumeration, account friction, reputation harm, and noisy support without obvious single-key spikes | Cross-key anomaly detection, cardinality dashboards, adaptive challenge, and incident-mode escalation. |
+| Provider identity drift | IPv6 privacy rotation, proxy-header spoofing, missing `Sb-Forwarded-For`, inconsistent header precedence | Key fragmentation, overblocking, undercounting, duplicate auth lockouts | Trusted header source order, IPv6 prefix aggregation, Supabase provider-forwarding review, and versioned HMAC keys. |
+| Cache-fill stampede | Many requests miss the same expensive cache entry at once | Origin/database/provider pressure below per-key thresholds | Single-flight/coalescing, stale serve policy, max waiters, timeout, and shed response. |
+| Protocol and body abuse | `OPTIONS` floods, missing `Content-Length`, chunked transfer, multipart/resumable part storms | Edge/origin capacity pressure, storage churn, upload session leaks | Preflight posture, body/parser budgets, multipart session caps, transformed-byte limits, cleanup proof. |
+| Realtime and offline replay | Cursor/presence/message storms, stale service-worker queue replay after sign-out | Room fanout cost, duplicate mutations, stale auth writes | Connect plus per-message quotas, offline queue caps, purge rules, idempotency, and server-denial halt behavior. |
+| Bot false-positive escalation | Broad bot challenge/block rules on public proposal or beta flows | Legitimate reviewers/beta users blocked before support path exists | Observe-first Bot Management or WAF rules, false-positive review, support path, and app-policy fallback. |
 
 ## Threat Detail Matrix
 
@@ -56,6 +61,8 @@ owner: Archestimator
 | Resend webhook | Forged webhook or replay. | Signature/config/body-size validation. | Needs idempotency/replay proof more than generic rate limit. |
 | Internal cron/jobs | Repeated cleanup/scan invocations. | Secret/config checks. | Needs replay and idempotency tracking; Cloudflare cron/queue proof remains local. |
 | Realtime collaboration | Room spam, connect floods, message storms. | Durable Object scaffold exists in Cloudflare proof config. | Production room quotas and observability not proven. |
+| Supabase Auth provider limits | Magic-link/OTP/future MFA sends and verifies can hit provider caps before app policy is tuned. | Provider docs define built-in limits, but app source does not currently enumerate them in limiter contracts. | P0 must refresh docs/account config, decide `Sb-Forwarded-For`, and avoid double lockout. |
+| Deep list/search/count reads | Automated clients request large pages, deep offsets, or expensive counts below ordinary request limits. | Some repository calls use explicit ranges; no cross-surface count budget exists in this package yet. | P0 must set page-depth, count, index, timeout, and response-profile rules. |
 
 ## Idempotency And Repeat-Intent Taxonomy
 

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-30T10:49:05.674Z",
+  "generatedAt": "2026-06-30T21:43:52.696Z",
   "mode": "cloudflare-provider-resource-readback",
   "sources": {
     "wranglerConfig": "wrangler.jsonc",
@@ -22,8 +22,14 @@
     "workerSecretNames": [
       "ARCHESTIMATOR_AI_ENABLED",
       "ARCHESTIMATOR_ALLOWED_APP_ORIGINS",
+      "ARCHESTIMATOR_AUTH_PROVIDER",
       "ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER",
       "ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER",
+      "BETTER_AUTH_GOOGLE_CLIENT_ID",
+      "BETTER_AUTH_GOOGLE_CLIENT_SECRET",
+      "BETTER_AUTH_SECRET",
+      "BETTER_AUTH_TRUSTED_ORIGINS",
+      "BETTER_AUTH_URL",
       "CLOSED_BETA_ACCESS_ENABLED",
       "CLOUDFLARE_UPLOAD_JOBS_DRY_RUN",
       "CLOUDFLARE_UPLOAD_JOBS_ORIGIN",
@@ -49,8 +55,8 @@
     "d1DatabaseReadbackReady": true,
     "r2BucketReadbackReady": true,
     "queuesReadbackReady": true,
-    "workerSecretNameReadbackReady": true,
-    "providerResourceReadbackReady": true,
+    "workerSecretNameReadbackReady": false,
+    "providerResourceReadbackReady": false,
     "productionCutoverReady": false
   },
   "commands": [
@@ -70,7 +76,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "stdoutBytes": 4290,
+      "stdoutBytes": 4479,
       "stderrBytes": 0,
       "parsedJson": true,
       "parsedRecordCount": 10,
@@ -124,7 +130,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "stdoutBytes": 281,
+      "stdoutBytes": 389,
       "stderrBytes": 0,
       "parsedJson": false,
       "parsedRecordCount": null,
@@ -154,7 +160,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "stdoutBytes": 2416,
+      "stdoutBytes": 2524,
       "stderrBytes": 0,
       "parsedJson": false,
       "parsedRecordCount": null,
@@ -188,17 +194,23 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "stdoutBytes": 1775,
+      "stdoutBytes": 2167,
       "stderrBytes": 0,
       "parsedJson": true,
-      "parsedRecordCount": 23,
+      "parsedRecordCount": 28,
       "minRecordCount": null,
       "recordCountReady": null,
       "expectedNames": [
         "ARCHESTIMATOR_AI_ENABLED",
         "ARCHESTIMATOR_ALLOWED_APP_ORIGINS",
+        "ARCHESTIMATOR_AUTH_PROVIDER",
         "ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER",
         "ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER",
+        "BETTER_AUTH_GOOGLE_CLIENT_ID",
+        "BETTER_AUTH_GOOGLE_CLIENT_SECRET",
+        "BETTER_AUTH_SECRET",
+        "BETTER_AUTH_TRUSTED_ORIGINS",
+        "BETTER_AUTH_URL",
         "CLOSED_BETA_ACCESS_ENABLED",
         "CLOUDFLARE_UPLOAD_JOBS_DRY_RUN",
         "CLOUDFLARE_UPLOAD_JOBS_ORIGIN",
@@ -219,8 +231,12 @@
       "foundExpectedNames": [
         "ARCHESTIMATOR_AI_ENABLED",
         "ARCHESTIMATOR_ALLOWED_APP_ORIGINS",
+        "ARCHESTIMATOR_AUTH_PROVIDER",
         "ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER",
         "ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER",
+        "BETTER_AUTH_SECRET",
+        "BETTER_AUTH_TRUSTED_ORIGINS",
+        "BETTER_AUTH_URL",
         "CLOSED_BETA_ACCESS_ENABLED",
         "CLOUDFLARE_UPLOAD_JOBS_DRY_RUN",
         "CLOUDFLARE_UPLOAD_JOBS_ORIGIN",
@@ -238,10 +254,15 @@
         "UPLOAD_JOBS_ENABLED",
         "UPLOAD_SCAN_JOB_SECRET"
       ],
-      "missingExpectedNames": [],
-      "ready": true
+      "missingExpectedNames": [
+        "BETTER_AUTH_GOOGLE_CLIENT_ID",
+        "BETTER_AUTH_GOOGLE_CLIENT_SECRET"
+      ],
+      "ready": false
     }
   ],
-  "blockers": [],
+  "blockers": [
+    "Worker secret name list: missing expected names BETTER_AUTH_GOOGLE_CLIENT_ID, BETTER_AUTH_GOOGLE_CLIENT_SECRET."
+  ],
   "note": "Read-only Wrangler provider resource readback. When Wrangler is authenticated, this runs list/status-style commands for Workers deployments, D1, R2, Queues, and Worker secret names. It does not print raw command output, secret values, tokens, or env files; does not create, deploy, update, delete, purge, purchase, change DNS, or make Vercel/Supabase/Resend removable."
 }

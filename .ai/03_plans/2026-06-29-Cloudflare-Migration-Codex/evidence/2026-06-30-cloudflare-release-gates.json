@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-30T10:49:31.074Z",
+  "generatedAt": "2026-06-30T22:03:55.043Z",
   "mode": "cloudflare-release-gates",
   "sources": {
     "inventory": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-migration-inventory.json",
@@ -22,7 +22,7 @@
       "label": "Migration inventory refreshed",
       "scope": "planning",
       "ready": true,
-      "evidence": "routes=71, providerCoupledFiles=93, rpcNames=80, sqlMigrations=181",
+      "evidence": "routes=70, providerCoupledFiles=86, rpcNames=75, sqlMigrations=182",
       "blocker": null,
       "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-migration-inventory.json"
     },
@@ -49,7 +49,7 @@
       "label": "D1/Auth/Realtime local redesign readiness report generated",
       "scope": "data-auth-realtime",
       "ready": true,
-      "evidence": "localReportReady=yes, databaseInventoryReady=yes, inventoryRpcNames=80, rlsPolicyStorageAuthMatches=684",
+      "evidence": "localReportReady=yes, databaseInventoryReady=yes, inventoryRpcNames=75, rlsPolicyStorageAuthMatches=684",
       "blocker": null,
       "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-auth-realtime-readiness.json"
     },
@@ -111,9 +111,9 @@
       "key": "provider-resource-readback",
       "label": "Provider resource readback ready",
       "scope": "provider",
-      "ready": true,
-      "evidence": "wranglerAuthenticated=yes, readbackAttempted=yes, workerDeployment=yes, d1=yes, r2=yes, queues=yes, secrets=yes",
-      "blocker": null,
+      "ready": false,
+      "evidence": "wranglerAuthenticated=yes, readbackAttempted=yes, workerDeployment=yes, d1=yes, r2=yes, queues=yes, secrets=no",
+      "blocker": "Read-only Wrangler resource readback is incomplete: Worker secret name list: missing expected names BETTER_AUTH_GOOGLE_CLIENT_ID, BETTER_AUTH_GOOGLE_CLIENT_SECRET.",
       "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-provider-resource-readback.json"
     },
     {
@@ -148,7 +148,7 @@
       "label": "Hosted Worker deployment and custom domain provider-proven",
       "scope": "provider",
       "ready": false,
-      "evidence": "workersDeploymentReady=no, workerDeploymentSecretsReady=yes, workerDeploymentReady=yes, wranglerApiAuthenticated=yes",
+      "evidence": "workersDeploymentReady=no, workerDeploymentSecretsReady=no, workerDeploymentReady=no, wranglerApiAuthenticated=yes",
       "blocker": "Workers Paid/API auth/secrets/hosted Worker/custom-domain proof is incomplete.",
       "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-provider-readiness.json"
     },
@@ -228,6 +228,7 @@
   },
   "blockers": [
     "D1/Auth/Realtime production proof ready: One or more D1/Auth/Realtime production proof subgates are incomplete; see the evidence flags for the exact blockers.",
+    "Provider resource readback ready: Read-only Wrangler resource readback is incomplete: Worker secret name list: missing expected names BETTER_AUTH_GOOGLE_CLIENT_ID, BETTER_AUTH_GOOGLE_CLIENT_SECRET.",
     "Hosted Worker deployment and custom domain provider-proven: Workers Paid/API auth/secrets/hosted Worker/custom-domain proof is incomplete.",
     "Current provider cost inputs captured: Sanitized Vercel/Supabase/Resend invoice or dashboard usage inputs are missing.",
     "Cloudflare usage cost inputs captured: Hosted Cloudflare request/CPU/storage/operation usage inputs are missing.",

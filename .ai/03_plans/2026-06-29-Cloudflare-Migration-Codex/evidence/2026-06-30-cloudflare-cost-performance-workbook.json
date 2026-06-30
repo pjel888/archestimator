@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-30T09:45:19.666Z",
+  "generatedAt": "2026-06-30T17:18:41.003Z",
   "mode": "cloudflare-cost-performance-workbook",
   "sources": {
     "inventory": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-migration-inventory.json",
@@ -19,11 +19,11 @@
   },
   "inventoryCounts": {
     "appRoutes": 71,
-    "providerCoupledFiles": 93,
-    "distinctRpcNames": 80,
-    "appliedMigrationFiles": 181,
+    "providerCoupledFiles": 99,
+    "distinctRpcNames": 79,
+    "appliedMigrationFiles": 182,
     "pendingReviewFiles": 13,
-    "sqlFunctionDeclarationMatches": 346,
+    "sqlFunctionDeclarationMatches": 348,
     "rlsPolicyStorageAuthMatches": 684
   },
   "currentProviderCostInputs": [
@@ -117,35 +117,35 @@
       "input": "Workers requests",
       "source": "Cloudflare Workers Observability MCP",
       "status": "provided",
-      "value": "Proof traffic: 40 public-route GET probes returned HTTP 200; Workers Observability sampled 20 probe events in the 2026-06-30T08:14Z-08:18Z window.",
+      "value": "Proof traffic from hosted route/performance probes returned expected 200/307/404 statuses; Workers Observability sampled 60 probe events in the 2026-06-30T11:20Z-11:30Z window.",
       "notes": "Proof-scale observed usage only; not projected monthly production requests."
     },
     {
       "input": "Workers CPU",
       "source": "Cloudflare Workers Observability MCP",
       "status": "provided",
-      "value": "Observed probe p95 CPU: /contact=40 ms, /trust=101 ms on Worker version 722234d9-7e09-4c31-b1ba-a036fb595006.",
+      "value": "Observed probe p95 CPU on Worker version 0db6e2b7-de5e-4a37-ba67-0e59feecc709: /workshop=5 ms, /access-required=9 ms, /api/share/not-a-real-hosted-worker-share-token=13 ms, /api/projects/images=3 ms.",
       "notes": "Credential-free proof routes only; authenticated/data route CPU still requires production-like fixtures."
     },
     {
       "input": "Workers subrequests",
       "source": "cf:inventory",
       "status": "local-derived",
-      "value": "93 provider-coupled source files need per-route subrequest mapping",
+      "value": "99 provider-coupled source files need per-route subrequest mapping",
       "notes": "Inventory-derived surface count only; not monthly operation volume."
     },
     {
       "input": "D1 reads",
       "source": "cf:inventory",
       "status": "local-derived",
-      "value": "80 app-code RPC names need read/write classification",
+      "value": "79 app-code RPC names need read/write classification",
       "notes": "Inventory-derived rewrite surface only; not D1 row-read volume."
     },
     {
       "input": "D1 writes",
       "source": "cf:inventory",
       "status": "local-derived",
-      "value": "346 SQL function declaration/update matches need transaction classification",
+      "value": "348 SQL function declaration/update matches need transaction classification",
       "notes": "Inventory-derived rewrite surface only; not D1 row-write volume."
     },
     {
@@ -222,7 +222,7 @@
       "input": "Observability/logs",
       "source": "2026-06-30-cloudflare-observability-proof.json",
       "status": "provided",
-      "value": "Workers Observability sampled 20 proof probe events for current Worker version 722234d9-7e09-4c31-b1ba-a036fb595006.",
+      "value": "Workers Observability sampled 60 proof probe events for current Worker version 0db6e2b7-de5e-4a37-ba67-0e59feecc709.",
       "notes": "Proof-scale log volume only; retention and production log volume still need rollout data."
     }
   ],
@@ -234,10 +234,10 @@
       ],
       "currentBaselineP95Ms": null,
       "cloudflareLocalPreviewP95Ms": 168.47,
-      "cloudflareHostedP95Ms": 134.25,
+      "cloudflareHostedP95Ms": 634.6,
       "budget": "under 200 ms",
       "budgetMs": 200,
-      "status": "hosted-partial-pass",
+      "status": "hosted-partial-fail",
       "evidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-29-cloudflare-worker-preview-route-probe.json",
       "hostedEvidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-hosted-performance.json",
       "notes": "Local route probe duration is not hosted TTFB or Worker CPU. Hosted evidence here is credential-free route timing only unless the fixture explicitly maps to that route class."
@@ -250,10 +250,10 @@
       ],
       "currentBaselineP95Ms": null,
       "cloudflareLocalPreviewP95Ms": 13.68,
-      "cloudflareHostedP95Ms": 80.99,
+      "cloudflareHostedP95Ms": 767.1,
       "budget": "under 200 ms",
       "budgetMs": 200,
-      "status": "hosted-partial-pass",
+      "status": "hosted-partial-fail",
       "evidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-29-cloudflare-worker-preview-route-probe.json",
       "hostedEvidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-hosted-performance.json",
       "notes": "Uses the slower local preview p95 across pricing and features probes. Hosted evidence here is credential-free route timing only unless the fixture explicitly maps to that route class."
@@ -265,7 +265,7 @@
       ],
       "currentBaselineP95Ms": null,
       "cloudflareLocalPreviewP95Ms": 13.07,
-      "cloudflareHostedP95Ms": 66.91,
+      "cloudflareHostedP95Ms": 424.13,
       "budget": "no worse than baseline",
       "budgetMs": null,
       "status": "hosted-partial-pass",
@@ -280,10 +280,10 @@
       ],
       "currentBaselineP95Ms": null,
       "cloudflareLocalPreviewP95Ms": 327.35,
-      "cloudflareHostedP95Ms": 55.16,
+      "cloudflareHostedP95Ms": 511.5,
       "budget": "under 400 ms",
       "budgetMs": 400,
-      "status": "hosted-partial-pass",
+      "status": "hosted-partial-fail",
       "evidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-29-cloudflare-worker-preview-route-probe.json",
       "hostedEvidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-hosted-performance.json",
       "notes": "Local proof covers a fake invalid share token fail-closed path only. Hosted evidence here is credential-free route timing only unless the fixture explicitly maps to that route class."
@@ -295,7 +295,7 @@
       ],
       "currentBaselineP95Ms": null,
       "cloudflareLocalPreviewP95Ms": 4.03,
-      "cloudflareHostedP95Ms": 438.52,
+      "cloudflareHostedP95Ms": 105.54,
       "budget": "under 600 ms",
       "budgetMs": 600,
       "status": "hosted-partial-pass",
