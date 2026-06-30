@@ -1,6 +1,6 @@
 # Cloudflare D1/Auth/Realtime Readiness
 
-Generated: 2026-06-30T22:41:55.870Z
+Generated: 2026-06-30T22:48:13.962Z
 
 Local D1/Auth/Realtime redesign readiness inventory only. It reads repository source, package, generated type, wrangler, and sanitized evidence artifacts; it does not read env files, print secret values, call provider APIs, create D1 databases, mutate Cloudflare/Supabase, change DNS, deploy Workers, or make Supabase removable.
 
@@ -59,12 +59,12 @@ Local D1/Auth/Realtime redesign readiness inventory only. It reads repository so
 | Category | Count | Examples |
 | --- | ---: | --- |
 | Supabase Auth files | 0 | (none) |
-| Supabase DB/RPC/client files | 46 | src/app/api/component-library/attachments/route.ts, src/app/api/component-library/images/route.ts, src/app/api/estimate-row-images/route.ts, src/app/api/projects/[projectId]/activity/route.ts, src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts, src/app/workshop/projects/[projectId]/activity/page.tsx, src/app/workshop/projects/[projectId]/estimates/page.tsx, src/app/workshop/projects/[projectId]/page.tsx |
+| Supabase DB/RPC/client files | 45 | src/app/api/component-library/attachments/route.ts, src/app/api/estimate-row-images/route.ts, src/app/api/projects/[projectId]/activity/route.ts, src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts, src/app/workshop/projects/[projectId]/activity/page.tsx, src/app/workshop/projects/[projectId]/estimates/page.tsx, src/app/workshop/projects/[projectId]/page.tsx, src/components/workshop/LiveProjectCard.tsx |
 | Supabase Storage files | 0 | (none) |
 | Supabase service-role files | 0 | (none) |
 | Supabase Realtime files | 0 | (none) |
 | Resend email files | 0 | (none) |
-| Unique blocking files | 46 | src/app/api/component-library/attachments/route.ts, src/app/api/component-library/images/route.ts, src/app/api/estimate-row-images/route.ts, src/app/api/projects/[projectId]/activity/route.ts, src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts, src/app/workshop/projects/[projectId]/activity/page.tsx, src/app/workshop/projects/[projectId]/estimates/page.tsx, src/app/workshop/projects/[projectId]/page.tsx |
+| Unique blocking files | 45 | src/app/api/component-library/attachments/route.ts, src/app/api/estimate-row-images/route.ts, src/app/api/projects/[projectId]/activity/route.ts, src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts, src/app/workshop/projects/[projectId]/activity/page.tsx, src/app/workshop/projects/[projectId]/estimates/page.tsx, src/app/workshop/projects/[projectId]/page.tsx, src/components/workshop/LiveProjectCard.tsx |
 
 ## Checks
 
@@ -72,7 +72,7 @@ Local D1/Auth/Realtime redesign readiness inventory only. It reads repository so
 | --- | --- | --- | --- | --- |
 | database | Supabase database behavior inventory ready | PASS | routes=70, providerCoupledFiles=86, rpcNames=75, sqlMigrations=182, sqlFunctions=348, rlsPolicyStorageAuthMatches=684 |  |
 | d1 | D1 database binding configured and typed | PASS | wranglerD1Bindings=ARCH_DB, typedD1Bindings=ARCH_DB |  |
-| provider-removal | Legacy Supabase/Resend runtime references removed | FAIL | supabaseDependency=yes, resendDependency=no, supabaseAuthFiles=0, supabaseDatabaseFiles=46, supabaseStorageFiles=0, supabaseServiceRoleFiles=0, supabaseRealtimeFiles=0, resendEmailFiles=0, uniqueBlockingFiles=46 | Runtime or package manifest still contains legacy provider references that block cancelling Supabase/Resend; examples: src/app/api/component-library/attachments/route.ts, src/app/api/component-library/images/route.ts, src/app/api/estimate-row-images/route.ts, src/app/api/projects/[projectId]/activity/route.ts, src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts, src/app/workshop/projects/[projectId]/activity/page.tsx, src/app/workshop/projects/[projectId]/estimates/page.tsx, src/app/workshop/projects/[projectId]/page.tsx |
+| provider-removal | Legacy Supabase/Resend runtime references removed | FAIL | supabaseDependency=yes, resendDependency=no, supabaseAuthFiles=0, supabaseDatabaseFiles=45, supabaseStorageFiles=0, supabaseServiceRoleFiles=0, supabaseRealtimeFiles=0, resendEmailFiles=0, uniqueBlockingFiles=45 | Runtime or package manifest still contains legacy provider references that block cancelling Supabase/Resend; examples: src/app/api/component-library/attachments/route.ts, src/app/api/estimate-row-images/route.ts, src/app/api/projects/[projectId]/activity/route.ts, src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts, src/app/workshop/projects/[projectId]/activity/page.tsx, src/app/workshop/projects/[projectId]/estimates/page.tsx, src/app/workshop/projects/[projectId]/page.tsx, src/components/workshop/LiveProjectCard.tsx |
 | auth | Better Auth D1 local route-gate proof ready | PASS | betterAuthDependency=yes, betterAuthFiles=13, d1AdapterFiles=12, routeGateFiles=2, localProof=yes, routeGateHelperTests=yes, routeGateD1SessionFixture=yes, schemaSqlGenerated=yes, schemaSqlReview=yes, parityRows=7, existingSupabaseAuthFiles=0 |  |
 | auth | Better Auth D1 production replacement ready | FAIL | betterAuthDependency=yes, betterAuthFiles=13, d1AdapterFiles=12, routeGateFiles=2, localProof=yes, routeGateD1SessionFixture=yes, schemaSqlReady=yes, hostedSchemaProof=yes, providerSecret=yes, providerSessionFixture=yes, providerCallbackSession=yes, providerProof=yes, productionProof=no, remainingSupabaseAuthFiles=0, actualRouteMounted=yes, localOnly=no, providerBacked=yes | Better Auth production cutover proof is missing: OAuth provider credential proof, live route cutover, or Supabase auth removal is incomplete. |
 | authorization | App-layer authorization access matrix and denial tests ready | PASS | present=yes, accessPaths=47, positiveTests=47, denialTests=47, allCovered=yes, crossWorkspaceDenials=yes, routeActionCoverage=yes |  |
@@ -102,5 +102,5 @@ Local D1/Auth/Realtime redesign readiness inventory only. It reads repository so
 
 ## Blockers
 
-- Legacy Supabase/Resend runtime references removed: Runtime or package manifest still contains legacy provider references that block cancelling Supabase/Resend; examples: src/app/api/component-library/attachments/route.ts, src/app/api/component-library/images/route.ts, src/app/api/estimate-row-images/route.ts, src/app/api/projects/[projectId]/activity/route.ts, src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts, src/app/workshop/projects/[projectId]/activity/page.tsx, src/app/workshop/projects/[projectId]/estimates/page.tsx, src/app/workshop/projects/[projectId]/page.tsx
+- Legacy Supabase/Resend runtime references removed: Runtime or package manifest still contains legacy provider references that block cancelling Supabase/Resend; examples: src/app/api/component-library/attachments/route.ts, src/app/api/estimate-row-images/route.ts, src/app/api/projects/[projectId]/activity/route.ts, src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts, src/app/workshop/projects/[projectId]/activity/page.tsx, src/app/workshop/projects/[projectId]/estimates/page.tsx, src/app/workshop/projects/[projectId]/page.tsx, src/components/workshop/LiveProjectCard.tsx
 - Better Auth D1 production replacement ready: Better Auth production cutover proof is missing: OAuth provider credential proof, live route cutover, or Supabase auth removal is incomplete.
