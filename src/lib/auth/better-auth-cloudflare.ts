@@ -2,10 +2,6 @@ export const BETTER_AUTH_CLOUDFLARE_BASE_PATH = "/api/auth";
 export const BETTER_AUTH_CLOUDFLARE_D1_ROUTE_GATE_PROOF_MARKER =
   "better-auth Cloudflare D1 database route gate getSession requireUser";
 
-const BETTER_AUTH_MODULE: string = "better-auth";
-const BETTER_AUTH_NEXT_MODULE: string = "better-auth/next-js";
-const BETTER_AUTH_MIGRATION_MODULE: string = "better-auth/db/migration";
-
 type CloudflareD1DatabaseOption = unknown;
 
 type BetterAuthConfig = {
@@ -57,6 +53,7 @@ export type CreateCloudflareBetterAuthOptions = {
   trustedOrigins?: BetterAuthConfig["trustedOrigins"];
   waitUntil?: (promise: Promise<unknown>) => void;
   enableNextCookies?: boolean;
+  plugins?: unknown[];
 };
 
 export type BetterAuthRouteGateSessionSource = {
@@ -131,9 +128,9 @@ export const BETTER_AUTH_ROUTE_GATE_PARITY_MATRIX = [
 
 async function loadBetterAuthRuntime(): Promise<BetterAuthRuntime> {
   const [{ betterAuth }, { nextCookies, toNextJsHandler }, { getMigrations }] = await Promise.all([
-    import(BETTER_AUTH_MODULE),
-    import(BETTER_AUTH_NEXT_MODULE),
-    import(BETTER_AUTH_MIGRATION_MODULE),
+    import("better-auth"),
+    import("better-auth/next-js"),
+    import("better-auth/db/migration"),
   ]);
 
   return {
@@ -164,7 +161,10 @@ function createCloudflareBetterAuthOptions(options: CreateCloudflareBetterAuthOp
           },
         }
       : undefined,
-    plugins: options.enableNextCookies === false ? [] : [runtime.nextCookies()],
+    plugins: [
+      ...(options.enableNextCookies === false ? [] : [runtime.nextCookies()]),
+      ...(options.plugins ?? []),
+    ],
   };
 
   return config;

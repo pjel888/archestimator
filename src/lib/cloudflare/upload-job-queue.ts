@@ -10,6 +10,7 @@ export const CLOUDFLARE_UPLOAD_JOBS_QUEUE_NAME = "archestimator-upload-jobs";
 export const CLOUDFLARE_UPLOAD_JOBS_DLQ_NAME = "archestimator-upload-jobs-dlq";
 export const CLOUDFLARE_UPLOAD_JOBS_MAX_RETRIES = 3;
 export const CLOUDFLARE_UPLOAD_JOBS_RETRY_DELAY_SECONDS = 60;
+export const CLOUDFLARE_UPLOAD_JOBS_PROVIDER_PROOF_PREFIX = "provider-proof/jobs";
 
 export type CloudflareUploadJobQueueMessage = {
   version: 1;
@@ -18,6 +19,11 @@ export type CloudflareUploadJobQueueMessage = {
   enqueuedAt: string;
   idempotencyKey: string;
   source: "cloudflare-cron";
+  providerProof?: {
+    id: string;
+    requestedAt: string;
+    kind: "cloudflare-jobs-runtime-proof";
+  };
 };
 
 type QueueSendRequest = {
@@ -29,7 +35,16 @@ type QueueBindingLike = {
   sendBatch(messages: Iterable<QueueSendRequest>): Promise<unknown> | unknown;
 };
 
+type QueueProofReceiptBucketLike = {
+  put(
+    key: string,
+    value: string,
+    options?: { httpMetadata?: { contentType?: string; cacheControl?: string } },
+  ): Promise<unknown>;
+};
+
 export type CloudflareUploadJobQueueEnv = CloudflareScheduledUploadJobEnv & {
+  ARCH_UPLOADS_R2?: QueueProofReceiptBucketLike;
   UPLOAD_JOBS_QUEUE?: QueueBindingLike;
 };
 
@@ -163,6 +178,61 @@ function matchingJobExists(body: CloudflareUploadJobQueueMessage) {
   return CLOUDFLARE_SCHEDULED_UPLOAD_JOBS.some((job) => job.name === body.jobName && job.cron === body.cron);
 }
 
+function safeProviderProofId(body: CloudflareUploadJobQueueMessage) {
+  const id = body.providerProof?.id;
+  return typeof id === "string" && /^[a-zA-Z0-9-]{16,80}$/.test(id) ? id : null;
+}
+
+async function writeProviderProofReceipt({
+  body,
+  env,
+  outcome,
+  queue,
+}: {
+  body: CloudflareUploadJobQueueMessage;
+  env: CloudflareUploadJobQueueEnv;
+  outcome: CloudflareUploadJobQueueDispatchOutcome;
+  queue: string;
+}) {
+  const proofId = safeProviderProofId(body);
+  if (!proofId || !env.ARCH_UPLOADS_R2) return;
+
+  await env.ARCH_UPLOADS_R2.put(
+    `${CLOUDFLARE_UPLOAD_JOBS_PROVIDER_PROOF_PREFIX}/${proofId}.json`,
+    JSON.stringify({
+      generatedAt: new Date().toISOString(),
+      mode: "cloudflare-jobs-runtime-proof-receipt",
+      proofId,
+      requestedAt: body.providerProof?.requestedAt ?? null,
+      queue,
+      cron: body.cron,
+      jobName: body.jobName,
+      outcome: {
+        messageId: outcome.messageId,
+        action: outcome.action,
+        reason: outcome.reason,
+        attempts: outcome.attempts,
+        deadLetterExpected: outcome.deadLetterExpected,
+        retryDelaySeconds: outcome.retryDelaySeconds,
+        executedCount: outcome.executedCount,
+        skippedCount: outcome.skippedCount,
+        error: outcome.error,
+      },
+      readiness: {
+        queueConsumerReceiptReady: true,
+        cronProviderExecutionProven: outcome.action === "ack" && outcome.reason === "executed",
+        productionJobsMessagingReady: outcome.action === "ack" && outcome.reason === "executed",
+      },
+    }),
+    {
+      httpMetadata: {
+        cacheControl: "no-store",
+        contentType: "application/json; charset=utf-8",
+      },
+    },
+  );
+}
+
 function ackOutcome(
   message: CloudflareUploadJobQueueMessageLike,
   body: CloudflareUploadJobQueueMessage | null,
@@ -247,29 +317,37 @@ export async function runCloudflareUploadJobQueueBatch({
       const matchingExecution = summary.executed.find((job) => job.name === body.jobName);
 
       if (matchingExecution?.ok === true) {
-        outcomes.push(ackOutcome(message, body, "executed", executedCount, skippedCount));
+        const outcome = ackOutcome(message, body, "executed", executedCount, skippedCount);
+        outcomes.push(outcome);
+        await writeProviderProofReceipt({ body, env, outcome, queue: batch.queue });
         continue;
       }
 
       if (matchingExecution && matchingExecution.ok === false) {
-        outcomes.push(retryOutcome(message, body, "job-failed", null, executedCount, skippedCount));
+        const outcome = retryOutcome(message, body, "job-failed", null, executedCount, skippedCount);
+        outcomes.push(outcome);
+        await writeProviderProofReceipt({ body, env, outcome, queue: batch.queue });
         continue;
       }
 
-      outcomes.push(ackOutcome(
+      const outcome = ackOutcome(
         message,
         body,
         summary.skipped.some((job) => job.reason === "missing_secret") ? "missing-secret" : "unmatched-cron",
         executedCount,
         skippedCount,
-      ));
+      );
+      outcomes.push(outcome);
+      await writeProviderProofReceipt({ body, env, outcome, queue: batch.queue });
     } catch (error) {
-      outcomes.push(retryOutcome(
+      const outcome = retryOutcome(
         message,
         body,
         "exception",
         error instanceof Error ? error.message : String(error),
-      ));
+      );
+      outcomes.push(outcome);
+      await writeProviderProofReceipt({ body, env, outcome, queue: batch.queue });
     }
   }
 
