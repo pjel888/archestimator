@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 import { createConfiguredUploadScannerProvider } from "@/lib/uploads/clamd-scanner";
+import { createRuntimeUploadStorageProvider } from "@/lib/uploads/runtime-storage-provider";
 import {
-  createSupabaseUploadScanStorage,
+  createUploadScanStorageFromProvider,
   createUploadScanResultWriter,
   listUploadScanJobRecords,
   runUploadScanJob,
@@ -95,11 +96,12 @@ async function handleUploadScanJob(request: Request) {
     const serviceRole = createSupabaseServiceRoleClient("archestimator-upload-scan-job");
     const records = await listUploadScanJobRecords(serviceRole, { limit });
     if (dryRun) return jsonOk(summarizeUploadScanDryRun(records, limit));
+    const storageProvider = await createRuntimeUploadStorageProvider(serviceRole);
 
     const result = await runUploadScanJob({
       records,
       limit,
-      storage: createSupabaseUploadScanStorage(serviceRole),
+      storage: createUploadScanStorageFromProvider(storageProvider),
       scanner: createConfiguredUploadScannerProvider(),
       resultWriter: createUploadScanResultWriter(serviceRole),
     });

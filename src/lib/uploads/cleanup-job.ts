@@ -14,6 +14,11 @@ import {
   type UploadCleanupRecord,
 } from "./cleanup";
 import { reportUploadCleanupJobTelemetry } from "./operational-telemetry";
+import {
+  createSupabaseUploadStorageProvider,
+  type SupabaseStorageClient,
+  type UploadStorageProvider,
+} from "./storage-provider";
 
 const STORAGE_REMOVE_CHUNK_SIZE = 100;
 const DEFAULT_UPLOAD_CLEANUP_JOB_LIMIT = 500;
@@ -89,16 +94,6 @@ type UploadCleanupError = {
   code?: string | number | null;
   status?: string | number | null;
   statusCode?: string | number | null;
-};
-
-type UploadStorageBucketClient = {
-  remove: (paths: string[]) => PromiseLike<{ error: UploadCleanupError | null }>;
-};
-
-type UploadStorageClient = {
-  storage: {
-    from: (bucket: string) => UploadStorageBucketClient;
-  };
 };
 
 type UploadCleanupEventInsertClient = {
@@ -253,6 +248,10 @@ function combineStorageReports(...reports: StorageCleanupReport[]): StorageClean
 }
 
 export function createSupabaseUploadCleanupStorage(client: unknown): UploadCleanupStorage {
+  return createUploadCleanupStorageFromProvider(createSupabaseUploadStorageProvider(client as SupabaseStorageClient));
+}
+
+export function createUploadCleanupStorageFromProvider(storageProvider: UploadStorageProvider): UploadCleanupStorage {
   return {
     async remove(targets) {
       const removed: StorageCleanupReport["removed"] = [];
@@ -267,16 +266,16 @@ export function createSupabaseUploadCleanupStorage(client: unknown): UploadClean
       for (const [bucket, paths] of targetsByBucket.entries()) {
         for (let index = 0; index < paths.length; index += STORAGE_REMOVE_CHUNK_SIZE) {
           const chunk = paths.slice(index, index + STORAGE_REMOVE_CHUNK_SIZE);
-          const result = await (client as UploadStorageClient).storage.from(bucket).remove(chunk);
 
-          if (result.error) {
+          try {
+            await storageProvider.removeObjects(bucket, chunk);
+            removed.push(...chunk.map((path) => ({ bucket, path })));
+          } catch (error) {
             failed.push(...chunk.map((path) => ({
               bucket,
               path,
-              message: result.error?.message ?? "Storage cleanup failed.",
+              message: error instanceof Error ? error.message : "Storage cleanup failed.",
             })));
-          } else {
-            removed.push(...chunk.map((path) => ({ bucket, path })));
           }
         }
       }

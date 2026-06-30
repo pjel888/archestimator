@@ -16,7 +16,7 @@ export type UploadStorageProvider = {
   getPublicUrl: (bucket: string, path: string) => string;
 };
 
-type SupabaseStorageClient = {
+export type SupabaseStorageClient = {
   storage: {
     from: (bucket: string) => {
       upload: (path: string, body: Buffer | Uint8Array, options: {

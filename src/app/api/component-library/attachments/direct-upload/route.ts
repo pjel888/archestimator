@@ -20,6 +20,7 @@ import {
   createSupabaseDirectUploadProvider,
   validateProviderObjectHead,
 } from "@/lib/uploads/provider-portability";
+import { readRuntimeUploadStorageProvider } from "@/lib/uploads/runtime-storage-provider";
 import { chooseUploadSessionStrategy } from "@/lib/uploads/session-strategy";
 
 export const runtime = "nodejs";
@@ -109,6 +110,10 @@ function directUploadCapacityMessage(quotaClass: "active_actor" | "active_worksp
     return "Too many attachment upload sessions are already reserved. Finish or retry after one expires.";
   }
   return "Attachment upload capacity is busy for this workspace. Wait for an upload session to finish or expire.";
+}
+
+function directUploadStorageProviderUnsupportedResponse() {
+  return jsonError("Direct attachment uploads are not supported by the selected storage provider.", 501);
 }
 
 function directUploadCapacityResponse(input: {
@@ -210,6 +215,9 @@ async function createSignedUpload(
     }
     if (strategy.kind === "rejected") {
       return jsonError("Attachment upload is too large or missing required size information.", 413);
+    }
+    if (readRuntimeUploadStorageProvider() !== "supabase") {
+      return directUploadStorageProviderUnsupportedResponse();
     }
 
     const extension = EXTENSION_BY_MIME_TYPE.get(contentType);

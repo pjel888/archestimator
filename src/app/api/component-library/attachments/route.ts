@@ -8,6 +8,7 @@ import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository"
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/types";
 import { reserveUploadAdmission } from "@/lib/uploads/admission-control";
+import { createRuntimeUploadStorageProvider } from "@/lib/uploads/runtime-storage-provider";
 import { decideUploadScanGate, type UploadScanStatus } from "@/lib/uploads/scanning";
 import { recordUploadAsset } from "@/lib/uploads/upload-records";
 
@@ -357,10 +358,11 @@ export async function GET(request: Request) {
   const auditRecorded = await recordAttachmentDownloadIssued(storageSupabase, attachment, uploadAsset, currentUser.userId);
   if (!auditRecorded) return privateAttachmentUnavailable("Attachment download could not be audited.");
 
-  const { data, error } = await storageSupabase.storage.from(COMPONENT_ATTACHMENT_BUCKET).download(attachment.storage_path);
-  if (error || !data) return privateAttachmentNotFound();
+  const storageProvider = await createRuntimeUploadStorageProvider(storageSupabase);
+  const object = await storageProvider.downloadObject(COMPONENT_ATTACHMENT_BUCKET, attachment.storage_path).catch(() => null);
+  if (!object) return privateAttachmentNotFound();
 
-  return new Response(await data.arrayBuffer(), {
+  return new Response(object.body, {
     headers: {
       "Cache-Control": "private, max-age=300",
       "Content-Disposition": safeContentDisposition(attachment.file_name),
@@ -413,12 +415,14 @@ export async function POST(request: Request) {
     let uploadedPath: string | null = null;
 
     try {
-      const { error } = await supabase.storage.from(COMPONENT_ATTACHMENT_BUCKET).upload(path, sourceBuffer, {
+      const storageProvider = await createRuntimeUploadStorageProvider(supabase);
+      await storageProvider.uploadObject({
+        bucket: COMPONENT_ATTACHMENT_BUCKET,
+        path,
+        body: sourceBuffer,
         contentType: magicMime,
         cacheControl: "31536000",
-        upsert: false,
       });
-      if (error) throw new Error(error.message);
       uploadedPath = path;
       const uploadRecord = await recordUploadAsset(supabase, {
         workspaceId: workspace.id,
@@ -451,7 +455,8 @@ export async function POST(request: Request) {
     } catch (error) {
       console.error("Component attachment upload failed", error);
       if (uploadedPath) {
-        await supabase.storage.from(COMPONENT_ATTACHMENT_BUCKET).remove([uploadedPath]).catch(() => undefined);
+        const storageProvider = await createRuntimeUploadStorageProvider(supabase).catch(() => null);
+        await storageProvider?.removeObjects(COMPONENT_ATTACHMENT_BUCKET, [uploadedPath]).catch(() => undefined);
       }
       return jsonError("Could not store attachment.", 500);
     }
@@ -492,7 +497,11 @@ export async function DELETE(request: Request) {
     }
   }
 
-  const { error } = await supabase.storage.from(COMPONENT_ATTACHMENT_BUCKET).remove(paths);
-  if (error) return jsonError("Could not remove uploaded attachment.", 500);
+  const storageProvider = await createRuntimeUploadStorageProvider(supabase);
+  try {
+    await storageProvider.removeObjects(COMPONENT_ATTACHMENT_BUCKET, paths);
+  } catch {
+    return jsonError("Could not remove uploaded attachment.", 500);
+  }
   return NextResponse.json({ removedPaths: paths });
 }

@@ -7,12 +7,13 @@ import {
   summarizeUploadCleanup,
 } from "@/lib/uploads/cleanup";
 import {
-  createSupabaseUploadCleanupStorage,
+  createUploadCleanupStorageFromProvider,
   createUploadCleanupEventWriter,
   listUploadCleanupJobRecords,
   runUploadCleanupJob,
   summarizeUploadCleanupJobResult,
 } from "@/lib/uploads/cleanup-job";
+import { createRuntimeUploadStorageProvider } from "@/lib/uploads/runtime-storage-provider";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -117,11 +118,12 @@ async function handleUploadCleanupJob(request: Request) {
     const serviceRole = createSupabaseServiceRoleClient("archestimator-upload-cleanup-job");
     const records = await listUploadCleanupJobRecords(serviceRole, { limit });
     if (dryRun) return jsonOk(summarizeUploadCleanupDryRun(records, limit));
+    const storageProvider = await createRuntimeUploadStorageProvider(serviceRole);
 
     const result = await runUploadCleanupJob({
       records,
       limit,
-      storage: createSupabaseUploadCleanupStorage(serviceRole),
+      storage: createUploadCleanupStorageFromProvider(storageProvider),
       eventWriter: createUploadCleanupEventWriter(serviceRole),
     });
 

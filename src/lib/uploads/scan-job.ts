@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 
 import { reportUploadScanJobTelemetry } from "./operational-telemetry";
 import type { UploadScanProviderOutcome, UploadScanStatus } from "./scanning";
+import type { UploadStorageProvider } from "./storage-provider";
 
 const DEFAULT_UPLOAD_SCAN_JOB_LIMIT = 100;
 const MAX_UPLOAD_SCAN_JOB_LIMIT = 500;
@@ -126,6 +127,7 @@ async function bytesFromDownload(data: unknown): Promise<Uint8Array> {
     return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
   }
   if (data instanceof ArrayBuffer) return new Uint8Array(data);
+  if (Object.prototype.toString.call(data) === "[object ArrayBuffer]") return new Uint8Array(data as ArrayBuffer);
 
   if (
     data
@@ -219,6 +221,20 @@ export function createSupabaseUploadScanStorage(client: unknown): UploadScanStor
 
       return {
         bytes: await bytesFromDownload(data),
+      };
+    },
+  };
+}
+
+export function createUploadScanStorageFromProvider(storageProvider: UploadStorageProvider): UploadScanStorage {
+  return {
+    async download(target) {
+      const object = await storageProvider.downloadObject(target.bucket, target.path);
+
+      return {
+        bytes: await bytesFromDownload(object.body),
+        contentType: object.contentType,
+        sizeBytes: object.sizeBytes,
       };
     },
   };

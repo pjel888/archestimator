@@ -634,7 +634,6 @@ function readComponentInputForCreate(input: CreateCostLibraryComponentInput): Co
     lifecycleState: input.lifecycleState,
     effectiveAt: input.effectiveAt,
     changeReason: input.changeReason,
-    metadata: input.metadata,
   };
 }
 

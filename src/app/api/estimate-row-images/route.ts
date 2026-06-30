@@ -2,13 +2,18 @@ import { randomUUID } from "node:crypto";
 
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import sharp from "sharp";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/types";
 import { reserveUploadAdmission } from "@/lib/uploads/admission-control";
+import {
+  CLOUDFLARE_IMAGE_PROCESSING_UNAVAILABLE_MESSAGE,
+  processUploadImageToWebp,
+} from "@/lib/uploads/server-image-processing";
+import { createRuntimeUploadStorageProvider } from "@/lib/uploads/runtime-storage-provider";
+import type { UploadStorageProvider } from "@/lib/uploads/storage-provider";
 import { recordUploadAsset } from "@/lib/uploads/upload-records";
 
 export const runtime = "nodejs";
@@ -22,7 +27,6 @@ const MAX_IMAGE_PIXELS = 24_000_000;
 const MAX_IMAGE_EDGE = 1600;
 const THUMBNAIL_EDGE = 512;
 const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
-const ALLOWED_SHARP_FORMATS = new Set(["jpeg", "png", "webp", "avif"]);
 const AVIF_FTYP_BRANDS = new Set(["avif", "avis"]);
 
 function jsonError(message: string, status = 400, headers?: HeadersInit) {
@@ -76,12 +80,6 @@ function readMagicMime(bytes: Uint8Array): string | null {
   return null;
 }
 
-function isAllowedSharpFormat(format: string | undefined, magicMime: string) {
-  if (!format) return false;
-  if (format === "heif" && magicMime === "image/avif") return true;
-  return ALLOWED_SHARP_FORMATS.has(format);
-}
-
 function safeUploadName(name: string) {
   const stem = name
     .replace(/\.[^.]+$/, "")
@@ -120,18 +118,19 @@ async function createStorageSupabaseClient() {
 async function uploadWebp({
   buffer,
   path,
-  supabase,
+  storageProvider,
 }: {
   buffer: Buffer;
   path: string;
-  supabase: Awaited<ReturnType<typeof createStorageSupabaseClient>>;
+  storageProvider: UploadStorageProvider;
 }) {
-  const { error } = await supabase.storage.from(PROJECT_IMAGE_BUCKET).upload(path, buffer, {
+  await storageProvider.uploadObject({
+    bucket: PROJECT_IMAGE_BUCKET,
+    path,
+    body: buffer,
     contentType: "image/webp",
     cacheControl: "31536000",
-    upsert: false,
   });
-  if (error) throw new Error(error.message);
   return createProjectImageRouteUrl(path);
 }
 
@@ -221,32 +220,26 @@ export async function POST(request: Request) {
       return jsonError("The uploaded file does not look like a supported image.");
     }
 
-    let optimized: { data: Buffer; info: sharp.OutputInfo };
-    let thumbnail: { data: Buffer; info: sharp.OutputInfo };
-
-    try {
-      const pipeline = sharp(sourceBuffer, { failOn: "warning", limitInputPixels: MAX_IMAGE_PIXELS }).rotate();
-      const metadata = await pipeline.metadata();
-      if (!isAllowedSharpFormat(metadata.format, magicMime)) return jsonError("Unsupported image encoding.");
-      if (!metadata.width || !metadata.height) return jsonError("Could not read image dimensions.");
-      if (metadata.width * metadata.height > MAX_IMAGE_PIXELS) return jsonError("Image dimensions are too large. Use an image under 24 megapixels.", 413);
-
-      optimized = await sharp(sourceBuffer, { failOn: "warning", limitInputPixels: MAX_IMAGE_PIXELS })
-        .rotate()
-        .resize({ width: MAX_IMAGE_EDGE, height: MAX_IMAGE_EDGE, fit: "inside", withoutEnlargement: true })
-        .webp({ quality: 82, effort: 4 })
-        .toBuffer({ resolveWithObject: true });
-
-      thumbnail = await sharp(sourceBuffer, { failOn: "warning", limitInputPixels: MAX_IMAGE_PIXELS })
-        .rotate()
-        .resize({ width: THUMBNAIL_EDGE, height: THUMBNAIL_EDGE, fit: "inside", withoutEnlargement: true })
-        .webp({ quality: 85, effort: 4 })
-        .toBuffer({ resolveWithObject: true });
-    } catch {
+    const processedImage = await processUploadImageToWebp({
+      sourceBuffer,
+      magicMime,
+      maxImagePixels: MAX_IMAGE_PIXELS,
+      maxImageEdge: MAX_IMAGE_EDGE,
+      thumbnailEdge: THUMBNAIL_EDGE,
+    });
+    if (processedImage.status === "cloudflare-image-processing-unavailable") {
+      return jsonError(CLOUDFLARE_IMAGE_PROCESSING_UNAVAILABLE_MESSAGE, 501);
+    }
+    if (processedImage.status === "unsupported-encoding") return jsonError("Unsupported image encoding.");
+    if (processedImage.status === "missing-dimensions") return jsonError("Could not read image dimensions.");
+    if (processedImage.status === "dimensions-too-large") return jsonError("Image dimensions are too large. Use an image under 24 megapixels.", 413);
+    if (processedImage.status === "decode-error") {
       return jsonError("Could not decode image safely. Choose a standard JPG, PNG, WebP, or AVIF file.");
     }
+    const { optimized, thumbnail } = processedImage.image;
 
     const supabase = await createStorageSupabaseClient();
+    const storageProvider = await createRuntimeUploadStorageProvider(supabase);
     const baseName = `${safeUploadName(file.name)}-${randomUUID()}`;
     const basePath = `${workspace.id}/${currentUser.userId}/${PROJECT_IMAGE_PATH_SEGMENT}/${projectId}/${ESTIMATE_ROW_IMAGE_PATH_SEGMENT}/${estimateId}/${baseName}`;
     const imagePath = `${basePath}.webp`;
@@ -254,9 +247,9 @@ export async function POST(request: Request) {
     const uploadedPaths: string[] = [];
 
     try {
-      const url = await uploadWebp({ buffer: optimized.data, path: imagePath, supabase });
+      const url = await uploadWebp({ buffer: optimized.data, path: imagePath, storageProvider });
       uploadedPaths.push(imagePath);
-      const thumbnailUrl = await uploadWebp({ buffer: thumbnail.data, path: thumbnailPath, supabase });
+      const thumbnailUrl = await uploadWebp({ buffer: thumbnail.data, path: thumbnailPath, storageProvider });
       uploadedPaths.push(thumbnailPath);
       const uploadRecord = await recordUploadAsset(supabase, {
         workspaceId: workspace.id,
@@ -324,7 +317,7 @@ export async function POST(request: Request) {
       });
     } catch {
       if (uploadedPaths.length > 0) {
-        await supabase.storage.from(PROJECT_IMAGE_BUCKET).remove(uploadedPaths).catch(() => undefined);
+        await storageProvider.removeObjects(PROJECT_IMAGE_BUCKET, uploadedPaths).catch(() => undefined);
       }
       return jsonError("Could not store image.", 500);
     }
