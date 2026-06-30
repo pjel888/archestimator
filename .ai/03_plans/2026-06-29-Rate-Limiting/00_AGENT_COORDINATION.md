@@ -28,8 +28,20 @@ Allowed write scope for this task: `.ai/03_plans/2026-06-29-Rate-Limiting/`.
 | --- | --- | --- |
 | Lead planning lane | Integrated audit and wrote package | Owns final package consistency. |
 | Repo exploration lane | Read-only source inventory | Confirmed real proxy surface, missing prompt-listed routes, limiter files, in-memory/durable split. |
-| Cloudflare research lane | Official docs refresh | Confirmed WAF/Workers RL caveats, Turnstile validation, Durable Objects, D1, Observability, Wrangler facts. |
-| Adversarial review lane | Readiness critique | Rejected empty package state and enumerated P0/P1/P2 gaps to close. |
+| Cloudflare/Next research lane | Official docs refresh | Confirmed Next request-time boundaries, WAF/Workers RL caveats, Turnstile validation, Durable Objects, KV non-fit for exact counters, D1, Observability, Wrangler facts. |
+| Adversarial review lane | Readiness critique | Rejected direct implementation from the first package pass and identified the traceability, route/action, evidence-class, provider-proof, and privacy taxonomy repairs captured in 16 through 19. |
+
+## Source Authority
+
+| Source ID | Authority | Use in this package |
+| --- | --- | --- |
+| SRC-PROMPT-RL | `.ai/08_prompts/rate-limiting-prompt.md` | Required document set, exact output shape, rate-limiting concerns, stop condition. |
+| SRC-PROMPT-IMPROVE | `.ai/08_prompts/000_Planning Prompts/Improve-Plan-Prompt.md` | Quality bar, traceability, source hierarchy, readiness scoring, evidence classes. |
+| SRC-PROMPT-MULTI | `.ai/08_prompts/000_Planning Prompts/Multi-Agent-Execution-Directive.md` | Multi-lane plan hardening, source IDs, work packages, proof mapping. |
+| SRC-LOCAL-CODE | Current checkout on 2026-06-30 | Route/action count, existing limiter implementations, proxy/API boundary, dirty-worktree caveat. |
+| SRC-NEXT-LOCAL | `node_modules/next/dist/docs/` for installed `next@16.2.6` | Route Handler, Server Function, Proxy, request-time API, cache/runtime rules. |
+| SRC-CF-DOCS | Cloudflare developer docs refreshed on 2026-06-30 | WAF, Workers Rate Limiting, Turnstile, Durable Objects, D1, KV, observability, Wrangler claims. |
+| SRC-CF-MIGRATION | `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/` and current-state fast path | Production Cloudflare cutover remains NO-GO; local-only proof must not be promoted to hosted/provider proof. |
 
 ## Uncertainty Handling
 
@@ -40,3 +52,4 @@ The source tree is active and dirty. This package records the checkout observed 
 - `src/proxy/index.ts` re-exports the same proxy.
 - `src/lib/auth/request-proxy.ts:120` bypasses `/api`.
 - `src/app/api/share/[token]/recipient-session/route.ts` and `src/app/api/share/[token]/snapshot/route.ts` are absent; current equivalents are `session` and the token root route.
+- Local route scan found 30 `route.ts` files; action scan found 27 `src/lib/**/*actions.ts` files. `19_IMPLEMENTATION_CONTRACT_WORKSHEET.md` records the observed method/action surface and marks where P0 must still complete function-level classification.

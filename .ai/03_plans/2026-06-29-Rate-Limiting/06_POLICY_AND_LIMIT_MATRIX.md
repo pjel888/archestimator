@@ -59,3 +59,16 @@ All numbers below are **starting hypotheses**, not final production constants. T
 | Turnstile | Suspicious or unauthenticated public flows: password, invite probing, contact, possibly auth. | Authenticated internal workflows unless abuse evidence justifies it. |
 | Durable Objects | Exact counters, realtime room quotas, per-token coordination. | Global singleton bottlenecks or analytics warehouse use. |
 | D1 | Durable metadata, lower-rate ledgers, audit/event joins. | Hot counter store for very high-frequency enforcement unless proven. |
+
+## Performance And Cost Budget Placeholders
+
+These are budget contracts for future implementation, not measured baselines from this planning task.
+
+| Surface/store | Baseline method | Target statistic | Regression threshold | Rollback trigger |
+| --- | --- | --- | --- | --- |
+| Postgres event limiter | Targeted route/store tests plus shadow production metrics | p95 limiter check latency, query count per request, cleanup lag | p95 over agreed baseline by 25% or query count grows unexpectedly | Move policy to shadow or restore old helper. |
+| Share/invite public paths | Shadow decisions during beta | Deny rate by policy/resource/client hash, reviewer success after retry | Legitimate reviewer/invite support reports or 3x denial spike | Raise threshold or scope override with expiry. |
+| Upload admission | Concurrent upload fixture and beta telemetry | active actor/workspace denials, stuck-session cleanup age, provider error rate | Persistent active-cap denials for normal upload profile | Raise caps or keep local guard supplemental while durable fix lands. |
+| XLSX export | Workbook fixture before/after limiter check | p95 time before denial, p95 workbook generation time, 429 before generation | Denied requests still perform heavy workbook work | Roll back export limiter integration. |
+| AI routes | Provider stub plus usage ledger | requests/min, tokens/request, daily token spend, provider error rate | Provider call occurs after would-deny, or daily spend exceeds budget | Disable AI policy branch or feature flag. |
+| Cloudflare WAF/Workers | Hosted proof traffic and origin comparison | origin requests during mitigation delay, per-location overshoot, false-positive reports | Origin/app events diverge beyond approved tolerance | Disable rule/binding or revert to observe-only. |

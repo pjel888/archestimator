@@ -22,6 +22,7 @@ Official Cloudflare documentation was refreshed on 2026-06-30. Pricing and plan 
 | Durable Objects | Per-object state/storage is strongly consistent/transactional; appropriate for exact per-entity coordination. | https://developers.cloudflare.com/durable-objects/ and https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/ |
 | Durable Objects alarms/WebSockets | Alarms are at-least-once/retried; WebSocket hibernation supports many clients per instance. | https://developers.cloudflare.com/durable-objects/api/alarms/ and https://developers.cloudflare.com/durable-objects/best-practices/websockets/ |
 | D1 | D1 is SQLite-backed, single-threaded per database, has per-invocation query limits, and batch/session semantics. | https://developers.cloudflare.com/d1/platform/limits/ and https://developers.cloudflare.com/d1/worker-api/d1-database/ |
+| KV | Eventually consistent and explicitly not suitable for atomic or strongly consistent exact counters. | https://developers.cloudflare.com/kv/concepts/how-kv-works/ |
 | Wrangler config | Binding syntax covers D1 and Durable Objects; observability/traces can be configured in Wrangler. | https://developers.cloudflare.com/workers/wrangler/configuration/ |
 
 ## Cloudflare Layer Plan
@@ -42,6 +43,18 @@ Official Cloudflare documentation was refreshed on 2026-06-30. Pricing and plan 
 - WAF and Turnstile can be proofed before full Cloudflare-native app migration because they can sit in front of the current origin.
 - Workers/Durable Object exact enforcement must wait for hosted Worker route parity and provider/resource evidence.
 - Any Cloudflare rule must have a documented disable path and must not be the only app-layer security control.
+
+## Provider Worksheet Required Before Rollout
+
+| Slice | Required config/proof artifact | Rollback path | Evidence class | Status |
+| --- | --- | --- | --- | --- |
+| WAF observe-only for `/api/share/*` and `/invite/*` | Exact expression, action `log` or equivalent, sampled readback screenshot/API JSON, origin event comparison. | Disable rule by ID; app limiter remains active. | Provider readback plus hosted/origin logs. | OPEN. |
+| WAF challenge/block for auth/upload/AI/export | Expression, threshold, mitigation timeout, skip/allowlist policy, false-positive review. | Disable or revert to observe-only. | Provider readback plus support metric. | OPEN; owner approval required. |
+| Turnstile public challenge | Widget surface, secret binding, server-side `siteverify`, token replay/expiry proof, accessibility fallback. | Disable challenge flag; keep app limiter. | Route test plus provider validation. | OPEN. |
+| Workers Rate Limiting binding | Wrangler binding, `namespace_id`, `period`, key basis, overshoot test by location. | Remove binding check; keep app/Postgres limiter. | Hosted Worker proof. | OPEN; approximate only. |
+| Durable Object exact counter | Class/binding/migration, partition key, transaction test, hot-key load proof, cleanup/expiry. | Keep Postgres as source of truth; do not cut over. | Hosted Worker plus concurrency proof. | OPEN. |
+| D1 limiter metadata | Schema, query budget, backup/restore proof, hot-counter rejection or mitigation. | Keep Postgres event table. | Hosted Worker plus provider readback. | OPEN. |
+| Logs/traces/dashboards | Workers Logs/Traces receipt, redaction sample, retention setting, alert route. | App-side structured events only. | Provider receipt plus dashboard link. | OPEN. |
 
 ## Cloudflare-Specific Risks
 

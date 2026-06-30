@@ -8,7 +8,7 @@ owner: Archestimator
 
 # Rate Limiting Inventory
 
-Inventory date: 2026-06-30. Route discovery found 30 `route.ts` files under `src/app` and 27 `src/lib/**/*actions.ts` files. This inventory focuses on rate-relevant surfaces and records low-risk static routes as low priority.
+Inventory date: 2026-06-30. Route discovery found 30 `route.ts` files under `src/app` and 27 `src/lib/**/*actions.ts` files. This inventory focuses on rate-relevant surfaces and records low-risk static routes as low priority. The method/action worksheet in `19_IMPLEMENTATION_CONTRACT_WORKSHEET.md` is part of this inventory and must be refreshed before implementation.
 
 ## Current Mechanism Inventory
 
@@ -45,3 +45,33 @@ Inventory date: 2026-06-30. Route discovery found 30 `route.ts` files under `src
 Action files observed: auth account/actions/beta allowlist, collaboration actions/pending/realtime identity/summary, component library actions/template editor, estimate-sheet preferences, estimates actions/express promotion/subtree, favorites, legal, notifications, projects/location, publication, publisher activity/drawer, recipient proposals, reusable sources, workshop actions/beta feedback/review/group.
 
 Future implementation must classify each action as: no limiter needed, authenticated mutation limiter, expensive read limiter, email/provider limiter, storage limiter, or public token limiter. Do not assume route inventory alone covers server actions.
+
+## Prompt-Required Inventory Fields
+
+Every implementation work item must fill these fields before editing the target route/action:
+
+| Field | Required use |
+| --- | --- |
+| Surface | Product surface such as share password, invite accept, upload admission, AI package-builder, auth login, webhook, or server action group. |
+| Path / Function | Exact route path and exported method, or exact server action function. |
+| HTTP Method or Action Type | Route method, Server Function mutation/read/provider call, internal job, webhook, or telemetry intake. |
+| Current Auth / Session Gate | Current auth, same-origin, token, signature, secret, or public access gate. |
+| Current Limit Exists? | `yes`, `no`, `partial`, or `local-only`, with source reference. |
+| Current Limit Mechanism | Postgres events/RPC, process memory, provider control, circuit breaker, WAF, none. |
+| Current Key Shape | Current actor/resource/client key basis. |
+| Proposed Actor Key | Future normalized user/workspace/recipient/session/email key. |
+| Proposed Resource Key | Future token/project/publication/estimate/upload/job/provider key. |
+| Proposed Limit Class | Public token, auth, storage, AI/cost, export, email, webhook/internal, telemetry, or no-policy rationale. |
+| Proposed Window(s) | Starting hypothesis or explicit "none; use idempotency/signature instead". |
+| Proposed Store / Provider | Postgres, RPC, memory supplemental, WAF, Workers RL, Durable Object, D1, provider, none. |
+| Cloudflare Edge Rule Needed? | Observe-only WAF/Turnstile/Worker candidate and proof gate. |
+| Worker Binding Candidate? | Whether approximate per-location Worker rate limiting is acceptable. |
+| Turnstile Candidate? | Whether human verification is appropriate and accessible. |
+| Failure Response | 429/403/401/503/drop/native action result, with no provider secret leakage. |
+| Retry-After Strategy | Header/body/action field or explicit not applicable. |
+| Privacy / PII Handling | Raw/hash/encrypted/public marker and retention class. |
+| Observability Event | Policy ID, decision, store, hashes, runtime, and sampling rules. |
+| Test Coverage Needed | Unit, route/action, store, distributed, provider, browser/manual, operations. |
+| Migration Stage | Stage 0 through 10 from rollout plan. |
+| Risk | Security, UX, cost, provider, privacy, performance, or low. |
+| Owner Notes | Decision, override, support, or false-positive workflow. |

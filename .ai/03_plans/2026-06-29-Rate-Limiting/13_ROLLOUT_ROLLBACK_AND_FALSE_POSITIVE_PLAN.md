@@ -38,12 +38,24 @@ owner: Archestimator
 
 Every policy needs:
 
-- Per-policy mode switch.
-- Per-surface threshold override.
-- Global emergency disable for non-security policies.
-- Cloudflare WAF rule disable path.
-- Turnstile disable path.
-- Store adapter fallback path.
+- Per-policy mode switch owned by the central registry.
+- Per-surface threshold override with owner, reason, and expiry.
+- Global emergency disable for non-security policies only.
+- Cloudflare WAF rule disable path by rule ID and provider readback.
+- Turnstile disable path by feature flag and server-validation bypass policy.
+- Store adapter fallback path that names the source of truth after rollback.
+- Audit trail for every override and rollback, including who changed it and when it expires.
+- Runtime reload behavior: define whether config changes apply immediately, after deployment, or after cache expiry.
+
+## Rollback Trigger Examples
+
+| Surface | Trigger | Rollback action | Verification |
+| --- | --- | --- | --- |
+| Public proposal review | Legitimate reviewers report blocks or denial rate exceeds baseline by 3x for one token/session cohort. | Raise threshold or shadow only for the affected policy/resource; do not globally disable password/token protection. | Reviewer can reload/comment/decide; denial events stop for allowed cohort. |
+| Auth/login | Beta-user login failure/support reports spike. | Disable app-side auth limiter; keep provider checks and signatures. | Test magic-link/OAuth happy paths and no account enumeration. |
+| Upload/export/AI | Denials block normal owner workflow or provider cost stays low. | Raise thresholds or shadow; preserve concurrency/idempotency guards. | Cost route succeeds after retry, no partial upload/export corruption. |
+| Webhook/internal jobs | Duplicate side effects or missed jobs observed. | Disable secondary rate limit; keep signature/replay/idempotency enforcement. | Replay test remains blocked; scheduled job can run once. |
+| Cloudflare WAF/Turnstile | Support/accessibility or origin mismatch appears. | Disable or revert to observe-only by provider rule/flag. | Provider readback shows disabled; app limiter still emits decisions. |
 
 ## Owner Approval Gates
 

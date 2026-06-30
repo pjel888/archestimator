@@ -66,3 +66,14 @@ Every limiter decision should emit a structured event in shadow and enforce mode
 - Hashed limiter keys: retain only as long as needed for windows, audits, and abuse investigation.
 - Security events: current table TTL is per-event `expires_at`; future retention should delete expired rows and summarize long-term aggregates.
 - Cloudflare logs: align sampling and retention with provider plan and privacy policy.
+
+## Cardinality And Rotation Controls
+
+| Control | Requirement |
+| --- | --- |
+| Event schema version | Include `schema_version` so dashboards and backfills can distinguish field changes. |
+| Hash version | Include `hash_version` or pepper generation marker; do not expose pepper names or values. |
+| Cardinality caps | Aggregate dashboard dimensions by policy/surface/mode/store/runtime first; inspect actor/resource/client hashes only in scoped incident review. |
+| Sampling | Sample allows and near-limits by policy; never sample denied security events below the threshold required for incident review. |
+| Pepper rotation | Support dual-read/dual-write or window-bounded transition so rotation does not merge users or erase active lockouts unexpectedly. |
+| Redaction proof | Tests must assert raw IP, email, token, webhook signature, Turnstile token, cookie, and provider key values are absent from logs/events. |

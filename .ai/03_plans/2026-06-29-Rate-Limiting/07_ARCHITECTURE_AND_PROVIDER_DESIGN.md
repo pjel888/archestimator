@@ -72,6 +72,17 @@ The implementation must stop scattering raw header reads. Current patterns diffe
 
 Cloudflare-native enforcement must not outrun the Cloudflare migration package. `wrangler.jsonc:14-80` has proof bindings, and the migration package records local proofs, but production cutover remains NO-GO until hosted Worker, D1/Auth/Realtime, provider resource, cost, performance, observability receipt, secrets, and rollback proof pass.
 
+## Next.js 16 Request Boundary Contract
+
+| Boundary | Planning rule | Source/evidence |
+| --- | --- | --- |
+| Route Handlers | Treat API route limiters as request-time controls. Non-GET methods are not cached by default, and GET handlers that read runtime data run at request time. | Local Next docs `15-route-handlers.md:85-112`. |
+| Server Functions | Do not rely on page/proxy coverage. Server Functions are POST requests to the route where they are used; auth, authorization, input validation, and rate limits belong inside the action/DAL boundary. | Local Next docs `proxy.md:213-215`, `use-server.md:146-155`. |
+| Proxy | Proxy can run before routes, but this checkout bypasses `/api` in `src/lib/auth/request-proxy.ts:115-121`; it is not the app-layer limiter. | Local source plus local Next docs `proxy.md:13-21`, `:84-95`. |
+| Request APIs | `headers()` and `cookies()` are request-time signals; cached scopes must not become quota stores or hide per-request limiter state. | Local Next docs `headers.md:48`, `cookies.md:69`, `use-cache.md:196`. |
+| Runtime | Proxy-runtime guidance in the local Next docs has drift; use the Proxy-specific docs for planning and verify Cloudflare adapter behavior separately. | Local docs `proxy.md:219`, `authentication.md:1124`, `edge.md:11`. |
+| Response contract | Sensitive limiter denials must use `Cache-Control: no-store`, no raw identifiers, no token/account existence leaks, and `Retry-After` where retry is allowed. | Plan sections 06, 09, 14, 19. |
+
 ## Avoided Designs
 
 - A single global Durable Object for all counters: bottleneck and blast radius.

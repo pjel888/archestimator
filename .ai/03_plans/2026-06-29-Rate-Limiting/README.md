@@ -37,7 +37,8 @@ Recommended direction: keep the current Supabase/Postgres-backed security event 
 | [16_REQUIREMENTS_TRACEABILITY_MATRIX.md](16_REQUIREMENTS_TRACEABILITY_MATRIX.md) | Requirement coverage map. |
 | [17_FINAL_READINESS_REVIEW.md](17_FINAL_READINESS_REVIEW.md) | Final planning verdict. |
 | [18_COMPLETION_AUDIT.md](18_COMPLETION_AUDIT.md) | Package completion audit and stop condition. |
+| [19_IMPLEMENTATION_CONTRACT_WORKSHEET.md](19_IMPLEMENTATION_CONTRACT_WORKSHEET.md) | Route/action/provider contract worksheet required before implementation. |
 
 ## Stop Condition
 
-Stop this planning task when all listed documents exist with frontmatter, source refs, Cloudflare doc assumptions, inventory coverage, traceability, readiness verdicts, and validation evidence. Do not start implementation from this package until the implementer re-validates the current checkout, confirms the Cloudflare migration state, and opens a separate scoped implementation plan.
+Stop this planning task when all listed documents exist with frontmatter, source refs, Cloudflare doc assumptions, inventory coverage, traceability, readiness verdicts, and validation evidence. Do not start enforcement work from this package until the implementer re-validates the current checkout, confirms the Cloudflare migration state, completes the P0 route/action contract rows in `19_IMPLEMENTATION_CONTRACT_WORKSHEET.md`, and opens a separate scoped implementation plan.

@@ -61,6 +61,18 @@ This is a conceptual implementation plan only. It does not authorize code change
 - Preserve graceful degradation for email delivery failures.
 - Preserve current Cloudflare migration NO-GO gates.
 
+## Adapter And Response Contract
+
+| Contract | Requirement |
+| --- | --- |
+| Store adapter result | Return `allowed`, `limited`, `store_error`, or `bypass` with `retryAfterSeconds`, evaluated window, policy ID, and store name. |
+| Route response helper | For route handlers, centralize 429 JSON/native body, `Retry-After`, `Cache-Control: no-store` on sensitive/public surfaces, and no provider error details. |
+| Server action helper | For Server Functions, return existing action-result shapes or throw the existing domain error type; do not introduce transport-only response assumptions. |
+| Failure mode | Security, auth, public-token mutation, upload, export, and AI cost controls fail closed; telemetry drops/fails soft. |
+| Rollout mode | Every policy supports `off`, `shadow`, `enforce`, and, only for eligible public flows, `challenge`. |
+| Env/config ownership | Policy defaults live in code; runtime overrides use a reviewed config source, not scattered env reads. Secret peppers remain in provider secrets. |
+| Test clock | Unit tests must inject clock/window state; production code must not depend on global mutable counters for exact quotas. |
+
 ## Data Model Options
 
 | Option | Use |

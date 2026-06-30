@@ -22,6 +22,21 @@ Rate limiting should store the minimum data required to enforce windows and inve
 | User/workspace/project IDs | Hash for logs where user-facing operations do not require direct ID. |
 | Country/region | Coarse metadata only; avoid sole basis for blocking without owner approval. |
 
+## Credential Material Taxonomy
+
+| Material | Raw/hash/encrypted/public marker | Creation/read points | Client visible? | Logging/storage rule | Rotation/revocation/destruction proof |
+| --- | --- | --- | --- | --- | --- |
+| Client IP | Raw request header, stored only as HMAC hash | Request headers and proxy/Cloudflare edge | No | Never persist raw; store HMAC client hash and optional coarse country/ASN. | Pepper rotation test; no raw IP in event/log fixtures. |
+| Public share token | Raw URL token, stored/used as token hash | Share routes and publication helpers | Yes, in URL | Never log raw; hash/HMAC resource key before limiter storage. | Token rotation/revoke tests; old token uniformly denied. |
+| Recipient/session token | Raw cookie/body/token, stored as hash where needed | Share session/comment/decision/unsubscribe | Sometimes | Do not emit raw token; resource/recipient hashes only. | Session revoke and cleanup proof. |
+| Invite token | Raw URL token, HMAC/keyed limiter parts | Invite page/routes/actions | Yes, in URL | No raw logs; limiter uses token/client/user dimensions without existence leak. | Invite revoke/expiry tests. |
+| Email address | Raw user input/provider value, HMAC normalized for limiter | Auth/contact/invite/email actions | User-provided | Store email hash for limiter; avoid dashboard raw email dimensions. | Lowercase/normalization and deletion support proof. |
+| Turnstile token | Raw short-lived verification token | Browser widget to server-side validation | Submitted by client | Never store token; record validation outcome, policy ID, and challenge reason only. | Single-use/300-second expiry and replay tests. |
+| OAuth/session cookies | HttpOnly/provider session material | Auth provider, cookies, server actions | Cookie only | Do not place in limiter keys or logs; read session server-side. | Sign-out/session invalidation tests. |
+| Webhook signature/secret | Raw header/secret env | Resend webhook and internal jobs | No | Never log raw; store event ID hash/idempotency status. | Replay and secret-rotation proof. |
+| Provider/API keys | Secret env/provider config | AI, email, Cloudflare, Supabase | No | Never include in limiter events or errors. | Secret scan, provider stub tests, rollback proof. |
+| Operator overrides | Config/audit rows | Admin/operator workflow | No | Store policy, scope hash, reason, owner, expiry; no raw PII. | Expiry job and audit readback proof. |
+
 ## Current Privacy Observations
 
 - Invite limiter uses HMAC for IP via `createHmac` and a limiter/token/service-role fallback pepper in `src/lib/collaboration/invite-entry.ts:126-140`.
