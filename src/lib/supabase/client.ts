@@ -1,11 +1,10 @@
-import { createBrowserClient } from "@supabase/ssr";
+import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./types";
 
-// Singleton browser client. Returning one instance means every realtime hook
-// (presence, cursors) and the top-level auth bridge share a SINGLE websocket
-// connection, so `supabase.realtime.setAuth()` on token refresh keeps every
-// open channel authenticated. (Teamspace plan §5 / T0.4 / decision R-17.)
-let browserClient: ReturnType<typeof createBrowserClient<Database>> | null = null;
+// Singleton browser DB client. Browser auth/session persistence is disabled
+// because application auth is handled by Better Auth during the Cloudflare
+// migration; this helper remains only for transitional Supabase table reads.
+let browserClient: ReturnType<typeof createClient<Database>> | null = null;
 
 export function createSupabaseBrowserClient() {
   if (browserClient) return browserClient;
@@ -17,6 +16,12 @@ export function createSupabaseBrowserClient() {
     throw new Error("Missing Archestimator Supabase browser environment variables.");
   }
 
-  browserClient = createBrowserClient<Database>(url, anonKey);
+  browserClient = createClient<Database>(url, anonKey, {
+    auth: {
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      persistSession: false,
+    },
+  });
   return browserClient;
 }

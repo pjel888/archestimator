@@ -82,7 +82,7 @@ function getIpHash(request: Request): string {
 }
 
 function logStructured(level: "error" | "warn", route: string, errorCode: string, ipHash: string, extra?: Record<string, unknown>) {
-  // Additive structured logging (no PII/secrets, per P12 + existing console patterns in resend)
+  // Additive structured logging (no PII/secrets, per P12 + existing console patterns)
   console.error({ level, route, errorCode, ipHash, ts: new Date().toISOString(), ...extra });
 }
 

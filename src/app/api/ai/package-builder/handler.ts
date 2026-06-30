@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 
-import { getAiRequestUserContext, type AiRequestUserContext } from "@/lib/ai/auth";
+import { getAiRequestUserContext, isProviderBackedAiUserContext, type AiRequestUserContext } from "@/lib/ai/auth";
 import {
   buildAiPackageActionRun,
   recordAiPackageApplyAuthorization,
@@ -198,7 +198,7 @@ export async function handlePackageBuilderRequest(request: Request, dependencies
     return jsonError(AI_AUTH_MODE_ERROR, 403);
   }
   if (!userContext) return jsonError("Authentication required.", 401);
-  if (userContext.authMode !== "supabase" || !userContext.workspaceId) return jsonError(AI_AUTH_MODE_ERROR, 403);
+  if (!isProviderBackedAiUserContext(userContext)) return jsonError(AI_AUTH_MODE_ERROR, 403);
   let memoryEnabled = false;
   if (flags.memory) {
     try {
@@ -361,7 +361,7 @@ export async function handlePackageBuilderRequest(request: Request, dependencies
 
   const runId = randomUUID();
   let readData: PackageBuilderReadToolsData = createEmptyReadData();
-  if (flags.readTools && userContext.authMode === "supabase" && userContext.workspaceId) {
+  if (flags.readTools && isProviderBackedAiUserContext(userContext)) {
     try {
       readData = await deps.readTools({
         runId,

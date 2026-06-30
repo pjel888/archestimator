@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
+import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
 import { createConfiguredUploadScannerProvider } from "@/lib/uploads/clamd-scanner";
 import { createRuntimeUploadStorageProvider } from "@/lib/uploads/runtime-storage-provider";
 import {
@@ -93,17 +93,19 @@ async function handleUploadScanJob(request: Request) {
     const dryRun = isDryRun(request);
     if (!dryRun && !areUploadJobsEnabled()) return jsonError("Upload scan job is disabled.", 503);
 
-    const serviceRole = createSupabaseServiceRoleClient("archestimator-upload-scan-job");
-    const records = await listUploadScanJobRecords(serviceRole, { limit });
+    const db = await getCloudflareD1Database();
+    if (!db) return jsonError("Upload scan job database is not configured.", 503);
+
+    const records = await listUploadScanJobRecords(db, { limit });
     if (dryRun) return jsonOk(summarizeUploadScanDryRun(records, limit));
-    const storageProvider = await createRuntimeUploadStorageProvider(serviceRole);
+    const storageProvider = await createRuntimeUploadStorageProvider();
 
     const result = await runUploadScanJob({
       records,
       limit,
       storage: createUploadScanStorageFromProvider(storageProvider),
       scanner: createConfiguredUploadScannerProvider(),
-      resultWriter: createUploadScanResultWriter(serviceRole),
+      resultWriter: createUploadScanResultWriter(db),
     });
 
     return jsonOk(result);

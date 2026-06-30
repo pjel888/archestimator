@@ -1,12 +1,11 @@
 import { randomUUID } from "node:crypto";
 
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
+import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { Database } from "@/lib/supabase/types";
 import { reserveUploadAdmission } from "@/lib/uploads/admission-control";
 import { createRuntimeUploadStorageProvider } from "@/lib/uploads/runtime-storage-provider";
 import { decideUploadScanGate, type UploadScanStatus } from "@/lib/uploads/scanning";
@@ -202,24 +201,8 @@ function isUploadScanStatus(value: string): value is UploadScanStatus {
   ].includes(value);
 }
 
-async function createStorageSupabaseClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (url && serviceRoleKey) {
-    return createClient<Database>(url, serviceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-      global: {
-        headers: {
-          "X-Client-Info": "archestimator-component-attachment-upload",
-        },
-      },
-    });
-  }
-
-  return createSupabaseServerClient();
+function uploadMetadataUnavailableResponse() {
+  return jsonError("Cloudflare D1 upload metadata is not configured.", 503);
 }
 
 async function canManageLibrary(workspaceId: string) {
@@ -339,7 +322,7 @@ export async function GET(request: Request) {
     });
   }
 
-  const storageSupabase = await createStorageSupabaseClient();
+  const storageSupabase = await createSupabaseServerClient();
   const {
     attachment,
     lookupFailed: attachmentLookupFailed,
@@ -358,7 +341,7 @@ export async function GET(request: Request) {
   const auditRecorded = await recordAttachmentDownloadIssued(storageSupabase, attachment, uploadAsset, currentUser.userId);
   if (!auditRecorded) return privateAttachmentUnavailable("Attachment download could not be audited.");
 
-  const storageProvider = await createRuntimeUploadStorageProvider(storageSupabase);
+  const storageProvider = await createRuntimeUploadStorageProvider();
   const object = await storageProvider.downloadObject(COMPONENT_ATTACHMENT_BUCKET, attachment.storage_path).catch(() => null);
   if (!object) return privateAttachmentNotFound();
 
@@ -410,12 +393,14 @@ export async function POST(request: Request) {
     const extension = EXTENSION_BY_MIME_TYPE.get(magicMime);
     if (!extension) return jsonError("Use a PDF, XLS, or XLSX attachment.");
 
-    const supabase = await createStorageSupabaseClient();
+    const uploadMetadataDb = await getCloudflareD1Database();
+    if (!uploadMetadataDb) return uploadMetadataUnavailableResponse();
+
     const path = `${workspace.id}/${currentUser.userId}/${safeUploadName(file.name)}-${randomUUID()}.${extension}`;
     let uploadedPath: string | null = null;
 
     try {
-      const storageProvider = await createRuntimeUploadStorageProvider(supabase);
+      const storageProvider = await createRuntimeUploadStorageProvider();
       await storageProvider.uploadObject({
         bucket: COMPONENT_ATTACHMENT_BUCKET,
         path,
@@ -424,7 +409,7 @@ export async function POST(request: Request) {
         cacheControl: "31536000",
       });
       uploadedPath = path;
-      const uploadRecord = await recordUploadAsset(supabase, {
+      const uploadRecord = await recordUploadAsset(uploadMetadataDb, {
         workspaceId: workspace.id,
         actorUserId: currentUser.userId,
         surface: "component-attachment",
@@ -455,7 +440,7 @@ export async function POST(request: Request) {
     } catch (error) {
       console.error("Component attachment upload failed", error);
       if (uploadedPath) {
-        const storageProvider = await createRuntimeUploadStorageProvider(supabase).catch(() => null);
+        const storageProvider = await createRuntimeUploadStorageProvider().catch(() => null);
         await storageProvider?.removeObjects(COMPONENT_ATTACHMENT_BUCKET, [uploadedPath]).catch(() => undefined);
       }
       return jsonError("Could not store attachment.", 500);
@@ -475,7 +460,7 @@ export async function DELETE(request: Request) {
   const paths = readStoragePaths(body).filter((path) => isOwnedAttachmentPath(path, workspace.id, currentUser.userId));
   if (paths.length === 0) return jsonError("No removable attachment paths were provided.");
 
-  const supabase = await createStorageSupabaseClient();
+  const supabase = await createSupabaseServerClient();
   const { data: attachmentRows, error: attachmentLookupError } = await supabase
     .from("cost_library_item_variant_attachments")
     .select("storage_path, review_status, is_current_approved")
@@ -497,7 +482,7 @@ export async function DELETE(request: Request) {
     }
   }
 
-  const storageProvider = await createRuntimeUploadStorageProvider(supabase);
+  const storageProvider = await createRuntimeUploadStorageProvider();
   try {
     await storageProvider.removeObjects(COMPONENT_ATTACHMENT_BUCKET, paths);
   } catch {

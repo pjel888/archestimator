@@ -3,11 +3,20 @@ import type { UploadStorageProvider } from "./storage-provider";
 type R2PutValue = ArrayBuffer | ArrayBufferView | Blob | ReadableStream | string;
 
 type R2ObjectBody = {
+  arrayBuffer: () => Promise<ArrayBuffer>;
+} & R2ObjectMetadata;
+
+type R2ObjectMetadata = {
   size?: number;
+  etag?: string | null;
+  checksums?: {
+    toJSON?: () => {
+      sha256?: string;
+    };
+  };
   httpMetadata?: {
     contentType?: string | null;
   };
-  arrayBuffer: () => Promise<ArrayBuffer>;
 };
 
 export type CloudflareR2UploadBucket = {
@@ -21,6 +30,7 @@ export type CloudflareR2UploadBucket = {
       };
     },
   ) => Promise<unknown>;
+  head?: (key: string) => Promise<R2ObjectMetadata | null>;
   get: (key: string) => Promise<R2ObjectBody | null>;
   delete: (keys: string | string[]) => Promise<unknown>;
 };
@@ -73,6 +83,19 @@ export function createCloudflareR2UploadStorageProvider(
         body,
         contentType: object.httpMetadata?.contentType ?? null,
         sizeBytes: object.size ?? body.byteLength,
+        etag: object.etag ?? null,
+        checksumSha256: object.checksums?.toJSON?.().sha256 ?? null,
+      };
+    },
+    async headObject(bucket, path) {
+      if (!r2.head) throw new Error("R2 object head lookup is not available.");
+      const object = await r2.head(buildCloudflareR2ObjectKey(bucket, path));
+      if (!object) throw new Error("R2 storage object was not found.");
+      return {
+        contentType: object.httpMetadata?.contentType ?? null,
+        sizeBytes: object.size ?? 0,
+        etag: object.etag ?? null,
+        checksumSha256: object.checksums?.toJSON?.().sha256 ?? null,
       };
     },
     async createSignedReadUrl(bucket, path, expiresInSeconds) {

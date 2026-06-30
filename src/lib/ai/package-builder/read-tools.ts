@@ -1,5 +1,6 @@
-import type { AiRequestUserContext } from "@/lib/ai/auth";
+import { isProviderBackedAiUserContext, type AiRequestUserContext } from "@/lib/ai/auth";
 import { buildAiPackageDataAccessEvent, buildAiPackageToolCall } from "@/lib/ai/audit";
+import type { AiDataAccessAuditRow, AiToolCallAuditRow } from "@/lib/ai/audit-d1-store";
 import {
   EMPTY_PACKAGE_BUILDER_MEMORY_PREFERENCES,
   readPackageBuilderMemoryPreferences,
@@ -12,7 +13,6 @@ import {
 } from "@/lib/component-library/taxonomy";
 import { isUuid } from "@/lib/ids";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { TablesInsert } from "@/lib/supabase/types";
 import { filterMap, filterMapBy } from "@/lib/util/array";
 
 const PACKAGE_BUILDER_READ_TOOL_NAMES = [
@@ -191,8 +191,8 @@ export type PackageBuilderTemplateSummary = {
 };
 
 export type PackageBuilderReadAuditEvent = {
-  toolCall: TablesInsert<"ai_tool_calls"> | null;
-  dataAccessEvent: TablesInsert<"ai_data_access_events"> | null;
+  toolCall: AiToolCallAuditRow | null;
+  dataAccessEvent: AiDataAccessAuditRow | null;
 };
 
 export type PackageBuilderReadToolsData = {
@@ -1327,7 +1327,7 @@ function createAuditEvent({
 export async function readPackageBuilderTools(
   input: PackageBuilderReadToolsInput,
 ): Promise<PackageBuilderReadToolsData> {
-  const workspaceId = input.userContext.authMode === "supabase" && input.userContext.workspaceId ? input.userContext.workspaceId : null;
+  const workspaceId = isProviderBackedAiUserContext(input.userContext) ? input.userContext.workspaceId : null;
   if (!workspaceId) throw new Error("Package-builder read tools require an authenticated workspace.");
 
   const auditEvents: PackageBuilderReadAuditEvent[] = [];

@@ -22,7 +22,7 @@ import { filterMapBy } from "@/lib/util/array";
  * Used inside the "Recipients" tab of the publication manager modal.
  * - Email chip input (type + Enter/ comma / blur adds; simple validation)
  * - Remove chips (×)
- * - Send action calls addSharedLinkRecipients (tokens + Resend + graceful)
+ * - Send action calls addSharedLinkRecipients (tokens + transactional email + graceful)
  * - Remove calls remove
  * - Status chips: Pending / Sent / Bounced / Opened (small rounded-xs badges)
  * - SF Pro stack via parent, ≤12px (text-[10px]/ [9px]), rounded-xs, hairline borders, min-h-7
@@ -423,7 +423,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
 
       // Optimistic merge of results into chips with statuses. AC-MOD-17 (MOD-REC-05/MOD-ACT-04):
       // map by `match.status` first so a duplicate renders neutrally (never as a green "sent"),
-      // and adopt `match.id` so a just-added chip immediately supports Resend/Remove (both require
+      // and adopt `match.id` so a just-added chip immediately supports resend/remove (both require
       // an id) without waiting for a modal remount.
       const updated = applyRecipientEmailResults(chips, result.emailResults);
 

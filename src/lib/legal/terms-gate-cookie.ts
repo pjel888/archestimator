@@ -11,7 +11,8 @@ type TermsGateCookiePayload = {
 
 function getTermsGateSecret() {
   return process.env.ARCHESTIMATOR_TERMS_GATE_SECRET?.trim()
-    || process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
+    || process.env.BETTER_AUTH_SECRET?.trim()
+    || process.env.PUBLICATION_ACCESS_COOKIE_SECRET?.trim()
     || null;
 }
 

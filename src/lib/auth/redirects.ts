@@ -23,9 +23,6 @@ function getAllowedAppOrigins(env: OriginEnv = process.env) {
   const configured = [
     env.NEXT_PUBLIC_APP_URL,
     env.NEXT_PUBLIC_SITE_URL,
-    env.VERCEL_PROJECT_PRODUCTION_URL
-      ? `https://${env.VERCEL_PROJECT_PRODUCTION_URL}`
-      : undefined,
     ...(env.ARCHESTIMATOR_ALLOWED_APP_ORIGINS ?? "").split(","),
   ];
 

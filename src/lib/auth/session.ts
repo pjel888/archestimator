@@ -1,106 +1,100 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
+import { isCloudflareBetterAuthProviderEnabled } from "@/lib/auth/auth-provider-selection";
 import { buildClosedBetaAccessPath, getClosedBetaAccessForEmail } from "@/lib/auth/closed-beta-access";
+import { getClosedBetaAccessFromCloudflareD1 } from "@/lib/auth/closed-beta-d1-store";
 import { getDevCurrentUserContext } from "@/lib/auth/dev-auth";
+import { getProfileByEmailFromCloudflareD1, type AppRole, type CurrentUserProfile } from "@/lib/auth/profile-d1-store";
 import { traced } from "@/lib/perf/server-timing";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { Tables } from "@/lib/supabase/types";
 
 export type CurrentUserContext = {
   userId: string;
   email: string;
-  role: Tables<"profiles">["role"];
-  profile: Tables<"profiles">;
+  role: AppRole;
+  profile: CurrentUserProfile;
   displayName: string;
   avatarUrl: string | null;
 };
 
-type EnsureCurrentUserProfileRpcClient = {
-  rpc: (
-    functionName: "ensure_current_user_profile",
-    args: { profile_display_name: string | null; profile_avatar_url: string | null },
-  ) => PromiseLike<{
-    data: Tables<"profiles"> | null;
-    error: { message?: string } | null;
-  }>;
-};
+type CloudflareBetterAuthRuntime = typeof import("@/lib/auth/cloudflare-better-auth-runtime");
 
-function hasSupabaseServerEnv(env: NodeJS.ProcessEnv = process.env) {
-  return Boolean(env.NEXT_PUBLIC_SUPABASE_URL?.trim() && env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim());
+let cloudflareBetterAuthRuntimePromise: Promise<CloudflareBetterAuthRuntime> | null = null;
+
+function loadCloudflareBetterAuthRuntime() {
+  cloudflareBetterAuthRuntimePromise ??= import("@/lib/auth/cloudflare-better-auth-runtime");
+  return cloudflareBetterAuthRuntimePromise;
+}
+
+function createSyntheticBetterAuthProfile({
+  avatarUrl,
+  displayName,
+  email,
+  id,
+}: {
+  avatarUrl: string | null;
+  displayName: string | null;
+  email: string;
+  id: string;
+}): CurrentUserProfile {
+  const now = new Date().toISOString();
+  return {
+    avatar_url: avatarUrl,
+    created_at: now,
+    default_workspace_id: null,
+    display_name: displayName,
+    email,
+    id,
+    role: "member",
+    updated_at: now,
+  };
+}
+
+async function getBetterAuthCurrentUserContext(): Promise<CurrentUserContext | null> {
+  const requestHeaders = new Headers(await headers());
+  const { getCloudflareBetterAuthIdentityFromRequest } = await loadCloudflareBetterAuthRuntime();
+  const identity = await traced("current-user.better-auth-d1-session", () =>
+    getCloudflareBetterAuthIdentityFromRequest({
+      headers: requestHeaders,
+      requestUrl: null,
+    }),
+  );
+  if (!identity) return null;
+
+  const access = await traced("current-user.better-auth-closed-beta-access", () =>
+    getClosedBetaAccessForEmail({
+      email: identity.email,
+      store: {
+        checkAccess: getClosedBetaAccessFromCloudflareD1,
+      },
+    }),
+  );
+  if (!access.allowed) redirect(buildClosedBetaAccessPath(access.status));
+
+  const profile = await traced("current-user.better-auth-d1-profile-lookup", () =>
+    getProfileByEmailFromCloudflareD1(identity.email),
+  );
+  const resolvedProfile = profile ?? createSyntheticBetterAuthProfile(identity);
+
+  return {
+    userId: resolvedProfile.id,
+    email: identity.email,
+    role: resolvedProfile.role,
+    profile: resolvedProfile,
+    displayName: resolvedProfile.display_name ?? identity.displayName ?? identity.email,
+    avatarUrl: resolvedProfile.avatar_url ?? identity.avatarUrl,
+  };
 }
 
 export const getCurrentUserContext = cache(async (): Promise<CurrentUserContext | null> => {
   const devContext = await traced("current-user.dev-auth-context", () => getDevCurrentUserContext());
   if (devContext) return devContext;
 
-  if (!hasSupabaseServerEnv()) return null;
-
-  const supabase = await traced("current-user.supabase-client", () => createSupabaseServerClient());
-  const {
-    data: { user },
-  } = await traced("current-user.get-user", () => supabase.auth.getUser());
-
-  if (!user) return null;
-
-  const email = user.email?.toLowerCase() ?? "";
-  const access = await traced("current-user.closed-beta-access", () =>
-    getClosedBetaAccessForEmail({
-      email,
-      supabase,
-    }),
-  );
-  if (!access.allowed) redirect(buildClosedBetaAccessPath(access.status));
-
-  const metadata = user.user_metadata ?? {};
-  const metadataName =
-    typeof metadata.display_name === "string"
-      ? metadata.display_name
-      : typeof metadata.full_name === "string"
-        ? metadata.full_name
-        : typeof metadata.name === "string"
-          ? metadata.name
-          : null;
-  const avatarUrl =
-    typeof metadata.avatar_url === "string"
-      ? metadata.avatar_url
-      : typeof metadata.picture === "string"
-        ? metadata.picture
-        : null;
-  const { data: profile } = await traced("current-user.profile-lookup", async () =>
-    supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
-  );
-
-  if (profile) {
-    return {
-      userId: user.id,
-      email,
-      role: profile.role,
-      profile,
-      displayName: profile.display_name ?? metadataName ?? email,
-      avatarUrl: profile.avatar_url ?? avatarUrl,
-    };
+  if (isCloudflareBetterAuthProviderEnabled()) {
+    return getBetterAuthCurrentUserContext();
   }
 
-  const { data: createdProfile, error } = await traced("current-user.ensure-profile-rpc", async () =>
-    (supabase as EnsureCurrentUserProfileRpcClient).rpc(
-      "ensure_current_user_profile",
-      {
-        profile_avatar_url: avatarUrl,
-        profile_display_name: metadataName,
-      },
-    ),
-  );
-
-  if (error) throw error;
-  if (!createdProfile) throw new Error("Authenticated profile could not be created.");
-  return {
-    userId: user.id,
-    email,
-    role: createdProfile.role,
-    profile: createdProfile,
-    displayName: createdProfile.display_name ?? metadataName ?? email,
-    avatarUrl: createdProfile.avatar_url ?? avatarUrl,
-  };
+  return null;
 });
 
 export async function requireCurrentUserContext(_options?: { enforceTermsAcceptance?: boolean }) {

@@ -1,11 +1,17 @@
-import type { Json } from "@/lib/supabase/types";
-
 type Option<Value extends string> = {
   value: Value;
   label: string;
 };
 
-type AccountSecurityMetadata = Record<string, Json>;
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: JsonValue }
+  | JsonValue[];
+
+type AccountSecurityMetadata = Record<string, JsonValue>;
 
 const SECRET_METADATA_KEY_PATTERN =
   /(^code$)|callback_code|auth_code|(^otp$)|token|magic|secret|cookie|session|raw_provider|provider_payload/i;
@@ -98,6 +104,7 @@ export type AccountSecurityEventType =
   | "auth_email_link_requested"
   | "auth_google_started"
   | "auth_callback_missing_code"
+  | "auth_callback_legacy_disabled"
   | "auth_callback_failed"
   | "auth_callback_succeeded"
   | "auth_callback_beta_access_denied"
@@ -160,7 +167,7 @@ export function buildAccountSecurityEvent({
   };
 }
 
-function isJsonValue(value: unknown): value is Json {
+function isJsonValue(value: unknown): value is JsonValue {
   if (value === null || typeof value === "string" || typeof value === "boolean") {
     return true;
   }

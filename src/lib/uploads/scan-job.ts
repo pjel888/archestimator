@@ -1,5 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 
+import type { D1DatabaseLike } from "@/lib/cloudflare/d1";
+
 import { reportUploadScanJobTelemetry } from "./operational-telemetry";
 import type { UploadScanProviderOutcome, UploadScanStatus } from "./scanning";
 import type { UploadStorageProvider } from "./storage-provider";
@@ -64,44 +66,6 @@ export type UploadScanJobResult = {
   outcomeCounts: Record<UploadScanResultStatus, number>;
 };
 
-type UploadScanError = {
-  message?: string | null;
-};
-
-type UploadStorageBucketClient = {
-  download: (path: string) => PromiseLike<{ data: unknown; error: UploadScanError | null }>;
-};
-
-type UploadStorageClient = {
-  storage: {
-    from: (bucket: string) => UploadStorageBucketClient;
-  };
-};
-
-type UploadScanRpcClient = {
-  rpc: (
-    functionName: "record_upload_scan_result",
-    args: Record<string, unknown>,
-  ) => PromiseLike<{ error: UploadScanError | null }>;
-};
-
-type UploadScanQueryResult<T> = {
-  data: T[] | null;
-  error: UploadScanError | null;
-};
-
-type UploadScanSelectQuery<T> = PromiseLike<UploadScanQueryResult<T>> & {
-  select: (columns: string) => UploadScanSelectQuery<T>;
-  eq: (column: string, value: unknown) => UploadScanSelectQuery<T>;
-  in: (column: string, values: readonly string[]) => UploadScanSelectQuery<T>;
-  order: (column: string, options?: { ascending?: boolean }) => UploadScanSelectQuery<T>;
-  limit: (count: number) => UploadScanSelectQuery<T>;
-};
-
-type UploadScanReadClient = {
-  from: (table: "upload_assets") => UploadScanSelectQuery<unknown>;
-};
-
 type UploadAssetScanRow = {
   id: string;
   upload_session_id: string | null;
@@ -114,6 +78,11 @@ type UploadAssetScanRow = {
   size_bytes: number;
   checksum_sha256: string | null;
   scan_status: string;
+};
+
+type UploadScanResultAssetRow = UploadAssetScanRow & {
+  surface: string;
+  status: string;
 };
 
 function normalizeLimit(limit: number | undefined) {
@@ -213,17 +182,12 @@ function assertUploadAssetRows(data: unknown): UploadAssetScanRow[] {
   return Array.isArray(data) ? data as UploadAssetScanRow[] : [];
 }
 
-export function createSupabaseUploadScanStorage(client: unknown): UploadScanStorage {
-  return {
-    async download(target) {
-      const { data, error } = await (client as UploadStorageClient).storage.from(target.bucket).download(target.path);
-      if (error) throw new Error(error.message ?? "Could not download upload asset for scanning.");
-
-      return {
-        bytes: await bytesFromDownload(data),
-      };
-    },
-  };
+function scanResultEventType(status: UploadScanResultStatus) {
+  if (status === "clean") return "scan_clean";
+  if (status === "infected") return "scan_infected";
+  if (status === "failed_transient") return "scan_failed_transient";
+  if (status === "failed_permanent") return "scan_failed_permanent";
+  return "scan_unsupported";
 }
 
 export function createUploadScanStorageFromProvider(storageProvider: UploadStorageProvider): UploadScanStorage {
@@ -240,41 +204,132 @@ export function createUploadScanStorageFromProvider(storageProvider: UploadStora
   };
 }
 
-export function createUploadScanResultWriter(client: unknown): UploadScanResultWriter {
+async function recordUploadScanResultInD1(
+  db: D1DatabaseLike,
+  input: Parameters<UploadScanResultWriter["record"]>[0],
+) {
+  const asset = await db
+    .prepare<UploadScanResultAssetRow>(
+      `
+        SELECT id, upload_session_id, workspace_id, actor_user_id, surface, status, storage_bucket, storage_path, file_name, content_type, size_bytes, checksum_sha256, scan_status
+        FROM upload_assets
+        WHERE id = ?
+        LIMIT 1
+      `,
+    )
+    .bind(input.assetId)
+    .first<UploadScanResultAssetRow>();
+
+  if (!asset) throw new Error("Upload asset was not found.");
+  if (asset.surface !== "component-attachment") {
+    throw new Error("Only component attachments can receive scanner results.");
+  }
+  if (asset.checksum_sha256 !== input.expectedChecksumSha256) {
+    throw new Error("Scan result checksum does not match the uploaded asset.");
+  }
+
+  const now = new Date().toISOString();
+  const scanResultJson = JSON.stringify(input.result ?? {});
+  const updateResult = await db
+    .prepare(
+      `
+        UPDATE upload_assets
+        SET scan_status = ?,
+            scan_provider = ?,
+            scan_result_json = ?,
+            scanned_at = ?,
+            updated_at = ?
+        WHERE id = ?
+          AND surface = ?
+          AND status = ?
+          AND (
+            (? IS NULL AND checksum_sha256 IS NULL)
+            OR checksum_sha256 = ?
+          )
+      `,
+    )
+    .bind(
+      input.status,
+      input.provider.trim() || null,
+      scanResultJson,
+      now,
+      now,
+      input.assetId,
+      "component-attachment",
+      "finalized",
+      input.expectedChecksumSha256,
+      input.expectedChecksumSha256,
+    )
+    .run();
+
+  if ((updateResult.meta?.changes ?? 0) < 1) {
+    throw new Error("Could not record upload scan result.");
+  }
+
+  await db
+    .prepare(
+      `
+        INSERT INTO upload_events (
+          id,
+          upload_session_id,
+          upload_asset_id,
+          workspace_id,
+          actor_user_id,
+          event_type,
+          metadata_json,
+          created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+    )
+    .bind(
+      randomUUID(),
+      asset.upload_session_id,
+      asset.id,
+      asset.workspace_id,
+      asset.actor_user_id,
+      scanResultEventType(input.status),
+      JSON.stringify({
+        scanProvider: input.provider,
+        scanStatus: input.status,
+        scanResult: input.result ?? {},
+      }),
+      now,
+    )
+    .run();
+}
+
+export function createUploadScanResultWriter(db: D1DatabaseLike): UploadScanResultWriter {
   return {
     async record(input) {
-      const { error } = await (client as UploadScanRpcClient).rpc("record_upload_scan_result", {
-        target_asset_id: input.assetId,
-        expected_checksum_sha256: input.expectedChecksumSha256,
-        scanner_provider: input.provider,
-        scanner_status: input.status,
-        scanner_result: input.result,
-      });
-
-      if (error) throw new Error(error.message ?? "Could not record upload scan result.");
+      await recordUploadScanResultInD1(db, input);
     },
   };
 }
 
 export async function listUploadScanJobRecords(
-  client: unknown,
+  db: D1DatabaseLike,
   options: { limit?: number } = {},
 ): Promise<UploadScanJobRecord[]> {
   const limit = normalizeLimit(options.limit);
-  const readClient = client as UploadScanReadClient;
-  const assetQuery = readClient.from("upload_assets") as UploadScanSelectQuery<UploadAssetScanRow>;
+  const result = await db
+    .prepare<UploadAssetScanRow>(
+      `
+        SELECT id, upload_session_id, workspace_id, actor_user_id, storage_bucket, storage_path, file_name, content_type, size_bytes, checksum_sha256, scan_status
+        FROM upload_assets
+        WHERE surface = ?
+          AND status = ?
+          AND scan_status IN (?, ?)
+        ORDER BY created_at ASC
+        LIMIT ?
+      `,
+    )
+    .bind("component-attachment", "finalized", "pending", "failed_transient", limit)
+    .all<UploadAssetScanRow>();
 
-  const result = await assetQuery
-    .select("id, upload_session_id, workspace_id, actor_user_id, storage_bucket, storage_path, file_name, content_type, size_bytes, checksum_sha256, scan_status")
-    .eq("surface", "component-attachment")
-    .eq("status", "finalized")
-    .in("scan_status", ["pending", "failed_transient"])
-    .order("created_at", { ascending: true })
-    .limit(limit);
+  if (result.success === false) throw new Error("Could not read upload assets for scanning.");
 
-  if (result.error) throw new Error(result.error.message ?? "Could not read upload assets for scanning.");
-
-  return assertUploadAssetRows(result.data).map(rowToRecord).filter((record): record is UploadScanJobRecord => Boolean(record));
+  return assertUploadAssetRows(result.results ?? []).map(rowToRecord).filter((record): record is UploadScanJobRecord => Boolean(record));
 }
 
 export async function runUploadScanJob({

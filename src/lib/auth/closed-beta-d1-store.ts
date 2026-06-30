@@ -1,0 +1,205 @@
+import "server-only";
+
+import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d1";
+import type { ClosedBetaAccessResult, ClosedBetaAccessStatus } from "@/lib/auth/closed-beta-access";
+import type { ClosedBetaAllowlistRow, ClosedBetaAllowlistStatus } from "@/lib/auth/beta-allowlist-admin";
+
+type ClosedBetaAccessRow = {
+  normalized_email: string;
+  status: string;
+};
+
+type ClosedBetaAllowlistD1Row = {
+  accepted_at: string | null;
+  created_at: string;
+  id: string;
+  invited_at: string;
+  invited_by: string | null;
+  normalized_email: string;
+  notes: string | null;
+  status: string;
+  updated_at: string;
+};
+
+function isClosedBetaAccessStatus(value: string): value is Exclude<ClosedBetaAccessStatus, "disabled" | "no-email" | "error"> {
+  return value === "missing" || value === "invited" || value === "active" || value === "revoked";
+}
+
+function toClosedBetaAccessResult(row: ClosedBetaAccessRow | null, normalizedEmail: string): ClosedBetaAccessResult {
+  if (!row) {
+    return { allowed: false, status: "missing", normalizedEmail };
+  }
+
+  const status = isClosedBetaAccessStatus(row.status) ? row.status : "error";
+  const rowEmail = row.normalized_email || normalizedEmail;
+  return {
+    allowed: status === "invited" || status === "active",
+    status,
+    normalizedEmail: rowEmail,
+  };
+}
+
+function toAllowlistRow(row: ClosedBetaAllowlistD1Row): ClosedBetaAllowlistRow {
+  return {
+    accepted_at: row.accepted_at,
+    created_at: row.created_at,
+    id: row.id,
+    invited_at: row.invited_at,
+    invited_by: row.invited_by,
+    normalized_email: row.normalized_email,
+    notes: row.notes,
+    status: row.status as ClosedBetaAllowlistStatus,
+    updated_at: row.updated_at,
+  };
+}
+
+function metadataJson(input: Record<string, unknown>) {
+  return JSON.stringify(input);
+}
+
+export async function getClosedBetaAccessFromD1(
+  db: D1DatabaseLike,
+  normalizedEmail: string,
+): Promise<ClosedBetaAccessResult> {
+  const row = await db
+    .prepare<ClosedBetaAccessRow>(
+      `
+        SELECT normalized_email, status
+        FROM closed_beta_allowed_emails
+        WHERE normalized_email = ?
+        LIMIT 1
+      `,
+    )
+    .bind(normalizedEmail)
+    .first<ClosedBetaAccessRow>();
+
+  return toClosedBetaAccessResult(row, normalizedEmail);
+}
+
+export async function getClosedBetaAccessFromCloudflareD1(normalizedEmail: string): Promise<ClosedBetaAccessResult | null> {
+  const db = await getCloudflareD1Database();
+  return db ? getClosedBetaAccessFromD1(db, normalizedEmail) : null;
+}
+
+export async function readClosedBetaAllowlistQueueFromD1(status: ClosedBetaAllowlistStatus | null): Promise<ClosedBetaAllowlistRow[]> {
+  const db = await getCloudflareD1Database();
+  if (!db) throw new Error("Cloudflare D1 is not available for closed beta allowlist reads.");
+
+  const statusFilter = status ? "WHERE status = ?" : "";
+  const statement = db.prepare<ClosedBetaAllowlistD1Row>(
+    `
+      SELECT id, normalized_email, status, invited_by, invited_at, accepted_at, notes, created_at, updated_at
+      FROM closed_beta_allowed_emails
+      ${statusFilter}
+      ORDER BY created_at DESC
+      LIMIT 100
+    `,
+  );
+
+  const result = status ? await statement.bind(status).all<ClosedBetaAllowlistD1Row>() : await statement.all<ClosedBetaAllowlistD1Row>();
+  return (result.results ?? []).map(toAllowlistRow);
+}
+
+export async function createClosedBetaAllowlistEntryInD1({
+  actorUserId,
+  email,
+  notes,
+  status,
+}: {
+  actorUserId: string;
+  email: string;
+  notes: string | null;
+  status: ClosedBetaAllowlistStatus;
+}) {
+  const db = await getCloudflareD1Database();
+  if (!db) throw new Error("Cloudflare D1 is not available for closed beta allowlist writes.");
+
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+
+  await db
+    .prepare(
+      `
+        INSERT INTO closed_beta_allowed_emails (
+          id,
+          normalized_email,
+          status,
+          invited_by,
+          invited_at,
+          accepted_at,
+          notes,
+          metadata_json,
+          created_at,
+          updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, NULL, ?, '{}', ?, ?)
+      `,
+    )
+    .bind(id, email, status, actorUserId, now, notes, now, now)
+    .run();
+
+  await db
+    .prepare(
+      `
+        INSERT INTO closed_beta_allowlist_audit_events (
+          id,
+          allowlist_entry_id,
+          actor_user_id,
+          event_type,
+          metadata_json,
+          created_at
+        )
+        VALUES (?, ?, ?, 'created', ?, ?)
+        ON CONFLICT(allowlist_entry_id, event_type, actor_user_id, metadata_json) DO NOTHING
+      `,
+    )
+    .bind(crypto.randomUUID(), id, actorUserId, metadataJson({ status }), now)
+    .run();
+}
+
+export async function updateClosedBetaAllowlistEntryInD1({
+  actorUserId,
+  id,
+  notes,
+  status,
+}: {
+  actorUserId: string;
+  id: string;
+  notes: string | null;
+  status: ClosedBetaAllowlistStatus;
+}) {
+  const db = await getCloudflareD1Database();
+  if (!db) throw new Error("Cloudflare D1 is not available for closed beta allowlist writes.");
+
+  const now = new Date().toISOString();
+  const update = await db
+    .prepare(
+      `
+        UPDATE closed_beta_allowed_emails
+        SET status = ?, notes = ?, updated_at = ?
+        WHERE id = ?
+      `,
+    )
+    .bind(status, notes, now, id)
+    .run();
+
+  if ((update.meta?.changes ?? 0) === 0) throw new Error("Closed beta allowlist entry was not updated.");
+
+  await db
+    .prepare(
+      `
+        INSERT INTO closed_beta_allowlist_audit_events (
+          id,
+          allowlist_entry_id,
+          actor_user_id,
+          event_type,
+          metadata_json,
+          created_at
+        )
+        VALUES (?, ?, ?, 'updated', ?, ?)
+        ON CONFLICT(allowlist_entry_id, event_type, actor_user_id, metadata_json) DO NOTHING
+      `,
+    )
+    .bind(crypto.randomUUID(), id, actorUserId, metadataJson({ status }), now)
+    .run();
+}

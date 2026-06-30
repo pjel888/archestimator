@@ -33,10 +33,14 @@ import {
 } from "@/lib/repositories/workspace-repository";
 import { normalizeEstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 import type { Json, Tables } from "@/lib/supabase/types";
 import { isUuid } from "@/lib/ids";
 import { isMissingRelationError } from "@/lib/repositories/estimate-schema-compat";
+import {
+  loadComponentLibraryUserPreferencesFromCloudflareD1,
+  recordComponentLibraryTelemetryEventInCloudflareD1,
+  saveComponentLibraryUserPreferencesInCloudflareD1,
+} from "@/lib/component-library/d1-store";
 import {
   LIBRARY_FOLDER_SORT_ORDER_STEP,
   getLibraryFolderCreateSortOrder,
@@ -259,27 +263,6 @@ async function assertCanPublishEstimateTemplateFromEstimate(
 const LIBRARY_COMPONENT_CAP = 10_000;
 const LIBRARY_TEMPLATE_CAP = 2_000;
 
-type ComponentLibraryTelemetryEventInsert = {
-  actor_user_id: string;
-  workspace_id: string | null;
-  project_id: string | null;
-  estimate_id: string | null;
-  event_name: string;
-  schema_version: "v1";
-  surface: string | null;
-  kind: string | null;
-  resource_kind: string | null;
-  action: string | null;
-  reason: string | null;
-  payload: Json;
-};
-
-type ComponentLibraryTelemetryInsertClient = {
-  from: (table: "component_library_telemetry_events") => {
-    insert: (row: ComponentLibraryTelemetryEventInsert) => PromiseLike<{ error: { message?: string } | null }>;
-  };
-};
-
 type ComponentLibraryPreferenceTab = "components" | "project" | "templates";
 type ComponentLibraryPreferenceViewMode = "default" | "suppliers" | "brand";
 type ComponentLibraryPreferenceTreeOrder = Record<ComponentLibraryPreferenceViewMode, Record<string, string[]>>;
@@ -300,39 +283,6 @@ export type ComponentLibraryUserPreferencesInput = Partial<{
   recentItemIds: unknown;
   treeOrder: unknown;
 }>;
-
-type ComponentLibraryPreferenceRow = {
-  active_tab: string | null;
-  component_view_mode: string | null;
-  favorite_item_ids: string[] | null;
-  recent_item_ids: string[] | null;
-  tree_order: Json | null;
-  updated_at: string | null;
-};
-
-type ComponentLibraryPreferenceUpsert = {
-  user_id: string;
-  workspace_id: string;
-  active_tab: ComponentLibraryPreferenceTab;
-  component_view_mode: ComponentLibraryPreferenceViewMode;
-  favorite_item_ids: string[];
-  recent_item_ids: string[];
-  tree_order: Json;
-};
-
-type ComponentLibraryPreferenceQuery = {
-  select: (columns: string) => ComponentLibraryPreferenceQuery;
-  eq: (column: string, value: string) => ComponentLibraryPreferenceQuery;
-  maybeSingle: () => PromiseLike<{ data: ComponentLibraryPreferenceRow | null; error: { message?: string } | null }>;
-  upsert: (
-    row: ComponentLibraryPreferenceUpsert,
-    options: { onConflict: string },
-  ) => PromiseLike<{ error: { message?: string } | null }>;
-};
-
-type ComponentLibraryPreferenceClient = {
-  from: (table: "component_library_user_preferences") => ComponentLibraryPreferenceQuery;
-};
 
 const COMPONENT_LIBRARY_PREFERENCE_TABS = ["components", "project", "templates"] as const;
 const COMPONENT_LIBRARY_PREFERENCE_VIEW_MODES = ["default", "suppliers", "brand"] as const;
@@ -430,23 +380,20 @@ export async function recordComponentLibraryTelemetryEvent(input: LibraryTelemet
       reason,
       ...payload
     } = record;
-    const admin = createSupabaseServiceRoleClient("archestimator-component-library-telemetry") as unknown as ComponentLibraryTelemetryInsertClient;
-    const { error } = await admin.from("component_library_telemetry_events").insert({
-      actor_user_id: user.userId,
-      workspace_id: workspaceId,
-      project_id: readOptionalTelemetryUuid(record.projectId),
-      estimate_id: readOptionalTelemetryUuid(record.estimateId),
-      event_name: event,
-      schema_version: schemaVersion,
+    await recordComponentLibraryTelemetryEventInCloudflareD1({
+      actorUserId: user.userId,
+      workspaceId,
+      projectId: readOptionalTelemetryUuid(record.projectId),
+      estimateId: readOptionalTelemetryUuid(record.estimateId),
+      eventName: event,
+      schemaVersion,
       surface: surface ?? null,
       kind: kind ?? null,
-      resource_kind: resourceKind ?? null,
+      resourceKind: resourceKind ?? null,
       action: action ?? null,
       reason: reason ?? null,
-      payload: payload as Json,
+      payload: payload as Record<string, Json | undefined>,
     });
-
-    if (error) return { ok: false, ignored: true };
     return { ok: true };
   } catch {
     return { ok: false, ignored: true };
@@ -456,15 +403,11 @@ export async function recordComponentLibraryTelemetryEvent(input: LibraryTelemet
 export async function loadComponentLibraryUserPreferences(): Promise<ComponentLibraryUserPreferences | null> {
   try {
     const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-    const admin = createSupabaseServiceRoleClient("archestimator-component-library-preferences-read") as unknown as ComponentLibraryPreferenceClient;
-    const { data, error } = await admin
-      .from("component_library_user_preferences")
-      .select("active_tab,component_view_mode,favorite_item_ids,recent_item_ids,tree_order,updated_at")
-      .eq("user_id", currentUser.userId)
-      .eq("workspace_id", workspace.id)
-      .maybeSingle();
-
-    if (error || !data) return null;
+    const data = await loadComponentLibraryUserPreferencesFromCloudflareD1({
+      userId: currentUser.userId,
+      workspaceId: workspace.id,
+    });
+    if (!data) return null;
     return normalizeComponentLibraryUserPreferences({
       activeTab: data.active_tab,
       componentViewMode: data.component_view_mode,
@@ -482,20 +425,15 @@ export async function saveComponentLibraryUserPreferences(input: ComponentLibrar
   try {
     const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
     const preferences = normalizeComponentLibraryUserPreferences(input);
-    const admin = createSupabaseServiceRoleClient("archestimator-component-library-preferences-write") as unknown as ComponentLibraryPreferenceClient;
-    const { error } = await admin
-      .from("component_library_user_preferences")
-      .upsert({
-        user_id: currentUser.userId,
-        workspace_id: workspace.id,
-        active_tab: preferences.activeTab,
-        component_view_mode: preferences.componentViewMode,
-        favorite_item_ids: preferences.favoriteItemIds,
-        recent_item_ids: preferences.recentItemIds,
-        tree_order: preferences.treeOrder as Json,
-      }, { onConflict: "user_id,workspace_id" });
-
-    if (error) return { ok: false, ignored: true };
+    await saveComponentLibraryUserPreferencesInCloudflareD1({
+      userId: currentUser.userId,
+      workspaceId: workspace.id,
+      activeTab: preferences.activeTab,
+      componentViewMode: preferences.componentViewMode,
+      favoriteItemIds: preferences.favoriteItemIds,
+      recentItemIds: preferences.recentItemIds,
+      treeOrder: preferences.treeOrder,
+    });
     return { ok: true };
   } catch {
     return { ok: false, ignored: true };

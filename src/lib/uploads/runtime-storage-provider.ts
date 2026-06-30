@@ -2,13 +2,9 @@ import {
   createCloudflareR2UploadStorageProvider,
   type CloudflareR2UploadBucket,
 } from "./r2-storage-provider";
-import {
-  createSupabaseUploadStorageProvider,
-  type SupabaseStorageClient,
-  type UploadStorageProvider,
-} from "./storage-provider";
+import type { UploadStorageProvider } from "./storage-provider";
 
-type RuntimeUploadStorageProvider = "supabase" | "cloudflare-r2";
+type RuntimeUploadStorageProvider = "cloudflare-r2";
 
 type CloudflareUploadEnv = {
   ARCH_UPLOADS_R2?: CloudflareR2UploadBucket;
@@ -19,14 +15,13 @@ type RuntimeUploadStorageProviderOptions = {
   loadCloudflareEnv?: () => Promise<CloudflareUploadEnv | null>;
 };
 
-const DEFAULT_UPLOAD_STORAGE_PROVIDER: RuntimeUploadStorageProvider = "supabase";
+const DEFAULT_UPLOAD_STORAGE_PROVIDER: RuntimeUploadStorageProvider = "cloudflare-r2";
 
 export async function createRuntimeUploadStorageProvider(
-  supabase: SupabaseStorageClient,
+  _legacyStorageClient?: unknown,
   options: RuntimeUploadStorageProviderOptions = {},
 ): Promise<UploadStorageProvider> {
-  const provider = readRuntimeUploadStorageProvider();
-  if (provider === "supabase") return createSupabaseUploadStorageProvider(supabase);
+  readRuntimeUploadStorageProvider();
 
   const cloudflareEnv = options.cloudflareEnv ?? await (options.loadCloudflareEnv ?? loadCloudflareEnv)();
   const r2 = cloudflareEnv?.ARCH_UPLOADS_R2;
@@ -40,7 +35,10 @@ export function readRuntimeUploadStorageProvider(): RuntimeUploadStorageProvider
   const rawProvider = (process.env.ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER ?? DEFAULT_UPLOAD_STORAGE_PROVIDER)
     .trim()
     .toLowerCase();
-  if (rawProvider === "supabase" || rawProvider === "cloudflare-r2") return rawProvider;
+  if (rawProvider === "cloudflare-r2") return rawProvider;
+  if (rawProvider === "supabase") {
+    throw new Error("Supabase upload storage has been retired; use Cloudflare R2.");
+  }
   throw new Error(`Unsupported upload storage provider: ${rawProvider}`);
 }
 

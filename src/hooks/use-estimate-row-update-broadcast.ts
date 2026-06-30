@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef } from "react";
 
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { createCloudflareCollaborationRoomClient } from "@/lib/cloudflare/collaboration-room-client";
 import { ESTIMATE_COLLABORATION_CHANNEL_PREFIX } from "./use-estimate-cursor-broadcast";
 
 export const ESTIMATE_ROW_UPDATE_BROADCAST_EVENT = "row-update";
@@ -28,8 +28,8 @@ type RowUpdateChannelLike = {
 };
 
 type RowUpdateClientLike = {
-  channel: (name: string, opts?: { config?: { private?: boolean } }) => RowUpdateChannelLike;
-  removeChannel: (channel: RowUpdateChannelLike) => unknown;
+  openRoom: (name: string) => RowUpdateChannelLike;
+  closeRoom: (room: RowUpdateChannelLike) => unknown;
 };
 
 export type RowUpdateClientFactory = () => RowUpdateClientLike;
@@ -80,7 +80,7 @@ export function shouldApplyEstimateRowUpdateBroadcast(
 }
 
 const defaultRowUpdateClientFactory: RowUpdateClientFactory = () =>
-  createSupabaseBrowserClient() as unknown as RowUpdateClientLike;
+  createCloudflareCollaborationRoomClient() as unknown as RowUpdateClientLike;
 
 export function useEstimateRowUpdateBroadcast({
   estimateId,
@@ -110,7 +110,7 @@ export function useEstimateRowUpdateBroadcast({
       return;
     }
 
-    const channel = client.channel(`${ESTIMATE_COLLABORATION_CHANNEL_PREFIX}${estimateId}`, { config: { private: true } });
+    const channel = client.openRoom(`${ESTIMATE_COLLABORATION_CHANNEL_PREFIX}${estimateId}`);
     channelRef.current = channel;
     subscribedRef.current = false;
     channel.subscribe((status) => {
@@ -120,7 +120,7 @@ export function useEstimateRowUpdateBroadcast({
     return () => {
       subscribedRef.current = false;
       channelRef.current = null;
-      void client.removeChannel(channel);
+      void client.closeRoom(channel);
     };
   }, [enabled, estimateId]);
 

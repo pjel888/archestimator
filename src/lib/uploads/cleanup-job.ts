@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 
+import type { D1DatabaseLike } from "@/lib/cloudflare/d1";
 import type { StorageCleanupReport, StorageCleanupTarget } from "@/lib/mass-deletion/bulk-action";
 
 import {
@@ -14,11 +15,7 @@ import {
   type UploadCleanupRecord,
 } from "./cleanup";
 import { reportUploadCleanupJobTelemetry } from "./operational-telemetry";
-import {
-  createSupabaseUploadStorageProvider,
-  type SupabaseStorageClient,
-  type UploadStorageProvider,
-} from "./storage-provider";
+import type { UploadStorageProvider } from "./storage-provider";
 
 const STORAGE_REMOVE_CHUNK_SIZE = 100;
 const DEFAULT_UPLOAD_CLEANUP_JOB_LIMIT = 500;
@@ -87,44 +84,6 @@ export type UploadCleanupJobPublicReport = {
   };
   audit: UploadCleanupJobAuditSummary;
   operationalSnapshot: UploadCleanupOperationalSnapshot;
-};
-
-type UploadCleanupError = {
-  message?: string | null;
-  code?: string | number | null;
-  status?: string | number | null;
-  statusCode?: string | number | null;
-};
-
-type UploadCleanupEventInsertClient = {
-  from: (table: "upload_events") => {
-    insert: (row: {
-      upload_session_id: string | null;
-      upload_asset_id: string | null;
-      workspace_id: string;
-      actor_user_id: string | null;
-      event_type: UploadCleanupEventType;
-      metadata: UploadCleanupEventMetadata;
-    }) => PromiseLike<{ error: UploadCleanupError | null }>;
-  };
-};
-
-type UploadCleanupQueryResult<T> = {
-  data: T[] | null;
-  error: UploadCleanupError | null;
-};
-
-type UploadCleanupSelectQuery<T> = PromiseLike<UploadCleanupQueryResult<T>> & {
-  select: (columns: string) => UploadCleanupSelectQuery<T>;
-  eq: (column: string, value: unknown) => UploadCleanupSelectQuery<T>;
-  in: (column: string, values: readonly string[]) => UploadCleanupSelectQuery<T>;
-  lte: (column: string, value: unknown) => UploadCleanupSelectQuery<T>;
-  order: (column: string, options?: { ascending?: boolean }) => UploadCleanupSelectQuery<T>;
-  limit: (count: number) => UploadCleanupSelectQuery<T>;
-};
-
-type UploadCleanupReadClient = {
-  from: (table: "upload_assets" | "upload_sessions") => UploadCleanupSelectQuery<unknown>;
 };
 
 type UploadAssetCleanupRow = {
@@ -247,10 +206,6 @@ function combineStorageReports(...reports: StorageCleanupReport[]): StorageClean
   };
 }
 
-export function createSupabaseUploadCleanupStorage(client: unknown): UploadCleanupStorage {
-  return createUploadCleanupStorageFromProvider(createSupabaseUploadStorageProvider(client as SupabaseStorageClient));
-}
-
 export function createUploadCleanupStorageFromProvider(storageProvider: UploadStorageProvider): UploadCleanupStorage {
   return {
     async remove(targets) {
@@ -285,19 +240,38 @@ export function createUploadCleanupStorageFromProvider(storageProvider: UploadSt
   };
 }
 
-export function createUploadCleanupEventWriter(client: unknown): UploadCleanupEventWriter {
+export function createUploadCleanupEventWriter(db: D1DatabaseLike): UploadCleanupEventWriter {
   return {
     async record(event) {
-      const { error } = await (client as UploadCleanupEventInsertClient).from("upload_events").insert({
-        upload_session_id: event.uploadSessionId,
-        upload_asset_id: event.uploadAssetId,
-        workspace_id: event.workspaceId,
-        actor_user_id: event.actorUserId,
-        event_type: event.eventType,
-        metadata: event.metadata,
-      });
+      const result = await db
+        .prepare(
+          `
+            INSERT INTO upload_events (
+              id,
+              upload_session_id,
+              upload_asset_id,
+              workspace_id,
+              actor_user_id,
+              event_type,
+              metadata_json,
+              created_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          `,
+        )
+        .bind(
+          randomUUID(),
+          event.uploadSessionId,
+          event.uploadAssetId,
+          event.workspaceId,
+          event.actorUserId,
+          event.eventType,
+          JSON.stringify(event.metadata),
+          new Date().toISOString(),
+        )
+        .run();
 
-      if (error) throw new Error(error.message ?? "Could not record upload cleanup event.");
+      if (result.success === false) throw new Error("Could not record upload cleanup event.");
     },
   };
 }
@@ -478,36 +452,47 @@ function cleanupRecordFromSessionRow(row: UploadSessionCleanupRow): UploadCleanu
 }
 
 export async function listUploadCleanupJobRecords(
-  client: unknown,
+  db: D1DatabaseLike,
   options: { now?: Date; limit?: number } = {},
 ): Promise<UploadCleanupJobRecord[]> {
   const limit = normalizeLimit(options.limit);
   const now = options.now ?? new Date();
   const cutoffs = buildUploadRetentionCutoffs(now);
-  const readClient = client as UploadCleanupReadClient;
-  const assetQuery = readClient.from("upload_assets") as UploadCleanupSelectQuery<UploadAssetCleanupRow>;
-  const sessionQuery = readClient.from("upload_sessions") as UploadCleanupSelectQuery<UploadSessionCleanupRow>;
 
   const [assetResult, sessionResult] = await Promise.all([
-    assetQuery
-      .select("id, upload_session_id, workspace_id, actor_user_id, surface, storage_bucket, storage_path, thumbnail_path, status, updated_at")
-      .eq("status", "deleted")
-      .lte("updated_at", cutoffs.deletedAssetsBefore)
-      .order("updated_at", { ascending: true })
-      .limit(limit),
-    sessionQuery
-      .select("id, workspace_id, actor_user_id, surface, storage_bucket, storage_path, status, expires_at")
-      .in("status", ["reserved", "failed", "expired", "deleted"])
-      .lte("expires_at", cutoffs.expiredSessionsBefore)
-      .order("expires_at", { ascending: true })
-      .limit(limit),
+    db
+      .prepare<UploadAssetCleanupRow>(
+        `
+          SELECT id, upload_session_id, workspace_id, actor_user_id, surface, storage_bucket, storage_path, thumbnail_path, status, updated_at
+          FROM upload_assets
+          WHERE status = ?
+            AND updated_at <= ?
+          ORDER BY updated_at ASC
+          LIMIT ?
+        `,
+      )
+      .bind("deleted", cutoffs.deletedAssetsBefore, limit)
+      .all<UploadAssetCleanupRow>(),
+    db
+      .prepare<UploadSessionCleanupRow>(
+        `
+          SELECT id, workspace_id, actor_user_id, surface, storage_bucket, storage_path, status, expires_at
+          FROM upload_sessions
+          WHERE status IN (?, ?, ?, ?)
+            AND expires_at <= ?
+          ORDER BY expires_at ASC
+          LIMIT ?
+        `,
+      )
+      .bind("reserved", "failed", "expired", "deleted", cutoffs.expiredSessionsBefore, limit)
+      .all<UploadSessionCleanupRow>(),
   ]);
 
-  if (assetResult.error) throw new Error(assetResult.error.message ?? "Could not read cleanup upload assets.");
-  if (sessionResult.error) throw new Error(sessionResult.error.message ?? "Could not read cleanup upload sessions.");
+  if (assetResult.success === false) throw new Error("Could not read cleanup upload assets.");
+  if (sessionResult.success === false) throw new Error("Could not read cleanup upload sessions.");
 
   return [
-    ...assertUploadAssetRows(assetResult.data).map(cleanupRecordFromAssetRow),
-    ...assertUploadSessionRows(sessionResult.data).map(cleanupRecordFromSessionRow),
+    ...assertUploadAssetRows(assetResult.results ?? []).map(cleanupRecordFromAssetRow),
+    ...assertUploadSessionRows(sessionResult.results ?? []).map(cleanupRecordFromSessionRow),
   ].slice(0, limit);
 }

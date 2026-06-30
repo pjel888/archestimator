@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
-import { buildClosedBetaAccessPath, getClosedBetaAccessForEmail } from "@/lib/auth/closed-beta-access";
+import { isCloudflareBetterAuthProviderEnabled } from "@/lib/auth/auth-provider-selection";
+import type { BetterAuthRouteGateUserIdentity } from "@/lib/auth/better-auth-cloudflare";
 import { getDevAuthBypassCredentialFromRequestParts, isDevAuthBypassRequest } from "@/lib/auth/dev-auth-gate";
 import {
   clearProtectedRouteGateRequestHeaders,
@@ -8,18 +8,10 @@ import {
 } from "@/lib/auth/protected-route-gate";
 import { AUTH_REQUEST_PATH_HEADER, DEFAULT_AUTH_DESTINATION, LOGIN_PATH, sanitizeNextPath } from "@/lib/auth/redirects";
 import {
-  readCurrentUserTermsAcceptanceStatusFromClient,
-  toLegalTermsAcceptanceClient,
-} from "@/lib/legal/terms-acceptance-status";
-import {
-  createTermsGateCookieValue,
-  getExpiredTermsGateCookieOptions,
-  getTermsGateCookieOptions,
   TERMS_GATE_COOKIE_NAME,
   verifyTermsGateCookieValue,
 } from "@/lib/legal/terms-gate-cookie";
-import { buildTermsAcceptanceRedirectPath, shouldBypassTermsAcceptanceGate } from "@/lib/legal/terms-gate";
-import type { Database } from "@/lib/supabase/types";
+import { shouldBypassTermsAcceptanceGate } from "@/lib/legal/terms-gate";
 
 const PROTECTED_PREFIXES = ["/workshop"];
 const AUTH_ROUTES = [LOGIN_PATH];
@@ -35,9 +27,13 @@ type ProxyAuthIdentity = {
   id: string;
   email: string | null;
 };
+type CloudflareBetterAuthRuntime = typeof import("@/lib/auth/cloudflare-better-auth-runtime");
 
-function hasSupabaseProxyEnv() {
-  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim());
+let cloudflareBetterAuthRuntimePromise: Promise<CloudflareBetterAuthRuntime> | null = null;
+
+function loadCloudflareBetterAuthRuntime() {
+  cloudflareBetterAuthRuntimePromise ??= import("@/lib/auth/cloudflare-better-auth-runtime");
+  return cloudflareBetterAuthRuntimePromise;
 }
 
 function isPublicRoute(pathname: string) {
@@ -78,37 +74,11 @@ function redirectWithSensitiveRouteCacheControl(url: URL) {
   return withSensitiveRouteCacheControl(NextResponse.redirect(url));
 }
 
-function copyResponseCookies(target: NextResponse, source: NextResponse) {
-  source.cookies.getAll().forEach((cookie) => {
-    target.cookies.set(cookie);
-  });
-  return target;
-}
-
-function redirectWithResponseCookies(url: URL, response: NextResponse) {
-  return copyResponseCookies(redirectWithSensitiveRouteCacheControl(url), response);
-}
-
-function clearTermsGateCookie(response: NextResponse) {
-  response.cookies.set(TERMS_GATE_COOKIE_NAME, "", getExpiredTermsGateCookieOptions());
-  return response;
-}
-
-async function setTermsGateCookie(response: NextResponse, userId: string) {
-  const value = await createTermsGateCookieValue(userId);
-  if (value) response.cookies.set(TERMS_GATE_COOKIE_NAME, value, getTermsGateCookieOptions());
-  return response;
-}
-
-function readAuthIdentityFromClaims(data: unknown): ProxyAuthIdentity | null {
-  const claims = data && typeof data === "object" && "claims" in data
-    ? (data as { claims?: Record<string, unknown> }).claims
-    : null;
-  const id = typeof claims?.sub === "string" ? claims.sub : "";
-  if (!id) return null;
+function toProxyIdentityFromBetterAuth(identity: BetterAuthRouteGateUserIdentity | null): ProxyAuthIdentity | null {
+  if (!identity) return null;
   return {
-    id,
-    email: typeof claims?.email === "string" ? claims.email : null,
+    id: identity.id,
+    email: identity.email,
   };
 }
 
@@ -149,7 +119,9 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
-  if (!hasSupabaseProxyEnv()) {
+  const useBetterAuthProvider = isCloudflareBetterAuthProviderEnabled();
+
+  if (!useBetterAuthProvider) {
     if (isProtected) {
       const loginUrl = new URL(LOGIN_PATH, request.url);
       loginUrl.searchParams.set(
@@ -162,25 +134,14 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
-  const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = createRequestPathResponse(request);
-          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
-        },
-      },
-    },
+  let user: ProxyAuthIdentity | null = null;
+  const { getCloudflareBetterAuthIdentityFromRequest } = await loadCloudflareBetterAuthRuntime();
+  user = toProxyIdentityFromBetterAuth(
+    await getCloudflareBetterAuthIdentityFromRequest({
+      headers: request.headers,
+      requestUrl: request.url,
+    }),
   );
-
-  const { data: claimsData } = await supabase.auth.getClaims();
-  const user = readAuthIdentityFromClaims(claimsData);
 
   if (!user && isProtected) {
     const loginUrl = new URL(LOGIN_PATH, request.url);
@@ -191,53 +152,19 @@ export async function proxy(request: NextRequest) {
     return redirectWithSensitiveRouteCacheControl(loginUrl);
   }
 
-  if (user && (isProtected || isAuthRoute)) {
-    const hasTermsGateCookie = isProtected && !bypassesTermsGate
+  const termsAcceptedByProxy = user && isProtected && !bypassesTermsGate
       ? await verifyTermsGateCookieValue(request.cookies.get(TERMS_GATE_COOKIE_NAME)?.value, user.id)
       : false;
-    const [access, acceptanceStatus] = await Promise.all([
-      getClosedBetaAccessForEmail({
-        email: user.email,
-        supabase,
-      }),
-      isProtected && !bypassesTermsGate && !hasTermsGateCookie
-        ? readCurrentUserTermsAcceptanceStatusFromClient(toLegalTermsAcceptanceClient(supabase), user.id)
-        : Promise.resolve(null),
-    ]);
-
-    if (!access.allowed) {
-      await supabase.auth.signOut();
-      return redirectWithResponseCookies(new URL(buildClosedBetaAccessPath(access.status), request.url), response);
-    }
-
-    if (acceptanceStatus?.requiresAcceptance) {
-      return clearTermsGateCookie(
-        redirectWithResponseCookies(
-          new URL(buildTermsAcceptanceRedirectPath(requestPath), request.url),
-          response,
-        ),
-      );
-    }
-
-    if (isProtected && !bypassesTermsGate && !hasTermsGateCookie) {
-      await setTermsGateCookie(response, user.id);
-    }
-  }
 
   if (user && isAuthRoute) {
     return redirectWithSensitiveRouteCacheControl(new URL(DEFAULT_AUTH_DESTINATION, request.url));
   }
 
   if (user && isProtected) {
-    const protectedResponse = copyResponseCookies(
-      createRequestPathResponse(request, undefined, {
-        authVerified: true,
-        termsAccepted: true,
-      }),
-      response,
-    );
-    if (!bypassesTermsGate) await setTermsGateCookie(protectedResponse, user.id);
-    return protectedResponse;
+    return createRequestPathResponse(request, undefined, {
+      authVerified: true,
+      termsAccepted: bypassesTermsGate || termsAcceptedByProxy,
+    });
   }
 
   return response;

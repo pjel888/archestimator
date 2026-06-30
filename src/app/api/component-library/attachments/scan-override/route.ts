@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
-import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 import {
   approveUploadScanOverride,
   canApproveUploadScanOverride,
@@ -25,8 +24,7 @@ export async function POST(request: Request) {
   if (!parsed.ok) return jsonError(parsed.error, parsed.status);
 
   try {
-    const serviceRole = createSupabaseServiceRoleClient("archestimator-upload-scan-override");
-    const approval = await approveUploadScanOverride(serviceRole, {
+    const approval = await approveUploadScanOverride({
       ...parsed.value,
       actorUserId: currentUser.userId,
     });

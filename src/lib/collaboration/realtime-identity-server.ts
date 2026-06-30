@@ -16,10 +16,9 @@ import "server-only";
  * ----------------
  *   1. env `REALTIME_IDENTITY_SIGNING_KEY` — base64url PKCS8 private key.
  *   2. Otherwise, deterministically derive a stable Ed25519 seed from an
- *      existing server secret (so prod is stable WITHOUT new config): SHA-256
- *      of the first available of SUPABASE_SERVICE_ROLE_KEY,
+ *      existing Cloudflare/server secret: SHA-256 of the first available of
  *      ARCHESTIMATOR_INVITE_TOKEN_PEPPER (the invite pepper reused from
- *      invite-entry.ts), or COLLABORATION_INVITE_PEPPER — taken as the 32-byte
+ *      invite-entry.ts) or COLLABORATION_INVITE_PEPPER — taken as the 32-byte
  *      Ed25519 seed.
  *
  * The derived/loaded keys are cached in module scope. The raw public key
@@ -51,7 +50,6 @@ const SIGNING_KEY_ENV = "REALTIME_IDENTITY_SIGNING_KEY";
  * invite-entry.ts; COLLABORATION_INVITE_PEPPER is a documented fallback name.
  */
 const DERIVATION_SECRET_ENVS = [
-  "SUPABASE_SERVICE_ROLE_KEY",
   "ARCHESTIMATOR_INVITE_TOKEN_PEPPER",
   "COLLABORATION_INVITE_PEPPER",
 ] as const;
@@ -117,9 +115,9 @@ function deriveBundle(env: NodeJS.ProcessEnv = process.env): SigningKeyBundle {
       const seed = new Uint8Array(createHash("sha256").update(secret, "utf8").digest());
       privateKey = privateKeyFromSeed(seed);
     } else {
-      // No explicit key and no derivation secret available (e.g. local/dev with
-      // no Supabase config). Fall back to an ephemeral keypair so the feature is
-      // self-consistent within the process; envelopes still verify round-trip.
+      // No explicit key and no derivation secret available (e.g. local/dev).
+      // Fall back to an ephemeral keypair so the feature is self-consistent
+      // within the process; envelopes still verify round-trip.
       privateKey = generateKeyPairSync("ed25519").privateKey;
     }
   }

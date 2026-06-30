@@ -160,7 +160,7 @@ const SECURITY_CLAIMS = [
   "Durable composite-key rate limiting with Retry-After (Postgres).",
   "Audit logging and metrics/alerts on the collaboration surface.",
   "Row-level security enforced on every table.",
-  "Supabase Auth (Google OAuth + magic link) + Supabase Realtime.",
+  "Better Auth session gating, Google OAuth and magic-link flows, plus signed Cloudflare collaboration rooms.",
 ] as const;
 
 const LIMITATIONS = [

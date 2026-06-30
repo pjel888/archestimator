@@ -6,18 +6,15 @@ import {
   acknowledgeCurrentUserReleaseModal,
   countCurrentUserUnreadNotifications,
   dismissCurrentUserNotification,
+  getCurrentUserReleaseAnnouncement,
   listCurrentUserNotifications,
   markCurrentUserNotificationRead,
-  type NotificationSupabaseClient,
 } from "@/lib/notifications/repository";
 import type {
   NotificationActionResult,
   NotificationFeedResult,
   ReleaseAnnouncementView,
 } from "@/lib/notifications/types";
-import { getCurrentUserReleaseAnnouncement } from "@/lib/notifications/repository";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 
 type NotificationUserContextResult =
   | { ok: true; userId: string }
@@ -37,10 +34,6 @@ async function readNotificationUserContext(): Promise<NotificationUserContextRes
   }
 }
 
-function asNotificationClient(client: unknown): NotificationSupabaseClient {
-  return client as NotificationSupabaseClient;
-}
-
 export async function loadCurrentUserNotifications(
   input: { limit?: number; cursor?: string | null } = {},
 ): Promise<NotificationFeedResult> {
@@ -48,8 +41,7 @@ export async function loadCurrentUserNotifications(
   if (!context.ok) return { items: [], nextCursor: null };
 
   try {
-    const supabase = await createSupabaseServerClient();
-    return await listCurrentUserNotifications(asNotificationClient(supabase), context.userId, input);
+    return await listCurrentUserNotifications(context.userId, input);
   } catch {
     return { items: [], nextCursor: null };
   }
@@ -60,8 +52,7 @@ export async function loadCurrentUserUnreadNotificationCount(): Promise<number> 
   if (!context.ok) return 0;
 
   try {
-    const supabase = await createSupabaseServerClient();
-    return await countCurrentUserUnreadNotifications(asNotificationClient(supabase), context.userId);
+    return await countCurrentUserUnreadNotifications(context.userId);
   } catch {
     return 0;
   }
@@ -72,8 +63,7 @@ export async function loadCurrentUserReleaseAnnouncement(): Promise<ReleaseAnnou
   if (!context.ok) return null;
 
   try {
-    const supabase = await createSupabaseServerClient();
-    return await getCurrentUserReleaseAnnouncement(asNotificationClient(supabase), context.userId);
+    return await getCurrentUserReleaseAnnouncement(context.userId);
   } catch {
     return null;
   }
@@ -85,8 +75,7 @@ export async function markNotificationReadAction(deliveryId: string): Promise<No
   if (!isUuid(deliveryId)) return { ok: false, code: "invalid_input" };
 
   try {
-    const serviceRole = createSupabaseServiceRoleClient("archestimator-notifications-mark-read");
-    return await markCurrentUserNotificationRead(asNotificationClient(serviceRole), context.userId, deliveryId);
+    return await markCurrentUserNotificationRead(context.userId, deliveryId);
   } catch {
     return { ok: false, code: "unavailable" };
   }
@@ -98,8 +87,7 @@ export async function dismissNotificationAction(deliveryId: string): Promise<Not
   if (!isUuid(deliveryId)) return { ok: false, code: "invalid_input" };
 
   try {
-    const serviceRole = createSupabaseServiceRoleClient("archestimator-notifications-dismiss");
-    return await dismissCurrentUserNotification(asNotificationClient(serviceRole), context.userId, deliveryId);
+    return await dismissCurrentUserNotification(context.userId, deliveryId);
   } catch {
     return { ok: false, code: "unavailable" };
   }
@@ -111,8 +99,7 @@ export async function acknowledgeReleaseAnnouncementAction(deliveryId: string): 
   if (!isUuid(deliveryId)) return { ok: false, code: "invalid_input" };
 
   try {
-    const serviceRole = createSupabaseServiceRoleClient("archestimator-notifications-release-acknowledge");
-    return await acknowledgeCurrentUserReleaseModal(asNotificationClient(serviceRole), context.userId, deliveryId);
+    return await acknowledgeCurrentUserReleaseModal(context.userId, deliveryId);
   } catch {
     return { ok: false, code: "unavailable" };
   }

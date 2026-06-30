@@ -1,15 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { recordAccountSecurityEvent } from "@/lib/auth/account-audit";
-import { resolvePostAuthDestination } from "@/lib/auth/account-setup";
-import { buildClosedBetaAccessPath, getClosedBetaAccessForEmail } from "@/lib/auth/closed-beta-access";
-import { mapAuthErrorToCode } from "@/lib/auth/error-mapping";
 import {
   buildLoginRedirectUrl,
   resolveAuthOrigin,
   sanitizeNextPath,
 } from "@/lib/auth/redirects";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
@@ -20,7 +16,7 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get("code");
   const next = sanitizeNextPath(requestUrl.searchParams.get("next"));
   const auditRequest = {
-    requestId: request.headers.get("x-request-id") ?? request.headers.get("x-vercel-id"),
+    requestId: request.headers.get("x-request-id") ?? request.headers.get("cf-ray"),
     ipAddress: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
     userAgent: request.headers.get("user-agent"),
   };
@@ -43,61 +39,20 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
-
-  if (error) {
-    await recordAccountSecurityEvent({
-      eventType: "auth_callback_failed",
-      ...auditRequest,
-      metadata: {
-        public_error_code: "callback_exchange_failed",
-        safe_next: next,
-      },
-    });
-    return NextResponse.redirect(
-      buildLoginRedirectUrl({
-        origin,
-        code: mapAuthErrorToCode({
-          fallbackCode: "callback_exchange_failed",
-          rawError: error.message,
-        }),
-        next,
-      }),
-    );
-  }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
   await recordAccountSecurityEvent({
-    eventType: "auth_callback_succeeded",
-    userId: user?.id ?? null,
+    eventType: "auth_callback_legacy_disabled",
     ...auditRequest,
     metadata: {
+      public_error_code: "callback_exchange_failed",
       safe_next: next,
     },
   });
 
-  const access = await getClosedBetaAccessForEmail({
-    email: user?.email,
-    supabase,
-  });
-
-  if (!access.allowed) {
-    await recordAccountSecurityEvent({
-      eventType: "auth_callback_beta_access_denied",
-      userId: user?.id ?? null,
-      ...auditRequest,
-      metadata: {
-        safe_next: next,
-        access_status: access.status,
-      },
-    });
-    await supabase.auth.signOut();
-    return NextResponse.redirect(new URL(buildClosedBetaAccessPath(access.status), origin));
-  }
-
-  const destination = resolvePostAuthDestination(next);
-  return NextResponse.redirect(new URL(destination, origin));
+  return NextResponse.redirect(
+    buildLoginRedirectUrl({
+      origin,
+      code: "callback_exchange_failed",
+      next,
+    }),
+  );
 }

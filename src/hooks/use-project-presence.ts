@@ -7,8 +7,16 @@ import {
   isActiveSurface,
   readCurrentActiveSurface,
 } from "@/lib/collaboration/presence-surface";
+import {
+  importVerifyKey,
+  verifyRealtimeIdentity,
+  type RealtimeIdentityEnvelope,
+} from "@/lib/collaboration/realtime-identity";
+import { issueRealtimeIdentity } from "@/lib/collaboration/realtime-identity-actions";
 import { reportRealtimeEvent } from "@/lib/collaboration/realtime-telemetry";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
+  createCloudflareCollaborationRoomClient,
+} from "@/lib/cloudflare/collaboration-room-client";
 import type { ProjectCollaboratorSummary } from "@/lib/collaboration/types";
 
 export const PROJECT_COLLABORATION_CHANNEL_PREFIX = "project:";
@@ -30,6 +38,7 @@ export type ProjectPresencePayload = {
   userId: string;
   activeSurface: ActiveSurface;
   onlineAt: string;
+  envelope: RealtimeIdentityEnvelope;
 };
 
 export type ProjectPresenceEntry = {
@@ -50,23 +59,26 @@ export type ProjectPresenceState = {
 // A minimal channel/client interface so the hook is unit-testable with a fake
 // channel (no live socket). The real Supabase browser client satisfies a
 // superset and is cast in the default factory.
-export type PresenceChannelLike = {
-  on: (type: "presence", filter: { event: string }, callback: () => void) => PresenceChannelLike;
-  subscribe: (callback?: (status: string, err?: Error) => void) => PresenceChannelLike;
+export type PresenceRoomLike = {
+  on: (type: "presence", filter: { event: string }, callback: () => void) => PresenceRoomLike;
+  subscribe: (callback?: (status: string, err?: Error) => void) => PresenceRoomLike;
   track: (payload: ProjectPresencePayload) => unknown;
   untrack: () => unknown;
   presenceState: () => Record<string, ProjectPresencePayload[]>;
 };
 
+export type PresenceChannelLike = PresenceRoomLike;
+
 export type PresenceClientLike = {
-  channel: (name: string, opts?: { config?: { private?: boolean } }) => PresenceChannelLike;
-  removeChannel: (channel: PresenceChannelLike) => unknown;
+  openRoom: (name: string) => PresenceRoomLike;
+  closeRoom: (room: PresenceRoomLike) => unknown;
 };
 
 export type PresenceClientFactory = () => PresenceClientLike;
+export type PresenceIdentityIssuer = typeof issueRealtimeIdentity;
 
 const defaultClientFactory: PresenceClientFactory = () =>
-  createSupabaseBrowserClient() as unknown as PresenceClientLike;
+  createCloudflareCollaborationRoomClient() as unknown as PresenceClientLike;
 
 type UseProjectPresenceInput = {
   projectId: string | null | undefined;
@@ -76,6 +88,7 @@ type UseProjectPresenceInput = {
   enabled?: boolean;
   /** Test-only seam: inject a fake realtime client. */
   clientFactory?: PresenceClientFactory;
+  identityIssuer?: PresenceIdentityIssuer;
 };
 
 const MAX_PRESENCE_RESUBSCRIBE_RETRIES = 3;
@@ -86,22 +99,33 @@ export function useProjectPresence({
   activeSurface,
   enabled = true,
   clientFactory = defaultClientFactory,
+  identityIssuer = issueRealtimeIdentity,
 }: UseProjectPresenceInput): ProjectPresenceState {
   const [entries, setEntries] = useState<Map<string, ProjectPresenceEntry>>(() => new Map());
   const [status, setStatus] = useState<ProjectPresenceStatus>("idle");
 
-  const channelRef = useRef<PresenceChannelLike | null>(null);
+  const roomRef = useRef<PresenceRoomLike | null>(null);
   const isSubscribedRef = useRef(false);
   const surfaceRef = useRef<ActiveSurface>(activeSurface ?? readCurrentActiveSurface());
   const currentUserId = currentUser?.id ?? null;
+  const ownUserIdRef = useRef<string | null>(currentUserId);
+  const envelopeRef = useRef<RealtimeIdentityEnvelope | null>(null);
+  const verifyKeyRef = useRef<CryptoKey | null>(null);
+  const verifiedCacheRef = useRef<Map<string, { sig: string; exp: number }>>(null!);
+  if (verifiedCacheRef.current === null) verifiedCacheRef.current = new Map();
 
   // Hold the client factory in a ref so an unstable (inline) factory identity
   // never churns the subscribe effect — only projectId/identity/enabled do.
   // (Synced in an effect, not during render, per react-hooks rules.)
   const clientFactoryRef = useRef(clientFactory);
+  const identityIssuerRef = useRef(identityIssuer);
   useEffect(() => {
     clientFactoryRef.current = clientFactory;
+    identityIssuerRef.current = identityIssuer;
   });
+  useEffect(() => {
+    ownUserIdRef.current = currentUserId ?? ownUserIdRef.current;
+  }, [currentUserId]);
 
   // --- Subscribe / lifecycle effect ---------------------------------------
   useEffect(() => {
@@ -120,21 +144,66 @@ export function useProjectPresence({
 
     const topic = `${PROJECT_COLLABORATION_CHANNEL_PREFIX}${projectId}`;
 
-    function buildPayload(): ProjectPresencePayload {
+    function buildPayload(): ProjectPresencePayload | null {
+      const userId = ownUserIdRef.current;
+      const envelope = envelopeRef.current;
+      if (!userId || !envelope) return null;
       return {
         purpose: PRESENCE_STATE_PURPOSE,
-        userId: currentUserId as string,
+        userId,
         activeSurface: surfaceRef.current,
         onlineAt: new Date().toISOString(),
+        envelope,
       };
     }
 
-    function syncPresence(channel: PresenceChannelLike) {
-      const state = channel.presenceState();
+    async function provisionIdentity() {
+      try {
+        const identity = await identityIssuerRef.current({ topic });
+        if (cancelled || !identity) return false;
+        ownUserIdRef.current = identity.userId ?? identity.envelope.sub;
+        envelopeRef.current = identity.envelope;
+        verifyKeyRef.current = await importVerifyKey(identity.publicKey);
+        return true;
+      } catch (error) {
+        reportRealtimeEvent({
+          type: "auth_refresh_failed",
+          topic,
+          detail: error instanceof Error ? error.message : "presence identity issuance failed",
+        });
+        return false;
+      }
+    }
+
+    async function verifyPresence(presence: ProjectPresencePayload) {
+      const verifyKey = verifyKeyRef.current;
+      if (!verifyKey || !presence.envelope) return false;
+      const cached = verifiedCacheRef.current.get(presence.userId);
+      const nowMs = Date.now();
+      if (cached && cached.sig === presence.envelope.sig && cached.exp * 1000 > nowMs) return true;
+      const trusted = await verifyRealtimeIdentity({
+        envelope: presence.envelope,
+        publicKey: verifyKey,
+        expectedTopic: topic,
+        claimedUserId: presence.userId,
+        nowMs,
+      });
+      if (trusted) {
+        verifiedCacheRef.current.set(presence.userId, {
+          sig: presence.envelope.sig,
+          exp: presence.envelope.exp,
+        });
+      }
+      return trusted;
+    }
+
+    async function syncPresence(room: PresenceRoomLike) {
+      const state = room.presenceState();
       const next = new Map<string, ProjectPresenceEntry>();
       for (const presences of Object.values(state)) {
         for (const presence of presences) {
           if (presence?.purpose !== PRESENCE_STATE_PURPOSE || !presence.userId) continue;
+          if (!(await verifyPresence(presence))) continue;
           next.set(presence.userId, {
             userId: presence.userId,
             activeSurface: isActiveSurface(presence.activeSurface) ? presence.activeSurface : "other",
@@ -145,19 +214,21 @@ export function useProjectPresence({
       if (!cancelled) setEntries(next);
     }
 
-    function openChannel() {
-      // StrictMode / re-entrancy guard: never hold two live channels at once.
-      if (channelRef.current) {
-        client.removeChannel(channelRef.current);
-        channelRef.current = null;
+    function openRoom() {
+      // StrictMode / re-entrancy guard: never hold two live sockets at once.
+      if (roomRef.current) {
+        client.closeRoom(roomRef.current);
+        roomRef.current = null;
       }
 
       setStatus("subscribing");
-      const channel = client.channel(topic, { config: { private: true } });
-      channelRef.current = channel;
+      const room = client.openRoom(topic);
+      roomRef.current = room;
 
-      channel
-        .on("presence", { event: "sync" }, () => syncPresence(channel))
+      room
+        .on("presence", { event: "sync" }, () => {
+          void syncPresence(room);
+        })
         .subscribe((subscribeStatus) => {
           if (cancelled) return;
           if (subscribeStatus === "SUBSCRIBED") {
@@ -165,7 +236,10 @@ export function useProjectPresence({
             isSubscribedRef.current = true;
             retries = 0;
             reportRealtimeEvent({ type: "subscribed", topic });
-            void channel.track(buildPayload());
+            void provisionIdentity().then((ready) => {
+              const payload = ready ? buildPayload() : null;
+              if (!cancelled && payload) void room.track(payload);
+            });
             return;
           }
           if (subscribeStatus === "CHANNEL_ERROR" || subscribeStatus === "TIMED_OUT") {
@@ -190,19 +264,20 @@ export function useProjectPresence({
       const delay = Math.min(1000 * retries, 5000);
       retryTimer = window.setTimeout(() => {
         if (cancelled) return;
-        openChannel();
+        openRoom();
       }, delay);
     }
 
-    openChannel();
+    openRoom();
 
     // Re-track with a fresh timestamp when the tab becomes visible again
     // (backgrounded tabs can be GC'd by peers — memory: "workshop suspends when
     // tab hidden"). Pause re-tracks while hidden.
     function handleVisibility() {
-      if (cancelled || !channelRef.current) return;
+      if (cancelled || !roomRef.current) return;
       if (document.visibilityState === "visible") {
-        void channelRef.current.track(buildPayload());
+        const payload = buildPayload();
+        if (payload) void roomRef.current.track(payload);
       }
     }
     document.addEventListener("visibilitychange", handleVisibility);
@@ -210,11 +285,14 @@ export function useProjectPresence({
     return () => {
       cancelled = true;
       isSubscribedRef.current = false;
+      envelopeRef.current = null;
+      verifyKeyRef.current = null;
+      verifiedCacheRef.current = new Map();
       document.removeEventListener("visibilitychange", handleVisibility);
       if (retryTimer) window.clearTimeout(retryTimer);
-      if (channelRef.current) {
-        client.removeChannel(channelRef.current);
-        channelRef.current = null;
+      if (roomRef.current) {
+        client.closeRoom(roomRef.current);
+        roomRef.current = null;
       }
       setStatus("idle");
     };
@@ -224,14 +302,10 @@ export function useProjectPresence({
   useEffect(() => {
     if (!activeSurface) return;
     surfaceRef.current = activeSurface;
-    const channel = channelRef.current;
-    if (!channel || !isSubscribedRef.current) return;
-    void channel.track({
-      purpose: PRESENCE_STATE_PURPOSE,
-      userId: currentUserId as string,
-      activeSurface,
-      onlineAt: new Date().toISOString(),
-    });
+    const room = roomRef.current;
+    const payload = buildSurfacePayload(activeSurface, ownUserIdRef.current, envelopeRef.current);
+    if (!room || !isSubscribedRef.current || !payload) return;
+    void room.track(payload);
   }, [activeSurface, currentUserId]);
 
   const onlineUserIds = useMemo(() => new Set(entries.keys()), [entries]);
@@ -240,4 +314,19 @@ export function useProjectPresence({
     () => ({ onlineUserIds, entries, status }),
     [onlineUserIds, entries, status],
   );
+}
+
+function buildSurfacePayload(
+  activeSurface: ActiveSurface,
+  userId: string | null,
+  envelope: RealtimeIdentityEnvelope | null,
+): ProjectPresencePayload | null {
+  if (!userId || !envelope) return null;
+  return {
+    purpose: PRESENCE_STATE_PURPOSE,
+    userId,
+    activeSurface,
+    onlineAt: new Date().toISOString(),
+    envelope,
+  };
 }

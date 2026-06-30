@@ -1,3 +1,7 @@
+import "server-only";
+
+import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d1";
+
 export type UploadScanOverrideCommand = {
   assetId: string;
   actorUserId: string;
@@ -16,21 +20,13 @@ export type UploadScanOverrideParseResult =
   | { ok: true; value: Omit<UploadScanOverrideCommand, "actorUserId"> }
   | { ok: false; status: 400; error: string };
 
-type UploadScanOverrideError = {
-  message?: string | null;
-};
-
-type UploadScanOverrideRpcClient = {
-  rpc: (
-    functionName: "approve_upload_scan_override",
-    args: {
-      target_asset_id: string;
-      override_actor_user_id: string;
-      override_reason: string;
-      override_expires_at: string;
-      expected_checksum_sha256: string;
-    },
-  ) => PromiseLike<{ data: unknown; error: UploadScanOverrideError | null }>;
+type UploadScanOverrideAssetD1Row = {
+  checksum_sha256: string | null;
+  id: string;
+  scan_status: string | null;
+  surface: string;
+  upload_session_id: string | null;
+  workspace_id: string | null;
 };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -82,30 +78,121 @@ export function parseUploadScanOverrideRequest(
   };
 }
 
-function normalizeUploadScanOverrideApproval(data: unknown, fallback: UploadScanOverrideCommand): UploadScanOverrideApproval {
-  const value = data && typeof data === "object" ? data as Record<string, unknown> : {};
-  const assetId = typeof value.assetId === "string" ? value.assetId : fallback.assetId;
-  const overrideExpiresAt = typeof value.overrideExpiresAt === "string" ? value.overrideExpiresAt : fallback.expiresAt;
-
+function normalizeUploadScanOverrideApproval(command: UploadScanOverrideCommand): UploadScanOverrideApproval {
   return {
-    assetId,
+    assetId: command.assetId,
     scanStatus: "override_approved",
-    overrideExpiresAt,
+    overrideExpiresAt: command.expiresAt,
   };
 }
 
-export async function approveUploadScanOverride(
-  client: unknown,
+async function insertScanOverrideEvent(
+  db: D1DatabaseLike,
+  asset: UploadScanOverrideAssetD1Row,
+  command: UploadScanOverrideCommand,
+) {
+  await db
+    .prepare(
+      `
+        INSERT INTO upload_events (
+          id,
+          upload_session_id,
+          upload_asset_id,
+          workspace_id,
+          actor_user_id,
+          event_type,
+          metadata_json,
+          created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+    )
+    .bind(
+      crypto.randomUUID(),
+      asset.upload_session_id,
+      asset.id,
+      asset.workspace_id,
+      command.actorUserId,
+      "scan_override_approved",
+      JSON.stringify({
+        checksumSha256: command.expectedChecksumSha256,
+        expiresAt: command.expiresAt,
+        reason: command.reason,
+      }),
+      new Date().toISOString(),
+    )
+    .run();
+}
+
+export async function approveUploadScanOverrideInD1(
+  db: D1DatabaseLike,
   command: UploadScanOverrideCommand,
 ): Promise<UploadScanOverrideApproval> {
-  const { data, error } = await (client as UploadScanOverrideRpcClient).rpc("approve_upload_scan_override", {
-    target_asset_id: command.assetId,
-    override_actor_user_id: command.actorUserId,
-    override_reason: command.reason,
-    override_expires_at: command.expiresAt,
-    expected_checksum_sha256: command.expectedChecksumSha256,
-  });
+  const asset = await db
+    .prepare<UploadScanOverrideAssetD1Row>(
+      `
+        SELECT id, workspace_id, upload_session_id, surface, scan_status, checksum_sha256
+        FROM upload_assets
+        WHERE id = ?
+        LIMIT 1
+      `,
+    )
+    .bind(command.assetId)
+    .first<UploadScanOverrideAssetD1Row>();
 
-  if (error) throw new Error(error.message ?? "Could not approve upload scan override.");
-  return normalizeUploadScanOverrideApproval(data, command);
+  if (!asset) throw new Error("Upload asset was not found.");
+  if (asset.surface !== "component-attachment") {
+    throw new Error("Only component attachments can receive scan overrides.");
+  }
+  if (asset.scan_status !== "failed_permanent" && asset.scan_status !== "unsupported") {
+    throw new Error("Only permanent scanner failures or unsupported files can be override-approved.");
+  }
+  if (asset.checksum_sha256 !== command.expectedChecksumSha256) {
+    throw new Error("Scan override checksum does not match the uploaded asset.");
+  }
+
+  const updatedAt = new Date().toISOString();
+  const updateResult = await db
+    .prepare(
+      `
+        UPDATE upload_assets
+        SET scan_status = ?,
+            scan_override_actor_user_id = ?,
+            scan_override_reason = ?,
+            scan_override_expires_at = ?,
+            scan_override_checksum_sha256 = ?,
+            updated_at = ?
+        WHERE id = ?
+          AND checksum_sha256 = ?
+          AND surface = ?
+          AND scan_status IN (?, ?)
+      `,
+    )
+    .bind(
+      "override_approved",
+      command.actorUserId,
+      command.reason,
+      command.expiresAt,
+      command.expectedChecksumSha256,
+      updatedAt,
+      command.assetId,
+      command.expectedChecksumSha256,
+      "component-attachment",
+      "failed_permanent",
+      "unsupported",
+    )
+    .run();
+
+  if ((updateResult.meta?.changes ?? 0) < 1) {
+    throw new Error("Scan override could not be approved.");
+  }
+
+  await insertScanOverrideEvent(db, asset, command);
+  return normalizeUploadScanOverrideApproval(command);
+}
+
+export async function approveUploadScanOverride(command: UploadScanOverrideCommand): Promise<UploadScanOverrideApproval> {
+  const db = await getCloudflareD1Database();
+  if (!db) throw new Error("Upload scan override D1 store is unavailable.");
+  return approveUploadScanOverrideInD1(db, command);
 }

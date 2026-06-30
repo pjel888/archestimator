@@ -1,7 +1,7 @@
 import "server-only";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
-import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
+import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
 import { canApproveUploadScanOverride } from "@/lib/uploads/scan-override";
 
 export const UPLOAD_SCAN_OVERRIDE_REVIEW_STATUSES = ["failed_permanent", "unsupported"] as const;
@@ -26,27 +26,6 @@ export type UploadScanOverrideReviewQueue = {
   authorized: boolean;
   error: string | null;
   rows: UploadScanOverrideReviewRow[];
-};
-
-type UploadScanOverrideReadError = {
-  message?: string | null;
-};
-
-type UploadScanOverrideQueryResult<T> = {
-  data: T[] | null;
-  error: UploadScanOverrideReadError | null;
-};
-
-type UploadScanOverrideSelectQuery<T> = PromiseLike<UploadScanOverrideQueryResult<T>> & {
-  select: (columns: string) => UploadScanOverrideSelectQuery<T>;
-  eq: (column: string, value: unknown) => UploadScanOverrideSelectQuery<T>;
-  in: (column: string, values: readonly string[]) => UploadScanOverrideSelectQuery<T>;
-  order: (column: string, options?: { ascending?: boolean }) => UploadScanOverrideSelectQuery<T>;
-  limit: (count: number) => UploadScanOverrideSelectQuery<T>;
-};
-
-type UploadScanOverrideReadClient = {
-  from: (table: "upload_assets") => UploadScanOverrideSelectQuery<unknown>;
 };
 
 type UploadScanOverrideAssetRow = {
@@ -105,28 +84,52 @@ export async function readUploadScanOverrideReviewQueue(
     return { authorized: false, error: null, rows: [] };
   }
 
-  const client = createSupabaseServiceRoleClient("archestimator-upload-scan-override-review") as unknown as UploadScanOverrideReadClient;
-  let query = client
-    .from("upload_assets")
-    .select("id, workspace_id, file_name, content_type, size_bytes, checksum_sha256, scan_status, scan_provider, scanned_at, created_at, updated_at")
-    .eq("surface", "component-attachment")
-    .eq("status", "finalized");
-
-  if (isUploadScanOverrideReviewStatus(status)) {
-    query = query.eq("scan_status", status);
-  } else {
-    query = query.in("scan_status", UPLOAD_SCAN_OVERRIDE_REVIEW_STATUSES);
+  const db = await getCloudflareD1Database();
+  if (!db) {
+    return { authorized: true, error: "Upload scan overrides could not be loaded.", rows: [] };
   }
 
-  const result = await query
-    .order("created_at", { ascending: false })
-    .limit(normalizeLimit(options.limit));
+  try {
+    const statusFilter = isUploadScanOverrideReviewStatus(status)
+      ? "scan_status = ?"
+      : `scan_status IN (${UPLOAD_SCAN_OVERRIDE_REVIEW_STATUSES.map(() => "?").join(", ")})`;
+    const statusValues = isUploadScanOverrideReviewStatus(status)
+      ? [status]
+      : [...UPLOAD_SCAN_OVERRIDE_REVIEW_STATUSES];
+    const { results } = await db
+      .prepare<UploadScanOverrideAssetRow>(
+        `
+          SELECT
+            id,
+            workspace_id,
+            file_name,
+            content_type,
+            size_bytes,
+            checksum_sha256,
+            scan_status,
+            scan_provider,
+            scanned_at,
+            created_at,
+            updated_at
+          FROM upload_assets
+          WHERE surface = ?
+            AND status = ?
+            AND ${statusFilter}
+          ORDER BY created_at DESC
+          LIMIT ?
+        `,
+      )
+      .bind("component-attachment", "finalized", ...statusValues, normalizeLimit(options.limit))
+      .all<UploadScanOverrideAssetRow>();
 
-  return {
-    authorized: true,
-    error: result.error ? "Upload scan overrides could not be loaded." : null,
-    rows: ((result.data ?? []) as UploadScanOverrideAssetRow[])
-      .map(normalizeRow)
-      .filter((row): row is UploadScanOverrideReviewRow => Boolean(row)),
-  };
+    return {
+      authorized: true,
+      error: null,
+      rows: (results ?? [])
+        .map(normalizeRow)
+        .filter((row): row is UploadScanOverrideReviewRow => Boolean(row)),
+    };
+  } catch {
+    return { authorized: true, error: "Upload scan overrides could not be loaded.", rows: [] };
+  }
 }

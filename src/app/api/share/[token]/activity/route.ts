@@ -19,10 +19,8 @@ import {
   parseSharedLinkActivityCursor,
   readSharedLinkRecipientDisplayName,
   resolveSharedLinkStoredTargetMetadata,
-  sharedLinkActivityCursorFilter,
 } from "@/lib/publication/activity-helpers";
 import { checkProjectPublicationActivityRateLimit, createPublicationServiceClient } from "@/lib/publication/public-repository";
-import type { Tables } from "@/lib/supabase/types";
 import { filterMap } from "@/lib/util/array";
 import type { NextRequest } from "next/server";
 
@@ -30,8 +28,6 @@ import type { NextRequest } from "next/server";
 // Always filters is_internal=true comments for unauthenticated or basic public views.
 // Manager/owner uses the server action loadSharedLinkActivity for full (including internal).
 export const dynamic = "force-dynamic";
-
-const EMPTY_RECIPIENT_ACTIVITY = { data: [] as never[], error: null };
 
 function parseCookieValue(cookieHeader: string, name: string): string | undefined {
   const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`));
@@ -106,18 +102,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return Response.json({ error: parsedCursor.error }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
   const cursor = parsedCursor.cursor;
-  const cursorFilter = sharedLinkActivityCursorFilter(cursor);
 
-  const supabase = createPublicationServiceClient();
+  const publicationStore = createPublicationServiceClient();
   const pubHash = hashPublicationToken(token, readPublicationTokenHashSecret());
 
-  const { data: pub, error: pubErr } = await supabase
-    .from("project_publications")
-    .select("id, status, revoked_at, expires_at, password_hash, activity_target_labels_json, snapshot_version")
-    .eq("token_hash", pubHash)
-    .maybeSingle();
+  const pub = await publicationStore.getPublicationActivityContextByTokenHash(pubHash);
 
-  if (pubErr) throw pubErr;
   if (!pub || pub.status !== "published" || pub.revoked_at || (pub.expires_at && new Date(pub.expires_at) < new Date())) {
     return Response.json(sharedLinkUnavailableErrorBody(), { status: 404, headers: { "Cache-Control": "no-store" } });
   }
@@ -156,63 +146,32 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       ? recipientId
       : undefined;
 
-  let commentsQuery = supabase
-    .from("shared_link_comments")
-    .select("id, created_at, is_internal, author_email, author_name, recipient_id, estimate_id, row_id, target_kind, target_label, target_secondary_label, snapshot_version_at_comment")
-    .eq("publication_id", pubId)
-    .eq("is_internal", false);
-  let responsesQuery = verifiedRecipientId
-    ? supabase
-        .from("shared_link_responses")
-        .select("id, created_at, decision, note, recipient_id, estimate_id, row_id, target_kind, target_label, target_secondary_label")
-        .eq("publication_id", pubId)
-        .eq("recipient_id", verifiedRecipientId)
-    : null;
-  let eventsQuery = verifiedRecipientId
-    ? supabase
-        .from("shared_link_events")
-        .select("id, created_at, event_type, metadata_json, recipient_id")
-        .eq("publication_id", pubId)
-        .eq("recipient_id", verifiedRecipientId)
-    : null;
-  if (cursorFilter) {
-    commentsQuery = commentsQuery.or(cursorFilter);
-    responsesQuery = responsesQuery?.or(cursorFilter) ?? null;
-    eventsQuery = eventsQuery?.or(cursorFilter) ?? null;
-  }
-
   const [commentsRes, responsesRes, eventsRes] = await Promise.all([
-    commentsQuery.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limit + 1),
-    responsesQuery
-      ? responsesQuery.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limit + 1)
-      : Promise.resolve(EMPTY_RECIPIENT_ACTIVITY),
-    eventsQuery
-      ? eventsQuery.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limit + 1)
-      : Promise.resolve(EMPTY_RECIPIENT_ACTIVITY),
+    publicationStore.listPublicActivityComments({ publicationId: pubId, cursor, limit: limit + 1 }),
+    verifiedRecipientId
+      ? publicationStore.listRecipientActivityResponses({ publicationId: pubId, recipientId: verifiedRecipientId, cursor, limit: limit + 1 })
+      : Promise.resolve([]),
+    verifiedRecipientId
+      ? publicationStore.listRecipientActivityEvents({ publicationId: pubId, recipientId: verifiedRecipientId, cursor, limit: limit + 1 })
+      : Promise.resolve([]),
   ]);
 
   const recipientIds = new Set<string>();
-  for (const comment of commentsRes.data ?? []) if (comment.recipient_id) recipientIds.add(comment.recipient_id);
-  for (const response of responsesRes.data ?? []) if (response.recipient_id) recipientIds.add(response.recipient_id);
-  for (const event of eventsRes.data ?? []) if (event.recipient_id) recipientIds.add(event.recipient_id);
+  for (const comment of commentsRes) if (comment.recipient_id) recipientIds.add(comment.recipient_id);
+  for (const response of responsesRes) if (response.recipient_id) recipientIds.add(response.recipient_id);
+  for (const event of eventsRes) if (event.recipient_id) recipientIds.add(event.recipient_id);
 
   const recipientDisplayNames = new Map<string, string>();
   if (recipientIds.size) {
-    const { data: recipients, error: recipientsError } = await supabase
-      .from("shared_link_recipients")
-      .select("id, display_name")
-      .eq("publication_id", pubId)
-      .in("id", Array.from(recipientIds))
-      .limit(500);
-    if (recipientsError) throw recipientsError;
-    for (const recipient of recipients ?? []) {
+    const recipients = await publicationStore.listRecipientDisplayNames(pubId, Array.from(recipientIds));
+    for (const recipient of recipients) {
       recipientDisplayNames.set(recipient.id, readSharedLinkRecipientDisplayName(recipient));
     }
   }
 
   const targetLabels = createSharedLinkTargetLabelMapFromLabelsJson(pub.activity_target_labels_json);
   const rawActivities: SharedLinkActivityInput[] = [];
-  (commentsRes.data ?? []).forEach((c: Pick<Tables<"shared_link_comments">, "author_email" | "author_name" | "created_at" | "estimate_id" | "id" | "recipient_id" | "row_id" | "target_kind" | "target_label" | "target_secondary_label" | "snapshot_version_at_comment">) => {
+  commentsRes.forEach((c) => {
     const target = resolveSharedLinkStoredTargetMetadata(targetLabels, c);
     rawActivities.push({
       id: c.id,
@@ -227,7 +186,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       },
     });
   });
-  (responsesRes.data ?? []).forEach((r: Pick<Tables<"shared_link_responses">, "created_at" | "decision" | "estimate_id" | "id" | "note" | "recipient_id" | "row_id" | "target_kind" | "target_label" | "target_secondary_label">) => {
+  responsesRes.forEach((r) => {
     const target = resolveSharedLinkStoredTargetMetadata(targetLabels, r);
     rawActivities.push({
       id: r.id,
@@ -239,7 +198,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       metadata: target,
     });
   });
-  (eventsRes.data ?? []).forEach((e: Pick<Tables<"shared_link_events">, "created_at" | "event_type" | "id" | "metadata_json" | "recipient_id">) => {
+  eventsRes.forEach((e) => {
     const metadata = e.metadata_json && typeof e.metadata_json === "object" && !Array.isArray(e.metadata_json) ? e.metadata_json : {};
     rawActivities.push({
       id: e.id,

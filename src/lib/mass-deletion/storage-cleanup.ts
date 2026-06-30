@@ -1,6 +1,5 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
-
-import type { Json } from "@/lib/supabase/types";
+import type { UploadStorageProvider } from "@/lib/uploads/storage-provider";
+import type { Json } from "@/lib/types/json";
 
 import type { StorageCleanupReport, StorageCleanupTarget } from "./bulk-action";
 
@@ -70,7 +69,7 @@ export function splitAllowedStorageCleanupTargets(
 }
 
 export async function cleanupStorageTargets(
-  supabase: Pick<SupabaseClient, "storage">,
+  storageProvider: Pick<UploadStorageProvider, "removeObjects">,
   targets: readonly StorageCleanupTarget[] | undefined,
   options:
     | { kind: "project" }
@@ -88,11 +87,15 @@ export async function cleanupStorageTargets(
   for (const [bucket, paths] of targetsByBucket.entries()) {
     for (let index = 0; index < paths.length; index += STORAGE_REMOVE_CHUNK_SIZE) {
       const chunk = paths.slice(index, index + STORAGE_REMOVE_CHUNK_SIZE);
-      const { error } = await supabase.storage.from(bucket).remove(chunk);
-      if (error) {
-        failed.push(...chunk.map((path) => ({ bucket, path, message: error.message })));
-      } else {
+      try {
+        await storageProvider.removeObjects(bucket, chunk);
         removed.push(...chunk.map((path) => ({ bucket, path })));
+      } catch (error) {
+        failed.push(...chunk.map((path) => ({
+          bucket,
+          path,
+          message: error instanceof Error ? error.message : "Storage cleanup failed.",
+        })));
       }
     }
   }

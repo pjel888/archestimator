@@ -1,15 +1,10 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
-import type { Json } from "@/lib/supabase/types";
+import type { D1DatabaseLike } from "@/lib/cloudflare/d1";
 
 import type { UploadSurface } from "./policy";
 
-type UploadRecordClient = {
-  rpc: (
-    functionName: string,
-    args: Record<string, unknown>,
-  ) => PromiseLike<{ data: unknown; error: { message?: string | null } | null }>;
-};
+type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type UploadScanStatus = "not_required" | "pending";
 
@@ -41,41 +36,172 @@ function sha256Hex(bytes: Buffer | Uint8Array | null | undefined) {
   return createHash("sha256").update(bytes).digest("hex");
 }
 
-function isRecordedUploadAsset(value: unknown): value is RecordedUploadAsset {
-  if (!value || typeof value !== "object") return false;
-  const record = value as Partial<RecordedUploadAsset>;
-  return (
-    typeof record.uploadSessionId === "string"
-    && typeof record.assetId === "string"
-    && (record.scanStatus === "not_required" || record.scanStatus === "pending")
-  );
+function metadataJson(metadata: Record<string, Json | undefined> | undefined) {
+  return JSON.stringify(metadata ?? {});
+}
+
+function targetEntityValue(value: string | null | undefined) {
+  return value?.trim() || null;
+}
+
+function projectIdForAsset(input: RecordUploadAssetInput) {
+  if (input.surface !== "project-image") return null;
+  if (input.targetEntityType === "project" || input.targetEntityType === "estimate-row") {
+    return targetEntityValue(input.targetEntityId);
+  }
+  return null;
+}
+
+function estimateIdForAsset(input: RecordUploadAssetInput) {
+  const estimateId = input.metadata?.estimateId;
+  return typeof estimateId === "string" && estimateId.trim() ? estimateId.trim() : null;
 }
 
 export async function recordUploadAsset(
-  client: unknown,
+  db: D1DatabaseLike,
   input: RecordUploadAssetInput,
 ): Promise<RecordedUploadAsset> {
+  const now = new Date().toISOString();
+  const uploadSessionId = randomUUID();
+  const assetId = randomUUID();
   const checksumSha256 = sha256Hex(input.checksumBytes);
-  const metadata = input.metadata ?? {};
+  const metadata = metadataJson(input.metadata);
+  const targetEntityType = targetEntityValue(input.targetEntityType);
+  const targetEntityId = targetEntityValue(input.targetEntityId);
+  const projectId = projectIdForAsset(input);
+  const estimateId = estimateIdForAsset(input);
 
-  const { data, error } = await (client as UploadRecordClient).rpc("record_upload_asset", {
-    target_workspace_id: input.workspaceId,
-    actor_user_id: input.actorUserId,
-    upload_surface: input.surface,
-    target_entity_type: input.targetEntityType ?? null,
-    target_entity_id: input.targetEntityId ?? null,
-    storage_bucket: input.bucket,
-    storage_path: input.path,
-    thumbnail_path: input.thumbnailPath ?? null,
-    file_name: input.fileName,
-    content_type: input.contentType,
-    size_bytes: input.sizeBytes,
-    checksum_sha256: checksumSha256,
-    scan_status: input.scanStatus,
-    metadata,
-  });
+  await db
+    .prepare(
+      `
+        INSERT INTO upload_sessions (
+          id,
+          workspace_id,
+          actor_user_id,
+          surface,
+          target_entity_type,
+          target_entity_id,
+          storage_bucket,
+          storage_path,
+          file_name,
+          content_type,
+          size_bytes,
+          checksum_sha256,
+          status,
+          expires_at,
+          metadata_json,
+          created_at,
+          updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'finalized', NULL, ?, ?, ?)
+      `,
+    )
+    .bind(
+      uploadSessionId,
+      input.workspaceId,
+      input.actorUserId,
+      input.surface,
+      targetEntityType,
+      targetEntityId,
+      input.bucket,
+      input.path,
+      input.fileName,
+      input.contentType,
+      input.sizeBytes,
+      checksumSha256,
+      metadata,
+      now,
+      now,
+    )
+    .run();
 
-  if (error) throw new Error(error.message ?? "Could not record upload asset.");
-  if (!isRecordedUploadAsset(data)) throw new Error("Upload record response was invalid.");
-  return data;
+  await db
+    .prepare(
+      `
+        INSERT INTO upload_assets (
+          id,
+          workspace_id,
+          actor_user_id,
+          project_id,
+          estimate_id,
+          upload_session_id,
+          surface,
+          target_entity_type,
+          target_entity_id,
+          status,
+          file_name,
+          content_type,
+          size_bytes,
+          checksum_sha256,
+          scan_status,
+          storage_bucket,
+          storage_path,
+          thumbnail_path,
+          metadata_json,
+          created_at,
+          updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'finalized', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+    )
+    .bind(
+      assetId,
+      input.workspaceId,
+      input.actorUserId,
+      projectId,
+      estimateId,
+      uploadSessionId,
+      input.surface,
+      targetEntityType,
+      targetEntityId,
+      input.fileName,
+      input.contentType,
+      input.sizeBytes,
+      checksumSha256,
+      input.scanStatus,
+      input.bucket,
+      input.path,
+      input.thumbnailPath ?? null,
+      metadata,
+      now,
+      now,
+    )
+    .run();
+
+  await db
+    .prepare(
+      `
+        INSERT INTO upload_events (
+          id,
+          upload_session_id,
+          upload_asset_id,
+          workspace_id,
+          actor_user_id,
+          event_type,
+          metadata_json,
+          created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+    )
+    .bind(
+      randomUUID(),
+      uploadSessionId,
+      assetId,
+      input.workspaceId,
+      input.actorUserId,
+      input.scanStatus === "pending" ? "scan_pending" : "asset_finalized",
+      metadataJson({
+        ...(input.metadata ?? {}),
+        scanStatus: input.scanStatus,
+      }),
+      now,
+    )
+    .run();
+
+  return {
+    uploadSessionId,
+    assetId,
+    scanStatus: input.scanStatus,
+  };
 }

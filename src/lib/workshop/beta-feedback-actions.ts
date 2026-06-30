@@ -3,11 +3,10 @@
 import { redirect } from "next/navigation";
 
 import { requireAuth, requireCurrentUserContext } from "@/lib/auth/session";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   parseBetaFeedbackSubmission,
 } from "@/lib/workshop/beta-feedback";
-import type { Json } from "@/lib/supabase/types";
+import { saveBetaFeedbackToD1 } from "@/lib/workshop/beta-feedback-d1-store";
 
 export type BetaFeedbackInlineState = {
   message?: string;
@@ -24,25 +23,11 @@ async function saveBetaFeedback(formData: FormData) {
   if (!parsed.ok) return { ok: false as const, code: parsed.code };
 
   const context = await requireCurrentUserContext();
-  const supabase = await createSupabaseServerClient();
   const payload = parsed.payload;
 
-  const { error } = await supabase.from("beta_feedback_submissions").insert({
-    feedback_type: payload.feedbackType,
-    message: payload.message,
-    metadata_json: {
-      source: "workshop_feedback_form",
-    } satisfies Json,
-    page_path: payload.pagePath,
-    project_id: payload.projectId,
-    severity: payload.severity,
-    user_email: context.email,
-    // react-doctor-disable-next-line react-doctor/supabase-client-owned-authz-field -- Server action stamps authenticated context.userId; clients cannot choose this value.
-    user_id: context.userId,
-    workspace_id: context.profile.default_workspace_id,
-  });
-
-  if (error) {
+  try {
+    await saveBetaFeedbackToD1(payload, context);
+  } catch {
     return { ok: false as const, code: "fallback" };
   }
 

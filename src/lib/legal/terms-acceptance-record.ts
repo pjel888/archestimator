@@ -1,8 +1,18 @@
 import { CURRENT_TERMS } from "@/lib/legal/terms-content";
-import type { TablesInsert } from "@/lib/supabase/types";
 
 export type LegalTermsAcceptanceMethod = "authenticated_clickwrap";
 export type LegalTermsAcceptanceContext = "workshop_terms_gate" | "settings_reacceptance" | "admin_support_record";
+export type LegalTermsAcceptanceInsert = {
+  user_id: string;
+  terms_key: string;
+  terms_version: string;
+  terms_effective_date: string;
+  terms_content_hash: string;
+  privacy_policy_version: string;
+  acceptance_method: LegalTermsAcceptanceMethod;
+  acceptance_context: LegalTermsAcceptanceContext;
+  metadata_json: Record<string, string | number | boolean | null>;
+};
 
 type BuildLegalTermsAcceptanceInsertInput = {
   userId: string;
@@ -16,7 +26,7 @@ export function buildLegalTermsAcceptanceInsert({
   acceptanceMethod,
   acceptanceContext,
   metadata,
-}: BuildLegalTermsAcceptanceInsertInput): TablesInsert<"legal_terms_acceptances"> {
+}: BuildLegalTermsAcceptanceInsertInput): LegalTermsAcceptanceInsert {
   return {
     user_id: userId,
     terms_key: CURRENT_TERMS.key,

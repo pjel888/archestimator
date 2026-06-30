@@ -1,11 +1,11 @@
 "use server";
 
-import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 
 import { resolveAuthOrigin as resolveAllowedAuthOrigin } from "@/lib/auth/redirects";
 import { requireCurrentUserContext } from "@/lib/auth/session";
+import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d1";
 import {
   buildInviteEntryUrl,
   checkInviteCreateRateLimit,
@@ -13,11 +13,9 @@ import {
   createInviteToken,
   isProjectInviteEntryEnabled,
 } from "@/lib/collaboration/invite-entry";
-import { readEmailDeliveryConfig, sendEmail } from "@/lib/email/resend-client";
-import { isUuid } from "@/lib/ids";
 import type { CollaborationRole } from "@/lib/collaboration/types";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { Database, Json, Tables } from "@/lib/supabase/types";
+import { readEmailDeliveryConfig, sendEmail } from "@/lib/email/transactional-email-client";
+import { isUuid } from "@/lib/ids";
 
 type CollaborationActionResult = {
   ok: boolean;
@@ -32,16 +30,64 @@ export type ProjectInviteDeliveryReadiness = {
 
 type ProjectAccessContext = {
   actorRank: number;
-  // react-doctor-disable-next-line react-doctor/supabase-client-owned-authz-field -- Server-only action context field; not a browser Supabase write.
-  admin: ReturnType<typeof createCollaborationAdminClient>;
   currentUserId: string;
-  project: Pick<Tables<"projects">, "id" | "name" | "workspace_id">;
+  db: D1DatabaseLike;
+  project: ProjectRow;
 };
 
 type EstimateAccessContext = ProjectAccessContext & {
-  estimate: Pick<Tables<"estimates">, "id" | "project_id">;
+  estimate: EstimateRow;
   estimateActorRank: number;
 };
+
+type ProjectRow = {
+  id: string;
+  name: string;
+  workspace_id: string;
+};
+
+type EstimateRow = {
+  id: string;
+  project_id: string;
+};
+
+type WorkspaceRole = "owner" | "admin" | "member" | "viewer";
+type ProfileRole = "ceo" | "admin" | "member";
+
+type RoleRow = {
+  role: string | null;
+};
+
+type ProfileIdRow = {
+  id: string;
+};
+
+type ProfileContactRow = {
+  display_name: string | null;
+  email: string | null;
+};
+
+type InvitationManagementRow = {
+  email: string;
+  estimate_id: string | null;
+  expires_at: string;
+  lifecycle_state: string;
+  project_id: string;
+  revoked_at: string | null;
+  role: string;
+  scope: string;
+};
+
+type InviteTokenAuditRow = {
+  estimate_id: string | null;
+  project_id: string;
+};
+
+type AccessSettingRow = {
+  inherit_project_access: boolean | number | string | null;
+};
+
+type MetadataValue = string | number | boolean | null;
 
 const managerRank = 30;
 const INVITE_EXPIRATION_DAYS = 14;
@@ -78,138 +124,187 @@ function rateLimitActionResult(result: { message: string }): CollaborationAction
   return { ok: false, message };
 }
 
-function createCollaborationAdminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  if (!url || !serviceRoleKey) {
-    throw new Error("Email invitations require NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY on the server.");
-  }
-
-  return createClient<Database>(url, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-    global: {
-      headers: {
-        "X-Client-Info": "archestimator-collaboration-invites",
-      },
-    },
-  });
+async function getRequiredCollaborationD1Database() {
+  const db = await getCloudflareD1Database();
+  if (!db) throw new Error("Collaboration D1 store is unavailable.");
+  return db;
 }
 
-function workspaceRoleRank(role: Tables<"workspace_members">["role"] | null | undefined) {
-  if (role === "owner") return 40;
-  if (role === "admin") return 30;
-  if (role === "member") return 20;
-  if (role === "viewer") return 10;
+function createId() {
+  return crypto.randomUUID();
+}
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function toD1Boolean(value: boolean | number | string | null | undefined, fallback = true) {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value !== 0;
+  return value !== "0" && value.toLowerCase() !== "false";
+}
+
+function toCollaborationRole(value: string | null | undefined): CollaborationRole {
+  if (value === "owner" || value === "admin" || value === "editor" || value === "viewer") return value;
+  return "viewer";
+}
+
+function toWorkspaceRole(value: string | null | undefined): WorkspaceRole | null {
+  if (value === "owner" || value === "admin" || value === "member" || value === "viewer") return value;
+  return null;
+}
+
+function toProfileRole(value: string | null | undefined): ProfileRole {
+  if (value === "ceo" || value === "admin") return value;
+  return "member";
+}
+
+function workspaceRoleRank(role: string | null | undefined) {
+  const normalized = toWorkspaceRole(role);
+  if (normalized === "owner") return 40;
+  if (normalized === "admin") return 30;
+  if (normalized === "member") return 20;
+  if (normalized === "viewer") return 10;
   return 0;
 }
 
 async function readProjectActorRank({
-  admin,
+  db,
   project,
   currentUserId,
   platformRole,
 }: {
-  admin: ReturnType<typeof createCollaborationAdminClient>;
-  project: Pick<Tables<"projects">, "id" | "workspace_id">;
+  db: D1DatabaseLike;
+  project: Pick<ProjectRow, "id" | "workspace_id">;
   currentUserId: string;
-  platformRole: Tables<"profiles">["role"];
+  platformRole: ProfileRole;
 }) {
   if (platformRole === "ceo" || platformRole === "admin") return 100;
 
   const [workspaceMembership, projectMembership] = await Promise.all([
-    admin
-      .from("workspace_members")
-      .select("role")
-      .eq("workspace_id", project.workspace_id)
-      .eq("user_id", currentUserId)
-      .maybeSingle(),
-    admin
-      .from("project_members")
-      .select("role")
-      .eq("project_id", project.id)
-      .eq("user_id", currentUserId)
-      .maybeSingle(),
+    db
+      .prepare<RoleRow>(
+        `
+          SELECT role
+          FROM workspace_members
+          WHERE workspace_id = ?
+            AND user_id = ?
+          LIMIT 1
+        `,
+      )
+      .bind(project.workspace_id, currentUserId)
+      .first<RoleRow>(),
+    db
+      .prepare<RoleRow>(
+        `
+          SELECT role
+          FROM project_members
+          WHERE project_id = ?
+            AND user_id = ?
+          LIMIT 1
+        `,
+      )
+      .bind(project.id, currentUserId)
+      .first<RoleRow>(),
   ]);
 
-  if (workspaceMembership.error) throw workspaceMembership.error;
-  if (projectMembership.error) throw projectMembership.error;
-
   return Math.max(
-    workspaceRoleRank(workspaceMembership.data?.role),
-    collaborationRoleRank(projectMembership.data?.role ?? "viewer"),
+    workspaceRoleRank(workspaceMembership?.role),
+    collaborationRoleRank(toCollaborationRole(projectMembership?.role)),
   );
 }
 
-async function assertProjectAccessManager(projectId: string): Promise<ProjectAccessContext> {
+async function assertProjectAccessManager(projectId: string, existingDb?: D1DatabaseLike): Promise<ProjectAccessContext> {
   assertUuid(projectId, "Project");
 
   const currentUser = await requireCurrentUserContext();
-  const admin = createCollaborationAdminClient();
-  const { data: project, error: projectError } = await admin
-    .from("projects")
-    .select("id, name, workspace_id")
-    .eq("id", projectId)
-    .maybeSingle();
+  const db = existingDb ?? await getRequiredCollaborationD1Database();
+  const project = await db
+    .prepare<ProjectRow>(
+      `
+        SELECT id, name, workspace_id
+        FROM projects
+        WHERE id = ?
+        LIMIT 1
+      `,
+    )
+    .bind(projectId)
+    .first<ProjectRow>();
 
-  if (projectError) throw projectError;
   if (!project) throw new Error("Project was not found.");
 
   const actorRank = await readProjectActorRank({
-    admin,
+    db,
     project,
     currentUserId: currentUser.userId,
-    platformRole: currentUser.role,
+    platformRole: toProfileRole(currentUser.role),
   });
 
   if (actorRank < managerRank) throw new Error("Only project owners and admins can manage access.");
 
   return {
     actorRank,
-    admin,
     currentUserId: currentUser.userId,
+    db,
     project,
   };
 }
 
 async function readEstimateActorRank(context: ProjectAccessContext, estimateId: string) {
   const [settingsResult, sheetMembershipResult] = await Promise.all([
-    context.admin
-      .from("estimate_sheet_access_settings")
-      .select("inherit_project_access")
-      .eq("estimate_id", estimateId)
-      .maybeSingle(),
-    context.admin
-      .from("estimate_sheet_members")
-      .select("role")
-      .eq("estimate_id", estimateId)
-      .eq("user_id", context.currentUserId)
-      .maybeSingle(),
+    context.db
+      .prepare<AccessSettingRow>(
+        `
+          SELECT inherit_project_access
+          FROM estimate_sheet_access_settings
+          WHERE estimate_id = ?
+          LIMIT 1
+        `,
+      )
+      .bind(estimateId)
+      .first<AccessSettingRow>(),
+    context.db
+      .prepare<RoleRow>(
+        `
+          SELECT role
+          FROM estimate_sheet_members
+          WHERE estimate_id = ?
+            AND user_id = ?
+          LIMIT 1
+        `,
+      )
+      .bind(estimateId, context.currentUserId)
+      .first<RoleRow>(),
   ]);
 
-  if (settingsResult.error) throw settingsResult.error;
-  if (sheetMembershipResult.error) throw sheetMembershipResult.error;
-
-  const inheritsProjectAccess = settingsResult.data?.inherit_project_access ?? true;
+  const inheritsProjectAccess = toD1Boolean(settingsResult?.inherit_project_access, true);
   return Math.max(
     inheritsProjectAccess ? context.actorRank : 0,
-    collaborationRoleRank(sheetMembershipResult.data?.role ?? "viewer"),
+    collaborationRoleRank(toCollaborationRole(sheetMembershipResult?.role)),
   );
 }
 
-async function assertEstimateAccessManager(projectId: string, estimateId: string): Promise<EstimateAccessContext> {
+async function assertEstimateAccessManager(
+  projectId: string,
+  estimateId: string,
+  existingDb?: D1DatabaseLike,
+): Promise<EstimateAccessContext> {
   assertUuid(estimateId, "Estimate");
-  const projectContext = await assertProjectAccessManager(projectId);
-  const { data: estimate, error: estimateError } = await projectContext.admin
-    .from("estimates")
-    .select("id, project_id")
-    .eq("id", estimateId)
-    .eq("project_id", projectContext.project.id)
-    .maybeSingle();
+  const projectContext = await assertProjectAccessManager(projectId, existingDb);
+  const estimate = await projectContext.db
+    .prepare<EstimateRow>(
+      `
+        SELECT id, project_id
+        FROM estimates
+        WHERE id = ?
+          AND project_id = ?
+        LIMIT 1
+      `,
+    )
+    .bind(estimateId, projectContext.project.id)
+    .first<EstimateRow>();
 
-  if (estimateError) throw estimateError;
   if (!estimate) throw new Error("Estimate was not found.");
 
   const estimateActorRank = await readEstimateActorRank(projectContext, estimate.id);
@@ -224,49 +319,68 @@ async function assertEstimateAccessManager(projectId: string, estimateId: string
 
 async function hasOtherProjectManager(context: ProjectAccessContext, targetUserId: string) {
   const [workspaceManagers, projectManagers] = await Promise.all([
-    context.admin
-      .from("workspace_members")
-      .select("user_id")
-      .eq("workspace_id", context.project.workspace_id)
-      .in("role", ["owner", "admin"])
-      .neq("user_id", targetUserId)
-      .limit(1),
-    context.admin
-      .from("project_members")
-      .select("user_id")
-      .eq("project_id", context.project.id)
-      .in("role", ["owner", "admin"])
-      .neq("user_id", targetUserId)
-      .limit(1),
+    context.db
+      .prepare<{ user_id: string }>(
+        `
+          SELECT user_id
+          FROM workspace_members
+          WHERE workspace_id = ?
+            AND user_id <> ?
+            AND role IN ('owner', 'admin')
+          LIMIT 1
+        `,
+      )
+      .bind(context.project.workspace_id, targetUserId)
+      .first<{ user_id: string }>(),
+    context.db
+      .prepare<{ user_id: string }>(
+        `
+          SELECT user_id
+          FROM project_members
+          WHERE project_id = ?
+            AND user_id <> ?
+            AND role IN ('owner', 'admin')
+          LIMIT 1
+        `,
+      )
+      .bind(context.project.id, targetUserId)
+      .first<{ user_id: string }>(),
   ]);
-
-  if (workspaceManagers.error) throw workspaceManagers.error;
-  if (projectManagers.error) throw projectManagers.error;
-  return Boolean(workspaceManagers.data?.length || projectManagers.data?.length);
+  return Boolean(workspaceManagers || projectManagers);
 }
 
 async function hasOtherEstimateSheetManager(context: EstimateAccessContext, targetUserId: string) {
-  const { data, error } = await context.admin
-    .from("estimate_sheet_members")
-    .select("user_id")
-    .eq("estimate_id", context.estimate.id)
-    .in("role", ["owner", "admin"])
-    .neq("user_id", targetUserId)
-    .limit(1);
+  const row = await context.db
+    .prepare<{ user_id: string }>(
+      `
+        SELECT user_id
+        FROM estimate_sheet_members
+        WHERE estimate_id = ?
+          AND user_id <> ?
+          AND role IN ('owner', 'admin')
+        LIMIT 1
+      `,
+    )
+    .bind(context.estimate.id, targetUserId)
+    .first<{ user_id: string }>();
 
-  if (error) throw error;
-  return Boolean(data?.length);
+  return Boolean(row);
 }
 
 async function estimateInheritsProjectAccess(context: EstimateAccessContext) {
-  const { data, error } = await context.admin
-    .from("estimate_sheet_access_settings")
-    .select("inherit_project_access")
-    .eq("estimate_id", context.estimate.id)
-    .maybeSingle();
+  const row = await context.db
+    .prepare<AccessSettingRow>(
+      `
+        SELECT inherit_project_access
+        FROM estimate_sheet_access_settings
+        WHERE estimate_id = ?
+        LIMIT 1
+      `,
+    )
+    .bind(context.estimate.id)
+    .first<AccessSettingRow>();
 
-  if (error) throw error;
-  return data?.inherit_project_access ?? true;
+  return toD1Boolean(row?.inherit_project_access, true);
 }
 
 async function upsertInvitation({
@@ -283,46 +397,87 @@ async function upsertInvitation({
   scope: "project" | "estimate";
 }) {
   const expiresAt = new Date(Date.now() + INVITE_EXPIRATION_DAYS * 24 * 60 * 60 * 1000).toISOString();
-  const { data: insertedInvitation, error } = await context.admin
-    .from("collaboration_invitations")
-    .insert({
-      workspace_id: context.project.workspace_id,
-      project_id: context.project.id,
-      estimate_id: estimateId,
+  const timestamp = nowIso();
+  const existing = await context.db
+    .prepare<{ id: string }>(
+      `
+        SELECT id
+        FROM collaboration_invitations
+        WHERE project_id = ?
+          AND email = ?
+          AND scope = ?
+          AND lifecycle_state = 'pending'
+          AND revoked_at IS NULL
+          AND (
+            (? IS NULL AND estimate_id IS NULL)
+            OR estimate_id = ?
+          )
+        LIMIT 1
+      `,
+    )
+    .bind(context.project.id, email, scope, estimateId, estimateId)
+    .first<{ id: string }>();
+
+  if (existing) {
+    await context.db
+      .prepare(
+        `
+          UPDATE collaboration_invitations
+          SET role = ?,
+              invited_by = ?,
+              expires_at = ?,
+              lifecycle_state = 'pending',
+              accepted_at = NULL,
+              accepted_via = NULL,
+              invited_user_id = NULL,
+              direct_granted_at = NULL,
+              direct_granted_user_id = NULL,
+              updated_at = ?
+          WHERE id = ?
+        `,
+      )
+      .bind(role, context.currentUserId, expiresAt, timestamp, existing.id)
+      .run();
+    return { id: existing.id, expiresAt };
+  }
+
+  const id = createId();
+  await context.db
+    .prepare(
+      `
+        INSERT INTO collaboration_invitations (
+          id,
+          workspace_id,
+          project_id,
+          estimate_id,
+          scope,
+          email,
+          role,
+          invited_by,
+          expires_at,
+          lifecycle_state,
+          created_at,
+          updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
+      `,
+    )
+    .bind(
+      id,
+      context.project.workspace_id,
+      context.project.id,
+      estimateId,
       scope,
       email,
       role,
-      invited_by: context.currentUserId,
-      expires_at: expiresAt,
-      lifecycle_state: "pending",
-    })
-    .select("id, expires_at")
-    .single();
+      context.currentUserId,
+      expiresAt,
+      timestamp,
+      timestamp,
+    )
+    .run();
 
-  if (!error) return { id: insertedInvitation.id, expiresAt: insertedInvitation.expires_at };
-  if (error.code !== "23505") throw error;
-
-  let update = context.admin
-    .from("collaboration_invitations")
-    .update({
-      role,
-      invited_by: context.currentUserId,
-      expires_at: expiresAt,
-      lifecycle_state: "pending",
-      accepted_at: null,
-      accepted_via: null,
-      invited_user_id: null,
-    })
-    .eq("project_id", context.project.id)
-    .eq("email", email)
-    .eq("scope", scope)
-    .eq("lifecycle_state", "pending")
-    .is("revoked_at", null);
-
-  update = estimateId ? update.eq("estimate_id", estimateId) : update.is("estimate_id", null);
-  const { data: updatedInvitation, error: updateError } = await update.select("id, expires_at").single();
-  if (updateError) throw updateError;
-  return { id: updatedInvitation.id, expiresAt: updatedInvitation.expires_at };
+  return { id, expiresAt };
 }
 
 async function resolveInviteOrigin() {
@@ -346,27 +501,105 @@ async function buildProjectRedirectUrl(projectId: string) {
 }
 
 async function issueInviteEntryLink({
+  context,
   invitationId,
   expiresAt,
   deliveryMethod,
   revokeExisting = true,
 }: {
+  context: ProjectAccessContext;
   invitationId: string;
   expiresAt: string;
   deliveryMethod: "email" | "copy_url";
   revokeExisting?: boolean;
 }) {
   const inviteToken = createInviteToken();
-  const supabase = await createSupabaseServerClient();
-  const { data: tokenId, error } = await supabase.rpc("issue_collaboration_invitation_token", {
-    invitation_id: invitationId,
-    invitation_token_hash: inviteToken.tokenHash,
-    token_hint: inviteToken.tokenHint,
-    delivery_method: deliveryMethod,
-    token_expires_at: expiresAt,
-    revoke_existing: revokeExisting,
-  });
-  if (error) throw error;
+  const timestamp = nowIso();
+  const invitation = await context.db
+    .prepare<InviteTokenAuditRow>(
+      `
+        SELECT project_id, estimate_id
+        FROM collaboration_invitations
+        WHERE id = ?
+          AND lifecycle_state IN ('pending', 'direct_granted_existing_user')
+        LIMIT 1
+      `,
+    )
+    .bind(invitationId)
+    .first<InviteTokenAuditRow>();
+  if (!invitation) throw new Error("Invitation is unavailable.");
+
+  if (revokeExisting) {
+    await context.db
+      .prepare(
+        `
+          UPDATE collaboration_invitation_tokens
+          SET revoked_at = ?,
+              revoked_by = ?
+          WHERE invitation_id = ?
+            AND used_at IS NULL
+            AND revoked_at IS NULL
+        `,
+      )
+      .bind(timestamp, context.currentUserId, invitationId)
+      .run();
+  }
+
+  const tokenId = createId();
+  await context.db
+    .prepare(
+      `
+        INSERT INTO collaboration_invitation_tokens (
+          id,
+          invitation_id,
+          token_hash,
+          token_hint,
+          delivery_method,
+          created_by,
+          created_at,
+          expires_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+    )
+    .bind(
+      tokenId,
+      invitationId,
+      inviteToken.tokenHash,
+      inviteToken.tokenHint,
+      deliveryMethod,
+      context.currentUserId,
+      timestamp,
+      expiresAt,
+    )
+    .run();
+
+  await context.db
+    .prepare(
+      `
+        INSERT INTO collaboration_audit_events (
+          id,
+          invitation_id,
+          project_id,
+          estimate_id,
+          actor_user_id,
+          event_type,
+          metadata_json,
+          created_at
+        )
+        VALUES (?, ?, ?, ?, ?, 'collaboration_invite_token_issued', ?, ?)
+      `,
+    )
+    .bind(
+      createId(),
+      invitationId,
+      invitation.project_id,
+      invitation.estimate_id,
+      context.currentUserId,
+      JSON.stringify({ delivery_method: deliveryMethod, token_hint: inviteToken.tokenHint }),
+      timestamp,
+    )
+    .run();
 
   const invitePath = `/invite/${encodeURIComponent(inviteToken.rawToken)}`;
   const origin = await resolveInviteOrigin();
@@ -378,53 +611,98 @@ async function issueInviteEntryLink({
   };
 }
 
-async function sendSupabaseInviteEmail({
-  admin,
+async function sendCloudflareInviteEmail({
   email,
   inviteEntryUrl,
+  projectName,
   projectId,
   role,
   scope,
 }: {
-  admin: ReturnType<typeof createCollaborationAdminClient>;
   email: string;
   inviteEntryUrl?: string;
+  projectName: string;
   projectId: string;
   role: CollaborationRole;
   scope: "project" | "estimate";
 }) {
-  const redirectTo = inviteEntryUrl ?? (await buildProjectRedirectUrl(projectId));
-  const { error } = await admin.auth.admin.inviteUserByEmail(email, {
-    redirectTo,
-    data: {
-      project_id: projectId,
-      collaboration_role: role,
-      collaboration_scope: scope,
-      invite_url: inviteEntryUrl,
-    },
+  const inviteUrl = inviteEntryUrl ?? (await buildProjectRedirectUrl(projectId));
+  const scopeLabel = scope === "estimate" ? "estimate sheet" : "project";
+  const result = await sendEmail({
+    to: email,
+    subject: `You're invited to ${projectName} on Archestimator`,
+    text: `You've been invited as ${role} on the ${scopeLabel} "${projectName}".\n\nOpen your invitation:\n${inviteUrl ?? "Sign in to Archestimator to view pending invitations."}\n\nThe Archestimator Team`,
+    html: inviteUrl
+      ? `<p>You've been invited as <strong>${role}</strong> on the ${scopeLabel} <strong>${projectName}</strong>.</p><p><a href="${inviteUrl}">Open your invitation</a></p><p>The Archestimator Team</p>`
+      : undefined,
+    tags: [
+      { name: "archestimator_surface", value: "project_collaboration" },
+      { name: "collaboration_event", value: "invite_email" },
+    ],
   });
-
-  if (error) throw new Error(error.message);
+  if (!result.ok) throw new Error(result.error);
 }
 
 async function recordCollaborationInvitationDelivery({
+  context,
   deliveryMethod,
   invitationId,
   tokenId,
 }: {
+  context: ProjectAccessContext;
   deliveryMethod: "email" | "copy_url";
   invitationId: string;
   tokenId?: string | null;
 }) {
   if (!tokenId) return;
 
-  const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.rpc("record_collaboration_invitation_delivery", {
-    invitation_id: invitationId,
-    token_id: tokenId,
-    delivery_method: deliveryMethod,
-  });
-  if (error) throw error;
+  const timestamp = nowIso();
+  const row = await context.db
+    .prepare<InviteTokenAuditRow>(
+      `
+        SELECT i.project_id, i.estimate_id
+        FROM collaboration_invitations i
+        JOIN collaboration_invitation_tokens t ON t.invitation_id = i.id
+        WHERE i.id = ?
+          AND t.id = ?
+          AND i.lifecycle_state IN ('pending', 'direct_granted_existing_user')
+          AND t.used_at IS NULL
+          AND t.revoked_at IS NULL
+          AND t.expires_at > ?
+        LIMIT 1
+      `,
+    )
+    .bind(invitationId, tokenId, timestamp)
+    .first<InviteTokenAuditRow>();
+  if (!row) throw new Error("Invite token is unavailable.");
+
+  await context.db
+    .prepare(
+      `
+        INSERT INTO collaboration_audit_events (
+          id,
+          invitation_id,
+          project_id,
+          estimate_id,
+          actor_user_id,
+          event_type,
+          metadata_json,
+          created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+    )
+    .bind(
+      createId(),
+      invitationId,
+      row.project_id,
+      row.estimate_id,
+      context.currentUserId,
+      deliveryMethod === "copy_url" ? "collaboration_invite_link_copied" : "collaboration_invite_email_sent",
+      JSON.stringify({ delivery_method: deliveryMethod, token_id: tokenId }),
+      timestamp,
+    )
+    .run();
 }
 
 async function recordCollaborationAuditEvent({
@@ -438,29 +716,190 @@ async function recordCollaborationAuditEvent({
   estimateId?: string | null;
   eventType: "invite_email_attempted" | "role_changed" | "member_removed";
   invitationId?: string | null;
-  metadata: Record<string, string | number | boolean | null>;
+  metadata: Record<string, MetadataValue>;
 }) {
   try {
-    const { error } = await context.admin.from("collaboration_audit_events").insert({
-      actor_user_id: context.currentUserId,
-      estimate_id: estimateId,
-      event_type: eventType,
-      invitation_id: invitationId,
-      metadata: metadata as Json,
-      project_id: context.project.id,
-    });
-    if (error) {
-      console.warn("[collaboration] audit event skipped", {
+    await context.db
+      .prepare(
+        `
+          INSERT INTO collaboration_audit_events (
+            id,
+            invitation_id,
+            project_id,
+            estimate_id,
+            actor_user_id,
+            event_type,
+            metadata_json,
+            created_at
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+      )
+      .bind(
+        createId(),
+        invitationId,
+        context.project.id,
+        estimateId,
+        context.currentUserId,
         eventType,
-        projectId: context.project.id,
-      });
-    }
+        JSON.stringify(metadata),
+        nowIso(),
+      )
+      .run();
   } catch {
     console.warn("[collaboration] audit event skipped", {
       eventType,
       projectId: context.project.id,
     });
   }
+}
+
+async function readProfileIdByEmail(db: D1DatabaseLike, email: string) {
+  return db
+    .prepare<ProfileIdRow>(
+      `
+        SELECT id
+        FROM profiles
+        WHERE email = ?
+        LIMIT 1
+      `,
+    )
+    .bind(email)
+    .first<ProfileIdRow>();
+}
+
+async function readProfileContactById(db: D1DatabaseLike, userId: string) {
+  return db
+    .prepare<ProfileContactRow>(
+      `
+        SELECT email, display_name
+        FROM profiles
+        WHERE id = ?
+        LIMIT 1
+      `,
+    )
+    .bind(userId)
+    .first<ProfileContactRow>();
+}
+
+async function upsertProjectMemberInD1(context: ProjectAccessContext, userId: string, role: CollaborationRole, timestamp = nowIso()) {
+  await context.db
+    .prepare(
+      `
+        INSERT INTO project_members (
+          project_id,
+          workspace_id,
+          user_id,
+          role,
+          added_by,
+          created_at,
+          updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(project_id, user_id) DO UPDATE SET
+          role = excluded.role,
+          added_by = excluded.added_by,
+          updated_at = excluded.updated_at
+      `,
+    )
+    .bind(
+      context.project.id,
+      context.project.workspace_id,
+      userId,
+      role,
+      context.currentUserId,
+      timestamp,
+      timestamp,
+    )
+    .run();
+}
+
+async function upsertEstimateSheetMemberInD1(
+  context: EstimateAccessContext,
+  userId: string,
+  role: CollaborationRole,
+  timestamp = nowIso(),
+) {
+  await context.db
+    .prepare(
+      `
+        INSERT INTO estimate_sheet_members (
+          estimate_id,
+          project_id,
+          user_id,
+          role,
+          added_by,
+          created_at,
+          updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(estimate_id, user_id) DO UPDATE SET
+          role = excluded.role,
+          added_by = excluded.added_by,
+          updated_at = excluded.updated_at
+      `,
+    )
+    .bind(
+      context.estimate.id,
+      context.project.id,
+      userId,
+      role,
+      context.currentUserId,
+      timestamp,
+      timestamp,
+    )
+    .run();
+}
+
+async function markDirectGrantedInvitationInD1({
+  context,
+  directGrantedAt,
+  email,
+  estimateId,
+  scope,
+  userId,
+}: {
+  context: ProjectAccessContext;
+  directGrantedAt: string;
+  email: string;
+  estimateId: string | null;
+  scope: "project" | "estimate";
+  userId: string;
+}) {
+  await context.db
+    .prepare(
+      `
+        UPDATE collaboration_invitations
+        SET accepted_at = ?,
+            direct_granted_at = ?,
+            direct_granted_user_id = ?,
+            invited_user_id = ?,
+            accepted_via = 'manager_direct_grant',
+            lifecycle_state = 'direct_granted_existing_user',
+            updated_at = ?
+        WHERE project_id = ?
+          AND email = ?
+          AND scope = ?
+          AND lifecycle_state = 'pending'
+          AND (
+            (? IS NULL AND estimate_id IS NULL)
+            OR estimate_id = ?
+          )
+      `,
+    )
+    .bind(
+      directGrantedAt,
+      directGrantedAt,
+      userId,
+      userId,
+      directGrantedAt,
+      context.project.id,
+      email,
+      scope,
+      estimateId,
+      estimateId,
+    )
+    .run();
 }
 
 function revalidateCollaborationRoutes(projectId: string) {
@@ -485,7 +924,7 @@ export async function readProjectInviteDeliveryReadiness(): Promise<ProjectInvit
     ? "Teamspace invite delivery is disabled until project invite entry and token settings are configured. Send beta invites manually outside the app."
     : !emailDeliveryConfig.enabled
       ? "Teamspace invite delivery is disabled until email delivery is explicitly enabled. Send beta invites manually outside the app."
-      : "Teamspace invite delivery is disabled until Resend sender settings are configured. Send beta invites manually outside the app.";
+      : "Teamspace invite delivery is disabled until Cloudflare Email sender settings are configured. Send beta invites manually outside the app.";
   return {
     configured,
     message: configured
@@ -515,18 +954,14 @@ export async function inviteProjectCollaborator({
   if (!rateLimit.allowed) return rateLimitActionResult(rateLimit);
 
   const inviteEntryEnabled = isProjectInviteEntryEnabled();
-  const { data: profile, error: profileError } = await context.admin
-    .from("profiles")
-    .select("id")
-    .eq("email", normalizedEmail)
-    .maybeSingle();
-  if (profileError) throw profileError;
+  const profile = await readProfileIdByEmail(context.db, normalizedEmail);
 
   let invitation: Awaited<ReturnType<typeof upsertInvitation>> | null = null;
   let inviteLink: Awaited<ReturnType<typeof issueInviteEntryLink>> | null = null;
   if (inviteEntryEnabled) {
     invitation = await upsertInvitation({ context, email: normalizedEmail, estimateId: null, role, scope: "project" });
     inviteLink = await issueInviteEntryLink({
+      context,
       invitationId: invitation.id,
       expiresAt: invitation.expiresAt,
       deliveryMethod: "email",
@@ -534,33 +969,16 @@ export async function inviteProjectCollaborator({
   }
 
   if (profile) {
-    const directGrantedAt = new Date().toISOString();
-    const { error } = await context.admin.from("project_members").upsert(
-      {
-        project_id: context.project.id,
-        workspace_id: context.project.workspace_id,
-        user_id: profile.id,
-        role,
-        added_by: context.currentUserId,
-      },
-      { onConflict: "project_id,user_id" },
-    );
-    if (error) throw error;
-
-    await context.admin
-      .from("collaboration_invitations")
-      .update({
-        accepted_at: directGrantedAt,
-        direct_granted_at: directGrantedAt,
-        direct_granted_user_id: profile.id,
-        invited_user_id: profile.id,
-        accepted_via: "manager_direct_grant",
-        lifecycle_state: "direct_granted_existing_user",
-      })
-      .eq("project_id", context.project.id)
-      .eq("email", normalizedEmail)
-      .eq("scope", "project")
-      .eq("lifecycle_state", "pending");
+    const directGrantedAt = nowIso();
+    await upsertProjectMemberInD1(context, profile.id, role, directGrantedAt);
+    await markDirectGrantedInvitationInD1({
+      context,
+      directGrantedAt,
+      email: normalizedEmail,
+      estimateId: null,
+      scope: "project",
+      userId: profile.id,
+    });
 
     revalidateCollaborationRoutes(context.project.id);
     return {
@@ -601,10 +1019,10 @@ export async function inviteProjectCollaborator({
   });
 
   try {
-    await sendSupabaseInviteEmail({
-      admin: context.admin,
+    await sendCloudflareInviteEmail({
       email: normalizedEmail,
       inviteEntryUrl: inviteLink.inviteEntryUrl,
+      projectName: context.project.name,
       projectId: context.project.id,
       role,
       scope: "project",
@@ -624,6 +1042,7 @@ export async function inviteProjectCollaborator({
   }
 
   await recordCollaborationInvitationDelivery({
+    context,
     deliveryMethod: "email",
     invitationId: invitation.id,
     tokenId: inviteLink.tokenId,
@@ -656,18 +1075,14 @@ export async function inviteEstimateSheetCollaborator({
   if (!rateLimit.allowed) return rateLimitActionResult(rateLimit);
 
   const inviteEntryEnabled = isProjectInviteEntryEnabled();
-  const { data: profile, error: profileError } = await context.admin
-    .from("profiles")
-    .select("id")
-    .eq("email", normalizedEmail)
-    .maybeSingle();
-  if (profileError) throw profileError;
+  const profile = await readProfileIdByEmail(context.db, normalizedEmail);
 
   let invitation: Awaited<ReturnType<typeof upsertInvitation>> | null = null;
   let inviteLink: Awaited<ReturnType<typeof issueInviteEntryLink>> | null = null;
   if (inviteEntryEnabled) {
     invitation = await upsertInvitation({ context, email: normalizedEmail, estimateId: context.estimate.id, role, scope: "estimate" });
     inviteLink = await issueInviteEntryLink({
+      context,
       invitationId: invitation.id,
       expiresAt: invitation.expiresAt,
       deliveryMethod: "email",
@@ -675,33 +1090,16 @@ export async function inviteEstimateSheetCollaborator({
   }
 
   if (profile) {
-    const directGrantedAt = new Date().toISOString();
-    const { error } = await context.admin.from("estimate_sheet_members").upsert(
-      {
-        estimate_id: context.estimate.id,
-        project_id: context.project.id,
-        user_id: profile.id,
-        role,
-        added_by: context.currentUserId,
-      },
-      { onConflict: "estimate_id,user_id" },
-    );
-    if (error) throw error;
-
-    await context.admin
-      .from("collaboration_invitations")
-      .update({
-        accepted_at: directGrantedAt,
-        direct_granted_at: directGrantedAt,
-        direct_granted_user_id: profile.id,
-        invited_user_id: profile.id,
-        accepted_via: "manager_direct_grant",
-        lifecycle_state: "direct_granted_existing_user",
-      })
-      .eq("estimate_id", context.estimate.id)
-      .eq("email", normalizedEmail)
-      .eq("scope", "estimate")
-      .eq("lifecycle_state", "pending");
+    const directGrantedAt = nowIso();
+    await upsertEstimateSheetMemberInD1(context, profile.id, role, directGrantedAt);
+    await markDirectGrantedInvitationInD1({
+      context,
+      directGrantedAt,
+      email: normalizedEmail,
+      estimateId: context.estimate.id,
+      scope: "estimate",
+      userId: profile.id,
+    });
 
     revalidateCollaborationRoutes(context.project.id);
     return {
@@ -743,10 +1141,10 @@ export async function inviteEstimateSheetCollaborator({
   });
 
   try {
-    await sendSupabaseInviteEmail({
-      admin: context.admin,
+    await sendCloudflareInviteEmail({
       email: normalizedEmail,
       inviteEntryUrl: inviteLink.inviteEntryUrl,
+      projectName: context.project.name,
       projectId: context.project.id,
       role,
       scope: "estimate",
@@ -766,6 +1164,7 @@ export async function inviteEstimateSheetCollaborator({
   }
 
   await recordCollaborationInvitationDelivery({
+    context,
     deliveryMethod: "email",
     invitationId: invitation.id,
     tokenId: inviteLink.tokenId,
@@ -781,16 +1180,21 @@ export async function copyProjectInviteLink({
   invitationId: string;
 }): Promise<CollaborationActionResult> {
   assertUuid(invitationId, "Invitation");
-  const admin = createCollaborationAdminClient();
-  const { data: invitation, error: invitationError } = await admin
-    .from("collaboration_invitations")
-    .select("project_id, expires_at")
-    .eq("id", invitationId)
-    .maybeSingle();
-  if (invitationError) throw invitationError;
+  const db = await getRequiredCollaborationD1Database();
+  const invitation = await db
+    .prepare<Pick<InvitationManagementRow, "project_id" | "expires_at">>(
+      `
+        SELECT project_id, expires_at
+        FROM collaboration_invitations
+        WHERE id = ?
+        LIMIT 1
+      `,
+    )
+    .bind(invitationId)
+    .first<Pick<InvitationManagementRow, "project_id" | "expires_at">>();
   if (!invitation) throw new Error("Invitation was not found.");
 
-  const context = await assertProjectAccessManager(invitation.project_id);
+  const context = await assertProjectAccessManager(invitation.project_id, db);
   if (!isProjectInviteEntryEnabled()) {
     return { ok: false, message: "Invite links are disabled." };
   }
@@ -803,11 +1207,13 @@ export async function copyProjectInviteLink({
   if (!rateLimit.allowed) return rateLimitActionResult(rateLimit);
 
   const inviteLink = await issueInviteEntryLink({
+    context,
     invitationId,
     expiresAt: invitation.expires_at,
     deliveryMethod: "copy_url",
   });
   await recordCollaborationInvitationDelivery({
+    context,
     deliveryMethod: "copy_url",
     invitationId,
     tokenId: inviteLink.tokenId,
@@ -822,13 +1228,18 @@ export async function resendProjectInviteEmail({
   invitationId: string;
 }): Promise<CollaborationActionResult> {
   assertUuid(invitationId, "Invitation");
-  const admin = createCollaborationAdminClient();
-  const { data: invitation, error: invitationError } = await admin
-    .from("collaboration_invitations")
-    .select("project_id, email, role, scope, expires_at, lifecycle_state, revoked_at")
-    .eq("id", invitationId)
-    .maybeSingle();
-  if (invitationError) throw invitationError;
+  const db = await getRequiredCollaborationD1Database();
+  const invitation = await db
+    .prepare<InvitationManagementRow>(
+      `
+        SELECT project_id, estimate_id, email, role, scope, expires_at, lifecycle_state, revoked_at
+        FROM collaboration_invitations
+        WHERE id = ?
+        LIMIT 1
+      `,
+    )
+    .bind(invitationId)
+    .first<InvitationManagementRow>();
   if (!invitation) throw new Error("Invitation was not found.");
   if (invitation.revoked_at || invitation.lifecycle_state !== "pending") {
     return { ok: false, message: "Only pending invitations can be resent." };
@@ -837,7 +1248,7 @@ export async function resendProjectInviteEmail({
     return { ok: false, message: "This invitation has expired. Create a new invite." };
   }
 
-  const context = await assertProjectAccessManager(invitation.project_id);
+  const context = await assertProjectAccessManager(invitation.project_id, db);
   if (!isProjectInviteEntryEnabled()) {
     return { ok: false, message: "Invite email resend requires invite links to be enabled." };
   }
@@ -853,20 +1264,22 @@ export async function resendProjectInviteEmail({
   if (!rateLimit.allowed) return rateLimitActionResult(rateLimit);
 
   const inviteLink = await issueInviteEntryLink({
+    context,
     invitationId,
     expiresAt: invitation.expires_at,
     deliveryMethod: "email",
   });
   const scope = invitation.scope === "estimate" ? "estimate" : "project";
-  await sendSupabaseInviteEmail({
-    admin,
+  await sendCloudflareInviteEmail({
     email: invitation.email,
     inviteEntryUrl: inviteLink.inviteEntryUrl,
+    projectName: context.project.name,
     projectId: context.project.id,
-    role: invitation.role,
+    role: toCollaborationRole(invitation.role),
     scope,
   });
   await recordCollaborationInvitationDelivery({
+    context,
     deliveryMethod: "email",
     invitationId,
     tokenId: inviteLink.tokenId,
@@ -888,34 +1301,29 @@ export async function updateProjectCollaboratorRole({
   const context = await assertProjectAccessManager(projectId);
   assertAssignableRole(context.actorRank, role);
 
-  const { data: existingMember, error: existingError } = await context.admin
-    .from("project_members")
-    .select("role")
-    .eq("project_id", context.project.id)
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (existingError) throw existingError;
+  const existingMember = await context.db
+    .prepare<RoleRow>(
+      `
+        SELECT role
+        FROM project_members
+        WHERE project_id = ?
+          AND user_id = ?
+        LIMIT 1
+      `,
+    )
+    .bind(context.project.id, userId)
+    .first<RoleRow>();
 
   if (
     existingMember &&
-    collaborationRoleRank(existingMember.role) >= managerRank &&
+    collaborationRoleRank(toCollaborationRole(existingMember.role)) >= managerRank &&
     collaborationRoleRank(role) < managerRank
   ) {
     const hasOtherManager = await hasOtherProjectManager(context, userId);
     if (!hasOtherManager) throw new Error("Every project needs at least one owner or admin.");
   }
 
-  const { error } = await context.admin.from("project_members").upsert(
-    {
-      project_id: context.project.id,
-      workspace_id: context.project.workspace_id,
-      user_id: userId,
-      role,
-      added_by: context.currentUserId,
-    },
-    { onConflict: "project_id,user_id" },
-  );
-  if (error) throw error;
+  await upsertProjectMemberInD1(context, userId, role);
 
   await recordCollaborationAuditEvent({
     context,
@@ -938,12 +1346,10 @@ async function sendCollaboratorRemovalNotification({
   context: ProjectAccessContext;
   userId: string;
 }): Promise<"sent" | "mocked" | "skipped" | "failed"> {
-  const { data: profile, error: profileError } = await context.admin
-    .from("profiles")
-    .select("email, display_name")
-    .eq("id", userId)
-    .maybeSingle();
-  if (profileError) {
+  let profile: ProfileContactRow | null = null;
+  try {
+    profile = await readProfileContactById(context.db, userId);
+  } catch {
     console.warn("[collaboration] removal notification skipped after profile lookup failure", {
       projectId: context.project.id,
       userId,
@@ -978,33 +1384,46 @@ export async function removeProjectCollaborator({
   assertUuid(userId, "User");
   const context = await assertProjectAccessManager(projectId);
 
-  const { data: existingMember, error: existingError } = await context.admin
-    .from("project_members")
-    .select("role")
-    .eq("project_id", context.project.id)
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (existingError) throw existingError;
+  const existingMember = await context.db
+    .prepare<RoleRow>(
+      `
+        SELECT role
+        FROM project_members
+        WHERE project_id = ?
+          AND user_id = ?
+        LIMIT 1
+      `,
+    )
+    .bind(context.project.id, userId)
+    .first<RoleRow>();
   if (!existingMember) return { ok: true, message: "Project-specific access already removed." };
 
-  if (collaborationRoleRank(existingMember.role) >= managerRank) {
+  if (collaborationRoleRank(toCollaborationRole(existingMember.role)) >= managerRank) {
     const hasOtherManager = await hasOtherProjectManager(context, userId);
     if (!hasOtherManager) throw new Error("Every project needs at least one owner or admin.");
   }
 
-  const { error } = await context.admin
-    .from("project_members")
-    .delete()
-    .eq("project_id", context.project.id)
-    .eq("user_id", userId);
-  if (error) throw error;
+  await context.db
+    .prepare(
+      `
+        DELETE FROM project_members
+        WHERE project_id = ?
+          AND user_id = ?
+      `,
+    )
+    .bind(context.project.id, userId)
+    .run();
 
-  const { error: favoriteCleanupError } = await context.admin
-    .from("project_favorites")
-    .delete()
-    .eq("project_id", context.project.id)
-    .eq("user_id", userId);
-  if (favoriteCleanupError) throw favoriteCleanupError;
+  await context.db
+    .prepare(
+      `
+        DELETE FROM project_favorites
+        WHERE project_id = ?
+          AND user_id = ?
+      `,
+    )
+    .bind(context.project.id, userId)
+    .run();
 
   await recordCollaborationAuditEvent({
     context,
@@ -1043,27 +1462,36 @@ export async function removeEstimateSheetCollaborator({
   assertUuid(userId, "User");
   const context = await assertEstimateAccessManager(projectId, estimateId);
 
-  const { data: existingMember, error: existingError } = await context.admin
-    .from("estimate_sheet_members")
-    .select("role")
-    .eq("estimate_id", context.estimate.id)
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (existingError) throw existingError;
+  const existingMember = await context.db
+    .prepare<RoleRow>(
+      `
+        SELECT role
+        FROM estimate_sheet_members
+        WHERE estimate_id = ?
+          AND user_id = ?
+        LIMIT 1
+      `,
+    )
+    .bind(context.estimate.id, userId)
+    .first<RoleRow>();
   if (!existingMember) return { ok: true, message: "Estimate-specific access already removed." };
 
-  const isRemovingSheetManager = collaborationRoleRank(existingMember.role) >= managerRank;
+  const isRemovingSheetManager = collaborationRoleRank(toCollaborationRole(existingMember.role)) >= managerRank;
   if (isRemovingSheetManager && !(await estimateInheritsProjectAccess(context))) {
     const hasOtherManager = await hasOtherEstimateSheetManager(context, userId);
     if (!hasOtherManager) throw new Error("Every restricted estimate needs at least one owner or admin.");
   }
 
-  const { error } = await context.admin
-    .from("estimate_sheet_members")
-    .delete()
-    .eq("estimate_id", context.estimate.id)
-    .eq("user_id", userId);
-  if (error) throw error;
+  await context.db
+    .prepare(
+      `
+        DELETE FROM estimate_sheet_members
+        WHERE estimate_id = ?
+          AND user_id = ?
+      `,
+    )
+    .bind(context.estimate.id, userId)
+    .run();
 
   await recordCollaborationAuditEvent({
     context,
@@ -1081,17 +1509,7 @@ export async function removeEstimateSheetCollaborator({
 }
 
 async function upsertSheetOwnerBeforeRestricting(context: EstimateAccessContext) {
-  const { error } = await context.admin.from("estimate_sheet_members").upsert(
-    {
-      estimate_id: context.estimate.id,
-      project_id: context.project.id,
-      user_id: context.currentUserId,
-      role: "owner",
-      added_by: context.currentUserId,
-    },
-    { onConflict: "estimate_id,user_id" },
-  );
-  if (error) throw error;
+  await upsertEstimateSheetMemberInD1(context, context.currentUserId, "owner");
 }
 
 export async function setEstimateSheetAccessMode({
@@ -1106,16 +1524,34 @@ export async function setEstimateSheetAccessMode({
   const context = await assertEstimateAccessManager(projectId, estimateId);
   if (!inheritProjectAccess) await upsertSheetOwnerBeforeRestricting(context);
 
-  const { error } = await context.admin.from("estimate_sheet_access_settings").upsert(
-    {
-      estimate_id: context.estimate.id,
-      project_id: context.project.id,
-      inherit_project_access: inheritProjectAccess,
-      updated_by: context.currentUserId,
-    },
-    { onConflict: "estimate_id" },
-  );
-  if (error) throw error;
+  const timestamp = nowIso();
+  await context.db
+    .prepare(
+      `
+        INSERT INTO estimate_sheet_access_settings (
+          estimate_id,
+          project_id,
+          inherit_project_access,
+          updated_by,
+          created_at,
+          updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT(estimate_id) DO UPDATE SET
+          inherit_project_access = excluded.inherit_project_access,
+          updated_by = excluded.updated_by,
+          updated_at = excluded.updated_at
+      `,
+    )
+    .bind(
+      context.estimate.id,
+      context.project.id,
+      inheritProjectAccess ? 1 : 0,
+      context.currentUserId,
+      timestamp,
+      timestamp,
+    )
+    .run();
 
   revalidateCollaborationRoutes(context.project.id);
   return { ok: true, message: inheritProjectAccess ? "Estimate now inherits project access." : "Estimate access is now restricted." };

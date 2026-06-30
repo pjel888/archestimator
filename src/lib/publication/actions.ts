@@ -1,11 +1,11 @@
 "use server";
 
 import { createHash } from "node:crypto";
-import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { recordAccountSecurityEvent } from "@/lib/auth/account-audit";
 import { requireAuth, requireCurrentUserContext } from "@/lib/auth/session";
 import { isUuid } from "@/lib/ids";
 import {
@@ -20,13 +20,12 @@ import {
   readPublicationTokenHashSecret,
   validatePublicationPassword,
 } from "@/lib/publication/security";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   buildProjectPublicationSnapshot,
   normalizeProjectPublicationLocationVisibility,
 } from "@/lib/publication/snapshot";
-import type { Database, Json, Tables } from "@/lib/supabase/types";
-import { readEmailDeliveryConfig, sendEmail } from "@/lib/email/resend-client";
+import { createPublicationAdminD1Client, type PublicationAdminJson } from "@/lib/publication/admin-d1-client";
+import { readEmailDeliveryConfig, sendEmail } from "@/lib/email/transactional-email-client";
 import { normalizeEstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
 import {
   readSharedLinkRecipientActionLimitMessage,
@@ -60,6 +59,23 @@ type PublicationActionResult = {
   clientLinkPath?: string | null;
 };
 
+type Json = PublicationAdminJson;
+type WorkspaceMemberRole = "owner" | "admin" | "member" | "viewer";
+type ProjectMemberRole = "owner" | "admin" | "editor" | "viewer";
+type RoleRow = {
+  role: string | null;
+};
+type ProjectRow = {
+  client_name: string | null;
+  currency_code: string;
+  id: string;
+  location: string | null;
+  metadata: Json | null;
+  name: string;
+  project_code: string | null;
+  workspace_id: string;
+};
+
 export type SharedLinkEmailDeliveryReadiness = {
   configured: boolean;
   message: string;
@@ -70,28 +86,31 @@ type PublicationManagerContext = {
   currentUserDisplayName: string;
   currentUserEmail: string;
   currentUserId: string;
-  project: Pick<Tables<"projects">, "client_name" | "currency_code" | "id" | "location" | "name" | "project_code" | "workspace_id" | "metadata">;
+  project: ProjectRow;
 };
 
-type EstimateSource = Pick<Tables<"estimates">, "id" | "name" | "sheet_code" | "updated_at">;
-type EstimateRowSource = Pick<
-  Tables<"estimate_row_items">,
-  | "adjustment_percentage"
-  | "contingency_percentage"
-  | "description"
-  | "designation"
-  | "discipline"
-  | "estimate_id"
-  | "id"
-  | "material"
-  | "misc_cost"
-  | "node_id"
-  | "quantity"
-  | "quantity_base"
-  | "quantity_contingency_amount"
-  | "unit"
-  | "unit_cost"
-> & {
+type EstimateSource = {
+  id: string;
+  name: string;
+  sheet_code: string;
+  updated_at: string | null;
+};
+type EstimateRowSource = {
+  adjustment_percentage: number | string | null;
+  contingency_percentage: number | string | null;
+  description: string;
+  designation: string;
+  discipline: string;
+  estimate_id: string;
+  id: string;
+  material: string;
+  misc_cost: number | string | null;
+  node_id: string | null;
+  quantity: number | string | null;
+  quantity_base: number | string | null;
+  quantity_contingency_amount: number | string | null;
+  unit: string;
+  unit_cost: number | string | null;
   imageUrl: string | null;
 };
 type EstimateNodeSource = {
@@ -111,18 +130,102 @@ type EstimateTabSource = {
   is_default: boolean;
 };
 type LatestPublication = Pick<
-  Tables<"project_publications">,
-  | "encrypted_token"
-  | "expires_at"
-  | "id"
-  | "location_visibility"
-  | "password_hash"
-  | "selected_estimate_ids"
-  | "snapshot_version"
+  {
+    encrypted_token: string;
+    expires_at: string | null;
+    id: string;
+    location_visibility: ProjectPublicationLocationVisibility;
+    password_hash: string | null;
+    selected_estimate_ids: string[];
+    snapshot_version: number;
+  },
+  "encrypted_token" | "expires_at" | "id" | "location_visibility" | "password_hash" | "selected_estimate_ids" | "snapshot_version"
 >;
 type PublicationEmailIdentity = {
   email: string;
   label: string;
+};
+type ProfileContactRow = {
+  display_name: string | null;
+  email: string | null;
+  id?: string;
+};
+type PublicationDigestProjectRow = {
+  created_by: string | null;
+  id: string;
+  workspace_id: string;
+};
+type PublicationDigestPublicationRow = {
+  id: string;
+  project_id: string;
+  published_by: string | null;
+};
+type PublicationProjectContextRow = {
+  encrypted_token: string | null;
+  id: string;
+  project_id: string;
+  workspace_id: string;
+};
+type RecipientIdRow = {
+  id: string;
+};
+type RecipientResendRow = {
+  display_name: string | null;
+  email: string | null;
+  email_unsubscribed_at: string | null;
+  id: string;
+};
+type SharedLinkRecipientDisplayRow = {
+  display_name: string | null;
+  id: string;
+};
+type ActivityPublicationRow = {
+  activity_target_labels_json: Json;
+  expires_at: string | null;
+  id: string;
+  project_id: string;
+  revoked_at: string | null;
+  status: string;
+};
+type ActivityCommentRow = {
+  author_email: string;
+  author_name: string | null;
+  body: string;
+  created_at: string;
+  estimate_id: string | null;
+  id: string;
+  is_internal: boolean;
+  recipient_id: string | null;
+  row_id: string | null;
+  snapshot_version_at_comment: number | null;
+  target_kind: "proposal" | "estimate" | "row";
+  target_label: string | null;
+  target_secondary_label: string | null;
+};
+type ActivityResponseRow = {
+  created_at: string;
+  decision: "accepted" | "declined" | "revision_requested";
+  estimate_id: string | null;
+  id: string;
+  note: string | null;
+  recipient_id: string | null;
+  row_id: string | null;
+  target_kind: "proposal" | "estimate" | "row";
+  target_label: string | null;
+  target_secondary_label: string | null;
+};
+type ActivityEventRow = {
+  created_at: string;
+  event_type: string;
+  id: string;
+  metadata_json: Json;
+  recipient_id: string | null;
+};
+type AccessTelemetryEventRow = {
+  created_at: string;
+  event_type: string;
+  id: string;
+  metadata_json: Json;
 };
 type HeaderReader = {
   get(name: string): string | null;
@@ -136,9 +239,9 @@ type PublisherAuditEventType =
   | "publisher_recipient_resend"
   | "publisher_recipient_removed";
 type PublisherAuditMetadata = Record<string, string | number | boolean | null>;
-type PublicationRpcResult<T> = Promise<{ data: T | null; error: { message?: string } | null }>;
-type PublicationRpcClient = {
-  rpc(functionName: string, args: Record<string, unknown>): PublicationRpcResult<unknown>;
+type PublicationD1ProcedureResult<T> = Promise<{ data: T | null; error: { message?: string } | null }>;
+type PublicationD1ProcedureClient = {
+  callProcedure(functionName: string, args: Record<string, unknown>): PublicationD1ProcedureResult<unknown>;
 };
 export type OpenRecipientProposalActionState =
   | { ok: false; error: "invalid" | "not-a-recipient" | "unavailable" | "unknown" }
@@ -147,13 +250,6 @@ type RecipientPublicationAuthorizationRow = {
   publication_id: string;
   recipient_id: string;
 };
-type RecipientPublicationAuthorizationRpcClient = {
-  rpc(
-    functionName: "authorize_recipient_publication_for_current_user",
-    args: { p_publication_id: string },
-  ): Promise<{ data: RecipientPublicationAuthorizationRow[] | null; error: { code?: string; message?: string } | null }>;
-};
-
 const roleRank = {
   owner: 40,
   admin: 30,
@@ -167,36 +263,34 @@ const SHARED_LINK_RECIPIENT_RESEND_WINDOW_SECONDS = 5 * 60;
 const SHARED_LINK_RECIPIENT_ADD_CONCURRENCY = 4;
 
 function createPublicationAdminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  if (!url || !serviceRoleKey) {
-    throw new Error("Publishing client links requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY on the server.");
-  }
-
-  return createClient<Database>(url, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-    global: {
-      headers: {
-        "X-Client-Info": "archestimator-project-publication-actions",
-      },
-    },
-  });
+  return createPublicationAdminD1Client();
 }
 
-function callPublicationRpc<T>(
+function callPublicationD1Procedure<T>(
   admin: ReturnType<typeof createPublicationAdminClient>,
   functionName: string,
   args: Record<string, unknown>,
-): PublicationRpcResult<T> {
-  return (admin as unknown as PublicationRpcClient).rpc(functionName, args) as PublicationRpcResult<T>;
+): PublicationD1ProcedureResult<T> {
+  return (admin as unknown as PublicationD1ProcedureClient).callProcedure(functionName, args) as PublicationD1ProcedureResult<T>;
 }
 
 function isRecipientProposalPublicationAvailable(
-  publication: Pick<Tables<"project_publications">, "encrypted_token" | "expires_at" | "id" | "password_hash" | "revoked_at" | "status"> | null,
-): publication is Pick<Tables<"project_publications">, "encrypted_token" | "expires_at" | "id" | "password_hash" | "revoked_at" | "status"> {
+  publication: {
+    encrypted_token: string | null;
+    expires_at: string | null;
+    id: string;
+    password_hash: string | null;
+    revoked_at: string | null;
+    status: string | null;
+  } | null,
+): publication is {
+  encrypted_token: string;
+  expires_at: string | null;
+  id: string;
+  password_hash: string | null;
+  revoked_at: string | null;
+  status: string;
+} {
   if (!publication?.encrypted_token) return false;
   if (publication.status !== "published") return false;
   if (publication.revoked_at) return false;
@@ -211,7 +305,7 @@ export async function openRecipientProposalAction(
   _previousState: OpenRecipientProposalActionState,
   formData: FormData,
 ): Promise<Exclude<OpenRecipientProposalActionState, null>> {
-  await requireCurrentUserContext();
+  const currentUser = await requireCurrentUserContext();
 
   const rawPublicationId = formData.get("publicationId");
   if (typeof rawPublicationId !== "string" || !isUuid(rawPublicationId)) {
@@ -221,10 +315,10 @@ export async function openRecipientProposalAction(
   let redirectPath: string | null = null;
 
   try {
-    const supabase = (await createSupabaseServerClient()) as unknown as RecipientPublicationAuthorizationRpcClient;
-    const { data: authorizationRows, error: authorizationError } = await supabase.rpc(
+    const admin = createPublicationAdminClient();
+    const { data: authorizationRows, error: authorizationError } = await admin.rpc<RecipientPublicationAuthorizationRow[]>(
       "authorize_recipient_publication_for_current_user",
-      { p_publication_id: rawPublicationId },
+      { p_publication_id: rawPublicationId, p_current_user_email: currentUser.email },
     );
 
     if (authorizationError) return { ok: false, error: "unknown" };
@@ -234,9 +328,15 @@ export async function openRecipientProposalAction(
       return { ok: false, error: "not-a-recipient" };
     }
 
-    const admin = createPublicationAdminClient();
     const { data: publication, error: publicationError } = await admin
-      .from("project_publications")
+      .from<{
+        encrypted_token: string | null;
+        expires_at: string | null;
+        id: string;
+        password_hash: string | null;
+        revoked_at: string | null;
+        status: string | null;
+      }>("project_publications")
       .select("id, encrypted_token, password_hash, status, revoked_at, expires_at")
       .eq("id", rawPublicationId)
       .maybeSingle();
@@ -278,7 +378,7 @@ function assertUuid(value: string, label: string) {
   if (!isUuid(value)) throw new Error(`${label} is invalid.`);
 }
 
-function workspaceRoleRank(role: Tables<"workspace_members">["role"] | null | undefined) {
+function workspaceRoleRank(role: WorkspaceMemberRole | null | undefined) {
   if (role === "owner") return 40;
   if (role === "admin") return 30;
   if (role === "member") return 20;
@@ -292,7 +392,7 @@ async function assertProjectPublicationManager(projectId: string): Promise<Publi
   const currentUser = await requireCurrentUserContext();
   const admin = createPublicationAdminClient();
   const { data: project, error: projectError } = await admin
-    .from("projects")
+    .from<ProjectRow>("projects")
     .select("id, workspace_id, name, project_code, client_name, location, currency_code, metadata")
     .eq("id", projectId)
     .maybeSingle();
@@ -303,13 +403,13 @@ async function assertProjectPublicationManager(projectId: string): Promise<Publi
   if (currentUser.role !== "ceo" && currentUser.role !== "admin") {
     const [workspaceMembership, projectMembership] = await Promise.all([
       admin
-        .from("workspace_members")
+        .from<RoleRow>("workspace_members")
         .select("role")
         .eq("workspace_id", project.workspace_id)
         .eq("user_id", currentUser.userId)
         .maybeSingle(),
       admin
-        .from("project_members")
+        .from<RoleRow>("project_members")
         .select("role")
         .eq("project_id", project.id)
         .eq("user_id", currentUser.userId)
@@ -320,8 +420,8 @@ async function assertProjectPublicationManager(projectId: string): Promise<Publi
     if (projectMembership.error) throw projectMembership.error;
 
     const actorRank = Math.max(
-      workspaceRoleRank(workspaceMembership.data?.role),
-      roleRank[projectMembership.data?.role ?? "viewer"],
+      workspaceRoleRank(workspaceMembership.data?.role as WorkspaceMemberRole | null | undefined),
+      roleRank[(projectMembership.data?.role as ProjectMemberRole | null | undefined) ?? "viewer"],
     );
     if (actorRank < managerRank) throw new Error("Only project owners and admins can publish shared links.");
   }
@@ -354,10 +454,10 @@ function escapePublicationEmailHtml(value: string): string {
 }
 
 function readPublicationComplianceEmail(fallbackEmail: string): string {
-  const replyTo = process.env.RESEND_REPLY_TO?.trim().toLowerCase();
+  const replyTo = process.env.CLOUDFLARE_EMAIL_REPLY_TO?.trim().toLowerCase();
   if (replyTo && isValidEmail(replyTo)) return replyTo;
 
-  const from = process.env.RESEND_FROM?.trim();
+  const from = process.env.CLOUDFLARE_EMAIL_FROM?.trim();
   const fromMatch = from?.match(/<([^>]+)>/);
   const fromEmail = (fromMatch?.[1] ?? from)?.trim().toLowerCase();
   if (fromEmail && isValidEmail(fromEmail)) return fromEmail;
@@ -369,15 +469,14 @@ export async function readSharedLinkEmailDeliveryReadiness(): Promise<SharedLink
   await requireCurrentUserContext();
 
   const deliveryConfig = readEmailDeliveryConfig();
-  const hasReplyTo = Boolean(process.env.RESEND_REPLY_TO?.trim());
-  const hasWebhookSecret = Boolean(process.env.RESEND_WEBHOOK_SECRET?.trim());
-  const configured = deliveryConfig.configured && hasReplyTo && hasWebhookSecret;
+  const hasReplyTo = Boolean(process.env.CLOUDFLARE_EMAIL_REPLY_TO?.trim());
+  const configured = deliveryConfig.configured && hasReplyTo;
 
   return {
     configured,
     message: configured
       ? "Email delivery is configured."
-      : "Email delivery is disabled until Resend sender, reply-to, and webhook settings are configured. Copy the share link manually.",
+      : "Email delivery is disabled until Cloudflare Email sender and reply-to settings are configured. Copy the share link manually.",
   };
 }
 
@@ -411,7 +510,7 @@ async function resolvePublicationDigestOwner(
   publicationId: string,
 ): Promise<PublicationEmailIdentity | null> {
   const { data: publication, error: publicationError } = await admin
-    .from("project_publications")
+    .from<PublicationDigestPublicationRow>("project_publications")
     .select("id, project_id, published_by")
     .eq("id", publicationId)
     .maybeSingle();
@@ -420,7 +519,7 @@ async function resolvePublicationDigestOwner(
   if (!publication?.project_id) return null;
 
   const { data: project, error: projectError } = await admin
-    .from("projects")
+    .from<PublicationDigestProjectRow>("projects")
     .select("id, workspace_id, created_by")
     .eq("id", publication.project_id)
     .maybeSingle();
@@ -428,7 +527,7 @@ async function resolvePublicationDigestOwner(
   if (!project) return null;
 
   const { data: workspaceOwners, error: workspaceOwnerError } = await admin
-    .from("workspace_members")
+    .from<{ user_id: string }>("workspace_members")
     .select("user_id")
     .eq("workspace_id", project.workspace_id)
     .eq("role", "owner")
@@ -438,7 +537,7 @@ async function resolvePublicationDigestOwner(
   const ownerIds = (workspaceOwners ?? []).map((owner) => owner.user_id);
   if (ownerIds.length) {
     const { data: ownerProfiles, error: ownerProfilesError } = await admin
-      .from("profiles")
+      .from<ProfileContactRow>("profiles")
       .select("id, email, display_name")
       .in("id", ownerIds);
     if (ownerProfilesError) throw ownerProfilesError;
@@ -455,7 +554,7 @@ async function resolvePublicationDigestOwner(
 
   if (project.created_by) {
     const { data: creatorProfile, error: creatorProfileError } = await admin
-      .from("profiles")
+      .from<ProfileContactRow>("profiles")
       .select("email, display_name")
       .eq("id", project.created_by)
       .maybeSingle();
@@ -471,7 +570,7 @@ async function resolvePublicationDigestOwner(
 
   if (publication.published_by) {
     const { data: publisherProfile, error: publisherProfileError } = await admin
-      .from("profiles")
+      .from<ProfileContactRow>("profiles")
       .select("email, display_name")
       .eq("id", publication.published_by)
       .maybeSingle();
@@ -490,7 +589,7 @@ async function resolvePublicationDigestOwner(
 
 async function readLatestProjectPublication(context: PublicationManagerContext): Promise<LatestPublication | null> {
   const { data, error } = await context.admin
-    .from("project_publications")
+    .from<LatestPublication>("project_publications")
     .select("id, encrypted_token, expires_at, location_visibility, password_hash, selected_estimate_ids, snapshot_version")
     .eq("project_id", context.project.id)
     .eq("status", "published")
@@ -508,7 +607,7 @@ async function buildSnapshotForProject(
   locationVisibility: ProjectPublicationLocationVisibility = "locality",
 ) {
   let estimatesQuery = context.admin
-    .from("estimates")
+    .from<EstimateSource>("estimates")
     .select("id, name, sheet_code, updated_at")
     .eq("project_id", context.project.id)
     .order("sheet_code", { ascending: true });
@@ -528,17 +627,17 @@ async function buildSnapshotForProject(
   if (estimateIds.length) {
     const [{ data: rows, error: rowsError }, { data: nodes, error: nodesError }, { data: tabs, error: tabsError }] = await Promise.all([
       context.admin
-        .from("estimate_row_items")
+        .from<EstimateRowSource>("estimate_row_items")
         .select("id, estimate_id, node_id, description, designation, discipline, material, quantity, quantity_base, quantity_contingency_amount, unit, unit_cost, misc_cost, contingency_percentage, adjustment_percentage, imageUrl:source_snapshot->>imageUrl")
         .in("estimate_id", estimateIds)
         .order("sort_order", { ascending: true }),
       context.admin
-        .from("estimate_nodes")
+        .from<EstimateNodeSource>("estimate_nodes")
         .select("id, estimate_id, estimate_tab_id, name, kind, parent_id, sort_order")
         .in("estimate_id", estimateIds)
         .order("sort_order", { ascending: true }),
       context.admin
-        .from("estimate_tabs")
+        .from<EstimateTabSource>("estimate_tabs")
         .select("id, estimate_id, name, sort_order, is_default")
         .in("estimate_id", estimateIds)
         .is("archived_at", null)
@@ -657,16 +756,15 @@ async function recordPublisherAuditEvent({
   eventType: PublisherAuditEventType;
   metadata: PublisherAuditMetadata;
 }) {
-  const { error } = await context.admin.from("account_security_events").insert({
-    event_type: eventType,
-    user_id: context.currentUserId,
-    workspace_id: context.project.workspace_id,
-    metadata_json: {
+  await recordAccountSecurityEvent({
+    eventType,
+    userId: context.currentUserId,
+    workspaceId: context.project.workspace_id,
+    metadata: {
       ...metadata,
       project_id: context.project.id,
-    } as Json,
+    },
   });
-  if (error) throw error;
 }
 
 export async function createProjectPublication({
@@ -709,7 +807,7 @@ export async function createProjectPublication({
   const token = createPublicationToken();
   const clientLinkPath = `/share/${token}`;
 
-  const { data: publicationId, error } = await callPublicationRpc<string>(context.admin, "replace_project_publication", {
+  const { data: publicationId, error } = await callPublicationD1Procedure<string>(context.admin, "replace_project_publication", {
     target_workspace_id: context.project.workspace_id,
     target_project_id: context.project.id,
     p_token_hash: hashPublicationToken(token, readPublicationTokenHashSecret()),
@@ -876,7 +974,7 @@ export async function rotateProjectPublicationLink({
   // revoke + insert. Keeping the same row id means shared_link_recipients stay FK-bound and
   // remain visible/re-sendable in the Recipients tab, the publicationId never points at a dead
   // row (no transient zero-live window), and the old /share/<token> stops resolving immediately.
-  const { data: invalidatedCount, error } = await callPublicationRpc<number>(context.admin, "rotate_project_publication_credentials", {
+  const { data: invalidatedCount, error } = await callPublicationD1Procedure<number>(context.admin, "rotate_project_publication_credentials", {
     target_publication_id: latest.id,
     expected_encrypted_token: latest.encrypted_token,
     p_token_hash: hashPublicationToken(token, readPublicationTokenHashSecret()),
@@ -951,12 +1049,12 @@ export async function refreshProjectPublicationSummary(
 // ============================================================================
 // P4: Email Infrastructure & Recipient Management (Shared Link Overhaul V2)
 // addSharedLinkRecipients + removeSharedLinkRecipient (Security Definer style via admin client)
-// + list helper for manager display. Graceful Resend failures: inserts succeed, emails best-effort.
+// + list helper for manager display. Graceful email failures: inserts succeed, emails best-effort.
 // Uses same token/hash primitives as publication tokens for recipient_token_hash.
 // Recipient link: base share link + ?recipient=<raw-token>. The receiver also accepts legacy ?rt links.
 // ============================================================================
 
-// Temporary local shape until supabase types regen (Docker blocked per P3; casts keep compile)
+// Local D1 row shape for recipient management.
 type RecipientDeliveryStatus = "pending" | "sent" | "bounced" | "opened" | "responded";
 
 interface SharedLinkRecipientRow {
@@ -1207,7 +1305,7 @@ async function sendSharedLinkRecipientInvitationEmail({
 
 async function getPublicationProjectId(admin: ReturnType<typeof createPublicationAdminClient>, publicationId: string): Promise<{ projectId: string; workspaceId: string; encryptedToken?: string | null; clientLinkPath?: string | null }> {
   const { data, error } = await admin
-    .from("project_publications")
+    .from<PublicationProjectContextRow>("project_publications")
     .select("id, project_id, workspace_id, encrypted_token")
     .eq("id", publicationId)
     .maybeSingle();
@@ -1234,7 +1332,7 @@ export async function listSharedLinkRecipients({ publicationId }: { publicationI
   await assertProjectPublicationManager(pubCtx.projectId); // reuses RBAC
 
   const { data, error } = await admin
-    .from("shared_link_recipients")
+    .from<SharedLinkRecipientRow>("shared_link_recipients")
     .select(
       "id, publication_id, email, display_name, email_unsubscribed_at, invited_by, invited_at, delivery_status, last_opened_at, resend_email_id, resend_last_event_at, resend_last_event_type, created_at, updated_at",
     )
@@ -1322,7 +1420,7 @@ export async function addSharedLinkRecipients({
   // Fetch project name for email copy (best effort)
   let projectName = "your project";
   try {
-    const { data: proj } = await admin.from("projects").select("name").eq("id", pubCtx.projectId).maybeSingle();
+    const { data: proj } = await admin.from<{ name: string | null }>("projects").select("name").eq("id", pubCtx.projectId).maybeSingle();
     if (proj?.name) projectName = proj.name;
   } catch { /* non-fatal */ }
 
@@ -1354,7 +1452,7 @@ export async function addSharedLinkRecipients({
 
       // Insert (idempotent per unique pub+lower(email) index)
       const { data: insertedRecipient, error: insertErr } = await admin
-        .from("shared_link_recipients")
+        .from<RecipientIdRow>("shared_link_recipients")
         .insert({
           publication_id: publicationId,
           email: r.email,
@@ -1377,7 +1475,8 @@ export async function addSharedLinkRecipients({
         }
         throw insertErr;
       }
-      const recipientId = insertedRecipient.id;
+      const recipientId = insertedRecipient?.id;
+      if (!recipientId) throw new Error("Recipient insert did not return an id.");
 
       const sendResult = await sendSharedLinkRecipientInvitationEmail({
         linkBase,
@@ -1390,7 +1489,7 @@ export async function addSharedLinkRecipients({
       });
 
       if (sendResult.ok) {
-        // Mark sent (optimistic; real bounces via future webhooks/Resend events)
+        // Mark sent optimistically; provider delivery receipts are future work.
         await admin.from("shared_link_recipients")
           .update({
             delivery_status: "sent",
@@ -1399,7 +1498,7 @@ export async function addSharedLinkRecipients({
           })
           .eq("id", recipientId);
         // AC-MOD-17 (MOD-ACT-04): surface the inserted recipient id (and explicit status) so a
-        // just-added chip immediately supports Resend/Remove without remounting the modal.
+        // just-added chip immediately supports resend/remove without remounting the modal.
         return { added: 1, emailResult: { email: r.email, ok: true, id: recipientId, status: "sent" as const } };
       } else {
         // Graceful: do not fail the overall operation or link creation. Leave as pending (or could mark bounced on permanent error)
@@ -1474,7 +1573,7 @@ export async function resendSharedLinkRecipientEmail({
   if (!rateLimit.allowed) return { ok: false, message: rateLimit.message };
 
   const { data: recipient, error: recipientError } = await admin
-    .from("shared_link_recipients")
+    .from<RecipientResendRow>("shared_link_recipients")
     .select("id, email, display_name, email_unsubscribed_at")
     .eq("publication_id", publicationId)
     .eq("id", recipientId)
@@ -1522,7 +1621,7 @@ export async function resendSharedLinkRecipientEmail({
     return { ok: false, message: "Recipient email resend failed. The previous link is still active." };
   }
 
-  const { data: persisted, error: sentUpdateError } = await callPublicationRpc<boolean>(admin, "persist_shared_link_recipient_resend", {
+  const { data: persisted, error: sentUpdateError } = await callPublicationD1Procedure<boolean>(admin, "persist_shared_link_recipient_resend", {
     target_publication_id: publicationId,
     target_recipient_id: recipientId,
     expected_encrypted_token: pubCtx.encryptedToken ?? null,
@@ -1617,7 +1716,7 @@ async function reservePublicationDigestSlot(
   const windowStart = new Date(now - DIGEST_RATE_LIMIT_SECONDS * 1000).toISOString();
   const expiresAt = new Date(now + DIGEST_RATE_LIMIT_SECONDS * 1000).toISOString();
 
-  const { data, error } = await callPublicationRpc<boolean>(admin, "reserve_security_rate_limit_slot", {
+  const { data, error } = await callPublicationD1Procedure<boolean>(admin, "reserve_security_rate_limit_slot", {
     p_scope: scope,
     p_key_hash: keyHash,
     p_window_start: windowStart,
@@ -1720,7 +1819,7 @@ export async function loadSharedLinkActivity(
   const admin = createPublicationAdminClient();
   const pubHash = hashPublicationToken(publicationToken, readPublicationTokenHashSecret());
   const { data: pub, error: pubErr } = await admin
-    .from("project_publications")
+    .from<ActivityPublicationRow>("project_publications")
     .select("id, project_id, status, revoked_at, expires_at, activity_target_labels_json")
     .eq("token_hash", pubHash)
     .maybeSingle();
@@ -1737,19 +1836,19 @@ export async function loadSharedLinkActivity(
 
   // Parallel loads (additive, service role bypasses RLS for owner-verified path)
   let commentsQuery = admin
-    .from("shared_link_comments")
+    .from<ActivityCommentRow>("shared_link_comments")
     .select("id, created_at, body, is_internal, author_email, author_name, recipient_id, estimate_id, row_id, target_kind, target_label, target_secondary_label, snapshot_version_at_comment")
     .eq("publication_id", pubId);
   let responsesQuery = admin
-    .from("shared_link_responses")
+    .from<ActivityResponseRow>("shared_link_responses")
     .select("id, created_at, decision, note, recipient_id, estimate_id, row_id, target_kind, target_label, target_secondary_label")
     .eq("publication_id", pubId);
   let eventsQuery = admin
-    .from("shared_link_events")
+    .from<ActivityEventRow>("shared_link_events")
     .select("id, created_at, event_type, metadata_json, recipient_id")
     .eq("publication_id", pubId);
   let accessTelemetryQuery = admin
-    .from("project_publication_events")
+    .from<AccessTelemetryEventRow>("project_publication_events")
     .select("id, created_at, event_type, metadata_json")
     .eq("publication_id", pubId);
   if (cursorFilter) {
@@ -1776,7 +1875,7 @@ export async function loadSharedLinkActivity(
   const recipientDisplayNames = new Map<string, string>();
   if (recipientIds.size) {
     const { data: recipients, error: recipientsError } = await admin
-      .from("shared_link_recipients")
+      .from<SharedLinkRecipientDisplayRow>("shared_link_recipients")
       .select("id, display_name")
       .eq("publication_id", pubId)
       .in("id", Array.from(recipientIds))

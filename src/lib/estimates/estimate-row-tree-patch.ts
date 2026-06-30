@@ -1,5 +1,5 @@
 import type { EstimateRowItem, EstimateTreeNode } from "@/lib/estimates/types";
-import type { Json } from "@/lib/supabase/types";
+import type { Json } from "@/lib/types/json";
 
 export type EstimateRowItemPatch = {
   material?: string;

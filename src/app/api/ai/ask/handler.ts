@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 
-import { getAiRequestUserContext, type AiRequestUserContext } from "@/lib/ai/auth";
+import { getAiRequestUserContext, isProviderBackedAiAuthMode, isProviderBackedAiUserContext, type AiRequestUserContext } from "@/lib/ai/auth";
 import { recordAiAskAuditEvent, type AiAuditRecorder } from "@/lib/ai/audit";
 import { askDeepSeek, hasDeepSeekApiKey, type DeepSeekAskResult, type DeepSeekChatMessage } from "@/lib/ai/deepseek";
 import { checkAiAskQuota, type AiAskQuotaResult } from "@/lib/ai/rate-limit";
@@ -122,7 +122,7 @@ export async function handleAiAskRequest(request: Request, dependencies: Partial
     return jsonError(AI_AUTH_MODE_ERROR, 403);
   }
   if (!userContext) return jsonError("Authentication required.", 401);
-  if (userContext.authMode !== "supabase") return jsonError(AI_AUTH_MODE_ERROR, 403);
+  if (!isProviderBackedAiAuthMode(userContext.authMode)) return jsonError(AI_AUTH_MODE_ERROR, 403);
   if (!userContext.workspaceId) return jsonError("AI request requires a workspace.", 403);
   if (!resolvedDependencies.hasApiKey()) return jsonError("AI provider is not configured.", 503);
 
@@ -140,7 +140,7 @@ export async function handleAiAskRequest(request: Request, dependencies: Partial
     : undefined;
   const runId = randomUUID();
   let readContext: AiAskReadContext | null = null;
-  if (userContext.authMode === "supabase" && userContext.workspaceId) {
+  if (isProviderBackedAiUserContext(userContext)) {
     try {
       readContext = await resolvedDependencies.readContext({
         runId,

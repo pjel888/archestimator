@@ -1,6 +1,5 @@
 import { createHash, createHmac } from "node:crypto";
 import { cache } from "react";
-import { createClient } from "@supabase/supabase-js";
 
 import { deriveCredentialVersion, getClientIp, hashPublicationToken, isPublicationTokenShape, readPublicationTokenHashSecret, verifyPublicationPassword } from "@/lib/publication/security";
 import {
@@ -14,7 +13,17 @@ import {
   sanitizeProjectPublicationSnapshotForPublicRead,
 } from "@/lib/publication/snapshot";
 import type { ProjectPublicationSnapshot } from "@/lib/publication/types";
-import type { Database, Json, Tables } from "@/lib/supabase/types";
+import {
+  createPublicationD1Store,
+  type JsonValue,
+  type PublicationAccessRow,
+  type PublicationD1Store,
+  type PublicationSnapshotRow,
+  type PublicationWriteContextRow,
+  type SharedLinkCommentD1Row,
+} from "@/lib/publication/d1-store";
+
+type Json = JsonValue;
 
 export type ProjectPublicationEventType = "open" | "password_success" | "password_failure" | "download_attempt_blocked" | "password_attempt";
 
@@ -57,20 +66,7 @@ export type SharedLinkPublicComment = {
   snapshotVersionAtComment: number | null;
 };
 
-type SharedLinkPublicCommentRow = Pick<
-  Tables<"shared_link_comments">,
-  | "id"
-  | "created_at"
-  | "body"
-  | "author_name"
-  | "recipient_id"
-  | "estimate_id"
-  | "row_id"
-  | "target_kind"
-  | "target_label"
-  | "target_secondary_label"
-  | "snapshot_version_at_comment"
->;
+type SharedLinkPublicCommentRow = SharedLinkCommentD1Row;
 
 export type SharedLinkRecipientDecision = {
   type: "accepted" | "declined" | "revision_requested";
@@ -86,73 +82,17 @@ export type SharedLinkRecipientDecision = {
   signatureIntentHash: string | null;
 };
 
-type PublicationLookupRow = Pick<
-  Tables<"project_publications">,
-  "expires_at" | "id" | "password_hash" | "revoked_at" | "snapshot_version" | "status"
->;
-type PublicationWriteContextRow = Pick<
-  Tables<"project_publications">,
-  "activity_target_labels_json" | "id" | "snapshot_json" | "snapshot_version"
->;
-
-type PublicationSnapshotLookupRow = PublicationLookupRow & Pick<Tables<"project_publications">, "snapshot_json">;
-type InsertClientCommentRpcArgs = Omit<
-  Database["public"]["Functions"]["insert_client_comment"]["Args"],
-  "p_estimate_id" | "p_row_id" | "p_target_kind" | "p_target_label" | "p_target_secondary_label"
-> & {
-  p_estimate_id: string | null;
-  p_row_id: string | null;
-  p_target_kind: "proposal" | "estimate" | "row";
-  p_target_label: string | null;
-  p_target_secondary_label: string | null;
-};
-type SubmitClientResponseRpcArgs = Omit<
-  Database["public"]["Functions"]["submit_client_response"]["Args"],
-  | "p_estimate_id"
-  | "p_note"
-  | "p_row_id"
-  | "p_signature_intent_hash"
-  | "p_signer_name"
-  | "p_target_kind"
-  | "p_target_label"
-  | "p_target_secondary_label"
-> & {
-  p_estimate_id: string | null;
-  p_note: string | null;
-  p_row_id: string | null;
-  p_signature_intent_hash: string | null;
-  p_signer_name: string | null;
-  p_target_kind: "proposal" | "estimate" | "row";
-  p_target_label: string | null;
-  p_target_secondary_label: string | null;
-};
+type PublicationLookupRow = PublicationAccessRow;
+type PublicationSnapshotLookupRow = PublicationSnapshotRow;
 
 export function createPublicationServiceClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  if (!url || !serviceRoleKey) {
-    throw new Error("Public publication lookup requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY on the server.");
-  }
-
-  return createClient<Database>(url, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-    global: {
-      headers: {
-        "X-Client-Info": "archestimator-project-publication",
-      },
-    },
-  });
+  return createPublicationD1Store();
 }
 
-// OPT-3 (PERF-04): one service-role client per request. `React.cache` memoises the
+// OPT-3 (PERF-04): one D1 store per request. `React.cache` memoises the
 // factory for the duration of a single request render (page + generateMetadata),
-// collapsing the ≥5 per-call client allocations into one. The service-role config is
-// fully static (no per-request header mutation) so reuse is safe; `persistSession:false`
-// keeps it stateless. Outside a request scope (route handlers / tests) `cache` is a
-// transparent passthrough — every call simply re-constructs, preserving prior behaviour.
+// collapsing repeated store construction into one. Outside a request scope
+// (route handlers / tests) `cache` is a transparent passthrough.
 const getRequestPublicationServiceClient = cache(createPublicationServiceClient);
 
 // OPT-2 (PERF-03): de-duplicate the publication-row lookup. The same `token_hash` row is
@@ -164,31 +104,14 @@ const getRequestPublicationServiceClient = cache(createPublicationServiceClient)
 // reader additionally pulls the heavy `snapshot_json` blob and is only used by the snapshot
 // resolver. Both are per-request memoised — never cached across requests — so the
 // active-state gate (revoked/expired) is re-evaluated on every visit.
-const ACCESS_LOOKUP_COLUMNS = "id, status, password_hash, expires_at, revoked_at, snapshot_version";
-const SNAPSHOT_LOOKUP_COLUMNS = "id, status, password_hash, snapshot_json, expires_at, revoked_at, snapshot_version";
-
 const getCachedPublicationAccessRowByToken = cache(async (token: string): Promise<PublicationLookupRow | null> => {
-  const supabase = getRequestPublicationServiceClient();
-  const { data, error } = await supabase
-    .from("project_publications")
-    .select(ACCESS_LOOKUP_COLUMNS)
-    .eq("token_hash", readTokenHash(token))
-    .maybeSingle();
-
-  if (error) throw error;
-  return data ?? null;
+  const store = getRequestPublicationServiceClient();
+  return store.getPublicationAccessByTokenHash(readTokenHash(token));
 });
 
 const getCachedPublicationSnapshotRowByToken = cache(async (token: string): Promise<PublicationSnapshotLookupRow | null> => {
-  const supabase = getRequestPublicationServiceClient();
-  const { data, error } = await supabase
-    .from("project_publications")
-    .select(SNAPSHOT_LOOKUP_COLUMNS)
-    .eq("token_hash", readTokenHash(token))
-    .maybeSingle();
-
-  if (error) throw error;
-  return (data as PublicationSnapshotLookupRow | null) ?? null;
+  const store = getRequestPublicationServiceClient();
+  return store.getPublicationSnapshotByTokenHash(readTokenHash(token));
 });
 
 function isActivePublication(row: PublicationLookupRow) {
@@ -206,28 +129,15 @@ function readTokenHash(token: string) {
 // the comment/decision write paths can be constrained by publication_id. Returns null when no
 // publication matches the token hash (the caller treats that as "publication not found").
 async function resolvePublicationContextByTokenHash(
-  supabase: ReturnType<typeof createPublicationServiceClient>,
+  store: PublicationD1Store,
   tokenHash: string,
 ): Promise<PublicationWriteContextRow | null> {
-  const { data, error } = await supabase
-    .from("project_publications")
-    .select("id, activity_target_labels_json, snapshot_json, snapshot_version")
-    .eq("token_hash", tokenHash)
-    .maybeSingle();
-
-  if (error) throw error;
-  return data ?? null;
+  return store.getPublicationWriteContextByTokenHash(tokenHash);
 }
 
 async function loadPublicationSnapshotForPublicIds(publicationId: string): Promise<ProjectPublicationSnapshot | null> {
-  const supabase = createPublicationServiceClient();
-  const { data, error } = await supabase
-    .from("project_publications")
-    .select("snapshot_json")
-    .eq("id", publicationId)
-    .maybeSingle();
-  if (error) throw error;
-  return (data?.snapshot_json as ProjectPublicationSnapshot | null) ?? null;
+  const store = createPublicationServiceClient();
+  return (await store.getPublicationSnapshotById(publicationId)) as ProjectPublicationSnapshot | null;
 }
 
 function toPublicSnapshotId(snapshot: ProjectPublicationSnapshot | null, id: string | null) {
@@ -283,7 +193,7 @@ export function isProjectPublicationAccessTelemetryEnabled(env: Partial<Pick<Nod
 }
 
 function readTrustedCountry(request: Request) {
-  const country = request.headers.get("x-vercel-ip-country") ?? request.headers.get("cf-ipcountry");
+  const country = request.headers.get("cf-ipcountry");
   const normalized = country?.trim().toUpperCase();
   return normalized && /^[A-Z]{2}$/.test(normalized) ? normalized : undefined;
 }
@@ -378,12 +288,8 @@ function commentRateLimitMessage(retryAfter: number) {
 }
 
 async function cleanupExpiredRateLimitEvents(now = Date.now()) {
-  const supabase = createPublicationServiceClient();
-  const { error } = await supabase
-    .from("security_rate_limit_events")
-    .delete()
-    .lt("expires_at", new Date(now).toISOString());
-  if (error) throw error;
+  const store = createPublicationServiceClient();
+  await store.cleanupExpiredRateLimitEvents(now);
 }
 
 const RATE_LIMIT_CLEANUP_INTERVAL_MS = 60_000;
@@ -417,15 +323,8 @@ async function countRateLimitEvents({
   scope: RateLimitScope;
   since: string;
 }) {
-  const supabase = createPublicationServiceClient();
-  const { count, error } = await supabase
-    .from("security_rate_limit_events")
-    .select("id", { count: "exact", head: true })
-    .eq("scope", scope)
-    .eq("key_hash", keyHash)
-    .gte("occurred_at", since);
-  if (error) throw error;
-  return count ?? 0;
+  const store = createPublicationServiceClient();
+  return store.countRateLimitEvents({ keyHash, scope, since });
 }
 
 async function recordRateLimitEvent({
@@ -439,24 +338,13 @@ async function recordRateLimitEvent({
   scope: RateLimitScope;
   ttlSeconds: number;
 }) {
-  const supabase = createPublicationServiceClient();
-  const { error } = await supabase.from("security_rate_limit_events").insert({
-    scope,
-    key_hash: keyHash,
-    metadata_json: (metadata ?? {}) as Json,
-    expires_at: new Date(Date.now() + ttlSeconds * 1000).toISOString(),
-  });
-  if (error) throw error;
+  const store = createPublicationServiceClient();
+  await store.insertRateLimitEvent({ keyHash, metadata, scope, ttlSeconds });
 }
 
 async function deleteRateLimitEvents(scope: RateLimitScope, keyHash: string) {
-  const supabase = createPublicationServiceClient();
-  const { error } = await supabase
-    .from("security_rate_limit_events")
-    .delete()
-    .eq("scope", scope)
-    .eq("key_hash", keyHash);
-  if (error) throw error;
+  const store = createPublicationServiceClient();
+  await store.deleteRateLimitEvents(scope, keyHash);
 }
 
 async function checkRecordedRateLimit({
@@ -778,14 +666,9 @@ export async function verifyProjectPublicationPasswordByToken(token: string, pas
   const normalizedToken = token.trim();
   if (!isPublicationTokenShape(normalizedToken) || !password) return false;
 
-  const supabase = createPublicationServiceClient();
-  const { data, error } = await supabase
-    .from("project_publications")
-    .select("id, status, password_hash, expires_at, revoked_at, snapshot_version")
-    .eq("token_hash", readTokenHash(normalizedToken))
-    .maybeSingle();
+  const store = createPublicationServiceClient();
+  const data = await store.getPublicationAccessByTokenHash(readTokenHash(normalizedToken));
 
-  if (error) throw error;
   if (!data || !isActivePublication(data) || !data.password_hash) return false;
 
   const passwordValid = await verifyPublicationPassword(password, data.password_hash);
@@ -811,7 +694,7 @@ export async function recordProjectPublicationAnalyticsEvent({
 }): Promise<{ recorded: boolean; reason?: "disabled" | "inactive" }> {
   if (!isProjectPublicationAccessTelemetryEnabled()) return { recorded: false, reason: "disabled" };
 
-  const supabase = getRequestPublicationServiceClient();
+  const store = getRequestPublicationServiceClient();
   // OPT-2: reuse the per-request memoised access row instead of re-SELECTing it. The
   // active-state gate still runs here, so telemetry is never written for an inactive
   // publication.
@@ -823,14 +706,13 @@ export async function recordProjectPublicationAnalyticsEvent({
   const metadata = buildAccessTelemetryMetadata({ accessStage, passwordSuccess, recipientKnown, request });
   const eventMetadata = recipientId ? { ...metadata, recipient_known: true } : metadata;
 
-  const { error: eventError } = await supabase.from("project_publication_events").insert({
-    publication_id: publication.id,
-    event_type: eventType,
-    metadata_json: eventMetadata as Json,
-    ip_hash: ipHash,
-    user_agent_hash: userAgentHash,
+  await store.insertPublicationEvent({
+    publicationId: publication.id,
+    eventType,
+    metadata: eventMetadata as Record<string, Json>,
+    ipHash,
+    userAgentHash,
   });
-  if (eventError) throw eventError;
 
   return { recorded: true };
 }
@@ -848,7 +730,7 @@ export async function recordProjectPublicationEvent({
   metadata?: Record<string, unknown>;
   recipientId?: string;
 }) {
-  const supabase = getRequestPublicationServiceClient();
+  const store = getRequestPublicationServiceClient();
   // OPT-2: reuse the per-request memoised access row instead of re-SELECTing it. The
   // active-state gate still runs here, so the open counter / recipient bookkeeping is never
   // written for a revoked or expired publication.
@@ -859,14 +741,13 @@ export async function recordProjectPublicationEvent({
   const ipHash = hashRequestValue(request.headers.get("x-forwarded-for"));
   const userAgentHash = hashRequestValue(request.headers.get("user-agent"));
 
-  const { error: eventError } = await supabase.from("project_publication_events").insert({
-    publication_id: publication.id,
-    event_type: eventType,
-    metadata_json: eventMetadata as Json,
-    ip_hash: ipHash,
-    user_agent_hash: userAgentHash,
+  await store.insertPublicationEvent({
+    publicationId: publication.id,
+    eventType,
+    metadata: eventMetadata as Record<string, Json>,
+    ipHash,
+    userAgentHash,
   });
-  if (eventError) throw eventError;
 
   if (eventType === "open") {
     // MOD-MET-01: gate the public "Opened N times" counter on real visitors only.
@@ -875,34 +756,21 @@ export async function recordProjectPublicationEvent({
     // bookkeeping below stay unconditional (the latter only fires for known recipients).
     const isBot = readDeviceType(request.headers.get("user-agent") ?? "") === "bot";
     if (!isBot) {
-      const { error: incrementError } = await supabase.rpc("increment_project_publication_open", {
-        target_publication_id: publication.id,
-      });
-      if (incrementError) throw incrementError;
+      await store.incrementPublicationOpen(publication.id);
     }
 
     if (recipientId) {
       const openedAt = new Date().toISOString();
-      const { error: recipientError } = await supabase
-        .from("shared_link_recipients")
-        .update({
-          delivery_status: "opened",
-          last_opened_at: openedAt,
-          updated_at: openedAt,
-        })
-        .eq("id", recipientId)
-        .eq("publication_id", publication.id);
-      if (recipientError) throw recipientError;
+      await store.markRecipientOpened({ publicationId: publication.id, recipientId, openedAt });
 
-      const { error: sharedEventError } = await supabase.from("shared_link_events").insert({
-        publication_id: publication.id,
-        recipient_id: recipientId,
-        event_type: "open",
-        metadata_json: eventMetadata as Json,
-        ip_hash: ipHash,
-        user_agent_hash: userAgentHash,
+      await store.insertSharedLinkEvent({
+        publicationId: publication.id,
+        recipientId,
+        eventType: "open",
+        metadata: eventMetadata as Record<string, Json>,
+        ipHash,
+        userAgentHash,
       });
-      if (sharedEventError) throw sharedEventError;
     }
   }
 }
@@ -918,28 +786,15 @@ export async function verifySharedLinkRecipientToken(
 ): Promise<({ publicationId: string; snapshotVersion: number; credentialVersion: string } & ResolvedSharedLinkRecipientIdentity) | null> {
   if (!publicationToken.trim() || !recipientToken.trim()) return null;
 
-  const supabase = createPublicationServiceClient();
+  const store = createPublicationServiceClient();
   const pubHash = readTokenHash(publicationToken);
 
-  const { data: pub, error: pubErr } = await supabase
-    .from("project_publications")
-    .select("id, status, expires_at, revoked_at, snapshot_version, password_hash")
-    .eq("token_hash", pubHash)
-    .maybeSingle();
+  const pub = await store.getPublicationAccessByTokenHash(pubHash);
 
-  if (pubErr) throw pubErr;
   if (!pub || !isActivePublication(pub as PublicationLookupRow)) return null;
 
   const recHash = hashPublicationToken(recipientToken, readPublicationTokenHashSecret());
-
-  const { data: rec, error: recErr } = await supabase
-    .from("shared_link_recipients")
-    .select("id, email, display_name")
-    .eq("recipient_token_hash", recHash)
-    .eq("publication_id", pub.id)
-    .maybeSingle();
-
-  if (recErr) throw recErr;
+  const rec = await store.getRecipientByTokenHash(pub.id, recHash);
   if (!rec?.email) return null;
 
   return {
@@ -958,32 +813,15 @@ export async function unsubscribeSharedLinkRecipientByToken(
 ): Promise<ResolvedSharedLinkRecipientIdentity | null> {
   if (!publicationToken.trim() || !recipientToken.trim()) return null;
 
-  const supabase = createPublicationServiceClient();
+  const store = createPublicationServiceClient();
   const pubHash = readTokenHash(publicationToken);
 
-  const { data: pub, error: pubErr } = await supabase
-    .from("project_publications")
-    .select("id, status, password_hash, expires_at, revoked_at, snapshot_version")
-    .eq("token_hash", pubHash)
-    .maybeSingle();
+  const pub = await store.getPublicationAccessByTokenHash(pubHash);
 
-  if (pubErr) throw pubErr;
   if (!pub || !isActivePublication(pub as PublicationLookupRow)) return null;
 
   const recipientTokenHash = hashPublicationToken(recipientToken, readPublicationTokenHashSecret());
-  const unsubscribedAt = new Date().toISOString();
-  const { data: recipient, error: recipientError } = await supabase
-    .from("shared_link_recipients")
-    .update({
-      email_unsubscribed_at: unsubscribedAt,
-      updated_at: unsubscribedAt,
-    })
-    .eq("publication_id", pub.id)
-    .eq("recipient_token_hash", recipientTokenHash)
-    .select("id, email, display_name")
-    .maybeSingle();
-
-  if (recipientError) throw recipientError;
+  const recipient = await store.markRecipientUnsubscribed(pub.id, recipientTokenHash);
   if (!recipient?.email) return null;
 
   return {
@@ -1002,15 +840,8 @@ export async function resolveSharedLinkRecipientIdentity({
 }): Promise<ResolvedSharedLinkRecipientIdentity | null> {
   if (!publicationId.trim() || !recipientId?.trim()) return null;
 
-  const supabase = createPublicationServiceClient();
-  const { data, error } = await supabase
-    .from("shared_link_recipients")
-    .select("id, email, display_name")
-    .eq("publication_id", publicationId)
-    .eq("id", recipientId)
-    .maybeSingle();
-
-  if (error) throw error;
+  const store = createPublicationServiceClient();
+  const data = await store.getRecipientIdentity(publicationId, recipientId);
   if (!data?.email) return null;
 
   return {
@@ -1027,20 +858,11 @@ export async function loadSharedLinkPublicComments({
 }): Promise<SharedLinkPublicComment[]> {
   if (!publicationId.trim()) return [];
 
-  const supabase = createPublicationServiceClient();
-  const { data, error } = await supabase
-    .from("shared_link_comments")
-    .select("id, created_at, body, author_name, author_email, recipient_id, estimate_id, row_id, target_kind, target_label, target_secondary_label, snapshot_version_at_comment")
-    .eq("publication_id", publicationId)
-    .eq("is_internal", false)
-    .order("created_at", { ascending: true })
-    .order("id", { ascending: true })
-    .limit(200);
-
-  if (error) throw error;
+  const store = createPublicationServiceClient();
+  const data = await store.listPublicComments(publicationId, 200);
 
   const snapshot = await loadPublicationSnapshotForPublicIds(publicationId);
-  return (data ?? []).map((comment) => mapSharedLinkPublicComment(comment, snapshot));
+  return data.map((comment) => mapSharedLinkPublicComment(comment, snapshot));
 }
 
 function mapSharedLinkPublicComment(comment: SharedLinkPublicCommentRow, snapshot: ProjectPublicationSnapshot | null): SharedLinkPublicComment {
@@ -1072,22 +894,12 @@ export async function loadSharedLinkRecipientDecision({
 }): Promise<SharedLinkRecipientDecision | null> {
   if (!publicationId.trim() || !recipientId.trim()) return null;
 
-  const supabase = createPublicationServiceClient();
-  const [{ data, error }, snapshot] = await Promise.all([
-    supabase
-      .from("shared_link_responses")
-      .select(
-        "decision, note, created_at, estimate_id, row_id, target_kind, target_label, target_secondary_label, signer_name, signature_intent_hash",
-      )
-      .eq("publication_id", publicationId)
-      .eq("recipient_id", recipientId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+  const store = createPublicationServiceClient();
+  const [data, snapshot] = await Promise.all([
+    store.getLatestRecipientDecision(publicationId, recipientId),
     loadPublicationSnapshotForPublicIds(publicationId),
   ]);
 
-  if (error) throw error;
   if (!data || !isSharedLinkDecisionType(data.decision)) return null;
 
   return {
@@ -1106,10 +918,10 @@ export async function loadSharedLinkRecipientDecision({
 }
 
 // ============================================================================
-// P6: Insert client comment via the P3 SECURITY DEFINER RPC (additive only)
+// P6: Insert client comment through the D1 publication store.
 // - Reuses createPublicationServiceClient + hash helpers
 // - Looks up recipient_token_hash from P3 table using recipientId (from P5 session)
-// - Server-side sanitize + truncate defense-in-depth (RPC also truncates)
+// - Server-side sanitize + truncate defense-in-depth.
 // - Returns comment id or throws on validation failure (publication/recipient active)
 // - Called exclusively from the new POST /api/share/[token]/comment after CSRF + session + rate
 // ============================================================================
@@ -1125,7 +937,7 @@ export async function insertSharedLinkComment(params: {
     throw new Error("Expected snapshot version is required.");
   }
 
-  const supabase = createPublicationServiceClient();
+  const store = createPublicationServiceClient();
   const pubHash = readTokenHash(params.publicationToken); // uses same secret as P3/P4/P5
 
   // SEC-06 (AC-SEC-06): resolve the publication owning THIS token so the recipient lookup
@@ -1133,25 +945,16 @@ export async function insertSharedLinkComment(params: {
   // (at the app layer) resolve a recipient_token_hash even when posting against publication B.
   // The downstream RPC also re-validates the recipient belongs to the publication, but we close
   // the app-layer seam too (defense-in-depth — see SEC-06 in 06_SECURITY_AUDIT.md).
-  const publicationContext = await resolvePublicationContextByTokenHash(supabase, pubHash);
+  const publicationContext = await resolvePublicationContextByTokenHash(store, pubHash);
   if (!publicationContext) {
     throw new Error("Publication not found for comment.");
   }
   const publicationId = publicationContext.id;
 
-  // Lookup recipient_token_hash (P3 table — cast as in verify fn), scoped to the publication.
-  const { data: rec, error: recErr } = await supabase
-    .from("shared_link_recipients")
-    .select("recipient_token_hash")
-    .eq("id", params.recipientId)
-    .eq("publication_id", publicationId)
-    .maybeSingle();
-
-  if (recErr) throw recErr;
-  if (!rec?.recipient_token_hash) {
+  const recipientTokenHash = await store.getRecipientTokenHash(publicationId, params.recipientId);
+  if (!recipientTokenHash) {
     throw new Error("Recipient not found for comment.");
   }
-  const recipientTokenHash = rec.recipient_token_hash;
 
   const sanitizedBody = params.body.trim().slice(0, 1000);
   const labels = createSharedLinkTargetLabelMapFromLabelsJson(publicationContext.activity_target_labels_json);
@@ -1168,36 +971,24 @@ export async function insertSharedLinkComment(params: {
     row_id: validatedTarget.rowId,
   });
 
-  // Call the exact P3 RPC (validates active pub + recipient match internally)
-  const insertClientCommentArgs: InsertClientCommentRpcArgs = {
-    p_token_hash: pubHash,
-    p_recipient_token_hash: recipientTokenHash,
-    p_estimate_id: validatedTarget.estimateId,
-    p_row_id: validatedTarget.rowId,
-    p_body: sanitizedBody,
-    p_expected_snapshot_version: params.expectedSnapshotVersion,
-    p_target_kind: targetContext.targetKind,
-    p_target_label: targetContext.targetLabel,
-    p_target_secondary_label: targetContext.targetSecondaryLabel ?? null,
-  };
-  const { data: commentId, error: rpcErr } = await supabase.rpc(
-    "insert_client_comment",
-    insertClientCommentArgs as Database["public"]["Functions"]["insert_client_comment"]["Args"],
-  );
-
-  if (rpcErr) throw new Error(rpcErr.message);
+  const commentId = await store.insertClientComment({
+    tokenHash: pubHash,
+    recipientTokenHash,
+    publicationId,
+    estimateId: validatedTarget.estimateId,
+    rowId: validatedTarget.rowId,
+    body: sanitizedBody,
+    expectedSnapshotVersion: params.expectedSnapshotVersion,
+    targetKind: targetContext.targetKind,
+    targetLabel: targetContext.targetLabel,
+    targetSecondaryLabel: targetContext.targetSecondaryLabel ?? null,
+  });
   if (!commentId) throw new Error("Failed to insert comment.");
 
   const id = String(commentId);
-  const { data: insertedComment, error: insertedCommentErr } = await supabase
-    .from("shared_link_comments")
-    .select("id, created_at, body, author_name, recipient_id, estimate_id, row_id, target_kind, target_label, target_secondary_label, snapshot_version_at_comment")
-    .eq("publication_id", publicationId)
-    .eq("id", id)
-    .eq("is_internal", false)
-    .maybeSingle();
+  const insertedComment = await store.getComment(publicationId, id);
 
-  if (insertedCommentErr || !insertedComment) {
+  if (!insertedComment) {
     return { id };
   }
 
@@ -1210,11 +1001,11 @@ export async function insertSharedLinkComment(params: {
 // (readTokenHash / hash helpers already defined earlier in this module for P3/P5 paths)
 
 // ============================================================================
-// P7: Submit client decision via the P3 SECURITY DEFINER RPC submit_client_response
-// - Additive only. Mirrors insertSharedLinkComment exactly for lookup + RPC shape.
-// - snapshot_version locking + duplicate detection (unique on recipient+publication) handled inside RPC.
+// P7: Submit client decision through the D1 publication store.
+// - Additive only. Mirrors insertSharedLinkComment exactly for lookup + write shape.
+// - snapshot_version locking + duplicate detection (unique on recipient+publication) handled in the store.
 // - Raises 'Decision already submitted.' on conflict (mapped to 409 by caller route).
-// - Optional note truncated to 2000 chars (RPC also enforces).
+// - Optional note truncated to 2000 chars.
 // - Called exclusively from the new POST /api/share/[token]/decision after CSRF + P5 session.
 // ============================================================================
 export async function submitSharedLinkDecision(params: {
@@ -1231,31 +1022,22 @@ export async function submitSharedLinkDecision(params: {
     throw new Error("Expected snapshot version is required.");
   }
 
-  const supabase = createPublicationServiceClient();
+  const store = createPublicationServiceClient();
   const pubHash = readTokenHash(params.publicationToken);
 
   // SEC-06 (AC-SEC-06): scope the recipient lookup to the publication owning THIS token so a
   // recipient `id` from publication A cannot resolve under publication B at the app layer.
   // The RPC re-validates publication+recipient too; this closes the app-layer seam.
-  const publicationContext = await resolvePublicationContextByTokenHash(supabase, pubHash);
+  const publicationContext = await resolvePublicationContextByTokenHash(store, pubHash);
   if (!publicationContext) {
     throw new Error("Publication not found for decision.");
   }
   const publicationId = publicationContext.id;
 
-  // Lookup recipient_token_hash (P3 table — same pattern as comments), scoped to the publication.
-  const { data: rec, error: recErr } = await supabase
-    .from("shared_link_recipients")
-    .select("recipient_token_hash")
-    .eq("id", params.recipientId)
-    .eq("publication_id", publicationId)
-    .maybeSingle();
-
-  if (recErr) throw recErr;
-  if (!rec?.recipient_token_hash) {
+  const recipientTokenHash = await store.getRecipientTokenHash(publicationId, params.recipientId);
+  if (!recipientTokenHash) {
     throw new Error("Recipient not found for decision.");
   }
-  const recipientTokenHash = rec.recipient_token_hash;
 
   const trimmedNote = params.note ? params.note.trim().slice(0, 2000) : null;
   const signerName = params.signerName ? params.signerName.trim().slice(0, 120) : null;
@@ -1273,30 +1055,23 @@ export async function submitSharedLinkDecision(params: {
     row_id: validatedTarget.rowId,
   });
 
-  // Call the exact P3 RPC (validates active pub + recipient + performs snapshot_version_at_decision lock + unique conflict)
-  const submitClientResponseArgs: SubmitClientResponseRpcArgs = {
-    p_token_hash: pubHash,
-    p_recipient_token_hash: recipientTokenHash,
-    p_decision: params.decision,
-    p_note: trimmedNote,
-    p_expected_snapshot_version: params.expectedSnapshotVersion,
-    p_estimate_id: validatedTarget.estimateId,
-    p_row_id: validatedTarget.rowId,
-    p_signer_name: signerName,
-    p_signature_intent_hash: null,
-    p_target_kind: targetContext.targetKind,
-    p_target_label: targetContext.targetLabel,
-    p_target_secondary_label: targetContext.targetSecondaryLabel ?? null,
-  };
-  const { data: responseId, error: rpcErr } = await supabase.rpc(
-    "submit_client_response",
-    submitClientResponseArgs as Database["public"]["Functions"]["submit_client_response"]["Args"],
-  );
-
-  if (rpcErr) throw new Error(rpcErr.message);
+  const responseId = await store.submitClientResponse({
+    tokenHash: pubHash,
+    recipientTokenHash,
+    publicationId,
+    decision: params.decision,
+    note: trimmedNote,
+    expectedSnapshotVersion: params.expectedSnapshotVersion,
+    estimateId: validatedTarget.estimateId,
+    rowId: validatedTarget.rowId,
+    signerName,
+    targetKind: targetContext.targetKind,
+    targetLabel: targetContext.targetLabel,
+    targetSecondaryLabel: targetContext.targetSecondaryLabel ?? null,
+  });
   if (!responseId) {
     throw new Error("Decision already submitted.");
   }
 
-  return { id: responseId as string };
+  return { id: responseId };
 }

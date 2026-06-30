@@ -1,10 +1,19 @@
 import { createHash, randomUUID } from "node:crypto";
 
-import { createClient } from "@supabase/supabase-js";
-
-import type { AiRequestUserContext } from "@/lib/ai/auth";
+import {
+  getAiAuditD1Database,
+  recordAiAskAuditEventInD1,
+  recordAiPackageApplyAuthorizationInD1,
+  recordAiPackageAuditRowsInD1,
+  type AiActionRunAuditRow,
+  type AiDataAccessAuditRow,
+  type AiPackageAuditD1Rows,
+  type AiToolCallAuditRow,
+  type JsonObject,
+  type JsonValue,
+} from "@/lib/ai/audit-d1-store";
+import { isProviderBackedAiUserContext, type AiRequestUserContext } from "@/lib/ai/auth";
 import type { DeepSeekAskResult } from "@/lib/ai/deepseek";
-import type { Database, Json, TablesInsert } from "@/lib/supabase/types";
 
 type AiAskAuditStatus = "started" | "completed" | "failed";
 
@@ -38,30 +47,12 @@ type AiAskAuditInput = {
 };
 
 export type AiAskAuditEvent = {
-  actionRun: TablesInsert<"ai_action_runs">;
-  dataAccessEvent: TablesInsert<"ai_data_access_events"> | null;
-  dataAccessEvents: TablesInsert<"ai_data_access_events">[];
+  actionRun: AiActionRunAuditRow;
+  dataAccessEvent: AiDataAccessAuditRow | null;
+  dataAccessEvents: AiDataAccessAuditRow[];
 };
 
 export type AiAuditRecorder = (input: AiAskAuditInput) => Promise<void>;
-
-export function createAiAuditSupabaseClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  if (!url || !serviceRoleKey) return null;
-
-  return createClient<Database>(url, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-    global: {
-      headers: {
-        "X-Client-Info": "archestimator-ai-audit",
-      },
-    },
-  });
-}
 
 function stableJson(value: unknown) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return JSON.stringify(value);
@@ -80,13 +71,13 @@ export function hashAiAuditValue(value: unknown) {
   return `sha256:${createHash("sha256").update(typeof value === "string" ? value : stableJson(value)).digest("hex")}`;
 }
 
-function toJsonObject(value: unknown): Json {
+function toJsonObject(value: unknown): JsonObject {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  return value as Json;
+  return value as JsonObject;
 }
 
 export function buildAiAskAuditEvent(input: AiAskAuditInput): AiAskAuditEvent | null {
-  if (input.userContext.authMode !== "supabase" || !input.userContext.workspaceId) return null;
+  if (!isProviderBackedAiUserContext(input.userContext)) return null;
 
   const runId = input.runId ?? randomUUID();
   const readAccessEvents = input.dataAccessEvents?.length
@@ -102,7 +93,7 @@ export function buildAiAskAuditEvent(input: AiAskAuditInput): AiAskAuditEvent | 
           safeSummary: "Ask request used bounded browser route context and no database read tools.",
         },
       ];
-  const actionRun: TablesInsert<"ai_action_runs"> = {
+  const actionRun: AiActionRunAuditRow = {
     run_id: runId,
     workspace_id: input.userContext.workspaceId,
     actor_user_id: input.userContext.userId,
@@ -143,33 +134,25 @@ export function buildAiAskAuditEvent(input: AiAskAuditInput): AiAskAuditEvent | 
       targetNodeId: event.targetNodeId,
       targetRowId: event.targetRowId,
     }))
-    .filter((event): event is TablesInsert<"ai_data_access_events"> => Boolean(event));
+    .filter((event): event is AiDataAccessAuditRow => Boolean(event));
 
   return { actionRun, dataAccessEvent: dataAccessEvents[0] ?? null, dataAccessEvents };
 }
 
 export async function recordAiAskAuditEvent(input: AiAskAuditInput) {
   const event = buildAiAskAuditEvent(input);
-  if (!event) throw new Error("AI Ask audit requires a Supabase workspace audit context.");
-  const supabase = createAiAuditSupabaseClient();
-  if (!supabase) throw new Error("AI Ask audit client is not configured.");
+  if (!event) throw new Error("AI Ask audit requires a Cloudflare D1 workspace audit context.");
+  const db = await getAiAuditD1Database();
+  if (!db) throw new Error("AI Ask audit D1 database is not configured.");
 
-  const { error: runError } = await supabase
-    .from("ai_action_runs")
-    .upsert(event.actionRun, { onConflict: "run_id" });
-  if (runError) throw runError;
-
-  if (event.dataAccessEvents.length && (input.status === "started" || input.errorClass === "read_context_failed")) {
-    const { error: accessError } = await supabase.from("ai_data_access_events").insert(event.dataAccessEvents);
-    if (accessError) throw accessError;
-  }
+  await recordAiAskAuditEventInD1(db, {
+    actionRun: event.actionRun,
+    dataAccessEvents: event.dataAccessEvents,
+    recordDataAccessEvents: input.status === "started" || input.errorClass === "read_context_failed",
+  });
 }
 
-export type AiPackageAuditRows = {
-  actionRun: TablesInsert<"ai_action_runs">;
-  toolCalls?: TablesInsert<"ai_tool_calls">[];
-  dataAccessEvents?: TablesInsert<"ai_data_access_events">[];
-};
+export type AiPackageAuditRows = AiPackageAuditD1Rows;
 
 export type AiPackageActionRunInput = {
   runId: string;
@@ -181,16 +164,16 @@ export type AiPackageActionRunInput = {
   message?: string;
   routeContext?: Record<string, unknown>;
   providerSendCategories: string[];
-  usage?: Json;
+  usage?: JsonObject;
   errorClass?: string;
   blockedReason?: string;
   requestHost?: string | null;
   userAgent?: string | null;
-  metadata?: Record<string, Json>;
+  metadata?: Record<string, JsonValue>;
 };
 
-export function buildAiPackageActionRun(input: AiPackageActionRunInput): TablesInsert<"ai_action_runs"> | null {
-  if (input.userContext.authMode !== "supabase" || !input.userContext.workspaceId) return null;
+export function buildAiPackageActionRun(input: AiPackageActionRunInput): AiActionRunAuditRow | null {
+  if (!isProviderBackedAiUserContext(input.userContext)) return null;
 
   return {
     run_id: input.runId,
@@ -228,8 +211,8 @@ export function buildAiPackageToolCall(input: {
   targetEstimateId?: string | null;
   targetNodeId?: string | null;
   targetRowId?: string | null;
-}): TablesInsert<"ai_tool_calls"> | null {
-  if (input.userContext.authMode !== "supabase" || !input.userContext.workspaceId) return null;
+}): AiToolCallAuditRow | null {
+  if (!isProviderBackedAiUserContext(input.userContext)) return null;
 
   return {
     run_id: input.runId,
@@ -264,8 +247,8 @@ function buildAiDataAccessEvent(input: {
   targetEstimateId?: string | null;
   targetNodeId?: string | null;
   targetRowId?: string | null;
-}): TablesInsert<"ai_data_access_events"> | null {
-  if (input.userContext.authMode !== "supabase" || !input.userContext.workspaceId) return null;
+}): AiDataAccessAuditRow | null {
+  if (!isProviderBackedAiUserContext(input.userContext)) return null;
 
   return {
     run_id: input.runId,
@@ -300,39 +283,27 @@ export function buildAiPackageDataAccessEvent(input: {
   targetEstimateId?: string | null;
   targetNodeId?: string | null;
   targetRowId?: string | null;
-}): TablesInsert<"ai_data_access_events"> | null {
+}): AiDataAccessAuditRow | null {
   return buildAiDataAccessEvent(input);
 }
 
 export async function recordAiPackageAuditRows(input: AiPackageAuditRows | null) {
   if (!input) return;
-  const supabase = createAiAuditSupabaseClient();
-  if (!supabase) return;
+  const db = await getAiAuditD1Database();
+  if (!db) return;
 
   try {
-    const { error: runError } = await supabase.from("ai_action_runs").insert(input.actionRun);
-    if (runError) throw runError;
-
-    if (input.toolCalls?.length) {
-      const { error: toolError } = await supabase.from("ai_tool_calls").insert(input.toolCalls);
-      if (toolError) throw toolError;
-    }
-
-    if (input.dataAccessEvents?.length) {
-      const { error: accessError } = await supabase.from("ai_data_access_events").insert(input.dataAccessEvents);
-      if (accessError) throw accessError;
-    }
+    await recordAiPackageAuditRowsInD1(db, input);
   } catch {
     // AI audit writes are metadata-only and best effort until a dedicated
     // package-builder RPC owns transactional audit persistence.
   }
 }
 
-export async function recordAiPackageApplyAuthorization(actionRun: TablesInsert<"ai_action_runs"> | null) {
-  if (!actionRun) throw new Error("Package Apply authorization requires a Supabase workspace audit context.");
-  const supabase = createAiAuditSupabaseClient();
-  if (!supabase) throw new Error("AI package Apply authorization audit client is not configured.");
+export async function recordAiPackageApplyAuthorization(actionRun: AiActionRunAuditRow | null) {
+  if (!actionRun) throw new Error("Package Apply authorization requires a Cloudflare D1 workspace audit context.");
+  const db = await getAiAuditD1Database();
+  if (!db) throw new Error("AI package Apply authorization audit D1 database is not configured.");
 
-  const { error } = await supabase.from("ai_action_runs").insert(actionRun);
-  if (error) throw error;
+  await recordAiPackageApplyAuthorizationInD1(db, actionRun);
 }

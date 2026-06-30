@@ -1,11 +1,9 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
+import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d1";
 import { isUuid } from "@/lib/ids";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { Database } from "@/lib/supabase/types";
 import { reserveUploadAdmission } from "@/lib/uploads/admission-control";
 import {
   finalizeUploadSessionAsset,
@@ -16,11 +14,11 @@ import {
 } from "@/lib/uploads/direct-upload-records";
 import { buildUploadObjectKey } from "@/lib/uploads/object-keys";
 import { reportUploadAdmissionRejected } from "@/lib/uploads/operational-telemetry";
+import { validateProviderObjectHead } from "@/lib/uploads/provider-portability";
 import {
-  createSupabaseDirectUploadProvider,
-  validateProviderObjectHead,
-} from "@/lib/uploads/provider-portability";
-import { readRuntimeUploadStorageProvider } from "@/lib/uploads/runtime-storage-provider";
+  createRuntimeUploadStorageProvider,
+  readRuntimeUploadStorageProvider,
+} from "@/lib/uploads/runtime-storage-provider";
 import { chooseUploadSessionStrategy } from "@/lib/uploads/session-strategy";
 
 export const runtime = "nodejs";
@@ -33,6 +31,7 @@ const RESUMABLE_COMPONENT_ATTACHMENT_MAX_BYTES = 512 * 1024 * 1024;
 const DIRECT_UPLOAD_SESSION_EXPIRES_SECONDS = 300;
 const MAX_RESERVED_DIRECT_UPLOAD_SESSIONS_PER_ACTOR = 3;
 const MAX_RESERVED_DIRECT_UPLOAD_SESSIONS_PER_WORKSPACE = 6;
+const CLOUDFLARE_R2_PROVIDER = "cloudflare-r2";
 const ALLOWED_MIME_TYPES = new Set([
   "application/pdf",
   "application/vnd.ms-excel",
@@ -47,38 +46,6 @@ const EXTENSION_BY_MIME_TYPE = new Map([
 
 function jsonError(message: string, status = 400, headers?: HeadersInit) {
   return NextResponse.json({ error: message }, { status, headers });
-}
-
-async function createStorageSupabaseClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (url && serviceRoleKey) {
-    return createClient<Database>(url, serviceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-      global: {
-        headers: {
-          "X-Client-Info": "archestimator-component-attachment-direct-upload",
-        },
-      },
-    });
-  }
-
-  return createSupabaseServerClient();
-}
-
-async function canManageLibrary(workspaceId: string) {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.rpc("is_workspace_editor", {
-    target_workspace_id: workspaceId,
-  });
-  if (error) {
-    console.error("Component attachment direct-upload authorization failed", error);
-    return false;
-  }
-  return data === true;
 }
 
 function normalizeChecksumSha256(value: unknown) {
@@ -101,6 +68,12 @@ function uploadModeFromSessionMetadata(metadata: unknown) {
   return uploadMode === "tus_resumable" ? "tus_resumable" : "signed_single_part";
 }
 
+function storageProviderFromSessionMetadata(metadata: unknown) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  const provider = (metadata as { provider?: unknown }).provider;
+  return typeof provider === "string" ? provider : null;
+}
+
 async function readJsonBody(request: Request) {
   return request.json().catch(() => null) as Promise<Record<string, unknown> | null>;
 }
@@ -113,7 +86,33 @@ function directUploadCapacityMessage(quotaClass: "active_actor" | "active_worksp
 }
 
 function directUploadStorageProviderUnsupportedResponse() {
-  return jsonError("Direct attachment uploads are not supported by the selected storage provider.", 501);
+  return jsonError("Direct attachment uploads require Cloudflare R2 storage.", 501);
+}
+
+function directUploadMetadataUnavailableResponse() {
+  return jsonError("Cloudflare D1 upload metadata is not configured.", 503);
+}
+
+function isCloudflareR2RuntimeSelected() {
+  try {
+    return readRuntimeUploadStorageProvider() === CLOUDFLARE_R2_PROVIDER;
+  } catch {
+    return false;
+  }
+}
+
+async function openUploadMetadataDatabase() {
+  return getCloudflareD1Database();
+}
+
+function cloudflareDirectUploadUrl(request: Request, uploadSessionId: string) {
+  const uploadUrl = new URL(FINALIZE_ROUTE, request.url);
+  uploadUrl.searchParams.set("uploadSessionId", uploadSessionId);
+  return uploadUrl.toString();
+}
+
+function uploadSessionExpiresAt(expiresInSeconds: number) {
+  return new Date(Date.now() + expiresInSeconds * 1000).toISOString();
 }
 
 function directUploadCapacityResponse(input: {
@@ -132,8 +131,8 @@ function directUploadCapacityResponse(input: {
   });
 }
 
-async function checkDurableDirectUploadCapacity(client: unknown, input: { workspaceId: string; userId: string }) {
-  const capacity = await readActiveUploadSessionCapacity(client, {
+async function checkDurableDirectUploadCapacity(db: D1DatabaseLike, input: { workspaceId: string; userId: string }) {
+  const capacity = await readActiveUploadSessionCapacity(db, {
     workspaceId: input.workspaceId,
     actorUserId: input.userId,
     surface: "component-attachment",
@@ -165,11 +164,20 @@ async function checkDurableDirectUploadCapacity(client: unknown, input: { worksp
 }
 
 async function recordPendingDirectUploadSession(
-  client: unknown,
+  db: D1DatabaseLike,
   input: Parameters<typeof recordPendingUploadSession>[1],
 ) {
   try {
-    return { ok: true, session: await recordPendingUploadSession(client, input) } as const;
+    return {
+      ok: true,
+      session: await recordPendingUploadSession(db, {
+        ...input,
+        capacity: {
+          maxActiveActorSessions: MAX_RESERVED_DIRECT_UPLOAD_SESSIONS_PER_ACTOR,
+          maxActiveWorkspaceSessions: MAX_RESERVED_DIRECT_UPLOAD_SESSIONS_PER_WORKSPACE,
+        },
+      }),
+    } as const;
   } catch (error) {
     if (!isUploadSessionCapacityExceededError(error)) throw error;
     return {
@@ -216,8 +224,12 @@ async function createSignedUpload(
     if (strategy.kind === "rejected") {
       return jsonError("Attachment upload is too large or missing required size information.", 413);
     }
-    if (readRuntimeUploadStorageProvider() !== "supabase") {
+
+    if (!isCloudflareR2RuntimeSelected()) {
       return directUploadStorageProviderUnsupportedResponse();
+    }
+    if (strategy.kind === "multipart_resumable") {
+      return jsonError("Resumable attachment uploads need Cloudflare R2 multipart support before they can be enabled.", 501);
     }
 
     const extension = EXTENSION_BY_MIME_TYPE.get(contentType);
@@ -230,81 +242,16 @@ async function createSignedUpload(
       fileName,
       extension,
     });
-    const supabase = await createStorageSupabaseClient();
-    const provider = createSupabaseDirectUploadProvider(supabase);
-    const durableCapacity = await checkDurableDirectUploadCapacity(supabase, { workspaceId, userId });
+    const db = await openUploadMetadataDatabase();
+    if (!db) return directUploadMetadataUnavailableResponse();
+
+    const durableCapacity = await checkDurableDirectUploadCapacity(db, { workspaceId, userId });
     if (!durableCapacity.allowed) {
       return durableCapacity.response;
     }
 
-    if (strategy.kind === "multipart_resumable") {
-      if (!provider.createTusResumableUploadSession) {
-        return jsonError("Resumable attachment uploads are not supported by this storage provider.", 501);
-      }
-
-      const tusSession = await provider.createTusResumableUploadSession({
-        bucket: COMPONENT_ATTACHMENT_BUCKET,
-        path,
-        contentType,
-        sizeBytes,
-        maxBytes: RESUMABLE_COMPONENT_ATTACHMENT_MAX_BYTES,
-        checksumSha256: typeof checksumSha256 === "string" ? checksumSha256 : null,
-        expiresInSeconds: DIRECT_UPLOAD_SESSION_EXPIRES_SECONDS,
-      });
-      const pendingSessionResult = await recordPendingDirectUploadSession(supabase, {
-        workspaceId,
-        actorUserId: userId,
-        surface: "component-attachment",
-        targetEntityType: "component-library",
-        targetEntityId: null,
-        bucket: COMPONENT_ATTACHMENT_BUCKET,
-        path,
-        fileName,
-        contentType,
-        sizeBytes,
-        checksumSha256: typeof checksumSha256 === "string" ? checksumSha256 : null,
-        expiresAt: tusSession.expiresAt,
-        metadata: {
-          provider: "supabase-storage",
-          uploadMode: "tus_resumable",
-          route: "component-attachment-direct-upload",
-          chunkSizeBytes: tusSession.chunkSizeBytes,
-        },
-      });
-      if (!pendingSessionResult.ok) return pendingSessionResult.response;
-      const pendingSession = pendingSessionResult.session;
-
-      return NextResponse.json({
-        provider: "supabase-storage",
-        uploadMode: "tus_resumable",
-        uploadSessionId: pendingSession.uploadSessionId,
-        bucket: COMPONENT_ATTACHMENT_BUCKET,
-        path,
-        fileName,
-        contentType,
-        sizeBytes,
-        checksumSha256: typeof checksumSha256 === "string" ? checksumSha256 : null,
-        endpoint: tusSession.endpoint,
-        uploadToken: tusSession.uploadToken,
-        uploadMetadata: tusSession.uploadMetadata,
-        chunkSizeBytes: tusSession.chunkSizeBytes,
-        expiresAt: pendingSession.expiresAt,
-        requiresFinalizeRpc: true,
-        finalizeUrl: FINALIZE_ROUTE,
-        scanStatus: "pending",
-      });
-    }
-
-    const signedSession = await provider.createSignedUploadSession({
-      bucket: COMPONENT_ATTACHMENT_BUCKET,
-      path,
-      contentType,
-      sizeBytes,
-      maxBytes: SIGNED_SINGLE_PART_MAX_BYTES,
-      checksumSha256: typeof checksumSha256 === "string" ? checksumSha256 : null,
-      expiresInSeconds: strategy.expiresInSeconds,
-    });
-    const pendingSessionResult = await recordPendingDirectUploadSession(supabase, {
+    const expiresAt = uploadSessionExpiresAt(strategy.expiresInSeconds);
+    const pendingSessionResult = await recordPendingDirectUploadSession(db, {
       workspaceId,
       actorUserId: userId,
       surface: "component-attachment",
@@ -316,9 +263,9 @@ async function createSignedUpload(
       contentType,
       sizeBytes,
       checksumSha256: typeof checksumSha256 === "string" ? checksumSha256 : null,
-      expiresAt: signedSession.expiresAt,
+      expiresAt,
       metadata: {
-        provider: "supabase-storage",
+        provider: CLOUDFLARE_R2_PROVIDER,
         uploadMode: "signed_single_part",
         route: "component-attachment-direct-upload",
       },
@@ -327,7 +274,7 @@ async function createSignedUpload(
     const pendingSession = pendingSessionResult.session;
 
     return NextResponse.json({
-      provider: "supabase-storage",
+      provider: CLOUDFLARE_R2_PROVIDER,
       uploadMode: "signed_single_part",
       uploadSessionId: pendingSession.uploadSessionId,
       bucket: COMPONENT_ATTACHMENT_BUCKET,
@@ -336,8 +283,8 @@ async function createSignedUpload(
       contentType,
       sizeBytes,
       checksumSha256: typeof checksumSha256 === "string" ? checksumSha256 : null,
-      uploadUrl: signedSession.uploadUrl,
-      method: signedSession.method,
+      uploadUrl: cloudflareDirectUploadUrl(request, pendingSession.uploadSessionId),
+      method: "PUT",
       expiresAt: pendingSession.expiresAt,
       requiresFinalizeRpc: true,
       finalizeUrl: FINALIZE_ROUTE,
@@ -352,8 +299,10 @@ async function finalizeSignedUpload(workspaceId: string, userId: string, body: R
   const uploadSessionId = typeof body?.uploadSessionId === "string" ? body.uploadSessionId.trim() : "";
   if (!isUuid(uploadSessionId)) return jsonError("Upload session is required.");
 
-  const supabase = await createStorageSupabaseClient();
-  const session = await readUploadSessionForFinalize(supabase, { uploadSessionId, workspaceId, actorUserId: userId });
+  const db = await openUploadMetadataDatabase();
+  if (!db) return directUploadMetadataUnavailableResponse();
+
+  const session = await readUploadSessionForFinalize(db, { uploadSessionId, workspaceId, actorUserId: userId });
   if (!session) return jsonError("Upload session could not be found.", 404);
   if (session.surface !== "component-attachment" || session.storage_bucket !== COMPONENT_ATTACHMENT_BUCKET) {
     return jsonError("Upload session does not match component attachments.", 409);
@@ -363,7 +312,7 @@ async function finalizeSignedUpload(workspaceId: string, userId: string, body: R
   }
 
   if (session.status === "finalized") {
-    const existingRecord = await finalizeUploadSessionAsset(supabase, {
+    const existingRecord = await finalizeUploadSessionAsset(db, {
       uploadSessionId,
       workspaceId,
       actorUserId: userId,
@@ -390,9 +339,24 @@ async function finalizeSignedUpload(workspaceId: string, userId: string, body: R
     return jsonError("Upload session expired.", 410);
   }
 
-  const provider = createSupabaseDirectUploadProvider(supabase);
-  const head = await provider.headObject({ bucket: session.storage_bucket, path: session.storage_path }).catch(() => null);
-  if (!head) return jsonError("Uploaded object could not be finalized.", 409);
+  if (storageProviderFromSessionMetadata(session.metadata) !== CLOUDFLARE_R2_PROVIDER) {
+    return directUploadStorageProviderUnsupportedResponse();
+  }
+  if (!isCloudflareR2RuntimeSelected()) {
+    return directUploadStorageProviderUnsupportedResponse();
+  }
+
+  const storageProvider = await createRuntimeUploadStorageProvider().catch((error) => {
+    console.error("Cloudflare R2 upload storage is not configured", error);
+    return null;
+  });
+  if (!storageProvider) return jsonError("Cloudflare R2 upload storage is not configured.", 503);
+
+  const object = await (
+    storageProvider.headObject?.(session.storage_bucket, session.storage_path)
+    ?? storageProvider.downloadObject(session.storage_bucket, session.storage_path)
+  ).catch(() => null);
+  if (!object) return jsonError("Uploaded object could not be finalized.", 409);
   const uploadMode = uploadModeFromSessionMetadata(session.metadata);
   const validation = validateProviderObjectHead({
     bucket: session.storage_bucket,
@@ -401,20 +365,27 @@ async function finalizeSignedUpload(workspaceId: string, userId: string, body: R
     sizeBytes: session.size_bytes,
     maxBytes: uploadMode === "tus_resumable" ? RESUMABLE_COMPONENT_ATTACHMENT_MAX_BYTES : SIGNED_SINGLE_PART_MAX_BYTES,
     checksumSha256: session.checksum_sha256,
-  }, head);
+  }, {
+    bucket: session.storage_bucket,
+    path: session.storage_path,
+    contentType: object.contentType,
+    sizeBytes: object.sizeBytes,
+    checksumSha256: object.checksumSha256 ?? null,
+    etag: object.etag ?? null,
+  });
   if (!validation.ok) return jsonError("Uploaded object could not be finalized.", 409);
 
-  const uploadRecord = await finalizeUploadSessionAsset(supabase, {
+  const uploadRecord = await finalizeUploadSessionAsset(db, {
     uploadSessionId,
     workspaceId,
     actorUserId: userId,
-    observedContentType: head.contentType,
-    observedSizeBytes: head.sizeBytes,
-    observedChecksumSha256: head.checksumSha256 ?? null,
-    observedEtag: head.etag ?? null,
+    observedContentType: object.contentType,
+    observedSizeBytes: object.sizeBytes,
+    observedChecksumSha256: object.checksumSha256 ?? null,
+    observedEtag: object.etag ?? null,
     scanStatus: "pending",
     metadata: {
-      provider: "supabase-storage",
+      provider: CLOUDFLARE_R2_PROVIDER,
       uploadMode,
       providerFinalizeProof: validation.proof,
     },
@@ -433,9 +404,69 @@ async function finalizeSignedUpload(workspaceId: string, userId: string, body: R
   });
 }
 
+async function uploadToCloudflareR2(request: Request, workspaceId: string, userId: string) {
+  if (!isCloudflareR2RuntimeSelected()) {
+    return directUploadStorageProviderUnsupportedResponse();
+  }
+
+  const uploadSessionId = new URL(request.url).searchParams.get("uploadSessionId")?.trim() ?? "";
+  if (!isUuid(uploadSessionId)) return jsonError("Upload session is required.");
+
+  const db = await openUploadMetadataDatabase();
+  if (!db) return directUploadMetadataUnavailableResponse();
+
+  const session = await readUploadSessionForFinalize(db, { uploadSessionId, workspaceId, actorUserId: userId });
+  if (!session) return jsonError("Upload session could not be found.", 404);
+  if (session.surface !== "component-attachment" || session.storage_bucket !== COMPONENT_ATTACHMENT_BUCKET) {
+    return jsonError("Upload session does not match component attachments.", 409);
+  }
+  if (storageProviderFromSessionMetadata(session.metadata) !== CLOUDFLARE_R2_PROVIDER) {
+    return directUploadStorageProviderUnsupportedResponse();
+  }
+  if (uploadModeFromSessionMetadata(session.metadata) !== "signed_single_part") {
+    return jsonError("Use the resumable upload route for this upload session.", 409);
+  }
+  if (session.status !== "reserved") return jsonError("Upload session is no longer active.", 409);
+  if (session.expires_at && Date.parse(session.expires_at) <= Date.now()) {
+    return jsonError("Upload session expired.", 410);
+  }
+
+  const requestContentType = request.headers.get("content-type")?.split(";")[0]?.trim() ?? "";
+  if (requestContentType !== session.content_type) {
+    return jsonError("Uploaded object content type did not match the reserved session.", 409);
+  }
+
+  const body = new Uint8Array(await request.arrayBuffer());
+  if (body.byteLength !== session.size_bytes || body.byteLength > SIGNED_SINGLE_PART_MAX_BYTES) {
+    return jsonError("Uploaded object size did not match the reserved session.", 409);
+  }
+
+  const storageProvider = await createRuntimeUploadStorageProvider().catch((error) => {
+    console.error("Cloudflare R2 upload storage is not configured", error);
+    return null;
+  });
+  if (!storageProvider) return jsonError("Cloudflare R2 upload storage is not configured.", 503);
+
+  await storageProvider.uploadObject({
+    bucket: session.storage_bucket,
+    path: session.storage_path,
+    body,
+    contentType: session.content_type,
+  });
+
+  return NextResponse.json({
+    provider: CLOUDFLARE_R2_PROVIDER,
+    uploadSessionId,
+    bucket: session.storage_bucket,
+    path: session.storage_path,
+    sizeBytes: session.size_bytes,
+  });
+}
+
 export async function POST(request: Request) {
-  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  if (!(await canManageLibrary(workspace.id))) {
+  const [workspaceBootstrap, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const { workspace, profile } = workspaceBootstrap;
+  if (profile?.id && profile.id !== currentUser.userId) {
     return jsonError("Only workspace editors/admins can manage the library.", 403);
   }
 
@@ -443,4 +474,14 @@ export async function POST(request: Request) {
   if (body?.action === "create") return createSignedUpload(request, workspace.id, currentUser.userId, body);
   if (body?.action === "finalize") return finalizeSignedUpload(workspace.id, currentUser.userId, body);
   return jsonError("Unsupported direct upload action.");
+}
+
+export async function PUT(request: Request) {
+  const [workspaceBootstrap, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const { workspace, profile } = workspaceBootstrap;
+  if (profile?.id && profile.id !== currentUser.userId) {
+    return jsonError("Only workspace editors/admins can manage the library.", 403);
+  }
+
+  return uploadToCloudflareR2(request, workspace.id, currentUser.userId);
 }

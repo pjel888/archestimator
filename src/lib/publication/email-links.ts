@@ -5,8 +5,6 @@ type SharedLinkEmailUrlEnv = Partial<
     | "NEXT_PUBLIC_APP_URL"
     | "NEXT_PUBLIC_SITE_URL"
     | "NODE_ENV"
-    | "VERCEL_PROJECT_PRODUCTION_URL"
-    | "VERCEL_URL"
   >
 >;
 
@@ -45,8 +43,6 @@ function readSharedLinkEmailOrigin(env: SharedLinkEmailUrlEnv = process.env) {
   const configured = [
     env.NEXT_PUBLIC_APP_URL,
     env.NEXT_PUBLIC_SITE_URL,
-    env.VERCEL_PROJECT_PRODUCTION_URL,
-    env.VERCEL_URL,
     ...allowedOrigins,
   ];
 

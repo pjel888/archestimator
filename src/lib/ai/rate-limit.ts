@@ -1,9 +1,13 @@
 import { createHash } from "node:crypto";
 
-import { createAiAuditSupabaseClient } from "@/lib/ai/audit";
-import type { AiRequestUserContext } from "@/lib/ai/auth";
+import {
+  countSecurityRateLimitEventsInD1,
+  deleteExpiredSecurityRateLimitEventsInD1,
+  getAiAuditD1Database,
+  recordSecurityRateLimitEventInD1,
+} from "@/lib/ai/audit-d1-store";
+import { isProviderBackedAiUserContext, type AiRequestUserContext } from "@/lib/ai/auth";
 import { getClientIp } from "@/lib/publication/security";
-import type { Json } from "@/lib/supabase/types";
 
 export type AiAskQuotaResult =
   | { allowed: true }
@@ -37,41 +41,35 @@ export async function checkAiAskQuota({
   request: Request;
   userContext: AiRequestUserContext;
 }): Promise<AiAskQuotaResult> {
-  if (userContext.authMode !== "supabase" || !userContext.workspaceId) {
-    throw new Error("AI Ask quota requires an authenticated Supabase workspace user.");
+  if (!isProviderBackedAiUserContext(userContext)) {
+    throw new Error("AI Ask quota requires an authenticated Better Auth workspace user.");
   }
 
-  const supabase = createAiAuditSupabaseClient();
-  if (!supabase) throw new Error("AI Ask quota requires Supabase audit storage.");
+  const db = await getAiAuditD1Database();
+  if (!db) throw new Error("AI Ask quota requires Cloudflare D1 audit storage.");
 
   const now = Date.now();
+  const occurredAt = new Date(now).toISOString();
   const maxWindowSeconds = Math.max(...AI_ASK_QUOTA_WINDOWS.map((window) => window.seconds));
   const keyHash = hashAiAskQuotaKey([userContext.workspaceId, userContext.userId, getClientIp(request)]);
 
-  const { error: cleanupError } = await supabase
-    .from("security_rate_limit_events")
-    .delete()
-    .lt("expires_at", new Date(now).toISOString());
-  if (cleanupError) throw cleanupError;
-
-  const { error: insertError } = await supabase.from("security_rate_limit_events").insert({
+  await deleteExpiredSecurityRateLimitEventsInD1(db, occurredAt);
+  await recordSecurityRateLimitEventInD1(db, {
     scope: AI_ASK_RATE_LIMIT_SCOPE,
-    key_hash: keyHash,
-    metadata_json: { route: "ai_ask" } satisfies Json,
-    expires_at: new Date(now + maxWindowSeconds * 1000).toISOString(),
+    keyHash,
+    metadataJson: { route: "ai_ask" },
+    occurredAt,
+    expiresAt: new Date(now + maxWindowSeconds * 1000).toISOString(),
   });
-  if (insertError) throw insertError;
 
   for (const window of AI_ASK_QUOTA_WINDOWS) {
     const since = new Date(now - window.seconds * 1000).toISOString();
-    const { count, error } = await supabase
-      .from("security_rate_limit_events")
-      .select("id", { count: "exact", head: true })
-      .eq("scope", AI_ASK_RATE_LIMIT_SCOPE)
-      .eq("key_hash", keyHash)
-      .gte("occurred_at", since);
-    if (error) throw error;
-    if ((count ?? 0) > window.limit) {
+    const count = await countSecurityRateLimitEventsInD1(db, {
+      scope: AI_ASK_RATE_LIMIT_SCOPE,
+      keyHash,
+      since,
+    });
+    if (count > window.limit) {
       return { allowed: false, retryAfter: window.seconds, message: quotaMessage(window.seconds) };
     }
   }

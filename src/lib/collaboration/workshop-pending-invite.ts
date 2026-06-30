@@ -3,7 +3,8 @@ import "server-only";
 import {
   type PendingInviteBridge,
 } from "@/lib/collaboration/pending-invite";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getCurrentUserContext } from "@/lib/auth/session";
+import { acceptInvitationTokenForUser } from "@/lib/collaboration/invitation-acceptance";
 
 export type WorkshopInviteBannerState =
   | { kind: "none" }
@@ -27,9 +28,11 @@ function mapUnavailableReason(state: string): WorkshopInviteBannerState {
 
 export async function acceptPendingInviteBridge(bridge: PendingInviteBridge): Promise<WorkshopInviteBannerState> {
   try {
-    const supabase = await createSupabaseServerClient();
-    const { data, error } = await supabase.rpc("accept_collaboration_invitation", {
-      invitation_token_hash: bridge.tokenHash,
+    const currentUser = await getCurrentUserContext();
+    const { data, error } = await acceptInvitationTokenForUser({
+      clientInfo: "archestimator-pending-invite-cookie-accept",
+      invitationTokenHash: bridge.tokenHash,
+      user: currentUser,
     });
 
     if (error || !data || typeof data !== "object" || Array.isArray(data)) {

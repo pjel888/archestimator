@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import { Doto, Geist, Roboto_Mono } from "next/font/google";
-import { SpeedInsights } from "@vercel/speed-insights/next";
-import { VercelWebAnalytics } from "@/components/analytics/VercelWebAnalytics";
 import { LiquidGlassReady } from "@/components/system/LiquidGlassReady";
 import { LandingStructuredData } from "@/components/landing/structured-data";
 import { LANDING_SITE_ORIGIN } from "@/lib/landing/seo-metadata";
@@ -18,7 +16,6 @@ const doto = Doto({
   weight: "variable",
   display: "swap",
 });
-const enableVercelMetrics = process.env.NODE_ENV === "production" || process.env.NEXT_PUBLIC_ENABLE_VERCEL_ANALYTICS_IN_DEV === "1";
 
 export const metadata: Metadata = {
   metadataBase: new URL(LANDING_SITE_ORIGIN), // L-SEO-1 placeholder origin until domain confirmed
@@ -49,12 +46,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         {/* Arms the deferred liquid-glass blur after first paint + idle. Renders
             null; the glass surfaces ship blur-off so first paint stays cheap. */}
         <LiquidGlassReady />
-        {enableVercelMetrics ? (
-          <>
-            <VercelWebAnalytics />
-            <SpeedInsights />
-          </>
-        ) : null}
       </body>
     </html>
   );

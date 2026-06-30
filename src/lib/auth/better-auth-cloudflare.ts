@@ -11,6 +11,7 @@ type BetterAuthConfig = {
   secret: string;
   trustedOrigins?: string[] | ((request?: Request) => Promise<(string | null | undefined)[]> | (string | null | undefined)[]);
   database: CloudflareD1DatabaseOption;
+  socialProviders?: Record<string, unknown>;
   session: {
     cookieCache: {
       enabled: false;
@@ -51,6 +52,7 @@ export type CreateCloudflareBetterAuthOptions = {
   baseURL: BetterAuthConfig["baseURL"];
   secret: string;
   trustedOrigins?: BetterAuthConfig["trustedOrigins"];
+  socialProviders?: BetterAuthConfig["socialProviders"];
   waitUntil?: (promise: Promise<unknown>) => void;
   enableNextCookies?: boolean;
   plugins?: unknown[];
@@ -65,6 +67,18 @@ export type BetterAuthRouteGateSessionSource = {
       };
     }) => Promise<unknown>;
   };
+};
+
+export type BetterAuthRouteGateUserIdentity = {
+  id: string;
+  email: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+};
+
+export type SendBetterAuthMagicLinkEmailInput = {
+  email: string;
+  url: string;
 };
 
 export type BetterAuthRouteGateParityRequirement = {
@@ -149,6 +163,7 @@ function createCloudflareBetterAuthOptions(options: CreateCloudflareBetterAuthOp
     secret: options.secret,
     trustedOrigins: options.trustedOrigins,
     database: options.d1Database,
+    socialProviders: options.socialProviders,
     session: {
       cookieCache: {
         enabled: false,
@@ -168,6 +183,61 @@ function createCloudflareBetterAuthOptions(options: CreateCloudflareBetterAuthOp
   };
 
   return config;
+}
+
+export function resolveCloudflareBetterAuthSocialProviders(env: Record<string, string | undefined> = process.env) {
+  const googleClientId = env.BETTER_AUTH_GOOGLE_CLIENT_ID?.trim() || env.GOOGLE_CLIENT_ID?.trim();
+  const googleClientSecret = env.BETTER_AUTH_GOOGLE_CLIENT_SECRET?.trim() || env.GOOGLE_CLIENT_SECRET?.trim();
+
+  if (!googleClientId || !googleClientSecret) return undefined;
+  return {
+    google: {
+      clientId: googleClientId,
+      clientSecret: googleClientSecret,
+    },
+  };
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+export async function createCloudflareBetterAuthMagicLinkPlugin(options?: {
+  sendMagicLinkEmail?: (input: SendBetterAuthMagicLinkEmailInput) => Promise<unknown>;
+}) {
+  const [{ magicLink }, { sendCloudflareEmail }] = await Promise.all([
+    import("better-auth/plugins"),
+    import("@/lib/email/cloudflare-email-client"),
+  ]);
+
+  return magicLink({
+    sendMagicLink: async ({ email, url }: SendBetterAuthMagicLinkEmailInput) => {
+      if (options?.sendMagicLinkEmail) {
+        await options.sendMagicLinkEmail({ email, url });
+        return;
+      }
+
+      const result = await sendCloudflareEmail({
+        to: email,
+        subject: "Sign in to Archestimator",
+        text: `Use this secure link to sign in to Archestimator:\n\n${url}\n\nIf you did not request this, you can ignore this email.`,
+        html:
+          `<!doctype html><html><body style="font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#292929;line-height:1.5;">`
+          + `<p>Use this secure link to sign in to Archestimator:</p>`
+          + `<p><a href="${escapeHtml(url)}" style="display:inline-block;background:#292929;color:#fff;padding:10px 14px;text-decoration:none;border-radius:4px;">Sign in to Archestimator</a></p>`
+          + `<p style="color:#666;font-size:13px;">If you did not request this, you can ignore this email.</p>`
+          + `</body></html>`,
+      });
+
+      if (!result.ok) {
+        throw new Error(result.error ?? "Better Auth magic-link email delivery failed.");
+      }
+    },
+  });
 }
 
 export async function createCloudflareBetterAuthForD1(options: CreateCloudflareBetterAuthOptions) {
@@ -201,4 +271,20 @@ export async function requireUserForBetterAuthRouteGate(auth: BetterAuthRouteGat
     return { ok: false as const, reason: "missing-session" };
   }
   return { ok: true as const, session };
+}
+
+export function readBetterAuthRouteGateUserIdentity(session: unknown): BetterAuthRouteGateUserIdentity | null {
+  const user = session && typeof session === "object" && "user" in session
+    ? (session as { user?: Record<string, unknown> | null }).user
+    : null;
+  const id = typeof user?.id === "string" ? user.id.trim() : "";
+  const email = typeof user?.email === "string" ? user.email.trim().toLowerCase() : "";
+  if (!id || !email) return null;
+
+  return {
+    id,
+    email,
+    displayName: typeof user?.name === "string" && user.name.trim() ? user.name.trim() : null,
+    avatarUrl: typeof user?.image === "string" && user.image.trim() ? user.image.trim() : null,
+  };
 }

@@ -13,12 +13,16 @@ import {
   type BulkActionPreviewResult,
 } from "@/lib/mass-deletion/bulk-action";
 import { cleanupStorageTargets, storageCleanupReportToJson } from "@/lib/mass-deletion/storage-cleanup";
-// react-doctor-disable-next-line react-doctor/supabase-client-owned-authz-field -- Server action module; service-role client import is never browser-bundled.
-import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
+import {
+  recordMassDeletionStorageCleanupResultInCloudflareD1,
+  recordProjectMetadataUpdatedEventInCloudflareD1,
+} from "@/lib/projects/d1-audit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import type { Json } from "@/lib/supabase/types";
 import { isUuid } from "@/lib/ids";
+import { createRuntimeUploadStorageProvider } from "@/lib/uploads/runtime-storage-provider";
+import type { UploadStorageProvider } from "@/lib/uploads/storage-provider";
 
 const PROJECT_IMAGE_BUCKET = "project-images";
 
@@ -94,10 +98,10 @@ function isProjectImageStoragePath(path: string | null | undefined) {
   return Boolean(path && path.endsWith(".webp") && path.includes("/project-images/") && !path.includes("..") && !path.includes("//"));
 }
 
-async function removeStoredProjectImagePaths(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>, paths: string[]) {
+async function removeStoredProjectImagePaths(storageProvider: Pick<UploadStorageProvider, "removeObjects">, paths: string[]) {
   const safePaths = Array.from(new Set(paths.filter(isProjectImageStoragePath)));
   if (safePaths.length === 0) return;
-  await supabase.storage.from(PROJECT_IMAGE_BUCKET).remove(safePaths);
+  await storageProvider.removeObjects(PROJECT_IMAGE_BUCKET, safePaths);
 }
 
 function applyProjectImageMetadata(metadata: Record<string, Json>, image: ProjectImageMetadataInput) {
@@ -237,14 +241,21 @@ export async function executeBulkDeleteProjects(input: ExecuteBulkDeleteProjects
 
   const result = coerceBulkExecutionResult(data, { targetType: "project", ids });
   if (result.ok) {
-    const storageCleanup = await cleanupStorageTargets(supabase, result.storageTargets, { kind: "project" });
+    const storageProvider = await createRuntimeUploadStorageProvider(supabase);
+    const storageCleanup = await cleanupStorageTargets(storageProvider, result.storageTargets, { kind: "project" });
     result.storageCleanup = storageCleanup;
     if (result.auditEventId) {
-      const cleanupAuditClient = createSupabaseServiceRoleClient("archestimator-mass-deletion-cleanup");
-      await cleanupAuditClient.rpc("record_mass_deletion_storage_cleanup_result", {
-        target_event_id: result.auditEventId,
-        cleanup_result: storageCleanupReportToJson(storageCleanup),
-      });
+      try {
+        const recorded = await recordMassDeletionStorageCleanupResultInCloudflareD1({
+          targetEventId: result.auditEventId,
+          cleanupResult: storageCleanupReportToJson(storageCleanup) as Record<string, Json | undefined>,
+        });
+        if (!recorded) {
+          console.warn("[projects] mass deletion storage cleanup audit skipped", { auditEventId: result.auditEventId });
+        }
+      } catch {
+        console.warn("[projects] mass deletion storage cleanup audit skipped", { auditEventId: result.auditEventId });
+      }
     }
     revalidateProjectDeletionPaths(result.deletedIds?.length ? result.deletedIds : ids);
   }
@@ -360,7 +371,8 @@ export async function updateProjectDetails(formData: FormData) {
 
   const shouldRemovePreviousImage = shouldRemoveProjectImage || (projectImagePath && previousProjectImagePaths.length > 0 && !previousProjectImagePaths.includes(projectImagePath));
   if (shouldRemovePreviousImage) {
-    await removeStoredProjectImagePaths(supabase, getProjectImageStoragePaths(metadata));
+    const storageProvider = await createRuntimeUploadStorageProvider(supabase);
+    await removeStoredProjectImagePaths(storageProvider, getProjectImageStoragePaths(metadata));
   }
 
   // Audit the edit so "Project renamed/…" rows can surface in the project
@@ -384,19 +396,17 @@ function diffProjectMetadataFields(
   return PROJECT_METADATA_AUDIT_FIELDS.filter((field) => normalize(previous[field]) !== normalize(next[field]));
 }
 
-/** Insert a `project_metadata_updated` audit event (reuses `collaboration_audit_events`, which already carries `project_id`). */
+/** Insert a `project_metadata_updated` D1 audit event (best-effort sidecar while project writes finish migrating). */
 async function emitProjectMetadataUpdatedEvent(projectId: string, changedFields: ProjectMetadataAuditField[]) {
   if (changedFields.length === 0) return; // no-op save → no event
   try {
     const currentUser = await requireCurrentUserContext();
-    const admin = createSupabaseServiceRoleClient();
-    const { error } = await admin.from("collaboration_audit_events").insert({
-      actor_user_id: currentUser.userId,
-      project_id: projectId,
-      event_type: "project_metadata_updated",
-      metadata: { changed_fields: changedFields } as Json,
+    const recorded = await recordProjectMetadataUpdatedEventInCloudflareD1({
+      actorUserId: currentUser.userId,
+      changedFields,
+      projectId,
     });
-    if (error) {
+    if (!recorded) {
       console.warn("[projects] metadata audit event skipped", { projectId });
     }
   } catch {

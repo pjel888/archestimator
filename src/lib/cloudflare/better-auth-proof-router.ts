@@ -1,5 +1,3 @@
-import { magicLink } from "better-auth/plugins";
-
 import {
   createCloudflareBetterAuthForD1,
   getBetterAuthRouteGateSession,
@@ -214,6 +212,7 @@ async function createDefaultProofAuth({
   secret,
   trustedOrigins,
 }: BetterAuthProofAuthFactoryInput) {
+  const { magicLink } = await import("better-auth/plugins");
   const auth = await createCloudflareBetterAuthForD1({
     d1Database,
     baseURL: baseUrl,

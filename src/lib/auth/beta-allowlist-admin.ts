@@ -1,41 +1,29 @@
 import "server-only";
 
 import { normalizeClosedBetaEmail } from "@/lib/auth/closed-beta-access";
+import { readClosedBetaAllowlistQueueFromD1 } from "@/lib/auth/closed-beta-d1-store";
 import { requireCurrentUserContext } from "@/lib/auth/session";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { Tables } from "@/lib/supabase/types";
 
 export const CLOSED_BETA_ALLOWLIST_STATUSES = ["invited", "active", "revoked"] as const;
 
 export type ClosedBetaAllowlistStatus = (typeof CLOSED_BETA_ALLOWLIST_STATUSES)[number];
 
-export type ClosedBetaAllowlistRow = Pick<
-  Tables<"closed_beta_allowed_emails">,
-  | "accepted_at"
-  | "created_at"
-  | "id"
-  | "invited_at"
-  | "invited_by"
-  | "normalized_email"
-  | "notes"
-  | "status"
-  | "updated_at"
->;
+export type ClosedBetaAllowlistRow = {
+  accepted_at: string | null;
+  created_at: string;
+  id: string;
+  invited_at: string;
+  invited_by: string | null;
+  normalized_email: string;
+  notes: string | null;
+  status: ClosedBetaAllowlistStatus;
+  updated_at: string;
+};
 
 export type ClosedBetaAllowlistQueue = {
   authorized: boolean;
   error: string | null;
   rows: ClosedBetaAllowlistRow[];
-};
-
-type ReadClosedBetaAllowlistRpcClient = {
-  rpc: (
-    functionName: "read_closed_beta_allowlist_queue",
-    args: { requested_status: ClosedBetaAllowlistStatus | null },
-  ) => PromiseLike<{
-    data: ClosedBetaAllowlistRow[] | null;
-    error: { message?: string } | null;
-  }>;
 };
 
 export function canManageClosedBetaAllowlist(role: string | null | undefined) {
@@ -84,14 +72,11 @@ export async function readClosedBetaAllowlistQueue(status?: string): Promise<Clo
     return { authorized: false, error: null, rows: [] };
   }
 
-  const supabase = await createSupabaseServerClient();
   const requestedStatus = status && isClosedBetaAllowlistStatus(status) ? status : null;
-  const { data, error } = await (supabase as ReadClosedBetaAllowlistRpcClient).rpc("read_closed_beta_allowlist_queue", {
-    requested_status: requestedStatus,
-  });
-  return {
-    authorized: true,
-    error: error ? "Closed beta allowlist could not be loaded." : null,
-    rows: (data ?? []) as ClosedBetaAllowlistRow[],
-  };
+  try {
+    const rows = await readClosedBetaAllowlistQueueFromD1(requestedStatus);
+    return { authorized: true, error: null, rows };
+  } catch {
+    return { authorized: true, error: "Closed beta allowlist could not be loaded.", rows: [] };
+  }
 }

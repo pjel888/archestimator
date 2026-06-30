@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 
+import { getCurrentUserContext } from "@/lib/auth/session";
+import { acceptInvitationTokenForUser } from "@/lib/collaboration/invitation-acceptance";
 import {
   checkInviteAcceptRateLimit,
   hashInviteToken,
   readInviteEntryConfig,
 } from "@/lib/collaboration/invite-entry";
 import { isAllowedInviteOrigin } from "@/lib/collaboration/invite-origin";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type InviteRouteContext = {
   params: Promise<{ token: string }>;
@@ -98,12 +99,11 @@ async function acceptInvite(request: Request, { params }: InviteRouteContext) {
   const config = readInviteEntryConfig();
   if (!config.enabled) return redirectToPath(request, "/workshop");
 
-  const supabase = await createSupabaseServerClient();
-  const { data: userData } = await supabase.auth.getUser();
+  const currentUser = await getCurrentUserContext();
   const rateLimit = await checkInviteAcceptRateLimit({
     rawToken,
     request,
-    userId: userData.user?.id ?? null,
+    userId: currentUser?.userId ?? null,
   });
   if (!rateLimit.allowed) {
     return NextResponse.json(
@@ -115,8 +115,10 @@ async function acceptInvite(request: Request, { params }: InviteRouteContext) {
     );
   }
 
-  const { data } = await supabase.rpc("accept_collaboration_invitation", {
-    invitation_token_hash: hashInviteToken(rawToken, config.pepper),
+  const { data } = await acceptInvitationTokenForUser({
+    clientInfo: "archestimator-invite-token-accept",
+    invitationTokenHash: hashInviteToken(rawToken, config.pepper),
+    user: currentUser,
   });
   const result = data && typeof data === "object" && !Array.isArray(data) ? data as Record<string, unknown> : {};
   const acceptState = typeof result.state === "string" ? result.state : "invalid";

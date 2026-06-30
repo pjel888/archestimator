@@ -1,14 +1,19 @@
 import { NextResponse } from "next/server";
 
-import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
+import { readRuntimeUploadStorageProvider } from "@/lib/uploads/runtime-storage-provider";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const MAX_BODY_PROBE_BYTES = 4 * 1024 * 1024;
 const STORAGE_PROBE_BUCKET = "component-attachments";
+const CLOUDFLARE_R2_PROVIDER = "cloudflare-r2";
 const NO_STORE_HEADERS = {
   "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate",
+};
+
+type R2ProbeBucket = {
+  list: (options?: { prefix?: string; limit?: number }) => Promise<unknown>;
 };
 
 type BodyProbe =
@@ -74,9 +79,7 @@ function configuredRuntimeLimits() {
 
 function deploymentSnapshot() {
   return {
-    vercel: process.env.VERCEL === "1",
-    vercelEnvPresent: Boolean(process.env.VERCEL_ENV),
-    vercelRegionPresent: Boolean(process.env.VERCEL_REGION),
+    targetRuntime: "cloudflare-workers-open-next",
     nodeVersion: process.version,
   };
 }
@@ -103,21 +106,64 @@ async function readBodyProbe(request: Request): Promise<BodyProbe | NextResponse
 }
 
 async function measureStorageLatency() {
-  const serviceRole = createSupabaseServiceRoleClient("archestimator-upload-runtime-proof");
   const startedAt = performance.now();
+  let provider: string;
 
   try {
-    const result = await serviceRole.storage.getBucket(STORAGE_PROBE_BUCKET);
+    provider = readRuntimeUploadStorageProvider();
+  } catch (error) {
     return {
-      status: result.error ? "failed" : "ok",
+      provider: "unsupported",
+      status: "failed",
       durationMs: round(performance.now() - startedAt),
-      bucketReachable: !result.error,
-      bucketPublic: result.data?.public ?? null,
-      errorName: result.error?.name ?? null,
-      statusCode: result.error?.statusCode ?? null,
+      bucketReachable: false,
+      bucketPublic: null,
+      errorName: error instanceof Error ? error.name : "Error",
+      statusCode: null,
+    };
+  }
+
+  if (provider !== CLOUDFLARE_R2_PROVIDER) {
+    return {
+      provider,
+      status: "not_selected",
+      durationMs: round(performance.now() - startedAt),
+      bucketReachable: false,
+      bucketPublic: null,
+      errorName: null,
+      statusCode: null,
+    };
+  }
+
+  try {
+    const { getCloudflareContext } = await import("@opennextjs/cloudflare");
+    const { env } = await getCloudflareContext({ async: true });
+    const r2 = (env as { ARCH_UPLOADS_R2?: R2ProbeBucket }).ARCH_UPLOADS_R2;
+    if (!r2) {
+      return {
+        provider,
+        status: "failed",
+        durationMs: round(performance.now() - startedAt),
+        bucketReachable: false,
+        bucketPublic: null,
+        errorName: "MissingR2Binding",
+        statusCode: null,
+      };
+    }
+
+    await r2.list({ prefix: `${STORAGE_PROBE_BUCKET}/`, limit: 1 });
+    return {
+      provider,
+      status: "ok",
+      durationMs: round(performance.now() - startedAt),
+      bucketReachable: true,
+      bucketPublic: null,
+      errorName: null,
+      statusCode: null,
     };
   } catch (error) {
     return {
+      provider,
       status: "failed",
       durationMs: round(performance.now() - startedAt),
       bucketReachable: false,

@@ -1,24 +1,22 @@
 import "server-only";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { Tables } from "@/lib/supabase/types";
 import { isBetaFeedbackStatus, type BetaFeedbackStatus } from "@/lib/workshop/beta-feedback";
+import { readBetaFeedbackReviewQueueFromD1 } from "@/lib/workshop/beta-feedback-d1-store";
 
-export type BetaFeedbackReviewRow = Pick<
-  Tables<"beta_feedback_submissions">,
-  | "created_at"
-  | "feedback_type"
-  | "id"
-  | "message"
-  | "page_path"
-  | "project_id"
-  | "severity"
-  | "status"
-  | "updated_at"
-  | "user_email"
-  | "workspace_id"
->;
+export type BetaFeedbackReviewRow = {
+  created_at: string;
+  feedback_type: string;
+  id: string;
+  message: string;
+  page_path: string | null;
+  project_id: string | null;
+  severity: string;
+  status: string;
+  updated_at: string;
+  user_email: string;
+  workspace_id: string | null;
+};
 
 export type BetaFeedbackReviewQueue = {
   authorized: boolean;
@@ -36,23 +34,13 @@ export async function readBetaFeedbackReviewQueue(status?: string): Promise<Beta
     return { authorized: false, error: null, submissions: [] };
   }
 
-  const supabase = await createSupabaseServerClient();
-  let query = supabase
-    .from("beta_feedback_submissions")
-    .select("id, created_at, updated_at, feedback_type, severity, status, user_email, workspace_id, project_id, page_path, message")
-    .order("created_at", { ascending: false })
-    .limit(50);
-
-  if (status && isBetaFeedbackStatus(status)) {
-    query = query.eq("status", status);
+  const requestedStatus = status && isBetaFeedbackStatus(status) ? status : null;
+  try {
+    const submissions = await readBetaFeedbackReviewQueueFromD1(requestedStatus);
+    return { authorized: true, error: null, submissions };
+  } catch {
+    return { authorized: true, error: "Beta feedback could not be loaded.", submissions: [] };
   }
-
-  const { data, error } = await query;
-  return {
-    authorized: true,
-    error: error ? "Beta feedback could not be loaded." : null,
-    submissions: (data ?? []) as BetaFeedbackReviewRow[],
-  };
 }
 
 export function parseBetaFeedbackStatusUpdate(formData: FormData): { ok: true; id: string; status: BetaFeedbackStatus } | { ok: false } {

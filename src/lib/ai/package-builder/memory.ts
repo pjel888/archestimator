@@ -1,4 +1,4 @@
-import type { AiRequestUserContext } from "@/lib/ai/auth";
+import { isProviderBackedAiUserContext, type AiRequestUserContext } from "@/lib/ai/auth";
 import type { PackageBuilderDraft, PackageBuilderOperationType } from "@/lib/ai/package-builder/schemas";
 import { isUuid } from "@/lib/ids";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -263,7 +263,7 @@ export async function readPackageBuilderMemoryPreferences({
   userContext: AiRequestUserContext;
   limit?: number;
 }): Promise<PackageBuilderMemoryPreferences> {
-  if (userContext.authMode !== "supabase" || !userContext.workspaceId) return EMPTY_PACKAGE_BUILDER_MEMORY_PREFERENCES;
+  if (!isProviderBackedAiUserContext(userContext)) return EMPTY_PACKAGE_BUILDER_MEMORY_PREFERENCES;
 
   const supabase = await createSupabaseServerClient() as unknown as GenericSupabaseClient;
   const builder = supabase
@@ -291,7 +291,7 @@ export async function recordPackageBuilderMemorySignals({
   draftHash,
   signal,
 }: RecordPackageBuilderMemorySignalsInput) {
-  if (userContext.authMode !== "supabase" || !userContext.workspaceId) return;
+  if (!isProviderBackedAiUserContext(userContext)) return;
 
   const signals = collectPackageBuilderMemorySignals({ draft, draftHash, signal });
   if (signals.length === 0) return;

@@ -1,11 +1,13 @@
 "use server";
 
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { requireAuth } from "@/lib/auth/session";
 import { DEFAULT_AUTH_DESTINATION, LOGIN_PATH } from "@/lib/auth/redirects";
+import { createCloudflareBetterAuthForRequest } from "@/lib/auth/cloudflare-better-auth-runtime";
+import { acceptInvitationByIdForUser } from "@/lib/collaboration/invitation-acceptance";
 import { isUuid } from "@/lib/ids";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 function unavailableInvitePath(reason: "expired" | "revoked" | "already-used" | "invalid" | "error") {
   return `/workshop?invite=unavailable&reason=${reason}`;
@@ -31,21 +33,34 @@ function acceptedInvitePath(result: Record<string, unknown>) {
 
 export async function signOutForPendingInvite() {
   await requireAuth();
-  const supabase = await createSupabaseServerClient();
-  await supabase.auth.signOut();
+  const requestHeaders = new Headers(await headers());
+  const host = requestHeaders.get("host") ?? "localhost:3000";
+  const proto = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https");
+  const origin = `${proto}://${host}`;
+  requestHeaders.set("origin", origin);
+  const signOutRequest = new Request(`${origin}/api/auth/sign-out`, {
+    method: "POST",
+    headers: requestHeaders,
+  });
+  const auth = await createCloudflareBetterAuthForRequest(signOutRequest);
+  if (auth) await auth.handler(signOutRequest);
+  const cookieStore = await cookies();
+  cookieStore.set("better-auth.session_token", "", { maxAge: 0, path: "/" });
+  cookieStore.set("__Secure-better-auth.session_token", "", { maxAge: 0, path: "/" });
   redirect(`${LOGIN_PATH}?next=${encodeURIComponent(DEFAULT_AUTH_DESTINATION)}`);
 }
 
 export async function acceptPendingInvitationById(formData: FormData) {
-  await requireAuth();
+  const currentUser = await requireAuth();
   const invitationId = formData.get("invitationId");
   if (typeof invitationId !== "string" || !isUuid(invitationId)) {
     redirect(unavailableInvitePath("invalid"));
   }
 
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.rpc("accept_collaboration_invitation_by_id", {
-    target_invitation_id: invitationId,
+  const { data, error } = await acceptInvitationByIdForUser({
+    clientInfo: "archestimator-pending-invite-accept",
+    invitationId,
+    user: currentUser,
   });
 
   if (error || !data || typeof data !== "object" || Array.isArray(data)) {

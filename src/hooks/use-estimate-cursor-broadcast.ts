@@ -10,7 +10,9 @@ import {
 } from "@/lib/collaboration/realtime-identity";
 import { issueRealtimeIdentity } from "@/lib/collaboration/realtime-identity-actions";
 import { reportRealtimeEvent } from "@/lib/collaboration/realtime-telemetry";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
+  createCloudflareCollaborationRoomClient,
+} from "@/lib/cloudflare/collaboration-room-client";
 
 export const ESTIMATE_COLLABORATION_CHANNEL_PREFIX = "estimate:";
 export const CURSOR_BROADCAST_EVENT = "cursor";
@@ -51,8 +53,8 @@ export type CursorChannelLike = {
 };
 
 export type CursorClientLike = {
-  channel: (name: string, opts?: { config?: { private?: boolean } }) => CursorChannelLike;
-  removeChannel: (channel: CursorChannelLike) => unknown;
+  openRoom: (name: string) => CursorChannelLike;
+  closeRoom: (room: CursorChannelLike) => unknown;
 };
 
 export type CursorClientFactory = () => CursorClientLike;
@@ -64,7 +66,7 @@ export type RealtimeIdentityIssuer = (input: { topic: string }) => Promise<{
 } | null>;
 
 const defaultCursorClientFactory: CursorClientFactory = () =>
-  createSupabaseBrowserClient() as unknown as CursorClientLike;
+  createCloudflareCollaborationRoomClient() as unknown as CursorClientLike;
 
 type UseEstimateCursorBroadcastInput = {
   estimateId: string | null | undefined;
@@ -158,7 +160,7 @@ export function useEstimateCursorCollaboration({
     verifyKeyRef.current = null;
     verifiedCacheRef.current = new Map();
 
-    const channel = client.channel(topic, { config: { private: true } });
+    const channel = client.openRoom(topic);
     channelRef.current = channel;
 
     async function provisionIdentity() {
@@ -275,7 +277,7 @@ export function useEstimateCursorCollaboration({
       setChannelStatus("idle");
       setLastSendStatus("idle");
       setRemoteCursorMap(new Map());
-      void client.removeChannel(channel);
+      void client.closeRoom(channel);
     };
   }, [channelTopic, displayName, enabled, estimateId, userId]);
 

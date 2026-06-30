@@ -3870,8 +3870,24 @@ export type Database = {
         Args: { invitation_token_hash: string }
         Returns: Json
       }
+      accept_collaboration_invitation_for_actor: {
+        Args: {
+          actor_email: string
+          actor_user_id: string
+          invitation_token_hash: string
+        }
+        Returns: Json
+      }
       accept_collaboration_invitation_by_id: {
         Args: { target_invitation_id: string }
+        Returns: Json
+      }
+      accept_collaboration_invitation_by_id_for_actor: {
+        Args: {
+          actor_email: string
+          actor_user_id: string
+          target_invitation_id: string
+        }
         Returns: Json
       }
       apply_pending_collaboration_invitations: {

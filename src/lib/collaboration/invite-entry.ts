@@ -1,9 +1,12 @@
 import "server-only";
 
 import { createHash, createHmac, randomBytes } from "node:crypto";
-import { createClient } from "@supabase/supabase-js";
-
-import type { Database, Json } from "@/lib/supabase/types";
+import {
+  countSecurityRateLimitEventsInD1,
+  deleteExpiredSecurityRateLimitEventsInD1,
+  getAiAuditD1Database,
+  recordSecurityRateLimitEventInD1,
+} from "@/lib/ai/audit-d1-store";
 
 const INVITE_TOKEN_PEPPER_ENV = "ARCHESTIMATOR_INVITE_TOKEN_PEPPER";
 const INVITE_RATE_LIMIT_HASH_PEPPER_ENV = "ARCHESTIMATOR_INVITE_RATE_LIMIT_HASH_PEPPER";
@@ -91,26 +94,6 @@ type InviteRateLimitScope =
   | "collaboration_invite_resolve"
   | "collaboration_invite_resend";
 
-function createInviteRateLimitServiceClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  if (!url || !serviceRoleKey) {
-    throw new Error("Invite rate limiting requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY on the server.");
-  }
-
-  return createClient<Database>(url, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-    global: {
-      headers: {
-        "X-Client-Info": "archestimator-invite-rate-limit",
-      },
-    },
-  });
-}
-
 function getClientIp(headers: HeaderReader) {
   const forwardedFor = headers.get("x-forwarded-for");
   if (forwardedFor) return forwardedFor.split(",")[0].trim();
@@ -126,11 +109,10 @@ function hashRateLimitKey(scope: InviteRateLimitScope, parts: string[]) {
 function readInviteRateLimitHashPepper(env: InviteEntryEnv = process.env) {
   const pepper =
     env[INVITE_RATE_LIMIT_HASH_PEPPER_ENV]?.trim() ||
-    env[INVITE_TOKEN_PEPPER_ENV]?.trim() ||
-    env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+    env[INVITE_TOKEN_PEPPER_ENV]?.trim();
   if (!pepper) {
     throw new Error(
-      "Invite rate limiting requires ARCHESTIMATOR_INVITE_RATE_LIMIT_HASH_PEPPER, ARCHESTIMATOR_INVITE_TOKEN_PEPPER, or SUPABASE_SERVICE_ROLE_KEY on the server.",
+      "Invite rate limiting requires ARCHESTIMATOR_INVITE_RATE_LIMIT_HASH_PEPPER or ARCHESTIMATOR_INVITE_TOKEN_PEPPER on the server.",
     );
   }
   return pepper;
@@ -153,20 +135,18 @@ async function recordInviteRateLimitEvent({
   scope: InviteRateLimitScope;
   windowSeconds: number;
 }) {
-  const supabase = createInviteRateLimitServiceClient();
-  const { error: cleanupError } = await supabase
-    .from("security_rate_limit_events")
-    .delete()
-    .lt("expires_at", new Date().toISOString());
-  if (cleanupError) throw cleanupError;
-
-  const { error } = await supabase.from("security_rate_limit_events").insert({
+  const db = await getAiAuditD1Database();
+  if (!db) throw new Error("Invite rate limiting requires Cloudflare D1 audit storage.");
+  const now = Date.now();
+  const occurredAt = new Date(now).toISOString();
+  await deleteExpiredSecurityRateLimitEventsInD1(db, occurredAt);
+  await recordSecurityRateLimitEventInD1(db, {
     scope,
-    key_hash: keyHash,
-    metadata_json: { route: scope } as Json,
-    expires_at: new Date(Date.now() + windowSeconds * 1000).toISOString(),
+    keyHash,
+    metadataJson: { route: scope },
+    occurredAt,
+    expiresAt: new Date(now + windowSeconds * 1000).toISOString(),
   });
-  if (error) throw error;
 }
 
 async function countInviteRateLimitEvents({
@@ -178,15 +158,13 @@ async function countInviteRateLimitEvents({
   scope: InviteRateLimitScope;
   windowSeconds: number;
 }) {
-  const supabase = createInviteRateLimitServiceClient();
-  const { count, error } = await supabase
-    .from("security_rate_limit_events")
-    .select("id", { count: "exact", head: true })
-    .eq("scope", scope)
-    .eq("key_hash", keyHash)
-    .gte("occurred_at", new Date(Date.now() - windowSeconds * 1000).toISOString());
-  if (error) throw error;
-  return count ?? 0;
+  const db = await getAiAuditD1Database();
+  if (!db) throw new Error("Invite rate limiting requires Cloudflare D1 audit storage.");
+  return countSecurityRateLimitEventsInD1(db, {
+    scope,
+    keyHash,
+    since: new Date(Date.now() - windowSeconds * 1000).toISOString(),
+  });
 }
 
 async function checkInviteRateLimit({

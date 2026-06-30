@@ -19,11 +19,8 @@ type ClosedBetaRpcRow = {
   normalized_email?: unknown;
 };
 
-type ClosedBetaRpcClient = {
-  rpc: (...args: [functionName: "check_closed_beta_access", args: { raw_email: string }]) => PromiseLike<{
-    data: ClosedBetaRpcRow | ClosedBetaRpcRow[] | null;
-    error: { message?: string } | null;
-  }>;
+export type ClosedBetaAccessStore = {
+  checkAccess: (normalizedEmail: string) => Promise<ClosedBetaAccessResult | ClosedBetaRpcRow | ClosedBetaRpcRow[] | null>;
 };
 
 type ClosedBetaEnv = Record<string, string | undefined>;
@@ -48,11 +45,11 @@ function isRpcStatus(status: unknown): status is Exclude<ClosedBetaAccessStatus,
 export async function getClosedBetaAccessForEmail({
   email,
   env = process.env,
-  supabase,
+  store,
 }: {
   email: string | null | undefined;
   env?: ClosedBetaEnv;
-  supabase: ClosedBetaRpcClient;
+  store?: ClosedBetaAccessStore | null;
 }): Promise<ClosedBetaAccessResult> {
   const normalizedEmail = normalizeClosedBetaEmail(email);
 
@@ -64,12 +61,13 @@ export async function getClosedBetaAccessForEmail({
     return { allowed: false, status: "no-email", normalizedEmail };
   }
 
-  const { data, error } = await supabase.rpc("check_closed_beta_access", {
-    raw_email: normalizedEmail,
-  });
-
-  if (error) {
+  const data = await store?.checkAccess(normalizedEmail).catch(() => null);
+  if (!data) {
     return { allowed: false, status: "error", normalizedEmail };
+  }
+
+  if ("allowed" in data && "normalizedEmail" in data) {
+    return data;
   }
 
   const row = normalizeRpcRow(data);

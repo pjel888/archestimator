@@ -8,7 +8,7 @@ import { ESTIMATE_SHEET_TREE_LOAD_LIMITS } from "@/lib/estimates/load-limits";
 import { traced, withPerfTraceRequest } from "@/lib/perf/server-timing";
 import { resolveEstimateEditCapability, resolveEstimateTabRouteContext } from "@/lib/repositories/workspace-repository";
 import { assertRouteErrorSmoke } from "@/lib/route-error-smoke";
-import type { Json } from "@/lib/supabase/types";
+import type { Json } from "@/lib/types/json";
 
 type ProjectEstimateNodePageProps = {
   params: Promise<{ projectId: string; nodeId: string }>;

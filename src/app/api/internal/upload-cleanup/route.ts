@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
+import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
 import {
   buildUploadCleanupOperationalSnapshot,
   planUploadStorageCleanup,
@@ -115,16 +115,18 @@ async function handleUploadCleanupJob(request: Request) {
     const dryRun = isDryRun(request);
     if (!dryRun && !areUploadJobsEnabled()) return jsonError("Upload cleanup job is disabled.", 503);
 
-    const serviceRole = createSupabaseServiceRoleClient("archestimator-upload-cleanup-job");
-    const records = await listUploadCleanupJobRecords(serviceRole, { limit });
+    const db = await getCloudflareD1Database();
+    if (!db) return jsonError("Upload cleanup job database is not configured.", 503);
+
+    const records = await listUploadCleanupJobRecords(db, { limit });
     if (dryRun) return jsonOk(summarizeUploadCleanupDryRun(records, limit));
-    const storageProvider = await createRuntimeUploadStorageProvider(serviceRole);
+    const storageProvider = await createRuntimeUploadStorageProvider();
 
     const result = await runUploadCleanupJob({
       records,
       limit,
       storage: createUploadCleanupStorageFromProvider(storageProvider),
-      eventWriter: createUploadCleanupEventWriter(serviceRole),
+      eventWriter: createUploadCleanupEventWriter(db),
     });
 
     return jsonOk(summarizeUploadCleanupJobResult(result));

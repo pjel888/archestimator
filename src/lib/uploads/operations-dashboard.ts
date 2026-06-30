@@ -1,7 +1,7 @@
 import "server-only";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
-import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
+import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d1";
 import {
   buildUploadRetentionCutoffs,
   DEFAULT_UPLOAD_RETENTION_POLICY,
@@ -15,26 +15,6 @@ const SCAN_QUEUE_STATUSES = ["pending", "failed_transient"] as const;
 const BLOCKED_SCAN_STATUSES = ["infected", "unsupported", "failed_permanent"] as const;
 const DEFAULT_WINDOW_HOURS = 24;
 const DEFAULT_ROW_LIMIT = 500;
-
-type UploadOperationsReadError = {
-  message?: string | null;
-};
-
-type UploadOperationsQueryResult<T> = {
-  data: T[] | null;
-  error: UploadOperationsReadError | null;
-};
-
-type UploadOperationsSelectQuery<T> = PromiseLike<UploadOperationsQueryResult<T>> & {
-  select: (columns: string) => UploadOperationsSelectQuery<T>;
-  gte: (column: string, value: unknown) => UploadOperationsSelectQuery<T>;
-  order: (column: string, options?: { ascending?: boolean }) => UploadOperationsSelectQuery<T>;
-  limit: (count: number) => UploadOperationsSelectQuery<T>;
-};
-
-type UploadOperationsReadClient = {
-  from: (table: "upload_assets" | "upload_sessions" | "upload_events") => UploadOperationsSelectQuery<unknown>;
-};
 
 type UploadOperationsAssetRow = {
   workspace_id: string;
@@ -181,10 +161,6 @@ function isExpired(value: string | null | undefined, now: Date) {
   return Number.isFinite(date.getTime()) && date.getTime() <= now.getTime();
 }
 
-function hasError(...results: Array<UploadOperationsQueryResult<unknown>>) {
-  return results.some((result) => Boolean(result.error));
-}
-
 function aggregateSnapshot(input: {
   now: Date;
   windowHours: number;
@@ -291,6 +267,67 @@ function aggregateSnapshot(input: {
   };
 }
 
+async function readD1Rows<T>(
+  db: D1DatabaseLike,
+  sql: string,
+  input: { windowStart: string; limit: number },
+) {
+  const result = await db.prepare<T>(sql).bind(input.windowStart, input.limit).all<T>();
+  if (result.success === false) throw new Error("D1 upload operations query failed.");
+  return result.results ?? [];
+}
+
+function readUploadOperationsAssets(
+  db: D1DatabaseLike,
+  input: { windowStart: string; limit: number },
+) {
+  return readD1Rows<UploadOperationsAssetRow>(
+    db,
+    `
+      SELECT workspace_id, surface, content_type, size_bytes, status, scan_status, scan_provider, created_at, updated_at
+      FROM upload_assets
+      WHERE created_at >= ?
+      ORDER BY created_at DESC
+      LIMIT ?
+    `,
+    input,
+  );
+}
+
+function readUploadOperationsSessions(
+  db: D1DatabaseLike,
+  input: { windowStart: string; limit: number },
+) {
+  return readD1Rows<UploadOperationsSessionRow>(
+    db,
+    `
+      SELECT workspace_id, surface, content_type, size_bytes, status, created_at, expires_at
+      FROM upload_sessions
+      WHERE created_at >= ?
+      ORDER BY created_at DESC
+      LIMIT ?
+    `,
+    input,
+  );
+}
+
+function readUploadOperationsEvents(
+  db: D1DatabaseLike,
+  input: { windowStart: string; limit: number },
+) {
+  return readD1Rows<UploadOperationsEventRow>(
+    db,
+    `
+      SELECT workspace_id, event_type, created_at
+      FROM upload_events
+      WHERE created_at >= ?
+      ORDER BY created_at DESC
+      LIMIT ?
+    `,
+    input,
+  );
+}
+
 export async function readUploadOperationsDashboardSnapshot(
   options: { now?: Date; windowHours?: number; limit?: number } = {},
 ): Promise<UploadOperationsDashboardReadResult> {
@@ -303,30 +340,9 @@ export async function readUploadOperationsDashboardSnapshot(
   const windowHours = normalizeWindowHours(options.windowHours);
   const windowStart = new Date(now.getTime() - windowHours * 60 * 60 * 1000).toISOString();
   const limit = normalizeLimit(options.limit);
-  const client = createSupabaseServiceRoleClient("archestimator-upload-operations-dashboard") as unknown as UploadOperationsReadClient;
 
-  const [assetsResult, sessionsResult, eventsResult] = await Promise.all([
-    client
-      .from("upload_assets")
-      .select("workspace_id, surface, content_type, size_bytes, status, scan_status, scan_provider, created_at, updated_at")
-      .gte("created_at", windowStart)
-      .order("created_at", { ascending: false })
-      .limit(limit),
-    client
-      .from("upload_sessions")
-      .select("workspace_id, surface, content_type, size_bytes, status, created_at, expires_at")
-      .gte("created_at", windowStart)
-      .order("created_at", { ascending: false })
-      .limit(limit),
-    client
-      .from("upload_events")
-      .select("workspace_id, event_type, created_at")
-      .gte("created_at", windowStart)
-      .order("created_at", { ascending: false })
-      .limit(limit),
-  ]);
-
-  if (hasError(assetsResult, sessionsResult, eventsResult)) {
+  const db = await getCloudflareD1Database();
+  if (!db) {
     return {
       authorized: true,
       error: "Upload operations dashboard metrics could not be loaded.",
@@ -334,15 +350,30 @@ export async function readUploadOperationsDashboardSnapshot(
     };
   }
 
-  return {
-    authorized: true,
-    error: null,
-    snapshot: aggregateSnapshot({
-      now,
-      windowHours,
-      assets: (assetsResult.data ?? []) as UploadOperationsAssetRow[],
-      sessions: (sessionsResult.data ?? []) as UploadOperationsSessionRow[],
-      events: (eventsResult.data ?? []) as UploadOperationsEventRow[],
-    }),
-  };
+  try {
+    const [assets, sessions, events] = await Promise.all([
+      readUploadOperationsAssets(db, { windowStart, limit }),
+      readUploadOperationsSessions(db, { windowStart, limit }),
+      readUploadOperationsEvents(db, { windowStart, limit }),
+    ]);
+
+    return {
+      authorized: true,
+      error: null,
+      snapshot: aggregateSnapshot({
+        now,
+        windowHours,
+        assets,
+        sessions,
+        events,
+      }),
+    };
+  } catch (error) {
+    console.error("Upload operations dashboard metrics failed", error);
+    return {
+      authorized: true,
+      error: "Upload operations dashboard metrics could not be loaded.",
+      snapshot: null,
+    };
+  }
 }

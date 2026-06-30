@@ -6,7 +6,7 @@ export type LegalTermsAcceptanceStatus = {
   requiresAcceptance: boolean;
   acceptedAt: string | null;
   latestAcceptedVersion: string | null;
-  bypassReason?: "missing_local_supabase_env";
+  bypassReason?: "missing_local_d1_binding";
 };
 
 type LegalTermsAcceptanceRow = {
@@ -28,24 +28,24 @@ type LegalTermsAcceptanceQuery = {
   select(columns: string): LegalTermsAcceptanceFilterQuery;
 };
 
-export type LegalTermsAcceptanceClient = {
+export type LegalTermsAcceptanceQueryClient = {
   from(table: "legal_terms_acceptances"): LegalTermsAcceptanceQuery;
 };
 
-export function toLegalTermsAcceptanceClient(client: unknown): LegalTermsAcceptanceClient {
+export function toLegalTermsAcceptanceQueryClient(client: unknown): LegalTermsAcceptanceQueryClient {
   const source = client as { from(table: string): unknown };
   return {
     from(table) {
-      return source.from(table) as ReturnType<LegalTermsAcceptanceClient["from"]>;
+      return source.from(table) as ReturnType<LegalTermsAcceptanceQueryClient["from"]>;
     },
   };
 }
 
-export async function readCurrentUserTermsAcceptanceStatusFromClient(
-  supabase: LegalTermsAcceptanceClient,
+export async function readCurrentUserTermsAcceptanceStatusFromQueryClient(
+  client: LegalTermsAcceptanceQueryClient,
   userId: string,
 ): Promise<LegalTermsAcceptanceStatus> {
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("legal_terms_acceptances")
     .select("accepted_at, terms_version")
     .eq("user_id", userId)

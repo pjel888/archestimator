@@ -1,4 +1,4 @@
-import type { AiRequestUserContext } from "@/lib/ai/auth";
+import { isProviderBackedAiUserContext, type AiRequestUserContext } from "@/lib/ai/auth";
 import type { AiAskDataAccessAuditInput } from "@/lib/ai/audit";
 import { isUuid } from "@/lib/ids";
 import { buildProjectChartSeries } from "@/lib/project-charts/aggregate-project-charts";
@@ -1676,7 +1676,7 @@ function classifyAskReadIntent(message: string, routeContext?: Record<string, un
 export async function readAiAskReadContext(input: AiAskReadContextInput): Promise<AiAskReadContext> {
   const workspaceId = input.userContext.workspaceId;
   const intent = classifyAskReadIntent(input.message, input.routeContext);
-  if (input.userContext.authMode !== "supabase" || !workspaceId) {
+  if (!isProviderBackedAiUserContext(input.userContext) || !workspaceId) {
     return {
       providerContext: {
         available: false,

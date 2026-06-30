@@ -6,27 +6,14 @@ import {
   hashInviteToken,
   readInviteEntryConfig,
 } from "@/lib/collaboration/invite-entry";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { isCloudflareBetterAuthProviderEnabled } from "@/lib/auth/auth-provider-selection";
+import {
+  resolveCollaborationInvitationFromCloudflareD1,
+  type InviteResolutionRow,
+} from "@/lib/collaboration/invitation-d1-store";
 
 type InviteEntryPageProps = {
   params: Promise<{ token: string }>;
-};
-
-type InviteResolutionRow = {
-  state: string;
-  invitation_id: string | null;
-  project_id: string | null;
-  estimate_id: string | null;
-  project_name: string | null;
-  project_code: string | null;
-  estimate_name: string | null;
-  role: string | null;
-  scope: string | null;
-  inviter_label: string | null;
-  inviter_email: string | null;
-  invited_email: string | null;
-  expires_at: string | null;
-  token_id: string | null;
 };
 
 const SAFE_INVALID_COPY = "This invite link is invalid or no longer available. Ask the sender to invite this email again.";
@@ -86,32 +73,36 @@ async function resolveInviteEntryState(rawToken: string, requestHeaders: Headers
   }
 
   const invitationTokenHash = hashInviteToken(rawToken, config.pepper);
-  const supabase = await createSupabaseServerClient();
-  const resolutionResult = await supabase.rpc("resolve_collaboration_invitation", {
-    invitation_token_hash: invitationTokenHash,
-  });
+  const row = await resolveCollaborationInvitationFromCloudflareD1(invitationTokenHash);
 
-  const row = (resolutionResult.data?.[0] ?? null) as InviteResolutionRow | null;
-  if (resolutionResult.error || !row || row.state === "invalid") {
+  if (!row || row.state === "invalid") {
     return { kind: "invalid" as const, row: null, currentEmail: null };
   }
   if (row.state === "expired") return { kind: "expired" as const, row, currentEmail: null };
   if (row.state === "revoked") return { kind: "revoked" as const, row, currentEmail: null };
   if (row.state === "already_used") return { kind: "already-used" as const, row, currentEmail: null };
 
-  let currentEmail: string | null = null;
-  try {
-    const { data, error } = await supabase.auth.getUser();
-    currentEmail = error ? null : data.user?.email?.toLowerCase() ?? null;
-  } catch {
-    currentEmail = null;
-  }
+  const currentEmail = await readInviteCurrentBetterAuthEmail(requestHeaders);
   if (!currentEmail) return { kind: "signed-out-preview" as const, row, currentEmail };
   if (row.invited_email && currentEmail !== row.invited_email.toLowerCase()) {
     return { kind: "wrong-account" as const, row, currentEmail };
   }
 
   return { kind: "signed-in-preview" as const, row, currentEmail };
+}
+
+async function readInviteCurrentBetterAuthEmail(requestHeaders: Headers) {
+  if (!isCloudflareBetterAuthProviderEnabled()) return null;
+  try {
+    const { getCloudflareBetterAuthIdentityFromRequest } = await import("@/lib/auth/cloudflare-better-auth-runtime");
+    const identity = await getCloudflareBetterAuthIdentityFromRequest({
+      headers: requestHeaders,
+      requestUrl: null,
+    });
+    return identity?.email.toLowerCase() ?? null;
+  } catch {
+    return null;
+  }
 }
 
 function InviteShell({

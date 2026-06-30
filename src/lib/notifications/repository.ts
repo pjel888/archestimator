@@ -1,5 +1,6 @@
 import "server-only";
 
+import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d1";
 import {
   coerceNotificationDeliveryView,
   isActiveReleaseAnnouncement,
@@ -12,48 +13,54 @@ import type {
   ReleaseAnnouncementView,
 } from "@/lib/notifications/types";
 
-type NotificationQueryResult<T> = {
-  data: T | null;
-  error: { message?: string } | null;
-  count?: number | null;
+type NotificationJoinedD1Row = {
+  action_href: string | null;
+  action_label: string | null;
+  body: string;
+  delivered_at: string;
+  dismissed_at: string | null;
+  expires_at: string | null;
+  id: string;
+  kind: string;
+  modal_acknowledged_at: string | null;
+  notification_id: string;
+  priority: number | null;
+  read_at: string | null;
+  release_version: string | null;
+  seen_at: string | null;
+  severity: string;
+  starts_at: string;
+  surface: string;
+  title: string;
 };
 
-type NotificationQueryBuilder<T> = PromiseLike<NotificationQueryResult<T>> & {
-  select: (columns: string, options?: { count?: "exact"; head?: boolean }) => NotificationQueryBuilder<T>;
-  update: (values: Record<string, string>) => NotificationQueryBuilder<T>;
-  eq: (column: string, value: string) => NotificationQueryBuilder<T>;
-  is: (column: string, value: null) => NotificationQueryBuilder<T>;
-  lt: (column: string, value: string) => NotificationQueryBuilder<T>;
-  order: (column: string, options?: { ascending?: boolean }) => NotificationQueryBuilder<T>;
-  limit: (count: number) => NotificationQueryBuilder<T>;
-  maybeSingle: () => PromiseLike<NotificationQueryResult<{ id: string }>>;
-};
-
-export type NotificationSupabaseClient = {
-  from: (table: "notification_deliveries") => NotificationQueryBuilder<NotificationDeliveryWithDefinition[]>;
+type CountRow = {
+  count: number;
 };
 
 const DELIVERY_WITH_DEFINITION_SELECT = `
-  id,
-  notification_id,
-  delivered_at,
-  seen_at,
-  read_at,
-  dismissed_at,
-  modal_acknowledged_at,
-  notification_definitions!inner(
-    kind,
-    title,
-    body,
-    severity,
-    surface,
-    release_version,
-    action_label,
-    action_href,
-    priority,
-    starts_at,
-    expires_at
-  )
+  SELECT
+    deliveries.id,
+    deliveries.notification_id,
+    deliveries.delivered_at,
+    deliveries.seen_at,
+    deliveries.read_at,
+    deliveries.dismissed_at,
+    deliveries.modal_acknowledged_at,
+    definitions.kind,
+    definitions.title,
+    definitions.body,
+    definitions.severity,
+    definitions.surface,
+    definitions.release_version,
+    definitions.action_label,
+    definitions.action_href,
+    definitions.priority,
+    definitions.starts_at,
+    definitions.expires_at
+  FROM notification_deliveries deliveries
+  JOIN notification_definitions definitions
+    ON definitions.id = deliveries.notification_id
 `;
 
 function clampNotificationLimit(limit: number | undefined) {
@@ -61,73 +68,135 @@ function clampNotificationLimit(limit: number | undefined) {
   return Math.min(Math.max(Math.trunc(limit ?? 20), 1), 50);
 }
 
-function throwIfQueryError(error: { message?: string } | null) {
-  if (error) throw new Error(error.message ?? "Notification query failed.");
+async function requireNotificationsD1() {
+  const db = await getCloudflareD1Database();
+  if (!db) throw new Error("Notification D1 store is unavailable.");
+  return db;
 }
 
-export async function listCurrentUserNotifications(
-  supabase: NotificationSupabaseClient,
+function coerceCount(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "bigint") return Number(value);
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+}
+
+function toDeliveryWithDefinition(row: NotificationJoinedD1Row): NotificationDeliveryWithDefinition {
+  return {
+    delivered_at: row.delivered_at,
+    dismissed_at: row.dismissed_at,
+    id: row.id,
+    modal_acknowledged_at: row.modal_acknowledged_at,
+    notification_id: row.notification_id,
+    notification_definitions: {
+      action_href: row.action_href,
+      action_label: row.action_label,
+      body: row.body,
+      expires_at: row.expires_at,
+      kind: row.kind,
+      priority: row.priority ?? 0,
+      release_version: row.release_version,
+      severity: row.severity,
+      starts_at: row.starts_at,
+      surface: row.surface,
+      title: row.title,
+    },
+    read_at: row.read_at,
+    seen_at: row.seen_at,
+  };
+}
+
+export async function listCurrentUserNotificationsFromD1(
+  db: D1DatabaseLike,
   userId: string,
   input: { limit?: number; cursor?: string | null } = {},
 ): Promise<NotificationFeedResult> {
   const limit = clampNotificationLimit(input.limit);
-  let query = supabase
-    .from("notification_deliveries")
-    .select(DELIVERY_WITH_DEFINITION_SELECT)
-    .eq("user_id", userId)
-    .is("dismissed_at", null)
-    .is("archived_at", null)
-    .order("delivered_at", { ascending: false })
-    .limit(limit + 1);
-
-  if (input.cursor) query = query.lt("delivered_at", input.cursor);
-
-  const { data, error } = await query;
-  throwIfQueryError(error);
-
-  const rows = data ?? [];
+  const cursorFilter = input.cursor ? "AND deliveries.delivered_at < ?" : "";
+  const statement = db
+    .prepare<NotificationJoinedD1Row>(
+      `
+        ${DELIVERY_WITH_DEFINITION_SELECT}
+        WHERE deliveries.user_id = ?
+          AND deliveries.dismissed_at IS NULL
+          AND deliveries.archived_at IS NULL
+          ${cursorFilter}
+        ORDER BY deliveries.delivered_at DESC
+        LIMIT ?
+      `,
+    );
+  const boundStatement = input.cursor
+    ? statement.bind(userId, input.cursor, limit + 1)
+    : statement.bind(userId, limit + 1);
+  const { results } = await boundStatement.all<NotificationJoinedD1Row>();
+  const rows = results ?? [];
   const visibleRows = rows.slice(0, limit);
   const items = visibleRows
-    .map((row) => coerceNotificationDeliveryView(row))
+    .map((row) => coerceNotificationDeliveryView(toDeliveryWithDefinition(row)))
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
   const nextCursor = rows.length > limit ? rows[limit]?.delivered_at ?? null : null;
   return { items, nextCursor };
 }
 
-export async function countCurrentUserUnreadNotifications(
-  supabase: NotificationSupabaseClient,
+export async function listCurrentUserNotifications(
   userId: string,
-): Promise<number> {
-  const { count, error } = await supabase
-    .from("notification_deliveries")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .is("read_at", null)
-    .is("dismissed_at", null)
-    .is("archived_at", null);
-
-  throwIfQueryError(error);
-  return count ?? 0;
+  input: { limit?: number; cursor?: string | null } = {},
+): Promise<NotificationFeedResult> {
+  const db = await requireNotificationsD1();
+  return listCurrentUserNotificationsFromD1(db, userId, input);
 }
 
-export async function getCurrentUserReleaseAnnouncement(
-  supabase: NotificationSupabaseClient,
+export async function countCurrentUserUnreadNotificationsFromD1(
+  db: D1DatabaseLike,
+  userId: string,
+): Promise<number> {
+  const row = await db
+    .prepare<CountRow>(
+      `
+        SELECT COUNT(*) AS count
+        FROM notification_deliveries
+        WHERE user_id = ?
+          AND read_at IS NULL
+          AND dismissed_at IS NULL
+          AND archived_at IS NULL
+      `,
+    )
+    .bind(userId)
+    .first<CountRow>();
+
+  return coerceCount(row?.count);
+}
+
+export async function countCurrentUserUnreadNotifications(userId: string): Promise<number> {
+  const db = await requireNotificationsD1();
+  return countCurrentUserUnreadNotificationsFromD1(db, userId);
+}
+
+export async function getCurrentUserReleaseAnnouncementFromD1(
+  db: D1DatabaseLike,
   userId: string,
 ): Promise<ReleaseAnnouncementView | null> {
-  const { data, error } = await supabase
-    .from("notification_deliveries")
-    .select(DELIVERY_WITH_DEFINITION_SELECT)
-    .eq("user_id", userId)
-    .is("modal_acknowledged_at", null)
-    .is("dismissed_at", null)
-    .is("archived_at", null)
-    .order("delivered_at", { ascending: false })
-    .limit(50);
-
-  throwIfQueryError(error);
+  const { results } = await db
+    .prepare<NotificationJoinedD1Row>(
+      `
+        ${DELIVERY_WITH_DEFINITION_SELECT}
+        WHERE deliveries.user_id = ?
+          AND deliveries.modal_acknowledged_at IS NULL
+          AND deliveries.dismissed_at IS NULL
+          AND deliveries.archived_at IS NULL
+        ORDER BY deliveries.delivered_at DESC
+        LIMIT 50
+      `,
+    )
+    .bind(userId)
+    .all<NotificationJoinedD1Row>();
 
   const now = new Date();
-  const eligibleRows = (data ?? [])
+  const eligibleRows = (results ?? [])
+    .map(toDeliveryWithDefinition)
     .filter((row) => isActiveReleaseAnnouncement(row, now))
     .sort((left, right) => {
       const leftDefinition = Array.isArray(left.notification_definitions)
@@ -144,59 +213,97 @@ export async function getCurrentUserReleaseAnnouncement(
   return eligibleRows.length ? toReleaseAnnouncementView(eligibleRows[0]) : null;
 }
 
-async function updateCurrentUserDeliveryState(
-  supabase: NotificationSupabaseClient,
+export async function getCurrentUserReleaseAnnouncement(userId: string): Promise<ReleaseAnnouncementView | null> {
+  const db = await requireNotificationsD1();
+  return getCurrentUserReleaseAnnouncementFromD1(db, userId);
+}
+
+async function updateCurrentUserDeliveryStateInD1(
+  db: D1DatabaseLike,
   userId: string,
   deliveryId: string,
   values: Record<string, string>,
 ): Promise<NotificationActionResult> {
-  const { data, error } = await supabase
-    .from("notification_deliveries")
-    .update(values)
-    .eq("id", deliveryId)
-    .eq("user_id", userId)
-    .select("id")
-    .maybeSingle();
+  const updates = Object.entries(values);
+  const assignments = [
+    ...updates.map(([column]) => `${column} = ?`),
+    "updated_at = ?",
+  ].join(", ");
+  const now = new Date().toISOString();
+  const result = await db
+    .prepare(
+      `
+        UPDATE notification_deliveries
+        SET ${assignments}
+        WHERE id = ?
+          AND user_id = ?
+      `,
+    )
+    .bind(...updates.map(([, value]) => value), now, deliveryId, userId)
+    .run();
 
-  throwIfQueryError(error);
-  return data ? { ok: true } : { ok: false, code: "not_found" };
+  return (result.meta?.changes ?? 0) > 0 ? { ok: true } : { ok: false, code: "not_found" };
 }
 
-export async function markCurrentUserNotificationRead(
-  supabase: NotificationSupabaseClient,
+export async function markCurrentUserNotificationReadInD1(
+  db: D1DatabaseLike,
   userId: string,
   deliveryId: string,
 ): Promise<NotificationActionResult> {
   const now = new Date().toISOString();
-  return updateCurrentUserDeliveryState(supabase, userId, deliveryId, {
+  return updateCurrentUserDeliveryStateInD1(db, userId, deliveryId, {
     read_at: now,
     seen_at: now,
   });
 }
 
-export async function dismissCurrentUserNotification(
-  supabase: NotificationSupabaseClient,
+export async function markCurrentUserNotificationRead(
+  userId: string,
+  deliveryId: string,
+): Promise<NotificationActionResult> {
+  const db = await requireNotificationsD1();
+  return markCurrentUserNotificationReadInD1(db, userId, deliveryId);
+}
+
+export async function dismissCurrentUserNotificationInD1(
+  db: D1DatabaseLike,
   userId: string,
   deliveryId: string,
 ): Promise<NotificationActionResult> {
   const now = new Date().toISOString();
-  return updateCurrentUserDeliveryState(supabase, userId, deliveryId, {
+  return updateCurrentUserDeliveryStateInD1(db, userId, deliveryId, {
     dismissed_at: now,
     seen_at: now,
   });
 }
 
-export async function acknowledgeCurrentUserReleaseModal(
-  supabase: NotificationSupabaseClient,
+export async function dismissCurrentUserNotification(
+  userId: string,
+  deliveryId: string,
+): Promise<NotificationActionResult> {
+  const db = await requireNotificationsD1();
+  return dismissCurrentUserNotificationInD1(db, userId, deliveryId);
+}
+
+export async function acknowledgeCurrentUserReleaseModalInD1(
+  db: D1DatabaseLike,
   userId: string,
   deliveryId: string,
 ): Promise<NotificationActionResult> {
   const now = new Date().toISOString();
-  return updateCurrentUserDeliveryState(supabase, userId, deliveryId, {
+  return updateCurrentUserDeliveryStateInD1(db, userId, deliveryId, {
     modal_acknowledged_at: now,
     read_at: now,
     seen_at: now,
   });
+}
+
+export async function acknowledgeCurrentUserReleaseModal(
+  userId: string,
+  deliveryId: string,
+): Promise<NotificationActionResult> {
+  const db = await requireNotificationsD1();
+  return acknowledgeCurrentUserReleaseModalInD1(db, userId, deliveryId);
 }
 
 export { clampNotificationLimit };

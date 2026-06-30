@@ -2,16 +2,17 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 
-import { createClient } from "@supabase/supabase-js";
-
 import {
-  buildAccountSecurityEvent,
+  sanitizeAccountSecurityMetadata,
   type AccountSecurityEventType,
 } from "@/lib/auth/account-data";
-import type { Database, TablesInsert } from "@/lib/supabase/types";
+import {
+  recordAccountSecurityEventInCloudflareD1,
+  type AccountSecurityAuditRow,
+} from "@/lib/auth/account-audit-d1-store";
 
 type AccountSecurityAuditInput = {
-  eventType: AccountSecurityEventType;
+  eventType: AccountSecurityEventType | (string & {});
   userId?: string | null;
   workspaceId?: string | null;
   requestId?: string | null;
@@ -20,48 +21,30 @@ type AccountSecurityAuditInput = {
   metadata?: Record<string, unknown> | null;
 };
 
-function createAccountAuditSupabaseClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  if (!url || !serviceRoleKey) return null;
-
-  return createClient<Database>(url, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-    global: {
-      headers: {
-        "X-Client-Info": "archestimator-account-security-audit",
-      },
-    },
-  });
-}
-
 export function hashAccountSecurityValue(value: string) {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
 }
 
 export function buildAccountSecurityAuditRow(
   input: AccountSecurityAuditInput,
-): TablesInsert<"account_security_events"> {
-  return buildAccountSecurityEvent({
-    eventType: input.eventType,
-    userId: input.userId ?? null,
-    workspaceId: input.workspaceId ?? null,
-    requestId: input.requestId ?? null,
-    ipHash: input.ipAddress ? hashAccountSecurityValue(input.ipAddress) : null,
-    userAgentHash: input.userAgent ? hashAccountSecurityValue(input.userAgent) : null,
-    metadata: input.metadata ?? {},
-  });
+): AccountSecurityAuditRow {
+  const eventType = input.eventType.trim();
+  if (!eventType) throw new Error("Account security event type is required.");
+
+  return {
+    event_type: eventType,
+    user_id: input.userId ?? null,
+    workspace_id: input.workspaceId ?? null,
+    request_id: input.requestId ?? null,
+    ip_hash: input.ipAddress ? hashAccountSecurityValue(input.ipAddress) : null,
+    user_agent_hash: input.userAgent ? hashAccountSecurityValue(input.userAgent) : null,
+    metadata_json: sanitizeAccountSecurityMetadata(input.metadata ?? {}),
+  };
 }
 
 export async function recordAccountSecurityEvent(input: AccountSecurityAuditInput) {
-  const supabase = createAccountAuditSupabaseClient();
-  if (!supabase) return;
-
   try {
-    await supabase.from("account_security_events").insert(buildAccountSecurityAuditRow(input));
+    await recordAccountSecurityEventInCloudflareD1(buildAccountSecurityAuditRow(input));
   } catch {
     // Account security audit writes are best effort and must not leak auth
     // provider or database details into the user-facing authentication flow.

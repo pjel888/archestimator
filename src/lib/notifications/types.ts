@@ -1,5 +1,3 @@
-import type { Tables } from "@/lib/supabase/types";
-
 const NOTIFICATION_KINDS = [
   "release_announcement",
   "system_notice",
@@ -49,31 +47,29 @@ export type NotificationActionResult =
   | { ok: true }
   | { ok: false; code: "unauthenticated" | "not_found" | "invalid_input" | "unavailable" };
 
-export type NotificationDefinitionRow = Pick<
-  Tables<"notification_definitions">,
-  | "action_href"
-  | "action_label"
-  | "body"
-  | "expires_at"
-  | "kind"
-  | "priority"
-  | "release_version"
-  | "severity"
-  | "starts_at"
-  | "surface"
-  | "title"
->;
+export type NotificationDefinitionRow = {
+  action_href: string | null;
+  action_label: string | null;
+  body: string;
+  expires_at: string | null;
+  kind: string;
+  priority: number;
+  release_version: string | null;
+  severity: string;
+  starts_at: string;
+  surface: string;
+  title: string;
+};
 
-export type NotificationDeliveryRow = Pick<
-  Tables<"notification_deliveries">,
-  | "delivered_at"
-  | "dismissed_at"
-  | "id"
-  | "modal_acknowledged_at"
-  | "notification_id"
-  | "read_at"
-  | "seen_at"
->;
+export type NotificationDeliveryRow = {
+  delivered_at: string;
+  dismissed_at: string | null;
+  id: string;
+  modal_acknowledged_at: string | null;
+  notification_id: string;
+  read_at: string | null;
+  seen_at: string | null;
+};
 
 export type NotificationDeliveryWithDefinition = NotificationDeliveryRow & {
   notification_definitions: NotificationDefinitionRow | NotificationDefinitionRow[] | null;

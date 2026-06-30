@@ -47,7 +47,7 @@ export default function PrivacyPage() {
             <section>
               <h2 className="text-[11px] font-medium leading-4 text-[#111111]">Service providers</h2>
               <p className="mt-1">
-                The product may rely on providers such as Supabase/Postgres for auth and database storage, Vercel for hosting, Resend for email, and privacy-reviewed analytics or diagnostic providers when enabled.
+                The product may rely on providers such as Supabase/Postgres for temporary database storage, Cloudflare for hosting, storage, email, and edge services, and privacy-reviewed analytics or diagnostic providers when enabled.
               </p>
             </section>
             <section>

@@ -1,19 +1,17 @@
-import { createClient } from "@supabase/supabase-js";
 import { cookies, headers } from "next/headers";
 import { getDevAuthBypassCredentialFromRequestParts, isDevAuthBypassRequest } from "@/lib/auth/dev-auth-gate";
-import type { Database, Tables } from "@/lib/supabase/types";
+import { getProfileByEmailFromCloudflareD1, type AppRole, type CurrentUserProfile } from "@/lib/auth/profile-d1-store";
 
 export { getDevAuthBypassCredentialFromRequestParts, isDevAdminDatabaseBypassEnabled, isDevAdminDatabaseBypassRequest, isDevAuthBypassEnabled, isDevAuthBypassRequest } from "@/lib/auth/dev-auth-gate";
 
 const DEV_AUTH_BYPASS_FLAG = "ARCHESTIMATOR_DEV_AUTH_BYPASS";
 const DEV_AUTH_EMAIL = "ARCHESTIMATOR_DEV_AUTH_EMAIL";
-const SERVICE_ROLE_KEY = "SUPABASE_SERVICE_ROLE_KEY";
 
 export type DevCurrentUserContext = {
   userId: string;
   email: string;
-  role: Tables<"profiles">["role"];
-  profile: Tables<"profiles">;
+  role: AppRole;
+  profile: CurrentUserProfile;
   displayName: string;
   avatarUrl: string | null;
 };
@@ -30,23 +28,6 @@ export function getDevAuthEmail() {
   return getRequiredDevEnv(DEV_AUTH_EMAIL).toLowerCase();
 }
 
-export function createDevSupabaseAdminClient() {
-  const url = getRequiredDevEnv("NEXT_PUBLIC_SUPABASE_URL");
-  const serviceRoleKey = getRequiredDevEnv(SERVICE_ROLE_KEY);
-
-  return createClient<Database>(url, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-    global: {
-      headers: {
-        "X-Client-Info": "archestimator-dev-auth-bypass",
-      },
-    },
-  });
-}
-
 export async function getDevCurrentUserContext(): Promise<DevCurrentUserContext | null> {
   const requestHeaders = await headers();
   const hostHeader = requestHeaders.get("host");
@@ -54,12 +35,10 @@ export async function getDevCurrentUserContext(): Promise<DevCurrentUserContext 
   if (!isDevAuthBypassRequest(hostHeader, devAuthBypassCredential)) return null;
 
   const email = getDevAuthEmail();
-  const supabase = createDevSupabaseAdminClient();
-  const { data: profile, error } = await supabase.from("profiles").select("*").eq("email", email).maybeSingle();
+  const profile = await getProfileByEmailFromCloudflareD1(email);
 
-  if (error) throw error;
   if (!profile) {
-    throw new Error(`Dev auth bypass could not find public.profiles.email=${email}. Log in once or seed/create that profile before using ${DEV_AUTH_BYPASS_FLAG}=1.`);
+    throw new Error(`Dev auth bypass could not find Cloudflare D1 profiles.email=${email}. Backfill or seed the D1 profile before using ${DEV_AUTH_BYPASS_FLAG}=1.`);
   }
 
   return {

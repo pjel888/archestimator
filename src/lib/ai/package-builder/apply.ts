@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 
-import type { AiRequestUserContext } from "@/lib/ai/auth";
+import { isProviderBackedAiUserContext, type AiRequestUserContext } from "@/lib/ai/auth";
 import { isUuid } from "@/lib/ids";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import { requireCurrentUserContext } from "@/lib/auth/session";
@@ -1309,7 +1309,7 @@ function buildPackageApplyRpcDraft({
 }
 
 export async function applyPackageBuilderDraft(input: ApplyPackageBuilderDraftInput): Promise<PackageBuilderApplyResult> {
-  if (input.userContext.authMode !== "supabase" || !input.userContext.workspaceId) {
+  if (!isProviderBackedAiUserContext(input.userContext)) {
     throw new Error("Package Apply requires an authenticated workspace user.");
   }
   if (!isUuid(input.authorizationRunId)) {

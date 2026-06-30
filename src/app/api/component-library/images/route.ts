@@ -1,12 +1,11 @@
 import { randomUUID } from "node:crypto";
 
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
+import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { Database } from "@/lib/supabase/types";
 import { reserveUploadAdmission } from "@/lib/uploads/admission-control";
 import {
   CLOUDFLARE_IMAGE_PROCESSING_UNAVAILABLE_MESSAGE,
@@ -120,24 +119,8 @@ function parseComponentImageStoragePath(path: string) {
   return { workspaceId, ownerUserId, path: normalized };
 }
 
-async function createStorageSupabaseClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (url && serviceRoleKey) {
-    return createClient<Database>(url, serviceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-      global: {
-        headers: {
-          "X-Client-Info": "archestimator-component-image-upload",
-        },
-      },
-    });
-  }
-
-  return createSupabaseServerClient();
+function uploadMetadataUnavailableResponse() {
+  return jsonError("Cloudflare D1 upload metadata is not configured.", 503);
 }
 
 async function uploadWebp({
@@ -190,8 +173,7 @@ export async function GET(request: Request) {
   const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   if (parsedPath.workspaceId !== workspace.id) return privateImageNotFound();
 
-  const storageSupabase = await createStorageSupabaseClient();
-  const storageProvider = await createRuntimeUploadStorageProvider(storageSupabase);
+  const storageProvider = await createRuntimeUploadStorageProvider();
   const object = await storageProvider.downloadObject(COMPONENT_IMAGE_BUCKET, parsedPath.path).catch(() => null);
   if (!object) return privateImageNotFound();
 
@@ -252,8 +234,10 @@ export async function POST(request: Request) {
     }
     const { optimized, thumbnail } = processedImage.image;
 
-    const supabase = await createStorageSupabaseClient();
-    const storageProvider = await createRuntimeUploadStorageProvider(supabase);
+    const uploadMetadataDb = await getCloudflareD1Database();
+    if (!uploadMetadataDb) return uploadMetadataUnavailableResponse();
+
+    const storageProvider = await createRuntimeUploadStorageProvider();
     const baseName = `${safeUploadName(file.name)}-${randomUUID()}`;
     const basePath = `${workspace.id}/${currentUser.userId}/${baseName}`;
     const imagePath = `${basePath}.webp`;
@@ -266,7 +250,7 @@ export async function POST(request: Request) {
       uploadedPaths.push(imagePath);
       const thumbnailUrl = await uploadWebp({ buffer: thumbnail.data, path: thumbnailPath, storageProvider });
       uploadedPaths.push(thumbnailPath);
-      const uploadRecord = await recordUploadAsset(supabase, {
+      const uploadRecord = await recordUploadAsset(uploadMetadataDb, {
         workspaceId: workspace.id,
         actorUserId: currentUser.userId,
         surface: "component-image",
@@ -329,8 +313,7 @@ export async function DELETE(request: Request) {
   const paths = readStoragePaths(body).filter((path) => isOwnedUploadPath(path, workspace.id, currentUser.userId));
   if (paths.length === 0) return jsonError("No removable image paths were provided.");
 
-  const supabase = await createStorageSupabaseClient();
-  const storageProvider = await createRuntimeUploadStorageProvider(supabase);
+  const storageProvider = await createRuntimeUploadStorageProvider();
   try {
     await storageProvider.removeObjects(COMPONENT_IMAGE_BUCKET, paths);
   } catch {

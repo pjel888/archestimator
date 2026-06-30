@@ -1,7 +1,8 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 
 import { readPublicationTokenEncryptionSecret } from "@/lib/publication/security";
-import type { Json } from "@/lib/supabase/types";
+
+type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 type RecipientIdentityRow = {
   id: string;

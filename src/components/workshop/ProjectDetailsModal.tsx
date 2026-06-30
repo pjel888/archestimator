@@ -302,11 +302,11 @@ export function ProjectDetailsModal({
     }
 
     const previousImage = projectImage;
-    dispatchDetails({ type: "imageUpload", upload: { state: "uploading", message: "Uploading image to Supabase Storage...", progress: 5 } });
+    dispatchDetails({ type: "imageUpload", upload: { state: "uploading", message: "Uploading image to Cloudflare R2...", progress: 5 } });
 
     try {
       const uploadedImage = await uploadProjectImage(file, project.id, (progress) => {
-        dispatchDetails({ type: "imageUpload", upload: { state: "uploading", message: "Uploading image to Supabase Storage...", progress } });
+        dispatchDetails({ type: "imageUpload", upload: { state: "uploading", message: "Uploading image to Cloudflare R2...", progress } });
       });
       dispatchDetails({
         type: "imageUpload:success",

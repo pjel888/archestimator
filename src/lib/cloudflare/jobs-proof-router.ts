@@ -151,7 +151,7 @@ function resultBody({
       productionJobsMessagingReady,
     },
     blockers,
-    note: "Protected Cloudflare jobs proof. It sends one dry-run upload-cleanup proof message through the real Queue binding and reads a sanitized consumer receipt from R2. It does not print secrets, change DNS, delete provider resources, or disable the Vercel fallback.",
+    note: "Protected Cloudflare jobs proof. It sends one dry-run upload-cleanup proof message through the real Queue binding and reads a sanitized consumer receipt from R2. It does not print secrets, change DNS, delete provider resources, or disable legacy provider fallbacks.",
   };
 }
 

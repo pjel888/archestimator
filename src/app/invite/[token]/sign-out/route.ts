@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { isAllowedInviteOrigin } from "@/lib/collaboration/invite-origin";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createCloudflareBetterAuthForRequest } from "@/lib/auth/cloudflare-better-auth-runtime";
 
 type InviteRouteContext = {
   params: Promise<{ token: string }>;
@@ -29,7 +29,17 @@ async function signOutAndReturn(request: Request, { params }: InviteRouteContext
     );
   }
 
-  const supabase = await createSupabaseServerClient();
-  await supabase.auth.signOut();
-  return NextResponse.redirect(new URL(`/invite/${encodeURIComponent(rawToken)}`, request.url));
+  const signOutRequestHeaders = new Headers(request.headers);
+  signOutRequestHeaders.set("origin", new URL(request.url).origin);
+  const signOutRequest = new Request(new URL("/api/auth/sign-out", request.url), {
+    method: "POST",
+    headers: signOutRequestHeaders,
+  });
+  const auth = await createCloudflareBetterAuthForRequest(signOutRequest);
+  if (auth) await auth.handler(signOutRequest);
+
+  const response = NextResponse.redirect(new URL(`/invite/${encodeURIComponent(rawToken)}`, request.url));
+  response.cookies.set("better-auth.session_token", "", { maxAge: 0, path: "/" });
+  response.cookies.set("__Secure-better-auth.session_token", "", { maxAge: 0, path: "/" });
+  return response;
 }

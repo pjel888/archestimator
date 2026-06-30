@@ -40,7 +40,7 @@ import {
 } from "@/lib/component-library/unit-options";
 import type { EstimateRowItem } from "@/lib/estimates/types";
 import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
-import type { Json } from "@/lib/supabase/types";
+import type { Json } from "@/lib/types/json";
 import { cn } from "@/lib/ui/cn";
 import {
   uploadComponentAttachment,
