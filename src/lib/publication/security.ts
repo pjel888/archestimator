@@ -2,6 +2,8 @@ import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes a
 import { promisify } from "node:util";
 
 const scryptAsync = promisify(scrypt);
+const defaultPublicationTokenBytes = 32;
+const publicationTokenBase64UrlLength = 43;
 const tokenHashPrefix = "hmac-sha256-v1";
 const tokenEncryptionPrefix = "aes-256-gcm-v1";
 const passwordHashPrefix = "scrypt-sha256-v1";
@@ -59,13 +61,18 @@ function constantTimeEqual(left: Buffer, right: Buffer) {
 }
 
 export function createPublicationToken({
-  bytes = 32,
+  bytes = defaultPublicationTokenBytes,
   randomBytes = nodeRandomBytes,
 }: {
   bytes?: number;
   randomBytes?: RandomBytes;
 } = {}) {
   return toBase64Url(randomBytes(bytes));
+}
+
+export function isPublicationTokenShape(token: string) {
+  const normalized = token.trim();
+  return normalized.length === publicationTokenBase64UrlLength && /^[A-Za-z0-9_-]+$/.test(normalized);
 }
 
 export function hashPublicationToken(token: string, secret: string) {

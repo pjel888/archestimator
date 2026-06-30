@@ -1,6 +1,7 @@
 "use client";
 
 import { useReducer, type FormEvent } from "react";
+import { useSearchParams } from "next/navigation";
 import { EnvelopeOpen } from "@phosphor-icons/react/dist/ssr";
 
 import { buildSupportMailto, normalizeInquiryType, SUPPORT_EMAIL } from "./contact-mailto";
@@ -52,6 +53,17 @@ function contactFormReducer(state: ContactFormState, action: ContactFormAction):
     default:
       return state;
   }
+}
+
+function parseContactIntent(value: string | null): ContactIntent {
+  if (value === "walkthrough") return "walkthrough";
+  if (value === "started" || value === "beta-request") return "started";
+  return "general";
+}
+
+export function ContactFormFromSearchParams() {
+  const searchParams = useSearchParams();
+  return <ContactForm initialIntent={parseContactIntent(searchParams.get("intent"))} />;
 }
 
 export function ContactForm({ initialIntent = "started" }: { initialIntent?: ContactIntent }) {

@@ -7,13 +7,13 @@ import { LandingAnalyticsLoader } from "./LandingAnalyticsLoader";
 
 interface PublicPageShellProps {
   children: ReactNode;
-  isLoggedIn: boolean;
+  isLoggedIn?: boolean;
   isHomePage?: boolean;
 }
 
 export function PublicPageShell({
   children,
-  isLoggedIn,
+  isLoggedIn = false,
   isHomePage = false,
 }: PublicPageShellProps) {
   return (

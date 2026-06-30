@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import { AuthLayout } from "@/components/auth/AuthLayout";
+import {
+  AuthStatusBannerFromSearchParams,
+  ClosedBetaGateFromSearchParams,
+} from "@/components/auth/AuthSearchParamsState";
 import { ClosedBetaGate } from "@/components/auth/ClosedBetaGate";
-import { sanitizeNextPath } from "@/lib/auth/redirects";
 
 export const metadata: Metadata = {
   title: "Start free — Archestimator",
@@ -11,20 +15,24 @@ export const metadata: Metadata = {
   alternates: { canonical: "/signup" },
 };
 
-export default async function SignupPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ next?: string; sent?: string; error?: string }>;
-}) {
-  const { next, sent, error } = await searchParams;
-  const safeNext = sanitizeNextPath(next);
+export const dynamic = "force-static";
 
+export default function SignupPage() {
   // L-FUN-2 GATED: when self-serve is enabled, replace <ClosedBetaGate> with
   // <SignupForm>. Until then the signup route is a request-access gate that
   // routes access requests through the /contact intake with intent=started.
   return (
-    <AuthLayout route="signup" sent={sent} errorCode={error}>
-      <ClosedBetaGate next={safeNext} />
+    <AuthLayout
+      route="signup"
+      statusSlot={
+        <Suspense fallback={null}>
+          <AuthStatusBannerFromSearchParams />
+        </Suspense>
+      }
+    >
+      <Suspense fallback={<ClosedBetaGate />}>
+        <ClosedBetaGateFromSearchParams />
+      </Suspense>
     </AuthLayout>
   );
 }

@@ -1,12 +1,11 @@
 import { PublicPageShell } from "@/components/landing";
 import { CURRENT_PRIVACY_NOTICE, CURRENT_TERMS } from "@/lib/legal/terms-content";
-import { getLandingAuthState } from "@/lib/landing/get-landing-auth-state";
 
-export default async function PrivacyPage() {
-  const isLoggedIn = await getLandingAuthState();
+export const dynamic = "force-static";
 
+export default function PrivacyPage() {
   return (
-    <PublicPageShell isLoggedIn={isLoggedIn} isHomePage={false}>
+    <PublicPageShell isHomePage={false}>
       <section className="bg-[#eeeeec] px-6 py-10">
         <div className="mx-auto max-w-[760px]">
           <p className="text-[9px] font-medium uppercase tracking-normal text-brand-orange">

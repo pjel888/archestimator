@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import { getLandingAuthState } from "@/lib/landing/get-landing-auth-state";
 import { buildLandingMetadata } from "@/lib/landing/seo-metadata";
 import { PublicPageShell } from "@/components/landing";
 import { LandingShellClient } from "@/components/landing/shell/LandingShellClient";
@@ -16,10 +15,11 @@ export const metadata: Metadata = buildLandingMetadata({
   path: "/pricing",
 });
 
-export default async function PricingPage() {
-  const isLoggedIn = await getLandingAuthState();
+export const dynamic = "force-static";
+
+export default function PricingPage() {
   return (
-    <PublicPageShell isLoggedIn={isLoggedIn} isHomePage={false}>
+    <PublicPageShell isHomePage={false}>
       <LandingShellClient>
         <main data-landing-page-root="true" id="main-content">
           {/* Hero (compact) */}
@@ -153,12 +153,11 @@ export default async function PricingPage() {
             <LandingCTAs
               className="mt-[var(--landing-space-lg)]"
               layout="stack"
-              isLoggedIn={isLoggedIn}
               location="final-cta"
             />
           </SectionShell>
 
-          <FinalCtaSection isLoggedIn={isLoggedIn} />
+          <FinalCtaSection />
         </main>
       </LandingShellClient>
     </PublicPageShell>

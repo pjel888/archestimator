@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
-import { getLandingAuthState } from "@/lib/landing/get-landing-auth-state";
 import { buildLandingMetadata } from "@/lib/landing/seo-metadata";
-import { PublicPageShell, ContactForm } from "@/components/landing";
+import { PublicPageShell, ContactForm, ContactFormFromSearchParams } from "@/components/landing";
 import { LandingShellClient } from "@/components/landing/shell/LandingShellClient";
 import { SectionShell } from "@/components/landing/sections/SectionShell";
 import { FinalCtaSection } from "@/components/landing/sections/FinalCtaSection";
 import { LandingCTAs } from "@/components/landing/sections/LandingCTAs";
-import type { ContactIntent } from "@/components/landing/ContactForm";
 
 export const metadata: Metadata = buildLandingMetadata({
   title: "Contact - talk to the founder",
@@ -16,23 +15,11 @@ export const metadata: Metadata = buildLandingMetadata({
   path: "/contact",
 });
 
-type ContactPageProps = {
-  searchParams?: Promise<{ intent?: string | string[] }>;
-};
+export const dynamic = "force-static";
 
-function parseContactIntent(value: string | string[] | undefined): ContactIntent {
-  const intent = Array.isArray(value) ? value[0] : value;
-  if (intent === "walkthrough") return "walkthrough";
-  if (intent === "started") return "started";
-  return "general";
-}
-
-export default async function ContactPage({ searchParams }: ContactPageProps) {
-  const resolvedSearchParams = searchParams ? await searchParams : {};
-  const initialIntent = parseContactIntent(resolvedSearchParams.intent);
-  const isLoggedIn = await getLandingAuthState();
+export default function ContactPage() {
   return (
-    <PublicPageShell isLoggedIn={isLoggedIn} isHomePage={false}>
+    <PublicPageShell isHomePage={false}>
       <LandingShellClient>
         <main data-landing-page-root="true" id="main-content">
           {/* Hero (compact) */}
@@ -46,7 +33,6 @@ export default async function ContactPage({ searchParams }: ContactPageProps) {
           >
             <LandingCTAs
               layout="stack"
-              isLoggedIn={isLoggedIn}
               location="final-cta"
             />
           </SectionShell>
@@ -102,12 +88,14 @@ export default async function ContactPage({ searchParams }: ContactPageProps) {
                 </p>
               </div>
               <div className="rounded-landing-panel border border-landing-hairline bg-surface p-[var(--landing-space-lg)]">
-                <ContactForm initialIntent={initialIntent} />
+                <Suspense fallback={<ContactForm />}>
+                  <ContactFormFromSearchParams />
+                </Suspense>
               </div>
             </div>
           </SectionShell>
 
-          <FinalCtaSection isLoggedIn={isLoggedIn} />
+          <FinalCtaSection />
         </main>
       </LandingShellClient>
     </PublicPageShell>

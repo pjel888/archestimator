@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import { AuthLayout } from "@/components/auth/AuthLayout";
+import {
+  AuthStatusBannerFromSearchParams,
+  LoginFormFromSearchParams,
+} from "@/components/auth/AuthSearchParamsState";
 import { LoginForm } from "@/components/auth/LoginForm";
-import { sanitizeNextPath } from "@/lib/auth/redirects";
 
 export const metadata: Metadata = {
   title: "Sign in — Archestimator",
@@ -11,16 +15,18 @@ export const metadata: Metadata = {
   alternates: { canonical: "/login" },
 };
 
-export default async function LoginPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ next?: string; sent?: string; error?: string }>;
-}) {
-  const { next, sent, error } = await searchParams;
-  const safeNext = sanitizeNextPath(next);
+export const dynamic = "force-static";
 
+export default function LoginPage() {
   return (
-    <AuthLayout route="login" sent={sent} errorCode={error}>
+    <AuthLayout
+      route="login"
+      statusSlot={
+        <Suspense fallback={null}>
+          <AuthStatusBannerFromSearchParams />
+        </Suspense>
+      }
+    >
       <div className="flex flex-col gap-2">
         <h1 className="font-display text-[40px] leading-[1.04] tracking-[0.02em] text-landing-ink">
           Sign in
@@ -29,7 +35,9 @@ export default async function LoginPage({
           Sign in to your Archestimator workspace.
         </p>
       </div>
-      <LoginForm next={safeNext} />
+      <Suspense fallback={<LoginForm next="/workshop" />}>
+        <LoginFormFromSearchParams />
+      </Suspense>
     </AuthLayout>
   );
 }

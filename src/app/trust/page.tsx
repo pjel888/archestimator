@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import { getLandingAuthState } from "@/lib/landing/get-landing-auth-state";
 import { buildLandingMetadata } from "@/lib/landing/seo-metadata";
 import { PublicPageShell } from "@/components/landing";
 import { LandingShellClient } from "@/components/landing/shell/LandingShellClient";
@@ -16,10 +15,11 @@ export const metadata: Metadata = buildLandingMetadata({
   path: "/trust",
 });
 
-export default async function TrustPage() {
-  const isLoggedIn = await getLandingAuthState();
+export const dynamic = "force-static";
+
+export default function TrustPage() {
   return (
-    <PublicPageShell isLoggedIn={isLoggedIn} isHomePage={false}>
+    <PublicPageShell isHomePage={false}>
       <LandingShellClient>
         <main data-landing-page-root="true" id="main-content">
           {/* Hero (compact) */}
@@ -145,7 +145,7 @@ export default async function TrustPage() {
             </div>
           </SectionShell>
 
-          <FinalCtaSection isLoggedIn={isLoggedIn} />
+          <FinalCtaSection />
         </main>
       </LandingShellClient>
     </PublicPageShell>

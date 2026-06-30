@@ -1,8 +1,4 @@
 import type { Metadata } from "next";
-import { getLandingAuthState } from "@/lib/landing/get-landing-auth-state";
-import { cookies } from "next/headers";
-import { parseLandingConsentValue } from "@/lib/landing/consent";
-import { getVariant } from "@/lib/ab-testing/variant-assigner";
 import { ArchestimatorLandingPage } from "@/components/landing-v3/ArchestimatorLandingPage";
 import { buildLandingMetadata } from "@/lib/landing/seo-metadata";
 import {
@@ -17,20 +13,13 @@ export const metadata: Metadata = buildLandingMetadata({
   path: "/",
 });
 
-export default async function LandingPage() {
-  // Read consent server-side to gate A/B cookie creation
-  const [isLoggedIn, cookieStore] = await Promise.all([getLandingAuthState(), cookies()]);
-  const consentCookie = cookieStore.get("archestimator_cookie_consent");
-  const consent = consentCookie ? parseLandingConsentValue(consentCookie.value) : null;
-  const analyticsConsent = consent?.analytics === true;
+export const dynamic = "force-static";
 
-  // Retrieve the assigned A/B copy variant
-  const heroVariant = await getVariant("hero-cta-copy", { analyticsConsent });
-
+export default function LandingPage() {
   return (
-    <PublicPageShell isLoggedIn={isLoggedIn} isHomePage={true}>
-      <ABExperimentProvider experimentId="hero-cta-copy" variant={heroVariant}>
-        <ArchestimatorLandingPage isLoggedIn={isLoggedIn} />
+    <PublicPageShell isHomePage={true}>
+      <ABExperimentProvider experimentId="hero-cta-copy" variant="A">
+        <ArchestimatorLandingPage isLoggedIn={false} />
       </ABExperimentProvider>
     </PublicPageShell>
   );

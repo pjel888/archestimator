@@ -2,7 +2,7 @@ import { createHash, createHmac } from "node:crypto";
 import { cache } from "react";
 import { createClient } from "@supabase/supabase-js";
 
-import { deriveCredentialVersion, getClientIp, hashPublicationToken, readPublicationTokenHashSecret, verifyPublicationPassword } from "@/lib/publication/security";
+import { deriveCredentialVersion, getClientIp, hashPublicationToken, isPublicationTokenShape, readPublicationTokenHashSecret, verifyPublicationPassword } from "@/lib/publication/security";
 import {
   createSharedLinkTargetLabelMapFromLabelsJson,
   resolveSharedLinkStoredTargetMetadata,
@@ -746,24 +746,26 @@ function toResolvedAccess(data: PublicationLookupRow): ResolvedProjectPublicatio
 }
 
 export async function resolveProjectPublicationAccessByToken(token: string): Promise<ResolvedProjectPublicationAccess | null> {
-  if (!token.trim()) return null;
+  const normalizedToken = token.trim();
+  if (!isPublicationTokenShape(normalizedToken)) return null;
 
   // OPT-2: shared per-request memoised access-row read. The active-state gate
   // (isActivePublication) runs on every call so revoked/expired still resolve to null.
-  const data = await getCachedPublicationAccessRowByToken(token);
+  const data = await getCachedPublicationAccessRowByToken(normalizedToken);
   if (!data || !isActivePublication(data)) return null;
 
   return toResolvedAccess(data);
 }
 
 export async function resolveProjectPublicationSnapshotByToken(token: string): Promise<ResolvedProjectPublicationSnapshot | null> {
-  if (!token.trim()) return null;
+  const normalizedToken = token.trim();
+  if (!isPublicationTokenShape(normalizedToken)) return null;
 
   // OPT-2: dedicated per-request memoised snapshot read (includes snapshot_json). Distinct
   // from the access reader so a happy-path visit performs exactly one snapshot SELECT
   // (shared by page render + generateMetadata) without ever pulling the blob on the
   // access-only / password-gate paths.
-  const data = await getCachedPublicationSnapshotRowByToken(token);
+  const data = await getCachedPublicationSnapshotRowByToken(normalizedToken);
   if (!data || !isActivePublication(data)) return null;
 
   return {
@@ -773,13 +775,14 @@ export async function resolveProjectPublicationSnapshotByToken(token: string): P
 }
 
 export async function verifyProjectPublicationPasswordByToken(token: string, password: string) {
-  if (!token.trim() || !password) return false;
+  const normalizedToken = token.trim();
+  if (!isPublicationTokenShape(normalizedToken) || !password) return false;
 
   const supabase = createPublicationServiceClient();
   const { data, error } = await supabase
     .from("project_publications")
     .select("id, status, password_hash, expires_at, revoked_at, snapshot_version")
-    .eq("token_hash", readTokenHash(token))
+    .eq("token_hash", readTokenHash(normalizedToken))
     .maybeSingle();
 
   if (error) throw error;

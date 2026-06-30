@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { getLandingAuthState } from "@/lib/landing/get-landing-auth-state";
 import { buildLandingMetadata } from "@/lib/landing/seo-metadata";
 import { PublicPageShell } from "@/components/landing";
 import { LandingShellClient } from "@/components/landing/shell/LandingShellClient";
@@ -17,10 +16,11 @@ export const metadata: Metadata = buildLandingMetadata({
   path: "/features",
 });
 
-export default async function FeaturesPage() {
-  const isLoggedIn = await getLandingAuthState();
+export const dynamic = "force-static";
+
+export default function FeaturesPage() {
   return (
-    <PublicPageShell isLoggedIn={isLoggedIn} isHomePage={false}>
+    <PublicPageShell isHomePage={false}>
       <LandingShellClient>
         <main data-landing-page-root="true" id="main-content">
           {/* Hero (compact) */}
@@ -32,7 +32,7 @@ export default async function FeaturesPage() {
             heading="Every feature, with its status."
             lead="The estimate workspace, the reusable library, the revision record, and the proposal handoff — each one tagged Live, Building, or Planned, so you know exactly what ships today and what is on the roadmap."
           >
-            <LandingCTAs isLoggedIn={isLoggedIn} location="final-cta" />
+            <LandingCTAs location="final-cta" />
           </SectionShell>
 
           {/* The full claims ledger, expanded */}
@@ -66,7 +66,7 @@ export default async function FeaturesPage() {
             </p>
           </SectionShell>
 
-          <FinalCtaSection isLoggedIn={isLoggedIn} />
+          <FinalCtaSection />
         </main>
       </LandingShellClient>
     </PublicPageShell>
