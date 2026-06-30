@@ -3,11 +3,18 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 
 import { getCurrentUserContext, requireCurrentUserContext } from "@/lib/auth/session";
+import {
+  canAccessEstimateInD1,
+  canAccessProjectInD1,
+  canEditProjectInD1,
+  readEstimateInProjectFromD1,
+  readProjectFromD1,
+  readProjectInWorkspaceFromD1,
+} from "@/lib/authz/d1-access";
 import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
 import { isUuid } from "@/lib/ids";
 import { getCurrentUserTermsAcceptanceStatus } from "@/lib/legal/terms-acceptance";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { reserveUploadAdmission } from "@/lib/uploads/admission-control";
 import {
   CLOUDFLARE_IMAGE_PROCESSING_UNAVAILABLE_MESSAGE,
@@ -153,39 +160,6 @@ async function uploadWebp({
   return createProjectImageRouteUrl(path);
 }
 
-async function canEditProject(projectId: string, supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
-  const { data, error } = await supabase.rpc("can_edit_project", {
-    target_project_id: projectId,
-  });
-  if (error) {
-    console.error("Project image authorization failed", error);
-    return false;
-  }
-  return data === true;
-}
-
-async function canAccessProject(projectId: string, supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
-  const { data, error } = await supabase.rpc("can_access_project", {
-    target_project_id: projectId,
-  });
-  if (error) {
-    console.error("Project image access check failed", error);
-    return false;
-  }
-  return data === true;
-}
-
-async function canAccessEstimate(estimateId: string, supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
-  const { data, error } = await supabase.rpc("can_access_estimate", {
-    target_estimate_id: estimateId,
-  });
-  if (error) {
-    console.error("Project image estimate access check failed", error);
-    return false;
-  }
-  return data === true;
-}
-
 function isOwnedUploadPath(path: string, workspaceId: string, userId: string) {
   const parsed = parseProjectImageStoragePath(path);
   return Boolean(parsed && parsed.workspaceId === workspaceId && parsed.ownerUserId === userId);
@@ -208,34 +182,23 @@ export async function GET(request: Request) {
   const acceptanceStatus = await getCurrentUserTermsAcceptanceStatus(currentUser.userId);
   if (acceptanceStatus.requiresAcceptance) return privateImageNotFound();
 
-  const serverSupabase = await createSupabaseServerClient();
-  const { data: project, error: projectError } = await serverSupabase
-    .from("projects")
-    .select("id, workspace_id")
-    .eq("id", parsedPath.projectId)
-    .maybeSingle();
+  const db = await getCloudflareD1Database();
+  if (!db) return privateImageNotFound();
+  const project = await readProjectFromD1(db, parsedPath.projectId);
 
-  if (projectError) throw projectError;
   if (!project || project.workspace_id !== parsedPath.workspaceId) {
     return privateImageNotFound();
   }
 
   if (parsedPath.estimateId) {
-    const { data: estimate, error: estimateError } = await serverSupabase
-      .from("estimates")
-      .select("id")
-      .eq("id", parsedPath.estimateId)
-      .eq("project_id", parsedPath.projectId)
-      .maybeSingle();
-
-    if (estimateError) throw estimateError;
+    const estimate = await readEstimateInProjectFromD1(db, parsedPath.estimateId, parsedPath.projectId);
     if (!estimate) return privateImageNotFound();
   }
 
-  const hasProjectAccess = await canAccessProject(parsedPath.projectId, serverSupabase);
+  const hasProjectAccess = await canAccessProjectInD1(db, parsedPath.projectId, currentUser);
   if (!hasProjectAccess) {
     if (!parsedPath.estimateId) return privateImageNotFound();
-    const hasEstimateAccess = await canAccessEstimate(parsedPath.estimateId, serverSupabase);
+    const hasEstimateAccess = await canAccessEstimateInD1(db, parsedPath.estimateId, currentUser);
     if (!hasEstimateAccess) return privateImageNotFound();
   }
 
@@ -279,16 +242,12 @@ export async function POST(request: Request) {
     if (file.size <= 0) return jsonError("Image file is empty.");
     if (file.size > MAX_UPLOAD_BYTES) return jsonError("Image upload is too large. Compress or choose an image under 12 MB.", 413);
 
-    const serverSupabase = await createSupabaseServerClient();
-    const { data: project, error: projectError } = await serverSupabase
-      .from("projects")
-      .select("id")
-      .eq("id", projectId)
-      .eq("workspace_id", workspace.id)
-      .single();
+    const uploadMetadataDb = await getCloudflareD1Database();
+    if (!uploadMetadataDb) return uploadMetadataUnavailableResponse();
+    const project = await readProjectInWorkspaceFromD1(uploadMetadataDb, projectId, workspace.id);
 
-    if (projectError || !project) return jsonError("Project could not be found.", 404);
-    if (!(await canEditProject(projectId, serverSupabase))) {
+    if (!project) return jsonError("Project could not be found.", 404);
+    if (!(await canEditProjectInD1(uploadMetadataDb, projectId, currentUser))) {
       return jsonError("You do not have permission to edit this project.", 403);
     }
 
@@ -315,9 +274,6 @@ export async function POST(request: Request) {
       return jsonError("Could not decode image safely. Choose a standard JPG, PNG, WebP, or AVIF file.");
     }
     const { optimized, thumbnail } = processedImage.image;
-
-    const uploadMetadataDb = await getCloudflareD1Database();
-    if (!uploadMetadataDb) return uploadMetadataUnavailableResponse();
 
     const storageProvider = await createRuntimeUploadStorageProvider();
     const baseName = `${safeUploadName(file.name)}-${randomUUID()}`;
@@ -394,10 +350,11 @@ export async function DELETE(request: Request) {
   const paths = parsedPaths.map((parsed) => parsed.path);
   if (paths.length === 0) return jsonError("No removable image paths were provided.");
 
-  const serverSupabase = await createSupabaseServerClient();
+  const db = await getCloudflareD1Database();
+  if (!db) return uploadMetadataUnavailableResponse();
   const projectIds = Array.from(new Set(parsedPaths.map((parsed) => parsed.projectId)));
   for (const projectId of projectIds) {
-    if (!(await canEditProject(projectId, serverSupabase))) {
+    if (!(await canEditProjectInD1(db, projectId, currentUser))) {
       return jsonError("You do not have permission to edit this project.", 403);
     }
   }

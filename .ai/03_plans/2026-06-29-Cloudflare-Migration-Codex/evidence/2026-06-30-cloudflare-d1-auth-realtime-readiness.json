@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-30T22:16:05.664Z",
+  "generatedAt": "2026-06-30T22:41:55.870Z",
   "mode": "cloudflare-d1-auth-realtime-readiness",
   "sources": {
     "inventory": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-migration-inventory.json",
@@ -69,6 +69,7 @@
       "src/lib/legal/terms-acceptance-d1-store.ts",
       "src/lib/notifications/repository.ts",
       "src/lib/projects/d1-audit.ts",
+      "src/lib/publication/admin-d1-client.ts",
       "src/lib/publication/d1-store.ts",
       "src/lib/uploads/cleanup-job.ts",
       "src/lib/uploads/direct-upload-records.ts",
@@ -117,9 +118,7 @@
       "src/app/api/estimate-row-images/route.ts",
       "src/app/api/projects/[projectId]/activity/route.ts",
       "src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts",
-      "src/app/api/projects/images/route.ts",
       "src/app/workshop/projects/[projectId]/activity/page.tsx",
-      "src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx",
       "src/app/workshop/projects/[projectId]/estimates/page.tsx",
       "src/app/workshop/projects/[projectId]/page.tsx",
       "src/components/workshop/LiveProjectCard.tsx",
@@ -127,9 +126,7 @@
       "src/components/workshop/ProjectChromeAsync.tsx",
       "src/components/workshop/ProjectDashboardClient.tsx",
       "src/components/workshop/ProjectDetailsModal.tsx",
-      "src/components/workshop/component-library-manager/AddComponentModal.tsx",
       "src/components/workshop/projects-page-client.tsx",
-      "src/hooks/use-estimate-row-mutations.ts",
       "src/lib/ai/package-builder/apply.ts",
       "src/lib/ai/package-builder/memory.ts",
       "src/lib/ai/package-builder/read-tools.ts",
@@ -140,14 +137,9 @@
       "src/lib/component-library/project-component-projection.ts",
       "src/lib/component-library/template-editor-actions.ts",
       "src/lib/estimates/actions.ts",
-      "src/lib/estimates/estimate-row-tree-patch.ts",
-      "src/lib/estimates/express-components.ts",
       "src/lib/estimates/express-promotion-actions.ts",
-      "src/lib/mass-deletion/storage-cleanup.ts",
       "src/lib/projects/actions.ts",
       "src/lib/projects/location-actions.ts",
-      "src/lib/publication/actions.ts",
-      "src/lib/publication/activity-helpers.ts",
       "src/lib/publisher/activity-repository.ts",
       "src/lib/publisher/roster-repository.ts",
       "src/lib/repositories/component-library-repository.ts",
@@ -169,9 +161,7 @@
       "src/lib/workshop/group-actions.ts"
     ],
     "supabaseStorageFiles": [],
-    "supabaseServiceRoleFiles": [
-      "src/lib/publication/actions.ts"
-    ],
+    "supabaseServiceRoleFiles": [],
     "supabaseRealtimeFiles": [],
     "resendEmailFiles": [],
     "providerBlockingFiles": [
@@ -180,9 +170,7 @@
       "src/app/api/estimate-row-images/route.ts",
       "src/app/api/projects/[projectId]/activity/route.ts",
       "src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts",
-      "src/app/api/projects/images/route.ts",
       "src/app/workshop/projects/[projectId]/activity/page.tsx",
-      "src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx",
       "src/app/workshop/projects/[projectId]/estimates/page.tsx",
       "src/app/workshop/projects/[projectId]/page.tsx",
       "src/components/workshop/LiveProjectCard.tsx",
@@ -190,9 +178,7 @@
       "src/components/workshop/ProjectChromeAsync.tsx",
       "src/components/workshop/ProjectDashboardClient.tsx",
       "src/components/workshop/ProjectDetailsModal.tsx",
-      "src/components/workshop/component-library-manager/AddComponentModal.tsx",
       "src/components/workshop/projects-page-client.tsx",
-      "src/hooks/use-estimate-row-mutations.ts",
       "src/lib/ai/package-builder/apply.ts",
       "src/lib/ai/package-builder/memory.ts",
       "src/lib/ai/package-builder/read-tools.ts",
@@ -203,14 +189,9 @@
       "src/lib/component-library/project-component-projection.ts",
       "src/lib/component-library/template-editor-actions.ts",
       "src/lib/estimates/actions.ts",
-      "src/lib/estimates/estimate-row-tree-patch.ts",
-      "src/lib/estimates/express-components.ts",
       "src/lib/estimates/express-promotion-actions.ts",
-      "src/lib/mass-deletion/storage-cleanup.ts",
       "src/lib/projects/actions.ts",
       "src/lib/projects/location-actions.ts",
-      "src/lib/publication/actions.ts",
-      "src/lib/publication/activity-helpers.ts",
       "src/lib/publisher/activity-repository.ts",
       "src/lib/publisher/roster-repository.ts",
       "src/lib/repositories/component-library-repository.ts",
@@ -368,8 +349,8 @@
       "label": "Legacy Supabase/Resend runtime references removed",
       "scope": "provider-removal",
       "ready": false,
-      "evidence": "supabaseDependency=yes, resendDependency=no, supabaseAuthFiles=0, supabaseDatabaseFiles=55, supabaseStorageFiles=0, supabaseServiceRoleFiles=1, supabaseRealtimeFiles=0, resendEmailFiles=0, uniqueBlockingFiles=55",
-      "blocker": "Runtime or package manifest still contains legacy provider references that block cancelling Supabase/Resend; examples: src/app/api/component-library/attachments/route.ts, src/app/api/component-library/images/route.ts, src/app/api/estimate-row-images/route.ts, src/app/api/projects/[projectId]/activity/route.ts, src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts, src/app/api/projects/images/route.ts, src/app/workshop/projects/[projectId]/activity/page.tsx, src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx",
+      "evidence": "supabaseDependency=yes, resendDependency=no, supabaseAuthFiles=0, supabaseDatabaseFiles=46, supabaseStorageFiles=0, supabaseServiceRoleFiles=0, supabaseRealtimeFiles=0, resendEmailFiles=0, uniqueBlockingFiles=46",
+      "blocker": "Runtime or package manifest still contains legacy provider references that block cancelling Supabase/Resend; examples: src/app/api/component-library/attachments/route.ts, src/app/api/component-library/images/route.ts, src/app/api/estimate-row-images/route.ts, src/app/api/projects/[projectId]/activity/route.ts, src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts, src/app/workshop/projects/[projectId]/activity/page.tsx, src/app/workshop/projects/[projectId]/estimates/page.tsx, src/app/workshop/projects/[projectId]/page.tsx",
       "source": null
     },
     {
@@ -515,7 +496,7 @@
     "productionD1AuthRealtimeReady": false
   },
   "blockers": [
-    "Legacy Supabase/Resend runtime references removed: Runtime or package manifest still contains legacy provider references that block cancelling Supabase/Resend; examples: src/app/api/component-library/attachments/route.ts, src/app/api/component-library/images/route.ts, src/app/api/estimate-row-images/route.ts, src/app/api/projects/[projectId]/activity/route.ts, src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts, src/app/api/projects/images/route.ts, src/app/workshop/projects/[projectId]/activity/page.tsx, src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx",
+    "Legacy Supabase/Resend runtime references removed: Runtime or package manifest still contains legacy provider references that block cancelling Supabase/Resend; examples: src/app/api/component-library/attachments/route.ts, src/app/api/component-library/images/route.ts, src/app/api/estimate-row-images/route.ts, src/app/api/projects/[projectId]/activity/route.ts, src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts, src/app/workshop/projects/[projectId]/activity/page.tsx, src/app/workshop/projects/[projectId]/estimates/page.tsx, src/app/workshop/projects/[projectId]/page.tsx",
     "Better Auth D1 production replacement ready: Better Auth production cutover proof is missing: OAuth provider credential proof, live route cutover, or Supabase auth removal is incomplete."
   ],
   "note": "Local D1/Auth/Realtime redesign readiness inventory only. It reads repository source, package, generated type, wrangler, and sanitized evidence artifacts; it does not read env files, print secret values, call provider APIs, create D1 databases, mutate Cloudflare/Supabase, change DNS, deploy Workers, or make Supabase removable."

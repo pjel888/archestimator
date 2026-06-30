@@ -112,7 +112,7 @@ class FakeD1Statement {
   }
 
   async first() {
-    return null;
+    return this.database.first(this.sql, this.values);
   }
 
   async all() {
@@ -132,6 +132,14 @@ class FakeD1Statement {
 
 class FakeD1Database {
   failNextRun: Error | null = null;
+  projectLookupRow: { id: string; workspace_id: string } | null = null;
+  estimateLookupRow: { id: string; project_id?: string } | null = null;
+  access = {
+    canAccessProject: true,
+    canAccessEstimate: true,
+    canEditProject: true,
+    canEditEstimate: true,
+  };
   readonly statements: FakeD1Statement[] = [];
   readonly runStatements: Array<{ sql: string; values: unknown[] }> = [];
 
@@ -140,7 +148,41 @@ class FakeD1Database {
     this.statements.push(statement);
     return statement;
   }
+
+  first(sql: string, values: unknown[]) {
+    if (sql.includes("SELECT id, workspace_id") && sql.includes("FROM projects")) {
+      if (!this.projectLookupRow) return null;
+      if (this.projectLookupRow.id !== values[0]) return null;
+      if (sql.includes("workspace_id = ?") && this.projectLookupRow.workspace_id !== values[1]) return null;
+      return this.projectLookupRow;
+    }
+
+    if (sql.includes("SELECT id, project_id") && sql.includes("FROM estimates")) {
+      if (!this.estimateLookupRow) return null;
+      if (this.estimateLookupRow.id !== values[0]) return null;
+      if (sql.includes("project_id = ?") && this.estimateLookupRow.project_id && this.estimateLookupRow.project_id !== values[1]) return null;
+      return { id: this.estimateLookupRow.id, project_id: this.estimateLookupRow.project_id ?? values[1] };
+    }
+
+    if (sql.includes("SELECT 1 AS allowed") && sql.includes("FROM projects project")) {
+      if (sql.includes("role IN ('owner', 'admin', 'member')")) {
+        return this.access.canEditProject ? { allowed: 1 } : null;
+      }
+      return this.access.canAccessProject ? { allowed: 1 } : null;
+    }
+
+    if (sql.includes("SELECT 1 AS allowed") && sql.includes("FROM estimates estimate")) {
+      if (sql.includes("sheet_member.role IN ('owner', 'admin', 'editor')")) {
+        return this.access.canEditEstimate ? { allowed: 1 } : null;
+      }
+      return this.access.canAccessEstimate ? { allowed: 1 } : null;
+    }
+
+    return null;
+  }
 }
+
+let activeD1: FakeD1Database;
 
 function createR2StorageBridge(storageFrom: ReturnType<typeof vi.fn>) {
   return {
@@ -191,6 +233,10 @@ function d1SqlStatements(database: FakeD1Database, pattern: RegExp) {
   return database.runStatements.filter((statement) => pattern.test(statement.sql));
 }
 
+function d1PreparedStatements(database: FakeD1Database, pattern: RegExp) {
+  return database.statements.filter((statement) => pattern.test(statement.sql));
+}
+
 function mockStorageClient(
   attachmentRows: Array<Record<string, unknown>> = [],
   options: {
@@ -237,6 +283,7 @@ function mockStorageClient(
   supabaseJsMocks.createClient.mockReturnValue(client);
   supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(client);
   const d1 = new FakeD1Database();
+  activeD1 = d1;
   d1Mocks.getCloudflareD1Database.mockResolvedValue(d1);
   const r2 = createR2StorageBridge(storageFrom);
   cloudflareMocks.getCloudflareContext.mockResolvedValue({ env: { ARCH_UPLOADS_R2: r2 } });
@@ -287,6 +334,18 @@ function mockProjectLookup(
   options: Parameters<typeof createRpcMock>[0] = {},
   estimateData: { id: string } | null = null,
 ) {
+  const d1 = activeD1 ?? new FakeD1Database();
+  activeD1 = d1;
+  d1.projectLookupRow = data;
+  d1.estimateLookupRow = estimateData ?? (data ? { id: "estimate-1", project_id: data.id } : null);
+  d1.access = {
+    canAccessProject: options.canAccessProject ?? true,
+    canAccessEstimate: options.canAccessEstimate ?? true,
+    canEditProject: options.canEditProject ?? true,
+    canEditEstimate: options.canEditEstimate ?? true,
+  };
+  d1Mocks.getCloudflareD1Database.mockResolvedValue(d1);
+
   const rpc = createRpcMock(options);
   const maybeSingle = vi.fn(async () => ({ data, error: data ? null : { message: "not found" } }));
   const single = vi.fn(async () => ({ data, error: data ? null : { message: "not found" } }));
@@ -307,7 +366,7 @@ function mockProjectLookup(
   };
   const from = vi.fn((table: string) => (table === "estimates" ? estimateQuery : query));
   supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
-  return { from, maybeSingle, single, estimateMaybeSingle, estimateSingle, rpc };
+  return { d1, from, maybeSingle, single, estimateMaybeSingle, estimateSingle, rpc };
 }
 
 beforeEach(() => {
@@ -317,7 +376,8 @@ beforeEach(() => {
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
   vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "service-role");
   cloudflareMocks.getCloudflareContext.mockResolvedValue({ env: {} });
-  d1Mocks.getCloudflareD1Database.mockResolvedValue(new FakeD1Database());
+  activeD1 = new FakeD1Database();
+  d1Mocks.getCloudflareD1Database.mockResolvedValue(activeD1);
   legalTermsMocks.getCurrentUserTermsAcceptanceStatus.mockResolvedValue({
     requiredTerms: { key: "terms", version: "test" },
     acceptedCurrentVersion: true,
@@ -373,12 +433,12 @@ describe("sensitive API auth boundaries", () => {
 
     expectAuthBeforeBodyParsing(source);
     expect(source).toContain("ensureDefaultWorkspace()");
-    expect(source).toContain("can_edit_project");
+    expect(source).toContain("canEditProjectInD1");
     expect(source).toContain("processUploadImageToWebp");
     expect(source).toContain("uploadSessionId");
     expect(source).toContain("assetId");
     expect(source).toContain("scanStatus");
-    expect(source).toContain('.eq("workspace_id", workspace.id)');
+    expect(source).toContain("readProjectInWorkspaceFromD1(uploadMetadataDb, projectId, workspace.id)");
     expect(source).toContain("isOwnedUploadPath");
     expect(source).toContain("parseProjectImageStoragePath(path)");
     expect(source).toContain("parsed.workspaceId === workspaceId");
@@ -1432,9 +1492,7 @@ describe("sensitive API auth boundaries", () => {
         `${workspaceId}/${userId}/project-images/${projectId}/image-thumb.webp`,
       ],
     });
-    expect(projectLookup.rpc).toHaveBeenCalledWith("can_edit_project", {
-      target_project_id: projectId,
-    });
+    expect(d1PreparedStatements(projectLookup.d1, /FROM projects project/)).toHaveLength(1);
     expect(storage.from).toHaveBeenCalledWith("project-images");
     expect(storage.remove).toHaveBeenCalledWith([
       `${workspaceId}/${userId}/project-images/${projectId}/image.webp`,
@@ -1460,9 +1518,7 @@ describe("sensitive API auth boundaries", () => {
     await expect(response.json()).resolves.toEqual({
       error: "You do not have permission to edit this project.",
     });
-    expect(projectLookup.rpc).toHaveBeenCalledWith("can_edit_project", {
-      target_project_id: projectId,
-    });
+    expect(d1PreparedStatements(projectLookup.d1, /FROM projects project/)).toHaveLength(1);
     expect(storage.from).not.toHaveBeenCalled();
     expect(storage.remove).not.toHaveBeenCalled();
   });
@@ -1480,11 +1536,8 @@ describe("sensitive API auth boundaries", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("image/webp");
-    expect(projectLookup.from).toHaveBeenCalledWith("projects");
-    expect(projectLookup.maybeSingle).toHaveBeenCalled();
-    expect(projectLookup.rpc).toHaveBeenCalledWith("can_access_project", {
-      target_project_id: projectId,
-    });
+    expect(d1PreparedStatements(projectLookup.d1, /FROM projects\s+WHERE id = \?/)).toHaveLength(1);
+    expect(d1PreparedStatements(projectLookup.d1, /FROM projects project/)).toHaveLength(1);
     expect(storage.from).toHaveBeenCalledWith("project-images");
     expect(storage.download).toHaveBeenCalledWith(path);
   });
@@ -1507,15 +1560,10 @@ describe("sensitive API auth boundaries", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("image/webp");
-    expect(projectLookup.from).toHaveBeenCalledWith("projects");
-    expect(projectLookup.from).toHaveBeenCalledWith("estimates");
-    expect(projectLookup.estimateMaybeSingle).toHaveBeenCalled();
-    expect(projectLookup.rpc).toHaveBeenCalledWith("can_access_project", {
-      target_project_id: projectId,
-    });
-    expect(projectLookup.rpc).toHaveBeenCalledWith("can_access_estimate", {
-      target_estimate_id: estimateId,
-    });
+    expect(d1PreparedStatements(projectLookup.d1, /FROM projects\s+WHERE id = \?/)).toHaveLength(1);
+    expect(d1PreparedStatements(projectLookup.d1, /FROM estimates\s+WHERE id = \?/)).toHaveLength(1);
+    expect(d1PreparedStatements(projectLookup.d1, /FROM projects project/)).toHaveLength(1);
+    expect(d1PreparedStatements(projectLookup.d1, /FROM estimates estimate/)).toHaveLength(1);
     expect(storage.from).toHaveBeenCalledWith("project-images");
     expect(storage.download).toHaveBeenCalledWith(path);
   });
@@ -1539,9 +1587,7 @@ describe("sensitive API auth boundaries", () => {
     await expect(response.json()).resolves.toEqual({
       error: "Image could not be found.",
     });
-    expect(projectLookup.rpc).toHaveBeenCalledWith("can_access_project", {
-      target_project_id: projectId,
-    });
+    expect(d1PreparedStatements(projectLookup.d1, /FROM projects project/)).toHaveLength(1);
     expect(storage.from).not.toHaveBeenCalled();
     expect(storage.download).not.toHaveBeenCalled();
   });
@@ -1598,8 +1644,7 @@ describe("sensitive API auth boundaries", () => {
     await expect(response.json()).resolves.toEqual({
       error: "Project could not be found.",
     });
-    expect(projectLookup.from).toHaveBeenCalledWith("projects");
-    expect(projectLookup.single).toHaveBeenCalled();
+    expect(d1PreparedStatements(projectLookup.d1, /FROM projects\s+WHERE id = \?\s+AND workspace_id = \?/)).toHaveLength(1);
     expect(storage.from).not.toHaveBeenCalled();
     expect(storage.upload).not.toHaveBeenCalled();
   });
@@ -1623,11 +1668,8 @@ describe("sensitive API auth boundaries", () => {
     await expect(response.json()).resolves.toEqual({
       error: "You do not have permission to edit this project.",
     });
-    expect(projectLookup.from).toHaveBeenCalledWith("projects");
-    expect(projectLookup.single).toHaveBeenCalled();
-    expect(projectLookup.rpc).toHaveBeenCalledWith("can_edit_project", {
-      target_project_id: "project-1",
-    });
+    expect(d1PreparedStatements(projectLookup.d1, /FROM projects\s+WHERE id = \?\s+AND workspace_id = \?/)).toHaveLength(1);
+    expect(d1PreparedStatements(projectLookup.d1, /FROM projects project/)).toHaveLength(1);
     expect(arrayBuffer).not.toHaveBeenCalled();
     expect(storage.from).not.toHaveBeenCalled();
     expect(storage.upload).not.toHaveBeenCalled();
