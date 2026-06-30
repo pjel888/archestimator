@@ -4,6 +4,17 @@
   "main": "worker.ts",
   "compatibility_date": "2026-06-29",
   "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "routes": [
+    {
+      "pattern": "archestimator.com",
+      "custom_domain": true
+    },
+    {
+      "pattern": "www.archestimator.com",
+      "custom_domain": true
+    }
+  ],
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
@@ -11,6 +22,11 @@
   "images": {
     "binding": "IMAGES"
   },
+  "send_email": [
+    {
+      "name": "EMAIL"
+    }
+  ],
   "r2_buckets": [
     {
       "binding": "ARCH_UPLOADS_R2",

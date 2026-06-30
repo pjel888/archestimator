@@ -7,17 +7,31 @@ UPLOAD_JOBS_ENABLED=0
 CLOUDFLARE_UPLOAD_JOBS_DRY_RUN=1
 CLOUDFLARE_UPLOAD_JOBS_ORIGIN=https://archestimator.internal
 
-# Better Auth D1 preview scaffold. Never commit a real secret value.
+# Better Auth D1 preview runtime. Never commit a real secret value.
+ARCHESTIMATOR_AUTH_PROVIDER=better-auth
 BETTER_AUTH_URL=http://localhost:3000
 BETTER_AUTH_SECRET=
 BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:3000
+BETTER_AUTH_GOOGLE_CLIENT_ID=
+BETTER_AUTH_GOOGLE_CLIENT_SECRET=
+# Optional dedicated HMAC secret for the short-lived protected-route Terms gate
+# cookie. Falls back to BETTER_AUTH_SECRET, then PUBLICATION_ACCESS_COOKIE_SECRET.
+ARCHESTIMATOR_TERMS_GATE_SECRET=
+
+# Cloudflare Email Service preview placeholders. EMAIL is a Wrangler binding;
+# these values control sender selection only.
+ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED=false
+ARCHESTIMATOR_EMAIL_PROVIDER=cloudflare-email
+CLOUDFLARE_EMAIL_FROM=
+CLOUDFLARE_EMAIL_REPLY_TO=support@archestimator.com
 
 # Local preview-only placeholders. Use real Worker secrets for deployed proof.
 PUBLICATION_TOKEN_ENCRYPTION_SECRET=
 PUBLICATION_TOKEN_HASH_SECRET=
 PUBLICATION_ACCESS_COOKIE_SECRET=
 
-# Set to cloudflare-r2 only when the local/preview R2 binding is ready to prove.
-ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER=supabase
+# Cloudflare R2 is the required Worker upload storage path; retired legacy
+# provider values are rejected at runtime.
+ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER=cloudflare-r2
 # Set to cloudflare-images only when the local/preview IMAGES binding is ready to prove.
 ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER=node-sharp
