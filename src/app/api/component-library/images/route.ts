@@ -2,10 +2,10 @@ import { randomUUID } from "node:crypto";
 
 import { NextResponse } from "next/server";
 
-import { requireCurrentUserContext } from "@/lib/auth/session";
+import { requireCurrentUserContext, type CurrentUserContext } from "@/lib/auth/session";
+import { isWorkspaceEditorInD1 } from "@/lib/authz/d1-access";
 import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { reserveUploadAdmission } from "@/lib/uploads/admission-control";
 import {
   CLOUDFLARE_IMAGE_PROCESSING_UNAVAILABLE_MESSAGE,
@@ -142,16 +142,15 @@ async function uploadWebp({
   return createComponentImageRouteUrl(path);
 }
 
-async function canManageLibrary(workspaceId: string) {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.rpc("is_workspace_editor", {
-    target_workspace_id: workspaceId,
-  });
-  if (error) {
-    console.error("Component image authorization failed", error);
+async function canManageLibrary(workspaceId: string, currentUser: CurrentUserContext) {
+  const db = await getCloudflareD1Database();
+  if (!db) return false;
+  try {
+    return await isWorkspaceEditorInD1(db, workspaceId, currentUser);
+  } catch (error) {
+    console.error("Component image D1 authorization failed", error);
     return false;
   }
-  return data === true;
 }
 
 function isOwnedUploadPath(path: string, workspaceId: string, userId: string) {
@@ -193,7 +192,7 @@ export async function POST(request: Request) {
   }
 
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  if (!(await canManageLibrary(workspace.id))) {
+  if (!(await canManageLibrary(workspace.id, currentUser))) {
     return jsonError("Only workspace editors/admins can manage the library.", 403);
   }
 
@@ -305,7 +304,7 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  if (!(await canManageLibrary(workspace.id))) {
+  if (!(await canManageLibrary(workspace.id, currentUser))) {
     return jsonError("Only workspace editors/admins can manage the library.", 403);
   }
 
