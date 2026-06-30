@@ -219,12 +219,30 @@ type BetterAuthRouteGateProofReport = {
     routeGateD1SessionFixtureReady?: boolean;
     betterAuthD1SchemaSqlGenerated?: boolean;
     betterAuthD1SchemaSqlReviewReady?: boolean;
+    hostedBetterAuthD1SchemaProofReady?: boolean;
+    betterAuthSecretProviderReady?: boolean;
+    providerBackedSessionFixtureReady?: boolean;
+    providerBackedCallbackSessionCutoverReady?: boolean;
+    betterAuthProviderProofReady?: boolean;
     routeGateParityMatrixReady?: boolean;
     currentSupabaseGatePreserved?: boolean;
   };
   scaffoldSummary?: {
     actualNextRouteMounted?: boolean;
     routeGateParityRows?: number;
+  };
+  providerProofSummary?: {
+    schemaApplyReady?: boolean;
+    expectedTablesPresent?: boolean;
+    expectedIndexesPresent?: boolean;
+    secretProviderReady?: boolean;
+    baseUrlReady?: boolean;
+    trustedOriginsReady?: boolean;
+    providerSessionFixtureReady?: boolean;
+    providerBackedCallbackSessionCutoverReady?: boolean;
+    cleanupReady?: boolean;
+    betterAuthProviderProofReady?: boolean;
+    rowsRemaining?: number | null;
   };
   localOnly?: boolean;
   providerBacked?: boolean;
@@ -311,6 +329,11 @@ export type CloudflareD1AuthRealtimeReadinessReport = {
     databaseInventoryReady: boolean;
     d1BindingReady: boolean;
     betterAuthLocalProofReady: boolean;
+    hostedBetterAuthD1SchemaProofReady: boolean;
+    betterAuthSecretProviderReady: boolean;
+    providerBackedSessionFixtureReady: boolean;
+    providerBackedCallbackSessionCutoverReady: boolean;
+    betterAuthProviderProofReady: boolean;
     authReplacementReady: boolean;
     appLayerAuthzSpecReady: boolean;
     localRpcTransactionMechanicsReady: boolean;
@@ -706,9 +729,18 @@ function buildGates(inputs: CheckInputs, manifestSummary: CloudflareD1AuthRealti
   const betterAuthRouteMounted = inputs.betterAuthRouteGateProof.value?.scaffoldSummary?.actualNextRouteMounted === true;
   const betterAuthSchemaSqlReady = inputs.betterAuthRouteGateProof.value?.readiness?.betterAuthD1SchemaSqlGenerated === true
     && inputs.betterAuthRouteGateProof.value?.readiness?.betterAuthD1SchemaSqlReviewReady === true;
-  const betterAuthReplacementBlocker = betterAuthRouteMounted
-    ? "Better Auth production cutover proof is missing: hosted D1 schema apply/restore proof, provider evidence, OAuth/magic-link secrets, provider-backed callback/session tests, or Supabase auth removal is incomplete."
-    : "Better Auth production cutover proof is missing: route mount, hosted D1 schema apply/restore proof, provider evidence, OAuth/magic-link secrets, provider-backed callback/session tests, or Supabase auth removal is incomplete.";
+  const betterAuthHostedSchemaProofReady = inputs.betterAuthRouteGateProof.value?.readiness?.hostedBetterAuthD1SchemaProofReady === true;
+  const betterAuthProviderSecretReady = inputs.betterAuthRouteGateProof.value?.readiness?.betterAuthSecretProviderReady === true;
+  const betterAuthProviderSessionFixtureReady = inputs.betterAuthRouteGateProof.value?.readiness?.providerBackedSessionFixtureReady === true;
+  const betterAuthProviderCallbackSessionCutoverReady = inputs.betterAuthRouteGateProof.value?.readiness?.providerBackedCallbackSessionCutoverReady === true;
+  const betterAuthProviderProofReady = inputs.betterAuthRouteGateProof.value?.readiness?.betterAuthProviderProofReady === true;
+  const betterAuthReplacementBlocker = betterAuthProviderProofReady
+    ? betterAuthProviderCallbackSessionCutoverReady
+      ? "Better Auth production cutover proof is missing: OAuth provider credential proof, live route cutover, or Supabase auth removal is incomplete."
+      : "Better Auth production cutover proof is missing: OAuth/magic-link callback flow, provider-backed callback/session cutover tests, or Supabase auth removal is incomplete."
+    : betterAuthRouteMounted
+      ? "Better Auth production cutover proof is missing: hosted D1 schema apply/provider proof, provider secrets, OAuth/magic-link secrets, provider-backed callback/session tests, or Supabase auth removal is incomplete."
+      : "Better Auth production cutover proof is missing: route mount, hosted D1 schema apply/provider proof, provider secrets, OAuth/magic-link secrets, provider-backed callback/session tests, or Supabase auth removal is incomplete.";
 
   gates.push(gate(
     "better-auth-replacement",
@@ -720,7 +752,7 @@ function buildGates(inputs: CheckInputs, manifestSummary: CloudflareD1AuthRealti
       && sourceSignals.betterAuthRouteGateFiles.length > 0
       && inputs.betterAuthRouteGateProof.present
       && inputs.betterAuthRouteGateProof.value?.readiness?.productionBetterAuthReady === true,
-    `betterAuthDependency=${boolLabel(manifestSummary.hasBetterAuthDependency)}, betterAuthFiles=${sourceSignals.betterAuthFiles.length}, d1AdapterFiles=${sourceSignals.betterAuthD1AdapterFiles.length}, routeGateFiles=${sourceSignals.betterAuthRouteGateFiles.length}, localProof=${boolLabel(inputs.betterAuthRouteGateProof.value?.readiness?.localBetterAuthRouteGateProofReady)}, routeGateD1SessionFixture=${boolLabel(inputs.betterAuthRouteGateProof.value?.readiness?.routeGateD1SessionFixtureReady)}, schemaSqlReady=${boolLabel(betterAuthSchemaSqlReady)}, productionProof=${boolLabel(inputs.betterAuthRouteGateProof.value?.readiness?.productionBetterAuthReady)}, actualRouteMounted=${boolLabel(inputs.betterAuthRouteGateProof.value?.scaffoldSummary?.actualNextRouteMounted)}, localOnly=${boolLabel(inputs.betterAuthRouteGateProof.value?.localOnly)}, providerBacked=${boolLabel(inputs.betterAuthRouteGateProof.value?.providerBacked)}`,
+    `betterAuthDependency=${boolLabel(manifestSummary.hasBetterAuthDependency)}, betterAuthFiles=${sourceSignals.betterAuthFiles.length}, d1AdapterFiles=${sourceSignals.betterAuthD1AdapterFiles.length}, routeGateFiles=${sourceSignals.betterAuthRouteGateFiles.length}, localProof=${boolLabel(inputs.betterAuthRouteGateProof.value?.readiness?.localBetterAuthRouteGateProofReady)}, routeGateD1SessionFixture=${boolLabel(inputs.betterAuthRouteGateProof.value?.readiness?.routeGateD1SessionFixtureReady)}, schemaSqlReady=${boolLabel(betterAuthSchemaSqlReady)}, hostedSchemaProof=${boolLabel(betterAuthHostedSchemaProofReady)}, providerSecret=${boolLabel(betterAuthProviderSecretReady)}, providerSessionFixture=${boolLabel(betterAuthProviderSessionFixtureReady)}, providerCallbackSession=${boolLabel(betterAuthProviderCallbackSessionCutoverReady)}, providerProof=${boolLabel(betterAuthProviderProofReady)}, productionProof=${boolLabel(inputs.betterAuthRouteGateProof.value?.readiness?.productionBetterAuthReady)}, actualRouteMounted=${boolLabel(inputs.betterAuthRouteGateProof.value?.scaffoldSummary?.actualNextRouteMounted)}, localOnly=${boolLabel(inputs.betterAuthRouteGateProof.value?.localOnly)}, providerBacked=${boolLabel(inputs.betterAuthRouteGateProof.value?.providerBacked)}`,
     betterAuthReplacementBlocker,
     inputs.betterAuthRouteGateProof.source,
   ));
@@ -926,6 +958,11 @@ export function checkCloudflareD1AuthRealtimeReadiness(inputs: CheckInputs): Clo
   const databaseInventoryReady = gateReady(gates, "database-inventory");
   const d1BindingReady = gateReady(gates, "d1-binding-config");
   const betterAuthLocalProofReady = gateReady(gates, "better-auth-local-route-gate-proof");
+  const hostedBetterAuthD1SchemaProofReady = inputs.betterAuthRouteGateProof.value?.readiness?.hostedBetterAuthD1SchemaProofReady === true;
+  const betterAuthSecretProviderReady = inputs.betterAuthRouteGateProof.value?.readiness?.betterAuthSecretProviderReady === true;
+  const providerBackedSessionFixtureReady = inputs.betterAuthRouteGateProof.value?.readiness?.providerBackedSessionFixtureReady === true;
+  const providerBackedCallbackSessionCutoverReady = inputs.betterAuthRouteGateProof.value?.readiness?.providerBackedCallbackSessionCutoverReady === true;
+  const betterAuthProviderProofReady = inputs.betterAuthRouteGateProof.value?.readiness?.betterAuthProviderProofReady === true;
   const authReplacementReady = gateReady(gates, "better-auth-replacement");
   const appLayerAuthzSpecReady = gateReady(gates, "app-layer-authz-access-matrix");
   const localRpcTransactionMechanicsReady = gateReady(gates, "d1-rpc-local-transaction-mechanics");
@@ -974,6 +1011,11 @@ export function checkCloudflareD1AuthRealtimeReadiness(inputs: CheckInputs): Clo
       databaseInventoryReady,
       d1BindingReady,
       betterAuthLocalProofReady,
+      hostedBetterAuthD1SchemaProofReady,
+      betterAuthSecretProviderReady,
+      providerBackedSessionFixtureReady,
+      providerBackedCallbackSessionCutoverReady,
+      betterAuthProviderProofReady,
       authReplacementReady,
       appLayerAuthzSpecReady,
       localRpcTransactionMechanicsReady,
@@ -1038,6 +1080,11 @@ export function writeMarkdown(report: CloudflareD1AuthRealtimeReadinessReport, m
     `| Database inventory ready | ${report.readiness.databaseInventoryReady ? "yes" : "no"} |`,
     `| D1 binding ready | ${report.readiness.d1BindingReady ? "yes" : "no"} |`,
     `| Better Auth local route-gate proof ready | ${report.readiness.betterAuthLocalProofReady ? "yes" : "no"} |`,
+    `| Hosted Better Auth D1 schema proof ready | ${report.readiness.hostedBetterAuthD1SchemaProofReady ? "yes" : "no"} |`,
+    `| Better Auth provider secret/origin proof ready | ${report.readiness.betterAuthSecretProviderReady ? "yes" : "no"} |`,
+    `| Provider-backed Better Auth session fixture ready | ${report.readiness.providerBackedSessionFixtureReady ? "yes" : "no"} |`,
+    `| Provider-backed Better Auth callback/session cutover proof ready | ${report.readiness.providerBackedCallbackSessionCutoverReady ? "yes" : "no"} |`,
+    `| Better Auth provider proof ready | ${report.readiness.betterAuthProviderProofReady ? "yes" : "no"} |`,
     `| Auth replacement ready | ${report.readiness.authReplacementReady ? "yes" : "no"} |`,
     `| App-layer authorization spec ready | ${report.readiness.appLayerAuthzSpecReady ? "yes" : "no"} |`,
     `| Local RPC transaction mechanics ready | ${report.readiness.localRpcTransactionMechanicsReady ? "yes" : "no"} |`,

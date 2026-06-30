@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 
@@ -26,9 +26,42 @@ type LocalPerformanceBenchmark = {
   rows: QueryBenchmarkRow[];
 };
 
+type HostedQueryBenchmarkRow = {
+  surface?: string;
+  queryBudget?: number;
+  plannedQueries?: number;
+  hostedBudgetMs?: number;
+  hostedP95Ms?: number;
+  sampleCount?: number;
+  rowsReturned?: number;
+  status?: string;
+  notes?: string;
+};
+
+type HostedD1RuntimePerformanceProof = {
+  providerBacked?: boolean;
+  result?: {
+    schemaReady?: boolean;
+    seedReady?: boolean;
+    cleanupReady?: boolean;
+    rowsSeeded?: number;
+    rowsCleaned?: number | null;
+    benchmarkRows?: HostedQueryBenchmarkRow[];
+  } | null;
+  readiness?: {
+    queryCountBudgetsReady?: boolean;
+    hostedP95Ready?: boolean;
+    hostedWorkerD1PerformanceReady?: boolean;
+    d1RuntimeProofReady?: boolean;
+  };
+  blockers?: string[];
+};
+
 type PerformanceProofInputs = {
   generatedAt?: string;
   benchmark?: LocalPerformanceBenchmark;
+  hostedD1RuntimePerformanceProof?: HostedD1RuntimePerformanceProof | null;
+  hostedD1RuntimePerformanceProofSource?: string | null;
 };
 
 export type CloudflareD1PerformanceProofReport = {
@@ -37,19 +70,30 @@ export type CloudflareD1PerformanceProofReport = {
   sources: {
     plan: string;
     localFixture: string;
+    hostedD1RuntimePerformanceProof: string | null;
   };
   queryCountBudgetsReady: boolean;
   p95RouteProofReady: boolean;
   hostedWorkerD1PerformanceReady: boolean;
-  localOnly: true;
-  providerBacked: false;
+  localOnly: boolean;
+  providerBacked: boolean;
   benchmark: LocalPerformanceBenchmark;
+  hostedBenchmark: {
+    source: string | null;
+    schemaReady: boolean;
+    seedReady: boolean;
+    cleanupReady: boolean;
+    rowsSeeded: number | null;
+    rowsCleaned: number | null;
+    rows: HostedQueryBenchmarkRow[];
+  } | null;
   hostedProofRequirements: string[];
   blockers: string[];
   note: string;
 };
 
 const PLAN_ROOT = ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence";
+const DEFAULT_HOSTED_D1_RUNTIME_PERFORMANCE_PROOF_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-d1-runtime-performance-proof.json`;
 
 const FIXTURE_SQL = `
 PRAGMA foreign_keys = ON;
@@ -244,6 +288,12 @@ function readEnv(name: string) {
   return value?.trim() || undefined;
 }
 
+function readJsonIfExists<T>(file: string | undefined | null) {
+  if (!file) return { source: null as string | null, value: null as T | null };
+  if (!existsSync(file)) return { source: file, value: null as T | null };
+  return { source: file, value: JSON.parse(readFileSync(file, "utf8")) as T };
+}
+
 function runSqlite(args: string[], input?: string) {
   const result = spawnSync("sqlite3", args, {
     input,
@@ -359,12 +409,30 @@ function buildLocalPerformanceBenchmark(): LocalPerformanceBenchmark {
   }
 }
 
-function buildBlockers(benchmark: LocalPerformanceBenchmark) {
+function hostedProofReady(proof: HostedD1RuntimePerformanceProof | null | undefined) {
+  return proof?.providerBacked === true
+    && proof.readiness?.queryCountBudgetsReady === true
+    && proof.readiness.hostedP95Ready === true
+    && proof.readiness.hostedWorkerD1PerformanceReady === true
+    && proof.readiness.d1RuntimeProofReady === true;
+}
+
+function buildBlockers(
+  benchmark: LocalPerformanceBenchmark,
+  hostedProof: HostedD1RuntimePerformanceProof | null | undefined,
+) {
   const blockers = benchmark.rows
     .filter((row) => row.status !== "local-pass")
     .map((row) => `${row.surface}: plannedQueries=${row.plannedQueries}/${row.queryBudget}, localP95Ms=${row.localP95Ms}/${row.localBudgetMs}`);
 
-  blockers.push("Hosted Worker+D1 performance proof is still missing.");
+  if (!hostedProofReady(hostedProof)) {
+    const hostedBlockers = hostedProof?.blockers ?? [];
+    if (hostedBlockers.length > 0) {
+      blockers.push(...hostedBlockers.map((blocker) => `Hosted D1 runtime proof: ${blocker}`));
+    } else {
+      blockers.push("Hosted Worker+D1 performance proof is still missing.");
+    }
+  }
   return blockers;
 }
 
@@ -372,6 +440,8 @@ export function buildCloudflareD1PerformanceProof(
   inputs: PerformanceProofInputs = {},
 ): CloudflareD1PerformanceProofReport {
   const benchmark = inputs.benchmark ?? buildLocalPerformanceBenchmark();
+  const hostedProof = inputs.hostedD1RuntimePerformanceProof ?? null;
+  const hostedReady = hostedProofReady(hostedProof);
   const queryCountBudgetsReady = benchmark.rows.every((row) => row.plannedQueries <= row.queryBudget);
   const p95RouteProofReady = benchmark.rows.every((row) => row.status === "local-pass");
 
@@ -381,17 +451,30 @@ export function buildCloudflareD1PerformanceProof(
     sources: {
       plan: ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/24_SUPERFAST_CLOUDFLARE_PERFORMANCE_PLAN.md",
       localFixture: "Temporary sqlite3 fixture generated by this script from sanitized schema/data constants.",
+      hostedD1RuntimePerformanceProof: inputs.hostedD1RuntimePerformanceProofSource ?? null,
     },
     queryCountBudgetsReady,
     p95RouteProofReady,
-    hostedWorkerD1PerformanceReady: false,
-    localOnly: true,
-    providerBacked: false,
+    hostedWorkerD1PerformanceReady: hostedReady,
+    localOnly: !hostedReady,
+    providerBacked: hostedReady,
     benchmark,
+    hostedBenchmark: hostedProof
+      ? {
+          source: inputs.hostedD1RuntimePerformanceProofSource ?? null,
+          schemaReady: hostedProof.result?.schemaReady === true,
+          seedReady: hostedProof.result?.seedReady === true,
+          cleanupReady: hostedProof.result?.cleanupReady === true,
+          rowsSeeded: typeof hostedProof.result?.rowsSeeded === "number" ? hostedProof.result.rowsSeeded : null,
+          rowsCleaned: typeof hostedProof.result?.rowsCleaned === "number" ? hostedProof.result.rowsCleaned : null,
+          rows: hostedProof.result?.benchmarkRows ?? [],
+        }
+      : null,
     hostedProofRequirements: HOSTED_PROOF_REQUIREMENTS,
-    blockers: buildBlockers(benchmark),
-    note:
-      "Local-only D1 performance scaffold. It runs representative indexed SQLite read-model and authorization queries against sanitized temporary data, records query-budget and local p95 evidence, and removes temp artifacts. It does not read env files, call Cloudflare APIs, create D1 databases, deploy Workers, hit hosted routes, or prove hosted Worker+D1 performance.",
+    blockers: buildBlockers(benchmark, hostedProof),
+    note: hostedReady
+      ? "D1 performance proof combines a local SQLite query-budget scaffold with hosted Worker+D1 runtime evidence from the deployed proof Worker. It records sanitized rows only and does not make production cutover ready."
+      : "Local-only D1 performance scaffold. It runs representative indexed SQLite read-model and authorization queries against sanitized temporary data, records query-budget and local p95 evidence, and removes temp artifacts. It does not read env files, call Cloudflare APIs, create D1 databases, deploy Workers, hit hosted routes, or prove hosted Worker+D1 performance unless a hosted runtime proof artifact is supplied.",
   };
 }
 
@@ -420,6 +503,14 @@ export function writeMarkdown(report: CloudflareD1PerformanceProofReport, markdo
     ? report.blockers.map((blocker) => `- ${blocker}`)
     : ["- (none)"];
   const hostedRequirementLines = report.hostedProofRequirements.map((item) => `- ${item}`);
+  const hostedRows = report.hostedBenchmark?.rows.map((row) => [
+    row.surface ?? "",
+    `${row.plannedQueries ?? ""}/${row.queryBudget ?? ""}`,
+    `${row.hostedP95Ms ?? ""}ms/${row.hostedBudgetMs ?? ""}ms`,
+    String(row.sampleCount ?? ""),
+    String(row.rowsReturned ?? ""),
+    row.status ?? "",
+  ]) ?? [];
   const lines = [
     "# Cloudflare D1 Performance Proof",
     "",
@@ -453,6 +544,22 @@ export function writeMarkdown(report: CloudflareD1PerformanceProofReport, markdo
     "| --- | ---: | ---: | ---: | --- | --- |",
     ...markdownRows(benchmarkRows),
     "",
+    "## Hosted D1 Runtime Benchmark",
+    "",
+    `Source: ${report.hostedBenchmark?.source ?? "(missing)"}`,
+    "",
+    "| Item | Value |",
+    "| --- | ---: |",
+    `| Schema ready | ${report.hostedBenchmark?.schemaReady === true ? "yes" : "no"} |`,
+    `| Seed ready | ${report.hostedBenchmark?.seedReady === true ? "yes" : "no"} |`,
+    `| Cleanup ready | ${report.hostedBenchmark?.cleanupReady === true ? "yes" : "no"} |`,
+    `| Rows seeded | ${report.hostedBenchmark?.rowsSeeded ?? ""} |`,
+    `| Rows cleaned | ${report.hostedBenchmark?.rowsCleaned ?? ""} |`,
+    "",
+    "| Surface | Planned/query budget | Hosted p95/budget | Samples | Rows returned | Status |",
+    "| --- | ---: | ---: | ---: | ---: | --- |",
+    ...markdownRows(hostedRows),
+    "",
     "## Hosted Proof Requirements",
     "",
     ...hostedRequirementLines,
@@ -466,7 +573,13 @@ export function writeMarkdown(report: CloudflareD1PerformanceProofReport, markdo
 }
 
 async function main() {
-  const report = buildCloudflareD1PerformanceProof();
+  const hostedProofFile = readEnv("CLOUDFLARE_D1_RUNTIME_PERFORMANCE_PROOF_FILE")
+    ?? DEFAULT_HOSTED_D1_RUNTIME_PERFORMANCE_PROOF_FILE;
+  const hostedProof = readJsonIfExists<HostedD1RuntimePerformanceProof>(hostedProofFile);
+  const report = buildCloudflareD1PerformanceProof({
+    hostedD1RuntimePerformanceProof: hostedProof.value,
+    hostedD1RuntimePerformanceProofSource: hostedProof.value ? hostedProof.source : null,
+  });
   const outputFile = readEnv("OUTPUT_FILE") ?? `${PLAN_ROOT}/2026-06-30-cloudflare-d1-performance-proof.json`;
   const markdownFile = readEnv("MARKDOWN_FILE") ?? `${PLAN_ROOT}/2026-06-30-cloudflare-d1-performance-proof.md`;
   writeOutput(outputFile, report);

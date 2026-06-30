@@ -21,6 +21,8 @@ type BetterAuthProofInputs = {
   generatedTypesText: string | null;
   sourceFileTextByPath: Record<string, string>;
   schemaSqlProof?: BetterAuthD1SchemaSqlProof;
+  betterAuthProviderProof?: BetterAuthProviderProof | null;
+  betterAuthProviderProofSource?: string | null;
   sources?: Partial<CloudflareBetterAuthProofReport["sources"]>;
 };
 
@@ -39,6 +41,94 @@ export type BetterAuthD1SchemaSqlProof = {
   error: string | null;
 };
 
+type BetterAuthProviderProof = {
+  generatedAt?: string;
+  baseUrl?: string | null;
+  endpointPath?: string | null;
+  providerBacked?: boolean;
+  responseStatus?: number | null;
+  responseOk?: boolean;
+  endpointMode?: string | null;
+  endpointProofScope?: string | null;
+  result?: {
+    d1BindingPresent?: boolean;
+    schemaApplyReady?: boolean;
+    expectedTablesPresent?: boolean;
+    expectedIndexesPresent?: boolean;
+    secretProviderReady?: boolean;
+    baseUrlReady?: boolean;
+    trustedOriginsReady?: boolean;
+    providerSessionFixtureReady?: boolean;
+    magicLinkCutover?: {
+      magicLinkRequestReady?: boolean;
+      magicLinkTokenCaptured?: boolean;
+      magicLinkCallbackReady?: boolean;
+      sessionCookieIssued?: boolean;
+      routeGateSessionReadbackReady?: boolean;
+      replayBlockedReady?: boolean;
+      cleanupReady?: boolean;
+      providerBackedCallbackSessionCutoverReady?: boolean;
+      rowsRemaining?: number | null;
+      error?: string | null;
+    };
+    cleanupReady?: boolean;
+    tableNames?: string[];
+    indexNames?: string[];
+    rowsRemaining?: number | null;
+    error?: string | null;
+  } | null;
+  readiness?: {
+    schemaApplyReady?: boolean;
+    expectedTablesPresent?: boolean;
+    expectedIndexesPresent?: boolean;
+    secretProviderReady?: boolean;
+    baseUrlReady?: boolean;
+    trustedOriginsReady?: boolean;
+    providerSessionFixtureReady?: boolean;
+    magicLinkRequestReady?: boolean;
+    magicLinkCallbackReady?: boolean;
+    sessionCookieIssued?: boolean;
+    routeGateSessionReadbackReady?: boolean;
+    replayBlockedReady?: boolean;
+    providerBackedCallbackSessionCutoverReady?: boolean;
+    cleanupReady?: boolean;
+    betterAuthProviderProofReady?: boolean;
+    productionCutoverReady?: boolean;
+  };
+  blockers?: string[];
+};
+
+type BetterAuthProviderProofSummary = {
+  source: string | null;
+  present: boolean;
+  generatedAt: string | null;
+  baseUrl: string | null;
+  endpointPath: string | null;
+  responseStatus: number | null;
+  responseOk: boolean;
+  providerBacked: boolean;
+  schemaApplyReady: boolean;
+  expectedTablesPresent: boolean;
+  expectedIndexesPresent: boolean;
+  secretProviderReady: boolean;
+  baseUrlReady: boolean;
+  trustedOriginsReady: boolean;
+  providerSessionFixtureReady: boolean;
+  magicLinkRequestReady: boolean;
+  magicLinkCallbackReady: boolean;
+  sessionCookieIssued: boolean;
+  routeGateSessionReadbackReady: boolean;
+  replayBlockedReady: boolean;
+  providerBackedCallbackSessionCutoverReady: boolean;
+  magicLinkRowsRemaining: number | null;
+  cleanupReady: boolean;
+  betterAuthProviderProofReady: boolean;
+  productionCutoverReady: boolean;
+  tableNames: string[];
+  indexNames: string[];
+  rowsRemaining: number | null;
+};
+
 export type CloudflareBetterAuthProofReport = {
   generatedAt: string;
   mode: "cloudflare-better-auth-d1-route-gate-proof";
@@ -51,6 +141,7 @@ export type CloudflareBetterAuthProofReport = {
     nextRouteHandlerPath: string;
     testFiles: string[];
     schemaSql: string | null;
+    providerProof: string | null;
     docs: DocReference[];
   };
   manifestSummary: {
@@ -70,6 +161,7 @@ export type CloudflareBetterAuthProofReport = {
     currentSupabaseGatePreserved: boolean;
   };
   schemaSqlSummary: BetterAuthD1SchemaSqlProof;
+  providerProofSummary: BetterAuthProviderProofSummary;
   readiness: {
     betterAuthDependencyPresent: boolean;
     d1BindingReady: boolean;
@@ -81,6 +173,11 @@ export type CloudflareBetterAuthProofReport = {
     routeGateD1SessionFixtureReady: boolean;
     betterAuthD1SchemaSqlGenerated: boolean;
     betterAuthD1SchemaSqlReviewReady: boolean;
+    hostedBetterAuthD1SchemaProofReady: boolean;
+    betterAuthSecretProviderReady: boolean;
+    providerBackedSessionFixtureReady: boolean;
+    providerBackedCallbackSessionCutoverReady: boolean;
+    betterAuthProviderProofReady: boolean;
     routeGateParityMatrixReady: boolean;
     currentSupabaseGatePreserved: boolean;
     localBetterAuthRouteGateProofReady: boolean;
@@ -88,8 +185,8 @@ export type CloudflareBetterAuthProofReport = {
   };
   routeGateParityMatrix: typeof BETTER_AUTH_ROUTE_GATE_PARITY_MATRIX;
   productionCutoverBlockers: string[];
-  localOnly: true;
-  providerBacked: false;
+  localOnly: boolean;
+  providerBacked: boolean;
   blockers: string[];
   note: string;
 };
@@ -98,6 +195,7 @@ const PLAN_ROOT = ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence";
 const SCAFFOLD_FILE = "src/lib/auth/better-auth-cloudflare.ts";
 const NEXT_ROUTE_HANDLER_PATH = "src/app/api/auth/[...all]/route.ts";
 const DEFAULT_SCHEMA_SQL_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-better-auth-d1-schema.sql`;
+const DEFAULT_PROVIDER_PROOF_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-better-auth-provider-proof.json`;
 const EXPECTED_SCHEMA_TABLES = ["account", "session", "user", "verification"] as const;
 const EXPECTED_SCHEMA_INDEXES = ["account_userId_idx", "session_userId_idx", "verification_identifier_idx"] as const;
 const CURRENT_SUPABASE_GATE_FILES = [
@@ -126,6 +224,11 @@ function readEnv(name: string) {
 
 function readText(path: string) {
   return existsSync(path) ? readFileSync(path, "utf8") : null;
+}
+
+function readJsonArtifact<T>(path: string | null | undefined) {
+  if (!path || !existsSync(path)) return null;
+  return JSON.parse(readFileSync(path, "utf8")) as T;
 }
 
 function stripJsonComments(input: string) {
@@ -265,6 +368,50 @@ function routeGateD1SessionFixtureReady(sourceFileTextByPath: Record<string, str
     && /missing-session/.test(testText);
 }
 
+function stringArray(value: unknown) {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && item.length > 0) : [];
+}
+
+function summarizeProviderProof(
+  proof: BetterAuthProviderProof | null | undefined,
+  source: string | null | undefined,
+): BetterAuthProviderProofSummary {
+  const readiness = proof?.readiness ?? {};
+  const result = proof?.result ?? {};
+  const magicLinkCutover = result?.magicLinkCutover ?? {};
+  return {
+    source: source ?? null,
+    present: Boolean(proof),
+    generatedAt: proof?.generatedAt ?? null,
+    baseUrl: proof?.baseUrl ?? null,
+    endpointPath: proof?.endpointPath ?? null,
+    responseStatus: typeof proof?.responseStatus === "number" ? proof.responseStatus : null,
+    responseOk: proof?.responseOk === true,
+    providerBacked: proof?.providerBacked === true,
+    schemaApplyReady: readiness.schemaApplyReady === true,
+    expectedTablesPresent: readiness.expectedTablesPresent === true,
+    expectedIndexesPresent: readiness.expectedIndexesPresent === true,
+    secretProviderReady: readiness.secretProviderReady === true,
+    baseUrlReady: readiness.baseUrlReady === true,
+    trustedOriginsReady: readiness.trustedOriginsReady === true,
+    providerSessionFixtureReady: readiness.providerSessionFixtureReady === true,
+    magicLinkRequestReady: readiness.magicLinkRequestReady === true || magicLinkCutover.magicLinkRequestReady === true,
+    magicLinkCallbackReady: readiness.magicLinkCallbackReady === true || magicLinkCutover.magicLinkCallbackReady === true,
+    sessionCookieIssued: readiness.sessionCookieIssued === true || magicLinkCutover.sessionCookieIssued === true,
+    routeGateSessionReadbackReady: readiness.routeGateSessionReadbackReady === true || magicLinkCutover.routeGateSessionReadbackReady === true,
+    replayBlockedReady: readiness.replayBlockedReady === true || magicLinkCutover.replayBlockedReady === true,
+    providerBackedCallbackSessionCutoverReady: readiness.providerBackedCallbackSessionCutoverReady === true
+      || magicLinkCutover.providerBackedCallbackSessionCutoverReady === true,
+    magicLinkRowsRemaining: typeof magicLinkCutover.rowsRemaining === "number" ? magicLinkCutover.rowsRemaining : null,
+    cleanupReady: readiness.cleanupReady === true,
+    betterAuthProviderProofReady: readiness.betterAuthProviderProofReady === true,
+    productionCutoverReady: readiness.productionCutoverReady === true,
+    tableNames: stringArray(result?.tableNames),
+    indexNames: stringArray(result?.indexNames),
+    rowsRemaining: typeof result?.rowsRemaining === "number" ? result.rowsRemaining : null,
+  };
+}
+
 function emptySchemaSqlProof(error: string | null = null): BetterAuthD1SchemaSqlProof {
   return {
     generated: false,
@@ -360,19 +507,38 @@ function buildProductionCutoverBlockers(
   schemaSqlSummary: BetterAuthD1SchemaSqlProof,
   routeGateHelperCoverageReady: boolean,
   routeGateD1FixtureReady: boolean,
+  providerProofSummary: BetterAuthProviderProofSummary,
 ) {
-  const blockers = [
-    schemaSqlSummary.staticReviewReady
-      ? "Better Auth D1 schema SQL is generated and statically reviewed locally, but has not been applied to hosted D1 or restore-tested."
-      : "Better Auth D1 schema SQL has not been generated, reviewed, applied to hosted D1, or restore-tested.",
-    "Better Auth secret rotation, OAuth providers, magic-link/email provider config, trusted origins, and cookie settings have no sanitized Cloudflare provider evidence.",
-    "Existing Supabase callback/actions/session helpers still own live auth behavior.",
-    routeGateD1FixtureReady
-      ? "Route-gate tests cover local Better Auth helper denial/success behavior and D1-backed signed-cookie session fixtures, but provider-backed callback/session cutover tests are still missing before replacing Supabase session fixtures."
-      : routeGateHelperCoverageReady
-        ? "Route-gate tests cover local Better Auth helper denial/success behavior, but still need D1-backed session fixtures before replacing Supabase session fixtures."
-        : "Route-gate tests still need Better Auth helper denial/success coverage and D1-backed session fixtures before replacing Supabase session fixtures.",
-  ];
+  const blockers: string[] = [];
+
+  if (providerProofSummary.betterAuthProviderProofReady) {
+    blockers.push(
+      providerProofSummary.providerBackedCallbackSessionCutoverReady
+        ? "OAuth provider credential callback proof is still missing before live Better Auth cutover."
+        : "OAuth provider credential and magic-link/email callback flow are still not provider-proven end to end on Cloudflare.",
+    );
+  } else {
+    blockers.push(
+      schemaSqlSummary.staticReviewReady
+        ? "Better Auth D1 schema SQL is generated and statically reviewed locally, but has not been applied to hosted D1 by a passing provider proof."
+        : "Better Auth D1 schema SQL has not been generated, reviewed, applied to hosted D1, or provider-proven.",
+    );
+    blockers.push("Better Auth secret rotation, OAuth providers, magic-link/email provider config, trusted origins, and cookie settings do not yet have passing sanitized Cloudflare provider evidence.");
+  }
+
+  blockers.push("Existing Supabase callback/actions/session helpers still own live auth behavior.");
+  if (!providerProofSummary.providerBackedCallbackSessionCutoverReady) {
+    blockers.push(
+      providerProofSummary.providerSessionFixtureReady
+      ? "Hosted D1 Better Auth session fixture readback is provider-proven, but provider-backed callback/session cutover tests are still missing before replacing Supabase session fixtures."
+      : routeGateD1FixtureReady
+        ? "Route-gate tests cover local Better Auth helper denial/success behavior and D1-backed signed-cookie session fixtures, but provider-backed callback/session cutover tests are still missing before replacing Supabase session fixtures."
+        : routeGateHelperCoverageReady
+          ? "Route-gate tests cover local Better Auth helper denial/success behavior, but still need D1-backed session fixtures before replacing Supabase session fixtures."
+          : "Route-gate tests still need Better Auth helper denial/success coverage and D1-backed session fixtures before replacing Supabase session fixtures.",
+    );
+  }
+
   if (!actualNextRouteMounted) {
     blockers.unshift("The Better Auth /api/auth/[...all] route is intentionally not mounted yet.");
   }
@@ -415,6 +581,10 @@ export function buildCloudflareBetterAuthProof(inputs: BetterAuthProofInputs): C
   const typedD1Bindings = extractTypedD1Bindings(inputs.generatedTypesText);
   const actualNextRouteMounted = detectsMountedNextRouteHandler(nextRouteText);
   const schemaSqlSummary = inputs.schemaSqlProof ?? emptySchemaSqlProof("Schema SQL proof was not provided.");
+  const providerProofSummary = summarizeProviderProof(
+    inputs.betterAuthProviderProof,
+    inputs.betterAuthProviderProofSource ?? inputs.sources?.providerProof ?? null,
+  );
   const routeGateHelperCoverageReady = routeGateHelperTestCoverageReady(inputs.sourceFileTextByPath);
   const routeGateD1FixtureReady = routeGateD1SessionFixtureReady(inputs.sourceFileTextByPath);
   const scaffoldSummary = {
@@ -448,6 +618,10 @@ export function buildCloudflareBetterAuthProof(inputs: BetterAuthProofInputs): C
     && schemaSqlSummary.staticReviewReady
     && routeGateParityMatrixReady
     && scaffoldSummary.currentSupabaseGatePreserved;
+  const hostedBetterAuthD1SchemaProofReady = providerProofSummary.schemaApplyReady
+    && providerProofSummary.expectedTablesPresent
+    && providerProofSummary.expectedIndexesPresent
+    && providerProofSummary.cleanupReady;
   const readiness = {
     betterAuthDependencyPresent: Boolean(betterAuthVersion),
     d1BindingReady,
@@ -459,6 +633,14 @@ export function buildCloudflareBetterAuthProof(inputs: BetterAuthProofInputs): C
     routeGateD1SessionFixtureReady: scaffoldSummary.routeGateD1SessionFixtureReady,
     betterAuthD1SchemaSqlGenerated: schemaSqlSummary.generated,
     betterAuthD1SchemaSqlReviewReady: schemaSqlSummary.staticReviewReady,
+    hostedBetterAuthD1SchemaProofReady,
+    betterAuthSecretProviderReady: providerProofSummary.secretProviderReady
+      && providerProofSummary.baseUrlReady
+      && providerProofSummary.trustedOriginsReady,
+    providerBackedSessionFixtureReady: providerProofSummary.providerSessionFixtureReady
+      && providerProofSummary.cleanupReady,
+    providerBackedCallbackSessionCutoverReady: providerProofSummary.providerBackedCallbackSessionCutoverReady,
+    betterAuthProviderProofReady: providerProofSummary.betterAuthProviderProofReady,
     routeGateParityMatrixReady,
     currentSupabaseGatePreserved: scaffoldSummary.currentSupabaseGatePreserved,
     localBetterAuthRouteGateProofReady,
@@ -469,6 +651,7 @@ export function buildCloudflareBetterAuthProof(inputs: BetterAuthProofInputs): C
     schemaSqlSummary,
     scaffoldSummary.routeGateHelperTestCoverageReady,
     scaffoldSummary.routeGateD1SessionFixtureReady,
+    providerProofSummary,
   );
   const blockers = [
     ...buildLocalBlockers(readiness),
@@ -487,6 +670,7 @@ export function buildCloudflareBetterAuthProof(inputs: BetterAuthProofInputs): C
       nextRouteHandlerPath: NEXT_ROUTE_HANDLER_PATH,
       testFiles: inputs.sources?.testFiles ?? ROUTE_GATE_TEST_FILES,
       schemaSql: inputs.sources?.schemaSql ?? null,
+      providerProof: providerProofSummary.source,
       docs: DOCS,
     },
     manifestSummary: {
@@ -496,13 +680,16 @@ export function buildCloudflareBetterAuthProof(inputs: BetterAuthProofInputs): C
     },
     scaffoldSummary,
     schemaSqlSummary,
+    providerProofSummary,
     readiness,
     routeGateParityMatrix: BETTER_AUTH_ROUTE_GATE_PARITY_MATRIX,
     productionCutoverBlockers,
-    localOnly: true,
-    providerBacked: false,
+    localOnly: !providerProofSummary.betterAuthProviderProofReady,
+    providerBacked: providerProofSummary.betterAuthProviderProofReady,
     blockers,
-    note: actualNextRouteMounted
+    note: providerProofSummary.betterAuthProviderProofReady
+      ? "Better Auth D1 route-gate proof with hosted Cloudflare provider evidence. It reads package, wrangler, generated type, source files, and sanitized provider-proof output; it does not print secret values, change DNS, replace the live Supabase auth gate, or prove OAuth provider credentials."
+      : actualNextRouteMounted
       ? "Local-only Better Auth D1 route-gate proof. It reads package, wrangler, generated type, and source files; it does not read env files, print secret values, create or mutate Cloudflare D1 databases, change DNS, deploy Workers, or replace the live Supabase auth gate. The mounted /api/auth route fails closed without a Better Auth secret and ARCH_DB binding."
       : "Local-only Better Auth D1 route-gate proof. It reads package, wrangler, generated type, and source files; it does not read env files, print secret values, create or mutate Cloudflare D1 databases, mount a public auth route, change DNS, deploy Workers, or replace the live Supabase auth gate.",
   };
@@ -541,6 +728,11 @@ export function writeMarkdown(report: CloudflareBetterAuthProofReport, markdownF
     ["Route-gate D1 session fixture ready", boolLabel(report.readiness.routeGateD1SessionFixtureReady)],
     ["Better Auth D1 schema SQL generated", boolLabel(report.readiness.betterAuthD1SchemaSqlGenerated)],
     ["Better Auth D1 schema SQL static review ready", boolLabel(report.readiness.betterAuthD1SchemaSqlReviewReady)],
+    ["Hosted Better Auth D1 schema proof ready", boolLabel(report.readiness.hostedBetterAuthD1SchemaProofReady)],
+    ["Better Auth provider secret/origin proof ready", boolLabel(report.readiness.betterAuthSecretProviderReady)],
+    ["Provider-backed session fixture ready", boolLabel(report.readiness.providerBackedSessionFixtureReady)],
+    ["Provider-backed callback/session cutover proof ready", boolLabel(report.readiness.providerBackedCallbackSessionCutoverReady)],
+    ["Better Auth provider proof ready", boolLabel(report.readiness.betterAuthProviderProofReady)],
     ["Route-gate parity matrix ready", boolLabel(report.readiness.routeGateParityMatrixReady)],
     ["Current Supabase gate preserved", boolLabel(report.readiness.currentSupabaseGatePreserved)],
     ["Local Better Auth route-gate proof ready", boolLabel(report.readiness.localBetterAuthRouteGateProofReady)],
@@ -559,6 +751,33 @@ export function writeMarkdown(report: CloudflareBetterAuthProofReport, markdownF
     ["Schema SQL SHA-256", report.schemaSqlSummary.sha256 ?? "(missing)"],
     ["Schema SQL tables", report.schemaSqlSummary.tableNames.length === 0 ? "(none)" : report.schemaSqlSummary.tableNames.join(", ")],
     ["Schema SQL indexes", report.schemaSqlSummary.indexNames.length === 0 ? "(none)" : report.schemaSqlSummary.indexNames.join(", ")],
+  ];
+  const providerRows = [
+    ["Provider proof artifact", report.sources.providerProof ?? "(missing)"],
+    ["Provider proof present", boolLabel(report.providerProofSummary.present)],
+    ["Provider proof generated", report.providerProofSummary.generatedAt ?? "(missing)"],
+    ["Provider proof base URL", report.providerProofSummary.baseUrl ?? "(missing)"],
+    ["Provider proof endpoint", report.providerProofSummary.endpointPath ?? "(missing)"],
+    ["Provider proof response status", report.providerProofSummary.responseStatus === null ? "(missing)" : String(report.providerProofSummary.responseStatus)],
+    ["Provider proof response OK", boolLabel(report.providerProofSummary.responseOk)],
+    ["Schema apply ready", boolLabel(report.providerProofSummary.schemaApplyReady)],
+    ["Expected tables present", boolLabel(report.providerProofSummary.expectedTablesPresent)],
+    ["Expected indexes present", boolLabel(report.providerProofSummary.expectedIndexesPresent)],
+    ["Secret provider ready", boolLabel(report.providerProofSummary.secretProviderReady)],
+    ["Base URL ready", boolLabel(report.providerProofSummary.baseUrlReady)],
+    ["Trusted origins ready", boolLabel(report.providerProofSummary.trustedOriginsReady)],
+    ["Provider session fixture ready", boolLabel(report.providerProofSummary.providerSessionFixtureReady)],
+    ["Magic-link request ready", boolLabel(report.providerProofSummary.magicLinkRequestReady)],
+    ["Magic-link callback ready", boolLabel(report.providerProofSummary.magicLinkCallbackReady)],
+    ["Session cookie issued", boolLabel(report.providerProofSummary.sessionCookieIssued)],
+    ["Route-gate session readback ready", boolLabel(report.providerProofSummary.routeGateSessionReadbackReady)],
+    ["Magic-link replay blocked", boolLabel(report.providerProofSummary.replayBlockedReady)],
+    ["Provider-backed callback/session cutover proof ready", boolLabel(report.providerProofSummary.providerBackedCallbackSessionCutoverReady)],
+    ["Cleanup ready", boolLabel(report.providerProofSummary.cleanupReady)],
+    ["Provider tables", report.providerProofSummary.tableNames.length === 0 ? "(none)" : report.providerProofSummary.tableNames.join(", ")],
+    ["Provider indexes", report.providerProofSummary.indexNames.length === 0 ? "(none)" : report.providerProofSummary.indexNames.join(", ")],
+    ["Provider proof rows remaining", report.providerProofSummary.rowsRemaining === null ? "(missing)" : String(report.providerProofSummary.rowsRemaining)],
+    ["Magic-link proof rows remaining", report.providerProofSummary.magicLinkRowsRemaining === null ? "(missing)" : String(report.providerProofSummary.magicLinkRowsRemaining)],
   ];
   const parityRows = report.routeGateParityMatrix.map((row) => [
     row.key,
@@ -588,6 +807,12 @@ export function writeMarkdown(report: CloudflareBetterAuthProofReport, markdownF
     "| Item | Value |",
     "| --- | --- |",
     ...markdownRows(manifestRows),
+    "",
+    "## Hosted Provider Proof",
+    "",
+    "| Item | Value |",
+    "| --- | --- |",
+    ...markdownRows(providerRows),
     "",
     "## Route-Gate Parity Matrix",
     "",
@@ -637,11 +862,15 @@ async function main() {
   const outputFile = readEnv("OUTPUT_FILE") ?? `${PLAN_ROOT}/2026-06-30-cloudflare-better-auth-route-gate-proof.json`;
   const markdownFile = readEnv("MARKDOWN_FILE") ?? `${PLAN_ROOT}/2026-06-30-cloudflare-better-auth-route-gate-proof.md`;
   const schemaSqlFile = readEnv("SCHEMA_SQL_FILE") ?? DEFAULT_SCHEMA_SQL_FILE;
+  const providerProofFile = readEnv("CLOUDFLARE_BETTER_AUTH_PROVIDER_PROOF_FILE") ?? DEFAULT_PROVIDER_PROOF_FILE;
   const inputs = collectRepoInputs();
   inputs.schemaSqlProof = await generateLocalBetterAuthD1SchemaSqlProof();
+  inputs.betterAuthProviderProof = readJsonArtifact<BetterAuthProviderProof>(providerProofFile);
+  inputs.betterAuthProviderProofSource = providerProofFile;
   inputs.sources = {
     ...inputs.sources,
     schemaSql: schemaSqlFile,
+    providerProof: providerProofFile,
   };
   const report = buildCloudflareBetterAuthProof(inputs);
   writeOutput(outputFile, report);

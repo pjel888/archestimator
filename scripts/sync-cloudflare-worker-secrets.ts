@@ -15,6 +15,7 @@ const DEFAULT_GENERATED_SECRET_NAMES = [
   "CRON_SECRET",
   "UPLOAD_CLEANUP_JOB_SECRET",
   "UPLOAD_SCAN_JOB_SECRET",
+  "BETTER_AUTH_SECRET",
 ] as const;
 
 type SecretInputValue = {
@@ -164,6 +165,8 @@ function proofDefaults(baseUrl: string | null) {
     ...(baseUrl
       ? [
           ["ARCHESTIMATOR_ALLOWED_APP_ORIGINS", baseUrl] as [string, string],
+          ["BETTER_AUTH_URL", baseUrl] as [string, string],
+          ["BETTER_AUTH_TRUSTED_ORIGINS", baseUrl] as [string, string],
           ["NEXT_PUBLIC_APP_URL", baseUrl] as [string, string],
           ["NEXT_PUBLIC_SITE_URL", baseUrl] as [string, string],
         ]

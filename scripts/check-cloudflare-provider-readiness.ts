@@ -81,6 +81,39 @@ type ProviderResourceReadbackEvidence = {
   };
 };
 
+type ProviderRuntimeProofEvidence = {
+  generatedAt?: string;
+  readiness?: {
+    imagesProviderProofReady?: boolean | null;
+    r2ProviderProofReady?: boolean | null;
+    providerRuntimeProofReady?: boolean | null;
+  };
+};
+
+type JobsRuntimeProofEvidence = {
+  generatedAt?: string;
+  readiness?: {
+    providerBacked?: boolean | null;
+    queueSendReady?: boolean | null;
+    queueConsumerReceiptReady?: boolean | null;
+    cronProviderExecutionProven?: boolean | null;
+    productionJobsMessagingReady?: boolean | null;
+  };
+};
+
+type ObservabilityProofEvidence = {
+  generatedAt?: string;
+  observability?: {
+    sampledProbeEventCount?: number | null;
+  };
+  readiness?: {
+    workersObservabilityReceivingDataProven?: boolean | null;
+    currentWorkerVersionObserved?: boolean | null;
+    probeEventsObserved?: boolean | null;
+    analyticsReady?: boolean | null;
+  };
+};
+
 type ReadinessCheck = {
   key: string;
   label: string;
@@ -107,6 +140,12 @@ export type CloudflareProviderReadinessResult = {
   wranglerAuthCapturedAt: string | null;
   providerResourceReadbackSource: string | null;
   providerResourceReadbackCapturedAt: string | null;
+  providerRuntimeProofSource: string | null;
+  providerRuntimeProofCapturedAt: string | null;
+  jobsRuntimeProofSource: string | null;
+  jobsRuntimeProofCapturedAt: string | null;
+  observabilityProofSource: string | null;
+  observabilityProofCapturedAt: string | null;
   nameserverEvidenceSource: "public-dns" | "sanitized-dashboard-registrar";
   publicDnsNameservers: string[];
   actionsIntentionallyNotTaken: string[];
@@ -118,6 +157,9 @@ const DEFAULT_PROVIDER_EVIDENCE_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-provi
 const DEFAULT_DNS_DELEGATION_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-dns-delegation.json`;
 const DEFAULT_WRANGLER_AUTH_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-wrangler-auth.json`;
 const DEFAULT_PROVIDER_RESOURCE_READBACK_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-provider-resource-readback.json`;
+const DEFAULT_PROVIDER_RUNTIME_PROOF_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-provider-runtime-proof.json`;
+const DEFAULT_JOBS_RUNTIME_PROOF_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-jobs-runtime-proof.json`;
+const DEFAULT_OBSERVABILITY_PROOF_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-observability-proof.json`;
 const DEFAULT_OUTPUT_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-provider-readiness.json`;
 const DEFAULT_MARKDOWN_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-provider-readiness.md`;
 
@@ -197,6 +239,12 @@ export function checkCloudflareProviderReadiness(
   wranglerAuthSource: string | null = null,
   providerResourceReadback: ProviderResourceReadbackEvidence | null = null,
   providerResourceReadbackSource: string | null = null,
+  providerRuntimeProof: ProviderRuntimeProofEvidence | null = null,
+  providerRuntimeProofSource: string | null = null,
+  jobsRuntimeProof: JobsRuntimeProofEvidence | null = null,
+  jobsRuntimeProofSource: string | null = null,
+  observabilityProof: ObservabilityProofEvidence | null = null,
+  observabilityProofSource: string | null = null,
 ): CloudflareProviderReadinessResult {
   const nameservers = nameserverStatus(evidence, dnsDelegation);
   const wranglerAuthReady = wranglerAuth?.readiness?.wranglerApiAuthenticated === true
@@ -207,7 +255,22 @@ export function checkCloudflareProviderReadiness(
   const workerSecretsReady = evidence.workers?.sanitizedSecretListCaptured === true
     || providerResourceReadback?.readiness?.workerSecretNameReadbackReady === true;
   const r2ProviderReady = (evidence.storageAndMedia?.r2ProofBucketsCreated === true && evidence.storageAndMedia?.r2HostedReadbackProven === true)
-    || providerResourceReadback?.readiness?.r2BucketReadbackReady === true;
+    || providerResourceReadback?.readiness?.r2BucketReadbackReady === true
+    || providerRuntimeProof?.readiness?.r2ProviderProofReady === true;
+  const imagesProviderReady = evidence.storageAndMedia?.imagesBindingProviderProven === true
+    || providerRuntimeProof?.readiness?.imagesProviderProofReady === true;
+  const queuesAndDlqReady = (evidence.jobsAndMessaging?.queuesProofCreated === true
+    && evidence.jobsAndMessaging?.deadLetterProofCreated === true)
+    || providerResourceReadback?.readiness?.queuesReadbackReady === true;
+  const jobsRuntimeReady = jobsRuntimeProof?.readiness?.providerBacked === true
+    && jobsRuntimeProof.readiness.queueSendReady === true
+    && jobsRuntimeProof.readiness.queueConsumerReceiptReady === true
+    && jobsRuntimeProof.readiness.cronProviderExecutionProven === true
+    && jobsRuntimeProof.readiness.productionJobsMessagingReady === true;
+  const observabilityReady = observabilityProof?.readiness?.analyticsReady === true
+    && observabilityProof.readiness.workersObservabilityReceivingDataProven === true
+    && observabilityProof.readiness.currentWorkerVersionObserved === true
+    && observabilityProof.readiness.probeEventsObserved === true;
   const checks: ReadinessCheck[] = [
     check(
       "account-present",
@@ -276,31 +339,33 @@ export function checkCloudflareProviderReadiness(
       "r2-provider",
       "R2 proof buckets and readback proven",
       r2ProviderReady,
-      `r2ProofBucketsCreated=${boolEvidence(evidence.storageAndMedia?.r2ProofBucketsCreated)}, r2HostedReadbackProven=${boolEvidence(evidence.storageAndMedia?.r2HostedReadbackProven)}, wranglerR2Readback=${boolEvidence(providerResourceReadback?.readiness?.r2BucketReadbackReady)}`,
+      `r2ProofBucketsCreated=${boolEvidence(evidence.storageAndMedia?.r2ProofBucketsCreated)}, r2HostedReadbackProven=${boolEvidence(evidence.storageAndMedia?.r2HostedReadbackProven)}, wranglerR2Readback=${boolEvidence(providerResourceReadback?.readiness?.r2BucketReadbackReady)}, providerRuntimeR2Proof=${boolEvidence(providerRuntimeProof?.readiness?.r2ProviderProofReady)}`,
       "R2 proof buckets/readback are not provider-proven.",
     ),
     check(
       "images-provider",
       "Cloudflare Images binding provider-proven",
-      evidence.storageAndMedia?.imagesBindingProviderProven === true,
-      `imagesBindingProviderProven=${boolEvidence(evidence.storageAndMedia?.imagesBindingProviderProven)}`,
+      imagesProviderReady,
+      `imagesBindingProviderProven=${boolEvidence(evidence.storageAndMedia?.imagesBindingProviderProven)}, providerRuntimeImagesProof=${boolEvidence(providerRuntimeProof?.readiness?.imagesProviderProofReady)}`,
       "Cloudflare Images binding is not provider-proven.",
     ),
     check(
       "jobs-provider",
       "Cron/Queues provider execution proven",
-      evidence.jobsAndMessaging?.cronProviderExecutionProven === true
+      (evidence.jobsAndMessaging?.cronProviderExecutionProven === true
         && evidence.jobsAndMessaging?.queuesProofCreated === true
-        && evidence.jobsAndMessaging?.deadLetterProofCreated === true,
-      `cronProviderExecutionProven=${boolEvidence(evidence.jobsAndMessaging?.cronProviderExecutionProven)}, queuesProofCreated=${boolEvidence(evidence.jobsAndMessaging?.queuesProofCreated)}, deadLetterProofCreated=${boolEvidence(evidence.jobsAndMessaging?.deadLetterProofCreated)}`,
+        && evidence.jobsAndMessaging?.deadLetterProofCreated === true)
+        || (queuesAndDlqReady && jobsRuntimeReady),
+      `cronProviderExecutionProven=${boolEvidence(evidence.jobsAndMessaging?.cronProviderExecutionProven)}, queuesProofCreated=${boolEvidence(evidence.jobsAndMessaging?.queuesProofCreated)}, deadLetterProofCreated=${boolEvidence(evidence.jobsAndMessaging?.deadLetterProofCreated)}, wranglerQueuesReadback=${boolEvidence(providerResourceReadback?.readiness?.queuesReadbackReady)}, jobsRuntimeProductionProof=${boolEvidence(jobsRuntimeProof?.readiness?.productionJobsMessagingReady)}`,
       "Cloudflare Cron/Queues/dead-letter provider proof is incomplete.",
     ),
     check(
       "analytics-provider",
-      "Web Analytics receiving data",
-      evidence.analytics?.webAnalyticsPropertyCreated === true && evidence.analytics?.webAnalyticsReceivingDataProven === true,
-      `webAnalyticsPropertyCreated=${boolEvidence(evidence.analytics?.webAnalyticsPropertyCreated)}, webAnalyticsReceivingDataProven=${boolEvidence(evidence.analytics?.webAnalyticsReceivingDataProven)}`,
-      "Cloudflare Web Analytics receipt is not provider-proven.",
+      "Cloudflare Analytics/Workers Observability receiving data",
+      (evidence.analytics?.webAnalyticsPropertyCreated === true && evidence.analytics?.webAnalyticsReceivingDataProven === true)
+        || observabilityReady,
+      `webAnalyticsPropertyCreated=${boolEvidence(evidence.analytics?.webAnalyticsPropertyCreated)}, webAnalyticsReceivingDataProven=${boolEvidence(evidence.analytics?.webAnalyticsReceivingDataProven)}, workersObservabilityReceivingDataProven=${boolEvidence(observabilityProof?.readiness?.workersObservabilityReceivingDataProven)}, observedProbeEvents=${observabilityProof?.observability?.sampledProbeEventCount ?? "(missing)"}`,
+      "Cloudflare Web Analytics/Workers Observability receipt is not provider-proven.",
     ),
   ];
 
@@ -340,6 +405,12 @@ export function checkCloudflareProviderReadiness(
     wranglerAuthCapturedAt: wranglerAuth?.generatedAt ?? null,
     providerResourceReadbackSource,
     providerResourceReadbackCapturedAt: providerResourceReadback?.generatedAt ?? null,
+    providerRuntimeProofSource,
+    providerRuntimeProofCapturedAt: providerRuntimeProof?.generatedAt ?? null,
+    jobsRuntimeProofSource,
+    jobsRuntimeProofCapturedAt: jobsRuntimeProof?.generatedAt ?? null,
+    observabilityProofSource,
+    observabilityProofCapturedAt: observabilityProof?.generatedAt ?? null,
     nameserverEvidenceSource: nameservers.source,
     publicDnsNameservers: nameservers.publicDns,
     actionsIntentionallyNotTaken: evidence.actionsIntentionallyNotTaken ?? [],
@@ -371,6 +442,9 @@ export function writeMarkdown(result: CloudflareProviderReadinessResult, markdow
     `DNS delegation source: ${result.dnsDelegationSource ?? "(none)"}`,
     `Wrangler auth source: ${result.wranglerAuthSource ?? "(none)"}`,
     `Provider resource readback source: ${result.providerResourceReadbackSource ?? "(none)"}`,
+    `Provider runtime proof source: ${result.providerRuntimeProofSource ?? "(none)"}`,
+    `Jobs runtime proof source: ${result.jobsRuntimeProofSource ?? "(none)"}`,
+    `Observability proof source: ${result.observabilityProofSource ?? "(none)"}`,
     `Nameserver evidence source: ${result.nameserverEvidenceSource}`,
     "",
     result.note,
@@ -429,6 +503,30 @@ async function main() {
   const providerResourceReadback = existsSync(providerResourceReadbackFile)
     ? JSON.parse(readFileSync(providerResourceReadbackFile, "utf8")) as ProviderResourceReadbackEvidence
     : null;
+  const providerRuntimeProofFileFromEnv = readEnv("CLOUDFLARE_PROVIDER_RUNTIME_PROOF_FILE");
+  const providerRuntimeProofFile = providerRuntimeProofFileFromEnv ?? DEFAULT_PROVIDER_RUNTIME_PROOF_FILE;
+  if (providerRuntimeProofFileFromEnv && !existsSync(providerRuntimeProofFile)) {
+    throw new Error(`Provider runtime proof evidence file not found: ${providerRuntimeProofFile}`);
+  }
+  const providerRuntimeProof = existsSync(providerRuntimeProofFile)
+    ? JSON.parse(readFileSync(providerRuntimeProofFile, "utf8")) as ProviderRuntimeProofEvidence
+    : null;
+  const jobsRuntimeProofFileFromEnv = readEnv("CLOUDFLARE_JOBS_RUNTIME_PROOF_FILE");
+  const jobsRuntimeProofFile = jobsRuntimeProofFileFromEnv ?? DEFAULT_JOBS_RUNTIME_PROOF_FILE;
+  if (jobsRuntimeProofFileFromEnv && !existsSync(jobsRuntimeProofFile)) {
+    throw new Error(`Jobs runtime proof evidence file not found: ${jobsRuntimeProofFile}`);
+  }
+  const jobsRuntimeProof = existsSync(jobsRuntimeProofFile)
+    ? JSON.parse(readFileSync(jobsRuntimeProofFile, "utf8")) as JobsRuntimeProofEvidence
+    : null;
+  const observabilityProofFileFromEnv = readEnv("CLOUDFLARE_OBSERVABILITY_PROOF_FILE");
+  const observabilityProofFile = observabilityProofFileFromEnv ?? DEFAULT_OBSERVABILITY_PROOF_FILE;
+  if (observabilityProofFileFromEnv && !existsSync(observabilityProofFile)) {
+    throw new Error(`Observability proof evidence file not found: ${observabilityProofFile}`);
+  }
+  const observabilityProof = existsSync(observabilityProofFile)
+    ? JSON.parse(readFileSync(observabilityProofFile, "utf8")) as ObservabilityProofEvidence
+    : null;
   const evidence = JSON.parse(readFileSync(inputFile, "utf8")) as ProviderEvidence;
   const result = checkCloudflareProviderReadiness(
     evidence,
@@ -439,6 +537,12 @@ async function main() {
     wranglerAuth ? wranglerAuthFile : null,
     providerResourceReadback,
     providerResourceReadback ? providerResourceReadbackFile : null,
+    providerRuntimeProof,
+    providerRuntimeProof ? providerRuntimeProofFile : null,
+    jobsRuntimeProof,
+    jobsRuntimeProof ? jobsRuntimeProofFile : null,
+    observabilityProof,
+    observabilityProof ? observabilityProofFile : null,
   );
   const outputFile = readEnv("OUTPUT_FILE") ?? DEFAULT_OUTPUT_FILE;
   const markdownFile = readEnv("MARKDOWN_FILE") ?? DEFAULT_MARKDOWN_FILE;

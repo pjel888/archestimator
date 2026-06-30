@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 import {
@@ -40,9 +40,21 @@ type WranglerQueuesConfig = {
 
 type CloudflareQueuesCronProofInputs = {
   generatedAt?: string;
+  jobsRuntimeProof?: CloudflareJobsRuntimeProof | null;
   wranglerConfigText: string;
   workerText: string;
   sources?: Partial<CloudflareQueuesCronProofReport["sources"]>;
+};
+
+type CloudflareJobsRuntimeProof = {
+  generatedAt?: string;
+  readiness?: {
+    providerBacked?: boolean;
+    queueSendReady?: boolean;
+    queueConsumerReceiptReady?: boolean;
+    cronProviderExecutionProven?: boolean;
+    productionJobsMessagingReady?: boolean;
+  };
 };
 
 type QueueConfigReport = {
@@ -108,8 +120,15 @@ export type CloudflareQueuesCronProofReport = {
     localDuplicateDeliveryReady: boolean;
     localPoisonMessageReady: boolean;
     localQueuesCronProofReady: boolean;
-    providerBacked: false;
-    productionJobsMessagingReady: false;
+    providerBacked: boolean;
+    queueSendProviderReady: boolean;
+    queueConsumerReceiptReady: boolean;
+    cronProviderExecutionProven: boolean;
+    productionJobsMessagingReady: boolean;
+  };
+  jobsRuntimeProof: {
+    sourceGeneratedAt: string | null;
+    present: boolean;
   };
   queueConfig: QueueConfigReport;
   workerQueueHandler: WorkerQueueHandlerReport;
@@ -119,6 +138,7 @@ export type CloudflareQueuesCronProofReport = {
 };
 
 const PLAN_ROOT = ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex";
+const DEFAULT_JOBS_RUNTIME_PROOF_FILE = `${PLAN_ROOT}/evidence/2026-06-30-cloudflare-jobs-runtime-proof.json`;
 const DEFAULT_OUTPUT_FILE = `${PLAN_ROOT}/evidence/2026-06-30-cloudflare-queues-cron-proof.json`;
 const DEFAULT_MARKDOWN_FILE = `${PLAN_ROOT}/evidence/2026-06-30-cloudflare-queues-cron-proof.md`;
 
@@ -325,8 +345,17 @@ function blockersFor(readiness: CloudflareQueuesCronProofReport["readiness"]) {
   if (!readiness.localDeadLetterDecisionReady) blockers.push("Local queue consumer simulation did not mark a final retry as DLQ-eligible.");
   if (!readiness.localDuplicateDeliveryReady) blockers.push("Local queue consumer simulation did not acknowledge duplicate idempotency keys without re-running work.");
   if (!readiness.localPoisonMessageReady) blockers.push("Local queue consumer simulation did not acknowledge malformed messages safely.");
-  blockers.push("Cloudflare provider-backed Cron/Queues/DLQ execution evidence is still missing.");
+  if (!readiness.providerBacked) blockers.push("Cloudflare provider-backed Cron/Queues/DLQ execution evidence is still missing.");
+  if (!readiness.queueSendProviderReady) blockers.push("Cloudflare Queue provider send proof is missing.");
+  if (!readiness.queueConsumerReceiptReady) blockers.push("Cloudflare Queue consumer receipt proof is missing.");
+  if (!readiness.cronProviderExecutionProven) blockers.push("Cloudflare Cron/scheduled dry-run provider execution proof is missing.");
+  if (!readiness.productionJobsMessagingReady) blockers.push("Cloudflare production jobs messaging proof is incomplete.");
   return blockers;
+}
+
+function readJsonFile<T>(file: string): T | null {
+  if (!file || !existsSync(file)) return null;
+  return JSON.parse(readFileSync(file, "utf8")) as T;
 }
 
 export async function buildCloudflareQueuesCronProofReport(
@@ -335,6 +364,7 @@ export async function buildCloudflareQueuesCronProofReport(
   const queueConfig = summarizeQueueConfig(inputs.wranglerConfigText);
   const workerQueueHandler = summarizeWorkerQueueHandler(inputs.workerText);
   const localSimulation = await simulateLocalQueue();
+  const jobsRuntimeProof = inputs.jobsRuntimeProof ?? null;
   const localQueueConfigReady = queueConfig.producerBindingReady
     && queueConfig.consumerReady
     && queueConfig.deadLetterReady
@@ -355,8 +385,11 @@ export async function buildCloudflareQueuesCronProofReport(
     localDuplicateDeliveryReady: localSimulation.duplicateAckCount > 0,
     localPoisonMessageReady: localSimulation.invalidAckCount > 0,
     localQueuesCronProofReady: false,
-    providerBacked: false as const,
-    productionJobsMessagingReady: false as const,
+    providerBacked: jobsRuntimeProof?.readiness?.providerBacked === true,
+    queueSendProviderReady: jobsRuntimeProof?.readiness?.queueSendReady === true,
+    queueConsumerReceiptReady: jobsRuntimeProof?.readiness?.queueConsumerReceiptReady === true,
+    cronProviderExecutionProven: jobsRuntimeProof?.readiness?.cronProviderExecutionProven === true,
+    productionJobsMessagingReady: false,
   };
   readiness.localQueuesCronProofReady = readiness.localQueueConfigReady
     && readiness.workerQueueHandlerReady
@@ -366,6 +399,12 @@ export async function buildCloudflareQueuesCronProofReport(
     && readiness.localDeadLetterDecisionReady
     && readiness.localDuplicateDeliveryReady
     && readiness.localPoisonMessageReady;
+  readiness.productionJobsMessagingReady = readiness.localQueuesCronProofReady
+    && readiness.providerBacked
+    && readiness.queueSendProviderReady
+    && readiness.queueConsumerReceiptReady
+    && readiness.cronProviderExecutionProven
+    && jobsRuntimeProof?.readiness?.productionJobsMessagingReady === true;
 
   return {
     generatedAt: inputs.generatedAt ?? new Date().toISOString(),
@@ -376,12 +415,16 @@ export async function buildCloudflareQueuesCronProofReport(
       plan: inputs.sources?.plan ?? `${PLAN_ROOT}/27_PROOF_SPIKE_BACKLOG.md`,
     },
     readiness,
+    jobsRuntimeProof: {
+      sourceGeneratedAt: jobsRuntimeProof?.generatedAt ?? null,
+      present: Boolean(jobsRuntimeProof),
+    },
     queueConfig,
     workerQueueHandler,
     localSimulation,
     blockers: blockersFor(readiness),
     note:
-      "Local Cloudflare Queues/Cron proof only. It validates wrangler queue/DLQ config, Worker queue() wiring, local enqueue, ack, retry, duplicate-idempotency, and poison-message handling without calling Cloudflare APIs, creating queues, reading secrets, deploying Workers, proving provider execution, changing DNS, billing, or replacing the live Vercel cron fallback.",
+      "Cloudflare Queues/Cron proof. It validates wrangler queue/DLQ config, Worker queue() wiring, local enqueue, ack, retry, duplicate-idempotency, poison-message handling, and, when available, a sanitized provider runtime proof without printing secrets, changing DNS, billing, or replacing the live Vercel cron fallback.",
   };
 }
 
@@ -416,6 +459,9 @@ export function writeMarkdown(report: CloudflareQueuesCronProofReport, markdownF
     `Generated: ${report.generatedAt}`,
     "",
     report.note,
+    "",
+    `Jobs runtime proof present: ${report.jobsRuntimeProof.present ? "yes" : "no"}`,
+    `Jobs runtime proof generated: ${report.jobsRuntimeProof.sourceGeneratedAt ?? "(none)"}`,
     "",
     "## Readiness",
     "",
@@ -461,7 +507,9 @@ async function main() {
   const markdownFile = readEnv("CLOUDFLARE_QUEUES_CRON_PROOF_MD") ?? DEFAULT_MARKDOWN_FILE;
   const wranglerConfigFile = readEnv("CLOUDFLARE_QUEUES_CRON_WRANGLER_FILE") ?? "wrangler.jsonc";
   const workerFile = readEnv("CLOUDFLARE_QUEUES_CRON_WORKER_FILE") ?? "worker.ts";
+  const jobsRuntimeProofFile = readEnv("CLOUDFLARE_JOBS_RUNTIME_PROOF_FILE") ?? DEFAULT_JOBS_RUNTIME_PROOF_FILE;
   const report = await buildCloudflareQueuesCronProofReport({
+    jobsRuntimeProof: readJsonFile<CloudflareJobsRuntimeProof>(jobsRuntimeProofFile),
     wranglerConfigText: readFileSync(wranglerConfigFile, "utf8"),
     workerText: readFileSync(workerFile, "utf8"),
     sources: {
