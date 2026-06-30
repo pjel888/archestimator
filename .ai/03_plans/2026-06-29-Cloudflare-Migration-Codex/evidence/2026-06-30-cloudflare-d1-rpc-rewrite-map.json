@@ -1,0 +1,2842 @@
+{
+  "generatedAt": "2026-06-29T22:39:50.592Z",
+  "mode": "cloudflare-d1-rpc-rewrite-map",
+  "sources": {
+    "inventory": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-migration-inventory.json",
+    "rpcTransactionProof": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-rpc-transaction-proof.json",
+    "collaborationInvitationProof": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-collaboration-invitation-proof.json",
+    "closedBetaProof": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-closed-beta-proof.json",
+    "componentLibraryProof": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-component-library-proof.json",
+    "estimateHistoryProof": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+    "testRoots": [
+      "tests/vitest"
+    ]
+  },
+  "totalRpcNames": 80,
+  "mappedRpcNames": 80,
+  "goldenFixtureCount": 80,
+  "transactionSensitiveRpcCount": 54,
+  "idempotencySensitiveRpcCount": 44,
+  "goldenFixturesReady": true,
+  "transactionProofReady": true,
+  "rollbackProofReady": true,
+  "idempotencyProofReady": true,
+  "localTransactionMechanicsReady": true,
+  "localRollbackMechanicsReady": true,
+  "localIdempotencyMechanicsReady": true,
+  "localRpcMechanicsProofReady": true,
+  "productionRpcRewriteReady": false,
+  "rows": [
+    {
+      "rpcName": "accept_collaboration_invitation",
+      "callerFiles": [
+        "src/app/invite/[token]/accept/route.ts",
+        "src/lib/collaboration/workshop-pending-invite.ts"
+      ],
+      "domain": "collaboration",
+      "currentPostgresBehavior": "Postgres function resolves, issues, accepts, or records collaboration invitations atomically.",
+      "d1RewriteStrategy": "Replace with D1 invitation repository, token hashing, explicit project membership checks, and Durable Object/event fanout when realtime is needed.",
+      "transactionNeeds": [
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution",
+        "Token/recipient uniqueness to prevent duplicate invitation or decision effects"
+      ],
+      "goldenFixtureRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-collaboration-invitation-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-collaboration-invitation-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/project-invite-entry-route.test.ts",
+        "tests/vitest/project-invite-entry-schema.test.ts"
+      ],
+      "transactionProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-collaboration-invitation-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "rollbackProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-collaboration-invitation-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-collaboration-invitation-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/project-invite-entry-route.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "accept_collaboration_invitation_by_id",
+      "callerFiles": [
+        "src/lib/collaboration/pending-invite-actions.ts"
+      ],
+      "domain": "collaboration",
+      "currentPostgresBehavior": "Postgres function resolves, issues, accepts, or records collaboration invitations atomically.",
+      "d1RewriteStrategy": "Replace with D1 invitation repository, token hashing, explicit project membership checks, and Durable Object/event fanout when realtime is needed.",
+      "transactionNeeds": [
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution",
+        "Token/recipient uniqueness to prevent duplicate invitation or decision effects"
+      ],
+      "goldenFixtureRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-collaboration-invitation-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-collaboration-invitation-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/project-invite-entry-schema.test.ts",
+        "tests/vitest/workshop-pending-invite.test.tsx"
+      ],
+      "transactionProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-collaboration-invitation-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "rollbackProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-collaboration-invitation-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-collaboration-invitation-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/workshop-pending-invite.test.tsx"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "approve_upload_scan_override",
+      "callerFiles": [
+        "src/lib/uploads/scan-override.ts"
+      ],
+      "domain": "uploads",
+      "currentPostgresBehavior": "Postgres function manages upload metadata, sessions, scan state, or override audit records.",
+      "d1RewriteStrategy": "Replace with D1 upload metadata/session/scan repositories coordinated with R2 object authority and Queue/Cron workers.",
+      "transactionNeeds": [
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [
+        "Checksum/object-key-bound idempotency across D1 metadata and R2 objects",
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        "tests/vitest/upload-provider-readback.test.ts",
+        "tests/vitest/upload-release-gates.test.ts",
+        "tests/vitest/upload-scan-override-route.test.ts",
+        "tests/vitest/upload-scan-rpc-provider-proof-script.test.ts",
+        "tests/vitest/upload-scanning.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/upload-release-gates.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/upload-release-gates.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/upload-release-gates.test.ts",
+        "tests/vitest/upload-scan-override-route.test.ts",
+        "tests/vitest/upload-scan-rpc-provider-proof-script.test.ts",
+        "tests/vitest/upload-scanning.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "archive_estimate_tab_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC",
+        "Rollback or cleanup journal for destructive operations"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-estimate-history-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-tabs-schema.test.ts"
+      ],
+      "transactionProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-estimate-history-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts"
+      ],
+      "rollbackProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "authorize_recipient_publication_for_current_user",
+      "callerFiles": [
+        "src/lib/publication/actions.ts"
+      ],
+      "domain": "authorization",
+      "currentPostgresBehavior": "Postgres function evaluates Supabase auth claims, membership tables, and RLS ownership predicates.",
+      "d1RewriteStrategy": "Replace with shared D1 app-layer authorization helpers using server-derived user identity and explicit workspace/project/estimate membership queries.",
+      "transactionNeeds": [],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        "tests/vitest/recipient-proposals-action.test.ts",
+        "tests/vitest/recipient-proposals-repository.test.ts"
+      ],
+      "transactionProofRefs": [],
+      "rollbackProofRefs": [],
+      "idempotencyProofRefs": [],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "can_access_estimate",
+      "callerFiles": [
+        "src/app/api/projects/images/route.ts",
+        "src/lib/estimate-sheet/user-preferences-actions.ts"
+      ],
+      "domain": "authorization",
+      "currentPostgresBehavior": "Postgres function evaluates Supabase auth claims, membership tables, and RLS ownership predicates.",
+      "d1RewriteStrategy": "Replace with shared D1 app-layer authorization helpers using server-derived user identity and explicit workspace/project/estimate membership queries.",
+      "transactionNeeds": [],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/estimate-node-route-context-rpc-contract.test.ts",
+        "tests/vitest/estimate-sheet-user-preferences.test.ts",
+        "tests/vitest/estimate-tabs-schema.test.ts",
+        "tests/vitest/project-collaboration-schema.test.ts",
+        "tests/vitest/project-location-schema.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "idempotencyProofRefs": [],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "can_access_project",
+      "callerFiles": [
+        "src/app/api/projects/images/route.ts"
+      ],
+      "domain": "authorization",
+      "currentPostgresBehavior": "Postgres function evaluates Supabase auth claims, membership tables, and RLS ownership predicates.",
+      "d1RewriteStrategy": "Replace with shared D1 app-layer authorization helpers using server-derived user identity and explicit workspace/project/estimate membership queries.",
+      "transactionNeeds": [],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/project-collaboration-schema.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "idempotencyProofRefs": [],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "can_edit_estimate",
+      "callerFiles": [
+        "src/app/api/estimate-row-images/route.ts",
+        "src/lib/component-library/actions.ts",
+        "src/lib/estimates/actions.ts",
+        "src/lib/repositories/workspace-repository.ts"
+      ],
+      "domain": "authorization",
+      "currentPostgresBehavior": "Postgres function evaluates Supabase auth claims, membership tables, and RLS ownership predicates.",
+      "d1RewriteStrategy": "Replace with shared D1 app-layer authorization helpers using server-derived user identity and explicit workspace/project/estimate membership queries.",
+      "transactionNeeds": [],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/estimate-insert-target-authz.test.tsx",
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "tests/vitest/estimate-tabs-schema.test.ts",
+        "tests/vitest/mass-deletion-contract.test.ts",
+        "tests/vitest/project-collaboration-schema.test.ts",
+        "tests/vitest/project-dashboard-side-panel-ui.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "tests/vitest/mass-deletion-contract.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "tests/vitest/mass-deletion-contract.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/mass-deletion-contract.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "can_edit_project",
+      "callerFiles": [
+        "src/app/api/estimate-row-images/route.ts",
+        "src/app/api/projects/[projectId]/activity/route.ts",
+        "src/app/api/projects/images/route.ts",
+        "src/app/workshop/projects/[projectId]/activity/page.tsx",
+        "src/app/workshop/projects/[projectId]/estimates/page.tsx",
+        "src/app/workshop/projects/[projectId]/page.tsx",
+        "src/lib/estimates/actions.ts",
+        "src/lib/projects/location-actions.ts"
+      ],
+      "domain": "authorization",
+      "currentPostgresBehavior": "Postgres function evaluates Supabase auth claims, membership tables, and RLS ownership predicates.",
+      "d1RewriteStrategy": "Replace with shared D1 app-layer authorization helpers using server-derived user identity and explicit workspace/project/estimate membership queries.",
+      "transactionNeeds": [],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/cloudflare-migration-inventory-script.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-create-empty-tree.test.ts",
+        "tests/vitest/project-activity-page/migration.test.ts",
+        "tests/vitest/project-activity-page/route-contract.test.ts",
+        "tests/vitest/project-collaboration-schema.test.ts",
+        "tests/vitest/project-dashboard-side-panel-ui.test.ts",
+        "tests/vitest/project-location-actions.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "check_closed_beta_access",
+      "callerFiles": [
+        "src/lib/auth/closed-beta-access.ts"
+      ],
+      "domain": "authorization",
+      "currentPostgresBehavior": "Postgres function evaluates Supabase auth claims, membership tables, and RLS ownership predicates.",
+      "d1RewriteStrategy": "Replace with shared D1 app-layer authorization helpers using server-derived user identity and explicit workspace/project/estimate membership queries.",
+      "transactionNeeds": [],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-closed-beta-proof.json",
+        "tests/vitest/auth-callback-route.test.ts",
+        "tests/vitest/auth-proxy.test.ts",
+        "tests/vitest/auth-session-closed-beta.test.ts",
+        "tests/vitest/closed-beta-access-migration.test.ts",
+        "tests/vitest/closed-beta-access.test.ts",
+        "tests/vitest/closed-beta-readiness-docs.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-closed-beta-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/linked-supabase-readiness-sql.test.ts",
+        "tests/vitest/supabase-linked-readiness-script.test.ts"
+      ],
+      "transactionProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-closed-beta-proof.json",
+        "tests/vitest/closed-beta-readiness-docs.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "rollbackProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-closed-beta-proof.json",
+        "tests/vitest/auth-proxy.test.ts",
+        "tests/vitest/auth-session-closed-beta.test.ts",
+        "tests/vitest/closed-beta-access.test.ts",
+        "tests/vitest/closed-beta-readiness-docs.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/supabase-linked-readiness-script.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-closed-beta-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "create_ai_package_library_components_with_history",
+      "callerFiles": [
+        "src/lib/ai/package-builder/apply.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/ai-package-builder-security-contract.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-estimate-history-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "transactionProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-estimate-history-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "rollbackProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/ai-package-builder-security-contract.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "create_closed_beta_allowlist_entry",
+      "callerFiles": [
+        "src/lib/auth/beta-allowlist-admin-actions.ts"
+      ],
+      "domain": "closed-beta",
+      "currentPostgresBehavior": "Postgres function gates beta access or admin allowlist mutations with Supabase auth/RLS.",
+      "d1RewriteStrategy": "Replace with D1 beta access repository plus platform-admin mutation guard.",
+      "transactionNeeds": [
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-closed-beta-proof.json",
+        "tests/vitest/closed-beta-allowlist-admin.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-closed-beta-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "transactionProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-closed-beta-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "rollbackProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-closed-beta-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-closed-beta-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "create_cost_library_component",
+      "callerFiles": [
+        "src/lib/component-library/actions.ts"
+      ],
+      "domain": "component-library",
+      "currentPostgresBehavior": "Postgres function reads or mutates workspace-scoped library/template/component data behind RLS.",
+      "d1RewriteStrategy": "Replace with D1 component-library repositories plus workspace member/editor guards and history/audit writes where needed.",
+      "transactionNeeds": [
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        "tests/vitest/ai-package-builder-security-contract.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/component-library-versioning-schema.test.ts",
+        "tests/vitest/express-components.test.ts",
+        "tests/vitest/library-viewer-authz.test.tsx"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/component-library-versioning-schema.test.ts",
+        "tests/vitest/express-components.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/ai-package-builder-security-contract.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "create_estimate_node_with_history",
+      "callerFiles": [
+        "src/lib/ai/package-builder/apply.ts",
+        "src/lib/estimates/actions.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-node-sort-order-migration.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts",
+        "tests/vitest/live-estimate-node-route.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts",
+        "tests/vitest/live-estimate-node-route.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/live-estimate-node-route.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "create_estimate_tab_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-estimate-history-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-tabs-schema.test.ts"
+      ],
+      "transactionProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-estimate-history-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts"
+      ],
+      "rollbackProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "create_project_estimate_package_with_history",
+      "callerFiles": [
+        "src/lib/ai/package-builder/apply.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/ai-package-builder-security-contract.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-estimate-history-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "transactionProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-estimate-history-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "rollbackProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/ai-package-builder-security-contract.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "create_upload_session",
+      "callerFiles": [
+        "src/lib/uploads/direct-upload-records.ts"
+      ],
+      "domain": "uploads",
+      "currentPostgresBehavior": "Postgres function manages upload metadata, sessions, scan state, or override audit records.",
+      "d1RewriteStrategy": "Replace with D1 upload metadata/session/scan repositories coordinated with R2 object authority and Queue/Cron workers.",
+      "transactionNeeds": [
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [
+        "Checksum/object-key-bound idempotency across D1 metadata and R2 objects",
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        "tests/vitest/cloudflare-migration-inventory-script.test.ts",
+        "tests/vitest/upload-provider-readback.test.ts",
+        "tests/vitest/upload-release-gates.test.ts",
+        "tests/vitest/upload-session-capacity-provider-proof-script.test.ts",
+        "tests/vitest/upload-session-capacity-provider-proof.test.ts",
+        "tests/vitest/upload-signed-route.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/upload-release-gates.test.ts",
+        "tests/vitest/upload-session-capacity-provider-proof.test.ts",
+        "tests/vitest/upload-signed-route.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/upload-release-gates.test.ts",
+        "tests/vitest/upload-signed-route.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/upload-release-gates.test.ts",
+        "tests/vitest/upload-signed-route.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "delete_estimate_node_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC",
+        "Rollback or cleanup journal for destructive operations"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "delete_estimate_nodes_bulk_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC",
+        "Rollback or cleanup journal for destructive operations"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "delete_estimate_row_item_with_history",
+      "callerFiles": [
+        "src/lib/ai/package-builder/apply.ts",
+        "src/lib/estimates/actions.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC",
+        "Rollback or cleanup journal for destructive operations"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "delete_estimate_row_items_bulk_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC",
+        "Rollback or cleanup journal for destructive operations"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "delete_estimate_tab_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC",
+        "Rollback or cleanup journal for destructive operations"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-estimate-history-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-tabs-schema.test.ts"
+      ],
+      "transactionProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-estimate-history-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts"
+      ],
+      "rollbackProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "delete_library_folder",
+      "callerFiles": [
+        "src/lib/component-library/actions.ts"
+      ],
+      "domain": "component-library",
+      "currentPostgresBehavior": "Postgres function reads or mutates workspace-scoped library/template/component data behind RLS.",
+      "d1RewriteStrategy": "Replace with D1 component-library repositories plus workspace member/editor guards and history/audit writes where needed.",
+      "transactionNeeds": [
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC",
+        "Rollback or cleanup journal for destructive operations"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-component-library-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-component-library-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/component-library-folder-actions.test.ts",
+        "tests/vitest/security-findings-library-tooling-contracts.test.ts"
+      ],
+      "transactionProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-component-library-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "rollbackProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-component-library-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-component-library-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "duplicate_estimate_tab_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-estimate-history-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-tabs-schema.test.ts"
+      ],
+      "transactionProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-estimate-history-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts"
+      ],
+      "rollbackProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "ensure_current_user_profile",
+      "callerFiles": [
+        "src/lib/auth/session.ts"
+      ],
+      "domain": "auth-profile",
+      "currentPostgresBehavior": "Postgres function ensures profile/bootstrap rows for the authenticated Supabase user.",
+      "d1RewriteStrategy": "Replace with Better Auth user/profile bootstrap service backed by D1 and request-scoped session identity.",
+      "transactionNeeds": [
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "idempotencyProofRefs": [],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "estimate_node_route_context",
+      "callerFiles": [
+        "src/lib/repositories/workspace-repository.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        "tests/vitest/estimate-node-route-context-rpc-contract.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "rollbackProofRefs": [],
+      "idempotencyProofRefs": [
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "execute_bulk_archive_library_components",
+      "callerFiles": [
+        "src/lib/component-library/actions.ts"
+      ],
+      "domain": "component-library",
+      "currentPostgresBehavior": "Postgres function reads or mutates workspace-scoped library/template/component data behind RLS.",
+      "d1RewriteStrategy": "Replace with D1 component-library repositories plus workspace member/editor guards and history/audit writes where needed.",
+      "transactionNeeds": [
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC",
+        "Rollback or cleanup journal for destructive operations"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-component-library-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-component-library-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/mass-deletion-action-contract.test.ts",
+        "tests/vitest/mass-deletion-contract.test.ts"
+      ],
+      "transactionProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-component-library-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/mass-deletion-contract.test.ts"
+      ],
+      "rollbackProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-component-library-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/mass-deletion-action-contract.test.ts",
+        "tests/vitest/mass-deletion-contract.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-component-library-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/mass-deletion-contract.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "execute_bulk_delete_estimate_sheets",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ],
+      "domain": "bulk-delete",
+      "currentPostgresBehavior": "Postgres function previews or executes destructive scoped deletes with audit and cleanup state.",
+      "d1RewriteStrategy": "Replace with D1 two-phase preview/execute services, preview hashes, cleanup journals, and rollback/idempotency proof.",
+      "transactionNeeds": [
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC",
+        "Rollback or cleanup journal for destructive operations"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/mass-deletion-action-contract.test.ts",
+        "tests/vitest/mass-deletion-contract.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/mass-deletion-contract.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/mass-deletion-action-contract.test.ts",
+        "tests/vitest/mass-deletion-contract.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/mass-deletion-contract.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "execute_bulk_delete_projects",
+      "callerFiles": [
+        "src/lib/projects/actions.ts"
+      ],
+      "domain": "bulk-delete",
+      "currentPostgresBehavior": "Postgres function previews or executes destructive scoped deletes with audit and cleanup state.",
+      "d1RewriteStrategy": "Replace with D1 two-phase preview/execute services, preview hashes, cleanup journals, and rollback/idempotency proof.",
+      "transactionNeeds": [
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC",
+        "Rollback or cleanup journal for destructive operations"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/mass-deletion-action-contract.test.ts",
+        "tests/vitest/mass-deletion-contract.test.ts",
+        "tests/vitest/project-deletion-active-publication-contract.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/mass-deletion-contract.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/mass-deletion-action-contract.test.ts",
+        "tests/vitest/mass-deletion-contract.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/mass-deletion-contract.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "finalize_upload_session",
+      "callerFiles": [
+        "src/lib/uploads/direct-upload-records.ts"
+      ],
+      "domain": "uploads",
+      "currentPostgresBehavior": "Postgres function manages upload metadata, sessions, scan state, or override audit records.",
+      "d1RewriteStrategy": "Replace with D1 upload metadata/session/scan repositories coordinated with R2 object authority and Queue/Cron workers.",
+      "transactionNeeds": [
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [
+        "Checksum/object-key-bound idempotency across D1 metadata and R2 objects",
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        "tests/vitest/upload-provider-readback.test.ts",
+        "tests/vitest/upload-release-gates.test.ts",
+        "tests/vitest/upload-signed-route.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/upload-release-gates.test.ts",
+        "tests/vitest/upload-signed-route.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/upload-release-gates.test.ts",
+        "tests/vitest/upload-signed-route.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/upload-release-gates.test.ts",
+        "tests/vitest/upload-signed-route.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "get_estimate_activity_retention_metrics",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts"
+      ],
+      "idempotencyProofRefs": [],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "increment_project_publication_open",
+      "callerFiles": [
+        "src/lib/publication/public-repository.ts"
+      ],
+      "domain": "publication",
+      "currentPostgresBehavior": "Postgres function gates recipient/publication access, comments, responses, or open telemetry.",
+      "d1RewriteStrategy": "Replace with D1 publication/recipient repositories, token-bound authorization, no-store route behavior, and Email Service event integration.",
+      "transactionNeeds": [],
+      "idempotencyNeeds": [
+        "Token/recipient uniqueness to prevent duplicate invitation or decision effects"
+      ],
+      "goldenFixtureRefs": [
+        "tests/vitest/cloudflare-migration-inventory-script.test.ts",
+        "tests/vitest/project-publication-public-repository.test.ts",
+        "tests/vitest/project-publication-schema.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/project-publication-public-repository.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/project-publication-public-repository.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/project-publication-public-repository.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "insert_client_comment",
+      "callerFiles": [
+        "src/lib/publication/public-repository.ts"
+      ],
+      "domain": "publication",
+      "currentPostgresBehavior": "Postgres function gates recipient/publication access, comments, responses, or open telemetry.",
+      "d1RewriteStrategy": "Replace with D1 publication/recipient repositories, token-bound authorization, no-store route behavior, and Email Service event integration.",
+      "transactionNeeds": [
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        "tests/vitest/project-publication-comments.test.tsx",
+        "tests/vitest/project-publication-public-repository.test.ts",
+        "tests/vitest/project-publication-schema.test.ts",
+        "tests/vitest/project-publication-security-hardening.test.ts",
+        "tests/vitest/security-findings-publication-contracts.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/project-publication-public-repository.test.ts",
+        "tests/vitest/security-findings-publication-contracts.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/project-publication-comments.test.tsx",
+        "tests/vitest/project-publication-public-repository.test.ts",
+        "tests/vitest/security-findings-publication-contracts.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/project-publication-comments.test.tsx",
+        "tests/vitest/project-publication-public-repository.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "insert_estimate_row_item_with_history",
+      "callerFiles": [
+        "src/lib/ai/package-builder/apply.ts",
+        "src/lib/estimates/actions.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts",
+        "tests/vitest/live-estimate-node-route.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts",
+        "tests/vitest/live-estimate-node-route.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "tests/vitest/live-estimate-node-route.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "insert_estimate_subtree_into_estimate_with_history",
+      "callerFiles": [
+        "src/lib/reusable-sources/actions.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-estimate-history-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/project-source-insert-action.test.ts"
+      ],
+      "transactionProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-estimate-history-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "rollbackProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/project-source-insert-action.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/project-source-insert-action.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "insert_estimate_template_into_estimate_with_history",
+      "callerFiles": [
+        "src/lib/ai/package-builder/apply.ts",
+        "src/lib/estimates/actions.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "insert_estimate_template_node_into_estimate_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-node-sort-order-migration.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "is_workspace_editor",
+      "callerFiles": [
+        "src/app/api/component-library/attachments/direct-upload/route.ts",
+        "src/app/api/component-library/attachments/route.ts",
+        "src/app/api/component-library/images/route.ts",
+        "src/lib/component-library/actions.ts",
+        "src/lib/component-library/template-editor-actions.ts"
+      ],
+      "domain": "authorization",
+      "currentPostgresBehavior": "Postgres function evaluates Supabase auth claims, membership tables, and RLS ownership predicates.",
+      "d1RewriteStrategy": "Replace with shared D1 app-layer authorization helpers using server-derived user identity and explicit workspace/project/estimate membership queries.",
+      "transactionNeeds": [],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        "tests/vitest/ai-package-builder-security-contract.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/component-library-actions-revalidation.test.ts",
+        "tests/vitest/component-library-folder-actions.test.ts",
+        "tests/vitest/library-viewer-authz.test.tsx",
+        "tests/vitest/mass-deletion-contract.test.ts",
+        "tests/vitest/security-findings-library-tooling-contracts.test.ts",
+        "tests/vitest/template-editor-actions-authz.test.ts",
+        "tests/vitest/upload-signed-route.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/mass-deletion-contract.test.ts",
+        "tests/vitest/upload-signed-route.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/mass-deletion-contract.test.ts",
+        "tests/vitest/upload-signed-route.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/ai-package-builder-security-contract.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/mass-deletion-contract.test.ts",
+        "tests/vitest/upload-signed-route.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "is_workspace_member",
+      "callerFiles": [
+        "src/lib/component-library/actions.ts"
+      ],
+      "domain": "authorization",
+      "currentPostgresBehavior": "Postgres function evaluates Supabase auth claims, membership tables, and RLS ownership predicates.",
+      "d1RewriteStrategy": "Replace with shared D1 app-layer authorization helpers using server-derived user identity and explicit workspace/project/estimate membership queries.",
+      "transactionNeeds": [],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        "tests/vitest/ai-audit-schema.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/component-library-durable-telemetry.test.ts",
+        "tests/vitest/component-library-templates-schema.test.ts",
+        "tests/vitest/perf/library-overview-rpc-contract.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts",
+        "tests/vitest/security-findings-library-tooling-contracts.test.ts",
+        "tests/vitest/template-editor-actions-authz.test.ts",
+        "tests/vitest/workshop-favorites-schema.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/perf/library-overview-rpc-contract.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "idempotencyProofRefs": [],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "issue_collaboration_invitation_token",
+      "callerFiles": [
+        "src/lib/collaboration/actions.ts"
+      ],
+      "domain": "collaboration",
+      "currentPostgresBehavior": "Postgres function resolves, issues, accepts, or records collaboration invitations atomically.",
+      "d1RewriteStrategy": "Replace with D1 invitation repository, token hashing, explicit project membership checks, and Durable Object/event fanout when realtime is needed.",
+      "transactionNeeds": [
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution",
+        "Token/recipient uniqueness to prevent duplicate invitation or decision effects"
+      ],
+      "goldenFixtureRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-collaboration-invitation-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-collaboration-invitation-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/project-collaboration-actions.test.ts",
+        "tests/vitest/project-invite-entry-schema.test.ts"
+      ],
+      "transactionProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-collaboration-invitation-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "rollbackProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-collaboration-invitation-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-collaboration-invitation-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "library_component_rows_seed",
+      "callerFiles": [
+        "src/lib/repositories/component-library-repository.ts"
+      ],
+      "domain": "component-library",
+      "currentPostgresBehavior": "Postgres function reads or mutates workspace-scoped library/template/component data behind RLS.",
+      "d1RewriteStrategy": "Replace with D1 component-library repositories plus workspace member/editor guards and history/audit writes where needed.",
+      "transactionNeeds": [],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        "tests/vitest/perf/library-overview-rpc-contract.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/perf/library-overview-rpc-contract.test.ts"
+      ],
+      "rollbackProofRefs": [],
+      "idempotencyProofRefs": [],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "library_overview_summary",
+      "callerFiles": [
+        "src/lib/repositories/component-library-repository.ts"
+      ],
+      "domain": "component-library",
+      "currentPostgresBehavior": "Postgres function reads or mutates workspace-scoped library/template/component data behind RLS.",
+      "d1RewriteStrategy": "Replace with D1 component-library repositories plus workspace member/editor guards and history/audit writes where needed.",
+      "transactionNeeds": [],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/perf/library-overview-rpc-contract.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/perf/library-overview-rpc-contract.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "library_templates_seed",
+      "callerFiles": [
+        "src/lib/repositories/component-library-repository.ts"
+      ],
+      "domain": "component-library",
+      "currentPostgresBehavior": "Postgres function reads or mutates workspace-scoped library/template/component data behind RLS.",
+      "d1RewriteStrategy": "Replace with D1 component-library repositories plus workspace member/editor guards and history/audit writes where needed.",
+      "transactionNeeds": [],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        "tests/vitest/perf/library-overview-rpc-contract.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/perf/library-overview-rpc-contract.test.ts"
+      ],
+      "rollbackProofRefs": [],
+      "idempotencyProofRefs": [],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "list_pending_collaboration_invitations",
+      "callerFiles": [
+        "src/lib/repositories/workspace-repository.ts"
+      ],
+      "domain": "collaboration",
+      "currentPostgresBehavior": "Postgres function resolves, issues, accepts, or records collaboration invitations atomically.",
+      "d1RewriteStrategy": "Replace with D1 invitation repository, token hashing, explicit project membership checks, and Durable Object/event fanout when realtime is needed.",
+      "transactionNeeds": [],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        "tests/vitest/perf/projects-page-rpc-contract.test.ts",
+        "tests/vitest/perf/projects-page-server-parallelism.test.ts",
+        "tests/vitest/project-invite-entry-schema.test.ts",
+        "tests/vitest/workshop-dashboard-query-count-script.test.ts"
+      ],
+      "transactionProofRefs": [],
+      "rollbackProofRefs": [],
+      "idempotencyProofRefs": [],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "list_recipient_publications_for_current_user",
+      "callerFiles": [
+        "src/lib/repositories/recipient-proposals-repository.ts"
+      ],
+      "domain": "publication",
+      "currentPostgresBehavior": "Postgres function gates recipient/publication access, comments, responses, or open telemetry.",
+      "d1RewriteStrategy": "Replace with D1 publication/recipient repositories, token-bound authorization, no-store route behavior, and Email Service event integration.",
+      "transactionNeeds": [],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        "tests/vitest/recipient-proposals-repository.test.ts"
+      ],
+      "transactionProofRefs": [],
+      "rollbackProofRefs": [],
+      "idempotencyProofRefs": [],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "main_sidebar_favorite_projects",
+      "callerFiles": [
+        "src/lib/repositories/workspace-repository.ts"
+      ],
+      "domain": "navigation-read-model",
+      "currentPostgresBehavior": "Postgres function returns prejoined read models for navigation or route hydration.",
+      "d1RewriteStrategy": "Replace with D1 read-model queries with query-count budgets and golden payload fixtures.",
+      "transactionNeeds": [],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        "tests/vitest/workshop-favorites-schema.test.ts"
+      ],
+      "transactionProofRefs": [],
+      "rollbackProofRefs": [],
+      "idempotencyProofRefs": [],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "move_estimate_row_component_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "move_estimate_row_item_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-estimate-history-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "transactionProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-estimate-history-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "rollbackProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "preview_bulk_archive_library_components",
+      "callerFiles": [
+        "src/lib/component-library/actions.ts"
+      ],
+      "domain": "component-library",
+      "currentPostgresBehavior": "Postgres function reads or mutates workspace-scoped library/template/component data behind RLS.",
+      "d1RewriteStrategy": "Replace with D1 component-library repositories plus workspace member/editor guards and history/audit writes where needed.",
+      "transactionNeeds": [],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        "tests/vitest/mass-deletion-action-contract.test.ts",
+        "tests/vitest/mass-deletion-contract.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/mass-deletion-contract.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/mass-deletion-action-contract.test.ts",
+        "tests/vitest/mass-deletion-contract.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/mass-deletion-contract.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "preview_bulk_delete_estimate_sheets",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ],
+      "domain": "bulk-delete",
+      "currentPostgresBehavior": "Postgres function previews or executes destructive scoped deletes with audit and cleanup state.",
+      "d1RewriteStrategy": "Replace with D1 two-phase preview/execute services, preview hashes, cleanup journals, and rollback/idempotency proof.",
+      "transactionNeeds": [],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/mass-deletion-action-contract.test.ts",
+        "tests/vitest/mass-deletion-contract.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/mass-deletion-contract.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/mass-deletion-action-contract.test.ts",
+        "tests/vitest/mass-deletion-contract.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/mass-deletion-contract.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "preview_bulk_delete_projects",
+      "callerFiles": [
+        "src/lib/projects/actions.ts"
+      ],
+      "domain": "bulk-delete",
+      "currentPostgresBehavior": "Postgres function previews or executes destructive scoped deletes with audit and cleanup state.",
+      "d1RewriteStrategy": "Replace with D1 two-phase preview/execute services, preview hashes, cleanup journals, and rollback/idempotency proof.",
+      "transactionNeeds": [],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        "tests/vitest/mass-deletion-action-contract.test.ts",
+        "tests/vitest/mass-deletion-contract.test.ts",
+        "tests/vitest/project-deletion-active-publication-contract.test.ts",
+        "tests/vitest/security-findings-publication-contracts.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/mass-deletion-contract.test.ts",
+        "tests/vitest/security-findings-publication-contracts.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/mass-deletion-action-contract.test.ts",
+        "tests/vitest/mass-deletion-contract.test.ts",
+        "tests/vitest/security-findings-publication-contracts.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/mass-deletion-contract.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "project_estimate_list_summaries",
+      "callerFiles": [
+        "src/lib/repositories/workspace-repository.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts",
+        "tests/vitest/list-project-estimates-columns.test.ts",
+        "tests/vitest/project-estimate-list-summaries-parity.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "rollbackProofRefs": [],
+      "idempotencyProofRefs": [
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "project_estimate_list_summaries_for_estimates",
+      "callerFiles": [
+        "src/lib/repositories/project-estimate-sheets-repository.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts",
+        "tests/vitest/project-estimate-list-summaries-scoping.test.ts",
+        "tests/vitest/project-estimate-sheets-repository.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "rollbackProofRefs": [],
+      "idempotencyProofRefs": [
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "promote_estimate_row_to_library_component",
+      "callerFiles": [
+        "src/lib/estimates/express-promotion-actions.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-estimate-history-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/express-promotion-action.test.ts"
+      ],
+      "transactionProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-estimate-history-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/express-promotion-action.test.ts"
+      ],
+      "rollbackProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "read_closed_beta_allowlist_queue",
+      "callerFiles": [
+        "src/lib/auth/beta-allowlist-admin.ts"
+      ],
+      "domain": "closed-beta",
+      "currentPostgresBehavior": "Postgres function gates beta access or admin allowlist mutations with Supabase auth/RLS.",
+      "d1RewriteStrategy": "Replace with D1 beta access repository plus platform-admin mutation guard.",
+      "transactionNeeds": [],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-closed-beta-proof.json",
+        "tests/vitest/closed-beta-allowlist-admin.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-closed-beta-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "transactionProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-closed-beta-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "rollbackProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-closed-beta-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-closed-beta-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "read_project_collaboration_audit_events",
+      "callerFiles": [
+        "src/lib/repositories/project-activity-feed-repository.ts"
+      ],
+      "domain": "collaboration",
+      "currentPostgresBehavior": "Postgres function resolves, issues, accepts, or records collaboration invitations atomically.",
+      "d1RewriteStrategy": "Replace with D1 invitation repository, token hashing, explicit project membership checks, and Durable Object/event fanout when realtime is needed.",
+      "transactionNeeds": [],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        "tests/vitest/project-activity-page/migration.test.ts",
+        "tests/vitest/project-activity-page/repository-contract.test.ts"
+      ],
+      "transactionProofRefs": [],
+      "rollbackProofRefs": [],
+      "idempotencyProofRefs": [],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "record_collaboration_invitation_delivery",
+      "callerFiles": [
+        "src/lib/collaboration/actions.ts"
+      ],
+      "domain": "collaboration",
+      "currentPostgresBehavior": "Postgres function resolves, issues, accepts, or records collaboration invitations atomically.",
+      "d1RewriteStrategy": "Replace with D1 invitation repository, token hashing, explicit project membership checks, and Durable Object/event fanout when realtime is needed.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution",
+        "Token/recipient uniqueness to prevent duplicate invitation or decision effects"
+      ],
+      "goldenFixtureRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-collaboration-invitation-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-collaboration-invitation-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/project-collaboration-actions.test.ts",
+        "tests/vitest/project-invite-entry-schema.test.ts"
+      ],
+      "transactionProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-collaboration-invitation-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "rollbackProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-collaboration-invitation-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-collaboration-invitation-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "record_mass_deletion_storage_cleanup_result",
+      "callerFiles": [
+        "src/lib/projects/actions.ts"
+      ],
+      "domain": "bulk-delete",
+      "currentPostgresBehavior": "Postgres function previews or executes destructive scoped deletes with audit and cleanup state.",
+      "d1RewriteStrategy": "Replace with D1 two-phase preview/execute services, preview hashes, cleanup journals, and rollback/idempotency proof.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        "tests/vitest/mass-deletion-action-contract.test.ts",
+        "tests/vitest/mass-deletion-contract.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/mass-deletion-contract.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/mass-deletion-action-contract.test.ts",
+        "tests/vitest/mass-deletion-contract.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/mass-deletion-contract.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "record_upload_asset",
+      "callerFiles": [
+        "src/lib/uploads/upload-records.ts"
+      ],
+      "domain": "uploads",
+      "currentPostgresBehavior": "Postgres function manages upload metadata, sessions, scan state, or override audit records.",
+      "d1RewriteStrategy": "Replace with D1 upload metadata/session/scan repositories coordinated with R2 object authority and Queue/Cron workers.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [
+        "Checksum/object-key-bound idempotency across D1 metadata and R2 objects",
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/upload-clean-download-provider-proof-script.test.ts",
+        "tests/vitest/upload-domain-contracts.test.ts",
+        "tests/vitest/upload-domain-proof-script.test.ts",
+        "tests/vitest/upload-provider-readback.test.ts",
+        "tests/vitest/upload-release-gates.test.ts",
+        "tests/vitest/upload-scan-rpc-provider-proof-script.test.ts",
+        "tests/vitest/upload-signed-provider-proof-script.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/upload-domain-contracts.test.ts",
+        "tests/vitest/upload-release-gates.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/upload-release-gates.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/upload-release-gates.test.ts",
+        "tests/vitest/upload-scan-rpc-provider-proof-script.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "record_upload_scan_result",
+      "callerFiles": [
+        "src/lib/uploads/scan-job.ts"
+      ],
+      "domain": "uploads",
+      "currentPostgresBehavior": "Postgres function manages upload metadata, sessions, scan state, or override audit records.",
+      "d1RewriteStrategy": "Replace with D1 upload metadata/session/scan repositories coordinated with R2 object authority and Queue/Cron workers.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [
+        "Checksum/object-key-bound idempotency across D1 metadata and R2 objects",
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        "tests/vitest/cloudflare-migration-inventory-script.test.ts",
+        "tests/vitest/upload-clean-download-provider-proof-script.test.ts",
+        "tests/vitest/upload-provider-readback.test.ts",
+        "tests/vitest/upload-release-gates.test.ts",
+        "tests/vitest/upload-scan-job.test.ts",
+        "tests/vitest/upload-scan-route.test.ts",
+        "tests/vitest/upload-scan-rpc-provider-proof-script.test.ts",
+        "tests/vitest/upload-scanning.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/upload-release-gates.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/upload-release-gates.test.ts",
+        "tests/vitest/upload-scan-route.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/upload-release-gates.test.ts",
+        "tests/vitest/upload-scan-job.test.ts",
+        "tests/vitest/upload-scan-rpc-provider-proof-script.test.ts",
+        "tests/vitest/upload-scanning.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "rename_estimate_node_with_history",
+      "callerFiles": [
+        "src/lib/ai/package-builder/apply.ts",
+        "src/lib/estimates/actions.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "rename_estimate_tab_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-estimate-history-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-tabs-schema.test.ts"
+      ],
+      "transactionProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-estimate-history-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts"
+      ],
+      "rollbackProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "reorder_estimate_nodes_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "reorder_estimate_tabs_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-estimate-history-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-tabs-schema.test.ts"
+      ],
+      "transactionProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-estimate-history-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts"
+      ],
+      "rollbackProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "reorder_library_folders",
+      "callerFiles": [
+        "src/lib/component-library/actions.ts"
+      ],
+      "domain": "component-library",
+      "currentPostgresBehavior": "Postgres function reads or mutates workspace-scoped library/template/component data behind RLS.",
+      "d1RewriteStrategy": "Replace with D1 component-library repositories plus workspace member/editor guards and history/audit writes where needed.",
+      "transactionNeeds": [
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-component-library-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-component-library-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/library-folder-schema.test.ts",
+        "tests/vitest/security-findings-library-tooling-contracts.test.ts"
+      ],
+      "transactionProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-component-library-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "rollbackProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-component-library-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-component-library-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/library-folder-schema.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "replace_estimate_row_item_with_history",
+      "callerFiles": [
+        "src/lib/ai/package-builder/apply.ts",
+        "src/lib/estimates/actions.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "resolve_collaboration_invitation",
+      "callerFiles": [
+        "src/app/invite/[token]/page.tsx"
+      ],
+      "domain": "collaboration",
+      "currentPostgresBehavior": "Postgres function resolves, issues, accepts, or records collaboration invitations atomically.",
+      "d1RewriteStrategy": "Replace with D1 invitation repository, token hashing, explicit project membership checks, and Durable Object/event fanout when realtime is needed.",
+      "transactionNeeds": [
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution",
+        "Token/recipient uniqueness to prevent duplicate invitation or decision effects"
+      ],
+      "goldenFixtureRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-collaboration-invitation-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-collaboration-invitation-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/project-invite-entry-route.test.ts",
+        "tests/vitest/project-invite-entry-schema.test.ts"
+      ],
+      "transactionProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-collaboration-invitation-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "rollbackProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-collaboration-invitation-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-collaboration-invitation-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/project-invite-entry-route.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "restore_deleted_estimate_nodes_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC",
+        "Rollback or cleanup journal for destructive operations"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "restore_deleted_estimate_rows_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC",
+        "Rollback or cleanup journal for destructive operations"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "set_cost_library_component_lifecycle_state",
+      "callerFiles": [
+        "src/lib/component-library/actions.ts"
+      ],
+      "domain": "component-library",
+      "currentPostgresBehavior": "Postgres function reads or mutates workspace-scoped library/template/component data behind RLS.",
+      "d1RewriteStrategy": "Replace with D1 component-library repositories plus workspace member/editor guards and history/audit writes where needed.",
+      "transactionNeeds": [
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-component-library-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-component-library-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/component-library-versioning-schema.test.ts"
+      ],
+      "transactionProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-component-library-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/component-library-versioning-schema.test.ts"
+      ],
+      "rollbackProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-component-library-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-component-library-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "submit_client_response",
+      "callerFiles": [
+        "src/lib/publication/public-repository.ts"
+      ],
+      "domain": "publication",
+      "currentPostgresBehavior": "Postgres function gates recipient/publication access, comments, responses, or open telemetry.",
+      "d1RewriteStrategy": "Replace with D1 publication/recipient repositories, token-bound authorization, no-store route behavior, and Email Service event integration.",
+      "transactionNeeds": [
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        "tests/vitest/performance-query-inventory.test.ts",
+        "tests/vitest/project-publication-public-repository.test.ts",
+        "tests/vitest/project-publication-schema.test.ts",
+        "tests/vitest/security-findings-publication-contracts.test.ts",
+        "tests/vitest/share/duplicate-decision-race.provider.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/project-publication-public-repository.test.ts",
+        "tests/vitest/security-findings-publication-contracts.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/project-publication-public-repository.test.ts",
+        "tests/vitest/security-findings-publication-contracts.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/project-publication-public-repository.test.ts",
+        "tests/vitest/share/duplicate-decision-race.provider.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "unlink_estimate_row_item_from_library_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        "tests/vitest/closed-beta-readiness-docs.test.ts",
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts",
+        "tests/vitest/linked-supabase-readiness-sql.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/closed-beta-readiness-docs.test.ts",
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/closed-beta-readiness-docs.test.ts",
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "update_closed_beta_allowlist_entry",
+      "callerFiles": [
+        "src/lib/auth/beta-allowlist-admin-actions.ts"
+      ],
+      "domain": "closed-beta",
+      "currentPostgresBehavior": "Postgres function gates beta access or admin allowlist mutations with Supabase auth/RLS.",
+      "d1RewriteStrategy": "Replace with D1 beta access repository plus platform-admin mutation guard.",
+      "transactionNeeds": [
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-closed-beta-proof.json",
+        "tests/vitest/closed-beta-allowlist-admin.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-closed-beta-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "transactionProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-closed-beta-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "rollbackProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-closed-beta-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-closed-beta-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "update_cost_library_component",
+      "callerFiles": [
+        "src/lib/component-library/actions.ts"
+      ],
+      "domain": "component-library",
+      "currentPostgresBehavior": "Postgres function reads or mutates workspace-scoped library/template/component data behind RLS.",
+      "d1RewriteStrategy": "Replace with D1 component-library repositories plus workspace member/editor guards and history/audit writes where needed.",
+      "transactionNeeds": [
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-component-library-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-component-library-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/component-library-versioning-schema.test.ts"
+      ],
+      "transactionProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-component-library-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/component-library-versioning-schema.test.ts"
+      ],
+      "rollbackProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-component-library-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-component-library-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "update_estimate_details_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "update_estimate_row_item_with_history",
+      "callerFiles": [
+        "src/lib/ai/package-builder/apply.ts",
+        "src/lib/estimates/actions.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "tests/vitest/estimate-sheet-version-control-db.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts",
+        "tests/vitest/express-components.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "transactionProofRefs": [
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts",
+        "tests/vitest/express-components.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "rollbackProofRefs": [
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/estimate-sheet-version-control-schema.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "update_estimate_sheet_adjustment_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ],
+      "domain": "estimate-history",
+      "currentPostgresBehavior": "Postgres function mutates estimate structures while writing history/audit rows in one transaction.",
+      "d1RewriteStrategy": "Replace with D1 service methods that wrap estimate mutation and history writes in explicit D1 transactions with golden before/after fixtures.",
+      "transactionNeeds": [
+        "Audit/history row parity with existing RPC side effects",
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [
+        "Stable retry/idempotency key or natural unique constraint for repeated Worker/Queue execution"
+      ],
+      "goldenFixtureRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-estimate-history-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "transactionProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-estimate-history-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "rollbackProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/security-findings-auth-contracts.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "upsert_cost_library_component_price_option",
+      "callerFiles": [
+        "src/lib/component-library/actions.ts"
+      ],
+      "domain": "component-library",
+      "currentPostgresBehavior": "Postgres function reads or mutates workspace-scoped library/template/component data behind RLS.",
+      "d1RewriteStrategy": "Replace with D1 component-library repositories plus workspace member/editor guards and history/audit writes where needed.",
+      "transactionNeeds": [
+        "D1 transaction covering all state changes currently hidden inside the Postgres RPC"
+      ],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-component-library-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-component-library-proof-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/component-library-versioning-schema.test.ts"
+      ],
+      "transactionProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-component-library-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/component-library-versioning-schema.test.ts"
+      ],
+      "rollbackProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-component-library-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "idempotencyProofRefs": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-component-library-proof.json",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts"
+      ],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "workspace_homebase_summary",
+      "callerFiles": [
+        "src/lib/repositories/workspace-repository.ts"
+      ],
+      "domain": "navigation-read-model",
+      "currentPostgresBehavior": "Postgres function returns prejoined read models for navigation or route hydration.",
+      "d1RewriteStrategy": "Replace with D1 read-model queries with query-count budgets and golden payload fixtures.",
+      "transactionNeeds": [],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        "tests/vitest/cloudflare-d1-performance-proof-script.test.ts",
+        "tests/vitest/workshop-homebase-summary-rpc-contract.test.ts"
+      ],
+      "transactionProofRefs": [],
+      "rollbackProofRefs": [],
+      "idempotencyProofRefs": [],
+      "status": "mapped"
+    },
+    {
+      "rpcName": "workspace_projects_summary",
+      "callerFiles": [
+        "src/lib/repositories/workspace-repository.ts"
+      ],
+      "domain": "navigation-read-model",
+      "currentPostgresBehavior": "Postgres function returns prejoined read models for navigation or route hydration.",
+      "d1RewriteStrategy": "Replace with D1 read-model queries with query-count budgets and golden payload fixtures.",
+      "transactionNeeds": [],
+      "idempotencyNeeds": [],
+      "goldenFixtureRefs": [
+        "tests/vitest/perf/projects-page-rpc-contract.test.ts"
+      ],
+      "transactionProofRefs": [],
+      "rollbackProofRefs": [],
+      "idempotencyProofRefs": [],
+      "status": "mapped"
+    }
+  ],
+  "blockers": [],
+  "note": "Local D1 RPC rewrite map only. It reads sanitized inventory artifacts, local transaction mechanics proof, and Vitest files; it does not read env files, print secret values, call provider APIs, create D1 databases, mutate Cloudflare/Supabase, change DNS, deploy Workers, rewrite every RPC, or make Supabase removable."
+}

@@ -10,6 +10,25 @@ document: 20
 
 Cloudflare may be cheaper, especially for edge traffic, static assets, R2 egress, object storage, and modest queue workloads. But savings cannot be claimed until Archestimator usage is measured.
 
+Official Cloudflare pricing snapshot: `bun run cf:pricing` validates and regenerates `evidence/2026-06-30-cloudflare-official-pricing-snapshot.json` and `.md` from `evidence/2026-06-30-cloudflare-official-pricing-source.json`. The current snapshot covers `13` required Cloudflare product surfaces from official Cloudflare URLs and marks `officialCloudflarePricingRefreshed=true`, but `productionCostDecisionReady=false`.
+
+Local workbook scaffold: `bun run cf:workbook` generates `evidence/2026-06-30-cloudflare-cost-performance-workbook.json` and `.md`. The current generated scaffold records `cloudflarePricingRefreshed=true` but keeps production cost decisions closed because Vercel/Supabase/Resend usage, hosted Cloudflare usage metrics, current-provider baselines, provider logs, and rollback triggers are still missing.
+
+## Subscription Sequencing Decision
+
+Do not treat the website plan bundle "Pro + Argo + Load Balancing" as the first migration subscription. It can help a traditional website front door, cache/security posture, origin routing, and multi-origin reliability, but it does not by itself create the Cloudflare-native app resources this migration needs.
+
+Recommended first paid/provider steps for the current target:
+
+1. Workers Paid: first required subscription for hosted Workers/OpenNext proof, higher Worker operating limits, and production-scope D1/Queues/Durable Objects proof.
+2. R2 subscription: first media/object-storage subscription. R2 is the storage path for uploads and private object lifecycle proof; it is not included merely by buying Pro.
+3. Cloudflare Images paid plan: only if the migration chooses Cloudflare Images as the image storage/delivery/transformation provider beyond the local binding scaffold. It is separate from R2 and not proven by Pro.
+4. Pro: defer until the app has Cloudflare-hosted traffic and a concrete WAF/cache/security need beyond the Free zone features.
+5. Argo: defer until hosted Cloudflare and/or origin metrics show it improves real routes enough to justify usage cost. It is less likely to be the first speed lever once most traffic is served by Workers and edge assets.
+6. Load Balancing: defer unless Archestimator has at least two meaningful origins or deployment targets to fail over between. It is not a media-storage subscription and does not replace Worker/R2/D1/Queues proof.
+
+The 2026-06-30 dashboard readback confirms this sequencing matters: Workers & Pages has zero projects; Workers is on Free; R2 redirects to an "Add R2 subscription to my account" page; Hosted Images says a subscription is required for storage; D1, Queues, Worker Routes, and Workers Observability have no provider resources or traffic yet. Buying Pro + Argo + Load Balancing now would not clear the current release-gate blockers for Worker deployment, R2/Images proof, D1/Auth/Realtime production proof, or provider resource readback.
+
 ## Required Current-State Inputs
 
 Collect monthly:
@@ -36,6 +55,14 @@ Collect monthly:
 ## Cloudflare Pricing Facts To Model
 
 Do not treat numeric values in this package as durable. The cost workbook must refresh Cloudflare pricing pages, product changelogs, and current plan-tier details on the execution date before quoting allowances, overage rates, or quotas.
+
+Current official pricing evidence artifacts:
+
+- `evidence/2026-06-30-cloudflare-official-pricing-source.json`
+- `evidence/2026-06-30-cloudflare-official-pricing-snapshot.json`
+- `evidence/2026-06-30-cloudflare-official-pricing-snapshot.md`
+
+The current snapshot covers Workers compute, Workers Static Assets, Workers KV, D1, R2, Queues, Durable Objects, Cloudflare Images, Email Service/Email Routing, Turnstile, Web Analytics, Workers Logs, and WAF/rate limiting/zone plan tier. It does not include Archestimator monthly usage, current-provider invoices, hosted Cloudflare usage metrics, provider-dashboard receipts, or production cost approval.
 
 Workers:
 

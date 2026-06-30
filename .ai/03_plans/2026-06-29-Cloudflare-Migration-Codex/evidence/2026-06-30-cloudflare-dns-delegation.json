@@ -1,0 +1,26 @@
+{
+  "generatedAt": "2026-06-30T03:01:35.992Z",
+  "mode": "cloudflare-dns-delegation",
+  "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-provider-readiness-source.json",
+  "zoneName": "archestimator.com",
+  "assignedNameservers": [
+    "carl.ns.cloudflare.com",
+    "ziggy.ns.cloudflare.com"
+  ],
+  "registrarNameserversFromSanitizedEvidence": [
+    "dns1.registrar-servers.com",
+    "dns2.registrar-servers.com"
+  ],
+  "publicDnsNameservers": [
+    "dns1.registrar-servers.com",
+    "dns2.registrar-servers.com"
+  ],
+  "publicDnsChecked": true,
+  "publicDnsBacked": true,
+  "providerApiBacked": false,
+  "nameserversActive": false,
+  "blockers": [
+    "Public DNS nameservers do not include all Cloudflare-assigned nameservers."
+  ],
+  "note": "Public DNS delegation check only. It resolves NS records for the Cloudflare zone, does not call Cloudflare APIs, does not read env files, does not print secrets, does not deploy, does not change DNS/nameservers/resources/billing, and does not make Vercel/Supabase/Resend removable."
+}

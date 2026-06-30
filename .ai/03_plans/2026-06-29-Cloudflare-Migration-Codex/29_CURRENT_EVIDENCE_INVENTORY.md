@@ -12,7 +12,7 @@ This document records the local evidence used to judge the Cloudflare migration 
 
 ## Evidence Boundary
 
-Collected on 2026-06-29 from the local repository only. No provider dashboard, hosted Cloudflare preview, production traffic, DNS, billing, or external runtime state was changed or verified in this pass.
+Initially collected on 2026-06-29 from the local repository only. The 2026-06-30 refresh now includes sanitized Cloudflare dashboard facts, Wrangler OAuth readback, and provider resource creation/readback for the named proof D1/R2/Queue resources. It still does not include hosted Worker traffic, Worker secret values, production DNS cutover, provider cancellation, or production user data migration.
 
 What this evidence proves:
 
@@ -25,8 +25,576 @@ What this evidence does not prove:
 
 - Cloudflare will be cheaper for real Archestimator usage.
 - Next.js 16 will run correctly on Workers/OpenNext for this app.
-- D1, Better Auth, R2, Queues, Durable Objects, or Email Service meet production parity.
+- D1, Better Auth, Durable Objects, Cloudflare Images, or Email Service meet production parity.
+- The hosted Worker, Worker secrets, custom domain, production Cron execution, Web Analytics receipt, or Cloudflare Images subscription are ready.
 - Production cutover is safe.
+
+## Generated Inventory Refresh
+
+Generated on 2026-06-30 local time with `bun run cf:inventory`.
+
+Artifacts:
+
+- `evidence/2026-06-30-cloudflare-migration-inventory.json`
+- `evidence/2026-06-30-cloudflare-migration-inventory.md`
+
+The generated artifact is the current repeatable inventory surface for selecting proof slices. It scans local source, route files, package scripts, and SQL migrations, and records only file paths, route paths, RPC names, script names, and counts.
+
+| Evidence | Generated result |
+| --- | ---: |
+| App Router route entries | `71` |
+| Page routes | `39` |
+| Route handlers | `30` |
+| Metadata routes | `2` |
+| Provider-coupled source files | `93` |
+| Distinct app-code RPC names | `80` |
+| Package scripts | `94` |
+| Script files | `110` |
+| Cloudflare package scripts | `31` |
+| Provider-readiness package scripts | `8` |
+| Applied SQL migration files | `181` |
+| Pending-review SQL files | `13` |
+| SQL function declaration/update matches | `346` |
+| RLS/policy/storage/auth SQL matches | `684` |
+
+The refresh does not read env files, print secret values, mutate providers, prove hosted Cloudflare deployment, prove D1/R2/Images/Email/Workers Paid readiness, change DNS, or make current providers removable.
+
+## Generated Cost And Performance Workbook Scaffold
+
+Generated on 2026-06-30 local time with `bun run cf:workbook`.
+
+Artifacts:
+
+- `evidence/2026-06-30-cloudflare-cost-performance-workbook.json`
+- `evidence/2026-06-30-cloudflare-cost-performance-workbook.md`
+
+The generated workbook scaffold combines the local migration inventory and local Worker route probe. It intentionally keeps production cost and speed gates closed:
+
+| Gate | Ready? |
+| --- | --- |
+| Current provider costs ready | no |
+| Cloudflare pricing refreshed | yes |
+| Cloudflare usage costs ready | no |
+| Local preview performance captured | yes |
+| Hosted credential-free performance captured | no |
+| Hosted performance ready | no |
+| Production cost decision ready | no |
+
+Local-only Worker preview duration rows captured:
+
+| Fixture | Local Worker preview p95 | Status |
+| --- | ---: | --- |
+| Public home route p95 TTFB | `168.47ms` | local-only-pass |
+| Pricing/features static route p95 TTFB | `13.68ms` | local-only-pass |
+| Login/auth callback p95 duration | `13.07ms` | local-only-pass |
+| Share route p95 TTFB | `327.35ms` | local-only-pass |
+| Workshop home p95 TTFB | `4.03ms` | local-only-pass |
+
+These are local Worker preview route durations only. The workbook still needs sanitized Vercel/Supabase/Resend dashboard/invoice inputs, hosted Cloudflare usage metrics, provider logs, current-provider baselines, rollback triggers, and the same proof architecture for cost and performance evidence.
+
+## Generated Hosted Worker Route Proof
+
+Generated on 2026-06-30 local time with `bun run cf:verify-hosted-routes`.
+
+Artifacts:
+
+- `evidence/2026-06-30-cloudflare-hosted-route-proof.json`
+- `evidence/2026-06-30-cloudflare-hosted-route-proof.md`
+
+The generated proof harness mirrors the local Worker route matrix against an HTTPS non-local deployed Worker URL supplied through `CLOUDFLARE_HOSTED_ROUTE_BASE_URL` or `CLOUDFLARE_HOSTED_WORKER_BASE_URL`. It rejects localhost/private URLs when supplied and does not call Cloudflare APIs, read env files, print secrets, deploy Workers, change DNS, purchase plans, mutate providers, authenticate users, or make production cutover ready.
+
+| Gate | Ready? |
+| --- | --- |
+| Hosted route URL configured | no |
+| Provider-backed route probe | no |
+| Hosted route contract ready | no |
+| Hosted route proof ready | no |
+
+Current blocker recorded by the proof: no hosted Worker URL is configured yet, so no hosted route samples were collected. This is now an explicit provider-scope blocker in `cf:release-gates`.
+
+## Generated Official Cloudflare Pricing Snapshot
+
+Generated on 2026-06-30 local time with `bun run cf:pricing`.
+
+Artifacts:
+
+- `evidence/2026-06-30-cloudflare-official-pricing-source.json`
+- `evidence/2026-06-30-cloudflare-official-pricing-snapshot.json`
+- `evidence/2026-06-30-cloudflare-official-pricing-snapshot.md`
+
+The generated snapshot validates that all sources are official Cloudflare URLs and covers `13` required product surfaces:
+
+| Gate | Ready? |
+| --- | --- |
+| Official Cloudflare pricing refreshed | yes |
+| Required products covered | `13` |
+| Required products missing | `0` |
+| Invalid source URLs | `0` |
+| Production cost decision ready | no |
+
+Covered surfaces: Workers compute, Workers Static Assets, Workers KV, D1, R2, Queues, Durable Objects, Cloudflare Images, Email Service/Email Routing, Turnstile, Web Analytics, Workers Logs, and WAF/rate limiting/zone plan tier.
+
+This is official-pricing evidence only. It does not prove Archestimator monthly usage, current-provider invoices, hosted Cloudflare usage metrics, provider-dashboard receipts, or production cost approval.
+
+## Generated Cloudflare Platform Toolchain Snapshot
+
+Generated on 2026-06-30 local time with `bun run cf:check-toolchain`.
+
+Artifacts:
+
+- `evidence/2026-06-30-cloudflare-platform-toolchain.json`
+- `evidence/2026-06-30-cloudflare-platform-toolchain.md`
+
+The generated snapshot validates the local Wrangler/OpenNext/tooling surface without provider API calls, env-file reads, or secret values:
+
+| Gate | Ready? |
+| --- | --- |
+| Local toolchain snapshot ready | yes |
+| Production deploy ready | no |
+
+Captured local facts:
+
+- Wrangler `4.105.0`.
+- `@opennextjs/cloudflare` `1.20.1`.
+- Next.js `16.2.6`.
+- TypeScript `6.0.3`.
+- `@cloudflare/workers-types` is not installed as a standalone package; `cloudflare-env.d.ts` carries Wrangler-generated runtime types from `workerd@1.20260625.1`.
+- `wrangler.jsonc` uses compatibility date `2026-06-29`, has `nodejs_compat`, and configured binding names `ARCH_DB`, `ARCH_UPLOADS_R2`, `ASSETS`, `COLLAB_ROOMS`, `IMAGES`, and `UPLOAD_JOBS_QUEUE` are present in `cloudflare-env.d.ts`.
+- `wrangler.jsonc` configures Workers Observability with 10% top-level/log sampling, invocation logs persisted, and 5% traces sampling.
+
+This is local toolchain evidence only. It does not prove Wrangler/API authentication, hosted deployment, custom domains, remote bindings, provider usage, observability receipt, Workers Paid, or production cutover readiness.
+
+## Generated Wrangler Auth Snapshot
+
+Generated on 2026-06-30 local time with `bun run cf:check-wrangler-auth`.
+
+Artifacts:
+
+- `evidence/2026-06-30-cloudflare-wrangler-auth.json`
+- `evidence/2026-06-30-cloudflare-wrangler-auth.md`
+
+The generated snapshot runs read-only `wrangler whoami --json`, sanitizes output, and records the local CLI/API auth state without reading env files, printing tokens/secrets, creating resources, deploying Workers, changing DNS, purchasing plans, mutating providers, or making production cutover ready:
+
+| Gate | Ready? |
+| --- | --- |
+| Wrangler CLI available | yes |
+| Auth check completed | yes |
+| Wrangler/API authenticated | yes |
+| Provider readback ready | yes |
+| Production deploy ready | no |
+
+Captured local facts:
+
+- Auth method: OAuth.
+- Account email present: yes.
+- Account ID: `7f6229cfea61b59f6f48b517fde86039`.
+- Account name: `Philipjonlewis@gmail.com's Account`.
+- Not authenticated reason: none.
+
+Current blocker recorded by the snapshot: none for Wrangler/API auth. Production deployment remains false because hosted Worker deployment and secret-name/provider proof are separate gates.
+
+## Generated Provider Resource Readback
+
+Generated on 2026-06-30 local time with `bun run cf:check-provider-resources`.
+
+Artifacts:
+
+- `evidence/2026-06-30-cloudflare-provider-resource-readback.json`
+- `evidence/2026-06-30-cloudflare-provider-resource-readback.md`
+
+The generated readback is a read-only Wrangler resource gate. It reads `wrangler.jsonc`, the Wrangler auth artifact, and the Worker readiness artifact, then runs provider list/status commands only after Wrangler/API auth is proven. It does not print raw command output, secret values, tokens, or env files; does not deploy, update, delete, purge, purchase, change DNS, or make Vercel/Supabase/Resend removable.
+
+| Gate | Ready? |
+| --- | --- |
+| Wrangler authenticated | yes |
+| Provider readback attempted | yes |
+| Worker deployment readback ready | no |
+| D1 database readback ready | yes |
+| R2 bucket readback ready | yes |
+| Queues readback ready | yes |
+| Worker secret name readback ready | no |
+| Provider resource readback ready | no |
+| Production cutover ready | no |
+
+Expected proof resource names recorded by the artifact: Worker `archestimator-proof`, D1 database `archestimator-proof-db`, R2 buckets `archestimator-proof-uploads` and `archestimator-proof-uploads-dev`, Queues `archestimator-upload-jobs` and `archestimator-upload-jobs-dlq`, and the required Worker secret names from the readiness artifact.
+
+Provider resources now created/read back: D1 `archestimator-proof-db` (`9bdb29bb-687e-4f51-ae81-7659c426ea5f`), preview D1 `archestimator-proof-db-dev` (`363c756a-7c4d-42fe-908f-6d328bfa4acb`), R2 buckets `archestimator-proof-uploads` and `archestimator-proof-uploads-dev`, and Queues `archestimator-upload-jobs` and `archestimator-upload-jobs-dlq`.
+
+Current blockers recorded by the readback: Worker `archestimator-proof` has not been deployed yet, and no sanitized Worker secret-name list has been captured.
+
+## Generated Wrangler Deploy Dry-Run Snapshot
+
+Generated on 2026-06-30 local time with `bun run cf:check-deploy-dry-run`.
+
+Artifacts:
+
+- `evidence/2026-06-30-cloudflare-wrangler-deploy-dry-run.json`
+- `evidence/2026-06-30-cloudflare-wrangler-deploy-dry-run.md`
+
+The generated snapshot runs `wrangler deploy --dry-run` against the local OpenNext Worker bundle and exits before upload:
+
+| Gate | Ready? |
+| --- | --- |
+| Local Wrangler dry-run ready | yes |
+| Production deploy ready | no |
+
+Captured local facts:
+
+- Wrangler dry-run exit code `0` with the no-upload marker present.
+- `302` asset files read from `.open-next/assets`.
+- Bundle upload estimate: `20431.97 KiB`, gzip `4432.50 KiB`.
+- Required bindings present in the dry-run output: `ARCH_DB`, `ARCH_UPLOADS_R2`, `ASSETS`, `COLLAB_ROOMS`, `IMAGES`, and `UPLOAD_JOBS_QUEUE`.
+- Metafile read: `50` inputs, `2` outputs, `50292260` output bytes.
+- Warning captured: none.
+
+This is local no-upload bundling evidence only. It does not prove Cloudflare authentication, hosted deployment, custom domains, remote binding resources, request handling, production traffic, logs/observability receipt, DNS cutover, or rollback.
+
+## Generated D1 App-Layer Authorization Access Matrix
+
+Generated on 2026-06-30 local time with `bun run cf:d1-authz-matrix`.
+
+Artifacts:
+
+- `evidence/2026-06-30-cloudflare-d1-authz-access-matrix.json`
+- `evidence/2026-06-30-cloudflare-d1-authz-access-matrix.md`
+
+The generated matrix maps current Supabase/RLS/RPC access paths to future D1 app-layer guard requirements and existing positive, denial, and cross-workspace test references. It intentionally stays local and does not read env files, print secret values, call provider APIs, create D1 databases, mutate Cloudflare/Supabase, deploy Workers, change DNS, bill, or make current providers removable.
+
+| Evidence | Generated result |
+| --- | ---: |
+| Authorization-relevant access paths | `47` |
+| Rows with positive test refs | `47` |
+| Rows with denial/fail-closed test refs | `47` |
+| Rows with cross-workspace denial refs | `41` |
+| All protected access paths covered | yes |
+| Cross-workspace denials ready | yes |
+| Route/action coverage ready | yes |
+
+Current blockers recorded by the matrix: none. The matrix now narrows to DB-backed authorization access paths, treats internal service/admin upload operations separately from user-controlled tenant routes, and includes forged cross-workspace behavior coverage for account workspace settings plus direct upload session creation.
+
+## Generated D1 RPC Rewrite Map
+
+Generated on 2026-06-30 local time with `bun run cf:d1-rpc-map`.
+
+Artifacts:
+
+- `evidence/2026-06-30-cloudflare-d1-rpc-rewrite-map.json`
+- `evidence/2026-06-30-cloudflare-d1-rpc-rewrite-map.md`
+
+The generated map converts every inventory RPC name into a D1 rewrite row with domain, caller count, current Postgres behavior summary, D1 rewrite strategy, transaction needs, idempotency needs, and proof references. It intentionally stays local and does not read env files, print secret values, call provider APIs, create D1 databases, mutate Cloudflare/Supabase, deploy Workers, change DNS, bill, or make Supabase removable.
+
+| Evidence | Generated result |
+| --- | ---: |
+| Total RPC names | `80` |
+| Mapped RPC names | `80` |
+| RPCs with golden fixture refs | `80` |
+| Transaction-sensitive RPCs | `54` |
+| Idempotency-sensitive RPCs | `44` |
+| Golden fixtures ready | yes |
+| Transaction proof ready | yes |
+| Rollback proof ready | yes |
+| Idempotency proof ready | yes |
+| Local RPC mechanics proof ready | yes |
+| Production RPC rewrite ready | no |
+
+Current blockers recorded by the map: none for local rewrite-map coverage. The latest classifier deliberately excludes stable read-model, authorization, list, preview, summary, seed, and route-context RPCs from write-proof gates while keeping mutating invitation, upload, estimate-history, component-library, closed-beta, and destructive operations conservative. The local collaboration-invitation proof artifact supplies transaction, rollback, and idempotency refs for the five invitation token/acceptance RPCs; the local closed-beta proof artifact supplies transaction and rollback refs for the two closed-beta allowlist mutation RPCs; the local component-library proof artifact supplies transaction, rollback, and idempotency refs for six component-library mutation RPCs; the local estimate-history proof artifact supplies transaction, rollback, and idempotency refs for twelve estimate-history mutation RPCs; and local contract assertions now cover the final references for `record_mass_deletion_storage_cleanup_result` and `ensure_current_user_profile`.
+
+## Generated D1 RPC Transaction Mechanics Proof
+
+Generated on 2026-06-30 local time with `bun run cf:d1-rpc-proof`.
+
+Artifacts:
+
+- `evidence/2026-06-30-cloudflare-d1-rpc-transaction-proof.json`
+- `evidence/2026-06-30-cloudflare-d1-rpc-transaction-proof.md`
+
+The generated proof uses sanitized temporary SQLite tables to prove reusable local mechanics for D1-style mutating RPC replacements: all-or-nothing writes, rollback with no residue, and uniqueness/correlation-key idempotency. It intentionally stays local and does not read env files, print secret values, call provider APIs, create hosted D1 databases, mutate Cloudflare/Supabase, deploy Workers, change DNS, bill, rewrite every Supabase RPC, or make production D1/Auth/Realtime ready.
+
+| Evidence | Generated result |
+| --- | --- |
+| Local transaction mechanics ready | yes |
+| Local rollback mechanics ready | yes |
+| Local idempotency mechanics ready | yes |
+| Local RPC mechanics proof ready | yes |
+| Production RPC rewrite ready | no |
+| Local-only proof | yes |
+| Provider-backed D1 proof | no |
+| Covered proof patterns | `4` |
+| Rollback residue rows | `0` |
+| Duplicate side effects | `0` |
+
+Current blockers recorded by the proof: hosted Worker+D1 mutation/rollback/idempotency proof is still missing. The local per-RPC rewrite-map references are now complete; `record_mass_deletion_storage_cleanup_result` has atomic status/result plus duplicate-retry contract proof, and `ensure_current_user_profile` has fail-closed RPC usage proof.
+
+## Generated D1 Beta Feedback Domain Proof
+
+Generated on 2026-06-30 local time with `bun run cf:d1-beta-feedback-proof`.
+
+Artifacts:
+
+- `evidence/2026-06-30-cloudflare-d1-beta-feedback-proof.json`
+- `evidence/2026-06-30-cloudflare-d1-beta-feedback-proof.md`
+
+The generated proof uses sanitized temporary SQLite tables to model the current protected beta-feedback submission and platform-admin review/status workflow as a low-risk D1 domain slice. It intentionally stays local and does not read env files, print secret values, call provider APIs, create hosted D1 databases, mutate Cloudflare/Supabase, deploy Workers, change DNS, bill, replace the live Supabase-backed Server Actions, or make production D1/Auth/Realtime ready.
+
+| Evidence | Generated result |
+| --- | --- |
+| Schema ready | yes |
+| Enum parity ready | yes |
+| App-layer authz ready | yes |
+| Submission mutation ready | yes |
+| Forged context denied | yes |
+| Admin review ready | yes |
+| Admin status update ready | yes |
+| Non-admin review denied | yes |
+| Rollback ready | yes |
+| Idempotency ready | yes |
+| Query budget ready | yes |
+| Restore fixture ready | yes |
+| Local beta-feedback D1 slice ready | yes |
+| Production beta-feedback D1 ready | no |
+| Provider-backed D1 proof | no |
+
+Captured local facts: one authorized feedback row persisted; forged workspace rows, mismatched project rows, rollback residue rows, and duplicate status-audit rows all remained `0`; the admin review queue uses `idx_beta_feedback_status_created_at`; and the three local query surfaces passed p95 budgets (`submit_beta_feedback_authz`, `beta_feedback_admin_review_queue`, and `beta_feedback_status_update_guard`). Current blockers recorded by the proof: hosted Worker+D1 beta-feedback proof is missing, and Better Auth production identity handoff is still missing.
+
+## Generated D1 Collaboration Invitation Domain Proof
+
+Generated on 2026-06-30 local time with `bun run cf:d1-collaboration-invitation-proof`.
+
+Artifacts:
+
+- `evidence/2026-06-30-cloudflare-d1-collaboration-invitation-proof.json`
+- `evidence/2026-06-30-cloudflare-d1-collaboration-invitation-proof.md`
+
+The generated proof uses sanitized temporary SQLite tables to model the current collaboration-invitation token issue, delivery, resolve, wrong-account, replay, accept-by-token, and accept-by-id workflows as a bounded D1 domain slice. It intentionally stays local and does not read env files, print secret values, call provider APIs, create hosted D1 databases, mutate Cloudflare/Supabase, deploy Workers, change DNS, bill, replace live invitation routes/actions, or make production D1/Auth/Realtime ready.
+
+| Evidence | Generated result |
+| --- | --- |
+| Schema ready | yes |
+| Token issue ready | yes |
+| Delivery audit ready | yes |
+| Resolve state ready | yes |
+| Resolve audit ready | yes |
+| Accept by token ready | yes |
+| Accept by id ready | yes |
+| Wrong account denied | yes |
+| Replay denied | yes |
+| Revoked terminal nulled | yes |
+| Rollback ready | yes |
+| Idempotency ready | yes |
+| Query budget ready | yes |
+| Restore fixture ready | yes |
+| Local collaboration-invitation D1 slice ready | yes |
+| Production collaboration-invitation D1 ready | no |
+| Provider-backed D1 proof | no |
+
+Captured local facts: `5` affected RPCs are covered (`issue_collaboration_invitation_token`, `record_collaboration_invitation_delivery`, `resolve_collaboration_invitation`, `accept_collaboration_invitation`, and `accept_collaboration_invitation_by_id`); token issue creates one active token while revoking the old active token; delivery/open/accept/replay audit rows dedupe; revoked resolution returns a terminal state with project id nulled; wrong-account acceptance leaves `0` membership rows; rollback residue rows stayed `0`; duplicate accept audit rows stayed `0`; and four local query surfaces passed p95 budgets. Current blockers recorded by the proof: hosted Worker+D1 collaboration-invitation proof is missing, and Better Auth production identity handoff is still missing.
+
+## Generated D1 Closed-Beta Allowlist Domain Proof
+
+Generated on 2026-06-30 local time with `bun run cf:d1-closed-beta-proof`.
+
+Artifacts:
+
+- `evidence/2026-06-30-cloudflare-d1-closed-beta-proof.json`
+- `evidence/2026-06-30-cloudflare-d1-closed-beta-proof.md`
+
+The generated proof uses sanitized temporary SQLite tables to model the current closed-beta access check, admin queue read, allowlist create, allowlist update, non-admin denial, invalid status denial, rollback, restore, and indexed query workflows as a bounded D1 domain slice. It intentionally stays local and does not read env files, print secret values, call provider APIs, create hosted D1 databases, mutate Cloudflare/Supabase, deploy Workers, change DNS, bill, replace live auth gates, or make production D1/Auth ready.
+
+| Evidence | Generated result |
+| --- | --- |
+| Schema ready | yes |
+| Status contract ready | yes |
+| App-layer admin guard ready | yes |
+| Access check ready | yes |
+| Queue read ready | yes |
+| Create mutation ready | yes |
+| Update mutation ready | yes |
+| Non-admin denied | yes |
+| Invalid status denied | yes |
+| Rollback ready | yes |
+| Idempotency ready | yes |
+| Query budget ready | yes |
+| Restore fixture ready | yes |
+| Local closed-beta D1 slice ready | yes |
+| Production closed-beta D1 ready | no |
+| Provider-backed D1 proof | no |
+
+Captured local facts: `4` affected RPCs are covered (`check_closed_beta_access`, `read_closed_beta_allowlist_queue`, `create_closed_beta_allowlist_entry`, and `update_closed_beta_allowlist_entry`); invited and active beta emails are allowed while revoked, missing, and wrong-email requests are denied; admin queue rows are visible only to admin context; create normalizes `NewPilot@Example.TEST` to `newpilot@example.test`; duplicate create rows, non-admin queue rows, non-admin create rows, invalid create rows, and rollback residue rows all stayed `0`; invalid create/update commands failed closed; and four local query surfaces passed p95 budgets. Current blockers recorded by the proof: hosted Worker+D1 closed-beta proof is missing, Better Auth production identity handoff is still missing, and provider-backed D1 export/restore proof for closed-beta allowlist rows is still missing.
+
+## Generated D1 Component-Library Domain Proof
+
+Generated on 2026-06-30 local time with `bun run cf:d1-component-library-proof`.
+
+Artifacts:
+
+- `evidence/2026-06-30-cloudflare-d1-component-library-proof.json`
+- `evidence/2026-06-30-cloudflare-d1-component-library-proof.md`
+
+The generated proof uses sanitized temporary SQLite tables to model the current component-library folder, component update/versioning, lifecycle, price-option, and bulk-archive mutation cluster as a bounded D1 domain slice. It intentionally stays local and does not read env files, print secret values, call provider APIs, create hosted D1 databases, mutate Cloudflare/Supabase, deploy Workers, change DNS, bill, replace live library routes/actions, or make production D1/Auth ready.
+
+| Evidence | Generated result |
+| --- | --- |
+| Schema ready | yes |
+| Editor guard ready | yes |
+| Folder delete ready | yes |
+| Folder reorder ready | yes |
+| Bulk archive ready | yes |
+| Component update ready | yes |
+| Lifecycle mutation ready | yes |
+| Price option upsert ready | yes |
+| Rollback ready | yes |
+| Idempotency ready | yes |
+| Query budget ready | yes |
+| Restore fixture ready | yes |
+| Local component-library D1 slice ready | yes |
+| Production component-library D1 ready | no |
+| Provider-backed D1 proof | no |
+
+Captured local facts: `6` affected RPCs are covered (`delete_library_folder`, `execute_bulk_archive_library_components`, `reorder_library_folders`, `set_cost_library_component_lifecycle_state`, `update_cost_library_component`, and `upsert_cost_library_component_price_option`); unauthorized folder deletion fails closed; folder deletion reparents child folders and detaches item folder ids; duplicate/cycle reorder attempts fail closed; component update writes a version row; lifecycle and price-option operations dedupe repeated side effects; bulk archive is correlation-id idempotent; stale preview rollback leaves `0` residue rows; restored fixture rows match; and four local query surfaces pass p95 budgets. Current blockers recorded by the proof: hosted Worker+D1 component-library proof is missing, Better Auth production identity handoff is still missing, and provider-backed D1 export/restore proof for component-library rows is still missing.
+
+## Generated D1 Estimate-History Domain Proof
+
+Generated on 2026-06-30 local time with `bun run cf:d1-estimate-history-proof`.
+
+Artifacts:
+
+- `evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json`
+- `evidence/2026-06-30-cloudflare-d1-estimate-history-proof.md`
+
+The generated proof uses sanitized temporary SQLite tables to model the current estimate-history tab, subtree, row move, sheet adjustment, package apply, and promote-to-library mutation cluster as a bounded D1 domain slice. It intentionally stays local and does not read env files, print secret values, call provider APIs, create hosted D1 databases, mutate Cloudflare/Supabase, deploy Workers, change DNS, bill, replace live estimate routes/actions, or make production D1/Auth ready.
+
+| Evidence | Generated result |
+| --- | --- |
+| Schema ready | yes |
+| Editor guard ready | yes |
+| Estimate tab mutation ready | yes |
+| Subtree insert ready | yes |
+| Row move ready | yes |
+| Sheet adjustment ready | yes |
+| Package apply ready | yes |
+| Promote to library ready | yes |
+| Rollback ready | yes |
+| Idempotency ready | yes |
+| Query budget ready | yes |
+| Restore fixture ready | yes |
+| Local estimate-history D1 slice ready | yes |
+| Production estimate-history D1 ready | no |
+| Provider-backed D1 proof | no |
+
+Captured local facts: `12` affected RPCs are covered (`archive_estimate_tab_with_history`, `create_ai_package_library_components_with_history`, `create_estimate_tab_with_history`, `create_project_estimate_package_with_history`, `delete_estimate_tab_with_history`, `duplicate_estimate_tab_with_history`, `insert_estimate_subtree_into_estimate_with_history`, `move_estimate_row_item_with_history`, `promote_estimate_row_to_library_component`, `rename_estimate_tab_with_history`, `reorder_estimate_tabs_with_history`, and `update_estimate_sheet_adjustment_with_history`); viewer mutation fails closed with `0` residue rows; tab create replay dedupes to one tab; duplicate reorder fails closed; subtree insert replays through one operation key; row move and sheet adjustment write history rows; project and library package commands persist once; promote-to-library links the estimate row; rollback residue rows stayed `0`; restored tabs/nodes/rows/history rows match; and four local query surfaces pass p95 budgets. Current blockers recorded by the proof: hosted Worker+D1 estimate-history proof is missing, Better Auth production identity handoff is still missing, and provider-backed D1 export/restore proof for estimate-history rows is still missing.
+
+## Generated D1/Auth/Realtime Readiness Snapshot
+
+Generated on 2026-06-30 local time with `bun run cf:check-d1-auth-realtime`.
+
+Artifacts:
+
+- `evidence/2026-06-30-cloudflare-better-auth-route-gate-proof.json`
+- `evidence/2026-06-30-cloudflare-better-auth-route-gate-proof.md`
+- `evidence/2026-06-30-cloudflare-d1-rpc-transaction-proof.json`
+- `evidence/2026-06-30-cloudflare-d1-rpc-transaction-proof.md`
+- `evidence/2026-06-30-cloudflare-d1-beta-feedback-proof.json`
+- `evidence/2026-06-30-cloudflare-d1-beta-feedback-proof.md`
+- `evidence/2026-06-30-cloudflare-d1-collaboration-invitation-proof.json`
+- `evidence/2026-06-30-cloudflare-d1-collaboration-invitation-proof.md`
+- `evidence/2026-06-30-cloudflare-d1-closed-beta-proof.json`
+- `evidence/2026-06-30-cloudflare-d1-closed-beta-proof.md`
+- `evidence/2026-06-30-cloudflare-d1-component-library-proof.json`
+- `evidence/2026-06-30-cloudflare-d1-component-library-proof.md`
+- `evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json`
+- `evidence/2026-06-30-cloudflare-d1-estimate-history-proof.md`
+- `evidence/2026-06-30-cloudflare-d1-auth-realtime-readiness.json`
+- `evidence/2026-06-30-cloudflare-d1-auth-realtime-readiness.md`
+
+The generated snapshot evaluates the Supabase-to-D1/Auth/Realtime redesign prerequisites without provider API calls, env-file reads, secret printing, D1 creation, provider mutation, deployment, DNS mutation, billing, or provider removal:
+
+| Gate | Ready? |
+| --- | --- |
+| Database inventory ready | yes |
+| D1 binding ready | yes |
+| Better Auth local route-gate proof ready | yes |
+| Auth replacement ready | no |
+| App-layer authorization spec ready | yes |
+| Local RPC transaction mechanics ready | yes |
+| Local beta-feedback D1 slice ready | yes |
+| Local collaboration-invitation D1 slice ready | yes |
+| Local closed-beta D1 slice ready | yes |
+| Local component-library D1 slice ready | yes |
+| Local estimate-history D1 slice ready | yes |
+| RPC rewrite plan ready | yes |
+| Realtime replacement ready | yes |
+| Restore proof ready | yes |
+| Performance proof ready | no |
+| Local redesign readiness report ready | yes |
+| Production D1/Auth/Realtime ready | no |
+
+Captured local facts:
+
+- Current inventory contains `71` App Router route entries, `93` provider-coupled files, `80` distinct Supabase RPC names, `181` applied SQL migrations, `346` SQL function declaration matches, and `684` RLS/policy/storage/auth SQL matches.
+- `wrangler.jsonc` has local proof D1 binding `ARCH_DB` with placeholder zero UUIDs plus Durable Object namespace binding `COLLAB_ROOMS` for `CollaborationRoom`.
+- `cloudflare-env.d.ts` has typed `ARCH_DB: D1Database` and `COLLAB_ROOMS: DurableObjectNamespace<import("./worker").CollaborationRoom>`.
+- `package.json` includes `better-auth@1.6.22`.
+- `src/lib/auth/better-auth-cloudflare.ts` is a local-only Better Auth/D1 route-gate scaffold with lazy Better Auth runtime loading, D1 database factory pattern, Next handler factory pattern, migration compilation helper, secure server session check pattern, and `7` route-gate parity rows.
+- `src/app/api/auth/[...all]/route.ts` mounts guarded Better Auth handlers for local proof and fails closed unless `BETTER_AUTH_SECRET` is at least 32 characters and the OpenNext Cloudflare context exposes `ARCH_DB`; it does not replace the live Supabase auth gate.
+- Source scanning finds `12` Supabase Auth-related files, `19` Supabase Realtime-related files, one Durable Object realtime source at `src/lib/cloudflare/collaboration-room.ts`, and the local Better Auth D1 route-gate scaffold plus guarded route mount.
+- App-layer authorization matrix evidence is present with `47` DB-backed access paths, `47` positive-test rows, `47` denial-test rows, `allProtectedAccessPathsCovered=true`, `crossWorkspaceDenialsReady=true`, and `routeActionCoverageReady=true`.
+- Local beta-feedback D1 slice evidence is present with `schemaReady=true`, `appLayerAuthzReady=true`, `localBetaFeedbackD1SliceReady=true`, `productionBetaFeedbackD1Ready=false`, `forgedWorkspaceRows=0`, `mismatchedProjectRows=0`, `rollbackResidueRows=0`, and `duplicateStatusAuditRows=0`.
+- Local collaboration-invitation D1 slice evidence is present with `schemaReady=true`, `tokenIssueReady=true`, `resolveStateReady=true`, `acceptByTokenReady=true`, `acceptByIdReady=true`, `localCollaborationInvitationD1SliceReady=true`, `productionCollaborationInvitationD1Ready=false`, `wrongAccountMembershipRows=0`, `rollbackResidueRows=0`, `duplicateAcceptAuditRows=0`, and `replayBlockedAuditRows=1`.
+- Local closed-beta D1 slice evidence is present with `schemaReady=true`, `statusContractReady=true`, `appLayerAdminGuardReady=true`, `accessCheckReady=true`, `queueReadReady=true`, `createMutationReady=true`, `updateMutationReady=true`, `localClosedBetaD1SliceReady=true`, `productionClosedBetaD1Ready=false`, `nonAdminQueueRows=0`, `nonAdminCreateRows=0`, `duplicateCreateRows=0`, and `rollbackResidueRows=0`.
+- Local component-library D1 slice evidence is present with `schemaReady=true`, `editorGuardReady=true`, `folderDeleteReady=true`, `folderReorderReady=true`, `bulkArchiveReady=true`, `componentUpdateReady=true`, `lifecycleMutationReady=true`, `priceOptionUpsertReady=true`, `localComponentLibraryD1SliceReady=true`, `productionComponentLibraryD1Ready=false`, `viewerDeleteResidueRows=0`, `rollbackResidueRows=0`, `duplicatePriceHistoryRows=0`, `duplicateBulkArchiveEventRows=0`, and restored component rows `5`.
+- Local estimate-history D1 slice evidence is present with `schemaReady=true`, `appLayerEditorGuardReady=true`, `estimateTabMutationReady=true`, `subtreeInsertReady=true`, `rowMoveReady=true`, `sheetAdjustmentReady=true`, `packageApplyReady=true`, `promoteToLibraryReady=true`, `rollbackReady=true`, `idempotencyReady=true`, `queryBudgetReady=true`, `restoreFixtureReady=true`, `localEstimateHistoryD1SliceReady=true`, `productionEstimateHistoryD1Ready=false`, `viewerMutationResidueRows=0`, `rollbackResidueRows=0`, `duplicateSubtreeOperationRows=1`, `projectPackageCommandRows=1`, `libraryPackageCommandRows=1`, and restored history rows `11`.
+- Supabase RPC rewrite-map evidence is present with `80` of `80` inventory RPCs mapped, golden fixtures ready, `transactionProofReady=true`, `rollbackProofReady=true`, `idempotencyProofReady=true`, and no local rewrite-map blockers. The final local reference gaps are covered by contract proof for `record_mass_deletion_storage_cleanup_result` and `ensure_current_user_profile`.
+- Local D1 RPC transaction mechanics evidence is present with `localTransactionMechanicsReady=true`, `localRollbackMechanicsReady=true`, `localIdempotencyMechanicsReady=true`, `localRpcMechanicsProofReady=true`, `rollbackResidueRows=0`, and `duplicateSideEffects=0`; production rewrite readiness remains false because hosted Worker+D1/provider proof is still absent.
+- D1 restore rehearsal evidence is present and local-only: `d1ExportReady=true`, `d1ImportReady=true`, `restoreRehearsalReady=true`, `destructiveRestoreDocumented=true`, `localOnly=true`, and `providerBacked=false`. The rehearsal uses sanitized temporary SQLite data and does not create or restore a hosted Cloudflare D1 database.
+- D1 performance evidence is present and local-only: `queryCountBudgetsReady=true`, `p95RouteProofReady=true`, `hostedWorkerD1PerformanceReady=false`, `localOnly=true`, and `providerBacked=false`. The benchmark seeds `132` sanitized SQLite rows across `6` fixture tables and passes four indexed query surfaces locally; hosted Worker+D1 performance remains unproven.
+
+Current blockers recorded by the readiness report: Better Auth production cutover proof is missing, and no hosted Worker+D1 performance proof exists. The local D1 binding, app-layer authorization, local RPC mechanics, per-RPC rewrite map, local beta-feedback slice, local collaboration-invitation slice, local closed-beta slice, local component-library slice, local estimate-history slice, Durable Objects/WebSockets scaffold, local restore-rehearsal, and local query/p95 gates are clear, but no real Cloudflare D1 database has been created, restored, benchmarked, or provider-proven.
+
+## Generated Cloudflare Release Gate Snapshot
+
+Generated on 2026-06-30 local time with `bun run cf:release-gates`.
+
+Artifacts:
+
+- `evidence/2026-06-30-cloudflare-release-gates.json`
+- `evidence/2026-06-30-cloudflare-release-gates.md`
+
+The generated snapshot aggregates the current local and sanitized proof artifacts, including Wrangler/API auth readiness, without provider API calls, env-file reads, secret printing, deployment, DNS mutation, billing, or provider removal:
+
+| Gate | Ready? |
+| --- | --- |
+| Planning inputs ready | yes |
+| Local runtime proof ready | yes |
+| Provider dashboard inventory ready | yes |
+| Provider proof ready | no |
+| Cost/performance proof ready | no |
+| D1/Auth/Realtime proof ready | no |
+| Local release-gate report ready | yes |
+| Production cutover ready | no |
+
+Current blockers recorded by the aggregate gate: D1/Auth/Realtime production proof, hosted Worker route matrix proof, Wrangler/API auth readback, provider resource readback, hosted Worker/custom-domain proof, Workers Paid/secrets, provider-backed R2/Images proof, Cron/Queues/dead-letter proof, Cloudflare analytics/observability receipt, sanitized current-provider cost inputs, hosted Cloudflare usage inputs, hosted performance proof, and production cost decision evidence.
+
+This is an aggregate evidence index only. A passing local release-gate report does not prove production deploy readiness or make Vercel/Supabase/Resend removable.
+
+## Latest Read-Only Cloudflare Dashboard Refresh
+
+Refreshed on 2026-06-30 with the Codex in-app browser against the authenticated Cloudflare dashboard. This was a read-only pass: no provider mutation, deploy, DNS edit, API token creation, checkout, subscription action, or provider cancellation was performed.
+
+Current dashboard facts recorded in `evidence/2026-06-30-cloudflare-provider-readiness-source.json`:
+
+- Zone `archestimator.com` is still on the Free plan and pending Cloudflare ownership verification.
+- DNS records page shows DNS Setup: Full, a pending-domain notice, and `9` imported records, including apex `A 216.150.1.1` proxied and `www` CNAME `bb7ab57cfa50fcad.vercel-dns-017.com` proxied.
+- Workers & Pages shows no projects, requests `0`, CPU time `0 ms`, observability events `0`, Workers build minutes `0`, account ID `7f6229cfea61b59f6f48b517fde86039`, and subdomain `philipjonlewis.workers.dev`.
+- Workers plans marks Free as the current plan and presents Purchase Workers Paid as the paid-plan action.
+- D1 shows no visible database rows and zero read/write/storage metrics.
+- R2 redirects to the R2 subscription page with `Add R2 subscription to my account`; the action was not clicked.
+- Queues shows no visible queue rows and zero operations/messages/backlog/lag metrics.
+- Hosted Images says a subscription is required to add storage; images delivered is `0` and images stored is not applicable in the current plan.
+- Web Analytics lists one `archestimator.com` site, with `0` page views and `0` visits in the last 24 hours.
+- Account Observability shows Cloudflare Workers dataset events `0`, success `0`, and errors `0` for the last hour.
+- Zone Workers Routes says there are no configured routes.
+
+Subscription sequencing based on the current target and dashboard state: Workers Paid and R2 are the first paid-provider steps for this migration. Cloudflare Images is separate and only needed if the hosted media pipeline uses it. Pro, Argo, and Load Balancing should be deferred until hosted traffic proves a concrete WAF/cache/origin-routing/failover need; they do not clear the current Worker deployment, R2/Images, D1/Auth/Realtime, or provider readback blockers.
 
 ## Repo Scan Commands And Counts
 
@@ -319,5 +887,14 @@ Best first proof slice candidates, based on current coupling and reusable tests:
 2. Upload storage R2 proof slice. Strong existing upload proof surface and clear provider boundary, but requires signed/private object and scan lifecycle parity.
 3. Next-on-Workers route fidelity proof. Required for full-native target, but should stay proof-only until auth/proxy/cache behavior is measured.
 4. D1 read-only shadow/projection proof for one low-risk read model. Useful for learning D1 query/performance shape without changing source of truth.
+
+Local follow-up evidence on 2026-06-29:
+
+- A first Cloudflare Cron Trigger wrapper now exists for the existing upload cleanup and scan schedules. It is local proof groundwork only: the Worker preview scheduled endpoint observed matched cron invocations and fail-closed missing-secret logs, while Vercel remains the live cron fallback until Cloudflare provider proof and rollback proof pass.
+- A local Cloudflare Queues/Cron retry and DLQ proof now exists for the same upload cleanup/scan job family. `wrangler.jsonc` declares producer binding `UPLOAD_JOBS_QUEUE`, consumer queue `archestimator-upload-jobs`, `max_retries=3`, and dead-letter queue `archestimator-upload-jobs-dlq`; `worker.ts` exposes a Cloudflare `queue()` handler; and `src/lib/cloudflare/upload-job-queue.ts` provides deterministic idempotency keys plus ack/retry decisions. Evidence in `evidence/2026-06-30-cloudflare-queues-cron-proof.json` and `.md` records `localQueuesCronProofReady=true`, `providerBacked=false`, `productionJobsMessagingReady=false`, `3` acked messages, `1` retried message, `1` duplicate ack, `1` invalid-message ack, and `1` DLQ-expected final retry. The Queues and DLQ provider resources now exist and read back through Wrangler; hosted consumer/cron execution evidence remains open.
+- A local Wrangler/API auth snapshot now exists. `scripts/check-cloudflare-wrangler-auth.ts` and `bun run cf:check-wrangler-auth` run read-only `wrangler whoami --json`, sanitize output, and write `evidence/2026-06-30-cloudflare-wrangler-auth.{json,md}`. The latest artifact records CLI/auth check completed, OAuth authenticated against account `7f6229cfea61b59f6f48b517fde86039`, `wranglerApiAuthenticated=true`, `providerReadbackReady=true`, and `productionDeployReady=false`. `cf:check-provider` and `cf:release-gates` consume this artifact.
+- A first Cloudflare R2 upload storage adapter, Cloudflare Images processing adapter, and R2-mode upload lifecycle route path now exist behind explicit runtime selectors. Local tests prove safe logical key mapping, R2 `put`/`get`/`delete` adaptation, delete cleanup, unsafe path denial, fail-closed signed/public URL behavior, explicit runtime storage provider selection, current image-route compatibility with the provider-neutral upload/download/delete path, mocked OpenNext `ARCH_UPLOADS_R2` component-image route POST/GET behavior, mocked server-mediated component attachment upload/private-download/delete through `ARCH_UPLOADS_R2`, mocked cleanup delete and scan download through `ARCH_UPLOADS_R2`, R2-mode direct signed/TUS session creation failing closed before Supabase signer/RPC use, and mocked `IMAGES` raw-byte WebP resize/thumbnail processing. `cf:typegen` now emits `ARCH_UPLOADS_R2: R2Bucket` and `IMAGES: ImagesBinding`. R2 provider bucket creation/readback is now proven for `archestimator-proof-uploads` and `archestimator-proof-uploads-dev`; hosted upload lifecycle, direct signed-or-TUS R2 signer replacement, and paid/deployed Cloudflare Images proof remain open.
+- A credential-free local Worker route probe now exists. `.dev.vars.example` lists the publication secret bindings needed for local/deployed Worker proof, and the ignored local `.dev.vars` carries placeholder preview values. Evidence in `evidence/2026-06-29-cloudflare-worker-preview-route-probe.json` and `.md` passed 16 local preview probes for health, 11 public/signed-out pages, signed-out protected-route redirect, invalid share page/API behavior, and private image fail-closed behavior. Hosted custom-domain route parity remains open before provider cutover.
+- A Cloudflare Worker readiness checker now exists. `scripts/check-cloudflare-worker-readiness.ts` and `bun run cf:check-readiness` verify `.env.example`, `.dev.vars.example`, `wrangler.jsonc` bindings/crons/observability sampling, package scripts, optional ignored local `.dev.vars` preview names, and optional sanitized Cloudflare Worker secret-list transcripts without printing secret values. Evidence in `evidence/2026-06-29-cloudflare-worker-readiness.json` and `.md` passed manifest/local-preview readiness and intentionally kept `deploymentReady=false` because no provider secret-list/deployment evidence was supplied.
 
 Do not start with full D1/Auth/Realtime replacement. The evidence shows that would mix the riskiest boundaries before the team has proof infrastructure.

@@ -1,0 +1,412 @@
+{
+  "generatedAt": "2026-06-30T03:07:59.830Z",
+  "mode": "cloudflare-cost-performance-workbook",
+  "sources": {
+    "inventory": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-migration-inventory.json",
+    "workerPreviewRouteProbe": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-29-cloudflare-worker-preview-route-probe.json",
+    "cloudflareHostedPerformance": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-hosted-performance.json",
+    "cloudflarePricingSnapshot": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-official-pricing-snapshot.json",
+    "sanitizedUsageInputs": null
+  },
+  "readiness": {
+    "currentProviderCostsReady": false,
+    "cloudflarePricingRefreshed": true,
+    "cloudflareUsageCostsReady": false,
+    "localPreviewPerformanceCaptured": true,
+    "hostedCredentialFreePerformanceCaptured": true,
+    "hostedPerformanceReady": false,
+    "productionCostDecisionReady": false
+  },
+  "inventoryCounts": {
+    "appRoutes": 71,
+    "providerCoupledFiles": 93,
+    "distinctRpcNames": 80,
+    "appliedMigrationFiles": 181,
+    "pendingReviewFiles": 13,
+    "sqlFunctionDeclarationMatches": 346,
+    "rlsPolicyStorageAuthMatches": 684
+  },
+  "currentProviderCostInputs": [
+    {
+      "input": "Vercel plan cost",
+      "source": "Vercel dashboard/invoice",
+      "status": "missing",
+      "value": null,
+      "notes": "Requires sanitized dashboard/invoice/metrics input before cost decisions."
+    },
+    {
+      "input": "Vercel bandwidth",
+      "source": "Vercel usage",
+      "status": "missing",
+      "value": null,
+      "notes": "Requires sanitized dashboard/invoice/metrics input before cost decisions."
+    },
+    {
+      "input": "Vercel function invocations/duration",
+      "source": "Vercel usage",
+      "status": "missing",
+      "value": null,
+      "notes": "Requires sanitized dashboard/invoice/metrics input before cost decisions."
+    },
+    {
+      "input": "Vercel build usage",
+      "source": "Vercel usage",
+      "status": "missing",
+      "value": null,
+      "notes": "Requires sanitized dashboard/invoice/metrics input before cost decisions."
+    },
+    {
+      "input": "Supabase plan cost",
+      "source": "Supabase dashboard/invoice",
+      "status": "missing",
+      "value": null,
+      "notes": "Requires sanitized dashboard/invoice/metrics input before cost decisions."
+    },
+    {
+      "input": "Supabase DB size",
+      "source": "Supabase project metrics",
+      "status": "missing",
+      "value": null,
+      "notes": "Requires sanitized dashboard/invoice/metrics input before cost decisions."
+    },
+    {
+      "input": "Supabase storage GB",
+      "source": "Supabase storage metrics",
+      "status": "missing",
+      "value": null,
+      "notes": "Requires sanitized dashboard/invoice/metrics input before cost decisions."
+    },
+    {
+      "input": "Supabase egress",
+      "source": "Supabase usage",
+      "status": "missing",
+      "value": null,
+      "notes": "Requires sanitized dashboard/invoice/metrics input before cost decisions."
+    },
+    {
+      "input": "Supabase Auth MAU",
+      "source": "Supabase auth metrics",
+      "status": "missing",
+      "value": null,
+      "notes": "Requires sanitized dashboard/invoice/metrics input before cost decisions."
+    },
+    {
+      "input": "Supabase Realtime connections/messages",
+      "source": "Supabase realtime metrics",
+      "status": "missing",
+      "value": null,
+      "notes": "Requires sanitized dashboard/invoice/metrics input before cost decisions."
+    },
+    {
+      "input": "Resend plan cost",
+      "source": "Resend dashboard/invoice",
+      "status": "missing",
+      "value": null,
+      "notes": "Requires sanitized dashboard/invoice/metrics input before cost decisions."
+    },
+    {
+      "input": "Resend sends/events",
+      "source": "Resend dashboard",
+      "status": "missing",
+      "value": null,
+      "notes": "Requires sanitized dashboard/invoice/metrics input before cost decisions."
+    }
+  ],
+  "cloudflareCostInputs": [
+    {
+      "input": "Workers requests",
+      "source": "Monthly dynamic + static requests by route class",
+      "status": "missing",
+      "value": null,
+      "notes": "Requires hosted Cloudflare proof or sanitized usage input before cost decisions."
+    },
+    {
+      "input": "Workers CPU",
+      "source": "p50/p95 CPU per route/action from hosted proof",
+      "status": "missing",
+      "value": null,
+      "notes": "Requires hosted Cloudflare proof or sanitized usage input before cost decisions."
+    },
+    {
+      "input": "Workers subrequests",
+      "source": "cf:inventory",
+      "status": "local-derived",
+      "value": "93 provider-coupled source files need per-route subrequest mapping",
+      "notes": "Inventory-derived surface count only; not monthly operation volume."
+    },
+    {
+      "input": "D1 reads",
+      "source": "cf:inventory",
+      "status": "local-derived",
+      "value": "80 app-code RPC names need read/write classification",
+      "notes": "Inventory-derived rewrite surface only; not D1 row-read volume."
+    },
+    {
+      "input": "D1 writes",
+      "source": "cf:inventory",
+      "status": "local-derived",
+      "value": "346 SQL function declaration/update matches need transaction classification",
+      "notes": "Inventory-derived rewrite surface only; not D1 row-write volume."
+    },
+    {
+      "input": "D1 storage",
+      "source": "DB size after import/projection",
+      "status": "missing",
+      "value": null,
+      "notes": "Requires hosted Cloudflare proof or sanitized usage input before cost decisions."
+    },
+    {
+      "input": "R2 storage",
+      "source": "Object bytes by bucket/class",
+      "status": "missing",
+      "value": null,
+      "notes": "Requires hosted Cloudflare proof or sanitized usage input before cost decisions."
+    },
+    {
+      "input": "R2 Class A",
+      "source": "Creates, lists, uploads, lifecycle operations",
+      "status": "missing",
+      "value": null,
+      "notes": "Requires hosted Cloudflare proof or sanitized usage input before cost decisions."
+    },
+    {
+      "input": "R2 Class B",
+      "source": "Reads/downloads/head operations",
+      "status": "missing",
+      "value": null,
+      "notes": "Requires hosted Cloudflare proof or sanitized usage input before cost decisions."
+    },
+    {
+      "input": "KV reads/writes/lists",
+      "source": "Safe-cache operations only",
+      "status": "missing",
+      "value": null,
+      "notes": "Requires hosted Cloudflare proof or sanitized usage input before cost decisions."
+    },
+    {
+      "input": "Queues operations",
+      "source": "Writes, reads, deletes, retries in 64 KB units",
+      "status": "missing",
+      "value": null,
+      "notes": "Requires hosted Cloudflare proof or sanitized usage input before cost decisions."
+    },
+    {
+      "input": "Durable Objects",
+      "source": "Room requests, WebSocket duration/messages/storage if applicable",
+      "status": "missing",
+      "value": null,
+      "notes": "Requires hosted Cloudflare proof or sanitized usage input before cost decisions."
+    },
+    {
+      "input": "Email Service",
+      "source": "Sends, bounces/events, routing events",
+      "status": "missing",
+      "value": null,
+      "notes": "Requires hosted Cloudflare proof or sanitized usage input before cost decisions."
+    },
+    {
+      "input": "WAF/rate limiting",
+      "source": "Plan tier, rule count, log needs",
+      "status": "missing",
+      "value": null,
+      "notes": "Requires hosted Cloudflare proof or sanitized usage input before cost decisions."
+    },
+    {
+      "input": "Turnstile",
+      "source": "Challenge volume and false-positive review",
+      "status": "missing",
+      "value": null,
+      "notes": "Requires hosted Cloudflare proof or sanitized usage input before cost decisions."
+    },
+    {
+      "input": "Observability/logs",
+      "source": "Log volume, retention, analytics needs",
+      "status": "missing",
+      "value": null,
+      "notes": "Requires hosted Cloudflare proof or sanitized usage input before cost decisions."
+    }
+  ],
+  "performanceFixtures": [
+    {
+      "fixture": "Public home route p95 TTFB",
+      "probeKeys": [
+        "home"
+      ],
+      "currentBaselineP95Ms": null,
+      "cloudflareLocalPreviewP95Ms": 168.47,
+      "cloudflareHostedP95Ms": 133.99,
+      "budget": "under 200 ms",
+      "budgetMs": 200,
+      "status": "hosted-partial-pass",
+      "evidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-29-cloudflare-worker-preview-route-probe.json",
+      "hostedEvidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-hosted-performance.json",
+      "notes": "Local route probe duration is not hosted TTFB or Worker CPU. Hosted evidence here is credential-free route timing only unless the fixture explicitly maps to that route class."
+    },
+    {
+      "fixture": "Pricing/features static route p95 TTFB",
+      "probeKeys": [
+        "pricing",
+        "features"
+      ],
+      "currentBaselineP95Ms": null,
+      "cloudflareLocalPreviewP95Ms": 13.68,
+      "cloudflareHostedP95Ms": 94.8,
+      "budget": "under 200 ms",
+      "budgetMs": 200,
+      "status": "hosted-partial-pass",
+      "evidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-29-cloudflare-worker-preview-route-probe.json",
+      "hostedEvidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-hosted-performance.json",
+      "notes": "Uses the slower local preview p95 across pricing and features probes. Hosted evidence here is credential-free route timing only unless the fixture explicitly maps to that route class."
+    },
+    {
+      "fixture": "Login/auth callback p95 duration",
+      "probeKeys": [
+        "login"
+      ],
+      "currentBaselineP95Ms": null,
+      "cloudflareLocalPreviewP95Ms": 13.07,
+      "cloudflareHostedP95Ms": 88.89,
+      "budget": "no worse than baseline",
+      "budgetMs": null,
+      "status": "hosted-partial-pass",
+      "evidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-29-cloudflare-worker-preview-route-probe.json",
+      "hostedEvidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-hosted-performance.json",
+      "notes": "Local proof only covers the public login page, not OAuth/callback/session refresh. Hosted evidence here is credential-free route timing only unless the fixture explicitly maps to that route class."
+    },
+    {
+      "fixture": "Share route p95 TTFB",
+      "probeKeys": [
+        "share-invalid-page"
+      ],
+      "currentBaselineP95Ms": null,
+      "cloudflareLocalPreviewP95Ms": 327.35,
+      "cloudflareHostedP95Ms": 74.69,
+      "budget": "under 400 ms",
+      "budgetMs": 400,
+      "status": "hosted-partial-pass",
+      "evidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-29-cloudflare-worker-preview-route-probe.json",
+      "hostedEvidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-hosted-performance.json",
+      "notes": "Local proof covers a fake invalid share token fail-closed path only. Hosted evidence here is credential-free route timing only unless the fixture explicitly maps to that route class."
+    },
+    {
+      "fixture": "Workshop home p95 TTFB",
+      "probeKeys": [
+        "workshop-signed-out"
+      ],
+      "currentBaselineP95Ms": null,
+      "cloudflareLocalPreviewP95Ms": 4.03,
+      "cloudflareHostedP95Ms": 151.63,
+      "budget": "under 600 ms",
+      "budgetMs": 600,
+      "status": "hosted-partial-pass",
+      "evidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-29-cloudflare-worker-preview-route-probe.json",
+      "hostedEvidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-hosted-performance.json",
+      "notes": "Local proof covers signed-out redirect behavior only, not authenticated workshop data. Hosted evidence here is credential-free route timing only unless the fixture explicitly maps to that route class."
+    },
+    {
+      "fixture": "Project dashboard p95 TTFB",
+      "probeKeys": [],
+      "currentBaselineP95Ms": null,
+      "cloudflareLocalPreviewP95Ms": null,
+      "cloudflareHostedP95Ms": null,
+      "budget": "under 600 ms",
+      "budgetMs": 600,
+      "status": "missing",
+      "evidence": null,
+      "hostedEvidence": null,
+      "notes": "Requires authenticated hosted/provider fixture. Current-provider baseline and hosted Cloudflare proof are still required."
+    },
+    {
+      "fixture": "Estimate sheet initial load p95",
+      "probeKeys": [],
+      "currentBaselineP95Ms": null,
+      "cloudflareLocalPreviewP95Ms": null,
+      "cloudflareHostedP95Ms": null,
+      "budget": "no worse than baseline",
+      "budgetMs": null,
+      "status": "missing",
+      "evidence": null,
+      "hostedEvidence": null,
+      "notes": "Requires authenticated hosted/provider fixture. Current-provider baseline and hosted Cloudflare proof are still required."
+    },
+    {
+      "fixture": "Estimate row mutation p95",
+      "probeKeys": [],
+      "currentBaselineP95Ms": null,
+      "cloudflareLocalPreviewP95Ms": null,
+      "cloudflareHostedP95Ms": null,
+      "budget": "under 500 ms",
+      "budgetMs": 500,
+      "status": "missing",
+      "evidence": null,
+      "hostedEvidence": null,
+      "notes": "Requires D1/Supabase comparison and mutation fixture. Current-provider baseline and hosted Cloudflare proof are still required."
+    },
+    {
+      "fixture": "Library component search p95",
+      "probeKeys": [],
+      "currentBaselineP95Ms": null,
+      "cloudflareLocalPreviewP95Ms": null,
+      "cloudflareHostedP95Ms": null,
+      "budget": "under 500 ms",
+      "budgetMs": 500,
+      "status": "missing",
+      "evidence": null,
+      "hostedEvidence": null,
+      "notes": "Requires authenticated hosted/provider fixture. Current-provider baseline and hosted Cloudflare proof are still required."
+    },
+    {
+      "fixture": "Upload signed/session creation p95",
+      "probeKeys": [],
+      "currentBaselineP95Ms": null,
+      "cloudflareLocalPreviewP95Ms": null,
+      "cloudflareHostedP95Ms": null,
+      "budget": "no worse than baseline",
+      "budgetMs": null,
+      "status": "missing",
+      "evidence": null,
+      "hostedEvidence": null,
+      "notes": "Requires direct-upload replacement or provider fallback proof. Current-provider baseline and hosted Cloudflare proof are still required."
+    },
+    {
+      "fixture": "Upload scan queue latency p95",
+      "probeKeys": [],
+      "currentBaselineP95Ms": null,
+      "cloudflareLocalPreviewP95Ms": null,
+      "cloudflareHostedP95Ms": null,
+      "budget": "job-specific",
+      "budgetMs": null,
+      "status": "missing",
+      "evidence": null,
+      "hostedEvidence": null,
+      "notes": "Requires Cloudflare Cron/Queues hosted execution proof. Current-provider baseline and hosted Cloudflare proof are still required."
+    },
+    {
+      "fixture": "Realtime cursor/presence latency p95",
+      "probeKeys": [],
+      "currentBaselineP95Ms": null,
+      "cloudflareLocalPreviewP95Ms": null,
+      "cloudflareHostedP95Ms": null,
+      "budget": "no worse than baseline",
+      "budgetMs": null,
+      "status": "missing",
+      "evidence": null,
+      "hostedEvidence": null,
+      "notes": "Requires Durable Objects/WebSockets or Supabase Realtime comparison proof. Current-provider baseline and hosted Cloudflare proof are still required."
+    },
+    {
+      "fixture": "Email send-to-event latency p95",
+      "probeKeys": [],
+      "currentBaselineP95Ms": null,
+      "cloudflareLocalPreviewP95Ms": null,
+      "cloudflareHostedP95Ms": null,
+      "budget": "no worse than baseline",
+      "budgetMs": null,
+      "status": "missing",
+      "evidence": null,
+      "hostedEvidence": null,
+      "notes": "Requires Cloudflare Email Service or Resend comparison proof. Current-provider baseline and hosted Cloudflare proof are still required."
+    }
+  ],
+  "note": "Workbook scaffold only. Local inventory, refreshed official Cloudflare pricing, and Worker preview durations can seed planning, but cost decisions still require sanitized Vercel/Supabase/Resend dashboard data, hosted Cloudflare usage metrics, provider logs, rollback triggers, and the same proof architecture for cost and performance evidence."
+}

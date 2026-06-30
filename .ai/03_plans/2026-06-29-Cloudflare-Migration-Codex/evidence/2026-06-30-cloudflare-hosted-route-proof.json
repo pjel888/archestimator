@@ -1,0 +1,481 @@
+{
+  "generatedAt": "2026-06-30T03:29:30.462Z",
+  "mode": "cloudflare-hosted-worker-routes",
+  "baseUrl": "https://archestimator-proof.philipjonlewis.workers.dev",
+  "providerBacked": true,
+  "proofScope": "credential-free-hosted-worker-route-contract",
+  "configured": true,
+  "runs": 1,
+  "fakeTokenLabel": "redacted-fake-token",
+  "note": "Hosted, credential-free Worker route proof only. This does not call Cloudflare APIs, read env files, print secrets, deploy Workers, change DNS, purchase plans, mutate providers, authenticate users, prove D1/Auth/Realtime flows, or make Vercel/Supabase/Resend removable.",
+  "routeContractReady": true,
+  "hostedRouteProofReady": true,
+  "passed": true,
+  "blockers": [],
+  "results": [
+    {
+      "key": "health",
+      "label": "Health JSON",
+      "path": "/api/health",
+      "kind": "health",
+      "required": true,
+      "note": "Checks the Worker bundle serves the app health contract.",
+      "samples": [
+        {
+          "run": 1,
+          "status": 200,
+          "durationMs": 4080.62,
+          "contentType": "application/json",
+          "cacheControl": "no-store",
+          "hasNoStoreCacheControl": true,
+          "location": null,
+          "setCookiePresent": false,
+          "bodyBytes": 76,
+          "bodyPreview": "{\"ok\":true,\"service\":\"archestimator\",\"timestamp\":\"2026-06-30T03:29:28.196Z\"}",
+          "passed": true,
+          "reason": "health_json_ok",
+          "error": null
+        }
+      ],
+      "minDurationMs": 4080.62,
+      "avgDurationMs": 4080.62,
+      "maxDurationMs": 4080.62,
+      "passed": true
+    },
+    {
+      "key": "home",
+      "label": "Home page",
+      "path": "/",
+      "kind": "public-page",
+      "required": true,
+      "note": "Checks a public App Router page renders from the Worker bundle.",
+      "samples": [
+        {
+          "run": 1,
+          "status": 200,
+          "durationMs": 358.56,
+          "contentType": "text/html; charset=utf-8",
+          "cacheControl": "private, no-cache, max-age=0, must-revalidate",
+          "hasNoStoreCacheControl": false,
+          "location": null,
+          "setCookiePresent": false,
+          "bodyBytes": 191383,
+          "bodyPreview": "<!DOCTYPE html><html lang=\"en\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"",
+          "passed": true,
+          "reason": "public_html_ok",
+          "error": null
+        }
+      ],
+      "minDurationMs": 358.56,
+      "avgDurationMs": 358.56,
+      "maxDurationMs": 358.56,
+      "passed": true
+    },
+    {
+      "key": "login",
+      "label": "Login page",
+      "path": "/login",
+      "kind": "public-page",
+      "required": true,
+      "note": "Checks an auth entry page renders without a session.",
+      "samples": [
+        {
+          "run": 1,
+          "status": 200,
+          "durationMs": 63.33,
+          "contentType": "text/html; charset=utf-8",
+          "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "hasNoStoreCacheControl": true,
+          "location": null,
+          "setCookiePresent": false,
+          "bodyBytes": 33539,
+          "bodyPreview": "<!DOCTYPE html><html lang=\"en\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"",
+          "passed": true,
+          "reason": "public_html_ok",
+          "error": null
+        }
+      ],
+      "minDurationMs": 63.33,
+      "avgDurationMs": 63.33,
+      "maxDurationMs": 63.33,
+      "passed": true
+    },
+    {
+      "key": "pricing",
+      "label": "Pricing page",
+      "path": "/pricing",
+      "kind": "public-page",
+      "required": true,
+      "note": "Checks a second public marketing page renders from the Worker bundle.",
+      "samples": [
+        {
+          "run": 1,
+          "status": 200,
+          "durationMs": 57.88,
+          "contentType": "text/html; charset=utf-8",
+          "cacheControl": "private, no-cache, max-age=0, must-revalidate",
+          "hasNoStoreCacheControl": false,
+          "location": null,
+          "setCookiePresent": false,
+          "bodyBytes": 66055,
+          "bodyPreview": "<!DOCTYPE html><html lang=\"en\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"",
+          "passed": true,
+          "reason": "public_html_ok",
+          "error": null
+        }
+      ],
+      "minDurationMs": 57.88,
+      "avgDurationMs": 57.88,
+      "maxDurationMs": 57.88,
+      "passed": true
+    },
+    {
+      "key": "features",
+      "label": "Features page",
+      "path": "/features",
+      "kind": "public-page",
+      "required": true,
+      "note": "Checks a feature marketing page renders from the Worker bundle.",
+      "samples": [
+        {
+          "run": 1,
+          "status": 200,
+          "durationMs": 64.19,
+          "contentType": "text/html; charset=utf-8",
+          "cacheControl": "private, no-cache, max-age=0, must-revalidate",
+          "hasNoStoreCacheControl": false,
+          "location": null,
+          "setCookiePresent": false,
+          "bodyBytes": 109904,
+          "bodyPreview": "<!DOCTYPE html><html lang=\"en\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"",
+          "passed": true,
+          "reason": "public_html_ok",
+          "error": null
+        }
+      ],
+      "minDurationMs": 64.19,
+      "avgDurationMs": 64.19,
+      "maxDurationMs": 64.19,
+      "passed": true
+    },
+    {
+      "key": "about",
+      "label": "About page",
+      "path": "/about",
+      "kind": "public-page",
+      "required": true,
+      "note": "Checks a public company page renders from the Worker bundle.",
+      "samples": [
+        {
+          "run": 1,
+          "status": 200,
+          "durationMs": 58.78,
+          "contentType": "text/html; charset=utf-8",
+          "cacheControl": "private, no-cache, max-age=0, must-revalidate",
+          "hasNoStoreCacheControl": false,
+          "location": null,
+          "setCookiePresent": false,
+          "bodyBytes": 58115,
+          "bodyPreview": "<!DOCTYPE html><html lang=\"en\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"",
+          "passed": true,
+          "reason": "public_html_ok",
+          "error": null
+        }
+      ],
+      "minDurationMs": 58.78,
+      "avgDurationMs": 58.78,
+      "maxDurationMs": 58.78,
+      "passed": true
+    },
+    {
+      "key": "contact",
+      "label": "Contact page",
+      "path": "/contact",
+      "kind": "public-page",
+      "required": true,
+      "note": "Checks a public contact page renders from the Worker bundle.",
+      "samples": [
+        {
+          "run": 1,
+          "status": 200,
+          "durationMs": 50.29,
+          "contentType": "text/html; charset=utf-8",
+          "cacheControl": "private, no-cache, max-age=0, must-revalidate",
+          "hasNoStoreCacheControl": false,
+          "location": null,
+          "setCookiePresent": false,
+          "bodyBytes": 52655,
+          "bodyPreview": "<!DOCTYPE html><html lang=\"en\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"",
+          "passed": true,
+          "reason": "public_html_ok",
+          "error": null
+        }
+      ],
+      "minDurationMs": 50.29,
+      "avgDurationMs": 50.29,
+      "maxDurationMs": 50.29,
+      "passed": true
+    },
+    {
+      "key": "trust",
+      "label": "Trust page",
+      "path": "/trust",
+      "kind": "public-page",
+      "required": true,
+      "note": "Checks a public trust page renders from the Worker bundle.",
+      "samples": [
+        {
+          "run": 1,
+          "status": 200,
+          "durationMs": 62.58,
+          "contentType": "text/html; charset=utf-8",
+          "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "hasNoStoreCacheControl": true,
+          "location": null,
+          "setCookiePresent": false,
+          "bodyBytes": 139508,
+          "bodyPreview": "<!DOCTYPE html><html lang=\"en\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"",
+          "passed": true,
+          "reason": "public_html_ok",
+          "error": null
+        }
+      ],
+      "minDurationMs": 62.58,
+      "avgDurationMs": 62.58,
+      "maxDurationMs": 62.58,
+      "passed": true
+    },
+    {
+      "key": "privacy",
+      "label": "Privacy page",
+      "path": "/privacy",
+      "kind": "public-page",
+      "required": true,
+      "note": "Checks the public privacy notice route renders from the Worker bundle.",
+      "samples": [
+        {
+          "run": 1,
+          "status": 200,
+          "durationMs": 57.49,
+          "contentType": "text/html; charset=utf-8",
+          "cacheControl": "private, no-cache, max-age=0, must-revalidate",
+          "hasNoStoreCacheControl": false,
+          "location": null,
+          "setCookiePresent": false,
+          "bodyBytes": 33079,
+          "bodyPreview": "<!DOCTYPE html><html lang=\"en\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"",
+          "passed": true,
+          "reason": "public_html_ok",
+          "error": null
+        }
+      ],
+      "minDurationMs": 57.49,
+      "avgDurationMs": 57.49,
+      "maxDurationMs": 57.49,
+      "passed": true
+    },
+    {
+      "key": "terms",
+      "label": "Terms page",
+      "path": "/terms",
+      "kind": "public-page",
+      "required": true,
+      "note": "Checks the public terms route renders from the Worker bundle.",
+      "samples": [
+        {
+          "run": 1,
+          "status": 200,
+          "durationMs": 53.4,
+          "contentType": "text/html; charset=utf-8",
+          "cacheControl": "private, no-cache, max-age=0, must-revalidate",
+          "hasNoStoreCacheControl": false,
+          "location": null,
+          "setCookiePresent": false,
+          "bodyBytes": 57855,
+          "bodyPreview": "<!DOCTYPE html><html lang=\"en\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"",
+          "passed": true,
+          "reason": "public_html_ok",
+          "error": null
+        }
+      ],
+      "minDurationMs": 53.4,
+      "avgDurationMs": 53.4,
+      "maxDurationMs": 53.4,
+      "passed": true
+    },
+    {
+      "key": "signup",
+      "label": "Signup page",
+      "path": "/signup",
+      "kind": "public-page",
+      "required": true,
+      "note": "Checks a public auth entry page renders without a session.",
+      "samples": [
+        {
+          "run": 1,
+          "status": 200,
+          "durationMs": 55.14,
+          "contentType": "text/html; charset=utf-8",
+          "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "hasNoStoreCacheControl": true,
+          "location": null,
+          "setCookiePresent": false,
+          "bodyBytes": 33299,
+          "bodyPreview": "<!DOCTYPE html><html lang=\"en\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"",
+          "passed": true,
+          "reason": "public_html_ok",
+          "error": null
+        }
+      ],
+      "minDurationMs": 55.14,
+      "avgDurationMs": 55.14,
+      "maxDurationMs": 55.14,
+      "passed": true
+    },
+    {
+      "key": "access-required",
+      "label": "Access required page",
+      "path": "/access-required",
+      "kind": "public-page",
+      "required": true,
+      "note": "Checks the public closed-beta access fallback page renders from the Worker bundle.",
+      "samples": [
+        {
+          "run": 1,
+          "status": 200,
+          "durationMs": 44.63,
+          "contentType": "text/html; charset=utf-8",
+          "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "hasNoStoreCacheControl": true,
+          "location": null,
+          "setCookiePresent": false,
+          "bodyBytes": 17080,
+          "bodyPreview": "<!DOCTYPE html><html lang=\"en\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"",
+          "passed": true,
+          "reason": "public_html_ok",
+          "error": null
+        }
+      ],
+      "minDurationMs": 44.63,
+      "avgDurationMs": 44.63,
+      "maxDurationMs": 44.63,
+      "passed": true
+    },
+    {
+      "key": "workshop-signed-out",
+      "label": "Workshop signed-out redirect",
+      "path": "/workshop",
+      "kind": "signed-out-redirect",
+      "required": true,
+      "note": "Checks protected app shell access fails closed without a session.",
+      "samples": [
+        {
+          "run": 1,
+          "status": 307,
+          "durationMs": 41.18,
+          "contentType": null,
+          "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "hasNoStoreCacheControl": true,
+          "location": "/login?next=%2Fworkshop",
+          "setCookiePresent": false,
+          "bodyBytes": 0,
+          "bodyPreview": null,
+          "passed": true,
+          "reason": "signed_out_redirect_ok",
+          "error": null
+        }
+      ],
+      "minDurationMs": 41.18,
+      "avgDurationMs": 41.18,
+      "maxDurationMs": 41.18,
+      "passed": true
+    },
+    {
+      "key": "share-invalid-page",
+      "label": "Invalid share page",
+      "path": "/share/not-a-real-hosted-worker-share-token",
+      "kind": "invalid-share-page",
+      "required": true,
+      "note": "Checks a fake share token fails closed without exposing private data.",
+      "samples": [
+        {
+          "run": 1,
+          "status": 200,
+          "durationMs": 78.02,
+          "contentType": "text/html; charset=utf-8",
+          "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate, no-store",
+          "hasNoStoreCacheControl": true,
+          "location": null,
+          "setCookiePresent": false,
+          "bodyBytes": 27131,
+          "bodyPreview": "<!DOCTYPE html><html lang=\"en\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"",
+          "passed": true,
+          "reason": "invalid_share_page_safe",
+          "error": null
+        }
+      ],
+      "minDurationMs": 78.02,
+      "avgDurationMs": 78.02,
+      "maxDurationMs": 78.02,
+      "passed": true
+    },
+    {
+      "key": "share-invalid-api",
+      "label": "Invalid share API",
+      "path": "/api/share/not-a-real-hosted-worker-share-token",
+      "kind": "sensitive-fail-closed",
+      "required": false,
+      "note": "Non-blocking local preview probe: this route performs durable provider-backed rate-limit/write work before snapshot lookup, so provider-free Worker preview records its status but does not use it as the local route-matrix gate.",
+      "samples": [
+        {
+          "run": 1,
+          "status": 404,
+          "durationMs": 1008.64,
+          "contentType": "application/json",
+          "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "hasNoStoreCacheControl": true,
+          "location": null,
+          "setCookiePresent": false,
+          "bodyBytes": 92,
+          "bodyPreview": "{\"error\":\"This shared proposal is unavailable\",\"message\":\"Ask the sender for a fresh link.\"}",
+          "passed": true,
+          "reason": "sensitive_fail_closed_ok",
+          "error": null
+        }
+      ],
+      "minDurationMs": 1008.64,
+      "avgDurationMs": 1008.64,
+      "maxDurationMs": 1008.64,
+      "passed": true
+    },
+    {
+      "key": "project-image-missing-path",
+      "label": "Project image API missing path",
+      "path": "/api/projects/images",
+      "kind": "sensitive-fail-closed",
+      "required": true,
+      "note": "Checks private project image access fails closed without a session or path.",
+      "samples": [
+        {
+          "run": 1,
+          "status": 404,
+          "durationMs": 51.48,
+          "contentType": "application/json",
+          "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "hasNoStoreCacheControl": true,
+          "location": null,
+          "setCookiePresent": false,
+          "bodyBytes": 37,
+          "bodyPreview": "{\"error\":\"Image could not be found.\"}",
+          "passed": true,
+          "reason": "sensitive_fail_closed_ok",
+          "error": null
+        }
+      ],
+      "minDurationMs": 51.48,
+      "avgDurationMs": 51.48,
+      "maxDurationMs": 51.48,
+      "passed": true
+    }
+  ]
+}

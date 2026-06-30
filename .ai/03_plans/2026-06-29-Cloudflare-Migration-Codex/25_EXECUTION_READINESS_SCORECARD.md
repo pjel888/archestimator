@@ -48,7 +48,7 @@ Red means no implementation should start for that slice.
 - Current usage/cost dashboard export is missing.
 - Cloudflare preview/provider performance evidence is missing.
 - Better Auth session migration is not proven.
-- Durable Objects realtime proof is not built.
+- Durable Objects realtime provider proof is not built; local `COLLAB_ROOMS` scaffold proof exists only as a non-production signal.
 
 ## Amber Items
 

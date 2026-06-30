@@ -1,0 +1,47 @@
+---
+title: Executive Summary
+plan_id: 2026-06-29-rate-limiting
+created: 2026-06-29
+profile: exhaustive
+owner: Archestimator
+---
+
+# Executive Summary
+
+## Root Problem
+
+Archestimator has multiple high-value public and authenticated surfaces: shared proposal review, invitations, authentication, estimate mutation, upload/image processing, exports, AI, email delivery, webhooks, internal jobs, and future realtime collaboration. Abuse can create cost spikes, degraded client-facing review UX, brute-force or enumeration pressure, mail reputation damage, storage churn, and noisy operational telemetry.
+
+The current codebase already contains rate-limiting work, but it is not one system. Durable Supabase/Postgres-backed limiters exist for share, invite, AI, and export surfaces. Other controls are process-local maps or circuit state. Header handling is inconsistent. API routes bypass the request proxy, so route-level and server-action-level enforcement remain mandatory.
+
+## Current Shape
+
+| Finding | Evidence | Risk |
+| --- | --- | --- |
+| API proxy bypass | `src/lib/auth/request-proxy.ts:120` returns next for `/api`. | Middleware cannot be treated as API protection. |
+| Durable shared-link limiter exists | `src/lib/publication/public-repository.ts:342-489`, `:513-735`. | Good foundation but scattered and Postgres-bound. |
+| Durable invite limiter exists | `src/lib/collaboration/invite-entry.ts:147-237`, `:244-316`. | Good foundation but separate from publication policy. |
+| In-memory upload limiter exists | `src/lib/uploads/admission-control.ts:24-148`. | Per-process only; not durable across hosts/Workers. |
+| In-memory estimate action limiter exists | `src/lib/estimates/action-rate-limit.ts:14-82`. | May undercount in scaled runtime. |
+| AI ask quota uses security table | `src/lib/ai/rate-limit.ts:17-79`. | Good control, but fails closed on quota storage outage. |
+| Email circuit is process-local | `src/lib/email/resend-client.ts:71-127`. | Protects callers but not distributed. |
+
+## Recommended Layered Model
+
+1. **Route/server-action policy registry**: one canonical catalog for surface, actor key, client key, windows, response behavior, logging, and failure mode.
+2. **Durable app limiter**: immediate store remains `security_rate_limit_events` and/or a future atomic RPC/slot reservation for exact app quotas.
+3. **Edge coarse mitigation**: WAF Rate Limiting Rules for obvious floods and high-cost public paths.
+4. **Human challenge**: Turnstile on suspicious public proposal, invite, auth, contact, and upload paths, with server-side validation.
+5. **Cloudflare-native exact path**: Durable Objects for exact counters only after Cloudflare Worker/provider proof gates pass.
+6. **Observability and false-positive loop**: log hashed dimensions, return `Retry-After`, dashboard denials, and run staged shadow/enforce rollout.
+
+## GO / NO-GO
+
+| Area | Verdict | Reason |
+| --- | --- | --- |
+| Planning package | GO | This package defines scope, inventory, policy, tests, rollout, and traceability. |
+| Immediate app implementation | CONDITIONAL GO | Safe only as a separate scoped task that re-validates route inventory and writes tests first. |
+| Production enforcement | NO-GO | Thresholds need shadow metrics, false-positive review, and rollback toggles. |
+| Cloudflare WAF/Turnstile proof | CONDITIONAL GO | Reversible proof slice; must not imply full provider cutover. |
+| Cloudflare exact counter migration | NO-GO | Cloudflare migration package still blocks production cutover on hosted Worker, D1/Auth/Realtime, provider, cost, and performance evidence. |
+| Removing current providers | NO-GO | Current Cloudflare plan explicitly keeps Vercel/Supabase/Resend as rollback/comparison boundaries. |

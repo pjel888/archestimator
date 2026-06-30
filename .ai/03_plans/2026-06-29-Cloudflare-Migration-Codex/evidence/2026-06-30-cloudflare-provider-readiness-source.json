@@ -1,0 +1,129 @@
+{
+  "capturedAt": "2026-06-30T02:00:15.745Z",
+  "source": "Computer Use/Chrome dashboard pass recorded in 31_OWNER_CLOUDFLARE_SETUP_AND_ANALYTICS_RUNBOOK.md and 32_COMPUTER_USE_CLOUDFLARE_DASHBOARD_HANDOFF.md, refreshed by Codex in-app browser read-only dashboard passes on 2026-06-30 including post-purchase Workers Paid/R2 subscription readback, then updated from Wrangler OAuth and read-only resource list evidence after authorized proof resource creation",
+  "account": {
+    "name": "Philipjonlewis@gmail.com's Account",
+    "id": "7f6229cfea61b59f6f48b517fde86039"
+  },
+  "zone": {
+    "name": "archestimator.com",
+    "id": "3c6fcddb743342bfe8b0097ba5ba7c19",
+    "plan": "Free",
+    "dnsImportedRecordCount": 9,
+    "dnsImportedReviewed": true,
+    "assignedNameservers": [
+      "carl.ns.cloudflare.com",
+      "ziggy.ns.cloudflare.com"
+    ],
+    "registrarNameservers": [
+      "dns1.registrar-servers.com",
+      "dns2.registrar-servers.com"
+    ]
+  },
+  "workers": {
+    "plan": "Paid",
+    "workersPaidPurchased": true,
+    "projectCount": 0,
+    "accountSubdomain": "philipjonlewis.workers.dev",
+    "deployedWorkerUrl": null,
+    "customDomainActive": false,
+    "apiAuthConfigured": true,
+    "sanitizedSecretListCaptured": false
+  },
+  "storageAndMedia": {
+    "r2SubscriptionActive": true,
+    "r2BucketCount": 2,
+    "r2S3ApiEndpoint": "https://7f6229cfea61b59f6f48b517fde86039.r2.cloudflarestorage.com",
+    "r2ProofBucketsCreated": true,
+    "r2HostedReadbackProven": true,
+    "imagesBindingProviderProven": false
+  },
+  "jobsAndMessaging": {
+    "cronProviderExecutionProven": false,
+    "queuesProofCreated": true,
+    "deadLetterProofCreated": true
+  },
+  "analytics": {
+    "webAnalyticsPropertyCreated": true,
+    "webAnalyticsReceivingDataProven": false
+  },
+  "dashboardReadback": {
+    "checkedAt": "2026-06-30T01:35:04.000Z",
+    "method": "Codex in-app browser dashboard DOM/text/screenshot readback only; no provider mutation, deploy, DNS edit, token creation, checkout by Codex, or cancellation",
+    "observations": [
+      "Zone overview still shows archestimator.com on the Free plan and offers Check nameservers now, with the domain still pending Cloudflare ownership verification.",
+      "DNS records page shows DNS Setup: Full, a pending-domain notice, and 9 imported records including apex A 216.150.1.1 proxied and www CNAME bb7ab57cfa50fcad.vercel-dns-017.com proxied.",
+      "Workers & Pages shows No projects found, requests 0, CPU time 0 ms, observability events 0, Workers build mins 0, account ID 7f6229cfea61b59f6f48b517fde86039, and subdomain philipjonlewis.workers.dev.",
+      "Workers plans page marks Paid as Your current plan and shows Free with a Downgrade plan action.",
+      "D1 Database page shows Create Database, no database rows in the visible table, rows read 0, rows written 0, metered storage 0 B-mo, and total storage 0 B.",
+      "R2 overview is active, shows Create bucket, shows no buckets yet, shows current period usage $0.00, Class A Operations 4, Class B Operations 0, Total storage 0 B, and lists the S3 API endpoint for account 7f6229cfea61b59f6f48b517fde86039.",
+      "Queues page shows Create Queue, no queue names in the visible table, billable operations 0, messages queued 0, average backlog 0, and average lag time 0 s.",
+      "Hosted images page says a subscription is required to add storage and shows images delivered 0 and images stored not applicable in the current plan.",
+      "Web Analytics lists one archestimator.com site created 12 hours ago, with JS Snippet installation, Page views (Last 24 hrs) 0, and Visits (Last 24 hrs) 0.",
+      "Account Observability shows Cloudflare Workers dataset events 0, success 0, and errors 0 for the last 1 hour.",
+      "Zone Workers Routes page says You do not have any routes configured."
+    ]
+  },
+  "wranglerReadback": {
+    "checkedAt": "2026-06-30T02:00:15.745Z",
+    "method": "Wrangler OAuth and read-only list/status commands after authorized proof resource creation; no raw command output, token, secret value, live DNS edit, provider deletion, or production cutover",
+    "auth": {
+      "method": "oauth",
+      "accountId": "7f6229cfea61b59f6f48b517fde86039",
+      "providerReadbackReady": true
+    },
+    "createdResources": {
+      "d1Databases": [
+        {
+          "name": "archestimator-proof-db",
+          "uuid": "9bdb29bb-687e-4f51-ae81-7659c426ea5f",
+          "region": "APAC"
+        },
+        {
+          "name": "archestimator-proof-db-dev",
+          "uuid": "363c756a-7c4d-42fe-908f-6d328bfa4acb",
+          "region": "APAC"
+        }
+      ],
+      "r2Buckets": [
+        "archestimator-proof-uploads",
+        "archestimator-proof-uploads-dev"
+      ],
+      "queues": [
+        "archestimator-upload-jobs",
+        "archestimator-upload-jobs-dlq"
+      ]
+    },
+    "readbackReady": {
+      "d1Databases": true,
+      "r2Buckets": true,
+      "queues": true,
+      "workerDeployment": false,
+      "workerSecretNames": false
+    }
+  },
+  "actionsTakenOutsideCodex": [
+    "Workers Paid purchase/subscription activation",
+    "R2 subscription activation"
+  ],
+  "actionsTakenByCodexAfterAuthorization": [
+    "Cloudflare Wrangler OAuth login/readback",
+    "Codex MCP Cloudflare account/docs/bindings/builds/observability setup from https://developers.cloudflare.com/agent-setup/",
+    "D1 database creation: archestimator-proof-db",
+    "D1 preview database creation: archestimator-proof-db-dev",
+    "R2 bucket creation: archestimator-proof-uploads",
+    "R2 preview bucket creation: archestimator-proof-uploads-dev",
+    "Queue creation: archestimator-upload-jobs",
+    "Dead-letter queue creation: archestimator-upload-jobs-dlq"
+  ],
+  "actionsIntentionallyNotTaken": [
+    "paid checkout/subscription purchase by Codex",
+    "API token creation",
+    "live DNS edits",
+    "registrar nameserver changes",
+    "Vercel cancellation",
+    "Supabase cancellation",
+    "Resend cancellation",
+    "provider resource deletion"
+  ]
+}

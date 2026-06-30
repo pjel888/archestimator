@@ -1,0 +1,97 @@
+{
+  "generatedAt": "2026-06-30T00:06:43.316Z",
+  "mode": "cloudflare-queues-cron-proof",
+  "sources": {
+    "wranglerConfig": "wrangler.jsonc",
+    "worker": "worker.ts",
+    "plan": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/27_PROOF_SPIKE_BACKLOG.md"
+  },
+  "readiness": {
+    "localQueueConfigReady": true,
+    "workerQueueHandlerReady": true,
+    "localQueueProducerReady": true,
+    "localConsumerAckReady": true,
+    "localRetryReady": true,
+    "localDeadLetterDecisionReady": true,
+    "localDuplicateDeliveryReady": true,
+    "localPoisonMessageReady": true,
+    "localQueuesCronProofReady": true,
+    "providerBacked": false,
+    "productionJobsMessagingReady": false
+  },
+  "queueConfig": {
+    "producerBindingReady": true,
+    "consumerReady": true,
+    "deadLetterReady": true,
+    "cronTriggersReady": true,
+    "producer": {
+      "binding": "UPLOAD_JOBS_QUEUE",
+      "queue": "archestimator-upload-jobs"
+    },
+    "consumer": {
+      "queue": "archestimator-upload-jobs",
+      "maxBatchSize": 5,
+      "maxBatchTimeout": 30,
+      "maxRetries": 3,
+      "deadLetterQueue": "archestimator-upload-jobs-dlq"
+    }
+  },
+  "workerQueueHandler": {
+    "queueHandlerPresent": true,
+    "queueRunnerImported": true,
+    "openNextFetcherUsed": true,
+    "ready": true
+  },
+  "localSimulation": {
+    "enqueueSentCount": 1,
+    "enqueueSkippedCount": 0,
+    "messageCount": 4,
+    "ackedCount": 3,
+    "retriedCount": 1,
+    "duplicateAckCount": 1,
+    "invalidAckCount": 1,
+    "deadLetterExpectedCount": 1,
+    "outcomes": [
+      {
+        "messageId": "cleanup-success",
+        "jobName": "upload-cleanup",
+        "action": "ack",
+        "reason": "executed",
+        "attempts": 1,
+        "deadLetterExpected": false,
+        "retryDelaySeconds": null
+      },
+      {
+        "messageId": "cleanup-duplicate",
+        "jobName": "upload-cleanup",
+        "action": "ack",
+        "reason": "duplicate",
+        "attempts": 2,
+        "deadLetterExpected": false,
+        "retryDelaySeconds": null
+      },
+      {
+        "messageId": "scan-failure-final-attempt",
+        "jobName": "upload-scan",
+        "action": "retry",
+        "reason": "job-failed",
+        "attempts": 3,
+        "deadLetterExpected": true,
+        "retryDelaySeconds": 60
+      },
+      {
+        "messageId": "invalid-poison",
+        "jobName": "unknown",
+        "action": "ack",
+        "reason": "invalid-message",
+        "attempts": 1,
+        "deadLetterExpected": false,
+        "retryDelaySeconds": null
+      }
+    ]
+  },
+  "blockers": [
+    "Cloudflare provider-backed Cron/Queues/DLQ execution evidence is still missing."
+  ],
+  "note": "Local Cloudflare Queues/Cron proof only. It validates wrangler queue/DLQ config, Worker queue() wiring, local enqueue, ack, retry, duplicate-idempotency, and poison-message handling without calling Cloudflare APIs, creating queues, reading secrets, deploying Workers, proving provider execution, changing DNS, billing, or replacing the live Vercel cron fallback."
+}

@@ -1,0 +1,21 @@
+# Cloudflare DNS Delegation
+
+Generated: 2026-06-30T03:01:35.992Z
+Source: .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-provider-readiness-source.json
+Zone: archestimator.com
+Public DNS checked: yes
+Nameservers active: no
+
+Public DNS delegation check only. It resolves NS records for the Cloudflare zone, does not call Cloudflare APIs, does not read env files, does not print secrets, does not deploy, does not change DNS/nameservers/resources/billing, and does not make Vercel/Supabase/Resend removable.
+
+## Nameservers
+
+| Source | Nameservers |
+| --- | --- |
+| Cloudflare assigned | carl.ns.cloudflare.com, ziggy.ns.cloudflare.com |
+| Sanitized registrar evidence | dns1.registrar-servers.com, dns2.registrar-servers.com |
+| Public DNS NS lookup | dns1.registrar-servers.com, dns2.registrar-servers.com |
+
+## Blockers
+
+- Public DNS nameservers do not include all Cloudflare-assigned nameservers.

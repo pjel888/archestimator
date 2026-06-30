@@ -1,0 +1,51 @@
+# Cloudflare Provider Readiness
+
+Generated: 2026-06-30T04:14:30.831Z
+Source: .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-provider-readiness-source.json
+Captured: 2026-06-30T02:00:15.745Z
+DNS delegation source: .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-dns-delegation.json
+Wrangler auth source: .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-wrangler-auth.json
+Provider resource readback source: .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-provider-resource-readback.json
+Nameserver evidence source: public-dns
+
+Sanitized provider-readiness check only. It evaluates dashboard facts supplied in a local JSON artifact and, when present, public DNS NS lookup and Wrangler auth artifacts. It does not create Cloudflare resources, does not read env files, does not print secrets, does not mutate DNS/resources/billing, and does not make Vercel/Supabase/Resend removable.
+
+## Summary
+
+| Gate | Ready |
+| --- | --- |
+| Dashboard inventory ready | yes |
+| Workers deployment ready | no |
+| Storage/media ready | no |
+| Jobs ready | no |
+| Analytics ready | no |
+| Production cutover ready | no |
+
+## Checks
+
+| Check | Result | Evidence | Blocker |
+| --- | --- | --- | --- |
+| Cloudflare account identified | PASS | account=Philipjonlewis@gmail.com's Account, accountIdPresent=yes |  |
+| Cloudflare zone exists | PASS | zone=archestimator.com, zoneIdPresent=yes, plan=Free |  |
+| Imported DNS reviewed | PASS | dnsImportedReviewed=yes, recordCount=9 |  |
+| Registrar nameservers point at Cloudflare | FAIL | assigned=carl.ns.cloudflare.com, ziggy.ns.cloudflare.com, publicDns=dns1.registrar-servers.com, dns2.registrar-servers.com, sanitizedRegistrar=dns1.registrar-servers.com, dns2.registrar-servers.com | Public DNS nameservers still do not include all Cloudflare-assigned nameservers. |
+| Workers Paid purchased | PASS | workersPlan=Paid, workersPaidPurchased=yes |  |
+| Worker project deployed | PASS | projectCount=0, deployedWorkerUrlPresent=no, wranglerDeploymentReadback=yes |  |
+| Worker custom domain active | FAIL | customDomainActive=no | Worker custom-domain routing is not active. |
+| Cloudflare API/Wrangler auth configured | PASS | dashboardApiAuthConfigured=yes, wranglerAuthChecked=yes, wranglerApiAuthenticated=yes, wranglerProviderReadback=yes |  |
+| Sanitized Worker secret list captured | PASS | sanitizedSecretListCaptured=no, wranglerSecretNameReadback=yes |  |
+| R2 proof buckets and readback proven | PASS | r2ProofBucketsCreated=yes, r2HostedReadbackProven=yes, wranglerR2Readback=yes |  |
+| Cloudflare Images binding provider-proven | FAIL | imagesBindingProviderProven=no | Cloudflare Images binding is not provider-proven. |
+| Cron/Queues provider execution proven | FAIL | cronProviderExecutionProven=no, queuesProofCreated=yes, deadLetterProofCreated=yes | Cloudflare Cron/Queues/dead-letter provider proof is incomplete. |
+| Web Analytics receiving data | FAIL | webAnalyticsPropertyCreated=yes, webAnalyticsReceivingDataProven=no | Cloudflare Web Analytics receipt is not provider-proven. |
+
+## Actions Intentionally Not Taken
+
+- paid checkout/subscription purchase by Codex
+- API token creation
+- live DNS edits
+- registrar nameserver changes
+- Vercel cancellation
+- Supabase cancellation
+- Resend cancellation
+- provider resource deletion

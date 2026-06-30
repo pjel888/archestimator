@@ -1,0 +1,169 @@
+{
+  "generatedAt": "2026-06-29T22:22:42.670Z",
+  "mode": "cloudflare-d1-estimate-history-proof",
+  "sources": {
+    "plan": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex",
+    "currentAppFiles": [
+      "src/lib/estimates/actions.ts",
+      "src/lib/repositories/estimate-repository.ts",
+      "src/lib/component-library/actions.ts"
+    ],
+    "currentSupabaseMigrations": [
+      "supabase/migrations",
+      "supabase/migrations-pending-review"
+    ],
+    "d1DatabaseApi": "Cloudflare D1 prepared statements with explicit BEGIN IMMEDIATE transactions in local SQLite fixture"
+  },
+  "affectedRpcNames": [
+    "archive_estimate_tab_with_history",
+    "create_ai_package_library_components_with_history",
+    "create_estimate_tab_with_history",
+    "create_project_estimate_package_with_history",
+    "delete_estimate_tab_with_history",
+    "duplicate_estimate_tab_with_history",
+    "insert_estimate_subtree_into_estimate_with_history",
+    "move_estimate_row_item_with_history",
+    "promote_estimate_row_to_library_component",
+    "rename_estimate_tab_with_history",
+    "reorder_estimate_tabs_with_history",
+    "update_estimate_sheet_adjustment_with_history"
+  ],
+  "readiness": {
+    "schemaReady": true,
+    "appLayerEditorGuardReady": true,
+    "estimateTabMutationReady": true,
+    "subtreeInsertReady": true,
+    "rowMoveReady": true,
+    "sheetAdjustmentReady": true,
+    "packageApplyReady": true,
+    "promoteToLibraryReady": true,
+    "rollbackReady": true,
+    "idempotencyReady": true,
+    "queryBudgetReady": true,
+    "restoreFixtureReady": true,
+    "localEstimateHistoryD1SliceReady": true,
+    "productionEstimateHistoryD1Ready": false
+  },
+  "localOnly": true,
+  "providerBacked": false,
+  "fixture": {
+    "sqliteVersion": "3.54.0",
+    "fixtureTables": 13,
+    "rowsSeeded": 53,
+    "viewerMutationCommandFailed": true,
+    "viewerMutationResidueRows": 0,
+    "createTabRows": 1,
+    "duplicateCreateTabRows": 1,
+    "renamedTabName": "Renamed tab",
+    "archivedTabStatus": "archived",
+    "deletedTabRows": 0,
+    "duplicateTabRows": 1,
+    "reorderedTabRows": 3,
+    "duplicateReorderCommandFailed": true,
+    "duplicateReorderResidueRows": 0,
+    "subtreeNodeRows": 2,
+    "subtreeRowRows": 1,
+    "duplicateSubtreeOperationRows": 1,
+    "movedRowNodeId": "node-move-target",
+    "movedRowHistoryRows": 1,
+    "sheetAdjustmentValue": 7.5,
+    "sheetAdjustmentHistoryRows": 1,
+    "projectPackageCommandRows": 1,
+    "libraryPackageCommandRows": 1,
+    "promotedLibraryComponentRows": 1,
+    "promotedRowLinkedRows": 1,
+    "rollbackCommandFailed": true,
+    "rollbackResidueRows": 0,
+    "restoredTabRows": 8,
+    "restoredNodeRows": 8,
+    "restoredRowRows": 7,
+    "restoredHistoryRows": 11,
+    "tabListPlanUsesIndex": true,
+    "eventTimelinePlanUsesIndex": true,
+    "subtreePlanUsesIndex": true,
+    "packageCommandPlanUsesIndex": true,
+    "planDetails": [
+      "QUERY PLAN",
+      "`--SEARCH estimate_tabs USING INDEX idx_estimate_tabs_estimate_sort (estimate_id=? AND status=?)",
+      "QUERY PLAN",
+      "`--SEARCH estimate_sheet_events USING INDEX idx_estimate_sheet_events_estimate_created (estimate_id=?)",
+      "QUERY PLAN",
+      "`--SEARCH estimate_nodes USING INDEX idx_estimate_nodes_estimate_tab_parent_sort (estimate_id=? AND tab_id=? AND parent_id=?)",
+      "QUERY PLAN",
+      "`--SEARCH ai_package_apply_commands USING INDEX sqlite_autoindex_ai_package_apply_commands_2 (workspace_id=? AND command_kind=? AND idempotency_key=?)"
+    ],
+    "tempArtifactsRemoved": true
+  },
+  "queryProof": {
+    "rows": [
+      {
+        "surface": "estimate_history_tab_list",
+        "queryBudget": 1,
+        "plannedQueries": 1,
+        "localBudgetMs": 45,
+        "localP95Ms": 18.9,
+        "rowsReturned": 6,
+        "sampleCount": 7,
+        "status": "local-pass",
+        "notes": "Temporary local SQLite timing only; hosted Worker+D1 p95 remains required."
+      },
+      {
+        "surface": "estimate_history_event_timeline",
+        "queryBudget": 1,
+        "plannedQueries": 1,
+        "localBudgetMs": 45,
+        "localP95Ms": 8.09,
+        "rowsReturned": 10,
+        "sampleCount": 7,
+        "status": "local-pass",
+        "notes": "Temporary local SQLite timing only; hosted Worker+D1 p95 remains required."
+      },
+      {
+        "surface": "estimate_history_subtree_children",
+        "queryBudget": 1,
+        "plannedQueries": 1,
+        "localBudgetMs": 45,
+        "localP95Ms": 3.87,
+        "rowsReturned": 1,
+        "sampleCount": 7,
+        "status": "local-pass",
+        "notes": "Temporary local SQLite timing only; hosted Worker+D1 p95 remains required."
+      },
+      {
+        "surface": "estimate_history_package_command_lookup",
+        "queryBudget": 1,
+        "plannedQueries": 1,
+        "localBudgetMs": 45,
+        "localP95Ms": 3.89,
+        "rowsReturned": 1,
+        "sampleCount": 7,
+        "status": "local-pass",
+        "notes": "Temporary local SQLite timing only; hosted Worker+D1 p95 remains required."
+      }
+    ]
+  },
+  "d1RewriteStrategy": {
+    "typeStrategy": "Use explicit D1 repository DTOs for estimate tabs, nodes, row items, history events, package apply commands, and operation keys; derive identity from Better Auth session before mutation.",
+    "preparedStatementPatterns": [
+      "SELECT 1 FROM workspace_members WHERE workspace_id = ? AND user_id = ? AND role IN ('owner','editor')",
+      "BEGIN IMMEDIATE; INSERT OR IGNORE INTO estimate_operation_keys(operation_key, rpc_name, estimate_id) ...",
+      "BEGIN IMMEDIATE; UPDATE estimate_tabs ...; INSERT INTO estimate_sheet_events ...; COMMIT",
+      "BEGIN IMMEDIATE; INSERT INTO estimate_nodes ...; INSERT INTO estimate_row_items ...; INSERT INTO estimate_sheet_events ...; COMMIT",
+      "EXPLAIN QUERY PLAN SELECT ... FROM estimate_sheet_events WHERE estimate_id = ? ORDER BY created_at DESC, id DESC"
+    ]
+  },
+  "productionProofRequirements": [
+    "Hosted Worker+D1 estimate-history mutation proof with real D1 bindings and Better Auth-derived identity.",
+    "D1 schema migration/readback proof for estimates, tabs, nodes, row items, history events, operation keys, and package apply commands.",
+    "Cross-workspace denial tests against mounted Worker route/action surfaces for estimate mutations.",
+    "Rollback/idempotency replay proof using production-shaped D1 transactions and retry/operation keys.",
+    "Hosted Worker+D1 p95/query-count proof for tab lists, estimate tree/subtree reads, and activity timeline surfaces.",
+    "Provider-backed D1 export/import restore proof for estimate-history tables."
+  ],
+  "blockers": [
+    "Hosted Worker+D1 estimate-history proof is still missing.",
+    "Better Auth production identity handoff is still missing; keep current Supabase-backed estimate actions live.",
+    "Provider-backed D1 export/import restore proof for estimate-history tables is still missing."
+  ],
+  "note": "Local D1 estimate-history proof only. It uses sanitized temporary SQLite data to exercise D1-style transactions, rollback, operation-key idempotency, query plans, and restore mechanics; it does not read env files, print secret values, call provider APIs, create hosted D1 databases, mutate Cloudflare/Supabase, deploy Workers, change DNS, bill, replace live Supabase RPCs, or make production D1/Auth/Realtime ready."
+}

@@ -8,6 +8,55 @@ document: 28
 
 Use this template before choosing Cloudflare production migration. Refresh all provider pricing and limits on the execution date.
 
+## Generated Workbook Scaffold
+
+Collected on 2026-06-30 local time with `bun run cf:workbook`.
+
+Evidence artifacts:
+
+- `evidence/2026-06-30-cloudflare-cost-performance-workbook.json`
+- `evidence/2026-06-30-cloudflare-cost-performance-workbook.md`
+
+Readiness from the generated scaffold:
+
+| Gate | Ready? |
+| --- | --- |
+| Current provider costs ready | no |
+| Cloudflare pricing refreshed | yes |
+| Cloudflare usage costs ready | no |
+| Local preview performance captured | yes |
+| Hosted credential-free performance captured | no |
+| Hosted performance ready | no |
+| Production cost decision ready | no |
+
+Official pricing evidence is present only as a dated Cloudflare-source snapshot:
+
+- `evidence/2026-06-30-cloudflare-official-pricing-source.json`
+- `evidence/2026-06-30-cloudflare-official-pricing-snapshot.json`
+- `evidence/2026-06-30-cloudflare-official-pricing-snapshot.md`
+
+It covers `13` Cloudflare product surfaces and keeps `productionCostDecisionReady=false`.
+
+Local inventory-derived cost inputs are present only as planning surface counts: `91` provider-coupled source files need per-route subrequest mapping, `80` app-code RPC names need read/write classification, and `346` SQL function declaration/update matches need transaction classification. These are not monthly usage values.
+
+Local Worker preview duration rows captured from `evidence/2026-06-29-cloudflare-worker-preview-route-probe.json`:
+
+| Fixture | Local Worker preview p95 | Status |
+| --- | ---: | --- |
+| Public home route p95 TTFB | `168.47ms` | local-only-pass |
+| Pricing/features static route p95 TTFB | `13.68ms` | local-only-pass |
+| Login/auth callback p95 duration | `13.07ms` | local-only-pass |
+| Share route p95 TTFB | `327.35ms` | local-only-pass |
+| Workshop home p95 TTFB | `4.03ms` | local-only-pass |
+
+These rows are local Worker preview durations, not current-provider baselines, hosted Cloudflare TTFB, Worker CPU, provider logs, or production cost evidence.
+
+Hosted Worker timing harness:
+
+- Command: `CLOUDFLARE_HOSTED_PERFORMANCE_BASE_URL=https://<deployed-worker-host> OUTPUT_FILE=evidence/2026-06-30-cloudflare-hosted-performance.json MARKDOWN_FILE=evidence/2026-06-30-cloudflare-hosted-performance.md bun run cf:verify-hosted-performance`
+- Current status: no hosted performance artifact is present, so the generated workbook keeps `hostedCredentialFreePerformanceCaptured=false` and `hostedPerformanceReady=false`.
+- Scope: credential-free hosted route contract and p95 timing only. It is not authenticated workflow proof, D1/Auth/Realtime proof, Worker CPU/subrequest proof, current-provider baseline evidence, or production cost evidence.
+
 ## Current Provider Cost Inputs
 
 | Input | Source | Monthly value | Notes |

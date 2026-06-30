@@ -1,0 +1,98 @@
+{
+  "generatedAt": "2026-06-29T19:53:46.255Z",
+  "mode": "cloudflare-platform-toolchain",
+  "sources": {
+    "packageJson": "package.json",
+    "wranglerConfig": "wrangler.jsonc",
+    "wranglerSchema": "node_modules/wrangler/config-schema.json",
+    "generatedEnvTypes": "cloudflare-env.d.ts"
+  },
+  "versions": {
+    "wrangler": "4.105.0",
+    "@opennextjs/cloudflare": "1.20.1",
+    "@cloudflare/workers-types": null,
+    "next": "16.2.6",
+    "typescript": "6.0.3"
+  },
+  "wranglerConfig": {
+    "parsed": true,
+    "name": "archestimator-proof",
+    "main": "worker.ts",
+    "compatibilityDate": "2026-06-29",
+    "compatibilityDateAgeDays": 0,
+    "compatibilityDateWithin30Days": true,
+    "nodejsCompatEnabled": true,
+    "observabilityConfigured": true,
+    "observability": {
+      "configured": true,
+      "enabled": true,
+      "headSamplingRate": 0.1,
+      "logsEnabled": true,
+      "logsHeadSamplingRate": 0.1,
+      "logsInvocationLogs": true,
+      "logsPersist": true,
+      "tracesEnabled": true,
+      "tracesHeadSamplingRate": 0.05,
+      "tracesPersist": true
+    },
+    "cronCount": 2,
+    "configuredKeys": [
+      "$schema",
+      "assets",
+      "compatibility_date",
+      "compatibility_flags",
+      "d1_databases",
+      "durable_objects",
+      "images",
+      "main",
+      "migrations",
+      "name",
+      "observability",
+      "r2_buckets",
+      "triggers"
+    ],
+    "unsupportedKeys": [],
+    "schemaSupportedConfiguredKeys": true,
+    "configuredBindings": [
+      "ARCH_DB",
+      "ARCH_UPLOADS_R2",
+      "ASSETS",
+      "COLLAB_ROOMS",
+      "IMAGES"
+    ]
+  },
+  "generatedTypes": {
+    "exists": true,
+    "hasCloudflareEnvInterface": true,
+    "runtimeTypesLine": "// Runtime types generated with workerd@1.20260625.1 2026-06-29 nodejs_compat",
+    "bindingRows": [
+      {
+        "binding": "ARCH_DB",
+        "presentInGeneratedTypes": true
+      },
+      {
+        "binding": "ARCH_UPLOADS_R2",
+        "presentInGeneratedTypes": true
+      },
+      {
+        "binding": "ASSETS",
+        "presentInGeneratedTypes": true
+      },
+      {
+        "binding": "COLLAB_ROOMS",
+        "presentInGeneratedTypes": true
+      },
+      {
+        "binding": "IMAGES",
+        "presentInGeneratedTypes": true
+      }
+    ],
+    "allConfiguredBindingsTyped": true
+  },
+  "readiness": {
+    "localToolchainSnapshotReady": true,
+    "directWorkersTypesInstalled": false,
+    "productionDeployReady": false
+  },
+  "note": "Local Cloudflare toolchain snapshot only. It validates installed package versions, Wrangler schema/config support, compatibility-date freshness, nodejs_compat, generated type coverage, and binding names without reading env files or provider secrets. It does not prove Wrangler/API authentication, hosted deployment, custom domains, remote bindings, provider usage, observability receipt, Workers Paid, or production cutover readiness."
+}

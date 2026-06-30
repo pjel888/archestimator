@@ -1,0 +1,259 @@
+{
+  "generatedAt": "2026-06-30T03:01:22.392Z",
+  "mode": "cloudflare-worker-readiness",
+  "sources": {
+    "envExample": ".env.example",
+    "devVarsExample": ".dev.vars.example",
+    "wranglerConfig": "wrangler.jsonc",
+    "packageJson": "package.json"
+  },
+  "envExample": {
+    "required": [
+      "NEXT_PUBLIC_APP_URL",
+      "NEXT_PUBLIC_SITE_URL",
+      "ARCHESTIMATOR_ALLOWED_APP_ORIGINS",
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "CLOSED_BETA_ACCESS_ENABLED",
+      "PUBLICATION_TOKEN_ENCRYPTION_SECRET",
+      "PUBLICATION_TOKEN_HASH_SECRET",
+      "PUBLICATION_ACCESS_COOKIE_SECRET",
+      "ARCHESTIMATOR_AI_ENABLED",
+      "NEXT_PUBLIC_ASK_FLIP_UI_ENABLED",
+      "NEXT_PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN",
+      "CRON_SECRET",
+      "UPLOAD_CLEANUP_JOB_SECRET",
+      "UPLOAD_SCAN_JOB_SECRET",
+      "UPLOAD_JOBS_ENABLED",
+      "CLOUDFLARE_UPLOAD_JOBS_DRY_RUN",
+      "CLOUDFLARE_UPLOAD_JOBS_ORIGIN",
+      "ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER",
+      "ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER"
+    ],
+    "present": [
+      "NEXT_PUBLIC_APP_URL",
+      "NEXT_PUBLIC_SITE_URL",
+      "ARCHESTIMATOR_ALLOWED_APP_ORIGINS",
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "CLOSED_BETA_ACCESS_ENABLED",
+      "PUBLICATION_TOKEN_ENCRYPTION_SECRET",
+      "PUBLICATION_TOKEN_HASH_SECRET",
+      "PUBLICATION_ACCESS_COOKIE_SECRET",
+      "ARCHESTIMATOR_AI_ENABLED",
+      "NEXT_PUBLIC_ASK_FLIP_UI_ENABLED",
+      "NEXT_PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN",
+      "CRON_SECRET",
+      "UPLOAD_CLEANUP_JOB_SECRET",
+      "UPLOAD_SCAN_JOB_SECRET",
+      "UPLOAD_JOBS_ENABLED",
+      "CLOUDFLARE_UPLOAD_JOBS_DRY_RUN",
+      "CLOUDFLARE_UPLOAD_JOBS_ORIGIN",
+      "ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER",
+      "ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER"
+    ],
+    "missing": [],
+    "ready": true
+  },
+  "devVarsExample": {
+    "required": [
+      "CRON_SECRET",
+      "UPLOAD_CLEANUP_JOB_SECRET",
+      "UPLOAD_SCAN_JOB_SECRET",
+      "UPLOAD_JOBS_ENABLED",
+      "CLOUDFLARE_UPLOAD_JOBS_DRY_RUN",
+      "CLOUDFLARE_UPLOAD_JOBS_ORIGIN",
+      "PUBLICATION_TOKEN_ENCRYPTION_SECRET",
+      "PUBLICATION_TOKEN_HASH_SECRET",
+      "PUBLICATION_ACCESS_COOKIE_SECRET",
+      "ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER",
+      "ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER"
+    ],
+    "present": [
+      "CRON_SECRET",
+      "UPLOAD_CLEANUP_JOB_SECRET",
+      "UPLOAD_SCAN_JOB_SECRET",
+      "UPLOAD_JOBS_ENABLED",
+      "CLOUDFLARE_UPLOAD_JOBS_DRY_RUN",
+      "CLOUDFLARE_UPLOAD_JOBS_ORIGIN",
+      "PUBLICATION_TOKEN_ENCRYPTION_SECRET",
+      "PUBLICATION_TOKEN_HASH_SECRET",
+      "PUBLICATION_ACCESS_COOKIE_SECRET",
+      "ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER",
+      "ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER"
+    ],
+    "missing": [],
+    "ready": true
+  },
+  "wranglerBindings": {
+    "required": [
+      "ASSETS",
+      "ARCH_UPLOADS_R2",
+      "IMAGES",
+      "UPLOAD_JOBS_QUEUE"
+    ],
+    "present": [
+      "ASSETS",
+      "ARCH_UPLOADS_R2",
+      "IMAGES",
+      "UPLOAD_JOBS_QUEUE"
+    ],
+    "missing": [],
+    "ready": true
+  },
+  "wranglerCrons": {
+    "required": [
+      "0 3 * * *",
+      "15 3 * * *"
+    ],
+    "present": [
+      "0 3 * * *",
+      "15 3 * * *"
+    ],
+    "missing": [],
+    "ready": true
+  },
+  "wranglerObservability": {
+    "required": [
+      "observability.enabled",
+      "observability.head_sampling_rate<=0.1",
+      "observability.logs.enabled",
+      "observability.logs.head_sampling_rate<=0.1",
+      "observability.logs.invocation_logs",
+      "observability.logs.persist",
+      "observability.traces.enabled",
+      "observability.traces.head_sampling_rate<=0.05",
+      "observability.traces.persist"
+    ],
+    "present": [
+      "observability.enabled",
+      "observability.head_sampling_rate<=0.1",
+      "observability.logs.enabled",
+      "observability.logs.head_sampling_rate<=0.1",
+      "observability.logs.invocation_logs",
+      "observability.logs.persist",
+      "observability.traces.enabled",
+      "observability.traces.head_sampling_rate<=0.05",
+      "observability.traces.persist"
+    ],
+    "missing": [],
+    "ready": true
+  },
+  "packageScripts": {
+    "required": [
+      "cf:build",
+      "cf:preview",
+      "cf:deploy",
+      "cf:typegen",
+      "cf:verify-preview-routes",
+      "cf:check-readiness"
+    ],
+    "present": [
+      "cf:build",
+      "cf:preview",
+      "cf:deploy",
+      "cf:typegen",
+      "cf:verify-preview-routes",
+      "cf:check-readiness"
+    ],
+    "missing": [],
+    "ready": true
+  },
+  "localDevVars": {
+    "checked": true,
+    "source": ".dev.vars",
+    "previewSecrets": {
+      "required": [
+        "PUBLICATION_TOKEN_ENCRYPTION_SECRET",
+        "PUBLICATION_TOKEN_HASH_SECRET",
+        "PUBLICATION_ACCESS_COOKIE_SECRET"
+      ],
+      "present": [
+        "PUBLICATION_TOKEN_ENCRYPTION_SECRET",
+        "PUBLICATION_TOKEN_HASH_SECRET",
+        "PUBLICATION_ACCESS_COOKIE_SECRET"
+      ],
+      "missing": [],
+      "ready": true
+    },
+    "previewControls": {
+      "required": [
+        "UPLOAD_JOBS_ENABLED",
+        "CLOUDFLARE_UPLOAD_JOBS_DRY_RUN",
+        "CLOUDFLARE_UPLOAD_JOBS_ORIGIN",
+        "ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER",
+        "ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER"
+      ],
+      "present": [
+        "UPLOAD_JOBS_ENABLED",
+        "CLOUDFLARE_UPLOAD_JOBS_DRY_RUN",
+        "CLOUDFLARE_UPLOAD_JOBS_ORIGIN",
+        "ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER",
+        "ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER"
+      ],
+      "missing": [],
+      "ready": true
+    },
+    "ready": true
+  },
+  "providerSecretList": {
+    "checked": true,
+    "source": ".wrangler/tmp/archestimator-proof-secret-list.json",
+    "deployedWorkerSecrets": {
+      "required": [
+        "NEXT_PUBLIC_APP_URL",
+        "NEXT_PUBLIC_SITE_URL",
+        "ARCHESTIMATOR_ALLOWED_APP_ORIGINS",
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "CLOSED_BETA_ACCESS_ENABLED",
+        "PUBLICATION_TOKEN_ENCRYPTION_SECRET",
+        "PUBLICATION_TOKEN_HASH_SECRET",
+        "PUBLICATION_ACCESS_COOKIE_SECRET",
+        "ARCHESTIMATOR_AI_ENABLED",
+        "NEXT_PUBLIC_ASK_FLIP_UI_ENABLED",
+        "CRON_SECRET",
+        "UPLOAD_CLEANUP_JOB_SECRET",
+        "UPLOAD_SCAN_JOB_SECRET",
+        "UPLOAD_JOBS_ENABLED",
+        "CLOUDFLARE_UPLOAD_JOBS_DRY_RUN",
+        "CLOUDFLARE_UPLOAD_JOBS_ORIGIN",
+        "ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER",
+        "ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER"
+      ],
+      "present": [
+        "NEXT_PUBLIC_APP_URL",
+        "NEXT_PUBLIC_SITE_URL",
+        "ARCHESTIMATOR_ALLOWED_APP_ORIGINS",
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "CLOSED_BETA_ACCESS_ENABLED",
+        "PUBLICATION_TOKEN_ENCRYPTION_SECRET",
+        "PUBLICATION_TOKEN_HASH_SECRET",
+        "PUBLICATION_ACCESS_COOKIE_SECRET",
+        "ARCHESTIMATOR_AI_ENABLED",
+        "NEXT_PUBLIC_ASK_FLIP_UI_ENABLED",
+        "CRON_SECRET",
+        "UPLOAD_CLEANUP_JOB_SECRET",
+        "UPLOAD_SCAN_JOB_SECRET",
+        "UPLOAD_JOBS_ENABLED",
+        "CLOUDFLARE_UPLOAD_JOBS_DRY_RUN",
+        "CLOUDFLARE_UPLOAD_JOBS_ORIGIN",
+        "ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER",
+        "ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER"
+      ],
+      "missing": [],
+      "ready": true
+    },
+    "ready": true
+  },
+  "manifestReady": true,
+  "localPreviewReady": true,
+  "deploymentSecretsReady": true,
+  "deploymentReady": true,
+  "note": "Cloudflare Worker readiness checks manifest/env-name alignment and optional sanitized secret-list transcripts only. It never prints secret values, does not create Cloudflare resources, does not prove paid-plan status, hosted deployment, custom-domain routing, R2 bucket existence, Images processing, cron execution, analytics receipt, database migration, nameserver changes, rollback, or provider cancellation."
+}

@@ -1,0 +1,104 @@
+{
+  "generatedAt": "2026-06-30T03:01:02.668Z",
+  "mode": "cloudflare-wrangler-deploy-dry-run",
+  "command": [
+    "OPEN_NEXT_DEPLOY=true",
+    "CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false",
+    "bunx",
+    "wrangler",
+    "deploy",
+    "--dry-run",
+    "--keep-vars",
+    "--outdir",
+    ".wrangler/tmp/cloudflare-deploy-dry-run",
+    "--metafile",
+    ".wrangler/tmp/cloudflare-deploy-dry-run/metafile.json"
+  ],
+  "dryRun": {
+    "exitCode": 0,
+    "passed": true,
+    "noUploadMarkerSeen": true,
+    "assetFileCount": 302,
+    "totalUploadKiB": 20431.97,
+    "gzipUploadKiB": 4432.44,
+    "warnings": [],
+    "bindings": [
+      {
+        "binding": "ARCH_DB",
+        "resource": "363c756a-7c4d-42fe-908f-6d328bfa4acb",
+        "type": "D1 Database"
+      },
+      {
+        "binding": "ARCH_UPLOADS_R2",
+        "resource": "archestimator-proof-uploads",
+        "type": "R2 Bucket"
+      },
+      {
+        "binding": "ASSETS",
+        "resource": null,
+        "type": "Assets"
+      },
+      {
+        "binding": "COLLAB_ROOMS",
+        "resource": "CollaborationRoom",
+        "type": "Durable Object"
+      },
+      {
+        "binding": "IMAGES",
+        "resource": null,
+        "type": "Images"
+      },
+      {
+        "binding": "UPLOAD_JOBS_QUEUE",
+        "resource": "archestimator-upload-jobs",
+        "type": "Queue"
+      }
+    ],
+    "requiredBindingsReady": true,
+    "missingBindings": []
+  },
+  "bundle": {
+    "metafileRead": true,
+    "inputCount": 50,
+    "outputCount": 2,
+    "metafileOutputBytes": 50292260,
+    "generatedFiles": [
+      {
+        "file": ".wrangler/tmp/cloudflare-deploy-dry-run/worker.js",
+        "bytes": 20922341
+      },
+      {
+        "file": ".wrangler/tmp/cloudflare-deploy-dry-run/worker.js.map",
+        "bytes": 29369919
+      },
+      {
+        "file": ".wrangler/tmp/cloudflare-deploy-dry-run/metafile.json",
+        "bytes": 65672
+      },
+      {
+        "file": ".wrangler/tmp/cloudflare-deploy-dry-run/README.md",
+        "bytes": 120
+      }
+    ]
+  },
+  "readiness": {
+    "localWranglerDryRunReady": true,
+    "productionDeployReady": false
+  },
+  "sanitizedLog": [
+    " ⛅️ wrangler 4.105.0",
+    "────────────────────",
+    "✨ Read 302 files from the assets directory <repo>/.open-next/assets",
+    "Total Upload: 20431.97 KiB / gzip: 4432.44 KiB",
+    "Your Worker has access to the following bindings:",
+    "Binding                                                           Resource",
+    "env.COLLAB_ROOMS (CollaborationRoom)                              Durable Object",
+    "env.UPLOAD_JOBS_QUEUE (archestimator-upload-jobs)                 Queue",
+    "env.ARCH_DB (363c756a-7c4d-42fe-908f-6d328bfa4acb)                D1 Database",
+    "env.ARCH_UPLOADS_R2 (archestimator-proof-uploads)                 R2 Bucket",
+    "env.IMAGES                                                        Images",
+    "env.ASSETS                                                        Assets",
+    "--dry-run: exiting now."
+  ],
+  "note": "Local Wrangler deploy dry-run only. It compiles/checks the Worker bundle and exits before upload. It does not prove Cloudflare authentication, hosted deployment, custom domains, remote bindings, Workers Paid, request handling, production traffic, logs/observability receipt, DNS cutover, or provider rollback."
+}

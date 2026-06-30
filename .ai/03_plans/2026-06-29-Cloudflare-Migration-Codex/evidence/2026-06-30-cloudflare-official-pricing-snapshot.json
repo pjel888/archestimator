@@ -1,0 +1,738 @@
+{
+  "generatedAt": "2026-06-29T16:44:14.975Z",
+  "mode": "cloudflare-pricing-snapshot",
+  "capturedAt": "2026-06-30T00:00:00.000+08:00",
+  "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-official-pricing-source.json",
+  "captureBoundary": "Official Cloudflare public docs and pricing pages only. This source file contains no account secrets, invoices, traffic data, provider mutations, or dashboard-only billing state.",
+  "readiness": {
+    "officialCloudflarePricingRefreshed": true,
+    "productionCostDecisionReady": false,
+    "requiredProductsCovered": 13,
+    "requiredProductsMissing": [],
+    "invalidSourceUrlCount": 0
+  },
+  "coverage": [
+    {
+      "productId": "workers",
+      "productName": "Workers compute",
+      "factCount": 3,
+      "sourceUrls": [
+        "https://developers.cloudflare.com/workers/platform/pricing/",
+        "https://developers.cloudflare.com/workers/platform/limits/",
+        "https://www.cloudflare.com/plans/developer-platform/"
+      ],
+      "modelingInputs": [
+        "monthly dynamic Worker requests by route/action class",
+        "CPU milliseconds per route/action at p50 and p95",
+        "WebSocket connection counts where Workers or Durable Objects handle upgrades"
+      ],
+      "remainingEvidenceNeeded": [
+        "hosted Worker request and CPU metrics",
+        "route/action split between dynamic Worker execution and static asset serving"
+      ],
+      "status": "refreshed"
+    },
+    {
+      "productId": "workers-static-assets",
+      "productName": "Workers Static Assets",
+      "factCount": 2,
+      "sourceUrls": [
+        "https://developers.cloudflare.com/workers/static-assets/billing-and-limitations/",
+        "https://developers.cloudflare.com/workers/static-assets/"
+      ],
+      "modelingInputs": [
+        "static asset request volume",
+        "dynamic SSR/API request volume",
+        "assets.run_worker_first paths"
+      ],
+      "remainingEvidenceNeeded": [
+        "OpenNext asset routing proof and hosted request classification"
+      ],
+      "status": "refreshed"
+    },
+    {
+      "productId": "workers-kv",
+      "productName": "Workers KV",
+      "factCount": 3,
+      "sourceUrls": [
+        "https://developers.cloudflare.com/workers/platform/pricing/"
+      ],
+      "modelingInputs": [
+        "safe-cache read/write/list/delete operation counts",
+        "stored cache/config GB-month"
+      ],
+      "remainingEvidenceNeeded": [
+        "explicit cache-only use-case selection"
+      ],
+      "status": "refreshed"
+    },
+    {
+      "productId": "d1",
+      "productName": "D1",
+      "factCount": 3,
+      "sourceUrls": [
+        "https://developers.cloudflare.com/d1/platform/pricing/",
+        "https://developers.cloudflare.com/d1/platform/limits/"
+      ],
+      "modelingInputs": [
+        "rows read per hot query",
+        "rows written per mutation/job",
+        "database size after import and indexes"
+      ],
+      "remainingEvidenceNeeded": [
+        "D1 query-plan proof for selected domains",
+        "restore/time-travel proof",
+        "app-layer authorization proof"
+      ],
+      "status": "refreshed"
+    },
+    {
+      "productId": "r2",
+      "productName": "R2",
+      "factCount": 4,
+      "sourceUrls": [
+        "https://developers.cloudflare.com/r2/pricing/",
+        "https://www.cloudflare.com/products/r2/"
+      ],
+      "modelingInputs": [
+        "object storage GB-month",
+        "Class A operations per upload/lifecycle path",
+        "Class B operations per private/public read path",
+        "egress volume currently charged by other providers"
+      ],
+      "remainingEvidenceNeeded": [
+        "provider-backed bucket proof",
+        "direct signed/TUS replacement proof",
+        "hosted upload/read/delete/scan lifecycle proof"
+      ],
+      "status": "refreshed"
+    },
+    {
+      "productId": "queues",
+      "productName": "Queues",
+      "factCount": 1,
+      "sourceUrls": [
+        "https://developers.cloudflare.com/queues/platform/pricing/",
+        "https://developers.cloudflare.com/queues/platform/limits/",
+        "https://developers.cloudflare.com/changelog/post/2026-02-04-queues-free-plan/"
+      ],
+      "modelingInputs": [
+        "messages written/read/deleted per job",
+        "message payload size including metadata",
+        "retry/dead-letter amplification"
+      ],
+      "remainingEvidenceNeeded": [
+        "Cron/Queue hosted execution proof",
+        "retry/dead-letter proof"
+      ],
+      "status": "refreshed"
+    },
+    {
+      "productId": "durable-objects",
+      "productName": "Durable Objects",
+      "factCount": 3,
+      "sourceUrls": [
+        "https://developers.cloudflare.com/workers/platform/pricing/",
+        "https://developers.cloudflare.com/durable-objects/platform/pricing/",
+        "https://developers.cloudflare.com/durable-objects/platform/limits/"
+      ],
+      "modelingInputs": [
+        "room/object request counts",
+        "active duration and hibernation behavior",
+        "WebSocket connection and message volume",
+        "state storage and row read/write volume"
+      ],
+      "remainingEvidenceNeeded": [
+        "Durable Object realtime proof for cursors/presence",
+        "hibernation/cost proof under realistic message cadence"
+      ],
+      "status": "refreshed"
+    },
+    {
+      "productId": "cloudflare-images",
+      "productName": "Cloudflare Images",
+      "factCount": 3,
+      "sourceUrls": [
+        "https://developers.cloudflare.com/images/pricing/"
+      ],
+      "modelingInputs": [
+        "unique resize/thumbnail transformations",
+        "stored image count if using Images storage",
+        "delivered image count"
+      ],
+      "remainingEvidenceNeeded": [
+        "paid/deployed Images binding proof",
+        "decision between Images storage, R2 storage, and hybrid transformation only"
+      ],
+      "status": "refreshed"
+    },
+    {
+      "productId": "email-service",
+      "productName": "Email Service and Email Routing",
+      "factCount": 3,
+      "sourceUrls": [
+        "https://developers.cloudflare.com/email-service/",
+        "https://developers.cloudflare.com/email-service/platform/pricing/",
+        "https://developers.cloudflare.com/email-service/get-started/send-emails/"
+      ],
+      "modelingInputs": [
+        "monthly transactional sends",
+        "email event/bounce/retry needs",
+        "verified-destination versus arbitrary-recipient split"
+      ],
+      "remainingEvidenceNeeded": [
+        "deliverability proof",
+        "events/webhooks/bounce handling proof",
+        "Cloudflare DNS prerequisite completion"
+      ],
+      "status": "refreshed"
+    },
+    {
+      "productId": "turnstile",
+      "productName": "Turnstile",
+      "factCount": 1,
+      "sourceUrls": [
+        "https://developers.cloudflare.com/turnstile/plans/"
+      ],
+      "modelingInputs": [
+        "challenge volume",
+        "widget/site/hostname requirements",
+        "support and analytics requirements"
+      ],
+      "remainingEvidenceNeeded": [
+        "route-level Turnstile placement and false-positive proof"
+      ],
+      "status": "refreshed"
+    },
+    {
+      "productId": "web-analytics",
+      "productName": "Web Analytics",
+      "factCount": 1,
+      "sourceUrls": [
+        "https://www.cloudflare.com/web-analytics/",
+        "https://developers.cloudflare.com/pages/how-to/web-analytics/"
+      ],
+      "modelingInputs": [
+        "public-page traffic",
+        "consent-gated loading behavior",
+        "analytics retention/export needs"
+      ],
+      "remainingEvidenceNeeded": [
+        "provider dashboard receipt proof after traffic",
+        "decision on GA4/Clarity/Vercel Analytics retirement"
+      ],
+      "status": "refreshed"
+    },
+    {
+      "productId": "workers-logs",
+      "productName": "Workers Logs",
+      "factCount": 2,
+      "sourceUrls": [
+        "https://developers.cloudflare.com/workers/observability/logs/workers-logs/",
+        "https://developers.cloudflare.com/workers/platform/pricing/"
+      ],
+      "modelingInputs": [
+        "invocation logs per request",
+        "console/error logs per request",
+        "sampling rate",
+        "retention and external log export requirements"
+      ],
+      "remainingEvidenceNeeded": [
+        "hosted Workers Logs proof",
+        "sampling/retention decision"
+      ],
+      "status": "refreshed"
+    },
+    {
+      "productId": "waf-and-plan-tier",
+      "productName": "WAF, rate limiting, DDoS, and zone plan tier",
+      "factCount": 3,
+      "sourceUrls": [
+        "https://www.cloudflare.com/plans/",
+        "https://developers.cloudflare.com/waf/",
+        "https://developers.cloudflare.com/waf/get-started/",
+        "https://developers.cloudflare.com/waf/managed-rules/",
+        "https://developers.cloudflare.com/waf/custom-rules/",
+        "https://developers.cloudflare.com/waf/rate-limiting-rules/"
+      ],
+      "modelingInputs": [
+        "required custom rules",
+        "rate limiting expressions and actions",
+        "managed ruleset requirements",
+        "security analytics/log retention requirements"
+      ],
+      "remainingEvidenceNeeded": [
+        "dashboard rule quota confirmation on selected plan",
+        "WAF/rate-limit dry-run or preview proof",
+        "DNS/nameserver migration proof before relying on zone-level controls"
+      ],
+      "status": "refreshed"
+    }
+  ],
+  "facts": [
+    {
+      "productId": "workers",
+      "productName": "Workers compute",
+      "sourceUrls": [
+        "https://developers.cloudflare.com/workers/platform/pricing/",
+        "https://developers.cloudflare.com/workers/platform/limits/",
+        "https://www.cloudflare.com/plans/developer-platform/"
+      ],
+      "metric": "Workers Paid plan minimum",
+      "freeAllowance": "Free plan available",
+      "paidAllowance": "$5 USD/month minimum account charge",
+      "overage": "Usage over included allotments is metered by product",
+      "unit": "account/month",
+      "notes": "Workers Paid is the minimum practical target for production migration because this project needs higher limits, production deploys, and paid-only features."
+    },
+    {
+      "productId": "workers",
+      "productName": "Workers compute",
+      "sourceUrls": [
+        "https://developers.cloudflare.com/workers/platform/pricing/",
+        "https://developers.cloudflare.com/workers/platform/limits/",
+        "https://www.cloudflare.com/plans/developer-platform/"
+      ],
+      "metric": "Dynamic Worker requests",
+      "freeAllowance": "100,000 requests/day",
+      "paidAllowance": "10 million requests/month included",
+      "overage": "$0.30 per additional million requests",
+      "unit": "inbound Worker requests",
+      "notes": "Cloudflare states subrequests made from a Worker are not billed as Worker requests; WebSocket upgrades count as requests."
+    },
+    {
+      "productId": "workers",
+      "productName": "Workers compute",
+      "sourceUrls": [
+        "https://developers.cloudflare.com/workers/platform/pricing/",
+        "https://developers.cloudflare.com/workers/platform/limits/",
+        "https://www.cloudflare.com/plans/developer-platform/"
+      ],
+      "metric": "Worker CPU",
+      "freeAllowance": "Free-plan CPU allowance not used for production modeling in this snapshot",
+      "paidAllowance": "30 million CPU milliseconds/month included",
+      "overage": "$0.02 per additional million CPU milliseconds",
+      "unit": "CPU milliseconds",
+      "notes": "Requires hosted Worker CPU evidence per route/action before cost decisions."
+    },
+    {
+      "productId": "workers-static-assets",
+      "productName": "Workers Static Assets",
+      "sourceUrls": [
+        "https://developers.cloudflare.com/workers/static-assets/billing-and-limitations/",
+        "https://developers.cloudflare.com/workers/static-assets/"
+      ],
+      "metric": "Static asset requests",
+      "freeAllowance": "Free and unlimited",
+      "paidAllowance": "Free and unlimited",
+      "overage": "None listed for static asset requests",
+      "unit": "static asset requests",
+      "notes": "Requests that invoke the Worker script, including SSR paths, are billed according to Workers pricing."
+    },
+    {
+      "productId": "workers-static-assets",
+      "productName": "Workers Static Assets",
+      "sourceUrls": [
+        "https://developers.cloudflare.com/workers/static-assets/billing-and-limitations/",
+        "https://developers.cloudflare.com/workers/static-assets/"
+      ],
+      "metric": "Static asset storage",
+      "freeAllowance": "No additional asset storage cost listed",
+      "paidAllowance": "No additional asset storage cost listed",
+      "overage": "None listed for asset storage",
+      "unit": "asset storage",
+      "notes": "If assets.run_worker_first makes matching requests invoke the Worker, those requests follow Worker request limits and billing."
+    },
+    {
+      "productId": "workers-kv",
+      "productName": "Workers KV",
+      "sourceUrls": [
+        "https://developers.cloudflare.com/workers/platform/pricing/"
+      ],
+      "metric": "KV reads",
+      "freeAllowance": "100,000/day",
+      "paidAllowance": "10 million/month included",
+      "overage": "$0.50 per million reads",
+      "unit": "read requests",
+      "notes": "Use only for safe cache/config patterns; do not model KV as a strong-consistency database replacement."
+    },
+    {
+      "productId": "workers-kv",
+      "productName": "Workers KV",
+      "sourceUrls": [
+        "https://developers.cloudflare.com/workers/platform/pricing/"
+      ],
+      "metric": "KV writes, deletes, and lists",
+      "freeAllowance": "1,000/day for each operation class",
+      "paidAllowance": "1 million/month included for each operation class",
+      "overage": "$5.00 per million writes/deletes/lists",
+      "unit": "write/delete/list requests",
+      "notes": "Hot-key and consistency constraints must be modeled separately from cost."
+    },
+    {
+      "productId": "workers-kv",
+      "productName": "Workers KV",
+      "sourceUrls": [
+        "https://developers.cloudflare.com/workers/platform/pricing/"
+      ],
+      "metric": "KV stored data",
+      "freeAllowance": "1 GB",
+      "paidAllowance": "1 GB included",
+      "overage": "$0.50 per GB-month",
+      "unit": "GB-month",
+      "notes": "Storage cost does not prove suitability for authorization, counters, or transactional state."
+    },
+    {
+      "productId": "d1",
+      "productName": "D1",
+      "sourceUrls": [
+        "https://developers.cloudflare.com/d1/platform/pricing/",
+        "https://developers.cloudflare.com/d1/platform/limits/"
+      ],
+      "metric": "Rows read",
+      "freeAllowance": "5 million/day",
+      "paidAllowance": "first 25 billion/month included",
+      "overage": "$0.001 per million rows",
+      "unit": "rows read",
+      "notes": "Requires query plans/indexing proof because row reads are not the same as request counts."
+    },
+    {
+      "productId": "d1",
+      "productName": "D1",
+      "sourceUrls": [
+        "https://developers.cloudflare.com/d1/platform/pricing/",
+        "https://developers.cloudflare.com/d1/platform/limits/"
+      ],
+      "metric": "Rows written",
+      "freeAllowance": "100,000/day",
+      "paidAllowance": "first 50 million/month included",
+      "overage": "$1.00 per million rows",
+      "unit": "rows written",
+      "notes": "Mutations, triggers, deletes, and D1 replacement workflows need row-write estimates."
+    },
+    {
+      "productId": "d1",
+      "productName": "D1",
+      "sourceUrls": [
+        "https://developers.cloudflare.com/d1/platform/pricing/",
+        "https://developers.cloudflare.com/d1/platform/limits/"
+      ],
+      "metric": "Storage",
+      "freeAllowance": "5 GB total",
+      "paidAllowance": "first 5 GB included",
+      "overage": "$0.75 per GB-month",
+      "unit": "GB-month",
+      "notes": "D1 is a redesign target, not a direct Postgres/RLS/RPC port."
+    },
+    {
+      "productId": "r2",
+      "productName": "R2",
+      "sourceUrls": [
+        "https://developers.cloudflare.com/r2/pricing/",
+        "https://www.cloudflare.com/products/r2/"
+      ],
+      "metric": "Standard storage",
+      "freeAllowance": "10 GB-month/month",
+      "paidAllowance": "$0.015 per GB-month",
+      "overage": "$0.015 per GB-month",
+      "unit": "GB-month",
+      "notes": "Free tier applies to Standard storage, not Infrequent Access storage."
+    },
+    {
+      "productId": "r2",
+      "productName": "R2",
+      "sourceUrls": [
+        "https://developers.cloudflare.com/r2/pricing/",
+        "https://www.cloudflare.com/products/r2/"
+      ],
+      "metric": "Standard Class A operations",
+      "freeAllowance": "1 million/month",
+      "paidAllowance": "$4.50 per million requests",
+      "overage": "$4.50 per million requests",
+      "unit": "creates/lists/uploads/lifecycle-like operations",
+      "notes": "Map uploads, multipart/TUS replacements, lifecycle, and list paths."
+    },
+    {
+      "productId": "r2",
+      "productName": "R2",
+      "sourceUrls": [
+        "https://developers.cloudflare.com/r2/pricing/",
+        "https://www.cloudflare.com/products/r2/"
+      ],
+      "metric": "Standard Class B operations",
+      "freeAllowance": "10 million/month",
+      "paidAllowance": "$0.36 per million requests",
+      "overage": "$0.36 per million requests",
+      "unit": "reads/download/head-like operations",
+      "notes": "Private app-brokered reads and scan jobs can make Class B operations material."
+    },
+    {
+      "productId": "r2",
+      "productName": "R2",
+      "sourceUrls": [
+        "https://developers.cloudflare.com/r2/pricing/",
+        "https://www.cloudflare.com/products/r2/"
+      ],
+      "metric": "Internet egress",
+      "freeAllowance": "Free",
+      "paidAllowance": "Free",
+      "overage": "No egress charge listed",
+      "unit": "data transfer to Internet",
+      "notes": "Egress benefit does not remove Class A/Class B operation costs."
+    },
+    {
+      "productId": "queues",
+      "productName": "Queues",
+      "sourceUrls": [
+        "https://developers.cloudflare.com/queues/platform/pricing/",
+        "https://developers.cloudflare.com/queues/platform/limits/",
+        "https://developers.cloudflare.com/changelog/post/2026-02-04-queues-free-plan/"
+      ],
+      "metric": "Queue operations",
+      "freeAllowance": "10,000 operations/day",
+      "paidAllowance": "Metered paid operations",
+      "overage": "$0.40 per million operations",
+      "unit": "64 KB write/read/delete operation units",
+      "notes": "An operation is counted for each 64 KB of data written, read, or deleted; retries can amplify operation count."
+    },
+    {
+      "productId": "durable-objects",
+      "productName": "Durable Objects",
+      "sourceUrls": [
+        "https://developers.cloudflare.com/workers/platform/pricing/",
+        "https://developers.cloudflare.com/durable-objects/platform/pricing/",
+        "https://developers.cloudflare.com/durable-objects/platform/limits/"
+      ],
+      "metric": "Compute requests",
+      "freeAllowance": "100,000/day",
+      "paidAllowance": "1 million/month included",
+      "overage": "$0.15 per million requests",
+      "unit": "HTTP requests, RPC sessions, WebSocket messages, alarm invocations",
+      "notes": "WebSocket message billing uses documented ratios for billing while metrics reflect actual usage."
+    },
+    {
+      "productId": "durable-objects",
+      "productName": "Durable Objects",
+      "sourceUrls": [
+        "https://developers.cloudflare.com/workers/platform/pricing/",
+        "https://developers.cloudflare.com/durable-objects/platform/pricing/",
+        "https://developers.cloudflare.com/durable-objects/platform/limits/"
+      ],
+      "metric": "Compute duration",
+      "freeAllowance": "13,000 GB-s/day",
+      "paidAllowance": "400,000 GB-s/month included",
+      "overage": "$12.50 per million GB-s",
+      "unit": "GB-seconds",
+      "notes": "Duration is wall-clock while active or idle but unable to hibernate; WebSocket hibernation is central to realtime cost."
+    },
+    {
+      "productId": "durable-objects",
+      "productName": "Durable Objects",
+      "sourceUrls": [
+        "https://developers.cloudflare.com/workers/platform/pricing/",
+        "https://developers.cloudflare.com/durable-objects/platform/pricing/",
+        "https://developers.cloudflare.com/durable-objects/platform/limits/"
+      ],
+      "metric": "SQLite-backed storage",
+      "freeAllowance": "5 GB total",
+      "paidAllowance": "5 GB-month included",
+      "overage": "$0.20 per GB-month plus D1-like row read/write billing",
+      "unit": "GB-month plus rows",
+      "notes": "Storage billing applies until data is removed; each SQLite-backed object is limited separately."
+    },
+    {
+      "productId": "cloudflare-images",
+      "productName": "Cloudflare Images",
+      "sourceUrls": [
+        "https://developers.cloudflare.com/images/pricing/"
+      ],
+      "metric": "Images Transformed",
+      "freeAllowance": "first 5,000 unique transformations included on Images Paid",
+      "paidAllowance": "$0.50 per 1,000 unique transformations/month after included amount",
+      "overage": "$0.50 per 1,000 unique transformations/month",
+      "unit": "unique transformations/month",
+      "notes": "If optimizing images stored outside Images, billing is for transformations only."
+    },
+    {
+      "productId": "cloudflare-images",
+      "productName": "Cloudflare Images",
+      "sourceUrls": [
+        "https://developers.cloudflare.com/images/pricing/"
+      ],
+      "metric": "Images Stored",
+      "freeAllowance": "No free storage amount captured in this snapshot",
+      "paidAllowance": "$5 per 100,000 images stored/month",
+      "overage": "$5 per 100,000 images stored/month",
+      "unit": "images stored/month",
+      "notes": "Only relevant if using Cloudflare Images storage instead of R2/origin storage."
+    },
+    {
+      "productId": "cloudflare-images",
+      "productName": "Cloudflare Images",
+      "sourceUrls": [
+        "https://developers.cloudflare.com/images/pricing/"
+      ],
+      "metric": "Images Delivered",
+      "freeAllowance": "No free delivery amount captured in this snapshot",
+      "paidAllowance": "$1 per 100,000 images delivered/month",
+      "overage": "$1 per 100,000 images delivered/month",
+      "unit": "images delivered/month",
+      "notes": "Delivery counts need hosted proof for thumbnails, attachments, and public project images."
+    },
+    {
+      "productId": "email-service",
+      "productName": "Email Service and Email Routing",
+      "sourceUrls": [
+        "https://developers.cloudflare.com/email-service/",
+        "https://developers.cloudflare.com/email-service/platform/pricing/",
+        "https://developers.cloudflare.com/email-service/get-started/send-emails/"
+      ],
+      "metric": "Outbound arbitrary-recipient email",
+      "freeAllowance": "Not available on Workers Free",
+      "paidAllowance": "3,000 outbound emails/month included on Workers Paid",
+      "overage": "$0.35 per 1,000 emails",
+      "unit": "outbound emails",
+      "notes": "Sending to arbitrary recipients requires Workers Paid and Cloudflare DNS."
+    },
+    {
+      "productId": "email-service",
+      "productName": "Email Service and Email Routing",
+      "sourceUrls": [
+        "https://developers.cloudflare.com/email-service/",
+        "https://developers.cloudflare.com/email-service/platform/pricing/",
+        "https://developers.cloudflare.com/email-service/get-started/send-emails/"
+      ],
+      "metric": "Verified-destination sending",
+      "freeAllowance": "Free on all plans",
+      "paidAllowance": "Free on all plans",
+      "overage": "No paid overage captured",
+      "unit": "emails to verified destination addresses",
+      "notes": "Not equivalent to Resend transactional arbitrary-recipient workflows."
+    },
+    {
+      "productId": "email-service",
+      "productName": "Email Service and Email Routing",
+      "sourceUrls": [
+        "https://developers.cloudflare.com/email-service/",
+        "https://developers.cloudflare.com/email-service/platform/pricing/",
+        "https://developers.cloudflare.com/email-service/get-started/send-emails/"
+      ],
+      "metric": "Inbound Email Routing",
+      "freeAllowance": "Unlimited inbound routing",
+      "paidAllowance": "Unlimited inbound routing",
+      "overage": "No paid overage captured",
+      "unit": "inbound emails",
+      "notes": "Inbound routing does not prove outbound deliverability, events/webhooks, bounces, retries, or analytics."
+    },
+    {
+      "productId": "turnstile",
+      "productName": "Turnstile",
+      "sourceUrls": [
+        "https://developers.cloudflare.com/turnstile/plans/"
+      ],
+      "metric": "Plan availability",
+      "freeAllowance": "Free plan available for most production applications",
+      "paidAllowance": "Enterprise plan for advanced/large-account requirements",
+      "overage": "Enterprise pricing not publicly fixed in this snapshot",
+      "unit": "Turnstile sites/widgets/account requirements",
+      "notes": "Model widget/hostname/account needs and false-positive review, not only challenge count."
+    },
+    {
+      "productId": "web-analytics",
+      "productName": "Web Analytics",
+      "sourceUrls": [
+        "https://www.cloudflare.com/web-analytics/",
+        "https://developers.cloudflare.com/pages/how-to/web-analytics/"
+      ],
+      "metric": "Web Analytics",
+      "freeAllowance": "Free website analytics",
+      "paidAllowance": "Free website analytics",
+      "overage": "No paid overage captured",
+      "unit": "web analytics property",
+      "notes": "Privacy-first analytics can be enabled without changing DNS or using Cloudflare proxy, but receipt/metrics proof is still required."
+    },
+    {
+      "productId": "workers-logs",
+      "productName": "Workers Logs",
+      "sourceUrls": [
+        "https://developers.cloudflare.com/workers/observability/logs/workers-logs/",
+        "https://developers.cloudflare.com/workers/platform/pricing/"
+      ],
+      "metric": "Free-plan log events",
+      "freeAllowance": "200,000 log events/day",
+      "paidAllowance": "Paid plan has monthly included events",
+      "overage": "Free plan overage not modeled",
+      "unit": "log events written",
+      "notes": "Free retention captured by docs is short-lived and not a production observability replacement by itself."
+    },
+    {
+      "productId": "workers-logs",
+      "productName": "Workers Logs",
+      "sourceUrls": [
+        "https://developers.cloudflare.com/workers/observability/logs/workers-logs/",
+        "https://developers.cloudflare.com/workers/platform/pricing/"
+      ],
+      "metric": "Paid-plan log events",
+      "freeAllowance": "N/A",
+      "paidAllowance": "20 million/month included",
+      "overage": "$0.60 per additional million log events",
+      "unit": "log events written",
+      "notes": "Retention and sampling settings must be part of the cost model."
+    },
+    {
+      "productId": "waf-and-plan-tier",
+      "productName": "WAF, rate limiting, DDoS, and zone plan tier",
+      "sourceUrls": [
+        "https://www.cloudflare.com/plans/",
+        "https://developers.cloudflare.com/waf/",
+        "https://developers.cloudflare.com/waf/get-started/",
+        "https://developers.cloudflare.com/waf/managed-rules/",
+        "https://developers.cloudflare.com/waf/custom-rules/",
+        "https://developers.cloudflare.com/waf/rate-limiting-rules/"
+      ],
+      "metric": "Self-serve zone plans",
+      "freeAllowance": "$0/month Free",
+      "paidAllowance": "Pro: $20/month annually or $25/month monthly; Business: $200/month annually or $250/month monthly; Enterprise: sales-led",
+      "overage": "Plan-dependent add-ons and Enterprise pricing are not fixed in this snapshot",
+      "unit": "zone/month",
+      "notes": "The current dashboard proof shows archestimator.com on Free; production security requirements may require a paid zone plan."
+    },
+    {
+      "productId": "waf-and-plan-tier",
+      "productName": "WAF, rate limiting, DDoS, and zone plan tier",
+      "sourceUrls": [
+        "https://www.cloudflare.com/plans/",
+        "https://developers.cloudflare.com/waf/",
+        "https://developers.cloudflare.com/waf/get-started/",
+        "https://developers.cloudflare.com/waf/managed-rules/",
+        "https://developers.cloudflare.com/waf/custom-rules/",
+        "https://developers.cloudflare.com/waf/rate-limiting-rules/"
+      ],
+      "metric": "WAF availability",
+      "freeAllowance": "WAF available on all plans with Free Managed Ruleset",
+      "paidAllowance": "Managed rulesets expand on Pro/Business/Enterprise",
+      "overage": "Feature availability varies by plan",
+      "unit": "zone rulesets",
+      "notes": "Cloudflare Managed Ruleset and OWASP Core Ruleset availability starts at Pro in the captured docs."
+    },
+    {
+      "productId": "waf-and-plan-tier",
+      "productName": "WAF, rate limiting, DDoS, and zone plan tier",
+      "sourceUrls": [
+        "https://www.cloudflare.com/plans/",
+        "https://developers.cloudflare.com/waf/",
+        "https://developers.cloudflare.com/waf/get-started/",
+        "https://developers.cloudflare.com/waf/managed-rules/",
+        "https://developers.cloudflare.com/waf/custom-rules/",
+        "https://developers.cloudflare.com/waf/rate-limiting-rules/"
+      ],
+      "metric": "Custom WAF rules",
+      "freeAllowance": "5 zone-level custom rules",
+      "paidAllowance": "Pro: 20; Business: 100; Enterprise: 1,000",
+      "overage": "Account-level custom rulesets require Enterprise",
+      "unit": "zone custom rules",
+      "notes": "Rate limiting rules use the Ruleset Engine and must be modeled with the chosen plan's rule budget."
+    }
+  ],
+  "note": "Official Cloudflare pricing source refresh only. This does not include Archestimator monthly usage, current-provider invoices, hosted Cloudflare usage metrics, provider-dashboard receipts, or production cost approval."
+}

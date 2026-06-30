@@ -22,6 +22,29 @@ Collected on 2026-06-29:
 
 These counts make manual one-off reasoning unsafe. Fill the worksheets before implementation.
 
+## Generated Inventory Refresh
+
+Collected on 2026-06-30 local time with `bun run cf:inventory`.
+
+Evidence artifacts:
+
+- `evidence/2026-06-30-cloudflare-migration-inventory.json`
+- `evidence/2026-06-30-cloudflare-migration-inventory.md`
+
+Current generated counts:
+
+- `71` App Router route entries (`39` page routes, `30` route handlers, `2` metadata routes).
+- `93` provider-coupled source files across `src/app`, `src/lib`, `src/components`, `src/hooks`, and `src/proxy`.
+- `80` distinct app-code RPC names with caller-file lists.
+- `92` package scripts, including `29` Cloudflare scripts and `8` provider-readiness scripts.
+- `108` script files under `scripts`.
+- `181` applied SQL migration files.
+- `13` pending-review SQL files.
+- `346` SQL function declaration/update matches.
+- `684` RLS/policy/storage/auth-related SQL matches.
+
+This generated inventory is local repository evidence only. It lists file paths, route paths, RPC names, script names, and counts; it does not read env files, print secret values, mutate providers, prove Cloudflare hosted deployment, prove D1/R2/Images/Email/Workers Paid readiness, change DNS, or make current providers removable.
+
 ## Route And Action Ownership Worksheet
 
 Command seed:

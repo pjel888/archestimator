@@ -1,0 +1,54 @@
+{
+  "generatedAt": "2026-06-30T04:15:10Z",
+  "mode": "cloudflare-static-public-routes",
+  "localOnly": true,
+  "providerBacked": false,
+  "commands": [
+    "bunx vitest run tests/vitest/public-static-route-contract.test.ts tests/vitest/contact-form-mailto.test.tsx tests/vitest/public-page-shell.test.tsx tests/vitest/public-cache-safety-harness.test.tsx tests/vitest/landing-ab-testing.test.tsx tests/vitest/auth-entry-ui-contract.test.ts tests/vitest/auth-magic-link.test.ts --maxWorkers=1",
+    "bun run cf:build"
+  ],
+  "tests": {
+    "passed": true,
+    "files": 7,
+    "tests": 32
+  },
+  "build": {
+    "passed": true,
+    "nextVersion": "16.2.6",
+    "openNextCloudflareVersion": "1.20.1",
+    "routeTablePublicStaticReady": true,
+    "staticRoutes": [
+      "/",
+      "/about",
+      "/contact",
+      "/features",
+      "/login",
+      "/pricing",
+      "/privacy",
+      "/signup",
+      "/terms",
+      "/trust"
+    ],
+    "dynamicRoutesStillExpected": [
+      "/api/health",
+      "/share/[token]",
+      "/workshop",
+      "/workshop/*",
+      "/api/*"
+    ]
+  },
+  "sourceContract": {
+    "serverRequestTimeApisRemovedFromPublicEntryRoutes": true,
+    "removedServerReads": [
+      "getLandingAuthState",
+      "next/headers cookies()",
+      "server searchParams"
+    ],
+    "clientSuspenseIslands": [
+      "src/components/landing/ContactForm.tsx ContactFormFromSearchParams",
+      "src/components/auth/AuthSearchParamsState.tsx"
+    ]
+  },
+  "hostedReady": false,
+  "blocker": "Static public route build is ready locally, but the updated Worker version has not been uploaded/deployed to Cloudflare yet."
+}

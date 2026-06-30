@@ -1,0 +1,2464 @@
+{
+  "generatedAt": "2026-06-30T01:00:00.119Z",
+  "mode": "cloudflare-migration-inventory",
+  "sources": {
+    "appRoot": "src/app",
+    "sourceRoots": [
+      "src/app",
+      "src/lib",
+      "src/components",
+      "src/hooks",
+      "src/proxy"
+    ],
+    "packageJson": "package.json",
+    "scriptRoot": "scripts",
+    "sqlRoots": [
+      "supabase/migrations",
+      "supabase/migrations-pending-review"
+    ]
+  },
+  "counts": {
+    "appRoutes": 71,
+    "pageRoutes": 39,
+    "routeHandlers": 30,
+    "metadataRoutes": 2,
+    "providerCoupledFiles": 93,
+    "distinctRpcNames": 80,
+    "packageScripts": 94,
+    "scriptFiles": 110,
+    "cloudflareScripts": 31,
+    "providerReadinessScripts": 8
+  },
+  "appRoutes": [
+    {
+      "route": "/",
+      "file": "src/app/page.tsx",
+      "kind": "page",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/about",
+      "file": "src/app/about/page.tsx",
+      "kind": "page",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/access-required",
+      "file": "src/app/access-required/page.tsx",
+      "kind": "page",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/api/ai/ask",
+      "file": "src/app/api/ai/ask/route.ts",
+      "kind": "route-handler",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/api/ai/package-builder",
+      "file": "src/app/api/ai/package-builder/route.ts",
+      "kind": "route-handler",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/api/auth/[...all]",
+      "file": "src/app/api/auth/[...all]/route.ts",
+      "kind": "route-handler",
+      "dynamic": true,
+      "providerDependencies": [
+        "cloudflare-local-proof"
+      ]
+    },
+    {
+      "route": "/api/component-library/attachments",
+      "file": "src/app/api/component-library/attachments/route.ts",
+      "kind": "route-handler",
+      "dynamic": false,
+      "providerDependencies": [
+        "supabase-client",
+        "supabase-rpc"
+      ]
+    },
+    {
+      "route": "/api/component-library/attachments/direct-upload",
+      "file": "src/app/api/component-library/attachments/direct-upload/route.ts",
+      "kind": "route-handler",
+      "dynamic": false,
+      "providerDependencies": [
+        "supabase-client",
+        "supabase-rpc"
+      ]
+    },
+    {
+      "route": "/api/component-library/attachments/scan-override",
+      "file": "src/app/api/component-library/attachments/scan-override/route.ts",
+      "kind": "route-handler",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/api/component-library/images",
+      "file": "src/app/api/component-library/images/route.ts",
+      "kind": "route-handler",
+      "dynamic": false,
+      "providerDependencies": [
+        "supabase-client",
+        "supabase-rpc"
+      ]
+    },
+    {
+      "route": "/api/estimate-row-images",
+      "file": "src/app/api/estimate-row-images/route.ts",
+      "kind": "route-handler",
+      "dynamic": false,
+      "providerDependencies": [
+        "supabase-client",
+        "supabase-rpc"
+      ]
+    },
+    {
+      "route": "/api/health",
+      "file": "src/app/api/health/route.ts",
+      "kind": "route-handler",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/api/internal/client-error",
+      "file": "src/app/api/internal/client-error/route.ts",
+      "kind": "route-handler",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/api/internal/upload-cleanup",
+      "file": "src/app/api/internal/upload-cleanup/route.ts",
+      "kind": "route-handler",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/api/internal/upload-runtime",
+      "file": "src/app/api/internal/upload-runtime/route.ts",
+      "kind": "route-handler",
+      "dynamic": false,
+      "providerDependencies": [
+        "supabase-storage",
+        "vercel-runtime"
+      ]
+    },
+    {
+      "route": "/api/internal/upload-scan",
+      "file": "src/app/api/internal/upload-scan/route.ts",
+      "kind": "route-handler",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/api/projects/[projectId]/activity",
+      "file": "src/app/api/projects/[projectId]/activity/route.ts",
+      "kind": "route-handler",
+      "dynamic": true,
+      "providerDependencies": [
+        "supabase-rpc"
+      ]
+    },
+    {
+      "route": "/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx",
+      "file": "src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts",
+      "kind": "route-handler",
+      "dynamic": true,
+      "providerDependencies": []
+    },
+    {
+      "route": "/api/projects/images",
+      "file": "src/app/api/projects/images/route.ts",
+      "kind": "route-handler",
+      "dynamic": false,
+      "providerDependencies": [
+        "supabase-client",
+        "supabase-rpc"
+      ]
+    },
+    {
+      "route": "/api/share/[token]",
+      "file": "src/app/api/share/[token]/route.ts",
+      "kind": "route-handler",
+      "dynamic": true,
+      "providerDependencies": []
+    },
+    {
+      "route": "/api/share/[token]/activity",
+      "file": "src/app/api/share/[token]/activity/route.ts",
+      "kind": "route-handler",
+      "dynamic": true,
+      "providerDependencies": []
+    },
+    {
+      "route": "/api/share/[token]/comment",
+      "file": "src/app/api/share/[token]/comment/route.ts",
+      "kind": "route-handler",
+      "dynamic": true,
+      "providerDependencies": [
+        "resend-email"
+      ]
+    },
+    {
+      "route": "/api/share/[token]/decision",
+      "file": "src/app/api/share/[token]/decision/route.ts",
+      "kind": "route-handler",
+      "dynamic": true,
+      "providerDependencies": []
+    },
+    {
+      "route": "/api/share/[token]/events",
+      "file": "src/app/api/share/[token]/events/route.ts",
+      "kind": "route-handler",
+      "dynamic": true,
+      "providerDependencies": []
+    },
+    {
+      "route": "/api/share/[token]/password",
+      "file": "src/app/api/share/[token]/password/route.ts",
+      "kind": "route-handler",
+      "dynamic": true,
+      "providerDependencies": []
+    },
+    {
+      "route": "/api/share/[token]/session",
+      "file": "src/app/api/share/[token]/session/route.ts",
+      "kind": "route-handler",
+      "dynamic": true,
+      "providerDependencies": []
+    },
+    {
+      "route": "/api/share/[token]/unsubscribe",
+      "file": "src/app/api/share/[token]/unsubscribe/route.ts",
+      "kind": "route-handler",
+      "dynamic": true,
+      "providerDependencies": []
+    },
+    {
+      "route": "/api/webhooks/resend",
+      "file": "src/app/api/webhooks/resend/route.ts",
+      "kind": "route-handler",
+      "dynamic": false,
+      "providerDependencies": [
+        "resend-email"
+      ]
+    },
+    {
+      "route": "/auth/callback",
+      "file": "src/app/auth/callback/route.ts",
+      "kind": "route-handler",
+      "dynamic": false,
+      "providerDependencies": [
+        "vercel-runtime"
+      ]
+    },
+    {
+      "route": "/contact",
+      "file": "src/app/contact/page.tsx",
+      "kind": "page",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/features",
+      "file": "src/app/features/page.tsx",
+      "kind": "page",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/invite/[token]",
+      "file": "src/app/invite/[token]/page.tsx",
+      "kind": "page",
+      "dynamic": true,
+      "providerDependencies": [
+        "supabase-rpc"
+      ]
+    },
+    {
+      "route": "/invite/[token]/accept",
+      "file": "src/app/invite/[token]/accept/route.ts",
+      "kind": "route-handler",
+      "dynamic": true,
+      "providerDependencies": [
+        "supabase-rpc"
+      ]
+    },
+    {
+      "route": "/invite/[token]/continue",
+      "file": "src/app/invite/[token]/continue/route.ts",
+      "kind": "route-handler",
+      "dynamic": true,
+      "providerDependencies": []
+    },
+    {
+      "route": "/invite/[token]/sign-out",
+      "file": "src/app/invite/[token]/sign-out/route.ts",
+      "kind": "route-handler",
+      "dynamic": true,
+      "providerDependencies": []
+    },
+    {
+      "route": "/login",
+      "file": "src/app/login/page.tsx",
+      "kind": "page",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/pricing",
+      "file": "src/app/pricing/page.tsx",
+      "kind": "page",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/privacy",
+      "file": "src/app/privacy/page.tsx",
+      "kind": "page",
+      "dynamic": false,
+      "providerDependencies": [
+        "resend-email",
+        "vercel-runtime"
+      ]
+    },
+    {
+      "route": "/robots.txt",
+      "file": "src/app/robots.ts",
+      "kind": "metadata-route",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/share/[token]",
+      "file": "src/app/share/[token]/page.tsx",
+      "kind": "page",
+      "dynamic": true,
+      "providerDependencies": []
+    },
+    {
+      "route": "/signup",
+      "file": "src/app/signup/page.tsx",
+      "kind": "page",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/sitemap.xml",
+      "file": "src/app/sitemap.ts",
+      "kind": "metadata-route",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/terms",
+      "file": "src/app/terms/page.tsx",
+      "kind": "page",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/trust",
+      "file": "src/app/trust/page.tsx",
+      "kind": "page",
+      "dynamic": false,
+      "providerDependencies": [
+        "supabase-realtime"
+      ]
+    },
+    {
+      "route": "/workshop",
+      "file": "src/app/workshop/page.tsx",
+      "kind": "page",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/workshop/components",
+      "file": "src/app/workshop/components/page.tsx",
+      "kind": "page",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/workshop/feedback",
+      "file": "src/app/workshop/feedback/page.tsx",
+      "kind": "page",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/workshop/library",
+      "file": "src/app/workshop/library/page.tsx",
+      "kind": "page",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/workshop/library/components",
+      "file": "src/app/workshop/library/components/page.tsx",
+      "kind": "page",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/workshop/library/templates",
+      "file": "src/app/workshop/library/templates/page.tsx",
+      "kind": "page",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/workshop/library/templates/[templateId]",
+      "file": "src/app/workshop/library/templates/[templateId]/page.tsx",
+      "kind": "page",
+      "dynamic": true,
+      "providerDependencies": []
+    },
+    {
+      "route": "/workshop/onboarding",
+      "file": "src/app/workshop/onboarding/page.tsx",
+      "kind": "page",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/workshop/pending-invite",
+      "file": "src/app/workshop/pending-invite/route.ts",
+      "kind": "route-handler",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/workshop/projects",
+      "file": "src/app/workshop/projects/page.tsx",
+      "kind": "page",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/workshop/projects/[projectId]",
+      "file": "src/app/workshop/projects/[projectId]/page.tsx",
+      "kind": "page",
+      "dynamic": true,
+      "providerDependencies": [
+        "supabase-rpc"
+      ]
+    },
+    {
+      "route": "/workshop/projects/[projectId]/activity",
+      "file": "src/app/workshop/projects/[projectId]/activity/page.tsx",
+      "kind": "page",
+      "dynamic": true,
+      "providerDependencies": [
+        "supabase-rpc"
+      ]
+    },
+    {
+      "route": "/workshop/projects/[projectId]/charts",
+      "file": "src/app/workshop/projects/[projectId]/charts/page.tsx",
+      "kind": "page",
+      "dynamic": true,
+      "providerDependencies": []
+    },
+    {
+      "route": "/workshop/projects/[projectId]/data",
+      "file": "src/app/workshop/projects/[projectId]/data/page.tsx",
+      "kind": "page",
+      "dynamic": true,
+      "providerDependencies": []
+    },
+    {
+      "route": "/workshop/projects/[projectId]/estimates",
+      "file": "src/app/workshop/projects/[projectId]/estimates/page.tsx",
+      "kind": "page",
+      "dynamic": true,
+      "providerDependencies": [
+        "supabase-rpc"
+      ]
+    },
+    {
+      "route": "/workshop/projects/[projectId]/estimates/[nodeId]",
+      "file": "src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx",
+      "kind": "page",
+      "dynamic": true,
+      "providerDependencies": []
+    },
+    {
+      "route": "/workshop/proposals",
+      "file": "src/app/workshop/proposals/page.tsx",
+      "kind": "page",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/workshop/publisher",
+      "file": "src/app/workshop/publisher/page.tsx",
+      "kind": "page",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/workshop/settings",
+      "file": "src/app/workshop/settings/page.tsx",
+      "kind": "page",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/workshop/settings/feedback",
+      "file": "src/app/workshop/settings/feedback/page.tsx",
+      "kind": "page",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/workshop/settings/profile",
+      "file": "src/app/workshop/settings/profile/page.tsx",
+      "kind": "page",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/workshop/settings/scan-overrides",
+      "file": "src/app/workshop/settings/scan-overrides/page.tsx",
+      "kind": "page",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/workshop/settings/upload-operations",
+      "file": "src/app/workshop/settings/upload-operations/page.tsx",
+      "kind": "page",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/workshop/settings/users",
+      "file": "src/app/workshop/settings/users/page.tsx",
+      "kind": "page",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/workshop/settings/workspace",
+      "file": "src/app/workshop/settings/workspace/page.tsx",
+      "kind": "page",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/workshop/templates",
+      "file": "src/app/workshop/templates/page.tsx",
+      "kind": "page",
+      "dynamic": false,
+      "providerDependencies": []
+    },
+    {
+      "route": "/workshop/terms",
+      "file": "src/app/workshop/terms/page.tsx",
+      "kind": "page",
+      "dynamic": false,
+      "providerDependencies": []
+    }
+  ],
+  "providerCoupling": [
+    {
+      "file": "src/app/api/auth/[...all]/route.ts",
+      "dependencies": [
+        "cloudflare-local-proof"
+      ],
+      "rpcNames": [],
+      "route": "/api/auth/[...all]"
+    },
+    {
+      "file": "src/app/api/component-library/attachments/direct-upload/route.ts",
+      "dependencies": [
+        "supabase-client",
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "is_workspace_editor"
+      ],
+      "route": "/api/component-library/attachments/direct-upload"
+    },
+    {
+      "file": "src/app/api/component-library/attachments/route.ts",
+      "dependencies": [
+        "supabase-client",
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "is_workspace_editor"
+      ],
+      "route": "/api/component-library/attachments"
+    },
+    {
+      "file": "src/app/api/component-library/images/route.ts",
+      "dependencies": [
+        "supabase-client",
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "is_workspace_editor"
+      ],
+      "route": "/api/component-library/images"
+    },
+    {
+      "file": "src/app/api/estimate-row-images/route.ts",
+      "dependencies": [
+        "supabase-client",
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "can_edit_estimate",
+        "can_edit_project"
+      ],
+      "route": "/api/estimate-row-images"
+    },
+    {
+      "file": "src/app/api/internal/upload-runtime/route.ts",
+      "dependencies": [
+        "supabase-storage",
+        "vercel-runtime"
+      ],
+      "rpcNames": [],
+      "route": "/api/internal/upload-runtime"
+    },
+    {
+      "file": "src/app/api/projects/[projectId]/activity/route.ts",
+      "dependencies": [
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "can_edit_project"
+      ],
+      "route": "/api/projects/[projectId]/activity"
+    },
+    {
+      "file": "src/app/api/projects/images/route.ts",
+      "dependencies": [
+        "supabase-client",
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "can_access_estimate",
+        "can_access_project",
+        "can_edit_project"
+      ],
+      "route": "/api/projects/images"
+    },
+    {
+      "file": "src/app/api/share/[token]/comment/route.ts",
+      "dependencies": [
+        "resend-email"
+      ],
+      "rpcNames": [],
+      "route": "/api/share/[token]/comment"
+    },
+    {
+      "file": "src/app/api/webhooks/resend/route.ts",
+      "dependencies": [
+        "resend-email"
+      ],
+      "rpcNames": [],
+      "route": "/api/webhooks/resend"
+    },
+    {
+      "file": "src/app/auth/callback/route.ts",
+      "dependencies": [
+        "vercel-runtime"
+      ],
+      "rpcNames": [],
+      "route": "/auth/callback"
+    },
+    {
+      "file": "src/app/invite/[token]/accept/route.ts",
+      "dependencies": [
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "accept_collaboration_invitation"
+      ],
+      "route": "/invite/[token]/accept"
+    },
+    {
+      "file": "src/app/invite/[token]/page.tsx",
+      "dependencies": [
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "resolve_collaboration_invitation"
+      ],
+      "route": "/invite/[token]"
+    },
+    {
+      "file": "src/app/layout.tsx",
+      "dependencies": [
+        "vercel-runtime"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/app/privacy/page.tsx",
+      "dependencies": [
+        "resend-email",
+        "vercel-runtime"
+      ],
+      "rpcNames": [],
+      "route": "/privacy"
+    },
+    {
+      "file": "src/app/providers.tsx",
+      "dependencies": [
+        "supabase-realtime"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/app/trust/page.tsx",
+      "dependencies": [
+        "supabase-realtime"
+      ],
+      "rpcNames": [],
+      "route": "/trust"
+    },
+    {
+      "file": "src/app/workshop/projects/[projectId]/activity/page.tsx",
+      "dependencies": [
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "can_edit_project"
+      ],
+      "route": "/workshop/projects/[projectId]/activity"
+    },
+    {
+      "file": "src/app/workshop/projects/[projectId]/estimates/page.tsx",
+      "dependencies": [
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "can_edit_project"
+      ],
+      "route": "/workshop/projects/[projectId]/estimates"
+    },
+    {
+      "file": "src/app/workshop/projects/[projectId]/page.tsx",
+      "dependencies": [
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "can_edit_project"
+      ],
+      "route": "/workshop/projects/[projectId]"
+    },
+    {
+      "file": "src/components/analytics/VercelWebAnalytics.tsx",
+      "dependencies": [
+        "vercel-runtime"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/components/landing/claims-ledger/claims-data.ts",
+      "dependencies": [
+        "supabase-realtime"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/components/landing/CloudflareWebAnalytics.tsx",
+      "dependencies": [
+        "cloudflare-local-proof"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/components/landing/LandingAnalyticsLoader.tsx",
+      "dependencies": [
+        "cloudflare-local-proof"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/components/realtime-auth-bridge.tsx",
+      "dependencies": [
+        "supabase-realtime"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/components/ui/dropdown-select.tsx",
+      "dependencies": [
+        "supabase-realtime"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/components/workshop/EstimateSheetContent.tsx",
+      "dependencies": [
+        "supabase-realtime"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/components/workshop/ProjectCursorLayer.tsx",
+      "dependencies": [
+        "supabase-realtime"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+      "dependencies": [
+        "resend-email"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/hooks/use-estimate-cursor-broadcast.ts",
+      "dependencies": [
+        "supabase-realtime"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/hooks/use-estimate-row-update-broadcast.ts",
+      "dependencies": [
+        "supabase-realtime"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/hooks/use-project-presence.ts",
+      "dependencies": [
+        "supabase-realtime"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/ai/audit.ts",
+      "dependencies": [
+        "supabase-client"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/ai/package-builder/apply.ts",
+      "dependencies": [
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "create_ai_package_library_components_with_history",
+        "create_estimate_node_with_history",
+        "create_project_estimate_package_with_history",
+        "delete_estimate_row_item_with_history",
+        "insert_estimate_row_item_with_history",
+        "insert_estimate_template_into_estimate_with_history",
+        "rename_estimate_node_with_history",
+        "replace_estimate_row_item_with_history",
+        "update_estimate_row_item_with_history"
+      ],
+      "route": null
+    },
+    {
+      "file": "src/lib/analytics/vercel-web-analytics.ts",
+      "dependencies": [
+        "vercel-runtime"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/auth/account-audit.ts",
+      "dependencies": [
+        "supabase-client"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/auth/account-service-role.ts",
+      "dependencies": [
+        "supabase-client"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/auth/actions.ts",
+      "dependencies": [
+        "vercel-runtime"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/auth/beta-allowlist-admin-actions.ts",
+      "dependencies": [
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "create_closed_beta_allowlist_entry",
+        "update_closed_beta_allowlist_entry"
+      ],
+      "route": null
+    },
+    {
+      "file": "src/lib/auth/beta-allowlist-admin.ts",
+      "dependencies": [
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "read_closed_beta_allowlist_queue"
+      ],
+      "route": null
+    },
+    {
+      "file": "src/lib/auth/better-auth-cloudflare.ts",
+      "dependencies": [
+        "cloudflare-local-proof"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/auth/closed-beta-access.ts",
+      "dependencies": [
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "check_closed_beta_access"
+      ],
+      "route": null
+    },
+    {
+      "file": "src/lib/auth/dev-auth.ts",
+      "dependencies": [
+        "supabase-client"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/auth/redirects.ts",
+      "dependencies": [
+        "vercel-runtime"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/auth/request-proxy.ts",
+      "dependencies": [
+        "supabase-client"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/auth/session.ts",
+      "dependencies": [
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "ensure_current_user_profile"
+      ],
+      "route": null
+    },
+    {
+      "file": "src/lib/cloudflare/collaboration-room-router.ts",
+      "dependencies": [
+        "cloudflare-local-proof"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/cloudflare/scheduled-upload-jobs.ts",
+      "dependencies": [
+        "cloudflare-local-proof"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/cloudflare/upload-job-queue.ts",
+      "dependencies": [
+        "cloudflare-local-proof"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/collaboration/actions.ts",
+      "dependencies": [
+        "resend-email",
+        "supabase-client",
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "issue_collaboration_invitation_token",
+        "record_collaboration_invitation_delivery"
+      ],
+      "route": null
+    },
+    {
+      "file": "src/lib/collaboration/feature-flags.ts",
+      "dependencies": [
+        "supabase-realtime"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/collaboration/invite-entry.ts",
+      "dependencies": [
+        "supabase-client"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/collaboration/pending-invite-actions.ts",
+      "dependencies": [
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "accept_collaboration_invitation_by_id"
+      ],
+      "route": null
+    },
+    {
+      "file": "src/lib/collaboration/presence-surface.ts",
+      "dependencies": [
+        "supabase-realtime"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/collaboration/realtime-identity-actions.ts",
+      "dependencies": [
+        "supabase-realtime"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/collaboration/realtime-identity-server.ts",
+      "dependencies": [
+        "supabase-realtime"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/collaboration/realtime-identity.ts",
+      "dependencies": [
+        "supabase-realtime"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/collaboration/realtime-telemetry.ts",
+      "dependencies": [
+        "supabase-realtime"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/collaboration/types.ts",
+      "dependencies": [
+        "supabase-realtime"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/collaboration/workshop-pending-invite.ts",
+      "dependencies": [
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "accept_collaboration_invitation"
+      ],
+      "route": null
+    },
+    {
+      "file": "src/lib/component-library/actions.ts",
+      "dependencies": [
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "can_edit_estimate",
+        "create_cost_library_component",
+        "delete_library_folder",
+        "execute_bulk_archive_library_components",
+        "is_workspace_editor",
+        "is_workspace_member",
+        "preview_bulk_archive_library_components",
+        "reorder_library_folders",
+        "set_cost_library_component_lifecycle_state",
+        "update_cost_library_component",
+        "upsert_cost_library_component_price_option"
+      ],
+      "route": null
+    },
+    {
+      "file": "src/lib/component-library/template-editor-actions.ts",
+      "dependencies": [
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "is_workspace_editor"
+      ],
+      "route": null
+    },
+    {
+      "file": "src/lib/email/resend-client.ts",
+      "dependencies": [
+        "resend-email"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/email/resend-webhooks.ts",
+      "dependencies": [
+        "resend-email",
+        "supabase-client"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/estimate-sheet/user-preferences-actions.ts",
+      "dependencies": [
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "can_access_estimate"
+      ],
+      "route": null
+    },
+    {
+      "file": "src/lib/estimates/actions.ts",
+      "dependencies": [
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "archive_estimate_tab_with_history",
+        "can_edit_estimate",
+        "can_edit_project",
+        "create_estimate_node_with_history",
+        "create_estimate_tab_with_history",
+        "delete_estimate_node_with_history",
+        "delete_estimate_nodes_bulk_with_history",
+        "delete_estimate_row_item_with_history",
+        "delete_estimate_row_items_bulk_with_history",
+        "delete_estimate_tab_with_history",
+        "duplicate_estimate_tab_with_history",
+        "execute_bulk_delete_estimate_sheets",
+        "get_estimate_activity_retention_metrics",
+        "insert_estimate_row_item_with_history",
+        "insert_estimate_template_into_estimate_with_history",
+        "insert_estimate_template_node_into_estimate_with_history",
+        "move_estimate_row_component_with_history",
+        "move_estimate_row_item_with_history",
+        "preview_bulk_delete_estimate_sheets",
+        "rename_estimate_node_with_history",
+        "rename_estimate_tab_with_history",
+        "reorder_estimate_nodes_with_history",
+        "reorder_estimate_tabs_with_history",
+        "replace_estimate_row_item_with_history",
+        "restore_deleted_estimate_nodes_with_history",
+        "restore_deleted_estimate_rows_with_history",
+        "unlink_estimate_row_item_from_library_with_history",
+        "update_estimate_details_with_history",
+        "update_estimate_row_item_with_history",
+        "update_estimate_sheet_adjustment_with_history"
+      ],
+      "route": null
+    },
+    {
+      "file": "src/lib/estimates/express-promotion-actions.ts",
+      "dependencies": [
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "promote_estimate_row_to_library_component"
+      ],
+      "route": null
+    },
+    {
+      "file": "src/lib/mass-deletion/storage-cleanup.ts",
+      "dependencies": [
+        "supabase-client",
+        "supabase-storage"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/projects/actions.ts",
+      "dependencies": [
+        "supabase-rpc",
+        "supabase-storage"
+      ],
+      "rpcNames": [
+        "execute_bulk_delete_projects",
+        "preview_bulk_delete_projects",
+        "record_mass_deletion_storage_cleanup_result"
+      ],
+      "route": null
+    },
+    {
+      "file": "src/lib/projects/location-actions.ts",
+      "dependencies": [
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "can_edit_project"
+      ],
+      "route": null
+    },
+    {
+      "file": "src/lib/publication/actions.ts",
+      "dependencies": [
+        "resend-email",
+        "supabase-client",
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "authorize_recipient_publication_for_current_user"
+      ],
+      "route": null
+    },
+    {
+      "file": "src/lib/publication/email-links.ts",
+      "dependencies": [
+        "vercel-runtime"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/publication/public-repository.ts",
+      "dependencies": [
+        "supabase-client",
+        "supabase-rpc",
+        "vercel-runtime"
+      ],
+      "rpcNames": [
+        "increment_project_publication_open",
+        "insert_client_comment",
+        "submit_client_response"
+      ],
+      "route": null
+    },
+    {
+      "file": "src/lib/repositories/component-library-repository.ts",
+      "dependencies": [
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "library_component_rows_seed",
+        "library_overview_summary",
+        "library_templates_seed"
+      ],
+      "route": null
+    },
+    {
+      "file": "src/lib/repositories/project-activity-feed-repository.ts",
+      "dependencies": [
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "read_project_collaboration_audit_events"
+      ],
+      "route": null
+    },
+    {
+      "file": "src/lib/repositories/project-estimate-sheets-repository.ts",
+      "dependencies": [
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "project_estimate_list_summaries_for_estimates"
+      ],
+      "route": null
+    },
+    {
+      "file": "src/lib/repositories/recipient-proposals-repository.ts",
+      "dependencies": [
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "list_recipient_publications_for_current_user"
+      ],
+      "route": null
+    },
+    {
+      "file": "src/lib/repositories/workspace-repository.ts",
+      "dependencies": [
+        "supabase-realtime",
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "can_edit_estimate",
+        "estimate_node_route_context",
+        "list_pending_collaboration_invitations",
+        "main_sidebar_favorite_projects",
+        "project_estimate_list_summaries",
+        "workspace_homebase_summary",
+        "workspace_projects_summary"
+      ],
+      "route": null
+    },
+    {
+      "file": "src/lib/reusable-sources/actions.ts",
+      "dependencies": [
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "insert_estimate_subtree_into_estimate_with_history"
+      ],
+      "route": null
+    },
+    {
+      "file": "src/lib/supabase/client.ts",
+      "dependencies": [
+        "supabase-client",
+        "supabase-realtime"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/supabase/server.ts",
+      "dependencies": [
+        "supabase-client"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/supabase/service-role.ts",
+      "dependencies": [
+        "supabase-client"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/supabase/types.ts",
+      "dependencies": [
+        "supabase-client"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/uploads/direct-upload-records.ts",
+      "dependencies": [
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "create_upload_session",
+        "finalize_upload_session"
+      ],
+      "route": null
+    },
+    {
+      "file": "src/lib/uploads/provider-portability.ts",
+      "dependencies": [
+        "supabase-storage"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/uploads/r2-storage-provider.ts",
+      "dependencies": [
+        "cloudflare-local-proof"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/uploads/runtime-storage-provider.ts",
+      "dependencies": [
+        "cloudflare-local-proof"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/uploads/scan-job.ts",
+      "dependencies": [
+        "supabase-rpc",
+        "supabase-storage"
+      ],
+      "rpcNames": [
+        "record_upload_scan_result"
+      ],
+      "route": null
+    },
+    {
+      "file": "src/lib/uploads/scan-override.ts",
+      "dependencies": [
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "approve_upload_scan_override"
+      ],
+      "route": null
+    },
+    {
+      "file": "src/lib/uploads/server-image-processing.ts",
+      "dependencies": [
+        "cloudflare-local-proof"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/uploads/sharp-cloudflare-stub.ts",
+      "dependencies": [
+        "cloudflare-local-proof"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/uploads/storage-provider.ts",
+      "dependencies": [
+        "supabase-storage"
+      ],
+      "rpcNames": [],
+      "route": null
+    },
+    {
+      "file": "src/lib/uploads/upload-records.ts",
+      "dependencies": [
+        "supabase-rpc"
+      ],
+      "rpcNames": [
+        "record_upload_asset"
+      ],
+      "route": null
+    }
+  ],
+  "rpcCalls": [
+    {
+      "name": "accept_collaboration_invitation",
+      "callerFiles": [
+        "src/app/invite/[token]/accept/route.ts",
+        "src/lib/collaboration/workshop-pending-invite.ts"
+      ]
+    },
+    {
+      "name": "accept_collaboration_invitation_by_id",
+      "callerFiles": [
+        "src/lib/collaboration/pending-invite-actions.ts"
+      ]
+    },
+    {
+      "name": "approve_upload_scan_override",
+      "callerFiles": [
+        "src/lib/uploads/scan-override.ts"
+      ]
+    },
+    {
+      "name": "archive_estimate_tab_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ]
+    },
+    {
+      "name": "authorize_recipient_publication_for_current_user",
+      "callerFiles": [
+        "src/lib/publication/actions.ts"
+      ]
+    },
+    {
+      "name": "can_access_estimate",
+      "callerFiles": [
+        "src/app/api/projects/images/route.ts",
+        "src/lib/estimate-sheet/user-preferences-actions.ts"
+      ]
+    },
+    {
+      "name": "can_access_project",
+      "callerFiles": [
+        "src/app/api/projects/images/route.ts"
+      ]
+    },
+    {
+      "name": "can_edit_estimate",
+      "callerFiles": [
+        "src/app/api/estimate-row-images/route.ts",
+        "src/lib/component-library/actions.ts",
+        "src/lib/estimates/actions.ts",
+        "src/lib/repositories/workspace-repository.ts"
+      ]
+    },
+    {
+      "name": "can_edit_project",
+      "callerFiles": [
+        "src/app/api/estimate-row-images/route.ts",
+        "src/app/api/projects/[projectId]/activity/route.ts",
+        "src/app/api/projects/images/route.ts",
+        "src/app/workshop/projects/[projectId]/activity/page.tsx",
+        "src/app/workshop/projects/[projectId]/estimates/page.tsx",
+        "src/app/workshop/projects/[projectId]/page.tsx",
+        "src/lib/estimates/actions.ts",
+        "src/lib/projects/location-actions.ts"
+      ]
+    },
+    {
+      "name": "check_closed_beta_access",
+      "callerFiles": [
+        "src/lib/auth/closed-beta-access.ts"
+      ]
+    },
+    {
+      "name": "create_ai_package_library_components_with_history",
+      "callerFiles": [
+        "src/lib/ai/package-builder/apply.ts"
+      ]
+    },
+    {
+      "name": "create_closed_beta_allowlist_entry",
+      "callerFiles": [
+        "src/lib/auth/beta-allowlist-admin-actions.ts"
+      ]
+    },
+    {
+      "name": "create_cost_library_component",
+      "callerFiles": [
+        "src/lib/component-library/actions.ts"
+      ]
+    },
+    {
+      "name": "create_estimate_node_with_history",
+      "callerFiles": [
+        "src/lib/ai/package-builder/apply.ts",
+        "src/lib/estimates/actions.ts"
+      ]
+    },
+    {
+      "name": "create_estimate_tab_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ]
+    },
+    {
+      "name": "create_project_estimate_package_with_history",
+      "callerFiles": [
+        "src/lib/ai/package-builder/apply.ts"
+      ]
+    },
+    {
+      "name": "create_upload_session",
+      "callerFiles": [
+        "src/lib/uploads/direct-upload-records.ts"
+      ]
+    },
+    {
+      "name": "delete_estimate_node_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ]
+    },
+    {
+      "name": "delete_estimate_nodes_bulk_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ]
+    },
+    {
+      "name": "delete_estimate_row_item_with_history",
+      "callerFiles": [
+        "src/lib/ai/package-builder/apply.ts",
+        "src/lib/estimates/actions.ts"
+      ]
+    },
+    {
+      "name": "delete_estimate_row_items_bulk_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ]
+    },
+    {
+      "name": "delete_estimate_tab_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ]
+    },
+    {
+      "name": "delete_library_folder",
+      "callerFiles": [
+        "src/lib/component-library/actions.ts"
+      ]
+    },
+    {
+      "name": "duplicate_estimate_tab_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ]
+    },
+    {
+      "name": "ensure_current_user_profile",
+      "callerFiles": [
+        "src/lib/auth/session.ts"
+      ]
+    },
+    {
+      "name": "estimate_node_route_context",
+      "callerFiles": [
+        "src/lib/repositories/workspace-repository.ts"
+      ]
+    },
+    {
+      "name": "execute_bulk_archive_library_components",
+      "callerFiles": [
+        "src/lib/component-library/actions.ts"
+      ]
+    },
+    {
+      "name": "execute_bulk_delete_estimate_sheets",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ]
+    },
+    {
+      "name": "execute_bulk_delete_projects",
+      "callerFiles": [
+        "src/lib/projects/actions.ts"
+      ]
+    },
+    {
+      "name": "finalize_upload_session",
+      "callerFiles": [
+        "src/lib/uploads/direct-upload-records.ts"
+      ]
+    },
+    {
+      "name": "get_estimate_activity_retention_metrics",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ]
+    },
+    {
+      "name": "increment_project_publication_open",
+      "callerFiles": [
+        "src/lib/publication/public-repository.ts"
+      ]
+    },
+    {
+      "name": "insert_client_comment",
+      "callerFiles": [
+        "src/lib/publication/public-repository.ts"
+      ]
+    },
+    {
+      "name": "insert_estimate_row_item_with_history",
+      "callerFiles": [
+        "src/lib/ai/package-builder/apply.ts",
+        "src/lib/estimates/actions.ts"
+      ]
+    },
+    {
+      "name": "insert_estimate_subtree_into_estimate_with_history",
+      "callerFiles": [
+        "src/lib/reusable-sources/actions.ts"
+      ]
+    },
+    {
+      "name": "insert_estimate_template_into_estimate_with_history",
+      "callerFiles": [
+        "src/lib/ai/package-builder/apply.ts",
+        "src/lib/estimates/actions.ts"
+      ]
+    },
+    {
+      "name": "insert_estimate_template_node_into_estimate_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ]
+    },
+    {
+      "name": "is_workspace_editor",
+      "callerFiles": [
+        "src/app/api/component-library/attachments/direct-upload/route.ts",
+        "src/app/api/component-library/attachments/route.ts",
+        "src/app/api/component-library/images/route.ts",
+        "src/lib/component-library/actions.ts",
+        "src/lib/component-library/template-editor-actions.ts"
+      ]
+    },
+    {
+      "name": "is_workspace_member",
+      "callerFiles": [
+        "src/lib/component-library/actions.ts"
+      ]
+    },
+    {
+      "name": "issue_collaboration_invitation_token",
+      "callerFiles": [
+        "src/lib/collaboration/actions.ts"
+      ]
+    },
+    {
+      "name": "library_component_rows_seed",
+      "callerFiles": [
+        "src/lib/repositories/component-library-repository.ts"
+      ]
+    },
+    {
+      "name": "library_overview_summary",
+      "callerFiles": [
+        "src/lib/repositories/component-library-repository.ts"
+      ]
+    },
+    {
+      "name": "library_templates_seed",
+      "callerFiles": [
+        "src/lib/repositories/component-library-repository.ts"
+      ]
+    },
+    {
+      "name": "list_pending_collaboration_invitations",
+      "callerFiles": [
+        "src/lib/repositories/workspace-repository.ts"
+      ]
+    },
+    {
+      "name": "list_recipient_publications_for_current_user",
+      "callerFiles": [
+        "src/lib/repositories/recipient-proposals-repository.ts"
+      ]
+    },
+    {
+      "name": "main_sidebar_favorite_projects",
+      "callerFiles": [
+        "src/lib/repositories/workspace-repository.ts"
+      ]
+    },
+    {
+      "name": "move_estimate_row_component_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ]
+    },
+    {
+      "name": "move_estimate_row_item_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ]
+    },
+    {
+      "name": "preview_bulk_archive_library_components",
+      "callerFiles": [
+        "src/lib/component-library/actions.ts"
+      ]
+    },
+    {
+      "name": "preview_bulk_delete_estimate_sheets",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ]
+    },
+    {
+      "name": "preview_bulk_delete_projects",
+      "callerFiles": [
+        "src/lib/projects/actions.ts"
+      ]
+    },
+    {
+      "name": "project_estimate_list_summaries",
+      "callerFiles": [
+        "src/lib/repositories/workspace-repository.ts"
+      ]
+    },
+    {
+      "name": "project_estimate_list_summaries_for_estimates",
+      "callerFiles": [
+        "src/lib/repositories/project-estimate-sheets-repository.ts"
+      ]
+    },
+    {
+      "name": "promote_estimate_row_to_library_component",
+      "callerFiles": [
+        "src/lib/estimates/express-promotion-actions.ts"
+      ]
+    },
+    {
+      "name": "read_closed_beta_allowlist_queue",
+      "callerFiles": [
+        "src/lib/auth/beta-allowlist-admin.ts"
+      ]
+    },
+    {
+      "name": "read_project_collaboration_audit_events",
+      "callerFiles": [
+        "src/lib/repositories/project-activity-feed-repository.ts"
+      ]
+    },
+    {
+      "name": "record_collaboration_invitation_delivery",
+      "callerFiles": [
+        "src/lib/collaboration/actions.ts"
+      ]
+    },
+    {
+      "name": "record_mass_deletion_storage_cleanup_result",
+      "callerFiles": [
+        "src/lib/projects/actions.ts"
+      ]
+    },
+    {
+      "name": "record_upload_asset",
+      "callerFiles": [
+        "src/lib/uploads/upload-records.ts"
+      ]
+    },
+    {
+      "name": "record_upload_scan_result",
+      "callerFiles": [
+        "src/lib/uploads/scan-job.ts"
+      ]
+    },
+    {
+      "name": "rename_estimate_node_with_history",
+      "callerFiles": [
+        "src/lib/ai/package-builder/apply.ts",
+        "src/lib/estimates/actions.ts"
+      ]
+    },
+    {
+      "name": "rename_estimate_tab_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ]
+    },
+    {
+      "name": "reorder_estimate_nodes_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ]
+    },
+    {
+      "name": "reorder_estimate_tabs_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ]
+    },
+    {
+      "name": "reorder_library_folders",
+      "callerFiles": [
+        "src/lib/component-library/actions.ts"
+      ]
+    },
+    {
+      "name": "replace_estimate_row_item_with_history",
+      "callerFiles": [
+        "src/lib/ai/package-builder/apply.ts",
+        "src/lib/estimates/actions.ts"
+      ]
+    },
+    {
+      "name": "resolve_collaboration_invitation",
+      "callerFiles": [
+        "src/app/invite/[token]/page.tsx"
+      ]
+    },
+    {
+      "name": "restore_deleted_estimate_nodes_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ]
+    },
+    {
+      "name": "restore_deleted_estimate_rows_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ]
+    },
+    {
+      "name": "set_cost_library_component_lifecycle_state",
+      "callerFiles": [
+        "src/lib/component-library/actions.ts"
+      ]
+    },
+    {
+      "name": "submit_client_response",
+      "callerFiles": [
+        "src/lib/publication/public-repository.ts"
+      ]
+    },
+    {
+      "name": "unlink_estimate_row_item_from_library_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ]
+    },
+    {
+      "name": "update_closed_beta_allowlist_entry",
+      "callerFiles": [
+        "src/lib/auth/beta-allowlist-admin-actions.ts"
+      ]
+    },
+    {
+      "name": "update_cost_library_component",
+      "callerFiles": [
+        "src/lib/component-library/actions.ts"
+      ]
+    },
+    {
+      "name": "update_estimate_details_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ]
+    },
+    {
+      "name": "update_estimate_row_item_with_history",
+      "callerFiles": [
+        "src/lib/ai/package-builder/apply.ts",
+        "src/lib/estimates/actions.ts"
+      ]
+    },
+    {
+      "name": "update_estimate_sheet_adjustment_with_history",
+      "callerFiles": [
+        "src/lib/estimates/actions.ts"
+      ]
+    },
+    {
+      "name": "upsert_cost_library_component_price_option",
+      "callerFiles": [
+        "src/lib/component-library/actions.ts"
+      ]
+    },
+    {
+      "name": "workspace_homebase_summary",
+      "callerFiles": [
+        "src/lib/repositories/workspace-repository.ts"
+      ]
+    },
+    {
+      "name": "workspace_projects_summary",
+      "callerFiles": [
+        "src/lib/repositories/workspace-repository.ts"
+      ]
+    }
+  ],
+  "packageScripts": [
+    {
+      "name": "build",
+      "command": "next build",
+      "family": "other"
+    },
+    {
+      "name": "build-storybook",
+      "command": "storybook build",
+      "family": "other"
+    },
+    {
+      "name": "cf:better-auth-proof",
+      "command": "bun run scripts/generate-cloudflare-better-auth-proof.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:build",
+      "command": "ARCHESTIMATOR_CLOUDFLARE_BUILD=1 opennextjs-cloudflare build",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:check-d1-auth-realtime",
+      "command": "bun run scripts/check-cloudflare-d1-auth-realtime-readiness.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:check-deploy-dry-run",
+      "command": "bun run scripts/check-cloudflare-wrangler-deploy-dry-run.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:check-dns-delegation",
+      "command": "bun run scripts/check-cloudflare-dns-delegation.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:check-provider",
+      "command": "bun run scripts/check-cloudflare-provider-readiness.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:check-provider-resources",
+      "command": "bun run scripts/check-cloudflare-provider-resources.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:check-readiness",
+      "command": "bun run scripts/check-cloudflare-worker-readiness.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:check-toolchain",
+      "command": "bun run scripts/check-cloudflare-platform-toolchain.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:check-wrangler-auth",
+      "command": "bun run scripts/check-cloudflare-wrangler-auth.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:d1-authz-matrix",
+      "command": "bun run scripts/generate-cloudflare-d1-authz-access-matrix.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:d1-beta-feedback-proof",
+      "command": "bun run scripts/generate-cloudflare-d1-beta-feedback-proof.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:d1-closed-beta-proof",
+      "command": "bun run scripts/generate-cloudflare-d1-closed-beta-proof.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:d1-collaboration-invitation-proof",
+      "command": "bun run scripts/generate-cloudflare-d1-collaboration-invitation-proof.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:d1-component-library-proof",
+      "command": "bun run scripts/generate-cloudflare-d1-component-library-proof.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:d1-estimate-history-proof",
+      "command": "bun run scripts/generate-cloudflare-d1-estimate-history-proof.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:d1-performance-proof",
+      "command": "bun run scripts/generate-cloudflare-d1-performance-proof.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:d1-restore-rehearsal",
+      "command": "bun run scripts/generate-cloudflare-d1-restore-rehearsal.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:d1-rpc-map",
+      "command": "bun run scripts/generate-cloudflare-d1-rpc-rewrite-map.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:d1-rpc-proof",
+      "command": "bun run scripts/generate-cloudflare-d1-rpc-transaction-proof.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:deploy",
+      "command": "ARCHESTIMATOR_CLOUDFLARE_BUILD=1 opennextjs-cloudflare build && opennextjs-cloudflare deploy -- --keep-vars",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:inventory",
+      "command": "bun run scripts/generate-cloudflare-migration-inventory.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:preview",
+      "command": "ARCHESTIMATOR_CLOUDFLARE_BUILD=1 opennextjs-cloudflare build && opennextjs-cloudflare preview",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:pricing",
+      "command": "bun run scripts/generate-cloudflare-pricing-snapshot.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:queues-cron-proof",
+      "command": "bun run scripts/generate-cloudflare-queues-cron-proof.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:release-gates",
+      "command": "bun run scripts/check-cloudflare-release-gates.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:typegen",
+      "command": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:verify-hosted-performance",
+      "command": "bun run scripts/verify-cloudflare-hosted-performance.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:verify-hosted-routes",
+      "command": "bun run scripts/verify-cloudflare-hosted-routes.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:verify-preview-routes",
+      "command": "bun run scripts/verify-cloudflare-worker-preview-routes.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "cf:workbook",
+      "command": "bun run scripts/generate-cloudflare-cost-performance-workbook.ts",
+      "family": "cloudflare"
+    },
+    {
+      "name": "dbidx:audit-repo",
+      "command": "bun run scripts/audit-dbidx-repo.ts",
+      "family": "other"
+    },
+    {
+      "name": "dev",
+      "command": "next dev",
+      "family": "other"
+    },
+    {
+      "name": "doctor",
+      "command": "react-doctor",
+      "family": "other"
+    },
+    {
+      "name": "gen:types",
+      "command": "supabase gen types typescript --project-id ebxxqidacheyapmmzavr --schema public > src/lib/supabase/types.ts",
+      "family": "provider-readiness"
+    },
+    {
+      "name": "generate:project-charts-payload-evidence",
+      "command": "bun run scripts/generate-project-charts-payload-evidence.ts",
+      "family": "other"
+    },
+    {
+      "name": "graph:neutralize",
+      "command": "node scripts/neutralize-graph-mandate.mjs",
+      "family": "other"
+    },
+    {
+      "name": "graph:reindex",
+      "command": "node .gitnexus/run.cjs analyze && node scripts/neutralize-graph-mandate.mjs",
+      "family": "other"
+    },
+    {
+      "name": "launch:check-legal-owner",
+      "command": "bun run scripts/check-legal-owner-readiness.ts",
+      "family": "launch"
+    },
+    {
+      "name": "launch:check-resend-readiness",
+      "command": "bun run scripts/check-resend-readiness.ts",
+      "family": "provider-readiness"
+    },
+    {
+      "name": "launch:check-supabase-backup",
+      "command": "bun run scripts/check-supabase-backup-readiness.ts",
+      "family": "provider-readiness"
+    },
+    {
+      "name": "launch:check-supabase-linked-readiness",
+      "command": "bun run scripts/check-supabase-linked-readiness.ts",
+      "family": "provider-readiness"
+    },
+    {
+      "name": "launch:check-supabase-migrations",
+      "command": "bun run scripts/check-supabase-migration-readiness.ts",
+      "family": "provider-readiness"
+    },
+    {
+      "name": "launch:check-support-dns",
+      "command": "bun run scripts/check-support-email-dns.ts",
+      "family": "launch"
+    },
+    {
+      "name": "launch:check-support-monitoring",
+      "command": "bun run scripts/check-support-monitoring-readiness.ts",
+      "family": "launch"
+    },
+    {
+      "name": "launch:check-vercel-env",
+      "command": "bun run scripts/check-vercel-env-readiness.ts",
+      "family": "provider-readiness"
+    },
+    {
+      "name": "launch:check-vercel-health",
+      "command": "bun run scripts/check-vercel-health-readiness.ts",
+      "family": "provider-readiness"
+    },
+    {
+      "name": "launch:check-vercel-production",
+      "command": "bun run scripts/check-vercel-production-readiness.ts",
+      "family": "provider-readiness"
+    },
+    {
+      "name": "launch:supabase-readiness",
+      "command": "supabase db query --linked --file scripts/sql/linked-supabase-launch-readiness.sql --output json",
+      "family": "launch"
+    },
+    {
+      "name": "launch:verify-hosted-auth",
+      "command": "bun run scripts/verify-hosted-auth-routes.ts",
+      "family": "launch"
+    },
+    {
+      "name": "launch:verify-hosted-export",
+      "command": "bun run scripts/verify-hosted-export-route.ts",
+      "family": "launch"
+    },
+    {
+      "name": "launch:verify-hosted-sensitive-routes",
+      "command": "bun run scripts/verify-hosted-sensitive-route-fail-closed.ts",
+      "family": "launch"
+    },
+    {
+      "name": "lint",
+      "command": "eslint",
+      "family": "other"
+    },
+    {
+      "name": "lint:design",
+      "command": "node .agents/skills/impeccable/scripts/detect.mjs --strict src/components",
+      "family": "other"
+    },
+    {
+      "name": "lint:design-system",
+      "command": "node scripts/enforce-app-design-system.mjs",
+      "family": "other"
+    },
+    {
+      "name": "lint:font-size",
+      "command": "bun run lint:design-system",
+      "family": "other"
+    },
+    {
+      "name": "logs:debug",
+      "command": "bun run scripts/tail-dev-logs.mjs --explain-latest-error",
+      "family": "other"
+    },
+    {
+      "name": "logs:dev",
+      "command": "bun run dev",
+      "family": "other"
+    },
+    {
+      "name": "logs:emit-test",
+      "command": "bun run scripts/emit-test-log.mjs",
+      "family": "other"
+    },
+    {
+      "name": "logs:explain",
+      "command": "bun run scripts/tail-dev-logs.mjs --explain",
+      "family": "other"
+    },
+    {
+      "name": "logs:tail",
+      "command": "bun run scripts/tail-dev-logs.mjs",
+      "family": "other"
+    },
+    {
+      "name": "perf:check-routes",
+      "command": "bun run scripts/check-route-transition-readiness.ts",
+      "family": "performance"
+    },
+    {
+      "name": "perf:check-speed-insights",
+      "command": "bun run scripts/check-vercel-speed-insights-readiness.ts",
+      "family": "performance"
+    },
+    {
+      "name": "perf:collect-live-evidence",
+      "command": "bun run scripts/collect-live-db-performance-evidence.ts",
+      "family": "performance"
+    },
+    {
+      "name": "perf:dashboard-query-count",
+      "command": "bun run scripts/measure-workshop-dashboard-query-count.ts",
+      "family": "performance"
+    },
+    {
+      "name": "perf:library-baseline",
+      "command": "bun run scripts/measure-library-performance-baseline.ts",
+      "family": "performance"
+    },
+    {
+      "name": "perf:measure-routes",
+      "command": "bun run scripts/measure-route-transitions.ts",
+      "family": "performance"
+    },
+    {
+      "name": "perf:profile-peak-load",
+      "command": "vitest run tests/vitest/route-transition-peak-load-profile.test.tsx --maxWorkers=1",
+      "family": "performance"
+    },
+    {
+      "name": "perf:seed-fixture",
+      "command": "bun run scripts/seed-performance-test-data.ts",
+      "family": "performance"
+    },
+    {
+      "name": "prove:estimate-list-summaries",
+      "command": "node scripts/prove-estimate-list-summaries-postgres.mjs",
+      "family": "proof"
+    },
+    {
+      "name": "prove:estimate-tabs-rls",
+      "command": "node scripts/prove-estimate-tabs-postgres.mjs",
+      "family": "proof"
+    },
+    {
+      "name": "prove:membership-floor-triggers",
+      "command": "node scripts/prove-membership-floor-triggers-postgres.mjs",
+      "family": "proof"
+    },
+    {
+      "name": "prove:notification-rls",
+      "command": "node scripts/prove-notification-rls-postgres.mjs",
+      "family": "proof"
+    },
+    {
+      "name": "prove:project-dashboard-activity-location",
+      "command": "node scripts/prove-project-dashboard-activity-location-postgres.mjs",
+      "family": "proof"
+    },
+    {
+      "name": "prove:rls-initplan",
+      "command": "node scripts/prove-rls-initplan-postgres.mjs",
+      "family": "proof"
+    },
+    {
+      "name": "prove:shared-link-response-recipient-set-null",
+      "command": "node scripts/prove-shared-link-response-recipient-set-null-postgres.mjs",
+      "family": "proof"
+    },
+    {
+      "name": "prove:t4-shared-link-db-hygiene",
+      "command": "node scripts/prove-t4-shared-link-db-hygiene-postgres.mjs",
+      "family": "proof"
+    },
+    {
+      "name": "prove:unify-kinds",
+      "command": "node scripts/prove-unify-estimate-node-kinds-postgres.mjs",
+      "family": "proof"
+    },
+    {
+      "name": "prove:workspace-homebase-summary",
+      "command": "node scripts/prove-workshop-homebase-summary-postgres.mjs",
+      "family": "proof"
+    },
+    {
+      "name": "start",
+      "command": "next start",
+      "family": "other"
+    },
+    {
+      "name": "storybook",
+      "command": "storybook dev -p 6006",
+      "family": "other"
+    },
+    {
+      "name": "storybook:check-boundary",
+      "command": "node scripts/check-storybook-boundary.mjs",
+      "family": "other"
+    },
+    {
+      "name": "storybook:check-components",
+      "command": "node scripts/check-storybook-component-coverage.mjs",
+      "family": "other"
+    },
+    {
+      "name": "storybook:validate",
+      "command": "bun run storybook:check-components && bun run storybook:check-boundary && STORYBOOK_DISABLE_TELEMETRY=1 bun run build-storybook -- --output-dir /tmp/archestimator-storybook-static-standalone",
+      "family": "other"
+    },
+    {
+      "name": "test",
+      "command": "bun test tests/unit",
+      "family": "other"
+    },
+    {
+      "name": "test:dom",
+      "command": "vitest run --maxWorkers=1",
+      "family": "other"
+    },
+    {
+      "name": "test:dom:watch",
+      "command": "vitest",
+      "family": "other"
+    },
+    {
+      "name": "test:e2e",
+      "command": "playwright test",
+      "family": "other"
+    },
+    {
+      "name": "test:e2e:perf",
+      "command": "playwright test e2e/route-transition-performance.spec.ts",
+      "family": "other"
+    },
+    {
+      "name": "type-check",
+      "command": "tsc --noEmit",
+      "family": "other"
+    },
+    {
+      "name": "validate",
+      "command": "bun run type-check && bun run lint && bun run lint:design-system && bun run lint:design && bun run test && bun run test:dom",
+      "family": "other"
+    },
+    {
+      "name": "validate:agents",
+      "command": "node scripts/validate-ai-workflow-adapters.mjs",
+      "family": "other"
+    }
+  ],
+  "sqlInventory": {
+    "appliedMigrationFiles": 181,
+    "pendingReviewFiles": 13,
+    "functionDeclarationMatches": 346,
+    "rlsPolicyStorageAuthMatches": 684
+  },
+  "note": "Local repository inventory only. It lists file paths, route paths, RPC names, script names, and counts; it does not read env files, print secret values, mutate providers, prove Cloudflare hosted deployment, prove D1/R2/Images/Email/Workers Paid readiness, change DNS, or make current providers removable."
+}

@@ -1,0 +1,2768 @@
+{
+  "generatedAt": "2026-06-29T18:55:39.888Z",
+  "mode": "cloudflare-d1-authz-access-matrix",
+  "sources": {
+    "inventory": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-migration-inventory.json",
+    "sourceRoots": [
+      "src/app",
+      "src/lib",
+      "src/components",
+      "src/hooks",
+      "src/proxy",
+      "src/middleware.ts",
+      "worker.ts"
+    ],
+    "testRoots": [
+      "tests/vitest"
+    ]
+  },
+  "accessPathCount": 47,
+  "positiveTestCount": 47,
+  "denialTestCount": 47,
+  "crossWorkspaceDenialTestCount": 41,
+  "allProtectedAccessPathsCovered": true,
+  "crossWorkspaceDenialsReady": true,
+  "routeActionCoverageReady": true,
+  "rows": [
+    {
+      "id": "src-app-api-component-library-attachments-direct-upload-route-ts-is-workspace-editor",
+      "surface": "api-route",
+      "file": "src/app/api/component-library/attachments/direct-upload/route.ts",
+      "route": "/api/component-library/attachments/direct-upload",
+      "domain": "uploads and media",
+      "rpcNames": [
+        "is_workspace_editor"
+      ],
+      "currentProviderSignals": [
+        "supabase-client",
+        "supabase-rpc",
+        "supabase.rpc:is_workspace_editor"
+      ],
+      "requiredD1Checks": [
+        "D1 upload ownership guard plus R2 object-key validation",
+        "D1 workspace editor guard for library and template writes"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/ai-package-builder-security-contract.test.ts",
+        "tests/vitest/auth-magic-link.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/closed-beta-readiness-docs.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/cloudflare-migration-inventory-script.test.ts",
+        "tests/vitest/cloudflare-r2-storage-provider.test.ts",
+        "tests/vitest/component-library-actions-revalidation.test.ts",
+        "tests/vitest/component-library-attachment-lifecycle.test.ts",
+        "tests/vitest/component-library-folder-actions.test.ts",
+        "tests/vitest/component-library-versioning-schema.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/closed-beta-readiness-docs.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/cloudflare-r2-storage-provider.test.ts",
+        "tests/vitest/component-library-actions-revalidation.test.ts",
+        "tests/vitest/component-library-attachment-lifecycle.test.ts",
+        "tests/vitest/component-library-folder-actions.test.ts",
+        "tests/vitest/estimate-sheet-library-insert.test.tsx",
+        "tests/vitest/library-telemetry-emit.test.ts",
+        "tests/vitest/library-viewer-authz.test.tsx",
+        "tests/vitest/mass-deletion-contract.test.ts",
+        "tests/vitest/next-config-workshop-headers.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/project-publication-security.test.ts",
+        "tests/vitest/proposal-export-route.test.ts",
+        "tests/vitest/upload-cleanup-provider-proof-script.test.ts",
+        "tests/vitest/upload-cleanup.test.ts",
+        "tests/vitest/upload-signed-route.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-app-api-component-library-attachments-route-ts-is-workspace-editor",
+      "surface": "api-route",
+      "file": "src/app/api/component-library/attachments/route.ts",
+      "route": "/api/component-library/attachments",
+      "domain": "uploads and media",
+      "rpcNames": [
+        "is_workspace_editor"
+      ],
+      "currentProviderSignals": [
+        "supabase-client",
+        "supabase-rpc",
+        "supabase.rpc:is_workspace_editor"
+      ],
+      "requiredD1Checks": [
+        "D1 upload ownership guard plus R2 object-key validation",
+        "D1 workspace editor guard for library and template writes"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/ai-package-builder-security-contract.test.ts",
+        "tests/vitest/auth-magic-link.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/closed-beta-readiness-docs.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/cloudflare-migration-inventory-script.test.ts",
+        "tests/vitest/cloudflare-r2-storage-provider.test.ts",
+        "tests/vitest/component-library-actions-revalidation.test.ts",
+        "tests/vitest/component-library-attachment-lifecycle.test.ts",
+        "tests/vitest/component-library-folder-actions.test.ts",
+        "tests/vitest/component-library-versioning-schema.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/closed-beta-readiness-docs.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/cloudflare-r2-storage-provider.test.ts",
+        "tests/vitest/component-library-actions-revalidation.test.ts",
+        "tests/vitest/component-library-attachment-lifecycle.test.ts",
+        "tests/vitest/component-library-folder-actions.test.ts",
+        "tests/vitest/estimate-sheet-library-insert.test.tsx",
+        "tests/vitest/library-telemetry-emit.test.ts",
+        "tests/vitest/library-viewer-authz.test.tsx",
+        "tests/vitest/mass-deletion-contract.test.ts",
+        "tests/vitest/next-config-workshop-headers.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/project-publication-security.test.ts",
+        "tests/vitest/proposal-export-route.test.ts",
+        "tests/vitest/upload-cleanup-provider-proof-script.test.ts",
+        "tests/vitest/upload-cleanup.test.ts",
+        "tests/vitest/upload-signed-route.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-app-api-component-library-images-route-ts-is-workspace-editor",
+      "surface": "api-route",
+      "file": "src/app/api/component-library/images/route.ts",
+      "route": "/api/component-library/images",
+      "domain": "uploads and media",
+      "rpcNames": [
+        "is_workspace_editor"
+      ],
+      "currentProviderSignals": [
+        "supabase-client",
+        "supabase-rpc",
+        "supabase.rpc:is_workspace_editor"
+      ],
+      "requiredD1Checks": [
+        "D1 upload ownership guard plus R2 object-key validation",
+        "D1 workspace editor guard for library and template writes"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/ai-package-builder-security-contract.test.ts",
+        "tests/vitest/auth-magic-link.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/closed-beta-readiness-docs.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/cloudflare-image-processing.test.ts",
+        "tests/vitest/cloudflare-migration-inventory-script.test.ts",
+        "tests/vitest/cloudflare-platform-toolchain-script.test.ts",
+        "tests/vitest/cloudflare-r2-storage-provider.test.ts",
+        "tests/vitest/cloudflare-worker-readiness-script.test.ts",
+        "tests/vitest/cloudflare-wrangler-deploy-dry-run-script.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/closed-beta-readiness-docs.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/cloudflare-image-processing.test.ts",
+        "tests/vitest/cloudflare-r2-storage-provider.test.ts",
+        "tests/vitest/cloudflare-worker-readiness-script.test.ts",
+        "tests/vitest/component-library-actions-revalidation.test.ts",
+        "tests/vitest/component-library-attachment-lifecycle.test.ts",
+        "tests/vitest/component-library-folder-actions.test.ts",
+        "tests/vitest/component-library-helpers.test.ts",
+        "tests/vitest/component-library-ui.test.tsx",
+        "tests/vitest/estimate-component-drag.test.tsx"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/project-publication-security.test.ts",
+        "tests/vitest/proposal-export-route.test.ts",
+        "tests/vitest/upload-cleanup-provider-proof-script.test.ts",
+        "tests/vitest/upload-cleanup.test.ts",
+        "tests/vitest/upload-signed-route.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-app-api-estimate-row-images-route-ts-can-edit-estimate-can-edit-project",
+      "surface": "api-route",
+      "file": "src/app/api/estimate-row-images/route.ts",
+      "route": "/api/estimate-row-images",
+      "domain": "uploads and media",
+      "rpcNames": [
+        "can_edit_estimate",
+        "can_edit_project"
+      ],
+      "currentProviderSignals": [
+        "supabase-client",
+        "supabase-rpc",
+        "supabase.rpc:can_edit_estimate",
+        "supabase.rpc:can_edit_project"
+      ],
+      "requiredD1Checks": [
+        "D1 estimate edit guard before mutations and history writes",
+        "D1 project edit guard using server-derived user and project membership",
+        "D1 upload ownership guard plus R2 object-key validation"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/ai-package-builder-security-contract.test.ts",
+        "tests/vitest/auth-magic-link.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/cloudflare-migration-inventory-script.test.ts",
+        "tests/vitest/component-library-attachment-lifecycle.test.ts",
+        "tests/vitest/estimate-component-drag.test.tsx",
+        "tests/vitest/estimate-insert-target-authz.test.tsx",
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/component-library-attachment-lifecycle.test.ts",
+        "tests/vitest/estimate-component-drag.test.tsx",
+        "tests/vitest/estimate-insert-target-authz.test.tsx",
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-create-empty-tree.test.ts",
+        "tests/vitest/estimate-sheet-library-insert.test.tsx",
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "tests/vitest/estimate-tabs-schema.test.ts",
+        "tests/vitest/library-telemetry-emit.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/project-publication-security.test.ts",
+        "tests/vitest/proposal-export-route.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-app-api-projects-projectid-activity-route-ts-can-edit-project",
+      "surface": "api-route",
+      "file": "src/app/api/projects/[projectId]/activity/route.ts",
+      "route": "/api/projects/[projectId]/activity",
+      "domain": "projects",
+      "rpcNames": [
+        "can_edit_project"
+      ],
+      "currentProviderSignals": [
+        "supabase-rpc",
+        "supabase.rpc:can_edit_project"
+      ],
+      "requiredD1Checks": [
+        "D1 project edit guard using server-derived user and project membership",
+        "D1 publication owner/recipient guard with token-bound recipient checks",
+        "D1 workspace editor guard for library and template writes"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/ai-ask-read-context.test.ts",
+        "tests/vitest/ai-ask-route.test.ts",
+        "tests/vitest/ai-package-builder-security-contract.test.ts",
+        "tests/vitest/auth-magic-link.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/cloudflare-migration-inventory-script.test.ts",
+        "tests/vitest/component-library-attachment-lifecycle.test.ts",
+        "tests/vitest/estimate-row-table-virtualization.test.tsx",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/ai-ask-read-context.test.ts",
+        "tests/vitest/ai-ask-route.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/component-library-attachment-lifecycle.test.ts",
+        "tests/vitest/estimate-row-table-virtualization.test.tsx",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-create-empty-tree.test.ts",
+        "tests/vitest/hosted-sensitive-route-fail-closed-script.test.ts",
+        "tests/vitest/library-telemetry-emit.test.ts",
+        "tests/vitest/next-config-workshop-headers.test.ts",
+        "tests/vitest/project-activity-page/migration.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/estimate-sheet-cost-inputs.test.tsx",
+        "tests/vitest/project-publication-rotate-resend.test.ts",
+        "tests/vitest/project-publication-security.test.ts",
+        "tests/vitest/proposal-export-route.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-app-api-projects-projectid-estimates-estimateid-export-proposal-xlsx-route-ts-publication-and-proposals",
+      "surface": "api-route",
+      "file": "src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts",
+      "route": "/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx",
+      "domain": "publication and proposals",
+      "rpcNames": [],
+      "currentProviderSignals": [
+        "source:workspace_members lookup"
+      ],
+      "requiredD1Checks": [
+        "D1 estimate access guard before reads, exports, and preferences",
+        "D1 estimate edit guard before mutations and history writes",
+        "D1 project access guard using server-derived user, membership, or publication recipient",
+        "D1 project edit guard using server-derived user and project membership",
+        "D1 publication owner/recipient guard with token-bound recipient checks"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/ai-ask-read-context.test.ts",
+        "tests/vitest/ai-ask-route.test.ts",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/ai-package-builder-draft.test.ts",
+        "tests/vitest/ai-package-builder-provider.test.ts",
+        "tests/vitest/ai-package-builder-read-tools.test.ts",
+        "tests/vitest/ai-package-builder-route.test.ts",
+        "tests/vitest/ai-package-builder-schema.test.ts",
+        "tests/vitest/ai-package-builder-security-contract.test.ts",
+        "tests/vitest/auth-magic-link.test.ts",
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/ai-ask-read-context.test.ts",
+        "tests/vitest/ai-ask-route.test.ts",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/ai-package-builder-draft.test.ts",
+        "tests/vitest/ai-package-builder-provider.test.ts",
+        "tests/vitest/ai-package-builder-route.test.ts",
+        "tests/vitest/ai-package-builder-schema.test.ts",
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/bulk-action-validation.test.ts",
+        "tests/vitest/bulk-destructive-preview-modal.test.tsx"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/estimate-sheet-cost-inputs.test.tsx",
+        "tests/vitest/main-sidebar-favorites.test.tsx",
+        "tests/vitest/perf/projects-page-server-parallelism.test.ts",
+        "tests/vitest/project-favorite-sidebar-mutation.test.tsx",
+        "tests/vitest/project-publication-rotate-resend.test.ts",
+        "tests/vitest/project-publication-security.test.ts",
+        "tests/vitest/projects-page-organize-control.test.tsx",
+        "tests/vitest/proposal-export-route.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-app-api-projects-images-route-ts-can-access-estimate-can-access-project-can-edit-project",
+      "surface": "api-route",
+      "file": "src/app/api/projects/images/route.ts",
+      "route": "/api/projects/images",
+      "domain": "uploads and media",
+      "rpcNames": [
+        "can_access_estimate",
+        "can_access_project",
+        "can_edit_project"
+      ],
+      "currentProviderSignals": [
+        "supabase-client",
+        "supabase-rpc",
+        "supabase.rpc:can_access_estimate",
+        "supabase.rpc:can_access_project",
+        "supabase.rpc:can_edit_project"
+      ],
+      "requiredD1Checks": [
+        "D1 estimate access guard before reads, exports, and preferences",
+        "D1 estimate edit guard before mutations and history writes",
+        "D1 project access guard using server-derived user, membership, or publication recipient",
+        "D1 project edit guard using server-derived user and project membership",
+        "D1 upload ownership guard plus R2 object-key validation"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/ai-package-builder-security-contract.test.ts",
+        "tests/vitest/auth-magic-link.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/closed-beta-readiness-docs.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/cloudflare-image-processing.test.ts",
+        "tests/vitest/cloudflare-migration-inventory-script.test.ts",
+        "tests/vitest/cloudflare-platform-toolchain-script.test.ts",
+        "tests/vitest/cloudflare-r2-storage-provider.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/closed-beta-readiness-docs.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/cloudflare-image-processing.test.ts",
+        "tests/vitest/cloudflare-r2-storage-provider.test.ts",
+        "tests/vitest/cloudflare-worker-readiness-script.test.ts",
+        "tests/vitest/component-library-attachment-lifecycle.test.ts",
+        "tests/vitest/component-library-ui.test.tsx",
+        "tests/vitest/estimate-component-drag.test.tsx",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-create-empty-tree.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/project-publication-security.test.ts",
+        "tests/vitest/proposal-export-route.test.ts",
+        "tests/vitest/upload-cleanup-provider-proof-script.test.ts",
+        "tests/vitest/upload-cleanup.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-app-invite-token-accept-route-ts-accept-collaboration-invitation",
+      "surface": "api-route",
+      "file": "src/app/invite/[token]/accept/route.ts",
+      "route": "/invite/[token]/accept",
+      "domain": "collaboration invitations",
+      "rpcNames": [
+        "accept_collaboration_invitation"
+      ],
+      "currentProviderSignals": [
+        "supabase-rpc",
+        "supabase.rpc:accept_collaboration_invitation"
+      ],
+      "requiredD1Checks": [
+        "D1 invitation token and project collaboration guard",
+        "D1 workspace editor guard for library and template writes"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/ai-package-builder-security-contract.test.ts",
+        "tests/vitest/auth-magic-link.test.ts",
+        "tests/vitest/auth-proxy.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/closed-beta-readiness-docs.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-migration-inventory-script.test.ts",
+        "tests/vitest/component-library-attachment-lifecycle.test.ts",
+        "tests/vitest/invite-accept-origin.test.ts",
+        "tests/vitest/library-telemetry-emit.test.ts",
+        "tests/vitest/next-config-workshop-headers.test.ts",
+        "tests/vitest/pending-invite-cookie.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/auth-proxy.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/closed-beta-readiness-docs.test.ts",
+        "tests/vitest/component-library-attachment-lifecycle.test.ts",
+        "tests/vitest/invite-accept-origin.test.ts",
+        "tests/vitest/library-telemetry-emit.test.ts",
+        "tests/vitest/next-config-workshop-headers.test.ts",
+        "tests/vitest/pending-invite-cookie.test.ts",
+        "tests/vitest/perf/projects-page-render-baseline.test.tsx",
+        "tests/vitest/perf/projects-page-rpc-contract.test.ts",
+        "tests/vitest/project-collaboration-schema.test.ts",
+        "tests/vitest/project-collaboration-tree-contract.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/perf/projects-page-server-parallelism.test.ts",
+        "tests/vitest/project-publication-rotate-resend.test.ts",
+        "tests/vitest/project-publication-security.test.ts",
+        "tests/vitest/projects-page-organize-control.test.tsx",
+        "tests/vitest/proposal-export-route.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-app-invite-token-page-tsx-resolve-collaboration-invitation",
+      "surface": "page-route",
+      "file": "src/app/invite/[token]/page.tsx",
+      "route": "/invite/[token]",
+      "domain": "collaboration invitations",
+      "rpcNames": [
+        "resolve_collaboration_invitation"
+      ],
+      "currentProviderSignals": [
+        "supabase-rpc",
+        "supabase.rpc:resolve_collaboration_invitation"
+      ],
+      "requiredD1Checks": [
+        "D1 invitation token and project collaboration guard",
+        "D1 workspace editor guard for library and template writes"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/auth-entry-ui-contract.test.ts",
+        "tests/vitest/auth-magic-link.test.ts",
+        "tests/vitest/auth-settings-ui-contract.test.ts",
+        "tests/vitest/beta-feedback-review-ui.test.tsx",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/closed-beta-allowlist-admin-ui.test.tsx",
+        "tests/vitest/closed-beta-allowlist-admin.test.ts",
+        "tests/vitest/closed-beta-pricing-copy.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/cloudflare-migration-inventory-script.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/design-enforcer-share-allowlist.test.ts",
+        "tests/vitest/estimate-tabs-domain.test.ts",
+        "tests/vitest/invite-accept-origin.test.ts",
+        "tests/vitest/landing-company-proof.test.ts",
+        "tests/vitest/library-telemetry-emit.test.ts",
+        "tests/vitest/pending-invite-cookie.test.ts",
+        "tests/vitest/perf/projects-page-render-baseline.test.tsx",
+        "tests/vitest/perf/projects-page-rpc-contract.test.ts",
+        "tests/vitest/project-collaboration-schema.test.ts",
+        "tests/vitest/project-invite-entry-schema.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/perf/projects-page-server-parallelism.test.ts",
+        "tests/vitest/project-publication-rotate-resend.test.ts",
+        "tests/vitest/project-publication-security.test.ts",
+        "tests/vitest/projects-page-organize-control.test.tsx",
+        "tests/vitest/proposal-export-route.test.ts",
+        "tests/vitest/workshop-project-groups-repository.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-app-workshop-projects-projectid-activity-page-tsx-can-edit-project",
+      "surface": "page-route",
+      "file": "src/app/workshop/projects/[projectId]/activity/page.tsx",
+      "route": "/workshop/projects/[projectId]/activity",
+      "domain": "projects",
+      "rpcNames": [
+        "can_edit_project"
+      ],
+      "currentProviderSignals": [
+        "supabase-rpc",
+        "supabase.rpc:can_edit_project"
+      ],
+      "requiredD1Checks": [
+        "D1 project edit guard using server-derived user and project membership",
+        "D1 publication owner/recipient guard with token-bound recipient checks",
+        "D1 workspace editor guard for library and template writes"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/ai-ask-read-context.test.ts",
+        "tests/vitest/ai-ask-route.test.ts",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/ai-package-builder-security-contract.test.ts",
+        "tests/vitest/auth-callback-route.test.ts",
+        "tests/vitest/auth-entry-ui-contract.test.ts",
+        "tests/vitest/auth-magic-link.test.ts",
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/auth-proxy.test.ts",
+        "tests/vitest/auth-redirect-sanitizer.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/auth-settings-ui-contract.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/ai-ask-read-context.test.ts",
+        "tests/vitest/ai-ask-route.test.ts",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/auth-proxy.test.ts",
+        "tests/vitest/auth-redirect-sanitizer.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/bulk-destructive-preview-modal.test.tsx",
+        "tests/vitest/closed-beta-readiness-docs.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/component-library-actions-revalidation.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/estimate-sheet-cost-inputs.test.tsx",
+        "tests/vitest/main-sidebar-favorites.test.tsx",
+        "tests/vitest/perf/projects-page-server-parallelism.test.ts",
+        "tests/vitest/project-favorite-sidebar-mutation.test.tsx",
+        "tests/vitest/project-publication-rotate-resend.test.ts",
+        "tests/vitest/project-publication-security.test.ts",
+        "tests/vitest/projects-page-organize-control.test.tsx",
+        "tests/vitest/proposal-export-route.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-app-workshop-projects-projectid-estimates-page-tsx-can-edit-project",
+      "surface": "page-route",
+      "file": "src/app/workshop/projects/[projectId]/estimates/page.tsx",
+      "route": "/workshop/projects/[projectId]/estimates",
+      "domain": "estimate editing",
+      "rpcNames": [
+        "can_edit_project"
+      ],
+      "currentProviderSignals": [
+        "supabase-rpc",
+        "supabase.rpc:can_edit_project"
+      ],
+      "requiredD1Checks": [
+        "D1 estimate edit guard before mutations and history writes",
+        "D1 project edit guard using server-derived user and project membership",
+        "D1 workspace editor guard for library and template writes"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/ai-ask-read-context.test.ts",
+        "tests/vitest/ai-ask-route.test.ts",
+        "tests/vitest/ai-audit-flow.test.ts",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/ai-package-builder-draft.test.ts",
+        "tests/vitest/ai-package-builder-provider.test.ts",
+        "tests/vitest/ai-package-builder-read-tools.test.ts",
+        "tests/vitest/ai-package-builder-route.test.ts",
+        "tests/vitest/ai-package-builder-schema.test.ts",
+        "tests/vitest/ai-package-builder-security-contract.test.ts",
+        "tests/vitest/auth-callback-route.test.ts",
+        "tests/vitest/auth-entry-ui-contract.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/ai-ask-read-context.test.ts",
+        "tests/vitest/ai-ask-route.test.ts",
+        "tests/vitest/ai-audit-flow.test.ts",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/ai-package-builder-draft.test.ts",
+        "tests/vitest/ai-package-builder-provider.test.ts",
+        "tests/vitest/ai-package-builder-route.test.ts",
+        "tests/vitest/ai-package-builder-schema.test.ts",
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/auth-proxy.test.ts",
+        "tests/vitest/auth-redirect-sanitizer.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/estimate-sheet-cost-inputs.test.tsx",
+        "tests/vitest/main-sidebar-favorites.test.tsx",
+        "tests/vitest/perf/projects-page-server-parallelism.test.ts",
+        "tests/vitest/project-estimates-store.test.ts",
+        "tests/vitest/project-favorite-sidebar-mutation.test.tsx",
+        "tests/vitest/project-publication-rotate-resend.test.ts",
+        "tests/vitest/project-publication-security.test.ts",
+        "tests/vitest/projects-page-organize-control.test.tsx"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-app-workshop-projects-projectid-page-tsx-can-edit-project",
+      "surface": "page-route",
+      "file": "src/app/workshop/projects/[projectId]/page.tsx",
+      "route": "/workshop/projects/[projectId]",
+      "domain": "projects",
+      "rpcNames": [
+        "can_edit_project"
+      ],
+      "currentProviderSignals": [
+        "supabase-rpc",
+        "supabase.rpc:can_edit_project"
+      ],
+      "requiredD1Checks": [
+        "D1 project edit guard using server-derived user and project membership",
+        "D1 workspace editor guard for library and template writes"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/auth-callback-route.test.ts",
+        "tests/vitest/auth-entry-ui-contract.test.ts",
+        "tests/vitest/auth-magic-link.test.ts",
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/auth-proxy.test.ts",
+        "tests/vitest/auth-redirect-sanitizer.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/auth-settings-ui-contract.test.ts",
+        "tests/vitest/beta-feedback-form-ui.test.tsx",
+        "tests/vitest/beta-feedback-review-ui.test.tsx",
+        "tests/vitest/beta-feedback.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/auth-proxy.test.ts",
+        "tests/vitest/auth-redirect-sanitizer.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/bulk-destructive-preview-modal.test.tsx",
+        "tests/vitest/closed-beta-readiness-docs.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/component-library-actions-revalidation.test.ts",
+        "tests/vitest/component-library-ui.test.tsx",
+        "tests/vitest/design-enforcer-share-allowlist.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/estimate-sheet-cost-inputs.test.tsx",
+        "tests/vitest/main-sidebar-favorites.test.tsx",
+        "tests/vitest/perf/projects-page-server-parallelism.test.ts",
+        "tests/vitest/project-favorite-sidebar-mutation.test.tsx",
+        "tests/vitest/project-publication-security.test.ts",
+        "tests/vitest/projects-page-organize-control.test.tsx",
+        "tests/vitest/proposal-export-route.test.ts",
+        "tests/vitest/workshop-project-groups-repository.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-ai-package-builder-apply-ts-create-ai-package-library-components-with-history-create-estimate-node-with-history-",
+      "surface": "source",
+      "file": "src/lib/ai/package-builder/apply.ts",
+      "route": null,
+      "domain": "component library",
+      "rpcNames": [
+        "create_ai_package_library_components_with_history",
+        "create_estimate_node_with_history",
+        "create_project_estimate_package_with_history",
+        "delete_estimate_row_item_with_history",
+        "insert_estimate_row_item_with_history",
+        "insert_estimate_template_into_estimate_with_history",
+        "rename_estimate_node_with_history",
+        "replace_estimate_row_item_with_history",
+        "update_estimate_row_item_with_history"
+      ],
+      "currentProviderSignals": [
+        "supabase-rpc",
+        "supabase.rpc:create_ai_package_library_components_with_history",
+        "supabase.rpc:create_estimate_node_with_history",
+        "supabase.rpc:create_project_estimate_package_with_history",
+        "supabase.rpc:delete_estimate_row_item_with_history",
+        "supabase.rpc:insert_estimate_row_item_with_history",
+        "supabase.rpc:insert_estimate_template_into_estimate_with_history",
+        "supabase.rpc:rename_estimate_node_with_history",
+        "supabase.rpc:replace_estimate_row_item_with_history",
+        "supabase.rpc:update_estimate_row_item_with_history"
+      ],
+      "requiredD1Checks": [
+        "D1 AI package Apply guard with explicit confirmation and workspace ownership",
+        "D1 estimate edit guard before mutations and history writes",
+        "D1 mutation guard with transaction and rollback proof",
+        "D1 workspace editor guard for library and template writes",
+        "D1 workspace member guard for read models"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/account-settings-form-fields-ui.test.tsx",
+        "tests/vitest/activity-view-model.test.ts",
+        "tests/vitest/ai-ask-read-context.test.ts",
+        "tests/vitest/ai-ask-route.test.ts",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/ai-package-builder-draft.test.ts",
+        "tests/vitest/ai-package-builder-memory.test.ts",
+        "tests/vitest/ai-package-builder-provider.test.ts",
+        "tests/vitest/ai-package-builder-read-tools.test.ts",
+        "tests/vitest/ai-package-builder-route.test.ts",
+        "tests/vitest/ai-package-builder-schema.test.ts",
+        "tests/vitest/ai-package-builder-security-contract.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/account-settings-form-fields-ui.test.tsx",
+        "tests/vitest/ai-ask-read-context.test.ts",
+        "tests/vitest/ai-ask-route.test.ts",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/ai-package-builder-draft.test.ts",
+        "tests/vitest/ai-package-builder-provider.test.ts",
+        "tests/vitest/ai-package-builder-route.test.ts",
+        "tests/vitest/ai-package-builder-schema.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/bulk-destructive-preview-modal.test.tsx",
+        "tests/vitest/closed-beta-readiness-docs.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/estimate-sheet-cost-inputs.test.tsx",
+        "tests/vitest/main-sidebar-favorites.test.tsx",
+        "tests/vitest/project-favorite-sidebar-mutation.test.tsx",
+        "tests/vitest/projects-page-organize-control.test.tsx",
+        "tests/vitest/upload-signed-route.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-ai-package-builder-read-tools-ts-ai-package-builder",
+      "surface": "source",
+      "file": "src/lib/ai/package-builder/read-tools.ts",
+      "route": null,
+      "domain": "AI package builder",
+      "rpcNames": [],
+      "currentProviderSignals": [],
+      "requiredD1Checks": [
+        "D1 AI package Apply guard with explicit confirmation and workspace ownership",
+        "D1 project edit guard using server-derived user and project membership",
+        "D1 workspace editor guard for library and template writes"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/ai-ask-read-context.test.ts",
+        "tests/vitest/ai-audit-flow.test.ts",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/ai-package-builder-draft.test.ts",
+        "tests/vitest/ai-package-builder-memory.test.ts",
+        "tests/vitest/ai-package-builder-provider.test.ts",
+        "tests/vitest/ai-package-builder-read-tools.test.ts",
+        "tests/vitest/ai-package-builder-route.test.ts",
+        "tests/vitest/ai-package-builder-schema.test.ts",
+        "tests/vitest/ai-package-builder-security-contract.test.ts",
+        "tests/vitest/estimate-copilot-floating-button.test.tsx",
+        "tests/vitest/infosec-db-pending-review-contract.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/ai-ask-read-context.test.ts",
+        "tests/vitest/ai-audit-flow.test.ts",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/ai-package-builder-draft.test.ts",
+        "tests/vitest/ai-package-builder-provider.test.ts",
+        "tests/vitest/ai-package-builder-route.test.ts",
+        "tests/vitest/ai-package-builder-schema.test.ts",
+        "tests/vitest/estimate-copilot-floating-button.test.tsx",
+        "tests/vitest/project-publication-page.test.tsx"
+      ],
+      "crossWorkspaceDenialTestRefs": [],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-ai-read-context-ts-ai-package-builder",
+      "surface": "source",
+      "file": "src/lib/ai/read-context.ts",
+      "route": null,
+      "domain": "AI package builder",
+      "rpcNames": [],
+      "currentProviderSignals": [],
+      "requiredD1Checks": [
+        "D1 estimate edit guard before mutations and history writes",
+        "D1 project edit guard using server-derived user and project membership",
+        "D1 workspace editor guard for library and template writes"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/ai-ask-read-context.test.ts",
+        "tests/vitest/ai-ask-route.test.ts",
+        "tests/vitest/ai-audit-flow.test.ts",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/ai-package-builder-draft.test.ts",
+        "tests/vitest/ai-package-builder-memory.test.ts",
+        "tests/vitest/ai-package-builder-provider.test.ts",
+        "tests/vitest/ai-package-builder-read-tools.test.ts",
+        "tests/vitest/ai-package-builder-route.test.ts",
+        "tests/vitest/ai-package-builder-schema.test.ts",
+        "tests/vitest/ai-package-builder-security-contract.test.ts",
+        "tests/vitest/estimate-copilot-floating-button.test.tsx"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/ai-ask-read-context.test.ts",
+        "tests/vitest/ai-ask-route.test.ts",
+        "tests/vitest/ai-audit-flow.test.ts",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/ai-package-builder-draft.test.ts",
+        "tests/vitest/ai-package-builder-provider.test.ts",
+        "tests/vitest/ai-package-builder-route.test.ts",
+        "tests/vitest/ai-package-builder-schema.test.ts",
+        "tests/vitest/estimate-copilot-floating-button.test.tsx",
+        "tests/vitest/project-publication-page.test.tsx"
+      ],
+      "crossWorkspaceDenialTestRefs": [],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-auth-account-actions-ts-workspace-data",
+      "surface": "server-action",
+      "file": "src/lib/auth/account-actions.ts",
+      "route": null,
+      "domain": "workspace data",
+      "rpcNames": [],
+      "currentProviderSignals": [
+        "source:workspace_members lookup"
+      ],
+      "requiredD1Checks": [
+        "D1 invitation token and project collaboration guard"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/auth-account-data-schema.test.ts",
+        "tests/vitest/auth-onboarding-contract.test.ts",
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/auth-settings-ui-contract.test.ts",
+        "tests/vitest/workshop-settings-modal-content-view.test.tsx"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/auth-account-data-schema.test.ts",
+        "tests/vitest/auth-onboarding-contract.test.ts",
+        "tests/vitest/auth-onboarding-guard.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/auth-onboarding-guard.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-auth-account-membership-ts-workspace-data",
+      "surface": "source",
+      "file": "src/lib/auth/account-membership.ts",
+      "route": null,
+      "domain": "workspace data",
+      "rpcNames": [],
+      "currentProviderSignals": [
+        "source:workspace_members lookup"
+      ],
+      "requiredD1Checks": [
+        "D1 invitation token and project collaboration guard"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/ai-package-builder-read-tools.test.ts",
+        "tests/vitest/ai-package-builder-route.test.ts",
+        "tests/vitest/ai-package-builder-security-contract.test.ts",
+        "tests/vitest/auth-account-data-schema.test.ts",
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/auth-settings-ui-contract.test.ts",
+        "tests/vitest/component-library-actions-revalidation.test.ts",
+        "tests/vitest/component-library-folder-actions.test.ts",
+        "tests/vitest/component-library-templates-repository.test.ts",
+        "tests/vitest/component-library-user-preferences.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/ai-package-builder-route.test.ts",
+        "tests/vitest/auth-account-data-schema.test.ts",
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/component-library-actions-revalidation.test.ts",
+        "tests/vitest/component-library-folder-actions.test.ts",
+        "tests/vitest/component-library-user-preferences.test.ts",
+        "tests/vitest/estimate-insert-target-authz.test.tsx",
+        "tests/vitest/estimate-sheet-user-preferences.test.ts",
+        "tests/vitest/library-viewer-authz.test.tsx",
+        "tests/vitest/perf/library-overview-rpc-contract.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/perf/projects-page-server-parallelism.test.ts",
+        "tests/vitest/proposal-export-route.test.ts",
+        "tests/vitest/upload-signed-route.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-auth-beta-allowlist-admin-actions-ts-create-closed-beta-allowlist-entry-update-closed-beta-allowlist-entry",
+      "surface": "server-action",
+      "file": "src/lib/auth/beta-allowlist-admin-actions.ts",
+      "route": null,
+      "domain": "closed beta access",
+      "rpcNames": [
+        "create_closed_beta_allowlist_entry",
+        "update_closed_beta_allowlist_entry"
+      ],
+      "currentProviderSignals": [
+        "supabase-rpc",
+        "supabase.rpc:create_closed_beta_allowlist_entry",
+        "supabase.rpc:update_closed_beta_allowlist_entry"
+      ],
+      "requiredD1Checks": [
+        "D1 beta allowlist/platform-admin guard",
+        "D1 mutation guard with transaction and rollback proof"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/ai-ask-route.test.ts",
+        "tests/vitest/ai-audit-flow.test.ts",
+        "tests/vitest/ai-package-builder-route.test.ts",
+        "tests/vitest/auth-callback-route.test.ts",
+        "tests/vitest/auth-proxy.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/auth-session-closed-beta.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/closed-beta-access-migration.test.ts",
+        "tests/vitest/closed-beta-access.test.ts",
+        "tests/vitest/closed-beta-allowlist-admin.test.ts",
+        "tests/vitest/closed-beta-env-manifest.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/ai-ask-route.test.ts",
+        "tests/vitest/ai-audit-flow.test.ts",
+        "tests/vitest/ai-package-builder-route.test.ts",
+        "tests/vitest/auth-proxy.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/auth-session-closed-beta.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/closed-beta-access-migration.test.ts",
+        "tests/vitest/closed-beta-access.test.ts",
+        "tests/vitest/closed-beta-readiness-docs.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/cloudflare-worker-preview-route-script.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/project-publication-security.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-auth-beta-allowlist-admin-ts-read-closed-beta-allowlist-queue",
+      "surface": "source",
+      "file": "src/lib/auth/beta-allowlist-admin.ts",
+      "route": null,
+      "domain": "closed beta access",
+      "rpcNames": [
+        "read_closed_beta_allowlist_queue"
+      ],
+      "currentProviderSignals": [
+        "supabase-rpc",
+        "supabase.rpc:read_closed_beta_allowlist_queue"
+      ],
+      "requiredD1Checks": [
+        "D1 beta allowlist/platform-admin guard",
+        "D1 invitation token and project collaboration guard"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/ai-ask-route.test.ts",
+        "tests/vitest/ai-audit-flow.test.ts",
+        "tests/vitest/ai-package-builder-route.test.ts",
+        "tests/vitest/auth-callback-route.test.ts",
+        "tests/vitest/auth-proxy.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/auth-session-closed-beta.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/closed-beta-access-migration.test.ts",
+        "tests/vitest/closed-beta-access.test.ts",
+        "tests/vitest/closed-beta-allowlist-admin-ui.test.tsx",
+        "tests/vitest/closed-beta-allowlist-admin.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/ai-ask-route.test.ts",
+        "tests/vitest/ai-audit-flow.test.ts",
+        "tests/vitest/ai-package-builder-route.test.ts",
+        "tests/vitest/auth-proxy.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/auth-session-closed-beta.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/closed-beta-access-migration.test.ts",
+        "tests/vitest/closed-beta-access.test.ts",
+        "tests/vitest/closed-beta-readiness-docs.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/cloudflare-worker-preview-route-script.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/project-publication-security.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-auth-closed-beta-access-ts-check-closed-beta-access",
+      "surface": "source",
+      "file": "src/lib/auth/closed-beta-access.ts",
+      "route": null,
+      "domain": "closed beta access",
+      "rpcNames": [
+        "check_closed_beta_access"
+      ],
+      "currentProviderSignals": [
+        "supabase-rpc",
+        "supabase.rpc:check_closed_beta_access"
+      ],
+      "requiredD1Checks": [
+        "D1 beta allowlist/platform-admin guard",
+        "D1 invitation token and project collaboration guard"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/ai-ask-route.test.ts",
+        "tests/vitest/ai-audit-flow.test.ts",
+        "tests/vitest/ai-package-builder-route.test.ts",
+        "tests/vitest/auth-callback-route.test.ts",
+        "tests/vitest/auth-proxy.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/auth-session-closed-beta.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/closed-beta-access-migration.test.ts",
+        "tests/vitest/closed-beta-access.test.ts",
+        "tests/vitest/closed-beta-allowlist-admin.test.ts",
+        "tests/vitest/closed-beta-env-manifest.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/ai-ask-route.test.ts",
+        "tests/vitest/ai-audit-flow.test.ts",
+        "tests/vitest/ai-package-builder-route.test.ts",
+        "tests/vitest/auth-proxy.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/auth-session-closed-beta.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/closed-beta-access-migration.test.ts",
+        "tests/vitest/closed-beta-access.test.ts",
+        "tests/vitest/closed-beta-readiness-docs.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/cloudflare-worker-preview-route-script.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/project-publication-security.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-auth-session-ts-ensure-current-user-profile",
+      "surface": "source",
+      "file": "src/lib/auth/session.ts",
+      "route": null,
+      "domain": "workspace data",
+      "rpcNames": [
+        "ensure_current_user_profile"
+      ],
+      "currentProviderSignals": [
+        "supabase-rpc",
+        "supabase.rpc:ensure_current_user_profile"
+      ],
+      "requiredD1Checks": [
+        "D1 beta allowlist/platform-admin guard"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/ai-ask-route.test.ts",
+        "tests/vitest/ai-audit-flow.test.ts",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/ai-package-builder-route.test.ts",
+        "tests/vitest/ai-package-builder-security-contract.test.ts",
+        "tests/vitest/auth-account-data-contract.test.ts",
+        "tests/vitest/auth-magic-link.test.ts",
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/auth-session-closed-beta.test.ts",
+        "tests/vitest/closed-beta-readiness-docs.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/ai-ask-route.test.ts",
+        "tests/vitest/ai-audit-flow.test.ts",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/ai-package-builder-route.test.ts",
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/auth-session-closed-beta.test.ts",
+        "tests/vitest/closed-beta-readiness-docs.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/component-library-actions-revalidation.test.ts",
+        "tests/vitest/component-library-folder-actions.test.ts",
+        "tests/vitest/estimate-component-drag.test.tsx"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/estimate-sheet-cost-inputs.test.tsx",
+        "tests/vitest/perf/projects-page-server-parallelism.test.ts",
+        "tests/vitest/project-publication-rotate-resend.test.ts",
+        "tests/vitest/proposal-export-route.test.ts",
+        "tests/vitest/upload-cleanup.test.ts",
+        "tests/vitest/upload-signed-route.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-collaboration-actions-ts-issue-collaboration-invitation-token-record-collaboration-invitation-delivery",
+      "surface": "server-action",
+      "file": "src/lib/collaboration/actions.ts",
+      "route": null,
+      "domain": "collaboration invitations",
+      "rpcNames": [
+        "issue_collaboration_invitation_token",
+        "record_collaboration_invitation_delivery"
+      ],
+      "currentProviderSignals": [
+        "resend-email",
+        "source:workspace_members lookup",
+        "supabase-client",
+        "supabase-rpc",
+        "supabase.rpc:issue_collaboration_invitation_token",
+        "supabase.rpc:record_collaboration_invitation_delivery"
+      ],
+      "requiredD1Checks": [
+        "D1 estimate access guard before reads, exports, and preferences",
+        "D1 invitation token and project collaboration guard",
+        "D1 project access guard using server-derived user, membership, or publication recipient"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/auth-account-data-schema.test.ts",
+        "tests/vitest/auth-magic-link.test.ts",
+        "tests/vitest/auth-settings-ui-contract.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/closed-beta-allowlist-admin.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/component-library-durable-telemetry.test.ts",
+        "tests/vitest/component-library-user-preferences.test.ts",
+        "tests/vitest/component-library-versioning-schema.test.ts",
+        "tests/vitest/estimate-mutation-telemetry.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/auth-account-data-schema.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/component-library-durable-telemetry.test.ts",
+        "tests/vitest/component-library-user-preferences.test.ts",
+        "tests/vitest/estimate-mutation-telemetry.test.ts",
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-user-preferences.test.ts",
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "tests/vitest/estimate-tabs-domain.test.ts",
+        "tests/vitest/notifications-actions.test.ts",
+        "tests/vitest/perf/projects-page-render-baseline.test.tsx"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/perf/projects-page-server-parallelism.test.ts",
+        "tests/vitest/project-publication-rotate-resend.test.ts",
+        "tests/vitest/projects-page-organize-control.test.tsx"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-collaboration-pending-invite-actions-ts-accept-collaboration-invitation-by-id",
+      "surface": "server-action",
+      "file": "src/lib/collaboration/pending-invite-actions.ts",
+      "route": null,
+      "domain": "collaboration invitations",
+      "rpcNames": [
+        "accept_collaboration_invitation_by_id"
+      ],
+      "currentProviderSignals": [
+        "supabase-rpc",
+        "supabase.rpc:accept_collaboration_invitation_by_id"
+      ],
+      "requiredD1Checks": [
+        "D1 invitation token and project collaboration guard",
+        "D1 workspace editor guard for library and template writes"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/perf/projects-page-render-baseline.test.tsx",
+        "tests/vitest/perf/projects-page-rpc-contract.test.ts",
+        "tests/vitest/perf/projects-page-server-parallelism.test.ts",
+        "tests/vitest/project-collaboration-actions.test.ts",
+        "tests/vitest/project-collaboration-schema.test.ts",
+        "tests/vitest/project-invite-entry-schema.test.ts",
+        "tests/vitest/projects-page-access-tabs.test.tsx",
+        "tests/vitest/projects-page-create-optimistic.test.tsx",
+        "tests/vitest/projects-page-group-mode.test.tsx",
+        "tests/vitest/projects-page-organize-control.test.tsx",
+        "tests/vitest/projects-page-shared-access.test.tsx",
+        "tests/vitest/projects-page-sort-controls.test.tsx"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/perf/projects-page-render-baseline.test.tsx",
+        "tests/vitest/perf/projects-page-rpc-contract.test.ts",
+        "tests/vitest/project-collaboration-schema.test.ts",
+        "tests/vitest/project-invite-entry-schema.test.ts",
+        "tests/vitest/projects-page-access-tabs.test.tsx",
+        "tests/vitest/projects-page-group-mode.test.tsx",
+        "tests/vitest/projects-page-shared-access.test.tsx",
+        "tests/vitest/publisher-access-mode.test.tsx",
+        "tests/vitest/workshop-homebase-summary-rpc-contract.test.ts",
+        "tests/vitest/workshop-pending-invite.test.tsx"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/perf/projects-page-server-parallelism.test.ts",
+        "tests/vitest/projects-page-organize-control.test.tsx"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-collaboration-workshop-pending-invite-ts-accept-collaboration-invitation",
+      "surface": "source",
+      "file": "src/lib/collaboration/workshop-pending-invite.ts",
+      "route": null,
+      "domain": "collaboration invitations",
+      "rpcNames": [
+        "accept_collaboration_invitation"
+      ],
+      "currentProviderSignals": [
+        "supabase-rpc",
+        "supabase.rpc:accept_collaboration_invitation"
+      ],
+      "requiredD1Checks": [
+        "D1 invitation token and project collaboration guard"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/perf/projects-page-rpc-contract.test.ts",
+        "tests/vitest/perf/projects-page-server-parallelism.test.ts",
+        "tests/vitest/project-collaboration-actions.test.ts",
+        "tests/vitest/project-collaboration-schema.test.ts",
+        "tests/vitest/project-invite-entry-route.test.ts",
+        "tests/vitest/project-invite-entry-schema.test.ts",
+        "tests/vitest/publisher-access-mode.test.tsx",
+        "tests/vitest/workshop-dashboard-query-count-script.test.ts",
+        "tests/vitest/workshop-homebase-summary-rpc-contract.test.ts",
+        "tests/vitest/workshop-pending-invite.test.tsx"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/perf/projects-page-rpc-contract.test.ts",
+        "tests/vitest/project-collaboration-schema.test.ts",
+        "tests/vitest/project-invite-entry-schema.test.ts",
+        "tests/vitest/publisher-access-mode.test.tsx",
+        "tests/vitest/workshop-homebase-summary-rpc-contract.test.ts",
+        "tests/vitest/workshop-pending-invite.test.tsx"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/perf/projects-page-server-parallelism.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-component-library-actions-ts-can-edit-estimate-create-cost-library-component-delete-library-folder-execute-bulk-",
+      "surface": "server-action",
+      "file": "src/lib/component-library/actions.ts",
+      "route": null,
+      "domain": "component library",
+      "rpcNames": [
+        "can_edit_estimate",
+        "create_cost_library_component",
+        "delete_library_folder",
+        "execute_bulk_archive_library_components",
+        "is_workspace_editor",
+        "is_workspace_member",
+        "preview_bulk_archive_library_components",
+        "reorder_library_folders",
+        "set_cost_library_component_lifecycle_state",
+        "update_cost_library_component",
+        "upsert_cost_library_component_price_option"
+      ],
+      "currentProviderSignals": [
+        "source:RLS/auth reference",
+        "supabase-rpc",
+        "supabase.rpc:can_edit_estimate",
+        "supabase.rpc:create_cost_library_component",
+        "supabase.rpc:delete_library_folder",
+        "supabase.rpc:execute_bulk_archive_library_components",
+        "supabase.rpc:is_workspace_editor",
+        "supabase.rpc:is_workspace_member",
+        "supabase.rpc:preview_bulk_archive_library_components",
+        "supabase.rpc:reorder_library_folders",
+        "supabase.rpc:set_cost_library_component_lifecycle_state",
+        "supabase.rpc:update_cost_library_component",
+        "supabase.rpc:upsert_cost_library_component_price_option"
+      ],
+      "requiredD1Checks": [
+        "D1 estimate edit guard before mutations and history writes",
+        "D1 mutation guard with transaction and rollback proof",
+        "D1 upload ownership guard plus R2 object-key validation",
+        "D1 workspace editor guard for library and template writes",
+        "D1 workspace member guard for read models"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/account-settings-form-fields-ui.test.tsx",
+        "tests/vitest/activity-view-model.test.ts",
+        "tests/vitest/ai-ask-read-context.test.ts",
+        "tests/vitest/ai-ask-route.test.ts",
+        "tests/vitest/ai-audit-schema.test.ts",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/ai-package-builder-draft.test.ts",
+        "tests/vitest/ai-package-builder-memory.test.ts",
+        "tests/vitest/ai-package-builder-read-tools.test.ts",
+        "tests/vitest/ai-package-builder-route.test.ts",
+        "tests/vitest/ai-package-builder-schema.test.ts",
+        "tests/vitest/ai-package-builder-security-contract.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/account-settings-form-fields-ui.test.tsx",
+        "tests/vitest/ai-ask-read-context.test.ts",
+        "tests/vitest/ai-ask-route.test.ts",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/ai-package-builder-draft.test.ts",
+        "tests/vitest/ai-package-builder-route.test.ts",
+        "tests/vitest/ai-package-builder-schema.test.ts",
+        "tests/vitest/auth-account-data-schema.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/bulk-destructive-preview-modal.test.tsx",
+        "tests/vitest/closed-beta-readiness-docs.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/estimate-sheet-cost-inputs.test.tsx",
+        "tests/vitest/main-sidebar-favorites.test.tsx",
+        "tests/vitest/project-favorite-sidebar-mutation.test.tsx",
+        "tests/vitest/projects-page-organize-control.test.tsx",
+        "tests/vitest/upload-signed-route.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-component-library-template-editor-actions-ts-is-workspace-editor",
+      "surface": "server-action",
+      "file": "src/lib/component-library/template-editor-actions.ts",
+      "route": null,
+      "domain": "component library",
+      "rpcNames": [
+        "is_workspace_editor"
+      ],
+      "currentProviderSignals": [
+        "source:RLS/auth reference",
+        "supabase-rpc",
+        "supabase.rpc:is_workspace_editor"
+      ],
+      "requiredD1Checks": [
+        "D1 workspace editor guard for library and template writes"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/account-settings-form-fields-ui.test.tsx",
+        "tests/vitest/activity-view-model.test.ts",
+        "tests/vitest/ai-ask-read-context.test.ts",
+        "tests/vitest/ai-ask-route.test.ts",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/ai-package-builder-draft.test.ts",
+        "tests/vitest/ai-package-builder-memory.test.ts",
+        "tests/vitest/ai-package-builder-read-tools.test.ts",
+        "tests/vitest/ai-package-builder-route.test.ts",
+        "tests/vitest/ai-package-builder-schema.test.ts",
+        "tests/vitest/ai-package-builder-security-contract.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/account-settings-form-fields-ui.test.tsx",
+        "tests/vitest/ai-ask-read-context.test.ts",
+        "tests/vitest/ai-ask-route.test.ts",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/ai-package-builder-draft.test.ts",
+        "tests/vitest/ai-package-builder-route.test.ts",
+        "tests/vitest/ai-package-builder-schema.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/bulk-destructive-preview-modal.test.tsx",
+        "tests/vitest/closed-beta-readiness-docs.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/component-library-actions-revalidation.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/estimate-sheet-cost-inputs.test.tsx",
+        "tests/vitest/main-sidebar-favorites.test.tsx",
+        "tests/vitest/project-favorite-sidebar-mutation.test.tsx",
+        "tests/vitest/projects-page-organize-control.test.tsx",
+        "tests/vitest/upload-signed-route.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-estimate-sheet-user-preferences-actions-ts-can-access-estimate",
+      "surface": "server-action",
+      "file": "src/lib/estimate-sheet/user-preferences-actions.ts",
+      "route": null,
+      "domain": "estimate editing",
+      "rpcNames": [
+        "can_access_estimate"
+      ],
+      "currentProviderSignals": [
+        "supabase-rpc",
+        "supabase.rpc:can_access_estimate"
+      ],
+      "requiredD1Checks": [
+        "D1 estimate access guard before reads, exports, and preferences",
+        "D1 estimate edit guard before mutations and history writes"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/component-library-helpers.test.ts",
+        "tests/vitest/component-library-manager-ui.test.tsx",
+        "tests/vitest/estimate-branch-virtualization.test.tsx",
+        "tests/vitest/estimate-component-drag.test.tsx",
+        "tests/vitest/estimate-drag-edge-autoscroll-hook.test.tsx",
+        "tests/vitest/estimate-drag-edge-autoscroll.test.ts",
+        "tests/vitest/estimate-empty-tab-state.test.tsx",
+        "tests/vitest/estimate-library-item-insert-contract.test.ts",
+        "tests/vitest/estimate-node-route-context-rpc-contract.test.ts",
+        "tests/vitest/estimate-route-server-concurrency.test.ts",
+        "tests/vitest/estimate-row-table-virtualization.test.tsx"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/component-library-helpers.test.ts",
+        "tests/vitest/component-library-manager-ui.test.tsx",
+        "tests/vitest/estimate-component-drag.test.tsx",
+        "tests/vitest/estimate-empty-tab-state.test.tsx",
+        "tests/vitest/estimate-library-item-insert-contract.test.ts",
+        "tests/vitest/estimate-row-table-virtualization.test.tsx",
+        "tests/vitest/estimate-sheet-library-insert.test.tsx",
+        "tests/vitest/estimate-sheet-user-preferences.test.ts",
+        "tests/vitest/estimate-tab-strip.test.tsx",
+        "tests/vitest/estimate-tabs-domain.test.ts",
+        "tests/vitest/estimate-tabs-schema.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/estimate-sheet-cost-inputs.test.tsx"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-estimates-actions-ts-archive-estimate-tab-with-history-can-edit-estimate-can-edit-project-create-estimate-node-w",
+      "surface": "server-action",
+      "file": "src/lib/estimates/actions.ts",
+      "route": null,
+      "domain": "component library",
+      "rpcNames": [
+        "archive_estimate_tab_with_history",
+        "can_edit_estimate",
+        "can_edit_project",
+        "create_estimate_node_with_history",
+        "create_estimate_tab_with_history",
+        "delete_estimate_node_with_history",
+        "delete_estimate_nodes_bulk_with_history",
+        "delete_estimate_row_item_with_history",
+        "delete_estimate_row_items_bulk_with_history",
+        "delete_estimate_tab_with_history",
+        "duplicate_estimate_tab_with_history",
+        "execute_bulk_delete_estimate_sheets",
+        "get_estimate_activity_retention_metrics",
+        "insert_estimate_row_item_with_history",
+        "insert_estimate_template_into_estimate_with_history",
+        "insert_estimate_template_node_into_estimate_with_history",
+        "move_estimate_row_component_with_history",
+        "move_estimate_row_item_with_history",
+        "preview_bulk_delete_estimate_sheets",
+        "rename_estimate_node_with_history",
+        "rename_estimate_tab_with_history",
+        "reorder_estimate_nodes_with_history",
+        "reorder_estimate_tabs_with_history",
+        "replace_estimate_row_item_with_history",
+        "restore_deleted_estimate_nodes_with_history",
+        "restore_deleted_estimate_rows_with_history",
+        "unlink_estimate_row_item_from_library_with_history",
+        "update_estimate_details_with_history",
+        "update_estimate_row_item_with_history",
+        "update_estimate_sheet_adjustment_with_history"
+      ],
+      "currentProviderSignals": [
+        "source:RLS/auth reference",
+        "supabase-rpc",
+        "supabase.rpc:archive_estimate_tab_with_history",
+        "supabase.rpc:can_edit_estimate",
+        "supabase.rpc:can_edit_project",
+        "supabase.rpc:create_estimate_node_with_history",
+        "supabase.rpc:create_estimate_tab_with_history",
+        "supabase.rpc:delete_estimate_node_with_history",
+        "supabase.rpc:delete_estimate_nodes_bulk_with_history",
+        "supabase.rpc:delete_estimate_row_item_with_history",
+        "supabase.rpc:delete_estimate_row_items_bulk_with_history",
+        "supabase.rpc:delete_estimate_tab_with_history",
+        "supabase.rpc:duplicate_estimate_tab_with_history",
+        "supabase.rpc:execute_bulk_delete_estimate_sheets",
+        "supabase.rpc:get_estimate_activity_retention_metrics",
+        "supabase.rpc:insert_estimate_row_item_with_history",
+        "supabase.rpc:insert_estimate_template_into_estimate_with_history",
+        "supabase.rpc:insert_estimate_template_node_into_estimate_with_history",
+        "supabase.rpc:move_estimate_row_component_with_history",
+        "supabase.rpc:move_estimate_row_item_with_history",
+        "supabase.rpc:preview_bulk_delete_estimate_sheets",
+        "supabase.rpc:rename_estimate_node_with_history",
+        "supabase.rpc:rename_estimate_tab_with_history",
+        "supabase.rpc:reorder_estimate_nodes_with_history",
+        "supabase.rpc:reorder_estimate_tabs_with_history",
+        "supabase.rpc:replace_estimate_row_item_with_history",
+        "supabase.rpc:restore_deleted_estimate_nodes_with_history",
+        "supabase.rpc:restore_deleted_estimate_rows_with_history",
+        "supabase.rpc:unlink_estimate_row_item_from_library_with_history",
+        "supabase.rpc:update_estimate_details_with_history",
+        "supabase.rpc:update_estimate_row_item_with_history",
+        "supabase.rpc:update_estimate_sheet_adjustment_with_history"
+      ],
+      "requiredD1Checks": [
+        "D1 estimate edit guard before mutations and history writes",
+        "D1 mutation guard with transaction and rollback proof",
+        "D1 project edit guard using server-derived user and project membership",
+        "D1 upload ownership guard plus R2 object-key validation",
+        "D1 workspace editor guard for library and template writes"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/account-settings-form-fields-ui.test.tsx",
+        "tests/vitest/activity-view-model.test.ts",
+        "tests/vitest/ai-ask-read-context.test.ts",
+        "tests/vitest/ai-ask-route.test.ts",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/ai-package-builder-draft.test.ts",
+        "tests/vitest/ai-package-builder-memory.test.ts",
+        "tests/vitest/ai-package-builder-provider.test.ts",
+        "tests/vitest/ai-package-builder-read-tools.test.ts",
+        "tests/vitest/ai-package-builder-route.test.ts",
+        "tests/vitest/ai-package-builder-schema.test.ts",
+        "tests/vitest/ai-package-builder-security-contract.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/account-settings-form-fields-ui.test.tsx",
+        "tests/vitest/ai-ask-read-context.test.ts",
+        "tests/vitest/ai-ask-route.test.ts",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/ai-package-builder-draft.test.ts",
+        "tests/vitest/ai-package-builder-provider.test.ts",
+        "tests/vitest/ai-package-builder-route.test.ts",
+        "tests/vitest/ai-package-builder-schema.test.ts",
+        "tests/vitest/auth-account-data-schema.test.ts",
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/beta-feedback.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/estimate-sheet-cost-inputs.test.tsx",
+        "tests/vitest/main-sidebar-favorites.test.tsx",
+        "tests/vitest/project-favorite-sidebar-mutation.test.tsx",
+        "tests/vitest/project-publication-rotate-resend.test.ts",
+        "tests/vitest/projects-page-organize-control.test.tsx",
+        "tests/vitest/upload-signed-route.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-estimates-express-promotion-actions-ts-promote-estimate-row-to-library-component",
+      "surface": "server-action",
+      "file": "src/lib/estimates/express-promotion-actions.ts",
+      "route": null,
+      "domain": "component library",
+      "rpcNames": [
+        "promote_estimate_row_to_library_component"
+      ],
+      "currentProviderSignals": [
+        "supabase-rpc",
+        "supabase.rpc:promote_estimate_row_to_library_component"
+      ],
+      "requiredD1Checks": [
+        "D1 workspace editor guard for library and template writes",
+        "D1 workspace member guard for read models"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/account-settings-form-fields-ui.test.tsx",
+        "tests/vitest/activity-view-model.test.ts",
+        "tests/vitest/ai-ask-read-context.test.ts",
+        "tests/vitest/ai-ask-route.test.ts",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/ai-package-builder-draft.test.ts",
+        "tests/vitest/ai-package-builder-memory.test.ts",
+        "tests/vitest/ai-package-builder-provider.test.ts",
+        "tests/vitest/ai-package-builder-read-tools.test.ts",
+        "tests/vitest/ai-package-builder-route.test.ts",
+        "tests/vitest/ai-package-builder-schema.test.ts",
+        "tests/vitest/ai-package-builder-security-contract.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/account-settings-form-fields-ui.test.tsx",
+        "tests/vitest/ai-ask-read-context.test.ts",
+        "tests/vitest/ai-ask-route.test.ts",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/ai-package-builder-draft.test.ts",
+        "tests/vitest/ai-package-builder-provider.test.ts",
+        "tests/vitest/ai-package-builder-route.test.ts",
+        "tests/vitest/ai-package-builder-schema.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/bulk-action-validation.test.ts",
+        "tests/vitest/bulk-destructive-preview-modal.test.tsx",
+        "tests/vitest/closed-beta-readiness-docs.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/estimate-sheet-cost-inputs.test.tsx",
+        "tests/vitest/main-sidebar-favorites.test.tsx",
+        "tests/vitest/project-favorite-sidebar-mutation.test.tsx",
+        "tests/vitest/projects-page-organize-control.test.tsx",
+        "tests/vitest/upload-signed-route.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-projects-actions-ts-execute-bulk-delete-projects-preview-bulk-delete-projects-record-mass-deletion-storage-clean",
+      "surface": "server-action",
+      "file": "src/lib/projects/actions.ts",
+      "route": null,
+      "domain": "projects",
+      "rpcNames": [
+        "execute_bulk_delete_projects",
+        "preview_bulk_delete_projects",
+        "record_mass_deletion_storage_cleanup_result"
+      ],
+      "currentProviderSignals": [
+        "supabase-rpc",
+        "supabase-storage",
+        "supabase.rpc:execute_bulk_delete_projects",
+        "supabase.rpc:preview_bulk_delete_projects",
+        "supabase.rpc:record_mass_deletion_storage_cleanup_result"
+      ],
+      "requiredD1Checks": [
+        "D1 mutation guard with transaction and rollback proof",
+        "D1 upload ownership guard plus R2 object-key validation"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/auth-account-data-schema.test.ts",
+        "tests/vitest/auth-magic-link.test.ts",
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/auth-settings-ui-contract.test.ts",
+        "tests/vitest/beta-feedback-form-ui.test.tsx",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/closed-beta-allowlist-admin.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/component-library-actions-revalidation.test.ts",
+        "tests/vitest/component-library-durable-telemetry.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/auth-account-data-schema.test.ts",
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/component-library-actions-revalidation.test.ts",
+        "tests/vitest/component-library-durable-telemetry.test.ts",
+        "tests/vitest/component-library-ui.test.tsx",
+        "tests/vitest/component-library-user-preferences.test.ts",
+        "tests/vitest/estimate-component-drag.test.tsx",
+        "tests/vitest/estimate-insert-target-authz.test.tsx",
+        "tests/vitest/estimate-mutation-telemetry.test.ts",
+        "tests/vitest/estimate-node-reorder-action.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/estimate-sheet-cost-inputs.test.tsx",
+        "tests/vitest/main-sidebar-favorites.test.tsx",
+        "tests/vitest/project-favorite-sidebar-mutation.test.tsx",
+        "tests/vitest/project-publication-rotate-resend.test.ts",
+        "tests/vitest/projects-page-organize-control.test.tsx"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-projects-location-actions-ts-can-edit-project",
+      "surface": "server-action",
+      "file": "src/lib/projects/location-actions.ts",
+      "route": null,
+      "domain": "projects",
+      "rpcNames": [
+        "can_edit_project"
+      ],
+      "currentProviderSignals": [
+        "supabase-rpc",
+        "supabase.rpc:can_edit_project"
+      ],
+      "requiredD1Checks": [
+        "D1 project edit guard using server-derived user and project membership"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/cloudflare-migration-inventory-script.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-create-empty-tree.test.ts",
+        "tests/vitest/new-project-form-validation.test.tsx",
+        "tests/vitest/project-activity-page/migration.test.ts",
+        "tests/vitest/project-activity-page/route-contract.test.ts",
+        "tests/vitest/project-collaboration-schema.test.ts",
+        "tests/vitest/project-dashboard-client.test.tsx"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-create-empty-tree.test.ts",
+        "tests/vitest/project-activity-page/migration.test.ts",
+        "tests/vitest/project-collaboration-schema.test.ts",
+        "tests/vitest/project-dashboard-client.test.tsx",
+        "tests/vitest/project-location-actions.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-publication-actions-ts-authorize-recipient-publication-for-current-user",
+      "surface": "server-action",
+      "file": "src/lib/publication/actions.ts",
+      "route": null,
+      "domain": "publication and proposals",
+      "rpcNames": [
+        "authorize_recipient_publication_for_current_user"
+      ],
+      "currentProviderSignals": [
+        "resend-email",
+        "source:RLS/auth reference",
+        "source:workspace_members lookup",
+        "supabase-client",
+        "supabase-rpc",
+        "supabase.rpc:authorize_recipient_publication_for_current_user"
+      ],
+      "requiredD1Checks": [
+        "D1 estimate edit guard before mutations and history writes",
+        "D1 project access guard using server-derived user, membership, or publication recipient",
+        "D1 project edit guard using server-derived user and project membership",
+        "D1 publication owner/recipient guard with token-bound recipient checks",
+        "D1 upload ownership guard plus R2 object-key validation"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/auth-account-data-schema.test.ts",
+        "tests/vitest/auth-magic-link.test.ts",
+        "tests/vitest/auth-settings-ui-contract.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/closed-beta-allowlist-admin.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/component-library-durable-telemetry.test.ts",
+        "tests/vitest/component-library-user-preferences.test.ts",
+        "tests/vitest/component-library-versioning-schema.test.ts",
+        "tests/vitest/estimate-mutation-telemetry.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/auth-account-data-schema.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/component-library-durable-telemetry.test.ts",
+        "tests/vitest/component-library-user-preferences.test.ts",
+        "tests/vitest/estimate-mutation-telemetry.test.ts",
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-user-preferences.test.ts",
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "tests/vitest/estimate-tabs-domain.test.ts",
+        "tests/vitest/notifications-actions.test.ts",
+        "tests/vitest/perf/projects-page-render-baseline.test.tsx"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/project-publication-rotate-resend.test.ts",
+        "tests/vitest/projects-page-organize-control.test.tsx"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-publication-public-repository-ts-increment-project-publication-open-insert-client-comment-submit-client-response",
+      "surface": "repository",
+      "file": "src/lib/publication/public-repository.ts",
+      "route": null,
+      "domain": "publication and proposals",
+      "rpcNames": [
+        "increment_project_publication_open",
+        "insert_client_comment",
+        "submit_client_response"
+      ],
+      "currentProviderSignals": [
+        "supabase-client",
+        "supabase-rpc",
+        "supabase.rpc:increment_project_publication_open",
+        "supabase.rpc:insert_client_comment",
+        "supabase.rpc:submit_client_response",
+        "vercel-runtime"
+      ],
+      "requiredD1Checks": [
+        "D1 mutation guard with transaction and rollback proof",
+        "D1 project access guard using server-derived user, membership, or publication recipient",
+        "D1 project edit guard using server-derived user and project membership",
+        "D1 publication owner/recipient guard with token-bound recipient checks"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/cloudflare-migration-inventory-script.test.ts",
+        "tests/vitest/performance-query-inventory.test.ts",
+        "tests/vitest/project-publication-actions.test.ts",
+        "tests/vitest/project-publication-activity.test.tsx",
+        "tests/vitest/project-publication-comments.test.tsx",
+        "tests/vitest/project-publication-decision.test.tsx",
+        "tests/vitest/project-publication-page.test.tsx",
+        "tests/vitest/project-publication-public-repository.test.ts",
+        "tests/vitest/project-publication-route.test.ts",
+        "tests/vitest/project-publication-schema.test.ts",
+        "tests/vitest/project-publication-security-hardening.test.ts",
+        "tests/vitest/proposal-export-route-workbook.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/project-publication-actions.test.ts",
+        "tests/vitest/project-publication-activity.test.tsx",
+        "tests/vitest/project-publication-comments.test.tsx",
+        "tests/vitest/project-publication-decision.test.tsx",
+        "tests/vitest/project-publication-page.test.tsx",
+        "tests/vitest/project-publication-public-repository.test.ts",
+        "tests/vitest/project-publication-route.test.ts",
+        "tests/vitest/project-publication-security-hardening.test.ts",
+        "tests/vitest/proposal-export-route.test.ts",
+        "tests/vitest/recipient-proposals-repository.test.ts",
+        "tests/vitest/share-unsubscribe-interstitial.test.ts",
+        "tests/vitest/share/share-page-get-routes-contract.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/proposal-export-route.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-repositories-component-library-repository-ts-library-component-rows-seed-library-overview-summary-library-templa",
+      "surface": "repository",
+      "file": "src/lib/repositories/component-library-repository.ts",
+      "route": null,
+      "domain": "component library",
+      "rpcNames": [
+        "library_component_rows_seed",
+        "library_overview_summary",
+        "library_templates_seed"
+      ],
+      "currentProviderSignals": [
+        "source:RLS/auth reference",
+        "supabase-rpc",
+        "supabase.rpc:library_component_rows_seed",
+        "supabase.rpc:library_overview_summary",
+        "supabase.rpc:library_templates_seed"
+      ],
+      "requiredD1Checks": [
+        "D1 estimate edit guard before mutations and history writes",
+        "D1 upload ownership guard plus R2 object-key validation",
+        "D1 workspace editor guard for library and template writes",
+        "D1 workspace member guard for read models"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/account-settings-form-fields-ui.test.tsx",
+        "tests/vitest/activity-view-model.test.ts",
+        "tests/vitest/ai-ask-read-context.test.ts",
+        "tests/vitest/ai-ask-route.test.ts",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/ai-package-builder-draft.test.ts",
+        "tests/vitest/ai-package-builder-memory.test.ts",
+        "tests/vitest/ai-package-builder-read-tools.test.ts",
+        "tests/vitest/ai-package-builder-route.test.ts",
+        "tests/vitest/ai-package-builder-schema.test.ts",
+        "tests/vitest/ai-package-builder-security-contract.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/account-settings-form-fields-ui.test.tsx",
+        "tests/vitest/ai-ask-read-context.test.ts",
+        "tests/vitest/ai-ask-route.test.ts",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/ai-package-builder-draft.test.ts",
+        "tests/vitest/ai-package-builder-route.test.ts",
+        "tests/vitest/ai-package-builder-schema.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/bulk-destructive-preview-modal.test.tsx",
+        "tests/vitest/closed-beta-readiness-docs.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/component-library-actions-revalidation.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/estimate-sheet-cost-inputs.test.tsx",
+        "tests/vitest/main-sidebar-favorites.test.tsx",
+        "tests/vitest/project-favorite-sidebar-mutation.test.tsx",
+        "tests/vitest/projects-page-organize-control.test.tsx",
+        "tests/vitest/upload-signed-route.test.ts",
+        "tests/vitest/workshop-project-groups-repository.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-repositories-project-activity-feed-repository-ts-read-project-collaboration-audit-events",
+      "surface": "repository",
+      "file": "src/lib/repositories/project-activity-feed-repository.ts",
+      "route": null,
+      "domain": "collaboration invitations",
+      "rpcNames": [
+        "read_project_collaboration_audit_events"
+      ],
+      "currentProviderSignals": [
+        "supabase-rpc",
+        "supabase.rpc:read_project_collaboration_audit_events"
+      ],
+      "requiredD1Checks": [
+        "D1 estimate edit guard before mutations and history writes",
+        "D1 invitation token and project collaboration guard",
+        "D1 project access guard using server-derived user, membership, or publication recipient",
+        "D1 project edit guard using server-derived user and project membership",
+        "D1 publication owner/recipient guard with token-bound recipient checks",
+        "D1 workspace editor guard for library and template writes"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/dbidx-repo-audit.test.ts",
+        "tests/vitest/perf/projects-page-rpc-contract.test.ts",
+        "tests/vitest/perf/projects-page-server-parallelism.test.ts",
+        "tests/vitest/project-activity-page/client.test.tsx",
+        "tests/vitest/project-activity-page/migration.test.ts",
+        "tests/vitest/project-activity-page/repository-behavior.test.ts",
+        "tests/vitest/project-activity-page/repository-contract.test.ts",
+        "tests/vitest/project-collaboration-actions.test.ts",
+        "tests/vitest/project-collaboration-schema.test.ts",
+        "tests/vitest/project-collaboration-summary.test.ts",
+        "tests/vitest/project-invite-entry-schema.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/perf/projects-page-rpc-contract.test.ts",
+        "tests/vitest/project-activity-page/migration.test.ts",
+        "tests/vitest/project-collaboration-schema.test.ts",
+        "tests/vitest/project-collaboration-summary.test.ts",
+        "tests/vitest/project-invite-entry-schema.test.ts",
+        "tests/vitest/projects-page-group-mode.test.tsx",
+        "tests/vitest/publisher-access-mode.test.tsx",
+        "tests/vitest/publisher-drawer-actions.test.ts",
+        "tests/vitest/workshop-homebase-summary-rpc-contract.test.ts",
+        "tests/vitest/workshop-pending-invite.test.tsx"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/perf/projects-page-server-parallelism.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-repositories-project-estimate-sheets-repository-ts-project-estimate-list-summaries-for-estimates",
+      "surface": "repository",
+      "file": "src/lib/repositories/project-estimate-sheets-repository.ts",
+      "route": null,
+      "domain": "estimate editing",
+      "rpcNames": [
+        "project_estimate_list_summaries_for_estimates"
+      ],
+      "currentProviderSignals": [
+        "supabase-rpc",
+        "supabase.rpc:project_estimate_list_summaries_for_estimates"
+      ],
+      "requiredD1Checks": [
+        "D1 estimate edit guard before mutations and history writes",
+        "D1 project edit guard using server-derived user and project membership"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/ai-package-builder-read-tools.test.ts",
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/component-library-actions-revalidation.test.ts",
+        "tests/vitest/component-library-manager-ui.test.tsx",
+        "tests/vitest/component-library-templates-repository.test.ts",
+        "tests/vitest/dbidx-repo-audit.test.ts",
+        "tests/vitest/estimate-bootstrap-ui.test.ts",
+        "tests/vitest/estimate-insert-target-authz.test.tsx",
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-node-route-context-rpc-contract.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/component-library-actions-revalidation.test.ts",
+        "tests/vitest/component-library-manager-ui.test.tsx",
+        "tests/vitest/estimate-insert-target-authz.test.tsx",
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-repository.test.ts",
+        "tests/vitest/estimate-sheet-create-empty-tree.test.ts",
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "tests/vitest/estimate-tab-strip.test.tsx",
+        "tests/vitest/estimate-tabs-domain.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/estimate-sheet-cost-inputs.test.tsx",
+        "tests/vitest/perf/projects-page-server-parallelism.test.ts",
+        "tests/vitest/proposal-export-route.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-repositories-recipient-proposals-repository-ts-list-recipient-publications-for-current-user",
+      "surface": "repository",
+      "file": "src/lib/repositories/recipient-proposals-repository.ts",
+      "route": null,
+      "domain": "publication and proposals",
+      "rpcNames": [
+        "list_recipient_publications_for_current_user"
+      ],
+      "currentProviderSignals": [
+        "supabase-rpc",
+        "supabase.rpc:list_recipient_publications_for_current_user"
+      ],
+      "requiredD1Checks": [
+        "D1 project access guard using server-derived user, membership, or publication recipient",
+        "D1 project edit guard using server-derived user and project membership",
+        "D1 publication owner/recipient guard with token-bound recipient checks"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/dbidx-repo-audit.test.ts",
+        "tests/vitest/perf/projects-page-rpc-contract.test.ts",
+        "tests/vitest/perf/projects-page-server-parallelism.test.ts",
+        "tests/vitest/performance-query-inventory.test.ts",
+        "tests/vitest/project-activity-page/repository-behavior.test.ts",
+        "tests/vitest/project-collaboration-summary.test.ts",
+        "tests/vitest/project-location-privacy-source.test.ts",
+        "tests/vitest/project-publication-actions.test.ts",
+        "tests/vitest/project-publication-summary.test.ts",
+        "tests/vitest/projects-page-card-layout.test.tsx",
+        "tests/vitest/projects-page-group-mode.test.tsx",
+        "tests/vitest/projects-page-view-mode.test.tsx"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/perf/projects-page-rpc-contract.test.ts",
+        "tests/vitest/project-collaboration-summary.test.ts",
+        "tests/vitest/project-publication-actions.test.ts",
+        "tests/vitest/projects-page-group-mode.test.tsx",
+        "tests/vitest/projects-page-view-mode.test.tsx",
+        "tests/vitest/proposal-export-route.test.ts",
+        "tests/vitest/publisher-drawer-actions.test.ts",
+        "tests/vitest/recipient-proposals-repository.test.ts",
+        "tests/vitest/recipient-proposals-route-gate.test.ts",
+        "tests/vitest/workshop-homebase-summary-rpc-contract.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/perf/projects-page-server-parallelism.test.ts",
+        "tests/vitest/proposal-export-route.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-repositories-workspace-repository-ts-can-edit-estimate-estimate-node-route-context-list-pending-collaboration-in",
+      "surface": "repository",
+      "file": "src/lib/repositories/workspace-repository.ts",
+      "route": null,
+      "domain": "collaboration invitations",
+      "rpcNames": [
+        "can_edit_estimate",
+        "estimate_node_route_context",
+        "list_pending_collaboration_invitations",
+        "main_sidebar_favorite_projects",
+        "project_estimate_list_summaries",
+        "workspace_homebase_summary",
+        "workspace_projects_summary"
+      ],
+      "currentProviderSignals": [
+        "source:RLS/auth reference",
+        "source:workspace_members lookup",
+        "supabase-realtime",
+        "supabase-rpc",
+        "supabase.rpc:can_edit_estimate",
+        "supabase.rpc:estimate_node_route_context",
+        "supabase.rpc:list_pending_collaboration_invitations",
+        "supabase.rpc:main_sidebar_favorite_projects",
+        "supabase.rpc:project_estimate_list_summaries",
+        "supabase.rpc:workspace_homebase_summary",
+        "supabase.rpc:workspace_projects_summary"
+      ],
+      "requiredD1Checks": [
+        "D1 estimate access guard before reads, exports, and preferences",
+        "D1 estimate edit guard before mutations and history writes",
+        "D1 invitation token and project collaboration guard",
+        "D1 project access guard using server-derived user, membership, or publication recipient",
+        "D1 project edit guard using server-derived user and project membership",
+        "D1 publication owner/recipient guard with token-bound recipient checks",
+        "D1 upload ownership guard plus R2 object-key validation",
+        "D1 workspace editor guard for library and template writes",
+        "D1 workspace member guard for read models"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/ai-package-builder-read-tools.test.ts",
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/component-library-actions-revalidation.test.ts",
+        "tests/vitest/component-library-folder-actions.test.ts",
+        "tests/vitest/dbidx-repo-audit.test.ts",
+        "tests/vitest/ensure-default-workspace-cache.test.ts",
+        "tests/vitest/estimate-bootstrap-ui.test.ts",
+        "tests/vitest/estimate-insert-target-authz.test.tsx",
+        "tests/vitest/estimate-node-reorder-action.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/component-library-actions-revalidation.test.ts",
+        "tests/vitest/component-library-folder-actions.test.ts",
+        "tests/vitest/estimate-insert-target-authz.test.tsx",
+        "tests/vitest/estimate-node-reorder-action.test.ts",
+        "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "tests/vitest/estimate-sheet-create-empty-tree.test.ts",
+        "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "tests/vitest/estimate-tabs-domain.test.ts",
+        "tests/vitest/estimate-tabs-schema.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/perf/projects-page-server-parallelism.test.ts",
+        "tests/vitest/proposal-export-route.test.ts",
+        "tests/vitest/upload-signed-route.test.ts",
+        "tests/vitest/workshop-project-groups-repository.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-reusable-sources-actions-ts-insert-estimate-subtree-into-estimate-with-history",
+      "surface": "server-action",
+      "file": "src/lib/reusable-sources/actions.ts",
+      "route": null,
+      "domain": "estimate editing",
+      "rpcNames": [
+        "insert_estimate_subtree_into_estimate_with_history"
+      ],
+      "currentProviderSignals": [
+        "source:RLS/auth reference",
+        "supabase-rpc",
+        "supabase.rpc:insert_estimate_subtree_into_estimate_with_history"
+      ],
+      "requiredD1Checks": [
+        "D1 estimate edit guard before mutations and history writes",
+        "D1 invitation token and project collaboration guard",
+        "D1 mutation guard with transaction and rollback proof",
+        "D1 project access guard using server-derived user, membership, or publication recipient",
+        "D1 upload ownership guard plus R2 object-key validation"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/auth-account-data-schema.test.ts",
+        "tests/vitest/auth-magic-link.test.ts",
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/auth-settings-ui-contract.test.ts",
+        "tests/vitest/beta-feedback-form-ui.test.tsx",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/closed-beta-allowlist-admin.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/component-library-actions-revalidation.test.ts",
+        "tests/vitest/component-library-durable-telemetry.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/auth-account-data-schema.test.ts",
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/component-library-actions-revalidation.test.ts",
+        "tests/vitest/component-library-durable-telemetry.test.ts",
+        "tests/vitest/component-library-manager-ui.test.tsx",
+        "tests/vitest/component-library-manager.test.tsx",
+        "tests/vitest/component-library-ui.test.tsx",
+        "tests/vitest/component-library-user-preferences.test.ts",
+        "tests/vitest/estimate-component-drag.test.tsx",
+        "tests/vitest/estimate-empty-tab-state.test.tsx"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/estimate-sheet-cost-inputs.test.tsx",
+        "tests/vitest/main-sidebar-favorites.test.tsx",
+        "tests/vitest/project-favorite-sidebar-mutation.test.tsx",
+        "tests/vitest/project-publication-rotate-resend.test.ts",
+        "tests/vitest/projects-page-organize-control.test.tsx"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-uploads-cleanup-job-ts-uploads-and-media",
+      "surface": "source",
+      "file": "src/lib/uploads/cleanup-job.ts",
+      "route": null,
+      "domain": "uploads and media",
+      "rpcNames": [],
+      "currentProviderSignals": [],
+      "requiredD1Checks": [
+        "D1 mutation guard with transaction and rollback proof",
+        "D1 upload ownership guard plus R2 object-key validation"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/upload-cleanup-job.test.ts",
+        "tests/vitest/upload-cleanup-route.test.ts",
+        "tests/vitest/upload-release-gates.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/upload-cleanup-route.test.ts",
+        "tests/vitest/upload-release-gates.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-uploads-direct-upload-records-ts-create-upload-session-finalize-upload-session",
+      "surface": "source",
+      "file": "src/lib/uploads/direct-upload-records.ts",
+      "route": null,
+      "domain": "uploads and media",
+      "rpcNames": [
+        "create_upload_session",
+        "finalize_upload_session"
+      ],
+      "currentProviderSignals": [
+        "supabase-rpc",
+        "supabase.rpc:create_upload_session",
+        "supabase.rpc:finalize_upload_session"
+      ],
+      "requiredD1Checks": [
+        "D1 mutation guard with transaction and rollback proof",
+        "D1 upload ownership guard plus R2 object-key validation"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/cloudflare-migration-inventory-script.test.ts",
+        "tests/vitest/upload-provider-readback.test.ts",
+        "tests/vitest/upload-release-gates.test.ts",
+        "tests/vitest/upload-session-capacity-provider-proof-script.test.ts",
+        "tests/vitest/upload-session-capacity-provider-proof.test.ts",
+        "tests/vitest/upload-signed-route-proof-script.test.ts",
+        "tests/vitest/upload-signed-route-provider-proof.test.ts",
+        "tests/vitest/upload-signed-route.test.ts",
+        "tests/vitest/upload-tus-provider-proof-script.test.ts",
+        "tests/vitest/upload-tus-provider-proof.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/upload-release-gates.test.ts",
+        "tests/vitest/upload-session-capacity-provider-proof-script.test.ts",
+        "tests/vitest/upload-session-capacity-provider-proof.test.ts",
+        "tests/vitest/upload-signed-route-proof-script.test.ts",
+        "tests/vitest/upload-signed-route.test.ts",
+        "tests/vitest/upload-tus-provider-proof-script.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/upload-signed-route.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-uploads-operations-dashboard-ts-uploads-and-media",
+      "surface": "source",
+      "file": "src/lib/uploads/operations-dashboard.ts",
+      "route": null,
+      "domain": "uploads and media",
+      "rpcNames": [],
+      "currentProviderSignals": [],
+      "requiredD1Checks": [
+        "D1 upload ownership guard plus R2 object-key validation",
+        "D1 workspace editor guard for library and template writes"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/upload-operations-dashboard-ui.test.tsx",
+        "tests/vitest/upload-operations-dashboard.test.ts",
+        "tests/vitest/upload-release-gates.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/upload-release-gates.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-uploads-scan-job-ts-record-upload-scan-result",
+      "surface": "source",
+      "file": "src/lib/uploads/scan-job.ts",
+      "route": null,
+      "domain": "uploads and media",
+      "rpcNames": [
+        "record_upload_scan_result"
+      ],
+      "currentProviderSignals": [
+        "supabase-rpc",
+        "supabase-storage",
+        "supabase.rpc:record_upload_scan_result"
+      ],
+      "requiredD1Checks": [
+        "D1 upload ownership guard plus R2 object-key validation"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/cloudflare-migration-inventory-script.test.ts",
+        "tests/vitest/upload-clean-download-provider-proof-script.test.ts",
+        "tests/vitest/upload-operational-alerts.test.ts",
+        "tests/vitest/upload-provider-readback.test.ts",
+        "tests/vitest/upload-release-gates.test.ts",
+        "tests/vitest/upload-scan-job.test.ts",
+        "tests/vitest/upload-scan-route.test.ts",
+        "tests/vitest/upload-scan-rpc-provider-proof-script.test.ts",
+        "tests/vitest/upload-scan-worker-provider-proof-script.test.ts",
+        "tests/vitest/upload-scan-worker-provider-proof.test.ts",
+        "tests/vitest/upload-scanning.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/upload-clean-download-provider-proof-script.test.ts",
+        "tests/vitest/upload-release-gates.test.ts",
+        "tests/vitest/upload-scan-route.test.ts",
+        "tests/vitest/upload-scan-rpc-provider-proof-script.test.ts",
+        "tests/vitest/upload-scan-worker-provider-proof-script.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-uploads-scan-override-review-ts-uploads-and-media",
+      "surface": "source",
+      "file": "src/lib/uploads/scan-override-review.ts",
+      "route": null,
+      "domain": "uploads and media",
+      "rpcNames": [],
+      "currentProviderSignals": [],
+      "requiredD1Checks": [
+        "D1 upload ownership guard plus R2 object-key validation",
+        "D1 workspace editor guard for library and template writes"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/upload-release-gates.test.ts",
+        "tests/vitest/upload-scan-override-ui.test.tsx"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/upload-release-gates.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-uploads-scan-override-ts-approve-upload-scan-override",
+      "surface": "source",
+      "file": "src/lib/uploads/scan-override.ts",
+      "route": null,
+      "domain": "uploads and media",
+      "rpcNames": [
+        "approve_upload_scan_override"
+      ],
+      "currentProviderSignals": [
+        "supabase-rpc",
+        "supabase.rpc:approve_upload_scan_override"
+      ],
+      "requiredD1Checks": [
+        "D1 upload ownership guard plus R2 object-key validation"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/upload-operations-runbook-local-proof-script.test.ts",
+        "tests/vitest/upload-provider-readback.test.ts",
+        "tests/vitest/upload-release-gates.test.ts",
+        "tests/vitest/upload-scan-override-route.test.ts",
+        "tests/vitest/upload-scan-override-ui.test.tsx",
+        "tests/vitest/upload-scan-rpc-provider-proof-script.test.ts",
+        "tests/vitest/upload-scanning.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/upload-release-gates.test.ts",
+        "tests/vitest/upload-scan-override-route.test.ts",
+        "tests/vitest/upload-scan-rpc-provider-proof-script.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-uploads-upload-records-ts-record-upload-asset",
+      "surface": "source",
+      "file": "src/lib/uploads/upload-records.ts",
+      "route": null,
+      "domain": "uploads and media",
+      "rpcNames": [
+        "record_upload_asset"
+      ],
+      "currentProviderSignals": [
+        "supabase-rpc",
+        "supabase.rpc:record_upload_asset"
+      ],
+      "requiredD1Checks": [
+        "D1 upload ownership guard plus R2 object-key validation"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/cloudflare-d1-rpc-rewrite-map-script.test.ts",
+        "tests/vitest/upload-clean-download-provider-proof-script.test.ts",
+        "tests/vitest/upload-domain-contracts.test.ts",
+        "tests/vitest/upload-provider-readback.test.ts",
+        "tests/vitest/upload-release-gates.test.ts",
+        "tests/vitest/upload-scan-rpc-provider-proof-script.test.ts",
+        "tests/vitest/upload-signed-provider-proof-script.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/upload-clean-download-provider-proof-script.test.ts",
+        "tests/vitest/upload-domain-contracts.test.ts",
+        "tests/vitest/upload-release-gates.test.ts",
+        "tests/vitest/upload-scan-rpc-provider-proof-script.test.ts",
+        "tests/vitest/upload-signed-provider-proof-script.test.ts"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    },
+    {
+      "id": "src-lib-workshop-group-actions-ts-workspace-data",
+      "surface": "server-action",
+      "file": "src/lib/workshop/group-actions.ts",
+      "route": null,
+      "domain": "workspace data",
+      "rpcNames": [],
+      "currentProviderSignals": [
+        "source:workspace_members lookup"
+      ],
+      "requiredD1Checks": [
+        "D1 project access guard using server-derived user, membership, or publication recipient",
+        "D1 publication owner/recipient guard with token-bound recipient checks"
+      ],
+      "positiveTestRefs": [
+        "tests/vitest/account-settings-form-fields-ui.test.tsx",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/auth-account-data-contract.test.ts",
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/auth-settings-ui-contract.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/closed-beta-allowlist-admin.test.ts",
+        "tests/vitest/closed-beta-readiness-docs.test.ts",
+        "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/component-library-actions-revalidation.test.ts",
+        "tests/vitest/component-library-durable-telemetry.test.ts"
+      ],
+      "denialTestRefs": [
+        "tests/vitest/account-settings-form-fields-ui.test.tsx",
+        "tests/vitest/ai-package-builder-apply.test.ts",
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/closed-beta-readiness-docs.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/component-library-actions-revalidation.test.ts",
+        "tests/vitest/component-library-durable-telemetry.test.ts",
+        "tests/vitest/component-library-helpers.test.ts",
+        "tests/vitest/component-library-manager-ui.test.tsx",
+        "tests/vitest/component-library-manager.test.tsx",
+        "tests/vitest/component-library-ui.test.tsx"
+      ],
+      "crossWorkspaceDenialTestRefs": [
+        "tests/vitest/auth-onboarding-guard.test.ts",
+        "tests/vitest/beta-feedback.test.ts",
+        "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "tests/vitest/estimate-sheet-cost-inputs.test.tsx",
+        "tests/vitest/main-sidebar-favorites.test.tsx",
+        "tests/vitest/perf/projects-page-server-parallelism.test.ts",
+        "tests/vitest/project-favorite-sidebar-mutation.test.tsx",
+        "tests/vitest/projects-page-organize-control.test.tsx",
+        "tests/vitest/proposal-export-route.test.ts",
+        "tests/vitest/workshop-project-groups-repository.test.ts"
+      ],
+      "status": "covered",
+      "notes": [
+        "D1 migration must preserve the current fail-closed behavior with server-derived user/workspace context.",
+        "This row is generated from local source and sanitized inventory evidence; it is not hosted provider proof."
+      ]
+    }
+  ],
+  "blockers": [],
+  "note": "Local D1 app-layer authorization migration matrix only. It reads repository source, Vitest files, and sanitized inventory artifacts; it does not read env files, print secret values, call provider APIs, create D1 databases, mutate Cloudflare/Supabase, change DNS, deploy Workers, or make Supabase removable."
+}

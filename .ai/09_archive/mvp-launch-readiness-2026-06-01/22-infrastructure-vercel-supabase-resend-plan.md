@@ -234,6 +234,7 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 | `ARCHESTIMATOR_AI_ENABLED` | server-only | `false` | MVP AI routes off before handler import. |
 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` | public | blank unless approved | Optional landing analytics; privacy copy must cover configured provider. |
 | `NEXT_PUBLIC_CLARITY_PROJECT_ID` | public | blank unless approved | Optional Microsoft Clarity; privacy copy must cover configured provider. |
+| `NEXT_PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN` | public | blank unless approved | Optional Cloudflare Web Analytics token; privacy copy must cover configured provider. |
 | `ARCHESTIMATOR_E2E_ROUTE_ERROR_SMOKE` | server/test | `0` | Enable only for route-error E2E smoke. |
 | `RUN_SUPABASE_INTEGRATION` | test/CI | `0` | Enable only with safe staging credentials. |
 | `DATABASE_URL` | CLI/server-only | secret | Optional linked CLI/database work; never commit a real password. |

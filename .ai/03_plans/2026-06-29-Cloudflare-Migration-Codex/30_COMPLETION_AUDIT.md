@@ -58,7 +58,7 @@ These gaps should not keep the documentation-quality loop open, because they req
 - Better Auth session, cookie, claim, OAuth/magic-link, admin, invite, closed-beta, and terms-gate proof.
 - Durable Objects/WebSockets room, authorization, reconnect, and latency proof.
 - R2 signed/private object, image, scan, cleanup, and rollback proof.
-- Queues retry, dead-letter, idempotency, cron replacement, and visibility proof.
+- Queues provider-backed retry, dead-letter, cron execution, and visibility proof; local idempotency/retry/DLQ simulation proof exists but does not prove hosted execution.
 - Email Service deliverability, event, bounce, retry, suppression, analytics, and arbitrary-recipient eligibility proof.
 - WAF/rate-limit/Turnstile rule staging and false-positive review.
 
