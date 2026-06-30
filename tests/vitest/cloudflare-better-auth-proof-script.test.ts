@@ -109,6 +109,61 @@ const SCHEMA_SQL_PROOF = {
   error: null,
 };
 
+const PROVIDER_PROOF = {
+  generatedAt: "2026-06-30T01:00:00.000Z",
+  baseUrl: "https://archestimator-proof.example.workers.dev",
+  endpointPath: "/__cloudflare/better-auth-proof",
+  providerBacked: true,
+  responseStatus: 200,
+  responseOk: true,
+  readiness: {
+    schemaApplyReady: true,
+    expectedTablesPresent: true,
+    expectedIndexesPresent: true,
+    secretProviderReady: true,
+    baseUrlReady: true,
+    trustedOriginsReady: true,
+    providerSessionFixtureReady: true,
+    magicLinkRequestReady: true,
+    magicLinkCallbackReady: true,
+    sessionCookieIssued: true,
+    routeGateSessionReadbackReady: true,
+    replayBlockedReady: true,
+    providerBackedCallbackSessionCutoverReady: true,
+    cleanupReady: true,
+    betterAuthProviderProofReady: true,
+    productionCutoverReady: false,
+  },
+  result: {
+    d1BindingPresent: true,
+    schemaApplyReady: true,
+    expectedTablesPresent: true,
+    expectedIndexesPresent: true,
+    secretProviderReady: true,
+    baseUrlReady: true,
+    trustedOriginsReady: true,
+    providerSessionFixtureReady: true,
+    magicLinkCutover: {
+      magicLinkRequestReady: true,
+      magicLinkTokenCaptured: true,
+      magicLinkCallbackReady: true,
+      sessionCookieIssued: true,
+      routeGateSessionReadbackReady: true,
+      replayBlockedReady: true,
+      cleanupReady: true,
+      providerBackedCallbackSessionCutoverReady: true,
+      rowsRemaining: 0,
+      error: null,
+    },
+    cleanupReady: true,
+    tableNames: ["account", "session", "user", "verification"],
+    indexNames: ["account_userId_idx", "session_userId_idx", "verification_identifier_idx"],
+    rowsRemaining: 0,
+    error: null,
+  },
+  blockers: [],
+};
+
 function proofInputs() {
   return {
     generatedAt: "2026-06-30T00:00:00.000Z",
@@ -221,6 +276,53 @@ describe("Cloudflare Better Auth proof generator", () => {
       ]),
     );
     expect(report.note).toContain("fails closed without a Better Auth secret and ARCH_DB binding");
+  });
+
+  it("promotes hosted Better Auth provider proof without claiming production cutover", () => {
+    const inputs = proofInputs();
+    inputs.sourceFileTextByPath["src/app/api/auth/[...all]/route.ts"] = GUARDED_NEXT_ROUTE_SOURCE;
+    const report = buildCloudflareBetterAuthProof({
+      ...inputs,
+      betterAuthProviderProof: PROVIDER_PROOF,
+      betterAuthProviderProofSource: "evidence/provider-proof.json",
+    });
+
+    expect(report.readiness).toMatchObject({
+      localBetterAuthRouteGateProofReady: true,
+      hostedBetterAuthD1SchemaProofReady: true,
+      betterAuthSecretProviderReady: true,
+      providerBackedSessionFixtureReady: true,
+      providerBackedCallbackSessionCutoverReady: true,
+      betterAuthProviderProofReady: true,
+      productionBetterAuthReady: false,
+    });
+    expect(report.localOnly).toBe(false);
+    expect(report.providerBacked).toBe(true);
+    expect(report.providerProofSummary).toMatchObject({
+      source: "evidence/provider-proof.json",
+      responseStatus: 200,
+      rowsRemaining: 0,
+      magicLinkRowsRemaining: 0,
+      providerBackedCallbackSessionCutoverReady: true,
+      tableNames: ["account", "session", "user", "verification"],
+    });
+    expect(report.productionCutoverBlockers).not.toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("has not been applied to hosted D1"),
+        expect.stringContaining("no sanitized Cloudflare provider evidence"),
+      ]),
+    );
+    expect(report.productionCutoverBlockers).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("OAuth provider credential callback proof"),
+        expect.stringContaining("Supabase callback/actions/session helpers"),
+      ]),
+    );
+    expect(report.productionCutoverBlockers).not.toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("provider-backed callback/session cutover tests"),
+      ]),
+    );
   });
 
   it("writes markdown without copying secret-looking source text", () => {

@@ -288,6 +288,8 @@ describe("auth proxy", () => {
     ["contact", "http://localhost:3000/contact"],
     ["privacy", "http://localhost:3000/privacy"],
     ["terms", "http://localhost:3000/terms"],
+    ["trust", "http://localhost:3000/trust"],
+    ["signup", "http://localhost:3000/signup"],
     ["invite token", "http://localhost:3000/invite/invite-token"],
     ["share token", "http://localhost:3000/share/share-token"],
   ])("skips Supabase auth lookup for public %s requests while preserving request path", async (_label, url) => {
@@ -304,13 +306,15 @@ describe("auth proxy", () => {
   it.each([
     ["landing", "http://localhost:3000/"],
     ["features", "http://localhost:3000/features"],
-  ])("removes no-store from public marketing %s responses so Chrome can evaluate bfcache", async (_label, url) => {
+    ["trust", "http://localhost:3000/trust"],
+    ["signup", "http://localhost:3000/signup"],
+  ])("marks public static %s responses cacheable at the edge", async (_label, url) => {
     mockUser({ id: "user-1" });
     const { proxy } = await import("@/proxy");
 
     const response = await proxy(request(url));
 
-    expect(response.headers.get("Cache-Control")).toBe("private, no-cache, max-age=0, must-revalidate");
+    expect(response.headers.get("Cache-Control")).toBe("s-maxage=31536000");
   });
 
   it("does not add marketing cache headers to invite public routes", async () => {

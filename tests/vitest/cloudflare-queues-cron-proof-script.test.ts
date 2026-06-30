@@ -83,6 +83,36 @@ describe("Cloudflare Queues/Cron local proof script", () => {
     expect(report.blockers).toContain("Wrangler Queues producer/consumer/DLQ config is incomplete.");
   });
 
+  it("merges live jobs runtime proof without bypassing local retry and DLQ checks", async () => {
+    const report = await buildCloudflareQueuesCronProofReport({
+      generatedAt: "2026-06-30T00:00:00.000Z",
+      jobsRuntimeProof: {
+        generatedAt: "2026-06-30T01:00:00.000Z",
+        readiness: {
+          providerBacked: true,
+          queueSendReady: true,
+          queueConsumerReceiptReady: true,
+          cronProviderExecutionProven: true,
+          productionJobsMessagingReady: true,
+        },
+      },
+      wranglerConfigText: WRANGLER,
+      workerText: WORKER,
+    });
+
+    expect(report.readiness.localQueuesCronProofReady).toBe(true);
+    expect(report.readiness.providerBacked).toBe(true);
+    expect(report.readiness.queueSendProviderReady).toBe(true);
+    expect(report.readiness.queueConsumerReceiptReady).toBe(true);
+    expect(report.readiness.cronProviderExecutionProven).toBe(true);
+    expect(report.readiness.productionJobsMessagingReady).toBe(true);
+    expect(report.jobsRuntimeProof).toEqual({
+      present: true,
+      sourceGeneratedAt: "2026-06-30T01:00:00.000Z",
+    });
+    expect(report.blockers).toEqual([]);
+  });
+
   it("writes markdown without leaking secret-looking local values", async () => {
     const report = await buildCloudflareQueuesCronProofReport({
       generatedAt: "2026-06-30T00:00:00.000Z",

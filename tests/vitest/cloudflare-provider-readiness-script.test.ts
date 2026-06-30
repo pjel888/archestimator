@@ -247,4 +247,109 @@ describe("Cloudflare provider readiness checker", () => {
     expect(result.storageMediaReady).toBe(false);
     expect(result.productionCutoverReady).toBe(false);
   });
+
+  it("uses provider runtime proof for Images and R2 storage/media readiness", () => {
+    const result = checkCloudflareProviderReadiness(
+      CURRENT_SANITIZED_EVIDENCE,
+      "source.json",
+      null,
+      null,
+      AUTHENTICATED_WRANGLER,
+      "wrangler-auth.json",
+      PROVIDER_RESOURCE_READBACK,
+      "provider-resource-readback.json",
+      {
+        generatedAt: "2026-06-30T13:00:00.000Z",
+        readiness: {
+          imagesProviderProofReady: true,
+          r2ProviderProofReady: true,
+          providerRuntimeProofReady: true,
+        },
+      },
+      "provider-runtime-proof.json",
+    );
+
+    expect(result.checks.find((check) => check.key === "images-provider")).toMatchObject({
+      ready: true,
+      blocker: null,
+    });
+    expect(result.checks.find((check) => check.key === "r2-provider")?.evidence).toContain("providerRuntimeR2Proof=yes");
+    expect(result.providerRuntimeProofSource).toBe("provider-runtime-proof.json");
+    expect(result.storageMediaReady).toBe(true);
+    expect(result.productionCutoverReady).toBe(false);
+  });
+
+  it("uses live jobs runtime proof plus queue readback for jobs readiness", () => {
+    const result = checkCloudflareProviderReadiness(
+      CURRENT_SANITIZED_EVIDENCE,
+      "source.json",
+      null,
+      null,
+      AUTHENTICATED_WRANGLER,
+      "wrangler-auth.json",
+      PROVIDER_RESOURCE_READBACK,
+      "provider-resource-readback.json",
+      null,
+      null,
+      {
+        generatedAt: "2026-06-30T13:15:00.000Z",
+        readiness: {
+          providerBacked: true,
+          queueSendReady: true,
+          queueConsumerReceiptReady: true,
+          cronProviderExecutionProven: true,
+          productionJobsMessagingReady: true,
+        },
+      },
+      "jobs-runtime-proof.json",
+    );
+
+    expect(result.checks.find((check) => check.key === "jobs-provider")).toMatchObject({
+      ready: true,
+      blocker: null,
+    });
+    expect(result.checks.find((check) => check.key === "jobs-provider")?.evidence).toContain("jobsRuntimeProductionProof=yes");
+    expect(result.jobsRuntimeProofSource).toBe("jobs-runtime-proof.json");
+    expect(result.jobsReady).toBe(true);
+    expect(result.productionCutoverReady).toBe(false);
+  });
+
+  it("uses Workers Observability proof for analytics readiness", () => {
+    const result = checkCloudflareProviderReadiness(
+      CURRENT_SANITIZED_EVIDENCE,
+      "source.json",
+      null,
+      null,
+      AUTHENTICATED_WRANGLER,
+      "wrangler-auth.json",
+      PROVIDER_RESOURCE_READBACK,
+      "provider-resource-readback.json",
+      null,
+      null,
+      null,
+      null,
+      {
+        generatedAt: "2026-06-30T13:30:00.000Z",
+        observability: {
+          sampledProbeEventCount: 20,
+        },
+        readiness: {
+          workersObservabilityReceivingDataProven: true,
+          currentWorkerVersionObserved: true,
+          probeEventsObserved: true,
+          analyticsReady: true,
+        },
+      },
+      "observability-proof.json",
+    );
+
+    expect(result.checks.find((check) => check.key === "analytics-provider")).toMatchObject({
+      ready: true,
+      blocker: null,
+    });
+    expect(result.checks.find((check) => check.key === "analytics-provider")?.evidence).toContain("observedProbeEvents=20");
+    expect(result.observabilityProofSource).toBe("observability-proof.json");
+    expect(result.analyticsReady).toBe(true);
+    expect(result.productionCutoverReady).toBe(false);
+  });
 });

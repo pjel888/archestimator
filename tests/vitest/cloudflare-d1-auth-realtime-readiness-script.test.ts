@@ -166,6 +166,11 @@ describe("Cloudflare D1/Auth/Realtime readiness checker", () => {
     const report = checkCloudflareD1AuthRealtimeReadiness(inputs);
 
     expect(report.readiness.betterAuthLocalProofReady).toBe(true);
+    expect(report.readiness.hostedBetterAuthD1SchemaProofReady).toBe(false);
+    expect(report.readiness.betterAuthSecretProviderReady).toBe(false);
+    expect(report.readiness.providerBackedSessionFixtureReady).toBe(false);
+    expect(report.readiness.providerBackedCallbackSessionCutoverReady).toBe(false);
+    expect(report.readiness.betterAuthProviderProofReady).toBe(false);
     expect(report.readiness.authReplacementReady).toBe(false);
     expect(report.readiness.productionD1AuthRealtimeReady).toBe(false);
     expect(report.gates.find((gate) => gate.key === "better-auth-local-route-gate-proof")).toMatchObject({
@@ -173,6 +178,7 @@ describe("Cloudflare D1/Auth/Realtime readiness checker", () => {
       source: "better-auth-proof.json",
     });
     expect(report.gates.find((gate) => gate.key === "better-auth-replacement")?.evidence).toContain("productionProof=no");
+    expect(report.gates.find((gate) => gate.key === "better-auth-replacement")?.evidence).toContain("providerProof=no");
   });
 
   it("passes production readiness only when every redesign proof surface is present", () => {
@@ -403,6 +409,11 @@ describe("Cloudflare D1/Auth/Realtime readiness checker", () => {
         routeGateD1SessionFixtureReady: true,
         betterAuthD1SchemaSqlGenerated: true,
         betterAuthD1SchemaSqlReviewReady: true,
+        hostedBetterAuthD1SchemaProofReady: true,
+        betterAuthSecretProviderReady: true,
+        providerBackedSessionFixtureReady: true,
+        providerBackedCallbackSessionCutoverReady: true,
+        betterAuthProviderProofReady: true,
         productionBetterAuthReady: true,
       },
       scaffoldSummary: {
@@ -418,6 +429,11 @@ describe("Cloudflare D1/Auth/Realtime readiness checker", () => {
     expect(report.readiness).toMatchObject({
       d1BindingReady: true,
       betterAuthLocalProofReady: true,
+      hostedBetterAuthD1SchemaProofReady: true,
+      betterAuthSecretProviderReady: true,
+      providerBackedSessionFixtureReady: true,
+      providerBackedCallbackSessionCutoverReady: true,
+      betterAuthProviderProofReady: true,
       authReplacementReady: true,
       appLayerAuthzSpecReady: true,
       localRpcTransactionMechanicsReady: true,

@@ -86,6 +86,8 @@ describe("Cloudflare Worker secret sync helper", () => {
           "NEXT_PUBLIC_APP_URL",
           "NEXT_PUBLIC_SITE_URL",
           "ARCHESTIMATOR_ALLOWED_APP_ORIGINS",
+          "BETTER_AUTH_URL",
+          "BETTER_AUTH_TRUSTED_ORIGINS",
           "ARCHESTIMATOR_AI_ENABLED",
         ],
         proofBaseUrl: "https://archestimator-proof.example.workers.dev",
@@ -97,9 +99,12 @@ describe("Cloudflare Worker secret sync helper", () => {
         "NEXT_PUBLIC_APP_URL",
         "NEXT_PUBLIC_SITE_URL",
         "ARCHESTIMATOR_ALLOWED_APP_ORIGINS",
+        "BETTER_AUTH_URL",
+        "BETTER_AUTH_TRUSTED_ORIGINS",
         "ARCHESTIMATOR_AI_ENABLED",
       ]);
       expect(text).toContain("NEXT_PUBLIC_APP_URL=https://archestimator-proof.example.workers.dev");
+      expect(text).toContain("BETTER_AUTH_URL=https://archestimator-proof.example.workers.dev");
       expect(text).toContain("ARCHESTIMATOR_AI_ENABLED=false");
       expect(defaulted.join("\n")).not.toContain("https://");
     } finally {

@@ -30,6 +30,49 @@ describe("Cloudflare D1 performance proof", () => {
     expect(report.blockers).toEqual(["Hosted Worker+D1 performance proof is still missing."]);
   });
 
+  it("uses hosted D1 runtime proof to clear the hosted performance gate", () => {
+    const report = buildCloudflareD1PerformanceProof({
+      generatedAt: "2026-06-30T00:00:00.000Z",
+      hostedD1RuntimePerformanceProofSource: "evidence/hosted-d1.json",
+      hostedD1RuntimePerformanceProof: {
+        providerBacked: true,
+        result: {
+          schemaReady: true,
+          seedReady: true,
+          cleanupReady: true,
+          rowsSeeded: 132,
+          rowsCleaned: 0,
+          benchmarkRows: [
+            {
+              surface: "workspace_homebase_summary",
+              queryBudget: 3,
+              plannedQueries: 1,
+              hostedBudgetMs: 600,
+              hostedP95Ms: 42,
+              sampleCount: 9,
+              rowsReturned: 2,
+              status: "hosted-pass",
+            },
+          ],
+        },
+        readiness: {
+          queryCountBudgetsReady: true,
+          hostedP95Ready: true,
+          hostedWorkerD1PerformanceReady: true,
+          d1RuntimeProofReady: true,
+        },
+        blockers: [],
+      },
+    });
+
+    expect(report.hostedWorkerD1PerformanceReady).toBe(true);
+    expect(report.localOnly).toBe(false);
+    expect(report.providerBacked).toBe(true);
+    expect(report.hostedBenchmark?.source).toBe("evidence/hosted-d1.json");
+    expect(report.hostedBenchmark?.rowsSeeded).toBe(132);
+    expect(report.blockers).toEqual([]);
+  });
+
   it("writes markdown without leaking temp paths or secret-looking values", () => {
     const report = buildCloudflareD1PerformanceProof({
       generatedAt: "2026-06-30T00:00:00.000Z",
