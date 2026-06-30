@@ -1,10 +1,10 @@
 # Cloudflare Better Auth Provider Proof
 
-Generated: 2026-06-30T10:15:21.367Z
+Generated: 2026-06-30T10:47:49.364Z
 Base URL: https://archestimator-proof.philipjonlewis.workers.dev
 Endpoint: /__cloudflare/better-auth-proof
 Provider backed: yes
-Response status: 500
+Response status: 200
 Secret input present: yes
 Secret input source: process.env
 
@@ -21,14 +21,14 @@ Calls the deployed proof Worker Better Auth provider-proof endpoint with a local
 | Base URL ready | yes |
 | Trusted origins ready | yes |
 | Provider session fixture ready | yes |
-| Magic-link request ready | no |
-| Magic-link callback ready | no |
-| Session cookie issued | no |
-| Route-gate session readback ready | no |
-| Magic-link replay blocked | no |
-| Provider-backed callback/session cutover proof ready | no |
+| Magic-link request ready | yes |
+| Magic-link callback ready | yes |
+| Session cookie issued | yes |
+| Route-gate session readback ready | yes |
+| Magic-link replay blocked | yes |
+| Provider-backed callback/session cutover proof ready | yes |
 | Cleanup ready | yes |
-| Better Auth provider proof ready | no |
+| Better Auth provider proof ready | yes |
 | Production cutover | no |
 
 ## Sanitized Results
@@ -40,11 +40,4 @@ Calls the deployed proof Worker Better Auth provider-proof endpoint with a local
 
 ## Blockers
 
-- Better Auth provider proof endpoint returned HTTP 500.
-- Hosted Better Auth provider proof did not pass.
-- Hosted Better Auth magic-link request did not pass.
-- Hosted Better Auth magic-link callback did not mint a D1-backed session.
-- Hosted Better Auth magic-link callback did not issue a session cookie.
-- Hosted Better Auth session cookie did not pass route-gate getSession readback.
-- Hosted Better Auth magic-link token replay was not blocked.
-- Error: No such module "better-auth".
+- (none)

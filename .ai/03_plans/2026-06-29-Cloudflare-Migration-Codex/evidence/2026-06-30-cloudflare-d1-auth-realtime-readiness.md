@@ -1,6 +1,6 @@
 # Cloudflare D1/Auth/Realtime Readiness
 
-Generated: 2026-06-30T09:41:56.378Z
+Generated: 2026-06-30T10:48:06.364Z
 
 Local D1/Auth/Realtime redesign readiness inventory only. It reads repository source, package, generated type, wrangler, and sanitized evidence artifacts; it does not read env files, print secret values, call provider APIs, create D1 databases, mutate Cloudflare/Supabase, change DNS, deploy Workers, or make Supabase removable.
 
@@ -14,6 +14,7 @@ Local D1/Auth/Realtime redesign readiness inventory only. It reads repository so
 | Hosted Better Auth D1 schema proof ready | yes |
 | Better Auth provider secret/origin proof ready | yes |
 | Provider-backed Better Auth session fixture ready | yes |
+| Provider-backed Better Auth callback/session cutover proof ready | yes |
 | Better Auth provider proof ready | yes |
 | Auth replacement ready | no |
 | App-layer authorization spec ready | yes |
@@ -58,7 +59,7 @@ Local D1/Auth/Realtime redesign readiness inventory only. It reads repository so
 | database | Supabase database behavior inventory ready | PASS | routes=71, providerCoupledFiles=93, rpcNames=80, sqlMigrations=181, sqlFunctions=346, rlsPolicyStorageAuthMatches=684 |  |
 | d1 | D1 database binding configured and typed | PASS | wranglerD1Bindings=ARCH_DB, typedD1Bindings=ARCH_DB |  |
 | auth | Better Auth D1 local route-gate proof ready | PASS | betterAuthDependency=yes, betterAuthFiles=4, d1AdapterFiles=4, routeGateFiles=1, localProof=yes, routeGateHelperTests=yes, routeGateD1SessionFixture=yes, schemaSqlGenerated=yes, schemaSqlReview=yes, parityRows=7, existingSupabaseAuthFiles=12 |  |
-| auth | Better Auth D1 production replacement ready | FAIL | betterAuthDependency=yes, betterAuthFiles=4, d1AdapterFiles=4, routeGateFiles=1, localProof=yes, routeGateD1SessionFixture=yes, schemaSqlReady=yes, hostedSchemaProof=yes, providerSecret=yes, providerSessionFixture=yes, providerProof=yes, productionProof=no, actualRouteMounted=yes, localOnly=no, providerBacked=yes | Better Auth production cutover proof is missing: OAuth/magic-link callback flow, provider-backed callback/session cutover tests, or Supabase auth removal is incomplete. |
+| auth | Better Auth D1 production replacement ready | FAIL | betterAuthDependency=yes, betterAuthFiles=4, d1AdapterFiles=4, routeGateFiles=1, localProof=yes, routeGateD1SessionFixture=yes, schemaSqlReady=yes, hostedSchemaProof=yes, providerSecret=yes, providerSessionFixture=yes, providerCallbackSession=yes, providerProof=yes, productionProof=no, actualRouteMounted=yes, localOnly=no, providerBacked=yes | Better Auth production cutover proof is missing: OAuth provider credential proof, live route cutover, or Supabase auth removal is incomplete. |
 | authorization | App-layer authorization access matrix and denial tests ready | PASS | present=yes, accessPaths=47, positiveTests=47, denialTests=47, allCovered=yes, crossWorkspaceDenials=yes, routeActionCoverage=yes |  |
 | d1 | D1 beta-feedback local domain proof ready | PASS | present=yes, schema=yes, appLayerAuthz=yes, localSlice=yes, productionProof=no, feedbackRows=1, forgedWorkspaceRows=0, mismatchedProjectRows=0, rollbackResidueRows=0, duplicateStatusAuditRows=0, localOnly=yes, providerBacked=no |  |
 | d1 | D1 collaboration-invitation local domain proof ready | PASS | present=yes, schema=yes, tokenIssue=yes, resolveState=yes, acceptByToken=yes, acceptById=yes, localSlice=yes, productionProof=no, affectedRpcNames=5, tokenIssueRows=1, activeTokensAfterIssue=1, wrongAccountMembershipRows=0, rollbackResidueRows=0, duplicateAcceptAuditRows=0, replayBlockedAuditRows=1, localOnly=yes, providerBacked=no |  |
@@ -86,4 +87,4 @@ Local D1/Auth/Realtime redesign readiness inventory only. It reads repository so
 
 ## Blockers
 
-- Better Auth D1 production replacement ready: Better Auth production cutover proof is missing: OAuth/magic-link callback flow, provider-backed callback/session cutover tests, or Supabase auth removal is incomplete.
+- Better Auth D1 production replacement ready: Better Auth production cutover proof is missing: OAuth provider credential proof, live route cutover, or Supabase auth removal is incomplete.

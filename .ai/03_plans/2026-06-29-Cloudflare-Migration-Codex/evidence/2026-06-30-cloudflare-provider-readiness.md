@@ -1,6 +1,6 @@
 # Cloudflare Provider Readiness
 
-Generated: 2026-06-30T09:42:07.995Z
+Generated: 2026-06-30T10:49:05.727Z
 Source: .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-provider-readiness-source.json
 Captured: 2026-06-30T02:00:15.745Z
 DNS delegation source: .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-dns-delegation.json

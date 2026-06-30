@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-30T09:41:56.035Z",
+  "generatedAt": "2026-06-30T10:48:06.081Z",
   "mode": "cloudflare-better-auth-d1-route-gate-proof",
   "sources": {
     "packageJson": "package.json",
@@ -94,7 +94,7 @@
   "providerProofSummary": {
     "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-better-auth-provider-proof.json",
     "present": true,
-    "generatedAt": "2026-06-30T09:41:39.264Z",
+    "generatedAt": "2026-06-30T10:47:49.364Z",
     "baseUrl": "https://archestimator-proof.philipjonlewis.workers.dev",
     "endpointPath": "/__cloudflare/better-auth-proof",
     "responseStatus": 200,
@@ -107,6 +107,13 @@
     "baseUrlReady": true,
     "trustedOriginsReady": true,
     "providerSessionFixtureReady": true,
+    "magicLinkRequestReady": true,
+    "magicLinkCallbackReady": true,
+    "sessionCookieIssued": true,
+    "routeGateSessionReadbackReady": true,
+    "replayBlockedReady": true,
+    "providerBackedCallbackSessionCutoverReady": true,
+    "magicLinkRowsRemaining": 0,
     "cleanupReady": true,
     "betterAuthProviderProofReady": true,
     "productionCutoverReady": false,
@@ -137,6 +144,7 @@
     "hostedBetterAuthD1SchemaProofReady": true,
     "betterAuthSecretProviderReady": true,
     "providerBackedSessionFixtureReady": true,
+    "providerBackedCallbackSessionCutoverReady": true,
     "betterAuthProviderProofReady": true,
     "routeGateParityMatrixReady": true,
     "currentSupabaseGatePreserved": true,
@@ -188,16 +196,14 @@
     }
   ],
   "productionCutoverBlockers": [
-    "OAuth and magic-link/email callback flow is still not provider-proven end to end on Cloudflare.",
-    "Existing Supabase callback/actions/session helpers still own live auth behavior.",
-    "Hosted D1 Better Auth session fixture readback is provider-proven, but provider-backed callback/session cutover tests are still missing before replacing Supabase session fixtures."
+    "OAuth provider credential callback proof is still missing before live Better Auth cutover.",
+    "Existing Supabase callback/actions/session helpers still own live auth behavior."
   ],
   "localOnly": false,
   "providerBacked": true,
   "blockers": [
-    "OAuth and magic-link/email callback flow is still not provider-proven end to end on Cloudflare.",
-    "Existing Supabase callback/actions/session helpers still own live auth behavior.",
-    "Hosted D1 Better Auth session fixture readback is provider-proven, but provider-backed callback/session cutover tests are still missing before replacing Supabase session fixtures."
+    "OAuth provider credential callback proof is still missing before live Better Auth cutover.",
+    "Existing Supabase callback/actions/session helpers still own live auth behavior."
   ],
-  "note": "Better Auth D1 route-gate proof with hosted Cloudflare provider evidence. It reads package, wrangler, generated type, source files, and sanitized provider-proof output; it does not print secret values, change DNS, replace the live Supabase auth gate, or prove OAuth/magic-link callbacks."
+  "note": "Better Auth D1 route-gate proof with hosted Cloudflare provider evidence. It reads package, wrangler, generated type, source files, and sanitized provider-proof output; it does not print secret values, change DNS, replace the live Supabase auth gate, or prove OAuth provider credentials."
 }

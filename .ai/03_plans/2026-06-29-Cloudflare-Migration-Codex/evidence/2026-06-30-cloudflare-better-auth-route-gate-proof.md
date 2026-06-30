@@ -1,8 +1,8 @@
 # Cloudflare Better Auth D1 Route-Gate Proof
 
-Generated: 2026-06-30T09:41:56.035Z
+Generated: 2026-06-30T10:48:06.081Z
 
-Better Auth D1 route-gate proof with hosted Cloudflare provider evidence. It reads package, wrangler, generated type, source files, and sanitized provider-proof output; it does not print secret values, change DNS, replace the live Supabase auth gate, or prove OAuth/magic-link callbacks.
+Better Auth D1 route-gate proof with hosted Cloudflare provider evidence. It reads package, wrangler, generated type, source files, and sanitized provider-proof output; it does not print secret values, change DNS, replace the live Supabase auth gate, or prove OAuth provider credentials.
 
 ## Summary
 
@@ -21,6 +21,7 @@ Better Auth D1 route-gate proof with hosted Cloudflare provider evidence. It rea
 | Hosted Better Auth D1 schema proof ready | yes |
 | Better Auth provider secret/origin proof ready | yes |
 | Provider-backed session fixture ready | yes |
+| Provider-backed callback/session cutover proof ready | yes |
 | Better Auth provider proof ready | yes |
 | Route-gate parity matrix ready | yes |
 | Current Supabase gate preserved | yes |
@@ -50,7 +51,7 @@ Better Auth D1 route-gate proof with hosted Cloudflare provider evidence. It rea
 | --- | --- |
 | Provider proof artifact | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-better-auth-provider-proof.json |
 | Provider proof present | yes |
-| Provider proof generated | 2026-06-30T09:41:39.264Z |
+| Provider proof generated | 2026-06-30T10:47:49.364Z |
 | Provider proof base URL | https://archestimator-proof.philipjonlewis.workers.dev |
 | Provider proof endpoint | /__cloudflare/better-auth-proof |
 | Provider proof response status | 200 |
@@ -62,10 +63,17 @@ Better Auth D1 route-gate proof with hosted Cloudflare provider evidence. It rea
 | Base URL ready | yes |
 | Trusted origins ready | yes |
 | Provider session fixture ready | yes |
+| Magic-link request ready | yes |
+| Magic-link callback ready | yes |
+| Session cookie issued | yes |
+| Route-gate session readback ready | yes |
+| Magic-link replay blocked | yes |
+| Provider-backed callback/session cutover proof ready | yes |
 | Cleanup ready | yes |
 | Provider tables | account, session, user, verification |
 | Provider indexes | account_userId_idx, session_userId_idx, verification_identifier_idx |
 | Provider proof rows remaining | 0 |
+| Magic-link proof rows remaining | 0 |
 
 ## Route-Gate Parity Matrix
 
@@ -92,6 +100,5 @@ Better Auth D1 route-gate proof with hosted Cloudflare provider evidence. It rea
 
 ## Blockers
 
-- OAuth and magic-link/email callback flow is still not provider-proven end to end on Cloudflare.
+- OAuth provider credential callback proof is still missing before live Better Auth cutover.
 - Existing Supabase callback/actions/session helpers still own live auth behavior.
-- Hosted D1 Better Auth session fixture readback is provider-proven, but provider-backed callback/session cutover tests are still missing before replacing Supabase session fixtures.
