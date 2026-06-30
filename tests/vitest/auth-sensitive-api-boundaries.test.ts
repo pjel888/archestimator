@@ -139,6 +139,7 @@ class FakeD1Database {
     canAccessEstimate: true,
     canEditProject: true,
     canEditEstimate: true,
+    canManageLibrary: true,
   };
   readonly statements: FakeD1Statement[] = [];
   readonly runStatements: Array<{ sql: string; values: unknown[] }> = [];
@@ -176,6 +177,10 @@ class FakeD1Database {
         return this.access.canEditEstimate ? { allowed: 1 } : null;
       }
       return this.access.canAccessEstimate ? { allowed: 1 } : null;
+    }
+
+    if (sql.includes("SELECT 1 AS allowed") && sql.includes("FROM workspace_members workspace_member")) {
+      return this.access.canManageLibrary ? { allowed: 1 } : null;
     }
 
     return null;
@@ -326,7 +331,12 @@ function createRpcMock(options: {
 function mockServerRpc(options: Parameters<typeof createRpcMock>[0] = {}) {
   const rpc = createRpcMock(options);
   supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ rpc });
-  return { rpc };
+  activeD1.access = {
+    ...activeD1.access,
+    canManageLibrary: options.canManageLibrary ?? true,
+  };
+  d1Mocks.getCloudflareD1Database.mockResolvedValue(activeD1);
+  return { rpc, d1: activeD1 };
 }
 
 function mockProjectLookup(
@@ -343,6 +353,7 @@ function mockProjectLookup(
     canAccessEstimate: options.canAccessEstimate ?? true,
     canEditProject: options.canEditProject ?? true,
     canEditEstimate: options.canEditEstimate ?? true,
+    canManageLibrary: options.canManageLibrary ?? d1.access.canManageLibrary ?? true,
   };
   d1Mocks.getCloudflareD1Database.mockResolvedValue(d1);
 
@@ -395,7 +406,8 @@ describe("sensitive API auth boundaries", () => {
 
     expectAuthBeforeBodyParsing(source);
     expect(source).toContain("ensureDefaultWorkspace()");
-    expect(source).toContain("is_workspace_editor");
+    expect(source).toContain("isWorkspaceEditorInD1");
+    expect(source).not.toContain("createSupabaseServerClient");
     expect(source).toContain("processUploadImageToWebp");
     expect(source).toContain("uploadSessionId");
     expect(source).toContain("assetId");
@@ -507,9 +519,8 @@ describe("sensitive API auth boundaries", () => {
     await expect(response.json()).resolves.toEqual({
       error: "Only workspace editors/admins can manage the library.",
     });
-    expect(server.rpc).toHaveBeenCalledWith("is_workspace_editor", {
-      target_workspace_id: DEFAULT_WORKSPACE_ID,
-    });
+    expect(d1PreparedStatements(server.d1, /FROM workspace_members workspace_member/)).toHaveLength(1);
+    expect(server.rpc).not.toHaveBeenCalled();
     expect(request.formData).not.toHaveBeenCalled();
     expect(storage.from).not.toHaveBeenCalled();
     expect(storage.upload).not.toHaveBeenCalled();
@@ -946,9 +957,8 @@ describe("sensitive API auth boundaries", () => {
     await expect(response.json()).resolves.toEqual({
       error: "Only workspace editors/admins can manage the library.",
     });
-    expect(server.rpc).toHaveBeenCalledWith("is_workspace_editor", {
-      target_workspace_id: DEFAULT_WORKSPACE_ID,
-    });
+    expect(d1PreparedStatements(server.d1, /FROM workspace_members workspace_member/)).toHaveLength(1);
+    expect(server.rpc).not.toHaveBeenCalled();
     expect(storage.from).not.toHaveBeenCalled();
     expect(storage.remove).not.toHaveBeenCalled();
   });
