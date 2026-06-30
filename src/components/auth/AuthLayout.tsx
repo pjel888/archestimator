@@ -32,9 +32,10 @@ export interface AuthLayoutProps {
   route: "login" | "signup";
   sent?: string | null;
   errorCode?: string | null;
+  statusSlot?: ReactNode;
 }
 
-export function AuthLayout({ children, route, sent, errorCode }: AuthLayoutProps) {
+export function AuthLayout({ children, route, sent, errorCode, statusSlot }: AuthLayoutProps) {
   return (
     <main
       data-auth-route={route}
@@ -58,7 +59,7 @@ export function AuthLayout({ children, route, sent, errorCode }: AuthLayoutProps
         {/* RIGHT column — status banner (announced first) + the form. */}
         <div className="flex flex-1 items-center">
           <div className="mx-auto flex w-full max-w-[440px] flex-col gap-6 py-6">
-            <AuthStatusBanner sent={sent} errorCode={errorCode} />
+            {statusSlot ?? <AuthStatusBanner sent={sent} errorCode={errorCode} />}
             {children}
           </div>
         </div>
