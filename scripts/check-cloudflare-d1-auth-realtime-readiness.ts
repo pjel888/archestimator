@@ -13,7 +13,8 @@ type GateScope =
   | "rpc"
   | "realtime"
   | "restore"
-  | "performance";
+  | "performance"
+  | "provider-removal";
 
 type Gate = {
   key: string;
@@ -254,7 +255,12 @@ type SourceSignals = {
   betterAuthD1AdapterFiles: string[];
   betterAuthRouteGateFiles: string[];
   supabaseAuthFiles: string[];
+  supabaseDatabaseFiles: string[];
+  supabaseStorageFiles: string[];
+  supabaseServiceRoleFiles: string[];
   supabaseRealtimeFiles: string[];
+  resendEmailFiles: string[];
+  providerBlockingFiles: string[];
   durableObjectRealtimeFiles: string[];
 };
 
@@ -321,6 +327,8 @@ export type CloudflareD1AuthRealtimeReadinessReport = {
     durableObjectBindings: string[];
     typedDurableObjectBindings: string[];
     hasBetterAuthDependency: boolean;
+    hasSupabaseDependency: boolean;
+    hasResendDependency: boolean;
   };
   sourceSignals: SourceSignals;
   candidateFirstD1Slices: CandidateD1Slice[];
@@ -576,27 +584,70 @@ function filesMatching(sourceFileTextByPath: Record<string, string>, pattern: Re
     .sort();
 }
 
+function uniqueSortedStrings(values: string[]) {
+  return Array.from(new Set(values)).sort();
+}
+
 function detectSourceSignals(sourceFileTextByPath: Record<string, string>): SourceSignals {
+  const d1Files = filesMatching(sourceFileTextByPath, /\bD1Database\b|\bd1_databases\b|\.prepare\s*\(/i);
+  const betterAuthFiles = filesMatching(sourceFileTextByPath, /\bbetter-auth\b|betterAuth\s*\(/i);
+  const betterAuthD1AdapterFiles = filesMatching(
+    sourceFileTextByPath,
+    /\bbetter-auth\b[\s\S]{0,400}\b(?:d1(?:adapter|database)?|sqlite|cloudflare)\b|\b(?:d1(?:adapter|database)?|D1Database|sqlite|cloudflare)\b[\s\S]{0,400}\bbetter-auth\b/i,
+  );
+  const betterAuthRouteGateFiles = filesMatching(
+    sourceFileTextByPath,
+    /\bbetter-auth\b[\s\S]{0,400}\b(?:getSession|api|middleware|proxy|route gate|requireUser)\b|\b(?:getSession|middleware|proxy|requireUser)\b[\s\S]{0,400}\bbetter-auth\b/i,
+  );
+  const supabaseAuthFiles = filesMatching(
+    sourceFileTextByPath,
+    /supabase\.auth|\.auth\.getUser\s*\(|\.auth\.signOut\s*\(|exchangeCodeForSession|@supabase\/ssr/i,
+  );
+  const supabaseDatabaseFiles = filesMatching(
+    sourceFileTextByPath,
+    /createSupabase(?:Server|Browser|ServiceRole)Client|from\s+["']@\/lib\/supabase\/|from\s+["']@supabase\/supabase-js["']|\.rpc\s*\(|\bsupabase\s*\.\s*from\s*\(/i,
+  );
+  const supabaseStorageFiles = filesMatching(
+    sourceFileTextByPath,
+    /\.storage\s*\.|createSupabaseDirectUploadProvider|Supabase Storage|buildSupabaseTusResumableSignEndpoint/i,
+  );
+  const supabaseServiceRoleFiles = filesMatching(
+    sourceFileTextByPath,
+    /createSupabaseServiceRoleClient|SUPABASE_SERVICE_ROLE_KEY|\bserviceRole\b/,
+  );
+  const supabaseRealtimeFiles = filesMatching(
+    sourceFileTextByPath,
+    /\.channel\s*\(|RealtimeChannel|supabase\.auth\.onAuthStateChange|\bSupabase Realtime\b/i,
+  );
+  const resendEmailFiles = filesMatching(
+    sourceFileTextByPath,
+    /from\s+["']resend["']|new\s+Resend\(|@\/lib\/email\/resend|\bRESEND_[A-Z0-9_]*\b/,
+  );
+  const durableObjectRealtimeFiles = filesMatching(
+    sourceFileTextByPath,
+    /extends\s+DurableObject|\bDurableObject\b[\s\S]{0,120}\bfrom\s+["']cloudflare:workers["']|acceptWebSocket|webSocketMessage|WebSocketPair/i,
+  );
+
   return {
-    d1Files: filesMatching(sourceFileTextByPath, /\bD1Database\b|\bd1_databases\b|\.prepare\s*\(/i),
-    betterAuthFiles: filesMatching(sourceFileTextByPath, /\bbetter-auth\b|betterAuth\s*\(/i),
-    betterAuthD1AdapterFiles: filesMatching(
-      sourceFileTextByPath,
-      /\bbetter-auth\b[\s\S]{0,400}\b(?:d1(?:adapter|database)?|sqlite|cloudflare)\b|\b(?:d1(?:adapter|database)?|D1Database|sqlite|cloudflare)\b[\s\S]{0,400}\bbetter-auth\b/i,
-    ),
-    betterAuthRouteGateFiles: filesMatching(
-      sourceFileTextByPath,
-      /\bbetter-auth\b[\s\S]{0,400}\b(?:getSession|api|middleware|proxy|route gate|requireUser)\b|\b(?:getSession|middleware|proxy|requireUser)\b[\s\S]{0,400}\bbetter-auth\b/i,
-    ),
-    supabaseAuthFiles: filesMatching(
-      sourceFileTextByPath,
-      /supabase\.auth|\.auth\.getUser\s*\(|\.auth\.signOut\s*\(|exchangeCodeForSession|@supabase\/ssr/i,
-    ),
-    supabaseRealtimeFiles: filesMatching(sourceFileTextByPath, /\.channel\s*\(|RealtimeChannel|\brealtime\b/i),
-    durableObjectRealtimeFiles: filesMatching(
-      sourceFileTextByPath,
-      /extends\s+DurableObject|\bDurableObject\b[\s\S]{0,120}\bfrom\s+["']cloudflare:workers["']|acceptWebSocket|webSocketMessage|WebSocketPair/i,
-    ),
+    d1Files,
+    betterAuthFiles,
+    betterAuthD1AdapterFiles,
+    betterAuthRouteGateFiles,
+    supabaseAuthFiles,
+    supabaseDatabaseFiles,
+    supabaseStorageFiles,
+    supabaseServiceRoleFiles,
+    supabaseRealtimeFiles,
+    resendEmailFiles,
+    providerBlockingFiles: uniqueSortedStrings([
+      ...supabaseAuthFiles,
+      ...supabaseDatabaseFiles,
+      ...supabaseStorageFiles,
+      ...supabaseServiceRoleFiles,
+      ...supabaseRealtimeFiles,
+      ...resendEmailFiles,
+    ]),
+    durableObjectRealtimeFiles,
   };
 }
 
@@ -683,6 +734,8 @@ function buildCandidateD1Slices(inventory: Artifact<Partial<CloudflareMigrationI
 function buildGates(inputs: CheckInputs, manifestSummary: CloudflareD1AuthRealtimeReadinessReport["manifestSummary"], sourceSignals: SourceSignals) {
   const inventorySummary = summarizeInventory(inputs.inventory);
   const gates: Gate[] = [];
+  const providerBlockingPreview = sourceSignals.providerBlockingFiles.slice(0, 8).join(", ");
+  const legacyProviderDependenciesPresent = manifestSummary.hasSupabaseDependency || manifestSummary.hasResendDependency;
 
   gates.push(gate(
     "database-inventory",
@@ -709,6 +762,16 @@ function buildGates(inputs: CheckInputs, manifestSummary: CloudflareD1AuthRealti
     `wranglerD1Bindings=${manifestSummary.d1DatabaseBindings.length === 0 ? "(none)" : manifestSummary.d1DatabaseBindings.join(", ")}, typedD1Bindings=${manifestSummary.typedD1Bindings.length === 0 ? "(none)" : manifestSummary.typedD1Bindings.join(", ")}`,
     "Wrangler has no D1 database binding that is also typed in cloudflare-env.d.ts.",
     inputs.sources?.wranglerConfig ?? null,
+  ));
+
+  gates.push(gate(
+    "legacy-provider-runtime-removal",
+    "Legacy Supabase/Resend runtime references removed",
+    "provider-removal",
+    sourceSignals.providerBlockingFiles.length === 0 && !legacyProviderDependenciesPresent,
+    `supabaseDependency=${boolLabel(manifestSummary.hasSupabaseDependency)}, resendDependency=${boolLabel(manifestSummary.hasResendDependency)}, supabaseAuthFiles=${sourceSignals.supabaseAuthFiles.length}, supabaseDatabaseFiles=${sourceSignals.supabaseDatabaseFiles.length}, supabaseStorageFiles=${sourceSignals.supabaseStorageFiles.length}, supabaseServiceRoleFiles=${sourceSignals.supabaseServiceRoleFiles.length}, supabaseRealtimeFiles=${sourceSignals.supabaseRealtimeFiles.length}, resendEmailFiles=${sourceSignals.resendEmailFiles.length}, uniqueBlockingFiles=${sourceSignals.providerBlockingFiles.length}`,
+    `Runtime or package manifest still contains legacy provider references that block cancelling Supabase/Resend${providerBlockingPreview ? `; examples: ${providerBlockingPreview}` : "."}`,
+    null,
   ));
 
   gates.push(gate(
@@ -751,8 +814,9 @@ function buildGates(inputs: CheckInputs, manifestSummary: CloudflareD1AuthRealti
       && sourceSignals.betterAuthD1AdapterFiles.length > 0
       && sourceSignals.betterAuthRouteGateFiles.length > 0
       && inputs.betterAuthRouteGateProof.present
+      && sourceSignals.supabaseAuthFiles.length === 0
       && inputs.betterAuthRouteGateProof.value?.readiness?.productionBetterAuthReady === true,
-    `betterAuthDependency=${boolLabel(manifestSummary.hasBetterAuthDependency)}, betterAuthFiles=${sourceSignals.betterAuthFiles.length}, d1AdapterFiles=${sourceSignals.betterAuthD1AdapterFiles.length}, routeGateFiles=${sourceSignals.betterAuthRouteGateFiles.length}, localProof=${boolLabel(inputs.betterAuthRouteGateProof.value?.readiness?.localBetterAuthRouteGateProofReady)}, routeGateD1SessionFixture=${boolLabel(inputs.betterAuthRouteGateProof.value?.readiness?.routeGateD1SessionFixtureReady)}, schemaSqlReady=${boolLabel(betterAuthSchemaSqlReady)}, hostedSchemaProof=${boolLabel(betterAuthHostedSchemaProofReady)}, providerSecret=${boolLabel(betterAuthProviderSecretReady)}, providerSessionFixture=${boolLabel(betterAuthProviderSessionFixtureReady)}, providerCallbackSession=${boolLabel(betterAuthProviderCallbackSessionCutoverReady)}, providerProof=${boolLabel(betterAuthProviderProofReady)}, productionProof=${boolLabel(inputs.betterAuthRouteGateProof.value?.readiness?.productionBetterAuthReady)}, actualRouteMounted=${boolLabel(inputs.betterAuthRouteGateProof.value?.scaffoldSummary?.actualNextRouteMounted)}, localOnly=${boolLabel(inputs.betterAuthRouteGateProof.value?.localOnly)}, providerBacked=${boolLabel(inputs.betterAuthRouteGateProof.value?.providerBacked)}`,
+    `betterAuthDependency=${boolLabel(manifestSummary.hasBetterAuthDependency)}, betterAuthFiles=${sourceSignals.betterAuthFiles.length}, d1AdapterFiles=${sourceSignals.betterAuthD1AdapterFiles.length}, routeGateFiles=${sourceSignals.betterAuthRouteGateFiles.length}, localProof=${boolLabel(inputs.betterAuthRouteGateProof.value?.readiness?.localBetterAuthRouteGateProofReady)}, routeGateD1SessionFixture=${boolLabel(inputs.betterAuthRouteGateProof.value?.readiness?.routeGateD1SessionFixtureReady)}, schemaSqlReady=${boolLabel(betterAuthSchemaSqlReady)}, hostedSchemaProof=${boolLabel(betterAuthHostedSchemaProofReady)}, providerSecret=${boolLabel(betterAuthProviderSecretReady)}, providerSessionFixture=${boolLabel(betterAuthProviderSessionFixtureReady)}, providerCallbackSession=${boolLabel(betterAuthProviderCallbackSessionCutoverReady)}, providerProof=${boolLabel(betterAuthProviderProofReady)}, productionProof=${boolLabel(inputs.betterAuthRouteGateProof.value?.readiness?.productionBetterAuthReady)}, remainingSupabaseAuthFiles=${sourceSignals.supabaseAuthFiles.length}, actualRouteMounted=${boolLabel(inputs.betterAuthRouteGateProof.value?.scaffoldSummary?.actualNextRouteMounted)}, localOnly=${boolLabel(inputs.betterAuthRouteGateProof.value?.localOnly)}, providerBacked=${boolLabel(inputs.betterAuthRouteGateProof.value?.providerBacked)}`,
     betterAuthReplacementBlocker,
     inputs.betterAuthRouteGateProof.source,
   ));
@@ -898,9 +962,10 @@ function buildGates(inputs: CheckInputs, manifestSummary: CloudflareD1AuthRealti
     "realtime",
     manifestSummary.durableObjectBindings.length > 0
       && manifestSummary.durableObjectBindings.every((binding) => manifestSummary.typedDurableObjectBindings.includes(binding))
-      && sourceSignals.durableObjectRealtimeFiles.length > 0,
+      && sourceSignals.durableObjectRealtimeFiles.length > 0
+      && sourceSignals.supabaseRealtimeFiles.length === 0,
     `wranglerDurableObjectBindings=${manifestSummary.durableObjectBindings.length === 0 ? "(none)" : manifestSummary.durableObjectBindings.join(", ")}, typedDurableObjectBindings=${manifestSummary.typedDurableObjectBindings.length === 0 ? "(none)" : manifestSummary.typedDurableObjectBindings.join(", ")}, durableObjectRealtimeFiles=${sourceSignals.durableObjectRealtimeFiles.length}, existingSupabaseRealtimeFiles=${sourceSignals.supabaseRealtimeFiles.length}`,
-    "Durable Object namespace, generated binding type, or WebSocket/hibernation source proof is missing.",
+    "Durable Object namespace, generated binding type, WebSocket/hibernation source proof, or Supabase Realtime removal is missing.",
     inputs.sources?.wranglerConfig ?? null,
   ));
 
@@ -947,12 +1012,15 @@ function gateReady(gates: Gate[], key: string) {
 
 export function checkCloudflareD1AuthRealtimeReadiness(inputs: CheckInputs): CloudflareD1AuthRealtimeReadinessReport {
   const sourceSignals = detectSourceSignals(inputs.sourceFileTextByPath);
+  const packageDependencyNames = extractPackageDependencyNames(inputs.packageJsonText);
   const manifestSummary = {
     d1DatabaseBindings: extractD1Bindings(inputs.wranglerConfigText),
     typedD1Bindings: extractTypedBindings(inputs.generatedTypesText, "D1Database"),
     durableObjectBindings: extractDurableObjectBindings(inputs.wranglerConfigText),
     typedDurableObjectBindings: extractTypedBindings(inputs.generatedTypesText, "DurableObjectNamespace"),
-    hasBetterAuthDependency: extractPackageDependencyNames(inputs.packageJsonText).has("better-auth"),
+    hasBetterAuthDependency: packageDependencyNames.has("better-auth"),
+    hasSupabaseDependency: [...packageDependencyNames].some((name) => name.startsWith("@supabase/")),
+    hasResendDependency: packageDependencyNames.has("resend"),
   };
   const gates = buildGates(inputs, manifestSummary, sourceSignals);
   const databaseInventoryReady = gateReady(gates, "database-inventory");
@@ -1063,6 +1131,15 @@ export function writeMarkdown(report: CloudflareD1AuthRealtimeReadinessReport, m
     slice.reason,
     slice.rpcNames.length === 0 ? "(none found)" : slice.rpcNames.map((name) => `\`${name}\``).join(", "),
   ]);
+  const providerBlockingRows = [
+    ["Supabase Auth files", String(report.sourceSignals.supabaseAuthFiles.length), report.sourceSignals.supabaseAuthFiles.slice(0, 8).join(", ") || "(none)"],
+    ["Supabase DB/RPC/client files", String(report.sourceSignals.supabaseDatabaseFiles.length), report.sourceSignals.supabaseDatabaseFiles.slice(0, 8).join(", ") || "(none)"],
+    ["Supabase Storage files", String(report.sourceSignals.supabaseStorageFiles.length), report.sourceSignals.supabaseStorageFiles.slice(0, 8).join(", ") || "(none)"],
+    ["Supabase service-role files", String(report.sourceSignals.supabaseServiceRoleFiles.length), report.sourceSignals.supabaseServiceRoleFiles.slice(0, 8).join(", ") || "(none)"],
+    ["Supabase Realtime files", String(report.sourceSignals.supabaseRealtimeFiles.length), report.sourceSignals.supabaseRealtimeFiles.slice(0, 8).join(", ") || "(none)"],
+    ["Resend email files", String(report.sourceSignals.resendEmailFiles.length), report.sourceSignals.resendEmailFiles.slice(0, 8).join(", ") || "(none)"],
+    ["Unique blocking files", String(report.sourceSignals.providerBlockingFiles.length), report.sourceSignals.providerBlockingFiles.slice(0, 8).join(", ") || "(none)"],
+  ];
   const blockerLines = report.blockers.length > 0
     ? report.blockers.map((blocker) => `- ${blocker}`)
     : ["- (none)"];
@@ -1120,6 +1197,14 @@ export function writeMarkdown(report: CloudflareD1AuthRealtimeReadinessReport, m
     `| Durable Object bindings in Wrangler | ${report.manifestSummary.durableObjectBindings.length === 0 ? "(none)" : report.manifestSummary.durableObjectBindings.join(", ")} |`,
     `| Typed Durable Object bindings | ${report.manifestSummary.typedDurableObjectBindings.length === 0 ? "(none)" : report.manifestSummary.typedDurableObjectBindings.join(", ")} |`,
     `| Better Auth dependency | ${report.manifestSummary.hasBetterAuthDependency ? "yes" : "no"} |`,
+    `| Supabase dependency | ${report.manifestSummary.hasSupabaseDependency ? "yes" : "no"} |`,
+    `| Resend dependency | ${report.manifestSummary.hasResendDependency ? "yes" : "no"} |`,
+    "",
+    "## Legacy Provider Runtime Blockers",
+    "",
+    "| Category | Count | Examples |",
+    "| --- | ---: | --- |",
+    ...markdownRows(providerBlockingRows),
     "",
     "## Checks",
     "",

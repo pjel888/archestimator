@@ -131,6 +131,7 @@ type ProviderResourceReadbackReport = {
     workerSecretNameReadbackReady?: boolean;
     providerResourceReadbackReady?: boolean;
   };
+  blockers?: string[];
 };
 
 type PricingSnapshotReport = {
@@ -298,6 +299,13 @@ function artifactMissingGate(key: string, label: string, scope: GateScope, sourc
     "Required Cloudflare migration evidence artifact is missing.",
     source,
   );
+}
+
+function providerResourceReadbackBlocker(report: ProviderResourceReadbackReport | null | undefined) {
+  const detail = report?.blockers?.find((blocker) => blocker.trim());
+  return detail
+    ? `Read-only Wrangler resource readback is incomplete: ${detail}`
+    : "Read-only Wrangler resource readback for Worker deployment, D1, R2, Queues, and Worker secret names is incomplete.";
 }
 
 function requiredRouteProbeSummary(report: WorkerPreviewRouteReport | null) {
@@ -490,7 +498,7 @@ function buildGates(inputs: ReleaseGateInputs) {
       "provider",
       readiness?.providerResourceReadbackReady === true,
       `wranglerAuthenticated=${boolLabel(readiness?.wranglerAuthenticated)}, readbackAttempted=${boolLabel(readiness?.providerReadbackAttempted)}, workerDeployment=${boolLabel(readiness?.workerDeploymentReadbackReady)}, d1=${boolLabel(readiness?.d1DatabaseReadbackReady)}, r2=${boolLabel(readiness?.r2BucketReadbackReady)}, queues=${boolLabel(readiness?.queuesReadbackReady)}, secrets=${boolLabel(readiness?.workerSecretNameReadbackReady)}`,
-      "Read-only Wrangler resource readback for Worker deployment, D1, R2, Queues, and Worker secret names is incomplete.",
+      providerResourceReadbackBlocker(inputs.providerResources.value),
       inputs.providerResources.source,
     ));
   }

@@ -79,6 +79,7 @@ type ProviderResourceReadbackEvidence = {
     workerSecretNameReadbackReady?: boolean | null;
     providerResourceReadbackReady?: boolean | null;
   };
+  blockers?: string[] | null;
 };
 
 type ProviderRuntimeProofEvidence = {
@@ -172,6 +173,24 @@ function boolEvidence(value: unknown) {
   if (value === true) return "yes";
   if (value === false) return "no";
   return "(missing)";
+}
+
+function providerResourceBlockerContaining(
+  providerResourceReadback: ProviderResourceReadbackEvidence | null,
+  needle: string,
+) {
+  return (providerResourceReadback?.blockers ?? []).find((blocker) =>
+    blocker.toLowerCase().includes(needle.toLowerCase()),
+  );
+}
+
+function workerSecretsBlocker(providerResourceReadback: ProviderResourceReadbackEvidence | null) {
+  const readbackBlocker = providerResourceBlockerContaining(providerResourceReadback, "secret");
+  if (readbackBlocker) return `Worker secret name readback is incomplete: ${readbackBlocker}`;
+  if (providerResourceReadback?.readiness?.workerSecretNameReadbackReady === false) {
+    return "Worker secret name readback is incomplete.";
+  }
+  return "Sanitized Cloudflare Worker secret-list evidence is missing.";
 }
 
 function nonEmpty(value: string | null | undefined) {
@@ -333,7 +352,7 @@ export function checkCloudflareProviderReadiness(
       "Sanitized Worker secret list captured",
       workerSecretsReady,
       `sanitizedSecretListCaptured=${boolEvidence(evidence.workers?.sanitizedSecretListCaptured)}, wranglerSecretNameReadback=${boolEvidence(providerResourceReadback?.readiness?.workerSecretNameReadbackReady)}`,
-      "Sanitized Cloudflare Worker secret-list evidence is missing.",
+      workerSecretsBlocker(providerResourceReadback),
     ),
     check(
       "r2-provider",

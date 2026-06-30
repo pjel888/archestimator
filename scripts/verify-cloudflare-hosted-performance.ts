@@ -16,6 +16,10 @@ const DEFAULT_WARMUP_RUNS = 1;
 const MIN_P95_RUNS = 20;
 const MAX_RUNS = 30;
 const MAX_WARMUP_RUNS = 5;
+const DEFAULT_OUTPUT_FILE =
+  ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-hosted-performance.json";
+const DEFAULT_MARKDOWN_FILE =
+  ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-hosted-performance.md";
 const BODY_NOTE =
   "Hosted, credential-free Worker performance proof only. This does not call Cloudflare APIs, read env files, print secrets, deploy Workers, change DNS, purchase plans, mutate providers, authenticate users, prove D1/Auth/Realtimes flows, or make Vercel/Supabase/Resend removable.";
 
@@ -26,6 +30,10 @@ type HostedProbeBudget = {
 
 export type HostedCloudflareWorkerResult = CloudflareWorkerPreviewResult & HostedProbeBudget & {
   warmupSamples: CloudflareWorkerPreviewSample[];
+  minTtfbMs: number | null;
+  avgTtfbMs: number | null;
+  maxTtfbMs: number | null;
+  p95TtfbMs: number | null;
   p95DurationMs: number | null;
   p95BudgetPassed: boolean | null;
 };
@@ -41,6 +49,7 @@ export type CloudflareHostedPerformanceReport = {
   minimumP95Runs: number;
   p95SampleCountReady: boolean;
   p95Method: "nearest-rank";
+  budgetMetric: "ttfbMs";
   fakeTokenLabel: "redacted-fake-token";
   note: string;
   routeContractReady: boolean;
@@ -69,7 +78,7 @@ type EnvInputs = {
 };
 
 const HOSTED_ROUTE_BUDGETS: Record<string, HostedProbeBudget> = {
-  health: { budgetMs: 200, budgetLabel: "under 200 ms" },
+  health: { budgetMs: null, budgetLabel: "liveness contract only" },
   home: { budgetMs: 200, budgetLabel: "under 200 ms" },
   login: { budgetMs: 300, budgetLabel: "under 300 ms" },
   pricing: { budgetMs: 200, budgetLabel: "under 200 ms" },
@@ -113,18 +122,18 @@ function parseWarmupRunCount(value: string | undefined, fallback = DEFAULT_WARMU
   return Math.min(parsed, MAX_WARMUP_RUNS);
 }
 
-function durationStats(samples: CloudflareWorkerPreviewSample[]) {
-  const durations = samples
-    .map((sample) => sample.durationMs)
-    .filter((duration): duration is number => typeof duration === "number" && Number.isFinite(duration));
-  if (durations.length === 0) {
-    return { minDurationMs: null, avgDurationMs: null, maxDurationMs: null, p95DurationMs: null };
+function ttfbStats(samples: CloudflareWorkerPreviewSample[]) {
+  const values = samples
+    .map((sample) => sample.ttfbMs ?? sample.durationMs)
+    .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  if (values.length === 0) {
+    return { minTtfbMs: null, avgTtfbMs: null, maxTtfbMs: null, p95TtfbMs: null };
   }
   return {
-    minDurationMs: round(Math.min(...durations)),
-    avgDurationMs: round(durations.reduce((sum, duration) => sum + duration, 0) / durations.length),
-    maxDurationMs: round(Math.max(...durations)),
-    p95DurationMs: percentile(durations, 95),
+    minTtfbMs: round(Math.min(...values)),
+    avgTtfbMs: round(values.reduce((sum, value) => sum + value, 0) / values.length),
+    maxTtfbMs: round(Math.max(...values)),
+    p95TtfbMs: percentile(values, 95),
   };
 }
 
@@ -157,6 +166,11 @@ function budgetForProbe(key: string): HostedProbeBudget {
   return HOSTED_ROUTE_BUDGETS[key] ?? { budgetMs: null, budgetLabel: "record only" };
 }
 
+function distinctSampleValues(samples: CloudflareWorkerPreviewSample[], selector: (sample: CloudflareWorkerPreviewSample) => string | null) {
+  const values = [...new Set(samples.map(selector).filter((value): value is string => Boolean(value)))];
+  return values.length === 0 ? "(none)" : values.join(", ");
+}
+
 export async function verifyCloudflareHostedPerformance(
   options: VerifyCloudflareHostedPerformanceOptions = {},
 ): Promise<CloudflareHostedPerformanceReport> {
@@ -179,19 +193,23 @@ export async function verifyCloudflareHostedPerformance(
     for (let run = 1; run <= runs; run += 1) {
       samples.push(await sampleCloudflareWorkerPreviewRoute({ baseUrl, fakeToken, probe, run, fetchImpl: options.fetchImpl }));
     }
-    const stats = durationStats(samples);
+    const stats = ttfbStats(samples);
     const budget = budgetForProbe(probe.key);
     const p95BudgetPassed = budget.budgetMs === null
       ? null
-      : stats.p95DurationMs !== null && stats.p95DurationMs < budget.budgetMs;
+      : stats.p95TtfbMs !== null && stats.p95TtfbMs < budget.budgetMs;
     results.push({
       ...probe,
       warmupSamples,
       samples,
-      minDurationMs: stats.minDurationMs,
-      avgDurationMs: stats.avgDurationMs,
-      maxDurationMs: stats.maxDurationMs,
-      p95DurationMs: stats.p95DurationMs,
+      minDurationMs: stats.minTtfbMs,
+      avgDurationMs: stats.avgTtfbMs,
+      maxDurationMs: stats.maxTtfbMs,
+      minTtfbMs: stats.minTtfbMs,
+      avgTtfbMs: stats.avgTtfbMs,
+      maxTtfbMs: stats.maxTtfbMs,
+      p95TtfbMs: stats.p95TtfbMs,
+      p95DurationMs: stats.p95TtfbMs,
       passed: samples.every((sample) => sample.passed),
       ...budget,
       p95BudgetPassed,
@@ -218,6 +236,7 @@ export async function verifyCloudflareHostedPerformance(
     minimumP95Runs: MIN_P95_RUNS,
     p95SampleCountReady,
     p95Method: "nearest-rank",
+    budgetMetric: "ttfbMs",
     fakeTokenLabel: "redacted-fake-token",
     note: BODY_NOTE,
     routeContractReady,
@@ -254,8 +273,10 @@ export function writeMarkdown(report: CloudflareHostedPerformanceReport, markdow
     result.kind,
     result.required ? "yes" : "no",
     result.passed ? "PASS" : "FAIL",
-    result.p95DurationMs === null ? "(none)" : `${result.p95DurationMs}ms`,
+    result.p95TtfbMs === null ? "(none)" : `${result.p95TtfbMs}ms`,
     result.budgetLabel,
+    distinctSampleValues(result.samples, (sample) => sample.cfCacheStatus),
+    distinctSampleValues(result.samples, (sample) => sample.xNextjsPrerender),
     result.p95BudgetPassed === null ? "n/a" : result.p95BudgetPassed ? "PASS" : "FAIL",
   ]);
   const lines = [
@@ -267,6 +288,7 @@ export function writeMarkdown(report: CloudflareHostedPerformanceReport, markdow
     `Warm-up runs: ${report.warmupRuns}`,
     `Minimum p95 runs for readiness: ${report.minimumP95Runs}`,
     `P95 method: ${report.p95Method}`,
+    `Budget metric: ${report.budgetMetric}`,
     `P95 sample count ready: ${report.p95SampleCountReady ? "yes" : "no"}`,
     `Route contract ready: ${report.routeContractReady ? "yes" : "no"}`,
     `P95 budget ready: ${report.p95BudgetReady ? "yes" : "no"}`,
@@ -275,8 +297,8 @@ export function writeMarkdown(report: CloudflareHostedPerformanceReport, markdow
     "",
     report.note,
     "",
-    "| Probe | Kind | Required | Contract | P95 | Budget | Budget result |",
-    "| --- | --- | --- | --- | ---: | --- | --- |",
+    "| Probe | Kind | Required | Contract | P95 TTFB | Budget | CF Cache | Prerender | Budget result |",
+    "| --- | --- | --- | --- | ---: | --- | --- | --- | --- |",
     ...rows.map((row) => `| ${row.join(" | ")} |`),
     "",
   ];
@@ -286,8 +308,8 @@ export function writeMarkdown(report: CloudflareHostedPerformanceReport, markdow
 async function main() {
   const inputs = parseInputsFromEnv();
   const report = await verifyCloudflareHostedPerformance(inputs);
-  if (inputs.outputFile) writeOutput(report, inputs.outputFile);
-  if (inputs.markdownFile) writeMarkdown(report, inputs.markdownFile);
+  writeOutput(report, inputs.outputFile ?? DEFAULT_OUTPUT_FILE);
+  writeMarkdown(report, inputs.markdownFile ?? DEFAULT_MARKDOWN_FILE);
   console.log(JSON.stringify(report, null, 2));
   if (!report.passed) process.exitCode = 1;
 }

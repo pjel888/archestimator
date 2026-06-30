@@ -56,7 +56,7 @@ function round(value: number, precision = 2) {
 
 function durationStats(samples: CloudflareWorkerPreviewSample[]) {
   const durations = samples
-    .map((sample) => sample.durationMs)
+    .map((sample) => sample.ttfbMs ?? sample.durationMs)
     .filter((duration): duration is number => typeof duration === "number" && Number.isFinite(duration));
   if (durations.length === 0) return { minDurationMs: null, avgDurationMs: null, maxDurationMs: null };
   return {
@@ -172,8 +172,12 @@ export function writeMarkdown(report: CloudflareHostedRouteProofReport, markdown
     result.required ? "yes" : "no",
     String(sample.run),
     String(sample.status ?? "(error)"),
-    sample.durationMs === null ? "(none)" : `${sample.durationMs}ms`,
+    sample.ttfbMs === null ? "(none)" : `${sample.ttfbMs}ms`,
+    sample.bodyDownloadMs === null ? "(none)" : `${sample.bodyDownloadMs}ms`,
     sample.cacheControl ?? "(none)",
+    sample.cfCacheStatus ?? "(none)",
+    sample.age ?? "(none)",
+    sample.xNextjsPrerender ?? "(none)",
     sample.location ?? "(none)",
     sample.reason,
     sample.passed ? "PASS" : "FAIL",
@@ -200,9 +204,9 @@ export function writeMarkdown(report: CloudflareHostedRouteProofReport, markdown
     "",
     "## Probes",
     "",
-    "| Probe | Kind | Required | Run | Status | Duration | Cache-Control | Location | Reason | Result |",
-    "| --- | --- | --- | ---: | ---: | ---: | --- | --- | --- | --- |",
-    ...(rows.length > 0 ? rows.map((row) => `| ${row.join(" | ")} |`) : ["| (none) |  |  |  |  |  |  |  |  |  |"]),
+    "| Probe | Kind | Required | Run | Status | TTFB | Body download | Cache-Control | CF Cache | Age | Prerender | Location | Reason | Result |",
+    "| --- | --- | --- | ---: | ---: | ---: | ---: | --- | --- | --- | --- | --- | --- | --- |",
+    ...(rows.length > 0 ? rows.map((row) => `| ${row.join(" | ")} |`) : ["| (none) |  |  |  |  |  |  |  |  |  |  |  |  |  |"]),
     "",
   ];
   writeFileSync(outputPath, lines.join("\n"));

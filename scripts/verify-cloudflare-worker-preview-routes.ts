@@ -23,9 +23,16 @@ export type CloudflareWorkerPreviewProbe = {
 export type CloudflareWorkerPreviewSample = {
   run: number;
   status: number | null;
+  ttfbMs: number | null;
   durationMs: number | null;
+  bodyDownloadMs: number | null;
   contentType: string | null;
   cacheControl: string | null;
+  cfCacheStatus: string | null;
+  cfRay: string | null;
+  age: string | null;
+  xOpenNext: string | null;
+  xNextjsPrerender: string | null;
   hasNoStoreCacheControl: boolean;
   location: string | null;
   setCookiePresent: boolean;
@@ -323,7 +330,7 @@ function evaluateSample(input: {
 
 function durationStats(samples: CloudflareWorkerPreviewSample[]) {
   const durations = samples
-    .map((sample) => sample.durationMs)
+    .map((sample) => sample.ttfbMs ?? sample.durationMs)
     .filter((duration): duration is number => duration !== null);
   if (durations.length === 0) return { minDurationMs: null, avgDurationMs: null, maxDurationMs: null };
   return {
@@ -349,8 +356,10 @@ export async function sampleCloudflareWorkerPreviewRoute({
   const startedAt = performance.now();
   try {
     const response = await fetchImpl(`${baseUrl}${probe.path}`, { method: "GET", redirect: "manual" });
-    const durationMs = round(performance.now() - startedAt);
+    const ttfbMs = round(performance.now() - startedAt);
+    const bodyStartedAt = performance.now();
     const bodyText = await response.text();
+    const bodyDownloadMs = round(performance.now() - bodyStartedAt);
     const cacheControl = response.headers.get("cache-control");
     const location = sanitizeText(response.headers.get("location"), fakeToken);
     const setCookiePresent = response.headers.has("set-cookie");
@@ -367,9 +376,16 @@ export async function sampleCloudflareWorkerPreviewRoute({
     return {
       run,
       status: response.status,
-      durationMs,
+      ttfbMs,
+      durationMs: ttfbMs,
+      bodyDownloadMs,
       contentType: response.headers.get("content-type"),
       cacheControl,
+      cfCacheStatus: response.headers.get("cf-cache-status"),
+      cfRay: response.headers.get("cf-ray"),
+      age: response.headers.get("age"),
+      xOpenNext: response.headers.get("x-opennext"),
+      xNextjsPrerender: response.headers.get("x-nextjs-prerender"),
       hasNoStoreCacheControl: hasNoStoreCacheControl(cacheControl),
       location,
       setCookiePresent,
@@ -380,12 +396,20 @@ export async function sampleCloudflareWorkerPreviewRoute({
       error: null,
     };
   } catch (error) {
+    const durationMs = round(performance.now() - startedAt);
     return {
       run,
       status: null,
-      durationMs: round(performance.now() - startedAt),
+      ttfbMs: durationMs,
+      durationMs,
+      bodyDownloadMs: null,
       contentType: null,
       cacheControl: null,
+      cfCacheStatus: null,
+      cfRay: null,
+      age: null,
+      xOpenNext: null,
+      xNextjsPrerender: null,
       hasNoStoreCacheControl: false,
       location: null,
       setCookiePresent: false,
@@ -457,8 +481,12 @@ export function writeMarkdown(report: CloudflareWorkerPreviewReport, markdownFil
     result.required ? "yes" : "no",
     String(sample.run),
     String(sample.status ?? "(error)"),
-    sample.durationMs === null ? "(none)" : `${sample.durationMs}ms`,
+    sample.ttfbMs === null ? "(none)" : `${sample.ttfbMs}ms`,
+    sample.bodyDownloadMs === null ? "(none)" : `${sample.bodyDownloadMs}ms`,
     sample.cacheControl ?? "(none)",
+    sample.cfCacheStatus ?? "(none)",
+    sample.age ?? "(none)",
+    sample.xNextjsPrerender ?? "(none)",
     sample.location ?? "(none)",
     sample.reason,
     sample.passed ? "PASS" : "FAIL",
@@ -474,8 +502,8 @@ export function writeMarkdown(report: CloudflareWorkerPreviewReport, markdownFil
     "",
     report.note,
     "",
-    "| Probe | Kind | Required | Run | Status | Duration | Cache-Control | Location | Reason | Result |",
-    "| --- | --- | --- | ---: | ---: | ---: | --- | --- | --- | --- |",
+    "| Probe | Kind | Required | Run | Status | TTFB | Body download | Cache-Control | CF Cache | Age | Prerender | Location | Reason | Result |",
+    "| --- | --- | --- | ---: | ---: | ---: | ---: | --- | --- | --- | --- | --- | --- | --- |",
     ...rows.map((row) => `| ${row.join(" | ")} |`),
     "",
   ];

@@ -99,8 +99,14 @@ const PROVIDER_RULES: Array<{ dependency: ProviderDependency; pattern: RegExp }>
   },
   { dependency: "supabase-rpc", pattern: /\.rpc(?:<[^>]+>)?\s*\(/ },
   { dependency: "supabase-storage", pattern: /\.storage\.|storage\.from\(/ },
-  { dependency: "supabase-realtime", pattern: /\.channel\s*\(|RealtimeChannel|\brealtime\b/i },
-  { dependency: "resend-email", pattern: /@resend|new Resend\(|\bresend\b/i },
+  {
+    dependency: "supabase-realtime",
+    pattern: /\.channel\s*\(|RealtimeChannel|supabase\.auth\.onAuthStateChange|\bSupabase Realtime\b/i,
+  },
+  {
+    dependency: "resend-email",
+    pattern: /from\s+["']resend["']|@resend|new\s+Resend\(|@\/lib\/email\/resend|\bRESEND_[A-Z0-9_]*\b/,
+  },
   { dependency: "vercel-runtime", pattern: /@vercel\/|VERCEL_|vercel\.json|Vercel/i },
   { dependency: "cloudflare-local-proof", pattern: /Cloudflare|R2Bucket|ImagesBinding|ExecutionContext|ARCH_UPLOADS_R2/ },
 ];

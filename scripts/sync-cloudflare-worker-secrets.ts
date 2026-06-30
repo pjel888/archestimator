@@ -160,6 +160,7 @@ export function writeGeneratedMissingSecrets(input: {
 function proofDefaults(baseUrl: string | null) {
   const entries: Array<[string, string]> = [
     ["ARCHESTIMATOR_AI_ENABLED", "false"],
+    ["ARCHESTIMATOR_AUTH_PROVIDER", "better-auth"],
     ["CLOSED_BETA_ACCESS_ENABLED", "false"],
     ["NEXT_PUBLIC_ASK_FLIP_UI_ENABLED", "false"],
     ...(baseUrl

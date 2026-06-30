@@ -17,9 +17,16 @@ const ENV_EXAMPLE_REQUIRED_NAMES = [
   "ARCHESTIMATOR_AI_ENABLED",
   "NEXT_PUBLIC_ASK_FLIP_UI_ENABLED",
   "NEXT_PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN",
+  "ARCHESTIMATOR_AUTH_PROVIDER",
   "BETTER_AUTH_URL",
   "BETTER_AUTH_SECRET",
   "BETTER_AUTH_TRUSTED_ORIGINS",
+  "BETTER_AUTH_GOOGLE_CLIENT_ID",
+  "BETTER_AUTH_GOOGLE_CLIENT_SECRET",
+  "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
+  "ARCHESTIMATOR_EMAIL_PROVIDER",
+  "CLOUDFLARE_EMAIL_FROM",
+  "CLOUDFLARE_EMAIL_REPLY_TO",
   "CRON_SECRET",
   "UPLOAD_CLEANUP_JOB_SECRET",
   "UPLOAD_SCAN_JOB_SECRET",
@@ -37,9 +44,16 @@ const DEV_VARS_EXAMPLE_REQUIRED_NAMES = [
   "UPLOAD_JOBS_ENABLED",
   "CLOUDFLARE_UPLOAD_JOBS_DRY_RUN",
   "CLOUDFLARE_UPLOAD_JOBS_ORIGIN",
+  "ARCHESTIMATOR_AUTH_PROVIDER",
   "BETTER_AUTH_URL",
   "BETTER_AUTH_SECRET",
   "BETTER_AUTH_TRUSTED_ORIGINS",
+  "BETTER_AUTH_GOOGLE_CLIENT_ID",
+  "BETTER_AUTH_GOOGLE_CLIENT_SECRET",
+  "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
+  "ARCHESTIMATOR_EMAIL_PROVIDER",
+  "CLOUDFLARE_EMAIL_FROM",
+  "CLOUDFLARE_EMAIL_REPLY_TO",
   "PUBLICATION_TOKEN_ENCRYPTION_SECRET",
   "PUBLICATION_TOKEN_HASH_SECRET",
   "PUBLICATION_ACCESS_COOKIE_SECRET",
@@ -74,9 +88,16 @@ export const DEPLOYED_WORKER_SECRET_NAMES = [
   "PUBLICATION_ACCESS_COOKIE_SECRET",
   "ARCHESTIMATOR_AI_ENABLED",
   "NEXT_PUBLIC_ASK_FLIP_UI_ENABLED",
+  "ARCHESTIMATOR_AUTH_PROVIDER",
   "BETTER_AUTH_URL",
   "BETTER_AUTH_SECRET",
   "BETTER_AUTH_TRUSTED_ORIGINS",
+  "BETTER_AUTH_GOOGLE_CLIENT_ID",
+  "BETTER_AUTH_GOOGLE_CLIENT_SECRET",
+  "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
+  "ARCHESTIMATOR_EMAIL_PROVIDER",
+  "CLOUDFLARE_EMAIL_FROM",
+  "CLOUDFLARE_EMAIL_REPLY_TO",
   "CRON_SECRET",
   "UPLOAD_CLEANUP_JOB_SECRET",
   "UPLOAD_SCAN_JOB_SECRET",
@@ -87,7 +108,8 @@ export const DEPLOYED_WORKER_SECRET_NAMES = [
   "ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER",
 ] as const;
 
-const REQUIRED_WORKER_BINDINGS = ["ASSETS", "ARCH_UPLOADS_R2", "IMAGES", "UPLOAD_JOBS_QUEUE"] as const;
+const REQUIRED_WORKER_BINDINGS = ["ASSETS", "ARCH_UPLOADS_R2", "IMAGES", "UPLOAD_JOBS_QUEUE", "EMAIL"] as const;
+const REQUIRED_CUSTOM_DOMAIN_ROUTES = ["archestimator.com", "www.archestimator.com"] as const;
 const REQUIRED_CRON_TRIGGERS = ["0 3 * * *", "15 3 * * *"] as const;
 const REQUIRED_OBSERVABILITY_SETTINGS = [
   "observability.enabled",
@@ -143,6 +165,7 @@ export type CloudflareWorkerReadinessResult = {
   envExample: GroupResult;
   devVarsExample: GroupResult;
   wranglerBindings: GroupResult;
+  wranglerCustomDomains: GroupResult;
   wranglerCrons: GroupResult;
   wranglerObservability: GroupResult;
   packageScripts: GroupResult;
@@ -270,6 +293,7 @@ function extractWranglerBindingNames(input: string) {
     assets?: { binding?: string };
     images?: { binding?: string };
     r2_buckets?: Array<{ binding?: string }>;
+    send_email?: Array<{ name?: string }>;
     queues?: {
       producers?: Array<{ binding?: string }>;
     };
@@ -278,8 +302,22 @@ function extractWranglerBindingNames(input: string) {
     parsed.assets?.binding,
     parsed.images?.binding,
     ...(parsed.r2_buckets ?? []).map((bucket) => bucket.binding),
+    ...(parsed.send_email ?? []).map((binding) => binding.name),
     ...(parsed.queues?.producers ?? []).map((producer) => producer.binding),
   ].filter((binding): binding is string => Boolean(binding)).sort();
+}
+
+function extractWranglerCustomDomains(input: string) {
+  const parsed = parseJsonc<{
+    routes?: Array<string | { pattern?: string; custom_domain?: boolean }>;
+  }>(input);
+  return (parsed.routes ?? [])
+    .map((route) => {
+      if (typeof route === "string") return null;
+      return route.custom_domain === true ? route.pattern : null;
+    })
+    .filter((pattern): pattern is string => Boolean(pattern))
+    .sort();
 }
 
 function extractWranglerCrons(input: string) {
@@ -383,6 +421,10 @@ export function checkCloudflareWorkerReadiness(inputs: CheckInputs): CloudflareW
   const envExample = evaluateGroup(ENV_EXAMPLE_REQUIRED_NAMES, extractEnvAssignmentStates(inputs.envExampleText).names);
   const devVarsExample = evaluateGroup(DEV_VARS_EXAMPLE_REQUIRED_NAMES, extractEnvAssignmentStates(inputs.devVarsExampleText).names);
   const wranglerBindings = evaluateGroup(REQUIRED_WORKER_BINDINGS, extractWranglerBindingNames(inputs.wranglerConfigText));
+  const wranglerCustomDomains = evaluateGroup(
+    REQUIRED_CUSTOM_DOMAIN_ROUTES,
+    extractWranglerCustomDomains(inputs.wranglerConfigText),
+  );
   const wranglerCrons = evaluateGroup(REQUIRED_CRON_TRIGGERS, extractWranglerCrons(inputs.wranglerConfigText));
   const wranglerObservability = evaluateGroup(
     REQUIRED_OBSERVABILITY_SETTINGS,
@@ -394,6 +436,7 @@ export function checkCloudflareWorkerReadiness(inputs: CheckInputs): CloudflareW
   const manifestReady = envExample.ready
     && devVarsExample.ready
     && wranglerBindings.ready
+    && wranglerCustomDomains.ready
     && wranglerCrons.ready
     && wranglerObservability.ready
     && packageScripts.ready;
@@ -410,6 +453,7 @@ export function checkCloudflareWorkerReadiness(inputs: CheckInputs): CloudflareW
     envExample,
     devVarsExample,
     wranglerBindings,
+    wranglerCustomDomains,
     wranglerCrons,
     wranglerObservability,
     packageScripts,
@@ -449,6 +493,7 @@ export function writeMarkdown(result: CloudflareWorkerReadinessResult, markdownF
     ["Env example", result.envExample],
     ["Local dev vars example", result.devVarsExample],
     ["Wrangler bindings", result.wranglerBindings],
+    ["Wrangler custom domains", result.wranglerCustomDomains],
     ["Wrangler crons", result.wranglerCrons],
     ["Wrangler observability", result.wranglerObservability],
     ["Package scripts", result.packageScripts],

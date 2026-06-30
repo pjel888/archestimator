@@ -13,6 +13,7 @@ type WorkerPreviewReport = {
     label: string;
     required: boolean;
     samples: Array<{
+      ttfbMs?: number | null;
       durationMs: number | null;
       passed: boolean;
       error: string | null;
@@ -30,10 +31,12 @@ type HostedPerformanceReport = {
   results?: Array<{
     key: string;
     required?: boolean;
+    p95TtfbMs?: number | null;
     p95DurationMs?: number | null;
     passed?: boolean;
     p95BudgetPassed?: boolean | null;
     samples?: Array<{
+      ttfbMs?: number | null;
       durationMs: number | null;
       passed: boolean;
       error: string | null;
@@ -151,6 +154,7 @@ const DEFAULT_INVENTORY_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-migration-inv
 const DEFAULT_ROUTE_PROBE_FILE = `${PLAN_ROOT}/2026-06-29-cloudflare-worker-preview-route-probe.json`;
 const DEFAULT_HOSTED_PERFORMANCE_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-hosted-performance.json`;
 const DEFAULT_PRICING_SNAPSHOT_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-official-pricing-snapshot.json`;
+const DEFAULT_SANITIZED_USAGE_INPUTS_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-sanitized-usage-inputs.json`;
 
 const CURRENT_PROVIDER_INPUTS = [
   ["Vercel plan cost", "Vercel dashboard/invoice"],
@@ -301,7 +305,7 @@ function routeProbeP95ByKey(routeProbe: WorkerPreviewReport | null | undefined) 
   const values = new Map<string, number>();
   for (const result of routeProbe?.results ?? []) {
     const durations = result.samples
-      .map((sample) => sample.durationMs)
+      .map((sample) => sample.ttfbMs ?? sample.durationMs)
       .filter((duration): duration is number => typeof duration === "number" && Number.isFinite(duration));
     const p95 = percentile(durations, 95);
     if (p95 !== null) values.set(result.key, p95);
@@ -312,12 +316,16 @@ function routeProbeP95ByKey(routeProbe: WorkerPreviewReport | null | undefined) 
 function hostedP95ByKey(report: HostedPerformanceReport | null | undefined) {
   const values = new Map<string, number>();
   for (const result of report?.results ?? []) {
+    if (typeof result.p95TtfbMs === "number" && Number.isFinite(result.p95TtfbMs)) {
+      values.set(result.key, result.p95TtfbMs);
+      continue;
+    }
     if (typeof result.p95DurationMs === "number" && Number.isFinite(result.p95DurationMs)) {
       values.set(result.key, result.p95DurationMs);
       continue;
     }
     const durations = (result.samples ?? [])
-      .map((sample) => sample.durationMs)
+      .map((sample) => sample.ttfbMs ?? sample.durationMs)
       .filter((duration): duration is number => typeof duration === "number" && Number.isFinite(duration));
     const p95 = percentile(durations, 95);
     if (p95 !== null) values.set(result.key, p95);
@@ -601,7 +609,7 @@ function collectRepoInputs(): WorkbookInputs {
   const routeProbeFile = readEnv("CLOUDFLARE_WORKER_ROUTE_PROBE_FILE") ?? DEFAULT_ROUTE_PROBE_FILE;
   const hostedPerformanceFile = readEnv("CLOUDFLARE_HOSTED_PERFORMANCE_FILE") ?? DEFAULT_HOSTED_PERFORMANCE_FILE;
   const pricingSnapshotFile = readEnv("CLOUDFLARE_PRICING_SNAPSHOT_FILE") ?? DEFAULT_PRICING_SNAPSHOT_FILE;
-  const usageInputsFile = readEnv("CLOUDFLARE_SANITIZED_USAGE_INPUTS_FILE");
+  const usageInputsFile = readEnv("CLOUDFLARE_SANITIZED_USAGE_INPUTS_FILE") ?? DEFAULT_SANITIZED_USAGE_INPUTS_FILE;
   const inventory = readJsonIfExists<InventoryReport>(inventoryFile);
   const routeProbe = readJsonIfExists<WorkerPreviewReport>(routeProbeFile);
   const hostedPerformance = readJsonIfExists<HostedPerformanceReport>(hostedPerformanceFile);
