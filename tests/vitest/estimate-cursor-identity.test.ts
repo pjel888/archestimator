@@ -41,7 +41,7 @@ function createFakeCursorClient() {
       broadcastHandler?.({ payload });
     },
   };
-  return { client: { channel: () => channel, removeChannel: () => undefined }, channel, sentPayloads };
+  return { client: { openRoom: () => channel, closeRoom: () => undefined }, channel, sentPayloads };
 }
 
 const ESTIMATE_ID = "11111111-1111-1111-1111-111111111111";

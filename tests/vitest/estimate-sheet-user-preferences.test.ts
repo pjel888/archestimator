@@ -17,17 +17,26 @@ describe("estimate sheet user preferences", () => {
     expect(migration).toContain("create policy \"deny direct api access\"");
   });
 
-  it("uses user-scoped estimate access checks before service-role persistence", () => {
+  it("uses user-scoped D1 estimate access checks before preference persistence", () => {
     const actions = source("src/lib/estimate-sheet/user-preferences-actions.ts");
+    const store = source("src/lib/estimate-sheet/user-preferences-d1-store.ts");
+    const migration = source("migrations/0008_estimate_sheet_user_preferences.sql");
 
     expect(actions).toContain("export async function loadEstimateSheetUserPreferences");
     expect(actions).toContain("export async function saveEstimateSheetUserPreferences");
-    expect(actions).toContain("await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()])");
-    expect(actions).toContain("supabase.rpc(\"can_access_estimate\", { target_estimate_id: estimateId })");
-    expect(actions).toContain("createSupabaseServiceRoleClient(\"archestimator-estimate-sheet-preferences-read\")");
-    expect(actions).toContain("createSupabaseServiceRoleClient(\"archestimator-estimate-sheet-preferences-write\")");
+    expect(actions).toContain("requireCurrentUserContext");
+    expect(actions).toContain("getEstimatePreferenceContextFromCloudflareD1");
+    expect(actions).toContain("loadEstimateSheetUserPreferencesFromCloudflareD1");
+    expect(actions).toContain("saveEstimateSheetUserPreferencesInCloudflareD1");
+    expect(store).toContain("getCloudflareD1Database");
+    expect(store).toContain("FROM estimate_sheet_members");
+    expect(store).toContain("FROM project_members");
+    expect(store).toContain("FROM estimate_sheet_access_settings");
+    expect(migration).toContain("CREATE TABLE IF NOT EXISTS estimate_sheet_user_preferences");
+    expect(migration).toContain("PRIMARY KEY (user_id, workspace_id, estimate_id)");
+    expect(migration).toContain("column_widths_json TEXT NOT NULL DEFAULT '{}'");
     expect(actions).toContain("normalizeEstimateColumnWidths");
-    expect(actions).toContain("onConflict: \"user_id,workspace_id,estimate_id\"");
+    expect(`${actions}\n${store}`).not.toMatch(/@supabase\/supabase-js|@\/lib\/supabase|createSupabase|SUPABASE_SERVICE_ROLE_KEY|can_access_estimate/);
   });
 
   it("syncs center column widths outside tests without replacing local first paint", () => {

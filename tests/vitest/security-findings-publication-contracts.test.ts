@@ -181,11 +181,12 @@ describe("Codex publication and public-surface hardening contracts", () => {
       { name: "removeSharedLinkRecipient", eventType: "publisher_recipient_removed" },
     ];
 
-    expect(helper).toContain('from("account_security_events").insert');
-    expect(helper).toContain("event_type: eventType");
-    expect(helper).toContain("user_id: context.currentUserId");
-    expect(helper).toContain("workspace_id: context.project.workspace_id");
-    expect(helper).toContain("metadata_json");
+    expect(actions).toContain('from "@/lib/auth/account-audit"');
+    expect(helper).toContain("recordAccountSecurityEvent({");
+    expect(helper).toContain("eventType");
+    expect(helper).toContain("userId: context.currentUserId");
+    expect(helper).toContain("workspaceId: context.project.workspace_id");
+    expect(helper).toContain("metadata:");
     expect(helper).toContain("project_id: context.project.id");
 
     for (const { name, eventType } of mutationAuditEvents) {

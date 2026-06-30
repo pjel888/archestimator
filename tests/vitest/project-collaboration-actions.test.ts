@@ -5,17 +5,18 @@ const actions = readFileSync("src/lib/collaboration/actions.ts", "utf8");
 const publisherMembersPanel = readFileSync("src/components/workshop/publisher/PublisherProjectMembersPanel.tsx", "utf8");
 
 describe("project collaboration management actions", () => {
-  it("sends real Supabase Auth invitations and persists pending collaboration invites", () => {
+  it("sends Cloudflare-owned invite emails and persists pending collaboration invites in D1", () => {
     expect(actions).toContain('"use server"');
     expect(actions).toContain("inviteProjectCollaborator");
     expect(actions).toContain("inviteEstimateSheetCollaborator");
-    expect(actions).toContain("createCollaborationAdminClient");
-    expect(actions).toContain("auth.admin.inviteUserByEmail");
+    expect(actions).toContain("getRequiredCollaborationD1Database");
+    expect(actions).toContain("sendCloudflareInviteEmail");
+    expect(actions).toContain("sendEmail");
     expect(actions).toContain("createInviteToken");
-    expect(actions).toContain("issue_collaboration_invitation_token");
+    expect(actions).toContain("collaboration_invitation_tokens");
     expect(actions).toContain("collaboration_invitations");
-    expect(actions).toContain("SUPABASE_SERVICE_ROLE_KEY");
     expect(actions).toContain("revalidateCollaborationRoutes");
+    expect(actions).not.toMatch(/@supabase\/supabase-js|@\/lib\/supabase|createSupabase|SUPABASE_SERVICE_ROLE_KEY|auth\.admin\.inviteUserByEmail|issue_collaboration_invitation_token/);
   });
 
   it("durably rate limits invite creation and link reissue actions", () => {
@@ -29,29 +30,29 @@ describe("project collaboration management actions", () => {
     expect(actions).toContain("resolveAuthOrigin");
     expect(actions).toContain("buildInviteEntryUrl");
     expect(actions).toContain("/invite/");
-    expect(actions).toContain("redirectTo");
+    expect(actions).toContain("Open your invitation");
     expect(actions).not.toContain('headerList.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL');
     expect(actions).not.toContain("return `${origin}/workshop/projects/${projectId}`");
   });
 
   it("copy invite link returns email-bound invite URL while project links stay direct", () => {
     expect(actions).toContain("copyProjectInviteLink");
-    expect(actions).toContain("record_collaboration_invitation_delivery");
+    expect(actions).toContain("recordCollaborationInvitationDelivery");
     expect(actions).toContain("Invite links are disabled.");
     expect(actions).toContain("Copy invite link");
   });
 
   it("resends pending invite emails through the app-owned invite token route with rate limiting", () => {
     expect(actions).toContain("resendProjectInviteEmail");
-    expect(actions).toContain("sendSupabaseInviteEmail");
+    expect(actions).toContain("sendCloudflareInviteEmail");
     expect(actions).toContain("checkInviteResendRateLimit");
     expect(actions).toContain('deliveryMethod: "email"');
   });
 
-  it("records invite email delivery only after Supabase Auth accepts the send", () => {
+  it("records invite email delivery only after Cloudflare Email accepts the send", () => {
     expect(actions).toContain("recordCollaborationInvitationDelivery");
     expect(actions).toContain('deliveryMethod: "email"');
-    expect(actions).toMatch(/try \{[\s\S]*?await sendSupabaseInviteEmail\(\{[\s\S]*?\}\);\n  \} catch \(error\) \{[\s\S]*?return \{[\s\S]*?Invitation created\. Share the invite link manually\.[\s\S]*?\};\n  \}\n\n  await recordCollaborationInvitationDelivery\(\{/);
+    expect(actions).toMatch(/try \{[\s\S]*?await sendCloudflareInviteEmail\(\{[\s\S]*?\}\);\n  \} catch \(error\) \{[\s\S]*?return \{[\s\S]*?Invitation created\. Share the invite link manually\.[\s\S]*?\};\n  \}\n\n  await recordCollaborationInvitationDelivery\(\{/);
   });
 
   it("returns honest invite messages when app-owned invite links are disabled", () => {
@@ -83,9 +84,9 @@ describe("project collaboration management actions", () => {
 
   it("existing user direct grant is resolved without looking like invite-route acceptance", () => {
     expect(actions).toContain("direct_granted_existing_user");
-    expect(actions).toContain("const directGrantedAt = new Date().toISOString()");
-    expect(actions).toContain("accepted_at: directGrantedAt");
-    expect(actions).toContain("direct_granted_at: directGrantedAt");
+    expect(actions).toContain("const directGrantedAt = nowIso()");
+    expect(actions).toContain("SET accepted_at = ?");
+    expect(actions).toContain("direct_granted_at = ?");
     expect(actions).toContain("accepted_via");
     expect(actions).toContain("manager_direct_grant");
     expect(actions).not.toContain('accepted_via: "invite_route"');

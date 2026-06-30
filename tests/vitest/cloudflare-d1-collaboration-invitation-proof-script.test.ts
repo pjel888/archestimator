@@ -22,6 +22,8 @@ describe("Cloudflare D1 collaboration invitation proof", () => {
       "resolve_collaboration_invitation",
       "accept_collaboration_invitation",
       "accept_collaboration_invitation_by_id",
+      "accept_collaboration_invitation_for_actor",
+      "accept_collaboration_invitation_by_id_for_actor",
     ]);
     expect(report.readiness.schemaReady).toBe(true);
     expect(report.readiness.tokenIssueReady).toBe(true);

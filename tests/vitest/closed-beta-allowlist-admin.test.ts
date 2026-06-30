@@ -11,10 +11,10 @@ import {
 
 const migration = readFileSync("supabase/migrations/20260602005649_beta_allowlist_admin_queue.sql", "utf8");
 const hardeningMigration = readFileSync("supabase/migrations/20260602090000_harden_beta_allowlist_admin.sql", "utf8");
-const pageSource = readFileSync("src/app/workshop/settings/beta-users/page.tsx", "utf8");
+const d1Migration = readFileSync("migrations/0001_closed_beta_feedback.sql", "utf8");
+const pageSource = readFileSync("src/app/workshop/settings/users/page.tsx", "utf8");
 const helperSource = readFileSync("src/lib/auth/beta-allowlist-admin.ts", "utf8");
 const actionSource = readFileSync("src/lib/auth/beta-allowlist-admin-actions.ts", "utf8");
-const typesSource = readFileSync("src/lib/supabase/types.ts", "utf8");
 
 describe("closed beta allowlist admin", () => {
   it("keeps the status contract narrow", () => {
@@ -68,16 +68,14 @@ describe("closed beta allowlist admin", () => {
 
   it("keeps app management platform-admin scoped and route-backed", () => {
     expect(helperSource).toContain('role === "ceo" || role === "admin"');
-    expect(helperSource).toContain('rpc("read_closed_beta_allowlist_queue"');
+    expect(helperSource).toContain("readClosedBetaAllowlistQueueFromD1");
     expect(actionSource).toContain("canManageClosedBetaAllowlist");
-    expect(actionSource).toContain('rpc("create_closed_beta_allowlist_entry"');
-    expect(actionSource).toContain('rpc("update_closed_beta_allowlist_entry"');
-    expect(pageSource).toContain("Only platform admins can manage beta users.");
-    expect(pageSource).toContain("Manage the closed beta email allowlist");
-    expect(pageSource).toContain("Showing {queue.rows.length} latest beta allowlist rows.");
-    expect(typesSource).toContain("closed_beta_allowed_emails: {");
-    expect(typesSource).toContain("read_closed_beta_allowlist_queue: {");
-    expect(typesSource).toContain("create_closed_beta_allowlist_entry: {");
-    expect(typesSource).toContain("update_closed_beta_allowlist_entry: {");
+    expect(actionSource).toContain("createClosedBetaAllowlistEntryInD1");
+    expect(actionSource).toContain("updateClosedBetaAllowlistEntryInD1");
+    expect(pageSource).toContain("Only platform admins can manage users.");
+    expect(pageSource).toContain("Manage the email allowlist without exposing it to regular members.");
+    expect(pageSource).toContain("Showing {queue.rows.length} latest allowlist rows.");
+    expect(d1Migration).toContain("CREATE TABLE IF NOT EXISTS closed_beta_allowed_emails");
+    expect(d1Migration).toContain("CREATE TABLE IF NOT EXISTS closed_beta_allowlist_audit_events");
   });
 });

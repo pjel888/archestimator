@@ -10,7 +10,10 @@ const migrationPath = readdirSync(join(process.cwd(), "supabase/migrations"))
 if (!migrationPath) throw new Error("Missing AI audit foundation migration.");
 
 const migration = readFileSync(join(process.cwd(), "supabase/migrations", migrationPath), "utf8");
+const d1Migration = readFileSync(join(process.cwd(), "migrations/0006_ai_audit_rate_limits.sql"), "utf8");
 const auditSource = readFileSync(join(process.cwd(), "src/lib/ai/audit.ts"), "utf8");
+const d1StoreSource = readFileSync(join(process.cwd(), "src/lib/ai/audit-d1-store.ts"), "utf8");
+const rateLimitSource = readFileSync(join(process.cwd(), "src/lib/ai/rate-limit.ts"), "utf8");
 const supabaseTypes = readFileSync(join(process.cwd(), "src/lib/supabase/types.ts"), "utf8");
 
 describe("AI audit foundation schema", () => {
@@ -57,9 +60,15 @@ describe("AI audit foundation schema", () => {
     expect(auditSource).toContain("hashAiAuditValue(input.routeContext)");
     expect(auditSource).toContain("[\"user_message\", \"bounded_route_context\"]");
     expect(auditSource).toContain("[\"user_message\", \"bounded_route_context\", \"server_scoped_read_context\"]");
-    expect(auditSource).toContain("archestimator-ai-audit");
-    expect(auditSource).toContain("SUPABASE_SERVICE_ROLE_KEY");
+    expect(auditSource).toContain("recordAiAskAuditEventInD1");
+    expect(auditSource).toContain("getAiAuditD1Database");
+    expect(`${auditSource}\n${rateLimitSource}`).not.toMatch(/SUPABASE_SERVICE_ROLE_KEY|@supabase\/supabase-js|createClient/);
     expect(auditSource).toContain("Ask request used bounded browser route context and no database read tools.");
+    expect(d1Migration).toContain("CREATE TABLE IF NOT EXISTS ai_action_runs");
+    expect(d1Migration).toContain("provider_send_categories_json TEXT NOT NULL DEFAULT '[]'");
+    expect(d1Migration).toContain("CREATE TABLE IF NOT EXISTS security_rate_limit_events");
+    expect(d1StoreSource).toContain("recordAiAskAuditEventInD1");
+    expect(d1StoreSource).toContain("recordSecurityRateLimitEventInD1");
     expect(supabaseTypes).toContain("ai_action_runs");
     expect(supabaseTypes).toContain("ai_tool_calls");
     expect(supabaseTypes).toContain("ai_data_access_events");

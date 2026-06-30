@@ -104,10 +104,6 @@ function resolveMaybeSingle(table: string, query: FakeQuery, state: PublicationH
 
 function resolveQuery(table: string, query: FakeQuery, state: PublicationHarnessState) {
   if (query.op === "update" || query.op === "insert") {
-    if (query.op === "insert" && table === "account_security_events") {
-      const rows = Array.isArray(query.payload) ? query.payload : query.payload ? [query.payload] : [];
-      state.auditEvents.push(...rows);
-    }
     state.publicationUpdates.push({
       filters: { ...query.filters },
       payload: Array.isArray(query.payload) ? { rows: query.payload } : { ...(query.payload ?? {}) },
@@ -225,13 +221,25 @@ async function loadPublicationActionsWithHarness(overrides: Partial<PublicationH
     from(table: string) {
       return createQuery(table, state);
     },
-    rpc(functionName: string, args: Record<string, unknown>) {
+    callProcedure(functionName: string, args: Record<string, unknown>) {
       state.rpcCalls.push({ args, functionName });
       return Promise.resolve({ data: state.rpcData, error: null });
     },
   };
 
-  vi.doMock("@supabase/supabase-js", () => ({ createClient: vi.fn(() => admin) }));
+  vi.doMock("@/lib/publication/admin-d1-client", () => ({
+    createPublicationAdminD1Client: vi.fn(() => admin),
+  }));
+  vi.doMock("@/lib/auth/account-audit", () => ({
+    recordAccountSecurityEvent: vi.fn(async (event: Record<string, unknown>) => {
+      state.auditEvents.push({
+        event_type: event.eventType,
+        user_id: event.userId,
+        workspace_id: event.workspaceId,
+        metadata_json: event.metadata,
+      });
+    }),
+  }));
   vi.doMock("next/cache", () => ({
     revalidatePath: vi.fn((path: string) => {
       state.revalidatedPaths.push(path);
@@ -274,7 +282,7 @@ async function loadPublicationActionsWithHarness(overrides: Partial<PublicationH
       value === "exact" || value === "hidden" ? value : "locality",
     ),
   }));
-  vi.doMock("@/lib/email/resend-client", () => ({
+  vi.doMock("@/lib/email/transactional-email-client", () => ({
     readEmailDeliveryConfig: vi.fn(() => ({ configured: true })),
     sendEmail: vi.fn(async () => ({ mocked: true, ok: true })),
   }));
@@ -284,9 +292,6 @@ async function loadPublicationActionsWithHarness(overrides: Partial<PublicationH
       return state.summary;
     }),
   }));
-
-  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
-  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
 
   const publicationActions = await import("@/lib/publication/actions");
   return { publicationActions, state };
@@ -335,7 +340,7 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
       const next = actions.indexOf("\nexport async function ", start + 1);
       const source = actions.slice(start, next === -1 ? actions.length : next);
       const assertionIndex = source.indexOf("assertProjectPublicationManager");
-      const firstWriteIndex = [".insert(", ".update(", ".delete(", "callPublicationRpc"]
+      const firstWriteIndex = [".insert(", ".update(", ".delete(", "callPublicationD1Procedure"]
         .map((needle) => source.indexOf(needle))
         .filter((index) => index >= 0)
         .sort((a, b) => a - b)[0];
@@ -686,7 +691,7 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
   });
 
   it("builds publication snapshots from estimate tabs as well as nodes and rows", () => {
-    expect(actions).toContain('.from("estimate_tabs")');
+    expect(actions).toContain('.from<EstimateTabSource>("estimate_tabs")');
     expect(actions).toContain('.select("id, estimate_id, name, sort_order, is_default")');
     expect(actions).toContain('.is("archived_at", null)');
     expect(actions).toContain('.select("id, estimate_id, estimate_tab_id, name, kind, parent_id, sort_order")');
@@ -705,19 +710,19 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
 
   // P4 RED TESTS (Shared Link Overhaul — Email & Recipients)
   // These must fail until addSharedLinkRecipients / removeSharedLinkRecipient implemented in actions.ts
-  // and wired with Resend + token gen + graceful failure per Master Prompt + P4 bullets.
-  it("exposes P4 recipient management server actions (add/remove with token generation + Resend)", () => {
+  // and wired with transactional email + token gen + graceful failure per Master Prompt + P4 bullets.
+  it("exposes P4 recipient management server actions (add/remove with token generation + Cloudflare Email)", () => {
     expect(actions).toContain("addSharedLinkRecipients");
     expect(actions).toContain("removeSharedLinkRecipient");
     expect(actions).toContain("shared_link_recipients");
     expect(actions).toContain("recipient_token_hash");
     expect(actions).toContain("delivery_status");
     expect(actions).toContain('RecipientDeliveryStatus = "pending" | "sent" | "bounced" | "opened" | "responded"');
-    // Uses Resend client (P0) for transactional send with unique recipient token link
+    // Uses the Cloudflare-native transactional email client with unique recipient token link.
     expect(actions).toContain("sendEmail");
-    expect(actions).toContain("from \"@/lib/email/resend-client\"");
+    expect(actions).toContain("from \"@/lib/email/transactional-email-client\"");
     // Graceful: publication create/republish succeed even if email fails/bounces (no throw, status may stay pending)
-    expect(actions).toMatch(/sendEmail|ResendEmailClient|ok:\s*false/);
+    expect(actions).toMatch(/sendEmail|TransactionalEmailClient|ok:\s*false/);
   });
 
   it("P4 recipient actions generate secure per-recipient tokens and insert with invited_by", () => {
@@ -779,6 +784,7 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
   it("recipient unsubscribe links suppress future recipient emails", () => {
     const unsubscribeRoute = readFileSync("src/app/api/share/[token]/unsubscribe/route.ts", "utf8");
     const publicRepository = readFileSync("src/lib/publication/public-repository.ts", "utf8");
+    const d1Store = readFileSync("src/lib/publication/d1-store.ts", "utf8");
     const recipientComposer = readFileSync("src/components/workshop/publication/RecipientEmailComposer.tsx", "utf8");
     const migrationText = readFileSync("supabase/migrations/20260531175141_shared_link_recipient_unsubscribe.sql", "utf8");
     const types = readFileSync("src/lib/supabase/types.ts", "utf8");
@@ -791,7 +797,7 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
     expect(unsubscribeRoute).toContain("export async function POST");
     expect(unsubscribeRoute).toContain("Cache-Control");
     expect(publicRepository).toContain("unsubscribeSharedLinkRecipientByToken");
-    expect(publicRepository).toContain("email_unsubscribed_at");
+    expect(d1Store).toContain("email_unsubscribed_at");
     expect(actions).toContain("Recipient has unsubscribed from follow-up emails");
     expect(recipientComposer).toContain("email_unsubscribed_at");
     expect(recipientComposer).toContain("unsubscribed");
@@ -807,10 +813,11 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
     expect(pageSrc).toContain("recipientIdForOpenEvent");
     expect(pageSrc).toContain("metadata: recipientIdForOpenEvent ? { recipient_id: recipientIdForOpenEvent } : {}");
     expect(publicRepository).toContain("shared_link_recipients");
-    expect(publicRepository).toContain('delivery_status: "opened"');
-    expect(publicRepository).toContain("last_opened_at");
-    expect(publicRepository).toContain("shared_link_events");
-    expect(publicRepository).toContain("recipient_id: recipientId");
+    const d1Store = readFileSync("src/lib/publication/d1-store.ts", "utf8");
+    expect(d1Store).toContain("delivery_status = 'opened'");
+    expect(d1Store).toContain("last_opened_at");
+    expect(d1Store).toContain("shared_link_events");
+    expect(publicRepository).toContain("recipientId");
     expect(publicRepository).not.toContain("raw-recipient-token");
   });
 

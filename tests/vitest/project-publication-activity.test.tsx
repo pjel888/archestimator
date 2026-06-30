@@ -61,7 +61,7 @@ vi.mock("@/lib/publication/public-repository", async () => {
   };
 });
 
-vi.mock("@/lib/email/resend-client", () => ({
+vi.mock("@/lib/email/transactional-email-client", () => ({
   sendEmail: mocks.sendEmail,
 }));
 

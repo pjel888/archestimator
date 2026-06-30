@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
-  createSupabaseUploadScanStorage,
+  createUploadScanStorageFromProvider,
   createUploadScanResultWriter,
   listUploadScanJobRecords,
   runUploadScanJob,
@@ -36,19 +36,62 @@ function scanRecord(overrides: Partial<UploadScanJobRecord> = {}): UploadScanJob
   };
 }
 
-function createThenableQuery<T>(data: T[]) {
-  const query = {
-    select: vi.fn(() => query),
-    eq: vi.fn(() => query),
-    in: vi.fn(() => query),
-    order: vi.fn(() => query),
-    limit: vi.fn(() => query),
-    then: (resolve: (value: { data: T[]; error: null }) => unknown, reject: (reason: unknown) => unknown) => {
-      return Promise.resolve({ data, error: null }).then(resolve, reject);
-    },
-  };
+class FakeD1Statement {
+  values: unknown[] = [];
 
-  return query;
+  constructor(
+    private readonly database: FakeD1Database,
+    readonly sql: string,
+  ) {}
+
+  bind(...values: unknown[]) {
+    this.values = values;
+    return this;
+  }
+
+  async first<R>() {
+    return this.database.assetForResult as R | null;
+  }
+
+  async all<R>() {
+    return { success: true, results: this.database.scanRows as R[] };
+  }
+
+  async run() {
+    this.database.runStatements.push(this);
+    if (this.sql.includes("UPDATE upload_assets")) {
+      return { success: true, meta: { changes: this.database.updateChanges } };
+    }
+    return { success: true, meta: { changes: 1 } };
+  }
+}
+
+class FakeD1Database {
+  assetForResult: Record<string, unknown> | null = {
+    actor_user_id: USER_ID,
+    checksum_sha256: CHECKSUM_SHA256,
+    content_type: "application/pdf",
+    file_name: "scan-job-proof.pdf",
+    id: ASSET_ID,
+    scan_status: "pending",
+    size_bytes: 3,
+    status: "finalized",
+    storage_bucket: "component-attachments",
+    storage_path: ATTACHMENT_PATH,
+    surface: "component-attachment",
+    upload_session_id: SESSION_ID,
+    workspace_id: WORKSPACE_ID,
+  };
+  runStatements: FakeD1Statement[] = [];
+  scanRows: unknown[] = [];
+  statements: FakeD1Statement[] = [];
+  updateChanges = 1;
+
+  prepare(sql: string) {
+    const statement = new FakeD1Statement(this, sql);
+    this.statements.push(statement);
+    return statement;
+  }
 }
 
 describe("upload scan job runner", () => {
@@ -57,7 +100,8 @@ describe("upload scan job runner", () => {
   });
 
   it("lists finalized pending or retryable component attachment assets for scanning", async () => {
-    const query = createThenableQuery([{
+    const database = new FakeD1Database();
+    database.scanRows = [{
       id: ASSET_ID,
       upload_session_id: SESSION_ID,
       workspace_id: WORKSPACE_ID,
@@ -93,20 +137,19 @@ describe("upload scan job runner", () => {
       size_bytes: 5,
       checksum_sha256: null,
       scan_status: "clean",
-    }]);
-    const client = {
-      from: vi.fn(() => query),
-    };
+    }];
 
-    const records = await listUploadScanJobRecords(client, { limit: 900 });
+    const records = await listUploadScanJobRecords(database, { limit: 900 });
 
-    expect(client.from).toHaveBeenCalledWith("upload_assets");
-    expect(query.select).toHaveBeenCalledWith("id, upload_session_id, workspace_id, actor_user_id, storage_bucket, storage_path, file_name, content_type, size_bytes, checksum_sha256, scan_status");
-    expect(query.eq).toHaveBeenCalledWith("surface", "component-attachment");
-    expect(query.eq).toHaveBeenCalledWith("status", "finalized");
-    expect(query.in).toHaveBeenCalledWith("scan_status", ["pending", "failed_transient"]);
-    expect(query.order).toHaveBeenCalledWith("created_at", { ascending: true });
-    expect(query.limit).toHaveBeenCalledWith(500);
+    expect(database.statements[0]?.sql).toContain("FROM upload_assets");
+    expect(database.statements[0]?.sql).toContain("SELECT id, upload_session_id, workspace_id, actor_user_id, storage_bucket, storage_path, file_name, content_type, size_bytes, checksum_sha256, scan_status");
+    expect(database.statements[0]?.values).toEqual([
+      "component-attachment",
+      "finalized",
+      "pending",
+      "failed_transient",
+      500,
+    ]);
     expect(records).toEqual([
       expect.objectContaining({
         assetId: ASSET_ID,
@@ -327,24 +370,31 @@ describe("upload scan job runner", () => {
     expect(serializedWrites).not.toContain("scanner-failed.pdf");
   });
 
-  it("provides Supabase storage and scanner result RPC adapters", async () => {
-    const download = vi.fn(async () => ({ data: new Uint8Array([7, 8, 9]), error: null }));
-    const rpc = vi.fn(async () => ({ error: null }));
-    const client = {
-      storage: {
-        from: vi.fn(() => ({ download })),
-      },
-      rpc,
-    };
+  it("provides storage and D1 scanner result adapters", async () => {
+    const downloadObject = vi.fn(async () => ({
+      body: new Uint8Array([7, 8, 9]).buffer,
+      contentType: "application/pdf",
+      sizeBytes: 3,
+    }));
+    const database = new FakeD1Database();
 
-    const storage = createSupabaseUploadScanStorage(client);
+    const storage = createUploadScanStorageFromProvider({
+      uploadObject: vi.fn(),
+      removeObjects: vi.fn(),
+      downloadObject,
+      createSignedReadUrl: vi.fn(),
+      getPublicUrl: vi.fn(),
+    });
     const object = await storage.download({ bucket: "component-attachments", path: ATTACHMENT_PATH });
 
-    expect(client.storage.from).toHaveBeenCalledWith("component-attachments");
-    expect(download).toHaveBeenCalledWith(ATTACHMENT_PATH);
-    expect(object).toEqual({ bytes: new Uint8Array([7, 8, 9]) });
+    expect(downloadObject).toHaveBeenCalledWith("component-attachments", ATTACHMENT_PATH);
+    expect(object).toEqual({
+      bytes: new Uint8Array([7, 8, 9]),
+      contentType: "application/pdf",
+      sizeBytes: 3,
+    });
 
-    const resultWriter = createUploadScanResultWriter(client);
+    const resultWriter = createUploadScanResultWriter(database);
     await resultWriter.record({
       assetId: ASSET_ID,
       expectedChecksumSha256: CHECKSUM_SHA256,
@@ -353,12 +403,34 @@ describe("upload scan job runner", () => {
       result: { scanJobRunId: "scan-run-adapter" },
     });
 
-    expect(rpc).toHaveBeenCalledWith("record_upload_scan_result", {
-      target_asset_id: ASSET_ID,
-      expected_checksum_sha256: CHECKSUM_SHA256,
-      scanner_provider: "fixture-scanner",
-      scanner_status: "clean",
-      scanner_result: { scanJobRunId: "scan-run-adapter" },
-    });
+    const update = database.runStatements.find((statement) => statement.sql.includes("UPDATE upload_assets"));
+    const event = database.runStatements.find((statement) => statement.sql.includes("INSERT INTO upload_events"));
+    expect(update?.values).toEqual([
+      "clean",
+      "fixture-scanner",
+      JSON.stringify({ scanJobRunId: "scan-run-adapter" }),
+      expect.any(String),
+      expect.any(String),
+      ASSET_ID,
+      "component-attachment",
+      "finalized",
+      CHECKSUM_SHA256,
+      CHECKSUM_SHA256,
+    ]);
+    expect(event?.values).toEqual([
+      expect.any(String),
+      SESSION_ID,
+      ASSET_ID,
+      WORKSPACE_ID,
+      USER_ID,
+      "scan_clean",
+      JSON.stringify({
+        scanProvider: "fixture-scanner",
+        scanStatus: "clean",
+        scanResult: { scanJobRunId: "scan-run-adapter" },
+      }),
+      expect.any(String),
+    ]);
+    expect(JSON.stringify(database.runStatements.map((statement) => statement.values))).not.toContain(ATTACHMENT_PATH);
   });
 });

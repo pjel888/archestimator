@@ -5,168 +5,156 @@ const authMocks = vi.hoisted(() => ({
   requireCurrentUserContext: vi.fn(),
 }));
 
-const supabaseServerMocks = vi.hoisted(() => ({
-  createSupabaseServerClient: vi.fn(),
-}));
-
-const serviceRoleMocks = vi.hoisted(() => ({
-  createSupabaseServiceRoleClient: vi.fn(),
+const d1Mocks = vi.hoisted(() => ({
+  getCloudflareD1Database: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/auth/session", () => authMocks);
-vi.mock("@/lib/supabase/server", () => supabaseServerMocks);
-vi.mock("@/lib/supabase/service-role", () => serviceRoleMocks);
+vi.mock("@/lib/cloudflare/d1", () => d1Mocks);
 
 const deliveryId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const userId = "11111111-1111-4111-8111-111111111111";
 
-type BuilderCall = {
-  method: string;
-  args: unknown[];
-};
+class FakeD1Statement {
+  values: unknown[] = [];
 
-function makeNotificationQueryBuilder(options: {
-  data?: unknown;
-  count?: number | null;
-  maybeSingleData?: { id: string } | null;
-  error?: { message?: string } | null;
-} = {}) {
-  const calls: BuilderCall[] = [];
-  const builder = {
-    calls,
-    select(...args: unknown[]) {
-      calls.push({ method: "select", args });
-      return builder;
-    },
-    update(...args: unknown[]) {
-      calls.push({ method: "update", args });
-      return builder;
-    },
-    eq(...args: unknown[]) {
-      calls.push({ method: "eq", args });
-      return builder;
-    },
-    is(...args: unknown[]) {
-      calls.push({ method: "is", args });
-      return builder;
-    },
-    lt(...args: unknown[]) {
-      calls.push({ method: "lt", args });
-      return builder;
-    },
-    order(...args: unknown[]) {
-      calls.push({ method: "order", args });
-      return builder;
-    },
-    limit(...args: unknown[]) {
-      calls.push({ method: "limit", args });
-      return builder;
-    },
-    maybeSingle() {
-      calls.push({ method: "maybeSingle", args: [] });
-      return Promise.resolve({
-        data: options.maybeSingleData === undefined ? { id: deliveryId } : options.maybeSingleData,
-        error: options.error ?? null,
-      });
-    },
-    then(resolve: (value: unknown) => unknown, reject?: (reason: unknown) => unknown) {
-      return Promise.resolve({
-        data: options.data ?? [],
-        error: options.error ?? null,
-        count: options.count ?? null,
-      }).then(resolve, reject);
-    },
-  };
-  return builder;
+  constructor(
+    private readonly database: FakeD1Database,
+    readonly sql: string,
+  ) {}
+
+  bind(...values: unknown[]) {
+    this.values = values;
+    return this;
+  }
+
+  async first<R>() {
+    if (this.sql.includes("COUNT(*) AS count")) {
+      return { count: this.database.unreadCount } as R;
+    }
+    return null;
+  }
+
+  async all<R>() {
+    return { results: this.database.feedRows as R[] };
+  }
+
+  async run() {
+    this.database.runStatements.push(this);
+    return { success: true, meta: { changes: this.database.changes } };
+  }
 }
 
-function makeSupabaseClient(builder = makeNotificationQueryBuilder()) {
-  const from = vi.fn(() => builder);
-  return { builder, client: { from } };
+class FakeD1Database {
+  changes = 1;
+  feedRows: unknown[] = [];
+  runStatements: FakeD1Statement[] = [];
+  statements: FakeD1Statement[] = [];
+  unreadCount = 0;
+
+  prepare(sql: string) {
+    const statement = new FakeD1Statement(this, sql);
+    this.statements.push(statement);
+    return statement;
+  }
 }
 
 beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
   authMocks.requireCurrentUserContext.mockResolvedValue({ userId });
+  d1Mocks.getCloudflareD1Database.mockResolvedValue(new FakeD1Database());
 });
 
 describe("notification server actions and repository contract", () => {
-  it("keeps exported actions current-user scoped and free of browser supplied user ids", () => {
-    const source = readFileSync("src/lib/notifications/actions.ts", "utf8");
+  it("keeps exported actions current-user scoped, D1-backed, and free of browser supplied user ids", () => {
+    const actions = readFileSync("src/lib/notifications/actions.ts", "utf8");
+    const repository = readFileSync("src/lib/notifications/repository.ts", "utf8");
+    const migration = readFileSync("migrations/0009_notifications.sql", "utf8");
 
-    expect(source).toContain('"use server"');
-    expect(source).toContain("requireCurrentUserContext");
-    expect(source).toContain("loadCurrentUserNotifications(");
-    expect(source).toContain("markNotificationReadAction(deliveryId: string)");
-    expect(source).toContain("dismissNotificationAction(deliveryId: string)");
-    expect(source).toContain("acknowledgeReleaseAnnouncementAction(deliveryId: string)");
-    expect(source).not.toMatch(/Action\([^)]*userId/);
+    expect(actions).toContain('"use server"');
+    expect(actions).toContain("requireCurrentUserContext");
+    expect(actions).toContain("loadCurrentUserNotifications(");
+    expect(actions).toContain("markNotificationReadAction(deliveryId: string)");
+    expect(actions).toContain("dismissNotificationAction(deliveryId: string)");
+    expect(actions).toContain("acknowledgeReleaseAnnouncementAction(deliveryId: string)");
+    expect(actions).not.toMatch(/Action\([^)]*userId/);
+    expect(`${actions}\n${repository}`).not.toMatch(/createSupabase|@\/lib\/supabase|@supabase\/supabase-js|SUPABASE_SERVICE_ROLE_KEY|serviceRole/);
+    expect(repository).toContain("getCloudflareD1Database");
+    expect(repository).toContain("FROM notification_deliveries deliveries");
+    expect(repository).toContain("JOIN notification_definitions definitions");
+    expect(migration).toContain("CREATE TABLE IF NOT EXISTS notification_definitions");
+    expect(migration).toContain("CREATE TABLE IF NOT EXISTS notification_deliveries");
+    expect(migration).toContain("UNIQUE(notification_id, user_id)");
   });
 
-  it("clamps feed limits to 50 before querying", async () => {
-    const { builder, client } = makeSupabaseClient();
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(client);
+  it("clamps feed limits to 50 before querying D1", async () => {
+    const database = new FakeD1Database();
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
 
     const actions = await import("@/lib/notifications/actions");
     const result = await actions.loadCurrentUserNotifications({ limit: 999 });
 
     expect(result).toEqual({ items: [], nextCursor: null });
     expect(authMocks.requireCurrentUserContext).toHaveBeenCalledTimes(1);
-    expect(client.from).toHaveBeenCalledWith("notification_deliveries");
-    expect(builder.calls).toContainEqual({ method: "eq", args: ["user_id", userId] });
-    expect(builder.calls).toContainEqual({ method: "limit", args: [51] });
+    expect(database.statements[0].sql).toContain("FROM notification_deliveries deliveries");
+    expect(database.statements[0].values).toEqual([userId, 51]);
   });
 
-  it("creates the service-role client only after current-user authentication", async () => {
+  it("opens the D1 store only after current-user authentication", async () => {
     const callOrder: string[] = [];
     authMocks.requireCurrentUserContext.mockImplementation(async () => {
       callOrder.push("auth");
       return { userId };
     });
-    const { builder, client } = makeSupabaseClient();
-    serviceRoleMocks.createSupabaseServiceRoleClient.mockImplementation(() => {
-      callOrder.push("service-role");
-      return client;
+    d1Mocks.getCloudflareD1Database.mockImplementation(async () => {
+      callOrder.push("d1");
+      return new FakeD1Database();
     });
 
     const actions = await import("@/lib/notifications/actions");
     await expect(actions.markNotificationReadAction(deliveryId)).resolves.toEqual({ ok: true });
 
-    expect(callOrder).toEqual(["auth", "service-role"]);
-    expect(builder.calls).toContainEqual({ method: "eq", args: ["id", deliveryId] });
-    expect(builder.calls).toContainEqual({ method: "eq", args: ["user_id", userId] });
-    expect(builder.calls).toContainEqual({
-      method: "update",
-      args: [expect.objectContaining({ read_at: expect.any(String), seen_at: expect.any(String) })],
-    });
+    expect(callOrder).toEqual(["auth", "d1"]);
+  });
+
+  it("marks notification deliveries read with a user-scoped D1 update", async () => {
+    const database = new FakeD1Database();
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+
+    const actions = await import("@/lib/notifications/actions");
+    await expect(actions.markNotificationReadAction(deliveryId)).resolves.toEqual({ ok: true });
+
+    const [update] = database.runStatements;
+    expect(update.sql).toContain("UPDATE notification_deliveries");
+    expect(update.sql).toContain("read_at = ?");
+    expect(update.sql).toContain("seen_at = ?");
+    expect(update.sql).toContain("WHERE id = ?");
+    expect(update.sql).toContain("AND user_id = ?");
+    expect(update.values.at(-2)).toBe(deliveryId);
+    expect(update.values.at(-1)).toBe(userId);
   });
 
   it("acknowledges release announcements by marking seen, read, and modal acknowledged", async () => {
-    const { builder, client } = makeSupabaseClient();
-    serviceRoleMocks.createSupabaseServiceRoleClient.mockReturnValue(client);
+    const database = new FakeD1Database();
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
 
     const actions = await import("@/lib/notifications/actions");
     await expect(actions.acknowledgeReleaseAnnouncementAction(deliveryId)).resolves.toEqual({ ok: true });
 
-    expect(builder.calls).toContainEqual({
-      method: "update",
-      args: [
-        expect.objectContaining({
-          modal_acknowledged_at: expect.any(String),
-          read_at: expect.any(String),
-          seen_at: expect.any(String),
-        }),
-      ],
-    });
-    expect(builder.calls).toContainEqual({ method: "eq", args: ["id", deliveryId] });
-    expect(builder.calls).toContainEqual({ method: "eq", args: ["user_id", userId] });
+    const [update] = database.runStatements;
+    expect(update.sql).toContain("modal_acknowledged_at = ?");
+    expect(update.sql).toContain("read_at = ?");
+    expect(update.sql).toContain("seen_at = ?");
+    expect(update.values.at(-2)).toBe(deliveryId);
+    expect(update.values.at(-1)).toBe(userId);
   });
 
   it("returns not_found without leaking another user's delivery existence", async () => {
-    const { client } = makeSupabaseClient(makeNotificationQueryBuilder({ maybeSingleData: null }));
-    serviceRoleMocks.createSupabaseServiceRoleClient.mockReturnValue(client);
+    const database = new FakeD1Database();
+    database.changes = 0;
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
 
     const actions = await import("@/lib/notifications/actions");
 
@@ -176,7 +164,7 @@ describe("notification server actions and repository contract", () => {
     });
   });
 
-  it("rejects invalid delivery ids before creating a service-role client", async () => {
+  it("rejects invalid delivery ids before opening D1", async () => {
     const actions = await import("@/lib/notifications/actions");
 
     await expect(actions.markNotificationReadAction("not-a-uuid")).resolves.toEqual({
@@ -184,7 +172,7 @@ describe("notification server actions and repository contract", () => {
       code: "invalid_input",
     });
     expect(authMocks.requireCurrentUserContext).toHaveBeenCalledTimes(1);
-    expect(serviceRoleMocks.createSupabaseServiceRoleClient).not.toHaveBeenCalled();
+    expect(d1Mocks.getCloudflareD1Database).not.toHaveBeenCalled();
   });
 
   it("rejects unsafe action hrefs at the server mapper boundary", async () => {
@@ -201,10 +189,8 @@ describe("notification server actions and repository contract", () => {
     expect(isAllowedNotificationActionHref("/workshop/projects bad")).toBe(false);
   });
 
-  it("returns safe unavailable errors when the service-role mutation fails", async () => {
-    serviceRoleMocks.createSupabaseServiceRoleClient.mockImplementation(() => {
-      throw new Error("missing service role key");
-    });
+  it("returns safe unavailable errors when D1 is unavailable", async () => {
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(null);
 
     const actions = await import("@/lib/notifications/actions");
 

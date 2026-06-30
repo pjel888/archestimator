@@ -179,6 +179,32 @@ describe("Cloudflare cost/performance workbook generator", () => {
     });
   });
 
+  it("prefers explicit hosted TTFB fields over legacy duration aliases", () => {
+    const workbook = buildCloudflareCostPerformanceWorkbook({
+      generatedAt: "2026-06-30T00:00:00.000Z",
+      cloudflareHostedPerformance: {
+        ...HOSTED_PERFORMANCE,
+        results: [
+          {
+            key: "home",
+            required: true,
+            p95TtfbMs: 88,
+            p95DurationMs: 950,
+            passed: true,
+            p95BudgetPassed: true,
+            samples: [{ ttfbMs: 88, durationMs: 950, passed: true, error: null }],
+          },
+        ],
+      },
+      cloudflareHostedPerformanceSource: "hosted-performance.json",
+    });
+
+    expect(workbook.performanceFixtures.find((row) => row.fixture === "Public home route p95 TTFB")).toMatchObject({
+      cloudflareHostedP95Ms: 88,
+      status: "hosted-partial-pass",
+    });
+  });
+
   it("treats a hosted route artifact as captured even when budgets fail", () => {
     const workbook = buildCloudflareCostPerformanceWorkbook({
       generatedAt: "2026-06-30T00:00:00.000Z",

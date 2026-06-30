@@ -8,6 +8,7 @@ function source(path: string) {
 describe("component library user preferences", () => {
   it("defines a locked-down account preference table", () => {
     const migration = source("supabase/migrations/20260625213000_component_library_user_preferences.sql");
+    const d1Migration = source("migrations/0011_component_library_preferences_telemetry.sql");
 
     expect(migration).toContain("create table if not exists public.component_library_user_preferences");
     expect(migration).toContain("primary key (user_id, workspace_id)");
@@ -17,6 +18,11 @@ describe("component library user preferences", () => {
     expect(migration).toContain("alter table public.component_library_user_preferences enable row level security");
     expect(migration).toContain("revoke all on table public.component_library_user_preferences from public, anon, authenticated");
     expect(migration).toContain("create policy \"deny direct api access\"");
+    expect(d1Migration).toContain("CREATE TABLE IF NOT EXISTS component_library_user_preferences");
+    expect(d1Migration).toContain("PRIMARY KEY (user_id, workspace_id)");
+    expect(d1Migration).toContain("favorite_item_ids_json TEXT NOT NULL DEFAULT '[]'");
+    expect(d1Migration).toContain("recent_item_ids_json TEXT NOT NULL DEFAULT '[]'");
+    expect(d1Migration).toContain("tree_order_json TEXT NOT NULL DEFAULT '{}'");
   });
 
   it("loads and saves preferences only through authenticated server actions", () => {
@@ -25,13 +31,14 @@ describe("component library user preferences", () => {
     expect(actions).toContain("export async function loadComponentLibraryUserPreferences");
     expect(actions).toContain("export async function saveComponentLibraryUserPreferences");
     expect(actions).toContain("await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()])");
-    expect(actions).toContain("createSupabaseServiceRoleClient(\"archestimator-component-library-preferences-read\")");
-    expect(actions).toContain("createSupabaseServiceRoleClient(\"archestimator-component-library-preferences-write\")");
+    expect(actions).toContain("loadComponentLibraryUserPreferencesFromCloudflareD1");
+    expect(actions).toContain("saveComponentLibraryUserPreferencesInCloudflareD1");
+    expect(actions).not.toContain("archestimator-component-library-preferences-read");
+    expect(actions).not.toContain("archestimator-component-library-preferences-write");
     expect(actions).toContain("normalizeComponentLibraryUserPreferences(input)");
     expect(actions).toContain("readComponentLibraryPreferenceIds(input.favoriteItemIds, 500)");
     expect(actions).toContain("readComponentLibraryTreeOrder(input.treeOrder)");
-    expect(actions).toContain(".upsert({");
-    expect(actions).toContain("onConflict: \"user_id,workspace_id\"");
+    expect(source("src/lib/component-library/d1-store.ts")).toContain("ON CONFLICT(user_id, workspace_id) DO UPDATE SET");
   });
 
   it("hydrates local preferences first and then syncs account preferences outside tests", () => {

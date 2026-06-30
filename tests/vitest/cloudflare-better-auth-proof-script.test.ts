@@ -38,7 +38,7 @@ export async function requireUserForBetterAuthRouteGate(auth: { api: { getSessio
 
 const GUARDED_NEXT_ROUTE_SOURCE = `
 import { NextResponse } from "next/server";
-import { createCloudflareBetterAuthNextHandlers } from "@/lib/auth/better-auth-cloudflare";
+import { createCloudflareBetterAuthNextHandlersForRequest } from "@/lib/auth/cloudflare-better-auth-runtime";
 
 function jsonError(error: string, status: number) {
   return NextResponse.json({ error }, { status, headers: { "Cache-Control": "private, no-cache, no-store" } });
@@ -50,12 +50,9 @@ async function loadCloudflareBetterAuthContext() {
 }
 
 async function createHandlers(request: Request) {
-  const secret = process.env.BETTER_AUTH_SECRET;
-  if (!secret) return jsonError("Better Auth route is not configured.", 503);
-  const context = await loadCloudflareBetterAuthContext();
-  const d1Database = context.env.ARCH_DB;
-  if (!d1Database) return jsonError("Better Auth D1 binding is not available.", 503);
-  return createCloudflareBetterAuthNextHandlers({ d1Database, baseURL: new URL(request.url).origin, secret });
+  const handlers = await createCloudflareBetterAuthNextHandlersForRequest(request);
+  if (!handlers) return jsonError("Better Auth route is not configured.", 503);
+  return handlers;
 }
 
 export async function GET(request: Request) {
@@ -66,6 +63,31 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const handlers = await createHandlers(request);
   return handlers instanceof Response ? handlers : handlers.POST(request);
+}
+`;
+
+const RUNTIME_SOURCE = `
+import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { createCloudflareBetterAuthNextHandlers, createCloudflareBetterAuthMagicLinkPlugin } from "@/lib/auth/better-auth-cloudflare";
+
+export function isCloudflareBetterAuthProviderEnabled() {
+  return process.env.ARCHESTIMATOR_AUTH_PROVIDER === "better-auth";
+}
+
+export async function createCloudflareBetterAuthForRequest(request: Request) {
+  return createCloudflareBetterAuthNextHandlersForRequest(request);
+}
+
+export async function getCloudflareBetterAuthIdentityFromRequest(request: Request) {
+  return { user: { id: "user-1", email: "person@example.com" }, session: { id: "session-1" } };
+}
+
+export async function createCloudflareBetterAuthNextHandlersForRequest(request: Request) {
+  const context = await getCloudflareContext({ async: true });
+  const d1Database = context.env.ARCH_DB;
+  const secret = process.env.BETTER_AUTH_SECRET;
+  const magicLink = await createCloudflareBetterAuthMagicLinkPlugin();
+  return createCloudflareBetterAuthNextHandlers({ d1Database, baseURL: new URL(request.url).origin, secret, plugins: [magicLink] });
 }
 `;
 
@@ -182,10 +204,11 @@ function proofInputs() {
     `,
     sourceFileTextByPath: {
       "src/lib/auth/better-auth-cloudflare.ts": SCAFFOLD_SOURCE,
-      "src/lib/auth/request-proxy.ts": "await supabase.auth.getClaims(); import '@supabase/ssr';",
-      "src/lib/auth/session.ts": "await supabase.auth.getUser();",
+      "src/lib/auth/cloudflare-better-auth-runtime.ts": RUNTIME_SOURCE,
+      "src/lib/auth/request-proxy.ts": "isCloudflareBetterAuthProviderEnabled(); await getCloudflareBetterAuthIdentityFromRequest(request); await supabase.auth.getClaims(); import '@supabase/ssr';",
+      "src/lib/auth/session.ts": "isCloudflareBetterAuthProviderEnabled(); await getCloudflareBetterAuthIdentityFromRequest(request); await supabase.auth.getUser();",
       "src/app/auth/callback/route.ts": "await supabase.auth.exchangeCodeForSession(code);",
-      "src/lib/auth/actions.ts": "await supabase.auth.signInWithOtp({ email }); await supabase.auth.signOut();",
+      "src/lib/auth/actions.ts": "isCloudflareBetterAuthProviderEnabled(); await createCloudflareBetterAuthForRequest(request); await supabase.auth.signInWithOtp({ email }); await supabase.auth.signOut();",
       "tests/vitest/cloudflare-better-auth-route-gate.test.ts": ROUTE_GATE_HELPER_TEST_SOURCE,
     },
     schemaSqlProof: SCHEMA_SQL_PROOF,
@@ -199,7 +222,7 @@ function proofInputs() {
         "tests/vitest/cloudflare-better-auth-route.test.ts",
         "tests/vitest/cloudflare-better-auth-route-gate.test.ts",
       ],
-      currentSupabaseGateFiles: [
+      legacySupabaseAuthGateFiles: [
         "src/lib/auth/request-proxy.ts",
         "src/lib/auth/session.ts",
         "src/app/auth/callback/route.ts",
@@ -237,8 +260,9 @@ describe("Cloudflare Better Auth proof generator", () => {
       routeGateD1SessionFixtureReady: true,
       betterAuthD1SchemaSqlGenerated: true,
       betterAuthD1SchemaSqlReviewReady: true,
+      selectableBetterAuthRuntimeReady: true,
       routeGateParityMatrixReady: true,
-      currentSupabaseGatePreserved: true,
+      legacySupabaseAuthGateRetired: false,
       localBetterAuthRouteGateProofReady: true,
       productionBetterAuthReady: false,
     });
@@ -269,7 +293,7 @@ describe("Cloudflare Better Auth proof generator", () => {
         expect.stringContaining("D1 schema SQL is generated and statically reviewed locally"),
         expect.stringContaining("has not been applied to hosted D1"),
         expect.stringContaining("secret rotation"),
-        expect.stringContaining("Supabase callback/actions/session helpers"),
+        expect.stringContaining("Legacy Supabase auth compatibility paths"),
         expect.stringContaining("local Better Auth helper denial/success behavior"),
         expect.stringContaining("D1-backed signed-cookie session fixtures"),
         expect.stringContaining("provider-backed callback/session cutover tests"),
@@ -314,8 +338,8 @@ describe("Cloudflare Better Auth proof generator", () => {
     );
     expect(report.productionCutoverBlockers).toEqual(
       expect.arrayContaining([
-        expect.stringContaining("OAuth provider credential callback proof"),
-        expect.stringContaining("Supabase callback/actions/session helpers"),
+        expect.stringContaining("production cutover is still not marked ready"),
+        expect.stringContaining("Legacy Supabase auth compatibility paths"),
       ]),
     );
     expect(report.productionCutoverBlockers).not.toEqual(

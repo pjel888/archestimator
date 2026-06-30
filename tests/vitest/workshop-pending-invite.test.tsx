@@ -115,6 +115,9 @@ describe("workshop pending invite bridge", () => {
   });
 
   it("keeps wrong-account bridge state retryable and includes invited email when available", () => {
+    expect(pendingInviteResolver).toContain("getCurrentUserContext");
+    expect(pendingInviteResolver).toContain("acceptInvitationTokenForUser");
+    expect(pendingInviteResolver).not.toContain("supabase.auth");
     expect(pendingInviteResolver).toContain('if (state === "wrong_account")');
     expect(pendingInviteResolver).toContain("invited_email");
     expect(pendingInviteRoute).toContain('banner.kind !== "wrong-account"');
@@ -124,7 +127,9 @@ describe("workshop pending invite bridge", () => {
     expect(homebaseClient).toContain("PendingInvitesPanel");
     expect(homebaseClient).toContain("acceptPendingInvitationById");
     expect(homebaseClient).toContain('name="invitationId"');
-    expect(pendingInviteActions).toContain("accept_collaboration_invitation_by_id");
+    expect(pendingInviteActions).toContain("acceptInvitationByIdForUser");
+    expect(pendingInviteActions).toContain("requireAuth");
+    expect(pendingInviteActions).not.toContain("supabase.auth");
     expect(pendingInviteActions).not.toContain("invitation_token_hash");
   });
 

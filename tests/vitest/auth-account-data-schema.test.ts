@@ -54,8 +54,8 @@ describe("auth account data schema", () => {
       join(process.cwd(), "src/lib/auth/account-actions.ts"),
       "utf8",
     );
-    const serviceRoleHelper = readFileSync(
-      join(process.cwd(), "src/lib/auth/account-service-role.ts"),
+    const d1Store = readFileSync(
+      join(process.cwd(), "src/lib/auth/account-settings-d1-store.ts"),
       "utf8",
     );
 
@@ -65,9 +65,10 @@ describe("auth account data schema", () => {
     expect(migration).toMatch(
       /revoke insert, update, delete on public\.user_onboarding_profiles from authenticated/i,
     );
-    expect(accountActions).toContain("createAccountServiceRoleClient");
-    expect(serviceRoleHelper).toContain('import "server-only"');
-    expect(serviceRoleHelper).toContain("SUPABASE_SERVICE_ROLE_KEY");
+    expect(accountActions).toContain("upsertUserOnboardingProfileInCloudflareD1");
+    expect(d1Store).toContain('import "server-only"');
+    expect(d1Store).toContain("getCloudflareD1Database");
+    expect(d1Store).not.toMatch(/SUPABASE_SERVICE_ROLE_KEY|@supabase\/supabase-js|createClient/);
   });
 
   it("lets project and estimate collaborators read only their parent workspace account scope", () => {

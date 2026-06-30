@@ -34,7 +34,7 @@ const AUTH_UPSERT_TABLES_EXEMPT = new Map<string, string>([
   ["estimate_sheet_members", "service-role/admin client (collaboration actions)"],
   ["estimate_sheet_access_settings", "service-role/admin client (collaboration actions)"],
   ["user_onboarding_profiles", "account service-role client"],
-  ["ai_action_runs", "AI audit service-role client"],
+  ["ai_action_runs", "Cloudflare D1 AI audit store, not authenticated Supabase client"],
   ["estimate_row_items", "no explicit grant migration; relies on Supabase default privileges"],
 ]);
 

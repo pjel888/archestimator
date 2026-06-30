@@ -47,7 +47,14 @@ function passingHostedFetch(fakeToken = "fake-token") {
     if (PUBLIC_PAGE_PATHS.has(path)) {
       return {
         status: 200,
-        headers: { "content-type": "text/html; charset=utf-8" },
+        headers: {
+          "age": "120",
+          "cf-cache-status": "HIT",
+          "cf-ray": "example-HKG",
+          "content-type": "text/html; charset=utf-8",
+          "x-nextjs-prerender": "1",
+          "x-opennext": "1",
+        },
         body: "<!doctype html><html><body>ok</body></html>",
       };
     }
@@ -102,16 +109,34 @@ describe("Cloudflare hosted performance verifier", () => {
     expect(report.runs).toBe(20);
     expect(report.minimumP95Runs).toBe(20);
     expect(report.p95Method).toBe("nearest-rank");
+    expect(report.budgetMetric).toBe("ttfbMs");
     expect(report.p95SampleCountReady).toBe(true);
     expect(report.p95BudgetReady).toBe(true);
     expect(report.warmupRuns).toBe(1);
     expect(report.hostedCredentialFreePerformanceReady).toBe(true);
     expect(report.hostedPerformanceReady).toBe(false);
     expect(report.providerBacked).toBe(true);
+    expect(report.results.find((result) => result.key === "health")).toMatchObject({
+      required: true,
+      passed: true,
+      budgetMs: null,
+      budgetLabel: "liveness contract only",
+      p95BudgetPassed: null,
+    });
     expect(report.results.find((result) => result.key === "home")).toMatchObject({
       required: true,
       passed: true,
+      p95TtfbMs: expect.any(Number),
       p95BudgetPassed: true,
+    });
+    expect(report.results.find((result) => result.key === "home")?.samples[0]).toMatchObject({
+      ttfbMs: expect.any(Number),
+      bodyDownloadMs: expect.any(Number),
+      cfCacheStatus: "HIT",
+      cfRay: "example-HKG",
+      age: "120",
+      xNextjsPrerender: "1",
+      xOpenNext: "1",
     });
     expect(report.results.find((result) => result.key === "project-image-missing-path")).toMatchObject({
       required: true,
@@ -145,8 +170,10 @@ describe("Cloudflare hosted performance verifier", () => {
 
     const home = report.results.find((result) => result.key === "home");
     expect(home?.warmupSamples).toHaveLength(1);
+    expect(home?.warmupSamples[0]?.ttfbMs).toBe(900);
     expect(home?.warmupSamples[0]?.durationMs).toBe(900);
     expect(home?.samples).toHaveLength(1);
+    expect(home?.p95TtfbMs).toBe(5);
     expect(home?.p95DurationMs).toBe(5);
     expect(home?.p95BudgetPassed).toBe(true);
     expect(report.p95SampleCountReady).toBe(false);
@@ -179,6 +206,8 @@ describe("Cloudflare hosted performance verifier", () => {
     expect(report.p95SampleCountReady).toBe(true);
     expect(report.p95BudgetReady).toBe(true);
     expect(home?.maxDurationMs).toBe(900);
+    expect(home?.maxTtfbMs).toBe(900);
+    expect(home?.p95TtfbMs).toBe(5);
     expect(home?.p95DurationMs).toBe(5);
     expect(home?.p95BudgetPassed).toBe(true);
   });
@@ -226,6 +255,10 @@ describe("Cloudflare hosted performance verifier", () => {
       writeMarkdown(report, file);
       const markdown = readFileSync(file, "utf8");
       expect(markdown).toContain("Cloudflare Hosted Worker Performance");
+      expect(markdown).toContain("Budget metric: ttfbMs");
+      expect(markdown).toContain("P95 TTFB");
+      expect(markdown).toContain("CF Cache");
+      expect(markdown).toContain("HIT");
       expect(markdown).not.toContain("raw-fake-token");
     } finally {
       rmSync(dir, { recursive: true, force: true });

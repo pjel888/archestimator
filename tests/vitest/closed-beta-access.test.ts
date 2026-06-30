@@ -8,13 +8,13 @@ describe("closed beta access helper", () => {
   });
 
   it("allows every authenticated user while the beta gate is disabled", async () => {
-    const rpc = vi.fn();
+    const checkAccess = vi.fn();
     const { getClosedBetaAccessForEmail } = await import("@/lib/auth/closed-beta-access");
 
     const result = await getClosedBetaAccessForEmail({
       email: "user@example.com",
       env: { CLOSED_BETA_ACCESS_ENABLED: "false" },
-      supabase: { rpc },
+      store: { checkAccess },
     });
 
     expect(result).toEqual({
@@ -22,23 +22,24 @@ describe("closed beta access helper", () => {
       status: "disabled",
       normalizedEmail: "user@example.com",
     });
-    expect(rpc).not.toHaveBeenCalled();
+    expect(checkAccess).not.toHaveBeenCalled();
   });
 
-  it("uses the server-side RPC for enabled access decisions", async () => {
-    const rpc = vi.fn(async () => ({
-      data: { allowed: true, status: "invited", normalized_email: "pilot@example.com" },
-      error: null,
+  it("uses the D1 access store for enabled access decisions", async () => {
+    const checkAccess = vi.fn(async () => ({
+      allowed: true,
+      status: "invited",
+      normalizedEmail: "pilot@example.com",
     }));
     const { getClosedBetaAccessForEmail } = await import("@/lib/auth/closed-beta-access");
 
     const result = await getClosedBetaAccessForEmail({
       email: " Pilot@Example.COM ",
       env: { CLOSED_BETA_ACCESS_ENABLED: "true" },
-      supabase: { rpc },
+      store: { checkAccess },
     });
 
-    expect(rpc).toHaveBeenCalledWith("check_closed_beta_access", { raw_email: "pilot@example.com" });
+    expect(checkAccess).toHaveBeenCalledWith("pilot@example.com");
     expect(result).toEqual({
       allowed: true,
       status: "invited",
@@ -46,18 +47,17 @@ describe("closed beta access helper", () => {
     });
   });
 
-  it("fails closed when the RPC errors or no verified email is available", async () => {
-    const rpc = vi.fn(async () => ({
-      data: null,
-      error: { message: "permission denied" },
-    }));
+  it("fails closed when the D1 store errors or no verified email is available", async () => {
+    const checkAccess = vi.fn(async () => {
+      throw new Error("permission denied");
+    });
     const { getClosedBetaAccessForEmail } = await import("@/lib/auth/closed-beta-access");
 
     await expect(
       getClosedBetaAccessForEmail({
         email: "",
         env: { CLOSED_BETA_ACCESS_ENABLED: "true" },
-        supabase: { rpc },
+        store: { checkAccess },
       }),
     ).resolves.toEqual({
       allowed: false,
@@ -69,7 +69,7 @@ describe("closed beta access helper", () => {
       getClosedBetaAccessForEmail({
         email: "blocked@example.com",
         env: { CLOSED_BETA_ACCESS_ENABLED: "true" },
-        supabase: { rpc },
+        store: { checkAccess },
       }),
     ).resolves.toEqual({
       allowed: false,

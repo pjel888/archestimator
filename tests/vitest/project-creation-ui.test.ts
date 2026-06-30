@@ -460,8 +460,9 @@ describe("project creation UI governance", () => {
       "metadata.projectImageThumbnailPath = image.thumbnailPath",
     );
     expect(projectActions).toContain("getProjectImageStoragePaths(metadata)");
+    expect(projectActions).toContain("createRuntimeUploadStorageProvider(supabase)");
     expect(projectActions).toContain(
-      "await removeStoredProjectImagePaths(supabase, getProjectImageStoragePaths(metadata))",
+      "await removeStoredProjectImagePaths(storageProvider, getProjectImageStoragePaths(metadata))",
     );
     expect(projectImageRoute).toContain(
       'const PROJECT_IMAGE_BUCKET = "project-images"',

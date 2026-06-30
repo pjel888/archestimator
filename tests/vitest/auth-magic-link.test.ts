@@ -15,33 +15,37 @@ describe("magic-link auth callback", () => {
     vi.unstubAllEnvs();
   });
 
-  it("uses a route handler so Supabase session cookies can be written before redirect", () => {
+  it("keeps the retired legacy callback route fail-closed for old links", () => {
     const callbackRoute = readProjectFile("src/app/auth/callback/route.ts");
 
     expect(callbackRoute).toContain("export async function GET");
-    expect(callbackRoute).toContain("exchangeCodeForSession(code)");
+    expect(callbackRoute).not.toContain("exchangeCodeForSession(code)");
+    expect(callbackRoute).toContain("auth_callback_legacy_disabled");
     expect(callbackRoute).toContain("NextResponse.redirect");
     expect(callbackRoute).toContain("callback_missing_code");
   });
 
-  it("keeps magic-link redirects pointed at the callback route with sanitized next path", () => {
+  it("routes magic-link requests through Better Auth with sanitized next path", () => {
     const authActions = readProjectFile("src/lib/auth/actions.ts");
 
-    expect(authActions).toContain("signInWithOtp");
-    expect(authActions).toContain("emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`");
+    expect(authActions).toContain('path: "/api/auth/sign-in/magic-link"');
+    expect(authActions).toContain("callbackURL");
+    expect(authActions).toContain("better_auth_magic_link");
     expect(authActions).toContain("sanitizeNextPath");
+    expect(authActions).not.toContain("signInWithOtp");
   });
 
-  it("supports Google OAuth through the same callback route while keeping email as fallback", () => {
+  it("supports Google OAuth through Better Auth while keeping email as fallback", () => {
     const authActions = readProjectFile("src/lib/auth/actions.ts");
     const loginPage = readProjectFile("src/app/login/page.tsx");
     const loginForm = readProjectFile("src/components/auth/LoginForm.tsx");
     const loginSurface = `${loginPage}\n${loginForm}`;
 
     expect(authActions).toContain("signInWithGoogle");
-    expect(authActions).toContain("signInWithOAuth");
+    expect(authActions).toContain('path: "/api/auth/sign-in/social"');
     expect(authActions).toContain('provider: "google"');
-    expect(authActions).toContain("redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`");
+    expect(authActions).toContain('redirect_to: `${origin}/api/auth/callback/google`');
+    expect(authActions).not.toContain("signInWithOAuth");
     expect(loginSurface).toContain("Continue with Google");
     expect(loginSurface).toContain("signInWithGoogle");
     expect(loginSurface).toContain("signInWithEmail");
@@ -60,8 +64,9 @@ describe("magic-link auth callback", () => {
     expect(devAuthGate).toContain('normalizedHostname === "127.0.0.1"');
     expect(devAuthGate).toContain('normalizedHostname === "::1"');
     expect(devAuthGate).toContain("DEV_AUTH_ADMIN_DB_FLAG");
-    expect(devAuth).toContain("SUPABASE_SERVICE_ROLE_KEY");
-    expect(devAuth).toContain("persistSession: false");
+    expect(devAuth).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
+    expect(devAuth).not.toContain("@supabase/supabase-js");
+    expect(devAuth).toContain("getProfileByEmailFromCloudflareD1");
     expect(devAuth).toContain("getDevCurrentUserContext");
     expect(proxy).toContain("getDevAuthBypassCredentialFromRequestParts(request.headers, request.cookies)");
     expect(proxy).toContain("isDevAuthBypassRequest(request.nextUrl.hostname, devAuthBypassCredential)");
@@ -69,11 +74,14 @@ describe("magic-link auth callback", () => {
     expect(devAuth).toContain("headers");
     expect(devAuth).toContain("getDevAuthBypassCredentialFromRequestParts(requestHeaders, await cookies())");
     expect(devAuth).toContain("isDevAuthBypassRequest(hostHeader, devAuthBypassCredential)");
-    expect(serverClient).toContain("headers");
-    expect(serverClient).toContain("isDevAdminDatabaseBypassRequest(hostHeader, devAuthBypassCredential)");
+    expect(serverClient).not.toContain("isDevAdminDatabaseBypassRequest");
+    expect(serverClient).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
+    expect(serverClient).toContain("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+    expect(serverClient).toContain("persistSession: false");
     expect(envExample).toContain("ARCHESTIMATOR_DEV_AUTH_BYPASS=0");
     expect(envExample).toContain("ARCHESTIMATOR_DEV_AUTH_ADMIN_DB=0");
     expect(envExample).toContain("ARCHESTIMATOR_DEV_AUTH_BYPASS_SECRET=");
+    expect(envExample).not.toContain("SUPABASE_SERVICE_ROLE_KEY=");
   });
 
   it("requires explicit local-only flags for dev auth and admin database bypasses", () => {

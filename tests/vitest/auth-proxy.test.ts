@@ -15,8 +15,13 @@ import {
 const supabaseSsrMocks = vi.hoisted(() => ({
   createServerClient: vi.fn(),
 }));
+const betterAuthRuntimeMocks = vi.hoisted(() => ({
+  getCloudflareBetterAuthIdentityFromRequest: vi.fn(),
+  isCloudflareBetterAuthProviderEnabled: vi.fn(() => false),
+}));
 
 vi.mock("@supabase/ssr", () => supabaseSsrMocks);
+vi.mock("@/lib/auth/cloudflare-better-auth-runtime", () => betterAuthRuntimeMocks);
 
 function request(url: string, init?: RequestInit) {
   return new NextRequest(new URL(url), init);
@@ -50,6 +55,15 @@ function createTermsAcceptanceQuery({
 }
 
 function mockUser(user: unknown, options?: { termsAccepted?: boolean; termsError?: { message?: string } | null }) {
+  const authUser = user && typeof user === "object" ? user as { id?: unknown; email?: unknown } : null;
+  betterAuthRuntimeMocks.getCloudflareBetterAuthIdentityFromRequest.mockResolvedValue(authUser?.id
+    ? {
+        id: String(authUser.id),
+        email: typeof authUser.email === "string" ? authUser.email : "user@example.com",
+        displayName: null,
+        avatarUrl: null,
+      }
+    : null);
   const rpc = vi.fn(async () => ({
     data: { allowed: true, status: "active", normalized_email: "user@example.com" },
     error: null,
@@ -60,7 +74,6 @@ function mockUser(user: unknown, options?: { termsAccepted?: boolean; termsError
     error: options?.termsError ?? null,
   });
   supabaseSsrMocks.createServerClient.mockImplementation((_url, _key, options) => {
-    const authUser = user && typeof user === "object" ? user as { id?: unknown; email?: unknown } : null;
     return {
       auth: {
         getClaims: vi.fn(async () => ({
@@ -104,27 +117,16 @@ describe("auth proxy", () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "anon-key");
     vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "test-service-role-secret");
+    vi.stubEnv("BETTER_AUTH_SECRET", "test-better-auth-secret-with-enough-length");
     vi.stubEnv("ARCHESTIMATOR_DEV_AUTH_BYPASS", "0");
     vi.stubEnv("CLOSED_BETA_ACCESS_ENABLED", "false");
+    vi.stubEnv("ARCHESTIMATOR_AUTH_PROVIDER", "better-auth");
+    betterAuthRuntimeMocks.isCloudflareBetterAuthProviderEnabled.mockReturnValue(true);
+    betterAuthRuntimeMocks.getCloudflareBetterAuthIdentityFromRequest.mockResolvedValue(null);
   });
 
   it("redirects signed-out protected workshop requests to canonical login with safe next", async () => {
     mockUser(null);
-    const { proxy } = await import("@/proxy");
-
-    const response = await proxy(request("http://localhost:3000/workshop?tab=projects"));
-
-    expect(supabaseSsrMocks.createServerClient).toHaveBeenCalledTimes(1);
-    expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe(
-      "http://localhost:3000/login?next=%2Fworkshop%3Ftab%3Dprojects",
-    );
-  });
-
-  it("fails closed to login before creating a Supabase client when hosted env is missing", async () => {
-    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
-    vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "");
-    mockUser({ id: "user-1" });
     const { proxy } = await import("@/proxy");
 
     const response = await proxy(request("http://localhost:3000/workshop?tab=projects"));
@@ -136,10 +138,46 @@ describe("auth proxy", () => {
     );
   });
 
+  it("fails closed to login before creating a Supabase client when hosted env is missing", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "");
+    mockUser(null);
+    const { proxy } = await import("@/proxy");
+
+    const response = await proxy(request("http://localhost:3000/workshop?tab=projects"));
+
+    expect(supabaseSsrMocks.createServerClient).not.toHaveBeenCalled();
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "http://localhost:3000/login?next=%2Fworkshop%3Ftab%3Dprojects",
+    );
+  });
+
+  it("fails closed to login when Cloudflare Better Auth is selected but no D1 session is present", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "");
+    vi.stubEnv("ARCHESTIMATOR_AUTH_PROVIDER", "better-auth");
+    betterAuthRuntimeMocks.getCloudflareBetterAuthIdentityFromRequest.mockResolvedValue(null);
+    mockUser(null);
+    const { proxy } = await import("@/proxy");
+
+    const response = await proxy(request("http://localhost:3000/workshop?tab=projects"));
+
+    expect(supabaseSsrMocks.createServerClient).not.toHaveBeenCalled();
+    expect(betterAuthRuntimeMocks.getCloudflareBetterAuthIdentityFromRequest).toHaveBeenCalledWith({
+      headers: expect.any(Headers),
+      requestUrl: "http://localhost:3000/workshop?tab=projects",
+    });
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "http://localhost:3000/login?next=%2Fworkshop%3Ftab%3Dprojects",
+    );
+  });
+
   it("keeps the login route renderable instead of creating a Supabase client when hosted env is missing", async () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "");
-    mockUser({ id: "user-1" });
+    mockUser(null);
     const { proxy } = await import("@/proxy");
 
     const response = await proxy(request("http://localhost:3000/login"));
@@ -159,54 +197,70 @@ describe("auth proxy", () => {
     expect(response.headers.get("location")).toBe("http://localhost:3000/workshop");
   });
 
-  it("redirects signed-in protected workshop requests to beta access when the allowlist denies access", async () => {
+  it("does not do Supabase beta access work in the proxy", async () => {
     const { rpc, signOut } = mockUser({ id: "user-1", email: "outsider@example.com" });
-    rpc.mockResolvedValueOnce({
-      data: { allowed: false, status: "missing", normalized_email: "outsider@example.com" },
-      error: null,
-    });
     vi.stubEnv("CLOSED_BETA_ACCESS_ENABLED", "true");
     const { proxy } = await import("@/proxy");
 
     const response = await proxy(request("http://localhost:3000/workshop/projects"));
 
-    expect(rpc).toHaveBeenCalledWith("check_closed_beta_access", { raw_email: "outsider@example.com" });
-    expect(signOut).toHaveBeenCalledTimes(1);
-    expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe("http://localhost:3000/access-required");
-    expect(response.cookies.get("sb-test-auth-token")?.value).toBe("");
+    expect(rpc).not.toHaveBeenCalled();
+    expect(signOut).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(response.headers.get(`x-middleware-request-${AUTH_VERIFIED_REQUEST_HEADER}`)).toBe(
+      AUTH_VERIFIED_REQUEST_HEADER_VALUE,
+    );
   });
 
-  it("redirects signed-in protected workshop requests to the Terms gate when current Terms are unaccepted", async () => {
+  it("lets the server layout enforce Terms when no valid Terms gate cookie is present", async () => {
     mockUser({ id: "user-1", email: "user@example.com" }, { termsAccepted: false });
     const { proxy } = await import("@/proxy");
 
     const response = await proxy(request("http://localhost:3000/workshop/projects?view=active"));
 
-    expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe(
-      "http://localhost:3000/workshop/terms?next=%2Fworkshop%2Fprojects%3Fview%3Dactive",
+    expect(response.status).toBe(200);
+    expect(response.headers.get(`x-middleware-request-${AUTH_VERIFIED_REQUEST_HEADER}`)).toBe(
+      AUTH_VERIFIED_REQUEST_HEADER_VALUE,
     );
-    expect(response.headers.get("Cache-Control")).toBe(
-      "private, no-cache, no-store, max-age=0, must-revalidate",
-    );
+    expect(response.headers.get(`x-middleware-request-${TERMS_ACCEPTED_REQUEST_HEADER}`)).toBeNull();
   });
 
-  it("marks accepted protected workshop requests as proxy-verified for the server layout", async () => {
+  it("marks protected workshop requests as auth-verified while leaving Terms to the server layout without the gate cookie", async () => {
     const { termsQuery } = mockUser({ id: "user-1", email: "user@example.com" }, { termsAccepted: true });
     const { proxy } = await import("@/proxy");
 
     const response = await proxy(request("http://localhost:3000/workshop/projects"));
 
     expect(response.status).toBe(200);
-    expect(termsQuery.from).toHaveBeenCalledWith("legal_terms_acceptances");
+    expect(termsQuery.from).not.toHaveBeenCalled();
     expect(response.headers.get(`x-middleware-request-${AUTH_VERIFIED_REQUEST_HEADER}`)).toBe(
       AUTH_VERIFIED_REQUEST_HEADER_VALUE,
     );
-    expect(response.headers.get(`x-middleware-request-${TERMS_ACCEPTED_REQUEST_HEADER}`)).toBe(
-      TERMS_ACCEPTED_REQUEST_HEADER_VALUE,
+    expect(response.headers.get(`x-middleware-request-${TERMS_ACCEPTED_REQUEST_HEADER}`)).toBeNull();
+    expect(response.cookies.get(TERMS_GATE_COOKIE_NAME)).toBeUndefined();
+  });
+
+  it("uses a Cloudflare Better Auth D1 session for protected route gates when selected", async () => {
+    mockUser(null, { termsAccepted: true });
+    betterAuthRuntimeMocks.getCloudflareBetterAuthIdentityFromRequest.mockResolvedValue({
+      id: "better-auth-user-1",
+      email: "user@example.com",
+      displayName: "User",
+      avatarUrl: null,
+    });
+    const { proxy } = await import("@/proxy");
+
+    const response = await proxy(request("http://localhost:3000/workshop/projects"));
+
+    expect(response.status).toBe(200);
+    expect(betterAuthRuntimeMocks.getCloudflareBetterAuthIdentityFromRequest).toHaveBeenCalledWith({
+      headers: expect.any(Headers),
+      requestUrl: "http://localhost:3000/workshop/projects",
+    });
+    expect(response.headers.get(`x-middleware-request-${AUTH_VERIFIED_REQUEST_HEADER}`)).toBe(
+      AUTH_VERIFIED_REQUEST_HEADER_VALUE,
     );
-    expect(response.cookies.get(TERMS_GATE_COOKIE_NAME)?.value).toBeTruthy();
+    expect(response.headers.get(`x-middleware-request-${TERMS_ACCEPTED_REQUEST_HEADER}`)).toBeNull();
   });
 
   it("skips the Terms database lookup when a valid signed Terms gate cookie is present", async () => {
@@ -252,21 +306,17 @@ describe("auth proxy", () => {
     expect(supabaseSsrMocks.createServerClient).not.toHaveBeenCalled();
   });
 
-  it("redirects signed-in login requests to beta access instead of the workshop when revoked", async () => {
+  it("does not perform Supabase beta sign-out from the login-route proxy", async () => {
     const { rpc, signOut } = mockUser({ id: "user-1", email: "revoked@example.com" });
-    rpc.mockResolvedValueOnce({
-      data: { allowed: false, status: "revoked", normalized_email: "revoked@example.com" },
-      error: null,
-    });
     vi.stubEnv("CLOSED_BETA_ACCESS_ENABLED", "true");
     const { proxy } = await import("@/proxy");
 
     const response = await proxy(request("http://localhost:3000/login"));
 
-    expect(signOut).toHaveBeenCalledTimes(1);
+    expect(rpc).not.toHaveBeenCalled();
+    expect(signOut).not.toHaveBeenCalled();
     expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe("http://localhost:3000/access-required?status=revoked");
-    expect(response.cookies.get("sb-test-auth-token")?.value).toBe("");
+    expect(response.headers.get("location")).toBe("http://localhost:3000/workshop");
   });
 
   it("keeps access-required public to avoid redirect loops", async () => {
@@ -341,7 +391,7 @@ describe("auth proxy", () => {
 
     const response = await proxy(request("http://localhost:3000/login"));
 
-    expect(supabaseSsrMocks.createServerClient).toHaveBeenCalledTimes(1);
+    expect(supabaseSsrMocks.createServerClient).not.toHaveBeenCalled();
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe("http://localhost:3000/workshop");
   });

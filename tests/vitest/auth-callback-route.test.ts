@@ -51,14 +51,7 @@ describe("auth callback route", () => {
     );
   });
 
-  it("hides raw provider exchange errors from callback redirects", async () => {
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({
-      auth: {
-        exchangeCodeForSession: vi.fn(async () => ({
-          error: { message: "invalid_grant refresh_token secret" },
-        })),
-      },
-    });
+  it("rejects legacy callback codes with a stable public error", async () => {
     const { GET } = await import("@/app/auth/callback/route");
 
     const response = await GET(
@@ -69,56 +62,40 @@ describe("auth callback route", () => {
     expect(response.headers.get("location")).toBe(
       "http://localhost:3000/login?error=callback_exchange_failed&next=%2Fworkshop%2Fprojects",
     );
-    expect(response.headers.get("location")).not.toMatch(/invalid_grant|refresh_token|secret/i);
+    expect(supabaseServerMocks.createSupabaseServerClient).not.toHaveBeenCalled();
+    expect(accountAuditMocks.recordAccountSecurityEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: "auth_callback_legacy_disabled",
+        metadata: expect.objectContaining({
+          public_error_code: "callback_exchange_failed",
+          safe_next: "/workshop/projects",
+        }),
+      }),
+    );
   });
 
-  it("routes successful auth callbacks directly to the workshop homebase", async () => {
-    const getUser = vi.fn(async () => ({
-      data: { user: { id: "user-1" } },
-    }));
-    const supabase = {
-      auth: {
-        exchangeCodeForSession: vi.fn(async () => ({ error: null })),
-        getUser,
-      },
-    };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
-    accountSetupMocks.resolvePostAuthDestination.mockReturnValue("/workshop");
+  it("does not route legacy callbacks to post-auth destinations", async () => {
     const { GET } = await import("@/app/auth/callback/route");
 
     const response = await GET(
       request("http://localhost:3000/auth/callback?code=abc&next=/workshop/projects"),
     );
 
-    expect(accountSetupMocks.resolvePostAuthDestination).toHaveBeenCalledWith("/workshop/projects");
-    expect(response.headers.get("location")).toBe("http://localhost:3000/workshop");
+    expect(accountSetupMocks.resolvePostAuthDestination).not.toHaveBeenCalled();
+    expect(response.headers.get("location")).toBe(
+      "http://localhost:3000/login?error=callback_exchange_failed&next=%2Fworkshop%2Fprojects",
+    );
   });
 
-  it("routes successful but non-allowlisted callbacks to beta access-required", async () => {
-    const rpc = vi.fn(async () => ({
-      data: { allowed: false, status: "missing", normalized_email: "outsider@example.com" },
-      error: null,
-    }));
-    const signOut = vi.fn(async () => ({ error: null }));
-    const supabase = {
-      auth: {
-        exchangeCodeForSession: vi.fn(async () => ({ error: null })),
-        getUser: vi.fn(async () => ({
-          data: { user: { id: "user-1", email: "outsider@example.com" } },
-        })),
-        signOut,
-      },
-      rpc,
-    };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
-    vi.stubEnv("CLOSED_BETA_ACCESS_ENABLED", "true");
+  it("does not run Supabase beta access checks from the retired callback", async () => {
     const { GET } = await import("@/app/auth/callback/route");
 
     const response = await GET(request("http://localhost:3000/auth/callback?code=abc&next=/workshop"));
 
-    expect(rpc).toHaveBeenCalledWith("check_closed_beta_access", { raw_email: "outsider@example.com" });
-    expect(signOut).toHaveBeenCalledTimes(1);
+    expect(supabaseServerMocks.createSupabaseServerClient).not.toHaveBeenCalled();
     expect(accountSetupMocks.resolvePostAuthDestination).not.toHaveBeenCalled();
-    expect(response.headers.get("location")).toBe("http://localhost:3000/beta/access-required");
+    expect(response.headers.get("location")).toBe(
+      "http://localhost:3000/login?error=callback_exchange_failed&next=%2Fworkshop",
+    );
   });
 });

@@ -46,7 +46,14 @@ function passingPreviewFetch(fakeToken = "fake-token") {
     if (PUBLIC_PAGE_PATHS.has(path)) {
       return {
         status: 200,
-        headers: { "content-type": "text/html; charset=utf-8" },
+        headers: {
+          "age": "120",
+          "cf-cache-status": "HIT",
+          "cf-ray": "example-HKG",
+          "content-type": "text/html; charset=utf-8",
+          "x-nextjs-prerender": "1",
+          "x-opennext": "1",
+        },
         body: "<!doctype html><html><body>ok</body></html>",
       };
     }
@@ -115,6 +122,15 @@ describe("Cloudflare Worker preview route verifier", () => {
     expect(report.passed).toBe(true);
     expect(report.results).toHaveLength(16);
     expect(report.results.every((result) => result.passed)).toBe(true);
+    expect(report.results.find((result) => result.key === "home")?.samples[0]).toMatchObject({
+      ttfbMs: expect.any(Number),
+      bodyDownloadMs: expect.any(Number),
+      cfCacheStatus: "HIT",
+      cfRay: "example-HKG",
+      age: "120",
+      xNextjsPrerender: "1",
+      xOpenNext: "1",
+    });
     expect(report.note).toContain("not provider deployment");
   });
 
@@ -209,6 +225,10 @@ describe("Cloudflare Worker preview route verifier", () => {
       writeMarkdown(report, file);
       const markdown = readFileSync(file, "utf8");
       expect(markdown).toContain("<redacted-fake-token>");
+      expect(markdown).toContain("TTFB");
+      expect(markdown).toContain("Body download");
+      expect(markdown).toContain("CF Cache");
+      expect(markdown).toContain("HIT");
       expect(markdown).not.toContain("raw-fake-token");
     } finally {
       rmSync(dir, { recursive: true, force: true });

@@ -248,6 +248,35 @@ describe("Cloudflare provider readiness checker", () => {
     expect(result.productionCutoverReady).toBe(false);
   });
 
+  it("surfaces provider resource secret-name blockers instead of hiding them behind generic wording", () => {
+    const result = checkCloudflareProviderReadiness(
+      CURRENT_SANITIZED_EVIDENCE,
+      "source.json",
+      null,
+      null,
+      AUTHENTICATED_WRANGLER,
+      "wrangler-auth.json",
+      {
+        ...PROVIDER_RESOURCE_READBACK,
+        readiness: {
+          ...PROVIDER_RESOURCE_READBACK.readiness,
+          workerSecretNameReadbackReady: false,
+          providerResourceReadbackReady: false,
+        },
+        blockers: [
+          "Worker secret name list: missing expected names BETTER_AUTH_GOOGLE_CLIENT_ID, BETTER_AUTH_GOOGLE_CLIENT_SECRET.",
+        ],
+      },
+      "provider-resource-readback.json",
+    );
+
+    expect(result.checks.find((check) => check.key === "worker-secrets")).toMatchObject({
+      ready: false,
+      blocker:
+        "Worker secret name readback is incomplete: Worker secret name list: missing expected names BETTER_AUTH_GOOGLE_CLIENT_ID, BETTER_AUTH_GOOGLE_CLIENT_SECRET.",
+    });
+  });
+
   it("uses provider runtime proof for Images and R2 storage/media readiness", () => {
     const result = checkCloudflareProviderReadiness(
       CURRENT_SANITIZED_EVIDENCE,

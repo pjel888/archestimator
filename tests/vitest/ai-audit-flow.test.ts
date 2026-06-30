@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const supabaseJsMocks = vi.hoisted(() => ({
-  createClient: vi.fn(),
+const d1Mocks = vi.hoisted(() => ({
+  getCloudflareD1Database: vi.fn(),
 }));
 
-vi.mock("@supabase/supabase-js", () => supabaseJsMocks);
+vi.mock("@/lib/cloudflare/d1", () => d1Mocks);
 
 import {
   buildAiAskAuditEvent,
@@ -13,17 +13,174 @@ import {
   recordAiAskAuditEvent,
   recordAiPackageApplyAuthorization,
 } from "@/lib/ai/audit";
+import { checkAiAskQuota } from "@/lib/ai/rate-limit";
 
-const originalEnv = { ...process.env };
+type StoredRow = Record<string, unknown>;
+
+class FakeD1Statement {
+  private values: unknown[] = [];
+
+  constructor(
+    private readonly database: FakeD1Database,
+    private readonly sql: string,
+  ) {}
+
+  bind(...values: unknown[]) {
+    this.values = values;
+    return this;
+  }
+
+  async first<R>() {
+    const normalizedSql = this.sql.toLowerCase();
+    if (!normalizedSql.includes("from security_rate_limit_events")) return null;
+    const [scope, keyHash, since] = this.values;
+    const count = this.database.rateLimitEvents.filter((event) =>
+      event.scope === scope
+      && event.key_hash === keyHash
+      && String(event.occurred_at) >= String(since)
+    ).length;
+    return { count } as R;
+  }
+
+  async all<R>() {
+    return { results: [] as R[] };
+  }
+
+  async run() {
+    const normalizedSql = this.sql.toLowerCase();
+    if (normalizedSql.includes("delete from security_rate_limit_events")) {
+      const [now] = this.values;
+      this.database.rateLimitEvents = this.database.rateLimitEvents.filter((event) =>
+        String(event.expires_at) >= String(now)
+      );
+      return { success: true, meta: { changes: 1 } };
+    }
+    if (normalizedSql.includes("insert into security_rate_limit_events")) {
+      const [id, scope, keyHash, metadataJson, occurredAt, expiresAt] = this.values;
+      this.database.rateLimitEvents.push({
+        expires_at: String(expiresAt),
+        id: String(id),
+        key_hash: String(keyHash),
+        metadata_json: String(metadataJson),
+        occurred_at: String(occurredAt),
+        scope: String(scope),
+      });
+      return { success: true, meta: { changes: 1 } };
+    }
+    if (normalizedSql.includes("insert into ai_action_runs")) {
+      const [
+        id,
+        runId,
+        workspaceId,
+        actorUserId,
+        mode,
+        status,
+        provider,
+        model,
+        providerResponseId,
+        requestMessageHash,
+        routeContextHash,
+        providerSendCategoriesJson,
+        redactionStatus,
+        usageJson,
+        errorClass,
+        blockedReason,
+        requestHost,
+        userAgentHash,
+        metadataJson,
+        startedAt,
+        completedAt,
+        createdAt,
+      ] = this.values;
+      this.database.actionRuns.set(String(runId), {
+        actor_user_id: String(actorUserId),
+        blocked_reason: blockedReason,
+        completed_at: completedAt,
+        created_at: String(createdAt),
+        error_class: errorClass,
+        id: String(id),
+        metadata_json: String(metadataJson),
+        mode: String(mode),
+        model: String(model),
+        provider: String(provider),
+        provider_response_id: providerResponseId,
+        provider_send_categories_json: String(providerSendCategoriesJson),
+        redaction_status: String(redactionStatus),
+        request_host: requestHost,
+        request_message_hash: requestMessageHash,
+        route_context_hash: routeContextHash,
+        run_id: String(runId),
+        started_at: String(startedAt),
+        status: String(status),
+        usage_json: String(usageJson),
+        user_agent_hash: userAgentHash,
+        workspace_id: String(workspaceId),
+      });
+      return { success: true, meta: { changes: 1 } };
+    }
+    if (normalizedSql.includes("insert into ai_data_access_events")) {
+      const [
+        id,
+        runId,
+        toolCallId,
+        workspaceId,
+        actorUserId,
+        eventName,
+        sourceTablesJson,
+        targetProjectId,
+        targetEstimateId,
+        targetNodeId,
+        targetRowId,
+        filterHash,
+        rowCount,
+        blockedAttempt,
+        blockedReason,
+        redactionStatus,
+        safeSummary,
+        createdAt,
+      ] = this.values;
+      this.database.dataAccessEvents.push({
+        actor_user_id: String(actorUserId),
+        blocked_attempt: blockedAttempt,
+        blocked_reason: blockedReason,
+        created_at: String(createdAt),
+        event_name: String(eventName),
+        filter_hash: filterHash,
+        id: String(id),
+        redaction_status: String(redactionStatus),
+        row_count: rowCount,
+        run_id: String(runId),
+        safe_summary: String(safeSummary),
+        source_tables_json: String(sourceTablesJson),
+        target_estimate_id: targetEstimateId,
+        target_node_id: targetNodeId,
+        target_project_id: targetProjectId,
+        target_row_id: targetRowId,
+        tool_call_id: toolCallId,
+        workspace_id: String(workspaceId),
+      });
+      return { success: true, meta: { changes: 1 } };
+    }
+    return { success: true, meta: { changes: 1 } };
+  }
+}
+
+class FakeD1Database {
+  actionRuns = new Map<string, StoredRow>();
+  dataAccessEvents: StoredRow[] = [];
+  rateLimitEvents: StoredRow[] = [];
+
+  prepare(sql: string) {
+    return new FakeD1Statement(this, sql);
+  }
+}
 
 beforeEach(() => {
-  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
-  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
-  supabaseJsMocks.createClient.mockReset();
+  d1Mocks.getCloudflareD1Database.mockReset();
 });
 
 afterEach(() => {
-  process.env = { ...originalEnv };
+  vi.restoreAllMocks();
 });
 
 describe("AI audit event builder", () => {
@@ -98,15 +255,9 @@ describe("AI audit event builder", () => {
     expect(event).toBeNull();
   });
 
-  it("requires Ask audit storage and upserts Ask action runs by run_id", async () => {
-    const upsert = vi.fn(async () => ({ error: null }));
-    const insert = vi.fn(async () => ({ error: null }));
-    const from = vi.fn((table: string) => {
-      if (table === "ai_action_runs") return { upsert };
-      if (table === "ai_data_access_events") return { insert };
-      return { insert: vi.fn(async () => ({ error: null })) };
-    });
-    supabaseJsMocks.createClient.mockReturnValue({ from });
+  it("requires D1 audit storage and upserts Ask action runs by run_id", async () => {
+    const database = new FakeD1Database();
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
 
     await recordAiAskAuditEvent({
       runId: "11111111-1111-4111-8111-111111111111",
@@ -132,29 +283,19 @@ describe("AI audit event builder", () => {
       ],
     });
 
-    expect(from).toHaveBeenCalledWith("ai_action_runs");
-    expect(upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        run_id: "11111111-1111-4111-8111-111111111111",
-        status: "started",
-        completed_at: null,
-        provider_send_categories: ["user_message", "bounded_route_context", "server_scoped_read_context"],
-      }),
-      { onConflict: "run_id" },
-    );
-    expect(from).toHaveBeenCalledWith("ai_data_access_events");
-    expect(insert).toHaveBeenCalledWith([
-      expect.objectContaining({
-        run_id: "11111111-1111-4111-8111-111111111111",
-        event_name: "ask_count_accessible_projects",
-        row_count: 3,
-      }),
-    ]);
+    expect(database.actionRuns.get("11111111-1111-4111-8111-111111111111")).toMatchObject({
+      status: "started",
+      provider_send_categories_json: JSON.stringify(["user_message", "bounded_route_context", "server_scoped_read_context"]),
+    });
+    expect(database.dataAccessEvents).toHaveLength(1);
+    expect(database.dataAccessEvents[0]).toMatchObject({
+      event_name: "ask_count_accessible_projects",
+      row_count: 3,
+    });
   });
 
-  it("fails closed when Ask audit storage is unavailable", async () => {
-    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
-    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+  it("fails closed when Ask audit D1 storage is unavailable", async () => {
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(null);
 
     await expect(recordAiAskAuditEvent({
       userContext: {
@@ -167,13 +308,12 @@ describe("AI audit event builder", () => {
       routeContext: {},
       status: "started",
       provider: "deepseek",
-    })).rejects.toThrow("AI Ask audit client is not configured.");
+    })).rejects.toThrow("AI Ask audit D1 database is not configured.");
   });
 
-  it("records package Apply authorization rows through the audit client", async () => {
-    const insert = vi.fn(async () => ({ error: null }));
-    const from = vi.fn(() => ({ insert }));
-    supabaseJsMocks.createClient.mockReturnValue({ from });
+  it("records package Apply authorization rows through D1", async () => {
+    const database = new FakeD1Database();
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
     const actionRun = buildAiPackageActionRun({
       runId: "11111111-1111-4111-8111-111111111111",
       userContext: {
@@ -201,20 +341,15 @@ describe("AI audit event builder", () => {
 
     await recordAiPackageApplyAuthorization(actionRun);
 
-    expect(supabaseJsMocks.createClient).toHaveBeenCalledWith(
-      "https://example.supabase.co",
-      "service-role-key",
-      expect.objectContaining({
-        auth: { autoRefreshToken: false, persistSession: false },
-      }),
-    );
-    expect(from).toHaveBeenCalledWith("ai_action_runs");
-    expect(insert).toHaveBeenCalledWith(actionRun);
+    expect(database.actionRuns.get("11111111-1111-4111-8111-111111111111")).toMatchObject({
+      mode: "apply",
+      provider: "app-command",
+      status: "started",
+    });
   });
 
-  it("fails closed when package Apply authorization cannot create an audit client", async () => {
-    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
-    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+  it("fails closed when package Apply authorization cannot reach D1", async () => {
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(null);
     const actionRun = buildAiPackageActionRun({
       runId: "11111111-1111-4111-8111-111111111111",
       userContext: {
@@ -231,10 +366,34 @@ describe("AI audit event builder", () => {
     if (!actionRun) throw new Error("Expected authenticated package action run.");
 
     await expect(recordAiPackageApplyAuthorization(actionRun)).rejects.toThrow(
-      "AI package Apply authorization audit client is not configured.",
+      "AI package Apply authorization audit D1 database is not configured.",
     );
     await expect(recordAiPackageApplyAuthorization(null)).rejects.toThrow(
-      "Package Apply authorization requires a Supabase workspace audit context.",
+      "Package Apply authorization requires a Cloudflare D1 workspace audit context.",
     );
+  });
+
+  it("stores AI Ask quota events in D1 and blocks after the minute limit", async () => {
+    const database = new FakeD1Database();
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+    const request = new Request("https://example.com/api/ai/ask", {
+      headers: { "x-forwarded-for": "203.0.113.10" },
+    });
+    const userContext = {
+      userId: "22222222-2222-4222-8222-222222222222",
+      email: "user@example.com",
+      workspaceId: "33333333-3333-4333-8333-333333333333",
+      authMode: "supabase" as const,
+    };
+
+    for (let index = 0; index < 10; index += 1) {
+      await expect(checkAiAskQuota({ request, userContext })).resolves.toEqual({ allowed: true });
+    }
+    await expect(checkAiAskQuota({ request, userContext })).resolves.toEqual({
+      allowed: false,
+      message: "AI quota exceeded. Please wait 60 seconds.",
+      retryAfter: 60,
+    });
+    expect(database.rateLimitEvents).toHaveLength(11);
   });
 });

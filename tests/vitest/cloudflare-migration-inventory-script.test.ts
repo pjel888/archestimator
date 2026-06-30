@@ -41,6 +41,7 @@ function fixtureInventory() {
       "src/lib/uploads/storage-provider.ts": "await supabase.storage.from(bucket).download(path);",
       "src/hooks/use-project-presence.ts": "client.channel(topic, { config: { private: true } });",
       "src/lib/email/resend-webhooks.ts": "import { Resend } from 'resend'; const resend = new Resend('test');",
+      "src/components/RecipientEmailComposer.tsx": "export const label = 'Resend new link';",
     },
     packageJsonText: PACKAGE_JSON,
     scriptFiles: [
@@ -104,6 +105,37 @@ describe("Cloudflare migration inventory generator", () => {
       { name: "increment_project_publication_open", callerFiles: ["src/app/api/share/[token]/route.ts"] },
     ]);
     expect(inventory.note).toContain("does not read env files");
+  });
+
+  it("does not classify generic realtime copy as retired Supabase realtime", () => {
+    const inventory = buildCloudflareMigrationInventory({
+      generatedAt: "2026-06-30T00:00:00.000Z",
+      appFiles: ["src/app/page.tsx"],
+      sourceFileTextByPath: {
+        "src/app/page.tsx": "Cloudflare collaboration rooms power realtime cursors.",
+      },
+      packageJsonText: PACKAGE_JSON,
+      scriptFiles: [],
+      sqlFileTextByPath: {},
+    });
+
+    expect(inventory.providerCoupling[0]?.dependencies).toEqual(["cloudflare-local-proof"]);
+    expect(inventory.providerCoupling[0]?.dependencies).not.toContain("supabase-realtime");
+  });
+
+  it("does not classify generic resend UI copy as retired Resend provider usage", () => {
+    const inventory = buildCloudflareMigrationInventory({
+      generatedAt: "2026-06-30T00:00:00.000Z",
+      appFiles: [],
+      sourceFileTextByPath: {
+        "src/components/RecipientEmailComposer.tsx": "export const label = 'Resend new link';",
+      },
+      packageJsonText: PACKAGE_JSON,
+      scriptFiles: [],
+      sqlFileTextByPath: {},
+    });
+
+    expect(inventory.providerCoupling).toEqual([]);
   });
 
   it("keeps markdown evidence free of secret-like source values", () => {

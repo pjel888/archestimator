@@ -17,8 +17,8 @@ describe("AI auth guard", () => {
 
   it("classifies AI auth mode for audit without making browser context authoritative", () => {
     expect(aiAuthSource).toContain("authMode: \"dev-bypass\"");
-    expect(aiAuthSource).toContain("authMode: \"supabase\"");
-    expect(aiAuthSource).toContain("workspaceId: profile?.default_workspace_id ?? null");
+    expect(aiAuthSource).toContain("authMode: \"better-auth\"");
+    expect(aiAuthSource).toContain("workspaceId: user.profile.default_workspace_id ?? null");
     expect(aiAuthSource).not.toContain("workspaceId: routeContext");
   });
 });

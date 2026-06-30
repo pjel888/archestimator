@@ -1,9 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import {
-  createSupabaseUploadStorageProvider,
-  type UploadStorageProvider,
-} from "@/lib/uploads/storage-provider";
+import type { UploadStorageProvider } from "@/lib/uploads/storage-provider";
 
 function createMemoryUploadStorageProvider(): UploadStorageProvider {
   const objects = new Map<string, { body: Uint8Array; contentType: string }>();
@@ -57,65 +54,5 @@ describe("upload storage provider contract", () => {
 
     await expect(provider.downloadObject("component-images", "workspace-1/user-1/component.webp"))
       .rejects.toThrow("Storage download failed.");
-  });
-
-  it("maps Supabase storage operations into the provider contract", async () => {
-    const bucketApi = {
-      upload: vi.fn(async () => ({ error: null })),
-      remove: vi.fn(async () => ({ error: null })),
-      download: vi.fn(async () => ({ data: new Blob(["pdf-bytes"], { type: "application/pdf" }), error: null })),
-      createSignedUrl: vi.fn(async () => ({ data: { signedUrl: "https://signed.example/spec.pdf" }, error: null })),
-      getPublicUrl: vi.fn(() => ({ data: { publicUrl: "https://public.example/spec.pdf" } })),
-    };
-    const supabase = {
-      storage: {
-        from: vi.fn(() => bucketApi),
-      },
-    };
-    const provider = createSupabaseUploadStorageProvider(supabase);
-
-    await provider.uploadObject({
-      bucket: "component-attachments",
-      path: "workspace-1/user-1/spec.pdf",
-      body: Buffer.from("pdf-bytes"),
-      contentType: "application/pdf",
-      cacheControl: "60",
-    });
-    const downloaded = await provider.downloadObject("component-attachments", "workspace-1/user-1/spec.pdf");
-    const signedUrl = await provider.createSignedReadUrl("component-attachments", "workspace-1/user-1/spec.pdf", 300);
-    const publicUrl = provider.getPublicUrl("component-attachments", "workspace-1/user-1/spec.pdf");
-
-    expect(supabase.storage.from).toHaveBeenCalledWith("component-attachments");
-    expect(bucketApi.upload).toHaveBeenCalledWith("workspace-1/user-1/spec.pdf", expect.any(Buffer), {
-      contentType: "application/pdf",
-      cacheControl: "60",
-      upsert: false,
-    });
-    expect(downloaded.contentType).toBe("application/pdf");
-    expect(downloaded.sizeBytes).toBe(9);
-    expect(bucketApi.download).toHaveBeenCalledWith("workspace-1/user-1/spec.pdf");
-    expect(bucketApi.createSignedUrl).toHaveBeenCalledWith("workspace-1/user-1/spec.pdf", 300);
-    expect(signedUrl).toBe("https://signed.example/spec.pdf");
-    expect(publicUrl).toBe("https://public.example/spec.pdf");
-  });
-
-  it("fails closed when provider download or signed-read operations fail", async () => {
-    const bucketApi = {
-      upload: vi.fn(async () => ({ error: null })),
-      remove: vi.fn(async () => ({ error: null })),
-      download: vi.fn(async () => ({ data: null, error: { message: "not found" } })),
-      createSignedUrl: vi.fn(async () => ({ data: null, error: { message: "signing disabled" } })),
-      getPublicUrl: vi.fn(() => ({ data: { publicUrl: "https://public.example/spec.pdf" } })),
-    };
-    const provider = createSupabaseUploadStorageProvider({
-      storage: {
-        from: vi.fn(() => bucketApi),
-      },
-    });
-
-    await expect(provider.downloadObject("component-attachments", "workspace-1/user-1/spec.pdf"))
-      .rejects.toThrow("not found");
-    await expect(provider.createSignedReadUrl("component-attachments", "workspace-1/user-1/spec.pdf", 300))
-      .rejects.toThrow("signing disabled");
   });
 });

@@ -228,6 +228,33 @@ describe("Cloudflare release gate aggregator", () => {
     );
   });
 
+  it("carries detailed provider resource blockers into the release summary", () => {
+    const inputs = currentLocalInputs();
+    inputs.providerResources = source({
+      readiness: {
+        wranglerAuthenticated: true,
+        providerReadbackAttempted: true,
+        workerDeploymentReadbackReady: true,
+        d1DatabaseReadbackReady: true,
+        r2BucketReadbackReady: true,
+        queuesReadbackReady: true,
+        workerSecretNameReadbackReady: false,
+        providerResourceReadbackReady: false,
+      },
+      blockers: [
+        "Worker secret name list: missing expected names BETTER_AUTH_GOOGLE_CLIENT_ID, BETTER_AUTH_GOOGLE_CLIENT_SECRET.",
+      ],
+    }, "provider-resources.json");
+
+    const report = buildCloudflareReleaseGateReport(inputs);
+
+    expect(report.blockers).toEqual(
+      expect.arrayContaining([
+        "Provider resource readback ready: Read-only Wrangler resource readback is incomplete: Worker secret name list: missing expected names BETTER_AUTH_GOOGLE_CLIENT_ID, BETTER_AUTH_GOOGLE_CLIENT_SECRET.",
+      ]),
+    );
+  });
+
   it("passes production cutover only when provider and cost proof are complete", () => {
     const completeInputs = currentLocalInputs();
     completeInputs.workerReadiness = source({

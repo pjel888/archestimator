@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 describe("mass deletion server action contract", () => {
   it("routes project single and bulk delete through preview/execute actions instead of raw form deletes", () => {
     const actions = readFileSync("src/lib/projects/actions.ts", "utf8");
+    const migration = readFileSync("migrations/0012_project_audit_sidecars.sql", "utf8");
 
     expect(actions).toContain("previewBulkDeleteProjects");
     expect(actions).toContain("executeBulkDeleteProjects");
@@ -11,16 +12,18 @@ describe("mass deletion server action contract", () => {
     expect(actions).toContain("execute_bulk_delete_projects");
     expect(actions).toContain("expectedPreviewHash");
     expect(actions).toContain("cleanupStorageTargets");
-    expect(actions).toContain("record_mass_deletion_storage_cleanup_result");
+    expect(actions).toContain("recordMassDeletionStorageCleanupResultInCloudflareD1");
+    expect(migration).toContain("mass_deletion_storage_cleanup_results");
     expect(actions).not.toMatch(/from\\(\"projects\"\\)\\.delete\\(\\)\\.eq\\(\"id\", projectId\\)/);
   });
 
-  it("records project storage cleanup results through a server-only service-role client", () => {
+  it("records project storage cleanup results through a D1 sidecar instead of Supabase service-role", () => {
     const actions = readFileSync("src/lib/projects/actions.ts", "utf8");
+    const d1Audit = readFileSync("src/lib/projects/d1-audit.ts", "utf8");
 
-    expect(actions).toContain("createSupabaseServiceRoleClient");
-    expect(actions).toContain("cleanupAuditClient.rpc(\"record_mass_deletion_storage_cleanup_result\"");
-    expect(actions).not.toContain("await supabase.rpc(\"record_mass_deletion_storage_cleanup_result\"");
+    expect(actions).toContain("recordMassDeletionStorageCleanupResultInCloudflareD1");
+    expect(d1Audit).toContain("INSERT INTO mass_deletion_storage_cleanup_results");
+    expect(`${actions}\n${d1Audit}`).not.toMatch(/createSupabaseServiceRoleClient|record_mass_deletion_storage_cleanup_result|SUPABASE_SERVICE_ROLE_KEY/);
   });
 
   it("adds estimate-sheet preview, execute, and single delete wrappers with cache revalidation", () => {

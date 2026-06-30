@@ -127,7 +127,7 @@ afterEach(() => {
   vi.doUnmock("@/lib/auth/session");
   vi.doUnmock("next/cache");
   vi.doUnmock("next/headers");
-  vi.doUnmock("@/lib/email/resend-client");
+  vi.doUnmock("@/lib/email/transactional-email-client");
   vi.doUnmock("@/lib/publication/snapshot");
   vi.resetModules();
 });
@@ -143,6 +143,7 @@ describe("AC-MOD-02 rotateProjectPublicationLink rotates the token in place", ()
     const recordedRpc: RecordedRpc[] = [];
 
     vi.doMock("@/lib/auth/session", () => ({
+      requireAuth: vi.fn().mockResolvedValue(undefined),
       requireCurrentUserContext: vi.fn().mockResolvedValue({
         userId: "user-1",
         role: "ceo",
@@ -261,6 +262,7 @@ describe("AC-MOD-02 rotateProjectPublicationLink rotates the token in place", ()
     const recordedRpc: RecordedRpc[] = [];
 
     vi.doMock("@/lib/auth/session", () => ({
+      requireAuth: vi.fn().mockResolvedValue(undefined),
       requireCurrentUserContext: vi.fn().mockResolvedValue({
         userId: "user-1",
         role: "ceo",
@@ -363,6 +365,7 @@ describe("AC-MOD-10 republishProjectPublication writes expires_at conditionally"
     const recorded: RecordedQuery[] = [];
 
     vi.doMock("@/lib/auth/session", () => ({
+      requireAuth: vi.fn().mockResolvedValue(undefined),
       requireCurrentUserContext: vi.fn().mockResolvedValue({
         userId: "user-1",
         role: "ceo",
@@ -532,6 +535,7 @@ describe("AC-MOD-15 setting a too-short password is rejected and never persisted
     { hasLatest, recordedRpc = [] }: { hasLatest: boolean; recordedRpc?: RecordedRpc[] },
   ) {
     vi.doMock("@/lib/auth/session", () => ({
+      requireAuth: vi.fn().mockResolvedValue(undefined),
       requireCurrentUserContext: vi.fn().mockResolvedValue({
         userId: "user-1",
         role: "ceo",
@@ -686,6 +690,7 @@ describe("AC-MOD-03 resendSharedLinkRecipientEmail sends before persisting", () 
     const recordedRpc: RecordedRpc[] = [];
 
     vi.doMock("@/lib/auth/session", () => ({
+      requireAuth: vi.fn().mockResolvedValue(undefined),
       requireCurrentUserContext: vi.fn().mockResolvedValue({
         userId: "user-1",
         role: "ceo",
@@ -703,7 +708,7 @@ describe("AC-MOD-03 resendSharedLinkRecipientEmail sends before persisting", () 
         ? { ok: true, messageId: "resend-message-1" }
         : { ok: false, error: "smtp exploded" },
     );
-    vi.doMock("@/lib/email/resend-client", () => ({
+    vi.doMock("@/lib/email/transactional-email-client", () => ({
       sendEmail,
       readEmailDeliveryConfig: vi.fn(() => ({ configured: true })),
     }));
@@ -862,6 +867,7 @@ describe("AC-MOD-17 addSharedLinkRecipients surfaces inserted id + neutral dupli
     const recorded: RecordedQuery[] = [];
 
     vi.doMock("@/lib/auth/session", () => ({
+      requireAuth: vi.fn().mockResolvedValue(undefined),
       requireCurrentUserContext: vi.fn().mockResolvedValue({
         userId: "user-1",
         role: "ceo",
@@ -875,7 +881,7 @@ describe("AC-MOD-17 addSharedLinkRecipients surfaces inserted id + neutral dupli
     }));
 
     const sendEmail = customSendEmail ?? vi.fn().mockResolvedValue({ ok: true, messageId: "invite-message-1" });
-    vi.doMock("@/lib/email/resend-client", () => ({
+    vi.doMock("@/lib/email/transactional-email-client", () => ({
       sendEmail,
       readEmailDeliveryConfig: vi.fn(() => ({ configured: true })),
     }));
@@ -1026,6 +1032,7 @@ describe("AC-MOD-20 dead-link abort: never email an unresolvable /share/<uuid> l
   // decryptPublicationToken throws → getPublicationProjectId swallows it → pubCtx.clientLinkPath is null.
   function mockSharedEnv(recorded: RecordedQuery[], sendEmail: ReturnType<typeof vi.fn>) {
     vi.doMock("@/lib/auth/session", () => ({
+      requireAuth: vi.fn().mockResolvedValue(undefined),
       requireCurrentUserContext: vi.fn().mockResolvedValue({
         userId: "user-1",
         role: "ceo",
@@ -1037,7 +1044,7 @@ describe("AC-MOD-20 dead-link abort: never email an unresolvable /share/<uuid> l
     vi.doMock("next/headers", () => ({
       headers: vi.fn().mockResolvedValue({ get: () => "203.0.113.1" }),
     }));
-    vi.doMock("@/lib/email/resend-client", () => ({
+    vi.doMock("@/lib/email/transactional-email-client", () => ({
       sendEmail,
       readEmailDeliveryConfig: vi.fn(() => ({ configured: true })),
     }));

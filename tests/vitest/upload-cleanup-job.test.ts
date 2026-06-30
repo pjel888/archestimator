@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { StorageCleanupReport } from "@/lib/mass-deletion/bulk-action";
 import {
-  createSupabaseUploadCleanupStorage,
+  createUploadCleanupStorageFromProvider,
   createUploadCleanupEventWriter,
   listUploadCleanupJobRecords,
   runUploadCleanupJob,
@@ -37,20 +37,47 @@ function attachmentRecord(overrides: Partial<UploadCleanupJobRecord> = {}): Uplo
   };
 }
 
-function createThenableQuery<T>(data: T[]) {
-  const query = {
-    select: vi.fn(() => query),
-    eq: vi.fn(() => query),
-    in: vi.fn(() => query),
-    lte: vi.fn(() => query),
-    order: vi.fn(() => query),
-    limit: vi.fn(() => query),
-    then: (resolve: (value: { data: T[]; error: null }) => unknown, reject: (reason: unknown) => unknown) => {
-      return Promise.resolve({ data, error: null }).then(resolve, reject);
-    },
-  };
+class FakeD1Statement {
+  values: unknown[] = [];
 
-  return query;
+  constructor(
+    private readonly database: FakeD1Database,
+    readonly sql: string,
+  ) {}
+
+  bind(...values: unknown[]) {
+    this.values = values;
+    return this;
+  }
+
+  async first<R>() {
+    return null as R | null;
+  }
+
+  async all<R>() {
+    if (this.sql.includes("FROM upload_assets")) {
+      return { success: true, results: this.database.assetRows as R[] };
+    }
+    return { success: true, results: this.database.sessionRows as R[] };
+  }
+
+  async run() {
+    this.database.runStatements.push(this);
+    return { success: true, meta: { changes: 1 } };
+  }
+}
+
+class FakeD1Database {
+  assetRows: unknown[] = [];
+  runStatements: FakeD1Statement[] = [];
+  sessionRows: unknown[] = [];
+  statements: FakeD1Statement[] = [];
+
+  prepare(sql: string) {
+    const statement = new FakeD1Statement(this, sql);
+    this.statements.push(statement);
+    return statement;
+  }
 }
 
 describe("upload cleanup job runner", () => {
@@ -241,7 +268,8 @@ describe("upload cleanup job runner", () => {
   });
 
   it("maps persisted deleted assets and expired sessions into cleanup records", async () => {
-    const assetQuery = createThenableQuery([{
+    const database = new FakeD1Database();
+    database.assetRows = [{
       id: ASSET_ID,
       upload_session_id: SESSION_ID,
       workspace_id: WORKSPACE_ID,
@@ -252,8 +280,8 @@ describe("upload cleanup job runner", () => {
       thumbnail_path: null,
       status: "deleted",
       updated_at: "2026-05-01T00:00:00.000Z",
-    }]);
-    const sessionQuery = createThenableQuery([{
+    }];
+    database.sessionRows = [{
       id: "55555555-5555-4555-8555-555555555555",
       workspace_id: WORKSPACE_ID,
       actor_user_id: USER_ID,
@@ -262,17 +290,23 @@ describe("upload cleanup job runner", () => {
       storage_path: `${WORKSPACE_ID}/${USER_ID}/project-images/66666666-6666-4666-8666-666666666666/expired.webp`,
       status: "reserved",
       expires_at: "2026-06-25T00:00:00.000Z",
-    }]);
-    const client = {
-      from: vi.fn((table: string) => table === "upload_assets" ? assetQuery : sessionQuery),
-    };
+    }];
 
-    const records = await listUploadCleanupJobRecords(client, { now: NOW, limit: 25 });
+    const records = await listUploadCleanupJobRecords(database, { now: NOW, limit: 25 });
 
-    expect(client.from).toHaveBeenCalledWith("upload_assets");
-    expect(client.from).toHaveBeenCalledWith("upload_sessions");
-    expect(assetQuery.eq).toHaveBeenCalledWith("status", "deleted");
-    expect(sessionQuery.in).toHaveBeenCalledWith("status", ["reserved", "failed", "expired", "deleted"]);
+    const assetStatement = database.statements.find((statement) => statement.sql.includes("FROM upload_assets"));
+    const sessionStatement = database.statements.find((statement) => statement.sql.includes("FROM upload_sessions"));
+    expect(assetStatement?.sql).toContain("SELECT id, upload_session_id, workspace_id, actor_user_id, surface, storage_bucket, storage_path, thumbnail_path, status, updated_at");
+    expect(assetStatement?.values).toEqual(["deleted", "2026-05-28T03:10:00.000Z", 25]);
+    expect(sessionStatement?.sql).toContain("SELECT id, workspace_id, actor_user_id, surface, storage_bucket, storage_path, status, expires_at");
+    expect(sessionStatement?.values).toEqual([
+      "reserved",
+      "failed",
+      "expired",
+      "deleted",
+      "2026-06-26T03:10:00.000Z",
+      25,
+    ]);
     expect(records).toEqual([
       expect.objectContaining({
         assetId: ASSET_ID,
@@ -289,42 +323,44 @@ describe("upload cleanup job runner", () => {
     ]);
   });
 
-  it("provides Supabase storage and event adapters with hashed path metadata only", async () => {
+  it("provides storage and event adapters with hashed path metadata only", async () => {
     const remove = vi.fn(async () => ({ error: null }));
-    const insert = vi.fn(async () => ({ error: null }));
-    const client = {
-      storage: {
-        from: vi.fn(() => ({ remove })),
-      },
-      from: vi.fn(() => ({ insert })),
-    };
+    const database = new FakeD1Database();
 
-    const storage = createSupabaseUploadCleanupStorage(client);
-    const eventWriter = createUploadCleanupEventWriter(client);
+    const storage = createUploadCleanupStorageFromProvider({
+      uploadObject: vi.fn(),
+      removeObjects: remove,
+      downloadObject: vi.fn(),
+      createSignedReadUrl: vi.fn(),
+      getPublicUrl: vi.fn(),
+    });
+    const eventWriter = createUploadCleanupEventWriter(database);
     const result = await runUploadCleanupJob({
       records: [attachmentRecord()],
       storage,
       eventWriter,
       now: NOW,
-      runId: "cleanup-run-supabase-adapter",
+      runId: "cleanup-run-provider-adapter",
     });
 
-    expect(client.storage.from).toHaveBeenCalledWith("component-attachments");
-    expect(remove).toHaveBeenCalledWith([ATTACHMENT_PATH]);
-    expect(insert).toHaveBeenCalledTimes(2);
-    expect(insert.mock.calls[0][0]).toMatchObject({
-      upload_session_id: SESSION_ID,
-      upload_asset_id: ASSET_ID,
-      workspace_id: WORKSPACE_ID,
-      actor_user_id: USER_ID,
-      event_type: "cleanup_queued",
-      metadata: expect.objectContaining({
-        cleanupRunId: "cleanup-run-supabase-adapter",
+    expect(remove).toHaveBeenCalledWith("component-attachments", [ATTACHMENT_PATH]);
+    expect(database.runStatements).toHaveLength(2);
+    expect(database.runStatements[0]?.values).toEqual([
+      expect.any(String),
+      SESSION_ID,
+      ASSET_ID,
+      WORKSPACE_ID,
+      USER_ID,
+      "cleanup_queued",
+      expect.any(String),
+      expect.any(String),
+    ]);
+    expect(JSON.parse(database.runStatements[0]?.values[6] as string)).toEqual(expect.objectContaining({
+        cleanupRunId: "cleanup-run-provider-adapter",
         storageBucket: "component-attachments",
         storagePathRecorded: false,
-      }),
-    });
-    expect(JSON.stringify(insert.mock.calls)).not.toContain(ATTACHMENT_PATH);
+      }));
+    expect(JSON.stringify(database.runStatements.map((statement) => statement.values))).not.toContain(ATTACHMENT_PATH);
     expect(result.audit.eventTypes).toEqual({
       cleanup_queued: 1,
       cleanup_failed: 0,

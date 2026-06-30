@@ -140,7 +140,7 @@ describe("auth account data contracts", () => {
     );
 
     expect(auditSource.startsWith('import "server-only";')).toBe(true);
-    expect(auditSource).toContain("SUPABASE_SERVICE_ROLE_KEY");
-    expect(auditSource).toContain("persistSession: false");
+    expect(auditSource).toContain("recordAccountSecurityEventInCloudflareD1");
+    expect(auditSource).not.toMatch(/SUPABASE_SERVICE_ROLE_KEY|createClient|persistSession/);
   });
 });

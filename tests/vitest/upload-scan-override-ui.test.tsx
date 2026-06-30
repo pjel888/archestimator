@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -8,12 +10,12 @@ const authMocks = vi.hoisted(() => ({
   requireCurrentUserContext: vi.fn(),
 }));
 
-const serviceRoleMocks = vi.hoisted(() => ({
-  createSupabaseServiceRoleClient: vi.fn(),
+const d1Mocks = vi.hoisted(() => ({
+  getCloudflareD1Database: vi.fn(),
 }));
 
 vi.mock("@/lib/auth/session", () => authMocks);
-vi.mock("@/lib/supabase/service-role", () => serviceRoleMocks);
+vi.mock("@/lib/cloudflare/d1", () => d1Mocks);
 vi.mock("server-only", () => ({}));
 
 const ASSET_ID = "44444444-4444-4444-8444-444444444444";
@@ -36,25 +38,65 @@ function overrideRow(overrides: Partial<UploadScanOverrideReviewRow> = {}): Uplo
   };
 }
 
-function createUploadAssetsQuery(data: unknown[] | null, error: { message: string } | null = null) {
-  const query = {
-    select: vi.fn(() => query),
-    eq: vi.fn(() => query),
-    in: vi.fn(() => query),
-    order: vi.fn(() => query),
-    limit: vi.fn(async () => ({ data, error })),
-  };
-  return query;
+class FakeD1Statement {
+  values: unknown[] = [];
+
+  constructor(
+    private readonly database: FakeD1Database,
+    readonly sql: string,
+  ) {}
+
+  bind(...values: unknown[]) {
+    this.values = values;
+    return this;
+  }
+
+  async first<R>() {
+    return null as R | null;
+  }
+
+  async all<R>() {
+    if (this.database.error) throw this.database.error;
+    return { results: this.database.rows as R[] };
+  }
+
+  async run() {
+    return { success: true, meta: { changes: 1 } };
+  }
+}
+
+class FakeD1Database {
+  error: Error | null = null;
+  rows: unknown[] = [];
+  statements: FakeD1Statement[] = [];
+
+  prepare(sql: string) {
+    const statement = new FakeD1Statement(this, sql);
+    this.statements.push(statement);
+    return statement;
+  }
 }
 
 beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
   vi.unstubAllGlobals();
+  d1Mocks.getCloudflareD1Database.mockResolvedValue(new FakeD1Database());
 });
 
 describe("upload scan override review queue", () => {
-  it("does not create a service-role client for non-platform-admin users", async () => {
+  it("keeps the review queue Cloudflare D1-backed and free of Supabase service-role reads", () => {
+    const source = readFileSync("src/lib/uploads/scan-override-review.ts", "utf8");
+    const migration = readFileSync("migrations/0010_upload_metadata.sql", "utf8");
+
+    expect(source).toContain("getCloudflareD1Database");
+    expect(source).toContain("FROM upload_assets");
+    expect(source).not.toMatch(/createSupabase|@\/lib\/supabase|@supabase\/supabase-js|SUPABASE_SERVICE_ROLE_KEY|serviceRole/);
+    expect(migration).toContain("CREATE TABLE IF NOT EXISTS upload_assets");
+    expect(migration).toContain("idx_upload_assets_scan_override_queue");
+  });
+
+  it("does not open D1 for non-platform-admin users", async () => {
     authMocks.requireCurrentUserContext.mockResolvedValue({ role: "member", userId: "user-1" });
     const { readUploadScanOverrideReviewQueue } = await import("@/lib/uploads/scan-override-review");
 
@@ -63,12 +105,13 @@ describe("upload scan override review queue", () => {
       error: null,
       rows: [],
     });
-    expect(serviceRoleMocks.createSupabaseServiceRoleClient).not.toHaveBeenCalled();
+    expect(d1Mocks.getCloudflareD1Database).not.toHaveBeenCalled();
   });
 
   it("lists only overridable component attachment scan statuses without selecting storage paths", async () => {
     authMocks.requireCurrentUserContext.mockResolvedValue({ role: "admin", userId: "user-1" });
-    const query = createUploadAssetsQuery([
+    const database = new FakeD1Database();
+    database.rows = [
       {
         id: ASSET_ID,
         workspace_id: "11111111-1111-4111-8111-111111111111",
@@ -95,8 +138,8 @@ describe("upload scan override review queue", () => {
         created_at: "2026-06-27T01:00:00.000Z",
         updated_at: "2026-06-27T01:05:00.000Z",
       },
-    ]);
-    serviceRoleMocks.createSupabaseServiceRoleClient.mockReturnValue({ from: vi.fn(() => query) });
+    ];
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
     const { readUploadScanOverrideReviewQueue } = await import("@/lib/uploads/scan-override-review");
 
     const queue = await readUploadScanOverrideReviewQueue();
@@ -113,12 +156,16 @@ describe("upload scan override review queue", () => {
         },
       ],
     });
-    expect(serviceRoleMocks.createSupabaseServiceRoleClient).toHaveBeenCalledWith("archestimator-upload-scan-override-review");
-    expect(query.select).toHaveBeenCalledWith(
-      "id, workspace_id, file_name, content_type, size_bytes, checksum_sha256, scan_status, scan_provider, scanned_at, created_at, updated_at",
-    );
-    expect(query.in).toHaveBeenCalledWith("scan_status", ["failed_permanent", "unsupported"]);
-    expect(JSON.stringify(query.select.mock.calls)).not.toContain("storage_path");
+    expect(database.statements[0].sql).toContain("FROM upload_assets");
+    expect(database.statements[0].sql).toContain("scan_status IN (?, ?)");
+    expect(database.statements[0].values).toEqual([
+      "component-attachment",
+      "finalized",
+      "failed_permanent",
+      "unsupported",
+      50,
+    ]);
+    expect(database.statements[0].sql).not.toContain("storage_path");
   });
 });
 

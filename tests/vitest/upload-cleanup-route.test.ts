@@ -1,13 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const serviceRoleMocks = vi.hoisted(() => ({
-  createSupabaseServiceRoleClient: vi.fn(),
-}));
 const cloudflareMocks = vi.hoisted(() => ({
   getCloudflareContext: vi.fn(),
 }));
 
-vi.mock("@/lib/supabase/service-role", () => serviceRoleMocks);
 vi.mock("@opennextjs/cloudflare", () => cloudflareMocks);
 vi.mock("server-only", () => ({}));
 
@@ -25,24 +21,52 @@ function createRequest(secret: string | null, limit = 25, options: { dryRun?: bo
   });
 }
 
-function createThenableQuery<T>(data: T[]) {
-  const query = {
-    select: vi.fn(() => query),
-    eq: vi.fn(() => query),
-    in: vi.fn(() => query),
-    lte: vi.fn(() => query),
-    order: vi.fn(() => query),
-    limit: vi.fn(() => query),
-    then: (resolve: (value: { data: T[]; error: null }) => unknown, reject: (reason: unknown) => unknown) => {
-      return Promise.resolve({ data, error: null }).then(resolve, reject);
-    },
-  };
+class FakeD1Statement {
+  values: unknown[] = [];
 
-  return query;
+  constructor(
+    private readonly database: FakeD1Database,
+    readonly sql: string,
+  ) {}
+
+  bind(...values: unknown[]) {
+    this.values = values;
+    return this;
+  }
+
+  async first<R>() {
+    return null as R | null;
+  }
+
+  async all<R>() {
+    if (this.sql.includes("FROM upload_assets")) {
+      return { success: true, results: this.database.assetRows as R[] };
+    }
+    return { success: true, results: this.database.sessionRows as R[] };
+  }
+
+  async run() {
+    this.database.runStatements.push(this);
+    return { success: true, meta: { changes: 1 } };
+  }
 }
 
-function createCleanupClient() {
-  const assetQuery = createThenableQuery([{
+class FakeD1Database {
+  assetRows: unknown[] = [];
+  runStatements: FakeD1Statement[] = [];
+  sessionRows: unknown[] = [];
+  statements: FakeD1Statement[] = [];
+
+  prepare(sql: string) {
+    const statement = new FakeD1Statement(this, sql);
+    this.statements.push(statement);
+    return statement;
+  }
+}
+
+function createCleanupDatabase() {
+  const database = new FakeD1Database();
+  database.assetRows = [{
     id: ASSET_ID,
     upload_session_id: SESSION_ID,
     workspace_id: WORKSPACE_ID,
@@ -53,25 +77,18 @@ function createCleanupClient() {
     thumbnail_path: null,
     status: "deleted",
     updated_at: "2026-05-01T00:00:00.000Z",
-  }]);
-  const sessionQuery = createThenableQuery([]);
-  const remove = vi.fn(async () => ({ error: null }));
-  const insert = vi.fn(async () => ({ error: null }));
-  const from = vi.fn((table: string) => {
-    if (table === "upload_assets") return assetQuery;
-    if (table === "upload_sessions") return sessionQuery;
-    if (table === "upload_events") return { insert };
-    throw new Error(`Unexpected table ${table}`);
-  });
-  const client = {
-    from,
-    storage: {
-      from: vi.fn(() => ({ remove })),
-    },
-  };
+  }];
+  return database;
+}
 
-  serviceRoleMocks.createSupabaseServiceRoleClient.mockReturnValue(client);
-  return { client, assetQuery, sessionQuery, remove, insert };
+function createR2CleanupBinding(database: FakeD1Database) {
+  const r2 = {
+    put: vi.fn(),
+    get: vi.fn(),
+    delete: vi.fn(async () => undefined),
+  };
+  cloudflareMocks.getCloudflareContext.mockResolvedValue({ env: { ARCH_DB: database, ARCH_UPLOADS_R2: r2 } });
+  return r2;
 }
 
 beforeEach(() => {
@@ -90,20 +107,21 @@ describe("internal upload cleanup route", () => {
     expect(notConfigured.status).toBe(503);
     expect(notConfigured.headers.get("cache-control")).toContain("no-store");
     await expect(notConfigured.json()).resolves.toEqual({ error: "Upload cleanup job is not configured." });
-    expect(serviceRoleMocks.createSupabaseServiceRoleClient).not.toHaveBeenCalled();
+    expect(cloudflareMocks.getCloudflareContext).not.toHaveBeenCalled();
 
     vi.stubEnv("UPLOAD_CLEANUP_JOB_SECRET", "cleanup-secret");
     const unauthorized = await GET(createRequest("wrong-secret"));
     expect(unauthorized.status).toBe(401);
     expect(unauthorized.headers.get("cache-control")).toContain("no-store");
     await expect(unauthorized.json()).resolves.toEqual({ error: "Unauthorized." });
-    expect(serviceRoleMocks.createSupabaseServiceRoleClient).not.toHaveBeenCalled();
+    expect(cloudflareMocks.getCloudflareContext).not.toHaveBeenCalled();
   });
 
-  it("runs the cleanup job with service-role storage and returns a path-safe summary", async () => {
+  it("runs the cleanup job with default R2 storage and returns a path-safe summary", async () => {
     vi.stubEnv("UPLOAD_CLEANUP_JOB_SECRET", "cleanup-secret");
     vi.stubEnv("UPLOAD_JOBS_ENABLED", "1");
-    const cleanup = createCleanupClient();
+    const database = createCleanupDatabase();
+    const r2 = createR2CleanupBinding(database);
     const { GET } = await import("@/app/api/internal/upload-cleanup/route");
 
     const response = await GET(createRequest("cleanup-secret", 5));
@@ -111,12 +129,13 @@ describe("internal upload cleanup route", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toContain("no-store");
-    expect(serviceRoleMocks.createSupabaseServiceRoleClient).toHaveBeenCalledWith("archestimator-upload-cleanup-job");
-    expect(cleanup.assetQuery.limit).toHaveBeenCalledWith(5);
-    expect(cleanup.sessionQuery.limit).toHaveBeenCalledWith(5);
-    expect(cleanup.remove).toHaveBeenCalledWith([ATTACHMENT_PATH]);
-    expect(cleanup.insert).toHaveBeenCalledTimes(2);
-    expect(cleanup.insert.mock.calls.map((call) => call[0].event_type)).toEqual([
+    const assetStatement = database.statements.find((statement) => statement.sql.includes("FROM upload_assets"));
+    const sessionStatement = database.statements.find((statement) => statement.sql.includes("FROM upload_sessions"));
+    expect(assetStatement?.values[2]).toBe(5);
+    expect(sessionStatement?.values[5]).toBe(5);
+    expect(r2.delete).toHaveBeenCalledWith([`component-attachments/${ATTACHMENT_PATH}`]);
+    expect(database.runStatements).toHaveLength(2);
+    expect(database.runStatements.map((statement) => statement.values[5])).toEqual([
       "cleanup_queued",
       "cleanup_succeeded",
     ]);
@@ -142,30 +161,28 @@ describe("internal upload cleanup route", () => {
       },
     });
     expect(JSON.stringify(body)).not.toContain(ATTACHMENT_PATH);
-    expect(JSON.stringify(cleanup.insert.mock.calls)).not.toContain(ATTACHMENT_PATH);
+    expect(JSON.stringify(database.runStatements.map((statement) => statement.values))).not.toContain(ATTACHMENT_PATH);
   });
 
   it("uses the R2 binding for cleanup deletes when Cloudflare R2 storage is selected", async () => {
     vi.stubEnv("UPLOAD_CLEANUP_JOB_SECRET", "cleanup-secret");
     vi.stubEnv("UPLOAD_JOBS_ENABLED", "1");
     vi.stubEnv("ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER", "cloudflare-r2");
-    const cleanup = createCleanupClient();
+    const database = createCleanupDatabase();
     const r2 = {
       put: vi.fn(),
       get: vi.fn(),
       delete: vi.fn(async () => undefined),
     };
-    cloudflareMocks.getCloudflareContext.mockResolvedValue({ env: { ARCH_UPLOADS_R2: r2 } });
+    cloudflareMocks.getCloudflareContext.mockResolvedValue({ env: { ARCH_DB: database, ARCH_UPLOADS_R2: r2 } });
     const { GET } = await import("@/app/api/internal/upload-cleanup/route");
 
     const response = await GET(createRequest("cleanup-secret", 5));
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(cleanup.client.storage.from).not.toHaveBeenCalled();
-    expect(cleanup.remove).not.toHaveBeenCalled();
     expect(r2.delete).toHaveBeenCalledWith([`component-attachments/${ATTACHMENT_PATH}`]);
-    expect(cleanup.insert).toHaveBeenCalledTimes(2);
+    expect(database.runStatements).toHaveLength(2);
     expect(body.storage).toMatchObject({
       removedCount: 1,
       failedCount: 0,
@@ -183,12 +200,13 @@ describe("internal upload cleanup route", () => {
     expect(response.status).toBe(503);
     expect(response.headers.get("cache-control")).toContain("no-store");
     await expect(response.json()).resolves.toEqual({ error: "Upload cleanup job is disabled." });
-    expect(serviceRoleMocks.createSupabaseServiceRoleClient).not.toHaveBeenCalled();
+    expect(cloudflareMocks.getCloudflareContext).not.toHaveBeenCalled();
   });
 
   it("supports an authenticated dry run without storage removal or cleanup audit writes", async () => {
     vi.stubEnv("UPLOAD_CLEANUP_JOB_SECRET", "cleanup-secret");
-    const cleanup = createCleanupClient();
+    const database = createCleanupDatabase();
+    cloudflareMocks.getCloudflareContext.mockResolvedValue({ env: { ARCH_DB: database } });
     const { GET } = await import("@/app/api/internal/upload-cleanup/route");
 
     const response = await GET(createRequest("cleanup-secret", 5, { dryRun: true }));
@@ -196,10 +214,11 @@ describe("internal upload cleanup route", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toContain("no-store");
-    expect(cleanup.assetQuery.limit).toHaveBeenCalledWith(5);
-    expect(cleanup.sessionQuery.limit).toHaveBeenCalledWith(5);
-    expect(cleanup.remove).not.toHaveBeenCalled();
-    expect(cleanup.insert).not.toHaveBeenCalled();
+    const assetStatement = database.statements.find((statement) => statement.sql.includes("FROM upload_assets"));
+    const sessionStatement = database.statements.find((statement) => statement.sql.includes("FROM upload_sessions"));
+    expect(assetStatement?.values[2]).toBe(5);
+    expect(sessionStatement?.values[5]).toBe(5);
+    expect(database.runStatements).toEqual([]);
     expect(body).toMatchObject({
       mode: "dry-run",
       readRecordCount: 1,
@@ -231,13 +250,15 @@ describe("internal upload cleanup route", () => {
     vi.stubEnv("CRON_SECRET", "cron-secret");
     vi.stubEnv("UPLOAD_CLEANUP_JOB_SECRET", "manual-cleanup-secret");
     vi.stubEnv("UPLOAD_JOBS_ENABLED", "1");
-    createCleanupClient();
+    const database = createCleanupDatabase();
+    createR2CleanupBinding(database);
     const { GET } = await import("@/app/api/internal/upload-cleanup/route");
 
     const response = await GET(createRequest("cron-secret", 1));
 
     expect(response.status).toBe(200);
-    expect(serviceRoleMocks.createSupabaseServiceRoleClient).toHaveBeenCalledWith("archestimator-upload-cleanup-job");
+    const assetStatement = database.statements.find((statement) => statement.sql.includes("FROM upload_assets"));
+    expect(assetStatement?.values[2]).toBe(1);
   });
 
   it("emits cleanup telemetry from the cron route path", async () => {
@@ -246,7 +267,8 @@ describe("internal upload cleanup route", () => {
     const telemetry: unknown[] = [];
     const { setUploadOperationalTelemetrySink } = await import("@/lib/uploads/operational-telemetry");
     setUploadOperationalTelemetrySink((record) => telemetry.push(record));
-    createCleanupClient();
+    const database = createCleanupDatabase();
+    createR2CleanupBinding(database);
     const { GET } = await import("@/app/api/internal/upload-cleanup/route");
 
     const response = await GET(createRequest("cron-secret", 5));

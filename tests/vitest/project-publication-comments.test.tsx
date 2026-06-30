@@ -908,8 +908,7 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
       });
 
       it("email dispatch circuit pauses (>50% failure) for 10min (protects P4/P8 digests + recipient sends)", async () => {
-        // After impl in resend-client: wrap sendEmail, track failures, fast-fail when open
-        const { sendEmail } = await import("@/lib/email/resend-client");
+        const { sendEmail } = await import("@/lib/email/transactional-email-client");
         let sawCircuit = false;
         for (let i = 0; i < 8; i++) {
           const res = await sendEmail({ to: "x@y.z", subject: "test", text: "x" });

@@ -143,6 +143,8 @@ describe("Cloudflare hosted route verifier", () => {
       writeMarkdown(report, file);
       const markdown = readFileSync(file, "utf8");
       expect(markdown).toContain("Cloudflare Hosted Worker Route Proof");
+      expect(markdown).toContain("TTFB");
+      expect(markdown).toContain("Body download");
       expect(markdown).toContain("redacted-fake-token");
       expect(markdown).not.toContain("raw-fake-token");
     } finally {

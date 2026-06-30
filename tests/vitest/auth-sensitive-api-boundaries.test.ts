@@ -12,6 +12,10 @@ const workspaceMocks = vi.hoisted(() => ({
   ensureDefaultWorkspace: vi.fn(),
 }));
 
+const legalTermsMocks = vi.hoisted(() => ({
+  getCurrentUserTermsAcceptanceStatus: vi.fn(),
+}));
+
 const supabaseServerMocks = vi.hoisted(() => ({
   createSupabaseServerClient: vi.fn(),
 }));
@@ -24,11 +28,17 @@ const cloudflareMocks = vi.hoisted(() => ({
   getCloudflareContext: vi.fn(),
 }));
 
+const d1Mocks = vi.hoisted(() => ({
+  getCloudflareD1Database: vi.fn(),
+}));
+
 vi.mock("@/lib/auth/session", () => authMocks);
+vi.mock("@/lib/legal/terms-acceptance", () => legalTermsMocks);
 vi.mock("@/lib/repositories/workspace-repository", () => workspaceMocks);
 vi.mock("@/lib/supabase/server", () => supabaseServerMocks);
 vi.mock("@supabase/supabase-js", () => supabaseJsMocks);
 vi.mock("@opennextjs/cloudflare", () => cloudflareMocks);
+vi.mock("@/lib/cloudflare/d1", () => d1Mocks);
 
 const DEFAULT_WORKSPACE_ID = "workspace-1";
 const DEFAULT_USER_ID = "user-1";
@@ -88,6 +98,99 @@ function createUnparsedFormRequest() {
   } as unknown as Request & { formData: ReturnType<typeof vi.fn> };
 }
 
+class FakeD1Statement {
+  values: unknown[] = [];
+
+  constructor(
+    private readonly database: FakeD1Database,
+    readonly sql: string,
+  ) {}
+
+  bind(...values: unknown[]) {
+    this.values = values;
+    return this;
+  }
+
+  async first() {
+    return null;
+  }
+
+  async all() {
+    return { results: [], success: true };
+  }
+
+  async run() {
+    if (this.database.failNextRun) {
+      const error = this.database.failNextRun;
+      this.database.failNextRun = null;
+      throw error;
+    }
+    this.database.runStatements.push({ sql: this.sql, values: this.values });
+    return { success: true, meta: { changes: 1 } };
+  }
+}
+
+class FakeD1Database {
+  failNextRun: Error | null = null;
+  readonly statements: FakeD1Statement[] = [];
+  readonly runStatements: Array<{ sql: string; values: unknown[] }> = [];
+
+  prepare(sql: string) {
+    const statement = new FakeD1Statement(this, sql);
+    this.statements.push(statement);
+    return statement;
+  }
+}
+
+function createR2StorageBridge(storageFrom: ReturnType<typeof vi.fn>) {
+  return {
+    put: vi.fn(async (key: string, value: BodyInit, options?: { httpMetadata?: { contentType?: string; cacheControl?: string } }) => {
+      const [bucket, ...pathParts] = key.split("/");
+      const path = pathParts.join("/");
+      const storage = storageFrom(bucket);
+      const { error } = await storage.upload(path, value, {
+        contentType: options?.httpMetadata?.contentType,
+        cacheControl: options?.httpMetadata?.cacheControl,
+        upsert: false,
+      });
+      if (error) throw error;
+      return null;
+    }),
+    get: vi.fn(async (key: string) => {
+      const [bucket, ...pathParts] = key.split("/");
+      const path = pathParts.join("/");
+      const storage = storageFrom(bucket);
+      const { data, error } = await storage.download(path);
+      if (error || !data) return null;
+      const body = data instanceof Blob ? data : new Blob([data]);
+      const arrayBuffer = await body.arrayBuffer();
+      return {
+        size: arrayBuffer.byteLength,
+        httpMetadata: { contentType: body.type || null },
+        arrayBuffer: async () => arrayBuffer,
+      };
+    }),
+    delete: vi.fn(async (keys: string | string[]) => {
+      const keyList = Array.isArray(keys) ? keys : [keys];
+      const pathsByBucket = new Map<string, string[]>();
+      for (const key of keyList) {
+        const [bucket, ...pathParts] = key.split("/");
+        const path = pathParts.join("/");
+        pathsByBucket.set(bucket, [...(pathsByBucket.get(bucket) ?? []), path]);
+      }
+      await Promise.all([...pathsByBucket].map(async ([bucket, paths]) => {
+        const storage = storageFrom(bucket);
+        const { error } = await storage.remove(paths);
+        if (error) throw error;
+      }));
+    }),
+  };
+}
+
+function d1SqlStatements(database: FakeD1Database, pattern: RegExp) {
+  return database.runStatements.filter((statement) => pattern.test(statement.sql));
+}
+
 function mockStorageClient(
   attachmentRows: Array<Record<string, unknown>> = [],
   options: {
@@ -104,14 +207,7 @@ function mockStorageClient(
   const download = vi.fn(async () => ({ data: options.downloadBlob ?? new Blob(["image"], { type: "image/webp" }), error: null }));
   const getPublicUrl = vi.fn(() => ({ data: { publicUrl: "https://cdn.example/file" } }));
   const storageFrom = vi.fn(() => ({ remove, upload, download, getPublicUrl }));
-  const rpc = vi.fn(async (_name: string, args?: Record<string, unknown>) => ({
-    data: {
-      uploadSessionId: "session-1",
-      assetId: "asset-1",
-      scanStatus: args?.scan_status ?? "not_required",
-    },
-    error: null,
-  }));
+  const rpc = createRpcMock();
   const attachmentQuery = {
     select: vi.fn(() => attachmentQuery),
     eq: vi.fn(() => attachmentQuery),
@@ -139,8 +235,15 @@ function mockStorageClient(
   });
   const client = { from: dbFrom, rpc, storage: { from: storageFrom } };
   supabaseJsMocks.createClient.mockReturnValue(client);
+  supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(client);
+  const d1 = new FakeD1Database();
+  d1Mocks.getCloudflareD1Database.mockResolvedValue(d1);
+  const r2 = createR2StorageBridge(storageFrom);
+  cloudflareMocks.getCloudflareContext.mockResolvedValue({ env: { ARCH_UPLOADS_R2: r2 } });
   return {
     client,
+    d1,
+    r2,
     from: storageFrom,
     dbFrom,
     rpc,
@@ -214,6 +317,14 @@ beforeEach(() => {
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
   vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "service-role");
   cloudflareMocks.getCloudflareContext.mockResolvedValue({ env: {} });
+  d1Mocks.getCloudflareD1Database.mockResolvedValue(new FakeD1Database());
+  legalTermsMocks.getCurrentUserTermsAcceptanceStatus.mockResolvedValue({
+    requiredTerms: { key: "terms", version: "test" },
+    acceptedCurrentVersion: true,
+    requiresAcceptance: false,
+    acceptedAt: "2026-01-01T00:00:00.000Z",
+    latestAcceptedVersion: "test",
+  });
   mockCurrentWorkspace();
   mockServerRpc();
 });
@@ -235,7 +346,9 @@ describe("sensitive API auth boundaries", () => {
     expect(source).toContain("createComponentImageRouteUrl(path)");
     expect(source).toContain("parseComponentImageStoragePath");
     expect(source).not.toContain(".getPublicUrl(path)");
-    expect(source).toContain("persistSession: false");
+    expect(source).toContain("getCloudflareD1Database");
+    expect(source).toContain("recordUploadAsset(uploadMetadataDb");
+    expect(source).not.toContain("record_upload_asset");
   });
 
   it("keeps component attachment uploads workspace/user scoped", () => {
@@ -250,7 +363,9 @@ describe("sensitive API auth boundaries", () => {
     expect(source).toContain("isOwnedAttachmentPath");
     expect(source).toContain('path.startsWith(`${workspaceId}/${userId}/`)');
     expect(source).toContain('!path.includes("..")');
-    expect(source).toContain("persistSession: false");
+    expect(source).toContain("getCloudflareD1Database");
+    expect(source).toContain("recordUploadAsset(uploadMetadataDb");
+    expect(source).not.toContain("record_upload_asset");
   });
 
   it("keeps project image uploads scoped to a project in the current workspace", () => {
@@ -395,7 +510,7 @@ describe("sensitive API auth boundaries", () => {
 
   it("removes a stored component attachment when upload record persistence fails", async () => {
     const storage = mockStorageClient();
-    storage.rpc.mockResolvedValueOnce({ data: null, error: { message: "record failed" } });
+    storage.d1.failNextRun = new Error("record failed");
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     const formData = new FormData();
     formData.set("file", new File([Buffer.from("%PDF-1.7\n%test")], "spec.pdf", { type: "application/pdf" }));
@@ -407,10 +522,7 @@ describe("sensitive API auth boundaries", () => {
       expect(response.status).toBe(500);
       await expect(response.json()).resolves.toEqual({ error: "Could not store attachment." });
       expect(storage.upload).toHaveBeenCalledOnce();
-      expect(storage.rpc).toHaveBeenCalledWith("record_upload_asset", expect.objectContaining({
-        storage_bucket: "component-attachments",
-        scan_status: "pending",
-      }));
+      expect(d1SqlStatements(storage.d1, /INSERT INTO upload_sessions/)).toHaveLength(0);
       expect(storage.remove).toHaveBeenCalledWith([
         expect.stringMatching(/^workspace-1\/user-1\/spec-[0-9a-f-]+\.pdf$/),
       ]);
@@ -449,11 +561,9 @@ describe("sensitive API auth boundaries", () => {
         cacheControl: "31536000",
       },
     });
-    expect(storage.rpc).toHaveBeenCalledWith("record_upload_asset", expect.objectContaining({
-      storage_bucket: "component-attachments",
-      storage_path: expect.stringMatching(/^workspace-1\/user-1\/spec-[0-9a-f-]+\.pdf$/),
-      scan_status: "pending",
-    }));
+    expect(d1SqlStatements(storage.d1, /INSERT INTO upload_sessions/)).toHaveLength(1);
+    expect(d1SqlStatements(storage.d1, /INSERT INTO upload_assets/)).toHaveLength(1);
+    expect(d1SqlStatements(storage.d1, /INSERT INTO upload_events/)).toHaveLength(1);
   });
 
   it("uploads component images through storage plus atomic asset records and returns resolver URLs", async () => {
@@ -467,8 +577,8 @@ describe("sensitive API auth boundaries", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       bucket: "component-images",
-      uploadSessionId: "session-1",
-      assetId: "asset-1",
+      uploadSessionId: expect.any(String),
+      assetId: expect.any(String),
       scanStatus: "not_required",
       url: expect.stringContaining("/api/component-library/images?path="),
       thumbnailUrl: expect.stringContaining("/api/component-library/images?path="),
@@ -484,15 +594,17 @@ describe("sensitive API auth boundaries", () => {
       contentType: "image/webp",
       upsert: false,
     }));
-    expect(storage.rpc).toHaveBeenCalledWith("record_upload_asset", expect.objectContaining({
-      upload_surface: "component-image",
-      target_entity_type: "component-library",
-      target_entity_id: null,
-      storage_bucket: "component-images",
-      storage_path: expect.stringMatching(/^workspace-1\/user-1\/library-hero-[0-9a-f-]+\.webp$/),
-      thumbnail_path: expect.stringMatching(/^workspace-1\/user-1\/library-hero-[0-9a-f-]+-thumb\.webp$/),
-      scan_status: "not_required",
-    }));
+    expect(d1SqlStatements(storage.d1, /INSERT INTO upload_sessions/)).toHaveLength(1);
+    expect(d1SqlStatements(storage.d1, /INSERT INTO upload_assets/)).toHaveLength(1);
+    expect(d1SqlStatements(storage.d1, /INSERT INTO upload_events/)).toHaveLength(1);
+    expect(storage.d1.runStatements.flatMap((statement) => statement.values)).toEqual(expect.arrayContaining([
+      "component-image",
+      "component-library",
+      "component-images",
+      "not_required",
+      expect.stringMatching(/^workspace-1\/user-1\/library-hero-[0-9a-f-]+\.webp$/),
+      expect.stringMatching(/^workspace-1\/user-1\/library-hero-[0-9a-f-]+-thumb\.webp$/),
+    ]));
   });
 
   it("uploads component images through R2 when the Cloudflare storage provider is selected", async () => {
@@ -522,10 +634,11 @@ describe("sensitive API auth boundaries", () => {
     expect(r2.put).toHaveBeenNthCalledWith(1, expect.stringMatching(/^component-images\/workspace-1\/user-1\/library-hero-[0-9a-f-]+\.webp$/), expect.any(Buffer), expect.objectContaining({
       httpMetadata: expect.objectContaining({ contentType: "image/webp" }),
     }));
-    expect(storage.rpc).toHaveBeenCalledWith("record_upload_asset", expect.objectContaining({
-      storage_bucket: "component-images",
-      storage_path: expect.stringMatching(/^workspace-1\/user-1\/library-hero-[0-9a-f-]+\.webp$/),
-    }));
+    expect(d1SqlStatements(storage.d1, /INSERT INTO upload_assets/)).toHaveLength(1);
+    expect(storage.d1.runStatements.flatMap((statement) => statement.values)).toEqual(expect.arrayContaining([
+      "component-images",
+      expect.stringMatching(/^workspace-1\/user-1\/library-hero-[0-9a-f-]+\.webp$/),
+    ]));
   });
 
   it("uploads project images through private project storage plus atomic asset records", async () => {
@@ -541,8 +654,8 @@ describe("sensitive API auth boundaries", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       bucket: "project-images",
-      uploadSessionId: "session-1",
-      assetId: "asset-1",
+      uploadSessionId: expect.any(String),
+      assetId: expect.any(String),
       scanStatus: "not_required",
       url: expect.stringContaining("/api/projects/images?path="),
       thumbnailUrl: expect.stringContaining("/api/projects/images?path="),
@@ -554,15 +667,18 @@ describe("sensitive API auth boundaries", () => {
       contentType: "image/webp",
       upsert: false,
     }));
-    expect(storage.rpc).toHaveBeenCalledWith("record_upload_asset", expect.objectContaining({
-      upload_surface: "project-image",
-      target_entity_type: "project",
-      target_entity_id: "project-1",
-      storage_bucket: "project-images",
-      storage_path: expect.stringMatching(/^workspace-1\/user-1\/project-images\/project-1\/project-cover-[0-9a-f-]+\.webp$/),
-      thumbnail_path: expect.stringMatching(/^workspace-1\/user-1\/project-images\/project-1\/project-cover-[0-9a-f-]+-thumb\.webp$/),
-      scan_status: "not_required",
-    }));
+    expect(d1SqlStatements(storage.d1, /INSERT INTO upload_sessions/)).toHaveLength(1);
+    expect(d1SqlStatements(storage.d1, /INSERT INTO upload_assets/)).toHaveLength(1);
+    expect(d1SqlStatements(storage.d1, /INSERT INTO upload_events/)).toHaveLength(1);
+    expect(storage.d1.runStatements.flatMap((statement) => statement.values)).toEqual(expect.arrayContaining([
+      "project-image",
+      "project",
+      "project-1",
+      "project-images",
+      "not_required",
+      expect.stringMatching(/^workspace-1\/user-1\/project-images\/project-1\/project-cover-[0-9a-f-]+\.webp$/),
+      expect.stringMatching(/^workspace-1\/user-1\/project-images\/project-1\/project-cover-[0-9a-f-]+-thumb\.webp$/),
+    ]));
   });
 
   it("uploads estimate row images into the private project image bucket and returns row asset descriptors", async () => {
@@ -601,8 +717,8 @@ describe("sensitive API auth boundaries", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       bucket: "project-images",
-      uploadSessionId: "session-1",
-      assetId: "asset-1",
+      uploadSessionId: expect.any(String),
+      assetId: expect.any(String),
       scanStatus: "not_required",
       path: expect.stringMatching(/^workspace-1\/user-1\/project-images\/project-1\/estimate-row-images\/estimate-1\/reference-[0-9a-f-]+\.webp$/),
       url: expect.stringContaining("/api/projects/images?path="),
@@ -616,20 +732,20 @@ describe("sensitive API auth boundaries", () => {
     });
     expect(storage.from).toHaveBeenCalledWith("project-images");
     expect(storage.upload).toHaveBeenCalledTimes(2);
-    expect(storage.rpc).toHaveBeenCalledWith("record_upload_asset", expect.objectContaining({
-      upload_surface: "project-image",
-      target_entity_type: "estimate-row",
-      target_entity_id: "project-1",
-      storage_bucket: "project-images",
-      storage_path: expect.stringMatching(/^workspace-1\/user-1\/project-images\/project-1\/estimate-row-images\/estimate-1\/reference-[0-9a-f-]+\.webp$/),
-      thumbnail_path: expect.stringMatching(/^workspace-1\/user-1\/project-images\/project-1\/estimate-row-images\/estimate-1\/reference-[0-9a-f-]+-thumb\.webp$/),
-      scan_status: "not_required",
-      metadata: expect.objectContaining({
-        projectId: "project-1",
-        estimateId: "estimate-1",
-        rowItemId: "row-1",
-      }),
-    }));
+    expect(d1SqlStatements(storage.d1, /INSERT INTO upload_sessions/)).toHaveLength(1);
+    expect(d1SqlStatements(storage.d1, /INSERT INTO upload_assets/)).toHaveLength(1);
+    expect(d1SqlStatements(storage.d1, /INSERT INTO upload_events/)).toHaveLength(1);
+    expect(storage.d1.runStatements.flatMap((statement) => statement.values)).toEqual(expect.arrayContaining([
+      "project-image",
+      "estimate-row",
+      "project-1",
+      "project-images",
+      "not_required",
+      expect.stringMatching(/^workspace-1\/user-1\/project-images\/project-1\/estimate-row-images\/estimate-1\/reference-[0-9a-f-]+\.webp$/),
+      expect.stringMatching(/^workspace-1\/user-1\/project-images\/project-1\/estimate-row-images\/estimate-1\/reference-[0-9a-f-]+-thumb\.webp$/),
+      expect.stringContaining("\"estimateId\":\"estimate-1\""),
+      expect.stringContaining("\"rowItemId\":\"row-1\""),
+    ]));
   });
 
   it("rejects oversized image requests before auth, body parsing, or storage work", async () => {
@@ -664,7 +780,7 @@ describe("sensitive API auth boundaries", () => {
       error: "The uploaded file does not look like a supported image.",
     });
     expect(storage.upload).not.toHaveBeenCalled();
-    expect(storage.rpc).not.toHaveBeenCalledWith("record_upload_asset", expect.anything());
+    expect(d1SqlStatements(storage.d1, /INSERT INTO upload_assets/)).toHaveLength(0);
   });
 
   it("fails component image uploads explicitly in Cloudflare proof builds before storage writes", async () => {
@@ -681,7 +797,7 @@ describe("sensitive API auth boundaries", () => {
       error: expect.stringContaining("Cloudflare Workers proof build"),
     });
     expect(storage.upload).not.toHaveBeenCalled();
-    expect(storage.rpc).not.toHaveBeenCalledWith("record_upload_asset", expect.anything());
+    expect(d1SqlStatements(storage.d1, /INSERT INTO upload_assets/)).toHaveLength(0);
   });
 
   it("rejects empty image uploads before storage writes", async () => {
@@ -714,7 +830,7 @@ describe("sensitive API auth boundaries", () => {
       error: "The uploaded file does not look like a supported attachment.",
     });
     expect(storage.upload).not.toHaveBeenCalled();
-    expect(storage.rpc).not.toHaveBeenCalledWith("record_upload_asset", expect.anything());
+    expect(d1SqlStatements(storage.d1, /INSERT INTO upload_assets/)).toHaveLength(0);
   });
 
   it("rejects project image uploads before parsing bodies when auth fails", async () => {

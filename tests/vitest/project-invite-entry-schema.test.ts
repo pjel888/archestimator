@@ -11,6 +11,10 @@ const inviteEntryMigration = readFileSync(
   "supabase/migrations/20260527115342_project_invite_entry_tokens.sql",
   "utf8",
 );
+const betterAuthInviteAcceptActorBridgeMigration = readFileSync(
+  "supabase/migrations/20260701013000_better_auth_invite_accept_actor_bridge.sql",
+  "utf8",
+);
 const types = readFileSync("src/lib/supabase/types.ts", "utf8");
 
 function extractApplyPendingOverride() {
@@ -64,6 +68,8 @@ describe("project invite entry schema", () => {
     expect(migrationText).toContain("public.resolve_collaboration_invitation(invitation_token_hash text)");
     expect(migrationText).toContain("public.accept_collaboration_invitation(invitation_token_hash text)");
     expect(migrationText).toContain("public.accept_collaboration_invitation_by_id(target_invitation_id uuid)");
+    expect(migrationText).toContain("public.accept_collaboration_invitation_for_actor(");
+    expect(migrationText).toContain("public.accept_collaboration_invitation_by_id_for_actor(");
     expect(migrationText).toContain("public.list_pending_collaboration_invitations()");
     expect(migrationText).toContain("last_opened_at timestamptz");
     expect(migrationText).toContain("public.issue_collaboration_invitation_token(invitation_id uuid, invitation_token_hash text, token_hint text, delivery_method text, token_expires_at timestamptz, revoke_existing boolean)");
@@ -73,10 +79,24 @@ describe("project invite entry schema", () => {
     expect(migrationText).toContain("grant execute on function public.list_pending_collaboration_invitations() to authenticated");
     expect(migrationText).toContain("revoke all on function public.accept_collaboration_invitation(text) from anon");
     expect(migrationText).toContain("revoke all on function public.accept_collaboration_invitation_by_id(uuid) from anon");
+    expect(migrationText).toContain("revoke all on function public.accept_collaboration_invitation_for_actor(text, uuid, text) from authenticated");
+    expect(migrationText).toContain("revoke all on function public.accept_collaboration_invitation_by_id_for_actor(uuid, uuid, text) from authenticated");
+    expect(migrationText).toContain("grant execute on function public.accept_collaboration_invitation_for_actor(text, uuid, text) to service_role");
+    expect(migrationText).toContain("grant execute on function public.accept_collaboration_invitation_by_id_for_actor(uuid, uuid, text) to service_role");
     expect(migrationText).toContain("revoke all on function public.revoke_collaboration_invitation(uuid) from anon");
     expect(migrationText).toContain("revoke all on function public.issue_collaboration_invitation_token(uuid, text, text, text, timestamptz, boolean) from anon");
     expect(migrationText).toContain("revoke all on function public.record_collaboration_invitation_delivery(uuid, uuid, text) from anon");
     expect(migrationText).toContain("revoke all on table public.collaboration_invitation_tokens from public, anon, authenticated");
+  });
+
+  it("keeps the Better Auth invite acceptance bridge service-role-only and explicit about actor identity", () => {
+    expect(betterAuthInviteAcceptActorBridgeMigration).toContain("auth.role() <> 'service_role'");
+    expect(betterAuthInviteAcceptActorBridgeMigration).toContain("accept_collaboration_invitation_for_actor requires service_role");
+    expect(betterAuthInviteAcceptActorBridgeMigration).toContain("accept_collaboration_invitation_by_id_for_actor requires service_role");
+    expect(betterAuthInviteAcceptActorBridgeMigration).toContain("current_email text := lower(coalesce(actor_email, ''))");
+    expect(betterAuthInviteAcceptActorBridgeMigration).toContain("current_user_id uuid := actor_user_id");
+    expect(betterAuthInviteAcceptActorBridgeMigration).not.toContain("auth.jwt()->>'email'");
+    expect(betterAuthInviteAcceptActorBridgeMigration).not.toContain("auth.uid()");
   });
 
   it("returns expired pending invitations for disabled invitee cards without exposing raw tokens", () => {
@@ -153,6 +173,10 @@ describe("project invite entry schema", () => {
     expect(types).toContain("inviter_email: string");
     expect(types).toContain("accept_collaboration_invitation: {");
     expect(types).toContain("accept_collaboration_invitation_by_id: {");
+    expect(types).toContain("accept_collaboration_invitation_for_actor: {");
+    expect(types).toContain("accept_collaboration_invitation_by_id_for_actor: {");
+    expect(types).toContain("actor_email: string");
+    expect(types).toContain("actor_user_id: string");
     expect(types).toContain("list_pending_collaboration_invitations: {");
     expect(types).toContain("state: string");
     expect(types).toContain("last_opened_at: string");

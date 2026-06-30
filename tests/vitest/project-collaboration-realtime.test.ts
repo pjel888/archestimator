@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -9,11 +9,13 @@ import {
   type ProjectPresencePayload,
   useProjectPresence,
 } from "@/hooks/use-project-presence";
+import { issueRealtimeIdentityEnvelope } from "@/lib/collaboration/realtime-identity-server";
 
 const presenceHook = readFileSync("src/hooks/use-project-presence.ts", "utf8");
 const cursorHook = readFileSync("src/hooks/use-estimate-cursor-broadcast.ts", "utf8");
 const collaborationColors = readFileSync("src/lib/collaboration/colors.ts", "utf8");
 const estimateSheetContent = readFileSync("src/components/workshop/EstimateSheetContent.tsx", "utf8");
+const realtimeIdentityServer = readFileSync("src/lib/collaboration/realtime-identity-server.ts", "utf8");
 
 // --- Fake realtime transport (T0.3 seam) -----------------------------------
 type FakeChannel = PresenceChannelLike & {
@@ -35,7 +37,7 @@ function createFakeClient(): FakeClient {
   const client: FakeClient = {
     __channels: channels,
     __removed: removed,
-    channel(name) {
+    openRoom(name) {
       let presence: Record<string, ProjectPresencePayload[]> = {};
       let syncHandler: (() => void) | null = null;
       let subscribeCallback: ((status: string) => void) | null = null;
@@ -73,13 +75,34 @@ function createFakeClient(): FakeClient {
       channels.push(channel);
       return channel;
     },
-    removeChannel(channel) {
+    closeRoom(channel) {
       removed.push(channel as FakeChannel);
       return Promise.resolve("ok");
     },
   };
 
   return client;
+}
+
+async function createPresenceIdentity(userId: string, topic: string) {
+  const issued = await issueRealtimeIdentityEnvelope({ sub: userId, topic, role: "member" });
+  return {
+    identityIssuer: async () => ({
+      envelope: issued.envelope,
+      publicKey: issued.publicKey,
+      userId,
+      displayName: userId,
+    }),
+    payload(activeSurface: ProjectPresencePayload["activeSurface"] = "overview"): ProjectPresencePayload {
+      return {
+        purpose: PRESENCE_STATE_PURPOSE,
+        userId,
+        activeSurface,
+        onlineAt: "t",
+        envelope: issued.envelope,
+      };
+    },
+  };
 }
 
 describe("useProjectPresence — payload scope & lifecycle (T1.1 / T0.3)", () => {
@@ -90,14 +113,17 @@ describe("useProjectPresence — payload scope & lifecycle (T1.1 / T0.3)", () =>
     vi.useRealTimers();
   });
 
-  it("tracks ONLY coarse fields — no raw route, estimate, tab, or cell leaks", () => {
+  it("tracks ONLY coarse fields — no raw route, estimate, tab, or cell leaks", async () => {
     const client = createFakeClient();
+    const topic = "project:11111111-1111-1111-1111-111111111111";
+    const { identityIssuer } = await createPresenceIdentity("user-a", topic);
     const { result } = renderHook(() =>
       useProjectPresence({
         projectId: "11111111-1111-1111-1111-111111111111",
         currentUser: { id: "user-a" },
         activeSurface: "estimates",
         clientFactory: () => client,
+        identityIssuer,
       }),
     );
 
@@ -105,13 +131,14 @@ describe("useProjectPresence — payload scope & lifecycle (T1.1 / T0.3)", () =>
       client.__channels[0]?.__emit("SUBSCRIBED");
     });
 
+    await waitFor(() => expect(client.__channels[0]?.__tracked.length).toBe(1));
     const payload = client.__channels[0]?.__tracked.at(-1);
     expect(payload).toBeTruthy();
     expect(payload?.purpose).toBe(PRESENCE_STATE_PURPOSE);
     expect(payload?.userId).toBe("user-a");
     expect(payload?.activeSurface).toBe("estimates");
     // The exact key set is the security boundary — assert nothing else rides along.
-    expect(Object.keys(payload as object).sort()).toEqual(["activeSurface", "onlineAt", "purpose", "userId"]);
+    expect(Object.keys(payload as object).sort()).toEqual(["activeSurface", "envelope", "onlineAt", "purpose", "userId"]);
     const serialized = JSON.stringify(payload);
     expect(serialized).not.toMatch(/activeRoute|activeEstimateId|activeTabId|focusedCell/);
     expect(serialized).not.toMatch(/\/workshop\//); // no raw pathname
@@ -126,58 +153,83 @@ describe("useProjectPresence — payload scope & lifecycle (T1.1 / T0.3)", () =>
     expect(presenceHook).not.toMatch(/focusedCell\s*[:,]/);
     expect(presenceHook).not.toMatch(/activeTabId\s*[:,]/);
     expect(presenceHook).toContain("activeSurface");
-    expect(presenceHook).toContain("config: { private: true }");
+    expect(presenceHook).toContain("createCloudflareCollaborationRoomClient");
+    expect(presenceHook).toContain("openRoom(topic)");
+    expect(presenceHook).toContain("verifyRealtimeIdentity");
   });
 
-  it("builds the online roster from presence sync state", () => {
+  it("does not derive realtime signing keys from Supabase service-role secrets", () => {
+    expect(realtimeIdentityServer).toContain("REALTIME_IDENTITY_SIGNING_KEY");
+    expect(realtimeIdentityServer).toContain("ARCHESTIMATOR_INVITE_TOKEN_PEPPER");
+    expect(realtimeIdentityServer).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
+  });
+
+  it("builds the online roster from presence sync state", async () => {
     const client = createFakeClient();
+    const topic = "project:11111111-1111-1111-1111-111111111111";
+    const self = await createPresenceIdentity("user-a", topic);
+    const other = await createPresenceIdentity("user-b", topic);
     const { result } = renderHook(() =>
       useProjectPresence({
         projectId: "11111111-1111-1111-1111-111111111111",
         currentUser: { id: "user-a" },
         activeSurface: "overview",
         clientFactory: () => client,
+        identityIssuer: self.identityIssuer,
       }),
     );
 
     act(() => {
       client.__channels[0]?.__emit("SUBSCRIBED");
+    });
+    await waitFor(() => expect(client.__channels[0]?.__tracked.length).toBe(1));
+    act(() => {
       client.__channels[0]?.__setPresence({
-        keyA: [{ purpose: PRESENCE_STATE_PURPOSE, userId: "user-a", activeSurface: "overview", onlineAt: "t1" }],
-        keyB: [{ purpose: PRESENCE_STATE_PURPOSE, userId: "user-b", activeSurface: "estimates", onlineAt: "t2" }],
+        keyA: [self.payload("overview")],
+        keyB: [other.payload("estimates")],
       });
     });
 
+    await waitFor(() => expect(result.current.onlineUserIds.has("user-b")).toBe(true));
     expect(result.current.onlineUserIds.has("user-a")).toBe(true);
-    expect(result.current.onlineUserIds.has("user-b")).toBe(true);
     expect(result.current.entries.get("user-b")?.activeSurface).toBe("estimates");
   });
 
-  it("ignores an unknown/garbage activeSurface from the wire (coerces to 'other')", () => {
+  it("ignores an unknown/garbage activeSurface from the wire (coerces to 'other')", async () => {
     const client = createFakeClient();
+    const topic = "project:11111111-1111-1111-1111-111111111111";
+    const self = await createPresenceIdentity("user-a", topic);
+    const remote = await createPresenceIdentity("user-x", topic);
     const { result } = renderHook(() =>
       useProjectPresence({
         projectId: "11111111-1111-1111-1111-111111111111",
         currentUser: { id: "user-a" },
         clientFactory: () => client,
+        identityIssuer: self.identityIssuer,
       }),
     );
     act(() => {
       client.__channels[0]?.__emit("SUBSCRIBED");
+    });
+    await waitFor(() => expect(client.__channels[0]?.__tracked.length).toBe(1));
+    act(() => {
       client.__channels[0]?.__setPresence({
-        evil: [{ purpose: PRESENCE_STATE_PURPOSE, userId: "user-x", activeSurface: "/workshop/projects/secret" as never, onlineAt: "t" }],
+        evil: [{ ...remote.payload(), activeSurface: "/workshop/projects/secret" as never }],
       });
     });
-    expect(result.current.entries.get("user-x")?.activeSurface).toBe("other");
+    await waitFor(() => expect(result.current.entries.get("user-x")?.activeSurface).toBe("other"));
   });
 
-  it("cleans up the channel on unmount and holds only one live channel (StrictMode guard)", () => {
+  it("cleans up the room on unmount and holds only one live room (StrictMode guard)", async () => {
     const client = createFakeClient();
+    const topic = "project:11111111-1111-1111-1111-111111111111";
+    const { identityIssuer } = await createPresenceIdentity("user-a", topic);
     const { unmount } = renderHook(() =>
       useProjectPresence({
         projectId: "11111111-1111-1111-1111-111111111111",
         currentUser: { id: "user-a" },
         clientFactory: () => client,
+        identityIssuer,
       }),
     );
     act(() => {
@@ -224,7 +276,8 @@ describe("estimate cursor layer wiring (source contract)", () => {
   it("keeps the channel/transport contract for cursors", () => {
     expect(cursorHook).toContain('export const ESTIMATE_COLLABORATION_CHANNEL_PREFIX = "estimate:"');
     expect(cursorHook).toContain('export const CURSOR_BROADCAST_EVENT = "cursor"');
-    expect(cursorHook).toContain("config: { private: true }");
+    expect(cursorHook).toContain("createCloudflareCollaborationRoomClient");
+    expect(cursorHook).toContain("client.openRoom(topic)");
     expect(cursorHook).toContain('.on("broadcast", { event: CURSOR_BROADCAST_EVENT }');
     expect(cursorHook).toContain('type: "broadcast"');
   });

@@ -16,6 +16,11 @@ function readTermsAcceptanceMigration() {
   };
 }
 
+function readD1TermsAcceptanceMigration() {
+  const sql = readFileSync(join(process.cwd(), "migrations/0002_legal_terms_acceptance.sql"), "utf8");
+  return sql;
+}
+
 describe("legal Terms acceptance migration", () => {
   it("creates an append-only authenticated acceptance table with version evidence", () => {
     const migration = readTermsAcceptanceMigration();
@@ -50,5 +55,20 @@ describe("legal Terms acceptance migration", () => {
     expect(sql).not.toMatch(/for insert to authenticated/i);
     expect(sql).not.toMatch(/for update to authenticated/i);
     expect(sql).not.toMatch(/for delete to authenticated/i);
+  });
+
+  it("mirrors the append-only evidence table in Cloudflare D1 without Supabase-only policy syntax", () => {
+    const sql = readD1TermsAcceptanceMigration();
+
+    expect(sql).toMatch(/CREATE TABLE IF NOT EXISTS legal_terms_acceptances/i);
+    expect(sql).toMatch(/user_id TEXT NOT NULL/i);
+    expect(sql).toMatch(/terms_key TEXT NOT NULL/i);
+    expect(sql).toMatch(/terms_version TEXT NOT NULL/i);
+    expect(sql).toMatch(/metadata_json TEXT NOT NULL/i);
+    expect(sql).toMatch(/UNIQUE\s*\(\s*user_id\s*,\s*terms_key\s*,\s*terms_version\s*\)/i);
+    expect(sql).toMatch(/json_valid\(metadata_json\)/i);
+    expect(sql).not.toMatch(/row level security|create policy|auth\.uid|service_role/i);
+    expect(sql).not.toMatch(/\bip_address\b/i);
+    expect(sql).not.toMatch(/\buser_agent\b(?!_)/i);
   });
 });

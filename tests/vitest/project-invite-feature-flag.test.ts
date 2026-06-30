@@ -1,6 +1,13 @@
 import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const d1Mocks = vi.hoisted(() => ({
+  getCloudflareD1Database: vi.fn(),
+}));
+const rateLimitEvents = vi.hoisted(() => [] as Array<Record<string, unknown>>);
+
+vi.mock("@/lib/cloudflare/d1", () => d1Mocks);
+
 import {
   checkInviteCreateRateLimit,
   checkInviteAcceptRateLimit,
@@ -13,45 +20,63 @@ import {
 
 const VALID_INVITE_PEPPER = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
-const rateLimitEvents = vi.hoisted(() => [] as Array<Record<string, unknown>>);
-
-vi.mock("@supabase/supabase-js", () => ({
-  createClient: vi.fn(() => ({
-    from: vi.fn(() => ({
-      delete: () => ({
-        lt: async () => ({ error: null }),
-      }),
-      insert: async (row: Record<string, unknown>) => {
-        rateLimitEvents.push(row);
-        return { error: null };
-      },
-      select: () => {
-        const filters: Record<string, unknown> = {};
-        const chain = {
-          eq(field: string, value: unknown) {
-            filters[field] = value;
-            return chain;
-          },
-          gte() {
-            const count = rateLimitEvents.filter((event) =>
-              Object.entries(filters).every(([field, value]) => event[field] === value),
-            ).length;
-            return Promise.resolve({ count, error: null });
-          },
-        };
-        return chain;
-      },
-    })),
-  })),
-}));
+function createRateLimitD1() {
+  return {
+    prepare(sql: string) {
+      let values: unknown[] = [];
+      const statement = {
+        bind(...nextValues: unknown[]) {
+          values = nextValues;
+          return this;
+        },
+        async first<R>() {
+          const normalizedSql = sql.toLowerCase();
+          if (!normalizedSql.includes("from security_rate_limit_events")) return null;
+          const [scope, keyHash, since] = values;
+          const count = rateLimitEvents.filter((event) =>
+            event.scope === scope
+            && event.key_hash === keyHash
+            && String(event.occurred_at) >= String(since)
+          ).length;
+          return { count } as R;
+        },
+        async all<R>() {
+          return { results: [] as R[] };
+        },
+        async run() {
+          const normalizedSql = sql.toLowerCase();
+          if (normalizedSql.includes("delete from security_rate_limit_events")) {
+            const [now] = values;
+            for (let index = rateLimitEvents.length - 1; index >= 0; index -= 1) {
+              if (String(rateLimitEvents[index].expires_at) < String(now)) rateLimitEvents.splice(index, 1);
+            }
+          }
+          if (normalizedSql.includes("insert into security_rate_limit_events")) {
+            const [id, scope, keyHash, metadataJson, occurredAt, expiresAt] = values;
+            rateLimitEvents.push({
+              id,
+              scope,
+              key_hash: keyHash,
+              metadata_json: metadataJson,
+              occurred_at: occurredAt,
+              expires_at: expiresAt,
+            });
+          }
+          return { success: true, meta: { changes: 1 } };
+        },
+      };
+      return statement;
+    },
+  };
+}
 
 describe("project invite entry feature flag", () => {
   const envExample = readFileSync(".env.example", "utf8");
 
   beforeEach(() => {
     rateLimitEvents.length = 0;
-    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
-    vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "service-role-key");
+    d1Mocks.getCloudflareD1Database.mockReset();
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(createRateLimitD1());
     vi.stubEnv("PROJECT_INVITE_ENTRY_ENABLED", "true");
     vi.stubEnv("ARCHESTIMATOR_INVITE_TOKEN_PEPPER", VALID_INVITE_PEPPER);
   });

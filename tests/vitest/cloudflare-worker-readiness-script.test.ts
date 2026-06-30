@@ -25,16 +25,23 @@ PUBLICATION_ACCESS_COOKIE_SECRET=
 ARCHESTIMATOR_AI_ENABLED=false
 NEXT_PUBLIC_ASK_FLIP_UI_ENABLED=false
 NEXT_PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN=
+ARCHESTIMATOR_AUTH_PROVIDER=
 BETTER_AUTH_URL=http://localhost:3000
 BETTER_AUTH_SECRET=
 BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:3000
+BETTER_AUTH_GOOGLE_CLIENT_ID=
+BETTER_AUTH_GOOGLE_CLIENT_SECRET=
+ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED=false
+ARCHESTIMATOR_EMAIL_PROVIDER=cloudflare-email
+CLOUDFLARE_EMAIL_FROM=
+CLOUDFLARE_EMAIL_REPLY_TO=support@archestimator.com
 CRON_SECRET=
 UPLOAD_CLEANUP_JOB_SECRET=
 UPLOAD_SCAN_JOB_SECRET=
 UPLOAD_JOBS_ENABLED=0
 CLOUDFLARE_UPLOAD_JOBS_DRY_RUN=1
 CLOUDFLARE_UPLOAD_JOBS_ORIGIN=https://archestimator.internal
-ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER=supabase
+ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER=cloudflare-r2
 ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER=node-sharp
 `;
 
@@ -45,19 +52,32 @@ UPLOAD_SCAN_JOB_SECRET=
 UPLOAD_JOBS_ENABLED=0
 CLOUDFLARE_UPLOAD_JOBS_DRY_RUN=1
 CLOUDFLARE_UPLOAD_JOBS_ORIGIN=https://archestimator.internal
+ARCHESTIMATOR_AUTH_PROVIDER=
 BETTER_AUTH_URL=http://localhost:3000
 BETTER_AUTH_SECRET=
 BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:3000
+BETTER_AUTH_GOOGLE_CLIENT_ID=
+BETTER_AUTH_GOOGLE_CLIENT_SECRET=
+ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED=false
+ARCHESTIMATOR_EMAIL_PROVIDER=cloudflare-email
+CLOUDFLARE_EMAIL_FROM=
+CLOUDFLARE_EMAIL_REPLY_TO=support@archestimator.com
 PUBLICATION_TOKEN_ENCRYPTION_SECRET=
 PUBLICATION_TOKEN_HASH_SECRET=
 PUBLICATION_ACCESS_COOKIE_SECRET=
-ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER=supabase
+ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER=cloudflare-r2
 ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER=node-sharp
 `;
 
 const COMPLETE_WRANGLER = JSON.stringify({
+  workers_dev: true,
+  routes: [
+    { pattern: "archestimator.com", custom_domain: true },
+    { pattern: "www.archestimator.com", custom_domain: true },
+  ],
   assets: { binding: "ASSETS" },
   images: { binding: "IMAGES" },
+  send_email: [{ name: "EMAIL" }],
   r2_buckets: [{ binding: "ARCH_UPLOADS_R2", bucket_name: "proof", preview_bucket_name: "proof-dev" }],
   queues: {
     producers: [{ binding: "UPLOAD_JOBS_QUEUE", queue: "archestimator-upload-jobs" }],
@@ -106,9 +126,16 @@ function completeSecretTranscript() {
     "PUBLICATION_ACCESS_COOKIE_SECRET",
     "ARCHESTIMATOR_AI_ENABLED",
     "NEXT_PUBLIC_ASK_FLIP_UI_ENABLED",
+    "ARCHESTIMATOR_AUTH_PROVIDER",
     "BETTER_AUTH_URL",
     "BETTER_AUTH_SECRET",
     "BETTER_AUTH_TRUSTED_ORIGINS",
+    "BETTER_AUTH_GOOGLE_CLIENT_ID",
+    "BETTER_AUTH_GOOGLE_CLIENT_SECRET",
+    "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
+    "ARCHESTIMATOR_EMAIL_PROVIDER",
+    "CLOUDFLARE_EMAIL_FROM",
+    "CLOUDFLARE_EMAIL_REPLY_TO",
     "CRON_SECRET",
     "UPLOAD_CLEANUP_JOB_SECRET",
     "UPLOAD_SCAN_JOB_SECRET",
@@ -152,7 +179,7 @@ describe("Cloudflare Worker readiness checker", () => {
         UPLOAD_JOBS_ENABLED=0
         CLOUDFLARE_UPLOAD_JOBS_DRY_RUN=1
         CLOUDFLARE_UPLOAD_JOBS_ORIGIN=https://archestimator.internal
-        ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER=supabase
+        ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER=cloudflare-r2
         ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER=node-sharp
       `,
     });
@@ -195,6 +222,8 @@ describe("Cloudflare Worker readiness checker", () => {
     expect(result.devVarsExample.missing).toContain("PUBLICATION_TOKEN_HASH_SECRET");
     expect(result.wranglerBindings.missing).toContain("IMAGES");
     expect(result.wranglerBindings.missing).toContain("UPLOAD_JOBS_QUEUE");
+    expect(result.wranglerBindings.missing).toContain("EMAIL");
+    expect(result.wranglerCustomDomains.missing).toEqual(["archestimator.com", "www.archestimator.com"]);
     expect(result.wranglerCrons.missing).toContain("15 3 * * *");
     expect(result.wranglerObservability.missing).toContain("observability.head_sampling_rate<=0.1");
     expect(result.wranglerObservability.missing).toContain("observability.logs.head_sampling_rate<=0.1");
@@ -227,6 +256,7 @@ describe("Cloudflare Worker readiness checker", () => {
     });
 
     expect(result.manifestReady).toBe(true);
+    expect(result.wranglerCustomDomains.ready).toBe(true);
     expect(result.wranglerObservability.ready).toBe(true);
     expect(result.deploymentReady).toBe(false);
   });
@@ -244,7 +274,7 @@ describe("Cloudflare Worker readiness checker", () => {
         UPLOAD_JOBS_ENABLED=0
         CLOUDFLARE_UPLOAD_JOBS_DRY_RUN=1
         CLOUDFLARE_UPLOAD_JOBS_ORIGIN=https://archestimator.internal
-        ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER=supabase
+        ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER=cloudflare-r2
         ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER=node-sharp
       `,
     });

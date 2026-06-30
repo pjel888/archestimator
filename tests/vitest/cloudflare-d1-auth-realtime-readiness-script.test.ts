@@ -95,6 +95,7 @@ describe("Cloudflare D1/Auth/Realtime readiness checker", () => {
 
     expect(report.readiness.databaseInventoryReady).toBe(true);
     expect(report.readiness.localRedesignReadinessReportReady).toBe(true);
+    expect(report.manifestSummary.hasSupabaseDependency).toBe(true);
     expect(report.readiness.d1BindingReady).toBe(false);
     expect(report.readiness.betterAuthLocalProofReady).toBe(false);
     expect(report.readiness.authReplacementReady).toBe(false);
@@ -108,12 +109,17 @@ describe("Cloudflare D1/Auth/Realtime readiness checker", () => {
     expect(report.readiness.productionD1AuthRealtimeReady).toBe(false);
     expect(report.sourceSignals.supabaseAuthFiles).toEqual(["src/app/auth/callback/route.ts"]);
     expect(report.sourceSignals.supabaseRealtimeFiles).toEqual(["src/hooks/use-project-presence.ts"]);
+    expect(report.sourceSignals.providerBlockingFiles).toEqual([
+      "src/app/auth/callback/route.ts",
+      "src/hooks/use-project-presence.ts",
+    ]);
     expect(report.candidateFirstD1Slices.find((slice) => slice.name === "Upload metadata and scan state")?.rpcNames).toContain(
       "record_upload_asset",
     );
     expect(report.blockers).toEqual(
       expect.arrayContaining([
         expect.stringContaining("D1 database binding configured and typed"),
+        expect.stringContaining("Legacy Supabase/Resend runtime references removed"),
         expect.stringContaining("Better Auth D1 production replacement ready"),
         expect.stringContaining("D1 RPC local transaction/rollback/idempotency mechanics ready"),
         expect.stringContaining("D1 beta-feedback local domain proof ready"),
@@ -179,6 +185,82 @@ describe("Cloudflare D1/Auth/Realtime readiness checker", () => {
     });
     expect(report.gates.find((gate) => gate.key === "better-auth-replacement")?.evidence).toContain("productionProof=no");
     expect(report.gates.find((gate) => gate.key === "better-auth-replacement")?.evidence).toContain("providerProof=no");
+    expect(report.gates.find((gate) => gate.key === "better-auth-replacement")?.evidence).toContain("remainingSupabaseAuthFiles=1");
+  });
+
+  it("keeps invite accept Supabase Auth usage as a Better Auth replacement blocker", () => {
+    const inputs = currentInputs();
+    inputs.packageJsonText = JSON.stringify({
+      dependencies: {
+        "better-auth": "1.6.22",
+      },
+    });
+    inputs.wranglerConfigText = JSON.stringify({
+      d1_databases: [{ binding: "ARCH_DB", database_name: "archestimator-proof", database_id: "proof-id" }],
+    });
+    inputs.generatedTypesText = `
+      interface __BaseEnv_CloudflareEnv {
+        ARCH_DB: D1Database;
+      }
+    `;
+    inputs.sourceFileTextByPath = {
+      "src/lib/auth/cloudflare-auth.ts":
+        "import { betterAuth } from 'better-auth'; export const auth = betterAuth({ database: d1Adapter(env.ARCH_DB) }); export async function requireUser() { return auth.api.getSession(); }",
+      "src/app/invite/[token]/accept/route.ts": "const { data } = await supabase.auth.getUser();",
+    };
+    inputs.betterAuthRouteGateProof = source({
+      readiness: {
+        localBetterAuthRouteGateProofReady: true,
+        routeGateHelperTestCoverageReady: true,
+        routeGateD1SessionFixtureReady: true,
+        betterAuthD1SchemaSqlGenerated: true,
+        betterAuthD1SchemaSqlReviewReady: true,
+        hostedBetterAuthD1SchemaProofReady: true,
+        betterAuthSecretProviderReady: true,
+        providerBackedSessionFixtureReady: true,
+        providerBackedCallbackSessionCutoverReady: true,
+        betterAuthProviderProofReady: true,
+        productionBetterAuthReady: true,
+      },
+      scaffoldSummary: {
+        actualNextRouteMounted: true,
+        routeGateParityRows: 7,
+      },
+      localOnly: false,
+      providerBacked: true,
+    }, "better-auth-proof.json");
+
+    const blockedReport = checkCloudflareD1AuthRealtimeReadiness(inputs);
+    expect(blockedReport.sourceSignals.supabaseAuthFiles).toEqual(["src/app/invite/[token]/accept/route.ts"]);
+    expect(blockedReport.readiness.authReplacementReady).toBe(false);
+    expect(blockedReport.gates.find((gate) => gate.key === "better-auth-replacement")?.evidence).toContain(
+      "remainingSupabaseAuthFiles=1",
+    );
+
+    inputs.sourceFileTextByPath["src/app/invite/[token]/accept/route.ts"] =
+      "const currentUser = await getCurrentUserContext(); await acceptInvitationTokenForUser({ user: currentUser });";
+
+    const cleanReport = checkCloudflareD1AuthRealtimeReadiness(inputs);
+    expect(cleanReport.sourceSignals.supabaseAuthFiles).toEqual([]);
+    expect(cleanReport.readiness.authReplacementReady).toBe(true);
+    expect(cleanReport.gates.find((gate) => gate.key === "better-auth-replacement")?.evidence).toContain(
+      "remainingSupabaseAuthFiles=0",
+    );
+  });
+
+  it("does not count lowercase redaction vocabulary as service-role runtime usage", () => {
+    const inputs = currentInputs();
+    inputs.sourceFileTextByPath = {
+      "src/lib/observability/redact.ts":
+        "const NEVER_LOG_KEYS = ['service_role_key', 'supabase_service_role_key'];",
+      "src/lib/auth/admin.ts":
+        "const admin = createSupabaseServiceRoleClient('proof'); const key = process.env.SUPABASE_SERVICE_ROLE_KEY;",
+    };
+
+    const report = checkCloudflareD1AuthRealtimeReadiness(inputs);
+
+    expect(report.sourceSignals.supabaseServiceRoleFiles).toEqual(["src/lib/auth/admin.ts"]);
+    expect(report.sourceSignals.providerBlockingFiles).toEqual(["src/lib/auth/admin.ts"]);
   });
 
   it("passes production readiness only when every redesign proof surface is present", () => {
@@ -263,6 +345,8 @@ describe("Cloudflare D1/Auth/Realtime readiness checker", () => {
         "resolve_collaboration_invitation",
         "accept_collaboration_invitation",
         "accept_collaboration_invitation_by_id",
+        "accept_collaboration_invitation_for_actor",
+        "accept_collaboration_invitation_by_id_for_actor",
       ],
       readiness: {
         schemaReady: true,

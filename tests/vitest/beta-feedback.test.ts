@@ -107,16 +107,16 @@ describe("closed beta feedback", () => {
     expect(reviewMigration).toContain('create policy "platform admins can update beta feedback status"');
     expect(reviewMigration).toContain("for update");
     expect(reviewSource).toContain('role === "ceo" || role === "admin"');
-    expect(reviewSource).toContain('from("beta_feedback_submissions")');
+    expect(reviewSource).toContain("readBetaFeedbackReviewQueueFromD1");
     expect(reviewActionSource).toContain("parseBetaFeedbackStatusUpdate");
-    expect(reviewActionSource).toContain('update({ status: parsed.status })');
-    expect(reviewPageSource).toContain("Only platform admins can review beta feedback.");
-    expect(reviewPageSource).toContain("Showing {queue.submissions.length} latest beta feedback submissions.");
+    expect(reviewActionSource).toContain("updateBetaFeedbackReviewStatusInD1");
+    expect(reviewPageSource).toContain("Only platform admins can review feedback.");
+    expect(reviewPageSource).toContain("Showing {queue.submissions.length} latest feedback submissions.");
   });
 
   it("keeps the protected feedback page tied to persistence and fallback", () => {
     expect(actionSource).toContain("requireCurrentUserContext");
-    expect(actionSource).toContain('from("beta_feedback_submissions").insert');
+    expect(actionSource).toContain("saveBetaFeedbackToD1");
     expect(actionSource).toContain('feedbackRedirect({ fallback: "1" })');
     expect(pageSource).toContain("BetaFeedbackForm");
     expect(pageSource).toContain("Feedback could not be saved in the app.");

@@ -4,31 +4,71 @@ const authMocks = vi.hoisted(() => ({
   requireCurrentUserContext: vi.fn(),
 }));
 
-const serviceRoleMocks = vi.hoisted(() => ({
-  createSupabaseServiceRoleClient: vi.fn(),
+const d1Mocks = vi.hoisted(() => ({
+  getCloudflareD1Database: vi.fn(),
 }));
 
 vi.mock("@/lib/auth/session", () => authMocks);
-vi.mock("@/lib/supabase/service-role", () => serviceRoleMocks);
+vi.mock("@/lib/cloudflare/d1", () => d1Mocks);
 vi.mock("server-only", () => ({}));
 
-function createQuery(data: unknown[] | null, error: { message: string } | null = null) {
-  const query = {
-    select: vi.fn(() => query),
-    gte: vi.fn(() => query),
-    order: vi.fn(() => query),
-    limit: vi.fn(async () => ({ data, error })),
-  };
-  return query;
+class FakeD1Statement {
+  values: unknown[] = [];
+
+  constructor(
+    private readonly database: FakeD1Database,
+    readonly sql: string,
+  ) {}
+
+  bind(...values: unknown[]) {
+    this.values = values;
+    return this;
+  }
+
+  async first<R>() {
+    return null as R | null;
+  }
+
+  async all<R>() {
+    if (this.sql.includes("FROM upload_assets")) {
+      if (this.database.failTable === "upload_assets") throw new Error("select failed for private/path.pdf");
+      return { success: true, results: this.database.assets as R[] };
+    }
+    if (this.sql.includes("FROM upload_sessions")) {
+      if (this.database.failTable === "upload_sessions") throw new Error("select failed for private/path.pdf");
+      return { success: true, results: this.database.sessions as R[] };
+    }
+    if (this.database.failTable === "upload_events") throw new Error("select failed for private/path.pdf");
+    return { success: true, results: this.database.events as R[] };
+  }
+
+  async run() {
+    return { success: true, meta: { changes: 1 } };
+  }
+}
+
+class FakeD1Database {
+  assets: unknown[] = [];
+  sessions: unknown[] = [];
+  events: unknown[] = [];
+  failTable: "upload_assets" | "upload_sessions" | "upload_events" | null = null;
+  statements: FakeD1Statement[] = [];
+
+  prepare(sql: string) {
+    const statement = new FakeD1Statement(this, sql);
+    this.statements.push(statement);
+    return statement;
+  }
 }
 
 beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
+  d1Mocks.getCloudflareD1Database.mockResolvedValue(new FakeD1Database());
 });
 
 describe("upload operations dashboard snapshot", () => {
-  it("does not create a service-role client for non-platform-admin users", async () => {
+  it("does not open D1 for non-platform-admin users", async () => {
     authMocks.requireCurrentUserContext.mockResolvedValue({ role: "member", userId: "user-1" });
     const { readUploadOperationsDashboardSnapshot } = await import("@/lib/uploads/operations-dashboard");
 
@@ -37,43 +77,32 @@ describe("upload operations dashboard snapshot", () => {
       error: null,
       snapshot: null,
     });
-    expect(serviceRoleMocks.createSupabaseServiceRoleClient).not.toHaveBeenCalled();
+    expect(d1Mocks.getCloudflareD1Database).not.toHaveBeenCalled();
   });
 
-  it("selects only path-safe aggregate fields from upload tables", async () => {
+  it("selects only path-safe aggregate fields from D1 upload tables", async () => {
     authMocks.requireCurrentUserContext.mockResolvedValue({ role: "admin", userId: "user-1" });
-    const assetsQuery = createQuery([]);
-    const sessionsQuery = createQuery([]);
-    const eventsQuery = createQuery([]);
-    serviceRoleMocks.createSupabaseServiceRoleClient.mockReturnValue({
-      from: vi.fn((table: string) => {
-        if (table === "upload_assets") return assetsQuery;
-        if (table === "upload_sessions") return sessionsQuery;
-        return eventsQuery;
-      }),
-    });
+    const database = new FakeD1Database();
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
     const { readUploadOperationsDashboardSnapshot } = await import("@/lib/uploads/operations-dashboard");
 
     await readUploadOperationsDashboardSnapshot({ now: new Date("2026-06-27T08:00:00.000Z") });
 
-    expect(serviceRoleMocks.createSupabaseServiceRoleClient).toHaveBeenCalledWith("archestimator-upload-operations-dashboard");
-    expect(assetsQuery.select).toHaveBeenCalledWith(
-      "workspace_id, surface, content_type, size_bytes, status, scan_status, scan_provider, created_at, updated_at",
-    );
-    expect(sessionsQuery.select).toHaveBeenCalledWith(
-      "workspace_id, surface, content_type, size_bytes, status, created_at, expires_at",
-    );
-    expect(eventsQuery.select).toHaveBeenCalledWith("workspace_id, event_type, created_at");
-    expect(JSON.stringify([
-      assetsQuery.select.mock.calls,
-      sessionsQuery.select.mock.calls,
-      eventsQuery.select.mock.calls,
-    ])).not.toMatch(/storage_path|file_name|metadata|signed|token/i);
+    expect(d1Mocks.getCloudflareD1Database).toHaveBeenCalled();
+    const sql = database.statements.map((statement) => statement.sql).join("\n");
+    expect(sql).toContain("SELECT workspace_id, surface, content_type, size_bytes, status, scan_status, scan_provider, created_at, updated_at");
+    expect(sql).toContain("SELECT workspace_id, surface, content_type, size_bytes, status, created_at, expires_at");
+    expect(sql).toContain("SELECT workspace_id, event_type, created_at");
+    expect(sql).not.toMatch(/storage_path|file_name|metadata|signed|token/i);
+    for (const statement of database.statements) {
+      expect(statement.values).toEqual(["2026-06-26T08:00:00.000Z", 500]);
+    }
   });
 
   it("aggregates upload outcomes, scan backlog, cleanup backlog, and operations events", async () => {
     authMocks.requireCurrentUserContext.mockResolvedValue({ role: "ceo", userId: "user-1" });
-    const assetsQuery = createQuery([
+    const database = new FakeD1Database();
+    database.assets = [
       {
         workspace_id: "workspace-1",
         surface: "component-attachment",
@@ -129,8 +158,8 @@ describe("upload operations dashboard snapshot", () => {
         created_at: "2026-06-27T07:20:00.000Z",
         updated_at: "2026-06-27T07:20:00.000Z",
       },
-    ]);
-    const sessionsQuery = createQuery([
+    ];
+    database.sessions = [
       {
         workspace_id: "workspace-1",
         surface: "component-attachment",
@@ -149,8 +178,8 @@ describe("upload operations dashboard snapshot", () => {
         created_at: "2026-06-27T07:35:00.000Z",
         expires_at: "2026-06-27T07:40:00.000Z",
       },
-    ]);
-    const eventsQuery = createQuery([
+    ];
+    database.events = [
       { workspace_id: "workspace-1", event_type: "cleanup_queued", created_at: "2026-06-27T07:00:00.000Z" },
       { workspace_id: "workspace-1", event_type: "cleanup_failed", created_at: "2026-06-27T07:01:00.000Z" },
       { workspace_id: "workspace-1", event_type: "cleanup_succeeded", created_at: "2026-06-27T07:02:00.000Z" },
@@ -158,14 +187,8 @@ describe("upload operations dashboard snapshot", () => {
       { workspace_id: "workspace-1", event_type: "scan_override_approved", created_at: "2026-06-27T07:04:00.000Z" },
       { workspace_id: "workspace-1", event_type: "backpressure_denied", created_at: "2026-06-27T07:05:00.000Z" },
       { workspace_id: "workspace-1", event_type: "scan_failed_transient", created_at: "2026-06-27T07:06:00.000Z" },
-    ]);
-    serviceRoleMocks.createSupabaseServiceRoleClient.mockReturnValue({
-      from: vi.fn((table: string) => {
-        if (table === "upload_assets") return assetsQuery;
-        if (table === "upload_sessions") return sessionsQuery;
-        return eventsQuery;
-      }),
-    });
+    ];
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
     const { readUploadOperationsDashboardSnapshot } = await import("@/lib/uploads/operations-dashboard");
 
     const result = await readUploadOperationsDashboardSnapshot({
@@ -228,13 +251,9 @@ describe("upload operations dashboard snapshot", () => {
 
   it("returns a generic error when any metrics query fails", async () => {
     authMocks.requireCurrentUserContext.mockResolvedValue({ role: "admin", userId: "user-1" });
-    serviceRoleMocks.createSupabaseServiceRoleClient.mockReturnValue({
-      from: vi.fn((table: string) => {
-        if (table === "upload_assets") return createQuery([], { message: "select failed for private/path.pdf" });
-        if (table === "upload_sessions") return createQuery([]);
-        return createQuery([]);
-      }),
-    });
+    const database = new FakeD1Database();
+    database.failTable = "upload_assets";
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
     const { readUploadOperationsDashboardSnapshot } = await import("@/lib/uploads/operations-dashboard");
 
     await expect(readUploadOperationsDashboardSnapshot()).resolves.toEqual({
