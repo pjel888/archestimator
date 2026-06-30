@@ -173,7 +173,7 @@ describe("auth proxy", () => {
     expect(rpc).toHaveBeenCalledWith("check_closed_beta_access", { raw_email: "outsider@example.com" });
     expect(signOut).toHaveBeenCalledTimes(1);
     expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe("http://localhost:3000/beta/access-required");
+    expect(response.headers.get("location")).toBe("http://localhost:3000/access-required");
     expect(response.cookies.get("sb-test-auth-token")?.value).toBe("");
   });
 
@@ -265,16 +265,16 @@ describe("auth proxy", () => {
 
     expect(signOut).toHaveBeenCalledTimes(1);
     expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe("http://localhost:3000/beta/access-required?status=revoked");
+    expect(response.headers.get("location")).toBe("http://localhost:3000/access-required?status=revoked");
     expect(response.cookies.get("sb-test-auth-token")?.value).toBe("");
   });
 
-  it("keeps beta access-required public to avoid redirect loops", async () => {
+  it("keeps access-required public to avoid redirect loops", async () => {
     mockUser({ id: "user-1", email: "outsider@example.com" });
     vi.stubEnv("CLOSED_BETA_ACCESS_ENABLED", "true");
     const { proxy } = await import("@/proxy");
 
-    const response = await proxy(request("http://localhost:3000/beta/access-required"));
+    const response = await proxy(request("http://localhost:3000/access-required"));
 
     expect(response.status).toBe(200);
     expect(supabaseSsrMocks.createServerClient).not.toHaveBeenCalled();

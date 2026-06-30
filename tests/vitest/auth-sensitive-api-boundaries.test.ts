@@ -20,10 +20,15 @@ const supabaseJsMocks = vi.hoisted(() => ({
   createClient: vi.fn(),
 }));
 
+const cloudflareMocks = vi.hoisted(() => ({
+  getCloudflareContext: vi.fn(),
+}));
+
 vi.mock("@/lib/auth/session", () => authMocks);
 vi.mock("@/lib/repositories/workspace-repository", () => workspaceMocks);
 vi.mock("@/lib/supabase/server", () => supabaseServerMocks);
 vi.mock("@supabase/supabase-js", () => supabaseJsMocks);
+vi.mock("@opennextjs/cloudflare", () => cloudflareMocks);
 
 const DEFAULT_WORKSPACE_ID = "workspace-1";
 const DEFAULT_USER_ID = "user-1";
@@ -208,6 +213,7 @@ beforeEach(() => {
   vi.unstubAllEnvs();
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
   vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "service-role");
+  cloudflareMocks.getCloudflareContext.mockResolvedValue({ env: {} });
   mockCurrentWorkspace();
   mockServerRpc();
 });
@@ -219,6 +225,7 @@ describe("sensitive API auth boundaries", () => {
     expectAuthBeforeBodyParsing(source);
     expect(source).toContain("ensureDefaultWorkspace()");
     expect(source).toContain("is_workspace_editor");
+    expect(source).toContain("processUploadImageToWebp");
     expect(source).toContain("uploadSessionId");
     expect(source).toContain("assetId");
     expect(source).toContain("scanStatus");
@@ -252,6 +259,7 @@ describe("sensitive API auth boundaries", () => {
     expectAuthBeforeBodyParsing(source);
     expect(source).toContain("ensureDefaultWorkspace()");
     expect(source).toContain("can_edit_project");
+    expect(source).toContain("processUploadImageToWebp");
     expect(source).toContain("uploadSessionId");
     expect(source).toContain("assetId");
     expect(source).toContain("scanStatus");
@@ -269,6 +277,7 @@ describe("sensitive API auth boundaries", () => {
     expect(source).toContain("ensureDefaultWorkspace()");
     expect(source).toContain("can_edit_project");
     expect(source).toContain("can_edit_estimate");
+    expect(source).toContain("processUploadImageToWebp");
     expect(source).not.toContain("is_workspace_editor");
     expect(source).toContain(".from(\"projects\")");
     expect(source).toContain(".from(\"estimates\")");
@@ -410,6 +419,43 @@ describe("sensitive API auth boundaries", () => {
     }
   });
 
+  it("uploads component attachments through R2 when the Cloudflare storage provider is selected", async () => {
+    vi.stubEnv("ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER", "cloudflare-r2");
+    const storage = mockStorageClient();
+    const r2 = {
+      put: vi.fn(async () => null),
+      get: vi.fn(async () => null),
+      delete: vi.fn(async () => undefined),
+    };
+    cloudflareMocks.getCloudflareContext.mockResolvedValue({ env: { ARCH_UPLOADS_R2: r2 } });
+    const formData = new FormData();
+    formData.set("file", new File([Buffer.from("%PDF-1.7\n%test")], "Spec.PDF", { type: "application/pdf" }));
+    const { POST } = await import("@/app/api/component-library/attachments/route");
+
+    const response = await POST(createFormRequest(formData));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      bucket: "component-attachments",
+      path: expect.stringMatching(/^workspace-1\/user-1\/spec-[0-9a-f-]+\.pdf$/),
+      contentType: "application/pdf",
+      scanStatus: "pending",
+    });
+    expect(storage.upload).not.toHaveBeenCalled();
+    expect(r2.put).toHaveBeenCalledWith(expect.stringMatching(/^component-attachments\/workspace-1\/user-1\/spec-[0-9a-f-]+\.pdf$/), expect.any(Buffer), {
+      httpMetadata: {
+        contentType: "application/pdf",
+        cacheControl: "31536000",
+      },
+    });
+    expect(storage.rpc).toHaveBeenCalledWith("record_upload_asset", expect.objectContaining({
+      storage_bucket: "component-attachments",
+      storage_path: expect.stringMatching(/^workspace-1\/user-1\/spec-[0-9a-f-]+\.pdf$/),
+      scan_status: "pending",
+    }));
+  });
+
   it("uploads component images through storage plus atomic asset records and returns resolver URLs", async () => {
     const storage = mockStorageClient();
     const formData = new FormData();
@@ -446,6 +492,39 @@ describe("sensitive API auth boundaries", () => {
       storage_path: expect.stringMatching(/^workspace-1\/user-1\/library-hero-[0-9a-f-]+\.webp$/),
       thumbnail_path: expect.stringMatching(/^workspace-1\/user-1\/library-hero-[0-9a-f-]+-thumb\.webp$/),
       scan_status: "not_required",
+    }));
+  });
+
+  it("uploads component images through R2 when the Cloudflare storage provider is selected", async () => {
+    vi.stubEnv("ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER", "cloudflare-r2");
+    const storage = mockStorageClient();
+    const r2 = {
+      put: vi.fn(async () => null),
+      get: vi.fn(async () => null),
+      delete: vi.fn(async () => undefined),
+    };
+    cloudflareMocks.getCloudflareContext.mockResolvedValue({ env: { ARCH_UPLOADS_R2: r2 } });
+    const formData = new FormData();
+    formData.set("file", createPngFile("Library Hero.PNG"));
+    const { POST } = await import("@/app/api/component-library/images/route");
+
+    const response = await POST(createFormRequest(formData));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      bucket: "component-images",
+      url: expect.stringContaining("/api/component-library/images?path="),
+      thumbnailUrl: expect.stringContaining("/api/component-library/images?path="),
+    });
+    expect(storage.from).not.toHaveBeenCalled();
+    expect(storage.upload).not.toHaveBeenCalled();
+    expect(r2.put).toHaveBeenCalledTimes(2);
+    expect(r2.put).toHaveBeenNthCalledWith(1, expect.stringMatching(/^component-images\/workspace-1\/user-1\/library-hero-[0-9a-f-]+\.webp$/), expect.any(Buffer), expect.objectContaining({
+      httpMetadata: expect.objectContaining({ contentType: "image/webp" }),
+    }));
+    expect(storage.rpc).toHaveBeenCalledWith("record_upload_asset", expect.objectContaining({
+      storage_bucket: "component-images",
+      storage_path: expect.stringMatching(/^workspace-1\/user-1\/library-hero-[0-9a-f-]+\.webp$/),
     }));
   });
 
@@ -588,6 +667,23 @@ describe("sensitive API auth boundaries", () => {
     expect(storage.rpc).not.toHaveBeenCalledWith("record_upload_asset", expect.anything());
   });
 
+  it("fails component image uploads explicitly in Cloudflare proof builds before storage writes", async () => {
+    vi.stubEnv("ARCHESTIMATOR_CLOUDFLARE_BUILD", "1");
+    const storage = mockStorageClient();
+    const formData = new FormData();
+    formData.set("file", createPngFile("cloudflare-proof.png"));
+    const { POST } = await import("@/app/api/component-library/images/route");
+
+    const response = await POST(createFormRequest(formData));
+
+    expect(response.status).toBe(501);
+    await expect(response.json()).resolves.toEqual({
+      error: expect.stringContaining("Cloudflare Workers proof build"),
+    });
+    expect(storage.upload).not.toHaveBeenCalled();
+    expect(storage.rpc).not.toHaveBeenCalledWith("record_upload_asset", expect.anything());
+  });
+
   it("rejects empty image uploads before storage writes", async () => {
     const storage = mockStorageClient();
     const formData = new FormData();
@@ -715,6 +811,33 @@ describe("sensitive API auth boundaries", () => {
     expect(storage.download).toHaveBeenCalledWith(path);
   });
 
+  it("serves component images from R2 when the Cloudflare storage provider is selected", async () => {
+    vi.stubEnv("ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER", "cloudflare-r2");
+    const storage = mockStorageClient();
+    const path = `${DEFAULT_WORKSPACE_ID}/${DEFAULT_USER_ID}/component.webp`;
+    const r2Body = new TextEncoder().encode("r2-image");
+    const r2 = {
+      put: vi.fn(async () => null),
+      get: vi.fn(async () => ({
+        size: r2Body.byteLength,
+        httpMetadata: { contentType: "image/webp" },
+        arrayBuffer: async () => r2Body.buffer.slice(r2Body.byteOffset, r2Body.byteOffset + r2Body.byteLength),
+      })),
+      delete: vi.fn(async () => undefined),
+    };
+    cloudflareMocks.getCloudflareContext.mockResolvedValue({ env: { ARCH_UPLOADS_R2: r2 } });
+    const { GET } = await import("@/app/api/component-library/images/route");
+
+    const response = await GET(new Request(`http://localhost/api/component-library/images?path=${encodeURIComponent(path)}`));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("image/webp");
+    await expect(response.text()).resolves.toBe("r2-image");
+    expect(storage.from).not.toHaveBeenCalled();
+    expect(storage.download).not.toHaveBeenCalled();
+    expect(r2.get).toHaveBeenCalledWith(`component-images/${path}`);
+  });
+
   it("denies component image resolver requests for another workspace before storage download", async () => {
     const storage = mockStorageClient();
     const path = `workspace-2/${DEFAULT_USER_ID}/component.webp`;
@@ -773,6 +896,39 @@ describe("sensitive API auth boundaries", () => {
     expect(storage.remove).toHaveBeenCalledWith([
       "workspace-1/user-1/spec.pdf",
       "workspace-1/user-1/schedule.xlsx",
+    ]);
+  });
+
+  it("removes owned component attachment paths through R2 when Cloudflare storage is selected", async () => {
+    vi.stubEnv("ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER", "cloudflare-r2");
+    const storage = mockStorageClient();
+    const r2 = {
+      put: vi.fn(async () => null),
+      get: vi.fn(async () => null),
+      delete: vi.fn(async () => undefined),
+    };
+    cloudflareMocks.getCloudflareContext.mockResolvedValue({ env: { ARCH_UPLOADS_R2: r2 } });
+    const { DELETE } = await import("@/app/api/component-library/attachments/route");
+
+    const response = await DELETE(createJsonRequest({
+      paths: [
+        "workspace-1/user-1/spec.pdf",
+        "workspace-1/user-1/schedule.xlsx",
+        "workspace-1/user-2/other.pdf",
+      ],
+    }));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      removedPaths: [
+        "workspace-1/user-1/spec.pdf",
+        "workspace-1/user-1/schedule.xlsx",
+      ],
+    });
+    expect(storage.remove).not.toHaveBeenCalled();
+    expect(r2.delete).toHaveBeenCalledWith([
+      "component-attachments/workspace-1/user-1/spec.pdf",
+      "component-attachments/workspace-1/user-1/schedule.xlsx",
     ]);
   });
 
@@ -1074,6 +1230,62 @@ describe("sensitive API auth boundaries", () => {
     }));
     expect(storage.from).toHaveBeenCalledWith("component-attachments");
     expect(storage.download).toHaveBeenCalledWith(storagePath);
+  });
+
+  it("audits and serves component attachment downloads from R2 when Cloudflare storage is selected", async () => {
+    vi.stubEnv("ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER", "cloudflare-r2");
+    const attachmentId = "11111111-1111-4111-8111-111111111111";
+    const assetId = "22222222-2222-4222-8222-222222222222";
+    const sessionId = "33333333-3333-4333-8333-333333333333";
+    const storagePath = `${DEFAULT_WORKSPACE_ID}/${DEFAULT_USER_ID}/spec.pdf`;
+    const r2Body = new TextEncoder().encode("%PDF-1.7");
+    const storage = mockStorageClient([], {
+      attachmentLookupRow: {
+        id: attachmentId,
+        workspace_id: DEFAULT_WORKSPACE_ID,
+        storage_bucket: "component-attachments",
+        storage_path: storagePath,
+        file_name: "spec.pdf",
+        content_type: "application/pdf",
+        size_bytes: 8,
+        review_status: "approved",
+        is_current_approved: true,
+      },
+      uploadAssetLookupRow: {
+        id: assetId,
+        upload_session_id: sessionId,
+        workspace_id: DEFAULT_WORKSPACE_ID,
+        surface: "component-attachment",
+        storage_bucket: "component-attachments",
+        storage_path: storagePath,
+        status: "finalized",
+        scan_status: "clean",
+      },
+    });
+    const r2 = {
+      put: vi.fn(async () => null),
+      get: vi.fn(async () => ({
+        size: r2Body.byteLength,
+        httpMetadata: { contentType: "application/pdf" },
+        arrayBuffer: async () => r2Body.buffer.slice(r2Body.byteOffset, r2Body.byteOffset + r2Body.byteLength),
+      })),
+      delete: vi.fn(async () => undefined),
+    };
+    cloudflareMocks.getCloudflareContext.mockResolvedValue({ env: { ARCH_UPLOADS_R2: r2 } });
+    const { GET } = await import("@/app/api/component-library/attachments/route");
+
+    const response = await GET(new Request(`http://localhost/api/component-library/attachments?id=${attachmentId}`));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("application/pdf");
+    await expect(response.text()).resolves.toBe("%PDF-1.7");
+    expect(storage.uploadEventsQuery.insert).toHaveBeenCalledWith(expect.objectContaining({
+      upload_session_id: sessionId,
+      upload_asset_id: assetId,
+      event_type: "download_url_issued",
+    }));
+    expect(storage.download).not.toHaveBeenCalled();
+    expect(r2.get).toHaveBeenCalledWith(`component-attachments/${storagePath}`);
   });
 
   it("removes only owned project image paths", async () => {

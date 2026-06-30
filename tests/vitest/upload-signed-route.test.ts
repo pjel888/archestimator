@@ -284,6 +284,60 @@ describe("component attachment signed direct-upload route", () => {
     expect(JSON.stringify(createSessionCall?.[1]?.metadata)).not.toContain("resumable/sign");
   });
 
+  it("ignores forged cross-workspace direct-upload workspace IDs and uses the server-derived workspace", async () => {
+    const storage = mockDirectStorageClient();
+    const { POST } = await import("@/app/api/component-library/attachments/direct-upload/route");
+
+    const response = await POST(createJsonRequest({
+      action: "create",
+      workspaceId: "workspace-2",
+      fileName: "Forged Workspace Spec.PDF",
+      contentType: "application/pdf",
+      sizeBytes: 24 * 1024 * 1024,
+    }));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.path).toEqual(expect.stringMatching(new RegExp(`^${WORKSPACE_ID}/${USER_ID}/`)));
+    expect(body.path).not.toContain("workspace-2");
+    expect(storage.rpc).toHaveBeenCalledWith("create_upload_session", expect.objectContaining({
+      target_workspace_id: WORKSPACE_ID,
+      actor_user_id: USER_ID,
+      storage_path: expect.stringMatching(new RegExp(`^${WORKSPACE_ID}/${USER_ID}/`)),
+    }));
+    expect(JSON.stringify(storage.rpc.mock.calls)).not.toContain("workspace-2");
+  });
+
+  it.each([
+    ["single-part", "Signed Spec.PDF", 24 * 1024 * 1024],
+    ["TUS resumable", "Large Spec.PDF", 80 * 1024 * 1024],
+  ])("fails closed before minting Supabase %s credentials when R2 storage is selected", async (
+    _mode,
+    fileName,
+    sizeBytes,
+  ) => {
+    vi.stubEnv("ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER", "cloudflare-r2");
+    const storage = mockDirectStorageClient();
+    const { POST } = await import("@/app/api/component-library/attachments/direct-upload/route");
+
+    const response = await POST(createJsonRequest({
+      action: "create",
+      fileName,
+      contentType: "application/pdf",
+      sizeBytes,
+    }));
+
+    expect(response.status).toBe(501);
+    await expect(response.json()).resolves.toEqual({
+      error: "Direct attachment uploads are not supported by the selected storage provider.",
+    });
+    expect(supabaseJsMocks.createClient).not.toHaveBeenCalled();
+    expect(storage.from).not.toHaveBeenCalled();
+    expect(storage.storageFrom).not.toHaveBeenCalled();
+    expect(storage.createSignedUploadUrl).not.toHaveBeenCalled();
+    expect(storage.rpc).not.toHaveBeenCalledWith("create_upload_session", expect.anything());
+  });
+
   it("keeps small attachments on the existing server-mediated route", async () => {
     const storage = mockDirectStorageClient();
     const { POST } = await import("@/app/api/component-library/attachments/direct-upload/route");
@@ -464,6 +518,32 @@ describe("component attachment signed direct-upload route", () => {
       metadata: expect.objectContaining({
         providerFinalizeProof: "etag",
       }),
+    }));
+  });
+
+  it("keeps existing Supabase direct-upload sessions finalizable when R2 storage is selected", async () => {
+    vi.stubEnv("ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER", "cloudflare-r2");
+    const storage = mockDirectStorageClient();
+    const { POST } = await import("@/app/api/component-library/attachments/direct-upload/route");
+
+    const response = await POST(createJsonRequest({
+      action: "finalize",
+      uploadSessionId: SESSION_ID,
+    }));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      bucket: "component-attachments",
+      uploadSessionId: SESSION_ID,
+      assetId: ASSET_ID,
+      providerProof: "etag",
+    });
+    expect(storage.info).toHaveBeenCalledWith(`${WORKSPACE_ID}/${USER_ID}/signed-spec.pdf`);
+    expect(storage.rpc).toHaveBeenCalledWith("finalize_upload_session", expect.objectContaining({
+      target_upload_session_id: SESSION_ID,
+      target_workspace_id: WORKSPACE_ID,
+      actor_user_id: USER_ID,
+      observed_etag: "etag-proof",
     }));
   });
 

@@ -62,6 +62,14 @@ describe("mass deletion backend contract", () => {
     expect(cleanupResultMigration).toContain("grant execute on function public.record_mass_deletion_storage_cleanup_result(uuid, jsonb) to service_role");
   });
 
+  it("keeps record_mass_deletion_storage_cleanup_result atomic and duplicate retry safe", () => {
+    expect(cleanupResultMigration).toContain("set storage_cleanup_result = normalized_result");
+    expect(cleanupResultMigration).toContain("status = updated_status");
+    expect(cleanupResultMigration).toContain("returning * into updated_row");
+    expect(cleanupResultMigration).toContain("status = 'storage_cleanup_pending'");
+    expect(cleanupResultMigration).toContain("Mass deletion cleanup event not found or already finalized.");
+  });
+
   it("keeps generated types aware of mass deletion RPCs and project-access manager checks", () => {
     const types = readFileSync("src/lib/supabase/types.ts", "utf8");
 

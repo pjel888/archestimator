@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const publicRepository = readFileSync("src/lib/publication/public-repository.ts", "utf8");
+const validPublicationToken = "a".repeat(43);
 
 describe("project publication public repository (Shared Link V2 context)", () => {
   afterEach(() => {
@@ -32,8 +33,8 @@ describe("project publication public repository (Shared Link V2 context)", () =>
     expect(publicRepository).toMatch(/const getCachedPublicationSnapshotRowByToken = cache\(/);
 
     // the access + snapshot resolvers read through the cached readers instead of re-querying
-    expect(publicRepository).toMatch(/resolveProjectPublicationAccessByToken[\s\S]*?await getCachedPublicationAccessRowByToken\(token\)/);
-    expect(publicRepository).toMatch(/resolveProjectPublicationSnapshotByToken[\s\S]*?await getCachedPublicationSnapshotRowByToken\(token\)/);
+    expect(publicRepository).toMatch(/resolveProjectPublicationAccessByToken[\s\S]*?await getCachedPublicationAccessRowByToken\(normalizedToken\)/);
+    expect(publicRepository).toMatch(/resolveProjectPublicationSnapshotByToken[\s\S]*?await getCachedPublicationSnapshotRowByToken\(normalizedToken\)/);
 
     // both telemetry writers reuse the cached access row rather than issuing their own SELECT
     expect(publicRepository).toMatch(/recordProjectPublicationAnalyticsEvent[\s\S]*?await getCachedPublicationAccessRowByToken\(token\)/);
@@ -70,11 +71,30 @@ describe("project publication public repository (Shared Link V2 context)", () =>
     // path: a single resolver call issues exactly one publication-row SELECT against
     // project_publications and returns the resolved access shape with the active-state gate applied.
     const { resolveProjectPublicationAccessByToken } = await import("@/lib/publication/public-repository");
-    const access = await resolveProjectPublicationAccessByToken("client-token");
+    const access = await resolveProjectPublicationAccessByToken(validPublicationToken);
 
     expect(access).toEqual(expect.objectContaining({ publicationId: "publication-1", status: "published", passwordRequired: false }));
     expect(from).toHaveBeenCalledWith("project_publications");
     expect(select).toHaveBeenCalledTimes(1);
+  });
+
+  it("fails malformed publication tokens before creating a provider client", async () => {
+    vi.resetModules();
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://archestimator.test");
+    vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "service-role-key");
+    vi.stubEnv("PUBLICATION_TOKEN_HASH_SECRET", "publication-token-hash-secret");
+
+    const createClient = vi.fn(() => ({ from: vi.fn(), rpc: vi.fn() }));
+    vi.doMock("@supabase/supabase-js", () => ({
+      createClient,
+    }));
+
+    const { resolveProjectPublicationAccessByToken, resolveProjectPublicationSnapshotByToken, verifyProjectPublicationPasswordByToken } = await import("@/lib/publication/public-repository");
+
+    await expect(resolveProjectPublicationAccessByToken("client-token")).resolves.toBeNull();
+    await expect(resolveProjectPublicationSnapshotByToken("client-token")).resolves.toBeNull();
+    await expect(verifyProjectPublicationPasswordByToken("client-token", "secret")).resolves.toBe(false);
+    expect(createClient).not.toHaveBeenCalled();
   });
 
   it("does not delete expired rate-limit events on every recorded attempt", async () => {

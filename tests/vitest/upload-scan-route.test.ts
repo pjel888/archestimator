@@ -3,8 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const serviceRoleMocks = vi.hoisted(() => ({
   createSupabaseServiceRoleClient: vi.fn(),
 }));
+const cloudflareMocks = vi.hoisted(() => ({
+  getCloudflareContext: vi.fn(),
+}));
 
 vi.mock("@/lib/supabase/service-role", () => serviceRoleMocks);
+vi.mock("@opennextjs/cloudflare", () => cloudflareMocks);
 vi.mock("server-only", () => ({}));
 
 const WORKSPACE_ID = "11111111-1111-4111-8111-111111111111";
@@ -51,7 +55,7 @@ function createScanClient(bytes = new TextEncoder().encode("%PDF-1.7")) {
     checksum_sha256: CHECKSUM_SHA256,
     scan_status: "pending",
   }]);
-  const download = vi.fn(async () => ({ data: bytes, error: null }));
+  const download = vi.fn(async () => ({ data: new Blob([bytes], { type: "application/pdf" }), error: null }));
   const rpc = vi.fn(async () => ({ error: null }));
   const from = vi.fn((table: string) => {
     if (table === "upload_assets") return assetQuery;
@@ -73,6 +77,8 @@ beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
   vi.unstubAllEnvs();
+  cloudflareMocks.getCloudflareContext.mockReset();
+  cloudflareMocks.getCloudflareContext.mockResolvedValue({ env: {} });
 });
 
 describe("internal upload scan route", () => {
@@ -129,6 +135,46 @@ describe("internal upload scan route", () => {
     });
     expect(JSON.stringify(body)).not.toContain(ATTACHMENT_PATH);
     expect(JSON.stringify(scan.rpc.mock.calls)).not.toContain(ATTACHMENT_PATH);
+  });
+
+  it("uses the R2 binding for scan downloads when Cloudflare R2 storage is selected", async () => {
+    vi.stubEnv("UPLOAD_SCAN_JOB_SECRET", "scan-secret");
+    vi.stubEnv("UPLOAD_JOBS_ENABLED", "1");
+    vi.stubEnv("ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER", "cloudflare-r2");
+    const bytes = new TextEncoder().encode("%PDF-1.7");
+    const scan = createScanClient(bytes);
+    const r2 = {
+      put: vi.fn(),
+      get: vi.fn(async () => ({
+        size: bytes.byteLength,
+        httpMetadata: { contentType: "application/pdf" },
+        arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+      })),
+      delete: vi.fn(),
+    };
+    cloudflareMocks.getCloudflareContext.mockResolvedValue({ env: { ARCH_UPLOADS_R2: r2 } });
+    const { GET } = await import("@/app/api/internal/upload-scan/route");
+
+    const response = await GET(createRequest("scan-secret", 5));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(scan.client.storage.from).not.toHaveBeenCalled();
+    expect(scan.download).not.toHaveBeenCalled();
+    expect(r2.get).toHaveBeenCalledWith(`component-attachments/${ATTACHMENT_PATH}`);
+    expect(scan.rpc).toHaveBeenCalledWith("record_upload_scan_result", expect.objectContaining({
+      scanner_provider: "archestimator-policy-scanner",
+      scanner_status: "clean",
+    }));
+    expect(body).toMatchObject({
+      scannedCount: 1,
+      downloadFailedCount: 0,
+      scannerFailedCount: 0,
+      outcomeCounts: {
+        clean: 1,
+      },
+    });
+    expect(JSON.stringify(body)).not.toContain(ATTACHMENT_PATH);
   });
 
   it("blocks non-dry-run scans unless upload jobs are explicitly enabled", async () => {

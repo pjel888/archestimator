@@ -472,6 +472,7 @@ describe("project creation UI governance", () => {
     expect(projectImageRoute).toContain(
       "${PROJECT_IMAGE_PATH_SEGMENT}/${projectId}",
     );
-    expect(projectImageRoute).toContain("sharp(sourceBuffer");
+    expect(projectImageRoute).toContain("processUploadImageToWebp");
+    expect(projectImageRoute).not.toContain('import sharp from "sharp"');
   });
 });

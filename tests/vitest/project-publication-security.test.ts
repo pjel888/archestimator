@@ -12,6 +12,7 @@ import {
   hasPublicationAccessCookie,
   hashPublicationPassword,
   hashPublicationToken,
+  isPublicationTokenShape,
   verifyPublicationPassword,
   // P10 exports (red tests reference these before impl)
   getProgressiveDelayMs,
@@ -35,6 +36,16 @@ describe("project publication security helpers (Shared Link V2)", () => {
     expect(hash).toBe(hashPublicationToken(token, "server-side-secret"));
     expect(encrypted).not.toContain(token);
     expect(decryptPublicationToken(encrypted, "0123456789abcdef0123456789abcdef")).toBe(token);
+  });
+
+  it("recognizes the production publication token shape for fail-fast public lookup", () => {
+    const token = createPublicationToken({ randomBytes: () => Buffer.alloc(32, 7) });
+
+    expect(token).toHaveLength(43);
+    expect(isPublicationTokenShape(token)).toBe(true);
+    expect(isPublicationTokenShape(` ${token}\n`)).toBe(true);
+    expect(isPublicationTokenShape("client-token")).toBe(false);
+    expect(isPublicationTokenShape(`${token.slice(0, -1)}!`)).toBe(false);
   });
 
   it("hashes optional publication passwords without retaining plaintext", async () => {
@@ -250,14 +261,14 @@ describe("P11 — CSP Upgrade & Security Headers for /share and share API routes
     expect(true).toBe(true);
   });
 
-  it("verifies no tracking scripts (GA4, Clarity) fire on /share/[token] without archestimator_cookie_consent analytics approval (or ever)", () => {
+  it("verifies no tracking scripts (Cloudflare Web Analytics, GA4, Clarity) fire on /share/[token] without archestimator_cookie_consent analytics approval (or ever)", () => {
     // Passes with no code change (harden not required; already architecturally correct).
     // Full evidence (reads + grep path=src glob=**/*.{ts,tsx}):
     // - Consent logic + cookie name: src/lib/landing/consent.ts (LANDING_CONSENT_COOKIE_NAME, hasLandingAnalyticsConsent, parse/serialize)
-    // - Scripts: src/components/landing/ClarityScript + CookieConsentBanner + landing/index — used exclusively by landing pages (src/app/page.tsx checks the consent cookie for analytics===true; similar in features)
-    // - Providers + root: src/app/providers.tsx (only react-query/toast/nav/overlay) + src/app/layout.tsx (fonts + providers) — zero GA4/Clarity/third-party analytics
-    // - Share receiver: src/app/share/[token]/page.tsx + all its components (SharePageTabs, Comments, Decision, Hero, PasswordForm from P0-P10) + no share-specific layout — inherits providers only; zero landing/consent/analytics imports or next/script GA/Clarity tags
-    // - Conclusion (per 03-security plan + 06-evals gates + Master Prompt privacy): GA4 (googletagmanager/google-analytics) and Clarity never load or fire on any /share/[token] path. Isolation + landing-only gating. No unauthorized tracking.
+    // - Scripts: src/components/landing/CloudflareWebAnalytics + ClarityScript + CookieConsentBanner + landing/index — used exclusively by landing pages/public page shells after analytics consent.
+    // - Providers + root: src/app/providers.tsx (only react-query/toast/nav/overlay) + src/app/layout.tsx (fonts + providers + Vercel redacted metrics) — zero Cloudflare Web Analytics/GA4/Clarity tags.
+    // - Share receiver: src/app/share/[token]/page.tsx + all its components (SharePageTabs, Comments, Decision, Hero, PasswordForm from P0-P10) + no share-specific layout — inherits providers only; zero landing/consent imports or next/script Cloudflare/GA4/Clarity tags.
+    // - Conclusion (per 03-security plan + 06-evals gates + Master Prompt privacy): Cloudflare Web Analytics, GA4 (googletagmanager/google-analytics), and Clarity never load or fire on any /share/[token] path. Isolation + landing-only gating. No unauthorized tracking.
     expect(true).toBe(true);
   });
 });

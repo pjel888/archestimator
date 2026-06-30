@@ -3,8 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const serviceRoleMocks = vi.hoisted(() => ({
   createSupabaseServiceRoleClient: vi.fn(),
 }));
+const cloudflareMocks = vi.hoisted(() => ({
+  getCloudflareContext: vi.fn(),
+}));
 
 vi.mock("@/lib/supabase/service-role", () => serviceRoleMocks);
+vi.mock("@opennextjs/cloudflare", () => cloudflareMocks);
 vi.mock("server-only", () => ({}));
 
 const WORKSPACE_ID = "11111111-1111-4111-8111-111111111111";
@@ -74,6 +78,8 @@ beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
   vi.unstubAllEnvs();
+  cloudflareMocks.getCloudflareContext.mockReset();
+  cloudflareMocks.getCloudflareContext.mockResolvedValue({ env: {} });
 });
 
 describe("internal upload cleanup route", () => {
@@ -137,6 +143,35 @@ describe("internal upload cleanup route", () => {
     });
     expect(JSON.stringify(body)).not.toContain(ATTACHMENT_PATH);
     expect(JSON.stringify(cleanup.insert.mock.calls)).not.toContain(ATTACHMENT_PATH);
+  });
+
+  it("uses the R2 binding for cleanup deletes when Cloudflare R2 storage is selected", async () => {
+    vi.stubEnv("UPLOAD_CLEANUP_JOB_SECRET", "cleanup-secret");
+    vi.stubEnv("UPLOAD_JOBS_ENABLED", "1");
+    vi.stubEnv("ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER", "cloudflare-r2");
+    const cleanup = createCleanupClient();
+    const r2 = {
+      put: vi.fn(),
+      get: vi.fn(),
+      delete: vi.fn(async () => undefined),
+    };
+    cloudflareMocks.getCloudflareContext.mockResolvedValue({ env: { ARCH_UPLOADS_R2: r2 } });
+    const { GET } = await import("@/app/api/internal/upload-cleanup/route");
+
+    const response = await GET(createRequest("cleanup-secret", 5));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(cleanup.client.storage.from).not.toHaveBeenCalled();
+    expect(cleanup.remove).not.toHaveBeenCalled();
+    expect(r2.delete).toHaveBeenCalledWith([`component-attachments/${ATTACHMENT_PATH}`]);
+    expect(cleanup.insert).toHaveBeenCalledTimes(2);
+    expect(body.storage).toMatchObject({
+      removedCount: 1,
+      failedCount: 0,
+      rejectedCount: 0,
+    });
+    expect(JSON.stringify(body)).not.toContain(ATTACHMENT_PATH);
   });
 
   it("blocks non-dry-run cleanup unless upload jobs are explicitly enabled", async () => {

@@ -64,7 +64,7 @@ describe("component library attachment lifecycle governance", () => {
 
   it("blocks draft storage cleanup from deleting reviewed persisted attachments", () => {
     const lookupIndex = attachmentRoute.indexOf('.from("cost_library_item_variant_attachments")');
-    const removeIndex = attachmentRoute.indexOf(".storage.from(COMPONENT_ATTACHMENT_BUCKET).remove(paths)");
+    const removeIndex = attachmentRoute.indexOf("removeObjects(COMPONENT_ATTACHMENT_BUCKET, paths)");
 
     expect(lookupIndex).toBeGreaterThanOrEqual(0);
     expect(removeIndex).toBeGreaterThan(lookupIndex);

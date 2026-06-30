@@ -13,7 +13,7 @@ function sourceBlock(source: string, startMarker: string, endMarker: string) {
 describe("Codex auth and estimate-access hardening contracts", () => {
   it("requires a non-default shared secret before local dev auth/admin DB bypass can activate", () => {
     const devGate = read("src/lib/auth/dev-auth-gate.ts");
-    const proxy = read("src/proxy.ts");
+    const proxy = read("src/lib/auth/request-proxy.ts");
     const devAuth = read("src/lib/auth/dev-auth.ts");
     const serverClient = read("src/lib/supabase/server.ts");
 
@@ -37,6 +37,18 @@ describe("Codex auth and estimate-access hardening contracts", () => {
     expect(hardeningMigration).toContain("create or replace function public.ensure_current_user_profile");
     expect(hardeningMigration).toContain("grant execute on function public.ensure_current_user_profile(text, text) to authenticated");
     expect(sessionSource).toContain('"ensure_current_user_profile"');
+    expect(sessionSource).not.toContain('.from("profiles")\n    .insert');
+  });
+
+  it("fails closed around ensure_current_user_profile instead of falling back to direct profile inserts", () => {
+    const hardeningMigration = read("supabase/migrations/20260602090000_harden_beta_allowlist_admin.sql");
+    const sessionSource = read("src/lib/auth/session.ts");
+
+    expect(hardeningMigration).toContain("raise exception 'Authenticated user context is required to create a profile.'");
+    expect(hardeningMigration).toContain("returning * into created_profile");
+    expect(sessionSource).toContain('"ensure_current_user_profile"');
+    expect(sessionSource).toContain("if (error) throw error;");
+    expect(sessionSource).toContain('if (!createdProfile) throw new Error("Authenticated profile could not be created.");');
     expect(sessionSource).not.toContain('.from("profiles")\n    .insert');
   });
 

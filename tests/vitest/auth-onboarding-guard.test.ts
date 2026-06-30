@@ -520,4 +520,78 @@ describe("auth onboarding workspace guard", () => {
       "profiles",
     ]);
   });
+
+  it("denies forged cross-workspace account-actions workspace settings updates before writing", async () => {
+    vi.resetModules();
+
+    const updates: Array<{ table: string; payload: unknown }> = [];
+    const upserts: Array<{ table: string; payload: unknown }> = [];
+    const filters: Array<{ table: string; column: string; value: unknown }> = [];
+    const profile = {
+      id: "user-1",
+      email: "member@example.com",
+      display_name: "Member",
+      role: "user",
+      default_workspace_id: "workspace-1",
+      created_at: "2026-05-27T00:00:00.000Z",
+      updated_at: "2026-05-27T00:00:00.000Z",
+    };
+    const supabase = {
+      from: vi.fn((table: string) => {
+        const query = {
+          select: vi.fn(() => query),
+          eq: vi.fn((column: string, value: unknown) => {
+            filters.push({ table, column, value });
+            return query;
+          }),
+          update: vi.fn((payload: unknown) => {
+            updates.push({ table, payload });
+            return query;
+          }),
+          upsert: vi.fn((payload: unknown) => {
+            upserts.push({ table, payload });
+            return query;
+          }),
+          maybeSingle: vi.fn(async () => {
+            if (table === "workspace_members") return { data: null, error: null };
+            return { data: null, error: null };
+          }),
+        };
+        return query;
+      }),
+    };
+
+    vi.doMock("@/lib/auth/session", () => ({
+      requireCurrentUserContext: vi.fn(async () => ({
+        userId: profile.id,
+        email: profile.email,
+        displayName: profile.display_name,
+        profile,
+      })),
+    }));
+    vi.doMock("@/lib/supabase/server", () => ({
+      createSupabaseServerClient: vi.fn(async () => supabase),
+    }));
+
+    const formData = new FormData();
+    formData.set("workspace_id", "workspace-2");
+    formData.set("organization_name", "Forged Workspace Ltd");
+    formData.set("organization_type", "architecture_design");
+    formData.set("country_region", "PH");
+    formData.set("company_size", "2_10");
+    formData.set("default_currency", "PHP");
+    formData.set("primary_use", "project_estimating");
+    const { updateWorkspaceSettings } = await import("@/lib/auth/account-actions");
+
+    await expect(updateWorkspaceSettings(formData)).rejects.toThrow(
+      "NEXT_REDIRECT:/workshop/settings/workspace?error=forbidden",
+    );
+
+    expect(filters).toEqual([
+      { table: "workspace_members", column: "workspace_id", value: "workspace-2" },
+      { table: "workspace_members", column: "user_id", value: "user-1" },
+    ]);
+    expect(updates).toEqual([]);
+    expect(upserts).toEqual([]);
+  });
 });

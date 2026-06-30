@@ -30,6 +30,7 @@ describe("component attachment scan freeze", () => {
     expect(route).toContain("scan_override_expires_at");
     expect(route).toContain('"override_approved"');
     expect(route).toContain('event_type: "download_url_issued"');
-    expect(route).toContain(".storage.from(COMPONENT_ATTACHMENT_BUCKET).download");
+    expect(route).toContain("createRuntimeUploadStorageProvider");
+    expect(route).toContain("downloadObject(COMPONENT_ATTACHMENT_BUCKET");
   });
 });
