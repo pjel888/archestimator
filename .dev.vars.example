@@ -1,0 +1,23 @@
+# Copy to .dev.vars for local Cloudflare preview proof only.
+# Never commit real secret values.
+CRON_SECRET=
+UPLOAD_CLEANUP_JOB_SECRET=
+UPLOAD_SCAN_JOB_SECRET=
+UPLOAD_JOBS_ENABLED=0
+CLOUDFLARE_UPLOAD_JOBS_DRY_RUN=1
+CLOUDFLARE_UPLOAD_JOBS_ORIGIN=https://archestimator.internal
+
+# Better Auth D1 preview scaffold. Never commit a real secret value.
+BETTER_AUTH_URL=http://localhost:3000
+BETTER_AUTH_SECRET=
+BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:3000
+
+# Local preview-only placeholders. Use real Worker secrets for deployed proof.
+PUBLICATION_TOKEN_ENCRYPTION_SECRET=
+PUBLICATION_TOKEN_HASH_SECRET=
+PUBLICATION_ACCESS_COOKIE_SECRET=
+
+# Set to cloudflare-r2 only when the local/preview R2 binding is ready to prove.
+ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER=supabase
+# Set to cloudflare-images only when the local/preview IMAGES binding is ready to prove.
+ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER=node-sharp

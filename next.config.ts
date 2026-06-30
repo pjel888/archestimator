@@ -7,6 +7,8 @@ type ImageLocalPattern = NonNullable<NonNullable<NextConfig["images"]>["localPat
 // Dev-only allowance so impeccable live mode can load. Guarded by NODE_ENV.
 const __impeccableLiveDev =
   process.env.NODE_ENV === "development" ? " http://localhost:8400" : "";
+const isCloudflareWorkersProofBuild = process.env.ARCHESTIMATOR_CLOUDFLARE_BUILD === "1";
+const useCloudflareImageLoader = isCloudflareWorkersProofBuild;
 
 const landingReportOnlyCsp = [
   "default-src 'self'",
@@ -14,11 +16,11 @@ const landingReportOnlyCsp = [
   "frame-ancestors 'none'",
   "object-src 'none'",
   "form-action 'self'",
-  `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://www.clarity.ms${__impeccableLiveDev}`,
+  `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com https://www.googletagmanager.com https://www.google-analytics.com https://www.clarity.ms${__impeccableLiveDev}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://*.supabase.co https://www.google-analytics.com https://www.googletagmanager.com https://*.clarity.ms",
   "font-src 'self' data:",
-  `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google-analytics.com https://region1.google-analytics.com https://www.clarity.ms https://*.clarity.ms${__impeccableLiveDev}`,
+  `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cloudflareinsights.com https://*.cloudflareinsights.com https://www.google-analytics.com https://region1.google-analytics.com https://www.clarity.ms https://*.clarity.ms${__impeccableLiveDev}`,
 ].join("; ");
 
 const workshopReportOnlyCsp = [
@@ -27,11 +29,11 @@ const workshopReportOnlyCsp = [
   "frame-ancestors 'none'",
   "object-src 'none'",
   "form-action 'self'",
-  `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://www.clarity.ms https://maps.googleapis.com https://maps.gstatic.com https://*.googleapis.com https://*.gstatic.com https://*.google.com https://*.ggpht.com https://*.googleusercontent.com blob:${__impeccableLiveDev}`,
+  `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com https://www.googletagmanager.com https://www.google-analytics.com https://www.clarity.ms https://maps.googleapis.com https://maps.gstatic.com https://*.googleapis.com https://*.gstatic.com https://*.google.com https://*.ggpht.com https://*.googleusercontent.com blob:${__impeccableLiveDev}`,
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: blob: https://*.supabase.co https://www.google-analytics.com https://www.googletagmanager.com https://*.clarity.ms https://*.googleapis.com https://*.gstatic.com https://*.google.com https://*.ggpht.com https://*.googleusercontent.com",
   "font-src 'self' data: https://fonts.gstatic.com",
-  `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google-analytics.com https://region1.google-analytics.com https://www.clarity.ms https://*.clarity.ms https://*.googleapis.com https://*.google.com https://*.gstatic.com data: blob:${__impeccableLiveDev}`,
+  `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cloudflareinsights.com https://*.cloudflareinsights.com https://www.google-analytics.com https://region1.google-analytics.com https://www.clarity.ms https://*.clarity.ms https://*.googleapis.com https://*.google.com https://*.gstatic.com data: blob:${__impeccableLiveDev}`,
   "frame-src https://*.google.com",
   "worker-src 'self' blob:",
   "child-src 'self' blob:",
@@ -40,7 +42,7 @@ const workshopReportOnlyCsp = [
 // P11: Separate sources for enforced CSP on public share (additive security upgrade from Report-Only)
 // Landing/other pages remain Report-Only (existing behavior).
 // Share API gets the 3 required security headers (central, minimal blast, consistent with existing no-store in handlers).
-// Policy value kept identical for share enforced (no tighten) — tracking domains (GA4/Clarity) verified never loaded on /share (landing-only components + providers + consent gate in src/lib/landing/* and app/page.tsx only; see P11 tests + grep).
+// Policy value kept identical for share enforced (no tighten) — tracking domains (Cloudflare Web Analytics/GA4/Clarity) verified never loaded on /share (landing-only components + providers + consent gate in src/lib/landing/* and public page shells only; see P11 tests + grep).
 // This is the best engineering choice: additive, 0 execution flow impact (graph confirmed), backwards compat for all P0-P10 share flows (view, password P10, session P5, interactive tabs/comments/decisions), fail-closed enforcement, one-file change.
 const sharePageSource = "/share/:path*";
 const shareApiSource = "/api/share/:path*";
@@ -81,6 +83,20 @@ const localImagePatterns: ImageLocalPattern[] = [
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
+  compiler: {
+    defineServer: {
+      __ARCHESTIMATOR_CLOUDFLARE_WORKERS_PROOF_BUILD__: isCloudflareWorkersProofBuild,
+    },
+  },
+  ...(isCloudflareWorkersProofBuild
+    ? {
+        turbopack: {
+          resolveAlias: {
+            sharp: "./src/lib/uploads/sharp-cloudflare-stub.ts",
+          },
+        },
+      }
+    : {}),
   experimental: {
     optimizePackageImports: ["@phosphor-icons/react"],
     // Library Optimization Plan P0 T3: let the client Router Cache reuse a
@@ -97,6 +113,13 @@ const nextConfig: NextConfig = {
     },
   },
   images: {
+    ...(useCloudflareImageLoader
+      ? {
+          loader: "custom" as const,
+          loaderFile: "./image-loader.ts",
+          unoptimized: true,
+        }
+      : {}),
     localPatterns: localImagePatterns,
     remotePatterns: [
       ...supabaseImageRemotePatterns,

@@ -1,0 +1,81 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "archestimator-proof",
+  "main": "worker.ts",
+  "compatibility_date": "2026-06-29",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "images": {
+    "binding": "IMAGES"
+  },
+  "r2_buckets": [
+    {
+      "binding": "ARCH_UPLOADS_R2",
+      "bucket_name": "archestimator-proof-uploads",
+      "preview_bucket_name": "archestimator-proof-uploads-dev"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "ARCH_DB",
+      "database_name": "archestimator-proof-db",
+      "database_id": "9bdb29bb-687e-4f51-ae81-7659c426ea5f",
+      "preview_database_id": "363c756a-7c4d-42fe-908f-6d328bfa4acb"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "COLLAB_ROOMS",
+        "class_name": "CollaborationRoom"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["CollaborationRoom"]
+    }
+  ],
+  "triggers": {
+    "crons": [
+      "0 3 * * *",
+      "15 3 * * *"
+    ]
+  },
+  "queues": {
+    "producers": [
+      {
+        "binding": "UPLOAD_JOBS_QUEUE",
+        "queue": "archestimator-upload-jobs"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "archestimator-upload-jobs",
+        "max_batch_size": 5,
+        "max_batch_timeout": 30,
+        "max_retries": 3,
+        "dead_letter_queue": "archestimator-upload-jobs-dlq"
+      }
+    ]
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 0.1,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 0.1,
+      "invocation_logs": true,
+      "persist": true
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.05,
+      "persist": true
+    }
+  }
+}
