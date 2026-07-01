@@ -53,6 +53,14 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Rate-limiting plan package fourth-pass improvement complete: Better Auth, WAF/Server Actions, current inventory drift, and Cloudflare runtime refinements added (2026-07-01 local evidence):**
+
+- Scope was planning-only. No app source, tests, migrations, package manifests, Cloudflare provider state, runtime config, or git index state was changed.
+- Plan package remains **CONDITIONALLY READY** for a separate P0/P14/P15 implementation plan and **NOT READY** for direct enforcement, WAF skip/disable, production provider mutation, or Cloudflare cutover.
+- New/updated planning contracts cover Better Auth/app limiter authority, Better Auth storage/IP/header behavior, migration-period identity unification, hosted Worker Server Action proof with Security Events/Ray-ID readback before WAF causality claims, CollaborationRoom realtime quota scoping, app-side denial event completeness under sampled Workers Logs, and queue/cron/images/cache budget refinements.
+- Key IDs now carried in the plan: `SCE-018` through `SCE-020`, `CP-009`, `RL-FR-037` through `RL-FR-039`, `RL-NFR-018`, and `PROOF-RL-028` through `PROOF-RL-030`.
+- Fresh docs-only validation passed: 25 markdown files, frontmatter check clean, no trailing whitespace, scoped `git diff --check` clean, no cached diff, stale-string scan clean for old RateLimit triple/header wording and old proxy line references, and scoped diff limited to plan-package markdown docs.
+
 **Cloudflare-only migration checkpoint: runtime source is Cloudflare-only locally, production cutover still blocked by provider/DNS/publish gates (2026-07-01 UTC evidence):**
 
 - Direct answer for billing/provider cancellation remains **NO-GO** today. The code/runtime migration made major progress, but do **not** downgrade/cancel Supabase or Vercel until the provider blockers below are cleared and the release gates pass on a fresh Cloudflare deployment.

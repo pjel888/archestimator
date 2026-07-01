@@ -32,15 +32,9 @@ owner: Archestimator
 | D18 | Require full-jitter fallback only after `Retry-After` precedence. | Server hints should control retry timing when present; jittered fallback reduces retry storms only when the operation is safe and bounded. |
 | D19 | Treat cache coalescing, pagination/count, `OPTIONS`, realtime messages, and multipart bodies as resource-budget contracts. | These gaps can exhaust provider/origin resources below simple request-count thresholds. |
 | D20 | Treat Bot Management as observe-first escalation. | Bot signals are plan/entitlement dependent and can false-positive client reviewers or beta users; app limiter remains authoritative. |
-| D21 | Treat Better Auth's built-in limiter as an active provider control, not a future assumption. | The 2026-07-01 checkout has Better Auth 1.6.22 and Cloudflare Better Auth runtime paths; app auth throttles must not stack duplicate lockouts. |
-| D22 | Do not claim WAF managed-rule Server Action causality without hosted/provider evidence. | Public OpenNext issue evidence supports hosted Server Action failure risk, but the managed-rule 403 root cause must be proven with Security Events/Ray-ID readback before skip rules. |
-| D23 | Treat docs `03` and `04` as refreshed by the 2026-07-01 overlay before implementation. | The checkout now includes Cloudflare D1/R2/DO/Queues/Cron/Images/Email and Better Auth paths, while older Resend/Vercel/Supabase helper refs are stale or historical. |
-| D24 | Split CollaborationRoom realtime quotas from generic exact counters. | `COLLAB_ROOMS` exists for room transport/fanout proof; generic rate-limit counters still need a separate design and hosted concurrency proof. |
-| D25 | Make app-side denial events the primary ledger when Workers Logs are sampled. | Current `wrangler.jsonc` samples Workers Logs at `0.1`; sampled provider logs cannot support denial completeness or threshold tuning alone. |
-| D26 | Decide migration-period identity unification before user-keyed quotas enforce. | Supabase and Better Auth IDs can fragment one human into two actors unless mapped, cut over, or explicitly accepted with compensating controls. |
 | D21 | Treat Better Auth as a current auth limiter dependency, not a future provider note. | The current checkout has Cloudflare Better Auth runtime code and Better Auth v1.6 ships built-in rate limiting that can double-lock users if app policy stacks on top. |
 | D22 | Require one authoritative limiter per auth path. | Better Auth, app policy, and provider lockout semantics can all emit cooldowns; one selected authority per route keeps UX and support recovery coherent. |
-| D23 | Treat WAF/Server Action behavior as a hosted proof gate. | OpenNext #1224 evidence shows Cloudflare edge can block `Next-Action` requests upstream of Worker; local dev cannot prove this path. |
+| D23 | Treat WAF/Server Action behavior as a hosted proof gate, not an assumed cause. | OpenNext #1224 evidence supports hosted Server Action failure risk; Cloudflare managed-rule causality requires hosted reproduction plus Security Events/Ray-ID readback before any skip rule is designed. |
 | D24 | Split `CollaborationRoom` DO room quotas from generic exact counters. | The existing DO owns realtime room transport/fanout but is not a general-purpose rate-limit counter. |
 | D25 | Make app-side denial events primary when Workers Logs are sampled. | `wrangler.jsonc` samples Workers Logs, so provider logs cannot be the complete denial ledger. |
 | D26 | Treat D1 as a deliberate limiter-store decision during Postgres sunset. | D1/Better Auth storage may be useful, but hot-counter semantics, query budgets, and migration identity need explicit proof. |
@@ -60,13 +54,12 @@ owner: Archestimator
 | A8 | `/64` is the initial IPv6 aggregation default for planning. | P0 may choose `/56` or `/48` only with provider/account evidence and false-positive review. |
 | A9 | Current app has no stable service-worker replay path for protected mutations. | P0 must re-scan; if a service worker/offline queue exists or is added, `FCE-009` applies. |
 | A10 | Supabase/Auth limits and Cloudflare bot/WAF availability can drift by account and date. | Refresh official docs and provider readback before enforcement or purchase decisions. |
-| A11 | Better Auth rate-limit docs and current source config can drift independently. | Re-read official docs and inspect current Better Auth config before P8/P15 implementation; do not rely on this plan as runtime config proof. |
-| A12 | Vercel cron metadata and Cloudflare Cron may coexist during migration. | P0/P15 must define overlap, duplicate-trigger, and downstream-budget behavior before scheduled enforcement. |
-| A13 | Workers Logs sampling can change by config/provider limits. | `PROOF-RL-030` must verify app-side event completeness against the current deployed sampling posture. |
 | A11 | Better Auth v1.6 limiter defaults and path examples are current as of 2026-07-01. | Refresh Better Auth docs and actual app config before enforcement, especially `rateLimit`, storage, `advanced.ipAddress`, and customRules. |
-| A12 | OpenNext #1224 remains a useful WAF false-positive planning signal, but exact account/rule behavior is provider-specific. | Hosted Worker proof and Security Events/Ray-ID readback are required before rule changes. |
+| A12 | OpenNext #1224 remains a useful hosted Server Action risk signal, but exact account/rule behavior is provider-specific. | Hosted Worker proof and Security Events/Ray-ID readback are required before WAF causality, skip, or disable claims. |
 | A13 | The current `CollaborationRoom` DO can host room quota proof only if implementation verifies its transport/fanout lifecycle under hosted traffic. | Realtime harness and hosted Worker/DO evidence. |
 | A14 | App-side denial event storage can achieve near-complete denial evidence without collecting raw PII. | `PROOF-RL-030`, redaction tests, and retention/deletion proof. |
+| A15 | Vercel cron metadata and Cloudflare Cron may coexist during migration. | P0/P15 must define overlap, duplicate-trigger, and downstream-budget behavior before scheduled enforcement. |
+| A16 | Workers Logs sampling can change by config/provider limits. | `PROOF-RL-030` must verify app-side event completeness against the current deployed sampling posture. |
 
 ## Alternatives Considered
 

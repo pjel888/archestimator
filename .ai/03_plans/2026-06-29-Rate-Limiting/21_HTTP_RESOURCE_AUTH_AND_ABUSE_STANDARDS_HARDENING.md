@@ -8,7 +8,7 @@ owner: Archestimator
 
 # HTTP, Resource, Auth, And Abuse Standards Hardening
 
-This document closes the second-pass HTTP/resource/auth standards planning gaps found in the external review pass. The third-pass provider-identity and advanced-abuse gaps are now carried by `22_PROVIDER_IDENTITY_AND_ADVANCED_ABUSE_GAP_CLOSURE.md` and by the new `SCE-010` through `SCE-017`, `FCE-008`, `FCE-009`, and `CP-008` rows. It does not authorize source edits, provider changes, new dependencies, or production enforcement. It adds contract fields that P0 must complete before implementation starts.
+This document closes the second-pass HTTP/resource/auth standards planning gaps found in the external review pass. The third-pass provider-identity and advanced-abuse gaps are carried by `22_PROVIDER_IDENTITY_AND_ADVANCED_ABUSE_GAP_CLOSURE.md` and by `SCE-010` through `SCE-017`, `FCE-008`, `FCE-009`, and `CP-008`; fourth-pass Better Auth, WAF/Server Action, CollaborationRoom, sampled-log, and Cloudflare runtime drift gaps are carried by `23_BETTER_AUTH_COORDINATION.md`, `SCE-018` through `SCE-020`, and `CP-009`. It does not authorize source edits, provider changes, new dependencies, or production enforcement. It adds contract fields that P0 must complete before implementation starts.
 
 ## Source Grounding
 
@@ -117,5 +117,6 @@ P0 must expand these rows into route/action-specific answers before source edits
 | Service-worker/offline replay | `FCE-009`, `RL-FR-034`, `PROOF-RL-025`, and docs `20`/`22`. |
 | Chunked/multipart/resumable body abuse | `SCE-017`, `RL-FR-035`, `PROOF-RL-026`, and doc `22`. |
 | Bot Management escalation | `CP-008`, `RL-FR-036`, `PROOF-RL-027`, and docs `08`/`22`. |
+| Better Auth/WAF/Cloudflare runtime drift | `SCE-018` through `SCE-020`, `CP-009`, `RL-FR-037` through `RL-FR-039`, `RL-NFR-018`, `PROOF-RL-028` through `PROOF-RL-030`, and doc `23`. |
 
 Do not claim official Supabase/Auth numeric values, Cloudflare bot entitlements, or current account-level provider settings from this static plan. P0 must refresh current docs and provider/account readback immediately before implementation.

@@ -18,7 +18,7 @@ The current codebase already contains rate-limiting work, but it is not one syst
 
 | Finding | Evidence | Risk |
 | --- | --- | --- |
-| API proxy bypass | `src/lib/auth/request-proxy.ts:90` returns next for `/api`. | Middleware cannot be treated as API protection. |
+| API proxy bypass | `src/lib/auth/request-proxy.ts:85-92` returns next for `/api`. | Middleware cannot be treated as API protection. |
 | Durable shared-link limiter exists | `src/lib/publication/public-repository.ts:342-489`, `:513-735`. | Good foundation but scattered and Postgres-bound. |
 | Durable invite limiter exists | `src/lib/collaboration/invite-entry.ts:147-237`, `:244-316`. | Good foundation but separate from publication policy. |
 | In-memory upload limiter exists | `src/lib/uploads/admission-control.ts:24-148`. | Per-process only; not durable across hosts/Workers. |
@@ -65,6 +65,6 @@ These additions improve planning traceability but do not change the readiness ca
 The 2026-07-01 audit found four decision-blocking planning gaps caused by current-checkout drift and current provider behavior. This package now carries them explicitly:
 
 - Better Auth built-in limiter coordination, including per-path authority, storage, `cf-connecting-ip`/trusted proxy/IPv6 `/64`, `X-Retry-After`, and server-side `auth.api` bypass behavior.
-- WAF/Server Action hosted proof, including OpenNext #1224's reported `Next-Action` plus payload WAF false positive, Ray-ID/Security Events correlation, and narrow CVE-aware skip strategy.
+- Hosted Server Action edge/runtime proof, including OpenNext #1224's `Next-Action` and multipart-body failure signal, Ray-ID/Security Events correlation when edge/WAF behavior is suspected, and narrow CVE-aware skip strategy only if a Cloudflare rule is proven.
 - Current inventory refresh for Cloudflare Email, D1, R2, DO, Queues, Cron, Images, sampled Workers Logs, and legacy/stale Resend/Supabase/Vercel references.
 - CollaborationRoom DO split: room quota proof may use the existing room DO, while generic exact counters remain a separate future design.

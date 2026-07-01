@@ -52,15 +52,15 @@ Run on 2026-07-01 after the frontend/client-controls, HTTP/resource/auth standar
 | Scoped `git diff --check` | PASS: no output for tracked plan-package edits; untracked addenda were covered by frontmatter and whitespace checks. |
 | Scoped `git diff --check --cached` | PASS: no output for current staged plan-package state. |
 | Targeted contract-string check | PASS: found `verification_mode`, `Evidence Classes`, `Provider Worksheet`, `Credential Material Taxonomy`, `Proof Contract Rows`, `Source IDs`, `Route Contract Inventory`, `Server Action File Inventory`, `Frontend Client Contract Rows`, `Frontend Second-Pass Contract Rows`, `Frontend Third-Pass Contract Rows`, `Standards Contract Rows`, `FCE-001` through `FCE-009`, `SCE-001` through `SCE-020`, `CP-001` through `CP-009`, `PROOF-RL-011` through `PROOF-RL-030`, `RL-FR-016` through `RL-FR-039`, `RL-NFR-009` through `RL-NFR-018`, `Direct Invocation Behavior`, `Server-authoritative gate`, `CSRF`, `Fetch Metadata`, `Idempotency Taxonomy`, `Idempotency fingerprint`, `If-Match`, `ETag`, `409`/`412`, `Retry/backoff`, `Offline queue`, `Retry-After` parsing, HTTP-date, full jitter, `visibilitychange`, `BroadcastChannel`, Web Locks, disabled controls, `aria-live`, `aria-busy`, `Problem Details`, draft `RateLimit`, `RateLimit-Policy`, exact RateLimit syntax, cache/current-age handling, auth timing/NIST semantics, Supabase Auth, Better Auth, `X-Retry-After`, `Sb-Forwarded-For`, `sb_secret`, IPv6, timing-safe, cache-fill, MFA/OTP, pagination/count, `OPTIONS`, realtime, service-worker, chunked, multipart, Bot Management, Turnstile hostname/action/cdata binding, runtime/platform resource budgets, WAF/Server Action hosted proof, CollaborationRoom, app-side denial events, queue/cron/images/cache, sequence-aware business-flow signals, cache/CDN, low-and-slow, and retention/deletion in the package. |
-| Scoped `git diff --stat` | PASS: scoped package diff is docs-only; new untracked addenda appear in scoped status until staged. |
-| Scoped `git status --short` | PASS with expected docs-only scope: modified package docs plus added planning addenda; no source/app/provider paths are part of this scoped status. |
+| Scoped `git diff --stat` | PASS: scoped package diff is docs-only; final consistency diff was limited to plan-package markdown files. |
+| Scoped `git status --short` | PASS with expected docs-only scope: modified plan-package docs only; no source/app/provider paths are part of this scoped status. |
 | Full `git status --short` | CONTEXT: many unrelated pre-existing modified/untracked files exist outside this package, including Cloudflare migration artifacts, app files, tests, and `src/proxy.ts` deletion. |
 | Full repo validation | SKIPPED intentionally: this was docs-only planning work in a dirty repository; broad app/test validation would not prove the plan package and would mix unrelated failures. |
 
 ## Known Constraints
 
 - The repository has unrelated dirty worktree state outside this package. Completion claims for this task must be scoped to the plan directory.
-- `src/proxy.ts` is absent in this checkout; current API bypass evidence is `src/lib/auth/request-proxy.ts:90`.
+- `src/proxy.ts` is absent in this checkout; current API bypass evidence is `src/lib/auth/request-proxy.ts:85-92`.
 - Prompt-listed `recipient-session` and `snapshot` share API files are absent; current equivalents are `session` and token root route.
 - Cloudflare pricing/plan availability must be refreshed before purchase or deployment.
 - Production enforcement remains blocked until tests, shadow metrics, observability, rollback, and false-positive review exist.

@@ -23,7 +23,7 @@ owner: Archestimator
 | Finding | Evidence | Planning impact |
 | --- | --- | --- |
 | Current proxy entry is middleware plus re-export, not `src/proxy.ts`. | `src/middleware.ts:1-7`, `src/proxy/index.ts:1`. | Prompt-era file path is stale. |
-| Request proxy bypasses `/api`. | `src/lib/auth/request-proxy.ts:90`. | API route limiters must be in-handler or at edge/WAF. |
+| Request proxy bypasses `/api`. | `src/lib/auth/request-proxy.ts:85-92`. | API route limiters must be in-handler or at edge/WAF. |
 | Public routes include `/invite` and `/share`. | `src/lib/auth/request-proxy.ts:24-27`, `:143-148`. | Public UX needs false-positive-safe limits. |
 
 ## Durable App Limiters
@@ -92,7 +92,7 @@ This overlay supersedes stale provider/file assumptions in the earlier rows with
 | Topic | Current local evidence | Planning implication |
 | --- | --- | --- |
 | Better Auth is a current Cloudflare-aware auth path. | `better-auth` is present in `package.json`; `src/lib/auth/better-auth-cloudflare.ts` sets `/api/auth`; `src/lib/auth/cloudflare-better-auth-runtime.ts` creates the request-scoped runtime; `src/lib/auth/auth-provider-selection.ts` selects Better Auth providers. | Add `SCE-018`, `RL-FR-037`, and `PROOF-RL-028`; app auth throttles must coordinate with Better Auth's built-in limiter before enforcement. |
-| Better Auth/D1 runtime uses the `/api` path family that Proxy bypasses. | `src/lib/auth/request-proxy.ts:90` bypasses `/api`; later code calls Better Auth identity extraction when enabled. | Auth route protection and rate limiting must be in the auth route/runtime/provider layer, not assumed from Proxy. |
+| Better Auth/D1 runtime uses the `/api` path family that Proxy bypasses. | `src/lib/auth/request-proxy.ts:85-92` bypasses `/api`; later code calls Better Auth identity extraction when enabled. | Auth route protection and rate limiting must be in the auth route/runtime/provider layer, not assumed from Proxy. |
 | Resend runtime files are no longer current planning anchors. | `src/lib/email` currently contains Cloudflare email client/wrapper files; no `src/lib/email/resend-client.ts` was present in the inspected tree. | Rows that mention Resend should be read as historical/provider-neutral delivery-abuse rows and refreshed to Cloudflare Email before implementation. |
 | Cloudflare Queues are configured for upload jobs. | `wrangler.jsonc:65-80` declares producer `UPLOAD_JOBS_QUEUE`, consumer batch/retry settings, and a DLQ. | Add producer backpressure, consumer retry/batch/DLQ, downstream-provider budget, and queue-depth alert contracts to P0. |
 | CollaborationRoom DO is already bound but not a generic limiter. | `wrangler.jsonc:45-58` declares `COLLAB_ROOMS`; `src/lib/cloudflare/collaboration-room.ts` and router files implement room transport/fanout behavior. | Split existing DO planning: room quotas can be proofed with `CollaborationRoom`; generic exact rate-limit counters remain a separate future design. |
