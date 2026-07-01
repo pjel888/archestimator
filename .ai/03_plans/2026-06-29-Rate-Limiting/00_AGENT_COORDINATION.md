@@ -33,6 +33,8 @@ Allowed write scope for this task: `.ai/03_plans/2026-06-29-Rate-Limiting/`.
 | Third-pass repo evidence lane | Read-only source scan | Confirmed `Sb-Forwarded-For` is absent from app source, IPv6 is not handled in limiter identity helpers, timing-safe equality is partial, and multipart/upload support needs explicit resource budgets. |
 | Third-pass adversarial lane | Readiness critique | Rejected overclaiming from the second-pass package and required explicit IPv6, Supabase Auth, cache stampede, retry full-jitter, MFA/OTP, pagination/count, CORS `OPTIONS`, realtime, PWA replay, multipart/chunked, and bot-escalation rows. |
 | Third-pass QA/proof lane | Proof matrix critique | Required `PROOF-RL-016` through `PROOF-RL-027` and new SCE/FCE/CP rows before implementation readiness can be claimed. |
+| Fourth-pass repo evidence lane | Read-only 2026-07-01 source scan | Confirmed Better Auth 1.6.22, Cloudflare D1/R2/DO/Queues/Cron/Images/Email bindings, sampled Workers observability, `/api` proxy bypass, mixed legacy Vercel metadata, and stale Resend-specific planning anchors. |
+| Fourth-pass official-doc lane | Better Auth, IETF, OpenNext, and Cloudflare docs refresh | Confirmed Better Auth built-in limiter facts and IETF draft-11 syntax; refined the WAF/Server Action item into a hosted-proof obligation because the public OpenNext issue does not prove a Cloudflare managed-rule 403 root cause by itself. |
 
 ## Source Authority
 
@@ -51,15 +53,22 @@ Allowed write scope for this task: `.ai/03_plans/2026-06-29-Rate-Limiting/`.
 | SRC-CF-BOT-DOCS | Cloudflare bot docs refreshed on 2026-06-30 | Bot Management and Bot Fight/Super Bot Fight products are entitlement- and false-positive-sensitive escalation options, not P0 assumptions. |
 | SRC-AWS-JITTER | AWS Architecture Blog on backoff and jitter refreshed on 2026-06-30 | Full-jitter retry is the preferred retry-shaping contract when server `Retry-After` is absent. |
 | SRC-NODE-CRYPTO | Node.js crypto docs refreshed on 2026-06-30 | `timingSafeEqual` usage requires careful length handling and response-envelope parity. |
+| SRC-FOURTH-PASS-AUDIT | User-provided 2026-07-01 independent audit and corrected skeptical re-check | Surviving Tier-A gaps: Better Auth limiter coordination, WAF/Server Action hosted proof, current checkout inventory drift, and CollaborationRoom DO readiness split. |
+| SRC-LOCAL-CODE-2026-07-01 | Current checkout evidence refreshed on 2026-07-01 | Better Auth/D1 runtime, Cloudflare bindings, sampled observability, mixed legacy cron metadata, current email client paths, and stale provider/file anchors. |
+| SRC-BETTER-AUTH-RATE-LIMIT | Better Auth rate-limit docs refreshed on 2026-07-01 | Built-in production limiter, custom path rules, IP/proxy/IPv6 handling, storage modes, and `X-Retry-After` response behavior. |
+| SRC-IETF-RATELIMIT-11 | IETF HTTPAPI RateLimit draft-11 refreshed on 2026-07-01 | Standard fields are `RateLimit-Policy` and `RateLimit`; `Retry-After` remains separate hard-backoff guidance. |
+| SRC-OPENNEXT-SA-1224 | OpenNext Cloudflare issue #1224 refreshed on 2026-07-01 | Supports a hosted Server Action multipart failure/hang risk; does not independently prove WAF managed-rule 403 behavior, so provider logs/Ray-ID proof is required. |
+| SRC-CF-RUNTIME-2026-07-01 | Cloudflare docs refreshed on 2026-07-01 | Observability sampling, Durable Objects/WebSockets, Queues/DLQ, Cron Triggers, Images, Cache/Tiered Cache, and Workers Cache API constraints. |
 
 ## Uncertainty Handling
 
-The source tree is active and dirty. This package records the checkout observed on 2026-06-30. Any implementation task must repeat route discovery and limiter grep before editing. Where the prompt named old files, this plan records current reality:
+The source tree is active and dirty. This package records the checkout observed on 2026-06-30 plus the 2026-07-01 fourth-pass overlay in docs `03`, `04`, and `23`. Any implementation task must repeat route discovery and limiter grep before editing. Where the prompt named old files, this plan records current reality:
 
 - `src/proxy.ts` is absent in this checkout.
 - `src/middleware.ts` delegates to `src/lib/auth/request-proxy.ts`.
 - `src/proxy/index.ts` re-exports the same proxy.
-- `src/lib/auth/request-proxy.ts:120` bypasses `/api`.
+- `src/lib/auth/request-proxy.ts:85-92` bypasses `/api` in the current 2026-07-01 checkout.
 - `src/app/api/share/[token]/recipient-session/route.ts` and `src/app/api/share/[token]/snapshot/route.ts` are absent; current equivalents are `session` and the token root route.
 - Local route scan found 30 `route.ts` files; action scan found 27 `src/lib/**/*actions.ts` files. `19_IMPLEMENTATION_CONTRACT_WORKSHEET.md` records the observed method/action surface and marks where P0 must still complete function-level classification.
 - Third-pass source scan found `Sb-Forwarded-For` absent from app source, IPv6 references only in Supabase config comments, partial `timingSafeEqual` usage in token/security helpers, and no global enforcement surface for service-worker replay, deep pagination/count budgets, realtime message quotas, or bot-score escalation.
+- Fourth-pass source scan found Better Auth/Cloudflare runtime paths active enough for planning, but Supabase/Postgres historical rate-limit assets and legacy Vercel cron metadata still exist. Treat the checkout as mixed migration state, not a clean provider cutover.

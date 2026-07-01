@@ -1,0 +1,239 @@
+{
+  "generatedAt": "2026-07-01T05:13:11.940Z",
+  "mode": "cloudflare-release-gates",
+  "sources": {
+    "inventory": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-migration-inventory.json",
+    "workerPreviewRoutes": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-29-cloudflare-worker-preview-route-probe.json",
+    "hostedRoutes": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-hosted-route-proof.json",
+    "workerReadiness": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-worker-readiness.json",
+    "platformToolchain": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-platform-toolchain.json",
+    "wranglerAuth": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-wrangler-auth.json",
+    "providerResources": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-provider-resource-readback.json",
+    "deployDryRun": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-wrangler-deploy-dry-run.json",
+    "queuesCronProof": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-queues-cron-proof.json",
+    "pricingSnapshot": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-official-pricing-snapshot.json",
+    "costPerformanceWorkbook": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-cost-performance-workbook.json",
+    "d1AuthRealtimeReadiness": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-d1-auth-realtime-readiness.json",
+    "providerReadiness": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-provider-readiness.json"
+  },
+  "gates": [
+    {
+      "key": "inventory-refresh",
+      "label": "Migration inventory refreshed",
+      "scope": "planning",
+      "ready": true,
+      "evidence": "routes=70, providerCoupledFiles=86, rpcNames=75, sqlMigrations=182",
+      "blocker": null,
+      "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-migration-inventory.json"
+    },
+    {
+      "key": "official-pricing-refresh",
+      "label": "Official Cloudflare pricing refreshed",
+      "scope": "planning",
+      "ready": true,
+      "evidence": "pricingRefreshed=yes, missingProducts=0, invalidSourceUrls=0",
+      "blocker": null,
+      "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-official-pricing-snapshot.json"
+    },
+    {
+      "key": "local-workbook-scaffold",
+      "label": "Local cost/performance workbook scaffold generated",
+      "scope": "planning",
+      "ready": true,
+      "evidence": "pricingRefreshed=yes, localPreviewPerformanceCaptured=yes",
+      "blocker": null,
+      "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-cost-performance-workbook.json"
+    },
+    {
+      "key": "d1-auth-realtime-local-report",
+      "label": "D1/Auth/Realtime local redesign readiness report generated",
+      "scope": "data-auth-realtime",
+      "ready": true,
+      "evidence": "localReportReady=yes, databaseInventoryReady=yes, inventoryRpcNames=75, rlsPolicyStorageAuthMatches=684",
+      "blocker": null,
+      "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-d1-auth-realtime-readiness.json"
+    },
+    {
+      "key": "d1-auth-realtime-production-proof",
+      "label": "D1/Auth/Realtime production proof ready",
+      "scope": "data-auth-realtime",
+      "ready": false,
+      "evidence": "d1Binding=yes, authReplacement=no, appLayerAuthz=yes, localRpcMechanics=yes, betaFeedbackSlice=yes, collaborationInvitationSlice=yes, closedBetaSlice=yes, componentLibrarySlice=yes, estimateHistorySlice=yes, rpcRewrite=yes, realtimeReplacement=yes, restoreProof=yes, performanceProof=yes",
+      "blocker": "One or more D1/Auth/Realtime production proof subgates are incomplete; see the evidence flags for the exact blockers.",
+      "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-d1-auth-realtime-readiness.json"
+    },
+    {
+      "key": "worker-manifest-local-readiness",
+      "label": "Worker manifest and local preview controls ready",
+      "scope": "local-runtime",
+      "ready": true,
+      "evidence": "manifestReady=yes, localPreviewReady=yes",
+      "blocker": null,
+      "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-worker-readiness.json"
+    },
+    {
+      "key": "worker-preview-route-probe",
+      "label": "Local Worker route probe passed",
+      "scope": "local-runtime",
+      "ready": true,
+      "evidence": "reportPassed=yes, requiredRoutes=15, failedRequired=(none)",
+      "blocker": null,
+      "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-29-cloudflare-worker-preview-route-probe.json"
+    },
+    {
+      "key": "hosted-worker-route-proof",
+      "label": "Hosted Worker route matrix proof captured",
+      "scope": "provider",
+      "ready": true,
+      "evidence": "configured=yes, providerBacked=yes, routeContractReady=yes, hostedRouteProofReady=yes, requiredRoutes=15, failedRequired=(none)",
+      "blocker": null,
+      "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-hosted-route-proof.json"
+    },
+    {
+      "key": "platform-toolchain-snapshot",
+      "label": "Cloudflare platform toolchain snapshot ready",
+      "scope": "local-runtime",
+      "ready": true,
+      "evidence": "localToolchainSnapshotReady=yes, observabilityConfigured=yes, allBindingsTyped=yes",
+      "blocker": null,
+      "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-platform-toolchain.json"
+    },
+    {
+      "key": "provider-wrangler-auth",
+      "label": "Wrangler/API auth readback ready",
+      "scope": "provider",
+      "ready": true,
+      "evidence": "cliAvailable=yes, authCheckCompleted=yes, wranglerApiAuthenticated=yes, providerReadbackReady=yes",
+      "blocker": null,
+      "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-wrangler-auth.json"
+    },
+    {
+      "key": "provider-resource-readback",
+      "label": "Provider resource readback ready",
+      "scope": "provider",
+      "ready": false,
+      "evidence": "wranglerAuthenticated=yes, readbackAttempted=yes, workerDeployment=yes, d1=yes, r2=yes, queues=yes, secrets=no",
+      "blocker": "Read-only Wrangler resource readback is incomplete: Worker secret name list: missing expected names BETTER_AUTH_GOOGLE_CLIENT_ID, BETTER_AUTH_GOOGLE_CLIENT_SECRET.",
+      "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-provider-resource-readback.json"
+    },
+    {
+      "key": "wrangler-deploy-dry-run",
+      "label": "Wrangler deploy dry-run ready",
+      "scope": "local-runtime",
+      "ready": true,
+      "evidence": "localWranglerDryRunReady=yes, exitCode=0, noUploadMarkerSeen=yes, warnings=0, requiredBindingsReady=yes",
+      "blocker": null,
+      "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-wrangler-deploy-dry-run.json"
+    },
+    {
+      "key": "queues-cron-local-proof",
+      "label": "Queues/Cron local retry and DLQ proof ready",
+      "scope": "local-runtime",
+      "ready": true,
+      "evidence": "queueConfig=yes, workerQueueHandler=yes, producer=yes, ack=yes, retry=yes, dlq=yes, duplicate=yes, poison=yes, providerBacked=yes, productionJobsMessaging=yes",
+      "blocker": null,
+      "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-queues-cron-proof.json"
+    },
+    {
+      "key": "provider-dashboard-inventory",
+      "label": "Provider dashboard inventory captured",
+      "scope": "provider",
+      "ready": true,
+      "evidence": "dashboardInventoryReady=yes",
+      "blocker": null,
+      "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-provider-readiness.json"
+    },
+    {
+      "key": "provider-workers-deployment",
+      "label": "Hosted Worker deployment and custom domain provider-proven",
+      "scope": "provider",
+      "ready": false,
+      "evidence": "workersDeploymentReady=no, workerDeploymentSecretsReady=no, workerDeploymentReady=no, wranglerApiAuthenticated=yes",
+      "blocker": "Workers Paid/API auth/secrets/hosted Worker/custom-domain proof is incomplete.",
+      "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-provider-readiness.json"
+    },
+    {
+      "key": "provider-storage-media",
+      "label": "R2 and Images provider proof ready",
+      "scope": "provider",
+      "ready": true,
+      "evidence": "storageMediaReady=yes",
+      "blocker": null,
+      "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-provider-readiness.json"
+    },
+    {
+      "key": "provider-jobs-messaging",
+      "label": "Cron/Queues/dead-letter provider proof ready",
+      "scope": "provider",
+      "ready": true,
+      "evidence": "jobsReady=yes",
+      "blocker": null,
+      "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-provider-readiness.json"
+    },
+    {
+      "key": "provider-analytics-receipt",
+      "label": "Cloudflare analytics and observability receipt ready",
+      "scope": "provider",
+      "ready": true,
+      "evidence": "analyticsReady=yes",
+      "blocker": null,
+      "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-provider-readiness.json"
+    },
+    {
+      "key": "current-provider-costs",
+      "label": "Current provider cost inputs captured",
+      "scope": "cost-performance",
+      "ready": false,
+      "evidence": "currentProviderCostsReady=no",
+      "blocker": "Sanitized Vercel/Supabase/Resend invoice or dashboard usage inputs are missing.",
+      "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-cost-performance-workbook.json"
+    },
+    {
+      "key": "cloudflare-usage-costs",
+      "label": "Cloudflare usage cost inputs captured",
+      "scope": "cost-performance",
+      "ready": false,
+      "evidence": "cloudflareUsageCostsReady=no",
+      "blocker": "Hosted Cloudflare request/CPU/storage/operation usage inputs are missing.",
+      "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-cost-performance-workbook.json"
+    },
+    {
+      "key": "hosted-performance-proof",
+      "label": "Hosted Cloudflare performance proof captured",
+      "scope": "cost-performance",
+      "ready": false,
+      "evidence": "hostedCredentialFreePerformanceCaptured=yes, hostedPerformanceReady=no",
+      "blocker": "Hosted Cloudflare route/action performance evidence is missing, failing budgets, or not production-ready.",
+      "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-cost-performance-workbook.json"
+    },
+    {
+      "key": "production-cost-decision",
+      "label": "Production cost decision ready",
+      "scope": "cost-performance",
+      "ready": false,
+      "evidence": "productionCostDecisionReady=no",
+      "blocker": "Production cost decision cannot pass until current-provider and hosted Cloudflare usage/performance evidence exists.",
+      "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-cost-performance-workbook.json"
+    }
+  ],
+  "readiness": {
+    "planningInputsReady": true,
+    "localRuntimeProofReady": true,
+    "providerDashboardInventoryReady": true,
+    "providerProofReady": false,
+    "costPerformanceProofReady": false,
+    "dataAuthRealtimeProofReady": false,
+    "localReleaseGateReportReady": true,
+    "productionCutoverReady": false
+  },
+  "blockers": [
+    "D1/Auth/Realtime production proof ready: One or more D1/Auth/Realtime production proof subgates are incomplete; see the evidence flags for the exact blockers.",
+    "Provider resource readback ready: Read-only Wrangler resource readback is incomplete: Worker secret name list: missing expected names BETTER_AUTH_GOOGLE_CLIENT_ID, BETTER_AUTH_GOOGLE_CLIENT_SECRET.",
+    "Hosted Worker deployment and custom domain provider-proven: Workers Paid/API auth/secrets/hosted Worker/custom-domain proof is incomplete.",
+    "Current provider cost inputs captured: Sanitized Vercel/Supabase/Resend invoice or dashboard usage inputs are missing.",
+    "Cloudflare usage cost inputs captured: Hosted Cloudflare request/CPU/storage/operation usage inputs are missing.",
+    "Hosted Cloudflare performance proof captured: Hosted Cloudflare route/action performance evidence is missing, failing budgets, or not production-ready.",
+    "Production cost decision ready: Production cost decision cannot pass until current-provider and hosted Cloudflare usage/performance evidence exists."
+  ],
+  "note": "Aggregates existing local/sanitized Cloudflare migration evidence only. It does not call Cloudflare APIs, read env files, print secrets, deploy Workers, change DNS, purchase plans, mutate providers, or make Vercel/Supabase/Resend removable."
+}

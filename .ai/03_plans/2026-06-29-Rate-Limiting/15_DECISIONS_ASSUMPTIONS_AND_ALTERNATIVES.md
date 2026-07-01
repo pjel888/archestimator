@@ -32,6 +32,19 @@ owner: Archestimator
 | D18 | Require full-jitter fallback only after `Retry-After` precedence. | Server hints should control retry timing when present; jittered fallback reduces retry storms only when the operation is safe and bounded. |
 | D19 | Treat cache coalescing, pagination/count, `OPTIONS`, realtime messages, and multipart bodies as resource-budget contracts. | These gaps can exhaust provider/origin resources below simple request-count thresholds. |
 | D20 | Treat Bot Management as observe-first escalation. | Bot signals are plan/entitlement dependent and can false-positive client reviewers or beta users; app limiter remains authoritative. |
+| D21 | Treat Better Auth's built-in limiter as an active provider control, not a future assumption. | The 2026-07-01 checkout has Better Auth 1.6.22 and Cloudflare Better Auth runtime paths; app auth throttles must not stack duplicate lockouts. |
+| D22 | Do not claim WAF managed-rule Server Action causality without hosted/provider evidence. | Public OpenNext issue evidence supports hosted Server Action failure risk, but the managed-rule 403 root cause must be proven with Security Events/Ray-ID readback before skip rules. |
+| D23 | Treat docs `03` and `04` as refreshed by the 2026-07-01 overlay before implementation. | The checkout now includes Cloudflare D1/R2/DO/Queues/Cron/Images/Email and Better Auth paths, while older Resend/Vercel/Supabase helper refs are stale or historical. |
+| D24 | Split CollaborationRoom realtime quotas from generic exact counters. | `COLLAB_ROOMS` exists for room transport/fanout proof; generic rate-limit counters still need a separate design and hosted concurrency proof. |
+| D25 | Make app-side denial events the primary ledger when Workers Logs are sampled. | Current `wrangler.jsonc` samples Workers Logs at `0.1`; sampled provider logs cannot support denial completeness or threshold tuning alone. |
+| D26 | Decide migration-period identity unification before user-keyed quotas enforce. | Supabase and Better Auth IDs can fragment one human into two actors unless mapped, cut over, or explicitly accepted with compensating controls. |
+| D21 | Treat Better Auth as a current auth limiter dependency, not a future provider note. | The current checkout has Cloudflare Better Auth runtime code and Better Auth v1.6 ships built-in rate limiting that can double-lock users if app policy stacks on top. |
+| D22 | Require one authoritative limiter per auth path. | Better Auth, app policy, and provider lockout semantics can all emit cooldowns; one selected authority per route keeps UX and support recovery coherent. |
+| D23 | Treat WAF/Server Action behavior as a hosted proof gate. | OpenNext #1224 evidence shows Cloudflare edge can block `Next-Action` requests upstream of Worker; local dev cannot prove this path. |
+| D24 | Split `CollaborationRoom` DO room quotas from generic exact counters. | The existing DO owns realtime room transport/fanout but is not a general-purpose rate-limit counter. |
+| D25 | Make app-side denial events primary when Workers Logs are sampled. | `wrangler.jsonc` samples Workers Logs, so provider logs cannot be the complete denial ledger. |
+| D26 | Treat D1 as a deliberate limiter-store decision during Postgres sunset. | D1/Better Auth storage may be useful, but hot-counter semantics, query budgets, and migration identity need explicit proof. |
+| D27 | Treat queues, cron, cache, and Images as resource-budget surfaces, not rate-limit mechanisms. | They can amplify, hide, or bill work below request-count thresholds; each needs backpressure, overlap, cache-key, or transform-cardinality controls. |
 
 ## Assumptions
 
@@ -47,6 +60,13 @@ owner: Archestimator
 | A8 | `/64` is the initial IPv6 aggregation default for planning. | P0 may choose `/56` or `/48` only with provider/account evidence and false-positive review. |
 | A9 | Current app has no stable service-worker replay path for protected mutations. | P0 must re-scan; if a service worker/offline queue exists or is added, `FCE-009` applies. |
 | A10 | Supabase/Auth limits and Cloudflare bot/WAF availability can drift by account and date. | Refresh official docs and provider readback before enforcement or purchase decisions. |
+| A11 | Better Auth rate-limit docs and current source config can drift independently. | Re-read official docs and inspect current Better Auth config before P8/P15 implementation; do not rely on this plan as runtime config proof. |
+| A12 | Vercel cron metadata and Cloudflare Cron may coexist during migration. | P0/P15 must define overlap, duplicate-trigger, and downstream-budget behavior before scheduled enforcement. |
+| A13 | Workers Logs sampling can change by config/provider limits. | `PROOF-RL-030` must verify app-side event completeness against the current deployed sampling posture. |
+| A11 | Better Auth v1.6 limiter defaults and path examples are current as of 2026-07-01. | Refresh Better Auth docs and actual app config before enforcement, especially `rateLimit`, storage, `advanced.ipAddress`, and customRules. |
+| A12 | OpenNext #1224 remains a useful WAF false-positive planning signal, but exact account/rule behavior is provider-specific. | Hosted Worker proof and Security Events/Ray-ID readback are required before rule changes. |
+| A13 | The current `CollaborationRoom` DO can host room quota proof only if implementation verifies its transport/fanout lifecycle under hosted traffic. | Realtime harness and hosted Worker/DO evidence. |
+| A14 | App-side denial event storage can achieve near-complete denial evidence without collecting raw PII. | `PROOF-RL-030`, redaction tests, and retention/deletion proof. |
 
 ## Alternatives Considered
 
@@ -65,8 +85,16 @@ owner: Archestimator
 | Full raw-IP or raw-IPv6-prefix storage | Hashing after canonicalization gives enough limiter utility without storing raw linkable client identity. |
 | Trusting all forwarded headers | Only deployment-controlled/proxy-controlled headers can feed security keys; attacker-provided headers would undercut limiter identity. |
 | Supabase Auth provider limits as app replacement | Provider limits do not encode Archestimator-specific resource, beta support, public reviewer, or business-flow constraints. |
+| Better Auth provider limits as app replacement everywhere | Better Auth can own selected auth paths, but it does not cover Archestimator-specific upload, AI, export, share, invite, realtime, queue, image, cache, or business-flow budgets. |
 | Global `OPTIONS` exemption | Preflight is usually low-cost but can still reveal policy and consume origin/edge capacity; route classes need explicit posture. |
 | Bot challenge/block before observe-mode proof | Bot products can false-positive legitimate reviewers and have plan/entitlement constraints; app policy and support path come first. |
+| Reusing `CollaborationRoom` as a global rate-limit counter | Room transport/fanout state has different partitioning, cleanup, and hotspot behavior than generic rate-limit counters. |
+| Using sampled Workers Logs as the denial ledger | Sampling can drop the exact events needed for false-positive review and threshold tuning; app-side denial events must carry completeness. |
+| Stacking Better Auth and app auth limits by default | Creates duplicate cooldowns and support confusion during beta and migration. |
+| Disabling WAF broadly for all Server Actions | Could re-expose Server Action CVE protections; only narrow rule-specific skips after hosted proof and review are acceptable. |
+| Treating `CollaborationRoom` as a generic limiter counter | It is room transport/fanout infrastructure; generic counters need a separate partitioned design. |
+| Treating sampled Workers Logs as complete evidence | Head-based sampling can omit the entire denied request context; app-side denial events must be primary. |
+| Porting Postgres event counters directly to D1 | D1 query/hot-key characteristics and Better Auth storage semantics need proof before being used for high-churn exact quotas. |
 
 ## Open Questions For Future Implementation
 
@@ -84,3 +112,13 @@ owner: Archestimator
 - Which realtime surfaces need per-message/fanout quotas beyond connect/token quotas?
 - Does any production PWA/service-worker/offline queue exist for protected mutations?
 - Which Cloudflare bot product, if any, is available in the account, and what bot-signal false-positive threshold is acceptable?
+- Which Better Auth paths are provider-authoritative, app-authoritative, or explicitly unthrottled, and which storage mode backs provider rate-limit state?
+- How will Supabase and Better Auth identities be unified or intentionally separated for limiter keys during migration?
+- Which Server Action request shapes need hosted proof before WAF observe data is trusted?
+- Which queue, cron, image, and cache routes need provider-budget rows before P0 enforcement starts?
+- Which Better Auth auth paths use Better Auth limiter authority, app authority, or no limiter, and what storage mode backs them?
+- How are Supabase user IDs, Better Auth user IDs, email hashes, and OAuth states unified or intentionally separated during migration?
+- Which active WAF/managed rules can affect `Next-Action` requests, and what rule-specific skip strategy is safe after CVE-regression review?
+- Can `CollaborationRoom` enforce room-level message/presence/cursor/fanout quotas without harming transport reliability?
+- Which app-side event sink provides denial completeness for `PROOF-RL-030` while keeping raw PII out?
+- What are the queue producer backpressure, consumer retry/DLQ, cron overlap, cache-key, and Images transform-cardinality budgets for P0/P1?

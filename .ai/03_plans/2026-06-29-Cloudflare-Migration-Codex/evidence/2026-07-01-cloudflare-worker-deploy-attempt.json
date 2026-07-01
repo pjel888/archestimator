@@ -1,0 +1,71 @@
+{
+  "generatedAt": "2026-07-01T05:20:46Z",
+  "mode": "cloudflare-worker-deploy-attempt",
+  "workerName": "archestimator-proof",
+  "localBuild": {
+    "command": "NODE_OPTIONS=--max-old-space-size=8192 bun run cf:build",
+    "passed": true,
+    "notes": [
+      "OpenNext Cloudflare build completed and emitted .open-next/worker.js.",
+      "TypeScript passed before the build with NODE_OPTIONS=--max-old-space-size=8192 bunx tsc --noEmit --pretty false."
+    ]
+  },
+  "attempts": [
+    {
+      "command": "OPEN_NEXT_DEPLOY=true CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false bunx wrangler deploy --keep-vars",
+      "wranglerVersion": "4.105.0",
+      "observedOutput": [
+        "Read 303 files from the assets directory.",
+        "Uploaded static asset BUILD_ID.",
+        "Reached Worker upload/version creation after Total Upload: 31247.82 KiB / gzip: 6362.93 KiB.",
+        "No deployable Worker version or deployment was created before the run was manually stopped."
+      ],
+      "status": "blocked"
+    },
+    {
+      "command": "OPEN_NEXT_DEPLOY=true CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false bunx wrangler versions upload --keep-vars --message \"Migrate runtime to Cloudflare D1/R2/Better Auth\"",
+      "wranglerVersion": "4.105.0",
+      "observedOutput": [
+        "Read 303 files from the assets directory.",
+        "No updated asset files to upload.",
+        "Reached Worker upload/version creation after Total Upload: 31247.82 KiB / gzip: 6362.93 KiB.",
+        "No deployable Worker version or deployment was created before the run was manually stopped."
+      ],
+      "status": "blocked"
+    },
+    {
+      "command": "OPEN_NEXT_DEPLOY=true CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false bunx wrangler@4.106.0 versions upload --keep-vars --message \"Migrate runtime to Cloudflare D1/R2/Better Auth\"",
+      "wranglerVersion": "4.106.0",
+      "observedOutput": [
+        "Read 303 files from the assets directory.",
+        "No updated asset files to upload.",
+        "Reached Worker upload/version creation after Total Upload: 31247.82 KiB / gzip: 6362.93 KiB.",
+        "No deployable Worker version or deployment was created before the run was manually stopped."
+      ],
+      "status": "blocked"
+    },
+    {
+      "command": "OPEN_NEXT_DEPLOY=true CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false bunx wrangler@4.106.0 deploy --keep-vars --message \"Migrate runtime to Cloudflare D1/R2/Better Auth\"",
+      "wranglerVersion": "4.106.0",
+      "observedOutput": [
+        "Read 303 files from the assets directory.",
+        "Uploaded 11 fresh static assets successfully; 282 assets were already uploaded.",
+        "Reached Worker upload/version creation after Total Upload: 31246.68 KiB / gzip: 6362.54 KiB.",
+        "No deployable Worker version or deployment was created after waiting five minutes past the bundle upload boundary."
+      ],
+      "status": "blocked"
+    }
+  ],
+  "deploymentReadback": {
+    "command": "bunx wrangler deployments list --name archestimator-proof",
+    "newDeploymentCreated": false,
+    "latestDeploymentCreatedAt": "2026-07-01T04:18:13.768Z",
+    "latestDeploymentSource": "Secret Change",
+    "latestDeploymentVersionId": "f815a673-97d4-458a-bff0-d09515213d8a"
+  },
+  "blockedOn": [
+    "Cloudflare Worker version creation/publish did not return after bundle upload through both wrangler deploy and wrangler versions upload, including a five-minute wait on Wrangler 4.106.0.",
+    "No fresh deployment exists for the current Cloudflare-only Worker bundle."
+  ],
+  "secretValuesRecorded": false
+}

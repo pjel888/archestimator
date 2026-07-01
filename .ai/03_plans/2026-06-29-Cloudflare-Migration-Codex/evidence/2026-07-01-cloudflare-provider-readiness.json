@@ -1,0 +1,132 @@
+{
+  "generatedAt": "2026-07-01T04:52:14.302Z",
+  "mode": "cloudflare-provider-readiness",
+  "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-provider-readiness-source.json",
+  "capturedAt": "2026-06-30T02:00:15.745Z",
+  "checks": [
+    {
+      "key": "account-present",
+      "label": "Cloudflare account identified",
+      "ready": true,
+      "evidence": "account=Philipjonlewis@gmail.com's Account, accountIdPresent=yes",
+      "blocker": null
+    },
+    {
+      "key": "zone-present",
+      "label": "Cloudflare zone exists",
+      "ready": true,
+      "evidence": "zone=archestimator.com, zoneIdPresent=yes, plan=Free",
+      "blocker": null
+    },
+    {
+      "key": "dns-import-reviewed",
+      "label": "Imported DNS reviewed",
+      "ready": true,
+      "evidence": "dnsImportedReviewed=yes, recordCount=9",
+      "blocker": null
+    },
+    {
+      "key": "nameservers-active",
+      "label": "Registrar nameservers point at Cloudflare",
+      "ready": false,
+      "evidence": "assigned=carl.ns.cloudflare.com, ziggy.ns.cloudflare.com, publicDns=dns1.registrar-servers.com, dns2.registrar-servers.com, sanitizedRegistrar=dns1.registrar-servers.com, dns2.registrar-servers.com",
+      "blocker": "Public DNS nameservers still do not include all Cloudflare-assigned nameservers."
+    },
+    {
+      "key": "workers-paid",
+      "label": "Workers Paid purchased",
+      "ready": true,
+      "evidence": "workersPlan=Paid, workersPaidPurchased=yes",
+      "blocker": null
+    },
+    {
+      "key": "workers-project",
+      "label": "Worker project deployed",
+      "ready": true,
+      "evidence": "projectCount=1, deployedWorkerUrlPresent=yes, wranglerDeploymentReadback=yes",
+      "blocker": null
+    },
+    {
+      "key": "custom-domain",
+      "label": "Worker custom domain active",
+      "ready": true,
+      "evidence": "customDomainActive=yes",
+      "blocker": null
+    },
+    {
+      "key": "api-auth",
+      "label": "Cloudflare API/Wrangler auth configured",
+      "ready": true,
+      "evidence": "dashboardApiAuthConfigured=yes, wranglerAuthChecked=yes, wranglerApiAuthenticated=yes, wranglerProviderReadback=yes",
+      "blocker": null
+    },
+    {
+      "key": "worker-secrets",
+      "label": "Sanitized Worker secret list captured",
+      "ready": false,
+      "evidence": "sanitizedSecretListCaptured=no, wranglerSecretNameReadback=no",
+      "blocker": "Worker secret name readback is incomplete: Worker secret name list: missing expected names BETTER_AUTH_GOOGLE_CLIENT_ID, BETTER_AUTH_GOOGLE_CLIENT_SECRET."
+    },
+    {
+      "key": "r2-provider",
+      "label": "R2 proof buckets and readback proven",
+      "ready": true,
+      "evidence": "r2ProofBucketsCreated=yes, r2HostedReadbackProven=yes, wranglerR2Readback=yes, providerRuntimeR2Proof=yes",
+      "blocker": null
+    },
+    {
+      "key": "images-provider",
+      "label": "Cloudflare Images binding provider-proven",
+      "ready": true,
+      "evidence": "imagesBindingProviderProven=no, providerRuntimeImagesProof=yes",
+      "blocker": null
+    },
+    {
+      "key": "jobs-provider",
+      "label": "Cron/Queues provider execution proven",
+      "ready": true,
+      "evidence": "cronProviderExecutionProven=no, queuesProofCreated=yes, deadLetterProofCreated=yes, wranglerQueuesReadback=yes, jobsRuntimeProductionProof=yes",
+      "blocker": null
+    },
+    {
+      "key": "analytics-provider",
+      "label": "Cloudflare Analytics/Workers Observability receiving data",
+      "ready": true,
+      "evidence": "webAnalyticsPropertyCreated=yes, webAnalyticsReceivingDataProven=no, workersObservabilityReceivingDataProven=yes, observedProbeEvents=60",
+      "blocker": null
+    }
+  ],
+  "dashboardInventoryReady": true,
+  "workersDeploymentReady": false,
+  "storageMediaReady": true,
+  "jobsReady": true,
+  "analyticsReady": true,
+  "productionCutoverReady": false,
+  "dnsDelegationSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-dns-delegation.json",
+  "dnsDelegationCapturedAt": "2026-07-01T04:52:02.757Z",
+  "wranglerAuthSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-wrangler-auth.json",
+  "wranglerAuthCapturedAt": "2026-06-30T06:29:11.196Z",
+  "providerResourceReadbackSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-provider-resource-readback.json",
+  "providerResourceReadbackCapturedAt": "2026-07-01T04:51:35.412Z",
+  "providerRuntimeProofSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-provider-runtime-proof.json",
+  "providerRuntimeProofCapturedAt": "2026-06-30T07:48:31.630Z",
+  "jobsRuntimeProofSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-jobs-runtime-proof.json",
+  "jobsRuntimeProofCapturedAt": "2026-06-30T08:13:10.504Z",
+  "observabilityProofSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-observability-proof.json",
+  "observabilityProofCapturedAt": "2026-06-30T11:27:15.000Z",
+  "nameserverEvidenceSource": "public-dns",
+  "publicDnsNameservers": [
+    "dns1.registrar-servers.com",
+    "dns2.registrar-servers.com"
+  ],
+  "actionsIntentionallyNotTaken": [
+    "paid checkout/subscription purchase by Codex",
+    "API token creation",
+    "registrar nameserver changes",
+    "Vercel cancellation",
+    "Supabase cancellation",
+    "Resend cancellation",
+    "provider resource deletion"
+  ],
+  "note": "Sanitized provider-readiness check only. It evaluates dashboard facts supplied in a local JSON artifact and, when present, public DNS NS lookup and Wrangler auth artifacts. It does not create Cloudflare resources, does not read env files, does not print secrets, does not mutate DNS/resources/billing, and does not make Vercel/Supabase/Resend removable."
+}

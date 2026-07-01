@@ -130,7 +130,7 @@ Risk: high security/UX.
 ## P9 - Email/Webhook/Internal Job Hardening
 
 Objective: Treat email, webhooks, and jobs as idempotency/signature problems first, quotas second.
-Files likely touched later: Resend client/webhook, internal upload routes, queue/cron worker.
+Files likely touched later: Cloudflare Email/transactional-email client paths, any provider webhook/callback if present, internal upload routes, Cloudflare Queue/Cron worker paths, and legacy Resend references only if reintroduced by current source.
 Behavior: no duplicate side effects; safe retries.
 Migration dependency: delivery logs and job idempotency.
 Cloudflare dependency: Queues/Cron provider proof later.
@@ -204,3 +204,16 @@ Observability: hashed identity version, prefix mask version, provider-auth limit
 Rollback: per-policy disable, identity-key version fallback, disable `Sb-Forwarded-For`, cache coalescing fail-open/fail-closed by surface, retry helper kill switch, Bot Management rule disable, and app-limiter fallback.
 Acceptance: the pasted third-pass gaps are represented by requirement IDs, contract IDs, proof IDs, source IDs, and readiness gates before source implementation begins.
 Risk: high cross-cutting risk because identity, auth, retry, cache, body parsing, and bot signals can change both security and legitimate first-user UX.
+
+## P15 - Better Auth And Cloudflare Runtime Drift Closure
+
+Objective: Close the 2026-07-01 fourth-pass audit gates before any auth, edge, realtime, queue, image, cache, or observability enforcement work starts.
+Files likely touched later: Better Auth config/runtime, auth route tests, migration identity mapping, WAF/security runbooks, Server Action hosted proof harness, `CollaborationRoom` quota adapter if approved, queue/cron/image/cache observability and budget code. This planning task edits none of those files.
+Behavior: one authoritative limiter per auth surface; no duplicate Better Auth/app lockout; `X-Retry-After` and standard `Retry-After` are normalized safely; WAF/Server Action failures are reproduced and correlated before any managed-rule claim; `CollaborationRoom` is realtime-quota-only; app-side denial events are primary when Workers Logs are sampled.
+Migration dependency: Better Auth/Supabase identity mapping, current auth provider selection, Cloudflare D1/Email proof state, and any remaining Supabase/Postgres rate-limit event store.
+Cloudflare dependency: hosted Worker proof for Server Actions and DO/realtime behavior; provider Security Events/Ray-ID readback for WAF causality; Queues/Cron/Images/Cache provider docs/readback before provider-budget claims.
+Tests: `PROOF-RL-028` through `PROOF-RL-030`, plus P0 queue/cron/image/cache budget tests when implementation begins.
+Observability: app-side denial ledger completeness, Better Auth/provider limit source, identity mapping mode, WAF/Ray-ID correlation, DO realtime budget dimension, queue retry/DLQ status, cron overlap decision, image transform cardinality, cache-key/origin-miss behavior.
+Rollback: disable app-side auth limiter while retaining provider controls, revert WAF rule to observe/disabled, disable room quota adapter without breaking room transport, pause queue producer or lower consumer concurrency, disable image/cache-specific edge rule, preserve app-layer auth/authorization/idempotency gates.
+Acceptance: `23_BETTER_AUTH_COORDINATION.md`, `16`, `19`, `11`, `12`, `13`, `15`, and `17` all carry `SCE-018` through `SCE-020`, `CP-009`, `RL-FR-037` through `RL-FR-039`, `RL-NFR-018`, and `PROOF-RL-028` through `PROOF-RL-030`; WAF managed-rule causality is not claimed without hosted/provider evidence.
+Risk: high for beta login UX and provider proof quality; moderate for realtime/queue/image/cache planning because current bindings exist but enforcement contracts are not implemented.

@@ -19,7 +19,8 @@ This is a conceptual implementation plan only. It does not authorize code change
 5. Add observability events in shadow mode.
 6. Add rollout modes: `off`, `shadow`, `enforce`, `challenge`.
 7. Replace process-local production-critical controls with durable stores.
-8. Add Cloudflare edge layers only after app-layer behavior is proven.
+8. Coordinate Better Auth built-in limiter authority, storage, client identity, and `X-Retry-After` behavior before auth app-limiters enforce.
+9. Add Cloudflare edge layers only after app-layer behavior is proven and hosted WAF/Server Action proof exists.
 
 ## Conceptual Module
 
@@ -34,8 +35,10 @@ This is a conceptual implementation plan only. It does not authorize code change
 | `budgets.ts` | Resource-budget evaluation for body bytes, item counts, duration, concurrency, provider cost units, queue depth, and circuit breakers. |
 | `stores/postgres-events.ts` | Reuses `security_rate_limit_events`. |
 | `stores/postgres-reservation.ts` | Uses advisory-lock/RPC patterns for exact reservations. |
+| `stores/better-auth.ts` | Coordinates Better Auth built-in limiter authority, custom rules, storage, identity headers, and `X-Retry-After` normalization for auth paths only. |
+| `stores/d1.ts` | Candidate low-churn metadata/ledger adapter after D1 query-budget proof; not a blind replacement for hot Postgres counters. |
 | `stores/memory.ts` | Local dev/test or supplemental-only controls. |
-| `stores/cloudflare.ts` | Future Worker/DO adapters after proof. |
+| `stores/cloudflare.ts` | Future Worker/DO adapters after proof, with `CollaborationRoom` realtime quotas separate from generic counter DOs. |
 | `responses.ts` | NextResponse/action result helpers for `Retry-After`, Problem Details where selected, draft RateLimit metadata where safe, no-store/cache headers, and server-action domain equivalents. |
 | `telemetry.ts` | Structured events and redaction. |
 | `test-helpers.ts` | Reset/time helpers for tests only. |
@@ -57,12 +60,13 @@ If implementation creates shared frontend helpers, keep them separate from autho
 | Accessibility adapter | Standardize native `disabled`, optional `aria-disabled`, `aria-busy`, live-region status, focus restore, keyboard-submit behavior, separate cooldown explanation text, and no-stuck-disabled assertions for guarded actions. |
 | Multi-tab helper | Share in-flight/cooldown hints only for high-cost same-origin actions with `BroadcastChannel` or storage-event fallback; reserve Web Locks for deliberately chosen high-cost singleton work; stale tabs refresh from server response and never become the source of truth. |
 | Client identity canonicalizer | Parse trusted client IP/header input, normalize IPv4/IPv6, mask IPv6 before HMAC, version composite keys, and expose only hashed/coarse dimensions to events. |
-| Provider auth coordinator | Load current Supabase Auth provider-limit decisions, `Sb-Forwarded-For` posture, OTP/MFA send/verify policy, and duplicate-lockout recovery rules into auth/contact contract rows. |
+| Provider auth coordinator | Load current Better Auth limiter authority/storage/customRules/IP header decisions, Supabase migration/provider-limit remnants, `Sb-Forwarded-For` posture, OTP/MFA send/verify policy, OAuth-state binding, and duplicate-lockout recovery rules into auth/contact contract rows. |
 | Timing-safe comparison wrapper | Centralize length handling, timing-safe equality, and uniform response-envelope hooks for secret/token comparisons where source modules currently differ. |
 | Cache-fill coordinator | Provide single-flight/coalescing, max waiters, stale serve, negative-cache, timeout, shed, and provider/store-outage decisions for expensive reads and provider fills. |
 | Resource/protocol budget helper | Evaluate page depth, count budget, CORS `OPTIONS`, body bytes, missing `Content-Length`, chunked transfer, multipart/resumable state, transformed bytes, and route timeouts before expensive work. |
 | Realtime quota adapter | Separate token/connect quotas from message, presence, cursor, broadcast, fanout, and disconnect-cleanup quotas. |
 | Bot escalation adapter | Consume Cloudflare bot signals only after provider readback and observe-mode proof, and never as a replacement for app policy. |
+| Queue/cron/cache/images coordinator | Define queue producer backpressure, consumer retry/DLQ, cron overlap/max runtime, cache-key normalization, origin-miss behavior, and Cloudflare Images unique-transform/spend budgets. |
 
 ## Migration Order
 
@@ -75,9 +79,10 @@ If implementation creates shared frontend helpers, keep them separate from autho
 | 4 | Upload admission | Replace local-only request/concurrency maps with durable capacity or define local-only as supplemental. |
 | 5 | Estimate actions | Preserve burst-friendly editing while making scaled behavior explicit. |
 | 6 | Client error intake | Keep fail-soft/drop semantics; add standardized hashing. |
-| 7 | Auth/contact/email/webhook/internal | Add or document appropriate controls around provider/signature/idempotency boundaries. |
-| 8 | Provider identity and advanced-abuse contracts | Fill `SCE-010` through `SCE-017`, `FCE-008`, `FCE-009`, and `CP-008` before touching shared limiter helpers. |
-| 9 | Cloudflare adapters | Only after hosted Worker/provider proof. |
+| 7 | Better Auth/contact/email/webhook/internal | Fill `SCE-018` for auth authority/storage/IP/`X-Retry-After`; refresh Cloudflare Email/provider callbacks; keep signature/idempotency first. |
+| 8 | Provider identity and advanced-abuse contracts | Fill `SCE-010` through `SCE-020`, `FCE-008`, `FCE-009`, `CP-008`, and `CP-009` before touching shared limiter helpers. |
+| 9 | Queue/cron/cache/images and app-denial observability | Fill queue backpressure/DLQ, cron overlap, cache/key, Images transform budget, and `PROOF-RL-030` app event completeness contracts. |
+| 10 | Cloudflare adapters | Only after hosted Worker/provider proof, including `PROOF-RL-029` for WAF/Server Action behavior. |
 
 ## Behavior Preservation Requirements
 
@@ -88,6 +93,8 @@ If implementation creates shared frontend helpers, keep them separate from autho
 - Preserve fail-closed behavior for AI quota storage unavailability.
 - Preserve graceful degradation for email delivery failures.
 - Preserve current Cloudflare migration NO-GO gates.
+- Preserve Better Auth provider recovery and do not stack app/provider auth lockouts without an explicit `SCE-018` decision.
+- Preserve app-side denial event completeness for security/cost surfaces; sampled Workers Logs are not a substitute.
 - Preserve explicit idempotency fingerprint/TTL/mismatch behavior for expensive and destructive retryable mutations.
 - Preserve resource-version or `If-Match`/ETag-style precondition behavior where lost-update protection is required.
 - Preserve retry caps, backoff bounds, `Retry-After` precedence, and no automatic unsafe mutation retry without idempotency.

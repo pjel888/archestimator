@@ -1,0 +1,191 @@
+{
+  "generatedAt": "2026-07-01T04:52:02.757Z",
+  "mode": "cloudflare-dns-delegation",
+  "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-provider-readiness-source.json",
+  "zoneName": "archestimator.com",
+  "dnsImportedRecordCount": 9,
+  "dnsImportedReviewed": true,
+  "cloudflareDnsRecordListCaptured": true,
+  "cloudflareDnsRecords": [
+    {
+      "name": "archestimator.com",
+      "type": "MX",
+      "content": "eforward5.registrar-servers.com",
+      "proxyStatus": "DNS only",
+      "ttl": "Auto",
+      "priority": 20
+    },
+    {
+      "name": "archestimator.com",
+      "type": "MX",
+      "content": "eforward4.registrar-servers.com",
+      "proxyStatus": "DNS only",
+      "ttl": "Auto",
+      "priority": 15
+    },
+    {
+      "name": "archestimator.com",
+      "type": "MX",
+      "content": "eforward3.registrar-servers.com",
+      "proxyStatus": "DNS only",
+      "ttl": "Auto",
+      "priority": 10
+    },
+    {
+      "name": "archestimator.com",
+      "type": "MX",
+      "content": "eforward2.registrar-servers.com",
+      "proxyStatus": "DNS only",
+      "ttl": "Auto",
+      "priority": 10
+    },
+    {
+      "name": "archestimator.com",
+      "type": "MX",
+      "content": "eforward1.registrar-servers.com",
+      "proxyStatus": "DNS only",
+      "ttl": "Auto",
+      "priority": 10
+    },
+    {
+      "name": "archestimator.com",
+      "type": "TXT",
+      "content": "\"v=spf1 include:spf.efwd.registrar-servers.com ~all\"",
+      "proxyStatus": "DNS only",
+      "ttl": "Auto",
+      "priority": null
+    },
+    {
+      "name": "_dmarc.archestimator.com",
+      "type": "TXT",
+      "content": "\"v=DMARC1; p=none;\"",
+      "proxyStatus": "DNS only",
+      "ttl": "Auto",
+      "priority": null
+    },
+    {
+      "name": "archestimator.com",
+      "type": "Worker",
+      "content": "archestimator-proof",
+      "proxyStatus": "Proxied",
+      "ttl": "Auto",
+      "priority": null
+    },
+    {
+      "name": "www.archestimator.com",
+      "type": "Worker",
+      "content": "archestimator-proof",
+      "proxyStatus": "Proxied",
+      "ttl": "Auto",
+      "priority": null
+    }
+  ],
+  "assignedNameservers": [
+    "carl.ns.cloudflare.com",
+    "ziggy.ns.cloudflare.com"
+  ],
+  "registrarNameserversFromSanitizedEvidence": [
+    "dns1.registrar-servers.com",
+    "dns2.registrar-servers.com"
+  ],
+  "publicDnsNameservers": [
+    "dns1.registrar-servers.com",
+    "dns2.registrar-servers.com"
+  ],
+  "publicDnsRecords": [
+    {
+      "hostname": "archestimator.com",
+      "type": "A",
+      "values": [
+        "216.150.1.1"
+      ],
+      "checked": true,
+      "error": null
+    },
+    {
+      "hostname": "archestimator.com",
+      "type": "AAAA",
+      "values": [],
+      "checked": true,
+      "error": null
+    },
+    {
+      "hostname": "archestimator.com",
+      "type": "CNAME",
+      "values": [],
+      "checked": true,
+      "error": null
+    },
+    {
+      "hostname": "archestimator.com",
+      "type": "MX",
+      "values": [
+        "10 eforward1.registrar-servers.com",
+        "10 eforward2.registrar-servers.com",
+        "10 eforward3.registrar-servers.com",
+        "15 eforward4.registrar-servers.com",
+        "20 eforward5.registrar-servers.com"
+      ],
+      "checked": true,
+      "error": null
+    },
+    {
+      "hostname": "archestimator.com",
+      "type": "TXT",
+      "values": [
+        "v=spf1 include:spf.efwd.registrar-servers.com ~all"
+      ],
+      "checked": true,
+      "error": null
+    },
+    {
+      "hostname": "www.archestimator.com",
+      "type": "CNAME",
+      "values": [
+        "bb7ab57cfa50fcad.vercel-dns-017.com"
+      ],
+      "checked": true,
+      "error": null
+    },
+    {
+      "hostname": "www.archestimator.com",
+      "type": "A",
+      "values": [
+        "216.198.79.1",
+        "64.29.17.1"
+      ],
+      "checked": true,
+      "error": null
+    },
+    {
+      "hostname": "www.archestimator.com",
+      "type": "AAAA",
+      "values": [],
+      "checked": true,
+      "error": null
+    },
+    {
+      "hostname": "_dmarc.archestimator.com",
+      "type": "TXT",
+      "values": [
+        "v=DMARC1; p=none;"
+      ],
+      "checked": true,
+      "error": null
+    }
+  ],
+  "publicDnsProviderSignals": [
+    "Public MX still uses Namecheap email forwarding.",
+    "Public SPF still references Namecheap email forwarding.",
+    "Public apex A still resolves to the current registrar-hosted address.",
+    "Public www DNS still resolves through Vercel."
+  ],
+  "publicDnsChecked": true,
+  "publicDnsBacked": true,
+  "providerApiBacked": false,
+  "nameserversActive": false,
+  "blockers": [
+    "Public DNS nameservers do not include all Cloudflare-assigned nameservers."
+  ],
+  "note": "Public DNS delegation/preflight check only. It resolves public DNS records for the Cloudflare zone, does not call Cloudflare APIs, does not read env files, does not print secrets, does not deploy, does not change DNS/nameservers/resources/billing, and does not make Vercel/Supabase/Resend removable."
+}

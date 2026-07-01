@@ -10,7 +10,7 @@ owner: Archestimator
 
 This document is the third-pass gap-closure addendum for the pasted review at `/Users/philiplewis/.codex/attachments/54e7ab2a-9157-4882-871a-8d4445ed2a4f/pasted-text-1.txt`. It keeps the package planning-only and preserves the existing app-layer-first direction.
 
-Readiness impact: the package is **CONDITIONALLY READY for a scoped P0 implementation plan** only after the new rows below are expanded into route/action/client/provider contracts. It remains **NOT READY for direct enforcement or provider cutover**.
+Readiness impact: the package is **CONDITIONALLY READY for a scoped P0/P14 implementation plan** only after the rows below are expanded into route/action/client/provider contracts. It remains **NOT READY for direct enforcement or provider cutover**. Fourth-pass runtime drift and Better Auth/WAF/CollaborationRoom gaps are carried forward by `23_BETTER_AUTH_COORDINATION.md`; this third-pass addendum is not the final readiness boundary by itself.
 
 ## Source Grounding
 
@@ -24,6 +24,7 @@ Readiness impact: the package is **CONDITIONALLY READY for a scoped P0 implement
 | SRC-NODE-CRYPTO | Node.js `crypto.timingSafeEqual` docs, refreshed 2026-06-30: `https://nodejs.org/api/crypto.html#cryptotimingsafeequala-b`. | Secret/token comparisons need length-normalized, timing-safe handling and equalized response envelopes where security relies on comparison secrecy. |
 | SRC-NEXT-LOCAL-16 | Installed Next.js 16 docs in `node_modules/next/dist/docs/`. | Route Handlers can implement `OPTIONS`, Server Functions can be invoked from client code, and Proxy is not a full authorization/session solution; route/action gates remain mandatory. |
 | SRC-LOCAL-GAP-SCAN | Local `rg` scan on 2026-06-30 over `src supabase scripts tests`. | `Sb-Forwarded-For` is absent from app source; IPv6 is not part of limiter identity helpers; timing-safe equality is partial; multipart/upload support exists; realtime/pagination/service-worker/bot controls are not globally enforced. |
+| SRC-FOURTH-PASS-AUDIT | 2026-07-01 corrected independent audit and `23_BETTER_AUTH_COORDINATION.md`. | Adds Better Auth limiter coordination, WAF/Server Action hosted proof, current-checkout inventory drift, and CollaborationRoom DO scoping as successor gates beyond the third-pass rows here. |
 
 ## Gap Closure Matrix
 
@@ -94,5 +95,6 @@ The future P0 implementation plan may proceed only after:
 - `19_IMPLEMENTATION_CONTRACT_WORKSHEET.md` expands `SCE-010` through `SCE-017`, `FCE-008`, `FCE-009`, and `CP-008` to concrete route/action/client/provider rows.
 - `16_REQUIREMENTS_TRACEABILITY_MATRIX.md` maps `RL-FR-026` through `RL-FR-036` and `RL-NFR-016` through `RL-NFR-017` to work items and proof IDs.
 - `11_TEST_AND_VALIDATION_STRATEGY.md` includes `PROOF-RL-016` through `PROOF-RL-027` and adversarial scenarios for every gap above.
+- `23_BETTER_AUTH_COORDINATION.md` successor gates are also expanded where applicable: `SCE-018` through `SCE-020`, `CP-009`, `RL-FR-037` through `RL-FR-039`, `RL-NFR-018`, and `PROOF-RL-028` through `PROOF-RL-030`.
 - Supabase Auth and Cloudflare Bot/WAF values are refreshed from current official docs and, where account-specific, provider readback.
 - The source checkout is re-scanned for route/action, header, upload, pagination, realtime, and service-worker reality before code edits.

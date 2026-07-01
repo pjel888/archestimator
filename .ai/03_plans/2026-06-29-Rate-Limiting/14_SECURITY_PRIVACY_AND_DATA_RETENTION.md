@@ -34,7 +34,10 @@ Rate limiting should store the minimum data required to enforce windows and inve
 | Email address | Raw user input/provider value, HMAC normalized for limiter | Auth/contact/invite/email actions | User-provided | Store email hash for limiter; avoid dashboard raw email dimensions. | Lowercase/normalization and deletion support proof. |
 | Turnstile token | Raw short-lived verification token | Browser widget to server-side validation | Submitted by client | Never store token; record validation outcome, policy ID, and challenge reason only. | Single-use/300-second expiry and replay tests. |
 | OAuth/session cookies | HttpOnly/provider session material | Auth provider, cookies, server actions | Cookie only | Do not place in limiter keys or logs; read session server-side. | Sign-out/session invalidation tests. |
-| Webhook signature/secret | Raw header/secret env | Resend webhook and internal jobs | No | Never log raw; store event ID hash/idempotency status. | Replay and secret-rotation proof. |
+| Better Auth limiter key | Provider/library-derived key from path, client identity, email/user, and storage mode | Better Auth route/runtime | No | Do not log raw key material; record authority, storage mode, path family, and hashed actor/client/resource dimensions only. | Better Auth/app divergence tests and storage readback proof. |
+| Auth migration identity map | Supabase user ID, Better Auth user ID, normalized email hash, provider state | Migration/auth coordination layer | No | Prefer hashed mapping in limiter telemetry; protect raw provider IDs according to auth data policy. | Dual-provider quota proof and deletion/anonymization review. |
+| Better Auth `X-Retry-After` | Provider response header | Auth client/server wrapper | Sometimes, as cooldown text | Treat as retry timing only; do not expose provider internals or account existence. | Client recovery and fake/real account tests. |
+| Webhook signature/secret | Raw header/secret env | Provider webhook/callback if present and internal jobs | No | Never log raw; store event ID hash/idempotency status. | Replay and secret-rotation proof. |
 | Provider/API keys | Secret env/provider config | AI, email, Cloudflare, Supabase | No | Never include in limiter events or errors. | Secret scan, provider stub tests, rollback proof. |
 | Operator overrides | Config/audit rows | Admin/operator workflow | No | Store policy, scope hash, reason, owner, expiry; no raw PII. | Expiry job and audit readback proof. |
 | Idempotency keys | Client-generated or server-issued opaque key plus server-side fingerprint | Expensive/destructive route/action retry flows | Sometimes as opaque client header/form value | Store key hash, normalized fingerprint hash, state, expiry, and safe result pointer only; no raw payload or secrets. | TTL cleanup, mismatch audit, and replay-window deletion proof. |
@@ -42,6 +45,10 @@ Rate limiting should store the minimum data required to enforce windows and inve
 | IPv6 prefix identity | Derived client network prefix after parsing/masking | Central identity helper | No | Never persist raw full IPv6 or raw prefix; store HMAC plus identity schema version and coarse mask length only if needed. | IPv6 canonicalization and pepper-rotation proof. |
 | `Sb-Forwarded-For` value | Raw forwarded client IP header for Supabase Auth server calls | Server-only Supabase client when explicitly enabled | No | Do not log or persist; use only through documented `sb_secret_*` server-key path when approved. | Provider readback and no-raw-forwarded-header log proof. |
 | Bot score or signal | Provider-derived risk signal | Cloudflare edge/provider logs and app event summaries | No | Store only coarse bucket/signal outcome and policy ID after provider proof; never treat as proof of human identity. | Observe-only provider proof, false-positive review, rollback readback. |
+| WAF Ray ID / Security Event ID | Provider correlation identifier | Cloudflare WAF/Security Events for hosted proof | Sometimes visible in Cloudflare error page | Store only for incident correlation; do not use as a limiter key or expose in normal user copy. | Ray-ID lookup and deletion/retention review. |
+| Queue message ID / DLQ event | Provider/job identifier | Cloudflare Queues producer/consumer/DLQ | No | Store hashed job/message/resource identifiers and retry/DLQ status; no payload secrets. | Queue replay/DLQ proof and retention cleanup. |
+| Cron overlap lock | Job/schedule/run identity | Cloudflare Cron and legacy schedule coordination | No | Store schedule/run hash, idempotency key, and overlap decision only. | Overlap proof and stale lock cleanup. |
+| Cloudflare Images transform key | Source image URL/path and transform parameters | Images transform/Worker route | Maybe source path visible to user | Normalize and hash sensitive source/resource identifiers; record coarse parameter family and unique-variant budget, not raw private URLs. | Transform budget and cache-key redaction proof. |
 | Service-worker/offline queued work | Client-side persisted mutation intent if introduced | Browser storage | Sometimes | Bound by max count/age/bytes; purge on sign-out, workspace switch, token invalidation, or server denial; avoid raw tokens/secrets. | Queue purge and stale-auth replay proof, or static no-SW proof. |
 | Cache-fill keys | Derived expensive read/provider-fill key | Server cache/coalescing layer | No | Hash or keep process-local only; never include raw token/email/IP/provider key in coalescing metrics. | Cache-fill telemetry redaction proof. |
 
@@ -63,6 +70,9 @@ Rate limiting should store the minimum data required to enforce windows and inve
 | Idempotency key/result rows | key hash, fingerprint hash, state, safe result pointer | Retain for the operation replay window, then delete unless scoped security audit exception applies. |
 | Low-and-slow anomaly aggregates | coarse hashed/cohort summaries | Retain only aggregate signal long enough for incident review; avoid reconstructing raw identities. |
 | Cloudflare logs/traces | provider logs with sampled fields | Align retention/sampling with provider plan, privacy policy, and no-secret redaction proof. |
+| App-side denial events | security/cost denial ledger | Retain only as long as needed for tuning, support, and abuse investigation; preserve deletion/anonymization posture for hashes. |
+| WAF/Security Events correlation | Ray IDs, rule IDs, action, sampled request metadata | Retain in incident scope only; do not treat as complete denial ledger. |
+| Queue/DLQ/Cron events | job/message IDs, retry count, DLQ status, overlap decisions | Retain through replay/debug window and incident review; purge stale payload references. |
 
 ## Access Control
 
@@ -78,6 +88,9 @@ The existing `security_rate_limit_events` table revokes public/anon/authenticate
 - IPv6 prefix hashes and bot-signal buckets can still be linkable to client behavior; treat them as privacy-sensitive telemetry with retention and access controls.
 - `Sb-Forwarded-For` can move client identity into Supabase Auth provider processing; enable only after provider/account readback and privacy review.
 - Draft quota metadata can disclose whether an account, token, or recipient exists if exposed on sensitive routes.
+- Better Auth limiter keys and migration identity maps can link a human across auth providers; hash/minimize and document the unification/deletion path.
+- WAF Ray IDs and Security Events can include request metadata; use scoped incident access and do not use them as ordinary dashboard dimensions.
+- Cloudflare Images transform keys and cache keys can reveal private source/resource paths if logged raw.
 
 ## Required Security Review Before Enforcement
 
@@ -91,3 +104,6 @@ The existing `security_rate_limit_events` table revokes public/anon/authenticate
 - Verify IPv6 prefix masking happens before HMAC and raw full IP values are absent from logs/events.
 - Verify `Sb-Forwarded-For` is absent or server-only according to the approved provider-auth contract.
 - Verify bot-score/signal storage uses coarse buckets, observe-first proof, and false-positive rollback.
+- Verify Better Auth/app limiter events do not expose raw provider keys, raw emails, raw IPs, or raw migration mappings.
+- Verify WAF Ray-ID/Security Events, queue/DLQ IDs, cron locks, cache keys, and image transform identifiers are redacted or hashed according to this taxonomy.
+- Verify app-side denial events meet completeness targets without expanding raw PII collection.
