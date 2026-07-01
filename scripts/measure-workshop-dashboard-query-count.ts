@@ -5,7 +5,7 @@ import { dirname, resolve } from "node:path";
 
 type PerfTraceEvent = {
   label: string;
-  kind: "timing" | "supabase";
+  kind: "timing" | "database" | "supabase";
   elapsedMs: number;
   operation?: string;
   relation?: string;
@@ -15,7 +15,8 @@ type PerfTraceSnapshot = {
   requestId: string;
   scope: string;
   timings: PerfTraceEvent[];
-  supabaseRoundTrips: number;
+  databaseRoundTrips?: number;
+  supabaseRoundTrips?: number;
 };
 
 type DashboardQueryCountReport = {
@@ -23,10 +24,10 @@ type DashboardQueryCountReport = {
   mode: "workshop-dashboard-query-count";
   source: string;
   sampleCount: number;
-  totalSupabaseRoundTrips: number;
-  medianSupabaseRoundTrips: number | null;
-  p95SupabaseRoundTrips: number | null;
-  p99SupabaseRoundTrips: number | null;
+  totalDatabaseRoundTrips: number;
+  medianDatabaseRoundTrips: number | null;
+  p95DatabaseRoundTrips: number | null;
+  p99DatabaseRoundTrips: number | null;
   timingLabels: Array<{ label: string; samples: number; medianMs: number | null; p95Ms: number | null }>;
   relationCounts: Array<{ relation: string; operation: string; count: number }>;
   snapshots: PerfTraceSnapshot[];
@@ -60,7 +61,7 @@ export function parseWorkshopDashboardTraceLog(text: string): PerfTraceSnapshot[
 }
 
 export function buildWorkshopDashboardQueryCountReport(source: string, snapshots: PerfTraceSnapshot[]): DashboardQueryCountReport {
-  const roundTrips = snapshots.map((snapshot) => snapshot.supabaseRoundTrips);
+  const roundTrips = snapshots.map((snapshot) => snapshot.databaseRoundTrips ?? snapshot.supabaseRoundTrips ?? 0);
   const timingSamples = new Map<string, number[]>();
   const relationCounts = new Map<string, { relation: string; operation: string; count: number }>();
 
@@ -69,7 +70,7 @@ export function buildWorkshopDashboardQueryCountReport(source: string, snapshots
       const samples = timingSamples.get(event.label) ?? [];
       samples.push(event.elapsedMs);
       timingSamples.set(event.label, samples);
-      if (event.kind === "supabase") {
+      if (event.kind === "database" || event.kind === "supabase") {
         const relation = event.relation ?? "unknown";
         const operation = event.operation ?? "query";
         const key = `${operation}:${relation}`;
@@ -85,10 +86,10 @@ export function buildWorkshopDashboardQueryCountReport(source: string, snapshots
     mode: "workshop-dashboard-query-count",
     source,
     sampleCount: snapshots.length,
-    totalSupabaseRoundTrips: roundTrips.reduce((sum, count) => sum + count, 0),
-    medianSupabaseRoundTrips: percentile(roundTrips, 50),
-    p95SupabaseRoundTrips: percentile(roundTrips, 95),
-    p99SupabaseRoundTrips: percentile(roundTrips, 99),
+    totalDatabaseRoundTrips: roundTrips.reduce((sum, count) => sum + count, 0),
+    medianDatabaseRoundTrips: percentile(roundTrips, 50),
+    p95DatabaseRoundTrips: percentile(roundTrips, 95),
+    p99DatabaseRoundTrips: percentile(roundTrips, 99),
     timingLabels: [...timingSamples.entries()].map(([label, samples]) => ({
       label,
       samples: samples.length,

@@ -56,6 +56,7 @@ type BetterAuthProviderProof = {
     expectedTablesPresent?: boolean;
     expectedIndexesPresent?: boolean;
     secretProviderReady?: boolean;
+    googleOAuthProviderReady?: boolean;
     baseUrlReady?: boolean;
     trustedOriginsReady?: boolean;
     providerSessionFixtureReady?: boolean;
@@ -82,6 +83,7 @@ type BetterAuthProviderProof = {
     expectedTablesPresent?: boolean;
     expectedIndexesPresent?: boolean;
     secretProviderReady?: boolean;
+    googleOAuthProviderReady?: boolean;
     baseUrlReady?: boolean;
     trustedOriginsReady?: boolean;
     providerSessionFixtureReady?: boolean;
@@ -111,6 +113,7 @@ type BetterAuthProviderProofSummary = {
   expectedTablesPresent: boolean;
   expectedIndexesPresent: boolean;
   secretProviderReady: boolean;
+  googleOAuthProviderReady: boolean;
   baseUrlReady: boolean;
   trustedOriginsReady: boolean;
   providerSessionFixtureReady: boolean;
@@ -394,6 +397,7 @@ function summarizeProviderProof(
     expectedTablesPresent: readiness.expectedTablesPresent === true,
     expectedIndexesPresent: readiness.expectedIndexesPresent === true,
     secretProviderReady: readiness.secretProviderReady === true,
+    googleOAuthProviderReady: readiness.googleOAuthProviderReady === true,
     baseUrlReady: readiness.baseUrlReady === true,
     trustedOriginsReady: readiness.trustedOriginsReady === true,
     providerSessionFixtureReady: readiness.providerSessionFixtureReady === true,
@@ -519,17 +523,20 @@ function buildProductionCutoverBlockers(
     if (!providerProofSummary.productionCutoverReady) {
       blockers.push(
         providerProofSummary.providerBackedCallbackSessionCutoverReady
-          ? "Provider-backed Better Auth callback/session proof passed, but production cutover is still not marked ready; verify OAuth credential proof, email-domain readiness, and live cutover evidence."
+          ? "Provider-backed Better Auth callback/session proof passed, but production cutover is still not marked ready; verify Google OAuth credential proof, email-domain readiness, and live cutover evidence."
           : "OAuth provider credential and magic-link/email callback flow are still not provider-proven end to end on Cloudflare.",
       );
     }
   } else {
     blockers.push(
       schemaSqlSummary.staticReviewReady
-        ? "Better Auth D1 schema SQL is generated and statically reviewed locally, but has not been applied to hosted D1 by a passing provider proof."
-        : "Better Auth D1 schema SQL has not been generated, reviewed, applied to hosted D1, or provider-proven.",
+      ? "Better Auth D1 schema SQL is generated and statically reviewed locally, but has not been applied to hosted D1 by a passing provider proof."
+      : "Better Auth D1 schema SQL has not been generated, reviewed, applied to hosted D1, or provider-proven.",
     );
     blockers.push("Better Auth secret rotation, OAuth providers, magic-link/email provider config, trusted origins, and cookie settings do not yet have passing sanitized Cloudflare provider evidence.");
+  }
+  if (!providerProofSummary.googleOAuthProviderReady) {
+    blockers.push("Hosted Better Auth proof has not confirmed Google OAuth provider credentials in Cloudflare Worker secrets.");
   }
 
   if (!legacyAuthGateRetired) {
@@ -658,6 +665,7 @@ export function buildCloudflareBetterAuthProof(inputs: BetterAuthProofInputs): C
     betterAuthD1SchemaSqlReviewReady: schemaSqlSummary.staticReviewReady,
     hostedBetterAuthD1SchemaProofReady,
     betterAuthSecretProviderReady: providerProofSummary.secretProviderReady
+      && providerProofSummary.googleOAuthProviderReady
       && providerProofSummary.baseUrlReady
       && providerProofSummary.trustedOriginsReady,
     providerBackedSessionFixtureReady: providerProofSummary.providerSessionFixtureReady
@@ -671,6 +679,7 @@ export function buildCloudflareBetterAuthProof(inputs: BetterAuthProofInputs): C
     productionBetterAuthReady: localBetterAuthRouteGateProofReady
       && hostedBetterAuthD1SchemaProofReady
       && providerProofSummary.secretProviderReady
+      && providerProofSummary.googleOAuthProviderReady
       && providerProofSummary.providerSessionFixtureReady
       && providerProofSummary.providerBackedCallbackSessionCutoverReady
       && providerProofSummary.betterAuthProviderProofReady
@@ -814,7 +823,7 @@ export function writeMarkdown(report: CloudflareBetterAuthProofReport, markdownF
   ];
   const parityRows = report.routeGateParityMatrix.map((row) => [
     row.key,
-    row.currentSupabaseBehavior,
+    row.previousProviderBehavior,
     row.betterAuthD1Requirement,
     row.localProofStatus,
   ]);

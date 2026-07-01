@@ -23,6 +23,7 @@ type BetterAuthProviderEndpointBody = {
     expectedTablesPresent?: boolean;
     expectedIndexesPresent?: boolean;
     secretProviderReady?: boolean;
+    googleOAuthProviderReady?: boolean;
     baseUrlReady?: boolean;
     trustedOriginsReady?: boolean;
     providerSessionFixtureReady?: boolean;
@@ -50,6 +51,7 @@ type BetterAuthProviderEndpointBody = {
     expectedTablesPresent?: boolean;
     expectedIndexesPresent?: boolean;
     secretProviderReady?: boolean;
+    googleOAuthProviderReady?: boolean;
     baseUrlReady?: boolean;
     trustedOriginsReady?: boolean;
     providerSessionFixtureReady?: boolean;
@@ -83,6 +85,7 @@ type CloudflareBetterAuthProviderProofReport = {
     expectedTablesPresent: boolean;
     expectedIndexesPresent: boolean;
     secretProviderReady: boolean;
+    googleOAuthProviderReady: boolean;
     baseUrlReady: boolean;
     trustedOriginsReady: boolean;
     providerSessionFixtureReady: boolean;
@@ -94,7 +97,7 @@ type CloudflareBetterAuthProviderProofReport = {
     providerBackedCallbackSessionCutoverReady: boolean;
     cleanupReady: boolean;
     betterAuthProviderProofReady: boolean;
-    productionCutoverReady: false;
+    productionCutoverReady: boolean;
   };
   blockers: string[];
   note: string;
@@ -106,7 +109,7 @@ const DEFAULT_OUTPUT_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-better-auth-prov
 const DEFAULT_MARKDOWN_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-better-auth-provider-proof.md`;
 const ENDPOINT_PATH = "/__cloudflare/better-auth-proof" as const;
 const NOTE =
-  "Calls the deployed proof Worker Better Auth provider-proof endpoint with a local bearer secret, then records sanitized provider behavior: hosted D1 schema/index readback, Better Auth secret/base URL presence, one ephemeral D1 session fixture readback, magic-link callback/session-cookie/route-gate readback, token replay blocking, and cleanup. It does not print secret values, deploy Workers, change DNS, replace Supabase auth, prove OAuth provider credentials, or make production cutover ready.";
+  "Calls the deployed proof Worker Better Auth provider-proof endpoint with a local bearer secret, then records sanitized provider behavior: hosted D1 schema/index readback, Better Auth secret/base URL presence, Google OAuth provider credential presence, one ephemeral D1 session fixture readback, magic-link callback/session-cookie/route-gate readback, token replay blocking, and cleanup. It does not print secret values, magic-link tokens, cookies, session tokens, deploy Workers, change DNS, or replace auth routes by itself.";
 
 function readEnv(name: string) {
   const value = process.env[name];
@@ -187,6 +190,7 @@ function notReadyReport(input: {
       expectedTablesPresent: false,
       expectedIndexesPresent: false,
       secretProviderReady: false,
+      googleOAuthProviderReady: false,
       baseUrlReady: false,
       trustedOriginsReady: false,
       providerSessionFixtureReady: false,
@@ -249,6 +253,7 @@ async function buildReport(input: {
       expectedTablesPresent: readiness.expectedTablesPresent === true,
       expectedIndexesPresent: readiness.expectedIndexesPresent === true,
       secretProviderReady: readiness.secretProviderReady === true,
+      googleOAuthProviderReady: readiness.googleOAuthProviderReady === true,
       baseUrlReady: readiness.baseUrlReady === true,
       trustedOriginsReady: readiness.trustedOriginsReady === true,
       providerSessionFixtureReady: readiness.providerSessionFixtureReady === true,
@@ -260,7 +265,7 @@ async function buildReport(input: {
       providerBackedCallbackSessionCutoverReady: readiness.providerBackedCallbackSessionCutoverReady === true,
       cleanupReady: readiness.cleanupReady === true,
       betterAuthProviderProofReady,
-      productionCutoverReady: false,
+      productionCutoverReady: readiness.productionCutoverReady === true,
     },
     blockers: [...new Set(blockers)],
     note: NOTE,
@@ -299,6 +304,7 @@ function writeMarkdown(report: CloudflareBetterAuthProviderProofReport, markdown
     `| Expected tables present | ${report.readiness.expectedTablesPresent ? "yes" : "no"} |`,
     `| Expected indexes present | ${report.readiness.expectedIndexesPresent ? "yes" : "no"} |`,
     `| Secret provider ready | ${report.readiness.secretProviderReady ? "yes" : "no"} |`,
+    `| Google OAuth provider ready | ${report.readiness.googleOAuthProviderReady ? "yes" : "no"} |`,
     `| Base URL ready | ${report.readiness.baseUrlReady ? "yes" : "no"} |`,
     `| Trusted origins ready | ${report.readiness.trustedOriginsReady ? "yes" : "no"} |`,
     `| Provider session fixture ready | ${report.readiness.providerSessionFixtureReady ? "yes" : "no"} |`,

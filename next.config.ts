@@ -18,9 +18,9 @@ const landingReportOnlyCsp = [
   "form-action 'self'",
   `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com https://www.googletagmanager.com https://www.google-analytics.com https://www.clarity.ms${__impeccableLiveDev}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://*.supabase.co https://www.google-analytics.com https://www.googletagmanager.com https://*.clarity.ms",
+  "img-src 'self' data: blob: https://www.google-analytics.com https://www.googletagmanager.com https://*.clarity.ms",
   "font-src 'self' data:",
-  `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cloudflareinsights.com https://*.cloudflareinsights.com https://www.google-analytics.com https://region1.google-analytics.com https://www.clarity.ms https://*.clarity.ms${__impeccableLiveDev}`,
+  `connect-src 'self' https://cloudflareinsights.com https://*.cloudflareinsights.com https://www.google-analytics.com https://region1.google-analytics.com https://www.clarity.ms https://*.clarity.ms${__impeccableLiveDev}`,
 ].join("; ");
 
 const workshopReportOnlyCsp = [
@@ -31,9 +31,9 @@ const workshopReportOnlyCsp = [
   "form-action 'self'",
   `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com https://www.googletagmanager.com https://www.google-analytics.com https://www.clarity.ms https://maps.googleapis.com https://maps.gstatic.com https://*.googleapis.com https://*.gstatic.com https://*.google.com https://*.ggpht.com https://*.googleusercontent.com blob:${__impeccableLiveDev}`,
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "img-src 'self' data: blob: https://*.supabase.co https://www.google-analytics.com https://www.googletagmanager.com https://*.clarity.ms https://*.googleapis.com https://*.gstatic.com https://*.google.com https://*.ggpht.com https://*.googleusercontent.com",
+  "img-src 'self' data: blob: https://www.google-analytics.com https://www.googletagmanager.com https://*.clarity.ms https://*.googleapis.com https://*.gstatic.com https://*.google.com https://*.ggpht.com https://*.googleusercontent.com",
   "font-src 'self' data: https://fonts.gstatic.com",
-  `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cloudflareinsights.com https://*.cloudflareinsights.com https://www.google-analytics.com https://region1.google-analytics.com https://www.clarity.ms https://*.clarity.ms https://*.googleapis.com https://*.google.com https://*.gstatic.com data: blob:${__impeccableLiveDev}`,
+  `connect-src 'self' https://cloudflareinsights.com https://*.cloudflareinsights.com https://www.google-analytics.com https://region1.google-analytics.com https://www.clarity.ms https://*.clarity.ms https://*.googleapis.com https://*.google.com https://*.gstatic.com data: blob:${__impeccableLiveDev}`,
   "frame-src https://*.google.com",
   "worker-src 'self' blob:",
   "child-src 'self' blob:",
@@ -46,27 +46,6 @@ const workshopReportOnlyCsp = [
 // This is the best engineering choice: additive, 0 execution flow impact (graph confirmed), backwards compat for all P0-P10 share flows (view, password P10, session P5, interactive tabs/comments/decisions), fail-closed enforcement, one-file change.
 const sharePageSource = "/share/:path*";
 const shareApiSource = "/api/share/:path*";
-
-const supabaseImageRemotePatterns = ((): ImageRemotePattern[] => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!supabaseUrl) return [];
-  try {
-    const url = new URL(supabaseUrl);
-    const protocol: "http" | "https" | null = url.protocol === "http:" ? "http" : url.protocol === "https:" ? "https" : null;
-    if (!protocol) return [];
-    const base = {
-      protocol,
-      hostname: url.hostname,
-      port: url.port,
-      search: "",
-    };
-    return [
-      { ...base, pathname: "/storage/v1/object/public/component-images/**" },
-    ];
-  } catch {
-    return [];
-  }
-})();
 
 const googleMapsImageRemotePatterns: ImageRemotePattern[] = [
   { protocol: "https", hostname: "maps.googleapis.com", pathname: "/maps/api/staticmap" },
@@ -122,7 +101,6 @@ const nextConfig: NextConfig = {
       : {}),
     localPatterns: localImagePatterns,
     remotePatterns: [
-      ...supabaseImageRemotePatterns,
       ...googleMapsImageRemotePatterns,
     ],
   },
