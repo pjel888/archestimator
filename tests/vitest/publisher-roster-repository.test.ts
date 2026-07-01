@@ -302,17 +302,20 @@ describe("Publisher roster repository composer", () => {
 });
 
 describe("Publisher roster server repository contract", () => {
-  it("stays on the normal RLS server client and keeps Phase 1 scans capped", () => {
+  it("stays on Cloudflare D1 and keeps Phase 1 scans capped", () => {
     const source = readFileSync("src/lib/publisher/roster-repository.ts", "utf8");
 
-    expect(source).toContain("createSupabaseServerClient");
+    expect(source).toContain("getCloudflareD1Database");
     expect(source).toContain("listCurrentWorkspaceProjects");
+    expect(source).not.toContain("@/lib/supabase");
+    expect(source).not.toContain("createSupabaseServerClient");
     expect(source).not.toContain("createSupabaseServiceRoleClient");
     expect(source).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
     expect(source).toContain(`PUBLISHER_ROSTER_PUBLICATION_SCAN_LIMIT = ${PUBLISHER_ROSTER_PUBLICATION_SCAN_LIMIT}`);
     expect(source).toContain(`PUBLISHER_ROSTER_CHILD_SCAN_LIMIT = ${PUBLISHER_ROSTER_CHILD_SCAN_LIMIT}`);
-    expect(source).toContain(".limit(PUBLISHER_ROSTER_PUBLICATION_SCAN_LIMIT)");
-    expect(source.match(/\.limit\(PUBLISHER_ROSTER_CHILD_SCAN_LIMIT\)/g)).toHaveLength(4);
+    expect(source).toContain("LIMIT ?");
+    expect(source.match(/PUBLISHER_ROSTER_CHILD_SCAN_LIMIT/g)?.length ?? 0).toBeGreaterThanOrEqual(5);
+    expect(source).toContain("WHERE workspace_id = ? AND project_id IN");
     expect(source).toContain("workspace.id !== workspaceId || currentUser.userId !== userId");
   });
 });

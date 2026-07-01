@@ -11,9 +11,10 @@ describe("Codex component-library and tooling hardening contracts", () => {
     const latestDeleteRpc = latestFunction("delete_library_folder");
 
     expect(folderActions).toContain("assertCanManageLibraryFolders");
-    expect(folderActions).toContain('supabase.rpc("is_workspace_editor"');
-    expect(folderActions).toContain('supabase.rpc("delete_library_folder"');
+    expect(folderActions).toContain("isWorkspaceEditorInD1");
+    expect(folderActions).toContain("DELETE FROM library_folders");
     expect(folderActions).not.toContain(".update({ parent_id: update.parentId, sort_order: update.sortOrder })");
+    expect(folderActions).not.toContain('supabase.rpc("delete_library_folder"');
     expect(libraryFolderHardening).toContain('drop policy if exists "members can manage library folders" on public.library_folders');
     expect(libraryFolderHardening).toContain('create policy "members can view library folders" on public.library_folders');
     expect(libraryFolderHardening).toContain('create policy "workspace editors can insert library folders" on public.library_folders');

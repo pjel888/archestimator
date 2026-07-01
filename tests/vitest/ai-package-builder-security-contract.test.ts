@@ -10,7 +10,7 @@ const readToolsSource = readFileSync("src/lib/ai/package-builder/read-tools.ts",
 const routeSource = readFileSync("src/app/api/ai/package-builder/route.ts", "utf8");
 const schemasSource = readFileSync("src/lib/ai/package-builder/schemas.ts", "utf8");
 const applyRpcMigration = readFileSync("supabase/migrations/20260528003000_ai_package_builder_apply_rpc.sql", "utf8");
-const componentApplyRpcMigration = readFileSync("supabase/migrations/20260528212000_ai_component_library_apply_rpc.sql", "utf8");
+const d1ApplyCommandMigration = readFileSync("migrations/0027_ai_package_apply_commands.sql", "utf8");
 
 describe("AI package-builder security contract", () => {
   it("keeps normal package-builder reads and writes off the service-role client", () => {
@@ -21,10 +21,13 @@ describe("AI package-builder security contract", () => {
     expect(readToolsSource).not.toContain("createClient<Database>");
     expect(readContextSource).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
     expect(readContextSource).not.toContain("createClient<Database>");
-    expect(applySource).toContain("createSupabaseServerClient");
+    expect(applySource).not.toContain("createSupabaseServerClient");
     expect(readToolsSource).not.toContain("ensureDefaultWorkspace");
-    expect(readToolsSource).toContain('.from("workspaces")');
-    expect(readContextSource).toContain("createSupabaseServerClient");
+    expect(readToolsSource).not.toContain("createSupabaseServerClient");
+    expect(readContextSource).not.toContain("createSupabaseServerClient");
+    expect(applySource).toContain("getCloudflareD1Database");
+    expect(readToolsSource).toContain("getCloudflareD1Database");
+    expect(readContextSource).toContain("getCloudflareD1Database");
   });
 
   it("derives workspace and user server-side before Apply writes", () => {
@@ -32,7 +35,11 @@ describe("AI package-builder security contract", () => {
     expect(applySource).toContain("ensureDefaultWorkspace()");
     expect(applySource).toContain("workspace.id !== input.userContext.workspaceId");
     expect(applySource).toContain("currentUser.userId !== input.userContext.userId");
-    expect(applySource).toContain("create_project_estimate_package_with_history");
+    expect(applySource).toContain("beginApplyCommand");
+    expect(applySource).toContain("ai_package_apply_commands");
+    expect(applySource).toContain("commandKind");
+    expect(applySource).toContain("requirePackageApplyD1Database");
+    expect(applySource).toContain("completeApplyCommand");
     expect(applySource).not.toContain("acting_user_id: currentUser.userId");
     expect(applyRpcMigration).toContain("authenticated_user_id uuid := auth.uid()");
     expect(applyRpcMigration).toContain("Package Apply requires an authenticated user.");
@@ -52,10 +59,10 @@ describe("AI package-builder security contract", () => {
     expect(applyRpcMigration).not.toContain("from public.workspace_members wm\n    where wm.workspace_id = target_workspace_id");
   });
 
-  it("requires Supabase workspace auth and explicit Apply confirmation before the RPC can write", () => {
+  it("requires provider-backed workspace auth and explicit Apply confirmation before writes", () => {
     expect(routeSource).toContain("isAiRoutesEnabled");
     expect(routeSource).toContain("createAiDisabledResponse");
-    expect(handlerSource).toContain("AI requires a real Supabase account session");
+    expect(handlerSource).toContain("AI requires a signed-in account session");
     expect(handlerSource).toContain("parsePackageBuilderApplyRequest");
     expect(handlerSource).toContain("verifyPackageDraftToken");
     expect(handlerSource).toContain("confirmation");
@@ -107,26 +114,26 @@ describe("AI package-builder security contract", () => {
     expect(readToolsSource).not.toContain("listProjectEstimates");
     expect(readToolsSource).not.toContain("getProjectEstimateTreeByEstimate");
     expect(readToolsSource).not.toContain("getProjectEstimateTreeByNode");
-    expect(readToolsSource).toContain('.from("projects")');
-    expect(readToolsSource).toContain('.from("estimates")');
-    expect(readToolsSource).toContain('.from("estimate_nodes")');
-    expect(readToolsSource).toContain('.from("estimate_row_items")');
-    expect(readToolsSource).toContain(".limit(DEFAULT_RESULT_LIMIT)");
-    expect(readToolsSource).toContain(".limit(DEFAULT_TREE_LIMIT)");
-    expect(readToolsSource).toContain(".limit(DEFAULT_ROW_LIMIT)");
-    expect(readToolsSource).toContain(".limit(DEFAULT_HISTORICAL_ESTIMATE_LIMIT)");
-    expect(readToolsSource).toContain(".limit(DEFAULT_HISTORICAL_ROW_LIMIT)");
+    expect(readToolsSource).toContain("FROM projects");
+    expect(readToolsSource).toContain("FROM estimates");
+    expect(readToolsSource).toContain("FROM estimate_nodes");
+    expect(readToolsSource).toContain("FROM estimate_row_items");
+    expect(readToolsSource).toContain("DEFAULT_RESULT_LIMIT");
+    expect(readToolsSource).toContain("DEFAULT_TREE_LIMIT");
+    expect(readToolsSource).toContain("DEFAULT_ROW_LIMIT");
+    expect(readToolsSource).toContain("DEFAULT_HISTORICAL_ESTIMATE_LIMIT");
+    expect(readToolsSource).toContain("DEFAULT_HISTORICAL_ROW_LIMIT");
+    expect(readToolsSource).toContain("LIMIT ?");
     expect(readContextSource).toContain("ASK_READ_CONTEXT_PROJECT_LIST_LIMIT");
-    expect(readContextSource).toContain(".limit(ASK_READ_CONTEXT_PROJECT_LIST_LIMIT)");
-    expect(readContextSource).toContain(".limit(ASK_READ_CONTEXT_ESTIMATE_LIMIT)");
+    expect(readContextSource).toContain("ASK_READ_CONTEXT_ESTIMATE_LIMIT");
     expect(readContextSource).toContain("ASK_READ_CONTEXT_ACTIVITY_EVENT_LIMIT");
-    expect(readContextSource).toContain(".limit(ASK_READ_CONTEXT_ACTIVITY_EVENT_LIMIT)");
-    expect(readContextSource).toContain('.from("estimate_sheet_events")');
-    expect(readContextSource).toContain('.select("event_type, event_source, created_at, actor_user_id, estimate_tab_id, row_context, changed_fields, total_delta, payload")');
+    expect(readContextSource).toContain("LIMIT ?");
+    expect(readContextSource).toContain("FROM estimate_sheet_events");
+    expect(readContextSource).toContain("SELECT event_type, event_source, created_at, actor_user_id, estimate_tab_id, row_context, changed_fields, total_delta, payload");
     expect(readContextSource).toContain('["projects", "estimates", "estimate_tabs", "estimate_sheet_events", "profiles"]');
     expect(readContextSource).not.toContain("old_snapshot, new_snapshot");
     expect(readContextSource).not.toContain("metadata, created_at");
-    expect(readContextSource).toContain('.eq("workspace_id", workspaceId)');
+    expect(readContextSource).toContain("WHERE workspace_id = ?");
     expect(readToolsSource).toContain("priceOptionRowsRead = priceOptionRows.length");
     expect(readToolsSource).toContain("rowCount: itemRows.length + priceOptionRowsRead + categoryRowsRead + folderRowsRead");
     expect(readToolsSource).toContain("current_version_number");
@@ -135,29 +142,24 @@ describe("AI package-builder security contract", () => {
   });
 
   it("keeps package Apply transactionally idempotent in the database", () => {
-    expect(applyRpcMigration).toContain("unique (workspace_id, idempotency_key)");
-    expect(applyRpcMigration).toContain("security definer");
-    expect(applyRpcMigration).toContain("select run_row.*");
-    expect(applyRpcMigration).toContain("revoke execute on function public.create_project_estimate_package_with_history(uuid, jsonb, text, text, uuid) from service_role");
-    expect(applyRpcMigration).toContain("grant execute on function public.create_project_estimate_package_with_history(uuid, jsonb, text, text, uuid) to authenticated");
-    expect(applyRpcMigration).toContain("update public.ai_action_runs action_run");
-    expect(applyRpcMigration).toContain("insert into public.ai_tool_calls");
-    expect(applyRpcMigration).toContain("insert into public.estimate_sheet_events");
+    expect(d1ApplyCommandMigration).toContain("CREATE TABLE IF NOT EXISTS ai_package_apply_commands");
+    expect(d1ApplyCommandMigration).toContain("UNIQUE (workspace_id, idempotency_key)");
+    expect(d1ApplyCommandMigration).toContain("status TEXT NOT NULL DEFAULT 'started' CHECK (status IN ('started', 'completed', 'failed'))");
+    expect(d1ApplyCommandMigration).toContain("result_json TEXT CHECK");
+    expect(d1ApplyCommandMigration).toContain("failure_json TEXT CHECK");
+    expect(applySource).toContain("SELECT id, draft_hash, status, result_json");
+    expect(applySource).toContain("INSERT INTO ai_package_apply_commands");
+    expect(applySource).toContain("UPDATE ai_package_apply_commands");
+    expect(applySource).toContain("recoveryStatus: \"idempotent_replay\"");
   });
 
-  it("keeps component-library Apply idempotent through the authenticated Apply command ledger", () => {
-    expect(componentApplyRpcMigration).toContain("create_ai_package_library_components_with_history");
-    expect(componentApplyRpcMigration).toContain("insert into public.ai_package_apply_commands");
-    expect(componentApplyRpcMigration).toContain("on conflict on constraint ai_package_apply_commands_workspace_id_idempotency_key_key do nothing");
-    expect(componentApplyRpcMigration).toContain("Idempotency key already belongs to a different component draft.");
-    expect(componentApplyRpcMigration).toContain("'recoveryStatus', 'idempotent_replay'");
-    expect(componentApplyRpcMigration).toContain("public.create_cost_library_component");
-    expect(componentApplyRpcMigration).toContain("run_row.metadata->>'draftTokenVerified' = 'true'");
-    expect(componentApplyRpcMigration).toContain("run_row.metadata->>'serverConfirmation' = 'true'");
-    expect(componentApplyRpcMigration).toContain("coalesce((run_row.metadata->>'componentCreateCount')::integer, 0) > 0");
-    expect(componentApplyRpcMigration).toContain("revoke execute on function public.create_ai_package_library_components_with_history(uuid, jsonb, text, text, text, uuid) from service_role");
-    expect(componentApplyRpcMigration).toContain("grant execute on function public.create_ai_package_library_components_with_history(uuid, jsonb, text, text, text, uuid) to authenticated");
-    expect(applySource).toContain("create_ai_package_library_components_with_history");
+  it("keeps component-library Apply idempotent through the D1 Apply command ledger", () => {
+    expect(d1ApplyCommandMigration).toContain("library_components_package");
+    expect(applySource).toContain("library_components_package");
+    expect(applySource).toContain("Idempotency key already belongs to a different");
+    expect(applySource).toContain("buildComponentCreatePayload");
+    expect(applySource).toContain("applyComponentCreateDraft");
+    expect(applySource).not.toContain("create_ai_package_library_components_with_history");
     expect(applySource).not.toContain("createAiAuditSupabaseClient");
   });
 });

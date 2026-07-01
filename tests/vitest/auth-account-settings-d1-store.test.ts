@@ -175,11 +175,12 @@ describe("Cloudflare D1 account settings store", () => {
     const actionsSource = readFileSync("src/lib/auth/account-actions.ts", "utf8");
     const storeSource = readFileSync("src/lib/auth/account-settings-d1-store.ts", "utf8");
 
-    expect(actionsSource).toContain("upsertUserOnboardingProfileInCloudflareD1");
-    expect(actionsSource).toContain("upsertWorkspaceAccountSettingsInCloudflareD1");
+    expect(actionsSource).toContain("upsertUserOnboardingProfileInD1");
+    expect(actionsSource).toContain("upsertWorkspaceAccountSettingsInD1");
+    expect(actionsSource).toContain("getCloudflareD1Database");
     expect(storeSource).toContain("getCloudflareD1Database");
     expect(`${actionsSource}\n${storeSource}`).not.toMatch(
-      /account-service-role|createAccountServiceRoleClient|SUPABASE_SERVICE_ROLE_KEY|@supabase\/supabase-js/,
+      /account-service-role|createAccountServiceRoleClient|createSupabaseServerClient|SUPABASE_SERVICE_ROLE_KEY|@supabase\/supabase-js/,
     );
   });
 });

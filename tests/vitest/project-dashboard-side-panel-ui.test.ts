@@ -65,12 +65,13 @@ describe("project dashboard side-panel UI governance", () => {
 
   it("plumbs estimate-list edit capabilities before rendering mutation controls", () => {
     expect(projectEstimatesPage).toContain("resolveEstimateListEditCapabilities(projectId, estimateIds)");
-    expect(projectEstimatesPage).toContain('supabase.rpc("can_edit_project"');
-    expect(projectEstimatesPage).not.toContain('supabase.rpc("can_edit_estimate"');
-    expect(projectEstimatesPage).not.toContain("estimateIds.map(async");
-    expect(projectEstimatesPage).toContain('.from("estimate_sheet_members")');
-    expect(projectEstimatesPage).toContain('.from("estimate_sheet_access_settings")');
-    expect(projectEstimatesPage).toContain('.in("role", ["owner", "admin", "editor"])');
+    expect(projectEstimatesPage).toContain("getCloudflareD1Database");
+    expect(projectEstimatesPage).toContain("canEditProjectInD1");
+    expect(projectEstimatesPage).toContain("canEditEstimateInD1");
+    expect(projectEstimatesPage).not.toContain("createSupabaseServerClient");
+    expect(projectEstimatesPage).not.toContain('supabase.rpc("can_edit_project"');
+    expect(projectEstimatesPage).not.toContain('.from("estimate_sheet_members")');
+    expect(projectEstimatesPage).not.toContain('.from("estimate_sheet_access_settings")');
     expect(projectEstimatesPage).toContain("canCreateEstimates={editCapabilities.canCreateEstimates}");
     expect(projectEstimatesPage).toContain("canEditEstimateById={editCapabilities.canEditEstimateById}");
     expect(projectEstimatesClient).toContain("canCreateEstimates");

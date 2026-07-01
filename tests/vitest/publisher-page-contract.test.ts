@@ -75,7 +75,9 @@ describe("Publisher page contract", () => {
 
     expect(actionSource).toContain('"use server"');
     expect(actionSource).toContain("requireAuth");
-    expect(repositorySource).toContain("createSupabaseServerClient");
+    expect(repositorySource).toContain("getCloudflareD1Database");
+    expect(repositorySource).not.toContain("createSupabaseServerClient");
+    expect(repositorySource).not.toContain("@/lib/supabase");
     expect(repositorySource).toContain("listCurrentWorkspaceProjects");
     expect(repositorySource).toContain("canReadPublisherRosterProject");
     for (const table of [
@@ -87,7 +89,7 @@ describe("Publisher page contract", () => {
     ]) {
       expect(repositorySource).toContain(table);
     }
-    expect(repositorySource).toContain("sharedLinkActivityCursorFilter");
+    expect(repositorySource).toContain("activityCursorClause");
     expect(repositorySource).toContain("isBeforeSharedLinkActivityCursor");
     expect(repositorySource).toContain("partial");
     expect(sharedFeedSource).toContain("loadActivity");

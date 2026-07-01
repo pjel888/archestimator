@@ -56,7 +56,7 @@ describe("project chart aggregation", () => {
   it("keeps chart repository reads isolated from estimate history tables", () => {
     const repositorySource = readFileSync(join(process.cwd(), "src/lib/repositories/project-charts-repository.ts"), "utf8");
 
-    expect(repositorySource).toContain('from("estimate_row_items")');
+    expect(repositorySource).toContain("FROM estimate_row_items");
     expect(repositorySource).not.toContain("estimate_sheet_events");
     expect(repositorySource).not.toContain("estimate_sheet_versions");
     expect(repositorySource).not.toContain("create_estimate_sheet_version");

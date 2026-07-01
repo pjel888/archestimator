@@ -37,7 +37,8 @@ describe("library folder schema", () => {
     expect(repository).toContain("fetchLibraryFolders");
     expect(repository).not.toContain("ensureWorkspaceLibraryFolders");
     expect(repository).not.toContain('.from("library_folders").insert');
-    expect(repository).toContain('.eq("folder_kind", "custom")');
+    expect(repository).toContain("FROM library_folders");
+    expect(repository).toContain("folder_kind = 'custom'");
     expect(repository).toContain("library_folder_id");
     expect(supabaseTypes).toContain("library_folders");
     expect(supabaseTypes).toContain("library_folder_id: string | null");

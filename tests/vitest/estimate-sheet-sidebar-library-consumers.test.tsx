@@ -102,13 +102,15 @@ describe("Estimate Sheet sidebar Library consumers", () => {
     expect(actionsSource).toContain("itemLimit: SIDEBAR_COMPONENT_LIBRARY_DEFAULT_LIMIT");
     expect(actionsSource).toContain("projectRowLimit: SIDEBAR_COMPONENT_LIBRARY_DEFAULT_LIMIT");
     expect(repositorySource).toContain("SIDEBAR_COMPONENT_LIBRARY_ITEM_COLUMNS");
-    expect(repositorySource).toContain("const itemSelectColumns = includeDetailGraph ? \"*\" : SIDEBAR_COMPONENT_LIBRARY_ITEM_COLUMNS");
-    expect(repositorySource).toContain(".select(selectColumns)");
-    expect(repositorySource).toContain("selectColumns: itemSelectColumns");
-    expect(repositorySource).toContain(".limit(limit)");
-    expect(repositorySource).toContain(".in(\"item_id\", itemIds)");
+    expect(repositorySource).toContain("COST_LIBRARY_ITEM_D1_COLUMNS");
+    expect(repositorySource).toContain("getCloudflareD1Database");
+    expect(repositorySource).toContain("LIMIT ?");
+    expect(repositorySource).toContain("WHERE item_id IN (${placeholders(itemIds)})");
+    expect(repositorySource).not.toContain(".select(selectColumns)");
+    expect(repositorySource).not.toContain(".in(\"item_id\", itemIds)");
     expect(projectionSource).toContain("projectRowLimit?: number");
-    expect(projectionSource).toContain("projectRowsQuery.limit(projectRowLimit)");
+    expect(projectionSource).toContain("LIMIT ?");
+    expect(projectionSource).toContain("projectRowLimit ?? SIDEBAR_COMPONENT_LIBRARY_MAX_LIMIT");
     expect(sheetSource).toContain("return loadProjectComponentLibraryLite(projectId)");
   });
 

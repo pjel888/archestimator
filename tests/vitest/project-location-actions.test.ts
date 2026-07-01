@@ -9,8 +9,8 @@ const workspaceRepositoryMocks = vi.hoisted(() => ({
   getCurrentWorkspaceProject: vi.fn(),
 }));
 
-const supabaseServerMocks = vi.hoisted(() => ({
-  createSupabaseServerClient: vi.fn(),
+const cloudflareD1Mocks = vi.hoisted(() => ({
+  getCloudflareD1Database: vi.fn(),
 }));
 
 const nextCacheMocks = vi.hoisted(() => ({
@@ -19,7 +19,7 @@ const nextCacheMocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/auth/session", () => authMocks);
 vi.mock("@/lib/repositories/workspace-repository", () => workspaceRepositoryMocks);
-vi.mock("@/lib/supabase/server", () => supabaseServerMocks);
+vi.mock("@/lib/cloudflare/d1", () => cloudflareD1Mocks);
 vi.mock("next/cache", () => nextCacheMocks);
 
 function formData(fields: Record<string, string>) {
@@ -28,15 +28,53 @@ function formData(fields: Record<string, string>) {
   return data;
 }
 
-function makeMutationBuilder(result = { error: null }) {
-  const builder = {
-    upsert: vi.fn(() => builder),
-    update: vi.fn(() => builder),
-    delete: vi.fn(() => builder),
-    eq: vi.fn(() => builder),
-    then: (resolve: (value: typeof result) => void) => Promise.resolve(result).then(resolve),
-  };
-  return builder;
+type PreparedD1Statement = {
+  sql: string;
+  values: unknown[];
+};
+
+class FakeD1Statement {
+  private values: unknown[] = [];
+
+  constructor(
+    private readonly database: FakeD1Database,
+    private readonly sql: string,
+  ) {}
+
+  bind(...values: unknown[]) {
+    this.values = values;
+    this.database.prepared.push({ sql: this.sql, values });
+    return this;
+  }
+
+  async first() {
+    if (this.sql.includes("SELECT 1 AS allowed")) return this.database.canEdit ? { allowed: 1 } : null;
+    return null;
+  }
+
+  async all() {
+    return { results: [] };
+  }
+
+  async run() {
+    return { success: true, meta: { changes: 1 } };
+  }
+}
+
+class FakeD1Database {
+  prepared: PreparedD1Statement[] = [];
+
+  constructor(readonly canEdit = true) {}
+
+  prepare(sql: string) {
+    return new FakeD1Statement(this, sql);
+  }
+}
+
+function findPrepared(database: FakeD1Database, pattern: RegExp) {
+  const statement = database.prepared.find((entry) => pattern.test(entry.sql));
+  if (!statement) throw new Error(`No prepared D1 statement matched ${pattern}`);
+  return statement;
 }
 
 describe("project location actions", () => {
@@ -44,18 +82,15 @@ describe("project location actions", () => {
     vi.resetModules();
     vi.clearAllMocks();
     authMocks.requireAuth.mockResolvedValue(undefined);
-    authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "user-1", email: "owner@example.test" });
+    authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "user-1", email: "owner@example.test", role: "member" });
     workspaceRepositoryMocks.getCurrentWorkspaceProject.mockResolvedValue({
       project: { id: "project-1", workspace_id: "workspace-1" },
     });
   });
 
-  it("rejects invalid latitude and longitude before creating a Supabase write", async () => {
-    const supabase = {
-      rpc: vi.fn(),
-      from: vi.fn(),
-    };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+  it("rejects invalid latitude and longitude before creating a D1 write", async () => {
+    const database = new FakeD1Database();
+    cloudflareD1Mocks.getCloudflareD1Database.mockResolvedValue(database);
 
     const { saveProjectLocation } = await import("@/lib/projects/location-actions");
     const result = await saveProjectLocation({ status: "idle", message: "" }, formData({
@@ -67,20 +102,13 @@ describe("project location actions", () => {
     expect(result.status).toBe("error");
     expect(result.fieldErrors?.latitude).toContain("between -90 and 90");
     expect(authMocks.requireCurrentUserContext).not.toHaveBeenCalled();
-    expect(supabase.from).not.toHaveBeenCalled();
+    expect(database.prepared).toEqual([]);
     expect(nextCacheMocks.revalidatePath).not.toHaveBeenCalled();
   });
 
   it("saves and reloads a valid manual pin through project_locations", async () => {
-    const mutationBuilder = makeMutationBuilder();
-    const supabase = {
-      rpc: vi.fn(async () => ({ data: true, error: null })),
-      from: vi.fn((table: string) => {
-        if (table === "project_locations") return mutationBuilder;
-        throw new Error(`Unexpected table ${table}`);
-      }),
-    };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const database = new FakeD1Database();
+    cloudflareD1Mocks.getCloudflareD1Database.mockResolvedValue(database);
 
     const { saveProjectLocation } = await import("@/lib/projects/location-actions");
     const result = await saveProjectLocation({ status: "idle", message: "" }, formData({
@@ -92,38 +120,28 @@ describe("project location actions", () => {
       addressText: "Quezon City",
     }));
 
-    expect(supabase.rpc).toHaveBeenCalledWith("can_edit_project", { target_project_id: "project-1" });
-    expect(mutationBuilder.upsert).toHaveBeenCalledWith(
-      {
-        project_id: "project-1",
-        workspace_id: "workspace-1",
-        latitude: 14.599512,
-        longitude: 120.984222,
-        accuracy_meters: 8.25,
-        source: "manual",
-        display_label: "Site gate",
-        address_text: "Quezon City",
-        geocoder_name: null,
-        provider_place_id: null,
-      },
-      { onConflict: "project_id" },
-    );
+    expect(findPrepared(database, /SELECT 1 AS allowed/).values).toEqual(["project-1", "user-1", "user-1"]);
+    const upsert = findPrepared(database, /INSERT INTO project_locations/);
+    expect(upsert.sql).toContain("ON CONFLICT(project_id) DO UPDATE");
+    expect(upsert.values.slice(1, 11)).toEqual([
+      "project-1",
+      "workspace-1",
+      14.599512,
+      120.984222,
+      8.25,
+      "manual",
+      "Site gate",
+      "Quezon City",
+      null,
+      null,
+    ]);
     expect(result).toEqual({ status: "success", message: "Project pin saved." });
     expect(nextCacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/project-1");
   });
 
   it("saves a Google place selection and syncs the formatted address back to the project", async () => {
-    const locationMutationBuilder = makeMutationBuilder();
-    const projectMutationBuilder = makeMutationBuilder();
-    const supabase = {
-      rpc: vi.fn(async () => ({ data: true, error: null })),
-      from: vi.fn((table: string) => {
-        if (table === "project_locations") return locationMutationBuilder;
-        if (table === "projects") return projectMutationBuilder;
-        throw new Error(`Unexpected table ${table}`);
-      }),
-    };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const database = new FakeD1Database();
+    cloudflareD1Mocks.getCloudflareD1Database.mockResolvedValue(database);
 
     const { saveProjectLocation } = await import("@/lib/projects/location-actions");
     const result = await saveProjectLocation({ status: "idle", message: "" }, formData({
@@ -138,41 +156,35 @@ describe("project location actions", () => {
       syncProjectAddress: "1",
     }));
 
-    expect(locationMutationBuilder.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        project_id: "project-1",
-        workspace_id: "workspace-1",
-        latitude: 14.676,
-        longitude: 121.0437,
-        source: "geocoded",
-        display_label: "Quezon City",
-        address_text: "Quezon City, Metro Manila, Philippines",
-        geocoder_name: "google",
-        provider_place_id: "google-place-1",
-      }),
-      { onConflict: "project_id" },
-    );
-    expect(projectMutationBuilder.update).toHaveBeenCalledWith({ location: "Quezon City, Metro Manila, Philippines" });
-    expect(projectMutationBuilder.eq).toHaveBeenCalledWith("id", "project-1");
+    const upsert = findPrepared(database, /INSERT INTO project_locations/);
+    expect(upsert.values.slice(1, 11)).toEqual([
+      "project-1",
+      "workspace-1",
+      14.676,
+      121.0437,
+      null,
+      "geocoded",
+      "Quezon City",
+      "Quezon City, Metro Manila, Philippines",
+      "google",
+      "google-place-1",
+    ]);
+    expect(findPrepared(database, /UPDATE projects/).values).toEqual([
+      "Quezon City, Metro Manila, Philippines",
+      expect.any(String),
+      "project-1",
+    ]);
     expect(result).toEqual({ status: "success", message: "Project pin saved." });
   });
 
   it("clears a saved manual pin by project id", async () => {
-    const mutationBuilder = makeMutationBuilder();
-    const supabase = {
-      rpc: vi.fn(async () => ({ data: true, error: null })),
-      from: vi.fn((table: string) => {
-        if (table === "project_locations") return mutationBuilder;
-        throw new Error(`Unexpected table ${table}`);
-      }),
-    };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const database = new FakeD1Database();
+    cloudflareD1Mocks.getCloudflareD1Database.mockResolvedValue(database);
 
     const { clearProjectLocation } = await import("@/lib/projects/location-actions");
     const result = await clearProjectLocation({ status: "idle", message: "" }, formData({ projectId: "project-1" }));
 
-    expect(mutationBuilder.delete).toHaveBeenCalled();
-    expect(mutationBuilder.eq).toHaveBeenCalledWith("project_id", "project-1");
+    expect(findPrepared(database, /DELETE FROM project_locations/).values).toEqual(["project-1"]);
     expect(result).toEqual({ status: "success", message: "Project pin cleared." });
     expect(nextCacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/project-1");
   });

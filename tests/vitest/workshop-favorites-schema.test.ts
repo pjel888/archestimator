@@ -15,6 +15,10 @@ const mainSidebarMigration = readFileSync(
   join(process.cwd(), "supabase/migrations/20260628153000_main_sidebar_favorite_projects.sql"),
   "utf8",
 );
+const d1EstimateFavoritesMigration = readFileSync(
+  join(process.cwd(), "migrations/0018_estimate_favorites.sql"),
+  "utf8",
+);
 const repository = readFileSync(join(process.cwd(), "src/lib/repositories/workspace-repository.ts"), "utf8");
 const actions = readFileSync(join(process.cwd(), "src/lib/workshop/actions.ts"), "utf8");
 const supabaseTypes = readFileSync(join(process.cwd(), "src/lib/supabase/types.ts"), "utf8");
@@ -41,6 +45,14 @@ describe("workshop favorites schema", () => {
     expect(migration).toContain("revoke all on public.estimate_favorites from authenticated");
     expect(migration).toContain("grant select, insert, delete on public.project_favorites to authenticated");
     expect(migration).toContain("grant select, insert, delete on public.estimate_favorites to authenticated");
+  });
+
+  test("mirrors estimate favorites into the Cloudflare D1 schema", () => {
+    expect(d1EstimateFavoritesMigration).toContain("CREATE TABLE IF NOT EXISTS estimate_favorites");
+    expect(d1EstimateFavoritesMigration).toContain("UNIQUE (user_id, estimate_id)");
+    expect(d1EstimateFavoritesMigration).toContain("FOREIGN KEY (project_id, workspace_id) REFERENCES projects(id, workspace_id)");
+    expect(d1EstimateFavoritesMigration).toContain("FOREIGN KEY (estimate_id, project_id) REFERENCES estimates(id, project_id)");
+    expect(d1EstimateFavoritesMigration).toContain("idx_estimate_favorites_workspace_user_created");
   });
 
   test("keeps generated types and server data access in sync with the favorite tables", () => {

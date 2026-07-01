@@ -4,6 +4,16 @@ import { buildPackageBuilderDraft } from "@/lib/ai/package-builder/draft";
 import type { PackageBuilderReadToolsData } from "@/lib/ai/package-builder/read-tools";
 import { buildPackageDraftHash, type PackageBuilderDraft } from "@/lib/ai/package-builder/schemas";
 
+const WORKSPACE_ID = "55555555-5555-4555-8555-555555555555";
+const USER_ID = "44444444-4444-4444-8444-444444444444";
+const PROJECT_ID = "aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111";
+const ESTIMATE_ID = "bbbbbbbb-2222-4bbb-8bbb-bbbbbbbb2222";
+const ROOT_NODE_ID = "cccccccc-3333-4ccc-8ccc-cccccccc3333";
+const AREA_NODE_ID = "dddddddd-4444-4ddd-8ddd-dddddddd4444";
+const ROW_ID = "eeeeeeee-5555-4eee-8eee-eeeeeeee5555";
+const TAB_ID = "ffffffff-ffff-4fff-8fff-ffffffffffff";
+const AUTH_RUN_ID = "99999999-9999-4999-8999-999999999999";
+
 const workspaceMocks = vi.hoisted(() => ({
   ensureDefaultWorkspace: vi.fn(),
 }));
@@ -12,8 +22,13 @@ const authMocks = vi.hoisted(() => ({
   requireCurrentUserContext: vi.fn(),
 }));
 
-const supabaseMocks = vi.hoisted(() => ({
-  createSupabaseServerClient: vi.fn(),
+const d1Mocks = vi.hoisted(() => ({
+  getCloudflareD1Database: vi.fn(),
+}));
+
+const authzMocks = vi.hoisted(() => ({
+  canEditEstimateInD1: vi.fn(),
+  isWorkspaceEditorInD1: vi.fn(),
 }));
 
 const cacheMocks = vi.hoisted(() => ({
@@ -22,79 +37,297 @@ const cacheMocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/repositories/workspace-repository", () => workspaceMocks);
 vi.mock("@/lib/auth/session", () => authMocks);
-vi.mock("@/lib/supabase/server", () => supabaseMocks);
+vi.mock("@/lib/cloudflare/d1", () => d1Mocks);
+vi.mock("@/lib/authz/d1-access", () => authzMocks);
 vi.mock("next/cache", () => cacheMocks);
 
-function makeQueryResult(data: unknown[] = []) {
-  const result = { data, error: null };
-  const builder = {
-    select: vi.fn(() => builder),
-    eq: vi.fn(() => builder),
-    in: vi.fn(async () => result),
-  };
-  return builder;
+type CommandRow = {
+  id: string;
+  workspace_id: string;
+  idempotency_key: string;
+  command_kind: string;
+  draft_id: string;
+  draft_hash: string;
+  status: string;
+  result_json: string | null;
+};
+
+type Fixture = {
+  commands: CommandRow[];
+  components: Array<Record<string, unknown>>;
+  priceOptions: Array<Record<string, unknown>>;
+  projects: Array<Record<string, unknown>>;
+  estimates: Array<Record<string, unknown>>;
+  tabs: Array<Record<string, unknown>>;
+  nodes: Array<Record<string, unknown>>;
+  rows: Array<Record<string, unknown>>;
+  events: Array<Record<string, unknown>>;
+  templateNodes: Array<Record<string, unknown>>;
+  templateRows: Array<Record<string, unknown>>;
+  statements: Array<{ sql: string; values: unknown[] }>;
+};
+
+function normalizeSql(sql: string) {
+  return sql.replace(/\s+/g, " ").trim();
 }
 
-function makeThreeBedroomCondoReadData(): PackageBuilderReadToolsData {
+function parseJson(value: unknown) {
+  if (typeof value !== "string") return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+}
+
+function makeD1(fixture: Fixture) {
+  function makeStatement(sql: string, values: unknown[] = []) {
+    return {
+      bind: (...nextValues: unknown[]) => makeStatement(sql, nextValues),
+      first: async () => firstForSql(fixture, sql, values),
+      all: async () => ({ success: true, results: allForSql(fixture, sql, values) }),
+      run: async () => {
+        runForSql(fixture, sql, values);
+        return { success: true, meta: {} };
+      },
+    };
+  }
+
   return {
-    workspace: { name: "Test Workspace" },
-    projects: [],
-    projectSummary: null,
-    projectEstimates: [],
-    estimateSummary: null,
-    estimateTree: [],
-    areaRows: [],
-    historicalRowMatches: [],
-    comparableEstimatePackages: [],
-    componentMatches: [
-      {
-        id: "11111111-1111-4111-8111-111111111111",
-        material: "Queen bed frame",
-        description: "Standard bed frame for condo bedrooms.",
-        category: "Furniture",
-        categoryPath: ["Objects", "Furniture"],
-        supplier: "Bedroom Supplier",
-        supplierId: null,
-        brand: null,
-        unit: "pc",
-        unitCost: 18_000,
-        miscCost: 0,
-        currency: "PHP",
-        lifecycleState: "available",
-        sourceLibraryItemId: "11111111-1111-4111-8111-111111111111",
-        currentVersionNumber: 1,
-        confidence: "catalog",
-      },
-      {
-        id: "22222222-2222-4222-8222-222222222222",
-        material: "Water closet",
-        description: "Floor-mounted toilet fixture for toilet and bath areas.",
-        category: "Sanitary Systems",
-        categoryPath: ["Systems", "Sanitary Systems"],
-        supplier: "Plumbing Supplier",
-        supplierId: null,
-        brand: null,
-        unit: "set",
-        unitCost: 12_500,
-        miscCost: 0,
-        currency: "PHP",
-        lifecycleState: "available",
-        sourceLibraryItemId: "22222222-2222-4222-8222-222222222222",
-        currentVersionNumber: 1,
-        confidence: "catalog",
-      },
-    ],
-    templateMatches: [],
-    memoryPreferences: { componentSignals: [], templateSignals: [], sourceRowCount: 0 },
-    auditEvents: [],
+    prepare: (sql: string) => makeStatement(sql),
+    batch: async (statements: Array<{ run: () => Promise<{ success: boolean; meta: Record<string, never> }> }>) => {
+      const results = [];
+      for (const statement of statements) results.push(await statement.run());
+      return results;
+    },
   };
+}
+
+function firstForSql(fixture: Fixture, sql: string, values: unknown[]) {
+  const normalized = normalizeSql(sql);
+  if (normalized.includes("FROM ai_package_apply_commands")) {
+    return fixture.commands.find((row) => row.workspace_id === values[0] && row.idempotency_key === values[1]) ?? null;
+  }
+  if (normalized.includes("FROM estimates estimate JOIN projects project")) {
+    const estimate = fixture.estimates.find((row) => row.id === values[0]);
+    if (!estimate) return null;
+    const project = fixture.projects.find((row) => row.id === estimate.project_id);
+    if (!project) return null;
+    return { id: estimate.id, project_id: estimate.project_id, workspace_id: project.workspace_id };
+  }
+  if (normalized.includes("FROM estimate_sheet_events")) {
+    const event = fixture.events.find((row) => row.estimate_id === values[0] && row.correlation_id === values[1]);
+    return event ? { payload: event.payload } : null;
+  }
+  if (normalized.includes("FROM estimate_nodes") && normalized.includes("WHERE id = ?")) {
+    return fixture.nodes.find((row) => row.id === values[0] && row.estimate_id === values[1]) ?? null;
+  }
+  if (normalized.includes("FROM estimate_row_items") && normalized.includes("WHERE id = ?")) {
+    return fixture.rows.find((row) => row.id === values[0] && row.estimate_id === values[1]) ?? null;
+  }
+  if (normalized.includes("COALESCE(MAX(sort_order)")) {
+    const [, tabId, parentId] = values;
+    const max = fixture.nodes
+      .filter((row) => row.estimate_id === values[0] && row.estimate_tab_id === tabId && row.parent_id === parentId)
+      .reduce((largest, row) => Math.max(largest, Number(row.sort_order ?? 0)), 0);
+    return { sort_order: max };
+  }
+  throw new Error(`Unexpected D1 first query: ${normalized}`);
+}
+
+function allForSql(fixture: Fixture, sql: string, values: unknown[]) {
+  const normalized = normalizeSql(sql);
+  if (normalized.includes("FROM cost_library_items")) {
+    const workspaceId = values[0];
+    const ids = new Set(values.slice(1));
+    return fixture.components.filter((row) => row.workspace_id === workspaceId && ids.has(row.id));
+  }
+  if (normalized.includes("FROM cost_library_item_price_options")) {
+    const workspaceId = values[0];
+    const ids = new Set(values.slice(1));
+    return fixture.priceOptions.filter((row) => row.workspace_id === workspaceId && ids.has(row.id));
+  }
+  if (normalized.includes("FROM estimate_row_items") && normalized.includes("node_id IN")) {
+    const estimateId = values[0];
+    const nodeIds = new Set(values.slice(1));
+    return fixture.rows.filter((row) => row.estimate_id === estimateId && nodeIds.has(row.node_id));
+  }
+  if (normalized.includes("FROM estimate_template_nodes")) {
+    return fixture.templateNodes.filter((row) => row.template_id === values[0]);
+  }
+  if (normalized.includes("FROM estimate_template_row_items")) {
+    return fixture.templateRows.filter((row) => row.template_id === values[0]);
+  }
+  throw new Error(`Unexpected D1 all query: ${normalized}`);
+}
+
+function runForSql(fixture: Fixture, sql: string, values: unknown[]) {
+  const normalized = normalizeSql(sql);
+  fixture.statements.push({ sql: normalized, values });
+  if (normalized.startsWith("INSERT INTO ai_package_apply_commands")) {
+    fixture.commands.push({
+      id: String(values[0]),
+      workspace_id: String(values[1]),
+      idempotency_key: String(values[2]),
+      command_kind: String(values[3]),
+      draft_id: String(values[4]),
+      draft_hash: String(values[5]),
+      status: "started",
+      result_json: null,
+    });
+    return;
+  }
+  if (normalized.startsWith("UPDATE ai_package_apply_commands") && normalized.includes("status = 'completed'")) {
+    const command = fixture.commands.find((row) => row.id === values[7]);
+    if (command) {
+      command.status = "completed";
+      command.result_json = String(values[5]);
+    }
+    return;
+  }
+  if (normalized.startsWith("UPDATE ai_package_apply_commands") && normalized.includes("status = 'failed'")) {
+    const command = fixture.commands.find((row) => row.id === values[2]);
+    if (command) command.status = "failed";
+    return;
+  }
+  if (normalized.startsWith("INSERT INTO cost_library_items")) {
+    fixture.components.push({
+      id: values[0],
+      workspace_id: values[1],
+      name: values[2],
+      description: values[3],
+      category: values[4],
+      supplier: values[5],
+      brand: values[6],
+      unit: values[7],
+      unit_cost: values[8],
+      misc_cost: values[9],
+      lifecycle_state: values[10],
+      active_price_option_id: values[11],
+      confidence: values[12],
+      metadata_json: values[13],
+    });
+    return;
+  }
+  if (normalized.startsWith("INSERT INTO cost_library_item_price_options")) {
+    fixture.priceOptions.push({
+      id: values[0],
+      workspace_id: values[1],
+      item_id: values[2],
+      label: values[3],
+      unit: values[4],
+      unit_cost: values[5],
+      misc_cost: values[6],
+      currency: values[7],
+      is_active: values[8],
+      is_default: values[9],
+      updated_at: values[10],
+      confidence: values[11],
+      pricing_source: values[12],
+      metadata_json: values[13],
+    });
+    return;
+  }
+  if (normalized.startsWith("INSERT INTO projects")) {
+    fixture.projects.push({
+      id: values[0],
+      workspace_id: values[1],
+      name: values[2],
+      client_name: values[3],
+      location: values[4],
+      currency_code: values[5],
+      metadata: values[6],
+    });
+    return;
+  }
+  if (normalized.startsWith("INSERT INTO estimates")) {
+    fixture.estimates.push({ id: values[0], project_id: values[1], name: values[2], sheet_code: values[3] });
+    return;
+  }
+  if (normalized.startsWith("INSERT INTO estimate_tabs")) {
+    fixture.tabs.push({ id: values[0], estimate_id: values[1], name: "Main", is_default: 1 });
+    return;
+  }
+  if (normalized.startsWith("INSERT INTO estimate_nodes")) {
+    fixture.nodes.push({
+      id: values[0],
+      estimate_id: values[1],
+      estimate_tab_id: values[2],
+      parent_id: values[3],
+      kind: values[4],
+      name: values[5],
+      sort_order: values[6],
+      metadata_json: values[7],
+    });
+    return;
+  }
+  if (normalized.startsWith("INSERT INTO estimate_row_items")) {
+    fixture.rows.push({
+      id: values[0],
+      estimate_id: values[1],
+      node_id: values[2],
+      description: values[3],
+      designation: values[4],
+      discipline: values[5],
+      material: values[6],
+      supplier: values[7],
+      supplier_id: values[8],
+      quantity: values[9],
+      quantity_base: values[10],
+      quantity_contingency_amount: values[11],
+      unit: values[12],
+      unit_cost: values[13],
+      misc_cost: values[14],
+      contingency_percentage: values[15],
+      adjustment_percentage: values[16],
+      source_snapshot_json: values[17],
+      sort_order: values[18],
+      row_revision: 0,
+      category_node_id: values[19],
+      source_library_item_id: values[20],
+      link_state: values[21],
+      metadata_json: values[22],
+    });
+    return;
+  }
+  if (normalized.startsWith("INSERT INTO estimate_sheet_events")) {
+    fixture.events.push({
+      id: values[0],
+      estimate_id: values[1],
+      workspace_id: values[2],
+      project_id: values[3],
+      estimate_node_id: values[4],
+      estimate_tab_id: values[5],
+      target_row_id: values[6],
+      event_type: values[7],
+      correlation_id: values[8],
+      actor_user_id: values[9],
+      payload: values[14],
+    });
+    return;
+  }
+  if (normalized.startsWith("UPDATE estimate_nodes")) {
+    const node = fixture.nodes.find((row) => row.id === values[2] && row.estimate_id === values[3]);
+    if (node) node.name = values[0];
+    return;
+  }
+  if (normalized.startsWith("UPDATE estimate_row_items")) {
+    const row = fixture.rows.find((candidate) => candidate.id === values.at(-2) && candidate.estimate_id === values.at(-1));
+    if (row) row.row_revision = Number(row.row_revision ?? 0) + 1;
+    return;
+  }
+  if (normalized.startsWith("DELETE FROM estimate_row_items")) {
+    fixture.rows = fixture.rows.filter((row) => !(row.id === values[0] && row.estimate_id === values[1]));
+    return;
+  }
+  throw new Error(`Unexpected D1 run query: ${normalized}`);
 }
 
 function makeLibraryValidationRows() {
   return [
     {
       id: "11111111-1111-4111-8111-111111111111",
-      workspace_id: "55555555-5555-4555-8555-555555555555",
+      workspace_id: WORKSPACE_ID,
       name: "Queen bed frame",
       description: "Standard bed frame for condo bedrooms.",
       supplier: "Bedroom Supplier",
@@ -116,7 +349,7 @@ function makeLibraryValidationRows() {
     },
     {
       id: "22222222-2222-4222-8222-222222222222",
-      workspace_id: "55555555-5555-4555-8555-555555555555",
+      workspace_id: WORKSPACE_ID,
       name: "Water closet",
       description: "Floor-mounted toilet fixture for toilet and bath areas.",
       supplier: "Plumbing Supplier",
@@ -139,22 +372,146 @@ function makeLibraryValidationRows() {
   ];
 }
 
-function makeFillCurrentEstimateDraft(): PackageBuilderDraft {
+function makeFixture(overrides: Partial<Fixture> = {}): Fixture {
   return {
+    commands: [],
+    components: makeLibraryValidationRows(),
+    priceOptions: [],
+    projects: [{ id: PROJECT_ID, workspace_id: WORKSPACE_ID, name: "Lewis Residence" }],
+    estimates: [{ id: ESTIMATE_ID, project_id: PROJECT_ID, name: "Current Estimate" }],
+    tabs: [{ id: TAB_ID, estimate_id: ESTIMATE_ID, name: "Main", is_default: 1 }],
+    nodes: [
+      { id: ROOT_NODE_ID, estimate_id: ESTIMATE_ID, estimate_tab_id: TAB_ID, parent_id: null, kind: "group", name: "Current Estimate", sort_order: 0 },
+      { id: AREA_NODE_ID, estimate_id: ESTIMATE_ID, estimate_tab_id: TAB_ID, parent_id: ROOT_NODE_ID, kind: "area", name: "Master Bedroom", sort_order: 0 },
+    ],
+    rows: [
+      {
+        id: ROW_ID,
+        estimate_id: ESTIMATE_ID,
+        node_id: AREA_NODE_ID,
+        material: "Existing bed",
+        description: "Existing row",
+        supplier: "Existing Supplier",
+        supplier_id: null,
+        quantity: 1,
+        unit: "pc",
+        unit_cost: 10_000,
+        misc_cost: 0,
+        contingency_percentage: 0,
+        adjustment_percentage: 0,
+        source_snapshot_json: "{}",
+        sort_order: 4,
+        row_revision: 3,
+        category_node_id: null,
+        source_library_item_id: null,
+        link_state: "unlinked",
+        metadata_json: "{}",
+      },
+    ],
+    events: [],
+    templateNodes: [
+      { id: "12121212-1212-4121-8121-121212121212", template_id: "11111111-1111-4111-8111-111111111111", parent_id: null, kind: "area", name: "Template Bedroom", sort_order: 0, metadata: "{}" },
+    ],
+    templateRows: [
+      {
+        id: "99999999-9999-4999-8999-999999999999",
+        template_id: "11111111-1111-4111-8111-111111111111",
+        template_node_id: "12121212-1212-4121-8121-121212121212",
+        sort_order: 0,
+        source_library_item_id: null,
+        source_snapshot: "{}",
+        category_node_id: null,
+        supplier_id: null,
+        material: "Template bedroom paint finish",
+        description: "Paint finish copied from a workspace template.",
+        supplier: "Template Supplier",
+        unit: "lot",
+        quantity: 1,
+        unit_cost: 30_000,
+        misc_cost: 2_000,
+        contingency_percentage: 0,
+        adjustment_percentage: 5,
+        discipline: "",
+        designation: "",
+        link_state: "unlinked",
+        metadata: "{}",
+      },
+    ],
+    statements: [],
+    ...overrides,
+  };
+}
+
+function makeInput(draft: PackageBuilderDraft, idempotencyKey: string) {
+  return {
+    mode: "apply" as const,
+    draft,
+    draftHash: buildPackageDraftHash(draft),
+    draftToken: "server.token",
+    confirmation: { confirmed: true as const },
+    idempotencyKey,
+    userContext: {
+      userId: USER_ID,
+      email: "user@example.com",
+      workspaceId: WORKSPACE_ID,
+      authMode: "better-auth" as const,
+    },
+    authorizationRunId: AUTH_RUN_ID,
+  };
+}
+
+function makeThreeBedroomCondoReadData(): PackageBuilderReadToolsData {
+  return {
+    workspace: { name: "Test Workspace" },
+    projects: [],
+    projectSummary: null,
+    projectEstimates: [],
+    estimateSummary: null,
+    estimateTree: [],
+    areaRows: [],
+    historicalRowMatches: [],
+    comparableEstimatePackages: [],
+    componentMatches: makeLibraryValidationRows().map((row) => ({
+      id: String(row.id),
+      material: String(row.name),
+      description: String(row.description),
+      category: String(row.category),
+      categoryPath: [String(row.category)],
+      supplier: row.supplier as string | null,
+      supplierId: null,
+      brand: null,
+      unit: String(row.unit),
+      unitCost: Number(row.unit_cost),
+      miscCost: Number(row.misc_cost),
+      currency: "PHP",
+      lifecycleState: "available",
+      sourceLibraryItemId: String(row.id),
+      currentVersionNumber: 1,
+      confidence: "catalog",
+    })),
+    templateMatches: [],
+    memoryPreferences: { componentSignals: [], templateSignals: [], sourceRowCount: 0 },
+    auditEvents: [],
+  };
+}
+
+function makeFillCurrentEstimateDraft(overrides: Partial<PackageBuilderDraft> = {}): PackageBuilderDraft {
+  const draft: PackageBuilderDraft = {
     schemaVersion: 1,
     mode: "draft",
     intent: "fill_current_estimate",
     draftId: "draft-fill-current",
     target: {
-      projectId: "aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111",
-      estimateId: "bbbbbbbb-2222-4bbb-8bbb-bbbbbbbb2222",
-      selectedNodeId: "dddddddd-4444-4ddd-8ddd-dddddddd4444",
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      selectedNodeId: AREA_NODE_ID,
+      activeTabId: TAB_ID,
       nodeIdsByClientDraftId: {
-        "existing-root": "cccccccc-3333-4ccc-8ccc-cccccccc3333",
-        "existing-area-1": "dddddddd-4444-4ddd-8ddd-dddddddd4444",
+        "existing-root": ROOT_NODE_ID,
+        "existing-area-1": AREA_NODE_ID,
       },
       areaNodeIdsByClientDraftId: {
-        "existing-area-1": "dddddddd-4444-4ddd-8ddd-dddddddd4444",
+        "existing-area-1": AREA_NODE_ID,
       },
     },
     brief: {
@@ -164,7 +521,7 @@ function makeFillCurrentEstimateDraft(): PackageBuilderDraft {
       bedrooms: 3,
       floorCount: 1,
       finishLevel: "standard",
-      missingInputs: ["gross floor area"],
+      missingInputs: [],
     },
     projectDraft: { name: "Lewis Residence", clientName: null, location: null, projectBudget: 5_000_000 },
     estimateDraft: { name: "Current Estimate", sheetCode: "ES-001" },
@@ -187,6 +544,7 @@ function makeFillCurrentEstimateDraft(): PackageBuilderDraft {
         unitCost: 25_000,
         miscCost: 1_000,
         contingencyPercentage: 10,
+        adjustmentPercentage: 10,
         confidence: "requires-user-review",
         assumption: "No matched component.",
         warnings: ["Review before purchase."],
@@ -213,310 +571,20 @@ function makeFillCurrentEstimateDraft(): PackageBuilderDraft {
     applyEligibility: { eligible: true, reasons: [] },
     requiresConfirmation: true,
   };
-}
-
-function makeFillCurrentEstimateDraftWithNewArea(): PackageBuilderDraft {
-  const draft = makeFillCurrentEstimateDraft();
-  return {
-    ...draft,
-    target: {
-      projectId: "aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111",
-      estimateId: "bbbbbbbb-2222-4bbb-8bbb-bbbbbbbb2222",
-      selectedNodeId: "cccccccc-3333-4ccc-8ccc-cccccccc3333",
-      activeTabId: "ffffffff-ffff-4fff-8fff-ffffffffffff",
-      nodeIdsByClientDraftId: {
-        "existing-root": "cccccccc-3333-4ccc-8ccc-cccccccc3333",
-      },
-      areaNodeIdsByClientDraftId: {},
-    },
-    treeDraft: [
-      { clientDraftId: "existing-root", kind: "group", name: "Current Estimate", parentClientDraftId: null, sortOrder: 0 },
-      { clientDraftId: "area-master-bedroom", kind: "area", name: "Master Bedroom", parentClientDraftId: "existing-root", sortOrder: 0 },
-    ],
-    rowDraft: [
-      {
-        ...draft.rowDraft[0],
-        targetAreaClientDraftId: "area-master-bedroom",
-      },
-    ],
-    operations: [
-      { operationId: "op-tree-master-bedroom", type: "create_tree_node", clientDraftId: "area-master-bedroom", applyEligible: true },
-      { operationId: "op-row-bedroom-bed", type: "insert_allowance_row", clientDraftId: "row-bedroom-bed", applyEligible: true },
-    ],
-  };
-}
-
-function makeFillCurrentEstimateRowUpdateDraft(): PackageBuilderDraft {
-  const draft = makeFillCurrentEstimateDraft();
-  return {
-    ...draft,
-    rowDraft: [],
-    rowUpdateDraft: [
-      {
-        clientDraftId: "update-bedroom-bed",
-        targetRowId: "eeeeeeee-5555-4eee-8eee-eeeeeeee5555",
-        expectedRowRevision: 3,
-        patch: {
-          quantity: 2,
-          miscCost: 1_500,
-          contingencyPercentage: -12,
-        },
-        warnings: ["Review row update before Apply."],
-        applyEligible: true,
-      },
-    ],
-    operations: [
-      { operationId: "op-update-bedroom-bed", type: "update_existing_row", clientDraftId: "update-bedroom-bed", applyEligible: true },
-    ],
-    budgetSummary: {
-      ...draft.budgetSummary,
-      draftSubtotal: 0,
-      allowanceTotal: 0,
-      contingencyTotal: 0,
-      draftTotal: 0,
-    },
-  } as PackageBuilderDraft;
-}
-
-function makeFillCurrentEstimateRowReplacementDraft(): PackageBuilderDraft {
-  const draft = makeFillCurrentEstimateDraft();
-  return {
-    ...draft,
-    rowDraft: [],
-    rowUpdateDraft: [],
-    rowReplacementDraft: [
-      {
-        clientDraftId: "replace-row-existing-bed-with-queen-bed-frame",
-        targetRowId: "eeeeeeee-5555-4eee-8eee-eeeeeeee5555",
-        expectedRowRevision: 3,
-        sourceLibraryItemId: "11111111-1111-4111-8111-111111111111",
-        priceOptionId: null,
-        priceOptionUpdatedAt: null,
-        material: "Queen bed frame",
-        description: "Standard bed frame for condo bedrooms.",
-        supplier: "Bedroom Supplier",
-        quantity: 1,
-        unit: "pc",
-        unitCost: 18_000,
-        miscCost: 0,
-        contingencyPercentage: -8,
-        adjustmentPercentage: -8,
-        category: "Furniture",
-        categoryPath: ["Objects", "Furniture"],
-        supplierId: null,
-        brand: null,
-        currentVersionNumber: 1,
-        warnings: ["Review the replacement before Apply; this changes an existing estimate row source."],
-        applyEligible: true,
-        sourceSnapshot: {
-          sourceType: "library_item",
-          sourceLibraryItemId: "11111111-1111-4111-8111-111111111111",
-          componentVersionNumber: 1,
-        },
-      },
-    ],
-    operations: [
-      {
-        operationId: "op-replace-row-existing-bed-with-queen-bed-frame",
-        type: "replace_existing_row",
-        clientDraftId: "replace-row-existing-bed-with-queen-bed-frame",
-        applyEligible: true,
-      },
-    ],
-    budgetSummary: {
-      ...draft.budgetSummary,
-      draftSubtotal: 18_000,
-      allowanceTotal: 0,
-      contingencyTotal: 0,
-      draftTotal: 18_000,
-      variance: -4_982_000,
-    },
-  } as PackageBuilderDraft;
-}
-
-function makeFillCurrentEstimateRowDeleteDraft(): PackageBuilderDraft {
-  const draft = makeFillCurrentEstimateDraft();
-  return {
-    ...draft,
-    rowDraft: [],
-    rowUpdateDraft: [],
-    rowReplacementDraft: [],
-    rowDeleteDraft: [
-      {
-        clientDraftId: "delete-row-existing-bed",
-        targetRowId: "eeeeeeee-5555-4eee-8eee-eeeeeeee5555",
-        expectedRowRevision: 3,
-        warnings: ["Review the delete before Apply; this removes an existing estimate row."],
-        applyEligible: true,
-      },
-    ],
-    operations: [
-      {
-        operationId: "op-delete-row-existing-bed",
-        type: "delete_existing_row",
-        clientDraftId: "delete-row-existing-bed",
-        applyEligible: true,
-      },
-    ],
-    budgetSummary: {
-      ...draft.budgetSummary,
-      draftSubtotal: 0,
-      allowanceTotal: 0,
-      contingencyTotal: 0,
-      draftTotal: 0,
-      variance: -5_000_000,
-    },
-  } as PackageBuilderDraft;
-}
-
-function makeFillCurrentEstimateNodeRenameDraft(): PackageBuilderDraft {
-  const draft = makeFillCurrentEstimateDraft();
-  return {
-    ...draft,
-    rowDraft: [],
-    rowUpdateDraft: [],
-    rowReplacementDraft: [],
-    rowDeleteDraft: [],
-    nodeRenameDraft: [
-      {
-        clientDraftId: "rename-node-master-bedroom",
-        targetNodeId: "dddddddd-4444-4ddd-8ddd-dddddddd4444",
-        currentName: "Master Bedroom",
-        nextName: "Primary Bedroom",
-        warnings: ["Review the rename before Apply; this changes an existing estimate tree node."],
-        applyEligible: true,
-      },
-    ],
-    operations: [
-      {
-        operationId: "op-rename-node-master-bedroom",
-        type: "rename_estimate_node",
-        clientDraftId: "rename-node-master-bedroom",
-        applyEligible: true,
-      },
-    ],
-    budgetSummary: {
-      ...draft.budgetSummary,
-      draftSubtotal: 0,
-      allowanceTotal: 0,
-      contingencyTotal: 0,
-      draftTotal: 0,
-      variance: -5_000_000,
-    },
-  } as PackageBuilderDraft;
-}
-
-function makeFillCurrentEstimateTemplateRowCopyDraft(): PackageBuilderDraft {
-  const draft = makeFillCurrentEstimateDraft();
-  return {
-    ...draft,
-    rowDraft: [],
-    rowUpdateDraft: [],
-    rowReplacementDraft: [],
-    rowDeleteDraft: [],
-    templateRowCopyDraft: [
-      {
-        clientDraftId: "copy-template-row-template-bedroom-paint-finish",
-        sourceTemplateId: "11111111-1111-4111-8111-111111111111",
-        sourceTemplateRowId: "99999999-9999-4999-8999-999999999999",
-        sourceTemplateName: "3 Bedroom Condo Starter",
-        sourceTemplateAreaName: "Master Bedroom",
-        targetAreaClientDraftId: "existing-area-1",
-        material: "Template bedroom paint finish",
-        description: "Paint finish copied from a workspace template.",
-        supplier: "Template Supplier",
-        quantity: 1,
-        unit: "lot",
-        unitCost: 30_000,
-        miscCost: 2_000,
-        contingencyPercentage: 5,
-        warnings: ["Review the template row before Apply; it is copied from a reusable template preview."],
-        applyEligible: true,
-        sourceSnapshot: {
-          sourceType: "estimate_template_row",
-          sourceTemplateId: "11111111-1111-4111-8111-111111111111",
-          sourceTemplateRowId: "99999999-9999-4999-8999-999999999999",
-          notSupplierPriced: true,
-        },
-      },
-    ],
-    operations: [
-      {
-        operationId: "op-copy-template-row-template-bedroom-paint-finish",
-        type: "copy_template_row",
-        clientDraftId: "copy-template-row-template-bedroom-paint-finish",
-        applyEligible: true,
-      },
-    ],
-    budgetSummary: {
-      ...draft.budgetSummary,
-      draftSubtotal: 33_500,
-      allowanceTotal: 33_500,
-      contingencyTotal: 0,
-      draftTotal: 33_500,
-      variance: -4_966_500,
-    },
-  } as PackageBuilderDraft;
-}
-
-function makeFillCurrentEstimateTemplateInsertDraft(): PackageBuilderDraft {
-  const draft = makeFillCurrentEstimateDraft();
-  return {
-    ...draft,
-    rowDraft: [],
-    rowUpdateDraft: [],
-    templateInsertDraft: [
-      {
-        clientDraftId: "insert-template-condo-starter",
-        sourceTemplateId: "11111111-1111-4111-8111-111111111111",
-        sourceTemplateName: "3 Bedroom Condo Starter",
-        targetParentClientDraftId: "existing-root",
-        expectedNodeCount: 4,
-        expectedRowCount: 8,
-        previewTotal: 125_000,
-        warnings: ["Review the template copy before Apply."],
-        applyEligible: true,
-      },
-    ],
-    operations: [
-      {
-        operationId: "op-template-insert-template-condo-starter",
-        type: "insert_template",
-        clientDraftId: "insert-template-condo-starter",
-        applyEligible: true,
-      },
-    ],
-    budgetSummary: {
-      ...draft.budgetSummary,
-      draftSubtotal: 125_000,
-      allowanceTotal: 125_000,
-      contingencyTotal: 0,
-      draftTotal: 125_000,
-      variance: -4_875_000,
-    },
-  } as PackageBuilderDraft;
+  return { ...draft, ...overrides } as PackageBuilderDraft;
 }
 
 function makeLibraryComponentCreateDraft(): PackageBuilderDraft {
   return {
-    schemaVersion: 1,
-    mode: "draft",
+    ...makeFillCurrentEstimateDraft(),
     intent: "create_library_component",
     draftId: "draft-create-library-component",
     target: null,
-    brief: {
-      projectName: "Library Component Draft",
-      targetBudget: 18_000,
-      currencyCode: "PHP",
-      bedrooms: 0,
-      floorCount: 0,
-      finishLevel: "component",
-      missingInputs: [],
-    },
-    projectDraft: { name: "Library Component Draft", clientName: null, location: null, projectBudget: 18_000 },
-    estimateDraft: { name: "Component Library", sheetCode: null },
     treeDraft: [],
     rowDraft: [],
+    operations: [
+      { operationId: "op-component-queen-bed-frame", type: "create_library_component", clientDraftId: "component-queen-bed-frame", applyEligible: true },
+    ],
     componentCreateDraft: [
       {
         clientDraftId: "component-queen-bed-frame",
@@ -536,16 +604,6 @@ function makeLibraryComponentCreateDraft(): PackageBuilderDraft {
         applyEligible: true,
       },
     ],
-    componentMatches: [],
-    templateMatches: [],
-    operations: [
-      {
-        operationId: "op-component-queen-bed-frame",
-        type: "create_library_component",
-        clientDraftId: "component-queen-bed-frame",
-        applyEligible: true,
-      },
-    ],
     budgetSummary: {
       targetBudget: 18_000,
       draftSubtotal: 18_000,
@@ -556,121 +614,43 @@ function makeLibraryComponentCreateDraft(): PackageBuilderDraft {
       currencyCode: "PHP",
       completeness: "review-required",
     },
-    assumptions: ["Creates a component-library record only after explicit Apply confirmation."],
     warnings: ["Review supplier and pricing before Apply."],
-    applyEligibility: { eligible: true, reasons: [] },
-    requiresConfirmation: true,
-  } as unknown as PackageBuilderDraft;
+  } as PackageBuilderDraft;
 }
 
 describe("package-builder Apply", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    workspaceMocks.ensureDefaultWorkspace.mockResolvedValue({
-      workspace: { id: "55555555-5555-4555-8555-555555555555" },
-    });
-    authMocks.requireCurrentUserContext.mockResolvedValue({
-      userId: "44444444-4444-4444-8444-444444444444",
-    });
+    workspaceMocks.ensureDefaultWorkspace.mockResolvedValue({ workspace: { id: WORKSPACE_ID } });
+    authMocks.requireCurrentUserContext.mockResolvedValue({ userId: USER_ID });
+    authzMocks.canEditEstimateInD1.mockResolvedValue(true);
+    authzMocks.isWorkspaceEditorInD1.mockResolvedValue(true);
   });
 
-  it("creates component-library records through the component-library RPC", async () => {
+  it("creates component-library records through D1 and records the command result", async () => {
+    const fixture = makeFixture({ components: [], priceOptions: [] });
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(makeD1(fixture));
     const draft = makeLibraryComponentCreateDraft();
-    const observed: { componentPayloads?: Array<{ component?: Record<string, unknown>; priceOptions?: unknown[] }> } = {};
-    const supabase = {
-      from: vi.fn((table: string) => {
-        throw new Error(`Unexpected table ${table}`);
-      }),
-      rpc: vi.fn(async (fn: string, args: Record<string, unknown>) => {
-        if (fn === "create_ai_package_library_components_with_history") {
-          observed.componentPayloads = args.component_payloads as Array<{ component?: Record<string, unknown>; priceOptions?: unknown[] }>;
-          return {
-            data: {
-              projectId: null,
-              estimateId: null,
-              selectedNodeId: null,
-              createdNodeIds: {},
-              insertedRowIds: [],
-              createdComponentIds: ["aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111"],
-              createdComponentCount: 1,
-              total: 18_000,
-              warnings: ["Review supplier and pricing before Apply."],
-              recoveryStatus: "completed",
-              idempotencyKey: "idem-create-library-component",
-              idempotentReplay: false,
-              auditRunId: "99999999-9999-4999-8999-999999999999",
-            },
-            error: null,
-          };
-        }
-        throw new Error(`Unexpected RPC ${fn}`);
-      }),
-    };
-    supabaseMocks.createSupabaseServerClient.mockResolvedValue(supabase);
 
     const { applyPackageBuilderDraft } = await import("@/lib/ai/package-builder/apply");
-    const draftHash = buildPackageDraftHash(draft);
-    const result = await applyPackageBuilderDraft({
-      mode: "apply",
-      draft,
-      draftHash,
-      draftToken: "server.token",
-      confirmation: { confirmed: true },
-      idempotencyKey: "idem-create-library-component",
-      userContext: {
-        userId: "44444444-4444-4444-8444-444444444444",
-        email: "user@example.com",
-        workspaceId: "55555555-5555-4555-8555-555555555555",
-        authMode: "supabase",
-      },
-      authorizationRunId: "99999999-9999-4999-8999-999999999999",
-    });
+    const result = await applyPackageBuilderDraft(makeInput(draft, "idem-create-library-component"));
 
-    expect(supabase.rpc).toHaveBeenCalledWith("create_ai_package_library_components_with_history", expect.objectContaining({
-      target_workspace_id: "55555555-5555-4555-8555-555555555555",
-      draft_id: "draft-create-library-component",
-      draft_hash: draftHash,
-      idempotency_key: "idem-create-library-component",
-      correlation_id: "99999999-9999-4999-8999-999999999999",
-      component_payloads: [
-        expect.objectContaining({
-          clientDraftId: "component-queen-bed-frame",
-          total: 18_000,
-          component: expect.objectContaining({
-            name: "Queen bed frame",
-            category: "Furniture",
-            supplier: "Bedroom Supplier",
-            unit: "set",
-            createdBy: "44444444-4444-4444-8444-444444444444",
-            metadata: expect.objectContaining({
-              source: "ask-flip",
-              isCustom: true,
-              createdFrom: "ask-flip-package-builder",
-              aiPackageBuilder: expect.objectContaining({
-                draftId: "draft-create-library-component",
-                draftHash,
-                idempotencyKey: "idem-create-library-component",
-              }),
-            }),
-          }),
-          priceOptions: [
-            expect.objectContaining({
-              label: "Default",
-              unit: "set",
-              unitCost: 18_000,
-              miscCost: 0,
-              currency: "PHP",
-              isDefault: true,
-              isActive: true,
-            }),
-          ],
-        }),
-      ],
-    }));
-    expect(observed.componentPayloads?.[0]?.component?.workspaceId).toBeUndefined();
-    expect(observed.componentPayloads?.[0]?.priceOptions).toHaveLength(1);
-    expect(supabase.rpc).not.toHaveBeenCalledWith("create_project_estimate_package_with_history", expect.anything());
     expect(result).toMatchObject({
+      projectId: null,
+      estimateId: null,
+      createdComponentCount: 1,
+      total: 18_000,
+      recoveryStatus: "completed",
+    });
+    expect(fixture.components).toHaveLength(1);
+    expect(fixture.priceOptions).toHaveLength(1);
+    expect(fixture.commands[0]).toMatchObject({ command_kind: "library_components_package", status: "completed" });
+    expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/library");
+  });
+
+  it("replays completed component Apply commands without duplicate writes", async () => {
+    const draft = makeLibraryComponentCreateDraft();
+    const resultJson = JSON.stringify({
       projectId: null,
       estimateId: null,
       selectedNodeId: null,
@@ -678,914 +658,227 @@ describe("package-builder Apply", () => {
       insertedRowIds: [],
       createdComponentIds: ["aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111"],
       createdComponentCount: 1,
+      total: 18_000,
+      warnings: draft.warnings,
       recoveryStatus: "completed",
-      idempotencyKey: "idem-create-library-component",
-      auditRunId: "99999999-9999-4999-8999-999999999999",
+      idempotencyKey: "idem-replay",
+      idempotentReplay: false,
+      auditRunId: AUTH_RUN_ID,
     });
-    expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/library");
-    expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/components");
-  });
-
-  it("replays component-library creation through the component Apply RPC without duplicate component writes", async () => {
-    const draft = makeLibraryComponentCreateDraft();
-    const draftHash = buildPackageDraftHash(draft);
-    const existingComponentId = "aaaaaaaa-1111-5aaa-8aaa-aaaaaaaa1111";
-    const supabase = {
-      from: vi.fn((table: string) => {
-        throw new Error(`Unexpected table ${table}`);
-      }),
-      rpc: vi.fn(async (fn: string) => {
-        if (fn === "create_ai_package_library_components_with_history") {
-          return {
-            data: {
-              projectId: null,
-              estimateId: null,
-              selectedNodeId: null,
-              createdNodeIds: {},
-              insertedRowIds: [],
-              createdComponentIds: [existingComponentId],
-              createdComponentCount: 1,
-              total: 18_000,
-              warnings: ["Review supplier and pricing before Apply."],
-              recoveryStatus: "idempotent_replay",
-              idempotencyKey: "idem-create-library-component",
-              idempotentReplay: true,
-              auditRunId: "99999999-9999-4999-8999-999999999999",
-            },
-            error: null,
-          };
-        }
-        throw new Error(`Unexpected RPC ${fn}`);
-      }),
-    };
-    supabaseMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const fixture = makeFixture({
+      commands: [{
+        id: "command-1",
+        workspace_id: WORKSPACE_ID,
+        idempotency_key: "idem-replay",
+        command_kind: "library_components_package",
+        draft_id: draft.draftId,
+        draft_hash: buildPackageDraftHash(draft),
+        status: "completed",
+        result_json: resultJson,
+      }],
+      components: [],
+      priceOptions: [],
+    });
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(makeD1(fixture));
 
     const { applyPackageBuilderDraft } = await import("@/lib/ai/package-builder/apply");
-    const result = await applyPackageBuilderDraft({
-      mode: "apply",
-      draft,
-      draftHash,
-      draftToken: "server.token",
-      confirmation: { confirmed: true },
-      idempotencyKey: "idem-create-library-component",
-      userContext: {
-        userId: "44444444-4444-4444-8444-444444444444",
-        email: "user@example.com",
-        workspaceId: "55555555-5555-4555-8555-555555555555",
-        authMode: "supabase",
-      },
-      authorizationRunId: "99999999-9999-4999-8999-999999999999",
-    });
+    const result = await applyPackageBuilderDraft(makeInput(draft, "idem-replay"));
 
-    expect(supabase.from).not.toHaveBeenCalled();
-    expect(supabase.rpc).toHaveBeenCalledTimes(1);
-    expect(supabase.rpc).toHaveBeenCalledWith("create_ai_package_library_components_with_history", expect.objectContaining({
-      target_workspace_id: "55555555-5555-4555-8555-555555555555",
-      draft_hash: draftHash,
-      idempotency_key: "idem-create-library-component",
-    }));
-    expect(result).toMatchObject({
-      projectId: null,
-      estimateId: null,
-      selectedNodeId: null,
-      createdComponentIds: [existingComponentId],
-      createdComponentCount: 1,
-      recoveryStatus: "idempotent_replay",
-      idempotencyKey: "idem-create-library-component",
-      idempotentReplay: true,
-      auditRunId: "99999999-9999-4999-8999-999999999999",
-    });
+    expect(result).toMatchObject({ recoveryStatus: "idempotent_replay", idempotentReplay: true });
+    expect(fixture.components).toHaveLength(0);
+    expect(fixture.priceOptions).toHaveLength(0);
   });
 
-  it("rejects component-library idempotency key reuse for a different draft hash", async () => {
+  it("rejects idempotency key reuse for a different draft hash", async () => {
     const draft = makeLibraryComponentCreateDraft();
-    const supabase = {
-      from: vi.fn((table: string) => {
-        throw new Error(`Unexpected table ${table}`);
-      }),
-      rpc: vi.fn(async (fn: string) => {
-        if (fn === "create_ai_package_library_components_with_history") {
-          return {
-            data: null,
-            error: { message: "Idempotency key already belongs to a different component draft." },
-          };
-        }
-        throw new Error(`Unexpected RPC ${fn}`);
-      }),
-    };
-    supabaseMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const fixture = makeFixture({
+      commands: [{
+        id: "command-1",
+        workspace_id: WORKSPACE_ID,
+        idempotency_key: "idem-conflict",
+        command_kind: "library_components_package",
+        draft_id: draft.draftId,
+        draft_hash: "different-hash",
+        status: "completed",
+        result_json: "{}",
+      }],
+    });
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(makeD1(fixture));
 
     const { applyPackageBuilderDraft } = await import("@/lib/ai/package-builder/apply");
-    await expect(applyPackageBuilderDraft({
-      mode: "apply",
-      draft,
-      draftHash: buildPackageDraftHash(draft),
-      draftToken: "server.token",
-      confirmation: { confirmed: true },
-      idempotencyKey: "idem-create-library-component",
-      userContext: {
-        userId: "44444444-4444-4444-8444-444444444444",
-        email: "user@example.com",
-        workspaceId: "55555555-5555-4555-8555-555555555555",
-        authMode: "supabase",
-      },
-      authorizationRunId: "99999999-9999-4999-8999-999999999999",
-    })).rejects.toThrow("Idempotency key already belongs to a different component draft.");
-    expect(supabase.rpc).toHaveBeenCalledWith("create_ai_package_library_components_with_history", expect.anything());
+    await expect(applyPackageBuilderDraft(makeInput(draft, "idem-conflict"))).rejects.toThrow(
+      "Idempotency key already belongs to a different component draft.",
+    );
   });
 
-  it("sends natural 3-bedroom condo package drafts through the package Apply RPC with populated rows", async () => {
+  it("creates a package project, estimate, tree, rows, audit event, and completed command in D1", async () => {
     const draft = buildPackageBuilderDraft({
       message: "Make a project for me with an estimate sheet which is for a 3 bedroom condo unit.",
       readData: makeThreeBedroomCondoReadData(),
       providerResult: null,
     });
-    const observed: { packageDraft?: PackageBuilderDraft } = {};
-    const libraryQuery = makeQueryResult(makeLibraryValidationRows());
-    const insertedRowIds = draft.rowDraft.map((_, index) => `row-${index + 1}`);
-    const supabase = {
-      from: vi.fn((table: string) => {
-        if (table === "cost_library_items") return libraryQuery;
-        if (table === "estimate_row_items") return makeQueryResult([{ id: "eeeeeeee-5555-4eee-8eee-eeeeeeee5555", metadata: {} }]);
-        throw new Error(`Unexpected table ${table}`);
-      }),
-      rpc: vi.fn(async (fn: string, args: Record<string, unknown>) => {
-        if (fn === "create_project_estimate_package_with_history") {
-          observed.packageDraft = args.package_draft as PackageBuilderDraft;
-          return {
-            data: {
-              projectId: "aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111",
-              estimateId: "bbbbbbbb-2222-4bbb-8bbb-bbbbbbbb2222",
-              selectedNodeId: "cccccccc-3333-4ccc-8ccc-cccccccc3333",
-              createdNodeIds: {
-                "area-master-bedroom": "cccccccc-3333-4ccc-8ccc-cccccccc3333",
-              },
-              insertedRowIds,
-              total: draft.budgetSummary.draftTotal,
-              warnings: [],
-              recoveryStatus: "completed",
-              idempotencyKey: "idem-create-condo-package",
-              idempotentReplay: false,
-              auditRunId: "99999999-9999-4999-8999-999999999999",
-            },
-            error: null,
-          };
-        }
-        throw new Error(`Unexpected RPC ${fn}`);
-      }),
-    };
-    supabaseMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const fixture = makeFixture({ projects: [], estimates: [], tabs: [], nodes: [], rows: [], events: [] });
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(makeD1(fixture));
 
     const { applyPackageBuilderDraft } = await import("@/lib/ai/package-builder/apply");
-    const draftHash = buildPackageDraftHash(draft);
-    const result = await applyPackageBuilderDraft({
-      mode: "apply",
-      draft,
-      draftHash,
-      draftToken: "server.token",
-      confirmation: { confirmed: true },
-      idempotencyKey: "idem-create-condo-package",
-      userContext: {
-        userId: "44444444-4444-4444-8444-444444444444",
-        email: "user@example.com",
-        workspaceId: "55555555-5555-4555-8555-555555555555",
-        authMode: "supabase",
-      },
-      authorizationRunId: "99999999-9999-4999-8999-999999999999",
-    });
+    const result = await applyPackageBuilderDraft(makeInput(draft, "idem-create-condo-package"));
 
     expect(draft.intent).toBe("create_package_project");
-    expect(supabase.rpc).toHaveBeenCalledWith("create_project_estimate_package_with_history", expect.objectContaining({
-      target_workspace_id: "55555555-5555-4555-8555-555555555555",
-      draft_hash: draftHash,
-      idempotency_key: "idem-create-condo-package",
-      correlation_id: "99999999-9999-4999-8999-999999999999",
-    }));
-    expect(supabase.rpc).not.toHaveBeenCalledWith("insert_estimate_row_item_with_history", expect.anything());
-    expect(observed.packageDraft).toEqual(expect.objectContaining({
-      projectDraft: expect.objectContaining({ name: "3 Bedroom Condo Unit" }),
-      estimateDraft: expect.objectContaining({ name: "Initial 3 Bedroom Package Estimate" }),
-      metadata: expect.objectContaining({
-        aiPackageBuilder: expect.objectContaining({
-          draftHash,
-          idempotencyKey: "idem-create-condo-package",
-          source: "ask-flip",
-        }),
-      }),
-    }));
-
-    const packageDraft = observed.packageDraft;
-    expect(packageDraft).toBeDefined();
-    const bedroomAreaIds = new Set(
-      packageDraft?.treeDraft
-        .filter((node) => node.kind === "area" && node.name.toLowerCase().includes("bedroom"))
-        .map((node) => node.clientDraftId),
-    );
-    const toiletAreaIds = new Set(
-      packageDraft?.treeDraft
-        .filter((node) => node.kind === "area" && node.name.toLowerCase().includes("toilet"))
-        .map((node) => node.clientDraftId),
-    );
-    const bedRows = packageDraft?.rowDraft.filter((row) =>
-      bedroomAreaIds.has(row.targetAreaClientDraftId) && row.material === "Queen bed frame"
-    ) ?? [];
-    const waterClosetRows = packageDraft?.rowDraft.filter((row) =>
-      toiletAreaIds.has(row.targetAreaClientDraftId) && row.material === "Water closet"
-    ) ?? [];
-
-    expect(bedRows).toHaveLength(3);
-    expect(waterClosetRows).toHaveLength(2);
-    expect([...bedRows, ...waterClosetRows]).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        sourceType: "library_item",
-        sourceLibraryItemId: "11111111-1111-4111-8111-111111111111",
-        sourceSnapshot: expect.objectContaining({
-          sourceType: "library_item",
-          sourceLibraryItemId: "11111111-1111-4111-8111-111111111111",
-          componentVersionNumber: 1,
-          supplier: "Bedroom Supplier",
-        }),
-      }),
-      expect.objectContaining({
-        sourceType: "library_item",
-        sourceLibraryItemId: "22222222-2222-4222-8222-222222222222",
-        sourceSnapshot: expect.objectContaining({
-          sourceType: "library_item",
-          sourceLibraryItemId: "22222222-2222-4222-8222-222222222222",
-          componentVersionNumber: 1,
-          supplier: "Plumbing Supplier",
-        }),
-      }),
-    ]));
-    expect(result).toMatchObject({
-      projectId: "aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111",
-      estimateId: "bbbbbbbb-2222-4bbb-8bbb-bbbbbbbb2222",
-      insertedRowIds,
-      total: draft.budgetSummary.draftTotal,
-      recoveryStatus: "completed",
-      idempotencyKey: "idem-create-condo-package",
-      auditRunId: "99999999-9999-4999-8999-999999999999",
-    });
-    expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects");
-    expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111/estimates/cccccccc-3333-4ccc-8ccc-cccccccc3333");
+    expect(result.projectId).toEqual(expect.any(String));
+    expect(result.estimateId).toEqual(expect.any(String));
+    expect(result.insertedRowIds).toHaveLength(draft.rowDraft.length);
+    expect(result.total).toBe(draft.budgetSummary.draftTotal);
+    expect(fixture.projects).toHaveLength(1);
+    expect(fixture.estimates).toHaveLength(1);
+    expect(fixture.tabs).toHaveLength(1);
+    expect(fixture.nodes).toHaveLength(draft.treeDraft.length);
+    expect(fixture.rows).toHaveLength(draft.rowDraft.length);
+    expect(fixture.events.some((event) => event.event_type === "project_estimate_package_applied")).toBe(true);
+    expect(fixture.commands[0]).toMatchObject({ command_kind: "project_estimate_package", status: "completed" });
   });
 
-  it("applies fill-current-estimate drafts through the existing row-history RPC", async () => {
+  it("inserts fill-current-estimate allowance rows through D1 history events", async () => {
+    const fixture = makeFixture();
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(makeD1(fixture));
     const draft = makeFillCurrentEstimateDraft();
-    const rowSortQuery = makeQueryResult([{ node_id: "dddddddd-4444-4ddd-8ddd-dddddddd4444", sort_order: 4 }]);
-    const supabase = {
-      from: vi.fn((table: string) => {
-        if (table === "estimate_row_items") return rowSortQuery;
-        throw new Error(`Unexpected table ${table}`);
-      }),
-      rpc: vi.fn(async () => ({
-        data: { idempotent: false, rowId: "eeeeeeee-5555-4eee-8eee-eeeeeeee5555", row: {} },
-        error: null,
-      })),
-    };
-    supabaseMocks.createSupabaseServerClient.mockResolvedValue(supabase);
 
     const { applyPackageBuilderDraft } = await import("@/lib/ai/package-builder/apply");
-    const result = await applyPackageBuilderDraft({
-      mode: "apply",
-      draft,
-      draftHash: buildPackageDraftHash(draft),
-      draftToken: "server.token",
-      confirmation: { confirmed: true },
-      idempotencyKey: "idem-fill-current",
-      userContext: {
-        userId: "44444444-4444-4444-8444-444444444444",
-        email: "user@example.com",
-        workspaceId: "55555555-5555-4555-8555-555555555555",
-        authMode: "supabase",
-      },
-      authorizationRunId: "99999999-9999-4999-8999-999999999999",
-    });
+    const result = await applyPackageBuilderDraft(makeInput(draft, "idem-fill-current"));
 
-    expect(supabase.rpc).toHaveBeenCalledWith("insert_estimate_row_item_with_history", expect.objectContaining({
-      target_project_id: "aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111",
-      target_estimate_id: "bbbbbbbb-2222-4bbb-8bbb-bbbbbbbb2222",
-      target_node_id: "dddddddd-4444-4ddd-8ddd-dddddddd4444",
-      acting_user_id: "44444444-4444-4444-8444-444444444444",
-      correlation_id: expect.stringMatching(/^[0-9a-f-]{36}$/),
-      row_payload: expect.objectContaining({
-        material: "Master Bedroom bed allowance",
-        sortOrder: 5,
-        sourceLibraryItemId: null,
-        contingencyPercentage: 0,
-        adjustmentPercentage: 10,
-        linkState: "unlinked",
-      }),
-    }));
-    expect(supabase.rpc).not.toHaveBeenCalledWith("create_project_estimate_package_with_history", expect.anything());
     expect(result).toMatchObject({
-      projectId: "aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111",
-      estimateId: "bbbbbbbb-2222-4bbb-8bbb-bbbbbbbb2222",
-      selectedNodeId: "dddddddd-4444-4ddd-8ddd-dddddddd4444",
-      insertedRowIds: ["eeeeeeee-5555-4eee-8eee-eeeeeeee5555"],
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      selectedNodeId: AREA_NODE_ID,
       total: 28_500,
       recoveryStatus: "completed",
-      idempotencyKey: "idem-fill-current",
-      auditRunId: "99999999-9999-4999-8999-999999999999",
     });
-    expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111/estimates/dddddddd-4444-4ddd-8ddd-dddddddd4444");
+    const inserted = fixture.rows.find((row) => row.material === "Master Bedroom bed allowance");
+    expect(inserted).toMatchObject({ node_id: AREA_NODE_ID, sort_order: 5, link_state: "unlinked" });
+    expect(fixture.events.some((event) => event.event_type === "estimate_row_inserted")).toBe(true);
   });
 
-  it("creates missing Area Nodes before inserting fill-current-estimate rows", async () => {
-    const draft = makeFillCurrentEstimateDraftWithNewArea();
-    const rowSortQuery = makeQueryResult([]);
-    const supabase = {
-      from: vi.fn((table: string) => {
-        if (table === "estimate_row_items") return rowSortQuery;
-        throw new Error(`Unexpected table ${table}`);
-      }),
-      rpc: vi.fn(async (fn: string) => {
-        if (fn === "create_estimate_node_with_history") {
-          return {
-            data: {
-              idempotent: false,
-              nodeId: "eeeeeeee-5555-4eee-8eee-eeeeeeee5555",
-              name: "Master Bedroom",
-              kind: "area",
-            },
-            error: null,
-          };
-        }
-        if (fn === "insert_estimate_row_item_with_history") {
-          return {
-            data: { idempotent: false, rowId: "ffffffff-6666-4fff-8fff-ffffffff6666", row: {} },
-            error: null,
-          };
-        }
-        throw new Error(`Unexpected RPC ${fn}`);
-      }),
-    };
-    supabaseMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+  it("creates missing Area Nodes before inserting fill-current rows", async () => {
+    const draft = makeFillCurrentEstimateDraft({
+      target: {
+        projectId: PROJECT_ID,
+        estimateId: ESTIMATE_ID,
+        selectedNodeId: ROOT_NODE_ID,
+        activeTabId: TAB_ID,
+        nodeIdsByClientDraftId: { "existing-root": ROOT_NODE_ID },
+        areaNodeIdsByClientDraftId: {},
+      },
+      treeDraft: [
+        { clientDraftId: "existing-root", kind: "group", name: "Current Estimate", parentClientDraftId: null, sortOrder: 0 },
+        { clientDraftId: "area-master-bedroom", kind: "area", name: "Master Bedroom", parentClientDraftId: "existing-root", sortOrder: 0 },
+      ],
+      rowDraft: [{
+        ...makeFillCurrentEstimateDraft().rowDraft[0],
+        targetAreaClientDraftId: "area-master-bedroom",
+      }],
+      operations: [
+        { operationId: "op-tree-master-bedroom", type: "create_tree_node", clientDraftId: "area-master-bedroom", applyEligible: true },
+        { operationId: "op-row-bedroom-bed", type: "insert_allowance_row", clientDraftId: "row-bedroom-bed", applyEligible: true },
+      ],
+    });
+    const fixture = makeFixture({ rows: [] });
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(makeD1(fixture));
 
     const { applyPackageBuilderDraft } = await import("@/lib/ai/package-builder/apply");
-    const result = await applyPackageBuilderDraft({
-      mode: "apply",
-      draft,
-      draftHash: buildPackageDraftHash(draft),
-      draftToken: "server.token",
-      confirmation: { confirmed: true },
-      idempotencyKey: "idem-fill-current-new-area",
-      userContext: {
-        userId: "44444444-4444-4444-8444-444444444444",
-        email: "user@example.com",
-        workspaceId: "55555555-5555-4555-8555-555555555555",
-        authMode: "supabase",
-      },
-      authorizationRunId: "99999999-9999-4999-8999-999999999999",
-    });
+    const result = await applyPackageBuilderDraft(makeInput(draft, "idem-fill-current-new-area"));
 
-    expect(supabase.rpc).toHaveBeenCalledWith("create_estimate_node_with_history", expect.objectContaining({
-      target_project_id: "aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111",
-      target_estimate_id: "bbbbbbbb-2222-4bbb-8bbb-bbbbbbbb2222",
-      parent_node_id: "cccccccc-3333-4ccc-8ccc-cccccccc3333",
-      node_kind: "area",
-      node_name: "Master Bedroom",
-      initial_sort_order: 0,
-      acting_user_id: "44444444-4444-4444-8444-444444444444",
-      correlation_id: expect.stringMatching(/^[0-9a-f-]{36}$/),
-      target_tab_id: "ffffffff-ffff-4fff-8fff-ffffffffffff",
-    }));
-    expect(supabase.rpc).toHaveBeenCalledWith("insert_estimate_row_item_with_history", expect.objectContaining({
-      target_node_id: "eeeeeeee-5555-4eee-8eee-eeeeeeee5555",
-      row_payload: expect.objectContaining({
-        material: "Master Bedroom bed allowance",
-        sortOrder: 0,
-      }),
-    }));
-    expect(supabase.rpc).not.toHaveBeenCalledWith("create_project_estimate_package_with_history", expect.anything());
-    expect(result).toMatchObject({
-      projectId: "aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111",
-      estimateId: "bbbbbbbb-2222-4bbb-8bbb-bbbbbbbb2222",
-      createdNodeIds: {
-        "area-master-bedroom": "eeeeeeee-5555-4eee-8eee-eeeeeeee5555",
-      },
-      insertedRowIds: ["ffffffff-6666-4fff-8fff-ffffffff6666"],
-      recoveryStatus: "completed",
-    });
+    expect(Object.keys(result.createdNodeIds)).toEqual(["area-master-bedroom"]);
+    const createdAreaId = result.createdNodeIds["area-master-bedroom"];
+    expect(fixture.nodes.find((node) => node.id === createdAreaId)).toMatchObject({ kind: "area", parent_id: ROOT_NODE_ID });
+    expect(fixture.rows.find((row) => row.node_id === createdAreaId)).toBeDefined();
   });
 
-  it("updates existing fill-current-estimate rows through the row-history RPC", async () => {
-    const draft = makeFillCurrentEstimateRowUpdateDraft();
-    const supabase = {
-      from: vi.fn((table: string) => {
-        throw new Error(`Unexpected table ${table}`);
-      }),
-      rpc: vi.fn(async (fn: string) => {
-        if (fn === "update_estimate_row_item_with_history") {
-          return {
-            data: {
-              idempotent: false,
-              rowId: "eeeeeeee-5555-4eee-8eee-eeeeeeee5555",
-              row: {
-                id: "eeeeeeee-5555-4eee-8eee-eeeeeeee5555",
-                nodeId: "dddddddd-4444-4ddd-8ddd-dddddddd4444",
-                quantity: 2,
-                unitCost: 25_000,
-                contingencyPercentage: 0,
-                adjustmentPercentage: -12,
-                contingencyValue: 0,
-                miscCost: 1_500,
-                linkState: "unlinked",
-                rowRevision: 4,
-              },
-            },
-            error: null,
-          };
-        }
-        throw new Error(`Unexpected RPC ${fn}`);
-      }),
-    };
-    supabaseMocks.createSupabaseServerClient.mockResolvedValue(supabase);
-
-    const { applyPackageBuilderDraft } = await import("@/lib/ai/package-builder/apply");
-    const result = await applyPackageBuilderDraft({
-      mode: "apply",
-      draft,
-      draftHash: buildPackageDraftHash(draft),
-      draftToken: "server.token",
-      confirmation: { confirmed: true },
-      idempotencyKey: "idem-fill-current-update",
-      userContext: {
-        userId: "44444444-4444-4444-8444-444444444444",
-        email: "user@example.com",
-        workspaceId: "55555555-5555-4555-8555-555555555555",
-        authMode: "supabase",
-      },
-      authorizationRunId: "99999999-9999-4999-8999-999999999999",
-    });
-
-    expect(supabase.rpc).toHaveBeenCalledWith("update_estimate_row_item_with_history", expect.objectContaining({
-      target_project_id: "aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111",
-      target_estimate_id: "bbbbbbbb-2222-4bbb-8bbb-bbbbbbbb2222",
-      target_row_id: "eeeeeeee-5555-4eee-8eee-eeeeeeee5555",
-      expected_row_revision: 3,
-      row_patch: {
-        quantity: 2,
-        miscCost: 1_500,
-        adjustmentPercentage: -12,
-      },
-      acting_user_id: "44444444-4444-4444-8444-444444444444",
-      correlation_id: expect.stringMatching(/^[0-9a-f-]{36}$/),
-    }));
-    expect(supabase.rpc).not.toHaveBeenCalledWith("insert_estimate_row_item_with_history", expect.anything());
-    expect(supabase.rpc).not.toHaveBeenCalledWith("create_project_estimate_package_with_history", expect.anything());
-    expect(result).toMatchObject({
-      projectId: "aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111",
-      estimateId: "bbbbbbbb-2222-4bbb-8bbb-bbbbbbbb2222",
-      selectedNodeId: "dddddddd-4444-4ddd-8ddd-dddddddd4444",
-      insertedRowIds: [],
-      updatedRowIds: ["eeeeeeee-5555-4eee-8eee-eeeeeeee5555"],
-      recoveryStatus: "completed",
-      idempotencyKey: "idem-fill-current-update",
-    });
-    expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111/estimates/dddddddd-4444-4ddd-8ddd-dddddddd4444");
-  });
-
-  it("renames current-estimate nodes through the node-history RPC", async () => {
-    const draft = makeFillCurrentEstimateNodeRenameDraft();
-    const supabase = {
-      from: vi.fn((table: string) => {
-        throw new Error(`Unexpected table ${table}`);
-      }),
-      rpc: vi.fn(async (fn: string) => {
-        if (fn === "rename_estimate_node_with_history") {
-          return {
-            data: {
-              idempotent: false,
-              nodeId: "dddddddd-4444-4ddd-8ddd-dddddddd4444",
-              name: "Primary Bedroom",
-            },
-            error: null,
-          };
-        }
-        throw new Error(`Unexpected RPC ${fn}`);
-      }),
-    };
-    supabaseMocks.createSupabaseServerClient.mockResolvedValue(supabase);
-
-    const { applyPackageBuilderDraft } = await import("@/lib/ai/package-builder/apply");
-    const result = await applyPackageBuilderDraft({
-      mode: "apply",
-      draft,
-      draftHash: buildPackageDraftHash(draft),
-      draftToken: "server.token",
-      confirmation: { confirmed: true },
-      idempotencyKey: "idem-fill-current-node-rename",
-      userContext: {
-        userId: "44444444-4444-4444-8444-444444444444",
-        email: "user@example.com",
-        workspaceId: "55555555-5555-4555-8555-555555555555",
-        authMode: "supabase",
-      },
-      authorizationRunId: "99999999-9999-4999-8999-999999999999",
-    });
-
-    expect(supabase.rpc).toHaveBeenCalledWith("rename_estimate_node_with_history", expect.objectContaining({
-      target_project_id: "aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111",
-      target_estimate_id: "bbbbbbbb-2222-4bbb-8bbb-bbbbbbbb2222",
-      target_node_id: "dddddddd-4444-4ddd-8ddd-dddddddd4444",
-      next_name: "Primary Bedroom",
-      acting_user_id: "44444444-4444-4444-8444-444444444444",
-      correlation_id: expect.stringMatching(/^[0-9a-f-]{36}$/),
-    }));
-    expect(supabase.rpc).not.toHaveBeenCalledWith("insert_estimate_row_item_with_history", expect.anything());
-    expect(supabase.rpc).not.toHaveBeenCalledWith("create_project_estimate_package_with_history", expect.anything());
-    expect(result).toMatchObject({
-      projectId: "aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111",
-      estimateId: "bbbbbbbb-2222-4bbb-8bbb-bbbbbbbb2222",
-      selectedNodeId: "dddddddd-4444-4ddd-8ddd-dddddddd4444",
-      insertedRowIds: [],
-      renamedNodeIds: ["dddddddd-4444-4ddd-8ddd-dddddddd4444"],
-      recoveryStatus: "completed",
-      idempotencyKey: "idem-fill-current-node-rename",
-    });
-    expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111/estimates/dddddddd-4444-4ddd-8ddd-dddddddd4444");
-  });
-
-  it("replaces existing fill-current-estimate rows through the row-history RPC", async () => {
-    const draft = makeFillCurrentEstimateRowReplacementDraft();
-    const libraryQuery = makeQueryResult([
-      {
-        id: "11111111-1111-4111-8111-111111111111",
-        workspace_id: "55555555-5555-4555-8555-555555555555",
-        name: "Queen bed frame",
+  it("replaces and deletes existing rows through D1 row history guards", async () => {
+    const replacementDraft = makeFillCurrentEstimateDraft({
+      rowDraft: [],
+      rowReplacementDraft: [{
+        clientDraftId: "replace-row",
+        targetRowId: ROW_ID,
+        expectedRowRevision: 3,
+        sourceLibraryItemId: "11111111-1111-4111-8111-111111111111",
+        priceOptionId: null,
+        priceOptionUpdatedAt: null,
+        material: "Queen bed frame",
         description: "Standard bed frame for condo bedrooms.",
         supplier: "Bedroom Supplier",
-        supplier_id: null,
-        category: "Furniture",
-        category_node_id: null,
-        brand: null,
-        brand_id: null,
-        unit: "pc",
-        unit_cost: 18_000,
-        misc_cost: 0,
-        lifecycle_state: "available",
-        current_version_number: 1,
-        active_price_option_id: null,
-        pricing_date: "2026-05-28",
-        pricing_source: "Component library",
-        confidence: "catalog",
-        thumbnail_path: null,
-      },
-    ]);
-    const supabase = {
-      from: vi.fn((table: string) => {
-        if (table === "cost_library_items") return libraryQuery;
-        if (table === "estimate_row_items") return makeQueryResult([{ id: "eeeeeeee-5555-4eee-8eee-eeeeeeee5555", metadata: {} }]);
-        throw new Error(`Unexpected table ${table}`);
-      }),
-      rpc: vi.fn(async (fn: string) => {
-        if (fn === "replace_estimate_row_item_with_history") {
-          return {
-            data: {
-              idempotent: false,
-              rowId: "eeeeeeee-5555-4eee-8eee-eeeeeeee5555",
-              row: {
-                id: "eeeeeeee-5555-4eee-8eee-eeeeeeee5555",
-                nodeId: "dddddddd-4444-4ddd-8ddd-dddddddd4444",
-                material: "Queen bed frame",
-                rowRevision: 4,
-              },
-            },
-            error: null,
-          };
-        }
-        throw new Error(`Unexpected RPC ${fn}`);
-      }),
-    };
-    supabaseMocks.createSupabaseServerClient.mockResolvedValue(supabase);
-
-    const { applyPackageBuilderDraft } = await import("@/lib/ai/package-builder/apply");
-    const result = await applyPackageBuilderDraft({
-      mode: "apply",
-      draft,
-      draftHash: buildPackageDraftHash(draft),
-      draftToken: "server.token",
-      confirmation: { confirmed: true },
-      idempotencyKey: "idem-fill-current-replace",
-      userContext: {
-        userId: "44444444-4444-4444-8444-444444444444",
-        email: "user@example.com",
-        workspaceId: "55555555-5555-4555-8555-555555555555",
-        authMode: "supabase",
-      },
-      authorizationRunId: "99999999-9999-4999-8999-999999999999",
-    });
-
-    expect(supabase.rpc).toHaveBeenCalledWith("replace_estimate_row_item_with_history", expect.objectContaining({
-      target_project_id: "aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111",
-      target_estimate_id: "bbbbbbbb-2222-4bbb-8bbb-bbbbbbbb2222",
-      target_row_id: "eeeeeeee-5555-4eee-8eee-eeeeeeee5555",
-      expected_row_revision: 3,
-      acting_user_id: "44444444-4444-4444-8444-444444444444",
-      correlation_id: expect.stringMatching(/^[0-9a-f-]{36}$/),
-      replacement_payload: expect.objectContaining({
-        sourceLibraryItemId: "11111111-1111-4111-8111-111111111111",
-        material: "Queen bed frame",
-        supplier: "Bedroom Supplier",
+        quantity: 1,
         unit: "pc",
         unitCost: 18_000,
-        contingencyPercentage: 0,
+        miscCost: 0,
+        contingencyPercentage: -8,
         adjustmentPercentage: -8,
-        linkState: "linked-clean",
-      }),
-    }));
-    expect(supabase.rpc).not.toHaveBeenCalledWith("insert_estimate_row_item_with_history", expect.anything());
-    expect(supabase.rpc).not.toHaveBeenCalledWith("create_project_estimate_package_with_history", expect.anything());
-    expect(result).toMatchObject({
-      projectId: "aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111",
-      estimateId: "bbbbbbbb-2222-4bbb-8bbb-bbbbbbbb2222",
-      insertedRowIds: [],
-      updatedRowIds: [],
-      replacedRowIds: ["eeeeeeee-5555-4eee-8eee-eeeeeeee5555"],
-      recoveryStatus: "completed",
-      idempotencyKey: "idem-fill-current-replace",
+        category: "Furniture",
+        categoryPath: ["Furniture"],
+        supplierId: null,
+        brand: null,
+        currentVersionNumber: 1,
+        warnings: [],
+        applyEligible: true,
+        sourceSnapshot: { sourceType: "library_item", sourceLibraryItemId: "11111111-1111-4111-8111-111111111111", componentVersionNumber: 1 },
+      }],
+      operations: [{ operationId: "op-replace-row", type: "replace_existing_row", clientDraftId: "replace-row", applyEligible: true }],
     });
-    expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111/estimates/dddddddd-4444-4ddd-8ddd-dddddddd4444");
-  });
-
-  it("replaces package-builder express target rows through the row-history RPC", async () => {
-    const draft = makeFillCurrentEstimateRowReplacementDraft();
-    const libraryQuery = makeQueryResult(makeLibraryValidationRows());
-    const supabase = {
-      from: vi.fn((table: string) => {
-        if (table === "cost_library_items") return libraryQuery;
-        if (table === "estimate_row_items") return makeQueryResult([]);
-        throw new Error(`Unexpected table ${table}`);
-      }),
-      rpc: vi.fn(async (fn: string) => {
-        if (fn === "replace_estimate_row_item_with_history") {
-          return {
-            data: {
-              idempotent: false,
-              rowId: "eeeeeeee-5555-4eee-8eee-eeeeeeee5555",
-              row: {
-                id: "eeeeeeee-5555-4eee-8eee-eeeeeeee5555",
-                nodeId: "dddddddd-4444-4ddd-8ddd-dddddddd4444",
-                material: "Queen bed frame",
-                rowRevision: 4,
-              },
-            },
-            error: null,
-          };
-        }
-        throw new Error(`Unexpected RPC ${fn}`);
-      }),
-    };
-    supabaseMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const fixture = makeFixture();
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(makeD1(fixture));
 
     const { applyPackageBuilderDraft } = await import("@/lib/ai/package-builder/apply");
-    const result = await applyPackageBuilderDraft({
-      mode: "apply",
-      draft,
-      draftHash: buildPackageDraftHash(draft),
-      draftToken: "server.token",
-      confirmation: { confirmed: true },
-      idempotencyKey: "idem-fill-current-replace-express",
-      userContext: {
-        userId: "44444444-4444-4444-8444-444444444444",
-        email: "user@example.com",
-        workspaceId: "55555555-5555-4555-8555-555555555555",
-        authMode: "supabase",
-      },
-      authorizationRunId: "99999999-9999-4999-8999-999999999999",
-    });
+    const replacement = await applyPackageBuilderDraft(makeInput(replacementDraft, "idem-replace-row"));
 
-    expect(supabase.rpc).toHaveBeenCalledWith("replace_estimate_row_item_with_history", expect.objectContaining({
-      target_project_id: "aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111",
-      target_estimate_id: "bbbbbbbb-2222-4bbb-8bbb-bbbbbbbb2222",
-      target_row_id: "eeeeeeee-5555-4eee-8eee-eeeeeeee5555",
-      expected_row_revision: 3,
-      replacement_payload: expect.objectContaining({
-        sourceLibraryItemId: "11111111-1111-4111-8111-111111111111",
-        material: "Queen bed frame",
-        linkState: "linked-clean",
-        metadata: expect.objectContaining({
-          aiPackageBuilder: expect.objectContaining({ replacement: true }),
-        }),
-      }),
-    }));
-    const replaceCall = supabase.rpc.mock.calls.find(([fn]) => fn === "replace_estimate_row_item_with_history");
-    expect(replaceCall?.[1].replacement_payload.metadata).not.toHaveProperty("expressComponent");
-    expect(result.replacedRowIds).toEqual(["eeeeeeee-5555-4eee-8eee-eeeeeeee5555"]);
+    expect(replacement.replacedRowIds).toEqual([ROW_ID]);
+    expect(fixture.events.some((event) => event.event_type === "estimate_row_updated")).toBe(true);
+
+    const deleteDraft = makeFillCurrentEstimateDraft({
+      rowDraft: [],
+      rowDeleteDraft: [{
+        clientDraftId: "delete-row",
+        targetRowId: ROW_ID,
+        expectedRowRevision: 4,
+        warnings: [],
+        applyEligible: true,
+      }],
+      operations: [{ operationId: "op-delete-row", type: "delete_existing_row", clientDraftId: "delete-row", applyEligible: true }],
+    });
+    const deleted = await applyPackageBuilderDraft(makeInput(deleteDraft, "idem-delete-row"));
+
+    expect(deleted.deletedRowIds).toEqual([ROW_ID]);
+    expect(fixture.rows.find((row) => row.id === ROW_ID)).toBeUndefined();
+    expect(fixture.events.some((event) => event.event_type === "estimate_row_deleted")).toBe(true);
   });
 
-  it("deletes existing fill-current-estimate rows through the row-history RPC", async () => {
-    const draft = makeFillCurrentEstimateRowDeleteDraft();
-    const supabase = {
-      from: vi.fn((table: string) => {
-        throw new Error(`Unexpected table ${table}`);
-      }),
-      rpc: vi.fn(async (fn: string) => {
-        if (fn === "delete_estimate_row_item_with_history") {
-          return {
-            data: {
-              idempotent: false,
-              rowId: "eeeeeeee-5555-4eee-8eee-eeeeeeee5555",
-              deletedRow: {
-                id: "eeeeeeee-5555-4eee-8eee-eeeeeeee5555",
-                nodeId: "dddddddd-4444-4ddd-8ddd-dddddddd4444",
-                material: "Existing bed",
-              },
-            },
-            error: null,
-          };
-        }
-        throw new Error(`Unexpected RPC ${fn}`);
-      }),
-    };
-    supabaseMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+  it("inserts matched templates into the current estimate through D1", async () => {
+    const draft = makeFillCurrentEstimateDraft({
+      rowDraft: [],
+      templateInsertDraft: [{
+        clientDraftId: "insert-template-condo-starter",
+        sourceTemplateId: "11111111-1111-4111-8111-111111111111",
+        sourceTemplateName: "3 Bedroom Condo Starter",
+        targetParentClientDraftId: "existing-root",
+        expectedNodeCount: 1,
+        expectedRowCount: 1,
+        previewTotal: 32_000,
+        warnings: [],
+        applyEligible: true,
+      }],
+      operations: [{
+        operationId: "op-template-insert-template-condo-starter",
+        type: "insert_template",
+        clientDraftId: "insert-template-condo-starter",
+        applyEligible: true,
+      }],
+    });
+    const fixture = makeFixture();
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(makeD1(fixture));
 
     const { applyPackageBuilderDraft } = await import("@/lib/ai/package-builder/apply");
-    const result = await applyPackageBuilderDraft({
-      mode: "apply",
-      draft,
-      draftHash: buildPackageDraftHash(draft),
-      draftToken: "server.token",
-      confirmation: { confirmed: true },
-      idempotencyKey: "idem-fill-current-delete",
-      userContext: {
-        userId: "44444444-4444-4444-8444-444444444444",
-        email: "user@example.com",
-        workspaceId: "55555555-5555-4555-8555-555555555555",
-        authMode: "supabase",
-      },
-      authorizationRunId: "99999999-9999-4999-8999-999999999999",
-    });
+    const result = await applyPackageBuilderDraft(makeInput(draft, "idem-template-insert"));
 
-    expect(supabase.rpc).toHaveBeenCalledWith("delete_estimate_row_item_with_history", expect.objectContaining({
-      target_project_id: "aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111",
-      target_estimate_id: "bbbbbbbb-2222-4bbb-8bbb-bbbbbbbb2222",
-      target_row_id: "eeeeeeee-5555-4eee-8eee-eeeeeeee5555",
-      expected_row_revision: 3,
-      acting_user_id: "44444444-4444-4444-8444-444444444444",
-      correlation_id: expect.stringMatching(/^[0-9a-f-]{36}$/),
-    }));
-    expect(supabase.rpc).not.toHaveBeenCalledWith("insert_estimate_row_item_with_history", expect.anything());
-    expect(supabase.rpc).not.toHaveBeenCalledWith("update_estimate_row_item_with_history", expect.anything());
-    expect(supabase.rpc).not.toHaveBeenCalledWith("replace_estimate_row_item_with_history", expect.anything());
-    expect(supabase.rpc).not.toHaveBeenCalledWith("insert_estimate_template_into_estimate_with_history", expect.anything());
-    expect(supabase.rpc).not.toHaveBeenCalledWith("create_project_estimate_package_with_history", expect.anything());
-    expect(result).toMatchObject({
-      projectId: "aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111",
-      estimateId: "bbbbbbbb-2222-4bbb-8bbb-bbbbbbbb2222",
-      insertedRowIds: [],
-      updatedRowIds: [],
-      replacedRowIds: [],
-      deletedRowIds: ["eeeeeeee-5555-4eee-8eee-eeeeeeee5555"],
-      recoveryStatus: "completed",
-      idempotencyKey: "idem-fill-current-delete",
-    });
-    expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111/estimates/dddddddd-4444-4ddd-8ddd-dddddddd4444");
-  });
-
-  it("copies template row previews into the current estimate through the row-history RPC", async () => {
-    const draft = makeFillCurrentEstimateTemplateRowCopyDraft();
-    const supabase = {
-      from: vi.fn((table: string) => {
-        if (table === "estimate_row_items") return makeQueryResult([{ node_id: "dddddddd-4444-4ddd-8ddd-dddddddd4444", sort_order: 4 }]);
-        throw new Error(`Unexpected table ${table}`);
-      }),
-      rpc: vi.fn(async (fn: string) => {
-        if (fn === "insert_estimate_row_item_with_history") {
-          return {
-            data: {
-              idempotent: false,
-              rowId: "77777777-7777-4777-8777-777777777777",
-            },
-            error: null,
-          };
-        }
-        throw new Error(`Unexpected RPC ${fn}`);
-      }),
-    };
-    supabaseMocks.createSupabaseServerClient.mockResolvedValue(supabase);
-
-    const { applyPackageBuilderDraft } = await import("@/lib/ai/package-builder/apply");
-    const result = await applyPackageBuilderDraft({
-      mode: "apply",
-      draft,
-      draftHash: buildPackageDraftHash(draft),
-      draftToken: "server.token",
-      confirmation: { confirmed: true },
-      idempotencyKey: "idem-fill-current-template-row-copy",
-      userContext: {
-        userId: "44444444-4444-4444-8444-444444444444",
-        email: "user@example.com",
-        workspaceId: "55555555-5555-4555-8555-555555555555",
-        authMode: "supabase",
-      },
-      authorizationRunId: "99999999-9999-4999-8999-999999999999",
-    });
-
-    expect(supabase.rpc).toHaveBeenCalledWith("insert_estimate_row_item_with_history", expect.objectContaining({
-      target_project_id: "aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111",
-      target_estimate_id: "bbbbbbbb-2222-4bbb-8bbb-bbbbbbbb2222",
-      target_node_id: "dddddddd-4444-4ddd-8ddd-dddddddd4444",
-      acting_user_id: "44444444-4444-4444-8444-444444444444",
-      correlation_id: expect.stringMatching(/^[0-9a-f-]{36}$/),
-      row_payload: expect.objectContaining({
-        sortOrder: 5,
-        material: "Template bedroom paint finish",
-        description: "Paint finish copied from a workspace template.",
-        supplier: "Template Supplier",
-        unit: "lot",
-        quantity: 1,
-        unitCost: 30_000,
-        miscCost: 2_000,
-        contingencyPercentage: 0,
-        adjustmentPercentage: 5,
-        designation: "AI template row",
-        linkState: "unlinked",
-        sourceSnapshot: expect.objectContaining({
-          sourceType: "estimate_template_row",
-          sourceTemplateId: "11111111-1111-4111-8111-111111111111",
-          sourceTemplateRowId: "99999999-9999-4999-8999-999999999999",
-          notSupplierPriced: true,
-        }),
-      }),
-    }));
-    expect(supabase.rpc).not.toHaveBeenCalledWith("insert_estimate_template_into_estimate_with_history", expect.anything());
-    expect(result).toMatchObject({
-      projectId: "aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111",
-      estimateId: "bbbbbbbb-2222-4bbb-8bbb-bbbbbbbb2222",
-      insertedRowIds: ["77777777-7777-4777-8777-777777777777"],
-      updatedRowIds: [],
-      replacedRowIds: [],
-      deletedRowIds: [],
-      recoveryStatus: "completed",
-      idempotencyKey: "idem-fill-current-template-row-copy",
-    });
-    expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111/estimates/dddddddd-4444-4ddd-8ddd-dddddddd4444");
-  });
-
-  it("inserts matched templates into the current estimate through the template-history RPC", async () => {
-    const draft = makeFillCurrentEstimateTemplateInsertDraft();
-    const supabase = {
-      from: vi.fn((table: string) => {
-        throw new Error(`Unexpected table ${table}`);
-      }),
-      rpc: vi.fn(async (fn: string) => {
-        if (fn === "insert_estimate_template_into_estimate_with_history") {
-          return {
-            data: {
-              idempotent: false,
-              inserted_root_node_ids: ["ffffffff-6666-4fff-8fff-ffffffff6666"],
-              inserted_node_count: 4,
-              inserted_row_item_count: 8,
-              eventId: "12121212-1212-4121-8121-121212121212",
-            },
-            error: null,
-          };
-        }
-        throw new Error(`Unexpected RPC ${fn}`);
-      }),
-    };
-    supabaseMocks.createSupabaseServerClient.mockResolvedValue(supabase);
-
-    const { applyPackageBuilderDraft } = await import("@/lib/ai/package-builder/apply");
-    const result = await applyPackageBuilderDraft({
-      mode: "apply",
-      draft,
-      draftHash: buildPackageDraftHash(draft),
-      draftToken: "server.token",
-      confirmation: { confirmed: true },
-      idempotencyKey: "idem-fill-current-template",
-      userContext: {
-        userId: "44444444-4444-4444-8444-444444444444",
-        email: "user@example.com",
-        workspaceId: "55555555-5555-4555-8555-555555555555",
-        authMode: "supabase",
-      },
-      authorizationRunId: "99999999-9999-4999-8999-999999999999",
-    });
-
-    expect(supabase.rpc).toHaveBeenCalledWith("insert_estimate_template_into_estimate_with_history", expect.objectContaining({
-      target_project_id: "aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111",
-      target_estimate_id: "bbbbbbbb-2222-4bbb-8bbb-bbbbbbbb2222",
-      target_parent_node_id: "cccccccc-3333-4ccc-8ccc-cccccccc3333",
-      source_template_id: "11111111-1111-4111-8111-111111111111",
-      acting_user_id: "44444444-4444-4444-8444-444444444444",
-      correlation_id: expect.stringMatching(/^[0-9a-f-]{36}$/),
-    }));
-    expect(supabase.rpc).not.toHaveBeenCalledWith("insert_estimate_row_item_with_history", expect.anything());
-    expect(supabase.rpc).not.toHaveBeenCalledWith("create_project_estimate_package_with_history", expect.anything());
-    expect(result).toMatchObject({
-      projectId: "aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111",
-      estimateId: "bbbbbbbb-2222-4bbb-8bbb-bbbbbbbb2222",
-      insertedRowIds: [],
-      updatedRowIds: [],
-      insertedTemplateRootNodeIds: ["ffffffff-6666-4fff-8fff-ffffffff6666"],
-      insertedTemplateNodeCount: 4,
-      insertedTemplateRowCount: 8,
-      recoveryStatus: "completed",
-      idempotencyKey: "idem-fill-current-template",
-    });
-    expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111/estimates/cccccccc-3333-4ccc-8ccc-cccccccc3333");
+    expect(result.insertedTemplateNodeCount).toBe(1);
+    expect(result.insertedTemplateRowCount).toBe(1);
+    expect(result.insertedTemplateRootNodeIds).toHaveLength(1);
+    expect(fixture.events.some((event) => event.event_type === "estimate_template_inserted")).toBe(true);
   });
 });

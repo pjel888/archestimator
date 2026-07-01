@@ -75,11 +75,11 @@ describe("runtime upload storage provider selection", () => {
       .toThrow("Unsupported upload storage provider: mystery-storage");
   });
 
-  it("rejects the retired Supabase storage provider name", () => {
-    process.env.ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER = "supabase";
+  it("rejects a retired storage provider name", () => {
+    process.env.ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER = "legacy-storage";
 
     expect(() => readRuntimeUploadStorageProvider())
-      .toThrow("Supabase upload storage has been retired; use Cloudflare R2.");
+      .toThrow("Unsupported upload storage provider: legacy-storage");
   });
 });
 

@@ -28,7 +28,8 @@ describe("component brand schema", () => {
     expect(supabaseTypes).toContain("brand_id: string | null");
     expect(supabaseTypes).toContain('referencedRelation: "component_brands"');
     expect(repository).toContain("export type ComponentLibraryBrand");
-    expect(repository).toContain(".from(\"component_brands\")");
+    expect(repository).toContain("FROM component_brands");
+    expect(repository).toContain("WHERE workspace_id = ?");
     expect(repository).toContain("brands,");
   });
 });

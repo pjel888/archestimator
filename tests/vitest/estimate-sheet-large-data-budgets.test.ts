@@ -36,12 +36,14 @@ describe("estimate sheet large-data budgets", () => {
     expect(actions).toContain("REUSABLE_SOURCE_SEARCH_TAB_SCAN_LIMIT");
     expect(actions).toContain("REUSABLE_SOURCE_SEARCH_TREE_NODE_LIMIT");
     expect(actions).toContain("listProjectEstimateSheets(item.project.id, { limit: REUSABLE_SOURCE_SEARCH_ESTIMATE_SCAN_LIMIT })");
-    expect(actions).toContain(".limit(REUSABLE_SOURCE_SEARCH_NODE_MATCH_LIMIT + 1)");
-    expect(actions).toContain(".limit(REUSABLE_SOURCE_SEARCH_TAB_MATCH_LIMIT + 1)");
+    expect(actions).toContain("LIMIT ?");
+    expect(actions).toContain("REUSABLE_SOURCE_SEARCH_NODE_MATCH_LIMIT + 1");
+    expect(actions).toContain("REUSABLE_SOURCE_SEARCH_TAB_MATCH_LIMIT + 1");
     expect(actions).toContain("getEstimateTabTree(project.id, estimate.id, tab.id, {");
     expect(actions).toContain("maxNodeCount: REUSABLE_SOURCE_SEARCH_TREE_NODE_LIMIT");
     expect(actions).toContain("maxRowItemCount: REUSABLE_SOURCE_SEARCH_TREE_ROW_ITEM_LIMIT");
     expect(workspaceRepository).toContain("listProjectEstimateSheets(projectId: string, options: { limit?: number } = {})");
-    expect(sheetRepository).toContain("query.limit(safeLimit)");
+    expect(sheetRepository).toContain("normalizeProjectEstimateSheetLimit");
+    expect(sheetRepository).toContain("LIMIT ?");
   });
 });

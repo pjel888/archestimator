@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const authMocks = vi.hoisted(() => ({
-  requireAuth: vi.fn(),
   requireCurrentUserContext: vi.fn(),
 }));
 
@@ -9,154 +8,71 @@ const workspaceMocks = vi.hoisted(() => ({
   ensureDefaultWorkspace: vi.fn(),
 }));
 
-const supabaseServerMocks = vi.hoisted(() => ({
-  createSupabaseServerClient: vi.fn(),
+const d1Mocks = vi.hoisted(() => ({
+  getCloudflareD1Database: vi.fn(),
+}));
+
+const authzMocks = vi.hoisted(() => ({
+  canEditEstimateInD1: vi.fn(),
+  isWorkspaceEditorInD1: vi.fn(),
+  isWorkspaceMemberInD1: vi.fn(),
 }));
 
 vi.mock("@/lib/auth/session", () => authMocks);
 vi.mock("@/lib/repositories/workspace-repository", () => workspaceMocks);
-vi.mock("@/lib/supabase/server", () => supabaseServerMocks);
+vi.mock("@/lib/cloudflare/d1", () => d1Mocks);
+vi.mock("@/lib/authz/d1-access", () => authzMocks);
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
-function mockViewerSupabaseClient() {
-  const rpc = vi.fn(async (name: string) => {
-    if (name === "is_workspace_editor") return { data: false, error: null };
-    return { data: null, error: null };
-  });
-  const from = vi.fn(() => {
-    throw new Error("viewer folder mutations must stop before table access");
-  });
-  supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
-  return { from, rpc };
-}
+const WORKSPACE_ID = "workspace-1";
+const USER_ID = "user-1";
+const FOLDER_ID = "00000000-0000-4000-8000-000000000001";
+const ITEM_ID = "00000000-0000-4000-8000-000000000002";
 
-function mockEditorSupabaseClient() {
-  const rpc = vi.fn(async (name: string) => {
-    if (name === "is_workspace_editor") return { data: true, error: null };
-    if (name === "delete_library_folder") return { data: null, error: null };
-    return { data: null, error: null };
-  });
-  const from = vi.fn(() => {
-    throw new Error("editor folder delete must use the transactional RPC");
-  });
-  supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
-  return { from, rpc };
-}
-
-function createAwaitableQuery<T>(result: T) {
-  return {
-    then(resolve: (value: T) => unknown, reject: (reason: unknown) => unknown) {
-      return Promise.resolve(result).then(resolve, reject);
-    },
-  };
-}
-
-function mockTopCreateSupabaseClient() {
-  const rpc = vi.fn(async (name: string) => {
-    if (name === "is_workspace_editor") return { data: true, error: null };
-    return { data: null, error: null };
-  });
-  const siblingQuery = {
-    ...createAwaitableQuery({
-      data: [
-        { id: "folder-a", sort_order: 0 },
-        { id: "folder-b", sort_order: 10 },
-      ],
-      error: null,
-    }),
-    select: vi.fn(),
-    eq: vi.fn(),
-    is: vi.fn(),
-  };
-  siblingQuery.select.mockReturnValue(siblingQuery);
-  siblingQuery.eq.mockReturnValue(siblingQuery);
-  siblingQuery.is.mockReturnValue(siblingQuery);
-
-  const updateQueries = [
-    {
-      ...createAwaitableQuery({ data: null, error: null }),
-      update: vi.fn(),
-      eq: vi.fn(),
-    },
-    {
-      ...createAwaitableQuery({ data: null, error: null }),
-      update: vi.fn(),
-      eq: vi.fn(),
-    },
-  ];
-  for (const query of updateQueries) {
-    query.update.mockReturnValue(query);
-    query.eq.mockReturnValue(query);
-  }
-
-  const insertQuery = {
-    insert: vi.fn(),
-    select: vi.fn(),
-    single: vi.fn(async () => ({
-      data: { id: "folder-new", workspace_id: "workspace-1", parent_id: null, name: "Top folder", sort_order: 0 },
-      error: null,
+function createD1Fixture(options: {
+  firstResults?: unknown[];
+  allResults?: unknown[][];
+} = {}) {
+  const firstResults = [...(options.firstResults ?? [])];
+  const allResults = [...(options.allResults ?? [])];
+  const statements: Array<{ sql: string; values: unknown[] }> = [];
+  const database = {
+    prepare: vi.fn((sql: string) => ({
+      bind: vi.fn((...values: unknown[]) => {
+        statements.push({ sql, values });
+        return {
+          first: vi.fn(async () => firstResults.shift() ?? null),
+          all: vi.fn(async () => ({ success: true, results: allResults.shift() ?? [] })),
+          run: vi.fn(async () => ({ success: true, meta: { changes: 1 } })),
+        };
+      }),
     })),
+    statements,
   };
-  insertQuery.insert.mockReturnValue(insertQuery);
-  insertQuery.select.mockReturnValue(insertQuery);
-
-  const queue = [siblingQuery, ...updateQueries, insertQuery];
-  const from = vi.fn((table: string) => {
-    if (table !== "library_folders") throw new Error(`unexpected table access: ${table}`);
-    const query = queue.shift();
-    if (!query) throw new Error("unexpected library_folders query");
-    return query;
-  });
-  supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
-  return { from, insertQuery, rpc, siblingQuery, updateQueries };
-}
-
-function createQueryResult(data: Record<string, unknown> | null) {
-  const query = {
-    select: vi.fn(),
-    eq: vi.fn(),
-    update: vi.fn(),
-    maybeSingle: vi.fn(async () => ({ data, error: null })),
-  };
-  query.select.mockReturnValue(query);
-  query.eq.mockReturnValue(query);
-  query.update.mockReturnValue(query);
-  return query;
-}
-
-function mockComponentMoveSupabaseClient() {
-  const rpc = vi.fn(async (name: string) => {
-    if (name === "is_workspace_editor") return { data: true, error: null };
-    return { data: null, error: null };
-  });
-  const folderQuery = createQueryResult({ id: "00000000-0000-4000-8000-000000000001" });
-  const componentQuery = createQueryResult({ id: "00000000-0000-4000-8000-000000000002" });
-  const from = vi.fn((table: string) => {
-    if (table === "library_folders") return folderQuery;
-    if (table === "cost_library_items") return componentQuery;
-    throw new Error(`unexpected table access: ${table}`);
-  });
-  supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
-  return { from, rpc, folderQuery, componentQuery };
+  d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+  return database;
 }
 
 beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
   workspaceMocks.ensureDefaultWorkspace.mockResolvedValue({
-    workspace: { id: "workspace-1" },
-    profile: { id: "user-1" },
+    workspace: { id: WORKSPACE_ID },
+    profile: { id: USER_ID },
   });
   authMocks.requireCurrentUserContext.mockResolvedValue({
-    userId: "user-1",
-    profile: { id: "user-1" },
+    userId: USER_ID,
+    profile: { id: USER_ID },
   });
-  authMocks.requireAuth.mockImplementation(() => authMocks.requireCurrentUserContext());
+  authzMocks.isWorkspaceEditorInD1.mockResolvedValue(true);
+  authzMocks.canEditEstimateInD1.mockResolvedValue(true);
+  authzMocks.isWorkspaceMemberInD1.mockResolvedValue(true);
 });
 
 describe("component library folder server actions", () => {
   it("blocks workspace viewers before any direct folder mutation path", async () => {
-    const supabase = mockViewerSupabaseClient();
+    const d1 = createD1Fixture();
+    authzMocks.isWorkspaceEditorInD1.mockResolvedValue(false);
     const actions = await import("@/lib/component-library/actions");
 
     await expect(actions.createLibraryFolder(null, "Viewer folder")).rejects.toThrow("Only workspace editors/admins can manage library folders.");
@@ -167,69 +83,104 @@ describe("component library folder server actions", () => {
     );
     await expect(
       actions.moveCostLibraryComponentToFolder({
-        itemId: "00000000-0000-4000-8000-000000000002",
-        libraryFolderId: "00000000-0000-4000-8000-000000000001",
+        itemId: ITEM_ID,
+        libraryFolderId: FOLDER_ID,
       }),
     ).rejects.toThrow("Only workspace editors/admins can manage library folders.");
 
-    expect(supabase.rpc).toHaveBeenCalledTimes(5);
-    expect(supabase.rpc).toHaveBeenCalledWith("is_workspace_editor", { target_workspace_id: "workspace-1" });
-    expect(supabase.from).not.toHaveBeenCalled();
+    expect(authzMocks.isWorkspaceEditorInD1).toHaveBeenCalledTimes(5);
+    expect(authzMocks.isWorkspaceEditorInD1).toHaveBeenCalledWith(d1, WORKSPACE_ID, expect.objectContaining({ userId: USER_ID }));
+    expect(d1.prepare).not.toHaveBeenCalled();
   });
 
-  it("deletes folders through the transactional delete RPC", async () => {
-    const supabase = mockEditorSupabaseClient();
-    const actions = await import("@/lib/component-library/actions");
-    const folderId = "00000000-0000-4000-8000-000000000001";
-
-    await expect(actions.deleteLibraryFolder(folderId)).resolves.toBeUndefined();
-
-    expect(supabase.rpc).toHaveBeenCalledWith("is_workspace_editor", { target_workspace_id: "workspace-1" });
-    expect(supabase.rpc).toHaveBeenCalledWith("delete_library_folder", {
-      target_workspace_id: "workspace-1",
-      target_folder_id: folderId,
+  it("deletes folders through ordered D1 updates and delete", async () => {
+    const d1 = createD1Fixture({
+      firstResults: [{
+        id: FOLDER_ID,
+        workspace_id: WORKSPACE_ID,
+        parent_id: null,
+        name: "Delete me",
+        sort_order: 10,
+        source_category_node_id: null,
+        folder_kind: "custom",
+        created_by: USER_ID,
+        created_at: "2026-01-01T00:00:00.000Z",
+        updated_at: "2026-01-01T00:00:00.000Z",
+      }],
     });
-    expect(supabase.from).not.toHaveBeenCalled();
+    const actions = await import("@/lib/component-library/actions");
+
+    await expect(actions.deleteLibraryFolder(FOLDER_ID)).resolves.toBeUndefined();
+
+    expect(authzMocks.isWorkspaceEditorInD1).toHaveBeenCalledWith(d1, WORKSPACE_ID, expect.objectContaining({ userId: USER_ID }));
+    expect(d1.statements.map((statement) => statement.sql)).toEqual(expect.arrayContaining([
+      expect.stringContaining("SELECT * FROM library_folders"),
+      expect.stringContaining("UPDATE library_folders SET parent_id = ?"),
+      expect.stringContaining("UPDATE cost_library_items SET library_folder_id = NULL"),
+      expect.stringContaining("DELETE FROM library_folders"),
+    ]));
   });
 
   it("creates a top folder without violating the non-negative sort order constraint", async () => {
-    const supabase = mockTopCreateSupabaseClient();
+    const d1 = createD1Fixture({
+      allResults: [[
+        { id: "folder-a", sort_order: 0 },
+        { id: "folder-b", sort_order: 10 },
+      ]],
+      firstResults: [{
+        id: "folder-new",
+        workspace_id: WORKSPACE_ID,
+        parent_id: null,
+        name: "Top folder",
+        sort_order: 0,
+        source_category_node_id: null,
+        folder_kind: "custom",
+        created_by: USER_ID,
+        created_at: "2026-01-01T00:00:00.000Z",
+        updated_at: "2026-01-01T00:00:00.000Z",
+      }],
+    });
     const actions = await import("@/lib/component-library/actions");
 
     await expect(actions.createLibraryFolder(null, "Top folder", { placement: "top" })).resolves.toMatchObject({
       folder: { id: "folder-new", sort_order: 0 },
     });
 
-    expect(supabase.siblingQuery.select).toHaveBeenCalledWith("id, sort_order");
-    expect(supabase.siblingQuery.is).toHaveBeenCalledWith("parent_id", null);
-    expect(supabase.updateQueries[0].update).toHaveBeenCalledWith({ sort_order: 20 });
-    expect(supabase.updateQueries[0].eq).toHaveBeenCalledWith("id", "folder-b");
-    expect(supabase.updateQueries[1].update).toHaveBeenCalledWith({ sort_order: 10 });
-    expect(supabase.updateQueries[1].eq).toHaveBeenCalledWith("id", "folder-a");
-    expect(supabase.insertQuery.insert).toHaveBeenCalledWith(expect.objectContaining({
-      name: "Top folder",
-      sort_order: 0,
-      workspace_id: "workspace-1",
-    }));
+    const updateStatements = d1.statements.filter((statement) => statement.sql.includes("UPDATE library_folders SET sort_order = ?"));
+    expect(updateStatements).toHaveLength(2);
+    expect(updateStatements[0]?.values[0]).toBe(20);
+    expect(updateStatements[0]?.values[2]).toBe("folder-b");
+    expect(updateStatements[1]?.values[0]).toBe(10);
+    expect(updateStatements[1]?.values[2]).toBe("folder-a");
+    const insert = d1.statements.find((statement) => statement.sql.includes("INSERT INTO library_folders"));
+    expect(insert?.values).toEqual(expect.arrayContaining([WORKSPACE_ID, null, "Top folder", 0, USER_ID]));
   });
 
   it("moves a component by updating only its library folder", async () => {
-    const supabase = mockComponentMoveSupabaseClient();
+    const d1 = createD1Fixture({
+      firstResults: [
+        { id: FOLDER_ID },
+        { id: ITEM_ID },
+      ],
+    });
     const actions = await import("@/lib/component-library/actions");
-    const folderId = "00000000-0000-4000-8000-000000000001";
-    const itemId = "00000000-0000-4000-8000-000000000002";
 
-    await expect(actions.moveCostLibraryComponentToFolder({ itemId, libraryFolderId: folderId })).resolves.toBeUndefined();
+    await expect(actions.moveCostLibraryComponentToFolder({ itemId: ITEM_ID, libraryFolderId: FOLDER_ID })).resolves.toBeUndefined();
 
-    expect(supabase.rpc).toHaveBeenCalledWith("is_workspace_editor", { target_workspace_id: "workspace-1" });
-    expect(supabase.from).toHaveBeenCalledWith("library_folders");
-    expect(supabase.folderQuery.select).toHaveBeenCalledWith("id");
-    expect(supabase.folderQuery.eq).toHaveBeenCalledWith("id", folderId);
-    expect(supabase.folderQuery.eq).toHaveBeenCalledWith("workspace_id", "workspace-1");
-    expect(supabase.from).toHaveBeenCalledWith("cost_library_items");
-    expect(supabase.componentQuery.update).toHaveBeenCalledWith({ library_folder_id: folderId });
-    expect(supabase.componentQuery.eq).toHaveBeenCalledWith("id", itemId);
-    expect(supabase.componentQuery.eq).toHaveBeenCalledWith("workspace_id", "workspace-1");
-    expect(supabase.componentQuery.select).toHaveBeenCalledWith("id");
+    expect(authzMocks.isWorkspaceEditorInD1).toHaveBeenCalledWith(d1, WORKSPACE_ID, expect.objectContaining({ userId: USER_ID }));
+    expect(d1.statements).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        sql: expect.stringContaining("SELECT id\n      FROM library_folders"),
+        values: [FOLDER_ID, WORKSPACE_ID],
+      }),
+      expect.objectContaining({
+        sql: expect.stringContaining("UPDATE cost_library_items SET library_folder_id = ?"),
+        values: [FOLDER_ID, expect.any(String), ITEM_ID, WORKSPACE_ID],
+      }),
+      expect.objectContaining({
+        sql: expect.stringContaining("SELECT id FROM cost_library_items"),
+        values: [ITEM_ID, WORKSPACE_ID],
+      }),
+    ]));
   });
 });

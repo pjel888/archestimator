@@ -469,7 +469,7 @@ describe("AI package-builder route", () => {
     expect(readTools).not.toHaveBeenCalled();
     expect(provider.createDraftSuggestion).not.toHaveBeenCalled();
     await expect(response.json()).resolves.toMatchObject({
-      error: "AI requires a real Supabase account session. Disable local admin DB bypass and sign in to use account data.",
+      error: "AI requires a signed-in account session. Disable local admin DB bypass and sign in to use account data.",
     });
   });
 
@@ -479,7 +479,7 @@ describe("AI package-builder route", () => {
         userId: "44444444-4444-4444-8444-444444444444",
         email: "user@example.com",
         workspaceId: "55555555-5555-4555-8555-555555555555",
-        authMode: "supabase",
+        authMode: "better-auth",
       }),
       readTools: async () => readData,
       provider: {
@@ -506,7 +506,7 @@ describe("AI package-builder route", () => {
       userId: "44444444-4444-4444-8444-444444444444",
       email: "user@example.com",
       workspaceId: "55555555-5555-4555-8555-555555555555",
-      authMode: "supabase" as const,
+      authMode: "better-auth" as const,
     };
     const draftResponse = await handlePackageBuilderRequest(makeRequest({ mode: "draft", message: "Assemble me a 3 bedroom package, budget is 5 million pesos." }), {
       getUserContext: async () => userContext,
@@ -588,7 +588,7 @@ describe("AI package-builder route", () => {
       userId: "44444444-4444-4444-8444-444444444444",
       email: "user@example.com",
       workspaceId: "55555555-5555-4555-8555-555555555555",
-      authMode: "supabase" as const,
+      authMode: "better-auth" as const,
     };
     const draftResponse = await handlePackageBuilderRequest(makeRequest({ mode: "draft", message: "Assemble me a 3 bedroom package, budget is 5 million pesos." }), {
       getUserContext: async () => userContext,
@@ -639,7 +639,7 @@ describe("AI package-builder route", () => {
       userId: "44444444-4444-4444-8444-444444444444",
       email: "user@example.com",
       workspaceId: "55555555-5555-4555-8555-555555555555",
-      authMode: "supabase" as const,
+      authMode: "better-auth" as const,
     };
     const draftResponse = await handlePackageBuilderRequest(makeRequest({ mode: "draft", message: "Assemble me a 3 bedroom package, budget is 5 million pesos." }), {
       getUserContext: async () => userContext,
@@ -806,7 +806,7 @@ describe("AI package-builder route", () => {
       userId: "44444444-4444-4444-8444-444444444444",
       email: "user@example.com",
       workspaceId: "55555555-5555-4555-8555-555555555555",
-      authMode: "supabase" as const,
+      authMode: "better-auth" as const,
     };
     const draftResponse = await handlePackageBuilderRequest(makeRequest({ mode: "draft", message: "Assemble me a 3 bedroom package, budget is 5 million pesos." }), {
       getUserContext: async () => userContext,
@@ -869,7 +869,7 @@ describe("AI package-builder route", () => {
       userId: "44444444-4444-4444-8444-444444444444",
       email: "user@example.com",
       workspaceId: "55555555-5555-4555-8555-555555555555",
-      authMode: "supabase" as const,
+      authMode: "better-auth" as const,
     };
     const draftResponse = await handlePackageBuilderRequest(makeRequest({ mode: "draft", message: "Assemble me a 3 bedroom package, budget is 5 million pesos." }), {
       getUserContext: async () => userContext,
@@ -920,7 +920,7 @@ describe("AI package-builder route", () => {
       userId: "44444444-4444-4444-8444-444444444444",
       email: "user@example.com",
       workspaceId: "55555555-5555-4555-8555-555555555555",
-      authMode: "supabase" as const,
+      authMode: "better-auth" as const,
     };
     const readTools = vi.fn(async () => readData);
     process.env.AI_PACKAGE_BUILDER_MEMORY_ENABLED = "1";
@@ -952,7 +952,7 @@ describe("AI package-builder route", () => {
       userId: "44444444-4444-4444-8444-444444444444",
       email: "user@example.com",
       workspaceId: "55555555-5555-4555-8555-555555555555",
-      authMode: "supabase" as const,
+      authMode: "better-auth" as const,
     };
     const provider = {
       name: "deepseek",
@@ -1025,7 +1025,7 @@ describe("AI package-builder route", () => {
         userId: "44444444-4444-4444-8444-444444444444",
         email: "user@example.com",
         workspaceId: "55555555-5555-4555-8555-555555555555",
-        authMode: "supabase",
+        authMode: "better-auth",
       }),
       readTools: async () => {
         throw new Error("read isolation check failed");
@@ -1045,7 +1045,7 @@ describe("AI package-builder route", () => {
         userId: "44444444-4444-4444-8444-444444444444",
         email: "user@example.com",
         workspaceId: "55555555-5555-4555-8555-555555555555",
-        authMode: "supabase",
+        authMode: "better-auth",
       }),
       readTools: async () => readData,
       provider: {
@@ -1074,7 +1074,7 @@ describe("AI package-builder route", () => {
         userId: "44444444-4444-4444-8444-444444444444",
         email: "user@example.com",
         workspaceId: "55555555-5555-4555-8555-555555555555",
-        authMode: "supabase",
+        authMode: "better-auth",
       }),
       readTools: async () => readDataWithTemplate,
       provider: {
@@ -1118,7 +1118,7 @@ describe("AI package-builder route", () => {
         userId: "44444444-4444-4444-8444-444444444444",
         email: "user@example.com",
         workspaceId: "55555555-5555-4555-8555-555555555555",
-        authMode: "supabase",
+        authMode: "better-auth",
       }),
       readTools: async () => readDataWithHistoricalRows,
       provider: {
@@ -1160,7 +1160,7 @@ describe("AI package-builder route", () => {
         userId: "44444444-4444-4444-8444-444444444444",
         email: "user@example.com",
         workspaceId: "55555555-5555-4555-8555-555555555555",
-        authMode: "supabase",
+        authMode: "better-auth",
       }),
       readTools: async () => readDataWithOrganizedLibrary,
       provider: {
@@ -1204,7 +1204,7 @@ describe("AI package-builder route", () => {
         userId: "44444444-4444-4444-8444-444444444444",
         email: "user@example.com",
         workspaceId: "55555555-5555-4555-8555-555555555555",
-        authMode: "supabase",
+        authMode: "better-auth",
       }),
       readTools: async () => readDataWithComparablePackages,
       provider: {
@@ -1281,7 +1281,7 @@ describe("AI package-builder route", () => {
           userId: "44444444-4444-4444-8444-444444444444",
           email: "user@example.com",
           workspaceId: "55555555-5555-4555-8555-555555555555",
-          authMode: "supabase",
+          authMode: "better-auth",
         }),
         readTools: async () => readDataWithCurrentRouteContext,
         provider: {
@@ -1350,7 +1350,7 @@ describe("AI package-builder route", () => {
           userId: "44444444-4444-4444-8444-444444444444",
           email: "user@example.com",
           workspaceId: "55555555-5555-4555-8555-555555555555",
-          authMode: "supabase",
+          authMode: "better-auth",
         }),
         readTools: async () => readDataWithPortfolioContext,
         provider: {
@@ -1402,7 +1402,7 @@ describe("AI package-builder route", () => {
           userId: "44444444-4444-4444-8444-444444444444",
           email: "user@example.com",
           workspaceId: "55555555-5555-4555-8555-555555555555",
-          authMode: "supabase",
+          authMode: "better-auth",
         }),
         readTools: async () => readDataWithCurrentRouteContext,
         provider: {
@@ -1441,7 +1441,7 @@ describe("AI package-builder route", () => {
           userId: "44444444-4444-4444-8444-444444444444",
           email: "user@example.com",
           workspaceId: "55555555-5555-4555-8555-555555555555",
-          authMode: "supabase",
+          authMode: "better-auth",
         }),
         readTools: async () => readDataWithEmptyCurrentEstimate,
         provider: {
@@ -1471,7 +1471,7 @@ describe("AI package-builder route", () => {
         userId: "44444444-4444-4444-8444-444444444444",
         email: "user@example.com",
         workspaceId: "55555555-5555-4555-8555-555555555555",
-        authMode: "supabase",
+        authMode: "better-auth",
       }),
       readTools: async () => readData,
       provider: {
@@ -1498,7 +1498,7 @@ describe("AI package-builder route", () => {
           userId: "44444444-4444-4444-8444-444444444444",
           email: "user@example.com",
           workspaceId: "55555555-5555-4555-8555-555555555555",
-          authMode: "supabase",
+          authMode: "better-auth",
         }),
         applyPackage: vi.fn(),
         authorizeApply: vi.fn(),
@@ -1516,7 +1516,7 @@ describe("AI package-builder route", () => {
         userId: "44444444-4444-4444-8444-444444444444",
         email: "user@example.com",
         workspaceId: "55555555-5555-4555-8555-555555555555",
-        authMode: "supabase",
+        authMode: "better-auth",
       }),
       readTools: async () => readData,
       provider: {
@@ -1559,7 +1559,7 @@ describe("AI package-builder route", () => {
           userId: "44444444-4444-4444-8444-444444444444",
           email: "user@example.com",
           workspaceId: "55555555-5555-4555-8555-555555555555",
-          authMode: "supabase",
+          authMode: "better-auth",
         }),
         applyPackage,
         authorizeApply,
@@ -1612,7 +1612,7 @@ describe("AI package-builder route", () => {
         userId: "44444444-4444-4444-8444-444444444444",
         email: "user@example.com",
         workspaceId: "55555555-5555-4555-8555-555555555555",
-        authMode: "supabase",
+        authMode: "better-auth",
       }),
       readTools: async () => readData,
       provider: {
@@ -1644,7 +1644,7 @@ describe("AI package-builder route", () => {
           userId: "44444444-4444-4444-8444-444444444444",
           email: "user@example.com",
           workspaceId: "55555555-5555-4555-8555-555555555555",
-          authMode: "supabase",
+          authMode: "better-auth",
         }),
         applyPackage,
         authorizeApply,
@@ -1669,7 +1669,7 @@ describe("AI package-builder route", () => {
       userId: "44444444-4444-4444-8444-444444444444",
       email: "user@example.com",
       workspaceId: "55555555-5555-4555-8555-555555555555",
-      authMode: "supabase" as const,
+      authMode: "better-auth" as const,
     };
     const prompt = "Add a component to my library called Queen bed frame, category Furniture, unit set, cost 18000 pesos from Bedroom Supplier.";
     const draftResponse = await handlePackageBuilderRequest(
@@ -1766,7 +1766,7 @@ describe("AI package-builder route", () => {
       userId: "44444444-4444-4444-8444-444444444444",
       email: "user@example.com",
       workspaceId: "55555555-5555-4555-8555-555555555555",
-      authMode: "supabase" as const,
+      authMode: "better-auth" as const,
     };
     const prompt = "Make a project for me with an estimate sheet which is for a 3 bedroom condo unit.";
     const readTools = vi.fn(async () => makeExactThreeBedroomCondoReadData());
@@ -1900,7 +1900,7 @@ describe("AI package-builder route", () => {
       userId: "44444444-4444-4444-8444-444444444444",
       email: "user@example.com",
       workspaceId: "55555555-5555-4555-8555-555555555555",
-      authMode: "supabase" as const,
+      authMode: "better-auth" as const,
     };
     const draftResponse = await handlePackageBuilderRequest(makeRequest({ mode: "draft", message: "Assemble me a 3 bedroom package, budget is 5 million pesos." }), {
       getUserContext: async () => userContext,
@@ -1974,7 +1974,7 @@ describe("AI package-builder route", () => {
         userId: "44444444-4444-4444-8444-444444444444",
         email: "user@example.com",
         workspaceId: "55555555-5555-4555-8555-555555555555",
-        authMode: "supabase",
+        authMode: "better-auth",
       }),
       readTools: async () => readData,
       provider: {
@@ -2004,7 +2004,7 @@ describe("AI package-builder route", () => {
           userId: "44444444-4444-4444-8444-444444444444",
           email: "user@example.com",
           workspaceId: "55555555-5555-4555-8555-555555555555",
-          authMode: "supabase",
+          authMode: "better-auth",
         }),
         applyPackage,
         authorizeApply,
@@ -2055,7 +2055,7 @@ describe("AI package-builder route", () => {
         userId: "44444444-4444-4444-8444-444444444444",
         email: "user@example.com",
         workspaceId: "55555555-5555-4555-8555-555555555555",
-        authMode: "supabase",
+        authMode: "better-auth",
       }),
       readTools: async () => readToolsData,
       provider: {
@@ -2088,7 +2088,7 @@ describe("AI package-builder route", () => {
           userId: "44444444-4444-4444-8444-444444444444",
           email: "user@example.com",
           workspaceId: "55555555-5555-4555-8555-555555555555",
-          authMode: "supabase",
+          authMode: "better-auth",
         }),
         applyPackage,
         authorizeApply,
@@ -2108,7 +2108,7 @@ describe("AI package-builder route", () => {
         userId: "44444444-4444-4444-8444-444444444444",
         email: "user@example.com",
         workspaceId: "55555555-5555-4555-8555-555555555555",
-        authMode: "supabase",
+        authMode: "better-auth",
       }),
       readTools: async () => readData,
       provider: {
@@ -2137,7 +2137,7 @@ describe("AI package-builder route", () => {
           userId: "44444444-4444-4444-8444-444444444444",
           email: "user@example.com",
           workspaceId: "55555555-5555-4555-8555-555555555555",
-          authMode: "supabase",
+          authMode: "better-auth",
         }),
         applyPackage,
         authorizeApply,
@@ -2157,7 +2157,7 @@ describe("AI package-builder route", () => {
         userId: "44444444-4444-4444-8444-444444444444",
         email: "user@example.com",
         workspaceId: "55555555-5555-4555-8555-555555555555",
-        authMode: "supabase",
+        authMode: "better-auth",
       }),
       readTools: async () => readData,
       provider: {
@@ -2185,7 +2185,7 @@ describe("AI package-builder route", () => {
           userId: "44444444-4444-4444-8444-444444444444",
           email: "user@example.com",
           workspaceId: "55555555-5555-4555-8555-555555555555",
-          authMode: "supabase",
+          authMode: "better-auth",
         }),
         authorizeApply: vi.fn(async () => {
           throw new Error("service-role audit unavailable");

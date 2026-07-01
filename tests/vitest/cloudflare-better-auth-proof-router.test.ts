@@ -67,6 +67,8 @@ class FakeD1Database {
 function createEnv() {
   return {
     ARCH_DB: new FakeD1Database(),
+    BETTER_AUTH_GOOGLE_CLIENT_ID: "google-client-id",
+    BETTER_AUTH_GOOGLE_CLIENT_SECRET: "google-client-secret",
     BETTER_AUTH_SECRET: "x".repeat(64),
     BETTER_AUTH_TRUSTED_ORIGINS: "https://archestimator-proof.example.workers.dev",
     BETTER_AUTH_URL: "https://archestimator-proof.example.workers.dev",
@@ -160,6 +162,7 @@ describe("Cloudflare Better Auth provider proof router", () => {
     expect(body.result.expectedTablesPresent).toBe(true);
     expect(body.result.expectedIndexesPresent).toBe(true);
     expect(body.result.secretProviderReady).toBe(true);
+    expect(body.result.googleOAuthProviderReady).toBe(true);
     expect(body.result.providerSessionFixtureReady).toBe(true);
     expect(body.result.magicLinkCutover).toMatchObject({
       magicLinkRequestReady: true,
@@ -174,8 +177,10 @@ describe("Cloudflare Better Auth provider proof router", () => {
     });
     expect(body.result.cleanupReady).toBe(true);
     expect(body.result.rowsRemaining).toBe(0);
+    expect(body.readiness.googleOAuthProviderReady).toBe(true);
     expect(body.readiness.providerBackedCallbackSessionCutoverReady).toBe(true);
     expect(body.readiness.betterAuthProviderProofReady).toBe(true);
+    expect(body.readiness.productionCutoverReady).toBe(true);
     expect(body.blockers).toEqual([]);
     expect(env.ARCH_DB.user).toBeNull();
     expect(env.ARCH_DB.session).toBeNull();

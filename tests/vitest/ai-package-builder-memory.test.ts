@@ -1,10 +1,48 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const d1Mocks = vi.hoisted(() => ({
+  getCloudflareD1Database: vi.fn(),
+}));
+
+vi.mock("@/lib/cloudflare/d1", () => d1Mocks);
 
 import {
   collectPackageBuilderMemorySignals,
+  hasPackageBuilderMemorySchema,
+  readPackageBuilderMemoryPreferences,
+  recordPackageBuilderMemorySignals,
   summarizePackageBuilderMemoryRows,
 } from "@/lib/ai/package-builder/memory";
 import type { PackageBuilderDraft } from "@/lib/ai/package-builder/schemas";
+
+const userContext = {
+  userId: "44444444-4444-4444-8444-444444444444",
+  email: "user@example.com",
+  workspaceId: "55555555-5555-4555-8555-555555555555",
+  authMode: "better-auth" as const,
+};
+
+function makeD1Database(rows: unknown[] = []) {
+  const observed = {
+    statements: [] as Array<{ sql: string; values: unknown[] }>,
+  };
+  const database = {
+    prepare: vi.fn((sql: string) => ({
+      bind: vi.fn((...values: unknown[]) => {
+        observed.statements.push({ sql, values });
+        return {
+          all: vi.fn(async () => ({ success: true, results: rows })),
+          first: vi.fn(async () => null),
+          run: vi.fn(async () => ({ success: true })),
+        };
+      }),
+      all: vi.fn(async () => ({ success: true, results: rows })),
+      first: vi.fn(async () => null),
+      run: vi.fn(async () => ({ success: true })),
+    })),
+  };
+  return { database, observed };
+}
 
 const draft: PackageBuilderDraft = {
   schemaVersion: 1,
@@ -107,6 +145,11 @@ const draft: PackageBuilderDraft = {
 };
 
 describe("AI package-builder memory", () => {
+  beforeEach(() => {
+    d1Mocks.getCloudflareD1Database.mockReset();
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(null);
+  });
+
   it("collects only safe component and template source signals from accepted or rejected drafts", () => {
     const signals = collectPackageBuilderMemorySignals({
       draft,
@@ -194,5 +237,90 @@ describe("AI package-builder memory", () => {
         score: 4,
       }),
     ]);
+  });
+
+  it("probes package-builder memory schema through D1", async () => {
+    const { database, observed } = makeD1Database([{ source_id: "11111111-1111-4111-8111-111111111111" }]);
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+
+    await expect(hasPackageBuilderMemorySchema()).resolves.toBe(true);
+    expect(observed.statements).toEqual([
+      expect.objectContaining({
+        sql: expect.stringContaining("FROM ai_package_builder_memory_preferences"),
+        values: [],
+      }),
+    ]);
+  });
+
+  it("reads package-builder memory preferences through D1", async () => {
+    const { database, observed } = makeD1Database([
+      {
+        signal: "accepted",
+        source_type: "library_item",
+        source_id: "11111111-1111-4111-8111-111111111111",
+        source_label: "Preferred bedroom bed frame",
+        room_name: "Bedroom 1",
+        operation_type: "insert_component_row",
+        weight: 1,
+        created_at: "2026-05-28T00:00:00.000Z",
+      },
+    ]);
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+
+    const result = await readPackageBuilderMemoryPreferences({ userContext });
+
+    expect(observed.statements).toEqual([
+      expect.objectContaining({
+        sql: expect.stringContaining("FROM ai_package_builder_memory_preferences"),
+        values: [userContext.workspaceId, userContext.userId, 80],
+      }),
+    ]);
+    expect(result.componentSignals).toEqual([
+      expect.objectContaining({
+        sourceLibraryItemId: "11111111-1111-4111-8111-111111111111",
+        sourceLabel: "Preferred bedroom bed frame",
+        score: 4,
+      }),
+    ]);
+  });
+
+  it("records package-builder memory signals through D1", async () => {
+    const { database, observed } = makeD1Database();
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+
+    await recordPackageBuilderMemorySignals({
+      userContext,
+      draft,
+      draftHash: "sha256:memory",
+      signal: "accepted",
+    });
+
+    expect(observed.statements).toHaveLength(2);
+    expect(observed.statements).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        sql: expect.stringContaining("INSERT INTO ai_package_builder_memory_preferences"),
+        values: expect.arrayContaining([
+          userContext.workspaceId,
+          userContext.userId,
+          "accepted",
+          "library_item",
+          "11111111-1111-4111-8111-111111111111",
+          "package-draft-memory",
+          "sha256:memory",
+        ]),
+      }),
+      expect.objectContaining({
+        sql: expect.stringContaining("INSERT INTO ai_package_builder_memory_preferences"),
+        values: expect.arrayContaining([
+          userContext.workspaceId,
+          userContext.userId,
+          "accepted",
+          "template",
+          "22222222-2222-4222-8222-222222222222",
+          "package-draft-memory",
+          "sha256:memory",
+        ]),
+      }),
+    ]));
   });
 });

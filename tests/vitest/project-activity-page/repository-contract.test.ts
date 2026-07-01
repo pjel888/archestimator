@@ -4,12 +4,15 @@ import { describe, expect, it } from "vitest";
 const repositoryPath = "src/lib/repositories/project-activity-feed-repository.ts";
 
 describe("project activity feed repository contract", () => {
-  it("uses the scoped collaboration-audit RPC instead of direct table reads", () => {
+  it("uses Cloudflare D1 for collaboration audit reads", () => {
     const source = readFileSync(repositoryPath, "utf8");
 
     expect(source).toContain('import "server-only"');
-    expect(source).toContain('rpc("read_project_collaboration_audit_events"');
-    expect(source).not.toContain('.from("collaboration_audit_events")');
+    expect(source).toContain("getCloudflareD1Database");
+    expect(source).toContain("FROM collaboration_audit_events");
+    expect(source).not.toContain('rpc("read_project_collaboration_audit_events"');
+    expect(source).not.toContain("createSupabaseServerClient");
+    expect(source).not.toContain("@/lib/supabase/server");
     expect(source).not.toContain("service_role");
     expect(source).not.toContain("supabaseAdmin");
   });
@@ -25,9 +28,12 @@ describe("project activity feed repository contract", () => {
   it("uses exact source counts outside the pagination cursor", () => {
     const source = readFileSync(repositoryPath, "utf8");
 
-    expect(source).toContain('.select("id", { count: "exact", head: true })');
+    expect(source).toContain("SELECT COUNT(*) AS count FROM estimate_sheet_events");
+    expect(source).toContain("SELECT COUNT(*) AS count FROM shared_link_comments");
+    expect(source).toContain("SELECT COUNT(*) AS count FROM collaboration_audit_events");
     expect(source).toContain("readExactCounts");
-    expect(source).toContain("target_action_buckets");
+    expect(source).toContain("collaborationEventTypesForActions");
+    expect(source).not.toContain('{ count: "exact", head: true }');
     expect(source).not.toContain("estimateCount(");
     expect(source).not.toContain("deriveCounts(");
   });

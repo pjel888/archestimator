@@ -7,10 +7,12 @@ describe("project activity route contracts", () => {
 
     expect(source).toContain('export const dynamic = "force-dynamic"');
     expect(source).toContain("requireCurrentUserContext()");
-    expect(source).toContain('rpc("can_edit_project"');
+    expect(source).toContain("canEditProjectInD1");
+    expect(source).toContain("getCloudflareD1Database");
     expect(source).toContain('"Cache-Control": "private, no-store, max-age=0"');
     expect(source).toContain("readProjectActivityFeed");
     expect(source).not.toContain('Cache-Control": "public');
+    expect(source).not.toContain("createSupabaseServerClient");
     expect(source).not.toContain("service_role");
     expect(source).not.toContain("supabaseAdmin");
   });
@@ -28,8 +30,10 @@ describe("project activity route contracts", () => {
     const source = readFileSync("src/app/workshop/projects/[projectId]/activity/page.tsx", "utf8");
 
     expect(source).toContain("requireCurrentUserContext()");
-    expect(source).toContain('rpc("can_edit_project"');
+    expect(source).toContain("canEditProjectInD1");
+    expect(source).toContain("getCloudflareD1Database");
     expect(source).toContain("if (!canEdit)");
     expect(source).toContain("readProjectActivityFeed");
+    expect(source).not.toContain("createSupabaseServerClient");
   });
 });

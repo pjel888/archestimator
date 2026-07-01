@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 
+import { isUuid } from "@/lib/ids";
 // Error classes moved out of the "use server" group-actions module (Next.js only allows
 // async-function exports there). No vi.resetModules() is used, so the cached graph keeps a
 // single class identity — instanceof against these statically-imported classes is valid.
@@ -14,16 +15,32 @@ const supabaseMocks = vi.hoisted(() => ({
   createSupabaseServerClient: vi.fn(),
 }));
 
+const authMocks = vi.hoisted(() => ({
+  requireAuth: vi.fn(),
+}));
+
 const nextCacheMocks = vi.hoisted(() => ({
   revalidatePath: vi.fn(),
 }));
+
+vi.mock("node:crypto", async () => {
+  const actual = await vi.importActual<typeof import("node:crypto")>("node:crypto");
+  return {
+    ...actual,
+    randomUUID: vi.fn(() => "cccccccc-cccc-4ccc-8ccc-cccccccccccc"),
+  };
+});
 
 vi.mock("@/lib/repositories/workspace-repository", () => ({
   ensureDefaultWorkspace: workspaceMocks.ensureDefaultWorkspace,
 }));
 
-vi.mock("@/lib/supabase/server", () => ({
-  createSupabaseServerClient: supabaseMocks.createSupabaseServerClient,
+vi.mock("@/lib/cloudflare/d1", () => ({
+  getCloudflareD1Database: supabaseMocks.createSupabaseServerClient,
+}));
+
+vi.mock("@/lib/auth/session", () => ({
+  requireAuth: authMocks.requireAuth,
 }));
 
 vi.mock("next/cache", () => ({
@@ -63,55 +80,107 @@ function makeSupabaseStub() {
     return { data: null, error: null, count: 0 };
   }
 
-  function builderFor(table: string) {
-    let result: StubResult = { data: null, error: null, count: 0 };
-    let resolved = false;
-    const ensure = () => {
-      if (!resolved) {
-        result = nextResult(table);
-        resolved = true;
-      }
-      return result;
-    };
-    // Shared per-builder filter log; pushed BY REFERENCE into each terminal-op call record so
-    // filters captured after the terminal op (.delete().eq(...)) are still visible.
-    const filters: Array<{ method: string; args: unknown[] }> = [];
-    const builder: Record<string, unknown> = {};
-    const chain = () => builder;
-    for (const method of ["select", "order", "limit"]) {
-      builder[method] = (..._args: unknown[]) => builder;
-    }
-    for (const method of ["eq", "in"]) {
-      builder[method] = (...args: unknown[]) => {
-        filters.push({ method, args });
-        return builder;
+  function tableFor(sql: string) {
+    if (sql.includes("project_group_memberships")) return "project_group_memberships";
+    if (sql.includes("project_groups")) return "project_groups";
+    if (sql.includes("workspace_members")) return "workspace_members";
+    if (sql.includes("projects")) return "projects";
+    return "unknown";
+  }
+
+  function opFor(sql: string) {
+    const normalized = sql.trim().toUpperCase();
+    if (normalized.startsWith("INSERT INTO PROJECT_GROUP_MEMBERSHIPS")) return "upsert";
+    if (normalized.startsWith("INSERT")) return "insert";
+    if (normalized.startsWith("UPDATE")) return "update";
+    if (normalized.startsWith("DELETE")) return "delete";
+    return "select";
+  }
+
+  function payloadFor(table: string, op: string, values: unknown[]) {
+    if (table === "project_groups" && op === "insert") {
+      return {
+        workspace_id: values[1],
+        user_id: values[2],
+        name: values[3],
+        accent_id: values[4],
+        position: values[5],
       };
     }
-    builder.insert = (payload: unknown) => {
-      calls.push({ table, op: "insert", payload, filters });
-      return builder;
-    };
-    builder.update = (payload: unknown) => {
-      calls.push({ table, op: "update", payload, filters });
-      return builder;
-    };
-    builder.delete = () => {
-      calls.push({ table, op: "delete", filters });
-      return builder;
-    };
-    builder.upsert = (payload: unknown, options?: unknown) => {
-      calls.push({ table, op: "upsert", payload, options, filters });
-      return builder;
-    };
-    builder.single = async () => ensure();
-    builder.maybeSingle = async () => ensure();
-    builder.then = (resolve: (value: StubResult) => unknown) => resolve(ensure());
-    void chain;
-    return builder;
+    if (table === "project_groups" && op === "update") {
+      if (typeof values[0] === "number") return { position: values[0], updated_at: values[1] };
+      if (values[0] === null || ["slate", "stone", "sage", "teal", "indigo", "plum", "rose", "clay"].includes(String(values[0]))) {
+        return { accent_id: values[0], updated_at: values[1] };
+      }
+      return { name: values[0], updated_at: values[1] };
+    }
+    if (table === "project_group_memberships" && op === "upsert") {
+      return {
+        group_id: values[1],
+        workspace_id: values[2],
+        user_id: values[3],
+        project_id: values[4],
+      };
+    }
+    return undefined;
+  }
+
+  function filtersFor(table: string, op: string, values: unknown[]) {
+    if (table === "project_groups" && (op === "update" || op === "delete")) {
+      const offset = op === "update" ? 2 : 0;
+      return [
+        { method: "eq", args: ["id", values[offset]] },
+        { method: "eq", args: ["user_id", values[offset + 1]] },
+        { method: "eq", args: ["workspace_id", values[offset + 2]] },
+      ];
+    }
+    if (table === "project_group_memberships" && op === "delete") {
+      return [
+        { method: "eq", args: ["user_id", values[0]] },
+        values.length === 2
+          ? { method: "eq", args: ["project_id", values[1]] }
+          : { method: "in", args: ["project_id", values.slice(1)] },
+      ];
+    }
+    return [] as Array<{ method: string; args: unknown[] }>;
+  }
+
+  function recordWrite(sql: string, values: unknown[]) {
+    const table = tableFor(sql);
+    const op = opFor(sql);
+    if (op === "select") return;
+    calls.push({
+      table,
+      op,
+      payload: payloadFor(table, op, values),
+      options: op === "upsert" ? { onConflict: "user_id,project_id" } : undefined,
+      filters: filtersFor(table, op, values),
+    });
   }
 
   return {
-    client: { from: (table: string) => builderFor(table) },
+    client: {
+      prepare: (sql: string) => ({
+        bind: (...values: unknown[]) => {
+          const table = tableFor(sql);
+          const result = nextResult(table);
+          recordWrite(sql, values);
+          const readResult = () => {
+            if (result.error) throw result.error;
+            if (result.count !== undefined) return { count: result.count };
+            return result.data;
+          };
+          return {
+            first: async () => readResult(),
+            all: async () => ({ success: true, results: (readResult() ?? []) as unknown[] }),
+            run: async () => {
+              if (result.error) throw result.error;
+              return { success: true };
+            },
+          };
+        },
+      }),
+    },
     queueResult(table: string, result: StubResult) {
       (queue[table] ??= []).push(result);
     },
@@ -125,6 +194,8 @@ beforeEach(() => {
     profile: { id: USER_ID },
   });
   supabaseMocks.createSupabaseServerClient.mockReset();
+  authMocks.requireAuth.mockReset();
+  authMocks.requireAuth.mockResolvedValue(undefined);
   nextCacheMocks.revalidatePath.mockReset();
 });
 
@@ -190,7 +261,7 @@ describe("createProjectGroup", () => {
 
     const result = await createProjectGroup({ name: "  Pipeline  ", accentId: "teal" });
 
-    expect(result).toEqual({ id: GROUP_ID });
+    expect(isUuid(result.id)).toBe(true);
     const insert = stub.calls.find((c) => c.op === "insert");
     expect(insert?.payload).toEqual({
       workspace_id: WORKSPACE_ID,
@@ -651,13 +722,13 @@ describe("bulkAssignProjectsToGroup", () => {
       groupId: GROUP_ID,
     });
 
-    const upsert = stub.calls.find((c) => c.op === "upsert");
-    expect(upsert?.table).toBe("project_group_memberships");
-    expect(Array.isArray(upsert?.payload)).toBe(true);
-    expect((upsert?.payload as Array<{ project_id: string }>).map((r) => r.project_id).sort()).toEqual(
+    const upserts = stub.calls.filter((c) => c.op === "upsert");
+    expect(upserts).toHaveLength(2);
+    expect(upserts.every((upsert) => upsert.table === "project_group_memberships")).toBe(true);
+    expect(upserts.map((u) => (u.payload as { project_id: string }).project_id).sort()).toEqual(
       [PROJECT_ID, PROJECT_ID_2].sort(),
     );
-    expect(upsert?.options).toEqual({ onConflict: "user_id,project_id" });
+    expect(upserts.every((upsert) => JSON.stringify(upsert.options) === JSON.stringify({ onConflict: "user_id,project_id" }))).toBe(true);
     // LD-11 result shape
     expect(result.movedProjectIds.sort()).toEqual([PROJECT_ID, PROJECT_ID_2].sort());
     expect(result.skippedProjectIds).toEqual([]);
@@ -801,7 +872,7 @@ describe("project group actions — source contract", () => {
   it("is a server-action module cloning the favorites skeleton", () => {
     expect(src).toContain('"use server"');
     expect(src).toContain("ensureDefaultWorkspace");
-    expect(src).toContain("createSupabaseServerClient");
+    expect(src).toContain("getCloudflareD1Database");
     expect(src).toContain('revalidatePath("/workshop")');
     expect(src).toContain('revalidatePath("/workshop/projects")');
   });
@@ -833,7 +904,7 @@ describe("project group actions — source contract", () => {
   });
 
   it("uses onConflict user_id,project_id for one-to-many membership", () => {
-    expect(src).toContain('onConflict: "user_id,project_id"');
+    expect(src).toContain("ON CONFLICT(user_id, project_id) DO UPDATE");
   });
 
   it("upserts memberships through project_group_memberships and never sets a projects.group_id column", () => {

@@ -24,12 +24,12 @@ describe("component attachment scan freeze", () => {
     expect(route).toContain("export async function GET");
     expect(route).toContain("export async function POST");
     expect(route).toContain("export async function DELETE");
-    expect(route).toContain('.from("cost_library_item_variant_attachments")');
-    expect(route).toContain('.from("upload_assets")');
+    expect(route).toContain("FROM cost_library_item_variant_attachments");
+    expect(route).toContain("FROM upload_assets");
     expect(route).toContain("decideUploadScanGate");
     expect(route).toContain("scan_override_expires_at");
     expect(route).toContain('"override_approved"');
-    expect(route).toContain('event_type: "download_url_issued"');
+    expect(route).toContain('"download_url_issued"');
     expect(route).toContain("createRuntimeUploadStorageProvider");
     expect(route).toContain("downloadObject(COMPONENT_ATTACHMENT_BUCKET");
   });

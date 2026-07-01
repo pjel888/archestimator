@@ -143,7 +143,7 @@ describe("component library item versioning schema", () => {
     expect(variantRpcGrantsMigration).toContain("revoke execute on function public.sync_cost_library_item_brand_ref() from authenticated");
   });
 
-  it("hardens direct price option mutations so price audit writes stay behind RPCs", () => {
+  it("hardens direct price option mutations and records price audit writes through D1 helpers", () => {
     expect(priceAuditGrantMigration).toContain('drop policy if exists "members can manage component price options" on public.cost_library_item_price_options');
     expect(priceAuditGrantMigration).toContain('drop policy if exists "members can insert component price history" on public.cost_library_item_price_history');
     expect(priceAuditGrantMigration).toContain('create policy "members can view component price options" on public.cost_library_item_price_options');
@@ -153,7 +153,10 @@ describe("component library item versioning schema", () => {
     expect(priceAuditGrantMigration).toContain("grant select on public.cost_library_item_price_options to authenticated");
     expect(priceAuditGrantMigration).toContain("grant select on public.cost_library_item_price_history to authenticated");
     expect(priceAuditGrantMigration).toContain("grant execute on function public.upsert_cost_library_component_price_option(uuid, uuid, jsonb) to authenticated");
-    expect(actions).toContain('supabase.rpc("upsert_cost_library_component_price_option"');
+    expect(actions).toContain("upsertComponentPriceOptionInD1");
+    expect(actions).toContain("INSERT INTO cost_library_item_price_options");
+    expect(actions).toContain("INSERT OR IGNORE INTO cost_library_item_price_history");
+    expect(actions).not.toContain('supabase.rpc("upsert_cost_library_component_price_option"');
     expect(actions).not.toContain('.from("cost_library_item_price_options")');
   });
 

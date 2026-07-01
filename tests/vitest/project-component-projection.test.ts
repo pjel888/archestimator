@@ -34,7 +34,10 @@ function row(overrides: Partial<ProjectComponentProjectionRow> = {}): ProjectCom
     unit: "lot",
     unit_cost: 1500,
     quantity: 1,
+    quantity_base: null,
+    quantity_contingency_amount: null,
     contingency_percentage: 0,
+    adjustment_percentage: 0,
     misc_cost: 0,
     row_revision: 2,
     category_node_id: null,
@@ -161,14 +164,16 @@ describe("project component projection", () => {
     expect(projection).toContain("includeDetailGraph: options.includeDetailGraph");
     expect(projection).toContain("itemLimit: options.itemLimit");
     expect(projection).toContain("projectRowLimit?: number");
-    expect(projection).toContain("projectRowsQuery.limit(projectRowLimit)");
-    expect(projection).toContain(".eq(\"estimate_nodes.estimates.project_id\", project.id)");
+    expect(projection).toContain("getCloudflareD1Database");
+    expect(projection).toContain("FROM estimate_row_items row_items");
+    expect(projection).toContain("WHERE estimates.project_id = ?");
+    expect(projection).not.toMatch(/createSupabaseServerClient|@\/lib\/supabase/);
     expect(getProjectComponentsFolderId("project-1")).toBe("project-components-project-1");
     expect(getProjectEstimateComponentsFolderId("project-1", "estimate-1")).toBe("project-components-project-1-estimate-estimate-1");
     expect(projection).toContain("name: project.name || \"Project\"");
     expect(projection).toContain("name: row.estimate_nodes?.estimates?.name?.trim() || \"Estimate Sheet\"");
     expect(sidebar).not.toContain("/workshop/projects/${projectId}/components");
-    expect(estimateSidebar).toContain('{ id: "components", label: "Library" }');
-    expect(estimateSidebar).toContain('{ id: "project", label: "Project" }');
+    expect(estimateSidebar).toContain('components: "Library"');
+    expect(estimateSidebar).toContain('project: "Project"');
   });
 });

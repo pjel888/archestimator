@@ -15,6 +15,7 @@ const projectDashboardPage = readFileSync("src/app/workshop/projects/[projectId]
 const projectActivityRepository = readFileSync("src/lib/repositories/project-activity-repository.ts", "utf8");
 const projectLocationRepository = readFileSync("src/lib/repositories/project-location-repository.ts", "utf8");
 const projectLocationActions = readFileSync("src/lib/projects/location-actions.ts", "utf8");
+const projectLocationsD1Migration = readFileSync("migrations/0016_project_locations.sql", "utf8");
 const migrationRunbook = readFileSync(
   ".ai/09_archive/2026-06-19-Project-Dashboard-Command-Surface/10-MIGRATION-RLS-QA-RUNBOOK.md",
   "utf8",
@@ -39,6 +40,11 @@ describe("project dashboard activity and location schema", () => {
 
   it("defines private project_locations with coordinate checks, lifecycle metadata, RLS, and grants", () => {
     expect(migration).toContain("create table if not exists public.project_locations");
+    expect(projectLocationsD1Migration).toContain("CREATE TABLE IF NOT EXISTS project_locations");
+    expect(projectLocationsD1Migration).toContain("latitude REAL NOT NULL CHECK (latitude >= -90 AND latitude <= 90)");
+    expect(projectLocationsD1Migration).toContain("longitude REAL NOT NULL CHECK (longitude >= -180 AND longitude <= 180)");
+    expect(projectLocationsD1Migration).toContain("UNIQUE (project_id)");
+    expect(projectLocationsD1Migration).toContain("REFERENCES projects(id, workspace_id) ON DELETE CASCADE");
     expect(migration).toContain("project_id uuid not null");
     expect(migration).toContain("workspace_id uuid not null");
     expect(migration).toContain("latitude numeric(9, 6) not null check (latitude >= -90 and latitude <= 90)");
@@ -58,21 +64,32 @@ describe("project dashboard activity and location schema", () => {
     expect(projectDashboardPage).toContain("getProjectLocation");
     expect(projectDashboardPage).toContain("listProjectActivityPage");
     expect(projectDashboardPage).toContain("projectActivityPage={dashboardData.projectActivityPage}");
-    expect(projectDashboardPage).toContain('supabase.rpc("can_edit_project"');
+    expect(projectDashboardPage).toContain("canEditProjectInD1");
+    expect(projectDashboardPage).toContain("getCloudflareD1Database");
+    expect(projectDashboardPage).not.toContain("createSupabaseServerClient");
     expect(projectDashboardPage).toContain("const projectLocationPromise = canEditPromise.then");
     expect(projectDashboardPage).toContain('canEdit ? traced("project-dashboard.location"');
     expect(projectDashboardPage).toContain("projectLocation={dashboardData.projectLocation}");
     expect(projectDashboardPage).toContain("GOOGLE_MAPS_API_KEY");
-    expect(projectActivityRepository).toContain('.from("estimate_sheet_events")');
-    expect(projectActivityRepository).toContain('.eq("project_id", project.id)');
-    expect(projectActivityRepository).toContain("estimates!estimate_sheet_events_estimate_project_fkey(id, name, sheet_code)");
+    expect(projectActivityRepository).toContain("getCloudflareD1Database");
+    expect(projectActivityRepository).toContain("FROM estimate_sheet_events event");
+    expect(projectActivityRepository).toContain("LEFT JOIN estimates estimate");
+    expect(projectActivityRepository).toContain("event.project_id = ?");
     expect(projectActivityRepository).toContain("composeEstimateActivity");
     expect(projectActivityRepository).not.toContain("readonly oldSnapshot");
     expect(projectActivityRepository).not.toContain("readonly payload");
-    expect(projectLocationRepository).toContain('.from("project_locations")');
-    expect(projectLocationRepository).toContain("latitude, longitude");
-    expect(projectLocationRepository).toContain("geocoder_name, provider_place_id");
+    expect(projectLocationRepository).toContain("FROM project_locations");
+    expect(projectLocationRepository).toContain("getCloudflareD1Database");
+    expect(projectLocationRepository).not.toContain("createSupabaseServerClient");
+    expect(projectLocationRepository).toContain("latitude");
+    expect(projectLocationRepository).toContain("longitude");
+    expect(projectLocationRepository).toContain("geocoder_name");
+    expect(projectLocationRepository).toContain("provider_place_id");
     expect(projectLocationActions).toContain("readCoordinate");
+    expect(projectLocationActions).toContain("canEditProjectInD1");
+    expect(projectLocationActions).toContain("INSERT INTO project_locations");
+    expect(projectLocationActions).toContain("ON CONFLICT(project_id) DO UPDATE");
+    expect(projectLocationActions).not.toContain("createSupabaseServerClient");
     expect(projectLocationActions).toContain('String(formData.get("source") ?? "manual")');
     expect(projectLocationActions).toContain("geocoderName");
     expect(projectLocationActions).toContain("providerPlaceId");

@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const authMocks = vi.hoisted(() => ({
-  requireAuth: vi.fn(),
   requireCurrentUserContext: vi.fn(),
 }));
 
@@ -11,8 +10,14 @@ const workspaceMocks = vi.hoisted(() => ({
   listProjectEstimateSheets: vi.fn(),
 }));
 
-const supabaseServerMocks = vi.hoisted(() => ({
-  createSupabaseServerClient: vi.fn(),
+const d1Mocks = vi.hoisted(() => ({
+  getCloudflareD1Database: vi.fn(),
+}));
+
+const authzMocks = vi.hoisted(() => ({
+  canEditEstimateInD1: vi.fn(),
+  isWorkspaceEditorInD1: vi.fn(),
+  isWorkspaceMemberInD1: vi.fn(),
 }));
 
 const cacheMocks = vi.hoisted(() => ({
@@ -21,7 +26,8 @@ const cacheMocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/auth/session", () => authMocks);
 vi.mock("@/lib/repositories/workspace-repository", () => workspaceMocks);
-vi.mock("@/lib/supabase/server", () => supabaseServerMocks);
+vi.mock("@/lib/cloudflare/d1", () => d1Mocks);
+vi.mock("@/lib/authz/d1-access", () => authzMocks);
 vi.mock("next/cache", () => cacheMocks);
 
 const WORKSPACE_ID = "00000000-0000-4000-8000-000000000001";
@@ -33,7 +39,6 @@ const PROJECT_ID = "00000000-0000-4000-8000-000000000006";
 const ESTIMATE_ID = "00000000-0000-4000-8000-000000000007";
 const SOURCE_NODE_ID = "00000000-0000-4000-8000-000000000008";
 const TAB_ID = "00000000-0000-4000-8000-000000000009";
-const PRICE_OPTION_ID = "00000000-0000-4000-8000-000000000010";
 
 const validComponentInput = {
   name: "Viewer Guard Component",
@@ -48,42 +53,28 @@ const validComponentInput = {
   ],
 };
 
-function mockViewerSupabaseClient() {
-  const rpc = vi.fn(async (name: string) => {
-    if (name === "is_workspace_editor") return { data: false, error: null };
-    throw new Error(`viewer mutation must stop before RPC ${name}`);
-  });
-  const from = vi.fn((table: string) => {
-    throw new Error(`viewer mutation must stop before table access: ${table}`);
-  });
-  supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
-  return { from, rpc };
-}
-
-function mockEditorSupabaseClient() {
-  const quotaEq = vi.fn(async () => ({ count: 0, error: null }));
-  const quotaSelect = vi.fn(() => ({ eq: quotaEq }));
-  const from = vi.fn((table: string) => {
-    if (table === "cost_library_items") return { select: quotaSelect };
-    throw new Error(`unexpected table access: ${table}`);
-  });
-  const rpc = vi.fn(async (name: string) => {
-    if (name === "is_workspace_editor") return { data: true, error: null };
-    if (name === "create_cost_library_component") {
-      return {
-        data: {
-          itemId: COMPONENT_ID,
-          versionNumber: 1,
-          activePriceOptionId: PRICE_OPTION_ID,
-          priceOptions: [{ id: PRICE_OPTION_ID, label: "V1", isDefault: true }],
-        },
-        error: null,
-      };
-    }
-    throw new Error(`unexpected RPC: ${name}`);
-  });
-  supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
-  return { from, rpc };
+function createD1Fixture(options: {
+  firstResults?: unknown[];
+  allResults?: unknown[][];
+} = {}) {
+  const firstResults = [...(options.firstResults ?? [])];
+  const allResults = [...(options.allResults ?? [])];
+  const statements: Array<{ sql: string; values: unknown[] }> = [];
+  const database = {
+    prepare: vi.fn((sql: string) => ({
+      bind: vi.fn((...values: unknown[]) => {
+        statements.push({ sql, values });
+        return {
+          first: vi.fn(async () => firstResults.shift() ?? null),
+          all: vi.fn(async () => ({ success: true, results: allResults.shift() ?? [] })),
+          run: vi.fn(async () => ({ success: true, meta: { changes: 1 } })),
+        };
+      }),
+    })),
+    statements,
+  };
+  d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+  return database;
 }
 
 beforeEach(() => {
@@ -97,14 +88,15 @@ beforeEach(() => {
     userId: USER_ID,
     profile: { id: USER_ID },
   });
-  authMocks.requireAuth.mockResolvedValue({
-    id: USER_ID,
-  });
+  authzMocks.isWorkspaceEditorInD1.mockResolvedValue(true);
+  authzMocks.canEditEstimateInD1.mockResolvedValue(true);
+  authzMocks.isWorkspaceMemberInD1.mockResolvedValue(true);
 });
 
 describe("library viewer mutation authorization", () => {
-  it("denies workspace viewers before component and template mutations reach write paths", async () => {
-    const supabase = mockViewerSupabaseClient();
+  it("denies workspace viewers before component and template mutations reach D1 write paths", async () => {
+    const d1 = createD1Fixture();
+    authzMocks.isWorkspaceEditorInD1.mockResolvedValue(false);
     const actions = await import("@/lib/component-library/actions");
 
     const libraryMutationAttempts = [
@@ -138,15 +130,15 @@ describe("library viewer mutation authorization", () => {
       await expect(attempt()).rejects.toThrow("Only workspace editors/admins can manage the library.");
     }
 
-    expect(supabase.rpc).toHaveBeenCalledTimes(libraryMutationAttempts.length);
-    expect(supabase.rpc).toHaveBeenCalledWith("is_workspace_editor", { target_workspace_id: WORKSPACE_ID });
-    expect(supabase.rpc.mock.calls.every(([name]) => name === "is_workspace_editor")).toBe(true);
-    expect(supabase.from).not.toHaveBeenCalled();
+    expect(authzMocks.isWorkspaceEditorInD1).toHaveBeenCalledTimes(libraryMutationAttempts.length);
+    expect(authzMocks.isWorkspaceEditorInD1).toHaveBeenCalledWith(d1, WORKSPACE_ID, expect.objectContaining({ userId: USER_ID }));
+    expect(d1.prepare).not.toHaveBeenCalled();
     expect(cacheMocks.revalidatePath).not.toHaveBeenCalled();
   });
 
-  it("denies workspace viewers before folder mutations reach write paths", async () => {
-    const supabase = mockViewerSupabaseClient();
+  it("denies workspace viewers before folder mutations reach D1 write paths", async () => {
+    const d1 = createD1Fixture();
+    authzMocks.isWorkspaceEditorInD1.mockResolvedValue(false);
     const actions = await import("@/lib/component-library/actions");
 
     const folderMutationAttempts = [
@@ -161,18 +153,23 @@ describe("library viewer mutation authorization", () => {
       await expect(attempt()).rejects.toThrow("Only workspace editors/admins can manage library folders.");
     }
 
-    expect(supabase.rpc).toHaveBeenCalledTimes(folderMutationAttempts.length);
-    expect(supabase.rpc).toHaveBeenCalledWith("is_workspace_editor", { target_workspace_id: WORKSPACE_ID });
-    expect(supabase.rpc.mock.calls.every(([name]) => name === "is_workspace_editor")).toBe(true);
-    expect(supabase.from).not.toHaveBeenCalled();
+    expect(authzMocks.isWorkspaceEditorInD1).toHaveBeenCalledTimes(folderMutationAttempts.length);
+    expect(authzMocks.isWorkspaceEditorInD1).toHaveBeenCalledWith(d1, WORKSPACE_ID, expect.objectContaining({ userId: USER_ID }));
+    expect(d1.prepare).not.toHaveBeenCalled();
     expect(cacheMocks.revalidatePath).not.toHaveBeenCalled();
   });
 
-  it("strips non-OpenDesign fields before creating a component through Supabase", async () => {
-    const supabase = mockEditorSupabaseClient();
+  it("sanitizes non-OpenDesign fields before creating a component through D1", async () => {
+    const d1 = createD1Fixture({
+      firstResults: [
+        { count: 0 },
+        null,
+        null,
+      ],
+    });
     const actions = await import("@/lib/component-library/actions");
 
-    await actions.createCostLibraryComponent({
+    const result = await actions.createCostLibraryComponent({
       fieldContract: "opendesign-add-component",
       name: "OpenDesign Component",
       category: "Hardware",
@@ -219,58 +216,27 @@ describe("library viewer mutation authorization", () => {
       }],
     });
 
-    const createCall = supabase.rpc.mock.calls.find(([name]) => name === "create_cost_library_component");
-    expect(createCall).toBeTruthy();
-    const params = createCall?.[1] as Record<string, unknown>;
-    const component = params.component as Record<string, unknown>;
-    const priceOptions = params.price_options as Array<Record<string, unknown>>;
-    const option = priceOptions[0];
-    const packageOption = priceOptions[1];
+    expect(result.itemId).toEqual(expect.any(String));
+    const componentInsert = d1.statements.find((statement) => statement.sql.includes("INSERT INTO cost_library_items"));
+    expect(componentInsert?.values[2]).toBe("OpenDesign Component");
+    expect(componentInsert?.values[4]).toBe("Hardware");
+    expect(componentInsert?.values[6]).toBeNull();
 
-    expect(component).toEqual(expect.objectContaining({
-      name: "OpenDesign Component",
-      category: "Hardware",
-      unit: "unit",
-      createdBy: USER_ID,
+    const priceOptionInserts = d1.statements.filter((statement) => statement.sql.includes("INSERT INTO cost_library_item_price_options"));
+    expect(priceOptionInserts).toHaveLength(2);
+    expect(priceOptionInserts[0]?.values[3]).toBe("V1");
+    expect(priceOptionInserts[0]?.values[5]).toBe(12.34);
+    expect(priceOptionInserts[0]?.values[6]).toBe(0);
+    expect(priceOptionInserts[0]?.values[11]).toBeNull();
+    expect(priceOptionInserts[0]?.values[13]).toBeNull();
+    expect(JSON.parse(String(priceOptionInserts[0]?.values[14]))).toEqual(expect.objectContaining({
+      packageQuantity: null,
+      packageUnit: null,
+      variantMetadata: {},
     }));
-    expect(component).not.toHaveProperty("fieldContract");
-    expect(component).not.toHaveProperty("priceOptions");
-    expect(component).not.toHaveProperty("libraryFolderId");
-
-    expect(option).toEqual(expect.objectContaining({
-      label: "V1",
-      unit: "unit",
-      unitCost: 12.34,
-      currency: "PHP",
-      isDefault: true,
-    }));
-    expect(option).not.toHaveProperty("packageQuantity");
-    expect(option).not.toHaveProperty("packageUnit");
-    expect(packageOption).toEqual(expect.objectContaining({
-      label: "Box",
-      unit: "box",
+    expect(JSON.parse(String(priceOptionInserts[1]?.values[14]))).toEqual(expect.objectContaining({
       packageQuantity: 12,
       packageUnit: "pieces",
-      isDefault: false,
     }));
-    for (const retiredField of [
-      "miscCost",
-      "pricingSource",
-      "pricingDate",
-      "confidence",
-      "sourceUrl",
-      "notes",
-      "activeCostEntryId",
-      "costEntries",
-      "dimensionLength",
-      "dimensionWidth",
-      "dimensionHeight",
-      "dimensionUnit",
-      "mass",
-      "massUnit",
-      "variantMetadata",
-    ]) {
-      expect(option).not.toHaveProperty(retiredField);
-    }
   });
 });

@@ -34,6 +34,6 @@ describe("upload clean download provider proof script", () => {
     expect(script).toContain("download-response-header-contract-is-private-and-nosniff");
     expect(script).toContain("rawStoragePathRecordedInProof: false");
     expect(route).toContain('data.review_status !== "approved"');
-    expect(route).toContain("data.is_current_approved !== true");
+    expect(route).toContain("!readApprovedFlag(data.is_current_approved)");
   });
 });

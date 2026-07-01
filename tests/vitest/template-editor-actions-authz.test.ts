@@ -10,13 +10,13 @@ const workspaceMocks = vi.hoisted(() => ({
   ensureDefaultWorkspace: vi.fn(),
 }));
 
-const supabaseServerMocks = vi.hoisted(() => ({
-  createSupabaseServerClient: vi.fn(),
+const d1Mocks = vi.hoisted(() => ({
+  getCloudflareD1Database: vi.fn(),
 }));
 
 vi.mock("@/lib/auth/session", () => authMocks);
 vi.mock("@/lib/repositories/workspace-repository", () => workspaceMocks);
-vi.mock("@/lib/supabase/server", () => supabaseServerMocks);
+vi.mock("@/lib/cloudflare/d1", () => d1Mocks);
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 const workspaceId = "00000000-0000-4000-8000-000000000001";
@@ -25,45 +25,88 @@ const sourceTemplateId = "00000000-0000-4000-8000-000000000003";
 const nodeId = "00000000-0000-4000-8000-000000000004";
 const rowId = "00000000-0000-4000-8000-000000000005";
 
-function mockViewerSupabaseClient() {
-  const rpc = vi.fn(async (name: string) => {
-    if (name === "is_workspace_editor") return { data: false, error: null };
-    return { data: null, error: null };
-  });
-  const from = vi.fn(() => {
-    throw new Error("viewer template mutations must stop before table access");
-  });
-  supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
-  return { from, rpc };
+class FakeD1Statement {
+  values: unknown[] = [];
+
+  constructor(
+    private readonly database: FakeD1Database,
+    readonly sql: string,
+  ) {}
+
+  bind(...values: unknown[]) {
+    this.values = values;
+    return this;
+  }
+
+  async first<T>() {
+    this.database.executedStatements.push(this);
+    if (this.sql.includes("FROM workspace_members")) {
+      return (this.database.isEditor ? { allowed: 1 } : null) as T | null;
+    }
+    if (this.sql.includes("FROM estimate_templates")) {
+      return {
+        id: templateId,
+        workspace_id: workspaceId,
+        name: "Editor-safe template",
+      } as T;
+    }
+    if (this.sql.includes("FROM estimate_template_row_items")) {
+      return this.database.row as T;
+    }
+    return null;
+  }
+
+  async all<T>() {
+    this.database.executedStatements.push(this);
+    return { results: [] as T[], success: true };
+  }
+
+  async run() {
+    this.database.executedStatements.push(this);
+    if (this.sql.includes("UPDATE estimate_template_row_items")) {
+      this.database.row = {
+        ...this.database.row,
+        material: String(this.values[0]),
+        updated_at: String(this.values[1]),
+      };
+    }
+    return { success: true };
+  }
 }
 
-function createQueryResult<T>(data: T) {
-  const query = {
-    select: vi.fn(),
-    eq: vi.fn(),
-    update: vi.fn(),
-    maybeSingle: vi.fn(async () => ({ data, error: null })),
+class FakeD1Database {
+  executedStatements: FakeD1Statement[] = [];
+  row = {
+    id: rowId,
+    template_id: templateId,
+    template_node_id: nodeId,
+    sort_order: 0,
+    source_library_item_id: null,
+    source_snapshot: null,
+    category_node_id: null,
+    supplier_id: null,
+    material: "Existing row",
+    description: "",
+    supplier: "",
+    unit: "unit",
+    quantity: 1,
+    unit_cost: 0,
+    misc_cost: 0,
+    contingency_percentage: 0,
+    adjustment_percentage: 0,
+    discipline: "",
+    designation: "",
+    link_state: "unlinked",
+    metadata: "{}",
+    created_at: "2026-07-01T00:00:00.000Z",
+    updated_at: "2026-07-01T00:00:00.000Z",
   };
-  query.select.mockReturnValue(query);
-  query.eq.mockReturnValue(query);
-  query.update.mockReturnValue(query);
-  return query;
-}
 
-function mockEditorUpdateRowSupabaseClient() {
-  const rpc = vi.fn(async (name: string) => {
-    if (name === "is_workspace_editor") return { data: true, error: null };
-    return { data: null, error: null };
-  });
-  const templateQuery = createQueryResult({ id: templateId, workspace_id: workspaceId, name: "Editor-safe template" });
-  const rowQuery = createQueryResult({ id: rowId, template_id: templateId, material: "Updated row" });
-  const from = vi.fn((table: string) => {
-    if (table === "estimate_templates") return templateQuery;
-    if (table === "estimate_template_row_items") return rowQuery;
-    throw new Error(`unexpected table access: ${table}`);
-  });
-  supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
-  return { from, rpc, templateQuery, rowQuery };
+  constructor(readonly isEditor: boolean) {}
+
+  prepare(sql: string) {
+    return new FakeD1Statement(this, sql);
+  }
 }
 
 beforeEach(() => {
@@ -81,7 +124,8 @@ beforeEach(() => {
 
 describe("template editor server action authorization", () => {
   it("blocks workspace viewers before any estimate-template table mutation path", async () => {
-    const supabase = mockViewerSupabaseClient();
+    const database = new FakeD1Database(false);
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
     const actions = await import("@/lib/component-library/template-editor-actions");
 
     await expect(actions.createEstimateTemplateNode({ templateId, parentId: null, kind: "group", name: "Viewer group" })).rejects.toThrow(
@@ -115,27 +159,46 @@ describe("template editor server action authorization", () => {
       "Only workspace editors/admins can edit estimate templates.",
     );
 
-    expect(supabase.rpc).toHaveBeenCalledTimes(10);
-    expect(supabase.rpc).toHaveBeenCalledWith("is_workspace_editor", { target_workspace_id: workspaceId });
-    expect(supabase.from).not.toHaveBeenCalled();
+    expect(d1Mocks.getCloudflareD1Database).toHaveBeenCalledTimes(10);
+    expect(database.executedStatements.filter((statement) => statement.sql.includes("FROM workspace_members"))).toHaveLength(10);
+    expect(database.executedStatements.some((statement) => statement.sql.includes("estimate_templates"))).toBe(false);
+    expect(database.executedStatements.some((statement) => statement.sql.includes("estimate_template_row_items"))).toBe(false);
   });
 
-  it("allows workspace editors to continue through the existing row update flow", async () => {
-    const supabase = mockEditorUpdateRowSupabaseClient();
+  it("allows workspace editors to continue through the D1 row update flow", async () => {
+    const database = new FakeD1Database(true);
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
     const actions = await import("@/lib/component-library/template-editor-actions");
 
-    await expect(actions.updateEstimateTemplateRowItem({ templateId, rowId, patch: { material: "Updated row" } })).resolves.toEqual({
+    await expect(actions.updateEstimateTemplateRowItem({ templateId, rowId, patch: { material: "Updated row" } })).resolves.toMatchObject({
       row: { id: rowId, template_id: templateId, material: "Updated row" },
     });
 
-    expect(supabase.rpc).toHaveBeenCalledWith("is_workspace_editor", { target_workspace_id: workspaceId });
-    expect(supabase.from).toHaveBeenCalledWith("estimate_templates");
-    expect(supabase.templateQuery.select).toHaveBeenCalledWith("id, workspace_id, name");
-    expect(supabase.templateQuery.eq).toHaveBeenCalledWith("workspace_id", workspaceId);
-    expect(supabase.rowQuery.update).toHaveBeenCalledWith({ material: "Updated row" });
-    expect(supabase.rowQuery.eq).toHaveBeenCalledWith("id", rowId);
-    expect(supabase.rowQuery.eq).toHaveBeenCalledWith("template_id", templateId);
-    expect(supabase.rpc.mock.invocationCallOrder[0]).toBeLessThan(supabase.from.mock.invocationCallOrder[0]);
+    const workspaceGateIndex = database.executedStatements.findIndex((statement) => statement.sql.includes("FROM workspace_members"));
+    const templateReadIndex = database.executedStatements.findIndex((statement) => statement.sql.includes("FROM estimate_templates"));
+    const rowUpdateIndex = database.executedStatements.findIndex((statement) => statement.sql.includes("UPDATE estimate_template_row_items"));
+    expect(workspaceGateIndex).toBeGreaterThanOrEqual(0);
+    expect(templateReadIndex).toBeGreaterThan(workspaceGateIndex);
+    expect(rowUpdateIndex).toBeGreaterThan(templateReadIndex);
+    expect(database.executedStatements[rowUpdateIndex].values[0]).toBe("Updated row");
+    expect(database.executedStatements[rowUpdateIndex].values.at(-2)).toBe(rowId);
+    expect(database.executedStatements[rowUpdateIndex].values.at(-1)).toBe(templateId);
+  });
+});
+
+describe("template editor D1 schema", () => {
+  const migration = readFileSync(join(process.cwd(), "migrations/0024_estimate_templates.sql"), "utf8");
+
+  it("creates template, node, and row item tables with Cloudflare D1 JSON and hierarchy guards", () => {
+    expect(migration).toContain("CREATE TABLE IF NOT EXISTS estimate_templates");
+    expect(migration).toContain("CREATE TABLE IF NOT EXISTS estimate_template_nodes");
+    expect(migration).toContain("CREATE TABLE IF NOT EXISTS estimate_template_row_items");
+    expect(migration).toContain("REFERENCES workspaces(id) ON DELETE CASCADE");
+    expect(migration).toContain("json_valid(metadata)");
+    expect(migration).toContain("json_valid(source_snapshot)");
+    expect(migration).toContain("kind IN ('group', 'area')");
+    expect(migration).toContain("adjustment_percentage >= -100");
+    expect(migration).toContain("idx_estimate_template_row_items_template_node_sort");
   });
 });
 

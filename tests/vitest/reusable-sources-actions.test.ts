@@ -12,13 +12,13 @@ const repositoryMocks = vi.hoisted(() => ({
   listProjectEstimateSheets: vi.fn(),
 }));
 
-const supabaseServerMocks = vi.hoisted(() => ({ createSupabaseServerClient: vi.fn() }));
+const d1Mocks = vi.hoisted(() => ({ getCloudflareD1Database: vi.fn() }));
 
 vi.mock("@/lib/auth/session", () => ({
   requireCurrentUserContext: authMocks.requireCurrentUserContext,
 }));
 
-vi.mock("@/lib/supabase/server", () => supabaseServerMocks);
+vi.mock("@/lib/cloudflare/d1", () => d1Mocks);
 
 vi.mock("@/lib/repositories/workspace-repository", () => ({
   getEstimateTabs: repositoryMocks.getEstimateTabs,
@@ -28,21 +28,47 @@ vi.mock("@/lib/repositories/workspace-repository", () => ({
   listProjectEstimateSheets: repositoryMocks.listProjectEstimateSheets,
 }));
 
+class FakeSearchD1Statement {
+  values: unknown[] = [];
+
+  constructor(
+    private readonly resultByTable: Record<string, { data: unknown; error: unknown }>,
+    readonly sql: string,
+  ) {}
+
+  bind(...values: unknown[]) {
+    this.values = values;
+    return this;
+  }
+
+  async first<T>() {
+    return null as T | null;
+  }
+
+  async all<T>() {
+    const table = this.sql.includes("estimate_tabs") ? "estimate_tabs" : "estimate_nodes";
+    const result = this.resultByTable[table] ?? { data: [], error: null };
+    if (result.error) throw result.error;
+    return { results: result.data as T[], success: true };
+  }
+
+  async run() {
+    return { success: true };
+  }
+}
+
+class FakeSearchD1Database {
+  constructor(private readonly resultByTable: Record<string, { data: unknown; error: unknown }>) {}
+
+  prepare(sql: string) {
+    return new FakeSearchD1Statement(this.resultByTable, sql);
+  }
+}
+
 // U5: the server-side search pre-filters matching estimates via two bounded
-// ILIKE queries (estimate_nodes + estimate_tabs) before materializing trees. This
-// chainable stub resolves each `.from(table)...` chain to the configured result.
+// D1 queries (estimate_nodes + estimate_tabs) before materializing trees.
 function mockSearchPrefilter(resultByTable: Record<string, { data: unknown; error: unknown }>) {
-  const makeBuilder = (table: string) => {
-    const result = resultByTable[table] ?? { data: [], error: null };
-    const builder: Record<string, unknown> = {};
-    for (const method of ["select", "in", "ilike", "is", "eq", "order", "limit"]) {
-      builder[method] = () => builder;
-    }
-    builder.then = (resolve: (value: unknown) => unknown) => resolve(result);
-    builder.maybeSingle = async () => result;
-    return builder;
-  };
-  supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from: (table: string) => makeBuilder(table) });
+  d1Mocks.getCloudflareD1Database.mockResolvedValue(new FakeSearchD1Database(resultByTable));
 }
 
 const projectAId = "11111111-1111-4111-8111-111111111111";
@@ -57,7 +83,7 @@ beforeEach(() => {
   repositoryMocks.getProjectEstimateTreeByEstimate.mockReset();
   repositoryMocks.listCurrentWorkspaceProjects.mockReset();
   repositoryMocks.listProjectEstimateSheets.mockReset();
-  supabaseServerMocks.createSupabaseServerClient.mockReset();
+  d1Mocks.getCloudflareD1Database.mockReset();
   // Default: no estimate matches the pre-filter (the search test sets the match).
   mockSearchPrefilter({});
 });

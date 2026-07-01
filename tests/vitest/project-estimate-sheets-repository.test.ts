@@ -1,69 +1,86 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-type QueryBuilder = {
-  select: ReturnType<typeof vi.fn>;
-  eq: ReturnType<typeof vi.fn>;
-  in: ReturnType<typeof vi.fn>;
-  order: ReturnType<typeof vi.fn>;
-  limit: ReturnType<typeof vi.fn>;
+const d1Mocks = vi.hoisted(() => ({
+  getCloudflareD1Database: vi.fn(),
+}));
+
+vi.mock("@/lib/cloudflare/d1", () => d1Mocks);
+
+type PreparedD1Statement = {
+  sql: string;
+  values: unknown[];
 };
 
-const supabaseMocks = vi.hoisted(() => ({
-  from: vi.fn(),
-  rpc: vi.fn(),
-}));
+class FakeD1Statement {
+  private values: unknown[] = [];
 
-vi.mock("@/lib/supabase/server", () => ({
-  createSupabaseServerClient: vi.fn(async () => ({
-    from: supabaseMocks.from,
-    rpc: supabaseMocks.rpc,
-  })),
-}));
+  constructor(
+    private readonly database: FakeD1Database,
+    private readonly sql: string,
+  ) {}
 
-function createBuilder(): QueryBuilder {
-  const builder = {
-    select: vi.fn(),
-    eq: vi.fn(),
-    in: vi.fn(),
-    order: vi.fn(),
-    limit: vi.fn(),
-  } satisfies QueryBuilder;
-  builder.select.mockReturnValue(builder);
-  builder.eq.mockReturnValue(builder);
-  builder.in.mockReturnValue(builder);
-  builder.order.mockReturnValue(builder);
-  builder.limit.mockReturnValue(builder);
-  return builder;
+  bind(...values: unknown[]) {
+    this.values = values;
+    this.database.prepared.push({ sql: this.sql, values });
+    return this;
+  }
+
+  async first() {
+    if (this.sql.includes("COUNT(*) AS count")) return { count: this.database.count };
+    throw new Error(`Unexpected D1 first query: ${this.sql}`);
+  }
+
+  async all() {
+    if (this.sql.includes("FROM estimates")) return { results: this.database.estimates };
+    if (this.sql.includes("FROM estimate_nodes")) return { results: this.database.nodes };
+    if (this.sql.includes("FROM estimate_row_items")) return { results: this.database.rowItems };
+    throw new Error(`Unexpected D1 all query: ${this.sql}`);
+  }
+}
+
+class FakeD1Database {
+  prepared: PreparedD1Statement[] = [];
+  estimates: unknown[] = [];
+  nodes: unknown[] = [];
+  rowItems: unknown[] = [];
+  count = 0;
+
+  prepare(sql: string) {
+    return new FakeD1Statement(this, sql);
+  }
+}
+
+function findPrepared(database: FakeD1Database, pattern: RegExp) {
+  const statement = database.prepared.find((entry) => pattern.test(entry.sql));
+  if (!statement) throw new Error(`No prepared D1 statement matched ${pattern}`);
+  return statement;
 }
 
 beforeEach(() => {
-  supabaseMocks.from.mockReset();
-  supabaseMocks.rpc.mockReset();
+  vi.resetModules();
+  vi.clearAllMocks();
 });
 
 describe("project estimate sheet repository", () => {
   it("returns lightweight estimate sheets with updatedAt freshness metadata", async () => {
-    const estimatesBuilder = createBuilder();
-    estimatesBuilder.order.mockResolvedValue({
-      data: [
-        {
-          id: "estimate-1",
-          name: "Lobby Estimate",
-          sheet_code: "EST-002",
-          updated_at: "2026-06-12T08:00:00.000Z",
-        },
-      ],
-      error: null,
-    });
-    supabaseMocks.from.mockReturnValue(estimatesBuilder);
+    const database = new FakeD1Database();
+    database.estimates = [
+      {
+        id: "estimate-1",
+        name: "Lobby Estimate",
+        sheet_code: "EST-002",
+        updated_at: "2026-06-12T08:00:00.000Z",
+      },
+    ];
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
 
     const { listProjectEstimateSheetsForProject } = await import("@/lib/repositories/project-estimate-sheets-repository");
     const result = await listProjectEstimateSheetsForProject("project-1");
 
-    expect(supabaseMocks.from).toHaveBeenCalledWith("estimates");
-    expect(estimatesBuilder.select).toHaveBeenCalledWith("id, name, sheet_code, updated_at");
-    expect(estimatesBuilder.eq).toHaveBeenCalledWith("project_id", "project-1");
-    expect(estimatesBuilder.order).toHaveBeenCalledWith("sheet_code", { ascending: true });
+    const query = findPrepared(database, /FROM estimates/);
+    expect(query.sql).toContain("WHERE project_id = ?");
+    expect(query.sql).toContain("ORDER BY sheet_code ASC, id ASC");
+    expect(query.values).toEqual(["project-1"]);
     expect(result).toEqual([
       {
         id: "estimate-1",
@@ -75,79 +92,82 @@ describe("project estimate sheet repository", () => {
   });
 
   it("counts project estimate sheets without fetching list rows", async () => {
-    const estimatesBuilder = createBuilder();
-    estimatesBuilder.eq.mockResolvedValue({ count: 7, error: null });
-    supabaseMocks.from.mockReturnValue(estimatesBuilder);
+    const database = new FakeD1Database();
+    database.count = 7;
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
 
     const { countProjectEstimateSheetsForProject } = await import("@/lib/repositories/project-estimate-sheets-repository");
     const result = await countProjectEstimateSheetsForProject("project-1");
 
-    expect(supabaseMocks.from).toHaveBeenCalledWith("estimates");
-    expect(estimatesBuilder.select).toHaveBeenCalledWith("id", { count: "exact", head: true });
-    expect(estimatesBuilder.eq).toHaveBeenCalledWith("project_id", "project-1");
+    const query = findPrepared(database, /COUNT\(\*\) AS count/);
+    expect(query.sql).toContain("FROM estimates WHERE project_id = ?");
+    expect(query.values).toEqual(["project-1"]);
     expect(result).toBe(7);
   });
 
   it("returns recent project sheets ordered by freshness with first-node deep links", async () => {
-    const estimatesBuilder = createBuilder();
-    const nodesBuilder = createBuilder();
-    estimatesBuilder.limit.mockResolvedValue({
-      data: [
-        {
-          id: "estimate-2",
-          project_id: "project-1",
-          name: "Site Works",
-          sheet_code: null,
-          project_budget: 120000,
-          updated_at: "2026-06-13T08:00:00.000Z",
-        },
-        {
-          id: "estimate-1",
-          project_id: "project-1",
-          name: "Lobby Estimate",
-          sheet_code: "EST-002",
-          project_budget: null,
-          updated_at: "2026-06-12T08:00:00.000Z",
-        },
-      ],
-      error: null,
-    });
-    nodesBuilder.order.mockResolvedValue({
-      data: [
-        { id: "root-2", estimate_id: "estimate-2", kind: "group", parent_id: null },
-        { id: "root-1", estimate_id: "estimate-1", kind: "group", parent_id: null },
-        { id: "area-1", estimate_id: "estimate-1", kind: "area", parent_id: "root-1" },
-      ],
-      error: null,
-    });
-    supabaseMocks.rpc.mockResolvedValue({
-      data: [
-        { estimate_id: "estimate-2", node_count: 1, row_count: 2, total_cost: 98765.4, first_node_id: "root-2" },
-        { estimate_id: "estimate-1", node_count: 2, row_count: 3, total_cost: 12345.6, first_node_id: "area-1" },
-      ],
-      error: null,
-    });
-    supabaseMocks.from.mockImplementation((table: string) => {
-      if (table === "estimates") return estimatesBuilder;
-      if (table === "estimate_nodes") return nodesBuilder;
-      throw new Error(`Unexpected table ${table}`);
-    });
+    const database = new FakeD1Database();
+    database.estimates = [
+      {
+        id: "estimate-2",
+        project_id: "project-1",
+        name: "Site Works",
+        sheet_code: null,
+        project_budget: 120000,
+        updated_at: "2026-06-13T08:00:00.000Z",
+      },
+      {
+        id: "estimate-1",
+        project_id: "project-1",
+        name: "Lobby Estimate",
+        sheet_code: "EST-002",
+        project_budget: null,
+        updated_at: "2026-06-12T08:00:00.000Z",
+      },
+    ];
+    database.nodes = [
+      { id: "root-2", estimate_id: "estimate-2", kind: "group", parent_id: null },
+      { id: "root-1", estimate_id: "estimate-1", kind: "group", parent_id: null },
+      { id: "area-1", estimate_id: "estimate-1", kind: "area", parent_id: "root-1" },
+    ];
+    database.rowItems = [
+      {
+        estimate_id: "estimate-2",
+        quantity: 10,
+        quantity_base: null,
+        quantity_contingency_amount: null,
+        unit_cost: 9000,
+        contingency_percentage: 5,
+        adjustment_percentage: 5,
+        misc_cost: 4265.4,
+      },
+      {
+        estimate_id: "estimate-1",
+        quantity: 12,
+        quantity_base: null,
+        quantity_contingency_amount: null,
+        unit_cost: 1000,
+        contingency_percentage: 0,
+        adjustment_percentage: 0,
+        misc_cost: 345.6,
+      },
+    ];
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
 
     const { listRecentProjectEstimateSheets } = await import("@/lib/repositories/project-estimate-sheets-repository");
     const result = await listRecentProjectEstimateSheets("project-1");
 
-    expect(estimatesBuilder.select).toHaveBeenCalledWith("id, project_id, name, sheet_code, project_budget, updated_at");
-    expect(estimatesBuilder.eq).toHaveBeenCalledWith("project_id", "project-1");
-    expect(estimatesBuilder.order).toHaveBeenNthCalledWith(1, "updated_at", { ascending: false, nullsFirst: false });
-    expect(estimatesBuilder.order).toHaveBeenNthCalledWith(2, "id", { ascending: false });
-    expect(estimatesBuilder.limit).toHaveBeenCalledWith(5);
-    expect(nodesBuilder.select).toHaveBeenCalledWith("id, estimate_id, kind, parent_id");
-    expect(nodesBuilder.in).toHaveBeenCalledWith("estimate_id", ["estimate-2", "estimate-1"]);
-    expect(nodesBuilder.order).toHaveBeenCalledWith("sort_order", { ascending: true });
-    expect(supabaseMocks.rpc).toHaveBeenCalledWith("project_estimate_list_summaries_for_estimates", {
-      target_project_id: "project-1",
-      target_estimate_ids: ["estimate-2", "estimate-1"],
-    });
+    const estimatesQuery = findPrepared(database, /ORDER BY updated_at DESC, id DESC/);
+    expect(estimatesQuery.values).toEqual(["project-1", 5]);
+    const nodesQuery = findPrepared(database, /FROM estimate_nodes/);
+    expect(nodesQuery.sql).toContain("INNER JOIN estimates estimate ON estimate.id = node.estimate_id");
+    expect(nodesQuery.sql).toContain("WHERE estimate.project_id = ?");
+    expect(nodesQuery.sql).toContain("node.estimate_id IN (?, ?)");
+    expect(nodesQuery.values).toEqual(["project-1", "estimate-2", "estimate-1"]);
+    const rowItemsQuery = findPrepared(database, /FROM estimate_row_items/);
+    expect(rowItemsQuery.sql).toContain("WHERE estimate.project_id = ?");
+    expect(rowItemsQuery.sql).toContain("row_item.estimate_id IN (?, ?)");
+    expect(rowItemsQuery.values).toEqual(["project-1", "estimate-2", "estimate-1"]);
     expect(result).toEqual([
       {
         id: "estimate-2",
@@ -173,16 +193,27 @@ describe("project estimate sheet repository", () => {
   });
 
   it("clamps recent sheet limits to 10 and skips node lookup when no sheets exist", async () => {
-    const estimatesBuilder = createBuilder();
-    estimatesBuilder.limit.mockResolvedValue({ data: [], error: null });
-    supabaseMocks.from.mockReturnValue(estimatesBuilder);
+    const database = new FakeD1Database();
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
 
     const { listRecentProjectEstimateSheets } = await import("@/lib/repositories/project-estimate-sheets-repository");
     const result = await listRecentProjectEstimateSheets("project-1", 99);
 
-    expect(estimatesBuilder.limit).toHaveBeenCalledWith(10);
-    expect(supabaseMocks.from).toHaveBeenCalledTimes(1);
-    expect(supabaseMocks.rpc).not.toHaveBeenCalled();
+    const estimatesQuery = findPrepared(database, /ORDER BY updated_at DESC, id DESC/);
+    expect(estimatesQuery.values).toEqual(["project-1", 10]);
+    expect(database.prepared).toHaveLength(1);
     expect(result).toEqual([]);
+  });
+
+  it("applies bounded list limits in D1 when requested", async () => {
+    const database = new FakeD1Database();
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+
+    const { listProjectEstimateSheetsForProject } = await import("@/lib/repositories/project-estimate-sheets-repository");
+    await listProjectEstimateSheetsForProject("project-1", { limit: 3 });
+
+    const query = findPrepared(database, /ORDER BY sheet_code ASC, id ASC/);
+    expect(query.sql).toContain("LIMIT ?");
+    expect(query.values).toEqual(["project-1", 3]);
   });
 });

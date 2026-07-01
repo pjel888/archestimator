@@ -145,6 +145,7 @@ const PROVIDER_PROOF = {
     secretProviderReady: true,
     baseUrlReady: true,
     trustedOriginsReady: true,
+    googleOAuthProviderReady: true,
     providerSessionFixtureReady: true,
     magicLinkRequestReady: true,
     magicLinkCallbackReady: true,
@@ -154,7 +155,7 @@ const PROVIDER_PROOF = {
     providerBackedCallbackSessionCutoverReady: true,
     cleanupReady: true,
     betterAuthProviderProofReady: true,
-    productionCutoverReady: false,
+    productionCutoverReady: true,
   },
   result: {
     d1BindingPresent: true,
@@ -162,6 +163,7 @@ const PROVIDER_PROOF = {
     expectedTablesPresent: true,
     expectedIndexesPresent: true,
     secretProviderReady: true,
+    googleOAuthProviderReady: true,
     baseUrlReady: true,
     trustedOriginsReady: true,
     providerSessionFixtureReady: true,
@@ -302,7 +304,7 @@ describe("Cloudflare Better Auth proof generator", () => {
     expect(report.note).toContain("fails closed without a Better Auth secret and ARCH_DB binding");
   });
 
-  it("promotes hosted Better Auth provider proof without claiming production cutover", () => {
+  it("promotes hosted Better Auth provider proof while leaving legacy fallback text as the cutover blocker", () => {
     const inputs = proofInputs();
     inputs.sourceFileTextByPath["src/app/api/auth/[...all]/route.ts"] = GUARDED_NEXT_ROUTE_SOURCE;
     const report = buildCloudflareBetterAuthProof({
@@ -327,6 +329,8 @@ describe("Cloudflare Better Auth proof generator", () => {
       responseStatus: 200,
       rowsRemaining: 0,
       magicLinkRowsRemaining: 0,
+      googleOAuthProviderReady: true,
+      productionCutoverReady: true,
       providerBackedCallbackSessionCutoverReady: true,
       tableNames: ["account", "session", "user", "verification"],
     });
@@ -338,15 +342,38 @@ describe("Cloudflare Better Auth proof generator", () => {
     );
     expect(report.productionCutoverBlockers).toEqual(
       expect.arrayContaining([
-        expect.stringContaining("production cutover is still not marked ready"),
         expect.stringContaining("Legacy Supabase auth compatibility paths"),
       ]),
     );
     expect(report.productionCutoverBlockers).not.toEqual(
       expect.arrayContaining([
+        expect.stringContaining("production cutover is still not marked ready"),
+        expect.stringContaining("Google OAuth provider credentials"),
         expect.stringContaining("provider-backed callback/session cutover tests"),
       ]),
     );
+  });
+
+  it("marks production Better Auth ready when provider proof is complete and legacy Supabase auth gates are gone", () => {
+    const inputs = proofInputs();
+    inputs.sourceFileTextByPath["src/app/api/auth/[...all]/route.ts"] = GUARDED_NEXT_ROUTE_SOURCE;
+    for (const legacyFile of inputs.sources.legacySupabaseAuthGateFiles) {
+      inputs.sourceFileTextByPath[legacyFile] = `
+        isCloudflareBetterAuthProviderEnabled();
+        await getCloudflareBetterAuthIdentityFromRequest(request);
+        await createCloudflareBetterAuthForRequest(request);
+      `;
+    }
+
+    const report = buildCloudflareBetterAuthProof({
+      ...inputs,
+      betterAuthProviderProof: PROVIDER_PROOF,
+      betterAuthProviderProofSource: "evidence/provider-proof.json",
+    });
+
+    expect(report.readiness.productionBetterAuthReady).toBe(true);
+    expect(report.readiness.legacySupabaseAuthGateRetired).toBe(true);
+    expect(report.productionCutoverBlockers).toEqual([]);
   });
 
   it("writes markdown without copying secret-looking source text", () => {

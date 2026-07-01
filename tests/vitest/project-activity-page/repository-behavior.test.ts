@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const d1Mocks = vi.hoisted(() => ({
+  getCloudflareD1Database: vi.fn(),
+}));
+
 const mocks = vi.hoisted(() => ({
-  supabase: null as ReturnType<typeof createSupabaseMock> | null,
   getCurrentUserContext: vi.fn(),
   getCurrentWorkspaceProject: vi.fn(),
 }));
@@ -12,12 +15,12 @@ vi.mock("@/lib/auth/session", () => ({
   getCurrentUserContext: mocks.getCurrentUserContext,
 }));
 
-vi.mock("@/lib/repositories/workspace-repository", () => ({
-  getCurrentWorkspaceProject: mocks.getCurrentWorkspaceProject,
+vi.mock("@/lib/cloudflare/d1", () => ({
+  getCloudflareD1Database: d1Mocks.getCloudflareD1Database,
 }));
 
-vi.mock("@/lib/supabase/server", () => ({
-  createSupabaseServerClient: vi.fn(async () => mocks.supabase),
+vi.mock("@/lib/repositories/workspace-repository", () => ({
+  getCurrentWorkspaceProject: mocks.getCurrentWorkspaceProject,
 }));
 
 import { readProjectActivityFeed } from "@/lib/repositories/project-activity-feed-repository";
@@ -26,49 +29,66 @@ const PROJECT_ID = "11111111-1111-4111-8111-111111111111";
 const WORKSPACE_ID = "22222222-2222-4222-8222-222222222222";
 const ESTIMATE_ID = "33333333-3333-4333-8333-333333333333";
 
-type QueryResult = {
-  count?: number | null;
-  data?: unknown[] | null;
-  error?: unknown;
+type PreparedRecord = {
+  sql: string;
+  values: unknown[];
 };
 
-type QueryMock = {
-  contains: ReturnType<typeof vi.fn>;
-  eq: ReturnType<typeof vi.fn>;
-  in: ReturnType<typeof vi.fn>;
-  is: ReturnType<typeof vi.fn>;
-  limit: ReturnType<typeof vi.fn>;
-  or: ReturnType<typeof vi.fn>;
-  order: ReturnType<typeof vi.fn>;
-  select: ReturnType<typeof vi.fn>;
-  then: Promise<QueryResult>["then"];
-};
+class FakeD1Statement {
+  values: unknown[] = [];
 
-type QueryRecord = {
-  table: string;
-  query: QueryMock;
-};
+  constructor(
+    private readonly database: FakeD1Database,
+    readonly sql: string,
+  ) {}
 
-function isCountQuery(query: QueryMock) {
-  return query.select.mock.calls.some((call) => {
-    const options = call[1] as { count?: string } | undefined;
-    return options?.count === "exact";
-  });
+  bind(...values: unknown[]) {
+    this.values = values;
+    return this;
+  }
+
+  async all<T = Record<string, unknown>>() {
+    this.database.records.push({ sql: this.sql, values: this.values });
+    return { success: true, results: this.database.resolveRows(this.sql) as T[] };
+  }
+
+  async first<T = Record<string, unknown>>() {
+    this.database.records.push({ sql: this.sql, values: this.values });
+    return this.database.resolveRows(this.sql)[0] as T | undefined ?? null;
+  }
+
+  async run() {
+    this.database.records.push({ sql: this.sql, values: this.values });
+    return { success: true, meta: { changes: 1 } };
+  }
 }
 
-function createQueryMock(resolveResult: (query: QueryMock) => QueryResult): QueryMock {
-  const query = {
-    contains: vi.fn(() => query),
-    eq: vi.fn(() => query),
-    in: vi.fn(() => query),
-    is: vi.fn(() => query),
-    limit: vi.fn(() => query),
-    or: vi.fn(() => query),
-    order: vi.fn(() => query),
-    select: vi.fn(() => query),
-    then: (onFulfilled, onRejected) => Promise.resolve(resolveResult(query)).then(onFulfilled, onRejected),
-  } as QueryMock;
-  return query;
+class FakeD1Database {
+  readonly records: PreparedRecord[] = [];
+
+  constructor(
+    private readonly rows: Record<string, unknown[]> = {},
+    private readonly counts: Record<string, number> = {},
+  ) {}
+
+  prepare(sql: string) {
+    return new FakeD1Statement(this, sql);
+  }
+
+  resolveRows(sql: string) {
+    const countMatch = sql.match(/COUNT\(\*\) AS count FROM\s+([a-z_]+)/i);
+    if (countMatch?.[1]) return [{ count: this.counts[countMatch[1]] ?? 0 }];
+
+    if (sql.includes("FROM project_publications")) return this.rows.project_publications ?? [];
+    if (sql.includes("FROM estimate_sheet_events")) return this.rows.estimate_sheet_events ?? [];
+    if (sql.includes("FROM shared_link_comments")) return this.rows.shared_link_comments ?? [];
+    if (sql.includes("FROM shared_link_responses")) return this.rows.shared_link_responses ?? [];
+    if (sql.includes("FROM shared_link_events")) return this.rows.shared_link_events ?? [];
+    if (sql.includes("FROM collaboration_audit_events")) return this.rows.collaboration_audit_events ?? [];
+    if (sql.includes("FROM shared_link_recipients")) return this.rows.shared_link_recipients ?? [];
+    if (sql.includes("FROM profiles")) return this.rows.profiles ?? [];
+    return [];
+  }
 }
 
 function publicationRow(overrides: Record<string, unknown> = {}) {
@@ -86,37 +106,8 @@ function publicationRow(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function createSupabaseMock({
-  rows = {},
-  counts = {},
-}: {
-  rows?: Record<string, unknown[]>;
-  counts?: Record<string, number>;
-} = {}) {
-  const records: QueryRecord[] = [];
-  const rpcRecords: { name: string; args: Record<string, unknown>; query: QueryMock }[] = [];
-
-  return {
-    records,
-    rpcRecords,
-    from: vi.fn((table: string) => {
-      const query = createQueryMock((currentQuery) => ({
-        count: isCountQuery(currentQuery) ? counts[table] ?? 0 : null,
-        data: isCountQuery(currentQuery) ? null : rows[table] ?? [],
-        error: null,
-      }));
-      records.push({ table, query });
-      return query;
-    }),
-    rpc: vi.fn((name: string, args: Record<string, unknown>) => {
-      const query = createQueryMock(() => ({
-        data: rows[`rpc:${name}`] ?? [],
-        error: null,
-      }));
-      rpcRecords.push({ name, args, query });
-      return query;
-    }),
-  };
+function d1RecordsFor(database: FakeD1Database, table: string) {
+  return database.records.filter((record) => record.sql.includes(`FROM ${table}`));
 }
 
 describe("project activity repository behavior", () => {
@@ -129,22 +120,21 @@ describe("project activity repository behavior", () => {
   });
 
   it("includes estimate-scoped publications matched through activity target labels", async () => {
-    mocks.supabase = createSupabaseMock({
-      rows: {
-        project_publications: [
-          publicationRow({
-            id: "pub-label-match",
-            activity_target_labels_json: { estimateLabels: { [ESTIMATE_ID]: "Main Estimate" } },
-            selected_estimate_ids: [],
-          }),
-          publicationRow({
-            id: "pub-other",
-            activity_target_labels_json: { estimateLabels: { "55555555-5555-4555-8555-555555555555": "Other" } },
-            selected_estimate_ids: [],
-          }),
-        ],
-      },
+    const database = new FakeD1Database({
+      project_publications: [
+        publicationRow({
+          id: "pub-label-match",
+          activity_target_labels_json: { estimateLabels: { [ESTIMATE_ID]: "Main Estimate" } },
+          selected_estimate_ids: [],
+        }),
+        publicationRow({
+          id: "pub-other",
+          activity_target_labels_json: { estimateLabels: { "55555555-5555-4555-8555-555555555555": "Other" } },
+          selected_estimate_ids: [],
+        }),
+      ],
     });
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
 
     const page = await readProjectActivityFeed({
       projectId: PROJECT_ID,
@@ -161,11 +151,10 @@ describe("project activity repository behavior", () => {
   });
 
   it("excludes estimate-tied comments and responses from project-only scope in reads and counts", async () => {
-    mocks.supabase = createSupabaseMock({
-      rows: {
-        project_publications: [publicationRow({ id: "pub-project" })],
-      },
+    const database = new FakeD1Database({
+      project_publications: [publicationRow({ id: "pub-project" })],
     });
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
 
     await readProjectActivityFeed({
       projectId: PROJECT_ID,
@@ -173,22 +162,21 @@ describe("project activity repository behavior", () => {
       limit: 20,
     });
 
-    const comments = mocks.supabase.records.filter((record) => record.table === "shared_link_comments");
-    const responses = mocks.supabase.records.filter((record) => record.table === "shared_link_responses");
+    const comments = d1RecordsFor(database, "shared_link_comments");
+    const responses = d1RecordsFor(database, "shared_link_responses");
 
     expect(comments.length).toBeGreaterThanOrEqual(2);
     expect(responses.length).toBeGreaterThanOrEqual(2);
     for (const record of [...comments, ...responses]) {
-      expect(record.query.is).toHaveBeenCalledWith("estimate_id", null);
+      expect(record.sql).toContain("estimate_id IS NULL");
     }
   });
 
   it("pushes viewed action filtering into shared-link event reads and filtered counts", async () => {
-    mocks.supabase = createSupabaseMock({
-      rows: {
-        project_publications: [publicationRow({ id: "pub-project" })],
-      },
+    const database = new FakeD1Database({
+      project_publications: [publicationRow({ id: "pub-project" })],
     });
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
 
     await readProjectActivityFeed({
       projectId: PROJECT_ID,
@@ -196,12 +184,11 @@ describe("project activity repository behavior", () => {
       limit: 20,
     });
 
-    const eventRecords = mocks.supabase.records.filter((record) => record.table === "shared_link_events");
-    const sourceRead = eventRecords.find((record) => String(record.query.select.mock.calls[0]?.[0]).includes("event_type"));
-    const filteredCount = eventRecords.find((record) =>
-      isCountQuery(record.query) && record.query.in.mock.calls.some((call) => call[0] === "event_type"));
+    const eventRecords = d1RecordsFor(database, "shared_link_events");
+    const sourceRead = eventRecords.find((record) => record.sql.includes("SELECT id, created_at") && record.sql.includes("event_type IN"));
+    const filteredCount = eventRecords.find((record) => record.sql.includes("COUNT(*) AS count") && record.sql.includes("event_type IN"));
 
-    expect(sourceRead?.query.in).toHaveBeenCalledWith("event_type", ["open", "password_attempt"]);
-    expect(filteredCount?.query.in).toHaveBeenCalledWith("event_type", ["open", "password_attempt"]);
+    expect(sourceRead?.values).toEqual(["pub-project", "open", "password_attempt", 21]);
+    expect(filteredCount?.values).toEqual(["pub-project", "open", "password_attempt"]);
   });
 });

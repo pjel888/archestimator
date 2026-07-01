@@ -13,6 +13,26 @@ const nextHeadersMocks = vi.hoisted(() => ({
 vi.mock("next/navigation", () => nextNavigationMocks);
 vi.mock("next/headers", () => nextHeadersMocks);
 
+type MockAccountWorkspaceMembership = {
+  role: string | null;
+  source: "workspace" | "project" | "estimate";
+  workspaceId: string;
+} | null;
+
+function mockAccountWorkspaceMembership(membership: MockAccountWorkspaceMembership) {
+  vi.doMock("@/lib/auth/account-membership", () => ({
+    readFirstAccountWorkspaceMembership: vi.fn(async () => membership),
+  }));
+}
+
+function mockAccountWorkspaceMembershipError(message: string) {
+  vi.doMock("@/lib/auth/account-membership", () => ({
+    readFirstAccountWorkspaceMembership: vi.fn(async () => {
+      throw new Error(message);
+    }),
+  }));
+}
+
 describe("auth onboarding workspace guard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -107,6 +127,11 @@ describe("auth onboarding workspace guard", () => {
     vi.doMock("@/lib/supabase/server", () => ({
       createSupabaseServerClient: vi.fn(async () => supabase),
     }));
+    mockAccountWorkspaceMembership({
+      source: "workspace",
+      workspaceId: workspace.id,
+      role: null,
+    });
 
     const { ensureDefaultWorkspace } = await import("@/lib/repositories/workspace-repository");
     await expect(ensureDefaultWorkspace()).resolves.toEqual({
@@ -114,11 +139,7 @@ describe("auth onboarding workspace guard", () => {
       profile: { ...profile, default_workspace_id: workspace.id },
     });
 
-    expect(queryOrder).toEqual([
-      "workspace_members",
-      "workspaces",
-      "profiles",
-    ]);
+    expect(queryOrder).toEqual(["workspaces", "profiles"]);
     expect(inserts).toEqual([]);
     expect(updates).toEqual([
       {
@@ -197,6 +218,11 @@ describe("auth onboarding workspace guard", () => {
     vi.doMock("@/lib/supabase/server", () => ({
       createSupabaseServerClient: vi.fn(async () => supabase),
     }));
+    mockAccountWorkspaceMembership({
+      source: "project",
+      workspaceId: workspace.id,
+      role: "viewer",
+    });
 
     const { ensureDefaultWorkspace } = await import("@/lib/repositories/workspace-repository");
     await expect(ensureDefaultWorkspace()).resolves.toEqual({
@@ -204,12 +230,7 @@ describe("auth onboarding workspace guard", () => {
       profile: { ...profile, default_workspace_id: workspace.id },
     });
 
-    expect(queryOrder).toEqual([
-      "workspace_members",
-      "project_members",
-      "workspaces",
-      "profiles",
-    ]);
+    expect(queryOrder).toEqual(["workspaces", "profiles"]);
     expect(inserts).toEqual([]);
   });
 
@@ -284,6 +305,11 @@ describe("auth onboarding workspace guard", () => {
     vi.doMock("@/lib/supabase/server", () => ({
       createSupabaseServerClient: vi.fn(async () => supabase),
     }));
+    mockAccountWorkspaceMembership({
+      source: "estimate",
+      workspaceId: workspace.id,
+      role: "viewer",
+    });
 
     const { ensureDefaultWorkspace } = await import("@/lib/repositories/workspace-repository");
     await expect(ensureDefaultWorkspace()).resolves.toEqual({
@@ -291,14 +317,7 @@ describe("auth onboarding workspace guard", () => {
       profile: { ...profile, default_workspace_id: workspace.id },
     });
 
-    expect(queryOrder).toEqual([
-      "workspace_members",
-      "project_members",
-      "estimate_sheet_members",
-      "projects",
-      "workspaces",
-      "profiles",
-    ]);
+    expect(queryOrder).toEqual(["workspaces", "profiles"]);
     expect(inserts).toEqual([]);
   });
 
@@ -360,18 +379,16 @@ describe("auth onboarding workspace guard", () => {
     vi.doMock("@/lib/supabase/server", () => ({
       createSupabaseServerClient: vi.fn(async () => supabase),
     }));
+    mockAccountWorkspaceMembershipError(
+      "Estimate membership workspace is unavailable. Contact support.",
+    );
 
     const { ensureDefaultWorkspace } = await import("@/lib/repositories/workspace-repository");
     await expect(ensureDefaultWorkspace()).rejects.toThrow(
       "Estimate membership workspace is unavailable. Contact support.",
     );
 
-    expect(queryOrder).toEqual([
-      "workspace_members",
-      "project_members",
-      "estimate_sheet_members",
-      "projects",
-    ]);
+    expect(queryOrder).toEqual([]);
     expect(inserts).toEqual([]);
   });
 
@@ -431,16 +448,18 @@ describe("auth onboarding workspace guard", () => {
     vi.doMock("@/lib/supabase/server", () => ({
       createSupabaseServerClient: vi.fn(async () => supabase),
     }));
+    mockAccountWorkspaceMembership({
+      source: "workspace",
+      workspaceId: "workspace-1",
+      role: null,
+    });
 
     const { ensureDefaultWorkspace } = await import("@/lib/repositories/workspace-repository");
     await expect(ensureDefaultWorkspace()).rejects.toThrow(
       "Workspace membership is unavailable. Contact support.",
     );
 
-    expect(queryOrder).toEqual([
-      "workspace_members",
-      "workspaces",
-    ]);
+    expect(queryOrder).toEqual(["workspaces"]);
     expect(inserts).toEqual([]);
   });
 
@@ -504,6 +523,7 @@ describe("auth onboarding workspace guard", () => {
     vi.doMock("@/lib/supabase/server", () => ({
       createSupabaseServerClient: vi.fn(async () => supabase),
     }));
+    mockAccountWorkspaceMembership(null);
 
     const { ensureDefaultWorkspace } = await import("@/lib/repositories/workspace-repository");
 
@@ -512,21 +532,13 @@ describe("auth onboarding workspace guard", () => {
       profile: { ...profile, default_workspace_id: workspace.id },
     });
     expect(nextHeadersMocks.headers).not.toHaveBeenCalled();
-    expect(queryOrder).toEqual([
-      "workspace_members",
-      "project_members",
-      "estimate_sheet_members",
-      "workspaces",
-      "profiles",
-    ]);
+    expect(queryOrder).toEqual(["workspaces", "profiles"]);
   });
 
   it("denies forged cross-workspace account-actions workspace settings updates before writing", async () => {
     vi.resetModules();
 
-    const updates: Array<{ table: string; payload: unknown }> = [];
-    const upserts: Array<{ table: string; payload: unknown }> = [];
-    const filters: Array<{ table: string; column: string; value: unknown }> = [];
+    const queries: Array<{ sql: string; values: unknown[]; method: "first" | "run" }> = [];
     const profile = {
       id: "user-1",
       email: "member@example.com",
@@ -536,28 +548,25 @@ describe("auth onboarding workspace guard", () => {
       created_at: "2026-05-27T00:00:00.000Z",
       updated_at: "2026-05-27T00:00:00.000Z",
     };
-    const supabase = {
-      from: vi.fn((table: string) => {
-        const query = {
-          select: vi.fn(() => query),
-          eq: vi.fn((column: string, value: unknown) => {
-            filters.push({ table, column, value });
-            return query;
+    const database = {
+      prepare: vi.fn((sql: string) => {
+        const statement = {
+          values: [] as unknown[],
+          bind: vi.fn((...values: unknown[]) => {
+            statement.values = values;
+            return statement;
           }),
-          update: vi.fn((payload: unknown) => {
-            updates.push({ table, payload });
-            return query;
+          first: vi.fn(async () => {
+            queries.push({ sql, values: statement.values, method: "first" });
+            return null;
           }),
-          upsert: vi.fn((payload: unknown) => {
-            upserts.push({ table, payload });
-            return query;
-          }),
-          maybeSingle: vi.fn(async () => {
-            if (table === "workspace_members") return { data: null, error: null };
-            return { data: null, error: null };
+          all: vi.fn(async () => ({ results: [] })),
+          run: vi.fn(async () => {
+            queries.push({ sql, values: statement.values, method: "run" });
+            return { success: true, meta: { changes: 1 } };
           }),
         };
-        return query;
+        return statement;
       }),
     };
 
@@ -569,8 +578,8 @@ describe("auth onboarding workspace guard", () => {
         profile,
       })),
     }));
-    vi.doMock("@/lib/supabase/server", () => ({
-      createSupabaseServerClient: vi.fn(async () => supabase),
+    vi.doMock("@/lib/cloudflare/d1", () => ({
+      getCloudflareD1Database: vi.fn(async () => database),
     }));
 
     const formData = new FormData();
@@ -587,11 +596,12 @@ describe("auth onboarding workspace guard", () => {
       "NEXT_REDIRECT:/workshop/settings/workspace?error=forbidden",
     );
 
-    expect(filters).toEqual([
-      { table: "workspace_members", column: "workspace_id", value: "workspace-2" },
-      { table: "workspace_members", column: "user_id", value: "user-1" },
+    expect(queries).toEqual([
+      {
+        sql: expect.stringContaining("FROM workspace_members"),
+        values: ["workspace-2", "user-1"],
+        method: "first",
+      },
     ]);
-    expect(updates).toEqual([]);
-    expect(upserts).toEqual([]);
   });
 });

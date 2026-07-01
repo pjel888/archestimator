@@ -65,7 +65,9 @@ describe("auth account data schema", () => {
     expect(migration).toMatch(
       /revoke insert, update, delete on public\.user_onboarding_profiles from authenticated/i,
     );
-    expect(accountActions).toContain("upsertUserOnboardingProfileInCloudflareD1");
+    expect(accountActions).toContain("upsertUserOnboardingProfileInD1");
+    expect(accountActions).toContain("getCloudflareD1Database");
+    expect(accountActions).not.toMatch(/createSupabaseServerClient|@\/lib\/supabase\/server/);
     expect(d1Store).toContain('import "server-only"');
     expect(d1Store).toContain("getCloudflareD1Database");
     expect(d1Store).not.toMatch(/SUPABASE_SERVICE_ROLE_KEY|@supabase\/supabase-js|createClient/);

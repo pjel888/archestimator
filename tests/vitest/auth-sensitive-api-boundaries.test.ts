@@ -116,7 +116,7 @@ class FakeD1Statement {
   }
 
   async all() {
-    return { results: [], success: true };
+    return this.database.all(this.sql, this.values);
   }
 
   async run() {
@@ -134,6 +134,12 @@ class FakeD1Database {
   failNextRun: Error | null = null;
   projectLookupRow: { id: string; workspace_id: string } | null = null;
   estimateLookupRow: { id: string; project_id?: string } | null = null;
+  estimateRowLookupRow: { id: string; estimate_id: string } | null = null;
+  attachmentRows: Array<Record<string, unknown>> = [];
+  attachmentLookupRow: Record<string, unknown> | null = null;
+  attachmentLookupError: Error | null = null;
+  uploadAssetLookupRow: Record<string, unknown> | null = null;
+  uploadAssetLookupError: Error | null = null;
   access = {
     canAccessProject: true,
     canAccessEstimate: true,
@@ -165,6 +171,13 @@ class FakeD1Database {
       return { id: this.estimateLookupRow.id, project_id: this.estimateLookupRow.project_id ?? values[1] };
     }
 
+    if (sql.includes("SELECT id, estimate_id") && sql.includes("FROM estimate_row_items")) {
+      if (!this.estimateRowLookupRow) return null;
+      if (this.estimateRowLookupRow.id !== values[0]) return null;
+      if (this.estimateRowLookupRow.estimate_id !== values[1]) return null;
+      return this.estimateRowLookupRow;
+    }
+
     if (sql.includes("SELECT 1 AS allowed") && sql.includes("FROM projects project")) {
       if (sql.includes("role IN ('owner', 'admin', 'member')")) {
         return this.access.canEditProject ? { allowed: 1 } : null;
@@ -183,7 +196,32 @@ class FakeD1Database {
       return this.access.canManageLibrary ? { allowed: 1 } : null;
     }
 
+    if (sql.includes("FROM cost_library_item_variant_attachments") && sql.includes("WHERE id = ?")) {
+      if (this.attachmentLookupError) throw this.attachmentLookupError;
+      if (!this.attachmentLookupRow) return null;
+      if (this.attachmentLookupRow.id !== values[0]) return null;
+      if (this.attachmentLookupRow.workspace_id !== values[1]) return null;
+      return this.attachmentLookupRow;
+    }
+
+    if (sql.includes("FROM upload_assets")) {
+      if (this.uploadAssetLookupError) throw this.uploadAssetLookupError;
+      if (!this.uploadAssetLookupRow) return null;
+      if (this.uploadAssetLookupRow.workspace_id !== values[0]) return null;
+      if (this.uploadAssetLookupRow.storage_bucket !== values[1]) return null;
+      if (this.uploadAssetLookupRow.storage_path !== values[2]) return null;
+      return this.uploadAssetLookupRow;
+    }
+
     return null;
+  }
+
+  all(sql: string, _values: unknown[]) {
+    if (sql.includes("FROM cost_library_item_variant_attachments")) {
+      return { results: this.attachmentRows, success: true };
+    }
+
+    return { results: [], success: true };
   }
 }
 
@@ -289,6 +327,12 @@ function mockStorageClient(
   supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(client);
   const d1 = new FakeD1Database();
   activeD1 = d1;
+  d1.attachmentRows = attachmentRows;
+  d1.attachmentLookupRow = options.attachmentLookupRow ?? null;
+  d1.attachmentLookupError = options.attachmentLookupError ? new Error(options.attachmentLookupError.message) : null;
+  d1.uploadAssetLookupRow = options.uploadAssetLookupRow ?? null;
+  d1.uploadAssetLookupError = options.uploadAssetLookupError ? new Error(options.uploadAssetLookupError.message) : null;
+  if (options.uploadEventInsertError) d1.failNextRun = new Error(options.uploadEventInsertError.message);
   d1Mocks.getCloudflareD1Database.mockResolvedValue(d1);
   const r2 = createR2StorageBridge(storageFrom);
   cloudflareMocks.getCloudflareContext.mockResolvedValue({ env: { ARCH_UPLOADS_R2: r2 } });
@@ -342,12 +386,13 @@ function mockServerRpc(options: Parameters<typeof createRpcMock>[0] = {}) {
 function mockProjectLookup(
   data: { id: string; workspace_id: string } | null = null,
   options: Parameters<typeof createRpcMock>[0] = {},
-  estimateData: { id: string } | null = null,
+  estimateData: { id: string; project_id?: string } | null = null,
 ) {
   const d1 = activeD1 ?? new FakeD1Database();
   activeD1 = d1;
   d1.projectLookupRow = data;
   d1.estimateLookupRow = estimateData ?? (data ? { id: "estimate-1", project_id: data.id } : null);
+  d1.estimateRowLookupRow = d1.estimateLookupRow ? { id: "row-1", estimate_id: d1.estimateLookupRow.id } : null;
   d1.access = {
     canAccessProject: options.canAccessProject ?? true,
     canAccessEstimate: options.canAccessEstimate ?? true,
@@ -428,7 +473,8 @@ describe("sensitive API auth boundaries", () => {
 
     expectAuthBeforeBodyParsing(source);
     expect(source).toContain("ensureDefaultWorkspace()");
-    expect(source).toContain("is_workspace_editor");
+    expect(source).toContain("isWorkspaceEditorInD1");
+    expect(source).not.toContain("createSupabaseServerClient");
     expect(source).toContain("uploadSessionId");
     expect(source).toContain("assetId");
     expect(source).toContain("scanStatus");
@@ -462,16 +508,17 @@ describe("sensitive API auth boundaries", () => {
 
     expectAuthBeforeBodyParsing(source);
     expect(source).toContain("ensureDefaultWorkspace()");
-    expect(source).toContain("can_edit_project");
-    expect(source).toContain("can_edit_estimate");
+    expect(source).toContain("canEditProjectInD1");
+    expect(source).toContain("canEditEstimateInD1");
+    expect(source).toContain("readProjectInWorkspaceFromD1(uploadMetadataDb, projectId, workspace.id)");
+    expect(source).toContain("readEstimateInProjectFromD1(uploadMetadataDb, estimateId, projectId)");
+    expect(source).toContain("readEstimateRowItemInEstimateFromD1(uploadMetadataDb, rowItemId, estimateId)");
     expect(source).toContain("processUploadImageToWebp");
     expect(source).not.toContain("is_workspace_editor");
-    expect(source).toContain(".from(\"projects\")");
-    expect(source).toContain(".from(\"estimates\")");
-    expect(source).toContain(".from(\"estimate_row_items\")");
-    expect(source).toContain(".eq(\"workspace_id\", workspace.id)");
-    expect(source).toContain(".eq(\"project_id\", projectId)");
-    expect(source).toContain(".eq(\"estimate_id\", estimateId)");
+    expect(source).not.toContain("createSupabaseServerClient");
+    expect(source).not.toContain(".from(\"projects\")");
+    expect(source).not.toContain(".from(\"estimates\")");
+    expect(source).not.toContain(".from(\"estimate_row_items\")");
     expect(source).toContain("uploadSessionId");
     expect(source).toContain("assetId");
     expect(source).toContain("imageAsset");
@@ -548,9 +595,8 @@ describe("sensitive API auth boundaries", () => {
     await expect(response.json()).resolves.toEqual({
       error: "Only workspace editors/admins can manage the library.",
     });
-    expect(server.rpc).toHaveBeenCalledWith("is_workspace_editor", {
-      target_workspace_id: DEFAULT_WORKSPACE_ID,
-    });
+    expect(d1PreparedStatements(server.d1, /FROM workspace_members workspace_member/)).toHaveLength(1);
+    expect(server.rpc).not.toHaveBeenCalled();
     expect(request.formData).not.toHaveBeenCalled();
     expect(storage.from).not.toHaveBeenCalled();
     expect(storage.upload).not.toHaveBeenCalled();
@@ -754,28 +800,10 @@ describe("sensitive API auth boundaries", () => {
 
   it("uploads estimate row images into the private project image bucket and returns row asset descriptors", async () => {
     const storage = mockStorageClient();
-    const rpc = createRpcMock({ canEditProject: true, canEditEstimate: false });
-    const projectQuery = {
-      select: vi.fn(() => projectQuery),
-      eq: vi.fn(() => projectQuery),
-      single: vi.fn(async () => ({ data: { id: "project-1" }, error: null })),
-    };
-    const estimateQuery = {
-      select: vi.fn(() => estimateQuery),
-      eq: vi.fn(() => estimateQuery),
-      single: vi.fn(async () => ({ data: { id: "estimate-1", project_id: "project-1" }, error: null })),
-    };
-    const rowQuery = {
-      select: vi.fn(() => rowQuery),
-      eq: vi.fn(() => rowQuery),
-      single: vi.fn(async () => ({ data: { id: "row-1" }, error: null })),
-    };
-    const from = vi.fn((table: string) => {
-      if (table === "projects") return projectQuery;
-      if (table === "estimates") return estimateQuery;
-      return rowQuery;
-    });
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
+    const projectLookup = mockProjectLookup(
+      { id: "project-1", workspace_id: DEFAULT_WORKSPACE_ID },
+      { canEditProject: true, canEditEstimate: false },
+    );
     const formData = new FormData();
     formData.set("projectId", "project-1");
     formData.set("estimateId", "estimate-1");
@@ -817,6 +845,11 @@ describe("sensitive API auth boundaries", () => {
       expect.stringContaining("\"estimateId\":\"estimate-1\""),
       expect.stringContaining("\"rowItemId\":\"row-1\""),
     ]));
+    expect(d1PreparedStatements(projectLookup.d1, /FROM projects\s+WHERE id = \?\s+AND workspace_id = \?/)).toHaveLength(1);
+    expect(d1PreparedStatements(projectLookup.d1, /FROM estimates\s+WHERE id = \?\s+AND project_id = \?/)).toHaveLength(1);
+    expect(d1PreparedStatements(projectLookup.d1, /FROM projects project/)).toHaveLength(1);
+    expect(d1PreparedStatements(projectLookup.d1, /FROM estimates estimate/)).toHaveLength(1);
+    expect(d1PreparedStatements(projectLookup.d1, /FROM estimate_row_items/)).toHaveLength(1);
   });
 
   it("rejects oversized image requests before auth, body parsing, or storage work", async () => {
@@ -1131,10 +1164,9 @@ describe("sensitive API auth boundaries", () => {
     await expect(response.json()).resolves.toEqual({
       error: "Only workspace editors/admins can manage the library.",
     });
-    expect(server.rpc).toHaveBeenCalledWith("is_workspace_editor", {
-      target_workspace_id: DEFAULT_WORKSPACE_ID,
-    });
-    expect(storage.dbFrom).not.toHaveBeenCalled();
+    expect(d1PreparedStatements(server.d1, /FROM workspace_members workspace_member/)).toHaveLength(1);
+    expect(server.rpc).not.toHaveBeenCalled();
+    expect(d1PreparedStatements(storage.d1, /FROM cost_library_item_variant_attachments/)).toHaveLength(0);
     expect(storage.remove).not.toHaveBeenCalled();
   });
 
@@ -1154,7 +1186,7 @@ describe("sensitive API auth boundaries", () => {
     await expect(response.json()).resolves.toEqual({
       error: "Reviewed Library attachments cannot be removed from draft cleanup.",
     });
-    expect(storage.dbFrom).toHaveBeenCalledWith("cost_library_item_variant_attachments");
+    expect(d1PreparedStatements(storage.d1, /FROM cost_library_item_variant_attachments/)).toHaveLength(1);
     expect(storage.remove).not.toHaveBeenCalled();
   });
 
@@ -1190,7 +1222,7 @@ describe("sensitive API auth boundaries", () => {
       error: "Attachment could not be found.",
     });
     expect(authMocks.requireCurrentUserContext).not.toHaveBeenCalled();
-    expect(storage.dbFrom).not.toHaveBeenCalled();
+    expect(d1PreparedStatements(storage.d1, /FROM cost_library_item_variant_attachments/)).toHaveLength(0);
     expect(storage.download).not.toHaveBeenCalled();
   });
 
@@ -1229,9 +1261,9 @@ describe("sensitive API auth boundaries", () => {
     await expect(response.json()).resolves.toEqual({
       error: "Attachment is not available until scanning is complete.",
     });
-    expect(storage.dbFrom).toHaveBeenCalledWith("cost_library_item_variant_attachments");
-    expect(storage.dbFrom).toHaveBeenCalledWith("upload_assets");
-    expect(storage.uploadEventsQuery.insert).not.toHaveBeenCalled();
+    expect(d1PreparedStatements(storage.d1, /FROM cost_library_item_variant_attachments/)).toHaveLength(1);
+    expect(d1PreparedStatements(storage.d1, /FROM upload_assets/)).toHaveLength(1);
+    expect(d1SqlStatements(storage.d1, /INSERT INTO upload_events/)).toHaveLength(0);
     expect(storage.download).not.toHaveBeenCalled();
   });
 
@@ -1274,9 +1306,9 @@ describe("sensitive API auth boundaries", () => {
     await expect(response.json()).resolves.toEqual({
       error: "Attachment is not available until approval is complete.",
     });
-    expect(storage.dbFrom).toHaveBeenCalledWith("cost_library_item_variant_attachments");
-    expect(storage.dbFrom).not.toHaveBeenCalledWith("upload_assets");
-    expect(storage.uploadEventsQuery.insert).not.toHaveBeenCalled();
+    expect(d1PreparedStatements(storage.d1, /FROM cost_library_item_variant_attachments/)).toHaveLength(1);
+    expect(d1PreparedStatements(storage.d1, /FROM upload_assets/)).toHaveLength(0);
+    expect(d1SqlStatements(storage.d1, /INSERT INTO upload_events/)).toHaveLength(0);
     expect(storage.download).not.toHaveBeenCalled();
   });
 
@@ -1321,7 +1353,7 @@ describe("sensitive API auth boundaries", () => {
     await expect(response.json()).resolves.toEqual({
       error: "Attachment is not available until scanning is complete.",
     });
-    expect(storage.uploadEventsQuery.insert).not.toHaveBeenCalled();
+    expect(d1SqlStatements(storage.d1, /INSERT INTO upload_events/)).toHaveLength(0);
     expect(storage.download).not.toHaveBeenCalled();
   });
 
@@ -1363,7 +1395,7 @@ describe("sensitive API auth boundaries", () => {
       await expect(response.json()).resolves.toEqual({
         error: "Attachment download could not be audited.",
       });
-      expect(storage.uploadEventsQuery.insert).toHaveBeenCalledOnce();
+      expect(d1PreparedStatements(storage.d1, /INSERT INTO upload_events/)).toHaveLength(1);
       expect(storage.download).not.toHaveBeenCalled();
     } finally {
       consoleError.mockRestore();
@@ -1407,13 +1439,13 @@ describe("sensitive API auth boundaries", () => {
     expect(response.headers.get("content-type")).toBe("application/pdf");
     expect(response.headers.get("content-disposition")).toBe('attachment; filename="spec.pdf"');
     expect(response.headers.get("cache-control")).toBe("private, max-age=300");
-    expect(storage.uploadEventsQuery.insert).toHaveBeenCalledWith(expect.objectContaining({
-      workspace_id: DEFAULT_WORKSPACE_ID,
-      upload_session_id: sessionId,
-      upload_asset_id: assetId,
-      actor_user_id: DEFAULT_USER_ID,
-      event_type: "download_url_issued",
-    }));
+    expect(d1SqlStatements(storage.d1, /INSERT INTO upload_events/)[0]?.values).toEqual(expect.arrayContaining([
+      DEFAULT_WORKSPACE_ID,
+      sessionId,
+      assetId,
+      DEFAULT_USER_ID,
+      "download_url_issued",
+    ]));
     expect(storage.from).toHaveBeenCalledWith("component-attachments");
     expect(storage.download).toHaveBeenCalledWith(storagePath);
   });
@@ -1465,11 +1497,11 @@ describe("sensitive API auth boundaries", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("application/pdf");
     await expect(response.text()).resolves.toBe("%PDF-1.7");
-    expect(storage.uploadEventsQuery.insert).toHaveBeenCalledWith(expect.objectContaining({
-      upload_session_id: sessionId,
-      upload_asset_id: assetId,
-      event_type: "download_url_issued",
-    }));
+    expect(d1SqlStatements(storage.d1, /INSERT INTO upload_events/)[0]?.values).toEqual(expect.arrayContaining([
+      sessionId,
+      assetId,
+      "download_url_issued",
+    ]));
     expect(storage.download).not.toHaveBeenCalled();
     expect(r2.get).toHaveBeenCalledWith(`component-attachments/${storagePath}`);
   });
@@ -1697,19 +1729,11 @@ describe("sensitive API auth boundaries", () => {
 
   it("rejects estimate row image uploads for estimates outside the current project before file decoding or storage writes", async () => {
     const storage = mockStorageClient();
-    const rpc = createRpcMock();
-    const projectQuery = {
-      select: vi.fn(() => projectQuery),
-      eq: vi.fn(() => projectQuery),
-      single: vi.fn(async () => ({ data: { id: "project-1" }, error: null })),
-    };
-    const estimateQuery = {
-      select: vi.fn(() => estimateQuery),
-      eq: vi.fn(() => estimateQuery),
-      single: vi.fn(async () => ({ data: null, error: { message: "not found" } })),
-    };
-    const from = vi.fn((table: string) => (table === "projects" ? projectQuery : estimateQuery));
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
+    const projectLookup = mockProjectLookup(
+      { id: "project-1", workspace_id: DEFAULT_WORKSPACE_ID },
+      {},
+      { id: "estimate-2", project_id: "other-project" },
+    );
     const file = new window.File(["not decoded"], "estimate-row.png", { type: "image/png" });
     const arrayBuffer = vi.spyOn(file, "arrayBuffer");
     const formData = new FormData();
@@ -1725,9 +1749,8 @@ describe("sensitive API auth boundaries", () => {
     await expect(response.json()).resolves.toEqual({
       error: "Estimate could not be found.",
     });
-    expect(from).toHaveBeenCalledWith("projects");
-    expect(from).toHaveBeenCalledWith("estimates");
-    expect(estimateQuery.eq).toHaveBeenCalledWith("project_id", "project-1");
+    expect(d1PreparedStatements(projectLookup.d1, /FROM projects\s+WHERE id = \?\s+AND workspace_id = \?/)).toHaveLength(1);
+    expect(d1PreparedStatements(projectLookup.d1, /FROM estimates\s+WHERE id = \?\s+AND project_id = \?/)).toHaveLength(1);
     expect(arrayBuffer).not.toHaveBeenCalled();
     expect(storage.from).not.toHaveBeenCalled();
     expect(storage.upload).not.toHaveBeenCalled();
@@ -1754,14 +1777,11 @@ describe("sensitive API auth boundaries", () => {
     await expect(response.json()).resolves.toEqual({
       error: "You do not have permission to edit this estimate.",
     });
-    expect(projectLookup.from).toHaveBeenCalledWith("projects");
-    expect(projectLookup.from).toHaveBeenCalledWith("estimates");
-    expect(projectLookup.rpc).toHaveBeenCalledWith("can_edit_project", {
-      target_project_id: "project-1",
-    });
-    expect(projectLookup.rpc).toHaveBeenCalledWith("can_edit_estimate", {
-      target_estimate_id: "estimate-1",
-    });
+    expect(d1PreparedStatements(projectLookup.d1, /FROM projects\s+WHERE id = \?\s+AND workspace_id = \?/)).toHaveLength(1);
+    expect(d1PreparedStatements(projectLookup.d1, /FROM estimates\s+WHERE id = \?\s+AND project_id = \?/)).toHaveLength(1);
+    expect(d1PreparedStatements(projectLookup.d1, /FROM projects project/)).toHaveLength(1);
+    expect(d1PreparedStatements(projectLookup.d1, /FROM estimates estimate/)).toHaveLength(1);
+    expect(projectLookup.rpc).not.toHaveBeenCalled();
     expect(arrayBuffer).not.toHaveBeenCalled();
     expect(storage.from).not.toHaveBeenCalled();
     expect(storage.upload).not.toHaveBeenCalled();
@@ -1769,28 +1789,11 @@ describe("sensitive API auth boundaries", () => {
 
   it("rejects estimate row image uploads for stale rows before file decoding or storage writes", async () => {
     const storage = mockStorageClient();
-    const rpc = createRpcMock({ canEditProject: true, canEditEstimate: true });
-    const projectQuery = {
-      select: vi.fn(() => projectQuery),
-      eq: vi.fn(() => projectQuery),
-      single: vi.fn(async () => ({ data: { id: "project-1" }, error: null })),
-    };
-    const estimateQuery = {
-      select: vi.fn(() => estimateQuery),
-      eq: vi.fn(() => estimateQuery),
-      single: vi.fn(async () => ({ data: { id: "estimate-1", project_id: "project-1" }, error: null })),
-    };
-    const rowQuery = {
-      select: vi.fn(() => rowQuery),
-      eq: vi.fn(() => rowQuery),
-      single: vi.fn(async () => ({ data: null, error: { message: "not found" } })),
-    };
-    const from = vi.fn((table: string) => {
-      if (table === "projects") return projectQuery;
-      if (table === "estimates") return estimateQuery;
-      return rowQuery;
-    });
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
+    const projectLookup = mockProjectLookup(
+      { id: "project-1", workspace_id: DEFAULT_WORKSPACE_ID },
+      { canEditProject: true, canEditEstimate: true },
+    );
+    projectLookup.d1.estimateRowLookupRow = null;
     const file = new window.File(["not decoded"], "estimate-row.png", { type: "image/png" });
     const arrayBuffer = vi.spyOn(file, "arrayBuffer");
     const formData = new FormData();
@@ -1806,8 +1809,7 @@ describe("sensitive API auth boundaries", () => {
     await expect(response.json()).resolves.toEqual({
       error: "Estimate row could not be found.",
     });
-    expect(from).toHaveBeenCalledWith("estimate_row_items");
-    expect(rowQuery.eq).toHaveBeenCalledWith("estimate_id", "estimate-1");
+    expect(d1PreparedStatements(projectLookup.d1, /FROM estimate_row_items/)).toHaveLength(1);
     expect(arrayBuffer).not.toHaveBeenCalled();
     expect(storage.from).not.toHaveBeenCalled();
     expect(storage.upload).not.toHaveBeenCalled();

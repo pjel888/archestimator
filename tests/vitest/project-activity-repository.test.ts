@@ -4,28 +4,59 @@ const workspaceRepositoryMocks = vi.hoisted(() => ({
   getCurrentWorkspaceProject: vi.fn(),
 }));
 
-const supabaseServerMocks = vi.hoisted(() => ({
-  createSupabaseServerClient: vi.fn(),
+const d1Mocks = vi.hoisted(() => ({
+  getCloudflareD1Database: vi.fn(),
 }));
 
 vi.mock("@/lib/repositories/workspace-repository", () => workspaceRepositoryMocks);
-vi.mock("@/lib/supabase/server", () => supabaseServerMocks);
+vi.mock("@/lib/cloudflare/d1", () => d1Mocks);
 
-type QueryResult<T> = { data: T; error: (Error & { code?: string }) | null };
+const ACTOR_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 
-function createQuery<T>(result: QueryResult<T>) {
-  const builder = {
-    select: vi.fn(() => builder),
-    eq: vi.fn(() => builder),
-    not: vi.fn(() => builder),
-    or: vi.fn(() => builder),
-    order: vi.fn(() => builder),
-    limit: vi.fn(() => builder),
-    in: vi.fn(async () => result),
-    maybeSingle: vi.fn(async () => result),
-    then: (resolve: (value: QueryResult<T>) => void) => Promise.resolve(result).then(resolve),
-  };
-  return builder;
+type PreparedD1Statement = {
+  sql: string;
+  values: unknown[];
+};
+
+class FakeD1Statement {
+  private values: unknown[] = [];
+
+  constructor(
+    private readonly database: FakeD1Database,
+    private readonly sql: string,
+  ) {}
+
+  bind(...values: unknown[]) {
+    this.values = values;
+    this.database.prepared.push({ sql: this.sql, values });
+    return this;
+  }
+
+  async all() {
+    return { results: this.database.resolve(this.sql, this.values) };
+  }
+}
+
+class FakeD1Database {
+  eventResults: Array<unknown[] | Error> = [];
+  prepared: PreparedD1Statement[] = [];
+  profileRows: unknown[] = [];
+
+  prepare(sql: string) {
+    return new FakeD1Statement(this, sql);
+  }
+
+  resolve(sql: string, _values: unknown[]) {
+    if (sql.includes("FROM estimate_sheet_events event")) {
+      const next = this.eventResults.shift() ?? [];
+      if (next instanceof Error) throw next;
+      return next;
+    }
+    if (sql.includes("FROM profiles")) {
+      return this.profileRows;
+    }
+    throw new Error(`Unexpected D1 query: ${sql}`);
+  }
 }
 
 function makeEvent(overrides: Record<string, unknown> = {}) {
@@ -34,95 +65,78 @@ function makeEvent(overrides: Record<string, unknown> = {}) {
     event_type: "row_updated",
     event_source: "server_action",
     created_at: "2026-06-19T08:00:00.000Z",
-    actor_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    actor_user_id: ACTOR_ID,
     estimate_id: "estimate-1",
+    estimate_name: "Shell Estimate",
+    estimate_sheet_code: "EST-001",
     estimate_tab_id: null,
     target_row_id: "row-1",
     estimate_node_id: "node-1",
-    row_context: { material: "Porcelain tile", nodePath: "Ground Floor / Bath" },
-    old_snapshot: { quantity: 1, internalNote: "do not leak" },
-    new_snapshot: { quantity: 2, supplierEmail: "supplier@example.test" },
-    changed_fields: ["quantity"],
+    row_context: JSON.stringify({ material: "Porcelain tile", nodePath: "Ground Floor / Bath" }),
+    old_snapshot: JSON.stringify({ quantity: 1, internalNote: "do not leak" }),
+    new_snapshot: JSON.stringify({ quantity: 2, supplierEmail: "supplier@example.test" }),
+    changed_fields: JSON.stringify(["quantity"]),
     total_delta: 1000,
-    payload: { rawSecret: "hidden", estimateName: "Shell Estimate" },
+    payload: JSON.stringify({ rawSecret: "hidden", estimateName: "Shell Estimate" }),
     correlation_id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-    metadata: { requestId: "secret" },
-    estimates: { id: "estimate-1", name: "Shell Estimate", sheet_code: "EST-001" },
     ...overrides,
   };
 }
 
+beforeEach(() => {
+  vi.resetModules();
+  vi.clearAllMocks();
+  workspaceRepositoryMocks.getCurrentWorkspaceProject.mockResolvedValue({
+    project: { id: "project-1", workspace_id: "workspace-1" },
+  });
+});
+
 describe("project activity repository", () => {
-  beforeEach(() => {
-    vi.resetModules();
-    vi.clearAllMocks();
-    workspaceRepositoryMocks.getCurrentWorkspaceProject.mockResolvedValue({
-      project: { id: "project-1", workspace_id: "workspace-1" },
-    });
-  });
-
-  it("returns an empty page without profile hydration when no project activity exists", async () => {
-    const eventsQuery = createQuery({ data: [], error: null });
-    const supabase = {
-      from: vi.fn((table: string) => {
-        if (table === "estimate_sheet_events") return eventsQuery;
-        throw new Error(`Unexpected table ${table}`);
-      }),
-    };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
-
-    const { listProjectActivityPage } = await import("@/lib/repositories/project-activity-repository");
-    const result = await listProjectActivityPage({ projectId: "project-1" });
-
-    expect(eventsQuery.select).toHaveBeenCalledWith(expect.stringContaining("estimates!estimate_sheet_events_estimate_project_fkey(id, name, sheet_code)"));
-    expect(eventsQuery.eq).toHaveBeenCalledWith("project_id", "project-1");
-    expect(eventsQuery.not).toHaveBeenCalledWith("event_type", "in", "(sheet_version_created,sheet_restored_as_copy)");
-    expect(eventsQuery.order).toHaveBeenNthCalledWith(1, "created_at", { ascending: false });
-    expect(eventsQuery.order).toHaveBeenNthCalledWith(2, "id", { ascending: false });
-    expect(eventsQuery.limit).toHaveBeenCalledWith(21);
-    expect(result).toEqual({ items: [], nextCursor: null });
-    expect(supabase.from).toHaveBeenCalledTimes(1);
-  });
-
-  it("returns an empty page when the project activity migration is not applied", async () => {
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const eventsQuery = createQuery({
-      data: null,
-      error: Object.assign(new Error("column estimate_sheet_events.project_id does not exist"), { code: "42703" }),
-    });
-    const supabase = {
-      from: vi.fn((table: string) => {
-        if (table === "estimate_sheet_events") return eventsQuery;
-        throw new Error(`Unexpected table ${table}`);
-      }),
-    };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+  it("returns an empty page without profile hydration when no D1 project activity exists", async () => {
+    const database = new FakeD1Database();
+    database.eventResults = [[]];
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
 
     const { listProjectActivityPage } = await import("@/lib/repositories/project-activity-repository");
     const result = await listProjectActivityPage({ projectId: "project-1" });
 
     expect(result).toEqual({ items: [], nextCursor: null });
-    expect(supabase.from).toHaveBeenCalledTimes(1);
-    expect(warnSpy).toHaveBeenCalledWith("[project-dashboard] Project activity schema is unavailable; apply migration 20260619105250.");
+    expect(database.prepared).toHaveLength(1);
+    expect(database.prepared[0]?.sql).toContain("FROM estimate_sheet_events event");
+    expect(database.prepared[0]?.sql).toContain("LEFT JOIN estimates estimate");
+    expect(database.prepared[0]?.sql).toContain("event.event_type NOT IN (?, ?)");
+    expect(database.prepared[0]?.values).toEqual([
+      "project-1",
+      "sheet_version_created",
+      "sheet_restored_as_copy",
+      21,
+    ]);
+  });
+
+  it("returns an empty page when the D1 project activity table is not available", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const database = new FakeD1Database();
+    database.eventResults = [new Error("no such table: estimate_sheet_events")];
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+
+    const { listProjectActivityPage } = await import("@/lib/repositories/project-activity-repository");
+    const result = await listProjectActivityPage({ projectId: "project-1" });
+
+    expect(result).toEqual({ items: [], nextCursor: null });
+    expect(warnSpy).toHaveBeenCalledWith(
+      "[project-dashboard] Project activity D1 schema is unavailable; apply estimate_sheet_events migration.",
+    );
     warnSpy.mockRestore();
   });
 
   it("rethrows unrelated activity schema errors", async () => {
-    const eventsQuery = createQuery({
-      data: null,
-      error: Object.assign(new Error("column estimate_sheet_events.actor_display_name does not exist"), { code: "42703" }),
-    });
-    const supabase = {
-      from: vi.fn((table: string) => {
-        if (table === "estimate_sheet_events") return eventsQuery;
-        throw new Error(`Unexpected table ${table}`);
-      }),
-    };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const database = new FakeD1Database();
+    database.eventResults = [new Error("no such column: event.actor_display_name")];
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
 
     const { listProjectActivityPage } = await import("@/lib/repositories/project-activity-repository");
     await expect(listProjectActivityPage({ projectId: "project-1" })).rejects.toThrow(
-      "column estimate_sheet_events.actor_display_name does not exist",
+      "no such column: event.actor_display_name",
     );
   });
 
@@ -134,25 +148,17 @@ describe("project activity repository", () => {
     const second = makeEvent({
       id: "22222222-2222-4222-8222-222222222222",
       created_at: "2026-06-19T07:00:00.000Z",
-      estimates: null,
+      estimate_name: null,
+      estimate_sheet_code: null,
     });
     const third = makeEvent({
       id: "33333333-3333-4333-8333-333333333333",
       created_at: "2026-06-19T06:00:00.000Z",
     });
-    const eventsQuery = createQuery({ data: [first, second, third], error: null });
-    const profilesQuery = createQuery({
-      data: [{ id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", display_name: "Philip Lewis", email: "philip@example.test" }],
-      error: null,
-    });
-    const supabase = {
-      from: vi.fn((table: string) => {
-        if (table === "estimate_sheet_events") return eventsQuery;
-        if (table === "profiles") return profilesQuery;
-        throw new Error(`Unexpected table ${table}`);
-      }),
-    };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const database = new FakeD1Database();
+    database.eventResults = [[first, second, third]];
+    database.profileRows = [{ id: ACTOR_ID, display_name: "Philip Lewis", email: "philip@example.test" }];
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
 
     const { listProjectActivityPage } = await import("@/lib/repositories/project-activity-repository");
     const result = await listProjectActivityPage({
@@ -160,16 +166,21 @@ describe("project activity repository", () => {
       limit: 2,
       cursor: {
         createdAt: "2026-06-19T09:00:00.000Z",
-        id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        id: ACTOR_ID,
       },
     });
 
-    expect(eventsQuery.limit).toHaveBeenCalledWith(3);
-    expect(eventsQuery.or).toHaveBeenCalledWith(
-      "created_at.lt.2026-06-19T09:00:00.000Z,and(created_at.eq.2026-06-19T09:00:00.000Z,id.lt.aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa)",
-    );
-    expect(profilesQuery.select).toHaveBeenCalledWith("id, display_name, email");
-    expect(profilesQuery.in).toHaveBeenCalledWith("id", ["aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"]);
+    expect(database.prepared[0]?.values).toEqual([
+      "project-1",
+      "sheet_version_created",
+      "sheet_restored_as_copy",
+      "2026-06-19T09:00:00.000Z",
+      "2026-06-19T09:00:00.000Z",
+      ACTOR_ID,
+      3,
+    ]);
+    expect(database.prepared[1]?.sql).toContain("FROM profiles");
+    expect(database.prepared[1]?.values).toEqual([ACTOR_ID]);
     expect(result.items).toHaveLength(2);
     expect(result.items[0]).toEqual(expect.objectContaining({
       actorLabel: "Philip Lewis",
@@ -212,21 +223,9 @@ describe("project activity repository", () => {
       created_at: "2026-06-19T05:00:00.000Z",
       actor_user_id: null,
     });
-    const eventQueries = [
-      createQuery({ data: [first, second, third], error: null }),
-      createQuery({ data: [third, fourth], error: null }),
-    ];
-    const supabase = {
-      from: vi.fn((table: string) => {
-        if (table === "estimate_sheet_events") {
-          const query = eventQueries.shift();
-          if (!query) throw new Error("Unexpected extra activity query.");
-          return query;
-        }
-        throw new Error(`Unexpected table ${table}`);
-      }),
-    };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const database = new FakeD1Database();
+    database.eventResults = [[first, second, third], [third, fourth]];
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
 
     const { listProjectActivityPage } = await import("@/lib/repositories/project-activity-repository");
     const firstPage = await listProjectActivityPage({ projectId: "project-1", limit: 2 });
@@ -242,70 +241,16 @@ describe("project activity repository", () => {
     expect(new Set([...firstPage.items, ...secondPage.items].map((item) => item.id)).size).toBe(4);
   });
 
-  it("keeps concurrent newer inserts out of the next cursor window", async () => {
-    const first = makeEvent({
-      id: "11111111-1111-4111-8111-111111111111",
-      created_at: "2026-06-19T08:00:00.000Z",
-      actor_user_id: null,
-    });
-    const second = makeEvent({
-      id: "22222222-2222-4222-8222-222222222222",
-      created_at: "2026-06-19T07:00:00.000Z",
-      actor_user_id: null,
-    });
-    const third = makeEvent({
-      id: "33333333-3333-4333-8333-333333333333",
-      created_at: "2026-06-19T06:00:00.000Z",
-      actor_user_id: null,
-    });
-    const concurrentNewer = makeEvent({
-      id: "99999999-9999-4999-8999-999999999999",
-      created_at: "2026-06-19T09:00:00.000Z",
-      actor_user_id: null,
-    });
-    const eventQueries = [
-      createQuery({ data: [first, second, third], error: null }),
-      createQuery({ data: [third], error: null }),
-    ];
-    const supabase = {
-      from: vi.fn((table: string) => {
-        if (table === "estimate_sheet_events") {
-          const query = eventQueries.shift();
-          if (!query) throw new Error("Unexpected extra activity query.");
-          return query;
-        }
-        throw new Error(`Unexpected table ${table}`);
-      }),
-    };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
-
-    const { listProjectActivityPage } = await import("@/lib/repositories/project-activity-repository");
-    const firstPage = await listProjectActivityPage({ projectId: "project-1", limit: 2 });
-    const secondPage = await listProjectActivityPage({
-      projectId: "project-1",
-      limit: 2,
-      cursor: firstPage.nextCursor,
-    });
-
-    expect(secondPage.items.map((item) => item.id)).toEqual([third.id]);
-    expect(secondPage.items.map((item) => item.id)).not.toContain(concurrentNewer.id);
-    expect(supabase.from).toHaveBeenCalledTimes(2);
-  });
-
   it("rejects invalid cursors before querying event rows", async () => {
-    const supabase = {
-      from: vi.fn(() => {
-        throw new Error("Activity rows should not be queried with an invalid cursor.");
-      }),
-    };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const database = new FakeD1Database();
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
 
     const { listProjectActivityPage } = await import("@/lib/repositories/project-activity-repository");
     await expect(listProjectActivityPage({
       projectId: "project-1",
-      cursor: { createdAt: "bad-date", id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" },
+      cursor: { createdAt: "bad-date", id: ACTOR_ID },
     })).rejects.toThrow("Project activity cursor timestamp is invalid.");
 
-    expect(supabase.from).not.toHaveBeenCalled();
+    expect(database.prepared).toEqual([]);
   });
 });

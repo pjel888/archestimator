@@ -63,26 +63,26 @@ describe("component library attachment lifecycle governance", () => {
   });
 
   it("blocks draft storage cleanup from deleting reviewed persisted attachments", () => {
-    const lookupIndex = attachmentRoute.indexOf('.from("cost_library_item_variant_attachments")');
+    const lookupIndex = attachmentRoute.indexOf("FROM cost_library_item_variant_attachments");
     const removeIndex = attachmentRoute.indexOf("removeObjects(COMPONENT_ATTACHMENT_BUCKET, paths)");
 
     expect(lookupIndex).toBeGreaterThanOrEqual(0);
     expect(removeIndex).toBeGreaterThan(lookupIndex);
-    expect(attachmentRoute).toContain('.select("storage_path, review_status, is_current_approved")');
-    expect(attachmentRoute).toContain("row.is_current_approved === true");
+    expect(attachmentRoute).toContain("SELECT storage_path, review_status, is_current_approved");
+    expect(attachmentRoute).toContain("readApprovedFlag(row.is_current_approved)");
     expect(attachmentRoute).toContain('row.review_status && row.review_status !== "uploaded"');
     expect(attachmentRoute).toContain("Reviewed Library attachments cannot be removed from draft cleanup.");
-    expect(attachmentRoute).toContain("isMissingAttachmentGovernanceColumnError");
+    expect(attachmentRoute).toContain("Could not verify attachment review state.");
   });
 
   it("requires approved current attachments before private download brokering", () => {
-    expect(attachmentRoute).toContain('.select("id, workspace_id, storage_bucket, storage_path, file_name, content_type, size_bytes, review_status, is_current_approved")');
+    expect(attachmentRoute).toContain("SELECT id, workspace_id, storage_bucket, storage_path, file_name, content_type, size_bytes, review_status, is_current_approved");
     expect(attachmentRoute).toContain('data.review_status !== "approved"');
-    expect(attachmentRoute).toContain("data.is_current_approved !== true");
+    expect(attachmentRoute).toContain("!readApprovedFlag(data.is_current_approved)");
     expect(attachmentRoute).toContain('privateAttachmentUnavailable("Attachment is not available until approval is complete.")');
     expect(attachmentRoute).toContain("decideUploadScanGate");
     expect(attachmentRoute).toContain("scan_override_expires_at");
-    expect(attachmentRoute).toContain('event_type: "download_url_issued"');
+    expect(attachmentRoute).toContain('"download_url_issued"');
   });
 
   it("keeps generated Supabase types aligned with attachment governance", () => {
