@@ -17,7 +17,8 @@ import { formatChartMoney } from "@/lib/project-charts/format";
 import type { ProjectActivityItem, ProjectActivityPage } from "@/lib/repositories/project-activity-repository";
 import type { ProjectRecentEstimateSheetSummary } from "@/lib/repositories/project-estimate-sheets-repository";
 import type { ProjectLocationSummary } from "@/lib/repositories/project-location-repository";
-import type { Json, Tables } from "@/lib/supabase/types";
+import type { Json } from "@/lib/types/json";
+import type { ProjectRow } from "@/lib/types/database";
 import { createProjectClientOptions } from "./project-client-options";
 
 type ProjectMetadata = {
@@ -30,7 +31,7 @@ const dashboardActivityDayFormatter = new Intl.DateTimeFormat("en", { month: "sh
 const dashboardActivityTimeFormatter = new Intl.DateTimeFormat("en", { hour: "numeric", minute: "2-digit" });
 
 type ProjectDashboardClientProps = {
-  readonly project: Tables<"projects"> | null;
+  readonly project: ProjectRow | null;
   readonly fallback: {
     readonly id: string;
     readonly name: string;

@@ -1,20 +1,19 @@
 import { cache } from "react";
-import { createHash } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { cookies, headers } from "next/headers";
 
 import { getDevAuthBypassCredentialFromRequestParts, isDevAdminDatabaseBypassRequest } from "@/lib/auth/dev-auth-gate";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { readFirstAccountWorkspaceMembership } from "@/lib/auth/account-membership";
+import { canEditEstimateInD1 } from "@/lib/authz/d1-access";
 import type { EstimateRowItem, EstimateSheetAdjustment, EstimateTabSummary, EstimateTreeNode } from "@/lib/estimates/types";
 import { buildEstimateTreeSubtreePayload, type EstimateTreeSubtreeCompleteness, type EstimateTreeSubtreePayload } from "@/lib/estimates/estimate-tree-lazy";
 import { readEstimateRowMetadata } from "@/lib/estimates/express-components";
 import { normalizeEstimateRowImageUrl } from "@/lib/estimates/image-url";
-import type { Tables } from "@/lib/supabase/types";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { isUuid } from "@/lib/ids";
 import { normalizeEstimateTreeNodeKind, selectFirstEstimateNodeIds } from "@/lib/estimates/tree-hierarchy";
 import { traced } from "@/lib/perf/server-timing";
-import { isMissingColumnError, isMissingRelationError, normalizeEstimateRecord, type EstimateRecordWithLegacy } from "@/lib/repositories/estimate-schema-compat";
+import { normalizeEstimateRecord, type EstimateRecordWithLegacy } from "@/lib/repositories/estimate-schema-compat";
 import { listProjectEstimateSheetsForProject, type ProjectEstimateSheetSummary } from "@/lib/repositories/project-estimate-sheets-repository";
 import type {
   CollaborationInvitationSummary,
@@ -27,9 +26,194 @@ import type {
 import { decryptPublicationToken, readPublicationTokenEncryptionSecret } from "@/lib/publication/security";
 import { normalizeProjectPublicationLocationVisibility } from "@/lib/publication/snapshot";
 import type { ProjectPublicationListSummary, ProjectPublicationSummary } from "@/lib/publication/types";
-import type { Json } from "@/lib/supabase/types";
+import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
+import type { Json } from "@/lib/types/json";
 import type { MainSidebarFavoriteProject } from "@/components/sidebar/sidebar-types";
 import { filterMapBy } from "@/lib/util/array";
+
+type WorkspaceMemberRole = "owner" | "admin" | "member" | "viewer";
+type ProjectAccessRole = "owner" | "admin" | "editor" | "viewer";
+type EstimateNodeKind = "assembly" | "lot" | "structure" | "level" | "area" | "group" | "general";
+type EstimateRowLinkState = "unlinked" | "linked-clean" | "linked-overridden" | "source-changed" | "detached";
+
+type WorkspaceRow = {
+  id: string;
+  created_by: string | null;
+  name: string;
+  slug: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type ProfileRow = {
+  avatar_url: string | null;
+  created_at: string;
+  default_workspace_id: string | null;
+  display_name: string | null;
+  email: string;
+  id: string;
+  role: "owner" | "admin" | "member" | "client" | "ceo";
+  updated_at: string;
+};
+
+type ProjectRow = {
+  id: string;
+  workspace_id: string;
+  created_by: string | null;
+  name: string;
+  client_name: string | null;
+  location: string | null;
+  project_code: string | null;
+  currency_code: string;
+  metadata: Json;
+  created_at: string;
+  updated_at: string;
+};
+
+type EstimateRow = {
+  id: string;
+  project_id: string;
+  name: string;
+  sheet_code: string;
+  notes: string | null;
+  project_budget: number | null;
+  currency_code: string;
+  metadata: Json;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type EstimateNodeRow = {
+  id: string;
+  estimate_id: string;
+  estimate_tab_id: string | null;
+  kind: EstimateNodeKind;
+  name: string;
+  parent_id: string | null;
+  sort_order: number;
+  metadata: Json;
+  created_at: string;
+  updated_at: string;
+};
+
+type EstimateRowItemRow = {
+  id: string;
+  estimate_id: string;
+  node_id: string;
+  sort_order: number;
+  material: string;
+  description: string;
+  supplier: string;
+  supplier_id: string | null;
+  unit: string;
+  unit_cost: number;
+  quantity: number;
+  quantity_base: number | null;
+  quantity_contingency_amount: number | null;
+  contingency_percentage: number;
+  adjustment_percentage: number;
+  misc_cost: number;
+  row_revision: number;
+  category_node_id: string | null;
+  discipline: string;
+  designation: string;
+  source_library_item_id: string | null;
+  link_state: EstimateRowLinkState;
+  source_snapshot: Json | null;
+  metadata: Json;
+  created_at: string;
+  updated_at: string;
+};
+
+type DatabaseTables = {
+  workspaces: WorkspaceRow;
+  profiles: ProfileRow;
+  projects: ProjectRow;
+  estimates: EstimateRow;
+  estimate_nodes: EstimateNodeRow;
+  estimate_row_items: EstimateRowItemRow;
+  estimate_tabs: {
+    id: string;
+    estimate_id: string;
+    name: string;
+    sort_order: number;
+    is_default: boolean | number;
+    archived_at: string | null;
+    metadata: Json;
+    created_at: string;
+    updated_at: string;
+  };
+  estimate_sheet_adjustments: {
+    estimate_id: string;
+    mode: "contingency" | "discount";
+    percentage: number;
+    row_revision: number;
+    updated_at: string | undefined;
+    updated_by: string | null;
+  };
+  project_favorites: {
+    project_id: string;
+    created_at: string;
+  };
+  estimate_favorites: {
+    estimate_id: string;
+    project_id: string;
+    created_at: string;
+  };
+  project_group_memberships: {
+    project_id: string;
+    group_id: string;
+  };
+  workspace_members: {
+    workspace_id: string;
+    user_id: string;
+    role: WorkspaceMemberRole;
+  };
+  project_members: {
+    project_id: string;
+    workspace_id: string;
+    user_id: string;
+    role: ProjectAccessRole;
+  };
+  estimate_sheet_members: {
+    estimate_id: string;
+    project_id: string;
+    user_id: string;
+    role: ProjectAccessRole;
+  };
+  estimate_sheet_access_settings: {
+    estimate_id: string;
+    inherit_project_access: boolean | number;
+  };
+  collaboration_invitations: {
+    email: string;
+    estimate_id: string | null;
+    expires_at: string;
+    id: string;
+    project_id: string;
+    role: ProjectAccessRole;
+    scope: "project" | "estimate";
+  };
+  project_publications: {
+    encrypted_token: string;
+    expires_at: string | null;
+    id: string;
+    latest_opened_at: string | null;
+    location_visibility: string | null;
+    open_count: number;
+    password_hash: string | null;
+    project_id: string;
+    published_at: string;
+    revoked_at: string | null;
+    selected_estimate_ids: string[];
+    snapshot_json: Json;
+    snapshot_version: number;
+    status: "published" | "expired" | "revoked";
+  };
+};
+
+type Tables<TableName extends keyof DatabaseTables> = DatabaseTables[TableName];
 
 export type WorkspaceBootstrap = {
   workspace: Tables<"workspaces">;
@@ -48,10 +232,6 @@ type ProjectEstimatesListResult = {
   project: Tables<"projects"> | null;
   estimates: Tables<"estimates">[];
 } & ProjectEstimateSummaryMaps;
-
-type ProjectWithWorkspace = Tables<"projects"> & {
-  workspaces: Tables<"workspaces"> | null;
-};
 
 export type WorkshopProjectSummary = Pick<
   Tables<"projects">,
@@ -87,7 +267,7 @@ export type WorkshopPendingInviteSummary = {
   projectName: string;
   projectCode: string | null;
   estimateName: string | null;
-  // react-doctor-disable-next-line react-doctor/supabase-client-owned-authz-field -- Type-only pending-invite summary role; no client Supabase write occurs here.
+  // react-doctor-disable-next-line react-doctor/server-owned-authz-field -- Type-only pending-invite summary role; no client write occurs here.
   role: CollaborationRole;
   scope: "project" | "estimate";
   inviterLabel: string | null;
@@ -168,8 +348,6 @@ const MAIN_SIDEBAR_FAVORITE_PROJECT_LIMIT = 8;
 const MAIN_SIDEBAR_FAVORITE_SHEET_LIMIT = 5;
 const MAIN_SIDEBAR_FAVORITE_FALLBACK_ESTIMATE_SCAN_LIMIT =
   MAIN_SIDEBAR_FAVORITE_PROJECT_LIMIT * MAIN_SIDEBAR_FAVORITE_SHEET_LIMIT * 4;
-const ESTIMATE_ROUTE_CONTEXT_PROCESS_CACHE_TTL_MS = 30_000;
-const ESTIMATE_ROUTE_CONTEXT_PROCESS_CACHE_MAX_ENTRIES = 100;
 const WORKSHOP_ESTIMATE_NODE_KINDS = new Set([
   "assembly",
   "lot",
@@ -180,6 +358,135 @@ const WORKSHOP_ESTIMATE_NODE_KINDS = new Set([
   "general",
 ]);
 
+function placeholders(valuesOrCount: number | readonly unknown[]) {
+  const count = typeof valuesOrCount === "number" ? valuesOrCount : valuesOrCount.length;
+  if (count <= 0) throw new Error("Cannot build SQL placeholders for an empty value list.");
+  return new Array(count).fill("?").join(", ");
+}
+
+function bindValues(values: readonly unknown[]): D1Value[] {
+  return values.map((value) => {
+    if (value === undefined) return null;
+    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean" || value === null || value instanceof ArrayBuffer) {
+      return value;
+    }
+    return JSON.stringify(value);
+  });
+}
+
+async function requireWorkspaceRepositoryD1Database(): Promise<D1DatabaseLike> {
+  const database = await getCloudflareD1Database();
+  if (!database) throw new Error("Cloudflare D1 binding ARCH_DB is required for workspace repository reads.");
+  return database;
+}
+
+async function all<T>(database: D1DatabaseLike, sql: string, values: readonly unknown[] = []): Promise<T[]> {
+  const result = await database.prepare(sql).bind(...bindValues(values)).all<T>();
+  return result.results ?? [];
+}
+
+async function first<T>(database: D1DatabaseLike, sql: string, values: readonly unknown[] = []): Promise<T | null> {
+  return database.prepare(sql).bind(...bindValues(values)).first<T>();
+}
+
+async function run(database: D1DatabaseLike, sql: string, values: readonly unknown[] = []) {
+  return database.prepare(sql).bind(...bindValues(values)).run();
+}
+
+function readD1Json(value: Json | string | null | undefined): Json {
+  if (typeof value !== "string") return value ?? null;
+  try {
+    return JSON.parse(value) as Json;
+  } catch {
+    return null;
+  }
+}
+
+function readD1JsonRecord(value: Json | string | null | undefined): Record<string, Json> {
+  const parsed = readD1Json(value);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+  return parsed as Record<string, Json>;
+}
+
+function readD1JsonStringArray(value: Json | string | null | undefined): string[] {
+  const parsed = readD1Json(value);
+  if (!Array.isArray(parsed)) return [];
+  return parsed.filter((item): item is string => typeof item === "string");
+}
+
+function readD1Boolean(value: boolean | number | string | null | undefined, fallback = false): boolean {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value !== 0;
+  if (typeof value === "string") return value === "1" || value.toLowerCase() === "true";
+  return fallback;
+}
+
+function isMissingD1TableError(error: unknown, tableName?: string) {
+  const message = error instanceof Error ? error.message.toLowerCase() : isRecord(error) && typeof error.message === "string" ? error.message.toLowerCase() : "";
+  return message.includes("no such table") && (!tableName || message.includes(tableName.toLowerCase()));
+}
+
+function normalizeProjectRow(project: ProjectRow & { metadata?: Json | string | null }): ProjectRow {
+  return {
+    ...project,
+    client_name: project.client_name ?? null,
+    location: project.location ?? null,
+    project_code: project.project_code ?? null,
+    currency_code: project.currency_code ?? "PHP",
+    metadata: readD1Json(project.metadata),
+  };
+}
+
+function normalizeEstimateRow(estimate: EstimateRecordWithLegacy & { metadata?: Json | string | null }): EstimateRow {
+  return normalizeEstimateRecord({
+    ...estimate,
+    currency_code: estimate.currency_code ?? "PHP",
+    metadata: readD1Json(estimate.metadata),
+  });
+}
+
+async function readWorkspaceById(database: D1DatabaseLike, workspaceId: string): Promise<WorkspaceRow | null> {
+  return first<WorkspaceRow>(
+    database,
+    `SELECT id, created_by, name, slug, created_at, updated_at
+     FROM workspaces
+     WHERE id = ?
+     LIMIT 1`,
+    [workspaceId],
+  );
+}
+
+async function readProfileById(database: D1DatabaseLike, userId: string): Promise<ProfileRow | null> {
+  return first<ProfileRow>(
+    database,
+    `SELECT id, email, display_name, avatar_url, role, default_workspace_id, created_at, updated_at
+     FROM profiles
+     WHERE id = ?
+     LIMIT 1`,
+    [userId],
+  );
+}
+
+function withDefaultWorkspace(profile: ProfileRow, workspaceId: string): ProfileRow {
+  return {
+    ...profile,
+    default_workspace_id: workspaceId,
+  };
+}
+
+function normalizePublicationRow<T extends ProjectPublicationRow | ProjectPublicationListRow>(publication: T): T {
+  return {
+    ...publication,
+    open_count: Number(publication.open_count ?? 0),
+    selected_estimate_ids: "selected_estimate_ids" in publication
+      ? readD1JsonStringArray(publication.selected_estimate_ids as unknown as Json | string | null)
+      : [],
+    snapshot_json: "snapshot_json" in publication
+      ? readD1Json(publication.snapshot_json as Json | string | null)
+      : null,
+  } as T;
+}
+
 type WorkshopProjectRecord = Pick<
   Tables<"projects">,
   "id" | "name" | "client_name" | "project_code" | "location" | "updated_at" | "workspace_id" | "created_by"
@@ -189,43 +496,10 @@ type WorkshopEstimateRecord = Pick<
   Tables<"estimates">,
   "id" | "project_id" | "name" | "sheet_code" | "updated_at"
 >;
-type WorkshopEstimateQueryResult = {
-  data: WorkshopEstimateRecord[] | null;
-  error: unknown;
-};
-type WorkshopProjectQueryResult = {
-  data: WorkshopProjectRecord[] | null;
-  error: unknown;
-};
 type WorkshopEstimateNodeRecord = Pick<
   Tables<"estimate_nodes">,
   "id" | "estimate_id" | "kind" | "parent_id" | "sort_order"
 >;
-type WorkshopEstimateNodeQueryResult = {
-  data: WorkshopEstimateNodeRecord[] | null;
-  error: unknown;
-};
-type WorkshopHomebaseSummaryRpcResult = {
-  data: Json | null;
-  error: unknown;
-};
-type WorkshopProjectsSummaryRpcResult = {
-  data: Json | null;
-  error: unknown;
-};
-type MainSidebarFavoriteProjectsRpcResult = {
-  data: Json | null;
-  error: unknown;
-};
-type EstimateNodeRouteContextRpcResult = {
-  data: Json | null;
-  error: unknown;
-};
-type EstimateRouteContextProcessCacheEntry = {
-  projectId: string;
-  expiresAt: number;
-  value: Promise<EstimateTabRouteContext | null>;
-};
 type WorkshopHomebaseFavoriteProjectRef = Pick<Tables<"project_favorites">, "project_id" | "created_at">;
 type WorkshopHomebaseFavoriteEstimateRef = Pick<Tables<"estimate_favorites">, "estimate_id" | "project_id" | "created_at">;
 type WorkshopHomebaseSummaryPayload = {
@@ -390,118 +664,169 @@ function isMissingOptionalCollaborationTable(error: unknown) {
   if (!error || typeof error !== "object") return false;
   const code = "code" in error && typeof error.code === "string" ? error.code : "";
   const message = "message" in error && typeof error.message === "string" ? error.message.toLowerCase() : "";
-  return code === "42P01" || message.includes("does not exist") || message.includes("schema cache");
+  return code === "42P01" || message.includes("does not exist") || message.includes("schema cache") || message.includes("no such table");
 }
 
 async function readOptionalProjectMembers(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   projectId: string,
 ): Promise<ProjectMemberRow[]> {
-  const { data, error } = await supabase
-    .from("project_members")
-    .select("project_id, workspace_id, user_id, role")
-    .eq("project_id", projectId);
-
-  if (error) {
+  try {
+    return await all<ProjectMemberRow>(
+      database,
+      `SELECT project_id, workspace_id, user_id, role
+       FROM project_members
+       WHERE project_id = ?`,
+      [projectId],
+    );
+  } catch (error) {
     if (isMissingOptionalCollaborationTable(error)) return [];
     throw error;
   }
-
-  return data ?? [];
 }
 
 async function readOptionalEstimateSheetMembers(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   estimateIds: string[],
 ): Promise<EstimateSheetMemberRow[]> {
   if (estimateIds.length === 0) return [];
 
-  const { data, error } = await supabase
-    .from("estimate_sheet_members")
-    .select("estimate_id, project_id, user_id, role")
-    .in("estimate_id", estimateIds);
-
-  if (error) {
+  try {
+    return await all<EstimateSheetMemberRow>(
+      database,
+      `SELECT estimate_id, project_id, user_id, role
+       FROM estimate_sheet_members
+       WHERE estimate_id IN (${placeholders(estimateIds)})`,
+      estimateIds,
+    );
+  } catch (error) {
     if (isMissingOptionalCollaborationTable(error)) return [];
     throw error;
   }
-
-  return data ?? [];
 }
 
 async function readOptionalEstimateSheetAccessSettings(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   estimateIds: string[],
 ): Promise<EstimateSheetAccessSettingsRow[]> {
   if (estimateIds.length === 0) return [];
 
-  const { data, error } = await supabase
-    .from("estimate_sheet_access_settings")
-    .select("estimate_id, inherit_project_access")
-    .in("estimate_id", estimateIds);
-
-  if (error) {
+  try {
+    const rows = await all<EstimateSheetAccessSettingsRow>(
+      database,
+      `SELECT estimate_id, inherit_project_access
+       FROM estimate_sheet_access_settings
+       WHERE estimate_id IN (${placeholders(estimateIds)})`,
+      estimateIds,
+    );
+    return rows.map((row) => ({
+      ...row,
+      inherit_project_access: readD1Boolean(row.inherit_project_access, true),
+    }));
+  } catch (error) {
     if (isMissingOptionalCollaborationTable(error)) return [];
     throw error;
   }
-
-  return data ?? [];
 }
 
 async function readOptionalCollaborationInvitations(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   projectId: string,
 ): Promise<CollaborationInvitationRow[]> {
-  const { data, error } = await supabase
-    .from("collaboration_invitations")
-    .select("id, project_id, email, role, scope, estimate_id, expires_at")
-    .eq("project_id", projectId)
-    .eq("lifecycle_state", "pending")
-    .is("accepted_at", null)
-    .is("revoked_at", null)
-    .order("created_at", { ascending: false });
-
-  if (error) {
+  try {
+    return await all<CollaborationInvitationRow>(
+      database,
+      `SELECT id, project_id, email, role, scope, estimate_id, expires_at
+       FROM collaboration_invitations
+       WHERE project_id = ?
+         AND lifecycle_state = 'pending'
+         AND accepted_at IS NULL
+         AND revoked_at IS NULL
+       ORDER BY created_at DESC`,
+      [projectId],
+    );
+  } catch (error) {
     if (isMissingOptionalCollaborationTable(error)) return [];
     throw error;
   }
-
-  return data ?? [];
 }
 
 async function readPendingCollaborationVisibilitySummary({
+  database,
   email,
   projectIds,
-  supabase,
 }: {
+  database: D1DatabaseLike;
   email: string | null;
   projectIds: string[];
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
 }): Promise<PendingCollaborationVisibilitySummary> {
   const sentPendingInviteCountByProjectId = new Map<string, number>();
   const expiresAfter = new Date().toISOString();
-  const uniqueProjectIds = Array.from(new Set(projectIds));
+  const uniqueProjectIds = [...new Set(projectIds)];
 
-  const [receivedResult, sentResult] = await Promise.all([
+  const [receivedRows, sentRows] = await Promise.all([
     email?.trim()
-      ? supabase.rpc("list_pending_collaboration_invitations")
-      : Promise.resolve({ data: [], error: null }),
+      ? all<{
+          invitation_id: string;
+          project_id: string;
+          estimate_id: string | null;
+          project_name: string;
+          project_code: string | null;
+          estimate_name: string | null;
+          role: string | null;
+          scope: string | null;
+          inviter_label: string | null;
+          state: string | null;
+          expires_at: string | null;
+          last_opened_at: string | null;
+        }>(
+          database,
+          `SELECT
+             invitation.id AS invitation_id,
+             invitation.project_id,
+             invitation.estimate_id,
+             project.name AS project_name,
+             project.project_code,
+             estimate.name AS estimate_name,
+             invitation.role,
+             invitation.scope,
+             COALESCE(inviter.display_name, inviter.email) AS inviter_label,
+             CASE WHEN invitation.expires_at <= ? THEN 'expired' ELSE 'pending' END AS state,
+             invitation.expires_at,
+             invitation.last_opened_at
+           FROM collaboration_invitations invitation
+           INNER JOIN projects project ON project.id = invitation.project_id
+           LEFT JOIN estimates estimate ON estimate.id = invitation.estimate_id
+           LEFT JOIN profiles inviter ON inviter.id = invitation.invited_by
+           WHERE invitation.email = lower(trim(?))
+             AND invitation.lifecycle_state = 'pending'
+             AND invitation.accepted_at IS NULL
+             AND invitation.revoked_at IS NULL
+           ORDER BY invitation.created_at DESC`,
+          [expiresAfter, email],
+        ).catch((error) => {
+          if (isMissingOptionalCollaborationTable(error)) return [];
+          throw error;
+        })
+      : Promise.resolve([]),
     uniqueProjectIds.length > 0
-      ? supabase
-          .from("collaboration_invitations")
-          .select("id, project_id")
-          .in("project_id", uniqueProjectIds)
-          .eq("lifecycle_state", "pending")
-          .is("accepted_at", null)
-          .is("revoked_at", null)
-          .gt("expires_at", expiresAfter)
-      : Promise.resolve({ data: [], error: null }),
+      ? all<{ project_id: string }>(
+          database,
+          `SELECT project_id
+           FROM collaboration_invitations
+           WHERE project_id IN (${placeholders(uniqueProjectIds)})
+             AND lifecycle_state = 'pending'
+             AND accepted_at IS NULL
+             AND revoked_at IS NULL
+             AND expires_at > ?`,
+          [...uniqueProjectIds, expiresAfter],
+        ).catch((error) => {
+          if (isMissingOptionalCollaborationTable(error)) return [];
+          throw error;
+        })
+      : Promise.resolve([]),
   ]);
 
-  if (receivedResult.error && !isMissingOptionalCollaborationTable(receivedResult.error)) throw receivedResult.error;
-  if (sentResult.error && !isMissingOptionalCollaborationTable(sentResult.error)) throw sentResult.error;
-
-  const receivedRows = receivedResult.error ? [] : receivedResult.data ?? [];
   const receivedPendingInvites = filterMapBy(
     receivedRows,
     (invitation) => Boolean(invitation.invitation_id && invitation.project_id && invitation.project_name),
@@ -520,7 +845,6 @@ async function readPendingCollaborationVisibilitySummary({
       lastOpenedAt: invitation.last_opened_at ?? null,
     }),
   );
-  const sentRows = sentResult.error ? [] : sentResult.data ?? [];
   for (const invitation of sentRows) {
     sentPendingInviteCountByProjectId.set(
       invitation.project_id,
@@ -576,47 +900,72 @@ function createPendingInviteProjectListItem({
 }
 
 async function readOptionalProjectPublication(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   projectId: string,
 ): Promise<ProjectPublicationRow | null> {
-  const { data, error } = await supabase
-    .from("project_publications")
-    .select(
-      "id, project_id, encrypted_token, password_hash, status, snapshot_json, snapshot_version, selected_estimate_ids, published_at, expires_at, revoked_at, open_count, latest_opened_at, location_visibility",
-    )
-    .eq("project_id", projectId)
-    .order("published_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
+  try {
+    const publication = await first<ProjectPublicationRow>(
+      database,
+      `SELECT
+         id,
+         project_id,
+         encrypted_token,
+         password_hash,
+         status,
+         snapshot_json,
+         snapshot_version,
+         selected_estimate_ids,
+         published_at,
+         expires_at,
+         revoked_at,
+         open_count,
+         latest_opened_at,
+         location_visibility
+       FROM project_publications
+       WHERE project_id = ?
+       ORDER BY published_at DESC
+       LIMIT 1`,
+      [projectId],
+    );
+    return publication ? normalizePublicationRow(publication) : null;
+  } catch (error) {
     if (isMissingOptionalCollaborationTable(error)) return null;
     throw error;
   }
-
-  return data;
 }
 
 async function readOptionalProjectPublications(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   projectIds: string[],
 ): Promise<ProjectPublicationListRow[]> {
   if (projectIds.length === 0) return [];
 
-  const { data, error } = await supabase
-    .from("project_publications")
-    .select(
-      "id, project_id, encrypted_token, password_hash, status, snapshot_version, published_at, expires_at, revoked_at, open_count, latest_opened_at, location_visibility",
-    )
-    .in("project_id", projectIds)
-    .order("published_at", { ascending: false });
-
-  if (error) {
+  try {
+    const rows = await all<ProjectPublicationListRow>(
+      database,
+      `SELECT
+         id,
+         project_id,
+         encrypted_token,
+         password_hash,
+         status,
+         snapshot_version,
+         published_at,
+         expires_at,
+         revoked_at,
+         open_count,
+         latest_opened_at,
+         location_visibility
+       FROM project_publications
+       WHERE project_id IN (${placeholders(projectIds)})
+       ORDER BY project_id ASC, published_at DESC`,
+      projectIds,
+    );
+    return rows.map((publication) => normalizePublicationRow(publication));
+  } catch (error) {
     if (isMissingOptionalCollaborationTable(error)) return [];
     throw error;
   }
-
-  return data ?? [];
 }
 
 function readPublicationClientLinkPath(publication: Pick<ProjectPublicationRow, "encrypted_token"> | null) {
@@ -721,99 +1070,102 @@ export function readPublicationSnapshotStaleness({
 // A separate "new sheets available" signal (distinct from the published-subset staleness) is the
 // preferred future enhancement if this needs to grow.
 async function readLatestEstimateUpdatedAt(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   projectId: string,
   estimateIds: string[],
 ) {
-  let query = supabase
-    .from("estimates")
-    .select("updated_at")
-    .eq("project_id", projectId)
-    .order("updated_at", { ascending: false })
-    .limit(1);
-
-  // estimateIds empty → "all project estimates"; non-empty → restrict to the published subset
-  // (the current, documented behavior; see the scope note above).
-  if (estimateIds.length > 0) query = query.in("id", estimateIds);
-
-  const { data, error } = await query.maybeSingle();
-  if (error) throw error;
+  const subsetFilter = estimateIds.length > 0 ? `AND id IN (${placeholders(estimateIds)})` : "";
+  const data = await first<{ updated_at: string | null }>(
+    database,
+    `SELECT updated_at
+     FROM estimates
+     WHERE project_id = ?
+       ${subsetFilter}
+     ORDER BY updated_at DESC
+     LIMIT 1`,
+    estimateIds.length > 0 ? [projectId, ...estimateIds] : [projectId],
+  );
   return data?.updated_at ?? null;
 }
 
 async function readLatestSharedLinkRecipientOpen(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   publicationId: string | null | undefined,
 ): Promise<ProjectPublicationSummary["latestRecipientOpen"]> {
   if (!publicationId) return null;
 
-  const { data, error } = await supabase
-    .from("shared_link_recipients")
-    .select("email, display_name, last_opened_at")
-    .eq("publication_id", publicationId)
-    .not("last_opened_at", "is", null)
-    .order("last_opened_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
+  try {
+    const data = await first<{ email: string | null; display_name: string | null; last_opened_at: string | null }>(
+      database,
+      `SELECT email, display_name, last_opened_at
+       FROM shared_link_recipients
+       WHERE publication_id = ?
+         AND last_opened_at IS NOT NULL
+       ORDER BY last_opened_at DESC
+       LIMIT 1`,
+      [publicationId],
+    );
+    if (!data?.email || !data.last_opened_at) return null;
+    return {
+      email: data.email,
+      displayName: data.display_name ?? null,
+      openedAt: data.last_opened_at,
+    };
+  } catch (error) {
     if (isMissingOptionalCollaborationTable(error)) return null;
     throw error;
   }
-  if (!data?.email || !data.last_opened_at) return null;
-
-  return {
-    email: data.email,
-    displayName: data.display_name ?? null,
-    openedAt: data.last_opened_at,
-  };
 }
 
 async function readLatestSharedLinkCommentAt(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   publicationId: string | null | undefined,
 ): Promise<string | null> {
   if (!publicationId) return null;
 
-  const { data, error } = await supabase
-    .from("shared_link_comments")
-    .select("created_at")
-    .eq("publication_id", publicationId)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
+  try {
+    const data = await first<{ created_at: string | null }>(
+      database,
+      `SELECT created_at
+       FROM shared_link_comments
+       WHERE publication_id = ?
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [publicationId],
+    );
+    return data?.created_at ?? null;
+  } catch (error) {
     if (isMissingOptionalCollaborationTable(error)) return null;
     throw error;
   }
-  return data?.created_at ?? null;
 }
 
 async function readLatestSharedLinkResponseAt(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   publicationId: string | null | undefined,
 ): Promise<string | null> {
   if (!publicationId) return null;
 
-  const { data, error } = await supabase
-    .from("shared_link_responses")
-    .select("created_at")
-    .eq("publication_id", publicationId)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
+  try {
+    const data = await first<{ created_at: string | null }>(
+      database,
+      `SELECT created_at
+       FROM shared_link_responses
+       WHERE publication_id = ?
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [publicationId],
+    );
+    return data?.created_at ?? null;
+  } catch (error) {
     if (isMissingOptionalCollaborationTable(error)) return null;
     throw error;
   }
-  return data?.created_at ?? null;
 }
 
 /**
  * Most-recent non-null ISO timestamp among the candidates (comments, decisions,
- * opens). Pure so it can be unit-tested without a Supabase round-trip. Returns
+ * opens). Pure so it can be unit-tested without a database round-trip. Returns
  * null when every candidate is null/undefined or unparseable.
  */
 export function readLatestPublicationActivityTimestamp(
@@ -834,31 +1186,19 @@ export function readLatestPublicationActivityTimestamp(
 }
 
 async function readCollaborationProfiles(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   userIds: string[],
 ): Promise<Map<string, CollaborationProfileRow>> {
   if (userIds.length === 0) return new Map();
 
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, display_name, email, avatar_url")
-    .in("id", userIds);
-
-  if (error) {
-    const fallback = await supabase.from("profiles").select("id, display_name, email").in("id", userIds);
-    if (fallback.error) throw fallback.error;
-    return new Map(
-      (fallback.data ?? []).map((profile) => [
-        profile.id,
-        {
-          ...profile,
-          avatar_url: null,
-        } satisfies CollaborationProfileRow,
-      ]),
-    );
-  }
-
-  return new Map((data ?? []).map((profile) => [profile.id, profile]));
+  const data = await all<CollaborationProfileRow>(
+    database,
+    `SELECT id, display_name, email, avatar_url
+     FROM profiles
+     WHERE id IN (${placeholders(userIds)})`,
+    userIds,
+  );
+  return new Map(data.map((profile) => [profile.id, profile]));
 }
 
 function readProfileDisplayName(profile: CollaborationProfileRow | undefined, fallbackUserId: string) {
@@ -883,38 +1223,27 @@ function createEmptyProjectEstimateSummaryMaps(): ProjectEstimateSummaryMaps {
 // getCurrentWorkspaceProject memoization below.
 export const ensureDefaultWorkspace = cache(async function ensureDefaultWorkspace(): Promise<WorkspaceBootstrap> {
   const context = await requireCurrentUserContext();
-  const supabase = await createSupabaseServerClient();
+  const database = await requireWorkspaceRepositoryD1Database();
 
   if (context.profile.default_workspace_id) {
-    const { data: existingWorkspace, error } = await supabase
-      .from("workspaces")
-      .select("*")
-      .eq("id", context.profile.default_workspace_id)
-      .maybeSingle();
-
-    if (error) throw error;
+    const existingWorkspace = await readWorkspaceById(database, context.profile.default_workspace_id);
     if (existingWorkspace) return { workspace: existingWorkspace, profile: context.profile };
   }
 
-  const membership = await readFirstAccountWorkspaceMembership(supabase, context.userId);
+  const membership = await readFirstAccountWorkspaceMembership(context.userId);
   if (membership?.workspaceId) {
-    const { data: memberWorkspace, error: memberWorkspaceError } = await supabase
-      .from("workspaces")
-      .select("*")
-      .eq("id", membership.workspaceId)
-      .maybeSingle();
-
-    if (memberWorkspaceError) throw memberWorkspaceError;
+    const memberWorkspace = await readWorkspaceById(database, membership.workspaceId);
     if (memberWorkspace) {
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .update({ default_workspace_id: memberWorkspace.id })
-        .eq("id", context.userId)
-        .select("*")
-        .single();
-
-      if (profileError) throw profileError;
-      return { workspace: memberWorkspace, profile };
+      const now = new Date().toISOString();
+      await run(
+        database,
+        `UPDATE profiles
+         SET default_workspace_id = ?, updated_at = ?
+         WHERE id = ?`,
+        [memberWorkspace.id, now, context.userId],
+      );
+      const profile = await readProfileById(database, context.userId);
+      return { workspace: memberWorkspace, profile: profile ?? withDefaultWorkspace(context.profile, memberWorkspace.id) };
     }
 
     throw new Error("Workspace membership is unavailable. Contact support.");
@@ -922,24 +1251,31 @@ export const ensureDefaultWorkspace = cache(async function ensureDefaultWorkspac
 
   const defaultName = context.email === "philipjonlewis@gmail.com" ? "Philip's Archestimator Workspace" : "My Archestimator Workspace";
 
-  const { data: workspace, error: workspaceError } = await supabase
-    .from("workspaces")
-    .insert({ name: defaultName, slug: null, created_by: context.userId })
-    .select("*")
-    .single();
+  const now = new Date().toISOString();
+  const workspace: WorkspaceRow = {
+    id: randomUUID(),
+    name: defaultName,
+    slug: null,
+    created_by: context.userId,
+    created_at: now,
+    updated_at: now,
+  };
+  await run(
+    database,
+    `INSERT INTO workspaces (id, name, slug, created_by, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [workspace.id, workspace.name, workspace.slug, workspace.created_by, workspace.created_at, workspace.updated_at],
+  );
+  await run(
+    database,
+    `UPDATE profiles
+     SET default_workspace_id = ?, updated_at = ?
+     WHERE id = ?`,
+    [workspace.id, now, context.userId],
+  );
+  const profile = await readProfileById(database, context.userId);
 
-  if (workspaceError) throw workspaceError;
-
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .update({ default_workspace_id: workspace.id })
-    .eq("id", context.userId)
-    .select("*")
-    .single();
-
-  if (profileError) throw profileError;
-
-  return { workspace, profile };
+  return { workspace, profile: profile ?? withDefaultWorkspace(context.profile, workspace.id) };
 });
 
 export const listCurrentWorkspaceProjects = cache(async () => {
@@ -950,157 +1286,162 @@ export const listCurrentWorkspaceProjects = cache(async () => {
 
 export const listCurrentWorkspaceProjectClientNames = cache(async () => {
   const { workspace } = await ensureDefaultWorkspace();
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("projects")
-    .select("client_name")
-    .eq("workspace_id", workspace.id)
-    .not("client_name", "is", null)
-    .order("client_name", { ascending: true });
-
-  if (error) throw error;
+  const database = await requireWorkspaceRepositoryD1Database();
+  const data = await all<{ client_name: string | null }>(
+    database,
+    `SELECT client_name
+     FROM projects
+     WHERE workspace_id = ?
+       AND client_name IS NOT NULL
+     ORDER BY client_name ASC`,
+    [workspace.id],
+  );
 
   const clientNames = new Map<string, string>();
-  for (const project of data ?? []) {
+  for (const project of data) {
     const label = project.client_name?.trim();
     const key = label?.toLowerCase().replace(/\s+/g, " ");
     if (!label || !key || clientNames.has(key)) continue;
     clientNames.set(key, label);
   }
 
-  return Array.from(clientNames.values());
+  return [...clientNames.values()];
 });
 
 async function listCurrentWorkspaceProjectsAppPath() {
   const { workspace, profile } = await ensureDefaultWorkspace();
-  const supabase = await createSupabaseServerClient();
+  const database = await requireWorkspaceRepositoryD1Database();
 
   const [
-    projectsResult,
-    favoritesResult,
-    estimateFavoritesResult,
-    projectMembersResult,
-    sheetMembersResult,
-    workspaceMembershipResult,
-    projectGroupsResult,
-    projectGroupMembershipsResult,
+    ownedProjects,
+    favoriteRows,
+    favoriteEstimateRows,
+    projectMembers,
+    sheetMembers,
+    workspaceMembership,
+    projectGroupRows,
+    projectGroupMembershipRows,
   ] = await traced("projects.wave1.batch", () => Promise.all([
-    supabase
-      .from("projects")
-      // Explicit columns (not select('*')): workspace_id + created_by are read ONLY by the
-      // server-side access resolver below and are stripped from the client payload via
-      // toClientProjectRow before serialization, so they never ship in the RSC Flight stream.
-      .select(WORKSHOP_PROJECT_LIST_COLUMNS)
-      .eq("workspace_id", workspace.id)
-      .order("updated_at", { ascending: false }),
-    supabase
-      .from("project_favorites")
-      .select("project_id")
-      .eq("workspace_id", workspace.id)
-      .eq("user_id", profile.id),
-    supabase
-      .from("estimate_favorites")
-      .select("estimate_id, project_id, created_at")
-      .eq("workspace_id", workspace.id)
-      .eq("user_id", profile.id)
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("project_members")
-      .select("project_id, workspace_id, role, user_id")
-      .eq("user_id", profile.id),
-    supabase
-      .from("estimate_sheet_members")
-      .select("estimate_id, project_id, role, user_id")
-      .eq("user_id", profile.id),
-    supabase
-      .from("workspace_members")
-      .select("role")
-      .eq("workspace_id", workspace.id)
-      .eq("user_id", profile.id)
-      .maybeSingle(),
-    supabase
-      .from("project_groups")
-      .select("id, name, accent_id, position")
-      .eq("workspace_id", workspace.id)
-      .eq("user_id", profile.id)
-      .order("position", { ascending: true })
-      .order("created_at", { ascending: true }),
-    supabase
-      .from("project_group_memberships")
-      .select("project_id, group_id")
-      .eq("workspace_id", workspace.id)
-      .eq("user_id", profile.id),
+    all<ProjectRow>(
+      database,
+      `SELECT ${WORKSHOP_PROJECT_LIST_COLUMNS}
+       FROM projects
+       WHERE workspace_id = ?
+       ORDER BY updated_at DESC`,
+      [workspace.id],
+    ).then((rows) => rows.map(normalizeProjectRow)),
+    all<WorkshopProjectFavoriteRef>(
+      database,
+      `SELECT project_id
+       FROM project_favorites
+       WHERE workspace_id = ?
+         AND user_id = ?`,
+      [workspace.id, profile.id],
+    ),
+    all<WorkshopHomebaseFavoriteEstimateRef>(
+      database,
+      `SELECT estimate_id, project_id, created_at
+       FROM estimate_favorites
+       WHERE workspace_id = ?
+         AND user_id = ?
+       ORDER BY created_at DESC`,
+      [workspace.id, profile.id],
+    ),
+    all<ProjectMemberRow>(
+      database,
+      `SELECT project_id, workspace_id, role, user_id
+       FROM project_members
+       WHERE user_id = ?`,
+      [profile.id],
+    ).catch((error) => {
+      if (isMissingOptionalCollaborationTable(error)) return [];
+      throw error;
+    }),
+    all<EstimateSheetMemberRow>(
+      database,
+      `SELECT estimate_id, project_id, role, user_id
+       FROM estimate_sheet_members
+       WHERE user_id = ?`,
+      [profile.id],
+    ).catch((error) => {
+      if (isMissingOptionalCollaborationTable(error)) return [];
+      throw error;
+    }),
+    first<WorkspaceMembershipRoleRow>(
+      database,
+      `SELECT role
+       FROM workspace_members
+       WHERE workspace_id = ?
+         AND user_id = ?
+       LIMIT 1`,
+      [workspace.id, profile.id],
+    ),
+    all<{ id: string; name: string; accent_id: string | null; position: number }>(
+      database,
+      `SELECT id, name, accent_id, position
+       FROM project_groups
+       WHERE workspace_id = ?
+         AND user_id = ?
+       ORDER BY position ASC, created_at ASC`,
+      [workspace.id, profile.id],
+    ),
+    all<ProjectGroupMembershipRow>(
+      database,
+      `SELECT project_id, group_id
+       FROM project_group_memberships
+       WHERE workspace_id = ?
+         AND user_id = ?`,
+      [workspace.id, profile.id],
+    ),
   ]));
 
-  if (projectsResult.error) throw projectsResult.error;
-  if (favoritesResult.error) throw favoritesResult.error;
-  if (estimateFavoritesResult.error) throw estimateFavoritesResult.error;
-  if (projectMembersResult.error && !isMissingOptionalCollaborationTable(projectMembersResult.error)) throw projectMembersResult.error;
-  if (sheetMembersResult.error && !isMissingOptionalCollaborationTable(sheetMembersResult.error)) throw sheetMembersResult.error;
-  if (workspaceMembershipResult.error) throw workspaceMembershipResult.error;
-  // Project groups + memberships are a first-class per-user layer (cloned from favorites),
-  // NOT optional collaboration tables — throw unconditionally on error (contracts §3.2).
-  if (projectGroupsResult.error) throw projectGroupsResult.error;
-  if (projectGroupMembershipsResult.error) throw projectGroupMembershipsResult.error;
-
-  const ownedProjects = projectsResult.data ?? [];
   const ownedProjectIds = new Set(ownedProjects.map((project) => project.id));
-  const projectMembers = (projectMembersResult.error ? [] : projectMembersResult.data ?? []) as ProjectMemberRow[];
-  const sheetMembers = (sheetMembersResult.error ? [] : sheetMembersResult.data ?? []) as EstimateSheetMemberRow[];
-  const workspaceRole = workspaceMembershipResult.data?.role
-    ? mapWorkspaceRoleToCollaborationRole(workspaceMembershipResult.data.role)
+  const workspaceRole = workspaceMembership?.role
+    ? mapWorkspaceRoleToCollaborationRole(workspaceMembership.role)
     : null;
-  const sharedProjectIds = Array.from(
-    new Set([
+  const sharedProjectIds = [
+    ...new Set([
       ...projectMembers.map((member) => member.project_id),
       ...sheetMembers.map((member) => member.project_id),
     ]),
-  ).filter((projectId) => !ownedProjectIds.has(projectId));
+  ].filter((projectId) => !ownedProjectIds.has(projectId));
 
-  const favoriteEstimateRows = estimateFavoritesResult.data ?? [];
   const favoriteEstimateIds = favoriteEstimateRows.map((favorite) => favorite.estimate_id);
   const favoriteEstimateCreatedAtById = new Map(
     favoriteEstimateRows.map((favorite) => [favorite.estimate_id, favorite.created_at]),
   );
 
-  // Wave 2: shared-project hydration and favorite-estimate hydration each depend only
-  // on the parallel wave-1 results (sharedProjectIds / favoriteEstimateIds) and are
-  // independent of each other, so issue them concurrently instead of serially. Empty
-  // inputs skip the round-trip entirely (null query → null response).
-  const sharedProjectsQuery =
-    sharedProjectIds.length > 0
-      ? supabase
-          .from("projects")
-          .select(WORKSHOP_PROJECT_LIST_COLUMNS)
-          .in("id", sharedProjectIds)
-          .order("updated_at", { ascending: false })
-      : null;
-  const favoriteEstimatesQuery =
-    favoriteEstimateIds.length > 0
-      ? supabase
-          .from("estimates")
-          .select("id, project_id, name, sheet_code, updated_at")
-          .in("id", favoriteEstimateIds)
-      : null;
-  const [sharedProjectsResponse, favoriteEstimatesResponse] = await traced(
+  const [sharedProjects, favoriteEstimates] = await traced(
     "projects.wave2.shared+favorites",
     () =>
       Promise.all([
-        sharedProjectsQuery,
-        favoriteEstimatesQuery,
+        sharedProjectIds.length > 0
+          ? all<ProjectRow>(
+              database,
+              `SELECT ${WORKSHOP_PROJECT_LIST_COLUMNS}
+               FROM projects
+               WHERE id IN (${placeholders(sharedProjectIds)})
+               ORDER BY updated_at DESC`,
+              sharedProjectIds,
+            ).then((rows) => rows.map(normalizeProjectRow))
+          : Promise.resolve([]),
+        favoriteEstimateIds.length > 0
+          ? all<WorkshopEstimateRecord>(
+              database,
+              `SELECT id, project_id, name, sheet_code, updated_at
+               FROM estimates
+               WHERE id IN (${placeholders(favoriteEstimateIds)})`,
+              favoriteEstimateIds,
+            )
+          : Promise.resolve([]),
       ]),
   );
-
-  if (sharedProjectsResponse?.error) throw sharedProjectsResponse.error;
-  const sharedProjects: Tables<"projects">[] = sharedProjectsResponse?.data ?? [];
 
   let favoriteEstimateSheetsByProjectId = new Map<string, ProjectFavoriteEstimateSheetSummary[]>();
 
   if (favoriteEstimateIds.length > 0) {
-    if (favoriteEstimatesResponse?.error) throw favoriteEstimatesResponse.error;
-
     const favoriteEstimateById = new Map(
-      (favoriteEstimatesResponse?.data ?? []).map((estimate) => [estimate.id, estimate]),
+      favoriteEstimates.map((estimate) => [estimate.id, estimate]),
     );
     favoriteEstimateSheetsByProjectId = favoriteEstimateRows.reduce((byProject, favorite) => {
       const estimate = favoriteEstimateById.get(favorite.estimate_id);
@@ -1124,17 +1465,14 @@ async function listCurrentWorkspaceProjectsAppPath() {
     workspaceRole,
   });
 
-  // Part 7c (Project Groups): ordered (position, then created_at) camelCase summaries for the
-  // client, plus a per-project membership lookup. Both reads are scoped per-user (.eq user_id),
-  // so the map only ever holds THIS user's group rows — a miss resolves to null (Ungrouped).
-  const projectGroups: ProjectGroupSummary[] = (projectGroupsResult.data ?? []).map((group) => ({
+  const projectGroups: ProjectGroupSummary[] = projectGroupRows.map((group) => ({
     id: group.id,
     name: group.name,
     accentId: group.accent_id,
     position: group.position,
   }));
   const groupIdByProjectId = new Map<string, string>(
-    (projectGroupMembershipsResult.data ?? []).map((membership) => [
+    projectGroupMembershipRows.map((membership) => [
       membership.project_id,
       membership.group_id,
     ]),
@@ -1160,25 +1498,22 @@ async function listCurrentWorkspaceProjectsAppPath() {
       return createProjectListItem(project);
     }),
   ];
-  // Wave 3: publication summaries and pending-invite visibility both depend only on the
-  // assembled projectItems and are independent of each other, so fetch them concurrently
-  // rather than waiting for publications before starting the invite-visibility read.
   const [publicationRows, pendingInviteVisibility] = await traced(
     "projects.wave3.publications+invites",
     () =>
       Promise.all([
         readOptionalProjectPublications(
-          supabase,
-          Array.from(new Set(projectItems.map((item) => item.project.id))),
+          database,
+          [...new Set(projectItems.map((item) => item.project.id))],
         ),
         readPendingCollaborationVisibilitySummary({
+          database,
           email: profile.email,
           projectIds: filterMapBy(
             projectItems,
             (item) => canManageCollaborationRole(item.currentUserRole),
             (item) => item.project.id,
           ),
-          supabase,
         }),
       ]),
   );
@@ -1214,7 +1549,7 @@ async function listCurrentWorkspaceProjectsAppPath() {
       })),
       ...pendingInviteItemsByProjectId.values(),
     ],
-    favoriteProjectIds: (favoritesResult.data ?? []).map((favorite) => favorite.project_id),
+    favoriteProjectIds: favoriteRows.map((favorite) => favorite.project_id),
     projectGroups,
   };
 }
@@ -1224,7 +1559,7 @@ function mergeHomebaseRecords<T extends { id: string }>(primary: T[], secondary:
   for (const record of [...primary, ...secondary]) {
     if (!byId.has(record.id)) byId.set(record.id, record);
   }
-  return Array.from(byId.values());
+  return [...byId.values()];
 }
 
 function sortByFavoriteCreatedAt<T extends { id: string }>(records: T[], favoriteCreatedAt: Map<string, string>) {
@@ -1492,22 +1827,6 @@ function assertEstimateRecord(value: Record<string, unknown>, path: string): Wor
   };
 }
 
-function assertRouteEstimateRecord(value: Record<string, unknown>, path: string): EstimateRecordWithLegacy {
-  return {
-    id: assertRpcString(value.id, `${path}.id`),
-    project_id: assertRpcString(value.project_id, `${path}.project_id`),
-    name: assertRpcString(value.name, `${path}.name`),
-    sheet_code: assertRpcOptionalString(value.sheet_code, `${path}.sheet_code`),
-    notes: assertRpcOptionalString(value.notes, `${path}.notes`),
-    project_budget: assertRpcOptionalNumber(value.project_budget, `${path}.project_budget`),
-    currency_code: assertRpcString(value.currency_code, `${path}.currency_code`),
-    metadata: assertRpcJson(value.metadata, `${path}.metadata`),
-    created_by: assertRpcOptionalString(value.created_by, `${path}.created_by`),
-    created_at: assertRpcString(value.created_at, `${path}.created_at`),
-    updated_at: assertRpcString(value.updated_at, `${path}.updated_at`),
-  };
-}
-
 function assertEstimateNodeRecord(value: Record<string, unknown>, path: string): WorkshopEstimateNodeRecord {
   return {
     id: assertRpcString(value.id, `${path}.id`),
@@ -1604,344 +1923,95 @@ function isMainSidebarFavoriteProjectsContractError(error: unknown): error is Er
 }
 
 async function listCurrentWorkspaceProjectsRpcPath() {
-  if (process.env.WORKSHOP_PROJECTS_SUMMARY_RPC_DISABLED === "1") return null;
-  if (await isDevAdminDatabaseBypassActiveForRequest()) return null;
-
-  const { workspace, profile } = await ensureDefaultWorkspace();
-  const supabase = await createSupabaseServerClient();
-  const summaryResult = await traced("projects.rpc.workspace_projects_summary", () =>
-    (supabase as unknown as {
-      rpc: (
-        functionName: "workspace_projects_summary",
-        args: { target_workspace_id: string },
-      ) => Promise<WorkshopProjectsSummaryRpcResult>;
-    }).rpc("workspace_projects_summary", {
-      target_workspace_id: workspace.id,
-    }),
-  );
-
-  if (summaryResult.error) {
-    if (isWorkspaceHomebaseSummaryRolloutError(summaryResult.error)) {
-      const code = isRecord(summaryResult.error) && typeof summaryResult.error.code === "string" ? summaryResult.error.code : "unknown";
-      const message = isRecord(summaryResult.error) && typeof summaryResult.error.message === "string" ? summaryResult.error.message : "unknown";
-      const details = isRecord(summaryResult.error) && typeof summaryResult.error.details === "string" ? summaryResult.error.details : null;
-      console.warn(`[workspace_projects_summary] RPC unavailable (code=${code}, message=${message}, details=${details}); using app path`);
-      return null;
-    }
-    throw summaryResult.error;
-  }
-
-  try {
-    const payload = parseWorkshopProjectsSummaryPayload(summaryResult.data);
-    const projectMembers = payload.projectMembers;
-    const sheetMembers = payload.sheetMembers;
-    const workspaceRole = payload.workspaceMembership?.role
-      ? mapWorkspaceRoleToCollaborationRole(payload.workspaceMembership.role)
-      : null;
-    const resolveProjectAccess = createWorkshopProjectAccessResolver({
-      profileId: profile.id,
-      projectMembers,
-      sheetMembers,
-      workspace,
-      workspaceRole,
-    });
-
-    const favoriteEstimateById = new Map(payload.favoriteEstimates.map((estimate) => [estimate.id, estimate]));
-    const favoriteEstimateSheetsByProjectId = payload.estimateFavorites.reduce((byProject, favorite) => {
-      const estimate = favoriteEstimateById.get(favorite.estimate_id);
-      if (!estimate) return byProject;
-      const sheets = byProject.get(favorite.project_id) ?? [];
-      if (sheets.length >= 5) return byProject;
-      sheets.push({
-        ...estimate,
-        favoriteCreatedAt: favorite.created_at,
-      });
-      byProject.set(favorite.project_id, sheets);
-      return byProject;
-    }, new Map<string, ProjectFavoriteEstimateSheetSummary[]>());
-
-    const groupIdByProjectId = new Map<string, string>(
-      payload.projectGroupMemberships.map((membership) => [
-        membership.project_id,
-        membership.group_id,
-      ]),
-    );
-    const publicationByProjectId = new Map<string, ProjectPublicationListRow>();
-    for (const publication of payload.publications) {
-      if (!publicationByProjectId.has(publication.project_id)) {
-        publicationByProjectId.set(publication.project_id, publication);
-      }
-    }
-    const sentPendingInviteCountByProjectId = new Map<string, number>(
-      payload.sentInviteCounts.map((row) => [row.project_id, row.count]),
-    );
-
-    function createProjectListItem(project: Tables<"projects">): WorkshopProjectListItem {
-      const access = resolveProjectAccess(project);
-      return {
-        project: toClientProjectRow(project),
-        ...access,
-        pendingInvite: null,
-        pendingInviteCount: canManageCollaborationRole(access.currentUserRole)
-          ? sentPendingInviteCountByProjectId.get(project.id) ?? 0
-          : 0,
-        publicationSummary: readProjectPublicationListSummary(publicationByProjectId.get(project.id) ?? null),
-        favoriteEstimateSheets: favoriteEstimateSheetsByProjectId.get(project.id) ?? [],
-        groupId: groupIdByProjectId.get(project.id) ?? null,
-      };
-    }
-
-    const projectItems: WorkshopProjectListItem[] = [
-      ...payload.ownedProjects.map(createProjectListItem),
-      ...payload.sharedProjects.map(createProjectListItem),
-    ];
-    const acceptedProjectIds = new Set(projectItems.map((item) => item.project.id));
-    const pendingInviteItemsByProjectId = new Map<string, WorkshopProjectListItem>();
-    for (const invite of payload.receivedPendingInvites) {
-      if (acceptedProjectIds.has(invite.projectId) || pendingInviteItemsByProjectId.has(invite.projectId)) continue;
-      pendingInviteItemsByProjectId.set(
-        invite.projectId,
-        createPendingInviteProjectListItem({
-          invite,
-          profileId: profile.id,
-          workspaceId: workspace.id,
-        }),
-      );
-    }
-
-    return {
-      workspace,
-      projects: [
-        ...projectItems,
-        ...pendingInviteItemsByProjectId.values(),
-      ],
-      favoriteProjectIds: payload.projectFavorites.map((favorite) => favorite.project_id),
-      projectGroups: payload.projectGroups,
-    };
-  } catch (error) {
-    if (!isWorkspaceProjectsSummaryContractError(error)) throw error;
-    console.warn(`[workspace_projects_summary] RPC returned an incompatible payload (${error.message}); using app path`);
-    return null;
-  }
+  return null;
 }
 
 async function getWorkshopHomebaseDataRpcPath(): Promise<WorkshopHomebaseData | null> {
-  const { workspace, profile } = await ensureDefaultWorkspace();
-  const supabase = await createSupabaseServerClient();
-
-  const [
-    summaryResult,
-    projectMembersResult,
-    sheetMembersResult,
-    workspaceMembershipResult,
-  ] = await Promise.all([
-    traced("homebase.rpc.workspace_homebase_summary", () =>
-      supabase.rpc("workspace_homebase_summary", {
-        target_workspace_id: workspace.id,
-        recent_limit: WORKSHOP_HOMEBASE_ITEM_LIMIT,
-      }) as unknown as Promise<WorkshopHomebaseSummaryRpcResult>,
-    ),
-    supabase
-      .from("project_members")
-      .select("project_id, workspace_id, role, user_id")
-      .eq("user_id", profile.id),
-    supabase
-      .from("estimate_sheet_members")
-      .select("estimate_id, project_id, role, user_id")
-      .eq("user_id", profile.id),
-    supabase
-      .from("workspace_members")
-      .select("role")
-      .eq("workspace_id", workspace.id)
-      .eq("user_id", profile.id)
-      .maybeSingle(),
-  ]);
-
-  if (summaryResult.error) {
-    if (isWorkspaceHomebaseSummaryRolloutError(summaryResult.error)) {
-      const code = isRecord(summaryResult.error) && typeof summaryResult.error.code === "string" ? summaryResult.error.code : "unknown";
-      const message = isRecord(summaryResult.error) && typeof summaryResult.error.message === "string" ? summaryResult.error.message : "unknown";
-      const details = isRecord(summaryResult.error) && typeof summaryResult.error.details === "string" ? summaryResult.error.details : null;
-      console.warn(`[workspace_homebase_summary] RPC unavailable (code=${code}, message=${message}, details=${details}); using app path`);
-      return null;
-    }
-    throw summaryResult.error;
-  }
-
-  if (projectMembersResult.error && !isMissingOptionalCollaborationTable(projectMembersResult.error)) throw projectMembersResult.error;
-  if (sheetMembersResult.error && !isMissingOptionalCollaborationTable(sheetMembersResult.error)) throw sheetMembersResult.error;
-  if (workspaceMembershipResult.error) throw workspaceMembershipResult.error;
-
-  const payload = parseWorkshopHomebaseSummaryPayload(summaryResult.data);
-  const projectFavoriteCreatedAt = new Map(payload.projectFavorites.map((favorite) => [favorite.project_id, favorite.created_at]));
-  const estimateFavoriteCreatedAt = new Map(payload.estimateFavorites.map((favorite) => [favorite.estimate_id, favorite.created_at]));
-  const projectMembers = (projectMembersResult.error ? [] : projectMembersResult.data ?? []) as ProjectMemberRow[];
-  const sheetMembers = (sheetMembersResult.error ? [] : sheetMembersResult.data ?? []) as EstimateSheetMemberRow[];
-  const workspaceRole = workspaceMembershipResult.data?.role
-    ? mapWorkspaceRoleToCollaborationRole(workspaceMembershipResult.data.role)
-    : null;
-  const resolveProjectAccess = createWorkshopProjectAccessResolver({
-    profileId: profile.id,
-    projectMembers,
-    sheetMembers,
-    workspace,
-    workspaceRole,
-  });
-
-  const recentProjects = sortByUpdatedAtDescThenIdDesc(payload.recentProjects);
-  const favoriteProjects = sortByFavoriteCreatedAt(payload.favoriteProjects, projectFavoriteCreatedAt);
-  const projects = mergeHomebaseRecords(recentProjects, favoriteProjects);
-  for (const project of payload.estimateProjects) {
-    if (!projects.some((existingProject) => existingProject.id === project.id)) projects.push(project);
-  }
-  const estimates = mergeHomebaseRecords(
-    sortByUpdatedAtDescThenIdDesc(payload.recentEstimates),
-    sortByFavoriteCreatedAt(payload.favoriteEstimates, estimateFavoriteCreatedAt),
-  );
-  const projectById = new Map(projects.map((project) => [project.id, project]));
-  const visibleFavoriteProjectIds = new Set(filterMapBy(projects, (project) => projectFavoriteCreatedAt.has(project.id), (project) => project.id));
-  const removedProjectFavorites = filterMapBy(
-    Array.from(projectFavoriteCreatedAt.keys()),
-    (projectId) => !visibleFavoriteProjectIds.has(projectId),
-    (projectId) => ({
-      id: projectId,
-      name: null,
-      projectCode: null,
-      favoriteCreatedAt: projectFavoriteCreatedAt.get(projectId) ?? null,
-    }),
-  );
-  const allProjectIds = Array.from(new Set(projects.map((project) => project.id)));
-  const manageableProjectIds = filterMapBy(
-    projects,
-    (project) => canManageCollaborationRole(resolveProjectAccess(project).currentUserRole),
-    (project) => project.id,
-  );
-
-  const [homebasePublicationRows, pendingInviteVisibility] = await traced("homebase.rpc.tail", () => Promise.all([
-    readOptionalProjectPublications(supabase, allProjectIds),
-    readPendingCollaborationVisibilitySummary({
-      email: profile.email,
-      projectIds: manageableProjectIds,
-      supabase,
-    }),
-  ]));
-
-  const homebasePublicationByProjectId = new Map<string, ProjectPublicationListRow>();
-  for (const publication of homebasePublicationRows) {
-    if (!homebasePublicationByProjectId.has(publication.project_id)) {
-      homebasePublicationByProjectId.set(publication.project_id, publication);
-    }
-  }
-  const firstNodeByEstimateId = selectFirstEstimateNodeIds(payload.estimateNodes);
-
-  return {
-    workspace,
-    projects: projects.map((project) => {
-      const access = resolveProjectAccess(project);
-      return {
-        id: project.id,
-        name: project.name,
-        client_name: project.client_name,
-        project_code: project.project_code,
-        location: project.location,
-        updated_at: project.updated_at,
-        ...access,
-        canManagePublication:
-          profile.role === "ceo" || profile.role === "admin" || canManageCollaborationRole(access.currentUserRole),
-        isFavorite: projectFavoriteCreatedAt.has(project.id),
-        favoriteCreatedAt: projectFavoriteCreatedAt.get(project.id) ?? null,
-        pendingInviteCount: pendingInviteVisibility.sentPendingInviteCountByProjectId.get(project.id) ?? 0,
-        publicationSummary: readProjectPublicationListSummary(homebasePublicationByProjectId.get(project.id) ?? null),
-      };
-    }),
-    estimates: estimates.map((estimate) => {
-      const project = projectById.get(estimate.project_id);
-      return {
-        id: estimate.id,
-        project_id: estimate.project_id,
-        name: estimate.name,
-        sheet_code: estimate.sheet_code,
-        updated_at: estimate.updated_at,
-        projectName: project?.name ?? "Unknown project",
-        projectCode: project?.project_code ?? null,
-        firstNodeId: firstNodeByEstimateId.get(estimate.id) ?? null,
-        isFavorite: estimateFavoriteCreatedAt.has(estimate.id),
-        favoriteCreatedAt: estimateFavoriteCreatedAt.get(estimate.id) ?? null,
-      };
-    }),
-    pendingInvites: pendingInviteVisibility.receivedPendingInvites,
-    removedProjectFavorites,
-    receivedPendingInviteCount: pendingInviteVisibility.receivedPendingInviteCount,
-  };
+  return null;
 }
 
 async function getWorkshopHomebaseDataAppPath(): Promise<WorkshopHomebaseData> {
   const { workspace, profile } = await ensureDefaultWorkspace();
-  const supabase = await createSupabaseServerClient();
+  const database = await requireWorkspaceRepositoryD1Database();
 
   const [
-    projectFavoritesResult,
-    estimateFavoritesResult,
-    recentProjectsResult,
-    projectMembersResult,
-    sheetMembersResult,
-    workspaceMembershipResult,
+    projectFavoriteRows,
+    estimateFavoriteRows,
+    recentProjects,
+    projectMembers,
+    sheetMembers,
+    workspaceMembership,
   ] = await Promise.all([
-    supabase
-      .from("project_favorites")
-      .select("project_id, created_at")
-      .eq("workspace_id", workspace.id)
-      .eq("user_id", profile.id)
-      .order("created_at", { ascending: false })
-      .limit(WORKSHOP_HOMEBASE_ITEM_LIMIT),
-    supabase
-      .from("estimate_favorites")
-      .select("estimate_id, created_at")
-      .eq("workspace_id", workspace.id)
-      .eq("user_id", profile.id)
-      .order("created_at", { ascending: false })
-      .limit(WORKSHOP_HOMEBASE_ITEM_LIMIT),
-    supabase
-      .from("projects")
-      .select("id, name, client_name, project_code, location, updated_at, workspace_id, created_by")
-      .eq("workspace_id", workspace.id)
-      .order("updated_at", { ascending: false })
-      .limit(WORKSHOP_HOMEBASE_ITEM_LIMIT),
-    supabase
-      .from("project_members")
-      .select("project_id, workspace_id, role, user_id")
-      .eq("user_id", profile.id),
-    supabase
-      .from("estimate_sheet_members")
-      .select("estimate_id, project_id, role, user_id")
-      .eq("user_id", profile.id),
-    supabase
-      .from("workspace_members")
-      .select("role")
-      .eq("workspace_id", workspace.id)
-      .eq("user_id", profile.id)
-      .maybeSingle(),
+    all<WorkshopHomebaseFavoriteProjectRef>(
+      database,
+      `SELECT project_id, created_at
+       FROM project_favorites
+       WHERE workspace_id = ?
+         AND user_id = ?
+       ORDER BY created_at DESC
+       LIMIT ?`,
+      [workspace.id, profile.id, WORKSHOP_HOMEBASE_ITEM_LIMIT],
+    ),
+    all<WorkshopHomebaseFavoriteEstimateRef>(
+      database,
+      `SELECT estimate_id, project_id, created_at
+       FROM estimate_favorites
+       WHERE workspace_id = ?
+         AND user_id = ?
+       ORDER BY created_at DESC
+       LIMIT ?`,
+      [workspace.id, profile.id, WORKSHOP_HOMEBASE_ITEM_LIMIT],
+    ),
+    all<WorkshopProjectRecord>(
+      database,
+      `SELECT id, name, client_name, project_code, location, updated_at, workspace_id, created_by
+       FROM projects
+       WHERE workspace_id = ?
+       ORDER BY updated_at DESC
+       LIMIT ?`,
+      [workspace.id, WORKSHOP_HOMEBASE_ITEM_LIMIT],
+    ).then((rows) => rows.map((row) => normalizeProjectRow(row as ProjectRow) as WorkshopProjectRecord)),
+    all<ProjectMemberRow>(
+      database,
+      `SELECT project_id, workspace_id, role, user_id
+       FROM project_members
+       WHERE user_id = ?`,
+      [profile.id],
+    ).catch((error) => {
+      if (isMissingOptionalCollaborationTable(error)) return [];
+      throw error;
+    }),
+    all<EstimateSheetMemberRow>(
+      database,
+      `SELECT estimate_id, project_id, role, user_id
+       FROM estimate_sheet_members
+       WHERE user_id = ?`,
+      [profile.id],
+    ).catch((error) => {
+      if (isMissingOptionalCollaborationTable(error)) return [];
+      throw error;
+    }),
+    first<WorkspaceMembershipRoleRow>(
+      database,
+      `SELECT role
+       FROM workspace_members
+       WHERE workspace_id = ?
+         AND user_id = ?
+       LIMIT 1`,
+      [workspace.id, profile.id],
+    ),
   ]);
 
-  if (projectFavoritesResult.error) throw projectFavoritesResult.error;
-  if (estimateFavoritesResult.error) throw estimateFavoritesResult.error;
-  if (recentProjectsResult.error) throw recentProjectsResult.error;
-  if (projectMembersResult.error && !isMissingOptionalCollaborationTable(projectMembersResult.error)) throw projectMembersResult.error;
-  if (sheetMembersResult.error && !isMissingOptionalCollaborationTable(sheetMembersResult.error)) throw sheetMembersResult.error;
-  if (workspaceMembershipResult.error) throw workspaceMembershipResult.error;
-
   const projectFavoriteCreatedAt = new Map(
-    (projectFavoritesResult.data ?? []).map((favorite) => [favorite.project_id, favorite.created_at]),
+    projectFavoriteRows.map((favorite) => [favorite.project_id, favorite.created_at]),
   );
   const estimateFavoriteCreatedAt = new Map(
-    (estimateFavoritesResult.data ?? []).map((favorite) => [favorite.estimate_id, favorite.created_at]),
+    estimateFavoriteRows.map((favorite) => [favorite.estimate_id, favorite.created_at]),
   );
-  const favoriteProjectIds = Array.from(projectFavoriteCreatedAt.keys());
-  const favoriteEstimateIds = Array.from(estimateFavoriteCreatedAt.keys());
-  const projectMembers = (projectMembersResult.error ? [] : projectMembersResult.data ?? []) as ProjectMemberRow[];
-  const sheetMembers = (sheetMembersResult.error ? [] : sheetMembersResult.data ?? []) as EstimateSheetMemberRow[];
-  const workspaceRole = workspaceMembershipResult.data?.role
-    ? mapWorkspaceRoleToCollaborationRole(workspaceMembershipResult.data.role)
+  const favoriteProjectIds = [...projectFavoriteCreatedAt.keys()];
+  const favoriteEstimateIds = [...estimateFavoriteCreatedAt.keys()];
+  const workspaceRole = workspaceMembership?.role
+    ? mapWorkspaceRoleToCollaborationRole(workspaceMembership.role)
     : null;
   const resolveProjectAccess = createWorkshopProjectAccessResolver({
     profileId: profile.id,
@@ -1951,58 +2021,58 @@ async function getWorkshopHomebaseDataAppPath(): Promise<WorkshopHomebaseData> {
     workspaceRole,
   });
 
-  const recentProjects = (recentProjectsResult.data ?? []) as WorkshopProjectRecord[];
   const recentProjectIds = recentProjects.map((project) => project.id);
-  const recentEstimateProjectIds = Array.from(new Set([...recentProjectIds, ...favoriteProjectIds]));
+  const recentEstimateProjectIds = [...new Set([...recentProjectIds, ...favoriteProjectIds])];
   const limitedFavoriteEstimateIds = favoriteEstimateIds.slice(0, WORKSHOP_HOMEBASE_FAVORITE_ESTIMATE_LIMIT);
-  const emptyEstimateQueryResult: WorkshopEstimateQueryResult = { data: [], error: null };
-  const recentEstimatesPromise: Promise<WorkshopEstimateQueryResult> =
+  const recentEstimatesPromise: Promise<WorkshopEstimateRecord[]> =
     recentEstimateProjectIds.length > 0
-      ? (supabase
-          .from("estimates")
-          .select("id, project_id, name, sheet_code, updated_at")
-          .in("project_id", recentEstimateProjectIds)
-          .order("updated_at", { ascending: false })
-          .order("id", { ascending: false })
-          .limit(WORKSHOP_HOMEBASE_ITEM_LIMIT) as unknown as Promise<WorkshopEstimateQueryResult>)
-      : Promise.resolve(emptyEstimateQueryResult);
-  const favoriteEstimatesPromise: Promise<WorkshopEstimateQueryResult> =
+      ? all<WorkshopEstimateRecord>(
+          database,
+          `SELECT id, project_id, name, sheet_code, updated_at
+           FROM estimates
+           WHERE project_id IN (${placeholders(recentEstimateProjectIds)})
+           ORDER BY updated_at DESC, id DESC
+           LIMIT ?`,
+          [...recentEstimateProjectIds, WORKSHOP_HOMEBASE_ITEM_LIMIT],
+        )
+      : Promise.resolve([]);
+  const favoriteEstimatesPromise: Promise<WorkshopEstimateRecord[]> =
     limitedFavoriteEstimateIds.length > 0
-      ? (supabase
-          .from("estimates")
-          .select("id, project_id, name, sheet_code, updated_at")
-          .in("id", limitedFavoriteEstimateIds) as unknown as Promise<WorkshopEstimateQueryResult>)
-      : Promise.resolve(emptyEstimateQueryResult);
+      ? all<WorkshopEstimateRecord>(
+          database,
+          `SELECT id, project_id, name, sheet_code, updated_at
+           FROM estimates
+           WHERE id IN (${placeholders(limitedFavoriteEstimateIds)})`,
+          limitedFavoriteEstimateIds,
+        )
+      : Promise.resolve([]);
 
-  const [recentEstimatesResult, favoriteEstimatesResult] = await traced("homebase.H3H4.estimates", () =>
+  const [recentEstimateRows, favoriteEstimateResultRows] = await traced("homebase.H3H4.estimates", () =>
     Promise.all([recentEstimatesPromise, favoriteEstimatesPromise]),
   );
 
-  if (recentEstimatesResult.error) throw recentEstimatesResult.error;
-  if (favoriteEstimatesResult.error) throw favoriteEstimatesResult.error;
-
-  const recentEstimates = sortByUpdatedAtDescThenIdDesc((recentEstimatesResult.data ?? []) as WorkshopEstimateRecord[]);
+  const recentEstimates = sortByUpdatedAtDescThenIdDesc(recentEstimateRows);
   const favoriteEstimates = sortByFavoriteCreatedAt(
-    (favoriteEstimatesResult.data ?? []) as WorkshopEstimateRecord[],
+    favoriteEstimateResultRows,
     estimateFavoriteCreatedAt,
   );
   const estimates = mergeHomebaseRecords(recentEstimates, favoriteEstimates);
-  const estimateProjectIds = Array.from(new Set(estimates.map((estimate) => estimate.project_id)));
+  const estimateProjectIds = [...new Set(estimates.map((estimate) => estimate.project_id))];
   const initialKnownProjectIds = new Set(recentProjectIds);
   const missingProjectIds = estimateProjectIds.filter((projectId) => !initialKnownProjectIds.has(projectId));
-  const backfillProjectIds = Array.from(new Set([...favoriteProjectIds, ...missingProjectIds]));
+  const backfillProjectIds = [...new Set([...favoriteProjectIds, ...missingProjectIds])];
 
   let backfillProjects: WorkshopProjectRecord[] = [];
   if (backfillProjectIds.length > 0) {
-    const { data, error } = await traced("homebase.H2H5.projects", () =>
-      supabase
-        .from("projects")
-        .select("id, name, client_name, project_code, location, updated_at, workspace_id, created_by")
-        .in("id", backfillProjectIds) as unknown as Promise<WorkshopProjectQueryResult>,
+    backfillProjects = await traced("homebase.H2H5.projects", () =>
+      all<WorkshopProjectRecord>(
+        database,
+        `SELECT id, name, client_name, project_code, location, updated_at, workspace_id, created_by
+         FROM projects
+         WHERE id IN (${placeholders(backfillProjectIds)})`,
+        backfillProjectIds,
+      ).then((rows) => rows.map((row) => normalizeProjectRow(row as ProjectRow) as WorkshopProjectRecord)),
     );
-
-    if (error) throw error;
-    backfillProjects = data ?? [];
   }
 
   const favoriteProjects = backfillProjects.filter((project) => projectFavoriteCreatedAt.has(project.id));
@@ -2023,32 +2093,34 @@ async function getWorkshopHomebaseDataAppPath(): Promise<WorkshopHomebaseData> {
   }
 
   const projectById = new Map(projects.map((project) => [project.id, project]));
-  const allProjectIds = Array.from(new Set(projects.map((project) => project.id)));
+  const allProjectIds = [...new Set(projects.map((project) => project.id))];
   const manageableProjectIds = filterMapBy(
     projects,
     (project) => canManageCollaborationRole(resolveProjectAccess(project).currentUserRole),
     (project) => project.id,
   );
   const estimateIds = estimates.map((estimate) => estimate.id);
-  const estimateNodesPromise: Promise<WorkshopEstimateNodeQueryResult> =
+  const estimateNodesPromise: Promise<WorkshopEstimateNodeRecord[]> =
     estimateIds.length > 0
-      ? (supabase
-          .from("estimate_nodes")
-          .select("id, estimate_id, kind, parent_id, sort_order")
-          .in("estimate_id", estimateIds)
-          .order("sort_order", { ascending: true }) as unknown as Promise<WorkshopEstimateNodeQueryResult>)
-      : Promise.resolve({ data: [], error: null });
+      ? all<WorkshopEstimateNodeRecord>(
+          database,
+          `SELECT id, estimate_id, kind, parent_id, sort_order
+           FROM estimate_nodes
+           WHERE estimate_id IN (${placeholders(estimateIds)})
+           ORDER BY sort_order ASC`,
+          estimateIds,
+        )
+      : Promise.resolve([]);
 
-  const [homebasePublicationRows, pendingInviteVisibility, estimateNodesResult] = await traced("homebase.H6H7H8.tail", () => Promise.all([
-    readOptionalProjectPublications(supabase, allProjectIds),
+  const [homebasePublicationRows, pendingInviteVisibility, estimateNodes] = await traced("homebase.H6H7H8.tail", () => Promise.all([
+    readOptionalProjectPublications(database, allProjectIds),
     readPendingCollaborationVisibilitySummary({
+      database,
       email: profile.email,
       projectIds: manageableProjectIds,
-      supabase,
     }),
     estimateNodesPromise,
   ]));
-  if (estimateNodesResult.error) throw estimateNodesResult.error;
 
   const homebasePublicationByProjectId = new Map<string, ProjectPublicationListRow>();
   for (const publication of homebasePublicationRows) {
@@ -2056,7 +2128,7 @@ async function getWorkshopHomebaseDataAppPath(): Promise<WorkshopHomebaseData> {
       homebasePublicationByProjectId.set(publication.project_id, publication);
     }
   }
-  const firstNodeByEstimateId = selectFirstEstimateNodeIds(estimateNodesResult.data ?? []);
+  const firstNodeByEstimateId = selectFirstEstimateNodeIds(estimateNodes);
 
   return {
     workspace,
@@ -2125,66 +2197,38 @@ export const listMainSidebarFavoriteProjects = cache(async function listMainSide
 });
 
 async function listMainSidebarFavoriteProjectsRpcPath(): Promise<MainSidebarFavoriteProject[] | null> {
-  if (process.env.MAIN_SIDEBAR_FAVORITES_RPC_DISABLED === "1") return null;
-  if (await isDevAdminDatabaseBypassActiveForRequest()) return null;
-
-  const { workspace } = await ensureDefaultWorkspace();
-  const supabase = await createSupabaseServerClient();
-  const result = await traced("sidebar.rpc.main_sidebar_favorite_projects", () =>
-    supabase.rpc("main_sidebar_favorite_projects", {
-      target_workspace_id: workspace.id,
-      project_limit: MAIN_SIDEBAR_FAVORITE_PROJECT_LIMIT,
-      sheet_limit: MAIN_SIDEBAR_FAVORITE_SHEET_LIMIT,
-    }) as unknown as Promise<MainSidebarFavoriteProjectsRpcResult>,
-  );
-
-  if (result.error) {
-    if (isWorkspaceHomebaseSummaryRolloutError(result.error)) {
-      const code = isRecord(result.error) && typeof result.error.code === "string" ? result.error.code : "unknown";
-      const message = isRecord(result.error) && typeof result.error.message === "string" ? result.error.message : "unknown";
-      const details = isRecord(result.error) && typeof result.error.details === "string" ? result.error.details : null;
-      console.warn(`[main_sidebar_favorite_projects] RPC unavailable (code=${code}, message=${message}, details=${details}); using app path`);
-      return null;
-    }
-    throw result.error;
-  }
-
-  try {
-    return parseMainSidebarFavoriteProjectsPayload(result.data).map(toMainSidebarFavoriteProject);
-  } catch (error) {
-    if (!isMainSidebarFavoriteProjectsContractError(error)) throw error;
-    console.warn(`[main_sidebar_favorite_projects] RPC returned an incompatible payload (${error.message}); using app path`);
-    return null;
-  }
+  return null;
 }
 
 async function listMainSidebarFavoriteProjectsAppPath(): Promise<MainSidebarFavoriteProject[]> {
   const { workspace, profile } = await ensureDefaultWorkspace();
-  const supabase = await createSupabaseServerClient();
+  const database = await requireWorkspaceRepositoryD1Database();
 
-  const [projectFavoritesResult, estimateFavoriteProjectCandidatesResult] = await Promise.all([
-    supabase
-      .from("project_favorites")
-      .select("project_id, created_at")
-      .eq("workspace_id", workspace.id)
-      .eq("user_id", profile.id)
-      .order("created_at", { ascending: false })
-      .limit(MAIN_SIDEBAR_FAVORITE_PROJECT_LIMIT),
-    supabase
-      .from("estimate_favorites")
-      .select("project_id, created_at")
-      .eq("workspace_id", workspace.id)
-      .eq("user_id", profile.id)
-      .order("created_at", { ascending: false })
-      .limit(MAIN_SIDEBAR_FAVORITE_FALLBACK_ESTIMATE_SCAN_LIMIT),
+  const [favoriteProjectRows, estimateFavoriteProjectCandidateRows] = await Promise.all([
+    all<WorkshopHomebaseFavoriteProjectRef>(
+      database,
+      `SELECT project_id, created_at
+       FROM project_favorites
+       WHERE workspace_id = ?
+         AND user_id = ?
+       ORDER BY created_at DESC
+       LIMIT ?`,
+      [workspace.id, profile.id, MAIN_SIDEBAR_FAVORITE_PROJECT_LIMIT],
+    ),
+    all<{ project_id: string; created_at: string }>(
+      database,
+      `SELECT project_id, created_at
+       FROM estimate_favorites
+       WHERE workspace_id = ?
+         AND user_id = ?
+       ORDER BY created_at DESC
+       LIMIT ?`,
+      [workspace.id, profile.id, MAIN_SIDEBAR_FAVORITE_FALLBACK_ESTIMATE_SCAN_LIMIT],
+    ),
   ]);
 
-  if (projectFavoritesResult.error) throw projectFavoritesResult.error;
-  if (estimateFavoriteProjectCandidatesResult.error) throw estimateFavoriteProjectCandidatesResult.error;
-
-  const favoriteProjectRows = projectFavoritesResult.data ?? [];
   const latestEstimateFavoriteCreatedAtByProjectId = new Map<string, string>();
-  for (const favorite of estimateFavoriteProjectCandidatesResult.data ?? []) {
+  for (const favorite of estimateFavoriteProjectCandidateRows) {
     if (!latestEstimateFavoriteCreatedAtByProjectId.has(favorite.project_id)) {
       latestEstimateFavoriteCreatedAtByProjectId.set(favorite.project_id, favorite.created_at);
     }
@@ -2192,8 +2236,8 @@ async function listMainSidebarFavoriteProjectsAppPath(): Promise<MainSidebarFavo
 
   const projectFavoriteCandidateCreatedAtById = new Map(favoriteProjectRows.map((favorite) => [favorite.project_id, favorite.created_at]));
   const favoriteProjectIds = favoriteProjectRows.map((favorite) => favorite.project_id);
-  const favoriteEstimateProjectIds = Array.from(latestEstimateFavoriteCreatedAtByProjectId.keys());
-  const sidebarProjectIds = Array.from(new Set([...favoriteProjectIds, ...favoriteEstimateProjectIds]))
+  const favoriteEstimateProjectIds = [...latestEstimateFavoriteCreatedAtByProjectId.keys()];
+  const sidebarProjectIds = [...new Set([...favoriteProjectIds, ...favoriteEstimateProjectIds])]
     .map((projectId) => {
       const favoriteCreatedAtCandidates = [
         projectFavoriteCandidateCreatedAtById.get(projectId),
@@ -2216,48 +2260,48 @@ async function listMainSidebarFavoriteProjectsAppPath(): Promise<MainSidebarFavo
     .map((candidate) => candidate.projectId);
   if (sidebarProjectIds.length === 0) return [];
 
-  const [projectsResult, selectedProjectFavoritesResult, sheetFavoriteResults] = await Promise.all([
-    supabase
-      .from("projects")
-      .select("id, name, project_code")
-      .in("id", sidebarProjectIds),
-    supabase
-      .from("project_favorites")
-      .select("project_id, created_at")
-      .eq("workspace_id", workspace.id)
-      .eq("user_id", profile.id)
-      .in("project_id", sidebarProjectIds),
-    Promise.all(sidebarProjectIds.map((projectId) =>
-      supabase
-        .from("estimate_favorites")
-        .select("estimate_id, project_id, created_at")
-        .eq("workspace_id", workspace.id)
-        .eq("user_id", profile.id)
-        .eq("project_id", projectId)
-        .order("created_at", { ascending: false })
-        .limit(MAIN_SIDEBAR_FAVORITE_SHEET_LIMIT),
-    )),
+  const [projects, selectedProjectFavorites, favoriteEstimateRows] = await Promise.all([
+    all<Pick<Tables<"projects">, "id" | "name" | "project_code">>(
+      database,
+      `SELECT id, name, project_code
+       FROM projects
+       WHERE id IN (${placeholders(sidebarProjectIds)})`,
+      sidebarProjectIds,
+    ),
+    all<WorkshopHomebaseFavoriteProjectRef>(
+      database,
+      `SELECT project_id, created_at
+       FROM project_favorites
+       WHERE workspace_id = ?
+         AND user_id = ?
+         AND project_id IN (${placeholders(sidebarProjectIds)})`,
+      [workspace.id, profile.id, ...sidebarProjectIds],
+    ),
+    all<WorkshopHomebaseFavoriteEstimateRef>(
+      database,
+      `SELECT estimate_id, project_id, created_at
+       FROM estimate_favorites
+       WHERE workspace_id = ?
+         AND user_id = ?
+         AND project_id IN (${placeholders(sidebarProjectIds)})
+       ORDER BY project_id ASC, created_at DESC`,
+      [workspace.id, profile.id, ...sidebarProjectIds],
+    ),
   ]);
 
-  if (projectsResult.error) throw projectsResult.error;
-  if (selectedProjectFavoritesResult.error) throw selectedProjectFavoritesResult.error;
-  for (const result of sheetFavoriteResults) {
-    if (result.error) throw result.error;
-  }
-
-  const favoriteEstimateRows = sheetFavoriteResults.flatMap((result) => result.data ?? []);
   const favoriteEstimateIds = favoriteEstimateRows.map((favorite) => favorite.estimate_id);
-  const estimatesResult = favoriteEstimateIds.length > 0
-    ? await supabase
-        .from("estimates")
-        .select("id, project_id, name, sheet_code")
-        .in("id", favoriteEstimateIds)
-    : { data: [], error: null };
-
-  if (estimatesResult.error) throw estimatesResult.error;
-  const estimateById = new Map((estimatesResult.data ?? []).map((estimate) => [estimate.id, estimate]));
+  const estimates = favoriteEstimateIds.length > 0
+    ? await all<Pick<Tables<"estimates">, "id" | "project_id" | "name" | "sheet_code">>(
+        database,
+        `SELECT id, project_id, name, sheet_code
+         FROM estimates
+         WHERE id IN (${placeholders(favoriteEstimateIds)})`,
+        favoriteEstimateIds,
+      )
+    : [];
+  const estimateById = new Map(estimates.map((estimate) => [estimate.id, estimate]));
   const projectFavoriteCreatedAtById = new Map(
-    (selectedProjectFavoritesResult.data ?? []).map((favorite) => [favorite.project_id, favorite.created_at]),
+    selectedProjectFavorites.map((favorite) => [favorite.project_id, favorite.created_at]),
   );
 
   const sheetsByProjectId = favoriteEstimateRows.reduce((byProject, favorite) => {
@@ -2277,7 +2321,7 @@ async function listMainSidebarFavoriteProjectsAppPath(): Promise<MainSidebarFavo
     return byProject;
   }, new Map<string, MainSidebarFavoriteProject["favoriteEstimateSheets"]>());
 
-  const projectById = new Map((projectsResult.data ?? []).map((project) => [project.id, project]));
+  const projectById = new Map(projects.map((project) => [project.id, project]));
 
   return sidebarProjectIds
     .flatMap((projectId): MainSidebarFavoriteProject[] => {
@@ -2312,24 +2356,24 @@ export const getCurrentWorkspaceProject = cache(async function getCurrentWorkspa
     return { workspace: defaultWorkspace, project: null };
   }
 
-  const supabase = await traced("workspace-project.supabase-client", () => createSupabaseServerClient());
-
-  const { data: project, error } = await traced("workspace-project.project-lookup", async () =>
-    supabase
-      .from("projects")
-      .select("*, workspaces(*)")
-      .eq("id", projectId)
-      .maybeSingle(),
+  const database = await traced("workspace-project.d1-client", () => requireWorkspaceRepositoryD1Database());
+  const project = await traced("workspace-project.project-lookup", () =>
+    first<ProjectRow>(
+      database,
+      `SELECT id, workspace_id, created_by, name, client_name, location, project_code, currency_code, metadata, created_at, updated_at
+       FROM projects
+       WHERE id = ?
+       LIMIT 1`,
+      [projectId],
+    ),
   );
-
-  if (error) throw error;
-  const resolvedProject = project as ProjectWithWorkspace | null;
-  if (!resolvedProject) {
+  if (!project) {
     const { workspace: defaultWorkspace } = await traced("workspace-project.ensure-default-workspace", () => ensureDefaultWorkspace());
     return { workspace: defaultWorkspace, project: null };
   }
 
-  const { workspaces: projectWorkspace, ...projectRow } = resolvedProject;
+  const projectRow = normalizeProjectRow(project);
+  const projectWorkspace = await readWorkspaceById(database, projectRow.workspace_id);
   if (projectWorkspace) return { workspace: projectWorkspace, project: projectRow };
 
   const { workspace: defaultWorkspace } = await traced("workspace-project.ensure-default-workspace", () => ensureDefaultWorkspace());
@@ -2342,8 +2386,8 @@ export const getCurrentWorkspaceProject = cache(async function getCurrentWorkspa
 // fetches into one round-trip per request, the same pattern as
 // `getCurrentWorkspaceProject`.
 const getCachedProjectMembers = cache(async function getCachedProjectMembers(projectId: string) {
-  const supabase = await createSupabaseServerClient();
-  return readOptionalProjectMembers(supabase, projectId);
+  const database = await requireWorkspaceRepositoryD1Database();
+  return readOptionalProjectMembers(database, projectId);
 });
 
 export async function getProjectCollaborationSummary(projectId: string): Promise<ProjectCollaborationSummary | null> {
@@ -2356,33 +2400,34 @@ export async function getProjectCollaborationSummary(projectId: string): Promise
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) return null;
 
-  const supabase = await createSupabaseServerClient();
+  const database = await requireWorkspaceRepositoryD1Database();
 
   // T2.3 / F-P1: workspace_members and estimates are independent of each other —
   // run them in a single parallel wave instead of two serial round-trips.
-  const [workspaceMembersResult, estimatesResult] = await Promise.all([
-    supabase
-      .from("workspace_members")
-      .select("workspace_id, user_id, role")
-      .eq("workspace_id", project.workspace_id),
-    supabase
-      .from("estimates")
-      .select("id, project_id, name, sheet_code")
-      .eq("project_id", project.id)
-      .order("sheet_code", { ascending: true }),
+  const [workspaceMembers, estimates] = await Promise.all([
+    all<Pick<Tables<"workspace_members">, "workspace_id" | "user_id" | "role">>(
+      database,
+      `SELECT workspace_id, user_id, role
+       FROM workspace_members
+       WHERE workspace_id = ?`,
+      [project.workspace_id],
+    ),
+    all<Pick<Tables<"estimates">, "id" | "project_id" | "name" | "sheet_code">>(
+      database,
+      `SELECT id, project_id, name, sheet_code
+       FROM estimates
+       WHERE project_id = ?
+       ORDER BY sheet_code ASC`,
+      [project.id],
+    ),
   ]);
-
-  if (workspaceMembersResult.error) throw workspaceMembersResult.error;
-  if (estimatesResult.error) throw estimatesResult.error;
-  const workspaceMembers = workspaceMembersResult.data;
-  const estimates = estimatesResult.data;
 
   const estimateIds = (estimates ?? []).map((estimate) => estimate.id);
   const [projectMembers, sheetMembers, sheetSettings, pendingInvitationRows] = await Promise.all([
     getCachedProjectMembers(project.id),
-    readOptionalEstimateSheetMembers(supabase, estimateIds),
-    readOptionalEstimateSheetAccessSettings(supabase, estimateIds),
-    readOptionalCollaborationInvitations(supabase, project.id),
+    readOptionalEstimateSheetMembers(database, estimateIds),
+    readOptionalEstimateSheetAccessSettings(database, estimateIds),
+    readOptionalCollaborationInvitations(database, project.id),
   ]);
 
   const collaboratorRoles = new Map<
@@ -2425,8 +2470,8 @@ export async function getProjectCollaborationSummary(projectId: string): Promise
     });
   }
 
-  const collaboratorIds = Array.from(collaboratorRoles.keys());
-  const profiles = await readCollaborationProfiles(supabase, collaboratorIds);
+  const collaboratorIds = [...collaboratorRoles.keys()];
+  const profiles = await readCollaborationProfiles(database, collaboratorIds);
   const collaborators: ProjectCollaboratorSummary[] = collaboratorIds.map((userId) => {
     const role = collaboratorRoles.get(userId);
     const collaboratorProfile = profiles.get(userId);
@@ -2529,23 +2574,24 @@ export const getProjectPublicationSummary = cache(async function getProjectPubli
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) return null;
 
-  const supabase = await createSupabaseServerClient();
+  const database = await requireWorkspaceRepositoryD1Database();
 
-  const [workspaceMembershipResult, projectMembers, publication] = await Promise.all([
-    supabase
-      .from("workspace_members")
-      .select("role")
-      .eq("workspace_id", project.workspace_id)
-      .eq("user_id", profile.id)
-      .maybeSingle(),
+  const [workspaceMembership, projectMembers, publication] = await Promise.all([
+    first<WorkspaceMembershipRoleRow>(
+      database,
+      `SELECT role
+       FROM workspace_members
+       WHERE workspace_id = ?
+         AND user_id = ?
+       LIMIT 1`,
+      [project.workspace_id, profile.id],
+    ),
     getCachedProjectMembers(project.id),
-    readOptionalProjectPublication(supabase, project.id),
+    readOptionalProjectPublication(database, project.id),
   ]);
 
-  if (workspaceMembershipResult.error) throw workspaceMembershipResult.error;
-
   const workspaceRole =
-    workspaceMembershipResult.data?.role ?? (project.workspace_id === workspace.id ? "owner" : undefined);
+    workspaceMembership?.role ?? (project.workspace_id === workspace.id ? "owner" : undefined);
   const projectRole = projectMembers.find((member) => member.user_id === profile.id)?.role;
   const currentUserRole = readHighestCollaborationRole(
     workspaceRole ? mapWorkspaceRoleToCollaborationRole(workspaceRole) : undefined,
@@ -2557,10 +2603,10 @@ export const getProjectPublicationSummary = cache(async function getProjectPubli
   const clientLinkPath = publicationStatus === "published" ? readPublicationClientLinkPath(publication) : null;
   const [latestEstimateUpdatedAt, latestRecipientOpen, latestCommentAt, latestResponseAt] = publication
     ? await Promise.all([
-        readLatestEstimateUpdatedAt(supabase, project.id, publication.selected_estimate_ids ?? []),
-        canManagePublication ? readLatestSharedLinkRecipientOpen(supabase, publication.id) : Promise.resolve(null),
-        canManagePublication ? readLatestSharedLinkCommentAt(supabase, publication.id) : Promise.resolve(null),
-        canManagePublication ? readLatestSharedLinkResponseAt(supabase, publication.id) : Promise.resolve(null),
+        readLatestEstimateUpdatedAt(database, project.id, publication.selected_estimate_ids ?? []),
+        canManagePublication ? readLatestSharedLinkRecipientOpen(database, publication.id) : Promise.resolve(null),
+        canManagePublication ? readLatestSharedLinkCommentAt(database, publication.id) : Promise.resolve(null),
+        canManagePublication ? readLatestSharedLinkResponseAt(database, publication.id) : Promise.resolve(null),
       ])
     : [null, null, null, null];
   // MOD-MET / AC-MOD-07: surface the freshest manager-relevant moment so the
@@ -2614,17 +2660,20 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
     };
   }
 
-  const supabase = await createSupabaseServerClient();
-  const estimatesPromise = traced("listProjectEstimates.estimates", async () =>
-    supabase
-      .from("estimates")
-      .select(ESTIMATE_LIST_COLUMNS)
-      .eq("project_id", projectId)
-      .order("updated_at", { ascending: false }),
+  const database = await requireWorkspaceRepositoryD1Database();
+  const estimatesPromise = traced("listProjectEstimates.estimates", () =>
+    all<EstimateRecordWithLegacy>(
+      database,
+      `SELECT ${ESTIMATE_LIST_COLUMNS}
+       FROM estimates
+       WHERE project_id = ?
+       ORDER BY updated_at DESC`,
+      [projectId],
+    ),
   );
   const [
     { workspace, project },
-    { data: estimates, error },
+    estimates,
   ] = await Promise.all([projectContextPromise, estimatesPromise]);
 
   if (!project) {
@@ -2636,9 +2685,7 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
     };
   }
 
-  if (error) throw error;
-
-  const normalizedEstimates = (estimates ?? []).map((estimate) => normalizeEstimateRecord(estimate as EstimateRecordWithLegacy));
+  const normalizedEstimates = estimates.map((estimate) => normalizeEstimateRow(estimate));
   const estimateIds = normalizedEstimates.map((estimate) => estimate.id);
   if (estimateIds.length === 0) {
     return {
@@ -2649,32 +2696,52 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
     };
   }
 
-  // F8 / P2-1 (Path A): one aggregate RPC for node/row counts + total cost
-  // (replaces the all-rows JS fold — flat in row count), plus a narrow nodes
-  // query kept only for the depth-first/area-first firstNodeId oracle.
-  const [summariesResult, nodesResult] = await Promise.all([
-    traced("listProjectEstimates.summaries", async () =>
-      supabase.rpc("project_estimate_list_summaries", { target_project_id: project.id }),
+  const [summaryRows, nodeRows] = await Promise.all([
+    traced("listProjectEstimates.summaries", () =>
+      all<{
+        estimate_id: string;
+        node_count: number | string | null;
+        row_count: number | string | null;
+        total_cost: number | string | null;
+      }>(
+        database,
+        `SELECT
+           estimate.id AS estimate_id,
+           (SELECT COUNT(*) FROM estimate_nodes node WHERE node.estimate_id = estimate.id) AS node_count,
+           (SELECT COUNT(*) FROM estimate_row_items row_item WHERE row_item.estimate_id = estimate.id) AS row_count,
+           (
+             SELECT COALESCE(SUM(
+               (COALESCE(row_item.quantity, 0) * COALESCE(row_item.unit_cost, 0))
+               + COALESCE(row_item.misc_cost, 0)
+               + ((COALESCE(row_item.quantity, 0) * COALESCE(row_item.unit_cost, 0)) * COALESCE(row_item.adjustment_percentage, 0) / 100.0)
+             ), 0)
+             FROM estimate_row_items row_item
+             WHERE row_item.estimate_id = estimate.id
+           ) AS total_cost
+         FROM estimates estimate
+         WHERE estimate.project_id = ?`,
+        [project.id],
+      ),
     ),
-    traced("listProjectEstimates.firstNodes", async () =>
-      supabase
-        .from("estimate_nodes")
-        .select("id, estimate_id, kind, parent_id, sort_order")
-        .in("estimate_id", estimateIds)
-        .order("sort_order", { ascending: true }),
+    traced("listProjectEstimates.firstNodes", () =>
+      all<WorkshopEstimateNodeRecord>(
+        database,
+        `SELECT id, estimate_id, kind, parent_id, sort_order
+         FROM estimate_nodes
+         WHERE estimate_id IN (${placeholders(estimateIds)})
+         ORDER BY sort_order ASC`,
+        estimateIds,
+      ),
     ),
   ]);
 
-  if (summariesResult.error) throw summariesResult.error;
-  if (nodesResult.error) throw nodesResult.error;
-
-  const firstNodeByEstimateId = selectFirstEstimateNodeIds(nodesResult.data ?? []);
+  const firstNodeByEstimateId = selectFirstEstimateNodeIds(nodeRows);
   const nodeCountByEstimateId = new Map<string, number>();
   const rowCountByEstimateId = new Map<string, number>();
   const totalCostByEstimateId = new Map<string, number>();
-  for (const summary of summariesResult.data ?? []) {
-    nodeCountByEstimateId.set(summary.estimate_id, summary.node_count ?? 0);
-    rowCountByEstimateId.set(summary.estimate_id, summary.row_count ?? 0);
+  for (const summary of summaryRows) {
+    nodeCountByEstimateId.set(summary.estimate_id, Number(summary.node_count ?? 0));
+    rowCountByEstimateId.set(summary.estimate_id, Number(summary.row_count ?? 0));
     totalCostByEstimateId.set(summary.estimate_id, Number(summary.total_cost ?? 0));
   }
 
@@ -2693,35 +2760,16 @@ export async function listProjectEstimateSheets(projectId: string, options: { li
   return listProjectEstimateSheetsForProject(project.id, options);
 }
 
-type EstimateNodeKind = Tables<"estimate_nodes">["kind"];
-type EstimateNodeRow = Tables<"estimate_nodes">;
-type EstimateRowItemRow = Tables<"estimate_row_items">;
-type WorkspaceSupabaseClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
-type QueryError = { message: string; code?: string | null };
-type QueryResult<T> = { data: T | null; error: QueryError | null };
 type EstimateTabQueryRow = {
   id: string;
   estimate_id: string;
   name: string;
   sort_order: number;
-  is_default: boolean;
+  is_default: boolean | number;
   archived_at: string | null;
   metadata: Json;
   created_at: string;
   updated_at: string;
-};
-
-type EstimateTabsQuery = {
-  eq: (column: string, value: string | boolean) => EstimateTabsQuery;
-  is: (column: string, value: null) => EstimateTabsQuery;
-  order: (column: string, options?: { ascending?: boolean }) => Promise<QueryResult<EstimateTabQueryRow[]>>;
-  maybeSingle: () => Promise<QueryResult<EstimateTabQueryRow>>;
-};
-
-type EstimateTabsReadClient = {
-  from: (table: "estimate_tabs") => {
-    select: (columns: string) => EstimateTabsQuery;
-  };
 };
 
 // Estimate-sheet tree loads fetch every node and row of the estimate, so the
@@ -2731,9 +2779,7 @@ type EstimateTabsReadClient = {
 // column here or the Pick types below fail the build.
 const ESTIMATE_TREE_NODE_COLUMNS = "id, kind, name, parent_id, sort_order";
 const ESTIMATE_TREE_ROW_ITEM_COLUMNS =
-  "id, node_id, sort_order, material, description, supplier, supplier_id, unit, unit_cost, quantity, quantity_base, quantity_contingency_amount, contingency_percentage, adjustment_percentage, misc_cost, row_revision, category_node_id, discipline, designation, source_library_item_id, link_state, source_snapshot, metadata, created_at";
-const ESTIMATE_TREE_NODE_WITH_ROW_ITEMS_COLUMNS =
-  `${ESTIMATE_TREE_NODE_COLUMNS}, estimate_row_items!estimate_row_items_node_id_fkey(${ESTIMATE_TREE_ROW_ITEM_COLUMNS})` as const;
+  "id, node_id, sort_order, material, description, supplier, supplier_id, unit, unit_cost, quantity, quantity_base, quantity_contingency_amount, contingency_percentage, adjustment_percentage, misc_cost, row_revision, category_node_id, discipline, designation, source_library_item_id, link_state, source_snapshot_json AS source_snapshot, metadata_json AS metadata, created_at";
 
 export type EstimateTreeNodeQueryRow = Pick<EstimateNodeRow, "id" | "kind" | "name" | "parent_id" | "sort_order">;
 export type EstimateTreeRowItemQueryRow = Pick<
@@ -2763,10 +2809,6 @@ export type EstimateTreeRowItemQueryRow = Pick<
   | "metadata"
   | "created_at"
 >;
-type EstimateTreeNodeWithRowItemsQueryRow = EstimateTreeNodeQueryRow & {
-  estimate_row_items?: EstimateTreeRowItemQueryRow[] | null;
-};
-
 type LiveEstimateTreeResult = {
   workspace: Tables<"workspaces">;
   project: Tables<"projects"> | null;
@@ -2819,37 +2861,154 @@ type EstimateTabRouteContext = LiveEstimateTabTreeResult & {
   // the same authoritative helper before enabling edit controls.
   canEditEstimate?: boolean;
 };
-type EstimateNodeRouteContextRpcPayload = {
-  workspace: Tables<"workspaces">;
-  project: Tables<"projects">;
-  estimate: EstimateRecordWithLegacy;
-  sheetAdjustment: EstimateSheetAdjustment;
-  selectedNodeId: string;
-  selectedTabId: string;
-  tabs: EstimateTabSummary[];
-  nodes: EstimateTreeNodeQueryRow[];
-  rows: EstimateTreeRowItemQueryRow[];
-  loadLimitState?: LiveEstimateTreeLoadLimitState;
-};
-type EstimateRouteProjectContext = {
-  workspace: Tables<"workspaces">;
-  project: Tables<"projects">;
-};
-type EstimateRecordWithProject = EstimateRecordWithLegacy & {
-  projects?: ProjectWithWorkspace | null;
-  estimate_tabs?: EstimateTabQueryRow[] | null;
-};
-type EstimateNodeRouteRow = {
-  id: string;
-  estimate_id: string;
-  estimate_tab_id?: string | null;
-  estimates: EstimateRecordWithProject;
-};
 type ResolvedProjectEstimateInput = {
   workspace: Tables<"workspaces">;
   project: Tables<"projects">;
   estimate: EstimateRecordWithLegacy;
 };
+
+async function readEstimateForProject(database: D1DatabaseLike, estimateId: string, projectId: string): Promise<EstimateRow | null> {
+  const estimate = await first<EstimateRecordWithLegacy>(
+    database,
+    `SELECT id, project_id, name, sheet_code, notes, project_budget, currency_code, metadata, created_by, created_at, updated_at
+     FROM estimates
+     WHERE id = ?
+       AND project_id = ?
+     LIMIT 1`,
+    [estimateId, projectId],
+  );
+  return estimate ? normalizeEstimateRow(estimate) : null;
+}
+
+function normalizeEstimateTabRow(row: EstimateTabQueryRow & { metadata?: Json | string | null }): EstimateTabQueryRow {
+  return {
+    ...row,
+    is_default: readD1Boolean(row.is_default),
+    metadata: readD1Json(row.metadata),
+  };
+}
+
+function normalizeEstimateTreeNodeRow(row: EstimateTreeNodeQueryRow): EstimateTreeNodeQueryRow {
+  return {
+    ...row,
+    kind: normalizeEstimateTreeNodeKind(row.kind) ?? row.kind,
+  };
+}
+
+function normalizeEstimateTreeRowItem(row: EstimateTreeRowItemQueryRow): EstimateTreeRowItemQueryRow {
+  return {
+    ...row,
+    node_id: row.node_id ?? "",
+    supplier: row.supplier ?? "",
+    supplier_id: row.supplier_id ?? null,
+    unit: row.unit ?? "",
+    unit_cost: Number(row.unit_cost ?? 0),
+    quantity: Number(row.quantity ?? 0),
+    quantity_base: row.quantity_base === null || row.quantity_base === undefined ? null : Number(row.quantity_base),
+    quantity_contingency_amount: row.quantity_contingency_amount === null || row.quantity_contingency_amount === undefined
+      ? null
+      : Number(row.quantity_contingency_amount),
+    contingency_percentage: Number(row.contingency_percentage ?? 0),
+    adjustment_percentage: Number(row.adjustment_percentage ?? 0),
+    misc_cost: Number(row.misc_cost ?? 0),
+    row_revision: Number(row.row_revision ?? 0),
+    category_node_id: row.category_node_id ?? null,
+    discipline: row.discipline ?? "",
+    designation: row.designation ?? "",
+    source_library_item_id: row.source_library_item_id ?? null,
+    link_state: row.link_state ?? "unlinked",
+    source_snapshot: readD1Json(row.source_snapshot),
+    metadata: readD1Json(row.metadata),
+  };
+}
+
+async function readEstimateNodes(
+  database: D1DatabaseLike,
+  estimateId: string,
+  options: { tabId?: string | null; nodeIds?: string[]; parentIds?: string[]; limit?: number | null } = {},
+): Promise<EstimateTreeNodeQueryRow[]> {
+  const filters: string[] = ["estimate_id = ?"];
+  const values: unknown[] = [estimateId];
+  if (options.tabId) {
+    filters.push("estimate_tab_id = ?");
+    values.push(options.tabId);
+  }
+  if (options.nodeIds?.length) {
+    filters.push(`id IN (${placeholders(options.nodeIds)})`);
+    values.push(...options.nodeIds);
+  }
+  if (options.parentIds?.length) {
+    filters.push(`parent_id IN (${placeholders(options.parentIds)})`);
+    values.push(...options.parentIds);
+  }
+  const limitSql = options.limit ? " LIMIT ?" : "";
+  if (options.limit) values.push(options.limit);
+  const rows = await all<EstimateTreeNodeQueryRow>(
+    database,
+    `SELECT ${ESTIMATE_TREE_NODE_COLUMNS}
+     FROM estimate_nodes
+     WHERE ${filters.join(" AND ")}
+     ORDER BY sort_order ASC, id ASC${limitSql}`,
+    values,
+  );
+  return rows.map(normalizeEstimateTreeNodeRow);
+}
+
+async function readEstimateRows(
+  database: D1DatabaseLike,
+  estimateId: string,
+  options: { nodeIds?: string[]; limit?: number | null } = {},
+): Promise<EstimateTreeRowItemQueryRow[]> {
+  const filters: string[] = ["estimate_id = ?", "node_id IS NOT NULL"];
+  const values: unknown[] = [estimateId];
+  if (options.nodeIds?.length) {
+    filters.push(`node_id IN (${placeholders(options.nodeIds)})`);
+    values.push(...options.nodeIds);
+  }
+  const limitSql = options.limit ? " LIMIT ?" : "";
+  if (options.limit) values.push(options.limit);
+  const rows = await all<EstimateTreeRowItemQueryRow>(
+    database,
+    `SELECT ${ESTIMATE_TREE_ROW_ITEM_COLUMNS}
+     FROM estimate_row_items
+     WHERE ${filters.join(" AND ")}
+     ORDER BY sort_order ASC, id ASC${limitSql}`,
+    values,
+  );
+  return rows.map(normalizeEstimateTreeRowItem);
+}
+
+async function readEstimateTabsForEstimateRows(
+  database: D1DatabaseLike,
+  estimateId: string,
+  options: { maxTabCount?: number } = {},
+): Promise<EstimateTabQueryRow[]> {
+  const maxTabCount = normalizeTreeLoadLimit(options.maxTabCount);
+  const rows = await all<EstimateTabQueryRow>(
+    database,
+    `SELECT id, estimate_id, name, sort_order, is_default, archived_at, '{}' AS metadata, created_at, updated_at
+     FROM estimate_tabs
+     WHERE estimate_id = ?
+       AND archived_at IS NULL
+     ORDER BY sort_order ASC, id ASC${maxTabCount ? " LIMIT ?" : ""}`,
+    maxTabCount ? [estimateId, maxTabCount + 1] : [estimateId],
+  );
+  return rows.map(normalizeEstimateTabRow);
+}
+
+async function readEstimateTab(database: D1DatabaseLike, estimateId: string, tabId: string): Promise<EstimateTabQueryRow | null> {
+  const row = await first<EstimateTabQueryRow>(
+    database,
+    `SELECT id, estimate_id, name, sort_order, is_default, archived_at, '{}' AS metadata, created_at, updated_at
+     FROM estimate_tabs
+     WHERE id = ?
+       AND estimate_id = ?
+       AND archived_at IS NULL
+     LIMIT 1`,
+    [tabId, estimateId],
+  );
+  return row ? normalizeEstimateTabRow(row) : null;
+}
 
 function getDisplayNodeKind(kind: EstimateNodeKind): EstimateTreeNode["kind"] | null {
   return normalizeEstimateTreeNodeKind(kind);
@@ -2860,29 +3019,9 @@ function formatPeso(value: number) {
 }
 
 function readJsonRecord(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  return value as Record<string, unknown>;
-}
-
-function splitProjectWorkspaceJoin(projectWithWorkspace: ProjectWithWorkspace | null | undefined): EstimateRouteProjectContext | null {
-  if (!projectWithWorkspace?.workspaces) return null;
-  const { workspaces: workspace, ...project } = projectWithWorkspace;
-  return { workspace, project };
-}
-
-function stripEstimateProjectJoin(estimate: EstimateRecordWithProject): EstimateRecordWithLegacy {
-  const estimateRow = { ...estimate };
-  delete estimateRow.projects;
-  delete estimateRow.estimate_tabs;
-  return estimateRow;
-}
-
-function readEmbeddedEstimateTabs(estimate: EstimateRecordWithProject): EstimateTabSummary[] | null {
-  if (!Array.isArray(estimate.estimate_tabs)) return null;
-  return [...estimate.estimate_tabs]
-    .filter((tab) => tab.archived_at === null)
-    .sort((left, right) => left.sort_order - right.sort_order)
-    .map(toEstimateTabSummary);
+  const parsed = typeof value === "string" ? readD1Json(value) : value;
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+  return parsed as Record<string, unknown>;
 }
 
 function createDefaultEstimateSheetAdjustment(estimateId: string): EstimateSheetAdjustment {
@@ -2907,36 +3046,24 @@ function toEstimateSheetAdjustment(row: Tables<"estimate_sheet_adjustments">): E
   };
 }
 
-function readRouteEstimateSheetAdjustment(value: unknown, estimateId: string): EstimateSheetAdjustment {
-  if (value === null || value === undefined) return createDefaultEstimateSheetAdjustment(estimateId);
-  const row = readRouteRpcObject(value, "sheetAdjustment", "estimate_node_route_context");
-  const mode = row.mode === "discount" ? "discount" : "contingency";
-  return {
-    estimateId: assertRpcString(row.estimate_id ?? row.estimateId ?? estimateId, "sheetAdjustment.estimate_id"),
-    mode,
-    percentage: assertRpcNumber(row.percentage, "sheetAdjustment.percentage"),
-    rowRevision: assertRpcNumber(row.row_revision ?? row.rowRevision ?? 0, "sheetAdjustment.row_revision"),
-    updatedAt: assertRpcOptionalString(row.updated_at ?? row.updatedAt, "sheetAdjustment.updated_at") ?? undefined,
-    updatedBy: assertRpcOptionalString(row.updated_by ?? row.updatedBy, "sheetAdjustment.updated_by"),
-  };
-}
-
 async function readOptionalEstimateSheetAdjustment(
-  supabase: WorkspaceSupabaseClient,
+  database: D1DatabaseLike,
   estimateId: string,
 ): Promise<EstimateSheetAdjustment> {
-  const { data, error } = await supabase
-    .from("estimate_sheet_adjustments")
-    .select("*")
-    .eq("estimate_id", estimateId)
-    .maybeSingle();
-
-  if (error) {
+  try {
+    const data = await first<Tables<"estimate_sheet_adjustments">>(
+      database,
+      `SELECT estimate_id, mode, percentage, row_revision, updated_at, updated_by
+       FROM estimate_sheet_adjustments
+       WHERE estimate_id = ?
+       LIMIT 1`,
+      [estimateId],
+    );
+    return data ? toEstimateSheetAdjustment(data) : createDefaultEstimateSheetAdjustment(estimateId);
+  } catch (error) {
     if (isMissingOptionalCollaborationTable(error)) return createDefaultEstimateSheetAdjustment(estimateId);
     throw error;
   }
-
-  return data ? toEstimateSheetAdjustment(data) : createDefaultEstimateSheetAdjustment(estimateId);
 }
 
 function toUiRow(row: EstimateTreeRowItemQueryRow): EstimateRowItem {
@@ -3022,128 +3149,13 @@ function limitTreeRows<T>(rows: T[], limit: number | null): { rows: T[]; didExce
   };
 }
 
-function asEstimateTabsReadClient(supabase: WorkspaceSupabaseClient) {
-  // Temporary compatibility boundary: estimate_tabs exists after the owner-authorized
-  // linked apply/type regeneration. Keep casts narrow and delete them after regen.
-  return supabase as unknown as EstimateTabsReadClient;
-}
-
 function toEstimateTabSummary(row: EstimateTabQueryRow): EstimateTabSummary {
   return {
     id: row.id,
     name: row.name,
     sortOrder: row.sort_order,
-    isDefault: row.is_default,
+    isDefault: readD1Boolean(row.is_default),
   };
-}
-
-function readRouteRpcObject(value: unknown, path: string, source: string): Record<string, unknown> {
-  if (!isRecord(value)) throw new Error(`${source} invalid shape: ${path} is not an object`);
-  return value;
-}
-
-function readRouteRpcArray<T>(
-  value: unknown,
-  path: string,
-  source: string,
-  guard: (item: Record<string, unknown>, itemPath: string) => T,
-): T[] {
-  if (!Array.isArray(value)) throw new Error(`${source} invalid shape: ${path} is not an array`);
-  return value.map((item, index) => guard(readRouteRpcObject(item, `${path}[${index}]`, source), `${path}[${index}]`));
-}
-
-function assertRouteEstimateTabRow(value: Record<string, unknown>, path: string): EstimateTabQueryRow {
-  return {
-    id: assertRpcString(value.id, `${path}.id`),
-    estimate_id: assertRpcString(value.estimate_id, `${path}.estimate_id`),
-    name: assertRpcString(value.name, `${path}.name`),
-    sort_order: assertRpcNumber(value.sort_order, `${path}.sort_order`),
-    is_default: assertRpcBoolean(value.is_default, `${path}.is_default`),
-    archived_at: assertRpcOptionalString(value.archived_at, `${path}.archived_at`),
-    metadata: assertRpcJson(value.metadata, `${path}.metadata`),
-    created_at: assertRpcString(value.created_at, `${path}.created_at`),
-    updated_at: assertRpcString(value.updated_at, `${path}.updated_at`),
-  };
-}
-
-function assertRouteEstimateTreeNodeRow(value: Record<string, unknown>, path: string): EstimateTreeNodeQueryRow {
-  return {
-    id: assertRpcString(value.id, `${path}.id`),
-    kind: assertEstimateNodeKind(value.kind, `${path}.kind`),
-    name: assertRpcString(value.name, `${path}.name`),
-    parent_id: assertRpcOptionalString(value.parent_id, `${path}.parent_id`),
-    sort_order: assertRpcNumber(value.sort_order, `${path}.sort_order`),
-  };
-}
-
-function assertRouteEstimateRowItemRow(value: Record<string, unknown>, path: string): EstimateTreeRowItemQueryRow {
-  return {
-    id: assertRpcString(value.id, `${path}.id`),
-    node_id: assertRpcString(value.node_id, `${path}.node_id`),
-    sort_order: assertRpcNumber(value.sort_order, `${path}.sort_order`),
-    material: assertRpcString(value.material, `${path}.material`),
-    description: assertRpcString(value.description, `${path}.description`),
-    supplier: assertRpcString(value.supplier, `${path}.supplier`),
-    supplier_id: assertRpcOptionalString(value.supplier_id, `${path}.supplier_id`),
-    unit: assertRpcString(value.unit, `${path}.unit`),
-    unit_cost: assertRpcNumber(value.unit_cost, `${path}.unit_cost`),
-    quantity: assertRpcNumber(value.quantity, `${path}.quantity`),
-    quantity_base: assertRpcOptionalNumber(value.quantity_base, `${path}.quantity_base`),
-    quantity_contingency_amount: assertRpcOptionalNumber(value.quantity_contingency_amount, `${path}.quantity_contingency_amount`),
-    contingency_percentage: assertRpcNumber(value.contingency_percentage, `${path}.contingency_percentage`),
-    adjustment_percentage: assertRpcNumber(value.adjustment_percentage ?? 0, `${path}.adjustment_percentage`),
-    misc_cost: assertRpcNumber(value.misc_cost, `${path}.misc_cost`),
-    row_revision: assertRpcNumber(value.row_revision, `${path}.row_revision`),
-    category_node_id: assertRpcOptionalString(value.category_node_id, `${path}.category_node_id`),
-    discipline: assertRpcString(value.discipline, `${path}.discipline`),
-    designation: assertRpcString(value.designation, `${path}.designation`),
-    source_library_item_id: assertRpcOptionalString(value.source_library_item_id, `${path}.source_library_item_id`),
-    link_state: assertRpcString(value.link_state, `${path}.link_state`) as EstimateTreeRowItemQueryRow["link_state"],
-    source_snapshot: (value.source_snapshot ?? null) as Json | null,
-    metadata: assertRpcJson(value.metadata, `${path}.metadata`),
-    created_at: assertRpcString(value.created_at, `${path}.created_at`),
-  };
-}
-
-function readRouteLoadLimitState(value: unknown): LiveEstimateTreeLoadLimitState | undefined {
-  if (value === null || value === undefined) return undefined;
-  const payload = readRouteRpcObject(value, "loadLimitState", "estimate_node_route_context");
-  return {
-    maxNodeCount: assertRpcOptionalNumber(payload.maxNodeCount, "loadLimitState.maxNodeCount"),
-    maxRowItemCount: assertRpcOptionalNumber(payload.maxRowItemCount, "loadLimitState.maxRowItemCount"),
-    fetchedNodeCount: assertRpcNumber(payload.fetchedNodeCount, "loadLimitState.fetchedNodeCount"),
-    fetchedRowItemCount: assertRpcNumber(payload.fetchedRowItemCount, "loadLimitState.fetchedRowItemCount"),
-    didExceedNodeLimit: assertRpcBoolean(payload.didExceedNodeLimit, "loadLimitState.didExceedNodeLimit"),
-    didExceedRowItemLimit: assertRpcBoolean(payload.didExceedRowItemLimit, "loadLimitState.didExceedRowItemLimit"),
-  };
-}
-
-export function parseEstimateNodeRouteContextRpcPayload(value: unknown): EstimateNodeRouteContextRpcPayload | null {
-  const source = "estimate_node_route_context";
-  if (value === null || value === undefined) return null;
-  const payload = readRouteRpcObject(value, source, source);
-  const selectedTabId = assertRpcOptionalString(payload.selectedTabId, "selectedTabId");
-  if (!selectedTabId) return null;
-  const estimate = assertRouteEstimateRecord(readRouteRpcObject(payload.estimate, "estimate", source), "estimate");
-  return {
-    workspace: assertWorkspaceRecord(readRouteRpcObject(payload.workspace, "workspace", source), "workspace"),
-    project: assertProjectListRecord(readRouteRpcObject(payload.project, "project", source), "project"),
-    estimate,
-    sheetAdjustment: readRouteEstimateSheetAdjustment(payload.sheetAdjustment, estimate.id),
-    selectedNodeId: assertRpcString(payload.selectedNodeId, "selectedNodeId"),
-    selectedTabId,
-    tabs: readRouteRpcArray(payload.tabs, "tabs", source, assertRouteEstimateTabRow).map(toEstimateTabSummary),
-    nodes: readRouteRpcArray(payload.nodes, "nodes", source, assertRouteEstimateTreeNodeRow),
-    rows: readRouteRpcArray(payload.rows, "rows", source, assertRouteEstimateRowItemRow),
-    loadLimitState: readRouteLoadLimitState(payload.loadLimitState),
-  };
-}
-
-function isEstimateNodeRouteContextContractError(error: unknown): error is Error {
-  return error instanceof Error && (
-    error.message.startsWith("estimate_node_route_context invalid") ||
-    error.message.includes("RPC invalid shape")
-  );
 }
 
 /**
@@ -3159,8 +3171,12 @@ function syntheticMainTab(): EstimateTabSummary {
 }
 
 function isEstimateTabsSchemaMissing(error: unknown) {
-  const candidate = error as { code?: string | null; message?: string | null } | null | undefined;
-  return isMissingRelationError(candidate, "estimate_tabs") || isMissingColumnError(candidate, "estimate_tab_id");
+  const message = error instanceof Error ? error.message.toLowerCase() : isRecord(error) && typeof error.message === "string" ? error.message.toLowerCase() : "";
+  return (
+    isMissingD1TableError(error, "estimate_tabs") ||
+    message.includes("no such column: estimate_tab_id") ||
+    message.includes("no such column: archived_at")
+  );
 }
 
 export function buildEstimateTree(nodes: EstimateTreeNodeQueryRow[], rows: EstimateTreeRowItemQueryRow[]): EstimateTreeNode[] {
@@ -3230,33 +3246,19 @@ async function getProjectEstimateTreeByEstimateLegacy(
   const { workspace, project } = await getCurrentWorkspaceProject(projectId);
   if (!project) return { workspace, project, estimate: null, selectedNodeId: null, tree: [] };
 
-  const supabase = await createSupabaseServerClient();
-  const { data: estimate, error: estimateError } = await supabase
-    .from("estimates")
-    .select("*")
-    .eq("id", estimateId)
-    .eq("project_id", project.id)
-    .maybeSingle();
-
-  if (estimateError) throw estimateError;
+  const database = await requireWorkspaceRepositoryD1Database();
+  const estimate = await readEstimateForProject(database, estimateId, project.id);
   if (!estimate) return { workspace, project, estimate: null, selectedNodeId: null, tree: [] };
 
   const maxNodeCount = normalizeTreeLoadLimit(options.maxNodeCount);
   const maxRowItemCount = normalizeTreeLoadLimit(options.maxRowItemCount);
-  const nodesQuery = supabase.from("estimate_nodes").select(ESTIMATE_TREE_NODE_COLUMNS).eq("estimate_id", estimate.id).order("sort_order", { ascending: true });
-  const rowsQuery = supabase.from("estimate_row_items").select(ESTIMATE_TREE_ROW_ITEM_COLUMNS).eq("estimate_id", estimate.id).order("sort_order", { ascending: true });
 
-  const [nodesResult, rowsResult, sheetAdjustment] = await Promise.all([
-    maxNodeCount ? nodesQuery.limit(maxNodeCount + 1) : nodesQuery,
-    maxRowItemCount ? rowsQuery.limit(maxRowItemCount + 1) : rowsQuery,
-    readOptionalEstimateSheetAdjustment(supabase, estimate.id),
+  const [rawNodes, rawRows, sheetAdjustment] = await Promise.all([
+    readEstimateNodes(database, estimate.id, { limit: maxNodeCount ? maxNodeCount + 1 : null }),
+    readEstimateRows(database, estimate.id, { limit: maxRowItemCount ? maxRowItemCount + 1 : null }),
+    readOptionalEstimateSheetAdjustment(database, estimate.id),
   ]);
 
-  if (nodesResult.error) throw nodesResult.error;
-  if (rowsResult.error) throw rowsResult.error;
-
-  const rawNodes = nodesResult.data ?? [];
-  const rawRows = rowsResult.data ?? [];
   const limitedNodes = limitTreeRows(rawNodes, maxNodeCount);
   const limitedRows = limitTreeRows(rawRows, maxRowItemCount);
   const loadLimitState = maxNodeCount || maxRowItemCount
@@ -3270,9 +3272,8 @@ async function getProjectEstimateTreeByEstimateLegacy(
     }
     : undefined;
   const nodes = limitedNodes.rows;
-  const normalizedEstimate = normalizeEstimateRecord(estimate as EstimateRecordWithLegacy);
   const tree = buildEstimateTree(nodes, limitedRows.rows);
-  return { workspace, project, estimate: normalizedEstimate, selectedNodeId: tree[0]?.id ?? null, tree, sheetAdjustment, loadLimitState };
+  return { workspace, project, estimate, selectedNodeId: tree[0]?.id ?? null, tree, sheetAdjustment, loadLimitState };
 }
 
 /**
@@ -3298,19 +3299,12 @@ export async function getEstimateTabs(
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) return [];
 
-  const supabase = await createSupabaseServerClient();
-  const { data: estimate, error: estimateError } = await supabase
-    .from("estimates")
-    .select("id, project_id")
-    .eq("id", estimateId)
-    .eq("project_id", project.id)
-    .maybeSingle();
-
-  if (estimateError) throw estimateError;
+  const database = await requireWorkspaceRepositoryD1Database();
+  const estimate = await readEstimateForProject(database, estimateId, project.id);
   if (!estimate) return [];
 
   try {
-    return await readEstimateTabsForEstimate(supabase, estimate.id, options);
+    return await readEstimateTabsForEstimate(database, estimate.id, options);
   } catch (error) {
     // Strictly gated on the missing-schema signal so a real data error (schema
     // present, zero tabs) is never masked as legacy (U1-2/U1-3). The synthetic
@@ -3323,23 +3317,12 @@ export async function getEstimateTabs(
 }
 
 async function readEstimateTabsForEstimate(
-  supabase: WorkspaceSupabaseClient,
+  database: D1DatabaseLike,
   estimateId: string,
   options: { maxTabCount?: number } = {},
 ): Promise<EstimateTabSummary[]> {
-  const maxTabCount = normalizeTreeLoadLimit(options.maxTabCount);
-  const tabsQuery = asEstimateTabsReadClient(supabase)
-    .from("estimate_tabs")
-    .select("id, estimate_id, name, sort_order, is_default, archived_at, metadata, created_at, updated_at")
-    .eq("estimate_id", estimateId)
-    .is("archived_at", null)
-    .order("sort_order", { ascending: true });
-  const { data, error } = maxTabCount
-    ? await (tabsQuery as unknown as { limit: (count: number) => Promise<{ data: EstimateTabQueryRow[] | null; error: unknown }> }).limit(maxTabCount + 1)
-    : await tabsQuery;
-
-  if (error) throw error;
-  return (data ?? []).map(toEstimateTabSummary);
+  const rows = await readEstimateTabsForEstimateRows(database, estimateId, options);
+  return rows.map(toEstimateTabSummary);
 }
 
 /**
@@ -3353,24 +3336,30 @@ async function readEstimateTabsForEstimate(
 export async function resolveEstimateEditCapability(estimateId: string): Promise<boolean> {
   if (await isDevAdminDatabaseBypassActiveForRequest()) return true;
 
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.rpc("can_edit_estimate", { target_estimate_id: estimateId });
-  if (error) return false;
-  return data === true;
+  try {
+    const [database, context] = await Promise.all([
+      requireWorkspaceRepositoryD1Database(),
+      requireCurrentUserContext(),
+    ]);
+    return canEditEstimateInD1(database, estimateId, context);
+  } catch {
+    return false;
+  }
 }
 
 export async function getDefaultEstimateTab(estimateId: string): Promise<EstimateTabSummary | null> {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await asEstimateTabsReadClient(supabase)
-    .from("estimate_tabs")
-    .select("id, estimate_id, name, sort_order, is_default, archived_at, metadata, created_at, updated_at")
-    .eq("estimate_id", estimateId)
-    .eq("is_default", true)
-    .is("archived_at", null)
-    .maybeSingle();
-
-  if (error) throw error;
-  return data ? toEstimateTabSummary(data) : null;
+  const database = await requireWorkspaceRepositoryD1Database();
+  const data = await first<EstimateTabQueryRow>(
+    database,
+    `SELECT id, estimate_id, name, sort_order, is_default, archived_at, '{}' AS metadata, created_at, updated_at
+     FROM estimate_tabs
+     WHERE estimate_id = ?
+       AND is_default = 1
+       AND archived_at IS NULL
+     LIMIT 1`,
+    [estimateId],
+  );
+  return data ? toEstimateTabSummary(normalizeEstimateTabRow(data)) : null;
 }
 
 export async function getEstimateTabTree(
@@ -3388,30 +3377,16 @@ export async function getEstimateTabTree(
   const { workspace, project } = await getCurrentWorkspaceProject(projectId);
   if (!project) return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
 
-  const supabase = await createSupabaseServerClient();
-  const { data: estimate, error: estimateError } = await supabase
-    .from("estimates")
-    .select("*")
-    .eq("id", estimateId)
-    .eq("project_id", project.id)
-    .maybeSingle();
-
-  if (estimateError) throw estimateError;
+  const database = await requireWorkspaceRepositoryD1Database();
+  const estimate = await readEstimateForProject(database, estimateId, project.id);
   if (!estimate) return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
 
   return getEstimateTabTreeForResolvedEstimate(
-    supabase,
-    { workspace, project, estimate: estimate as EstimateRecordWithLegacy },
+    database,
+    { workspace, project, estimate },
     tabId,
     options,
   );
-}
-
-function scopeEstimateNodeQuery<TQuery extends { eq: (column: string, value: string) => TQuery }>(
-  query: TQuery,
-  tabId: string | null,
-) {
-  return tabId ? query.eq("estimate_tab_id", tabId) : query;
 }
 
 export async function getEstimateNodeSubtree(
@@ -3428,33 +3403,18 @@ export async function getEstimateNodeSubtree(
   const { workspace, project } = await getCurrentWorkspaceProject(projectId);
   if (!project) return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [], payload: null };
 
-  const supabase = await createSupabaseServerClient();
-  const { data: estimate, error: estimateError } = await supabase
-    .from("estimates")
-    .select("*")
-    .eq("id", estimateId)
-    .eq("project_id", project.id)
-    .maybeSingle();
-
-  if (estimateError) throw estimateError;
+  const database = await requireWorkspaceRepositoryD1Database();
+  const estimate = await readEstimateForProject(database, estimateId, project.id);
   if (!estimate) return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [], payload: null };
 
-  const normalizedEstimate = normalizeEstimateRecord(estimate as EstimateRecordWithLegacy);
   const requestedTabId = input.tabId ?? null;
   const tabScopedId = requestedTabId && requestedTabId !== LEGACY_MAIN_TAB_ID ? requestedTabId : null;
   let tab: EstimateTabSummary | null = null;
 
   if (tabScopedId) {
     try {
-      const { data: tabRow, error: tabError } = await asEstimateTabsReadClient(supabase)
-        .from("estimate_tabs")
-        .select("id, estimate_id, name, sort_order, is_default, archived_at, metadata, created_at, updated_at")
-        .eq("id", tabScopedId)
-        .eq("estimate_id", estimate.id)
-        .is("archived_at", null)
-        .maybeSingle();
-      if (tabError) throw tabError;
-      if (!tabRow) return { workspace, project, estimate: normalizedEstimate, tab: null, selectedNodeId: null, tree: [], payload: null };
+      const tabRow = await readEstimateTab(database, estimate.id, tabScopedId);
+      if (!tabRow) return { workspace, project, estimate, tab: null, selectedNodeId: null, tree: [], payload: null };
       tab = toEstimateTabSummary(tabRow);
     } catch (error) {
       if (options.allowLegacyFallback && isEstimateTabsSchemaMissing(error)) {
@@ -3467,17 +3427,8 @@ export async function getEstimateNodeSubtree(
     tab = syntheticMainTab();
   }
 
-  const rootQuery = scopeEstimateNodeQuery(
-    supabase
-      .from("estimate_nodes")
-      .select(ESTIMATE_TREE_NODE_COLUMNS)
-      .eq("estimate_id", estimate.id)
-      .eq("id", nodeId),
-    tabScopedId,
-  );
-  const { data: rootNode, error: rootError } = await rootQuery.maybeSingle();
-  if (rootError) throw rootError;
-  if (!rootNode) return { workspace, project, estimate: normalizedEstimate, tab, selectedNodeId: null, tree: [], payload: null };
+  const rootNode = (await readEstimateNodes(database, estimate.id, { tabId: tabScopedId, nodeIds: [nodeId], limit: 1 }))[0] ?? null;
+  if (!rootNode) return { workspace, project, estimate, tab, selectedNodeId: null, tree: [], payload: null };
 
   const maxNodeCount = normalizeTreeLoadLimit(options.maxNodeCount);
   const maxRowItemCount = normalizeTreeLoadLimit(options.maxRowItemCount);
@@ -3488,21 +3439,15 @@ export async function getEstimateNodeSubtree(
     const remainingNodeBudget = maxNodeCount ? (maxNodeCount + 1) - nodeRows.length : null;
     if (remainingNodeBudget !== null && remainingNodeBudget <= 0) break;
 
-    let childrenQuery = scopeEstimateNodeQuery(
-      supabase
-        .from("estimate_nodes")
-        .select(ESTIMATE_TREE_NODE_COLUMNS)
-        .eq("estimate_id", estimate.id)
-        .in("parent_id", frontierIds)
-        .order("sort_order", { ascending: true }),
-      tabScopedId,
+    const childRows = await readEstimateNodes(
+      database,
+      estimate.id,
+      {
+        tabId: tabScopedId,
+        parentIds: frontierIds,
+        limit: remainingNodeBudget,
+      },
     );
-    if (remainingNodeBudget !== null) childrenQuery = childrenQuery.limit(remainingNodeBudget);
-
-    const { data: children, error: childrenError } = await childrenQuery;
-    if (childrenError) throw childrenError;
-
-    const childRows = (children ?? []) as EstimateTreeNodeQueryRow[];
     if (childRows.length === 0) break;
     nodeRows.push(...childRows);
     frontierIds = childRows.map((node) => node.id);
@@ -3513,15 +3458,10 @@ export async function getEstimateNodeSubtree(
   let rawRows: EstimateTreeRowItemQueryRow[] = [];
 
   if (nodeIds.length > 0) {
-    const rowsQuery = supabase
-      .from("estimate_row_items")
-      .select(ESTIMATE_TREE_ROW_ITEM_COLUMNS)
-      .eq("estimate_id", estimate.id)
-      .in("node_id", nodeIds)
-      .order("sort_order", { ascending: true });
-    const rowsResult = maxRowItemCount ? await rowsQuery.limit(maxRowItemCount + 1) : await rowsQuery;
-    if (rowsResult.error) throw rowsResult.error;
-    rawRows = rowsResult.data ?? [];
+    rawRows = await readEstimateRows(database, estimate.id, {
+      nodeIds,
+      limit: maxRowItemCount ? maxRowItemCount + 1 : null,
+    });
   }
 
   const limitedRows = limitTreeRows(rawRows, maxRowItemCount);
@@ -3545,7 +3485,7 @@ export async function getEstimateNodeSubtree(
   return {
     workspace,
     project,
-    estimate: normalizedEstimate,
+    estimate,
     tab,
     selectedNodeId: subtree[0]?.id ?? null,
     tree: subtree,
@@ -3554,7 +3494,7 @@ export async function getEstimateNodeSubtree(
 }
 
 async function getEstimateTabTreeForResolvedEstimate(
-  supabase: WorkspaceSupabaseClient,
+  database: D1DatabaseLike,
   resolved: ResolvedProjectEstimateInput,
   tabId: string,
   options: LiveEstimateTreeLoadOptions = {},
@@ -3562,18 +3502,10 @@ async function getEstimateTabTreeForResolvedEstimate(
   const { workspace, project, estimate } = resolved;
 
   try {
-    const { data: tab, error: tabError } = await asEstimateTabsReadClient(supabase)
-      .from("estimate_tabs")
-      .select("id, estimate_id, name, sort_order, is_default, archived_at, metadata, created_at, updated_at")
-      .eq("id", tabId)
-      .eq("estimate_id", estimate.id)
-      .is("archived_at", null)
-      .maybeSingle();
-
-    if (tabError) throw tabError;
+    const tab = await readEstimateTab(database, estimate.id, tabId);
     if (!tab) return { workspace, project, estimate: normalizeEstimateRecord(estimate as EstimateRecordWithLegacy), tab: null, selectedNodeId: null, tree: [] };
 
-    return getEstimateTabTreeForResolvedEstimateTab(supabase, resolved, toEstimateTabSummary(tab), options);
+    return getEstimateTabTreeForResolvedEstimateTab(database, resolved, toEstimateTabSummary(tab), options);
   } catch (error) {
     // Read-only fallback only on the missing-schema signal (the tab lookup or
     // the estimate_tab_id node predicate). Real errors and non-opt-in callers
@@ -3586,23 +3518,23 @@ async function getEstimateTabTreeForResolvedEstimate(
 }
 
 async function getEstimateTabTreeForResolvedEstimateTab(
-  supabase: WorkspaceSupabaseClient,
+  database: D1DatabaseLike,
   resolved: ResolvedProjectEstimateInput,
   tab: EstimateTabSummary,
   options: LiveEstimateTreeLoadOptions = {},
 ): Promise<LiveEstimateTabTreeResult> {
-  const result = await getEstimateTabTreeForResolvedTabId(supabase, resolved, tab.id, options);
+  const result = await getEstimateTabTreeForResolvedTabId(database, resolved, tab.id, options);
   return { ...result, tab };
 }
 
 async function getEstimateTabTreeForResolvedTabId(
-  supabase: WorkspaceSupabaseClient,
+  database: D1DatabaseLike,
   resolved: ResolvedProjectEstimateInput,
   tabId: string,
   options: LiveEstimateTreeLoadOptions = {},
 ): Promise<Omit<LiveEstimateTabTreeResult, "tab">> {
   const { workspace, project, estimate } = resolved;
-  const payload = await readEstimateTabTreePayloadForResolvedTabId(supabase, estimate, tabId, options);
+  const payload = await readEstimateTabTreePayloadForResolvedTabId(database, estimate, tabId, options);
   return {
     workspace,
     project,
@@ -3611,37 +3543,31 @@ async function getEstimateTabTreeForResolvedTabId(
 }
 
 async function readEstimateTabTreePayloadForResolvedTabId(
-  supabase: WorkspaceSupabaseClient,
+  database: D1DatabaseLike,
   estimate: EstimateRecordWithLegacy,
   tabId: string,
   options: LiveEstimateTreeLoadOptions = {},
 ): Promise<EstimateTabTreePayload> {
   const maxNodeCount = normalizeTreeLoadLimit(options.maxNodeCount);
   const maxRowItemCount = normalizeTreeLoadLimit(options.maxRowItemCount);
-  // Route-page hot path: use PostgREST resource embedding to read tab nodes and
-  // their row items in one request. Row order remains scoped to the embedded
-  // relation; buildEstimateTree only needs stable per-node row ordering.
-  const nodesQuery = supabase
-    .from("estimate_nodes")
-    .select(ESTIMATE_TREE_NODE_WITH_ROW_ITEMS_COLUMNS)
-    .eq("estimate_id", estimate.id)
-    .eq("estimate_row_items.estimate_id", estimate.id);
-  const tabScopedNodesQuery = (nodesQuery as unknown as { eq: (column: string, value: string) => typeof nodesQuery })
-    .eq("estimate_tab_id", tabId)
-    .order("sort_order", { ascending: true })
-    .order("sort_order", { referencedTable: "estimate_row_items", ascending: true });
-  const [nodesResult, sheetAdjustment] = await Promise.all([
-    traced("estimate-tab-tree.nodes-with-rows", async () =>
-      maxNodeCount ? tabScopedNodesQuery.limit(maxNodeCount + 1) : tabScopedNodesQuery,
+  const [rawNodes, sheetAdjustment] = await Promise.all([
+    traced("estimate-tab-tree.nodes", () =>
+      readEstimateNodes(database, estimate.id, {
+        tabId,
+        limit: maxNodeCount ? maxNodeCount + 1 : null,
+      }),
     ),
-    readOptionalEstimateSheetAdjustment(supabase, estimate.id),
+    readOptionalEstimateSheetAdjustment(database, estimate.id),
   ]);
 
-  if (nodesResult.error) throw nodesResult.error;
-
-  const rawNodes = (nodesResult.data ?? []) as EstimateTreeNodeWithRowItemsQueryRow[];
   const limitedNodes = limitTreeRows(rawNodes, maxNodeCount);
-  const rawRows = limitedNodes.rows.flatMap((node) => node.estimate_row_items ?? []);
+  const nodeIds = limitedNodes.rows.map((node) => node.id);
+  const rawRows = nodeIds.length > 0
+    ? await readEstimateRows(database, estimate.id, {
+        nodeIds,
+        limit: maxRowItemCount ? maxRowItemCount + 1 : null,
+      })
+    : [];
 
   const limitedRows = limitTreeRows(rawRows, maxRowItemCount);
   const loadLimitState = maxNodeCount || maxRowItemCount
@@ -3658,7 +3584,7 @@ async function readEstimateTabTreePayloadForResolvedTabId(
     buildEstimateTree(limitedNodes.rows, limitedRows.rows),
   );
   return {
-    estimate: normalizeEstimateRecord(stripEstimateProjectJoin(estimate)),
+    estimate: normalizeEstimateRecord(estimate),
     selectedNodeId: tree[0]?.id ?? null,
     tree,
     sheetAdjustment,
@@ -3666,200 +3592,20 @@ async function readEstimateTabTreePayloadForResolvedTabId(
   };
 }
 
-const estimateRouteContextProcessCache = new Map<string, EstimateRouteContextProcessCacheEntry>();
-
-function readEstimateRouteContextProcessCacheTtlMs() {
-  const raw = process.env.ESTIMATE_NODE_ROUTE_CONTEXT_PROCESS_CACHE_TTL_MS;
-  if (raw === undefined) return ESTIMATE_ROUTE_CONTEXT_PROCESS_CACHE_TTL_MS;
-  const parsed = Number.parseInt(raw, 10);
-  if (!Number.isFinite(parsed) || parsed <= 0) return 0;
-  return Math.min(parsed, 60_000);
-}
-
-function readSupabaseAuthStorageKey() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!supabaseUrl) return null;
-  try {
-    return `sb-${new URL(supabaseUrl).hostname.split(".")[0]}-auth-token`;
-  } catch {
-    return null;
-  }
-}
-
-async function readEstimateRouteContextProcessCacheKey(
-  projectId: string,
-  routeSegment: string,
-  maxNodeCount: number | null,
-  maxRowItemCount: number | null,
-) {
-  const cookieStore = await cookies();
-  const authStorageKey = readSupabaseAuthStorageKey();
-  const authCookieValues = new Map<string, string>();
-  if (authStorageKey) {
-    for (const cookie of cookieStore.getAll()) {
-      if (cookie.name === authStorageKey || cookie.name.startsWith(`${authStorageKey}.`)) {
-        authCookieValues.set(cookie.name, cookie.value);
-      }
-    }
-  }
-
-  const authMaterial = authCookieValues.size > 0
-    ? Array.from(authCookieValues.entries())
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([name, value]) => `${name}=${value}`)
-        .join(";")
-    : getDevAuthBypassCredentialFromRequestParts(await headers(), cookieStore);
-
-  if (!authMaterial) return null;
-
-  const sessionDigest = createHash("sha256").update(authMaterial).digest("base64url");
-  return [
-    sessionDigest,
-    projectId,
-    routeSegment,
-    maxNodeCount ?? "",
-    maxRowItemCount ?? "",
-  ].join(":");
-}
-
-function cloneEstimateRouteContext(value: EstimateTabRouteContext): EstimateTabRouteContext {
-  return structuredClone(value);
-}
-
-async function readCachedEstimateRouteContext(cacheKey: string | null) {
-  if (!cacheKey) return null;
-  const entry = estimateRouteContextProcessCache.get(cacheKey);
-  if (!entry) return null;
-  if (entry.expiresAt <= Date.now()) {
-    estimateRouteContextProcessCache.delete(cacheKey);
-    return null;
-  }
-
-  const value = await traced("estimate-route-context.cache-hit", () => entry.value);
-  return value ? cloneEstimateRouteContext(value) : null;
-}
-
-function writeEstimateRouteContextProcessCache(
-  cacheKey: string | null,
-  projectId: string,
-  value: Promise<EstimateTabRouteContext | null>,
-) {
-  const ttlMs = readEstimateRouteContextProcessCacheTtlMs();
-  if (!cacheKey || ttlMs <= 0) return;
-  if (estimateRouteContextProcessCache.size >= ESTIMATE_ROUTE_CONTEXT_PROCESS_CACHE_MAX_ENTRIES) {
-    const oldestKey = estimateRouteContextProcessCache.keys().next().value;
-    if (oldestKey) estimateRouteContextProcessCache.delete(oldestKey);
-  }
-  estimateRouteContextProcessCache.set(cacheKey, {
-    projectId,
-    expiresAt: Date.now() + ttlMs,
-    value,
-  });
-}
-
 export function clearEstimateRouteContextProcessCache(projectId?: string) {
-  if (!projectId) {
-    estimateRouteContextProcessCache.clear();
-    return;
-  }
-  for (const [cacheKey, entry] of estimateRouteContextProcessCache.entries()) {
-    if (entry.projectId === projectId) estimateRouteContextProcessCache.delete(cacheKey);
-  }
+  void projectId;
 }
 
-async function loadEstimateNodeRouteContextRpcPath(
-  supabase: WorkspaceSupabaseClient,
+async function readEstimateNodeRouteContextD1FastPath(
+  _database: D1DatabaseLike,
   projectId: string,
   routeSegment: string,
   options: LiveEstimateTreeLoadOptions,
 ): Promise<EstimateTabRouteContext | null> {
-  if (process.env.ESTIMATE_NODE_ROUTE_CONTEXT_RPC_DISABLED === "1") return null;
-
-  const maxNodeCount = normalizeTreeLoadLimit(options.maxNodeCount);
-  const maxRowItemCount = normalizeTreeLoadLimit(options.maxRowItemCount);
-  const rpcResult = await traced("estimate-route-context.rpc", () =>
-    (supabase as unknown as {
-      rpc: (
-        functionName: "estimate_node_route_context",
-        args: {
-          target_project_id: string;
-          target_node_id: string;
-          max_node_count: number | null;
-          max_row_item_count: number | null;
-        },
-      ) => Promise<EstimateNodeRouteContextRpcResult>;
-    }).rpc("estimate_node_route_context", {
-      target_project_id: projectId,
-      target_node_id: routeSegment,
-      max_node_count: maxNodeCount,
-      max_row_item_count: maxRowItemCount,
-    }),
-  );
-
-  if (rpcResult.error) {
-    if (isWorkspaceHomebaseSummaryRolloutError(rpcResult.error)) {
-      const code = isRecord(rpcResult.error) && typeof rpcResult.error.code === "string" ? rpcResult.error.code : "unknown";
-      const message = isRecord(rpcResult.error) && typeof rpcResult.error.message === "string" ? rpcResult.error.message : "unknown";
-      console.warn(`[estimate_node_route_context] RPC unavailable (code=${code}, message=${message}); using app path`);
-      return null;
-    }
-    throw rpcResult.error;
-  }
-
-  try {
-    const payload = parseEstimateNodeRouteContextRpcPayload(rpcResult.data);
-    if (!payload) return null;
-
-    const tree = await traced("estimate-route-context.rpc-build", async () =>
-      buildEstimateTree(payload.nodes, payload.rows),
-    );
-    const selectedTab = payload.tabs.find((candidate) => candidate.id === payload.selectedTabId) ?? null;
-    return {
-      workspace: payload.workspace,
-      project: payload.project,
-      estimate: normalizeEstimateRecord(payload.estimate),
-      sheetAdjustment: payload.sheetAdjustment,
-      tab: selectedTab,
-      selectedNodeId: selectedTab ? payload.selectedNodeId : null,
-      tree: selectedTab ? tree : [],
-      tabs: payload.tabs,
-      loadLimitState: payload.loadLimitState,
-    };
-  } catch (error) {
-    if (!isEstimateNodeRouteContextContractError(error)) throw error;
-    console.warn(`[estimate_node_route_context] RPC returned an incompatible payload (${error.message}); using app path`);
-    return null;
-  }
-}
-
-async function readEstimateNodeRouteContextRpcPath(
-  supabase: WorkspaceSupabaseClient,
-  projectId: string,
-  routeSegment: string,
-  options: LiveEstimateTreeLoadOptions,
-): Promise<EstimateTabRouteContext | null> {
-  if (process.env.ESTIMATE_NODE_ROUTE_CONTEXT_RPC_DISABLED === "1") return null;
-
-  const maxNodeCount = normalizeTreeLoadLimit(options.maxNodeCount);
-  const maxRowItemCount = normalizeTreeLoadLimit(options.maxRowItemCount);
-  const cacheKey = await readEstimateRouteContextProcessCacheKey(projectId, routeSegment, maxNodeCount, maxRowItemCount);
-  const cached = await readCachedEstimateRouteContext(cacheKey);
-  if (cached) return cached;
-
-  const loadPromise = loadEstimateNodeRouteContextRpcPath(supabase, projectId, routeSegment, options);
-  writeEstimateRouteContextProcessCache(cacheKey, projectId, loadPromise);
-
-  try {
-    const routeContext = await loadPromise;
-    if (!routeContext) {
-      if (cacheKey) estimateRouteContextProcessCache.delete(cacheKey);
-      return null;
-    }
-    return cloneEstimateRouteContext(routeContext);
-  } catch (error) {
-    if (cacheKey) estimateRouteContextProcessCache.delete(cacheKey);
-    throw error;
-  }
+  void projectId;
+  void routeSegment;
+  void options;
+  return null;
 }
 
 export type LiveEstimateTabTree = { tab: EstimateTabSummary; tree: EstimateTreeNode[] };
@@ -3871,8 +3617,6 @@ export type LiveEstimateTreesForTabsResult = {
   tabs: LiveEstimateTabTree[];
   loadLimitState?: LiveEstimateTreeLoadLimitState;
 };
-
-const ESTIMATE_TREE_NODE_COLUMNS_WITH_TAB = `${ESTIMATE_TREE_NODE_COLUMNS}, estimate_tab_id`;
 
 // F-14 (P2-T7): pure grouping of a single batched nodes+rows fetch into per-tab trees, exported
 // so the partition logic is unit-tested without a DB. Nodes carry estimate_tab_id; rows are
@@ -3920,45 +3664,37 @@ export async function getEstimateTreesForTabs(
   const { workspace, project } = await getCurrentWorkspaceProject(projectId);
   if (!project) return { workspace, project: null, estimate: null, tabs: [] };
 
-  const supabase = await createSupabaseServerClient();
-  const { data: estimate, error: estimateError } = await supabase
-    .from("estimates")
-    .select("*")
-    .eq("id", estimateId)
-    .eq("project_id", project.id)
-    .maybeSingle();
-  if (estimateError) throw estimateError;
+  const database = await requireWorkspaceRepositoryD1Database();
+  const estimate = await readEstimateForProject(database, estimateId, project.id);
   if (!estimate) return { workspace, project, estimate: null, tabs: [] };
 
   const tabIds = tabs.map((tab) => tab.id);
   const maxNodeCount = normalizeTreeLoadLimit(options.maxNodeCount);
   const maxRowItemCount = normalizeTreeLoadLimit(options.maxRowItemCount);
 
-  const nodesQuery = supabase
-    .from("estimate_nodes")
-    .select(ESTIMATE_TREE_NODE_COLUMNS_WITH_TAB)
-    .eq("estimate_id", estimate.id)
-    .in("estimate_tab_id", tabIds)
-    .order("sort_order", { ascending: true });
-  const [nodesResult, sheetAdjustment] = await Promise.all([
-    maxNodeCount ? nodesQuery.limit(maxNodeCount + 1) : nodesQuery,
-    readOptionalEstimateSheetAdjustment(supabase, estimate.id),
+  const [rawNodes, sheetAdjustment] = await Promise.all([
+    tabIds.length > 0
+      ? all<EstimateTreeNodeQueryRow & { estimate_tab_id: string | null }>(
+          database,
+          `SELECT ${ESTIMATE_TREE_NODE_COLUMNS}, estimate_tab_id
+           FROM estimate_nodes
+           WHERE estimate_id = ?
+             AND estimate_tab_id IN (${placeholders(tabIds)})
+           ORDER BY sort_order ASC, id ASC${maxNodeCount ? " LIMIT ?" : ""}`,
+          maxNodeCount ? [estimate.id, ...tabIds, maxNodeCount + 1] : [estimate.id, ...tabIds],
+        )
+      : Promise.resolve([]),
+    readOptionalEstimateSheetAdjustment(database, estimate.id),
   ]);
-  if (nodesResult.error) throw nodesResult.error;
-  const rawNodes = (nodesResult.data ?? []) as Array<EstimateTreeNodeQueryRow & { estimate_tab_id: string | null }>;
   const limitedNodes = limitTreeRows(rawNodes, maxNodeCount);
   const nodeIds = limitedNodes.rows.map((node) => node.id);
 
   let rawRows: EstimateTreeRowItemQueryRow[] = [];
   if (nodeIds.length > 0) {
-    const rowsQuery = supabase
-      .from("estimate_row_items")
-      .select(ESTIMATE_TREE_ROW_ITEM_COLUMNS)
-      .in("node_id", nodeIds)
-      .order("sort_order", { ascending: true });
-    const rowsResult = maxRowItemCount ? await rowsQuery.limit(maxRowItemCount + 1) : await rowsQuery;
-    if (rowsResult.error) throw rowsResult.error;
-    rawRows = rowsResult.data ?? [];
+    rawRows = await readEstimateRows(database, estimate.id, {
+      nodeIds,
+      limit: maxRowItemCount ? maxRowItemCount + 1 : null,
+    });
   }
   const limitedRows = limitTreeRows(rawRows, maxRowItemCount);
 
@@ -3976,7 +3712,7 @@ export async function getEstimateTreesForTabs(
   return {
     workspace,
     project,
-    estimate: normalizeEstimateRecord(estimate as EstimateRecordWithLegacy),
+    estimate,
     sheetAdjustment,
     tabs: groupEstimateTabTrees(tabs, limitedNodes.rows, limitedRows.rows),
     loadLimitState,
@@ -4012,103 +3748,65 @@ export async function resolveEstimateTabRouteContext(
   routeSegment: string,
   options: LiveEstimateTreeLoadOptions = {},
 ): Promise<EstimateTabRouteContext> {
-  if (!isUuid(projectId)) {
-    const { workspace, project } = await traced("estimate-route-context.project", () =>
-      getCurrentWorkspaceProject(projectId),
-    );
-    return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
-  }
-
-  const supabase = await traced("estimate-route-context.supabase-client", () => createSupabaseServerClient());
-  const rpcRouteContext = await readEstimateNodeRouteContextRpcPath(supabase, projectId, routeSegment, options);
-  if (rpcRouteContext) return rpcRouteContext;
-
-  const selectedNodeResultPromise = traced("estimate-route-context.selected-node", async () =>
-    supabase
-      .from("estimate_nodes")
-      .select("id, estimate_id, estimate_tab_id, estimates!inner(*, projects!inner(*, workspaces(*)), estimate_tabs(id, estimate_id, name, sort_order, is_default, archived_at, metadata, created_at, updated_at))")
-      .eq("id", routeSegment)
-      .eq("estimates.project_id", projectId)
-      .is("estimates.estimate_tabs.archived_at", null)
-      .order("sort_order", { referencedTable: "estimates.estimate_tabs", ascending: true })
-      .maybeSingle(),
+  const { workspace, project } = await traced("estimate-route-context.project", () =>
+    getCurrentWorkspaceProject(projectId),
   );
-  const selectedTabContextPromise = selectedNodeResultPromise.then(async ({ data: selectedNode, error: selectedNodeError }) => {
-    if (selectedNodeError) return { kind: "selected-node-error" as const, error: selectedNodeError };
+  if (!isUuid(projectId) || !project) return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
 
-    const routeNode = selectedNode as unknown as EstimateNodeRouteRow | null;
-    const selectedTabId = routeNode?.estimate_tab_id;
-    if (!selectedTabId) return { kind: "no-selected-tab" as const, routeNode };
-    const projectContext = splitProjectWorkspaceJoin(routeNode.estimates.projects);
-    const embeddedTabs = readEmbeddedEstimateTabs(routeNode.estimates);
-    const estimate = stripEstimateProjectJoin(routeNode.estimates);
+  const database = await traced("estimate-route-context.d1-client", () => requireWorkspaceRepositoryD1Database());
+  const fastRouteContext = await readEstimateNodeRouteContextD1FastPath(database, projectId, routeSegment, options);
+  if (fastRouteContext) return fastRouteContext;
 
-    // P13: the tab-present branch only needs the selected node's estimate/tab ids,
-    // so start this second wave while the project authorization lookup is still
-    // resolving. The final response below still returns only after project
-    // context confirms the request is allowed.
-    // P14: the selected-node query embeds project/workspace too, so the dominant
-    // node-route path avoids an additional project lookup round-trip.
-    const [treePayload, tabs] = await Promise.all([
-      traced("estimate-route-context.tab-tree", () =>
-        readEstimateTabTreePayloadForResolvedTabId(supabase, estimate, selectedTabId, options),
-      ),
-      embeddedTabs ?? traced("estimate-route-context.tabs-list", () => readEstimateTabsForEstimate(supabase, routeNode.estimate_id)),
-    ]);
+  const selectedNode = await traced("estimate-route-context.selected-node", () =>
+    first<{ id: string; estimate_id: string; estimate_tab_id: string | null }>(
+      database,
+      `SELECT node.id, node.estimate_id, node.estimate_tab_id
+       FROM estimate_nodes node
+       INNER JOIN estimates estimate ON estimate.id = node.estimate_id
+       WHERE node.id = ?
+         AND estimate.project_id = ?
+       LIMIT 1`,
+      [routeSegment, projectId],
+    ),
+  );
 
-    return { kind: "selected-tab" as const, routeNode, selectedTabId, treePayload, tabs, projectContext };
-  });
-  const selectedTabContext = await selectedTabContextPromise;
-
-  if (selectedTabContext.kind === "selected-node-error") {
-    if (isEstimateTabsSchemaMissing(selectedTabContext.error)) {
-      const legacyResult = await traced("estimate-route-context.legacy-node-fallback", () =>
-        getProjectEstimateTreeByNode(projectId, routeSegment),
-      );
-      return { ...legacyResult, tab: null };
-    }
-    throw selectedTabContext.error;
-  }
-
-  if (selectedTabContext.kind === "selected-tab") {
+  if (selectedNode?.estimate_tab_id) {
     // U21 / Routing Page Optimization P3-T3: resolve the tab tree and tab list in
     // parallel without a duplicate selected-tab lookup. The route node's
     // project-scoped join proves the estimate; the tab list remains the archived
     // / active-tab authority before we expose the tree to the page.
-    const { routeNode, selectedTabId, treePayload, tabs, projectContext } = selectedTabContext;
-    const { workspace, project } = projectContext ?? await traced("estimate-route-context.project", () =>
-      getCurrentWorkspaceProject(projectId),
-    );
-    if (!project) return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
+    const estimate = await readEstimateForProject(database, selectedNode.estimate_id, project.id);
+    if (!estimate) return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
+    const selectedTabId = selectedNode.estimate_tab_id;
+    const [treePayload, tabs] = await Promise.all([
+      traced("estimate-route-context.tab-tree", () =>
+        readEstimateTabTreePayloadForResolvedTabId(database, estimate, selectedTabId, options),
+      ),
+      traced("estimate-route-context.tabs-list", () => readEstimateTabsForEstimate(database, selectedNode.estimate_id)),
+    ]);
     const selectedTab = tabs.find((candidate) => candidate.id === selectedTabId) ?? null;
     return {
       workspace,
       project,
       ...treePayload,
       tab: selectedTab,
-      selectedNodeId: selectedTab ? routeNode.id : null,
+      selectedNodeId: selectedTab ? selectedNode.id : null,
       tree: selectedTab ? treePayload.tree : [],
       tabs,
     };
   }
 
-  const { workspace, project } = await traced("estimate-route-context.project", () =>
-    getCurrentWorkspaceProject(projectId),
-  );
-  if (!project) return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
+  if (selectedNode) {
+    const legacyResult = await traced("estimate-route-context.legacy-node-fallback", () =>
+      getProjectEstimateTreeByNode(projectId, routeSegment),
+    );
+    return { ...legacyResult, tab: null };
+  }
 
   try {
-    const { data: estimate, error: estimateError } = await traced("estimate-route-context.estimate-lookup", async () =>
-      supabase
-        .from("estimates")
-        .select("*")
-        .eq("id", routeSegment)
-        .eq("project_id", project.id)
-        .maybeSingle(),
+    const resolvedEstimate = await traced("estimate-route-context.estimate-lookup", () =>
+      readEstimateForProject(database, routeSegment, project.id),
     );
-
-    if (estimateError) throw estimateError;
-    const resolvedEstimate = estimate as EstimateRecordWithLegacy | null;
     if (!resolvedEstimate) {
       const fallbackResult = await traced("estimate-route-context.estimate-fallback", () =>
         getProjectEstimateTreeByEstimate(projectId, routeSegment, options),
@@ -4117,7 +3815,7 @@ export async function resolveEstimateTabRouteContext(
     }
 
     const tabs = await traced("estimate-route-context.estimate-tabs-list", () =>
-      readEstimateTabsForEstimate(supabase, resolvedEstimate.id),
+      readEstimateTabsForEstimate(database, resolvedEstimate.id),
     );
     const defaultTab = tabs.find((candidate) => candidate.isDefault) ?? null;
     if (defaultTab) {
@@ -4125,7 +3823,7 @@ export async function resolveEstimateTabRouteContext(
         "estimate-route-context.default-tab-tree",
         () =>
           getEstimateTabTreeForResolvedEstimateTab(
-            supabase,
+            database,
             { workspace, project, estimate: resolvedEstimate },
             defaultTab,
             options,
@@ -4147,28 +3845,27 @@ async function getProjectEstimateTreeByNodeLegacy(projectId: string, nodeId: str
   const { workspace, project } = await getCurrentWorkspaceProject(projectId);
   if (!project) return { workspace, project, estimate: null, selectedNodeId: null, tree: [] };
 
-  const supabase = await createSupabaseServerClient();
-  const { data: selectedNode, error: selectedNodeError } = await supabase
-    .from("estimate_nodes")
-    .select("*, estimates!inner(*)")
-    .eq("id", nodeId)
-    .eq("estimates.project_id", project.id)
-    .maybeSingle();
-
-  if (selectedNodeError) throw selectedNodeError;
+  const database = await requireWorkspaceRepositoryD1Database();
+  const selectedNode = await first<{ id: string; estimate_id: string }>(
+    database,
+    `SELECT node.id, node.estimate_id
+     FROM estimate_nodes node
+     INNER JOIN estimates estimate ON estimate.id = node.estimate_id
+     WHERE node.id = ?
+       AND estimate.project_id = ?
+     LIMIT 1`,
+    [nodeId, project.id],
+  );
   if (!selectedNode) return getProjectEstimateTreeByEstimateLegacy(projectId, nodeId);
 
-  const estimate = normalizeEstimateRecord(selectedNode.estimates as EstimateRecordWithLegacy);
-  const [nodesResult, rowsResult] = await Promise.all([
-    supabase.from("estimate_nodes").select(ESTIMATE_TREE_NODE_COLUMNS).eq("estimate_id", selectedNode.estimate_id).order("sort_order", { ascending: true }),
-    supabase.from("estimate_row_items").select(ESTIMATE_TREE_ROW_ITEM_COLUMNS).eq("estimate_id", selectedNode.estimate_id).order("sort_order", { ascending: true }),
+  const estimate = await readEstimateForProject(database, selectedNode.estimate_id, project.id);
+  if (!estimate) return { workspace, project, estimate: null, selectedNodeId: null, tree: [] };
+  const [nodes, rows] = await Promise.all([
+    readEstimateNodes(database, selectedNode.estimate_id),
+    readEstimateRows(database, selectedNode.estimate_id),
   ]);
 
-  if (nodesResult.error) throw nodesResult.error;
-  if (rowsResult.error) throw rowsResult.error;
-
-  const nodes = nodesResult.data ?? [];
-  const tree = buildEstimateTree(nodes, rowsResult.data ?? []);
+  const tree = buildEstimateTree(nodes, rows);
   const selectedNodeId = nodes.some((node) => node.id === nodeId) ? nodeId : tree[0]?.id ?? null;
 
   return { workspace, project, estimate, selectedNodeId, tree };
@@ -4178,40 +3875,35 @@ export async function getProjectEstimateTreeByNode(projectId: string, nodeId: st
   const { workspace, project } = await getCurrentWorkspaceProject(projectId);
   if (!project) return { workspace, project, estimate: null, selectedNodeId: null, tree: [] };
 
-  const supabase = await createSupabaseServerClient();
-  const { data: selectedNode, error: selectedNodeError } = await supabase
-    .from("estimate_nodes")
-    .select("id, estimate_id, estimate_tab_id, estimates!inner(*)")
-    .eq("id", nodeId)
-    .eq("estimates.project_id", project.id)
-    .maybeSingle();
-
-  if (selectedNodeError) {
-    if (isEstimateTabsSchemaMissing(selectedNodeError)) return getProjectEstimateTreeByNodeLegacy(projectId, nodeId);
-    throw selectedNodeError;
-  }
+  const database = await requireWorkspaceRepositoryD1Database();
+  const selectedNode = await first<{ id: string; estimate_id: string; estimate_tab_id: string | null }>(
+    database,
+    `SELECT node.id, node.estimate_id, node.estimate_tab_id
+     FROM estimate_nodes node
+     INNER JOIN estimates estimate ON estimate.id = node.estimate_id
+     WHERE node.id = ?
+       AND estimate.project_id = ?
+     LIMIT 1`,
+    [nodeId, project.id],
+  );
   if (!selectedNode) return getProjectEstimateTreeByEstimate(projectId, nodeId);
 
-  const routeNode = selectedNode as unknown as EstimateNodeRouteRow;
-  if (routeNode.estimate_tab_id) {
-    const result = await getEstimateTabTree(projectId, routeNode.estimate_id, routeNode.estimate_tab_id);
+  if (selectedNode.estimate_tab_id) {
+    const result = await getEstimateTabTree(projectId, selectedNode.estimate_id, selectedNode.estimate_tab_id);
     return {
       ...result,
       selectedNodeId: nodeId,
     };
   }
 
-  const estimate = normalizeEstimateRecord(routeNode.estimates);
-  const [nodesResult, rowsResult] = await Promise.all([
-    supabase.from("estimate_nodes").select(ESTIMATE_TREE_NODE_COLUMNS).eq("estimate_id", routeNode.estimate_id).order("sort_order", { ascending: true }),
-    supabase.from("estimate_row_items").select(ESTIMATE_TREE_ROW_ITEM_COLUMNS).eq("estimate_id", routeNode.estimate_id).order("sort_order", { ascending: true }),
+  const estimate = await readEstimateForProject(database, selectedNode.estimate_id, project.id);
+  if (!estimate) return { workspace, project, estimate: null, selectedNodeId: null, tree: [] };
+  const [nodes, rows] = await Promise.all([
+    readEstimateNodes(database, selectedNode.estimate_id),
+    readEstimateRows(database, selectedNode.estimate_id),
   ]);
 
-  if (nodesResult.error) throw nodesResult.error;
-  if (rowsResult.error) throw rowsResult.error;
-
-  const nodes = nodesResult.data ?? [];
-  const tree = buildEstimateTree(nodes, rowsResult.data ?? []);
+  const tree = buildEstimateTree(nodes, rows);
   const selectedNodeId = nodes.some((node) => node.id === nodeId) ? nodeId : tree[0]?.id ?? null;
 
   return { workspace, project, estimate, selectedNodeId, tree };

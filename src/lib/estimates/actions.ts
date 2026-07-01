@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 
 import { requireAuth, requireCurrentUserContext } from "@/lib/auth/session";
 import { assertEstimateActionRateLimit } from "@/lib/estimates/action-rate-limit";
-import type { EstimateSheetAdjustment, EstimateSheetAdjustmentMode, EstimateTabSummary, EstimateTreeNode, EstimateRowItem } from "@/lib/estimates/types";
+import type { EstimateRowLinkState, EstimateSheetAdjustment, EstimateSheetAdjustmentMode, EstimateTabSummary, EstimateTreeNode, EstimateRowItem } from "@/lib/estimates/types";
 import { LEGACY_BLANK_ROW_TAG, isExpressComponentRow, readEstimateRowMetadata } from "@/lib/estimates/express-components";
 import { ESTIMATE_SHEET_TREE_LOAD_LIMITS } from "@/lib/estimates/load-limits";
 import { normalizeEstimateRowImageUrl, sanitizeEstimateRowSourceSnapshot } from "@/lib/estimates/image-url";
@@ -39,15 +39,91 @@ import {
 } from "@/lib/mass-deletion/bulk-action";
 import { isMissingColumnError, normalizeEstimateRecord, type EstimateRecordWithLegacy } from "@/lib/repositories/estimate-schema-compat";
 import { clearEstimateRouteContextProcessCache, getCurrentWorkspaceProject, getEstimateTabTree, getEstimateTabs, getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { Database, Json, Tables, TablesInsert, TablesUpdate } from "@/lib/supabase/types";
+import { createEstimateActionsD1Client, type EstimateActionsD1Client } from "@/lib/estimates/d1-action-client";
+import type { EstimateRow as EstimateDatabaseRow, ProjectRow as ProjectDatabaseRow } from "@/lib/types/database";
+import type { Json } from "@/lib/types/json";
 
-type CreateEstimateNodeWithHistoryArgs = Omit<
-  Database["public"]["Functions"]["create_estimate_node_with_history"]["Args"],
-  "parent_node_id"
-> & {
+type CreateEstimateNodeWithHistoryArgs = {
+  target_project_id: string;
+  target_estimate_id: string;
   parent_node_id: string | null;
+  node_kind: CreateEstimateNodeKind;
+  node_name: string;
+  initial_sort_order: number;
+  acting_user_id: string;
+  correlation_id: string;
+  target_tab_id?: string;
 };
+
+type EstimateActionTables = {
+  projects: ProjectDatabaseRow;
+  estimates: EstimateDatabaseRow;
+  estimate_sheet_events: {
+    id: string;
+    event_type: string;
+    event_source: string;
+    created_at: string;
+    actor_user_id: string | null;
+    estimate_tab_id: string | null;
+    target_row_id: string | null;
+    estimate_node_id: string | null;
+    row_context: Json;
+    old_snapshot: Json | null;
+    new_snapshot: Json | null;
+    changed_fields: Json;
+    total_delta: number | null;
+    payload: Json;
+    correlation_id: string;
+  };
+  estimate_tabs: {
+    id: string;
+    estimate_id: string;
+    is_default: boolean | number;
+    metadata: Json;
+    name: string;
+    sort_order: number;
+  };
+  estimate_nodes: {
+    id: string;
+    estimate_id: string;
+    estimate_tab_id?: string | null;
+    kind: string;
+    metadata: Json;
+    name: string;
+    parent_id: string | null;
+    sort_order: number;
+  };
+  estimate_row_items: {
+    id: string;
+    estimate_id: string;
+    node_id: string;
+    description: string;
+    designation: string;
+    discipline: string;
+    material: string;
+    supplier: string;
+    supplier_id: string | null;
+    quantity: number;
+    quantity_base: number | null;
+    quantity_contingency_amount: number | null;
+    unit: string;
+    unit_cost: number;
+    misc_cost: number;
+    contingency_percentage: number;
+    adjustment_percentage: number;
+    source_snapshot: Json | null;
+    sort_order: number;
+    row_revision: number;
+    category_node_id: string | null;
+    source_library_item_id: string | null;
+    link_state: EstimateRowLinkState;
+    metadata: Json;
+  };
+};
+
+type Tables<T extends keyof EstimateActionTables> = EstimateActionTables[T];
+type TablesInsert<T extends keyof EstimateActionTables> = Partial<EstimateActionTables[T]> & Record<string, unknown>;
+type TablesUpdate<T extends keyof EstimateActionTables> = Partial<EstimateActionTables[T]>;
 
 function throwEstimateRowMutationError(error: unknown): never {
   if (isEstimateRowRevisionConflict(error)) throw new EstimateRowRevisionConflictError();
@@ -144,11 +220,6 @@ type EstimateRowImageAssetDescriptor = {
   thumbnailWidth?: number | null;
   thumbnailHeight?: number | null;
 };
-
-type UploadAssetValidationRpc = (
-  functionName: string,
-  args: Record<string, unknown>,
-) => PromiseLike<{ data: unknown; error: { message?: string | null } | null }>;
 
 type DetachEstimateRowItemInput = {
   projectId: string;
@@ -460,6 +531,8 @@ type ValidatedEstimateNodeRow = {
   kind: string;
 };
 
+type EstimateIdProjectRow = Pick<Tables<"estimates">, "id" | "project_id">;
+
 type RenameEstimateNodeResult = {
   nodeId: string;
   name: string;
@@ -697,7 +770,7 @@ function readRestoreDeletedNodesResult(value: unknown): Omit<RestoreDeletedEstim
   };
 }
 
-async function assertCanEditEstimate(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>, estimateId: string) {
+async function assertCanEditEstimate(dataStore: EstimateActionsD1Client, estimateId: string) {
   let currentUser: Awaited<ReturnType<typeof requireCurrentUserContext>>;
   try {
     currentUser = await requireCurrentUserContext();
@@ -710,13 +783,15 @@ async function assertCanEditEstimate(supabase: Awaited<ReturnType<typeof createS
     throw error;
   }
 
-  const { data, error } = await supabase.rpc("can_edit_estimate", { target_estimate_id: estimateId });
+  const { data, error } = await dataStore.call("can_edit_estimate", { target_estimate_id: estimateId });
   if (error) {
+    const errorRecord = error as unknown as { code?: unknown };
+    const errorCode = typeof errorRecord.code === "string" ? errorRecord.code : undefined;
     recordEstimateMutationEvent("authz_denied", {
       operation: "authz_check",
       estimateId,
       reason: "can_edit_estimate_rpc_error",
-      code: typeof error.code === "string" ? error.code : undefined,
+      code: errorCode,
     });
     throw error;
   }
@@ -796,8 +871,8 @@ function readEstimateSheetAdjustmentRpcResult(value: unknown): EstimateSheetAdju
 // Project-scoped edit guard for sheet creation (no estimate id exists yet). RLS
 // still backstops the insert; this returns a clean app-level denial first so a
 // read-only collaborator never sees a raw RLS error (F15 / P3-3).
-async function assertCanEditProject(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>, projectId: string) {
-  const { data, error } = await supabase.rpc("can_edit_project", { target_project_id: projectId });
+async function assertCanEditProject(dataStore: EstimateActionsD1Client, projectId: string) {
+  const { data, error } = await dataStore.call("can_edit_project", { target_project_id: projectId });
   if (error) throw error;
   if (data !== true) throw new Error("Project edit access denied.");
   const currentUser = await requireCurrentUserContext();
@@ -1027,14 +1102,14 @@ function applyActivityReadFilters<TQuery extends ActivityReadFilterQuery<TQuery>
 }
 
 async function resolveActivityActorLabels(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  dataStore: EstimateActionsD1Client,
   rows: Tables<"estimate_sheet_events">[],
 ) {
   const actorUserIds = Array.from(new Set(rows.map((row) => row.actor_user_id).filter((id): id is string => typeof id === "string" && id.length > 0)));
   if (!actorUserIds.length) return new Map<string, string>();
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await dataStore
       .from("profiles")
       .select("id, display_name, email")
       .in("id", actorUserIds);
@@ -1097,25 +1172,25 @@ function buildNodeScopeEventFilter(scope: EstimateActivityNodeScope) {
 }
 
 async function resolveEstimateActivityNodeScope({
-  supabase,
+  dataStore,
   estimateId,
   projectId,
   nodeId,
   includeDescendants,
 }: {
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+  dataStore: EstimateActionsD1Client;
   estimateId: string;
   projectId: string;
   nodeId: string;
   includeDescendants: boolean;
 }): Promise<EstimateActivityNodeScope> {
-  const { data: node, error: nodeError } = await supabase
+  const { data: node, error: nodeError } = await dataStore
     .from("estimate_nodes")
     .select("id, estimate_id, parent_id, kind, estimates!inner(project_id)")
     .eq("id", nodeId)
     .eq("estimate_id", estimateId)
     .eq("estimates.project_id", projectId)
-    .maybeSingle();
+    .maybeSingle<EstimateActivityNodeRow>();
 
   if (nodeError) throw nodeError;
   if (!node) throw new Error("Estimate activity node not found in the current estimate.");
@@ -1124,7 +1199,7 @@ async function resolveEstimateActivityNodeScope({
     return { nodeIds: [nodeId], rowIds: [] };
   }
 
-  const { data: descendantNodes, error: descendantsError } = await supabase
+  const { data: descendantNodes, error: descendantsError } = await dataStore
     .from("estimate_nodes")
     .select("id, parent_id, kind")
     .eq("estimate_id", estimateId);
@@ -1133,7 +1208,7 @@ async function resolveEstimateActivityNodeScope({
 
   const nodeIds = collectDescendantNodeIds((descendantNodes ?? []) as EstimateActivityNodeRow[], nodeId);
   if (!nodeIds.length) nodeIds.push(nodeId);
-  const { data: rows, error: rowsError } = await supabase
+  const { data: rows, error: rowsError } = await dataStore
     .from("estimate_row_items")
     .select("id")
     .eq("estimate_id", estimateId)
@@ -1151,20 +1226,20 @@ async function getValidatedEstimateRow(projectId: string, estimateId: string, ro
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const supabase = await createSupabaseServerClient();
-  if (options?.requireEdit) await assertCanEditEstimate(supabase, estimateId);
-  const { data: row, error } = await supabase
+  const dataStore = await createEstimateActionsD1Client();
+  if (options?.requireEdit) await assertCanEditEstimate(dataStore, estimateId);
+  const { data: row, error } = await dataStore
     .from("estimate_row_items")
     .select("id, node_id, estimate_id, source_library_item_id, source_snapshot, metadata, link_state, row_revision, estimate_nodes!inner(id, kind, estimates!inner(project_id))")
     .eq("id", rowId)
     .eq("estimate_id", estimateId)
     .eq("estimate_nodes.estimates.project_id", project.id)
-    .maybeSingle();
+    .maybeSingle<Tables<"estimate_row_items">>();
 
   if (error) throw error;
   if (!row) throw new Error("Estimate row item not found in the current project.");
 
-  return { project, supabase, row };
+  return { project, dataStore, row };
 }
 
 async function getValidatedEstimateNode(
@@ -1176,30 +1251,30 @@ async function getValidatedEstimateNode(
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const supabase = await createSupabaseServerClient();
-  const { data: estimate, error: estimateError } = await supabase
+  const dataStore = await createEstimateActionsD1Client();
+  const { data: estimate, error: estimateError } = await dataStore
     .from("estimates")
     .select("id, project_id")
     .eq("id", estimateId)
     .eq("project_id", project.id)
-    .maybeSingle();
+    .maybeSingle<EstimateIdProjectRow>();
 
   if (estimateError) throw estimateError;
   if (!estimate) throw new Error("Estimate not found in the current project.");
-  if (options?.requireEdit) await assertCanEditEstimate(supabase, estimate.id);
+  if (options?.requireEdit) await assertCanEditEstimate(dataStore, estimate.id);
 
-  const { data: node, error: nodeError } = await supabase
+  const { data: node, error: nodeError } = await dataStore
     .from("estimate_nodes")
     .select("id, estimate_id, parent_id, kind, estimates!inner(project_id)")
     .eq("id", nodeId)
     .eq("estimate_id", estimate.id)
     .eq("estimates.project_id", project.id)
-    .maybeSingle();
+    .maybeSingle<ValidatedEstimateNodeRow>();
 
   if (nodeError) throw nodeError;
   if (!node) throw new Error("Estimate tree node not found in the current project.");
 
-  return { project, estimate, supabase, node: node as ValidatedEstimateNodeRow };
+  return { project, estimate, dataStore, node };
 }
 
 function readEstimateNodeName(input: FormData | string) {
@@ -1430,13 +1505,13 @@ function isEstimateRowImageAssetDescriptor(value: unknown): value is EstimateRow
 }
 
 async function validateEstimateRowImageAssetPatch({
-  supabase,
+  dataStore,
   projectId,
   estimateId,
   rowId,
   sourceSnapshotPatch,
 }: {
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+  dataStore: EstimateActionsD1Client;
   projectId: string;
   estimateId: string;
   rowId: string;
@@ -1451,8 +1526,7 @@ async function validateEstimateRowImageAssetPatch({
   const uploadSessionId = readDescriptorText(candidate, "uploadSessionId");
   if (!assetId || !uploadSessionId) throw new Error("Reference image asset is invalid.");
 
-  const rpc = supabase.rpc.bind(supabase) as UploadAssetValidationRpc;
-  const { data, error } = await rpc("validate_estimate_row_image_asset", {
+  const { data, error } = await dataStore.call("validate_estimate_row_image_asset", {
     target_asset_id: assetId,
     target_upload_session_id: uploadSessionId,
     target_project_id: projectId,
@@ -1472,13 +1546,13 @@ async function validateEstimateRowImageAssetPatch({
 }
 
 async function removeUnvalidatedEstimateRowImageAsset({
-  supabase,
+  dataStore,
   projectId,
   estimateId,
   rowId,
   sourceSnapshot,
 }: {
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+  dataStore: EstimateActionsD1Client;
   projectId: string;
   estimateId: string;
   rowId: string;
@@ -1496,8 +1570,7 @@ async function removeUnvalidatedEstimateRowImageAsset({
   const uploadSessionId = readDescriptorText(candidate, "uploadSessionId");
   if (!assetId || !uploadSessionId) return withoutImageAsset;
 
-  const rpc = supabase.rpc.bind(supabase) as UploadAssetValidationRpc;
-  const { data, error } = await rpc("validate_estimate_row_image_asset", {
+  const { data, error } = await dataStore.call("validate_estimate_row_image_asset", {
     target_asset_id: assetId,
     target_upload_session_id: uploadSessionId,
     target_project_id: projectId,
@@ -1580,17 +1653,17 @@ function buildEstimateRowReplacementPayload(libraryItem: EstimateRowItem) {
 }
 
 async function assertCurrentLibrarySourceForEstimateCommit(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  dataStore: EstimateActionsD1Client,
   libraryItem: EstimateRowItem,
 ) {
   const sourceLibraryItemId = getSourceLibraryItemId(libraryItem);
   if (!sourceLibraryItemId) return;
 
-  const { data, error } = await supabase
+  const { data, error } = await dataStore
     .from("cost_library_items")
     .select("id, updated_at, lifecycle_state")
     .eq("id", sourceLibraryItemId)
-    .maybeSingle();
+    .maybeSingle<{ id: string; updated_at: string | null; lifecycle_state: string | null }>();
 
   if (error) throw error;
   if (!data) {
@@ -1606,7 +1679,7 @@ async function assertCurrentLibrarySourceForEstimateCommit(
 }
 
 async function insertEstimateWithSheetCodeFallback(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  dataStore: EstimateActionsD1Client,
   payload: TablesInsert<"estimates">,
   sheetCode: string,
 ) {
@@ -1614,7 +1687,7 @@ async function insertEstimateWithSheetCodeFallback(
   const nextPayload = { ...payload };
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    const currentResult = await supabase.from("estimates").insert(nextPayload).select("*").single();
+    const currentResult = await dataStore.from("estimates").insert(nextPayload).select("*").single<EstimateRecordWithLegacy>();
     if (!currentResult.error) return normalizeEstimateRecord(currentResult.data as EstimateRecordWithLegacy);
 
     if (isMissingColumnError(currentResult.error, "sheet_code")) break;
@@ -1629,7 +1702,7 @@ async function insertEstimateWithSheetCodeFallback(
     throw currentResult.error;
   }
 
-  const currentResult = await supabase.from("estimates").insert(nextPayload).select("*").single();
+  const currentResult = await dataStore.from("estimates").insert(nextPayload).select("*").single<EstimateRecordWithLegacy>();
   if (!currentResult.error) return normalizeEstimateRecord(currentResult.data as EstimateRecordWithLegacy);
   if (!isMissingColumnError(currentResult.error, "sheet_code")) throw currentResult.error;
 
@@ -1638,11 +1711,11 @@ async function insertEstimateWithSheetCodeFallback(
   delete legacyPayload.project_budget;
   delete legacyPayload.notes;
   const legacyEstimatePayload = { ...legacyPayload, revision_label: sheetCode };
-  const legacyResult = await supabase
+  const legacyResult = await dataStore
     .from("estimates")
     .insert(legacyEstimatePayload as never)
     .select("*")
-    .single();
+    .single<EstimateRecordWithLegacy>();
 
   if (legacyResult.error) throw legacyResult.error;
   return normalizeEstimateRecord(legacyResult.data as EstimateRecordWithLegacy);
@@ -1715,16 +1788,17 @@ function readLegacyProjectBudget(metadata: Json): number | null {
 }
 
 async function listProjectEstimateCodes(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  dataStore: EstimateActionsD1Client,
   projectId: string,
 ): Promise<ProjectEstimateCodeRow[]> {
-  const currentResult = await supabase
+  const currentResult = await dataStore
     .from("estimates")
     .select("id, sheet_code")
     .eq("project_id", projectId);
 
   if (!currentResult.error) {
-    return (currentResult.data ?? []).map((estimate) => ({
+    const estimates = (currentResult.data ?? []) as Array<{ id: string; sheet_code?: string | null }>;
+    return estimates.map((estimate) => ({
       id: estimate.id,
       sheetCode: estimate.sheet_code ?? "",
     }));
@@ -1732,7 +1806,7 @@ async function listProjectEstimateCodes(
 
   if (!isMissingColumnError(currentResult.error, "sheet_code")) throw currentResult.error;
 
-  const legacyResult = await supabase
+  const legacyResult = await dataStore
     .from("estimates")
     .select("id, revision_label")
     .eq("project_id", projectId);
@@ -1754,11 +1828,11 @@ function getNextGeneratedSheetCode(existingCodes: string[]) {
 }
 
 async function generateNextEstimateSheetCode(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  dataStore: EstimateActionsD1Client,
   projectId: string,
   excludedEstimateId?: string,
 ) {
-  const estimateCodes = await listProjectEstimateCodes(supabase, projectId);
+  const estimateCodes = await listProjectEstimateCodes(dataStore, projectId);
   const existingCodes = estimateCodes
     .flatMap((estimate) => {
       if (estimate.id === excludedEstimateId) return [];
@@ -1776,12 +1850,12 @@ async function generateNextEstimateSheetCode(
 }
 
 async function assertEstimateSheetCodeIsAvailable(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  dataStore: EstimateActionsD1Client,
   projectId: string,
   sheetCode: string,
   currentEstimateId?: string,
 ) {
-  const estimateCodes = await listProjectEstimateCodes(supabase, projectId);
+  const estimateCodes = await listProjectEstimateCodes(dataStore, projectId);
   const normalizedSheetCode = sheetCode.trim().toLocaleLowerCase();
   const duplicate = estimateCodes.find(
     (estimate) => estimate.id !== currentEstimateId && estimate.sheetCode.trim().toLocaleLowerCase() === normalizedSheetCode,
@@ -1791,16 +1865,16 @@ async function assertEstimateSheetCodeIsAvailable(
 }
 
 async function getEstimateRecordAfterMutation(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  dataStore: EstimateActionsD1Client,
   estimateId: string,
   projectId: string,
 ) {
-  const currentResult = await supabase
+  const currentResult = await dataStore
     .from("estimates")
     .select("*")
     .eq("id", estimateId)
     .eq("project_id", projectId)
-    .maybeSingle();
+    .maybeSingle<EstimateRecordWithLegacy>();
 
   if (!currentResult.error) {
     if (!currentResult.data) throw new Error("Estimate not found in the current project.");
@@ -1809,12 +1883,12 @@ async function getEstimateRecordAfterMutation(
 
   if (!isMissingColumnError(currentResult.error, "sheet_code")) throw currentResult.error;
 
-  const legacyResult = await supabase
+  const legacyResult = await dataStore
     .from("estimates")
     .select("*")
     .eq("id", estimateId)
     .eq("project_id", projectId)
-    .maybeSingle();
+    .maybeSingle<EstimateRecordWithLegacy>();
 
   if (legacyResult.error) throw legacyResult.error;
   if (!legacyResult.data) throw new Error("Estimate not found in the current project.");
@@ -1822,22 +1896,22 @@ async function getEstimateRecordAfterMutation(
 }
 
 async function createEstimateWithDefaultTab({
-  supabase,
+  dataStore,
   project,
   name,
   sheetCode,
   createdBy,
 }: {
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+  dataStore: EstimateActionsD1Client;
   project: Tables<"projects">;
   name: string;
   sheetCode: string;
   createdBy: string | null;
 }) {
-  await assertEstimateSheetCodeIsAvailable(supabase, project.id, sheetCode);
+  await assertEstimateSheetCodeIsAvailable(dataStore, project.id, sheetCode);
 
   const estimate = await insertEstimateWithSheetCodeFallback(
-    supabase,
+    dataStore,
     {
       project_id: project.id,
       created_by: createdBy,
@@ -1851,7 +1925,7 @@ async function createEstimateWithDefaultTab({
     sheetCode,
   );
 
-  const { data: defaultTab, error: defaultTabError } = await supabase
+  const { data: defaultTab, error: defaultTabError } = await dataStore
     .from("estimate_tabs")
     .insert({
       estimate_id: estimate.id,
@@ -1861,7 +1935,7 @@ async function createEstimateWithDefaultTab({
       created_by: createdBy,
     })
     .select("id")
-    .single();
+    .single<{ id: string }>();
 
   if (defaultTabError) throw defaultTabError;
   if (!defaultTab?.id) throw new Error("Default estimate tab was not created.");
@@ -1893,17 +1967,17 @@ export async function fetchEstimateEditCapability({ projectId, estimateId }: Fet
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) return false;
 
-  const supabase = await createSupabaseServerClient();
-  const { data: estimate, error: estimateError } = await supabase
+  const dataStore = await createEstimateActionsD1Client();
+  const { data: estimate, error: estimateError } = await dataStore
     .from("estimates")
     .select("id")
     .eq("id", estimateId)
     .eq("project_id", project.id)
-    .maybeSingle();
+    .maybeSingle<{ id: string }>();
 
   if (estimateError || !estimate) return false;
 
-  const { data, error } = await supabase.rpc("can_edit_estimate", { target_estimate_id: estimate.id });
+  const { data, error } = await dataStore.call("can_edit_estimate", { target_estimate_id: estimate.id });
   if (error) return false;
   return data === true;
 }
@@ -1936,13 +2010,13 @@ export async function fetchEstimateSheetVersionControl({
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const supabase = await createSupabaseServerClient();
-  const { data: estimate, error: estimateError } = await supabase
+  const dataStore = await createEstimateActionsD1Client();
+  const { data: estimate, error: estimateError } = await dataStore
     .from("estimates")
     .select("id, project_id")
     .eq("id", estimateId)
     .eq("project_id", project.id)
-    .maybeSingle();
+    .maybeSingle<EstimateIdProjectRow>();
 
   if (estimateError) throw estimateError;
   if (!estimate) throw new Error("Estimate not found in the current project.");
@@ -1961,7 +2035,7 @@ export async function fetchEstimateSheetVersionControl({
   const emptyEventsResult = Promise.resolve({ data: [], error: null });
   const sheetEventsPromise = shouldFetchSheetEvents
     ? (() => {
-      let sheetEventsQuery = applyActivityReadFilters(supabase
+      let sheetEventsQuery = applyActivityReadFilters(dataStore
         .from("estimate_sheet_events")
         .select(eventSelect)
         .eq("estimate_id", estimate.id), activityFilters)
@@ -1978,7 +2052,7 @@ export async function fetchEstimateSheetVersionControl({
     : emptyEventsResult;
   const rowEventsPromise = targetRowId
     ? (() => {
-      let rowEventsQuery = applyActivityReadFilters(supabase
+      let rowEventsQuery = applyActivityReadFilters(dataStore
         .from("estimate_sheet_events")
         .select(eventSelect)
         .eq("estimate_id", estimate.id)
@@ -1996,7 +2070,7 @@ export async function fetchEstimateSheetVersionControl({
     : emptyEventsResult;
   const nodeScopePromise = targetNodeId
     ? resolveEstimateActivityNodeScope({
-      supabase,
+      dataStore,
       estimateId: estimate.id,
       projectId: project.id,
       nodeId: targetNodeId,
@@ -2007,7 +2081,7 @@ export async function fetchEstimateSheetVersionControl({
     ? (async () => {
       const nodeScope = await nodeScopePromise;
       if (!nodeScope) return emptyEventsResult;
-      let nodeEventsQuery = applyActivityReadFilters(supabase
+      let nodeEventsQuery = applyActivityReadFilters(dataStore
         .from("estimate_sheet_events")
         .select(eventSelect)
         .eq("estimate_id", estimate.id), activityFilters)
@@ -2045,7 +2119,7 @@ export async function fetchEstimateSheetVersionControl({
   const sheetEventsPageRows = buildHistoryEventPageRows((sheetEventsResult.data ?? []) as Tables<"estimate_sheet_events">[], boundedEventLimit);
   const rowEventsPageRows = buildHistoryEventPageRows((rowEventsResult.data ?? []) as Tables<"estimate_sheet_events">[], boundedEventLimit);
   const nodeEventsPageRows = buildHistoryEventPageRows((nodeEventsResult.data ?? []) as Tables<"estimate_sheet_events">[], boundedEventLimit);
-  const actorLabels = await resolveActivityActorLabels(supabase, [
+  const actorLabels = await resolveActivityActorLabels(dataStore, [
     ...sheetEventsPageRows.rows,
     ...rowEventsPageRows.rows,
     ...nodeEventsPageRows.rows,
@@ -2075,8 +2149,8 @@ export async function fetchEstimateActivityRetentionMetrics({
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.rpc("get_estimate_activity_retention_metrics", {
+  const dataStore = await createEstimateActionsD1Client();
+  const { data, error } = await dataStore.call("get_estimate_activity_retention_metrics", {
     target_project_id: project.id,
   });
 
@@ -2113,23 +2187,23 @@ export async function reorderEstimateTreeNodes(
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const supabase = await createSupabaseServerClient();
-  const { data: estimate, error: estimateError } = await supabase
+  const dataStore = await createEstimateActionsD1Client();
+  const { data: estimate, error: estimateError } = await dataStore
     .from("estimates")
     .select("id, project_id")
     .eq("id", estimateId)
     .eq("project_id", project.id)
-    .maybeSingle();
+    .maybeSingle<EstimateIdProjectRow>();
 
   if (estimateError) throw estimateError;
   if (!estimate) throw new Error("Estimate not found in the current project.");
-  await assertCanEditEstimate(supabase, estimate.id);
+  await assertCanEditEstimate(dataStore, estimate.id);
 
   const referencedNodeIds = Array.from(new Set([
     ...input.updates.map((update) => update.id),
     ...input.updates.flatMap((update) => (update.parentId ? [update.parentId] : [])),
   ]));
-  const tabScopedNodeResult = await supabase
+  const tabScopedNodeResult = await dataStore
     .from("estimate_nodes")
     .select("id, estimate_id, estimate_tab_id, parent_id, kind")
     .in("id", referencedNodeIds);
@@ -2137,7 +2211,7 @@ export async function reorderEstimateTreeNodes(
   let nodeError = tabScopedNodeResult.error;
 
   if (nodeError && isMissingColumnError(nodeError, "estimate_tab_id")) {
-    const legacyResult = await supabase
+    const legacyResult = await dataStore
       .from("estimate_nodes")
       .select("id, estimate_id, parent_id, kind")
       .in("id", referencedNodeIds);
@@ -2181,7 +2255,7 @@ export async function reorderEstimateTreeNodes(
     acting_user_id: currentUser.userId,
     correlation_id: randomUUID(),
   };
-  const { error: rpcError } = await supabase.rpc("reorder_estimate_nodes_with_history", rpcPayload);
+  const { error: rpcError } = await dataStore.call("reorder_estimate_nodes_with_history", rpcPayload);
   if (rpcError) throw new Error(`Could not reorder estimate tree: ${rpcError.message}`);
 
   const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimate.id, input.targetTabId);
@@ -2193,15 +2267,15 @@ export async function createEstimate(projectId: string, formData: FormData) {
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const supabase = await createSupabaseServerClient();
-  await assertCanEditProject(supabase, project.id);
+  const dataStore = await createEstimateActionsD1Client();
+  await assertCanEditProject(dataStore, project.id);
   const currentUser = await requireCurrentUserContext();
   const name = readRequiredText(formData, "name");
   const requestedSheetCode = readOptionalText(formData, "sheetCode") ?? readOptionalText(formData, "revisionLabel");
-  const sheetCode = requestedSheetCode ?? (await generateNextEstimateSheetCode(supabase, project.id));
+  const sheetCode = requestedSheetCode ?? (await generateNextEstimateSheetCode(dataStore, project.id));
 
   const { estimate, firstNodeId } = await createEstimateWithDefaultTab({
-    supabase,
+    dataStore,
     project,
     name,
     sheetCode,
@@ -2216,14 +2290,14 @@ export async function createEstimateSheetDraft(projectId: string, input?: { name
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const supabase = await createSupabaseServerClient();
-  await assertCanEditProject(supabase, project.id);
+  const dataStore = await createEstimateActionsD1Client();
+  await assertCanEditProject(dataStore, project.id);
   const currentUser = await requireCurrentUserContext();
-  const sheetCode = await generateNextEstimateSheetCode(supabase, project.id);
+  const sheetCode = await generateNextEstimateSheetCode(dataStore, project.id);
   const requestedName = typeof input?.name === "string" ? input.name.trim() : "";
 
   const { estimate, firstNodeId, nodeCount } = await createEstimateWithDefaultTab({
-    supabase,
+    dataStore,
     project,
     name: requestedName || `${sheetCode} Estimate`,
     sheetCode,
@@ -2248,24 +2322,24 @@ export async function duplicateEstimateSheet(input: DuplicateEstimateSheetInput)
   const { project } = await getCurrentWorkspaceProject(input.projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const supabase = await createSupabaseServerClient();
-  await assertCanEditEstimate(supabase, input.estimateId);
+  const dataStore = await createEstimateActionsD1Client();
+  await assertCanEditEstimate(dataStore, input.estimateId);
   const currentUser = await requireCurrentUserContext();
 
-  const { data: sourceEstimate, error: sourceEstimateError } = await supabase
+  const { data: sourceEstimate, error: sourceEstimateError } = await dataStore
     .from("estimates")
     .select("*")
     .eq("id", input.estimateId)
     .eq("project_id", project.id)
-    .maybeSingle();
+    .maybeSingle<EstimateRecordWithLegacy>();
 
   if (sourceEstimateError) throw sourceEstimateError;
   if (!sourceEstimate) throw new Error("Estimate not found in the current project.");
   const normalizedSourceEstimate = normalizeEstimateRecord(sourceEstimate as EstimateRecordWithLegacy);
 
-  const sheetCode = await generateNextEstimateSheetCode(supabase, project.id);
+  const sheetCode = await generateNextEstimateSheetCode(dataStore, project.id);
   const duplicatedEstimate = await insertEstimateWithSheetCodeFallback(
-    supabase,
+    dataStore,
     {
       project_id: project.id,
       created_by: currentUser.userId,
@@ -2279,7 +2353,7 @@ export async function duplicateEstimateSheet(input: DuplicateEstimateSheetInput)
     sheetCode,
   );
 
-  const { data: sourceTabs, error: sourceTabsError } = await supabase
+  const { data: sourceTabs, error: sourceTabsError } = await dataStore
     .from("estimate_tabs")
     .select("id, is_default, metadata, name, sort_order")
     .eq("estimate_id", normalizedSourceEstimate.id)
@@ -2315,11 +2389,11 @@ export async function duplicateEstimateSheet(input: DuplicateEstimateSheetInput)
     } satisfies TablesInsert<"estimate_tabs">;
   });
 
-  const { error: insertTabsError } = await supabase.from("estimate_tabs").insert(duplicatedTabs);
+  const { error: insertTabsError } = await dataStore.from("estimate_tabs").insert(duplicatedTabs);
   if (insertTabsError) throw insertTabsError;
 
   const sourceNodeTabIds = sourceTabRows.map((tab) => tab.id);
-  let sourceNodesQuery = supabase
+  let sourceNodesQuery = dataStore
     .from("estimate_nodes")
     .select("id, estimate_tab_id, kind, metadata, name, parent_id, sort_order")
     .eq("estimate_id", normalizedSourceEstimate.id);
@@ -2333,7 +2407,8 @@ export async function duplicateEstimateSheet(input: DuplicateEstimateSheetInput)
   if (sourceNodesError) throw sourceNodesError;
 
   const nodeIdBySourceId = new Map<string, string>();
-  const pendingNodes = [...((sourceNodes ?? []) as DuplicateEstimateNodeRow[])];
+  const sourceNodeRows = (sourceNodes ?? []) as DuplicateEstimateNodeRow[];
+  const pendingNodes = [...sourceNodeRows];
   const fallbackDuplicatedTabId = defaultSourceTabId ? tabIdBySourceId.get(defaultSourceTabId) : duplicatedTabs[0]?.id;
   if (!fallbackDuplicatedTabId) throw new Error("Could not duplicate estimate tabs because no tab mapping was created.");
 
@@ -2350,10 +2425,10 @@ export async function duplicateEstimateSheet(input: DuplicateEstimateSheetInput)
 
     const [node] = pendingNodes.splice(nextIndex, 1);
     const nextNodeId = randomUUID();
-    const nextEstimateTabId = tabIdBySourceId.get(node.estimate_tab_id) ?? fallbackDuplicatedTabId;
+    const nextEstimateTabId = (node.estimate_tab_id ? tabIdBySourceId.get(node.estimate_tab_id) : undefined) ?? fallbackDuplicatedTabId;
     nodeIdBySourceId.set(node.id, nextNodeId);
 
-    const { error: insertNodeError } = await supabase.from("estimate_nodes").insert({
+    const { error: insertNodeError } = await dataStore.from("estimate_nodes").insert({
       id: nextNodeId,
       estimate_id: duplicatedEstimate.id,
       estimate_tab_id: nextEstimateTabId,
@@ -2367,7 +2442,7 @@ export async function duplicateEstimateSheet(input: DuplicateEstimateSheetInput)
     if (insertNodeError) throw insertNodeError;
   }
 
-  const { data: sourceRows, error: sourceRowsError } = await supabase
+  const { data: sourceRows, error: sourceRowsError } = await dataStore
     .from("estimate_row_items")
     .select("*")
     .eq("estimate_id", normalizedSourceEstimate.id)
@@ -2407,7 +2482,7 @@ export async function duplicateEstimateSheet(input: DuplicateEstimateSheetInput)
   });
 
   if (duplicatedRows.length > 0) {
-    const { error: insertRowsError } = await supabase.from("estimate_row_items").insert(duplicatedRows);
+    const { error: insertRowsError } = await dataStore.from("estimate_row_items").insert(duplicatedRows);
     if (insertRowsError) throw insertRowsError;
   }
 
@@ -2416,7 +2491,7 @@ export async function duplicateEstimateSheet(input: DuplicateEstimateSheetInput)
   // Map the source nodes (in sort_order) onto their duplicated ids so the
   // landing node is chosen by the same depth-first, area-first oracle the list
   // route uses — not a flat "first inserted row" heuristic (ADV-011 parity).
-  const duplicatedNodeRowsInOrder = (sourceNodes ?? []).flatMap((node) => {
+  const duplicatedNodeRowsInOrder = sourceNodeRows.flatMap((node) => {
     const id = nodeIdBySourceId.get(node.id);
     if (!id) return [];
     return [{
@@ -2463,11 +2538,11 @@ export async function previewBulkDeleteEstimateSheets(input: BulkDeleteEstimateS
     }]);
   }
 
-  const [supabase, currentUser] = await Promise.all([
-    createSupabaseServerClient(),
+  const [dataStore, currentUser] = await Promise.all([
+    createEstimateActionsD1Client(),
     requireCurrentUserContext(),
   ]);
-  const { data, error } = await supabase.rpc("preview_bulk_delete_estimate_sheets", {
+  const { data, error } = await dataStore.call("preview_bulk_delete_estimate_sheets", {
     target_project_id: project.id,
     target_estimate_ids: ids,
     acting_user_id: currentUser.userId,
@@ -2515,11 +2590,11 @@ export async function executeBulkDeleteEstimateSheets(input: ExecuteBulkDeleteEs
     };
   }
 
-  const [supabase] = await Promise.all([
-    createSupabaseServerClient(),
+  const [dataStore] = await Promise.all([
+    createEstimateActionsD1Client(),
     requireCurrentUserContext(),
   ]);
-  const { data, error } = await supabase.rpc("execute_bulk_delete_estimate_sheets", {
+  const { data, error } = await dataStore.call("execute_bulk_delete_estimate_sheets", {
     target_project_id: project.id,
     target_estimate_ids: ids,
     expected_preview_hash: input.expectedPreviewHash,
@@ -2564,8 +2639,8 @@ export async function updateEstimateDetails(input: UpdateEstimateDetailsInput) {
   const { project } = await getCurrentWorkspaceProject(input.projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const supabase = await createSupabaseServerClient();
-  await assertCanEditEstimate(supabase, input.estimateId);
+  const dataStore = await createEstimateActionsD1Client();
+  await assertCanEditEstimate(dataStore, input.estimateId);
   const currentUser = await requireCurrentUserContext();
   const payload: TablesUpdate<"estimates"> = {};
   const estimatePatch: Record<string, Json | undefined> = {};
@@ -2577,7 +2652,7 @@ export async function updateEstimateDetails(input: UpdateEstimateDetailsInput) {
   }
   if (input.sheetCode !== undefined) {
     const sheetCode = normalizeEditableText(input.sheetCode, "Estimate code");
-    await assertEstimateSheetCodeIsAvailable(supabase, project.id, sheetCode, input.estimateId);
+    await assertEstimateSheetCodeIsAvailable(dataStore, project.id, sheetCode, input.estimateId);
     payload.sheet_code = sheetCode;
     estimatePatch.sheetCode = sheetCode;
   }
@@ -2594,7 +2669,7 @@ export async function updateEstimateDetails(input: UpdateEstimateDetailsInput) {
 
   if (Object.keys(payload).length === 0) throw new Error("No estimate changes provided.");
 
-  const { error } = await supabase.rpc("update_estimate_details_with_history", {
+  const { error } = await dataStore.call("update_estimate_details_with_history", {
     target_project_id: project.id,
     target_estimate_id: input.estimateId,
     estimate_patch: estimatePatch,
@@ -2603,7 +2678,7 @@ export async function updateEstimateDetails(input: UpdateEstimateDetailsInput) {
   });
   if (error) throw new Error(`Could not update estimate details: ${error.message}`);
 
-  const estimate = await getEstimateRecordAfterMutation(supabase, input.estimateId, project.id);
+  const estimate = await getEstimateRecordAfterMutation(dataStore, input.estimateId, project.id);
   revalidateProjectEstimatePaths(project.id);
   // Scalar-only canonical reconciliation payload: the client patches these
   // fields and keeps its existing summary (no sensitive columns shipped) — P-1.2.
@@ -2614,11 +2689,11 @@ export async function regenerateEstimateSheetCode(input: { projectId: string; es
   const { project } = await getCurrentWorkspaceProject(input.projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const supabase = await createSupabaseServerClient();
-  await assertCanEditEstimate(supabase, input.estimateId);
+  const dataStore = await createEstimateActionsD1Client();
+  await assertCanEditEstimate(dataStore, input.estimateId);
   const currentUser = await requireCurrentUserContext();
-  const sheetCode = await generateNextEstimateSheetCode(supabase, project.id, input.estimateId);
-  const { error } = await supabase.rpc("update_estimate_details_with_history", {
+  const sheetCode = await generateNextEstimateSheetCode(dataStore, project.id, input.estimateId);
+  const { error } = await dataStore.call("update_estimate_details_with_history", {
     target_project_id: project.id,
     target_estimate_id: input.estimateId,
     estimate_patch: { sheetCode },
@@ -2627,7 +2702,7 @@ export async function regenerateEstimateSheetCode(input: { projectId: string; es
   });
   if (error) throw new Error(`Could not regenerate estimate code: ${error.message}`);
 
-  const estimate = await getEstimateRecordAfterMutation(supabase, input.estimateId, project.id);
+  const estimate = await getEstimateRecordAfterMutation(dataStore, input.estimateId, project.id);
   revalidateProjectEstimatePaths(project.id);
   return { estimate: projectEstimateListRowSource(estimate) };
 }
@@ -2650,27 +2725,27 @@ async function getProjectScopedEstimateActionContext(projectId: string, estimate
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const supabase = await createSupabaseServerClient();
-  const { data: estimate, error: estimateError } = await supabase
+  const dataStore = await createEstimateActionsD1Client();
+  const { data: estimate, error: estimateError } = await dataStore
     .from("estimates")
     .select("id, project_id")
     .eq("id", estimateId)
     .eq("project_id", project.id)
-    .maybeSingle();
+    .maybeSingle<EstimateIdProjectRow>();
 
   if (estimateError) throw estimateError;
   if (!estimate) throw new Error("Estimate not found in the current project.");
-  await assertCanEditEstimate(supabase, estimate.id);
+  await assertCanEditEstimate(dataStore, estimate.id);
 
   const currentUser = await requireCurrentUserContext();
-  return { project, estimate, supabase, currentUser };
+  return { project, estimate, dataStore, currentUser };
 }
 
 export async function createEstimateTab(input: CreateEstimateTabInput): Promise<EstimateTabMutationResult> {
   await requireAuth();
-  const { project, estimate, supabase, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
+  const { project, estimate, dataStore, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
   const name = normalizeEditableText(input.name, "Estimate tab name");
-  const { data, error } = await supabase.rpc("create_estimate_tab_with_history", {
+  const { data, error } = await dataStore.call("create_estimate_tab_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimate.id,
     tab_name: name,
@@ -2683,9 +2758,9 @@ export async function createEstimateTab(input: CreateEstimateTabInput): Promise<
 
 export async function renameEstimateTab(input: RenameEstimateTabInput): Promise<EstimateTabMutationResult> {
   await requireAuth();
-  const { project, estimate, supabase, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
+  const { project, estimate, dataStore, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
   const name = normalizeEditableText(input.name, "Estimate tab name");
-  const { data, error } = await supabase.rpc("rename_estimate_tab_with_history", {
+  const { data, error } = await dataStore.call("rename_estimate_tab_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimate.id,
     target_tab_id: input.tabId,
@@ -2705,8 +2780,8 @@ export async function reorderEstimateTabs(input: ReorderEstimateTabsInput): Prom
     if (seen.has(update.id)) throw new Error(`Duplicate estimate tab update: ${update.id}.`);
     seen.add(update.id);
   }
-  const { project, estimate, supabase, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
-  const { error } = await supabase.rpc("reorder_estimate_tabs_with_history", {
+  const { project, estimate, dataStore, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
+  const { error } = await dataStore.call("reorder_estimate_tabs_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimate.id,
     sort_updates: input.updates.map((update) => ({ id: update.id, sort_order: update.sortOrder })),
@@ -2720,9 +2795,9 @@ export async function reorderEstimateTabs(input: ReorderEstimateTabsInput): Prom
 
 export async function duplicateEstimateTab(input: DuplicateEstimateTabInput): Promise<EstimateTabMutationResult> {
   await requireAuth();
-  const { project, estimate, supabase, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
+  const { project, estimate, dataStore, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
   const nextName = input.name ? normalizeEditableText(input.name, "Estimate tab name") : undefined;
-  const { data, error } = await supabase.rpc("duplicate_estimate_tab_with_history", {
+  const { data, error } = await dataStore.call("duplicate_estimate_tab_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimate.id,
     source_tab_id: input.tabId,
@@ -2736,8 +2811,8 @@ export async function duplicateEstimateTab(input: DuplicateEstimateTabInput): Pr
 
 export async function archiveEstimateTab(input: EstimateTabActionInput): Promise<EstimateTabMutationResult> {
   await requireAuth();
-  const { project, estimate, supabase, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
-  const { data, error } = await supabase.rpc("archive_estimate_tab_with_history", {
+  const { project, estimate, dataStore, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
+  const { data, error } = await dataStore.call("archive_estimate_tab_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimate.id,
     target_tab_id: input.tabId,
@@ -2750,8 +2825,8 @@ export async function archiveEstimateTab(input: EstimateTabActionInput): Promise
 
 export async function deleteEstimateTab(input: EstimateTabActionInput): Promise<EstimateTabMutationResult> {
   await requireAuth();
-  const { project, estimate, supabase, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
-  const { data, error } = await supabase.rpc("delete_estimate_tab_with_history", {
+  const { project, estimate, dataStore, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
+  const { data, error } = await dataStore.call("delete_estimate_tab_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimate.id,
     target_tab_id: input.tabId,
@@ -2766,7 +2841,7 @@ export async function createEstimateNode(projectId: string, estimateId: string, 
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const supabase = await createSupabaseServerClient();
+  const dataStore = await createEstimateActionsD1Client();
   const currentUser = await requireCurrentUserContext();
   const name = readRequiredText(formData, "name");
   const kind = readEstimateNodeKind(formData);
@@ -2774,25 +2849,25 @@ export async function createEstimateNode(projectId: string, estimateId: string, 
   const estimateTabId = readOptionalText(formData, "estimateTabId");
   if (parentId) assertNotOptimisticEstimateNodeId(parentId, "Parent estimate node");
 
-  const { data: estimate, error: estimateError } = await supabase
+  const { data: estimate, error: estimateError } = await dataStore
     .from("estimates")
     .select("id, project_id")
     .eq("id", estimateId)
     .eq("project_id", project.id)
-    .maybeSingle();
+    .maybeSingle<EstimateIdProjectRow>();
 
   if (estimateError) throw estimateError;
   if (!estimate) throw new Error("Estimate not found in the current project.");
-  await assertCanEditEstimate(supabase, estimate.id);
+  await assertCanEditEstimate(dataStore, estimate.id);
 
   if (parentId) {
-    const { data: parentNode, error: parentError } = await supabase
+    const { data: parentNode, error: parentError } = await dataStore
       .from("estimate_nodes")
       .select("id, kind, estimate_id, estimates!inner(project_id)")
       .eq("id", parentId)
       .eq("estimate_id", estimate.id)
       .eq("estimates.project_id", project.id)
-      .maybeSingle();
+      .maybeSingle<Pick<ValidatedEstimateNodeRow, "id" | "estimate_id" | "kind">>();
 
     if (parentError) throw parentError;
     if (!parentNode) throw new Error("Parent estimate node not found in the current project.");
@@ -2802,7 +2877,7 @@ export async function createEstimateNode(projectId: string, estimateId: string, 
     if (!normalizeEstimateTreeNodeKind(parentNode.kind)) throw new Error("Unsupported estimate node kind.");
   }
 
-  const siblingQuery = supabase
+  const siblingQuery = dataStore
     .from("estimate_nodes")
     .select("id, kind, sort_order")
     .eq("estimate_id", estimate.id)
@@ -2830,9 +2905,9 @@ export async function createEstimateNode(projectId: string, estimateId: string, 
     correlation_id: randomUUID(),
     ...(estimateTabId ? { target_tab_id: estimateTabId } : {}),
   };
-  const { data: nodeResult, error: rpcError } = await supabase.rpc(
+  const { data: nodeResult, error: rpcError } = await dataStore.call(
     "create_estimate_node_with_history",
-    createNodePayload as Database["public"]["Functions"]["create_estimate_node_with_history"]["Args"],
+    createNodePayload,
   );
   if (rpcError) {
     throw new Error(`Could not create estimate tree node: ${rpcError.message}`);
@@ -2866,10 +2941,10 @@ export async function renameEstimateNode(
 ): Promise<RenameEstimateNodeResult> {
   assertNotOptimisticEstimateNodeId(nodeId, "Estimate node");
   const name = readEstimateNodeName(formDataOrName);
-  const { estimate, supabase, node } = await getValidatedEstimateNode(projectId, estimateId, nodeId, { requireEdit: true });
+  const { estimate, dataStore, node } = await getValidatedEstimateNode(projectId, estimateId, nodeId, { requireEdit: true });
   const currentUser = await requireCurrentUserContext();
 
-  const { error } = await supabase.rpc("rename_estimate_node_with_history", {
+  const { error } = await dataStore.call("rename_estimate_node_with_history", {
     target_project_id: projectId,
     target_estimate_id: estimate.id,
     target_node_id: node.id,
@@ -2889,13 +2964,13 @@ export async function deleteEstimateNode(
   nodeId: string,
   targetTabId?: string,
 ): Promise<DeleteEstimateNodeResult> {
-  const { project, estimate, supabase, node } = await getValidatedEstimateNode(projectId, estimateId, nodeId, { requireEdit: true });
+  const { project, estimate, dataStore, node } = await getValidatedEstimateNode(projectId, estimateId, nodeId, { requireEdit: true });
   const currentUser = await requireCurrentUserContext();
   const { project: currentProject, estimate: currentEstimate, tree: currentTree } = await refreshInsertedEstimateTree(project.id, estimate.id, targetTabId);
   if (!currentProject || !currentEstimate) throw new Error("Estimate not found before deleting the tree node.");
 
   const deletePlan = planEstimateTreeDelete(currentTree, node.id, node.id);
-  const { data: deleteResult, error } = await supabase.rpc("delete_estimate_node_with_history", {
+  const { data: deleteResult, error } = await dataStore.call("delete_estimate_node_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimate.id,
     target_node_id: node.id,
@@ -2937,19 +3012,19 @@ export async function deleteEstimateNodesBulk(
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const supabase = await createSupabaseServerClient();
-  const { data: estimate, error: estimateError } = await supabase
+  const dataStore = await createEstimateActionsD1Client();
+  const { data: estimate, error: estimateError } = await dataStore
     .from("estimates")
     .select("id, project_id")
     .eq("id", estimateId)
     .eq("project_id", project.id)
-    .maybeSingle();
+    .maybeSingle<EstimateIdProjectRow>();
 
   if (estimateError) throw estimateError;
   if (!estimate) throw new Error("Estimate not found in the current project.");
-  await assertCanEditEstimate(supabase, estimate.id);
+  await assertCanEditEstimate(dataStore, estimate.id);
 
-  const { data: scopedNodes, error: nodeError } = await supabase
+  const { data: scopedNodes, error: nodeError } = await dataStore
     .from("estimate_nodes")
     .select("id, estimate_id, parent_id, kind, estimates!inner(project_id)")
     .eq("estimate_id", estimate.id)
@@ -2978,7 +3053,7 @@ export async function deleteEstimateNodesBulk(
     fallbackNodeId = deletePlan.fallbackNodeId;
   }
 
-  const { data: deleteResult, error } = await supabase.rpc("delete_estimate_nodes_bulk_with_history", {
+  const { data: deleteResult, error } = await dataStore.call("delete_estimate_nodes_bulk_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimate.id,
     target_node_ids: rootNodeIds,
@@ -3028,13 +3103,13 @@ export async function insertEstimateTemplateIntoEstimate({
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const supabase = await createSupabaseServerClient();
+  const dataStore = await createEstimateActionsD1Client();
   const currentUser = await requireCurrentUserContext();
   // U4 (SEC-1): deny a workspace-member *viewer* on a restricted estimate before
   // any write. Defense-in-depth with the hardened RPC gate; the app gate ships
   // immediately even before the RPC migration applies.
-  await assertCanEditEstimate(supabase, estimateId);
-  const { data: copyResult, error: copyError } = await supabase.rpc("insert_estimate_template_into_estimate_with_history", {
+  await assertCanEditEstimate(dataStore, estimateId);
+  const { data: copyResult, error: copyError } = await dataStore.call("insert_estimate_template_into_estimate_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimateId,
     target_parent_node_id: targetParentNodeId,
@@ -3072,13 +3147,13 @@ export async function insertEstimateTemplatesIntoEstimate({
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const supabase = await createSupabaseServerClient();
+  const dataStore = await createEstimateActionsD1Client();
   const currentUser = await requireCurrentUserContext();
-  await assertCanEditEstimate(supabase, estimateId);
+  await assertCanEditEstimate(dataStore, estimateId);
 
   const insertedRootNodeIds: string[] = [];
   for (const templateId of templateIds) {
-    const { data: copyResult, error: copyError } = await supabase.rpc("insert_estimate_template_into_estimate_with_history", {
+    const { data: copyResult, error: copyError } = await dataStore.call("insert_estimate_template_into_estimate_with_history", {
       target_project_id: project.id,
       target_estimate_id: estimateId,
       target_parent_node_id: targetParentNodeId,
@@ -3128,14 +3203,14 @@ export async function insertEstimateTemplateNodeIntoEstimate({
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const supabase = await createSupabaseServerClient();
+  const dataStore = await createEstimateActionsD1Client();
   const currentUser = await requireCurrentUserContext();
   // U4 (SEC-1): this path is invoked directly from the panel (not only via the
   // gated wrap flow), so it needs its own edit gate before any create/insert RPC
   // — otherwise a workspace-member viewer could insert a template-node subtree.
-  await assertCanEditEstimate(supabase, estimateId);
+  await assertCanEditEstimate(dataStore, estimateId);
 
-  const { data: copyResult, error: copyError } = await supabase.rpc("insert_estimate_template_node_into_estimate_with_history", {
+  const { data: copyResult, error: copyError } = await dataStore.call("insert_estimate_template_node_into_estimate_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimateId,
     target_parent_node_id: targetParentNodeId,
@@ -3165,25 +3240,25 @@ export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, 
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const supabase = await createSupabaseServerClient();
-  await assertCanEditEstimate(supabase, estimateId);
+  const dataStore = await createEstimateActionsD1Client();
+  await assertCanEditEstimate(dataStore, estimateId);
   const currentUser = await requireCurrentUserContext();
   // P6 single-node model: a row may be inserted into ANY node, not only the
   // former "area" kind. We still scope the target to a node that exists in this
   // estimate/project; the relaxed insert_estimate_row_item_with_history RPC
   // enforces the existence/orphan invariant server-side.
-  const { data: targetNode, error: nodeError } = await supabase
+  const { data: targetNode, error: nodeError } = await dataStore
     .from("estimate_nodes")
     .select("id, estimate_id, kind, estimates!inner(project_id)")
     .eq("id", targetNodeId)
     .eq("estimate_id", estimateId)
     .eq("estimates.project_id", project.id)
-    .maybeSingle();
+    .maybeSingle<Pick<ValidatedEstimateNodeRow, "id" | "estimate_id" | "kind">>();
 
   if (nodeError) throw nodeError;
   if (!targetNode) throw new Error("Target estimate node not found in the current project.");
 
-  await assertCurrentLibrarySourceForEstimateCommit(supabase, libraryItem);
+  await assertCurrentLibrarySourceForEstimateCommit(dataStore, libraryItem);
 
   const quantity = libraryItem.quantity || 1;
   const quantityBase = libraryItem.quantityBase ?? null;
@@ -3192,7 +3267,7 @@ export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, 
   const sourceLibraryItemId = getSourceLibraryItemId(libraryItem);
   const persistedRowId = isUuid(rowId) ? rowId : randomUUID();
 
-  const { data: insertData, error: insertError } = await supabase.rpc("insert_estimate_row_item_with_history", {
+  const { data: insertData, error: insertError } = await dataStore.call("insert_estimate_row_item_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimateId,
     target_node_id: targetNodeId,
@@ -3237,13 +3312,13 @@ export async function updateEstimateSheetAdjustment({
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const supabase = await createSupabaseServerClient();
-  await assertCanEditEstimate(supabase, estimateId);
+  const dataStore = await createEstimateActionsD1Client();
+  await assertCanEditEstimate(dataStore, estimateId);
   const currentUser = await requireCurrentUserContext();
   const normalizedMode = normalizeEstimateSheetAdjustmentMode(mode);
   const normalizedPercentage = normalizeEstimateSheetAdjustmentPercentage(percentage);
 
-  const { data: adjustmentResult, error } = await supabase.rpc("update_estimate_sheet_adjustment_with_history", {
+  const { data: adjustmentResult, error } = await dataStore.call("update_estimate_sheet_adjustment_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimateId,
     adjustment_mode: normalizedMode,
@@ -3260,7 +3335,7 @@ export async function updateEstimateSheetAdjustment({
 }
 
 export async function updateEstimateRowItem({ projectId, estimateId, rowId, material, description, supplier, unit, unitCost, quantity, quantityBase, quantityContingencyAmount, contingencyPercentage, adjustmentPercentage, miscCost, sourceSnapshot, metadata, mutationId, expectedRowRevision }: UpdateEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
-  const { project, supabase, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
+  const { project, dataStore, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
   const currentUser = await requireCurrentUserContext();
   let sourceSnapshotPatch: Json | null | undefined;
   if (sourceSnapshot === null) {
@@ -3269,7 +3344,7 @@ export async function updateEstimateRowItem({ projectId, estimateId, rowId, mate
     const rawSourceSnapshotInput = readJsonObject(sourceSnapshot);
     const patchIncludesImageAsset = Object.prototype.hasOwnProperty.call(rawSourceSnapshotInput, "imageAsset");
     const sourceSnapshotInput = await validateEstimateRowImageAssetPatch({
-      supabase,
+      dataStore,
       projectId: project.id,
       estimateId,
       rowId: row.id,
@@ -3278,7 +3353,7 @@ export async function updateEstimateRowItem({ projectId, estimateId, rowId, mate
     let mergedSourceSnapshot = readJsonObject(mergeJsonObject(row.source_snapshot, sourceSnapshotInput));
     if (!patchIncludesImageAsset) {
       mergedSourceSnapshot = await removeUnvalidatedEstimateRowImageAsset({
-        supabase,
+        dataStore,
         projectId: project.id,
         estimateId,
         rowId: row.id,
@@ -3304,7 +3379,7 @@ export async function updateEstimateRowItem({ projectId, estimateId, rowId, mate
     ...(row.source_library_item_id ? { linkState: "linked-overridden" } : {}),
   };
 
-  const { data, error } = await supabase.rpc("update_estimate_row_item_with_history", {
+  const { data, error } = await dataStore.call("update_estimate_row_item_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimateId,
     target_row_id: row.id,
@@ -3320,10 +3395,10 @@ export async function updateEstimateRowItem({ projectId, estimateId, rowId, mate
 }
 
 export async function replaceEstimateRowItemWithLibrary({ projectId, estimateId, rowId, libraryItem, mutationId, expectedRowRevision }: ReplaceEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
-  const { project, supabase, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
+  const { project, dataStore, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
   const currentUser = await requireCurrentUserContext();
-  await assertCurrentLibrarySourceForEstimateCommit(supabase, libraryItem);
-  const { data, error } = await supabase.rpc("replace_estimate_row_item_with_history", {
+  await assertCurrentLibrarySourceForEstimateCommit(dataStore, libraryItem);
+  const { data, error } = await dataStore.call("replace_estimate_row_item_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimateId,
     target_row_id: row.id,
@@ -3345,11 +3420,11 @@ export async function detachEstimateRowItemFromLibrary({
   mutationId,
   expectedRowRevision,
 }: DetachEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
-  const { project, supabase, row } = await getValidatedEstimateRow(projectId, estimateId, rowId);
-  await assertCanEditEstimate(supabase, estimateId);
+  const { project, dataStore, row } = await getValidatedEstimateRow(projectId, estimateId, rowId);
+  await assertCanEditEstimate(dataStore, estimateId);
   const currentUser = await requireCurrentUserContext();
   const trimmedReason = reason?.trim() || undefined;
-  const { data, error } = await supabase.rpc("unlink_estimate_row_item_from_library_with_history", {
+  const { data, error } = await dataStore.call("unlink_estimate_row_item_from_library_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimateId,
     target_row_id: row.id,
@@ -3366,9 +3441,9 @@ export async function detachEstimateRowItemFromLibrary({
 }
 
 export async function deleteEstimateRowItem({ projectId, estimateId, rowId, mutationId, expectedRowRevision }: DeleteEstimateRowItemInput): Promise<DeleteEstimateRowItemResult> {
-  const { project, supabase, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
+  const { project, dataStore, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
   const currentUser = await requireCurrentUserContext();
-  const { data, error } = await supabase.rpc("delete_estimate_row_item_with_history", {
+  const { data, error } = await dataStore.call("delete_estimate_row_item_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimateId,
     target_row_id: row.id,
@@ -3395,10 +3470,10 @@ export async function moveEstimateRowComponentWithHistory({
   const sourceRow = await getValidatedEstimateRow(projectId, estimateId, sourceRowId, { requireEdit: true });
   const targetRow = await getValidatedEstimateRow(projectId, estimateId, targetRowId, { requireEdit: true });
   const currentUser = await requireCurrentUserContext();
-  await assertCurrentLibrarySourceForEstimateCommit(targetRow.supabase, sourceLibraryItem);
-  await assertCurrentLibrarySourceForEstimateCommit(targetRow.supabase, targetLibraryItem);
+  await assertCurrentLibrarySourceForEstimateCommit(targetRow.dataStore, sourceLibraryItem);
+  await assertCurrentLibrarySourceForEstimateCommit(targetRow.dataStore, targetLibraryItem);
 
-  const { data, error } = await targetRow.supabase.rpc("move_estimate_row_component_with_history", {
+  const { data, error } = await targetRow.dataStore.call("move_estimate_row_component_with_history", {
     target_project_id: targetRow.project.id,
     target_estimate_id: estimateId,
     source_row_id: sourceRowId,
@@ -3456,10 +3531,10 @@ export async function moveEstimateRowItemWithHistory({
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const supabase = await createSupabaseServerClient();
-  await assertCanEditEstimate(supabase, estimateId);
+  const dataStore = await createEstimateActionsD1Client();
+  await assertCanEditEstimate(dataStore, estimateId);
 
-  const { data, error } = await supabase.rpc("move_estimate_row_item_with_history", {
+  const { data, error } = await dataStore.call("move_estimate_row_item_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimateId,
     target_active_tab_id: normalizedActiveTabId,
@@ -3516,10 +3591,10 @@ export async function deleteEstimateRowItemsBulk({
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const supabase = await createSupabaseServerClient();
-  await assertCanEditEstimate(supabase, estimateId);
+  const dataStore = await createEstimateActionsD1Client();
+  await assertCanEditEstimate(dataStore, estimateId);
   const currentUser = await requireCurrentUserContext();
-  const { data: rows, error: rowsError } = await supabase
+  const { data: rows, error: rowsError } = await dataStore
     .from("estimate_row_items")
     .select("id, row_revision, estimate_nodes!inner(estimates!inner(project_id))")
     .eq("estimate_id", estimateId)
@@ -3527,13 +3602,14 @@ export async function deleteEstimateRowItemsBulk({
     .in("id", normalizedRowIds);
 
   if (rowsError) throw rowsError;
-  const rowRevisionById = new Map((rows ?? []).map((row) => [row.id, row.row_revision]));
+  const revisionRows = (rows ?? []) as Array<{ id: string; row_revision: number | string | null }>;
+  const rowRevisionById = new Map(revisionRows.map((row) => [row.id, row.row_revision]));
   if (rowRevisionById.size !== normalizedRowIds.length) throw new Error("One or more estimate row items were not found in the current project.");
   const expectedRevisionPayload = Object.fromEntries(
     normalizedRowIds.map((rowId) => [rowId, expectedRowRevisions?.[rowId] ?? rowRevisionById.get(rowId)]),
   );
 
-  const { data, error } = await supabase.rpc("delete_estimate_row_items_bulk_with_history", {
+  const { data, error } = await dataStore.call("delete_estimate_row_items_bulk_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimateId,
     target_row_ids: normalizedRowIds,
@@ -3557,10 +3633,10 @@ export async function restoreDeletedEstimateRows({
   if (!project) throw new Error("Project not found in the current workspace.");
 
   const normalizedRowIds = rowIds && rowIds.length > 0 ? normalizeEstimateRowIdSelection(rowIds) : null;
-  const supabase = await createSupabaseServerClient();
-  await assertCanEditEstimate(supabase, estimateId);
+  const dataStore = await createEstimateActionsD1Client();
+  await assertCanEditEstimate(dataStore, estimateId);
   const currentUser = await requireCurrentUserContext();
-  const { data, error } = await supabase.rpc("restore_deleted_estimate_rows_with_history", {
+  const { data, error } = await dataStore.call("restore_deleted_estimate_rows_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimateId,
     source_delete_event_id: sourceEventId,
@@ -3585,10 +3661,10 @@ export async function restoreDeletedEstimateNodes({
   if (!project) throw new Error("Project not found in the current workspace.");
 
   const normalizedNodeIds = nodeIds && nodeIds.length > 0 ? normalizeEstimateNodeIdSelection(nodeIds) : null;
-  const supabase = await createSupabaseServerClient();
-  await assertCanEditEstimate(supabase, estimateId);
+  const dataStore = await createEstimateActionsD1Client();
+  await assertCanEditEstimate(dataStore, estimateId);
   const currentUser = await requireCurrentUserContext();
-  const { data, error } = await supabase.rpc("restore_deleted_estimate_nodes_with_history", {
+  const { data, error } = await dataStore.call("restore_deleted_estimate_nodes_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimateId,
     source_delete_event_id: sourceEventId,

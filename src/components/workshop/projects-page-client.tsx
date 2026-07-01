@@ -61,7 +61,7 @@ import {
   recolorProjectGroup,
   renameProjectGroup,
 } from "@/lib/workshop/group-actions";
-import type { Tables } from "@/lib/supabase/types";
+import type { ProjectRow } from "@/lib/types/database";
 import { cn } from "@/lib/ui/cn";
 import { filterMapBy } from "@/lib/util/array";
 import type { CollaborationRole } from "@/lib/collaboration/types";
@@ -88,7 +88,7 @@ import { ProjectGroupSection } from "./ProjectGroupSection";
 import { WorkshopCollectionLayout } from "./WorkshopCollectionLayout";
 
 type ProjectsPageClientProps = {
-  projects: Array<Tables<"projects"> | ProjectListItem>;
+  projects: Array<ProjectRow | ProjectListItem>;
   favoriteProjectIds?: string[];
   favoritesScope: { workspaceId: string; userId: string };
   googleMapsApiKey?: string;
@@ -99,7 +99,7 @@ type ProjectsPageClientProps = {
 };
 
 export type ProjectListItem = {
-  project: Tables<"projects">;
+  project: ProjectRow;
   accessKind: ProjectAccessKind;
   currentUserRole: CollaborationRole;
   ownerWorkspaceName?: string | null;
@@ -259,7 +259,7 @@ type ProjectDeleteState = "idle" | "loading" | "ready" | "executing";
 type StateUpdater<T> = T | ((current: T) => T);
 type ProjectsPageClientState = {
   isModalOpen: boolean;
-  expandedProject: Tables<"projects"> | null;
+  expandedProject: ProjectRow | null;
   searchQuery: string;
   optimisticProjectCreates: Record<string, NewProjectOptimisticSnapshot>;
   activeTab: ProjectAccessTab;
@@ -286,7 +286,7 @@ type ProjectsPageClientAction =
   | { type: "setIsModalOpen"; value: StateUpdater<boolean> }
   | {
       type: "setExpandedProject";
-      value: StateUpdater<Tables<"projects"> | null>;
+      value: StateUpdater<ProjectRow | null>;
     }
   | { type: "setSearchQuery"; value: string }
   | {
@@ -454,7 +454,7 @@ function projectsPageClientReducer(
 }
 
 function normalizeProjectListItem(
-  projectOrItem: Tables<"projects"> | ProjectListItem,
+  projectOrItem: ProjectRow | ProjectListItem,
 ): ProjectListItem {
   if ("project" in projectOrItem) return projectOrItem;
   return {
@@ -911,7 +911,7 @@ type ProjectCardRowProps = {
   setupNavigationDisabled?: boolean;
   onToggleSelected: (projectId: string) => void;
   onToggleFavorite: (projectId: string, nextFavorite: boolean) => void;
-  onExpand: (project: Tables<"projects">) => void;
+  onExpand: (project: ProjectRow) => void;
   // Group-menu inputs are passed as PRIMITIVES so this row's memo can compare them by value.
   // The menu node is built inside the memo boundary, so an unrelated parent re-render (search
   // keystroke, another card's star) no longer creates a fresh `groupAssignMenu` for every card.
@@ -1073,7 +1073,7 @@ export function ProjectsPageClient({
     () => ({
       setIsModalOpen: (value: StateUpdater<boolean>) =>
         dispatchPageState({ type: "setIsModalOpen", value }),
-      setExpandedProject: (value: StateUpdater<Tables<"projects"> | null>) =>
+      setExpandedProject: (value: StateUpdater<ProjectRow | null>) =>
         dispatchPageState({ type: "setExpandedProject", value }),
       setSearchQuery: (value: string) =>
         dispatchPageState({ type: "setSearchQuery", value }),

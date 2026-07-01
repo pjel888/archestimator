@@ -4,7 +4,7 @@
  * Plan: 2026-06-14 Teamspace Improvement Plan — T0.6 (rollout/observability),
  * T5.3 (project-wide page cursors, capacity-gated by D-1), T5.4 (follow mode,
  * deferred by D-6). These flags let risky realtime surfaces be disabled without
- * a deploy if the Supabase tier is exceeded or a regression appears.
+ * a deploy if realtime capacity is exceeded or a regression appears.
  *
  * Flags are read from `NEXT_PUBLIC_*` env so client hooks can branch on them.
  * Values are inlined at build time by Next.js; treat them as build-time config,
@@ -32,8 +32,8 @@ export function isCursorBroadcastEnabled(): boolean {
 }
 
 /**
- * Project-wide page cursors (T5.3). Capacity-gated by decision D-1 (needs Supabase
- * Pro headroom). Default OFF; enable per-environment with
+ * Project-wide page cursors (T5.3). Capacity-gated by decision D-1 (needs
+ * Cloudflare realtime headroom). Default OFF; enable per-environment with
  * `NEXT_PUBLIC_TEAMSPACE_PROJECT_CURSORS=on` once the tier is confirmed.
  */
 export function isProjectPageCursorsEnabled(): boolean {

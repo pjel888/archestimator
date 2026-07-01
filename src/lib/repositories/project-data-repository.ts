@@ -4,7 +4,7 @@ import type {
 } from "@/lib/project-charts/types";
 import { getProjectChartsData } from "@/lib/repositories/project-charts-repository";
 import { listProjectEstimates } from "@/lib/repositories/workspace-repository";
-import type { Tables } from "@/lib/supabase/types";
+import type { EstimateRow, ProjectRow } from "@/lib/types/database";
 
 export type ProjectDataEstimateSheet = {
   id: string;
@@ -108,8 +108,8 @@ function resolveCompareEstimateIds(
 }
 
 function toProjectDataEstimateSheet(
-  project: Tables<"projects">,
-  estimate: Tables<"estimates">,
+  project: ProjectRow,
+  estimate: EstimateRow,
   summary: { rowCount: number; totalCost: number },
 ): ProjectDataEstimateSheet {
   return {

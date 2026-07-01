@@ -1,6 +1,7 @@
 import "server-only";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
+import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
 import type { CollaborationRole } from "@/lib/collaboration/types";
 import { decryptPublicationToken, readPublicationTokenEncryptionSecret } from "@/lib/publication/security";
 import type { ProjectPublicationStatus, ProjectPublicationSummary } from "@/lib/publication/types";
@@ -9,8 +10,6 @@ import {
   readLatestPublicationActivityTimestamp,
   readPublicationSnapshotStaleness,
 } from "@/lib/repositories/workspace-repository";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { Json, Tables } from "@/lib/supabase/types";
 import {
   canManagePublisherRosterProject,
   canReadPublisherRosterProject,
@@ -77,18 +76,20 @@ export type PublisherRosterProjectInput = {
   canManagePublication: boolean;
 };
 
+type JsonValue = string | number | boolean | null | { [key: string]: JsonValue | undefined } | JsonValue[];
+
 export type PublisherRosterPublicationInput = {
   id: string;
   projectId: string;
   workspaceId: string;
   encryptedToken: string | null;
-  status: Tables<"project_publications">["status"];
+  status: ProjectPublicationStatus;
   publishedAt: string;
   expiresAt: string | null;
   revokedAt: string | null;
   passwordRequired: boolean;
   selectedEstimateIds: string[];
-  snapshotJson: Json | null;
+  snapshotJson: JsonValue | null;
   snapshotVersion: number;
   openCount: number;
   latestOpenedAt: string | null;
@@ -100,23 +101,22 @@ export type PublisherRosterEstimateInput = {
   updatedAt: string | null;
 };
 
-type ProjectPublicationRosterQueryRow = Pick<
-  Tables<"project_publications">,
-  | "encrypted_token"
-  | "expires_at"
-  | "id"
-  | "latest_opened_at"
-  | "open_count"
-  | "password_hash"
-  | "project_id"
-  | "published_at"
-  | "revoked_at"
-  | "selected_estimate_ids"
-  | "snapshot_json"
-  | "snapshot_version"
-  | "status"
-  | "workspace_id"
->;
+type ProjectPublicationRosterQueryRow = {
+  id: string;
+  encrypted_token: string | null;
+  expires_at: string | null;
+  latest_opened_at: string | null;
+  open_count: number | null;
+  password_hash: string | null;
+  selected_estimate_ids: string | null;
+  snapshot_json: string | null;
+  snapshot_version: number | null;
+  status: ProjectPublicationStatus;
+  project_id: string;
+  published_at: string;
+  revoked_at: string | null;
+  workspace_id: string;
+};
 
 type PublicationActivityRow = {
   publication_id: string;
@@ -124,10 +124,43 @@ type PublicationActivityRow = {
 };
 
 type CurrentWorkspaceProjectItem = Awaited<ReturnType<typeof listCurrentWorkspaceProjects>>["projects"][number];
-type PublicationRecipientCountRow = Pick<Tables<"shared_link_recipients">, "publication_id">;
-type PublicationEstimateUpdatedAtRow = Pick<Tables<"estimates">, "id" | "project_id" | "updated_at">;
+type PublicationRecipientCountRow = { publication_id: string };
+type PublicationEstimateUpdatedAtRow = { id: string; project_id: string; updated_at: string | null };
 
-function readSnapshotGeneratedAt(snapshot: Json | null | undefined) {
+async function requirePublisherRosterD1Database() {
+  const database = await getCloudflareD1Database();
+  if (!database) {
+    throw new Error("Cloudflare D1 ARCH_DB binding is required for Publisher roster data.");
+  }
+  return database;
+}
+
+async function all<T>(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
+  const result = await database.prepare<T>(sql).bind(...values).all<T>();
+  return result.results ?? [];
+}
+
+function placeholders(values: readonly unknown[]) {
+  return values.map(() => "?").join(", ");
+}
+
+function parseJsonValue(value: unknown, fallback: JsonValue): JsonValue {
+  if (typeof value !== "string") {
+    return value === null || value === undefined ? fallback : (value as JsonValue);
+  }
+  try {
+    return JSON.parse(value) as JsonValue;
+  } catch {
+    return fallback;
+  }
+}
+
+function parseStringArray(value: unknown) {
+  const parsed = parseJsonValue(value, []);
+  return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
+}
+
+function readSnapshotGeneratedAt(snapshot: JsonValue | null | undefined) {
   if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) return null;
   const generatedAt = snapshot.generatedAt;
   return typeof generatedAt === "string" && Number.isFinite(Date.parse(generatedAt)) ? generatedAt : null;
@@ -402,8 +435,8 @@ function toRosterPublicationInput(publication: ProjectPublicationRosterQueryRow)
     projectId: publication.project_id,
     publishedAt: publication.published_at,
     revokedAt: publication.revoked_at ?? null,
-    selectedEstimateIds: publication.selected_estimate_ids ?? [],
-    snapshotJson: publication.snapshot_json ?? null,
+    selectedEstimateIds: parseStringArray(publication.selected_estimate_ids),
+    snapshotJson: parseJsonValue(publication.snapshot_json, null),
     snapshotVersion: publication.snapshot_version ?? 0,
     status: publication.status,
     workspaceId: publication.workspace_id,
@@ -411,37 +444,51 @@ function toRosterPublicationInput(publication: ProjectPublicationRosterQueryRow)
 }
 
 async function readRosterPublications(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
+  workspaceId: string,
   projectIds: string[],
 ) {
   if (projectIds.length === 0) return [];
-  const { data, error } = await supabase
-    .from("project_publications")
-    .select(
-      "id, project_id, workspace_id, encrypted_token, password_hash, status, snapshot_json, snapshot_version, selected_estimate_ids, published_at, expires_at, revoked_at, open_count, latest_opened_at",
-    )
-    .in("project_id", projectIds)
-    .order("published_at", { ascending: false })
-    .limit(PUBLISHER_ROSTER_PUBLICATION_SCAN_LIMIT);
-
-  if (error) throw error;
-  return (data ?? []) as ProjectPublicationRosterQueryRow[];
+  return all<ProjectPublicationRosterQueryRow>(
+    database,
+    `SELECT
+       id,
+       project_id,
+       workspace_id,
+       encrypted_token,
+       password_hash,
+       status,
+       snapshot_json,
+       snapshot_version,
+       selected_estimate_ids,
+       published_at,
+       expires_at,
+       revoked_at,
+       open_count,
+       latest_opened_at
+     FROM project_publications
+     WHERE workspace_id = ? AND project_id IN (${placeholders(projectIds)})
+     ORDER BY published_at DESC
+     LIMIT ?`,
+    [workspaceId, ...projectIds, PUBLISHER_ROSTER_PUBLICATION_SCAN_LIMIT],
+  );
 }
 
 async function readRecipientCountsByPublicationId(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   publicationIds: string[],
 ) {
   if (publicationIds.length === 0) return new Map<string, number>();
-  const { data, error } = await supabase
-    .from("shared_link_recipients")
-    .select("publication_id")
-    .in("publication_id", publicationIds)
-    .limit(PUBLISHER_ROSTER_CHILD_SCAN_LIMIT);
-
-  if (error) throw error;
+  const rows = await all<PublicationRecipientCountRow>(
+    database,
+    `SELECT publication_id
+     FROM shared_link_recipients
+     WHERE publication_id IN (${placeholders(publicationIds)})
+     LIMIT ?`,
+    [...publicationIds, PUBLISHER_ROSTER_CHILD_SCAN_LIMIT],
+  );
   const counts = new Map<string, number>();
-  for (const row of (data ?? []) as PublicationRecipientCountRow[]) {
+  for (const row of rows) {
     counts.set(row.publication_id, (counts.get(row.publication_id) ?? 0) + 1);
   }
   return counts;
@@ -458,50 +505,53 @@ function latestActivityMap(rows: PublicationActivityRow[]) {
 }
 
 async function readLatestCommentAtByPublicationId(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   publicationIds: string[],
 ) {
   if (publicationIds.length === 0) return new Map<string, string | null>();
-  const { data, error } = await supabase
-    .from("shared_link_comments")
-    .select("publication_id, created_at")
-    .in("publication_id", publicationIds)
-    .order("created_at", { ascending: false })
-    .limit(PUBLISHER_ROSTER_CHILD_SCAN_LIMIT);
-
-  if (error) throw error;
-  return latestActivityMap((data ?? []) as PublicationActivityRow[]);
+  const rows = await all<PublicationActivityRow>(
+    database,
+    `SELECT publication_id, created_at
+     FROM shared_link_comments
+     WHERE publication_id IN (${placeholders(publicationIds)})
+     ORDER BY created_at DESC
+     LIMIT ?`,
+    [...publicationIds, PUBLISHER_ROSTER_CHILD_SCAN_LIMIT],
+  );
+  return latestActivityMap(rows);
 }
 
 async function readLatestResponseAtByPublicationId(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   publicationIds: string[],
 ) {
   if (publicationIds.length === 0) return new Map<string, string | null>();
-  const { data, error } = await supabase
-    .from("shared_link_responses")
-    .select("publication_id, created_at")
-    .in("publication_id", publicationIds)
-    .order("created_at", { ascending: false })
-    .limit(PUBLISHER_ROSTER_CHILD_SCAN_LIMIT);
-
-  if (error) throw error;
-  return latestActivityMap((data ?? []) as PublicationActivityRow[]);
+  const rows = await all<PublicationActivityRow>(
+    database,
+    `SELECT publication_id, created_at
+     FROM shared_link_responses
+     WHERE publication_id IN (${placeholders(publicationIds)})
+     ORDER BY created_at DESC
+     LIMIT ?`,
+    [...publicationIds, PUBLISHER_ROSTER_CHILD_SCAN_LIMIT],
+  );
+  return latestActivityMap(rows);
 }
 
 async function readEstimateUpdatedAtRows(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   projectIds: string[],
 ) {
   if (projectIds.length === 0) return [];
-  const { data, error } = await supabase
-    .from("estimates")
-    .select("id, project_id, updated_at")
-    .in("project_id", projectIds)
-    .limit(PUBLISHER_ROSTER_CHILD_SCAN_LIMIT);
-
-  if (error) throw error;
-  return ((data ?? []) as PublicationEstimateUpdatedAtRow[]).map((row) => ({
+  const rows = await all<PublicationEstimateUpdatedAtRow>(
+    database,
+    `SELECT id, project_id, updated_at
+     FROM estimates
+     WHERE project_id IN (${placeholders(projectIds)})
+     LIMIT ?`,
+    [...projectIds, PUBLISHER_ROSTER_CHILD_SCAN_LIMIT],
+  );
+  return rows.map((row) => ({
     id: row.id,
     projectId: row.project_id,
     updatedAt: row.updated_at,
@@ -531,16 +581,16 @@ export async function readWorkspacePublicationsRoster(
     return composePublisherRosterResult({ filters, projects: allRosterProjects, publications: [] });
   }
 
-  const supabase = await createSupabaseServerClient();
+  const database = await requirePublisherRosterD1Database();
   const projectIds = queryProjects.map((project) => project.id);
-  const publicationRows = await readRosterPublications(supabase, projectIds);
+  const publicationRows = await readRosterPublications(database, workspace.id, projectIds);
   const publicationIds = publicationRows.map((publication) => publication.id);
   const [estimateRows, recipientCountByPublicationId, latestCommentAtByPublicationId, latestResponseAtByPublicationId] =
     await Promise.all([
-      readEstimateUpdatedAtRows(supabase, projectIds),
-      readRecipientCountsByPublicationId(supabase, publicationIds),
-      readLatestCommentAtByPublicationId(supabase, publicationIds),
-      readLatestResponseAtByPublicationId(supabase, publicationIds),
+      readEstimateUpdatedAtRows(database, projectIds),
+      readRecipientCountsByPublicationId(database, publicationIds),
+      readLatestCommentAtByPublicationId(database, publicationIds),
+      readLatestResponseAtByPublicationId(database, publicationIds),
     ]);
 
   return composePublisherRosterResult({

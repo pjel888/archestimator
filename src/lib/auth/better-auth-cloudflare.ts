@@ -83,7 +83,7 @@ export type SendBetterAuthMagicLinkEmailInput = {
 
 export type BetterAuthRouteGateParityRequirement = {
   key: string;
-  currentSupabaseBehavior: string;
+  previousProviderBehavior: string;
   betterAuthD1Requirement: string;
   localProofStatus: "mapped" | "deferred";
 };
@@ -91,49 +91,49 @@ export type BetterAuthRouteGateParityRequirement = {
 export const BETTER_AUTH_ROUTE_GATE_PARITY_MATRIX = [
   {
     key: "signed-out-protected-route",
-    currentSupabaseBehavior: "Proxy checks Supabase claims and redirects protected /workshop requests to /login with a safe next path.",
+    previousProviderBehavior: "Proxy checks signed-in claims and redirects protected /workshop requests to /login with a safe next path.",
     betterAuthD1Requirement:
       "Use auth.api.getSession({ headers, query: { disableCookieCache: true } }) and redirect null sessions before protected routes render.",
     localProofStatus: "mapped",
   },
   {
     key: "signed-in-auth-route",
-    currentSupabaseBehavior: "Authenticated users visiting login/signup are redirected back to the workshop shell.",
+    previousProviderBehavior: "Authenticated users visiting login/signup are redirected back to the workshop shell.",
     betterAuthD1Requirement:
       "Use the secure Better Auth server session check rather than getSessionCookie before auth-route redirects.",
     localProofStatus: "mapped",
   },
   {
     key: "closed-beta-denial",
-    currentSupabaseBehavior: "Closed-beta access uses the session email and redirects blocked users to /access-required.",
+    previousProviderBehavior: "Closed-beta access uses the session email and redirects blocked users to /access-required.",
     betterAuthD1Requirement:
       "Resolve the Better Auth user email from D1-backed session identity before running the existing closed-beta policy.",
     localProofStatus: "mapped",
   },
   {
     key: "terms-gate",
-    currentSupabaseBehavior: "Terms acceptance is enforced after identity is known and before protected workshop access.",
+    previousProviderBehavior: "Terms acceptance is enforced after identity is known and before protected workshop access.",
     betterAuthD1Requirement:
       "Preserve the terms gate after Better Auth session validation and before setting protected-route gate headers.",
     localProofStatus: "mapped",
   },
   {
     key: "invite-entry",
-    currentSupabaseBehavior: "Invite continue, accept, and sign-out routes branch on current Supabase user context.",
+    previousProviderBehavior: "Invite continue, accept, and sign-out routes branch on current user context.",
     betterAuthD1Requirement:
-      "Port invite entry to the Better Auth D1 session/user context before replacing Supabase session helpers.",
+      "Keep invite entry on the Better Auth D1 session/user context before production cutover.",
     localProofStatus: "mapped",
   },
   {
     key: "local-dev-bypass",
-    currentSupabaseBehavior: "Local dev auth can satisfy protected routes without a live Supabase session.",
+    previousProviderBehavior: "Local dev auth can satisfy protected routes without a live provider session.",
     betterAuthD1Requirement:
       "Keep the local dev auth gate ahead of provider-backed Better Auth session validation for local-only proof runs.",
     localProofStatus: "mapped",
   },
   {
     key: "oauth-magic-link-callback",
-    currentSupabaseBehavior: "Supabase callback and OTP actions own OAuth, magic-link, and sign-out provider calls.",
+    previousProviderBehavior: "The legacy callback and OTP actions owned OAuth, magic-link, and sign-out provider calls.",
     betterAuthD1Requirement:
       "Mount Better Auth handlers and email/OAuth provider config only after D1 schema, secrets, and callback tests are ready.",
     localProofStatus: "deferred",

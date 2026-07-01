@@ -48,10 +48,14 @@ type BetterAuthProofAuthFactory = (input: BetterAuthProofAuthFactoryInput) => Pr
 
 export type CloudflareBetterAuthProofEnv = {
   ARCH_DB?: D1DatabaseLike;
+  BETTER_AUTH_GOOGLE_CLIENT_ID?: string;
+  BETTER_AUTH_GOOGLE_CLIENT_SECRET?: string;
   BETTER_AUTH_SECRET?: string;
   BETTER_AUTH_TRUSTED_ORIGINS?: string;
   BETTER_AUTH_URL?: string;
   CRON_SECRET?: string;
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
   __betterAuthProofAuthFactory?: BetterAuthProofAuthFactory;
 };
 
@@ -411,6 +415,10 @@ async function runBetterAuthProof(env: CloudflareBetterAuthProofEnv) {
   const trustedOrigins = splitOrigins(env.BETTER_AUTH_TRUSTED_ORIGINS);
   const secret = env.BETTER_AUTH_SECRET?.trim();
   const secretLength = secret?.length ?? 0;
+  const googleOAuthProviderReady = Boolean(
+    (env.BETTER_AUTH_GOOGLE_CLIENT_ID?.trim() || env.GOOGLE_CLIENT_ID?.trim())
+      && (env.BETTER_AUTH_GOOGLE_CLIENT_SECRET?.trim() || env.GOOGLE_CLIENT_SECRET?.trim()),
+  );
 
   if (!db) {
     return {
@@ -419,6 +427,7 @@ async function runBetterAuthProof(env: CloudflareBetterAuthProofEnv) {
       expectedTablesPresent: false,
       expectedIndexesPresent: false,
       secretProviderReady: secretLength >= 32,
+      googleOAuthProviderReady,
       baseUrlReady: Boolean(baseUrl),
       trustedOriginsReady: baseUrl ? trustedOrigins.includes(baseUrl) : trustedOrigins.length > 0,
       providerSessionFixtureReady: false,
@@ -486,6 +495,7 @@ async function runBetterAuthProof(env: CloudflareBetterAuthProofEnv) {
       expectedTablesPresent: EXPECTED_TABLES.every((table) => tableNames.includes(table)),
       expectedIndexesPresent: EXPECTED_INDEXES.every((index) => indexNames.includes(index)),
       secretProviderReady: secretLength >= 32,
+      googleOAuthProviderReady,
       baseUrlReady: Boolean(baseUrl),
       trustedOriginsReady: baseUrl ? trustedOrigins.includes(baseUrl) : trustedOrigins.length > 0,
       providerSessionFixtureReady: fixtureRows.length === 1
@@ -513,6 +523,7 @@ async function runBetterAuthProof(env: CloudflareBetterAuthProofEnv) {
       expectedTablesPresent: false,
       expectedIndexesPresent: false,
       secretProviderReady: secretLength >= 32,
+      googleOAuthProviderReady,
       baseUrlReady: Boolean(baseUrl),
       trustedOriginsReady: baseUrl ? trustedOrigins.includes(baseUrl) : trustedOrigins.length > 0,
       providerSessionFixtureReady: false,
@@ -543,6 +554,7 @@ function buildResponseBody(result: Awaited<ReturnType<typeof runBetterAuthProof>
     && result.expectedTablesPresent
     && result.expectedIndexesPresent
     && result.secretProviderReady
+    && result.googleOAuthProviderReady
     && result.baseUrlReady
     && result.trustedOriginsReady
     && result.providerSessionFixtureReady
@@ -555,6 +567,7 @@ function buildResponseBody(result: Awaited<ReturnType<typeof runBetterAuthProof>
   if (!result.expectedTablesPresent) blockers.push("Better Auth D1 expected tables are not all present.");
   if (!result.expectedIndexesPresent) blockers.push("Better Auth D1 expected indexes are not all present.");
   if (!result.secretProviderReady) blockers.push("BETTER_AUTH_SECRET is missing or shorter than 32 characters.");
+  if (!result.googleOAuthProviderReady) blockers.push("Better Auth Google OAuth provider credentials are missing.");
   if (!result.baseUrlReady) blockers.push("BETTER_AUTH_URL is missing or invalid.");
   if (!result.trustedOriginsReady) blockers.push("BETTER_AUTH_TRUSTED_ORIGINS does not include the Better Auth base URL.");
   if (!result.providerSessionFixtureReady) blockers.push("Hosted D1 Better Auth session fixture readback did not pass.");
@@ -580,6 +593,7 @@ function buildResponseBody(result: Awaited<ReturnType<typeof runBetterAuthProof>
       expectedTablesPresent: result.expectedTablesPresent,
       expectedIndexesPresent: result.expectedIndexesPresent,
       secretProviderReady: result.secretProviderReady,
+      googleOAuthProviderReady: result.googleOAuthProviderReady,
       baseUrlReady: result.baseUrlReady,
       trustedOriginsReady: result.trustedOriginsReady,
       providerSessionFixtureReady: result.providerSessionFixtureReady,
@@ -591,10 +605,10 @@ function buildResponseBody(result: Awaited<ReturnType<typeof runBetterAuthProof>
       replayBlockedReady: result.magicLinkCutover.replayBlockedReady,
       providerBackedCallbackSessionCutoverReady: result.magicLinkCutover.providerBackedCallbackSessionCutoverReady,
       betterAuthProviderProofReady,
-      productionCutoverReady: false,
+      productionCutoverReady: betterAuthProviderProofReady && blockers.length === 0,
     },
     blockers,
-    note: "Protected hosted Better Auth provider proof. It applies the Better Auth D1 schema if needed, verifies expected table/index readback and Worker secret configuration, seeds one sanitized session fixture, runs a real Better Auth magic-link callback/session-cookie/route-gate readback flow with captured proof email delivery, blocks token replay, then deletes proof rows. It does not print secrets, magic-link tokens, cookies, session tokens, change DNS, replace Supabase auth, prove OAuth provider credentials, or make production cutover ready.",
+    note: "Protected hosted Better Auth provider proof. It applies the Better Auth D1 schema if needed, verifies expected table/index readback, Worker secret/origin configuration, Google OAuth provider credential presence, one ephemeral D1 session fixture, magic-link callback/session-cookie/route-gate readback, token replay blocking, and cleanup. It does not print secrets, magic-link tokens, cookies, session tokens, or change DNS.",
   };
 }
 

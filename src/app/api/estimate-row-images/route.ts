@@ -3,9 +3,15 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
+import {
+  canEditEstimateInD1,
+  canEditProjectInD1,
+  readEstimateInProjectFromD1,
+  readEstimateRowItemInEstimateFromD1,
+  readProjectInWorkspaceFromD1,
+} from "@/lib/authz/d1-access";
 import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { reserveUploadAdmission } from "@/lib/uploads/admission-control";
 import {
   CLOUDFLARE_IMAGE_PROCESSING_UNAVAILABLE_MESSAGE,
@@ -117,28 +123,6 @@ async function uploadWebp({
   return createProjectImageRouteUrl(path);
 }
 
-async function canEditEstimate(estimateId: string, supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
-  const { data, error } = await supabase.rpc("can_edit_estimate", {
-    target_estimate_id: estimateId,
-  });
-  if (error) {
-    console.error("Estimate row image authorization failed", error);
-    return false;
-  }
-  return data === true;
-}
-
-async function canEditProject(projectId: string, supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
-  const { data, error } = await supabase.rpc("can_edit_project", {
-    target_project_id: projectId,
-  });
-  if (error) {
-    console.error("Estimate row image project authorization failed", error);
-    return false;
-  }
-  return data === true;
-}
-
 export async function POST(request: Request) {
   const contentLength = Number(request.headers.get("content-length") ?? 0);
   if (contentLength > MAX_UPLOAD_BYTES + 1024 * 1024) {
@@ -166,36 +150,25 @@ export async function POST(request: Request) {
     if (file.size <= 0) return jsonError("Image file is empty.");
     if (file.size > MAX_UPLOAD_BYTES) return jsonError("Image upload is too large. Compress or choose an image under 12 MB.", 413);
 
-    const serverSupabase = await createSupabaseServerClient();
-    const { data: project, error: projectError } = await serverSupabase
-      .from("projects")
-      .select("id")
-      .eq("id", projectId)
-      .eq("workspace_id", workspace.id)
-      .single();
+    const uploadMetadataDb = await getCloudflareD1Database();
+    if (!uploadMetadataDb) return uploadMetadataUnavailableResponse();
 
-    if (projectError || !project) return jsonError("Project could not be found.", 404);
+    const project = await readProjectInWorkspaceFromD1(uploadMetadataDb, projectId, workspace.id);
+    if (!project) return jsonError("Project could not be found.", 404);
 
-    const { data: estimate, error: estimateError } = await serverSupabase
-      .from("estimates")
-      .select("id, project_id")
-      .eq("id", estimateId)
-      .eq("project_id", projectId)
-      .single();
+    const estimate = await readEstimateInProjectFromD1(uploadMetadataDb, estimateId, projectId);
+    if (!estimate) return jsonError("Estimate could not be found.", 404);
 
-    if (estimateError || !estimate) return jsonError("Estimate could not be found.", 404);
-    if (!(await canEditProject(projectId, serverSupabase)) && !(await canEditEstimate(estimateId, serverSupabase))) {
+    const [canEditProject, canEditEstimate] = await Promise.all([
+      canEditProjectInD1(uploadMetadataDb, projectId, currentUser),
+      canEditEstimateInD1(uploadMetadataDb, estimateId, currentUser),
+    ]);
+    if (!canEditProject && !canEditEstimate) {
       return jsonError("You do not have permission to edit this estimate.", 403);
     }
 
-    const { data: estimateRow, error: estimateRowError } = await serverSupabase
-      .from("estimate_row_items")
-      .select("id")
-      .eq("id", rowItemId)
-      .eq("estimate_id", estimateId)
-      .single();
-
-    if (estimateRowError || !estimateRow) return jsonError("Estimate row could not be found.", 404);
+    const estimateRow = await readEstimateRowItemInEstimateFromD1(uploadMetadataDb, rowItemId, estimateId);
+    if (!estimateRow) return jsonError("Estimate row could not be found.", 404);
 
     const sourceBuffer = Buffer.from(await file.arrayBuffer());
     const magicMime = readMagicMime(sourceBuffer.subarray(0, 64));
@@ -220,9 +193,6 @@ export async function POST(request: Request) {
       return jsonError("Could not decode image safely. Choose a standard JPG, PNG, WebP, or AVIF file.");
     }
     const { optimized, thumbnail } = processedImage.image;
-
-    const uploadMetadataDb = await getCloudflareD1Database();
-    if (!uploadMetadataDb) return uploadMetadataUnavailableResponse();
 
     const storageProvider = await createRuntimeUploadStorageProvider();
     const baseName = `${safeUploadName(file.name)}-${randomUUID()}`;

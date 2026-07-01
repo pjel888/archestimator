@@ -740,8 +740,8 @@ export function createProposalWorkbook(input: ProposalExportModel | ProposalTabb
   return workbook;
 }
 
-export async function createProposalWorkbookBuffer(input: ProposalExportModel | ProposalTabbedWorkbookModel): Promise<Buffer> {
+export async function createProposalWorkbookBuffer(input: ProposalExportModel | ProposalTabbedWorkbookModel): Promise<Uint8Array> {
   const workbook = createProposalWorkbook(input);
   const buffer = await workbook.xlsx.writeBuffer();
-  return Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
+  return buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
 }

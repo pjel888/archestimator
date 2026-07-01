@@ -1,5 +1,5 @@
 // Library Optimization Plan P3 T20 (F25): server actions previously interpolated raw
-// Supabase/Postgres `error.message` into thrown errors, which can surface DB internals
+// database `error.message` into thrown errors, which can surface DB internals
 // to the client. This helper logs the real cause server-side and throws a generic,
 // user-safe message instead. Returns `never` so call sites read `throwActionError(...)`
 // (not `throw throwActionError(...)`).

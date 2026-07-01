@@ -1,5 +1,4 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { Tables } from "@/lib/supabase/types";
+import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
 import { computeEstimateRowLineTotal } from "@/lib/estimates/estimate-row-total";
 
 import { buildSeriesByEstimate } from "../project-charts/project-comparison-view";
@@ -26,11 +25,46 @@ type GetProjectChartsDataOptions = {
 };
 
 type JsonRecord = Record<string, unknown>;
-type EstimateRowItemChartRow = Pick<
-  Tables<"estimate_row_items">,
-  "id" | "estimate_id" | "node_id" | "source_snapshot" | "supplier" | "quantity" | "quantity_base" | "quantity_contingency_amount" | "unit_cost" | "contingency_percentage" | "adjustment_percentage" | "misc_cost"
->;
-type EstimateNodeChartRow = Pick<Tables<"estimate_nodes">, "id" | "estimate_id" | "parent_id" | "kind" | "name" | "sort_order">;
+type EstimateChartD1Row = {
+  id: string;
+  name: string;
+  sheet_code: string | null;
+  updated_at: string | null;
+};
+type EstimateRowItemChartRow = {
+  adjustment_percentage: number | null;
+  contingency_percentage: number | null;
+  estimate_id: string;
+  id: string;
+  misc_cost: number | null;
+  node_id: string | null;
+  quantity: number | null;
+  quantity_base: number | null;
+  quantity_contingency_amount: number | null;
+  source_snapshot_json: string | null;
+  unit_cost: number | null;
+};
+type EstimateNodeChartRow = {
+  estimate_id: string;
+  id: string;
+  kind: string | null;
+  name: string | null;
+  parent_id: string | null;
+  sort_order: number | null;
+};
+type ComponentCategoryNodeD1Row = {
+  id: string;
+  label: string | null;
+  node_type: string | null;
+  parent_id: string | null;
+  sort_order: number | null;
+};
+type ComponentSupplierD1Row = {
+  id: string;
+  name: string | null;
+  normalized_name: string | null;
+  sort_order: number | null;
+};
 type LimitedLoadResult<T> = {
   rows: T[];
   didHitLimit: boolean;
@@ -46,24 +80,24 @@ export async function getProjectChartsData(
     return null;
   }
 
-  const supabase = await createSupabaseServerClient();
-  const { data: estimateRows, error: estimateError } = await supabase
-    .from("estimates")
-    .select("id, name, sheet_code, currency_code, updated_at")
-    .eq("project_id", project.id)
-    .order("updated_at", { ascending: false })
-    .limit(ESTIMATE_OPTION_LIMIT + 1);
+  const database = await requireProjectChartsD1Database();
+  const estimateRows = await all<EstimateChartD1Row>(
+    database,
+    `SELECT id, name, sheet_code, updated_at
+     FROM estimates
+     WHERE project_id = ?
+     ORDER BY updated_at DESC, id DESC
+     LIMIT ?`,
+    [project.id, ESTIMATE_OPTION_LIMIT + 1],
+  );
+  const projectCurrencyCode = readString((project as { currency_code?: unknown }).currency_code) ?? "USD";
 
-  if (estimateError) {
-    throw new Error(`Failed to load chart estimates: ${estimateError.message}`);
-  }
-
-  const didHitEstimateOptionLimit = (estimateRows ?? []).length > ESTIMATE_OPTION_LIMIT;
-  const estimates = (estimateRows ?? []).slice(0, ESTIMATE_OPTION_LIMIT).map((estimate) => ({
+  const didHitEstimateOptionLimit = estimateRows.length > ESTIMATE_OPTION_LIMIT;
+  const estimates = estimateRows.slice(0, ESTIMATE_OPTION_LIMIT).map((estimate) => ({
     id: estimate.id,
     name: estimate.name,
     sheetCode: estimate.sheet_code,
-    currencyCode: estimate.currency_code,
+    currencyCode: projectCurrencyCode,
     updatedAt: estimate.updated_at,
     rowCount: 0,
     totalCost: 0,
@@ -87,10 +121,10 @@ export async function getProjectChartsData(
       : estimates.map((estimate) => estimate.id);
 
   const [rowFactsResult, nodeFactsResult, categoryNodeFactsResult, supplierFactsResult] = await Promise.all([
-    loadRowFacts(supabase, estimateIdsToLoad),
-    loadNodeFacts(supabase, estimateIdsToLoad),
-    loadCategoryFacts(supabase),
-    loadSupplierFacts(supabase, workspace.id),
+    loadRowFacts(database, estimateIdsToLoad),
+    loadNodeFacts(database, estimateIdsToLoad),
+    loadCategoryFacts(database),
+    loadSupplierFacts(database, workspace.id),
   ]);
   const rowFacts = rowFactsResult.rows;
   const nodeFacts = nodeFactsResult.rows;
@@ -176,28 +210,37 @@ function emptyProjectChartsData(
 }
 
 async function loadRowFacts(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   estimateIds: string[],
 ): Promise<LimitedLoadResult<ProjectChartRowFact>> {
-  const { data, error } = await supabase
-    .from("estimate_row_items")
-    .select("id, estimate_id, node_id, supplier, source_snapshot, quantity, quantity_base, quantity_contingency_amount, unit_cost, contingency_percentage, adjustment_percentage, misc_cost")
-    .in("estimate_id", estimateIds)
-    // Deterministic order before truncation (`02` DB-6): if an estimate exceeds the
-    // cap, the SAME rows are kept across loads, so totals don't silently shuffle.
-    // `didTruncate` then surfaces the "totals incomplete" banner.
-    .order("id", { ascending: true })
-    .limit(ESTIMATE_ROW_LIMIT + 1);
+  if (estimateIds.length === 0) return { didHitLimit: false, rows: [] };
+  const where = inList(estimateIds);
+  const data = await all<EstimateRowItemChartRow>(
+    database,
+    `SELECT
+       id,
+       estimate_id,
+       node_id,
+       source_snapshot_json,
+       quantity,
+       quantity_base,
+       quantity_contingency_amount,
+       unit_cost,
+       contingency_percentage,
+       adjustment_percentage,
+       misc_cost
+     FROM estimate_row_items
+     WHERE estimate_id IN (${where.sql})
+     ORDER BY id ASC
+     LIMIT ?`,
+    [...where.values, ESTIMATE_ROW_LIMIT + 1],
+  );
 
-  if (error) {
-    throw new Error(`Failed to load chart rows: ${error.message}`);
-  }
-
-  const limitedRows = limitLoadedRows((data ?? []) as EstimateRowItemChartRow[], ESTIMATE_ROW_LIMIT);
+  const limitedRows = limitLoadedRows(data, ESTIMATE_ROW_LIMIT);
   return {
     didHitLimit: limitedRows.didHitLimit,
     rows: limitedRows.rows.map((row) => {
-      const sourceSnapshot = readJsonRecord(row.source_snapshot);
+      const sourceSnapshot = readJsonRecord(row.source_snapshot_json);
       const supplierId = readString(sourceSnapshot.supplierId);
       return {
         id: row.id,
@@ -205,7 +248,7 @@ async function loadRowFacts(
         nodeId: row.node_id,
         categoryNodeId: readString(sourceSnapshot.categoryNodeId),
         supplierId,
-        supplierName: row.supplier,
+        supplierName: readString(sourceSnapshot.supplier),
         sourceSupplierId: supplierId,
         sourceSupplierName: readString(sourceSnapshot.supplier),
         quantity: finite(Number(row.quantity)),
@@ -221,21 +264,22 @@ async function loadRowFacts(
 }
 
 async function loadNodeFacts(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   estimateIds: string[],
 ): Promise<LimitedLoadResult<ProjectChartNodeFact>> {
-  const { data, error } = await supabase
-    .from("estimate_nodes")
-    .select("id, estimate_id, parent_id, kind, name, sort_order")
-    .in("estimate_id", estimateIds)
-    .order("sort_order", { ascending: true })
-    .limit(ESTIMATE_NODE_LIMIT + 1);
+  if (estimateIds.length === 0) return { didHitLimit: false, rows: [] };
+  const where = inList(estimateIds);
+  const data = await all<EstimateNodeChartRow>(
+    database,
+    `SELECT id, estimate_id, parent_id, kind, name, sort_order
+     FROM estimate_nodes
+     WHERE estimate_id IN (${where.sql})
+     ORDER BY sort_order ASC, id ASC
+     LIMIT ?`,
+    [...where.values, ESTIMATE_NODE_LIMIT + 1],
+  );
 
-  if (error) {
-    throw new Error(`Failed to load chart estimate nodes: ${error.message}`);
-  }
-
-  const limitedRows = limitLoadedRows((data ?? []) as EstimateNodeChartRow[], ESTIMATE_NODE_LIMIT);
+  const limitedRows = limitLoadedRows(data, ESTIMATE_NODE_LIMIT);
   return {
     didHitLimit: limitedRows.didHitLimit,
     rows: limitedRows.rows.map((node) => ({
@@ -243,64 +287,62 @@ async function loadNodeFacts(
       estimateId: node.estimate_id,
       parentId: node.parent_id,
       kind: node.kind === "area" ? "Area" : "Group",
-      name: node.name,
+      name: node.name ?? "",
       sortOrder: node.sort_order ?? 0,
     })),
   };
 }
 
 async function loadCategoryFacts(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
 ): Promise<LimitedLoadResult<ProjectChartCategoryNodeFact>> {
   // `component_category_nodes` is a GLOBAL taxonomy by design — it has no
   // workspace_id column and a `using(true)` read policy (`02` DB-1). The absence
   // of a workspace filter here is intentional, NOT a leak: buckets key on the
   // global category id, so two workspaces using the same category share a bucket.
   // Do not "fix" this into a workspace filter unless the taxonomy becomes scoped.
-  const { data, error } = await supabase
-    .from("component_category_nodes")
-    .select("id, parent_id, node_type, label, sort_order")
-    .order("sort_order", { ascending: true })
-    .limit(CATEGORY_FACT_LIMIT + 1);
+  const data = await allOptional<ComponentCategoryNodeD1Row>(
+    database,
+    `SELECT id, parent_id, node_type, label, sort_order
+     FROM component_category_nodes
+     ORDER BY sort_order ASC, id ASC
+     LIMIT ?`,
+    [CATEGORY_FACT_LIMIT + 1],
+  );
 
-  if (error) {
-    throw new Error(`Failed to load chart categories: ${error.message}`);
-  }
-
-  const limitedRows = limitLoadedRows(data ?? [], CATEGORY_FACT_LIMIT);
+  const limitedRows = limitLoadedRows(data, CATEGORY_FACT_LIMIT);
   return {
     didHitLimit: limitedRows.didHitLimit,
     rows: limitedRows.rows.map((node) => ({
       id: node.id,
       parentId: node.parent_id,
       nodeType: node.node_type,
-      label: node.label,
+      label: node.label ?? "Uncategorized",
       sortOrder: node.sort_order ?? 0,
     })),
   };
 }
 
 async function loadSupplierFacts(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   workspaceId: string,
 ): Promise<LimitedLoadResult<ProjectChartSupplierFact>> {
-  const { data, error } = await supabase
-    .from("component_suppliers")
-    .select("id, name, normalized_name, sort_order")
-    .eq("workspace_id", workspaceId)
-    .order("sort_order", { ascending: true })
-    .limit(SUPPLIER_FACT_LIMIT + 1);
+  const data = await allOptional<ComponentSupplierD1Row>(
+    database,
+    `SELECT id, name, normalized_name, sort_order
+     FROM component_suppliers
+     WHERE workspace_id = ?
+     ORDER BY sort_order ASC, id ASC
+     LIMIT ?`,
+    [workspaceId, SUPPLIER_FACT_LIMIT + 1],
+  );
 
-  if (error) {
-    throw new Error(`Failed to load chart suppliers: ${error.message}`);
-  }
-
-  const limitedRows = limitLoadedRows(data ?? [], SUPPLIER_FACT_LIMIT);
+  const limitedRows = limitLoadedRows(data, SUPPLIER_FACT_LIMIT);
   return {
     didHitLimit: limitedRows.didHitLimit,
     rows: limitedRows.rows.map((supplier) => ({
       id: supplier.id,
-      name: supplier.name,
+      name: supplier.name ?? "Unknown supplier",
       normalizedName: supplier.normalized_name,
       sortOrder: supplier.sort_order ?? 0,
     })),
@@ -320,6 +362,15 @@ function limitLoadedRows<T>(rows: T[], limit: number): LimitedLoadResult<T> {
 }
 
 function readJsonRecord(value: unknown): JsonRecord {
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return readJsonRecord(parsed);
+    } catch {
+      return {};
+    }
+  }
+
   if (value && typeof value === "object" && !Array.isArray(value)) {
     return value as JsonRecord;
   }
@@ -333,4 +384,41 @@ function readString(value: unknown): string | null {
 
 function finite(value: number): number {
   return Number.isFinite(value) ? value : 0;
+}
+
+async function requireProjectChartsD1Database() {
+  const database = await getCloudflareD1Database();
+  if (!database) {
+    throw new Error("Cloudflare D1 ARCH_DB binding is required for project charts.");
+  }
+  return database;
+}
+
+async function all<T>(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
+  const result = await database.prepare<T>(sql).bind(...values).all<T>();
+  if (result.success === false) throw new Error("Cloudflare D1 project chart read failed.");
+  return result.results ?? [];
+}
+
+async function allOptional<T>(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
+  try {
+    return await all<T>(database, sql, values);
+  } catch (error) {
+    if (isMissingOptionalD1Table(error)) return [];
+    throw error;
+  }
+}
+
+function inList(values: string[]) {
+  return {
+    sql: values.map(() => "?").join(", "),
+    values: values as D1Value[],
+  };
+}
+
+function isMissingOptionalD1Table(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const code = "code" in error && typeof error.code === "string" ? error.code : "";
+  const message = "message" in error && typeof error.message === "string" ? error.message.toLowerCase() : "";
+  return code === "42P01" || message.includes("no such table") || message.includes("does not exist");
 }

@@ -316,7 +316,10 @@ export async function openRecipientProposalAction(
 
   try {
     const admin = createPublicationAdminClient();
-    const { data: authorizationRows, error: authorizationError } = await admin.rpc<RecipientPublicationAuthorizationRow[]>(
+    const { data: authorizationRows, error: authorizationError } = await callPublicationD1Procedure<
+      RecipientPublicationAuthorizationRow[]
+    >(
+      admin,
       "authorize_recipient_publication_for_current_user",
       { p_publication_id: rawPublicationId, p_current_user_email: currentUser.email },
     );

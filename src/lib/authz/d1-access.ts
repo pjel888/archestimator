@@ -15,6 +15,11 @@ export type D1EstimateAccessRow = {
   project_id: string;
 };
 
+export type D1EstimateRowItemAccessRow = {
+  id: string;
+  estimate_id: string;
+};
+
 function isPlatformAdmin(user: CurrentUserAccessContext) {
   return user.role === "ceo" || user.role === "admin";
 }
@@ -65,6 +70,21 @@ export async function readEstimateInProjectFromD1(db: D1DatabaseLike, estimateId
     )
     .bind(estimateId, projectId)
     .first<D1EstimateAccessRow>();
+}
+
+export async function readEstimateRowItemInEstimateFromD1(db: D1DatabaseLike, rowItemId: string, estimateId: string) {
+  return db
+    .prepare<D1EstimateRowItemAccessRow>(
+      `
+        SELECT id, estimate_id
+        FROM estimate_row_items
+        WHERE id = ?
+          AND estimate_id = ?
+        LIMIT 1
+      `,
+    )
+    .bind(rowItemId, estimateId)
+    .first<D1EstimateRowItemAccessRow>();
 }
 
 export async function canAccessProjectInD1(
@@ -248,6 +268,27 @@ export async function isWorkspaceEditorInD1(
   user: CurrentUserAccessContext,
 ) {
   if (isPlatformAdmin(user)) return true;
+  const row = await db
+    .prepare<{ allowed: number }>(
+      `
+        SELECT 1 AS allowed
+        FROM workspace_members workspace_member
+        WHERE workspace_member.workspace_id = ?
+          AND workspace_member.user_id = ?
+          AND workspace_member.role IN ('owner', 'admin', 'member')
+        LIMIT 1
+      `,
+    )
+    .bind(workspaceId, user.userId)
+    .first<{ allowed: number }>();
+  return readAllowed(row);
+}
+
+export async function isWorkspaceMemberInD1(
+  db: D1DatabaseLike,
+  workspaceId: string,
+  user: CurrentUserAccessContext,
+) {
   const row = await db
     .prepare<{ allowed: number }>(
       `

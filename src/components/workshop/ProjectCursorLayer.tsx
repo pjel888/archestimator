@@ -18,8 +18,8 @@ import {
  * CAPACITY-GATED + OFF BY DEFAULT. Reuses the exact sheet-cursor engine
  * (`useEstimateCursorCollaboration`, sender-bound identity, throttle/GC) on the
  * `project:{id}` channel with page-relative document coordinates. Broad page
- * cursors multiply realtime fan-out, so this stays disabled until the Supabase
- * tier (D-1) is confirmed — flip `NEXT_PUBLIC_TEAMSPACE_PROJECT_CURSORS=on`.
+   * cursors multiply realtime fan-out, so this stays disabled until Cloudflare
+   * realtime capacity (D-1) is confirmed — flip `NEXT_PUBLIC_TEAMSPACE_PROJECT_CURSORS=on`.
  *
  * Per D-5 it activates only on the project OVERVIEW surface first (never the
  * estimate sheet, which already has its own cursor layer). Touch devices are

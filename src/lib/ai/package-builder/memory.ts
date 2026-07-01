@@ -1,7 +1,9 @@
+import { randomUUID } from "node:crypto";
+
 import { isProviderBackedAiUserContext, type AiRequestUserContext } from "@/lib/ai/auth";
 import type { PackageBuilderDraft, PackageBuilderOperationType } from "@/lib/ai/package-builder/schemas";
+import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
 import { isUuid } from "@/lib/ids";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type PackageBuilderMemorySignal = "accepted" | "rejected";
 export type PackageBuilderMemorySourceType = "library_item" | "template";
@@ -55,17 +57,6 @@ export type PackageBuilderMemoryPreferences = {
   sourceRowCount: number;
 };
 
-type GenericSupabaseClient = {
-  from: (table: string) => {
-    select: (columns: string) => {
-      eq: (column: string, value: string) => unknown;
-      order: (column: string, options?: { ascending?: boolean }) => unknown;
-      limit: (count: number) => Promise<{ data: unknown[] | null; error: { message?: string } | null }>;
-    };
-    insert: (rows: unknown[]) => Promise<{ error: { message?: string } | null }>;
-  };
-};
-
 export const EMPTY_PACKAGE_BUILDER_MEMORY_PREFERENCES: PackageBuilderMemoryPreferences = {
   componentSignals: [],
   templateSignals: [],
@@ -76,9 +67,19 @@ let memorySchemaAvailability: Promise<boolean> | null = null;
 
 export async function hasPackageBuilderMemorySchema() {
   memorySchemaAvailability ??= (async () => {
-    const supabase = await createSupabaseServerClient() as unknown as GenericSupabaseClient;
-    const { error } = await supabase.from("ai_package_builder_memory_preferences").select("id").limit(1);
-    return !error;
+    const database = await getCloudflareD1Database();
+    if (!database) return false;
+    try {
+      await all<Pick<PackageBuilderMemoryRow, "source_id">>(
+        database,
+        `SELECT source_id
+         FROM ai_package_builder_memory_preferences
+         LIMIT 1`,
+      );
+      return true;
+    } catch {
+      return false;
+    }
   })();
   return memorySchemaAvailability;
 }
@@ -265,17 +266,28 @@ export async function readPackageBuilderMemoryPreferences({
 }): Promise<PackageBuilderMemoryPreferences> {
   if (!isProviderBackedAiUserContext(userContext)) return EMPTY_PACKAGE_BUILDER_MEMORY_PREFERENCES;
 
-  const supabase = await createSupabaseServerClient() as unknown as GenericSupabaseClient;
-  const builder = supabase
-    .from("ai_package_builder_memory_preferences")
-    .select("signal, source_type, source_id, source_label, room_name, operation_type, weight, created_at");
-  const filteredByWorkspace = builder.eq("workspace_id", userContext.workspaceId) as typeof builder;
-  const filteredByActor = filteredByWorkspace.eq("actor_user_id", userContext.userId) as typeof builder;
-  const ordered = filteredByActor.order("created_at", { ascending: false }) as typeof builder;
-  const { data, error } = await ordered.limit(limit);
-  if (error) throw new Error(error.message ?? "Package-builder memory read failed.");
+  const database = await getCloudflareD1Database();
+  if (!database) return EMPTY_PACKAGE_BUILDER_MEMORY_PREFERENCES;
+  const data = await all<PackageBuilderMemoryRow>(
+    database,
+    `SELECT
+       signal,
+       source_type,
+       source_id,
+       source_label,
+       room_name,
+       operation_type,
+       weight,
+       created_at
+     FROM ai_package_builder_memory_preferences
+     WHERE workspace_id = ?
+       AND actor_user_id = ?
+     ORDER BY created_at DESC
+     LIMIT ?`,
+    [userContext.workspaceId, userContext.userId, limit],
+  );
 
-  return summarizePackageBuilderMemoryRows((data ?? []).filter(isMemoryRow));
+  return summarizePackageBuilderMemoryRows(data.filter(isMemoryRow));
 }
 
 export type RecordPackageBuilderMemorySignalsInput = {
@@ -297,6 +309,7 @@ export async function recordPackageBuilderMemorySignals({
   if (signals.length === 0) return;
 
   const rows = signals.map((memorySignal) => ({
+    id: randomUUID(),
     workspace_id: userContext.workspaceId,
     actor_user_id: userContext.userId,
     signal: memorySignal.signal,
@@ -308,12 +321,60 @@ export async function recordPackageBuilderMemorySignals({
     draft_id: memorySignal.draftId,
     draft_hash: memorySignal.draftHash,
     weight: memorySignal.weight,
-    metadata: {
+    metadata_json: JSON.stringify({
       schemaVersion: draft.schemaVersion,
-    },
+    }),
+    created_at: new Date().toISOString(),
   }));
 
-  const supabase = await createSupabaseServerClient() as unknown as GenericSupabaseClient;
-  const { error } = await supabase.from("ai_package_builder_memory_preferences").insert(rows);
-  if (error) throw new Error(error.message ?? "Package-builder memory write failed.");
+  const database = await getCloudflareD1Database();
+  if (!database) return;
+  await Promise.all(rows.map((row) => run(
+    database,
+    `INSERT INTO ai_package_builder_memory_preferences (
+       id,
+       workspace_id,
+       actor_user_id,
+       signal,
+       source_type,
+       source_id,
+       source_label,
+       room_name,
+       operation_type,
+       draft_id,
+       draft_hash,
+       weight,
+       metadata_json,
+       created_at
+     )
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      row.id,
+      row.workspace_id,
+      row.actor_user_id,
+      row.signal,
+      row.source_type,
+      row.source_id,
+      row.source_label,
+      row.room_name,
+      row.operation_type,
+      row.draft_id,
+      row.draft_hash,
+      row.weight,
+      row.metadata_json,
+      row.created_at,
+    ],
+  )));
+}
+
+async function all<T>(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
+  const result = await database.prepare<T>(sql).bind(...values).all<T>();
+  if (result.success === false) throw new Error("Package-builder memory read failed.");
+  return result.results ?? [];
+}
+
+async function run(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
+  const result = await database.prepare(sql).bind(...values).run();
+  if (result.success === false) throw new Error("Package-builder memory write failed.");
+  return result;
 }

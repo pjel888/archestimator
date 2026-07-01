@@ -1,5 +1,6 @@
 import { classifyEstimateRowSource, isExpressComponentProjectFolderEnabled, readEstimateRowMetadata, withProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
 import { sanitizeEstimateRowSourceSnapshot } from "@/lib/estimates/image-url";
+import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
 import {
   SIDEBAR_COMPONENT_LIBRARY_MAX_LIMIT,
   fallbackComponentRowsLibraryDataset,
@@ -7,9 +8,8 @@ import {
   type ComponentRowsLibraryDataset,
 } from "@/lib/repositories/component-library-repository";
 import { getCurrentWorkspaceProject } from "@/lib/repositories/workspace-repository";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { EstimateRowItem } from "@/lib/estimates/types";
-import type { Json } from "@/lib/supabase/types";
+import type { Json } from "@/lib/types/json";
 
 const PROJECT_COMPONENTS_FOLDER_ID_PREFIX = "project-components";
 const PROJECT_COMPONENTS_EXPRESS_FOLDER_SUFFIX = "express";
@@ -56,8 +56,50 @@ export type ProjectComponentRowsLibraryOptions = {
   projectRowLimit?: number;
 };
 
+type ProjectComponentProjectionD1Row = {
+  id: string;
+  material: string | null;
+  description: string | null;
+  supplier: string | null;
+  supplier_id: string | null;
+  unit: string | null;
+  unit_cost: number | string | null;
+  quantity: number | string | null;
+  quantity_base: number | string | null;
+  quantity_contingency_amount: number | string | null;
+  contingency_percentage: number | string | null;
+  adjustment_percentage: number | string | null;
+  misc_cost: number | string | null;
+  row_revision: number | null;
+  category_node_id: string | null;
+  discipline: string | null;
+  designation: string | null;
+  source_library_item_id: string | null;
+  link_state: EstimateRowItem["linkState"] | null;
+  source_snapshot_json: string | null;
+  metadata_json: string | null;
+  created_at: string | null;
+  node_id: string | null;
+  node_name: string | null;
+  estimate_id: string | null;
+  estimate_name: string | null;
+  estimate_project_id: string | null;
+};
+
 function readRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function readJsonRecord(value: unknown): Record<string, unknown> {
+  if (typeof value === "string") {
+    try {
+      return readRecord(JSON.parse(value));
+    } catch {
+      return {};
+    }
+  }
+
+  return readRecord(value);
 }
 
 function readNumber(value: unknown) {
@@ -73,6 +115,46 @@ function normalizeProjectComponentRowLimit(limit: number | undefined): number | 
   if (limit === undefined) return undefined;
   if (!Number.isFinite(limit)) return SIDEBAR_COMPONENT_LIBRARY_MAX_LIMIT;
   return Math.max(1, Math.min(SIDEBAR_COMPONENT_LIBRARY_MAX_LIMIT, Math.floor(limit)));
+}
+
+function fromD1ProjectComponentRow(row: ProjectComponentProjectionD1Row): ProjectComponentProjectionRow {
+  return {
+    id: row.id,
+    material: row.material ?? "",
+    description: row.description ?? "",
+    supplier: row.supplier ?? "",
+    supplier_id: row.supplier_id,
+    unit: row.unit ?? "",
+    unit_cost: row.unit_cost ?? 0,
+    quantity: row.quantity ?? 0,
+    quantity_base: row.quantity_base,
+    quantity_contingency_amount: row.quantity_contingency_amount,
+    contingency_percentage: row.contingency_percentage,
+    adjustment_percentage: row.adjustment_percentage,
+    misc_cost: row.misc_cost ?? 0,
+    row_revision: row.row_revision,
+    category_node_id: row.category_node_id,
+    discipline: row.discipline,
+    designation: row.designation,
+    source_library_item_id: row.source_library_item_id,
+    link_state: row.link_state,
+    source_snapshot: readJsonRecord(row.source_snapshot_json),
+    metadata: readJsonRecord(row.metadata_json),
+    created_at: row.created_at ?? new Date(0).toISOString(),
+    estimate_nodes: row.node_id
+      ? {
+          id: row.node_id,
+          name: row.node_name ?? "",
+          estimates: row.estimate_id
+            ? {
+                id: row.estimate_id,
+                name: row.estimate_name ?? "",
+                project_id: row.estimate_project_id ?? "",
+              }
+            : null,
+        }
+      : null,
+  };
 }
 
 export function getProjectComponentsFolderId(projectId: string) {
@@ -197,20 +279,49 @@ export async function getProjectComponentRowsLibrary(
   });
   if (!isExpressComponentProjectFolderEnabled()) return library;
 
-  const supabase = await createSupabaseServerClient();
+  const database = await requireProjectComponentProjectionD1Database();
   const projectRowLimit = normalizeProjectComponentRowLimit(options.projectRowLimit);
-  let projectRowsQuery = supabase
-    .from("estimate_row_items")
-    .select("id, material, description, supplier, supplier_id, unit, unit_cost, quantity, quantity_base, quantity_contingency_amount, contingency_percentage, adjustment_percentage, misc_cost, row_revision, category_node_id, discipline, designation, source_library_item_id, link_state, source_snapshot, metadata, created_at, estimate_nodes!inner(id, name, estimates!inner(id, name, project_id))")
-    .eq("estimate_nodes.estimates.project_id", project.id)
-    .order("created_at", { ascending: false });
-  if (projectRowLimit !== undefined) projectRowsQuery = projectRowsQuery.limit(projectRowLimit);
+  const projectRows = await all<ProjectComponentProjectionD1Row>(
+    database,
+    `SELECT
+       row_items.id,
+       row_items.material,
+       row_items.description,
+       row_items.supplier,
+       row_items.supplier_id,
+       row_items.unit,
+       row_items.unit_cost,
+       row_items.quantity,
+       row_items.quantity_base,
+       row_items.quantity_contingency_amount,
+       row_items.contingency_percentage,
+       row_items.adjustment_percentage,
+       row_items.misc_cost,
+       row_items.row_revision,
+       row_items.category_node_id,
+       row_items.discipline,
+       row_items.designation,
+       row_items.source_library_item_id,
+       row_items.link_state,
+       row_items.source_snapshot_json,
+       row_items.metadata_json,
+       row_items.created_at,
+       nodes.id AS node_id,
+       nodes.name AS node_name,
+       estimates.id AS estimate_id,
+       estimates.name AS estimate_name,
+       estimates.project_id AS estimate_project_id
+     FROM estimate_row_items row_items
+     LEFT JOIN estimate_nodes nodes ON nodes.id = row_items.node_id
+     INNER JOIN estimates ON estimates.id = row_items.estimate_id
+     WHERE estimates.project_id = ?
+     ORDER BY row_items.created_at DESC, row_items.id DESC
+     LIMIT ?`,
+    [project.id, projectRowLimit ?? SIDEBAR_COMPONENT_LIBRARY_MAX_LIMIT],
+  );
 
-  const { data, error } = await projectRowsQuery;
-
-  if (error) throw error;
-
-  const projectedRows = ((data ?? []) as ProjectComponentProjectionRow[])
+  const projectedRows = projectRows
+    .map(fromD1ProjectComponentRow)
     .map((row) => ({ row, item: projectEstimateRowToLibraryItem(row, project.id, project.name) }))
     .filter((entry): entry is { row: ProjectComponentProjectionRow; item: EstimateRowItem } => Boolean(entry.item));
   const projectItems = projectedRows.map((entry) => entry.item);
@@ -257,4 +368,18 @@ export async function getProjectComponentRowsLibrary(
     ],
     libraryItems: [...projectItems, ...library.libraryItems],
   };
+}
+
+async function requireProjectComponentProjectionD1Database() {
+  const database = await getCloudflareD1Database();
+  if (!database) {
+    throw new Error("Cloudflare D1 ARCH_DB binding is required for project component projections.");
+  }
+  return database;
+}
+
+async function all<T>(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
+  const result = await database.prepare<T>(sql).bind(...values).all<T>();
+  if (result.success === false) throw new Error("Cloudflare D1 project component projection read failed.");
+  return result.results ?? [];
 }

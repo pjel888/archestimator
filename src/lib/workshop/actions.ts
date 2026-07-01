@@ -1,11 +1,13 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
+
 import { revalidatePath } from "next/cache";
 
 import { requireAuth } from "@/lib/auth/session";
+import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
 import { isUuid } from "@/lib/ids";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type FavoriteActionInput = {
   favorite: boolean;
@@ -23,51 +25,66 @@ function assertUuid(value: string, label: string) {
   if (!isUuid(value)) throw new Error(`${label} is invalid.`);
 }
 
+async function requireWorkshopActionsD1Database() {
+  const database = await getCloudflareD1Database();
+  if (!database) {
+    throw new Error("Cloudflare D1 ARCH_DB binding is required for workshop favorite actions.");
+  }
+  return database;
+}
+
+async function first<T>(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
+  return database.prepare<T>(sql).bind(...values).first<T>();
+}
+
+async function run(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
+  const result = await database.prepare(sql).bind(...values).run();
+  if (result.success === false) throw new Error("Cloudflare D1 favorite write failed.");
+  return result;
+}
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
 export async function setProjectFavorite({ projectId, favorite }: ProjectFavoriteInput) {
   await requireAuth();
   if (typeof favorite !== "boolean") throw new Error("Invalid input.");
   assertUuid(projectId, "Project");
 
   const { workspace, profile } = await ensureDefaultWorkspace();
-  const supabase = await createSupabaseServerClient();
+  const database = await requireWorkshopActionsD1Database();
 
   if (!favorite) {
-    const { error } = await supabase
-      .from("project_favorites")
-      .delete()
-      .eq("workspace_id", workspace.id)
-      .eq("user_id", profile.id)
-      .eq("project_id", projectId);
-
-    if (error) throw error;
+    await run(
+      database,
+      `DELETE FROM project_favorites
+       WHERE workspace_id = ? AND user_id = ? AND project_id = ?`,
+      [workspace.id, profile.id, projectId],
+    );
 
     revalidatePath("/workshop");
     revalidatePath("/workshop/projects");
     return;
   }
 
-  const { data: project, error: projectError } = await supabase
-    .from("projects")
-    .select("id, workspace_id")
-    .eq("id", projectId)
-    .eq("workspace_id", workspace.id)
-    .maybeSingle();
-
-  if (projectError) throw projectError;
+  const project = await first<{ id: string; workspace_id: string }>(
+    database,
+    `SELECT id, workspace_id
+     FROM projects
+     WHERE id = ? AND workspace_id = ?
+     LIMIT 1`,
+    [projectId, workspace.id],
+  );
   if (!project) throw new Error("Project was not found in this workspace.");
 
-  const { error } = await supabase
-    .from("project_favorites")
-    .upsert(
-      {
-        workspace_id: workspace.id,
-        user_id: profile.id,
-        project_id: project.id,
-      },
-      { onConflict: "user_id,project_id" },
-    );
-
-  if (error) throw error;
+  await run(
+    database,
+    `INSERT INTO project_favorites (id, workspace_id, user_id, project_id, created_at)
+     VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT(user_id, project_id) DO NOTHING`,
+    [randomUUID(), workspace.id, profile.id, project.id, nowIso()],
+  );
 
   revalidatePath("/workshop");
   revalidatePath("/workshop/projects");
@@ -79,52 +96,37 @@ export async function setEstimateFavorite({ estimateId, favorite }: EstimateFavo
   assertUuid(estimateId, "Estimate");
 
   const { workspace, profile } = await ensureDefaultWorkspace();
-  const supabase = await createSupabaseServerClient();
+  const database = await requireWorkshopActionsD1Database();
 
-  const { data: estimate, error: estimateError } = await supabase
-    .from("estimates")
-    .select("id, project_id")
-    .eq("id", estimateId)
-    .maybeSingle();
+  const estimate = await first<{ id: string; project_id: string }>(
+    database,
+    `SELECT estimate.id, estimate.project_id
+     FROM estimates estimate
+     JOIN projects project ON project.id = estimate.project_id
+     WHERE estimate.id = ? AND project.workspace_id = ?
+     LIMIT 1`,
+    [estimateId, workspace.id],
+  );
 
-  if (estimateError) throw estimateError;
-  if (!estimate) throw new Error("Estimate was not found.");
-
-  const { data: project, error: projectError } = await supabase
-    .from("projects")
-    .select("id, workspace_id")
-    .eq("id", estimate.project_id)
-    .eq("workspace_id", workspace.id)
-    .maybeSingle();
-
-  if (projectError) throw projectError;
-  if (!project) throw new Error("Estimate was not found in this workspace.");
+  if (!estimate) throw new Error("Estimate was not found in this workspace.");
 
   if (favorite) {
-    const { error } = await supabase
-      .from("estimate_favorites")
-      .upsert(
-        {
-          workspace_id: workspace.id,
-          user_id: profile.id,
-          project_id: project.id,
-          estimate_id: estimate.id,
-        },
-        { ignoreDuplicates: true, onConflict: "user_id,estimate_id" },
-      );
-
-    if (error) throw error;
+    await run(
+      database,
+      `INSERT INTO estimate_favorites (id, workspace_id, user_id, project_id, estimate_id, created_at)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT(user_id, estimate_id) DO NOTHING`,
+      [randomUUID(), workspace.id, profile.id, estimate.project_id, estimate.id, nowIso()],
+    );
   } else {
-    const { error } = await supabase
-      .from("estimate_favorites")
-      .delete()
-      .eq("workspace_id", workspace.id)
-      .eq("user_id", profile.id)
-      .eq("estimate_id", estimate.id);
-
-    if (error) throw error;
+    await run(
+      database,
+      `DELETE FROM estimate_favorites
+       WHERE workspace_id = ? AND user_id = ? AND estimate_id = ?`,
+      [workspace.id, profile.id, estimate.id],
+    );
   }
 
   revalidatePath("/workshop");
-  revalidatePath(`/workshop/projects/${project.id}/estimates`);
+  revalidatePath(`/workshop/projects/${estimate.project_id}/estimates`);
 }

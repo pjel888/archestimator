@@ -1,8 +1,6 @@
 import "server-only";
 
-import type { createSupabaseServerClient } from "@/lib/supabase/server";
-
-type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
+import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d1";
 
 export type AccountWorkspaceMembershipSource = "workspace" | "project" | "estimate";
 
@@ -16,22 +14,48 @@ function isMissingOptionalCollaborationTable(error: unknown) {
   if (!error || typeof error !== "object") return false;
   const code = "code" in error && typeof error.code === "string" ? error.code : "";
   const message = "message" in error && typeof error.message === "string" ? error.message.toLowerCase() : "";
-  return code === "42P01" || message.includes("does not exist") || message.includes("schema cache");
+  return code === "42P01" || message.includes("does not exist") || message.includes("no such table") || message.includes("schema cache");
 }
 
-export async function readFirstAccountWorkspaceMembership(
-  supabase: SupabaseServerClient,
-  userId: string,
-): Promise<AccountWorkspaceMembership | null> {
-  const { data: workspaceMembership, error: workspaceMembershipError } = await supabase
-    .from("workspace_members")
-    .select("workspace_id, role")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+type WorkspaceMembershipD1Row = {
+  workspace_id: string;
+  role: string | null;
+};
 
-  if (workspaceMembershipError) throw workspaceMembershipError;
+type ProjectMembershipD1Row = {
+  workspace_id: string;
+  role: string | null;
+};
+
+type EstimateMembershipD1Row = {
+  project_id: string;
+  role: string | null;
+};
+
+async function firstOptional<T>(db: D1DatabaseLike, sql: string, userId: string): Promise<T | null> {
+  try {
+    return await db.prepare<T>(sql).bind(userId).first<T>();
+  } catch (error) {
+    if (isMissingOptionalCollaborationTable(error)) return null;
+    throw error;
+  }
+}
+
+export async function readFirstAccountWorkspaceMembership(userId: string): Promise<AccountWorkspaceMembership | null> {
+  const db = await getCloudflareD1Database();
+  if (!db) throw new Error("Cloudflare D1 binding ARCH_DB is unavailable for account membership.");
+
+  const workspaceMembership = await db
+    .prepare<WorkspaceMembershipD1Row>(`
+      SELECT workspace_id, role
+      FROM workspace_members
+      WHERE user_id = ?
+      ORDER BY created_at ASC
+      LIMIT 1
+    `)
+    .bind(userId)
+    .first<WorkspaceMembershipD1Row>();
+
   if (workspaceMembership?.workspace_id) {
     return {
       source: "workspace",
@@ -40,17 +64,18 @@ export async function readFirstAccountWorkspaceMembership(
     };
   }
 
-  const { data: projectMembership, error: projectMembershipError } = await supabase
-    .from("project_members")
-    .select("workspace_id, role")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-
-  if (projectMembershipError) {
-    if (!isMissingOptionalCollaborationTable(projectMembershipError)) throw projectMembershipError;
-  } else if (projectMembership?.workspace_id) {
+  const projectMembership = await firstOptional<ProjectMembershipD1Row>(
+    db,
+    `
+      SELECT workspace_id, role
+      FROM project_members
+      WHERE user_id = ?
+      ORDER BY created_at ASC
+      LIMIT 1
+    `,
+    userId,
+  );
+  if (projectMembership?.workspace_id) {
     return {
       source: "project",
       workspaceId: projectMembership.workspace_id,
@@ -58,28 +83,24 @@ export async function readFirstAccountWorkspaceMembership(
     };
   }
 
-  const { data: estimateMembership, error: estimateMembershipError } = await supabase
-    .from("estimate_sheet_members")
-    .select("project_id, role")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-
-  if (estimateMembershipError) {
-    if (!isMissingOptionalCollaborationTable(estimateMembershipError)) throw estimateMembershipError;
-    return null;
-  }
+  const estimateMembership = await firstOptional<EstimateMembershipD1Row>(
+    db,
+    `
+      SELECT project_id, role
+      FROM estimate_sheet_members
+      WHERE user_id = ?
+      ORDER BY created_at ASC
+      LIMIT 1
+    `,
+    userId,
+  );
 
   if (!estimateMembership?.project_id) return null;
 
-  const { data: project, error: projectError } = await supabase
-    .from("projects")
-    .select("workspace_id")
-    .eq("id", estimateMembership.project_id)
-    .maybeSingle();
-
-  if (projectError) throw projectError;
+  const project = await db
+    .prepare<{ workspace_id: string | null }>("SELECT workspace_id FROM projects WHERE id = ? LIMIT 1")
+    .bind(estimateMembership.project_id)
+    .first<{ workspace_id: string | null }>();
   if (!project?.workspace_id) {
     throw new Error("Estimate membership workspace is unavailable. Contact support.");
   }

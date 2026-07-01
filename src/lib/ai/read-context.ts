@@ -10,7 +10,7 @@ import type {
   ProjectChartRowFact,
   ProjectChartSupplierFact,
 } from "@/lib/project-charts/types";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
 
 const ASK_READ_CONTEXT_ESTIMATE_LIMIT = 8;
 const ASK_READ_CONTEXT_CURRENT_ESTIMATE_NODE_LIMIT = 48;
@@ -319,8 +319,8 @@ type AiAskComponentPriceOption = {
   unit_cost: number;
   misc_cost: number;
   currency: string;
-  is_active: boolean;
-  is_default: boolean;
+  is_active: boolean | number;
+  is_default: boolean | number;
   updated_at: string;
   confidence: string | null;
   supplier_id: string | null;
@@ -340,7 +340,7 @@ type AiAskEstimateTabRow = {
   id: string;
   name: string;
   sort_order: number;
-  is_default: boolean;
+  is_default: boolean | number;
 };
 
 type AiAskEstimateRowItemRow = {
@@ -621,41 +621,64 @@ function normalizeSearchText(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
-function escapePostgrestLikeTerm(term: string) {
-  return term.replace(/[%_]/g, (match) => `\\${match}`);
+function placeholders(values: readonly unknown[]) {
+  if (values.length === 0) throw new Error("At least one SQL placeholder is required.");
+  return values.map(() => "?").join(", ");
 }
 
-function buildComponentSearchOrFilter(terms: string[]) {
-  const columns = ["name", "description", "category", "supplier", "brand"];
-  return terms
-    .slice(0, ASK_READ_CONTEXT_SEARCH_TERM_LIMIT)
-    .flatMap((term) => {
-      const safeTerm = escapePostgrestLikeTerm(term);
-      return columns.map((column) => `${column}.ilike.%${safeTerm}%`);
-    })
-    .join(",");
+function escapeD1LikeTerm(term: string) {
+  return term.replace(/[\\%_]/g, (match) => `\\${match}`);
 }
 
-function buildTemplateSearchOrFilter(terms: string[]) {
-  const columns = ["name", "description", "category"];
-  return terms
-    .slice(0, ASK_READ_CONTEXT_SEARCH_TERM_LIMIT)
-    .flatMap((term) => {
-      const safeTerm = escapePostgrestLikeTerm(term);
-      return columns.map((column) => `${column}.ilike.%${safeTerm}%`);
-    })
-    .join(",");
+function buildSearchWhere(columns: string[], terms: string[]) {
+  const clauses: string[] = [];
+  const values: D1Value[] = [];
+  for (const term of terms.slice(0, ASK_READ_CONTEXT_SEARCH_TERM_LIMIT)) {
+    const safeTerm = `%${escapeD1LikeTerm(term)}%`;
+    for (const column of columns) {
+      clauses.push(`lower(coalesce(${column}, '')) LIKE ? ESCAPE '\\'`);
+      values.push(safeTerm);
+    }
+  }
+
+  return {
+    sql: clauses.length ? `(${clauses.join(" OR ")})` : "1 = 1",
+    values,
+  };
 }
 
-function buildHistoricalRowSearchOrFilter(terms: string[]) {
-  const columns = ["material", "description", "supplier"];
-  return terms
-    .slice(0, ASK_READ_CONTEXT_SEARCH_TERM_LIMIT)
-    .flatMap((term) => {
-      const safeTerm = escapePostgrestLikeTerm(term);
-      return columns.map((column) => `${column}.ilike.%${safeTerm}%`);
-    })
-    .join(",");
+async function requireAskReadD1Database() {
+  const database = await getCloudflareD1Database();
+  if (!database) {
+    throw new Error("Cloudflare D1 ARCH_DB binding is required for Ask read context.");
+  }
+  return database;
+}
+
+async function first<T>(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
+  return database.prepare<T>(sql).bind(...values).first<T>();
+}
+
+async function all<T>(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
+  const result = await database.prepare<T>(sql).bind(...values).all<T>();
+  if (result.success === false) throw new Error("Cloudflare D1 Ask read context query failed.");
+  return result.results ?? [];
+}
+
+async function allOptional<T>(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
+  try {
+    return await all<T>(database, sql, values);
+  } catch (error) {
+    if (isMissingOptionalD1Table(error)) return [];
+    throw error;
+  }
+}
+
+function isMissingOptionalD1Table(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const code = "code" in error && typeof error.code === "string" ? error.code : "";
+  const message = "message" in error && typeof error.message === "string" ? error.message.toLowerCase() : "";
+  return code === "42P01" || message.includes("no such table") || message.includes("does not exist");
 }
 
 function getAskComponentSearchTerms(message: string) {
@@ -774,9 +797,19 @@ function calculateEstimateRowTotal(row: {
   return base + Number(row.misc_cost) + (base * readEstimateRowAdjustmentPercentage(row)) / 100;
 }
 
+function parseJsonValue(value: unknown) {
+  if (typeof value !== "string") return value;
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    return value;
+  }
+}
+
 function readJsonRecord(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  return value as Record<string, unknown>;
+  const parsed = parseJsonValue(value);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+  return parsed as Record<string, unknown>;
 }
 
 function readString(value: unknown) {
@@ -789,7 +822,8 @@ function readBoundedString(value: unknown, maxLength = 160) {
 }
 
 function readStringArray(value: unknown) {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0) : [];
+  const parsed = parseJsonValue(value);
+  return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string" && item.trim().length > 0) : [];
 }
 
 function finiteNumber(value: number) {
@@ -800,6 +834,10 @@ function readOptionalFiniteNumber(value: unknown) {
   if (value === null || value === undefined || value === "") return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function readD1Boolean(value: boolean | number | null | undefined) {
+  return value === true || value === 1;
 }
 
 function humanizeAskActivityField(field: string) {
@@ -867,20 +905,23 @@ function getAskActivitySummary({
 }
 
 async function resolveAskActivityActorLabels(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   rows: AiAskActivityEventRow[],
 ) {
   const actorUserIds = Array.from(new Set(rows.map((row) => row.actor_user_id).filter((id): id is string => typeof id === "string" && id.length > 0)));
   if (actorUserIds.length === 0) return { labels: new Map<string, string>(), rowCount: 0 };
 
   try {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("id, display_name")
-      .in("id", actorUserIds);
-    if (error) return { labels: new Map<string, string>(), rowCount: 0 };
-
-    const profileRows = (data ?? []) as AiAskActivityProfileRow[];
+    const profileRows = await all<AiAskActivityProfileRow>(
+      database,
+      `
+        SELECT id, display_name
+        FROM profiles
+        WHERE id IN (${placeholders(actorUserIds)})
+        LIMIT ?
+      `,
+      [...actorUserIds, actorUserIds.length],
+    );
     return {
       labels: new Map(profileRows.map((profile) => [profile.id, readAskActivityProfileActorLabel(profile.display_name) ?? getAskActivityFallbackActorLabel(profile.id)] as const)),
       rowCount: profileRows.length,
@@ -924,25 +965,29 @@ function compactChartBuckets(buckets: Array<{ label: string; total: number; shar
 }
 
 async function readAskCurrentEstimateActivityHistory({
-  supabase,
+  database,
   workspaceId,
   projectId,
   estimateId,
   selectedNodeId,
 }: {
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+  database: D1DatabaseLike;
   workspaceId: string;
   projectId: string;
   estimateId: string | null;
   selectedNodeId: string | null;
 }) {
-  const { data: projectData, error: projectError } = await supabase
-    .from("projects")
-    .select("id, name")
-    .eq("workspace_id", workspaceId)
-    .eq("id", projectId)
-    .maybeSingle();
-  if (projectError) throw projectError;
+  const projectData = await first<{ id: string; name: string }>(
+    database,
+    `
+      SELECT id, name
+      FROM projects
+      WHERE workspace_id = ?
+        AND id = ?
+      LIMIT 1
+    `,
+    [workspaceId, projectId],
+  );
   const project = projectData ? compactProject(projectData) : null;
   if (!project) {
     return {
@@ -958,12 +1003,16 @@ async function readAskCurrentEstimateActivityHistory({
   let rowCount = 1;
   let resolvedEstimateId = estimateId;
   if (!resolvedEstimateId && selectedNodeId) {
-    const { data: selectedNode, error: nodeError } = await supabase
-      .from("estimate_nodes")
-      .select("id, estimate_id")
-      .eq("id", selectedNodeId)
-      .maybeSingle();
-    if (nodeError) throw nodeError;
+    const selectedNode = await first<{ id: string; estimate_id: string }>(
+      database,
+      `
+        SELECT id, estimate_id
+        FROM estimate_nodes
+        WHERE id = ?
+        LIMIT 1
+      `,
+      [selectedNodeId],
+    );
     sourceTables.splice(1, 0, "estimate_nodes");
     if (selectedNode) rowCount += 1;
     resolvedEstimateId = typeof selectedNode?.estimate_id === "string" ? selectedNode.estimate_id : null;
@@ -979,13 +1028,17 @@ async function readAskCurrentEstimateActivityHistory({
     };
   }
 
-  const { data: estimateData, error: estimateError } = await supabase
-    .from("estimates")
-    .select("id, name, sheet_code")
-    .eq("id", resolvedEstimateId)
-    .eq("project_id", project.id)
-    .maybeSingle();
-  if (estimateError) throw estimateError;
+  const estimateData = await first<{ id: string; name: string; sheet_code: string | null }>(
+    database,
+    `
+      SELECT id, name, sheet_code
+      FROM estimates
+      WHERE id = ?
+        AND project_id = ?
+      LIMIT 1
+    `,
+    [resolvedEstimateId, project.id],
+  );
   const estimate = estimateData ? compactEstimate(estimateData) : null;
   if (!estimate) {
     return {
@@ -998,30 +1051,35 @@ async function readAskCurrentEstimateActivityHistory({
   }
   rowCount += 1;
 
-  const { data: tabsData, error: tabsError } = await supabase
-    .from("estimate_tabs")
-    .select("id, name, sort_order, is_default")
-    .eq("estimate_id", estimate.id)
-    .order("sort_order", { ascending: true })
-    .limit(ASK_READ_CONTEXT_CURRENT_ESTIMATE_TAB_LIMIT);
-  if (tabsError) throw tabsError;
-  const tabRows = (tabsData ?? []) as AiAskEstimateTabRow[];
+  const tabRows = await all<AiAskEstimateTabRow>(
+    database,
+    `
+      SELECT id, name, sort_order, is_default
+      FROM estimate_tabs
+      WHERE estimate_id = ?
+        AND archived_at IS NULL
+      ORDER BY sort_order ASC, id ASC
+      LIMIT ?
+    `,
+    [estimate.id, ASK_READ_CONTEXT_CURRENT_ESTIMATE_TAB_LIMIT],
+  );
   const tabNameById = new Map(tabRows.map((tab) => [tab.id, tab.name]));
   rowCount += tabRows.length;
 
-  const { data: eventsData, error: eventsError } = await supabase
-    .from("estimate_sheet_events")
-    .select("event_type, event_source, created_at, actor_user_id, estimate_tab_id, row_context, changed_fields, total_delta, payload")
-    .eq("workspace_id", workspaceId)
-    .eq("estimate_id", estimate.id)
-    .not("event_type", "in", `(${ASK_ACTIVITY_DORMANT_EVENT_TYPES.join(",")})`)
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: false })
-    .limit(ASK_READ_CONTEXT_ACTIVITY_EVENT_LIMIT);
-  if (eventsError) throw eventsError;
-
-  const eventRows = (eventsData ?? []) as AiAskActivityEventRow[];
-  const actorLabels = await resolveAskActivityActorLabels(supabase, eventRows);
+  const eventRows = await all<AiAskActivityEventRow>(
+    database,
+    `
+      SELECT event_type, event_source, created_at, actor_user_id, estimate_tab_id, row_context, changed_fields, total_delta, payload
+      FROM estimate_sheet_events
+      WHERE workspace_id = ?
+        AND estimate_id = ?
+        AND event_type NOT IN (${placeholders(ASK_ACTIVITY_DORMANT_EVENT_TYPES)})
+      ORDER BY created_at DESC, id DESC
+      LIMIT ?
+    `,
+    [workspaceId, estimate.id, ...ASK_ACTIVITY_DORMANT_EVENT_TYPES, ASK_READ_CONTEXT_ACTIVITY_EVENT_LIMIT],
+  );
+  const actorLabels = await resolveAskActivityActorLabels(database, eventRows);
   rowCount += eventRows.length + actorLabels.rowCount;
 
   return {
@@ -1042,21 +1100,25 @@ async function readAskCurrentEstimateActivityHistory({
 }
 
 async function readAskProjectChartSummary({
-  supabase,
+  database,
   workspaceId,
   projectId,
 }: {
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+  database: D1DatabaseLike;
   workspaceId: string;
   projectId: string;
 }) {
-  const { data: projectData, error: projectError } = await supabase
-    .from("projects")
-    .select("id, name")
-    .eq("workspace_id", workspaceId)
-    .eq("id", projectId)
-    .maybeSingle();
-  if (projectError) throw projectError;
+  const projectData = await first<{ id: string; name: string }>(
+    database,
+    `
+      SELECT id, name
+      FROM projects
+      WHERE workspace_id = ?
+        AND id = ?
+      LIMIT 1
+    `,
+    [workspaceId, projectId],
+  );
   const project = projectData ? compactProject(projectData) : null;
   if (!project) {
     return {
@@ -1066,15 +1128,17 @@ async function readAskProjectChartSummary({
     };
   }
 
-  const { data: estimateData, error: estimateError } = await supabase
-    .from("estimates")
-    .select("id, name, sheet_code, currency_code, updated_at")
-    .eq("project_id", project.id)
-    .order("updated_at", { ascending: false })
-    .limit(ASK_READ_CONTEXT_CHART_ESTIMATE_LIMIT);
-  if (estimateError) throw estimateError;
-
-  const estimates = (estimateData ?? []) as AiAskChartEstimateRow[];
+  const estimates = await all<AiAskChartEstimateRow>(
+    database,
+    `
+      SELECT id, name, sheet_code, currency_code, updated_at
+      FROM estimates
+      WHERE project_id = ?
+      ORDER BY updated_at DESC, id DESC
+      LIMIT ?
+    `,
+    [project.id, ASK_READ_CONTEXT_CHART_ESTIMATE_LIMIT],
+  );
   const estimateIds = estimates.map((estimate) => estimate.id);
   if (estimateIds.length === 0) {
     return {
@@ -1091,37 +1155,50 @@ async function readAskProjectChartSummary({
     };
   }
 
-  const [rowsResult, nodesResult, categoriesResult, suppliersResult] = await Promise.all([
-    supabase
-      .from("estimate_row_items")
-      .select("id, estimate_id, node_id, supplier, source_snapshot, quantity, quantity_base, quantity_contingency_amount, unit_cost, contingency_percentage, adjustment_percentage, misc_cost")
-      .in("estimate_id", estimateIds)
-      .limit(ASK_READ_CONTEXT_CHART_ROW_LIMIT),
-    supabase
-      .from("estimate_nodes")
-      .select("id, estimate_id, parent_id, kind, name, sort_order")
-      .in("estimate_id", estimateIds)
-      .order("sort_order", { ascending: true })
-      .limit(ASK_READ_CONTEXT_CHART_NODE_LIMIT),
-    supabase
-      .from("component_category_nodes")
-      .select("id, parent_id, node_type, label, sort_order")
-      .order("sort_order", { ascending: true }),
-    supabase
-      .from("component_suppliers")
-      .select("id, name, normalized_name, sort_order")
-      .eq("workspace_id", workspaceId)
-      .order("sort_order", { ascending: true }),
+  const estimateIdSql = placeholders(estimateIds);
+  const [rows, nodes, categories, suppliers] = await Promise.all([
+    all<AiAskChartRowItemRow>(
+      database,
+      `
+        SELECT id, estimate_id, node_id, supplier, source_snapshot_json AS source_snapshot,
+               quantity, quantity_base, quantity_contingency_amount, unit_cost,
+               contingency_percentage, adjustment_percentage, misc_cost
+        FROM estimate_row_items
+        WHERE estimate_id IN (${estimateIdSql})
+        LIMIT ?
+      `,
+      [...estimateIds, ASK_READ_CONTEXT_CHART_ROW_LIMIT],
+    ),
+    all<AiAskChartNodeRow>(
+      database,
+      `
+        SELECT id, estimate_id, parent_id, kind, name, sort_order
+        FROM estimate_nodes
+        WHERE estimate_id IN (${estimateIdSql})
+        ORDER BY sort_order ASC, id ASC
+        LIMIT ?
+      `,
+      [...estimateIds, ASK_READ_CONTEXT_CHART_NODE_LIMIT],
+    ),
+    allOptional<AiAskChartCategoryNodeRow>(
+      database,
+      `
+        SELECT id, parent_id, node_type, label, sort_order
+        FROM component_category_nodes
+        ORDER BY sort_order ASC, id ASC
+      `,
+    ),
+    allOptional<AiAskChartSupplierRow>(
+      database,
+      `
+        SELECT id, name, normalized_name, sort_order
+        FROM component_suppliers
+        WHERE workspace_id = ?
+        ORDER BY sort_order ASC, id ASC
+      `,
+      [workspaceId],
+    ),
   ]);
-  if (rowsResult.error) throw rowsResult.error;
-  if (nodesResult.error) throw nodesResult.error;
-  if (categoriesResult.error) throw categoriesResult.error;
-  if (suppliersResult.error) throw suppliersResult.error;
-
-  const rows = (rowsResult.data ?? []) as AiAskChartRowItemRow[];
-  const nodes = (nodesResult.data ?? []) as AiAskChartNodeRow[];
-  const categories = (categoriesResult.data ?? []) as AiAskChartCategoryNodeRow[];
-  const suppliers = (suppliersResult.data ?? []) as AiAskChartSupplierRow[];
 
   const rowFacts: ProjectChartRowFact[] = rows.map((row) => {
     const sourceSnapshot = readJsonRecord(row.source_snapshot);
@@ -1293,7 +1370,7 @@ function compactCurrentEstimateContext({
   const tabById = new Map(tabs.map((tab) => [tab.id, tab]));
   const fallbackTab = tabs.length === 0 ? { id: "legacy-main", name: "Main", sort_order: 0, is_default: true } satisfies AiAskEstimateTabRow : null;
   const groupingTabs = tabs.length > 0 ? tabs : fallbackTab ? [fallbackTab] : [];
-  const defaultActiveTabId = groupingTabs.find((tab) => tab.is_default)?.id ?? groupingTabs[0]?.id ?? null;
+  const defaultActiveTabId = groupingTabs.find((tab) => readD1Boolean(tab.is_default))?.id ?? groupingTabs[0]?.id ?? null;
   const resolvedActiveTabId = activeTabId && (tabById.has(activeTabId) || fallbackTab?.id === activeTabId)
     ? activeTabId
     : defaultActiveTabId;
@@ -1323,7 +1400,7 @@ function compactCurrentEstimateContext({
     const tabContext = compactCurrentEstimateTreeAndRows({ nodes: tabNodes, rows: tabRows, tabName: tab.name });
     return {
       name: tab.name,
-      isDefault: tab.is_default,
+      isDefault: readD1Boolean(tab.is_default),
       isActive: tab.id === resolvedActiveTabId,
       total: tabContext.total,
       nodeCount: tabNodes.length,
@@ -1349,9 +1426,11 @@ function compactCurrentEstimateContext({
 }
 
 async function searchAskHistoricalRows({
+  database,
   workspaceId,
   message,
 }: {
+  database: D1DatabaseLike;
   workspaceId: string;
   message: string;
 }) {
@@ -1364,54 +1443,68 @@ async function searchAskHistoricalRows({
     };
   }
 
-  const supabase = await createSupabaseServerClient();
-  const { data: projects, error: projectError } = await supabase
-    .from("projects")
-    .select("id, name")
-    .eq("workspace_id", workspaceId)
-    .order("updated_at", { ascending: false })
-    .limit(ASK_READ_CONTEXT_HISTORICAL_PROJECT_READ_LIMIT);
-  if (projectError) throw projectError;
-
-  const projectRows = (projects ?? []) as AiAskHistoricalProjectRow[];
+  const projectRows = await all<AiAskHistoricalProjectRow>(
+    database,
+    `
+      SELECT id, name
+      FROM projects
+      WHERE workspace_id = ?
+      ORDER BY updated_at DESC, id DESC
+      LIMIT ?
+    `,
+    [workspaceId, ASK_READ_CONTEXT_HISTORICAL_PROJECT_READ_LIMIT],
+  );
   const projectIds = projectRows.map((project) => project.id);
   if (projectIds.length === 0) {
     return { terms, matches: [] as AiAskProviderHistoricalRow[], rowCount: 0 };
   }
 
-  const { data: estimates, error: estimateError } = await supabase
-    .from("estimates")
-    .select("id, project_id, name, sheet_code")
-    .in("project_id", projectIds)
-    .order("updated_at", { ascending: false })
-    .limit(ASK_READ_CONTEXT_HISTORICAL_ESTIMATE_READ_LIMIT);
-  if (estimateError) throw estimateError;
-
-  const estimateRows = (estimates ?? []) as AiAskHistoricalEstimateRow[];
+  const projectIdSql = placeholders(projectIds);
+  const estimateRows = await all<AiAskHistoricalEstimateRow>(
+    database,
+    `
+      SELECT id, project_id, name, sheet_code
+      FROM estimates
+      WHERE project_id IN (${projectIdSql})
+      ORDER BY updated_at DESC, id DESC
+      LIMIT ?
+    `,
+    [...projectIds, ASK_READ_CONTEXT_HISTORICAL_ESTIMATE_READ_LIMIT],
+  );
   const estimateIds = estimateRows.map((estimate) => estimate.id);
   if (estimateIds.length === 0) {
     return { terms, matches: [] as AiAskProviderHistoricalRow[], rowCount: projectRows.length };
   }
 
-  const [nodesResult, rowsResult] = await Promise.all([
-    supabase
-      .from("estimate_nodes")
-      .select("id, estimate_id, kind, name")
-      .in("estimate_id", estimateIds)
-      .limit(ASK_READ_CONTEXT_HISTORICAL_NODE_READ_LIMIT),
-    supabase
-      .from("estimate_row_items")
-      .select("id, estimate_id, node_id, material, description, supplier, quantity, quantity_base, quantity_contingency_amount, unit, unit_cost, contingency_percentage, adjustment_percentage, misc_cost, source_library_item_id, updated_at")
-      .in("estimate_id", estimateIds)
-      .or(buildHistoricalRowSearchOrFilter(terms))
-      .order("updated_at", { ascending: false })
-      .limit(ASK_READ_CONTEXT_HISTORICAL_ROW_READ_LIMIT),
+  const estimateIdSql = placeholders(estimateIds);
+  const historicalSearch = buildSearchWhere(["material", "description", "supplier"], terms);
+  const [nodes, rows] = await Promise.all([
+    all<AiAskHistoricalNodeRow>(
+      database,
+      `
+        SELECT id, estimate_id, kind, name
+        FROM estimate_nodes
+        WHERE estimate_id IN (${estimateIdSql})
+        LIMIT ?
+      `,
+      [...estimateIds, ASK_READ_CONTEXT_HISTORICAL_NODE_READ_LIMIT],
+    ),
+    all<AiAskHistoricalEstimateRowItemRow>(
+      database,
+      `
+        SELECT id, estimate_id, node_id, material, description, supplier, quantity,
+               quantity_base, quantity_contingency_amount, unit, unit_cost,
+               contingency_percentage, adjustment_percentage, misc_cost,
+               source_library_item_id, updated_at
+        FROM estimate_row_items
+        WHERE estimate_id IN (${estimateIdSql})
+          AND ${historicalSearch.sql}
+        ORDER BY updated_at DESC, id DESC
+        LIMIT ?
+      `,
+      [...estimateIds, ...historicalSearch.values, ASK_READ_CONTEXT_HISTORICAL_ROW_READ_LIMIT],
+    ),
   ]);
-  if (nodesResult.error) throw nodesResult.error;
-  if (rowsResult.error) throw rowsResult.error;
-
-  const nodes = (nodesResult.data ?? []) as AiAskHistoricalNodeRow[];
-  const rows = (rowsResult.data ?? []) as AiAskHistoricalEstimateRowItemRow[];
   const projectById = new Map(projectRows.map((project) => [project.id, project]));
   const estimateById = new Map(estimateRows.map((estimate) => [estimate.id, estimate]));
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
@@ -1449,25 +1542,28 @@ async function searchAskHistoricalRows({
 }
 
 async function searchAskTemplateLibrary({
+  database,
   workspaceId,
   message,
 }: {
+  database: D1DatabaseLike;
   workspaceId: string;
   message: string;
 }) {
   const terms = getAskTemplateSearchTerms(message);
-  const supabase = await createSupabaseServerClient();
-  const templateQuery = supabase
-    .from("estimate_templates")
-    .select("id, name, description, category")
-    .eq("workspace_id", workspaceId);
-  const filteredTemplateQuery = terms.length > 0 ? templateQuery.or(buildTemplateSearchOrFilter(terms)) : templateQuery;
-  const { data: templates, error: templateError } = await filteredTemplateQuery
-    .order("sort_order", { ascending: true })
-    .limit(ASK_READ_CONTEXT_TEMPLATE_RESULT_LIMIT);
-  if (templateError) throw templateError;
-
-  const templateRows = (templates ?? []) as AiAskTemplateSearchRow[];
+  const templateSearch = buildSearchWhere(["name", "description", "category"], terms);
+  const templateRows = await all<AiAskTemplateSearchRow>(
+    database,
+    `
+      SELECT id, name, description, category
+      FROM estimate_templates
+      WHERE workspace_id = ?
+        AND ${templateSearch.sql}
+      ORDER BY sort_order ASC, name ASC
+      LIMIT ?
+    `,
+    [workspaceId, ...templateSearch.values, ASK_READ_CONTEXT_TEMPLATE_RESULT_LIMIT],
+  );
   const templateIds = templateRows.map((template) => template.id);
   if (templateIds.length === 0) {
     return {
@@ -1477,24 +1573,33 @@ async function searchAskTemplateLibrary({
     };
   }
 
-  const [nodesResult, rowsResult] = await Promise.all([
-    supabase
-      .from("estimate_template_nodes")
-      .select("id, template_id, kind, name")
-      .in("template_id", templateIds)
-      .limit(ASK_READ_CONTEXT_TEMPLATE_NODE_READ_LIMIT),
-    supabase
-      .from("estimate_template_row_items")
-      .select("id, template_id, template_node_id, material, description, supplier, quantity, unit, unit_cost, contingency_percentage, adjustment_percentage, misc_cost, sort_order")
-      .in("template_id", templateIds)
-      .order("sort_order", { ascending: true })
-      .limit(ASK_READ_CONTEXT_TEMPLATE_ROW_READ_LIMIT),
+  const templateIdSql = placeholders(templateIds);
+  const [nodes, rows] = await Promise.all([
+    all<AiAskTemplateNodeRow>(
+      database,
+      `
+        SELECT id, template_id, kind, name
+        FROM estimate_template_nodes
+        WHERE template_id IN (${templateIdSql})
+        ORDER BY sort_order ASC, id ASC
+        LIMIT ?
+      `,
+      [...templateIds, ASK_READ_CONTEXT_TEMPLATE_NODE_READ_LIMIT],
+    ),
+    all<AiAskTemplateRowItemRow>(
+      database,
+      `
+        SELECT id, template_id, template_node_id, material, description, supplier,
+               quantity, unit, unit_cost, contingency_percentage,
+               adjustment_percentage, misc_cost, sort_order
+        FROM estimate_template_row_items
+        WHERE template_id IN (${templateIdSql})
+        ORDER BY sort_order ASC, id ASC
+        LIMIT ?
+      `,
+      [...templateIds, ASK_READ_CONTEXT_TEMPLATE_ROW_READ_LIMIT],
+    ),
   ]);
-  if (nodesResult.error) throw nodesResult.error;
-  if (rowsResult.error) throw rowsResult.error;
-
-  const nodes = (nodesResult.data ?? []) as AiAskTemplateNodeRow[];
-  const rows = (rowsResult.data ?? []) as AiAskTemplateRowItemRow[];
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
   const matches = filterMap(templateRows, (template) => {
       const templateNodes = nodes.filter((node) => node.template_id === template.id);
@@ -1540,9 +1645,11 @@ async function searchAskTemplateLibrary({
 }
 
 async function searchAskComponentLibrary({
+  database,
   workspaceId,
   message,
 }: {
+  database: D1DatabaseLike;
   workspaceId: string;
   message: string;
 }) {
@@ -1555,32 +1662,39 @@ async function searchAskComponentLibrary({
     };
   }
 
-  const supabase = await createSupabaseServerClient();
-  const { data: items, error: itemError } = await supabase
-    .from("cost_library_items")
-    .select("id, name, description, category, supplier, supplier_id, brand, unit, unit_cost, misc_cost, lifecycle_state, current_version_number, active_price_option_id, confidence")
-    .eq("workspace_id", workspaceId)
-    .neq("lifecycle_state", "archived")
-    .neq("lifecycle_state", "discontinued")
-    .or(buildComponentSearchOrFilter(terms))
-    .limit(ASK_READ_CONTEXT_COMPONENT_ITEM_READ_LIMIT);
-  if (itemError) throw itemError;
-
-  const itemRows = (items ?? []) as AiAskComponentSearchItem[];
+  const componentSearch = buildSearchWhere(["name", "description", "category", "supplier", "brand"], terms);
+  const itemRows = await all<AiAskComponentSearchItem>(
+    database,
+    `
+      SELECT id, name, description, category, supplier, supplier_id, brand, unit,
+             unit_cost, misc_cost, lifecycle_state, current_version_number,
+             active_price_option_id, confidence
+      FROM cost_library_items
+      WHERE workspace_id = ?
+        AND lifecycle_state NOT IN ('archived', 'discontinued')
+        AND ${componentSearch.sql}
+      ORDER BY updated_at DESC, name ASC
+      LIMIT ?
+    `,
+    [workspaceId, ...componentSearch.values, ASK_READ_CONTEXT_COMPONENT_ITEM_READ_LIMIT],
+  );
   const activePriceOptionIds = itemRows.map((item) => item.active_price_option_id).filter((id): id is string => Boolean(id));
   const priceOptionByItemId = new Map<string, AiAskComponentPriceOption>();
   let priceOptionRowsRead = 0;
 
   if (activePriceOptionIds.length > 0) {
-    const { data: priceOptions, error: priceOptionError } = await supabase
-      .from("cost_library_item_price_options")
-      .select("id, item_id, unit, unit_cost, misc_cost, currency, is_active, is_default, updated_at, confidence, supplier_id")
-      .eq("workspace_id", workspaceId)
-      .eq("is_active", true)
-      .in("id", activePriceOptionIds);
-    if (priceOptionError) throw priceOptionError;
-
-    const priceOptionRows = (priceOptions ?? []) as AiAskComponentPriceOption[];
+    const priceOptionRows = await all<AiAskComponentPriceOption>(
+      database,
+      `
+        SELECT id, item_id, unit, unit_cost, misc_cost, currency,
+               is_active, is_default, updated_at, confidence, supplier_id
+        FROM cost_library_item_price_options
+        WHERE workspace_id = ?
+          AND is_active = 1
+          AND id IN (${placeholders(activePriceOptionIds)})
+      `,
+      [workspaceId, ...activePriceOptionIds],
+    );
     priceOptionRowsRead = priceOptionRows.length;
     for (const option of priceOptionRows) {
       priceOptionByItemId.set(option.item_id, option);
@@ -1690,7 +1804,7 @@ export async function readAiAskReadContext(input: AiAskReadContextInput): Promis
         currentProject: null,
         currentProjectEstimates: [],
         currentEstimate: null,
-        guidance: ["No authenticated Supabase workspace context is available for this Ask request."],
+        guidance: ["No authenticated Cloudflare D1 workspace context is available for this Ask request."],
       },
       auditEvents: [],
     };
@@ -1719,7 +1833,7 @@ export async function readAiAskReadContext(input: AiAskReadContextInput): Promis
     };
   }
 
-  const supabase = await createSupabaseServerClient();
+  const database = await requireAskReadD1Database();
   const auditEvents: AiAskDataAccessAuditInput[] = [];
   const routeProjectId = readRouteId(input.routeContext, "projectId");
   const routeEstimateId = readRouteId(input.routeContext, "estimateId");
@@ -1734,10 +1848,17 @@ export async function readAiAskReadContext(input: AiAskReadContextInput): Promis
   let activityHistory: AiAskProviderActivityHistory | null = null;
 
   if (intent === "project_count") {
-    const projectCountResult = await supabase.from("projects").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId);
-    if (projectCountResult.error) throw projectCountResult.error;
+    const projectCountResult = await first<{ count: number }>(
+      database,
+      `
+        SELECT COUNT(*) AS count
+        FROM projects
+        WHERE workspace_id = ?
+      `,
+      [workspaceId],
+    );
 
-    projectCount = projectCountResult.count ?? 0;
+    projectCount = Number(projectCountResult?.count ?? 0);
     auditEvents.push({
       eventName: "ask_count_accessible_projects",
       sourceTables: ["projects"],
@@ -1748,16 +1869,31 @@ export async function readAiAskReadContext(input: AiAskReadContextInput): Promis
   }
 
   if (intent === "project_inventory") {
-    const { data, count, error } = await supabase
-      .from("projects")
-      .select("id, name", { count: "exact" })
-      .eq("workspace_id", workspaceId)
-      .order("updated_at", { ascending: false })
-      .limit(ASK_READ_CONTEXT_PROJECT_LIST_LIMIT);
-    if (error) throw error;
+    const [projects, projectCountResult] = await Promise.all([
+      all<{ id: string; name: string }>(
+        database,
+        `
+          SELECT id, name
+          FROM projects
+          WHERE workspace_id = ?
+          ORDER BY updated_at DESC, id DESC
+          LIMIT ?
+        `,
+        [workspaceId, ASK_READ_CONTEXT_PROJECT_LIST_LIMIT],
+      ),
+      first<{ count: number }>(
+        database,
+        `
+          SELECT COUNT(*) AS count
+          FROM projects
+          WHERE workspace_id = ?
+        `,
+        [workspaceId],
+      ),
+    ]);
 
-    projectList = (data ?? []).map(compactProject);
-    projectCount = count ?? projectList.length;
+    projectList = projects.map(compactProject);
+    projectCount = Number(projectCountResult?.count ?? projectList.length);
     auditEvents.push({
       eventName: "ask_list_accessible_projects",
       sourceTables: ["projects"],
@@ -1768,7 +1904,7 @@ export async function readAiAskReadContext(input: AiAskReadContextInput): Promis
   }
 
   if (intent === "component_library_search") {
-    const componentSearch = await searchAskComponentLibrary({ workspaceId, message: input.message });
+    const componentSearch = await searchAskComponentLibrary({ database, workspaceId, message: input.message });
     componentLibraryMatches = componentSearch.matches;
     auditEvents.push({
       eventName: "ask_search_component_library",
@@ -1786,7 +1922,7 @@ export async function readAiAskReadContext(input: AiAskReadContextInput): Promis
   }
 
   if (intent === "template_library_search") {
-    const templateSearch = await searchAskTemplateLibrary({ workspaceId, message: input.message });
+    const templateSearch = await searchAskTemplateLibrary({ database, workspaceId, message: input.message });
     templateLibraryMatches = templateSearch.matches;
     auditEvents.push({
       eventName: "ask_search_estimate_templates",
@@ -1806,7 +1942,7 @@ export async function readAiAskReadContext(input: AiAskReadContextInput): Promis
   }
 
   if (intent === "historical_estimate_row_search") {
-    const historicalSearch = await searchAskHistoricalRows({ workspaceId, message: input.message });
+    const historicalSearch = await searchAskHistoricalRows({ database, workspaceId, message: input.message });
     historicalRowMatches = historicalSearch.matches;
     auditEvents.push({
       eventName: "ask_search_historical_estimate_rows",
@@ -1829,7 +1965,7 @@ export async function readAiAskReadContext(input: AiAskReadContextInput): Promis
   let currentProject: AiAskCompactProject | null = null;
 
   if (intent === "project_chart_summary" && routeProjectId) {
-    const chartSearch = await readAskProjectChartSummary({ supabase, workspaceId, projectId: routeProjectId });
+    const chartSearch = await readAskProjectChartSummary({ database, workspaceId, projectId: routeProjectId });
     currentProject = chartSearch.project;
     projectCharts = chartSearch.summary;
     auditEvents.push({
@@ -1850,7 +1986,7 @@ export async function readAiAskReadContext(input: AiAskReadContextInput): Promis
 
   if (intent === "activity_history" && routeProjectId) {
     const activitySearch = await readAskCurrentEstimateActivityHistory({
-      supabase,
+      database,
       workspaceId,
       projectId: routeProjectId,
       estimateId: routeEstimateId,
@@ -1872,13 +2008,17 @@ export async function readAiAskReadContext(input: AiAskReadContextInput): Promis
   }
 
   if (intent === "route_context" && routeProjectId) {
-    const { data, error } = await supabase
-      .from("projects")
-      .select("id, name")
-      .eq("workspace_id", workspaceId)
-      .eq("id", routeProjectId)
-      .maybeSingle();
-    if (error) throw error;
+    const data = await first<{ id: string; name: string }>(
+      database,
+      `
+        SELECT id, name
+        FROM projects
+        WHERE workspace_id = ?
+          AND id = ?
+        LIMIT 1
+      `,
+      [workspaceId, routeProjectId],
+    );
     currentProject = data ? compactProject(data) : null;
     auditEvents.push({
       eventName: "ask_read_project_summary",
@@ -1892,14 +2032,18 @@ export async function readAiAskReadContext(input: AiAskReadContextInput): Promis
   let currentProjectEstimates: AiAskCompactEstimate[] = [];
   let currentEstimate: AiAskProviderCurrentEstimate | null = null;
   if (currentProject && intent === "route_context") {
-    const { data, error } = await supabase
-      .from("estimates")
-      .select("id, name, sheet_code")
-      .eq("project_id", currentProject.id)
-      .order("updated_at", { ascending: false })
-      .limit(ASK_READ_CONTEXT_ESTIMATE_LIMIT);
-    if (error) throw error;
-    currentProjectEstimates = (data ?? []).map(compactEstimate);
+    const data = await all<{ id: string; name: string; sheet_code: string | null }>(
+      database,
+      `
+        SELECT id, name, sheet_code
+        FROM estimates
+        WHERE project_id = ?
+        ORDER BY updated_at DESC, id DESC
+        LIMIT ?
+      `,
+      [currentProject.id, ASK_READ_CONTEXT_ESTIMATE_LIMIT],
+    );
+    currentProjectEstimates = data.map(compactEstimate);
     auditEvents.push({
       eventName: "ask_list_project_estimates",
       sourceTables: ["estimates"],
@@ -1912,12 +2056,16 @@ export async function readAiAskReadContext(input: AiAskReadContextInput): Promis
   if (currentProject && (routeEstimateId || routeSelectedNodeId)) {
     let resolvedEstimateId = routeEstimateId;
     if (!resolvedEstimateId && routeSelectedNodeId) {
-      const { data: selectedNode, error } = await supabase
-        .from("estimate_nodes")
-        .select("id, estimate_id")
-        .eq("id", routeSelectedNodeId)
-        .maybeSingle();
-      if (error) throw error;
+      const selectedNode = await first<{ id: string; estimate_id: string }>(
+        database,
+        `
+          SELECT id, estimate_id
+          FROM estimate_nodes
+          WHERE id = ?
+          LIMIT 1
+        `,
+        [routeSelectedNodeId],
+      );
       resolvedEstimateId = typeof selectedNode?.estimate_id === "string" ? selectedNode.estimate_id : null;
       auditEvents.push({
         eventName: "ask_resolve_current_estimate_from_node",
@@ -1929,13 +2077,17 @@ export async function readAiAskReadContext(input: AiAskReadContextInput): Promis
     }
 
     if (resolvedEstimateId) {
-      const { data: estimateData, error: estimateError } = await supabase
-        .from("estimates")
-        .select("id, name, sheet_code")
-        .eq("id", resolvedEstimateId)
-        .eq("project_id", currentProject.id)
-        .maybeSingle();
-      if (estimateError) throw estimateError;
+      const estimateData = await first<{ id: string; name: string; sheet_code: string | null }>(
+        database,
+        `
+          SELECT id, name, sheet_code
+          FROM estimates
+          WHERE id = ?
+            AND project_id = ?
+          LIMIT 1
+        `,
+        [resolvedEstimateId, currentProject.id],
+      );
       const compactCurrentEstimate = estimateData ? compactEstimate(estimateData) : null;
       auditEvents.push({
         eventName: "ask_read_current_estimate_summary",
@@ -1946,33 +2098,45 @@ export async function readAiAskReadContext(input: AiAskReadContextInput): Promis
       });
 
       if (compactCurrentEstimate) {
-        const [nodesResult, rowsResult, tabsResult] = await Promise.all([
-          supabase
-            .from("estimate_nodes")
-            .select("id, estimate_id, estimate_tab_id, parent_id, kind, name, sort_order")
-            .eq("estimate_id", compactCurrentEstimate.id)
-            .order("sort_order", { ascending: true })
-            .limit(ASK_READ_CONTEXT_CURRENT_ESTIMATE_NODE_LIMIT),
-          supabase
-            .from("estimate_row_items")
-            .select("id, estimate_id, node_id, material, quantity, quantity_base, quantity_contingency_amount, unit, unit_cost, contingency_percentage, adjustment_percentage, misc_cost, source_library_item_id")
-            .eq("estimate_id", compactCurrentEstimate.id)
-            .order("sort_order", { ascending: true })
-            .limit(ASK_READ_CONTEXT_CURRENT_ESTIMATE_ROW_LIMIT),
-          supabase
-            .from("estimate_tabs")
-            .select("id, name, sort_order, is_default")
-            .eq("estimate_id", compactCurrentEstimate.id)
-            .order("sort_order", { ascending: true })
-            .limit(ASK_READ_CONTEXT_CURRENT_ESTIMATE_TAB_LIMIT),
+        const [nodes, rows, tabs] = await Promise.all([
+          all<AiAskEstimateNodeRow>(
+            database,
+            `
+              SELECT id, estimate_id, estimate_tab_id, parent_id, kind, name, sort_order
+              FROM estimate_nodes
+              WHERE estimate_id = ?
+              ORDER BY sort_order ASC, id ASC
+              LIMIT ?
+            `,
+            [compactCurrentEstimate.id, ASK_READ_CONTEXT_CURRENT_ESTIMATE_NODE_LIMIT],
+          ),
+          all<AiAskEstimateRowItemRow>(
+            database,
+            `
+              SELECT id, estimate_id, node_id, material, quantity, quantity_base,
+                     quantity_contingency_amount, unit, unit_cost,
+                     contingency_percentage, adjustment_percentage, misc_cost,
+                     source_library_item_id
+              FROM estimate_row_items
+              WHERE estimate_id = ?
+              ORDER BY sort_order ASC, id ASC
+              LIMIT ?
+            `,
+            [compactCurrentEstimate.id, ASK_READ_CONTEXT_CURRENT_ESTIMATE_ROW_LIMIT],
+          ),
+          all<AiAskEstimateTabRow>(
+            database,
+            `
+              SELECT id, name, sort_order, is_default
+              FROM estimate_tabs
+              WHERE estimate_id = ?
+                AND archived_at IS NULL
+              ORDER BY sort_order ASC, id ASC
+              LIMIT ?
+            `,
+            [compactCurrentEstimate.id, ASK_READ_CONTEXT_CURRENT_ESTIMATE_TAB_LIMIT],
+          ),
         ]);
-        if (nodesResult.error) throw nodesResult.error;
-        if (rowsResult.error) throw rowsResult.error;
-        if (tabsResult.error) throw tabsResult.error;
-
-        const nodes = (nodesResult.data ?? []) as AiAskEstimateNodeRow[];
-        const rows = (rowsResult.data ?? []) as AiAskEstimateRowItemRow[];
-        const tabs = (tabsResult.data ?? []) as AiAskEstimateTabRow[];
         const tabIds = tabs.map((tab) => tab.id);
         currentEstimate = compactCurrentEstimateContext({
           estimate: compactCurrentEstimate,

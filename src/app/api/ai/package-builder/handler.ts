@@ -52,7 +52,7 @@ const defaultDependencies: PackageBuilderDependencies = {
   authorizeApply: recordAiPackageApplyAuthorization,
 };
 
-const AI_AUTH_MODE_ERROR = "AI requires a real Supabase account session. Disable local admin DB bypass and sign in to use account data.";
+const AI_AUTH_MODE_ERROR = "AI requires a signed-in account session. Disable local admin DB bypass and sign in to use account data.";
 
 function jsonError(error: string, status: number) {
   return NextResponse.json({ error }, { status });

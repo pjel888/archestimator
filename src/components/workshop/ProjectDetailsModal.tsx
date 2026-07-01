@@ -41,12 +41,13 @@ import { generateProjectCode } from "@/lib/projects/project-code";
 import { updateProjectDetails } from "@/lib/projects/actions";
 import { initialProjectLocationActionState } from "@/lib/projects/location-action-state";
 import { saveProjectLocation } from "@/lib/projects/location-actions";
-import type { Json, Tables } from "@/lib/supabase/types";
+import type { Json } from "@/lib/types/json";
+import type { ProjectRow } from "@/lib/types/database";
 
 type ProjectDetailsModalProps = {
-  project: Tables<"projects">;
+  project: ProjectRow;
   onClose: () => void;
-  onDeleteProject?: (project: Tables<"projects">) => void;
+  onDeleteProject?: (project: ProjectRow) => void;
   onSaved?: () => void;
   googleMapsApiKey?: string;
   googleMapsMapId?: string | null;
@@ -110,7 +111,7 @@ type ProjectDetailsState = {
 };
 
 type ProjectDetailsInitialStateArgs = {
-  project: Tables<"projects">;
+  project: ProjectRow;
   metadata: ProjectMetadata;
   initialCurrencyCode: string;
 };

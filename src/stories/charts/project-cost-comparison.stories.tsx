@@ -14,7 +14,7 @@ import type {
 /**
  * Provider-free visual-QA harness for the cost-comparison page (`13` R-6 /
  * `09` P-1.8). Every story builds static, deterministic `ProjectChartsData` from
- * authored facts (no Supabase, no provider) so the empty / single / two / three /
+ * authored facts (no database or provider) so the empty / single / two / three /
  * truncated / null-delta states render in isolation for screenshots, the a11y
  * addon, 320px reflow, grayscale, and reduced-motion checks.
  */
@@ -158,7 +158,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Provider-free cost-comparison page across its key states. Static data props only; no Supabase or provider context.",
+          "Provider-free cost-comparison page across its key states. Static data props only; no database or provider context.",
       },
     },
   },

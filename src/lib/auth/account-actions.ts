@@ -1,15 +1,17 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { recordAccountSecurityEvent } from "@/lib/auth/account-audit";
 import { readFirstAccountWorkspaceMembership } from "@/lib/auth/account-membership";
 import {
-  getUserOnboardingProfileFromCloudflareD1,
-  getWorkspaceAccountSettingsFromCloudflareD1,
-  upsertUserOnboardingProfileInCloudflareD1,
-  upsertWorkspaceAccountSettingsInCloudflareD1,
+  getUserOnboardingProfileFromD1,
+  getWorkspaceAccountSettingsFromD1,
+  upsertUserOnboardingProfileInD1,
+  upsertWorkspaceAccountSettingsInD1,
 } from "@/lib/auth/account-settings-d1-store";
 import {
   canManageWorkspaceAccountSettings,
@@ -21,10 +23,18 @@ import {
 } from "@/lib/auth/account-data";
 import { DEFAULT_AUTH_DESTINATION, sanitizeNextPath } from "@/lib/auth/redirects";
 import { requireCurrentUserContext } from "@/lib/auth/session";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
 
-type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 type WorkspaceRole = "owner" | "admin" | "member" | "viewer";
+
+type WorkspaceMembershipRow = {
+  role: string | null;
+  workspace_id: string;
+};
+
+type WorkspaceNameRow = {
+  name: string | null;
+};
 
 export type AccountSetupState = {
   profile: ProfileSettingsPayload | null;
@@ -38,11 +48,8 @@ export type AccountSetupState = {
 async function completeOnboarding(formData: FormData) {
   const next = sanitizeNextPath(formData.get("next"));
   const context = await requireCurrentUserContext();
-  const supabase = await createSupabaseServerClient();
-  const accountMembership = await readFirstAccountWorkspaceMembership(
-    supabase,
-    context.userId,
-  );
+  const database = await requireAccountActionsD1Database();
+  const accountMembership = await readFirstAccountWorkspaceMembership(context.userId);
   const invitedCollaborator = !context.profile.default_workspace_id && Boolean(accountMembership);
   const parsed = parseOnboardingSubmission(formData, { invitedCollaborator });
 
@@ -50,24 +57,19 @@ async function completeOnboarding(formData: FormData) {
     redirect(onboardingErrorUrl("missing_fields", next));
   }
 
-  await saveProfileSettings(supabase, context.userId, parsed.profile, true);
+  await saveProfileSettings(database, context.userId, parsed.profile, true);
 
   if (parsed.workspace) {
     const workspaceId = await resolveWritableWorkspaceId(
-      supabase,
+      database,
       context.userId,
       context.profile.default_workspace_id,
       parsed.workspace.organization_name,
     );
 
-    await saveWorkspaceSettings(supabase, workspaceId, parsed.workspace);
+    await saveWorkspaceSettings(database, workspaceId, parsed.workspace);
 
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .update({ default_workspace_id: workspaceId })
-      .eq("id", context.userId);
-
-    if (profileError) throw profileError;
+    await updateDefaultWorkspaceId(database, context.userId, workspaceId);
 
     await recordAccountSecurityEvent({
       eventType: "onboarding_completed",
@@ -77,12 +79,7 @@ async function completeOnboarding(formData: FormData) {
     });
   } else {
     if (accountMembership?.workspaceId) {
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({ default_workspace_id: accountMembership.workspaceId })
-        .eq("id", context.userId);
-
-      if (profileError) throw profileError;
+      await updateDefaultWorkspaceId(database, context.userId, accountMembership.workspaceId);
     }
 
     await recordAccountSecurityEvent({
@@ -107,9 +104,9 @@ export async function updateProfileSettings(formData: FormData) {
   }
 
   const context = await requireCurrentUserContext();
-  const supabase = await createSupabaseServerClient();
+  const database = await requireAccountActionsD1Database();
 
-  await saveProfileSettings(supabase, context.userId, parsed.profile, false);
+  await saveProfileSettings(database, context.userId, parsed.profile, false);
   await recordAccountSecurityEvent({
     eventType: "profile_settings_updated",
     userId: context.userId,
@@ -127,7 +124,7 @@ export async function updateWorkspaceSettings(formData: FormData) {
   }
 
   const context = await requireCurrentUserContext();
-  const supabase = await createSupabaseServerClient();
+  const database = await requireAccountActionsD1Database();
   const workspaceIdValue = formData.get("workspace_id");
   const workspaceId = typeof workspaceIdValue === "string" ? workspaceIdValue.trim() : "";
   const targetWorkspaceId = workspaceId || context.profile.default_workspace_id;
@@ -136,12 +133,12 @@ export async function updateWorkspaceSettings(formData: FormData) {
     redirect("/workshop/settings/workspace?error=no_workspace");
   }
 
-  const role = await getWorkspaceRole(supabase, targetWorkspaceId, context.userId);
+  const role = await getWorkspaceRole(database, targetWorkspaceId, context.userId);
   if (!canManageWorkspaceAccountSettings(role)) {
     redirect("/workshop/settings/workspace?error=forbidden");
   }
 
-  await saveWorkspaceSettings(supabase, targetWorkspaceId, parsed.workspace);
+  await saveWorkspaceSettings(database, targetWorkspaceId, parsed.workspace);
   await recordAccountSecurityEvent({
     eventType: "workspace_settings_updated",
     userId: context.userId,
@@ -154,17 +151,17 @@ export async function updateWorkspaceSettings(formData: FormData) {
 
 export async function getAccountSetupState(): Promise<AccountSetupState> {
   const context = await requireCurrentUserContext();
-  const supabase = await createSupabaseServerClient();
+  const database = await requireAccountActionsD1Database();
   const [profile, accountMembership] = await Promise.all([
-    getUserOnboardingProfileFromCloudflareD1(context.userId),
-    readFirstAccountWorkspaceMembership(supabase, context.userId),
+    getUserOnboardingProfileFromD1(database, context.userId),
+    readFirstAccountWorkspaceMembership(context.userId),
   ]);
 
   const workspaceId = context.profile.default_workspace_id ?? accountMembership?.workspaceId ?? null;
   const workspaceRole = workspaceId
-    ? await getWorkspaceRole(supabase, workspaceId, context.userId)
+    ? await getWorkspaceRole(database, workspaceId, context.userId)
     : null;
-  const workspace = workspaceId ? await getWorkspaceSettings(supabase, workspaceId) : null;
+  const workspace = workspaceId ? await getWorkspaceSettings(database, workspaceId) : null;
 
   return {
     profile: profile
@@ -186,96 +183,120 @@ export async function getAccountSetupState(): Promise<AccountSetupState> {
 }
 
 async function saveProfileSettings(
-  supabase: SupabaseServerClient,
+  database: D1DatabaseLike,
   userId: string,
   profile: ProfileSettingsPayload,
   completed: boolean,
 ) {
-  const [profileResult] = await Promise.all([
-    supabase.from("profiles").update({ display_name: profile.display_name }).eq("id", userId),
-    upsertUserOnboardingProfileInCloudflareD1({ completed, profile, userId }),
+  await Promise.all([
+    run(
+      database,
+      `UPDATE profiles
+       SET display_name = ?, updated_at = ?
+       WHERE id = ?`,
+      [profile.display_name, nowIso(), userId],
+    ),
+    upsertUserOnboardingProfileInD1(database, { completed, profile, userId }),
   ]);
-
-  if (profileResult.error) throw profileResult.error;
 }
 
 async function saveWorkspaceSettings(
-  supabase: SupabaseServerClient,
+  database: D1DatabaseLike,
   workspaceId: string,
   workspace: WorkspaceSettingsPayload,
 ) {
-  const [workspaceResult] = await Promise.all([
-    supabase
-      .from("workspaces")
-      .update({ name: workspace.organization_name })
-      .eq("id", workspaceId),
-    upsertWorkspaceAccountSettingsInCloudflareD1({ workspace, workspaceId }),
+  await Promise.all([
+    run(
+      database,
+      `UPDATE workspaces
+       SET name = ?, updated_at = ?
+       WHERE id = ?`,
+      [workspace.organization_name, nowIso(), workspaceId],
+    ),
+    upsertWorkspaceAccountSettingsInD1(database, { workspace, workspaceId }),
   ]);
-
-  if (workspaceResult.error) throw workspaceResult.error;
 }
 
 async function resolveWritableWorkspaceId(
-  supabase: SupabaseServerClient,
+  database: D1DatabaseLike,
   userId: string,
   defaultWorkspaceId: string | null,
   organizationName: string,
 ) {
   if (defaultWorkspaceId) return defaultWorkspaceId;
 
-  const { data: membership, error: membershipError } = await supabase
-    .from("workspace_members")
-    .select("workspace_id, role")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  const membership = await first<WorkspaceMembershipRow>(
+    database,
+    `SELECT workspace_id, role
+     FROM workspace_members
+     WHERE user_id = ?
+     ORDER BY created_at ASC
+     LIMIT 1`,
+    [userId],
+  );
 
-  if (membershipError) throw membershipError;
   if (membership?.workspace_id && canManageWorkspaceAccountSettings(toWorkspaceRole(membership.role))) {
     return membership.workspace_id;
   }
 
-  const { data: workspace, error: workspaceError } = await supabase
-    .from("workspaces")
-    .insert({ name: organizationName, slug: null, created_by: userId })
-    .select("id")
-    .single();
+  const workspaceId = randomUUID();
+  const timestamp = nowIso();
 
-  if (workspaceError) throw workspaceError;
-  return workspace.id;
+  await run(
+    database,
+    `INSERT INTO workspaces (id, name, slug, created_by, created_at, updated_at)
+     VALUES (?, ?, NULL, ?, ?, ?)`,
+    [workspaceId, organizationName, userId, timestamp, timestamp],
+  );
+  await run(
+    database,
+    `INSERT INTO workspace_members (workspace_id, user_id, role, created_at, updated_at)
+     VALUES (?, ?, 'owner', ?, ?)
+     ON CONFLICT(workspace_id, user_id) DO UPDATE SET
+       role = 'owner',
+       updated_at = excluded.updated_at`,
+    [workspaceId, userId, timestamp, timestamp],
+  );
+
+  return workspaceId;
 }
 
 async function getWorkspaceRole(
-  supabase: SupabaseServerClient,
+  database: D1DatabaseLike,
   workspaceId: string,
   userId: string,
 ) {
-  const { data, error } = await supabase
-    .from("workspace_members")
-    .select("role")
-    .eq("workspace_id", workspaceId)
-    .eq("user_id", userId)
-    .maybeSingle();
+  const row = await first<{ role: string | null }>(
+    database,
+    `SELECT role
+     FROM workspace_members
+     WHERE workspace_id = ? AND user_id = ?
+     LIMIT 1`,
+    [workspaceId, userId],
+  );
 
-  if (error) throw error;
-  return toWorkspaceRole(data?.role);
+  return toWorkspaceRole(row?.role);
 }
 
 async function getWorkspaceSettings(
-  supabase: SupabaseServerClient,
+  database: D1DatabaseLike,
   workspaceId: string,
 ): Promise<WorkspaceSettingsPayload | null> {
-  const [workspaceResult, settings] = await Promise.all([
-    supabase.from("workspaces").select("name").eq("id", workspaceId).maybeSingle(),
-    getWorkspaceAccountSettingsFromCloudflareD1(workspaceId),
+  const [workspace, settings] = await Promise.all([
+    first<WorkspaceNameRow>(
+      database,
+      `SELECT name
+       FROM workspaces
+       WHERE id = ?
+       LIMIT 1`,
+      [workspaceId],
+    ),
+    getWorkspaceAccountSettingsFromD1(database, workspaceId),
   ]);
-
-  if (workspaceResult.error) throw workspaceResult.error;
 
   return {
     organization_name:
-      settings?.organization_name ?? workspaceResult.data?.name ?? "",
+      settings?.organization_name ?? workspace?.name ?? "",
     organization_type:
       settings?.organization_type ?? "architecture_design",
     country_region: settings?.country_region ?? "",
@@ -283,6 +304,42 @@ async function getWorkspaceSettings(
     default_currency: settings?.default_currency ?? "PHP",
     primary_use: settings?.primary_use ?? null,
   };
+}
+
+async function updateDefaultWorkspaceId(
+  database: D1DatabaseLike,
+  userId: string,
+  workspaceId: string,
+) {
+  await run(
+    database,
+    `UPDATE profiles
+     SET default_workspace_id = ?, updated_at = ?
+     WHERE id = ?`,
+    [workspaceId, nowIso(), userId],
+  );
+}
+
+async function requireAccountActionsD1Database() {
+  const database = await getCloudflareD1Database();
+  if (!database) {
+    throw new Error("Cloudflare D1 ARCH_DB binding is required for account actions.");
+  }
+  return database;
+}
+
+async function first<T>(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
+  return database.prepare<T>(sql).bind(...values).first<T>();
+}
+
+async function run(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
+  const result = await database.prepare(sql).bind(...values).run();
+  if (result.success === false) throw new Error("Cloudflare D1 account action write failed.");
+  return result;
+}
+
+function nowIso() {
+  return new Date().toISOString();
 }
 
 function toWorkspaceRole(value: string | null | undefined): WorkspaceRole | null {

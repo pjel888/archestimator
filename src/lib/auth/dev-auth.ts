@@ -19,7 +19,7 @@ export type DevCurrentUserContext = {
 function getRequiredDevEnv(name: string) {
   const value = process.env[name]?.trim();
   if (!value) {
-    throw new Error(`${name} is required when ${DEV_AUTH_BYPASS_FLAG}=1. Set it in .env.local; never commit real Supabase secrets.`);
+    throw new Error(`${name} is required when ${DEV_AUTH_BYPASS_FLAG}=1. Set it in .env.local; never commit real provider secrets.`);
   }
   return value;
 }

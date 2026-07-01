@@ -2,6 +2,9 @@ import { notFound, redirect } from "next/navigation";
 
 import { ProjectDashboardClient } from "@/components/workshop/ProjectDashboardClient";
 import { sampleProjects } from "@/components/workshop/workshop-sample-projects";
+import { requireCurrentUserContext } from "@/lib/auth/session";
+import { canEditProjectInD1 } from "@/lib/authz/d1-access";
+import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
 import { isUuid } from "@/lib/ids";
 import {
   createEmptyProjectActivityPage,
@@ -14,17 +17,22 @@ import {
 import { getProjectLocation } from "@/lib/repositories/project-location-repository";
 import { traced, withPerfTraceRequest } from "@/lib/perf/server-timing";
 import { getCurrentWorkspaceProject, listCurrentWorkspaceProjectClientNames } from "@/lib/repositories/workspace-repository";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type ProjectDashboardPageProps = {
   params: Promise<{ projectId: string }>;
 };
 
 async function canEditProject(projectId: string) {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.rpc("can_edit_project", { target_project_id: projectId });
-  if (error) return false;
-  return data === true;
+  const [db, currentUser] = await Promise.all([
+    getCloudflareD1Database(),
+    requireCurrentUserContext(),
+  ]);
+  if (!db) return false;
+  try {
+    return await canEditProjectInD1(db, projectId, currentUser);
+  } catch {
+    return false;
+  }
 }
 
 export default async function ProjectDashboardPage({ params }: ProjectDashboardPageProps) {

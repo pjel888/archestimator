@@ -6,10 +6,12 @@ import { buildUniqueWorksheetNames } from "@/lib/proposal-export/worksheet-name"
 import { getCurrentUserContext } from "@/lib/auth/session";
 import { logAppError } from "@/lib/observability/logger";
 import { checkProposalExportRateLimit } from "@/lib/publication/public-repository";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getEstimateTabs, getEstimateTabTree, getEstimateTreesForTabs, getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
 import type { EstimateSheetAdjustment, EstimateTabSummary, EstimateTreeNode } from "@/lib/estimates/types";
-import type { Json, Tables } from "@/lib/supabase/types";
+import { isWorkspaceMemberInD1 } from "@/lib/authz/d1-access";
+import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
+import type { EstimateRow, ProjectRow } from "@/lib/types/database";
+import type { Json } from "@/lib/types/json";
 import type { ProposalExportAudience, ProposalExportMetadata, ProposalExportSettings, ProposalChargeMode, ProposalTabbedWorkbookModel } from "@/lib/proposal-export/types";
 import { buildProposalWorkbookFilename } from "./filename";
 
@@ -27,8 +29,8 @@ type ProposalExportRouteContext = {
   params: Promise<{ projectId: string; estimateId: string }>;
 };
 
-type ProposalExportProject = Pick<Tables<"projects">, "id" | "name" | "project_code" | "location" | "currency_code" | "client_name" | "metadata">;
-type ProposalExportEstimate = Pick<Tables<"estimates">, "id" | "name" | "sheet_code" | "currency_code" | "metadata">;
+type ProposalExportProject = Pick<ProjectRow, "id" | "name" | "project_code" | "location" | "currency_code" | "client_name" | "metadata">;
+type ProposalExportEstimate = Pick<EstimateRow, "id" | "name" | "sheet_code" | "currency_code" | "metadata">;
 type ProposalExportWorkspace = { id?: string | null; name?: string | null } | null | undefined;
 
 type ParsedExportSettings =
@@ -78,15 +80,13 @@ function parseExportSettings(searchParams: URLSearchParams): ParsedExportSetting
 // viewer or external collaborator's `audience=internal` cannot escalate and falls to client.
 async function resolveExportAudience(workspaceId: string | null | undefined, userId: string, requestedInternal: boolean): Promise<ProposalExportAudience> {
   if (!requestedInternal || !workspaceId) return "client";
-  const supabase = await createSupabaseServerClient();
-  const { data } = await supabase
-    .from("workspace_members")
-    .select("role")
-    .eq("workspace_id", workspaceId)
-    .eq("user_id", userId)
-    .maybeSingle();
-  const role = data?.role;
-  return role === "owner" || role === "admin" || role === "member" ? "internal" : "client";
+  try {
+    const db = await getCloudflareD1Database();
+    if (!db) return "client";
+    return (await isWorkspaceMemberInD1(db, workspaceId, { userId })) ? "internal" : "client";
+  } catch {
+    return "client";
+  }
 }
 type ProposalExportLoadLimitState = {
   fetchedNodeCount: number;
@@ -125,8 +125,10 @@ function readGrossFloorArea(estimateMetadata: Json, projectMetadata: Json): numb
   return readNumberFromMetadata(estimateMetadata, "grossFloorArea") ?? readNumberFromMetadata(projectMetadata, "grossFloorArea");
 }
 
-function createXlsxResponse(buffer: Buffer, filename: string) {
-  return new Response(new Uint8Array(buffer), {
+function createXlsxResponse(buffer: Uint8Array, filename: string) {
+  const body = new ArrayBuffer(buffer.byteLength);
+  new Uint8Array(body).set(buffer);
+  return new Response(body, {
     status: 200,
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

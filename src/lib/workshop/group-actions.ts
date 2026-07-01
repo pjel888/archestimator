@@ -1,13 +1,13 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 
 import { requireAuth } from "@/lib/auth/session";
+import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
 import { isUuid } from "@/lib/ids";
 import { normalizeBulkActionIds } from "@/lib/mass-deletion/bulk-action";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { filterMapBy } from "@/lib/util/array";
 // Caps come from the shared (non-"use server") module so the Phase-4 popover
 // imports the SAME values (§2.0) — never re-declare them locally (Task 8 guard).
 import {
@@ -24,7 +24,11 @@ import {
   type BulkAssignProjectsToGroupResult,
 } from "@/lib/workshop/group-action-types";
 
-type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
+type ProjectOwnershipRow = {
+  id: string;
+  workspace_id: string;
+  created_by: string | null;
+};
 
 function assertUuid(value: string, label: string) {
   if (!isUuid(value)) throw new Error(`${label} is invalid.`);
@@ -53,11 +57,14 @@ function isUniqueViolation(error: unknown): boolean {
 // unique(user_id, project_id) constraint also raises 23505 and must not be
 // mistranslated into "name already exists". Disambiguate by constraint name.
 function isDuplicateNameViolation(error: unknown): boolean {
-  if (!isUniqueViolation(error)) return false;
   const detail = `${(error as { constraint?: string }).constraint ?? ""} ${
     (error as { message?: string }).message ?? ""
   } ${(error as { details?: string }).details ?? ""}`.toLowerCase();
-  return detail.includes("lower_name") || detail.includes("name");
+  const isD1UniqueViolation = detail.includes("unique constraint") || detail.includes("constraint failed");
+  if (!isUniqueViolation(error) && !isD1UniqueViolation) return false;
+  return detail.includes("lower_name")
+    || detail.includes("project_groups_user_workspace_lower_name_idx")
+    || detail.includes("name");
 }
 
 function normalizeGroupName(rawName: string): string {
@@ -82,24 +89,52 @@ function revalidateWorkshop() {
   revalidatePath("/workshop/projects");
 }
 
+async function requireGroupActionsD1Database() {
+  const database = await getCloudflareD1Database();
+  if (!database) throw new Error("Cloudflare D1 database is not available.");
+  return database;
+}
+
+async function first<T>(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
+  return database.prepare<T>(sql).bind(...values).first<T>();
+}
+
+async function all<T>(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
+  const result = await database.prepare<T>(sql).bind(...values).all<T>();
+  if (result.success === false) throw new Error("Project group read failed.");
+  return result.results ?? [];
+}
+
+async function run(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
+  const result = await database.prepare(sql).bind(...values).run();
+  if (result.success === false) throw new Error("Project group write failed.");
+  return result;
+}
+
+function placeholders(count: number) {
+  return Array.from({ length: count }, () => "?").join(", ");
+}
+
 // LD-2 ownership gate — mirrors the repository `owned` derivation
 // (workspace-repository.ts createWorkshopProjectAccessResolver): in-workspace AND
 // (member of the workspace OR created_by === user). created_by is NULLABLE, so the
 // workspace-role path is what keeps a created_by-IS-NULL project assignable. Do NOT
 // collapse to a bare created_by SQL equality on profile.id — that misses both cases.
 async function resolveWorkspaceRole(
-  supabase: SupabaseServerClient,
+  database: D1DatabaseLike,
   workspaceId: string,
   userId: string,
 ): Promise<boolean> {
-  const { data, error } = await supabase
-    .from("workspace_members")
-    .select("role")
-    .eq("workspace_id", workspaceId)
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (error) throw error;
-  return Boolean(data?.role); // membership of the workspace ⇒ owns its projects
+  const row = await first<{ role: string }>(
+    database,
+    `SELECT role
+     FROM workspace_members
+     WHERE workspace_id = ?
+       AND user_id = ?
+     LIMIT 1`,
+    [workspaceId, userId],
+  );
+  return Boolean(row?.role); // membership of the workspace ⇒ owns its projects
 }
 
 // Returns the subset of `projectIds` the user OWNS in this workspace, each with its
@@ -107,26 +142,26 @@ async function resolveWorkspaceRole(
 // the repo predicate in app code so NULL created_by + workspace-role ownership are
 // both honored. Reused by move + bulkAssign.
 async function verifyOwnedProjectIds(
-  supabase: SupabaseServerClient,
+  database: D1DatabaseLike,
   projectIds: readonly string[],
   workspaceId: string,
   userId: string,
 ): Promise<Array<{ id: string; workspace_id: string }>> {
   if (projectIds.length === 0) return [];
-  const hasWorkspaceRole = await resolveWorkspaceRole(supabase, workspaceId, userId);
+  const hasWorkspaceRole = await resolveWorkspaceRole(database, workspaceId, userId);
 
-  const { data, error } = await supabase
-    .from("projects")
-    .select("id, workspace_id, created_by")
-    .in("id", projectIds)
-    .eq("workspace_id", workspaceId);
-  if (error) throw error;
-
-  return filterMapBy(
-    data ?? [],
-    (row) => hasWorkspaceRole || row.created_by === userId,
-    (row) => ({ id: row.id, workspace_id: row.workspace_id }),
+  const rows = await all<ProjectOwnershipRow>(
+    database,
+    `SELECT id, workspace_id, created_by
+     FROM projects
+     WHERE workspace_id = ?
+       AND id IN (${placeholders(projectIds.length)})`,
+    [workspaceId, ...projectIds],
   );
+
+  return rows
+    .filter((row) => hasWorkspaceRole || row.created_by === userId)
+    .map((row) => ({ id: row.id, workspace_id: row.workspace_id }));
 }
 
 // Stub bodies replaced task-by-task below. Each throws until implemented so the
@@ -140,58 +175,64 @@ export async function createProjectGroup(input: {
   const accentId = normalizeAccentId(input.accentId);
 
   const { workspace, profile } = await ensureDefaultWorkspace();
-  const supabase = await createSupabaseServerClient();
+  const database = await requireGroupActionsD1Database();
 
   // Cap: 50 groups per user per workspace (Q2 soft-cap; app-layer only).
-  const { count, error: countError } = await supabase
-    .from("project_groups")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", profile.id)
-    .eq("workspace_id", workspace.id);
-
-  if (countError) throw countError;
-  if ((count ?? 0) >= MAX_PROJECT_GROUPS) {
+  const countRow = await first<{ count: number }>(
+    database,
+    `SELECT COUNT(*) AS count
+     FROM project_groups
+     WHERE user_id = ?
+       AND workspace_id = ?`,
+    [profile.id, workspace.id],
+  );
+  if ((countRow?.count ?? 0) >= MAX_PROJECT_GROUPS) {
     throw new ProjectGroupCapError(
       `You can have at most ${MAX_PROJECT_GROUPS} groups. Delete one to add another.`,
     );
   }
 
   // position = max(existing) + 1 (append to end). Highest first, take one row.
-  const { data: lastRow, error: positionError } = await supabase
-    .from("project_groups")
-    .select("position")
-    .eq("user_id", profile.id)
-    .eq("workspace_id", workspace.id)
-    .order("position", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (positionError) throw positionError;
+  const lastRow = await first<{ position: number | null }>(
+    database,
+    `SELECT position
+     FROM project_groups
+     WHERE user_id = ?
+       AND workspace_id = ?
+     ORDER BY position DESC
+     LIMIT 1`,
+    [profile.id, workspace.id],
+  );
   const nextPosition = lastRow ? (lastRow.position ?? 0) + 1 : 0;
+  const id = randomUUID();
+  const now = new Date().toISOString();
 
-  const { data: inserted, error: insertError } = await supabase
-    .from("project_groups")
-    .insert({
-      workspace_id: workspace.id,
-      user_id: profile.id,
-      name,
-      accent_id: accentId,
-      position: nextPosition,
-    })
-    .select("id")
-    .single();
-
-  if (insertError) {
+  try {
+    await run(
+      database,
+      `INSERT INTO project_groups (
+         id,
+         workspace_id,
+         user_id,
+         name,
+         accent_id,
+         position,
+         created_at,
+         updated_at
+       )
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, workspace.id, profile.id, name, accentId, nextPosition, now, now],
+    );
+  } catch (insertError) {
     // A name-index 23505 ⇒ duplicate name; any other 23505 (or error) rethrows raw.
     if (isDuplicateNameViolation(insertError)) {
       throw new ProjectGroupNameError("A group with this name already exists.");
     }
     throw insertError;
   }
-  if (!inserted) throw new Error("Group could not be created.");
 
   revalidateWorkshop();
-  return { id: inserted.id };
+  return { id };
 }
 
 export async function renameProjectGroup(input: { groupId: string; name: string }): Promise<void> {
@@ -200,16 +241,20 @@ export async function renameProjectGroup(input: { groupId: string; name: string 
   const name = normalizeGroupName(input.name);
 
   const { workspace, profile } = await ensureDefaultWorkspace();
-  const supabase = await createSupabaseServerClient();
+  const database = await requireGroupActionsD1Database();
 
-  const { error } = await supabase
-    .from("project_groups")
-    .update({ name, updated_at: new Date().toISOString() })
-    .eq("id", input.groupId)
-    .eq("user_id", profile.id)
-    .eq("workspace_id", workspace.id);
-
-  if (error) {
+  try {
+    await run(
+      database,
+      `UPDATE project_groups
+       SET name = ?,
+           updated_at = ?
+       WHERE id = ?
+         AND user_id = ?
+         AND workspace_id = ?`,
+      [name, new Date().toISOString(), input.groupId, profile.id, workspace.id],
+    );
+  } catch (error) {
     if (isDuplicateNameViolation(error)) {
       throw new ProjectGroupNameError("A group with this name already exists.");
     }
@@ -228,16 +273,18 @@ export async function recolorProjectGroup(input: {
   const accentId = normalizeAccentId(input.accentId);
 
   const { workspace, profile } = await ensureDefaultWorkspace();
-  const supabase = await createSupabaseServerClient();
+  const database = await requireGroupActionsD1Database();
 
-  const { error } = await supabase
-    .from("project_groups")
-    .update({ accent_id: accentId, updated_at: new Date().toISOString() })
-    .eq("id", input.groupId)
-    .eq("user_id", profile.id)
-    .eq("workspace_id", workspace.id);
-
-  if (error) throw error;
+  await run(
+    database,
+    `UPDATE project_groups
+     SET accent_id = ?,
+         updated_at = ?
+     WHERE id = ?
+       AND user_id = ?
+       AND workspace_id = ?`,
+    [accentId, new Date().toISOString(), input.groupId, profile.id, workspace.id],
+  );
   revalidateWorkshop();
 }
 
@@ -246,19 +293,19 @@ export async function deleteProjectGroup(input: { groupId: string }): Promise<vo
   assertUuid(input.groupId, "Group");
 
   const { workspace, profile } = await ensureDefaultWorkspace();
-  const supabase = await createSupabaseServerClient();
+  const database = await requireGroupActionsD1Database();
 
   // Delete only the group definition. Membership rows cascade (ON DELETE CASCADE
   // on project_group_memberships.group_id) -> projects fall to virtual Ungrouped.
   // This NEVER deletes any project (D10).
-  const { error } = await supabase
-    .from("project_groups")
-    .delete()
-    .eq("id", input.groupId)
-    .eq("user_id", profile.id)
-    .eq("workspace_id", workspace.id);
-
-  if (error) throw error;
+  await run(
+    database,
+    `DELETE FROM project_groups
+     WHERE id = ?
+       AND user_id = ?
+       AND workspace_id = ?`,
+    [input.groupId, profile.id, workspace.id],
+  );
   revalidateWorkshop();
 }
 
@@ -275,20 +322,21 @@ export async function reorderProjectGroups(input: { orderedGroupIds: string[] })
   if (input.orderedGroupIds.length === 0) return;
 
   const { workspace, profile } = await ensureDefaultWorkspace();
-  const supabase = await createSupabaseServerClient();
+  const database = await requireGroupActionsD1Database();
 
   const now = new Date().toISOString();
   await Promise.all(
     input.orderedGroupIds.map((groupId, index) =>
-      supabase
-        .from("project_groups")
-        .update({ position: index, updated_at: now })
-        .eq("id", groupId)
-        .eq("user_id", profile.id)
-        .eq("workspace_id", workspace.id)
-        .then(({ error }) => {
-          if (error) throw error;
-        }),
+      run(
+        database,
+        `UPDATE project_groups
+         SET position = ?,
+             updated_at = ?
+         WHERE id = ?
+           AND user_id = ?
+           AND workspace_id = ?`,
+        [index, now, groupId, profile.id, workspace.id],
+      ),
     ),
   );
 
@@ -303,7 +351,7 @@ export async function moveProjectToGroup(input: {
   assertUuid(input.projectId, "Project");
 
   const { workspace, profile } = await ensureDefaultWorkspace();
-  const supabase = await createSupabaseServerClient();
+  const database = await requireGroupActionsD1Database();
 
   // D9 assign gate = the LD-2 ownership gate (§1.5): in-workspace AND (workspace-role
   // member OR created_by === user), with created_by NULLABLE. Independent of delete
@@ -312,51 +360,42 @@ export async function moveProjectToGroup(input: {
   // that would refuse an owned-via-workspace-role project and drop a created_by-IS-NULL
   // one. The membership's workspace_id is stamped from the verified project row so the
   // composite FK (project_id, workspace_id) → projects(id, workspace_id) is satisfiable.
-  const [project] = await verifyOwnedProjectIds(supabase, [input.projectId], workspace.id, profile.id);
+  const [project] = await verifyOwnedProjectIds(database, [input.projectId], workspace.id, profile.id);
   if (!project) throw new Error("Project was not found in this workspace.");
 
   // Remove == delete the membership row (project falls to virtual Ungrouped).
   if (input.groupId === null) {
-    const { error } = await supabase
-      .from("project_group_memberships")
-      .delete()
-      .eq("user_id", profile.id)
-      .eq("project_id", project.id);
-
-    if (error) throw error;
+    await run(
+      database,
+      `DELETE FROM project_group_memberships
+       WHERE user_id = ?
+         AND project_id = ?`,
+      [profile.id, project.id],
+    );
     revalidateWorkshop();
     return;
   }
 
   // Move == upsert. Verify the target group is owned + in-workspace first.
   assertUuid(input.groupId, "Group");
-  const { data: group, error: groupError } = await supabase
-    .from("project_groups")
-    .select("id")
-    .eq("id", input.groupId)
-    .eq("user_id", profile.id)
-    .eq("workspace_id", workspace.id)
-    .maybeSingle();
-
-  if (groupError) throw groupError;
+  const group = await first<{ id: string }>(
+    database,
+    `SELECT id
+     FROM project_groups
+     WHERE id = ?
+       AND user_id = ?
+       AND workspace_id = ?
+     LIMIT 1`,
+    [input.groupId, profile.id, workspace.id],
+  );
   if (!group) throw new Error("Group was not found in this workspace.");
 
-  const { error } = await supabase
-    .from("project_group_memberships")
-    .upsert(
-      {
-        group_id: group.id,
-        // Stamp workspace_id from the VERIFIED project row, not ensureDefaultWorkspace,
-        // so the composite FK (project_id, workspace_id) → projects(id, workspace_id)
-        // is always satisfiable even if the project lives in a non-default workspace.
-        workspace_id: project.workspace_id,
-        user_id: profile.id,
-        project_id: project.id,
-      },
-      { onConflict: "user_id,project_id" },
-    );
-
-  if (error) throw error;
+  await upsertProjectGroupMembership(database, {
+    groupId: group.id,
+    workspaceId: project.workspace_id,
+    userId: profile.id,
+    projectId: project.id,
+  });
   revalidateWorkshop();
 }
 
@@ -378,13 +417,13 @@ export async function bulkAssignProjectsToGroup(input: {
   if (blocking) throw new Error(blocking.message);
 
   const { workspace, profile } = await ensureDefaultWorkspace();
-  const supabase = await createSupabaseServerClient();
+  const database = await requireGroupActionsD1Database();
 
   // Batched LD-2 OWNERSHIP verify (§1.5): only ids the user OWNS — in-workspace AND
   // (workspace-role member OR created_by === user), created_by nullable. NOT a bare
   // created_by SQL equality (would refuse owned-via-role + null-created_by rows). Each
   // verified row carries its workspace_id so membership rows are composite-FK-safe.
-  const verified = await verifyOwnedProjectIds(supabase, ids, workspace.id, profile.id);
+  const verified = await verifyOwnedProjectIds(database, ids, workspace.id, profile.id);
   const verifiedIds = verified.map((row) => row.id);
   // LD-11: anything requested-but-not-verified is "skipped" (forged/foreign/non-owned).
   const verifiedSet = new Set(verifiedIds);
@@ -396,13 +435,13 @@ export async function bulkAssignProjectsToGroup(input: {
     if (verifiedIds.length === 0) {
       return { movedProjectIds: [], skippedProjectIds };
     }
-    const { error } = await supabase
-      .from("project_group_memberships")
-      .delete()
-      .eq("user_id", profile.id)
-      .in("project_id", verifiedIds);
-
-    if (error) throw error;
+    await run(
+      database,
+      `DELETE FROM project_group_memberships
+       WHERE user_id = ?
+         AND project_id IN (${placeholders(verifiedIds.length)})`,
+      [profile.id, ...verifiedIds],
+    );
     revalidateWorkshop();
     return { movedProjectIds: verifiedIds, skippedProjectIds };
   }
@@ -414,30 +453,62 @@ export async function bulkAssignProjectsToGroup(input: {
   }
 
   assertUuid(input.groupId, "Group");
-  const { data: group, error: groupError } = await supabase
-    .from("project_groups")
-    .select("id")
-    .eq("id", input.groupId)
-    .eq("user_id", profile.id)
-    .eq("workspace_id", workspace.id)
-    .maybeSingle();
-
-  if (groupError) throw groupError;
+  const group = await first<{ id: string }>(
+    database,
+    `SELECT id
+     FROM project_groups
+     WHERE id = ?
+       AND user_id = ?
+       AND workspace_id = ?
+     LIMIT 1`,
+    [input.groupId, profile.id, workspace.id],
+  );
   if (!group) throw new Error("Group was not found in this workspace.");
 
-  const rows = verified.map((project) => ({
-    group_id: group.id,
-    // workspace_id from the verified project row (composite-FK-safe), not ensureDefaultWorkspace.
-    workspace_id: project.workspace_id,
-    user_id: profile.id,
-    project_id: project.id,
-  }));
-
-  const { error } = await supabase
-    .from("project_group_memberships")
-    .upsert(rows, { onConflict: "user_id,project_id" });
-
-  if (error) throw error;
+  await Promise.all(verified.map((project) =>
+    upsertProjectGroupMembership(database, {
+      groupId: group.id,
+      // workspace_id from the verified project row (composite-FK-safe), not ensureDefaultWorkspace.
+      workspaceId: project.workspace_id,
+      userId: profile.id,
+      projectId: project.id,
+    }),
+  ));
   revalidateWorkshop();
   return { movedProjectIds: verifiedIds, skippedProjectIds };
+}
+
+async function upsertProjectGroupMembership(
+  database: D1DatabaseLike,
+  {
+    groupId,
+    workspaceId,
+    userId,
+    projectId,
+  }: {
+    groupId: string;
+    workspaceId: string;
+    userId: string;
+    projectId: string;
+  },
+) {
+  const now = new Date().toISOString();
+  await run(
+    database,
+    `INSERT INTO project_group_memberships (
+       id,
+       group_id,
+       workspace_id,
+       user_id,
+       project_id,
+       created_at,
+       updated_at
+     )
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(user_id, project_id) DO UPDATE SET
+       group_id = excluded.group_id,
+       workspace_id = excluded.workspace_id,
+       updated_at = excluded.updated_at`,
+    [randomUUID(), groupId, workspaceId, userId, projectId, now, now],
+  );
 }

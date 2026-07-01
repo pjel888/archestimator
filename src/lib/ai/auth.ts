@@ -8,16 +8,16 @@ export type AiRequestUserContext = {
   userId: string;
   email: string;
   workspaceId?: string | null;
-  authMode?: "better-auth" | "supabase" | "dev-bypass";
+  authMode?: "better-auth" | "dev-bypass";
 };
 
 export function isProviderBackedAiAuthMode(authMode: AiRequestUserContext["authMode"]) {
-  return authMode === "better-auth" || authMode === "supabase";
+  return authMode === "better-auth";
 }
 
 export function isProviderBackedAiUserContext(
   userContext: AiRequestUserContext,
-): userContext is AiRequestUserContext & { authMode: "better-auth" | "supabase"; workspaceId: string } {
+): userContext is AiRequestUserContext & { authMode: "better-auth"; workspaceId: string } {
   return isProviderBackedAiAuthMode(userContext.authMode) && Boolean(userContext.workspaceId);
 }
 

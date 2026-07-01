@@ -1,8 +1,7 @@
 import { cache } from "react";
 
+import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
 import { getCurrentWorkspaceProject } from "@/lib/repositories/workspace-repository";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { Tables } from "@/lib/supabase/types";
 
 export type ProjectLocationSummary = {
   readonly id: string;
@@ -16,6 +15,20 @@ export type ProjectLocationSummary = {
   readonly geocoderName: string | null;
   readonly providerPlaceId: string | null;
   readonly updatedAt: string;
+};
+
+type ProjectLocationD1Row = {
+  id: string;
+  project_id: string;
+  latitude: number | string | null;
+  longitude: number | string | null;
+  accuracy_meters: number | string | null;
+  source: string;
+  display_label: string | null;
+  address_text: string | null;
+  geocoder_name: string | null;
+  provider_place_id: string | null;
+  updated_at: string;
 };
 
 function toNumber(value: number | string | null) {
@@ -44,14 +57,17 @@ function readErrorMessage(error: unknown) {
 function isProjectLocationSchemaUnavailable(error: unknown) {
   const code = readPostgresErrorCode(error);
   const message = readErrorMessage(error);
-  return (code === "42P01" || code === "PGRST205") && message.includes("project_locations");
+  return (
+    ((code === "42P01" || code === "PGRST205") && message.includes("project_locations"))
+    || message.toLowerCase().includes("no such table: project_locations")
+  );
 }
 
 function warnProjectLocationSchemaUnavailable() {
   console.warn("[project-dashboard] Project location schema is unavailable; apply migration 20260619105250.");
 }
 
-function toProjectLocationSummary(row: Tables<"project_locations">): ProjectLocationSummary | null {
+function toProjectLocationSummary(row: ProjectLocationD1Row): ProjectLocationSummary | null {
   const latitude = toNumber(row.latitude);
   const longitude = toNumber(row.longitude);
   if (latitude === null || longitude === null) return null;
@@ -76,19 +92,39 @@ export const getProjectLocation = cache(async function getProjectLocation(projec
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) return null;
 
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("project_locations")
-    .select("id, project_id, latitude, longitude, accuracy_meters, source, display_label, address_text, geocoder_name, provider_place_id, updated_at")
-    .eq("project_id", project.id)
-    .maybeSingle();
+  const db = await getCloudflareD1Database();
+  if (!db) return null;
 
-  if (error) {
+  try {
+    const row = await db
+      .prepare<ProjectLocationD1Row>(
+        `
+          SELECT
+            id,
+            project_id,
+            latitude,
+            longitude,
+            accuracy_meters,
+            source,
+            display_label,
+            address_text,
+            geocoder_name,
+            provider_place_id,
+            updated_at
+          FROM project_locations
+          WHERE project_id = ?
+          LIMIT 1
+        `,
+      )
+      .bind(project.id)
+      .first<ProjectLocationD1Row>();
+
+    return row ? toProjectLocationSummary(row) : null;
+  } catch (error) {
     if (isProjectLocationSchemaUnavailable(error)) {
       warnProjectLocationSchemaUnavailable();
       return null;
     }
     throw error;
   }
-  return data ? toProjectLocationSummary(data as Tables<"project_locations">) : null;
 });

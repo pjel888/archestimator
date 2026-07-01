@@ -1,7 +1,7 @@
 /**
  * The single JS oracle for an estimate row's line total. Mirrors the SQL
  * `estimate_row_line_total` STABLE function
- * (supabase/migrations/20260524050746_add_estimate_row_contingency_percentage.sql)
+ * (the historical estimate-row contingency migration)
  * byte-for-byte:
  *
  *   subtotal       = quantity * unit_cost

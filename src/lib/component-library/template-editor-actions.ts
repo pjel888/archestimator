@@ -1,16 +1,22 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
-import type { EstimateRowItem } from "@/lib/estimates/types";
+import { isWorkspaceEditorInD1 } from "@/lib/authz/d1-access";
+import {
+  getCloudflareD1Database,
+  type D1DatabaseLike,
+  type D1Value,
+} from "@/lib/cloudflare/d1";
+import type { EstimateRowItem, EstimateRowLinkState } from "@/lib/estimates/types";
 import { isUuid } from "@/lib/ids";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { TablesInsert, TablesUpdate } from "@/lib/supabase/types";
+import type { Json } from "@/lib/types/json";
 import { throwActionError } from "./action-errors";
 
-type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
+type CurrentUserContext = Awaited<ReturnType<typeof requireCurrentUserContext>>;
 
 export type TemplateNodeKind = "group" | "area";
 
@@ -25,66 +31,427 @@ export type TemplateEditorRowPatch = Partial<{
   adjustmentPercentage: number;
 }>;
 
+type EstimateTemplateRow = {
+  id: string;
+  workspace_id: string;
+  name: string;
+};
+
+type EstimateTemplateNodeD1Row = {
+  id: string;
+  template_id: string;
+  parent_id: string | null;
+  kind: TemplateNodeKind;
+  name: string;
+  sort_order: number;
+  metadata: string | Json | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type EstimateTemplateNode = Omit<EstimateTemplateNodeD1Row, "metadata"> & {
+  metadata: Json;
+};
+
+type EstimateTemplateRowItemD1Row = {
+  id: string;
+  template_id: string;
+  template_node_id: string;
+  sort_order: number;
+  source_library_item_id: string | null;
+  source_snapshot: string | Json | null;
+  category_node_id: string | null;
+  supplier_id: string | null;
+  material: string;
+  description: string;
+  supplier: string;
+  unit: string;
+  quantity: number;
+  unit_cost: number;
+  misc_cost: number;
+  contingency_percentage: number;
+  adjustment_percentage: number;
+  discipline: string;
+  designation: string;
+  link_state: EstimateRowLinkState;
+  metadata: string | Json | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type EstimateTemplateRowItem = Omit<EstimateTemplateRowItemD1Row, "source_snapshot" | "metadata"> & {
+  source_snapshot: Json | null;
+  metadata: Json;
+};
+
+type TemplateRowInsert = Omit<EstimateTemplateRowItem, "id" | "created_at" | "updated_at">;
+
+type TemplateRowUpdate = Partial<
+  Pick<
+    EstimateTemplateRowItem,
+    | "material"
+    | "description"
+    | "quantity"
+    | "unit"
+    | "unit_cost"
+    | "misc_cost"
+    | "adjustment_percentage"
+  >
+>;
+
 function revalidateTemplateEditorPaths(templateId: string) {
   revalidatePath("/workshop/library/templates");
   revalidatePath(`/workshop/library/templates/${templateId}`);
 }
 
-/**
- * Hierarchy note: `validate_estimate_template_tree` runs from a DB trigger on
- * every node/row mutation (groups at root, groups nest groups/areas, rows
- * attach to areas only), so the database is the backstop. These actions
- * still pre-check the cheap rules to fail with friendlier messages.
- */
-async function requireWorkspaceTemplate(supabase: SupabaseServerClient, workspaceId: string, templateId: string) {
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function placeholders(values: readonly unknown[]) {
+  if (values.length === 0) throw new Error("At least one SQL placeholder is required.");
+  return values.map(() => "?").join(", ");
+}
+
+function isJsonObject(value: Json): value is { [key: string]: Json | undefined } {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function parseJsonValue(value: unknown, fallback: Json): Json {
+  if (typeof value === "string") {
+    try {
+      return parseJsonValue(JSON.parse(value) as Json, fallback);
+    } catch {
+      return fallback;
+    }
+  }
+  if (
+    value === null ||
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    typeof value === "string" ||
+    Array.isArray(value) ||
+    (value && typeof value === "object")
+  ) {
+    return value as Json;
+  }
+  return fallback;
+}
+
+function jsonObjectText(value: unknown) {
+  const parsed = parseJsonValue(value, {});
+  return JSON.stringify(isJsonObject(parsed) ? parsed : {});
+}
+
+function nullableJsonText(value: unknown) {
+  if (value === null || value === undefined) return null;
+  return JSON.stringify(parseJsonValue(value, null));
+}
+
+function toTemplateNode(row: EstimateTemplateNodeD1Row): EstimateTemplateNode {
+  return {
+    ...row,
+    sort_order: Number(row.sort_order ?? 0),
+    metadata: parseJsonValue(row.metadata, {}),
+  };
+}
+
+function toTemplateRowItem(row: EstimateTemplateRowItemD1Row): EstimateTemplateRowItem {
+  return {
+    ...row,
+    sort_order: Number(row.sort_order ?? 0),
+    quantity: Number(row.quantity ?? 0),
+    unit_cost: Number(row.unit_cost ?? 0),
+    misc_cost: Number(row.misc_cost ?? 0),
+    contingency_percentage: Number(row.contingency_percentage ?? 0),
+    adjustment_percentage: Number(row.adjustment_percentage ?? 0),
+    source_snapshot: parseJsonValue(row.source_snapshot, null),
+    metadata: parseJsonValue(row.metadata, {}),
+  };
+}
+
+async function requireTemplateEditorD1Database() {
+  const database = await getCloudflareD1Database();
+  if (!database) {
+    throw new Error("Cloudflare D1 ARCH_DB binding is required for template editor actions.");
+  }
+  return database;
+}
+
+async function first<T>(
+  database: D1DatabaseLike,
+  sql: string,
+  values: D1Value[] = [],
+  userMessage = "Could not read template data.",
+) {
+  try {
+    return await database
+      .prepare<T>(sql)
+      .bind(...values)
+      .first<T>();
+  } catch (error) {
+    throwActionError(userMessage, error);
+  }
+}
+
+async function all<T>(
+  database: D1DatabaseLike,
+  sql: string,
+  values: D1Value[] = [],
+  userMessage = "Could not read template data.",
+) {
+  try {
+    const result = await database
+      .prepare<T>(sql)
+      .bind(...values)
+      .all<T>();
+    return result.results ?? [];
+  } catch (error) {
+    throwActionError(userMessage, error);
+  }
+}
+
+async function run(
+  database: D1DatabaseLike,
+  sql: string,
+  values: D1Value[] = [],
+  userMessage = "Could not update template data.",
+) {
+  try {
+    const result = await database
+      .prepare(sql)
+      .bind(...values)
+      .run();
+    if (result.success === false) throw new Error("Cloudflare D1 template editor write failed.");
+    return result;
+  } catch (error) {
+    throwActionError(userMessage, error);
+  }
+}
+
+async function runBatch(
+  database: D1DatabaseLike,
+  statements: Array<{ sql: string; values?: D1Value[] }>,
+  userMessage = "Could not update template data.",
+) {
+  if (statements.length === 0) return;
+  try {
+    if (database.batch) {
+      const results = await database.batch(
+        statements.map((statement) =>
+          database.prepare(statement.sql).bind(...(statement.values ?? [])),
+        ),
+      );
+      if (results.some((result) => result.success === false)) {
+        throw new Error("Cloudflare D1 template editor batch failed.");
+      }
+      return;
+    }
+    for (const statement of statements) {
+      const result = await database
+        .prepare(statement.sql)
+        .bind(...(statement.values ?? []))
+        .run();
+      if (result.success === false) throw new Error("Cloudflare D1 template editor write failed.");
+    }
+  } catch (error) {
+    throwActionError(userMessage, error);
+  }
+}
+
+async function requireTemplateEditorAccess(
+  database: D1DatabaseLike,
+  workspaceId: string,
+  currentUser: CurrentUserContext,
+) {
+  let canManage = false;
+  try {
+    canManage = await isWorkspaceEditorInD1(database, workspaceId, currentUser);
+  } catch (error) {
+    throwActionError("Could not verify template editor access.", error);
+  }
+  if (!canManage) throw new Error("Only workspace editors/admins can edit estimate templates.");
+}
+
+async function requireWorkspaceTemplate(database: D1DatabaseLike, workspaceId: string, templateId: string) {
   if (!isUuid(templateId)) throw new Error("Template not found in the current workspace.");
-  // Library Optimization Plan P3 T17 (F19): every template-editor mutation funnels
-  // through here, so this is the single app-layer editor-write gate — a workspace
-  // viewer is denied before any node/row mutation (defense-in-depth on top of RLS).
-  const { data: canManage, error: roleError } = await supabase.rpc("is_workspace_editor", { target_workspace_id: workspaceId });
-  if (roleError) throwActionError("Could not verify template access.", roleError);
-  if (canManage !== true) throw new Error("Only workspace editors/admins can edit templates.");
-  const { data: template, error } = await supabase
-    .from("estimate_templates")
-    .select("id, workspace_id, name")
-    .eq("id", templateId)
-    .eq("workspace_id", workspaceId)
-    .maybeSingle();
-  if (error) throwActionError("Could not load the template.", error);
+  const template = await first<EstimateTemplateRow>(
+    database,
+    `
+      SELECT id, workspace_id, name
+      FROM estimate_templates
+      WHERE id = ?
+        AND workspace_id = ?
+      LIMIT 1
+    `,
+    [templateId, workspaceId],
+    "Could not load the template.",
+  );
   if (!template) throw new Error("Template not found in the current workspace.");
   return template;
 }
 
-async function requireTemplateEditorAccess(supabase: SupabaseServerClient, workspaceId: string) {
-  const { data, error } = await supabase.rpc("is_workspace_editor", { target_workspace_id: workspaceId });
-  if (error) throwActionError("Could not verify template editor access.", error);
-  if (data !== true) throw new Error("Only workspace editors/admins can edit estimate templates.");
-}
-
-async function requireTemplateNode(supabase: SupabaseServerClient, templateId: string, nodeId: string) {
+async function requireTemplateNode(database: D1DatabaseLike, templateId: string, nodeId: string) {
   if (!isUuid(nodeId)) throw new Error("Template node not found.");
-  const { data: node, error } = await supabase
-    .from("estimate_template_nodes")
-    .select("id, template_id, parent_id, kind, name, sort_order")
-    .eq("id", nodeId)
-    .eq("template_id", templateId)
-    .maybeSingle();
-  if (error) throwActionError("Could not load the template node.", error);
+  const node = await first<EstimateTemplateNodeD1Row>(
+    database,
+    `
+      SELECT id, template_id, parent_id, kind, name, sort_order, metadata, created_at, updated_at
+      FROM estimate_template_nodes
+      WHERE id = ?
+        AND template_id = ?
+      LIMIT 1
+    `,
+    [nodeId, templateId],
+    "Could not load the template node.",
+  );
   if (!node) throw new Error("Template node not found.");
-  return node;
+  return toTemplateNode(node);
 }
 
-async function nextSiblingSortOrder(supabase: SupabaseServerClient, templateId: string, parentId: string | null) {
-  let query = supabase
-    .from("estimate_template_nodes")
-    .select("sort_order")
-    .eq("template_id", templateId)
-    .order("sort_order", { ascending: false })
-    .limit(1);
-  query = parentId === null ? query.is("parent_id", null) : query.eq("parent_id", parentId);
-  const { data, error } = await query;
-  if (error) throwActionError("Could not read sibling order.", error);
-  return (data?.[0]?.sort_order ?? -1) + 1;
+async function nextSiblingSortOrder(database: D1DatabaseLike, templateId: string, parentId: string | null) {
+  const row = await first<{ sort_order: number | null }>(
+    database,
+    parentId === null
+      ? `
+          SELECT sort_order
+          FROM estimate_template_nodes
+          WHERE template_id = ?
+            AND parent_id IS NULL
+          ORDER BY sort_order DESC
+          LIMIT 1
+        `
+      : `
+          SELECT sort_order
+          FROM estimate_template_nodes
+          WHERE template_id = ?
+            AND parent_id = ?
+          ORDER BY sort_order DESC
+          LIMIT 1
+        `,
+    parentId === null ? [templateId] : [templateId, parentId],
+    "Could not read sibling order.",
+  );
+  return Number(row?.sort_order ?? -1) + 1;
+}
+
+async function readAllTemplateNodes(database: D1DatabaseLike, templateId: string) {
+  return all<EstimateTemplateNodeD1Row>(
+    database,
+    `
+      SELECT id, template_id, parent_id, kind, name, sort_order, metadata, created_at, updated_at
+      FROM estimate_template_nodes
+      WHERE template_id = ?
+      ORDER BY sort_order ASC, id ASC
+    `,
+    [templateId],
+    "Could not load the template tree.",
+  );
+}
+
+async function readTemplateRowItem(database: D1DatabaseLike, templateId: string, rowId: string) {
+  const row = await first<EstimateTemplateRowItemD1Row>(
+    database,
+    `
+      SELECT *
+      FROM estimate_template_row_items
+      WHERE id = ?
+        AND template_id = ?
+      LIMIT 1
+    `,
+    [rowId, templateId],
+    "Could not load the template row.",
+  );
+  return row ? toTemplateRowItem(row) : null;
+}
+
+function templateNodeInsertStatement(input: {
+  id: string;
+  templateId: string;
+  parentId: string | null;
+  kind: TemplateNodeKind;
+  name: string;
+  sortOrder: number;
+  metadata?: Json;
+  now: string;
+}) {
+  return {
+    sql: `
+      INSERT INTO estimate_template_nodes (
+        id, template_id, parent_id, kind, name, sort_order, metadata, created_at, updated_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+    values: [
+      input.id,
+      input.templateId,
+      input.parentId,
+      input.kind,
+      input.name,
+      input.sortOrder,
+      jsonObjectText(input.metadata ?? {}),
+      input.now,
+      input.now,
+    ] as D1Value[],
+  };
+}
+
+function templateRowItemInsertStatement(input: EstimateTemplateRowItem & { now: string }) {
+  return {
+    sql: `
+      INSERT INTO estimate_template_row_items (
+        id,
+        template_id,
+        template_node_id,
+        sort_order,
+        source_library_item_id,
+        source_snapshot,
+        category_node_id,
+        supplier_id,
+        material,
+        description,
+        supplier,
+        unit,
+        quantity,
+        unit_cost,
+        misc_cost,
+        contingency_percentage,
+        adjustment_percentage,
+        discipline,
+        designation,
+        link_state,
+        metadata,
+        created_at,
+        updated_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+    values: [
+      input.id,
+      input.template_id,
+      input.template_node_id,
+      input.sort_order,
+      input.source_library_item_id,
+      nullableJsonText(input.source_snapshot),
+      input.category_node_id,
+      input.supplier_id,
+      input.material,
+      input.description,
+      input.supplier,
+      input.unit,
+      input.quantity,
+      input.unit_cost,
+      input.misc_cost,
+      input.contingency_percentage,
+      input.adjustment_percentage,
+      input.discipline,
+      input.designation,
+      input.link_state,
+      jsonObjectText(input.metadata),
+      input.now,
+      input.now,
+    ] as D1Value[],
+  };
 }
 
 export async function createEstimateTemplateNode(input: {
@@ -93,10 +460,10 @@ export async function createEstimateTemplateNode(input: {
   kind: TemplateNodeKind;
   name: string;
 }) {
-  const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  const supabase = await createSupabaseServerClient();
-  await requireTemplateEditorAccess(supabase, workspace.id);
-  await requireWorkspaceTemplate(supabase, workspace.id, input.templateId);
+  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const database = await requireTemplateEditorD1Database();
+  await requireTemplateEditorAccess(database, workspace.id, currentUser);
+  await requireWorkspaceTemplate(database, workspace.id, input.templateId);
 
   const name = input.name.trim();
   if (!name) throw new Error("Node name is required.");
@@ -104,67 +471,70 @@ export async function createEstimateTemplateNode(input: {
     throw new Error("Only groups can sit at the template root.");
   }
   if (input.parentId !== null) {
-    const parent = await requireTemplateNode(supabase, input.templateId, input.parentId);
+    const parent = await requireTemplateNode(database, input.templateId, input.parentId);
     if (parent.kind !== "group") throw new Error("Groups and areas can only be added under a group.");
   }
 
-  const sortOrder = await nextSiblingSortOrder(supabase, input.templateId, input.parentId);
-  const { data: node, error } = await supabase
-    .from("estimate_template_nodes")
-    .insert({
-      template_id: input.templateId,
-      parent_id: input.parentId,
-      kind: input.kind,
-      name,
-      sort_order: sortOrder,
-      metadata: {},
-    })
-    .select("*")
-    .single();
-  if (error || !node) throwActionError("Could not add the ${input.kind}.", error);
+  const now = nowIso();
+  const nodeId = randomUUID();
+  const sortOrder = await nextSiblingSortOrder(database, input.templateId, input.parentId);
+  const insertStatement = templateNodeInsertStatement({
+    id: nodeId,
+    templateId: input.templateId,
+    parentId: input.parentId,
+    kind: input.kind,
+    name,
+    sortOrder,
+    now,
+  });
+  await run(
+    database,
+    insertStatement.sql,
+    insertStatement.values,
+    `Could not add the ${input.kind}.`,
+  );
 
+  const node = await requireTemplateNode(database, input.templateId, nodeId);
   revalidateTemplateEditorPaths(input.templateId);
   return { node };
 }
 
 export async function renameEstimateTemplateNode(input: { templateId: string; nodeId: string; name: string }) {
-  const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  const supabase = await createSupabaseServerClient();
-  await requireTemplateEditorAccess(supabase, workspace.id);
-  await requireWorkspaceTemplate(supabase, workspace.id, input.templateId);
+  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const database = await requireTemplateEditorD1Database();
+  await requireTemplateEditorAccess(database, workspace.id, currentUser);
+  await requireWorkspaceTemplate(database, workspace.id, input.templateId);
 
   const name = input.name.trim();
   if (!name) throw new Error("Node name is required.");
 
-  const { data: node, error } = await supabase
-    .from("estimate_template_nodes")
-    .update({ name })
-    .eq("id", input.nodeId)
-    .eq("template_id", input.templateId)
-    .select("id, name")
-    .maybeSingle();
-  if (error) throwActionError("Could not rename the node.", error);
-  if (!node) throw new Error("Template node not found.");
+  await run(
+    database,
+    `
+      UPDATE estimate_template_nodes
+      SET name = ?, updated_at = ?
+      WHERE id = ?
+        AND template_id = ?
+    `,
+    [name, nowIso(), input.nodeId, input.templateId],
+    "Could not rename the node.",
+  );
+  const node = await requireTemplateNode(database, input.templateId, input.nodeId);
 
   revalidateTemplateEditorPaths(input.templateId);
   return { nodeId: node.id, name: node.name };
 }
 
 export async function deleteEstimateTemplateNode(input: { templateId: string; nodeId: string }) {
-  const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  const supabase = await createSupabaseServerClient();
-  await requireTemplateEditorAccess(supabase, workspace.id);
-  await requireWorkspaceTemplate(supabase, workspace.id, input.templateId);
-  await requireTemplateNode(supabase, input.templateId, input.nodeId);
+  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const database = await requireTemplateEditorD1Database();
+  await requireTemplateEditorAccess(database, workspace.id, currentUser);
+  await requireWorkspaceTemplate(database, workspace.id, input.templateId);
+  await requireTemplateNode(database, input.templateId, input.nodeId);
 
-  const { data: allNodes, error: nodesError } = await supabase
-    .from("estimate_template_nodes")
-    .select("id, parent_id")
-    .eq("template_id", input.templateId);
-  if (nodesError) throwActionError("Could not load the template tree.", nodesError);
-
+  const allNodes = await readAllTemplateNodes(database, input.templateId);
   const childrenByParent = new Map<string | null, string[]>();
-  for (const node of allNodes ?? []) {
+  for (const node of allNodes) {
     const siblings = childrenByParent.get(node.parent_id) ?? [];
     siblings.push(node.id);
     childrenByParent.set(node.parent_id, siblings);
@@ -177,19 +547,28 @@ export async function deleteEstimateTemplateNode(input: { templateId: string; no
     queue.push(...(childrenByParent.get(current) ?? []));
   }
 
-  const { error: rowsError } = await supabase
-    .from("estimate_template_row_items")
-    .delete()
-    .eq("template_id", input.templateId)
-    .in("template_node_id", subtreeIds);
-  if (rowsError) throwActionError("Could not delete the node rows.", rowsError);
-
-  const { error: nodeError } = await supabase
-    .from("estimate_template_nodes")
-    .delete()
-    .eq("template_id", input.templateId)
-    .in("id", subtreeIds);
-  if (nodeError) throwActionError("Could not delete the node.", nodeError);
+  await runBatch(
+    database,
+    [
+      {
+        sql: `
+          DELETE FROM estimate_template_row_items
+          WHERE template_id = ?
+            AND template_node_id IN (${placeholders(subtreeIds)})
+        `,
+        values: [input.templateId, ...subtreeIds],
+      },
+      {
+        sql: `
+          DELETE FROM estimate_template_nodes
+          WHERE template_id = ?
+            AND id IN (${placeholders(subtreeIds)})
+        `,
+        values: [input.templateId, ...subtreeIds],
+      },
+    ],
+    "Could not delete the node.",
+  );
 
   revalidateTemplateEditorPaths(input.templateId);
   return { deletedNodeIds: subtreeIds };
@@ -202,27 +581,22 @@ export async function moveEstimateTemplateNode(input: {
   /** Sibling ids under the new parent, in final order, including the moved node. */
   orderedSiblingIds: string[];
 }) {
-  const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  const supabase = await createSupabaseServerClient();
-  await requireTemplateEditorAccess(supabase, workspace.id);
-  await requireWorkspaceTemplate(supabase, workspace.id, input.templateId);
-  const node = await requireTemplateNode(supabase, input.templateId, input.nodeId);
+  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const database = await requireTemplateEditorD1Database();
+  await requireTemplateEditorAccess(database, workspace.id, currentUser);
+  await requireWorkspaceTemplate(database, workspace.id, input.templateId);
+  const node = await requireTemplateNode(database, input.templateId, input.nodeId);
 
   if (input.parentId === null && node.kind !== "group") {
     throw new Error("Only groups can sit at the template root.");
   }
   if (input.parentId !== null) {
     if (input.parentId === input.nodeId) throw new Error("A node cannot be its own parent.");
-    const parent = await requireTemplateNode(supabase, input.templateId, input.parentId);
+    const parent = await requireTemplateNode(database, input.templateId, input.parentId);
     if (parent.kind !== "group") throw new Error("Groups and areas can only be moved under a group.");
 
-    // Reparenting into the node's own subtree would orphan the branch.
-    const { data: allNodes, error: nodesError } = await supabase
-      .from("estimate_template_nodes")
-      .select("id, parent_id")
-      .eq("template_id", input.templateId);
-    if (nodesError) throwActionError("Could not load the template tree.", nodesError);
-    const parentById = new Map((allNodes ?? []).map((entry) => [entry.id, entry.parent_id]));
+    const allNodes = await readAllTemplateNodes(database, input.templateId);
+    const parentById = new Map(allNodes.map((entry) => [entry.id, entry.parent_id]));
     let ancestor: string | null = input.parentId;
     while (ancestor) {
       if (ancestor === input.nodeId) throw new Error("A node cannot move into its own subtree.");
@@ -230,21 +604,30 @@ export async function moveEstimateTemplateNode(input: {
     }
   }
 
-  const { error: moveError } = await supabase
-    .from("estimate_template_nodes")
-    .update({ parent_id: input.parentId })
-    .eq("id", input.nodeId)
-    .eq("template_id", input.templateId);
-  if (moveError) throwActionError("Could not move the node.", moveError);
-
-  for (const [index, siblingId] of input.orderedSiblingIds.entries()) {
-    const { error: orderError } = await supabase
-      .from("estimate_template_nodes")
-      .update({ sort_order: index })
-      .eq("id", siblingId)
-      .eq("template_id", input.templateId);
-    if (orderError) throwActionError("Could not store the sibling order.", orderError);
-  }
+  await runBatch(
+    database,
+    [
+      {
+        sql: `
+          UPDATE estimate_template_nodes
+          SET parent_id = ?, updated_at = ?
+          WHERE id = ?
+            AND template_id = ?
+        `,
+        values: [input.parentId, nowIso(), input.nodeId, input.templateId],
+      },
+      ...input.orderedSiblingIds.map((siblingId, index) => ({
+        sql: `
+          UPDATE estimate_template_nodes
+          SET sort_order = ?, updated_at = ?
+          WHERE id = ?
+            AND template_id = ?
+        `,
+        values: [index, nowIso(), siblingId, input.templateId] as D1Value[],
+      })),
+    ],
+    "Could not move the node.",
+  );
 
   revalidateTemplateEditorPaths(input.templateId);
   return { nodeId: input.nodeId, parentId: input.parentId };
@@ -255,7 +638,7 @@ function buildTemplateRowInsert(input: {
   nodeId: string;
   sortOrder: number;
   libraryItem: EstimateRowItem;
-}): TablesInsert<"estimate_template_row_items"> {
+}): TemplateRowInsert {
   const item = input.libraryItem;
   return {
     template_id: input.templateId,
@@ -286,40 +669,61 @@ export async function addEstimateTemplateRowItems(input: {
   nodeId: string;
   libraryItems: EstimateRowItem[];
 }) {
-  const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  const supabase = await createSupabaseServerClient();
-  await requireTemplateEditorAccess(supabase, workspace.id);
-  await requireWorkspaceTemplate(supabase, workspace.id, input.templateId);
-  const node = await requireTemplateNode(supabase, input.templateId, input.nodeId);
+  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const database = await requireTemplateEditorD1Database();
+  await requireTemplateEditorAccess(database, workspace.id, currentUser);
+  await requireWorkspaceTemplate(database, workspace.id, input.templateId);
+  const node = await requireTemplateNode(database, input.templateId, input.nodeId);
   if (node.kind !== "area") throw new Error("Components can only be added to an area.");
   if (input.libraryItems.length === 0) throw new Error("No components to add.");
 
-  const { data: lastRow, error: orderError } = await supabase
-    .from("estimate_template_row_items")
-    .select("sort_order")
-    .eq("template_node_id", input.nodeId)
-    .order("sort_order", { ascending: false })
-    .limit(1);
-  if (orderError) throwActionError("Could not read the row order.", orderError);
-  const baseSortOrder = (lastRow?.[0]?.sort_order ?? -1) + 1;
-
-  const inserts = input.libraryItems.map((libraryItem, index) =>
-    buildTemplateRowInsert({
+  const lastRow = await first<{ sort_order: number | null }>(
+    database,
+    `
+      SELECT sort_order
+      FROM estimate_template_row_items
+      WHERE template_node_id = ?
+      ORDER BY sort_order DESC
+      LIMIT 1
+    `,
+    [input.nodeId],
+    "Could not read the row order.",
+  );
+  const baseSortOrder = Number(lastRow?.sort_order ?? -1) + 1;
+  const now = nowIso();
+  const inserts = input.libraryItems.map((libraryItem, index) => ({
+    id: randomUUID(),
+    created_at: now,
+    updated_at: now,
+    ...buildTemplateRowInsert({
       templateId: input.templateId,
       nodeId: input.nodeId,
       sortOrder: baseSortOrder + index,
       libraryItem,
     }),
+  }));
+
+  await runBatch(
+    database,
+    inserts.map((row) => templateRowItemInsertStatement({ ...row, now })),
+    "Could not add the rows.",
+  );
+  const ids = inserts.map((row) => row.id);
+  const rows = await all<EstimateTemplateRowItemD1Row>(
+    database,
+    `
+      SELECT *
+      FROM estimate_template_row_items
+      WHERE id IN (${placeholders(ids)})
+        AND template_id = ?
+      ORDER BY sort_order ASC, id ASC
+    `,
+    [...ids, input.templateId],
+    "Could not add the rows.",
   );
 
-  const { data: rows, error } = await supabase
-    .from("estimate_template_row_items")
-    .insert(inserts)
-    .select("*");
-  if (error) throwActionError("Could not add the rows.", error);
-
   revalidateTemplateEditorPaths(input.templateId);
-  return { rows: rows ?? [] };
+  return { rows: rows.map(toTemplateRowItem) };
 }
 
 export async function createEstimateTemplateAllowanceRow(input: {
@@ -327,54 +731,67 @@ export async function createEstimateTemplateAllowanceRow(input: {
   nodeId: string;
   material: string;
 }) {
-  const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  const supabase = await createSupabaseServerClient();
-  await requireTemplateEditorAccess(supabase, workspace.id);
-  await requireWorkspaceTemplate(supabase, workspace.id, input.templateId);
-  const node = await requireTemplateNode(supabase, input.templateId, input.nodeId);
+  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const database = await requireTemplateEditorD1Database();
+  await requireTemplateEditorAccess(database, workspace.id, currentUser);
+  await requireWorkspaceTemplate(database, workspace.id, input.templateId);
+  const node = await requireTemplateNode(database, input.templateId, input.nodeId);
   if (node.kind !== "area") throw new Error("Rows can only be added to an area.");
 
   const material = input.material.trim();
   if (!material) throw new Error("Row name is required.");
 
-  const { data: lastRow, error: orderError } = await supabase
-    .from("estimate_template_row_items")
-    .select("sort_order")
-    .eq("template_node_id", input.nodeId)
-    .order("sort_order", { ascending: false })
-    .limit(1);
-  if (orderError) throwActionError("Could not read the row order.", orderError);
+  const lastRow = await first<{ sort_order: number | null }>(
+    database,
+    `
+      SELECT sort_order
+      FROM estimate_template_row_items
+      WHERE template_node_id = ?
+      ORDER BY sort_order DESC
+      LIMIT 1
+    `,
+    [input.nodeId],
+    "Could not read the row order.",
+  );
+  const now = nowIso();
+  const row: EstimateTemplateRowItem = {
+    id: randomUUID(),
+    template_id: input.templateId,
+    template_node_id: input.nodeId,
+    sort_order: Number(lastRow?.sort_order ?? -1) + 1,
+    source_library_item_id: null,
+    source_snapshot: null,
+    category_node_id: null,
+    supplier_id: null,
+    material,
+    description: "",
+    supplier: "",
+    unit: "unit",
+    quantity: 1,
+    unit_cost: 0,
+    misc_cost: 0,
+    contingency_percentage: 0,
+    adjustment_percentage: 0,
+    discipline: "",
+    designation: "",
+    link_state: "unlinked",
+    metadata: {},
+    created_at: now,
+    updated_at: now,
+  };
 
-  const { data: row, error } = await supabase
-    .from("estimate_template_row_items")
-    .insert({
-      template_id: input.templateId,
-      template_node_id: input.nodeId,
-      sort_order: (lastRow?.[0]?.sort_order ?? -1) + 1,
-      source_library_item_id: null,
-      source_snapshot: null,
-      category_node_id: null,
-      supplier_id: null,
-      material,
-      description: "",
-      supplier: "",
-      unit: "unit",
-      quantity: 1,
-      unit_cost: 0,
-      misc_cost: 0,
-      contingency_percentage: 0,
-      adjustment_percentage: 0,
-      discipline: "",
-      designation: "",
-      link_state: "unlinked",
-      metadata: {},
-    })
-    .select("*")
-    .single();
-  if (error || !row) throwActionError("Could not add the allowance row.", error);
+  const insertStatement = templateRowItemInsertStatement({ ...row, now });
+  await run(
+    database,
+    insertStatement.sql,
+    insertStatement.values,
+    "Could not add the allowance row.",
+  );
+  const insertedRow = await readTemplateRowItem(database, input.templateId, row.id);
+  if (!insertedRow) throwActionError("Could not add the allowance row.");
 
   revalidateTemplateEditorPaths(input.templateId);
-  return { row };
+  return { row: insertedRow };
 }
 
 export async function updateEstimateTemplateRowItem(input: {
@@ -382,13 +799,13 @@ export async function updateEstimateTemplateRowItem(input: {
   rowId: string;
   patch: TemplateEditorRowPatch;
 }) {
-  const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  const supabase = await createSupabaseServerClient();
-  await requireTemplateEditorAccess(supabase, workspace.id);
-  await requireWorkspaceTemplate(supabase, workspace.id, input.templateId);
+  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const database = await requireTemplateEditorD1Database();
+  await requireTemplateEditorAccess(database, workspace.id, currentUser);
+  await requireWorkspaceTemplate(database, workspace.id, input.templateId);
   if (!isUuid(input.rowId)) throw new Error("Template row not found.");
 
-  const update: TablesUpdate<"estimate_template_row_items"> = {};
+  const update: TemplateRowUpdate = {};
   if (input.patch.material !== undefined) {
     const material = input.patch.material.trim();
     if (!material) throw new Error("Row name is required.");
@@ -424,16 +841,21 @@ export async function updateEstimateTemplateRowItem(input: {
     }
     update.adjustment_percentage = input.patch.adjustmentPercentage;
   }
-  if (Object.keys(update).length === 0) throw new Error("Nothing to update.");
+  const entries = Object.entries(update) as Array<[keyof TemplateRowUpdate, D1Value]>;
+  if (entries.length === 0) throw new Error("Nothing to update.");
 
-  const { data: row, error } = await supabase
-    .from("estimate_template_row_items")
-    .update(update)
-    .eq("id", input.rowId)
-    .eq("template_id", input.templateId)
-    .select("*")
-    .maybeSingle();
-  if (error) throwActionError("Could not update the row.", error);
+  await run(
+    database,
+    `
+      UPDATE estimate_template_row_items
+      SET ${entries.map(([column]) => `${column} = ?`).join(", ")}, updated_at = ?
+      WHERE id = ?
+        AND template_id = ?
+    `,
+    [...entries.map(([, value]) => value), nowIso(), input.rowId, input.templateId],
+    "Could not update the row.",
+  );
+  const row = await readTemplateRowItem(database, input.templateId, input.rowId);
   if (!row) throw new Error("Template row not found.");
 
   revalidateTemplateEditorPaths(input.templateId);
@@ -441,21 +863,24 @@ export async function updateEstimateTemplateRowItem(input: {
 }
 
 export async function removeEstimateTemplateRowItem(input: { templateId: string; rowId: string }) {
-  const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  const supabase = await createSupabaseServerClient();
-  await requireTemplateEditorAccess(supabase, workspace.id);
-  await requireWorkspaceTemplate(supabase, workspace.id, input.templateId);
+  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const database = await requireTemplateEditorD1Database();
+  await requireTemplateEditorAccess(database, workspace.id, currentUser);
+  await requireWorkspaceTemplate(database, workspace.id, input.templateId);
   if (!isUuid(input.rowId)) throw new Error("Template row not found.");
 
-  const { data: row, error } = await supabase
-    .from("estimate_template_row_items")
-    .delete()
-    .eq("id", input.rowId)
-    .eq("template_id", input.templateId)
-    .select("id")
-    .maybeSingle();
-  if (error) throwActionError("Could not remove the row.", error);
+  const row = await readTemplateRowItem(database, input.templateId, input.rowId);
   if (!row) throw new Error("Template row not found.");
+  await run(
+    database,
+    `
+      DELETE FROM estimate_template_row_items
+      WHERE id = ?
+        AND template_id = ?
+    `,
+    [input.rowId, input.templateId],
+    "Could not remove the row.",
+  );
 
   revalidateTemplateEditorPaths(input.templateId);
   return { rowId: row.id };
@@ -466,20 +891,26 @@ export async function reorderEstimateTemplateRowItems(input: {
   nodeId: string;
   orderedRowIds: string[];
 }) {
-  const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  const supabase = await createSupabaseServerClient();
-  await requireTemplateEditorAccess(supabase, workspace.id);
-  await requireWorkspaceTemplate(supabase, workspace.id, input.templateId);
+  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const database = await requireTemplateEditorD1Database();
+  await requireTemplateEditorAccess(database, workspace.id, currentUser);
+  await requireWorkspaceTemplate(database, workspace.id, input.templateId);
 
-  for (const [index, rowId] of input.orderedRowIds.entries()) {
-    const { error } = await supabase
-      .from("estimate_template_row_items")
-      .update({ sort_order: index })
-      .eq("id", rowId)
-      .eq("template_id", input.templateId)
-      .eq("template_node_id", input.nodeId);
-    if (error) throwActionError("Could not store the row order.", error);
-  }
+  const now = nowIso();
+  await runBatch(
+    database,
+    input.orderedRowIds.map((rowId, index) => ({
+      sql: `
+        UPDATE estimate_template_row_items
+        SET sort_order = ?, updated_at = ?
+        WHERE id = ?
+          AND template_id = ?
+          AND template_node_id = ?
+      `,
+      values: [index, now, rowId, input.templateId, input.nodeId],
+    })),
+    "Could not store the row order.",
+  );
 
   revalidateTemplateEditorPaths(input.templateId);
   return { nodeId: input.nodeId };
@@ -497,45 +928,55 @@ export async function insertTemplateIntoTemplate(input: {
   /** Copy only this node's subtree instead of the whole source template. */
   sourceNodeId?: string | null;
 }) {
-  const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  const supabase = await createSupabaseServerClient();
-  await requireTemplateEditorAccess(supabase, workspace.id);
-  await requireWorkspaceTemplate(supabase, workspace.id, input.targetTemplateId);
-  await requireWorkspaceTemplate(supabase, workspace.id, input.sourceTemplateId);
+  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const database = await requireTemplateEditorD1Database();
+  await requireTemplateEditorAccess(database, workspace.id, currentUser);
+  await requireWorkspaceTemplate(database, workspace.id, input.targetTemplateId);
+  await requireWorkspaceTemplate(database, workspace.id, input.sourceTemplateId);
   if (input.targetTemplateId === input.sourceTemplateId) {
     throw new Error("A template cannot be inserted into itself.");
   }
   if (input.targetNodeId !== null) {
-    const target = await requireTemplateNode(supabase, input.targetTemplateId, input.targetNodeId);
+    const target = await requireTemplateNode(database, input.targetTemplateId, input.targetNodeId);
     if (target.kind !== "group") throw new Error("Templates can only be inserted under a group.");
   }
 
-  const [sourceNodesResult, sourceRowsResult] = await Promise.all([
-    supabase
-      .from("estimate_template_nodes")
-      .select("*")
-      .eq("template_id", input.sourceTemplateId)
-      .order("sort_order", { ascending: true }),
-    supabase
-      .from("estimate_template_row_items")
-      .select("*")
-      .eq("template_id", input.sourceTemplateId)
-      .order("sort_order", { ascending: true }),
+  const [sourceNodes, sourceRows] = await Promise.all([
+    all<EstimateTemplateNodeD1Row>(
+      database,
+      `
+        SELECT id, template_id, parent_id, kind, name, sort_order, metadata, created_at, updated_at
+        FROM estimate_template_nodes
+        WHERE template_id = ?
+        ORDER BY sort_order ASC, id ASC
+      `,
+      [input.sourceTemplateId],
+      "Could not load the source template.",
+    ),
+    all<EstimateTemplateRowItemD1Row>(
+      database,
+      `
+        SELECT *
+        FROM estimate_template_row_items
+        WHERE template_id = ?
+        ORDER BY sort_order ASC, id ASC
+      `,
+      [input.sourceTemplateId],
+      "Could not load the source rows.",
+    ),
   ]);
-  if (sourceNodesResult.error) throwActionError("Could not load the source template.", sourceNodesResult.error);
-  if (sourceRowsResult.error) throwActionError("Could not load the source rows.", sourceRowsResult.error);
 
-  let sourceNodes = sourceNodesResult.data ?? [];
-  let sourceRows = sourceRowsResult.data ?? [];
+  let nodesToCopy = sourceNodes.map(toTemplateNode);
+  let rowsToCopy = sourceRows.map(toTemplateRowItem);
   if (input.sourceNodeId) {
-    const childrenByParent = new Map<string | null, typeof sourceNodes>();
-    for (const node of sourceNodes) {
+    const childrenByParent = new Map<string | null, EstimateTemplateNode[]>();
+    for (const node of nodesToCopy) {
       const siblings = childrenByParent.get(node.parent_id) ?? [];
       siblings.push(node);
       childrenByParent.set(node.parent_id, siblings);
     }
-    const subtree: typeof sourceNodes = [];
-    const root = sourceNodes.find((node) => node.id === input.sourceNodeId);
+    const subtree: EstimateTemplateNode[] = [];
+    const root = nodesToCopy.find((node) => node.id === input.sourceNodeId);
     if (!root) throw new Error("The source template node no longer exists.");
     const queue = [root];
     while (queue.length > 0) {
@@ -544,60 +985,58 @@ export async function insertTemplateIntoTemplate(input: {
       queue.push(...(childrenByParent.get(node.id) ?? []));
     }
     const subtreeIds = new Set(subtree.map((node) => node.id));
-    // The subtree root re-parents onto the target node.
-    sourceNodes = subtree.map((node) => (node.id === root.id ? { ...node, parent_id: null } : node));
-    sourceRows = sourceRows.filter((row) => subtreeIds.has(row.template_node_id));
+    nodesToCopy = subtree.map((node) => (node.id === root.id ? { ...node, parent_id: null } : node));
+    rowsToCopy = rowsToCopy.filter((row) => subtreeIds.has(row.template_node_id));
   }
-  if (sourceNodes.length === 0) throw new Error("The source template has no structure to insert.");
+  if (nodesToCopy.length === 0) throw new Error("The source template has no structure to insert.");
 
-  const baseSortOrder = await nextSiblingSortOrder(supabase, input.targetTemplateId, input.targetNodeId);
-  const idMap = new Map<string, string>(sourceNodes.map((node) => [node.id, crypto.randomUUID()]));
-  const nodeInserts = sourceNodes.map((node, index) => ({
-    id: idMap.get(node.id)!,
-    template_id: input.targetTemplateId,
-    parent_id: node.parent_id ? idMap.get(node.parent_id) ?? null : input.targetNodeId,
-    kind: node.kind,
-    name: node.name,
-    sort_order: node.parent_id ? node.sort_order : baseSortOrder + index,
-    metadata: {},
-  }));
+  const baseSortOrder = await nextSiblingSortOrder(database, input.targetTemplateId, input.targetNodeId);
+  const idMap = new Map<string, string>(nodesToCopy.map((node) => [node.id, randomUUID()]));
+  const now = nowIso();
+  const nodeInserts = nodesToCopy.map((node, index) =>
+    templateNodeInsertStatement({
+      id: idMap.get(node.id)!,
+      templateId: input.targetTemplateId,
+      parentId: node.parent_id ? idMap.get(node.parent_id) ?? null : input.targetNodeId,
+      kind: node.kind,
+      name: node.name,
+      sortOrder: node.parent_id ? node.sort_order : baseSortOrder + index,
+      metadata: {},
+      now,
+    }),
+  );
 
-  const { error: nodeInsertError } = await supabase.from("estimate_template_nodes").insert(nodeInserts);
-  if (nodeInsertError) throwActionError("Could not copy the structure.", nodeInsertError);
+  await runBatch(database, nodeInserts, "Could not copy the structure.");
 
-  const rowInserts = sourceRows.map((row) => ({
-    template_id: input.targetTemplateId,
-    template_node_id: idMap.get(row.template_node_id)!,
-    sort_order: row.sort_order,
-    source_library_item_id: row.source_library_item_id,
-    source_snapshot: row.source_snapshot,
-    category_node_id: row.category_node_id,
-    supplier_id: row.supplier_id,
-    material: row.material,
-    description: row.description,
-    supplier: row.supplier,
-    unit: row.unit,
-    quantity: row.quantity,
-    unit_cost: row.unit_cost,
-    misc_cost: row.misc_cost,
-    contingency_percentage: row.contingency_percentage,
-    adjustment_percentage: row.adjustment_percentage,
-    discipline: row.discipline,
-    designation: row.designation,
-    link_state: row.link_state,
-    metadata: row.metadata,
-  }));
+  const rowInserts = rowsToCopy.map((row) => {
+    const copiedNodeId = idMap.get(row.template_node_id);
+    if (!copiedNodeId) throw new Error("The source template row no longer has a matching node.");
+    return templateRowItemInsertStatement({
+      ...row,
+      id: randomUUID(),
+      template_id: input.targetTemplateId,
+      template_node_id: copiedNodeId,
+      created_at: now,
+      updated_at: now,
+      now,
+    });
+  });
 
   if (rowInserts.length > 0) {
-    const { error: rowInsertError } = await supabase.from("estimate_template_row_items").insert(rowInserts);
-    if (rowInsertError) {
-      // Without a cross-statement transaction, clean up the copied nodes.
-      await supabase
-        .from("estimate_template_nodes")
-        .delete()
-        .eq("template_id", input.targetTemplateId)
-        .in("id", Array.from(idMap.values()));
-      throwActionError("Could not copy the rows.", rowInsertError);
+    try {
+      await runBatch(database, rowInserts, "Could not copy the rows.");
+    } catch (error) {
+      await run(
+        database,
+        `
+          DELETE FROM estimate_template_nodes
+          WHERE template_id = ?
+            AND id IN (${placeholders(Array.from(idMap.values()))})
+        `,
+        [input.targetTemplateId, ...Array.from(idMap.values())],
+        "Could not clean up the copied structure.",
+      );
+      throw error;
     }
   }
 

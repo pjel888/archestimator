@@ -4,10 +4,11 @@ import { notFound } from "next/navigation";
 import { ProjectEstimatesClient } from "@/components/workshop/ProjectEstimatesClient";
 import { ProjectEstimatesListRouteFallback } from "@/components/workshop/ProjectEstimatesListRouteFallback";
 import { requireCurrentUserContext } from "@/lib/auth/session";
+import { canEditEstimateInD1, canEditProjectInD1 } from "@/lib/authz/d1-access";
+import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
 import { traced, withPerfTraceRequest } from "@/lib/perf/server-timing";
 import { listCurrentUserEstimateFavoriteCreatedAtById } from "@/lib/repositories/estimate-favorites-repository";
 import { ensureDefaultWorkspace, listMainSidebarFavoriteProjects, listProjectEstimates } from "@/lib/repositories/workspace-repository";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type ProjectEstimatesPageProps = {
   params: Promise<{ projectId: string }>;
@@ -87,56 +88,34 @@ async function ProjectEstimatesContent({ params }: ProjectEstimatesPageProps) {
 }
 
 async function resolveEstimateListEditCapabilities(projectId: string, estimateIds: string[]) {
-  const supabase = await createSupabaseServerClient();
-  if (estimateIds.length === 0) {
-    const { data, error } = await supabase.rpc("can_edit_project", { target_project_id: projectId });
-    return {
-      canCreateEstimates: error ? false : data === true,
-      canEditEstimateById: {},
-    };
-  }
-
-  // The current-user read (`requireCurrentUserContext`) and the Supabase client
-  // (`createSupabaseServerClient`) are both request-scoped via React `cache()`,
-  // so the gate below reuses the same getUser/profile resolution and client the
-  // rest of the render already triggered — no extra Supabase round-trip is made
-  // here. The explicit `await` keeps the original auth short-circuit ordering
-  // (redirect before any read) intact; on the hero path it resolves from cache.
-  const currentUser = await requireCurrentUserContext();
-  const [projectEditResult, sheetMembershipsResult, sheetSettingsResult] = await Promise.all([
-    supabase.rpc("can_edit_project", { target_project_id: projectId }),
-    supabase
-      .from("estimate_sheet_members")
-      .select("estimate_id")
-      .eq("user_id", currentUser.userId)
-      .in("estimate_id", estimateIds)
-      .in("role", ["owner", "admin", "editor"]),
-    supabase
-      .from("estimate_sheet_access_settings")
-      .select("estimate_id, inherit_project_access")
-      .in("estimate_id", estimateIds),
+  const [db, currentUser] = await Promise.all([
+    getCloudflareD1Database(),
+    requireCurrentUserContext(),
   ]);
-
-  const canEditProject = projectEditResult.error ? false : projectEditResult.data === true;
-  if (sheetMembershipsResult.error || sheetSettingsResult.error) {
+  if (!db) {
     return {
-      canCreateEstimates: canEditProject,
+      canCreateEstimates: false,
       canEditEstimateById: Object.fromEntries(estimateIds.map((estimateId) => [estimateId, false])),
     };
   }
 
-  const editableMemberEstimateIds = new Set((sheetMembershipsResult.data ?? []).map((membership) => membership.estimate_id));
-  const inheritsProjectAccessByEstimateId = new Map(
-    (sheetSettingsResult.data ?? []).map((settings) => [settings.estimate_id, settings.inherit_project_access]),
-  );
+  try {
+    const [canEditProject, estimateEditPairs] = await Promise.all([
+      canEditProjectInD1(db, projectId, currentUser),
+      Promise.all(estimateIds.map(async (estimateId) => [
+        estimateId,
+        await canEditEstimateInD1(db, estimateId, currentUser),
+      ] as const)),
+    ]);
 
-  return {
-    canCreateEstimates: canEditProject,
-    canEditEstimateById: Object.fromEntries(
-      estimateIds.map((estimateId) => {
-        const inheritsProjectAccess = inheritsProjectAccessByEstimateId.get(estimateId) ?? true;
-        return [estimateId, editableMemberEstimateIds.has(estimateId) || (inheritsProjectAccess && canEditProject)];
-      }),
-    ),
-  };
+    return {
+      canCreateEstimates: canEditProject,
+      canEditEstimateById: Object.fromEntries(estimateEditPairs),
+    };
+  } catch {
+    return {
+      canCreateEstimates: false,
+      canEditEstimateById: Object.fromEntries(estimateIds.map((estimateId) => [estimateId, false])),
+    };
+  }
 }

@@ -36,9 +36,6 @@ export function readRuntimeUploadStorageProvider(): RuntimeUploadStorageProvider
     .trim()
     .toLowerCase();
   if (rawProvider === "cloudflare-r2") return rawProvider;
-  if (rawProvider === "supabase") {
-    throw new Error("Supabase upload storage has been retired; use Cloudflare R2.");
-  }
   throw new Error(`Unsupported upload storage provider: ${rawProvider}`);
 }
 

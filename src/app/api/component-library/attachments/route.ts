@@ -2,10 +2,10 @@ import { randomUUID } from "node:crypto";
 
 import { NextResponse } from "next/server";
 
-import { requireCurrentUserContext } from "@/lib/auth/session";
-import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
+import { requireCurrentUserContext, type CurrentUserContext } from "@/lib/auth/session";
+import { isWorkspaceEditorInD1 } from "@/lib/authz/d1-access";
+import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { reserveUploadAdmission } from "@/lib/uploads/admission-control";
 import { createRuntimeUploadStorageProvider } from "@/lib/uploads/runtime-storage-provider";
 import { decideUploadScanGate, type UploadScanStatus } from "@/lib/uploads/scanning";
@@ -128,7 +128,7 @@ type AttachmentDownloadRow = {
   content_type: string;
   size_bytes: number;
   review_status?: string | null;
-  is_current_approved?: boolean | null;
+  is_current_approved?: boolean | number | null;
 };
 
 type UploadAssetScanRow = {
@@ -143,28 +143,16 @@ type UploadAssetScanRow = {
   scan_override_expires_at?: string | null;
 };
 
-type AttachmentDownloadQuery<T> = {
-  select: (columns: string) => AttachmentDownloadQuery<T>;
-  eq: (column: string, value: unknown) => AttachmentDownloadQuery<T>;
-  maybeSingle: () => PromiseLike<{ data: T | null; error: { message?: string | null } | null }>;
-};
-
 type AttachmentDownloadLookupResult = {
   attachment: AttachmentDownloadRow | null;
   lookupFailed: boolean;
   unavailableReason?: "not_approved";
 };
 
-type UploadEventInsertQuery = {
-  insert: (row: Record<string, unknown>) => PromiseLike<{ error: { message?: string | null } | null }>;
-};
-
-type AttachmentDownloadClient = {
-  from: {
-    (table: "cost_library_item_variant_attachments"): AttachmentDownloadQuery<AttachmentDownloadRow>;
-    (table: "upload_assets"): AttachmentDownloadQuery<UploadAssetScanRow>;
-    (table: "upload_events"): UploadEventInsertQuery;
-  };
+type AttachmentCleanupRow = {
+  storage_path: string | null;
+  review_status?: string | null;
+  is_current_approved?: boolean | number | null;
 };
 
 function readStoragePaths(value: unknown) {
@@ -172,10 +160,6 @@ function readStoragePaths(value: unknown) {
   const rawPaths = (value as { path?: unknown; paths?: unknown }).paths ?? (value as { path?: unknown }).path;
   const paths = Array.isArray(rawPaths) ? rawPaths : [rawPaths];
   return paths.filter((path): path is string => typeof path === "string" && path.trim().length > 0).map((path) => path.trim());
-}
-
-function isMissingAttachmentGovernanceColumnError(error: { code?: string | null; message?: string | null }) {
-  return error.code === "42703" || /review_status|is_current_approved/i.test(error.message ?? "");
 }
 
 function safeUploadName(name: string) {
@@ -205,32 +189,56 @@ function uploadMetadataUnavailableResponse() {
   return jsonError("Cloudflare D1 upload metadata is not configured.", 503);
 }
 
-async function canManageLibrary(workspaceId: string) {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.rpc("is_workspace_editor", {
-    target_workspace_id: workspaceId,
-  });
-  if (error) {
-    console.error("Component attachment authorization failed", error);
+async function canManageLibrary(db: D1DatabaseLike, workspaceId: string, currentUser: CurrentUserContext) {
+  try {
+    return await isWorkspaceEditorInD1(db, workspaceId, currentUser);
+  } catch (error) {
+    console.error("Component attachment D1 authorization failed", error);
     return false;
   }
-  return data === true;
+}
+
+function readApprovedFlag(value: unknown) {
+  return value === true || value === 1;
+}
+
+function placeholders(values: readonly unknown[]) {
+  return values.map(() => "?").join(", ");
+}
+
+function d1Value(value: string): D1Value {
+  return value;
+}
+
+async function d1First<T>(db: D1DatabaseLike, sql: string, values: D1Value[]) {
+  return db.prepare<T>(sql).bind(...values).first<T>();
+}
+
+async function d1All<T>(db: D1DatabaseLike, sql: string, values: D1Value[]) {
+  const result = await db.prepare<T>(sql).bind(...values).all<T>();
+  return result.results ?? [];
 }
 
 async function readAttachmentDownloadRecord(
-  client: unknown,
+  db: D1DatabaseLike,
   attachmentId: string,
   workspaceId: string,
 ): Promise<AttachmentDownloadLookupResult> {
-  const downloadClient = client as AttachmentDownloadClient;
-  const { data, error } = await downloadClient
-    .from("cost_library_item_variant_attachments")
-    .select("id, workspace_id, storage_bucket, storage_path, file_name, content_type, size_bytes, review_status, is_current_approved")
-    .eq("id", attachmentId)
-    .eq("workspace_id", workspaceId)
-    .maybeSingle();
+  let data: AttachmentDownloadRow | null = null;
 
-  if (error) {
+  try {
+    data = await d1First<AttachmentDownloadRow>(
+      db,
+      `
+        SELECT id, workspace_id, storage_bucket, storage_path, file_name, content_type, size_bytes, review_status, is_current_approved
+        FROM cost_library_item_variant_attachments
+        WHERE id = ?
+          AND workspace_id = ?
+        LIMIT 1
+      `,
+      [attachmentId, workspaceId],
+    );
+  } catch (error) {
     console.error("Component attachment lookup failed", error);
     return { attachment: null, lookupFailed: true };
   }
@@ -239,23 +247,29 @@ async function readAttachmentDownloadRecord(
   if (data.storage_bucket !== COMPONENT_ATTACHMENT_BUCKET || !ALLOWED_MIME_TYPES.has(data.content_type)) {
     return { attachment: null, lookupFailed: false };
   }
-  if (data.review_status !== "approved" || data.is_current_approved !== true) {
+  if (data.review_status !== "approved" || !readApprovedFlag(data.is_current_approved)) {
     return { attachment: null, lookupFailed: false, unavailableReason: "not_approved" };
   }
   return { attachment: data, lookupFailed: false };
 }
 
-async function readCleanUploadAsset(client: unknown, attachment: AttachmentDownloadRow) {
-  const downloadClient = client as AttachmentDownloadClient;
-  const { data, error } = await downloadClient
-    .from("upload_assets")
-    .select("id, upload_session_id, workspace_id, surface, storage_bucket, storage_path, status, scan_status, scan_override_expires_at")
-    .eq("workspace_id", attachment.workspace_id)
-    .eq("storage_bucket", COMPONENT_ATTACHMENT_BUCKET)
-    .eq("storage_path", attachment.storage_path)
-    .maybeSingle();
+async function readCleanUploadAsset(db: D1DatabaseLike, attachment: AttachmentDownloadRow) {
+  let data: UploadAssetScanRow | null = null;
 
-  if (error) {
+  try {
+    data = await d1First<UploadAssetScanRow>(
+      db,
+      `
+        SELECT id, upload_session_id, workspace_id, surface, storage_bucket, storage_path, status, scan_status, scan_override_expires_at
+        FROM upload_assets
+        WHERE workspace_id = ?
+          AND storage_bucket = ?
+          AND storage_path = ?
+        LIMIT 1
+      `,
+      [attachment.workspace_id, COMPONENT_ATTACHMENT_BUCKET, attachment.storage_path],
+    );
+  } catch (error) {
     console.error("Component attachment upload asset lookup failed", error);
     return { uploadAsset: null, lookupFailed: true };
   }
@@ -267,6 +281,7 @@ async function readCleanUploadAsset(client: unknown, attachment: AttachmentDownl
     || data.storage_bucket !== COMPONENT_ATTACHMENT_BUCKET
     || data.storage_path !== attachment.storage_path
     || data.status !== "finalized"
+    || typeof data.scan_status !== "string"
     || !isUploadScanStatus(data.scan_status)
   ) {
     return { uploadAsset: null, lookupFailed: false };
@@ -283,31 +298,63 @@ async function readCleanUploadAsset(client: unknown, attachment: AttachmentDownl
 }
 
 async function recordAttachmentDownloadIssued(
-  client: unknown,
+  db: D1DatabaseLike,
   attachment: AttachmentDownloadRow,
   uploadAsset: UploadAssetScanRow,
   actorUserId: string,
 ) {
-  const downloadClient = client as AttachmentDownloadClient;
-  const { error } = await downloadClient.from("upload_events").insert({
-    workspace_id: attachment.workspace_id,
-    upload_session_id: uploadAsset.upload_session_id,
-    upload_asset_id: uploadAsset.id,
-    actor_user_id: actorUserId,
-    event_type: "download_url_issued",
-    metadata: {
-      attachmentId: attachment.id,
-      storagePath: attachment.storage_path,
-      reviewStatus: attachment.review_status ?? null,
-      isCurrentApproved: attachment.is_current_approved ?? null,
-    },
-  });
-
-  if (error) {
+  try {
+    await db
+      .prepare(
+        `
+          INSERT INTO upload_events (
+            id,
+            upload_session_id,
+            upload_asset_id,
+            workspace_id,
+            actor_user_id,
+            event_type,
+            metadata_json,
+            created_at
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+      )
+      .bind(
+        randomUUID(),
+        uploadAsset.upload_session_id,
+        uploadAsset.id,
+        attachment.workspace_id,
+        actorUserId,
+        "download_url_issued",
+        JSON.stringify({
+          attachmentId: attachment.id,
+          storagePath: attachment.storage_path,
+          reviewStatus: attachment.review_status ?? null,
+          isCurrentApproved: readApprovedFlag(attachment.is_current_approved),
+        }),
+        new Date().toISOString(),
+      )
+      .run();
+  } catch (error) {
     console.error("Component attachment download audit failed", error);
     return false;
   }
   return true;
+}
+
+async function readAttachmentRowsForDelete(db: D1DatabaseLike, workspaceId: string, paths: string[]) {
+  if (paths.length === 0) return [];
+  return d1All<AttachmentCleanupRow>(
+    db,
+    `
+      SELECT storage_path, review_status, is_current_approved
+      FROM cost_library_item_variant_attachments
+      WHERE workspace_id = ?
+        AND storage_path IN (${placeholders(paths)})
+    `,
+    [workspaceId, ...paths.map(d1Value)],
+  );
 }
 
 export async function GET(request: Request) {
@@ -316,29 +363,30 @@ export async function GET(request: Request) {
   if (!isUuid(attachmentId)) return privateAttachmentNotFound();
 
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  if (!(await canManageLibrary(workspace.id))) {
+  const metadataDb = await getCloudflareD1Database();
+  if (!metadataDb) return uploadMetadataUnavailableResponse();
+  if (!(await canManageLibrary(metadataDb, workspace.id, currentUser))) {
     return jsonError("Only workspace editors/admins can manage the library.", 403, {
       "Cache-Control": PRIVATE_ATTACHMENT_ERROR_CACHE_CONTROL,
     });
   }
 
-  const storageSupabase = await createSupabaseServerClient();
   const {
     attachment,
     lookupFailed: attachmentLookupFailed,
     unavailableReason: attachmentUnavailableReason,
-  } = await readAttachmentDownloadRecord(storageSupabase, attachmentId, workspace.id);
+  } = await readAttachmentDownloadRecord(metadataDb, attachmentId, workspace.id);
   if (attachmentLookupFailed) return jsonError("Could not verify attachment.", 500, { "Cache-Control": PRIVATE_ATTACHMENT_ERROR_CACHE_CONTROL });
   if (attachmentUnavailableReason === "not_approved") return privateAttachmentUnavailable("Attachment is not available until approval is complete.");
   if (!attachment) return privateAttachmentNotFound();
 
-  const { uploadAsset, lookupFailed: uploadAssetLookupFailed } = await readCleanUploadAsset(storageSupabase, attachment);
+  const { uploadAsset, lookupFailed: uploadAssetLookupFailed } = await readCleanUploadAsset(metadataDb, attachment);
   if (uploadAssetLookupFailed) {
     return jsonError("Could not verify attachment scan status.", 500, { "Cache-Control": PRIVATE_ATTACHMENT_ERROR_CACHE_CONTROL });
   }
   if (!uploadAsset) return privateAttachmentUnavailable();
 
-  const auditRecorded = await recordAttachmentDownloadIssued(storageSupabase, attachment, uploadAsset, currentUser.userId);
+  const auditRecorded = await recordAttachmentDownloadIssued(metadataDb, attachment, uploadAsset, currentUser.userId);
   if (!auditRecorded) return privateAttachmentUnavailable("Attachment download could not be audited.");
 
   const storageProvider = await createRuntimeUploadStorageProvider();
@@ -363,7 +411,9 @@ export async function POST(request: Request) {
   }
 
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  if (!(await canManageLibrary(workspace.id))) {
+  const uploadMetadataDb = await getCloudflareD1Database();
+  if (!uploadMetadataDb) return uploadMetadataUnavailableResponse();
+  if (!(await canManageLibrary(uploadMetadataDb, workspace.id, currentUser))) {
     return jsonError("Only workspace editors/admins can manage the library.", 403);
   }
 
@@ -392,9 +442,6 @@ export async function POST(request: Request) {
 
     const extension = EXTENSION_BY_MIME_TYPE.get(magicMime);
     if (!extension) return jsonError("Use a PDF, XLS, or XLSX attachment.");
-
-    const uploadMetadataDb = await getCloudflareD1Database();
-    if (!uploadMetadataDb) return uploadMetadataUnavailableResponse();
 
     const path = `${workspace.id}/${currentUser.userId}/${safeUploadName(file.name)}-${randomUUID()}.${extension}`;
     let uploadedPath: string | null = null;
@@ -452,7 +499,9 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  if (!(await canManageLibrary(workspace.id))) {
+  const metadataDb = await getCloudflareD1Database();
+  if (!metadataDb) return uploadMetadataUnavailableResponse();
+  if (!(await canManageLibrary(metadataDb, workspace.id, currentUser))) {
     return jsonError("Only workspace editors/admins can manage the library.", 403);
   }
 
@@ -460,26 +509,17 @@ export async function DELETE(request: Request) {
   const paths = readStoragePaths(body).filter((path) => isOwnedAttachmentPath(path, workspace.id, currentUser.userId));
   if (paths.length === 0) return jsonError("No removable attachment paths were provided.");
 
-  const supabase = await createSupabaseServerClient();
-  const { data: attachmentRows, error: attachmentLookupError } = await supabase
-    .from("cost_library_item_variant_attachments")
-    .select("storage_path, review_status, is_current_approved")
-    .eq("workspace_id", workspace.id)
-    .in("storage_path", paths);
-
-  if (attachmentLookupError && !isMissingAttachmentGovernanceColumnError(attachmentLookupError)) {
+  let attachmentRows: AttachmentCleanupRow[];
+  try {
+    attachmentRows = await readAttachmentRowsForDelete(metadataDb, workspace.id, paths);
+  } catch (error) {
+    console.error("Component attachment cleanup review lookup failed", error);
     return jsonError("Could not verify attachment review state.", 500);
   }
 
-  if (!attachmentLookupError) {
-    const reviewedAttachment = ((attachmentRows ?? []) as Array<{
-      storage_path: string | null;
-      review_status?: string | null;
-      is_current_approved?: boolean | null;
-    }>).find((row) => row.is_current_approved === true || (row.review_status && row.review_status !== "uploaded"));
-    if (reviewedAttachment) {
-      return jsonError("Reviewed Library attachments cannot be removed from draft cleanup.", 409);
-    }
+  const reviewedAttachment = attachmentRows.find((row) => readApprovedFlag(row.is_current_approved) || (row.review_status && row.review_status !== "uploaded"));
+  if (reviewedAttachment) {
+    return jsonError("Reviewed Library attachments cannot be removed from draft cleanup.", 409);
   }
 
   const storageProvider = await createRuntimeUploadStorageProvider();

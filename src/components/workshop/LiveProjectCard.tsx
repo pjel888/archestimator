@@ -13,7 +13,8 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 
 import { usePrefetchOnHover } from "@/hooks/use-prefetch-on-hover";
-import type { Json, Tables } from "@/lib/supabase/types";
+import type { Json } from "@/lib/types/json";
+import type { ProjectRow } from "@/lib/types/database";
 import { getProjectLocationStaticMapStyleParams } from "@/lib/google-maps/project-location-map-style";
 import { cn } from "@/lib/ui/cn";
 import type { CollaborationRole } from "@/lib/collaboration/types";
@@ -47,7 +48,7 @@ export type ProjectCardSetupStatus = {
 };
 
 type LiveProjectCardProps = {
-  project: Tables<"projects">;
+  project: ProjectRow;
   viewMode?: ProjectCardViewMode;
   accessKind?: ProjectAccessKind;
   googleMapsApiKey?: string;
@@ -66,7 +67,7 @@ type LiveProjectCardProps = {
   selectionActive?: boolean;
   onToggleSelected?: (projectId: string) => void;
   onToggleFavorite?: (projectId: string, favorite: boolean) => void;
-  onExpand?: (project: Tables<"projects">) => void;
+  onExpand?: (project: ProjectRow) => void;
   /**
    * Group-assignment menu (D8): the "Move to group" affordance rendered next to the
    * details-action control on owned cards. The card stays agnostic — the page builds
@@ -115,7 +116,7 @@ function getProjectImageUrl(metadata: Json) {
   return typeof value === "string" && value.trim() ? value : null;
 }
 
-function getProjectMotif(project: Tables<"projects">) {
+function getProjectMotif(project: ProjectRow) {
   // A quiet name monogram for image-absent tiles; the project code already lives
   // in the footer, so the thumbnail stays a distinct, non-duplicate identifier.
   const words = project.name.trim().split(/\s+/).filter(Boolean);
@@ -125,7 +126,7 @@ function getProjectMotif(project: Tables<"projects">) {
 }
 
 function getProjectMapThumbnailUrl(
-  project: Tables<"projects">,
+  project: ProjectRow,
   apiKey: string,
 ) {
   const location = project.location?.trim();

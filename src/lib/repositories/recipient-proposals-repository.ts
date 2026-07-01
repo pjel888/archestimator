@@ -1,7 +1,8 @@
 import "server-only";
 
+import { getCurrentUserContext } from "@/lib/auth/session";
+import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
 import { traced } from "@/lib/perf/server-timing";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type RecipientProposalStatus = "published" | "expired" | "revoked";
 export type RecipientProposalDecision = "accepted" | "declined" | "revision_requested" | null;
@@ -28,7 +29,7 @@ export type RecipientProposalsResult =
   | { ok: true; rows: RecipientProposalRow[] }
   | { ok: false; error: "unauthorized" | "unknown" };
 
-type RecipientProposalRpcRow = {
+type RecipientProposalD1Row = {
   publication_id: string;
   project_id: string;
   project_name: string;
@@ -37,30 +38,14 @@ type RecipientProposalRpcRow = {
   workspace_name: string;
   sender_display_name: string | null;
   status: string;
-  has_opened: boolean;
+  has_opened: boolean | number;
   decision: string | null;
   last_activity_at: string | null;
   published_at: string | null;
   expires_at: string | null;
   revoked_at: string | null;
-  snapshot_version: number;
+  snapshot_version: number | string;
 };
-
-type SupabaseRpcError = {
-  code?: string;
-  message?: string;
-};
-
-type RecipientProposalsRpcClient = {
-  rpc(
-    functionName: "list_recipient_publications_for_current_user",
-    args: { page_limit: number },
-  ): Promise<{ data: RecipientProposalRpcRow[] | null; error: SupabaseRpcError | null }>;
-};
-
-function isUnauthorizedError(error: SupabaseRpcError | null | undefined) {
-  return error?.code === "42501" || error?.code === "PGRST301";
-}
 
 function normalizeStatus(status: string): RecipientProposalStatus | null {
   if (status === "published" || status === "expired" || status === "revoked") return status;
@@ -73,10 +58,11 @@ function normalizeDecision(decision: string | null): RecipientProposalDecision |
   return undefined;
 }
 
-function mapRecipientProposalRow(row: RecipientProposalRpcRow): RecipientProposalRow | null {
+function mapRecipientProposalRow(row: RecipientProposalD1Row): RecipientProposalRow | null {
   const status = normalizeStatus(row.status);
   const decision = normalizeDecision(row.decision);
-  if (!status || decision === undefined) return null;
+  const snapshotVersion = Number(row.snapshot_version);
+  if (!status || decision === undefined || !Number.isFinite(snapshotVersion)) return null;
 
   return {
     publicationId: row.publication_id,
@@ -87,28 +73,87 @@ function mapRecipientProposalRow(row: RecipientProposalRpcRow): RecipientProposa
     workspaceName: row.workspace_name,
     senderDisplayName: row.sender_display_name,
     status,
-    hasOpened: row.has_opened,
+    hasOpened: Boolean(row.has_opened),
     decision,
     lastActivityAt: row.last_activity_at,
     publishedAt: row.published_at,
     expiresAt: row.expires_at,
     revokedAt: row.revoked_at,
-    snapshotVersion: row.snapshot_version,
+    snapshotVersion,
   };
 }
 
 export async function listRecipientProposals(): Promise<RecipientProposalsResult> {
   try {
-    const supabase = (await createSupabaseServerClient()) as unknown as RecipientProposalsRpcClient;
-    const { data, error } = await traced("recipient-proposals.list", () =>
-      supabase.rpc("list_recipient_publications_for_current_user", { page_limit: 50 }),
+    const user = await getCurrentUserContext();
+    const recipientEmail = user?.email.trim().toLowerCase() ?? "";
+    if (!recipientEmail) return { ok: false, error: "unauthorized" };
+
+    const db = await getCloudflareD1Database();
+    if (!db) return { ok: false, error: "unknown" };
+
+    const now = new Date().toISOString();
+    const { results = [] } = await traced("recipient-proposals.list", () =>
+      db
+        .prepare<RecipientProposalD1Row>(`
+          SELECT
+            publication.id AS publication_id,
+            publication.project_id,
+            project.name AS project_name,
+            project.project_code,
+            publication.workspace_id,
+            workspace.name AS workspace_name,
+            NULLIF(TRIM(sender.display_name), '') AS sender_display_name,
+            CASE
+              WHEN publication.status = 'revoked' OR publication.revoked_at IS NOT NULL THEN 'revoked'
+              WHEN publication.status = 'expired' OR (publication.expires_at IS NOT NULL AND publication.expires_at <= ?) THEN 'expired'
+              ELSE 'published'
+            END AS status,
+            recipient.last_opened_at IS NOT NULL AS has_opened,
+            response.decision AS decision,
+            MAX(
+              publication.published_at,
+              COALESCE(recipient.last_opened_at, publication.published_at),
+              COALESCE(response.created_at, publication.published_at),
+              COALESCE(publication.revoked_at, publication.published_at),
+              CASE
+                WHEN publication.expires_at IS NOT NULL AND publication.expires_at <= ? THEN publication.expires_at
+                ELSE publication.published_at
+              END
+            ) AS last_activity_at,
+            publication.published_at,
+            publication.expires_at,
+            publication.revoked_at,
+            publication.snapshot_version
+          FROM shared_link_recipients recipient
+          INNER JOIN project_publications publication
+            ON publication.id = recipient.publication_id
+          INNER JOIN projects project
+            ON project.id = publication.project_id
+           AND project.workspace_id = publication.workspace_id
+          INNER JOIN workspaces workspace
+            ON workspace.id = publication.workspace_id
+          LEFT JOIN profiles sender
+            ON sender.id = publication.published_by
+          LEFT JOIN shared_link_responses response
+            ON response.id = (
+              SELECT latest_response.id
+              FROM shared_link_responses latest_response
+              WHERE latest_response.publication_id = publication.id
+                AND latest_response.recipient_id = recipient.id
+              ORDER BY latest_response.created_at DESC
+              LIMIT 1
+            )
+          WHERE lower(recipient.email) = ?
+            AND publication.status IN ('published', 'expired', 'revoked')
+          ORDER BY last_activity_at DESC, publication.published_at DESC, publication.id DESC
+          LIMIT ?
+        `)
+        .bind(now, now, recipientEmail, 50)
+        .all<RecipientProposalD1Row>(),
     );
 
-    if (error) {
-      return { ok: false, error: isUnauthorizedError(error) ? "unauthorized" : "unknown" };
-    }
-
-    const rows = (data ?? []).map(mapRecipientProposalRow);
+    const rows = results.map(mapRecipientProposalRow);
     if (rows.some((row) => row === null)) return { ok: false, error: "unknown" };
 
     return { ok: true, rows: rows as RecipientProposalRow[] };

@@ -1,9 +1,11 @@
 "use server";
 
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 
-import { requireAuth, requireCurrentUserContext } from "@/lib/auth/session";
+import { requireCurrentUserContext } from "@/lib/auth/session";
+import { canEditEstimateInD1, isWorkspaceEditorInD1, isWorkspaceMemberInD1 } from "@/lib/authz/d1-access";
+import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
 import {
   buildRejectedPreviewResult,
   coerceBulkExecutionResult,
@@ -32,10 +34,7 @@ import {
   listProjectEstimateSheets,
 } from "@/lib/repositories/workspace-repository";
 import { normalizeEstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { Json, Tables } from "@/lib/supabase/types";
 import { isUuid } from "@/lib/ids";
-import { isMissingRelationError } from "@/lib/repositories/estimate-schema-compat";
 import {
   loadComponentLibraryUserPreferencesFromCloudflareD1,
   recordComponentLibraryTelemetryEventInCloudflareD1,
@@ -56,8 +55,114 @@ import {
 } from "./quick-add-validation";
 import { recordLibraryEvent, sanitizeLibraryTelemetryRecord, type LibraryTelemetryRecord } from "./library-telemetry";
 import { readComponentSourceUrlInput } from "./source-url";
-import { throwActionError } from "./action-errors";
 import { unitUsesContentConversion } from "./unit-options";
+
+type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+type CurrentUserForD1 = Awaited<ReturnType<typeof requireCurrentUserContext>>;
+type EstimateTemplateBuildInput = Parameters<typeof buildEstimateTemplatesFromRows>[0];
+type EstimateTemplateTableRow = EstimateTemplateBuildInput["templates"][number];
+type EstimateTemplateNodeTableRow = EstimateTemplateBuildInput["nodes"][number];
+type EstimateTemplateRowItemTableRow = EstimateTemplateBuildInput["rowItems"][number];
+
+type LibraryFolderRow = {
+  id: string;
+  workspace_id: string;
+  parent_id: string | null;
+  name: string;
+  sort_order: number;
+  source_category_node_id: string | null;
+  folder_kind: "taxonomy" | "custom";
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type ComponentItemD1Row = {
+  id: string;
+  workspace_id: string;
+  name: string;
+  unit: string;
+  unit_cost: number | string | null;
+  misc_cost: number | string | null;
+  current_version_number: number | string | null;
+  active_price_option_id: string | null;
+  lifecycle_state: ComponentLifecycleState | string;
+};
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function placeholders(values: readonly unknown[]) {
+  return values.map(() => "?").join(", ");
+}
+
+function jsonText(value: unknown, fallback: Record<string, unknown> | unknown[] = {}) {
+  return JSON.stringify(value ?? fallback);
+}
+
+function readJsonValue(value: unknown, fallback: Json = {}) {
+  if (typeof value === "string") {
+    try {
+      return readJsonValue(JSON.parse(value) as unknown, fallback);
+    } catch {
+      return fallback;
+    }
+  }
+  if (value === null || typeof value === "string" || typeof value === "number" || typeof value === "boolean") return value as Json;
+  if (Array.isArray(value)) return value as Json;
+  return value && typeof value === "object" ? value as Json : fallback;
+}
+
+function readJsonRecord(value: unknown): Record<string, Json | undefined> {
+  const parsed = readJsonValue(value, {});
+  return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed as Record<string, Json | undefined> : {};
+}
+
+function boolInt(value: boolean | undefined) {
+  return value === true ? 1 : 0;
+}
+
+function numberValue(value: unknown, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+async function requireComponentLibraryActionsD1Database() {
+  const database = await getCloudflareD1Database();
+  if (!database) throw new Error("Cloudflare D1 ARCH_DB binding is required for component library actions.");
+  return database;
+}
+
+async function first<T>(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
+  return database.prepare<T>(sql).bind(...values).first<T>();
+}
+
+async function all<T>(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
+  const result = await database.prepare<T>(sql).bind(...values).all<T>();
+  if (result.success === false) throw new Error("Cloudflare D1 component library read failed.");
+  return result.results ?? [];
+}
+
+async function run(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
+  const result = await database.prepare(sql).bind(...values).run();
+  if (result.success === false) throw new Error("Cloudflare D1 component library write failed.");
+  return result;
+}
+
+async function runBatch(database: D1DatabaseLike, statements: Array<{ sql: string; values?: D1Value[] }>) {
+  if (statements.length === 0) return;
+  if (database.batch) {
+    const results = await database.batch(
+      statements.map((statement) => database.prepare(statement.sql).bind(...(statement.values ?? []))),
+    );
+    if (results.some((result) => result.success === false)) {
+      throw new Error("Cloudflare D1 component library batch failed.");
+    }
+    return;
+  }
+  for (const statement of statements) await run(database, statement.sql, statement.values ?? []);
+}
 
 // U11 (DATA-2/DATA-3): one place to revalidate every server-rendered surface that
 // shows templates — the library browse route AND the library overview (counts) —
@@ -159,7 +264,7 @@ export type CreateCostLibraryComponentInput = CostLibraryComponentInput & {
 };
 
 export type LibraryFolderActionResult = {
-  folder: Tables<"library_folders">;
+  folder: LibraryFolderRow;
 };
 
 export type CreateLibraryFolderOptions = {
@@ -204,14 +309,13 @@ function readFolderName(name: string) {
 }
 
 async function assertCanManageLibraryFolders(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
-  // react-doctor-disable-next-line react-doctor/supabase-client-owned-authz-field -- Server-side RPC authorization helper; workspace id is verified server-side.
+  database: D1DatabaseLike,
   workspaceId: string,
+  user: CurrentUserForD1,
   action = "manage_library_folders",
 ) {
-  const { data, error } = await supabase.rpc("is_workspace_editor", { target_workspace_id: workspaceId });
-  if (error) throwActionError("Could not verify library folder access.", error);
-  if (data !== true) {
+  const allowed = await isWorkspaceEditorInD1(database, workspaceId, user);
+  if (!allowed) {
     recordLibraryEvent("authz_denied", { workspaceId, action, role: "viewer" });
     throw new Error("Only workspace editors/admins can manage library folders.");
   }
@@ -222,39 +326,39 @@ async function assertCanManageLibraryFolders(
 // a workspace viewer is denied at the app boundary (defense-in-depth on top of the RLS
 // editor-write split). The is_workspace_editor RPC returns true for editors/admins.
 async function assertCanManageLibrary(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   workspaceId: string,
+  user: CurrentUserForD1,
   action = "manage_library",
 ) {
-  const { data, error } = await supabase.rpc("is_workspace_editor", { target_workspace_id: workspaceId });
-  if (error) throwActionError("Could not verify library access.", error);
-  if (data !== true) {
+  const allowed = await isWorkspaceEditorInD1(database, workspaceId, user);
+  if (!allowed) {
     recordLibraryEvent("authz_denied", { workspaceId, action, role: "viewer" });
     throw new Error("Only workspace editors/admins can manage the library.");
   }
 }
 
 async function assertCanEditEstimate(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   workspaceId: string,
   estimateId: string,
+  user: CurrentUserForD1,
   action = "resolve_estimate_template_insert_target",
 ) {
-  const { data, error } = await supabase.rpc("can_edit_estimate", { target_estimate_id: estimateId });
-  if (error) throwActionError("Could not verify estimate edit access.", error);
-  if (data !== true) {
+  const allowed = await canEditEstimateInD1(database, estimateId, user);
+  if (!allowed) {
     recordLibraryEvent("authz_denied", { workspaceId, estimateId, action, role: "viewer" });
     throw new Error("Estimate edit access denied.");
   }
 }
 
 async function assertCanPublishEstimateTemplateFromEstimate(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   estimateId: string,
+  user: CurrentUserForD1,
 ) {
-  const { data, error } = await supabase.rpc("can_edit_estimate", { target_estimate_id: estimateId });
-  if (error) throwActionError("Could not verify estimate edit access.", error);
-  if (data !== true) throw new Error("Estimate edit access is required to save this estimate as a template.");
+  const allowed = await canEditEstimateInD1(database, estimateId, user);
+  if (!allowed) throw new Error("Estimate edit access is required to save this estimate as a template.");
 }
 
 // Library Optimization Plan P3 T19 (F24): a generous per-workspace creation quota so a
@@ -362,9 +466,9 @@ export async function recordComponentLibraryTelemetryEvent(input: LibraryTelemet
     const user = await requireCurrentUserContext();
     const workspaceId = readOptionalTelemetryUuid(record.workspaceId);
     if (workspaceId) {
-      const supabase = await createSupabaseServerClient();
-      const { data, error } = await supabase.rpc("is_workspace_member", { target_workspace_id: workspaceId });
-      if (error || data !== true) return { ok: false, ignored: true };
+      const database = await requireComponentLibraryActionsD1Database();
+      const allowed = await isWorkspaceMemberInD1(database, workspaceId, user);
+      if (!allowed) return { ok: false, ignored: true };
     }
 
     const {
@@ -441,18 +545,18 @@ export async function saveComponentLibraryUserPreferences(input: ComponentLibrar
 }
 
 async function assertWithinLibraryQuota(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   table: "cost_library_items" | "estimate_templates",
   workspaceId: string,
   cap: number,
   label: string,
 ) {
-  const { count, error } = await supabase
-    .from(table)
-    .select("id", { count: "exact", head: true })
-    .eq("workspace_id", workspaceId);
-  if (error) throwActionError(`Could not verify the ${label} limit.`, error);
-  if ((count ?? 0) >= cap) {
+  const row = await first<{ count: number }>(
+    database,
+    `SELECT COUNT(*) AS count FROM ${table} WHERE workspace_id = ?`,
+    [workspaceId],
+  );
+  if (Number(row?.count ?? 0) >= cap) {
     throw new Error(`This workspace has reached its ${label} limit (${cap}). Archive or delete some first.`);
   }
 }
@@ -573,12 +677,6 @@ function readComponentInputForCreate(input: CreateCostLibraryComponentInput): Co
     effectiveAt: input.effectiveAt,
     changeReason: input.changeReason,
   };
-}
-
-function stripOpenDesignAddComponentRpcComponent(input: ReturnType<typeof normalizeComponentInput>) {
-  const component = { ...input };
-  delete component.libraryFolderId;
-  return component;
 }
 
 function normalizePriceOptionInput(input: ComponentPriceOptionInput) {
@@ -715,61 +813,315 @@ function sanitizeOpenDesignAddComponentPriceOption(input: ComponentPriceOptionIn
   };
 }
 
-function stripOpenDesignAddComponentRpcPriceOption(input: ReturnType<typeof normalizePriceOptionInput>) {
-  return {
-    id: input.id,
-    label: input.label,
-    sku: input.sku,
-    variantDescription: input.variantDescription,
-    variantSortOrder: input.variantSortOrder,
-    unit: input.unit,
-    unitCost: input.unitCost,
-    currency: input.currency,
-    supplierId: input.supplierId,
-    ...(unitUsesContentConversion(input.unit) ? {
-      packageQuantity: input.packageQuantity,
-      packageUnit: input.packageUnit,
-    } : {}),
-    imageBucket: input.imageBucket,
-    imagePath: input.imagePath,
-    thumbnailPath: input.thumbnailPath,
-    imageMetadata: input.imageMetadata,
-    attachments: input.attachments,
-    isDefault: input.isDefault,
-    isActive: input.isActive,
-    effectiveAt: input.effectiveAt,
-    changeReason: input.changeReason,
-  };
-}
-
 function readMetadataObject(metadata: Json | undefined): { [key: string]: Json | undefined } {
   if (metadata && typeof metadata === "object" && !Array.isArray(metadata)) return metadata;
   return {};
 }
 
-function getRpcString(result: unknown, key: string): string | undefined {
-  if (!result || typeof result !== "object" || Array.isArray(result)) return undefined;
-  const value = (result as Record<string, unknown>)[key];
-  return typeof value === "string" ? value : undefined;
+function createBulkArchivePreviewHash(input: {
+  eligibleIds: string[];
+  blocked: unknown[];
+  summary: Record<string, unknown>;
+}) {
+  return createHash("sha256")
+    .update(JSON.stringify({
+      targetType: "library_component",
+      action: "archive",
+      ids: input.eligibleIds,
+      blocked: input.blocked,
+      summary: input.summary,
+    }))
+    .digest("hex");
 }
 
-function getRpcNumber(result: unknown, key: string): number | undefined {
-  if (!result || typeof result !== "object" || Array.isArray(result)) return undefined;
-  const value = (result as Record<string, unknown>)[key];
-  return typeof value === "number" ? value : undefined;
+function componentSnapshot(component: ReturnType<typeof normalizeComponentInput>, patch: Record<string, unknown> = {}) {
+  return {
+    name: component.name,
+    description: component.description,
+    category: component.category,
+    categoryNodeId: component.categoryNodeId ?? null,
+    supplier: component.supplier ?? null,
+    supplierId: component.supplierId ?? null,
+    brand: component.brand ?? null,
+    brandId: component.brandId ?? null,
+    unit: component.unit,
+    thumbnailPath: component.thumbnailPath ?? null,
+    libraryFolderId: component.libraryFolderId ?? null,
+    lifecycleState: component.lifecycleState,
+    metadata: readMetadataObject(component.metadata),
+    ...patch,
+  };
 }
 
-function getRpcPriceOptions(result: unknown): Array<{ id: string; label: string; isDefault: boolean }> {
-  if (!result || typeof result !== "object" || Array.isArray(result)) return [];
-  const value = (result as Record<string, unknown>).priceOptions;
-  if (!Array.isArray(value)) return [];
-  return value.flatMap((entry) => {
-    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return [];
-    const option = entry as Record<string, unknown>;
-    return typeof option.id === "string" && typeof option.label === "string"
-      ? [{ id: option.id, label: option.label, isDefault: option.isDefault === true }]
-      : [];
-  });
+function priceOptionSnapshot(priceOption: ReturnType<typeof normalizePriceOptionInput>) {
+  return {
+    label: priceOption.label,
+    sku: priceOption.sku,
+    variantDescription: priceOption.variantDescription,
+    variantSortOrder: priceOption.variantSortOrder,
+    unit: priceOption.unit,
+    unitCost: priceOption.unitCost,
+    miscCost: priceOption.miscCost,
+    currency: priceOption.currency,
+    pricingSource: priceOption.pricingSource,
+    pricingDate: priceOption.pricingDate,
+    confidence: priceOption.confidence,
+    sourceUrl: priceOption.sourceUrl,
+    notes: priceOption.notes,
+    supplierId: priceOption.supplierId,
+    packageQuantity: priceOption.packageQuantity,
+    packageUnit: priceOption.packageUnit,
+    dimensionLength: priceOption.dimensionLength,
+    dimensionWidth: priceOption.dimensionWidth,
+    dimensionHeight: priceOption.dimensionHeight,
+    dimensionUnit: priceOption.dimensionUnit,
+    mass: priceOption.mass,
+    massUnit: priceOption.massUnit,
+    imageBucket: priceOption.imageBucket,
+    imagePath: priceOption.imagePath,
+    thumbnailPath: priceOption.thumbnailPath,
+    imageMetadata: priceOption.imageMetadata,
+    variantMetadata: priceOption.variantMetadata,
+    isActive: priceOption.isActive,
+    isDefault: priceOption.isDefault,
+    activeCostEntryId: priceOption.activeCostEntryId,
+  };
+}
+
+async function readComponentItem(database: D1DatabaseLike, workspaceId: string, itemId: string) {
+  return first<ComponentItemD1Row>(
+    database,
+    `
+      SELECT id, workspace_id, name, unit, unit_cost, misc_cost, current_version_number,
+        active_price_option_id, lifecycle_state
+      FROM cost_library_items
+      WHERE id = ?
+        AND workspace_id = ?
+      LIMIT 1
+    `,
+    [itemId, workspaceId],
+  );
+}
+
+async function assertLibraryFolderInWorkspace(database: D1DatabaseLike, workspaceId: string, folderId: string | null | undefined) {
+  if (!folderId) return null;
+  if (!isUuid(folderId)) throw new Error("Library folder not found in the current workspace.");
+  const folder = await first<{ id: string }>(
+    database,
+    `
+      SELECT id
+      FROM library_folders
+      WHERE id = ?
+        AND workspace_id = ?
+      LIMIT 1
+    `,
+    [folderId, workspaceId],
+  );
+  if (!folder) throw new Error("Library folder not found in the current workspace.");
+  return folder.id;
+}
+
+async function insertComponentVersion(database: D1DatabaseLike, input: {
+  itemId: string;
+  workspaceId: string;
+  versionNumber: number;
+  snapshot: Record<string, unknown>;
+  summary: string;
+  reason: string;
+  effectiveAt: string;
+  userId: string;
+}) {
+  const timestamp = nowIso();
+  await run(
+    database,
+    `
+      INSERT OR IGNORE INTO cost_library_item_versions (
+        id, item_id, workspace_id, version_number, snapshot_json, change_summary,
+        change_reason, effective_at, created_by, created_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+    [
+      randomUUID(),
+      input.itemId,
+      input.workspaceId,
+      input.versionNumber,
+      jsonText(input.snapshot),
+      input.summary,
+      input.reason,
+      input.effectiveAt,
+      input.userId,
+      timestamp,
+    ],
+  );
+}
+
+async function upsertComponentPriceOptionInD1(database: D1DatabaseLike, input: {
+  workspaceId: string;
+  itemId: string;
+  priceOption: ReturnType<typeof normalizePriceOptionInput>;
+  userId: string;
+  effectiveAt: string;
+  writeHistory: boolean;
+}) {
+  const priceOptionId = input.priceOption.id && isUuid(input.priceOption.id) ? input.priceOption.id : randomUUID();
+  const timestamp = nowIso();
+  const metadata = priceOptionSnapshot({ ...input.priceOption, id: priceOptionId });
+  const oldSnapshotRow = await first<{ metadata_json: string | null }>(
+    database,
+    `
+      SELECT metadata_json
+      FROM cost_library_item_price_options
+      WHERE id = ?
+        AND item_id = ?
+        AND workspace_id = ?
+      LIMIT 1
+    `,
+    [priceOptionId, input.itemId, input.workspaceId],
+  );
+
+  if (input.priceOption.isDefault) {
+    await run(
+      database,
+      `
+        UPDATE cost_library_item_price_options
+        SET is_default = 0
+        WHERE item_id = ?
+          AND workspace_id = ?
+          AND id <> ?
+      `,
+      [input.itemId, input.workspaceId, priceOptionId],
+    );
+  }
+
+  await run(
+    database,
+    `
+      INSERT INTO cost_library_item_price_options (
+        id, workspace_id, item_id, label, unit, unit_cost, misc_cost, currency,
+        is_active, is_default, updated_at, confidence, supplier_id, pricing_source,
+        metadata_json, created_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        label = excluded.label,
+        unit = excluded.unit,
+        unit_cost = excluded.unit_cost,
+        misc_cost = excluded.misc_cost,
+        currency = excluded.currency,
+        is_active = excluded.is_active,
+        is_default = excluded.is_default,
+        updated_at = excluded.updated_at,
+        confidence = excluded.confidence,
+        supplier_id = excluded.supplier_id,
+        pricing_source = excluded.pricing_source,
+        metadata_json = excluded.metadata_json
+    `,
+    [
+      priceOptionId,
+      input.workspaceId,
+      input.itemId,
+      input.priceOption.label,
+      input.priceOption.unit,
+      input.priceOption.unitCost,
+      input.priceOption.miscCost,
+      input.priceOption.currency,
+      boolInt(input.priceOption.isActive),
+      boolInt(input.priceOption.isDefault),
+      timestamp,
+      input.priceOption.confidence,
+      input.priceOption.supplierId,
+      input.priceOption.pricingSource,
+      jsonText(metadata),
+      timestamp,
+    ],
+  );
+
+  const activeCostEntries = input.priceOption.costEntries.filter((entry) => entry.deletedAt === null);
+  if (activeCostEntries.length > 0) {
+    const entryStatements = activeCostEntries.map((entry) => ({
+      sql: `
+        INSERT INTO cost_library_item_variant_cost_entries (
+          id, workspace_id, item_id, price_option_id, unit_cost, misc_cost, currency,
+          pricing_source, pricing_date, confidence, source_url, notes, is_current,
+          deleted_at, metadata_json, created_at, updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          unit_cost = excluded.unit_cost,
+          misc_cost = excluded.misc_cost,
+          currency = excluded.currency,
+          pricing_source = excluded.pricing_source,
+          pricing_date = excluded.pricing_date,
+          confidence = excluded.confidence,
+          source_url = excluded.source_url,
+          notes = excluded.notes,
+          is_current = excluded.is_current,
+          deleted_at = excluded.deleted_at,
+          metadata_json = excluded.metadata_json,
+          updated_at = excluded.updated_at
+      `,
+      values: [
+        entry.clientId && isUuid(entry.clientId) ? entry.clientId : randomUUID(),
+        input.workspaceId,
+        input.itemId,
+        priceOptionId,
+        entry.unitCost,
+        entry.miscCost,
+        entry.currency,
+        entry.pricingSource,
+        entry.pricingDate,
+        entry.confidence,
+        entry.sourceUrl,
+        entry.notes,
+        boolInt(entry.isCurrent),
+        entry.deletedAt,
+        jsonText({ source: "component-library-action" }),
+        timestamp,
+        timestamp,
+      ] as D1Value[],
+    }));
+    await runBatch(database, entryStatements);
+  }
+
+  if (input.writeHistory) {
+    await run(
+      database,
+      `
+        INSERT OR IGNORE INTO cost_library_item_price_history (
+          id, price_option_id, item_id, workspace_id, operation_key, old_snapshot,
+          new_snapshot, change_reason, effective_at, created_by, created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+      [
+        randomUUID(),
+        priceOptionId,
+        input.itemId,
+        input.workspaceId,
+        `${input.itemId}:${priceOptionId}:${input.effectiveAt}`,
+        oldSnapshotRow?.metadata_json ?? null,
+        jsonText(metadata),
+        input.priceOption.changeReason,
+        input.effectiveAt,
+        input.userId,
+        timestamp,
+      ],
+    );
+  }
+
+  return {
+    id: priceOptionId,
+    label: input.priceOption.label,
+    isDefault: input.priceOption.isDefault,
+    isActive: input.priceOption.isActive,
+    unit: input.priceOption.unit,
+    unitCost: input.priceOption.unitCost,
+    miscCost: input.priceOption.miscCost,
+    pricingSource: input.priceOption.pricingSource,
+    pricingDate: input.priceOption.pricingDate,
+    confidence: input.priceOption.confidence,
+  };
 }
 
 // Lazy estimate-sheet path: the sheet renders without the library dataset and
@@ -834,8 +1186,8 @@ export async function loadCurrentWorkspaceEstimateTemplates(): Promise<EstimateT
 
 export async function createCostLibraryComponent(input: CreateCostLibraryComponentInput) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  const supabase = await createSupabaseServerClient();
-  await assertCanManageLibrary(supabase, workspace.id);
+  const database = await requireComponentLibraryActionsD1Database();
+  await assertCanManageLibrary(database, workspace.id, currentUser);
   const priceOptionInputs = input.fieldContract === "opendesign-add-component"
     ? input.priceOptions.map(sanitizeOpenDesignAddComponentPriceOption)
     : input.priceOptions;
@@ -879,63 +1231,254 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
     libraryFolderId: component.libraryFolderId,
   });
   const normalizedPriceOptions = priceOptionInputs.map((option) => normalizePriceOptionInput({ ...option, unit: option.unit || component.unit }));
-  const priceOptions = input.fieldContract === "opendesign-add-component"
-    ? normalizedPriceOptions.map(stripOpenDesignAddComponentRpcPriceOption)
-    : normalizedPriceOptions;
-  const componentPayload = input.fieldContract === "opendesign-add-component"
-    ? stripOpenDesignAddComponentRpcComponent(component)
-    : component;
-  await assertWithinLibraryQuota(supabase, "cost_library_items", workspace.id, LIBRARY_COMPONENT_CAP, "component");
-  const { data, error } = await supabase.rpc("create_cost_library_component", {
-    target_workspace_id: workspace.id,
-    component: { ...componentPayload, createdBy: currentUser.userId } as Json,
-    price_options: priceOptions as Json,
+  const priceOptions = normalizedPriceOptions;
+  const itemId = component.id && isUuid(component.id) ? component.id : randomUUID();
+  const timestamp = nowIso();
+  await assertWithinLibraryQuota(database, "cost_library_items", workspace.id, LIBRARY_COMPONENT_CAP, "component");
+  const targetFolderId = await assertLibraryFolderInWorkspace(database, workspace.id, component.libraryFolderId);
+  await run(
+    database,
+    `
+      INSERT INTO cost_library_items (
+        id, workspace_id, name, description, category, category_node_id,
+        library_folder_id, supplier, supplier_id, brand, brand_id, unit, unit_cost,
+        misc_cost, lifecycle_state, current_version_number, active_price_option_id,
+        confidence, pricing_source, pricing_date, thumbnail_path, metadata_json,
+        created_by, created_at, updated_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+    [
+      itemId,
+      workspace.id,
+      component.name,
+      component.description,
+      component.category,
+      component.categoryNodeId ?? null,
+      targetFolderId,
+      component.supplier,
+      component.supplierId ?? null,
+      component.brand,
+      component.brandId ?? null,
+      component.unit,
+      defaultPriceOption?.unitCost ?? 0,
+      defaultPriceOption?.miscCost ?? 0,
+      component.lifecycleState,
+      1,
+      defaultPriceOption?.confidence ?? null,
+      defaultPriceOption?.pricingSource ?? null,
+      defaultPriceOption?.pricingDate ?? null,
+      component.thumbnailPath,
+      jsonText(readMetadataObject(component.metadata)),
+      currentUser.userId,
+      timestamp,
+      timestamp,
+    ],
+  );
+  const persistedPriceOptions = [];
+  for (const priceOption of priceOptions) {
+    persistedPriceOptions.push(await upsertComponentPriceOptionInD1(database, {
+      workspaceId: workspace.id,
+      itemId,
+      priceOption,
+      userId: currentUser.userId,
+      effectiveAt: priceOption.effectiveAt,
+      writeHistory: false,
+    }));
+  }
+  const activePriceOption = persistedPriceOptions.find((option) => option.isDefault) ?? persistedPriceOptions[0];
+  if (activePriceOption) {
+    await run(
+      database,
+      `
+        UPDATE cost_library_items
+        SET active_price_option_id = ?,
+            unit = ?,
+            unit_cost = ?,
+            misc_cost = ?,
+            confidence = ?,
+            pricing_source = ?,
+            pricing_date = ?,
+            updated_at = ?
+        WHERE id = ?
+          AND workspace_id = ?
+      `,
+      [
+        activePriceOption.id,
+        activePriceOption.unit,
+        activePriceOption.unitCost,
+        activePriceOption.miscCost,
+        activePriceOption.confidence,
+        activePriceOption.pricingSource,
+        activePriceOption.pricingDate,
+        timestamp,
+        itemId,
+        workspace.id,
+      ],
+    );
+  }
+  await insertComponentVersion(database, {
+    itemId,
+    workspaceId: workspace.id,
+    versionNumber: 1,
+    snapshot: componentSnapshot(component, { priceOptions: persistedPriceOptions }),
+    summary: "Component created",
+    reason: component.changeReason,
+    effectiveAt: component.effectiveAt,
+    userId: currentUser.userId,
   });
-
-  if (error) throwActionError("Could not create component.", error);
   revalidateLibraryRoutes();
   return {
-    itemId: getRpcString(data, "itemId"),
-    versionNumber: getRpcNumber(data, "versionNumber"),
-    activePriceOptionId: getRpcString(data, "activePriceOptionId"),
-    priceOptions: getRpcPriceOptions(data),
+    itemId,
+    versionNumber: 1,
+    activePriceOptionId: activePriceOption?.id,
+    priceOptions: persistedPriceOptions.map((option) => ({ id: option.id, label: option.label, isDefault: option.isDefault })),
   };
 }
 
 export async function updateCostLibraryComponent(itemId: string, input: CostLibraryComponentInput) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  const supabase = await createSupabaseServerClient();
-  await assertCanManageLibrary(supabase, workspace.id);
-  const { data, error } = await supabase.rpc("update_cost_library_component", {
-    target_workspace_id: workspace.id,
-    target_item_id: itemId,
-    component: { ...normalizeComponentInput(input), updatedBy: currentUser.userId } as Json,
+  const database = await requireComponentLibraryActionsD1Database();
+  await assertCanManageLibrary(database, workspace.id, currentUser);
+  if (!isUuid(itemId)) throw new Error("Component not found in the current workspace.");
+  const component = normalizeComponentInput(input);
+  const existing = await readComponentItem(database, workspace.id, itemId);
+  if (!existing) throw new Error("Component not found in the current workspace.");
+  const targetFolderId = await assertLibraryFolderInWorkspace(database, workspace.id, component.libraryFolderId);
+  const nextVersion = numberValue(existing.current_version_number, 1) + 1;
+  const timestamp = nowIso();
+  await run(
+    database,
+    `
+      UPDATE cost_library_items
+      SET name = ?,
+          description = ?,
+          category = ?,
+          category_node_id = ?,
+          library_folder_id = ?,
+          supplier = ?,
+          supplier_id = ?,
+          brand = ?,
+          brand_id = ?,
+          unit = ?,
+          thumbnail_path = ?,
+          lifecycle_state = ?,
+          current_version_number = ?,
+          metadata_json = ?,
+          updated_at = ?
+      WHERE id = ?
+        AND workspace_id = ?
+    `,
+    [
+      component.name,
+      component.description,
+      component.category,
+      component.categoryNodeId ?? null,
+      targetFolderId,
+      component.supplier,
+      component.supplierId ?? null,
+      component.brand,
+      component.brandId ?? null,
+      component.unit,
+      component.thumbnailPath,
+      component.lifecycleState,
+      nextVersion,
+      jsonText(readMetadataObject(component.metadata)),
+      timestamp,
+      itemId,
+      workspace.id,
+    ],
+  );
+  await insertComponentVersion(database, {
+    itemId,
+    workspaceId: workspace.id,
+    versionNumber: nextVersion,
+    snapshot: componentSnapshot(component),
+    summary: "Component updated",
+    reason: component.changeReason,
+    effectiveAt: component.effectiveAt,
+    userId: currentUser.userId,
   });
-
-  if (error) throwActionError("Could not update component.", error);
   revalidateLibraryRoutes();
   return {
-    itemId: getRpcString(data, "itemId"),
-    versionNumber: getRpcNumber(data, "versionNumber"),
+    itemId,
+    versionNumber: nextVersion,
   };
 }
 
 export async function upsertCostLibraryComponentPriceOption(itemId: string, input: ComponentPriceOptionInput) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  const supabase = await createSupabaseServerClient();
-  await assertCanManageLibrary(supabase, workspace.id);
-  const { data, error } = await supabase.rpc("upsert_cost_library_component_price_option", {
-    target_workspace_id: workspace.id,
-    target_item_id: itemId,
-    price_option: { ...normalizePriceOptionInput(input), updatedBy: currentUser.userId } as Json,
+  const database = await requireComponentLibraryActionsD1Database();
+  await assertCanManageLibrary(database, workspace.id, currentUser);
+  if (!isUuid(itemId)) throw new Error("Component not found in the current workspace.");
+  const existing = await readComponentItem(database, workspace.id, itemId);
+  if (!existing) throw new Error("Component not found in the current workspace.");
+  const priceOption = normalizePriceOptionInput(input);
+  const persisted = await upsertComponentPriceOptionInD1(database, {
+    workspaceId: workspace.id,
+    itemId,
+    priceOption,
+    userId: currentUser.userId,
+    effectiveAt: priceOption.effectiveAt,
+    writeHistory: true,
   });
-
-  if (error) throwActionError("Could not save price option.", error);
+  const nextVersion = numberValue(existing.current_version_number, 1) + 1;
+  const itemPatch = priceOption.isDefault || priceOption.isActive
+    ? {
+        activePriceOptionId: persisted.id,
+        unit: priceOption.unit,
+        unitCost: priceOption.unitCost,
+        miscCost: priceOption.miscCost,
+        pricingSource: priceOption.pricingSource,
+        pricingDate: priceOption.pricingDate,
+        confidence: priceOption.confidence,
+      }
+    : { activePriceOptionId: existing.active_price_option_id };
+  await run(
+    database,
+    `
+      UPDATE cost_library_items
+      SET active_price_option_id = COALESCE(?, active_price_option_id),
+          unit = COALESCE(?, unit),
+          unit_cost = COALESCE(?, unit_cost),
+          misc_cost = COALESCE(?, misc_cost),
+          pricing_source = COALESCE(?, pricing_source),
+          pricing_date = COALESCE(?, pricing_date),
+          confidence = COALESCE(?, confidence),
+          current_version_number = ?,
+          updated_at = ?
+      WHERE id = ?
+        AND workspace_id = ?
+    `,
+    [
+      itemPatch.activePriceOptionId ?? null,
+      "unit" in itemPatch ? itemPatch.unit ?? null : null,
+      "unitCost" in itemPatch ? itemPatch.unitCost ?? null : null,
+      "miscCost" in itemPatch ? itemPatch.miscCost ?? null : null,
+      "pricingSource" in itemPatch ? itemPatch.pricingSource ?? null : null,
+      "pricingDate" in itemPatch ? itemPatch.pricingDate ?? null : null,
+      "confidence" in itemPatch ? itemPatch.confidence ?? null : null,
+      nextVersion,
+      nowIso(),
+      itemId,
+      workspace.id,
+    ],
+  );
+  await insertComponentVersion(database, {
+    itemId,
+    workspaceId: workspace.id,
+    versionNumber: nextVersion,
+    snapshot: { priceOption: priceOptionSnapshot({ ...priceOption, id: persisted.id }) },
+    summary: "Price option changed",
+    reason: priceOption.changeReason,
+    effectiveAt: priceOption.effectiveAt,
+    userId: currentUser.userId,
+  });
   revalidateLibraryRoutes();
   return {
-    itemId: getRpcString(data, "itemId"),
-    priceOptionId: getRpcString(data, "priceOptionId"),
-    versionNumber: getRpcNumber(data, "versionNumber"),
+    itemId,
+    priceOptionId: persisted.id,
+    versionNumber: nextVersion,
   };
 }
 
@@ -946,23 +1489,64 @@ export async function changeCostLibraryComponentLifecycleState(input: {
   effectiveAt?: string;
 }) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  const supabase = await createSupabaseServerClient();
-  await assertCanManageLibrary(supabase, workspace.id);
-  const { data, error } = await supabase.rpc("set_cost_library_component_lifecycle_state", {
-    target_workspace_id: workspace.id,
-    target_item_id: input.itemId,
-    next_state: input.lifecycleState,
-    change_reason: input.changeReason ?? "",
-    effective_at: input.effectiveAt ?? new Date().toISOString(),
-    acting_user_id: currentUser.userId,
+  const database = await requireComponentLibraryActionsD1Database();
+  await assertCanManageLibrary(database, workspace.id, currentUser);
+  if (!isUuid(input.itemId)) throw new Error("Component not found in the current workspace.");
+  const existing = await readComponentItem(database, workspace.id, input.itemId);
+  if (!existing) throw new Error("Component not found in the current workspace.");
+  const effectiveAt = input.effectiveAt ?? new Date().toISOString();
+  const nextVersion = numberValue(existing.current_version_number, 1) + 1;
+  await run(
+    database,
+    `
+      UPDATE cost_library_items
+      SET lifecycle_state = ?,
+          lifecycle_state_changed_at = ?,
+          lifecycle_state_changed_by = ?,
+          current_version_number = ?,
+          updated_at = ?
+      WHERE id = ?
+        AND workspace_id = ?
+    `,
+    [input.lifecycleState, effectiveAt, currentUser.userId, nextVersion, nowIso(), input.itemId, workspace.id],
+  );
+  await run(
+    database,
+    `
+      INSERT OR IGNORE INTO cost_library_item_state_history (
+        id, item_id, workspace_id, from_state, to_state, operation_key,
+        effective_at, change_reason, created_by, created_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+    [
+      randomUUID(),
+      input.itemId,
+      workspace.id,
+      String(existing.lifecycle_state),
+      input.lifecycleState,
+      `${input.itemId}:${input.lifecycleState}:${effectiveAt}`,
+      effectiveAt,
+      input.changeReason ?? "",
+      currentUser.userId,
+      nowIso(),
+    ],
+  );
+  await insertComponentVersion(database, {
+    itemId: input.itemId,
+    workspaceId: workspace.id,
+    versionNumber: nextVersion,
+    snapshot: { lifecycleState: input.lifecycleState },
+    summary: "Lifecycle state changed",
+    reason: input.changeReason ?? "",
+    effectiveAt,
+    userId: currentUser.userId,
   });
-
-  if (error) throwActionError("Could not change component state.", error);
   revalidateLibraryRoutes();
   return {
-    itemId: getRpcString(data, "itemId"),
-    versionNumber: getRpcNumber(data, "versionNumber"),
-    lifecycleState: getRpcString(data, "lifecycleState"),
+    itemId: input.itemId,
+    versionNumber: nextVersion,
+    lifecycleState: input.lifecycleState,
   };
 }
 
@@ -974,20 +1558,50 @@ export async function previewBulkArchiveLibraryComponents(input: BulkArchiveLibr
     ensureDefaultWorkspace(),
     requireCurrentUserContext(),
   ]);
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.rpc("preview_bulk_archive_library_components", {
-    target_workspace_id: workspace.id,
-    target_item_ids: ids,
-  });
-
-  if (error) {
-    return buildRejectedPreviewResult("library_component", ids, [{
-      code: "rpc_error",
-      message: `Could not preview component archive: ${error.message}`,
-    }]);
+  const database = await requireComponentLibraryActionsD1Database();
+  const sortedIds = [...ids].sort();
+  const rows = sortedIds.length
+    ? await all<{ id: string; name: string; lifecycle_state: string }>(
+        database,
+        `
+          SELECT id, name, lifecycle_state
+          FROM cost_library_items
+          WHERE workspace_id = ?
+            AND id IN (${placeholders(sortedIds)})
+        `,
+        [workspace.id, ...sortedIds],
+      )
+    : [];
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  const eligibleIds: string[] = [];
+  const blocked = [];
+  for (const id of sortedIds) {
+    const row = byId.get(id);
+    if (!row) {
+      blocked.push({ id, code: "not_found", message: "Component was not found in this workspace." });
+      continue;
+    }
+    if (row.lifecycle_state === "archived") {
+      blocked.push({ id, name: row.name, code: "blocked", message: "Component is already archived." });
+      continue;
+    }
+    eligibleIds.push(id);
   }
-
-  return coerceBulkPreviewResult(data, { targetType: "library_component", ids });
+  const summary = {
+    requestedCount: sortedIds.length,
+    eligibleCount: eligibleIds.length,
+    blockedCount: blocked.length,
+  };
+  return coerceBulkPreviewResult({
+    ok: eligibleIds.length > 0 && blocked.length === 0,
+    targetType: "library_component",
+    ids: sortedIds,
+    eligibleIds,
+    previewHash: createBulkArchivePreviewHash({ eligibleIds, blocked, summary }),
+    summary,
+    issues: blocked,
+    blocked,
+  }, { targetType: "library_component", ids: sortedIds });
 }
 
 export async function executeBulkArchiveLibraryComponents(input: ExecuteBulkArchiveLibraryComponentsInput): Promise<BulkActionExecutionResult> {
@@ -999,61 +1613,79 @@ export async function executeBulkArchiveLibraryComponents(input: ExecuteBulkArch
     };
   }
 
-  const [{ workspace }] = await Promise.all([
+  const [{ workspace }, currentUser] = await Promise.all([
     ensureDefaultWorkspace(),
     requireCurrentUserContext(),
   ]);
-  const supabase = await createSupabaseServerClient();
-  await assertCanManageLibrary(supabase, workspace.id);
-  const { data, error } = await supabase.rpc("execute_bulk_archive_library_components", {
-    target_workspace_id: workspace.id,
-    target_item_ids: ids,
-    expected_preview_hash: input.expectedPreviewHash,
-    correlation_id: getMassDeletionCorrelationId(input.correlationId),
-  });
-
-  if (error) {
+  const database = await requireComponentLibraryActionsD1Database();
+  await assertCanManageLibrary(database, workspace.id, currentUser);
+  const preview = await previewBulkArchiveLibraryComponents({ itemIds: ids });
+  if (preview.previewHash !== input.expectedPreviewHash) {
     return {
+      ...preview,
       ok: false,
-      targetType: "library_component",
-      ids,
       archivedIds: [],
-      summary: { requestedCount: ids.length, eligibleCount: 0, blockedCount: 1 },
-      issues: [{
-        code: "rpc_error",
-        message: `Could not archive components: ${error.message}`,
-      }],
+      issues: [
+        ...preview.issues,
+        { code: "stale_preview", message: "Preview changed; refresh the archive preview." },
+      ],
     };
   }
-
-  const result = coerceBulkExecutionResult(data, { targetType: "library_component", ids });
+  if (!preview.ok) {
+    return {
+      ...preview,
+      archivedIds: [],
+    };
+  }
+  const archivedIds = preview.eligibleIds;
+  await run(
+    database,
+    `
+      UPDATE cost_library_items
+      SET lifecycle_state = 'archived',
+          lifecycle_state_changed_at = ?,
+          lifecycle_state_changed_by = ?,
+          updated_at = ?
+      WHERE workspace_id = ?
+        AND id IN (${placeholders(archivedIds)})
+    `,
+    [nowIso(), currentUser.userId, nowIso(), workspace.id, ...archivedIds],
+  );
+  const result = coerceBulkExecutionResult({
+    ok: true,
+    targetType: "library_component",
+    ids,
+    archivedIds,
+    previewHash: input.expectedPreviewHash,
+    summary: preview.summary,
+    issues: [],
+    blocked: [],
+  }, { targetType: "library_component", ids });
   if (result.ok) revalidateLibraryRoutes();
   return result;
 }
 
 export async function createLibraryFolder(parentId: string | null, name: string, options: CreateLibraryFolderOptions = {}): Promise<LibraryFolderActionResult> {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  const supabase = await createSupabaseServerClient();
-  await assertCanManageLibraryFolders(supabase, workspace.id);
+  const database = await requireComponentLibraryActionsD1Database();
+  await assertCanManageLibraryFolders(database, workspace.id, currentUser);
   const parentResult = parentId
-    ? await supabase
-        .from("library_folders")
-        .select("id, workspace_id")
-        .eq("id", parentId)
-        .eq("workspace_id", workspace.id)
-        .maybeSingle()
+    ? await first<{ id: string; workspace_id: string }>(
+        database,
+        "SELECT id, workspace_id FROM library_folders WHERE id = ? AND workspace_id = ? LIMIT 1",
+        [parentId, workspace.id],
+      )
     : null;
 
-  if (parentResult?.error) throw parentResult.error;
-  if (parentId && !parentResult?.data) throw new Error("Parent folder not found in the current workspace.");
+  if (parentId && !parentResult) throw new Error("Parent folder not found in the current workspace.");
 
-  let siblingsQuery = supabase
-    .from("library_folders")
-    .select("id, sort_order")
-    .eq("workspace_id", workspace.id);
-  siblingsQuery = parentId ? siblingsQuery.eq("parent_id", parentId) : siblingsQuery.is("parent_id", null);
-  const { data: siblings, error: siblingsError } = await siblingsQuery;
-  if (siblingsError) throw siblingsError;
+  const siblings = await all<{ id: string; sort_order: number }>(
+    database,
+    parentId
+      ? "SELECT id, sort_order FROM library_folders WHERE workspace_id = ? AND parent_id = ?"
+      : "SELECT id, sort_order FROM library_folders WHERE workspace_id = ? AND parent_id IS NULL",
+    parentId ? [workspace.id, parentId] : [workspace.id],
+  );
 
   const placement = options.placement ?? "bottom";
   const siblingRows = siblings ?? [];
@@ -1061,123 +1693,441 @@ export async function createLibraryFolder(parentId: string | null, name: string,
   if (placement === "top" && siblingRows.some((sibling) => sibling.sort_order === nextSortOrder)) {
     const sortedSiblings = [...siblingRows].sort((left, right) => right.sort_order - left.sort_order);
     for (const sibling of sortedSiblings) {
-      const { error: shiftError } = await supabase
-        .from("library_folders")
-        .update({ sort_order: sibling.sort_order + LIBRARY_FOLDER_SORT_ORDER_STEP })
-        .eq("id", sibling.id)
-        .eq("workspace_id", workspace.id);
-      if (shiftError) throw shiftError;
+      await run(
+        database,
+        "UPDATE library_folders SET sort_order = ?, updated_at = ? WHERE id = ? AND workspace_id = ?",
+        [sibling.sort_order + LIBRARY_FOLDER_SORT_ORDER_STEP, nowIso(), sibling.id, workspace.id],
+      );
     }
   }
-  const { data, error } = await supabase
-    .from("library_folders")
-    .insert({
-      workspace_id: workspace.id,
-      parent_id: parentId,
-      name: readFolderName(name),
-      sort_order: nextSortOrder,
-      folder_kind: "custom",
-      created_by: currentUser.userId,
-    })
-    .select("*")
-    .single();
-
-  if (error) throw error;
+  const folderId = randomUUID();
+  const timestamp = nowIso();
+  await run(
+    database,
+    `
+      INSERT INTO library_folders (
+        id, workspace_id, parent_id, name, sort_order, folder_kind,
+        created_by, created_at, updated_at
+      )
+      VALUES (?, ?, ?, ?, ?, 'custom', ?, ?, ?)
+    `,
+    [folderId, workspace.id, parentId, readFolderName(name), nextSortOrder, currentUser.userId, timestamp, timestamp],
+  );
+  const data = await first<LibraryFolderRow>(database, "SELECT * FROM library_folders WHERE id = ? LIMIT 1", [folderId]);
+  if (!data) throw new Error("Could not create folder.");
   revalidateLibraryRoutes();
   return { folder: data };
 }
 
 export async function renameLibraryFolder(folderId: string, name: string): Promise<LibraryFolderActionResult> {
-  await requireAuth();
-  const { workspace } = await ensureDefaultWorkspace();
-  const supabase = await createSupabaseServerClient();
-  await assertCanManageLibraryFolders(supabase, workspace.id);
-  const { data, error } = await supabase
-    .from("library_folders")
-    .update({ name: readFolderName(name) })
-    .eq("id", folderId)
-    .eq("workspace_id", workspace.id)
-    .select("*")
-    .single();
-
-  if (error) throw error;
+  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const database = await requireComponentLibraryActionsD1Database();
+  await assertCanManageLibraryFolders(database, workspace.id, currentUser);
+  await run(
+    database,
+    "UPDATE library_folders SET name = ?, updated_at = ? WHERE id = ? AND workspace_id = ?",
+    [readFolderName(name), nowIso(), folderId, workspace.id],
+  );
+  const data = await first<LibraryFolderRow>(database, "SELECT * FROM library_folders WHERE id = ? AND workspace_id = ? LIMIT 1", [folderId, workspace.id]);
+  if (!data) throw new Error("Folder not found in the current workspace.");
   revalidateLibraryRoutes();
   return { folder: data };
 }
 
 export async function deleteLibraryFolder(folderId: string): Promise<void> {
-  await requireAuth();
-  const { workspace } = await ensureDefaultWorkspace();
-  const supabase = await createSupabaseServerClient();
-  await assertCanManageLibraryFolders(supabase, workspace.id);
+  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const database = await requireComponentLibraryActionsD1Database();
+  await assertCanManageLibraryFolders(database, workspace.id, currentUser);
   if (!isUuid(folderId)) throw new Error("Library folder not found in the current workspace.");
 
-  const { error } = await supabase.rpc("delete_library_folder", {
-    target_workspace_id: workspace.id,
-    target_folder_id: folderId,
-  });
-  if (error) throwActionError("Could not delete library folder.", error);
+  const folder = await first<LibraryFolderRow>(database, "SELECT * FROM library_folders WHERE id = ? AND workspace_id = ? LIMIT 1", [folderId, workspace.id]);
+  if (!folder) throw new Error("Library folder not found in the current workspace.");
+  await runBatch(database, [
+    {
+      sql: "UPDATE library_folders SET parent_id = ?, updated_at = ? WHERE workspace_id = ? AND parent_id = ?",
+      values: [folder.parent_id, nowIso(), workspace.id, folderId],
+    },
+    {
+      sql: "UPDATE cost_library_items SET library_folder_id = NULL, updated_at = ? WHERE workspace_id = ? AND library_folder_id = ?",
+      values: [nowIso(), workspace.id, folderId],
+    },
+    {
+      sql: "DELETE FROM library_folders WHERE id = ? AND workspace_id = ?",
+      values: [folderId, workspace.id],
+    },
+  ]);
 
   revalidateLibraryRoutes();
 }
 
 export async function reorderLibraryFolders(input: ReorderLibraryFoldersInput): Promise<void> {
-  await requireAuth();
+  const currentUser = await requireCurrentUserContext();
   if (!input.updates.length) throw new Error("At least one library folder update is required.");
 
   const { workspace } = await ensureDefaultWorkspace();
-  const supabase = await createSupabaseServerClient();
-  await assertCanManageLibraryFolders(supabase, workspace.id);
-  const folderUpdates = input.updates.map((update) => ({
-    id: update.id,
-    parent_id: update.parentId,
-    sort_order: update.sortOrder,
-  }));
-  const { error } = await supabase.rpc("reorder_library_folders", {
-    target_workspace_id: workspace.id,
-    folder_updates: folderUpdates,
+  const database = await requireComponentLibraryActionsD1Database();
+  await assertCanManageLibraryFolders(database, workspace.id, currentUser);
+  const validUpdates = input.updates.map((update) => {
+    if (!isUuid(update.id)) throw new Error("Library folder not found in the current workspace.");
+    if (update.parentId && !isUuid(update.parentId)) throw new Error("Library folder not found in the current workspace.");
+    return update;
   });
-
-  if (error) throwActionError("Could not reorder library folders.", error);
+  await runBatch(database, validUpdates.map((update) => ({
+    sql: "UPDATE library_folders SET parent_id = ?, sort_order = ?, updated_at = ? WHERE id = ? AND workspace_id = ?",
+    values: [update.parentId, update.sortOrder, nowIso(), update.id, workspace.id],
+  })));
   revalidateLibraryRoutes();
 }
 
 export async function moveCostLibraryComponentToFolder(input: MoveCostLibraryComponentToFolderInput): Promise<void> {
-  const [{ workspace }] = await Promise.all([
+  const [{ workspace }, currentUser] = await Promise.all([
     ensureDefaultWorkspace(),
     requireCurrentUserContext(),
   ]);
-  const supabase = await createSupabaseServerClient();
-  await assertCanManageLibraryFolders(supabase, workspace.id);
+  const database = await requireComponentLibraryActionsD1Database();
+  await assertCanManageLibraryFolders(database, workspace.id, currentUser);
 
   if (!isUuid(input.itemId)) throw new Error("Component not found in the current workspace.");
 
-  let targetFolderId: string | null = null;
-  if (input.libraryFolderId) {
-    if (!isUuid(input.libraryFolderId)) throw new Error("Library folder not found in the current workspace.");
-    const { data: folder, error: folderError } = await supabase
-      .from("library_folders")
-      .select("id")
-      .eq("id", input.libraryFolderId)
-      .eq("workspace_id", workspace.id)
-      .maybeSingle();
-
-    if (folderError) throw folderError;
-    if (!folder) throw new Error("Library folder not found in the current workspace.");
-    targetFolderId = folder.id;
-  }
-
-  const { data: component, error } = await supabase
-    .from("cost_library_items")
-    .update({ library_folder_id: targetFolderId })
-    .eq("id", input.itemId)
-    .eq("workspace_id", workspace.id)
-    .select("id")
-    .maybeSingle();
-
-  if (error) throwActionError("Could not move component.", error);
+  const targetFolderId = await assertLibraryFolderInWorkspace(database, workspace.id, input.libraryFolderId);
+  await run(
+    database,
+    "UPDATE cost_library_items SET library_folder_id = ?, updated_at = ? WHERE id = ? AND workspace_id = ?",
+    [targetFolderId, nowIso(), input.itemId, workspace.id],
+  );
+  const component = await first<{ id: string }>(database, "SELECT id FROM cost_library_items WHERE id = ? AND workspace_id = ? LIMIT 1", [input.itemId, workspace.id]);
   if (!component) throw new Error("Component not found in the current workspace.");
   revalidateLibraryRoutes();
+}
+
+type EstimateTemplateD1Row = {
+  id: string;
+  workspace_id: string;
+  name: string;
+  description: string;
+  category: string;
+  sort_order: number;
+  metadata: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type EstimateTemplateNodeD1Row = {
+  id: string;
+  template_id: string;
+  parent_id: string | null;
+  kind: string;
+  name: string;
+  sort_order: number;
+  metadata: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type EstimateTemplateRowItemD1Row = {
+  id: string;
+  template_id: string;
+  template_node_id: string;
+  sort_order: number;
+  source_library_item_id: string | null;
+  source_snapshot: string | null;
+  category_node_id: string | null;
+  supplier_id: string | null;
+  material: string;
+  description: string;
+  supplier: string;
+  unit: string;
+  quantity: number | string;
+  unit_cost: number | string;
+  misc_cost: number | string;
+  contingency_percentage: number | string;
+  adjustment_percentage: number | string;
+  discipline: string;
+  designation: string;
+  link_state: string;
+  metadata: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type EstimateSourceRowD1 = {
+  id: string;
+  project_id: string;
+  workspace_id: string;
+};
+
+type EstimateNodeSourceRowD1 = {
+  id: string;
+  parent_id: string | null;
+  kind: string;
+  name: string;
+  sort_order: number;
+};
+
+type EstimateTabNodeSourceRowD1 = EstimateNodeSourceRowD1 & {
+  kind: "group" | "area";
+};
+
+type EstimateRowItemSourceD1 = {
+  id: string;
+  node_id: string;
+  sort_order: number;
+  source_library_item_id: string | null;
+  source_snapshot_json: string | null;
+  category_node_id: string | null;
+  supplier_id: string | null;
+  material: string;
+  description: string;
+  supplier: string | null;
+  unit: string;
+  quantity: number | string;
+  unit_cost: number | string;
+  contingency_percentage: number | string;
+  adjustment_percentage: number | string;
+  misc_cost: number | string;
+  discipline: string;
+  designation: string;
+  link_state: string | null;
+  metadata_json: string | null;
+};
+
+function toTemplateRow(row: EstimateTemplateD1Row): EstimateTemplateTableRow {
+  return {
+    ...row,
+    metadata: readJsonValue(row.metadata, {}),
+  } as EstimateTemplateTableRow;
+}
+
+function toTemplateNodeRow(row: EstimateTemplateNodeD1Row): EstimateTemplateNodeTableRow {
+  return {
+    ...row,
+    metadata: readJsonValue(row.metadata, {}),
+  } as EstimateTemplateNodeTableRow;
+}
+
+function toTemplateRowItem(row: EstimateTemplateRowItemD1Row): EstimateTemplateRowItemTableRow {
+  return {
+    ...row,
+    quantity: numberValue(row.quantity),
+    unit_cost: numberValue(row.unit_cost),
+    misc_cost: numberValue(row.misc_cost),
+    contingency_percentage: numberValue(row.contingency_percentage),
+    adjustment_percentage: numberValue(row.adjustment_percentage),
+    source_snapshot: readJsonValue(row.source_snapshot, {}),
+    metadata: readJsonValue(row.metadata, {}),
+  } as EstimateTemplateRowItemTableRow;
+}
+
+async function readEstimateForTemplateSource(database: D1DatabaseLike, input: { workspaceId: string; projectId: string; estimateId: string }) {
+  return first<EstimateSourceRowD1>(
+    database,
+    `
+      SELECT estimate.id, estimate.project_id, project.workspace_id
+      FROM estimates estimate
+      JOIN projects project ON project.id = estimate.project_id
+      WHERE estimate.id = ?
+        AND estimate.project_id = ?
+        AND project.workspace_id = ?
+      LIMIT 1
+    `,
+    [input.estimateId, input.projectId, input.workspaceId],
+  );
+}
+
+async function readNextTemplateSortOrder(database: D1DatabaseLike, workspaceId: string, category?: string) {
+  const row = await first<{ sort_order: number | null }>(
+    database,
+    category
+      ? "SELECT sort_order FROM estimate_templates WHERE workspace_id = ? AND category = ? ORDER BY sort_order DESC LIMIT 1"
+      : "SELECT sort_order FROM estimate_templates WHERE workspace_id = ? ORDER BY sort_order DESC LIMIT 1",
+    category ? [workspaceId, category] : [workspaceId],
+  );
+  return numberValue(row?.sort_order, -1) + 1;
+}
+
+async function insertTemplate(database: D1DatabaseLike, input: {
+  workspaceId: string;
+  name: string;
+  description: string;
+  category: string;
+  sortOrder: number;
+  createdBy: string;
+  metadata: Record<string, unknown>;
+}) {
+  const id = randomUUID();
+  const timestamp = nowIso();
+  await run(
+    database,
+    `
+      INSERT INTO estimate_templates (
+        id, workspace_id, name, description, category, sort_order,
+        metadata, created_by, created_at, updated_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+    [
+      id,
+      input.workspaceId,
+      input.name,
+      input.description,
+      input.category,
+      input.sortOrder,
+      jsonText(input.metadata),
+      input.createdBy,
+      timestamp,
+      timestamp,
+    ],
+  );
+  const row = await first<EstimateTemplateD1Row>(database, "SELECT * FROM estimate_templates WHERE id = ? LIMIT 1", [id]);
+  if (!row) throw new Error("Could not read back the created template.");
+  return toTemplateRow(row);
+}
+
+function templateRowInsertValues(
+  templateId: string,
+  templateNodeId: string,
+  row: EstimateRowItemSourceD1,
+): D1Value[] {
+  const timestamp = nowIso();
+  return [
+    randomUUID(),
+    templateId,
+    templateNodeId,
+    numberValue(row.sort_order),
+    row.source_library_item_id,
+    row.source_snapshot_json ?? "{}",
+    row.category_node_id,
+    row.supplier_id,
+    row.material,
+    row.description,
+    row.supplier ?? "",
+    row.unit,
+    numberValue(row.quantity),
+    numberValue(row.unit_cost),
+    numberValue(row.misc_cost),
+    0,
+    numberValue(row.adjustment_percentage, numberValue(row.contingency_percentage)),
+    row.discipline,
+    row.designation,
+    row.link_state ?? "unlinked",
+    row.metadata_json ?? "{}",
+    timestamp,
+    timestamp,
+  ];
+}
+
+const INSERT_TEMPLATE_NODE_SQL = `
+  INSERT INTO estimate_template_nodes (
+    id, template_id, parent_id, kind, name, sort_order, metadata, created_at, updated_at
+  )
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+`;
+
+const INSERT_TEMPLATE_ROW_ITEM_SQL = `
+  INSERT INTO estimate_template_row_items (
+    id, template_id, template_node_id, sort_order, source_library_item_id,
+    source_snapshot, category_node_id, supplier_id, material, description,
+    supplier, unit, quantity, unit_cost, misc_cost, contingency_percentage,
+    adjustment_percentage, discipline, designation, link_state, metadata,
+    created_at, updated_at
+  )
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`;
+
+function templateNodeInsertStatement(input: {
+  id: string;
+  templateId: string;
+  parentId: string | null;
+  kind: "group" | "area";
+  name: string;
+  sortOrder: number;
+  metadata?: Record<string, unknown>;
+}) {
+  const timestamp = nowIso();
+  return {
+    sql: INSERT_TEMPLATE_NODE_SQL,
+    values: [
+      input.id,
+      input.templateId,
+      input.parentId,
+      input.kind,
+      input.name,
+      input.sortOrder,
+      jsonText(input.metadata ?? {}),
+      timestamp,
+      timestamp,
+    ] as D1Value[],
+  };
+}
+
+function templateRowItemInsertStatement(
+  templateId: string,
+  templateNodeId: string,
+  row: EstimateRowItemSourceD1,
+) {
+  return {
+    sql: INSERT_TEMPLATE_ROW_ITEM_SQL,
+    values: templateRowInsertValues(templateId, templateNodeId, row),
+  };
+}
+
+function copiedTemplateRowInsertValues(
+  templateId: string,
+  templateNodeId: string,
+  row: EstimateTemplateRowItemD1Row,
+): D1Value[] {
+  const timestamp = nowIso();
+  return [
+    randomUUID(),
+    templateId,
+    templateNodeId,
+    numberValue(row.sort_order),
+    row.source_library_item_id,
+    row.source_snapshot,
+    row.category_node_id,
+    row.supplier_id,
+    row.material,
+    row.description,
+    row.supplier,
+    row.unit,
+    numberValue(row.quantity),
+    numberValue(row.unit_cost),
+    numberValue(row.misc_cost),
+    numberValue(row.contingency_percentage),
+    numberValue(row.adjustment_percentage),
+    row.discipline,
+    row.designation,
+    row.link_state,
+    row.metadata ?? "{}",
+    timestamp,
+    timestamp,
+  ];
+}
+
+function copiedTemplateRowItemInsertStatement(
+  templateId: string,
+  templateNodeId: string,
+  row: EstimateTemplateRowItemD1Row,
+) {
+  return {
+    sql: INSERT_TEMPLATE_ROW_ITEM_SQL,
+    values: copiedTemplateRowInsertValues(templateId, templateNodeId, row),
+  };
+}
+
+async function readTemplateBuildRows(database: D1DatabaseLike, templateId: string) {
+  const [template, nodes, rows] = await Promise.all([
+    first<EstimateTemplateD1Row>(database, "SELECT * FROM estimate_templates WHERE id = ? LIMIT 1", [templateId]),
+    all<EstimateTemplateNodeD1Row>(database, "SELECT * FROM estimate_template_nodes WHERE template_id = ? ORDER BY sort_order ASC", [templateId]),
+    all<EstimateTemplateRowItemD1Row>(database, "SELECT * FROM estimate_template_row_items WHERE template_id = ? ORDER BY sort_order ASC", [templateId]),
+  ]);
+  if (!template) return null;
+  return {
+    templates: [toTemplateRow(template)],
+    nodes: nodes.map(toTemplateNodeRow),
+    rowItems: rows.map(toTemplateRowItem),
+  };
 }
 
 export type CreateEstimateTemplateFromNodeInput = {
@@ -1206,36 +2156,38 @@ type EstimateNodeSubtreeRow = {
  */
 export async function createEstimateTemplateFromEstimateNode(input: CreateEstimateTemplateFromNodeInput) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  const supabase = await createSupabaseServerClient();
-  await assertCanManageLibrary(supabase, workspace.id);
+  const database = await requireComponentLibraryActionsD1Database();
+  await assertCanManageLibrary(database, workspace.id, currentUser);
 
   const templateName = input.name.trim();
   if (!templateName) throw new Error("Template name is required.");
   const templateCategory = (input.category ?? "").trim() || "General";
   const templateDescription = (input.description ?? "").trim();
-  if (!isUuid(input.estimateId) || !isUuid(input.sourceNodeId)) {
+  if (!isUuid(input.projectId) || !isUuid(input.estimateId) || !isUuid(input.sourceNodeId)) {
     throw new Error("Estimate node not found in the current workspace.");
   }
 
-  const { data: estimate, error: estimateError } = await supabase
-    .from("estimates")
-    .select("id, project_id, projects!inner(id, workspace_id)")
-    .eq("id", input.estimateId)
-    .eq("project_id", input.projectId)
-    .eq("projects.workspace_id", workspace.id)
-    .maybeSingle();
-  if (estimateError) throwActionError("Could not load the estimate.", estimateError);
+  const estimate = await readEstimateForTemplateSource(database, {
+    workspaceId: workspace.id,
+    projectId: input.projectId,
+    estimateId: input.estimateId,
+  });
   if (!estimate) throw new Error("Estimate not found in the current workspace.");
-  await assertCanPublishEstimateTemplateFromEstimate(supabase, input.estimateId);
+  await assertCanPublishEstimateTemplateFromEstimate(database, input.estimateId, currentUser);
+  await assertWithinLibraryQuota(database, "estimate_templates", workspace.id, LIBRARY_TEMPLATE_CAP, "template");
 
-  const { data: nodeRows, error: nodesError } = await supabase
-    .from("estimate_nodes")
-    .select("id, parent_id, kind, name, sort_order")
-    .eq("estimate_id", input.estimateId)
-    .order("sort_order", { ascending: true });
-  if (nodesError) throwActionError("Could not load the estimate tree.", nodesError);
+  const nodeRows = await all<EstimateNodeSubtreeRow>(
+    database,
+    `
+      SELECT id, parent_id, kind, name, sort_order
+      FROM estimate_nodes
+      WHERE estimate_id = ?
+      ORDER BY sort_order ASC
+    `,
+    [input.estimateId],
+  );
 
-  const allNodes = (nodeRows ?? []) as EstimateNodeSubtreeRow[];
+  const allNodes = nodeRows;
   const sourceNode = allNodes.find((node) => node.id === input.sourceNodeId);
   if (!sourceNode) throw new Error("The selected node no longer exists in this estimate.");
 
@@ -1255,111 +2207,70 @@ export async function createEstimateTemplateFromEstimateNode(input: CreateEstima
   }
 
   const subtreeNodeIds = subtreeNodes.map((node) => node.id);
-  const { data: rowItemRows, error: rowItemsError } = await supabase
-    .from("estimate_row_items")
-    .select(
-      "id, node_id, sort_order, source_library_item_id, source_snapshot, category_node_id, supplier_id, material, description, supplier, unit, quantity, unit_cost, contingency_percentage, adjustment_percentage, misc_cost, discipline, designation, link_state, metadata",
-    )
-    .eq("estimate_id", input.estimateId)
-    .in("node_id", subtreeNodeIds)
-    .order("sort_order", { ascending: true });
-  if (rowItemsError) throwActionError("Could not load the estimate rows.", rowItemsError);
+  const rowItemRows = subtreeNodeIds.length
+    ? await all<EstimateRowItemSourceD1>(
+        database,
+        `
+          SELECT id, node_id, sort_order, source_library_item_id, source_snapshot_json,
+            category_node_id, supplier_id, material, description, supplier, unit,
+            quantity, unit_cost, contingency_percentage, adjustment_percentage,
+            misc_cost, discipline, designation, link_state, metadata_json
+          FROM estimate_row_items
+          WHERE estimate_id = ?
+            AND node_id IN (${placeholders(subtreeNodeIds)})
+          ORDER BY sort_order ASC
+        `,
+        [input.estimateId, ...subtreeNodeIds],
+      )
+    : [];
 
-  const { data: siblingTemplates, error: sortError } = await supabase
-    .from("estimate_templates")
-    .select("sort_order")
-    .eq("workspace_id", workspace.id)
-    .order("sort_order", { ascending: false })
-    .limit(1);
-  if (sortError) throwActionError("Could not create the template.", sortError);
-  const nextSortOrder = (siblingTemplates?.[0]?.sort_order ?? -1) + 1;
-
-  const { data: insertedTemplate, error: templateError } = await supabase
-    .from("estimate_templates")
-    .insert({
-      workspace_id: workspace.id,
-      name: templateName,
-      description: templateDescription,
-      category: templateCategory,
-      sort_order: nextSortOrder,
-      created_by: currentUser.userId,
-      metadata: {
-        savedFrom: "estimate-workspace",
-        sourceEstimateId: input.estimateId,
-        sourceNodeId: input.sourceNodeId,
-      },
-    })
-    .select("*")
-    .single();
-  if (templateError || !insertedTemplate) {
-    throwActionError("Could not create the template.", templateError);
-  }
+  const insertedTemplate = await insertTemplate(database, {
+    workspaceId: workspace.id,
+    name: templateName,
+    description: templateDescription,
+    category: templateCategory,
+    sortOrder: await readNextTemplateSortOrder(database, workspace.id),
+    createdBy: currentUser.userId,
+    metadata: {
+      savedFrom: "estimate-workspace",
+      sourceEstimateId: input.estimateId,
+      sourceNodeId: input.sourceNodeId,
+    },
+  });
 
   try {
     const templateNodeIdBySourceId = new Map<string, string>(subtreeNodes.map((node) => [node.id, randomUUID()]));
-    const templateNodeInserts = subtreeNodes.map((node) => ({
-      id: templateNodeIdBySourceId.get(node.id)!,
-      template_id: insertedTemplate.id,
-      // The saved node becomes the template root; descendants keep shape.
-      parent_id: node.id === sourceNode.id ? null : templateNodeIdBySourceId.get(node.parent_id ?? "") ?? null,
-      kind: node.kind as "group" | "area",
-      name: node.name,
-      sort_order: node.id === sourceNode.id ? 0 : node.sort_order,
-      metadata: {},
-    }));
+    const templateNodeStatements = subtreeNodes.map((node) => {
+      const kind = normalizeEstimateTreeNodeKind(node.kind);
+      if (!kind) throw new Error("Could not copy the node structure.");
+      return templateNodeInsertStatement({
+        id: templateNodeIdBySourceId.get(node.id)!,
+        templateId: insertedTemplate.id,
+        // The saved node becomes the template root; descendants keep shape.
+        parentId: node.id === sourceNode.id ? null : templateNodeIdBySourceId.get(node.parent_id ?? "") ?? null,
+        kind,
+        name: node.name,
+        sortOrder: node.id === sourceNode.id ? 0 : node.sort_order,
+      });
+    });
 
-    const { data: insertedNodes, error: nodeInsertError } = await supabase
-      .from("estimate_template_nodes")
-      .insert(templateNodeInserts)
-      .select("*");
-    if (nodeInsertError) throwActionError("Could not copy the node structure.", nodeInsertError);
-
-    const rowInserts = (rowItemRows ?? []).map((row) => ({
-      template_id: insertedTemplate.id,
-      template_node_id: templateNodeIdBySourceId.get(row.node_id)!,
-      sort_order: row.sort_order,
-      source_library_item_id: row.source_library_item_id,
-      source_snapshot: row.source_snapshot,
-      category_node_id: row.category_node_id,
-      supplier_id: row.supplier_id,
-      material: row.material,
-      description: row.description,
-      supplier: row.supplier,
-      unit: row.unit,
-      quantity: row.quantity,
-      unit_cost: row.unit_cost,
-      contingency_percentage: 0,
-      adjustment_percentage: row.adjustment_percentage,
-      misc_cost: row.misc_cost,
-      discipline: row.discipline,
-      designation: row.designation,
-      link_state: row.link_state,
-      metadata: row.metadata,
-    }));
-
-    let insertedRowItems: Tables<"estimate_template_row_items">[] = [];
-    if (rowInserts.length > 0) {
-      const { data, error: rowInsertError } = await supabase
-        .from("estimate_template_row_items")
-        .insert(rowInserts)
-        .select("*");
-      if (rowInsertError) throwActionError("Could not copy the estimate rows.", rowInsertError);
-      insertedRowItems = data ?? [];
-    }
+    const rowStatements = rowItemRows.map((row) => {
+      const templateNodeId = templateNodeIdBySourceId.get(row.node_id);
+      if (!templateNodeId) throw new Error("Could not copy the estimate rows.");
+      return templateRowItemInsertStatement(insertedTemplate.id, templateNodeId, row);
+    });
+    await runBatch(database, [...templateNodeStatements, ...rowStatements]);
 
     revalidateTemplateSurfaces();
 
-    const [template] = buildEstimateTemplatesFromRows({
-      templates: [insertedTemplate],
-      nodes: insertedNodes ?? [],
-      rowItems: insertedRowItems,
-    });
+    const buildRows = await readTemplateBuildRows(database, insertedTemplate.id);
+    const [template] = buildRows ? buildEstimateTemplatesFromRows(buildRows) : [];
     if (!template) throw new Error("Could not read back the created template.");
     return { template };
   } catch (error) {
     // Without a cross-statement transaction, a partial failure leaves an
     // orphan template; deleting it cascades to any copied nodes/rows.
-    await supabase.from("estimate_templates").delete().eq("id", insertedTemplate.id);
+    await run(database, "DELETE FROM estimate_templates WHERE id = ?", [insertedTemplate.id]);
     throw error;
   }
 }
@@ -1380,39 +2291,41 @@ type EstimateTabTemplateNodeRow = EstimateNodeSubtreeRow & {
 
 export async function createEstimateTemplateFromEstimateTab(input: CreateEstimateTemplateFromTabInput) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  const supabase = await createSupabaseServerClient();
-  await assertCanManageLibrary(supabase, workspace.id);
+  const database = await requireComponentLibraryActionsD1Database();
+  await assertCanManageLibrary(database, workspace.id, currentUser);
 
   const templateName = input.name.trim();
   if (!templateName) throw new Error("Template name is required.");
   const templateCategory = (input.category ?? "").trim() || "General";
   const templateDescription = (input.description ?? "").trim();
   const sourceTabName = input.tabName.trim() || "Project tab";
-  if (!isUuid(input.estimateId) || !isUuid(input.tabId)) {
+  if (!isUuid(input.projectId) || !isUuid(input.estimateId) || !isUuid(input.tabId)) {
     throw new Error("Estimate tab not found in the current workspace.");
   }
 
-  const { data: estimate, error: estimateError } = await supabase
-    .from("estimates")
-    .select("id, project_id, projects!inner(id, workspace_id)")
-    .eq("id", input.estimateId)
-    .eq("project_id", input.projectId)
-    .eq("projects.workspace_id", workspace.id)
-    .maybeSingle();
-  if (estimateError) throwActionError("Could not load the estimate.", estimateError);
+  const estimate = await readEstimateForTemplateSource(database, {
+    workspaceId: workspace.id,
+    projectId: input.projectId,
+    estimateId: input.estimateId,
+  });
   if (!estimate) throw new Error("Estimate not found in the current workspace.");
-  await assertCanPublishEstimateTemplateFromEstimate(supabase, input.estimateId);
+  await assertCanPublishEstimateTemplateFromEstimate(database, input.estimateId, currentUser);
+  await assertWithinLibraryQuota(database, "estimate_templates", workspace.id, LIBRARY_TEMPLATE_CAP, "template");
 
-  const { data: nodeRows, error: nodesError } = await supabase
-    .from("estimate_nodes")
-    .select("id, parent_id, kind, name, sort_order")
-    .eq("estimate_id", input.estimateId)
-    .filter("estimate_tab_id", "eq", input.tabId)
-    .order("sort_order", { ascending: true });
-  if (nodesError) throwActionError("Could not load the estimate tab tree.", nodesError);
+  const nodeRows = await all<EstimateTabTemplateNodeRow>(
+    database,
+    `
+      SELECT id, parent_id, kind, name, sort_order
+      FROM estimate_nodes
+      WHERE estimate_id = ?
+        AND estimate_tab_id = ?
+      ORDER BY sort_order ASC
+    `,
+    [input.estimateId, input.tabId],
+  );
 
   const sourceNodes: EstimateTabTemplateNodeRow[] = [];
-  for (const node of nodeRows ?? []) {
+  for (const node of nodeRows) {
     const kind = normalizeEstimateTreeNodeKind(node.kind);
     if (!kind) continue;
     sourceNodes.push({ ...node, kind });
@@ -1420,156 +2333,105 @@ export async function createEstimateTemplateFromEstimateTab(input: CreateEstimat
   if (sourceNodes.length === 0) throw new Error("The selected tab has no estimate nodes to save.");
 
   const sourceNodeIds = sourceNodes.map((node) => node.id);
-  const { data: rowItemRows, error: rowItemsError } = await supabase
-    .from("estimate_row_items")
-    .select(
-      "id, node_id, sort_order, source_library_item_id, source_snapshot, category_node_id, supplier_id, material, description, supplier, unit, quantity, unit_cost, contingency_percentage, adjustment_percentage, misc_cost, discipline, designation, link_state, metadata",
-    )
-    .eq("estimate_id", input.estimateId)
-    .in("node_id", sourceNodeIds)
-    .order("sort_order", { ascending: true });
-  if (rowItemsError) throwActionError("Could not load the estimate rows.", rowItemsError);
+  const rowItemRows = await all<EstimateRowItemSourceD1>(
+    database,
+    `
+      SELECT id, node_id, sort_order, source_library_item_id, source_snapshot_json,
+        category_node_id, supplier_id, material, description, supplier, unit,
+        quantity, unit_cost, contingency_percentage, adjustment_percentage,
+        misc_cost, discipline, designation, link_state, metadata_json
+      FROM estimate_row_items
+      WHERE estimate_id = ?
+        AND node_id IN (${placeholders(sourceNodeIds)})
+      ORDER BY sort_order ASC
+    `,
+    [input.estimateId, ...sourceNodeIds],
+  );
 
-  const { data: siblingTemplates, error: sortError } = await supabase
-    .from("estimate_templates")
-    .select("sort_order")
-    .eq("workspace_id", workspace.id)
-    .order("sort_order", { ascending: false })
-    .limit(1);
-  if (sortError) throwActionError("Could not create the template.", sortError);
-  const nextSortOrder = (siblingTemplates?.[0]?.sort_order ?? -1) + 1;
-
-  const { data: insertedTemplate, error: templateError } = await supabase
-    .from("estimate_templates")
-    .insert({
-      workspace_id: workspace.id,
-      name: templateName,
-      description: templateDescription,
-      category: templateCategory,
-      sort_order: nextSortOrder,
-      created_by: currentUser.userId,
-      metadata: {
-        savedFrom: "estimate-workspace-tab",
-        sourceEstimateId: input.estimateId,
-        sourceTabId: input.tabId,
-        sourceTabName,
-      },
-    })
-    .select("*")
-    .single();
-  if (templateError || !insertedTemplate) {
-    throwActionError("Could not create the template.", templateError);
-  }
+  const insertedTemplate = await insertTemplate(database, {
+    workspaceId: workspace.id,
+    name: templateName,
+    description: templateDescription,
+    category: templateCategory,
+    sortOrder: await readNextTemplateSortOrder(database, workspace.id),
+    createdBy: currentUser.userId,
+    metadata: {
+      savedFrom: "estimate-workspace-tab",
+      sourceEstimateId: input.estimateId,
+      sourceTabId: input.tabId,
+      sourceTabName,
+    },
+  });
 
   try {
     const wrapperNodeId = randomUUID();
     const templateNodeIdBySourceId = new Map<string, string>(sourceNodes.map((node) => [node.id, randomUUID()]));
     const sourceNodeIdSet = new Set(sourceNodeIds);
-    const copiedNodeInserts = sourceNodes.map((node) => {
+    const copiedNodeStatements = sourceNodes.map((node) => {
       const templateNodeId = templateNodeIdBySourceId.get(node.id);
       if (!templateNodeId) throw new Error("Could not map the estimate tab tree.");
       const mappedParentId = node.parent_id && sourceNodeIdSet.has(node.parent_id)
         ? templateNodeIdBySourceId.get(node.parent_id) ?? wrapperNodeId
         : wrapperNodeId;
-      return {
+      return templateNodeInsertStatement({
         id: templateNodeId,
-        template_id: insertedTemplate.id,
-        parent_id: mappedParentId,
+        templateId: insertedTemplate.id,
+        parentId: mappedParentId,
         kind: node.kind,
         name: node.name,
-        sort_order: node.sort_order,
-        metadata: {},
-      };
+        sortOrder: node.sort_order,
+      });
     });
-    const templateNodeInserts = [
-      {
+    const templateNodeStatements = [
+      templateNodeInsertStatement({
         id: wrapperNodeId,
-        template_id: insertedTemplate.id,
-        parent_id: null,
-        kind: "group" as const,
+        templateId: insertedTemplate.id,
+        parentId: null,
+        kind: "group",
         name: sourceTabName,
-        sort_order: 0,
-        metadata: {},
-      },
-      ...copiedNodeInserts,
+        sortOrder: 0,
+      }),
+      ...copiedNodeStatements,
     ];
 
-    const { data: insertedNodes, error: nodeInsertError } = await supabase
-      .from("estimate_template_nodes")
-      .insert(templateNodeInserts)
-      .select("*");
-    if (nodeInsertError) throwActionError("Could not copy the tab structure.", nodeInsertError);
-
-    const rowInserts = (rowItemRows ?? []).map((row) => {
+    const rowStatements = rowItemRows.map((row) => {
       const templateNodeId = templateNodeIdBySourceId.get(row.node_id);
       if (!templateNodeId) throw new Error("Could not map the estimate tab rows.");
-      return {
-        template_id: insertedTemplate.id,
-        template_node_id: templateNodeId,
-        sort_order: row.sort_order,
-        source_library_item_id: row.source_library_item_id,
-        source_snapshot: row.source_snapshot,
-        category_node_id: row.category_node_id,
-        supplier_id: row.supplier_id,
-        material: row.material,
-        description: row.description,
-        supplier: row.supplier,
-        unit: row.unit,
-        quantity: row.quantity,
-        unit_cost: row.unit_cost,
-        contingency_percentage: 0,
-        adjustment_percentage: row.adjustment_percentage,
-        misc_cost: row.misc_cost,
-        discipline: row.discipline,
-        designation: row.designation,
-        link_state: row.link_state,
-        metadata: row.metadata,
-      };
+      return templateRowItemInsertStatement(insertedTemplate.id, templateNodeId, row);
     });
-
-    let insertedRowItems: Tables<"estimate_template_row_items">[] = [];
-    if (rowInserts.length > 0) {
-      const { data, error: rowInsertError } = await supabase
-        .from("estimate_template_row_items")
-        .insert(rowInserts)
-        .select("*");
-      if (rowInsertError) throwActionError("Could not copy the estimate rows.", rowInsertError);
-      insertedRowItems = data ?? [];
-    }
+    await runBatch(database, [...templateNodeStatements, ...rowStatements]);
 
     revalidateTemplateSurfaces();
 
-    const [template] = buildEstimateTemplatesFromRows({
-      templates: [insertedTemplate],
-      nodes: insertedNodes ?? [],
-      rowItems: insertedRowItems,
-    });
+    const buildRows = await readTemplateBuildRows(database, insertedTemplate.id);
+    const [template] = buildRows ? buildEstimateTemplatesFromRows(buildRows) : [];
     if (!template) throw new Error("Could not read back the created template.");
     return { template };
   } catch (error) {
-    await supabase.from("estimate_templates").delete().eq("id", insertedTemplate.id);
+    await run(database, "DELETE FROM estimate_templates WHERE id = ?", [insertedTemplate.id]);
     throw error;
   }
 }
 
 /** Renames a workspace estimate template. */
 export async function renameEstimateTemplate(input: { templateId: string; name: string }) {
-  const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const templateName = input.name.trim();
   if (!templateName) throw new Error("Template name is required.");
   if (!isUuid(input.templateId)) throw new Error("Template not found in the current workspace.");
 
-  const supabase = await createSupabaseServerClient();
-  await assertCanManageLibrary(supabase, workspace.id);
-  const { data: template, error } = await supabase
-    .from("estimate_templates")
-    .update({ name: templateName })
-    .eq("id", input.templateId)
-    .eq("workspace_id", workspace.id)
-    .select("id, name")
-    .maybeSingle();
-
-  if (error) throwActionError("Could not rename template.", error);
+  const database = await requireComponentLibraryActionsD1Database();
+  await assertCanManageLibrary(database, workspace.id, currentUser);
+  await run(
+    database,
+    "UPDATE estimate_templates SET name = ?, updated_at = ? WHERE id = ? AND workspace_id = ?",
+    [templateName, nowIso(), input.templateId, workspace.id],
+  );
+  const template = await first<{ id: string; name: string }>(
+    database,
+    "SELECT id, name FROM estimate_templates WHERE id = ? AND workspace_id = ? LIMIT 1",
+    [input.templateId, workspace.id],
+  );
   if (!template) throw new Error("Template not found in the current workspace.");
   revalidateTemplateSurfaces();
   return { templateId: template.id, name: template.name };
@@ -1577,21 +2439,18 @@ export async function renameEstimateTemplate(input: { templateId: string; name: 
 
 /** Deletes a workspace estimate template; nodes and rows cascade. */
 export async function deleteEstimateTemplate(input: { templateId: string }) {
-  const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   if (!isUuid(input.templateId)) throw new Error("Template not found in the current workspace.");
 
-  const supabase = await createSupabaseServerClient();
-  await assertCanManageLibrary(supabase, workspace.id);
-  const { data: template, error } = await supabase
-    .from("estimate_templates")
-    .delete()
-    .eq("id", input.templateId)
-    .eq("workspace_id", workspace.id)
-    .select("id")
-    .maybeSingle();
-
-  if (error) throwActionError("Could not delete template.", error);
+  const database = await requireComponentLibraryActionsD1Database();
+  await assertCanManageLibrary(database, workspace.id, currentUser);
+  const template = await first<{ id: string }>(
+    database,
+    "SELECT id FROM estimate_templates WHERE id = ? AND workspace_id = ? LIMIT 1",
+    [input.templateId, workspace.id],
+  );
   if (!template) throw new Error("Template not found in the current workspace.");
+  await run(database, "DELETE FROM estimate_templates WHERE id = ? AND workspace_id = ?", [input.templateId, workspace.id]);
   revalidateTemplateSurfaces();
   return { templateId: template.id };
 }
@@ -1608,34 +2467,18 @@ export async function createEstimateTemplate(input: { name: string; category?: s
   const templateCategory = (input.category ?? "").trim() || "General";
   const templateDescription = (input.description ?? "").trim();
 
-  const supabase = await createSupabaseServerClient();
-  await assertCanManageLibrary(supabase, workspace.id);
-  await assertWithinLibraryQuota(supabase, "estimate_templates", workspace.id, LIBRARY_TEMPLATE_CAP, "template");
-  const { data: siblingTemplates, error: sortError } = await supabase
-    .from("estimate_templates")
-    .select("sort_order")
-    .eq("workspace_id", workspace.id)
-    .order("sort_order", { ascending: false })
-    .limit(1);
-  if (sortError) throwActionError("Could not create the template.", sortError);
-  const nextSortOrder = (siblingTemplates?.[0]?.sort_order ?? -1) + 1;
-
-  const { data: insertedTemplate, error: templateError } = await supabase
-    .from("estimate_templates")
-    .insert({
-      workspace_id: workspace.id,
-      name: templateName,
-      description: templateDescription,
-      category: templateCategory,
-      sort_order: nextSortOrder,
-      created_by: currentUser.userId,
-      metadata: { savedFrom: "library-templates-browse" },
-    })
-    .select("*")
-    .single();
-  if (templateError || !insertedTemplate) {
-    throwActionError("Could not create the template.", templateError);
-  }
+  const database = await requireComponentLibraryActionsD1Database();
+  await assertCanManageLibrary(database, workspace.id, currentUser);
+  await assertWithinLibraryQuota(database, "estimate_templates", workspace.id, LIBRARY_TEMPLATE_CAP, "template");
+  const insertedTemplate = await insertTemplate(database, {
+    workspaceId: workspace.id,
+    name: templateName,
+    description: templateDescription,
+    category: templateCategory,
+    sortOrder: await readNextTemplateSortOrder(database, workspace.id),
+    createdBy: currentUser.userId,
+    metadata: { savedFrom: "library-templates-browse" },
+  });
 
   revalidateTemplateSurfaces();
 
@@ -1657,138 +2500,82 @@ export async function duplicateEstimateTemplate(input: { templateId: string }) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   if (!isUuid(input.templateId)) throw new Error("Template not found in the current workspace.");
 
-  const supabase = await createSupabaseServerClient();
-  await assertCanManageLibrary(supabase, workspace.id);
-  await assertWithinLibraryQuota(supabase, "estimate_templates", workspace.id, LIBRARY_TEMPLATE_CAP, "template");
-  const { data: sourceTemplate, error: sourceError } = await supabase
-    .from("estimate_templates")
-    .select("*")
-    .eq("id", input.templateId)
-    .eq("workspace_id", workspace.id)
-    .maybeSingle();
-  if (sourceError) throwActionError("Could not duplicate template.", sourceError);
+  const database = await requireComponentLibraryActionsD1Database();
+  await assertCanManageLibrary(database, workspace.id, currentUser);
+  await assertWithinLibraryQuota(database, "estimate_templates", workspace.id, LIBRARY_TEMPLATE_CAP, "template");
+  const sourceTemplate = await first<EstimateTemplateD1Row>(
+    database,
+    "SELECT * FROM estimate_templates WHERE id = ? AND workspace_id = ? LIMIT 1",
+    [input.templateId, workspace.id],
+  );
   if (!sourceTemplate) throw new Error("Template not found in the current workspace.");
 
-  const [nodesResult, rowItemsResult, siblingResult] = await Promise.all([
-    supabase
-      .from("estimate_template_nodes")
-      .select("*")
-      .eq("template_id", sourceTemplate.id)
-      .order("sort_order", { ascending: true }),
-    supabase
-      .from("estimate_template_row_items")
-      .select("*")
-      .eq("template_id", sourceTemplate.id)
-      .order("sort_order", { ascending: true }),
-    supabase
-      .from("estimate_templates")
-      .select("sort_order")
-      .eq("workspace_id", workspace.id)
-      .eq("category", sourceTemplate.category)
-      .order("sort_order", { ascending: false })
-      .limit(1),
+  const [sourceNodes, sourceRowItems] = await Promise.all([
+    all<EstimateTemplateNodeD1Row>(
+      database,
+      "SELECT * FROM estimate_template_nodes WHERE template_id = ? ORDER BY sort_order ASC",
+      [sourceTemplate.id],
+    ),
+    all<EstimateTemplateRowItemD1Row>(
+      database,
+      "SELECT * FROM estimate_template_row_items WHERE template_id = ? ORDER BY sort_order ASC",
+      [sourceTemplate.id],
+    ),
   ]);
-  if (nodesResult.error) throwActionError("Could not duplicate template.", nodesResult.error);
-  if (rowItemsResult.error) throwActionError("Could not duplicate template.", rowItemsResult.error);
-  if (siblingResult.error) throwActionError("Could not duplicate template.", siblingResult.error);
-  const nextSortOrder = (siblingResult.data?.[0]?.sort_order ?? -1) + 1;
 
-  const { data: insertedTemplate, error: templateError } = await supabase
-    .from("estimate_templates")
-    .insert({
-      workspace_id: workspace.id,
-      name: `${sourceTemplate.name} copy`,
-      description: sourceTemplate.description,
-      category: sourceTemplate.category,
-      sort_order: nextSortOrder,
-      created_by: currentUser.userId,
-      metadata: {
-        ...readMetadataObject(sourceTemplate.metadata),
-        duplicatedFrom: sourceTemplate.id,
-      },
-    })
-    .select("*")
-    .single();
-  if (templateError || !insertedTemplate) {
-    throwActionError("Could not duplicate template.", templateError);
-  }
+  const insertedTemplate = await insertTemplate(database, {
+    workspaceId: workspace.id,
+    name: `${sourceTemplate.name} copy`,
+    description: sourceTemplate.description,
+    category: sourceTemplate.category,
+    sortOrder: await readNextTemplateSortOrder(database, workspace.id, sourceTemplate.category),
+    createdBy: currentUser.userId,
+    metadata: {
+      ...readJsonRecord(sourceTemplate.metadata),
+      duplicatedFrom: sourceTemplate.id,
+    },
+  });
 
   try {
-    const sourceNodes = nodesResult.data ?? [];
     const templateNodeIdBySourceId = new Map<string, string>(sourceNodes.map((node) => [node.id, randomUUID()]));
-    const nodeInserts = sourceNodes.map((node) => ({
-      id: templateNodeIdBySourceId.get(node.id)!,
-      template_id: insertedTemplate.id,
-      parent_id: node.parent_id ? templateNodeIdBySourceId.get(node.parent_id) ?? null : null,
-      kind: node.kind,
-      name: node.name,
-      sort_order: node.sort_order,
-      metadata: node.metadata,
-    }));
+    const nodeStatements = sourceNodes.map((node) => {
+      const kind = normalizeEstimateTreeNodeKind(node.kind);
+      if (!kind) throw new Error("Could not copy the node structure.");
+      return templateNodeInsertStatement({
+        id: templateNodeIdBySourceId.get(node.id)!,
+        templateId: insertedTemplate.id,
+        parentId: node.parent_id ? templateNodeIdBySourceId.get(node.parent_id) ?? null : null,
+        kind,
+        name: node.name,
+        sortOrder: numberValue(node.sort_order),
+        metadata: readJsonRecord(node.metadata),
+      });
+    });
 
-    let insertedNodes: Tables<"estimate_template_nodes">[] = [];
-    if (nodeInserts.length > 0) {
-      const { data, error: nodeInsertError } = await supabase
-        .from("estimate_template_nodes")
-        .insert(nodeInserts)
-        .select("*");
-      if (nodeInsertError) throwActionError("Could not copy the node structure.", nodeInsertError);
-      insertedNodes = data ?? [];
-    }
-
-    const rowInserts = (rowItemsResult.data ?? []).map((row) => ({
-      template_id: insertedTemplate.id,
-      template_node_id: templateNodeIdBySourceId.get(row.template_node_id)!,
-      sort_order: row.sort_order,
-      source_library_item_id: row.source_library_item_id,
-      source_snapshot: row.source_snapshot,
-      category_node_id: row.category_node_id,
-      supplier_id: row.supplier_id,
-      material: row.material,
-      description: row.description,
-      supplier: row.supplier,
-      unit: row.unit,
-      quantity: row.quantity,
-      unit_cost: row.unit_cost,
-      contingency_percentage: row.contingency_percentage,
-      adjustment_percentage: row.adjustment_percentage,
-      misc_cost: row.misc_cost,
-      discipline: row.discipline,
-      designation: row.designation,
-      link_state: row.link_state,
-      metadata: row.metadata,
-    }));
-
-    let insertedRowItems: Tables<"estimate_template_row_items">[] = [];
-    if (rowInserts.length > 0) {
-      const { data, error: rowInsertError } = await supabase
-        .from("estimate_template_row_items")
-        .insert(rowInserts)
-        .select("*");
-      if (rowInsertError) throwActionError("Could not copy the template rows.", rowInsertError);
-      insertedRowItems = data ?? [];
-    }
+    const rowStatements = sourceRowItems.map((row) => {
+      const templateNodeId = templateNodeIdBySourceId.get(row.template_node_id);
+      if (!templateNodeId) throw new Error("Could not copy the template rows.");
+      return copiedTemplateRowItemInsertStatement(insertedTemplate.id, templateNodeId, row);
+    });
+    await runBatch(database, [...nodeStatements, ...rowStatements]);
 
     revalidateTemplateSurfaces();
 
-    const [template] = buildEstimateTemplatesFromRows({
-      templates: [insertedTemplate],
-      nodes: insertedNodes,
-      rowItems: insertedRowItems,
-    });
+    const buildRows = await readTemplateBuildRows(database, insertedTemplate.id);
+    const [template] = buildRows ? buildEstimateTemplatesFromRows(buildRows) : [];
     if (!template) throw new Error("Could not read back the duplicated template.");
     return { template };
   } catch (error) {
     // Without a cross-statement transaction, a partial failure leaves an
     // orphan template; deleting it cascades to any copied nodes/rows.
-    await supabase.from("estimate_templates").delete().eq("id", insertedTemplate.id);
+    await run(database, "DELETE FROM estimate_templates WHERE id = ?", [insertedTemplate.id]);
     throw error;
   }
 }
 
 /** Moves a template to another category (group), optionally repositioning it. */
 export async function moveEstimateTemplateToCategory(input: { templateId: string; category: string; sortOrder?: number }) {
-  const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const category = input.category.trim();
   if (!category) throw new Error("Group name is required.");
   if (!isUuid(input.templateId)) throw new Error("Template not found in the current workspace.");
@@ -1796,19 +2583,26 @@ export async function moveEstimateTemplateToCategory(input: { templateId: string
     throw new Error("Template position must be a non-negative number.");
   }
 
-  const supabase = await createSupabaseServerClient();
-  await assertCanManageLibrary(supabase, workspace.id);
-  const patch: { category: string; sort_order?: number } = { category };
-  if (input.sortOrder !== undefined) patch.sort_order = input.sortOrder;
-  const { data: template, error } = await supabase
-    .from("estimate_templates")
-    .update(patch)
-    .eq("id", input.templateId)
-    .eq("workspace_id", workspace.id)
-    .select("id, category, sort_order")
-    .maybeSingle();
-
-  if (error) throwActionError("Could not move template.", error);
+  const database = await requireComponentLibraryActionsD1Database();
+  await assertCanManageLibrary(database, workspace.id, currentUser);
+  if (input.sortOrder !== undefined) {
+    await run(
+      database,
+      "UPDATE estimate_templates SET category = ?, sort_order = ?, updated_at = ? WHERE id = ? AND workspace_id = ?",
+      [category, input.sortOrder, nowIso(), input.templateId, workspace.id],
+    );
+  } else {
+    await run(
+      database,
+      "UPDATE estimate_templates SET category = ?, updated_at = ? WHERE id = ? AND workspace_id = ?",
+      [category, nowIso(), input.templateId, workspace.id],
+    );
+  }
+  const template = await first<{ id: string; category: string; sort_order: number }>(
+    database,
+    "SELECT id, category, sort_order FROM estimate_templates WHERE id = ? AND workspace_id = ? LIMIT 1",
+    [input.templateId, workspace.id],
+  );
   if (!template) throw new Error("Template not found in the current workspace.");
   revalidateTemplateSurfaces();
   return { templateId: template.id, category: template.category, sortOrder: template.sort_order };
@@ -1816,25 +2610,22 @@ export async function moveEstimateTemplateToCategory(input: { templateId: string
 
 /** Renames a template category (group): bulk text update scoped to the workspace. */
 export async function renameTemplateCategory(input: { from: string; to: string }) {
-  const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const from = input.from.trim();
   const to = input.to.trim();
   if (!from) throw new Error("Group name is required.");
   if (!to) throw new Error("Group name is required.");
   if (from === to) return { category: to, updatedCount: 0 };
 
-  const supabase = await createSupabaseServerClient();
-  await assertCanManageLibrary(supabase, workspace.id);
-  const { data, error } = await supabase
-    .from("estimate_templates")
-    .update({ category: to })
-    .eq("workspace_id", workspace.id)
-    .eq("category", from)
-    .select("id");
-
-  if (error) throwActionError("Could not rename group.", error);
+  const database = await requireComponentLibraryActionsD1Database();
+  await assertCanManageLibrary(database, workspace.id, currentUser);
+  const result = await run(
+    database,
+    "UPDATE estimate_templates SET category = ?, updated_at = ? WHERE workspace_id = ? AND category = ?",
+    [to, nowIso(), workspace.id, from],
+  );
   revalidateTemplateSurfaces();
-  return { category: to, updatedCount: data?.length ?? 0 };
+  return { category: to, updatedCount: result.meta?.changes ?? 0 };
 }
 
 export type EstimateInsertTargetProject = {
@@ -1887,31 +2678,32 @@ export type EstimateTemplateInsertTargetResolution = {
  * buildEstimateTree.
  */
 export async function resolveEstimateTemplateInsertTarget(input: { projectId: string; estimateId: string }): Promise<EstimateTemplateInsertTargetResolution> {
-  const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   if (!isUuid(input.projectId) || !isUuid(input.estimateId)) {
     throw new Error("Estimate not found in the current workspace.");
   }
 
-  const supabase = await createSupabaseServerClient();
-  const { data: estimate, error: estimateError } = await supabase
-    .from("estimates")
-    .select("id, project_id, projects!inner(id, workspace_id)")
-    .eq("id", input.estimateId)
-    .eq("project_id", input.projectId)
-    .eq("projects.workspace_id", workspace.id)
-    .maybeSingle();
-  if (estimateError) throwActionError("Could not load the estimate.", estimateError);
+  const database = await requireComponentLibraryActionsD1Database();
+  const estimate = await readEstimateForTemplateSource(database, {
+    workspaceId: workspace.id,
+    projectId: input.projectId,
+    estimateId: input.estimateId,
+  });
   if (!estimate) throw new Error("Estimate not found in the current workspace.");
-  await assertCanEditEstimate(supabase, workspace.id, input.estimateId);
+  await assertCanEditEstimate(database, workspace.id, input.estimateId, currentUser);
 
-  const { data: nodeRows, error: nodesError } = await supabase
-    .from("estimate_nodes")
-    .select("id, parent_id, kind, name")
-    .eq("estimate_id", input.estimateId)
-    .order("sort_order", { ascending: true });
-  if (nodesError) throwActionError("Could not load the estimate tree.", nodesError);
+  const nodeRows = await all<EstimateInsertTargetNodeRow>(
+    database,
+    `
+      SELECT id, parent_id, kind, name
+      FROM estimate_nodes
+      WHERE estimate_id = ?
+      ORDER BY sort_order ASC
+    `,
+    [input.estimateId],
+  );
 
-  const nodes = (nodeRows ?? []) as EstimateInsertTargetNodeRow[];
+  const nodes = nodeRows;
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
   const kindById = new Map<string, "group" | "area">();
   for (const node of nodes) {
@@ -1956,27 +2748,39 @@ export async function resolveEstimateTemplateInsertTarget(input: { projectId: st
  * columns indexed). Powers the inspector dock's "Used in" section.
  */
 export async function getCostLibraryComponentUsage(input: { itemId: string }) {
-  await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   if (!isUuid(input.itemId)) return { templateRowCount: 0, estimateRowCount: 0 };
 
-  const supabase = await createSupabaseServerClient();
+  const database = await requireComponentLibraryActionsD1Database();
   const [templateRows, estimateRows] = await Promise.all([
-    supabase
-      .from("estimate_template_row_items")
-      .select("id", { count: "exact", head: true })
-      .eq("source_library_item_id", input.itemId),
-    supabase
-      .from("estimate_row_items")
-      .select("id", { count: "exact", head: true })
-      .eq("source_library_item_id", input.itemId),
+    first<{ count: number }>(
+      database,
+      `
+        SELECT COUNT(*) AS count
+        FROM estimate_template_row_items row_item
+        JOIN estimate_templates template ON template.id = row_item.template_id
+        WHERE template.workspace_id = ?
+          AND row_item.source_library_item_id = ?
+      `,
+      [workspace.id, input.itemId],
+    ),
+    first<{ count: number }>(
+      database,
+      `
+        SELECT COUNT(*) AS count
+        FROM estimate_row_items row_item
+        JOIN estimates estimate ON estimate.id = row_item.estimate_id
+        JOIN projects project ON project.id = estimate.project_id
+        WHERE project.workspace_id = ?
+          AND row_item.source_library_item_id = ?
+      `,
+      [workspace.id, input.itemId],
+    ),
   ]);
 
-  if (templateRows.error) throwActionError("Could not count template usage.", templateRows.error);
-  if (estimateRows.error) throwActionError("Could not count estimate usage.", estimateRows.error);
-
   return {
-    templateRowCount: templateRows.count ?? 0,
-    estimateRowCount: estimateRows.count ?? 0,
+    templateRowCount: Number(templateRows?.count ?? 0),
+    estimateRowCount: Number(estimateRows?.count ?? 0),
   };
 }
 
@@ -2012,43 +2816,50 @@ export async function searchLibraryOverview(input: { query: string }): Promise<L
   if (!query) return { components: [], templates: [] };
   const pattern = `%${query.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
 
-  const supabase = await createSupabaseServerClient();
+  const database = await requireComponentLibraryActionsD1Database();
   const [componentsResult, templatesResult] = await Promise.all([
-    supabase
-      .from("cost_library_items")
-      .select("id, name, category, supplier")
-      .eq("workspace_id", workspace.id)
-      .neq("lifecycle_state", "archived")
-      .or(`name.ilike.${pattern},supplier.ilike.${pattern},brand.ilike.${pattern}`)
-      .order("updated_at", { ascending: false })
-      .limit(6),
-    supabase
-      .from("estimate_templates")
-      .select("id, name, category")
-      .eq("workspace_id", workspace.id)
-      .ilike("name", pattern)
-      .order("updated_at", { ascending: false })
-      .limit(3),
+    all<{ id: string; name: string; category: string; supplier: string | null }>(
+      database,
+      `
+        SELECT id, name, category, supplier
+        FROM cost_library_items
+        WHERE workspace_id = ?
+          AND lifecycle_state <> 'archived'
+          AND (
+            LOWER(name) LIKE LOWER(?) ESCAPE '\\'
+            OR LOWER(COALESCE(supplier, '')) LIKE LOWER(?) ESCAPE '\\'
+            OR LOWER(COALESCE(brand, '')) LIKE LOWER(?) ESCAPE '\\'
+          )
+        ORDER BY updated_at DESC
+        LIMIT 6
+      `,
+      [workspace.id, pattern, pattern, pattern],
+    ),
+    all<{ id: string; name: string; category: string }>(
+      database,
+      `
+        SELECT id, name, category
+        FROM estimate_templates
+        WHERE workspace_id = ?
+          AND LOWER(name) LIKE LOWER(?) ESCAPE '\\'
+        ORDER BY updated_at DESC
+        LIMIT 3
+      `,
+      [workspace.id, pattern],
+    ),
   ]);
 
-  if (componentsResult.error) throwActionError("Could not search components.", componentsResult.error);
-  if (templatesResult.error && !isMissingRelationError(templatesResult.error, "estimate_templates")) {
-    throwActionError("Could not search templates.", templatesResult.error);
-  }
-
   return {
-    components: (componentsResult.data ?? []).map((row) => ({
+    components: componentsResult.map((row) => ({
       id: row.id,
       name: row.name,
       category: row.category,
       supplier: row.supplier ?? "",
     })),
-    templates: templatesResult.error
-      ? []
-      : (templatesResult.data ?? []).map((row) => ({
-          id: row.id,
-          name: row.name,
-          category: row.category,
-        })),
+    templates: templatesResult.map((row) => ({
+      id: row.id,
+      name: row.name,
+      category: row.category,
+    })),
   };
 }

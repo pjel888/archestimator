@@ -1,46 +1,45 @@
 import type { EstimateNode, EstimateNodeKind, EstimateRowItem, EstimateTree } from "@/lib/domain/estimate-tree";
 import { readEstimateRowMetadata } from "@/lib/estimates/express-components";
 import { sanitizeEstimateRowSourceSnapshot } from "@/lib/estimates/image-url";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { hasSupabaseBrowserEnv } from "@/lib/supabase/env";
-import { type Tables } from "@/lib/supabase/types";
 
 export type EstimateRepository = {
   getEstimateTree(estimateId: string): Promise<EstimateTree>;
   getEstimateTabTree(estimateId: string, tabId: string): Promise<EstimateTree>;
 };
 
-type EstimateNodeRow = Pick<Tables<"estimate_nodes">, "id" | "estimate_id" | "parent_id" | "kind" | "name" | "sort_order"> & {
+type EstimateNodeRow = {
+  estimate_id: string;
   estimate_tab_id?: string | null;
+  id: string;
+  kind: string | null;
+  name: string;
+  parent_id: string | null;
+  sort_order: number;
 };
-type EstimateRowItemRow = Pick<
-  Tables<"estimate_row_items">,
-  | "description"
-  | "designation"
-  | "discipline"
-  | "estimate_id"
-  | "id"
-  | "link_state"
-  | "material"
-  | "metadata"
-  | "contingency_percentage"
-  | "adjustment_percentage"
-  | "misc_cost"
-  | "node_id"
-  | "quantity"
-  | "quantity_base"
-  | "quantity_contingency_amount"
-  | "row_revision"
-  | "sort_order"
-  | "source_library_item_id"
-  | "source_snapshot"
-  | "supplier"
-  | "unit"
-  | "unit_cost"
->;
-
-const ESTIMATE_NODE_SELECT = "id, estimate_id, parent_id, kind, name, sort_order";
-const ESTIMATE_ROW_ITEM_SELECT = "id, estimate_id, node_id, sort_order, source_library_item_id, source_snapshot, metadata, material, description, supplier, unit, quantity, quantity_base, quantity_contingency_amount, unit_cost, contingency_percentage, adjustment_percentage, misc_cost, row_revision, discipline, designation, link_state";
+type EstimateRowItemRow = {
+  adjustment_percentage: number | string | null;
+  contingency_percentage: number | string | null;
+  description: string;
+  designation: string | null;
+  discipline: string | null;
+  estimate_id: string;
+  id: string;
+  link_state: EstimateRowItem["linkState"];
+  material: string;
+  metadata: unknown;
+  misc_cost: number | string | null;
+  node_id: string;
+  quantity: number | string | null;
+  quantity_base: number | string | null;
+  quantity_contingency_amount: number | string | null;
+  row_revision: number;
+  sort_order: number;
+  source_library_item_id: string | null;
+  source_snapshot: unknown;
+  supplier: string | null;
+  unit: string | null;
+  unit_cost: number | string | null;
+};
 
 const inMemoryTrees = new Map<string, EstimateTree>();
 
@@ -77,8 +76,8 @@ function toEstimateRowItem(row: EstimateRowItemRow): EstimateRowItem {
     metadata: readEstimateRowMetadata(row.metadata),
     material: row.material,
     description: row.description,
-    supplier: row.supplier,
-    unit: row.unit,
+    supplier: row.supplier ?? "",
+    unit: row.unit ?? "",
     quantity: Number(row.quantity),
     quantityBase: row.quantity_base === null ? null : Number(row.quantity_base),
     quantityContingencyAmount: row.quantity_base === null ? null : Number(row.quantity_contingency_amount ?? 0),
@@ -87,8 +86,8 @@ function toEstimateRowItem(row: EstimateRowItemRow): EstimateRowItem {
     adjustmentPercentage: Number(row.adjustment_percentage ?? 0),
     miscCost: Number(row.misc_cost),
     rowRevision: row.row_revision,
-    discipline: row.discipline,
-    designation: row.designation,
+    discipline: row.discipline ?? "",
+    designation: row.designation ?? "",
     linkState: row.link_state,
   };
 }
@@ -106,65 +105,4 @@ const inMemoryEstimateRepository: EstimateRepository = {
   },
 };
 
-const supabaseEstimateRepository: EstimateRepository = {
-  async getEstimateTree(estimateId) {
-    const supabase = createSupabaseBrowserClient();
-    const [nodesResult, rowsResult] = await Promise.all([
-      supabase
-        .from("estimate_nodes")
-        .select(ESTIMATE_NODE_SELECT)
-        .eq("estimate_id", estimateId)
-        .order("sort_order", { ascending: true }),
-      supabase
-        .from("estimate_row_items")
-        .select(ESTIMATE_ROW_ITEM_SELECT)
-        .eq("estimate_id", estimateId)
-        .order("sort_order", { ascending: true }),
-    ]);
-
-    if (nodesResult.error) throw nodesResult.error;
-    if (rowsResult.error) throw rowsResult.error;
-
-    return {
-      nodes: (nodesResult.data ?? []).flatMap((row) => {
-        const node = toEstimateNode(row);
-        return node ? [node] : [];
-      }),
-      rows: (rowsResult.data ?? []).map(toEstimateRowItem),
-    };
-  },
-
-  async getEstimateTabTree(estimateId, tabId) {
-    const supabase = createSupabaseBrowserClient();
-    const nodesQuery = supabase
-      .from("estimate_nodes")
-      .select(`${ESTIMATE_NODE_SELECT}, estimate_tab_id`)
-      .eq("estimate_id", estimateId);
-    const nodesResult = await (nodesQuery as unknown as { eq: (column: string, value: string) => typeof nodesQuery })
-      .eq("estimate_tab_id", tabId)
-      .order("sort_order", { ascending: true });
-
-    if (nodesResult.error) throw nodesResult.error;
-
-    const nodes = ((nodesResult.data ?? []) as unknown as EstimateNodeRow[]).flatMap((row) => {
-      const node = toEstimateNode(row);
-      return node ? [node] : [];
-    });
-    const nodeIds = nodes.map((node) => node.id);
-    if (nodeIds.length === 0) return { nodes, rows: [] };
-
-    const rowsResult = await supabase
-      .from("estimate_row_items")
-      .select(ESTIMATE_ROW_ITEM_SELECT)
-      .in("node_id", nodeIds)
-      .order("sort_order", { ascending: true });
-    if (rowsResult.error) throw rowsResult.error;
-
-    return {
-      nodes,
-      rows: (rowsResult.data ?? []).map(toEstimateRowItem),
-    };
-  },
-};
-
-export const estimateRepository: EstimateRepository = hasSupabaseBrowserEnv() ? supabaseEstimateRepository : inMemoryEstimateRepository;
+export const estimateRepository: EstimateRepository = inMemoryEstimateRepository;

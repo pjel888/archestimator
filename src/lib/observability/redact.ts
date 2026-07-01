@@ -22,7 +22,6 @@ const NEVER_LOG_KEYS = new Set([
   "api_key",
   "jwt",
   "service_role_key",
-  "supabase_service_role_key",
 ]);
 
 const HASHED_ONLY_KEYS = new Set(["email", "recipient_email", "user_email"]);
@@ -64,7 +63,7 @@ export function redactMessage(message: string): RedactionResult<string> {
     tainted = true;
     return `${prefix}[REDACTED]`;
   });
-  value = value.replace(/\b(?:password|token|api_key|secret|service_role_key|supabase_service_role_key)=[^\s,;&\\]+/gi, (match) => {
+  value = value.replace(/\b(?:password|token|api_key|secret|service_role_key)=[^\s,;&\\]+/gi, (match) => {
     tainted = true;
     const [key] = match.split("=");
     return `${key}=[REDACTED]`;

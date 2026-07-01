@@ -30,7 +30,7 @@ import { ProjectImagePanel } from "./NewProjectImagePanel";
 import type { ProjectGooglePlaceSelection } from "./ProjectAddressAutocomplete";
 import type { ProjectLocationPin } from "./ProjectLocationMap";
 import type { ProjectCardSetupStatus } from "./LiveProjectCard";
-import type { Tables } from "@/lib/supabase/types";
+import type { ProjectRow } from "@/lib/types/database";
 
 type NewProjectFormProps = {
   onSuccess?: () => void;
@@ -43,7 +43,7 @@ type NewProjectFormProps = {
 
 export type NewProjectOptimisticSnapshot = {
   clientId: string;
-  project: Tables<"projects">;
+  project: ProjectRow;
   setupStatus: ProjectCardSetupStatus | null;
   setupNavigationDisabled: boolean;
   remove?: boolean;
@@ -62,7 +62,7 @@ function readDraftText(formData: FormData, key: string) {
   return value || null;
 }
 
-function createOptimisticProject(formData: FormData, clientId: string, createdAt: string): Tables<"projects"> {
+function createOptimisticProject(formData: FormData, clientId: string, createdAt: string): ProjectRow {
   return {
     id: `pending-project-${clientId}`,
     workspace_id: "pending-workspace",
@@ -78,7 +78,7 @@ function createOptimisticProject(formData: FormData, clientId: string, createdAt
   };
 }
 
-function applyUploadedProjectImage(project: Tables<"projects">, image: ProjectImageDraft): Tables<"projects"> {
+function applyUploadedProjectImage(project: ProjectRow, image: ProjectImageDraft): ProjectRow {
   return {
     ...project,
     metadata: {
@@ -239,7 +239,7 @@ export function NewProjectForm({
 
     let uploadedImage: ProjectImageDraft | null = null;
     let clientId: string | null = null;
-    let optimisticProject: Tables<"projects"> | null = null;
+    let optimisticProject: ProjectRow | null = null;
     let projectCreated = false;
     const optimisticEnabled = Boolean(onOptimisticProjectChange);
 

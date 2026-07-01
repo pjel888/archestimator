@@ -11,8 +11,8 @@ import {
   findComponentCategoryPath,
   type ComponentLibraryCategoryRow,
 } from "@/lib/component-library/taxonomy";
+import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
 import { isUuid } from "@/lib/ids";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { filterMap, filterMapBy } from "@/lib/util/array";
 
 const PACKAGE_BUILDER_READ_TOOL_NAMES = [
@@ -341,18 +341,24 @@ function scoreComponentSummary(item: PackageBuilderComponentSummary, terms: stri
   return terms.reduce((score, term) => score + (haystack.includes(term) ? 1 : 0), 0);
 }
 
-function escapePostgrestLikeTerm(term: string) {
-  return term.replace(/[%_]/g, (match) => `\\${match}`);
+function escapeD1LikeTerm(term: string) {
+  return term.replace(/[\\%_]/g, (match) => `\\${match}`);
 }
 
-function buildSearchOrFilter(columns: string[], terms: string[]) {
-  return terms
-    .slice(0, DEFAULT_SEARCH_FILTER_TERM_LIMIT)
-    .flatMap((term) => {
-      const safeTerm = escapePostgrestLikeTerm(term);
-      return columns.map((column) => `${column}.ilike.%${safeTerm}%`);
-    })
-    .join(",");
+function buildSearchWhere(columns: string[], terms: string[]) {
+  const clauses: string[] = [];
+  const values: D1Value[] = [];
+  for (const term of terms.slice(0, DEFAULT_SEARCH_FILTER_TERM_LIMIT)) {
+    const safeTerm = `%${escapeD1LikeTerm(term)}%`;
+    for (const column of columns) {
+      clauses.push(`lower(coalesce(${column}, '')) LIKE ? ESCAPE '\\'`);
+      values.push(safeTerm);
+    }
+  }
+  return {
+    sql: clauses.length > 0 ? `(${clauses.join(" OR ")})` : "1 = 1",
+    values,
+  };
 }
 
 function readRowAdjustmentPercentage(row: {
@@ -556,14 +562,41 @@ type AiEstimateRowSearchRow = {
   updated_at?: string;
 };
 
+function placeholders(values: readonly unknown[]) {
+  if (values.length === 0) throw new Error("At least one SQL placeholder is required.");
+  return values.map(() => "?").join(", ");
+}
+
+async function requirePackageBuilderReadD1Database() {
+  const database = await getCloudflareD1Database();
+  if (!database) {
+    throw new Error("Cloudflare D1 ARCH_DB binding is required for package-builder read tools.");
+  }
+  return database;
+}
+
+async function first<T>(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
+  return database.prepare<T>(sql).bind(...values).first<T>();
+}
+
+async function all<T>(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
+  const result = await database.prepare<T>(sql).bind(...values).all<T>();
+  if (result.success === false) throw new Error("Cloudflare D1 package-builder read failed.");
+  return result.results ?? [];
+}
+
 async function readScopedWorkspaceContext({ workspaceId }: { workspaceId: string }) {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("workspaces")
-    .select("name")
-    .eq("id", workspaceId)
-    .maybeSingle();
-  if (error) throw error;
+  const database = await requirePackageBuilderReadD1Database();
+  const data = await first<{ name: string | null }>(
+    database,
+    `
+      SELECT name
+      FROM workspaces
+      WHERE id = ?
+      LIMIT 1
+    `,
+    [workspaceId],
+  );
 
   return {
     workspace: { name: typeof data?.name === "string" ? data.name : null },
@@ -572,16 +605,20 @@ async function readScopedWorkspaceContext({ workspaceId }: { workspaceId: string
 }
 
 async function listScopedProjectSummaries({ workspaceId }: { workspaceId: string }) {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("projects")
-    .select("id, name, client_name, location, project_code, updated_at")
-    .eq("workspace_id", workspaceId)
-    .order("updated_at", { ascending: false })
-    .limit(DEFAULT_RESULT_LIMIT);
-  if (error) throw error;
+  const database = await requirePackageBuilderReadD1Database();
+  const data = await all<AiProjectSearchRow>(
+    database,
+    `
+      SELECT id, name, client_name, location, project_code, updated_at
+      FROM projects
+      WHERE workspace_id = ?
+      ORDER BY updated_at DESC
+      LIMIT ?
+    `,
+    [workspaceId, DEFAULT_RESULT_LIMIT],
+  );
 
-  const rows = (data ?? []) as AiProjectSearchRow[];
+  const rows = data;
   return {
     projects: rows.map(compactProject),
     rowCount: rows.length,
@@ -595,16 +632,20 @@ async function readScopedProjectSummary({
   workspaceId: string;
   projectId: string;
 }) {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("projects")
-    .select("id, name, client_name, location, project_code, updated_at")
-    .eq("workspace_id", workspaceId)
-    .eq("id", projectId)
-    .maybeSingle();
-  if (error) throw error;
+  const database = await requirePackageBuilderReadD1Database();
+  const data = await first<AiProjectSearchRow>(
+    database,
+    `
+      SELECT id, name, client_name, location, project_code, updated_at
+      FROM projects
+      WHERE workspace_id = ?
+        AND id = ?
+      LIMIT 1
+    `,
+    [workspaceId, projectId],
+  );
 
-  const row = data as AiProjectSearchRow | null;
+  const row = data;
   return {
     project: row ? compactProject(row) : null,
     rowCount: row ? 1 : 0,
@@ -616,39 +657,52 @@ async function listScopedEstimateSummaries({
 }: {
   projectId: string;
 }) {
-  const supabase = await createSupabaseServerClient();
-  const { data: estimates, error } = await supabase
-    .from("estimates")
-    .select("id, project_id, name, sheet_code")
-    .eq("project_id", projectId)
-    .order("updated_at", { ascending: false })
-    .limit(DEFAULT_RESULT_LIMIT);
-  if (error) throw error;
+  const database = await requirePackageBuilderReadD1Database();
+  const estimates = await all<AiEstimateSearchRow>(
+    database,
+    `
+      SELECT id, project_id, name, sheet_code, updated_at
+      FROM estimates
+      WHERE project_id = ?
+      ORDER BY updated_at DESC
+      LIMIT ?
+    `,
+    [projectId, DEFAULT_RESULT_LIMIT],
+  );
 
-  const estimateRows = (estimates ?? []) as AiEstimateSearchRow[];
+  const estimateRows = estimates;
   const estimateIds = estimateRows.map((estimate) => estimate.id);
   if (estimateIds.length === 0) {
     return { estimates: [] as PackageBuilderCompactEstimate[], rowCount: 0 };
   }
 
+  const estimateIdSql = placeholders(estimateIds);
   const [nodesResult, rowsResult] = await Promise.all([
-    supabase
-      .from("estimate_nodes")
-      .select("id, estimate_id, kind, sort_order")
-      .in("estimate_id", estimateIds)
-      .order("sort_order", { ascending: true })
-      .limit(DEFAULT_TREE_LIMIT),
-    supabase
-      .from("estimate_row_items")
-      .select("estimate_id, quantity, quantity_base, quantity_contingency_amount, unit_cost, contingency_percentage, adjustment_percentage, misc_cost")
-      .in("estimate_id", estimateIds)
-      .limit(DEFAULT_ROW_LIMIT),
+    all<Pick<AiEstimateNodeSearchRow, "id" | "estimate_id" | "kind" | "sort_order">>(
+      database,
+      `
+        SELECT id, estimate_id, kind, sort_order
+        FROM estimate_nodes
+        WHERE estimate_id IN (${estimateIdSql})
+        ORDER BY sort_order ASC
+        LIMIT ?
+      `,
+      [...estimateIds, DEFAULT_TREE_LIMIT],
+    ),
+    all<Pick<AiEstimateRowSearchRow, "estimate_id" | "quantity" | "quantity_base" | "quantity_contingency_amount" | "unit_cost" | "contingency_percentage" | "adjustment_percentage" | "misc_cost">>(
+      database,
+      `
+        SELECT estimate_id, quantity, quantity_base, quantity_contingency_amount, unit_cost, contingency_percentage, adjustment_percentage, misc_cost
+        FROM estimate_row_items
+        WHERE estimate_id IN (${estimateIdSql})
+        LIMIT ?
+      `,
+      [...estimateIds, DEFAULT_ROW_LIMIT],
+    ),
   ]);
-  if (nodesResult.error) throw nodesResult.error;
-  if (rowsResult.error) throw rowsResult.error;
 
-  const nodes = (nodesResult.data ?? []) as Pick<AiEstimateNodeSearchRow, "id" | "estimate_id" | "kind" | "sort_order">[];
-  const rows = (rowsResult.data ?? []) as Pick<AiEstimateRowSearchRow, "estimate_id" | "quantity" | "quantity_base" | "quantity_contingency_amount" | "unit_cost" | "contingency_percentage" | "adjustment_percentage" | "misc_cost">[];
+  const nodes = nodesResult;
+  const rows = rowsResult;
   const firstNodeByEstimateId = new Map<string, string>();
   const nodeCountByEstimateId = new Map<string, number>();
   const rowCountByEstimateId = new Map<string, number>();
@@ -691,16 +745,20 @@ async function readScopedEstimateTree({
   selectedNodeId: string | null;
   activeTabId: string | null;
 }) {
-  const supabase = await createSupabaseServerClient();
+  const database = await requirePackageBuilderReadD1Database();
   let resolvedEstimateId = estimateId;
   let resolvedActiveTabId = activeTabId;
   if (!resolvedEstimateId && selectedNodeId) {
-    const { data: selectedNode, error: selectedNodeError } = await supabase
-      .from("estimate_nodes")
-      .select("id, estimate_id, estimate_tab_id")
-      .eq("id", selectedNodeId)
-      .maybeSingle();
-    if (selectedNodeError) throw selectedNodeError;
+    const selectedNode = await first<Pick<AiEstimateNodeSearchRow, "id" | "estimate_id" | "estimate_tab_id">>(
+      database,
+      `
+        SELECT id, estimate_id, estimate_tab_id
+        FROM estimate_nodes
+        WHERE id = ?
+        LIMIT 1
+      `,
+      [selectedNodeId],
+    );
     resolvedEstimateId = typeof selectedNode?.estimate_id === "string" ? selectedNode.estimate_id : null;
     if (!resolvedActiveTabId && typeof selectedNode?.estimate_tab_id === "string") {
       resolvedActiveTabId = selectedNode.estimate_tab_id;
@@ -716,13 +774,17 @@ async function readScopedEstimateTree({
     };
   }
 
-  const { data: estimate, error: estimateError } = await supabase
-    .from("estimates")
-    .select("id, project_id, name, sheet_code")
-    .eq("id", resolvedEstimateId)
-    .eq("project_id", projectId)
-    .maybeSingle();
-  if (estimateError) throw estimateError;
+  const estimate = await first<AiEstimateSearchRow>(
+    database,
+    `
+      SELECT id, project_id, name, sheet_code
+      FROM estimates
+      WHERE id = ?
+        AND project_id = ?
+      LIMIT 1
+    `,
+    [resolvedEstimateId, projectId],
+  );
   if (!estimate) {
     return {
       estimate: null as PackageBuilderCompactEstimate | null,
@@ -733,36 +795,41 @@ async function readScopedEstimateTree({
     };
   }
 
-  const nodesQuery = supabase
-    .from("estimate_nodes")
-    .select("id, estimate_id, estimate_tab_id, parent_id, kind, name, sort_order")
-    .eq("estimate_id", estimate.id);
-  if (resolvedActiveTabId) nodesQuery.eq("estimate_tab_id", resolvedActiveTabId);
-
-  const nodesResult = await nodesQuery
-    .order("sort_order", { ascending: true })
-    .limit(DEFAULT_TREE_LIMIT);
-  if (nodesResult.error) throw nodesResult.error;
-
-  const nodes = (nodesResult.data ?? []) as AiEstimateNodeSearchRow[];
+  const nodeValues: D1Value[] = [estimate.id];
+  const activeTabSql = resolvedActiveTabId ? "AND estimate_tab_id = ?" : "";
+  if (resolvedActiveTabId) nodeValues.push(resolvedActiveTabId);
+  nodeValues.push(DEFAULT_TREE_LIMIT);
+  const nodes = await all<AiEstimateNodeSearchRow>(
+    database,
+    `
+      SELECT id, estimate_id, estimate_tab_id, parent_id, kind, name, sort_order
+      FROM estimate_nodes
+      WHERE estimate_id = ?
+        ${activeTabSql}
+      ORDER BY sort_order ASC
+      LIMIT ?
+    `,
+    nodeValues,
+  );
   const scopedNodeIds = new Set(nodes.map((node) => node.id));
-  const rowsQuery = supabase
-    .from("estimate_row_items")
-    .select("id, estimate_id, node_id, material, quantity, quantity_base, quantity_contingency_amount, unit, unit_cost, contingency_percentage, adjustment_percentage, misc_cost, row_revision, source_library_item_id")
-    .eq("estimate_id", estimate.id);
-  if (resolvedActiveTabId) rowsQuery.in("node_id", Array.from(scopedNodeIds));
-
-  const rowsResult = scopedNodeIds.size === 0 && resolvedActiveTabId
-    ? { data: [], error: null }
-    : await rowsQuery
-      .order("sort_order", { ascending: true })
-      .limit(DEFAULT_ROW_LIMIT);
-  if (rowsResult.error) throw rowsResult.error;
-
-  const rows = (rowsResult.data ?? []) as AiEstimateRowSearchRow[];
+  const nodeIds = Array.from(scopedNodeIds);
+  const rows = scopedNodeIds.size === 0 && resolvedActiveTabId
+    ? []
+    : await all<AiEstimateRowSearchRow>(
+      database,
+      `
+        SELECT id, estimate_id, node_id, material, quantity, quantity_base, quantity_contingency_amount, unit, unit_cost, contingency_percentage, adjustment_percentage, misc_cost, row_revision, source_library_item_id
+        FROM estimate_row_items
+        WHERE estimate_id = ?
+          ${resolvedActiveTabId ? `AND node_id IN (${placeholders(nodeIds)})` : ""}
+        ORDER BY sort_order ASC
+        LIMIT ?
+      `,
+      resolvedActiveTabId ? [estimate.id, ...nodeIds, DEFAULT_ROW_LIMIT] : [estimate.id, DEFAULT_ROW_LIMIT],
+    );
   const compacted = compactEstimateTree({ nodes, rows });
   const compactEstimateSummary = compactEstimate({
-    estimate: estimate as AiEstimateSearchRow,
+    estimate,
     total: rows.reduce((total, row) => total + calculateRowTotal(row), 0),
     nodeCount: nodes.length,
     rowCount: rows.length,
@@ -786,18 +853,20 @@ async function searchScopedComponentSummaries({
   workspaceId: string;
   terms: string[];
 }) {
-  const supabase = await createSupabaseServerClient();
-  const { data: items, error: itemError } = await supabase
-    .from("cost_library_items")
-    .select("id, name, description, category, category_node_id, library_folder_id, supplier, supplier_id, brand, brand_id, unit, unit_cost, misc_cost, lifecycle_state, current_version_number, active_price_option_id, confidence, workspace_id")
-    .eq("workspace_id", workspaceId)
-    .neq("lifecycle_state", "archived")
-    .neq("lifecycle_state", "discontinued")
-    .or(buildSearchOrFilter(["name", "description", "category", "supplier", "brand"], terms))
-    .limit(DEFAULT_RESULT_LIMIT * 4);
-  if (itemError) throw itemError;
-
-  const itemRows = (items ?? []) as AiComponentSearchItem[];
+  const database = await requirePackageBuilderReadD1Database();
+  const search = buildSearchWhere(["name", "description", "category", "supplier", "brand"], terms);
+  const itemRows = await all<AiComponentSearchItem>(
+    database,
+    `
+      SELECT id, name, description, category, category_node_id, library_folder_id, supplier, supplier_id, brand, brand_id, unit, unit_cost, misc_cost, lifecycle_state, current_version_number, active_price_option_id, confidence, workspace_id
+      FROM cost_library_items
+      WHERE workspace_id = ?
+        AND lifecycle_state NOT IN ('archived', 'discontinued')
+        AND ${search.sql}
+      LIMIT ?
+    `,
+    [workspaceId, ...search.values, DEFAULT_RESULT_LIMIT * 4],
+  );
   const priceOptionByItemId = new Map<string, AiComponentSearchPriceOption>();
   const categoryPathById = new Map<string, string[]>();
   const folderById = new Map<string, AiLibraryFolderSearchRow>();
@@ -806,14 +875,17 @@ async function searchScopedComponentSummaries({
   let folderRowsRead = 0;
   const activePriceOptionIds = itemRows.map((item) => item.active_price_option_id).filter((id): id is string => Boolean(id));
   if (activePriceOptionIds.length > 0) {
-    const { data: priceOptions, error: priceOptionError } = await supabase
-      .from("cost_library_item_price_options")
-      .select("id, item_id, unit, unit_cost, misc_cost, currency, is_active, is_default, updated_at, confidence, supplier_id")
-      .eq("workspace_id", workspaceId)
-      .eq("is_active", true)
-      .in("id", activePriceOptionIds);
-    if (priceOptionError) throw priceOptionError;
-    const priceOptionRows = (priceOptions ?? []) as AiComponentSearchPriceOption[];
+    const priceOptionRows = await all<AiComponentSearchPriceOption>(
+      database,
+      `
+        SELECT id, item_id, unit, unit_cost, misc_cost, currency, is_active, is_default, updated_at, confidence, supplier_id
+        FROM cost_library_item_price_options
+        WHERE workspace_id = ?
+          AND is_active = 1
+          AND id IN (${placeholders(activePriceOptionIds)})
+      `,
+      [workspaceId, ...activePriceOptionIds],
+    );
     priceOptionRowsRead = priceOptionRows.length;
     for (const option of priceOptionRows) {
       priceOptionByItemId.set(option.item_id, option);
@@ -821,12 +893,14 @@ async function searchScopedComponentSummaries({
   }
   const hasCategoryNodes = itemRows.some((item) => Boolean(item.category_node_id));
   if (hasCategoryNodes) {
-    const { data: categoryRows, error: categoryError } = await supabase
-      .from("component_category_nodes")
-      .select("id, parent_id, label, node_type, sort_order, code, metadata")
-      .order("sort_order", { ascending: true });
-    if (categoryError) throw categoryError;
-    const rows = (categoryRows ?? []) as ComponentLibraryCategoryRow[];
+    const rows = await all<ComponentLibraryCategoryRow>(
+      database,
+      `
+        SELECT id, parent_id, label, node_type, sort_order, code, metadata
+        FROM component_category_nodes
+        ORDER BY sort_order ASC
+      `,
+    );
     categoryRowsRead = rows.length;
     const categoryTree = buildComponentCategoryTreeFromRows(rows);
     for (const item of itemRows) {
@@ -837,14 +911,16 @@ async function searchScopedComponentSummaries({
   }
   const hasLibraryFolders = itemRows.some((item) => Boolean(item.library_folder_id));
   if (hasLibraryFolders) {
-    const { data: folderRows, error: folderError } = await supabase
-      .from("library_folders")
-      .select("id, workspace_id, parent_id, name, sort_order, source_category_node_id, folder_kind")
-      .eq("workspace_id", workspaceId)
-      .order("sort_order", { ascending: true })
-      .order("name", { ascending: true });
-    if (folderError) throw folderError;
-    const rows = (folderRows ?? []) as AiLibraryFolderSearchRow[];
+    const rows = await all<AiLibraryFolderSearchRow>(
+      database,
+      `
+        SELECT id, workspace_id, parent_id, name, sort_order, source_category_node_id, folder_kind
+        FROM library_folders
+        WHERE workspace_id = ?
+        ORDER BY sort_order ASC, name ASC
+      `,
+      [workspaceId],
+    );
     folderRowsRead = rows.length;
     for (const folder of rows) folderById.set(folder.id, folder);
   }
@@ -930,16 +1006,20 @@ async function searchScopedHistoricalEstimateRows({
     return { matches: [] as PackageBuilderHistoricalRowMatch[], rowCount: 0 };
   }
 
-  const supabase = await createSupabaseServerClient();
-  const { data: estimates, error: estimateError } = await supabase
-    .from("estimates")
-    .select("id, project_id, name, sheet_code, updated_at")
-    .in("project_id", projectIds)
-    .order("updated_at", { ascending: false })
-    .limit(DEFAULT_HISTORICAL_ESTIMATE_LIMIT);
-  if (estimateError) throw estimateError;
+  const database = await requirePackageBuilderReadD1Database();
+  const estimates = await all<AiEstimateSearchRow>(
+    database,
+    `
+      SELECT id, project_id, name, sheet_code, updated_at
+      FROM estimates
+      WHERE project_id IN (${placeholders(projectIds)})
+      ORDER BY updated_at DESC
+      LIMIT ?
+    `,
+    [...projectIds, DEFAULT_HISTORICAL_ESTIMATE_LIMIT],
+  );
 
-  const estimateRows = (estimates ?? []) as AiEstimateSearchRow[];
+  const estimateRows = estimates;
   const historicalEstimateIds = filterMapBy(
     estimateRows,
     (estimate) => estimate.id !== currentEstimateId,
@@ -949,27 +1029,36 @@ async function searchScopedHistoricalEstimateRows({
     return { matches: [] as PackageBuilderHistoricalRowMatch[], rowCount: projects.length + estimateRows.length };
   }
 
+  const estimateSql = placeholders(historicalEstimateIds);
+  const rowSearch = buildSearchWhere(["material", "description", "supplier"], terms);
   const [nodesResult, rowsResult] = await Promise.all([
-    supabase
-      .from("estimate_nodes")
-      .select("id, estimate_id, parent_id, kind, name, sort_order")
-      .in("estimate_id", historicalEstimateIds)
-      .order("sort_order", { ascending: true })
-      .limit(DEFAULT_TREE_LIMIT),
-    supabase
-      .from("estimate_row_items")
-      .select("id, estimate_id, node_id, material, description, supplier, quantity, quantity_base, quantity_contingency_amount, unit, unit_cost, contingency_percentage, adjustment_percentage, misc_cost, source_library_item_id, updated_at")
-      .in("estimate_id", historicalEstimateIds)
-      .or(buildSearchOrFilter(["material", "description", "supplier"], terms))
-      .order("updated_at", { ascending: false })
-      .order("sort_order", { ascending: true })
-      .limit(DEFAULT_HISTORICAL_ROW_LIMIT),
+    all<AiEstimateNodeSearchRow>(
+      database,
+      `
+        SELECT id, estimate_id, parent_id, kind, name, sort_order
+        FROM estimate_nodes
+        WHERE estimate_id IN (${estimateSql})
+        ORDER BY sort_order ASC
+        LIMIT ?
+      `,
+      [...historicalEstimateIds, DEFAULT_TREE_LIMIT],
+    ),
+    all<AiEstimateRowSearchRow>(
+      database,
+      `
+        SELECT id, estimate_id, node_id, material, description, supplier, quantity, quantity_base, quantity_contingency_amount, unit, unit_cost, contingency_percentage, adjustment_percentage, misc_cost, source_library_item_id, updated_at
+        FROM estimate_row_items
+        WHERE estimate_id IN (${estimateSql})
+          AND ${rowSearch.sql}
+        ORDER BY updated_at DESC, sort_order ASC
+        LIMIT ?
+      `,
+      [...historicalEstimateIds, ...rowSearch.values, DEFAULT_HISTORICAL_ROW_LIMIT],
+    ),
   ]);
-  if (nodesResult.error) throw nodesResult.error;
-  if (rowsResult.error) throw rowsResult.error;
 
-  const nodes = (nodesResult.data ?? []) as AiEstimateNodeSearchRow[];
-  const rows = (rowsResult.data ?? []) as AiEstimateRowSearchRow[];
+  const nodes = nodesResult;
+  const rows = rowsResult;
   const projectById = new Map(projects.map((project) => [project.id, project]));
   const estimateById = new Map(estimateRows.map((estimate) => [estimate.id, estimate]));
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
@@ -1124,42 +1213,54 @@ async function searchScopedComparableEstimatePackages({
     return { matches: [] as PackageBuilderComparableEstimatePackage[], rowCount: 0 };
   }
 
-  const supabase = await createSupabaseServerClient();
-  const { data: estimates, error: estimateError } = await supabase
-    .from("estimates")
-    .select("id, project_id, name, sheet_code, updated_at")
-    .in("project_id", projectIds)
-    .order("updated_at", { ascending: false })
-    .limit(DEFAULT_HISTORICAL_ESTIMATE_LIMIT);
-  if (estimateError) throw estimateError;
+  const database = await requirePackageBuilderReadD1Database();
+  const estimates = await all<AiEstimateSearchRow>(
+    database,
+    `
+      SELECT id, project_id, name, sheet_code, updated_at
+      FROM estimates
+      WHERE project_id IN (${placeholders(projectIds)})
+      ORDER BY updated_at DESC
+      LIMIT ?
+    `,
+    [...projectIds, DEFAULT_HISTORICAL_ESTIMATE_LIMIT],
+  );
 
-  const estimateRows = (estimates ?? []) as AiEstimateSearchRow[];
+  const estimateRows = estimates;
   const comparableEstimates = estimateRows.filter((estimate) => estimate.id !== currentEstimateId);
   const comparableEstimateIds = comparableEstimates.map((estimate) => estimate.id);
   if (comparableEstimateIds.length === 0) {
     return { matches: [] as PackageBuilderComparableEstimatePackage[], rowCount: projects.length + comparableEstimates.length };
   }
 
+  const estimateSql = placeholders(comparableEstimateIds);
   const [nodesResult, rowsResult] = await Promise.all([
-    supabase
-      .from("estimate_nodes")
-      .select("id, estimate_id, parent_id, kind, name, sort_order")
-      .in("estimate_id", comparableEstimateIds)
-      .order("sort_order", { ascending: true })
-      .limit(DEFAULT_COMPARABLE_TREE_LIMIT),
-    supabase
-      .from("estimate_row_items")
-      .select("id, estimate_id, node_id, material, description, supplier, quantity, quantity_base, quantity_contingency_amount, unit, unit_cost, contingency_percentage, adjustment_percentage, misc_cost, source_library_item_id, updated_at")
-      .in("estimate_id", comparableEstimateIds)
-      .order("updated_at", { ascending: false })
-      .order("sort_order", { ascending: true })
-      .limit(DEFAULT_COMPARABLE_ROW_LIMIT),
+    all<AiEstimateNodeSearchRow>(
+      database,
+      `
+        SELECT id, estimate_id, parent_id, kind, name, sort_order
+        FROM estimate_nodes
+        WHERE estimate_id IN (${estimateSql})
+        ORDER BY sort_order ASC
+        LIMIT ?
+      `,
+      [...comparableEstimateIds, DEFAULT_COMPARABLE_TREE_LIMIT],
+    ),
+    all<AiEstimateRowSearchRow>(
+      database,
+      `
+        SELECT id, estimate_id, node_id, material, description, supplier, quantity, quantity_base, quantity_contingency_amount, unit, unit_cost, contingency_percentage, adjustment_percentage, misc_cost, source_library_item_id, updated_at
+        FROM estimate_row_items
+        WHERE estimate_id IN (${estimateSql})
+        ORDER BY updated_at DESC, sort_order ASC
+        LIMIT ?
+      `,
+      [...comparableEstimateIds, DEFAULT_COMPARABLE_ROW_LIMIT],
+    ),
   ]);
-  if (nodesResult.error) throw nodesResult.error;
-  if (rowsResult.error) throw rowsResult.error;
 
-  const nodes = (nodesResult.data ?? []) as AiEstimateNodeSearchRow[];
-  const rows = (rowsResult.data ?? []) as AiEstimateRowSearchRow[];
+  const nodes = nodesResult;
+  const rows = rowsResult;
   const projectById = new Map(projects.map((project) => [project.id, project]));
   const nodesByEstimateId = new Map<string, AiEstimateNodeSearchRow[]>();
   const rowsByEstimateId = new Map<string, AiEstimateRowSearchRow[]>();
@@ -1212,38 +1313,50 @@ async function searchScopedTemplateSummaries({
   workspaceId: string;
   terms: string[];
 }) {
-  const supabase = await createSupabaseServerClient();
-  const { data: templates, error: templateError } = await supabase
-    .from("estimate_templates")
-    .select("id, name, description, category")
-    .eq("workspace_id", workspaceId)
-    .or(buildSearchOrFilter(["name", "description", "category"], terms))
-    .order("sort_order", { ascending: true })
-    .limit(DEFAULT_RESULT_LIMIT);
-  if (templateError) throw templateError;
-
-  const templateRows = (templates ?? []) as AiTemplateSearchRow[];
+  const database = await requirePackageBuilderReadD1Database();
+  const search = buildSearchWhere(["name", "description", "category"], terms);
+  const templateRows = await all<AiTemplateSearchRow>(
+    database,
+    `
+      SELECT id, name, description, category
+      FROM estimate_templates
+      WHERE workspace_id = ?
+        AND ${search.sql}
+      ORDER BY sort_order ASC
+      LIMIT ?
+    `,
+    [workspaceId, ...search.values, DEFAULT_RESULT_LIMIT],
+  );
   const templateIds = templateRows.map((template) => template.id);
   if (templateIds.length === 0) return { matches: [] as PackageBuilderTemplateSummary[], rowCount: 0 };
 
+  const templateSql = placeholders(templateIds);
   const [nodesResult, rowsResult] = await Promise.all([
-    supabase
-      .from("estimate_template_nodes")
-      .select("id, template_id, kind, name")
-      .in("template_id", templateIds)
-      .limit(DEFAULT_TREE_LIMIT),
-    supabase
-      .from("estimate_template_row_items")
-      .select("id, template_id, template_node_id, material, description, supplier, quantity, unit, unit_cost, contingency_percentage, adjustment_percentage, misc_cost, sort_order")
-      .in("template_id", templateIds)
-      .order("sort_order", { ascending: true })
-      .limit(DEFAULT_ROW_LIMIT),
+    all<AiTemplateNodeSearchRow>(
+      database,
+      `
+        SELECT id, template_id, kind, name
+        FROM estimate_template_nodes
+        WHERE template_id IN (${templateSql})
+        LIMIT ?
+      `,
+      [...templateIds, DEFAULT_TREE_LIMIT],
+    ),
+    all<AiTemplateRowSearchRow>(
+      database,
+      `
+        SELECT id, template_id, template_node_id, material, description, supplier, quantity, unit, unit_cost, contingency_percentage, adjustment_percentage, misc_cost, sort_order
+        FROM estimate_template_row_items
+        WHERE template_id IN (${templateSql})
+        ORDER BY sort_order ASC
+        LIMIT ?
+      `,
+      [...templateIds, DEFAULT_ROW_LIMIT],
+    ),
   ]);
-  if (nodesResult.error) throw nodesResult.error;
-  if (rowsResult.error) throw rowsResult.error;
 
-  const nodes = (nodesResult.data ?? []) as AiTemplateNodeSearchRow[];
-  const rows = (rowsResult.data ?? []) as AiTemplateRowSearchRow[];
+  const nodes = nodesResult;
+  const rows = rowsResult;
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
   const matches = templateRows.map((template) => {
     const templateNodes = nodes.filter((node) => node.template_id === template.id);

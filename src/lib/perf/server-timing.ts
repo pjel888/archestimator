@@ -1,16 +1,16 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 
-// Dev-only timing and Supabase request round-trip instrumentation. Dormant unless PERF_TRACE=1.
+// Dev-only timing and database request round-trip instrumentation. Dormant unless PERF_TRACE=1.
 // Trace records intentionally store safe labels only, never ids, URLs, cookies,
 // headers, SQL, or user-provided values.
-type PerfTraceKind = "timing" | "supabase";
-type SupabaseOperation = "select" | "rpc" | "insert" | "update" | "delete" | "query";
+type PerfTraceKind = "timing" | "database";
+type DatabaseOperation = "select" | "call" | "insert" | "update" | "delete" | "query";
 
 export type PerfTraceEvent = {
   label: string;
   kind: PerfTraceKind;
   elapsedMs: number;
-  operation?: SupabaseOperation;
+  operation?: DatabaseOperation;
   relation?: string;
 };
 
@@ -18,7 +18,7 @@ export type PerfTraceSnapshot = {
   requestId: string;
   scope: string;
   timings: PerfTraceEvent[];
-  supabaseRoundTrips: number;
+  databaseRoundTrips: number;
 };
 
 type PerfTraceContext = {
@@ -58,7 +58,7 @@ export function getCurrentPerfTraceSnapshot(): PerfTraceSnapshot | null {
     requestId: context.requestId,
     scope: context.scope,
     timings: [...context.timings],
-    supabaseRoundTrips: context.timings.filter((event) => event.kind === "supabase").length,
+    databaseRoundTrips: context.timings.filter((event) => event.kind === "database").length,
   };
 }
 
@@ -95,9 +95,9 @@ export async function traced<T>(label: string, fn: () => Promise<T>): Promise<T>
   }
 }
 
-export async function traceSupabaseFetch<T>(
+export async function traceDatabaseFetch<T>(
   label: string,
-  operation: SupabaseOperation,
+  operation: DatabaseOperation,
   relation: string,
   fn: () => Promise<T>,
 ): Promise<T> {
@@ -108,7 +108,7 @@ export async function traceSupabaseFetch<T>(
   } finally {
     recordEvent({
       label,
-      kind: "supabase",
+      kind: "database",
       operation,
       relation,
       elapsedMs: Number((performance.now() - start).toFixed(1)),
@@ -116,11 +116,11 @@ export async function traceSupabaseFetch<T>(
   }
 }
 
-function readSupabaseRelation(url: string) {
+function readDatabaseRelation(url: string) {
   try {
     const parsed = new URL(url);
     const rpcMatch = parsed.pathname.match(/\/rpc\/([^/]+)/);
-    if (rpcMatch?.[1]) return { operation: "rpc" as const, relation: rpcMatch[1] };
+    if (rpcMatch?.[1]) return { operation: "call" as const, relation: rpcMatch[1] };
     const restMatch = parsed.pathname.match(/\/rest\/v1\/([^/?]+)/);
     if (restMatch?.[1]) return { operation: "select" as const, relation: restMatch[1] };
   } catch {
@@ -129,11 +129,11 @@ function readSupabaseRelation(url: string) {
   return { operation: "query" as const, relation: "unknown" };
 }
 
-export function instrumentSupabaseFetch(fetchImpl: typeof fetch = fetch): typeof fetch {
+export function instrumentDatabaseFetch(fetchImpl: typeof fetch = fetch): typeof fetch {
   return async (input, init) => {
     if (!isPerfTraceEnabled()) return fetchImpl(input, init);
     const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
-    const { operation, relation } = readSupabaseRelation(url);
-    return traceSupabaseFetch(`supabase.${operation}.${relation}`, operation, relation, () => fetchImpl(input, init));
+    const { operation, relation } = readDatabaseRelation(url);
+    return traceDatabaseFetch(`database.${operation}.${relation}`, operation, relation, () => fetchImpl(input, init));
   };
 }

@@ -2,8 +2,8 @@
  * Canonical estimate-list row shared by the repository, server actions, client
  * store, and table.
  *
- * It deliberately does NOT extend the generated Supabase estimates row type, and
- * must never import the Supabase types module: the list UI must not carry
+ * It deliberately does NOT extend the generated database estimates row type, and
+ * must never import broad generated database row types: the list UI must not carry
  * `metadata`, `created_by`,
  * `workspace_id`, or legacy `assumptions` to the client (over-fetch + data
  * exposure — finding F9). Only fields the list renders, or the optimistic store

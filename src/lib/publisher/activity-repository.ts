@@ -11,11 +11,10 @@ import {
   decodeSharedLinkActivityCursor,
   encodeSharedLinkActivityCursor,
   isBeforeSharedLinkActivityCursor,
-  sharedLinkActivityCursorFilter,
+  type SharedLinkActivityCursor,
 } from "@/lib/publication/activity-helpers";
+import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
 import { listCurrentWorkspaceProjects } from "@/lib/repositories/workspace-repository";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { Json, Tables } from "@/lib/supabase/types";
 
 type PublisherActivitySource =
   | "project_publications"
@@ -25,74 +24,77 @@ type PublisherActivitySource =
   | "collaboration_audit_events"
   | "estimate_sheet_events";
 
-type PublisherPublicationActivityRow = Pick<Tables<"project_publications">, "id" | "project_id">;
-type PublisherSharedCommentRow = Pick<
-  Tables<"shared_link_comments">,
-  | "author_email"
-  | "author_name"
-  | "body"
-  | "created_at"
-  | "estimate_id"
-  | "id"
-  | "is_internal"
-  | "publication_id"
-  | "recipient_id"
-  | "row_id"
-  | "snapshot_version_at_comment"
-  | "target_kind"
-  | "target_label"
-  | "target_secondary_label"
->;
-type PublisherSharedResponseRow = Pick<
-  Tables<"shared_link_responses">,
-  | "created_at"
-  | "decision"
-  | "estimate_id"
-  | "id"
-  | "note"
-  | "publication_id"
-  | "recipient_id"
-  | "row_id"
-  | "signer_name"
-  | "snapshot_version_at_decision"
-  | "target_kind"
-  | "target_label"
-  | "target_secondary_label"
->;
-type PublisherSharedEventRow = Pick<
-  Tables<"shared_link_events">,
-  "created_at" | "event_type" | "id" | "metadata_json" | "publication_id" | "recipient_id"
->;
-type PublisherCollaborationAuditRow = Pick<
-  Tables<"collaboration_audit_events">,
-  "actor_user_id" | "created_at" | "event_type" | "id" | "metadata" | "project_id"
->;
-type PublisherEstimateEventRow = Pick<
-  Tables<"estimate_sheet_events">,
-  | "actor_user_id"
-  | "changed_fields"
-  | "correlation_id"
-  | "created_at"
-  | "estimate_id"
-  | "estimate_node_id"
-  | "estimate_tab_id"
-  | "event_source"
-  | "event_type"
-  | "id"
-  | "new_snapshot"
-  | "old_snapshot"
-  | "payload"
-  | "project_id"
-  | "row_context"
-  | "target_row_id"
-  | "total_delta"
->;
-type PublisherRecipientIdentityRow = Pick<Tables<"shared_link_recipients">, "display_name" | "email" | "id">;
-type PublisherProfileRow = Pick<Tables<"profiles">, "display_name" | "email" | "id">;
-type PublisherActivityQuery = PromiseLike<{ data: unknown[] | null; error: unknown }>;
-type CursorablePublisherActivityQuery = PublisherActivityQuery & {
-  or(filter: string): CursorablePublisherActivityQuery;
+type JsonValue = string | number | boolean | null | { [key: string]: JsonValue | undefined } | JsonValue[];
+
+type PublisherPublicationActivityRow = { id: string; project_id: string };
+type PublisherSharedCommentRow = {
+  author_email: string | null;
+  author_name: string | null;
+  body: string | null;
+  created_at: string;
+  estimate_id: string | null;
+  id: string;
+  is_internal: boolean | number | null;
+  publication_id: string;
+  recipient_id: string | null;
+  row_id: string | null;
+  snapshot_version_at_comment: number | null;
+  target_kind: string | null;
+  target_label: string | null;
+  target_secondary_label: string | null;
 };
+type PublisherSharedResponseRow = {
+  created_at: string;
+  decision: string;
+  estimate_id: string | null;
+  id: string;
+  note: string | null;
+  publication_id: string;
+  recipient_id: string | null;
+  row_id: string | null;
+  signer_name: string | null;
+  snapshot_version_at_decision: number | null;
+  target_kind: string | null;
+  target_label: string | null;
+  target_secondary_label: string | null;
+};
+type PublisherSharedEventRow = {
+  created_at: string;
+  event_type: string;
+  id: string;
+  metadata_json: unknown;
+  publication_id: string;
+  recipient_id: string | null;
+};
+type PublisherCollaborationAuditRow = {
+  actor_user_id: string | null;
+  created_at: string;
+  event_type: string;
+  id: string;
+  metadata: unknown;
+  project_id: string | null;
+};
+type PublisherEstimateEventRow = {
+  actor_user_id: string | null;
+  changed_fields: unknown;
+  correlation_id: string | null;
+  created_at: string;
+  estimate_id: string;
+  estimate_node_id: string | null;
+  estimate_tab_id: string | null;
+  event_source: string | null;
+  event_type: string;
+  id: string;
+  new_snapshot: unknown;
+  old_snapshot: unknown;
+  payload: unknown;
+  project_id: string | null;
+  row_context: unknown;
+  target_row_id: string | null;
+  total_delta: number | null;
+};
+type PublisherRecipientIdentityRow = { display_name: string | null; email: string | null; id: string };
+type PublisherProfileRow = { display_name: string | null; email: string | null; id: string };
 
 export type PublisherWorkspaceActivityResult = {
   activities: ActivityViewModel[];
@@ -104,13 +106,50 @@ export type PublisherWorkspaceActivityResult = {
 
 const PUBLISHER_ACTIVITY_LIMIT = 50;
 
-function asRecord(value: Json | null | undefined): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  return value as Record<string, unknown>;
+async function requirePublisherActivityD1Database() {
+  const database = await getCloudflareD1Database();
+  if (!database) {
+    throw new Error("Cloudflare D1 ARCH_DB binding is required for Publisher activity data.");
+  }
+  return database;
 }
 
-function asStringArray(value: string[] | null | undefined) {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+async function all<T>(database: D1DatabaseLike, sql: string, values: D1Value[] = []) {
+  const result = await database.prepare<T>(sql).bind(...values).all<T>();
+  return result.results ?? [];
+}
+
+function placeholders(values: readonly unknown[]) {
+  return values.map(() => "?").join(", ");
+}
+
+function parseJsonValue(value: unknown, fallback: JsonValue): JsonValue {
+  if (typeof value !== "string") {
+    return value === null || value === undefined ? fallback : (value as JsonValue);
+  }
+  try {
+    return JSON.parse(value) as JsonValue;
+  } catch {
+    return fallback;
+  }
+}
+
+function activityCursorClause(cursor: SharedLinkActivityCursor | null) {
+  if (!cursor) return { sql: "", values: [] as D1Value[] };
+  return {
+    sql: " AND (created_at < ? OR (created_at = ? AND id < ?))",
+    values: [cursor.createdAt, cursor.createdAt, cursor.id] as D1Value[],
+  };
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  const parsed = parseJsonValue(value, {});
+  return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {};
+}
+
+function asStringArray(value: unknown) {
+  const parsed = parseJsonValue(value, []);
+  return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
 }
 
 function readProfileLabel(profile: PublisherProfileRow) {
@@ -123,19 +162,25 @@ function readProfileLabel(profile: PublisherProfileRow) {
 }
 
 async function readActorLabels(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   actorUserIds: string[],
 ) {
   const uniqueIds = Array.from(new Set(actorUserIds.filter((id) => isUuid(id))));
   if (!uniqueIds.length) return new Map<string, string>();
 
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, display_name, email")
-    .in("id", uniqueIds);
-  if (error) return new Map<string, string>();
+  try {
+    const rows = await all<PublisherProfileRow>(
+      database,
+      `SELECT id, display_name, email
+       FROM profiles
+       WHERE id IN (${placeholders(uniqueIds)})`,
+      uniqueIds,
+    );
 
-  return new Map((data ?? []).map((profile) => [profile.id, readProfileLabel(profile as PublisherProfileRow)]));
+    return new Map(rows.map((profile) => [profile.id, readProfileLabel(profile)]));
+  } catch {
+    return new Map<string, string>();
+  }
 }
 
 function withProjectFact(
@@ -162,7 +207,7 @@ function readProjectName(projectNames: Map<string, string>, projectId: string | 
 function createSharedMetadata(row: {
   estimate_id?: string | null;
   event_type?: string;
-  metadata_json?: Json;
+  metadata_json?: unknown;
   row_id?: string | null;
   snapshot_version_at_comment?: number | null;
   snapshot_version_at_decision?: number | null;
@@ -184,12 +229,11 @@ function createSharedMetadata(row: {
 
 async function runPublisherActivityQuery<T>(
   source: PublisherActivitySource,
-  query: PublisherActivityQuery,
+  query: Promise<T[]>,
 ) {
   try {
-    const { data, error } = await query;
-    if (error) return { rows: [] as T[], unavailableSource: source };
-    return { rows: (data ?? []) as T[], unavailableSource: null };
+    const rows = await query;
+    return { rows, unavailableSource: null };
   } catch {
     return { rows: [] as T[], unavailableSource: source };
   }
@@ -212,7 +256,7 @@ export async function readPublisherWorkspaceActivity({
 
   const safeLimit = Math.min(PUBLISHER_ACTIVITY_LIMIT, Math.max(1, Math.trunc(limit)));
   const cursor = decodeSharedLinkActivityCursor(cursorValue);
-  const cursorFilter = sharedLinkActivityCursorFilter(cursor);
+  const cursorWhere = activityCursorClause(cursor);
   const workspaceProjects = await listCurrentWorkspaceProjects();
   const visibleProjects = workspaceProjects.projects.filter((item) => canReadPublisherRosterProject(item.currentUserRole));
   const scopedProjects = projectId ? visibleProjects.filter((item) => item.project.id === projectId) : visibleProjects;
@@ -226,86 +270,90 @@ export async function readPublisherWorkspaceActivity({
 
   const projectIds = scopedProjects.map((item) => item.project.id);
   const projectNames = new Map(scopedProjects.map((item) => [item.project.id, item.project.name ?? "Project"]));
-  const supabase = await createSupabaseServerClient();
-
-  const publicationsQuery = supabase
-    .from("project_publications")
-    .select("id, project_id")
-    .eq("workspace_id", workspaceProjects.workspace.id)
-    .in("project_id", projectIds)
-    .order("published_at", { ascending: false })
-    .limit(250);
+  const database = await requirePublisherActivityD1Database();
 
   const publicationsResult = await runPublisherActivityQuery<PublisherPublicationActivityRow>(
     "project_publications",
-    publicationsQuery,
+    all<PublisherPublicationActivityRow>(
+      database,
+      `SELECT id, project_id
+       FROM project_publications
+       WHERE workspace_id = ? AND project_id IN (${placeholders(projectIds)})
+       ORDER BY published_at DESC
+       LIMIT ?`,
+      [workspaceProjects.workspace.id, ...projectIds, 250],
+    ),
   );
   const unavailableSources = publicationsResult.unavailableSource ? [publicationsResult.unavailableSource] : [];
   const publicationRows = publicationsResult.rows;
   const publicationProjectIdById = new Map(publicationRows.map((publication) => [publication.id, publication.project_id]));
   const publicationIds = publicationRows.map((publication) => publication.id);
 
-  const emptySharedSource = (): PublisherActivityQuery => Promise.resolve({ data: [], error: null });
+  const emptySource = <T>() => Promise.resolve([] as T[]);
   const sourceLimit = safeLimit + 1;
   const sharedSourceUnavailable = publicationsResult.unavailableSource !== null;
 
-  let commentsQuery = emptySharedSource();
-  if (publicationIds.length && !sharedSourceUnavailable) {
-    let query = supabase
-      .from("shared_link_comments")
-      .select("id, created_at, body, is_internal, author_email, author_name, recipient_id, publication_id, estimate_id, row_id, target_kind, target_label, target_secondary_label, snapshot_version_at_comment")
-      .in("publication_id", publicationIds)
-      .order("created_at", { ascending: false })
-      .order("id", { ascending: false })
-      .limit(sourceLimit) as unknown as CursorablePublisherActivityQuery;
-    if (cursorFilter) query = query.or(cursorFilter);
-    commentsQuery = query;
-  }
+  const commentsQuery = publicationIds.length && !sharedSourceUnavailable
+    ? all<PublisherSharedCommentRow>(
+      database,
+      `SELECT id, created_at, body, is_internal, author_email, author_name, recipient_id,
+              publication_id, estimate_id, row_id, target_kind, target_label,
+              target_secondary_label, snapshot_version_at_comment
+       FROM shared_link_comments
+       WHERE publication_id IN (${placeholders(publicationIds)})${cursorWhere.sql}
+       ORDER BY created_at DESC, id DESC
+       LIMIT ?`,
+      [...publicationIds, ...cursorWhere.values, sourceLimit],
+    )
+    : emptySource<PublisherSharedCommentRow>();
 
-  let responsesQuery = emptySharedSource();
-  if (publicationIds.length && !sharedSourceUnavailable) {
-    let query = supabase
-      .from("shared_link_responses")
-      .select("id, created_at, decision, note, recipient_id, publication_id, estimate_id, row_id, signer_name, target_kind, target_label, target_secondary_label, snapshot_version_at_decision")
-      .in("publication_id", publicationIds)
-      .order("created_at", { ascending: false })
-      .order("id", { ascending: false })
-      .limit(sourceLimit) as unknown as CursorablePublisherActivityQuery;
-    if (cursorFilter) query = query.or(cursorFilter);
-    responsesQuery = query;
-  }
+  const responsesQuery = publicationIds.length && !sharedSourceUnavailable
+    ? all<PublisherSharedResponseRow>(
+      database,
+      `SELECT id, created_at, decision, note, recipient_id, publication_id, estimate_id,
+              row_id, signer_name, target_kind, target_label, target_secondary_label,
+              snapshot_version_at_decision
+       FROM shared_link_responses
+       WHERE publication_id IN (${placeholders(publicationIds)})${cursorWhere.sql}
+       ORDER BY created_at DESC, id DESC
+       LIMIT ?`,
+      [...publicationIds, ...cursorWhere.values, sourceLimit],
+    )
+    : emptySource<PublisherSharedResponseRow>();
 
-  let sharedEventsQuery = emptySharedSource();
-  if (publicationIds.length && !sharedSourceUnavailable) {
-    let query = supabase
-      .from("shared_link_events")
-      .select("id, created_at, event_type, metadata_json, recipient_id, publication_id")
-      .in("publication_id", publicationIds)
-      .order("created_at", { ascending: false })
-      .order("id", { ascending: false })
-      .limit(sourceLimit) as unknown as CursorablePublisherActivityQuery;
-    if (cursorFilter) query = query.or(cursorFilter);
-    sharedEventsQuery = query;
-  }
+  const sharedEventsQuery = publicationIds.length && !sharedSourceUnavailable
+    ? all<PublisherSharedEventRow>(
+      database,
+      `SELECT id, created_at, event_type, metadata_json, recipient_id, publication_id
+       FROM shared_link_events
+       WHERE publication_id IN (${placeholders(publicationIds)})${cursorWhere.sql}
+       ORDER BY created_at DESC, id DESC
+       LIMIT ?`,
+      [...publicationIds, ...cursorWhere.values, sourceLimit],
+    )
+    : emptySource<PublisherSharedEventRow>();
 
-  let collaborationQuery = supabase
-    .from("collaboration_audit_events")
-    .select("id, created_at, event_type, actor_user_id, project_id, metadata")
-    .in("project_id", projectIds)
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: false })
-    .limit(sourceLimit) as unknown as CursorablePublisherActivityQuery;
-  if (cursorFilter) collaborationQuery = collaborationQuery.or(cursorFilter);
+  const collaborationQuery = all<PublisherCollaborationAuditRow>(
+    database,
+    `SELECT id, created_at, event_type, actor_user_id, project_id, metadata_json AS metadata
+     FROM collaboration_audit_events
+     WHERE project_id IN (${placeholders(projectIds)})${cursorWhere.sql}
+     ORDER BY created_at DESC, id DESC
+     LIMIT ?`,
+    [...projectIds, ...cursorWhere.values, sourceLimit],
+  );
 
-  let estimateQuery = supabase
-    .from("estimate_sheet_events")
-    .select("id, event_type, event_source, created_at, actor_user_id, estimate_id, estimate_tab_id, target_row_id, estimate_node_id, row_context, old_snapshot, new_snapshot, changed_fields, total_delta, payload, correlation_id, project_id")
-    .eq("workspace_id", workspaceProjects.workspace.id)
-    .in("project_id", projectIds)
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: false })
-    .limit(sourceLimit) as unknown as CursorablePublisherActivityQuery;
-  if (cursorFilter) estimateQuery = estimateQuery.or(cursorFilter);
+  const estimateQuery = all<PublisherEstimateEventRow>(
+    database,
+    `SELECT id, event_type, event_source, created_at, actor_user_id, estimate_id,
+            estimate_tab_id, target_row_id, estimate_node_id, row_context, old_snapshot,
+            new_snapshot, changed_fields, total_delta, payload, correlation_id, project_id
+     FROM estimate_sheet_events
+     WHERE workspace_id = ? AND project_id IN (${placeholders(projectIds)})${cursorWhere.sql}
+     ORDER BY created_at DESC, id DESC
+     LIMIT ?`,
+    [workspaceProjects.workspace.id, ...projectIds, ...cursorWhere.values, sourceLimit],
+  );
 
   const [comments, responses, sharedEvents, collaborations, estimates] = await Promise.all([
     runPublisherActivityQuery<PublisherSharedCommentRow>("shared_link_comments", commentsQuery),
@@ -328,16 +376,19 @@ export async function readPublisherWorkspaceActivity({
   );
   const recipientDisplayNames = new Map<string, string>();
   if (recipientIds.length) {
-    const { data } = await supabase
-      .from("shared_link_recipients")
-      .select("id, email, display_name")
-      .in("id", recipientIds);
-    for (const recipient of (data ?? []) as PublisherRecipientIdentityRow[]) {
+    const recipients = await all<PublisherRecipientIdentityRow>(
+      database,
+      `SELECT id, email, display_name
+       FROM shared_link_recipients
+       WHERE id IN (${placeholders(recipientIds)})`,
+      recipientIds,
+    );
+    for (const recipient of recipients) {
       recipientDisplayNames.set(recipient.id, recipient.display_name?.trim() || recipient.email || "Client");
     }
   }
 
-  const actorLabels = await readActorLabels(supabase, [
+  const actorLabels = await readActorLabels(database, [
     ...collaborations.rows.map((row) => row.actor_user_id).filter((id): id is string => Boolean(id)),
     ...estimates.rows.map((row) => row.actor_user_id).filter((id): id is string => Boolean(id)),
   ]);
@@ -352,7 +403,7 @@ export async function readPublisherWorkspaceActivity({
           created_at: row.created_at,
           author: row.author_name ?? row.author_email,
           body: row.body,
-          is_internal: row.is_internal,
+          is_internal: row.is_internal === true || row.is_internal === 1,
           metadata: createSharedMetadata(row),
           recipientDisplayName: row.recipient_id ? recipientDisplayNames.get(row.recipient_id) ?? null : null,
         }),
@@ -410,7 +461,7 @@ export async function readPublisherWorkspaceActivity({
         composeEstimateActivity({
           id: row.id,
           eventType: row.event_type,
-          eventSource: row.event_source,
+          eventSource: row.event_source ?? undefined,
           createdAt: row.created_at,
           actorUserId: row.actor_user_id,
           actorLabel: row.actor_user_id ? actorLabels.get(row.actor_user_id) ?? null : null,

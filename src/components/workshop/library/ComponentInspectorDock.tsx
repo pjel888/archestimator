@@ -37,20 +37,7 @@ type ComponentUsageCounts = {
 function isNextImageSafeSource(src: string) {
   if (!src) return false;
   if (src.startsWith("/")) return true;
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!supabaseUrl) return false;
-  try {
-    const imageUrl = new URL(src);
-    const storageUrl = new URL(supabaseUrl);
-    return (
-      imageUrl.protocol === storageUrl.protocol &&
-      imageUrl.hostname === storageUrl.hostname &&
-      imageUrl.port === storageUrl.port &&
-      imageUrl.pathname.startsWith("/storage/v1/object/public/component-images/")
-    );
-  } catch {
-    return false;
-  }
+  return false;
 }
 
 function DetailRow({ label, children }: { label: string; children: ReactNode }) {

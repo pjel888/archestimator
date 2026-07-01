@@ -22,20 +22,31 @@ import {
   type ComponentLibraryCategoryRow,
   type ComponentLibraryTaxonomyNode,
 } from "@/lib/component-library/taxonomy";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { Json, Tables } from "@/lib/supabase/types";
+import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
+import type { Json } from "@/lib/types/json";
 import { isUuid } from "@/lib/ids";
 import type { LibraryFolderKind } from "@/lib/component-library/library-folder-reorder";
-import { traced } from "@/lib/perf/server-timing";
-import { isMissingRelationError } from "./estimate-schema-compat";
 import { ensureDefaultWorkspace } from "./workspace-repository";
 
-export type ComponentLibrarySupplier = Pick<Tables<"component_suppliers">, "id" | "name" | "normalized_name" | "sort_order">;
-export type ComponentLibraryBrand = Pick<Tables<"component_brands">, "id" | "name" | "normalized_name" | "sort_order">;
-export type ComponentLibraryFolder = Pick<
-  Tables<"library_folders">,
-  "id" | "workspace_id" | "parent_id" | "name" | "sort_order" | "source_category_node_id" | "folder_kind"
-> & {
+export type ComponentLibrarySupplier = {
+  id: string;
+  name: string;
+  normalized_name: string;
+  sort_order: number;
+};
+export type ComponentLibraryBrand = {
+  id: string;
+  name: string;
+  normalized_name: string;
+  sort_order: number;
+};
+export type ComponentLibraryFolder = {
+  id: string;
+  workspace_id: string;
+  parent_id: string | null;
+  name: string;
+  sort_order: number;
+  source_category_node_id: string | null;
   folder_kind: LibraryFolderKind;
 };
 
@@ -55,23 +66,189 @@ export type ComponentRowsLibraryDataset = Omit<ComponentLibraryDataset, "templat
   totalComponentCount?: number;
 };
 
-type EstimateTemplateRow = Tables<"estimate_templates">;
-type EstimateTemplateNodeRow = Tables<"estimate_template_nodes">;
-type EstimateTemplateRowItemRow = Tables<"estimate_template_row_items">;
-type CostLibraryItemRow = Tables<"cost_library_items">;
-type ComponentPriceOptionRow = Tables<"cost_library_item_price_options">;
-type ComponentVersionRow = Tables<"cost_library_item_versions">;
-type ComponentPriceHistoryRow = Tables<"cost_library_item_price_history">;
-type ComponentStateHistoryRow = Tables<"cost_library_item_state_history">;
-type ComponentVariantCostEntryRow = Tables<"cost_library_item_variant_cost_entries">;
-type ComponentVariantAttachmentRow = Tables<"cost_library_item_variant_attachments">;
-type ComponentLibraryChunkedResult<T> = {
-  data: T[];
-  error: { code?: string | null; message?: string | null } | null;
+type EstimateTemplateRow = {
+  id: string;
+  workspace_id: string;
+  name: string;
+  description: string;
+  category: string;
+  sort_order: number;
+  metadata: Json | string;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
 };
-type LibraryOverviewSummaryRpcResult = {
-  data: Json | null;
-  error: unknown;
+type EstimateTemplateNodeRow = {
+  id: string;
+  template_id: string;
+  parent_id: string | null;
+  kind: "group" | "area" | string;
+  name: string;
+  sort_order: number;
+  metadata: Json | string;
+  created_at: string;
+  updated_at: string;
+};
+type EstimateTemplateRowItemRow = {
+  id: string;
+  template_id: string;
+  template_node_id: string;
+  sort_order: number;
+  source_library_item_id: string | null;
+  source_snapshot: Json | string | null;
+  category_node_id: string | null;
+  supplier_id: string | null;
+  material: string;
+  description: string;
+  supplier: string;
+  unit: string;
+  quantity: number | string;
+  unit_cost: number | string;
+  misc_cost: number | string;
+  contingency_percentage: number | string | null;
+  adjustment_percentage?: number | string | null;
+  discipline: string;
+  designation: string;
+  link_state: EstimateRowItem["linkState"] | string;
+  metadata: Json | string;
+  created_at: string;
+  updated_at: string;
+};
+type CostLibraryLifecycleState = "draft" | "in_production" | "available" | "discontinued" | "archived";
+type CostLibraryItemRow = {
+  id: string;
+  workspace_id: string;
+  name: string;
+  description: string;
+  supplier: string | null;
+  supplier_id: string | null;
+  brand: string | null;
+  brand_id: string | null;
+  category: string;
+  category_node_id: string | null;
+  library_folder_id: string | null;
+  unit: string;
+  unit_cost: number | string;
+  misc_cost: number | string;
+  pricing_source: string | null;
+  pricing_date: string | null;
+  confidence: string | null;
+  metadata: Json | string;
+  thumbnail_path: string | null;
+  active_price_option_id: string | null;
+  current_version_number: number;
+  lifecycle_state: CostLibraryLifecycleState;
+  lifecycle_state_changed_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+type ComponentPriceOptionRow = {
+  id: string;
+  workspace_id: string;
+  item_id: string;
+  label: string;
+  sku?: string | null;
+  variant_description?: string | null;
+  variant_sort_order?: number | string | null;
+  unit: string;
+  unit_cost: number | string;
+  misc_cost: number | string;
+  currency: string;
+  pricing_source: string | null;
+  pricing_date?: string | null;
+  confidence: string | null;
+  source_url?: string | null;
+  notes?: string | null;
+  supplier_id: string | null;
+  active_cost_entry_id?: string | null;
+  package_quantity?: number | string | null;
+  package_unit?: string | null;
+  dimension_length?: number | string | null;
+  dimension_width?: number | string | null;
+  dimension_height?: number | string | null;
+  dimension_unit?: string | null;
+  mass?: number | string | null;
+  mass_unit?: string | null;
+  image_bucket?: string | null;
+  image_path?: string | null;
+  thumbnail_path?: string | null;
+  image_metadata?: Json | string | null;
+  variant_metadata?: Json | string | null;
+  metadata_json?: Json | string | null;
+  is_active: boolean | number;
+  is_default: boolean | number;
+  created_at: string;
+  updated_at: string;
+};
+type ComponentVersionRow = {
+  id: string;
+  item_id: string;
+  workspace_id: string;
+  version_number: number;
+  snapshot_json: Json | string;
+  change_summary: string;
+  change_reason: string;
+  effective_at: string;
+  created_by: string | null;
+  created_at: string;
+};
+type ComponentPriceHistoryRow = {
+  id: string;
+  price_option_id: string;
+  item_id: string;
+  workspace_id: string;
+  operation_key: string;
+  old_snapshot: Json | string | null;
+  new_snapshot: Json | string;
+  change_reason: string;
+  effective_at: string;
+  created_by: string | null;
+  created_at: string;
+};
+type ComponentStateHistoryRow = {
+  id: string;
+  item_id: string;
+  workspace_id: string;
+  from_state: CostLibraryLifecycleState | string | null;
+  to_state: CostLibraryLifecycleState | string;
+  operation_key: string;
+  effective_at: string;
+  change_reason: string;
+  created_by: string | null;
+  created_at: string;
+};
+type ComponentVariantCostEntryRow = {
+  id: string;
+  workspace_id: string;
+  item_id: string;
+  price_option_id: string;
+  unit_cost: number | string;
+  misc_cost: number | string;
+  currency: string;
+  pricing_source: string | null;
+  pricing_date: string | null;
+  confidence: string | null;
+  source_url: string | null;
+  notes: string;
+  is_current: boolean | number;
+  deleted_at: string | null;
+  metadata_json: Json | string;
+  created_at: string;
+  updated_at: string;
+};
+type ComponentVariantAttachmentRow = {
+  id: string;
+  price_option_id: string | null;
+  item_id: string | null;
+  workspace_id: string;
+  storage_bucket: string;
+  storage_path: string;
+  file_name: string;
+  content_type: string;
+  size_bytes: number | string;
+  attachment_kind: "pdf" | "excel" | string | null;
+  metadata_json: Json | string;
+  created_at: string;
 };
 
 type BuildEstimateTemplatesInput = {
@@ -80,12 +257,6 @@ type BuildEstimateTemplatesInput = {
   rowItems: EstimateTemplateRowItemRow[];
 };
 type LibraryTemplatesSeedPayload = BuildEstimateTemplatesInput;
-type LibraryTemplatesSeedRpcResult = {
-  data: Json | null;
-  error: { code?: string | null; message?: string | null; details?: string | null } | null;
-};
-
-type ComponentLibraryRepositoryClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 
 const COMPONENT_LIBRARY_ITEMS_QUERY_PAGE_SIZE = 1000;
 export const SIDEBAR_COMPONENT_LIBRARY_DEFAULT_LIMIT = 50;
@@ -93,48 +264,108 @@ export const SIDEBAR_COMPONENT_LIBRARY_MAX_LIMIT = 100;
 export const SIDEBAR_COMPONENT_LIBRARY_ITEM_COLUMNS =
   "id, workspace_id, name, description, supplier, supplier_id, brand, brand_id, category, category_node_id, library_folder_id, unit, unit_cost, misc_cost, pricing_source, pricing_date, confidence, metadata, thumbnail_path, active_price_option_id, current_version_number, lifecycle_state, lifecycle_state_changed_at, created_at, updated_at";
 
+const COST_LIBRARY_ITEM_D1_COLUMNS =
+  "id, workspace_id, name, description, supplier, supplier_id, brand, brand_id, category, category_node_id, library_folder_id, unit, unit_cost, misc_cost, pricing_source, pricing_date, confidence, metadata_json AS metadata, thumbnail_path, active_price_option_id, current_version_number, lifecycle_state, lifecycle_state_changed_at, created_at, updated_at";
+
 type ComponentRowsLibraryLoadOptions = {
   includeDetailGraph?: boolean;
   itemLimit?: number;
   itemIds?: string[];
 };
 
-function readMetadataRecord(metadata: Json): Record<string, Json> {
+function placeholders(valuesOrCount: number | readonly unknown[]) {
+  const count = typeof valuesOrCount === "number" ? valuesOrCount : valuesOrCount.length;
+  return new Array(count).fill("?").join(", ");
+}
+
+function bindValues(values: readonly unknown[]): D1Value[] {
+  return values.map((value) => {
+    if (value === undefined) return null;
+    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean" || value === null || value instanceof ArrayBuffer) {
+      return value;
+    }
+    return JSON.stringify(value);
+  });
+}
+
+async function requireComponentLibraryRepositoryD1Database(): Promise<D1DatabaseLike> {
+  const database = await getCloudflareD1Database();
+  if (!database) {
+    throw new Error("Cloudflare D1 binding ARCH_DB is required for component library reads.");
+  }
+  return database;
+}
+
+async function all<T>(database: D1DatabaseLike, sql: string, values: readonly unknown[] = []): Promise<T[]> {
+  const result = await database.prepare(sql).bind(...bindValues(values)).all<T>();
+  return result.results ?? [];
+}
+
+async function first<T>(database: D1DatabaseLike, sql: string, values: readonly unknown[] = []): Promise<T | null> {
+  return database.prepare(sql).bind(...bindValues(values)).first<T>();
+}
+
+function readJson(value: Json | string | null | undefined): Json {
+  if (typeof value !== "string") return value ?? null;
+  try {
+    return JSON.parse(value) as Json;
+  } catch {
+    return null;
+  }
+}
+
+function readMetadataRecord(metadata: Json | string | null | undefined): Record<string, Json> {
+  metadata = readJson(metadata);
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return {};
   return metadata as Record<string, Json>;
 }
 
-function readString(value: Json | undefined): string | undefined {
+function readString(value: Json | undefined | null): string | undefined {
   return typeof value === "string" && value.trim() ? value : undefined;
 }
 
-async function collectComponentLibraryWorkspaceRowsForItems<T extends { item_id: string }>(
+async function collectComponentLibraryWorkspaceRowsForItems<T extends { item_id: string | null }>(
+  database: D1DatabaseLike,
+  tableName: string,
+  workspaceId: string,
   itemIds: string[],
-  loadPage: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { code?: string | null; message?: string | null } | null }>,
-): Promise<ComponentLibraryChunkedResult<T>> {
+  orderBy: string,
+  extraWhere = "",
+  extraValues: readonly unknown[] = [],
+): Promise<T[]> {
   const data: T[] = [];
   const itemIdSet = new Set(itemIds);
 
-  for (let from = 0;; from += COMPONENT_LIBRARY_ITEMS_QUERY_PAGE_SIZE) {
-    const to = from + COMPONENT_LIBRARY_ITEMS_QUERY_PAGE_SIZE - 1;
-    const result = await loadPage(from, to);
-    if (result.error) return { data: [], error: result.error };
-
-    const pageRows = result.data ?? [];
-    data.push(...pageRows.filter((row) => itemIdSet.has(row.item_id)));
-    if (pageRows.length < COMPONENT_LIBRARY_ITEMS_QUERY_PAGE_SIZE) return { data, error: null };
+  for (let offset = 0;; offset += COMPONENT_LIBRARY_ITEMS_QUERY_PAGE_SIZE) {
+    const pageRows = await all<T>(
+      database,
+      `SELECT * FROM ${tableName}
+       WHERE workspace_id = ?${extraWhere}
+       ${orderBy}
+       LIMIT ? OFFSET ?`,
+      [workspaceId, ...extraValues, COMPONENT_LIBRARY_ITEMS_QUERY_PAGE_SIZE, offset],
+    );
+    data.push(...pageRows.filter((row) => row.item_id !== null && itemIdSet.has(row.item_id)));
+    if (pageRows.length < COMPONENT_LIBRARY_ITEMS_QUERY_PAGE_SIZE) return data;
   }
 }
 
-async function collectComponentLibraryRowsForSelectedItems<T>(
+async function collectComponentLibraryRowsForSelectedItems<T extends { item_id?: string | null }>(
+  database: D1DatabaseLike,
+  tableName: string,
   itemIds: string[],
-  loadRows: (itemIds: string[]) => PromiseLike<{ data: T[] | null; error: { code?: string | null; message?: string | null } | null }>,
-): Promise<ComponentLibraryChunkedResult<T>> {
-  if (itemIds.length === 0) return { data: [], error: null };
-
-  const result = await loadRows(itemIds);
-  if (result.error) return { data: [], error: result.error };
-  return { data: result.data ?? [], error: null };
+  orderBy: string,
+  extraWhere = "",
+  extraValues: readonly unknown[] = [],
+): Promise<T[]> {
+  if (itemIds.length === 0) return [];
+  return all<T>(
+    database,
+    `SELECT * FROM ${tableName}
+     WHERE item_id IN (${placeholders(itemIds)})${extraWhere}
+     ${orderBy}`,
+    [...itemIds, ...extraValues],
+  );
 }
 
 function normalizeComponentLibraryItemLimit(limit: number | undefined): number | undefined {
@@ -144,65 +375,58 @@ function normalizeComponentLibraryItemLimit(limit: number | undefined): number |
 }
 
 async function loadWorkspaceCostLibraryItemRows({
-  supabase,
+  database,
   workspaceId,
   itemLimit,
   itemIds,
-  selectColumns = "*",
 }: {
-  supabase: ComponentLibraryRepositoryClient;
+  database: D1DatabaseLike;
   workspaceId: string;
   itemLimit?: number;
   itemIds?: string[];
-  selectColumns?: string;
 }): Promise<CostLibraryItemRow[]> {
   const selectedItemIds = itemIds ? [...new Set(itemIds.filter(isUuid))] : [];
   if (itemIds && selectedItemIds.length === 0) return [];
   if (selectedItemIds.length > 0) {
-    const result = await supabase
-      .from("cost_library_items")
-      .select(selectColumns)
-      .eq("workspace_id", workspaceId)
-      .neq("lifecycle_state", "archived")
-      .in("id", selectedItemIds)
-      .order("category", { ascending: true })
-      .order("name", { ascending: true });
-
-    if (result.error) throw result.error;
-    return (result.data ?? []) as unknown as CostLibraryItemRow[];
+    return all<CostLibraryItemRow>(
+      database,
+      `SELECT ${COST_LIBRARY_ITEM_D1_COLUMNS}
+       FROM cost_library_items
+       WHERE workspace_id = ?
+         AND lifecycle_state <> 'archived'
+         AND id IN (${placeholders(selectedItemIds)})
+       ORDER BY category ASC, name ASC`,
+      [workspaceId, ...selectedItemIds],
+    );
   }
 
   const limit = normalizeComponentLibraryItemLimit(itemLimit);
   if (limit !== undefined) {
-    const result = await supabase
-      .from("cost_library_items")
-      .select(selectColumns)
-      .eq("workspace_id", workspaceId)
-      .neq("lifecycle_state", "archived")
-      .order("updated_at", { ascending: false })
-      .order("id", { ascending: true })
-      .limit(limit);
-
-    if (result.error) throw result.error;
-    return (result.data ?? []) as unknown as CostLibraryItemRow[];
+    return all<CostLibraryItemRow>(
+      database,
+      `SELECT ${COST_LIBRARY_ITEM_D1_COLUMNS}
+       FROM cost_library_items
+       WHERE workspace_id = ?
+         AND lifecycle_state <> 'archived'
+       ORDER BY updated_at DESC, id ASC
+       LIMIT ?`,
+      [workspaceId, limit],
+    );
   }
 
   const rows: CostLibraryItemRow[] = [];
 
-  for (let from = 0;; from += COMPONENT_LIBRARY_ITEMS_QUERY_PAGE_SIZE) {
-    const to = from + COMPONENT_LIBRARY_ITEMS_QUERY_PAGE_SIZE - 1;
-    const result = await supabase
-      .from("cost_library_items")
-      .select(selectColumns)
-      .eq("workspace_id", workspaceId)
-      .neq("lifecycle_state", "archived")
-      .order("category", { ascending: true })
-      .order("name", { ascending: true })
-      .range(from, to);
-
-    if (result.error) throw result.error;
-
-    const pageRows = (result.data ?? []) as unknown as CostLibraryItemRow[];
+  for (let offset = 0;; offset += COMPONENT_LIBRARY_ITEMS_QUERY_PAGE_SIZE) {
+    const pageRows = await all<CostLibraryItemRow>(
+      database,
+      `SELECT ${COST_LIBRARY_ITEM_D1_COLUMNS}
+       FROM cost_library_items
+       WHERE workspace_id = ?
+         AND lifecycle_state <> 'archived'
+       ORDER BY category ASC, name ASC
+       LIMIT ? OFFSET ?`,
+      [workspaceId, COMPONENT_LIBRARY_ITEMS_QUERY_PAGE_SIZE, offset],
+    );
     rows.push(...pageRows);
     if (pageRows.length < COMPONENT_LIBRARY_ITEMS_QUERY_PAGE_SIZE) return rows;
   }
@@ -221,6 +445,16 @@ function readNumber(value: Json | undefined): number | undefined {
     return Number.isFinite(parsed) ? parsed : undefined;
   }
   return undefined;
+}
+
+function readNullableNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function readBoolean(value: boolean | number | null | undefined): boolean {
+  return value === true || value === 1;
 }
 
 function readSource(value: Json | undefined): EstimateRowItemSource {
@@ -242,7 +476,7 @@ function formatPeso(value: number) {
 }
 
 function normalizeComponentLibraryItem(
-  row: Tables<"cost_library_items">,
+  row: CostLibraryItemRow,
   categoryById: Map<string, ComponentLibraryTaxonomyNode>,
   supplierById: Map<string, ComponentLibrarySupplier>,
   brandById: Map<string, ComponentLibraryBrand>,
@@ -300,7 +534,7 @@ function normalizeComponentLibraryItem(
     priceOptionLabel: defaultPriceOption?.label,
     priceOptions,
     lifecycleState: row.lifecycle_state,
-    lifecycleStateChangedAt: row.lifecycle_state_changed_at,
+    lifecycleStateChangedAt: row.lifecycle_state_changed_at ?? undefined,
     history,
     notes: readString(metadata.notes),
     createdAt: row.created_at,
@@ -319,11 +553,11 @@ function normalizeCostEntry(row: ComponentVariantCostEntryRow): ComponentVariant
     miscCost: Number(row.misc_cost),
     currency: row.currency,
     pricingSource: row.pricing_source,
-    pricingDate: row.pricing_date,
+    pricingDate: row.pricing_date ?? row.created_at.slice(0, 10),
     confidence: row.confidence,
     sourceUrl: sanitizeComponentSourceUrl(row.source_url) ?? null,
     notes: row.notes,
-    isCurrent: row.is_current,
+    isCurrent: readBoolean(row.is_current),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -338,7 +572,7 @@ function normalizeAttachment(row: ComponentVariantAttachmentRow): ComponentVaria
     contentType: row.content_type,
     sizeBytes: Number(row.size_bytes),
     kind: row.attachment_kind === "pdf" ? "pdf" : "excel",
-    metadata: row.metadata,
+    metadata: readMetadataRecord(row.metadata_json),
     createdAt: row.created_at,
   };
 }
@@ -349,40 +583,49 @@ function normalizePriceOption(
   attachments: ComponentVariantAttachment[] = [],
 ): ComponentPriceOption {
   const currentCostEntry = costEntries.find((entry) => entry.isCurrent) ?? costEntries[0];
+  const metadata = readMetadataRecord(row.metadata_json);
+  const imageMetadata = readMetadataRecord(row.image_metadata ?? metadata.imageMetadata);
+  const variantMetadata = readMetadataRecord(row.variant_metadata ?? metadata.variantMetadata);
+  const sku = row.sku ?? readString(metadata.sku) ?? null;
+  const variantDescription = row.variant_description ?? readString(metadata.variantDescription) ?? null;
+  const variantSortOrder = readNumber(row.variant_sort_order as Json | undefined) ?? readNumber(metadata.variantSortOrder) ?? 0;
+  const pricingDate = currentCostEntry?.pricingDate ?? row.pricing_date ?? readString(metadata.pricingDate) ?? null;
+  const sourceUrl = currentCostEntry?.sourceUrl ?? row.source_url ?? readString(metadata.sourceUrl) ?? null;
+  const notes = currentCostEntry?.notes ?? row.notes ?? readString(metadata.notes) ?? "";
   return {
     id: row.id,
     label: row.label,
-    sku: row.sku,
-    variantDescription: row.variant_description,
-    variantSortOrder: row.variant_sort_order,
+    sku,
+    variantDescription,
+    variantSortOrder,
     unit: row.unit,
     unitCost: Number(currentCostEntry?.unitCost ?? row.unit_cost),
     miscCost: Number(currentCostEntry?.miscCost ?? row.misc_cost),
     currency: row.currency,
     pricingSource: currentCostEntry?.pricingSource ?? row.pricing_source,
-    pricingDate: currentCostEntry?.pricingDate ?? row.pricing_date,
+    pricingDate,
     confidence: currentCostEntry?.confidence ?? row.confidence,
-    sourceUrl: sanitizeComponentSourceUrl(currentCostEntry?.sourceUrl ?? row.source_url) ?? null,
-    notes: currentCostEntry?.notes ?? row.notes,
+    sourceUrl: sanitizeComponentSourceUrl(sourceUrl) ?? null,
+    notes,
     supplierId: row.supplier_id,
-    activeCostEntryId: row.active_cost_entry_id,
+    activeCostEntryId: row.active_cost_entry_id ?? readString(metadata.activeCostEntryId) ?? null,
     costEntries,
-    packageQuantity: row.package_quantity === null ? null : Number(row.package_quantity),
-    packageUnit: row.package_unit,
-    dimensionLength: row.dimension_length === null ? null : Number(row.dimension_length),
-    dimensionWidth: row.dimension_width === null ? null : Number(row.dimension_width),
-    dimensionHeight: row.dimension_height === null ? null : Number(row.dimension_height),
-    dimensionUnit: row.dimension_unit,
-    mass: row.mass === null ? null : Number(row.mass),
-    massUnit: row.mass_unit,
-    imageBucket: row.image_bucket,
-    imagePath: row.image_path,
-    thumbnailPath: row.thumbnail_path,
-    imageMetadata: row.image_metadata,
+    packageQuantity: readNullableNumber(row.package_quantity ?? metadata.packageQuantity),
+    packageUnit: row.package_unit ?? readString(metadata.packageUnit) ?? null,
+    dimensionLength: readNullableNumber(row.dimension_length ?? metadata.dimensionLength),
+    dimensionWidth: readNullableNumber(row.dimension_width ?? metadata.dimensionWidth),
+    dimensionHeight: readNullableNumber(row.dimension_height ?? metadata.dimensionHeight),
+    dimensionUnit: row.dimension_unit ?? readString(metadata.dimensionUnit) ?? null,
+    mass: readNullableNumber(row.mass ?? metadata.mass),
+    massUnit: row.mass_unit ?? readString(metadata.massUnit) ?? null,
+    imageBucket: row.image_bucket ?? readString(metadata.imageBucket) ?? null,
+    imagePath: row.image_path ?? readString(metadata.imagePath) ?? null,
+    thumbnailPath: row.thumbnail_path ?? readString(metadata.thumbnailPath) ?? null,
+    imageMetadata,
     attachments,
-    variantMetadata: row.variant_metadata,
-    isActive: row.is_active,
-    isDefault: row.is_default,
+    variantMetadata,
+    isActive: readBoolean(row.is_active),
+    isDefault: readBoolean(row.is_default),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -447,7 +690,7 @@ function sortFolders(folders: ComponentLibraryFolder[]): ComponentLibraryFolder[
 }
 
 function normalizeComponentLibraryFolder(folder: Pick<
-  Tables<"library_folders">,
+  ComponentLibraryFolder,
   "id" | "workspace_id" | "parent_id" | "name" | "sort_order" | "source_category_node_id" | "folder_kind"
 >): ComponentLibraryFolder {
   return {
@@ -457,19 +700,19 @@ function normalizeComponentLibraryFolder(folder: Pick<
 }
 
 async function fetchLibraryFolders(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   workspaceId: string,
 ): Promise<ComponentLibraryFolder[]> {
-  const { data, error } = await supabase
-    .from("library_folders")
-    .select("id, workspace_id, parent_id, name, sort_order, source_category_node_id, folder_kind")
-    .eq("workspace_id", workspaceId)
-    .eq("folder_kind", "custom")
-    .order("sort_order", { ascending: true })
-    .order("name", { ascending: true });
-
-  if (error) throw error;
-  return sortFolders((data ?? []).map(normalizeComponentLibraryFolder));
+  const rows = await all<ComponentLibraryFolder>(
+    database,
+    `SELECT id, workspace_id, parent_id, name, sort_order, source_category_node_id, folder_kind
+     FROM library_folders
+     WHERE workspace_id = ?
+       AND folder_kind = 'custom'
+     ORDER BY sort_order ASC, name ASC`,
+    [workspaceId],
+  );
+  return sortFolders(rows.map(normalizeComponentLibraryFolder));
 }
 
 type ComponentRowsLibrarySeedPayload = {
@@ -481,11 +724,6 @@ type ComponentRowsLibrarySeedPayload = {
   itemRows: CostLibraryItemRow[];
   priceOptions: ComponentPriceOptionRow[];
   costEntries: ComponentVariantCostEntryRow[];
-};
-
-type LibraryComponentRowsSeedRpcResult = {
-  data: Json | null;
-  error: { code?: string | null; message?: string | null; details?: string | null } | null;
 };
 
 function readLibraryComponentRowsSeedArray<T>(
@@ -604,6 +842,7 @@ function buildComponentRowsLibraryDataset({
 
   const attachmentsByPriceOptionId = new Map<string, ComponentVariantAttachment[]>();
   for (const row of attachmentRows) {
+    if (!row.price_option_id) continue;
     const attachments = attachmentsByPriceOptionId.get(row.price_option_id) ?? [];
     attachments.push(normalizeAttachment(row));
     attachmentsByPriceOptionId.set(row.price_option_id, attachments);
@@ -682,73 +921,6 @@ function buildComponentRowsLibraryDataset({
     loadedComponentCount: libraryItems.length,
     totalComponentCount: totalComponentCount ?? (isPartial ? undefined : libraryItems.length),
   };
-}
-
-async function loadCurrentWorkspaceComponentRowsLibraryRpcPath({
-  supabase,
-  workspaceId,
-  includeDetailGraph,
-  itemLimit,
-  itemIds,
-}: {
-  supabase: ComponentLibraryRepositoryClient;
-  workspaceId: string;
-  includeDetailGraph?: boolean;
-  itemLimit?: number;
-  itemIds?: string[];
-}): Promise<ComponentRowsLibraryDataset | null> {
-  const boundedItemLimit = normalizeComponentLibraryItemLimit(itemLimit);
-  if (
-    process.env.WORKSHOP_LIBRARY_COMPONENT_ROWS_RPC_DISABLED === "1" ||
-    includeDetailGraph ||
-    itemIds !== undefined
-  ) {
-    return null;
-  }
-
-  const seedResult = await traced("library.components.rpc.library_component_rows_seed", () =>
-    (supabase as unknown as {
-      rpc: (
-        functionName: "library_component_rows_seed",
-        args: { target_workspace_id: string; item_limit: number | null },
-      ) => Promise<LibraryComponentRowsSeedRpcResult>;
-    }).rpc("library_component_rows_seed", {
-      target_workspace_id: workspaceId,
-      item_limit: boundedItemLimit ?? null,
-    }),
-  );
-
-  if (seedResult.error) {
-    if (isLibraryComponentRowsSeedRolloutError(seedResult.error)) {
-      const code = isRecord(seedResult.error) && typeof seedResult.error.code === "string" ? seedResult.error.code : "unknown";
-      const message = isRecord(seedResult.error) && typeof seedResult.error.message === "string" ? seedResult.error.message : "unknown";
-      const details = isRecord(seedResult.error) && typeof seedResult.error.details === "string" ? seedResult.error.details : null;
-      console.warn(`[library_component_rows_seed] RPC unavailable (code=${code}, message=${message}, details=${details}); using app path`);
-      return null;
-    }
-    throw seedResult.error;
-  }
-
-  try {
-    const payload = parseLibraryComponentRowsSeedPayload(seedResult.data);
-    return buildComponentRowsLibraryDataset({
-      workspaceId,
-      categoryRows: payload.categoryRows,
-      suppliers: payload.suppliers,
-      persistedBrands: payload.brands,
-      libraryFolders: sortFolders(payload.libraryFolders.map(normalizeComponentLibraryFolder)),
-      itemRows: payload.itemRows,
-      priceOptionRows: payload.priceOptions,
-      costEntryRows: payload.costEntries,
-      includeVariantDetails: false,
-      isPartial: payload.componentCount !== undefined && payload.itemRows.length < payload.componentCount,
-      totalComponentCount: payload.componentCount,
-    });
-  } catch (error) {
-    if (!isLibraryComponentRowsSeedContractError(error)) throw error;
-    console.warn(`[library_component_rows_seed] RPC returned an incompatible payload (${error.message}); using app path`);
-    return null;
-  }
 }
 
 function getTemplateNodeKind(kind: EstimateTemplateNodeRow["kind"]): EstimateTreeNode["kind"] | null {
@@ -894,13 +1066,13 @@ export function getTemplateTableFallbackTemplates({ isTemplateTableMissing }: { 
 }
 
 async function loadCurrentWorkspaceComponentRowsLibrary({
-  supabase,
+  database,
   workspaceId,
   includeDetailGraph = true,
   itemLimit,
   itemIds,
 }: {
-  supabase: ComponentLibraryRepositoryClient;
+  database: D1DatabaseLike;
   workspaceId: string;
   // U18: the in-estimate panel renders only the slim EstimateRowItem fields and
   // never reads the per-item versions / price history / state history /
@@ -914,17 +1086,8 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
   itemLimit?: number;
   itemIds?: string[];
 }): Promise<ComponentRowsLibraryDataset> {
-  const rpcLibrary = await loadCurrentWorkspaceComponentRowsLibraryRpcPath({
-    supabase,
-    workspaceId,
-    includeDetailGraph,
-    itemLimit,
-    itemIds,
-  });
-  if (rpcLibrary) return rpcLibrary;
-
   return loadCurrentWorkspaceComponentRowsLibraryAppPath({
-    supabase,
+    database,
     workspaceId,
     includeDetailGraph,
     itemLimit,
@@ -933,13 +1096,13 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
 }
 
 async function loadCurrentWorkspaceComponentRowsLibraryAppPath({
-  supabase,
+  database,
   workspaceId,
   includeDetailGraph = true,
   itemLimit,
   itemIds,
 }: {
-  supabase: ComponentLibraryRepositoryClient;
+  database: D1DatabaseLike;
   workspaceId: string;
   includeDetailGraph?: boolean;
   itemLimit?: number;
@@ -947,38 +1110,36 @@ async function loadCurrentWorkspaceComponentRowsLibraryAppPath({
 }): Promise<ComponentRowsLibraryDataset> {
   const boundedItemLimit = normalizeComponentLibraryItemLimit(itemLimit);
   const selectedItemIds = itemIds ? [...new Set(itemIds.filter(isUuid))] : [];
-  const itemSelectColumns = includeDetailGraph ? "*" : SIDEBAR_COMPONENT_LIBRARY_ITEM_COLUMNS;
-  const [categoriesResult, suppliersResult, brandsResult, itemRows] = await Promise.all([
-    supabase.from("component_category_nodes").select("*").order("sort_order", { ascending: true }),
-    supabase
-      .from("component_suppliers")
-      .select("id, name, normalized_name, sort_order")
-      .eq("workspace_id", workspaceId)
-      .order("sort_order", { ascending: true })
-      .order("name", { ascending: true }),
-    supabase
-      .from("component_brands")
-      .select("id, name, normalized_name, sort_order")
-      .eq("workspace_id", workspaceId)
-      .order("sort_order", { ascending: true })
-      .order("name", { ascending: true }),
+  const [categoryRows, suppliers, persistedBrands, libraryFolders, itemRows] = await Promise.all([
+    all<ComponentLibraryCategoryRow>(
+      database,
+      "SELECT * FROM component_category_nodes ORDER BY sort_order ASC, label ASC",
+    ),
+    all<ComponentLibrarySupplier>(
+      database,
+      `SELECT id, name, normalized_name, sort_order
+       FROM component_suppliers
+       WHERE workspace_id = ?
+       ORDER BY sort_order ASC, name ASC`,
+      [workspaceId],
+    ),
+    all<ComponentLibraryBrand>(
+      database,
+      `SELECT id, name, normalized_name, sort_order
+       FROM component_brands
+       WHERE workspace_id = ?
+       ORDER BY sort_order ASC, name ASC`,
+      [workspaceId],
+    ),
+    fetchLibraryFolders(database, workspaceId),
     loadWorkspaceCostLibraryItemRows({
-      supabase,
+      database,
       workspaceId,
       itemLimit: boundedItemLimit,
       itemIds: itemIds === undefined ? undefined : selectedItemIds,
-      selectColumns: itemSelectColumns,
     }),
   ]);
 
-  if (categoriesResult.error) throw categoriesResult.error;
-  if (suppliersResult.error) throw suppliersResult.error;
-  if (brandsResult.error && !isMissingRelationError(brandsResult.error, "component_brands")) throw brandsResult.error;
-
-  const categoryRows = (categoriesResult.data ?? []) as ComponentLibraryCategoryRow[];
-  const libraryFolders = await fetchLibraryFolders(supabase, workspaceId);
-  const suppliers = suppliersResult.data ?? [];
-  const persistedBrands = (brandsResult.error ? [] : (brandsResult.data ?? [])) as ComponentLibraryBrand[];
   const loadedItemIds = itemRows.map((row) => row.id);
   const isBoundedItemPage = boundedItemLimit !== undefined || selectedItemIds.length > 0;
   // U18 cost fidelity: the slim EstimateRowItem cost derives from the default
@@ -986,145 +1147,123 @@ async function loadCurrentWorkspaceComponentRowsLibraryAppPath({
   // normalizePriceOption). These two queries are ALWAYS loaded so the lite panel
   // dataset is byte-identical to the full one — never reconstructed from the
   // (potentially lagging) denormalized cost_library_items columns alone.
-  const [priceOptionsResult, costEntriesResult] = loadedItemIds.length > 0
+  const [priceOptionRows, costEntryRows] = loadedItemIds.length > 0
     ? await Promise.all([
         isBoundedItemPage
-          ? collectComponentLibraryRowsForSelectedItems<ComponentPriceOptionRow>(loadedItemIds, (itemIds) =>
-              supabase
-                .from("cost_library_item_price_options")
-                .select("*")
-                .eq("workspace_id", workspaceId)
-                .in("item_id", itemIds)
-                .order("is_default", { ascending: false })
-                .order("variant_sort_order", { ascending: true })
-                .order("created_at", { ascending: true }),
+          ? collectComponentLibraryRowsForSelectedItems<ComponentPriceOptionRow>(
+              database,
+              "cost_library_item_price_options",
+              loadedItemIds,
+              "ORDER BY is_default DESC, COALESCE(json_extract(metadata_json, '$.variantSortOrder'), 0) ASC, created_at ASC",
+              " AND workspace_id = ?",
+              [workspaceId],
             )
-          : collectComponentLibraryWorkspaceRowsForItems<ComponentPriceOptionRow>(loadedItemIds, (from, to) =>
-              supabase
-                .from("cost_library_item_price_options")
-                .select("*")
-                .eq("workspace_id", workspaceId)
-                .order("is_default", { ascending: false })
-                .order("variant_sort_order", { ascending: true })
-                .order("created_at", { ascending: true })
-                .range(from, to),
+          : collectComponentLibraryWorkspaceRowsForItems<ComponentPriceOptionRow>(
+              database,
+              "cost_library_item_price_options",
+              workspaceId,
+              loadedItemIds,
+              "ORDER BY is_default DESC, COALESCE(json_extract(metadata_json, '$.variantSortOrder'), 0) ASC, created_at ASC",
             ),
         isBoundedItemPage
-          ? collectComponentLibraryRowsForSelectedItems<ComponentVariantCostEntryRow>(loadedItemIds, (itemIds) =>
-              supabase
-                .from("cost_library_item_variant_cost_entries")
-                .select("*")
-                .eq("workspace_id", workspaceId)
-                .in("item_id", itemIds)
-                .is("deleted_at", null)
-                .order("is_current", { ascending: false })
-                .order("pricing_date", { ascending: false })
-                .order("created_at", { ascending: false }),
+          ? collectComponentLibraryRowsForSelectedItems<ComponentVariantCostEntryRow>(
+              database,
+              "cost_library_item_variant_cost_entries",
+              loadedItemIds,
+              "ORDER BY is_current DESC, pricing_date DESC, created_at DESC",
+              " AND workspace_id = ? AND deleted_at IS NULL",
+              [workspaceId],
             )
-          : collectComponentLibraryWorkspaceRowsForItems<ComponentVariantCostEntryRow>(loadedItemIds, (from, to) =>
-              supabase
-                .from("cost_library_item_variant_cost_entries")
-                .select("*")
-                .eq("workspace_id", workspaceId)
-                .is("deleted_at", null)
-                .order("is_current", { ascending: false })
-                .order("pricing_date", { ascending: false })
-                .order("created_at", { ascending: false })
-                .range(from, to),
+          : collectComponentLibraryWorkspaceRowsForItems<ComponentVariantCostEntryRow>(
+              database,
+              "cost_library_item_variant_cost_entries",
+              workspaceId,
+              loadedItemIds,
+              "ORDER BY is_current DESC, pricing_date DESC, created_at DESC",
+              " AND deleted_at IS NULL",
             ),
       ])
     : [
-        { data: [], error: null },
-        { data: [], error: null },
+        [],
+        [],
       ];
   // U18: the audit + attachment graph (versions / price history / state history
   // / variant attachments) is never read by list/card/table browse views — and
   // these are the unbounded-growth tables. Browse loaders skip them; selected
   // component detail loaders use includeDetailGraph: true for the full set.
-  const [versionsResult, priceHistoryResult, stateHistoryResult, attachmentsResult] = (loadedItemIds.length > 0 && includeDetailGraph)
+  const [versionRows, priceHistoryRows, stateHistoryRows, attachmentRows] = (loadedItemIds.length > 0 && includeDetailGraph)
     ? await Promise.all([
         isBoundedItemPage
-          ? collectComponentLibraryRowsForSelectedItems<ComponentVersionRow>(loadedItemIds, (itemIds) =>
-              supabase
-                .from("cost_library_item_versions")
-                .select("*")
-                .eq("workspace_id", workspaceId)
-                .in("item_id", itemIds)
-                .order("version_number", { ascending: false }),
+          ? collectComponentLibraryRowsForSelectedItems<ComponentVersionRow>(
+              database,
+              "cost_library_item_versions",
+              loadedItemIds,
+              "ORDER BY version_number DESC",
+              " AND workspace_id = ?",
+              [workspaceId],
             )
-          : collectComponentLibraryWorkspaceRowsForItems<ComponentVersionRow>(loadedItemIds, (from, to) =>
-              supabase
-                .from("cost_library_item_versions")
-                .select("*")
-                .eq("workspace_id", workspaceId)
-                .order("version_number", { ascending: false })
-                .range(from, to),
+          : collectComponentLibraryWorkspaceRowsForItems<ComponentVersionRow>(
+              database,
+              "cost_library_item_versions",
+              workspaceId,
+              loadedItemIds,
+              "ORDER BY version_number DESC",
             ),
         isBoundedItemPage
-          ? collectComponentLibraryRowsForSelectedItems<ComponentPriceHistoryRow>(loadedItemIds, (itemIds) =>
-              supabase
-                .from("cost_library_item_price_history")
-                .select("*")
-                .eq("workspace_id", workspaceId)
-                .in("item_id", itemIds)
-                .order("effective_at", { ascending: false }),
+          ? collectComponentLibraryRowsForSelectedItems<ComponentPriceHistoryRow>(
+              database,
+              "cost_library_item_price_history",
+              loadedItemIds,
+              "ORDER BY effective_at DESC",
+              " AND workspace_id = ?",
+              [workspaceId],
             )
-          : collectComponentLibraryWorkspaceRowsForItems<ComponentPriceHistoryRow>(loadedItemIds, (from, to) =>
-              supabase
-                .from("cost_library_item_price_history")
-                .select("*")
-                .eq("workspace_id", workspaceId)
-                .order("effective_at", { ascending: false })
-                .range(from, to),
+          : collectComponentLibraryWorkspaceRowsForItems<ComponentPriceHistoryRow>(
+              database,
+              "cost_library_item_price_history",
+              workspaceId,
+              loadedItemIds,
+              "ORDER BY effective_at DESC",
             ),
         isBoundedItemPage
-          ? collectComponentLibraryRowsForSelectedItems<ComponentStateHistoryRow>(loadedItemIds, (itemIds) =>
-              supabase
-                .from("cost_library_item_state_history")
-                .select("*")
-                .eq("workspace_id", workspaceId)
-                .in("item_id", itemIds)
-                .order("effective_at", { ascending: false }),
+          ? collectComponentLibraryRowsForSelectedItems<ComponentStateHistoryRow>(
+              database,
+              "cost_library_item_state_history",
+              loadedItemIds,
+              "ORDER BY effective_at DESC",
+              " AND workspace_id = ?",
+              [workspaceId],
             )
-          : collectComponentLibraryWorkspaceRowsForItems<ComponentStateHistoryRow>(loadedItemIds, (from, to) =>
-              supabase
-                .from("cost_library_item_state_history")
-                .select("*")
-                .eq("workspace_id", workspaceId)
-                .order("effective_at", { ascending: false })
-                .range(from, to),
+          : collectComponentLibraryWorkspaceRowsForItems<ComponentStateHistoryRow>(
+              database,
+              "cost_library_item_state_history",
+              workspaceId,
+              loadedItemIds,
+              "ORDER BY effective_at DESC",
             ),
         isBoundedItemPage
-          ? collectComponentLibraryRowsForSelectedItems<ComponentVariantAttachmentRow>(loadedItemIds, (itemIds) =>
-              supabase
-                .from("cost_library_item_variant_attachments")
-                .select("*")
-                .eq("workspace_id", workspaceId)
-                .in("item_id", itemIds)
-                .order("created_at", { ascending: false }),
+          ? collectComponentLibraryRowsForSelectedItems<ComponentVariantAttachmentRow>(
+              database,
+              "cost_library_item_variant_attachments",
+              loadedItemIds,
+              "ORDER BY created_at DESC",
+              " AND workspace_id = ?",
+              [workspaceId],
             )
-          : collectComponentLibraryWorkspaceRowsForItems<ComponentVariantAttachmentRow>(loadedItemIds, (from, to) =>
-              supabase
-                .from("cost_library_item_variant_attachments")
-                .select("*")
-                .eq("workspace_id", workspaceId)
-                .order("created_at", { ascending: false })
-                .range(from, to),
+          : collectComponentLibraryWorkspaceRowsForItems<ComponentVariantAttachmentRow>(
+              database,
+              "cost_library_item_variant_attachments",
+              workspaceId,
+              loadedItemIds,
+              "ORDER BY created_at DESC",
             ),
       ])
     : [
-        { data: [], error: null },
-        { data: [], error: null },
-        { data: [], error: null },
-        { data: [], error: null },
+        [],
+        [],
+        [],
+        [],
       ];
-
-  if (priceOptionsResult.error && !isMissingRelationError(priceOptionsResult.error, "cost_library_item_price_options")) throw priceOptionsResult.error;
-  if (versionsResult.error && !isMissingRelationError(versionsResult.error, "cost_library_item_versions")) throw versionsResult.error;
-  if (priceHistoryResult.error && !isMissingRelationError(priceHistoryResult.error, "cost_library_item_price_history")) throw priceHistoryResult.error;
-  if (stateHistoryResult.error && !isMissingRelationError(stateHistoryResult.error, "cost_library_item_state_history")) throw stateHistoryResult.error;
-  if (costEntriesResult.error && !isMissingRelationError(costEntriesResult.error, "cost_library_item_variant_cost_entries")) throw costEntriesResult.error;
-  if (attachmentsResult.error && !isMissingRelationError(attachmentsResult.error, "cost_library_item_variant_attachments")) throw attachmentsResult.error;
 
   return buildComponentRowsLibraryDataset({
     workspaceId,
@@ -1133,101 +1272,61 @@ async function loadCurrentWorkspaceComponentRowsLibraryAppPath({
     persistedBrands,
     libraryFolders,
     itemRows,
-    priceOptionRows: (priceOptionsResult.error ? [] : (priceOptionsResult.data ?? [])) as ComponentPriceOptionRow[],
-    costEntryRows: (costEntriesResult.error ? [] : (costEntriesResult.data ?? [])) as ComponentVariantCostEntryRow[],
+    priceOptionRows,
+    costEntryRows,
     includeVariantDetails: includeDetailGraph,
     isPartial: boundedItemLimit !== undefined && itemRows.length >= boundedItemLimit,
-    versionRows: (versionsResult.error ? [] : (versionsResult.data ?? [])) as ComponentVersionRow[],
-    priceHistoryRows: (priceHistoryResult.error ? [] : (priceHistoryResult.data ?? [])) as ComponentPriceHistoryRow[],
-    stateHistoryRows: (stateHistoryResult.error ? [] : (stateHistoryResult.data ?? [])) as ComponentStateHistoryRow[],
-    attachmentRows: (attachmentsResult.error ? [] : (attachmentsResult.data ?? [])) as ComponentVariantAttachmentRow[],
+    versionRows,
+    priceHistoryRows,
+    stateHistoryRows,
+    attachmentRows,
   });
 }
 
-async function loadCurrentWorkspaceEstimateTemplatesRpcPath({
-  supabase,
+async function loadCurrentWorkspaceEstimateTemplatesAppPath({
+  database,
   workspaceId,
-  templateId = null,
+  templateId,
 }: {
-  supabase: ComponentLibraryRepositoryClient;
+  database: D1DatabaseLike;
   workspaceId: string;
   templateId?: string | null;
-}): Promise<EstimateTemplate[] | null> {
-  if (process.env.WORKSHOP_LIBRARY_TEMPLATES_RPC_DISABLED === "1") return null;
-
-  const seedResult = await traced("library.templates.rpc.library_templates_seed", () =>
-    (supabase as unknown as {
-      rpc: (
-        functionName: "library_templates_seed",
-        args: { target_workspace_id: string; target_template_id: string | null },
-      ) => Promise<LibraryTemplatesSeedRpcResult>;
-    }).rpc("library_templates_seed", {
-      target_workspace_id: workspaceId,
-      target_template_id: templateId,
-    }),
-  );
-
-  if (seedResult.error) {
-    if (isLibraryTemplatesSeedRolloutError(seedResult.error)) {
-      const code = isRecord(seedResult.error) && typeof seedResult.error.code === "string" ? seedResult.error.code : "unknown";
-      const message = isRecord(seedResult.error) && typeof seedResult.error.message === "string" ? seedResult.error.message : "unknown";
-      const details = isRecord(seedResult.error) && typeof seedResult.error.details === "string" ? seedResult.error.details : null;
-      console.warn(`[library_templates_seed] RPC unavailable (code=${code}, message=${message}, details=${details}); using app path`);
-      return null;
-    }
-    throw seedResult.error;
-  }
-
-  try {
-    return buildEstimateTemplatesFromRows(parseLibraryTemplatesSeedPayload(seedResult.data));
-  } catch (error) {
-    if (!isLibraryTemplatesSeedContractError(error)) throw error;
-    console.warn(`[library_templates_seed] RPC returned an incompatible payload (${error.message}); using app path`);
-    return null;
-  }
-}
-
-async function loadCurrentWorkspaceEstimateTemplatesAppPath({
-  supabase,
-  workspaceId,
-}: {
-  supabase: ComponentLibraryRepositoryClient;
-  workspaceId: string;
 }): Promise<EstimateTemplate[]> {
-  const templatesResult = await supabase
-    .from("estimate_templates")
-    .select("*")
-    .eq("workspace_id", workspaceId)
-    .order("sort_order", { ascending: true })
-    .order("name", { ascending: true });
-
-  if (templatesResult.error && !isMissingRelationError(templatesResult.error, "estimate_templates")) throw templatesResult.error;
-
-  const persistedTemplateRows = templatesResult.error ? [] : (templatesResult.data ?? []);
-  let libraryTemplates = getTemplateTableFallbackTemplates({ isTemplateTableMissing: Boolean(templatesResult.error) });
+  const persistedTemplateRows = await all<EstimateTemplateRow>(
+    database,
+    `SELECT *
+     FROM estimate_templates
+     WHERE workspace_id = ?${templateId ? " AND id = ?" : ""}
+     ORDER BY sort_order ASC, name ASC`,
+    templateId ? [workspaceId, templateId] : [workspaceId],
+  );
+  let libraryTemplates = getTemplateTableFallbackTemplates({ isTemplateTableMissing: false });
 
   if (persistedTemplateRows.length > 0) {
     const templateIds = persistedTemplateRows.map((template) => template.id);
-    const [templateNodesResult, templateRowItemsResult] = await Promise.all([
-      supabase
-        .from("estimate_template_nodes")
-        .select("*")
-        .in("template_id", templateIds)
-        .order("sort_order", { ascending: true }),
-      supabase
-        .from("estimate_template_row_items")
-        .select("*")
-        .in("template_id", templateIds)
-        .order("sort_order", { ascending: true }),
+    const [templateNodes, templateRowItems] = await Promise.all([
+      all<EstimateTemplateNodeRow>(
+        database,
+        `SELECT *
+         FROM estimate_template_nodes
+         WHERE template_id IN (${placeholders(templateIds)})
+         ORDER BY sort_order ASC`,
+        templateIds,
+      ),
+      all<EstimateTemplateRowItemRow>(
+        database,
+        `SELECT *
+         FROM estimate_template_row_items
+         WHERE template_id IN (${placeholders(templateIds)})
+         ORDER BY sort_order ASC`,
+        templateIds,
+      ),
     ]);
-
-    if (templateNodesResult.error) throw templateNodesResult.error;
-    if (templateRowItemsResult.error) throw templateRowItemsResult.error;
 
     libraryTemplates = buildEstimateTemplatesFromRows({
       templates: persistedTemplateRows,
-      nodes: templateNodesResult.data ?? [],
-      rowItems: templateRowItemsResult.data ?? [],
+      nodes: templateNodes,
+      rowItems: templateRowItems,
     });
   }
 
@@ -1235,22 +1334,22 @@ async function loadCurrentWorkspaceEstimateTemplatesAppPath({
 }
 
 async function loadCurrentWorkspaceEstimateTemplates({
-  supabase,
+  database,
   workspaceId,
+  templateId,
 }: {
-  supabase: ComponentLibraryRepositoryClient;
+  database: D1DatabaseLike;
   workspaceId: string;
+  templateId?: string | null;
 }): Promise<EstimateTemplate[]> {
-  const rpcTemplates = await loadCurrentWorkspaceEstimateTemplatesRpcPath({ supabase, workspaceId });
-  if (rpcTemplates) return rpcTemplates;
-  return loadCurrentWorkspaceEstimateTemplatesAppPath({ supabase, workspaceId });
+  return loadCurrentWorkspaceEstimateTemplatesAppPath({ database, workspaceId, templateId });
 }
 
 export async function getCurrentWorkspaceComponentRowsLibrary(options: ComponentRowsLibraryLoadOptions = {}): Promise<ComponentRowsLibraryDataset> {
   const { workspace } = await ensureDefaultWorkspace();
-  const supabase = await createSupabaseServerClient();
+  const database = await requireComponentLibraryRepositoryD1Database();
   return loadCurrentWorkspaceComponentRowsLibrary({
-    supabase,
+    database,
     workspaceId: workspace.id,
     includeDetailGraph: options.includeDetailGraph,
     itemLimit: options.itemLimit,
@@ -1275,9 +1374,9 @@ export type CurrentWorkspaceEstimateTemplatesSeed = {
 
 export async function getCurrentWorkspaceEstimateTemplatesSeed(): Promise<CurrentWorkspaceEstimateTemplatesSeed> {
   const { workspace, profile } = await ensureDefaultWorkspace();
-  const supabase = await createSupabaseServerClient();
+  const database = await requireComponentLibraryRepositoryD1Database();
   return {
-    templates: await loadCurrentWorkspaceEstimateTemplates({ supabase, workspaceId: workspace.id }),
+    templates: await loadCurrentWorkspaceEstimateTemplates({ database, workspaceId: workspace.id }),
     userId: profile.id,
     workspaceId: workspace.id,
   };
@@ -1302,7 +1401,7 @@ export type LibraryOverviewComponent = {
   pricingSource?: string | null;
   pricingDate?: string | null;
   confidence?: string | null;
-  lifecycleState: Tables<"cost_library_items">["lifecycle_state"];
+  lifecycleState: CostLibraryLifecycleState;
   updatedAt: string;
 };
 
@@ -1364,7 +1463,7 @@ const LIBRARY_DASHBOARD_RECENT_COMPONENT_COLUMNS =
   "id, name, category, supplier, unit, unit_cost, thumbnail_path, pricing_source, pricing_date, confidence, lifecycle_state, updated_at";
 
 type LibraryOverviewComponentRow = Pick<
-  Tables<"cost_library_items">,
+  CostLibraryItemRow,
   | "id"
   | "name"
   | "category"
@@ -1569,56 +1668,6 @@ export function parseLibraryOverviewSummaryPayload(value: unknown): LibraryOverv
   };
 }
 
-function isSupabaseRpcRolloutError(error: unknown): boolean {
-  if (!isRecord(error)) return false;
-  const code = typeof error.code === "string" ? error.code : "";
-  const message = typeof error.message === "string" ? error.message.toLowerCase() : "";
-  return (
-    code === "PGRST202" ||
-    code === "42883" ||
-    message.includes("schema cache") ||
-    message.includes("could not find the function")
-  );
-}
-
-function isLibraryComponentRowsSeedRolloutError(error: unknown): boolean {
-  return isSupabaseRpcRolloutError(error);
-}
-
-function isLibraryComponentRowsSeedContractError(error: unknown): error is Error {
-  return error instanceof Error && error.message.startsWith("library_component_rows_seed invalid");
-}
-
-function isLibraryTemplatesSeedRolloutError(error: unknown): boolean {
-  if (isSupabaseRpcRolloutError(error)) return true;
-  if (!isRecord(error)) return false;
-  const candidate = {
-    code: typeof error.code === "string" ? error.code : null,
-    message: typeof error.message === "string" ? error.message : null,
-  };
-  return (
-    isMissingRelationError(candidate, "estimate_templates") ||
-    isMissingRelationError(candidate, "estimate_template_nodes") ||
-    isMissingRelationError(candidate, "estimate_template_row_items")
-  );
-}
-
-function isLibraryTemplatesSeedContractError(error: unknown): error is Error {
-  return error instanceof Error && error.message.startsWith("library_templates_seed invalid");
-}
-
-function isLibraryOverviewSummaryRolloutError(error: unknown): boolean {
-  return isSupabaseRpcRolloutError(error);
-}
-
-function isLibraryOverviewSummaryContractError(error: unknown): error is Error {
-  if (!(error instanceof Error)) return false;
-  return (
-    error.message.startsWith("library_overview_summary invalid") ||
-    error.message.startsWith("library overview RPC invalid shape")
-  );
-}
-
 function buildLibraryOverviewFromSummaryPayload(payload: LibraryOverviewSummaryPayload): LibraryOverview {
   const builtById = new Map(
     buildEstimateTemplatesFromRows({
@@ -1646,178 +1695,142 @@ function buildLibraryOverviewFromSummaryPayload(payload: LibraryOverviewSummaryP
   };
 }
 
-/**
- * One lightweight payload for the Library Overview home: header counts,
- * 6 most recently updated components, 5 most recently updated templates,
- * and the health-line stats. Indexed lookups only — never the full
- * component or template datasets.
- */
-async function getLibraryOverviewRpcPath(): Promise<LibraryOverview | null> {
-  if (process.env.WORKSHOP_LIBRARY_OVERVIEW_RPC_DISABLED === "1") return null;
-
-  const { workspace } = await ensureDefaultWorkspace();
-  const supabase = await createSupabaseServerClient();
-  const summaryResult = await traced("library.overview.rpc.library_overview_summary", () =>
-    (supabase as unknown as {
-      rpc: (
-        functionName: "library_overview_summary",
-        args: { target_workspace_id: string },
-      ) => Promise<LibraryOverviewSummaryRpcResult>;
-    }).rpc("library_overview_summary", {
-      target_workspace_id: workspace.id,
-    }),
-  );
-
-  if (summaryResult.error) {
-    if (isLibraryOverviewSummaryRolloutError(summaryResult.error)) {
-      const code = isRecord(summaryResult.error) && typeof summaryResult.error.code === "string" ? summaryResult.error.code : "unknown";
-      const message = isRecord(summaryResult.error) && typeof summaryResult.error.message === "string" ? summaryResult.error.message : "unknown";
-      const details = isRecord(summaryResult.error) && typeof summaryResult.error.details === "string" ? summaryResult.error.details : null;
-      console.warn(`[library_overview_summary] RPC unavailable (code=${code}, message=${message}, details=${details}); using app path`);
-      return null;
-    }
-    throw summaryResult.error;
-  }
-
-  try {
-    return buildLibraryOverviewFromSummaryPayload(parseLibraryOverviewSummaryPayload(summaryResult.data));
-  } catch (error) {
-    if (!isLibraryOverviewSummaryContractError(error)) throw error;
-    console.warn(`[library_overview_summary] RPC returned an incompatible payload (${error.message}); using app path`);
-    return null;
-  }
-}
-
 export async function getLibraryOverview(): Promise<LibraryOverview> {
-  const rpcOverview = await getLibraryOverviewRpcPath();
-  if (rpcOverview) return rpcOverview;
   return getLibraryOverviewAppPath();
 }
 
+type CountRow = { count: number };
+
 async function getLibraryOverviewAppPath(): Promise<LibraryOverview> {
   const { workspace } = await ensureDefaultWorkspace();
-  const supabase = await createSupabaseServerClient();
+  const database = await requireComponentLibraryRepositoryD1Database();
   const workspaceId = workspace.id;
   const stalePricingCutoff = new Date(Date.now() - LIBRARY_OVERVIEW_STALE_PRICING_DAYS * 24 * 60 * 60 * 1000)
     .toISOString()
     .slice(0, 10);
 
   const [
-    componentCountResult,
-    categoryCountResult,
-    supplierCountResult,
-    brandCountResult,
-    recentComponentsResult,
-    recentTemplatesResult,
-    templateCategoriesResult,
-    staleCountResult,
-    missingBrandCountResult,
-    lastUpdateResult,
-    discontinuedIdsResult,
+    componentCountRow,
+    categoryCountRow,
+    supplierCountRow,
+    brandCountRow,
+    recentComponentRows,
+    recentTemplateRows,
+    templateCategoryRows,
+    staleCountRow,
+    missingBrandCountRow,
+    lastUpdateRow,
+    discontinuedRows,
   ] = await Promise.all([
-    supabase
-      .from("cost_library_items")
-      .select("id", { count: "exact", head: true })
-      .eq("workspace_id", workspaceId)
-      .neq("lifecycle_state", "archived"),
-    supabase
-      .from("component_category_nodes")
-      .select("id", { count: "exact", head: true })
-      .is("parent_id", null),
-    supabase
-      .from("component_suppliers")
-      .select("id", { count: "exact", head: true })
-      .eq("workspace_id", workspaceId),
-    supabase
-      .from("component_brands")
-      .select("id", { count: "exact", head: true })
-      .eq("workspace_id", workspaceId),
-    supabase
-      .from("cost_library_items")
-      .select(LIBRARY_DASHBOARD_RECENT_COMPONENT_COLUMNS)
-      .eq("workspace_id", workspaceId)
-      .neq("lifecycle_state", "archived")
-      .order("updated_at", { ascending: false })
-      .limit(6),
-    supabase
-      .from("estimate_templates")
-      .select("*")
-      .eq("workspace_id", workspaceId)
-      .order("updated_at", { ascending: false })
-      .limit(5),
-    supabase
-      .from("estimate_templates")
-      .select("category")
-      .eq("workspace_id", workspaceId),
-    supabase
-      .from("cost_library_items")
-      .select("id", { count: "exact", head: true })
-      .eq("workspace_id", workspaceId)
-      .neq("lifecycle_state", "archived")
-      .not("pricing_date", "is", null)
-      .lt("pricing_date", stalePricingCutoff),
-    supabase
-      .from("cost_library_items")
-      .select("id", { count: "exact", head: true })
-      .eq("workspace_id", workspaceId)
-      .neq("lifecycle_state", "archived")
-      .is("brand_id", null)
-      .or('brand.is.null,brand.eq.""'),
-    supabase
-      .from("cost_library_items")
-      .select("updated_at")
-      .eq("workspace_id", workspaceId)
-      .order("updated_at", { ascending: false })
-      .limit(1),
-    supabase
-      .from("cost_library_items")
-      .select("id")
-      .eq("workspace_id", workspaceId)
-      .eq("lifecycle_state", "discontinued"),
+    first<CountRow>(
+      database,
+      "SELECT COUNT(*) AS count FROM cost_library_items WHERE workspace_id = ? AND lifecycle_state <> 'archived'",
+      [workspaceId],
+    ),
+    first<CountRow>(
+      database,
+      "SELECT COUNT(*) AS count FROM component_category_nodes WHERE parent_id IS NULL",
+    ),
+    first<CountRow>(
+      database,
+      "SELECT COUNT(*) AS count FROM component_suppliers WHERE workspace_id = ?",
+      [workspaceId],
+    ),
+    first<CountRow>(
+      database,
+      "SELECT COUNT(*) AS count FROM component_brands WHERE workspace_id = ?",
+      [workspaceId],
+    ),
+    all<LibraryOverviewComponentRow>(
+      database,
+      `SELECT ${LIBRARY_DASHBOARD_RECENT_COMPONENT_COLUMNS}
+       FROM cost_library_items
+       WHERE workspace_id = ?
+         AND lifecycle_state <> 'archived'
+       ORDER BY updated_at DESC
+       LIMIT 6`,
+      [workspaceId],
+    ),
+    all<EstimateTemplateRow>(
+      database,
+      `SELECT *
+       FROM estimate_templates
+       WHERE workspace_id = ?
+       ORDER BY updated_at DESC
+       LIMIT 5`,
+      [workspaceId],
+    ),
+    all<Pick<EstimateTemplateRow, "category">>(
+      database,
+      "SELECT category FROM estimate_templates WHERE workspace_id = ?",
+      [workspaceId],
+    ),
+    first<CountRow>(
+      database,
+      `SELECT COUNT(*) AS count
+       FROM cost_library_items
+       WHERE workspace_id = ?
+         AND lifecycle_state <> 'archived'
+         AND pricing_date IS NOT NULL
+         AND pricing_date < ?`,
+      [workspaceId, stalePricingCutoff],
+    ),
+    first<CountRow>(
+      database,
+      `SELECT COUNT(*) AS count
+       FROM cost_library_items
+       WHERE workspace_id = ?
+         AND lifecycle_state <> 'archived'
+         AND brand_id IS NULL
+         AND (brand IS NULL OR brand = '')`,
+      [workspaceId],
+    ),
+    first<Pick<CostLibraryItemRow, "updated_at">>(
+      database,
+      `SELECT updated_at
+       FROM cost_library_items
+       WHERE workspace_id = ?
+       ORDER BY updated_at DESC
+       LIMIT 1`,
+      [workspaceId],
+    ),
+    all<Pick<CostLibraryItemRow, "id">>(
+      database,
+      "SELECT id FROM cost_library_items WHERE workspace_id = ? AND lifecycle_state = 'discontinued'",
+      [workspaceId],
+    ),
   ]);
 
-  if (componentCountResult.error) throw componentCountResult.error;
-  if (categoryCountResult.error) throw categoryCountResult.error;
-  if (supplierCountResult.error) throw supplierCountResult.error;
-  if (brandCountResult.error && !isMissingRelationError(brandCountResult.error, "component_brands")) throw brandCountResult.error;
-  if (recentComponentsResult.error) throw recentComponentsResult.error;
-  if (recentTemplatesResult.error && !isMissingRelationError(recentTemplatesResult.error, "estimate_templates")) throw recentTemplatesResult.error;
-  if (templateCategoriesResult.error && !isMissingRelationError(templateCategoriesResult.error, "estimate_templates")) throw templateCategoriesResult.error;
-  if (staleCountResult.error) throw staleCountResult.error;
-  if (missingBrandCountResult.error) throw missingBrandCountResult.error;
-  if (lastUpdateResult.error) throw lastUpdateResult.error;
-  if (discontinuedIdsResult.error) throw discontinuedIdsResult.error;
-
-  const recentComponents: LibraryOverviewComponent[] = (recentComponentsResult.data ?? []).map(toLibraryOverviewComponent);
+  const recentComponents: LibraryOverviewComponent[] = recentComponentRows.map(toLibraryOverviewComponent);
 
   // Templates: counts need nodes + rows, fetched for just the 5 recent ids.
-  // A missing templates table falls back to the seed list (same behavior as
-  // the Templates browse tab).
-  const isTemplateTableMissing = Boolean(recentTemplatesResult.error);
-  const recentTemplateRows = recentTemplatesResult.error ? [] : (recentTemplatesResult.data ?? []);
   let recentTemplates: LibraryOverviewTemplate[] = [];
   if (recentTemplateRows.length > 0) {
     const recentTemplateIds = recentTemplateRows.map((template) => template.id);
-    const [templateNodesResult, templateRowItemsResult] = await Promise.all([
-      supabase
-        .from("estimate_template_nodes")
-        .select("*")
-        .in("template_id", recentTemplateIds)
-        .order("sort_order", { ascending: true }),
-      supabase
-        .from("estimate_template_row_items")
-        .select("*")
-        .in("template_id", recentTemplateIds)
-        .order("sort_order", { ascending: true }),
+    const [templateNodes, templateRowItems] = await Promise.all([
+      all<EstimateTemplateNodeRow>(
+        database,
+        `SELECT *
+         FROM estimate_template_nodes
+         WHERE template_id IN (${placeholders(recentTemplateIds)})
+         ORDER BY sort_order ASC`,
+        recentTemplateIds,
+      ),
+      all<EstimateTemplateRowItemRow>(
+        database,
+        `SELECT *
+         FROM estimate_template_row_items
+         WHERE template_id IN (${placeholders(recentTemplateIds)})
+         ORDER BY sort_order ASC`,
+        recentTemplateIds,
+      ),
     ]);
-    if (templateNodesResult.error) throw templateNodesResult.error;
-    if (templateRowItemsResult.error) throw templateRowItemsResult.error;
 
     const builtById = new Map(
       buildEstimateTemplatesFromRows({
         templates: recentTemplateRows,
-        nodes: templateNodesResult.data ?? [],
-        rowItems: templateRowItemsResult.data ?? [],
+        nodes: templateNodes,
+        rowItems: templateRowItems,
       }).map((template) => [template.id, template]),
     );
     // buildEstimateTemplatesFromRows sorts by sort_order; restore recency order.
@@ -1826,104 +1839,99 @@ async function getLibraryOverviewAppPath(): Promise<LibraryOverview> {
       .filter((template): template is EstimateTemplate => Boolean(template))
       .map(toLibraryOverviewTemplate);
   } else {
-    recentTemplates = getTemplateTableFallbackTemplates({ isTemplateTableMissing })
+    recentTemplates = getTemplateTableFallbackTemplates({ isTemplateTableMissing: false })
       .slice(0, 5)
       .map(toLibraryOverviewTemplate);
   }
 
-  const templateCategoryRows = templateCategoriesResult.error ? [] : (templateCategoriesResult.data ?? []);
   const templateCategorySet = new Set(
-    isTemplateTableMissing
-      ? getTemplateTableFallbackTemplates({ isTemplateTableMissing }).map((template) => template.category)
-      : templateCategoryRows.map((row) => row.category),
+    templateCategoryRows.map((row) => row.category),
   );
-  const templateCount = isTemplateTableMissing
-    ? getTemplateTableFallbackTemplates({ isTemplateTableMissing }).length
-    : templateCategoryRows.length;
+  const templateCount = templateCategoryRows.length;
 
   // Discontinued items still referenced by template or estimate rows. The
   // discontinued id list is small, so two indexed .in() lookups stay cheap.
   let discontinuedInUseCount = 0;
-  const discontinuedIds = (discontinuedIdsResult.data ?? []).map((row) => row.id);
+  const discontinuedIds = discontinuedRows.map((row) => row.id);
   if (discontinuedIds.length > 0) {
-    const [templateRefsResult, estimateRefsResult] = await Promise.all([
-      supabase
-        .from("estimate_template_row_items")
-        .select("source_library_item_id")
-        .in("source_library_item_id", discontinuedIds),
-      supabase
-        .from("estimate_row_items")
-        .select("source_library_item_id")
-        .in("source_library_item_id", discontinuedIds),
+    const [templateRefs, estimateRefs] = await Promise.all([
+      all<Pick<EstimateTemplateRowItemRow, "source_library_item_id">>(
+        database,
+        `SELECT source_library_item_id
+         FROM estimate_template_row_items
+         WHERE source_library_item_id IN (${placeholders(discontinuedIds)})`,
+        discontinuedIds,
+      ),
+      all<{ source_library_item_id: string | null }>(
+        database,
+        `SELECT source_library_item_id
+         FROM estimate_row_items
+         WHERE source_library_item_id IN (${placeholders(discontinuedIds)})`,
+        discontinuedIds,
+      ),
     ]);
-    if (templateRefsResult.error && !isMissingRelationError(templateRefsResult.error, "estimate_template_row_items")) {
-      throw templateRefsResult.error;
-    }
-    if (estimateRefsResult.error) throw estimateRefsResult.error;
 
     const inUseIds = new Set<string>();
-    for (const row of templateRefsResult.error ? [] : (templateRefsResult.data ?? [])) {
+    for (const row of templateRefs) {
       if (row.source_library_item_id) inUseIds.add(row.source_library_item_id);
     }
-    for (const row of estimateRefsResult.data ?? []) {
+    for (const row of estimateRefs) {
       if (row.source_library_item_id) inUseIds.add(row.source_library_item_id);
     }
     discontinuedInUseCount = inUseIds.size;
   }
 
   return {
-    componentCount: componentCountResult.count ?? 0,
-    categoryCount: categoryCountResult.count ?? 0,
-    supplierCount: supplierCountResult.count ?? 0,
-    brandCount: brandCountResult.error ? 0 : (brandCountResult.count ?? 0),
+    componentCount: componentCountRow?.count ?? 0,
+    categoryCount: categoryCountRow?.count ?? 0,
+    supplierCount: supplierCountRow?.count ?? 0,
+    brandCount: brandCountRow?.count ?? 0,
     templateCount,
     templateGroupCount: templateCategorySet.size,
     templateCategories: [...templateCategorySet].sort((left, right) => left.localeCompare(right)),
     recentComponents,
     recentTemplates,
     health: {
-      staleComponentCount: staleCountResult.count ?? 0,
+      staleComponentCount: staleCountRow?.count ?? 0,
       discontinuedInUseCount,
-      missingBrandCount: missingBrandCountResult.count ?? 0,
-      lastLibraryUpdate: lastUpdateResult.data?.[0]?.updated_at ?? null,
+      missingBrandCount: missingBrandCountRow?.count ?? 0,
+      lastLibraryUpdate: lastUpdateRow?.updated_at ?? null,
     },
   };
 }
 
 export async function getLibraryDashboardSpotlight(): Promise<LibraryDashboardSpotlight | null> {
   const { workspace } = await ensureDefaultWorkspace();
-  const supabase = await createSupabaseServerClient();
+  const database = await requireComponentLibraryRepositoryD1Database();
   const workspaceId = workspace.id;
 
-  const [componentCountResult, recentComponentsResult, templateCountResult] = await Promise.all([
-    supabase
-      .from("cost_library_items")
-      .select("id", { count: "exact", head: true })
-      .eq("workspace_id", workspaceId)
-      .neq("lifecycle_state", "archived"),
-    supabase
-      .from("cost_library_items")
-      .select(LIBRARY_DASHBOARD_RECENT_COMPONENT_COLUMNS)
-      .eq("workspace_id", workspaceId)
-      .neq("lifecycle_state", "archived")
-      .order("updated_at", { ascending: false })
-      .limit(5),
-    supabase
-      .from("estimate_templates")
-      .select("id", { count: "exact", head: true })
-      .eq("workspace_id", workspaceId),
+  const [componentCountRow, recentComponentRows, templateCountRow] = await Promise.all([
+    first<CountRow>(
+      database,
+      "SELECT COUNT(*) AS count FROM cost_library_items WHERE workspace_id = ? AND lifecycle_state <> 'archived'",
+      [workspaceId],
+    ),
+    all<LibraryOverviewComponentRow>(
+      database,
+      `SELECT ${LIBRARY_DASHBOARD_RECENT_COMPONENT_COLUMNS}
+       FROM cost_library_items
+       WHERE workspace_id = ?
+         AND lifecycle_state <> 'archived'
+       ORDER BY updated_at DESC
+       LIMIT 5`,
+      [workspaceId],
+    ),
+    first<CountRow>(
+      database,
+      "SELECT COUNT(*) AS count FROM estimate_templates WHERE workspace_id = ?",
+      [workspaceId],
+    ),
   ]);
 
-  if (componentCountResult.error) throw componentCountResult.error;
-  if (recentComponentsResult.error) throw recentComponentsResult.error;
-  if (templateCountResult.error && !isMissingRelationError(templateCountResult.error, "estimate_templates")) {
-    throw templateCountResult.error;
-  }
-
   return {
-    componentCount: componentCountResult.count ?? 0,
-    templateCount: templateCountResult.error ? 0 : (templateCountResult.count ?? 0),
-    recentComponents: (recentComponentsResult.data ?? []).map((row) => {
+    componentCount: componentCountRow?.count ?? 0,
+    templateCount: templateCountRow?.count ?? 0,
+    recentComponents: recentComponentRows.map((row) => {
       const component = toLibraryOverviewComponent(row);
       return {
         id: component.id,
@@ -1944,54 +1952,21 @@ export async function getLibraryDashboardSpotlight(): Promise<LibraryDashboardSp
 export async function getEstimateTemplateById(templateId: string): Promise<EstimateTemplate | null> {
   if (!isUuid(templateId)) return null;
   const { workspace } = await ensureDefaultWorkspace();
-  const supabase = await createSupabaseServerClient();
-  const rpcTemplates = await loadCurrentWorkspaceEstimateTemplatesRpcPath({ supabase, workspaceId: workspace.id, templateId });
-  if (rpcTemplates !== null) return rpcTemplates[0] ?? null;
-
-  const templateResult = await supabase
-    .from("estimate_templates")
-    .select("*")
-    .eq("workspace_id", workspace.id)
-    .eq("id", templateId)
-    .maybeSingle();
-
-  if (templateResult.error) {
-    if (isMissingRelationError(templateResult.error, "estimate_templates")) return null;
-    throw templateResult.error;
-  }
-  if (!templateResult.data) return null;
-
-  const [templateNodesResult, templateRowItemsResult] = await Promise.all([
-    supabase
-      .from("estimate_template_nodes")
-      .select("*")
-      .eq("template_id", templateResult.data.id)
-      .order("sort_order", { ascending: true }),
-    supabase
-      .from("estimate_template_row_items")
-      .select("*")
-      .eq("template_id", templateResult.data.id)
-      .order("sort_order", { ascending: true }),
-  ]);
-
-  if (templateNodesResult.error) throw templateNodesResult.error;
-  if (templateRowItemsResult.error) throw templateRowItemsResult.error;
-
-  const [template] = buildEstimateTemplatesFromRows({
-    templates: [templateResult.data],
-    nodes: templateNodesResult.data ?? [],
-    rowItems: templateRowItemsResult.data ?? [],
+  const database = await requireComponentLibraryRepositoryD1Database();
+  const templates = await loadCurrentWorkspaceEstimateTemplates({
+    database,
+    workspaceId: workspace.id,
+    templateId,
   });
-
-  return template ?? null;
+  return templates[0] ?? null;
 }
 
 export async function getCurrentWorkspaceComponentLibrary(): Promise<ComponentLibraryDataset> {
   const { workspace } = await ensureDefaultWorkspace();
-  const supabase = await createSupabaseServerClient();
+  const database = await requireComponentLibraryRepositoryD1Database();
   const [componentRows, templates] = await Promise.all([
-    loadCurrentWorkspaceComponentRowsLibrary({ supabase, workspaceId: workspace.id }),
-    loadCurrentWorkspaceEstimateTemplates({ supabase, workspaceId: workspace.id }),
+    loadCurrentWorkspaceComponentRowsLibrary({ database, workspaceId: workspace.id }),
+    loadCurrentWorkspaceEstimateTemplates({ database, workspaceId: workspace.id }),
   ]);
 
   return {
@@ -2012,15 +1987,15 @@ export async function getCurrentWorkspaceComponentLibrary(): Promise<ComponentLi
  */
 export async function getCurrentWorkspaceComponentLibraryLite(): Promise<ComponentLibraryDataset> {
   const { workspace } = await ensureDefaultWorkspace();
-  const supabase = await createSupabaseServerClient();
+  const database = await requireComponentLibraryRepositoryD1Database();
   const [componentRows, templates] = await Promise.all([
     loadCurrentWorkspaceComponentRowsLibrary({
-      supabase,
+      database,
       workspaceId: workspace.id,
       includeDetailGraph: false,
       itemLimit: SIDEBAR_COMPONENT_LIBRARY_DEFAULT_LIMIT,
     }),
-    loadCurrentWorkspaceEstimateTemplates({ supabase, workspaceId: workspace.id }),
+    loadCurrentWorkspaceEstimateTemplates({ database, workspaceId: workspace.id }),
   ]);
 
   return {

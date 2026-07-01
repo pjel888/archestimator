@@ -19,11 +19,11 @@ import { traced } from "@/lib/perf/server-timing";
 import { isProjectPageCursorsEnabled } from "@/lib/collaboration/feature-flags";
 import type { PublisherDrawerTabId } from "@/components/workshop/publisher/PublisherDrawer";
 import type { ProjectPublicationSummary } from "@/lib/publication/types";
-import type { Tables } from "@/lib/supabase/types";
+import type { ProjectRow } from "@/lib/types/database";
 
 type ProjectChromeAsyncProps = {
   projectId: string;
-  liveProject?: Tables<"projects"> | null;
+  liveProject?: ProjectRow | null;
 };
 
 type ProjectPublisherHeaderActionsProps = {

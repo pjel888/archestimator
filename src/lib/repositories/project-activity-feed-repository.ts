@@ -15,8 +15,8 @@ import {
 } from "@/components/workshop/project-activity/action-classes";
 import type { ActivityPageScope } from "@/components/workshop/project-activity/url-state";
 import { getCurrentWorkspaceProject } from "@/lib/repositories/workspace-repository";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { Json, Tables } from "@/lib/supabase/types";
+import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
+import type { Json } from "@/lib/types/json";
 
 export type ProjectActivityFeedScope = ActivityPageScope;
 export type ProjectActivityFeedFilters = {
@@ -64,63 +64,74 @@ type ActivityEntry = {
   sortKey: SortKey;
 };
 
-type ProjectPublicationRow = Pick<
-  Tables<"project_publications">,
-  "activity_target_labels_json" | "id" | "project_id" | "published_at" | "published_by" | "revoked_at" | "selected_estimate_ids" | "snapshot_version" | "status"
->;
-type SharedCommentRow = Pick<
-  Tables<"shared_link_comments">,
-  | "author_name"
-  | "body"
-  | "created_at"
-  | "estimate_id"
-  | "id"
-  | "is_internal"
-  | "publication_id"
-  | "recipient_id"
-  | "row_id"
-  | "snapshot_version_at_comment"
-  | "target_kind"
-  | "target_label"
-  | "target_secondary_label"
->;
-type SharedResponseRow = Pick<
-  Tables<"shared_link_responses">,
-  | "created_at"
-  | "decision"
-  | "estimate_id"
-  | "id"
-  | "note"
-  | "publication_id"
-  | "recipient_id"
-  | "row_id"
-  | "signer_name"
-  | "snapshot_version_at_decision"
-  | "target_kind"
-  | "target_label"
-  | "target_secondary_label"
->;
-type SharedEventRow = Pick<Tables<"shared_link_events">, "created_at" | "event_type" | "id" | "metadata_json" | "publication_id" | "recipient_id">;
-type EstimateEventRow = Pick<
-  Tables<"estimate_sheet_events">,
-  | "actor_user_id"
-  | "changed_fields"
-  | "correlation_id"
-  | "created_at"
-  | "estimate_id"
-  | "estimate_node_id"
-  | "estimate_tab_id"
-  | "event_source"
-  | "event_type"
-  | "id"
-  | "new_snapshot"
-  | "old_snapshot"
-  | "payload"
-  | "project_id"
-  | "row_context"
-  | "target_row_id"
-  | "total_delta"
->;
+type ProjectPublicationRow = {
+  activity_target_labels_json: unknown;
+  id: string;
+  project_id: string;
+  published_at: string;
+  published_by: string | null;
+  revoked_at: string | null;
+  selected_estimate_ids: unknown;
+  snapshot_version: number;
+  status: string;
+};
+type SharedCommentRow = {
+  author_name: string | null;
+  body: string | null;
+  created_at: string;
+  estimate_id: string | null;
+  id: string;
+  is_internal: boolean | number | null;
+  publication_id: string;
+  recipient_id: string | null;
+  row_id: string | null;
+  snapshot_version_at_comment: number | null;
+  target_kind: string | null;
+  target_label: string | null;
+  target_secondary_label: string | null;
+};
+type SharedResponseRow = {
+  created_at: string;
+  decision: string;
+  estimate_id: string | null;
+  id: string;
+  note: string | null;
+  publication_id: string;
+  recipient_id: string | null;
+  row_id: string | null;
+  signer_name: string | null;
+  snapshot_version_at_decision: number | null;
+  target_kind: string | null;
+  target_label: string | null;
+  target_secondary_label: string | null;
+};
+type SharedEventRow = {
+  created_at: string;
+  event_type: string;
+  id: string;
+  metadata_json: unknown;
+  publication_id: string;
+  recipient_id: string | null;
+};
+type EstimateEventRow = {
+  actor_user_id: string | null;
+  changed_fields: unknown;
+  correlation_id: string | null;
+  created_at: string;
+  estimate_id: string;
+  estimate_node_id: string | null;
+  estimate_tab_id: string | null;
+  event_source: string | null;
+  event_type: string;
+  id: string;
+  new_snapshot: unknown;
+  old_snapshot: unknown;
+  payload: unknown;
+  project_id: string | null;
+  row_context: unknown;
+  target_row_id: string | null;
+  total_delta: number | null;
+};
 type CollaborationAuditRpcRow = {
   actor_user_id: string | null;
   created_at: string;
@@ -131,8 +142,12 @@ type CollaborationAuditRpcRow = {
   project_id: string | null;
   source_total_count: number;
 };
-type ProfileRow = Pick<Tables<"profiles">, "display_name" | "id">;
-type RecipientRow = Pick<Tables<"shared_link_recipients">, "display_name" | "id" | "publication_id">;
+type ProfileRow = { display_name: string | null; id: string };
+type RecipientRow = { display_name: string | null; id: string; publication_id: string };
+type CountRow = { count: number };
+type EstimateDropdownRow = { id: string; name: string; sheet_code: string | null };
+type ProjectMemberRow = { user_id: string | null };
+type PublicationIdRow = { id: string };
 
 const DEFAULT_ACTIVITY_FEED_LIMIT = 20;
 const MAX_ACTIVITY_FEED_LIMIT = 50;
@@ -147,13 +162,76 @@ const estimateBucketEventTypes: Partial<Record<ProjectActivityConcreteActionBuck
   versioned: ["sheet_restored_as_copy", "sheet_version_created"],
 };
 
-function asRecord(value: Json | null | undefined): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  return value as Record<string, unknown>;
+function parseJsonValue(value: unknown, fallback: unknown) {
+  if (typeof value !== "string") return value ?? fallback;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
 }
 
-function asStringArray(value: string[] | null | undefined) {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+function asRecord(value: unknown): Record<string, unknown> {
+  const parsed = parseJsonValue(value, {});
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+  return parsed as Record<string, unknown>;
+}
+
+function asStringArray(value: unknown) {
+  const parsed = parseJsonValue(value, []);
+  return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
+}
+
+function placeholders(values: readonly unknown[]) {
+  return values.map(() => "?").join(", ");
+}
+
+function normalizeD1Value(value: unknown): D1Value {
+  if (value === null || typeof value === "string" || typeof value === "number" || typeof value === "boolean" || value instanceof ArrayBuffer) {
+    return value;
+  }
+  return JSON.stringify(value);
+}
+
+async function requireProjectActivityFeedD1Database() {
+  const database = await getCloudflareD1Database();
+  if (!database) {
+    throw new Error("Cloudflare D1 ARCH_DB binding is required for project activity feed data.");
+  }
+  return database;
+}
+
+async function all<T>(database: D1DatabaseLike, sql: string, values: unknown[] = []) {
+  const result = await database.prepare<T>(sql).bind(...values.map(normalizeD1Value)).all<T>();
+  if (result.success === false) throw new Error("Cloudflare D1 project activity feed read failed.");
+  return result.results ?? [];
+}
+
+async function count(database: D1DatabaseLike, sql: string, values: unknown[] = []) {
+  const rows = await all<CountRow>(database, sql, values);
+  return Number(rows[0]?.count ?? 0);
+}
+
+function cursorWhere(cursor: SortKey | undefined) {
+  if (!cursor) return { sql: "", values: [] as D1Value[] };
+  return {
+    sql: " AND (created_at < ? OR (created_at = ? AND id < ?))",
+    values: [cursor.createdAt, cursor.createdAt, cursor.id] as D1Value[],
+  };
+}
+
+function appendInFilter(parts: string[], values: unknown[], column: string, items: readonly string[]) {
+  if (!items.length) return;
+  parts.push(`${column} IN (${placeholders(items)})`);
+  values.push(...items);
+}
+
+function appendScopeEstimateFilter(parts: string[], values: unknown[], column: string, scope: ProjectActivityFeedScope) {
+  if (scope.kind === "estimate") {
+    parts.push(`${column} = ?`);
+    values.push(scope.estimateId);
+  }
+  if (scope.kind === "project-only") parts.push(`${column} IS NULL`);
 }
 
 function clampLimit(limit: number | undefined) {
@@ -222,11 +300,6 @@ function isProjectActivityFeedSourceName(value: string): value is ProjectActivit
   ].includes(value);
 }
 
-function cursorFilter(cursor: SortKey | undefined) {
-  if (!cursor) return null;
-  return `created_at.lt.${cursor.createdAt},and(created_at.eq.${cursor.createdAt},id.lt.${cursor.id})`;
-}
-
 function normalizeActions(actions: readonly ProjectActivityActionBucket[] | undefined): ProjectActivityConcreteActionBucket[] {
   if (!actions?.length || actions.includes("all")) return [];
   return Array.from(new Set(actions.filter((action): action is ProjectActivityConcreteActionBucket => action !== "all")));
@@ -269,7 +342,7 @@ async function normalizeFilters(filters: ProjectActivityFeedFilters | undefined)
 function createSharedMetadata(row: {
   estimate_id?: string | null;
   event_type?: string;
-  metadata_json?: Json;
+  metadata_json?: unknown;
   row_id?: string | null;
   snapshot_version_at_comment?: number | null;
   snapshot_version_at_decision?: number | null;
@@ -294,35 +367,49 @@ function readProfileLabel(profile: ProfileRow) {
 }
 
 async function readActorLabels(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   actorUserIds: string[],
 ) {
   const uniqueIds = Array.from(new Set(actorUserIds.filter((id) => isUuid(id))));
   if (!uniqueIds.length) return new Map<string, string>();
 
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, display_name")
-    .in("id", uniqueIds);
-  if (error) return new Map<string, string>();
+  let rows: ProfileRow[] = [];
+  try {
+    rows = await all<ProfileRow>(
+      database,
+      `SELECT id, display_name
+       FROM profiles
+       WHERE id IN (${placeholders(uniqueIds)})`,
+      uniqueIds,
+    );
+  } catch {
+    return new Map<string, string>();
+  }
 
-  return new Map(((data ?? []) as ProfileRow[]).map((profile) => [profile.id, readProfileLabel(profile)]));
+  return new Map(rows.map((profile) => [profile.id, readProfileLabel(profile)]));
 }
 
 async function readRecipientDisplayNames(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   recipientIds: string[],
 ) {
   const uniqueIds = Array.from(new Set(recipientIds.filter((id) => isUuid(id))));
   if (!uniqueIds.length) return new Map<string, string>();
 
-  const { data, error } = await supabase
-    .from("shared_link_recipients")
-    .select("id, display_name, publication_id")
-    .in("id", uniqueIds);
-  if (error) return new Map<string, string>();
+  let rows: RecipientRow[] = [];
+  try {
+    rows = await all<RecipientRow>(
+      database,
+      `SELECT id, display_name, publication_id
+       FROM shared_link_recipients
+       WHERE id IN (${placeholders(uniqueIds)})`,
+      uniqueIds,
+    );
+  } catch {
+    return new Map<string, string>();
+  }
 
-  return buildRecipientDisplayLabels((data ?? []) as RecipientRow[]);
+  return buildRecipientDisplayLabels(rows);
 }
 
 function buildRecipientDisplayLabels(rows: RecipientRow[]) {
@@ -379,27 +466,25 @@ function composePublicationActivity(row: ProjectPublicationRow, actorLabel: stri
 }
 
 function sharedMetadataContainsEstimate(row: ProjectPublicationRow, estimateId: string) {
-  if (row.selected_estimate_ids.includes(estimateId)) return true;
+  if (asStringArray(row.selected_estimate_ids).includes(estimateId)) return true;
   const labels = asRecord(row.activity_target_labels_json);
   const estimateLabels = labels.estimateLabels;
   return Boolean(estimateLabels && typeof estimateLabels === "object" && !Array.isArray(estimateLabels) && estimateId in estimateLabels);
 }
 
 async function readProjectPublications(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   projectId: string,
   workspaceId: string,
 ) {
-  const query = supabase
-    .from("project_publications")
-    .select("id, project_id, workspace_id, published_at, published_by, revoked_at, status, snapshot_version, selected_estimate_ids, activity_target_labels_json")
-    .eq("project_id", projectId)
-    .eq("workspace_id", workspaceId)
-    .order("published_at", { ascending: false });
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return (data ?? []) as ProjectPublicationRow[];
+  return all<ProjectPublicationRow>(
+    database,
+    `SELECT id, project_id, published_at, published_by, revoked_at, status, snapshot_version, selected_estimate_ids, activity_target_labels_json
+     FROM project_publications
+     WHERE project_id = ? AND workspace_id = ?
+     ORDER BY published_at DESC, id DESC`,
+    [projectId, workspaceId],
+  );
 }
 
 function filterPublicationRowsForScope(rows: ProjectPublicationRow[], scope: ProjectActivityFeedScope) {
@@ -431,12 +516,11 @@ function createPublicationEntries(
 
 async function runSourceQuery<T>(
   sourceName: ProjectActivityFeedSourceName,
-  query: PromiseLike<{ data: T[] | null; error: unknown }>,
+  query: Promise<T[]>,
 ) {
   try {
-    const { data, error } = await query;
-    if (error) return { rows: [] as T[], unavailableSource: sourceName };
-    return { rows: data ?? [], unavailableSource: null };
+    const rows = await query;
+    return { rows, unavailableSource: null };
   } catch {
     return { rows: [] as T[], unavailableSource: sourceName };
   }
@@ -448,12 +532,10 @@ function zeroCount() {
 
 async function runCountQuery(
   sourceName: ProjectActivityFeedSourceName,
-  query: PromiseLike<{ count: number | null; error: unknown }>,
+  query: Promise<number>,
 ) {
   try {
-    const { count, error } = await query;
-    if (error) return { count: 0, unavailableSource: sourceName };
-    return { count: count ?? 0, unavailableSource: null };
+    return { count: await query, unavailableSource: null };
   } catch {
     return { count: 0, unavailableSource: sourceName };
   }
@@ -465,17 +547,17 @@ function estimateEventTypesForActions(actions: readonly ProjectActivityConcreteA
   return eventTypes.length ? Array.from(new Set(eventTypes)) : [];
 }
 
-function collaborationActionBucketsForActions(actions: readonly ProjectActivityConcreteActionBucket[]) {
+function collaborationEventTypesForActions(actions: readonly ProjectActivityConcreteActionBucket[]) {
   if (!actions.length) return null;
-  const buckets: ProjectActivityConcreteActionBucket[] = [];
-  if (actions.includes("invited")) buckets.push("invited");
-  if (actions.includes("edited")) buckets.push("edited");
-  if (actions.includes("system")) buckets.push("system");
-  return buckets;
+  const eventTypes: string[] = [];
+  if (actions.includes("invited")) eventTypes.push("invite_email_attempted", "invite_email_sent", "member_removed", "role_changed");
+  if (actions.includes("edited")) eventTypes.push("project_metadata_updated");
+  if (actions.includes("system")) return null;
+  return Array.from(new Set(eventTypes));
 }
 
 async function readEstimateRows(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   args: {
     projectId: string;
     workspaceId: string;
@@ -489,28 +571,31 @@ async function readEstimateRows(
     return { rows: [] as EstimateEventRow[], unavailableSource: null };
   }
 
-  let query = supabase
-    .from("estimate_sheet_events")
-    .select("id, event_type, event_source, created_at, actor_user_id, estimate_id, estimate_tab_id, target_row_id, estimate_node_id, row_context, old_snapshot, new_snapshot, changed_fields, total_delta, payload, correlation_id, project_id")
-    .eq("workspace_id", args.workspaceId)
-    .eq("project_id", args.projectId)
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: false })
-    .limit(args.limit);
-
-  if (args.scope.kind === "estimate") query = query.eq("estimate_id", args.scope.estimateId);
-  if (args.filters.actorUserId) query = query.eq("actor_user_id", args.filters.actorUserId);
   const eventTypes = estimateEventTypesForActions(args.filters.actions);
   if (eventTypes?.length === 0) return { rows: [] as EstimateEventRow[], unavailableSource: null };
-  if (eventTypes?.length) query = query.in("event_type", eventTypes);
-  const filter = cursorFilter(args.cursor.estimate_sheet_events);
-  if (filter) query = query.or(filter);
+  const where = ["workspace_id = ?", "project_id = ?"];
+  const values: unknown[] = [args.workspaceId, args.projectId];
+  if (args.scope.kind === "estimate") {
+    where.push("estimate_id = ?");
+    values.push(args.scope.estimateId);
+  }
+  if (args.filters.actorUserId) {
+    where.push("actor_user_id = ?");
+    values.push(args.filters.actorUserId);
+  }
+  appendInFilter(where, values, "event_type", eventTypes ?? []);
+  const cursor = cursorWhere(args.cursor.estimate_sheet_events);
+  const sql = `SELECT id, event_type, event_source, created_at, actor_user_id, estimate_id, estimate_tab_id, target_row_id, estimate_node_id, row_context, old_snapshot, new_snapshot, changed_fields, total_delta, payload, correlation_id, project_id
+     FROM estimate_sheet_events
+     WHERE ${where.join(" AND ")}${cursor.sql}
+     ORDER BY created_at DESC, id DESC
+     LIMIT ?`;
 
-  return runSourceQuery<EstimateEventRow>("estimate_sheet_events", query);
+  return runSourceQuery<EstimateEventRow>("estimate_sheet_events", all<EstimateEventRow>(database, sql, [...values, ...cursor.values, args.limit]));
 }
 
 async function readSharedCommentRows(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   args: {
     publicationIds: string[];
     scope: ProjectActivityFeedScope;
@@ -523,25 +608,25 @@ async function readSharedCommentRows(
     return { rows: [] as SharedCommentRow[], unavailableSource: null };
   }
 
-  let query = supabase
-    .from("shared_link_comments")
-    .select("id, created_at, body, is_internal, author_name, recipient_id, publication_id, estimate_id, row_id, target_kind, target_label, target_secondary_label, snapshot_version_at_comment")
-    .in("publication_id", args.publicationIds)
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: false })
-    .limit(args.limit);
+  const where = [`publication_id IN (${placeholders(args.publicationIds)})`];
+  const values: unknown[] = [...args.publicationIds];
+  appendScopeEstimateFilter(where, values, "estimate_id", args.scope);
+  if (args.filters.recipientId) {
+    where.push("recipient_id = ?");
+    values.push(args.filters.recipientId);
+  }
+  const cursor = cursorWhere(args.cursor.shared_link_comments);
+  const sql = `SELECT id, created_at, body, is_internal, author_name, recipient_id, publication_id, estimate_id, row_id, target_kind, target_label, target_secondary_label, snapshot_version_at_comment
+     FROM shared_link_comments
+     WHERE ${where.join(" AND ")}${cursor.sql}
+     ORDER BY created_at DESC, id DESC
+     LIMIT ?`;
 
-  if (args.scope.kind === "estimate") query = query.eq("estimate_id", args.scope.estimateId);
-  if (args.scope.kind === "project-only") query = query.is("estimate_id", null);
-  if (args.filters.recipientId) query = query.eq("recipient_id", args.filters.recipientId);
-  const filter = cursorFilter(args.cursor.shared_link_comments);
-  if (filter) query = query.or(filter);
-
-  return runSourceQuery<SharedCommentRow>("shared_link_comments", query);
+  return runSourceQuery<SharedCommentRow>("shared_link_comments", all<SharedCommentRow>(database, sql, [...values, ...cursor.values, args.limit]));
 }
 
 async function readSharedResponseRows(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   args: {
     publicationIds: string[];
     scope: ProjectActivityFeedScope;
@@ -554,25 +639,25 @@ async function readSharedResponseRows(
     return { rows: [] as SharedResponseRow[], unavailableSource: null };
   }
 
-  let query = supabase
-    .from("shared_link_responses")
-    .select("id, created_at, decision, note, recipient_id, publication_id, estimate_id, row_id, signer_name, target_kind, target_label, target_secondary_label, snapshot_version_at_decision")
-    .in("publication_id", args.publicationIds)
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: false })
-    .limit(args.limit);
+  const where = [`publication_id IN (${placeholders(args.publicationIds)})`];
+  const values: unknown[] = [...args.publicationIds];
+  appendScopeEstimateFilter(where, values, "estimate_id", args.scope);
+  if (args.filters.recipientId) {
+    where.push("recipient_id = ?");
+    values.push(args.filters.recipientId);
+  }
+  const cursor = cursorWhere(args.cursor.shared_link_responses);
+  const sql = `SELECT id, created_at, decision, note, recipient_id, publication_id, estimate_id, row_id, signer_name, target_kind, target_label, target_secondary_label, snapshot_version_at_decision
+     FROM shared_link_responses
+     WHERE ${where.join(" AND ")}${cursor.sql}
+     ORDER BY created_at DESC, id DESC
+     LIMIT ?`;
 
-  if (args.scope.kind === "estimate") query = query.eq("estimate_id", args.scope.estimateId);
-  if (args.scope.kind === "project-only") query = query.is("estimate_id", null);
-  if (args.filters.recipientId) query = query.eq("recipient_id", args.filters.recipientId);
-  const filter = cursorFilter(args.cursor.shared_link_responses);
-  if (filter) query = query.or(filter);
-
-  return runSourceQuery<SharedResponseRow>("shared_link_responses", query);
+  return runSourceQuery<SharedResponseRow>("shared_link_responses", all<SharedResponseRow>(database, sql, [...values, ...cursor.values, args.limit]));
 }
 
 async function readSharedEventRows(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   args: {
     publicationIds: string[];
     filters: NormalizedFilters;
@@ -584,24 +669,25 @@ async function readSharedEventRows(
     return { rows: [] as SharedEventRow[], unavailableSource: null };
   }
 
-  let query = supabase
-    .from("shared_link_events")
-    .select("id, created_at, event_type, metadata_json, recipient_id, publication_id")
-    .in("publication_id", args.publicationIds)
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: false })
-    .limit(args.limit);
+  const where = [`publication_id IN (${placeholders(args.publicationIds)})`];
+  const values: unknown[] = [...args.publicationIds];
+  if (args.filters.recipientId) {
+    where.push("recipient_id = ?");
+    values.push(args.filters.recipientId);
+  }
+  if (args.filters.actions.length) appendInFilter(where, values, "event_type", [...SHARED_LINK_VIEW_EVENT_TYPES]);
+  const cursor = cursorWhere(args.cursor.shared_link_events);
+  const sql = `SELECT id, created_at, event_type, metadata_json, recipient_id, publication_id
+     FROM shared_link_events
+     WHERE ${where.join(" AND ")}${cursor.sql}
+     ORDER BY created_at DESC, id DESC
+     LIMIT ?`;
 
-  if (args.filters.recipientId) query = query.eq("recipient_id", args.filters.recipientId);
-  if (args.filters.actions.length) query = query.in("event_type", [...SHARED_LINK_VIEW_EVENT_TYPES]);
-  const filter = cursorFilter(args.cursor.shared_link_events);
-  if (filter) query = query.or(filter);
-
-  return runSourceQuery<SharedEventRow>("shared_link_events", query);
+  return runSourceQuery<SharedEventRow>("shared_link_events", all<SharedEventRow>(database, sql, [...values, ...cursor.values, args.limit]));
 }
 
 async function readCollaborationRows(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   args: {
     projectId: string;
     scope: ProjectActivityFeedScope;
@@ -613,24 +699,32 @@ async function readCollaborationRows(
   if (wantsOnlyRecipient(args.filters) || !sourceMatchesActions("collaboration_audit_events", args.filters.actions)) {
     return { rows: [] as CollaborationAuditRpcRow[], unavailableSource: null };
   }
-  const actionBuckets = collaborationActionBucketsForActions(args.filters.actions);
-  if (args.filters.actions.length && !actionBuckets?.length) {
+  const eventTypes = collaborationEventTypesForActions(args.filters.actions);
+  if (args.filters.actions.length && eventTypes?.length === 0) {
     return { rows: [] as CollaborationAuditRpcRow[], unavailableSource: null };
   }
 
   const marker = args.cursor.collaboration_audit_events;
-  const query = supabase.rpc("read_project_collaboration_audit_events", {
-    cursor_created_at: marker?.createdAt ?? null,
-    cursor_id: marker?.id ?? null,
-    page_limit: args.limit,
-    target_action_buckets: actionBuckets?.length ? actionBuckets : null,
-    target_actor_user_id: args.filters.actorUserId,
-    target_estimate_id: args.scope.kind === "estimate" ? args.scope.estimateId : null,
-    target_project_id: args.projectId,
-    target_project_only: args.scope.kind === "project-only",
-  });
+  const where = ["project_id = ?"];
+  const values: unknown[] = [args.projectId];
+  if (args.scope.kind === "estimate") {
+    where.push("estimate_id = ?");
+    values.push(args.scope.estimateId);
+  }
+  if (args.scope.kind === "project-only") where.push("estimate_id IS NULL");
+  if (args.filters.actorUserId) {
+    where.push("actor_user_id = ?");
+    values.push(args.filters.actorUserId);
+  }
+  appendInFilter(where, values, "event_type", eventTypes ?? []);
+  const cursor = cursorWhere(marker);
+  const sql = `SELECT actor_user_id, created_at, estimate_id, event_type, id, metadata_json AS metadata, project_id, 0 AS source_total_count
+     FROM collaboration_audit_events
+     WHERE ${where.join(" AND ")}${cursor.sql}
+     ORDER BY created_at DESC, id DESC
+     LIMIT ?`;
 
-  return runSourceQuery<CollaborationAuditRpcRow>("collaboration_audit_events", query);
+  return runSourceQuery<CollaborationAuditRpcRow>("collaboration_audit_events", all<CollaborationAuditRpcRow>(database, sql, [...values, ...cursor.values, args.limit]));
 }
 
 function createEstimateEntries(rows: EstimateEventRow[], actorLabels: Map<string, string>, filters: NormalizedFilters): ActivityEntry[] {
@@ -639,7 +733,7 @@ function createEstimateEntries(rows: EstimateEventRow[], actorLabels: Map<string
       activity: composeEstimateActivity({
         id: row.id,
         eventType: row.event_type,
-        eventSource: row.event_source,
+        eventSource: row.event_source ?? undefined,
         createdAt: row.created_at,
         actorUserId: row.actor_user_id,
         actorLabel: row.actor_user_id ? actorLabels.get(row.actor_user_id) ?? null : null,
@@ -669,7 +763,7 @@ function createSharedCommentEntries(rows: SharedCommentRow[], recipientLabels: M
         created_at: row.created_at,
         author: row.author_name,
         body: row.body,
-        is_internal: row.is_internal,
+        is_internal: typeof row.is_internal === "number" ? row.is_internal !== 0 : row.is_internal,
         metadata: createSharedMetadata(row),
         recipientDisplayName: row.recipient_id ? recipientLabels.get(row.recipient_id) ?? null : null,
       }),
@@ -744,7 +838,7 @@ function buildNextCursor(previousCursor: DecodedCursor, page: ActivityEntry[], h
 }
 
 async function countProjectPublicationRows(
-  _supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  _database: D1DatabaseLike,
   args: {
     projectId: string;
     workspaceId: string;
@@ -759,7 +853,7 @@ async function countProjectPublicationRows(
 }
 
 async function countEstimateRows(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   args: {
     projectId: string;
     workspaceId: string;
@@ -774,21 +868,23 @@ async function countEstimateRows(
   const eventTypes = estimateEventTypesForActions(args.filters.actions);
   if (eventTypes?.length === 0) return zeroCount();
 
-  let query = supabase
-    .from("estimate_sheet_events")
-    .select("id", { count: "exact", head: true })
-    .eq("workspace_id", args.workspaceId)
-    .eq("project_id", args.projectId);
+  const where = ["workspace_id = ?", "project_id = ?"];
+  const values: unknown[] = [args.workspaceId, args.projectId];
+  if (args.scope.kind === "estimate") {
+    where.push("estimate_id = ?");
+    values.push(args.scope.estimateId);
+  }
+  if (args.filters.actorUserId) {
+    where.push("actor_user_id = ?");
+    values.push(args.filters.actorUserId);
+  }
+  appendInFilter(where, values, "event_type", eventTypes ?? []);
 
-  if (args.scope.kind === "estimate") query = query.eq("estimate_id", args.scope.estimateId);
-  if (args.filters.actorUserId) query = query.eq("actor_user_id", args.filters.actorUserId);
-  if (eventTypes?.length) query = query.in("event_type", eventTypes);
-
-  return runCountQuery("estimate_sheet_events", query);
+  return runCountQuery("estimate_sheet_events", count(database, `SELECT COUNT(*) AS count FROM estimate_sheet_events WHERE ${where.join(" AND ")}`, values));
 }
 
 async function countSharedCommentRows(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   args: {
     publicationIds: string[];
     scope: ProjectActivityFeedScope;
@@ -797,20 +893,19 @@ async function countSharedCommentRows(
 ) {
   if (!args.publicationIds.length || args.filters.actorUserId || !sourceMatchesActions("shared_link_comments", args.filters.actions)) return zeroCount();
 
-  let query = supabase
-    .from("shared_link_comments")
-    .select("id", { count: "exact", head: true })
-    .in("publication_id", args.publicationIds);
+  const where = [`publication_id IN (${placeholders(args.publicationIds)})`];
+  const values: unknown[] = [...args.publicationIds];
+  appendScopeEstimateFilter(where, values, "estimate_id", args.scope);
+  if (args.filters.recipientId) {
+    where.push("recipient_id = ?");
+    values.push(args.filters.recipientId);
+  }
 
-  if (args.scope.kind === "estimate") query = query.eq("estimate_id", args.scope.estimateId);
-  if (args.scope.kind === "project-only") query = query.is("estimate_id", null);
-  if (args.filters.recipientId) query = query.eq("recipient_id", args.filters.recipientId);
-
-  return runCountQuery("shared_link_comments", query);
+  return runCountQuery("shared_link_comments", count(database, `SELECT COUNT(*) AS count FROM shared_link_comments WHERE ${where.join(" AND ")}`, values));
 }
 
 async function countSharedResponseRows(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   args: {
     publicationIds: string[];
     scope: ProjectActivityFeedScope;
@@ -819,20 +914,19 @@ async function countSharedResponseRows(
 ) {
   if (!args.publicationIds.length || args.filters.actorUserId || !sourceMatchesActions("shared_link_responses", args.filters.actions)) return zeroCount();
 
-  let query = supabase
-    .from("shared_link_responses")
-    .select("id", { count: "exact", head: true })
-    .in("publication_id", args.publicationIds);
+  const where = [`publication_id IN (${placeholders(args.publicationIds)})`];
+  const values: unknown[] = [...args.publicationIds];
+  appendScopeEstimateFilter(where, values, "estimate_id", args.scope);
+  if (args.filters.recipientId) {
+    where.push("recipient_id = ?");
+    values.push(args.filters.recipientId);
+  }
 
-  if (args.scope.kind === "estimate") query = query.eq("estimate_id", args.scope.estimateId);
-  if (args.scope.kind === "project-only") query = query.is("estimate_id", null);
-  if (args.filters.recipientId) query = query.eq("recipient_id", args.filters.recipientId);
-
-  return runCountQuery("shared_link_responses", query);
+  return runCountQuery("shared_link_responses", count(database, `SELECT COUNT(*) AS count FROM shared_link_responses WHERE ${where.join(" AND ")}`, values));
 }
 
 async function countSharedEventRows(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   args: {
     publicationIds: string[];
     filters: NormalizedFilters;
@@ -840,19 +934,19 @@ async function countSharedEventRows(
 ) {
   if (!args.publicationIds.length || args.filters.actorUserId || !sourceMatchesActions("shared_link_events", args.filters.actions)) return zeroCount();
 
-  let query = supabase
-    .from("shared_link_events")
-    .select("id", { count: "exact", head: true })
-    .in("publication_id", args.publicationIds);
+  const where = [`publication_id IN (${placeholders(args.publicationIds)})`];
+  const values: unknown[] = [...args.publicationIds];
+  if (args.filters.recipientId) {
+    where.push("recipient_id = ?");
+    values.push(args.filters.recipientId);
+  }
+  if (args.filters.actions.length) appendInFilter(where, values, "event_type", [...SHARED_LINK_VIEW_EVENT_TYPES]);
 
-  if (args.filters.recipientId) query = query.eq("recipient_id", args.filters.recipientId);
-  if (args.filters.actions.length) query = query.in("event_type", [...SHARED_LINK_VIEW_EVENT_TYPES]);
-
-  return runCountQuery("shared_link_events", query);
+  return runCountQuery("shared_link_events", count(database, `SELECT COUNT(*) AS count FROM shared_link_events WHERE ${where.join(" AND ")}`, values));
 }
 
 async function countCollaborationRows(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   args: {
     projectId: string;
     scope: ProjectActivityFeedScope;
@@ -861,27 +955,23 @@ async function countCollaborationRows(
 ) {
   if (wantsOnlyRecipient(args.filters) || !sourceMatchesActions("collaboration_audit_events", args.filters.actions)) return zeroCount();
 
-  const actionBuckets = collaborationActionBucketsForActions(args.filters.actions);
-  if (args.filters.actions.length && !actionBuckets?.length) return zeroCount();
+  const eventTypes = collaborationEventTypesForActions(args.filters.actions);
+  if (args.filters.actions.length && eventTypes?.length === 0) return zeroCount();
 
-  const result = await runSourceQuery<CollaborationAuditRpcRow>(
-    "collaboration_audit_events",
-    supabase.rpc("read_project_collaboration_audit_events", {
-      cursor_created_at: null,
-      cursor_id: null,
-      page_limit: 1,
-      target_action_buckets: actionBuckets?.length ? actionBuckets : null,
-      target_actor_user_id: args.filters.actorUserId,
-      target_estimate_id: args.scope.kind === "estimate" ? args.scope.estimateId : null,
-      target_project_id: args.projectId,
-      target_project_only: args.scope.kind === "project-only",
-    }),
-  );
+  const where = ["project_id = ?"];
+  const values: unknown[] = [args.projectId];
+  if (args.scope.kind === "estimate") {
+    where.push("estimate_id = ?");
+    values.push(args.scope.estimateId);
+  }
+  if (args.scope.kind === "project-only") where.push("estimate_id IS NULL");
+  if (args.filters.actorUserId) {
+    where.push("actor_user_id = ?");
+    values.push(args.filters.actorUserId);
+  }
+  appendInFilter(where, values, "event_type", eventTypes ?? []);
 
-  return {
-    count: result.rows[0]?.source_total_count ?? 0,
-    unavailableSource: result.unavailableSource,
-  };
+  return runCountQuery("collaboration_audit_events", count(database, `SELECT COUNT(*) AS count FROM collaboration_audit_events WHERE ${where.join(" AND ")}`, values));
 }
 
 function uniqueSources(sources: (ProjectActivityFeedSourceName | null)[]) {
@@ -893,7 +983,7 @@ function hasActivityFilters(filters: NormalizedFilters) {
 }
 
 async function readExactCounts(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  database: D1DatabaseLike,
   args: {
     projectId: string;
     workspaceId: string;
@@ -905,22 +995,22 @@ async function readExactCounts(
 ) {
   const scopeFilters: NormalizedFilters = { actions: [], actorUserId: null, recipientId: null };
   const [scopePublications, scopeEstimates, scopeComments, scopeResponses, scopeEvents, scopeCollaboration] = await Promise.all([
-    countProjectPublicationRows(supabase, { ...args, filters: scopeFilters }),
-    countEstimateRows(supabase, { ...args, filters: scopeFilters }),
-    countSharedCommentRows(supabase, { publicationIds: args.publicationIds, scope: args.scope, filters: scopeFilters }),
-    countSharedResponseRows(supabase, { publicationIds: args.publicationIds, scope: args.scope, filters: scopeFilters }),
-    countSharedEventRows(supabase, { publicationIds: args.publicationIds, filters: scopeFilters }),
-    countCollaborationRows(supabase, { projectId: args.projectId, scope: args.scope, filters: scopeFilters }),
+    countProjectPublicationRows(database, { ...args, filters: scopeFilters }),
+    countEstimateRows(database, { ...args, filters: scopeFilters }),
+    countSharedCommentRows(database, { publicationIds: args.publicationIds, scope: args.scope, filters: scopeFilters }),
+    countSharedResponseRows(database, { publicationIds: args.publicationIds, scope: args.scope, filters: scopeFilters }),
+    countSharedEventRows(database, { publicationIds: args.publicationIds, filters: scopeFilters }),
+    countCollaborationRows(database, { projectId: args.projectId, scope: args.scope, filters: scopeFilters }),
   ]);
 
   const filteredCounts = hasActivityFilters(args.filters)
     ? await Promise.all([
-        countProjectPublicationRows(supabase, args),
-        countEstimateRows(supabase, args),
-        countSharedCommentRows(supabase, { publicationIds: args.publicationIds, scope: args.scope, filters: args.filters }),
-        countSharedResponseRows(supabase, { publicationIds: args.publicationIds, scope: args.scope, filters: args.filters }),
-        countSharedEventRows(supabase, { publicationIds: args.publicationIds, filters: args.filters }),
-        countCollaborationRows(supabase, { projectId: args.projectId, scope: args.scope, filters: args.filters }),
+        countProjectPublicationRows(database, args),
+        countEstimateRows(database, args),
+        countSharedCommentRows(database, { publicationIds: args.publicationIds, scope: args.scope, filters: args.filters }),
+        countSharedResponseRows(database, { publicationIds: args.publicationIds, scope: args.scope, filters: args.filters }),
+        countSharedEventRows(database, { publicationIds: args.publicationIds, filters: args.filters }),
+        countCollaborationRows(database, { projectId: args.projectId, scope: args.scope, filters: args.filters }),
       ])
     : [scopePublications, scopeEstimates, scopeComments, scopeResponses, scopeEvents, scopeCollaboration];
   const [filteredPublications, filteredEstimates, filteredComments, filteredResponses, filteredEvents, filteredCollaboration] = filteredCounts;
@@ -983,14 +1073,14 @@ export async function readProjectActivityFeed({
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project is not available.");
 
-  const supabase = await createSupabaseServerClient();
+  const database = await requireProjectActivityFeedD1Database();
   const publicationRows = filterPublicationRowsForScope(
-    await readProjectPublications(supabase, project.id, project.workspace_id),
+    await readProjectPublications(database, project.id, project.workspace_id),
     scope,
   );
   const publicationIds = publicationRows.map((publication) => publication.id);
   const exactCountsPromise = includeCounts
-    ? readExactCounts(supabase, {
+    ? readExactCounts(database, {
         projectId: project.id,
         workspaceId: project.workspace_id,
         publicationIds,
@@ -1001,7 +1091,7 @@ export async function readProjectActivityFeed({
     : Promise.resolve(null);
 
   const [estimateResult, commentResult, responseResult, eventResult, collaborationResult] = await Promise.all([
-    readEstimateRows(supabase, {
+    readEstimateRows(database, {
       projectId: project.id,
       workspaceId: project.workspace_id,
       scope,
@@ -1009,27 +1099,27 @@ export async function readProjectActivityFeed({
       cursor,
       limit: sourceLimit,
     }),
-    readSharedCommentRows(supabase, {
+    readSharedCommentRows(database, {
       publicationIds,
       scope,
       filters: normalizedFilters,
       cursor,
       limit: sourceLimit,
     }),
-    readSharedResponseRows(supabase, {
+    readSharedResponseRows(database, {
       publicationIds,
       scope,
       filters: normalizedFilters,
       cursor,
       limit: sourceLimit,
     }),
-    readSharedEventRows(supabase, {
+    readSharedEventRows(database, {
       publicationIds,
       filters: normalizedFilters,
       cursor,
       limit: sourceLimit,
     }),
-    readCollaborationRows(supabase, {
+    readCollaborationRows(database, {
       projectId: project.id,
       scope,
       filters: normalizedFilters,
@@ -1047,12 +1137,12 @@ export async function readProjectActivityFeed({
   ].filter((source): source is ProjectActivityFeedSourceName => Boolean(source));
 
   const [actorLabels, recipientLabels] = await Promise.all([
-    readActorLabels(supabase, [
+    readActorLabels(database, [
       ...publicationRows.map((row) => row.published_by).filter((id): id is string => Boolean(id)),
       ...estimateResult.rows.map((row) => row.actor_user_id).filter((id): id is string => Boolean(id)),
       ...collaborationResult.rows.map((row) => row.actor_user_id).filter((id): id is string => Boolean(id)),
     ]),
-    readRecipientDisplayNames(supabase, [
+    readRecipientDisplayNames(database, [
       ...commentResult.rows.map((row) => row.recipient_id).filter((id): id is string => Boolean(id)),
       ...responseResult.rows.map((row) => row.recipient_id).filter((id): id is string => Boolean(id)),
       ...eventResult.rows.map((row) => row.recipient_id).filter((id): id is string => Boolean(id)),
@@ -1095,17 +1185,19 @@ export async function listProjectEstimatesForDropdown(projectId: string): Promis
   if (!isUuid(projectId)) return [];
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) return [];
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("estimates")
-    .select("id, name, sheet_code")
-    .eq("project_id", project.id)
-    .order("name", { ascending: true });
-  if (error) throw error;
-  return (data ?? []).map((estimate) => ({
+  const database = await requireProjectActivityFeedD1Database();
+  const estimates = await all<EstimateDropdownRow>(
+    database,
+    `SELECT id, name, sheet_code
+     FROM estimates
+     WHERE project_id = ?
+     ORDER BY name ASC, id ASC`,
+    [project.id],
+  );
+  return estimates.map((estimate) => ({
     id: estimate.id,
     label: estimate.name,
-    secondaryLabel: estimate.sheet_code,
+    secondaryLabel: estimate.sheet_code ?? undefined,
   }));
 }
 
@@ -1113,24 +1205,27 @@ export async function listProjectMembersForDropdown(projectId: string): Promise<
   if (!isUuid(projectId)) return [];
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) return [];
-  const supabase = await createSupabaseServerClient();
-  const { data: members, error: membersError } = await supabase
-    .from("project_members")
-    .select("user_id")
-    .eq("project_id", project.id)
-    .eq("workspace_id", project.workspace_id);
-  if (membersError) throw membersError;
+  const database = await requireProjectActivityFeedD1Database();
+  const members = await all<ProjectMemberRow>(
+    database,
+    `SELECT user_id
+     FROM project_members
+     WHERE project_id = ? AND workspace_id = ?`,
+    [project.id, project.workspace_id],
+  );
 
-  const userIds = Array.from(new Set((members ?? []).map((member) => member.user_id).filter((id): id is string => isUuid(id))));
+  const userIds = Array.from(new Set(members.map((member) => member.user_id).filter((id): id is string => typeof id === "string" && isUuid(id))));
   if (!userIds.length) return [];
 
-  const { data: profiles, error: profilesError } = await supabase
-    .from("profiles")
-    .select("id, display_name")
-    .in("id", userIds);
-  if (profilesError) throw profilesError;
+  const profiles = await all<ProfileRow>(
+    database,
+    `SELECT id, display_name
+     FROM profiles
+     WHERE id IN (${placeholders(userIds)})`,
+    userIds,
+  );
 
-  return ((profiles ?? []) as ProfileRow[])
+  return profiles
     .map((profile) => ({ id: profile.id, label: readProfileLabel(profile) }))
     .sort((left, right) => left.label.localeCompare(right.label));
 }
@@ -1139,26 +1234,27 @@ export async function listProjectRecipientsForDropdown(projectId: string): Promi
   if (!isUuid(projectId)) return [];
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) return [];
-  const supabase = await createSupabaseServerClient();
-  const { data: publications, error: publicationError } = await supabase
-    .from("project_publications")
-    .select("id")
-    .eq("project_id", project.id)
-    .eq("workspace_id", project.workspace_id)
-    .eq("status", "published")
-    .is("revoked_at", null);
-  if (publicationError) throw publicationError;
+  const database = await requireProjectActivityFeedD1Database();
+  const publications = await all<PublicationIdRow>(
+    database,
+    `SELECT id
+     FROM project_publications
+     WHERE project_id = ? AND workspace_id = ? AND status = 'published' AND revoked_at IS NULL`,
+    [project.id, project.workspace_id],
+  );
 
-  const publicationIds = (publications ?? []).map((publication) => publication.id);
+  const publicationIds = publications.map((publication) => publication.id);
   if (!publicationIds.length) return [];
 
-  const { data: recipients, error: recipientError } = await supabase
-    .from("shared_link_recipients")
-    .select("id, display_name, publication_id")
-    .in("publication_id", publicationIds);
-  if (recipientError) throw recipientError;
+  const recipients = await all<RecipientRow>(
+    database,
+    `SELECT id, display_name, publication_id
+     FROM shared_link_recipients
+     WHERE publication_id IN (${placeholders(publicationIds)})`,
+    publicationIds,
+  );
 
-  const labels = buildRecipientDisplayLabels((recipients ?? []) as RecipientRow[]);
+  const labels = buildRecipientDisplayLabels(recipients);
   return Array.from(labels.entries())
     .map(([id, label]) => ({ id, label }))
     .sort((left, right) => left.label.localeCompare(right.label));

@@ -1,11 +1,13 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 
 import { requireAuth, requireCurrentUserContext } from "@/lib/auth/session";
+import { canEditProjectInD1 } from "@/lib/authz/d1-access";
+import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d1";
 import type { ProjectLocationActionState } from "@/lib/projects/location-action-state";
 import { getCurrentWorkspaceProject } from "@/lib/repositories/workspace-repository";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 function readRequiredText(formData: FormData, key: string) {
   const value = String(formData.get(key) ?? "").trim();
@@ -58,19 +60,116 @@ function locationFieldError(error: unknown): ProjectLocationActionState["fieldEr
 }
 
 async function assertCanEditProjectLocation(projectId: string) {
-  await requireCurrentUserContext();
+  const currentUser = await requireCurrentUserContext();
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.rpc("can_edit_project", {
-    target_project_id: project.id,
-  });
+  const db = await getCloudflareD1Database();
+  if (!db) throw new Error("Project location persistence is unavailable.");
 
-  if (error) throw error;
-  if (data !== true) throw new Error("You do not have permission to edit this project location.");
+  const canEdit = await canEditProjectInD1(db, project.id, currentUser);
+  if (!canEdit) throw new Error("You do not have permission to edit this project location.");
 
-  return { project, supabase };
+  return { db, project, userId: currentUser.userId };
+}
+
+async function upsertProjectLocationInD1(
+  db: D1DatabaseLike,
+  input: {
+    accuracyMeters: number | null;
+    addressText: string | null;
+    displayLabel: string | null;
+    geocoderName: string | null;
+    latitude: number;
+    longitude: number;
+    projectId: string;
+    providerPlaceId: string | null;
+    source: "manual" | "geocoded" | "imported";
+    userId: string;
+    workspaceId: string;
+  },
+) {
+  const timestamp = new Date().toISOString();
+  return db
+    .prepare(
+      `
+        INSERT INTO project_locations (
+          id,
+          project_id,
+          workspace_id,
+          latitude,
+          longitude,
+          accuracy_meters,
+          source,
+          display_label,
+          address_text,
+          geocoder_name,
+          provider_place_id,
+          metadata_json,
+          created_by,
+          updated_by,
+          created_at,
+          updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '{}', ?, ?, ?, ?)
+        ON CONFLICT(project_id) DO UPDATE SET
+          workspace_id = excluded.workspace_id,
+          latitude = excluded.latitude,
+          longitude = excluded.longitude,
+          accuracy_meters = excluded.accuracy_meters,
+          source = excluded.source,
+          display_label = excluded.display_label,
+          address_text = excluded.address_text,
+          geocoder_name = excluded.geocoder_name,
+          provider_place_id = excluded.provider_place_id,
+          updated_by = excluded.updated_by,
+          updated_at = excluded.updated_at
+      `,
+    )
+    .bind(
+      randomUUID(),
+      input.projectId,
+      input.workspaceId,
+      input.latitude,
+      input.longitude,
+      input.accuracyMeters,
+      input.source,
+      input.displayLabel,
+      input.addressText,
+      input.geocoderName,
+      input.providerPlaceId,
+      input.userId,
+      input.userId,
+      timestamp,
+      timestamp,
+    )
+    .run();
+}
+
+async function syncProjectAddressInD1(db: D1DatabaseLike, projectId: string, addressText: string) {
+  return db
+    .prepare(
+      `
+        UPDATE projects
+        SET location = ?,
+            updated_at = ?
+        WHERE id = ?
+      `,
+    )
+    .bind(addressText, new Date().toISOString(), projectId)
+    .run();
+}
+
+async function deleteProjectLocationFromD1(db: D1DatabaseLike, projectId: string) {
+  return db
+    .prepare(
+      `
+        DELETE FROM project_locations
+        WHERE project_id = ?
+      `,
+    )
+    .bind(projectId)
+    .run();
 }
 
 export async function saveProjectLocation(
@@ -90,34 +189,23 @@ export async function saveProjectLocation(
     const geocoderName = readOptionalText(formData, "geocoderName", 80);
     const providerPlaceId = readOptionalText(formData, "providerPlaceId", 160);
     const syncProjectAddress = readBooleanFlag(formData, "syncProjectAddress");
-    const { project, supabase } = await assertCanEditProjectLocation(projectId);
-
-    const { error } = await supabase
-      .from("project_locations")
-      .upsert(
-        {
-          project_id: project.id,
-          workspace_id: project.workspace_id,
-          latitude,
-          longitude,
-          accuracy_meters: accuracyMeters,
-          source,
-          display_label: displayLabel,
-          address_text: addressText,
-          geocoder_name: geocoderName,
-          provider_place_id: providerPlaceId,
-        },
-        { onConflict: "project_id" },
-      );
-
-    if (error) throw error;
+    const { db, project, userId } = await assertCanEditProjectLocation(projectId);
+    await upsertProjectLocationInD1(db, {
+      accuracyMeters,
+      addressText,
+      displayLabel,
+      geocoderName,
+      latitude,
+      longitude,
+      projectId: project.id,
+      providerPlaceId,
+      source,
+      userId,
+      workspaceId: project.workspace_id,
+    });
 
     if (syncProjectAddress && addressText) {
-      const { error: projectError } = await supabase
-        .from("projects")
-        .update({ location: addressText })
-        .eq("id", project.id);
-      if (projectError) throw projectError;
+      await syncProjectAddressInD1(db, project.id, addressText);
     }
 
     revalidatePath(`/workshop/projects/${project.id}`);
@@ -139,13 +227,8 @@ export async function clearProjectLocation(
   let projectId = "";
   try {
     projectId = readRequiredText(formData, "projectId");
-    const { project, supabase } = await assertCanEditProjectLocation(projectId);
-    const { error } = await supabase
-      .from("project_locations")
-      .delete()
-      .eq("project_id", project.id);
-
-    if (error) throw error;
+    const { db, project } = await assertCanEditProjectLocation(projectId);
+    await deleteProjectLocationFromD1(db, project.id);
 
     revalidatePath(`/workshop/projects/${project.id}`);
     return { status: "success", message: "Project pin cleared." };

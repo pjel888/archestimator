@@ -57,8 +57,8 @@ export type ProjectPresenceState = {
 
 // --- Transport seam (T0.3) -------------------------------------------------
 // A minimal channel/client interface so the hook is unit-testable with a fake
-// channel (no live socket). The real Supabase browser client satisfies a
-// superset and is cast in the default factory.
+// channel (no live socket). The Cloudflare room client satisfies a superset and
+// is cast in the default factory.
 export type PresenceRoomLike = {
   on: (type: "presence", filter: { event: string }, callback: () => void) => PresenceRoomLike;
   subscribe: (callback?: (status: string, err?: Error) => void) => PresenceRoomLike;

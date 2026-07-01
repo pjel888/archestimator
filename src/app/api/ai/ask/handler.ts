@@ -9,7 +9,7 @@ import { readAiAskReadContext, type AiAskReadContext } from "@/lib/ai/read-conte
 
 const MAX_MESSAGE_LENGTH = 8_000;
 const MAX_CONTEXT_VALUE_LENGTH = 160;
-const AI_AUTH_MODE_ERROR = "AI requires a real Supabase account session. Disable local admin DB bypass and sign in to use account data.";
+const AI_AUTH_MODE_ERROR = "AI requires a signed-in account session. Disable local admin DB bypass and sign in to use account data.";
 
 type AiAskRequestBody = {
   message?: unknown;
