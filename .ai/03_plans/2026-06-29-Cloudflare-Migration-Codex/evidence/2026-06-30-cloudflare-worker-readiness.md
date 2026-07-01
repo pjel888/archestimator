@@ -1,10 +1,10 @@
 # Cloudflare Worker Readiness
 
-Generated: 2026-06-30T13:13:37.892Z
+Generated: 2026-07-01T06:17:38.984Z
 Manifest ready: PASS
 Local preview ready: PASS
-Deployment secrets ready: FAIL
-Deployment ready: FAIL
+Deployment secrets ready: PASS
+Deployment ready: PASS
 
 Cloudflare Worker readiness checks manifest/env-name alignment and optional sanitized secret-list transcripts only. It never prints secret values, does not create Cloudflare resources, does not prove paid-plan status, hosted deployment, custom-domain routing, R2 bucket existence, Images processing, cron execution, analytics receipt, database migration, nameserver changes, rollback, or provider cancellation.
 
@@ -19,4 +19,4 @@ Cloudflare Worker readiness checks manifest/env-name alignment and optional sani
 | Package scripts | PASS | (none) |
 | Local preview secrets | PASS | (none) |
 | Local preview controls | PASS | (none) |
-| Provider secret names | FAIL | BETTER_AUTH_GOOGLE_CLIENT_ID, BETTER_AUTH_GOOGLE_CLIENT_SECRET |
+| Provider secret names | PASS | (none) |

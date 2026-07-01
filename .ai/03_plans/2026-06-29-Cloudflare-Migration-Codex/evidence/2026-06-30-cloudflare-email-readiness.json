@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-30T21:54:43.717Z",
+  "generatedAt": "2026-07-01T07:32:47.228Z",
   "mode": "cloudflare-email-readiness",
   "targetDomain": "archestimator.com",
   "workerName": "archestimator-proof",
@@ -72,6 +72,8 @@
       "ARCHESTIMATOR_EMAIL_PROVIDER",
       "ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER",
       "ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER",
+      "BETTER_AUTH_GOOGLE_CLIENT_ID",
+      "BETTER_AUTH_GOOGLE_CLIENT_SECRET",
       "BETTER_AUTH_SECRET",
       "BETTER_AUTH_TRUSTED_ORIGINS",
       "BETTER_AUTH_URL",
@@ -84,12 +86,9 @@
       "NEXT_PUBLIC_APP_URL",
       "NEXT_PUBLIC_ASK_FLIP_UI_ENABLED",
       "NEXT_PUBLIC_SITE_URL",
-      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
-      "NEXT_PUBLIC_SUPABASE_URL",
       "PUBLICATION_ACCESS_COOKIE_SECRET",
       "PUBLICATION_TOKEN_ENCRYPTION_SECRET",
       "PUBLICATION_TOKEN_HASH_SECRET",
-      "SUPABASE_SERVICE_ROLE_KEY",
       "UPLOAD_CLEANUP_JOB_SECRET",
       "UPLOAD_JOBS_ENABLED",
       "UPLOAD_SCAN_JOB_SECRET"
@@ -121,15 +120,14 @@
       "list"
     ],
     "ok": true,
-    "noSendingDomainsMessagePresent": true,
-    "targetDomainPresent": false,
-    "discoveredTargetDomains": [],
-    "sanitizedOutput": " ⛅️ wrangler 4.105.0 (update available 4.106.0)\n───────────────────────────────────────────────\nNo sending subdomains found in this account.\n▲ [WARNING] 🚧 `wrangler email sending list` is an open beta command. Please report any issues to https://github.com/cloudflare/workers-sdk/issues/new/choose"
+    "noSendingDomainsMessagePresent": false,
+    "targetDomainPresent": true,
+    "discoveredTargetDomains": [
+      "archestimator.com"
+    ],
+    "sanitizedOutput": " ⛅️ wrangler 4.105.0 (update available 4.106.0)\n───────────────────────────────────────────────\n┌───────────────────┬───────────────────┬─────────┬──────────────────────────────────┐\n│ zone              │ name              │ enabled │ tag                              │\n├───────────────────┼───────────────────┼─────────┼──────────────────────────────────┤\n│ archestimator.com │ archestimator.com │ yes     │ 894a8c44c8f94473a2b105821a69a9f0 │\n└───────────────────┴───────────────────┴─────────┴──────────────────────────────────┘\n▲ [WARNING] 🚧 `wrangler email sending list` is an open beta command. Please report any issues to https://github.com/cloudflare/workers-sdk/issues/new/choose"
   },
-  "productionEmailReady": false,
-  "blockers": [
-    "Cloudflare account reports no Email Sending domains/subdomains.",
-    "Email Sending domain archestimator.com is not onboarded/readable."
-  ],
+  "productionEmailReady": true,
+  "blockers": [],
   "note": "Readiness check records secret names only, never secret values. Cloudflare docs require a send_email Worker binding plus an onboarded sending domain on Cloudflare DNS before production email can be claimed."
 }

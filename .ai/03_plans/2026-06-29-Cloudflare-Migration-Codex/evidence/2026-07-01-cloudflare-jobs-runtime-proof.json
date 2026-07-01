@@ -1,0 +1,76 @@
+{
+  "generatedAt": "2026-07-01T09:15:01.238Z",
+  "mode": "cloudflare-jobs-runtime-proof-verifier",
+  "baseUrl": "https://archestimator.com",
+  "endpointPath": "/__cloudflare/jobs-proof",
+  "providerBacked": true,
+  "secretInput": {
+    "name": "CRON_SECRET",
+    "present": true,
+    "source": "process.env"
+  },
+  "responseStatus": 200,
+  "responseOk": true,
+  "endpointMode": "cloudflare-jobs-runtime-proof",
+  "endpointProofScope": "queue-send-consumer-r2-receipt",
+  "proofId": "2c7fb76d-c230-4edc-aa9a-01a0c0c39ccf",
+  "queue": "archestimator-upload-jobs",
+  "proofReceiptKey": "provider-proof/jobs/2c7fb76d-c230-4edc-aa9a-01a0c0c39ccf.json",
+  "result": {
+    "queueSendReady": true,
+    "queueConsumerReceiptReady": true,
+    "cronProviderExecutionProven": true,
+    "consumerOutcome": {
+      "messageId": "7645fcece17dfda360c5789c9a5251c5",
+      "action": "ack",
+      "reason": "executed",
+      "attempts": 1,
+      "deadLetterExpected": false,
+      "retryDelaySeconds": null,
+      "executedCount": 1,
+      "skippedCount": 0,
+      "error": null
+    },
+    "jobExecution": {
+      "dryRun": true,
+      "executed": [
+        {
+          "name": "upload-cleanup",
+          "path": "/api/internal/upload-cleanup",
+          "status": 200,
+          "ok": true
+        }
+      ],
+      "skipped": []
+    },
+    "queueLatency": {
+      "requestedAt": "2026-07-01T09:14:26.443Z",
+      "receiptGeneratedAt": "2026-07-01T09:14:58.824Z",
+      "latencyMs": 32381,
+      "p95Ms": 32381,
+      "sampleCount": 1,
+      "samples": [
+        32381
+      ]
+    }
+  },
+  "queueLatency": {
+    "sampleCount": 1,
+    "p95Ms": 32381,
+    "samplesMs": [
+      32381
+    ],
+    "latestRequestedAt": "2026-07-01T09:14:26.443Z",
+    "latestReceiptGeneratedAt": "2026-07-01T09:14:58.824Z"
+  },
+  "readiness": {
+    "providerBacked": true,
+    "queueSendReady": true,
+    "queueConsumerReceiptReady": true,
+    "cronProviderExecutionProven": true,
+    "productionJobsMessagingReady": true,
+    "productionCutoverReady": false
+  },
+  "blockers": [],
+  "note": "Calls the deployed proof Worker jobs-proof endpoint with a local bearer secret, then records sanitized Queue send, consumer receipt, queue latency, and scheduled dry-run execution evidence. It does not print secret values, change DNS, delete resources, disable Vercel fallback, or make production cutover ready."
+}

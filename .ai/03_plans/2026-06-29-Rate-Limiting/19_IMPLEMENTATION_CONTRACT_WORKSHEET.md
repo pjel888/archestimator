@@ -8,11 +8,44 @@ owner: Archestimator
 
 # Implementation Contract Worksheet
 
-This worksheet closes the implementation-contract gap without changing source. It records the route/action/provider surface observed on 2026-06-30 and identifies the exact contract fields that P0 must complete before enforcement code starts.
+This worksheet closes the implementation-contract gap without changing source. It records the route/action/provider surface observed on 2026-06-30 and identifies the contract fields that future implementation slices must answer when applicable.
+
+## Applicability Rule
+
+This worksheet is an applicability worksheet, not a universal pre-edit checklist. Before a future source edit, the implementer must declare the slice, owned rows, applicable contract fields, and deferred fields. A field is mandatory only when the selected slice touches the corresponding route/action/client/provider/resource domain.
+
+| Worksheet column | Required answer |
+| --- | --- |
+| Required for this surface? | `Yes`, `No`, or `Provider-stage only`. |
+| Why | One sentence tying the field to the selected route/action/provider behavior, or explaining why it does not apply. |
+| Decision | The concrete policy, response, identity, store, provider, or UX decision for the selected slice. |
+| Evidence | Test, static proof, provider readback, hosted proof, or explicit planning assumption. |
+| Deferred reason | Backlog item, provider gate, unrelated surface, or post-beta rationale when the field is not required now. |
+
+Global safety questions must not disappear. They become explicit N/A or deferred rows with evidence. Auth/Better Auth rows block auth throttles. WAF/Turnstile/DO/D1 rows block provider/edge claims. Frontend rows block client-behavior changes. They do not block an unrelated local app-layer behavior-preserving slice.
+
+## Lean P0A Minimum Contract Rows
+
+These rows are sufficient to start a separate Lean P0A implementation plan for public-share `RC-017` through `RC-024`, assuming no scope expansion.
+
+| ID | Required answer | Evidence |
+| --- | --- | --- |
+| LP0A-001 | Current route list and exact code refs for `RC-017` through `RC-024`. | Current-checkout route inventory. |
+| LP0A-002 | Current windows, algorithms, key dimensions, store calls, and retry-after math for each owned route. | Behavior-lock tests and static helper review. |
+| LP0A-003 | Current response status/body/header/cache profile, including `Retry-After` and no-store posture. | Route tests and response snapshots. |
+| LP0A-004 | Invalid-token, valid-token, reviewer/session, shared-NAT, and unsubscribe recovery behavior. | Route/store tests including non-enumeration assertions. |
+| LP0A-005 | Identity and HMAC/raw-value posture for touched share routes, preserving current key semantics unless a versioned migration is approved. | Static review and no-raw-token/no-raw-IP assertions. |
+| LP0A-006 | Store failure behavior and fail-open/fail-closed decision exactly as current behavior or explicitly changed in the implementation plan. | Store-stub tests. |
+| LP0A-007 | Server-authoritative gate before comment, decision, password/session, unsubscribe, and share event side effects. | Route tests and helper call-order review. |
+| LP0A-008 | Public quota metadata disclosure decision: default to `Retry-After` only, no remaining/reset metadata, unless leakage review approves otherwise. | Response tests. |
+| LP0A-009 | Minimal registry/wrapper boundary and rollback path to previous helper behavior. | Implementation plan diff outline and tests. |
+| LP0A-010 | Explicit N/A decisions for Better Auth, WAF, Turnstile, DO/D1 migration, queue, cron, Images, cache, Bot Management, and broad client guard library. | Worksheet rows with deferred reason. |
+| LP0A-011 | Required proofs: `PROOF-RL-002` and `PROOF-RL-031`; no provider/hosted proof claimed. | Local automated evidence. |
+| LP0A-012 | Stop condition: no threshold, user-copy, provider, runtime, config, or Cloudflare change unless a new scoped plan is opened. | Implementation plan acceptance criteria. |
 
 ## Mandatory P0 Contract Fields
 
-Before source edits, each route, action function, and high-risk client flow must fill these fields. The current tables are inventory seeds, not final implementation authority.
+For a full enforcement plan, each route, action function, and high-risk client flow must fill these fields. For a scoped slice, fill the applicable fields and mark the rest N/A or deferred using the Applicability Rule above. The current tables are inventory seeds, not final implementation authority.
 
 | Field | Required answer |
 | --- | --- |

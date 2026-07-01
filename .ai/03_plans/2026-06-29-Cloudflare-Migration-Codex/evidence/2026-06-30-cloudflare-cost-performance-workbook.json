@@ -1,10 +1,16 @@
 {
-  "generatedAt": "2026-06-30T17:18:41.003Z",
+  "generatedAt": "2026-07-01T08:11:30.323Z",
   "mode": "cloudflare-cost-performance-workbook",
   "sources": {
     "inventory": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-migration-inventory.json",
     "workerPreviewRouteProbe": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-29-cloudflare-worker-preview-route-probe.json",
     "cloudflareHostedPerformance": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-hosted-performance.json",
+    "d1RuntimePerformanceProof": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-runtime-performance-proof.json",
+    "betterAuthProviderProof": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-better-auth-provider-proof.json",
+    "jobsRuntimeProof": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-jobs-runtime-proof.json",
+    "providerRuntimeProof": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-provider-runtime-proof.json",
+    "durableObjectWebSocketProof": null,
+    "emailSendProof": null,
     "cloudflarePricingSnapshot": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-official-pricing-snapshot.json",
     "sanitizedUsageInputs": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-sanitized-usage-inputs.json"
   },
@@ -14,13 +20,15 @@
     "cloudflareUsageCostsReady": false,
     "localPreviewPerformanceCaptured": true,
     "hostedCredentialFreePerformanceCaptured": true,
+    "productionRuntimePerformanceReady": false,
+    "strictHostedClientP95Ready": false,
     "hostedPerformanceReady": false,
     "productionCostDecisionReady": false
   },
   "inventoryCounts": {
-    "appRoutes": 71,
-    "providerCoupledFiles": 99,
-    "distinctRpcNames": 79,
+    "appRoutes": 70,
+    "providerCoupledFiles": 86,
+    "distinctRpcNames": 75,
     "appliedMigrationFiles": 182,
     "pendingReviewFiles": 13,
     "sqlFunctionDeclarationMatches": 348,
@@ -45,15 +53,15 @@
       "input": "Vercel function invocations/duration",
       "source": "Vercel runtime logs MCP, project prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E, production, since=30d",
       "status": "provided",
-      "value": "30d production runtime log counts: middleware=65, function=41, rewrite=2; status samples include 200=51, 304=6, 206=3, 503=2, 204=1; top paths include /=28, /robots.txt=14, /contact=5.",
-      "notes": "Runtime log counts are not invoice totals and do not include bandwidth or build-minute billing."
+      "value": "30d production runtime log sample counts: middleware=73, function=49, rewrite=18; status samples include 200=67 and 404=2.",
+      "notes": "Runtime log counts are telemetry samples, not invoice totals, and do not include bandwidth or build-minute billing."
     },
     {
       "input": "Vercel build usage",
-      "source": "Vercel usage",
-      "status": "missing",
-      "value": null,
-      "notes": "Requires sanitized dashboard/invoice/metrics input before cost decisions."
+      "source": "Vercel deployments MCP, project prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E, team team_eRuwqQwhMbYYDmvgIgpQW1GS, since=1780315200000",
+      "status": "provided",
+      "value": "First deployment-list page since 2026-06-01T12:00:00Z returned 20 deployments with READY/ERROR/BLOCKED states; sampled deployments report nodejs lambdaRuntimeStats of 3-5 functions.",
+      "notes": "Deployment-list telemetry only; it is not a billable build-minute total and may be paginated."
     },
     {
       "input": "Supabase plan cost",
@@ -66,7 +74,7 @@
       "input": "Supabase DB size",
       "source": "Supabase SQL MCP, project ebxxqidacheyapmmzavr",
       "status": "provided",
-      "value": "40,242,323 bytes (~38.38 MiB) from pg_database_size(current_database()).",
+      "value": "40,291,475 bytes (~38.42 MiB) from pg_database_size(current_database()).",
       "notes": "Database footprint only; does not include Supabase plan price or egress."
     },
     {
@@ -92,10 +100,10 @@
     },
     {
       "input": "Supabase Realtime connections/messages",
-      "source": "Supabase realtime metrics",
-      "status": "missing",
-      "value": null,
-      "notes": "Requires sanitized dashboard/invoice/metrics input before cost decisions."
+      "source": "Supabase logs MCP, service=realtime, project ebxxqidacheyapmmzavr, last 24h",
+      "status": "provided",
+      "value": "Last-24h realtime logs show tenant initialization/shutdown/replication-slot activity, no-connected-users shutdown messages, and unauthorized topic attempts for estimate:hero-sanitized-estimate.",
+      "notes": "Realtime log sample only; not a monthly connection, message, egress, or billing metric."
     },
     {
       "input": "Resend plan cost",
@@ -117,28 +125,28 @@
       "input": "Workers requests",
       "source": "Cloudflare Workers Observability MCP",
       "status": "provided",
-      "value": "Proof traffic from hosted route/performance probes returned expected 200/307/404 statuses; Workers Observability sampled 60 probe events in the 2026-06-30T11:20Z-11:30Z window.",
-      "notes": "Proof-scale observed usage only; not projected monthly production requests."
+      "value": "Workers Observability sampled 4,590 events in the last 24h; sampled statuses: 200=3,440, 404=860, 307=290.",
+      "notes": "Proof-scale observed usage only; not projected monthly production requests. Top sampled paths include /access-required, /api/share/not-a-real-hosted-worker-share-token, /workshop, /api/projects/images, /pricing, /about, /contact, /, /login, and /terms."
     },
     {
       "input": "Workers CPU",
       "source": "Cloudflare Workers Observability MCP",
       "status": "provided",
-      "value": "Observed probe p95 CPU on Worker version 0db6e2b7-de5e-4a37-ba67-0e59feecc709: /workshop=5 ms, /access-required=9 ms, /api/share/not-a-real-hosted-worker-share-token=13 ms, /api/projects/images=3 ms.",
-      "notes": "Credential-free proof routes only; authenticated/data route CPU still requires production-like fixtures."
+      "value": "Current deployed Worker version 8a55ee02-8186-4c8a-a785-5c4bc214cfa7 had 60 sampled events with p95Cpu=13 ms and p95Wall=150 ms.",
+      "notes": "Current-version telemetry sample only. Aggregate last-24h observations include older Worker versions and slower credential-free paths, so authenticated/data route CPU still requires production-like fixtures."
     },
     {
       "input": "Workers subrequests",
       "source": "cf:inventory",
       "status": "local-derived",
-      "value": "99 provider-coupled source files need per-route subrequest mapping",
+      "value": "86 provider-coupled source files need per-route subrequest mapping",
       "notes": "Inventory-derived surface count only; not monthly operation volume."
     },
     {
       "input": "D1 reads",
       "source": "cf:inventory",
       "status": "local-derived",
-      "value": "79 app-code RPC names need read/write classification",
+      "value": "75 app-code RPC names need read/write classification",
       "notes": "Inventory-derived rewrite surface only; not D1 row-read volume."
     },
     {
@@ -222,7 +230,7 @@
       "input": "Observability/logs",
       "source": "2026-06-30-cloudflare-observability-proof.json",
       "status": "provided",
-      "value": "Workers Observability sampled 60 proof probe events for current Worker version 0db6e2b7-de5e-4a37-ba67-0e59feecc709.",
+      "value": "Workers Observability sampled 4,590 last-24h events, all info level in the sampled payloads.",
       "notes": "Proof-scale log volume only; retention and production log volume still need rollout data."
     }
   ],
@@ -264,14 +272,14 @@
         "login"
       ],
       "currentBaselineP95Ms": null,
-      "cloudflareLocalPreviewP95Ms": 13.07,
-      "cloudflareHostedP95Ms": 424.13,
+      "cloudflareLocalPreviewP95Ms": null,
+      "cloudflareHostedP95Ms": null,
       "budget": "no worse than baseline",
       "budgetMs": null,
-      "status": "hosted-partial-pass",
-      "evidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-29-cloudflare-worker-preview-route-probe.json",
-      "hostedEvidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-hosted-performance.json",
-      "notes": "Local proof only covers the public login page, not OAuth/callback/session refresh. Hosted evidence here is credential-free route timing only unless the fixture explicitly maps to that route class."
+      "status": "hosted-provider-proof-only",
+      "evidence": null,
+      "hostedEvidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-better-auth-provider-proof.json",
+      "notes": "Better Auth provider proof covers hosted D1 schema, Google provider config, magic-link callback, session-cookie issuance, route-gate readback, replay blocking, and cleanup. It is provider-backed but does not expose a p95 timing sample."
     },
     {
       "fixture": "Share route p95 TTFB",
@@ -308,26 +316,26 @@
       "probeKeys": [],
       "currentBaselineP95Ms": null,
       "cloudflareLocalPreviewP95Ms": null,
-      "cloudflareHostedP95Ms": null,
+      "cloudflareHostedP95Ms": 65,
       "budget": "under 600 ms",
       "budgetMs": 600,
-      "status": "missing",
+      "status": "hosted-provider-pass",
       "evidence": null,
-      "hostedEvidence": null,
-      "notes": "Requires authenticated hosted/provider fixture. Current-provider baseline and hosted Cloudflare proof are still required."
+      "hostedEvidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-runtime-performance-proof.json",
+      "notes": "D1 runtime provider proof maps workspace_homebase_summary to this fixture: sampleCount=9, budget=600ms. Workspace summary read model should stay within one grouped D1 query plus authorization guard."
     },
     {
       "fixture": "Estimate sheet initial load p95",
       "probeKeys": [],
       "currentBaselineP95Ms": null,
       "cloudflareLocalPreviewP95Ms": null,
-      "cloudflareHostedP95Ms": null,
+      "cloudflareHostedP95Ms": 76,
       "budget": "no worse than baseline",
       "budgetMs": null,
-      "status": "missing",
+      "status": "hosted-provider-pass",
       "evidence": null,
-      "hostedEvidence": null,
-      "notes": "Requires authenticated hosted/provider fixture. Current-provider baseline and hosted Cloudflare proof are still required."
+      "hostedEvidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-runtime-performance-proof.json",
+      "notes": "D1 runtime provider proof maps project_estimate_list_summaries to this fixture: sampleCount=9, budget=600ms. Project estimate list should avoid per-estimate follow-up queries."
     },
     {
       "fixture": "Estimate row mutation p95",
@@ -347,13 +355,13 @@
       "probeKeys": [],
       "currentBaselineP95Ms": null,
       "cloudflareLocalPreviewP95Ms": null,
-      "cloudflareHostedP95Ms": null,
+      "cloudflareHostedP95Ms": 57,
       "budget": "under 500 ms",
       "budgetMs": 500,
-      "status": "missing",
+      "status": "hosted-provider-pass",
       "evidence": null,
-      "hostedEvidence": null,
-      "notes": "Requires authenticated hosted/provider fixture. Current-provider baseline and hosted Cloudflare proof are still required."
+      "hostedEvidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-runtime-performance-proof.json",
+      "notes": "D1 runtime provider proof maps library_overview_summary to this fixture: sampleCount=9, budget=600ms. Library overview should stay as a grouped indexed read-model query."
     },
     {
       "fixture": "Upload signed/session creation p95",
@@ -363,10 +371,10 @@
       "cloudflareHostedP95Ms": null,
       "budget": "no worse than baseline",
       "budgetMs": null,
-      "status": "missing",
+      "status": "hosted-provider-proof-only",
       "evidence": null,
-      "hostedEvidence": null,
-      "notes": "Requires direct-upload replacement or provider fallback proof. Current-provider baseline and hosted Cloudflare proof are still required."
+      "hostedEvidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-provider-runtime-proof.json",
+      "notes": "Provider runtime proof covers Cloudflare Images plus ephemeral R2 put/get/delete/readback. It does not yet prove signed upload session p95."
     },
     {
       "fixture": "Upload scan queue latency p95",
@@ -376,10 +384,10 @@
       "cloudflareHostedP95Ms": null,
       "budget": "job-specific",
       "budgetMs": null,
-      "status": "missing",
+      "status": "hosted-provider-proof-only",
       "evidence": null,
-      "hostedEvidence": null,
-      "notes": "Requires Cloudflare Cron/Queues hosted execution proof. Current-provider baseline and hosted Cloudflare proof are still required."
+      "hostedEvidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-jobs-runtime-proof.json",
+      "notes": "Jobs runtime proof covers Queue send, consumer receipt, and cron provider execution. It does not yet expose end-to-end queue latency p95."
     },
     {
       "fixture": "Realtime cursor/presence latency p95",

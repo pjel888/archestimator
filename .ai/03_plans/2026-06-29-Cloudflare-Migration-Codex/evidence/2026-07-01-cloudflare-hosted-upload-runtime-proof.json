@@ -1,0 +1,834 @@
+{
+  "generatedAt": "2026-07-01T09:40:45.967Z",
+  "mode": "hosted-upload-runtime-proof",
+  "proofBoundary": "hosted-runtime-authenticated-dry-run",
+  "baseUrl": "https://archestimator.com",
+  "runs": 5,
+  "concurrency": 3,
+  "bodyProbeBytes": 1024,
+  "authenticated": true,
+  "passed": true,
+  "productionProofReady": true,
+  "missingAuthenticatedProbeSecrets": [],
+  "note": "Hosted upload runtime proof never records bearer secrets or uploaded bytes. Authenticated probes call a secret-gated non-mutating route that reports runtime memory, bounded body-probe receipt, concurrency reachability, and Supabase Storage bucket latency. This does not prove real user upload UX, scanner/CDR execution, alert delivery, dashboard observation, backpressure traffic, or retention-runbook completion.",
+  "samples": [
+    {
+      "key": "upload-runtime-unauthenticated-fail-closed",
+      "type": "unauthenticated-fail-closed",
+      "run": 1,
+      "status": 401,
+      "durationMs": 6021.39,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "hasNoStoreCacheControl": true,
+      "setCookiePresent": false,
+      "contentType": "application/json",
+      "bodyBytes": 25,
+      "bodySummary": {},
+      "passed": true
+    },
+    {
+      "key": "upload-runtime-unauthenticated-fail-closed",
+      "type": "unauthenticated-fail-closed",
+      "run": 2,
+      "status": 401,
+      "durationMs": 66.27,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "hasNoStoreCacheControl": true,
+      "setCookiePresent": false,
+      "contentType": "application/json",
+      "bodyBytes": 25,
+      "bodySummary": {},
+      "passed": true
+    },
+    {
+      "key": "upload-runtime-unauthenticated-fail-closed",
+      "type": "unauthenticated-fail-closed",
+      "run": 3,
+      "status": 401,
+      "durationMs": 72.91,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "hasNoStoreCacheControl": true,
+      "setCookiePresent": false,
+      "contentType": "application/json",
+      "bodyBytes": 25,
+      "bodySummary": {},
+      "passed": true
+    },
+    {
+      "key": "upload-runtime-unauthenticated-fail-closed",
+      "type": "unauthenticated-fail-closed",
+      "run": 4,
+      "status": 401,
+      "durationMs": 66.59,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "hasNoStoreCacheControl": true,
+      "setCookiePresent": false,
+      "contentType": "application/json",
+      "bodyBytes": 25,
+      "bodySummary": {},
+      "passed": true
+    },
+    {
+      "key": "upload-runtime-unauthenticated-fail-closed",
+      "type": "unauthenticated-fail-closed",
+      "run": 5,
+      "status": 401,
+      "durationMs": 66.31,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "hasNoStoreCacheControl": true,
+      "setCookiePresent": false,
+      "contentType": "application/json",
+      "bodyBytes": 25,
+      "bodySummary": {},
+      "passed": true
+    },
+    {
+      "key": "upload-runtime-authenticated-dry-run",
+      "type": "authenticated-runtime-dry-run",
+      "run": 1,
+      "status": 200,
+      "durationMs": 572.65,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "hasNoStoreCacheControl": true,
+      "setCookiePresent": false,
+      "contentType": "application/json",
+      "bodyBytes": 831,
+      "bodySummary": {
+        "mode": "dry-run",
+        "proofSurface": "upload-hosted-runtime",
+        "runtime": "nodejs",
+        "durationMs": 498,
+        "deployment": {
+          "targetRuntime": "cloudflare-workers-open-next",
+          "nodeVersion": "v22.19.0"
+        },
+        "configuredLimits": {
+          "memoryMb": 128,
+          "bodyLimitBytes": 4194304,
+          "routeDurationMs": 30000,
+          "expectedConcurrentUploads": 3,
+          "storageLatencyP95Ms": 250
+        },
+        "bodyProbe": null,
+        "memory": {
+          "before": {
+            "rssMb": 0,
+            "heapUsedMb": 0,
+            "externalMb": 0,
+            "arrayBuffersMb": 0
+          },
+          "after": {
+            "rssMb": 0,
+            "heapUsedMb": 0,
+            "externalMb": 0,
+            "arrayBuffersMb": 0
+          },
+          "rssDeltaMb": 0,
+          "heapUsedDeltaMb": 0
+        },
+        "storageLatency": {
+          "provider": "cloudflare-r2",
+          "status": "ok",
+          "durationMs": 498,
+          "bucketReachable": true,
+          "bucketPublic": null,
+          "errorName": null,
+          "statusCode": null
+        }
+      },
+      "passed": true
+    },
+    {
+      "key": "upload-runtime-authenticated-body-probe",
+      "type": "authenticated-body-probe",
+      "run": 1,
+      "status": 200,
+      "durationMs": 213.44,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "hasNoStoreCacheControl": true,
+      "setCookiePresent": false,
+      "contentType": "application/json",
+      "bodyBytes": 903,
+      "bodySummary": {
+        "mode": "dry-run",
+        "proofSurface": "upload-hosted-runtime",
+        "runtime": "nodejs",
+        "durationMs": 133,
+        "deployment": {
+          "targetRuntime": "cloudflare-workers-open-next",
+          "nodeVersion": "v22.19.0"
+        },
+        "configuredLimits": {
+          "memoryMb": 128,
+          "bodyLimitBytes": 4194304,
+          "routeDurationMs": 30000,
+          "expectedConcurrentUploads": 3,
+          "storageLatencyP95Ms": 250
+        },
+        "bodyProbe": {
+          "contentLengthBytes": 1024,
+          "receivedBytes": 1024,
+          "maxProbeBodyBytes": 4194304
+        },
+        "memory": {
+          "before": {
+            "rssMb": 0,
+            "heapUsedMb": 0,
+            "externalMb": 0,
+            "arrayBuffersMb": 0
+          },
+          "after": {
+            "rssMb": 0,
+            "heapUsedMb": 0,
+            "externalMb": 0,
+            "arrayBuffersMb": 0
+          },
+          "rssDeltaMb": 0,
+          "heapUsedDeltaMb": 0
+        },
+        "storageLatency": {
+          "provider": "cloudflare-r2",
+          "status": "ok",
+          "durationMs": 133,
+          "bucketReachable": true,
+          "bucketPublic": null,
+          "errorName": null,
+          "statusCode": null
+        }
+      },
+      "passed": true
+    },
+    {
+      "key": "upload-runtime-authenticated-dry-run",
+      "type": "authenticated-runtime-dry-run",
+      "run": 2,
+      "status": 200,
+      "durationMs": 171.3,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "hasNoStoreCacheControl": true,
+      "setCookiePresent": false,
+      "contentType": "application/json",
+      "bodyBytes": 831,
+      "bodySummary": {
+        "mode": "dry-run",
+        "proofSurface": "upload-hosted-runtime",
+        "runtime": "nodejs",
+        "durationMs": 105,
+        "deployment": {
+          "targetRuntime": "cloudflare-workers-open-next",
+          "nodeVersion": "v22.19.0"
+        },
+        "configuredLimits": {
+          "memoryMb": 128,
+          "bodyLimitBytes": 4194304,
+          "routeDurationMs": 30000,
+          "expectedConcurrentUploads": 3,
+          "storageLatencyP95Ms": 250
+        },
+        "bodyProbe": null,
+        "memory": {
+          "before": {
+            "rssMb": 0,
+            "heapUsedMb": 0,
+            "externalMb": 0,
+            "arrayBuffersMb": 0
+          },
+          "after": {
+            "rssMb": 0,
+            "heapUsedMb": 0,
+            "externalMb": 0,
+            "arrayBuffersMb": 0
+          },
+          "rssDeltaMb": 0,
+          "heapUsedDeltaMb": 0
+        },
+        "storageLatency": {
+          "provider": "cloudflare-r2",
+          "status": "ok",
+          "durationMs": 105,
+          "bucketReachable": true,
+          "bucketPublic": null,
+          "errorName": null,
+          "statusCode": null
+        }
+      },
+      "passed": true
+    },
+    {
+      "key": "upload-runtime-authenticated-body-probe",
+      "type": "authenticated-body-probe",
+      "run": 2,
+      "status": 200,
+      "durationMs": 197.15,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "hasNoStoreCacheControl": true,
+      "setCookiePresent": false,
+      "contentType": "application/json",
+      "bodyBytes": 903,
+      "bodySummary": {
+        "mode": "dry-run",
+        "proofSurface": "upload-hosted-runtime",
+        "runtime": "nodejs",
+        "durationMs": 119,
+        "deployment": {
+          "targetRuntime": "cloudflare-workers-open-next",
+          "nodeVersion": "v22.19.0"
+        },
+        "configuredLimits": {
+          "memoryMb": 128,
+          "bodyLimitBytes": 4194304,
+          "routeDurationMs": 30000,
+          "expectedConcurrentUploads": 3,
+          "storageLatencyP95Ms": 250
+        },
+        "bodyProbe": {
+          "contentLengthBytes": 1024,
+          "receivedBytes": 1024,
+          "maxProbeBodyBytes": 4194304
+        },
+        "memory": {
+          "before": {
+            "rssMb": 0,
+            "heapUsedMb": 0,
+            "externalMb": 0,
+            "arrayBuffersMb": 0
+          },
+          "after": {
+            "rssMb": 0,
+            "heapUsedMb": 0,
+            "externalMb": 0,
+            "arrayBuffersMb": 0
+          },
+          "rssDeltaMb": 0,
+          "heapUsedDeltaMb": 0
+        },
+        "storageLatency": {
+          "provider": "cloudflare-r2",
+          "status": "ok",
+          "durationMs": 119,
+          "bucketReachable": true,
+          "bucketPublic": null,
+          "errorName": null,
+          "statusCode": null
+        }
+      },
+      "passed": true
+    },
+    {
+      "key": "upload-runtime-authenticated-dry-run",
+      "type": "authenticated-runtime-dry-run",
+      "run": 3,
+      "status": 200,
+      "durationMs": 170.63,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "hasNoStoreCacheControl": true,
+      "setCookiePresent": false,
+      "contentType": "application/json",
+      "bodyBytes": 831,
+      "bodySummary": {
+        "mode": "dry-run",
+        "proofSurface": "upload-hosted-runtime",
+        "runtime": "nodejs",
+        "durationMs": 100,
+        "deployment": {
+          "targetRuntime": "cloudflare-workers-open-next",
+          "nodeVersion": "v22.19.0"
+        },
+        "configuredLimits": {
+          "memoryMb": 128,
+          "bodyLimitBytes": 4194304,
+          "routeDurationMs": 30000,
+          "expectedConcurrentUploads": 3,
+          "storageLatencyP95Ms": 250
+        },
+        "bodyProbe": null,
+        "memory": {
+          "before": {
+            "rssMb": 0,
+            "heapUsedMb": 0,
+            "externalMb": 0,
+            "arrayBuffersMb": 0
+          },
+          "after": {
+            "rssMb": 0,
+            "heapUsedMb": 0,
+            "externalMb": 0,
+            "arrayBuffersMb": 0
+          },
+          "rssDeltaMb": 0,
+          "heapUsedDeltaMb": 0
+        },
+        "storageLatency": {
+          "provider": "cloudflare-r2",
+          "status": "ok",
+          "durationMs": 100,
+          "bucketReachable": true,
+          "bucketPublic": null,
+          "errorName": null,
+          "statusCode": null
+        }
+      },
+      "passed": true
+    },
+    {
+      "key": "upload-runtime-authenticated-body-probe",
+      "type": "authenticated-body-probe",
+      "run": 3,
+      "status": 200,
+      "durationMs": 176.36,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "hasNoStoreCacheControl": true,
+      "setCookiePresent": false,
+      "contentType": "application/json",
+      "bodyBytes": 903,
+      "bodySummary": {
+        "mode": "dry-run",
+        "proofSurface": "upload-hosted-runtime",
+        "runtime": "nodejs",
+        "durationMs": 116,
+        "deployment": {
+          "targetRuntime": "cloudflare-workers-open-next",
+          "nodeVersion": "v22.19.0"
+        },
+        "configuredLimits": {
+          "memoryMb": 128,
+          "bodyLimitBytes": 4194304,
+          "routeDurationMs": 30000,
+          "expectedConcurrentUploads": 3,
+          "storageLatencyP95Ms": 250
+        },
+        "bodyProbe": {
+          "contentLengthBytes": 1024,
+          "receivedBytes": 1024,
+          "maxProbeBodyBytes": 4194304
+        },
+        "memory": {
+          "before": {
+            "rssMb": 0,
+            "heapUsedMb": 0,
+            "externalMb": 0,
+            "arrayBuffersMb": 0
+          },
+          "after": {
+            "rssMb": 0,
+            "heapUsedMb": 0,
+            "externalMb": 0,
+            "arrayBuffersMb": 0
+          },
+          "rssDeltaMb": 0,
+          "heapUsedDeltaMb": 0
+        },
+        "storageLatency": {
+          "provider": "cloudflare-r2",
+          "status": "ok",
+          "durationMs": 116,
+          "bucketReachable": true,
+          "bucketPublic": null,
+          "errorName": null,
+          "statusCode": null
+        }
+      },
+      "passed": true
+    },
+    {
+      "key": "upload-runtime-authenticated-dry-run",
+      "type": "authenticated-runtime-dry-run",
+      "run": 4,
+      "status": 200,
+      "durationMs": 181.01,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "hasNoStoreCacheControl": true,
+      "setCookiePresent": false,
+      "contentType": "application/json",
+      "bodyBytes": 831,
+      "bodySummary": {
+        "mode": "dry-run",
+        "proofSurface": "upload-hosted-runtime",
+        "runtime": "nodejs",
+        "durationMs": 114,
+        "deployment": {
+          "targetRuntime": "cloudflare-workers-open-next",
+          "nodeVersion": "v22.19.0"
+        },
+        "configuredLimits": {
+          "memoryMb": 128,
+          "bodyLimitBytes": 4194304,
+          "routeDurationMs": 30000,
+          "expectedConcurrentUploads": 3,
+          "storageLatencyP95Ms": 250
+        },
+        "bodyProbe": null,
+        "memory": {
+          "before": {
+            "rssMb": 0,
+            "heapUsedMb": 0,
+            "externalMb": 0,
+            "arrayBuffersMb": 0
+          },
+          "after": {
+            "rssMb": 0,
+            "heapUsedMb": 0,
+            "externalMb": 0,
+            "arrayBuffersMb": 0
+          },
+          "rssDeltaMb": 0,
+          "heapUsedDeltaMb": 0
+        },
+        "storageLatency": {
+          "provider": "cloudflare-r2",
+          "status": "ok",
+          "durationMs": 114,
+          "bucketReachable": true,
+          "bucketPublic": null,
+          "errorName": null,
+          "statusCode": null
+        }
+      },
+      "passed": true
+    },
+    {
+      "key": "upload-runtime-authenticated-body-probe",
+      "type": "authenticated-body-probe",
+      "run": 4,
+      "status": 200,
+      "durationMs": 193.93,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "hasNoStoreCacheControl": true,
+      "setCookiePresent": false,
+      "contentType": "application/json",
+      "bodyBytes": 903,
+      "bodySummary": {
+        "mode": "dry-run",
+        "proofSurface": "upload-hosted-runtime",
+        "runtime": "nodejs",
+        "durationMs": 121,
+        "deployment": {
+          "targetRuntime": "cloudflare-workers-open-next",
+          "nodeVersion": "v22.19.0"
+        },
+        "configuredLimits": {
+          "memoryMb": 128,
+          "bodyLimitBytes": 4194304,
+          "routeDurationMs": 30000,
+          "expectedConcurrentUploads": 3,
+          "storageLatencyP95Ms": 250
+        },
+        "bodyProbe": {
+          "contentLengthBytes": 1024,
+          "receivedBytes": 1024,
+          "maxProbeBodyBytes": 4194304
+        },
+        "memory": {
+          "before": {
+            "rssMb": 0,
+            "heapUsedMb": 0,
+            "externalMb": 0,
+            "arrayBuffersMb": 0
+          },
+          "after": {
+            "rssMb": 0,
+            "heapUsedMb": 0,
+            "externalMb": 0,
+            "arrayBuffersMb": 0
+          },
+          "rssDeltaMb": 0,
+          "heapUsedDeltaMb": 0
+        },
+        "storageLatency": {
+          "provider": "cloudflare-r2",
+          "status": "ok",
+          "durationMs": 121,
+          "bucketReachable": true,
+          "bucketPublic": null,
+          "errorName": null,
+          "statusCode": null
+        }
+      },
+      "passed": true
+    },
+    {
+      "key": "upload-runtime-authenticated-dry-run",
+      "type": "authenticated-runtime-dry-run",
+      "run": 5,
+      "status": 200,
+      "durationMs": 169.53,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "hasNoStoreCacheControl": true,
+      "setCookiePresent": false,
+      "contentType": "application/json",
+      "bodyBytes": 831,
+      "bodySummary": {
+        "mode": "dry-run",
+        "proofSurface": "upload-hosted-runtime",
+        "runtime": "nodejs",
+        "durationMs": 113,
+        "deployment": {
+          "targetRuntime": "cloudflare-workers-open-next",
+          "nodeVersion": "v22.19.0"
+        },
+        "configuredLimits": {
+          "memoryMb": 128,
+          "bodyLimitBytes": 4194304,
+          "routeDurationMs": 30000,
+          "expectedConcurrentUploads": 3,
+          "storageLatencyP95Ms": 250
+        },
+        "bodyProbe": null,
+        "memory": {
+          "before": {
+            "rssMb": 0,
+            "heapUsedMb": 0,
+            "externalMb": 0,
+            "arrayBuffersMb": 0
+          },
+          "after": {
+            "rssMb": 0,
+            "heapUsedMb": 0,
+            "externalMb": 0,
+            "arrayBuffersMb": 0
+          },
+          "rssDeltaMb": 0,
+          "heapUsedDeltaMb": 0
+        },
+        "storageLatency": {
+          "provider": "cloudflare-r2",
+          "status": "ok",
+          "durationMs": 113,
+          "bucketReachable": true,
+          "bucketPublic": null,
+          "errorName": null,
+          "statusCode": null
+        }
+      },
+      "passed": true
+    },
+    {
+      "key": "upload-runtime-authenticated-body-probe",
+      "type": "authenticated-body-probe",
+      "run": 5,
+      "status": 200,
+      "durationMs": 171.01,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "hasNoStoreCacheControl": true,
+      "setCookiePresent": false,
+      "contentType": "application/json",
+      "bodyBytes": 903,
+      "bodySummary": {
+        "mode": "dry-run",
+        "proofSurface": "upload-hosted-runtime",
+        "runtime": "nodejs",
+        "durationMs": 110,
+        "deployment": {
+          "targetRuntime": "cloudflare-workers-open-next",
+          "nodeVersion": "v22.19.0"
+        },
+        "configuredLimits": {
+          "memoryMb": 128,
+          "bodyLimitBytes": 4194304,
+          "routeDurationMs": 30000,
+          "expectedConcurrentUploads": 3,
+          "storageLatencyP95Ms": 250
+        },
+        "bodyProbe": {
+          "contentLengthBytes": 1024,
+          "receivedBytes": 1024,
+          "maxProbeBodyBytes": 4194304
+        },
+        "memory": {
+          "before": {
+            "rssMb": 0,
+            "heapUsedMb": 0,
+            "externalMb": 0,
+            "arrayBuffersMb": 0
+          },
+          "after": {
+            "rssMb": 0,
+            "heapUsedMb": 0,
+            "externalMb": 0,
+            "arrayBuffersMb": 0
+          },
+          "rssDeltaMb": 0,
+          "heapUsedDeltaMb": 0
+        },
+        "storageLatency": {
+          "provider": "cloudflare-r2",
+          "status": "ok",
+          "durationMs": 110,
+          "bucketReachable": true,
+          "bucketPublic": null,
+          "errorName": null,
+          "statusCode": null
+        }
+      },
+      "passed": true
+    },
+    {
+      "key": "upload-runtime-authenticated-concurrency-probe",
+      "type": "authenticated-concurrency-probe",
+      "run": 1,
+      "status": 200,
+      "durationMs": 161.94,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "hasNoStoreCacheControl": true,
+      "setCookiePresent": false,
+      "contentType": "application/json",
+      "bodyBytes": 831,
+      "bodySummary": {
+        "mode": "dry-run",
+        "proofSurface": "upload-hosted-runtime",
+        "runtime": "nodejs",
+        "durationMs": 101,
+        "deployment": {
+          "targetRuntime": "cloudflare-workers-open-next",
+          "nodeVersion": "v22.19.0"
+        },
+        "configuredLimits": {
+          "memoryMb": 128,
+          "bodyLimitBytes": 4194304,
+          "routeDurationMs": 30000,
+          "expectedConcurrentUploads": 3,
+          "storageLatencyP95Ms": 250
+        },
+        "bodyProbe": null,
+        "memory": {
+          "before": {
+            "rssMb": 0,
+            "heapUsedMb": 0,
+            "externalMb": 0,
+            "arrayBuffersMb": 0
+          },
+          "after": {
+            "rssMb": 0,
+            "heapUsedMb": 0,
+            "externalMb": 0,
+            "arrayBuffersMb": 0
+          },
+          "rssDeltaMb": 0,
+          "heapUsedDeltaMb": 0
+        },
+        "storageLatency": {
+          "provider": "cloudflare-r2",
+          "status": "ok",
+          "durationMs": 101,
+          "bucketReachable": true,
+          "bucketPublic": null,
+          "errorName": null,
+          "statusCode": null
+        }
+      },
+      "passed": true
+    },
+    {
+      "key": "upload-runtime-authenticated-concurrency-probe",
+      "type": "authenticated-concurrency-probe",
+      "run": 2,
+      "status": 200,
+      "durationMs": 2850.11,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "hasNoStoreCacheControl": true,
+      "setCookiePresent": false,
+      "contentType": "application/json",
+      "bodyBytes": 831,
+      "bodySummary": {
+        "mode": "dry-run",
+        "proofSurface": "upload-hosted-runtime",
+        "runtime": "nodejs",
+        "durationMs": 459,
+        "deployment": {
+          "targetRuntime": "cloudflare-workers-open-next",
+          "nodeVersion": "v22.19.0"
+        },
+        "configuredLimits": {
+          "memoryMb": 128,
+          "bodyLimitBytes": 4194304,
+          "routeDurationMs": 30000,
+          "expectedConcurrentUploads": 3,
+          "storageLatencyP95Ms": 250
+        },
+        "bodyProbe": null,
+        "memory": {
+          "before": {
+            "rssMb": 0,
+            "heapUsedMb": 0,
+            "externalMb": 0,
+            "arrayBuffersMb": 0
+          },
+          "after": {
+            "rssMb": 0,
+            "heapUsedMb": 0,
+            "externalMb": 0,
+            "arrayBuffersMb": 0
+          },
+          "rssDeltaMb": 0,
+          "heapUsedDeltaMb": 0
+        },
+        "storageLatency": {
+          "provider": "cloudflare-r2",
+          "status": "ok",
+          "durationMs": 459,
+          "bucketReachable": true,
+          "bucketPublic": null,
+          "errorName": null,
+          "statusCode": null
+        }
+      },
+      "passed": true
+    },
+    {
+      "key": "upload-runtime-authenticated-concurrency-probe",
+      "type": "authenticated-concurrency-probe",
+      "run": 3,
+      "status": 200,
+      "durationMs": 2093.48,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "hasNoStoreCacheControl": true,
+      "setCookiePresent": false,
+      "contentType": "application/json",
+      "bodyBytes": 831,
+      "bodySummary": {
+        "mode": "dry-run",
+        "proofSurface": "upload-hosted-runtime",
+        "runtime": "nodejs",
+        "durationMs": 760,
+        "deployment": {
+          "targetRuntime": "cloudflare-workers-open-next",
+          "nodeVersion": "v22.19.0"
+        },
+        "configuredLimits": {
+          "memoryMb": 128,
+          "bodyLimitBytes": 4194304,
+          "routeDurationMs": 30000,
+          "expectedConcurrentUploads": 3,
+          "storageLatencyP95Ms": 250
+        },
+        "bodyProbe": null,
+        "memory": {
+          "before": {
+            "rssMb": 0,
+            "heapUsedMb": 0,
+            "externalMb": 0,
+            "arrayBuffersMb": 0
+          },
+          "after": {
+            "rssMb": 0,
+            "heapUsedMb": 0,
+            "externalMb": 0,
+            "arrayBuffersMb": 0
+          },
+          "rssDeltaMb": 0,
+          "heapUsedDeltaMb": 0
+        },
+        "storageLatency": {
+          "provider": "cloudflare-r2",
+          "status": "ok",
+          "durationMs": 760,
+          "bucketReachable": true,
+          "bucketPublic": null,
+          "errorName": null,
+          "statusCode": null
+        }
+      },
+      "passed": true
+    }
+  ]
+}

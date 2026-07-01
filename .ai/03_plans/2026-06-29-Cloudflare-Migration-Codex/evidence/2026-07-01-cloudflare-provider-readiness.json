@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-01T04:52:14.302Z",
+  "generatedAt": "2026-07-01T09:46:03.811Z",
   "mode": "cloudflare-provider-readiness",
   "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-provider-readiness-source.json",
   "capturedAt": "2026-06-30T02:00:15.745Z",
@@ -28,9 +28,9 @@
     {
       "key": "nameservers-active",
       "label": "Registrar nameservers point at Cloudflare",
-      "ready": false,
-      "evidence": "assigned=carl.ns.cloudflare.com, ziggy.ns.cloudflare.com, publicDns=dns1.registrar-servers.com, dns2.registrar-servers.com, sanitizedRegistrar=dns1.registrar-servers.com, dns2.registrar-servers.com",
-      "blocker": "Public DNS nameservers still do not include all Cloudflare-assigned nameservers."
+      "ready": true,
+      "evidence": "assigned=carl.ns.cloudflare.com, ziggy.ns.cloudflare.com, publicDns=carl.ns.cloudflare.com, ziggy.ns.cloudflare.com, sanitizedRegistrar=dns1.registrar-servers.com, dns2.registrar-servers.com",
+      "blocker": null
     },
     {
       "key": "workers-paid",
@@ -48,9 +48,9 @@
     },
     {
       "key": "custom-domain",
-      "label": "Worker custom domain active",
+      "label": "Worker custom domain attached and serving",
       "ready": true,
-      "evidence": "customDomainActive=yes",
+      "evidence": "customDomainAttached=yes, customDomainHttpChecked=yes, customDomainHttpReady=yes",
       "blocker": null
     },
     {
@@ -63,9 +63,9 @@
     {
       "key": "worker-secrets",
       "label": "Sanitized Worker secret list captured",
-      "ready": false,
-      "evidence": "sanitizedSecretListCaptured=no, wranglerSecretNameReadback=no",
-      "blocker": "Worker secret name readback is incomplete: Worker secret name list: missing expected names BETTER_AUTH_GOOGLE_CLIENT_ID, BETTER_AUTH_GOOGLE_CLIENT_SECRET."
+      "ready": true,
+      "evidence": "sanitizedSecretListCaptured=no, wranglerSecretNameReadback=yes",
+      "blocker": null
     },
     {
       "key": "r2-provider",
@@ -92,32 +92,32 @@
       "key": "analytics-provider",
       "label": "Cloudflare Analytics/Workers Observability receiving data",
       "ready": true,
-      "evidence": "webAnalyticsPropertyCreated=yes, webAnalyticsReceivingDataProven=no, workersObservabilityReceivingDataProven=yes, observedProbeEvents=60",
+      "evidence": "webAnalyticsPropertyCreated=yes, webAnalyticsReceivingDataProven=no, workersObservabilityReceivingDataProven=yes, observedProbeEvents=110",
       "blocker": null
     }
   ],
   "dashboardInventoryReady": true,
-  "workersDeploymentReady": false,
+  "workersDeploymentReady": true,
   "storageMediaReady": true,
   "jobsReady": true,
   "analyticsReady": true,
-  "productionCutoverReady": false,
+  "productionCutoverReady": true,
   "dnsDelegationSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-dns-delegation.json",
-  "dnsDelegationCapturedAt": "2026-07-01T04:52:02.757Z",
+  "dnsDelegationCapturedAt": "2026-07-01T06:51:06.031Z",
   "wranglerAuthSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-wrangler-auth.json",
   "wranglerAuthCapturedAt": "2026-06-30T06:29:11.196Z",
   "providerResourceReadbackSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-provider-resource-readback.json",
-  "providerResourceReadbackCapturedAt": "2026-07-01T04:51:35.412Z",
-  "providerRuntimeProofSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-provider-runtime-proof.json",
-  "providerRuntimeProofCapturedAt": "2026-06-30T07:48:31.630Z",
-  "jobsRuntimeProofSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-jobs-runtime-proof.json",
-  "jobsRuntimeProofCapturedAt": "2026-06-30T08:13:10.504Z",
-  "observabilityProofSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-observability-proof.json",
-  "observabilityProofCapturedAt": "2026-06-30T11:27:15.000Z",
+  "providerResourceReadbackCapturedAt": "2026-07-01T09:45:56.055Z",
+  "providerRuntimeProofSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-provider-runtime-proof.json",
+  "providerRuntimeProofCapturedAt": "2026-07-01T09:15:10.945Z",
+  "jobsRuntimeProofSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-jobs-runtime-proof.json",
+  "jobsRuntimeProofCapturedAt": "2026-07-01T09:15:01.238Z",
+  "observabilityProofSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-observability-proof.json",
+  "observabilityProofCapturedAt": "2026-07-01T07:25:00.000Z",
   "nameserverEvidenceSource": "public-dns",
   "publicDnsNameservers": [
-    "dns1.registrar-servers.com",
-    "dns2.registrar-servers.com"
+    "carl.ns.cloudflare.com",
+    "ziggy.ns.cloudflare.com"
   ],
   "actionsIntentionallyNotTaken": [
     "paid checkout/subscription purchase by Codex",

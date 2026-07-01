@@ -1,6 +1,6 @@
 # Cloudflare Worker Readiness
 
-Generated: 2026-07-01T05:41:59.798Z
+Generated: 2026-07-01T09:44:38.730Z
 Manifest ready: PASS
 Local preview ready: PASS
 Deployment secrets ready: PASS
@@ -13,6 +13,7 @@ Cloudflare Worker readiness checks manifest/env-name alignment and optional sani
 | Env example | PASS | (none) |
 | Local dev vars example | PASS | (none) |
 | Wrangler bindings | PASS | (none) |
+| Wrangler vars | PASS | (none) |
 | Wrangler custom domains | PASS | (none) |
 | Wrangler crons | PASS | (none) |
 | Wrangler observability | PASS | (none) |

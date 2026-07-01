@@ -28,7 +28,7 @@ Recommended direction: keep the existing durable security-event patterns as the 
 | [07_ARCHITECTURE_AND_PROVIDER_DESIGN.md](07_ARCHITECTURE_AND_PROVIDER_DESIGN.md) | App and provider design. |
 | [08_CLOUDFLARE_NATIVE_PLAN.md](08_CLOUDFLARE_NATIVE_PLAN.md) | Cloudflare-native proof plan. |
 | [09_APP_LIMITER_IMPLEMENTATION_PLAN.md](09_APP_LIMITER_IMPLEMENTATION_PLAN.md) | Future module design without code changes. |
-| [10_ROUTE_AND_SERVER_ACTION_WORK_PACKAGES.md](10_ROUTE_AND_SERVER_ACTION_WORK_PACKAGES.md) | P0-P12 future work packages. |
+| [10_ROUTE_AND_SERVER_ACTION_WORK_PACKAGES.md](10_ROUTE_AND_SERVER_ACTION_WORK_PACKAGES.md) | Lean P0A and P0-P15 future work packages. |
 | [11_TEST_AND_VALIDATION_STRATEGY.md](11_TEST_AND_VALIDATION_STRATEGY.md) | Test, proof, and UltraQA matrix. |
 | [12_OBSERVABILITY_AND_OPERATIONS.md](12_OBSERVABILITY_AND_OPERATIONS.md) | Events, dashboards, runbooks, retention. |
 | [13_ROLLOUT_ROLLBACK_AND_FALSE_POSITIVE_PLAN.md](13_ROLLOUT_ROLLBACK_AND_FALSE_POSITIVE_PLAN.md) | Staged rollout and false-positive handling. |
@@ -42,7 +42,25 @@ Recommended direction: keep the existing durable security-event patterns as the 
 | [21_HTTP_RESOURCE_AUTH_AND_ABUSE_STANDARDS_HARDENING.md](21_HTTP_RESOURCE_AUTH_AND_ABUSE_STANDARDS_HARDENING.md) | HTTP response profiles, exact draft RateLimit metadata syntax/cache/client posture, resource/runtime budgets, auth timing/NIST recovery, Turnstile validation binding, cache/CDN, sequence-aware abuse, and retention/deletion hardening. |
 | [22_PROVIDER_IDENTITY_AND_ADVANCED_ABUSE_GAP_CLOSURE.md](22_PROVIDER_IDENTITY_AND_ADVANCED_ABUSE_GAP_CLOSURE.md) | Third-pass closure for IPv6 identity, Supabase Auth provider limits, timing-safe comparison, cache stampede, retry full jitter, MFA/OTP, pagination/count, CORS `OPTIONS`, realtime message rates, service-worker replay, multipart/chunked abuse, and Bot Management escalation. |
 | [23_BETTER_AUTH_COORDINATION.md](23_BETTER_AUTH_COORDINATION.md) | Fourth-pass closure for Better Auth limiter coordination, WAF/Server Action hosted proof, current-checkout provider drift, CollaborationRoom DO readiness split, sampled Workers Logs, queues/cron/cache/images, and migration-period identity unification. |
+| [24_PRE_BETA_IMPLEMENTATION_CUTLINE.md](24_PRE_BETA_IMPLEMENTATION_CUTLINE.md) | Proportionality/actionability repair: lean pre-beta implementation cutline, first shippable public-share slice, applicability-scoped gates, explicit deferrals, and non-weakenable safety invariants. |
+
+## Pre-Beta Cutline
+
+The package has two different gates:
+
+| Gate | Meaning | Current status |
+| --- | --- | --- |
+| Full enforcement gate | All routes/actions/provider layers are contracted, implemented, shadowed, observed, rollbackable, and false-positive reviewed. | **NOT READY**. |
+| Lean pre-beta app-layer gate | One local, behavior-preserving slice can be planned and implemented after scoped re-inventory, scoped contract answers, and behavior-lock tests. | **READY TO PLAN** for Lean P0A only. |
+
+Lean P0A is the first allowed slice: preserve and consolidate the existing durable public-share limiter behavior for `RC-017` through `RC-024`. It does not require Better Auth, WAF, Turnstile, DO/D1 migration, queue/cron/images/cache, Bot Management, or full client-guard library proof unless the implementation expands beyond those share routes.
+
+The exhaustive rows remain binding when applicable. They are no longer a universal "all rows before first source edit" checklist.
 
 ## Stop Condition
 
-Stop this planning task when all listed documents exist with frontmatter, source refs, Cloudflare/Better Auth/current-checkout assumptions, frontend-control coverage, standards-hardening coverage, provider-identity and advanced-abuse gap coverage, fourth-pass Better Auth/provider-drift coverage, inventory coverage, traceability, readiness verdicts, and validation evidence. Do not start enforcement work from this package until the implementer re-validates the current checkout, confirms the Cloudflare migration state, completes the P0 route/action/client-control/standards/provider contract rows in `19_IMPLEMENTATION_CONTRACT_WORKSHEET.md` including `SCE-001` through `SCE-020`, `FCE-001` through `FCE-009`, and `CP-001` through `CP-009`, maps `RL-FR-001` through `RL-FR-039`, `RL-NFR-001` through `RL-NFR-018`, and `PROOF-RL-001` through `PROOF-RL-030`, confirms Better Auth limiter authority/storage/IP/header behavior, runs hosted WAF/Server Action proof before trusting edge conclusions, and opens a separate scoped implementation plan.
+Stop this planning task when all listed documents exist with frontmatter, source refs, Cloudflare/Better Auth/current-checkout assumptions, frontend-control coverage, standards-hardening coverage, provider-identity and advanced-abuse gap coverage, fourth-pass Better Auth/provider-drift coverage, pre-beta cutline coverage, inventory coverage, traceability, readiness verdicts, and validation evidence.
+
+Do not start **full enforcement work** from this package until the implementer re-validates the current checkout, confirms the Cloudflare migration state, completes every applicable route/action/client-control/standards/provider contract row in `19_IMPLEMENTATION_CONTRACT_WORKSHEET.md`, maps `RL-FR-001` through `RL-FR-040`, `RL-NFR-001` through `RL-NFR-019`, and `PROOF-RL-001` through `PROOF-RL-031`, confirms Better Auth limiter authority/storage/IP/header behavior for auth paths, runs hosted WAF/Server Action proof before trusting edge conclusions, and opens a separate scoped implementation plan.
+
+Do allow a **separate Lean P0A implementation plan** to start before the full enforcement gate if it stays inside public-share `RC-017` through `RC-024`, fills `LP0A-001` through `LP0A-012`, proves `PROOF-RL-002` and `PROOF-RL-031`, makes no provider/runtime/config changes, and records explicit N/A decisions for unrelated auth/provider/edge/client-library rows.

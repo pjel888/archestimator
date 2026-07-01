@@ -39,6 +39,10 @@ owner: Archestimator
 | D25 | Make app-side denial events primary when Workers Logs are sampled. | `wrangler.jsonc` samples Workers Logs, so provider logs cannot be the complete denial ledger. |
 | D26 | Treat D1 as a deliberate limiter-store decision during Postgres sunset. | D1/Better Auth storage may be useful, but hot-counter semantics, query budgets, and migration identity need explicit proof. |
 | D27 | Treat queues, cron, cache, and Images as resource-budget surfaces, not rate-limit mechanisms. | They can amplify, hide, or bill work below request-count thresholds; each needs backpressure, overlap, cache-key, or transform-cardinality controls. |
+| D28 | Separate exhaustive threat inventory from first implementation gating. | The plan should preserve full coverage without forcing every auth/provider/edge/client row before a narrow local app-layer slice. |
+| D29 | Use Lean P0A as the first pre-beta implementation cutline. | Public-share routes already have durable limiter behavior and direct abuse exposure, making them the safest behavior-preserving first slice. |
+| D30 | Interpret worksheet rows by applicability. | Missing WAF, Better Auth, DO, queue, cron, image, cache, or frontend-library details should block only the slices that touch those domains. |
+| D31 | Defer provider proof from local app-layer behavior preservation. | Hosted/provider proof is mandatory for provider claims, but it should not block local tests that merely preserve current app behavior. |
 
 ## Assumptions
 
@@ -60,6 +64,8 @@ owner: Archestimator
 | A14 | App-side denial event storage can achieve near-complete denial evidence without collecting raw PII. | `PROOF-RL-030`, redaction tests, and retention/deletion proof. |
 | A15 | Vercel cron metadata and Cloudflare Cron may coexist during migration. | P0/P15 must define overlap, duplicate-trigger, and downstream-budget behavior before scheduled enforcement. |
 | A16 | Workers Logs sampling can change by config/provider limits. | `PROOF-RL-030` must verify app-side event completeness against the current deployed sampling posture. |
+| A17 | Pre-beta traffic is low enough to start with one behavior-preserving app-layer slice. | Re-check beta/user volume and support risk before enforcement. |
+| A18 | Public-share route behavior is the best Lean P0A candidate only if current checkout still has the durable helper behavior described in `03` and `04`. | Re-run `RC-017` through `RC-024` inventory before source edits. |
 
 ## Alternatives Considered
 
@@ -88,6 +94,8 @@ owner: Archestimator
 | Treating `CollaborationRoom` as a generic limiter counter | It is room transport/fanout infrastructure; generic counters need a separate partitioned design. |
 | Treating sampled Workers Logs as complete evidence | Head-based sampling can omit the entire denied request context; app-side denial events must be primary. |
 | Porting Postgres event counters directly to D1 | D1 query/hot-key characteristics and Better Auth storage semantics need proof before being used for high-churn exact quotas. |
+| Completing every worksheet row before any source edit | This preserves safety but creates planning paralysis. Applicability-scoped rows preserve the safety questions while allowing a narrow, test-locked pre-beta slice. |
+| Using proportionality as permission to skip safety rows silently | Hidden omissions are worse than explicit deferral. Non-applicable rows need a reason and remain blocking when their surface is touched. |
 
 ## Open Questions For Future Implementation
 

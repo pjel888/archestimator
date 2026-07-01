@@ -1,6 +1,6 @@
 # Cloudflare Better Auth D1 Route-Gate Proof
 
-Generated: 2026-06-30T17:40:41.447Z
+Generated: 2026-07-01T06:27:24.839Z
 
 Better Auth D1 route-gate proof with hosted Cloudflare provider evidence. It reads package, wrangler, generated type, source files, and sanitized provider-proof output; it does not print secret values, change DNS, make Supabase removable, or prove OAuth provider credentials.
 
@@ -26,7 +26,7 @@ Better Auth D1 route-gate proof with hosted Cloudflare provider evidence. It rea
 | Route-gate parity matrix ready | yes |
 | Legacy Supabase auth gate retired | yes |
 | Local Better Auth route-gate proof ready | yes |
-| Production Better Auth ready | no |
+| Production Better Auth ready | yes |
 | Local-only proof | no |
 | Provider-backed proof | yes |
 
@@ -49,9 +49,9 @@ Better Auth D1 route-gate proof with hosted Cloudflare provider evidence. It rea
 
 | Item | Value |
 | --- | --- |
-| Provider proof artifact | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-better-auth-provider-proof.json |
+| Provider proof artifact | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-better-auth-provider-proof.json |
 | Provider proof present | yes |
-| Provider proof generated | 2026-06-30T13:46:31.076Z |
+| Provider proof generated | 2026-07-01T05:59:53.478Z |
 | Provider proof base URL | https://archestimator-proof.philipjonlewis.workers.dev |
 | Provider proof endpoint | /__cloudflare/better-auth-proof |
 | Provider proof response status | 200 |
@@ -79,13 +79,13 @@ Better Auth D1 route-gate proof with hosted Cloudflare provider evidence. It rea
 
 | Surface | Current Supabase behavior | Better Auth D1 requirement | Local status |
 | --- | --- | --- | --- |
-| signed-out-protected-route | Proxy checks Supabase claims and redirects protected /workshop requests to /login with a safe next path. | Use auth.api.getSession({ headers, query: { disableCookieCache: true } }) and redirect null sessions before protected routes render. | mapped |
+| signed-out-protected-route | Proxy checks signed-in claims and redirects protected /workshop requests to /login with a safe next path. | Use auth.api.getSession({ headers, query: { disableCookieCache: true } }) and redirect null sessions before protected routes render. | mapped |
 | signed-in-auth-route | Authenticated users visiting login/signup are redirected back to the workshop shell. | Use the secure Better Auth server session check rather than getSessionCookie before auth-route redirects. | mapped |
 | closed-beta-denial | Closed-beta access uses the session email and redirects blocked users to /access-required. | Resolve the Better Auth user email from D1-backed session identity before running the existing closed-beta policy. | mapped |
 | terms-gate | Terms acceptance is enforced after identity is known and before protected workshop access. | Preserve the terms gate after Better Auth session validation and before setting protected-route gate headers. | mapped |
-| invite-entry | Invite continue, accept, and sign-out routes branch on current Supabase user context. | Port invite entry to the Better Auth D1 session/user context before replacing Supabase session helpers. | mapped |
-| local-dev-bypass | Local dev auth can satisfy protected routes without a live Supabase session. | Keep the local dev auth gate ahead of provider-backed Better Auth session validation for local-only proof runs. | mapped |
-| oauth-magic-link-callback | Supabase callback and OTP actions own OAuth, magic-link, and sign-out provider calls. | Mount Better Auth handlers and email/OAuth provider config only after D1 schema, secrets, and callback tests are ready. | deferred |
+| invite-entry | Invite continue, accept, and sign-out routes branch on current user context. | Keep invite entry on the Better Auth D1 session/user context before production cutover. | mapped |
+| local-dev-bypass | Local dev auth can satisfy protected routes without a live provider session. | Keep the local dev auth gate ahead of provider-backed Better Auth session validation for local-only proof runs. | mapped |
+| oauth-magic-link-callback | The legacy callback and OTP actions owned OAuth, magic-link, and sign-out provider calls. | Mount Better Auth handlers and email/OAuth provider config only after D1 schema, secrets, and callback tests are ready. | deferred |
 
 ## Official References Used
 
@@ -100,4 +100,4 @@ Better Auth D1 route-gate proof with hosted Cloudflare provider evidence. It rea
 
 ## Blockers
 
-- Provider-backed Better Auth callback/session proof passed, but production cutover is still not marked ready; verify OAuth credential proof, email-domain readiness, and live cutover evidence.
+- (none)

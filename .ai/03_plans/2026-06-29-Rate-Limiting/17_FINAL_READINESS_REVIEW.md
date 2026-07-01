@@ -10,20 +10,34 @@ owner: Archestimator
 
 verification_mode: emulated-independent
 
-The package used read-only repo exploration, external/framework documentation research, and adversarial review lanes inside the same Codex session. Because this is not a separate owner-approved independent review, final readiness is capped at **CONDITIONALLY READY** for implementation planning and **NOT READY** for production/provider enforcement.
+The package used read-only repo exploration, external/framework documentation research, adversarial review lanes inside the same Codex session, and a later proportionality/actionability repair pass. Because this is not a separate owner-approved independent review, final readiness is capped at **CONDITIONALLY READY** for broad implementation planning and **NOT READY** for production/provider enforcement.
+
+## Proportionality Repair
+
+The 2026-07-01 follow-up found that the package was strong but over-gated for pre-beta. The repair is `24_PRE_BETA_IMPLEMENTATION_CUTLINE.md`: full enforcement remains blocked, but a separate Lean P0A implementation plan may start for public-share `RC-017` through `RC-024` after scoped re-inventory, `LP0A` worksheet answers, `PROOF-RL-002`, and `PROOF-RL-031`.
+
+This changes the actionability claim, not the production safety claim.
+
+## Planning-Criteria Closure
+
+The follow-up request's planning criteria are all closed for this artifact: exhaustiveness was preserved, honesty/readiness remains evidence-classed, proportionality is repaired through Lean P0A, actionability is repaired through owned rows and proof IDs, Cloudflare/migration gates are scoped to the slices they govern, and adversarial safety is preserved through explicit N/A/deferred decisions plus non-weakenable invariants.
+
+Readiness scores below 100 remain intentional because they measure external proof still absent from a planning-only task. The planning-improvement criteria themselves are 100% addressed in `24_PRE_BETA_IMPLEMENTATION_CUTLINE.md`.
 
 ## Verdicts
 
 | Area | Verdict | Evidence |
 | --- | --- | --- |
-| Planning package | PASS with gaps | README plus `00` through `23` now cover source authority, inventory, threat model, policies, architecture, provider plan, frontend client controls, HTTP/resource/auth standards hardening, provider-identity/advanced-abuse gap closure, Better Auth/Cloudflare runtime drift closure, work packages, tests, operations, rollout, privacy, traceability, readiness, and audit. |
-| Implementation readiness | CONDITIONALLY READY | Safe next step is P0/P15 re-inventory, Better Auth authority decision, function-level action classification, client-control inventory, standards/provider contract inventory, hosted Server Action proof planning, and behavior-lock tests. Direct enforcement implementation remains rejected. |
+| Planning package | PASS with gaps | README plus `00` through `24` now cover source authority, inventory, threat model, policies, architecture, provider plan, frontend client controls, HTTP/resource/auth standards hardening, provider-identity/advanced-abuse gap closure, Better Auth/Cloudflare runtime drift closure, pre-beta implementation cutline, work packages, tests, operations, rollout, privacy, traceability, readiness, and audit. |
+| Lean P0A implementation-plan readiness | READY TO PLAN | Public-share `RC-017` through `RC-024` can be scoped into a separate behavior-preserving implementation plan if `LP0A-001` through `LP0A-012`, `PROOF-RL-002`, and `PROOF-RL-031` are satisfied and unrelated provider/runtime/client-library rows are explicitly N/A or deferred. |
+| Broad implementation readiness | CONDITIONALLY READY | Safe broad next step is re-inventory, Better Auth authority decision for auth slices, function-level action classification when actions are touched, client-control inventory when UI behavior changes, standards/provider contract inventory where applicable, hosted Server Action proof planning for WAF/edge claims, and behavior-lock tests. Direct full enforcement implementation remains rejected. |
 | Production enforcement readiness | NOT READY | Needs implementation, shadow metrics, false-positive review, dashboards, runtime rollback switches, and targeted tests. |
 | Cloudflare cutover readiness | NOT READY | Provider worksheet rows are OPEN; current Cloudflare migration state remains production NO-GO; no hosted WAF/Server Action proof, provider Security Events/Ray-ID proof, or production provider change was performed. |
 | Frontend/client safeguards | CONDITIONALLY READY | `20` and `19` now define pending, single-flight, idempotency fingerprint/TTL/mismatch, stale-write preconditions, retry/backoff, offline queue caps, exact `Retry-After` parsing, browser lifecycle refresh, multi-tab mechanism choice, direct-bypass, CSRF/same-origin, keyboard, no-stuck-disabled, optimistic rollback, and disabled-control accessibility contracts; implementation proof is still future work. |
 | HTTP/resource/auth standards | CONDITIONALLY READY | `21`, `19`, and `16` now define response profiles, exact draft RateLimit metadata syntax/cache/client semantics, Problem Details opt-in, algorithm/window semantics, resource/runtime/platform-budget dimensions, auth failed-attempt timing/NIST recovery, Turnstile validation binding, cache/CDN denial profiles, low-and-slow plus sequence-aware escalation, and retention/deletion contracts; per-route/action answers remain future P0 work. |
 | Provider identity and advanced-abuse closure | CONDITIONALLY READY | `22`, `16`, `19`, `11`, and related docs now carry IPv6 identity, Supabase Auth provider limits, `Sb-Forwarded-For`, timing-safe equality, cache-fill stampede, full-jitter retry, MFA/OTP, pagination/count, `OPTIONS`, realtime message quotas, service-worker replay, chunked/multipart, and Bot Management escalation as explicit contract/proof rows; per-route/provider answers remain future P0/P14 work. |
 | Better Auth and Cloudflare runtime drift closure | CONDITIONALLY READY | `23`, `16`, `19`, `11`, `12`, `13`, and `15` now carry Better Auth limiter coordination, hosted WAF/Server Action proof obligations, migration-period identity unification, CollaborationRoom realtime quota split, app-side denial ledger completeness, and queue/cron/cache/images provider-budget refinements. |
+| Proportionality and actionability | CONDITIONALLY READY | `24`, `09`, `10`, `16`, `19`, and this review now split full enforcement gates from Lean P0A, add applicability-scoped worksheet rules, and name exact first-slice evidence. |
 | Privacy/security posture | CONDITIONALLY READY | Credential material taxonomy and redaction requirements are specified, but HMAC migration and storage tests remain future work. |
 | Operations readiness | CONDITIONALLY READY | Event schema, cardinality, runbooks, and rollback triggers are specified but not implemented or drilled. |
 
@@ -39,15 +53,17 @@ The package used read-only repo exploration, external/framework documentation re
 | Cloudflare/provider plan | 82 | Current docs and worksheet are clearer; WAF/Server Action, DO, queue/cron/images/cache, and sampled-log claims still lack hosted/provider readback proof. |
 | Security/privacy | 88 | Material taxonomy and no-raw-PII rules are clear; HMAC migration and proof tests remain. |
 | Rollout/rollback/false positives | 86 | Stages, triggers, and overrides are planned; no runtime config or support drill exists. |
-| Test/proof plan | 88 | Proof IDs and layers now include `PROOF-RL-028` through `PROOF-RL-030`; no tests were added in this planning-only task. |
+| Test/proof plan | 89 | Proof IDs and layers now include `PROOF-RL-028` through `PROOF-RL-031`; no tests were added in this planning-only task. |
 | Observability/performance | 82 | Schema/cardinality/runbooks exist and app-side denial events are primary, but live baseline, dashboards, and p95/query/cost budgets are still open. |
 | HTTP/resource/auth standards | 89 | Cross-cutting contracts and proof rows now include exact RateLimit syntax, runtime resource ceilings, auth timing/NIST semantics, Turnstile binding, and business-flow sequence detection; route/action-specific answers and cleanup proof remain P0/P12 future work. |
 | Provider identity/advanced abuse plus fourth-pass closure | 88 | Third- and fourth-pass gaps now have source IDs, requirement rows, SCE/FCE/CP contracts, proof IDs, and stop conditions; exact provider/account values and per-route answers remain P0/P14/P15 future work. |
-| Overall planning readiness | 88 | Conditionally ready for a P0/P14/P15 implementation plan with explicit gates, not implementation-ready for enforcement. |
+| Proportionality | 96 | Lean P0A and applicability-scoped worksheets prevent full-surface gates from blocking a narrow pre-beta slice; score remains below 100 because live implementation feedback may still reveal a better first slice. |
+| Actionability | 95 | First slice, required rows, required proofs, and deferrals are explicit; score remains below 100 because source tests and exact implementation diff are intentionally left to the separate implementation plan. |
+| Overall planning readiness | 91 | Conditionally ready for broad planning and ready to plan Lean P0A; still not implementation-ready for production enforcement. |
 
 ## Maker/Checker Notes
 
-The adversarial review lane rejected direct implementation from the prior package state because traceability, route/action contracts, evidence classes, Cloudflare proof, privacy taxonomy, rollback, frontend operational edge behavior, HTTP/resource/auth standards behavior, and test-proof contracts were under-specified. The fourth-pass audit then rejected implementation readiness until Better Auth limiter coordination, hosted WAF/Server Action proof, current checkout inventory refresh, and CollaborationRoom DO scoping were added. This revised package closes those planning gaps enough for a P0 discovery/test-lock task, including standards-contract inventory, while preserving a NO-GO for production enforcement.
+The adversarial review lane rejected direct implementation from the prior package state because traceability, route/action contracts, evidence classes, Cloudflare proof, privacy taxonomy, rollback, frontend operational edge behavior, HTTP/resource/auth standards behavior, and test-proof contracts were under-specified. The fourth-pass audit then rejected implementation readiness until Better Auth limiter coordination, hosted WAF/Server Action proof, current checkout inventory refresh, and CollaborationRoom DO scoping were added. The follow-up proportionality review then rejected an "all rows before any source edit" posture. This revised package closes those planning gaps enough for a Lean P0A implementation-plan handoff while preserving a NO-GO for production enforcement.
 
 ## Highest-Risk Future Work
 
@@ -70,4 +86,4 @@ The adversarial review lane rejected direct implementation from the prior packag
 
 ## Readiness Statement
 
-This package is ready to be used as the input to a separate scoped P0/P14/P15 implementation plan for re-inventory, Better Auth coordination, client-control inventory, standards/provider-identity/advanced-abuse contract inventory, hosted Server Action/WAF proof planning, test locking, and behavior-preserving registry design. It is not authority to deploy enforcement, alter provider configuration, add WAF skips, or claim Cloudflare-native production readiness.
+This package is ready to be used as the input to a separate scoped Lean P0A implementation plan for public-share `RC-017` through `RC-024`, with scoped re-inventory, behavior-lock tests, `LP0A` worksheet answers, and explicit N/A/deferred rows. It is also conditionally ready as input to broader implementation planning. It is not authority to deploy enforcement, alter provider configuration, add WAF skips, or claim Cloudflare-native production readiness.

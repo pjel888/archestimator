@@ -28,6 +28,21 @@ owner: Archestimator
 | SRC-OPENNEXT-WAF-1224 | Primary issue/comment evidence | OpenNext issue #1224 and GitHub comment feed refreshed 2026-07-01. |
 | SRC-CF-OPS-DOCS-2026-07-01 | Official provider docs | Cloudflare Workers Logs, Queues, Cron Triggers, Cache Reserve/Tiered Cache, and Images Transformations docs refreshed 2026-07-01. |
 | SRC-LOCAL-CODE-2026-07-01 | Local checkout evidence | `wrangler.jsonc`, `package.json`, auth/email/cloudflare/supabase source listings, `vercel.json`, and read-only repo scans on 2026-07-01. |
+| SRC-PRE-BETA-CUTLINE | User-provided proportionality/actionability correction | 2026-07-01 follow-up requiring a planning improvement, not coding; closes over-engineering and planning-paralysis risk with `24_PRE_BETA_IMPLEMENTATION_CUTLINE.md`. |
+
+## Status Vocabulary And P0 Inflation Repair
+
+Older rows that say `P0 REQUIRED` should be interpreted through this vocabulary, not as "complete every row before any source edit."
+
+| Status | Meaning |
+| --- | --- |
+| Pre-beta blocking | Required before the first implementation slice because it applies to checkout re-inventory, behavior-lock tests, selected-slice worksheet rows, or non-weakenable privacy/security invariants. |
+| Surface-blocking | Required before implementing the route/action/client/resource surface it governs. Not a blocker for unrelated slices. |
+| Provider-blocking | Required before WAF, Turnstile, Workers Rate Limiting, DO/D1, Cloudflare Queue/Cron/Images/Cache, hosted Worker, or provider-state claims. Not a blocker for local app-layer behavior preservation. |
+| Auth-blocking | Required before auth/contact/Better Auth/Supabase/MFA/OAuth throttling changes. Not a blocker for non-auth public-share route consolidation. |
+| Deferred | Valuable for post-beta hardening or a later milestone; must remain visible but does not block Lean P0A. |
+
+Lean P0A uses this normalized status model: `RL-FR-002`, `RL-FR-003`, `RL-FR-040`, `RL-NFR-002`, `RL-NFR-011`, `RL-NFR-019`, `PROOF-RL-002`, and `PROOF-RL-031` are pre-beta/surface-blocking for the selected public-share route slice. Auth, Better Auth, WAF, Turnstile, DO/D1, queue, cron, image, cache, Bot Management, broad frontend/offline, and hosted provider proof rows are explicitly deferred or provider/auth/surface-blocking unless Lean P0A expands into those domains.
 
 ## Requirement Matrix
 
@@ -73,6 +88,8 @@ owner: Archestimator
 | SRC-OWASP-AUTH | RL-NFR-013 | Limiter and idempotency data need retention, deletion, anonymization, and pepper-rotation proof. | `security_rate_limit_events`, idempotency rows, offline queues, Cloudflare logs/traces, anomaly aggregates. | 09, 12, 14, 19 SCE-008, 21 | P0/P12 | Expired rows/data are deleted or anonymized; security audit exceptions and pepper rotation continuity are documented. | PROOF-RL-015 | Privacy/compliance drift | P0 REQUIRED | Provider logs need separate retention review. |
 | SRC-OWASP-AUTH | RL-NFR-014 | Runtime/platform resource budgets need transformed-payload and provider-operation ceilings. | Upload/images/export/AI/search/queues/Workers/OpenNext provider surfaces. | 06, 11, 19 SCE-004, 21 | P0/P5/P6/P12 | Memory, decompressed bytes, image dimensions/megapixels, subrequests/binding operations, platform timeouts, provider operation counts, and billing alerts are explicit or not applicable. | PROOF-RL-014 | Platform exhaust, compression/media abuse, surprise spend | P0 REQUIRED | Exact Cloudflare limits need implementation-time doc/provider refresh. |
 | SRC-OWASP-AUTH | RL-NFR-015 | Sensitive business-flow abuse detection must be sequence-aware. | Invite, public proposal, contact/beta feedback, publication/email, auth and share funnels. | 05, 12, 13, 19 SCE-007, 21 | P12 | Flow funnels, impossible journeys, device/browser metadata shifts, timing-pattern signals, and escalation thresholds are defined without country/ASN-only blocking. | PROOF-RL-015 | Valid-request automation below single-key limits | CONDITIONALLY READY | Requires shadow baseline and false-positive review. |
+| SRC-PRE-BETA-CUTLINE | RL-FR-040 | The first pre-beta implementation plan must be a scoped behavior-preserving slice, not the whole exhaustive package. | Lean P0A public-share `RC-017` through `RC-024` unless a newer scoped plan chooses another slice with rationale. | 09, 10/P0A, 16, 17, 19, 24 | P0A | Selected slice has owned rows, exact current behavior inventory, required tests, applicable contracts, explicit N/A/deferred rows, and no unrelated provider/runtime/config changes. | PROOF-RL-031 | Planning paralysis or unsafe broad edit | PRE-BETA BLOCKING FOR FIRST SLICE | Full package rows remain binding only when applicable. |
+| SRC-PRE-BETA-CUTLINE | RL-NFR-019 | Exhaustive safety rows must be applicability-scoped, not silently skipped or globally blocking. | All route/action/client/provider rows. | README, 10, 16, 18, 19, 24 | P0A/P1+ | Each row is classified as required, not applicable, provider-stage only, auth-blocking, surface-blocking, or deferred with a reason; non-weakenable privacy/security invariants still apply. | PROOF-RL-031 | Hidden safety gaps or over-gated implementation | PRE-BETA BLOCKING FOR FIRST SLICE | Replaces universal P0 interpretation. |
 
 ## Gaps Carried Forward
 
@@ -84,6 +101,7 @@ owner: Archestimator
 | No live traffic metrics. | Run shadow mode and collect beta traffic/support baseline. | The app is preparing for first users; thresholds are hypotheses. |
 | No provider mutation/hosted Cloudflare proof. | Execute Cloudflare worksheet rows CP-001 through CP-007 in a separate provider-proof task. | This task is planning-only and Cloudflare production gates remain closed. |
 | Current worktree has unrelated changes. | Keep completion claims scoped to this directory. | Dirty state does not block docs-only package verification. |
+| P0 status inflation made the first implementation plan too large. | Use the status vocabulary above plus `24` and `LP0A` rows to split pre-beta, surface, provider, auth, and deferred blockers. | Preserves exhaustive coverage while making a narrow behavior-preserving first slice actionable. |
 
 ## Third-Pass Source IDs And Requirements
 

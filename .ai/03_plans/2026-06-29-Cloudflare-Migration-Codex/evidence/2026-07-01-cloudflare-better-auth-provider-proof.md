@@ -1,7 +1,7 @@
 # Cloudflare Better Auth Provider Proof
 
-Generated: 2026-07-01T05:59:53.478Z
-Base URL: https://archestimator-proof.philipjonlewis.workers.dev
+Generated: 2026-07-01T12:16:03.252Z
+Base URL: https://archestimator.com
 Endpoint: /__cloudflare/better-auth-proof
 Provider backed: yes
 Response status: 200

@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-07-01T05:59:53.478Z",
+  "generatedAt": "2026-07-01T12:16:03.252Z",
   "mode": "cloudflare-better-auth-provider-proof-verifier",
-  "baseUrl": "https://archestimator-proof.philipjonlewis.workers.dev",
+  "baseUrl": "https://archestimator.com",
   "endpointPath": "/__cloudflare/better-auth-proof",
   "providerBacked": true,
   "secretInput": {

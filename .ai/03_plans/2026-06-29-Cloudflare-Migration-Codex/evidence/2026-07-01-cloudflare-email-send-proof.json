@@ -1,0 +1,52 @@
+{
+  "generatedAt": "2026-07-01T07:34:20.000Z",
+  "mode": "cloudflare-email-send-proof",
+  "providerBacked": true,
+  "targetDomain": "archestimator.com",
+  "workerName": "archestimator-proof",
+  "sendingDomain": {
+    "domain": "archestimator.com",
+    "enabled": true,
+    "dkimSelector": "cf-bounce",
+    "returnPathDomain": "cf-bounce.archestimator.com",
+    "settingsReadbackAt": "2026-07-01T07:32:05.632950Z"
+  },
+  "sendProof": {
+    "command": "wrangler email sending send",
+    "from": "noreply@archestimator.com",
+    "recipient": "verified-owner-gmail-mailbox",
+    "subject": "Archestimator Cloudflare Email proof 20260701T073355Z",
+    "sendResult": "Email sent successfully.",
+    "sentAtApprox": "2026-07-01T07:33:55Z"
+  },
+  "receiptProof": {
+    "checkedVia": "Gmail connector search",
+    "received": true,
+    "receivedAt": "2026-07-01T07:33:59Z",
+    "labels": [
+      "INBOX",
+      "UNREAD",
+      "CATEGORY_UPDATES"
+    ],
+    "snippetMatched": true
+  },
+  "dnsReadback": {
+    "mxPresent": true,
+    "spfPresent": true,
+    "dkimPresent": true,
+    "dmarcPresent": true,
+    "publicDmarcPolicyObserved": "p=none"
+  },
+  "readiness": {
+    "emailSendingDomainReady": true,
+    "outboundArbitraryRecipientSendReady": true,
+    "gmailReceiptReady": true,
+    "productionEmailSendProofReady": true
+  },
+  "blockers": [],
+  "notes": [
+    "This proof sent one real Cloudflare Email Service message to the owner's Gmail mailbox and verified receipt by unique subject.",
+    "The proof is sanitized: it does not include raw provider tokens, Worker secret values, or a full recipient email address.",
+    "Public DNS showed DMARC p=none while Wrangler's DNS helper prints a p=reject TXT recommendation. Readiness and send/receipt proof passed; DMARC tightening remains a policy decision."
+  ]
+}

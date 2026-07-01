@@ -10,6 +10,12 @@ owner: Archestimator
 
 Each work package is a future implementation slice. Files listed are likely future touch points, not files edited by this planning task.
 
+## Milestone Interpretation
+
+`P13`, `P14`, and `P15` are not parallel prerequisites for every pre-beta source edit. They are cross-cutting contract banks. A slice must answer them only when it touches frontend retry/offline behavior, identity/provider/auth behavior, WAF/Server Action provider behavior, realtime/queue/cron/images/cache behavior, or another listed domain.
+
+The first recommended implementation plan is **P0A - Lean Public Share Existing-Limiter Consolidation**. It comes after P0 re-inventory/test-lock for the owned routes and before broad registry or provider work.
+
 ## P0 - Re-Inventory And Test Lock
 
 Objective: Re-run route/action/client-control discovery and add behavior-preserving tests before refactoring.
@@ -22,6 +28,19 @@ Observability: record baseline event fields.
 Rollback: no production behavior change.
 Acceptance: inventory matches checkout, client-control rows and standards rows exist for high-risk UI/server actions, and tests fail if existing limiter behavior or response headers/bodies change.
 Risk: medium because source tree is active.
+
+## P0A - Lean Public Share Existing-Limiter Consolidation
+
+Objective: Plan and implement a behavior-preserving consolidation for public-share routes `RC-017` through `RC-024` only.
+Files likely touched later: public-share route tests, publication/public repository limiter helpers, and a minimal rate-limit policy/response wrapper if needed.
+Behavior: preserve current thresholds, key dimensions, response bodies, `Retry-After`, cache/no-store posture, invalid-token behavior, reviewer/session behavior, and store failure behavior.
+Migration dependency: existing Postgres/security-event store only.
+Cloudflare dependency: none.
+Tests: `PROOF-RL-002` plus `PROOF-RL-031`: route/store tests for allow, near-limit, deny, reset/expiry, invalid token, valid reviewer, password/session/comment/decision/unsubscribe paths, and no token/raw IP leakage.
+Observability: optional app-side denial event only if it preserves raw-token/raw-IP suppression and does not require provider proof.
+Rollback: return touched routes to the previous helper path; no provider rollback.
+Acceptance: `LP0A-001` through `LP0A-012` are filled in `19`; unrelated auth/provider/edge/client-library rows are explicitly marked N/A or deferred; no provider/runtime/config changes are included.
+Risk: medium because public-share reviewer UX is business-critical, but scope is narrow and existing durable behavior is mature.
 
 ## P1 - Central Policy Registry Skeleton
 
@@ -192,6 +211,8 @@ Rollback: disable shared client guard per surface while server limiters remain a
 Acceptance: accidental duplicate requests drop visibly without blocking unrelated workflows; retry/offline/lifecycle behavior is bounded and accessible; scripted/direct requests are still controlled by server enforcement before side effects or provider calls.
 Risk: medium-high UX risk because overbroad disabling can harm fast editing and public reviewer flows.
 
+Pre-beta cutline: P13 blocks a slice only when that slice changes client interaction behavior, retry/offline behavior, idempotency keys, cooldown display, disabled states, or multi-tab coordination. It does not block Lean P0A if Lean P0A is purely server-route behavior preservation with existing UI behavior unchanged.
+
 ## P14 - Provider Identity And Advanced Abuse Gap Closure
 
 Objective: Fill the third-pass contracts before any shared identity, auth, retry, cache, protocol, realtime, offline, multipart, or bot-escalation implementation starts.
@@ -205,6 +226,8 @@ Rollback: per-policy disable, identity-key version fallback, disable `Sb-Forward
 Acceptance: the pasted third-pass gaps are represented by requirement IDs, contract IDs, proof IDs, source IDs, and readiness gates before source implementation begins.
 Risk: high cross-cutting risk because identity, auth, retry, cache, body parsing, and bot signals can change both security and legitimate first-user UX.
 
+Pre-beta cutline: P14 blocks a slice only when that slice changes identity canonicalization, auth/provider assumptions, retry helpers, cache-fill behavior, protocol/body parsing, realtime, service-worker/offline behavior, multipart handling, or bot escalation. It does not block Lean P0A if current public-share identity semantics are preserved.
+
 ## P15 - Better Auth And Cloudflare Runtime Drift Closure
 
 Objective: Close the 2026-07-01 fourth-pass audit gates before any auth, edge, realtime, queue, image, cache, or observability enforcement work starts.
@@ -217,3 +240,5 @@ Observability: app-side denial ledger completeness, Better Auth/provider limit s
 Rollback: disable app-side auth limiter while retaining provider controls, revert WAF rule to observe/disabled, disable room quota adapter without breaking room transport, pause queue producer or lower consumer concurrency, disable image/cache-specific edge rule, preserve app-layer auth/authorization/idempotency gates.
 Acceptance: `23_BETTER_AUTH_COORDINATION.md`, `16`, `19`, `11`, `12`, `13`, `15`, and `17` all carry `SCE-018` through `SCE-020`, `CP-009`, `RL-FR-037` through `RL-FR-039`, `RL-NFR-018`, and `PROOF-RL-028` through `PROOF-RL-030`; WAF managed-rule causality is not claimed without hosted/provider evidence.
 Risk: high for beta login UX and provider proof quality; moderate for realtime/queue/image/cache planning because current bindings exist but enforcement contracts are not implemented.
+
+Pre-beta cutline: P15 blocks auth, WAF/Server Action, realtime DO, queue, cron, image, cache, and app-denial-ledger claims. It does not block local app-layer public-share behavior preservation when no auth/provider/runtime/config surface is changed.

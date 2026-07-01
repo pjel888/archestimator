@@ -12,19 +12,34 @@ This is a conceptual implementation plan only. It does not authorize code change
 
 ## Implementation Strategy
 
-1. Freeze current behavior with targeted tests around existing public/share/invite/upload/AI/export limiters.
-2. Add a frontend-control inventory for repeat-click, Enter-submit, retry, cancellation, multi-tab, and idempotency behavior on high-risk UI actions.
-3. Introduce a central policy registry and identity helper without changing thresholds.
-4. Migrate one surface at a time behind behavior-preserving tests.
-5. Add observability events in shadow mode.
-6. Add rollout modes: `off`, `shadow`, `enforce`, `challenge`.
-7. Replace process-local production-critical controls with durable stores.
-8. Coordinate Better Auth built-in limiter authority, storage, client identity, and `X-Retry-After` behavior before auth app-limiters enforce.
-9. Add Cloudflare edge layers only after app-layer behavior is proven and hosted WAF/Server Action proof exists.
+1. Pick one implementation slice before designing shared infrastructure. The pre-beta default is Lean P0A: public-share `RC-017` through `RC-024`.
+2. Freeze current behavior with targeted tests for only the selected slice before refactoring.
+3. Fill the selected slice's applicable worksheet fields and mark unrelated rows N/A with a deferred reason.
+4. Introduce the smallest policy/identity/response/evaluate boundary that preserves current behavior for the selected slice.
+5. Migrate one surface at a time behind behavior-preserving tests.
+6. Add observability events in shadow mode only when they do not change the selected slice's user-facing behavior or privacy posture.
+7. Add rollout modes: `off`, `shadow`, `enforce`, `challenge`, but use only the modes applicable to the selected slice.
+8. Coordinate Better Auth built-in limiter authority, storage, client identity, and `X-Retry-After` behavior before auth app-limiters enforce; this does not block non-auth Lean P0A.
+9. Add Cloudflare edge layers only after app-layer behavior is proven and hosted WAF/Server Action proof exists; this does not block local app-layer behavior preservation.
+
+## Pre-Beta Minimal Boundary
+
+Lean P0A should start with the minimum boundary that can preserve existing public-share behavior:
+
+| Module concept | Lean P0A scope |
+| --- | --- |
+| `policies` | Public-share policy IDs and current windows only. |
+| `identity` | Current public-share key dimensions and privacy-preserving helpers; no global header migration unless explicitly versioned. |
+| `responses` | Existing `429`, `Retry-After`, body, and cache/no-store behavior only. |
+| `evaluate` | Existing event-count semantics and retry-after math for touched share routes. |
+| Existing event-store adapter | Reuse the current durable security-event behavior; no D1/DO/provider adapter. |
+| `test-helpers` | Deterministic clock/window and event reset helpers for share-route behavior-lock tests. |
+
+Defer generic D1/DO adapters, resource-budget engines, shared client-action-guard libraries, Better Auth store adapters, queue/cron/cache/images coordinators, and Cloudflare provider adapters until a slice actually touches those domains.
 
 ## Conceptual Module
 
-`src/lib/rate-limits/` should be the only new boundary if implementation proceeds.
+`src/lib/rate-limits/` should be the only new boundary if implementation proceeds beyond a tiny colocated wrapper. For Lean P0A, implement only the minimum concepts listed above; the table below is the full future shape, not the first-slice requirement.
 
 | Module | Contract |
 | --- | --- |
@@ -72,17 +87,18 @@ If implementation creates shared frontend helpers, keep them separate from autho
 
 | Step | Surface | Reason |
 | --- | --- | --- |
-| 0 | Frontend interaction inventory | Mark each high-risk UI action with pending, single-flight, idempotency, debounce/throttle, cancellation, cooldown, multi-tab, optimistic rollback, or no-guard rationale. |
-| 1 | Shared-link publication helpers | Most mature durable controls; centralize without changing behavior. |
-| 2 | Invite entry helpers | Similar durable store and HMAC IP pattern. |
-| 3 | AI ask and proposal export | Expensive surfaces already durable. |
-| 4 | Upload admission | Replace local-only request/concurrency maps with durable capacity or define local-only as supplemental. |
-| 5 | Estimate actions | Preserve burst-friendly editing while making scaled behavior explicit. |
-| 6 | Client error intake | Keep fail-soft/drop semantics; add standardized hashing. |
-| 7 | Better Auth/contact/email/webhook/internal | Fill `SCE-018` for auth authority/storage/IP/`X-Retry-After`; refresh Cloudflare Email/provider callbacks; keep signature/idempotency first. |
-| 8 | Provider identity and advanced-abuse contracts | Fill `SCE-010` through `SCE-020`, `FCE-008`, `FCE-009`, `CP-008`, and `CP-009` before touching shared limiter helpers. |
-| 9 | Queue/cron/cache/images and app-denial observability | Fill queue backpressure/DLQ, cron overlap, cache/key, Images transform budget, and `PROOF-RL-030` app event completeness contracts. |
-| 10 | Cloudflare adapters | Only after hosted Worker/provider proof, including `PROOF-RL-029` for WAF/Server Action behavior. |
+| 0 | Lean P0A public-share cutline | Re-inventory and behavior-lock `RC-017` through `RC-024`; fill `LP0A` rows; avoid unrelated provider/runtime/client-library work. |
+| 1 | Frontend interaction inventory | Mark each high-risk UI action with pending, single-flight, idempotency, debounce/throttle, cancellation, cooldown, multi-tab, optimistic rollback, or no-guard rationale when that UI is touched by the active slice. |
+| 2 | Shared-link publication helpers | Most mature durable controls; centralize without changing behavior. |
+| 3 | Invite entry helpers | Similar durable store and HMAC IP pattern. |
+| 4 | AI ask and proposal export | Expensive surfaces already durable. |
+| 5 | Upload admission | Replace local-only request/concurrency maps with durable capacity or define local-only as supplemental. |
+| 6 | Estimate actions | Preserve burst-friendly editing while making scaled behavior explicit. |
+| 7 | Client error intake | Keep fail-soft/drop semantics; add standardized hashing. |
+| 8 | Better Auth/contact/email/webhook/internal | Fill `SCE-018` for auth authority/storage/IP/`X-Retry-After`; refresh Cloudflare Email/provider callbacks; keep signature/idempotency first. |
+| 9 | Provider identity and advanced-abuse contracts | Fill `SCE-010` through `SCE-020`, `FCE-008`, `FCE-009`, `CP-008`, and `CP-009` before touching the domains those rows govern. |
+| 10 | Queue/cron/cache/images and app-denial observability | Fill queue backpressure/DLQ, cron overlap, cache/key, Images transform budget, and `PROOF-RL-030` app event completeness contracts when those surfaces enter scope. |
+| 11 | Cloudflare adapters | Only after hosted Worker/provider proof, including `PROOF-RL-029` for WAF/Server Action behavior. |
 
 ## Behavior Preservation Requirements
 

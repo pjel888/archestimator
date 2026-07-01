@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-01T03:15:22.866Z",
+  "generatedAt": "2026-07-01T06:52:15.192Z",
   "mode": "cloudflare-release-gates",
   "sources": {
     "inventory": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-migration-inventory.json",
@@ -57,9 +57,9 @@
       "key": "d1-auth-realtime-production-proof",
       "label": "D1/Auth/Realtime production proof ready",
       "scope": "data-auth-realtime",
-      "ready": false,
-      "evidence": "d1Binding=yes, authReplacement=no, appLayerAuthz=yes, localRpcMechanics=yes, betaFeedbackSlice=yes, collaborationInvitationSlice=yes, closedBetaSlice=yes, componentLibrarySlice=yes, estimateHistorySlice=yes, rpcRewrite=yes, realtimeReplacement=yes, restoreProof=yes, performanceProof=yes",
-      "blocker": "One or more D1/Auth/Realtime production proof subgates are incomplete; see the evidence flags for the exact blockers.",
+      "ready": true,
+      "evidence": "d1Binding=yes, authReplacement=yes, appLayerAuthz=yes, localRpcMechanics=yes, betaFeedbackSlice=yes, collaborationInvitationSlice=yes, closedBetaSlice=yes, componentLibrarySlice=yes, estimateHistorySlice=yes, rpcRewrite=yes, realtimeReplacement=yes, restoreProof=yes, performanceProof=yes",
+      "blocker": null,
       "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-auth-realtime-readiness.json"
     },
     {
@@ -111,9 +111,9 @@
       "key": "provider-resource-readback",
       "label": "Provider resource readback ready",
       "scope": "provider",
-      "ready": false,
-      "evidence": "wranglerAuthenticated=yes, readbackAttempted=yes, workerDeployment=yes, d1=yes, r2=yes, queues=yes, secrets=no",
-      "blocker": "Read-only Wrangler resource readback is incomplete: Worker secret name list: missing expected names BETTER_AUTH_GOOGLE_CLIENT_ID, BETTER_AUTH_GOOGLE_CLIENT_SECRET.",
+      "ready": true,
+      "evidence": "wranglerAuthenticated=yes, readbackAttempted=yes, workerDeployment=yes, d1=yes, r2=yes, queues=yes, secrets=yes",
+      "blocker": null,
       "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-provider-resource-readback.json"
     },
     {
@@ -147,9 +147,9 @@
       "key": "provider-workers-deployment",
       "label": "Hosted Worker deployment and custom domain provider-proven",
       "scope": "provider",
-      "ready": false,
-      "evidence": "workersDeploymentReady=no, workerDeploymentSecretsReady=no, workerDeploymentReady=no, wranglerApiAuthenticated=yes",
-      "blocker": "Workers Paid/API auth/secrets/hosted Worker/custom-domain proof is incomplete.",
+      "ready": true,
+      "evidence": "workersDeploymentReady=yes, workerDeploymentSecretsReady=yes, workerDeploymentReady=yes, wranglerApiAuthenticated=yes",
+      "blocker": null,
       "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-provider-readiness.json"
     },
     {
@@ -220,16 +220,13 @@
     "planningInputsReady": true,
     "localRuntimeProofReady": true,
     "providerDashboardInventoryReady": true,
-    "providerProofReady": false,
+    "providerProofReady": true,
     "costPerformanceProofReady": false,
-    "dataAuthRealtimeProofReady": false,
+    "dataAuthRealtimeProofReady": true,
     "localReleaseGateReportReady": true,
     "productionCutoverReady": false
   },
   "blockers": [
-    "D1/Auth/Realtime production proof ready: One or more D1/Auth/Realtime production proof subgates are incomplete; see the evidence flags for the exact blockers.",
-    "Provider resource readback ready: Read-only Wrangler resource readback is incomplete: Worker secret name list: missing expected names BETTER_AUTH_GOOGLE_CLIENT_ID, BETTER_AUTH_GOOGLE_CLIENT_SECRET.",
-    "Hosted Worker deployment and custom domain provider-proven: Workers Paid/API auth/secrets/hosted Worker/custom-domain proof is incomplete.",
     "Current provider cost inputs captured: Sanitized Vercel/Supabase/Resend invoice or dashboard usage inputs are missing.",
     "Cloudflare usage cost inputs captured: Hosted Cloudflare request/CPU/storage/operation usage inputs are missing.",
     "Hosted Cloudflare performance proof captured: Hosted Cloudflare route/action performance evidence is missing, failing budgets, or not production-ready.",

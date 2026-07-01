@@ -1,0 +1,97 @@
+{
+  "generatedAt": "2026-07-01T07:42:03.671Z",
+  "mode": "cloudflare-durable-object-websocket-proof",
+  "providerBacked": true,
+  "proofScope": "hosted-custom-domain-two-client-websocket-presence-broadcast",
+  "url": "wss://archestimator.com/__cloudflare/collaboration-room/<redacted-proof-room>",
+  "roomNamePattern": "proof:<timestamp>:<index>",
+  "sampleCount": 9,
+  "readiness": {
+    "durableObjectWebSocketReady": true,
+    "twoClientsConnected": true,
+    "presenceRoundTripReady": true,
+    "broadcastRoundTripReady": true,
+    "realtimeLatencyP95Ready": true
+  },
+  "timingsMs": {
+    "clientOpenP95Ms": 3249,
+    "presenceTrackToPeerP95Ms": 54,
+    "broadcastToPeerP95Ms": 53,
+    "realtimeEventP95Ms": 54
+  },
+  "samples": [
+    {
+      "index": 0,
+      "clientAOpenMs": 2679,
+      "clientBOpenMs": 2677,
+      "presenceTrackToPeerMs": 47,
+      "broadcastToPeerMs": 43,
+      "presenceConnectionCount": 1
+    },
+    {
+      "index": 1,
+      "clientAOpenMs": 3249,
+      "clientBOpenMs": 3248,
+      "presenceTrackToPeerMs": 47,
+      "broadcastToPeerMs": 46,
+      "presenceConnectionCount": 1
+    },
+    {
+      "index": 2,
+      "clientAOpenMs": 2244,
+      "clientBOpenMs": 2240,
+      "presenceTrackToPeerMs": 48,
+      "broadcastToPeerMs": 53,
+      "presenceConnectionCount": 1
+    },
+    {
+      "index": 3,
+      "clientAOpenMs": 2358,
+      "clientBOpenMs": 2359,
+      "presenceTrackToPeerMs": 54,
+      "broadcastToPeerMs": 44,
+      "presenceConnectionCount": 1
+    },
+    {
+      "index": 4,
+      "clientAOpenMs": 2214,
+      "clientBOpenMs": 2210,
+      "presenceTrackToPeerMs": 45,
+      "broadcastToPeerMs": 40,
+      "presenceConnectionCount": 1
+    },
+    {
+      "index": 5,
+      "clientAOpenMs": 2102,
+      "clientBOpenMs": 2099,
+      "presenceTrackToPeerMs": 44,
+      "broadcastToPeerMs": 43,
+      "presenceConnectionCount": 1
+    },
+    {
+      "index": 6,
+      "clientAOpenMs": 2211,
+      "clientBOpenMs": 2207,
+      "presenceTrackToPeerMs": 41,
+      "broadcastToPeerMs": 41,
+      "presenceConnectionCount": 1
+    },
+    {
+      "index": 7,
+      "clientAOpenMs": 2455,
+      "clientBOpenMs": 2452,
+      "presenceTrackToPeerMs": 53,
+      "broadcastToPeerMs": 44,
+      "presenceConnectionCount": 1
+    },
+    {
+      "index": 8,
+      "clientAOpenMs": 2182,
+      "clientBOpenMs": 2181,
+      "presenceTrackToPeerMs": 48,
+      "broadcastToPeerMs": 41,
+      "presenceConnectionCount": 1
+    }
+  ],
+  "notes": "Nine proof iterations opened two local WebSocket clients against the hosted Cloudflare Worker Durable Object room endpoint. Each iteration tracked presence and broadcast one event to the peer. Proof-scale usage only; not monthly WebSocket duration/message/storage volume."
+}

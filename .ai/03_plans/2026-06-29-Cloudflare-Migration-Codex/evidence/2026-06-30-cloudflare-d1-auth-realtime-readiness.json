@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-01T04:08:33.545Z",
+  "generatedAt": "2026-07-01T06:27:36.607Z",
   "mode": "cloudflare-d1-auth-realtime-readiness",
   "sources": {
     "inventory": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-migration-inventory.json",
@@ -106,7 +106,8 @@
       "src/lib/auth/session.ts",
       "src/lib/cloudflare/better-auth-proof-router.ts",
       "src/lib/cloudflare/protected-proof-routes.ts",
-      "src/lib/collaboration/pending-invite-actions.ts"
+      "src/lib/collaboration/pending-invite-actions.ts",
+      "src/lib/landing/get-landing-auth-state.ts"
     ],
     "betterAuthD1AdapterFiles": [
       "src/app/api/auth/[...all]/route.ts",
@@ -279,7 +280,7 @@
       "label": "Better Auth D1 local route-gate proof ready",
       "scope": "auth",
       "ready": true,
-      "evidence": "betterAuthDependency=yes, betterAuthFiles=13, d1AdapterFiles=12, routeGateFiles=2, localProof=yes, routeGateHelperTests=yes, routeGateD1SessionFixture=yes, schemaSqlGenerated=yes, schemaSqlReview=yes, parityRows=7, existingSupabaseAuthFiles=0",
+      "evidence": "betterAuthDependency=yes, betterAuthFiles=14, d1AdapterFiles=12, routeGateFiles=2, localProof=yes, routeGateHelperTests=yes, routeGateD1SessionFixture=yes, schemaSqlGenerated=yes, schemaSqlReview=yes, parityRows=7, existingSupabaseAuthFiles=0",
       "blocker": null,
       "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-better-auth-route-gate-proof.json"
     },
@@ -287,9 +288,9 @@
       "key": "better-auth-replacement",
       "label": "Better Auth D1 production replacement ready",
       "scope": "auth",
-      "ready": false,
-      "evidence": "betterAuthDependency=yes, betterAuthFiles=13, d1AdapterFiles=12, routeGateFiles=2, localProof=yes, routeGateD1SessionFixture=yes, schemaSqlReady=yes, hostedSchemaProof=yes, providerSecret=yes, providerSessionFixture=yes, providerCallbackSession=yes, providerProof=yes, productionProof=no, remainingSupabaseAuthFiles=0, actualRouteMounted=yes, localOnly=no, providerBacked=yes",
-      "blocker": "Better Auth production cutover proof is missing: OAuth provider credential proof, live route cutover, or Supabase auth removal is incomplete.",
+      "ready": true,
+      "evidence": "betterAuthDependency=yes, betterAuthFiles=14, d1AdapterFiles=12, routeGateFiles=2, localProof=yes, routeGateD1SessionFixture=yes, schemaSqlReady=yes, hostedSchemaProof=yes, providerSecret=yes, providerSessionFixture=yes, providerCallbackSession=yes, providerProof=yes, productionProof=yes, remainingSupabaseAuthFiles=0, actualRouteMounted=yes, localOnly=no, providerBacked=yes",
+      "blocker": null,
       "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-better-auth-route-gate-proof.json"
     },
     {
@@ -401,7 +402,7 @@
     "providerBackedSessionFixtureReady": true,
     "providerBackedCallbackSessionCutoverReady": true,
     "betterAuthProviderProofReady": true,
-    "authReplacementReady": false,
+    "authReplacementReady": true,
     "appLayerAuthzSpecReady": true,
     "localRpcTransactionMechanicsReady": true,
     "localBetaFeedbackD1SliceReady": true,
@@ -414,10 +415,8 @@
     "restoreProofReady": true,
     "performanceProofReady": true,
     "localRedesignReadinessReportReady": true,
-    "productionD1AuthRealtimeReady": false
+    "productionD1AuthRealtimeReady": true
   },
-  "blockers": [
-    "Better Auth D1 production replacement ready: Better Auth production cutover proof is missing: OAuth provider credential proof, live route cutover, or Supabase auth removal is incomplete."
-  ],
+  "blockers": [],
   "note": "Local D1/Auth/Realtime redesign readiness inventory only. It reads repository source, package, generated type, wrangler, and sanitized evidence artifacts; it does not read env files, print secret values, call provider APIs, create D1 databases, mutate Cloudflare/Supabase, change DNS, deploy Workers, or make Supabase removable."
 }

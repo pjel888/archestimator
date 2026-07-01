@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-30T09:14:35.402Z",
+  "generatedAt": "2026-07-01T09:15:14.833Z",
   "mode": "cloudflare-d1-runtime-performance-proof-verifier",
   "baseUrl": "https://archestimator-proof.philipjonlewis.workers.dev",
   "endpointPath": "/__cloudflare/d1-performance-proof",
@@ -20,14 +20,14 @@
     "cleanupReady": true,
     "rowsSeeded": 132,
     "rowsCleaned": 0,
-    "benchmarkSurfaces": 4,
+    "benchmarkSurfaces": 5,
     "benchmarkRows": [
       {
         "surface": "workspace_homebase_summary",
         "queryBudget": 3,
         "plannedQueries": 1,
         "hostedBudgetMs": 600,
-        "hostedP95Ms": 65,
+        "hostedP95Ms": 80,
         "sampleCount": 9,
         "rowsReturned": 2,
         "status": "hosted-pass",
@@ -38,7 +38,7 @@
         "queryBudget": 3,
         "plannedQueries": 1,
         "hostedBudgetMs": 600,
-        "hostedP95Ms": 76,
+        "hostedP95Ms": 57,
         "sampleCount": 9,
         "rowsReturned": 2,
         "status": "hosted-pass",
@@ -49,7 +49,7 @@
         "queryBudget": 3,
         "plannedQueries": 1,
         "hostedBudgetMs": 600,
-        "hostedP95Ms": 57,
+        "hostedP95Ms": 65,
         "sampleCount": 9,
         "rowsReturned": 3,
         "status": "hosted-pass",
@@ -60,11 +60,22 @@
         "queryBudget": 2,
         "plannedQueries": 1,
         "hostedBudgetMs": 600,
-        "hostedP95Ms": 61,
+        "hostedP95Ms": 55,
         "sampleCount": 9,
         "rowsReturned": 1,
         "status": "hosted-pass",
         "notes": "Authorization guard should stay as one indexed membership lookup."
+      },
+      {
+        "surface": "estimate_row_mutation",
+        "queryBudget": 3,
+        "plannedQueries": 1,
+        "hostedBudgetMs": 500,
+        "hostedP95Ms": 91,
+        "sampleCount": 9,
+        "rowsReturned": 1,
+        "status": "hosted-pass",
+        "notes": "Estimate row mutation should stay as one indexed D1 update against an authorized proof row."
       }
     ],
     "error": null

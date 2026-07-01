@@ -1,6 +1,6 @@
 # Cloudflare Better Auth D1 Route-Gate Proof
 
-Generated: 2026-07-01T05:09:39.887Z
+Generated: 2026-07-01T12:16:41.427Z
 
 Better Auth D1 route-gate proof with hosted Cloudflare provider evidence. It reads package, wrangler, generated type, source files, and sanitized provider-proof output; it does not print secret values, change DNS, make Supabase removable, or prove OAuth provider credentials.
 
@@ -19,14 +19,14 @@ Better Auth D1 route-gate proof with hosted Cloudflare provider evidence. It rea
 | Better Auth D1 schema SQL generated | yes |
 | Better Auth D1 schema SQL static review ready | yes |
 | Hosted Better Auth D1 schema proof ready | yes |
-| Better Auth provider secret/origin proof ready | no |
+| Better Auth provider secret/origin proof ready | yes |
 | Provider-backed session fixture ready | yes |
 | Provider-backed callback/session cutover proof ready | yes |
 | Better Auth provider proof ready | yes |
 | Route-gate parity matrix ready | yes |
 | Legacy Supabase auth gate retired | yes |
 | Local Better Auth route-gate proof ready | yes |
-| Production Better Auth ready | no |
+| Production Better Auth ready | yes |
 | Local-only proof | no |
 | Provider-backed proof | yes |
 
@@ -51,8 +51,8 @@ Better Auth D1 route-gate proof with hosted Cloudflare provider evidence. It rea
 | --- | --- |
 | Provider proof artifact | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-better-auth-provider-proof.json |
 | Provider proof present | yes |
-| Provider proof generated | 2026-07-01T04:52:26.333Z |
-| Provider proof base URL | https://archestimator-proof.philipjonlewis.workers.dev |
+| Provider proof generated | 2026-07-01T12:16:03.252Z |
+| Provider proof base URL | https://archestimator.com |
 | Provider proof endpoint | /__cloudflare/better-auth-proof |
 | Provider proof response status | 200 |
 | Provider proof response OK | yes |
@@ -100,5 +100,4 @@ Better Auth D1 route-gate proof with hosted Cloudflare provider evidence. It rea
 
 ## Blockers
 
-- Provider-backed Better Auth callback/session proof passed, but production cutover is still not marked ready; verify Google OAuth credential proof, email-domain readiness, and live cutover evidence.
-- Hosted Better Auth proof has not confirmed Google OAuth provider credentials in Cloudflare Worker secrets.
+- (none)

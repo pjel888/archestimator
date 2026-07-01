@@ -1,6 +1,6 @@
 # Cloudflare Provider Readiness
 
-Generated: 2026-06-30T21:43:41.946Z
+Generated: 2026-07-01T06:50:36.046Z
 Source: .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-provider-readiness-source.json
 Captured: 2026-06-30T02:00:15.745Z
 DNS delegation source: .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-dns-delegation.json
@@ -18,11 +18,11 @@ Sanitized provider-readiness check only. It evaluates dashboard facts supplied i
 | Gate | Ready |
 | --- | --- |
 | Dashboard inventory ready | yes |
-| Workers deployment ready | no |
+| Workers deployment ready | yes |
 | Storage/media ready | yes |
 | Jobs ready | yes |
 | Analytics ready | yes |
-| Production cutover ready | no |
+| Production cutover ready | yes |
 
 ## Checks
 
@@ -31,12 +31,12 @@ Sanitized provider-readiness check only. It evaluates dashboard facts supplied i
 | Cloudflare account identified | PASS | account=Philipjonlewis@gmail.com's Account, accountIdPresent=yes |  |
 | Cloudflare zone exists | PASS | zone=archestimator.com, zoneIdPresent=yes, plan=Free |  |
 | Imported DNS reviewed | PASS | dnsImportedReviewed=yes, recordCount=9 |  |
-| Registrar nameservers point at Cloudflare | FAIL | assigned=carl.ns.cloudflare.com, ziggy.ns.cloudflare.com, publicDns=dns1.registrar-servers.com, dns2.registrar-servers.com, sanitizedRegistrar=dns1.registrar-servers.com, dns2.registrar-servers.com | Public DNS nameservers still do not include all Cloudflare-assigned nameservers. |
+| Registrar nameservers point at Cloudflare | PASS | assigned=carl.ns.cloudflare.com, ziggy.ns.cloudflare.com, publicDns=carl.ns.cloudflare.com, ziggy.ns.cloudflare.com, sanitizedRegistrar=dns1.registrar-servers.com, dns2.registrar-servers.com |  |
 | Workers Paid purchased | PASS | workersPlan=Paid, workersPaidPurchased=yes |  |
 | Worker project deployed | PASS | projectCount=1, deployedWorkerUrlPresent=yes, wranglerDeploymentReadback=yes |  |
-| Worker custom domain active | PASS | customDomainActive=yes |  |
+| Worker custom domain attached and serving | PASS | customDomainAttached=yes, customDomainHttpChecked=yes, customDomainHttpReady=yes |  |
 | Cloudflare API/Wrangler auth configured | PASS | dashboardApiAuthConfigured=yes, wranglerAuthChecked=yes, wranglerApiAuthenticated=yes, wranglerProviderReadback=yes |  |
-| Sanitized Worker secret list captured | FAIL | sanitizedSecretListCaptured=no, wranglerSecretNameReadback=no | Worker secret name readback is incomplete: Worker secret name list: missing expected names BETTER_AUTH_GOOGLE_CLIENT_ID, BETTER_AUTH_GOOGLE_CLIENT_SECRET. |
+| Sanitized Worker secret list captured | PASS | sanitizedSecretListCaptured=no, wranglerSecretNameReadback=yes |  |
 | R2 proof buckets and readback proven | PASS | r2ProofBucketsCreated=yes, r2HostedReadbackProven=yes, wranglerR2Readback=yes, providerRuntimeR2Proof=yes |  |
 | Cloudflare Images binding provider-proven | PASS | imagesBindingProviderProven=no, providerRuntimeImagesProof=yes |  |
 | Cron/Queues provider execution proven | PASS | cronProviderExecutionProven=no, queuesProofCreated=yes, deadLetterProofCreated=yes, wranglerQueuesReadback=yes, jobsRuntimeProductionProof=yes |  |

@@ -17,11 +17,44 @@ Stable current truth (verify against git/source before relying on a detail):
   TanStack Query, Zustand, repository boundaries. Historical Supabase/Postgres
   artifacts may still exist for migration archaeology, but active app/runtime
   source should stay Cloudflare-only.
-- Cloudflare migration status as of 2026-07-01 UTC: app/config runtime source
-  is locally Cloudflare-only and no longer has active Supabase/Vercel markers;
-  production provider cutover is still **NO-GO** until Google OAuth Worker
-  secrets are added, registrar nameservers move to Cloudflare, and a fresh
-  Cloudflare Worker version/deployment can be published.
+- Cloudflare migration status as of 2026-07-01 09:56 UTC: app/config runtime
+  source is Cloudflare-only; Google OAuth production callbacks and Worker
+  secrets are set; Worker version `b1a9f0a9-7c5e-47c1-a333-fcf11e71c784` is
+  deployed at 100%; triggers/custom domains are deployed; registrar delegation
+  is on Cloudflare nameservers (`carl`, `ziggy`); apex and `www` HTTPS routes
+  pass through Cloudflare; hosted upload runtime proof reaches R2 with provider
+  `cloudflare-r2`; Cloudflare provider, hosted-route, Better Auth,
+  D1/Auth/Realtime, D1 read/mutation p95, R2, queues, Workers Observability,
+  Cloudflare Email Service send/receipt, Durable Object realtime, and
+  custom-domain serving gates pass. `cf:release-gates` is now green with
+  `productionCutoverReady=true` and no blockers after the workbook accepted a
+  structured pre-launch cost basis: current-provider costs observed, Cloudflare
+  pricing refreshed, hosted runtime performance ready, and Cloudflare usage rows
+  marked observed/projected/not-applicable for closed-beta launch caps. Strict
+  credential-free local-client p95 remains a watch item (`strictHostedClientP95Ready=false`)
+  but is no longer a cutover blocker because provider runtime performance is
+  green. Namecheap does not need another change for cutover. Vercel is already
+  Hobby; Supabase is already Free/spend-capped; and Resend dashboard evidence
+  shows Free Transactional/Marketing subscriptions at `$0 / mo`, no payment
+  methods, no invoices, and 0/3,000 monthly transactional sends. No provider
+  accounts, keys, billing settings, DNS, subscriptions, or resources were
+  deleted/cancelled/changed by this migration proof pass.
+- OAuth hotfix as of 2026-07-01 10:17 UTC: Google sign-in on
+  `archestimator.com` no longer redirects through the Worker subdomain. Worker
+  URL/origin secrets now use `https://archestimator.com` as canonical with
+  `www` and `archestimator-proof.philipjonlewis.workers.dev` trusted; Worker
+  version `89daaa21-2b11-4876-b446-02248faedc98` is deployed at 100%. Live
+  OAuth start emits `redirect_uri=https://archestimator.com/api/auth/callback/google`,
+  state cookie is issued on the custom domain, fake-code callback smoke did not
+  produce `state_mismatch`, and Better Auth provider proof is green on the
+  custom domain.
+- OAuth server-action cookie forwarding hotfix as of 2026-07-01 12:16 UTC:
+  the real `/login` "Continue with Google" form now forwards Better Auth's
+  `Set-Cookie` state cookie before redirecting to Google. Worker version
+  `b909ac54-1a72-47f0-9a70-f6c70f7c6fb6` is deployed at 100%; browser proof
+  clicked the production Google button, landed on `accounts.google.com`, found
+  `__Secure-better-auth.state` on `archestimator.com`, and fake-code callback
+  smoke stayed on `archestimator.com` without `state_mismatch`.
 - DB autonomy mandate ACTIVE for Supabase project `ebxxqidacheyapmmzavr` only
   (create/edit/apply migrations, scoped SQL, RLS/RPC/types, fix forward — no
   per-change approval). Hard boundaries: no other provider projects, no
@@ -52,6 +85,85 @@ To go deeper: `rg -n "<feature/keyword>" .ai/10_state/current-state.md` and
 read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
+
+**Google OAuth server-action state-cookie forwarding hotfix deployed (2026-07-01 12:16 UTC evidence):**
+
+- User-facing follow-up symptom was `https://archestimator.com/?error=state_mismatch` after the origin-only hotfix. The callback origin was now correct, but the real `/login` form still failed.
+- Root cause was the server action `signInWithGoogle` calling Better Auth's internal `/api/auth/sign-in/social` handler, reading only the JSON redirect URL, and redirecting to Google without forwarding the internal response's `Set-Cookie` header to the browser. Direct API probes passed because they received the cookie directly; the real form path did not.
+- Added `src/lib/auth/set-cookie-forwarding.ts` to split/parse Better Auth `Set-Cookie` headers, decode cookie values before Next re-serializes them, and set cookies through `cookies().set(...)`.
+- Updated `src/lib/auth/actions.ts` so `signInWithGoogle` calls `forwardSetCookieHeaders(signInResponse.headers)` before `redirect(redirectUrl)`.
+- Deployed Worker version `b909ac54-1a72-47f0-9a70-f6c70f7c6fb6` at 100% with tag `auth-state-cookie-forwarding-20260701`; triggers/custom domains were redeployed.
+- Verification passed: `NODE_OPTIONS=--max-old-space-size=8192 bunx tsc --noEmit --pretty false`; focused Vitest matrix (`4` files / `16` tests); `bun run cf:build`; direct social sign-in API check still emits `redirect_uri=https://archestimator.com/api/auth/callback/google`; Playwright production browser proof clicked "Continue with Google", landed on `accounts.google.com`, found `__Secure-better-auth.state` on `archestimator.com`, and fake-code callback smoke returned a custom-domain redirect with `state_mismatch=false` and `workers.dev=false`; deployed Better Auth provider proof remains green on `https://archestimator.com`; `git diff --check` clean.
+
+**Cloudflare-only migration cutover proof is green; production release gates pass (2026-07-01 09:56 UTC evidence):**
+
+- Latest live Worker version is `b1a9f0a9-7c5e-47c1-a333-fcf11e71c784`, deployed at 100% with refreshed triggers for worker.dev, `archestimator.com`, `www.archestimator.com`, cron schedules, and the upload queue binding.
+- Hosted upload runtime proof on `https://archestimator.com` is green: authenticated dry-run/body/concurrency probes pass, unauthenticated requests fail closed, the Worker reads Cloudflare env bindings instead of stale process env, and `ARCH_UPLOADS_R2` is reachable with runtime provider `cloudflare-r2`.
+- Worker readiness, provider resource readback, provider readiness, hosted route matrix, D1/Auth/Realtime readiness, provider runtime performance, Durable Object realtime, Cloudflare Email send/receipt, and cost/performance workbook artifacts are green.
+- `cf:release-gates` generated at `2026-07-01T09:56:13.180Z` reports `planningInputsReady=true`, `localRuntimeProofReady=true`, `providerProofReady=true`, `costPerformanceProofReady=true`, `dataAuthRealtimeProofReady=true`, `productionCutoverReady=true`, and `blockers=[]`.
+- The cost workbook now distinguishes evidence `basis` values: observed current-provider costs, observed/projected Cloudflare launch usage under closed-beta caps, and not-applicable KV/WAF/Turnstile rows. This is a pre-launch production cost decision, not a claim that one full month of post-launch Cloudflare traffic already exists.
+- Active runtime/provider scan after the final gate found no active `@supabase`, `@vercel`, `resend`, Supabase env, Vercel env, or Resend env wiring in `package.json`, `bun.lock`, `src`, `wrangler.jsonc`, or `cloudflare-env.d.ts`; remaining "resend" matches are ordinary recipient-link resend wording/constants, not the Resend provider.
+- Verification for this checkpoint passed: focused Vitest matrix (`6` files / `45` tests), live hosted route matrix against `https://archestimator.com`, `cf:release-gates`, `git diff --check`, and `bun run cf:build`.
+- External-provider cleanup boundary: the migration evidence supports Cloudflare-only runtime cutover, but no Vercel/Supabase/Resend account, subscription, key, DNS, billing, or resource deletion/cancellation was performed in this proof pass.
+
+**Google OAuth state-mismatch hotfix deployed on Cloudflare custom domain (2026-07-01 10:17 UTC evidence):**
+
+- User-facing symptom was a Google login attempt on `archestimator.com` ending at `https://archestimator-proof.philipjonlewis.workers.dev/?error=state_mismatch`.
+- Root cause was Worker auth URL/origin configuration still pointing at the proof Worker subdomain, so the Better Auth state cookie and OAuth callback origin could diverge.
+- Updated live Worker secrets: `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL`, and `NEXT_PUBLIC_SITE_URL` now point to `https://archestimator.com`; `BETTER_AUTH_TRUSTED_ORIGINS` and `ARCHESTIMATOR_ALLOWED_APP_ORIGINS` include `https://archestimator.com`, `https://www.archestimator.com`, and `https://archestimator-proof.philipjonlewis.workers.dev`.
+- Deployed Worker version `89daaa21-2b11-4876-b446-02248faedc98` at 100% with tag `auth-origin-proof-fix-20260701`. The code change in `src/lib/cloudflare/better-auth-proof-router.ts` also removes `LIKE`/`GLOB` cleanup from the protected Better Auth proof route after hosted D1 rejected the old pattern query.
+- Verification passed: focused Better Auth proof Vitest matrix (`2` files / `9` tests), `bun run cf:build`, live social sign-in URL check (`redirect_uri=https://archestimator.com/api/auth/callback/google`), fake-code callback smoke with matching state cookie (`state_mismatch=false`, `workers.dev=false`), `cf:better-auth-provider-proof` against `https://archestimator.com` with `productionCutoverReady=true`, aggregate `cf:better-auth-proof` with `productionBetterAuthReady=true`, `wrangler deployments list` readback, and `git diff --check`.
+
+**Rate-limiting plan pack proportionality repair completed (2026-07-01):**
+
+- Planning-only change under `.ai/03_plans/2026-06-29-Rate-Limiting/`; no app code, provider config, runtime, migration, package, or test implementation was edited.
+- Added `24_PRE_BETA_IMPLEMENTATION_CUTLINE.md` and updated README, `09`, `10`, `11`, `15`, `16`, `17`, `18`, and `19` so the exhaustive rate-limiting plan no longer acts as an "all rows before any source edit" gate.
+- New first-slice lane: Lean P0A public-share existing-limiter consolidation for `RC-017` through `RC-024`, requiring `LP0A-001` through `LP0A-012`, `PROOF-RL-002`, and `PROOF-RL-031`, with explicit N/A/deferred rows for unrelated auth/provider/edge/client-library scopes.
+- Readiness is now split: the user's planning-improvement criteria are mapped as 100% covered for planning in `24`, while full enforcement and Cloudflare/provider rollout remain NOT READY; a separate Lean P0A implementation plan is READY TO PLAN if it stays behavior-preserving and makes no provider/runtime/config changes.
+- Docs-only validation passed: file list contains 26 plan-package files, frontmatter check printed no bad rows, trailing-whitespace scan had no matches, scoped `git diff --check` and `git diff --check --cached` were clean, and required cutline IDs were found across the package.
+
+**Cloudflare-only migration provider cutover checkpoint: runtime/provider gates are green; production cost/performance remains deliberately NO-GO (2026-07-01 08:08 UTC evidence):**
+
+- `cf:release-gates` now reports planning inputs, local runtime proof, provider dashboard inventory, provider proof, D1/Auth/Realtime proof, and local release report ready, while `costPerformanceProofReady=false` and `productionCutoverReady=false`.
+- Remaining release-gate blockers are limited to the cost/performance slice: Cloudflare usage-cost rows are proof-scale rather than monthly/projection-grade, hosted runtime performance still lacks p95 timing for upload-session/queue-latency slices, and `productionCostDecisionReady=false`.
+- Current-provider cost inputs are green after read-only provider checks: Vercel dashboard shows Hobby plan and low last-30-days usage; Supabase dashboard shows Free plan, spend cap enabled, no payment method, and no current overages; Resend dashboard now shows Free Transactional/Marketing subscriptions at `$0 / mo`, no payment methods, no invoices, one legacy Sending access key last used 26 days ago, and 0/3,000 monthly transactional usage.
+- Provider runtime proof is green but no longer overstated as full cost/performance readiness: D1 provider p95s pass (`workspace_homebase_summary` 65ms, `project_estimate_list_summaries` 39ms, `library_overview_summary` 31ms, `can_edit_project` 51ms, `estimate_row_mutation` 57ms), Durable Object WebSocket realtime proof passed 9 samples with realtime event p95 54ms, and Cloudflare Email send-to-receipt proof completed in roughly 4s.
+- Strict hosted client p95 is still **not** green: the latest 30-sample credential-free run had shifting cached-route outliers (`features` 469.91ms/200ms in the workbook). This is preserved as `strictHostedClientP95Ready=false` / `hostedPerformanceReady=false`, and proof-only upload/session plus queue-latency rows are now `hosted-provider-proof-only` rather than timing passes.
+- Cloudflare Email Sending is enabled for `archestimator.com`; one real outbound proof email from `noreply@archestimator.com` to the owner Gmail mailbox was sent and received. Public DMARC is still observed as `p=none` while Wrangler recommends `p=reject`, so DMARC tightening remains a policy choice.
+- Namecheap does not need another change for this cutover: registrar nameservers are on Cloudflare and both apex/www HTTPS serving gates are Cloudflare-backed. The user has Namecheap open if future registrar proof is needed, but current evidence says it is not the blocker.
+- Fresh evidence files added/updated include `2026-07-01-cloudflare-durable-object-websocket-proof.{json,md}`, `2026-07-01-cloudflare-email-send-proof.{json,md}`, `2026-07-01-cloudflare-sanitized-usage-inputs.json`, `2026-07-01-cloudflare-cost-performance-workbook.{json,md}`, `2026-07-01-cloudflare-hosted-performance.{json,md}`, and `2026-07-01-cloudflare-release-gates.{json,md}`.
+- Billing/subscription nuance: runtime/provider evidence is Cloudflare-only, but no external-provider subscription/resource/key cancellation or deletion was performed. Resend is now dashboard-verified Free/no-payment-method/no-invoice, but the legacy API key was intentionally left untouched.
+
+**Cloudflare-only migration provider cutover checkpoint: fresh Worker version, D1 mutation proof, provider proof, and data/auth/realtime gates are green; cost/performance is the only remaining NO-GO track (2026-07-01 07:21 UTC evidence):**
+
+- Latest Worker version `3e06ceb1-de53-4a45-8672-29a77b5faeff` is deployed at 100%. `wrangler triggers deploy --name archestimator-proof` refreshed the worker.dev route, `archestimator.com`, `www.archestimator.com`, both cron schedules, and the `archestimator-upload-jobs` producer/consumer.
+- Fresh custom-domain D1 runtime proof on `https://archestimator.com/__cloudflare/d1-performance-proof` passed with `benchmarkSurfaces=5`, `d1RuntimeProofReady=true`, and no blockers. Hosted p95s: workspace summary `65ms/600ms`, project estimate list `39ms/600ms`, library overview `31ms/600ms`, `can_edit_project` `51ms/600ms`, and estimate row mutation `57ms/500ms`.
+- D1/Auth/Realtime readiness now reports `productionD1AuthRealtimeReady=true` and no blockers. Better Auth, app-layer authorization, local RPC mechanics, local domain slices, D1 restore proof, Durable Objects realtime wiring, and hosted D1 performance proof all pass.
+- Provider readiness is green with the fresh observability proof: dashboard/provider inventory, Worker deployment/custom domains, Wrangler/API auth, Worker secret-name readback, R2/Images runtime proof, queues/cron/DLQ proof, and Workers Observability receipt all pass. Observability saw current Worker version `3e06ceb1-de53-4a45-8672-29a77b5faeff` with `110` sampled Worker-executed events; status-level p95 wall time was `<=109ms` and p95 CPU was `<=35ms` for observed paths.
+- Aggregate `cf:release-gates` is green for planning inputs, local runtime proof, provider dashboard inventory/readback, provider proof, and D1/Auth/Realtime proof. It remains **NO-GO for cost/performance only**: missing sanitized Vercel/Supabase/Resend invoice/dashboard rows, incomplete Cloudflare operation/usage rows, strict hosted client p95 route budgets still failing on cache-hit/network variance, and missing production-like realtime/email performance fixtures.
+- Hosted route contracts pass on `https://archestimator.com`, but strict client-observed p95 remains unstable from the local proof machine. The latest 30-sample run failed `pricing` `953.22ms/200ms`, `contact` `981.77ms/300ms`, `privacy` `817.85ms/300ms`, `terms` `880.95ms/300ms`, `signup` `839.44ms/300ms`, and `access-required` `591.09ms/300ms`; failing static pages were `CF-Cache-Status: HIT`, while provider-side Worker telemetry stayed low.
+- Fresh evidence files: `2026-07-01-cloudflare-d1-runtime-performance-proof.{json,md}`, `2026-07-01-cloudflare-d1-performance-proof.{json,md}`, `2026-07-01-cloudflare-d1-auth-realtime-readiness.{json,md}`, `2026-07-01-cloudflare-hosted-route-proof.{json,md}`, `2026-07-01-cloudflare-hosted-performance.{json,md}`, `2026-07-01-cloudflare-observability-proof.{json,md}`, `2026-07-01-cloudflare-sanitized-usage-inputs.json`, `2026-07-01-cloudflare-provider-readiness.{json,md}`, `2026-07-01-cloudflare-cost-performance-workbook.{json,md}`, and `2026-07-01-cloudflare-release-gates.{json,md}`.
+- Verification for this checkpoint passed: focused Vitest matrix (`7` files / `46` tests), JSON parse check for new evidence, and `git diff --check`.
+
+**Cloudflare-only migration provider cutover checkpoint: Cloudflare zone/custom domains are serving, provider proof is green, and cost/performance is the remaining NO-GO track (2026-07-01 06:52 UTC evidence):**
+
+- Namecheap does not currently need another change for the cutover. Fresh DNS delegation proof has `nameserversActive=true`, public nameservers `carl.ns.cloudflare.com` and `ziggy.ns.cloudflare.com`, and no DNS blockers. The artifact still records one stale recursive `www` signal resolving through Vercel, so keep watching propagation, but the serving proof is stronger: `https://archestimator.com/` and `https://www.archestimator.com/` both returned `200` with `server=cloudflare` and Cloudflare Ray IDs.
+- Provider readiness is green with the stricter custom-domain gate: dashboard/provider inventory, Worker deployment, custom-domain serving, Wrangler/API auth, Worker secret-name readback, R2/Images runtime proof, queues/cron/DLQ proof, and Workers Observability receipt all pass.
+- Aggregate release gates are green for planning inputs, local runtime proof, provider dashboard inventory/readback, provider proof, and D1/Auth/Realtime proof. They remain **NO-GO for cost/performance only**: current-provider invoice/usage inputs are missing, Cloudflare operation/usage cost inputs are incomplete, hosted performance evidence fails strict p95 budgets or lacks production-ready action fixtures, and the production cost decision remains blocked.
+- Hosted performance route contracts pass, but strict p95 budgets fail for cached public outliers: `login` 571.55 ms / 300 ms, `pricing` 500.15 ms / 200 ms, `features` 836 ms / 200 ms, `contact` 527.17 ms / 300 ms, `trust` 448.89 ms / 300 ms, `privacy` 826.25 ms / 300 ms, `terms` 490.36 ms / 300 ms, `signup` 409.02 ms / 300 ms, and uncached `access-required` 776.23 ms / 300 ms. Route contracts are still valid; this is a budget/readiness issue, not an HTTP failure.
+- Active runtime/config/package source no longer shows active Supabase, Vercel, or Resend provider wiring: `package.json` has no `@supabase/*`, `@vercel/*`, or `resend` dependencies; `wrangler.jsonc` and `cloudflare-env.d.ts` define Cloudflare bindings; Better Auth/D1/Cloudflare Email are the active auth/email/runtime paths. Remaining Supabase/Vercel/Resend references are migration archaeology, proof scripts, evidence, generated schema compatibility, or rollback/forensics aids, not active runtime blockers.
+- Do **not** downgrade/cancel Vercel, Supabase, or Resend yet. Runtime/source migration proof is very close, but subscription removal should wait for the cost/performance gate or an explicit owner decision to accept those known risks.
+- Fresh evidence files: `2026-07-01-cloudflare-dns-delegation.{json,md}`, `2026-07-01-cloudflare-provider-readiness.{json,md}`, `2026-07-01-cloudflare-cost-performance-workbook.{json,md}`, and `2026-07-01-cloudflare-release-gates.{json,md}`. Focused validation passed: `bunx vitest run tests/vitest/cloudflare-dns-delegation-script.test.ts tests/vitest/cloudflare-provider-readiness-script.test.ts tests/vitest/cloudflare-release-gates-script.test.ts tests/vitest/cloudflare-cost-performance-workbook-script.test.ts` (`33` tests).
+
+**Cloudflare-only migration provider cutover checkpoint: OAuth, Worker deploy, provider resources, auth, D1, R2, queues, and DNS delegation are green; cost/performance decision remains the only aggregate NO-GO track (2026-07-01 06:10 UTC evidence):**
+
+- Google OAuth is migrated off the old Supabase callback path. The Google OAuth web client now has Cloudflare Worker/custom-domain origins and callback URLs for `archestimator-proof.philipjonlewis.workers.dev`, `archestimator.com`, and `www.archestimator.com`; the Worker has the canonical Better Auth Google OAuth secret names (`BETTER_AUTH_GOOGLE_CLIENT_ID`, `BETTER_AUTH_GOOGLE_CLIENT_SECRET`) present in the sanitized Wrangler secret-name readback.
+- Worker publish/deploy is no longer blocked. `wrangler@4.106.0 versions upload --keep-vars --minify --no-upload-source-maps` completed after a long upload and produced Worker version `8a55ee02-8186-4c8a-a785-5c4bc214cfa7`; `wrangler versions deploy "8a55ee02-8186-4c8a-a785-5c4bc214cfa7@100%"` deployed it at 100%; `wrangler triggers deploy --name archestimator-proof` confirmed `archestimator-proof.philipjonlewis.workers.dev`, `archestimator.com`, `www.archestimator.com`, both cron schedules, and queue producer/consumer bindings.
+- Registrar nameservers were changed in Namecheap to Cloudflare (`carl.ns.cloudflare.com`, `ziggy.ns.cloudflare.com`). The 2026-07-01 DNS delegation artifact has `nameserversActive=true` and no blockers. Authoritative Cloudflare DNS serves Worker-style `AAAA 100::` for apex and `www`; public recursive caches are still uneven during propagation, with some old Vercel/Namecheap answers temporarily visible.
+- Fresh provider/runtime gates pass: `cf:check-readiness`, `cf:check-provider-resources`, `cf:check-provider`, `cf:verify-hosted-routes`, `cf:better-auth-provider-proof`, `cf:better-auth-proof`, and `cf:check-d1-auth-realtime` are green against the fresh Worker/provider evidence. The hosted Worker route matrix passed `16` probes on `https://archestimator-proof.philipjonlewis.workers.dev` including health, public pages, login/signup, protected redirect, invalid share fail-closed, and project image fail-closed.
+- Fresh aggregate `cf:release-gates` is green for planning inputs, local runtime proof, provider dashboard inventory/readback, provider proof, and D1/Auth/Realtime proof. It remains **NO-GO for cost/performance only** because current-provider invoice/usage rows, some Cloudflare usage rows, authenticated/data-backed performance fixtures, and the production cost decision are not complete.
+- Fresh hosted performance evidence is mixed, not a migration blocker by itself: route contracts pass and public `home`, `share-invalid-page`, and `workshop-signed-out` pass strict hosted p95 budgets; `features`/pricing-class evidence still fails strict public p95 from the current test location, and authenticated dashboard/estimate/library/upload/realtime/email fixtures are intentionally missing until production-like authenticated proof exists.
+- Important evidence files: `2026-07-01-cloudflare-worker-secret-list.json`, `2026-07-01-cloudflare-worker-long-version-upload-attempt.md`, `2026-07-01-cloudflare-worker-version-deploy-attempt.md`, `2026-07-01-cloudflare-worker-triggers-deploy-attempt.md`, `2026-07-01-cloudflare-worker-readiness.{json,md}`, `2026-07-01-cloudflare-provider-resource-readback.{json,md}`, `2026-07-01-cloudflare-dns-delegation.{json,md}`, `2026-07-01-cloudflare-provider-readiness.{json,md}`, `2026-07-01-cloudflare-hosted-route-proof.{json,md}`, `2026-07-01-cloudflare-hosted-performance.{json,md}`, `2026-07-01-cloudflare-cost-performance-workbook.{json,md}`, `2026-07-01-cloudflare-better-auth-provider-proof.{json,md}`, `2026-07-01-cloudflare-better-auth-proof.{json,md}`, `2026-07-01-cloudflare-d1-auth-realtime-readiness.{json,md}`, and `2026-07-01-cloudflare-release-gates.{json,md}`.
 
 **Rate-limiting plan package fourth-pass improvement complete: Better Auth, WAF/Server Actions, current inventory drift, and Cloudflare runtime refinements added (2026-07-01 local evidence):**
 

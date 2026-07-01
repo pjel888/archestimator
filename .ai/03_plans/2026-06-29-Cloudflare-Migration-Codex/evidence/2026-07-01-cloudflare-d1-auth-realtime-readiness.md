@@ -1,6 +1,6 @@
 # Cloudflare D1/Auth/Realtime Readiness
 
-Generated: 2026-07-01T05:09:47.101Z
+Generated: 2026-07-01T07:12:52.528Z
 
 Local D1/Auth/Realtime redesign readiness inventory only. It reads repository source, package, generated type, wrangler, and sanitized evidence artifacts; it does not read env files, print secret values, call provider APIs, create D1 databases, mutate Cloudflare/Supabase, change DNS, deploy Workers, or make Supabase removable.
 
@@ -12,11 +12,11 @@ Local D1/Auth/Realtime redesign readiness inventory only. It reads repository so
 | D1 binding ready | yes |
 | Better Auth local route-gate proof ready | yes |
 | Hosted Better Auth D1 schema proof ready | yes |
-| Better Auth provider secret/origin proof ready | no |
+| Better Auth provider secret/origin proof ready | yes |
 | Provider-backed Better Auth session fixture ready | yes |
 | Provider-backed Better Auth callback/session cutover proof ready | yes |
 | Better Auth provider proof ready | yes |
-| Auth replacement ready | no |
+| Auth replacement ready | yes |
 | App-layer authorization spec ready | yes |
 | Local RPC transaction mechanics ready | yes |
 | Local beta-feedback D1 slice ready | yes |
@@ -29,7 +29,7 @@ Local D1/Auth/Realtime redesign readiness inventory only. It reads repository so
 | Restore proof ready | yes |
 | Performance proof ready | yes |
 | Local redesign readiness report ready | yes |
-| Production D1/Auth/Realtime ready | no |
+| Production D1/Auth/Realtime ready | yes |
 
 ## Inventory Snapshot
 
@@ -74,7 +74,7 @@ Local D1/Auth/Realtime redesign readiness inventory only. It reads repository so
 | d1 | D1 database binding configured and typed | PASS | wranglerD1Bindings=ARCH_DB, typedD1Bindings=ARCH_DB |  |
 | provider-removal | Legacy Supabase/Resend runtime references removed | PASS | supabaseDependency=no, resendDependency=no, supabaseAuthFiles=0, supabaseDatabaseFiles=0, supabaseStorageFiles=0, supabaseServiceRoleFiles=0, supabaseRealtimeFiles=0, resendEmailFiles=0, uniqueBlockingFiles=0 |  |
 | auth | Better Auth D1 local route-gate proof ready | PASS | betterAuthDependency=yes, betterAuthFiles=14, d1AdapterFiles=12, routeGateFiles=2, localProof=yes, routeGateHelperTests=yes, routeGateD1SessionFixture=yes, schemaSqlGenerated=yes, schemaSqlReview=yes, parityRows=7, existingSupabaseAuthFiles=0 |  |
-| auth | Better Auth D1 production replacement ready | FAIL | betterAuthDependency=yes, betterAuthFiles=14, d1AdapterFiles=12, routeGateFiles=2, localProof=yes, routeGateD1SessionFixture=yes, schemaSqlReady=yes, hostedSchemaProof=yes, providerSecret=no, providerSessionFixture=yes, providerCallbackSession=yes, providerProof=yes, productionProof=no, remainingSupabaseAuthFiles=0, actualRouteMounted=yes, localOnly=no, providerBacked=yes | Better Auth production cutover proof is missing: OAuth provider credential proof, live route cutover, or Supabase auth removal is incomplete. |
+| auth | Better Auth D1 production replacement ready | PASS | betterAuthDependency=yes, betterAuthFiles=14, d1AdapterFiles=12, routeGateFiles=2, localProof=yes, routeGateD1SessionFixture=yes, schemaSqlReady=yes, hostedSchemaProof=yes, providerSecret=yes, providerSessionFixture=yes, providerCallbackSession=yes, providerProof=yes, productionProof=yes, remainingSupabaseAuthFiles=0, actualRouteMounted=yes, localOnly=no, providerBacked=yes |  |
 | authorization | App-layer authorization access matrix and denial tests ready | PASS | present=yes, accessPaths=47, positiveTests=47, denialTests=47, allCovered=yes, crossWorkspaceDenials=yes, routeActionCoverage=yes |  |
 | d1 | D1 beta-feedback local domain proof ready | PASS | present=yes, schema=yes, appLayerAuthz=yes, localSlice=yes, productionProof=no, feedbackRows=1, forgedWorkspaceRows=0, mismatchedProjectRows=0, rollbackResidueRows=0, duplicateStatusAuditRows=0, localOnly=yes, providerBacked=no |  |
 | d1 | D1 collaboration-invitation local domain proof ready | PASS | present=yes, schema=yes, tokenIssue=yes, resolveState=yes, acceptByToken=yes, acceptById=yes, localSlice=yes, productionProof=no, affectedRpcNames=7, tokenIssueRows=1, activeTokensAfterIssue=1, wrongAccountMembershipRows=0, rollbackResidueRows=0, duplicateAcceptAuditRows=0, replayBlockedAuditRows=1, localOnly=yes, providerBacked=no |  |
@@ -102,4 +102,4 @@ Local D1/Auth/Realtime redesign readiness inventory only. It reads repository so
 
 ## Blockers
 
-- Better Auth D1 production replacement ready: Better Auth production cutover proof is missing: OAuth provider credential proof, live route cutover, or Supabase auth removal is incomplete.
+- (none)
