@@ -1,6 +1,6 @@
 # Cloudflare Better Auth Provider Proof
 
-Generated: 2026-07-01T05:55:12.626Z
+Generated: 2026-07-01T05:59:53.478Z
 Base URL: https://archestimator-proof.philipjonlewis.workers.dev
 Endpoint: /__cloudflare/better-auth-proof
 Provider backed: yes
@@ -18,7 +18,7 @@ Calls the deployed proof Worker Better Auth provider-proof endpoint with a local
 | Expected tables present | yes |
 | Expected indexes present | yes |
 | Secret provider ready | yes |
-| Google OAuth provider ready | no |
+| Google OAuth provider ready | yes |
 | Base URL ready | yes |
 | Trusted origins ready | yes |
 | Provider session fixture ready | yes |
@@ -30,7 +30,7 @@ Calls the deployed proof Worker Better Auth provider-proof endpoint with a local
 | Provider-backed callback/session cutover proof ready | yes |
 | Cleanup ready | yes |
 | Better Auth provider proof ready | yes |
-| Production cutover | no |
+| Production cutover | yes |
 
 ## Sanitized Results
 

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-01T05:55:12.626Z",
+  "generatedAt": "2026-07-01T05:59:53.478Z",
   "mode": "cloudflare-better-auth-provider-proof-verifier",
   "baseUrl": "https://archestimator-proof.philipjonlewis.workers.dev",
   "endpointPath": "/__cloudflare/better-auth-proof",
@@ -19,6 +19,7 @@
     "expectedTablesPresent": true,
     "expectedIndexesPresent": true,
     "secretProviderReady": true,
+    "googleOAuthProviderReady": true,
     "baseUrlReady": true,
     "trustedOriginsReady": true,
     "providerSessionFixtureReady": true,
@@ -54,7 +55,7 @@
     "expectedTablesPresent": true,
     "expectedIndexesPresent": true,
     "secretProviderReady": true,
-    "googleOAuthProviderReady": false,
+    "googleOAuthProviderReady": true,
     "baseUrlReady": true,
     "trustedOriginsReady": true,
     "providerSessionFixtureReady": true,
@@ -66,7 +67,7 @@
     "providerBackedCallbackSessionCutoverReady": true,
     "cleanupReady": true,
     "betterAuthProviderProofReady": true,
-    "productionCutoverReady": false
+    "productionCutoverReady": true
   },
   "blockers": [],
   "note": "Calls the deployed proof Worker Better Auth provider-proof endpoint with a local bearer secret, then records sanitized provider behavior: hosted D1 schema/index readback, Better Auth secret/base URL presence, Google OAuth provider credential presence, one ephemeral D1 session fixture readback, magic-link callback/session-cookie/route-gate readback, token replay blocking, and cleanup. It does not print secret values, magic-link tokens, cookies, session tokens, deploy Workers, change DNS, or replace auth routes by itself."
