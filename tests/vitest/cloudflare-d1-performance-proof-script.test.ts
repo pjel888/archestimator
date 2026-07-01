@@ -22,7 +22,7 @@ describe("Cloudflare D1 performance proof", () => {
     expect(report.localOnly).toBe(true);
     expect(report.providerBacked).toBe(false);
     expect(report.benchmark.rowsSeeded).toBeGreaterThan(0);
-    expect(report.benchmark.rows).toHaveLength(4);
+    expect(report.benchmark.rows).toHaveLength(5);
     expect(report.benchmark.rows.every((row) => row.plannedQueries <= row.queryBudget)).toBe(true);
     expect(report.benchmark.rows.every((row) => row.localP95Ms <= row.localBudgetMs)).toBe(true);
     expect(report.benchmark.rows.every((row) => row.status === "local-pass")).toBe(true);

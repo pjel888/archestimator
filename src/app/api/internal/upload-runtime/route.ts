@@ -16,6 +16,10 @@ type R2ProbeBucket = {
   list: (options?: { prefix?: string; limit?: number }) => Promise<unknown>;
 };
 
+type UploadRuntimeEnv = Record<string, string | R2ProbeBucket | undefined> & {
+  ARCH_UPLOADS_R2?: R2ProbeBucket;
+};
+
 type BodyProbe =
   | {
     contentLengthBytes: number | null;
@@ -35,6 +39,23 @@ function jsonError(error: string, status: number) {
 
 function jsonOk(body: Record<string, unknown>) {
   return NextResponse.json(body, { headers: NO_STORE_HEADERS });
+}
+
+async function loadUploadRuntimeEnv(): Promise<UploadRuntimeEnv | null> {
+  try {
+    const { getCloudflareContext } = await import("@opennextjs/cloudflare");
+    const { env } = await getCloudflareContext({ async: true });
+    return env as UploadRuntimeEnv;
+  } catch {
+    return null;
+  }
+}
+
+function readRuntimeString(env: UploadRuntimeEnv | null, key: string, fallbackToProcess = true) {
+  const envValue = env?.[key];
+  if (typeof envValue === "string" && envValue.trim()) return envValue.trim();
+  if (!fallbackToProcess) return undefined;
+  return process.env[key]?.trim() || undefined;
 }
 
 function readRuntimeSecrets() {
@@ -67,13 +88,13 @@ function memorySnapshot() {
   };
 }
 
-function configuredRuntimeLimits() {
+function configuredRuntimeLimits(env: UploadRuntimeEnv | null) {
   return {
-    memoryMb: parseOptionalNumber(process.env.ARCH_UPLOAD_HOSTED_MEMORY_MB),
-    bodyLimitBytes: parseOptionalNumber(process.env.ARCH_UPLOAD_HOSTED_BODY_LIMIT_BYTES),
-    routeDurationMs: parseOptionalNumber(process.env.ARCH_UPLOAD_HOSTED_ROUTE_DURATION_MS),
-    expectedConcurrentUploads: parseOptionalNumber(process.env.ARCH_UPLOAD_HOSTED_CONCURRENT_UPLOADS),
-    storageLatencyP95Ms: parseOptionalNumber(process.env.ARCH_UPLOAD_STORAGE_LATENCY_P95_MS),
+    memoryMb: parseOptionalNumber(readRuntimeString(env, "ARCH_UPLOAD_HOSTED_MEMORY_MB")),
+    bodyLimitBytes: parseOptionalNumber(readRuntimeString(env, "ARCH_UPLOAD_HOSTED_BODY_LIMIT_BYTES")),
+    routeDurationMs: parseOptionalNumber(readRuntimeString(env, "ARCH_UPLOAD_HOSTED_ROUTE_DURATION_MS")),
+    expectedConcurrentUploads: parseOptionalNumber(readRuntimeString(env, "ARCH_UPLOAD_HOSTED_CONCURRENT_UPLOADS")),
+    storageLatencyP95Ms: parseOptionalNumber(readRuntimeString(env, "ARCH_UPLOAD_STORAGE_LATENCY_P95_MS")),
   };
 }
 
@@ -105,12 +126,16 @@ async function readBodyProbe(request: Request): Promise<BodyProbe | NextResponse
   };
 }
 
-async function measureStorageLatency() {
+async function measureStorageLatency(env: UploadRuntimeEnv | null) {
   const startedAt = performance.now();
   let provider: string;
 
   try {
-    provider = readRuntimeUploadStorageProvider();
+    provider = readRuntimeUploadStorageProvider({
+      ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER: env
+        ? readRuntimeString(env, "ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER", false)
+        : process.env.ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER,
+    });
   } catch (error) {
     return {
       provider: "unsupported",
@@ -136,9 +161,7 @@ async function measureStorageLatency() {
   }
 
   try {
-    const { getCloudflareContext } = await import("@opennextjs/cloudflare");
-    const { env } = await getCloudflareContext({ async: true });
-    const r2 = (env as { ARCH_UPLOADS_R2?: R2ProbeBucket }).ARCH_UPLOADS_R2;
+    const r2 = env?.ARCH_UPLOADS_R2;
     if (!r2) {
       return {
         provider,
@@ -184,7 +207,8 @@ async function handleUploadRuntimeProof(request: Request) {
   const bodyProbe = await readBodyProbe(request);
   if (bodyProbe instanceof NextResponse) return bodyProbe;
 
-  const storageLatency = await measureStorageLatency();
+  const runtimeEnv = await loadUploadRuntimeEnv();
+  const storageLatency = await measureStorageLatency(runtimeEnv);
   const memoryAfter = memorySnapshot();
 
   return jsonOk({
@@ -193,7 +217,7 @@ async function handleUploadRuntimeProof(request: Request) {
     runtime: "nodejs",
     durationMs: round(performance.now() - startedAt),
     deployment: deploymentSnapshot(),
-    configuredLimits: configuredRuntimeLimits(),
+    configuredLimits: configuredRuntimeLimits(runtimeEnv),
     bodyProbe,
     memory: {
       before: memoryBefore,

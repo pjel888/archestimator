@@ -13,6 +13,7 @@ import {
   sanitizeNextPath,
 } from "@/lib/auth/redirects";
 import { requireAuth } from "@/lib/auth/session";
+import { forwardSetCookieHeaders } from "@/lib/auth/set-cookie-forwarding";
 
 async function getRequestMetadata() {
   const headersList = await headers();
@@ -194,6 +195,7 @@ export async function signInWithGoogle(formData: FormData) {
       }).toString(),
     );
   }
+  await forwardSetCookieHeaders(signInResponse.headers);
 
   await recordAccountSecurityEvent({
     eventType: "auth_google_started",

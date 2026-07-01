@@ -130,7 +130,7 @@ async function listSqliteNames(db: D1DatabaseLike, type: "table" | "index", name
 async function cleanupFixture(db: D1DatabaseLike, userId: string, sessionId: string) {
   await runStatement(db, 'DELETE FROM "session" WHERE "id" = ? OR "userId" = ?', [sessionId, userId]);
   await runStatement(db, 'DELETE FROM "account" WHERE "userId" = ?', [userId]);
-  await runStatement(db, 'DELETE FROM "verification" WHERE "identifier" LIKE ?', [`proof:${userId}:%`]);
+  await runStatement(db, 'DELETE FROM "verification" WHERE "identifier" = ? OR "value" = ?', [userId, sessionId]);
   await runStatement(db, 'DELETE FROM "user" WHERE "id" = ?', [userId]);
 }
 
@@ -162,8 +162,8 @@ async function cleanupMagicLinkFixture(
   );
   await runStatement(
     db,
-    'DELETE FROM "verification" WHERE "identifier" = ? OR "value" LIKE ?',
-    [verificationToken, `%${email}%`],
+    'DELETE FROM "verification" WHERE "identifier" = ? OR "identifier" = ? OR "value" = ?',
+    [email, verificationToken, verificationToken],
   );
   await runStatement(db, 'DELETE FROM "user" WHERE "id" = ? OR "email" = ?', [userId, email]);
 }
@@ -175,10 +175,10 @@ async function countFixtureRows(db: D1DatabaseLike, userId: string, sessionId: s
       SELECT
         (SELECT COUNT(*) FROM "session" WHERE "id" = ? OR "userId" = ?)
         + (SELECT COUNT(*) FROM "account" WHERE "userId" = ?)
-        + (SELECT COUNT(*) FROM "verification" WHERE "identifier" LIKE ?)
+        + (SELECT COUNT(*) FROM "verification" WHERE "identifier" = ? OR "value" = ?)
         + (SELECT COUNT(*) FROM "user" WHERE "id" = ?) AS rows_remaining
     `,
-    [sessionId, userId, userId, `proof:${userId}:%`, userId],
+    [sessionId, userId, userId, userId, sessionId, userId],
   );
   return Number(rows[0]?.rows_remaining ?? 0);
 }
@@ -201,10 +201,10 @@ async function countMagicLinkFixtureRows(
         + (SELECT COUNT(*) FROM "account"
           WHERE "userId" = ?
             OR "userId" IN (SELECT "id" FROM "user" WHERE "email" = ?))
-        + (SELECT COUNT(*) FROM "verification" WHERE "identifier" = ? OR "value" LIKE ?)
+        + (SELECT COUNT(*) FROM "verification" WHERE "identifier" = ? OR "identifier" = ? OR "value" = ?)
         + (SELECT COUNT(*) FROM "user" WHERE "id" = ? OR "email" = ?) AS rows_remaining
     `,
-    [sessionId, userId, email, userId, email, verificationToken, `%${email}%`, userId, email],
+    [sessionId, userId, email, userId, email, email, verificationToken, verificationToken, userId, email],
   );
   return Number(rows[0]?.rows_remaining ?? 0);
 }

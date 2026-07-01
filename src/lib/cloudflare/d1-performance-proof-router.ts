@@ -31,6 +31,28 @@ type HostedQueryBenchmarkRow = {
   notes: string;
 };
 
+type QuerySpec = {
+  surface: string;
+  queryBudget: number;
+  plannedQueries: number;
+  hostedBudgetMs: number;
+  sql: string;
+  params: (proofId: string) => Array<string | number | null>;
+  notes: string;
+};
+
+type MutationSpec = {
+  surface: string;
+  queryBudget: number;
+  plannedQueries: number;
+  hostedBudgetMs: number;
+  sql: string;
+  params: (proofId: string, sample: number) => Array<string | number | null>;
+  verifySql: string;
+  verifyParams: (proofId: string) => Array<string | number | null>;
+  notes: string;
+};
+
 type D1RuntimeProofResult = {
   d1BindingPresent: boolean;
   schemaReady: boolean;
@@ -191,7 +213,34 @@ const QUERY_SPECS = [
     params: (proofId: string) => [proofId, "project-alpha-1", "user-owner"],
     notes: "Authorization guard should stay as one indexed membership lookup.",
   },
-] as const;
+] as const satisfies QuerySpec[];
+
+const MUTATION_SPECS = [
+  {
+    surface: "estimate_row_mutation",
+    queryBudget: 3,
+    plannedQueries: 1,
+    hostedBudgetMs: 500,
+    sql: `
+      UPDATE __archestimator_d1_proof_estimate_rows
+      SET quantity = ?, unit_cost_cents = ?
+      WHERE proof_id = ? AND id = ?;
+    `,
+    params: (proofId: string, sample: number) => [
+      2 + (sample % 5),
+      4300 + sample,
+      proofId,
+      "row-alpha-1",
+    ],
+    verifySql: `
+      SELECT quantity, unit_cost_cents
+      FROM __archestimator_d1_proof_estimate_rows
+      WHERE proof_id = ? AND id = ?;
+    `,
+    verifyParams: (proofId: string) => [proofId, "row-alpha-1"],
+    notes: "Estimate row mutation should stay as one indexed D1 update against an authorized proof row.",
+  },
+] as const satisfies MutationSpec[];
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body, null, 2), {
@@ -395,7 +444,7 @@ async function seedProofRows(db: D1DatabaseLike, id: string) {
   );
 }
 
-async function measureQuery(db: D1DatabaseLike, id: string, spec: (typeof QUERY_SPECS)[number]) {
+async function measureQuery(db: D1DatabaseLike, id: string, spec: QuerySpec) {
   const samples: number[] = [];
   let rowsReturned = 0;
   const params = spec.params(id);
@@ -425,6 +474,36 @@ async function measureQuery(db: D1DatabaseLike, id: string, spec: (typeof QUERY_
   } satisfies HostedQueryBenchmarkRow;
 }
 
+async function measureMutation(db: D1DatabaseLike, id: string, spec: MutationSpec) {
+  const samples: number[] = [];
+
+  await runStatement(db, spec.sql, spec.params(id, 0));
+  for (let index = 0; index < HOSTED_SAMPLE_COUNT; index += 1) {
+    const started = nowMs();
+    await runStatement(db, spec.sql, spec.params(id, index + 1));
+    const ended = nowMs();
+    samples.push(ended - started);
+  }
+
+  const verificationRows = await queryRows(db, spec.verifySql, spec.verifyParams(id));
+  const hostedP95Ms = roundedMs(percentile(samples, 0.95));
+  return {
+    surface: spec.surface,
+    queryBudget: spec.queryBudget,
+    plannedQueries: spec.plannedQueries,
+    hostedBudgetMs: spec.hostedBudgetMs,
+    hostedP95Ms,
+    sampleCount: samples.length,
+    rowsReturned: verificationRows.length,
+    status: spec.plannedQueries <= spec.queryBudget
+      && verificationRows.length === 1
+      && hostedP95Ms <= spec.hostedBudgetMs
+      ? "hosted-pass"
+      : "hosted-fail",
+    notes: spec.notes,
+  } satisfies HostedQueryBenchmarkRow;
+}
+
 async function runD1Proof(db: D1DatabaseLike): Promise<D1RuntimeProofResult> {
   const id = proofId();
   let cleanupReady = false;
@@ -440,6 +519,9 @@ async function runD1Proof(db: D1DatabaseLike): Promise<D1RuntimeProofResult> {
     for (const spec of QUERY_SPECS) {
       benchmarkRows.push(await measureQuery(db, id, spec));
     }
+    for (const spec of MUTATION_SPECS) {
+      benchmarkRows.push(await measureMutation(db, id, spec));
+    }
 
     await cleanupProofRows(db, id);
     rowsCleaned = await countSeededRows(db, id);
@@ -452,7 +534,7 @@ async function runD1Proof(db: D1DatabaseLike): Promise<D1RuntimeProofResult> {
       cleanupReady,
       rowsSeeded,
       rowsCleaned,
-      benchmarkSurfaces: QUERY_SPECS.length,
+      benchmarkSurfaces: QUERY_SPECS.length + MUTATION_SPECS.length,
       benchmarkRows,
       error: null,
     };
@@ -472,7 +554,7 @@ async function runD1Proof(db: D1DatabaseLike): Promise<D1RuntimeProofResult> {
       cleanupReady,
       rowsSeeded: 0,
       rowsCleaned,
-      benchmarkSurfaces: QUERY_SPECS.length,
+      benchmarkSurfaces: QUERY_SPECS.length + MUTATION_SPECS.length,
       benchmarkRows: [],
       error: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
     };
@@ -481,7 +563,7 @@ async function runD1Proof(db: D1DatabaseLike): Promise<D1RuntimeProofResult> {
 
 function buildResponseBody(result: D1RuntimeProofResult) {
   const queryCountBudgetsReady = result.benchmarkRows.every((row) => row.plannedQueries <= row.queryBudget);
-  const hostedP95Ready = result.benchmarkRows.length === QUERY_SPECS.length
+  const hostedP95Ready = result.benchmarkRows.length === QUERY_SPECS.length + MUTATION_SPECS.length
     && result.benchmarkRows.every((row) => row.status === "hosted-pass");
   const d1RuntimeProofReady = result.d1BindingPresent
     && result.schemaReady
@@ -538,7 +620,7 @@ export async function routeCloudflareD1PerformanceProofRequest(
       cleanupReady: false,
       rowsSeeded: 0,
       rowsCleaned: null,
-      benchmarkSurfaces: QUERY_SPECS.length,
+      benchmarkSurfaces: QUERY_SPECS.length + MUTATION_SPECS.length,
       benchmarkRows: [],
       error: null,
     }), 503);

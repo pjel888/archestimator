@@ -80,6 +80,25 @@ async function readReceipt(env: CloudflareJobsProofEnv, proofId: string) {
       skippedCount?: number;
       error?: string | null;
     };
+    queueLatency?: {
+      requestedAt?: string | null;
+      receiptGeneratedAt?: string | null;
+      latencyMs?: number | null;
+      sampleCount?: number;
+    };
+    jobExecution?: {
+      dryRun?: boolean;
+      executed?: Array<{
+        name?: string;
+        path?: string;
+        status?: number;
+        ok?: boolean;
+      }>;
+      skipped?: Array<{
+        name?: string;
+        reason?: string;
+      }>;
+    } | null;
   };
 }
 
@@ -108,6 +127,24 @@ function buildProofMessage(proofId: string, requestedAt: string): CloudflareUplo
   };
 }
 
+function normalizeQueueLatency(receipt: Awaited<ReturnType<typeof readReceipt>>) {
+  const requestedAt = receipt?.queueLatency?.requestedAt ?? null;
+  const receiptGeneratedAt = receipt?.queueLatency?.receiptGeneratedAt ?? null;
+  const latencyMs = typeof receipt?.queueLatency?.latencyMs === "number"
+    && Number.isFinite(receipt.queueLatency.latencyMs)
+    ? receipt.queueLatency.latencyMs
+    : null;
+  const sampleCount = latencyMs === null ? 0 : (receipt?.queueLatency?.sampleCount ?? 1);
+  return {
+    requestedAt,
+    receiptGeneratedAt,
+    latencyMs,
+    p95Ms: latencyMs,
+    sampleCount,
+    samples: latencyMs === null ? [] : [latencyMs],
+  };
+}
+
 function resultBody({
   proofId,
   queueSendReady,
@@ -128,6 +165,7 @@ function resultBody({
   if (!queueSendReady) blockers.push("Cloudflare Queue provider send did not pass.");
   if (!queueConsumerReceiptReady) blockers.push("Cloudflare Queue consumer receipt was not observed in R2.");
   if (!cronProviderExecutionProven) blockers.push("Cloudflare scheduled upload job dry-run execution was not provider-proven.");
+  const queueLatency = normalizeQueueLatency(receipt);
 
   return {
     generatedAt: new Date().toISOString(),
@@ -142,7 +180,10 @@ function resultBody({
       queueConsumerReceiptReady,
       cronProviderExecutionProven,
       consumerOutcome: receipt?.outcome ?? null,
+      jobExecution: receipt?.jobExecution ?? null,
+      queueLatency,
     },
+    queueLatency,
     readiness: {
       providerBacked: true,
       queueSendReady,

@@ -1,5 +1,6 @@
 import {
   CLOUDFLARE_SCHEDULED_UPLOAD_JOBS,
+  type CloudflareScheduledUploadJobSummary,
   type CloudflareScheduledUploadJobEnv,
   type CloudflareScheduledUploadJobFetch,
   runCloudflareScheduledUploadJobs,
@@ -100,6 +101,17 @@ export type CloudflareUploadJobQueueEnqueueSummary = {
   }>;
 };
 
+type SanitizedScheduledUploadJobExecution = {
+  dryRun: boolean;
+  executed: Array<{
+    name: CloudflareUploadJobQueueMessage["jobName"];
+    path: string;
+    status: number;
+    ok: boolean;
+  }>;
+  skipped: CloudflareScheduledUploadJobSummary["skipped"];
+};
+
 function normalizeDate(value: Date) {
   return value.toISOString();
 }
@@ -183,30 +195,64 @@ function safeProviderProofId(body: CloudflareUploadJobQueueMessage) {
   return typeof id === "string" && /^[a-zA-Z0-9-]{16,80}$/.test(id) ? id : null;
 }
 
+function queueLatencyMs(requestedAt: string | undefined, generatedAt: string) {
+  if (!requestedAt) return null;
+  const requested = Date.parse(requestedAt);
+  const generated = Date.parse(generatedAt);
+  if (!Number.isFinite(requested) || !Number.isFinite(generated)) return null;
+  return Math.max(0, generated - requested);
+}
+
+function sanitizeJobExecution(summary: CloudflareScheduledUploadJobSummary | undefined): SanitizedScheduledUploadJobExecution | null {
+  if (!summary) return null;
+  return {
+    dryRun: summary.dryRun,
+    executed: summary.executed.map((job) => ({
+      name: job.name,
+      path: job.path,
+      status: job.status,
+      ok: job.ok,
+    })),
+    skipped: summary.skipped.map((job) => ({ name: job.name, reason: job.reason })),
+  };
+}
+
 async function writeProviderProofReceipt({
   body,
   env,
+  jobSummary,
   outcome,
   queue,
 }: {
   body: CloudflareUploadJobQueueMessage;
   env: CloudflareUploadJobQueueEnv;
+  jobSummary?: CloudflareScheduledUploadJobSummary;
   outcome: CloudflareUploadJobQueueDispatchOutcome;
   queue: string;
 }) {
   const proofId = safeProviderProofId(body);
   if (!proofId || !env.ARCH_UPLOADS_R2) return;
+  const generatedAt = new Date().toISOString();
+  const requestedAt = body.providerProof?.requestedAt ?? null;
+  const latencyMs = queueLatencyMs(requestedAt ?? undefined, generatedAt);
 
   await env.ARCH_UPLOADS_R2.put(
     `${CLOUDFLARE_UPLOAD_JOBS_PROVIDER_PROOF_PREFIX}/${proofId}.json`,
     JSON.stringify({
-      generatedAt: new Date().toISOString(),
+      generatedAt,
       mode: "cloudflare-jobs-runtime-proof-receipt",
       proofId,
-      requestedAt: body.providerProof?.requestedAt ?? null,
+      requestedAt,
+      queueLatency: {
+        requestedAt,
+        receiptGeneratedAt: generatedAt,
+        latencyMs,
+        sampleCount: latencyMs === null ? 0 : 1,
+      },
       queue,
       cron: body.cron,
       jobName: body.jobName,
+      jobExecution: sanitizeJobExecution(jobSummary),
       outcome: {
         messageId: outcome.messageId,
         action: outcome.action,
@@ -319,14 +365,14 @@ export async function runCloudflareUploadJobQueueBatch({
       if (matchingExecution?.ok === true) {
         const outcome = ackOutcome(message, body, "executed", executedCount, skippedCount);
         outcomes.push(outcome);
-        await writeProviderProofReceipt({ body, env, outcome, queue: batch.queue });
+        await writeProviderProofReceipt({ body, env, jobSummary: summary, outcome, queue: batch.queue });
         continue;
       }
 
       if (matchingExecution && matchingExecution.ok === false) {
         const outcome = retryOutcome(message, body, "job-failed", null, executedCount, skippedCount);
         outcomes.push(outcome);
-        await writeProviderProofReceipt({ body, env, outcome, queue: batch.queue });
+        await writeProviderProofReceipt({ body, env, jobSummary: summary, outcome, queue: batch.queue });
         continue;
       }
 
@@ -338,7 +384,7 @@ export async function runCloudflareUploadJobQueueBatch({
         skippedCount,
       );
       outcomes.push(outcome);
-      await writeProviderProofReceipt({ body, env, outcome, queue: batch.queue });
+      await writeProviderProofReceipt({ body, env, jobSummary: summary, outcome, queue: batch.queue });
     } catch (error) {
       const outcome = retryOutcome(
         message,

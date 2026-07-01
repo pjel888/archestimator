@@ -23,19 +23,40 @@ function createEnv() {
     },
   };
   const queue = {
-    async sendBatch(messages: Iterable<{ body: { providerProof?: { id?: string } }; contentType: "json" }>) {
+    async sendBatch(messages: Iterable<{ body: { providerProof?: { id?: string; requestedAt?: string } }; contentType: "json" }>) {
       for (const message of messages) {
         const proofId = message.body.providerProof?.id;
         if (!proofId) continue;
+        const requestedAt = message.body.providerProof?.requestedAt ?? null;
+        const receiptGeneratedAt = requestedAt
+          ? new Date(Date.parse(requestedAt) + 1_250).toISOString()
+          : "2026-06-30T00:00:00.000Z";
         await r2.put(
           `${CLOUDFLARE_UPLOAD_JOBS_PROVIDER_PROOF_PREFIX}/${proofId}.json`,
           JSON.stringify({
-            generatedAt: "2026-06-30T00:00:00.000Z",
+            generatedAt: receiptGeneratedAt,
             mode: "cloudflare-jobs-runtime-proof-receipt",
             proofId,
+            requestedAt,
+            queueLatency: {
+              requestedAt,
+              receiptGeneratedAt,
+              latencyMs: 1_250,
+              sampleCount: 1,
+            },
             queue: "archestimator-upload-jobs",
             cron: "0 3 * * *",
             jobName: "upload-cleanup",
+            jobExecution: {
+              dryRun: true,
+              executed: [{
+                name: "upload-cleanup",
+                path: "/api/internal/upload-cleanup",
+                status: 200,
+                ok: true,
+              }],
+              skipped: [],
+            },
             outcome: {
               messageId: "test-message",
               action: "ack",
@@ -89,6 +110,23 @@ describe("Cloudflare jobs proof router", () => {
     expect(body.result.queueSendReady).toBe(true);
     expect(body.result.queueConsumerReceiptReady).toBe(true);
     expect(body.result.cronProviderExecutionProven).toBe(true);
+    expect(body.result.jobExecution).toEqual({
+      dryRun: true,
+      executed: [{
+        name: "upload-cleanup",
+        path: "/api/internal/upload-cleanup",
+        status: 200,
+        ok: true,
+      }],
+      skipped: [],
+    });
+    expect(body.result.queueLatency).toMatchObject({
+      latencyMs: 1_250,
+      p95Ms: 1_250,
+      sampleCount: 1,
+      samples: [1_250],
+    });
+    expect(body.queueLatency).toMatchObject(body.result.queueLatency);
     expect(body.readiness.productionJobsMessagingReady).toBe(true);
     expect(body.blockers).toEqual([]);
   });

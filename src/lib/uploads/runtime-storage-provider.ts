@@ -10,6 +10,10 @@ type CloudflareUploadEnv = {
   ARCH_UPLOADS_R2?: CloudflareR2UploadBucket;
 };
 
+type RuntimeUploadStorageProviderEnv = {
+  ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER?: string | null;
+};
+
 type RuntimeUploadStorageProviderOptions = {
   cloudflareEnv?: CloudflareUploadEnv;
   loadCloudflareEnv?: () => Promise<CloudflareUploadEnv | null>;
@@ -31,8 +35,13 @@ export async function createRuntimeUploadStorageProvider(
   return createCloudflareR2UploadStorageProvider(r2);
 }
 
-export function readRuntimeUploadStorageProvider(): RuntimeUploadStorageProvider {
-  const rawProvider = (process.env.ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER ?? DEFAULT_UPLOAD_STORAGE_PROVIDER)
+export function readRuntimeUploadStorageProvider(
+  env?: RuntimeUploadStorageProviderEnv,
+): RuntimeUploadStorageProvider {
+  const configuredProvider = env
+    ? env.ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER
+    : process.env.ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER;
+  const rawProvider = (configuredProvider ?? DEFAULT_UPLOAD_STORAGE_PROVIDER)
     .trim()
     .toLowerCase();
   if (rawProvider === "cloudflare-r2") return rawProvider;

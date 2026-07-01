@@ -79,6 +79,40 @@ describe("Cloudflare DNS delegation checker", () => {
     );
   });
 
+  it("captures custom-domain HTTPS readiness separately from nameserver delegation", async () => {
+    const report = await checkCloudflareDnsDelegation(CURRENT_SANITIZED_EVIDENCE, {
+      source: "source.json",
+      includeCustomDomainHttpCheck: true,
+      resolveNsImpl: async () => ["ZIGGY.NS.CLOUDFLARE.COM.", "carl.ns.cloudflare.com."],
+      fetchImpl: (async (url: string | URL | Request) => {
+        const target = String(url);
+        if (target.includes("www.")) {
+          throw new Error("connection timed out");
+        }
+        return new Response(null, {
+          status: 200,
+          headers: {
+            "server": "cloudflare",
+            "cf-ray": "test-ray-HKG",
+          },
+        });
+      }) as typeof fetch,
+    });
+
+    expect(report.nameserversActive).toBe(true);
+    expect(report.customDomainHttpChecked).toBe(true);
+    expect(report.customDomainHttpReady).toBe(false);
+    expect(report.customDomainHttpChecks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ hostname: "archestimator.com", ready: true, status: 200, server: "cloudflare" }),
+        expect.objectContaining({ hostname: "www.archestimator.com", ready: false, error: "connection timed out" }),
+      ]),
+    );
+    expect(report.blockers).toContain(
+      "Custom domain HTTPS check failed for www.archestimator.com: connection timed out",
+    );
+  });
+
   it("records resolver failures without leaking unrelated evidence fields", async () => {
     const report = await checkCloudflareDnsDelegation(
       {

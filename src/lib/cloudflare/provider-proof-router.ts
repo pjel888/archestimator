@@ -47,6 +47,8 @@ type ProviderProofResult = {
   imageFormat: string | null;
   imageDimensions: { width: number; height: number } | null;
   imageOutputBytes: number | null;
+  imageInfoMs: number | null;
+  imageTransformMs: number | null;
   imagesError: string | null;
   r2BindingPresent: boolean;
   r2PutReady: boolean;
@@ -54,6 +56,10 @@ type ProviderProofResult = {
   r2DeleteReady: boolean;
   r2ObjectBytes: number | null;
   proofObjectDeleted: boolean;
+  r2PutMs: number | null;
+  r2GetMs: number | null;
+  r2DeleteMs: number | null;
+  r2RoundTripMs: number | null;
   r2Error: string | null;
   imagesProviderProofReady: boolean;
   r2ProviderProofReady: boolean;
@@ -93,6 +99,14 @@ function readableBytes(bytes: Uint8Array) {
   });
 }
 
+function nowMs() {
+  return performance.now();
+}
+
+function elapsedMs(start: number) {
+  return Math.round((nowMs() - start) * 100) / 100;
+}
+
 async function outputResultBytes(result: ImagesBindingOutputResult) {
   if (typeof result.response === "function") {
     const response = await result.response();
@@ -113,22 +127,28 @@ async function runImagesProof(images: ImagesBindingLike | undefined, bytes: Uint
     imageFormat: null as string | null,
     imageDimensions: null as ProviderProofResult["imageDimensions"],
     imageOutputBytes: null as number | null,
+    imageInfoMs: null as number | null,
+    imageTransformMs: null as number | null,
     imagesError: null as string | null,
   };
 
   if (!images || typeof images.info !== "function" || typeof images.input !== "function") return result;
 
   try {
+    const infoStartedAt = nowMs();
     const info = await images.info(readableBytes(bytes));
+    result.imageInfoMs = elapsedMs(infoStartedAt);
     result.imageFormat = info.format ?? null;
     result.imageDimensions = info.width && info.height ? { width: info.width, height: info.height } : null;
     result.imagesInfoReady = Boolean(info.format && info.width && info.height);
 
+    const transformStartedAt = nowMs();
     const output = await images
       .input(readableBytes(bytes))
       .transform({ width: 1, height: 1, fit: "scale-down" })
       .output({ format: "image/webp", quality: 80, anim: false });
     const outputBytes = await outputResultBytes(output);
+    result.imageTransformMs = elapsedMs(transformStartedAt);
     result.imageOutputBytes = outputBytes.byteLength;
     result.imagesTransformReady = outputBytes.byteLength > 0;
   } catch (error) {
@@ -146,33 +166,46 @@ async function runR2Proof(r2: R2BucketLike | undefined, bytes: Uint8Array) {
     r2DeleteReady: false,
     r2ObjectBytes: null as number | null,
     proofObjectDeleted: false,
+    r2PutMs: null as number | null,
+    r2GetMs: null as number | null,
+    r2DeleteMs: null as number | null,
+    r2RoundTripMs: null as number | null,
     r2Error: null as string | null,
   };
 
   if (!r2) return result;
 
   const key = `provider-proof/${crypto.randomUUID()}.${PROOF_IMAGE_EXTENSION}`;
+  const roundTripStartedAt = nowMs();
   try {
+    const putStartedAt = nowMs();
     await r2.put(key, bytes, {
       httpMetadata: {
         contentType: PROOF_IMAGE_CONTENT_TYPE,
         cacheControl: "no-store",
       },
     });
+    result.r2PutMs = elapsedMs(putStartedAt);
     result.r2PutReady = true;
 
+    const getStartedAt = nowMs();
     const object = await r2.get(key);
+    result.r2GetMs = elapsedMs(getStartedAt);
     if (object) {
       const body = await object.arrayBuffer();
       result.r2ObjectBytes = object.size ?? body.byteLength;
       result.r2GetReady = body.byteLength === bytes.byteLength;
     }
 
+    const deleteStartedAt = nowMs();
     await r2.delete(key);
+    result.r2DeleteMs = elapsedMs(deleteStartedAt);
     result.r2DeleteReady = true;
     result.proofObjectDeleted = (await r2.get(key)) === null;
+    result.r2RoundTripMs = elapsedMs(roundTripStartedAt);
   } catch (error) {
     result.r2Error = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    result.r2RoundTripMs = elapsedMs(roundTripStartedAt);
   }
 
   return result;

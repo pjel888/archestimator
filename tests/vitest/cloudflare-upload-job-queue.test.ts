@@ -127,4 +127,77 @@ describe("Cloudflare upload job queue", () => {
     expect(messages[2].retried).toBe(true);
     expect(messages[3].acked).toBe(true);
   });
+
+  it("writes provider proof receipts with requested-to-receipt queue latency", async () => {
+    const receipts = new Map<string, string>();
+    const requestedAt = new Date(Date.now() - 1_500).toISOString();
+    const cleanup = {
+      ...buildCloudflareUploadJobQueueMessages({
+        cron: CLOUDFLARE_UPLOAD_CLEANUP_CRON,
+        enqueuedAt: new Date(requestedAt),
+      })[0],
+      idempotencyKey: "provider-proof:test-proof-id-123456",
+      providerProof: {
+        id: "test-proof-id-123456",
+        requestedAt,
+        kind: "cloudflare-jobs-runtime-proof" as const,
+      },
+    };
+    const message = new FakeMessage("cleanup-provider-proof", cleanup, 1);
+
+    await runCloudflareUploadJobQueueBatch({
+      batch: {
+        queue: "archestimator-upload-jobs",
+        messages: [message],
+      },
+      env: {
+        ARCH_UPLOADS_R2: {
+          async put(key, value) {
+            receipts.set(key, value);
+          },
+        },
+        CRON_SECRET: "cron-secret",
+        UPLOAD_JOBS_ENABLED: "1",
+        CLOUDFLARE_UPLOAD_JOBS_DRY_RUN: "0",
+      },
+      fetcher: async () => Response.json({ ok: true }),
+    });
+
+    const receipt = JSON.parse([...receipts.values()][0]) as {
+      requestedAt: string;
+      jobExecution: {
+        dryRun: boolean;
+        executed: Array<{
+          name: string;
+          path: string;
+          status: number;
+          ok: boolean;
+        }>;
+        skipped: Array<{ name: string; reason: string }>;
+      };
+      queueLatency: {
+        requestedAt: string;
+        receiptGeneratedAt: string;
+        latencyMs: number;
+        sampleCount: number;
+      };
+    };
+    expect(message.acked).toBe(true);
+    expect(receipt.requestedAt).toBe(requestedAt);
+    expect(receipt.jobExecution).toEqual({
+      dryRun: false,
+      executed: [{
+        name: "upload-cleanup",
+        path: "/api/internal/upload-cleanup",
+        status: 200,
+        ok: true,
+      }],
+      skipped: [],
+    });
+    expect(receipt.queueLatency.requestedAt).toBe(requestedAt);
+    expect(receipt.queueLatency.receiptGeneratedAt).toBeTruthy();
+    expect(receipt.queueLatency.latencyMs).toBeGreaterThanOrEqual(1_400);
+    expect(receipt.queueLatency.latencyMs).toBeLessThan(3_000);
+    expect(receipt.queueLatency.sampleCount).toBe(1);
+  });
 });

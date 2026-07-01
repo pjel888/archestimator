@@ -66,6 +66,7 @@ class FakeD1Database {
       ];
     }
     if (sql.includes("SELECT EXISTS")) return [{ allowed: 1 }];
+    if (sql.includes("SELECT quantity, unit_cost_cents")) return [{ quantity: 3, unit_cost_cents: 4309 }];
     return [];
   }
 }
@@ -127,7 +128,13 @@ describe("Cloudflare D1 performance proof router", () => {
     expect(body.result.cleanupReady).toBe(true);
     expect(body.result.rowsSeeded).toBe(132);
     expect(body.result.rowsCleaned).toBe(0);
-    expect(body.result.benchmarkRows).toHaveLength(4);
+    expect(body.result.benchmarkRows).toHaveLength(5);
+    expect(body.result.benchmarkRows.find((row: { surface: string }) => row.surface === "estimate_row_mutation")).toMatchObject({
+      plannedQueries: 1,
+      queryBudget: 3,
+      rowsReturned: 1,
+      status: "hosted-pass",
+    });
     expect(body.result.benchmarkRows.every((row: { status: string }) => row.status === "hosted-pass")).toBe(true);
     expect(body.readiness.d1RuntimeProofReady).toBe(true);
     expect(body.blockers).toEqual([]);

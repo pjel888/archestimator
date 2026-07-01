@@ -205,6 +205,42 @@ describe("Cloudflare cost/performance workbook generator", () => {
     });
   });
 
+  it("prefers provider-backed Better Auth proof over credential-free login timing", () => {
+    const workbook = buildCloudflareCostPerformanceWorkbook({
+      generatedAt: "2026-07-01T00:00:00.000Z",
+      cloudflareHostedPerformance: {
+        ...HOSTED_PERFORMANCE,
+        results: [
+          {
+            key: "login",
+            required: true,
+            p95DurationMs: 79,
+            passed: true,
+            p95BudgetPassed: true,
+            samples: [{ durationMs: 79, passed: true, error: null }],
+          },
+        ],
+      },
+      cloudflareHostedPerformanceSource: "hosted-performance.json",
+      betterAuthProviderProof: {
+        mode: "cloudflare-better-auth-provider-proof-verifier",
+        providerBacked: true,
+        readiness: {
+          betterAuthProviderProofReady: true,
+          providerBackedCallbackSessionCutoverReady: true,
+          routeGateSessionReadbackReady: true,
+        },
+      },
+      betterAuthProviderProofSource: "better-auth-provider-proof.json",
+    });
+
+    expect(workbook.performanceFixtures.find((row) => row.fixture === "Login/auth callback p95 duration")).toMatchObject({
+      cloudflareHostedP95Ms: null,
+      status: "hosted-provider-proof-only",
+      hostedEvidence: "better-auth-provider-proof.json",
+    });
+  });
+
   it("treats a hosted route artifact as captured even when budgets fail", () => {
     const workbook = buildCloudflareCostPerformanceWorkbook({
       generatedAt: "2026-06-30T00:00:00.000Z",
@@ -236,6 +272,249 @@ describe("Cloudflare cost/performance workbook generator", () => {
     });
   });
 
+  it("maps provider-backed D1 timing plus Better Auth, R2, and Jobs proofs into supplemental performance fixtures", () => {
+    const workbook = buildCloudflareCostPerformanceWorkbook({
+      generatedAt: "2026-06-30T00:00:00.000Z",
+      cloudflareHostedPerformance: HOSTED_PERFORMANCE,
+      cloudflareHostedPerformanceSource: "hosted-performance.json",
+      d1RuntimePerformanceProof: {
+        mode: "cloudflare-d1-runtime-performance-proof-verifier",
+        providerBacked: true,
+        readiness: {
+          hostedWorkerD1PerformanceReady: true,
+          d1RuntimeProofReady: true,
+        },
+        result: {
+          benchmarkRows: [
+            {
+              surface: "workspace_homebase_summary",
+              hostedBudgetMs: 600,
+              hostedP95Ms: 65,
+              sampleCount: 9,
+              status: "hosted-pass",
+              notes: "workspace summary",
+            },
+            {
+              surface: "project_estimate_list_summaries",
+              hostedBudgetMs: 600,
+              hostedP95Ms: 76,
+              sampleCount: 9,
+              status: "hosted-pass",
+              notes: "estimate list",
+            },
+            {
+              surface: "estimate_row_mutation",
+              hostedBudgetMs: 500,
+              hostedP95Ms: 88,
+              sampleCount: 9,
+              status: "hosted-pass",
+              notes: "estimate row mutation",
+            },
+            {
+              surface: "library_overview_summary",
+              hostedBudgetMs: 600,
+              hostedP95Ms: 57,
+              sampleCount: 9,
+              status: "hosted-pass",
+              notes: "library overview",
+            },
+          ],
+        },
+      },
+      d1RuntimePerformanceProofSource: "d1-runtime-proof.json",
+      betterAuthProviderProof: {
+        mode: "cloudflare-better-auth-provider-proof-verifier",
+        providerBacked: true,
+        readiness: {
+          betterAuthProviderProofReady: true,
+          providerBackedCallbackSessionCutoverReady: true,
+          routeGateSessionReadbackReady: true,
+        },
+      },
+      betterAuthProviderProofSource: "better-auth-provider-proof.json",
+      jobsRuntimeProof: {
+        mode: "cloudflare-jobs-runtime-proof-verifier",
+        providerBacked: true,
+        readiness: {
+          productionJobsMessagingReady: true,
+        },
+      },
+      jobsRuntimeProofSource: "jobs-runtime-proof.json",
+      providerRuntimeProof: {
+        mode: "cloudflare-provider-runtime-proof-verifier",
+        providerBacked: true,
+        readiness: {
+          providerRuntimeProofReady: true,
+          r2ProviderProofReady: true,
+          imagesProviderProofReady: true,
+        },
+      },
+      providerRuntimeProofSource: "provider-runtime-proof.json",
+    });
+
+    expect(workbook.performanceFixtures.find((row) => row.fixture === "Login/auth callback p95 duration")).toMatchObject({
+      status: "hosted-provider-proof-only",
+      hostedEvidence: "better-auth-provider-proof.json",
+    });
+    expect(workbook.performanceFixtures.find((row) => row.fixture === "Project dashboard p95 TTFB")).toMatchObject({
+      cloudflareHostedP95Ms: 65,
+      status: "hosted-provider-pass",
+      hostedEvidence: "d1-runtime-proof.json",
+    });
+    expect(workbook.performanceFixtures.find((row) => row.fixture === "Estimate sheet initial load p95")).toMatchObject({
+      cloudflareHostedP95Ms: 76,
+      status: "hosted-provider-pass",
+    });
+    expect(workbook.performanceFixtures.find((row) => row.fixture === "Estimate row mutation p95")).toMatchObject({
+      cloudflareHostedP95Ms: 88,
+      status: "hosted-provider-pass",
+      hostedEvidence: "d1-runtime-proof.json",
+    });
+    expect(workbook.performanceFixtures.find((row) => row.fixture === "Library component search p95")).toMatchObject({
+      cloudflareHostedP95Ms: 57,
+      status: "hosted-provider-pass",
+    });
+    expect(workbook.performanceFixtures.find((row) => row.fixture === "Upload signed/session creation p95")).toMatchObject({
+      cloudflareHostedP95Ms: null,
+      status: "hosted-provider-proof-only",
+      hostedEvidence: "provider-runtime-proof.json",
+    });
+    expect(workbook.performanceFixtures.find((row) => row.fixture === "Upload scan queue latency p95")).toMatchObject({
+      cloudflareHostedP95Ms: null,
+      status: "hosted-provider-proof-only",
+      hostedEvidence: "jobs-runtime-proof.json",
+    });
+    expect(workbook.performanceFixtures.find((row) => row.fixture === "Realtime cursor/presence latency p95")).toMatchObject({
+      status: "missing",
+    });
+    expect(workbook.readiness.hostedPerformanceReady).toBe(false);
+    expect(workbook.readiness.productionRuntimePerformanceReady).toBe(false);
+  });
+
+  it("maps Durable Object realtime and Email Service proofs into supplemental performance fixtures", () => {
+    const workbook = buildCloudflareCostPerformanceWorkbook({
+      generatedAt: "2026-07-01T00:00:00.000Z",
+      durableObjectWebSocketProof: {
+        mode: "cloudflare-durable-object-websocket-proof",
+        providerBacked: true,
+        sampleCount: 9,
+        readiness: {
+          durableObjectWebSocketReady: true,
+          twoClientsConnected: true,
+          presenceRoundTripReady: true,
+          broadcastRoundTripReady: true,
+          realtimeLatencyP95Ready: true,
+        },
+        timingsMs: {
+          presenceTrackToPeerP95Ms: 54,
+          broadcastToPeerP95Ms: 53,
+          realtimeEventP95Ms: 54,
+        },
+      },
+      durableObjectWebSocketProofSource: "durable-object-proof.json",
+      emailSendProof: {
+        mode: "cloudflare-email-send-proof",
+        providerBacked: true,
+        sendProof: {
+          sentAtApprox: "2026-07-01T07:33:55Z",
+        },
+        receiptProof: {
+          received: true,
+          receivedAt: "2026-07-01T07:33:59Z",
+        },
+        readiness: {
+          emailSendingDomainReady: true,
+          outboundArbitraryRecipientSendReady: true,
+          gmailReceiptReady: true,
+          productionEmailSendProofReady: true,
+        },
+      },
+      emailSendProofSource: "email-send-proof.json",
+    });
+
+    expect(workbook.performanceFixtures.find((row) => row.fixture === "Realtime cursor/presence latency p95")).toMatchObject({
+      cloudflareHostedP95Ms: 54,
+      status: "hosted-provider-pass",
+      hostedEvidence: "durable-object-proof.json",
+    });
+    expect(workbook.performanceFixtures.find((row) => row.fixture === "Email send-to-event latency p95")).toMatchObject({
+      cloudflareHostedP95Ms: 4000,
+      status: "hosted-provider-pass",
+      hostedEvidence: "email-send-proof.json",
+    });
+  });
+
+  it("maps provider-backed Jobs queue latency into the upload scan queue fixture", () => {
+    const workbook = buildCloudflareCostPerformanceWorkbook({
+      generatedAt: "2026-07-01T00:00:00.000Z",
+      jobsRuntimeProof: {
+        mode: "cloudflare-jobs-runtime-proof-verifier",
+        providerBacked: true,
+        queueLatency: {
+          sampleCount: 2,
+          p95Ms: 240,
+          samplesMs: [120, 240],
+        },
+        readiness: {
+          queueSendReady: true,
+          queueConsumerReceiptReady: true,
+          cronProviderExecutionProven: true,
+          productionJobsMessagingReady: true,
+        },
+      },
+      jobsRuntimeProofSource: "jobs-runtime-proof.json",
+    });
+
+    expect(workbook.performanceFixtures.find((row) => row.fixture === "Upload scan queue latency p95")).toMatchObject({
+      cloudflareHostedP95Ms: 240,
+      status: "hosted-provider-pass",
+      hostedEvidence: "jobs-runtime-proof.json",
+    });
+  });
+
+  it("maps hosted upload runtime proof into the upload session fixture", () => {
+    const workbook = buildCloudflareCostPerformanceWorkbook({
+      generatedAt: "2026-07-01T00:00:00.000Z",
+      hostedUploadRuntimeProof: {
+        mode: "hosted-upload-runtime-proof",
+        proofBoundary: "hosted-runtime-authenticated-dry-run",
+        passed: true,
+        productionProofReady: true,
+        runs: 2,
+        concurrency: 2,
+        samples: [
+          {
+            type: "unauthenticated-fail-closed",
+            status: 401,
+            durationMs: 20,
+            passed: true,
+          },
+          {
+            type: "authenticated-runtime-dry-run",
+            status: 200,
+            durationMs: 110,
+            passed: true,
+            bodySummary: { storageLatency: { status: "ok", durationMs: 44, bucketReachable: true } },
+          },
+          {
+            type: "authenticated-body-probe",
+            status: 200,
+            durationMs: 140,
+            passed: true,
+            bodySummary: { storageLatency: { status: "ok", durationMs: 66, bucketReachable: true } },
+          },
+        ],
+      },
+      hostedUploadRuntimeProofSource: "hosted-upload-runtime-proof.json",
+    });
+
+    expect(workbook.performanceFixtures.find((row) => row.fixture === "Upload signed/session creation p95")).toMatchObject({
+      cloudflareHostedP95Ms: 140,
+      status: "hosted-provider-pass",
+      hostedEvidence: "hosted-upload-runtime-proof.json",
+    });
+  });
+
 
   it("accepts sanitized usage inputs without making hosted proof ready", () => {
     const workbook = buildCloudflareCostPerformanceWorkbook({
@@ -252,6 +531,83 @@ describe("Cloudflare cost/performance workbook generator", () => {
       source: "sanitized-billing-export.json",
     });
     expect(workbook.readiness.hostedPerformanceReady).toBe(false);
+    expect(workbook.readiness.productionCostDecisionReady).toBe(false);
+  });
+
+  it("keeps production Cloudflare usage costs closed when inputs are proof-scale samples", () => {
+    const workbook = buildCloudflareCostPerformanceWorkbook({
+      generatedAt: "2026-07-01T00:00:00.000Z",
+      inventory: INVENTORY,
+      cloudflarePricingSnapshot: {
+        mode: "cloudflare-pricing-snapshot",
+        readiness: {
+          officialCloudflarePricingRefreshed: true,
+          invalidSourceUrlCount: 0,
+          requiredProductsMissing: [],
+        },
+      },
+      sanitizedUsageInputs: Object.fromEntries([
+        ...[
+          "Vercel plan cost",
+          "Vercel bandwidth",
+          "Vercel function invocations/duration",
+          "Vercel build usage",
+          "Supabase plan cost",
+          "Supabase DB size",
+          "Supabase storage GB",
+          "Supabase egress",
+          "Supabase Auth MAU",
+          "Supabase Realtime connections/messages",
+          "Resend plan cost",
+          "Resend sends/events",
+        ].map((input) => [input, { value: "captured", source: "provider-dashboard.json" }]),
+        ...[
+          "Workers requests",
+          "Workers CPU",
+          "Workers subrequests",
+          "D1 reads",
+          "D1 writes",
+          "R2 storage",
+          "R2 Class A",
+          "R2 Class B",
+          "Queues operations",
+          "Durable Objects",
+          "Email Service",
+          "Observability/logs",
+        ].map((input) => [
+          input,
+          {
+            value: "proof sample captured",
+            source: "proof-artifact.json",
+            notes: "Proof-scale observed usage only; not projected monthly production volume.",
+          },
+        ]),
+        ["D1 storage", {
+          value: "12,288 bytes",
+          source: "proof-artifact.json",
+          notes: "Proof DB only; production import/projection is not complete.",
+        }],
+        ["KV reads/writes/lists", {
+          value: "Not applicable",
+          source: "wrangler.jsonc",
+          notes: "Not applicable to the current runtime; expected usage is zero.",
+        }],
+        ["WAF/rate limiting", {
+          value: "No add-on",
+          source: "provider-readiness.json",
+          notes: "Current zero-add-on posture; no paid add-on is required by current launch runtime.",
+        }],
+        ["Turnstile", {
+          value: "Not applicable",
+          source: "source-scan",
+          notes: "Not applicable to the current runtime; expected Turnstile challenge volume is zero.",
+        }],
+      ]),
+    });
+
+    expect(workbook.readiness.currentProviderCostsReady).toBe(true);
+    expect(workbook.readiness.cloudflarePricingRefreshed).toBe(true);
+    expect(workbook.readiness.cloudflareUsageCostsReady).toBe(false);
     expect(workbook.readiness.productionCostDecisionReady).toBe(false);
   });
 
@@ -327,5 +683,42 @@ describe("Cloudflare cost/performance workbook generator", () => {
     expect(workbook.readiness.cloudflarePricingRefreshed).toBe(true);
     expect(workbook.currentProviderCostInputs.some((row) => row.status === "missing")).toBe(true);
     expect(workbook.performanceFixtures.some((row) => row.status === "local-only-pass")).toBe(true);
+  });
+
+  it("accepts the July 1 pre-launch cost decision once usage inputs are projection-grade and provider runtime proof passes", () => {
+    const evidenceRoot = ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence";
+    const workbook = buildCloudflareCostPerformanceWorkbook({
+      inventory: JSON.parse(readFileSync(`${evidenceRoot}/2026-06-30-cloudflare-migration-inventory.json`, "utf8")),
+      workerPreviewRouteProbe: JSON.parse(readFileSync(`${evidenceRoot}/2026-06-29-cloudflare-worker-preview-route-probe.json`, "utf8")),
+      cloudflareHostedPerformance: JSON.parse(readFileSync(`${evidenceRoot}/2026-07-01-cloudflare-hosted-performance.json`, "utf8")),
+      d1RuntimePerformanceProof: JSON.parse(readFileSync(`${evidenceRoot}/2026-07-01-cloudflare-d1-runtime-performance-proof.json`, "utf8")),
+      betterAuthProviderProof: JSON.parse(readFileSync(`${evidenceRoot}/2026-07-01-cloudflare-better-auth-provider-proof.json`, "utf8")),
+      jobsRuntimeProof: JSON.parse(readFileSync(`${evidenceRoot}/2026-07-01-cloudflare-jobs-runtime-proof.json`, "utf8")),
+      providerRuntimeProof: JSON.parse(readFileSync(`${evidenceRoot}/2026-07-01-cloudflare-provider-runtime-proof.json`, "utf8")),
+      hostedUploadRuntimeProof: JSON.parse(readFileSync(`${evidenceRoot}/2026-07-01-cloudflare-hosted-upload-runtime-proof.json`, "utf8")),
+      durableObjectWebSocketProof: JSON.parse(readFileSync(`${evidenceRoot}/2026-07-01-cloudflare-durable-object-websocket-proof.json`, "utf8")),
+      emailSendProof: JSON.parse(readFileSync(`${evidenceRoot}/2026-07-01-cloudflare-email-send-proof.json`, "utf8")),
+      cloudflarePricingSnapshot: JSON.parse(readFileSync(`${evidenceRoot}/2026-06-30-cloudflare-official-pricing-snapshot.json`, "utf8")),
+      sanitizedUsageInputs: JSON.parse(readFileSync(`${evidenceRoot}/2026-07-01-cloudflare-sanitized-usage-inputs.json`, "utf8")),
+    });
+
+    expect(workbook.readiness.cloudflareUsageCostsReady).toBe(true);
+    expect(workbook.readiness.productionRuntimePerformanceReady).toBe(true);
+    expect(workbook.readiness.productionCostDecisionReady).toBe(true);
+    expect(workbook.cloudflareCostInputs.find((row) => row.input === "Workers requests")).toMatchObject({
+      status: "provided",
+      basis: "observed-and-projected",
+    });
+    expect(workbook.cloudflareCostInputs.find((row) => row.input === "KV reads/writes/lists")).toMatchObject({
+      status: "provided",
+      basis: "not-applicable",
+    });
+    expect(workbook.performanceFixtures.find((row) => row.fixture === "Login/auth callback p95 duration")).toMatchObject({
+      status: "hosted-provider-proof-only",
+      hostedEvidence: "provided-better-auth-provider-proof",
+    });
+    expect(workbook.performanceFixtures.find((row) => row.fixture === "Upload signed/session creation p95")).toMatchObject({
+      status: "hosted-provider-pass",
+    });
   });
 });

@@ -25,14 +25,14 @@ function createRequest(secret: string | null, options: {
 
 function createR2RuntimeBinding(result: {
   listError?: Error | null;
-} = {}) {
+} = {}, env: Record<string, string> = {}) {
   const list = vi.fn(async () => {
     if (result.listError) throw result.listError;
     return { objects: [] };
   });
   const r2 = { list };
 
-  cloudflareMocks.getCloudflareContext.mockResolvedValue({ env: { ARCH_UPLOADS_R2: r2 } });
+  cloudflareMocks.getCloudflareContext.mockResolvedValue({ env: { ...env, ARCH_UPLOADS_R2: r2 } });
   return { r2, list };
 }
 
@@ -103,6 +103,38 @@ describe("internal upload runtime proof route", () => {
     expect(body.durationMs).toBeGreaterThanOrEqual(0);
     expect(body.memory.before.rssMb).toBeGreaterThan(0);
     expect(JSON.stringify(body)).not.toContain("runtime-secret");
+  });
+
+  it("uses Cloudflare env provider and runtime limits over stale process values", async () => {
+    vi.stubEnv("UPLOAD_RUNTIME_PROOF_SECRET", "runtime-secret");
+    vi.stubEnv("ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER", "legacy-storage");
+    vi.stubEnv("ARCH_UPLOAD_HOSTED_MEMORY_MB", "1024");
+    createR2RuntimeBinding({}, {
+      ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER: "cloudflare-r2",
+      ARCH_UPLOAD_HOSTED_MEMORY_MB: "128",
+      ARCH_UPLOAD_HOSTED_BODY_LIMIT_BYTES: "4194304",
+      ARCH_UPLOAD_HOSTED_ROUTE_DURATION_MS: "30000",
+      ARCH_UPLOAD_HOSTED_CONCURRENT_UPLOADS: "3",
+      ARCH_UPLOAD_STORAGE_LATENCY_P95_MS: "250",
+    });
+    const { GET } = await import("@/app/api/internal/upload-runtime/route");
+
+    const response = await GET(createRequest("runtime-secret"));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.configuredLimits).toEqual({
+      memoryMb: 128,
+      bodyLimitBytes: 4194304,
+      routeDurationMs: 30000,
+      expectedConcurrentUploads: 3,
+      storageLatencyP95Ms: 250,
+    });
+    expect(body.storageLatency).toMatchObject({
+      provider: "cloudflare-r2",
+      status: "ok",
+      bucketReachable: true,
+    });
   });
 
   it("accepts bounded authenticated POST body probes without returning bytes", async () => {

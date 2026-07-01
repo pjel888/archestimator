@@ -146,6 +146,8 @@ const WORKBOOK = {
     cloudflareUsageCostsReady: false,
     localPreviewPerformanceCaptured: true,
     hostedCredentialFreePerformanceCaptured: true,
+    productionRuntimePerformanceReady: false,
+    strictHostedClientP95Ready: false,
     hostedPerformanceReady: false,
     productionCostDecisionReady: false,
   },
@@ -310,6 +312,8 @@ describe("Cloudflare release gate aggregator", () => {
         cloudflareUsageCostsReady: true,
         localPreviewPerformanceCaptured: true,
         hostedCredentialFreePerformanceCaptured: true,
+        productionRuntimePerformanceReady: true,
+        strictHostedClientP95Ready: true,
         hostedPerformanceReady: true,
         productionCostDecisionReady: true,
       },
@@ -349,6 +353,102 @@ describe("Cloudflare release gate aggregator", () => {
       "estimateHistorySlice=yes",
     );
     expect(report.blockers).toEqual([]);
+  });
+
+  it("keeps production cutover closed when runtime is ready but production cost decision is not", () => {
+    const inputs = currentLocalInputs();
+    inputs.workerReadiness = source({
+      ...WORKER_READINESS,
+      deploymentSecretsReady: true,
+      deploymentReady: true,
+      providerSecretList: { checked: true, ready: true },
+    });
+    inputs.hostedRoutes = source({
+      configured: true,
+      providerBacked: true,
+      routeContractReady: true,
+      hostedRouteProofReady: true,
+      passed: true,
+      results: [
+        { key: "health", required: true, passed: true },
+        { key: "home", required: true, passed: true },
+      ],
+    }, "hosted-routes.json");
+    inputs.wranglerAuth = source({
+      readiness: {
+        wranglerCliAvailable: true,
+        wranglerAuthCheckCompleted: true,
+        wranglerApiAuthenticated: true,
+        providerReadbackReady: true,
+        productionDeployReady: false,
+      },
+    });
+    inputs.providerResources = source({
+      readiness: {
+        wranglerAuthenticated: true,
+        providerReadbackAttempted: true,
+        workerDeploymentReadbackReady: true,
+        d1DatabaseReadbackReady: true,
+        r2BucketReadbackReady: true,
+        queuesReadbackReady: true,
+        workerSecretNameReadbackReady: true,
+        providerResourceReadbackReady: true,
+      },
+    }, "provider-resources.json");
+    inputs.providerReadiness = source({
+      dashboardInventoryReady: true,
+      workersDeploymentReady: true,
+      storageMediaReady: true,
+      jobsReady: true,
+      analyticsReady: true,
+      productionCutoverReady: true,
+    });
+    inputs.costPerformanceWorkbook = source({
+      readiness: {
+        currentProviderCostsReady: true,
+        cloudflarePricingRefreshed: true,
+        cloudflareUsageCostsReady: false,
+        localPreviewPerformanceCaptured: true,
+        hostedCredentialFreePerformanceCaptured: true,
+        productionRuntimePerformanceReady: true,
+        strictHostedClientP95Ready: false,
+        hostedPerformanceReady: false,
+        productionCostDecisionReady: false,
+      },
+    }, "workbook.json");
+    inputs.d1AuthRealtimeReadiness = source({
+      readiness: {
+        databaseInventoryReady: true,
+        d1BindingReady: true,
+        authReplacementReady: true,
+        appLayerAuthzSpecReady: true,
+        localRpcTransactionMechanicsReady: true,
+        localBetaFeedbackD1SliceReady: true,
+        localCollaborationInvitationD1SliceReady: true,
+        localClosedBetaD1SliceReady: true,
+        localComponentLibraryD1SliceReady: true,
+        localEstimateHistoryD1SliceReady: true,
+        rpcRewritePlanReady: true,
+        realtimeReplacementReady: true,
+        restoreProofReady: true,
+        performanceProofReady: true,
+        localRedesignReadinessReportReady: true,
+        productionD1AuthRealtimeReady: true,
+      },
+    });
+
+    const report = buildCloudflareReleaseGateReport(inputs);
+
+    expect(report.readiness.providerProofReady).toBe(true);
+    expect(report.readiness.dataAuthRealtimeProofReady).toBe(true);
+    expect(report.readiness.costPerformanceProofReady).toBe(false);
+    expect(report.readiness.productionCutoverReady).toBe(false);
+    expect(report.blockers).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("Cloudflare usage cost inputs captured"),
+        expect.stringContaining("Production cost decision ready"),
+      ]),
+    );
   });
 
   it("fails local report readiness when a required artifact is missing", () => {

@@ -36,6 +36,7 @@ class FakeD1Database {
   }
 
   run(sql: string, values: Array<string | number | null>) {
+    if (/\b(?:LIKE|GLOB)\b/i.test(sql)) throw new Error("Fake D1 rejects pattern cleanup in auth proof queries");
     const tableMatch = sql.match(/^CREATE TABLE IF NOT EXISTS "([^"]+)"/);
     if (tableMatch) this.tables.add(tableMatch[1]);
     const indexMatch = sql.match(/^CREATE INDEX IF NOT EXISTS "([^"]+)"/);
@@ -49,6 +50,7 @@ class FakeD1Database {
   }
 
   all(sql: string, values: Array<string | number | null>) {
+    if (/\b(?:LIKE|GLOB)\b/i.test(sql)) throw new Error("Fake D1 rejects pattern cleanup in auth proof queries");
     if (sql.includes("sqlite_master")) {
       const source = values[0] === "table" ? this.tables : this.indexes;
       return values.slice(1).filter((name): name is string => typeof name === "string" && source.has(name)).map((name) => ({ name }));

@@ -114,8 +114,14 @@ describe("routeCloudflareProviderProofRequest", () => {
         imagesProviderProofReady: boolean;
         r2ProviderProofReady: boolean;
         imageOutputBytes: number;
+        imageInfoMs: number | null;
+        imageTransformMs: number | null;
         r2ObjectBytes: number;
         proofObjectDeleted: boolean;
+        r2PutMs: number | null;
+        r2GetMs: number | null;
+        r2DeleteMs: number | null;
+        r2RoundTripMs: number | null;
       };
     };
 
@@ -123,8 +129,14 @@ describe("routeCloudflareProviderProofRequest", () => {
     expect(body.result.imagesProviderProofReady).toBe(true);
     expect(body.result.r2ProviderProofReady).toBe(true);
     expect(body.result.imageOutputBytes).toBe(4);
+    expect(body.result.imageInfoMs).toEqual(expect.any(Number));
+    expect(body.result.imageTransformMs).toEqual(expect.any(Number));
     expect(body.result.r2ObjectBytes).toBeGreaterThan(0);
     expect(body.result.proofObjectDeleted).toBe(true);
+    expect(body.result.r2PutMs).toEqual(expect.any(Number));
+    expect(body.result.r2GetMs).toEqual(expect.any(Number));
+    expect(body.result.r2DeleteMs).toEqual(expect.any(Number));
+    expect(body.result.r2RoundTripMs).toEqual(expect.any(Number));
     expect(images.info).toHaveBeenCalledTimes(1);
     expect(images.input).toHaveBeenCalledTimes(1);
     expect(r2.put).toHaveBeenCalledTimes(1);

@@ -159,6 +159,37 @@ describe("Cloudflare provider readiness checker", () => {
     expect(result.productionCutoverReady).toBe(false);
   });
 
+  it("requires custom-domain HTTPS proof when DNS evidence captures it", () => {
+    const result = checkCloudflareProviderReadiness(
+      {
+        ...CURRENT_SANITIZED_EVIDENCE,
+        workers: {
+          ...CURRENT_SANITIZED_EVIDENCE.workers,
+          customDomainActive: true,
+        },
+      },
+      "source.json",
+      {
+        generatedAt: "2026-07-01T06:45:00.000Z",
+        zoneName: "archestimator.com",
+        assignedNameservers: ["carl.ns.cloudflare.com", "ziggy.ns.cloudflare.com"],
+        publicDnsNameservers: ["ziggy.ns.cloudflare.com.", "carl.ns.cloudflare.com."],
+        publicDnsChecked: true,
+        nameserversActive: true,
+        customDomainHttpChecked: true,
+        customDomainHttpReady: false,
+      },
+      "dns-delegation.json",
+    );
+
+    expect(result.checks.find((check) => check.key === "custom-domain")).toMatchObject({
+      ready: false,
+      blocker: "Worker custom domain is attached but apex/www HTTPS checks are not yet serving through Cloudflare.",
+    });
+    expect(result.workersDeploymentReady).toBe(false);
+    expect(result.productionCutoverReady).toBe(false);
+  });
+
   it("writes markdown without secret values from unrelated evidence fields", () => {
     const result = checkCloudflareProviderReadiness(
       {

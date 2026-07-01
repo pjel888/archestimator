@@ -39,6 +39,11 @@ UPLOAD_JOBS_ENABLED=0
 CLOUDFLARE_UPLOAD_JOBS_DRY_RUN=1
 CLOUDFLARE_UPLOAD_JOBS_ORIGIN=https://archestimator.internal
 ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER=cloudflare-r2
+ARCH_UPLOAD_HOSTED_MEMORY_MB=128
+ARCH_UPLOAD_HOSTED_BODY_LIMIT_BYTES=4194304
+ARCH_UPLOAD_HOSTED_ROUTE_DURATION_MS=30000
+ARCH_UPLOAD_HOSTED_CONCURRENT_UPLOADS=3
+ARCH_UPLOAD_STORAGE_LATENCY_P95_MS=250
 ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER=node-sharp
 `;
 
@@ -63,6 +68,11 @@ PUBLICATION_TOKEN_ENCRYPTION_SECRET=
 PUBLICATION_TOKEN_HASH_SECRET=
 PUBLICATION_ACCESS_COOKIE_SECRET=
 ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER=cloudflare-r2
+ARCH_UPLOAD_HOSTED_MEMORY_MB=128
+ARCH_UPLOAD_HOSTED_BODY_LIMIT_BYTES=4194304
+ARCH_UPLOAD_HOSTED_ROUTE_DURATION_MS=30000
+ARCH_UPLOAD_HOSTED_CONCURRENT_UPLOADS=3
+ARCH_UPLOAD_STORAGE_LATENCY_P95_MS=250
 ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER=node-sharp
 `;
 
@@ -95,6 +105,13 @@ const COMPLETE_WRANGLER = JSON.stringify({
       head_sampling_rate: 0.05,
       persist: true,
     },
+  },
+  vars: {
+    ARCH_UPLOAD_HOSTED_MEMORY_MB: "128",
+    ARCH_UPLOAD_HOSTED_BODY_LIMIT_BYTES: "4194304",
+    ARCH_UPLOAD_HOSTED_ROUTE_DURATION_MS: "30000",
+    ARCH_UPLOAD_HOSTED_CONCURRENT_UPLOADS: "3",
+    ARCH_UPLOAD_STORAGE_LATENCY_P95_MS: "250",
   },
 });
 
@@ -174,6 +191,11 @@ describe("Cloudflare Worker readiness checker", () => {
         CLOUDFLARE_UPLOAD_JOBS_DRY_RUN=1
         CLOUDFLARE_UPLOAD_JOBS_ORIGIN=https://archestimator.internal
         ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER=cloudflare-r2
+        ARCH_UPLOAD_HOSTED_MEMORY_MB=128
+        ARCH_UPLOAD_HOSTED_BODY_LIMIT_BYTES=4194304
+        ARCH_UPLOAD_HOSTED_ROUTE_DURATION_MS=30000
+        ARCH_UPLOAD_HOSTED_CONCURRENT_UPLOADS=3
+        ARCH_UPLOAD_STORAGE_LATENCY_P95_MS=250
         ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER=node-sharp
       `,
     });
@@ -217,6 +239,7 @@ describe("Cloudflare Worker readiness checker", () => {
     expect(result.wranglerBindings.missing).toContain("IMAGES");
     expect(result.wranglerBindings.missing).toContain("UPLOAD_JOBS_QUEUE");
     expect(result.wranglerBindings.missing).toContain("EMAIL");
+    expect(result.wranglerVars.missing).toContain("ARCH_UPLOAD_HOSTED_MEMORY_MB");
     expect(result.wranglerCustomDomains.missing).toEqual(["archestimator.com", "www.archestimator.com"]);
     expect(result.wranglerCrons.missing).toContain("15 3 * * *");
     expect(result.wranglerObservability.missing).toContain("observability.head_sampling_rate<=0.1");
@@ -269,6 +292,11 @@ describe("Cloudflare Worker readiness checker", () => {
         CLOUDFLARE_UPLOAD_JOBS_DRY_RUN=1
         CLOUDFLARE_UPLOAD_JOBS_ORIGIN=https://archestimator.internal
         ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER=cloudflare-r2
+        ARCH_UPLOAD_HOSTED_MEMORY_MB=128
+        ARCH_UPLOAD_HOSTED_BODY_LIMIT_BYTES=4194304
+        ARCH_UPLOAD_HOSTED_ROUTE_DURATION_MS=30000
+        ARCH_UPLOAD_HOSTED_CONCURRENT_UPLOADS=3
+        ARCH_UPLOAD_STORAGE_LATENCY_P95_MS=250
         ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER=node-sharp
       `,
     });
