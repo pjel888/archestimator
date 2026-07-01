@@ -274,6 +274,19 @@ const QUERY_SPECS = [
     `,
     notes: "Authorization guard should stay as one indexed membership lookup.",
   },
+  {
+    surface: "estimate_row_mutation",
+    queryBudget: 3,
+    plannedQueries: 1,
+    localBudgetMs: 150,
+    sql: `
+      UPDATE estimate_rows
+      SET quantity = 4, unit_cost_cents = unit_cost_cents + 1
+      WHERE id = 'row-alpha-1'
+      RETURNING quantity, unit_cost_cents;
+    `,
+    notes: "Estimate row mutation should stay as one indexed D1 update against an authorized proof row.",
+  },
 ] as const;
 
 const HOSTED_PROOF_REQUIREMENTS = [

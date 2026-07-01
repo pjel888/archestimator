@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 
+import { spawnSync } from "node:child_process";
 import { resolve4, resolve6, resolveCname, resolveMx, resolveNs, resolveTxt } from "node:dns/promises";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -34,6 +35,17 @@ type PublicDnsRecordSnapshot = {
   error: string | null;
 };
 
+type CustomDomainHttpCheck = {
+  hostname: string;
+  url: string;
+  checked: boolean;
+  ready: boolean;
+  status: number | null;
+  server: string | null;
+  cfRay: string | null;
+  error: string | null;
+};
+
 export type CloudflareDnsDelegationReport = {
   generatedAt: string;
   mode: "cloudflare-dns-delegation";
@@ -50,6 +62,9 @@ export type CloudflareDnsDelegationReport = {
   publicDnsProviderSignals: string[];
   publicDnsChecked: boolean;
   publicDnsBacked: boolean;
+  customDomainHttpChecked: boolean;
+  customDomainHttpReady: boolean;
+  customDomainHttpChecks: CustomDomainHttpCheck[];
   providerApiBacked: false;
   nameserversActive: boolean;
   blockers: string[];
@@ -61,7 +76,10 @@ export type CheckCloudflareDnsDelegationOptions = {
   zoneName?: string;
   resolveNsImpl?: (zoneName: string) => Promise<string[]>;
   includePublicRecordSnapshot?: boolean;
+  includeCustomDomainHttpCheck?: boolean;
   resolveRecordImpl?: (hostname: string, type: PublicDnsRecordType) => Promise<string[]>;
+  fetchImpl?: typeof fetch;
+  httpTimeoutMs?: number;
 };
 
 type EnvInputs = {
@@ -75,8 +93,9 @@ const PLAN_ROOT = ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence";
 const DEFAULT_PROVIDER_EVIDENCE_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-provider-readiness-source.json`;
 const DEFAULT_OUTPUT_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-dns-delegation.json`;
 const DEFAULT_MARKDOWN_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-dns-delegation.md`;
+const DEFAULT_CUSTOM_DOMAIN_HTTP_TIMEOUT_MS = 8_000;
 const NOTE =
-  "Public DNS delegation/preflight check only. It resolves public DNS records for the Cloudflare zone, does not call Cloudflare APIs, does not read env files, does not print secrets, does not deploy, does not change DNS/nameservers/resources/billing, and does not make Vercel/Supabase/Resend removable.";
+  "Public DNS/custom-domain preflight check only. It resolves public DNS records and, when enabled, performs credential-free HTTPS HEAD checks for the Cloudflare zone. It does not call Cloudflare APIs, does not read env files, does not print secrets, does not deploy, does not change DNS/nameservers/resources/billing, and does not make Vercel/Supabase/Resend removable.";
 
 function readEnv(name: string) {
   const value = process.env[name];
@@ -206,6 +225,104 @@ function detectPublicDnsProviderSignals(records: PublicDnsRecordSnapshot[]) {
   return [...signals].sort();
 }
 
+function parseCurlHeaders(headers: string) {
+  const statusMatches = [...headers.matchAll(/^HTTP\/\S+\s+(\d+)/gim)];
+  const status = statusMatches.length > 0
+    ? Number.parseInt(statusMatches[statusMatches.length - 1][1], 10)
+    : null;
+  const server = headers.match(/^server:\s*(.+)$/im)?.[1]?.trim() ?? null;
+  const cfRay = headers.match(/^cf-ray:\s*(.+)$/im)?.[1]?.trim() ?? null;
+  return { status, server, cfRay };
+}
+
+function checkCustomDomainHttpWithCurl({
+  hostname,
+  timeoutMs,
+}: {
+  hostname: string;
+  timeoutMs: number;
+}): CustomDomainHttpCheck {
+  const url = `https://${hostname}/`;
+  const timeoutSeconds = Math.max(1, Math.ceil(timeoutMs / 1000));
+  const result = spawnSync("curl", ["-4", "-sS", "-I", "--max-time", String(timeoutSeconds), url], {
+    encoding: "utf8",
+    timeout: timeoutMs + 2_000,
+    maxBuffer: 256 * 1024,
+  });
+  const parsed = parseCurlHeaders(result.stdout ?? "");
+  const error = result.status === 0
+    ? null
+    : (result.stderr || result.error?.message || `curl exited with code ${result.status ?? "(unknown)"}`).trim();
+  return {
+    hostname,
+    url,
+    checked: result.status === 0,
+    ready: result.status === 0
+      && parsed.status !== null
+      && parsed.status >= 200
+      && parsed.status < 500
+      && Boolean(parsed.server?.toLowerCase().includes("cloudflare"))
+      && Boolean(parsed.cfRay),
+    status: parsed.status,
+    server: parsed.server,
+    cfRay: parsed.cfRay,
+    error,
+  };
+}
+
+async function checkCustomDomainHttp({
+  fetchImpl,
+  hostname,
+  timeoutMs,
+}: {
+  fetchImpl?: typeof fetch;
+  hostname: string;
+  timeoutMs: number;
+}): Promise<CustomDomainHttpCheck> {
+  if (!fetchImpl) {
+    return checkCustomDomainHttpWithCurl({ hostname, timeoutMs });
+  }
+
+  const url = `https://${hostname}/`;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetchImpl(url, {
+      method: "HEAD",
+      redirect: "manual",
+      signal: controller.signal,
+    });
+    const server = response.headers.get("server");
+    const cfRay = response.headers.get("cf-ray");
+    return {
+      hostname,
+      url,
+      checked: true,
+      ready: response.status >= 200
+        && response.status < 500
+        && Boolean(server?.toLowerCase().includes("cloudflare"))
+        && Boolean(cfRay),
+      status: response.status,
+      server,
+      cfRay,
+      error: null,
+    };
+  } catch (error) {
+    return {
+      hostname,
+      url,
+      checked: false,
+      ready: false,
+      status: null,
+      server: null,
+      cfRay: null,
+      error: errorMessage(error),
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 function readCloudflareDnsRecords(value: unknown): CloudflareDnsRecordSnapshot[] {
   if (!Array.isArray(value)) return [];
   return value
@@ -251,6 +368,7 @@ export async function checkCloudflareDnsDelegation(
   const recordResolver = options.resolveRecordImpl ?? resolvePublicRecord;
   let publicDnsNameservers: string[] = [];
   let publicDnsRecords: PublicDnsRecordSnapshot[] = [];
+  let customDomainHttpChecks: CustomDomainHttpCheck[] = [];
   let publicDnsChecked = false;
   const blockers: string[] = [];
 
@@ -277,6 +395,33 @@ export async function checkCloudflareDnsDelegation(
     }
   }
 
+  if (options.includeCustomDomainHttpCheck === true) {
+    const httpTargets = [zoneName, `www.${zoneName}`];
+    customDomainHttpChecks = await Promise.all(
+      httpTargets.map((hostname) => checkCustomDomainHttp({
+        fetchImpl: options.fetchImpl,
+        hostname,
+        timeoutMs: options.httpTimeoutMs ?? DEFAULT_CUSTOM_DOMAIN_HTTP_TIMEOUT_MS,
+      })),
+    );
+    for (const check of customDomainHttpChecks) {
+      if (!check.ready) {
+        blockers.push(
+          `Custom domain HTTPS check failed for ${check.hostname}: ${
+            check.error
+              ? check.error
+              : `status=${check.status ?? "(missing)"}, server=${check.server ?? "(missing)"}, cf-ray=${check.cfRay ?? "(missing)"}`
+          }`,
+        );
+      }
+    }
+  }
+
+  const customDomainHttpChecked = customDomainHttpChecks.length > 0
+    && customDomainHttpChecks.some((check) => check.checked || check.error);
+  const customDomainHttpReady = customDomainHttpChecks.length > 0
+    && customDomainHttpChecks.every((check) => check.ready);
+
   if (publicDnsChecked && !nameserversActive) {
     blockers.push("Public DNS nameservers do not include all Cloudflare-assigned nameservers.");
   }
@@ -301,6 +446,9 @@ export async function checkCloudflareDnsDelegation(
     publicDnsProviderSignals: detectPublicDnsProviderSignals(publicDnsRecords),
     publicDnsChecked,
     publicDnsBacked: publicDnsChecked,
+    customDomainHttpChecked,
+    customDomainHttpReady,
+    customDomainHttpChecks,
     providerApiBacked: false,
     nameserversActive,
     blockers,
@@ -337,6 +485,8 @@ export function writeMarkdown(report: CloudflareDnsDelegationReport, markdownFil
     `Zone: ${report.zoneName}`,
     `Public DNS checked: ${report.publicDnsChecked ? "yes" : "no"}`,
     `Nameservers active: ${report.nameserversActive ? "yes" : "no"}`,
+    `Custom-domain HTTPS checked: ${report.customDomainHttpChecked ? "yes" : "no"}`,
+    `Custom-domain HTTPS ready: ${report.customDomainHttpReady ? "yes" : "no"}`,
     `Cloudflare DNS imported record count: ${report.dnsImportedRecordCount ?? "(missing)"}`,
     `Cloudflare DNS import reviewed: ${report.dnsImportedReviewed === null ? "(missing)" : report.dnsImportedReviewed ? "yes" : "no"}`,
     `Cloudflare DNS record list captured: ${report.cloudflareDnsRecordListCaptured ? "yes" : "no"}`,
@@ -375,6 +525,18 @@ export function writeMarkdown(report: CloudflareDnsDelegationReport, markdownFil
         : ["| (not checked) | (not checked) | (not checked) |  |"]
     ),
     "",
+    "## Custom-Domain HTTPS Checks",
+    "",
+    "| Hostname | URL | Ready | Status | Server | CF-Ray | Error |",
+    "| --- | --- | --- | ---: | --- | --- | --- |",
+    ...(
+      report.customDomainHttpChecks.length > 0
+        ? report.customDomainHttpChecks.map((check) =>
+            `| ${check.hostname} | ${check.url} | ${check.ready ? "yes" : "no"} | ${check.status ?? ""} | ${check.server ?? ""} | ${check.cfRay ?? ""} | ${check.error ?? ""} |`,
+          )
+        : ["| (not checked) | (not checked) | no |  |  |  |  |"]
+    ),
+    "",
     "## Current Public Provider Signals",
     "",
     ...(
@@ -401,6 +563,7 @@ async function main() {
     source: inputs.evidenceFile,
     zoneName: inputs.zoneName,
     includePublicRecordSnapshot: true,
+    includeCustomDomainHttpCheck: true,
   });
   writeOutput(report, inputs.outputFile);
   writeMarkdown(report, inputs.markdownFile);

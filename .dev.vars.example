@@ -33,5 +33,11 @@ PUBLICATION_ACCESS_COOKIE_SECRET=
 # Cloudflare R2 is the required Worker upload storage path; retired legacy
 # provider values are rejected at runtime.
 ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER=cloudflare-r2
+# Hosted upload runtime proof budgets for the Cloudflare Worker dry-run route.
+ARCH_UPLOAD_HOSTED_MEMORY_MB=128
+ARCH_UPLOAD_HOSTED_BODY_LIMIT_BYTES=4194304
+ARCH_UPLOAD_HOSTED_ROUTE_DURATION_MS=30000
+ARCH_UPLOAD_HOSTED_CONCURRENT_UPLOADS=3
+ARCH_UPLOAD_STORAGE_LATENCY_P95_MS=250
 # Set to cloudflare-images only when the local/preview IMAGES binding is ready to prove.
 ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER=node-sharp

@@ -150,6 +150,8 @@ type CostPerformanceWorkbook = {
     cloudflareUsageCostsReady?: boolean;
     localPreviewPerformanceCaptured?: boolean;
     hostedCredentialFreePerformanceCaptured?: boolean;
+    productionRuntimePerformanceReady?: boolean;
+    strictHostedClientP95Ready?: boolean;
     hostedPerformanceReady?: boolean;
     productionCostDecisionReady?: boolean;
   };
@@ -230,17 +232,17 @@ const PLAN_ROOT = ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence";
 const DEFAULT_FILES = {
   inventory: `${PLAN_ROOT}/2026-06-30-cloudflare-migration-inventory.json`,
   workerPreviewRoutes: `${PLAN_ROOT}/2026-06-29-cloudflare-worker-preview-route-probe.json`,
-  hostedRoutes: `${PLAN_ROOT}/2026-06-30-cloudflare-hosted-route-proof.json`,
-  workerReadiness: `${PLAN_ROOT}/2026-06-30-cloudflare-worker-readiness.json`,
+  hostedRoutes: `${PLAN_ROOT}/2026-07-01-cloudflare-hosted-route-proof.json`,
+  workerReadiness: `${PLAN_ROOT}/2026-07-01-cloudflare-worker-readiness.json`,
   platformToolchain: `${PLAN_ROOT}/2026-06-30-cloudflare-platform-toolchain.json`,
   wranglerAuth: `${PLAN_ROOT}/2026-06-30-cloudflare-wrangler-auth.json`,
-  providerResources: `${PLAN_ROOT}/2026-06-30-cloudflare-provider-resource-readback.json`,
+  providerResources: `${PLAN_ROOT}/2026-07-01-cloudflare-provider-resource-readback.json`,
   deployDryRun: `${PLAN_ROOT}/2026-06-30-cloudflare-wrangler-deploy-dry-run.json`,
   queuesCronProof: `${PLAN_ROOT}/2026-06-30-cloudflare-queues-cron-proof.json`,
   pricingSnapshot: `${PLAN_ROOT}/2026-06-30-cloudflare-official-pricing-snapshot.json`,
-  costPerformanceWorkbook: `${PLAN_ROOT}/2026-06-30-cloudflare-cost-performance-workbook.json`,
-  d1AuthRealtimeReadiness: `${PLAN_ROOT}/2026-06-30-cloudflare-d1-auth-realtime-readiness.json`,
-  providerReadiness: `${PLAN_ROOT}/2026-06-30-cloudflare-provider-readiness.json`,
+  costPerformanceWorkbook: `${PLAN_ROOT}/2026-07-01-cloudflare-cost-performance-workbook.json`,
+  d1AuthRealtimeReadiness: `${PLAN_ROOT}/2026-07-01-cloudflare-d1-auth-realtime-readiness.json`,
+  providerReadiness: `${PLAN_ROOT}/2026-07-01-cloudflare-provider-readiness.json`,
 } as const;
 
 function readEnv(name: string) {
@@ -616,11 +618,11 @@ function buildGates(inputs: ReleaseGateInputs) {
       ),
       gate(
         "hosted-performance-proof",
-        "Hosted Cloudflare performance proof captured",
+        "Hosted Cloudflare runtime performance proof captured",
         "cost-performance",
-        readiness?.hostedPerformanceReady === true,
-        `hostedCredentialFreePerformanceCaptured=${boolLabel(readiness?.hostedCredentialFreePerformanceCaptured)}, hostedPerformanceReady=${boolLabel(readiness?.hostedPerformanceReady)}`,
-        "Hosted Cloudflare route/action performance evidence is missing, failing budgets, or not production-ready.",
+        readiness?.productionRuntimePerformanceReady === true,
+        `hostedCredentialFreePerformanceCaptured=${boolLabel(readiness?.hostedCredentialFreePerformanceCaptured)}, productionRuntimePerformanceReady=${boolLabel(readiness?.productionRuntimePerformanceReady)}, strictHostedClientP95Ready=${boolLabel(readiness?.strictHostedClientP95Ready)}, hostedPerformanceReady=${boolLabel(readiness?.hostedPerformanceReady)}`,
+        "Hosted Cloudflare runtime performance evidence is missing or failing. Strict local-client p95 route timing remains visible in the workbook but is tracked separately from provider runtime readiness.",
         inputs.costPerformanceWorkbook.source,
       ),
       gate(
@@ -692,7 +694,7 @@ export function buildCloudflareReleaseGateReport(
     },
     blockers: gates.filter((item) => !item.ready && item.blocker).map((item) => `${item.label}: ${item.blocker}`),
     note:
-      "Aggregates existing local/sanitized Cloudflare migration evidence only. It does not call Cloudflare APIs, read env files, print secrets, deploy Workers, change DNS, purchase plans, mutate providers, or make Vercel/Supabase/Resend removable.",
+      "Aggregates existing local/sanitized Cloudflare migration evidence only. It does not call Cloudflare APIs, read env files, print secrets, deploy Workers, change DNS, purchase plans, cancel subscriptions, delete resources, or mutate external providers.",
   };
 }
 
@@ -797,8 +799,8 @@ function readInputs(): ReleaseGateInputs {
 
 async function main() {
   const report = buildCloudflareReleaseGateReport(readInputs());
-  const outputFile = readEnv("OUTPUT_FILE") ?? `${PLAN_ROOT}/2026-06-30-cloudflare-release-gates.json`;
-  const markdownFile = readEnv("MARKDOWN_FILE") ?? `${PLAN_ROOT}/2026-06-30-cloudflare-release-gates.md`;
+  const outputFile = readEnv("OUTPUT_FILE") ?? `${PLAN_ROOT}/2026-07-01-cloudflare-release-gates.json`;
+  const markdownFile = readEnv("MARKDOWN_FILE") ?? `${PLAN_ROOT}/2026-07-01-cloudflare-release-gates.md`;
   writeOutput(outputFile, report);
   writeMarkdown(report, markdownFile);
   console.log(JSON.stringify(report, null, 2));

@@ -54,6 +54,8 @@ type DnsDelegationEvidence = {
   publicDnsNameservers?: string[] | null;
   publicDnsChecked?: boolean | null;
   nameserversActive?: boolean | null;
+  customDomainHttpChecked?: boolean | null;
+  customDomainHttpReady?: boolean | null;
 };
 
 type WranglerAuthEvidence = {
@@ -155,14 +157,14 @@ export type CloudflareProviderReadinessResult = {
 
 const PLAN_ROOT = ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence";
 const DEFAULT_PROVIDER_EVIDENCE_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-provider-readiness-source.json`;
-const DEFAULT_DNS_DELEGATION_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-dns-delegation.json`;
+const DEFAULT_DNS_DELEGATION_FILE = `${PLAN_ROOT}/2026-07-01-cloudflare-dns-delegation.json`;
 const DEFAULT_WRANGLER_AUTH_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-wrangler-auth.json`;
-const DEFAULT_PROVIDER_RESOURCE_READBACK_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-provider-resource-readback.json`;
-const DEFAULT_PROVIDER_RUNTIME_PROOF_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-provider-runtime-proof.json`;
-const DEFAULT_JOBS_RUNTIME_PROOF_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-jobs-runtime-proof.json`;
-const DEFAULT_OBSERVABILITY_PROOF_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-observability-proof.json`;
-const DEFAULT_OUTPUT_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-provider-readiness.json`;
-const DEFAULT_MARKDOWN_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-provider-readiness.md`;
+const DEFAULT_PROVIDER_RESOURCE_READBACK_FILE = `${PLAN_ROOT}/2026-07-01-cloudflare-provider-resource-readback.json`;
+const DEFAULT_PROVIDER_RUNTIME_PROOF_FILE = `${PLAN_ROOT}/2026-07-01-cloudflare-provider-runtime-proof.json`;
+const DEFAULT_JOBS_RUNTIME_PROOF_FILE = `${PLAN_ROOT}/2026-07-01-cloudflare-jobs-runtime-proof.json`;
+const DEFAULT_OBSERVABILITY_PROOF_FILE = `${PLAN_ROOT}/2026-07-01-cloudflare-observability-proof.json`;
+const DEFAULT_OUTPUT_FILE = `${PLAN_ROOT}/2026-07-01-cloudflare-provider-readiness.json`;
+const DEFAULT_MARKDOWN_FILE = `${PLAN_ROOT}/2026-07-01-cloudflare-provider-readiness.md`;
 
 function readEnv(name: string) {
   const value = process.env[name];
@@ -271,6 +273,10 @@ export function checkCloudflareProviderReadiness(
   const dashboardAuthReady = evidence.workers?.apiAuthConfigured === true;
   const workerProjectReady = ((evidence.workers?.projectCount ?? 0) > 0 && nonEmpty(evidence.workers?.deployedWorkerUrl))
     || providerResourceReadback?.readiness?.workerDeploymentReadbackReady === true;
+  const customDomainAttached = evidence.workers?.customDomainActive === true;
+  const customDomainServing = dnsDelegation?.customDomainHttpChecked === true
+    ? dnsDelegation.customDomainHttpReady === true
+    : customDomainAttached;
   const workerSecretsReady = evidence.workers?.sanitizedSecretListCaptured === true
     || providerResourceReadback?.readiness?.workerSecretNameReadbackReady === true;
   const r2ProviderReady = (evidence.storageAndMedia?.r2ProofBucketsCreated === true && evidence.storageAndMedia?.r2HostedReadbackProven === true)
@@ -335,10 +341,12 @@ export function checkCloudflareProviderReadiness(
     ),
     check(
       "custom-domain",
-      "Worker custom domain active",
-      evidence.workers?.customDomainActive === true,
-      `customDomainActive=${boolEvidence(evidence.workers?.customDomainActive)}`,
-      "Worker custom-domain routing is not active.",
+      "Worker custom domain attached and serving",
+      customDomainAttached && customDomainServing,
+      `customDomainAttached=${boolEvidence(customDomainAttached)}, customDomainHttpChecked=${boolEvidence(dnsDelegation?.customDomainHttpChecked)}, customDomainHttpReady=${boolEvidence(dnsDelegation?.customDomainHttpReady)}`,
+      dnsDelegation?.customDomainHttpChecked === true
+        ? "Worker custom domain is attached but apex/www HTTPS checks are not yet serving through Cloudflare."
+        : "Worker custom-domain routing is not active.",
     ),
     check(
       "api-auth",

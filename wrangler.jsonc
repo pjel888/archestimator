@@ -93,5 +93,12 @@
       "head_sampling_rate": 0.05,
       "persist": true
     }
+  },
+  "vars": {
+    "ARCH_UPLOAD_HOSTED_MEMORY_MB": "128",
+    "ARCH_UPLOAD_HOSTED_BODY_LIMIT_BYTES": "4194304",
+    "ARCH_UPLOAD_HOSTED_ROUTE_DURATION_MS": "30000",
+    "ARCH_UPLOAD_HOSTED_CONCURRENT_UPLOADS": "3",
+    "ARCH_UPLOAD_STORAGE_LATENCY_P95_MS": "250"
   }
 }

@@ -24,6 +24,8 @@ type ProviderProofEndpointBody = {
     imageFormat?: string | null;
     imageDimensions?: { width: number; height: number } | null;
     imageOutputBytes?: number | null;
+    imageInfoMs?: number | null;
+    imageTransformMs?: number | null;
     imagesError?: string | null;
     r2BindingPresent?: boolean;
     r2PutReady?: boolean;
@@ -31,6 +33,10 @@ type ProviderProofEndpointBody = {
     r2DeleteReady?: boolean;
     r2ObjectBytes?: number | null;
     proofObjectDeleted?: boolean;
+    r2PutMs?: number | null;
+    r2GetMs?: number | null;
+    r2DeleteMs?: number | null;
+    r2RoundTripMs?: number | null;
     r2Error?: string | null;
     imagesProviderProofReady?: boolean;
     r2ProviderProofReady?: boolean;
@@ -61,9 +67,9 @@ type CloudflareProviderRuntimeProofReport = {
 };
 
 const PLAN_ROOT = ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence";
-const DEFAULT_HOSTED_ROUTE_PROOF_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-hosted-route-proof.json`;
-const DEFAULT_OUTPUT_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-provider-runtime-proof.json`;
-const DEFAULT_MARKDOWN_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-provider-runtime-proof.md`;
+const DEFAULT_HOSTED_ROUTE_PROOF_FILE = `${PLAN_ROOT}/2026-07-01-cloudflare-hosted-route-proof.json`;
+const DEFAULT_OUTPUT_FILE = `${PLAN_ROOT}/2026-07-01-cloudflare-provider-runtime-proof.json`;
+const DEFAULT_MARKDOWN_FILE = `${PLAN_ROOT}/2026-07-01-cloudflare-provider-runtime-proof.md`;
 const ENDPOINT_PATH = "/__cloudflare/provider-proof" as const;
 const NOTE =
   "Calls the deployed proof Worker provider-proof endpoint with a local bearer secret, then records only sanitized provider behavior: Cloudflare Images info/transform readiness and ephemeral R2 put/get/delete readiness. It does not print secret values, upload secrets, deploy Workers, change DNS, purchase plans, delete resources, or make production cutover ready.";
@@ -261,11 +267,17 @@ function writeMarkdown(report: CloudflareProviderRuntimeProofReport, markdownFil
     `- Image format: ${result?.imageFormat ?? "(none)"}`,
     `- Image dimensions: ${result?.imageDimensions ? `${result.imageDimensions.width}x${result.imageDimensions.height}` : "(none)"}`,
     `- Image output bytes: ${result?.imageOutputBytes ?? "(none)"}`,
+    `- Image info timing: ${typeof result?.imageInfoMs === "number" ? `${result.imageInfoMs} ms` : "(none)"}`,
+    `- Image transform timing: ${typeof result?.imageTransformMs === "number" ? `${result.imageTransformMs} ms` : "(none)"}`,
     `- R2 binding present: ${result?.r2BindingPresent === true ? "yes" : "no"}`,
     `- R2 put/get/delete ready: ${result?.r2PutReady === true && result.r2GetReady === true && result.r2DeleteReady === true ? "yes" : "no"}`,
     `- R2 error: ${result?.r2Error ?? "(none)"}`,
     `- R2 object bytes: ${result?.r2ObjectBytes ?? "(none)"}`,
     `- Proof object deleted: ${result?.proofObjectDeleted === true ? "yes" : "no"}`,
+    `- R2 put timing: ${typeof result?.r2PutMs === "number" ? `${result.r2PutMs} ms` : "(none)"}`,
+    `- R2 get timing: ${typeof result?.r2GetMs === "number" ? `${result.r2GetMs} ms` : "(none)"}`,
+    `- R2 delete timing: ${typeof result?.r2DeleteMs === "number" ? `${result.r2DeleteMs} ms` : "(none)"}`,
+    `- R2 round-trip timing: ${typeof result?.r2RoundTripMs === "number" ? `${result.r2RoundTripMs} ms` : "(none)"}`,
     "",
     "## Blockers",
     "",

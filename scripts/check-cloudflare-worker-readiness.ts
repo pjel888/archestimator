@@ -31,6 +31,11 @@ const ENV_EXAMPLE_REQUIRED_NAMES = [
   "CLOUDFLARE_UPLOAD_JOBS_DRY_RUN",
   "CLOUDFLARE_UPLOAD_JOBS_ORIGIN",
   "ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER",
+  "ARCH_UPLOAD_HOSTED_MEMORY_MB",
+  "ARCH_UPLOAD_HOSTED_BODY_LIMIT_BYTES",
+  "ARCH_UPLOAD_HOSTED_ROUTE_DURATION_MS",
+  "ARCH_UPLOAD_HOSTED_CONCURRENT_UPLOADS",
+  "ARCH_UPLOAD_STORAGE_LATENCY_P95_MS",
   "ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER",
 ] as const;
 
@@ -55,6 +60,11 @@ const DEV_VARS_EXAMPLE_REQUIRED_NAMES = [
   "PUBLICATION_TOKEN_HASH_SECRET",
   "PUBLICATION_ACCESS_COOKIE_SECRET",
   "ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER",
+  "ARCH_UPLOAD_HOSTED_MEMORY_MB",
+  "ARCH_UPLOAD_HOSTED_BODY_LIMIT_BYTES",
+  "ARCH_UPLOAD_HOSTED_ROUTE_DURATION_MS",
+  "ARCH_UPLOAD_HOSTED_CONCURRENT_UPLOADS",
+  "ARCH_UPLOAD_STORAGE_LATENCY_P95_MS",
   "ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER",
 ] as const;
 
@@ -69,6 +79,11 @@ const LOCAL_PREVIEW_CONTROL_NAMES = [
   "CLOUDFLARE_UPLOAD_JOBS_DRY_RUN",
   "CLOUDFLARE_UPLOAD_JOBS_ORIGIN",
   "ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER",
+  "ARCH_UPLOAD_HOSTED_MEMORY_MB",
+  "ARCH_UPLOAD_HOSTED_BODY_LIMIT_BYTES",
+  "ARCH_UPLOAD_HOSTED_ROUTE_DURATION_MS",
+  "ARCH_UPLOAD_HOSTED_CONCURRENT_UPLOADS",
+  "ARCH_UPLOAD_STORAGE_LATENCY_P95_MS",
   "ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER",
 ] as const;
 
@@ -103,6 +118,13 @@ export const DEPLOYED_WORKER_SECRET_NAMES = [
 ] as const;
 
 const REQUIRED_WORKER_BINDINGS = ["ASSETS", "ARCH_UPLOADS_R2", "IMAGES", "UPLOAD_JOBS_QUEUE", "EMAIL"] as const;
+const REQUIRED_WORKER_VARS = [
+  "ARCH_UPLOAD_HOSTED_MEMORY_MB",
+  "ARCH_UPLOAD_HOSTED_BODY_LIMIT_BYTES",
+  "ARCH_UPLOAD_HOSTED_ROUTE_DURATION_MS",
+  "ARCH_UPLOAD_HOSTED_CONCURRENT_UPLOADS",
+  "ARCH_UPLOAD_STORAGE_LATENCY_P95_MS",
+] as const;
 const REQUIRED_CUSTOM_DOMAIN_ROUTES = ["archestimator.com", "www.archestimator.com"] as const;
 const REQUIRED_CRON_TRIGGERS = ["0 3 * * *", "15 3 * * *"] as const;
 const REQUIRED_OBSERVABILITY_SETTINGS = [
@@ -159,6 +181,7 @@ export type CloudflareWorkerReadinessResult = {
   envExample: GroupResult;
   devVarsExample: GroupResult;
   wranglerBindings: GroupResult;
+  wranglerVars: GroupResult;
   wranglerCustomDomains: GroupResult;
   wranglerCrons: GroupResult;
   wranglerObservability: GroupResult;
@@ -301,6 +324,13 @@ function extractWranglerBindingNames(input: string) {
   ].filter((binding): binding is string => Boolean(binding)).sort();
 }
 
+function extractWranglerVarNames(input: string) {
+  const parsed = parseJsonc<{
+    vars?: Record<string, unknown>;
+  }>(input);
+  return Object.keys(parsed.vars ?? {}).sort();
+}
+
 function extractWranglerCustomDomains(input: string) {
   const parsed = parseJsonc<{
     routes?: Array<string | { pattern?: string; custom_domain?: boolean }>;
@@ -415,6 +445,7 @@ export function checkCloudflareWorkerReadiness(inputs: CheckInputs): CloudflareW
   const envExample = evaluateGroup(ENV_EXAMPLE_REQUIRED_NAMES, extractEnvAssignmentStates(inputs.envExampleText).names);
   const devVarsExample = evaluateGroup(DEV_VARS_EXAMPLE_REQUIRED_NAMES, extractEnvAssignmentStates(inputs.devVarsExampleText).names);
   const wranglerBindings = evaluateGroup(REQUIRED_WORKER_BINDINGS, extractWranglerBindingNames(inputs.wranglerConfigText));
+  const wranglerVars = evaluateGroup(REQUIRED_WORKER_VARS, extractWranglerVarNames(inputs.wranglerConfigText));
   const wranglerCustomDomains = evaluateGroup(
     REQUIRED_CUSTOM_DOMAIN_ROUTES,
     extractWranglerCustomDomains(inputs.wranglerConfigText),
@@ -430,6 +461,7 @@ export function checkCloudflareWorkerReadiness(inputs: CheckInputs): CloudflareW
   const manifestReady = envExample.ready
     && devVarsExample.ready
     && wranglerBindings.ready
+    && wranglerVars.ready
     && wranglerCustomDomains.ready
     && wranglerCrons.ready
     && wranglerObservability.ready
@@ -447,6 +479,7 @@ export function checkCloudflareWorkerReadiness(inputs: CheckInputs): CloudflareW
     envExample,
     devVarsExample,
     wranglerBindings,
+    wranglerVars,
     wranglerCustomDomains,
     wranglerCrons,
     wranglerObservability,
@@ -487,6 +520,7 @@ export function writeMarkdown(result: CloudflareWorkerReadinessResult, markdownF
     ["Env example", result.envExample],
     ["Local dev vars example", result.devVarsExample],
     ["Wrangler bindings", result.wranglerBindings],
+    ["Wrangler vars", result.wranglerVars],
     ["Wrangler custom domains", result.wranglerCustomDomains],
     ["Wrangler crons", result.wranglerCrons],
     ["Wrangler observability", result.wranglerObservability],
