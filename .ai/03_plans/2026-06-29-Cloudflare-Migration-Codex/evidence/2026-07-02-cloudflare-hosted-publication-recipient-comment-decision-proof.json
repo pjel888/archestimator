@@ -1,0 +1,243 @@
+{
+  "proof": "cloudflare-hosted-publication-recipient-comment-decision",
+  "generatedAt": "2026-07-02T04:45:52.905Z",
+  "baseUrl": "https://archestimator.com",
+  "tokenRedaction": {
+    "publicationToken": "[redacted]",
+    "recipientToken": "[redacted]",
+    "recipientTokenHash": "[redacted]"
+  },
+  "fixture": {
+    "publicationId": "337f1427-2dd1-4ff4-b89f-5e518aecb66e",
+    "recipientId": "75eba67a-0335-4084-a542-889dd2622861",
+    "recipientEmail": "codex-cloudflare-recipient-20260702T044528Z@example.invalid",
+    "estimateId": "985f6690-741e-4136-9fa1-a4896cd364e4",
+    "rowId": "878e98e0-6a5a-4e58-ac42-4b73284eae4d",
+    "commentId": "0199faf4-d460-4a8b-9103-2c6e26ded2f5",
+    "decisionId": "f06de334-7768-4eb4-bf33-68362b2022f6",
+    "stamp": "20260702T044528Z"
+  },
+  "hostedRequests": {
+    "recipientInsert": [
+      {
+        "success": true,
+        "meta": {
+          "served_by": "v3-prod",
+          "served_by_region": "APAC",
+          "served_by_colo": "SIN",
+          "served_by_primary": true,
+          "timings": {
+            "sql_duration_ms": 1.3041
+          },
+          "duration": 1.3041,
+          "changes": 1,
+          "last_row_id": 1,
+          "changed_db": true,
+          "size_after": 1781760,
+          "rows_read": 1,
+          "rows_written": 7,
+          "total_attempts": 1
+        }
+      }
+    ],
+    "sessionStart": {
+      "status": 200,
+      "finalUrl": "https://archestimator.com/share/[redacted]",
+      "redirects": 1,
+      "totalSeconds": 6.751904,
+      "sharedSessionCookieEntries": 2
+    },
+    "commentPost": {
+      "status": 201,
+      "totalSeconds": 1.861729,
+      "response": {
+        "id": "0199faf4-d460-4a8b-9103-2c6e26ded2f5",
+        "comment": {
+          "id": "0199faf4-d460-4a8b-9103-2c6e26ded2f5",
+          "content": "Cloudflare hosted recipient comment proof 20260702T044528Z",
+          "createdAt": "2026-07-02T04:45:40.682Z",
+          "authorName": "Client",
+          "authorType": "recipient",
+          "estimateId": "est_ChphaOgNSG8CGGeMwHIC",
+          "rowId": "row_5S0W7_8IdSX9R7_pBaT-",
+          "targetKind": "row",
+          "targetLabel": "Cloudflare QA Area 2026-07-02 04:24",
+          "targetSecondaryLabel": "ES-001 Estimate",
+          "snapshotVersionAtComment": 2
+        },
+        "created": true
+      }
+    },
+    "decisionPost": {
+      "status": 201,
+      "totalSeconds": 2.629564,
+      "response": {
+        "id": "f06de334-7768-4eb4-bf33-68362b2022f6",
+        "decision": "revision_requested",
+        "signerName": null,
+        "created": true
+      }
+    },
+    "commentsGet": {
+      "status": 200,
+      "totalSeconds": 2.277654,
+      "responseCommentCount": 1
+    },
+    "decisionGet": {
+      "status": 200,
+      "totalSeconds": 2.208985,
+      "response": {
+        "decision": {
+          "type": "revision_requested",
+          "note": "Cloudflare hosted recipient decision proof 20260702T044528Z",
+          "submittedAt": "2026-07-02T04:45:43.099Z",
+          "final": true,
+          "estimateId": "est_ChphaOgNSG8CGGeMwHIC",
+          "rowId": "row_5S0W7_8IdSX9R7_pBaT-",
+          "targetKind": "row",
+          "targetLabel": "Cloudflare QA Area 2026-07-02 04:24",
+          "targetSecondaryLabel": "ES-001 Estimate",
+          "signerName": null,
+          "signatureIntentHash": null
+        }
+      }
+    }
+  },
+  "remoteD1Readback": [
+    {
+      "success": true,
+      "results": [
+        {
+          "id": "75eba67a-0335-4084-a542-889dd2622861",
+          "publication_id": "337f1427-2dd1-4ff4-b89f-5e518aecb66e",
+          "email": "codex-cloudflare-recipient-20260702T044528Z@example.invalid",
+          "display_name": "Codex Cloudflare Recipient 20260702T044528Z",
+          "delivery_status": "opened",
+          "last_opened_at": "2026-07-02T04:45:39.177Z",
+          "invited_by": "codex-cloudflare-hosted-proof",
+          "created_at": "2026-07-02T04:45:29.000Z",
+          "updated_at": "2026-07-02T04:45:39.177Z"
+        }
+      ],
+      "meta": {
+        "served_by": "v3-prod",
+        "served_by_region": "APAC",
+        "served_by_colo": "SIN",
+        "served_by_primary": true,
+        "timings": {
+          "sql_duration_ms": 0.3135
+        },
+        "duration": 0.3135,
+        "changes": 0,
+        "last_row_id": 7,
+        "changed_db": false,
+        "size_after": 1781760,
+        "rows_read": 1,
+        "rows_written": 0,
+        "total_attempts": 1
+      }
+    },
+    {
+      "success": true,
+      "results": [
+        {
+          "id": "0199faf4-d460-4a8b-9103-2c6e26ded2f5",
+          "publication_id": "337f1427-2dd1-4ff4-b89f-5e518aecb66e",
+          "recipient_id": "75eba67a-0335-4084-a542-889dd2622861",
+          "author_email": "codex-cloudflare-recipient-20260702T044528Z@example.invalid",
+          "estimate_id": "985f6690-741e-4136-9fa1-a4896cd364e4",
+          "row_id": "878e98e0-6a5a-4e58-ac42-4b73284eae4d",
+          "body": "Cloudflare hosted recipient comment proof 20260702T044528Z",
+          "target_kind": "row",
+          "target_label": "Cloudflare QA Area 2026-07-02 04:24",
+          "target_secondary_label": "ES-001 Estimate",
+          "snapshot_version_at_comment": 2,
+          "created_at": "2026-07-02T04:45:40.682Z"
+        }
+      ],
+      "meta": {
+        "served_by": "v3-prod",
+        "served_by_region": "APAC",
+        "served_by_colo": "SIN",
+        "served_by_primary": true,
+        "timings": {
+          "sql_duration_ms": 0.1672
+        },
+        "duration": 0.1672,
+        "changes": 0,
+        "last_row_id": 7,
+        "changed_db": false,
+        "size_after": 1781760,
+        "rows_read": 1,
+        "rows_written": 0,
+        "total_attempts": 1
+      }
+    },
+    {
+      "success": true,
+      "results": [
+        {
+          "id": "f06de334-7768-4eb4-bf33-68362b2022f6",
+          "publication_id": "337f1427-2dd1-4ff4-b89f-5e518aecb66e",
+          "recipient_id": "75eba67a-0335-4084-a542-889dd2622861",
+          "decision": "revision_requested",
+          "note": "Cloudflare hosted recipient decision proof 20260702T044528Z",
+          "snapshot_version_at_decision": 2,
+          "estimate_id": "985f6690-741e-4136-9fa1-a4896cd364e4",
+          "row_id": "878e98e0-6a5a-4e58-ac42-4b73284eae4d",
+          "target_kind": "row",
+          "target_label": "Cloudflare QA Area 2026-07-02 04:24",
+          "target_secondary_label": "ES-001 Estimate",
+          "signer_name": null,
+          "signature_intent_hash": null,
+          "created_at": "2026-07-02T04:45:43.099Z"
+        }
+      ],
+      "meta": {
+        "served_by": "v3-prod",
+        "served_by_region": "APAC",
+        "served_by_colo": "SIN",
+        "served_by_primary": true,
+        "timings": {
+          "sql_duration_ms": 0.1871
+        },
+        "duration": 0.1871,
+        "changes": 0,
+        "last_row_id": 7,
+        "changed_db": false,
+        "size_after": 1781760,
+        "rows_read": 1,
+        "rows_written": 0,
+        "total_attempts": 1
+      }
+    },
+    {
+      "success": true,
+      "results": [
+        {
+          "event_type": "open",
+          "recipient_id": "75eba67a-0335-4084-a542-889dd2622861",
+          "created_at": "2026-07-02T04:45:39.201Z"
+        }
+      ],
+      "meta": {
+        "served_by": "v3-prod",
+        "served_by_region": "APAC",
+        "served_by_colo": "SIN",
+        "served_by_primary": true,
+        "timings": {
+          "sql_duration_ms": 0.1051
+        },
+        "duration": 0.1051,
+        "changes": 0,
+        "last_row_id": 7,
+        "changed_db": false,
+        "size_after": 1781760,
+        "rows_read": 1,
+        "rows_written": 0,
+        "total_attempts": 1
+      }
+    }
+  ],
+  "proofReady": true
+}

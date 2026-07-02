@@ -61,6 +61,19 @@ Stable current truth (verify against git/source before relying on a detail):
   because cleanup/scan bearer secrets were unavailable. Hosted auth smoke still
   proves signed-out `/workshop` redirect only; allowed/denied/revoked/expired
   cases remain blocked by missing `HOSTED_AUTH_*_COOKIE` fixtures.
+- Latest hosted publication recipient proof as of 2026-07-02 04:45 UTC:
+  `2026-07-02-cloudflare-hosted-publication-recipient-comment-decision-proof.*`
+  passes the Cloudflare runtime recipient-session/comment/decision path. A
+  synthetic recipient was inserted into remote D1 for publication
+  `337f1427-2dd1-4ff4-b89f-5e518aecb66e`; hosted
+  `/api/share/[token]/session?recipient=...` reached the redacted shared page
+  with two `shared_link_session_*` cookie entries, comment POST returned `201`
+  for comment `0199faf4-d460-4a8b-9103-2c6e26ded2f5`, decision POST returned
+  `201` for revision-request response `f06de334-7768-4eb4-bf33-68362b2022f6`,
+  GET readbacks returned `200`, and remote D1 readback found the opened
+  recipient, comment, response, and `open` event. Boundary: this proves the
+  hosted Cloudflare recipient runtime path, not the owner-side recipient
+  composer/email-delivery UI.
 - State-mismatch root-shell recovery is live as of 2026-07-02 02:33 UTC:
   after the owner still saw `https://archestimator.com/?error=state_mismatch`,
   the current source was uploaded/deployed to Cloudflare Worker version
@@ -228,8 +241,10 @@ Stable current truth (verify against git/source before relying on a detail):
   `Proposal Review | Archestimator — Archestimator`, heading
   `Codex Cloudflare Smoke 2026-07-01`, visible `ES-001`, no sign-in wall, no
   not-found/expired/revoked text, and zero `state_mismatch`. D1
-  `project_publication_events` recorded two `open` events; named recipient
-  invite/session/comment/decision proof remains open. Evidence:
+  `project_publication_events` recorded two `open` events. The later
+  04:45 UTC hosted synthetic recipient proof closed the Cloudflare runtime
+  session/comment/decision path; only the owner-side recipient composer/email
+  UI boundary remains separate. Evidence:
   `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-publication-owner-public-proof.*`.
 - OAuth normalizer recovery hotfix as of 2026-07-01 23:44 UTC: after the user
   again reported `https://archestimator.com/?error=state_mismatch`, production
