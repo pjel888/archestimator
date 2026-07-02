@@ -72,6 +72,21 @@ Stable current truth (verify against git/source before relying on a detail):
   under
   `.ai/09_archive/2026-07-02-API-Rate-Limiting-Security-Consolidation-Sources/`;
   they are not active implementation handoffs.
+- Local developer Google OAuth callback/session proof is complete as of
+  2026-07-02 13:39 UTC. `http://localhost:3000` is the canonical local dev
+  login host. The ignored local env files contain the non-secret
+  `ARCHESTIMATOR_AUTH_PROVIDER=better-auth` selector and local-only Google
+  OAuth client credentials; do not print or commit those secrets. All 29 local
+  D1 migrations were applied to `archestimator-proof-db --local`. A real
+  Chrome desktop proof opened `/login?next=%2Fworkshop`, completed Google
+  OAuth, returned without `state_mismatch`, reached
+  `/workshop/terms?next=%2Fworkshop`, accepted clickwrap, and landed on
+  `/workshop`. Local D1 readback found 1 `user`, 1 Google `account`, 3
+  `session` rows, and 1 `legal_terms_acceptances` row. The React/Next console
+  warning about script tags in `AuthStateMismatchRecoveryScript` is fixed by
+  rendering through `next/script` with `beforeInteractive`. Focused auth
+  regressions passed `5` files / `56` tests. Sanitized evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-local-dev-google-oauth-real-browser-proof.*`.
 - Latest hosted upload + collaboration UI proof as of 2026-07-02 09:54 UTC:
   `archestimator-proof` Worker version
   `2f246bbf-9ea5-4c15-bf31-97344f9b6f09` is deployed at 100% on
@@ -95,18 +110,71 @@ Stable current truth (verify against git/source before relying on a detail):
   Public-route p95 handling is now implemented as route-contract hard gating
   plus explicit strict-p95 watch fields: p95 misses no longer falsely block
   provider runtime readiness, while `p95BudgetReady` and `p95BudgetMisses`
-  remain visible. The fresh `2026-07-02T11:03:22.605Z`
+  remain visible. The fresh `2026-07-02T12:54:02.688Z`
   `cf:verify-hosted-performance` run against `archestimator.com` passed
-  route contracts and sample count, while strict public-route p95 misses are
-  active watch evidence (`p95BudgetReady=false`, `p95BudgetWatch=true`,
-  `strictHostedClientP95Ready=false`). The refreshed workbook generated
-  `2026-07-02T11:03:30.614Z` reports
+  route contracts and sample count, while `7` strict public-route p95 misses
+  are active watch evidence (`p95BudgetReady=false`, `p95BudgetWatch=true`,
+  `strictHostedClientP95Ready=false`). Follow-up review caught and fixed a
+  workbook false-green path: hosted performance is now captured only when the
+  verifier's `hostedCredentialFreePerformanceReady` signal is true, which
+  includes the p95 sample-count hard gate. Focused p95/workbook/release-gate
+  tests passed `4` files / `62` tests.
+  The refreshed workbook generated `2026-07-02T12:54:37.647Z` reports
   `aggregateHostedPerformanceReady=true`, `hostedPerformanceReady=false`, and
-  `productionCostDecisionReady=true`; the `2026-07-02T11:03:30.655Z` release gates report
+  `productionCostDecisionReady=true`; the `2026-07-02T12:55:07.085Z` release gates report
   `productionCutoverReady=true` with blockers empty. Cloudflare-only
-  closed-beta app readiness is now about 99/100 on app-side migration. The
+  closed-beta app readiness is now about 99.5/100 on app-side migration. The
   remaining boundary is operational backup/downgrade/cancellation policy before
-  deleting or cancelling old provider accounts.
+  deleting or cancelling old provider accounts. Cloudflare for Platforms /
+  Workers for Platforms is not part of the current estimate-sheet user model:
+  app users and collaborators should remain Better Auth + D1 memberships, with
+  Platforms reserved for a later tenant-deployment/custom-domain/extensibility
+  product need. Fresh read-only auth probes on
+  2026-07-02 also confirmed the exact stale URL
+  `https://archestimator.com/?error=state_mismatch` follows to
+  `/login?next=%2Fworkshop&oauth_state_reset_done=1`, focused auth tests passed
+  `77` tests, hosted signed-out `/workshop` redirects to
+  `/login?next=%2Fworkshop`, and hosted route/sensitive fail-closed checks
+  pass. Read-only Google Console client inspection confirmed the active OAuth
+  client `4723547505-0keh5nqvk40b7rv2meror8opnpjm10s8.apps.googleusercontent.com`
+  has `https://archestimator.com` and `https://www.archestimator.com` origins
+  plus both corresponding `/api/auth/callback/google` redirect URIs. The same
+  client now also has local developer origins/callbacks for `localhost` and
+  `127.0.0.1` on ports `3000` and `8787`. Google Auth Platform Audience was
+  changed from `Testing` to `In production`, user type `External`, after Data
+  Access showed no configured sensitive or restricted scopes. This removes the
+  Google-side test-user block for non-owner accounts; a real non-owner Google
+  account completion remains a P1 external-persona proof item because this run
+  did not have a second human Google session/inbox. Sanitized evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-google-oauth-local-production-readback.*`.
+  Fresh local browser-suite verification on 2026-07-02 restored the default
+  Cloudflare-compatible Playwright path: old Supabase-only E2E specs are now
+  quarantined behind `ARCHESTIMATOR_E2E_ENABLE_LEGACY_SUPABASE=1`. The
+  `bunx playwright test --list` command lists `25` tests in `9` files without the removed
+  `@supabase/supabase-js` crash, local auth smoke passes `2/2` with the
+  current Sign in / Google button UI, and full default `bunx playwright test`
+  passes `12` with `13` opt-in authenticated/data scenarios skipped. A direct
+  production OAuth-start probe also returns Google with the apex callback,
+  a 32-character state, and a Better Auth state cookie. Focused auth Vitest
+  passed `46` tests, TypeScript passed, and `git diff --check` passed.
+  Local developer Google OAuth start was then proven with a separate local-only
+  Google OAuth web client named `archestimator-local-dev`. Its credentials are
+  stored only in ignored local env files (`.dev.vars` and `.env.local`); do
+  not print, commit, or copy those secret values into evidence. The local
+  Better Auth D1 schema was applied to `archestimator-proof-db --local`, and
+  readback found `account`, `session`, `user`, and `verification` tables.
+  Playwright started Google OAuth from
+  `http://localhost:3000/login?next=/workshop` and reached
+  `accounts.google.com` with
+  `redirect_uri=http://localhost:3000/api/auth/callback/google`, a
+  32-character state, and one `better-auth.state` cookie. Boundary:
+  `127.0.0.1` reaches Google but the callback is canonicalized to localhost by
+  current Better Auth config, so use `http://localhost:3000` for developer
+  browser login unless host-dynamic auth configuration is added. Completed
+  local callback/session is superseded by the real Chrome proof recorded in
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-local-dev-google-oauth-real-browser-proof.*`.
+  Sanitized start evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-local-dev-google-oauth-start-proof.*`.
 - Latest Cloudflare deploy and hosted D1/share proof as of 2026-07-02
   04:31 UTC: `archestimator-proof` Worker version
   `d47bcd1d-37f0-41e3-864a-05a90b28518b` is deployed at 100% on
