@@ -58,6 +58,7 @@ Implementation must not proceed to WAF/Turnstile enforcement, broad Cloudflare R
 - `07_RISK_REGISTER_AND_DECISIONS.md` - P0/P1/P2 risks, decisions, rejected approaches.
 - `08_FINAL_READINESS_AND_COMPLETION_AUDIT.md` - requirement-by-requirement completion audit for this planning task.
 - `09_IDEMPOTENCY_RETRY_AND_RESILIENCE_STANDARDS.md` - standards-backed API idempotency, retry, error, cache, trace, and async delivery contract.
+- `10_READINESS_SCORECARD_AND_VERIFICATION_MODE.md` - per-document readiness scorecard, verification-mode declaration, cap application, evidence-class table, and score-cap audit (added in iteration 10).
 - `IMPLEMENTATION_PLAN.md` - canonical execution overlay for implementation agents; supersedes ad hoc sequencing from the individual pack docs when execution starts.
 - `LOOP_LEDGER.md` - discover, plan, execute, verify, record, decide ledger.
 

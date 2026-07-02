@@ -112,3 +112,43 @@ Future implementation must open a new execution loop from this pack.
 ## API Audit Path Drift Note
 
 The user-provided source folder for this task was `.ai/03_plans/2026-07-01-API-Audit/` and was removed after consolidation. Tracked git history and stale API-audit docs also refer to `.ai/03_plans/2026-07-21-API-Audit/`; this pack supersedes that historical/path-drift identity too, but it was not the folder path requested in the prompt.
+
+## Verification Mode Declaration (Iteration 10 Pass)
+
+Per Multi-Agent-Execution-Directive Section 2 and Improve-Plan-Prompt Suite
+Succession and Authority Contract, this package's verification mode is:
+
+- Aggregate package mode: `mixed`.
+- Strongest lanes: `independent` (source/requirements analyst, codebase
+  architecture analyst, adversarial critic).
+- Binding cap lanes: `emulated` (test/QA strategist due agent-thread limit),
+  `same-agent` (lead coordinator, lead integration, repo-local
+  idempotency/resilience, standards research, and the iteration-10 final
+  verifier pass).
+- Not-verified lane: Supermemory advisory memory (unavailable after startup
+  attempt).
+
+Cap application (binding for this high-blast-radius package):
+
+- Same-agent final verifier caps readiness at 94 and prohibits
+  `IMPLEMENTATION-READY` status for high-risk packages.
+- Emulated test/QA caps readiness at 97 and, for high-blast-radius packages,
+  caps package status at `CONDITIONALLY READY` without independent reviewer
+  sign-off or explicit owner acceptance.
+- Package status remains `CONDITIONALLY READY FOR IMPLEMENTATION PLANNING;
+  NOT READY FOR PRODUCTION ENFORCEMENT OR PROVIDER CUTOVER.`
+- No claim of `IMPLEMENTATION-READY` is supported for the full package or the
+  first implementation subset (`PH-0` through `PH-3`) at this time.
+
+Full per-document scorecard, lane table, evidence-class table, and cap
+audit live in `10_READINESS_SCORECARD_AND_VERIFICATION_MODE.md`.
+
+## Stop Condition Update (Iteration 10 Pass)
+
+This planning task's stop condition now also requires:
+
+- `10_READINESS_SCORECARD_AND_VERIFICATION_MODE.md` exists and is linked from
+  this document and from `README.md`.
+- This document records the explicit `verification_mode` label and cap
+  application above.
+- `LOOP_LEDGER.md` records iteration 10.

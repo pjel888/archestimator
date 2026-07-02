@@ -199,3 +199,77 @@ Decision:
 - Keep old source packs out of active `.ai/03_plans`.
 - Preserve tracked originals under `.ai/09_archive`.
 - Continue treating `.ai/03_plans/2026-07-02-API-Rate-Limiting-Security-Consolidation/IMPLEMENTATION_PLAN.md` as the active execution overlay.
+
+## Iteration 10: Readiness Scorecard And Verification Mode Pass
+
+Trigger:
+
+- User invoked `/writing-plans /autopilot /ultrawork /ultragoal /ultraqa` with
+  the Improve-Plan-Prompt and Multi-Agent-Execution-Directive as authorities and
+  the archived source packs as reference, requesting a planning improvement
+  pass (explicitly not a coding task).
+
+Actions:
+
+- Re-read the Improve-Plan-Prompt (Phase 1 inventory, Phase 2 baseline
+  scorecard, Phase 3 production-grade plan improvement, Phase 4 iterative
+  review, completion gates, readiness status) and the Multi-Agent
+  Execution Directive (authority/scope, master goal, proportional
+  orchestration, verification labels, completion audit, final report).
+- Re-read all 13 plan-pack documents (README, 00 through 09,
+  IMPLEMENTATION_PLAN, LOOP_LEDGER) and confirmed inventory is intact.
+- Verified all 14 cited current-source files exist in the repo as of
+  2026-07-02: `worker.ts`, `wrangler.jsonc`, `cloudflare-env.d.ts`,
+  `src/lib/cloudflare/collaboration-room-router.ts`,
+  `src/lib/cloudflare/collaboration-room.ts`,
+  `src/lib/cloudflare/upload-job-queue.ts`,
+  `src/lib/publication/public-repository.ts`,
+  `src/lib/collaboration/invite-entry.ts`, `src/lib/ai/rate-limit.ts`,
+  `src/lib/ai/package-builder/apply.ts`,
+  `src/lib/estimates/action-rate-limit.ts`,
+  `src/lib/estimates/d1-action-client.ts`, `src/lib/authz/d1-access.ts`,
+  `src/lib/observability/with-action-errors.ts`.
+- Re-confirmed current runtime authority (Cloudflare Workers/OpenNext + D1 +
+  R2 + Durable Objects + Better Auth) against `.ai/10_state/current-state.md`
+  Fast Path; Supabase/Postgres references remain correctly classified as
+  migration archaeology.
+- Identified the real improvement-pass gap: the pack has an overall scorecard
+  in `IMPLEMENTATION_PLAN.md` but no per-document scorecard, no explicit
+  per-lane verification-mode declaration, no evidence-class table per
+  directive Section 11, and no explicit application of the verification-mode
+  readiness caps.
+- Created `10_READINESS_SCORECARD_AND_VERIFICATION_MODE.md` with:
+  per-document 11-category scorecard, package-level weighted score,
+  lane verification mode table, aggregate mode (`mixed`), readiness cap
+  application (same-agent cap at 94, emulated cap at 97 plus
+  high-blast-radius CONDITIONALLY READY cap), evidence-class table,
+  conflict-resolution authority, Phase 2 score-cap audit, final readiness
+  status, residual risks, and stop condition.
+- Patched `08_FINAL_READINESS_AND_COMPLETION_AUDIT.md` to record the
+  explicit `verification_mode` label and cap application and to reference
+  the new scorecard.
+- Patched `README.md` to add `10_READINESS_SCORECARD_AND_VERIFICATION_MODE.md`
+  to the document map.
+
+Evidence:
+
+- Per-document weighted scores range from 92 to 95; package mean
+  approximately 94, consistent with the 85-94 "usable but not
+  corporate-production complete" band.
+- Binding cap is verification-mode (same-agent final verifier plus emulated
+  test/QA), not any Phase 2 maximum floor.
+- Package status remains `CONDITIONALLY READY FOR IMPLEMENTATION PLANNING;
+  NOT READY FOR PRODUCTION ENFORCEMENT OR PROVIDER CUTOVER.`
+- Path to lift the cap to `IMPLEMENTATION-READY` requires either a real
+  independent reviewer's `approved` verdict or explicit owner acceptance
+  recorded in `.ai/10_state/decisions.md`.
+
+Decision:
+
+- Close iteration 10 with the targeted gap-closure above. No source code,
+  tests, migrations, provider state, package manifests, environment files,
+  or runtime data changed.
+- The pack is now Phase 2 baseline-scorecard-complete and verification-mode
+  honest. Future independent reviewer sign-off or owner acceptance remains
+  the only path to `IMPLEMENTATION-READY` for the full high-blast-radius
+  package.
