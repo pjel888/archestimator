@@ -11,6 +11,10 @@ const loginFormSource = readFileSync(
   join(process.cwd(), "src/components/auth/LoginForm.tsx"),
   "utf8",
 );
+const authSearchParamsStateSource = readFileSync(
+  join(process.cwd(), "src/components/auth/AuthSearchParamsState.tsx"),
+  "utf8",
+);
 const rootLayoutSource = readFileSync(
   join(process.cwd(), "src/app/layout.tsx"),
   "utf8",
@@ -66,10 +70,13 @@ describe("/login auth entry UI contract", () => {
     expect(loginSource).not.toMatch(/searchParams\.email/);
   });
 
-  it("keeps the auth entry page dynamic and no-store for OAuth server-action freshness", () => {
-    expect(loginSource).toContain('export const dynamic = "force-dynamic"');
-    expect(loginSource).toContain("export const revalidate = 0");
-    expect(loginSource).not.toContain('export const dynamic = "force-static"');
+  it("keeps the auth entry shell cacheable while resolving query-specific state on the client", () => {
+    expect(loginSource).not.toContain('export const dynamic = "force-dynamic"');
+    expect(loginSource).not.toContain("export const revalidate = 0");
+    expect(loginSource).toContain("LoginFormFromSearchParams");
+    expect(loginSource).toContain('<LoginForm next="/workshop" />');
+    expect(authSearchParamsStateSource).toContain("useSearchParams");
+    expect(authSearchParamsStateSource).toContain("sanitizeNextPath");
   });
 
   it("keeps a root-shell fallback for stale client-side state mismatch URLs", () => {
