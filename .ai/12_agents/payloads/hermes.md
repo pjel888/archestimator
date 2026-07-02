@@ -24,6 +24,16 @@ If approved later, Hermes must start with `AGENTS.md` and the FAST PATH block at
 the top of `.ai/10_state/current-state.md`, then pull only task-specific
 `.ai/00_system`, state, decision, plan, task, source, or proof docs.
 
+## Supermemory Workflow
+
+Hermes remains unapproved. If Philip explicitly approves Hermes later, it
+inherits the shared Supermemory contract: check `http://localhost:6767/`, start
+`npm exec supermemory local` in the background if it is down and local
+process startup is available, search relevant memory before meaningful work,
+and update memory at closeout when durable project truth changes. Retrieved
+memories are advisory until verified against current `.ai`, source, tests, or
+provider evidence. Never store secrets and never commit `.supermemory/`.
+
 ## Repo-Safety Commands
 
 No commands by default. Future approval should check `git status --short --branch` before edits and add deeper branch checks when needed.

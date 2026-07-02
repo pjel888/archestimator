@@ -23,6 +23,54 @@ the FAST PATH block at the top of `.ai/10_state/current-state.md`. Pull deeper
 linear-reading those history files. Adapter payloads may add role-specific
 deltas, but they must not expand the default startup chain.
 
+## Supermemory Local Memory Contract
+
+Supermemory local at `http://localhost:6767` is the shared cross-agent memory
+layer for Codex, Claude Code, OpenCode, CommandCode, Antigravity, Kimi,
+DeepSeek, Hermes if approved, Gemini if reapproved, Ollama-backed embedding
+pipelines, Cursor, and future harnesses when their integration is configured.
+It augments `.ai`; it never replaces current source, tests, `.ai`, provider
+evidence, or the lead orchestrator's final verification.
+
+At the start of meaningful work, each agent or adapter should:
+
+1. Check availability:
+
+   ```sh
+   curl -fsS http://localhost:6767/ >/dev/null
+   ```
+
+2. If the check fails and the harness can start local processes, start the
+   local server in the background, then retry until the check passes:
+
+   ```sh
+   nohup npm exec supermemory local >/tmp/supermemory-local.log 2>&1 &
+   ```
+
+   If the harness cannot start it or the command fails, continue with an
+   explicit `not-verified` memory gap instead of blocking safe local work.
+
+3. Before broad, non-trivial, recovery, review, or handoff work, search
+   Supermemory for relevant repo/task memory using the configured harness
+   plugin, MCP server, SDK, or the local API reference at
+   `http://localhost:6767/v4/reference`. Treat retrieved memory as advisory and
+   stale until reconciled with current source, `.ai`, tests, logs, or provider
+   evidence.
+
+4. At closeout, add or update one concise memory when durable project truth
+   changes: date, repo, task/result, decision, changed files/docs, validation
+   evidence, proof boundary, and follow-up. Keep ephemeral chat out of durable
+   memory.
+
+5. Never store secrets, env values, API keys, auth secrets, customer data,
+   provider tokens, cookies, or raw local session details in Supermemory. Keep
+   `.supermemory/` local-only and ignored; never commit its keys, runtime data,
+   models, or vector store.
+
+Trivial one-off work can limit this to the availability check and a reported
+gap if Supermemory is down. When project reality changes, update both the
+canonical `.ai` home and Supermemory; `.ai` remains the repo source of truth.
+
 ## Loop Engineering Contract
 
 Archestimator treats loop engineering as the product-development control system

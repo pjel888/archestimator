@@ -25,6 +25,17 @@ Start with `AGENTS.md` and the FAST PATH block at the top of
 `rg` for `current-state.md` and `decisions.md` instead of preloading them. Pull
 relevant plan/test/source files for the bug.
 
+## Supermemory Workflow
+
+Check `http://localhost:6767/` before meaningful DeepSeek work. If it is down
+and local process startup is available, run `npm exec supermemory local` in
+the background and retry. Use the configured Supermemory plugin, MCP, SDK, or
+local API reference to search relevant debugging/review memory before
+broad/non-trivial work, then update memory at closeout when durable project
+truth changes. Retrieved memories are advisory until verified against current
+`.ai`, source, tests, or provider evidence. Never store secrets and never commit
+`.supermemory/`.
+
 ## Repo-Safety Commands
 
 Check `git status --short --branch` before edits; read-only debugging can rely on fresh provided evidence.

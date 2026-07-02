@@ -26,6 +26,17 @@ Start with `AGENTS.md` and the FAST PATH block at the top of
 `rg` for `current-state.md` and `decisions.md` instead of preloading them.
 Pull `DESIGN.md` for UI work.
 
+## Supermemory Workflow
+
+Check `http://localhost:6767/` before meaningful Claude Code work. If it is down
+and local process startup is available, run `npm exec supermemory local` in
+the background and retry. Use the configured Claude Code Supermemory plugin,
+MCP, SDK, or local API reference to search relevant memory before
+broad/non-trivial work, then update memory at closeout when durable project
+truth changes. Retrieved memories are advisory until verified against current
+`.ai`, source, tests, or provider evidence. Never store secrets and never commit
+`.supermemory/`.
+
 ## Repo-Safety Commands
 
 Before scoped edits, check `git status --short --branch` and preserve unrelated dirty files. Planning/review can use provided current evidence if it is fresh; add deeper branch checks only when they matter.

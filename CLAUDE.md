@@ -26,6 +26,14 @@ for the loop/validation rules, `.ai/12_agents/payloads/claude.md` for Claude rol
 long history files. If the agent feels stale, confused, or off-direction, stop and run
 `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md` before continuing.
 
+Claude Code also inherits the shared Supermemory workflow in
+`.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md` and
+`.ai/12_agents/payloads/claude.md`: check `http://localhost:6767/`, start
+`npm exec supermemory local` if it is down and local process startup is
+available, search memory before meaningful work, and update it at closeout when
+durable project truth changes. Supermemory is advisory; `.ai`, current source,
+tests, and provider evidence remain authoritative.
+
 Plan packs are scoped for MVP speed: a dated `.ai/03_plans/` pack with a `LOOP_LEDGER.md` is
 required only for HIGH-BLAST-RADIUS work (DB/auth/security, data integrity, release, cross-cutting
 refactors, architecture, agent-framework). Ordinary non-trivial work (a normal feature, a

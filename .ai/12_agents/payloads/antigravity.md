@@ -25,6 +25,16 @@ Start with `AGENTS.md` and the FAST PATH block at the top of
 `rg` for `current-state.md` and `decisions.md` instead of preloading them. Pull
 `DESIGN.md` for UI work.
 
+## Supermemory Workflow
+
+Check `http://localhost:6767/` before meaningful Antigravity work. If it is down
+and local process startup is available, run `npm exec supermemory local` in
+the background and retry. Use the configured Supermemory plugin, MCP, SDK, or
+local API reference to search relevant memory before broad/non-trivial work,
+then update memory at closeout when durable project truth changes. Retrieved
+memories are advisory until verified against current `.ai`, source, tests, or
+provider evidence. Never store secrets and never commit `.supermemory/`.
+
 ## Repo-Safety Commands
 
 Check `git status --short --branch` before edits and preserve unrelated dirty files. Add path/root/worktree/remote/recent-log checks when branch state, release coordination, or shared worktree ownership matters.

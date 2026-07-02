@@ -15,6 +15,13 @@ adequate loop surface, verify with maker/checker and real-surface evidence, and
 persist durable state outside chat when project truth changes. Tool-specific
 features translate this loop; they do not replace it.
 
+All agents and harnesses also inherit the shared Supermemory workflow from
+`.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`: check `http://localhost:6767/`,
+start `npm exec supermemory local` when it is down and local process startup
+is available, search relevant memory before meaningful work, and update memory
+at closeout when durable project truth changes. Supermemory is advisory memory,
+not authority; `.ai`, current source, tests, and provider evidence win.
+
 The loop activation criteria (trivial vs non-trivial), the named loop shape, stop
 conditions, and bounds are canonical in `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`
 ("Loop activation criteria and bounds"); the durable-artifact + `LOOP_LEDGER`

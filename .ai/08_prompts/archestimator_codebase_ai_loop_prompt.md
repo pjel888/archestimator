@@ -27,8 +27,10 @@ Audit and optimize the complete coding-agent operating system for ArchEstimator:
 4. `.ai/12_agents` agent role contracts and payloads.
 5. `.ai/08_prompts` reusable prompt templates.
 6. `.ai/11_skills` reusable playbooks.
-7. The loop-engineering mandate and archived mandate pack.
-8. Validation, evidence, provider-proof, design-system, database, and stop-condition rules.
+7. Supermemory local memory workflow across Codex, OpenCode, Claude Code, and
+   every available agent adapter.
+8. The loop-engineering mandate and archived mandate pack.
+9. Validation, evidence, provider-proof, design-system, database, and stop-condition rules.
 
 Your end state is a clearer, leaner, faster, more enforceable agent workflow where every coding AI can answer these questions without guessing:
 
@@ -37,6 +39,7 @@ Your end state is a clearer, leaner, faster, more enforceable agent workflow whe
 - When should the agent work directly versus loop?
 - When should it split into subagents or lanes?
 - Where does state/memory/evidence go?
+- How does local Supermemory get checked, started, searched, and updated?
 - What validation proves completion?
 - What is forbidden without explicit owner approval?
 - How does the agent recover when it becomes stale, confused, or starts repeating mistakes?
@@ -86,6 +89,42 @@ Then inventory every existing agent/tool adapter file you can find, including bu
 - any README, prompt, skill, payload, hook, or config file that tells an AI agent how to work in this repo.
 
 If files are missing, record that clearly. Do not invent their contents.
+
+### Integrate Supermemory without making it authority
+
+Supermemory local at `http://localhost:6767` is the shared cross-agent memory
+layer for Codex, OpenCode, Claude Code, CommandCode, Antigravity, Kimi,
+DeepSeek, Hermes if approved, Gemini if reapproved, Ollama-backed embedding
+pipelines, Cursor, and future harnesses when configured. It augments `.ai`; it
+does not override current source, tests, `.ai`, provider evidence, or the lead
+orchestrator's final verification.
+
+For this audit and every future codebase-AI workflow:
+
+1. Check it before meaningful work:
+
+   ```sh
+   curl -fsS http://localhost:6767/ >/dev/null
+   ```
+
+2. If it is down and local process startup is available, start it in the
+   background and retry until the check passes:
+
+   ```sh
+   nohup npm exec supermemory local >/tmp/supermemory-local.log 2>&1 &
+   ```
+
+3. Search Supermemory for relevant repo/task memory before broad, non-trivial,
+   recovery, review, or handoff work. Use the configured harness plugin, MCP,
+   SDK, or local API reference at `http://localhost:6767/v4/reference`.
+4. Treat retrieved memories as advisory and stale until verified against current
+   repo evidence.
+5. At closeout, add or update one concise memory when durable project truth
+   changes: date, repo, task/result, decision, changed files/docs, validation
+   evidence, proof boundary, and follow-up.
+6. Never store secrets, env values, API keys, auth secrets, provider tokens,
+   cookies, customer data, or raw local session details. Do not read, copy, or
+   commit `.supermemory/`; it is local runtime state only.
 
 ### Use current source over stale memory
 

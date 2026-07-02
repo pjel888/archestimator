@@ -17,6 +17,97 @@ Stable current truth (verify against git/source before relying on a detail):
   TanStack Query, Zustand, repository boundaries. Historical Supabase/Postgres
   artifacts may still exist for migration archaeology, but active app/runtime
   source should stay Cloudflare-only.
+- Supermemory local memory workflow as of 2026-07-02: `http://localhost:6767/`
+  is the shared advisory memory layer for Codex, OpenCode, Claude Code,
+  CommandCode, Antigravity, Kimi, DeepSeek, Hermes if approved, Gemini if
+  reapproved, Ollama-backed embedding pipelines, Cursor, and future configured
+  harnesses. Agent adapters should check it before meaningful work, start
+  `npm exec supermemory local` when it is down and local process startup is
+  available, search memory before broad/non-trivial work, and update memory at
+  closeout when durable project truth changes. `.ai`, current source, tests,
+  and provider evidence remain authoritative; never store secrets in
+  Supermemory or commit `.supermemory/`. Canonical contract:
+  `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`.
+- Latest Cloudflare deploy and hosted D1/share proof as of 2026-07-02
+  04:31 UTC: `archestimator-proof` Worker version
+  `d47bcd1d-37f0-41e3-864a-05a90b28518b` is deployed at 100% on
+  `archestimator.com` and `www.archestimator.com`. The `/login` route is
+  static/prerendered again (`○ /login`, live `x-nextjs-prerender: 1`,
+  `cache-control: s-maxage=31536000`) while
+  `https://archestimator.com/?error=state_mismatch` still first-hops to the
+  clean OAuth reset URL and follows to reset-done login. The signed-in
+  production browser edited `ES-001 Estimate` row
+  `878e98e0-6a5a-4e58-ac42-4b73284eae4d` to quantity `3.16`; remote D1
+  `archestimator-proof-db` readback returned the same row with
+  `quantity=3.16`, `quantity_base=3.16`, `unit_cost=123.45`, served by
+  APAC/SIN primary. Publisher then republished the active shared page:
+  `project_publications.id=337f1427-2dd1-4ff4-b89f-5e518aecb66e`,
+  `snapshot_version=2`, selected estimate
+  `985f6690-741e-4136-9fa1-a4896cd364e4`, snapshot total `397.90404`, and
+  unauthenticated `/share/...` HTML now shows `PHP 397.90`, row quantity
+  `3.16`, and `Hosted D1 browser row mutation proof`. Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-d1-row-publication-refresh-proof.*`.
+- Latest hosted route/upload/authz refresh as of 2026-07-02 04:37 UTC:
+  `2026-07-02-cloudflare-hosted-route-proof-final-refresh.*` passes the
+  credential-free route matrix with no blockers;
+  `2026-07-02-cloudflare-hosted-sensitive-route-failclosed-final-refresh.*`
+  passes invalid share/API/activity and private project-image fail-closed
+  probes; `2026-07-02-cloudflare-hosted-upload-runtime-authenticated-refresh.*`
+  passes authenticated non-mutating upload-runtime probes with
+  `productionProofReady=true`, Cloudflare R2 `bucketReachable=true`, and R2
+  latency samples around `94-218ms`. Upload cleanup/scan operations remain
+  only fail-closed in
+  `2026-07-02-cloudflare-hosted-upload-operations-failclosed-refresh.*`
+  because cleanup/scan bearer secrets were unavailable. Hosted auth smoke still
+  proves signed-out `/workshop` redirect only; allowed/denied/revoked/expired
+  cases remain blocked by missing `HOSTED_AUTH_*_COOKIE` fixtures.
+- State-mismatch root-shell recovery is live as of 2026-07-02 02:33 UTC:
+  after the owner still saw `https://archestimator.com/?error=state_mismatch`,
+  the current source was uploaded/deployed to Cloudflare Worker version
+  `2ce56c43-ad18-44de-9905-59a46d10817b` at 100%, and triggers were refreshed
+  for apex, `www`, workers.dev, cron, and queues. Live curl proves the exact
+  reported URL first-hops to
+  `https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1` with
+  private/no-store plus `Clear-Site-Data` headers and follows to
+  `/login?next=%2Fworkshop&oauth_state_reset_done=1` (`200`, `H1=Sign in`,
+  recovery marker present, no raw `?error=state_mismatch` query). Fresh
+  Chromium lands on the same clean login URL with no visible `state_mismatch`;
+  starting Google OAuth creates a fresh `__Secure-better-auth.state` cookie
+  and sends `redirect_uri=https://archestimator.com/api/auth/callback/google`
+  to Google with a 32-character state. Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-state-mismatch-root-shell-deploy.*`.
+- Cloudflare root-shell refresh as of 2026-07-02 02:50 UTC: live curl still
+  proves the exact owner-reported `https://archestimator.com/?error=state_mismatch`
+  URL first-hops to the clean reset URL and follows to
+  `/login?next=%2Fworkshop&oauth_state_reset_done=1` with `H1=Sign in`, no
+  raw `state_mismatch`, and reset-done marker present. Fresh release-gate
+  aggregation against root-shell artifacts is green:
+  `2026-07-02-cloudflare-release-gates-root-shell-refresh.*`; provider
+  readback is green for Worker/D1/R2/Queues/secrets:
+  `2026-07-02-cloudflare-provider-resource-readback-root-shell-refresh.*`.
+  D1/Auth/Realtime was re-aggregated with fresh root-shell-era local proof
+  artifacts for authz matrix, collaboration invitations, component library,
+  and estimate history; the aggregate remains green with no active
+  Supabase/Resend runtime references:
+  `2026-07-02-cloudflare-d1-auth-realtime-root-shell-proof-refresh.*`.
+  Strict credential-free public-route p95 is **not** green on the fresh 20-run
+  rerun: home/pricing/features/about/contact/login exceed current budgets in
+  `2026-07-02-cloudflare-hosted-performance-root-shell-rerun.*`, so keep
+  P1-PERF open even though the aggregate gate records performance evidence.
+- Latest state-mismatch check as of 2026-07-02 03:03 UTC: live curl for
+  `https://archestimator.com/?error=state_mismatch` still returns a private
+  no-store `302` to `/login?next=%2Fworkshop&oauth_state_reset=1` with
+  expanded Better Auth state-cookie deletion, `Clear-Site-Data`, and fallback
+  HTML. The visible desktop Chrome Archestimator tabs are not stranded on the
+  error: one is authenticated on `/workshop/publisher`, another is authenticated
+  on `/workshop`, and both show D1-backed project/publication data. The
+  D1/Auth/Realtime proof-test cluster was stabilized by loosening only the
+  local `sqlite3` CLI jitter budget for component-library query-shape checks
+  from 12 ms to 30 ms; focused Vitest passed 6 files / 23 tests, regenerated
+  `2026-07-02-cloudflare-d1-component-library-proof-root-shell-budget-refresh.*`,
+  and re-aggregated
+  `2026-07-02-cloudflare-d1-auth-realtime-root-shell-budget-refresh.*` plus
+  `2026-07-02-cloudflare-release-gates-root-shell-budget-refresh.*`.
 - State-mismatch live recheck as of 2026-07-02 01:21 UTC: after the owner
   again reported `https://archestimator.com/?error=state_mismatch`, a fresh
   live probe still recovered cleanly. Curl follows the exact URL through

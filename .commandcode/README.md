@@ -9,6 +9,12 @@ Canonical rules live in:
 2. `.ai/12_agents/payloads/commandcode.md`
 3. `DESIGN.md` for UI taste boundaries
 
+CommandCode inherits the shared Supermemory workflow from the framework
+protocol and payload: check `http://localhost:6767/`, start the local server
+when needed, search memory before meaningful work, and update it at closeout
+when durable project truth changes. Supermemory is advisory; `.ai` and current
+source remain authoritative.
+
 CommandCode agents default to review/sentinel lanes unless implementation is
 explicitly assigned in an isolated branch/worktree with a disjoint write scope.
 

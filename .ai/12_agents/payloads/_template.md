@@ -37,6 +37,17 @@ touched area only when the task needs them. Use `rg` for `current-state.md` and
 release, provider, UI, or framework work, pull the relevant `.ai/00_system`,
 `DESIGN.md`, roadmap, spec, plan, or provider evidence files.
 
+## Supermemory Workflow
+
+When this payload is approved or assigned for a task, follow the shared
+Supermemory local memory contract in
+`.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`: check `http://localhost:6767/`,
+start `npm exec supermemory local` in the background if it is down and local
+process startup is available, search relevant memory before meaningful work,
+and update memory at closeout when durable project truth changes. Supermemory is
+advisory until verified against current `.ai`, source, tests, logs, or provider
+evidence. Never store secrets and never commit `.supermemory/`.
+
 ## Repo-Safety Commands
 
 Check `git status --short --branch` before edits and preserve unrelated dirty

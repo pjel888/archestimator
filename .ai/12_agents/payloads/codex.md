@@ -26,6 +26,17 @@ Start with `AGENTS.md` and the FAST PATH block at the top of
 For UI work, pull `DESIGN.md` and relevant primitives only when the task touches
 that surface.
 
+## Supermemory Workflow
+
+Check `http://localhost:6767/` before meaningful Codex work. If it is down and
+local process startup is available, run `npm exec supermemory local` in the
+background and retry. Use the configured Codex Supermemory integration, MCP,
+SDK, or local API reference to search relevant memory before broad/non-trivial
+work, then update memory at closeout when durable project truth changes.
+Retrieved memories are advisory until verified against current `.ai`, source,
+tests, or provider evidence. Never print/store secrets and never commit
+`.supermemory/`.
+
 ## Repo-Safety Commands
 
 Before edits, check `git status --short --branch` and preserve unrelated dirty

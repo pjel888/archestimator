@@ -27,6 +27,15 @@ OpenCode, CommandCode, Antigravity, Kimi, DeepSeek, Gemini only if explicitly
 reapproved, and future payloads must map their local capabilities back to that
 shared loop.
 
+All payloads inherit the Supermemory local memory contract from
+`.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`. Before meaningful work, check
+`http://localhost:6767/`; if it is down and the harness can start local
+processes, run `npm exec supermemory local` in the background and retry.
+Search configured Supermemory memory before broad/non-trivial work and update
+it at closeout when durable project truth changes. Treat memories as advisory
+until verified against `.ai`, source, tests, or provider evidence. Never store
+secrets there and never commit `.supermemory/`.
+
 Use `_template.md` for new payloads. Deprecated, unapproved, and non-agent
 payloads must still state their fail-closed behavior. Run
 `bun run validate:agents` after payload changes to enforce the shared header

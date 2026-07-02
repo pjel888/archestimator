@@ -94,6 +94,7 @@ yarn-error.log*
 # temporary one-off screenshot/capture harnesses
 scripts/.tmp-*.mjs
 /.omx/
+/.supermemory/
 /.headroom/
 /.gitnexus/
 /.codex/cache

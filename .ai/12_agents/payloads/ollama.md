@@ -21,6 +21,16 @@ No agent reading chain applies unless Philip reapproves an Ollama chat lane. If
 that happens, start with `AGENTS.md` and the FAST PATH block at the top of
 `.ai/10_state/current-state.md`.
 
+## Supermemory Workflow
+
+Ollama is not a chat/planning/coding agent. If approved embedding tooling uses
+Ollama with Supermemory, the active lead or approved agent owns the workflow:
+check `http://localhost:6767/`, start `npm exec supermemory local` in the
+background if it is down and local process startup is available, search/update
+memory only through the approved tool surface, and treat retrieved memories as
+advisory until verified against current `.ai`, source, tests, or provider
+evidence. Never store secrets and never commit `.supermemory/`.
+
 ## Repo-Safety Commands
 
 No repo commands by default.
