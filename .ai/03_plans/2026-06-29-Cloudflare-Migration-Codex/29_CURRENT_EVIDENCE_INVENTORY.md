@@ -14,6 +14,8 @@ This document records the local evidence used to judge the Cloudflare migration 
 
 Initially collected on 2026-06-29 from the local repository only. The 2026-06-30 refresh now includes sanitized Cloudflare dashboard facts, Wrangler OAuth readback, and provider resource creation/readback for the named proof D1/R2/Queue resources. It still does not include hosted Worker traffic, Worker secret values, production DNS cutover, provider cancellation, or production user data migration.
 
+Current 2026-07-02 addendum: this inventory is historical planning evidence and is superseded for cutover readiness by the active ledgers `33_POST_CUTOVER_FULL_APP_QA_LEDGER.md` and `34_FULL_CLOUDFLARE_APP_VERIFICATION_LEDGER.md`. Hosted evidence now exists for Cloudflare Worker/OpenNext serving `archestimator.com`, Better Auth + D1 auth, D1 app-data workflows, R2 upload runtime/lifecycle/UI, Durable Object collaboration transport plus two-client hosted collaboration UI, Cloudflare Email proof, DNS delegation, provider resource readback, and release gates. Provider cancellation/deletion remains intentionally unproven and out of scope for this inventory.
+
 What this evidence proves:
 
 - The migration has broad provider coupling and cannot be safely planned as a narrow hosting swap.
@@ -59,38 +61,42 @@ The generated artifact is the current repeatable inventory surface for selecting
 
 The refresh does not read env files, print secret values, mutate providers, prove hosted Cloudflare deployment, prove D1/R2/Images/Email/Workers Paid readiness, change DNS, or make current providers removable.
 
-## Generated Cost And Performance Workbook Scaffold
+## Generated Cost And Performance Workbook
 
-Generated on 2026-06-30 local time with `bun run cf:workbook`.
+Originally generated on 2026-06-30 local time with `bun run cf:workbook`; refreshed on 2026-07-02 after the hosted p95 verifier and workbook default evidence pointer were corrected.
 
 Artifacts:
 
 - `evidence/2026-06-30-cloudflare-cost-performance-workbook.json`
 - `evidence/2026-06-30-cloudflare-cost-performance-workbook.md`
+- `evidence/2026-07-01-cloudflare-cost-performance-workbook.json`
+- `evidence/2026-07-01-cloudflare-cost-performance-workbook.md`
 
-The generated workbook scaffold combines the local migration inventory and local Worker route probe. It intentionally keeps production cost and speed gates closed:
+The current generated workbook combines the migration inventory, hosted route p95 proof, provider-runtime performance proofs, official Cloudflare pricing snapshot, and sanitized provider usage inputs. It keeps strict hosted client p95 visible separately from provider runtime readiness:
 
 | Gate | Ready? |
 | --- | --- |
-| Current provider costs ready | no |
+| Current provider costs ready | yes |
 | Cloudflare pricing refreshed | yes |
-| Cloudflare usage costs ready | no |
+| Cloudflare usage costs ready | yes |
 | Local preview performance captured | yes |
-| Hosted credential-free performance captured | no |
+| Hosted credential-free performance captured | yes |
+| Production runtime performance ready | yes |
+| Strict hosted client p95 ready | no |
+| Aggregate hosted performance ready | yes |
 | Hosted performance ready | no |
-| Production cost decision ready | no |
+| Production cost decision ready | yes |
 
-Local-only Worker preview duration rows captured:
+Current hosted p95 rows captured from `evidence/2026-06-30-cloudflare-hosted-performance.*`:
 
-| Fixture | Local Worker preview p95 | Status |
+| Fixture | Hosted p95 | Status |
 | --- | ---: | --- |
-| Public home route p95 TTFB | `168.47ms` | local-only-pass |
-| Pricing/features static route p95 TTFB | `13.68ms` | local-only-pass |
-| Login/auth callback p95 duration | `13.07ms` | local-only-pass |
-| Share route p95 TTFB | `327.35ms` | local-only-pass |
-| Workshop home p95 TTFB | `4.03ms` | local-only-pass |
+| Public home route p95 TTFB | `757.42ms` | hosted-partial-fail / watch |
+| Pricing/features static route p95 TTFB | `508.82ms` / `398.4ms` | hosted-partial-fail / watch |
+| Share route p95 TTFB | `478.99ms` | hosted-partial-fail / watch |
+| Workshop home p95 TTFB | `645.31ms` | hosted-partial-fail / watch |
 
-These are local Worker preview route durations only. The workbook still needs sanitized Vercel/Supabase/Resend dashboard/invoice inputs, hosted Cloudflare usage metrics, provider logs, current-provider baselines, rollback triggers, and the same proof architecture for cost and performance evidence.
+Credential-free hosted route contracts and sample count currently pass, so the hosted verifier and aggregate release gate are green. Strict public-route client p95 budgets are currently watch-grade tuning evidence (`p95BudgetReady=false`, `p95BudgetWatch=true`, `strictHostedClientP95Ready=false`, `p95BudgetMisses=13`) and should not block provider runtime readiness unless route contracts fail, sample count is insufficient, or provider runtime performance regresses.
 
 ## Generated Hosted Worker Route Proof
 
@@ -903,7 +909,7 @@ Local follow-up evidence on 2026-06-29:
 - A first Cloudflare Cron Trigger wrapper now exists for the existing upload cleanup and scan schedules. It is local proof groundwork only: the Worker preview scheduled endpoint observed matched cron invocations and fail-closed missing-secret logs, while Vercel remains the live cron fallback until Cloudflare provider proof and rollback proof pass.
 - A local Cloudflare Queues/Cron retry and DLQ proof now exists for the same upload cleanup/scan job family. `wrangler.jsonc` declares producer binding `UPLOAD_JOBS_QUEUE`, consumer queue `archestimator-upload-jobs`, `max_retries=3`, and dead-letter queue `archestimator-upload-jobs-dlq`; `worker.ts` exposes a Cloudflare `queue()` handler; and `src/lib/cloudflare/upload-job-queue.ts` provides deterministic idempotency keys plus ack/retry decisions. Evidence in `evidence/2026-06-30-cloudflare-queues-cron-proof.json` and `.md` records `localQueuesCronProofReady=true`, `providerBacked=false`, `productionJobsMessagingReady=false`, `3` acked messages, `1` retried message, `1` duplicate ack, `1` invalid-message ack, and `1` DLQ-expected final retry. The Queues and DLQ provider resources now exist and read back through Wrangler; hosted consumer/cron execution evidence remains open.
 - A local Wrangler/API auth snapshot now exists. `scripts/check-cloudflare-wrangler-auth.ts` and `bun run cf:check-wrangler-auth` run read-only `wrangler whoami --json`, sanitize output, and write `evidence/2026-06-30-cloudflare-wrangler-auth.{json,md}`. The latest artifact records CLI/auth check completed, OAuth authenticated against account `7f6229cfea61b59f6f48b517fde86039`, `wranglerApiAuthenticated=true`, `providerReadbackReady=true`, and `productionDeployReady=false`. `cf:check-provider` and `cf:release-gates` consume this artifact.
-- A first Cloudflare R2 upload storage adapter, Cloudflare Images processing adapter, and R2-mode upload lifecycle route path now exist behind explicit runtime selectors. Local tests prove safe logical key mapping, R2 `put`/`get`/`delete` adaptation, delete cleanup, unsafe path denial, fail-closed signed/public URL behavior, explicit runtime storage provider selection, current image-route compatibility with the provider-neutral upload/download/delete path, mocked OpenNext `ARCH_UPLOADS_R2` component-image route POST/GET behavior, mocked server-mediated component attachment upload/private-download/delete through `ARCH_UPLOADS_R2`, mocked cleanup delete and scan download through `ARCH_UPLOADS_R2`, R2-mode direct signed/TUS session creation failing closed before Supabase signer/RPC use, and mocked `IMAGES` raw-byte WebP resize/thumbnail processing. `cf:typegen` now emits `ARCH_UPLOADS_R2: R2Bucket` and `IMAGES: ImagesBinding`. R2 provider bucket creation/readback is now proven for `archestimator-proof-uploads` and `archestimator-proof-uploads-dev`; hosted upload lifecycle, direct signed-or-TUS R2 signer replacement, and paid/deployed Cloudflare Images proof remain open.
+- A first Cloudflare R2 upload storage adapter, Cloudflare Images processing adapter, and R2-mode upload lifecycle route path now exist behind explicit runtime selectors. Local tests prove safe logical key mapping, R2 `put`/`get`/`delete` adaptation, delete cleanup, unsafe path denial, fail-closed signed/public URL behavior, explicit runtime storage provider selection, current image-route compatibility with the provider-neutral upload/download/delete path, mocked OpenNext `ARCH_UPLOADS_R2` component-image route POST/GET behavior, mocked server-mediated component attachment upload/private-download/delete through `ARCH_UPLOADS_R2`, mocked cleanup delete and scan download through `ARCH_UPLOADS_R2`, R2-mode direct signed/TUS session creation failing closed before Supabase signer/RPC use, and mocked `IMAGES` raw-byte WebP resize/thumbnail processing. `cf:typegen` now emits `ARCH_UPLOADS_R2: R2Bucket` and `IMAGES: ImagesBinding`. R2 provider bucket creation/readback is now proven for `archestimator-proof-uploads` and `archestimator-proof-uploads-dev`; the older hosted upload lifecycle/browser proof gap is now superseded by `2026-07-02-cloudflare-hosted-upload-lifecycle-proof.*` and `2026-07-02-cloudflare-hosted-upload-ui-proof.*`. Direct signed-or-TUS R2 signer replacement and paid/deployed Cloudflare Images proof remain separate follow-ups.
 - A credential-free local Worker route probe now exists. `.dev.vars.example` lists the publication secret bindings needed for local/deployed Worker proof, and the ignored local `.dev.vars` carries placeholder preview values. Evidence in `evidence/2026-06-29-cloudflare-worker-preview-route-probe.json` and `.md` passed 16 local preview probes for health, 11 public/signed-out pages, signed-out protected-route redirect, invalid share page/API behavior, and private image fail-closed behavior. Hosted custom-domain route parity remains open before provider cutover.
 - A Cloudflare Worker readiness checker now exists. `scripts/check-cloudflare-worker-readiness.ts` and `bun run cf:check-readiness` verify `.env.example`, `.dev.vars.example`, `wrangler.jsonc` bindings/crons/observability sampling, package scripts, optional ignored local `.dev.vars` preview names, and optional sanitized Cloudflare Worker secret-list transcripts without printing secret values. Evidence in `evidence/2026-06-29-cloudflare-worker-readiness.json` and `.md` passed manifest/local-preview readiness and intentionally kept `deploymentReady=false` because no provider secret-list/deployment evidence was supplied.
 

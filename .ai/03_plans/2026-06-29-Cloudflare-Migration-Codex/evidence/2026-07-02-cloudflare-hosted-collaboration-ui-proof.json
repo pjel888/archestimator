@@ -1,0 +1,121 @@
+{
+  "generatedAt": "2026-07-02T09:54:21.246Z",
+  "mode": "cloudflare-hosted-collaboration-ui-proof",
+  "baseUrl": "https://archestimator.com",
+  "d1Database": "archestimator-proof-db",
+  "syntheticFixture": {
+    "workspaceId": "6c80f9e2-7eac-4d2e-a3de-f4603ae6e258",
+    "projectId": "ee8751b1-6f30-4725-ae8a-c8d600b05098",
+    "estimateId": "463bc88d-a6cc-4c23-a3d9-18a629cee2b1",
+    "areaNodeId": "b4416d1d-bf41-4eb4-ab5e-6f43862c4c13",
+    "projectCode": "CF-COLLAB-20260702095421246",
+    "users": [
+      {
+        "id": "52702495-355c-4ab1-a16c-024328173ee0",
+        "email": "codex-collab-ui-a-20260702095421246@example.invalid",
+        "displayName": "Codex Collab Alice",
+        "projectRole": "owner",
+        "sessionExpiresAt": "2026-07-02T10:54:21.246Z",
+        "signedCookiesProvided": true
+      },
+      {
+        "id": "38c48230-27d3-4e16-a78b-5991212d1a36",
+        "email": "codex-collab-ui-b-20260702095421246@example.invalid",
+        "displayName": "Codex Collab Bruno",
+        "projectRole": "editor",
+        "sessionExpiresAt": "2026-07-02T10:54:21.246Z",
+        "signedCookiesProvided": true
+      }
+    ]
+  },
+  "readiness": {
+    "syntheticBetterAuthSessionsReady": true,
+    "d1ProjectFixtureReady": true,
+    "projectRouteReady": true,
+    "publisherAccessRosterReady": true,
+    "twoClientEstimateRoutesReady": true,
+    "durableObjectChannelsSubscribed": true,
+    "cursorBroadcastSent": true,
+    "remoteCursorRendered": true,
+    "exactD1CleanupReady": true,
+    "hostedCollaborationUiReady": true,
+    "productionCutoverReady": false
+  },
+  "proof": {
+    "cleanupBefore": {
+      "users": 0,
+      "sessions": 0,
+      "profiles": 0,
+      "memberships": 0,
+      "closedBetaRows": 0,
+      "legalTermsRows": 0,
+      "workspaces": 0,
+      "projects": 0,
+      "projectMembers": 0,
+      "estimates": 0,
+      "estimateTabs": 0,
+      "estimateNodes": 0,
+      "estimateRows": 0,
+      "estimateSheetMembers": 0,
+      "estimateSheetAccessSettings": 0,
+      "estimateSheetPreferences": 0
+    },
+    "cleanupAfter": {
+      "users": 0,
+      "sessions": 0,
+      "profiles": 0,
+      "memberships": 0,
+      "closedBetaRows": 0,
+      "legalTermsRows": 0,
+      "workspaces": 0,
+      "projects": 0,
+      "projectMembers": 0,
+      "estimates": 0,
+      "estimateTabs": 0,
+      "estimateNodes": 0,
+      "estimateRows": 0,
+      "estimateSheetMembers": 0,
+      "estimateSheetAccessSettings": 0,
+      "estimateSheetPreferences": 0
+    },
+    "browser": {
+      "projectRouteStatus": 200,
+      "projectRouteOk": true,
+      "projectHeaderAccessLinkReady": true,
+      "publisherAccessRouteStatus": 200,
+      "publisherAccessReady": true,
+      "rosterPanelReady": true,
+      "userARosterVisible": true,
+      "userBRosterVisible": true,
+      "estimateRouteAStatus": 200,
+      "estimateRouteBStatus": 200,
+      "estimateRouteAReady": true,
+      "estimateRouteBReady": true,
+      "cursorChannelA": "subscribed",
+      "cursorChannelB": "subscribed",
+      "cursorSendStatusB": "ok",
+      "remoteCursorVisibleOnA": true,
+      "remoteCursorUserIdOnA": "38c48230-27d3-4e16-a78b-5991212d1a36",
+      "remoteCursorLabelOnA": "Codex Collab Bruno",
+      "consoleErrors": [],
+      "pageErrors": [
+        "Minified React error #418; visit https://react.dev/errors/418?args[]=HTML&args[]= for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+      ]
+    },
+    "routes": {
+      "projectPath": "/workshop/projects/ee8751b1-6f30-4725-ae8a-c8d600b05098",
+      "publisherAccessPath": "/workshop/publisher?project=ee8751b1-6f30-4725-ae8a-c8d600b05098&drawer=ee8751b1-6f30-4725-ae8a-c8d600b05098&tab=access",
+      "estimateSheetPath": "/workshop/projects/ee8751b1-6f30-4725-ae8a-c8d600b05098/estimates/b4416d1d-bf41-4eb4-ab5e-6f43862c4c13"
+    },
+    "browserDiagnostics": {
+      "consoleErrors": [],
+      "pageErrors": [
+        "Minified React error #418; visit https://react.dev/errors/418?args[]=HTML&args[]= for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+      ]
+    }
+  },
+  "blockers": [],
+  "passed": true,
+  "note": "Seeds an exact synthetic Cloudflare D1 workspace/project/estimate with two Better Auth users, drives the hosted Publisher access roster and two authenticated estimate-sheet browser sessions on archestimator.com, verifies a Cloudflare Durable Object cursor broadcast renders remotely, then deletes the exact D1 fixture rows. Session tokens, signatures, cookies, and provider tokens are never written to evidence.",
+  "error": null
+}

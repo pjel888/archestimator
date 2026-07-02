@@ -1,6 +1,6 @@
 # Cloudflare Release Gates
 
-Generated: 2026-07-02T02:41:20.033Z
+Generated: 2026-07-02T11:03:30.655Z
 
 Aggregates existing local/sanitized Cloudflare migration evidence only. It does not call Cloudflare APIs, read env files, print secrets, deploy Workers, change DNS, purchase plans, cancel subscriptions, delete resources, or mutate external providers.
 
@@ -41,7 +41,7 @@ Aggregates existing local/sanitized Cloudflare migration evidence only. It does 
 | provider | Cloudflare analytics and observability receipt ready | PASS | analyticsReady=yes |  |
 | cost-performance | Current provider cost inputs captured | PASS | currentProviderCostsReady=yes |  |
 | cost-performance | Cloudflare usage cost inputs captured | PASS | cloudflareUsageCostsReady=yes |  |
-| cost-performance | Hosted Cloudflare runtime performance proof captured | PASS | hostedCredentialFreePerformanceCaptured=yes, productionRuntimePerformanceReady=yes, strictHostedClientP95Ready=no, hostedPerformanceReady=no |  |
+| cost-performance | Hosted Cloudflare runtime performance proof captured | PASS | hostedCredentialFreePerformanceCaptured=yes, productionRuntimePerformanceReady=yes, strictHostedClientP95Ready=no, aggregateHostedPerformanceReady=yes |  |
 | cost-performance | Production cost decision ready | PASS | productionCostDecisionReady=yes |  |
 
 ## Blockers

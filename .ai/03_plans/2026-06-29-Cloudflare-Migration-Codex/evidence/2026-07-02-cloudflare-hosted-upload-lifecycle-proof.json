@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-02T08:28:39.375Z",
+  "generatedAt": "2026-07-02T09:30:36.404Z",
   "mode": "cloudflare-hosted-upload-lifecycle-proof-verifier",
   "baseUrl": "https://archestimator.com",
   "endpointPath": "/api/internal/upload-lifecycle-proof",
@@ -27,7 +27,7 @@
   },
   "proof": {
     "objectPathShape": "{workspaceId}/{userId}/codex-upload-proof-object-{runId}.pdf",
-    "objectPathHash": "c892c7450cb2be8eb1f1be8d56a337285ed3c2720ad87e6d7719cfc326ca3afb",
+    "objectPathHash": "c64a479066299adc0a4aa8c83598b807e63e849ad38e7841a4dd18927491332d",
     "storagePut": {
       "passed": true,
       "contentType": "application/pdf",

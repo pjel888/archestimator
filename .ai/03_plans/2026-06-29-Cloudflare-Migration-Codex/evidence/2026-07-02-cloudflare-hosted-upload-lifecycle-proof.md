@@ -1,6 +1,6 @@
 # Cloudflare Hosted Upload Lifecycle Proof
 
-Generated: 2026-07-02T08:28:39.375Z
+Generated: 2026-07-02T09:30:36.404Z
 Base URL: https://archestimator.com
 Endpoint: /api/internal/upload-lifecycle-proof
 Response status: 200
@@ -28,7 +28,7 @@ Calls the deployed Cloudflare Worker upload lifecycle proof endpoint with a loca
 ## Sanitized Results
 
 - Object path shape: {workspaceId}/{userId}/codex-upload-proof-object-{runId}.pdf
-- Object path hash: c892c7450cb2be8eb1f1be8d56a337285ed3c2720ad87e6d7719cfc326ca3afb
+- Object path hash: c64a479066299adc0a4aa8c83598b807e63e849ad38e7841a4dd18927491332d
 - R2 content type: application/pdf
 - R2 size bytes: 77
 - R2 checksum matches fixture: yes

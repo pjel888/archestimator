@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-02T02:41:20.033Z",
+  "generatedAt": "2026-07-02T11:03:30.655Z",
   "mode": "cloudflare-release-gates",
   "sources": {
     "inventory": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-migration-inventory.json",
@@ -202,7 +202,7 @@
       "label": "Hosted Cloudflare runtime performance proof captured",
       "scope": "cost-performance",
       "ready": true,
-      "evidence": "hostedCredentialFreePerformanceCaptured=yes, productionRuntimePerformanceReady=yes, strictHostedClientP95Ready=no, hostedPerformanceReady=no",
+      "evidence": "hostedCredentialFreePerformanceCaptured=yes, productionRuntimePerformanceReady=yes, strictHostedClientP95Ready=no, aggregateHostedPerformanceReady=yes",
       "blocker": null,
       "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-cost-performance-workbook.json"
     },

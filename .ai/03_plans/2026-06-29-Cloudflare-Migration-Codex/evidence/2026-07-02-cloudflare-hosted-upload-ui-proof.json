@@ -1,0 +1,125 @@
+{
+  "generatedAt": "2026-07-02T09:29:24.991Z",
+  "mode": "cloudflare-hosted-upload-ui-proof",
+  "baseUrl": "https://archestimator.com",
+  "routePath": "/workshop/library/components",
+  "d1Database": "archestimator-proof-db",
+  "r2PhysicalBucket": "archestimator-proof-uploads",
+  "r2LogicalBucket": "component-attachments",
+  "workspaceId": "258b50ee-3fde-4f6a-a9d9-c360ec44cd0b",
+  "syntheticFixture": {
+    "userId": "db7ca2b8-cd0e-402b-95f4-ac0c2a69dae8",
+    "email": "codex-upload-ui-20260702092924991@example.invalid",
+    "workspaceRole": "owner",
+    "sessionExpiresAt": "2026-07-02T10:29:24.991Z",
+    "signedCookiesProvided": true
+  },
+  "readiness": {
+    "browserRouteReady": true,
+    "syntheticBetterAuthSessionReady": true,
+    "componentLibraryWorkspaceVisible": true,
+    "addComponentModalReady": true,
+    "variantAttachmentInputReady": true,
+    "uiUploadRequestObserved": true,
+    "uploadResponseReady": true,
+    "d1UploadSessionRecorded": true,
+    "d1UploadAssetRecorded": true,
+    "d1ScanPendingEventRecorded": true,
+    "r2ObjectReadable": true,
+    "r2ChecksumMatchesFixture": true,
+    "appCleanupRemovedR2Object": true,
+    "d1CleanupReady": true,
+    "hostedUploadUiReady": true,
+    "productionCutoverReady": false
+  },
+  "proof": {
+    "fileName": "codex-browser-upload-proof-20260702092924991.pdf",
+    "fileSizeBytes": 133,
+    "fixtureChecksumSha256": "89483c3badbbf9dadc73d52a65f710eced0891ab54275be6a865d735cc9e4a32",
+    "navigation": {
+      "routeStatus": 200,
+      "routeOk": true,
+      "finalUrlPath": "/workshop/library/components"
+    },
+    "ui": {
+      "workspaceVisible": true,
+      "addComponentButtonReady": true,
+      "addComponentModalReady": true,
+      "variantPanelReady": true,
+      "variantEditorReady": true,
+      "attachmentInputReady": true,
+      "statusTextVisible": true
+    },
+    "uploadApi": {
+      "status": 200,
+      "ok": true,
+      "bucket": "component-attachments",
+      "fileName": "codex-browser-upload-proof-20260702092924991.pdf",
+      "contentType": "application/pdf",
+      "sizeBytes": 133,
+      "scanStatus": "pending",
+      "uploadSessionIdPresent": true,
+      "assetIdPresent": true,
+      "objectPathShape": "{workspaceId}/{userId}/{safeUploadName}-{uuid}.pdf",
+      "objectPathHash": "c1f39518176728d01291a3aeaa13658a90f16af8a081eb488a75a8cce4a8feb0"
+    },
+    "d1Readback": {
+      "uploadSessionRows": 1,
+      "uploadAssetRows": 1,
+      "attachmentRows": 0,
+      "eventTypes": [
+        "scan_pending"
+      ],
+      "sessionStatus": "finalized",
+      "assetStatus": "finalized",
+      "scanStatus": "pending",
+      "contentType": "application/pdf",
+      "sizeBytes": 133,
+      "checksumMatchesFixture": true
+    },
+    "r2Readback": {
+      "getStatus": 0,
+      "readable": true,
+      "sizeBytes": 133,
+      "checksumMatchesFixture": true
+    },
+    "appCleanup": {
+      "deleteStatus": 200,
+      "deleteOk": true,
+      "removedCount": 1,
+      "r2ObjectMissingAfterDelete": true
+    },
+    "cleanupBefore": {
+      "users": 0,
+      "sessions": 0,
+      "profiles": 0,
+      "memberships": 0,
+      "closedBetaRows": 0,
+      "legalTermsRows": 0,
+      "uploadSessions": 0,
+      "uploadAssets": 0,
+      "uploadEvents": 0,
+      "attachments": 0
+    },
+    "cleanupAfter": {
+      "users": 0,
+      "sessions": 0,
+      "profiles": 0,
+      "memberships": 0,
+      "closedBetaRows": 0,
+      "legalTermsRows": 0,
+      "uploadSessions": 0,
+      "uploadAssets": 0,
+      "uploadEvents": 0,
+      "attachments": 0
+    },
+    "browserDiagnostics": {
+      "consoleErrors": [],
+      "pageErrors": []
+    }
+  },
+  "blockers": [],
+  "passed": true,
+  "note": "Drives the real hosted Add Component browser UI with a synthetic Better Auth D1 session, uploads a tiny PDF through /api/component-library/attachments, verifies D1 upload metadata and R2 bytes, proves app-level R2 cleanup through DELETE /api/component-library/attachments, then removes exact synthetic D1 rows. Raw session cookies, signatures, R2 object paths, provider tokens, and customer data are not written to evidence.",
+  "error": null
+}
