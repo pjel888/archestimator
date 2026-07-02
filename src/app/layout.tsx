@@ -1,21 +1,10 @@
 import type { Metadata } from "next";
-import { Doto, Geist, Roboto_Mono } from "next/font/google";
+import { AuthStateMismatchRecoveryScript } from "@/components/auth/AuthStateMismatchRecoveryScript";
 import { LiquidGlassReady } from "@/components/system/LiquidGlassReady";
 import { LandingStructuredData } from "@/components/landing/structured-data";
 import { LANDING_SITE_ORIGIN } from "@/lib/landing/seo-metadata";
 import { AppProviders } from "./providers";
 import "./globals.css";
-
-const robotoMono = Roboto_Mono({ variable: "--font-roboto-mono", subsets: ["latin"], display: "swap" });
-const geist = Geist({ variable: "--font-geist", subsets: ["latin"], display: "swap" });
-// Technical display face for the Workshop dashboard's editorial headline layer,
-// inspired by the "Improve ROI" reference. Body UI keeps the SF Pro stack.
-const doto = Doto({
-  variable: "--font-doto",
-  subsets: ["latin"],
-  weight: "variable",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(LANDING_SITE_ORIGIN), // L-SEO-1 placeholder origin until domain confirmed
@@ -39,7 +28,8 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${robotoMono.variable} ${geist.variable} ${doto.variable}`}>
+      <body>
+        <AuthStateMismatchRecoveryScript />
         <AppProviders>{children}</AppProviders>
         {/* JSON-LD structured data (Organization + WebSite) sitewide (doc 13 §4). */}
         <LandingStructuredData />

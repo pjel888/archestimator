@@ -12,9 +12,12 @@ const evidenceSummary = readFileSync(
 );
 
 describe("public image/font LCP audit", () => {
-  it("keeps only the measured mono font variable in the root layout", () => {
-    expect(rootLayout).toContain("Roboto_Mono");
-    expect(rootLayout).toContain("--font-roboto-mono");
+  it("keeps font tokens CSS-only so Cloudflare worker builds avoid next/font metrics", () => {
+    expect(rootLayout).not.toContain("next/font");
+    expect(rootLayout).not.toContain("Roboto_Mono");
+    expect(globals).toContain("--font-roboto-mono:");
+    expect(globals).toContain("--font-geist:");
+    expect(globals).toContain("--font-doto:");
     expect(rootLayout).not.toContain("Inter");
     expect(rootLayout).not.toContain("Poppins");
     expect(rootLayout).not.toContain("Source_Serif_4");

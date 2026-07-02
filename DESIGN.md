@@ -408,10 +408,11 @@ radii, and reversed-out type. Path-scoped to the dashboard directory only, never
 app-wide. **This direction is NOT finalized** — it is pending the owner's live visual
 review, so do not treat the values below as locked tokens of record yet. Highlights:
 
-- **Display family:** `Doto` loaded via `next/font` → `--font-display` (utility
-  `font-display`). Used for the Improve-ROI-inspired editorial headline and first-run
-  headline only. Body UI keeps the SF Pro system stack.
-- **Numeric family:** the already-loaded Roboto Mono is re-exposed as `--font-numeric`
+- **Display family:** `--font-doto` feeds `--font-display` (utility
+  `font-display`). In Cloudflare Worker builds this is a CSS-only local/system-family
+  token to avoid bundling `next/font` metrics. Used for the Improve-ROI-inspired
+  editorial headline and first-run headline only. Body UI keeps the SF Pro system stack.
+- **Numeric family:** `--font-roboto-mono` is exposed as `--font-numeric`
   (utility `font-numeric`) for codes, dates, counts, and totals — a distinct utility so
   the dashboard never needs the banned monospace class.
 - **Type scale:** Roboto Mono (`font-numeric`) is the greeting-kicker/label/numeric voice;

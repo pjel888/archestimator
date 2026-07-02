@@ -14,7 +14,6 @@ const PUBLIC_STATIC_ROUTE_FILES = [
   "src/app/privacy/page.tsx",
   "src/app/terms/page.tsx",
   "src/app/trust/page.tsx",
-  "src/app/login/page.tsx",
   "src/app/signup/page.tsx",
 ] as const;
 
@@ -34,6 +33,17 @@ describe("public static route contract", () => {
       expect(source, path).not.toMatch(/\bheaders\(\)/);
       expect(source, path).not.toMatch(/\bsearchParams\b/);
     }
+  });
+
+  it("keeps the auth entry route dynamic so Google OAuth server actions cannot serve stale HTML", () => {
+    const loginSource = readProjectFile("src/app/login/page.tsx");
+
+    expect(loginSource).toContain('export const dynamic = "force-dynamic"');
+    expect(loginSource).toContain("export const revalidate = 0");
+    expect(loginSource).not.toContain('export const dynamic = "force-static"');
+    expect(loginSource).not.toContain("next/headers");
+    expect(loginSource).not.toMatch(/\bcookies\(\)/);
+    expect(loginSource).not.toMatch(/\bheaders\(\)/);
   });
 
   it("keeps URL-specific public state in client Suspense islands", () => {

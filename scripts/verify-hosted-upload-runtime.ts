@@ -288,7 +288,7 @@ export async function verifyHostedUploadRuntime(options: VerifyHostedUploadRunti
     passed: samples.every((sample) => sample.passed),
     productionProofReady,
     missingAuthenticatedProbeSecrets: options.secret ? [] : ["HOSTED_UPLOAD_RUNTIME_SECRET"],
-    note: "Hosted upload runtime proof never records bearer secrets or uploaded bytes. Authenticated probes call a secret-gated non-mutating route that reports runtime memory, bounded body-probe receipt, concurrency reachability, and Supabase Storage bucket latency. This does not prove real user upload UX, scanner/CDR execution, alert delivery, dashboard observation, backpressure traffic, or retention-runbook completion.",
+    note: "Hosted upload runtime proof never records bearer secrets or uploaded bytes. Authenticated probes call a secret-gated non-mutating route that reports runtime memory, bounded body-probe receipt, concurrency reachability, and Cloudflare R2 storage latency. This does not prove real user upload UX, scanner/CDR execution, alert delivery, dashboard observation, backpressure traffic, or retention-runbook completion.",
     samples,
   };
 }

@@ -57,7 +57,7 @@ type VerifyResult = {
 
 const WORKSHOP_ROUTE = "/workshop";
 const LOGIN_ROUTE = "/login";
-const ACCESS_REQUIRED_ROUTE = "/beta/access-required";
+const ACCESS_REQUIRED_ROUTE = "/access-required";
 const DEFAULT_RUNS = 1;
 const DEFAULT_ALLOWED_ORIGINS = [
   "https://archestimator.com",
@@ -180,8 +180,8 @@ export function hasPrivateNoStoreCacheControl(value: string | null) {
 
 function expectedDescription(name: AuthCaseName) {
   if (name === "allowed") return "allowed session reaches the protected workshop without beta-access redirect";
-  if (name === "denied") return "denied session redirects to /beta/access-required";
-  if (name === "revoked") return "revoked session redirects to /beta/access-required?status=revoked";
+  if (name === "denied") return "denied session redirects to /access-required";
+  if (name === "revoked") return "revoked session redirects to /access-required?status=revoked";
   return "signed-out or expired session redirects to /login with a safe next path";
 }
 
