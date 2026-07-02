@@ -2,7 +2,7 @@ import "server-only";
 
 import { createHash, randomUUID } from "node:crypto";
 
-import { requireCurrentUserContext } from "@/lib/auth/session";
+import { requireCurrentUserContext, type CurrentUserContext } from "@/lib/auth/session";
 import { canEditEstimateInD1, canEditProjectInD1 } from "@/lib/authz/d1-access";
 import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
 import { computeEstimateRowLineTotal, sumEstimateRowLineTotals } from "@/lib/estimates/estimate-row-total";
@@ -139,6 +139,11 @@ type EstimateEventRow = {
   total_delta: number | string | null;
   created_at: string;
 };
+
+type ExistingEstimateEventRow = Pick<
+  EstimateEventRow,
+  "id" | "estimate_id" | "estimate_node_id" | "estimate_tab_id" | "target_row_id" | "event_type" | "payload" | "new_snapshot"
+>;
 
 type HistoryEventInput = {
   projectId: string;
@@ -494,6 +499,21 @@ async function insertHistoryEvent(database: D1DatabaseLike, input: HistoryEventI
     ],
   );
   return eventId;
+}
+
+async function readExistingHistoryEvent(database: D1DatabaseLike, estimateId: string, correlationId: string) {
+  const event = await first<ExistingEstimateEventRow>(
+    database,
+    `
+      SELECT id, estimate_id, estimate_node_id, estimate_tab_id, target_row_id, event_type, payload, new_snapshot
+      FROM estimate_sheet_events
+      WHERE estimate_id = ?
+        AND correlation_id = ?
+      LIMIT 1
+    `,
+    [estimateId, correlationId],
+  );
+  return event ? serializeEventRow(event as EstimateEventRow) as ExistingEstimateEventRow : null;
 }
 
 function createEstimateDeletePreviewHash(input: {
@@ -895,8 +915,42 @@ class EstimateActionD1Query {
   }
 }
 
+const ESTIMATE_EDIT_ACTIONS = new Set([
+  "archive_estimate_tab_with_history",
+  "create_estimate_node_with_history",
+  "create_estimate_tab_with_history",
+  "delete_estimate_node_with_history",
+  "delete_estimate_nodes_bulk_with_history",
+  "delete_estimate_row_item_with_history",
+  "delete_estimate_row_items_bulk_with_history",
+  "delete_estimate_tab_with_history",
+  "duplicate_estimate_tab_with_history",
+  "insert_estimate_row_item_with_history",
+  "insert_estimate_template_into_estimate_with_history",
+  "insert_estimate_template_node_into_estimate_with_history",
+  "move_estimate_row_component_with_history",
+  "move_estimate_row_item_with_history",
+  "rename_estimate_node_with_history",
+  "rename_estimate_tab_with_history",
+  "reorder_estimate_nodes_with_history",
+  "reorder_estimate_tabs_with_history",
+  "replace_estimate_row_item_with_history",
+  "unlink_estimate_row_item_from_library_with_history",
+  "update_estimate_details_with_history",
+  "update_estimate_row_item_with_history",
+  "update_estimate_sheet_adjustment_with_history",
+]);
+
+async function resolveCurrentUserContext(currentUserOverride?: CurrentUserContext | null) {
+  if (currentUserOverride !== undefined) return currentUserOverride;
+  return requireCurrentUserContext().catch(() => null);
+}
+
 export class EstimateActionsD1Client {
-  constructor(readonly database: D1DatabaseLike) {}
+  constructor(
+    readonly database: D1DatabaseLike,
+    private readonly currentUserOverride?: CurrentUserContext | null,
+  ) {}
 
   from(table: string) {
     return new EstimateActionD1Query(this.database, table);
@@ -904,7 +958,7 @@ export class EstimateActionsD1Client {
 
   async call<T = unknown>(name: string, args: Record<string, unknown>): Promise<QueryResult<T>> {
     try {
-      const data = await callEstimateAction<T>(this.database, name, args);
+      const data = await callEstimateAction<T>(this.database, name, args, this.currentUserOverride);
       return { data, error: null };
     } catch (error) {
       return { data: null, error: error instanceof Error ? error : new Error(String(error)) };
@@ -1360,6 +1414,15 @@ async function insertRowItem(database: D1DatabaseLike, args: Record<string, unkn
   const estimateId = String(args.target_estimate_id ?? "");
   const nodeId = String(args.target_node_id ?? "");
   const payload = readJsonRecord(args.row_payload);
+  const correlationId = String(args.correlation_id ?? randomUUID());
+  const existingEvent = await readExistingHistoryEvent(database, estimateId, correlationId);
+  if (existingEvent) {
+    const existingPayload = readJsonRecord(existingEvent.payload);
+    const existingRowId = String(existingEvent.target_row_id ?? existingPayload.rowId ?? payload.id ?? "");
+    const existingRow = existingRowId ? await readRowById(database, estimateId, existingRowId) : null;
+    if (!existingRow) throw new Error("Idempotent estimate row insert event exists but the row is missing.");
+    return rowItemHistoryResult(existingRow, existingEvent.id);
+  }
   const sort = await first<{ max_sort_order: number | null }>(
     database,
     "SELECT MAX(sort_order) AS max_sort_order FROM estimate_row_items WHERE estimate_id = ? AND node_id = ?",
@@ -1400,7 +1463,7 @@ async function insertRowItem(database: D1DatabaseLike, args: Record<string, unkn
     targetRowId: rowId,
     eventType: "row_inserted",
     actorUserId: String(args.acting_user_id ?? "") || null,
-    correlationId: String(args.correlation_id ?? randomUUID()),
+    correlationId,
     newSnapshot: row,
     rowContext: { material: row.material, supplier: row.supplier },
     payload: { rowId },
@@ -1444,6 +1507,13 @@ async function patchRowItem(database: D1DatabaseLike, args: Record<string, unkno
   const projectId = String(args.target_project_id ?? "");
   const estimateId = String(args.target_estimate_id ?? "");
   const rowId = String(args.target_row_id ?? "");
+  const correlationId = String(args.correlation_id ?? randomUUID());
+  const existingEvent = await readExistingHistoryEvent(database, estimateId, correlationId);
+  if (existingEvent) {
+    const existingRow = await readRowById(database, estimateId, rowId);
+    if (!existingRow) throw new Error("Idempotent estimate row update event exists but the row is missing.");
+    return rowItemHistoryResult(existingRow, existingEvent.id);
+  }
   const row = await readRowById(database, estimateId, rowId);
   if (!row) throw new Error("Estimate row item not found in the current project.");
   const expected = args.expected_row_revision === null || args.expected_row_revision === undefined ? readNumber(row.row_revision, 1) : readNumber(args.expected_row_revision);
@@ -1465,7 +1535,7 @@ async function patchRowItem(database: D1DatabaseLike, args: Record<string, unkno
     targetRowId: rowId,
     eventType,
     actorUserId: String(args.acting_user_id ?? "") || null,
-    correlationId: String(args.correlation_id ?? randomUUID()),
+    correlationId,
     changedFields: columns.map(([column]) => column),
     oldSnapshot: row,
     newSnapshot: updated,
@@ -1480,6 +1550,21 @@ async function deleteRowItem(database: D1DatabaseLike, args: Record<string, unkn
   const projectId = String(args.target_project_id ?? "");
   const estimateId = String(args.target_estimate_id ?? "");
   const rowId = String(args.target_row_id ?? "");
+  const correlationId = String(args.correlation_id ?? randomUUID());
+  const existingEvent = await readExistingHistoryEvent(database, estimateId, correlationId);
+  if (existingEvent) {
+    const payload = readJsonRecord(existingEvent.payload);
+    return {
+      eventId: existingEvent.id,
+      rowId,
+      deletedRow: payload.deletedRow ?? null,
+      payload: {
+        eventId: existingEvent.id,
+        rowId,
+        deletedRow: payload.deletedRow ?? null,
+      },
+    };
+  }
   const row = await readRowById(database, estimateId, rowId);
   if (!row) throw new Error("Estimate row item not found in the current project.");
   const expected = args.expected_row_revision === null || args.expected_row_revision === undefined ? readNumber(row.row_revision, 1) : readNumber(args.expected_row_revision);
@@ -1492,7 +1577,7 @@ async function deleteRowItem(database: D1DatabaseLike, args: Record<string, unkn
     targetRowId: rowId,
     eventType: "row_deleted",
     actorUserId: String(args.acting_user_id ?? "") || null,
-    correlationId: String(args.correlation_id ?? randomUUID()),
+    correlationId,
     oldSnapshot: row,
     rowContext: { material: row.material, supplier: row.supplier },
     payload: { rowId, deletedRow: rowItemHistoryResult(row).row },
@@ -1833,8 +1918,13 @@ async function executeBulkDeleteEstimateSheets(database: D1DatabaseLike, args: R
   };
 }
 
-async function callEstimateAction<T>(database: D1DatabaseLike, name: string, args: Record<string, unknown>): Promise<T> {
-  const currentUser = await requireCurrentUserContext().catch(() => null);
+async function callEstimateAction<T>(
+  database: D1DatabaseLike,
+  name: string,
+  args: Record<string, unknown>,
+  currentUserOverride?: CurrentUserContext | null,
+): Promise<T> {
+  const currentUser = await resolveCurrentUserContext(currentUserOverride);
   if (name === "can_edit_estimate") {
     if (!currentUser) return false as T;
     return await canEditEstimateInD1(database, String(args.target_estimate_id ?? ""), currentUser) as T;
@@ -1873,6 +1963,11 @@ async function callEstimateAction<T>(database: D1DatabaseLike, name: string, arg
       [projectId],
     );
     return row as T;
+  }
+  if (ESTIMATE_EDIT_ACTIONS.has(name)) {
+    if (!currentUser) throw new Error("Estimate edit access denied.");
+    const allowed = await canEditEstimateInD1(database, String(args.target_estimate_id ?? ""), currentUser);
+    if (!allowed) throw new Error("Estimate edit access denied.");
   }
   if (name === "update_estimate_details_with_history") return await updateEstimateDetails(database, args) as T;
   if (name === "create_estimate_tab_with_history") return await createEstimateTab(database, args) as T;

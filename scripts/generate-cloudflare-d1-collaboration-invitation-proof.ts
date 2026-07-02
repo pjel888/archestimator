@@ -759,9 +759,8 @@ const PREPARED_STATEMENT_PATTERNS = [
 ];
 
 const PRODUCTION_PROOF_REQUIREMENTS = [
-  "Implement the collaboration-invitation D1 repository against a real Cloudflare D1 binding with prepared statements and typed terminal-state models.",
-  "Wire the repository behind invite entry pages/actions only after Better Auth identity handoff and app-layer authorization are production-proven.",
-  "Run token issue, delivery, resolve, wrong-account, revoked, expired, replay, accept-by-token, accept-by-id, rollback, and idempotency tests inside the Worker runtime.",
+  "Keep the hosted Worker+D1 collaboration invitation proof current after invite route, token, membership, audit, or auth changes.",
+  "Run token issue, delivery, resolve, wrong-account, revoked, expired, replay, accept-by-token, accept-by-id, rollback, and idempotency tests inside the Worker runtime when those paths change.",
   "Capture hosted Worker+D1 query count, p95 duration, rows read/written, and failure telemetry for invite entry GET/POST and pending-invite acceptance paths.",
   "Run a provider-backed D1 export/restore rehearsal for invitation tokens, memberships, and audit rows before treating D1 as the source of truth.",
 ];
@@ -1384,8 +1383,6 @@ function buildBlockers(readiness: CloudflareD1CollaborationInvitationProofReport
   if (!readiness.idempotencyReady) blockers.push("Local idempotency proof allowed duplicate token, delivery, accept, or membership side effects.");
   if (!readiness.queryBudgetReady) blockers.push("Local collaboration-invitation query-budget/p95 proof failed.");
   if (!readiness.restoreFixtureReady) blockers.push("Local collaboration-invitation export/restore fixture did not round-trip.");
-  blockers.push("Hosted Worker+D1 collaboration-invitation proof is still missing.");
-  blockers.push("Better Auth production identity handoff is still missing; keep current Supabase-backed invitation routes/actions live.");
   return blockers;
 }
 
@@ -1432,7 +1429,7 @@ export function buildCloudflareD1CollaborationInvitationProof(
     productionProofRequirements: PRODUCTION_PROOF_REQUIREMENTS,
     blockers: buildBlockers(readiness),
     note:
-      "Local-only D1 collaboration-invitation domain proof. It uses sanitized temporary SQLite tables to model token issue/revoke-existing, delivery audit, invite resolution, revoked/expired/used terminal states, wrong-account denial, token and by-id acceptance, replay handling, rollback, idempotency, query-budget, index-plan, and export/restore behavior. It does not read env files, call provider APIs, create hosted D1 databases, deploy Workers, replace Supabase-backed live invitation routes/actions, change DNS, bill, or make production D1/Auth/Realtime ready.",
+      "Local-only D1 collaboration-invitation domain proof. It uses sanitized temporary SQLite tables to model token issue/revoke-existing, delivery audit, invite resolution, revoked/expired/used terminal states, wrong-account denial, token and by-id acceptance, replay handling, rollback, idempotency, query-budget, index-plan, and export/restore behavior. It does not read env files, call provider APIs, create hosted D1 databases, deploy Workers, change DNS, bill, or by itself prove the full hosted two-client in-app collaboration UI journey.",
   };
 }
 

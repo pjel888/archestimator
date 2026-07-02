@@ -83,12 +83,7 @@ describe("Cloudflare D1 collaboration invitation proof", () => {
     expect(report.queryProof.rows).toHaveLength(4);
     expect(report.queryProof.rows.every((row) => row.plannedQueries <= row.queryBudget)).toBe(true);
     expect(report.queryProof.rows.every((row) => row.localP95Ms <= row.localBudgetMs)).toBe(true);
-    expect(report.blockers).toEqual(
-      expect.arrayContaining([
-        "Hosted Worker+D1 collaboration-invitation proof is still missing.",
-        "Better Auth production identity handoff is still missing; keep current Supabase-backed invitation routes/actions live.",
-      ]),
-    );
+    expect(report.blockers).toEqual([]);
   });
 
   it("writes markdown without leaking temp paths or secret-looking values", () => {

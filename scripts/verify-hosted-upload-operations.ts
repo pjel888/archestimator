@@ -1,13 +1,17 @@
 #!/usr/bin/env bun
 
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
-const DEFAULT_BASE_URL = "https://www.archestimator.com";
+const PLAN_ROOT = ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence";
+const DEFAULT_BASE_URL = "https://archestimator.com";
+const DEFAULT_OUTPUT_FILE = `${PLAN_ROOT}/2026-07-02-cloudflare-hosted-upload-operations-proof.json`;
+const DEFAULT_MARKDOWN_FILE = `${PLAN_ROOT}/2026-07-02-cloudflare-hosted-upload-operations-proof.md`;
 const DEFAULT_RUNS = 1;
 const MAX_RUNS = 5;
 const DEFAULT_LIMIT = 1;
 const MAX_LIMIT = 25;
+const DEFAULT_ENV_FILES = [".env.local", ".dev.vars"];
 
 type HostedUploadOperationKind = "cleanup" | "scan";
 type HostedUploadOperationProbeType = "unauthenticated-fail-closed" | "authenticated-dry-run";
@@ -91,6 +95,48 @@ export function parseHostedUploadOperationsCount(value: string | undefined, fall
   const parsed = Number.parseInt(value, 10);
   if (!Number.isInteger(parsed) || parsed <= 0) return fallback;
   return Math.min(parsed, max);
+}
+
+function readEnv(env: NodeJS.ProcessEnv, name: string) {
+  return env[name]?.trim() || undefined;
+}
+
+function unquoteEnvValue(value: string) {
+  const trimmed = value.trim();
+  const quote = trimmed[0];
+  if ((quote === "\"" || quote === "'") && trimmed.endsWith(quote)) return trimmed.slice(1, -1);
+  return trimmed;
+}
+
+function readEnvAssignment(file: string, name: string) {
+  if (!existsSync(file)) return null;
+  for (const line of readFileSync(file, "utf8").split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const match = trimmed.match(/^(?:export\s+)?([A-Z][A-Z0-9_]+)\s*=\s*(.*)$/);
+    if (match?.[1] === name) return unquoteEnvValue(match[2]);
+  }
+  return null;
+}
+
+function readSecretCandidate(env: NodeJS.ProcessEnv, envFiles: string[], names: string[]) {
+  for (const name of names) {
+    const value = readEnv(env, name);
+    if (value) return value;
+  }
+  for (const file of envFiles) {
+    for (const name of names) {
+      const value = readEnvAssignment(file, name);
+      if (value?.trim()) return value.trim();
+    }
+  }
+  return undefined;
+}
+
+function readEnvFiles(env: NodeJS.ProcessEnv) {
+  const configured = readEnv(env, "HOSTED_UPLOAD_OPERATIONS_ENV_FILES");
+  if (!configured) return DEFAULT_ENV_FILES;
+  return configured.split(",").map((item) => item.trim()).filter(Boolean);
 }
 
 export function hasNoStoreCacheControl(value: string | null) {
@@ -288,14 +334,23 @@ export async function verifyHostedUploadOperations(options: VerifyHostedUploadOp
 }
 
 export function parseInputsFromEnv(env: NodeJS.ProcessEnv = process.env): HostedUploadOperationsEnvInputs {
+  const envFiles = readEnvFiles(env);
   return {
     baseUrl: normalizeHostedUploadOperationsBaseUrl(env.HOSTED_UPLOAD_OPERATIONS_BASE_URL),
-    cleanupSecret: env.HOSTED_UPLOAD_OPERATIONS_CLEANUP_SECRET,
-    scanSecret: env.HOSTED_UPLOAD_OPERATIONS_SCAN_SECRET,
+    cleanupSecret: readSecretCandidate(env, envFiles, [
+      "HOSTED_UPLOAD_OPERATIONS_CLEANUP_SECRET",
+      "UPLOAD_CLEANUP_JOB_SECRET",
+      "CRON_SECRET",
+    ]),
+    scanSecret: readSecretCandidate(env, envFiles, [
+      "HOSTED_UPLOAD_OPERATIONS_SCAN_SECRET",
+      "UPLOAD_SCAN_JOB_SECRET",
+      "CRON_SECRET",
+    ]),
     runs: parseHostedUploadOperationsCount(env.HOSTED_UPLOAD_OPERATIONS_RUNS, DEFAULT_RUNS, MAX_RUNS),
     limit: parseHostedUploadOperationsCount(env.HOSTED_UPLOAD_OPERATIONS_LIMIT, DEFAULT_LIMIT, MAX_LIMIT),
-    outputFile: env.OUTPUT_FILE,
-    markdownFile: env.MARKDOWN_FILE,
+    outputFile: env.OUTPUT_FILE ?? DEFAULT_OUTPUT_FILE,
+    markdownFile: env.MARKDOWN_FILE ?? DEFAULT_MARKDOWN_FILE,
   };
 }
 
