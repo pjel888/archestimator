@@ -74,6 +74,17 @@ Stable current truth (verify against git/source before relying on a detail):
   recipient, comment, response, and `open` event. Boundary: this proves the
   hosted Cloudflare recipient runtime path, not the owner-side recipient
   composer/email-delivery UI.
+- Latest hosted recipient composer proof as of 2026-07-02 04:51 UTC:
+  `2026-07-02-cloudflare-hosted-recipient-composer-ui-proof.*` passes the
+  owner-side Publisher Recipients UI on the production Worker. The signed-in
+  browser added `codex-owner-ui-20260702t045000z@example.invalid`; the UI
+  showed `Added 1 recipient(s). 1 email(s) dispatched (failures are
+  non-fatal).` and the row status `sent`. Remote D1 readback found recipient
+  `6b3fe7c0-6375-4e9f-957c-7d08e37c38c0` with `delivery_status=sent`,
+  `invited_by=4e23801d-6fc2-4886-b980-d15ca2b164b8`, and a recorded
+  `<...@archestimator.com>` message id under the legacy `resend_email_id`
+  column. Boundary: this used `example.invalid`, so it proves UI/persistence
+  and dispatch invocation, not recipient mailbox receipt.
 - State-mismatch root-shell recovery is live as of 2026-07-02 02:33 UTC:
   after the owner still saw `https://archestimator.com/?error=state_mismatch`,
   the current source was uploaded/deployed to Cloudflare Worker version
@@ -243,8 +254,8 @@ Stable current truth (verify against git/source before relying on a detail):
   not-found/expired/revoked text, and zero `state_mismatch`. D1
   `project_publication_events` recorded two `open` events. The later
   04:45 UTC hosted synthetic recipient proof closed the Cloudflare runtime
-  session/comment/decision path; only the owner-side recipient composer/email
-  UI boundary remains separate. Evidence:
+  session/comment/decision path, and the 04:51 UTC hosted recipient composer
+  proof closed the owner-side UI mutation/dispatch path. Evidence:
   `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-publication-owner-public-proof.*`.
 - OAuth normalizer recovery hotfix as of 2026-07-01 23:44 UTC: after the user
   again reported `https://archestimator.com/?error=state_mismatch`, production
@@ -663,12 +674,14 @@ Stable current truth (verify against git/source before relying on a detail):
   Notes mutation plus hosted area create/rename, row insert/update, reload
   persistence, Activity History UI, and remote D1 event readback; it still lacks
   tab lifecycle, rollback, idempotency/retry replay, and cross-workspace/viewer
-  denial proof. QA-LIB-01 still lacks hosted production UI/Worker+D1 mutation proof.
+  denial proof. QA-LIB-01 has hosted seeded/custom component create proof but
+  still lacks hosted folder/template/viewer-denial proof.
   Upload/publication/realtime contract suites pass and hosted upload operations
   fail closed unauthenticated, but QA-UPLOAD-02 still lacks real user upload UX
-  plus authenticated scanner execution/persistence, QA-PUB-02 still lacks a
-  hosted authenticated create-publication plus recipient open/respond journey,
-  and realtime still lacks a hosted two-client in-app roster proof. Evidence:
+  plus authenticated scanner execution/persistence, QA-PUB-02 now has hosted
+  owner publish/public open/recipient composer plus recipient open/respond
+  proof, and realtime still lacks a hosted two-client in-app roster proof.
+  Evidence:
   `2026-07-02-cloudflare-d1-estimate-history-proof.*`,
   `2026-07-02-cloudflare-hosted-estimate-area-row-history-proof.*`,
   `2026-07-02-cloudflare-d1-component-library-proof.*`,
