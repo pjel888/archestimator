@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { buildProposalExportModel, defaultProposalExportSettings } from "@/lib/proposal-export/build-proposal-export-model";
-import { createProposalWorkbookBuffer } from "@/lib/proposal-export/create-proposal-workbook";
 import { buildUniqueWorksheetNames } from "@/lib/proposal-export/worksheet-name";
 import { getCurrentUserContext } from "@/lib/auth/session";
 import { logAppError } from "@/lib/observability/logger";
@@ -18,7 +17,7 @@ import { buildProposalWorkbookFilename } from "./filename";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 // F-34 (P3-T5): explicit serverless ceiling. The export is CPU/memory-light (per-tab DB
-// fan-out is batched and ExcelJS build is bounded by the node/row caps), so 60s is generous.
+// fan-out is batched and workbook generation is bounded by the node/row caps), so 60s is generous.
 export const maxDuration = 60;
 
 const PROPOSAL_EXPORT_NODE_LIMIT = 1200;
@@ -32,6 +31,7 @@ type ProposalExportRouteContext = {
 type ProposalExportProject = Pick<ProjectRow, "id" | "name" | "project_code" | "location" | "currency_code" | "client_name" | "metadata">;
 type ProposalExportEstimate = Pick<EstimateRow, "id" | "name" | "sheet_code" | "currency_code" | "metadata">;
 type ProposalExportWorkspace = { id?: string | null; name?: string | null } | null | undefined;
+type ProposalWorkbookInput = ProposalTabbedWorkbookModel | ReturnType<typeof buildProposalExportModel>;
 
 type ParsedExportSettings =
   | { ok: true; settings: Partial<ProposalExportSettings>; requestedInternal: boolean }
@@ -161,6 +161,11 @@ type ProposalExportContext = ProposalExportLogContext & {
   requestedSettings: Partial<ProposalExportSettings>;
   requestedInternal: boolean;
 };
+
+async function createProposalWorkbookBuffer(input: ProposalWorkbookInput) {
+  const workbookModule = await import("@/lib/proposal-export/create-proposal-workbook");
+  return workbookModule.createProposalWorkbookBuffer(input);
+}
 
 // Merge the validated request settings with the server-resolved (gated) audience. The audience
 // is decided here, never taken from the caller's settings.
@@ -401,7 +406,7 @@ export async function GET(request: NextRequest, context: ProposalExportRouteCont
     requestedInternal: parsedSettings.requestedInternal,
   };
 
-  // F-13 (P1-T4): one try/catch around the whole build so a DB/ExcelJS/throw becomes a
+  // F-13 (P1-T4): one try/catch around the whole build so a DB/workbook/throw becomes a
   // logged JSON 500 (consumed by the fetch-then-blob client), never an unhandled stack page.
   // `return await` is required so a rejected build promise is caught here, not escaped.
   try {

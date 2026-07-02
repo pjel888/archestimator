@@ -178,7 +178,7 @@ export async function GET(request: Request) {
 
   return new Response(object.body, {
     headers: {
-      "Cache-Control": "private, max-age=86400, immutable",
+      "Cache-Control": PRIVATE_IMAGE_ERROR_CACHE_CONTROL,
       "Content-Type": object.contentType ?? "image/webp",
       "X-Content-Type-Options": "nosniff",
     },

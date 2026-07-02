@@ -18,16 +18,9 @@ type ActionHarnessOptions = {
   publicationError?: { message?: string } | null;
 };
 
-const originalEnv = {
-  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
-};
-
 afterEach(() => {
   vi.resetModules();
   vi.restoreAllMocks();
-  process.env.NEXT_PUBLIC_SUPABASE_URL = originalEnv.NEXT_PUBLIC_SUPABASE_URL;
-  process.env.SUPABASE_SERVICE_ROLE_KEY = originalEnv.SUPABASE_SERVICE_ROLE_KEY;
 });
 
 function formData(publicationId = PUBLICATION_ID) {
@@ -59,21 +52,17 @@ function createPublicationQuery(options: ActionHarnessOptions) {
 
 async function loadHarness(options: ActionHarnessOptions = {}) {
   vi.resetModules();
-  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
-  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
 
   const cookieSet = vi.fn();
   const publicationQuery = createPublicationQuery(options);
   const admin = {
-    from: vi.fn(() => publicationQuery),
-  };
-  const serverClient = {
-    rpc: vi.fn(async () => ({
+    callProcedure: vi.fn(async () => ({
       data: options.authorization === undefined
         ? [{ publication_id: PUBLICATION_ID, recipient_id: RECIPIENT_ID }]
         : options.authorization,
       error: options.authorizationError ?? null,
     })),
+    from: vi.fn(() => publicationQuery),
   };
   const redirect = vi.fn((url: string) => {
     throw new Error(`NEXT_REDIRECT:${url}`);
@@ -91,8 +80,8 @@ async function loadHarness(options: ActionHarnessOptions = {}) {
     value: "signed-session",
   }));
 
-  vi.doMock("@supabase/supabase-js", () => ({
-    createClient: vi.fn(() => admin),
+  vi.doMock("@/lib/publication/admin-d1-client", () => ({
+    createPublicationAdminD1Client: vi.fn(() => admin),
   }));
   vi.doMock("next/cache", () => ({
     revalidatePath: vi.fn(),
@@ -110,9 +99,6 @@ async function loadHarness(options: ActionHarnessOptions = {}) {
       email: "recipient@example.com",
       userId: "33333333-3333-4333-8333-333333333333",
     })),
-  }));
-  vi.doMock("@/lib/supabase/server", () => ({
-    createSupabaseServerClient: vi.fn(async () => serverClient),
   }));
   vi.doMock("@/lib/publication/security", () => ({
     createPublicationToken: vi.fn(() => "new-token"),
@@ -137,7 +123,6 @@ async function loadHarness(options: ActionHarnessOptions = {}) {
     openRecipientProposalAction: actions.openRecipientProposalAction,
     publicationQuery,
     redirect,
-    serverClient,
   };
 }
 
@@ -150,7 +135,7 @@ describe("openRecipientProposalAction", () => {
       error: "invalid",
     });
 
-    expect(harness.serverClient.rpc).not.toHaveBeenCalled();
+    expect(harness.admin.callProcedure).not.toHaveBeenCalled();
     expect(harness.admin.from).not.toHaveBeenCalled();
     expect(harness.cookieSet).not.toHaveBeenCalled();
   });
@@ -163,8 +148,9 @@ describe("openRecipientProposalAction", () => {
       error: "not-a-recipient",
     });
 
-    expect(harness.serverClient.rpc).toHaveBeenCalledWith("authorize_recipient_publication_for_current_user", {
+    expect(harness.admin.callProcedure).toHaveBeenCalledWith("authorize_recipient_publication_for_current_user", {
       p_publication_id: PUBLICATION_ID,
+      p_current_user_email: "recipient@example.com",
     });
     expect(harness.admin.from).not.toHaveBeenCalled();
     expect(harness.cookieSet).not.toHaveBeenCalled();
@@ -229,8 +215,11 @@ describe("openRecipientProposalAction", () => {
       source.indexOf("function assertUuid"),
     );
 
+    expect(actionSource.indexOf("createPublicationAdminClient()")).toBeLessThan(
+      actionSource.indexOf("authorize_recipient_publication_for_current_user"),
+    );
     expect(actionSource.indexOf("authorize_recipient_publication_for_current_user")).toBeLessThan(
-      actionSource.indexOf("createPublicationAdminClient()"),
+      actionSource.indexOf(".from<"),
     );
     expect(actionSource).toContain("getSharedLinkSessionCookieParts");
     expect(actionSource).toContain("cookieStore.set(parts.name, parts.value, parts.cookieOptions)");

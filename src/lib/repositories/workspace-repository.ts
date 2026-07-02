@@ -4,12 +4,12 @@ import { cookies, headers } from "next/headers";
 
 import { getDevAuthBypassCredentialFromRequestParts, isDevAdminDatabaseBypassRequest } from "@/lib/auth/dev-auth-gate";
 import { readFirstAccountWorkspaceMembership } from "@/lib/auth/account-membership";
-import { canEditEstimateInD1 } from "@/lib/authz/d1-access";
+import { canAccessEstimateInD1, canAccessProjectInD1, canEditEstimateInD1 } from "@/lib/authz/d1-access";
 import type { EstimateRowItem, EstimateSheetAdjustment, EstimateTabSummary, EstimateTreeNode } from "@/lib/estimates/types";
 import { buildEstimateTreeSubtreePayload, type EstimateTreeSubtreeCompleteness, type EstimateTreeSubtreePayload } from "@/lib/estimates/estimate-tree-lazy";
 import { readEstimateRowMetadata } from "@/lib/estimates/express-components";
 import { normalizeEstimateRowImageUrl } from "@/lib/estimates/image-url";
-import { requireCurrentUserContext } from "@/lib/auth/session";
+import { requireCurrentUserContext, type CurrentUserContext } from "@/lib/auth/session";
 import { isUuid } from "@/lib/ids";
 import { normalizeEstimateTreeNodeKind, selectFirstEstimateNodeIds } from "@/lib/estimates/tree-hierarchy";
 import { traced } from "@/lib/perf/server-timing";
@@ -644,11 +644,9 @@ function createWorkshopProjectAccessResolver({
       ? "owned"
       : projectRole
         ? "project-member"
-        : sheetRole
-          ? "sheet-member"
-          : "owned";
+        : "sheet-member";
     const currentUserRole = accessKind === "owned"
-      ? workspaceRole ?? projectRole ?? "owner"
+      ? workspaceRole ?? projectRole ?? (project.created_by === profileId ? "owner" : "viewer")
       : projectRole ?? sheetRole ?? "viewer";
 
     return {
@@ -1206,6 +1204,61 @@ function readProfileDisplayName(profile: CollaborationProfileRow | undefined, fa
   return profile?.display_name ?? email?.split("@")[0] ?? `User ${fallbackUserId.slice(0, 8)}`;
 }
 
+function isPlatformAdminContext(context: Pick<CurrentUserContext, "role">) {
+  return context.role === "ceo" || context.role === "admin";
+}
+
+async function canUseWorkspaceAsDefault(
+  database: D1DatabaseLike,
+  workspace: WorkspaceRow,
+  context: Pick<CurrentUserContext, "role" | "userId">,
+) {
+  if (isPlatformAdminContext(context)) return true;
+  if (workspace.created_by === context.userId) return true;
+
+  const membership = await first<WorkspaceMembershipRoleRow>(
+    database,
+    `SELECT role
+     FROM workspace_members
+     WHERE workspace_id = ?
+       AND user_id = ?
+     LIMIT 1`,
+    [workspace.id, context.userId],
+  );
+  return Boolean(membership);
+}
+
+async function filterAccessibleEstimates<T extends { id: string }>(
+  database: D1DatabaseLike,
+  estimates: T[],
+  context: Pick<CurrentUserContext, "role" | "userId">,
+) {
+  if (estimates.length === 0) return estimates;
+  const accessResults = await Promise.all(
+    estimates.map((estimate) => canAccessEstimateInD1(database, estimate.id, context)),
+  );
+  return estimates.filter((_estimate, index) => accessResults[index]);
+}
+
+function canReadProjectCollaborationRoster({
+  context,
+  profileId,
+  project,
+  projectMembers,
+  workspaceMembers,
+}: {
+  context: Pick<CurrentUserContext, "role">;
+  profileId: string;
+  project: Pick<Tables<"projects">, "created_by">;
+  projectMembers: Array<Pick<Tables<"project_members">, "user_id">>;
+  workspaceMembers: Array<Pick<Tables<"workspace_members">, "user_id">>;
+}) {
+  if (isPlatformAdminContext(context)) return true;
+  if (project.created_by === profileId) return true;
+  return workspaceMembers.some((member) => member.user_id === profileId)
+    || projectMembers.some((member) => member.user_id === profileId);
+}
+
 function createEmptyProjectEstimateSummaryMaps(): ProjectEstimateSummaryMaps {
   return {
     firstNodeByEstimateId: new Map<string, string>(),
@@ -1227,7 +1280,9 @@ export const ensureDefaultWorkspace = cache(async function ensureDefaultWorkspac
 
   if (context.profile.default_workspace_id) {
     const existingWorkspace = await readWorkspaceById(database, context.profile.default_workspace_id);
-    if (existingWorkspace) return { workspace: existingWorkspace, profile: context.profile };
+    if (existingWorkspace && await canUseWorkspaceAsDefault(database, existingWorkspace, context)) {
+      return { workspace: existingWorkspace, profile: context.profile };
+    }
   }
 
   const membership = await readFirstAccountWorkspaceMembership(context.userId);
@@ -2357,7 +2412,8 @@ export const getCurrentWorkspaceProject = cache(async function getCurrentWorkspa
   }
 
   const database = await traced("workspace-project.d1-client", () => requireWorkspaceRepositoryD1Database());
-  const project = await traced("workspace-project.project-lookup", () =>
+  const contextPromise = traced("workspace-project.current-user", () => requireCurrentUserContext());
+  const projectPromise = traced("workspace-project.project-lookup", () =>
     first<ProjectRow>(
       database,
       `SELECT id, workspace_id, created_by, name, client_name, location, project_code, currency_code, metadata, created_at, updated_at
@@ -2367,17 +2423,26 @@ export const getCurrentWorkspaceProject = cache(async function getCurrentWorkspa
       [projectId],
     ),
   );
+  const [context, project] = await Promise.all([contextPromise, projectPromise]);
   if (!project) {
     const { workspace: defaultWorkspace } = await traced("workspace-project.ensure-default-workspace", () => ensureDefaultWorkspace());
     return { workspace: defaultWorkspace, project: null };
   }
 
   const projectRow = normalizeProjectRow(project);
+  const canAccessProject = await traced("workspace-project.access-check", () =>
+    canAccessProjectInD1(database, projectRow.id, context),
+  );
+  if (!canAccessProject) {
+    const { workspace: defaultWorkspace } = await traced("workspace-project.ensure-default-workspace", () => ensureDefaultWorkspace());
+    return { workspace: defaultWorkspace, project: null };
+  }
+
   const projectWorkspace = await readWorkspaceById(database, projectRow.workspace_id);
   if (projectWorkspace) return { workspace: projectWorkspace, project: projectRow };
 
   const { workspace: defaultWorkspace } = await traced("workspace-project.ensure-default-workspace", () => ensureDefaultWorkspace());
-  return { workspace: defaultWorkspace, project: projectRow };
+  return { workspace: defaultWorkspace, project: null };
 });
 
 // Request-scoped dedupe of project_members (Teamspace plan T2.2 / F-P8 / F10).
@@ -2391,6 +2456,7 @@ const getCachedProjectMembers = cache(async function getCachedProjectMembers(pro
 });
 
 export async function getProjectCollaborationSummary(projectId: string): Promise<ProjectCollaborationSummary | null> {
+  const context = await requireCurrentUserContext();
   const { profile } = await ensureDefaultWorkspace();
   if (!isUuid(projectId)) return null;
 
@@ -2404,7 +2470,7 @@ export async function getProjectCollaborationSummary(projectId: string): Promise
 
   // T2.3 / F-P1: workspace_members and estimates are independent of each other —
   // run them in a single parallel wave instead of two serial round-trips.
-  const [workspaceMembers, estimates] = await Promise.all([
+  const [workspaceMembers, rawEstimates] = await Promise.all([
     all<Pick<Tables<"workspace_members">, "workspace_id" | "user_id" | "role">>(
       database,
       `SELECT workspace_id, user_id, role
@@ -2421,6 +2487,7 @@ export async function getProjectCollaborationSummary(projectId: string): Promise
       [project.id],
     ),
   ]);
+  const estimates = await filterAccessibleEstimates(database, rawEstimates ?? [], context);
 
   const estimateIds = (estimates ?? []).map((estimate) => estimate.id);
   const [projectMembers, sheetMembers, sheetSettings, pendingInvitationRows] = await Promise.all([
@@ -2437,21 +2504,39 @@ export async function getProjectCollaborationSummary(projectId: string): Promise
       source: ProjectCollaboratorSummary["source"];
     }
   >();
+  let currentUserProjectLevelRole: CollaborationRole | undefined;
 
-  for (const member of workspaceMembers ?? []) {
-    collaboratorRoles.set(member.user_id, {
-      role: mapWorkspaceRoleToCollaborationRole(member.role),
-      source: "workspace",
-    });
-  }
+  const canReadProjectRoster = canReadProjectCollaborationRoster({
+    context,
+    profileId: profile.id,
+    project,
+    projectMembers,
+    workspaceMembers: workspaceMembers ?? [],
+  });
 
-  for (const member of projectMembers) {
-    const existing = collaboratorRoles.get(member.user_id);
-    const role = readHighestCollaborationRole(existing?.role, member.role);
-    collaboratorRoles.set(member.user_id, {
-      role,
-      source: role === existing?.role ? existing.source : "project",
-    });
+  if (canReadProjectRoster) {
+    for (const member of workspaceMembers ?? []) {
+      const role = mapWorkspaceRoleToCollaborationRole(member.role);
+      collaboratorRoles.set(member.user_id, {
+        role,
+        source: "workspace",
+      });
+      if (member.user_id === profile.id) {
+        currentUserProjectLevelRole = readHighestCollaborationRole(currentUserProjectLevelRole, role);
+      }
+    }
+
+    for (const member of projectMembers) {
+      const existing = collaboratorRoles.get(member.user_id);
+      const role = readHighestCollaborationRole(existing?.role, member.role);
+      collaboratorRoles.set(member.user_id, {
+        role,
+        source: role === existing?.role ? existing.source : "project",
+      });
+      if (member.user_id === profile.id) {
+        currentUserProjectLevelRole = readHighestCollaborationRole(currentUserProjectLevelRole, member.role);
+      }
+    }
   }
 
   for (const member of sheetMembers) {
@@ -2463,11 +2548,18 @@ export async function getProjectCollaborationSummary(projectId: string): Promise
     });
   }
 
-  if (!collaboratorRoles.has(profile.id)) {
+  if (!collaboratorRoles.has(profile.id) && canReadProjectRoster && project.created_by === profile.id) {
     collaboratorRoles.set(profile.id, {
       role: mapWorkspaceRoleToCollaborationRole("owner"),
       source: "workspace",
     });
+    currentUserProjectLevelRole = readHighestCollaborationRole(currentUserProjectLevelRole, "owner");
+  } else if (!collaboratorRoles.has(profile.id) && isPlatformAdminContext(context)) {
+    collaboratorRoles.set(profile.id, {
+      role: mapWorkspaceRoleToCollaborationRole("admin"),
+      source: "workspace",
+    });
+    currentUserProjectLevelRole = readHighestCollaborationRole(currentUserProjectLevelRole, "admin");
   }
 
   const collaboratorIds = [...collaboratorRoles.keys()];
@@ -2513,7 +2605,8 @@ export async function getProjectCollaborationSummary(projectId: string): Promise
 
   const sheetInheritanceByEstimateId = new Map(sheetSettings.map((settings) => [settings.estimate_id, settings.inherit_project_access]));
   const currentUserRole = collaboratorRoles.get(profile.id)?.role ?? "viewer";
-  const canManageAccess = canManageCollaborationRole(currentUserRole);
+  const canManageAccess = Boolean(currentUserProjectLevelRole && canManageCollaborationRole(currentUserProjectLevelRole));
+  const accessibleEstimateIds = new Set(estimateIds);
   const estimateSheets = (estimates ?? []).map((estimate) => {
     const overrideCount = sheetMemberCountByEstimateId.get(estimate.id) ?? 0;
     const inheritsProjectAccess = sheetInheritanceByEstimateId.get(estimate.id) ?? true;
@@ -2534,6 +2627,11 @@ export async function getProjectCollaborationSummary(projectId: string): Promise
     };
   });
   const pendingInvitations: CollaborationInvitationSummary[] = pendingInvitationRows
+    .filter((invitation) => {
+      const scope = normalizePendingInviteScope(invitation.scope);
+      if (canReadProjectRoster && scope === "project") return true;
+      return scope === "estimate" && Boolean(invitation.estimate_id && accessibleEstimateIds.has(invitation.estimate_id));
+    })
     .filter((invitation): invitation is CollaborationInvitationRow & { scope: "project" | "estimate" } => invitation.scope === "project" || invitation.scope === "estimate")
     .map((invitation) => ({
       id: invitation.id,
@@ -2591,7 +2689,7 @@ export const getProjectPublicationSummary = cache(async function getProjectPubli
   ]);
 
   const workspaceRole =
-    workspaceMembership?.role ?? (project.workspace_id === workspace.id ? "owner" : undefined);
+    workspaceMembership?.role ?? (project.workspace_id === workspace.id && workspace.created_by === profile.id ? "owner" : undefined);
   const projectRole = projectMembers.find((member) => member.user_id === profile.id)?.role;
   const currentUserRole = readHighestCollaborationRole(
     workspaceRole ? mapWorkspaceRoleToCollaborationRole(workspaceRole) : undefined,
@@ -2661,6 +2759,7 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
   }
 
   const database = await requireWorkspaceRepositoryD1Database();
+  const contextPromise = requireCurrentUserContext();
   const estimatesPromise = traced("listProjectEstimates.estimates", () =>
     all<EstimateRecordWithLegacy>(
       database,
@@ -2674,7 +2773,8 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
   const [
     { workspace, project },
     estimates,
-  ] = await Promise.all([projectContextPromise, estimatesPromise]);
+    context,
+  ] = await Promise.all([projectContextPromise, estimatesPromise, contextPromise]);
 
   if (!project) {
     return {
@@ -2685,7 +2785,11 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
     };
   }
 
-  const normalizedEstimates = estimates.map((estimate) => normalizeEstimateRow(estimate));
+  const normalizedEstimates = await filterAccessibleEstimates(
+    database,
+    estimates.map((estimate) => normalizeEstimateRow(estimate)),
+    context,
+  );
   const estimateIds = normalizedEstimates.map((estimate) => estimate.id);
   if (estimateIds.length === 0) {
     return {
@@ -2719,8 +2823,8 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
              WHERE row_item.estimate_id = estimate.id
            ) AS total_cost
          FROM estimates estimate
-         WHERE estimate.project_id = ?`,
-        [project.id],
+         WHERE estimate.id IN (${placeholders(estimateIds)})`,
+        estimateIds,
       ),
     ),
     traced("listProjectEstimates.firstNodes", () =>
@@ -2757,7 +2861,12 @@ export async function listProjectEstimateSheets(projectId: string, options: { li
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) return [];
 
-  return listProjectEstimateSheetsForProject(project.id, options);
+  const [database, context, sheets] = await Promise.all([
+    requireWorkspaceRepositoryD1Database(),
+    requireCurrentUserContext(),
+    listProjectEstimateSheetsForProject(project.id, options),
+  ]);
+  return filterAccessibleEstimates(database, sheets, context);
 }
 
 type EstimateTabQueryRow = {

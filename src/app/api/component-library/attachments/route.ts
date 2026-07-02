@@ -395,7 +395,7 @@ export async function GET(request: Request) {
 
   return new Response(object.body, {
     headers: {
-      "Cache-Control": "private, max-age=300",
+      "Cache-Control": PRIVATE_ATTACHMENT_ERROR_CACHE_CONTROL,
       "Content-Disposition": safeContentDisposition(attachment.file_name),
       "Content-Length": String(attachment.size_bytes),
       "Content-Type": attachment.content_type,

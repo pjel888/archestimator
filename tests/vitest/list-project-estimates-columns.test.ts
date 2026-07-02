@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 
 const PROJECT_ID = "22222222-2222-4222-8222-222222222222";
 const ESTIMATE_ID = "33333333-3333-4333-8333-333333333333";
+const BLOCKED_ESTIMATE_ID = "33333333-3333-4333-8333-444444444444";
 const GROUP_NODE_ID = "44444444-4444-4444-8444-444444444444";
 const AREA_NODE_ID = "55555555-5555-4555-8555-555555555555";
 
@@ -25,9 +26,15 @@ function createD1Fixture() {
     prepare(sql: string) {
       preparedSql.push(sql);
       return {
-        bind() {
+        bind(...values: unknown[]) {
           return {
             async first() {
+              if (sql.includes("SELECT 1 AS allowed") && sql.includes("FROM projects project")) {
+                return { allowed: 1 };
+              }
+              if (sql.includes("SELECT 1 AS allowed") && sql.includes("FROM estimates estimate")) {
+                return values[0] === ESTIMATE_ID ? { allowed: 1 } : null;
+              }
               if (sql.includes("FROM projects") && sql.includes("WHERE id = ?")) {
                 return {
                   id: PROJECT_ID,
@@ -72,10 +79,24 @@ function createD1Fixture() {
                       created_at: "2026-01-01T00:00:00Z",
                       updated_at: "2026-01-01T00:00:00Z",
                     },
+                    {
+                      id: BLOCKED_ESTIMATE_ID,
+                      project_id: PROJECT_ID,
+                      name: "Blocked estimate",
+                      sheet_code: "EST-999",
+                      currency_code: "PHP",
+                      notes: null,
+                      project_budget: null,
+                      metadata: "{}",
+                      created_by: null,
+                      created_at: "2026-01-01T00:00:00Z",
+                      updated_at: "2026-01-02T00:00:00Z",
+                    },
                   ],
                 };
               }
               if (sql.includes("FROM estimates estimate")) {
+                expect(values).toEqual([ESTIMATE_ID]);
                 return {
                   results: [{ estimate_id: ESTIMATE_ID, node_count: 7, row_count: 3, total_cost: 1234.5 }],
                 };
@@ -121,20 +142,23 @@ describe("listProjectEstimates read path (F8 / F9 — P2-1, P2-2)", () => {
     const source = readFileSync("src/lib/repositories/workspace-repository.ts", "utf8");
 
     expect(source).toContain("const projectContextPromise = getCurrentWorkspaceProject(projectId)");
+    expect(source).toContain("const contextPromise = requireCurrentUserContext()");
     expect(source).toContain("const estimatesPromise = traced(\"listProjectEstimates.estimates\"");
     expect(source).toContain("WHERE project_id = ?");
-    expect(source).toContain("await Promise.all([projectContextPromise, estimatesPromise])");
+    expect(source).toContain("await Promise.all([projectContextPromise, estimatesPromise, contextPromise])");
   });
 
-  it("builds count/total maps from D1 aggregate SQL and drops the all-rows JS fold (F8)", async () => {
+  it("builds count/total maps only for estimates the current user can access (F8)", async () => {
     const result = await listProjectEstimates(PROJECT_ID);
 
-    expect(preparedSql.some((sql) => sql.includes("FROM estimates estimate") && sql.includes("node_count"))).toBe(true);
+    expect(preparedSql.some((sql) => sql.includes("FROM estimates estimate") && sql.includes("node_count") && sql.includes("WHERE estimate.id IN"))).toBe(true);
     expect(preparedSql.some((sql) => sql.includes("SELECT id, estimate_id, kind, parent_id, sort_order"))).toBe(true);
     expect(readFileSync("src/lib/repositories/workspace-repository.ts", "utf8")).not.toContain("project_estimate_list_summaries");
+    expect(result.estimates.map((estimate) => estimate.id)).toEqual([ESTIMATE_ID]);
     expect(result.nodeCountByEstimateId.get(ESTIMATE_ID)).toBe(7);
     expect(result.rowCountByEstimateId.get(ESTIMATE_ID)).toBe(3);
     expect(result.totalCostByEstimateId.get(ESTIMATE_ID)).toBe(1234.5);
+    expect(result.nodeCountByEstimateId.has(BLOCKED_ESTIMATE_ID)).toBe(false);
     // first node still selected by the depth-first/area-first JS oracle (Path A).
     expect(result.firstNodeByEstimateId.get(ESTIMATE_ID)).toBe(AREA_NODE_ID);
   });

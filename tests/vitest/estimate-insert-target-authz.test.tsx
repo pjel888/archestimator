@@ -9,8 +9,8 @@ const repositoryMocks = vi.hoisted(() => ({
   listProjectEstimateSheets: vi.fn(),
 }));
 
-const supabaseServerMocks = vi.hoisted(() => ({
-  createSupabaseServerClient: vi.fn(),
+const estimateActionClientMocks = vi.hoisted(() => ({
+  createEstimateActionsD1Client: vi.fn(),
 }));
 
 const d1Mocks = vi.hoisted(() => ({
@@ -32,7 +32,7 @@ const nextCacheMocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/repositories/workspace-repository", () => repositoryMocks);
-vi.mock("@/lib/supabase/server", () => supabaseServerMocks);
+vi.mock("@/lib/estimates/d1-action-client", () => estimateActionClientMocks);
 vi.mock("@/lib/cloudflare/d1", () => d1Mocks);
 vi.mock("@/lib/authz/d1-access", () => authzMocks);
 vi.mock("@/lib/auth/session", () => authMocks);
@@ -79,6 +79,20 @@ function createD1Fixture(options: {
   };
   d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
   return database;
+}
+
+function createEstimateActionsD1ClientFixture(options: {
+  canEditEstimate?: boolean;
+} = {}) {
+  const call = vi.fn(async (name: string) => {
+    if (name === "can_edit_estimate") {
+      return { data: options.canEditEstimate ?? true, error: null };
+    }
+    throw new Error(`denied insert must not call ${name}`);
+  });
+  const dataStore = { call };
+  estimateActionClientMocks.createEstimateActionsD1Client.mockResolvedValue(dataStore);
+  return dataStore;
 }
 
 beforeEach(() => {
@@ -136,14 +150,7 @@ describe("library estimate insert-target authorization", () => {
   });
 
   it("denies a viewer before inserting a whole template into an estimate", async () => {
-    const from = vi.fn((table: string) => {
-      throw new Error(`viewer insert must not query ${table}`);
-    });
-    const rpc = vi.fn(async (name: string) => {
-      if (name === "can_edit_estimate") return { data: false, error: null };
-      throw new Error(`viewer insert must not call ${name}`);
-    });
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
+    const dataStore = createEstimateActionsD1ClientFixture({ canEditEstimate: false });
     const { insertEstimateTemplateIntoEstimate } = await import("@/lib/estimates/actions");
 
     await expect(
@@ -155,21 +162,13 @@ describe("library estimate insert-target authorization", () => {
       }),
     ).rejects.toThrow("Estimate edit access denied.");
 
-    expect(rpc).toHaveBeenCalledTimes(1);
-    expect(rpc).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: ESTIMATE_ID });
-    expect(from).not.toHaveBeenCalled();
+    expect(dataStore.call).toHaveBeenCalledTimes(1);
+    expect(dataStore.call).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: ESTIMATE_ID });
     expect(repositoryMocks.getProjectEstimateTreeByEstimate).not.toHaveBeenCalled();
   });
 
   it("denies a viewer before inserting a template node subtree into an estimate", async () => {
-    const from = vi.fn((table: string) => {
-      throw new Error(`viewer node insert must not query ${table}`);
-    });
-    const rpc = vi.fn(async (name: string) => {
-      if (name === "can_edit_estimate") return { data: false, error: null };
-      throw new Error(`viewer node insert must not call ${name}`);
-    });
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
+    const dataStore = createEstimateActionsD1ClientFixture({ canEditEstimate: false });
     const { insertEstimateTemplateNodeIntoEstimate } = await import("@/lib/estimates/actions");
 
     await expect(
@@ -182,9 +181,8 @@ describe("library estimate insert-target authorization", () => {
       }),
     ).rejects.toThrow("Estimate edit access denied.");
 
-    expect(rpc).toHaveBeenCalledTimes(1);
-    expect(rpc).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: ESTIMATE_ID });
-    expect(from).not.toHaveBeenCalled();
+    expect(dataStore.call).toHaveBeenCalledTimes(1);
+    expect(dataStore.call).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: ESTIMATE_ID });
     expect(repositoryMocks.getProjectEstimateTreeByEstimate).not.toHaveBeenCalled();
   });
 });

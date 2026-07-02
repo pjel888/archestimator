@@ -77,6 +77,9 @@ const requireAuth = vi.hoisted(() => vi.fn());
 const requireCurrentUserContext = vi.hoisted(() => vi.fn());
 const fromSpy = vi.hoisted(() => vi.fn());
 const rpcSpy = vi.hoisted(() => vi.fn());
+const createEstimateActionsD1Client = vi.hoisted(() => vi.fn());
+const clearEstimateRouteContextProcessCache = vi.hoisted(() => vi.fn());
+const getCurrentWorkspaceProject = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/auth/session", () => ({
   requireAuth,
@@ -91,6 +94,16 @@ vi.mock("@/lib/supabase/server", () => ({
       return this.rest.rpc(...args);
     },
   })),
+}));
+vi.mock("@/lib/estimates/d1-action-client", () => ({
+  createEstimateActionsD1Client,
+}));
+vi.mock("@/lib/repositories/workspace-repository", () => ({
+  clearEstimateRouteContextProcessCache,
+  getCurrentWorkspaceProject,
+  getEstimateTabs: vi.fn(async () => []),
+  getEstimateTabTree: vi.fn(async () => []),
+  getProjectEstimateTreeByEstimate: vi.fn(async () => ({ tree: [] })),
 }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
@@ -136,11 +149,22 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
   beforeEach(() => {
     fromSpy.mockReset();
     rpcSpy.mockReset();
+    createEstimateActionsD1Client.mockReset();
+    clearEstimateRouteContextProcessCache.mockReset();
+    getCurrentWorkspaceProject.mockReset();
     requireAuth.mockResolvedValue(undefined);
     requireCurrentUserContext.mockResolvedValue({
       userId: "11111111-1111-4111-8111-111111111111",
       email: "viewer@example.com",
       profile: { id: "11111111-1111-4111-8111-111111111111", default_workspace_id: "ws-1", role: "viewer" },
+    });
+    getCurrentWorkspaceProject.mockResolvedValue({
+      workspace: { id: "ws-1", name: "WS", createdBy: "u1" },
+      project: { id: PROJECT_ID, workspaceId: "ws-1", name: "Proj", currencyCode: "PHP", metadata: {} },
+    });
+    createEstimateActionsD1Client.mockResolvedValue({
+      from: fromSpy,
+      call: rpcSpy,
     });
     fromSpy.mockImplementation((table: string) => {
       if (table === "workspaces") return chain({ id: "ws-1", name: "WS", created_by: "u1" });

@@ -173,6 +173,9 @@ describe("library viewer mutation authorization", () => {
       fieldContract: "opendesign-add-component",
       name: "OpenDesign Component",
       category: "Hardware",
+      categoryNodeId: "   ",
+      supplierId: "   ",
+      brandId: "   ",
       unit: "unit",
       libraryFolderId: FOLDER_ID,
       priceOptions: [{
@@ -220,7 +223,10 @@ describe("library viewer mutation authorization", () => {
     const componentInsert = d1.statements.find((statement) => statement.sql.includes("INSERT INTO cost_library_items"));
     expect(componentInsert?.values[2]).toBe("OpenDesign Component");
     expect(componentInsert?.values[4]).toBe("Hardware");
+    expect(componentInsert?.values[5]).toBeNull();
     expect(componentInsert?.values[6]).toBeNull();
+    expect(componentInsert?.values[8]).toBeNull();
+    expect(componentInsert?.values[10]).toBeNull();
 
     const priceOptionInserts = d1.statements.filter((statement) => statement.sql.includes("INSERT INTO cost_library_item_price_options"));
     expect(priceOptionInserts).toHaveLength(2);

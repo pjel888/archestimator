@@ -12,8 +12,11 @@ describe("project publication security headers (Shared Link V2)", () => {
     expect(csp).toContain("default-src 'self'");
     expect(csp).toContain("frame-ancestors 'none'");
     expect(csp).toContain("form-action 'self'");
-    expect(csp).toContain("connect-src 'self' https://*.supabase.co wss://*.supabase.co");
-    expect(csp).toContain("img-src 'self' data: blob: https://*.supabase.co");
+    expect(csp).toContain(
+      "connect-src 'self' https://cloudflareinsights.com https://*.cloudflareinsights.com https://www.google-analytics.com https://region1.google-analytics.com https://www.clarity.ms https://*.clarity.ms",
+    );
+    expect(csp).toContain("img-src 'self' data: blob: https://www.google-analytics.com https://www.googletagmanager.com https://*.clarity.ms");
+    expect(csp).not.toContain("supabase.co");
     expect(csp).not.toContain("img-src *");
     expect(csp).not.toContain("img-src https:");
     expect(shareHeaders?.headers).toContainEqual({ key: "Cache-Control", value: "no-store" });

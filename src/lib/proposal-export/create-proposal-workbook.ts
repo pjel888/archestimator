@@ -1,8 +1,7 @@
-import ExcelJS from "exceljs";
-
 import type { ProposalExportMetadata, ProposalExportModel, ProposalExportSettings, ProposalExportTotals, ProposalExportWorkbookTab, ProposalSourceBreakdownRow, ProposalTabbedWorkbookModel } from "./types";
-import { applyAudiencePolicy, resolveProjectCharges, resolveSheetAdjustment } from "./build-proposal-export-model";
+import { applyAudiencePolicy, resolveProjectCharges, resolveSheetAdjustment } from "./settings";
 import { quoteWorksheetCellReference } from "./worksheet-name";
+import { Workbook, type CellValue, type Row, type Style, type Worksheet } from "./xlsx-workbook";
 
 function roundMoney(value: number) {
   return Math.round((Number.isFinite(value) ? value : 0) * 100) / 100;
@@ -15,7 +14,7 @@ function rateDecimal(rate: number) {
 
 // P2-T3 (F-12): includeFormulas=false writes the computed value instead of a live formula,
 // for consumers that want a static values-only workbook.
-function formulaCell(includeFormulas: boolean, formula: string, result: number): ExcelJS.CellValue {
+function formulaCell(includeFormulas: boolean, formula: string, result: number): CellValue {
   return includeFormulas ? { formula, result } : result;
 }
 
@@ -34,7 +33,7 @@ export type ProposalWorkbookColumn = {
   key: string;
   header: string;
   width: number;
-  style?: Partial<ExcelJS.Style>;
+  style?: Partial<Style>;
 };
 
 // P3-T4 (F-34, 09 §5): the 4-part accounting peso mask (positive · negative · zero-as-dash ·
@@ -45,8 +44,8 @@ const QUANTITY_FORMAT = '#,##0.####';
 // F-18 (P1-T7): force text type on every data string column so a cell whose text begins
 // with =, +, -, @ (CSV/formula-injection vectors) is written and read as literal text, never
 // a formula. Q5-compliant: the value is shown verbatim (no leading char stripped, no visible
-// quote-prefix corruption). ExcelJS lacks the invisible Excel quotePrefix attribute, so a
-// text numFmt is the non-corrupting defense; the workbook's string cells are never formulas.
+// quote-prefix corruption). The text numFmt is the non-corrupting defense; workbook string
+// cells are serialized as inline strings, never formulas.
 const TEXT_FORMAT = "@";
 const DETAIL_HEADER_ROW = 17;
 const SUMMARY_HEADER_ROW = 14;
@@ -104,7 +103,7 @@ const BREAKDOWN_COLUMNS_WITH_TAB = [
   ...BREAKDOWN_COLUMNS,
 ] as const satisfies ProposalWorkbookColumn[];
 
-function applyColumnDefinitions(worksheet: ExcelJS.Worksheet, columns: readonly ProposalWorkbookColumn[]) {
+function applyColumnDefinitions(worksheet: Worksheet, columns: readonly ProposalWorkbookColumn[]) {
   worksheet.columns = columns.map((column) => ({
     key: column.key,
     width: column.width,
@@ -112,17 +111,17 @@ function applyColumnDefinitions(worksheet: ExcelJS.Worksheet, columns: readonly 
   }));
 }
 
-function styleTitleRow(row: ExcelJS.Row) {
+function styleTitleRow(row: Row) {
   row.font = { bold: true, size: 14, color: { argb: "FF111827" } };
   row.alignment = { vertical: "middle" };
   row.height = 22;
 }
 
-function styleSubtleRow(row: ExcelJS.Row) {
+function styleSubtleRow(row: Row) {
   row.font = { size: 10, color: { argb: "FF4B5563" } };
 }
 
-function styleHeaderRow(row: ExcelJS.Row) {
+function styleHeaderRow(row: Row) {
   row.font = { bold: true, size: 9, color: { argb: "FFFFFFFF" } };
   row.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
   row.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF111827" } };
@@ -135,7 +134,7 @@ function styleHeaderRow(row: ExcelJS.Row) {
   row.height = 26;
 }
 
-function styleBodyRow(row: ExcelJS.Row) {
+function styleBodyRow(row: Row) {
   row.font = { size: 10, color: { argb: "FF111827" } };
   row.alignment = { vertical: "top", wrapText: true };
   row.eachCell((cell) => {
@@ -145,7 +144,7 @@ function styleBodyRow(row: ExcelJS.Row) {
   });
 }
 
-function styleTotalRow(row: ExcelJS.Row) {
+function styleTotalRow(row: Row) {
   row.font = { bold: true, size: 10, color: { argb: "FF111827" } };
   row.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF3F4F6" } };
   row.border = {
@@ -210,20 +209,20 @@ function scopeLabel(status: string) {
   return status.replace(/_/g, " ").toLocaleUpperCase("en-PH");
 }
 
-function addTitleRow(worksheet: ExcelJS.Worksheet, title: string, mergeThroughColumn = 10) {
+function addTitleRow(worksheet: Worksheet, title: string, mergeThroughColumn = 10) {
   worksheet.addRow([title]);
   styleTitleRow(worksheet.getRow(1));
   worksheet.mergeCells(1, 1, 1, mergeThroughColumn);
 }
 
-function addHeaderField(worksheet: ExcelJS.Worksheet, label: string, value: string | null | undefined) {
+function addHeaderField(worksheet: Worksheet, label: string, value: string | null | undefined) {
   const row = worksheet.addRow([label, value ?? ""]);
   row.getCell(1).font = { bold: true, size: 10, color: { argb: "FF111827" } };
   row.getCell(2).font = { size: 10, color: { argb: "FF111827" } };
   row.getCell(2).alignment = { wrapText: true };
 }
 
-function setPrintLayout(worksheet: ExcelJS.Worksheet) {
+function setPrintLayout(worksheet: Worksheet) {
   worksheet.pageSetup = {
     orientation: "landscape",
     fitToPage: true,
@@ -241,7 +240,7 @@ function setPrintLayout(worksheet: ExcelJS.Worksheet) {
   };
 }
 
-function addGeneralNotes(worksheet: ExcelJS.Worksheet, options: { includeLaborDisclaimer: boolean }) {
+function addGeneralNotes(worksheet: Worksheet, options: { includeLaborDisclaimer: boolean }) {
   // P2-T4: the two blank spacer rows were trimmed so the expanded title block (Owner/Client,
   // Bidder, Project Ref, Subject) fits without pushing DETAIL_HEADER_ROW past 17 — the pad
   // loop backfills to the same target either way, keeping the data rows at their tested rows.
@@ -274,7 +273,7 @@ type BidSectionRange = {
   subtotalResult: number;
 };
 
-function createBidFormWorksheet(workbook: ExcelJS.Workbook, model: ProposalExportModel, worksheetName = "Bid Form") {
+function createBidFormWorksheet(workbook: Workbook, model: ProposalExportModel, worksheetName = "Bid Form") {
   const worksheet = workbook.addWorksheet(worksheetName, {
     views: [{ state: "frozen", ySplit: DETAIL_HEADER_ROW }],
     pageSetup: {
@@ -416,7 +415,7 @@ function createBidFormWorksheet(workbook: ExcelJS.Workbook, model: ProposalExpor
 // (09 §2). Charge rows are formula-driven so they recalc on open; `result` values come from
 // the round-then-sum model totals so the pinned result == the live formula (09 §5 parity).
 function writeSummaryTotalsBlock(
-  worksheet: ExcelJS.Worksheet,
+  worksheet: Worksheet,
   totalsStartRow: number,
   directCostFormula: string,
   totals: Pick<ProposalExportTotals, "grandTotal" | "sheetAdjustmentAmount" | "adjustedDirectCost" | "projectContingencyAmount" | "vatAmount" | "grandTotalWithTaxes">,
@@ -511,7 +510,7 @@ function writeSummaryTotalsBlock(
   styleTotalRow(worksheet.getRow(grandTotalRow));
 }
 
-function createSummaryWorksheet(workbook: ExcelJS.Workbook, model: ProposalExportModel, sectionRanges: BidSectionRange[], bidWorksheetName = "Bid Form") {
+function createSummaryWorksheet(workbook: Workbook, model: ProposalExportModel, sectionRanges: BidSectionRange[], bidWorksheetName = "Bid Form") {
   const worksheet = workbook.addWorksheet("Summary", {
     views: [{ state: "frozen", ySplit: SUMMARY_HEADER_ROW }],
   });
@@ -547,7 +546,7 @@ function createSummaryWorksheet(workbook: ExcelJS.Workbook, model: ProposalExpor
   return worksheet;
 }
 
-function createCommercialTermsWorksheet(workbook: ExcelJS.Workbook) {
+function createCommercialTermsWorksheet(workbook: Workbook) {
   const worksheet = workbook.addWorksheet("Commercial Terms", {
     views: [{ state: "frozen", ySplit: 1 }],
   });
@@ -578,7 +577,7 @@ function createCommercialTermsWorksheet(workbook: ExcelJS.Workbook) {
   return worksheet;
 }
 
-function populateTabbedSummaryWorksheet(worksheet: ExcelJS.Worksheet, input: ProposalTabbedWorkbookModel, tabRanges: Array<{ tab: ProposalExportWorkbookTab; sectionRanges: BidSectionRange[] }>) {
+function populateTabbedSummaryWorksheet(worksheet: Worksheet, input: ProposalTabbedWorkbookModel, tabRanges: Array<{ tab: ProposalExportWorkbookTab; sectionRanges: BidSectionRange[] }>) {
   applyColumnDefinitions(worksheet, SUMMARY_COLUMNS);
   addTitleRow(worksheet, "SUMMARY OF BID", SUMMARY_COLUMNS.length);
   addHeaderField(worksheet, "Project", input.metadata.projectName);
@@ -654,7 +653,7 @@ function breakdownRowValues(breakdownRow: ProposalSourceBreakdownRow, tabName: s
 // F-32 (P2-T8): one Source Breakdown builder for both the single and tabbed workbooks; the
 // TAB column is added only when tab groups are present, so the geometry stays in one place.
 function createSourceBreakdownWorksheet(
-  workbook: ExcelJS.Workbook,
+  workbook: Workbook,
   metadata: ProposalExportMetadata,
   generatedAt: string,
   groups: Array<{ tabName?: string; rows: ProposalSourceBreakdownRow[] }>,
@@ -689,7 +688,7 @@ function isTabbedWorkbookModel(input: ProposalExportModel | ProposalTabbedWorkbo
 }
 
 function createBaseWorkbook(input: ProposalExportModel | ProposalTabbedWorkbookModel) {
-  const workbook = new ExcelJS.Workbook();
+  const workbook = new Workbook();
   workbook.creator = "Archestimator";
   workbook.lastModifiedBy = "Archestimator";
   workbook.created = new Date(input.generatedAt);

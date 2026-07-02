@@ -70,8 +70,8 @@ describe("publication summary latest-activity timestamp (AC-MOD-07)", () => {
     // Manager-only reads from the comment + decision tables, wired into the summary.
     expect(workspaceRepository).toContain("readLatestSharedLinkCommentAt");
     expect(workspaceRepository).toContain("readLatestSharedLinkResponseAt");
-    expect(workspaceRepository).toContain('.from("shared_link_comments")');
-    expect(workspaceRepository).toContain('.from("shared_link_responses")');
+    expect(workspaceRepository).toContain("FROM shared_link_comments");
+    expect(workspaceRepository).toContain("FROM shared_link_responses");
     expect(workspaceRepository).toContain("canManagePublication ? readLatestSharedLinkCommentAt");
     expect(workspaceRepository).toContain("canManagePublication ? readLatestSharedLinkResponseAt");
     expect(workspaceRepository).toContain("latestActivityAt");
