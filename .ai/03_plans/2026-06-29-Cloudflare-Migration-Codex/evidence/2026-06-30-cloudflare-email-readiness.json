@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-01T07:32:47.228Z",
+  "generatedAt": "2026-07-02T16:38:39.243Z",
   "mode": "cloudflare-email-readiness",
   "targetDomain": "archestimator.com",
   "workerName": "archestimator-proof",
@@ -125,7 +125,7 @@
     "discoveredTargetDomains": [
       "archestimator.com"
     ],
-    "sanitizedOutput": " ⛅️ wrangler 4.105.0 (update available 4.106.0)\n───────────────────────────────────────────────\n┌───────────────────┬───────────────────┬─────────┬──────────────────────────────────┐\n│ zone              │ name              │ enabled │ tag                              │\n├───────────────────┼───────────────────┼─────────┼──────────────────────────────────┤\n│ archestimator.com │ archestimator.com │ yes     │ 894a8c44c8f94473a2b105821a69a9f0 │\n└───────────────────┴───────────────────┴─────────┴──────────────────────────────────┘\n▲ [WARNING] 🚧 `wrangler email sending list` is an open beta command. Please report any issues to https://github.com/cloudflare/workers-sdk/issues/new/choose"
+    "sanitizedOutput": " ⛅️ wrangler 4.105.0\n────────────────────\n┌───────────────────┬───────────────────┬─────────┬──────────────────────────────────┐\n│ zone              │ name              │ enabled │ tag                              │\n├───────────────────┼───────────────────┼─────────┼──────────────────────────────────┤\n│ archestimator.com │ archestimator.com │ yes     │ 894a8c44c8f94473a2b105821a69a9f0 │\n└───────────────────┴───────────────────┴─────────┴──────────────────────────────────┘\n▲ [WARNING] 🚧 `wrangler email sending list` is an open beta command. Please report any issues to https://github.com/cloudflare/workers-sdk/issues/new/choose"
   },
   "productionEmailReady": true,
   "blockers": [],

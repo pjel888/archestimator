@@ -1,6 +1,6 @@
 # Cloudflare Release Gates
 
-Generated: 2026-07-02T14:02:36.486Z
+Generated: 2026-07-02T16:38:29.173Z
 
 Aggregates existing local/sanitized Cloudflare migration evidence only. It does not call Cloudflare APIs, read env files, print secrets, deploy Workers, change DNS, purchase plans, cancel subscriptions, delete resources, or mutate external providers.
 

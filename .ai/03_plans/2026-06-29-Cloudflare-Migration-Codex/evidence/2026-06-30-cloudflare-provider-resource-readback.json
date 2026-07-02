@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-02T02:41:38.611Z",
+  "generatedAt": "2026-07-02T16:38:55.258Z",
   "mode": "cloudflare-provider-resource-readback",
   "sources": {
     "wranglerConfig": "wrangler.jsonc",
@@ -77,7 +77,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "stdoutBytes": 4674,
+      "stdoutBytes": 4491,
       "stderrBytes": 0,
       "parsedJson": true,
       "parsedRecordCount": 10,
@@ -131,7 +131,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "stdoutBytes": 389,
+      "stdoutBytes": 281,
       "stderrBytes": 0,
       "parsedJson": false,
       "parsedRecordCount": null,

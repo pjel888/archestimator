@@ -1,6 +1,6 @@
 # Cloudflare Cost And Performance Workbook
 
-Generated: 2026-07-02T14:02:25.297Z
+Generated: 2026-07-02T16:38:29.111Z
 
 Workbook scaffold only. Local inventory, refreshed official Cloudflare pricing, and Worker preview durations can seed planning, but cost decisions still require sanitized Vercel/Supabase/Resend dashboard data, hosted Cloudflare usage metrics, provider logs, rollback triggers, and the same proof architecture for cost and performance evidence.
 
