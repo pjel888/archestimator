@@ -971,9 +971,10 @@ COMMIT;
 `;
 
 // These local p95 checks execute through the sqlite3 CLI, so the budget includes
-// process startup jitter. The gate is a local sanity check for indexed query
-// shape; hosted Worker+D1 latency remains covered by the production proof gate.
-const LOCAL_SQLITE_CLI_BUDGET_MS = 12;
+// process startup jitter, especially when proof suites run beside other work.
+// The gate is a local sanity check for indexed query shape; hosted Worker+D1
+// latency remains covered by the production proof gate.
+const LOCAL_SQLITE_CLI_BUDGET_MS = 30;
 
 const QUERY_SPECS = [
   {
