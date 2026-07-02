@@ -28,6 +28,10 @@ const OAUTH_STATE_COOKIE_NAMES = [
   "better-auth.oauth_state",
   "__Secure-better-auth.oauth_state",
 ];
+const BETTER_AUTH_SESSION_COOKIE_NAMES = [
+  "better-auth.session_token",
+  "__Secure-better-auth.session_token",
+];
 type ProtectedRouteGateState = {
   authVerified?: boolean;
   termsAccepted?: boolean;
@@ -55,6 +59,15 @@ function isMarketingPage(pathname: string) {
 
 function isShareRoute(pathname: string) {
   return pathname === "/share" || pathname.startsWith("/share/");
+}
+
+function isLocalDevelopmentHost(hostname: string) {
+  return process.env.NODE_ENV !== "production"
+    && (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1" || hostname.endsWith(".localhost"));
+}
+
+function hasBetterAuthSessionCookie(request: NextRequest) {
+  return BETTER_AUTH_SESSION_COOKIE_NAMES.some((name) => Boolean(request.cookies.get(name)?.value));
 }
 
 function createRequestPathResponse(
@@ -167,6 +180,10 @@ export async function proxy(request: NextRequest) {
     }
 
     return response;
+  }
+
+  if (isProtected && isLocalDevelopmentHost(request.nextUrl.hostname) && hasBetterAuthSessionCookie(request)) {
+    return createRequestPathResponse(request);
   }
 
   let user: ProxyAuthIdentity | null = null;

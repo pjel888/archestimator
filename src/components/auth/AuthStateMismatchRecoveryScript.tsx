@@ -1,3 +1,5 @@
+import Script from "next/script";
+
 const authStateMismatchRecoveryScript = String.raw`
 (function () {
   try {
@@ -27,7 +29,9 @@ const authStateMismatchRecoveryScript = String.raw`
 
 export function AuthStateMismatchRecoveryScript() {
   return (
-    <script
+    <Script
+      id="auth-state-mismatch-recovery"
+      strategy="beforeInteractive"
       data-auth-state-mismatch-recovery=""
       dangerouslySetInnerHTML={{ __html: authStateMismatchRecoveryScript }}
     />

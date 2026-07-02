@@ -176,6 +176,25 @@ describe("auth proxy", () => {
     );
   });
 
+  it("defers localhost protected-route validation to the server layout when a Better Auth session cookie is present", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("ARCHESTIMATOR_AUTH_PROVIDER", "better-auth");
+    mockUser(null);
+    const { proxy } = await import("@/proxy");
+
+    const response = await proxy(request("http://localhost:3000/workshop/projects", {
+      headers: {
+        cookie: "better-auth.session_token=signed-local-session",
+      },
+    }));
+
+    expect(response.status).toBe(200);
+    expect(betterAuthRuntimeMocks.getCloudflareBetterAuthIdentityFromRequest).not.toHaveBeenCalled();
+    expect(response.headers.get(`x-middleware-request-${AUTH_VERIFIED_REQUEST_HEADER}`)).toBeNull();
+    expect(response.headers.get(`x-middleware-request-${TERMS_ACCEPTED_REQUEST_HEADER}`)).toBeNull();
+    expect(response.headers.get(`x-middleware-request-${AUTH_REQUEST_PATH_HEADER}`)).toBe("/workshop/projects");
+  });
+
   it("keeps the login route renderable instead of creating a Supabase client when hosted env is missing", async () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "");

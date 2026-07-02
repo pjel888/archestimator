@@ -115,6 +115,38 @@ describe("resolveAuthOrigin", () => {
     ).toBe("http://localhost:3000");
   });
 
+  it("allows Cloudflare preview and loopback localhost origins during local development", () => {
+    expect(
+      resolveAuthOrigin({
+        requestOrigin: "http://localhost:8787",
+        requestUrl: "http://localhost:8787/login",
+        env: {},
+      }),
+    ).toBe("http://localhost:8787");
+
+    expect(
+      resolveAuthOrigin({
+        requestOrigin: "http://127.0.0.1:3000",
+        requestUrl: "http://127.0.0.1:3000/login",
+        env: {},
+      }),
+    ).toBe("http://127.0.0.1:3000");
+  });
+
+  it("does not trust localhost origins in production", () => {
+    expect(
+      resolveAuthOrigin({
+        requestOrigin: "http://localhost:3000",
+        requestUrl: "http://localhost:3000/login",
+        env: {
+          NODE_ENV: "production",
+          NEXT_PUBLIC_APP_URL: "https://archestimator.com",
+          ARCHESTIMATOR_ALLOWED_APP_ORIGINS: "https://archestimator.com",
+        },
+      }),
+    ).toBe("https://archestimator.com");
+  });
+
   it("fails closed in production when no canonical origin is configured", () => {
     expect(() =>
       resolveAuthOrigin({
