@@ -28,6 +28,27 @@ Stable current truth (verify against git/source before relying on a detail):
   and provider evidence remain authoritative; never store secrets in
   Supermemory or commit `.supermemory/`. Canonical contract:
   `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`.
+- API/rate-limiting/security planning consolidation as of 2026-07-02:
+  `.ai/03_plans/2026-07-02-API-Rate-Limiting-Security-Consolidation/`
+  supersedes `.ai/03_plans/2026-06-29-Rate-Limiting/` and
+  the user-provided `.ai/03_plans/2026-07-01-API-Audit/` workspace copy, plus
+  tracked/historical API-audit path drift under
+  `.ai/03_plans/2026-07-21-API-Audit/`. Status: CONDITIONALLY READY FOR
+  IMPLEMENTATION PLANNING, not ready for production enforcement/provider
+  cutover. P0 implementation gates are WebSocket signed room tickets before
+  Durable Object forwarding, 100% D1 app-authorization access-path proof,
+  Server Action API-safety matrices, active Cloudflare/D1/R2/DO/Better Auth
+  store authority, and GDPR/privacy retention/DSAR policy before expanding
+  security/rate-limit/AI/upload ledgers. Reviewer-applied P1 gates include
+  trusted client identity/IP normalization for limiter keys, invite pepper
+  secret declaration proof for `ARCHESTIMATOR_INVITE_TOKEN_PEPPER` and
+  `ARCHESTIMATOR_INVITE_RATE_LIMIT_HASH_PEPPER`, and WP-F route/action-bearing
+  slices waiting for the WP-D API-safety baseline. A follow-up standards
+  improvement pass added WP-I and
+  `09_IDEMPOTENCY_RETRY_AND_RESILIENCE_STANDARDS.md`, covering unsafe mutation
+  idempotency, retry/backoff, conditional updates, no-store/cache policy,
+  Problem Details-compatible errors, trace/correlation separation, and
+  Cloudflare Queue/Durable Object at-least-once duplicate-delivery proof.
 - Latest Cloudflare deploy and hosted D1/share proof as of 2026-07-02
   04:31 UTC: `archestimator-proof` Worker version
   `d47bcd1d-37f0-41e3-864a-05a90b28518b` is deployed at 100% on
@@ -47,7 +68,7 @@ Stable current truth (verify against git/source before relying on a detail):
   unauthenticated `/share/...` HTML now shows `PHP 397.90`, row quantity
   `3.16`, and `Hosted D1 browser row mutation proof`. Evidence:
   `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-d1-row-publication-refresh-proof.*`.
-- Latest hosted route/upload/authz refresh as of 2026-07-02 04:37 UTC:
+- Latest hosted route/upload refresh as of 2026-07-02 07:25 UTC:
   `2026-07-02-cloudflare-hosted-route-proof-final-refresh.*` passes the
   credential-free route matrix with no blockers;
   `2026-07-02-cloudflare-hosted-sensitive-route-failclosed-final-refresh.*`
@@ -55,12 +76,63 @@ Stable current truth (verify against git/source before relying on a detail):
   probes; `2026-07-02-cloudflare-hosted-upload-runtime-authenticated-refresh.*`
   passes authenticated non-mutating upload-runtime probes with
   `productionProofReady=true`, Cloudflare R2 `bucketReachable=true`, and R2
-  latency samples around `94-218ms`. Upload cleanup/scan operations remain
-  only fail-closed in
-  `2026-07-02-cloudflare-hosted-upload-operations-failclosed-refresh.*`
-  because cleanup/scan bearer secrets were unavailable. Hosted auth smoke still
-  proves signed-out `/workshop` redirect only; allowed/denied/revoked/expired
-  cases remain blocked by missing `HOSTED_AUTH_*_COOKIE` fixtures.
+  latency samples around `94-218ms`.
+  `2026-07-02-cloudflare-hosted-upload-operations-proof.*` now passes
+  unauthenticated fail-closed plus authenticated cleanup/scan dry-run probes on
+  `archestimator.com` with `productionProofReady=true`, zero queued/removed/
+  scanned/write-failed counts, no-store, and no `Set-Cookie`.
+  `2026-07-02-cloudflare-hosted-upload-lifecycle-proof.*` now passes on
+  Worker version `a0c32a48-2d95-4080-b171-cc6812aea327` after direct Workers
+  Versions API upload/promotion: hosted R2 synthetic PDF write/read, D1 upload
+  session/asset record, scanner queue listing, scanner execution, persisted
+  `scan_status=clean`, approved attachment eligibility/readback, and exact D1/R2
+  cleanup all pass with blockers empty. This proves hosted backend upload
+  lifecycle/scanner persistence; real browser upload UI remains unproven.
+  Hosted auth smoke still
+  proves signed-out `/workshop` redirect only and is superseded by the later
+  synthetic cookie matrix.
+- Latest hosted collaboration invitation D1 proof as of 2026-07-02 07:39 UTC:
+  `archestimator-proof` Worker version
+  `bb30b164-6c0a-45ae-aba5-c043b2cec9e3` is live on
+  `archestimator.com` with `/api/internal/collaboration-invitation-proof`.
+  `2026-07-02-cloudflare-hosted-collaboration-invitation-proof.*` passes with
+  HTTP 200, D1 binding present, `hostedCollaborationInvitationD1Ready=true`,
+  blockers empty, active token resolve `active`, revoked token resolve
+  `revoked` with project hidden, accept-by-token `accepted`, replay
+  `already_member` / `already_used`, wrong-account denial with zero membership
+  rows, accept-by-id plus replay `accepted` / `already_member`, and pre/post
+  synthetic cleanup counts all zero. This closes the hosted D1 invite backend
+  proof; a full two-client in-app collaboration roster browser journey remains
+  separate.
+- Latest hosted authz synthetic cookie matrix as of 2026-07-02 06:23 UTC:
+  `2026-07-02-cloudflare-hosted-auth-synthetic-cookie-matrix.*` passes against
+  `https://archestimator.com`. The first run exposed that missing/revoked beta
+  sessions reached `/workshop` because `CLOSED_BETA_ACCESS_ENABLED` was false
+  for the proof Worker; `wrangler secret put CLOSED_BETA_ACCESS_ENABLED=true`
+  fixed the live Worker, and D1 readback confirmed `philipjonlewis@gmail.com`
+  remains `active` in `closed_beta_allowed_emails`. The rerun proves
+  signed-out `307` to `/login?next=%2Fworkshop`, allowed `200`, denied/missing
+  allowlist `307` to `/access-required`, revoked `307` to
+  `/access-required?status=revoked`, and expired `307` to login, all with
+  private/no-store. Post-proof cleanup returned zero synthetic users, sessions,
+  profiles, memberships, closed-beta rows, terms rows, and workspaces.
+  `scripts/sync-cloudflare-worker-secrets.ts` now defaults proof
+  `CLOSED_BETA_ACCESS_ENABLED` to `true` to avoid regressing this gate.
+- Latest hosted estimate-history D1 proof as of 2026-07-02 07:19 UTC:
+  `archestimator-proof` Worker version
+  `95d47245-763a-42b0-82bb-a9a5b5461003` is live on
+  `archestimator.com`. `2026-07-02-cloudflare-hosted-estimate-history-proof.*`
+  passes against the secret-gated OpenNext route
+  `/api/internal/estimate-history-proof` with HTTP 200, D1 binding present,
+  `hostedEstimateHistoryD1Ready=true`, blockers empty, idempotent row update
+  replay producing exactly one event and the same event id, viewer and
+  cross-workspace mutation denials with zero events, rollback error observed
+  with `rowResidue=0` and `eventResidue=0`, and pre/post synthetic cleanup
+  counts all zero. `EstimateActionsD1Client` now checks existing row history
+  events before row insert/update/delete side effects and enforces D1 edit
+  authorization for estimate mutation actions. This closes the hosted
+  rollback, idempotency/retry replay, viewer-denial, and cross-workspace-denial
+  gap for QA-DATA-02.
 - Latest hosted publication recipient proof as of 2026-07-02 04:45 UTC:
   `2026-07-02-cloudflare-hosted-publication-recipient-comment-decision-proof.*`
   passes the Cloudflare runtime recipient-session/comment/decision path. A
@@ -85,6 +157,92 @@ Stable current truth (verify against git/source before relying on a detail):
   `<...@archestimator.com>` message id under the legacy `resend_email_id`
   column. Boundary: this used `example.invalid`, so it proves UI/persistence
   and dispatch invocation, not recipient mailbox receipt.
+- Latest hosted project CRUD proof as of 2026-07-02 05:00 UTC:
+  `2026-07-02-cloudflare-hosted-project-create-update-delete-proof.*` passes
+  the signed-in production Projects UI against Cloudflare. The browser created
+  throwaway project `e46f1b5b-cf52-4989-831d-f141309ee913` with code
+  `8VDDZNYK`, opened its hosted dashboard, renamed it to
+  `Codex CF Project Proof Updated 20260702T045628Z`, and remote D1
+  `archestimator-proof-db` readback returned that updated row from APAC/SIN
+  primary. The browser then selected exactly that proof project, confirmed
+  `DELETE PROJECT`, and the card disappeared from the Projects UI while the
+  persistent smoke project remained. Remote D1 readback returned `0` rows for
+  the proof project across `projects`, `estimates`, `project_members`, and
+  `project_publications`. Boundary: this proves hosted create/read/update/delete
+  for a throwaway project, not cross-workspace denial or restore/recovery.
+- Latest hosted component-library folder proof as of 2026-07-02 05:12 UTC:
+  `2026-07-02-cloudflare-hosted-library-folder-proof.*` passes the signed-in
+  production Library > Components folder-create path. The browser used
+  `Add library folder`, created `Codex CF Folder Proof 20260702T050951Z`, and
+  the UI showed `Folder created.` with the folder visible in the tree and empty
+  catalogue branch. Remote D1 `archestimator-proof-db` readback returned
+  `library_folders.id=e3deaa00-cde3-4edc-8660-5d44b77ae431`,
+  `workspace_id=258b50ee-3fde-4f6a-a9d9-c360ec44cd0b`, `folder_kind=custom`,
+  `created_by=4e23801d-6fc2-4886-b980-d15ca2b164b8`, and matching create/update
+  timestamps from APAC/SIN primary. The empty throwaway folder was then cleaned
+  up by exact scoped D1 delete and post-cleanup readback returned `row_count=0`.
+  Boundary: scratch template creation, template-to-estimate insertion, and
+  viewer denial are covered by later artifacts.
+- Latest hosted component-library template proof as of 2026-07-02 05:22 UTC:
+  `2026-07-02-cloudflare-hosted-library-template-proof.*` passes scratch
+  estimate-template creation on the production Cloudflare app. A separate
+  headless Playwright Chromium context authenticated with a signed Better Auth
+  D1 session cookie; `/api/auth/get-session` returned `200` as
+  `philipjonlewis@gmail.com`. The browser opened `/workshop/library/templates`,
+  submitted `Codex CF Template Proof 20260702T052028Z`, and post-submit UI
+  exposed the template name in the tree, gallery heading, and preview button.
+  Remote D1 `archestimator-proof-db` readback returned
+  `estimate_templates.id=b82aa0a2-7821-4989-bf0d-69a9eece821f`,
+  `metadata={\"savedFrom\":\"library-templates-browse\"}`,
+  `created_by=4e23801d-6fc2-4886-b980-d15ca2b164b8`, and matching timestamps
+  from APAC/SIN primary. Child template tables were empty as expected for
+  scratch mode; exact scoped D1 cleanup returned zero rows across
+  `estimate_templates`, `estimate_template_nodes`, and
+  `estimate_template_row_items`. Boundary: template-to-estimate insertion and
+  viewer denial are covered by later artifacts.
+- Latest hosted estimate tab lifecycle proof as of 2026-07-02 05:32 UTC:
+  `2026-07-02-cloudflare-hosted-estimate-tab-lifecycle-proof.*` passes the
+  production Cloudflare estimate tab create/rename/delete path. A separate
+  headless Playwright Chromium context authenticated with a signed Better Auth
+  D1 session cookie opened the smoke estimate on `archestimator.com`, used
+  `New tab`, renamed the throwaway tab to
+  `Codex CF Tab Proof 20260702T053154Z`, and deleted it through the tab context
+  menu. Remote D1 readback found tab
+  `fb4ed3e0-fa34-4095-91a5-aa49be6a2b5f` with create/update timestamps, then
+  post-delete `estimate_tabs=0` and `estimate_nodes=0` for that tab. The
+  `estimate_sheet_events` audit trail retained `estimate_tab_created`,
+  `estimate_tab_renamed`, and `estimate_tab_deleted` rows. Later hosted
+  estimate-history proof now covers rollback residue, idempotent retry replay,
+  viewer denial, and cross-workspace denial.
+- Latest hosted template-to-estimate insert proof as of 2026-07-02 05:39 UTC:
+  `2026-07-02-cloudflare-hosted-template-to-estimate-insert-proof.*` passes
+  the production Templates tree insert path. A structured throwaway template was
+  seeded directly into Cloudflare D1, then a separate authenticated headless
+  Chromium context opened the smoke estimate on `archestimator.com`, switched to
+  Templates, right-clicked the proof category, and inserted the template into
+  `Cloudflare QA Area 2026-07-02 04:24` through the hosted context menu. Remote
+  D1 readback found `template_inserted` event
+  `7f644a9f-2820-414c-a1e8-b65cf10c13a8`, inserted root node
+  `198a9e33-13f9-4791-bf17-d800abaf1921`, and row
+  `115cb4fc-8ed9-40c9-84ba-4c3a282b5234` with material
+  `Codex CF Insert Row 20260702T053817Z`. The inserted proof estimate node/row
+  and source template were cleaned up to zero after readback. Boundary:
+  component-library viewer denial is covered by the next artifact.
+- Latest hosted component-library viewer-denial proof as of 2026-07-02 06:10
+  UTC: `2026-07-02-cloudflare-hosted-library-viewer-denial-proof.*` passes the
+  production Cloudflare Templates insert denial path for a synthetic viewer. A
+  synthetic viewer with viewer workspace/project/estimate memberships and a
+  signed Better Auth D1 session opened the smoke estimate on
+  `archestimator.com` without login or terms redirect. The UI showed no
+  `New tab`, `Add area`, or `Add row` controls, Templates search found the
+  seeded proof template/category/area/row, and the browser clicked the real
+  context-menu `Add to ...` action. Remote D1 classified the actor as
+  non-editor (`pre_can_edit_estimate=0`) and post-attempt readback returned
+  `inserted_node_count=0`, `inserted_row_count=0`,
+  `actor_template_inserted_event_count=0`, and `actor_event_count=0`; cleanup
+  returned zero synthetic users, sessions, memberships, terms rows, source
+  template rows, attempted estimate artifacts, events, and telemetry. This
+  closes the P0-LIBRARY hosted viewer-denial gap.
 - State-mismatch root-shell recovery is live as of 2026-07-02 02:33 UTC:
   after the owner still saw `https://archestimator.com/?error=state_mismatch`,
   the current source was uploaded/deployed to Cloudflare Worker version
@@ -179,8 +337,8 @@ Stable current truth (verify against git/source before relying on a detail):
   passed (`12`, `77`, and `47` tests), hosted signed-out auth smoke against
   `https://archestimator.com` passed with `307` to
   `/login?next=%2Fworkshop` and private no-store, `bun run type-check` passed,
-  and `git diff --check` passed. Remaining hosted auth gap: allowed/denied/
-  revoked/expired cases need sanitized session-cookie fixtures. Evidence:
+  and `git diff --check` passed. The later hosted auth synthetic cookie matrix
+  closes the allowed/denied/revoked/expired fixture gap. Evidence:
   `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-authz-cache-hardening.*`.
 - State-mismatch live recheck as of 2026-07-02 01:06 UTC: after the owner
   again reported `https://archestimator.com/?error=state_mismatch`, fresh
@@ -235,8 +393,8 @@ Stable current truth (verify against git/source before relying on a detail):
   cost entry `b07d4b62-ca80-459d-a86f-914503d55e3d`; and version row
   `a6a17cd9-4169-4a1c-82ab-6d39a829a236`, all served by `v3-prod` in APAC/SIN
   primary. This closes the hosted custom/free-typed category create proof;
-  remaining library P0 gaps are hosted folder mutation, template insertion, and
-  viewer-denial proof. Evidence:
+  later hosted artifacts close folder mutation, scratch template creation,
+  template insertion, and viewer-denial proof. Evidence:
   `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-component-custom-category-proof.*`.
 - Hosted publication owner/public proof as of 2026-07-02 01:29 UTC: the
   signed-in production Publisher UI generated a shared page for project
@@ -397,10 +555,10 @@ Stable current truth (verify against git/source before relying on a detail):
   fake-code callback using the live state ended at `/?error=invalid_code`, not
   `state_mismatch`. No-cookie `/api/auth/error?error=state_mismatch` and fake
   callback probes also reset cleanly. Focused auth Vitest passed (`6` files /
-  `66` tests), hosted route refresh passed, and hosted auth smoke confirms
-  signed-out `/workshop` fails closed; fixture-backed allowed/denied/revoked/
-  expired auth smoke cases remain unrunnable without sanitized session-cookie
-  fixtures. The exposed Codex in-app browser profile also recovered from the
+  `66` tests), hosted route refresh passed, and the later hosted auth
+  synthetic cookie matrix confirms signed-out, allowed, denied, revoked, and
+  expired `/workshop` behavior. The exposed Codex in-app browser profile also
+  recovered from the
   exact error URL to `/workshop` as Philip Lewis with visible project data and
   no sign-in prompt. Keep the edge adapter active until the main Worker
   current-source deploy blocker is resolved. Evidence:
@@ -439,9 +597,9 @@ Stable current truth (verify against git/source before relying on a detail):
   unit/quantity/contingency/adjustment, survived full reload, and displayed the
   Activity History audit trail. Read-only remote D1 readback found the matching
   `estimate_nodes`, `estimate_row_items`, and `estimate_sheet_events` rows with
-  `changed_db=false` and `rows_written=0`. Remaining estimate gaps are tab
-  lifecycle, rollback, idempotency/retry replay, and cross-workspace/viewer
-  denial. Evidence:
+  `changed_db=false` and `rows_written=0`. Later hosted artifacts now cover tab
+  lifecycle, rollback residue, idempotent retry replay, viewer denial, and
+  cross-workspace denial. Evidence:
   `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-estimate-area-row-history-proof.*`.
 - Hosted component library proof as of 2026-07-01 20:56 UTC: production Add
   Component initially failed with `D1_ERROR: FOREIGN KEY constraint failed`
@@ -664,26 +822,30 @@ Stable current truth (verify against git/source before relying on a detail):
   remote D1 query against `archestimator-proof-db` returned the same
   `estimates.notes` value with `rows_read=1`, `rows_written=0`, and
   `changed_db=false`. This proves a hosted authenticated estimate-list scalar
-  mutation path; later hosted estimate proof extends coverage to area/row/history
-  mutation, while tab lifecycle, rollback, idempotency/retry replay, denial, and
-  restore journeys still need hosted Worker+D1 proof. Evidence:
+  mutation path; later hosted estimate artifacts now extend coverage to
+  area/row/history, tab lifecycle, rollback residue, idempotent retry replay,
+  viewer denial, and cross-workspace denial. Evidence:
   `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-estimate-note-mutation-proof.*`.
 - Remaining post-cutover hosted-flow gaps as of 2026-07-02 Manila: refreshed
   local D1 estimate-history and component-library proofs pass. QA-DATA-02 now
   has hosted production UI/remote-D1 proof for an authenticated estimate-list
   Notes mutation plus hosted area create/rename, row insert/update, reload
-  persistence, Activity History UI, and remote D1 event readback; it still lacks
-  tab lifecycle, rollback, idempotency/retry replay, and cross-workspace/viewer
-  denial proof. QA-LIB-01 has hosted seeded/custom component create proof but
-  still lacks hosted folder/template/viewer-denial proof.
+  persistence, Activity History UI, remote D1 event readback, hosted tab
+  lifecycle, hosted rollback, idempotency/retry replay, viewer denial, and
+  cross-workspace denial. QA-LIB-01 has hosted seeded/custom
+  component create proof, hosted folder-create proof, hosted
+  scratch-template-create proof, hosted template-to-estimate insert proof, and
+  hosted viewer-denial proof.
   Upload/publication/realtime contract suites pass and hosted upload operations
-  fail closed unauthenticated, but QA-UPLOAD-02 still lacks real user upload UX
-  plus authenticated scanner execution/persistence, QA-PUB-02 now has hosted
+  now pass authenticated cleanup/scan dry-runs, but QA-UPLOAD-02 still lacks
+  real user upload UX plus live scanner/CDR execution and result persistence.
+  QA-PUB-02 now has hosted
   owner publish/public open/recipient composer plus recipient open/respond
   proof, and realtime still lacks a hosted two-client in-app roster proof.
   Evidence:
   `2026-07-02-cloudflare-d1-estimate-history-proof.*`,
   `2026-07-02-cloudflare-hosted-estimate-area-row-history-proof.*`,
+  `2026-07-02-cloudflare-hosted-estimate-history-proof.*`,
   `2026-07-02-cloudflare-d1-component-library-proof.*`,
   `2026-07-02-qa-upload-operations-proof.*`, and
   `2026-07-02-qa-upload-publication-realtime-gap-report.md`.
