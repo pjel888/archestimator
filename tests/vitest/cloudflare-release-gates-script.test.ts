@@ -257,7 +257,7 @@ describe("Cloudflare release gate aggregator", () => {
     );
   });
 
-  it("passes production cutover only when provider and cost proof are complete", () => {
+  it("passes production cutover when provider runtime is ready and strict public p95 remains watch-grade", () => {
     const completeInputs = currentLocalInputs();
     completeInputs.workerReadiness = source({
       ...WORKER_READINESS,
@@ -313,9 +313,9 @@ describe("Cloudflare release gate aggregator", () => {
         localPreviewPerformanceCaptured: true,
         hostedCredentialFreePerformanceCaptured: true,
         productionRuntimePerformanceReady: true,
-        strictHostedClientP95Ready: true,
+        strictHostedClientP95Ready: false,
         aggregateHostedPerformanceReady: true,
-        hostedPerformanceReady: true,
+        hostedPerformanceReady: false,
         productionCostDecisionReady: true,
       },
     });
@@ -350,6 +350,9 @@ describe("Cloudflare release gate aggregator", () => {
     expect(report.readiness.costPerformanceProofReady).toBe(true);
     expect(report.readiness.dataAuthRealtimeProofReady).toBe(true);
     expect(report.readiness.productionCutoverReady).toBe(true);
+    expect(report.gates.find((gate) => gate.key === "hosted-performance-proof")?.evidence).toContain(
+      "strictHostedClientP95Ready=no",
+    );
     expect(report.gates.find((gate) => gate.key === "d1-auth-realtime-production-proof")?.evidence).toContain(
       "estimateHistorySlice=yes",
     );
