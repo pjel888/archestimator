@@ -179,6 +179,34 @@ describe("Cloudflare cost/performance workbook generator", () => {
     });
   });
 
+  it("uses p95 budget readiness, not route-contract readiness, as the strict p95 fallback", () => {
+    const softRouteOnlyWorkbook = buildCloudflareCostPerformanceWorkbook({
+      generatedAt: "2026-06-30T00:00:00.000Z",
+      cloudflareHostedPerformance: {
+        ...HOSTED_PERFORMANCE,
+        p95BudgetReady: false,
+        results: HOSTED_PERFORMANCE.results.map((result) =>
+          result.key === "home" ? { ...result, p95BudgetPassed: false } : result,
+        ),
+      },
+      cloudflareHostedPerformanceSource: "hosted-performance.json",
+    });
+    const strictBudgetWorkbook = buildCloudflareCostPerformanceWorkbook({
+      generatedAt: "2026-06-30T00:00:00.000Z",
+      cloudflareHostedPerformance: {
+        ...HOSTED_PERFORMANCE,
+        p95BudgetReady: true,
+      },
+      cloudflareHostedPerformanceSource: "hosted-performance.json",
+    });
+
+    expect(softRouteOnlyWorkbook.readiness.hostedCredentialFreePerformanceCaptured).toBe(true);
+    expect(softRouteOnlyWorkbook.readiness.strictHostedClientP95Ready).toBe(false);
+    expect(softRouteOnlyWorkbook.readiness.aggregateHostedPerformanceReady).toBe(false);
+    expect(strictBudgetWorkbook.readiness.hostedCredentialFreePerformanceCaptured).toBe(true);
+    expect(strictBudgetWorkbook.readiness.strictHostedClientP95Ready).toBe(true);
+  });
+
   it("prefers explicit hosted TTFB fields over legacy duration aliases", () => {
     const workbook = buildCloudflareCostPerformanceWorkbook({
       generatedAt: "2026-06-30T00:00:00.000Z",
@@ -687,10 +715,27 @@ describe("Cloudflare cost/performance workbook generator", () => {
 
   it("accepts the July 1 pre-launch cost decision once usage inputs are projection-grade and provider runtime proof passes", () => {
     const evidenceRoot = ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence";
+    const hostedPerformance = JSON.parse(readFileSync(`${evidenceRoot}/2026-07-01-cloudflare-hosted-performance.json`, "utf8"));
+    Object.assign(hostedPerformance, {
+      p95BudgetReady: false,
+      p95BudgetWatch: true,
+      strictHostedClientP95Ready: false,
+      hostedCredentialFreePerformanceReady: true,
+    });
+    hostedPerformance.results = hostedPerformance.results.map((result: { key?: string }) =>
+      result.key === "home"
+        ? {
+            ...result,
+            p95TtfbMs: 275,
+            p95DurationMs: 275,
+            p95BudgetPassed: false,
+          }
+        : result,
+    );
     const workbook = buildCloudflareCostPerformanceWorkbook({
       inventory: JSON.parse(readFileSync(`${evidenceRoot}/2026-06-30-cloudflare-migration-inventory.json`, "utf8")),
       workerPreviewRouteProbe: JSON.parse(readFileSync(`${evidenceRoot}/2026-06-29-cloudflare-worker-preview-route-probe.json`, "utf8")),
-      cloudflareHostedPerformance: JSON.parse(readFileSync(`${evidenceRoot}/2026-07-01-cloudflare-hosted-performance.json`, "utf8")),
+      cloudflareHostedPerformance: hostedPerformance,
       d1RuntimePerformanceProof: JSON.parse(readFileSync(`${evidenceRoot}/2026-07-01-cloudflare-d1-runtime-performance-proof.json`, "utf8")),
       betterAuthProviderProof: JSON.parse(readFileSync(`${evidenceRoot}/2026-07-01-cloudflare-better-auth-provider-proof.json`, "utf8")),
       jobsRuntimeProof: JSON.parse(readFileSync(`${evidenceRoot}/2026-07-01-cloudflare-jobs-runtime-proof.json`, "utf8")),
@@ -704,6 +749,9 @@ describe("Cloudflare cost/performance workbook generator", () => {
 
     expect(workbook.readiness.cloudflareUsageCostsReady).toBe(true);
     expect(workbook.readiness.productionRuntimePerformanceReady).toBe(true);
+    expect(workbook.readiness.strictHostedClientP95Ready).toBe(false);
+    expect(workbook.readiness.aggregateHostedPerformanceReady).toBe(true);
+    expect(workbook.readiness.hostedPerformanceReady).toBe(false);
     expect(workbook.readiness.productionCostDecisionReady).toBe(true);
     expect(workbook.cloudflareCostInputs.find((row) => row.input === "Workers requests")).toMatchObject({
       status: "provided",

@@ -111,10 +111,10 @@ describe("Cloudflare R2 upload storage provider", () => {
       "workspace-1/user-1/spec-thumb.webp",
     ]);
 
-    expect(r2.deleteCalls).toEqual([[
+    expect(r2.deleteCalls).toEqual([
       "component-attachments/workspace-1/user-1/spec.pdf",
       "component-attachments/workspace-1/user-1/spec-thumb.webp",
-    ]]);
+    ]);
     await expect(provider.downloadObject("component-attachments", "workspace-1/user-1/spec.pdf"))
       .rejects.toThrow("R2 storage object was not found.");
   });

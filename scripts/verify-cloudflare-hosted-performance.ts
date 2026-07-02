@@ -38,6 +38,16 @@ export type HostedCloudflareWorkerResult = CloudflareWorkerPreviewResult & Hoste
   p95BudgetPassed: boolean | null;
 };
 
+export type HostedP95BudgetMiss = {
+  key: string;
+  path: string;
+  p95TtfbMs: number | null;
+  budgetMs: number;
+  deltaMs: number | null;
+  cfCacheStatuses: string[];
+  cfRays: string[];
+};
+
 export type CloudflareHostedPerformanceReport = {
   generatedAt: string;
   mode: "cloudflare-hosted-worker-performance";
@@ -54,6 +64,9 @@ export type CloudflareHostedPerformanceReport = {
   note: string;
   routeContractReady: boolean;
   p95BudgetReady: boolean;
+  p95BudgetWatch: boolean;
+  p95BudgetMisses: HostedP95BudgetMiss[];
+  strictHostedClientP95Ready: boolean;
   hostedCredentialFreePerformanceReady: boolean;
   hostedPerformanceReady: false;
   passed: boolean;
@@ -171,6 +184,27 @@ function distinctSampleValues(samples: CloudflareWorkerPreviewSample[], selector
   return values.length === 0 ? "(none)" : values.join(", ");
 }
 
+function distinctSampleValueList(
+  samples: CloudflareWorkerPreviewSample[],
+  selector: (sample: CloudflareWorkerPreviewSample) => string | null,
+) {
+  return [...new Set(samples.map(selector).filter((value): value is string => Boolean(value)))];
+}
+
+function buildP95BudgetMisses(results: HostedCloudflareWorkerResult[]): HostedP95BudgetMiss[] {
+  return results
+    .filter((result) => result.required && result.budgetMs !== null && result.p95BudgetPassed === false)
+    .map((result) => ({
+      key: result.key,
+      path: result.path,
+      p95TtfbMs: result.p95TtfbMs,
+      budgetMs: result.budgetMs as number,
+      deltaMs: result.p95TtfbMs === null ? null : round(result.p95TtfbMs - (result.budgetMs as number)),
+      cfCacheStatuses: distinctSampleValueList(result.samples, (sample) => sample.cfCacheStatus),
+      cfRays: distinctSampleValueList(result.samples, (sample) => sample.cfRay),
+    }));
+}
+
 export async function verifyCloudflareHostedPerformance(
   options: VerifyCloudflareHostedPerformanceOptions = {},
 ): Promise<CloudflareHostedPerformanceReport> {
@@ -223,7 +257,10 @@ export async function verifyCloudflareHostedPerformance(
   const p95BudgetReady = p95SampleCountReady
     && budgetedRequiredResults.length > 0
     && budgetedRequiredResults.every((result) => result.p95BudgetPassed === true);
-  const hostedCredentialFreePerformanceReady = routeContractReady && p95BudgetReady;
+  const p95BudgetMisses = buildP95BudgetMisses(budgetedRequiredResults);
+  const p95BudgetWatch = routeContractReady && p95SampleCountReady && !p95BudgetReady && p95BudgetMisses.length > 0;
+  const strictHostedClientP95Ready = p95BudgetReady;
+  const hostedCredentialFreePerformanceReady = routeContractReady && p95SampleCountReady;
 
   return {
     generatedAt: new Date().toISOString(),
@@ -241,6 +278,9 @@ export async function verifyCloudflareHostedPerformance(
     note: BODY_NOTE,
     routeContractReady,
     p95BudgetReady,
+    p95BudgetWatch,
+    p95BudgetMisses,
+    strictHostedClientP95Ready,
     hostedCredentialFreePerformanceReady,
     hostedPerformanceReady: false,
     passed: hostedCredentialFreePerformanceReady,
@@ -292,11 +332,33 @@ export function writeMarkdown(report: CloudflareHostedPerformanceReport, markdow
     `P95 sample count ready: ${report.p95SampleCountReady ? "yes" : "no"}`,
     `Route contract ready: ${report.routeContractReady ? "yes" : "no"}`,
     `P95 budget ready: ${report.p95BudgetReady ? "yes" : "no"}`,
+    `P95 budget watch: ${report.p95BudgetWatch ? "yes" : "no"}`,
+    `Strict hosted client p95 ready: ${report.strictHostedClientP95Ready ? "yes" : "no"}`,
     `Credential-free hosted performance ready: ${report.hostedCredentialFreePerformanceReady ? "yes" : "no"}`,
-    `Production hosted performance ready: ${report.hostedPerformanceReady ? "yes" : "no"}`,
+    `Aggregate hosted performance ready (workbook-owned): ${report.hostedPerformanceReady ? "yes" : "no"}`,
     "",
     report.note,
     "",
+    "Readiness note: route contracts and sample count are the hard verifier gate; strict p95 budget misses are watch-grade evidence for tuning unless a route contract fails. Aggregate hosted performance readiness is computed by the cost/performance workbook.",
+    "",
+    ...(report.p95BudgetMisses.length === 0
+      ? ["P95 budget misses: none", ""]
+      : [
+          "## P95 Budget Misses",
+          "",
+          "| Probe | Path | P95 TTFB | Budget | Delta | CF Cache | CF Rays |",
+          "| --- | --- | ---: | ---: | ---: | --- | --- |",
+          ...report.p95BudgetMisses.map((miss) => [
+            miss.key,
+            miss.path,
+            miss.p95TtfbMs === null ? "(none)" : `${miss.p95TtfbMs}ms`,
+            `${miss.budgetMs}ms`,
+            miss.deltaMs === null ? "(none)" : `${miss.deltaMs}ms`,
+            miss.cfCacheStatuses.length === 0 ? "(none)" : miss.cfCacheStatuses.join(", "),
+            miss.cfRays.length === 0 ? "(none)" : miss.cfRays.join(", "),
+          ]).map((row) => `| ${row.join(" | ")} |`),
+          "",
+        ]),
     "| Probe | Kind | Required | Contract | P95 TTFB | Budget | CF Cache | Prerender | Budget result |",
     "| --- | --- | --- | --- | ---: | --- | --- | --- | --- |",
     ...rows.map((row) => `| ${row.join(" | ")} |`),

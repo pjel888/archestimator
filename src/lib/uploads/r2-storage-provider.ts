@@ -73,7 +73,7 @@ export function createCloudflareR2UploadStorageProvider(
     },
     async removeObjects(bucket, paths) {
       if (paths.length === 0) return;
-      await r2.delete(paths.map((path) => buildCloudflareR2ObjectKey(bucket, path)));
+      await Promise.all(paths.map((path) => r2.delete(buildCloudflareR2ObjectKey(bucket, path))));
     },
     async downloadObject(bucket, path) {
       const object = await r2.get(buildCloudflareR2ObjectKey(bucket, path));

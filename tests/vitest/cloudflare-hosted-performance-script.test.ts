@@ -112,9 +112,13 @@ describe("Cloudflare hosted performance verifier", () => {
     expect(report.budgetMetric).toBe("ttfbMs");
     expect(report.p95SampleCountReady).toBe(true);
     expect(report.p95BudgetReady).toBe(true);
+    expect(report.p95BudgetWatch).toBe(false);
+    expect(report.p95BudgetMisses).toEqual([]);
+    expect(report.strictHostedClientP95Ready).toBe(true);
     expect(report.warmupRuns).toBe(1);
     expect(report.hostedCredentialFreePerformanceReady).toBe(true);
     expect(report.hostedPerformanceReady).toBe(false);
+    expect(report.passed).toBe(true);
     expect(report.providerBacked).toBe(true);
     expect(report.results.find((result) => result.key === "health")).toMatchObject({
       required: true,
@@ -178,7 +182,61 @@ describe("Cloudflare hosted performance verifier", () => {
     expect(home?.p95BudgetPassed).toBe(true);
     expect(report.p95SampleCountReady).toBe(false);
     expect(report.p95BudgetReady).toBe(false);
+    expect(report.p95BudgetWatch).toBe(false);
+    expect(report.strictHostedClientP95Ready).toBe(false);
     expect(report.hostedCredentialFreePerformanceReady).toBe(false);
+  });
+
+  it("keeps public route p95 misses as watch-grade evidence when route contracts and sample count pass", async () => {
+    let currentTimeMs = 0;
+    vi.spyOn(performance, "now").mockImplementation(() => currentTimeMs);
+    const fetchImpl = (async (input: string | URL | Request) => {
+      currentTimeMs += 500;
+      return passingHostedFetch()(input);
+    }) as typeof fetch;
+
+    const report = await verifyCloudflareHostedPerformance({
+      baseUrl: "https://proof.example.com",
+      fakeToken: "fake-token",
+      runs: 20,
+      warmupRuns: 0,
+      fetchImpl,
+    });
+
+    expect(report.routeContractReady).toBe(true);
+    expect(report.p95SampleCountReady).toBe(true);
+    expect(report.p95BudgetReady).toBe(false);
+    expect(report.p95BudgetWatch).toBe(true);
+    expect(report.strictHostedClientP95Ready).toBe(false);
+    expect(report.hostedCredentialFreePerformanceReady).toBe(true);
+    expect(report.hostedPerformanceReady).toBe(false);
+    expect(report.passed).toBe(true);
+    expect(report.p95BudgetMisses.map((miss) => miss.key)).toEqual([
+      "home",
+      "login",
+      "pricing",
+      "features",
+      "about",
+      "contact",
+      "trust",
+      "privacy",
+      "terms",
+      "signup",
+      "access-required",
+      "share-invalid-page",
+    ]);
+    expect(report.p95BudgetMisses.find((miss) => miss.key === "home")).toMatchObject({
+      path: "/",
+      p95TtfbMs: 500,
+      budgetMs: 200,
+      deltaMs: 300,
+    });
+    expect(report.p95BudgetMisses.find((miss) => miss.key === "login")).toMatchObject({
+      path: "/login",
+      p95TtfbMs: 500,
+      budgetMs: 300,
+      deltaMs: 200,
+    });
   });
 
   it("uses enough hosted samples for p95 to tolerate one isolated latency spike", async () => {
@@ -205,6 +263,8 @@ describe("Cloudflare hosted performance verifier", () => {
     const home = report.results.find((result) => result.key === "home");
     expect(report.p95SampleCountReady).toBe(true);
     expect(report.p95BudgetReady).toBe(true);
+    expect(report.p95BudgetWatch).toBe(false);
+    expect(report.strictHostedClientP95Ready).toBe(true);
     expect(home?.maxDurationMs).toBe(900);
     expect(home?.maxTtfbMs).toBe(900);
     expect(home?.p95TtfbMs).toBe(5);
@@ -256,6 +316,7 @@ describe("Cloudflare hosted performance verifier", () => {
       const markdown = readFileSync(file, "utf8");
       expect(markdown).toContain("Cloudflare Hosted Worker Performance");
       expect(markdown).toContain("Budget metric: ttfbMs");
+      expect(markdown).toContain("Readiness note: route contracts and sample count are the hard verifier gate");
       expect(markdown).toContain("P95 TTFB");
       expect(markdown).toContain("CF Cache");
       expect(markdown).toContain("HIT");

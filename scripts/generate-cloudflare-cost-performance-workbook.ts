@@ -34,6 +34,9 @@ type HostedPerformanceReport = {
   providerBacked?: boolean;
   proofScope?: string;
   routeContractReady?: boolean;
+  p95BudgetReady?: boolean;
+  p95BudgetWatch?: boolean;
+  strictHostedClientP95Ready?: boolean;
   hostedCredentialFreePerformanceReady?: boolean;
   hostedPerformanceReady?: boolean;
   results?: Array<{
@@ -252,6 +255,7 @@ export type CloudflareCostPerformanceWorkbook = {
     hostedCredentialFreePerformanceCaptured: boolean;
     productionRuntimePerformanceReady: boolean;
     strictHostedClientP95Ready: boolean;
+    aggregateHostedPerformanceReady: boolean;
     hostedPerformanceReady: boolean;
     productionCostDecisionReady: boolean;
   };
@@ -301,7 +305,7 @@ type WorkbookInputs = {
 const PLAN_ROOT = ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence";
 const DEFAULT_INVENTORY_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-migration-inventory.json`;
 const DEFAULT_ROUTE_PROBE_FILE = `${PLAN_ROOT}/2026-06-29-cloudflare-worker-preview-route-probe.json`;
-const DEFAULT_HOSTED_PERFORMANCE_FILE = `${PLAN_ROOT}/2026-07-01-cloudflare-hosted-performance.json`;
+const DEFAULT_HOSTED_PERFORMANCE_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-hosted-performance.json`;
 const DEFAULT_D1_RUNTIME_PERFORMANCE_FILE = `${PLAN_ROOT}/2026-07-01-cloudflare-d1-runtime-performance-proof.json`;
 const DEFAULT_BETTER_AUTH_PROVIDER_PROOF_FILE = `${PLAN_ROOT}/2026-07-01-cloudflare-better-auth-provider-proof.json`;
 const DEFAULT_JOBS_RUNTIME_PROOF_FILE = `${PLAN_ROOT}/2026-07-01-cloudflare-jobs-runtime-proof.json`;
@@ -945,13 +949,17 @@ export function buildCloudflareCostPerformanceWorkbook(inputs: WorkbookInputs): 
     inputs.cloudflareHostedPerformance?.mode === "cloudflare-hosted-worker-performance"
     && inputs.cloudflareHostedPerformance.providerBacked === true
     && inputs.cloudflareHostedPerformance.routeContractReady === true;
-  const strictHostedClientP95Ready = performanceFixtures.length > 0
-    && performanceFixtures.every((fixture) => performanceStatusReady(fixture.status))
-    && inputs.cloudflareHostedPerformance?.hostedCredentialFreePerformanceReady === true;
+  const strictHostedClientP95Signal =
+    inputs.cloudflareHostedPerformance?.strictHostedClientP95Ready
+    ?? inputs.cloudflareHostedPerformance?.p95BudgetReady;
+  const strictHostedClientP95Ready =
+    hostedCredentialFreePerformanceCaptured
+    && strictHostedClientP95Signal === true;
   const productionRuntimePerformanceReady =
     hostedCredentialFreePerformanceCaptured
     && providerRuntimePerformanceReady(performanceFixtures);
-  const hostedPerformanceReady = strictHostedClientP95Ready;
+  const aggregateHostedPerformanceReady = productionRuntimePerformanceReady;
+  const hostedPerformanceReady = productionRuntimePerformanceReady && strictHostedClientP95Ready;
   const cloudflarePricingRefreshed = pricingSnapshotRefreshed(inputs.cloudflarePricingSnapshot);
   const currentProviderCostsReady = allRowsProvided(currentProviderCostInputs);
   const cloudflareUsageCostsReady = cloudflareCostInputs.every(productionUsageCostBasisReady);
@@ -986,6 +994,7 @@ export function buildCloudflareCostPerformanceWorkbook(inputs: WorkbookInputs): 
       hostedCredentialFreePerformanceCaptured,
       productionRuntimePerformanceReady,
       strictHostedClientP95Ready,
+      aggregateHostedPerformanceReady,
       hostedPerformanceReady,
       productionCostDecisionReady,
     },
@@ -1062,6 +1071,7 @@ export function writeMarkdown(workbook: CloudflareCostPerformanceWorkbook, markd
     `| Hosted credential-free performance captured | ${workbook.readiness.hostedCredentialFreePerformanceCaptured ? "yes" : "no"} |`,
     `| Production runtime performance ready | ${workbook.readiness.productionRuntimePerformanceReady ? "yes" : "no"} |`,
     `| Strict hosted client p95 ready | ${workbook.readiness.strictHostedClientP95Ready ? "yes" : "no"} |`,
+    `| Aggregate hosted performance ready | ${workbook.readiness.aggregateHostedPerformanceReady ? "yes" : "no"} |`,
     `| Hosted performance ready | ${workbook.readiness.hostedPerformanceReady ? "yes" : "no"} |`,
     `| Production cost decision ready | ${workbook.readiness.productionCostDecisionReady ? "yes" : "no"} |`,
     "",

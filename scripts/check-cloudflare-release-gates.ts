@@ -152,6 +152,7 @@ type CostPerformanceWorkbook = {
     hostedCredentialFreePerformanceCaptured?: boolean;
     productionRuntimePerformanceReady?: boolean;
     strictHostedClientP95Ready?: boolean;
+    aggregateHostedPerformanceReady?: boolean;
     hostedPerformanceReady?: boolean;
     productionCostDecisionReady?: boolean;
   };
@@ -621,7 +622,7 @@ function buildGates(inputs: ReleaseGateInputs) {
         "Hosted Cloudflare runtime performance proof captured",
         "cost-performance",
         readiness?.productionRuntimePerformanceReady === true,
-        `hostedCredentialFreePerformanceCaptured=${boolLabel(readiness?.hostedCredentialFreePerformanceCaptured)}, productionRuntimePerformanceReady=${boolLabel(readiness?.productionRuntimePerformanceReady)}, strictHostedClientP95Ready=${boolLabel(readiness?.strictHostedClientP95Ready)}, hostedPerformanceReady=${boolLabel(readiness?.hostedPerformanceReady)}`,
+        `hostedCredentialFreePerformanceCaptured=${boolLabel(readiness?.hostedCredentialFreePerformanceCaptured)}, productionRuntimePerformanceReady=${boolLabel(readiness?.productionRuntimePerformanceReady)}, strictHostedClientP95Ready=${boolLabel(readiness?.strictHostedClientP95Ready)}, aggregateHostedPerformanceReady=${boolLabel(readiness?.aggregateHostedPerformanceReady ?? readiness?.productionRuntimePerformanceReady)}`,
         "Hosted Cloudflare runtime performance evidence is missing or failing. Strict local-client p95 route timing remains visible in the workbook but is tracked separately from provider runtime readiness.",
         inputs.costPerformanceWorkbook.source,
       ),
