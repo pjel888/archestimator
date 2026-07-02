@@ -16,6 +16,11 @@ import {
   routeCloudflareProtectedProofRequest,
 } from "./src/lib/cloudflare/protected-proof-routes";
 import {
+  normalizeAuthStateMismatchRedirectResponse,
+  routeAuthCallbackStateMismatchRetry,
+  routeAuthStateMismatchRetry,
+  routeAuthStateResetLoginCompletion,
+  routeCanonicalHostRedirect,
   routeCloudflareFastHealthRequest,
   routeMalformedShareTokenRequest,
   routeStaticPublicPageThroughCache,
@@ -52,6 +57,18 @@ const openNextWorker = generatedOpenNextWorker as OpenNextWorker;
 
 export default {
   async fetch(request: Request, env: CloudflareWorkerEnv, ctx: ExecutionContextLike) {
+    const canonicalHostRedirect = routeCanonicalHostRedirect(request);
+    if (canonicalHostRedirect) return canonicalHostRedirect;
+
+    const authStateMismatchRetry = routeAuthStateMismatchRetry(request);
+    if (authStateMismatchRetry) return authStateMismatchRetry;
+
+    const authCallbackStateMismatchRetry = routeAuthCallbackStateMismatchRetry(request);
+    if (authCallbackStateMismatchRetry) return authCallbackStateMismatchRetry;
+
+    const authStateResetLoginCompletion = routeAuthStateResetLoginCompletion(request);
+    if (authStateResetLoginCompletion) return authStateResetLoginCompletion;
+
     const fastHealthResponse = routeCloudflareFastHealthRequest(request);
     if (fastHealthResponse) return fastHealthResponse;
 
@@ -71,7 +88,8 @@ export default {
     );
     if (cachedPublicPageResponse) return cachedPublicPageResponse;
 
-    return openNextWorker.fetch(request, env, ctx);
+    const response = await openNextWorker.fetch(request, env, ctx);
+    return normalizeAuthStateMismatchRedirectResponse(response, request);
   },
 
   scheduled(controller: ScheduledControllerLike, env: CloudflareWorkerEnv, ctx: ExecutionContextLike) {

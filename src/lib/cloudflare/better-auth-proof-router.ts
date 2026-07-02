@@ -216,7 +216,7 @@ async function createDefaultProofAuth({
   secret,
   trustedOrigins,
 }: BetterAuthProofAuthFactoryInput) {
-  const { magicLink } = await import("better-auth/plugins");
+  const { magicLink } = await import("better-auth/plugins/magic-link");
   const auth = await createCloudflareBetterAuthForD1({
     d1Database,
     baseURL: baseUrl,

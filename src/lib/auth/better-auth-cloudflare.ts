@@ -210,7 +210,7 @@ export async function createCloudflareBetterAuthMagicLinkPlugin(options?: {
   sendMagicLinkEmail?: (input: SendBetterAuthMagicLinkEmailInput) => Promise<unknown>;
 }) {
   const [{ magicLink }, { sendCloudflareEmail }] = await Promise.all([
-    import("better-auth/plugins"),
+    import("better-auth/plugins/magic-link"),
     import("@/lib/email/cloudflare-email-client"),
   ]);
 

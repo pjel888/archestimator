@@ -1,0 +1,37 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "archestimator-auth-callback-normalizer",
+  "main": "cloudflare/auth-callback-normalizer.ts",
+  "compatibility_date": "2026-06-29",
+  "workers_dev": false,
+  "routes": [
+    {
+      "pattern": "archestimator.com/*",
+      "zone_name": "archestimator.com"
+    },
+    {
+      "pattern": "archestimator.com/api/auth/callback/google*",
+      "zone_name": "archestimator.com"
+    },
+    {
+      "pattern": "www.archestimator.com/*",
+      "zone_name": "archestimator.com"
+    }
+  ],
+  "services": [
+    {
+      "binding": "ARCH_APP",
+      "service": "archestimator-proof"
+    }
+  ],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "invocation_logs": true,
+      "persist": true
+    }
+  }
+}

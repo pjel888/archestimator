@@ -16,6 +16,10 @@ describe("auth error mapping", () => {
     expect(getPublicAuthError("callback_exchange_failed").message).toBe(
       "We could not finish signing you in. Request a new link or try Google again.",
     );
+    expect(getPublicAuthError("state_mismatch")).toEqual({
+      code: "state_mismatch",
+      message: "We reset your Google sign-in session. Try Google again from this page.",
+    });
   });
 
   it("does not expose raw provider or callback failure details", () => {
@@ -41,6 +45,7 @@ describe("auth error mapping", () => {
   it("maps public auth codes to AppError auth subclasses without leaking causes", () => {
     expect(mapAuthCodeToAppError("email_required")).toBeInstanceOf(AuthRequiredError);
     expect(mapAuthCodeToAppError("callback_exchange_failed")).toBeInstanceOf(AuthSessionExpiredError);
+    expect(mapAuthCodeToAppError("state_mismatch")).toBeInstanceOf(AuthSessionExpiredError);
     expect(mapAuthCodeToAppError("invalid_redirect")).toBeInstanceOf(AuthPermissionDeniedError);
 
     const error = mapAuthCodeToAppError("unexpected raw database error", "refresh_token=secret");

@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -56,7 +56,6 @@ describe("magic-link auth callback", () => {
     const devAuth = readProjectFile("src/lib/auth/dev-auth.ts");
     const proxy = readProjectFile("src/lib/auth/request-proxy.ts");
     const session = readProjectFile("src/lib/auth/session.ts");
-    const serverClient = readProjectFile("src/lib/supabase/server.ts");
     const envExample = readProjectFile(".env.example");
 
     expect(devAuthGate).toContain('process.env.NODE_ENV !== "production"');
@@ -74,10 +73,9 @@ describe("magic-link auth callback", () => {
     expect(devAuth).toContain("headers");
     expect(devAuth).toContain("getDevAuthBypassCredentialFromRequestParts(requestHeaders, await cookies())");
     expect(devAuth).toContain("isDevAuthBypassRequest(hostHeader, devAuthBypassCredential)");
-    expect(serverClient).not.toContain("isDevAdminDatabaseBypassRequest");
-    expect(serverClient).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
-    expect(serverClient).toContain("NEXT_PUBLIC_SUPABASE_ANON_KEY");
-    expect(serverClient).toContain("persistSession: false");
+    expect(existsSync(join(root, "src/lib/supabase/server.ts"))).toBe(false);
+    expect(`${devAuth}\n${proxy}\n${session}`).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
+    expect(`${devAuth}\n${proxy}\n${session}`).not.toContain("NEXT_PUBLIC_SUPABASE_ANON_KEY");
     expect(envExample).toContain("ARCHESTIMATOR_DEV_AUTH_BYPASS=0");
     expect(envExample).toContain("ARCHESTIMATOR_DEV_AUTH_ADMIN_DB=0");
     expect(envExample).toContain("ARCHESTIMATOR_DEV_AUTH_BYPASS_SECRET=");

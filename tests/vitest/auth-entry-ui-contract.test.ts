@@ -57,4 +57,10 @@ describe("/login auth entry UI contract", () => {
     expect(loginSource).not.toMatch(/params\.email/);
     expect(loginSource).not.toMatch(/searchParams\.email/);
   });
+
+  it("keeps the auth entry page dynamic and no-store for OAuth server-action freshness", () => {
+    expect(loginSource).toContain('export const dynamic = "force-dynamic"');
+    expect(loginSource).toContain("export const revalidate = 0");
+    expect(loginSource).not.toContain('export const dynamic = "force-static"');
+  });
 });

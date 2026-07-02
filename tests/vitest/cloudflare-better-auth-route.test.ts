@@ -57,4 +57,52 @@ describe("Cloudflare Better Auth route", () => {
       expect.objectContaining({ method: "GET" }),
     );
   });
+
+  it("adds no-store cache control to delegated successful Better Auth responses", async () => {
+    const handlers = createHandlers();
+    cloudflareMocks.createCloudflareBetterAuthNextHandlersForRequest.mockResolvedValue(handlers);
+
+    const { GET, POST } = await import("@/app/api/auth/[...all]/route");
+    const getResponse = await GET(createRequest());
+    const postResponse = await POST(createRequest("/api/auth/sign-in/social", "POST"));
+
+    expect(getResponse.headers.get("cache-control")).toBe("private, no-cache, no-store, max-age=0, must-revalidate");
+    expect(postResponse.headers.get("cache-control")).toBe("private, no-cache, no-store, max-age=0, must-revalidate");
+  });
+
+  it("preserves delegated no-store cache control when Better Auth already sets it", async () => {
+    const handlers = createHandlers();
+    handlers.GET.mockResolvedValue(Response.json({ ok: true }, {
+      headers: { "cache-control": "private, no-store" },
+    }));
+    cloudflareMocks.createCloudflareBetterAuthNextHandlersForRequest.mockResolvedValue(handlers);
+
+    const { GET } = await import("@/app/api/auth/[...all]/route");
+    const response = await GET(createRequest());
+
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+  });
+
+  it("normalizes duplicate OAuth state cookies before Better Auth handles Google callbacks", async () => {
+    const handlers = createHandlers();
+    cloudflareMocks.createCloudflareBetterAuthNextHandlersForRequest.mockResolvedValue(handlers);
+
+    const { GET } = await import("@/app/api/auth/[...all]/route");
+    const response = await GET(new Request("https://archestimator.com/api/auth/callback/google?state=fresh-state", {
+      headers: {
+        cookie:
+          "theme=light; __Secure-better-auth.state=old-state.old-signature; "
+          + "better-auth.session_token=session; __Secure-better-auth.state=fresh-state.fresh%2Fsignature",
+      },
+    }));
+
+    expect(response.status).toBe(200);
+    const routedRequest = handlers.GET.mock.calls[0]?.[0] as Request;
+    expect(routedRequest.headers.get("cookie")).toBe(
+      "theme=light; better-auth.session_token=session; __Secure-better-auth.state=fresh-state.fresh%2Fsignature",
+    );
+    expect(cloudflareMocks.createCloudflareBetterAuthNextHandlersForRequest).toHaveBeenCalledWith(
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
 });

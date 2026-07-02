@@ -12,6 +12,7 @@ const AUTH_ERROR_CODES = [
   "callback_missing_code",
   "callback_exchange_failed",
   "invalid_redirect",
+  "state_mismatch",
 ] as const;
 
 export type AuthErrorCode = (typeof AUTH_ERROR_CODES)[number];
@@ -24,6 +25,7 @@ const AUTH_ERROR_MESSAGES: Record<AuthErrorCode, string> = {
   callback_exchange_failed:
     "We could not finish signing you in. Request a new link or try Google again.",
   invalid_redirect: "We reset the sign-in destination to keep your account safe.",
+  state_mismatch: "We reset your Google sign-in session. Try Google again from this page.",
 };
 
 export function getPublicAuthError(value?: string | null) {
@@ -48,7 +50,11 @@ export function mapAuthCodeToAppError(code: AuthErrorCode | string | null | unde
   if (publicError.code === "invalid_redirect") {
     return new AuthPermissionDeniedError(publicError.message, { cause });
   }
-  if (publicError.code === "callback_missing_code" || publicError.code === "callback_exchange_failed") {
+  if (
+    publicError.code === "callback_missing_code" ||
+    publicError.code === "callback_exchange_failed" ||
+    publicError.code === "state_mismatch"
+  ) {
     return new AuthSessionExpiredError(publicError.message, { cause });
   }
   return new AuthRequiredError(publicError.message, { cause });

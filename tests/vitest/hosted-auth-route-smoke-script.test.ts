@@ -87,16 +87,16 @@ describe("hosted auth route smoke script", () => {
       name: "denied",
       status: 307,
       ok: false,
-      location: "https://preview.example/beta/access-required",
-      normalizedLocationPath: "/beta/access-required",
+      location: "https://preview.example/access-required",
+      normalizedLocationPath: "/access-required",
     })).toBe(true);
 
     expect(evaluateCase({
       name: "revoked",
       status: 307,
       ok: false,
-      location: "https://preview.example/beta/access-required?status=revoked",
-      normalizedLocationPath: "/beta/access-required?status=revoked",
+      location: "https://preview.example/access-required?status=revoked",
+      normalizedLocationPath: "/access-required?status=revoked",
     })).toBe(true);
 
     expect(evaluateCase({
@@ -110,8 +110,8 @@ describe("hosted auth route smoke script", () => {
 
   it("normalizes relative and absolute redirect locations", () => {
     expect(normalizeLocationPath("/login?next=%2Fworkshop", "https://preview.example")).toBe("/login?next=%2Fworkshop");
-    expect(normalizeLocationPath("https://preview.example/beta/access-required", "https://preview.example")).toBe(
-      "/beta/access-required",
+    expect(normalizeLocationPath("https://preview.example/access-required", "https://preview.example")).toBe(
+      "/access-required",
     );
   });
 
@@ -165,11 +165,11 @@ describe("hosted auth route smoke script", () => {
       new Response("<html>workshop</html>", { status: 200, headers: { "cache-control": cacheControl } }),
       new Response(null, {
         status: 307,
-        headers: { "cache-control": cacheControl, location: "https://preview.example/beta/access-required" },
+        headers: { "cache-control": cacheControl, location: "https://preview.example/access-required" },
       }),
       new Response(null, {
         status: 307,
-        headers: { "cache-control": cacheControl, location: "https://preview.example/beta/access-required?status=revoked" },
+        headers: { "cache-control": cacheControl, location: "https://preview.example/access-required?status=revoked" },
       }),
       new Response(null, {
         status: 307,

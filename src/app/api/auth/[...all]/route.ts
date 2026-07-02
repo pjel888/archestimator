@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createCloudflareBetterAuthNextHandlersForRequest } from "@/lib/auth/cloudflare-better-auth-runtime";
+import { normalizeBetterAuthOAuthStateCookieHeader } from "@/lib/auth/set-cookie-forwarding";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,6 +18,24 @@ function jsonError(error: string, status: number) {
   return NextResponse.json({ error }, { status, headers: NO_STORE_HEADERS });
 }
 
+function hasNoStoreCacheControl(response: Response) {
+  return response.headers.get("cache-control")?.toLowerCase().split(",").map((part) => part.trim()).includes("no-store")
+    ?? false;
+}
+
+function withAuthNoStore(response: Response) {
+  if (hasNoStoreCacheControl(response)) return response;
+
+  const headers = new Headers(response.headers);
+  headers.set("Cache-Control", NO_STORE_HEADERS["Cache-Control"]);
+
+  return new Response(response.body, {
+    headers,
+    status: response.status,
+    statusText: response.statusText,
+  });
+}
+
 async function createHandlers(request: Request): Promise<BetterAuthRouteHandlers | Response> {
   const handlers = await createCloudflareBetterAuthNextHandlersForRequest(request);
   if (!handlers) return jsonError("Better Auth route is not configured.", 503);
@@ -25,13 +44,22 @@ async function createHandlers(request: Request): Promise<BetterAuthRouteHandlers
 
 async function handleBetterAuthRoute(request: Request, method: BetterAuthMethod) {
   try {
-    const handlers = await createHandlers(request);
+    const routedRequest = normalizeOAuthCallbackRequest(request);
+    const handlers = await createHandlers(routedRequest);
     if (handlers instanceof Response) return handlers;
-    return handlers[method](request);
+    return withAuthNoStore(await handlers[method](routedRequest));
   } catch (error) {
     console.error("Cloudflare Better Auth route failed", error);
     return jsonError("Better Auth route failed.", 500);
   }
+}
+
+function normalizeOAuthCallbackRequest(request: Request) {
+  const url = new URL(request.url);
+  if (!url.pathname.endsWith("/callback/google")) return request;
+
+  const headers = normalizeBetterAuthOAuthStateCookieHeader(request.headers, url.searchParams.get("state"));
+  return headers === request.headers ? request : new Request(request, { headers });
 }
 
 export async function GET(request: Request) {

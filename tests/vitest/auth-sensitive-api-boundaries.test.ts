@@ -42,6 +42,7 @@ vi.mock("@/lib/cloudflare/d1", () => d1Mocks);
 
 const DEFAULT_WORKSPACE_ID = "workspace-1";
 const DEFAULT_USER_ID = "user-1";
+const PRIVATE_NO_STORE = "private, no-cache, no-store, max-age=0, must-revalidate";
 const PNG_1X1 = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=",
   "base64",
@@ -1025,7 +1026,7 @@ describe("sensitive API auth boundaries", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("image/webp");
-    expect(response.headers.get("cache-control")).toBe("private, max-age=86400, immutable");
+    expect(response.headers.get("cache-control")).toBe(PRIVATE_NO_STORE);
     expect(storage.from).toHaveBeenCalledWith("component-images");
     expect(storage.download).toHaveBeenCalledWith(path);
   });
@@ -1438,7 +1439,7 @@ describe("sensitive API auth boundaries", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("application/pdf");
     expect(response.headers.get("content-disposition")).toBe('attachment; filename="spec.pdf"');
-    expect(response.headers.get("cache-control")).toBe("private, max-age=300");
+    expect(response.headers.get("cache-control")).toBe(PRIVATE_NO_STORE);
     expect(d1SqlStatements(storage.d1, /INSERT INTO upload_events/)[0]?.values).toEqual(expect.arrayContaining([
       DEFAULT_WORKSPACE_ID,
       sessionId,
@@ -1578,6 +1579,7 @@ describe("sensitive API auth boundaries", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("image/webp");
+    expect(response.headers.get("cache-control")).toBe(PRIVATE_NO_STORE);
     expect(d1PreparedStatements(projectLookup.d1, /FROM projects\s+WHERE id = \?/)).toHaveLength(1);
     expect(d1PreparedStatements(projectLookup.d1, /FROM projects project/)).toHaveLength(1);
     expect(storage.from).toHaveBeenCalledWith("project-images");
@@ -1602,6 +1604,7 @@ describe("sensitive API auth boundaries", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("image/webp");
+    expect(response.headers.get("cache-control")).toBe(PRIVATE_NO_STORE);
     expect(d1PreparedStatements(projectLookup.d1, /FROM projects\s+WHERE id = \?/)).toHaveLength(1);
     expect(d1PreparedStatements(projectLookup.d1, /FROM estimates\s+WHERE id = \?/)).toHaveLength(1);
     expect(d1PreparedStatements(projectLookup.d1, /FROM projects project/)).toHaveLength(1);

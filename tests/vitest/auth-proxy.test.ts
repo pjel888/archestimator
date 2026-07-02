@@ -12,6 +12,8 @@ import {
   TERMS_GATE_COOKIE_NAME,
 } from "@/lib/legal/terms-gate-cookie";
 
+const OAUTH_STATE_RESET_CLEAR_SITE_DATA = "\"cache\", \"cookies\", \"storage\"";
+
 const supabaseSsrMocks = vi.hoisted(() => ({
   createServerClient: vi.fn(),
 }));
@@ -365,6 +367,22 @@ describe("auth proxy", () => {
     const response = await proxy(request(url));
 
     expect(response.headers.get("Cache-Control")).toBe("s-maxage=31536000");
+  });
+
+  it("redirects state mismatch marketing requests to a no-store clean login reset", async () => {
+    mockUser({ id: "user-1" });
+    const { proxy } = await import("@/proxy");
+
+    const response = await proxy(request("http://localhost:3000/?error=state_mismatch"));
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "http://localhost:3000/login?next=%2Fworkshop&oauth_state_reset=1",
+    );
+    expect(response.headers.get("Cache-Control")).toBe("private, no-cache, no-store, max-age=0, must-revalidate");
+    expect(response.headers.get("Clear-Site-Data")).toBe(OAUTH_STATE_RESET_CLEAR_SITE_DATA);
+    expect(response.headers.get("set-cookie")).toContain("__Secure-better-auth.state=; Path=/;");
+    expect(supabaseSsrMocks.createServerClient).not.toHaveBeenCalled();
   });
 
   it("does not add marketing cache headers to invite public routes", async () => {

@@ -16,6 +16,13 @@ type ForwardedCookie = {
   options: ForwardedCookieOptions;
 };
 
+export const BETTER_AUTH_OAUTH_STATE_COOKIE_NAMES = [
+  "better-auth.state",
+  "__Secure-better-auth.state",
+  "better-auth.oauth_state",
+  "__Secure-better-auth.oauth_state",
+] as const;
+
 function safeDecodeCookieValue(value: string) {
   try {
     return decodeURIComponent(value);
@@ -106,4 +113,99 @@ export async function forwardSetCookieHeaders(headers: Headers) {
   for (const cookie of forwardedCookies) {
     cookieStore.set(cookie.name, cookie.value, cookie.options);
   }
+}
+
+function getCookieCleanupDomains(origin?: string) {
+  if (!origin) return [];
+
+  let hostname: string;
+  try {
+    hostname = new URL(origin).hostname.toLowerCase();
+  } catch {
+    return [];
+  }
+
+  if (hostname === "archestimator.com" || hostname.endsWith(".archestimator.com")) {
+    return ["archestimator.com", ".archestimator.com"];
+  }
+
+  return [];
+}
+
+export async function clearBetterAuthOAuthStateCookies(origin?: string) {
+  const cookieStore = await cookies();
+  const secure = !origin || origin.startsWith("https://");
+  const baseOptions: ForwardedCookieOptions = {
+    httpOnly: true,
+    maxAge: 0,
+    path: "/",
+    sameSite: "lax",
+    secure,
+  };
+
+  for (const name of BETTER_AUTH_OAUTH_STATE_COOKIE_NAMES) {
+    cookieStore.set(name, "", baseOptions);
+    for (const domain of getCookieCleanupDomains(origin)) {
+      cookieStore.set(name, "", { ...baseOptions, domain });
+    }
+  }
+}
+
+type CookiePair = {
+  name: string;
+  value: string;
+};
+
+function parseCookiePairs(header: string) {
+  const pairs: CookiePair[] = [];
+
+  for (const chunk of header.split(";")) {
+    const splitAt = chunk.indexOf("=");
+    if (splitAt <= 0) continue;
+    const name = chunk.slice(0, splitAt).trim();
+    const value = chunk.slice(splitAt + 1).trim();
+    if (name) pairs.push({ name, value });
+  }
+
+  return pairs;
+}
+
+function readBetterAuthStateCookieValue(value: string) {
+  const decoded = safeDecodeCookieValue(value);
+  const stateEnd = decoded.indexOf(".");
+  return stateEnd > 0 ? decoded.slice(0, stateEnd) : decoded;
+}
+
+export function normalizeBetterAuthOAuthStateCookieHeader(headers: Headers, state: string | null | undefined) {
+  if (!state) return headers;
+
+  const cookieHeader = headers.get("cookie");
+  if (!cookieHeader) return headers;
+
+  const stateCookieNames = new Set<string>(BETTER_AUTH_OAUTH_STATE_COOKIE_NAMES);
+  const pairs = parseCookiePairs(cookieHeader);
+  let matchedStateCookie: CookiePair | null = null;
+  const preservedPairs: CookiePair[] = [];
+
+  for (const pair of pairs) {
+    if (!stateCookieNames.has(pair.name)) {
+      preservedPairs.push(pair);
+      continue;
+    }
+
+    if (!matchedStateCookie && readBetterAuthStateCookieValue(pair.value) === state) {
+      matchedStateCookie = pair;
+    }
+  }
+
+  if (!matchedStateCookie) return headers;
+
+  const normalizedHeaders = new Headers(headers);
+  normalizedHeaders.set(
+    "cookie",
+    [...preservedPairs, matchedStateCookie]
+      .map((pair) => `${pair.name}=${pair.value}`)
+      .join("; "),
+  );
+  return normalizedHeaders;
 }

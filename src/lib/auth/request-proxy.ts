@@ -19,6 +19,15 @@ const PUBLIC_ROUTE_PREFIXES = ["/about", "/features", "/pricing", "/contact", "/
 const MARKETING_PAGE_PATHS = new Set(["/", "/about", "/features", "/pricing", "/contact", "/privacy", "/terms", "/trust", "/signup"]);
 const MARKETING_PAGE_CACHE_CONTROL = "s-maxage=31536000";
 const SENSITIVE_ROUTE_CACHE_CONTROL = "private, no-cache, no-store, max-age=0, must-revalidate";
+const STATE_MISMATCH_ERROR = "state_mismatch";
+const OAUTH_STATE_RESET_PARAM = "oauth_state_reset";
+const OAUTH_STATE_RESET_CLEAR_SITE_DATA = "\"cache\", \"cookies\", \"storage\"";
+const OAUTH_STATE_COOKIE_NAMES = [
+  "better-auth.state",
+  "__Secure-better-auth.state",
+  "better-auth.oauth_state",
+  "__Secure-better-auth.oauth_state",
+];
 type ProtectedRouteGateState = {
   authVerified?: boolean;
   termsAccepted?: boolean;
@@ -74,6 +83,29 @@ function redirectWithSensitiveRouteCacheControl(url: URL) {
   return withSensitiveRouteCacheControl(NextResponse.redirect(url));
 }
 
+function redirectStateMismatchToCleanLogin(request: NextRequest) {
+  if (request.method !== "GET" || request.nextUrl.searchParams.get("error") !== STATE_MISMATCH_ERROR) {
+    return null;
+  }
+
+  const loginUrl = new URL(LOGIN_PATH, request.url);
+  loginUrl.searchParams.set("next", DEFAULT_AUTH_DESTINATION);
+  loginUrl.searchParams.set(OAUTH_STATE_RESET_PARAM, "1");
+
+  const response = redirectWithSensitiveRouteCacheControl(loginUrl);
+  response.headers.set("Clear-Site-Data", OAUTH_STATE_RESET_CLEAR_SITE_DATA);
+  for (const name of OAUTH_STATE_COOKIE_NAMES) {
+    response.cookies.set(name, "", {
+      httpOnly: true,
+      maxAge: 0,
+      path: "/",
+      sameSite: "lax",
+      secure: true,
+    });
+  }
+  return response;
+}
+
 function toProxyIdentityFromBetterAuth(identity: BetterAuthRouteGateUserIdentity | null): ProxyAuthIdentity | null {
   if (!identity) return null;
   return {
@@ -90,6 +122,9 @@ export async function proxy(request: NextRequest) {
   if (pathname.includes(".") || pathname.startsWith("/_next") || pathname.startsWith("/api")) {
     return NextResponse.next({ request });
   }
+
+  const stateMismatchRedirect = redirectStateMismatchToCleanLogin(request);
+  if (stateMismatchRedirect) return stateMismatchRedirect;
 
   const isProtected = PROTECTED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
   const isAuthRoute = AUTH_ROUTES.includes(pathname);

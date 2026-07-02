@@ -13,7 +13,7 @@ import {
   sanitizeNextPath,
 } from "@/lib/auth/redirects";
 import { requireAuth } from "@/lib/auth/session";
-import { forwardSetCookieHeaders } from "@/lib/auth/set-cookie-forwarding";
+import { clearBetterAuthOAuthStateCookies, forwardSetCookieHeaders } from "@/lib/auth/set-cookie-forwarding";
 
 async function getRequestMetadata() {
   const headersList = await headers();
@@ -67,6 +67,12 @@ async function readResponseJson(response: Response) {
 function responseErrorMessage(response: Response, body: Record<string, unknown> | null) {
   const message = body?.message ?? body?.error;
   return typeof message === "string" && message.trim() ? message : response.statusText;
+}
+
+function buildOAuthErrorCallbackUrl(origin: string, next: string) {
+  const url = new URL(LOGIN_PATH, origin);
+  url.searchParams.set("next", next);
+  return url.toString();
 }
 
 async function createBetterAuthForAction(origin: string) {
@@ -177,6 +183,7 @@ export async function signInWithGoogle(formData: FormData) {
     body: {
       provider: "google",
       callbackURL: resolvePostAuthDestination(next),
+      errorCallbackURL: buildOAuthErrorCallbackUrl(origin, next),
       requestSignUp: true,
     },
   }));
@@ -195,6 +202,7 @@ export async function signInWithGoogle(formData: FormData) {
       }).toString(),
     );
   }
+  await clearBetterAuthOAuthStateCookies(origin);
   await forwardSetCookieHeaders(signInResponse.headers);
 
   await recordAccountSecurityEvent({
