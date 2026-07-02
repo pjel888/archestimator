@@ -1,0 +1,53 @@
+{
+  "proof": "cloudflare-hosted-recipient-composer-ui",
+  "generatedAt": "2026-07-02T04:51:10.000Z",
+  "baseUrl": "https://archestimator.com",
+  "publicationId": "337f1427-2dd1-4ff4-b89f-5e518aecb66e",
+  "projectId": "bd9a8e68-4e24-49d8-aeed-e4651b7cab0b",
+  "browserProof": {
+    "route": "/workshop/publisher?project=bd9a8e68-4e24-49d8-aeed-e4651b7cab0b",
+    "tab": "Recipients",
+    "enteredEmail": "codex-owner-ui-20260702t045000z@example.invalid",
+    "visibleStatusAfterSend": "sent",
+    "visibleToast": "Added 1 recipient(s). 1 email(s) dispatched (failures are non-fatal)."
+  },
+  "remoteD1Readback": [
+    {
+      "success": true,
+      "results": [
+        {
+          "id": "6b3fe7c0-6375-4e9f-957c-7d08e37c38c0",
+          "publication_id": "337f1427-2dd1-4ff4-b89f-5e518aecb66e",
+          "email": "codex-owner-ui-20260702t045000z@example.invalid",
+          "display_name": null,
+          "delivery_status": "sent",
+          "invited_by": "4e23801d-6fc2-4886-b980-d15ca2b164b8",
+          "invited_at": "2026-07-02T04:51:02.968Z",
+          "resend_email_id": "<tnrlpMmIgSeAqsK2d1naMLUKwTgBKR5IbvOP@archestimator.com>",
+          "resend_last_event_type": null,
+          "created_at": "2026-07-02T04:51:02.968Z",
+          "updated_at": "2026-07-02T04:51:02.968Z"
+        }
+      ],
+      "meta": {
+        "served_by": "v3-prod",
+        "served_by_region": "APAC",
+        "served_by_colo": "SIN",
+        "served_by_primary": true,
+        "timings": {
+          "sql_duration_ms": 0.262
+        },
+        "duration": 0.262,
+        "changes": 0,
+        "last_row_id": 0,
+        "changed_db": false,
+        "size_after": 1781760,
+        "rows_read": 1,
+        "rows_written": 0,
+        "total_attempts": 1
+      }
+    }
+  ],
+  "proofReady": true,
+  "boundary": "The recipient address used example.invalid, so this proves composer UI, D1 persistence, and outbound dispatch invocation/message-id recording, not recipient mailbox receipt."
+}
