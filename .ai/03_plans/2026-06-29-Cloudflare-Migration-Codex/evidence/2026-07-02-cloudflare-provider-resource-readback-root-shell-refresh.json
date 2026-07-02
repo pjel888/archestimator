@@ -1,0 +1,268 @@
+{
+  "generatedAt": "2026-07-02T02:48:25.555Z",
+  "mode": "cloudflare-provider-resource-readback",
+  "sources": {
+    "wranglerConfig": "wrangler.jsonc",
+    "wranglerAuth": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-wrangler-auth.json",
+    "workerReadiness": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-worker-readiness.json"
+  },
+  "expected": {
+    "workerName": "archestimator-proof",
+    "d1Databases": [
+      "archestimator-proof-db"
+    ],
+    "r2Buckets": [
+      "archestimator-proof-uploads",
+      "archestimator-proof-uploads-dev"
+    ],
+    "queues": [
+      "archestimator-upload-jobs",
+      "archestimator-upload-jobs-dlq"
+    ],
+    "workerSecretNames": [
+      "ARCHESTIMATOR_AI_ENABLED",
+      "ARCHESTIMATOR_ALLOWED_APP_ORIGINS",
+      "ARCHESTIMATOR_AUTH_PROVIDER",
+      "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
+      "ARCHESTIMATOR_EMAIL_PROVIDER",
+      "ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER",
+      "ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER",
+      "BETTER_AUTH_GOOGLE_CLIENT_ID",
+      "BETTER_AUTH_GOOGLE_CLIENT_SECRET",
+      "BETTER_AUTH_SECRET",
+      "BETTER_AUTH_TRUSTED_ORIGINS",
+      "BETTER_AUTH_URL",
+      "CLOSED_BETA_ACCESS_ENABLED",
+      "CLOUDFLARE_EMAIL_FROM",
+      "CLOUDFLARE_EMAIL_REPLY_TO",
+      "CLOUDFLARE_UPLOAD_JOBS_DRY_RUN",
+      "CLOUDFLARE_UPLOAD_JOBS_ORIGIN",
+      "CRON_SECRET",
+      "NEXT_PUBLIC_APP_URL",
+      "NEXT_PUBLIC_ASK_FLIP_UI_ENABLED",
+      "NEXT_PUBLIC_SITE_URL",
+      "PUBLICATION_ACCESS_COOKIE_SECRET",
+      "PUBLICATION_TOKEN_ENCRYPTION_SECRET",
+      "PUBLICATION_TOKEN_HASH_SECRET",
+      "UPLOAD_CLEANUP_JOB_SECRET",
+      "UPLOAD_JOBS_ENABLED",
+      "UPLOAD_SCAN_JOB_SECRET"
+    ]
+  },
+  "readiness": {
+    "wranglerAuthenticated": true,
+    "providerReadbackAttempted": true,
+    "workerDeploymentReadbackReady": true,
+    "d1DatabaseReadbackReady": true,
+    "r2BucketReadbackReady": true,
+    "queuesReadbackReady": true,
+    "workerSecretNameReadbackReady": true,
+    "providerResourceReadbackReady": true,
+    "productionCutoverReady": false
+  },
+  "commands": [
+    {
+      "key": "deployments",
+      "label": "Worker deployments list",
+      "args": [
+        "deployments",
+        "list",
+        "--name",
+        "archestimator-proof",
+        "--json"
+      ],
+      "readOnly": true,
+      "skipped": false,
+      "skipReason": null,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "stdoutBytes": 4674,
+      "stderrBytes": 0,
+      "parsedJson": true,
+      "parsedRecordCount": 10,
+      "minRecordCount": 1,
+      "recordCountReady": true,
+      "expectedNames": [],
+      "foundExpectedNames": [],
+      "missingExpectedNames": [],
+      "ready": true
+    },
+    {
+      "key": "d1",
+      "label": "D1 database list",
+      "args": [
+        "d1",
+        "list",
+        "--json"
+      ],
+      "readOnly": true,
+      "skipped": false,
+      "skipReason": null,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "stdoutBytes": 497,
+      "stderrBytes": 0,
+      "parsedJson": true,
+      "parsedRecordCount": 2,
+      "minRecordCount": null,
+      "recordCountReady": null,
+      "expectedNames": [
+        "archestimator-proof-db"
+      ],
+      "foundExpectedNames": [
+        "archestimator-proof-db"
+      ],
+      "missingExpectedNames": [],
+      "ready": true
+    },
+    {
+      "key": "r2",
+      "label": "R2 bucket list",
+      "args": [
+        "r2",
+        "bucket",
+        "list"
+      ],
+      "readOnly": true,
+      "skipped": false,
+      "skipReason": null,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "stdoutBytes": 389,
+      "stderrBytes": 0,
+      "parsedJson": false,
+      "parsedRecordCount": null,
+      "minRecordCount": null,
+      "recordCountReady": null,
+      "expectedNames": [
+        "archestimator-proof-uploads",
+        "archestimator-proof-uploads-dev"
+      ],
+      "foundExpectedNames": [
+        "archestimator-proof-uploads",
+        "archestimator-proof-uploads-dev"
+      ],
+      "missingExpectedNames": [],
+      "ready": true
+    },
+    {
+      "key": "queues",
+      "label": "Queues list",
+      "args": [
+        "queues",
+        "list"
+      ],
+      "readOnly": true,
+      "skipped": false,
+      "skipReason": null,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "stdoutBytes": 2524,
+      "stderrBytes": 0,
+      "parsedJson": false,
+      "parsedRecordCount": null,
+      "minRecordCount": null,
+      "recordCountReady": null,
+      "expectedNames": [
+        "archestimator-upload-jobs",
+        "archestimator-upload-jobs-dlq"
+      ],
+      "foundExpectedNames": [
+        "archestimator-upload-jobs",
+        "archestimator-upload-jobs-dlq"
+      ],
+      "missingExpectedNames": [],
+      "ready": true
+    },
+    {
+      "key": "secrets",
+      "label": "Worker secret name list",
+      "args": [
+        "secret",
+        "list",
+        "--name",
+        "archestimator-proof",
+        "--format",
+        "json"
+      ],
+      "readOnly": true,
+      "skipped": false,
+      "skipReason": null,
+      "exitCode": 0,
+      "signal": null,
+      "timedOut": false,
+      "stdoutBytes": 2098,
+      "stderrBytes": 0,
+      "parsedJson": true,
+      "parsedRecordCount": 27,
+      "minRecordCount": null,
+      "recordCountReady": null,
+      "expectedNames": [
+        "ARCHESTIMATOR_AI_ENABLED",
+        "ARCHESTIMATOR_ALLOWED_APP_ORIGINS",
+        "ARCHESTIMATOR_AUTH_PROVIDER",
+        "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
+        "ARCHESTIMATOR_EMAIL_PROVIDER",
+        "ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER",
+        "ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER",
+        "BETTER_AUTH_GOOGLE_CLIENT_ID",
+        "BETTER_AUTH_GOOGLE_CLIENT_SECRET",
+        "BETTER_AUTH_SECRET",
+        "BETTER_AUTH_TRUSTED_ORIGINS",
+        "BETTER_AUTH_URL",
+        "CLOSED_BETA_ACCESS_ENABLED",
+        "CLOUDFLARE_EMAIL_FROM",
+        "CLOUDFLARE_EMAIL_REPLY_TO",
+        "CLOUDFLARE_UPLOAD_JOBS_DRY_RUN",
+        "CLOUDFLARE_UPLOAD_JOBS_ORIGIN",
+        "CRON_SECRET",
+        "NEXT_PUBLIC_APP_URL",
+        "NEXT_PUBLIC_ASK_FLIP_UI_ENABLED",
+        "NEXT_PUBLIC_SITE_URL",
+        "PUBLICATION_ACCESS_COOKIE_SECRET",
+        "PUBLICATION_TOKEN_ENCRYPTION_SECRET",
+        "PUBLICATION_TOKEN_HASH_SECRET",
+        "UPLOAD_CLEANUP_JOB_SECRET",
+        "UPLOAD_JOBS_ENABLED",
+        "UPLOAD_SCAN_JOB_SECRET"
+      ],
+      "foundExpectedNames": [
+        "ARCHESTIMATOR_AI_ENABLED",
+        "ARCHESTIMATOR_ALLOWED_APP_ORIGINS",
+        "ARCHESTIMATOR_AUTH_PROVIDER",
+        "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
+        "ARCHESTIMATOR_EMAIL_PROVIDER",
+        "ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER",
+        "ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER",
+        "BETTER_AUTH_GOOGLE_CLIENT_ID",
+        "BETTER_AUTH_GOOGLE_CLIENT_SECRET",
+        "BETTER_AUTH_SECRET",
+        "BETTER_AUTH_TRUSTED_ORIGINS",
+        "BETTER_AUTH_URL",
+        "CLOSED_BETA_ACCESS_ENABLED",
+        "CLOUDFLARE_EMAIL_FROM",
+        "CLOUDFLARE_EMAIL_REPLY_TO",
+        "CLOUDFLARE_UPLOAD_JOBS_DRY_RUN",
+        "CLOUDFLARE_UPLOAD_JOBS_ORIGIN",
+        "CRON_SECRET",
+        "NEXT_PUBLIC_APP_URL",
+        "NEXT_PUBLIC_ASK_FLIP_UI_ENABLED",
+        "NEXT_PUBLIC_SITE_URL",
+        "PUBLICATION_ACCESS_COOKIE_SECRET",
+        "PUBLICATION_TOKEN_ENCRYPTION_SECRET",
+        "PUBLICATION_TOKEN_HASH_SECRET",
+        "UPLOAD_CLEANUP_JOB_SECRET",
+        "UPLOAD_JOBS_ENABLED",
+        "UPLOAD_SCAN_JOB_SECRET"
+      ],
+      "missingExpectedNames": [],
+      "ready": true
+    }
+  ],
+  "blockers": [],
+  "note": "Read-only Wrangler provider resource readback. When Wrangler is authenticated, this runs list/status-style commands for Workers deployments, D1, R2, Queues, and Worker secret names. It does not print raw command output, secret values, tokens, or env files; does not create, deploy, update, delete, purge, purchase, change DNS, or make Vercel/Supabase/Resend removable."
+}

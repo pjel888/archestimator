@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-07-01T09:45:23.379Z",
+  "generatedAt": "2026-07-02T02:41:38.611Z",
   "mode": "cloudflare-provider-resource-readback",
   "sources": {
     "wranglerConfig": "wrangler.jsonc",
     "wranglerAuth": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-wrangler-auth.json",
-    "workerReadiness": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-worker-readiness.json"
+    "workerReadiness": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-worker-readiness.json"
   },
   "expected": {
     "workerName": "archestimator-proof",
@@ -77,7 +77,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "stdoutBytes": 4465,
+      "stdoutBytes": 4674,
       "stderrBytes": 0,
       "parsedJson": true,
       "parsedRecordCount": 10,

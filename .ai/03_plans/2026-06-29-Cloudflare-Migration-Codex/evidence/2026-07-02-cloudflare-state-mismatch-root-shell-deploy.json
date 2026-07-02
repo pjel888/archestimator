@@ -1,0 +1,54 @@
+{
+  "timestampUtc": "2026-07-02T02:33:54Z",
+  "worker": {
+    "name": "archestimator-proof",
+    "versionId": "2ce56c43-ad18-44de-9905-59a46d10817b",
+    "tag": "state-mismatch-root-fallback-20260702022402",
+    "deploymentCreatedAt": "2026-07-02T02:30:56.672Z",
+    "trafficPercent": 100,
+    "message": "Deploy root-shell OAuth state mismatch recovery"
+  },
+  "reportedUrlProbe": {
+    "url": "https://archestimator.com/?error=state_mismatch",
+    "firstHopStatus": 302,
+    "firstHopLocation": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+    "firstHopCacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+    "firstHopClearSiteData": [
+      "\"cache\", \"cookies\", \"storage\"",
+      "\"cookies\""
+    ],
+    "finalUrl": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset_done=1",
+    "finalHttpCode": 200,
+    "title": "Sign in - Archestimator - Archestimator",
+    "h1": "Sign in",
+    "recoveryMarkerCount": 2,
+    "rawErrorQueryCount": 0
+  },
+  "browserProbe": {
+    "finalUrl": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset_done=1",
+    "title": "Sign in — Archestimator — Archestimator",
+    "h1": "Sign in",
+    "markerCount": 1,
+    "bodyHasVisibleStateMismatch": false,
+    "responseChain": [
+      "302 https://archestimator.com/?error=state_mismatch",
+      "302 https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+      "200 https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset_done=1"
+    ]
+  },
+  "googleOauthStartProbe": {
+    "finalHost": "accounts.google.com",
+    "redirectUri": "https://archestimator.com/api/auth/callback/google",
+    "googleStateLength": 32,
+    "stateCookieNamesBefore": [],
+    "stateCookieNamesAfter": [
+      "__Secure-better-auth.state"
+    ],
+    "secureStateCookieLength": 81
+  },
+  "sourceContractCheck": {
+    "command": "bunx vitest run tests/vitest/auth-entry-ui-contract.test.ts --maxWorkers=1",
+    "testFilesPassed": 1,
+    "testsPassed": 6
+  }
+}

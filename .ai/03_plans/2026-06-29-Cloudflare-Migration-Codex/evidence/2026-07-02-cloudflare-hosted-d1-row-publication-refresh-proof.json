@@ -1,0 +1,122 @@
+{
+  "generatedAt": "2026-07-02T04:31:00.000Z",
+  "status": "pass",
+  "scope": "Hosted authenticated D1 estimate row mutation plus Publisher shared-page refresh",
+  "productionBaseUrl": "https://archestimator.com",
+  "cloudflare": {
+    "worker": "archestimator-proof",
+    "workerVersion": "d47bcd1d-37f0-41e3-864a-05a90b28518b",
+    "d1Database": "archestimator-proof-db",
+    "d1DatabaseId": "9bdb29bb-687e-4f51-ae81-7659c426ea5f",
+    "routeDomains": [
+      "archestimator.com",
+      "www.archestimator.com"
+    ]
+  },
+  "project": {
+    "id": "bd9a8e68-4e24-49d8-aeed-e4651b7cab0b",
+    "name": "Codex Cloudflare Smoke 2026-07-01"
+  },
+  "estimate": {
+    "id": "985f6690-741e-4136-9fa1-a4896cd364e4",
+    "name": "ES-001 Estimate",
+    "sheetCode": "ES-001"
+  },
+  "row": {
+    "id": "878e98e0-6a5a-4e58-ac42-4b73284eae4d",
+    "description": "Hosted D1 browser row mutation proof",
+    "material": "Cloudflare QA Component 2026-07-02",
+    "quantity": 3.16,
+    "quantityBase": 3.16,
+    "quantityContingencyAmount": 0,
+    "contingencyPercentage": 0,
+    "adjustmentPercentage": 2,
+    "unitCost": 123.45,
+    "updatedAt": "2026-07-02T04:20:52.416Z",
+    "d1Readback": {
+      "servedBy": "v3-prod",
+      "region": "APAC",
+      "colo": "SIN",
+      "servedByPrimary": true,
+      "rowsRead": 1,
+      "rowsWritten": 0,
+      "changedDb": false,
+      "sqlDurationMs": 0.4849
+    }
+  },
+  "publication": {
+    "id": "337f1427-2dd1-4ff4-b89f-5e518aecb66e",
+    "status": "published",
+    "snapshotVersion": 2,
+    "selectedEstimateIds": [
+      "985f6690-741e-4136-9fa1-a4896cd364e4"
+    ],
+    "publishedAt": "2026-07-02T04:27:33.859Z",
+    "updatedAt": "2026-07-02T04:29:08.829Z",
+    "snapshotReadback": {
+      "estimateTotal": 397.90404,
+      "firstRowQuantity": 3.16,
+      "firstRowTotal": 397.90404,
+      "firstRowDescription": "Hosted D1 browser row mutation proof",
+      "servedBy": "v3-prod",
+      "region": "APAC",
+      "colo": "SIN",
+      "servedByPrimary": true,
+      "rowsRead": 2,
+      "rowsWritten": 0,
+      "changedDb": false,
+      "sqlDurationMs": 0.6104
+    }
+  },
+  "publicShare": {
+    "url": "https://archestimator.com/share/REDACTED",
+    "tokenRedacted": true,
+    "curlStatus": 200,
+    "redirects": 0,
+    "durationSeconds": 1.622839,
+    "downloadSizeBytes": 58059,
+    "htmlSignals": [
+      "Proposal total: PHP 397.90",
+      "Estimate total: PHP 397.90",
+      "Row quantity: 3.16",
+      "Row total: PHP 397.90",
+      "Hosted D1 browser row mutation proof",
+      "Cloudflare QA Area 2026-07-02 04:24",
+      "Cloudflare QA Component 2026-07-02"
+    ]
+  },
+  "loginAndStateMismatchDeployment": {
+    "loginRouteStaticAfterDeploy": true,
+    "routeManifestSignal": "○ /login",
+    "loginHeaders": {
+      "status": 200,
+      "cacheControl": "s-maxage=31536000",
+      "xNextjsPrerender": "1",
+      "xOpenNext": "1"
+    },
+    "stateMismatchRecovery": {
+      "inputUrl": "https://archestimator.com/?error=state_mismatch",
+      "firstHopStatus": 302,
+      "firstHopLocation": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+      "followedFinalUrl": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset_done=1",
+      "followedStatus": 200,
+      "redirects": 2,
+      "clearsStaleOAuthState": true
+    }
+  },
+  "verification": {
+    "focusedVitest": "bunx vitest run tests/vitest/cloudflare-worker-route-optimizations.test.ts tests/vitest/auth-callback-normalizer-worker.test.ts tests/vitest/auth-proxy.test.ts tests/vitest/auth-entry-ui-contract.test.ts tests/vitest/cloudflare-hosted-performance-script.test.ts --maxWorkers=1",
+    "focusedVitestResult": "5 files / 78 tests passed",
+    "typeCheck": "bun run type-check passed",
+    "cloudflareBuild": "bun run cf:build passed",
+    "cloudflareDeploy": "bun run cf:deploy passed",
+    "hostedRouteProof": "2026-07-02-cloudflare-hosted-route-proof-login-static-deploy.* passed",
+    "hostedPerformanceProof": "2026-07-02-cloudflare-hosted-performance-login-static-deploy.* failed strict public-route p95 budgets; route contracts passed and Worker tail showed mostly 0-1ms wall/cpu time, so P1-PERF remains open"
+  },
+  "knownResidualRisks": [
+    "Named recipient invite/session/comment/decision proof for shared proposals remains open.",
+    "Media upload UX/scanner persistence remains open in the single production browser journey.",
+    "Strict credential-free public-route p95 budgets remain red from intermittent client/edge timing variance despite low Worker CPU/wall time.",
+    "A stale client-side estimate URL was observed while the rendered/D1 estimate data belonged to the canonical estimate; server authority and D1 readback used the canonical estimate id."
+  ]
+}

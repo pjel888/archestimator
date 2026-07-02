@@ -1,0 +1,168 @@
+{
+  "generatedAt": "2026-07-02T02:55:06.293Z",
+  "mode": "cloudflare-d1-component-library-proof",
+  "sources": {
+    "plan": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/23_D1_AUTH_REALTIME_REDESIGN_PLAN.md",
+    "currentAppFiles": [
+      "src/lib/component-library/actions.ts",
+      "src/lib/repositories/component-library-repository.ts",
+      "src/components/workshop/component-library-manager/ComponentLibraryManager.tsx"
+    ],
+    "currentSupabaseMigrations": [
+      "supabase/migrations/20260614125239_20260605113000_transactional_library_folder_delete.sql",
+      "supabase/migrations/20260603235355_harden_library_folder_editor_access.sql",
+      "supabase/migrations/20260603191903_harden_mass_deletion_actor_derivation.sql",
+      "supabase/migrations/20260524141347_component_library_identity_variant_sku_brand_view.sql",
+      "supabase/migrations/20260523120957_component_library_item_versioning.sql"
+    ],
+    "d1DatabaseApi": "Cloudflare D1 prepared statements and transaction semantics, modeled locally with SQLite"
+  },
+  "affectedRpcNames": [
+    "delete_library_folder",
+    "execute_bulk_archive_library_components",
+    "reorder_library_folders",
+    "set_cost_library_component_lifecycle_state",
+    "update_cost_library_component",
+    "upsert_cost_library_component_price_option"
+  ],
+  "readiness": {
+    "schemaReady": true,
+    "appLayerEditorGuardReady": true,
+    "folderDeleteReady": true,
+    "folderReorderReady": true,
+    "bulkArchiveReady": true,
+    "componentUpdateReady": true,
+    "lifecycleMutationReady": true,
+    "priceOptionUpsertReady": true,
+    "rollbackReady": true,
+    "idempotencyReady": true,
+    "queryBudgetReady": true,
+    "restoreFixtureReady": true,
+    "localComponentLibraryD1SliceReady": true,
+    "productionComponentLibraryD1Ready": false
+  },
+  "localOnly": true,
+  "providerBacked": false,
+  "fixture": {
+    "sqliteVersion": "3.54.0",
+    "fixtureTables": 10,
+    "rowsSeeded": 24,
+    "viewerDeleteCommandFailed": true,
+    "viewerDeleteResidueRows": 0,
+    "folderDeleteTargetRows": 0,
+    "childParentAfterDelete": null,
+    "itemFolderAfterDelete": null,
+    "reorderUpdatedRows": 2,
+    "duplicateReorderCommandFailed": true,
+    "duplicateReorderResidueRows": 0,
+    "cycleReorderCommandFailed": true,
+    "cycleReorderResidueRows": 0,
+    "componentUpdateVersionRows": 1,
+    "componentUpdatedName": "Alpha concrete revised",
+    "invalidComponentUpdateCommandFailed": true,
+    "invalidComponentUpdateResidueRows": 0,
+    "lifecycleStateAfterChange": "in_production",
+    "lifecycleHistoryRows": 1,
+    "repeatedLifecycleHistoryRows": 1,
+    "repeatedLifecycleVersionNumber": 4,
+    "priceOptionRows": 1,
+    "defaultPriceOptionRows": 1,
+    "priceHistoryRowsForOperation": 1,
+    "duplicatePriceHistoryRows": 0,
+    "bulkArchiveEventRows": 1,
+    "archivedComponentRows": 2,
+    "duplicateBulkArchiveEventRows": 0,
+    "stalePreviewCommandFailed": true,
+    "stalePreviewResidueRows": 0,
+    "rollbackResidueRows": 0,
+    "restoredFolderRows": 5,
+    "restoredComponentRows": 5,
+    "restoredVersionRows": 6,
+    "restoredPriceHistoryRows": 1,
+    "folderTreePlanUsesIndex": true,
+    "activeComponentsPlanUsesIndex": true,
+    "priceOptionsPlanUsesIndex": true,
+    "bulkArchivePlanUsesIndex": true,
+    "planDetails": [
+      "`--SEARCH library_folders USING INDEX sqlite_autoindex_library_folders_2 (workspace_id=? AND parent_slot=?)",
+      "|--SEARCH cost_library_items USING INDEX idx_cost_library_items_workspace_lifecycle (workspace_id=? AND lifecycle_state=?)",
+      "`--USE TEMP B-TREE FOR ORDER BY",
+      "`--SEARCH cost_library_item_price_options USING INDEX idx_price_options_item_active_default (item_id=? AND is_active=?)",
+      "`--SEARCH cost_library_items USING INDEX idx_cost_library_items_workspace_id (workspace_id=? AND id=?)"
+    ],
+    "tempArtifactsRemoved": true
+  },
+  "queryProof": {
+    "rows": [
+      {
+        "surface": "component_library_folder_tree",
+        "queryBudget": 1,
+        "plannedQueries": 1,
+        "localBudgetMs": 12,
+        "localP95Ms": 6.63,
+        "rowsReturned": 3,
+        "sampleCount": 9,
+        "status": "local-pass",
+        "notes": "Folder tree root query should use the workspace/parent/sort index."
+      },
+      {
+        "surface": "component_library_active_components",
+        "queryBudget": 1,
+        "plannedQueries": 1,
+        "localBudgetMs": 12,
+        "localP95Ms": 8.73,
+        "rowsReturned": 2,
+        "sampleCount": 9,
+        "status": "local-pass",
+        "notes": "Active component catalogue query should use the workspace/lifecycle index."
+      },
+      {
+        "surface": "component_library_price_options",
+        "queryBudget": 1,
+        "plannedQueries": 1,
+        "localBudgetMs": 12,
+        "localP95Ms": 10.71,
+        "rowsReturned": 3,
+        "sampleCount": 9,
+        "status": "local-pass",
+        "notes": "Price options query should stay scoped to one component."
+      },
+      {
+        "surface": "component_library_bulk_archive_preview",
+        "queryBudget": 1,
+        "plannedQueries": 1,
+        "localBudgetMs": 12,
+        "localP95Ms": 7.67,
+        "rowsReturned": 3,
+        "sampleCount": 9,
+        "status": "local-pass",
+        "notes": "Bulk archive preview should use workspace plus keyed component lookups."
+      }
+    ]
+  },
+  "d1RewriteStrategy": {
+    "typeStrategy": "Replace component-library RPCs with D1 repositories that derive editor authorization from Better Auth identity, wrap folder/component/version/history mutations in explicit transactions, and use operation/correlation keys for retry-safe price and bulk archive writes.",
+    "preparedStatementPatterns": [
+      "SELECT 1 FROM workspace_members WHERE workspace_id = ? AND user_id = ? AND role IN ('owner','editor')",
+      "BEGIN IMMEDIATE; UPDATE library_folders ...; UPDATE cost_library_items ...; DELETE FROM library_folders ...; COMMIT",
+      "BEGIN IMMEDIATE; INSERT OR IGNORE INTO component_library_operation_keys(operation_key, rpc_name, item_id) ...",
+      "INSERT OR IGNORE INTO mass_deletion_events(workspace_id, target_type, action, correlation_id, ...)",
+      "EXPLAIN QUERY PLAN SELECT ... FROM cost_library_items WHERE workspace_id = ? AND lifecycle_state = ?"
+    ]
+  },
+  "productionProofRequirements": [
+    "Hosted Worker+D1 component-library mutation proof with real D1 bindings and Better Auth-derived identity.",
+    "D1 schema migration/readback proof for folders, component items, versions, price options, state history, and mass-deletion events.",
+    "Cross-workspace denial tests against the mounted Worker route/action surface.",
+    "Rollback/idempotency replay proof using production-shaped D1 transactions and retry keys.",
+    "Hosted Worker+D1 p95/query-count proof for folder tree, active components, price options, and bulk archive preview surfaces.",
+    "Provider-backed D1 export/import restore proof for the component-library tables."
+  ],
+  "blockers": [
+    "Hosted Worker+D1 component-library proof is still missing.",
+    "Better Auth production identity handoff is still missing; keep current Supabase-backed component-library actions live.",
+    "Provider-backed D1 export/restore proof for component-library tables is still missing.",
+    "D1 migration SQL and generated type strategy for component-library tables are not production-applied."
+  ],
+  "note": "Local D1 component-library proof only. It uses sanitized temporary SQLite data and does not read env files, print secret values, call provider APIs, create hosted D1 databases, mutate Cloudflare/Supabase, deploy Workers, change DNS, bill, replace live component-library actions, or make production D1/Auth ready."
+}

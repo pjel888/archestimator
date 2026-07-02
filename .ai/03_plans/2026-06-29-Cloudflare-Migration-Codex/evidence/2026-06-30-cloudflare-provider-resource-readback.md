@@ -1,9 +1,9 @@
 # Cloudflare Provider Resource Readback
 
-Generated: 2026-07-01T09:45:23.379Z
+Generated: 2026-07-02T02:41:38.611Z
 Wrangler config source: wrangler.jsonc
 Wrangler auth source: .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-wrangler-auth.json
-Worker readiness source: .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-worker-readiness.json
+Worker readiness source: .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-worker-readiness.json
 
 Read-only Wrangler provider resource readback. When Wrangler is authenticated, this runs list/status-style commands for Workers deployments, D1, R2, Queues, and Worker secret names. It does not print raw command output, secret values, tokens, or env files; does not create, deploy, update, delete, purge, purchase, change DNS, or make Vercel/Supabase/Resend removable.
 

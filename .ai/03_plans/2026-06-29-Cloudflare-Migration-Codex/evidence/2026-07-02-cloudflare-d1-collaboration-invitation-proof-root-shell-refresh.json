@@ -1,0 +1,170 @@
+{
+  "generatedAt": "2026-07-02T02:54:36.428Z",
+  "mode": "cloudflare-d1-collaboration-invitation-proof",
+  "sources": {
+    "plan": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/27_PROOF_SPIKE_BACKLOG.md",
+    "currentAppFiles": [
+      "src/app/invite/[token]/page.tsx",
+      "src/app/invite/[token]/accept/route.ts",
+      "src/lib/collaboration/actions.ts",
+      "src/lib/collaboration/pending-invite-actions.ts",
+      "src/lib/collaboration/workshop-pending-invite.ts"
+    ],
+    "currentSupabaseMigrations": [
+      "supabase/migrations/20260527115342_project_invite_entry_tokens.sql",
+      "supabase/migrations/20260531164227_collaboration_invitation_accept_by_id.sql",
+      "supabase/migrations/20260603195154_harden_revoked_invite_resolution.sql"
+    ],
+    "d1DatabaseApi": "https://developers.cloudflare.com/d1/worker-api/d1-database/"
+  },
+  "affectedRpcNames": [
+    "issue_collaboration_invitation_token",
+    "record_collaboration_invitation_delivery",
+    "resolve_collaboration_invitation",
+    "accept_collaboration_invitation",
+    "accept_collaboration_invitation_by_id",
+    "accept_collaboration_invitation_for_actor",
+    "accept_collaboration_invitation_by_id_for_actor"
+  ],
+  "readiness": {
+    "schemaReady": true,
+    "tokenIssueReady": true,
+    "deliveryAuditReady": true,
+    "resolveStateReady": true,
+    "resolveAuditReady": true,
+    "acceptByTokenReady": true,
+    "acceptByIdReady": true,
+    "wrongAccountDenied": true,
+    "replayDenied": true,
+    "revokedTerminalNulled": true,
+    "rollbackReady": true,
+    "idempotencyReady": true,
+    "queryBudgetReady": true,
+    "restoreFixtureReady": true,
+    "localCollaborationInvitationD1SliceReady": true,
+    "productionCollaborationInvitationD1Ready": false
+  },
+  "localOnly": true,
+  "providerBacked": false,
+  "fixture": {
+    "sqliteVersion": "3.54.0",
+    "fixtureTables": 9,
+    "rowsSeeded": 21,
+    "tokenIssueRows": 1,
+    "activeTokensAfterIssue": 1,
+    "revokedExistingTokenRows": 1,
+    "tokenIssueAuditRows": 1,
+    "duplicateTokenRetryRows": 0,
+    "deliveryAuditRows": 1,
+    "duplicateDeliveryAuditRows": 0,
+    "resolveActiveState": "active",
+    "resolveInvalidState": "invalid",
+    "resolveRevokedState": "revoked",
+    "resolveRevokedProjectId": null,
+    "resolveExpiredState": "expired",
+    "resolveAlreadyUsedState": "already_member",
+    "resolveOpenAuditRows": 1,
+    "activeTokenOpenedRows": 1,
+    "activeInvitationOpenedRows": 1,
+    "acceptByTokenState": "accepted",
+    "acceptByTokenReplayState": "already_member",
+    "acceptByTokenMembershipRows": 1,
+    "wrongAccountState": "wrong_account",
+    "wrongAccountMembershipRows": 0,
+    "wrongAccountAuditRows": 1,
+    "alreadyUsedDifferentUserState": "already_used",
+    "replayBlockedAuditRows": 1,
+    "acceptByIdState": "accepted",
+    "acceptByIdReplayState": "already_member",
+    "acceptByIdMembershipRows": 1,
+    "duplicateAcceptAuditRows": 0,
+    "rollbackCommandFailed": true,
+    "rollbackResidueRows": 0,
+    "restoredInvitationRows": 6,
+    "restoredTokenRows": 7,
+    "restoredAuditRows": 7,
+    "tokenLookupPlanUsesIndex": true,
+    "activeTokenPlanUsesIndex": true,
+    "pendingInvitePlanUsesIndex": true,
+    "membershipPlanUsesIndex": true,
+    "planDetails": [
+      "|--SEARCH t USING INDEX sqlite_autoindex_collaboration_invitation_tokens_2 (token_hash=?)",
+      "`--SEARCH i USING COVERING INDEX sqlite_autoindex_collaboration_invitations_1 (id=?)",
+      "`--SEARCH collaboration_invitation_tokens USING INDEX idx_collaboration_invitation_tokens_active_by_invitation (invitation_id=?)",
+      "`--SEARCH collaboration_invitations USING INDEX idx_collaboration_invitations_email_lifecycle (email=? AND lifecycle_state=?)",
+      "`--SEARCH project_members USING INDEX sqlite_autoindex_project_members_1 (project_id=? AND user_id=?)"
+    ],
+    "tempArtifactsRemoved": true
+  },
+  "queryProof": {
+    "rows": [
+      {
+        "surface": "resolve_collaboration_invitation_token_lookup",
+        "queryBudget": 2,
+        "plannedQueries": 1,
+        "localBudgetMs": 100,
+        "localP95Ms": 20.04,
+        "rowsReturned": 0,
+        "sampleCount": 9,
+        "status": "local-pass",
+        "notes": "Token resolution stays as one indexed token-hash lookup plus invitation join before the open audit write."
+      },
+      {
+        "surface": "issue_collaboration_invitation_active_token_guard",
+        "queryBudget": 2,
+        "plannedQueries": 1,
+        "localBudgetMs": 100,
+        "localP95Ms": 45.49,
+        "rowsReturned": 0,
+        "sampleCount": 9,
+        "status": "local-pass",
+        "notes": "Active-token uniqueness is enforced by a partial unique index and queried directly by invitation id."
+      },
+      {
+        "surface": "list_pending_collaboration_invitations_for_account",
+        "queryBudget": 2,
+        "plannedQueries": 1,
+        "localBudgetMs": 100,
+        "localP95Ms": 16.88,
+        "rowsReturned": 3,
+        "sampleCount": 9,
+        "status": "local-pass",
+        "notes": "Pending-invite account lookup uses the email/lifecycle/created-at index and stays explicit in the D1 repository."
+      },
+      {
+        "surface": "accept_collaboration_invitation_membership_guard",
+        "queryBudget": 2,
+        "plannedQueries": 1,
+        "localBudgetMs": 100,
+        "localP95Ms": 36.39,
+        "rowsReturned": 1,
+        "sampleCount": 9,
+        "status": "local-pass",
+        "notes": "Accept replay checks natural membership uniqueness before reporting already_member without duplicate side effects."
+      }
+    ]
+  },
+  "d1RewriteStrategy": {
+    "typeStrategy": "Typed D1 repository return models should mirror the current invitation terminal-state union while SQLite CHECK constraints enforce lifecycle, scope, role, and token uniqueness until a broader D1 type-generation strategy lands.",
+    "preparedStatementPatterns": [
+      "UPDATE collaboration_invitation_tokens SET revoked_at = ?, revoked_by = ? WHERE invitation_id = ? AND used_at IS NULL AND revoked_at IS NULL",
+      "INSERT INTO collaboration_invitation_tokens (...) SELECT ... FROM collaboration_invitations JOIN project_members ... ON CONFLICT(token_hash) DO NOTHING",
+      "SELECT ... FROM collaboration_invitation_tokens JOIN collaboration_invitations WHERE token_hash = ? AND used_at IS NULL AND revoked_at IS NULL",
+      "INSERT INTO project_members (...) SELECT ... ON CONFLICT(project_id, user_id) DO UPDATE SET role = excluded.role",
+      "UPDATE collaboration_invitations SET lifecycle_state = ?, accepted_at = COALESCE(accepted_at, ?), accepted_via = COALESCE(accepted_via, ?), invited_user_id = COALESCE(invited_user_id, ?) WHERE id = ?",
+      "INSERT INTO collaboration_audit_events (...) SELECT ... ON CONFLICT(invitation_id, event_type, actor_user_id, metadata_json) DO NOTHING"
+    ]
+  },
+  "productionProofRequirements": [
+    "Implement the collaboration-invitation D1 repository against a real Cloudflare D1 binding with prepared statements and typed terminal-state models.",
+    "Wire the repository behind invite entry pages/actions only after Better Auth identity handoff and app-layer authorization are production-proven.",
+    "Run token issue, delivery, resolve, wrong-account, revoked, expired, replay, accept-by-token, accept-by-id, rollback, and idempotency tests inside the Worker runtime.",
+    "Capture hosted Worker+D1 query count, p95 duration, rows read/written, and failure telemetry for invite entry GET/POST and pending-invite acceptance paths.",
+    "Run a provider-backed D1 export/restore rehearsal for invitation tokens, memberships, and audit rows before treating D1 as the source of truth."
+  ],
+  "blockers": [
+    "Hosted Worker+D1 collaboration-invitation proof is still missing.",
+    "Better Auth production identity handoff is still missing; keep current Supabase-backed invitation routes/actions live."
+  ],
+  "note": "Local-only D1 collaboration-invitation domain proof. It uses sanitized temporary SQLite tables to model token issue/revoke-existing, delivery audit, invite resolution, revoked/expired/used terminal states, wrong-account denial, token and by-id acceptance, replay handling, rollback, idempotency, query-budget, index-plan, and export/restore behavior. It does not read env files, call provider APIs, create hosted D1 databases, deploy Workers, replace Supabase-backed live invitation routes/actions, change DNS, bill, or make production D1/Auth/Realtime ready."
+}

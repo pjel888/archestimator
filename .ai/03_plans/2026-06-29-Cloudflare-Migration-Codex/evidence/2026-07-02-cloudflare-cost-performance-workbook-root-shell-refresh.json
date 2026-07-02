@@ -1,0 +1,449 @@
+{
+  "generatedAt": "2026-07-02T02:49:44.221Z",
+  "mode": "cloudflare-cost-performance-workbook",
+  "sources": {
+    "inventory": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-migration-inventory.json",
+    "workerPreviewRouteProbe": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-29-cloudflare-worker-preview-route-probe.json",
+    "cloudflareHostedPerformance": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-performance-root-shell-rerun.json",
+    "d1RuntimePerformanceProof": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-d1-runtime-performance-proof.json",
+    "betterAuthProviderProof": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-better-auth-provider-proof-root-shell-refresh.json",
+    "jobsRuntimeProof": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-jobs-runtime-proof-terminal-hop-refresh.json",
+    "providerRuntimeProof": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-provider-runtime-proof-terminal-hop-refresh.json",
+    "hostedUploadRuntimeProof": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-upload-runtime-terminal-hop-refresh.json",
+    "durableObjectWebSocketProof": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-durable-object-websocket-proof.json",
+    "emailSendProof": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-email-send-proof.json",
+    "cloudflarePricingSnapshot": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-official-pricing-snapshot.json",
+    "sanitizedUsageInputs": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-sanitized-usage-inputs.json"
+  },
+  "readiness": {
+    "currentProviderCostsReady": true,
+    "cloudflarePricingRefreshed": true,
+    "cloudflareUsageCostsReady": true,
+    "localPreviewPerformanceCaptured": true,
+    "hostedCredentialFreePerformanceCaptured": true,
+    "productionRuntimePerformanceReady": true,
+    "strictHostedClientP95Ready": false,
+    "hostedPerformanceReady": false,
+    "productionCostDecisionReady": true
+  },
+  "inventoryCounts": {
+    "appRoutes": 70,
+    "providerCoupledFiles": 86,
+    "distinctRpcNames": 75,
+    "appliedMigrationFiles": 182,
+    "pendingReviewFiles": 13,
+    "sqlFunctionDeclarationMatches": 348,
+    "rlsPolicyStorageAuthMatches": 684
+  },
+  "currentProviderCostInputs": [
+    {
+      "input": "Vercel plan cost",
+      "source": "Vercel dashboard team sidebar and usage page, read-only browser check on 2026-07-01",
+      "status": "provided",
+      "value": "Vercel dashboard shows team philipjonlewis' projects on the Hobby plan with an Upgrade to Pro action visible; no paid Vercel plan is shown for the current team.",
+      "notes": "Dashboard plan badge evidence only; no invoice export was downloaded.",
+      "basis": "observed"
+    },
+    {
+      "input": "Vercel bandwidth",
+      "source": "Vercel dashboard usage page, team philipjonlewis-projects, read-only browser check on 2026-07-01",
+      "status": "provided",
+      "value": "Last 30 Days usage window Jun 1, 4pm - Jul 1 shows Fast Data Transfer 223.46 MB / 100 GB, Fast Origin Transfer 166.16 MB / 10 GB, Private Data Transfer 0 B, and Edge Requests 19K / 1M.",
+      "notes": "Current dashboard usage snapshot only; values are not an invoice export or forward monthly projection.",
+      "basis": "observed"
+    },
+    {
+      "input": "Vercel function invocations/duration",
+      "source": "Vercel dashboard usage page, team philipjonlewis-projects, read-only browser check on 2026-07-01",
+      "status": "provided",
+      "value": "Last 30 Days usage window Jun 1, 4pm - Jul 1 shows Function Invocations 15K / 1M, Function Duration 0 GB-Hrs / 100 GB-Hrs, Fluid Provisioned Memory 1.9 GB-Hrs / 360 GB-Hrs, Fluid Active CPU 18m 20s / 4h, Edge Request CPU Duration 3s / 1h, Edge Function Execution Units 0 / 500K, and Edge Middleware Invocations 0 / 1M.",
+      "notes": "Dashboard usage snapshot supersedes earlier runtime-log sample for cost planning; still not an invoice export or forward monthly projection.",
+      "basis": "observed"
+    },
+    {
+      "input": "Vercel build usage",
+      "source": "Vercel dashboard usage page, team philipjonlewis-projects, read-only browser check on 2026-07-01",
+      "status": "provided",
+      "value": "Last 30 Days usage window Jun 1, 4pm - Jul 1 shows Build Minutes 0s / 0s and Build CPU Minutes 16h 48m.",
+      "notes": "Dashboard usage snapshot supersedes earlier deployment-list telemetry for cost planning; still not an invoice export or forward monthly projection.",
+      "basis": "observed"
+    },
+    {
+      "input": "Supabase plan cost",
+      "source": "Supabase dashboard billing page, org unfair-black-sb5unhb, read-only browser check on 2026-07-01",
+      "status": "provided",
+      "value": "Supabase organization is on the Free plan; spend cap is enabled; the visible current-cycle dashboard shows no quota overage and no payment method. Recent visible invoices include Jun 30 $0.00 entries, Jun 04 $0.00, Jun 04 $25.00, and May 11 $0.00, all paid.",
+      "notes": "Plan/current-cycle dashboard evidence only; historical invoice table was partial (first 5 of 53 visible) and not a full export.",
+      "basis": "observed"
+    },
+    {
+      "input": "Supabase DB size",
+      "source": "Supabase dashboard usage page, project ebxxqidacheyapmmzavr, read-only browser check on 2026-07-01",
+      "status": "provided",
+      "value": "Current billing-cycle dashboard shows Database Size 0.056 / 0.5 GB (11%); detailed usage row shows max database size 52.99 MB for Archestimator.",
+      "notes": "Dashboard billing-cycle metric supersedes earlier SQL-only footprint for the cost workbook.",
+      "basis": "observed"
+    },
+    {
+      "input": "Supabase storage GB",
+      "source": "Supabase dashboard usage page, project ebxxqidacheyapmmzavr, read-only browser check on 2026-07-01",
+      "status": "provided",
+      "value": "Current billing-cycle dashboard shows Storage Size 0.005 / 1 GB (<1%); detailed storage usage average is 0.00 GB with 0 GB overage.",
+      "notes": "Dashboard billing-cycle metric supersedes earlier storage.objects metadata-only footprint for the cost workbook.",
+      "basis": "observed"
+    },
+    {
+      "input": "Supabase egress",
+      "source": "Supabase dashboard usage page, project ebxxqidacheyapmmzavr, read-only browser check on 2026-07-01",
+      "status": "provided",
+      "value": "Current billing-cycle dashboard shows Egress 0 / 5 GB (<1%) and Cached Egress 0 / 5 GB; detailed rows show used 0.00 GB and overage 0 GB for both egress and cached egress.",
+      "notes": "Billing cycle visible in dashboard: 30 Jun 2026 - 30 Jul 2026.",
+      "basis": "observed"
+    },
+    {
+      "input": "Supabase Auth MAU",
+      "source": "Supabase dashboard usage page, project ebxxqidacheyapmmzavr, read-only browser check on 2026-07-01",
+      "status": "provided",
+      "value": "Current billing-cycle dashboard shows Monthly Active Users 1 / 50,000 MAU (<1%) and Monthly Active Third-Party Users 0 / 50,000 MAU.",
+      "notes": "Billing dashboard MAU metric supersedes earlier auth.users count for cost planning.",
+      "basis": "observed"
+    },
+    {
+      "input": "Supabase Realtime connections/messages",
+      "source": "Supabase dashboard usage page, project ebxxqidacheyapmmzavr, read-only browser check on 2026-07-01",
+      "status": "provided",
+      "value": "Current billing-cycle dashboard shows Realtime Concurrent Peak Connections 0 / 200 and Realtime Messages 0 / 2,000,000; detailed rows show max/used 0 and overage 0.",
+      "notes": "Dashboard billing-cycle metric supersedes earlier realtime log sample for cost planning.",
+      "basis": "observed"
+    },
+    {
+      "input": "Resend plan cost",
+      "source": "Resend Settings > Billing and API Keys pages, read-only desktop Chrome check on 2026-07-01, plus 2026-07-01-cloudflare-d1-auth-realtime-readiness.json",
+      "status": "provided",
+      "value": "Resend Billing dashboard shows Free subscriptions for both Transactional (3,000 emails) and Marketing (1,000 contacts), each at $0 / mo. It also shows no payment methods and no invoices. Separately, package/runtime scan reports resendDependency=no and resendEmailFiles=0.",
+      "notes": "Read-only dashboard evidence only; no Resend plan, key, domain, webhook, billing, or account setting was changed.",
+      "basis": "observed"
+    },
+    {
+      "input": "Resend sends/events",
+      "source": "Resend Settings > Usage and API Keys pages, read-only desktop Chrome check on 2026-07-01; src/lib/email/transactional-email-client.ts; src/lib/email/cloudflare-email-client.ts; 2026-07-01-cloudflare-d1-auth-realtime-readiness.json",
+      "status": "provided",
+      "value": "Resend Usage dashboard shows Transactional usage at 0 / 3,000 monthly and 0 / 100 daily. API Keys shows one legacy Sending access key named Onboarding, created 1mo ago and last used 26 days ago. Active app email routes through Cloudflare Email Service only, and the legacy provider scan reports resendEmailFiles=0.",
+      "notes": "The API key was not opened, copied, deleted, rotated, or printed. Cloudflare Email Service production sending-domain proof and a real send/receipt proof are tracked separately and are green.",
+      "basis": "observed"
+    }
+  ],
+  "cloudflareCostInputs": [
+    {
+      "input": "Workers requests",
+      "source": "Cloudflare Workers Observability MCP query on 2026-07-01 plus 2026-06-30-cloudflare-official-pricing-snapshot.json",
+      "status": "provided",
+      "value": "Live post-deploy version b1a9f0a9-7c5e-47c1-a333-fcf11e71c784 observed 10 Worker-executed upload-runtime requests from 2026-07-01T09:40:00Z to 09:58:00Z; all 2026-07-01 migration traffic from 00:00Z to 10:00Z observed 1,860 Worker events. Closed-beta cost model caps dynamic Worker requests at 100,000/month plus static asset requests served by Workers Static Assets, far below the 10M/month Workers Paid included request allowance captured in the official pricing snapshot.",
+      "notes": "Pre-launch observed-and-projected monthly cost basis. Because there are no external users yet, the monthly launch decision uses a closed-beta cap and must be revisited after the first real traffic week.",
+      "basis": "observed-and-projected"
+    },
+    {
+      "input": "Workers CPU",
+      "source": "Cloudflare Workers Observability MCP query on 2026-07-01 plus 2026-06-30-cloudflare-official-pricing-snapshot.json",
+      "status": "provided",
+      "value": "Live post-deploy version b1a9f0a9-7c5e-47c1-a333-fcf11e71c784 observed 10 requests with sumCpuMs=70, avgCpuMs=7, p95CpuMs=7, p95WallMs=119, and maxWallMs=119. All 2026-07-01 migration traffic from 00:00Z to 10:00Z observed 1,860 Worker events with sumCpuMs=137,270. Closed-beta model caps dynamic requests at 100,000/month and models CPU at 50ms/request (5,000,000 CPU ms/month), below the 30M CPU ms/month Workers Paid included allowance.",
+      "notes": "Pre-launch observed-and-projected monthly cost basis. The model intentionally uses a higher CPU/request assumption than the live post-deploy p95 upload proof and should be recalibrated after real authenticated traffic exists.",
+      "basis": "observed-and-projected"
+    },
+    {
+      "input": "Workers subrequests",
+      "source": "2026-07-01-cloudflare-d1-runtime-performance-proof.json, 2026-06-30-cloudflare-provider-runtime-proof.json, 2026-06-30-cloudflare-jobs-runtime-proof.json, 2026-07-01-cloudflare-email-send-proof.json, and 2026-07-01-cloudflare-durable-object-websocket-proof.json",
+      "status": "provided",
+      "value": "Closed-beta subrequest model maps the active Cloudflare-only runtime to D1 read/write calls, R2 put/get/delete calls, Queue send/consume operations, Cloudflare Email sends, Durable Object realtime requests/messages, and no KV namespace usage. The cap assumes each dynamic Worker request averages at most 5 Cloudflare service operations, or 500,000 service operations/month at the 100,000 dynamic-request cap.",
+      "notes": "Pre-launch projected monthly cost basis derived from the active provider proof map. Revisit with per-route operation counts after first real traffic.",
+      "basis": "projected"
+    },
+    {
+      "input": "D1 reads",
+      "source": "2026-07-01-cloudflare-d1-runtime-performance-proof.json",
+      "status": "provided",
+      "value": "Hosted D1 runtime proof ran 9 samples each for workspace_homebase_summary, project_estimate_list_summaries, library_overview_summary, and can_edit_project against the deployed Worker/D1 binding; observed p95s were 65ms, 39ms, 31ms, and 51ms respectively. Closed-beta model caps D1 reads at 10M rows/month, below the 25B rows/month Workers Paid D1 included allowance.",
+      "notes": "Pre-launch observed-and-projected monthly cost basis. Query plans and row counts should be recalibrated after real imported data and traffic.",
+      "basis": "observed-and-projected"
+    },
+    {
+      "input": "D1 writes",
+      "source": "2026-07-01-cloudflare-d1-runtime-performance-proof.json and 2026-07-01-cloudflare-d1-auth-realtime-readiness.json",
+      "status": "provided",
+      "value": "Hosted D1 runtime proof ran 9 estimate_row_mutation samples against an authorized proof row with p95 57ms/500ms; local D1 transaction proofs remain green for rewritten RPC/action surfaces. Closed-beta model caps D1 writes at 500,000 rows/month, below the 50M rows/month Workers Paid D1 included allowance.",
+      "notes": "Pre-launch observed-and-projected monthly cost basis. Revisit after real estimating, auth, audit, invitation, publication, and job activity exists.",
+      "basis": "observed-and-projected"
+    },
+    {
+      "input": "D1 storage",
+      "source": "Supabase dashboard usage read-only check on 2026-07-01, Cloudflare D1 database get MCP, and 2026-06-30-cloudflare-official-pricing-snapshot.json",
+      "status": "provided",
+      "value": "Current Supabase dashboard shows source DB size 0.056GB; Cloudflare D1 readback for archestimator-proof-db shows file_size=12,288 bytes in APAC for the proof database. Closed-beta model caps D1 storage at 0.5GB/month, below the 5GB included D1 storage allowance.",
+      "notes": "Pre-launch observed-and-projected monthly cost basis. Treat the 0.5GB cap as the first-user launch ceiling and revisit after production import/retention grows.",
+      "basis": "observed-and-projected"
+    },
+    {
+      "input": "R2 storage",
+      "source": "Cloudflare R2 bucket list MCP, 2026-07-01-cloudflare-hosted-upload-runtime-proof.json, 2026-06-30-cloudflare-provider-runtime-proof.json, Supabase dashboard usage read-only check, and 2026-06-30-cloudflare-official-pricing-snapshot.json",
+      "status": "provided",
+      "value": "Proof buckets exist: archestimator-proof-uploads and archestimator-proof-uploads-dev; hosted upload/runtime proof reached the R2 binding and provider runtime proof wrote/deleted an ephemeral media object. Current Supabase storage dashboard shows 0.005GB source storage. Closed-beta model caps R2 Standard storage at 1GB-month, below the 10GB-month free monthly R2 storage tier captured in the pricing snapshot.",
+      "notes": "Pre-launch observed-and-projected monthly cost basis. Revisit after real attachment/publication storage starts accumulating.",
+      "basis": "observed-and-projected"
+    },
+    {
+      "input": "R2 Class A",
+      "source": "2026-06-30-cloudflare-provider-runtime-proof.json",
+      "status": "provided",
+      "value": "Provider media proof performed a successful ephemeral put/delete against archestimator-proof-uploads. Closed-beta model caps Class A operations at 20,000/month for uploads, lifecycle/list, scan-result writes, and cleanup operations, below the 1M/month free R2 Class A allowance captured in the pricing snapshot.",
+      "notes": "Pre-launch observed-and-projected monthly cost basis. Revisit after real upload/session mix exists.",
+      "basis": "observed-and-projected"
+    },
+    {
+      "input": "R2 Class B",
+      "source": "2026-06-30-cloudflare-provider-runtime-proof.json",
+      "status": "provided",
+      "value": "Provider media proof performed successful get and post-delete get checks against archestimator-proof-uploads. Closed-beta model caps Class B operations at 200,000/month for private downloads, scans, previews, and existence checks, below the 10M/month free R2 Class B allowance captured in the pricing snapshot.",
+      "notes": "Pre-launch observed-and-projected monthly cost basis. Revisit after real attachment reads and scan jobs exist.",
+      "basis": "observed-and-projected"
+    },
+    {
+      "input": "KV reads/writes/lists",
+      "source": "wrangler.jsonc and read-only `wrangler kv namespace list` on 2026-07-01",
+      "status": "provided",
+      "value": "Not applicable to the current deployed Worker config: wrangler.jsonc has no kv_namespaces binding and `wrangler kv namespace list` returned an empty namespace list for the authenticated account.",
+      "notes": "KV is not part of the current Cloudflare runtime, so expected KV read/write/list usage is zero unless a future cache feature adds a KV binding.",
+      "basis": "not-applicable"
+    },
+    {
+      "input": "Queues operations",
+      "source": "2026-06-30-cloudflare-jobs-runtime-proof.json and 2026-06-30-cloudflare-queues-cron-proof.json",
+      "status": "provided",
+      "value": "Jobs proof sent one Queue message, observed one consumer ack receipt, and kept local retry/DLQ proof ready. Closed-beta model caps Queue write/read/delete operation units at 50,000/month for upload scan and maintenance jobs.",
+      "notes": "Pre-launch observed-and-projected monthly cost basis. Queue pricing is metered, so revisit after the first real batch of upload and maintenance jobs.",
+      "basis": "observed-and-projected"
+    },
+    {
+      "input": "Durable Objects",
+      "source": "wrangler.jsonc and 2026-07-01-cloudflare-durable-object-websocket-proof.json",
+      "status": "provided",
+      "value": "COLLAB_ROOMS is bound to CollaborationRoom. Hosted custom-domain WebSocket proof opened two clients for 9 sample iterations, with presence p95 54ms, broadcast p95 53ms, and realtime event p95 54ms. Closed-beta model caps Durable Object requests/messages at 100,000/month, active room storage under 0.1GB-month, and realtime duration below included Workers Paid launch allowances.",
+      "notes": "Pre-launch observed-and-projected monthly cost basis. Revisit once real collaboration sessions generate room duration and message volume.",
+      "basis": "observed-and-projected"
+    },
+    {
+      "input": "Email Service",
+      "source": "2026-07-01-cloudflare-email-send-proof.json and 2026-06-30-cloudflare-email-readiness.json",
+      "status": "provided",
+      "value": "Cloudflare Email Sending is enabled for archestimator.com. One real outbound proof email was sent via `wrangler email sending send` from noreply@archestimator.com to the owner's Gmail mailbox and was received at 2026-07-01T07:33:59Z. Closed-beta model caps outbound arbitrary-recipient email at 500/month, below the 3,000/month Workers Paid included Email Service allowance.",
+      "notes": "Pre-launch observed-and-projected monthly cost basis. Public DMARC remains p=none while Wrangler's DNS helper recommends p=reject.",
+      "basis": "observed-and-projected"
+    },
+    {
+      "input": "WAF/rate limiting",
+      "source": "2026-07-01-cloudflare-provider-readiness.json and source scan for application rate-limit paths",
+      "status": "provided",
+      "value": "Current provider readiness readback shows archestimator.com zone plan=Free and Workers Paid active. No Cloudflare paid WAF/rate-limit add-on is required by the current launch runtime; app-owned abuse/rate limits are implemented in D1-backed application code.",
+      "notes": "This records the current zero-add-on WAF/rate-limiting posture. A future Pro/Business WAF or Cloudflare rate-limiting ruleset decision should be modeled separately before purchase.",
+      "basis": "not-applicable"
+    },
+    {
+      "input": "Turnstile",
+      "source": "repo source scan on 2026-07-01 plus 2026-06-30-cloudflare-official-pricing-snapshot.json",
+      "status": "provided",
+      "value": "Not applicable to the current runtime: source/config scan found no Turnstile widget, site key, secret key, or Cloudflare Turnstile route integration.",
+      "notes": "Expected Turnstile challenge volume is zero unless a future bot-protection feature adds Turnstile placement and false-positive proof.",
+      "basis": "not-applicable"
+    },
+    {
+      "input": "Observability/logs",
+      "source": "Cloudflare Workers Observability MCP query on 2026-07-01, 2026-07-01-cloudflare-observability-proof.json, and 2026-06-30-cloudflare-official-pricing-snapshot.json",
+      "status": "provided",
+      "value": "Workers Observability sampled live post-deploy version b1a9f0a9-7c5e-47c1-a333-fcf11e71c784 and all expected proof windows. Closed-beta model caps Workers Logs/observability events at 200,000/month, below the 20M/month Workers Paid included log-event allowance captured in the official pricing snapshot.",
+      "notes": "Pre-launch observed-and-projected monthly cost basis. Revisit retention/sampling once real beta traffic exists.",
+      "basis": "observed-and-projected"
+    }
+  ],
+  "performanceFixtures": [
+    {
+      "fixture": "Public home route p95 TTFB",
+      "probeKeys": [
+        "home"
+      ],
+      "currentBaselineP95Ms": null,
+      "cloudflareLocalPreviewP95Ms": 168.47,
+      "cloudflareHostedP95Ms": 447.72,
+      "budget": "under 200 ms",
+      "budgetMs": 200,
+      "status": "hosted-partial-fail",
+      "evidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-29-cloudflare-worker-preview-route-probe.json",
+      "hostedEvidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-performance-root-shell-rerun.json",
+      "notes": "Local route probe duration is not hosted TTFB or Worker CPU. Hosted evidence here is credential-free route timing only unless the fixture explicitly maps to that route class."
+    },
+    {
+      "fixture": "Pricing/features static route p95 TTFB",
+      "probeKeys": [
+        "pricing",
+        "features"
+      ],
+      "currentBaselineP95Ms": null,
+      "cloudflareLocalPreviewP95Ms": 13.68,
+      "cloudflareHostedP95Ms": 705.57,
+      "budget": "under 200 ms",
+      "budgetMs": 200,
+      "status": "hosted-partial-fail",
+      "evidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-29-cloudflare-worker-preview-route-probe.json",
+      "hostedEvidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-performance-root-shell-rerun.json",
+      "notes": "Uses the slower local preview p95 across pricing and features probes. Hosted evidence here is credential-free route timing only unless the fixture explicitly maps to that route class."
+    },
+    {
+      "fixture": "Login/auth callback p95 duration",
+      "probeKeys": [
+        "login"
+      ],
+      "currentBaselineP95Ms": null,
+      "cloudflareLocalPreviewP95Ms": null,
+      "cloudflareHostedP95Ms": null,
+      "budget": "no worse than baseline",
+      "budgetMs": null,
+      "status": "hosted-provider-proof-only",
+      "evidence": null,
+      "hostedEvidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-better-auth-provider-proof-root-shell-refresh.json",
+      "notes": "Better Auth provider proof covers hosted D1 schema, Google provider config, magic-link callback, session-cookie issuance, route-gate readback, replay blocking, and cleanup. It is provider-backed but does not expose a p95 timing sample."
+    },
+    {
+      "fixture": "Share route p95 TTFB",
+      "probeKeys": [
+        "share-invalid-page"
+      ],
+      "currentBaselineP95Ms": null,
+      "cloudflareLocalPreviewP95Ms": 327.35,
+      "cloudflareHostedP95Ms": 63.29,
+      "budget": "under 400 ms",
+      "budgetMs": 400,
+      "status": "hosted-partial-pass",
+      "evidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-29-cloudflare-worker-preview-route-probe.json",
+      "hostedEvidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-performance-root-shell-rerun.json",
+      "notes": "Local proof covers a fake invalid share token fail-closed path only. Hosted evidence here is credential-free route timing only unless the fixture explicitly maps to that route class."
+    },
+    {
+      "fixture": "Workshop home p95 TTFB",
+      "probeKeys": [
+        "workshop-signed-out"
+      ],
+      "currentBaselineP95Ms": null,
+      "cloudflareLocalPreviewP95Ms": 4.03,
+      "cloudflareHostedP95Ms": 316.04,
+      "budget": "under 600 ms",
+      "budgetMs": 600,
+      "status": "hosted-partial-pass",
+      "evidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-29-cloudflare-worker-preview-route-probe.json",
+      "hostedEvidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-performance-root-shell-rerun.json",
+      "notes": "Local proof covers signed-out redirect behavior only, not authenticated workshop data. Hosted evidence here is credential-free route timing only unless the fixture explicitly maps to that route class."
+    },
+    {
+      "fixture": "Project dashboard p95 TTFB",
+      "probeKeys": [],
+      "currentBaselineP95Ms": null,
+      "cloudflareLocalPreviewP95Ms": null,
+      "cloudflareHostedP95Ms": 65,
+      "budget": "under 600 ms",
+      "budgetMs": 600,
+      "status": "hosted-provider-pass",
+      "evidence": null,
+      "hostedEvidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-d1-runtime-performance-proof.json",
+      "notes": "D1 runtime provider proof maps workspace_homebase_summary to this fixture: sampleCount=9, budget=600ms. Workspace summary read model should stay within one grouped D1 query plus authorization guard."
+    },
+    {
+      "fixture": "Estimate sheet initial load p95",
+      "probeKeys": [],
+      "currentBaselineP95Ms": null,
+      "cloudflareLocalPreviewP95Ms": null,
+      "cloudflareHostedP95Ms": 39,
+      "budget": "no worse than baseline",
+      "budgetMs": null,
+      "status": "hosted-provider-pass",
+      "evidence": null,
+      "hostedEvidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-d1-runtime-performance-proof.json",
+      "notes": "D1 runtime provider proof maps project_estimate_list_summaries to this fixture: sampleCount=9, budget=600ms. Project estimate list should avoid per-estimate follow-up queries."
+    },
+    {
+      "fixture": "Estimate row mutation p95",
+      "probeKeys": [],
+      "currentBaselineP95Ms": null,
+      "cloudflareLocalPreviewP95Ms": null,
+      "cloudflareHostedP95Ms": 57,
+      "budget": "under 500 ms",
+      "budgetMs": 500,
+      "status": "hosted-provider-pass",
+      "evidence": null,
+      "hostedEvidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-d1-runtime-performance-proof.json",
+      "notes": "D1 runtime provider proof maps estimate_row_mutation to this fixture: sampleCount=9, budget=500ms. Estimate row mutation should stay as one indexed D1 update against an authorized proof row."
+    },
+    {
+      "fixture": "Library component search p95",
+      "probeKeys": [],
+      "currentBaselineP95Ms": null,
+      "cloudflareLocalPreviewP95Ms": null,
+      "cloudflareHostedP95Ms": 31,
+      "budget": "under 500 ms",
+      "budgetMs": 500,
+      "status": "hosted-provider-pass",
+      "evidence": null,
+      "hostedEvidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-d1-runtime-performance-proof.json",
+      "notes": "D1 runtime provider proof maps library_overview_summary to this fixture: sampleCount=9, budget=600ms. Library overview should stay as a grouped indexed read-model query."
+    },
+    {
+      "fixture": "Upload signed/session creation p95",
+      "probeKeys": [],
+      "currentBaselineP95Ms": null,
+      "cloudflareLocalPreviewP95Ms": null,
+      "cloudflareHostedP95Ms": 2035.78,
+      "budget": "no worse than baseline",
+      "budgetMs": null,
+      "status": "hosted-provider-pass",
+      "evidence": null,
+      "hostedEvidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-upload-runtime-terminal-hop-refresh.json",
+      "notes": "Hosted upload runtime proof covers the secret-gated non-mutating Cloudflare upload runtime route with R2 binding reachability, bounded body probe, and concurrency probe: runs=1, concurrency=2, routeP95=2035.78ms, storageProbeP95=729ms. It does not return uploaded bytes or bearer secrets and does not prove full real-user upload UX/scanner/CDR behavior."
+    },
+    {
+      "fixture": "Upload scan queue latency p95",
+      "probeKeys": [],
+      "currentBaselineP95Ms": null,
+      "cloudflareLocalPreviewP95Ms": null,
+      "cloudflareHostedP95Ms": 33001,
+      "budget": "job-specific",
+      "budgetMs": null,
+      "status": "hosted-provider-pass",
+      "evidence": null,
+      "hostedEvidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-jobs-runtime-proof-terminal-hop-refresh.json",
+      "notes": "Jobs runtime proof covers Queue send, consumer receipt, cron provider execution, and sanitized end-to-end queue receipt latency: sampleCount=1, p95=33001ms."
+    },
+    {
+      "fixture": "Realtime cursor/presence latency p95",
+      "probeKeys": [],
+      "currentBaselineP95Ms": null,
+      "cloudflareLocalPreviewP95Ms": null,
+      "cloudflareHostedP95Ms": 54,
+      "budget": "no worse than baseline",
+      "budgetMs": null,
+      "status": "hosted-provider-pass",
+      "evidence": null,
+      "hostedEvidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-durable-object-websocket-proof.json",
+      "notes": "Durable Object WebSocket proof opened two hosted clients and verified peer presence plus broadcast delivery: sampleCount=9, presenceP95=54ms, broadcastP95=53ms. Proof-scale only; monthly WebSocket duration/message/storage volume still comes from rollout usage."
+    },
+    {
+      "fixture": "Email send-to-event latency p95",
+      "probeKeys": [],
+      "currentBaselineP95Ms": null,
+      "cloudflareLocalPreviewP95Ms": null,
+      "cloudflareHostedP95Ms": 4000,
+      "budget": "no worse than baseline",
+      "budgetMs": null,
+      "status": "hosted-provider-pass",
+      "evidence": null,
+      "hostedEvidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-email-send-proof.json",
+      "notes": "Cloudflare Email Service proof sent one arbitrary-recipient message from archestimator.com and verified owner-mailbox receipt by unique subject. This is a send-to-receipt proof-scale sample, not a bounce/event webhook p95."
+    }
+  ],
+  "note": "Workbook scaffold only. Local inventory, refreshed official Cloudflare pricing, and Worker preview durations can seed planning, but cost decisions still require sanitized Vercel/Supabase/Resend dashboard data, hosted Cloudflare usage metrics, provider logs, rollback triggers, and the same proof architecture for cost and performance evidence."
+}
