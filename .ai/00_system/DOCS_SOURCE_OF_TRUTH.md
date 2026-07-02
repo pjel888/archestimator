@@ -16,6 +16,11 @@ append-only history logs (~2,500 and ~1,100 lines), not required full reads.
 - Agent framework protocol: `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`
 - Agent self-diagnostic protocol: `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`
 - Loop-engineering contract (canonical): the loop sections of `AGENT_OPERATING_PROTOCOL.md` and `AGENT_FRAMEWORK_PROTOCOL.md` above. Origin/background only (not a required active restart read): archived pack `.ai/09_archive/store/2026-06-13-loop-engineering-mandate-and-research/` and research note `.ai/13_research/loop-engineering-agentic-product-development-2026-06-13.md`.
+- Karpathy-inspired behavioral guardrails (canonical application):
+  `.ai/00_system/AGENT_OPERATING_PROTOCOL.md` ("Karpathy-Inspired Guardrails")
+  and `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md` ("Shared Behavioral
+  Guardrails"). Source/background only:
+  `.ai/13_research/2026-07-02-karpathy-skills-agent-workflow-guardrails.md`.
 - Reusable non-trivial-work loop prompt template: `.ai/08_prompts/templates/codebase-ai-loop-task.md`.
 - Known issues and risks: `.ai/10_state/known-issues.md`
 - Feature inventory (code↔doc cross-reference): `.ai/06_specs/feature-inventory.md`
@@ -71,7 +76,7 @@ Do not treat an older plan as active if these docs or `.ai/10_state/*` say the i
 
 ## Anti-duplication rule
 
-If two docs cover the same topic, one must be canonical and the other must point to it. Do not let Claude, Codex, OpenCode, CommandCode, Antigravity CLI (`agy`), Kimi, DeepSeek, Notion, or other agents/tools maintain separate contradictory instructions. Gemini is phased out and must not become a separate active instruction lane unless Philip explicitly reapproves it.
+If two docs cover the same topic, one must be canonical and the other must point to it. Do not let Claude, Codex, OpenCode, CommandCode, Antigravity CLI (`agy`), Kimi, DeepSeek, Notion, or other agents/tools maintain separate contradictory instructions. External prompt packs, skills, `CLAUDE.md` files, Cursor rules, and adapter templates can inform the contract, but they must be summarized into `.ai/00_system` instead of becoming parallel policy. Gemini is phased out and must not become a separate active instruction lane unless Philip explicitly reapproves it.
 
 ## Agent performance rule
 

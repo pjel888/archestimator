@@ -18,6 +18,38 @@ Use the lightest path that can satisfy the request:
 4. Verify with the narrowest evidence that proves the change.
 5. Update `.ai` state/docs only when a durable decision or project reality changes.
 
+## Karpathy-Inspired Guardrails
+
+Archestimator adopts the portable benefits of the
+`multica-ai/andrej-karpathy-skills` guidance as a behavior overlay, not as a
+separate tool-specific policy file. Canonical source note:
+`.ai/13_research/2026-07-02-karpathy-skills-agent-workflow-guardrails.md`.
+
+Use these guardrails to reduce common agent failure modes while preserving the
+repo's speed and autonomy:
+
+- **Assumption and tradeoff preflight:** before editing, name only the
+  assumptions that materially affect behavior, risk, or scope. If ambiguity
+  would change the result, ask; otherwise proceed with the stated assumption and
+  keep moving.
+- **Simplicity first:** implement the minimum coherent change that satisfies the
+  request. Avoid speculative features, single-use abstractions, unused
+  configurability, and defensive branches for impossible states. If a solution
+  grows beyond the problem, simplify before verification.
+- **Surgical changes:** every changed line should trace to the active request,
+  current bug, or cleanup created by the current edit. Match local style, avoid
+  drive-by refactors, and report unrelated dead code instead of deleting it
+  unless the task authorizes cleanup.
+- **Goal-driven execution:** translate vague work into a concrete target result,
+  non-goals, affected surface, validation gate, and stop condition. Loop until
+  the claim is proven, blocked with evidence, or approval is required.
+
+Benefit target: fewer silent wrong assumptions, smaller diffs, less abstraction
+bloat, less collateral churn, and completion claims backed by evidence instead
+of agent confidence. This overlay is proportional: trivial fixes still use the
+shortest safe path, while non-trivial work carries the guardrails through the
+bounded loop below.
+
 ## Local Dev Error-Log Debugging Surface
 
 The software-wide error-handling pilot provides a shared local diagnostic stream

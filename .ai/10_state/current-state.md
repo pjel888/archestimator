@@ -28,6 +28,17 @@ Stable current truth (verify against git/source before relying on a detail):
   and provider evidence remain authoritative; never store secrets in
   Supermemory or commit `.supermemory/`. Canonical contract:
   `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`.
+- AI workflow contract guardrails as of 2026-07-02: the canonical `.ai/00_system`
+  agent contracts now incorporate the portable benefits of
+  `multica-ai/andrej-karpathy-skills` without vendoring its tool-specific
+  prompt as a parallel policy. Active behavior: surface material assumptions
+  and tradeoffs, prefer the simplest coherent change, keep diffs surgical and
+  traceable to the request, and turn work into verifiable goals with explicit
+  validation gates. Canonical application:
+  `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`,
+  `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`, and
+  `.ai/08_prompts/templates/codebase-ai-loop-task.md`; source note:
+  `.ai/13_research/2026-07-02-karpathy-skills-agent-workflow-guardrails.md`.
 - API/rate-limiting/security planning consolidation as of 2026-07-02:
   `.ai/03_plans/2026-07-02-API-Rate-Limiting-Security-Consolidation/`
   supersedes `.ai/03_plans/2026-06-29-Rate-Limiting/` and

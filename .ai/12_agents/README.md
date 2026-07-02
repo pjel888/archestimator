@@ -15,6 +15,14 @@ adequate loop surface, verify with maker/checker and real-surface evidence, and
 persist durable state outside chat when project truth changes. Tool-specific
 features translate this loop; they do not replace it.
 
+All agents and harnesses inherit the Karpathy-inspired guardrails now canonical
+in `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`: surface material assumptions
+and tradeoffs, keep the implementation as simple as the task allows, make
+surgical diffs that trace to the request, and turn work into verifiable goals
+before claiming completion. Adapter-specific skills, prompt files, or rules may
+reference these guardrails, but they must point back to `.ai/00_system` rather
+than fork a second behavioral contract.
+
 All agents and harnesses also inherit the shared Supermemory workflow from
 `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`: check `http://localhost:6767/`,
 start `npm exec supermemory local` when it is down and local process startup

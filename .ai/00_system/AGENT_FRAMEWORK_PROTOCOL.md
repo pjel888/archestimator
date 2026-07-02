@@ -105,6 +105,31 @@ research, `ultraqa` for adversarial behavior proof, and `vercel:agent-browser`
 for browser-facing proof. Direct solo execution remains valid for narrow work
 where a loop would add ceremony without improving correctness.
 
+## Shared Behavioral Guardrails
+
+All agents, payloads, skills, prompts, and harness adapters inherit the
+Karpathy-inspired behavior overlay defined in
+`.ai/00_system/AGENT_OPERATING_PROTOCOL.md`. The overlay adds four portable
+quality controls to the framework:
+
+- **Assumption ledger:** make material uncertainty explicit before the first
+  edit, especially when multiple interpretations could change behavior,
+  approval boundaries, data risk, or validation scope.
+- **Simplicity budget:** prefer deletion, reuse, and the smallest coherent
+  implementation over new layers. New abstractions must remove real complexity,
+  reduce meaningful duplication, or match an established local pattern.
+- **Diff traceability:** each edit should be attributable to the active goal or
+  to cleanup made necessary by that edit. Adapters must not use a task as cover
+  for unrelated comment churn, formatting churn, or opportunistic refactors.
+- **Goal proof:** convert work into acceptance criteria and a validation gate,
+  then stop only when evidence proves the full requested outcome or a recorded
+  blocker/approval gate prevents further safe progress.
+
+Do not vendor an external `CLAUDE.md`, Cursor rule, or skill as a parallel
+authority for this repo. Tool-specific copies may exist only as thin adapters
+that point back to `.ai/00_system` and preserve the same assumption, simplicity,
+surgical-change, and goal-proof requirements.
+
 ## Durable Loop Artifacts And Loop Ledger
 
 High-blast-radius, multi-agent, provider/release, agent-framework, security,
