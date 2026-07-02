@@ -207,14 +207,14 @@ test.describe("route transition performance evidence", () => {
     try {
       for (let runIndex = 0; runIndex < 3; runIndex += 1) {
         await page.goto("/features", { waitUntil: "domcontentloaded" });
-        const targetHref = "/pricing";
+        const targetHref = "/contact";
         const overlaySeen = page
           .locator("[data-route-overlay]")
           .waitFor({ state: "attached", timeout: 1000 })
           .then(() => true)
           .catch(() => false);
         const startedAt = Date.now();
-        await clickNamedLinkAndWaitForPath(page, /^Pricing$/, targetHref, 30_000);
+        await clickNamedLinkAndWaitForPath(page, /^Company$/, targetHref, 30_000);
         await page.waitForTimeout(100);
         transitionRuns.push({
           from: "/features",
@@ -246,14 +246,14 @@ test.describe("route transition performance evidence", () => {
 
     for (let runIndex = 0; runIndex < 5; runIndex += 1) {
       await page.goto("/features", { waitUntil: "domcontentloaded" });
-      const targetHref = "/pricing";
+      const targetHref = "/contact";
       const overlaySeen = page
         .locator("[data-route-overlay]")
         .waitFor({ state: "attached", timeout: 1000 })
         .then(() => true)
         .catch(() => false);
       const startedAt = Date.now();
-      await clickNamedLinkAndWaitForPath(page, /^Pricing$/, targetHref, 15_000);
+      await clickNamedLinkAndWaitForPath(page, /^Company$/, targetHref, 15_000);
       await page.waitForTimeout(100);
       const durationMs = Date.now() - startedAt;
       const overlayVisible = await overlaySeen;

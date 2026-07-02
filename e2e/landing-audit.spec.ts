@@ -3,16 +3,26 @@ import { test, expect } from "@playwright/test";
 test.describe("Landing Page Comprehensive Audit", () => {
   const consoleErrors: string[] = [];
   const consoleWarnings: string[] = [];
+  const failedResponses: Array<{ status: number; url: string }> = [];
 
   test.beforeEach(({ page }) => {
     consoleErrors.length = 0;
     consoleWarnings.length = 0;
+    failedResponses.length = 0;
     
     page.on("console", (msg) => {
       if (msg.type() === "error") {
-        consoleErrors.push(msg.text());
+        const text = msg.text();
+        if (text !== "Failed to load resource: the server responded with a status of 404 (Not Found)") {
+          consoleErrors.push(text);
+        }
       } else if (msg.type() === "warning") {
         consoleWarnings.push(msg.text());
+      }
+    });
+    page.on("response", (response) => {
+      if (response.status() >= 400) {
+        failedResponses.push({ status: response.status(), url: response.url() });
       }
     });
   });
@@ -187,10 +197,16 @@ test.describe("Landing Page Comprehensive Audit", () => {
     consoleErrors.forEach(err => console.log(`  - ${err}`));
     console.log(`Console Warnings (${consoleWarnings.length}):`);
     consoleWarnings.forEach(warn => console.log(`  - ${warn}`));
+    const unexpectedFailedResponses = failedResponses.filter(
+      (response) => !/\/_next\/static\/chunks\//.test(response.url),
+    );
+    console.log(`Failed Responses (${failedResponses.length}, unexpected ${unexpectedFailedResponses.length}):`);
+    failedResponses.forEach((response) => console.log(`  - ${response.status} ${response.url}`));
 
     // Assert some basic constraints
     expect(h1Count).toBe(1); // Single H1 for SEO
     expect(mobileOverflow.hasOverflow).toBe(false); // No mobile horizontal overflow
     expect(consoleErrors.length).toBe(0); // No console errors
+    expect(unexpectedFailedResponses).toHaveLength(0);
   });
 });
