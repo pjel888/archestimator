@@ -1,0 +1,87 @@
+---
+title: Abuse Threat Model
+plan_id: 2026-06-29-rate-limiting
+created: 2026-06-29
+profile: exhaustive
+owner: Archestimator
+---
+
+# Abuse Threat Model
+
+## Threat Classes
+
+| Threat | Examples | Primary impact | Required controls |
+| --- | --- | --- | --- |
+| Brute force | Shared-link passwords, invite tokens, auth login | Unauthorized access, account/user friction | Low windows, delayed retries, Turnstile escalation, event audit. |
+| Enumeration | Invite resolution, share token existence, auth callback, public routes | Discovery of valid tokens/accounts | Uniform errors, rate limits by token/IP, no existence leaks. |
+| Cost exhaustion | Uploads, images, AI, XLSX export, email resend/digest | Provider spend, CPU/DB pressure | Durable quotas, concurrency controls, circuit breakers, queue budgets. |
+| UX denial | Client proposal review, comments, decisions, unsubscribe | Legitimate client blocked in high-trust flow | Reviewer-friendly recovery, allow owner override, narrow keys. |
+| Spam/reputation damage | Email invites/resends/digests/contact | Cloudflare Email/domain reputation and any remaining provider callback path | Per-owner/project limits, recipient cooldowns, circuit breaker, provider spend budget, and delivery idempotency. |
+| Telemetry flood | Client error intake, activity events | Log volume/noise, incident masking | Body size, same-origin, per-IP limiter, sampling. |
+| Replay/duplication | Webhooks, internal cron, upload scans, queue retries | Duplicate side effects | Signatures/secrets, idempotency keys, replay windows; rate limits are secondary. |
+| Frontend bypass | DevTools `fetch`, scripts, direct Server Action invocation, repeated Enter submit | Duplicate side effects, provider spend, false confidence in UI guards | Server-authoritative gates before side effects; client controls are advisory. |
+| Distributed flood | Edge/API floods across instances/regions | Origin overload before app limiter | WAF coarse rules, Workers soft limits, origin shielding, dashboards. |
+| Low-and-slow business-flow abuse | Many accounts/IPs/tokens stay below each per-key threshold while probing invites, auth, share links, feedback, or email sends | Enumeration, account friction, reputation harm, and noisy support without obvious single-key spikes | Cross-key anomaly detection, cardinality dashboards, adaptive challenge, and incident-mode escalation. |
+| Provider identity drift | IPv6 privacy rotation, proxy-header spoofing, missing `Sb-Forwarded-For`, inconsistent header precedence | Key fragmentation, overblocking, undercounting, duplicate auth lockouts | Trusted header source order, IPv6 prefix aggregation, Supabase provider-forwarding review, and versioned HMAC keys. |
+| Cache-fill stampede | Many requests miss the same expensive cache entry at once | Origin/database/provider pressure below per-key thresholds | Single-flight/coalescing, stale serve policy, max waiters, timeout, and shed response. |
+| Protocol and body abuse | `OPTIONS` floods, missing `Content-Length`, chunked transfer, multipart/resumable part storms | Edge/origin capacity pressure, storage churn, upload session leaks | Preflight posture, body/parser budgets, multipart session caps, transformed-byte limits, cleanup proof. |
+| Realtime and offline replay | Cursor/presence/message storms, stale service-worker queue replay after sign-out | Room fanout cost, duplicate mutations, stale auth writes | Connect plus per-message quotas, offline queue caps, purge rules, idempotency, and server-denial halt behavior. |
+| Bot false-positive escalation | Broad bot challenge/block rules on public proposal or beta flows | Legitimate reviewers/beta users blocked before support path exists | Observe-first Bot Management or WAF rules, false-positive review, support path, and app-policy fallback. |
+
+## Threat Detail Matrix
+
+| Threat | Likely actor | Entry points | Impact | Current control | Missing control | Recommended limit | Recommended store | Cloudflare edge role | App role | Observability signal | False positive risk |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Share password brute force | Anonymous bot or leaked-link actor | `share/[token]/password` | Unauthorized proposal access, token probing | Durable password events plus local lockout | Durable-only authority and HMAC key migration decision | 5/15min plus progressive delay | Postgres/RPC now; DO later | Optional WAF observe/challenge after proof | Exact per-token/client deny | `share_password` deny/challenge/store_error | Medium: legitimate reviewer may mistype. |
+| Proposal reviewer spam | Bad reviewer, script, compromised recipient | Share comment/decision routes | Review noise, client workflow harm | Durable recipient/publication write windows | Owner override/support flow and idempotency for decisions | 5/min, 20/hour plus daily cap hypothesis | Postgres now | WAF observe only | Exact recipient/resource limit | `share_comment`, `share_decision` near-limit/deny | High: shared office/NAT. |
+| Invite token probing | Anonymous or recipient bot | Invite resolve/continue/accept/sign-out | Token enumeration, support friction | Durable invite token/client/user limits on main flows | Sign-out no-policy/limiter rationale | 30/min resolve, 10/min continue, 5/min accept | Postgres now | WAF observe/challenge if probing appears | Non-enumerating deny | `invite_*` deny/token_hash/client_hash | Medium. |
+| Auth/email abuse | Credential stuffing, email spammer | Auth route/actions/callback | Account lockout, provider quota, enumeration | Better Auth and remaining provider auth checks | One authoritative limiter per auth path plus migration identity mapping | 5/min email+client, 20/hour client hypothesis; Better Auth built-in rules must be aligned or delegated | Better Auth storage plus Postgres/app durable only where explicitly chosen | Turnstile adaptive only after proof | Recovery-friendly app gate | `auth_login` near-limit/deny/provider_error/auth_limiter_authority | High for beta users. |
+| Storage/cost exhaustion | Authenticated abusive user or compromised session | Upload, image, export routes | Provider spend, CPU/DB pressure | Local upload admission, durable export limit | Durable capacity and byte/item windows | Upload 12/min, active actor 3, workspace 6; export 12/min, 120/hour | DB/session capacity now; DO later | WAF observe on init/export paths | Deny before expensive work | `upload_*`, `export_xlsx` cost/latency/deny | Medium for owner workflows. |
+| AI spend loop | Authenticated user, automation, compromised session | AI ask/package-builder | Provider token spend, mutation risk | AI ask limiter; package-builder audit/auth | Package-builder branch quotas and daily cost budget | Ask 10/min, 60/hour; package-builder 3/min, 20/hour hypothesis | Postgres/provider ledger now | WAF observe only | Deny before provider call or Apply | `ai_*` provider_usage/deny | Medium. |
+| Webhook/internal replay | Forged sender, retry storm, exposed secret | Provider email callback if present, internal upload jobs, Cloudflare Queue consumers | Duplicate side effects, queue pressure, retry amplification | Signature/body/secret checks | Idempotency/replay proof and queue/DLQ backpressure | No generic quota first | DB idempotency/queue/DLQ | WAF coarse if attacked | Signature/replay/idempotency primary | `webhook_replay`, `job_duplicate`, `queue_retry`, `dlq_growth` | Low if scoped. |
+| Telemetry flood | Browser script, malicious client | Client error route/activity events | Log cost/noise, incident masking | Body/same-origin/local 10/min | Standard hashing/sampling/cardinality | 10/min now; future sampled telemetry policy | Memory/drop now; telemetry store later | WAF observe if attacked | Fail soft/drop | `telemetry_drop`, sample rate | Low. |
+| Authenticated console loop | Logged-in user or compromised browser session | Upload/export/AI/estimate/publication routes and actions | Provider spend, duplicate mutations, UI bypass | Surface-specific auth and some existing limiters | Direct-invocation server gate proof and cross-surface idempotency | Same as surface policy; never rely on UI pending state | Postgres/RPC now; DO later | WAF observe only | Authz, idempotency, and rate limit before side effects | `direct_bypass` and policy deny/duplicate result | Medium. |
+| Low-and-slow distributed automation | Botnet, many disposable accounts, or leaked-token list | Auth/magic links, invite resolve, share password/session, beta feedback/contact, email resend | Stays below per-key limits while creating enumeration, mail, or support pressure | None centralized beyond per-surface limiters | Cardinality/anomaly thresholds and incident escalation | Per-key limits plus aggregate cohort thresholds | Event dashboard/warehouse or app aggregate | WAF observe/challenge after proof | Escalate policy/challenge without broad IP-only blocks | `anomaly_low_and_slow`, cohort cardinality, challenge rate | High if shared offices or beta cohorts are over-grouped. |
+
+## Surface-Specific Scenarios
+
+| Surface | Abuse story | Current resilience | Residual risk |
+| --- | --- | --- | --- |
+| Public share root/snapshot | Bot repeatedly loads a proposal token to create DB/event pressure. | 60/min Postgres-backed token+IP limiter. | WAF edge overshoot possible; policy not centralized. |
+| Shared-link password | Attacker brute-forces a shared password. | Durable failure records and local lockout/delay. | Mixed local/durable state and header inconsistency. |
+| Shared comments/decisions | Bad actor spams comments or repeatedly submits decisions. | Recipient/publication durable write limits. | False positives hurt real reviewers; needs owner intervention path. |
+| Shared activity/events | Script posts noisy activity or polls activity feed. | Same-origin checks and durable 60/min limiter. | Event volume may still be high across many IPs. |
+| Invite resolution/accept | Token probing and repeated accept attempts. | Durable token/IP/user limits. | Sign-out route lacks limiter; errors must remain non-enumerating. |
+| Auth login/magic/OAuth | Credential stuffing or magic-link spam. | Provider/auth checks; no unified app limiter found in scan. | Must not lock out legitimate beta users behind shared IPs. |
+| Contact/support | Form spam if converted from mailto to server intake. | Mailto only today. | Future server endpoint must include Turnstile, limiter, abuse mailbox policy. |
+| Uploads/images | Parallel uploads, transform storms, oversized requests. | Local admission maps; some durable direct-upload session capacity. | Process-local maps are insufficient under scaled deployment. |
+| XLSX export | User or stolen session repeatedly exports heavy workbooks. | Durable 12/min, 120/hour per user+IP. | Need p95 and failure telemetry to tune. |
+| AI ask/package-builder | Token spend and read-context fanout. | AI ask quota 10/min, 60/hour. | Package-builder route chain needs explicit classification; quotas should include model/provider costs. |
+| Email resend/digest | Owner or attacker triggers repeated emails. | Invite resend and digest controls; Cloudflare Email wrapper exists. | Account-wide provider protection, spend budget, and reputation feedback must be refreshed from current Cloudflare Email paths. |
+| Email provider callback | Forged callback or replay if a provider callback exists. | Current runtime no longer uses the older Resend path as the planning anchor. | P0 must prove callback absence or define signature/config/body-size/idempotency before generic rate limits. |
+| Internal cron/jobs | Repeated cleanup/scan invocations or queue retries. | Legacy Vercel cron metadata and Cloudflare Cron/Queue config exist. | Needs replay/idempotency, overlap policy, queue consumer concurrency, DLQ alerting, and downstream backpressure. |
+| Realtime collaboration | Room spam, connect floods, cursor/presence/message storms. | `CollaborationRoom` Durable Object binding exists in Cloudflare config. | The existing room DO can host realtime quotas only after room-specific contracts; generic exact counter DO remains a separate future design. |
+| Auth provider limits | Magic-link/OTP/future MFA sends and verifies can hit Better Auth or any remaining provider caps before app policy is tuned. | Better Auth v1.6 ships built-in limits and `X-Retry-After`; app source does not yet encode a per-surface authority decision. | P0 must decide Better Auth vs app authority per path, align IP/proxy/IPv6/storage config, map migration identities, and avoid double lockout. |
+| Deep list/search/count reads | Automated clients request large pages, deep offsets, or expensive counts below ordinary request limits. | Some repository calls use explicit ranges; no cross-surface count budget exists in this package yet. | P0 must set page-depth, count, index, timeout, and response-profile rules. |
+
+## Idempotency And Repeat-Intent Taxonomy
+
+| Repeat path | Example | Primary control |
+| --- | --- | --- |
+| User repeat | Double click, repeated Enter, impatient retry after success. | Client pending/single-flight plus server idempotency or scoped cooldown. |
+| Browser/network retry | Timeout, back/refresh, reconnect flush. | Reuse operation key for the same intent and return existing result or no-op duplicate. |
+| Webhook retry | Provider redelivery. | Signature validation and event-id idempotency. |
+| Queue retry | Job retry after partial failure. | Job idempotency key and dedupe. |
+| Scripted replay | Direct `fetch` or action loop bypassing React state. | Server-authoritative limiter, authz, and idempotency before side effects. |
+
+## Abuse Priority
+
+P0: shared-link password/session/comment/decision, invite resolve/accept, auth login/magic links, upload admission, AI ask, XLSX export.
+
+P1: shared activity/events, invite create/resend, email digest/resend, client-error intake, package-builder, contact future endpoint.
+
+P2: health/static routes, low-cost authenticated reads, webhook generic rate limits after signature/idempotency, internal jobs after secret/replay controls.
+
+## False Positive Sensitivity
+
+Highest sensitivity belongs to proposal reviewers, invite recipients, beta login, unsubscribe, and owner publishing/exporting during a client meeting. These surfaces should prefer narrow keys, clear `Retry-After`, support contact path, shadow-mode tuning, and owner-visible diagnostics over aggressive broad-IP blocking.

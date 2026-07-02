@@ -8,6 +8,8 @@ This pack supersedes:
 - `.ai/03_plans/2026-07-01-API-Audit/`
 - The tracked/historical API-audit path drift under `.ai/03_plans/2026-07-21-API-Audit/` where old docs or git status still reference it.
 
+Tracked historical source copies are preserved at `.ai/09_archive/2026-07-02-API-Rate-Limiting-Security-Consolidation-Sources/`. Those archived folders are evidence only, not active implementation handoffs.
+
 It merges the two source packs because the same production risk appears through three connected surfaces:
 
 - API and Server Action authorization.
@@ -56,6 +58,7 @@ Implementation must not proceed to WAF/Turnstile enforcement, broad Cloudflare R
 - `07_RISK_REGISTER_AND_DECISIONS.md` - P0/P1/P2 risks, decisions, rejected approaches.
 - `08_FINAL_READINESS_AND_COMPLETION_AUDIT.md` - requirement-by-requirement completion audit for this planning task.
 - `09_IDEMPOTENCY_RETRY_AND_RESILIENCE_STANDARDS.md` - standards-backed API idempotency, retry, error, cache, trace, and async delivery contract.
+- `IMPLEMENTATION_PLAN.md` - canonical execution overlay for implementation agents; supersedes ad hoc sequencing from the individual pack docs when execution starts.
 - `LOOP_LEDGER.md` - discover, plan, execute, verify, record, decide ledger.
 
 ## Source And Standards Inputs
@@ -65,6 +68,7 @@ Local source packs:
 - `.ai/03_plans/2026-06-29-Rate-Limiting/`
 - `.ai/03_plans/2026-07-01-API-Audit/` as the user-provided workspace source folder for this task.
 - `.ai/03_plans/2026-07-21-API-Audit/` as tracked/historical API-audit path drift superseded by this pack.
+- Archived tracked copies: `.ai/09_archive/2026-07-02-API-Rate-Limiting-Security-Consolidation-Sources/2026-06-29-Rate-Limiting/` and `.ai/09_archive/2026-07-02-API-Rate-Limiting-Security-Consolidation-Sources/2026-07-21-API-Audit/`.
 
 Current source evidence:
 
@@ -113,6 +117,7 @@ External standards/reference anchors:
 Do not mark a future implementation complete until:
 
 - The current runtime/store ledger is refreshed from source.
+- The implementation run starts from `IMPLEMENTATION_PLAN.md` and records loop progress, Supermemory availability, and source/provider proof boundaries in the loop ledger or run log.
 - P0 gates are closed with code, tests, and provider evidence where relevant.
 - The security/privacy standards matrix has proof references, not only assertions.
 - Narrow staged rollout has hosted evidence and rollback steps.
