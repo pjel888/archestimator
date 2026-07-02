@@ -11,6 +11,14 @@ const loginFormSource = readFileSync(
   join(process.cwd(), "src/components/auth/LoginForm.tsx"),
   "utf8",
 );
+const rootLayoutSource = readFileSync(
+  join(process.cwd(), "src/app/layout.tsx"),
+  "utf8",
+);
+const stateMismatchRecoverySource = readFileSync(
+  join(process.cwd(), "src/components/auth/AuthStateMismatchRecoveryScript.tsx"),
+  "utf8",
+);
 const privacySource = readFileSync(
   join(process.cwd(), "src/app/privacy/page.tsx"),
   "utf8",
@@ -62,5 +70,14 @@ describe("/login auth entry UI contract", () => {
     expect(loginSource).toContain('export const dynamic = "force-dynamic"');
     expect(loginSource).toContain("export const revalidate = 0");
     expect(loginSource).not.toContain('export const dynamic = "force-static"');
+  });
+
+  it("keeps a root-shell fallback for stale client-side state mismatch URLs", () => {
+    expect(rootLayoutSource).toContain("AuthStateMismatchRecoveryScript");
+    expect(stateMismatchRecoverySource).toContain('data-auth-state-mismatch-recovery');
+    expect(stateMismatchRecoverySource).toContain('"error") === "state_mismatch"');
+    expect(stateMismatchRecoverySource).toContain('"oauth_state_reset", "1"');
+    expect(stateMismatchRecoverySource).toContain("window.location.replace");
+    expect(stateMismatchRecoverySource).toContain("window.caches.delete");
   });
 });
