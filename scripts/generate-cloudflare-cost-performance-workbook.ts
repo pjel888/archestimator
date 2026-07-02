@@ -945,10 +945,17 @@ export function buildCloudflareCostPerformanceWorkbook(inputs: WorkbookInputs): 
   const localPreviewPerformanceCaptured = performanceFixtures.some((fixture) =>
     fixture.cloudflareLocalPreviewP95Ms !== null && fixture.evidence !== null
   );
+  const hostedPerformanceGateReady =
+    inputs.cloudflareHostedPerformance?.hostedCredentialFreePerformanceReady
+    ?? (
+      inputs.cloudflareHostedPerformance?.routeContractReady === true
+      && inputs.cloudflareHostedPerformance?.p95SampleCountReady === true
+    );
   const hostedCredentialFreePerformanceCaptured =
     inputs.cloudflareHostedPerformance?.mode === "cloudflare-hosted-worker-performance"
     && inputs.cloudflareHostedPerformance.providerBacked === true
-    && inputs.cloudflareHostedPerformance.routeContractReady === true;
+    && inputs.cloudflareHostedPerformance.routeContractReady === true
+    && hostedPerformanceGateReady === true;
   const strictHostedClientP95Signal =
     inputs.cloudflareHostedPerformance?.strictHostedClientP95Ready
     ?? inputs.cloudflareHostedPerformance?.p95BudgetReady;

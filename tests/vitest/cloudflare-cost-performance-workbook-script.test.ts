@@ -269,14 +269,17 @@ describe("Cloudflare cost/performance workbook generator", () => {
     });
   });
 
-  it("treats a hosted route artifact as captured even when budgets fail", () => {
+  it("treats hosted performance as captured when strict budgets fail after the sample-count gate passes", () => {
     const workbook = buildCloudflareCostPerformanceWorkbook({
       generatedAt: "2026-06-30T00:00:00.000Z",
       workerPreviewRouteProbe: ROUTE_PROBE,
       workerPreviewRouteProbeSource: "route-probe.json",
       cloudflareHostedPerformance: {
         ...HOSTED_PERFORMANCE,
-        hostedCredentialFreePerformanceReady: false,
+        hostedCredentialFreePerformanceReady: true,
+        p95SampleCountReady: true,
+        p95BudgetReady: false,
+        strictHostedClientP95Ready: false,
         results: [
           {
             key: "home",
@@ -298,6 +301,37 @@ describe("Cloudflare cost/performance workbook generator", () => {
       status: "hosted-partial-fail",
       hostedEvidence: "hosted-performance.json",
     });
+  });
+
+  it("does not capture hosted performance when the p95 sample-count gate fails", () => {
+    const workbook = buildCloudflareCostPerformanceWorkbook({
+      generatedAt: "2026-06-30T00:00:00.000Z",
+      workerPreviewRouteProbe: ROUTE_PROBE,
+      workerPreviewRouteProbeSource: "route-probe.json",
+      cloudflareHostedPerformance: {
+        ...HOSTED_PERFORMANCE,
+        hostedCredentialFreePerformanceReady: false,
+        p95SampleCountReady: false,
+        p95BudgetReady: false,
+        strictHostedClientP95Ready: false,
+        results: [
+          {
+            key: "home",
+            required: true,
+            p95DurationMs: 95,
+            passed: true,
+            p95BudgetPassed: true,
+            samples: [{ durationMs: 95, passed: true, error: null }],
+          },
+        ],
+      },
+      cloudflareHostedPerformanceSource: "hosted-performance.json",
+    });
+
+    expect(workbook.readiness.hostedCredentialFreePerformanceCaptured).toBe(false);
+    expect(workbook.readiness.productionRuntimePerformanceReady).toBe(false);
+    expect(workbook.readiness.aggregateHostedPerformanceReady).toBe(false);
+    expect(workbook.readiness.productionCostDecisionReady).toBe(false);
   });
 
   it("maps provider-backed D1 timing plus Better Auth, R2, and Jobs proofs into supplemental performance fixtures", () => {
