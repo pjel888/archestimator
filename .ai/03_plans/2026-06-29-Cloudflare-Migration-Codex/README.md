@@ -82,6 +82,10 @@ Cloudflare skill update: future execution must start by loading the installed Cl
 - [31_OWNER_CLOUDFLARE_SETUP_AND_ANALYTICS_RUNBOOK.md](31_OWNER_CLOUDFLARE_SETUP_AND_ANALYTICS_RUNBOOK.md) - owner dashboard steps, subscription gates, and analytics migration choices.
 - [32_COMPUTER_USE_CLOUDFLARE_DASHBOARD_HANDOFF.md](32_COMPUTER_USE_CLOUDFLARE_DASHBOARD_HANDOFF.md) - Codex App / Computer Use handoff for Cloudflare dashboard setup when local browser automation is unavailable.
 - [33_POST_CUTOVER_FULL_APP_QA_LEDGER.md](33_POST_CUTOVER_FULL_APP_QA_LEDGER.md) - active post-cutover QA ledger, latest proof status, and remaining real-browser/provider-cleanup gates.
+- [34_FULL_CLOUDFLARE_APP_VERIFICATION_LEDGER.md](34_FULL_CLOUDFLARE_APP_VERIFICATION_LEDGER.md) - full Cloudflare app verification ledger, auth recovery evidence, and hosted D1/R2/DO proof map.
+- [35_PROVIDER_EXIT_AND_FINAL_PROOF_RUNBOOK.md](35_PROVIDER_EXIT_AND_FINAL_PROOF_RUNBOOK.md) - provider export, downgrade, cancellation, rollback, and post-exit smoke runbook.
+- [36_COMPREHENSIVE_FOLLOWUP_QA_LEDGER.md](36_COMPREHENSIVE_FOLLOWUP_QA_LEDGER.md) - active follow-up QA ledger for remaining non-owner Google, mailbox, p95, and provider-exit gaps.
+- [37_GLM52_CLOUDFLARE_MIGRATION_HANDOFF.md](37_GLM52_CLOUDFLARE_MIGRATION_HANDOFF.md) - detailed GLM5.2 handoff plan with multi-agent lanes, commands, evidence slots, and final completion gates.
 
 ## Production Cutover Stop Condition
 

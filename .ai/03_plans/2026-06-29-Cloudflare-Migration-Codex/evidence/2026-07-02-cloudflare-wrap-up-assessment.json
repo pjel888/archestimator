@@ -1,0 +1,206 @@
+{
+  "generatedAt": "2026-07-02T14:07:58Z",
+  "mode": "cloudflare-wrap-up-assessment",
+  "status": "near-complete-not-final-provider-exit",
+  "completion": {
+    "appSideCloudflareClosedBetaRuntimePercent": 99.7,
+    "overallMigrationIncludingProviderExitPercent": 97,
+    "goalStatusRecommendation": "keep-active",
+    "p0AppRuntimeBlockersKnown": 0
+  },
+  "summary": [
+    "Production owner Google OAuth on archestimator.com is proven end-to-end.",
+    "Local developer Google OAuth on http://localhost:3000 is proven end-to-end.",
+    "Cloudflare D1, R2, Durable Objects, Workers, Better Auth, Cloudflare Email, hosted routes, sensitive fail-closed behavior, uploads, publication/share, and collaboration all have green app-side evidence.",
+    "The current release-gate aggregator is green with blockers empty and productionCutoverReady=true.",
+    "Strict public-route p95 remains a visible watch item, not a blocker in the current gate.",
+    "Full provider exit is not complete because old-provider backup/export, downgrade/cancel sequencing, and post-exit smoke have not been executed."
+  ],
+  "freshEvidence": {
+    "productionOwnerGoogleOAuth": {
+      "path": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-production-google-oauth-real-browser-proof.json",
+      "generatedAt": "2026-07-02T13:16:36Z",
+      "passed": true
+    },
+    "localDeveloperGoogleOAuth": {
+      "path": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-local-dev-google-oauth-real-browser-proof.json",
+      "generatedAt": "2026-07-02T13:39:54Z",
+      "passed": true
+    },
+    "googleOAuthProviderReadback": {
+      "path": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-google-oauth-local-production-readback.json",
+      "generatedAt": "2026-07-02T11:58:12Z",
+      "productionGoogleOAuthProviderConfigurationReady": true,
+      "localhostDeveloperGoogleOAuthConfigurationReady": true,
+      "nonOwnerGoogleProviderBlockerRemoved": true,
+      "realNonOwnerAccountCompletionProven": false
+    },
+    "releaseGates": {
+      "path": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-release-gates.json",
+      "generatedAt": "2026-07-02T14:02:36.486Z",
+      "productionCutoverReady": true,
+      "blockers": []
+    },
+    "costPerformanceWorkbook": {
+      "path": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-cost-performance-workbook.json",
+      "generatedAt": "2026-07-02T14:02:25.297Z",
+      "productionRuntimePerformanceReady": true,
+      "aggregateHostedPerformanceReady": true,
+      "strictHostedClientP95Ready": false,
+      "hostedPerformanceReady": false,
+      "productionCostDecisionReady": true
+    },
+    "hostedUploadUi": {
+      "path": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-upload-ui-proof.json",
+      "generatedAt": "2026-07-02T09:29:24.991Z",
+      "passed": true,
+      "blockers": []
+    },
+    "hostedCollaborationUi": {
+      "path": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-collaboration-ui-proof.json",
+      "generatedAt": "2026-07-02T09:54:21.246Z",
+      "passed": true,
+      "blockers": []
+    },
+    "hostedRoutes": {
+      "path": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-route-proof-final-refresh.json",
+      "generatedAt": "2026-07-02T04:35:24.198Z",
+      "passed": true,
+      "blockers": []
+    },
+    "hostedSensitiveFailClosed": {
+      "path": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-sensitive-route-failclosed-final-refresh.json",
+      "generatedAt": "2026-07-02T04:37:35.210Z",
+      "passed": true
+    },
+    "mainWorkerCurrentSourceDeploy": {
+      "path": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-main-worker-current-source-deploy.json",
+      "generatedAt": "2026-07-01T22:49:28Z",
+      "note": "Main Worker current-source deploy proof predates the final local React/Next script-warning fix; production auth is green, but deploy latest branch once more before provider-exit smoke if that fix was not already included in the deployed Worker."
+    }
+  },
+  "commandsAlreadyRunForThisAssessment": [
+    {
+      "command": "bunx vitest run tests/vitest/auth-entry-ui-contract.test.ts tests/vitest/auth-proxy.test.ts tests/vitest/cloudflare-better-auth-route-gate.test.ts tests/vitest/cloudflare-better-auth-route.test.ts tests/vitest/auth-set-cookie-forwarding.test.ts --maxWorkers=1",
+      "result": "passed",
+      "evidence": "5 files / 56 tests"
+    },
+    {
+      "command": "bunx tsc --noEmit --pretty false",
+      "result": "passed"
+    },
+    {
+      "command": "bun run cf:build",
+      "result": "passed"
+    },
+    {
+      "command": "bun run cf:workbook",
+      "result": "passed",
+      "evidence": "generatedAt=2026-07-02T14:02:25.297Z"
+    },
+    {
+      "command": "bun run cf:release-gates",
+      "result": "passed",
+      "evidence": "generatedAt=2026-07-02T14:02:36.486Z, blockers=[]"
+    },
+    {
+      "command": "curl https://archestimator.com/?error=state_mismatch",
+      "result": "passed",
+      "evidence": "302 to clean OAuth reset URL; followed chain reached reset-done login with HTTP 200 and two redirects"
+    }
+  ],
+  "adversarialScenarioMatrix": [
+    {
+      "id": "ADV-AUTH-001",
+      "class": "stale-state",
+      "scenario": "Exact owner-reported stale root URL with error=state_mismatch",
+      "expected": "Redirect to clean login reset without raw state_mismatch surfacing",
+      "actual": "Pass by prior hosted evidence and fresh curl summary",
+      "cleanup": "No mutation"
+    },
+    {
+      "id": "ADV-AUTH-002",
+      "class": "normal-path",
+      "scenario": "Owner Google OAuth on production",
+      "expected": "Authenticated workshop session on archestimator.com",
+      "actual": "Pass",
+      "cleanup": "No secrets recorded"
+    },
+    {
+      "id": "ADV-AUTH-003",
+      "class": "normal-path",
+      "scenario": "Owner Google OAuth on localhost development",
+      "expected": "Authenticated localhost session persisted in local D1",
+      "actual": "Pass",
+      "cleanup": "Local server stopped; ignored env secrets not committed"
+    },
+    {
+      "id": "ADV-AUTH-004",
+      "class": "external-persona",
+      "scenario": "Real non-owner Google closed-beta flow",
+      "expected": "Allowed or access-required behavior according to beta policy",
+      "actual": "Open P1 gap",
+      "cleanup": "No test persona available in this pass"
+    },
+    {
+      "id": "ADV-PERF-001",
+      "class": "misleading-success",
+      "scenario": "Release gates green while strict p95 is red",
+      "expected": "p95 remains visible as watch evidence and is not hidden as a blocker",
+      "actual": "Pass; workbook reports strictHostedClientP95Ready=false and release gates blockers=[]",
+      "cleanup": "No mutation"
+    },
+    {
+      "id": "ADV-WORKTREE-001",
+      "class": "dirty-worktree",
+      "scenario": "Long migration assessment in a dirty/ahead worktree",
+      "expected": "Preserve unrelated changes and report intentional files",
+      "actual": "Pass so far; only regenerated workbook/release-gate files were dirty before adding this assessment",
+      "cleanup": "Final git status still required"
+    },
+    {
+      "id": "ADV-NET-001",
+      "class": "restricted-network",
+      "scenario": "Hosted route verifier from restricted shell",
+      "expected": "Do not trust all-request request_error output as production evidence",
+      "actual": "Pass; false-red output was restored from HEAD and not treated as production proof",
+      "cleanup": "Restored evidence file"
+    },
+    {
+      "id": "ADV-OPS-001",
+      "class": "destructive-boundary",
+      "scenario": "Provider downgrade/cancellation",
+      "expected": "Do not execute until exports/backups, rollback target, and post-exit smoke are ready",
+      "actual": "Open provider-exit gate",
+      "cleanup": "No external provider deletion/downgrade/cancel performed"
+    }
+  ],
+  "remainingGaps": [
+    {
+      "priority": "P1",
+      "gap": "Real non-owner Google closed-beta account completion",
+      "reason": "Google provider block is removed, but a second human/persona journey has not been proven."
+    },
+    {
+      "priority": "P1",
+      "gap": "Real recipient mailbox delivery and reply/decision receipt",
+      "reason": "Cloudflare Email and recipient flows have app-side proof, but a real external mailbox remains an ops-quality proof."
+    },
+    {
+      "priority": "P1",
+      "gap": "Provider exit operations",
+      "reason": "Supabase, Vercel, and Resend downgrade/cancel sequencing requires backups and post-exit smoke. This pass did not execute destructive or billing-side actions."
+    },
+    {
+      "priority": "P1",
+      "gap": "Strict public p95 watch",
+      "reason": "User's speed goal is important; current release criteria allow launch with p95 watch visible, but tuning should continue."
+    },
+    {
+      "priority": "P2",
+      "gap": "Legacy Supabase E2E quarantine retirement",
+      "reason": "Default Cloudflare-compatible Playwright path is restored, but old Supabase-specific specs are intentionally opt-in."
+    }
+  ],
+  "finalJudgment": "Near completion. Continue wrapping with final QA/provider-exit sequencing; do not mark the durable goal complete yet."
+}
