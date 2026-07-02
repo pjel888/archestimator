@@ -31,7 +31,7 @@ const userContext = {
   userId,
   email: "user@example.com",
   workspaceId,
-  authMode: "supabase" as const,
+  authMode: "better-auth" as const,
 };
 
 type Statement = { sql: string; values: unknown[] };

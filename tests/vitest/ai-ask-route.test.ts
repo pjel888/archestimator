@@ -12,7 +12,7 @@ function makeRequest(body: unknown) {
   });
 }
 
-const supabaseUserContext = { userId: "user-1", email: "user@example.com", workspaceId: "workspace-1", authMode: "supabase" as const };
+const supabaseUserContext = { userId: "user-1", email: "user@example.com", workspaceId: "workspace-1", authMode: "better-auth" as const };
 const allowQuota = async () => ({ allowed: true as const });
 
 function makeEmptyReadContext(): AiAskReadContext {
@@ -159,7 +159,7 @@ describe("AI Ask route", () => {
     const recordAudit = vi.fn();
     const readContext = vi.fn();
     const response = await handleAiAskRequest(makeRequest({ message: "Summarize this estimate." }), {
-      getUserContext: async () => ({ userId: "user-1", email: "user@example.com", workspaceId: null, authMode: "supabase" }),
+      getUserContext: async () => ({ userId: "user-1", email: "user@example.com", workspaceId: null, authMode: "better-auth" }),
       askDeepSeek,
       hasApiKey: () => true,
       recordAudit,
@@ -223,7 +223,7 @@ describe("AI Ask route", () => {
         },
       }),
       {
-        getUserContext: async () => ({ userId: "user-1", email: "user@example.com", workspaceId: "workspace-1", authMode: "supabase" }),
+        getUserContext: async () => ({ userId: "user-1", email: "user@example.com", workspaceId: "workspace-1", authMode: "better-auth" }),
         askDeepSeek,
         hasApiKey: () => true,
         recordAudit,
@@ -235,7 +235,7 @@ describe("AI Ask route", () => {
     expect(response.status).toBe(200);
     expect(readContext).toHaveBeenCalledWith(
       expect.objectContaining({
-        userContext: { userId: "user-1", email: "user@example.com", workspaceId: "workspace-1", authMode: "supabase" },
+        userContext: { userId: "user-1", email: "user@example.com", workspaceId: "workspace-1", authMode: "better-auth" },
         message: "Can you create a new project and edit this estimate?",
         routeContext: {
           projectName: "Lewis Residence",
@@ -939,7 +939,7 @@ describe("AI Ask route", () => {
     const askDeepSeek = vi.fn();
     const recordAudit = vi.fn();
     const response = await handleAiAskRequest(makeRequest({ message: "How many projects do I have?" }), {
-      getUserContext: async () => ({ userId: "user-1", email: "user@example.com", workspaceId: "workspace-1", authMode: "supabase" }),
+      getUserContext: async () => ({ userId: "user-1", email: "user@example.com", workspaceId: "workspace-1", authMode: "better-auth" }),
       readContext: async () => {
         throw new Error("workspace isolation failed");
       },
