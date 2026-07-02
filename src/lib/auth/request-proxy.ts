@@ -156,7 +156,7 @@ export async function proxy(request: NextRequest) {
     );
   }
 
-  let response = createRequestPathResponse(request);
+  const response = createRequestPathResponse(request);
 
   if (isPublicRoute(pathname)) {
     if (isMarketingPage(pathname)) {
