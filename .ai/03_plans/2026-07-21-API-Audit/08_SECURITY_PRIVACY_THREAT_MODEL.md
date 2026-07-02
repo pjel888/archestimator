@@ -71,7 +71,7 @@ Actors:
 | C3 | Magic-link token | raw (URL) + hash (D1) | Better Auth magic-link send | URL (one-shot) + D1 `verification` table (hash) | better-auth server on click | yes (one-shot URL) | URL | single-use, expiry-bound | consume-on-click | Better Auth docs | OAuth state (C2) |
 | C4 | Share token (raw) | encrypted-at-rest (PUBLICATION_TOKEN_ENCRYPTION_SECRET) | `src/lib/publication/actions.ts` `createShare` | URL (raw) + D1 (encrypted) | share route handler at lookup | yes (raw URL) | URL | revoke = delete row | delete row | SRC-001 + migration 0014 | invite (C6), WS ticket (C9) |
 | C5 | Share token (hash) | hash (PUBLICATION_TOKEN_HASH_SECRET) | same | D1 `project_publications.token_hash` | share route handler | no | lookup index | tied to raw | tied to raw | SRC-001 | C4 |
-| C6 | Invite token (raw) | encrypted-at-rest | `src/lib/collaboration/actions.ts` `createInvite` | URL (raw) + D1 (encrypted) | invite route handler at lookup | yes (raw URL) | URL | revoke = delete row | delete row | migration 0007 | share (C4) |
+| C6 | Invite token (raw) | **hash (SHA-256 + `ARCHESTIMATOR_INVITE_TOKEN_PEPPER`); raw NOT recoverable** — patched 2026-07-02 by independent reviewer (ADV-P1-1); was "encrypted-at-rest" which was contradicted by `src/lib/collaboration/invite-entry.ts:54-64` | `src/lib/collaboration/actions.ts` `createInvite` | URL (raw, one-shot) + D1 (`tokenHash` only — hash with pepper) | invite route handler at lookup | yes (raw URL) | URL | revoke = delete row | delete row | migration 0007 + `invite-entry.ts:54-64` | share (C4) |
 | C7 | Invite token (hash) | hash | same | D1 `collaboration_invitations.token_hash` | invite route handler | no | lookup index | tied to raw | tied to raw | migration 0007 | C6 |
 | C8 | Share access cookie | session-signed (PUBLICATION_ACCESS_COOKIE_SECRET) | share session route | cookie | share routes after password | yes (HttpOnly) | cookie | tied to share session | tied to share revoke | SRC-001 | session cookie (C1) |
 | C9 | WebSocket ticket | signed short-lived | DO upgrade route mint | URL/header (one-shot) | DO upgrade handler | yes (URL/header) | URL | one-shot; per-session rate limited | session logout | SRC-012 | share (C4) |
@@ -81,9 +81,37 @@ Actors:
 
 > **Audit observation (CR-001)**: The taxonomy table is the audit's CONTRACT. Distinct materials MUST NEVER be collapsed into a single "token" concept. Code generation patterns that produce a generic `string` typed as `Token` for multiple of these surfaces are a P0 finding.
 
-> **Audit observation (CR-002)**: The audit MUST verify C4 (share raw) and C6 (invite raw) are stored encrypted at rest using `PUBLICATION_TOKEN_ENCRYPTION_SECRET`, NOT just hashed. The hash (C5/C7) is used for lookup; the encrypted form is recoverable when needed (e.g., re-display after revoke gesture that requires raw to verify). Confirm the encryption secret is never readable from client code (REQ-SEC-004).
+> **Audit observation (CR-002)**: The audit MUST verify C4 (share raw) is stored encrypted at rest using `PUBLICATION_TOKEN_ENCRYPTION_SECRET`, NOT just hashed. The hash (C5) is used for lookup; the encrypted form is recoverable when needed (e.g., re-display after revoke gesture that requires raw to verify). Confirm the encryption secret is never readable from client code (REQ-SEC-004).
+>
+> **CR-002 scope narrowing (2026-07-02 independent reviewer, ADV-P1-1)**: CR-002 applies ONLY to C4 (publication/share token). C6 (invite token) was previously lumped into CR-002's "encrypted-at-rest" claim — that was a taxonomy error. Actual `invite-entry.ts:54-64` uses SHA-256 hash with `ARCHESTIMATOR_INVITE_TOKEN_PEPPER` (raw NOT recoverable), which is a reasonable posture for one-shot invite tokens but is NOT encryption. Do NOT bundle C4 and C6 remediation in Phase 5.
 
 > **Audit observation (CR-003)**: The audit MUST verify C9 (WS ticket) mint surface. The ticket MUST be (a) signed short-lived, (b) tied to Better Auth session, (c) one-shot use, (d) rate-limited per session. Anonymous WS upgrade MUST be rejected.
+
+### Reviewer update 2026-07-02 (independent-soft pass; see `21_INDEPENDENT_VERIFICATION_RESULT.md`)
+
+| Material | Reviewer verdict | Concrete evidence |
+|---|---|---|
+| C1 (session cookie) | CONFIRM (line drift) | `src/lib/auth/actions.ts:91-92` — both cookie names present in `clearBetterAuthSessionCookies` |
+| C4 (share token raw, encrypted) | CONFIRM + UPGRADE | `src/lib/publication/security.ts:83-89` `encryptPublicationToken` uses `createCipheriv("aes-256-gcm", deriveKey(secret), iv)` + `getAuthTag()` — real authenticated symmetric encryption |
+| C6 (invite token raw) | **DOWNGRADE → CONTRADICTED** (ADV-P1-1) | `src/lib/collaboration/invite-entry.ts:54-64` `hashInviteToken` uses `createHash("sha256").update("v1:pepper:token")`. No `encrypt*` function in file. Hash+pepper ≠ encryption. C6 row above patched to reflect this. |
+| C9 (WebSocket ticket) | **DOWNGRADE → CONTRADICTED at router + DO class** (ADV-P0-1) | `src/lib/cloudflare/collaboration-room-router.ts:29-42` is pure pass-through. `src/lib/cloudflare/collaboration-room.ts:62-77` DO `fetch` handler checks only `upgrade: websocket` header. **No session validation, no ticket verification, no origin check at either layer.** Anyone who can guess or learn a room name can connect. |
+
+**ADV-P0-1 (WebSocket auth bypass) — added to threat model:**
+
+| Surface | Threat | Actor | Vector | Mitigation preview |
+|---|---|---|---|---|
+| `routeCollaborationRoomRequest` + `CollaborationRoom` DO | **Cross-tenant WS connection — anonymous attacker passive-listens on collaboration sessions** (presence, cursors, broadcast payload) | Anonymous | Connect to `/__cloudflare/collaboration-room/[roomName]` with `upgrade: websocket` header; room name regex `^[a-zA-Z0-9:_-]{3,200}$` allows short predictable names | P0: BUILD a signed-ticket mint surface (HMAC with `BETTER_AUTH_SECRET` or `COLLAB_ROOM_TICKET_SECRET`, session-bound, ≤60s TTL, one-shot), verify in router BEFORE DO forwarding. Reject anonymous upgrades with 401. This is a Phase 5 remediation priority — the ticket surface does NOT currently exist; it must be built, not just verified. |
+
+**Reviewer-scoped residual risk** (not closed by this pass):
+
+- The audit's original threat-model row claiming tickets are minted at the router (`08_*.md` line 43-44) is FALSE at both inspected layers. The `webSocketMessage` rate-limit behavior (`collaboration-room.ts:79`) was not inspected by this pass — a follow-up reviewer should confirm whether message-flood protection exists once the upgrade gate is built.
+- ADV-P1-2 (undeclared invite pepper secret) recorded in `03_*.md` as SRC-023 — pending declaration in `cloudflare-env.d.ts` + `wrangler.jsonc`.
+- ADV-P2-1 / ADV-P2-2 (citation drift on `routeCanonicalHostRedirect` line 125→141 and C1 cookie lines 85-86→91-92) recorded for batch re-anchor in a future cleanup pass.
+
+**Existing infrastructure** (unchanged from iteration-9 note — reconfirmed by reviewer):
+
+- `src/lib/authz/d1-access.ts` (306 lines) — central D1 authz layer EXISTS. `readProjectInWorkspaceFromD1` at lines 45-58 explicitly scopes `WHERE id = ? AND workspace_id = ?`. Reviewer confirms the iteration-9 reframing of RISK-001 from "build" to "extend adoption" is correct.
+- `src/lib/observability/with-action-errors.ts` — `ActionResult<T>` envelope wrapper EXISTS. Reviewer did not re-inspect.
 
 ### Verification update 2026-07-01 (lead-authored-fallback, L2 lane timed out)
 

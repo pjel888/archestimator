@@ -2,8 +2,8 @@
 
 > Plan pack: Archestimator API Audit
 > Plan folder: `.ai/03_plans/2026-07-21-API-Audit/`
-> Verification mode: `emulated` (original 2026-07-01 authoring) → `same-agent` effective classification after iteration-9 re-verification pass dispatched 4 independent lanes (V1 explore, V2 explore, V3 librarian, V4 oracle) and ALL FOUR produced zero output (explore timed out at 30m inactivity; librarian errored at 45m; oracle errored at 31m). Per Multi-Agent-Execution-Directive §2, when dispatched lanes produce no usable output the verification is effectively same-agent. Lead-authored V1+V2 verification was performed via direct filesystem scan; V3+V4 scope was covered by lead-authored cross-doc review. Same-agent caps readiness at 94 and cannot support `IMPLEMENTATION-READY` for high-blast-radius exhaustive planning packages.
-> Date: 2026-07-01 (PHT)
+> Verification mode: `emulated` (original 2026-07-01 authoring) → `same-agent` effective classification (iteration-9 honest reclassification) → **`independent (soft)` partial lift 2026-07-02** (per `21_INDEPENDENT_VERIFICATION_RESULT.md` — fresh-context reviewer pass covered V1/V2/V4; V3 stays INCOMPLETE). Same agent identity (Sisyphus) is the soft-independence caveat; a different-model reviewer would unlock the strongest tier.
+> Date: 2026-07-01 (PHT), last updated 2026-07-02 (PHT) per independent reviewer pass
 
 ## Canonical readiness status
 
@@ -44,11 +44,12 @@ What is NOT yet done (and why the package is `CONDITIONALLY READY` rather than `
 
 | Mode | This pack |
 |---|---|
-| `verification_mode: independent` (separate lane or reviewer with distinct output) | NOT AVAILABLE — iteration-9 dispatched 4 independent lanes (V1/V2 explore, V3 librarian, V4 oracle); ALL FOUR produced zero output (explore timed out 30m; librarian errored 45m; oracle errored 31m). |
-| `verification_mode: emulated` (separated pass by same agent) | NOT JUSTIFIED — iteration-8 claimed this because "dispatch happened", but iteration-9 honestly records that dispatch-with-zero-output does not constitute a separated pass. |
-| `verification_mode: same-agent` (no meaningful separation) | EFFECTIVE CLASSIFICATION — iteration-9 lead-authored V1+V2 verification via direct filesystem scan; V3+V4 scope covered by lead-authored cross-doc review. |
+| `verification_mode: independent (different agent)` | NOT AVAILABLE — no different-model reviewer has run. |
+| `verification_mode: independent (soft)` — fresh-context same-agent per `20_*.md` line 21 | **PARTIAL LIFT 2026-07-02** — V1 PROVEN, V2 PARTIALLY PROVEN (1 P0 ADV-P0-1 unresolved), V4 P0+2P1 surfaced. V3 stays INCOMPLETE. See `21_INDEPENDENT_VERIFICATION_RESULT.md`. |
+| `verification_mode: emulated` (separated pass by same agent, dispatched lanes produced zero output) | Prior classification (iteration-9) — superseded by independent-soft on V1/V2/V4 dimensions. |
+| `verification_mode: same-agent` (no meaningful separation) | Pre-2026-07-02 effective classification; applies to dimensions not covered by the independent-soft pass. |
 
-Cap applied: **`same-agent` → max 94 readiness score; cannot support `IMPLEMENTATION-READY` for high-blast-radius exhaustive planning packages**. (Iteration-8 claimed `emulated` with the same numeric cap of 94; iteration-9 makes the classification honest.)
+Cap applied: **`independent (soft)` partial lift → max 95-96 readiness** (bounded by unresolved ADV-P0-1 + soft-independence caveat). Package stays `CONDITIONALLY READY`. Lift to `IMPLEMENTATION-READY` requires (a) ADV-P0-1 code fix in a separate remediation plan pack + (b) different-model independent reviewer cross-check.
 
 ## Readiness scoring (audit-pack-as-a-doc)
 
@@ -66,10 +67,28 @@ Cap applied: **`same-agent` → max 94 readiness score; cannot support `IMPLEMEN
 
 Capped aggregate (per `same-agent` effective cap of 94 — all dispatched independent lanes produced zero output): **94 / 100** — at the cap. Stronger evidence density than iteration-8 (3 P2 inventory gaps patched, 6 Action verdicts upgraded, existing d1-access + withActionErrors infrastructure discovered and noted), but the cap is honest: no truly independent verification ran in either iteration-8 OR iteration-9.
 
+### 2026-07-02 independent (soft) pass adjustment
+
+Per `21_INDEPENDENT_VERIFICATION_RESULT.md`, the independent-soft reviewer pass lifts the per-dimension cap on V1/V2/V4:
+
+| Dimension | Pre-pass | Post-pass | Notes |
+|---|---|---|---|
+| Independent verification | 0/100 | ~70/100 | V1/V2/V4 covered by fresh-context independent pass; V3 still INCOMPLETE. |
+| Adversarial pass | 90/100 | **80/100** (deflated) | ADV-P0-1 (C9 WS auth bypass) is the kind of finding iteration-9 should have caught. |
+| Source evidence | 95/100 | 90/100 | Citation drift + C6/C9 mis-classifications reduce effective accuracy. |
+
+**New aggregate: 95/100** (independent-soft bump on V1/V2/V4 dimensions, partially offset by ADV-P0-1 surfacing). Bounded by:
+- Unresolved ADV-P0-1 (WebSocket auth bypass — code fix needed, separate remediation plan pack).
+- Soft-independence caveat (same agent identity; different-model reviewer would unlock 96-98).
+- V3 INCOMPLETE (external Cloudflare/better-auth docs currency not verified by live webfetch).
+
+Package remains `CONDITIONALLY READY`. Lift to `IMPLEMENTATION-READY` is gated on (a) ADV-P0-1 code fix + (b) different-model independent cross-check.
+
 ## Blocking P0 risks (must resolve before lifting `CONDITIONALLY READY` → `IMPLEMENTATION-READY`)
 
 | RISK ID | Surface | Linked OPEN / WP | Resolution path |
 |---|---|---|---|
+| **RISK-036 (NEW, ADV-P0-1, 2026-07-02)** | **WebSocket auth bypass at `collaboration-room-router.ts` + `CollaborationRoom` DO** — anonymous attacker can connect to live collaboration sessions | WP-005 (Phase 5) | BUILD signed-ticket mint surface (HMAC + session-bound + ≤60s TTL + one-shot); verify in router BEFORE DO forwarding. The ticket surface does NOT currently exist; it must be built, not just verified. See `21_INDEPENDENT_VERIFICATION_RESULT.md` §ADV-P0-1. |
 | RISK-001 | D1 unscoped prepared statement | WP-001 (Phase 1) | Centralize D1 access layer; per-table `workspace_id`/`owner_id` scoping |
 | RISK-002 | Server Action without auth/ownership | WP-002 (Phase 2) | Per-Action verdict completion |
 | RISK-003 | Credential-material collapse | WP-005 (Phase 5) | Credential-material module with distinct types |

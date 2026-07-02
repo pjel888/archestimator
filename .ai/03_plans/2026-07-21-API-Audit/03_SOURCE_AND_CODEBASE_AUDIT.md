@@ -66,7 +66,7 @@ Secrets (names only — values NEVER read):
 
 The Worker's `fetch` handler routes through this ordered chain before OpenNext:
 
-1. `routeCanonicalHostRedirect(request)` → short-circuits www ↔ apex canonical-host redirect (`src/lib/cloudflare/worker-route-optimizations.ts:125`). [SRC-020]
+1. `routeCanonicalHostRedirect(request)` → short-circuits www ↔ apex canonical-host redirect (`src/lib/cloudflare/worker-route-optimizations.ts:141`). [SRC-020]
 2. `routeCloudflareFastHealthRequest(request)` → short-circuits `/health` style requests.
 3. `routeMalformedShareTokenRequest(request)` → short-circuits malformed `/share/[token]` paths (fail-closed).
 4. `routeCloudflareProtectedProofRequest(request, env)` → routes proof URLs for release-gate verification.
@@ -295,8 +295,11 @@ The following surfaces are NOT on the active runtime path. They are preserved in
 | SRC-017 | D1 RLS-equivalent audit | all 29 migrations + all app-code access | Per-table `workspace_id`/`owner_id` scoping |
 | SRC-018 | Pre-existing RED `test:dom` (~131 / 36 files) | `tests/vitest/` | Mark as pre-existing in test matrix |
 | SRC-019 | `cf:d1-authz-matrix` + `cf:d1-rpc-map` scripts | `scripts/generate-cloudflare-*.ts` | Canonical D1 access-path evidence sources |
-| SRC-020 | `routeCanonicalHostRedirect` first in fetch chain | `src/lib/cloudflare/worker-route-optimizations.ts:125` | Canonical host redirect (www ↔ apex) — security/correctness surface originally missed in §2 inventory |
+| SRC-020 | `routeCanonicalHostRedirect` first in fetch chain | `src/lib/cloudflare/worker-route-optimizations.ts:141` | Canonical host redirect (www ↔ apex) — security/correctness surface originally missed in §2 inventory |
 | SRC-021 | Upload-config runtime `vars` block (5 vars) | `wrangler.jsonc` lines 97-103, `cloudflare-env.d.ts:11-15` | Upload-route perf/limit contract — originally missed in §1 binding inventory |
 | SRC-022 | Observability has 3 distinct sampling rates | `wrangler.jsonc:82-96` | Overall 0.1 / logs 0.1 / traces 0.05 — traces rate is most likely to miss rare P0 signal |
+| SRC-023 | Undeclared invite pepper secrets (`ARCHESTIMATOR_INVITE_TOKEN_PEPPER` + `ARCHESTIMATOR_INVITE_RATE_LIMIT_HASH_PEPPER`) | `src/lib/collaboration/invite-entry.ts:11-12` (read from `process.env`); NOT in `cloudflare-env.d.ts` `__BaseEnv_CloudflareEnv` or `wrangler.jsonc` | Hidden secrets — type system cannot catch missing deployment. Surfaced 2026-07-02 by independent reviewer (ADV-P1-2). |
+
+> **Citation drift note (2026-07-02 independent reviewer, ADV-P2-1/2; patched 2026-07-02 iteration-13)**: file:line citations originally authored against an earlier source state. Confirmed drifts: `routeCanonicalHostRedirect` was claimed at `worker-route-optimizations.ts:125`, actual at line **141** (re-anchored above 2026-07-02 iteration-13); C1 cookie lines were claimed at `actions.ts:85-86`, actual at lines **91-92** (re-anchored in `08_*.md` 2026-07-02 iteration-13). Counts and structural claims remain accurate.
 
 This ledger is the authoritative source for every downstream `SRC-*` reference.

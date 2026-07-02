@@ -4,8 +4,8 @@
 > Plan profile: `exhaustive`
 > Task type: `planning-only` (audit, plan, readiness creation — NOT implementation)
 > Date authored: 2026-07-01 (PHT). Folder prefix `2026-07-21-API-Audit` retained from user-explicit instruction.
-> Verification mode at audit open: `emulated` (iteration-8 claim) → `same-agent` effective classification (iteration-9 honest reclassification: all 4 dispatched independent lanes — V1/V2 explore, V3 librarian, V4 oracle — produced zero output; lead-authored verification performed via direct filesystem scan and cross-doc review)
-> Canonical readiness status: **CONDITIONALLY READY**
+> Verification mode at audit open: `emulated` (iteration-8 claim) → `same-agent` effective classification (iteration-9 honest reclassification: all 4 dispatched independent lanes — V1/V2 explore, V3 librarian, V4 oracle — produced zero output; lead-authored verification performed via direct filesystem scan and cross-doc review) → **`independent (soft)` partial lift 2026-07-02** (per `21_INDEPENDENT_VERIFICATION_RESULT.md` — fresh-context reviewer covered V1/V2/V4; V3 stays INCOMPLETE; same agent identity is the soft caveat)
+> Canonical readiness status: **CONDITIONALLY READY** (independent-soft lift applied to V1/V2/V4; ADV-P0-1 WebSocket auth bypass unresolved → cap stays; lift to `IMPLEMENTATION-READY` requires code fix + different-model reviewer)
 
 ## Status
 
@@ -15,9 +15,9 @@
 
 This audit pack is the deliverable. **No code, tests, migrations, package manifests, provider state, or Git state were modified to author this pack.** Future remediation work — implementing the audit's recommendations — is a SEPARATE implementation plan pack that has not been opened.
 
-## Pack deliverables (final — 22 files)
+## Pack deliverables (final — 24 files)
 
-All 22 deliverables are present in `.ai/03_plans/2026-07-21-API-Audit/`:
+All 24 deliverables are present in `.ai/03_plans/2026-07-21-API-Audit/` (22 numbered `00`-`21` + `README.md` + `LOOP_LEDGER.md`):
 
 - `00_AGENT_COORDINATION.md` — coordination ledger (lanes L1-L8)
 - `01_EXECUTIVE_SUMMARY.md` — verdict + headline risks + recommendation summary

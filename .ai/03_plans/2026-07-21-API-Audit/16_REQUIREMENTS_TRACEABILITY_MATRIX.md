@@ -99,6 +99,7 @@ Every `SRC-*` ID from `03_SOURCE_AND_CODEBASE_AUDIT.md` is traceable through thi
 | SRC-020 | `routeCanonicalHostRedirect` (first fetch-chain link) | REQ-API-002, REQ-SEC-007 (open-redirect / canonical-host posture) |
 | SRC-021 | Upload-config runtime `vars` block (5 upload limits) | REQ-API-005, REQ-PERF-001, REQ-PERF-003 (upload-route perf/limit contract) |
 | SRC-022 | Observability 3 distinct sampling rates (overall 0.1 / logs 0.1 / traces 0.05) | REQ-REL-003, RISK-009, OPEN-002 |
+| SRC-023 | Undeclared invite pepper secrets (`ARCHESTIMATOR_INVITE_TOKEN_PEPPER`, `ARCHESTIMATOR_INVITE_RATE_LIMIT_HASH_PEPPER`) — read from `process.env` in `invite-entry.ts:11-12` but NOT in `cloudflare-env.d.ts` `__BaseEnv_CloudflareEnv` or `wrangler.jsonc` | REQ-SEC-004, REQ-OPS-002, REQ-OPS-004 (deploy-time secret validation) — added 2026-07-02 by independent reviewer (ADV-P1-2); the prior reviewer pass claimed but did not apply this row |
 
 ## RISK coverage map
 
@@ -110,7 +111,7 @@ Every `RISK-*` from `14_RISK_REGISTER.md` is traceable through this matrix to RE
 - 12 WP-* (Phase 1..12)
 - 53 AC-* (carried forward to `17_*.md`)
 - ~30 TEST-* (preview; full matrix in `12_*.md`)
-- 22 SRC-* (in `03_*.md`; original 19 SRC-001..019 + 3 added in iteration-9 verification pass: SRC-020/021/022)
+- 23 SRC-* (in `03_*.md`; original 19 SRC-001..019 + 3 added in iteration-9 verification pass: SRC-020/021/022 + 1 added in iteration-12 independent reviewer pass: SRC-023)
 - 37 RISK-*
 - 24 DEC-* (in `15_*.md`)
 - 16 OPEN-* (in `15_*.md`)
