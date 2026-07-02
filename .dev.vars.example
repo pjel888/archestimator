@@ -12,6 +12,11 @@ ARCHESTIMATOR_AUTH_PROVIDER=better-auth
 BETTER_AUTH_URL=http://localhost:3000
 BETTER_AUTH_SECRET=
 BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:3000
+# Google OAuth local preview must have these redirect URIs on the Google web client:
+# http://localhost:3000/api/auth/callback/google
+# http://127.0.0.1:3000/api/auth/callback/google
+# http://localhost:8787/api/auth/callback/google
+# http://127.0.0.1:8787/api/auth/callback/google
 BETTER_AUTH_GOOGLE_CLIENT_ID=
 BETTER_AUTH_GOOGLE_CLIENT_SECRET=
 # Optional dedicated HMAC secret for the short-lived protected-route Terms gate
