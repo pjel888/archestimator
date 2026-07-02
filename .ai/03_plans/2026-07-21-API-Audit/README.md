@@ -39,6 +39,7 @@ All 22 deliverables are present in `.ai/03_plans/2026-07-21-API-Audit/`:
 - `17_FINAL_READINESS_REVIEW.md` — scoring (94/100 emulated cap) + canonical `CONDITIONALLY READY` label
 - `18_STACK_CONTRACT_AND_PRODUCTION_STANDARDS.md` — cross-cutting Cloudflare + Next 16 + Better Auth + D1 + R2 + DO + Queue + Email decisions
 - `19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md` — research questions + 18 UltraQA adversarial scenarios + perf evaluator contract + validation gaps
+- `20_INDEPENDENT_VERIFICATION_HANDOFF.md` — pick-up-cold handoff for OPEN-004 independent reviewer (V1/V2/V3/V4 scopes, pass/fail rules, recording protocol)
 - `README.md` (this file) — entrypoint
 - `LOOP_LEDGER.md` — DISCOVER → PLAN → EXECUTE → VERIFY → RECORD → DECIDE iteration log (8 iterations)
 

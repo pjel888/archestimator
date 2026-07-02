@@ -142,6 +142,18 @@ This ledger tracks the DISCOVER → PLAN → EXECUTE → VERIFY → RECORD → D
 | Verification | Manual ID-consistency check: every new SRC-* (020/021/022) traces from `03_*.md` ledger → `16_*.md` coverage map → REQ-* cross-reference; count references in 16/README now match (22). Score changes bounded by same-agent cap (94); aggregate stays at 94. |
 | Decision | **Audit pack closes iteration-9/10 at `CONDITIONALLY READY` (94/100, `same-agent` cap honestly applied).** The package is materially stronger than iteration-8 along three axes: (1) 3 P2 inventory gaps patched (canonical-host-redirect, upload-config vars, distinct observability sampling rates); (2) 6/30 Server Action files upgraded from TBD → PREVIEW-PASS with file:line evidence; (3) existing `@/lib/authz/d1-access.ts` (306 lines) + `@/lib/observability/with-action-errors.ts` (85 lines) infrastructure discovered and noted, reframing RISK-001 and REQ-API-002 remediation scope from "build" to "extend adoption". The cap remains because no truly independent verification ran (OPEN-004 unresolved; all 4 dispatched lanes failed). Path to `IMPLEMENTATION-READY`: (a) Philip designates a real independent reviewer (Codex / Kimi / DeepSeek / human reviewer with distinct session) who re-verifies the inventory and findings, OR (b) Philip provides owner sign-off accepting the same-agent verification. Until then, every P0 risk (RISK-001/002/003/005/011/035) and every blocking OPEN (OPEN-002/003/004/006) remains an explicit gate on the package's recommendations being shipped to production. |
 
+### Iteration 11 — Independent verification handoff doc created (2026-07-01)
+
+| Field | Value |
+|---|---|
+| Phase | RECORD |
+| Author | Lead (Sisyphus, second session) — at owner request |
+| Goal | Create a pick-up-cold handoff doc that enables OPEN-004 (independent reviewer) to close the gap the broken subagent infrastructure opened |
+| Inputs read | Iteration-9/10 LOOP_LEDGER entries; README deliverables; OPEN-004 references across 6 plan docs |
+| Outputs | New file `20_INDEPENDENT_VERIFICATION_HANDOFF.md` (`.ai/03_plans/2026-07-21-API-Audit/`). README deliverables list extended with the new file. This iteration-11 entry. |
+| Verification | Filesystem check: `20_*` filename was free (no collision). Grep check: zero existing files match `*verification*`/`*handoff*`/`*reviewer*`/`*independent*` — no duplicate-purpose doc superseded. |
+| Decision | Handoff doc live. OPEN-004 path is now concrete: any independent reviewer (different agent session, or human reviewer) can pick up `20_*.md`, run V1/V2/V3/V4 in any combination, and record their output per the doc's "How to record" section. Stale-revalidation window: 14 days from audit authoring (by 2026-07-15 PHT). |
+
 ## Open iterations (transferred to future remediation)
 
 | Open iteration | Owner | Trigger |
