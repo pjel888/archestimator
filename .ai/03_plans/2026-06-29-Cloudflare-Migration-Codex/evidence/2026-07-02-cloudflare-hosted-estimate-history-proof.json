@@ -1,0 +1,99 @@
+{
+  "generatedAt": "2026-07-02T07:19:40.322Z",
+  "mode": "cloudflare-hosted-estimate-history-proof-verifier",
+  "baseUrl": "https://archestimator.com",
+  "endpointPath": "/api/internal/estimate-history-proof",
+  "secretInput": {
+    "name": "CRON_SECRET",
+    "present": true,
+    "source": "process.env"
+  },
+  "responseStatus": 200,
+  "responseOk": true,
+  "endpointMode": "cloudflare-hosted-estimate-history-proof",
+  "endpointProofSurface": "/api/internal/estimate-history-proof",
+  "readiness": {
+    "d1BindingPresent": true,
+    "appLayerEditorGuardReady": true,
+    "crossWorkspaceDenialReady": true,
+    "viewerDenialReady": true,
+    "idempotencyReady": true,
+    "rollbackReady": true,
+    "cleanupReady": true,
+    "hostedEstimateHistoryD1Ready": true,
+    "productionCutoverReady": false
+  },
+  "idempotencyProof": {
+    "passed": true,
+    "firstError": null,
+    "secondError": null,
+    "before": {
+      "id": "1054b17e-3928-4762-bfb6-d1bce6c94ddc",
+      "quantity": 1,
+      "row_revision": 1,
+      "unit_cost": 100
+    },
+    "after": {
+      "id": "1054b17e-3928-4762-bfb6-d1bce6c94ddc",
+      "quantity": 2.5,
+      "row_revision": 2,
+      "unit_cost": 100
+    },
+    "eventCount": 1,
+    "replayReturnedSameEvent": true
+  },
+  "denialProof": {
+    "passed": true,
+    "viewerCanEdit": false,
+    "strangerCanEdit": false,
+    "viewerMutationError": "Estimate edit access denied.",
+    "strangerMutationError": "Estimate edit access denied.",
+    "viewerEventCount": 0,
+    "strangerEventCount": 0,
+    "before": {
+      "id": "1054b17e-3928-4762-bfb6-d1bce6c94ddc",
+      "quantity": 2.5,
+      "row_revision": 2,
+      "unit_cost": 100
+    },
+    "after": {
+      "id": "1054b17e-3928-4762-bfb6-d1bce6c94ddc",
+      "quantity": 2.5,
+      "row_revision": 2,
+      "unit_cost": 100
+    }
+  },
+  "rollbackProof": {
+    "passed": true,
+    "error": "D1_EXEC_ERROR: Error in line 1: BEGIN TRANSACTION;: To execute a transaction, please use the state.storage.transaction() or state.storage.transactionSync() APIs instead of the SQL BEGIN TRANSACTION or SAVEPOINT statements. The JavaScript API is safer because it will automatically roll back on exceptions, and because it interacts correctly with Durable Objects' automatic atomic write coalescing.",
+    "rollbackErrorObserved": true,
+    "rowResidue": 0,
+    "eventResidue": 0
+  },
+  "cleanupBefore": {
+    "workspaces": 0,
+    "profiles": 0,
+    "workspaceMembers": 0,
+    "projects": 0,
+    "estimates": 0,
+    "estimateTabs": 0,
+    "estimateNodes": 0,
+    "estimateRows": 0,
+    "estimateEvents": 0,
+    "estimateAdjustments": 0
+  },
+  "cleanupAfter": {
+    "workspaces": 0,
+    "profiles": 0,
+    "workspaceMembers": 0,
+    "projects": 0,
+    "estimates": 0,
+    "estimateTabs": 0,
+    "estimateNodes": 0,
+    "estimateRows": 0,
+    "estimateEvents": 0,
+    "estimateAdjustments": 0
+  },
+  "blockers": [],
+  "note": "Calls the deployed Cloudflare Worker estimate-history proof endpoint with a local bearer secret, then records sanitized D1 rollback, idempotency, viewer-denial, cross-workspace-denial, and cleanup evidence. It does not print secret values, delete provider resources, downgrade external providers, or touch real customer/project data."
+}

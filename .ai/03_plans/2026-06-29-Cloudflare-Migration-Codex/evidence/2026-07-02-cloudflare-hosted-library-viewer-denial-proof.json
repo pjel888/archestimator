@@ -1,0 +1,298 @@
+{
+  "schemaVersion": "archestimator.cloudflare.hosted.viewer-denial-proof.v1",
+  "generatedAt": "2026-07-02T06:09:45.992Z",
+  "baseUrl": "https://archestimator.com",
+  "routeUrl": "https://archestimator.com/workshop/projects/bd9a8e68-4e24-49d8-aeed-e4651b7cab0b/estimates/e4b71a81-47fc-4f5a-bead-35e4e8050eae",
+  "database": "archestimator-proof-db",
+  "actor": {
+    "syntheticUserId": "bcc66c5e-3ae5-40a2-85b6-05820f27c416",
+    "syntheticEmail": "codex-viewer-20260702t060945z@example.invalid",
+    "role": "member profile + viewer workspace/project/estimate memberships",
+    "secretsRedacted": true
+  },
+  "target": {
+    "workspaceId": "258b50ee-3fde-4f6a-a9d9-c360ec44cd0b",
+    "projectId": "bd9a8e68-4e24-49d8-aeed-e4651b7cab0b",
+    "estimateId": "985f6690-741e-4136-9fa1-a4896cd364e4",
+    "targetParentNodeId": "e4b71a81-47fc-4f5a-bead-35e4e8050eae"
+  },
+  "seededSource": {
+    "templateId": "fe6f6314-c9c0-48ff-8b90-413fdf9f667a",
+    "templateNodeId": "be23db48-d511-44da-8ebb-f91b842b432e",
+    "templateRowId": "f6fb5dec-3e84-4ea6-8ae9-79407eb2e371",
+    "templateName": "Codex CF Viewer Denial Template 20260702T060945Z",
+    "templateCategory": "Codex CF Viewer Denial 20260702T060945Z",
+    "templateNodeName": "Codex CF Viewer Denial Area 20260702T060945Z",
+    "templateRowMaterial": "Codex CF Viewer Denial Row 20260702T060945Z"
+  },
+  "terms": {
+    "key": "terms-of-service",
+    "version": "tos-2026-06-06-beta-v1",
+    "effectiveDate": "2026-06-06",
+    "contentHash": "sha256:55b472ffb1aaab0ca1c3a6ddd5363f9113efec37f4007d537d61d30153102444",
+    "privacyPolicyVersion": "privacy-2026-06-06-beta-v1",
+    "acceptanceMethod": "authenticated_clickwrap",
+    "acceptanceContext": "workshop_terms_gate"
+  },
+  "checks": {
+    "seedStatements": 11,
+    "tokenReadback": {
+      "present": true,
+      "redacted": true
+    }
+  },
+  "browser": {
+    "session": {
+      "status": 200,
+      "emailMatched": true,
+      "cookieSigned": true,
+      "cookieValueRedacted": true
+    },
+    "route": {
+      "status": 200,
+      "finalUrl": "https://archestimator.com/workshop/projects/bd9a8e68-4e24-49d8-aeed-e4651b7cab0b/estimates/e4b71a81-47fc-4f5a-bead-35e4e8050eae",
+      "title": "Archestimator — your cost intelligence layer for AEC teams",
+      "redirectedToTerms": false,
+      "redirectedToLogin": false
+    },
+    "readOnlyControls": {
+      "newTabButtonCount": 0,
+      "addAreaButtonCount": 0,
+      "addRowButtonCount": 0
+    },
+    "templates": {
+      "templatesTabVisible": true,
+      "searchButtonVisible": true,
+      "searchInputVisible": true,
+      "markerVisibility": {
+        "Codex CF Viewer Denial Template 20260702T060945Z": true,
+        "Codex CF Viewer Denial 20260702T060945Z": true,
+        "Codex CF Viewer Denial Area 20260702T060945Z": true,
+        "Codex CF Viewer Denial Row 20260702T060945Z": true
+      },
+      "sourceLabel": "Codex CF Viewer Denial Template 20260702T060945Z",
+      "attempt": {
+        "mode": "context-menu",
+        "sourceLabel": "Codex CF Viewer Denial Template 20260702T060945Z",
+        "menuVisible": true,
+        "clicked": true,
+        "dispatchedFallback": false,
+        "menuDisabled": false
+      },
+      "screenshotPath": "/tmp/archestimator-hosted-viewer-denial-proof.png"
+    },
+    "consoleErrors": [],
+    "requestFailures": [
+      {
+        "url": "https://archestimator.com/workshop?_rsc=rpO68F73z5Q3Rjrg",
+        "errorText": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://archestimator.com/workshop/projects?_rsc=rpO68F73z5Q3Rjrg",
+        "errorText": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://archestimator.com/workshop/projects/bd9a8e68-4e24-49d8-aeed-e4651b7cab0b?_rsc=rpO68F73z5Q3Rjrg",
+        "errorText": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://archestimator.com/workshop/projects/bd9a8e68-4e24-49d8-aeed-e4651b7cab0b/estimates?_rsc=rpO68F73z5Q3Rjrg",
+        "errorText": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://archestimator.com/workshop/projects/bd9a8e68-4e24-49d8-aeed-e4651b7cab0b/estimates/e4b71a81-47fc-4f5a-bead-35e4e8050eae",
+        "errorText": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://archestimator.com/workshop/projects/bd9a8e68-4e24-49d8-aeed-e4651b7cab0b/estimates?_rsc=N_VMB0wi0WwFWeQf",
+        "errorText": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://archestimator.com/workshop?_rsc=N_VMB0wi0WwFWeQf",
+        "errorText": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://archestimator.com/workshop/projects/bd9a8e68-4e24-49d8-aeed-e4651b7cab0b/estimates/e4b71a81-47fc-4f5a-bead-35e4e8050eae",
+        "errorText": "net::ERR_ABORTED"
+      }
+    ]
+  },
+  "d1": {
+    "pre": {
+      "source_template_count": 1,
+      "source_node_count": 1,
+      "source_row_count": 1,
+      "pre_inserted_node_count": 0,
+      "pre_inserted_row_count": 0,
+      "pre_can_edit_estimate": 0
+    },
+    "post": {
+      "inserted_node_count": 0,
+      "inserted_row_count": 0,
+      "actor_event_count": 0,
+      "actor_template_inserted_event_count": 0,
+      "actor_telemetry_count": 0,
+      "telemetryRows": []
+    }
+  },
+  "cleanup": {
+    "counts": {
+      "users_after": 0,
+      "profiles_after": 0,
+      "sessions_after": 0,
+      "workspace_members_after": 0,
+      "project_members_after": 0,
+      "sheet_members_after": 0,
+      "terms_after": 0,
+      "closed_beta_after": 0,
+      "source_templates_after": 0,
+      "source_nodes_after": 0,
+      "source_rows_after": 0,
+      "inserted_estimate_nodes_after": 0,
+      "inserted_estimate_rows_after": 0,
+      "actor_events_after": 0,
+      "actor_telemetry_after": 0
+    },
+    "pass": true
+  },
+  "assertions": [
+    {
+      "name": "synthetic session resolved on hosted Better Auth endpoint",
+      "pass": true,
+      "details": {
+        "status": 200,
+        "emailMatched": true,
+        "cookieSigned": true,
+        "cookieValueRedacted": true
+      }
+    },
+    {
+      "name": "hosted estimate route rendered for viewer without login or terms redirect",
+      "pass": true,
+      "details": {
+        "status": 200,
+        "finalUrl": "https://archestimator.com/workshop/projects/bd9a8e68-4e24-49d8-aeed-e4651b7cab0b/estimates/e4b71a81-47fc-4f5a-bead-35e4e8050eae",
+        "title": "Archestimator — your cost intelligence layer for AEC teams",
+        "redirectedToTerms": false,
+        "redirectedToLogin": false
+      }
+    },
+    {
+      "name": "D1 authz SQL classifies synthetic actor as non-editor",
+      "pass": true,
+      "details": {
+        "source_template_count": 1,
+        "source_node_count": 1,
+        "source_row_count": 1,
+        "pre_inserted_node_count": 0,
+        "pre_inserted_row_count": 0,
+        "pre_can_edit_estimate": 0
+      }
+    },
+    {
+      "name": "viewer edit controls are absent",
+      "pass": true,
+      "details": {
+        "newTabButtonCount": 0,
+        "addAreaButtonCount": 0,
+        "addRowButtonCount": 0
+      }
+    },
+    {
+      "name": "templates surface was reachable in hosted browser",
+      "pass": true,
+      "details": {
+        "templatesTabVisible": true,
+        "searchButtonVisible": true,
+        "searchInputVisible": true,
+        "markerVisibility": {
+          "Codex CF Viewer Denial Template 20260702T060945Z": true,
+          "Codex CF Viewer Denial 20260702T060945Z": true,
+          "Codex CF Viewer Denial Area 20260702T060945Z": true,
+          "Codex CF Viewer Denial Row 20260702T060945Z": true
+        },
+        "sourceLabel": "Codex CF Viewer Denial Template 20260702T060945Z",
+        "attempt": {
+          "mode": "context-menu",
+          "sourceLabel": "Codex CF Viewer Denial Template 20260702T060945Z",
+          "menuVisible": true,
+          "clicked": true,
+          "dispatchedFallback": false,
+          "menuDisabled": false
+        },
+        "screenshotPath": "/tmp/archestimator-hosted-viewer-denial-proof.png"
+      }
+    },
+    {
+      "name": "proof attempted a template insert path in the hosted client",
+      "pass": true,
+      "details": {
+        "mode": "context-menu",
+        "sourceLabel": "Codex CF Viewer Denial Template 20260702T060945Z",
+        "menuVisible": true,
+        "clicked": true,
+        "dispatchedFallback": false,
+        "menuDisabled": false
+      }
+    },
+    {
+      "name": "no estimate nodes were inserted by viewer attempt",
+      "pass": true,
+      "details": {
+        "inserted_node_count": 0,
+        "inserted_row_count": 0,
+        "actor_event_count": 0,
+        "actor_template_inserted_event_count": 0,
+        "actor_telemetry_count": 0,
+        "telemetryRows": []
+      }
+    },
+    {
+      "name": "no estimate rows were inserted by viewer attempt",
+      "pass": true,
+      "details": {
+        "inserted_node_count": 0,
+        "inserted_row_count": 0,
+        "actor_event_count": 0,
+        "actor_template_inserted_event_count": 0,
+        "actor_telemetry_count": 0,
+        "telemetryRows": []
+      }
+    },
+    {
+      "name": "no template_inserted audit event was recorded for viewer",
+      "pass": true,
+      "details": {
+        "inserted_node_count": 0,
+        "inserted_row_count": 0,
+        "actor_event_count": 0,
+        "actor_template_inserted_event_count": 0,
+        "actor_telemetry_count": 0,
+        "telemetryRows": []
+      }
+    },
+    {
+      "name": "synthetic proof data cleaned up from D1",
+      "pass": true,
+      "details": {
+        "users_after": 0,
+        "profiles_after": 0,
+        "sessions_after": 0,
+        "workspace_members_after": 0,
+        "project_members_after": 0,
+        "sheet_members_after": 0,
+        "terms_after": 0,
+        "closed_beta_after": 0,
+        "source_templates_after": 0,
+        "source_nodes_after": 0,
+        "source_rows_after": 0,
+        "inserted_estimate_nodes_after": 0,
+        "inserted_estimate_rows_after": 0,
+        "actor_events_after": 0,
+        "actor_telemetry_after": 0
+      }
+    }
+  ],
+  "pass": true,
+  "completedAt": "2026-07-02T06:10:27.976Z"
+}

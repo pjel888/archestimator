@@ -1,0 +1,229 @@
+{
+  "generatedAt": "2026-07-02T06:22:55.331Z",
+  "mode": "cloudflare-hosted-auth-synthetic-cookie-matrix",
+  "verifierMode": "hosted-auth-route-smoke",
+  "baseUrl": "https://archestimator.com",
+  "d1Database": "archestimator-proof-db",
+  "workspaceId": "258b50ee-3fde-4f6a-a9d9-c360ec44cd0b",
+  "syntheticFixtures": [
+    {
+      "caseName": "allowed",
+      "userId": "7c3b7c19-ea5a-4473-b51e-62e3e08f42fc",
+      "email": "codex-authz-allowed-20260702062255331@example.invalid",
+      "betaStatus": "active",
+      "sessionExpiresAt": "2026-07-02T07:22:55.331Z",
+      "providedCookie": true
+    },
+    {
+      "caseName": "denied",
+      "userId": "5476a0f3-2141-4212-b0d8-69b9f8542b15",
+      "email": "codex-authz-denied-20260702062255331@example.invalid",
+      "betaStatus": "missing",
+      "sessionExpiresAt": "2026-07-02T07:22:55.331Z",
+      "providedCookie": true
+    },
+    {
+      "caseName": "revoked",
+      "userId": "7f8c76af-85da-4c30-98b3-b0c48e52ec85",
+      "email": "codex-authz-revoked-20260702062255331@example.invalid",
+      "betaStatus": "revoked",
+      "sessionExpiresAt": "2026-07-02T07:22:55.331Z",
+      "providedCookie": true
+    },
+    {
+      "caseName": "expired",
+      "userId": "2f5e4c78-307c-42f0-84b8-9a6f8b20a4ff",
+      "email": "codex-authz-expired-20260702062255331@example.invalid",
+      "betaStatus": "active",
+      "sessionExpiresAt": "2026-07-02T05:22:55.331Z",
+      "providedCookie": true
+    }
+  ],
+  "cleanupBefore": {
+    "users": 0,
+    "sessions": 0,
+    "profiles": 0,
+    "memberships": 0,
+    "closedBetaRows": 0,
+    "legalTermsRows": 0,
+    "syntheticWorkspaces": 0
+  },
+  "authResult": {
+    "generatedAt": "2026-07-02T06:23:10.865Z",
+    "mode": "hosted-auth-route-smoke",
+    "baseUrl": "https://archestimator.com",
+    "runs": 1,
+    "cases": [
+      {
+        "name": "signedOut",
+        "route": "/workshop",
+        "expected": "signed-out or expired session redirects to /login with a safe next path",
+        "providedAuthMaterial": false,
+        "status": 307,
+        "location": "/login?next=%2Fworkshop",
+        "normalizedLocationPath": "/login?next=%2Fworkshop",
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "hasPrivateNoStoreCacheControl": true,
+        "ok": false,
+        "durationMs": 920,
+        "passed": true,
+        "error": null,
+        "samples": [
+          {
+            "status": 307,
+            "location": "/login?next=%2Fworkshop",
+            "normalizedLocationPath": "/login?next=%2Fworkshop",
+            "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+            "hasPrivateNoStoreCacheControl": true,
+            "ok": false,
+            "durationMs": 920,
+            "passed": true,
+            "error": null
+          }
+        ],
+        "minDurationMs": 920,
+        "maxDurationMs": 920,
+        "averageDurationMs": 920
+      },
+      {
+        "name": "allowed",
+        "route": "/workshop",
+        "expected": "allowed session reaches the protected workshop without beta-access redirect",
+        "providedAuthMaterial": true,
+        "status": 200,
+        "location": null,
+        "normalizedLocationPath": null,
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "hasPrivateNoStoreCacheControl": true,
+        "ok": true,
+        "durationMs": 1545,
+        "passed": true,
+        "error": null,
+        "samples": [
+          {
+            "status": 200,
+            "location": null,
+            "normalizedLocationPath": null,
+            "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+            "hasPrivateNoStoreCacheControl": true,
+            "ok": true,
+            "durationMs": 1545,
+            "passed": true,
+            "error": null
+          }
+        ],
+        "minDurationMs": 1545,
+        "maxDurationMs": 1545,
+        "averageDurationMs": 1545
+      },
+      {
+        "name": "denied",
+        "route": "/workshop",
+        "expected": "denied session redirects to /access-required",
+        "providedAuthMaterial": true,
+        "status": 307,
+        "location": "/access-required",
+        "normalizedLocationPath": "/access-required",
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "hasPrivateNoStoreCacheControl": true,
+        "ok": false,
+        "durationMs": 4181,
+        "passed": true,
+        "error": null,
+        "samples": [
+          {
+            "status": 307,
+            "location": "/access-required",
+            "normalizedLocationPath": "/access-required",
+            "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+            "hasPrivateNoStoreCacheControl": true,
+            "ok": false,
+            "durationMs": 4181,
+            "passed": true,
+            "error": null
+          }
+        ],
+        "minDurationMs": 4181,
+        "maxDurationMs": 4181,
+        "averageDurationMs": 4181
+      },
+      {
+        "name": "revoked",
+        "route": "/workshop",
+        "expected": "revoked session redirects to /access-required?status=revoked",
+        "providedAuthMaterial": true,
+        "status": 307,
+        "location": "/access-required?status=revoked",
+        "normalizedLocationPath": "/access-required?status=revoked",
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "hasPrivateNoStoreCacheControl": true,
+        "ok": false,
+        "durationMs": 2001,
+        "passed": true,
+        "error": null,
+        "samples": [
+          {
+            "status": 307,
+            "location": "/access-required?status=revoked",
+            "normalizedLocationPath": "/access-required?status=revoked",
+            "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+            "hasPrivateNoStoreCacheControl": true,
+            "ok": false,
+            "durationMs": 2001,
+            "passed": true,
+            "error": null
+          }
+        ],
+        "minDurationMs": 2001,
+        "maxDurationMs": 2001,
+        "averageDurationMs": 2001
+      },
+      {
+        "name": "expired",
+        "route": "/workshop",
+        "expected": "signed-out or expired session redirects to /login with a safe next path",
+        "providedAuthMaterial": true,
+        "status": 307,
+        "location": "/login?next=%2Fworkshop",
+        "normalizedLocationPath": "/login?next=%2Fworkshop",
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "hasPrivateNoStoreCacheControl": true,
+        "ok": false,
+        "durationMs": 329,
+        "passed": true,
+        "error": null,
+        "samples": [
+          {
+            "status": 307,
+            "location": "/login?next=%2Fworkshop",
+            "normalizedLocationPath": "/login?next=%2Fworkshop",
+            "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+            "hasPrivateNoStoreCacheControl": true,
+            "ok": false,
+            "durationMs": 329,
+            "passed": true,
+            "error": null
+          }
+        ],
+        "minDurationMs": 329,
+        "maxDurationMs": 329,
+        "averageDurationMs": 329
+      }
+    ],
+    "passed": true,
+    "note": "Sanitized hosted auth smoke/benchmark. Session cookies and platform bypass headers are used only for requests and are never written to this report."
+  },
+  "cleanupAfter": {
+    "users": 0,
+    "sessions": 0,
+    "profiles": 0,
+    "memberships": 0,
+    "closedBetaRows": 0,
+    "legalTermsRows": 0,
+    "syntheticWorkspaces": 0
+  },
+  "cleanupPassed": true,
+  "passed": true,
+  "error": null,
+  "note": "Sanitized hosted auth gate proof. Better Auth session tokens, signatures, and cookie headers are never written to this report."
+}

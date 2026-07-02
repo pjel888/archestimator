@@ -1,0 +1,107 @@
+{
+  "generatedAt": "2026-07-02T08:28:39.375Z",
+  "mode": "cloudflare-hosted-upload-lifecycle-proof-verifier",
+  "baseUrl": "https://archestimator.com",
+  "endpointPath": "/api/internal/upload-lifecycle-proof",
+  "secretInput": {
+    "name": "CRON_SECRET",
+    "present": true,
+    "source": "process.env"
+  },
+  "responseStatus": 200,
+  "responseOk": true,
+  "endpointMode": "cloudflare-hosted-upload-lifecycle-proof",
+  "endpointProofSurface": "/api/internal/upload-lifecycle-proof",
+  "readiness": {
+    "d1BindingPresent": true,
+    "r2BindingPresent": true,
+    "storagePutReady": true,
+    "uploadAssetRecorded": true,
+    "scanQueueListed": true,
+    "scanJobRan": true,
+    "scanResultPersisted": true,
+    "attachmentDownloadEligible": true,
+    "cleanupReady": true,
+    "hostedUploadLifecycleReady": true,
+    "productionCutoverReady": false
+  },
+  "proof": {
+    "objectPathShape": "{workspaceId}/{userId}/codex-upload-proof-object-{runId}.pdf",
+    "objectPathHash": "c892c7450cb2be8eb1f1be8d56a337285ed3c2720ad87e6d7719cfc326ca3afb",
+    "storagePut": {
+      "passed": true,
+      "contentType": "application/pdf",
+      "sizeBytes": 77,
+      "checksumMatches": true
+    },
+    "uploadAssetRecord": {
+      "passed": true,
+      "uploadSessionIdPresent": true,
+      "assetIdPresent": true,
+      "initialScanStatus": "pending"
+    },
+    "scanQueue": {
+      "passed": true,
+      "listedRecordCount": 1,
+      "targetRecordFound": true
+    },
+    "scanJob": {
+      "passed": true,
+      "scannedCount": 1,
+      "writeFailedCount": 0,
+      "downloadFailedCount": 0,
+      "scannerFailedCount": 0,
+      "outcomeCounts": {
+        "clean": 1,
+        "infected": 0,
+        "unsupported": 0,
+        "failed_transient": 0,
+        "failed_permanent": 0
+      }
+    },
+    "scanReadback": {
+      "passed": true,
+      "scanStatus": "clean",
+      "scanProvider": "archestimator-policy-scanner",
+      "scannedAtPresent": true,
+      "checksumMatches": true,
+      "scanResultKeys": [
+        "checks",
+        "scanJobRunId",
+        "scannerVersion"
+      ],
+      "eventTypes": [
+        "scan_pending",
+        "scan_clean"
+      ]
+    },
+    "attachmentDownloadEligibility": {
+      "passed": true,
+      "attachmentPresent": true,
+      "approved": true,
+      "finalizedCleanAssetPresent": true,
+      "storageBytesReadable": true,
+      "storageChecksumMatches": true
+    }
+  },
+  "cleanupBefore": {
+    "workspaces": 0,
+    "profiles": 0,
+    "workspaceMembers": 0,
+    "uploadSessions": 0,
+    "uploadAssets": 0,
+    "uploadEvents": 0,
+    "attachments": 0
+  },
+  "cleanupAfter": {
+    "workspaces": 0,
+    "profiles": 0,
+    "workspaceMembers": 0,
+    "uploadSessions": 0,
+    "uploadAssets": 0,
+    "uploadEvents": 0,
+    "attachments": 0
+  },
+  "blockers": [],
+  "note": "Calls the deployed Cloudflare Worker upload lifecycle proof endpoint with a local bearer secret, then records sanitized R2 write/read, D1 upload asset, scanner execution, clean scan persistence, approved attachment eligibility, and cleanup evidence. It does not print secret values, raw R2 keys, uploaded bytes, session cookies, customer data, or provider credentials."
+}

@@ -1,0 +1,101 @@
+{
+  "generatedAt": "2026-07-02T05:00:05Z",
+  "result": "pass",
+  "scope": "Cloudflare hosted project create/read/update/delete UI journey with remote D1 readback",
+  "hostedBaseUrl": "https://archestimator.com",
+  "worker": {
+    "name": "archestimator-proof",
+    "domain": "archestimator.com"
+  },
+  "browserJourney": {
+    "app": "Google Chrome",
+    "authenticated": true,
+    "routes": [
+      "https://archestimator.com/workshop/projects",
+      "https://archestimator.com/workshop/projects/e46f1b5b-cf52-4989-831d-f141309ee913"
+    ],
+    "createdViaUi": {
+      "name": "Codex CF Project Proof 20260702T045628Z",
+      "projectCode": "8VDDZNYK",
+      "projectId": "e46f1b5b-cf52-4989-831d-f141309ee913",
+      "visibleInProjectList": true
+    },
+    "updatedViaUi": {
+      "field": "project.name",
+      "newValue": "Codex CF Project Proof Updated 20260702T045628Z",
+      "visibleOnProjectDashboard": true,
+      "uiSaveSignal": "Saving project details"
+    },
+    "deletedViaUi": {
+      "selectedProjects": 1,
+      "confirmationPhrase": "DELETE PROJECT",
+      "targetProjectId": "e46f1b5b-cf52-4989-831d-f141309ee913",
+      "postDeleteUiSignal": "throwaway proof card disappeared; persistent smoke project remained"
+    }
+  },
+  "remoteD1CreateUpdateReadback": {
+    "command": "bunx wrangler d1 execute archestimator-proof-db --remote --command \"SELECT id, workspace_id, name, client_name, project_code, currency_code, created_by, created_at, updated_at FROM projects WHERE id = 'e46f1b5b-cf52-4989-831d-f141309ee913' LIMIT 1;\"",
+    "database": "archestimator-proof-db",
+    "row": {
+      "id": "e46f1b5b-cf52-4989-831d-f141309ee913",
+      "workspace_id": "258b50ee-3fde-4f6a-a9d9-c360ec44cd0b",
+      "name": "Codex CF Project Proof Updated 20260702T045628Z",
+      "client_name": "No client yet",
+      "project_code": "8VDDZNYK",
+      "currency_code": "PHP",
+      "created_by": "4e23801d-6fc2-4886-b980-d15ca2b164b8",
+      "created_at": "2026-07-02T04:56:45.522Z",
+      "updated_at": "2026-07-02T04:58:19.057Z"
+    },
+    "meta": {
+      "served_by": "v3-prod",
+      "served_by_region": "APAC",
+      "served_by_colo": "SIN",
+      "served_by_primary": true,
+      "sql_duration_ms": 0.2186,
+      "rows_read": 1,
+      "changed_db": false
+    }
+  },
+  "remoteD1DeleteReadback": {
+    "command": "bunx wrangler d1 execute archestimator-proof-db --remote --command \"SELECT 'projects' AS table_name, COUNT(*) AS row_count FROM projects WHERE id = 'e46f1b5b-cf52-4989-831d-f141309ee913' UNION ALL SELECT 'estimates', COUNT(*) FROM estimates WHERE project_id = 'e46f1b5b-cf52-4989-831d-f141309ee913' UNION ALL SELECT 'project_members', COUNT(*) FROM project_members WHERE project_id = 'e46f1b5b-cf52-4989-831d-f141309ee913' UNION ALL SELECT 'project_publications', COUNT(*) FROM project_publications WHERE project_id = 'e46f1b5b-cf52-4989-831d-f141309ee913';\"",
+    "database": "archestimator-proof-db",
+    "rows": [
+      {
+        "table_name": "projects",
+        "row_count": 0
+      },
+      {
+        "table_name": "estimates",
+        "row_count": 0
+      },
+      {
+        "table_name": "project_members",
+        "row_count": 0
+      },
+      {
+        "table_name": "project_publications",
+        "row_count": 0
+      }
+    ],
+    "meta": {
+      "served_by": "v3-prod",
+      "served_by_region": "APAC",
+      "served_by_colo": "SIN",
+      "served_by_primary": true,
+      "sql_duration_ms": 0.9288,
+      "rows_read": 0,
+      "changed_db": false
+    }
+  },
+  "assertions": {
+    "hostedProjectCreatePassed": true,
+    "hostedProjectReadPassed": true,
+    "hostedProjectUpdatePassed": true,
+    "hostedProjectDeletePassed": true,
+    "remoteD1PersistencePassed": true,
+    "remoteD1CascadeDeletePassed": true,
+    "existingSmokeProjectTouched": false
+  },
+  "boundary": "This proof covers the signed-in production UI project create/read/update/delete journey plus remote Cloudflare D1 persistence/cascade readback for a throwaway project only. It does not assert cross-workspace denial or restored-data recovery."
+}

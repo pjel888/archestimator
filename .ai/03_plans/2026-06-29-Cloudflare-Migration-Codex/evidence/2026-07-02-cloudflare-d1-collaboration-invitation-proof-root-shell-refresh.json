@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-02T02:54:36.428Z",
+  "generatedAt": "2026-07-02T07:43:41.778Z",
   "mode": "cloudflare-d1-collaboration-invitation-proof",
   "sources": {
     "plan": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/27_PROOF_SPIKE_BACKLOG.md",
@@ -103,7 +103,7 @@
         "queryBudget": 2,
         "plannedQueries": 1,
         "localBudgetMs": 100,
-        "localP95Ms": 20.04,
+        "localP95Ms": 4.54,
         "rowsReturned": 0,
         "sampleCount": 9,
         "status": "local-pass",
@@ -114,7 +114,7 @@
         "queryBudget": 2,
         "plannedQueries": 1,
         "localBudgetMs": 100,
-        "localP95Ms": 45.49,
+        "localP95Ms": 4.48,
         "rowsReturned": 0,
         "sampleCount": 9,
         "status": "local-pass",
@@ -125,7 +125,7 @@
         "queryBudget": 2,
         "plannedQueries": 1,
         "localBudgetMs": 100,
-        "localP95Ms": 16.88,
+        "localP95Ms": 4.11,
         "rowsReturned": 3,
         "sampleCount": 9,
         "status": "local-pass",
@@ -136,7 +136,7 @@
         "queryBudget": 2,
         "plannedQueries": 1,
         "localBudgetMs": 100,
-        "localP95Ms": 36.39,
+        "localP95Ms": 4.46,
         "rowsReturned": 1,
         "sampleCount": 9,
         "status": "local-pass",
@@ -156,15 +156,11 @@
     ]
   },
   "productionProofRequirements": [
-    "Implement the collaboration-invitation D1 repository against a real Cloudflare D1 binding with prepared statements and typed terminal-state models.",
-    "Wire the repository behind invite entry pages/actions only after Better Auth identity handoff and app-layer authorization are production-proven.",
-    "Run token issue, delivery, resolve, wrong-account, revoked, expired, replay, accept-by-token, accept-by-id, rollback, and idempotency tests inside the Worker runtime.",
+    "Keep the hosted Worker+D1 collaboration invitation proof current after invite route, token, membership, audit, or auth changes.",
+    "Run token issue, delivery, resolve, wrong-account, revoked, expired, replay, accept-by-token, accept-by-id, rollback, and idempotency tests inside the Worker runtime when those paths change.",
     "Capture hosted Worker+D1 query count, p95 duration, rows read/written, and failure telemetry for invite entry GET/POST and pending-invite acceptance paths.",
     "Run a provider-backed D1 export/restore rehearsal for invitation tokens, memberships, and audit rows before treating D1 as the source of truth."
   ],
-  "blockers": [
-    "Hosted Worker+D1 collaboration-invitation proof is still missing.",
-    "Better Auth production identity handoff is still missing; keep current Supabase-backed invitation routes/actions live."
-  ],
-  "note": "Local-only D1 collaboration-invitation domain proof. It uses sanitized temporary SQLite tables to model token issue/revoke-existing, delivery audit, invite resolution, revoked/expired/used terminal states, wrong-account denial, token and by-id acceptance, replay handling, rollback, idempotency, query-budget, index-plan, and export/restore behavior. It does not read env files, call provider APIs, create hosted D1 databases, deploy Workers, replace Supabase-backed live invitation routes/actions, change DNS, bill, or make production D1/Auth/Realtime ready."
+  "blockers": [],
+  "note": "Local-only D1 collaboration-invitation domain proof. It uses sanitized temporary SQLite tables to model token issue/revoke-existing, delivery audit, invite resolution, revoked/expired/used terminal states, wrong-account denial, token and by-id acceptance, replay handling, rollback, idempotency, query-budget, index-plan, and export/restore behavior. It does not read env files, call provider APIs, create hosted D1 databases, deploy Workers, change DNS, bill, or by itself prove the full hosted two-client in-app collaboration UI journey."
 }

@@ -1,0 +1,109 @@
+{
+  "ok": true,
+  "proof": "hosted-estimate-tab-lifecycle",
+  "origin": "https://archestimator.com",
+  "route": "https://archestimator.com/workshop/projects/bd9a8e68-4e24-49d8-aeed-e4651b7cab0b/estimates/985f6690-741e-4136-9fa1-a4896cd364e4",
+  "finalRoute": "https://archestimator.com/workshop/projects/bd9a8e68-4e24-49d8-aeed-e4651b7cab0b/estimates/e4b71a81-47fc-4f5a-bead-35e4e8050eae",
+  "projectId": "bd9a8e68-4e24-49d8-aeed-e4651b7cab0b",
+  "estimateId": "985f6690-741e-4136-9fa1-a4896cd364e4",
+  "workspaceId": "258b50ee-3fde-4f6a-a9d9-c360ec44cd0b",
+  "actorUserId": "4e23801d-6fc2-4886-b980-d15ca2b164b8",
+  "signedInEmail": "philipjonlewis@gmail.com",
+  "tabName": "Codex CF Tab Proof 20260702T053154Z",
+  "ui": {
+    "initialTabLabels": [
+      "Page 001"
+    ],
+    "postRenameTabLabels": [
+      "Page 001",
+      ""
+    ],
+    "uiDeleteAttempted": true,
+    "uiDeleteSucceeded": true,
+    "finalUiTabLabels": [
+      "Page 001"
+    ]
+  },
+  "createdTab": {
+    "id": "fb4ed3e0-fa34-4095-91a5-aa49be6a2b5f",
+    "estimate_id": "985f6690-741e-4136-9fa1-a4896cd364e4",
+    "name": "Codex CF Tab Proof 20260702T053154Z",
+    "sort_order": 1000,
+    "is_default": 0,
+    "archived_at": null,
+    "metadata": "{}",
+    "created_by": "4e23801d-6fc2-4886-b980-d15ca2b164b8",
+    "created_at": "2026-07-02T05:32:08.093Z",
+    "updated_at": "2026-07-02T05:32:09.675Z"
+  },
+  "preDeleteEvents": [
+    {
+      "id": "09f8cace-1dfc-4ca6-a83c-975d30dc455c",
+      "estimate_id": "985f6690-741e-4136-9fa1-a4896cd364e4",
+      "estimate_tab_id": "fb4ed3e0-fa34-4095-91a5-aa49be6a2b5f",
+      "event_type": "estimate_tab_created",
+      "correlation_id": "f2a2efdc-15fe-4970-a37e-d82c87419e9e",
+      "actor_user_id": "4e23801d-6fc2-4886-b980-d15ca2b164b8",
+      "changed_fields": "[]",
+      "created_at": "2026-07-02T05:32:08.165Z"
+    },
+    {
+      "id": "f423fde9-e7fe-4858-b0b6-0ec3f9357539",
+      "estimate_id": "985f6690-741e-4136-9fa1-a4896cd364e4",
+      "estimate_tab_id": "fb4ed3e0-fa34-4095-91a5-aa49be6a2b5f",
+      "event_type": "estimate_tab_renamed",
+      "correlation_id": "4b866988-91d2-4b4a-9cea-f70ccb7d93a8",
+      "actor_user_id": "4e23801d-6fc2-4886-b980-d15ca2b164b8",
+      "changed_fields": "[\"name\"]",
+      "created_at": "2026-07-02T05:32:09.758Z"
+    }
+  ],
+  "postDeleteTabCount": 0,
+  "postDeleteNodeCount": 0,
+  "postDeleteEvents": [
+    {
+      "id": "09f8cace-1dfc-4ca6-a83c-975d30dc455c",
+      "estimate_id": "985f6690-741e-4136-9fa1-a4896cd364e4",
+      "estimate_tab_id": "fb4ed3e0-fa34-4095-91a5-aa49be6a2b5f",
+      "event_type": "estimate_tab_created",
+      "correlation_id": "f2a2efdc-15fe-4970-a37e-d82c87419e9e",
+      "actor_user_id": "4e23801d-6fc2-4886-b980-d15ca2b164b8",
+      "changed_fields": "[]",
+      "created_at": "2026-07-02T05:32:08.165Z"
+    },
+    {
+      "id": "f423fde9-e7fe-4858-b0b6-0ec3f9357539",
+      "estimate_id": "985f6690-741e-4136-9fa1-a4896cd364e4",
+      "estimate_tab_id": "fb4ed3e0-fa34-4095-91a5-aa49be6a2b5f",
+      "event_type": "estimate_tab_renamed",
+      "correlation_id": "4b866988-91d2-4b4a-9cea-f70ccb7d93a8",
+      "actor_user_id": "4e23801d-6fc2-4886-b980-d15ca2b164b8",
+      "changed_fields": "[\"name\"]",
+      "created_at": "2026-07-02T05:32:09.758Z"
+    },
+    {
+      "id": "6b672abf-b136-44f1-ab5f-e74d4e1a3f00",
+      "estimate_id": "985f6690-741e-4136-9fa1-a4896cd364e4",
+      "estimate_tab_id": "fb4ed3e0-fa34-4095-91a5-aa49be6a2b5f",
+      "event_type": "estimate_tab_deleted",
+      "correlation_id": "ff1c71ff-f417-441f-98a3-e50c1282f702",
+      "actor_user_id": "4e23801d-6fc2-4886-b980-d15ca2b164b8",
+      "changed_fields": "[]",
+      "created_at": "2026-07-02T05:32:13.060Z"
+    }
+  ],
+  "finalTabs": [
+    {
+      "id": "5bf33713-4fec-4d82-b408-bbf11cb2cb91",
+      "name": "Main",
+      "sort_order": 0,
+      "is_default": 1
+    }
+  ],
+  "pageErrors": [],
+  "consoleErrors": [],
+  "boundaries": [
+    "Proof used a signed Better Auth session sourced from Cloudflare D1 and exercised the production Worker UI at archestimator.com.",
+    "The throwaway tab was deleted through the production UI; audit/history rows remain as migration evidence."
+  ]
+}

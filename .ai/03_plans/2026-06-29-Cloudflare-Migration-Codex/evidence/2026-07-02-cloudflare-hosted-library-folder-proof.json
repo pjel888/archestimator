@@ -1,0 +1,84 @@
+{
+  "generatedAt": "2026-07-02T05:12:45Z",
+  "result": "pass",
+  "scope": "Cloudflare hosted component-library folder create/read/cleanup proof",
+  "hostedBaseUrl": "https://archestimator.com",
+  "worker": {
+    "name": "archestimator-proof",
+    "domain": "archestimator.com"
+  },
+  "browserJourney": {
+    "app": "Google Chrome",
+    "authenticated": true,
+    "route": "https://archestimator.com/workshop/library/components",
+    "workflow": "Library > Components > Add library folder",
+    "createdViaUi": {
+      "name": "Codex CF Folder Proof 20260702T050951Z",
+      "visibleInFolderTree": true,
+      "visibleInComponentCatalogue": true,
+      "uiSaveSignal": "Folder created."
+    },
+    "note": "The foreground Chrome window moved to a different site before template proof could be run. This artifact covers the already completed hosted folder mutation only."
+  },
+  "remoteD1CreateReadback": {
+    "command": "bunx wrangler d1 execute archestimator-proof-db --remote --command \"SELECT id, workspace_id, parent_id, name, sort_order, source_category_node_id, folder_kind, created_by, created_at, updated_at FROM library_folders WHERE name = 'Codex CF Folder Proof 20260702T050951Z' ORDER BY created_at DESC LIMIT 5;\"",
+    "database": "archestimator-proof-db",
+    "databaseId": "9bdb29bb-687e-4f51-ae81-7659c426ea5f",
+    "row": {
+      "id": "e3deaa00-cde3-4edc-8660-5d44b77ae431",
+      "workspace_id": "258b50ee-3fde-4f6a-a9d9-c360ec44cd0b",
+      "parent_id": null,
+      "name": "Codex CF Folder Proof 20260702T050951Z",
+      "sort_order": 10,
+      "source_category_node_id": null,
+      "folder_kind": "custom",
+      "created_by": "4e23801d-6fc2-4886-b980-d15ca2b164b8",
+      "created_at": "2026-07-02T05:10:10.928Z",
+      "updated_at": "2026-07-02T05:10:10.928Z"
+    },
+    "meta": {
+      "served_by": "v3-prod",
+      "served_by_region": "APAC",
+      "served_by_colo": "SIN",
+      "served_by_primary": true,
+      "sql_duration_ms": 0.2549,
+      "rows_read": 2,
+      "changed_db": false
+    }
+  },
+  "remoteD1CleanupReadback": {
+    "command": "bunx wrangler d1 execute archestimator-proof-db --remote --command \"DELETE FROM library_folders WHERE id = 'e3deaa00-cde3-4edc-8660-5d44b77ae431' AND workspace_id = '258b50ee-3fde-4f6a-a9d9-c360ec44cd0b' AND name = 'Codex CF Folder Proof 20260702T050951Z'; SELECT COUNT(*) AS row_count FROM library_folders WHERE id = 'e3deaa00-cde3-4edc-8660-5d44b77ae431' OR name = 'Codex CF Folder Proof 20260702T050951Z';\"",
+    "database": "archestimator-proof-db",
+    "deleteMeta": {
+      "served_by": "v3-prod",
+      "served_by_region": "APAC",
+      "served_by_colo": "SIN",
+      "served_by_primary": true,
+      "sql_duration_ms": 1.3741,
+      "changes": 1,
+      "rows_read": 9,
+      "rows_written": 1,
+      "changed_db": true
+    },
+    "postCleanupRowCount": 0,
+    "postCleanupMeta": {
+      "served_by": "v3-prod",
+      "served_by_region": "APAC",
+      "served_by_colo": "SIN",
+      "served_by_primary": true,
+      "sql_duration_ms": 0.1357,
+      "rows_read": 1,
+      "changed_db": false
+    }
+  },
+  "assertions": {
+    "hostedFolderCreatePassed": true,
+    "folderVisibleInHostedUi": true,
+    "remoteD1PersistencePassed": true,
+    "createdInCloudflareD1": true,
+    "throwawayFolderCleanedUpByScopedD1Delete": true,
+    "templateMutationCovered": false,
+    "viewerDenialCovered": false
+  },
+  "boundary": "This proof covers a signed-in production UI folder create on the Cloudflare-hosted component library, remote D1 persistence readback, and scoped cleanup of the empty throwaway folder. It does not cover hosted estimate-template mutation or viewer-denial behavior."
+}

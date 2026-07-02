@@ -1,0 +1,115 @@
+{
+  "ok": true,
+  "proof": "hosted-template-to-estimate-insert",
+  "origin": "https://archestimator.com",
+  "route": "https://archestimator.com/workshop/projects/bd9a8e68-4e24-49d8-aeed-e4651b7cab0b/estimates/e4b71a81-47fc-4f5a-bead-35e4e8050eae",
+  "finalRoute": "https://archestimator.com/workshop/projects/bd9a8e68-4e24-49d8-aeed-e4651b7cab0b/estimates/e4b71a81-47fc-4f5a-bead-35e4e8050eae",
+  "projectId": "bd9a8e68-4e24-49d8-aeed-e4651b7cab0b",
+  "estimateId": "985f6690-741e-4136-9fa1-a4896cd364e4",
+  "workspaceId": "258b50ee-3fde-4f6a-a9d9-c360ec44cd0b",
+  "targetNodeId": "e4b71a81-47fc-4f5a-bead-35e4e8050eae",
+  "targetTabId": "5bf33713-4fec-4d82-b408-bbf11cb2cb91",
+  "targetNodeName": "Cloudflare QA Area 2026-07-02 04:24",
+  "actorUserId": "4e23801d-6fc2-4886-b980-d15ca2b164b8",
+  "signedInEmail": "philipjonlewis@gmail.com",
+  "template": {
+    "id": "2bffd98d-0119-476a-9b4e-570d4129d752",
+    "nodeId": "dfc1944f-d263-4936-b41a-7eab195db35a",
+    "rowId": "fd83c28d-8c75-4746-a3a8-44b2cf95d6fd",
+    "name": "Codex CF Insert Template 20260702T053817Z",
+    "category": "Codex CF Insert Proof 20260702T053817Z",
+    "nodeName": "Codex CF Insert Area 20260702T053817Z",
+    "rowMaterial": "Codex CF Insert Row 20260702T053817Z",
+    "seedReadback": {
+      "id": "2bffd98d-0119-476a-9b4e-570d4129d752",
+      "name": "Codex CF Insert Template 20260702T053817Z",
+      "category": "Codex CF Insert Proof 20260702T053817Z",
+      "template_node_id": "dfc1944f-d263-4936-b41a-7eab195db35a",
+      "template_node_name": "Codex CF Insert Area 20260702T053817Z",
+      "template_row_id": "fd83c28d-8c75-4746-a3a8-44b2cf95d6fd",
+      "material": "Codex CF Insert Row 20260702T053817Z",
+      "quantity": 2,
+      "unit_cost": 45.67
+    }
+  },
+  "ui": {
+    "uiInsertAttempted": true,
+    "uiInsertMethod": "context-menu"
+  },
+  "insertedEvent": {
+    "id": "7f644a9f-2820-414c-a1e8-b65cf10c13a8",
+    "estimate_id": "985f6690-741e-4136-9fa1-a4896cd364e4",
+    "estimate_node_id": "e4b71a81-47fc-4f5a-bead-35e4e8050eae",
+    "estimate_tab_id": "5bf33713-4fec-4d82-b408-bbf11cb2cb91",
+    "event_type": "template_inserted",
+    "correlation_id": "faf85d65-3a7a-48d9-8ed3-64e8543bd17d",
+    "actor_user_id": "4e23801d-6fc2-4886-b980-d15ca2b164b8",
+    "payload": "{\"inserted_root_node_ids\":[\"198a9e33-13f9-4791-bf17-d800abaf1921\"],\"inserted_node_count\":1,\"inserted_row_item_count\":1,\"sourceTemplateId\":\"2bffd98d-0119-476a-9b4e-570d4129d752\",\"sourceTemplateNodeId\":null}",
+    "created_at": "2026-07-02T05:39:03.344Z"
+  },
+  "insertedPayload": {
+    "inserted_root_node_ids": [
+      "198a9e33-13f9-4791-bf17-d800abaf1921"
+    ],
+    "inserted_node_count": 1,
+    "inserted_row_item_count": 1,
+    "sourceTemplateId": "2bffd98d-0119-476a-9b4e-570d4129d752",
+    "sourceTemplateNodeId": null
+  },
+  "insertedNodes": [
+    {
+      "id": "198a9e33-13f9-4791-bf17-d800abaf1921",
+      "estimate_id": "985f6690-741e-4136-9fa1-a4896cd364e4",
+      "estimate_tab_id": "5bf33713-4fec-4d82-b408-bbf11cb2cb91",
+      "parent_id": "e4b71a81-47fc-4f5a-bead-35e4e8050eae",
+      "kind": "area",
+      "name": "Codex CF Insert Area 20260702T053817Z",
+      "sort_order": 10
+    }
+  ],
+  "insertedRows": [
+    {
+      "id": "115cb4fc-8ed9-40c9-84ba-4c3a282b5234",
+      "estimate_id": "985f6690-741e-4136-9fa1-a4896cd364e4",
+      "node_id": "198a9e33-13f9-4791-bf17-d800abaf1921",
+      "material": "Codex CF Insert Row 20260702T053817Z",
+      "description": "Inserted through hosted Cloudflare template proof",
+      "quantity": 2,
+      "unit": "unit",
+      "unit_cost": 45.67,
+      "misc_cost": 1.23,
+      "contingency_percentage": 0,
+      "adjustment_percentage": 0
+    }
+  ],
+  "cleanup": {
+    "insertedEstimateArtifacts": {
+      "attempted": true,
+      "insertedRootNodeIds": [
+        "198a9e33-13f9-4791-bf17-d800abaf1921"
+      ],
+      "insertedNodesAfter": 0,
+      "insertedRowsAfter": 0
+    },
+    "sourceTemplateCountsAfter": [
+      {
+        "templates": 0
+      },
+      {
+        "template_nodes": 0
+      },
+      {
+        "template_rows": 0
+      }
+    ],
+    "finalEstimateRowCountForProofMaterial": 0,
+    "finalEstimateNodeCountForProofName": 0
+  },
+  "pageErrors": [],
+  "consoleErrors": [],
+  "boundaries": [
+    "The structured source template was seeded directly into Cloudflare D1 so the hosted UI could exercise template-to-estimate insertion without relying on preexisting user templates.",
+    "Insertion was performed through the production Templates tree context-menu path on archestimator.com.",
+    "The inserted proof estimate node/row and source template were cleaned up after D1 readback; the audit event remains as evidence."
+  ]
+}
