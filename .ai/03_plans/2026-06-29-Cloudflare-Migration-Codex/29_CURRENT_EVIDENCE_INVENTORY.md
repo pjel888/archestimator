@@ -14,7 +14,7 @@ This document records the local evidence used to judge the Cloudflare migration 
 
 Initially collected on 2026-06-29 from the local repository only. The 2026-06-30 refresh now includes sanitized Cloudflare dashboard facts, Wrangler OAuth readback, and provider resource creation/readback for the named proof D1/R2/Queue resources. It still does not include hosted Worker traffic, Worker secret values, production DNS cutover, provider cancellation, or production user data migration.
 
-Current 2026-07-02 addendum: this inventory is historical planning evidence and is superseded for cutover readiness by the active ledgers `33_POST_CUTOVER_FULL_APP_QA_LEDGER.md` and `34_FULL_CLOUDFLARE_APP_VERIFICATION_LEDGER.md`. Hosted evidence now exists for Cloudflare Worker/OpenNext serving `archestimator.com`, Better Auth + D1 auth, D1 app-data workflows, R2 upload runtime/lifecycle/UI, Durable Object collaboration transport plus two-client hosted collaboration UI, Cloudflare Email proof, DNS delegation, provider resource readback, and release gates. Provider cancellation/deletion remains intentionally unproven and out of scope for this inventory.
+Current 2026-07-02 addendum: this inventory is historical planning evidence and is superseded for cutover readiness by the active ledgers `33_POST_CUTOVER_FULL_APP_QA_LEDGER.md` and `34_FULL_CLOUDFLARE_APP_VERIFICATION_LEDGER.md`. Hosted evidence now exists for Cloudflare Worker/OpenNext serving `archestimator.com`, Better Auth + D1 auth, D1 app-data workflows, R2 upload runtime/lifecycle/UI, Durable Object collaboration transport plus two-client hosted collaboration UI, Cloudflare Email proof, DNS delegation, Google OAuth client/Audience provider readback including localhost developer callback support, provider resource readback, and release gates. Local browser evidence now also shows the default Playwright suite is Cloudflare-compatible after quarantining legacy Supabase-only E2E specs behind `ARCHESTIMATOR_E2E_ENABLE_LEGACY_SUPABASE=1`; the default suite no longer fails on the removed Supabase SDK import. Local developer Google OAuth is now proven end-to-end on `http://localhost:3000`: Chrome completed Google sign-in, returned without `state_mismatch`, reached the local terms gate, accepted clickwrap, rendered `/workshop`, and local D1 readback found Better Auth user/account/session rows plus a terms acceptance. Use `localhost` rather than `127.0.0.1` unless host-dynamic Better Auth configuration is added. Provider cancellation/deletion remains intentionally unproven and belongs to `35_PROVIDER_EXIT_AND_FINAL_PROOF_RUNBOOK.md`.
 
 What this evidence proves:
 
@@ -63,7 +63,7 @@ The refresh does not read env files, print secret values, mutate providers, prov
 
 ## Generated Cost And Performance Workbook
 
-Originally generated on 2026-06-30 local time with `bun run cf:workbook`; refreshed on 2026-07-02 after the hosted p95 verifier and workbook default evidence pointer were corrected.
+Originally generated on 2026-06-30 local time with `bun run cf:workbook`; refreshed on 2026-07-02 after the hosted p95 verifier, workbook default evidence pointer, and workbook sample-count gate were corrected.
 
 Artifacts:
 
@@ -72,7 +72,7 @@ Artifacts:
 - `evidence/2026-07-01-cloudflare-cost-performance-workbook.json`
 - `evidence/2026-07-01-cloudflare-cost-performance-workbook.md`
 
-The current generated workbook combines the migration inventory, hosted route p95 proof, provider-runtime performance proofs, official Cloudflare pricing snapshot, and sanitized provider usage inputs. It keeps strict hosted client p95 visible separately from provider runtime readiness:
+The current generated workbook combines the migration inventory, hosted route p95 proof, provider-runtime performance proofs, official Cloudflare pricing snapshot, and sanitized provider usage inputs. It was refreshed at `2026-07-02T12:54:37.647Z` after the hosted p95 proof generated at `2026-07-02T12:54:02.688Z`. It keeps strict hosted client p95 visible separately from provider runtime readiness:
 
 | Gate | Ready? |
 | --- | --- |
@@ -91,12 +91,12 @@ Current hosted p95 rows captured from `evidence/2026-06-30-cloudflare-hosted-per
 
 | Fixture | Hosted p95 | Status |
 | --- | ---: | --- |
-| Public home route p95 TTFB | `757.42ms` | hosted-partial-fail / watch |
-| Pricing/features static route p95 TTFB | `508.82ms` / `398.4ms` | hosted-partial-fail / watch |
-| Share route p95 TTFB | `478.99ms` | hosted-partial-fail / watch |
-| Workshop home p95 TTFB | `645.31ms` | hosted-partial-fail / watch |
+| Public home route p95 TTFB | `1104.91ms` | hosted-partial-fail / watch |
+| Pricing/features static route p95 TTFB | `821.51ms` / `140.02ms` | pricing watch, features pass |
+| Share route p95 TTFB | `80.61ms` | hosted-partial-pass |
+| Workshop home p95 TTFB | `114.37ms` | hosted-partial-pass |
 
-Credential-free hosted route contracts and sample count currently pass, so the hosted verifier and aggregate release gate are green. Strict public-route client p95 budgets are currently watch-grade tuning evidence (`p95BudgetReady=false`, `p95BudgetWatch=true`, `strictHostedClientP95Ready=false`, `p95BudgetMisses=13`) and should not block provider runtime readiness unless route contracts fail, sample count is insufficient, or provider runtime performance regresses.
+Credential-free hosted route contracts and sample count currently pass, so the hosted verifier and aggregate release gate are green. Strict public-route client p95 budgets are currently watch-grade tuning evidence (`p95BudgetReady=false`, `p95BudgetWatch=true`, `strictHostedClientP95Ready=false`, `p95BudgetMisses=7`) and should not block provider runtime readiness unless route contracts fail, sample count is insufficient, or provider runtime performance regresses. The workbook now requires the hosted verifier's `hostedCredentialFreePerformanceReady` signal before treating hosted performance as captured, so a low-sample artifact cannot falsely green the release gate.
 
 ## Generated Hosted Worker Route Proof
 

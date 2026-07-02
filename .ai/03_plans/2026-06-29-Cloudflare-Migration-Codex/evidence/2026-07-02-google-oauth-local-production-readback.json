@@ -1,0 +1,45 @@
+{
+  "generatedAt": "2026-07-02T11:58:12Z",
+  "source": "Google Cloud Console browser readback",
+  "project": "project-ef99b7d2-9185-49f9-804",
+  "oauthClient": {
+    "clientId": "4723547505-0keh5nqvk40b7rv2meror8opnpjm10s8.apps.googleusercontent.com",
+    "name": "archestimator",
+    "authorizedJavaScriptOrigins": [
+      "https://archestimator-proof.philipjonlewis.workers.dev",
+      "https://archestimator.com",
+      "https://www.archestimator.com",
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
+      "http://localhost:8787",
+      "http://127.0.0.1:8787"
+    ],
+    "authorizedRedirectUris": [
+      "https://archestimator-proof.philipjonlewis.workers.dev/api/auth/callback/google",
+      "https://archestimator.com/api/auth/callback/google",
+      "https://www.archestimator.com/api/auth/callback/google",
+      "http://localhost:3000/api/auth/callback/google",
+      "http://127.0.0.1:3000/api/auth/callback/google",
+      "http://localhost:8787/api/auth/callback/google",
+      "http://127.0.0.1:8787/api/auth/callback/google"
+    ]
+  },
+  "audience": {
+    "publishingStatus": "In production",
+    "userType": "External",
+    "userCapLabel": "1 user / 100 user cap",
+    "testUserLayerBlocksNonOwnerAccounts": false
+  },
+  "dataAccess": {
+    "configuredNonSensitiveScopeRows": 0,
+    "configuredSensitiveScopeRows": 0,
+    "configuredRestrictedScopeRows": 0
+  },
+  "readiness": {
+    "productionGoogleOAuthProviderConfigurationReady": true,
+    "localhostDeveloperGoogleOAuthConfigurationReady": true,
+    "nonOwnerGoogleProviderBlockerRemoved": true,
+    "realNonOwnerAccountCompletionProven": false
+  },
+  "boundary": "This artifact is a sanitized provider-console readback. It does not include OAuth client secrets, access tokens, refresh tokens, cookies, raw browser storage, or a completed second-person Google account sign-in."
+}

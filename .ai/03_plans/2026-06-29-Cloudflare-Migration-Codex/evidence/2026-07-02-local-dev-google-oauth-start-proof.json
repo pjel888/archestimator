@@ -1,0 +1,14 @@
+{
+  "generatedAt": "2026-07-02T12:56:21.563Z",
+  "startedAt": "2026-07-02T12:56:13.653Z",
+  "mode": "local-dev-google-oauth-start-proof",
+  "baseUrl": "http://localhost:3000",
+  "passed": true,
+  "googleHost": "accounts.google.com",
+  "redirectUri": "http://localhost:3000/api/auth/callback/google",
+  "stateLength": 32,
+  "betterAuthStateCookieCount": 1,
+  "localDevCompletionReady": false,
+  "note": "Sanitized local development OAuth-start proof only. It proves localhost reaches Google with the expected callback and Better Auth state cookie. It does not print cookies, client IDs, client secrets, tokens, or prove a completed Google callback/session.",
+  "error": null
+}

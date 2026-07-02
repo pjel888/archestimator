@@ -1,0 +1,96 @@
+{
+  "generatedAt": "2026-07-02T13:39:54Z",
+  "mode": "local-dev-google-oauth-real-browser-proof",
+  "baseUrl": "http://localhost:3000",
+  "browser": "Google Chrome desktop profile",
+  "proofBoundary": "real-browser-owner-google-oauth-localhost",
+  "result": "pass",
+  "sanitization": {
+    "cookiesCaptured": false,
+    "oauthCodeCaptured": false,
+    "stateValueCaptured": false,
+    "accountEmailCaptured": false,
+    "clientSecretCaptured": false,
+    "providerTokensCaptured": false,
+    "rawCallbackUrlCaptured": false
+  },
+  "localConfiguration": {
+    "authProviderSelector": "ARCHESTIMATOR_AUTH_PROVIDER=better-auth was added only to ignored local env files",
+    "googleOauthClient": "local developer OAuth client present only in ignored local env files",
+    "d1Database": "archestimator-proof-db --local",
+    "d1MigrationsApplied": true,
+    "migrationCountAppliedByWrangler": 29
+  },
+  "codeFixes": [
+    {
+      "file": "src/lib/auth/request-proxy.ts",
+      "summary": "Protected localhost requests with an existing Better Auth session cookie now defer session validation to the server layout instead of trying to validate D1 from Next middleware."
+    },
+    {
+      "file": "src/components/auth/AuthStateMismatchRecoveryScript.tsx",
+      "summary": "Auth state-mismatch recovery script now renders through next/script with beforeInteractive strategy, avoiding the React/Next client-rendered script warning."
+    }
+  ],
+  "steps": [
+    {
+      "step": "Start local dev server on localhost",
+      "observed": "Next dev served Archestimator on http://localhost:3000.",
+      "passed": true
+    },
+    {
+      "step": "Open login and start Google OAuth",
+      "observed": "The browser opened /login?next=%2Fworkshop and used Continue with Google.",
+      "passed": true
+    },
+    {
+      "step": "Complete saved-account Google OAuth in Chrome",
+      "observed": "Google OAuth returned to localhost without state_mismatch.",
+      "passed": true
+    },
+    {
+      "step": "Verify authenticated local session",
+      "observed": "/api/auth/get-session returned HTTP 200, and the app routed the authenticated user to /workshop/terms?next=%2Fworkshop rather than back to /login.",
+      "passed": true
+    },
+    {
+      "step": "Accept local terms gate",
+      "observed": "The browser accepted the local clickwrap gate and landed on /workshop.",
+      "passed": true
+    },
+    {
+      "step": "Verify authenticated workshop dashboard",
+      "observed": "The workshop dashboard rendered locally with the signed-in owner greeting, navigation, and dashboard cards.",
+      "passed": true
+    }
+  ],
+  "finalUrl": "http://localhost:3000/workshop",
+  "stateMismatchObservedAfterClick": false,
+  "authenticatedWorkshopVisible": true,
+  "termsGateSatisfied": true,
+  "localD1Readback": {
+    "userRows": 1,
+    "accountRows": 1,
+    "sessionRows": 3,
+    "profileRows": 0,
+    "legalTermsAcceptanceRows": 1,
+    "googleAccountRows": 1,
+    "acceptedTerms": {
+      "artifact": "terms-of-service",
+      "version": "tos-2026-06-06-beta-v1",
+      "surface": "workshop_terms_gate",
+      "acceptanceMethod": "authenticated_clickwrap",
+      "rowCount": 1
+    }
+  },
+  "verification": {
+    "focusedVitestCommand": "bunx vitest run tests/vitest/auth-entry-ui-contract.test.ts tests/vitest/auth-proxy.test.ts tests/vitest/cloudflare-better-auth-route-gate.test.ts tests/vitest/cloudflare-better-auth-route.test.ts tests/vitest/auth-set-cookie-forwarding.test.ts --maxWorkers=1",
+    "focusedVitestResult": "pass: 5 files / 56 tests",
+    "localBrowserProof": "pass",
+    "consoleScriptWarningFix": "source patched to next/script; no raw script tag remains in AuthStateMismatchRecoveryScript"
+  },
+  "remainingGaps": [
+    "Real non-owner Google account closed-beta proof still required.",
+    "Provider downgrade/cancellation remains a separate ops step after exports/backups and post-exit smoke."
+  ],
+  "passed": true
+}

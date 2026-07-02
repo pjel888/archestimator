@@ -1,0 +1,41 @@
+{
+  "generatedAt": "2026-07-02T13:16:36Z",
+  "mode": "production-google-oauth-real-browser-proof",
+  "baseUrl": "https://archestimator.com",
+  "startUrl": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset_done=1",
+  "resetUrlOriginallyRequested": "https://archestimator.com/?error=state_mismatch",
+  "browser": "Google Chrome desktop profile",
+  "proofBoundary": "real-browser-owner-google-oauth",
+  "sanitization": {
+    "cookiesCaptured": false,
+    "oauthCodeCaptured": false,
+    "stateValueCaptured": false,
+    "accountEmailCaptured": false,
+    "secretsCaptured": false
+  },
+  "steps": [
+    {
+      "step": "Open production reset URL after user-reported state_mismatch",
+      "observed": "Existing production tab landed on /login with oauth_state_reset_done=1 and next=/workshop.",
+      "passed": true
+    },
+    {
+      "step": "Click Continue with Google in the same Chrome profile",
+      "observed": "Google OAuth flow completed without surfacing state_mismatch.",
+      "passed": true
+    },
+    {
+      "step": "Verify authenticated application session",
+      "observed": "Browser landed on https://archestimator.com/workshop and rendered the authenticated workshop dashboard with project, component, and estimate content.",
+      "passed": true
+    }
+  ],
+  "finalUrl": "https://archestimator.com/workshop",
+  "authenticatedWorkshopVisible": true,
+  "stateMismatchObservedAfterClick": false,
+  "passed": true,
+  "remainingGaps": [
+    "Local localhost Google OAuth callback/session proof is superseded by evidence/2026-07-02-local-dev-google-oauth-real-browser-proof.*.",
+    "Real non-owner Google account closed-beta proof still required."
+  ]
+}
