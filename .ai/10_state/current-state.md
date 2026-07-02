@@ -87,6 +87,18 @@ Stable current truth (verify against git/source before relying on a detail):
   rendering through `next/script` with `beforeInteractive`. Focused auth
   regressions passed `5` files / `56` tests. Sanitized evidence:
   `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-local-dev-google-oauth-real-browser-proof.*`.
+- Cloudflare migration wrap-up assessment as of 2026-07-02 14:07 UTC:
+  no known P0 app-runtime blocker remains. App-side Cloudflare closed-beta
+  runtime readiness is about 99.7/100; overall migration including provider
+  exit is about 97/100. Fresh `cf:workbook` and `cf:release-gates` runs passed
+  at 14:02 UTC with release blockers empty and `productionCutoverReady=true`,
+  while strict hosted public-route p95 remains a visible watch item
+  (`strictHostedClientP95Ready=false`). Production owner Google OAuth and local
+  developer Google OAuth are both proven. Do not mark provider exit complete
+  until real non-owner Google proof, real recipient mailbox proof or accepted
+  deferral, latest-branch deploy/smoke as needed, old-provider exports/backups,
+  downgrade/cancel sequencing, and post-exit smoke are complete. Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-wrap-up-assessment.*`.
 - Latest hosted upload + collaboration UI proof as of 2026-07-02 09:54 UTC:
   `archestimator-proof` Worker version
   `2f246bbf-9ea5-4c15-bf31-97344f9b6f09` is deployed at 100% on
