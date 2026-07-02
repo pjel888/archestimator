@@ -106,7 +106,7 @@ Actors:
 
 - The audit's original threat-model row claiming tickets are minted at the router (`08_*.md` line 43-44) is FALSE at both inspected layers. The `webSocketMessage` rate-limit behavior (`collaboration-room.ts:79`) was not inspected by this pass — a follow-up reviewer should confirm whether message-flood protection exists once the upgrade gate is built.
 - ADV-P1-2 (undeclared invite pepper secret) recorded in `03_*.md` as SRC-023 — pending declaration in `cloudflare-env.d.ts` + `wrangler.jsonc`.
-- ADV-P2-1 / ADV-P2-2 (citation drift on `routeCanonicalHostRedirect` line 125→141 and C1 cookie lines 85-86→91-92) recorded for batch re-anchor in a future cleanup pass.
+- ADV-P2-1 / ADV-P2-2 (citation drift on `routeCanonicalHostRedirect` line 125→141 and C1 cookie lines 85-86→91-92) re-anchored 2026-07-02 iteration-13 in `03_*.md` (SRC-020) and this doc (C1 row + Action source-row cookie-clearing lines below).
 
 **Existing infrastructure** (unchanged from iteration-9 note — reconfirmed by reviewer):
 
@@ -121,7 +121,7 @@ Sampled 6/30 Server Action files + the centralized D1 authz module + the error-e
 
 | Material | Verification status | Concrete evidence |
 |---|---|---|
-| C1 (session cookie) | PROVEN | Cookie names `better-auth.session_token` + `__Secure-better-auth.session_token` confirmed at `src/lib/auth/actions.ts:85-86` (`clearBetterAuthSessionCookies`) |
+| C1 (session cookie) | PROVEN | Cookie names `better-auth.session_token` + `__Secure-better-auth.session_token` confirmed at `src/lib/auth/actions.ts:91-92` (`clearBetterAuthSessionCookies`) |
 | C4 (share token raw, encrypted) | PROVEN | `encryptPublicationToken` imported from `@/lib/publication/security` at `src/lib/publication/actions.ts:14-15`; `PUBLICATION_TOKEN_ENCRYPTION_SECRET` consumed via `readPublicationTokenEncryptionSecret()` |
 | C5 (share token hash) | PROVEN | `hashPublicationToken` distinct function imported at `src/lib/publication/actions.ts:18`; `PUBLICATION_TOKEN_HASH_SECRET` consumed via `readPublicationTokenHashSecret()` |
 | C6 (invite token raw) | PARTIAL — token creation + expiry confirmed; encryption-at-rest NOT yet verified | `createInviteToken` imported at `src/lib/collaboration/actions.ts:13`; `INVITE_EXPIRATION_DAYS = 14` set at `src/lib/collaboration/actions.ts:93`. **CR-002 encryption-at-rest claim still requires inspecting `src/lib/collaboration/invite-entry.ts` to confirm `PUBLICATION_TOKEN_ENCRYPTION_SECRET` (or a distinct `INVITE_TOKEN_ENCRYPTION_SECRET`) is used for storage, not just hashing.** |
@@ -143,7 +143,7 @@ Sampled 6/30 Server Action files + the centralized D1 authz module + the error-e
 | `src/lib/collaboration/actions.ts` | PREVIEW-PASS | `requireCurrentUserContext` (line 7), `resolveAuthOrigin` (line 6), `checkInviteCreateRateLimit + checkInviteResendRateLimit` (lines 11-12), role-rank ownership (lines 108-118) |
 | `src/lib/projects/actions.ts` | PREVIEW-PASS | `requireAuth, requireCurrentUserContext` (line 6), `getCloudflareD1Database` (line 8), `cleanupStorageTargets` (line 21) — auth + scoped D1 + R2 cleanup on delete |
 | `src/lib/component-library/actions.ts` | PREVIEW-PASS | `requireCurrentUserContext` (line 6), `canEditEstimateInD1, isWorkspaceEditorInD1, isWorkspaceMemberInD1` from `@/lib/authz/d1-access` (line 7) — auth + explicit D1 authz layer |
-| `src/lib/auth/actions.ts` | PREVIEW-PASS | `requireAuth` (line 15), `recordAccountSecurityEvent` (line 6), `resolveAuthOrigin` (line 12), cookie clearing confirmed (lines 82-87) |
+| `src/lib/auth/actions.ts` | PREVIEW-PASS | `requireAuth` (line 15), `recordAccountSecurityEvent` (line 6), `resolveAuthOrigin` (line 12), cookie clearing confirmed (lines 88-93) |
 
 The remaining 24 Action files keep TBD until Phase 2 verification. The 6 sampled rows establish that the SCHEMA in this doc is achievable and the patterns exist in the codebase; full verdict completion is Phase 2 remediation scope.
 
