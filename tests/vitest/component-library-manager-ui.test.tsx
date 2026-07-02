@@ -778,10 +778,10 @@ describe("component library manager UI", () => {
     expect(addComponentModalSource).toContain("OPENDESIGN_DRAWER_SHADOW_CLASS");
     expect(addComponentModalSource).toContain("28px_26px_58px_-34px_rgba(23,29,40,0.56)");
     expect(addComponentModalSource).toContain("data-add-component-drawer-seam-shadow");
-    expect(addComponentModalSource).toContain("right-[-36px] top-[33px] z-30 w-9");
+    expect(addComponentModalSource).toContain("right-[-36px] top-[77px] z-[3] w-9");
     expect(addComponentModalSource).toContain("top-[33px] z-10 flex w-[min(533px,calc(100vw-32px))]");
     expect(addComponentModalSource).toContain("min-h-[176px]");
-    expect(addComponentModalSource).toContain("h-[99px] grid-cols-[83px_minmax(0,1fr)]");
+    expect(addComponentModalSource).toContain("h-[99px] grid-cols-[99px_minmax(0,1fr)]");
     expect(addComponentModalSource).toContain("pt-[6px]");
   });
 

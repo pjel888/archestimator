@@ -173,14 +173,16 @@ const ADD_COMPONENT_MODAL_TABS: Array<{ id: AddComponentModalTab; label: string 
 const COMPONENT_UNIT_COMBOBOX_OPTIONS = toUnitComboboxOptions(COMPONENT_UNIT_OPTIONS);
 const CONTENT_UNIT_COMBOBOX_OPTIONS = toUnitComboboxOptions(CONTENT_UNIT_OPTIONS);
 const OPENDESIGN_INPUT_CLASS =
-  "h-8 rounded-[6px] border-0 bg-[rgba(61,61,61,0.05)] px-2 !text-[10px] font-medium shadow-none hover:bg-[rgba(61,61,61,0.064)] focus:bg-[rgba(61,61,61,0.058)] focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]";
+  "h-8 rounded-[6px] border-0 bg-[rgba(61,61,61,0.05)] px-2 !text-[10px] font-medium shadow-none hover:bg-[rgba(61,61,61,0.064)] focus:bg-[rgba(61,61,61,0.058)] focus:shadow-[0_0_0_1px_rgba(242,68,5,0.42),inset_0_1px_0_rgba(255,255,255,0.75)] focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]";
 const OPENDESIGN_TEXTAREA_CLASS =
-  "min-h-14 rounded-[6px] border-0 bg-[rgba(61,61,61,0.05)] px-2 py-2 !text-[10px] font-medium shadow-none hover:bg-[rgba(61,61,61,0.064)] focus:bg-[rgba(61,61,61,0.058)] focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]";
+  "min-h-14 rounded-[6px] border-0 bg-[rgba(61,61,61,0.05)] px-2 py-2 !text-[10px] font-medium shadow-none hover:bg-[rgba(61,61,61,0.064)] focus:bg-[rgba(61,61,61,0.058)] focus:shadow-[0_0_0_1px_rgba(242,68,5,0.42),inset_0_1px_0_rgba(255,255,255,0.75)] focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]";
 const OPENDESIGN_SECTION_CLASS = "grid gap-[10px] rounded-[3px] bg-[rgba(61,61,61,0.035)] p-2";
-const OPENDESIGN_SECTION_TITLE_CLASS = "flex items-center gap-2 text-[10px] font-medium normal-case text-secondary";
+const OPENDESIGN_SECTION_TITLE_CLASS = "col-span-full flex items-center gap-2 text-[11px] font-medium normal-case text-secondary mb-[2px]";
 const OPENDESIGN_FIELD_LABEL_CLASS = "normal-case";
 const OPENDESIGN_IMAGE_WELL_CLASS =
   "relative grid aspect-square place-items-center overflow-hidden rounded-[3px] border-0 bg-[rgba(61,61,61,0.04)] shadow-[inset_0_1px_0_rgba(255,255,255,0.72),inset_0_0_0_1px_rgba(61,61,61,0.035)]";
+const OPENDESIGN_MODAL_BG_CLASS =
+  "bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(255,255,255,0.78))] backdrop-blur-[18px] saturate-150";
 const OPENDESIGN_MODAL_SHADOW_CLASS =
   "shadow-[0_28px_70px_-24px_rgba(23,29,40,0.32),0_10px_26px_-18px_rgba(23,29,40,0.24),inset_0_1px_0_rgba(255,255,255,0.82)]";
 const OPENDESIGN_DRAWER_SHADOW_CLASS =
@@ -1053,16 +1055,21 @@ function OpenAddComponentModal({
         transparentBackdrop
         bodyClassName="overflow-visible p-0"
         className={cn(
-          "!w-[min(793px,calc(100vw-16px))] max-w-none overflow-visible rounded-[6px] border border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.88)] backdrop-blur-[18px]",
+          "!w-[min(793px,calc(100vw-16px))] max-w-none overflow-visible rounded-[6px] border border-[rgba(61,61,61,0.10)]",
+          OPENDESIGN_MODAL_BG_CLASS,
           OPENDESIGN_MODAL_SHADOW_CLASS,
+          "before:pointer-events-none before:absolute before:left-[12%] before:right-[12%] before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/95 before:to-transparent",
           "[&_[data-archestimator-modal-close-header]]:absolute [&_[data-archestimator-modal-close-header]]:right-2 [&_[data-archestimator-modal-close-header]]:top-2 [&_[data-archestimator-modal-close-header]]:z-40 [&_[data-archestimator-modal-close-header]]:min-h-0 [&_[data-archestimator-modal-close-header]]:border-0 [&_[data-archestimator-modal-close-header]]:bg-transparent [&_[data-archestimator-modal-close-header]]:p-0",
-          "[&_[data-archestimator-modal-title-header]]:min-h-[44px] [&_[data-archestimator-modal-title-header]]:border-b [&_[data-archestimator-modal-title-header]]:border-[rgba(61,61,61,0.08)] [&_[data-archestimator-modal-title-header]]:bg-transparent [&_[data-archestimator-modal-title-header]]:px-2 [&_[data-archestimator-modal-title-header]]:py-0",
+          "[&_[data-archestimator-modal-close-header]_button]:size-7 [&_[data-archestimator-modal-close-header]_button]:rounded-[3px] [&_[data-archestimator-modal-close-header]_button]:border [&_[data-archestimator-modal-close-header]_button]:border-[rgba(61,61,61,0.10)] [&_[data-archestimator-modal-close-header]_button]:bg-transparent [&_[data-archestimator-modal-close-header]_button]:text-tertiary",
+          "[&_[data-archestimator-modal-close-header]_button]:hover:border-[rgba(61,61,61,0.16)] [&_[data-archestimator-modal-close-header]_button]:hover:bg-[#f5f5f5] [&_[data-archestimator-modal-close-header]_button]:hover:text-ink",
+          "[&_[data-archestimator-modal-close-header]_button]:active:translate-y-px",
+          "[&_[data-archestimator-modal-title-header]]:min-h-[44px] [&_[data-archestimator-modal-title-header]]:border-0 [&_[data-archestimator-modal-title-header]]:bg-transparent [&_[data-archestimator-modal-title-header]]:px-2 [&_[data-archestimator-modal-title-header]]:py-0",
           "[&_[data-archestimator-modal-title-header]_h2]:!text-[12px] [&_[data-archestimator-modal-title-header]_h2]:!font-medium",
           "[&_[data-archestimator-modal-location-footer]]:hidden",
         )}
       >
-        <div className="relative isolate flex h-[min(894px,calc(100dvh-62px))] w-full max-w-full flex-col overflow-visible text-[10px] text-secondary">
-          <div className="relative z-20 flex h-8 shrink-0 items-end gap-0 border-b border-[rgba(61,61,61,0.08)] px-[10px]" role="tablist" aria-label="Add component sections">
+        <div className="relative isolate flex h-[min(940px,calc(100dvh-16px))] w-full max-w-full flex-col overflow-visible text-[10px] text-secondary">
+          <div className="relative z-20 flex h-8 shrink-0 items-stretch gap-2 border-b border-[#e7e9ec] px-2" role="tablist" aria-label="Add component sections">
             {ADD_COMPONENT_MODAL_TABS.map((tab) => (
               <button
                 key={tab.id}
@@ -1071,8 +1078,8 @@ function OpenAddComponentModal({
                 aria-selected={activeTab === tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "relative h-8 min-w-[86px] px-3 !text-[10px] font-medium text-tertiary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]",
-                  activeTab === tab.id && "text-ink after:absolute after:bottom-0 after:left-3 after:right-3 after:h-0.5 after:rounded-full after:bg-[#F24405]",
+                  "relative flex items-center gap-1.5 h-full px-2 !text-[10px] font-medium text-tertiary border-b-2 border-b-transparent transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]",
+                  activeTab === tab.id && "text-ink border-b-[#F24405]",
                 )}
               >
                 {tab.label}
@@ -1089,9 +1096,11 @@ function OpenAddComponentModal({
               setVariantDrawerView("manager");
             }}
             className={cn(
-              "absolute right-[-30px] top-[-1px] z-40 grid h-[34px] w-[30px] place-items-center rounded-r-[3px] border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.84)] text-tertiary transition hover:border-[#F24405]/30 hover:bg-[color-mix(in_srgb,#F24405_14%,white)] hover:text-[#c63804] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)] max-lg:right-3 max-lg:top-[50px] max-lg:rounded-[6px] max-lg:border-l",
+              "absolute right-[-30px] top-[-1px] z-40 grid h-[34px] w-[30px] place-items-center rounded-r-[3px] border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.84)] text-tertiary transition-colors transition-transform hover:border-[#F24405]/30 hover:bg-[color-mix(in_srgb,#F24405_14%,white)] hover:text-[#c63804] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)] before:absolute before:left-0 before:top-[7px] before:bottom-[7px] before:w-0.5 before:rounded-r-sm before:bg-transparent before:transition-colors",
+              "hover:before:bg-[#F24405]",
               OPENDESIGN_RAIL_SHADOW_CLASS,
-              variantDrawerOpen && "border-[#F24405]/30 bg-[color-mix(in_srgb,#F24405_14%,white)] text-[#F24405]",
+              "max-[640px]:right-2 max-[640px]:top-[3px] max-[640px]:h-[26px] max-[640px]:w-[28px] max-[640px]:rounded-[6px] max-[640px]:border-l",
+              variantDrawerOpen && "border-[#F24405]/30 bg-[color-mix(in_srgb,#F24405_14%,white)] text-[#c63804] before:bg-[#F24405] shadow-[16px_16px_30px_-24px_rgba(23,29,40,0.56),inset_0_1px_0_rgba(255,255,255,0.72),inset_0_0_0_1px_rgba(61,61,61,0.025)]",
             )}
           >
             <Dna size={15} weight="regular" aria-hidden="true" />
@@ -1099,7 +1108,7 @@ function OpenAddComponentModal({
 
           {activeTab === "component" ? (
             <div role="tabpanel" aria-label="Component" className="relative z-20 grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[260px_minmax(0,1fr)]">
-              <aside className="min-h-0 overflow-auto border-b border-[rgba(61,61,61,0.08)] bg-[rgba(255,255,255,0.54)] p-2 lg:border-b-0 lg:border-r" aria-label="Component image">
+              <aside className="min-h-0 overflow-auto border-b border-[#f2f2f2] bg-[rgba(255,255,255,0.64)] p-2 lg:border-b-0 lg:border-r" aria-label="Component image">
                 <div className="grid gap-2">
                   <div className={OPENDESIGN_IMAGE_WELL_CLASS}>
                     {activeImageSrc ? (
@@ -1113,9 +1122,9 @@ function OpenAddComponentModal({
                       />
                     ) : (
                       <div className="grid justify-items-center gap-1 px-4 text-center text-tertiary">
-                        <ImageSquare size={34} weight="regular" aria-hidden="true" />
+                        <ImageSquare size={30} weight="regular" aria-hidden="true" />
                         <span className="text-[10px] font-medium text-ink">Thumbnail</span>
-                        <span className="max-w-[18ch] text-[9px] font-medium leading-3 text-tertiary">Upload a square product image</span>
+                        <span className="max-w-[190px] text-[9px] font-medium leading-[1.35] text-tertiary">Upload a square reference image for this component.</span>
                       </div>
                     )}
                   </div>
@@ -1164,7 +1173,7 @@ function OpenAddComponentModal({
                 </div>
               </aside>
 
-              <main className="min-h-0 overflow-auto p-2" role="form" aria-label="Quick add component">
+              <main className="min-h-0 overflow-auto bg-white p-2" role="form" aria-label="Quick add component">
                 <div className="grid gap-[10px]">
                   <section className={cn(OPENDESIGN_SECTION_CLASS, "min-h-[176px]")} aria-label="Component information fields">
                     <div className={OPENDESIGN_SECTION_TITLE_CLASS}>
@@ -1203,10 +1212,10 @@ function OpenAddComponentModal({
                         <Money size={11} weight="regular" aria-hidden="true" />
                         Cost
                       </div>
-                      <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                      <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(76px,0.5fr)]">
                         <ControlField label="Unit cost" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS} errorText={visibleValidationErrors.unitCost}>
-                          <div className="grid grid-cols-[38px_minmax(0,1fr)] overflow-hidden rounded-[6px] bg-[rgba(61,61,61,0.05)]">
-                            <span className="grid place-items-center border-r border-[rgba(61,61,61,0.08)] text-[10px] font-medium text-tertiary">PHP</span>
+                          <div className="relative">
+                            <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 font-mono text-[9px] font-medium text-tertiary">PHP</span>
                             <ControlInput
                               aria-label="Unit cost"
                               aria-required="true"
@@ -1217,7 +1226,7 @@ function OpenAddComponentModal({
                                 updateVariant(defaultVariant.id, { unitCost: formatAccountingMoney(normalizeMoneyInput(event.target.value)) });
                               }}
                               invalid={Boolean(visibleValidationErrors.unitCost)}
-                              className={cn(OPENDESIGN_INPUT_CLASS, "rounded-none bg-transparent text-right tabular-nums hover:bg-transparent focus:bg-transparent")}
+                              className={cn(OPENDESIGN_INPUT_CLASS, "pl-[34px] text-right tabular-nums")}
                               placeholder="0.00"
                             />
                           </div>
@@ -1361,23 +1370,32 @@ function OpenAddComponentModal({
             </div>
           )}
 
-          <footer className="relative z-20 flex h-[49px] min-h-[49px] shrink-0 items-center gap-2 border-t border-[rgba(61,61,61,0.08)] px-2">
+          <footer className="relative z-20 flex h-[49px] min-h-[49px] shrink-0 items-center gap-2 border-t border-[#f2f2f2] bg-[rgba(255,255,255,0.94)] px-2">
             <div className={cn("mr-auto min-w-0 truncate text-[9px] font-medium", error || showValidationErrors ? "text-danger" : "text-tertiary")} aria-live="polite">
               {componentStatus}
             </div>
-            <Button type="button" variant="secondary" size="sm" onClick={() => requestClose(false)} className="min-w-[74px] rounded-[6px]">
+            <button
+              type="button"
+              onClick={() => requestClose(false)}
+              className="h-8 px-2 text-[10px] font-medium text-tertiary transition hover:bg-[rgba(255,255,255,0.58)] hover:text-ink rounded-[3px] border border-transparent bg-transparent"
+            >
               Discard
-            </Button>
-            <Button type="button" onClick={submit} variant="brand" size="sm" disabled={isPending || imageBusy || attachmentBusy} className="min-w-[104px] rounded-[6px]">
+            </button>
+            <button
+              type="button"
+              onClick={submit}
+              disabled={isPending || imageBusy || attachmentBusy}
+              className="h-8 px-2 text-[10px] font-medium text-white transition hover:brightness-[0.94] disabled:cursor-not-allowed disabled:opacity-55 rounded-[3px] border border-[#c63804] bg-[#F24405] shadow-[0_1px_0_rgba(255,255,255,0.22)_inset,0_10px_18px_-14px_rgba(198,56,4,0.78)]"
+            >
               {isPending ? "Adding..." : imageBusy || attachmentBusy ? "Uploading..." : "Add Component"}
-            </Button>
+            </button>
           </footer>
 
           <div
             aria-hidden="true"
             data-add-component-drawer-seam-shadow
             className={cn(
-              "pointer-events-none absolute bottom-0 right-[-36px] top-[33px] z-30 w-9 bg-[linear-gradient(90deg,rgba(23,29,40,0.22),rgba(23,29,40,0.08)_52%,transparent)] opacity-0 transition-opacity duration-200",
+              "pointer-events-none absolute bottom-0 right-[-36px] top-[77px] z-[3] w-9 bg-[linear-gradient(90deg,rgba(23,29,40,0.22),rgba(23,29,40,0.08)_52%,transparent)] opacity-0 transition-opacity duration-200",
               variantDrawerOpen && "opacity-100",
             )}
           />
@@ -1387,85 +1405,100 @@ function OpenAddComponentModal({
             aria-label="Manage variants"
             aria-modal="false"
             aria-hidden={!variantDrawerOpen}
+            inert={!variantDrawerOpen}
             className={cn(
-              "absolute bottom-0 left-[calc(100%-1px)] top-[33px] z-10 flex w-[min(533px,calc(100vw-32px))] flex-col overflow-visible rounded-r-[6px] border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.94)] backdrop-blur-[18px] transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.2,0,0,1)] max-lg:left-0 max-lg:right-0 max-lg:w-full max-lg:rounded-[6px] max-lg:border-l",
+              "absolute bottom-0 left-[calc(100%-1px)] top-[33px] z-10 flex w-[min(533px,calc(100vw-32px))] origin-left flex-col overflow-visible rounded-r-[6px] border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.94)] backdrop-blur-[18px] transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.2,0,0,1)]",
               OPENDESIGN_DRAWER_SHADOW_CLASS,
               variantDrawerOpen ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-[calc(-100%+1px)] opacity-0",
+              "max-[1120px]:right-2 max-[1120px]:left-auto max-[1120px]:w-[min(430px,calc(100%-24px))] max-[1120px]:origin-right max-[1120px]:rounded-[6px] max-[1120px]:rounded-r-none max-[1120px]:border-l max-[1120px]:border-r-0 max-[1120px]:shadow-[-26px_0_44px_-34px_rgba(23,29,40,0.52),inset_0_1px_0_rgba(255,255,255,0.72),inset_0_0_0_1px_rgba(61,61,61,0.025)]",
+              "max-[900px]:right-0 max-[900px]:w-[min(430px,calc(100%-8px))]",
+              "max-[640px]:inset-x-0 max-[640px]:w-full max-[640px]:rounded-none",
             )}
           >
-            <header className="flex h-[45px] shrink-0 items-center gap-2 border-b border-[rgba(61,61,61,0.08)] px-4">
+            <header className="flex h-[45px] shrink-0 items-center gap-2 border-b border-[rgba(61,61,61,0.08)] bg-[rgba(255,255,255,0.72)] pl-4 pr-2">
               <div className="mr-auto min-w-0">
-                <h3 className="truncate text-[12px] font-medium leading-4 text-ink">Manage Variants</h3>
+                <h3 className="truncate text-[11px] font-medium leading-[1.2] text-ink">Manage Variants</h3>
                 <p className="m-0 truncate text-[9px] font-medium leading-3 text-tertiary">{draft.variants.length} variant{draft.variants.length === 1 ? "" : "s"}</p>
               </div>
               <button
                 type="button"
                 aria-label="Close variants panel"
                 onClick={() => setVariantDrawerOpen(false)}
-                className="grid size-7 place-items-center rounded-[6px] text-tertiary transition hover:bg-[rgba(61,61,61,0.06)] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]"
+                className="grid size-7 place-items-center rounded-[3px] border border-[rgba(61,61,61,0.10)] bg-transparent text-tertiary transition hover:border-[rgba(61,61,61,0.16)] hover:bg-[#f5f5f5] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]"
               >
                 <X size={13} weight="regular" aria-hidden="true" />
               </button>
             </header>
 
-            <div className="flex h-8 shrink-0 items-center border-b border-[rgba(61,61,61,0.08)] px-4">
-              <Button
+            <div className="flex h-8 shrink-0 items-center justify-start gap-2 border-b border-[rgba(61,61,61,0.08)] bg-[rgba(255,255,255,0.58)] px-2 pb-[5px] pl-4 pt-1">
+              <button
                 type="button"
-                variant="secondary"
-                size="xs"
-                disabled={!activeVariant || activeVariant.isDefault}
+                aria-pressed={activeVariant?.isDefault ?? false}
+                disabled={!activeVariant}
                 onClick={setActiveVariantAsDefault}
-                className="h-6 min-w-[66px] rounded-[6px] px-2 !text-[9px]"
+                className={cn(
+                  "h-5 rounded-full px-2 text-[9px] font-medium leading-none transition disabled:opacity-50",
+                  activeVariant?.isDefault
+                    ? "bg-[color-mix(in_srgb,#F24405_14%,white)] text-[#c63804]"
+                    : "bg-transparent text-[#c63804] hover:bg-[color-mix(in_srgb,#F24405_9%,transparent)]",
+                )}
               >
-                {activeVariant?.isDefault ? "Default" : "Make default"}
-              </Button>
+                Default
+              </button>
             </div>
 
-            <nav className="absolute left-full top-[45px] z-30 grid w-[30px] gap-0 max-lg:hidden" aria-label="Variant navigation">
-              <button
-                type="button"
-                aria-label="Manage variants"
-                aria-pressed={variantDrawerView === "manager"}
-                onClick={() => setVariantDrawerView("manager")}
-                className={cn(
-                  "grid h-8 w-[30px] place-items-center rounded-tr-[3px] border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.84)] text-tertiary transition hover:border-[#F24405]/30 hover:bg-white hover:text-[#c63804] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]",
-                  OPENDESIGN_RAIL_SHADOW_CLASS,
-                  variantDrawerView === "manager" && cn("border-r-2 border-r-[#F24405] bg-white text-[#F24405]", OPENDESIGN_RAIL_ACTIVE_SHADOW_CLASS),
-                )}
-              >
-                <Dna size={13} weight="regular" aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                aria-label="Add variant"
-                onClick={addVariant}
-                className={cn(
-                  "mt-[-1px] grid h-[34px] w-[30px] place-items-center border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.84)] text-tertiary transition hover:border-[#F24405]/30 hover:bg-white hover:text-[#c63804] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]",
-                  OPENDESIGN_RAIL_SHADOW_CLASS,
-                )}
-              >
-                <Plus size={14} weight="regular" aria-hidden="true" />
-              </button>
+            <nav className="absolute left-full top-[45px] z-[3] grid w-[30px] gap-0 max-[1120px]:hidden" aria-label="Variant navigation">
               <div className="grid gap-0">
-                {draft.variants.map((variant, index) => (
-                  <button
-                    key={variant.id}
-                    type="button"
-                    aria-label={`Open V${index + 1}`}
-                    aria-pressed={activeVariant?.id === variant.id && variantDrawerView === "variant"}
-                    onClick={() => {
-                      setActiveVariantId(variant.id);
-                      setVariantDrawerView("variant");
-                    }}
-                    className={cn(
-                      "mt-[-1px] grid h-[34px] w-[30px] translate-x-[-3px] place-items-center border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.58)] text-[9px] font-semibold text-tertiary opacity-60 transition hover:translate-x-0 hover:bg-white hover:text-ink hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]",
-                      OPENDESIGN_RAIL_SHADOW_CLASS,
-                      activeVariant?.id === variant.id && variantDrawerView === "variant" && cn("translate-x-0 border-r-2 border-r-[#F24405] bg-white text-[#F24405] opacity-100", OPENDESIGN_RAIL_ACTIVE_SHADOW_CLASS),
-                    )}
-                  >
-                    V{index + 1}
-                  </button>
-                ))}
+                <button
+                  type="button"
+                  aria-label="Manage variants"
+                  aria-pressed={variantDrawerView === "manager"}
+                  onClick={() => setVariantDrawerView("manager")}
+                  className={cn(
+                    "grid h-8 w-[30px] place-items-center rounded-tr-[3px] border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.84)] text-tertiary transition hover:border-[#F24405]/30 hover:bg-white hover:text-[#c63804] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]",
+                    OPENDESIGN_RAIL_SHADOW_CLASS,
+                    variantDrawerView === "manager" && cn("z-[2] border-r-2 border-r-[#F24405] bg-[rgba(255,255,255,0.94)] text-[#c63804]", OPENDESIGN_RAIL_ACTIVE_SHADOW_CLASS),
+                  )}
+                >
+                  <Dna size={13} weight="regular" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Add variant"
+                  onClick={addVariant}
+                  className={cn(
+                    "-mt-px grid h-[34px] w-[30px] place-items-center border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.84)] text-tertiary opacity-[0.82] transition hover:border-[#F24405]/30 hover:bg-white hover:text-[#c63804] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]",
+                    OPENDESIGN_RAIL_SHADOW_CLASS,
+                    draft.variants.length === 0 && "rounded-br-[3px]",
+                  )}
+                >
+                  <Plus size={14} weight="regular" aria-hidden="true" />
+                </button>
+                {draft.variants.map((variant, index) => {
+                  const isActive = activeVariant?.id === variant.id && variantDrawerView === "variant";
+                  const isLast = index === draft.variants.length - 1;
+                  return (
+                    <button
+                      key={variant.id}
+                      type="button"
+                      aria-label={`Open V${index + 1}`}
+                      aria-pressed={isActive}
+                      onClick={() => {
+                        setActiveVariantId(variant.id);
+                        setVariantDrawerView("variant");
+                      }}
+                      className={cn(
+                        "-mt-px grid h-[34px] w-[30px] place-items-center border border-l-0 border-[rgba(61,61,61,0.10)] text-[9px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]",
+                        isActive
+                          ? "z-[2] translate-x-0 border-r-2 border-r-[#F24405] bg-[rgba(255,255,255,0.94)] text-[#c63804] opacity-100 shadow-[16px_16px_30px_-24px_rgba(23,29,40,0.56),inset_0_1px_0_rgba(255,255,255,0.72),inset_0_0_0_1px_rgba(61,61,61,0.025)]"
+                          : "translate-x-[-3px] bg-[rgba(255,255,255,0.58)] text-tertiary opacity-[0.56] shadow-[7px_10px_18px_-18px_rgba(23,29,40,0.55),inset_0_1px_0_rgba(255,255,255,0.72),inset_0_0_0_1px_rgba(61,61,61,0.025)] hover:translate-x-0 hover:bg-white hover:text-ink hover:opacity-100",
+                        isLast && "rounded-br-[3px]",
+                      )}
+                    >
+                      V{index + 1}
+                    </button>
+                  );
+                })}
               </div>
             </nav>
 
@@ -1480,16 +1513,13 @@ function OpenAddComponentModal({
                         setActiveVariantId(variant.id);
                         setVariantDrawerView("variant");
                       }}
-                      className="grid min-h-[58px] grid-cols-[38px_minmax(0,1fr)_auto] items-center gap-2 rounded-[6px] bg-[rgba(61,61,61,0.05)] px-2 text-left transition hover:bg-[rgba(61,61,61,0.075)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]"
+                      className="grid min-h-[34px] grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-[3px] bg-[rgba(61,61,61,0.05)] px-2 py-1.5 text-left transition hover:bg-[rgba(61,61,61,0.075)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]"
                     >
-                      <span className={cn("grid size-8 place-items-center rounded-[6px] text-[10px] font-semibold", variant.isDefault ? "bg-[#F24405] text-white" : "bg-white text-tertiary")}>
-                        {variant.label || `V${index + 1}`}
-                      </span>
                       <span className="min-w-0">
-                        <span className="block truncate text-[10px] font-semibold text-ink">{variant.label || `V${index + 1}`}</span>
-                        <span className="block truncate text-[9px] font-medium text-tertiary">PHP {formatAccountingMoney(variant.unitCost || "0")} / {getUnitDisplayLabel(variant.unit) || variant.unit}</span>
+                        <span className="block truncate text-[10px] font-medium text-ink">{variant.label || `V${index + 1}`}</span>
+                        <span className="mt-0.5 block truncate text-[9px] font-medium text-tertiary">PHP {formatAccountingMoney(variant.unitCost || "0")} / {getUnitDisplayLabel(variant.unit) || variant.unit}</span>
                       </span>
-                      {variant.isDefault ? <span className="rounded-[5px] bg-white px-2 py-1 text-[9px] font-medium text-[#F24405]">Default</span> : null}
+                      {variant.isDefault ? <span className="h-[18px] rounded-full bg-[color-mix(in_srgb,#F24405_10%,white)] px-[7px] text-[9px] font-medium leading-[18px] text-[#c63804]">Default</span> : null}
                     </button>
                   ))}
                   <Button type="button" variant="secondary" size="sm" onClick={addVariant} className="mt-1 rounded-[6px]">
@@ -1499,22 +1529,20 @@ function OpenAddComponentModal({
                 </div>
               ) : activeVariant ? (
                 <div className="grid gap-2" aria-label="Variant editor">
-                  <section className="grid h-[99px] grid-cols-[83px_minmax(0,1fr)] items-center gap-2 rounded-[3px] bg-[rgba(61,61,61,0.035)] p-2" aria-label="Variant image">
-                    <div>
-                      <div className={OPENDESIGN_IMAGE_WELL_CLASS}>
-                        {activeImageSrc ? (
-                          <Image
-                            src={activeImageSrc}
-                            alt="Variant thumbnail preview"
-                            fill
-                            sizes="96px"
-                            className="object-cover"
-                            unoptimized={Boolean(activePreviewUrl || activeImageSrc.startsWith("http"))}
-                          />
-                        ) : (
-                          <ImageSquare size={20} weight="regular" aria-hidden="true" className="text-tertiary" />
-                        )}
-                      </div>
+                  <section className="grid h-[99px] grid-cols-[99px_minmax(0,1fr)] items-center gap-2 rounded-[3px] bg-[rgba(61,61,61,0.035)] p-2" aria-label="Variant image">
+                    <div className={OPENDESIGN_IMAGE_WELL_CLASS}>
+                      {activeImageSrc ? (
+                        <Image
+                          src={activeImageSrc}
+                          alt="Variant thumbnail preview"
+                          fill
+                          sizes="96px"
+                          className="object-cover"
+                          unoptimized={Boolean(activePreviewUrl || activeImageSrc.startsWith("http"))}
+                        />
+                      ) : (
+                        <ImageSquare size={22} weight="regular" aria-hidden="true" className="text-tertiary" />
+                      )}
                     </div>
                     <div className="grid content-center gap-1">
                       <p className="m-0 text-[11px] font-medium leading-[1.25] text-ink">Upload thumbnail</p>
@@ -1584,8 +1612,8 @@ function OpenAddComponentModal({
                       )}
                     >
                       <ControlField label="Unit cost" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS} errorText={showValidationErrors && activeVariant.id === defaultVariant?.id ? quickAddValidation.errors.unitCost : undefined}>
-                        <div className="grid grid-cols-[38px_minmax(0,1fr)] overflow-hidden rounded-[6px] bg-[rgba(61,61,61,0.05)]">
-                          <span className="grid place-items-center border-r border-[rgba(61,61,61,0.08)] text-[10px] font-medium text-tertiary">PHP</span>
+                        <div className="relative">
+                          <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 font-mono text-[9px] font-medium text-tertiary">PHP</span>
                           <ControlInput
                             aria-label="Variant unit cost"
                             aria-required="true"
@@ -1593,7 +1621,7 @@ function OpenAddComponentModal({
                             value={activeVariant.unitCost}
                             onChange={(event) => updateActiveVariant({ unitCost: formatAccountingMoney(normalizeMoneyInput(event.target.value)) })}
                             invalid={showValidationErrors && (!Number.isFinite(parseMoney(activeVariant.unitCost)) || parseMoney(activeVariant.unitCost) < 0)}
-                            className={cn(OPENDESIGN_INPUT_CLASS, "rounded-none bg-transparent text-right tabular-nums hover:bg-transparent focus:bg-transparent")}
+                            className={cn(OPENDESIGN_INPUT_CLASS, "pl-[34px] text-right tabular-nums")}
                             placeholder="0.00"
                           />
                         </div>
@@ -1619,45 +1647,40 @@ function OpenAddComponentModal({
                         />
                       </ControlField>
                       {showActiveVariantEquivalency ? (
-                        <div className="grid gap-1">
-                          <div className="text-[9px] font-medium uppercase leading-3 text-secondary">Equivalency</div>
-                          <div className="grid gap-1 rounded-[6px] bg-[rgba(61,61,61,0.035)] p-1">
-                            <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-1 px-1 text-[9px] font-medium text-tertiary">
-                              <span>1 {unitLabel}</span>
-                              <span>=</span>
-                            </div>
-                            <div className="grid gap-1 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)]">
-                              <ControlField label="Equivalent quantity" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS}>
-                                <ControlInput
-                                  aria-label="Equivalent quantity"
-                                  inputMode="decimal"
-                                  value={activeVariant.packageQuantity}
-                                  onChange={(event) => updateActiveVariant({ packageQuantity: event.target.value })}
-                                  invalid={Number.isNaN(readOptionalPositiveNumber(activeVariant.packageQuantity))}
-                                  className={OPENDESIGN_INPUT_CLASS}
-                                  placeholder="12"
-                                />
-                              </ControlField>
-                              <ControlField as="div" label="Equivalent unit" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS}>
-                                <CreatableCombobox
-                                  ariaLabel="Equivalent unit"
-                                  value={activeVariant.packageUnit}
-                                  selectedId={getSelectedUnitId(activeVariant.packageUnit, CONTENT_UNIT_COMBOBOX_OPTIONS)}
-                                  options={CONTENT_UNIT_COMBOBOX_OPTIONS}
-                                  placeholder={unitLabel}
-                                  emptyLabel="No units found"
-                                  createLabel={(value) => `Add unit "${value}"`}
-                                  inputClassName={OPENDESIGN_INPUT_CLASS}
-                                  onChange={(change) => updateActiveVariant({ packageUnit: getUnitComboboxValue(change) })}
-                                  preferSelectionOnEnter
-                                  suppressCreateWhenSearchMatches
-                                  optionPresentation="unit"
-                                  dropdownPlacement="top"
-                                  showClearButton={false}
-                                />
-                              </ControlField>
-                            </div>
-                          </div>
+                        <div className="grid h-8 grid-cols-[auto_auto_minmax(44px,0.55fr)_minmax(66px,0.75fr)] items-center gap-1.5 rounded-[6px] bg-[rgba(61,61,61,0.05)] px-1.5">
+                          <span className="text-[10px] font-medium text-muted">
+                            1 <span className="text-ink">{unitLabel}</span>
+                          </span>
+                          <span className="text-[10px] font-medium text-muted">=</span>
+                          <ControlField label="Equivalent quantity" labelClassName="sr-only">
+                            <ControlInput
+                              aria-label="Equivalent quantity"
+                              inputMode="decimal"
+                              value={activeVariant.packageQuantity}
+                              onChange={(event) => updateActiveVariant({ packageQuantity: event.target.value })}
+                              invalid={Number.isNaN(readOptionalPositiveNumber(activeVariant.packageQuantity))}
+                              className={cn(OPENDESIGN_INPUT_CLASS, "h-6 px-1.5")}
+                              placeholder="12"
+                            />
+                          </ControlField>
+                          <ControlField as="div" label="Equivalent unit" labelClassName="sr-only">
+                            <CreatableCombobox
+                              ariaLabel="Equivalent unit"
+                              value={activeVariant.packageUnit}
+                              selectedId={getSelectedUnitId(activeVariant.packageUnit, CONTENT_UNIT_COMBOBOX_OPTIONS)}
+                              options={CONTENT_UNIT_COMBOBOX_OPTIONS}
+                              placeholder={unitLabel}
+                              emptyLabel="No units found"
+                              createLabel={(value) => `Add unit "${value}"`}
+                              inputClassName={cn(OPENDESIGN_INPUT_CLASS, "h-6 px-1.5")}
+                              onChange={(change) => updateActiveVariant({ packageUnit: getUnitComboboxValue(change) })}
+                              preferSelectionOnEnter
+                              suppressCreateWhenSearchMatches
+                              optionPresentation="unit"
+                              dropdownPlacement="top"
+                              showClearButton={false}
+                            />
+                          </ControlField>
                         </div>
                       ) : null}
                     </div>
@@ -1691,26 +1714,27 @@ function OpenAddComponentModal({
                         Upload
                       </label>
                     </div>
-                    <ul className="m-0 flex list-none gap-2 overflow-x-auto p-0">
+                    <ul className="m-0 flex list-none gap-2 overflow-x-auto overscroll-x-contain p-px pb-1.5 -mx-px snap-x snap-proximity">
                       {activeVariant.attachments.length > 0 ? activeVariant.attachments.map((attachment) => (
-                        <li key={attachment.id} className="grid size-[92px] shrink-0 grid-rows-[minmax(0,1fr)_auto] rounded-[6px] bg-[rgba(61,61,61,0.05)] p-2">
-                          <div className="grid min-h-0 place-items-center">
-                            <Paperclip size={18} weight="regular" aria-hidden="true" className="text-tertiary" />
+                        <li key={attachment.id} className="group relative flex aspect-square w-[92px] shrink-0 snap-start flex-col justify-between rounded-[6px] bg-[rgba(61,61,61,0.05)] p-2 after:pointer-events-none after:absolute after:inset-0 after:rounded-[6px] after:shadow-[inset_0_1px_0_rgba(255,255,255,0.48)]">
+                          <div className="grid size-[30px] place-items-center rounded-[3px] bg-white/50">
+                            <Paperclip size={16} weight="regular" aria-hidden="true" className="text-tertiary" />
                           </div>
-                          <div className="grid gap-1">
-                            <span className="truncate text-[9px] font-medium text-ink">{attachment.fileName}</span>
-                            <button
-                              type="button"
-                              aria-label={`Remove attachment ${attachment.fileName}`}
-                              onClick={() => removeAttachment(attachment.id)}
-                              className="justify-self-start rounded-[5px] px-1 text-[9px] font-medium text-danger transition hover:bg-dangerSoft/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
-                            >
-                              Remove
-                            </button>
+                          <div className="grid min-w-0 gap-0.5">
+                            <span className="truncate text-[9.5px] font-medium leading-[1.25] text-ink">{attachment.fileName}</span>
+                            <span className="truncate font-mono text-[8.5px] leading-[1.25] text-tertiary">{formatBytes(attachment.sizeBytes)}</span>
                           </div>
+                          <button
+                            type="button"
+                            aria-label={`Remove attachment ${attachment.fileName}`}
+                            onClick={() => removeAttachment(attachment.id)}
+                            className="absolute right-[5px] top-[5px] grid size-5 place-items-center rounded-full border-0 bg-white/74 p-0 text-tertiary opacity-0 transition hover:bg-danger hover:text-white focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger group-hover:opacity-100"
+                          >
+                            <X size={11} weight="bold" aria-hidden="true" />
+                          </button>
                         </li>
                       )) : (
-                        <li className="grid min-h-[92px] min-w-full place-items-center rounded-[6px] border border-dashed border-[rgba(61,61,61,0.16)] px-3 text-center text-[10px] font-medium text-tertiary">
+                        <li className="grid min-h-[72px] min-w-full place-items-center rounded-[6px] bg-[rgba(61,61,61,0.05)] px-3 text-center text-[9.5px] leading-[1.35] text-tertiary">
                           No files attached. Upload specs, quotes, certificates, or site files for this variant.
                         </li>
                       )}
