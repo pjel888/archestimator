@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-07-01T20:04:00Z",
+  "scope": "Post state_mismatch fallback hardening parallel QA refresh",
+  "summary": {
+    "auth": "No new auth blocker found. Google OAuth start/callback, root/app-path state_mismatch recovery, missing-cookie callback recovery, magic-link evidence, and signed-out denial are covered. Hosted auth allowed/denied/revoked/expired cases remain fixture-limited.",
+    "dataAndLibrary": "Local D1 estimate-history and component-library proof scripts pass functionally. Hosted scalar estimate Notes mutation is proven. Full hosted estimate tab/row/item/history and hosted component-library UI/Worker+D1 mutation journeys remain open.",
+    "uploadPublicationRealtime": "Local upload/publication/realtime contracts pass. R2 runtime and Durable Object transport proofs pass. Real hosted upload UI with scan persistence, publication recipient flow, and hosted two-client UI realtime roster proof remain open.",
+    "deployAndProvider": "Main archestimator-proof Worker current-source upload still stalls after bundle upload and returns no fresh version ID. The edge adapter remains required. Provider evidence supports Cloudflare traffic and low-cost rollback posture, not destructive provider deletion/cancellation."
+  },
+  "freshEvidence": [
+    "2026-07-02-cloudflare-oauth-state-mismatch-fallback-hardening.*",
+    "2026-07-02-cloudflare-hosted-route-proof-refresh.*",
+    "2026-07-02-cloudflare-release-gates-refresh.*",
+    "2026-07-02-hosted-auth-route-smoke-refresh.*"
+  ],
+  "freshVerification": {
+    "stateMismatchFallback": {
+      "result": "pass",
+      "adapterVersion": "efab385a-a0ca-4e8b-b382-e7cc0f469044",
+      "liveRootStateMismatchFinalUrl": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1"
+    },
+    "hostedRoutes": {
+      "result": "pass",
+      "hostedRouteProofReady": true,
+      "blockers": []
+    },
+    "releaseGates": {
+      "result": "pass",
+      "productionCutoverReady": true,
+      "blockers": []
+    },
+    "hostedAuthSmoke": {
+      "result": "partial",
+      "signedOut": "pass",
+      "fixtureLimitedCases": [
+        "allowed",
+        "denied",
+        "revoked",
+        "expired"
+      ]
+    }
+  },
+  "remainingWorkPackages": [
+    "Hosted authenticated estimate tab/row/item/history journey with rollback, idempotency, reload/readback, and cross-workspace denial.",
+    "Hosted authenticated component-library mutation journey for folders, components, price options, templates, bulk archive, reload/readback, and viewer denial.",
+    "Hosted real user upload through UI to R2, D1 metadata/readback, authenticated scan/cleanup dry-run with proof secrets, and persisted scan result.",
+    "Hosted authenticated publication creation plus recipient open/comment/respond and remote D1 activity/response readback.",
+    "Hosted two-client in-app realtime roster/presence/broadcast proof.",
+    "Repair main archestimator-proof Worker current-source version upload before folding edge-adapter behavior into the main bundle.",
+    "Final provider cleanup runbook and explicit owner decision before deleting/cancelling any old-provider resources."
+  ],
+  "notes": [
+    "Do not promote older main Worker version 76c1b259-1515-460b-9878-eccfdac0b3c7 because it lacks current-source/assets parity proof.",
+    "Do not mark the broader Cloudflare-only migration goal complete until hosted browser/data/media/publication/realtime proof gaps are closed or intentionally accepted."
+  ]
+}

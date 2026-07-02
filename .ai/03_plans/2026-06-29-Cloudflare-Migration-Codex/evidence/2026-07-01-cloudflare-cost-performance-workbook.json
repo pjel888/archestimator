@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-01T09:54:25.110Z",
+  "generatedAt": "2026-07-01T18:10:52.507Z",
   "mode": "cloudflare-cost-performance-workbook",
   "sources": {
     "inventory": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-migration-inventory.json",
@@ -271,7 +271,7 @@
       ],
       "currentBaselineP95Ms": null,
       "cloudflareLocalPreviewP95Ms": 168.47,
-      "cloudflareHostedP95Ms": 65.8,
+      "cloudflareHostedP95Ms": 73.9,
       "budget": "under 200 ms",
       "budgetMs": 200,
       "status": "hosted-partial-pass",
@@ -287,10 +287,10 @@
       ],
       "currentBaselineP95Ms": null,
       "cloudflareLocalPreviewP95Ms": 13.68,
-      "cloudflareHostedP95Ms": 257.29,
+      "cloudflareHostedP95Ms": 123.93,
       "budget": "under 200 ms",
       "budgetMs": 200,
-      "status": "hosted-partial-fail",
+      "status": "hosted-partial-pass",
       "evidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-29-cloudflare-worker-preview-route-probe.json",
       "hostedEvidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-hosted-performance.json",
       "notes": "Uses the slower local preview p95 across pricing and features probes. Hosted evidence here is credential-free route timing only unless the fixture explicitly maps to that route class."
@@ -317,7 +317,7 @@
       ],
       "currentBaselineP95Ms": null,
       "cloudflareLocalPreviewP95Ms": 327.35,
-      "cloudflareHostedP95Ms": 60.89,
+      "cloudflareHostedP95Ms": 66.25,
       "budget": "under 400 ms",
       "budgetMs": 400,
       "status": "hosted-partial-pass",
@@ -332,7 +332,7 @@
       ],
       "currentBaselineP95Ms": null,
       "cloudflareLocalPreviewP95Ms": 4.03,
-      "cloudflareHostedP95Ms": 79.43,
+      "cloudflareHostedP95Ms": 92.97,
       "budget": "under 600 ms",
       "budgetMs": 600,
       "status": "hosted-partial-pass",
@@ -410,13 +410,13 @@
       "probeKeys": [],
       "currentBaselineP95Ms": null,
       "cloudflareLocalPreviewP95Ms": null,
-      "cloudflareHostedP95Ms": 32381,
+      "cloudflareHostedP95Ms": 33537,
       "budget": "job-specific",
       "budgetMs": null,
       "status": "hosted-provider-pass",
       "evidence": null,
       "hostedEvidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-jobs-runtime-proof.json",
-      "notes": "Jobs runtime proof covers Queue send, consumer receipt, cron provider execution, and sanitized end-to-end queue receipt latency: sampleCount=1, p95=32381ms."
+      "notes": "Jobs runtime proof covers Queue send, consumer receipt, cron provider execution, and sanitized end-to-end queue receipt latency: sampleCount=1, p95=33537ms."
     },
     {
       "fixture": "Realtime cursor/presence latency p95",

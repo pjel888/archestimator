@@ -1,0 +1,81 @@
+{
+  "generatedAt": "2026-07-01T17:59:57Z",
+  "status": "pass",
+  "deployedWorker": {
+    "name": "archestimator-auth-callback-normalizer",
+    "versionId": "86426890-2751-4e11-a20b-e23d74c7bc03",
+    "routes": [
+      "archestimator.com/*",
+      "archestimator.com/api/auth/callback/google*"
+    ],
+    "serviceBinding": {
+      "binding": "ARCH_APP",
+      "service": "archestimator-proof"
+    }
+  },
+  "mainWorkerDeployWatch": {
+    "activeVersionBeforeFix": "b909ac54-1a72-47f0-9a70-f6c70f7c6fb6",
+    "issue": "full OpenNext Worker deploy and versions upload attempts hung after bundle upload",
+    "sourceFixPresent": true,
+    "sourceFixLiveInMainWorker": false
+  },
+  "liveChecks": {
+    "rootStateMismatch": {
+      "url": "https://archestimator.com/?error=state_mismatch",
+      "status": 302,
+      "location": "https://archestimator.com/login?next=%2Fworkshop&error=state_mismatch",
+      "cacheControlContainsNoStore": true,
+      "oauthStateCookieExpiryHeadersPresent": true
+    },
+    "betterAuthErrorStateMismatch": {
+      "url": "https://archestimator.com/api/auth/error?error=state_mismatch",
+      "status": 302,
+      "location": "https://archestimator.com/login?next=%2Fworkshop&error=state_mismatch"
+    },
+    "loginPage": {
+      "url": "https://archestimator.com/login?next=%2Fworkshop",
+      "status": 200,
+      "googleButtonVisibleInHtml": true,
+      "magicLinkControlVisibleInHtml": true
+    },
+    "health": {
+      "url": "https://archestimator.com/api/health",
+      "status": 200,
+      "body": {
+        "ok": true,
+        "service": "archestimator"
+      }
+    },
+    "matchingPrefixInvalidSignedStateCookie": {
+      "firstRedirect": "https://archestimator.com/api/auth/error?error=state_mismatch",
+      "secondRedirect": "https://archestimator.com/login?next=%2Fworkshop&error=state_mismatch",
+      "rootStateMismatchStrandingObserved": false
+    },
+    "playwrightGoogleStart": {
+      "host": "accounts.google.com",
+      "redirectUri": "https://archestimator.com/api/auth/callback/google",
+      "stateLength": 32,
+      "stateCookie": {
+        "name": "__Secure-better-auth.state",
+        "domain": "archestimator.com",
+        "path": "/",
+        "httpOnly": true,
+        "secure": true,
+        "sameSite": "Lax",
+        "startsWithOAuthState": true
+      },
+      "fakeCallbackFinalUrl": "https://archestimator.com/?error=invalid_code",
+      "sawStateMismatch": false
+    }
+  },
+  "verificationCommands": [
+    "bunx vitest run tests/vitest/auth-callback-normalizer-worker.test.ts tests/vitest/cloudflare-worker-route-optimizations.test.ts tests/vitest/auth-set-cookie-forwarding.test.ts tests/vitest/cloudflare-better-auth-route.test.ts",
+    "NODE_OPTIONS=--max-old-space-size=8192 bunx tsc --noEmit --pretty false",
+    "bunx wrangler deploy --config wrangler.auth-callback-normalizer.jsonc",
+    "curl -sS -D /tmp/arch_root_state_fixed_headers.txt -o /tmp/arch_root_state_fixed_body.html 'https://archestimator.com/?error=state_mismatch'",
+    "curl -sS -D /tmp/arch_auth_error_state_fixed_headers.txt -o /tmp/arch_auth_error_state_fixed_body.html 'https://archestimator.com/api/auth/error?error=state_mismatch'",
+    "curl -sS -D /tmp/arch_login_after_adapter_headers.txt -o /tmp/arch_login_after_adapter_body.html 'https://archestimator.com/login?next=%2Fworkshop'",
+    "curl -sS -D /tmp/arch_health_after_adapter_headers.txt -o /tmp/arch_health_after_adapter_body.json 'https://archestimator.com/api/health'",
+    "node --input-type=module <Playwright Google auth-start proof>"
+  ]
+}

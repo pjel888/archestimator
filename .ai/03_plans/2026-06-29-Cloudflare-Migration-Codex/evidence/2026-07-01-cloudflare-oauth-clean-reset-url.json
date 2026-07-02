@@ -1,0 +1,57 @@
+{
+  "mode": "cloudflare-oauth-clean-reset-url",
+  "generatedAt": "2026-07-01T19:07:30.000Z",
+  "baseUrl": "https://archestimator.com",
+  "adapterWorker": "archestimator-auth-callback-normalizer",
+  "adapterVersionId": "c34e7f68-13a2-423e-8ff4-73689f35e17a",
+  "checks": {
+    "focusedVitest": {
+      "command": "bunx vitest run tests/vitest/auth-callback-normalizer-worker.test.ts tests/vitest/cloudflare-worker-route-optimizations.test.ts tests/vitest/auth-set-cookie-forwarding.test.ts tests/vitest/cloudflare-better-auth-route.test.ts --maxWorkers=1",
+      "passed": true,
+      "filesPassed": 4,
+      "testsPassed": 27
+    },
+    "deploy": {
+      "command": "bunx wrangler deploy -c wrangler.auth-callback-normalizer.jsonc",
+      "passed": true,
+      "versionId": "c34e7f68-13a2-423e-8ff4-73689f35e17a",
+      "routes": [
+        "archestimator.com/*",
+        "archestimator.com/api/auth/callback/google*"
+      ]
+    },
+    "rootStateMismatch": {
+      "url": "https://archestimator.com/?error=state_mismatch",
+      "status": 302,
+      "location": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+      "hasNoStore": true,
+      "hasClearSiteDataCookies": true,
+      "clearsOAuthStateCookies": true
+    },
+    "legacyRetryUrl": {
+      "url": "https://archestimator.com/login?next=%2Fworkshop&error=state_mismatch",
+      "status": 302,
+      "location": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+      "hasNoStore": true,
+      "hasClearSiteDataCookies": true,
+      "clearsOAuthStateCookies": true
+    },
+    "followedReset": {
+      "inputUrl": "https://archestimator.com/?error=state_mismatch",
+      "finalUrl": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+      "bodyContainsStateMismatch": false
+    },
+    "playwrightGoogleStart": {
+      "inputUrl": "https://archestimator.com/?error=state_mismatch",
+      "afterResetUrl": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+      "afterResetHasStateMismatch": false,
+      "betterAuthCookiesAfterReset": 0,
+      "googleRedirectUri": "https://archestimator.com/api/auth/callback/google",
+      "googleStateLength": 32,
+      "matchingStateCookieCount": 1,
+      "fakeCallbackFinalUrl": "https://archestimator.com/?error=invalid_code",
+      "fakeCallbackHasStateMismatch": false
+    }
+  },
+  "blockers": []
+}

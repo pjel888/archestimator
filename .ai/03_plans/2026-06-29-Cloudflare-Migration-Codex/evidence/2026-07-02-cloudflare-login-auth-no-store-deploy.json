@@ -1,0 +1,84 @@
+{
+  "generatedAt": "2026-07-01T23:21:00.000Z",
+  "mode": "cloudflare-login-auth-no-store-deploy",
+  "worker": "archestimator-proof",
+  "deployedVersionId": "e4476425-2fdb-41ce-856a-de78e3a22fd8",
+  "trafficPercent": 100,
+  "tag": "login-auth-no-store-final",
+  "message": "Make login and auth routes no-store for OAuth freshness",
+  "startupTimeMs": 33,
+  "upload": {
+    "totalKiB": 17018.92,
+    "gzipKiB": 4656.42,
+    "changedAssets": [
+      "/BUILD_ID"
+    ]
+  },
+  "sourceChanges": [
+    "src/app/login/page.tsx makes /login force-dynamic with revalidate=0",
+    "src/lib/cloudflare/worker-route-optimizations.ts removes /login from the Worker anonymous static-page cache",
+    "src/app/api/auth/[...all]/route.ts adds private no-store cache control to delegated Better Auth responses"
+  ],
+  "hostedHeaderProbe": {
+    "login": {
+      "url": "https://archestimator.com/login?next=%2Fworkshop",
+      "status": 200,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "contentType": "text/html; charset=utf-8",
+      "bodyHasStateMismatch": false
+    },
+    "authGetSession": {
+      "url": "https://archestimator.com/api/auth/get-session",
+      "status": 200,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "contentType": "application/json",
+      "bodyHasStateMismatch": false
+    },
+    "stateMismatchRecovery": {
+      "url": "https://archestimator.com/?error=state_mismatch",
+      "status": 302,
+      "location": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "clearSiteData": "\"cache\", \"cookies\", \"storage\", \"cookies\"",
+      "setCookieCount": 49,
+      "bodyHasStateMismatch": false
+    }
+  },
+  "browserGoogleProbe": {
+    "startUrl": "https://archestimator.com/?error=state_mismatch",
+    "beforeClickUrl": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset_done=1",
+    "beforeClickCacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+    "reachedGoogle": true,
+    "finalUrlHasStateMismatch": false,
+    "googleStateLength": 32,
+    "stateCookieCount": 1,
+    "googleStateMatchesCookie": true,
+    "stateCookie": {
+      "name": "__Secure-better-auth.state",
+      "domain": "archestimator.com",
+      "path": "/",
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "Lax"
+    }
+  },
+  "syntheticCallbackProbe": {
+    "signInStatus": 200,
+    "signInCacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+    "signInSetCookieCount": 1,
+    "stateLength": 32,
+    "callbackStatus": 302,
+    "callbackCacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+    "callbackLocation": "https://archestimator.com/login?next=%2Fworkshop&error=invalid_code",
+    "callbackLocationHasStateMismatch": false,
+    "callbackLocationHasInvalidCode": true
+  },
+  "verification": {
+    "openNextBuild": "PASS; /login is dynamic in the route table",
+    "targetedVitest": "PASS; public-static/auth-entry/cloudflare-worker/cloudflare-better-auth-route",
+    "typeCheck": "PASS; bun run type-check",
+    "hostedRouteProof": "PASS; login has no-store and xNextjsPrerender is null",
+    "releaseGates": "PASS; productionCutoverReady=true, blockers=[]",
+    "gitDiffCheck": "PASS"
+  }
+}

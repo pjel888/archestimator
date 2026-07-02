@@ -1,0 +1,88 @@
+{
+  "generatedAt": "2026-07-01T20:56:00Z",
+  "productionUrl": "https://archestimator.com/workshop/library/components?add=component",
+  "worker": {
+    "scriptName": "archestimator-proof",
+    "liveVersionAfterDeployAttempt": "b909ac54-1a72-47f0-9a70-f6c70f7c6fb6",
+    "deployAttempt": {
+      "command": "bun run cf:deploy",
+      "result": "OpenNext build and asset upload completed, but Wrangler stalled during Worker script upload; deployments list showed no new production deployment after b909."
+    }
+  },
+  "rootCause": {
+    "symptom": "Hosted Add Component server action returned a production Server Components error.",
+    "tailError": "D1_ERROR: FOREIGN KEY constraint failed: SQLITE_CONSTRAINT_FOREIGNKEY",
+    "firstInsertScope": "cost_library_items remained empty after failed custom-category submissions, so the first item insert failed.",
+    "cause": "component_category_nodes was empty in Cloudflare D1 and the stale Worker/source did not normalize blank categoryNodeId to null before inserting cost_library_items.category_node_id."
+  },
+  "repairs": {
+    "d1TaxonomySeed": {
+      "source": "supabase/migrations/20260522064018_component_library_taxonomy_source.sql",
+      "generatedFiles": [
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-d1-component-taxonomy-seed.sql",
+        ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-d1-component-taxonomy-seed-chunked.sql"
+      ],
+      "command": "bunx wrangler d1 execute archestimator-proof-db --remote --file .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-d1-component-taxonomy-seed-chunked.sql",
+      "result": "18 queries processed; finalBookmark 00000064-00000026-0000509b-864d05a5c1d6abf385adb283b9356a9e; category_count=685; PRAGMA foreign_key_check returned no rows."
+    },
+    "sourcePatch": {
+      "files": [
+        "src/lib/component-library/actions.ts",
+        "tests/vitest/library-viewer-authz.test.tsx"
+      ],
+      "change": "normalize blank categoryNodeId/supplierId/brandId to null in normalizeComponentInput and cover OpenDesign create insert values.",
+      "deployed": false,
+      "deploymentBlocker": "Main Worker current-source upload still stalls; production remains on b909."
+    }
+  },
+  "hostedProof": {
+    "browser": "Authenticated in-app browser on archestimator.com",
+    "action": "Selected seeded category Furniture/Site Furniture and submitted Add Component.",
+    "result": "Modal closed, Component saved message displayed, All Components count became 1, component detail opened.",
+    "component": {
+      "id": "ad19e67d-fa31-49de-99e2-0de6dcb9c975",
+      "workspace_id": "258b50ee-3fde-4f6a-a9d9-c360ec44cd0b",
+      "name": "Cloudflare QA Library Component 2026-07-02",
+      "description": "Hosted component library browser mutation proof",
+      "category": "Site Furniture",
+      "category_node_id": "exterior-works-site-furniture",
+      "unit": "unit",
+      "unit_cost": 88.75,
+      "active_price_option_id": "d3456c18-d7ad-4af4-bd92-4d70fa4b81c1",
+      "current_version_number": 1,
+      "lifecycle_state": "available",
+      "created_by": "4e23801d-6fc2-4886-b980-d15ca2b164b8",
+      "created_at": "2026-07-01T20:54:26.588Z"
+    },
+    "priceOption": {
+      "id": "d3456c18-d7ad-4af4-bd92-4d70fa4b81c1",
+      "label": "V1",
+      "unit": "unit",
+      "unit_cost": 88.75,
+      "misc_cost": 0,
+      "is_default": 1,
+      "is_active": 1
+    },
+    "costEntry": {
+      "id": "1086a5e1-53d9-4ee6-8d7d-cea0612e10e7",
+      "price_option_id": "d3456c18-d7ad-4af4-bd92-4d70fa4b81c1",
+      "unit_cost": 88.75,
+      "misc_cost": 0,
+      "currency": "PHP",
+      "is_current": 1
+    },
+    "version": {
+      "id": "dbda47bf-836a-45d5-a9bb-fc4385ce70e1",
+      "version_number": 1,
+      "change_summary": "Component created",
+      "effective_at": "2026-07-01"
+    }
+  },
+  "verification": [
+    "bunx vitest run tests/vitest/library-viewer-authz.test.tsx tests/vitest/library-add-component-modal-a11y.test.tsx --maxWorkers=1 => 2 files / 12 tests passed",
+    "git diff --check => passed",
+    "remote D1 readback for component, price option, variant cost entry, version => passed",
+    "Wrangler tail success POST on /workshop/library/components?add=component => status 200 on b909"
+  ],
+  "remainingRisk": "Custom/free-typed categories can still fail on production until the main Worker deploy succeeds with the blank categoryNodeId normalization patch. Seeded taxonomy category selection is working now."
+}

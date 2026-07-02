@@ -1,0 +1,119 @@
+{
+  "generatedAt": "2026-07-01T18:38:00Z",
+  "baseUrl": "https://archestimator.com",
+  "claim": "Root/API state_mismatch URLs recover to login, clear stale browser cookies, and a real Chrome Google retry reaches /workshop.",
+  "adapter": {
+    "workerName": "archestimator-auth-callback-normalizer",
+    "versionId": "fb5d4528-9aac-473d-a5c2-c4304928e0c9",
+    "deploymentId": "a9da1b92-2d56-4282-b721-0fae88847f57",
+    "deployedAt": "2026-07-01T18:24:48.207546Z",
+    "routes": [
+      "archestimator.com/*",
+      "archestimator.com/api/auth/callback/google*"
+    ],
+    "serviceBinding": "ARCH_APP -> archestimator-proof"
+  },
+  "httpProbes": [
+    {
+      "id": "root-state-mismatch",
+      "url": "https://archestimator.com/?error=state_mismatch",
+      "status": 302,
+      "location": "https://archestimator.com/login?next=%2Fworkshop&error=state_mismatch",
+      "cacheControlNoStore": true,
+      "clearSiteDataCookies": true,
+      "oauthStateCleanupHeaders": true
+    },
+    {
+      "id": "api-auth-error-state-mismatch",
+      "url": "https://archestimator.com/api/auth/error?error=state_mismatch",
+      "status": 302,
+      "location": "https://archestimator.com/login?next=%2Fworkshop&error=state_mismatch",
+      "cacheControlNoStore": true,
+      "clearSiteDataCookies": true,
+      "oauthStateCleanupHeaders": true
+    },
+    {
+      "id": "login-retry-page",
+      "url": "https://archestimator.com/login?next=%2Fworkshop&error=state_mismatch",
+      "status": 200,
+      "servedByOpenNext": true
+    },
+    {
+      "id": "oauth-start",
+      "url": "https://archestimator.com/api/auth/sign-in/social",
+      "method": "POST",
+      "status": 200,
+      "googleHost": "accounts.google.com",
+      "redirectUri": "https://archestimator.com/api/auth/callback/google",
+      "stateLength": 32,
+      "secureStateCookieMinted": true
+    },
+    {
+      "id": "matching-state-fake-code-callback",
+      "url": "https://archestimator.com/api/auth/callback/google",
+      "statusSequence": [
+        302,
+        302,
+        200
+      ],
+      "finalError": "invalid_code",
+      "stateMismatch": false
+    },
+    {
+      "id": "stale-cookie-callback",
+      "url": "https://archestimator.com/api/auth/callback/google?state=fresh-state-for-probe&code=fake-code-for-probe",
+      "status": 302,
+      "location": "https://archestimator.com/login?next=%2Fworkshop&error=state_mismatch",
+      "oauthStateCleanupHeaders": true,
+      "clearSiteDataCookies": false
+    },
+    {
+      "id": "missing-cookie-callback",
+      "url": "https://archestimator.com/api/auth/callback/google?state=fresh-state-for-probe&code=fake-code-for-probe",
+      "status": 302,
+      "location": "https://archestimator.com/login?next=%2Fworkshop&error=state_mismatch",
+      "oauthStateCleanupHeaders": true,
+      "clearSiteDataCookies": false
+    }
+  ],
+  "browserProof": {
+    "tool": "Google Chrome via computer-use",
+    "steps": [
+      "Started from an authenticated production /workshop session.",
+      "Navigated the browser to https://archestimator.com/?error=state_mismatch.",
+      "Browser redirected to /login?next=%2Fworkshop&error=state_mismatch.",
+      "Clicked Continue with Google.",
+      "Google account flow returned to https://archestimator.com/workshop."
+    ],
+    "finalUrl": "https://archestimator.com/workshop",
+    "signedInAs": "Philip Lewis",
+    "result": "pass"
+  },
+  "localVerification": {
+    "gitDiffCheck": "pass",
+    "typescript": "pass",
+    "focusedVitest": {
+      "files": 4,
+      "tests": 24,
+      "result": "pass",
+      "command": "bunx vitest run tests/vitest/auth-callback-normalizer-worker.test.ts tests/vitest/cloudflare-worker-route-optimizations.test.ts tests/vitest/auth-set-cookie-forwarding.test.ts tests/vitest/cloudflare-better-auth-route.test.ts"
+    }
+  },
+  "mainWorkerDeploy": {
+    "command": "bun run cf:deploy",
+    "attempted": true,
+    "nextBuild": "pass",
+    "openNextBuild": "pass",
+    "assetUpload": "pass",
+    "scriptUpload": "hung after total upload with no new version listed",
+    "interruptedByAgent": true,
+    "latestDeployedMainWorkerVersionId": "b909ac54-1a72-47f0-9a70-f6c70f7c6fb6",
+    "latestUploadedMainWorkerVersionId": "76c1b259-1515-460b-9878-eccfdac0b3c7",
+    "sourceParity": "main Worker source and tests include root/API state_mismatch retry guard, but this source parity is not deployed yet"
+  },
+  "remainingRisks": [
+    "The main archestimator-proof Worker still needs a successful full deploy to remove reliance on the broad edge adapter.",
+    "The currently deployed main app bundle still displays a generic auth error message for state_mismatch because the updated local error mapping is not deployed.",
+    "This proves Google OAuth recovery for the owner's Chrome session; magic-link UI proof and broader full-app QA remain separate ledger items."
+  ]
+}

@@ -2,7 +2,7 @@
 
 > Plan pack: Archestimator API Audit
 > Plan folder: `.ai/03_plans/2026-07-21-API-Audit/`
-> Verification mode: `emulated`
+> Verification mode: `emulated` (original 2026-07-01 authoring) + `lead-authored-fallback` (2026-07-01 re-verification pass; SRC-* coverage map extended with SRC-020/021/022 from `03_*.md` iteration-9 patches).
 > Single source of truth for REQ ↔ WP ↔ AC ↔ TEST ↔ evidence cross-reference. Built off `04_*.md` (REQ-* IDs), `11_*.md` (WP-* IDs), `12_*.md` (TEST-* IDs), `14_*.md` (RISK-* IDs).
 
 ## REQ → WP → AC → TEST → evidence map
@@ -96,6 +96,9 @@ Every `SRC-*` ID from `03_SOURCE_AND_CODEBASE_AUDIT.md` is traceable through thi
 | SRC-017 | D1 RLS-equivalent audit | REQ-SEC-001, REQ-DATA-001, RISK-001 |
 | SRC-018 | Pre-existing RED `test:dom` (~131 / 36 files) | REQ-TEST-003, RISK-017 |
 | SRC-019 | `cf:d1-authz-matrix` + `cf:d1-rpc-map` scripts | REQ-DATA-001, REQ-DATA-002, REQ-ARCH-001 |
+| SRC-020 | `routeCanonicalHostRedirect` (first fetch-chain link) | REQ-API-002, REQ-SEC-007 (open-redirect / canonical-host posture) |
+| SRC-021 | Upload-config runtime `vars` block (5 upload limits) | REQ-API-005, REQ-PERF-001, REQ-PERF-003 (upload-route perf/limit contract) |
+| SRC-022 | Observability 3 distinct sampling rates (overall 0.1 / logs 0.1 / traces 0.05) | REQ-REL-003, RISK-009, OPEN-002 |
 
 ## RISK coverage map
 
@@ -107,7 +110,7 @@ Every `RISK-*` from `14_RISK_REGISTER.md` is traceable through this matrix to RE
 - 12 WP-* (Phase 1..12)
 - 53 AC-* (carried forward to `17_*.md`)
 - ~30 TEST-* (preview; full matrix in `12_*.md`)
-- 19 SRC-* (in `03_*.md`)
+- 22 SRC-* (in `03_*.md`; original 19 SRC-001..019 + 3 added in iteration-9 verification pass: SRC-020/021/022)
 - 37 RISK-*
 - 24 DEC-* (in `15_*.md`)
 - 16 OPEN-* (in `15_*.md`)

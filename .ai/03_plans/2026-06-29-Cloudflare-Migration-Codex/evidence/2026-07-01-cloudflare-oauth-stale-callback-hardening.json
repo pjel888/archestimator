@@ -1,0 +1,103 @@
+{
+  "generatedAt": "2026-07-01T17:39:35Z",
+  "baseUrl": "https://archestimator.com",
+  "status": "live-stale-callback-hardening-active",
+  "problem": {
+    "reportedUrl": "https://archestimator.com/?error=state_mismatch",
+    "symptom": "Google OAuth could still strand a retry on root state_mismatch after duplicate-cookie normalization.",
+    "probableCause": "The previous callback normalizer only rewrote duplicate state cookies when one cookie matched the callback state; missing-cookie or purely stale-cookie callbacks still fell through to Better Auth."
+  },
+  "deployment": {
+    "worker": "archestimator-auth-callback-normalizer",
+    "versionId": "a2830bd5-d6da-47ac-8e45-f394963dde6f",
+    "deployedAt": "2026-07-01T17:38:22.126Z",
+    "route": "archestimator.com/api/auth/callback/google*",
+    "binding": {
+      "name": "ARCH_APP",
+      "type": "service",
+      "service": "archestimator-proof"
+    },
+    "source": "cloudflare/auth-callback-normalizer.ts",
+    "config": "wrangler.auth-callback-normalizer.jsonc"
+  },
+  "behavior": {
+    "matchingStateCookie": "Forward callback to the main app Worker with duplicate Better Auth OAuth state cookies reduced to the cookie matching the callback state.",
+    "missingOrStaleStateCookie": "Redirect to /login?next=/workshop&error=state_mismatch and expire Better Auth OAuth state cookie variants across host-only/domain and likely callback paths."
+  },
+  "verification": {
+    "focusedTests": {
+      "result": "PASS",
+      "command": "bunx vitest run tests/vitest/auth-callback-normalizer-worker.test.ts tests/vitest/auth-set-cookie-forwarding.test.ts tests/vitest/cloudflare-better-auth-route.test.ts",
+      "testFiles": 3,
+      "tests": 13
+    },
+    "deploy": {
+      "result": "PASS",
+      "command": "bunx wrangler deploy -c wrangler.auth-callback-normalizer.jsonc",
+      "versionId": "a2830bd5-d6da-47ac-8e45-f394963dde6f"
+    },
+    "deploymentReadback": {
+      "result": "PASS",
+      "command": "bunx wrangler deployments list --name archestimator-auth-callback-normalizer -c wrangler.auth-callback-normalizer.jsonc --json",
+      "versionId": "a2830bd5-d6da-47ac-8e45-f394963dde6f",
+      "percentage": 100
+    },
+    "missingCookieCallbackProbe": {
+      "result": "PASS",
+      "url": "https://archestimator.com/api/auth/callback/google?state=fresh-state&code=fake-code",
+      "status": 302,
+      "location": "https://archestimator.com/login?next=%2Fworkshop&error=state_mismatch",
+      "cleanupHeadersObserved": true
+    },
+    "staleCookieCallbackProbe": {
+      "result": "PASS",
+      "url": "https://archestimator.com/api/auth/callback/google?state=fresh-state&code=fake-code",
+      "requestCookie": "__Secure-better-auth.state=old-state.old-signature",
+      "status": 302,
+      "location": "https://archestimator.com/login?next=%2Fworkshop&error=state_mismatch",
+      "cleanupHeadersObserved": true
+    },
+    "cleanLoginButtonFakeCodeProof": {
+      "result": "PASS",
+      "loginStatus": 200,
+      "redirectUri": "https://archestimator.com/api/auth/callback/google",
+      "stateLength": 32,
+      "stateCookieNames": [
+        "__Secure-better-auth.state@archestimator.com/"
+      ],
+      "stateCookieStartsWithState": true,
+      "fakeCallbackFinalUrl": "https://archestimator.com/?error=invalid_code",
+      "sawStateMismatch": false,
+      "expectedFakeCodeReached": true
+    },
+    "rootStateMismatchCleanup": {
+      "result": "PASS_WITH_REDIRECT_RULE_GAP",
+      "url": "https://archestimator.com/?error=state_mismatch",
+      "status": 200,
+      "cleanupHeadersObserved": true,
+      "redirectInstalled": false,
+      "redirectGap": "Current Wrangler OAuth token has zone:read but not the zone-write permission needed for Cloudflare Redirect Rules."
+    },
+    "hostedAuthRouteSmoke": {
+      "result": "PARTIAL",
+      "command": "HOSTED_AUTH_BASE_URL=https://archestimator.com bun run launch:verify-hosted-auth",
+      "signedOutRoutePassed": true,
+      "missingFixtures": [
+        "HOSTED_AUTH_ALLOWED_COOKIE",
+        "HOSTED_AUTH_DENIED_COOKIE",
+        "HOSTED_AUTH_REVOKED_COOKIE",
+        "HOSTED_AUTH_EXPIRED_COOKIE"
+      ]
+    },
+    "diffCheck": {
+      "result": "PASS",
+      "command": "git diff --check"
+    }
+  },
+  "watchItems": [
+    "Keep the callback normalizer route active until the main Worker source fix is live and verified.",
+    "Complete a real Google account-selection proof after the user retries from the cleaned login surface.",
+    "Add a Cloudflare Redirect Rule for root ?error=state_mismatch only after zone-write permission is available, if automatic root retry redirect is still desired.",
+    "Add hosted auth cookie fixtures if allowed/denied/revoked/expired route cases should run without browser interaction."
+  ]
+}

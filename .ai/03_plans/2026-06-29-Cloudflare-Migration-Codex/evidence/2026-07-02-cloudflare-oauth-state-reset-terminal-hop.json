@@ -1,0 +1,79 @@
+{
+  "title": "Cloudflare OAuth state reset terminal cleanup hop",
+  "generatedAt": "2026-07-01T21:47:46Z",
+  "baseUrl": "https://archestimator.com",
+  "worker": {
+    "name": "archestimator-auth-callback-normalizer",
+    "versionId": "41c8abd6-31b6-42b9-9883-63ceffb81001",
+    "deploymentCreatedAt": "2026-07-01T21:45:18.907Z",
+    "routes": [
+      "archestimator.com/*",
+      "archestimator.com/api/auth/callback/google*"
+    ]
+  },
+  "change": {
+    "summary": "Turned /login?oauth_state_reset=1 into a one-time cleanup redirect to /login?oauth_state_reset_done=1 so the final login page no longer carries reset cleanup headers.",
+    "files": [
+      "cloudflare/auth-callback-normalizer.ts",
+      "src/lib/cloudflare/worker-route-optimizations.ts",
+      "worker.ts",
+      "tests/vitest/auth-callback-normalizer-worker.test.ts",
+      "tests/vitest/cloudflare-worker-route-optimizations.test.ts"
+    ]
+  },
+  "curlChain": {
+    "inputUrl": "https://archestimator.com/?error=state_mismatch",
+    "statusLines": [
+      "HTTP/2 302",
+      "HTTP/2 302",
+      "HTTP/2 200"
+    ],
+    "locations": [
+      "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+      "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset_done=1"
+    ],
+    "finalTitle": "Sign in - Archestimator - Archestimator",
+    "finalBodyStateMismatchCount": 0,
+    "finalBodyIncludesResetDone": true
+  },
+  "browserSmoke": {
+    "inputUrl": "https://archestimator.com/?error=state_mismatch",
+    "resetUrl": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset_done=1",
+    "stateMismatchCountAfterReset": 0,
+    "googleStartCreatedStateCookie": true,
+    "stateCookie": {
+      "name": "__Secure-better-auth.state",
+      "domain": "archestimator.com",
+      "path": "/",
+      "sameSite": "Lax",
+      "secure": true,
+      "httpOnly": true
+    }
+  },
+  "callbackSimulation": {
+    "description": "A fake Google callback using the fresh state cookie reached invalid_code instead of state_mismatch, proving the state cookie handshake is accepted.",
+    "finalUrl": "https://archestimator.com/?error=invalid_code",
+    "containsStateMismatch": false,
+    "containsInvalidCode": true
+  },
+  "verification": {
+    "focusedVitest": {
+      "command": "bunx vitest run tests/vitest/auth-callback-normalizer-worker.test.ts tests/vitest/cloudflare-worker-route-optimizations.test.ts tests/vitest/auth-proxy.test.ts tests/vitest/auth-set-cookie-forwarding.test.ts tests/vitest/cloudflare-better-auth-route.test.ts --maxWorkers=1",
+      "result": "pass",
+      "testFilesPassed": 5,
+      "testsPassed": 63
+    },
+    "gitDiffCheck": {
+      "command": "git diff --check",
+      "result": "pass"
+    },
+    "deploymentReadback": {
+      "command": "bunx wrangler deployments list --config wrangler.auth-callback-normalizer.jsonc",
+      "result": "version 41c8abd6-31b6-42b9-9883-63ceffb81001 active at 100%"
+    }
+  },
+  "residualRisk": [
+    "The main archestimator-proof OpenNext Worker upload/deploy path is still a separate blocker, so the edge normalizer must remain active until the main Worker publishes current source.",
+    "This proof does not include a real Google account-picker completion in a brand-new human browser session; it proves the stale-error recovery chain and the callback state-cookie handshake."
+  ]
+}

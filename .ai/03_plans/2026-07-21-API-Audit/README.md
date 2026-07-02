@@ -4,7 +4,7 @@
 > Plan profile: `exhaustive`
 > Task type: `planning-only` (audit, plan, readiness creation — NOT implementation)
 > Date authored: 2026-07-01 (PHT). Folder prefix `2026-07-21-API-Audit` retained from user-explicit instruction.
-> Verification mode at audit open: `emulated` (single lead author + parallel dispatched exploration lanes; no independent reviewer available)
+> Verification mode at audit open: `emulated` (iteration-8 claim) → `same-agent` effective classification (iteration-9 honest reclassification: all 4 dispatched independent lanes — V1/V2 explore, V3 librarian, V4 oracle — produced zero output; lead-authored verification performed via direct filesystem scan and cross-doc review)
 > Canonical readiness status: **CONDITIONALLY READY**
 
 ## Status
@@ -22,7 +22,7 @@ All 22 deliverables are present in `.ai/03_plans/2026-07-21-API-Audit/`:
 - `00_AGENT_COORDINATION.md` — coordination ledger (lanes L1-L8)
 - `01_EXECUTIVE_SUMMARY.md` — verdict + headline risks + recommendation summary
 - `02_FEATURE_BRIEF_AND_SCOPE.md` — user FEATURE BRIEF + scope boundaries
-- `03_SOURCE_AND_CODEBASE_AUDIT.md` — 19 SRC-* IDs; 29 Route Handlers + 30 Server Action files + Better Auth + DO + Queue + Cron + Email inventory
+- `03_SOURCE_AND_CODEBASE_AUDIT.md` — 22 SRC-* IDs (19 original SRC-001..019 + 3 added in iteration-9 verification pass: SRC-020/021/022); 29 Route Handlers + 30 Server Action files + Better Auth + DO + Queue + Cron + Email inventory
 - `04_REQUIREMENTS_SPECIFICATION.md` — 56 REQ-* IDs + Shadow Path Matrix
 - `05_UX_UI_ACCESSIBILITY_PLAN.md` — error-state UX (narrowed scope)
 - `06_ARCHITECTURE_AND_TECHNICAL_DESIGN.md` — current/target architecture + Mermaid diagrams

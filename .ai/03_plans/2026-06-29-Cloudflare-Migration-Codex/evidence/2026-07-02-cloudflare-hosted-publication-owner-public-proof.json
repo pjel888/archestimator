@@ -1,0 +1,133 @@
+{
+  "generatedAt": "2026-07-02T01:29:00Z",
+  "mode": "cloudflare-hosted-publication-owner-public-proof",
+  "result": "partial_pass",
+  "scope": "Hosted Publisher owner create plus public open proof",
+  "project": {
+    "id": "bd9a8e68-4e24-49d8-aeed-e4651b7cab0b",
+    "name": "Codex Cloudflare Smoke 2026-07-01",
+    "number": "Q5M2XN6L"
+  },
+  "ownerBrowser": {
+    "tool": "Computer Use / signed-in Chrome",
+    "url": "https://archestimator.com/workshop/publisher",
+    "flow": [
+      "Opened Publisher drawer for Codex Cloudflare Smoke 2026-07-01.",
+      "Selected the Sheets tab.",
+      "Confirmed ES-001 was the only selected client-visible estimate.",
+      "Clicked Generate shared link.",
+      "Drawer changed from DRAFT to ACTIVE and showed Shared link ready."
+    ],
+    "statusAfterAction": "ACTIVE",
+    "copyLinkEnabled": true,
+    "openLinkVisible": true,
+    "shareTokenStoredInArtifact": false
+  },
+  "remoteD1Readback": {
+    "database": "archestimator-proof-db",
+    "query": "SELECT id, project_id, status, snapshot_version, selected_estimate_ids, published_at, updated_at, revoked_at, expires_at, encrypted_token IS NOT NULL AS has_encrypted_token, token_hash IS NOT NULL AS has_token_hash FROM project_publications WHERE project_id = 'bd9a8e68-4e24-49d8-aeed-e4651b7cab0b' ORDER BY updated_at DESC LIMIT 5;",
+    "publication": {
+      "id": "337f1427-2dd1-4ff4-b89f-5e518aecb66e",
+      "project_id": "bd9a8e68-4e24-49d8-aeed-e4651b7cab0b",
+      "status": "published",
+      "snapshot_version": 1,
+      "selected_estimate_ids": [
+        "985f6690-741e-4136-9fa1-a4896cd364e4"
+      ],
+      "published_at": "2026-07-02T01:25:00.471Z",
+      "updated_at": "2026-07-02T01:25:00.471Z",
+      "revoked_at": null,
+      "expires_at": null,
+      "has_encrypted_token": true,
+      "has_token_hash": true
+    },
+    "meta": {
+      "served_by": "v3-prod",
+      "served_by_region": "APAC",
+      "served_by_colo": "SIN",
+      "served_by_primary": true,
+      "rows_read": 2,
+      "rows_written": 0,
+      "changed_db": false
+    }
+  },
+  "publicRouteCurl": {
+    "url": "https://archestimator.com/share/[redacted]",
+    "command": "curl -sS -D /tmp/arch_share_headers.txt -o /tmp/arch_share_body.html -L 'https://archestimator.com/share/[redacted]' -w 'FINAL_URL=%{url_effective}\\nHTTP_CODE=%{http_code}\\nREDIRECTS=%{num_redirects}\\nSIZE=%{size_download}\\n'",
+    "httpCode": 200,
+    "redirects": 0,
+    "responseSizeBytes": 55685,
+    "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate, no-store",
+    "securityHeaders": {
+      "strictTransportSecurity": "max-age=63072000; includeSubDomains; preload",
+      "contentSecurityPolicy": "present",
+      "referrerPolicy": "no-referrer",
+      "xContentTypeOptions": "nosniff",
+      "xFrameOptions": "DENY",
+      "xRobotsTag": "noindex, nofollow"
+    },
+    "bodyMarkers": {
+      "projectNameCount": 3,
+      "estimateNumberCount": 13,
+      "archestimatorCount": 15,
+      "stateMismatchCount": 0
+    },
+    "cfRayColo": "SIN"
+  },
+  "freshUnauthenticatedBrowser": {
+    "tool": "Playwright Chromium via node_repl",
+    "url": "https://archestimator.com/share/[redacted]",
+    "title": "Proposal Review | Archestimator \u2014 Archestimator",
+    "firstHeading": "Codex Cloudflare Smoke 2026-07-01",
+    "markers": {
+      "projectNameCount": 1,
+      "estimateNumberCount": 6,
+      "signInCount": 0,
+      "stateMismatchCount": 0,
+      "notFoundExpiredRevokedCount": 0
+    },
+    "firstResponse": {
+      "status": 200,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate, no-store",
+      "xRobotsTag": "noindex, nofollow"
+    }
+  },
+  "eventReadback": {
+    "projectPublicationEvents": [
+      {
+        "id": "6d2ef3aa-d2b8-429f-8883-e85e01b2b8e4",
+        "publication_id": "337f1427-2dd1-4ff4-b89f-5e518aecb66e",
+        "event_type": "open",
+        "metadata_json": "{}",
+        "created_at": "2026-07-02T01:26:40.893Z"
+      },
+      {
+        "id": "3c50be8c-a674-4118-b95d-889f2830ea4c",
+        "publication_id": "337f1427-2dd1-4ff4-b89f-5e518aecb66e",
+        "event_type": "open",
+        "metadata_json": "{}",
+        "created_at": "2026-07-02T01:25:47.605Z"
+      }
+    ],
+    "sharedLinkRecipients": [],
+    "sharedLinkEvents": [],
+    "meta": {
+      "served_by": "v3-prod",
+      "served_by_region": "APAC",
+      "served_by_colo": "SIN",
+      "served_by_primary": true
+    }
+  },
+  "conclusion": {
+    "ownerHostedPublishWorks": true,
+    "publicationPersistedInD1": true,
+    "publicSharePageRendersUnauthenticated": true,
+    "openEventsPersistInD1": true,
+    "namedRecipientInviteRespondCovered": false,
+    "remainingGap": "Named recipient session, personalized recipient link, comment, and decision/response flows still need hosted proof."
+  },
+  "notes": [
+    "The exact bearer share token is intentionally redacted from this artifact.",
+    "The proof uses a smoke project and a single selected estimate, not customer data."
+  ]
+}

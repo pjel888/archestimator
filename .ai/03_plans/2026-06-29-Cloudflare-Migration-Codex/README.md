@@ -8,9 +8,9 @@ owner: Archestimator
 
 # Cloudflare Migration Planning Package
 
-Readiness: **CONDITIONALLY READY** for a full Cloudflare-native redesign proof program. **NOT READY** for production cutover or irreversible provider removal.
+Readiness: this README is the original **pre-cutover planning baseline**. Current post-cutover execution state is tracked in [33_POST_CUTOVER_FULL_APP_QA_LEDGER.md](33_POST_CUTOVER_FULL_APP_QA_LEDGER.md): **CONDITIONALLY READY FOR CLOUDFLARE-ONLY CLOSED-BETA OPERATION**, still **NOT READY** for irreversible provider deletion/removal without the separate provider-cleanup and backup/restore runbook.
 
-Planning-quality loop status: **PASS** as of the completion audit in `30_COMPLETION_AUDIT.md`. Execution and production readiness remain blocked until real provider, cost, performance, and rollback proof exists.
+Planning-quality loop status: **PASS** as of the completion audit in `30_COMPLETION_AUDIT.md`. Later execution evidence now proves Cloudflare cutover gates for closed-beta runtime; provider deletion/removal remains intentionally separate.
 
 This package evaluates whether Archestimator should migrate from the current Next.js/Vercel/Supabase/Resend shape toward Cloudflare Workers, D1, KV, R2, Queues, Hyperdrive, Email Service, WAF, and DDoS protection.
 
@@ -81,6 +81,7 @@ Cloudflare skill update: future execution must start by loading the installed Cl
 - [30_COMPLETION_AUDIT.md](30_COMPLETION_AUDIT.md) - final documentation-quality audit and stop condition.
 - [31_OWNER_CLOUDFLARE_SETUP_AND_ANALYTICS_RUNBOOK.md](31_OWNER_CLOUDFLARE_SETUP_AND_ANALYTICS_RUNBOOK.md) - owner dashboard steps, subscription gates, and analytics migration choices.
 - [32_COMPUTER_USE_CLOUDFLARE_DASHBOARD_HANDOFF.md](32_COMPUTER_USE_CLOUDFLARE_DASHBOARD_HANDOFF.md) - Codex App / Computer Use handoff for Cloudflare dashboard setup when local browser automation is unavailable.
+- [33_POST_CUTOVER_FULL_APP_QA_LEDGER.md](33_POST_CUTOVER_FULL_APP_QA_LEDGER.md) - active post-cutover QA ledger, latest proof status, and remaining real-browser/provider-cleanup gates.
 
 ## Production Cutover Stop Condition
 

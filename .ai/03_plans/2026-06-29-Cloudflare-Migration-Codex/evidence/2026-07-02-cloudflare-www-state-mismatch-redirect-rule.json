@@ -1,0 +1,100 @@
+{
+  "capturedAtUtc": "2026-07-02 00:30 UTC",
+  "issue": "User still saw state_mismatch at https://archestimator.com/?error=state_mismatch after repeated OAuth recovery hotfixes.",
+  "rootCause": "The apex URL was already recovered by the normalizer, but stale starts through www hit Cloudflare Single Redirects before Workers. The existing catch-all www-to-apex 308 preserved ?error=state_mismatch as the first visible hop.",
+  "changes": [
+    {
+      "surface": "Cloudflare Redirect Rules",
+      "ruleId": "d8a83c3442aa4c589f7a01bd5dd33fde",
+      "name": "Recover www Google state mismatch",
+      "order": 1,
+      "match": "URI Full wildcard r\"https://www.archestimator.com/*error=state_mismatch*\"",
+      "action": "302 redirect to https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+      "preserveQueryString": false
+    },
+    {
+      "surface": "Cloudflare Redirect Rules",
+      "ruleId": "89820871a81c4e68aaa18b573e5af606",
+      "name": "Redirect from WWW to root [Template]",
+      "order": 2,
+      "match": "URI Full wildcard r\"https://www.*\"",
+      "action": "308 redirect to apex for ordinary www requests"
+    },
+    {
+      "surface": "Cloudflare Worker",
+      "worker": "archestimator-auth-callback-normalizer",
+      "versionId": "aaee7b3f-a120-4e5e-ada2-5950c57831df",
+      "routes": [
+        "archestimator.com/*",
+        "archestimator.com/api/auth/callback/google*",
+        "www.archestimator.com/*"
+      ],
+      "note": "The www route is defense-in-depth; Single Redirects execute before Workers, so the first-hop www state-mismatch recovery is owned by Redirect Rules."
+    }
+  ],
+  "curlProof": [
+    {
+      "url": "https://archestimator.com/?error=state_mismatch",
+      "firstStatus": 302,
+      "firstLocation": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+      "bodyStateMismatchCount": 0,
+      "followFinal": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset_done=1",
+      "followStatus": 200,
+      "followRedirects": 2,
+      "followBodyStateMismatchCount": 0
+    },
+    {
+      "url": "https://www.archestimator.com/?error=state_mismatch",
+      "firstStatus": 302,
+      "firstLocation": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+      "bodyStateMismatchCount": 0,
+      "followFinal": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset_done=1",
+      "followStatus": 200,
+      "followRedirects": 2,
+      "followBodyStateMismatchCount": 0
+    },
+    {
+      "url": "https://www.archestimator.com/workshop?error=state_mismatch",
+      "firstStatus": 302,
+      "firstLocation": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+      "bodyStateMismatchCount": 0,
+      "followFinal": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset_done=1",
+      "followStatus": 200,
+      "followRedirects": 2,
+      "followBodyStateMismatchCount": 0
+    }
+  ],
+  "freshBrowserProof": [
+    {
+      "kind": "state-reset",
+      "inputUrl": "https://archestimator.com/?error=state_mismatch",
+      "finalUrl": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset_done=1",
+      "hasStateMismatchText": false,
+      "hasContinueWithGoogle": true
+    },
+    {
+      "kind": "state-reset",
+      "inputUrl": "https://www.archestimator.com/?error=state_mismatch",
+      "finalUrl": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset_done=1",
+      "hasStateMismatchText": false,
+      "hasContinueWithGoogle": true
+    },
+    {
+      "kind": "google-start",
+      "googleOrigin": "https://accounts.google.com",
+      "redirectUri": "https://archestimator.com/api/auth/callback/google",
+      "stateLength": 32,
+      "stateCookieNames": [
+        "__Secure-better-auth.state"
+      ],
+      "matchingStateCookie": true
+    }
+  ],
+  "localVerification": [
+    {
+      "command": "bunx vitest run tests/vitest/auth-callback-normalizer-worker.test.ts tests/vitest/cloudflare-worker-route-optimizations.test.ts tests/vitest/auth-proxy.test.ts --maxWorkers=1",
+      "result": "passed",
+      "tests": 65
+    }
+  ]
+}

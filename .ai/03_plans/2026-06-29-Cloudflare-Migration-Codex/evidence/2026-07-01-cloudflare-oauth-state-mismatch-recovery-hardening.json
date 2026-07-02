@@ -1,0 +1,81 @@
+{
+  "generatedAt": "2026-07-01T18:55:00.000Z",
+  "baseUrl": "https://archestimator.com",
+  "reportedSymptom": "User still reached https://archestimator.com/?error=state_mismatch after prior recovery adapter.",
+  "worker": {
+    "name": "archestimator-auth-callback-normalizer",
+    "config": "wrangler.auth-callback-normalizer.jsonc",
+    "source": "cloudflare/auth-callback-normalizer.ts",
+    "versionId": "2f2216e0-0953-4b29-91b7-dd10d6c6f55c",
+    "deploymentId": "e0685901-b19b-4bd9-9db1-fd340562fbf2",
+    "routes": [
+      "archestimator.com/*",
+      "archestimator.com/api/auth/callback/google*"
+    ],
+    "serviceBindings": [
+      {
+        "binding": "ARCH_APP",
+        "service": "archestimator-proof"
+      }
+    ]
+  },
+  "change": {
+    "summary": "The edge adapter now applies Clear-Site-Data plus broad Better Auth OAuth state-cookie cleanup on callback state mismatches and on the final /login?error=state_mismatch retry page, not only on the original root/API error URL.",
+    "rootAndApiRetry": "GET /?error=state_mismatch and /api/auth/error?error=state_mismatch still 302 to /login?next=/workshop&error=state_mismatch with no-store, cookie cleanup, and Clear-Site-Data.",
+    "callbackMismatch": "GET /api/auth/callback/google with a state parameter but no matching Better Auth OAuth state cookie now 302s to the retry login page with no-store, cookie cleanup, and Clear-Site-Data.",
+    "loginRetryPage": "GET /login?next=/workshop&error=state_mismatch forwards to the app but overrides cache-control to no-store and appends OAuth state-cookie cleanup plus Clear-Site-Data, so a browser that ignored a prior redirect cleanup still starts the next Google attempt cleanly.",
+    "normalLoginPage": "GET /login?next=/workshop remains untouched and keeps the app response without cleanup headers."
+  },
+  "verification": [
+    {
+      "command": "bunx vitest run tests/vitest/auth-callback-normalizer-worker.test.ts tests/vitest/auth-set-cookie-forwarding.test.ts tests/vitest/cloudflare-better-auth-route.test.ts --maxWorkers=1",
+      "result": "pass",
+      "details": "3 test files passed; 18 tests passed."
+    },
+    {
+      "command": "bunx wrangler deploy -c wrangler.auth-callback-normalizer.jsonc",
+      "result": "pass",
+      "details": "Uploaded and deployed archestimator-auth-callback-normalizer version 2f2216e0-0953-4b29-91b7-dd10d6c6f55c."
+    },
+    {
+      "command": "bunx wrangler deployments list --name archestimator-auth-callback-normalizer -c wrangler.auth-callback-normalizer.jsonc --json",
+      "result": "pass",
+      "details": "Deployment e0685901-b19b-4bd9-9db1-fd340562fbf2 shows version 2f2216e0-0953-4b29-91b7-dd10d6c6f55c at 100%."
+    },
+    {
+      "command": "curl -D - https://archestimator.com/?error=state_mismatch",
+      "result": "pass",
+      "details": "HTTP 302 to https://archestimator.com/login?next=%2Fworkshop&error=state_mismatch with private no-store, Expires: 0, Pragma: no-cache, OAuth state-cookie cleanup, and Clear-Site-Data: \"cookies\"."
+    },
+    {
+      "command": "curl -D - https://archestimator.com/login?next=%2Fworkshop&error=state_mismatch",
+      "result": "pass",
+      "details": "HTTP 200 login retry page now carries private no-store, Expires: 0, Pragma: no-cache, OAuth state-cookie cleanup, and Clear-Site-Data: \"cookies\"."
+    },
+    {
+      "command": "curl -D - https://archestimator.com/login?next=%2Fworkshop",
+      "result": "pass",
+      "details": "Normal login page remains HTTP 200 without the recovery cleanup headers."
+    },
+    {
+      "command": "curl -D - https://archestimator.com/api/auth/callback/google?state=missing-live-test&code=fake-code",
+      "result": "pass",
+      "details": "Missing-cookie callback returns HTTP 302 to retry login with no-store, OAuth state-cookie cleanup, and Clear-Site-Data: \"cookies\"."
+    },
+    {
+      "command": "curl -D - -H 'Cookie: __Secure-better-auth.state=old-state.old-signature; better-auth.session_token=alsofake' https://archestimator.com/api/auth/callback/google?state=fresh-live-test&code=fake-code",
+      "result": "pass",
+      "details": "Stale-cookie callback returns HTTP 302 to retry login with no-store, OAuth state-cookie cleanup, and Clear-Site-Data: \"cookies\"."
+    },
+    {
+      "command": "Playwright fresh context: /?error=state_mismatch -> retry login -> Continue with Google -> fake-code callback",
+      "result": "pass",
+      "details": "After the retry page, Better Auth cookies were empty; Google received redirect_uri=https://archestimator.com/api/auth/callback/google; a new 32-character state cookie matched the Google state; fake-code callback ended at https://archestimator.com/?error=invalid_code, proving state validation passed."
+    }
+  ],
+  "remainingWatchItems": [
+    "The large main archestimator-proof Worker deploy path still hangs after OpenNext build/assets upload, so the small edge adapter must remain active.",
+    "The live login page copy remains from the older main Worker bundle until the main Worker deploy path is repaired.",
+    "This closes the OAuth state recovery path; full post-cutover product-flow QA still has separate estimate, library, upload, publication, realtime UI, and magic-link mailbox gaps."
+  ]
+}

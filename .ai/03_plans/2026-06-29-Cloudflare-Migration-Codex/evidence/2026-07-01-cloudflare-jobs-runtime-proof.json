@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-01T09:15:01.238Z",
+  "generatedAt": "2026-07-01T13:42:21.803Z",
   "mode": "cloudflare-jobs-runtime-proof-verifier",
   "baseUrl": "https://archestimator.com",
   "endpointPath": "/__cloudflare/jobs-proof",
@@ -13,15 +13,15 @@
   "responseOk": true,
   "endpointMode": "cloudflare-jobs-runtime-proof",
   "endpointProofScope": "queue-send-consumer-r2-receipt",
-  "proofId": "2c7fb76d-c230-4edc-aa9a-01a0c0c39ccf",
+  "proofId": "132091fd-6286-477e-bfe7-07cc6b56c8e4",
   "queue": "archestimator-upload-jobs",
-  "proofReceiptKey": "provider-proof/jobs/2c7fb76d-c230-4edc-aa9a-01a0c0c39ccf.json",
+  "proofReceiptKey": "provider-proof/jobs/132091fd-6286-477e-bfe7-07cc6b56c8e4.json",
   "result": {
     "queueSendReady": true,
     "queueConsumerReceiptReady": true,
     "cronProviderExecutionProven": true,
     "consumerOutcome": {
-      "messageId": "7645fcece17dfda360c5789c9a5251c5",
+      "messageId": "69e5d1b964db523d75af4dbdcb45c7fa",
       "action": "ack",
       "reason": "executed",
       "attempts": 1,
@@ -44,24 +44,24 @@
       "skipped": []
     },
     "queueLatency": {
-      "requestedAt": "2026-07-01T09:14:26.443Z",
-      "receiptGeneratedAt": "2026-07-01T09:14:58.824Z",
-      "latencyMs": 32381,
-      "p95Ms": 32381,
+      "requestedAt": "2026-07-01T13:41:45.619Z",
+      "receiptGeneratedAt": "2026-07-01T13:42:19.156Z",
+      "latencyMs": 33537,
+      "p95Ms": 33537,
       "sampleCount": 1,
       "samples": [
-        32381
+        33537
       ]
     }
   },
   "queueLatency": {
     "sampleCount": 1,
-    "p95Ms": 32381,
+    "p95Ms": 33537,
     "samplesMs": [
-      32381
+      33537
     ],
-    "latestRequestedAt": "2026-07-01T09:14:26.443Z",
-    "latestReceiptGeneratedAt": "2026-07-01T09:14:58.824Z"
+    "latestRequestedAt": "2026-07-01T13:41:45.619Z",
+    "latestReceiptGeneratedAt": "2026-07-01T13:42:19.156Z"
   },
   "readiness": {
     "providerBacked": true,

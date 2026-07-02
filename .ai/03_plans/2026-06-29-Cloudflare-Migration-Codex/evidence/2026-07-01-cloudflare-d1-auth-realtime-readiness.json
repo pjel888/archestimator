@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-01T07:12:52.528Z",
+  "generatedAt": "2026-07-01T13:41:34.382Z",
   "mode": "cloudflare-d1-auth-realtime-readiness",
   "sources": {
     "inventory": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-migration-inventory.json",
@@ -24,7 +24,7 @@
     "componentLibraryD1Proof": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-component-library-proof.json",
     "estimateHistoryD1Proof": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-estimate-history-proof.json",
     "restoreRehearsal": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-restore-rehearsal.json",
-    "performanceProof": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-d1-performance-proof.json",
+    "performanceProof": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-performance-proof.json",
     "betterAuthRouteGateProof": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-better-auth-route-gate-proof.json"
   },
   "inventorySummary": {
@@ -390,7 +390,7 @@
       "ready": true,
       "evidence": "present=yes, queryCountBudgets=yes, p95RouteProof=yes, hostedWorkerD1Performance=yes, localOnly=no, providerBacked=yes",
       "blocker": null,
-      "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-d1-performance-proof.json"
+      "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-d1-performance-proof.json"
     }
   ],
   "readiness": {

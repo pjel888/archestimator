@@ -2,7 +2,7 @@
 
 > Plan pack: Archestimator API Audit
 > Plan folder: `.ai/03_plans/2026-07-21-API-Audit/`
-> Verification mode: `emulated`
+> Verification mode: `emulated` (original 2026-07-01 authoring) + `lead-authored-fallback` (2026-07-01 re-verification: dispatched L1 explore lane timed out at 30-min inactivity; lead re-verified every binding/route/migration count via direct filesystem scan — counts PROVEN, 3 P2 inventory gaps surfaced and patched as SRC-020/021/022).
 > Inventory gathered: 2026-07-01 by lead author (Sisyphus) via direct fact-stated Bash/Glob/Read; dispatched exploration lanes L1–L4 timed out at 30-min inactivity cap.
 
 ## Method
@@ -41,6 +41,16 @@ Authoritative binding list (from `wrangler.jsonc` + `cloudflare-env.d.ts` `__Bas
 | `IMAGES` | `ImagesBinding` | Images | Cloudflare Images for resize/optimize. |
 | `ASSETS` | `Fetcher` | OpenNext assets | Static assets from `.open-next/assets`. |
 
+Runtime upload-config `vars` (verified present in `wrangler.jsonc` + `cloudflare-env.d.ts:11-15`): [SRC-021]
+
+| Var | Value | Audit relevance |
+|---|---|---|
+| `ARCH_UPLOAD_HOSTED_MEMORY_MB` | `128` | Upload Worker memory ceiling — affects upload-route OOM risk |
+| `ARCH_UPLOAD_HOSTED_BODY_LIMIT_BYTES` | `4194304` (4 MiB) | Upload body size limit — affects direct-upload mint contract |
+| `ARCH_UPLOAD_HOSTED_ROUTE_DURATION_MS` | `30000` (30s) | Upload route duration ceiling — aligns with Queue consumer `max_batch_timeout: 30` |
+| `ARCH_UPLOAD_HOSTED_CONCURRENT_UPLOADS` | `3` | Per-Worker concurrent upload cap — affects upload-route backpressure |
+| `ARCH_UPLOAD_STORAGE_LATENCY_P95_MS` | `250` | Storage latency SLO target — input to `09_*.md` perf budget |
+
 Secrets (names only — values NEVER read):
 
 - Runtime job secrets: `CRON_SECRET`, `UPLOAD_CLEANUP_JOB_SECRET`, `UPLOAD_SCAN_JOB_SECRET`, `UPLOAD_JOBS_ENABLED`, `CLOUDFLARE_UPLOAD_JOBS_DRY_RUN`, `CLOUDFLARE_UPLOAD_JOBS_ORIGIN`.
@@ -56,18 +66,19 @@ Secrets (names only — values NEVER read):
 
 The Worker's `fetch` handler routes through this ordered chain before OpenNext:
 
-1. `routeCloudflareFastHealthRequest(request)` → short-circuits `/health` style requests.
-2. `routeMalformedShareTokenRequest(request)` → short-circuits malformed `/share/[token]` paths (fail-closed).
-3. `routeCloudflareProtectedProofRequest(request, env)` → routes proof URLs for release-gate verification.
-4. `routeCollaborationRoomRequest(request, env)` → DurableObject upgrade for collaboration Realtime.
-5. `routeStaticPublicPageThroughCache(request, ctx, downstream)` → static public-page cache.
-6. Fallback: `openNextWorker.fetch(request, env, ctx)` → Next.js / OpenNext.
+1. `routeCanonicalHostRedirect(request)` → short-circuits www ↔ apex canonical-host redirect (`src/lib/cloudflare/worker-route-optimizations.ts:125`). [SRC-020]
+2. `routeCloudflareFastHealthRequest(request)` → short-circuits `/health` style requests.
+3. `routeMalformedShareTokenRequest(request)` → short-circuits malformed `/share/[token]` paths (fail-closed).
+4. `routeCloudflareProtectedProofRequest(request, env)` → routes proof URLs for release-gate verification.
+5. `routeCollaborationRoomRequest(request, env)` → DurableObject upgrade for collaboration Realtime.
+6. `routeStaticPublicPageThroughCache(request, ctx, downstream)` → static public-page cache.
+7. Fallback: `openNextWorker.fetch(request, env, ctx)` → Next.js / OpenNext.
 
 The `scheduled` handler delegates to `runCloudflareScheduledUploadJobs({cron, env, fetcher})` — note that **two crons map to the same handler** (`0 3 * * *` and `15 3 * * *`). The audit MUST verify the handler dispatches on the cron string, since both fire upload-cleanup-style jobs and Cloudflare Cron Triggers have no native overlap protection.
 
 The `queue` handler delegates to `runCloudflareUploadJobQueueBatch`.
 
-> **Audit observation SRC-003**: The `scheduled` handler uses `console.log` — there's no structured-logger abstraction visible. The audit MUST verify whether Workers Observability's 0.1 logs sampling rate catches the rare Cron failure path. If not, `OPEN-002` is locked.
+> **Audit observation SRC-003**: The `scheduled` handler uses `console.log` — there's no structured-logger abstraction visible. The audit MUST verify whether Workers Observability's sampling rate catches the rare Cron failure path. If not, `OPEN-002` is locked. **[2026-07-01 verification update]** `wrangler.jsonc` `observability` block has THREE distinct sampling rates that must NOT be collapsed: `observability.head_sampling_rate: 0.1` (overall), `observability.logs.head_sampling_rate: 0.1` (logs), `observability.traces.head_sampling_rate: 0.05` (traces, deliberately lower). The 0.05 traces rate is the most likely to miss rare Cron failure signal. [SRC-022]
 
 > **Audit observation SRC-004**: Both crons hit the same handler. If the handler doesn't branch on `controller.cron`, both crons perform the same work twice per day. Confirm in `src/lib/cloudflare/scheduled-upload-jobs.ts`.
 
@@ -284,5 +295,8 @@ The following surfaces are NOT on the active runtime path. They are preserved in
 | SRC-017 | D1 RLS-equivalent audit | all 29 migrations + all app-code access | Per-table `workspace_id`/`owner_id` scoping |
 | SRC-018 | Pre-existing RED `test:dom` (~131 / 36 files) | `tests/vitest/` | Mark as pre-existing in test matrix |
 | SRC-019 | `cf:d1-authz-matrix` + `cf:d1-rpc-map` scripts | `scripts/generate-cloudflare-*.ts` | Canonical D1 access-path evidence sources |
+| SRC-020 | `routeCanonicalHostRedirect` first in fetch chain | `src/lib/cloudflare/worker-route-optimizations.ts:125` | Canonical host redirect (www ↔ apex) — security/correctness surface originally missed in §2 inventory |
+| SRC-021 | Upload-config runtime `vars` block (5 vars) | `wrangler.jsonc` lines 97-103, `cloudflare-env.d.ts:11-15` | Upload-route perf/limit contract — originally missed in §1 binding inventory |
+| SRC-022 | Observability has 3 distinct sampling rates | `wrangler.jsonc:82-96` | Overall 0.1 / logs 0.1 / traces 0.05 — traces rate is most likely to miss rare P0 signal |
 
 This ledger is the authoritative source for every downstream `SRC-*` reference.

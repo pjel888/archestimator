@@ -1,0 +1,45 @@
+{
+  "artifact": "cloudflare-oauth-state-mismatch-live-recheck",
+  "generatedAt": "2026-07-01T20:58:07Z",
+  "target": "https://archestimator.com/?error=state_mismatch",
+  "command": "curl -sS -D - -o /tmp/archestimator-state-mismatch.html 'https://archestimator.com/?error=state_mismatch'",
+  "result": {
+    "status": 302,
+    "location": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+    "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+    "refresh": "0; url=https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+    "bodyContainsVisibleStateMismatch": false,
+    "ipv4Probe": {
+      "status": 302,
+      "location": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+      "cfRay": "a14857310ea3ce4d-SIN",
+      "bodyStateMismatchCount": 0
+    },
+    "followRedirectProbe": {
+      "finalUrl": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+      "finalStatus": 200,
+      "bodyStateMismatchCount": 0,
+      "cfRay": "a14857315bb8a06f-SIN"
+    },
+    "ipv6Probe": {
+      "status": "local-timeout",
+      "note": "curl -6 from this machine timed out before receiving a response; IPv4 and normal followed redirects through Cloudflare Singapore passed."
+    },
+    "inAppBrowserProbe": {
+      "startUrl": "https://archestimator.com/?error=state_mismatch",
+      "finalUrl": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+      "title": "Sign in — Archestimator — Archestimator"
+    },
+    "bodyFallback": {
+      "metaRefresh": true,
+      "javascriptReplace": true,
+      "manualContinueLink": true
+    },
+    "cookieCleanupObserved": [
+      "better-auth.state",
+      "__Secure-better-auth.state",
+      "better-auth.oauth_state"
+    ]
+  },
+  "interpretation": "The latest reported root state_mismatch URL is intercepted before the main app page and resets to the clean login retry URL with broad Better Auth OAuth state-cookie cleanup. The main archestimator-proof Worker is still stale, so the edge adapter must remain active."
+}

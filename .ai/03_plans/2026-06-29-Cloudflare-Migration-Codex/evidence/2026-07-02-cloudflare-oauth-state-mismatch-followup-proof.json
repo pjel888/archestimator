@@ -1,0 +1,115 @@
+{
+  "generatedAt": "2026-07-01T20:18:10.453Z",
+  "mode": "cloudflare-oauth-state-mismatch-followup-proof",
+  "baseUrl": "https://archestimator.com",
+  "userReportedUrl": "https://archestimator.com/?error=state_mismatch",
+  "passed": true,
+  "claims": [
+    {
+      "name": "exact reported root URL recovers to clean login reset URL",
+      "passed": true,
+      "evidence": {
+        "finalUrl": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+        "bodyContainsStateMismatch": false
+      }
+    },
+    {
+      "name": "Google OAuth start uses apex production callback and writes Better Auth state cookie",
+      "passed": true,
+      "evidence": {
+        "oauthHost": "accounts.google.com",
+        "redirectUri": "https://archestimator.com/api/auth/callback/google",
+        "clientIdLength": 70,
+        "responseType": "code",
+        "scopeIncludesEmail": true,
+        "googleStateLength": 32,
+        "stateCookie": {
+          "name": "__Secure-better-auth.state",
+          "domain": "archestimator.com",
+          "path": "/",
+          "valueLength": 83,
+          "secure": true,
+          "httpOnly": true,
+          "sameSite": "Lax",
+          "expiresSet": true
+        }
+      }
+    },
+    {
+      "name": "fake-code callback using live state fails as invalid_code, not state_mismatch",
+      "passed": true,
+      "evidence": {
+        "finalUrl": "https://archestimator.com/?error=invalid_code",
+        "bodyContainsStateMismatch": false
+      }
+    },
+    {
+      "name": "no-cookie state_mismatch API/error paths reset instead of stranding the browser",
+      "passed": true,
+      "evidence": {
+        "apiAuthErrorLocation": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+        "fakeCallbackNoCookieLocation": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+        "sendsOAuthCookieCleanup": true,
+        "sendsClearSiteDataCookies": true,
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate"
+      }
+    },
+    {
+      "name": "Codex in-app browser session recovers from the exact URL to authenticated workshop access",
+      "passed": true,
+      "evidence": {
+        "startedFrom": "https://archestimator.com/?error=state_mismatch",
+        "resetUrl": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+        "postGoogleButtonUrl": "https://archestimator.com/workshop",
+        "pageTitle": "Archestimator - your cost intelligence layer for AEC teams",
+        "heading": "Good evening Philip Lewis",
+        "visibleAccountEmail": "philipjonlewis@gmail.com",
+        "bodyContainsStateMismatch": false,
+        "bodyContainsSignInPrompt": false,
+        "projectVisible": "Codex Cloudflare Smoke 2026-07-01"
+      }
+    }
+  ],
+  "verification": [
+    {
+      "command": "node --input-type=module <production Playwright OAuth state probe>",
+      "exitCode": 0,
+      "result": "5/5 browser assertions passed without printing OAuth code, state, or cookie values."
+    },
+    {
+      "command": "curl -sS -D - -o /tmp/arch-api-auth-error-state-mismatch.html 'https://archestimator.com/api/auth/error?error=state_mismatch'",
+      "exitCode": 0,
+      "result": "HTTP 302 to clean reset login URL with OAuth cookie cleanup and Clear-Site-Data."
+    },
+    {
+      "command": "curl -sS -D - -o /tmp/arch-api-auth-callback-fake-no-cookie.html 'https://archestimator.com/api/auth/callback/google?code=codex_fake_no_cookie&state=codex_fake_no_cookie_state'",
+      "exitCode": 0,
+      "result": "HTTP 302 to clean reset login URL with OAuth cookie cleanup and Clear-Site-Data."
+    },
+    {
+      "command": "bunx vitest run tests/vitest/auth-callback-normalizer-worker.test.ts tests/vitest/cloudflare-worker-route-optimizations.test.ts tests/vitest/auth-proxy.test.ts tests/vitest/auth-set-cookie-forwarding.test.ts tests/vitest/cloudflare-better-auth-route.test.ts tests/vitest/auth-entry-ui-contract.test.ts --maxWorkers=1",
+      "exitCode": 0,
+      "result": "6 files / 66 tests passed."
+    },
+    {
+      "command": "CLOUDFLARE_HOSTED_ROUTE_BASE_URL=https://archestimator.com OUTPUT_FILE=.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-route-proof-auth-followup.json MARKDOWN_FILE=.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-route-proof-auth-followup.md bun run cf:verify-hosted-routes",
+      "exitCode": 0,
+      "result": "Hosted route matrix passed; hostedRouteProofReady=true; blockers empty."
+    },
+    {
+      "command": "HOSTED_AUTH_BASE_URL=https://archestimator.com OUTPUT_FILE=.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-auth-smoke-followup.json MARKDOWN_FILE=.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-auth-smoke-followup.md bun run launch:verify-hosted-auth",
+      "exitCode": 1,
+      "result": "Signed-out /workshop fail-closed case passed; allowed/denied/revoked/expired cases were not run because sanitized HOSTED_AUTH_*_COOKIE fixtures were absent."
+    },
+    {
+      "command": "Codex in-app browser recovery probe",
+      "exitCode": 0,
+      "result": "The exposed in-app browser profile started from the exact error URL, landed on the clean reset login page, and after Continue with Google reached /workshop as Philip Lewis without state_mismatch."
+    }
+  ],
+  "residualRisk": [
+    "This follow-up proved the exposed in-app browser profile could recover to an authenticated /workshop session, but did not force a fresh Google account-picker completion because that profile already had a valid session.",
+    "The broad edge adapter remains required because the current-source main archestimator-proof Worker upload/version ingestion is still blocked.",
+    "Full hosted browser journeys for estimate history, component library, R2 upload scanner persistence, publication recipient response, and two-client realtime UI remain open."
+  ]
+}

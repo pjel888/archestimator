@@ -1,6 +1,6 @@
 # Cloudflare Jobs Runtime Proof
 
-Generated: 2026-07-01T09:15:01.238Z
+Generated: 2026-07-01T13:42:21.803Z
 Base URL: https://archestimator.com
 Endpoint: /__cloudflare/jobs-proof
 Provider backed: yes
@@ -22,9 +22,9 @@ Calls the deployed proof Worker jobs-proof endpoint with a local bearer secret, 
 
 ## Sanitized Results
 
-- Proof id: 2c7fb76d-c230-4edc-aa9a-01a0c0c39ccf
+- Proof id: 132091fd-6286-477e-bfe7-07cc6b56c8e4
 - Queue: archestimator-upload-jobs
-- Receipt key: provider-proof/jobs/2c7fb76d-c230-4edc-aa9a-01a0c0c39ccf.json
+- Receipt key: provider-proof/jobs/132091fd-6286-477e-bfe7-07cc6b56c8e4.json
 - Consumer action: ack
 - Consumer reason: executed
 - Consumer attempts: 1
@@ -32,10 +32,10 @@ Calls the deployed proof Worker jobs-proof endpoint with a local bearer secret, 
 - Skipped count: 0
 - Consumer error: (none)
 - Queue latency sample count: 1
-- Queue latency p95: 32381 ms
-- Latest queue requested at: 2026-07-01T09:14:26.443Z
-- Latest queue receipt generated at: 2026-07-01T09:14:58.824Z
-- Queue latency samples ms: 32381
+- Queue latency p95: 33537 ms
+- Latest queue requested at: 2026-07-01T13:41:45.619Z
+- Latest queue receipt generated at: 2026-07-01T13:42:19.156Z
+- Queue latency samples ms: 33537
 
 ## Blockers
 

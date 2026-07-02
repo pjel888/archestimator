@@ -1,0 +1,126 @@
+{
+  "generatedAt": "2026-07-02T01:11:20Z",
+  "mode": "cloudflare-hosted-component-custom-category-proof",
+  "result": "pass",
+  "hostedUrl": "https://archestimator.com/workshop/library/components?add=component&component=f7007706-def3-4f7a-bd7c-020b2eb8bbbe",
+  "browserProof": {
+    "surface": "Signed-in production Chrome session on archestimator.com",
+    "workflow": "Library > Add component",
+    "submittedFields": {
+      "name": "Cloudflare QA Custom Blank Category 2026-07-02 00:56Z",
+      "description": "Hosted blank category normalization proof",
+      "category": "Cloudflare Custom Category 2026-07-02",
+      "supplier": "",
+      "brand": "",
+      "unit": "unit",
+      "unitCost": 91.25
+    },
+    "postSubmitUi": {
+      "toast": "Component saved.",
+      "componentId": "f7007706-def3-4f7a-bd7c-020b2eb8bbbe",
+      "listState": "All Components · 2 components",
+      "cardNameVisible": true,
+      "inspectorCategory": "Cloudflare Custom Category 2026-07-02",
+      "inspectorLifecycle": "Available",
+      "inspectorVersion": "v1 current",
+      "inspectorUsage": "0 template rows · 0 estimate rows"
+    }
+  },
+  "remoteD1Readback": {
+    "database": "archestimator-proof-db",
+    "databaseId": "9bdb29bb-687e-4f51-ae81-7659c426ea5f",
+    "item": {
+      "id": "f7007706-def3-4f7a-bd7c-020b2eb8bbbe",
+      "workspace_id": "258b50ee-3fde-4f6a-a9d9-c360ec44cd0b",
+      "name": "Cloudflare QA Custom Blank Category 2026-07-02 00:56Z",
+      "description": "Hosted blank category normalization proof",
+      "category": "Cloudflare Custom Category 2026-07-02",
+      "category_node_id": null,
+      "supplier_id": null,
+      "brand_id": null,
+      "unit": "unit",
+      "unit_cost": 91.25,
+      "active_price_option_id": "6dca209c-d33c-4a1b-8eb4-697df7d127a4",
+      "current_version_number": 1,
+      "lifecycle_state": "available",
+      "created_by": "4e23801d-6fc2-4886-b980-d15ca2b164b8",
+      "created_at": "2026-07-02T01:00:12.453Z",
+      "updated_at": "2026-07-02T01:00:12.453Z",
+      "meta": {
+        "served_by": "v3-prod",
+        "served_by_region": "APAC",
+        "served_by_colo": "SIN",
+        "served_by_primary": true,
+        "changed_db": false,
+        "rows_read": 1,
+        "rows_written": 0
+      }
+    },
+    "priceOption": {
+      "id": "6dca209c-d33c-4a1b-8eb4-697df7d127a4",
+      "item_id": "f7007706-def3-4f7a-bd7c-020b2eb8bbbe",
+      "label": "V1",
+      "unit": "unit",
+      "unit_cost": 91.25,
+      "misc_cost": 0,
+      "currency": "PHP",
+      "is_default": 1,
+      "is_active": 1,
+      "created_at": "2026-07-02T01:00:12.646Z",
+      "cost_entry_id": "b07d4b62-ca80-459d-a86f-914503d55e3d",
+      "current_unit_cost": 91.25,
+      "current_misc_cost": 0,
+      "current_currency": "PHP",
+      "pricing_date": "2026-07-02",
+      "is_current": 1,
+      "meta": {
+        "served_by": "v3-prod",
+        "served_by_region": "APAC",
+        "served_by_colo": "SIN",
+        "served_by_primary": true,
+        "changed_db": false,
+        "rows_read": 4,
+        "rows_written": 0
+      }
+    },
+    "version": {
+      "id": "a6a17cd9-4169-4a1c-82ab-6d39a829a236",
+      "item_id": "f7007706-def3-4f7a-bd7c-020b2eb8bbbe",
+      "version_number": 1,
+      "change_summary": "Component created",
+      "effective_at": "2026-07-02",
+      "created_at": "2026-07-02T01:00:12.699Z",
+      "meta": {
+        "served_by": "v3-prod",
+        "served_by_region": "APAC",
+        "served_by_colo": "SIN",
+        "served_by_primary": true,
+        "changed_db": false,
+        "rows_read": 2,
+        "rows_written": 0
+      }
+    },
+    "uniqueness": {
+      "matches": 1,
+      "predicate": "name + custom category + NULL category_node_id + NULL supplier_id + NULL brand_id"
+    }
+  },
+  "commands": [
+    "bunx wrangler d1 execute archestimator-proof-db --remote --command \"SELECT item.id, item.workspace_id, item.name, item.description, item.category, item.category_node_id, item.supplier_id, item.brand_id, item.unit, item.unit_cost, item.active_price_option_id, item.current_version_number, item.lifecycle_state, item.created_by, item.created_at, item.updated_at FROM cost_library_items item WHERE item.id = 'f7007706-def3-4f7a-bd7c-020b2eb8bbbe' LIMIT 1;\"",
+    "bunx wrangler d1 execute archestimator-proof-db --remote --command \"SELECT po.id, po.item_id, po.label, po.unit, po.unit_cost, po.misc_cost, po.currency, po.is_default, po.is_active, po.created_at, cost.id AS cost_entry_id, cost.unit_cost AS current_unit_cost, cost.misc_cost AS current_misc_cost, cost.currency AS current_currency, cost.pricing_date, cost.is_current FROM cost_library_item_price_options po LEFT JOIN cost_library_item_variant_cost_entries cost ON cost.price_option_id = po.id WHERE po.item_id = 'f7007706-def3-4f7a-bd7c-020b2eb8bbbe' ORDER BY po.created_at DESC;\"",
+    "bunx wrangler d1 execute archestimator-proof-db --remote --command \"SELECT id, item_id, version_number, change_summary, effective_at, created_at FROM cost_library_item_versions WHERE item_id = 'f7007706-def3-4f7a-bd7c-020b2eb8bbbe' ORDER BY version_number;\"",
+    "bunx wrangler d1 execute archestimator-proof-db --remote --command \"SELECT COUNT(*) AS matches FROM cost_library_items WHERE name = 'Cloudflare QA Custom Blank Category 2026-07-02 00:56Z' AND category = 'Cloudflare Custom Category 2026-07-02' AND category_node_id IS NULL AND supplier_id IS NULL AND brand_id IS NULL;\""
+  ],
+  "conclusion": {
+    "hostedCreateFlowReady": true,
+    "freeTypedCategoryPersistedInD1": true,
+    "blankSupplierBrandPersistedAsNull": true,
+    "priceOptionAndCurrentCostEntryCreated": true,
+    "versionRowCreated": true,
+    "remainingLibraryGaps": [
+      "hosted folder mutation proof",
+      "hosted template insertion proof",
+      "hosted viewer-denial proof"
+    ]
+  }
+}

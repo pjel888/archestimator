@@ -1,0 +1,129 @@
+{
+  "generatedAt": "2026-07-01T17:12:06Z",
+  "baseUrl": "https://archestimator.com",
+  "status": "live-callback-normalizer-active",
+  "problem": {
+    "reportedUrl": "https://archestimator.com/?error=state_mismatch",
+    "symptom": "Google OAuth retry could still land on state_mismatch after earlier apex/cookie-forwarding fixes.",
+    "probableCause": "A stale domain-scoped __Secure-better-auth.state cookie can coexist with the fresh host-scoped state cookie and be selected on the callback request."
+  },
+  "liveMitigations": [
+    {
+      "provider": "Cloudflare Rules",
+      "ruleType": "HTTP Response Header Transform Rule",
+      "ruleId": "d4ce940ef82542f9b459865ad967cfd1",
+      "ruleName": "Clear stale Better Auth OAuth state on retry",
+      "status": "active",
+      "match": "Hostname equals archestimator.com and URI Path equals / and URI Query String contains error=state_mismatch",
+      "actions": [
+        {
+          "operation": "Add static response header",
+          "headerName": "Clear-Site-Data",
+          "headerValue": "\"cookies\""
+        },
+        {
+          "operation": "Add static response header",
+          "headerName": "Set-Cookie",
+          "headerValue": "__Secure-better-auth.state=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax"
+        }
+      ],
+      "scopeNote": "The rule is intentionally narrowed to the root retry-error URL so it does not clear freshly minted state cookies on normal login/signup traffic."
+    },
+    {
+      "provider": "Cloudflare Workers",
+      "worker": "archestimator-auth-callback-normalizer",
+      "versionId": "25c7f483-02e5-4bff-99c5-4f0804a68321",
+      "deployedAt": "2026-07-01T17:09:49.288Z",
+      "route": "archestimator.com/api/auth/callback/google*",
+      "binding": {
+        "name": "ARCH_APP",
+        "type": "service",
+        "service": "archestimator-proof"
+      },
+      "source": "cloudflare/auth-callback-normalizer.ts",
+      "config": "wrangler.auth-callback-normalizer.jsonc",
+      "behavior": "Preserve the original callback request, rewrite only the Cookie header when a Better Auth state cookie matches the callback state, and forward to the main app Worker through a service binding."
+    }
+  ],
+  "sourceFixPrepared": {
+    "status": "built_and_tested_not_live_on_main_worker",
+    "reasonNotLive": "Full archestimator-proof Worker script upload/version creation continues to stall or fail at Cloudflare upload/deployment endpoints.",
+    "directUploadVersion": {
+      "versionId": "76c1b259-1515-460b-9878-eccfdac0b3c7",
+      "number": 82,
+      "tag": "oauth-state-retry-source-direct-20260701",
+      "deployResult": "failed_at_cloudflare_deployment_endpoint"
+    },
+    "files": [
+      "src/lib/auth/set-cookie-forwarding.ts",
+      "src/lib/auth/actions.ts",
+      "src/app/api/auth/[...all]/route.ts",
+      "src/lib/auth/error-mapping.ts"
+    ],
+    "behavior": [
+      "Clear Better Auth OAuth state cookie variants before forwarding a fresh sign-in state cookie.",
+      "Normalize duplicate Better Auth OAuth state cookies on the Google callback request so the cookie matching the callback state is evaluated last.",
+      "Map Better Auth state_mismatch to a session-expired login retry message.",
+      "Send Better Auth OAuth callback errors back to the login surface instead of a generic root error URL."
+    ]
+  },
+  "verification": {
+    "normalizerDryRun": {
+      "result": "PASS",
+      "command": "npx -y wrangler@4.106.0 deploy -c wrangler.auth-callback-normalizer.jsonc --dry-run --outdir /tmp/ae-auth-callback-normalizer-dryrun",
+      "uploadSize": "2.48 KiB",
+      "gzipSize": "0.91 KiB"
+    },
+    "normalizerDeploy": {
+      "result": "PASS",
+      "command": "CI=1 npx -y wrangler@4.106.0 deploy -c wrangler.auth-callback-normalizer.jsonc",
+      "versionId": "25c7f483-02e5-4bff-99c5-4f0804a68321",
+      "route": "archestimator.com/api/auth/callback/google*"
+    },
+    "normalizerReadback": {
+      "result": "PASS",
+      "command": "npx -y wrangler@4.106.0 deployments list --name archestimator-auth-callback-normalizer -c wrangler.auth-callback-normalizer.jsonc",
+      "versionId": "25c7f483-02e5-4bff-99c5-4f0804a68321",
+      "percentage": 100
+    },
+    "publicHeaders": [
+      {
+        "url": "https://archestimator.com/?error=state_mismatch",
+        "result": "HTTP/2 200 included Clear-Site-Data: \"cookies\" and the __Secure-better-auth.state expiry header."
+      },
+      {
+        "url": "https://archestimator.com/login?next=/workshop",
+        "result": "HTTP/2 200 did not include the cleanup headers, confirming normal login traffic is not wiped."
+      }
+    ],
+    "browserDuplicateCookieProof": {
+      "result": "PASS",
+      "steps": [
+        "Seeded stale __Secure-better-auth.state cookies for .archestimator.com and archestimator.com.",
+        "Loaded production /login?next=/workshop and clicked Continue with Google.",
+        "Observed Google OAuth URL on accounts.google.com with a fresh 32-character state.",
+        "Confirmed the browser had both a stale .archestimator.com state cookie and a fresh archestimator.com state cookie.",
+        "Called https://archestimator.com/api/auth/callback/google with the fresh state and fake-code in the same browser context."
+      ],
+      "finalUrl": "https://archestimator.com/?error=invalid_code",
+      "passedStateValidation": true,
+      "sawStateMismatch": false,
+      "expectedFakeCodeFailure": "invalid_code"
+    },
+    "localTestsForPreparedMainWorkerSource": {
+      "result": "PASS",
+      "commands": [
+        "bunx vitest run tests/vitest/auth-set-cookie-forwarding.test.ts tests/vitest/cloudflare-better-auth-route.test.ts tests/vitest/auth-error-mapping.test.ts tests/vitest/auth-magic-link.test.ts",
+        "bunx vitest run tests/vitest/cloudflare-worker-route-optimizations.test.ts tests/vitest/auth-set-cookie-forwarding.test.ts tests/vitest/auth-entry-ui-contract.test.ts tests/vitest/auth-magic-link.test.ts tests/vitest/auth-error-mapping.test.ts tests/vitest/cloudflare-better-auth-route.test.ts tests/vitest/cloudflare-better-auth-proof-router.test.ts tests/vitest/cloudflare-better-auth-proof-script.test.ts",
+        "NODE_OPTIONS=--max-old-space-size=8192 bunx tsc --noEmit --pretty false",
+        "git diff --check",
+        "bun run cf:build"
+      ]
+    }
+  },
+  "openWatchItems": [
+    "Recover the main archestimator-proof Worker script/version upload so the route-specific callback normalizer can be folded back into the main Worker source.",
+    "Keep the callback normalizer route active until the main Worker source fix is live and verified.",
+    "Intermittent public-route connection/body-transfer timeouts remain a performance/reliability watch item, distinct from OAuth state validation."
+  ]
+}

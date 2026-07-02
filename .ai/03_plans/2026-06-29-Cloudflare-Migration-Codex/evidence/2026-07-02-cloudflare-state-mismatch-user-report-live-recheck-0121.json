@@ -1,0 +1,77 @@
+{
+  "generatedAt": "2026-07-02T01:21:33Z",
+  "mode": "cloudflare-state-mismatch-user-report-live-recheck-0121",
+  "result": "pass",
+  "userReportedUrl": "https://archestimator.com/?error=state_mismatch",
+  "probes": {
+    "curlFollow": {
+      "command": "curl -sS -D - -o /tmp/archestimator-state-mismatch-now.html -L 'https://archestimator.com/?error=state_mismatch' -w 'FINAL_URL=%{url_effective}\\nHTTP_CODE=%{http_code}\\nREDIRECTS=%{num_redirects}\\nSIZE=%{size_download}\\n'",
+      "firstHopStatus": 302,
+      "firstHopLocation": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+      "secondHopStatus": 302,
+      "secondHopLocation": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset_done=1",
+      "finalUrl": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset_done=1",
+      "httpCode": 200,
+      "redirects": 2,
+      "stateMismatchBodyCount": 0,
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "clearSiteDataObserved": true
+    },
+    "variantFirstHops": {
+      "wwwRoot": {
+        "url": "https://www.archestimator.com/?error=state_mismatch",
+        "status": 302,
+        "location": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1"
+      },
+      "appPath": {
+        "url": "https://archestimator.com/workshop?error=state_mismatch",
+        "status": 302,
+        "location": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "clearSiteDataObserved": true
+      },
+      "missingCookieCallback": {
+        "url": "https://archestimator.com/api/auth/callback/google?state=fresh-state&code=fake-code",
+        "status": 302,
+        "location": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "clearSiteDataObserved": true
+      }
+    },
+    "freshBrowserGoogleStart": {
+      "tool": "Playwright Chromium via node_repl",
+      "inputUrl": "https://archestimator.com/?error=state_mismatch",
+      "afterRecoveryUrl": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset_done=1",
+      "titleAfterRecovery": "Sign in \u2014 Archestimator \u2014 Archestimator",
+      "bodyStateMismatchCount": 0,
+      "googleButtonCount": 1,
+      "stateCookiesAfterRecovery": [],
+      "afterGoogleClickHost": "accounts.google.com",
+      "googleRedirectUri": "https://archestimator.com/api/auth/callback/google",
+      "googleStateLength": 32,
+      "stateCookieCount": 1,
+      "stateCookieMatchesGoogleState": true,
+      "stateCookieName": "__Secure-better-auth.state",
+      "stateCookieDomain": "archestimator.com",
+      "stateCookiePath": "/"
+    },
+    "currentDesktopChrome": {
+      "tool": "Computer Use",
+      "status": "authenticated session preserved",
+      "url": "https://archestimator.com/workshop/publisher",
+      "visibleState": "Publisher page loaded with signed-in production data"
+    }
+  },
+  "conclusion": {
+    "hostedEdgeRecoveryReady": true,
+    "exactReportedUrlServerClean": true,
+    "freshBrowserGoogleStartClean": true,
+    "stateCookieMatchesGoogleState": true,
+    "noServiceWorkerTrapFound": true,
+    "knownRemainingExplanation": "The exact stale URL is clean at the live edge and in a fresh browser. If a user-visible tab still shows it, the likely remaining cause is an already-open stale surface, an interrupted navigation, or a browser profile that has not completed the current two-hop reset chain."
+  },
+  "notes": [
+    "No auth cookies, OAuth tokens, magic-link tokens, or Google state values are stored in this artifact.",
+    "The signed-in desktop Chrome session was not force-navigated through the reset route because that route intentionally clears cookies/storage."
+  ]
+}

@@ -2,7 +2,7 @@
 
 > Plan pack: Archestimator API Audit
 > Plan folder: `.ai/03_plans/2026-07-21-API-Audit/`
-> Verification mode: `emulated`
+> Verification mode: `emulated` (original 2026-07-01 authoring) + `lead-authored-fallback` (2026-07-01 re-verification: dispatched L2 explore lane timed out at 30-min inactivity; lead sampled 6 Server Action files + the centralized D1 authz module + the error-envelope wrapper directly — taxonomy PROVEN for sampled rows, 6 Action verdicts upgraded from TBD to PREVIEW-PASS, existing d1-access + withActionErrors infrastructure noted).
 
 ## Trust boundaries and actors
 
@@ -84,6 +84,40 @@ Actors:
 > **Audit observation (CR-002)**: The audit MUST verify C4 (share raw) and C6 (invite raw) are stored encrypted at rest using `PUBLICATION_TOKEN_ENCRYPTION_SECRET`, NOT just hashed. The hash (C5/C7) is used for lookup; the encrypted form is recoverable when needed (e.g., re-display after revoke gesture that requires raw to verify). Confirm the encryption secret is never readable from client code (REQ-SEC-004).
 
 > **Audit observation (CR-003)**: The audit MUST verify C9 (WS ticket) mint surface. The ticket MUST be (a) signed short-lived, (b) tied to Better Auth session, (c) one-shot use, (d) rate-limited per session. Anonymous WS upgrade MUST be rejected.
+
+### Verification update 2026-07-01 (lead-authored-fallback, L2 lane timed out)
+
+Sampled 6/30 Server Action files + the centralized D1 authz module + the error-envelope wrapper directly. Findings:
+
+**Credential material taxonomy — evidence upgrade for sampled materials:**
+
+| Material | Verification status | Concrete evidence |
+|---|---|---|
+| C1 (session cookie) | PROVEN | Cookie names `better-auth.session_token` + `__Secure-better-auth.session_token` confirmed at `src/lib/auth/actions.ts:85-86` (`clearBetterAuthSessionCookies`) |
+| C4 (share token raw, encrypted) | PROVEN | `encryptPublicationToken` imported from `@/lib/publication/security` at `src/lib/publication/actions.ts:14-15`; `PUBLICATION_TOKEN_ENCRYPTION_SECRET` consumed via `readPublicationTokenEncryptionSecret()` |
+| C5 (share token hash) | PROVEN | `hashPublicationToken` distinct function imported at `src/lib/publication/actions.ts:18`; `PUBLICATION_TOKEN_HASH_SECRET` consumed via `readPublicationTokenHashSecret()` |
+| C6 (invite token raw) | PARTIAL — token creation + expiry confirmed; encryption-at-rest NOT yet verified | `createInviteToken` imported at `src/lib/collaboration/actions.ts:13`; `INVITE_EXPIRATION_DAYS = 14` set at `src/lib/collaboration/actions.ts:93`. **CR-002 encryption-at-rest claim still requires inspecting `src/lib/collaboration/invite-entry.ts` to confirm `PUBLICATION_TOKEN_ENCRYPTION_SECRET` (or a distinct `INVITE_TOKEN_ENCRYPTION_SECRET`) is used for storage, not just hashing.** |
+| C9 (WebSocket ticket) | INCOMPLETE — not in this verification pass | Future remediation Phase 5 must verify the DO WS upgrade mint path |
+| C12 (`BETTER_AUTH_SECRET`) | PROVEN at binding level | `BETTER_AUTH_SECRET: string` in `cloudflare-env.d.ts:29`; rotation procedure still TBD |
+
+**Existing infrastructure discovered (reframes remediation scope, does NOT close the risk):**
+
+- `src/lib/authz/d1-access.ts` (306 lines) — central D1 authz layer EXISTS, exports `readProjectInWorkspaceFromD1`, `readEstimateInProjectFromD1`, `readEstimateRowItemInEstimateFromD1`, `canEditEstimateInD1`, `isWorkspaceEditorInD1`, `isWorkspaceMemberInD1`. All prepared statements explicitly scope by `workspace_id = ?` AND `project_id = ?`. **RISK-001 mitigation scope reframes from "build centralized access layer" to "extend adoption to every remaining call site; verify 100% coverage".** This is a smaller remediation than the original Phase 1 implied.
+- `src/lib/observability/with-action-errors.ts` (85 lines) — `ActionResult<T>` envelope wrapper EXISTS via `withActionErrors(actionName, fn, opts)`. Returns `actionOk(result)` / `actionFailure(appError)`. Handles `NEXT_REDIRECT` re-throw, has logger injection. **REQ-API-002 remediation scope reframes from "implement error envelope" to "wrap every remaining Action with `withActionErrors`; standardize the error code taxonomy in `app-error.ts`".**
+- `src/lib/observability/action-result.ts`, `app-error.ts`, `logger.ts` — full error-contract infrastructure exists alongside the wrapper.
+
+**Per-Action verdict preview — 6 rows upgraded from TBD to PREVIEW-PASS:**
+
+| Action file | Verification verdict | Evidence |
+|---|---|---|
+| `src/lib/estimates/actions.ts` | PREVIEW-PASS | imports `requireAuth, requireCurrentUserContext` (line 7), `assertEstimateActionRateLimit` (line 8), `getCurrentWorkspaceProject` (line 41) — auth + ownership + rate-limit + workspace scoping present |
+| `src/lib/publication/actions.ts` | PREVIEW-PASS | `requireAuth` (line 9), `recordAccountSecurityEvent` (line 8), `withActionErrors` (line 48), `createPublicationAdminD1Client` (line 27), `sendEmail` (line 28) — auth + audit + envelope + scoped D1 client + email |
+| `src/lib/collaboration/actions.ts` | PREVIEW-PASS | `requireCurrentUserContext` (line 7), `resolveAuthOrigin` (line 6), `checkInviteCreateRateLimit + checkInviteResendRateLimit` (lines 11-12), role-rank ownership (lines 108-118) |
+| `src/lib/projects/actions.ts` | PREVIEW-PASS | `requireAuth, requireCurrentUserContext` (line 6), `getCloudflareD1Database` (line 8), `cleanupStorageTargets` (line 21) — auth + scoped D1 + R2 cleanup on delete |
+| `src/lib/component-library/actions.ts` | PREVIEW-PASS | `requireCurrentUserContext` (line 6), `canEditEstimateInD1, isWorkspaceEditorInD1, isWorkspaceMemberInD1` from `@/lib/authz/d1-access` (line 7) — auth + explicit D1 authz layer |
+| `src/lib/auth/actions.ts` | PREVIEW-PASS | `requireAuth` (line 15), `recordAccountSecurityEvent` (line 6), `resolveAuthOrigin` (line 12), cookie clearing confirmed (lines 82-87) |
+
+The remaining 24 Action files keep TBD until Phase 2 verification. The 6 sampled rows establish that the SCHEMA in this doc is achievable and the patterns exist in the codebase; full verdict completion is Phase 2 remediation scope.
 
 ## Per-Server-Action verdict table (preview)
 

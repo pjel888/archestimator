@@ -1,0 +1,60 @@
+{
+  "generatedAt": "2026-07-01T19:58:16Z",
+  "scope": "Cloudflare OAuth state_mismatch fallback hardening",
+  "trigger": "User reported the exact production URL still visible: https://archestimator.com/?error=state_mismatch",
+  "deployment": {
+    "worker": "archestimator-auth-callback-normalizer",
+    "versionId": "efab385a-a0ca-4e8b-b382-e7cc0f469044",
+    "routes": [
+      "archestimator.com/*",
+      "archestimator.com/api/auth/callback/google*"
+    ],
+    "serviceBinding": "ARCH_APP -> archestimator-proof"
+  },
+  "sourceChanges": [
+    "cloudflare/auth-callback-normalizer.ts",
+    "src/lib/cloudflare/worker-route-optimizations.ts",
+    "tests/vitest/auth-callback-normalizer-worker.test.ts",
+    "tests/vitest/cloudflare-worker-route-optimizations.test.ts"
+  ],
+  "verification": {
+    "focusedTests": {
+      "command": "bunx vitest run tests/vitest/auth-callback-normalizer-worker.test.ts tests/vitest/cloudflare-worker-route-optimizations.test.ts tests/vitest/auth-proxy.test.ts --maxWorkers=1",
+      "result": "pass",
+      "filesPassed": 3,
+      "testsPassed": 52
+    },
+    "liveRootProbe": {
+      "url": "https://archestimator.com/?error=state_mismatch",
+      "status": 302,
+      "location": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+      "refresh": "0; url=https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+      "contentType": "text/html; charset=utf-8",
+      "fallbackBodyContains": [
+        "Resetting sign-in",
+        "window.location.replace"
+      ],
+      "cleanupHeaders": [
+        "Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate",
+        "Clear-Site-Data: \"cookies\"",
+        "Set-Cookie expiry for Better Auth OAuth state cookies"
+      ]
+    },
+    "followedRootProbe": {
+      "url": "https://archestimator.com/?error=state_mismatch",
+      "finalStatus": 200,
+      "finalUrl": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+      "finalPage": "Sign in"
+    },
+    "freshChromiumNavigation": {
+      "url": "https://archestimator.com/?error=state_mismatch",
+      "finalUrl": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+      "title": "Sign in - Archestimator - Archestimator",
+      "bodyHasStateMismatch": false
+    }
+  },
+  "residualRisk": [
+    "Main archestimator-proof OpenNext Worker is still stale because the full Worker upload/deploy path remains blocked; keep the edge adapter active.",
+    "This verifies current production from this environment and a fresh Chromium context; if a user keeps an already-open stale browser page, a reload/new navigation is required to receive the new edge response."
+  ]
+}

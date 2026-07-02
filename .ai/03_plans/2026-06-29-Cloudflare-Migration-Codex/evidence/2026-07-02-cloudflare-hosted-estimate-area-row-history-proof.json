@@ -1,0 +1,171 @@
+{
+  "generatedAt": "2026-07-01T20:29:30.000Z",
+  "mode": "cloudflare-hosted-estimate-area-row-history-proof",
+  "baseUrl": "https://archestimator.com",
+  "projectId": "bd9a8e68-4e24-49d8-aeed-e4651b7cab0b",
+  "estimateId": "985f6690-741e-4136-9fa1-a4896cd364e4",
+  "estimateUrl": "https://archestimator.com/workshop/projects/bd9a8e68-4e24-49d8-aeed-e4651b7cab0b/estimates/e4b71a81-47fc-4f5a-bead-35e4e8050eae",
+  "passed": true,
+  "browserSession": {
+    "profile": "Codex in-app browser",
+    "authenticatedAs": "Philip Lewis",
+    "visibleEmail": "philipjonlewis@gmail.com",
+    "bodyContainsStateMismatch": false
+  },
+  "hostedUiMutations": [
+    {
+      "step": "created estimate area",
+      "result": "The hosted sheet showed an Area added signal and created New Area."
+    },
+    {
+      "step": "renamed area",
+      "value": "Cloudflare QA Area 2026-07-02 04:24",
+      "result": "The hosted sheet showed Node renamed and the area remained visible."
+    },
+    {
+      "step": "added row item",
+      "result": "The hosted sheet showed Row changes saved and one row under the QA area."
+    },
+    {
+      "step": "edited row item fields",
+      "values": {
+        "material": "Cloudflare QA Component 2026-07-02",
+        "supplier": "Codex QA Supplier",
+        "unitCost": 123.45,
+        "description": "Hosted D1 browser row mutation proof",
+        "unit": "sqm",
+        "quantityBase": 3,
+        "contingencyPercentage": 5,
+        "adjustmentPercentage": 2
+      },
+      "result": "The hosted sheet showed saved row changes and calculated totals."
+    },
+    {
+      "step": "reloaded hosted estimate page",
+      "result": "Area, component inputs, supplier, description, unit, unit cost, quantity/percentage values, and calculated total remained visible after a full reload."
+    },
+    {
+      "step": "opened hosted Activity History drawer",
+      "result": "Activity UI showed audit trail entries for adjustment percentage, quantity/contingency, unit, description, unit cost, supplier, material, row insertion, and area rename/create."
+    }
+  ],
+  "d1Readback": {
+    "database": "archestimator-proof-db",
+    "resourceLocation": "remote",
+    "servedBy": "v3-prod",
+    "servedByRegion": "APAC",
+    "servedByColo": "SIN",
+    "changedDbOnReadback": false,
+    "areaNode": {
+      "id": "e4b71a81-47fc-4f5a-bead-35e4e8050eae",
+      "estimateId": "985f6690-741e-4136-9fa1-a4896cd364e4",
+      "estimateTabId": "5bf33713-4fec-4d82-b408-bbf11cb2cb91",
+      "name": "Cloudflare QA Area 2026-07-02 04:24",
+      "kind": "area",
+      "parentId": null,
+      "sortOrder": 10,
+      "updatedAt": "2026-07-01T20:26:13.984Z"
+    },
+    "rowItem": {
+      "id": "878e98e0-6a5a-4e58-ac42-4b73284eae4d",
+      "estimateId": "985f6690-741e-4136-9fa1-a4896cd364e4",
+      "nodeId": "e4b71a81-47fc-4f5a-bead-35e4e8050eae",
+      "description": "Hosted D1 browser row mutation proof",
+      "material": "Cloudflare QA Component 2026-07-02",
+      "supplier": "Codex QA Supplier",
+      "unit": "sqm",
+      "quantity": 3.15,
+      "quantityBase": 3,
+      "quantityContingencyAmount": 0.15,
+      "unitCost": 123.45,
+      "miscCost": 0,
+      "contingencyPercentage": 5,
+      "adjustmentPercentage": 2,
+      "rowRevision": 9,
+      "updatedAt": "2026-07-01T20:27:38.847Z"
+    },
+    "eventHistory": [
+      {
+        "eventType": "row_updated",
+        "changedFields": "[\"adjustment_percentage\"]",
+        "totalDelta": 7.777350000000013,
+        "createdAt": "2026-07-01T20:27:39.157Z"
+      },
+      {
+        "eventType": "row_updated",
+        "changedFields": "[\"quantity\",\"quantity_base\",\"quantity_contingency_amount\",\"contingency_percentage\"]",
+        "totalDelta": 18.517499999999984,
+        "createdAt": "2026-07-01T20:27:37.589Z"
+      },
+      {
+        "eventType": "row_updated",
+        "changedFields": "[\"unit\"]",
+        "totalDelta": 0,
+        "createdAt": "2026-07-01T20:27:32.976Z"
+      },
+      {
+        "eventType": "row_updated",
+        "changedFields": "[\"description\"]",
+        "totalDelta": 0,
+        "createdAt": "2026-07-01T20:27:06.793Z"
+      },
+      {
+        "eventType": "row_updated",
+        "changedFields": "[\"unit_cost\"]",
+        "totalDelta": 123.45,
+        "createdAt": "2026-07-01T20:27:06.029Z"
+      },
+      {
+        "eventType": "row_updated",
+        "changedFields": "[\"supplier\"]",
+        "totalDelta": 0,
+        "createdAt": "2026-07-01T20:27:04.325Z"
+      },
+      {
+        "eventType": "row_updated",
+        "changedFields": "[\"material\"]",
+        "totalDelta": 0,
+        "createdAt": "2026-07-01T20:27:02.278Z"
+      },
+      {
+        "eventType": "row_inserted",
+        "changedFields": "[]",
+        "totalDelta": 0,
+        "createdAt": "2026-07-01T20:26:39.185Z"
+      },
+      {
+        "eventType": "estimate_node_renamed",
+        "changedFields": "[\"name\"]",
+        "totalDelta": null,
+        "createdAt": "2026-07-01T20:26:14.014Z"
+      },
+      {
+        "eventType": "estimate_node_created",
+        "changedFields": "[]",
+        "totalDelta": null,
+        "createdAt": "2026-07-01T20:25:45.312Z"
+      }
+    ]
+  },
+  "verification": [
+    {
+      "surface": "Codex in-app browser",
+      "result": "Authenticated hosted estimate UI created/renamed area, inserted row, edited row fields, persisted through reload, and showed Activity History entries."
+    },
+    {
+      "command": "bunx wrangler d1 execute archestimator-proof-db --remote --command <read-only area/row/history SQL>",
+      "exitCode": 0,
+      "result": "Area node, row item, and recent estimate_sheet_events were read from remote Cloudflare D1; rows_written=0 and changed_db=false."
+    }
+  ],
+  "notProvenByThisArtifact": [
+    "Estimate tab create/rename/archive/delete/duplicate/reorder lifecycle.",
+    "Rollback behavior.",
+    "Operation idempotency/retry replay.",
+    "Cross-workspace/viewer denial.",
+    "Real R2 upload, publication recipient response, and two-client realtime UI."
+  ],
+  "notes": [
+    "A misc-cost UI fill was attempted but the persisted D1 readback shows misc_cost=0, so this artifact does not claim misc-cost persistence."
+  ]
+}

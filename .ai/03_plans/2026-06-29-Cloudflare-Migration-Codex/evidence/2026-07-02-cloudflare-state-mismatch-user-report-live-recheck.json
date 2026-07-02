@@ -1,0 +1,69 @@
+{
+  "generatedAt": "2026-07-02T00:51:54Z",
+  "mode": "cloudflare-state-mismatch-user-report-live-recheck",
+  "result": "pass",
+  "userReportedUrl": "https://archestimator.com/?error=state_mismatch",
+  "probes": {
+    "curlFollow": {
+      "command": "curl -sS -L -w '\\nFINAL_URL=%{url_effective}\\nHTTP_CODE=%{http_code}\\nREDIRECTS=%{num_redirects}\\n' -o /tmp/arch_state_mismatch_body.html 'https://archestimator.com/?error=state_mismatch'",
+      "finalUrl": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset_done=1",
+      "httpCode": 200,
+      "redirects": 2,
+      "bodyStateMismatchCount": 0,
+      "bodyErrorParamCount": 0
+    },
+    "curlNoCache": {
+      "command": "curl -sS -H 'Cache-Control: no-cache' -L -w '\\nFINAL_URL=%{url_effective}\\nHTTP_CODE=%{http_code}\\nREDIRECTS=%{num_redirects}\\n' -o /tmp/arch_state_mismatch_nocache.html 'https://archestimator.com/?error=state_mismatch&_probe=20260702T0049Z'",
+      "finalUrl": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset_done=1",
+      "httpCode": 200,
+      "redirects": 2,
+      "bodyStateMismatchCount": 0,
+      "loginMarkerCount": 20
+    },
+    "headlessBrowser": {
+      "command": "bun -e 'import { chromium } from \"playwright\"; ... goto(\"https://archestimator.com/?error=state_mismatch\", { waitUntil: \"domcontentloaded\" })'",
+      "finalUrl": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset_done=1",
+      "title": "Sign in - Archestimator - Archestimator",
+      "bodyHasStateMismatch": false,
+      "bodyHasGoogle": true,
+      "stateCookiesAfterRecovery": [],
+      "responseChain": [
+        {
+          "url": "https://archestimator.com/?error=state_mismatch",
+          "status": 302,
+          "location": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+          "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate"
+        },
+        {
+          "url": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+          "status": 302,
+          "location": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset_done=1",
+          "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate"
+        },
+        {
+          "url": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset_done=1",
+          "status": 200,
+          "location": null,
+          "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    "desktopChromeObservation": {
+      "tool": "computer-use",
+      "observedUrl": "https://archestimator.com/workshop/projects/bd9a8e68-4e24-49d8-aeed-e4651b7cab0b/estimates",
+      "observedAuthenticatedProject": "Codex Cloudflare Smoke 2026-07-01",
+      "observedUserFacingError": false,
+      "note": "The signed-in Chrome tab was not force-navigated to the stale-state URL because the recovery response intentionally clears OAuth/session storage and would disrupt the authenticated migration QA session."
+    }
+  },
+  "conclusion": {
+    "hostedEdgeRecoveryReady": true,
+    "exactReportedUrlServerClean": true,
+    "freshBrowserClean": true,
+    "likelyRemainingCause": "An already-open browser surface may still display a stale URL/client state until it reloads through the now-clean edge recovery path."
+  },
+  "notes": [
+    "No cookies, OAuth tokens, or magic-link tokens are stored in this artifact.",
+    "This artifact was created after the owner reported the exact URL still showing state_mismatch."
+  ]
+}

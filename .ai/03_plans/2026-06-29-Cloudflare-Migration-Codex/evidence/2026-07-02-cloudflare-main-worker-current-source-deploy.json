@@ -1,0 +1,81 @@
+{
+  "generatedAt": "2026-07-01T22:49:28Z",
+  "mode": "cloudflare-main-worker-current-source-deploy",
+  "worker": "archestimator-proof",
+  "accountId": "7f6229cfea61b59f6f48b517fde86039",
+  "productionVersion": {
+    "id": "3d3f3873-3232-4591-9436-2e963860ddbb",
+    "number": 83,
+    "tag": "lightweight-xlsx-direct-magic-link",
+    "message": "Cloudflare migration auth hardening and Worker bundle trim",
+    "trafficPercent": 100,
+    "deploymentId": "290812ff-9865-4e1a-b248-eeb3d9154445",
+    "deployedAt": "2026-07-01T22:46:35.454876Z",
+    "deploymentMessage": "Promote Cloudflare migration auth hardening and Worker bundle trim"
+  },
+  "upload": {
+    "wranglerVersion": "4.106.0",
+    "totalUploadKiB": 17019.69,
+    "gzipKiB": 4656.31,
+    "workerStartupMs": 36,
+    "durationSeconds": 177.23,
+    "previousUploadBlockerResolved": true
+  },
+  "bundleTrim": {
+    "handlerBytes": 15783268,
+    "indexBytes": 109185,
+    "middlewareHandlerBytes": 1550513,
+    "activeEntrypointBytes": 4086,
+    "activeJsTotalBytes": 17447052,
+    "removedRuntimeExcelJsFromWorkerBundle": true,
+    "replacedProposalExportRuntimeExcelJsWithLightweightXlsxWriter": true,
+    "replacedBetterAuthPluginBarrelImportsWithMagicLinkSubpath": true
+  },
+  "liveStateMismatchProbe": {
+    "inputUrl": "https://archestimator.com/?error=state_mismatch",
+    "finalUrl": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset_done=1",
+    "status": 200,
+    "redirects": 2,
+    "title": "Sign in — Archestimator — Archestimator",
+    "bodyStateMismatchCount": 0,
+    "browserFinalUrl": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset_done=1",
+    "browserBodyHasStateMismatch": false,
+    "browserGoogleButtonCount": 1,
+    "browserStateCookies": []
+  },
+  "hostedRouteProof": {
+    "command": "CLOUDFLARE_HOSTED_ROUTE_BASE_URL=https://archestimator.com bun run cf:verify-hosted-routes",
+    "passed": true,
+    "routeContractReady": true,
+    "hostedRouteProofReady": true,
+    "blockers": []
+  },
+  "releaseGates": {
+    "command": "bun run cf:release-gates",
+    "productionCutoverReady": true,
+    "blockers": []
+  },
+  "regressionChecks": [
+    {
+      "command": "bunx vitest run tests/vitest/auth-callback-normalizer-worker.test.ts tests/vitest/cloudflare-worker-route-optimizations.test.ts tests/vitest/auth-proxy.test.ts tests/vitest/auth-set-cookie-forwarding.test.ts tests/vitest/cloudflare-better-auth-route.test.ts --maxWorkers=1",
+      "passed": true,
+      "testFiles": 5,
+      "tests": 66
+    },
+    {
+      "command": "bunx vitest run tests/vitest/proposal-workbook.test.ts tests/vitest/proposal-export-route-workbook.test.ts tests/vitest/proposal-export-route.test.ts tests/vitest/cloudflare-better-auth-route-gate.test.ts tests/vitest/cloudflare-better-auth-proof-script.test.ts --maxWorkers=1",
+      "passed": true,
+      "testFiles": 5,
+      "tests": 55
+    },
+    {
+      "command": "git diff --check",
+      "passed": true
+    }
+  ],
+  "notes": [
+    "The previous main Worker upload stall at roughly 21.6 MiB no longer reproduces after removing runtime ExcelJS from the Worker bundle and replacing Better Auth plugin barrel imports with the magic-link subpath import.",
+    "The broad auth-callback-normalizer edge adapter remains active as defense-in-depth, but the current-source archestimator-proof Worker is now deployed at 100% behind it.",
+    "This evidence does not delete, downgrade, cancel, or mutate Vercel, Supabase, Resend, DNS, or billing resources."
+  ]
+}

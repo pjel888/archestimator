@@ -1,0 +1,48 @@
+{
+  "generatedAt": "2026-07-01T13:52:01Z",
+  "baseUrl": "https://archestimator.com",
+  "environment": "production",
+  "tooling": "Google Chrome assisted by computer-use",
+  "result": "pass",
+  "checks": [
+    {
+      "id": "browser-google-login",
+      "status": "pass",
+      "startUrl": "https://archestimator.com/login?next=/workshop",
+      "finalUrl": "https://archestimator.com/workshop",
+      "observations": [
+        "Clicked the production Continue with Google button.",
+        "Returned to the custom apex domain without error=state_mismatch.",
+        "Workshop loaded as an authenticated session for Philip Lewis.",
+        "No archestimator-proof.philipjonlewis.workers.dev redirect was observed after auth completion."
+      ]
+    },
+    {
+      "id": "browser-project-create-list",
+      "status": "pass",
+      "startUrl": "https://archestimator.com/workshop",
+      "finalUrl": "https://archestimator.com/workshop/projects",
+      "project": {
+        "name": "Codex Cloudflare Smoke 2026-07-01",
+        "id": "bd9a8e68-4e24-49d8-aeed-e4651b7cab0b",
+        "code": "Q5M2XN6L",
+        "path": "/workshop/projects/bd9a8e68-4e24-49d8-aeed-e4651b7cab0b"
+      },
+      "observations": [
+        "Opened the production New Project modal.",
+        "Submitted a new project from the authenticated browser session.",
+        "The project appeared on the production Projects page after creation.",
+        "The smoke project was intentionally left in place for audit visibility."
+      ]
+    }
+  ],
+  "negativeObservations": {
+    "stateMismatchObserved": false,
+    "workerSubdomainObservedAfterAuth": false,
+    "supabaseOrVercelUiObserved": false
+  },
+  "notes": [
+    "The Chrome profile already had an available Google session, so the hosted provider step completed without a manual account chooser in the automation trace.",
+    "This proves the live production Google auth and D1-backed project-create/list smoke path. It does not prove magic-link mailbox completion, upload lifecycle, estimate editing, publication, or strict p95 performance budgets."
+  ]
+}

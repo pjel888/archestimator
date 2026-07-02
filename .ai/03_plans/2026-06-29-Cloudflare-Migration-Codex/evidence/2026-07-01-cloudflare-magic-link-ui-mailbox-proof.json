@@ -1,0 +1,38 @@
+{
+  "mode": "cloudflare-magic-link-ui-mailbox-proof",
+  "generatedAt": "2026-07-01T19:14:15.000Z",
+  "baseUrl": "https://archestimator.com",
+  "recipient": "philipjonlewis@gmail.com",
+  "checks": {
+    "productionUiSubmit": {
+      "url": "https://archestimator.com/login?next=%2Fworkshop",
+      "afterSubmitUrl": "https://archestimator.com/login?sent=1&next=%2Fworkshop",
+      "sentBannerVisible": true
+    },
+    "gmailReceipt": {
+      "messageId": "19f1f18a63cc824d",
+      "from": "noreply@archestimator.com",
+      "to": "philipjonlewis@gmail.com",
+      "subject": "Sign in to Archestimator",
+      "receivedAt": "2026-07-01T19:12:10Z",
+      "verifyLinkHost": "archestimator.com",
+      "verifyLinkPath": "/api/auth/magic-link/verify",
+      "tokenRedacted": true,
+      "callbackPath": "/workshop"
+    },
+    "browserVerification": {
+      "freshBrowserContext": true,
+      "finalUrl": "https://archestimator.com/workshop",
+      "finalUrlIsWorkshop": true,
+      "loadedAsPhilip": true,
+      "hasAuthError": false,
+      "sessionCookieNames": [
+        "__Secure-better-auth.session_token"
+      ],
+      "sessionCookieCount": 1,
+      "sessionCookieSecure": true,
+      "sessionCookieHttpOnly": true
+    }
+  },
+  "blockers": []
+}

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-01T12:16:41.427Z",
+  "generatedAt": "2026-07-01T13:41:34.202Z",
   "mode": "cloudflare-better-auth-d1-route-gate-proof",
   "sources": {
     "packageJson": "package.json",
@@ -97,7 +97,7 @@
   "providerProofSummary": {
     "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-better-auth-provider-proof.json",
     "present": true,
-    "generatedAt": "2026-07-01T12:16:03.252Z",
+    "generatedAt": "2026-07-01T13:40:56.009Z",
     "baseUrl": "https://archestimator.com",
     "endpointPath": "/__cloudflare/better-auth-proof",
     "responseStatus": 200,

@@ -17,6 +17,185 @@ Stable current truth (verify against git/source before relying on a detail):
   TanStack Query, Zustand, repository boundaries. Historical Supabase/Postgres
   artifacts may still exist for migration archaeology, but active app/runtime
   source should stay Cloudflare-only.
+- State-mismatch live recheck as of 2026-07-02 01:21 UTC: after the owner
+  again reported `https://archestimator.com/?error=state_mismatch`, a fresh
+  live probe still recovered cleanly. Curl follows the exact URL through
+  `302 -> 302 -> 200` to
+  `https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset_done=1`
+  with zero `state_mismatch` body matches. `www`, `/workshop`, and a
+  missing-cookie Google callback all first-hop to the clean reset URL. A fresh
+  Playwright browser lands on the reset-done login page with no state cookies,
+  then starts Google with
+  `redirect_uri=https://archestimator.com/api/auth/callback/google`; the single
+  `__Secure-better-auth.state` cookie matches Google's 32-character `state`.
+  No app service worker/cache trap was found. The signed-in desktop Chrome
+  session was preserved on `/workshop/publisher` for workflow QA instead of
+  forcing a reset that clears cookies/storage. Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-state-mismatch-user-report-live-recheck-0121.*`.
+- OAuth `www` state-mismatch first-hop recovery as of 2026-07-02 00:30 UTC:
+  the latest user-visible `state_mismatch` path was traced to Cloudflare Single
+  Redirect ordering, not the apex Worker recovery. The existing catch-all
+  `www` -> apex `308` rule ran before Workers and preserved
+  `?error=state_mismatch` as its first visible hop. Cloudflare Redirect Rule
+  `Recover www Google state mismatch` (`d8a83c3442aa4c589f7a01bd5dd33fde`) is
+  now active at order 1, matching
+  `https://www.archestimator.com/*error=state_mismatch*`, sending a temporary
+  `302` to `https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1`,
+  and dropping the stale query string; the generic `Redirect from WWW to root
+  [Template]` rule remains order 2. The normalizer Worker was also redeployed
+  as version `aaee7b3f-a120-4e5e-ada2-5950c57831df` with a `www` route as
+  defense in depth. Hosted curl proves apex, `www` root, and `www/workshop`
+  stale-state URLs all first-hop to clean reset and follow to
+  `/login?next=%2Fworkshop&oauth_state_reset_done=1` with zero visible
+  `state_mismatch`. Fresh Playwright proves both apex and `www` stale-state
+  URLs land on the clean Google login page; clicking Google produces
+  `redirect_uri=https://archestimator.com/api/auth/callback/google` and a
+  32-character Google `state` matching the fresh
+  `__Secure-better-auth.state` cookie. Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-www-state-mismatch-redirect-rule.*`.
+- Cloudflare authz/cache hardening checkpoint as of 2026-07-02 00:39 UTC:
+  local P0 authz findings are fixed/verified for stale default workspace IDs,
+  central project UUID lookup fail-closed behavior, estimate/sheet-list D1
+  access filtering, and sheet-only collaboration summary filtering. Protected
+  project images, component-library images, and component-library attachments
+  now return private no-store cache headers on successful responses as well as
+  failures. The hosted auth verifier now expects the live `/access-required`
+  route instead of stale `/beta/access-required`. Focused authz/security tests
+  passed (`12`, `77`, and `47` tests), hosted signed-out auth smoke against
+  `https://archestimator.com` passed with `307` to
+  `/login?next=%2Fworkshop` and private no-store, `bun run type-check` passed,
+  and `git diff --check` passed. Remaining hosted auth gap: allowed/denied/
+  revoked/expired cases need sanitized session-cookie fixtures. Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-authz-cache-hardening.*`.
+- State-mismatch live recheck as of 2026-07-02 01:06 UTC: after the owner
+  again reported `https://archestimator.com/?error=state_mismatch`, fresh
+  production probes still recover cleanly. Curl follows the exact URL to
+  `https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset_done=1`
+  with HTTP 200 and zero `state_mismatch` body matches; apex and `www` first
+  hops both send the clean reset URL; a missing-cookie Google callback returns
+  the clean reset with private no-store and `Clear-Site-Data`; and a fresh
+  Playwright browser lands on the reset-done login page, then starts Google
+  OAuth with `redirect_uri=https://archestimator.com/api/auth/callback/google`
+  and a single `__Secure-better-auth.state` cookie matching Google's `state`.
+  Main Worker `archestimator-proof` remains at version
+  `e4476425-2fdb-41ce-856a-de78e3a22fd8` (`login-auth-no-store-final`) at 100%;
+  normalizer Worker `archestimator-auth-callback-normalizer` remains at version
+  `aaee7b3f-a120-4e5e-ada2-5950c57831df` at 100%. Cloudflare observability
+  keys/values queries returned a Cloudflare API request failure, so no log claim
+  is made from that surface. Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-state-mismatch-user-report-live-recheck-0106.*`.
+- State-mismatch live recheck as of 2026-07-02 00:51 UTC: after the owner
+  again reported `https://archestimator.com/?error=state_mismatch`, fresh
+  production curl, no-cache curl, and a fresh no-cookie Playwright browser all
+  recovered to
+  `https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset_done=1`
+  with HTTP 200, private no-store auth-recovery responses, Google sign-in
+  visible, zero body `state_mismatch`, and no leftover state cookies. The
+  available desktop Chrome tab was already authenticated in the hosted project
+  estimates view, so it was not force-navigated through the stale-state reset
+  because that route intentionally clears OAuth/session storage. Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-state-mismatch-user-report-live-recheck.*`.
+- Hosted D1 note refresh as of 2026-07-02 00:51 UTC: the signed-in Chrome
+  production session on `archestimator.com` updated `ES-001 Estimate`
+  (`985f6690-741e-4136-9fa1-a4896cd364e4`) in project
+  `Codex Cloudflare Smoke 2026-07-01`
+  (`bd9a8e68-4e24-49d8-aeed-e4651b7cab0b`) from
+  `Cloudflare QA 2026-07-02` to
+  `Cloudflare hosted QA 2026-07-02 00:51Z`; the hosted UI settled with the new
+  value and updated cell `7/2/26, 8:50 AM`. A read-only remote D1 query against
+  `archestimator-proof-db` returned the same `estimates.notes` value and
+  `updated_at=2026-07-02T00:50:13.126Z`, served by `v3-prod` in `APAC` /
+  `SIN` primary, with `rows_read=1`, `rows_written=0`, and `changed_db=false`.
+  Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-estimate-note-refresh-proof.*`.
+- Hosted component custom-category proof as of 2026-07-02 01:11 UTC: the
+  signed-in production browser created component
+  `f7007706-def3-4f7a-bd7c-020b2eb8bbbe` from
+  `/workshop/library/components` with name
+  `Cloudflare QA Custom Blank Category 2026-07-02 00:56Z`, free-typed category
+  `Cloudflare Custom Category 2026-07-02`, blank supplier/brand, unit `unit`,
+  and cost `91.25`. Remote D1 readback from `archestimator-proof-db` found the
+  item exactly once with `category_node_id`, `supplier_id`, and `brand_id` all
+  null; active price option `6dca209c-d33c-4a1b-8eb4-697df7d127a4`; current
+  cost entry `b07d4b62-ca80-459d-a86f-914503d55e3d`; and version row
+  `a6a17cd9-4169-4a1c-82ab-6d39a829a236`, all served by `v3-prod` in APAC/SIN
+  primary. This closes the hosted custom/free-typed category create proof;
+  remaining library P0 gaps are hosted folder mutation, template insertion, and
+  viewer-denial proof. Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-component-custom-category-proof.*`.
+- Hosted publication owner/public proof as of 2026-07-02 01:29 UTC: the
+  signed-in production Publisher UI generated a shared page for project
+  `Codex Cloudflare Smoke 2026-07-01`
+  (`bd9a8e68-4e24-49d8-aeed-e4651b7cab0b`), changing the drawer from
+  `DRAFT` to `ACTIVE` with `Shared link ready`; selected estimate scope was
+  `985f6690-741e-4136-9fa1-a4896cd364e4`. Remote D1 readback found
+  `project_publications.id=337f1427-2dd1-4ff4-b89f-5e518aecb66e`,
+  `status=published`, encrypted token present, token hash present,
+  `published_at=2026-07-02T01:25:00.471Z`, served by `v3-prod` in APAC/SIN
+  primary. Fresh unauthenticated curl/browser proof loaded the redacted
+  `/share/...` URL with HTTP 200, private no-store/security headers, title
+  `Proposal Review | Archestimator — Archestimator`, heading
+  `Codex Cloudflare Smoke 2026-07-01`, visible `ES-001`, no sign-in wall, no
+  not-found/expired/revoked text, and zero `state_mismatch`. D1
+  `project_publication_events` recorded two `open` events; named recipient
+  invite/session/comment/decision proof remains open. Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-publication-owner-public-proof.*`.
+- OAuth normalizer recovery hotfix as of 2026-07-01 23:44 UTC: after the user
+  again reported `https://archestimator.com/?error=state_mismatch`, production
+  was rechecked and the active desktop Chrome tab was already authenticated at a
+  project estimate URL. The active edge recovery layer was then redeployed:
+  `archestimator-auth-callback-normalizer` version
+  `54de3fb5-9f04-4bb0-a3d8-ad11a6ae3ed0` is at 100% on `archestimator.com/*`
+  and `archestimator.com/api/auth/callback/google*`. Its cleanup now includes
+  `Path=/login` in addition to root/API/callback paths. Hosted curl proves the
+  exact bad root URL and a stale Google callback with a mismatched OAuth state
+  cookie both return the clean login reset with no-store, fallback HTML,
+  `Clear-Site-Data`, and expanded cookie cleanup. Fresh Chromium from the exact
+  bad URL lands on `/login?next=%2Fworkshop&oauth_state_reset_done=1`; clicking
+  Google reaches `accounts.google.com` with the Google `state` matching the
+  fresh `__Secure-better-auth.state` cookie. Main Worker source now has the same
+  callback/redirect hardening and passed tests/typecheck/build/dry-run, but the
+  full main Worker Wrangler publish hung after upload and did not create a new
+  version; production protection is currently the normalizer Worker. Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-oauth-normalizer-recovery-hotfix.md`.
+- Login/auth no-store hardening as of 2026-07-01 23:21 UTC: after the user
+  again reported `https://archestimator.com/?error=state_mismatch`, the active
+  Worker was rebuilt and deployed at 100% on version
+  `e4476425-2fdb-41ce-856a-de78e3a22fd8` (`login-auth-no-store-final`). `/login`
+  is now dynamic with `revalidate = 0`, `/login` is removed from the Worker
+  anonymous static-page cache, and delegated `/api/auth/*` Better Auth responses
+  are forced to `private, no-cache, no-store, max-age=0, must-revalidate` unless
+  already no-store. Hosted probes show `/login` and `/api/auth/get-session`
+  return no-store, the exact bad URL redirects to
+  `/login?next=%2Fworkshop&oauth_state_reset=1` with state-cookie cleanup and no
+  visible `state_mismatch`, a fresh browser click from that reset page reaches
+  Google with exactly one matching `__Secure-better-auth.state` cookie, and a
+  synthetic matching-state callback returns `invalid_code` instead of
+  `state_mismatch`. `bun run cf:build` shows `/login` as dynamic, targeted
+  Vitest passed, `bun run type-check` passed, hosted route proof passed,
+  `bun run cf:release-gates` passed, and `git diff --check` passed. Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-login-auth-no-store-deploy.*`.
+- Main Worker current-source deploy and OAuth state-mismatch production recheck
+  as of 2026-07-01 22:49 UTC: the `archestimator-proof` upload blocker is
+  resolved after removing runtime ExcelJS from the Worker bundle and replacing
+  Better Auth plugin-barrel imports with the `magic-link` subpath. Worker
+  version `3d3f3873-3232-4591-9436-2e963860ddbb` (`83`,
+  tag `lightweight-xlsx-direct-magic-link`) is deployed at `100%` traffic with
+  deployment `290812ff-9865-4e1a-b248-eeb3d9154445`; upload size was
+  `17019.69 KiB / gzip 4656.31 KiB`, Worker startup `36 ms`. Live curl and
+  fresh Chromium against the exact latest user-reported URL
+  `https://archestimator.com/?error=state_mismatch` now follow
+  `302 -> 302 -> 200` to
+  `/login?next=%2Fworkshop&oauth_state_reset_done=1`, render the normal
+  sign-in page with one Google button, and contain zero visible
+  `state_mismatch` text. `CLOUDFLARE_HOSTED_ROUTE_BASE_URL=https://archestimator.com
+  bun run cf:verify-hosted-routes` passed, `bun run cf:release-gates` passed
+  with `productionCutoverReady=true`, focused auth regression passed (`5`
+  files / `66` tests), proposal/export + Better Auth proof regression passed
+  (`5` files / `55` tests), and `git diff --check` passed. The
+  `archestimator-auth-callback-normalizer` edge adapter remains active only as
+  defense-in-depth; the main Worker is no longer stale. Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-main-worker-current-source-deploy.*`.
 - Cloudflare migration status as of 2026-07-01 09:56 UTC: app/config runtime
   source is Cloudflare-only; Google OAuth production callbacks and Worker
   secrets are set; Worker version `b1a9f0a9-7c5e-47c1-a333-fcf11e71c784` is
@@ -26,19 +205,141 @@ Stable current truth (verify against git/source before relying on a detail):
   `cloudflare-r2`; Cloudflare provider, hosted-route, Better Auth,
   D1/Auth/Realtime, D1 read/mutation p95, R2, queues, Workers Observability,
   Cloudflare Email Service send/receipt, Durable Object realtime, and
-  custom-domain serving gates pass. `cf:release-gates` is now green with
+  custom-domain serving gates pass. A 20-run hosted performance refresh at
+  2026-07-01 18:10 UTC passes credential-free public route p95 budgets through
+  the temporary edge adapter (`p95BudgetReady=true`, failures empty).
+  `cf:release-gates` is now green with
   `productionCutoverReady=true` and no blockers after the workbook accepted a
   structured pre-launch cost basis: current-provider costs observed, Cloudflare
   pricing refreshed, hosted runtime performance ready, and Cloudflare usage rows
-  marked observed/projected/not-applicable for closed-beta launch caps. Strict
-  credential-free local-client p95 remains a watch item (`strictHostedClientP95Ready=false`)
-  but is no longer a cutover blocker because provider runtime performance is
+  marked observed/projected/not-applicable for closed-beta launch caps. The
+  workbook still keeps `strictHostedClientP95Ready=false` because some
+  authenticated/provider-only latency fixtures are not full local-client browser
+  journeys; this is not a cutover blocker while provider runtime performance is
   green. Namecheap does not need another change for cutover. Vercel is already
   Hobby; Supabase is already Free/spend-capped; and Resend dashboard evidence
   shows Free Transactional/Marketing subscriptions at `$0 / mo`, no payment
   methods, no invoices, and 0/3,000 monthly transactional sends. No provider
   accounts, keys, billing settings, DNS, subscriptions, or resources were
   deleted/cancelled/changed by this migration proof pass.
+- OAuth state-mismatch cache/storage reset as of 2026-07-01 21:18 UTC: after
+  the user again reported `https://archestimator.com/?error=state_mismatch`,
+  the broad `archestimator-auth-callback-normalizer` edge adapter was
+  redeployed at version `788e5aa4-6520-4136-83f6-a092cc0b1b55` with a stronger
+  reset directive: `Clear-Site-Data: "cache", "cookies", "storage"` on OAuth
+  state reset responses. Live curl against the exact reported URL returned
+  `302` to
+  `https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1`, body
+  `state_mismatch` count `0`, and the stronger reset header was present.
+  The Codex in-app browser then navigated from the exact bad URL to the clean
+  reset login page with no visible `state_mismatch`; clicking Continue with
+  Google returned to `/workshop` as Philip Lewis with visible project data and
+  no `state_mismatch`. Focused adapter/Worker/proxy tests passed (`3` files /
+  `52` tests) and `git diff --check` passed. Keep the edge adapter active until
+  the main `archestimator-proof` Worker accepts current-source deploys.
+  Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-oauth-state-mismatch-cache-storage-reset.*`.
+- OAuth state-mismatch terminal cleanup hop as of 2026-07-01 21:47 UTC: after
+  the user still saw `https://archestimator.com/?error=state_mismatch`, the
+  `archestimator-auth-callback-normalizer` edge adapter was redeployed at
+  version `41c8abd6-31b6-42b9-9883-63ceffb81001`. The exact bad URL now follows
+  `302 -> 302 -> 200` through
+  `/login?next=%2Fworkshop&oauth_state_reset=1` to
+  `/login?next=%2Fworkshop&oauth_state_reset_done=1`, so the final Google start
+  page is a normal clean login page. Fresh Chromium from the exact bad URL saw
+  `0` rendered `state_mismatch` matches; clicking Google created a secure
+  HttpOnly `__Secure-better-auth.state`; a fake callback using that state ended
+  at `/?error=invalid_code`, not `state_mismatch`. Focused auth/Worker tests
+  passed (`5` files / `63` tests) and `git diff --check` passed. Keep the edge
+  adapter active until main `archestimator-proof` Worker current-source deploy
+  succeeds. Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-oauth-state-reset-terminal-hop.*`.
+- OAuth state-mismatch fallback hardening as of 2026-07-01 19:58 UTC: after
+  the user still reported the exact visible URL
+  `https://archestimator.com/?error=state_mismatch`, the broad
+  `archestimator-auth-callback-normalizer` edge adapter was redeployed at
+  version `efab385a-a0ca-4e8b-b382-e7cc0f469044`. The exact root retry URL now
+  returns clean reset `Location`, `Refresh`, and HTML/JS fallback hints to
+  `https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1`,
+  with no-store headers, broad OAuth state-cookie cleanup, and
+  `Clear-Site-Data: "cookies"`. Focused adapter/Worker/proxy tests pass
+  (`3` files / `52` tests). Live curl sees the fallback headers/body, followed
+  curl lands on the clean reset login page, and fresh Chromium navigation ends
+  at `/login?next=%2Fworkshop&oauth_state_reset=1` with no `state_mismatch` in
+  the body. Main `archestimator-proof` Worker deployment is still stale because
+  the full OpenNext Worker upload path remains blocked, so keep the edge
+  adapter active. Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-oauth-state-mismatch-fallback-hardening.*`.
+- OAuth state-mismatch follow-up as of 2026-07-01 20:18 UTC: after the user
+  again reported `https://archestimator.com/?error=state_mismatch`, fresh
+  Chromium from that exact URL landed on
+  `/login?next=%2Fworkshop&oauth_state_reset=1` with no visible
+  `state_mismatch`. The production Google button reached `accounts.google.com`
+  with `redirect_uri=https://archestimator.com/api/auth/callback/google`, wrote
+  secure HttpOnly `__Secure-better-auth.state` on `archestimator.com`, and a
+  fake-code callback using the live state ended at `/?error=invalid_code`, not
+  `state_mismatch`. No-cookie `/api/auth/error?error=state_mismatch` and fake
+  callback probes also reset cleanly. Focused auth Vitest passed (`6` files /
+  `66` tests), hosted route refresh passed, and hosted auth smoke confirms
+  signed-out `/workshop` fails closed; fixture-backed allowed/denied/revoked/
+  expired auth smoke cases remain unrunnable without sanitized session-cookie
+  fixtures. The exposed Codex in-app browser profile also recovered from the
+  exact error URL to `/workshop` as Philip Lewis with visible project data and
+  no sign-in prompt. Keep the edge adapter active until the main Worker
+  current-source deploy blocker is resolved. Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-oauth-state-mismatch-followup-proof.*`.
+- OAuth state-mismatch live recheck as of 2026-07-01 20:58 UTC: live `curl`
+  against the latest reported root URL returned `302` to
+  `https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1`,
+  with no-store headers, `Refresh` fallback, HTML/JS fallback, broad Better Auth
+  OAuth state-cookie cleanup, and no visible `state_mismatch` retry body.
+  IPv4 and followed-redirect probes through Cloudflare Singapore also landed on
+  the clean reset URL with zero `state_mismatch` body matches, and the Codex
+  in-app browser tab forced to the exact reported URL landed on the same clean
+  reset login page. `curl -6` from this machine timed out before receiving a
+  response, so IPv6 remains a network-path watch item. This confirms the edge
+  adapter is catching the reported URL; keep the adapter live because the main
+  `archestimator-proof` Worker still has not accepted a current-source
+  OpenNext deploy. Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-oauth-state-mismatch-live-recheck.*`.
+- Post-hotfix Cloudflare QA refresh as of 2026-07-01 20:04 UTC: hosted route
+  refresh on `archestimator.com` passes, release gates still report
+  `productionCutoverReady=true` with blockers empty, and hosted auth smoke
+  confirms signed-out `/workshop` fails closed. Parallel QA lanes found no new
+  auth blocker, but the broader Cloudflare-only migration is not complete:
+  full hosted browser journeys remain open for estimate tab lifecycle/rollback/
+  idempotency/denial, component-library folder/template/viewer-denial plus
+  custom-category deploy watch, real R2 upload + scanner persistence,
+  publication recipient response, and two-client realtime UI. Main
+  `archestimator-proof` current-source Worker upload also still stalls at
+  Cloudflare/Wrangler version ingestion, so the edge adapter remains live.
+  Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-post-hotfix-parallel-qa-refresh.*`.
+- Hosted estimate area/row/history proof as of 2026-07-01 20:29 UTC: using
+  the authenticated in-app browser session on `archestimator.com`, the hosted
+  estimate UI created area `Cloudflare QA Area 2026-07-02 04:24`, inserted row
+  `Cloudflare QA Component 2026-07-02`, edited supplier/unit cost/description/
+  unit/quantity/contingency/adjustment, survived full reload, and displayed the
+  Activity History audit trail. Read-only remote D1 readback found the matching
+  `estimate_nodes`, `estimate_row_items`, and `estimate_sheet_events` rows with
+  `changed_db=false` and `rows_written=0`. Remaining estimate gaps are tab
+  lifecycle, rollback, idempotency/retry replay, and cross-workspace/viewer
+  denial. Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-estimate-area-row-history-proof.*`.
+- Hosted component library proof as of 2026-07-01 20:56 UTC: production Add
+  Component initially failed with `D1_ERROR: FOREIGN KEY constraint failed`
+  because remote D1 had zero `component_category_nodes` rows. The canonical
+  taxonomy was seeded into Cloudflare D1 (`685` rows; FK check clean), source
+  now normalizes blank `categoryNodeId`, `supplierId`, and `brandId` to `null`,
+  and focused component-library tests pass (`2` files / `12` tests). The main
+  `bun run cf:deploy` attempt after the patch rebuilt OpenNext and uploaded
+  assets but stalled before Worker version creation; production remains on
+  `b909ac54-1a72-47f0-9a70-f6c70f7c6fb6`. Hosted browser create succeeds when
+  selecting a seeded taxonomy category, with remote D1 readback of the
+  component, price option, current cost entry, version, and category rows.
+  Custom/free-typed category create still needs the main Worker source patch to
+  deploy. Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-component-library-proof.*`.
 - OAuth hotfix as of 2026-07-01 10:17 UTC: Google sign-in on
   `archestimator.com` no longer redirects through the Worker subdomain. Worker
   URL/origin secrets now use `https://archestimator.com` as canonical with
@@ -55,6 +356,249 @@ Stable current truth (verify against git/source before relying on a detail):
   clicked the production Google button, landed on `accounts.google.com`, found
   `__Secure-better-auth.state` on `archestimator.com`, and fake-code callback
   smoke stayed on `archestimator.com` without `state_mismatch`.
+- OAuth canonical-host mitigation as of 2026-07-01 14:41 UTC: a Cloudflare
+  Single Redirect rule is active for `www.archestimator.com`, matching
+  `https://www.*` and returning `308` to `https://${1}` with query strings
+  preserved. Live checks show `www` login and auth-start traffic redirect to
+  apex before Better Auth can mint a host-scoped state cookie on `www`; direct
+  apex auth start sets `__Secure-better-auth.state` and returns Google with
+  `redirect_uri=https://archestimator.com/api/auth/callback/google`. Source also
+  has a Worker-level canonical host guard for `www` and the Worker subdomain,
+  with focused tests passing, but that code guard is not live yet because
+  Wrangler deploy attempts hung at Cloudflare upload/version endpoints. Some
+  curl/Chromium probes from this machine still show intermittent edge/page
+  response timeouts for both `www` and apex, which remains a performance and
+  reliability watch item rather than evidence of the old state-cookie mismatch.
+  Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-auth-www-canonical-probe.*`.
+- OAuth retry cleanup and callback normalization as of 2026-07-01 17:12 UTC:
+  after the user still saw `https://archestimator.com/?error=state_mismatch`,
+  Cloudflare HTTP Response Header Transform Rule
+  `d4ce940ef82542f9b459865ad967cfd1` was narrowed to only apex root
+  `?error=state_mismatch`, where it sends `Clear-Site-Data: "cookies"` and
+  expires `__Secure-better-auth.state` without touching normal `/login` or
+  `/signup` traffic. A path-specific Cloudflare Worker,
+  `archestimator-auth-callback-normalizer`, is live on
+  `archestimator.com/api/auth/callback/google*` at version
+  `25c7f483-02e5-4bff-99c5-4f0804a68321` with an `ARCH_APP` service binding to
+  `archestimator-proof`. It normalizes duplicate Better Auth state cookies on
+  the callback before forwarding to the main app Worker. Headless Chromium
+  proof seeded stale `.archestimator.com` and fresh `archestimator.com` state
+  cookies, started real Google OAuth, then called the callback with the fresh
+  state and a fake code; production redirected to `/?error=invalid_code`, not
+  `state_mismatch`. Broader main-Worker source cleanup is built and tested, and
+  direct upload created version `76c1b259-1515-460b-9878-eccfdac0b3c7`, but it
+  is not live because full `archestimator-proof` Worker script deployment still
+  stalls/fails at Cloudflare upload/deployment endpoints. Keep the callback
+  normalizer active until the main Worker source fix is live.
+  Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-oauth-state-retry-cleanup.*`.
+- OAuth stale-callback hardening as of 2026-07-01 17:39 UTC: after another
+  user report of `https://archestimator.com/?error=state_mismatch`, the
+  path-specific `archestimator-auth-callback-normalizer` Worker was updated and
+  deployed at version `a2830bd5-d6da-47ac-8e45-f394963dde6f`. The callback
+  Worker still forwards valid/matching state-cookie callbacks to
+  `archestimator-proof`, but now fails fast when the Google callback has a
+  `state` parameter and the browser has missing or non-matching Better Auth
+  OAuth state cookies. That failure path redirects to
+  `/login?next=/workshop&error=state_mismatch` and expires
+  `better-auth.state`, `__Secure-better-auth.state`,
+  `better-auth.oauth_state`, and `__Secure-better-auth.oauth_state` across
+  host-only/domain and likely auth callback paths. Live curl checks confirm
+  missing-cookie and stale-cookie callbacks return the login retry redirect with
+  cleanup headers. A fresh Playwright production login-button proof confirmed
+  Google still receives
+  `redirect_uri=https://archestimator.com/api/auth/callback/google`, a signed
+  `__Secure-better-auth.state` cookie is minted on `archestimator.com`, and a
+  fake-code callback reaches `/?error=invalid_code`, not `state_mismatch`.
+  The exact root retry URL still uses the existing Cloudflare response-header
+  cleanup rule (`Clear-Site-Data: "cookies"` plus state-cookie expiry); an
+  automatic root-query redirect was not installed because the current Wrangler
+  OAuth token has `zone:read` but not the zone-write permission needed for
+  Redirect Rules. Focused callback/auth tests, Wrangler dry-run/deploy, live
+  callback probes, and `git diff --check` passed. Keep this
+  route-specific Worker active until the main `archestimator-proof` Worker
+  deploy path is reliable enough to fold the behavior back into the main
+  bundle.
+  Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-oauth-stale-callback-hardening.*`.
+- OAuth root retry edge adapter as of 2026-07-01 17:59 UTC: after the user
+  still reached `https://archestimator.com/?error=state_mismatch`, the small
+  `archestimator-auth-callback-normalizer` Worker was broadened into an edge
+  adapter and deployed at version `86426890-2751-4e11-a20b-e23d74c7bc03`.
+  It now has routes for `archestimator.com/*` and
+  `archestimator.com/api/auth/callback/google*`, handles only exact
+  `state_mismatch` retry URLs plus the Google callback, and forwards all other
+  traffic unchanged to `archestimator-proof` through the `ARCH_APP` service
+  binding. Live checks show `/?error=state_mismatch` and
+  `/api/auth/error?error=state_mismatch` now return `302` to
+  `/login?next=%2Fworkshop&error=state_mismatch` with no-store and broad
+  Better Auth OAuth state-cookie expiry headers; `/login?next=%2Fworkshop` and
+  `/api/health` still return correctly through the main app. Playwright
+  production proof still starts Google OAuth on `accounts.google.com` with
+  `redirect_uri=https://archestimator.com/api/auth/callback/google`, a matching
+  `__Secure-better-auth.state` cookie on `archestimator.com`, and fake-code
+  callback final URL `/?error=invalid_code`, not `state_mismatch`. A
+  matching-prefix but invalid signed state cookie now redirects through
+  `/api/auth/error?error=state_mismatch` into the login retry instead of
+  stranding on root. Main Worker source has the same root retry guard and
+  canonical-host guard, but the active `archestimator-proof` version remains
+  `b909ac54-1a72-47f0-9a70-f6c70f7c6fb6` because full OpenNext Worker deploy
+  and versions-upload attempts still hang after bundle upload. Keep the edge
+  adapter active until the main Worker deploy path is reliable and the behavior
+  is folded into `archestimator-proof`.
+  Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-oauth-root-retry-edge-adapter.*`.
+- OAuth state-mismatch browser recovery refresh as of 2026-07-01 18:38 UTC:
+  after the user still reported `https://archestimator.com/?error=state_mismatch`,
+  the broad `archestimator-auth-callback-normalizer` edge adapter was updated
+  and deployed at version `fb5d4528-9aac-473d-a5c2-c4304928e0c9` / deployment
+  `a9da1b92-2d56-4282-b721-0fae88847f57`. Live root and
+  `/api/auth/error?error=state_mismatch` URLs return `302` to
+  `/login?next=%2Fworkshop&error=state_mismatch`, no-store, broad OAuth
+  state-cookie expiry, and `Clear-Site-Data: "cookies"`; matching-state
+  fake-code callback reaches `invalid_code`, not `state_mismatch`; missing or
+  stale callback state redirects to login retry with targeted OAuth cleanup.
+  Real Chrome proof forced the exact failed root URL, landed on the retry login
+  page, clicked Continue with Google, and returned to `/workshop` signed in as
+  Philip Lewis. Main Worker source parity and tests now include root/API retry
+  handling, but `bun run cf:deploy` still hung after successful build/asset
+  upload and no new `archestimator-proof` version appeared; active main Worker
+  remains `b909ac54-1a72-47f0-9a70-f6c70f7c6fb6`, so keep the edge adapter
+  active. Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-oauth-state-mismatch-browser-recovery.*`.
+- OAuth state-mismatch recovery hardening as of 2026-07-01 18:55 UTC:
+  after the user again saw `https://archestimator.com/?error=state_mismatch`,
+  the broad `archestimator-auth-callback-normalizer` edge adapter was hardened
+  and deployed at version `2f2216e0-0953-4b29-91b7-dd10d6c6f55c` / deployment
+  `e0685901-b19b-4bd9-9db1-fd340562fbf2`. Callback requests whose Google
+  `state` has no matching Better Auth OAuth state cookie now redirect to the
+  retry login page with no-store, broad OAuth state-cookie cleanup, and
+  `Clear-Site-Data: "cookies"`. The final
+  `/login?next=%2Fworkshop&error=state_mismatch` retry page itself now also
+  returns no-store, OAuth state-cookie cleanup, and `Clear-Site-Data:
+  "cookies"`, while normal `/login?next=%2Fworkshop` remains unchanged. Fresh
+  Playwright proof from the exact reported URL showed no stale Better Auth
+  cookies after the retry page, a Google OAuth start with
+  `redirect_uri=https://archestimator.com/api/auth/callback/google`, a matching
+  32-character `__Secure-better-auth.state` cookie, and fake-code callback
+  final URL `/?error=invalid_code`, not `state_mismatch`. Focused adapter/auth
+  tests passed (`3` files / `18` tests). Main Worker deploy remains stale at
+  `b909ac54-1a72-47f0-9a70-f6c70f7c6fb6`, so keep this adapter active until
+  the large OpenNext Worker deploy path is repaired. Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-oauth-state-mismatch-recovery-hardening.*`.
+- OAuth clean-reset URL hardening as of 2026-07-01 19:07 UTC: after the user
+  still reported seeing `https://archestimator.com/?error=state_mismatch`, the
+  broad `archestimator-auth-callback-normalizer` edge adapter was updated and
+  deployed at version `c34e7f68-13a2-423e-8ff4-73689f35e17a`. Exact root
+  `/?error=state_mismatch` and legacy
+  `/login?next=%2Fworkshop&error=state_mismatch` now redirect to
+  `/login?next=%2Fworkshop&oauth_state_reset=1` with no-store, OAuth
+  state-cookie cleanup, and `Clear-Site-Data: "cookies"` so the visible browser
+  URL no longer contains `state_mismatch` after cleanup. Following redirects
+  returned login HTML with no `state_mismatch` body text. Fresh Playwright proof
+  from the exact reported URL found zero Better Auth cookies after reset,
+  clicked Continue with Google, confirmed
+  `redirect_uri=https://archestimator.com/api/auth/callback/google`, observed a
+  matching 32-character `__Secure-better-auth.state` cookie, and fake-code
+  callback ended at `/?error=invalid_code`, not `state_mismatch`. Focused
+  adapter/auth tests passed (`4` files / `27` tests). Main Worker deploy remains
+  stale at `b909ac54-1a72-47f0-9a70-f6c70f7c6fb6`, so keep this adapter active
+  until the large OpenNext Worker deploy path is repaired. Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-oauth-clean-reset-url.*`.
+- OAuth global state-mismatch recovery as of 2026-07-01 19:48 UTC: after the
+  user still saw `https://archestimator.com/?error=state_mismatch`, the broad
+  `archestimator-auth-callback-normalizer` edge adapter was hardened again and
+  deployed at version `8dfcb2eb-5571-4938-8b81-d9bc54a4faa5`. The adapter now
+  treats any non-static GET app path with `error=state_mismatch` as a clean
+  OAuth reset and rewrites any downstream `3xx` redirect whose `Location`
+  still contains `error=state_mismatch` into
+  `/login?next=%2Fworkshop&oauth_state_reset=1`. Live production checks passed
+  for `/?error=state_mismatch`, `/workshop?error=state_mismatch`,
+  `/api/auth/error?error=state_mismatch`,
+  `/login?next=%2Fworkshop&error=state_mismatch`, and missing-cookie Google
+  callbacks: all return the clean reset URL with no-store, broad Better Auth
+  OAuth state-cookie cleanup, and `Clear-Site-Data: "cookies"`. Fresh Google
+  start still mints `__Secure-better-auth.state` on `archestimator.com`, and a
+  fake-code callback with the matching state cookie reaches `invalid_code`, not
+  `state_mismatch`. Focused tests passed (`3` files / `52` tests). Main Worker
+  source also has an app-level middleware fallback, but production still relies
+  on the small edge adapter until the large OpenNext Worker upload/deploy path
+  is repaired. Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-oauth-state-mismatch-global-recovery.*`.
+- Magic-link UI mailbox proof as of 2026-07-01 19:14 UTC: production
+  `https://archestimator.com/login?next=%2Fworkshop` submitted a magic-link
+  request for `philipjonlewis@gmail.com` and reached
+  `/login?sent=1&next=%2Fworkshop` with the "Check your email" banner. Gmail
+  received message `19f1f18a63cc824d` from `noreply@archestimator.com`, subject
+  `Sign in to Archestimator`, at `2026-07-01T19:12:10Z`; the email verify link
+  used `archestimator.com/api/auth/magic-link/verify` with callback
+  `/workshop`. A fresh browser context opened the redacted one-time link and
+  landed on `/workshop` as Philip Lewis with secure HttpOnly
+  `__Secure-better-auth.session_token` and no auth error. Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-magic-link-ui-mailbox-proof.*`.
+- Hosted estimate Notes mutation proof as of 2026-07-01 19:33 UTC: a signed-in
+  Chrome production session on `archestimator.com` edited `ES-001 Estimate`
+  (`985f6690-741e-4136-9fa1-a4896cd364e4`) in project
+  `Codex Cloudflare Smoke 2026-07-01`
+  (`bd9a8e68-4e24-49d8-aeed-e4651b7cab0b`) and set the Notes field to
+  `Cloudflare QA 2026-07-02`. After pressing Enter and waiting for the row to
+  settle, a full browser reload still rendered the same value. A read-only
+  remote D1 query against `archestimator-proof-db` returned the same
+  `estimates.notes` value with `rows_read=1`, `rows_written=0`, and
+  `changed_db=false`. This proves a hosted authenticated estimate-list scalar
+  mutation path; later hosted estimate proof extends coverage to area/row/history
+  mutation, while tab lifecycle, rollback, idempotency/retry replay, denial, and
+  restore journeys still need hosted Worker+D1 proof. Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-estimate-note-mutation-proof.*`.
+- Remaining post-cutover hosted-flow gaps as of 2026-07-02 Manila: refreshed
+  local D1 estimate-history and component-library proofs pass. QA-DATA-02 now
+  has hosted production UI/remote-D1 proof for an authenticated estimate-list
+  Notes mutation plus hosted area create/rename, row insert/update, reload
+  persistence, Activity History UI, and remote D1 event readback; it still lacks
+  tab lifecycle, rollback, idempotency/retry replay, and cross-workspace/viewer
+  denial proof. QA-LIB-01 still lacks hosted production UI/Worker+D1 mutation proof.
+  Upload/publication/realtime contract suites pass and hosted upload operations
+  fail closed unauthenticated, but QA-UPLOAD-02 still lacks real user upload UX
+  plus authenticated scanner execution/persistence, QA-PUB-02 still lacks a
+  hosted authenticated create-publication plus recipient open/respond journey,
+  and realtime still lacks a hosted two-client in-app roster proof. Evidence:
+  `2026-07-02-cloudflare-d1-estimate-history-proof.*`,
+  `2026-07-02-cloudflare-hosted-estimate-area-row-history-proof.*`,
+  `2026-07-02-cloudflare-d1-component-library-proof.*`,
+  `2026-07-02-qa-upload-operations-proof.*`, and
+  `2026-07-02-qa-upload-publication-realtime-gap-report.md`.
+- Main Worker deploy blocker as of 2026-07-01 19:28 UTC: current-source
+  OpenNext build passes, and `package.json` now has safer Cloudflare deploy
+  scripts using the long-timeout Undici shim, `--minify`, and
+  `--no-upload-source-maps`, including a no-traffic `cf:upload-version` split
+  path. However, Wrangler 4.105.0 and 4.106.0 no-traffic version uploads both
+  reached `Total Upload: 21661.61 KiB / gzip: 5611.33 KiB` and then hung without
+  returning a version ID. Readback showed no new current-source version and
+  production still on `b909ac54-1a72-47f0-9a70-f6c70f7c6fb6`. Do not promote
+  older version `76c1b259-1515-460b-9878-eccfdac0b3c7`: it predates later auth
+  hardening and was not proven to preserve OpenNext assets runtime parity. Keep
+  the edge auth adapter active until the main Worker upload path is repaired or
+  a direct API upload with asset-runtime parity is proven. Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-worker-split-upload-attempt.*`.
+- Post-cutover QA refresh as of 2026-07-01 13:46 UTC: active ledger is
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/33_POST_CUTOVER_FULL_APP_QA_LEDGER.md`.
+  Fresh typecheck, focused auth/Cloudflare Vitest, hosted route proof, Better
+  Auth provider/aggregate proof, D1/Auth/Realtime aggregate, provider resource
+  readback, DNS delegation, R2/Images provider runtime proof, jobs runtime
+  proof, provider readiness, and `cf:release-gates` pass with
+  `productionCutoverReady=true` and no blockers. Fresh hosted performance still
+  fails strict credential-free public-route p95 budgets (`p95BudgetReady=false`)
+  even though route contracts pass; treat speed optimization as an active
+  follow-up rather than a Cloudflare runtime-cutover blocker.
+- Production browser smoke as of 2026-07-01 13:52 UTC: Chrome completed the
+  real `archestimator.com` Google sign-in path and landed on `/workshop` as
+  Philip Lewis with no `state_mismatch` and no post-auth Worker-subdomain
+  redirect. The same authenticated session created and listed a D1-backed smoke
+  project: `Codex Cloudflare Smoke 2026-07-01`,
+  `bd9a8e68-4e24-49d8-aeed-e4651b7cab0b`, code `Q5M2XN6L`. The smoke project
+  remains in production intentionally for audit visibility. Evidence:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-browser-google-project-smoke.*`.
 - DB autonomy mandate ACTIVE for Supabase project `ebxxqidacheyapmmzavr` only
   (create/edit/apply migrations, scoped SQL, RLS/RPC/types, fix forward — no
   per-change approval). Hard boundaries: no other provider projects, no

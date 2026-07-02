@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-01T09:15:10.945Z",
+  "generatedAt": "2026-07-01T13:41:46.643Z",
   "mode": "cloudflare-provider-runtime-proof-verifier",
   "baseUrl": "https://archestimator.com",
   "endpointPath": "/__cloudflare/provider-proof",
@@ -23,8 +23,8 @@
       "height": 32
     },
     "imageOutputBytes": 68,
-    "imageInfoMs": 9,
-    "imageTransformMs": 6,
+    "imageInfoMs": 7,
+    "imageTransformMs": 4,
     "imagesError": null,
     "r2BindingPresent": true,
     "r2PutReady": true,
@@ -32,10 +32,10 @@
     "r2DeleteReady": true,
     "r2ObjectBytes": 646,
     "proofObjectDeleted": true,
-    "r2PutMs": 616,
-    "r2GetMs": 135,
-    "r2DeleteMs": 137,
-    "r2RoundTripMs": 987,
+    "r2PutMs": 329,
+    "r2GetMs": 66,
+    "r2DeleteMs": 68,
+    "r2RoundTripMs": 503,
     "r2Error": null,
     "imagesProviderProofReady": true,
     "r2ProviderProofReady": true

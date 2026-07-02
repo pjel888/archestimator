@@ -1,0 +1,147 @@
+{
+  "generatedAt": "2026-07-01T14:41:42Z",
+  "baseUrl": "https://archestimator.com",
+  "environment": "production",
+  "result": "pass-with-watch-items",
+  "purpose": "Verify the state_mismatch mitigation for OAuth flows that start on www or other non-apex hosts.",
+  "productionChange": {
+    "provider": "Cloudflare",
+    "surface": "Rules > Redirect Rules > Single Redirect",
+    "ruleId": "89820871a81c4e68aaa18b573e5af606",
+    "name": "Redirect from WWW to root [Template]",
+    "status": "active",
+    "match": "URI Full wildcard r\"https://www.*\"",
+    "action": "308 redirect to wildcard_replace(http.request.full_uri, r\"https://www.*\", r\"https://${1}\")",
+    "preserveQueryString": true
+  },
+  "checks": [
+    {
+      "id": "www-login-redirect",
+      "status": "pass",
+      "request": "GET https://www.archestimator.com/login?next=/workshop",
+      "response": {
+        "status": 308,
+        "location": "https://archestimator.com/login?next=/workshop",
+        "server": "cloudflare",
+        "cfRayObserved": true
+      }
+    },
+    {
+      "id": "www-root-redirect",
+      "status": "pass",
+      "request": "GET https://www.archestimator.com/",
+      "response": {
+        "status": 308,
+        "location": "https://archestimator.com/",
+        "server": "cloudflare",
+        "cfRayObserved": true
+      }
+    },
+    {
+      "id": "www-auth-post-redirect",
+      "status": "pass",
+      "request": "POST https://www.archestimator.com/api/auth/sign-in/social",
+      "response": {
+        "status": 308,
+        "location": "https://archestimator.com/api/auth/sign-in/social",
+        "server": "cloudflare",
+        "cfRayObserved": true
+      },
+      "notes": [
+        "The response headers were received before the client timed out waiting for the redirect response body to close.",
+        "The redirect status is 308, so method preservation is expected for clients that follow the redirect."
+      ]
+    },
+    {
+      "id": "apex-auth-start",
+      "status": "pass",
+      "request": "POST https://archestimator.com/api/auth/sign-in/social",
+      "response": {
+        "status": 200,
+        "setCookieNames": [
+          "__Secure-better-auth.state"
+        ],
+        "returnedUrlHost": "accounts.google.com",
+        "redirectUri": "https://archestimator.com/api/auth/callback/google",
+        "hasStateParam": true,
+        "cookieValuesRedacted": true
+      }
+    },
+    {
+      "id": "fresh-browser-www-navigation",
+      "status": "partial",
+      "observations": [
+        "Playwright/Chromium reached https://archestimator.com/login?next=/workshop after forcing www.archestimator.com to Cloudflare IPv4.",
+        "The same headless probe did not finish DOMContentLoaded within the timeout, so the Google button was not used for this specific www-start probe.",
+        "Earlier owner Chrome proof already completed real apex Google sign-in and project creation without state_mismatch."
+      ]
+    },
+    {
+      "id": "www-ipv6-connectivity",
+      "status": "watch",
+      "observations": [
+        "curl -4 to www login returned the Cloudflare 308 redirect on reachable attempts.",
+        "A three-attempt IPv4 sample returned two 308 redirects to apex and one SSL connection timeout from this machine.",
+        "curl -6 to www login timed out from this machine before connection.",
+        "Apex GET probes also showed slow or partial body completion from this environment, so this is tracked as an edge/page response watch item rather than a redirect-rule correctness failure.",
+        "Browsers should normally fall back through Happy Eyeballs, but IPv6 and edge reachability should be rechecked from other networks if navigation feels slow."
+      ]
+    },
+    {
+      "id": "apex-browser-google-start-2026-07-01T14:49Z",
+      "status": "pass",
+      "request": "Browser https://archestimator.com/login?next=/workshop then click Continue with Google",
+      "response": {
+        "loginStatus": 200,
+        "loginTitle": "Sign in — Archestimator — Archestimator",
+        "googleButtonVisible": true,
+        "returnedHost": "accounts.google.com",
+        "redirectUri": "https://archestimator.com/api/auth/callback/google",
+        "hasStateParam": true,
+        "stateMismatch": false,
+        "stateCookie": {
+          "name": "__Secure-better-auth.state",
+          "domain": "archestimator.com",
+          "path": "/",
+          "secure": true,
+          "httpOnly": true,
+          "sameSite": "Lax",
+          "valueRedacted": true
+        }
+      }
+    }
+  ],
+  "rootCause": {
+    "summary": "Better Auth's OAuth state cookie is host-scoped unless cross-subdomain cookies are configured. Starting Google OAuth from www or the Worker subdomain can mint state on that host while Google returns to the apex redirect URI, causing state_mismatch.",
+    "primaryMitigation": "Cloudflare Redirect Rule now canonicalizes www.archestimator.com to archestimator.com before the login or auth-start flow can run.",
+    "codeMitigationPrepared": true,
+    "codeMitigationDeployed": false
+  },
+  "deploymentNotes": [
+    "A Worker-level canonical host guard was implemented in source and covered by Vitest, but Cloudflare Worker deploys hung at Wrangler's upload/version endpoints during this run.",
+    "The active dashboard redirect rule is the live production mitigation until the Worker code guard is deployed successfully."
+  ],
+  "verification": {
+    "focusedTests": {
+      "command": "bunx vitest run tests/vitest/cloudflare-worker-route-optimizations.test.ts tests/vitest/auth-set-cookie-forwarding.test.ts tests/vitest/auth-entry-ui-contract.test.ts tests/vitest/auth-callback-route.test.ts tests/vitest/auth-error-mapping.test.ts tests/vitest/cloudflare-better-auth-proof-router.test.ts tests/vitest/cloudflare-better-auth-proof-script.test.ts",
+      "result": "pass",
+      "testFiles": 7,
+      "tests": 30
+    },
+    "priorTypecheck": {
+      "command": "NODE_OPTIONS=--max-old-space-size=8192 bunx tsc --noEmit --pretty false",
+      "result": "pass"
+    },
+    "browserGoogleStart": {
+      "command": "node playwright chromium probe against https://archestimator.com/login?next=/workshop",
+      "result": "pass",
+      "generatedAt": "2026-07-01T14:49:22Z"
+    }
+  },
+  "remainingRisk": [
+    "Users already sitting on https://archestimator.com/?error=state_mismatch may need to start a fresh sign-in from /login or /workshop after the old failed callback URL is cleared.",
+    "The Worker-subdomain canonical host guard is prepared but not live until Wrangler deploy succeeds.",
+    "Cloudflare edge/page response timing is intermittent from this environment and should stay in the performance/reliability QA queue.",
+    "Strict public-route performance remains a watch item from the broader post-cutover QA ledger."
+  ]
+}

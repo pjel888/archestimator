@@ -1,0 +1,72 @@
+{
+  "capturedAtUtc": "2026-07-02 00:39 UTC",
+  "scope": [
+    "default workspace membership validation",
+    "central project lookup D1 access gate",
+    "estimate and sheet-list D1 access filtering",
+    "sheet-only collaboration summary filtering",
+    "protected asset successful-response no-store cache headers",
+    "hosted auth verifier access-required route alignment"
+  ],
+  "changes": [
+    {
+      "file": "src/lib/repositories/workspace-repository.ts",
+      "summary": "Validates stale default workspace IDs, fails closed on inaccessible project UUIDs, filters estimate lists through canAccessEstimateInD1, and restricts sheet-only collaboration summaries to accessible sheet-level data."
+    },
+    {
+      "file": "src/app/api/projects/images/route.ts",
+      "summary": "Successful protected project image responses now use private no-store cache control."
+    },
+    {
+      "file": "src/app/api/component-library/images/route.ts",
+      "summary": "Successful protected component image responses now use private no-store cache control."
+    },
+    {
+      "file": "src/app/api/component-library/attachments/route.ts",
+      "summary": "Successful protected component attachment responses now use private no-store cache control."
+    },
+    {
+      "file": "scripts/verify-hosted-auth-routes.ts",
+      "summary": "Hosted auth verifier expects /access-required and /access-required?status=revoked."
+    }
+  ],
+  "verification": [
+    {
+      "command": "bunx vitest run tests/vitest/workspace-repository-authz-contract.test.ts tests/vitest/workspace-collaboration-summary-authz.test.ts tests/vitest/list-project-estimates-columns.test.ts tests/vitest/project-publication-summary.test.ts --maxWorkers=1",
+      "result": "passed",
+      "files": 4,
+      "tests": 12
+    },
+    {
+      "command": "bunx vitest run tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/workspace-repository-authz-contract.test.ts tests/vitest/workspace-collaboration-summary-authz.test.ts tests/vitest/list-project-estimates-columns.test.ts tests/vitest/project-publication-summary.test.ts --maxWorkers=1",
+      "result": "passed",
+      "files": 5,
+      "tests": 77
+    },
+    {
+      "command": "bunx vitest run tests/vitest/hosted-auth-route-smoke-script.test.ts tests/vitest/auth-session-closed-beta.test.ts tests/vitest/auth-proxy.test.ts --maxWorkers=1",
+      "result": "passed",
+      "files": 3,
+      "tests": 47
+    },
+    {
+      "command": "hosted signed-out verifyHostedAuthRoutes against https://archestimator.com",
+      "result": "passed",
+      "case": {
+        "name": "signedOut",
+        "status": 307,
+        "location": "/login?next=%2Fworkshop",
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate"
+      }
+    },
+    {
+      "command": "NODE_OPTIONS=--max-old-space-size=8192 bun run type-check",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "remainingGap": "Full hosted auth allowed/denied/revoked/expired matrix still requires sanitized session-cookie fixtures."
+}

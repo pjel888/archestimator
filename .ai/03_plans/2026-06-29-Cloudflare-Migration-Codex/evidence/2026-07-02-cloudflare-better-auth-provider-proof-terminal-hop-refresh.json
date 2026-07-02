@@ -1,0 +1,74 @@
+{
+  "generatedAt": "2026-07-01T21:57:13.528Z",
+  "mode": "cloudflare-better-auth-provider-proof-verifier",
+  "baseUrl": "https://archestimator.com",
+  "endpointPath": "/__cloudflare/better-auth-proof",
+  "providerBacked": true,
+  "secretInput": {
+    "name": "CRON_SECRET",
+    "present": true,
+    "source": "process.env"
+  },
+  "responseStatus": 200,
+  "responseOk": true,
+  "endpointMode": "cloudflare-better-auth-provider-proof",
+  "endpointProofScope": "hosted-d1-schema-secret-session-fixture",
+  "result": {
+    "d1BindingPresent": true,
+    "schemaApplyReady": true,
+    "expectedTablesPresent": true,
+    "expectedIndexesPresent": true,
+    "secretProviderReady": true,
+    "googleOAuthProviderReady": true,
+    "baseUrlReady": true,
+    "trustedOriginsReady": true,
+    "providerSessionFixtureReady": true,
+    "cleanupReady": true,
+    "tableNames": [
+      "account",
+      "session",
+      "user",
+      "verification"
+    ],
+    "indexNames": [
+      "account_userId_idx",
+      "session_userId_idx",
+      "verification_identifier_idx"
+    ],
+    "magicLinkCutover": {
+      "magicLinkRequestReady": true,
+      "magicLinkTokenCaptured": true,
+      "magicLinkCallbackReady": true,
+      "sessionCookieIssued": true,
+      "routeGateSessionReadbackReady": true,
+      "replayBlockedReady": true,
+      "cleanupReady": true,
+      "providerBackedCallbackSessionCutoverReady": true,
+      "rowsRemaining": 0,
+      "error": null
+    },
+    "rowsRemaining": 0,
+    "error": null
+  },
+  "readiness": {
+    "schemaApplyReady": true,
+    "expectedTablesPresent": true,
+    "expectedIndexesPresent": true,
+    "secretProviderReady": true,
+    "googleOAuthProviderReady": true,
+    "baseUrlReady": true,
+    "trustedOriginsReady": true,
+    "providerSessionFixtureReady": true,
+    "magicLinkRequestReady": true,
+    "magicLinkCallbackReady": true,
+    "sessionCookieIssued": true,
+    "routeGateSessionReadbackReady": true,
+    "replayBlockedReady": true,
+    "providerBackedCallbackSessionCutoverReady": true,
+    "cleanupReady": true,
+    "betterAuthProviderProofReady": true,
+    "productionCutoverReady": true
+  },
+  "blockers": [],
+  "note": "Calls the deployed proof Worker Better Auth provider-proof endpoint with a local bearer secret, then records sanitized provider behavior: hosted D1 schema/index readback, Better Auth secret/base URL presence, Google OAuth provider credential presence, one ephemeral D1 session fixture readback, magic-link callback/session-cookie/route-gate readback, token replay blocking, and cleanup. It does not print secret values, magic-link tokens, cookies, session tokens, deploy Workers, change DNS, or replace auth routes by itself."
+}

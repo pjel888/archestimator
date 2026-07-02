@@ -1,0 +1,80 @@
+{
+  "generatedAt": "2026-07-01T21:18:32Z",
+  "subject": "Cloudflare OAuth state_mismatch cache/storage reset",
+  "reportedUrl": "https://archestimator.com/?error=state_mismatch",
+  "change": {
+    "summary": "Strengthened OAuth state-mismatch recovery responses from cookie-only Clear-Site-Data to cache, cookies, and storage for stale browser recovery.",
+    "files": [
+      "cloudflare/auth-callback-normalizer.ts",
+      "src/lib/cloudflare/worker-route-optimizations.ts",
+      "src/lib/auth/request-proxy.ts",
+      "tests/vitest/auth-callback-normalizer-worker.test.ts",
+      "tests/vitest/cloudflare-worker-route-optimizations.test.ts",
+      "tests/vitest/auth-proxy.test.ts"
+    ],
+    "clearSiteData": "\"cache\", \"cookies\", \"storage\""
+  },
+  "deploy": {
+    "worker": "archestimator-auth-callback-normalizer",
+    "command": "CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false NODE_OPTIONS='--import ./scripts/wrangler-undici-timeout.mjs' bunx wrangler deploy --config wrangler.auth-callback-normalizer.jsonc --keep-vars --no-upload-source-maps",
+    "wranglerVersion": "4.105.0",
+    "uploadedBytes": "9.46 KiB",
+    "gzipBytes": "2.54 KiB",
+    "versionId": "788e5aa4-6520-4136-83f6-a092cc0b1b55",
+    "routes": [
+      "archestimator.com/*",
+      "archestimator.com/api/auth/callback/google*"
+    ],
+    "serviceBinding": "ARCH_APP -> archestimator-proof"
+  },
+  "liveCurlProof": {
+    "command": "curl -sS -D /tmp/arch-state-postdeploy-headers.txt -o /tmp/arch-state-postdeploy-body.html 'https://archestimator.com/?error=state_mismatch'",
+    "httpStatus": 302,
+    "location": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+    "cfRay": "a14870226d40cb36-SIN",
+    "stateMismatchBodyCount": 0,
+    "observedClearSiteDataHeaders": [
+      "\"cache\", \"cookies\", \"storage\"",
+      "\"cookies\""
+    ],
+    "note": "The stronger header is present live. A legacy cookie-only header is still also observed, but it is additive and does not remove the stronger reset directive."
+  },
+  "browserProof": {
+    "resetNavigation": {
+      "startUrl": "https://archestimator.com/?error=state_mismatch",
+      "finalUrl": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+      "title": "Sign in — Archestimator — Archestimator",
+      "stateMismatchVisibleCount": 0,
+      "hasGoogleButton": true
+    },
+    "googleRecovery": {
+      "action": "Clicked Continue with Google from the reset login page in the Codex in-app browser profile.",
+      "finalUrl": "https://archestimator.com/workshop",
+      "title": "Archestimator — your cost intelligence layer for AEC teams",
+      "stateMismatchVisibleCount": 0,
+      "hasWorkshop": true,
+      "visibleIdentitySignals": [
+        "Philip Lewis",
+        "philipjonlewis@gmail.com"
+      ],
+      "profileScope": "Same browser profile recovery proof; not a fresh anonymous Google account-picker completion."
+    }
+  },
+  "verification": {
+    "focusedVitest": {
+      "command": "bunx vitest run tests/vitest/auth-callback-normalizer-worker.test.ts tests/vitest/cloudflare-worker-route-optimizations.test.ts tests/vitest/auth-proxy.test.ts --maxWorkers=1",
+      "result": "pass",
+      "testFiles": 3,
+      "tests": 52
+    },
+    "diffCheck": {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  },
+  "residualRisk": [
+    "The main archestimator-proof OpenNext Worker is still blocked on full Worker version upload, so the small edge adapter must remain active.",
+    "Fresh Google account-picker completion was not forced because the tested browser profile already had a valid Google/app session.",
+    "A separate IPv6 path watch remains from earlier curl -6 timeouts on this machine."
+  ]
+}

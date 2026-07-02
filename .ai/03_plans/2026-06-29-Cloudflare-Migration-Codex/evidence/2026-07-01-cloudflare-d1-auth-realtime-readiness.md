@@ -1,6 +1,6 @@
 # Cloudflare D1/Auth/Realtime Readiness
 
-Generated: 2026-07-01T07:12:52.528Z
+Generated: 2026-07-01T13:41:34.382Z
 
 Local D1/Auth/Realtime redesign readiness inventory only. It reads repository source, package, generated type, wrangler, and sanitized evidence artifacts; it does not read env files, print secret values, call provider APIs, create D1 databases, mutate Cloudflare/Supabase, change DNS, deploy Workers, or make Supabase removable.
 

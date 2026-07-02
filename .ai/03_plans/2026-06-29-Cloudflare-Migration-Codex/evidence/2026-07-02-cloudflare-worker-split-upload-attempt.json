@@ -1,0 +1,49 @@
+{
+  "mode": "cloudflare-worker-split-upload-attempt",
+  "generatedAt": "2026-07-01T19:28:30.000Z",
+  "worker": "archestimator-proof",
+  "liveVersionBeforeAndAfter": "b909ac54-1a72-47f0-9a70-f6c70f7c6fb6",
+  "checks": {
+    "currentSourceBuild": {
+      "command": "NODE_OPTIONS=\"--max-old-space-size=8192\" bun run cf:build",
+      "passed": true,
+      "nextCompiled": true,
+      "openNextBundleGenerated": true
+    },
+    "packageScriptHardening": {
+      "cfDeployUsesLongTimeoutShim": true,
+      "cfDeployUsesMinify": true,
+      "cfDeployDisablesSourceMaps": true,
+      "splitUploadScriptAdded": true
+    },
+    "wrangler4105VersionUpload": {
+      "command": "bun run cf:upload-version -- --tag main-worker-current-source-20260701191804 --message \"Upload current main Worker source without deploying\"",
+      "trafficChanging": false,
+      "totalUploadRawKiB": 21661.61,
+      "totalUploadGzipKiB": 5611.33,
+      "assetUploadPassed": true,
+      "interruptedAfterNoVersionResponse": true,
+      "versionCreated": false
+    },
+    "wrangler4106VersionUpload": {
+      "command": "OPEN_NEXT_DEPLOY=true CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false NODE_OPTIONS=\"--import ./scripts/wrangler-undici-timeout.mjs\" bunx wrangler@4.106.0 versions upload --keep-vars --minify --no-upload-source-maps --tag main-worker-current-source-20260701192221-wrangler4106 --message \"Upload current main Worker source without deploying\"",
+      "trafficChanging": false,
+      "totalUploadRawKiB": 21661.61,
+      "totalUploadGzipKiB": 5611.33,
+      "assetUploadPassed": true,
+      "interruptedAfterNoVersionResponse": true,
+      "versionCreated": false
+    },
+    "readback": {
+      "versionsListShowsNewCurrentSourceVersion": false,
+      "deploymentsListStillShowsLiveVersion": true,
+      "doNotPromoteExistingVersion76c1": true,
+      "reasonNotToPromote76c1": "It is older than later auth hardening and its script_runtime readback was not proven to preserve the live OpenNext assets stanza."
+    }
+  },
+  "blockers": [
+    "Cloudflare/Wrangler Worker versions upload endpoint still hangs after payload upload for current OpenNext Worker bundle.",
+    "No fresh current-source main Worker version ID was created.",
+    "The edge auth adapter must remain active until the main Worker deploy path is repaired or an equivalent direct API upload with assets runtime parity is proven."
+  ]
+}

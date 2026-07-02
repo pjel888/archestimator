@@ -1,0 +1,86 @@
+{
+  "generatedAt": "2026-07-02T01:06:59Z",
+  "mode": "cloudflare-state-mismatch-user-report-live-recheck-0106",
+  "result": "pass",
+  "userReportedUrl": "https://archestimator.com/?error=state_mismatch",
+  "probes": {
+    "curlFollow": {
+      "command": "curl -sS -D /tmp/arch_state_headers.txt -o /tmp/arch_state_body.html -L 'https://archestimator.com/?error=state_mismatch' -w 'final_url=%{url_effective}\\nhttp_code=%{http_code}\\nredirects=%{num_redirects}\\nsize=%{size_download}\\ntime=%{time_total}\\n'",
+      "finalUrl": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset_done=1",
+      "httpCode": 200,
+      "redirects": 2,
+      "stateMismatchBodyCount": 0,
+      "oauthStateResetMarkers": 3
+    },
+    "firstHop": {
+      "apex": {
+        "status": 302,
+        "location": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "clearSiteData": "\"cache\", \"cookies\", \"storage\""
+      },
+      "www": {
+        "status": 302,
+        "location": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1"
+      }
+    },
+    "callbackRecovery": {
+      "missingStateCookie": {
+        "command": "curl -sS -D - -o /tmp/arch_cb_missing.html 'https://archestimator.com/api/auth/callback/google?state=fresh-state&code=fake-code'",
+        "status": 302,
+        "location": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "clearSiteData": "\"cache\", \"cookies\", \"storage\""
+      },
+      "wwwCallbackFirstHop": {
+        "status": 308,
+        "location": "https://archestimator.com/api/auth/callback/google?state=fresh-state&code=fake-code"
+      }
+    },
+    "freshBrowserGoogleStart": {
+      "tool": "Playwright Chromium",
+      "inputUrl": "https://archestimator.com/?error=state_mismatch",
+      "afterRecoveryUrl": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset_done=1",
+      "titleAfterRecovery": "Sign in — Archestimator — Archestimator",
+      "bodyStateMismatchCount": 0,
+      "googleButtonCount": 1,
+      "stateCookiesAfterRecovery": [],
+      "afterGoogleClickHost": "accounts.google.com",
+      "googleRedirectUri": "https://archestimator.com/api/auth/callback/google",
+      "googleState": "6xEuQ4DpGzC6isVQbuR7DSojJPbM0AY3",
+      "betterAuthStateCookieState": "6xEuQ4DpGzC6isVQbuR7DSojJPbM0AY3",
+      "stateCookieMatchesGoogleState": true
+    },
+    "deploymentReadback": {
+      "mainWorker": {
+        "scriptName": "archestimator-proof",
+        "activeVersion": "e4476425-2fdb-41ce-856a-de78e3a22fd8",
+        "trafficPercent": 100,
+        "tag": "login-auth-no-store-final",
+        "createdAt": "2026-07-01T23:18:56.080Z"
+      },
+      "normalizerWorker": {
+        "scriptName": "archestimator-auth-callback-normalizer",
+        "activeVersion": "aaee7b3f-a120-4e5e-ada2-5950c57831df",
+        "trafficPercent": 100,
+        "createdAt": "2026-07-02T00:20:21.886Z"
+      }
+    },
+    "observability": {
+      "tool": "mcp__cloudflare_observability",
+      "status": "unavailable",
+      "result": "Cloudflare API request failed for observability keys/values queries"
+    }
+  },
+  "conclusion": {
+    "hostedEdgeRecoveryReady": true,
+    "exactReportedUrlServerClean": true,
+    "freshBrowserGoogleStartClean": true,
+    "stateCookieMatchesGoogleState": true,
+    "knownRemainingExplanation": "The exact stale URL is now recovered by the live edge. If a browser still displays it, it is most likely an already-open stale surface or an interrupted navigation before the current 302 chain completes."
+  },
+  "notes": [
+    "No cookies, OAuth tokens, or magic-link tokens are stored in this artifact.",
+    "The Google state value is a one-time nonce captured from a fresh unauthenticated Playwright context and is no longer reusable."
+  ]
+}

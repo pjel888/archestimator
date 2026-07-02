@@ -1,6 +1,6 @@
 # Cloudflare Cost And Performance Workbook
 
-Generated: 2026-07-01T09:54:25.110Z
+Generated: 2026-07-01T18:10:52.507Z
 
 Workbook scaffold only. Local inventory, refreshed official Cloudflare pricing, and Worker preview durations can seed planning, but cost decisions still require sanitized Vercel/Supabase/Resend dashboard data, hosted Cloudflare usage metrics, provider logs, rollback triggers, and the same proof architecture for cost and performance evidence.
 
@@ -72,16 +72,16 @@ Workbook scaffold only. Local inventory, refreshed official Cloudflare pricing, 
 
 | Fixture | Current p95 | Local Worker preview p95 | Hosted Worker p95 | Budget | Status | Local evidence | Hosted evidence |
 | --- | ---: | ---: | ---: | --- | --- | --- | --- |
-| Public home route p95 TTFB |  | 168.47ms | 65.8ms | under 200 ms | hosted-partial-pass | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-29-cloudflare-worker-preview-route-probe.json | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-hosted-performance.json |
-| Pricing/features static route p95 TTFB |  | 13.68ms | 257.29ms | under 200 ms | hosted-partial-fail | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-29-cloudflare-worker-preview-route-probe.json | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-hosted-performance.json |
+| Public home route p95 TTFB |  | 168.47ms | 73.9ms | under 200 ms | hosted-partial-pass | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-29-cloudflare-worker-preview-route-probe.json | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-hosted-performance.json |
+| Pricing/features static route p95 TTFB |  | 13.68ms | 123.93ms | under 200 ms | hosted-partial-pass | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-29-cloudflare-worker-preview-route-probe.json | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-hosted-performance.json |
 | Login/auth callback p95 duration |  |  |  | no worse than baseline | hosted-provider-proof-only |  | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-better-auth-provider-proof.json |
-| Share route p95 TTFB |  | 327.35ms | 60.89ms | under 400 ms | hosted-partial-pass | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-29-cloudflare-worker-preview-route-probe.json | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-hosted-performance.json |
-| Workshop home p95 TTFB |  | 4.03ms | 79.43ms | under 600 ms | hosted-partial-pass | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-29-cloudflare-worker-preview-route-probe.json | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-hosted-performance.json |
+| Share route p95 TTFB |  | 327.35ms | 66.25ms | under 400 ms | hosted-partial-pass | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-29-cloudflare-worker-preview-route-probe.json | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-hosted-performance.json |
+| Workshop home p95 TTFB |  | 4.03ms | 92.97ms | under 600 ms | hosted-partial-pass | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-29-cloudflare-worker-preview-route-probe.json | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-hosted-performance.json |
 | Project dashboard p95 TTFB |  |  | 65ms | under 600 ms | hosted-provider-pass |  | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-d1-runtime-performance-proof.json |
 | Estimate sheet initial load p95 |  |  | 39ms | no worse than baseline | hosted-provider-pass |  | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-d1-runtime-performance-proof.json |
 | Estimate row mutation p95 |  |  | 57ms | under 500 ms | hosted-provider-pass |  | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-d1-runtime-performance-proof.json |
 | Library component search p95 |  |  | 31ms | under 500 ms | hosted-provider-pass |  | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-d1-runtime-performance-proof.json |
 | Upload signed/session creation p95 |  |  | 2850.11ms | no worse than baseline | hosted-provider-pass |  | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-hosted-upload-runtime-proof.json |
-| Upload scan queue latency p95 |  |  | 32381ms | job-specific | hosted-provider-pass |  | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-jobs-runtime-proof.json |
+| Upload scan queue latency p95 |  |  | 33537ms | job-specific | hosted-provider-pass |  | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-jobs-runtime-proof.json |
 | Realtime cursor/presence latency p95 |  |  | 54ms | no worse than baseline | hosted-provider-pass |  | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-durable-object-websocket-proof.json |
 | Email send-to-event latency p95 |  |  | 4000ms | no worse than baseline | hosted-provider-pass |  | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-email-send-proof.json |

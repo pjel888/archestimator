@@ -1,0 +1,108 @@
+{
+  "generatedAt": "2026-07-01T19:48:17Z",
+  "localGeneratedAt": "2026-07-02 03:48:17 PST",
+  "baseUrl": "https://archestimator.com",
+  "worker": {
+    "name": "archestimator-auth-callback-normalizer",
+    "versionId": "8dfcb2eb-5571-4938-8b81-d9bc54a4faa5",
+    "routes": [
+      "archestimator.com/*",
+      "archestimator.com/api/auth/callback/google*"
+    ],
+    "binding": "ARCH_APP -> archestimator-proof"
+  },
+  "fixSummary": [
+    "The edge adapter now treats any GET request carrying error=state_mismatch as an OAuth recovery request unless it targets Cloudflare/Next static internals.",
+    "The edge adapter now rewrites downstream 3xx redirects whose Location contains error=state_mismatch into the clean OAuth reset login URL.",
+    "The main Worker source middleware now has the same app-level fallback for future full Worker deploys so marketing pages cannot cache or render state_mismatch query responses."
+  ],
+  "localValidation": {
+    "command": "bunx vitest run tests/vitest/auth-callback-normalizer-worker.test.ts tests/vitest/cloudflare-worker-route-optimizations.test.ts tests/vitest/auth-proxy.test.ts --maxWorkers=1",
+    "result": "passed",
+    "testFiles": 3,
+    "tests": 52
+  },
+  "deploy": {
+    "command": "bunx wrangler deploy --config wrangler.auth-callback-normalizer.jsonc",
+    "result": "passed",
+    "uploadedBytes": "8.26 KiB",
+    "gzipBytes": "2.13 KiB"
+  },
+  "productionChecks": [
+    {
+      "url": "https://archestimator.com/?error=state_mismatch",
+      "status": 302,
+      "location": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+      "requiredHeaders": [
+        "Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate",
+        "Clear-Site-Data: \"cookies\"",
+        "Set-Cookie cleanup for Better Auth OAuth state cookies"
+      ],
+      "result": "passed"
+    },
+    {
+      "url": "https://archestimator.com/workshop?error=state_mismatch",
+      "status": 302,
+      "location": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+      "requiredHeaders": [
+        "Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate",
+        "Clear-Site-Data: \"cookies\"",
+        "Set-Cookie cleanup for Better Auth OAuth state cookies"
+      ],
+      "result": "passed"
+    },
+    {
+      "url": "https://archestimator.com/api/auth/error?error=state_mismatch",
+      "status": 302,
+      "location": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+      "requiredHeaders": [
+        "Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate",
+        "Clear-Site-Data: \"cookies\"",
+        "Set-Cookie cleanup for Better Auth OAuth state cookies"
+      ],
+      "result": "passed"
+    },
+    {
+      "url": "https://archestimator.com/login?next=%2Fworkshop&error=state_mismatch",
+      "status": 302,
+      "location": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+      "requiredHeaders": [
+        "Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate",
+        "Clear-Site-Data: \"cookies\"",
+        "Set-Cookie cleanup for Better Auth OAuth state cookies"
+      ],
+      "result": "passed"
+    },
+    {
+      "url": "https://archestimator.com/?error=state_mismatch",
+      "mode": "follow redirects",
+      "finalPage": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+      "finalSignal": "login page HTML rendered with Continue with Google and no visible state_mismatch URL",
+      "result": "passed"
+    },
+    {
+      "url": "https://archestimator.com/api/auth/callback/google?state=missing-cookie-state&code=fake-code",
+      "status": 302,
+      "location": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset=1",
+      "requiredHeaders": [
+        "Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate",
+        "Clear-Site-Data: \"cookies\"",
+        "Set-Cookie cleanup for Better Auth OAuth state cookies"
+      ],
+      "result": "passed"
+    },
+    {
+      "scenario": "fresh Google start followed by fake callback with matching state cookie",
+      "startStatus": 303,
+      "startCookie": "__Secure-better-auth.state",
+      "callbackStatus": 302,
+      "callbackLocation": "https://archestimator.com/api/auth/error?error=invalid_code",
+      "expected": "invalid_code rather than state_mismatch because the code is fake but the state cookie matches",
+      "result": "passed"
+    }
+  ],
+  "remainingRisk": [
+    "The in-app Codex browser window could not be inspected directly by Computer Use, so browser UI proof is inferred from live HTTP checks and Chrome's separate signed-in production session.",
+    "The temporary edge adapter is still carrying this production fix until the main Worker bundle upload/deploy blocker is resolved."
+  ]
+}

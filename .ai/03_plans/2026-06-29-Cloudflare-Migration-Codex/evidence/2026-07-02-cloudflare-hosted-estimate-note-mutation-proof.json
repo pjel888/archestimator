@@ -1,0 +1,79 @@
+{
+  "generatedAt": "2026-07-01T19:33:11Z",
+  "mode": "cloudflare-hosted-estimate-note-mutation-proof",
+  "baseUrl": "https://archestimator.com",
+  "result": "pass",
+  "scenario": {
+    "id": "QA-DATA-02",
+    "scope": "hosted production estimate-list scalar mutation",
+    "field": "estimates.notes",
+    "mutationValue": "Cloudflare QA 2026-07-02"
+  },
+  "runtime": {
+    "domain": "archestimator.com",
+    "authenticatedAs": "Philip Lewis",
+    "project": {
+      "id": "bd9a8e68-4e24-49d8-aeed-e4651b7cab0b",
+      "name": "Codex Cloudflare Smoke 2026-07-01",
+      "path": "/workshop/projects/bd9a8e68-4e24-49d8-aeed-e4651b7cab0b/estimates"
+    },
+    "estimate": {
+      "id": "985f6690-741e-4136-9fa1-a4896cd364e4",
+      "name": "ES-001 Estimate",
+      "sheetCode": "ES-001"
+    }
+  },
+  "browserProof": {
+    "tool": "computer-use",
+    "steps": [
+      "Opened the production project estimates page while signed in as Philip Lewis.",
+      "Edited the Notes field for ES-001 Estimate to Cloudflare QA 2026-07-02.",
+      "Pressed Enter and waited for the row to leave its saving/disabled state.",
+      "Reloaded the production page with Cmd+R.",
+      "Confirmed the Notes field still rendered Cloudflare QA 2026-07-02 after reload."
+    ],
+    "afterReloadUrl": "https://archestimator.com/workshop/projects/bd9a8e68-4e24-49d8-aeed-e4651b7cab0b/estimates",
+    "afterReloadNotesValue": "Cloudflare QA 2026-07-02",
+    "afterReloadUpdatedCell": "7/2/26, 3:30 AM"
+  },
+  "d1Readback": {
+    "command": "bunx wrangler d1 execute archestimator-proof-db --remote --command \"SELECT id, project_id, name, sheet_code, notes, updated_at FROM estimates WHERE id = '985f6690-741e-4136-9fa1-a4896cd364e4' LIMIT 1;\"",
+    "resourceLocation": "remote",
+    "databaseName": "archestimator-proof-db",
+    "databaseId": "9bdb29bb-687e-4f51-ae81-7659c426ea5f",
+    "success": true,
+    "row": {
+      "id": "985f6690-741e-4136-9fa1-a4896cd364e4",
+      "project_id": "bd9a8e68-4e24-49d8-aeed-e4651b7cab0b",
+      "name": "ES-001 Estimate",
+      "sheet_code": "ES-001",
+      "notes": "Cloudflare QA 2026-07-02",
+      "updated_at": "2026-07-01T19:30:24.267Z"
+    },
+    "meta": {
+      "served_by": "v3-prod",
+      "served_by_region": "APAC",
+      "served_by_colo": "SIN",
+      "served_by_primary": true,
+      "sql_duration_ms": 0.5623,
+      "rows_read": 1,
+      "rows_written": 0,
+      "changed_db": false
+    }
+  },
+  "readiness": {
+    "hostedAuthenticatedMutationReady": true,
+    "reloadPersistenceReady": true,
+    "remoteD1ReadbackReady": true,
+    "fullEstimateHistoryReady": false
+  },
+  "remainingGaps": [
+    "This proof covers the hosted estimate-list scalar notes mutation only.",
+    "Full estimate tab, row item, history event, rollback, idempotency, and cross-workspace denial journeys still need hosted Worker+D1 proof.",
+    "Provider-backed export/import restore proof for estimate-history tables is still required."
+  ],
+  "notes": [
+    "No secrets, cookies, OAuth tokens, or magic-link tokens are stored in this artifact.",
+    "The D1 readback was a read-only SELECT with rows_written = 0."
+  ]
+}

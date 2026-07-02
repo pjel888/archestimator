@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-01T06:51:06.031Z",
+  "generatedAt": "2026-07-01T13:41:12.785Z",
   "mode": "cloudflare-dns-delegation",
   "source": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-provider-readiness-source.json",
   "zoneName": "archestimator.com",
@@ -145,9 +145,7 @@
     {
       "hostname": "www.archestimator.com",
       "type": "CNAME",
-      "values": [
-        "bb7ab57cfa50fcad.vercel-dns-017.com"
-      ],
+      "values": [],
       "checked": true,
       "error": null
     },
@@ -155,8 +153,8 @@
       "hostname": "www.archestimator.com",
       "type": "A",
       "values": [
-        "216.198.79.65",
-        "64.29.17.65"
+        "104.21.74.99",
+        "172.67.201.196"
       ],
       "checked": true,
       "error": null
@@ -164,7 +162,10 @@
     {
       "hostname": "www.archestimator.com",
       "type": "AAAA",
-      "values": [],
+      "values": [
+        "2606:4700:3034::ac43:c9c4",
+        "2606:4700:3037::6815:4a63"
+      ],
       "checked": true,
       "error": null
     },
@@ -180,8 +181,7 @@
   ],
   "publicDnsProviderSignals": [
     "Public MX still uses Namecheap email forwarding.",
-    "Public SPF still references Namecheap email forwarding.",
-    "Public www DNS still resolves through Vercel."
+    "Public SPF still references Namecheap email forwarding."
   ],
   "publicDnsChecked": true,
   "publicDnsBacked": true,
@@ -195,7 +195,7 @@
       "ready": true,
       "status": 200,
       "server": "cloudflare",
-      "cfRay": "a1437acf7e04c613-SIN",
+      "cfRay": "a145d39b1e79d5c2-NRT",
       "error": null
     },
     {
@@ -205,7 +205,7 @@
       "ready": true,
       "status": 200,
       "server": "cloudflare",
-      "cfRay": "a1437adbba73a071-SIN",
+      "cfRay": "a145d3b328b64a9b-KUL",
       "error": null
     }
   ],

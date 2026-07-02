@@ -1,0 +1,66 @@
+{
+  "generatedAt": "2026-07-02T01:35:23.486Z",
+  "mode": "hosted-upload-operations-proof",
+  "proofBoundary": "hosted-fail-closed-only",
+  "baseUrl": "https://archestimator.com",
+  "runs": 1,
+  "limit": 1,
+  "authenticatedDryRunKinds": [],
+  "missingAuthenticatedProbeSecrets": [
+    "HOSTED_UPLOAD_OPERATIONS_CLEANUP_SECRET",
+    "HOSTED_UPLOAD_OPERATIONS_SCAN_SECRET"
+  ],
+  "passed": true,
+  "productionProofReady": false,
+  "note": "Hosted upload operations proof never records bearer secrets. Authenticated dry-run probes read cleanup/scan queues only; they do not delete storage, write cleanup audit events, download uploaded bytes, call scanner providers, or write scan results. This does not prove live scanner/CDR service execution, real alert delivery, dashboard observation, backpressure traffic, or retention-runbook completion.",
+  "results": [
+    {
+      "key": "upload-cleanup-unauthenticated-dry-run",
+      "kind": "cleanup",
+      "type": "unauthenticated-fail-closed",
+      "path": "/api/internal/upload-cleanup?limit=1&dryRun=1",
+      "authenticated": false,
+      "note": "Proves the hosted cleanup dry-run route fails closed without a bearer secret.",
+      "samples": [
+        {
+          "run": 1,
+          "status": 401,
+          "durationMs": 3861.23,
+          "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "hasNoStoreCacheControl": true,
+          "setCookiePresent": false,
+          "contentType": "application/json",
+          "xVercelCache": null,
+          "bodyBytes": 25,
+          "bodySummary": {},
+          "passed": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "key": "upload-scan-unauthenticated-dry-run",
+      "kind": "scan",
+      "type": "unauthenticated-fail-closed",
+      "path": "/api/internal/upload-scan?limit=1&dryRun=1",
+      "authenticated": false,
+      "note": "Proves the hosted scan dry-run route fails closed without a bearer secret.",
+      "samples": [
+        {
+          "run": 1,
+          "status": 401,
+          "durationMs": 2215.36,
+          "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "hasNoStoreCacheControl": true,
+          "setCookiePresent": false,
+          "contentType": "application/json",
+          "xVercelCache": null,
+          "bodyBytes": 25,
+          "bodySummary": {},
+          "passed": true
+        }
+      ],
+      "passed": true
+    }
+  ]
+}

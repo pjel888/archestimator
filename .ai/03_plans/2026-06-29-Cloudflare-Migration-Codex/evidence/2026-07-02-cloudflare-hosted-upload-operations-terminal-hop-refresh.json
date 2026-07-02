@@ -1,0 +1,176 @@
+{
+  "generatedAt": "2026-07-01T22:01:09.003Z",
+  "mode": "hosted-upload-operations-proof",
+  "proofBoundary": "hosted-authenticated-dry-run",
+  "baseUrl": "https://archestimator.com",
+  "runs": 1,
+  "limit": 1,
+  "authenticatedDryRunKinds": [
+    "cleanup",
+    "scan"
+  ],
+  "missingAuthenticatedProbeSecrets": [],
+  "passed": true,
+  "productionProofReady": true,
+  "note": "Hosted upload operations proof never records bearer secrets. Authenticated dry-run probes read cleanup/scan queues only; they do not delete storage, write cleanup audit events, download uploaded bytes, call scanner providers, or write scan results. This does not prove live scanner/CDR service execution, real alert delivery, dashboard observation, backpressure traffic, or retention-runbook completion.",
+  "results": [
+    {
+      "key": "upload-cleanup-unauthenticated-dry-run",
+      "kind": "cleanup",
+      "type": "unauthenticated-fail-closed",
+      "path": "/api/internal/upload-cleanup?limit=1&dryRun=1",
+      "authenticated": false,
+      "note": "Proves the hosted cleanup dry-run route fails closed without a bearer secret.",
+      "samples": [
+        {
+          "run": 1,
+          "status": 401,
+          "durationMs": 4383.1,
+          "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "hasNoStoreCacheControl": true,
+          "setCookiePresent": false,
+          "contentType": "application/json",
+          "xVercelCache": null,
+          "bodyBytes": 25,
+          "bodySummary": {},
+          "passed": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "key": "upload-scan-unauthenticated-dry-run",
+      "kind": "scan",
+      "type": "unauthenticated-fail-closed",
+      "path": "/api/internal/upload-scan?limit=1&dryRun=1",
+      "authenticated": false,
+      "note": "Proves the hosted scan dry-run route fails closed without a bearer secret.",
+      "samples": [
+        {
+          "run": 1,
+          "status": 401,
+          "durationMs": 53.68,
+          "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "hasNoStoreCacheControl": true,
+          "setCookiePresent": false,
+          "contentType": "application/json",
+          "xVercelCache": null,
+          "bodyBytes": 25,
+          "bodySummary": {},
+          "passed": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "key": "upload-cleanup-authenticated-dry-run",
+      "kind": "cleanup",
+      "type": "authenticated-dry-run",
+      "path": "/api/internal/upload-cleanup?limit=1&dryRun=1",
+      "authenticated": true,
+      "note": "Proves hosted cleanup invocation reaches the service-role reader without deleting storage or writing cleanup audit events.",
+      "samples": [
+        {
+          "run": 1,
+          "status": 200,
+          "durationMs": 311.42,
+          "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "hasNoStoreCacheControl": true,
+          "setCookiePresent": false,
+          "contentType": "application/json",
+          "xVercelCache": null,
+          "bodyBytes": 788,
+          "bodySummary": {
+            "mode": "dry-run",
+            "readRecordCount": 0,
+            "planner": {
+              "candidateCount": 0,
+              "rejectedCount": 0,
+              "rejectedReasons": {},
+              "candidateBuckets": []
+            },
+            "storage": {
+              "removedCount": 0,
+              "failedCount": 0,
+              "rejectedCount": 0,
+              "failedBuckets": []
+            },
+            "audit": {
+              "queuedCount": 0,
+              "succeededCount": 0,
+              "failedCount": 0,
+              "writeFailureCount": 0,
+              "eventTypes": {
+                "cleanup_queued": 0,
+                "cleanup_failed": 0,
+                "cleanup_succeeded": 0
+              }
+            },
+            "operationalSnapshot": {
+              "status": "healthy",
+              "retryAfterSeconds": null,
+              "retentionCutoffs": {
+                "failedAssetsBefore": "2026-06-24T22:01:08.983Z",
+                "deletedAssetsBefore": "2026-06-01T22:01:08.983Z",
+                "expiredSessionsBefore": "2026-06-30T22:01:08.983Z",
+                "auditEventsBefore": "2025-07-01T22:01:08.983Z"
+              },
+              "dashboardMetrics": {
+                "cleanupCandidates": 0,
+                "cleanupRemoved": 0,
+                "cleanupFailed": 0,
+                "cleanupRejected": 0,
+                "failedBucketCount": 0
+              },
+              "alerts": []
+            }
+          },
+          "passed": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "key": "upload-scan-authenticated-dry-run",
+      "kind": "scan",
+      "type": "authenticated-dry-run",
+      "path": "/api/internal/upload-scan?limit=1&dryRun=1",
+      "authenticated": true,
+      "note": "Proves hosted scan invocation reaches the service-role queue reader without downloading objects, scanning bytes, or writing scan results.",
+      "samples": [
+        {
+          "run": 1,
+          "status": 200,
+          "durationMs": 63.2,
+          "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "hasNoStoreCacheControl": true,
+          "setCookiePresent": false,
+          "contentType": "application/json",
+          "xVercelCache": null,
+          "bodyBytes": 322,
+          "bodySummary": {
+            "mode": "dry-run",
+            "readRecordCount": 0,
+            "selectedRecordCount": 0,
+            "pendingCount": 0,
+            "retryableCount": 0,
+            "totalBytes": 0,
+            "scannedCount": 0,
+            "writeFailedCount": 0,
+            "downloadFailedCount": 0,
+            "scannerFailedCount": 0,
+            "outcomeCounts": {
+              "clean": 0,
+              "infected": 0,
+              "unsupported": 0,
+              "failed_transient": 0,
+              "failed_permanent": 0
+            }
+          },
+          "passed": true
+        }
+      ],
+      "passed": true
+    }
+  ]
+}
