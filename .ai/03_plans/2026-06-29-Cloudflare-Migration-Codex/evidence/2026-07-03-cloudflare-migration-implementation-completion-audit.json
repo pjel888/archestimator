@@ -1,0 +1,205 @@
+{
+  "schema": "archestimator-cloudflare-migration-implementation-completion-audit/v1",
+  "generatedAt": "2026-07-03T11:04:51Z",
+  "verificationMode": "independent-read-only-verifier-plus-lead-refresh",
+  "independentVerifier": {
+    "agentId": "019f27a6-30a1-72a1-a69f-a473bc96093d",
+    "nickname": "Jason",
+    "status": "completed",
+    "verdict": "PARTIAL",
+    "summary": "Cloudflare app-runtime readiness is well evidenced. Full migration/provider-exit closure is still incomplete.",
+    "highestValueSafeLocalGap": "Provider-exit generator, tests, fixture, provider-exit evidence, and UltraQA evidence are still untracked working-tree artifacts; they are reviewable locally but not durable in Git history until commit/staging authority is exercised.",
+    "boundary": "Read-only. No file edits, deploys, provider mutations, secrets, or browser automation."
+  },
+  "question": "Is the Cloudflare migration plan pack fully implemented, and what remains?",
+  "verdict": {
+    "classification": "NEAR_COMPLETE_NOT_FULLY_IMPLEMENTED",
+    "cloudflareAppRuntime": "NEAR_COMPLETE",
+    "fullMigrationIncludingProviderExit": "OPEN_NOT_READY",
+    "goalShouldBeMarkedComplete": false,
+    "reason": "Current evidence proves most Cloudflare app-runtime gates and zero blocker-level active legacy-provider runtime references, but latest-branch deploy/smoke proof and six external/operator provider-exit gates remain unclosed."
+  },
+  "sourceDocuments": [
+    {
+      "id": "SRC-37",
+      "path": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/37_GLM52_CLOUDFLARE_MIGRATION_HANDOFF.md",
+      "lines": "38-52, 60-75, 643-652"
+    },
+    {
+      "id": "SRC-35",
+      "path": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/35_PROVIDER_EXIT_AND_FINAL_PROOF_RUNBOOK.md",
+      "lines": "34-91, 149-162"
+    },
+    {
+      "id": "SRC-36",
+      "path": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/36_COMPREHENSIVE_FOLLOWUP_QA_LEDGER.md",
+      "lines": "518-548, 764-825"
+    },
+    {
+      "id": "SRC-STATE",
+      "path": ".ai/10_state/current-state.md",
+      "lines": "192-265"
+    }
+  ],
+  "requirementStatus": [
+    {
+      "id": "REQ-APP-RUNTIME",
+      "requirement": "Cloudflare app runtime must operate without active Supabase, Vercel, or Resend runtime dependencies.",
+      "status": "weak_or_indirect_for_complete_status",
+      "evidenceClass": ["local automated", "provider-backed", "hosted/production"],
+      "evidence": [
+        "Release gates generated 2026-07-03T10:35:33.942Z with productionCutoverReady=true and blockers empty.",
+        "Provider-exit pack generated 2026-07-03T10:41:40.108Z with appRuntimeExitPrerequisitesReady=true and activeLegacyProviderRuntimeBlockers=0.",
+        "Broad DOM local suite passed after repairs: 1350/1350 suites, 4010/4055 tests, 0 failed."
+      ],
+      "gap": "Doc 37's app-runtime-complete row still requires latest deploy smoke; the latest recorded production deploy predates the checked-in AuthStateMismatchRecoveryScript warning fix."
+    },
+    {
+      "id": "REQ-RELEASE-GATES",
+      "requirement": "Release gates and current app-runtime readiness evidence must be green.",
+      "status": "proven",
+      "evidenceClass": ["local automated", "hosted/production", "provider-backed"],
+      "evidence": [
+        "evidence/2026-07-01-cloudflare-release-gates.json generatedAt=2026-07-03T10:35:33.942Z; productionCutoverReady=true; blockers=[]",
+        "evidence/2026-07-01-cloudflare-provider-resource-readback.json generatedAt=2026-07-03T10:35:30.209Z; providerResourceReadbackReady=true; blockers=[]",
+        "evidence/2026-06-30-cloudflare-email-readiness.json generatedAt=2026-07-03T10:41:35.143Z; blockers=[]"
+      ],
+      "gap": null
+    },
+    {
+      "id": "REQ-PERFORMANCE-WATCH",
+      "requirement": "Strict public-route p95 misses must remain visible and must not be hidden by release gates.",
+      "status": "proven_as_watch_item",
+      "evidenceClass": ["local automated", "hosted/production"],
+      "evidence": [
+        "Hosted performance generatedAt=2026-07-03T10:32:52.047Z with hostedCredentialFreePerformanceReady=true.",
+        "Workbook generatedAt=2026-07-03T10:32:56.734Z with strictHostedClientP95Ready=false and latest /terms miss 564.56ms against 300ms."
+      ],
+      "gap": "p95 tuning remains useful but is not a full-migration blocker under the current handoff rules."
+    },
+    {
+      "id": "REQ-LATEST-DEPLOY-SMOKE",
+      "requirement": "Latest branch must be deployed and smoked before declaring Cloudflare app runtime complete and before final provider-exit smoke.",
+      "status": "incomplete",
+      "evidenceClass": ["hosted/production"],
+      "evidence": [
+        "Doc 37 records latest production deploy evidence at Worker d47bcd1d-37f0-41e3-864a-05a90b28518b, 2026-07-02T04:31:00Z.",
+        "Doc 37 records the checked-in AuthStateMismatchRecoveryScript warning fix landed later in commit cdf74b72d at 2026-07-02T14:02:31Z."
+      ],
+      "gap": "Requires explicit external-production deploy/smoke authorization or a current deployed-source proof artifact."
+    },
+    {
+      "id": "REQ-PROVIDER-EXIT-PACK",
+      "requirement": "Provider-exit pack must keep external gates open unless sanitized operator evidence exists.",
+      "status": "proven_open",
+      "evidenceClass": ["local automated"],
+      "evidence": [
+        "evidence/2026-07-03-cloudflare-provider-exit-pack.json generatedAt=2026-07-03T10:41:40.108Z.",
+        "readiness.providerExitReady=false.",
+        "artifacts.operatorRecord.present=false.",
+        "Six blockers are listed."
+      ],
+      "gap": "The sanitized operator record itself is absent."
+    },
+    {
+      "id": "REQ-EXPORT-RETENTION",
+      "requirement": "Final exports/backups must be stored outside the repo or accepted retention/loss must be recorded.",
+      "status": "blocked_with_evidence",
+      "evidenceClass": ["operator/provider"],
+      "evidence": [
+        "Provider-exit pack blocker: no repository evidence proves final exports outside the repo or accepted-retention/accepted-loss."
+      ],
+      "gap": "Requires sanitized operator record; raw exports must not be committed."
+    },
+    {
+      "id": "REQ-RESEND-STATUS",
+      "requirement": "Resend account, API-key, and sending-domain status must be recorded.",
+      "status": "blocked_with_evidence",
+      "evidenceClass": ["operator/provider"],
+      "evidence": [
+        "Provider-exit pack blocker: Cloudflare Email is ready, but Resend account/API-key/sending-domain status is not recorded."
+      ],
+      "gap": "Requires sanitized operator/provider status, without API key values."
+    },
+    {
+      "id": "REQ-OBSOLETE-SECRETS",
+      "requirement": "Obsolete provider secrets must be removed or rotated after exit decisions.",
+      "status": "blocked_with_evidence",
+      "evidenceClass": ["operator/provider"],
+      "evidence": [
+        "Provider-exit pack blocker: no evidence shows obsolete provider secrets were removed or rotated after exit decisions."
+      ],
+      "gap": "Requires provider/secret-name review and post-removal smoke; do not read or commit secret values."
+    },
+    {
+      "id": "REQ-POST-EXIT-SMOKE",
+      "requirement": "Cloudflare smoke must run after provider export/retention/secret decisions.",
+      "status": "blocked_with_evidence",
+      "evidenceClass": ["hosted/production", "operator/provider"],
+      "evidence": [
+        "Provider-exit pack blocker: no post-exit smoke exists after provider export/retention/secret decisions."
+      ],
+      "gap": "Depends on provider-exit operator actions and latest deploy/source proof."
+    },
+    {
+      "id": "REQ-NON-OWNER-GOOGLE",
+      "requirement": "Real non-owner Google account journey must be proven or explicitly accepted as deferred.",
+      "status": "blocked_with_evidence",
+      "evidenceClass": ["browser/manual", "hosted/production", "operator/persona"],
+      "evidence": [
+        "Provider-side Google OAuth block is removed, but no real non-owner account journey evidence is recorded.",
+        "Provider-exit pack lists real non-owner Google proof as an open blocker."
+      ],
+      "gap": "Requires a real non-owner Google persona/session or accepted deferral."
+    },
+    {
+      "id": "REQ-RECIPIENT-MAILBOX",
+      "requirement": "Real recipient mailbox receipt and recipient-scoped journey must be proven or explicitly accepted as deferred.",
+      "status": "blocked_with_evidence",
+      "evidenceClass": ["browser/manual", "hosted/production", "operator/mailbox"],
+      "evidence": [
+        "Hosted recipient app flow is green, but real external mailbox receipt remains open.",
+        "Provider-exit pack lists real recipient mailbox proof or accepted deferral as an open blocker."
+      ],
+      "gap": "Requires real mailbox proof or owner-accepted deferral without committing private mailbox content."
+    },
+    {
+      "id": "REQ-ULTRAQA",
+      "requirement": "Final UltraQA must honestly classify completion and preserve blocker visibility.",
+      "status": "proven_partial",
+      "evidenceClass": ["local static", "local automated"],
+      "evidence": [
+        "evidence/2026-07-03-glm52-final-ultraqa-review.json generatedAt=2026-07-03T10:53:32Z.",
+        "verdict.classification=PARTIAL; fullPlanImplemented=false; providerExitState=OPEN / NOT READY."
+      ],
+      "gap": "This UltraQA pass was static/local and does not replace browser, deploy, mailbox, persona, or provider proof."
+    }
+  ],
+  "safeLocalWorkRemaining": [
+    {
+      "item": "Keep completion-audit artifacts current with source-linked requirement status.",
+      "status": "implemented_by_this_artifact",
+      "evidence": "This JSON/MD audit pair plus the update to 30_COMPLETION_AUDIT.md."
+    },
+    {
+      "item": "Make provider-exit generator/tests/evidence durable in Git history.",
+      "status": "requires_commit_or_staging_authority",
+      "evidence": "Independent verifier found the generator, tests, fixture, provider-exit evidence, and UltraQA evidence are untracked. The lead did not stage or commit because commit/staging was not explicitly authorized in this branch of work."
+    }
+  ],
+  "externalOrOperatorWorkRemaining": [
+    "Latest branch deploy/smoke or current deployed-source proof.",
+    "Sanitized provider-exit operator record for export/retention decision.",
+    "Sanitized Resend status.",
+    "Obsolete provider secret removal/rotation record.",
+    "Post-exit Cloudflare smoke.",
+    "Real non-owner Google proof or accepted deferral.",
+    "Real recipient mailbox proof or accepted deferral."
+  ],
+  "validationPlanned": [
+    "JSON parse for this artifact.",
+    "Stale marker scan over active completion audit files.",
+    "Provider-exit focused Vitest and scoped ESLint.",
+    "git diff --check."
+  ]
+}
