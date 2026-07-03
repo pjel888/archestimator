@@ -120,7 +120,7 @@ describe("project location actions", () => {
       addressText: "Quezon City",
     }));
 
-    expect(findPrepared(database, /SELECT 1 AS allowed/).values).toEqual(["project-1", "user-1", "user-1"]);
+    expect(findPrepared(database, /SELECT 1 AS allowed/).values).toEqual(["project-1", "user-1", "user-1", "user-1"]);
     const upsert = findPrepared(database, /INSERT INTO project_locations/);
     expect(upsert.sql).toContain("ON CONFLICT(project_id) DO UPDATE");
     expect(upsert.values.slice(1, 11)).toEqual([

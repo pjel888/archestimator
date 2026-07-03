@@ -1323,6 +1323,15 @@ export const ensureDefaultWorkspace = cache(async function ensureDefaultWorkspac
   );
   await run(
     database,
+    `INSERT INTO workspace_members (workspace_id, user_id, role, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT(workspace_id, user_id) DO UPDATE SET
+       role = excluded.role,
+       updated_at = excluded.updated_at`,
+    [workspace.id, context.userId, "owner", now, now],
+  );
+  await run(
+    database,
     `UPDATE profiles
      SET default_workspace_id = ?, updated_at = ?
      WHERE id = ?`,

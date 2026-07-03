@@ -100,6 +100,8 @@ export async function canAccessProjectInD1(
         FROM projects project
         WHERE project.id = ?
           AND (
+            project.created_by = ?
+            OR
             EXISTS (
               SELECT 1
               FROM workspace_members workspace_member
@@ -122,7 +124,7 @@ export async function canAccessProjectInD1(
         LIMIT 1
       `,
     )
-    .bind(projectId, user.userId, user.userId, user.userId)
+    .bind(projectId, user.userId, user.userId, user.userId, user.userId)
     .first<{ allowed: number }>();
   return readAllowed(row);
 }
@@ -140,6 +142,8 @@ export async function canEditProjectInD1(
         FROM projects project
         WHERE project.id = ?
           AND (
+            project.created_by = ?
+            OR
             EXISTS (
               SELECT 1
               FROM workspace_members workspace_member
@@ -158,7 +162,7 @@ export async function canEditProjectInD1(
         LIMIT 1
       `,
     )
-    .bind(projectId, user.userId, user.userId)
+    .bind(projectId, user.userId, user.userId, user.userId)
     .first<{ allowed: number }>();
   return readAllowed(row);
 }
@@ -179,6 +183,8 @@ export async function canAccessEstimateInD1(
           ON access.estimate_id = estimate.id
         WHERE estimate.id = ?
           AND (
+            estimate.created_by = ?
+            OR
             EXISTS (
               SELECT 1
               FROM estimate_sheet_members sheet_member
@@ -188,6 +194,8 @@ export async function canAccessEstimateInD1(
             OR (
               COALESCE(access.inherit_project_access, 1) = 1
               AND (
+                project.created_by = ?
+                OR
                 EXISTS (
                   SELECT 1
                   FROM workspace_members workspace_member
@@ -206,7 +214,7 @@ export async function canAccessEstimateInD1(
         LIMIT 1
       `,
     )
-    .bind(estimateId, user.userId, user.userId, user.userId)
+    .bind(estimateId, user.userId, user.userId, user.userId, user.userId, user.userId)
     .first<{ allowed: number }>();
   return readAllowed(row);
 }
@@ -227,6 +235,8 @@ export async function canEditEstimateInD1(
           ON access.estimate_id = estimate.id
         WHERE estimate.id = ?
           AND (
+            estimate.created_by = ?
+            OR
             EXISTS (
               SELECT 1
               FROM estimate_sheet_members sheet_member
@@ -237,6 +247,8 @@ export async function canEditEstimateInD1(
             OR (
               COALESCE(access.inherit_project_access, 1) = 1
               AND (
+                project.created_by = ?
+                OR
                 EXISTS (
                   SELECT 1
                   FROM workspace_members workspace_member
@@ -257,7 +269,7 @@ export async function canEditEstimateInD1(
         LIMIT 1
       `,
     )
-    .bind(estimateId, user.userId, user.userId, user.userId)
+    .bind(estimateId, user.userId, user.userId, user.userId, user.userId, user.userId)
     .first<{ allowed: number }>();
   return readAllowed(row);
 }

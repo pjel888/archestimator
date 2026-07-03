@@ -103,6 +103,17 @@ function mockWorkspaceRepositoryD1({
                 updated_at: statement.values[5],
               },
             });
+          } else if (sql.includes("INSERT INTO workspace_members")) {
+            inserts?.push({
+              table: "workspace_members",
+              payload: {
+                workspace_id: statement.values[0],
+                user_id: statement.values[1],
+                role: statement.values[2],
+                created_at: statement.values[3],
+                updated_at: statement.values[4],
+              },
+            });
           } else if (sql.includes("UPDATE profiles")) {
             updatedDefaultWorkspaceId = String(statement.values[0]);
             updates?.push({
@@ -447,7 +458,19 @@ describe("auth onboarding workspace guard", () => {
     });
     expect(nextHeadersMocks.headers).not.toHaveBeenCalled();
     expect(queryOrder).toEqual(["profiles"]);
-    expect(inserts).toEqual([{ table: "workspaces", payload: result.workspace }]);
+    expect(inserts).toEqual([
+      { table: "workspaces", payload: result.workspace },
+      {
+        table: "workspace_members",
+        payload: {
+          workspace_id: result.workspace.id,
+          user_id: profile.id,
+          role: "owner",
+          created_at: "2026-05-27T00:00:00.000Z",
+          updated_at: "2026-05-27T00:00:00.000Z",
+        },
+      },
+    ]);
     expect(updates).toEqual([
       {
         table: "profiles",
