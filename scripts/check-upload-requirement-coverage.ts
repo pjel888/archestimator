@@ -3,7 +3,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
-const PLAN_DIR = ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement";
+const PLAN_DIR = ".ai/03_plans/000-Follow Ups/2026-06-26-File-Upload-Audit-And-Improvement";
 const DEFAULT_REQUIREMENTS_FILE = `${PLAN_DIR}/04_REQUIREMENTS_SPECIFICATION.md`;
 const DEFAULT_RELEASE_GATES_FILE = `${PLAN_DIR}/evidence/upload-release-gates.json`;
 const DEFAULT_OUTPUT = `${PLAN_DIR}/evidence/upload-requirement-coverage-audit.json`;

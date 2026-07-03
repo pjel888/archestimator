@@ -1,10 +1,6 @@
-#!/usr/bin/env bun
-
 import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-
-import { createClient, type PostgrestError } from "@supabase/supabase-js";
 
 import {
   createPublicPostCsrfToken,
@@ -21,6 +17,7 @@ const DEFAULT_OUT_DIR = ".ai/03_plans/2026-06-20-Shared-Link-Feature/evidence/pe
 const EXPECTED_PROJECT_REF = "ebxxqidacheyapmmzavr";
 const PASSWORD_ROUTE_BUDGET_MS = 2500;
 const PASSWORD = "Hosted password route proof passphrase";
+const SUPABASE_SDK_PACKAGE = "@supabase/supabase-js";
 
 type CliOptions = {
   deploymentUrl: string;
@@ -37,6 +34,33 @@ type CleanupCounts = Record<
   "project_publication_events" | "project_publications" | "projects" | "shared_link_events" | "workspaces",
   number
 >;
+type PostgrestErrorLike = {
+  code?: string;
+  details?: string;
+  hint?: string;
+  message?: string;
+};
+type SupabaseMutationResult<T = unknown> = PromiseLike<{ data: T; error: PostgrestErrorLike | null }>;
+type SupabaseCountResult = PromiseLike<{ count: number | null; error: PostgrestErrorLike | null }>;
+type SupabaseTableLike = {
+  delete: () => { eq: (column: string, value: string) => SupabaseMutationResult };
+  insert: (value: unknown) => SupabaseMutationResult;
+  select: (
+    columns: string,
+    options?: { count?: "exact"; head?: boolean },
+  ) => { eq: (column: string, value: string) => SupabaseCountResult };
+};
+type SupabaseClientLike = {
+  from: (table: string) => SupabaseTableLike;
+};
+type CreateSupabaseClientLike = (
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  options: {
+    auth: { autoRefreshToken: boolean; persistSession: boolean };
+    global: { headers: Record<string, string> };
+  },
+) => SupabaseClientLike;
 
 function usage() {
   return [
@@ -145,27 +169,30 @@ function requireProviderInputs() {
   return { supabaseUrl: supabaseUrl!, serviceRoleKey: serviceRoleKey! };
 }
 
-function makeClient() {
+async function makeClient() {
   const { supabaseUrl, serviceRoleKey } = requireProviderInputs();
-  return createClient<Database>(supabaseUrl, serviceRoleKey, {
+  const { createClient } = await import(/* @vite-ignore */ SUPABASE_SDK_PACKAGE) as {
+    createClient: CreateSupabaseClientLike;
+  };
+  return createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
     global: { headers: { "X-Client-Info": "archestimator-hosted-password-route-proof" } },
   });
 }
 
-function describeError(error: PostgrestError | null) {
+function describeError(error: PostgrestErrorLike | null) {
   if (!error) return null;
   return error.message || error.details || error.hint || error.code || "Unknown PostgREST error";
 }
 
-async function must<T>(label: string, promise: PromiseLike<{ data: T; error: PostgrestError | null }>) {
+async function must<T>(label: string, promise: PromiseLike<{ data: T; error: PostgrestErrorLike | null }>) {
   const { data, error } = await promise;
   if (error) throw new Error(`${label}: ${describeError(error)}`);
   return data;
 }
 
 async function countRows(
-  supabase: ReturnType<typeof makeClient>,
+  supabase: SupabaseClientLike,
   table: keyof Database["public"]["Tables"],
   column: string,
   value: string,
@@ -176,7 +203,7 @@ async function countRows(
 }
 
 async function createFixture() {
-  const supabase = makeClient();
+  const supabase = await makeClient();
   const stamp = Date.now().toString(36);
   const workspaceId = crypto.randomUUID();
   const projectId = crypto.randomUUID();

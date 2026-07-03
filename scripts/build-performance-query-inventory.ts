@@ -190,11 +190,11 @@ export function summarizeBuckets(references: QueryReference[]): BucketSummary[] 
 
 export function buildInventoryReport(roots = DEFAULT_ROOTS): InventoryReport {
   const references = extractQueryReferences(roots);
-  if (!references.length) throw new Error("No Supabase table/RPC references found for query inventory.");
+  if (!references.length) throw new Error("No database table/RPC references found for query inventory.");
   return {
     generatedAt: new Date().toISOString(),
     mode: "repo-static-per-route-query-inventory",
-    note: "Repo-static inventory only. Counts table/RPC references and selected-column payload shape by route bucket; does not prove live row counts, payload bytes, RLS cost, EXPLAIN plans, or provider latency.",
+    note: "Repo-static inventory only. Counts database table/RPC client references and selected-column payload shape by route bucket; does not prove live row counts, payload bytes, authorization cost, EXPLAIN plans, or provider latency.",
     scannedRoots: roots,
     bucketSummaries: summarizeBuckets(references),
     references,
@@ -238,7 +238,7 @@ ${detailRows}
 
 - This is the per-route static inventory required before query consolidation or index proposals.
 - Payload size is represented as selected-column shape/count from source, not live bytes.
-- Live Supabase EXPLAIN, provider metrics, RLS cost, row counts, and hosted route timing remain open gates.
+- Live database EXPLAIN, provider metrics, authorization cost, row counts, and hosted route timing remain open gates.
 - Do not create database migrations or RPC rewrites from this artifact alone.
 `;
 }

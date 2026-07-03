@@ -46,6 +46,10 @@ const BASE_URL = process.env.HOSTED_AUTH_BASE_URL?.trim() || "https://archestima
 const WORKSPACE_ID = process.env.HOSTED_AUTH_WORKSPACE_ID?.trim() || "258b50ee-3fde-4f6a-a9d9-c360ec44cd0b";
 const EMAIL_PREFIX = "codex-authz-";
 const EMAIL_DOMAIN = "example.invalid";
+const MALFORMED_COOKIE = [
+  "__Secure-better-auth.session_token=codex-malformed-session.invalid-signature",
+  "better-auth.session_token=codex-malformed-session.invalid-signature",
+].join("; ");
 const TERMS = {
   key: "terms-of-service",
   version: "tos-2026-06-06-beta-v1",
@@ -285,7 +289,7 @@ Cleanup counts after proof:
 
 Notes:
 - Session cookies and signed token values were generated in memory only and are not written to this report.
-- The hosted verifier exercises \`/workshop\` on the production Worker with anonymous, allowed, missing-allowlist, revoked, and expired Better Auth session states.
+- The hosted verifier exercises \`/workshop\` on the production Worker with anonymous, allowed, missing-allowlist, revoked, expired, and malformed Better Auth session states.
 - A pass requires the expected route behavior plus private/no-store cache control and zero synthetic D1 residue after cleanup.
 `);
 }
@@ -354,6 +358,7 @@ async function main() {
         { name: "denied", cookie: fixtures.find((fixture) => fixture.caseName === "denied")?.cookieHeader, required: true },
         { name: "revoked", cookie: fixtures.find((fixture) => fixture.caseName === "revoked")?.cookieHeader, required: true },
         { name: "expired", cookie: fixtures.find((fixture) => fixture.caseName === "expired")?.cookieHeader, required: true },
+        { name: "malformed", cookie: MALFORMED_COOKIE, required: true },
       ],
     });
   } catch (caught) {

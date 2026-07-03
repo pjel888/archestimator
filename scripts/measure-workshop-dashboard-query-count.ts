@@ -112,7 +112,7 @@ function main() {
   const outputPath = resolve(process.env.OUTPUT_FILE ?? ".ai/09_archive/store/workshop-dashboard-query-count.json");
   mkdirSync(dirname(outputPath), { recursive: true });
   writeFileSync(outputPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
-  console.log(JSON.stringify({ outputPath, sampleCount: report.sampleCount, medianSupabaseRoundTrips: report.medianSupabaseRoundTrips }, null, 2));
+  console.log(JSON.stringify({ outputPath, sampleCount: report.sampleCount, medianDatabaseRoundTrips: report.medianDatabaseRoundTrips }, null, 2));
 }
 
 if (import.meta.main) {

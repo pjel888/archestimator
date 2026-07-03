@@ -3,7 +3,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
-type AuthCaseName = "signedOut" | "allowed" | "denied" | "revoked" | "expired";
+type AuthCaseName = "signedOut" | "allowed" | "denied" | "revoked" | "expired" | "malformed";
 
 type AuthCaseInput = {
   name: AuthCaseName;
@@ -64,6 +64,10 @@ const DEFAULT_ALLOWED_ORIGINS = [
   "https://www.archestimator.com",
   "https://archestimator.vercel.app",
 ];
+const DEFAULT_MALFORMED_COOKIE = [
+  "__Secure-better-auth.session_token=codex-malformed-session.invalid-signature",
+  "better-auth.session_token=codex-malformed-session.invalid-signature",
+].join("; ");
 
 function readEnv(name: string) {
   const value = process.env[name];
@@ -145,6 +149,7 @@ export function parseInputsFromEnv(): VerifyInputs {
       { name: "denied", cookie: readEnv("HOSTED_AUTH_DENIED_COOKIE"), required: true },
       { name: "revoked", cookie: readEnv("HOSTED_AUTH_REVOKED_COOKIE"), required: true },
       { name: "expired", cookie: readEnv("HOSTED_AUTH_EXPIRED_COOKIE"), required: true },
+      { name: "malformed", cookie: readEnv("HOSTED_AUTH_MALFORMED_COOKIE") ?? DEFAULT_MALFORMED_COOKIE, required: true },
     ],
   };
 }
@@ -182,7 +187,7 @@ function expectedDescription(name: AuthCaseName) {
   if (name === "allowed") return "allowed session reaches the protected workshop without beta-access redirect";
   if (name === "denied") return "denied session redirects to /access-required";
   if (name === "revoked") return "revoked session redirects to /access-required?status=revoked";
-  return "signed-out or expired session redirects to /login with a safe next path";
+  return "signed-out, expired, or malformed session redirects to /login with a safe next path";
 }
 
 export function evaluateCase(params: {

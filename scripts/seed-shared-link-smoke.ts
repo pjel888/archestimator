@@ -1,12 +1,9 @@
-#!/usr/bin/env bun
-
-import { createClient } from "@supabase/supabase-js";
-
 import {
   decryptPublicationToken,
   readPublicationTokenEncryptionSecret,
 } from "../src/lib/publication/security";
-import type { Database } from "../src/lib/supabase/types";
+
+const SUPABASE_SDK_PACKAGE = "@supabase/supabase-js";
 
 type SeedInputs = {
   supabaseUrl: string;
@@ -22,6 +19,31 @@ type PublicationCandidate = {
   revoked_at: string | null;
   status: "published" | "expired" | "revoked";
 };
+type PostgrestErrorLike = {
+  code?: string;
+  details?: string;
+  hint?: string;
+  message?: string;
+};
+type SupabasePublicationQueryLike = {
+  eq: (column: string, value: unknown) => SupabasePublicationQueryLike;
+  is: (column: string, value: unknown) => SupabasePublicationQueryLike;
+  limit: (count: number) => PromiseLike<{ data: unknown[] | null; error: PostgrestErrorLike | null }>;
+  order: (column: string, options: { ascending: boolean }) => SupabasePublicationQueryLike;
+};
+type SupabaseClientLike = {
+  from: (table: string) => {
+    select: (columns: string) => SupabasePublicationQueryLike;
+  };
+};
+type CreateSupabaseClientLike = (
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  options: {
+    auth: { autoRefreshToken: boolean; persistSession: boolean };
+    global: { headers: Record<string, string> };
+  },
+) => SupabaseClientLike;
 
 function readEnv(name: string, env: NodeJS.ProcessEnv = process.env) {
   return env[name]?.trim() || undefined;
@@ -84,7 +106,10 @@ export function renderShareUrlEnv(shareUrl: string) {
 }
 
 async function findExistingNoPasswordPublication(inputs: SeedInputs) {
-  const supabase = createClient<Database>(inputs.supabaseUrl, inputs.serviceRoleKey, {
+  const { createClient } = await import(/* @vite-ignore */ SUPABASE_SDK_PACKAGE) as {
+    createClient: CreateSupabaseClientLike;
+  };
+  const supabase = createClient(inputs.supabaseUrl, inputs.serviceRoleKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
