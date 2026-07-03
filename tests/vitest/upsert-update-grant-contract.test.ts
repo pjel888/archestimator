@@ -48,22 +48,32 @@ function listFilesRecursive(dir: string): string[] {
   return out;
 }
 
+function collectDoUpdateUpsertTablesFromText(text: string, tables: Set<string>) {
+  const re = /\.from\(\s*["'`](\w+)["'`]\s*\)\s*\.upsert\(/g;
+  const nextUpsertRe = /\.from\(\s*["'`]\w+["'`]\s*\)\s*\.upsert\(/;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(text)) !== null) {
+    const table = match[1];
+    // Inspect the upsert option object (a window after the call open-paren) for DO NOTHING.
+    const afterCurrentMatch = text.slice(match.index + match[0].length);
+    const nextUpsertIndex = afterCurrentMatch.search(nextUpsertRe);
+    const windowEnd = nextUpsertIndex >= 0
+      ? match.index + match[0].length + nextUpsertIndex
+      : match.index + 400;
+    const window = text.slice(match.index, windowEnd);
+    if (/ignoreDuplicates\s*:\s*true/.test(window)) continue; // ON CONFLICT DO NOTHING
+    tables.add(table);
+  }
+}
+
 // Discover every `.from("<table>").upsert(` site in src and classify it as DO UPDATE
 // (needs UPDATE) vs DO NOTHING (`ignoreDuplicates: true`, INSERT-only). Returns the set of
 // tables reached by a DO-UPDATE upsert anywhere in the app.
 function discoverDoUpdateUpsertTables(): Set<string> {
   const tables = new Set<string>();
-  const re = /\.from\(\s*["'`](\w+)["'`]\s*\)\s*\.upsert\(/g;
   for (const file of listFilesRecursive(srcDir)) {
     const text = readFileSync(file, "utf8");
-    let match: RegExpExecArray | null;
-    while ((match = re.exec(text)) !== null) {
-      const table = match[1];
-      // Inspect the upsert option object (a window after the call open-paren) for DO NOTHING.
-      const window = text.slice(match.index, match.index + 400);
-      if (/ignoreDuplicates\s*:\s*true/.test(window)) continue; // ON CONFLICT DO NOTHING
-      tables.add(table);
-    }
+    collectDoUpdateUpsertTablesFromText(text, tables);
   }
   return tables;
 }
@@ -130,9 +140,15 @@ describe("upsert tables grant UPDATE to authenticated", () => {
   // brand-new upsert on an un-granted authenticated table fails here with an actionable message.
   it("classifies every DO-UPDATE upsert table in the codebase", () => {
     const discovered = discoverDoUpdateUpsertTables();
-    // The known broken-then-fixed tables must actually be discovered (guards the scanner regex).
-    expect(discovered.has("project_group_memberships")).toBe(true);
-    expect(discovered.has("project_favorites")).toBe(true);
+    // Guard the scanner even after the Cloudflare D1 migration removed the old
+    // Supabase upsert sites from active app code.
+    const scannerFixture = new Set<string>();
+    collectDoUpdateUpsertTablesFromText([
+      'supabase.from("project_favorites").upsert({ id: "1" }, { onConflict: "user_id,project_id" })',
+      'supabase.from("estimate_favorites").upsert({ id: "1" }, { onConflict: "user_id,estimate_id", ignoreDuplicates: true })',
+    ].join("\n"), scannerFixture);
+    expect(scannerFixture.has("project_favorites")).toBe(true);
+    expect(scannerFixture.has("estimate_favorites")).toBe(false);
 
     const unclassified: string[] = [];
     for (const table of discovered) {

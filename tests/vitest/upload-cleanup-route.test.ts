@@ -133,7 +133,7 @@ describe("internal upload cleanup route", () => {
     const sessionStatement = database.statements.find((statement) => statement.sql.includes("FROM upload_sessions"));
     expect(assetStatement?.values[2]).toBe(5);
     expect(sessionStatement?.values[5]).toBe(5);
-    expect(r2.delete).toHaveBeenCalledWith([`component-attachments/${ATTACHMENT_PATH}`]);
+    expect(r2.delete).toHaveBeenCalledWith(`component-attachments/${ATTACHMENT_PATH}`);
     expect(database.runStatements).toHaveLength(2);
     expect(database.runStatements.map((statement) => statement.values[5])).toEqual([
       "cleanup_queued",
@@ -181,7 +181,7 @@ describe("internal upload cleanup route", () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(r2.delete).toHaveBeenCalledWith([`component-attachments/${ATTACHMENT_PATH}`]);
+    expect(r2.delete).toHaveBeenCalledWith(`component-attachments/${ATTACHMENT_PATH}`);
     expect(database.runStatements).toHaveLength(2);
     expect(body.storage).toMatchObject({
       removedCount: 1,

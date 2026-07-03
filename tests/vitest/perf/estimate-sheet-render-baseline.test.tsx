@@ -143,6 +143,7 @@ function profileKeystrokes(scenario: string, areaCount: number, rowsPerArea: num
         nodes={tree}
         projectId="perf-project"
         estimateId="perf-estimate"
+        canEditEstimate
         renderSidebar={false}
       />
     </QueryClientProvider>,

@@ -9,16 +9,16 @@ describe("workshop dashboard query count script", () => {
   it("summarizes request-correlated perf-json snapshots without raw URLs or ids", () => {
     const log = [
       'noise',
-      '[perf-json] {"requestId":"wsh_a","scope":"workshop.dashboard","supabaseRoundTrips":2,"timings":[{"label":"workshop.branch.homebase","kind":"timing","elapsedMs":120},{"label":"supabase.select.projects","kind":"supabase","operation":"select","relation":"projects","elapsedMs":20},{"label":"supabase.rpc.list_pending_collaboration_invitations","kind":"supabase","operation":"rpc","relation":"list_pending_collaboration_invitations","elapsedMs":40}]}',
-      '[perf-json] {"requestId":"wsh_b","scope":"workshop.dashboard","supabaseRoundTrips":1,"timings":[{"label":"workshop.branch.homebase","kind":"timing","elapsedMs":90},{"label":"supabase.select.estimates","kind":"supabase","operation":"select","relation":"estimates","elapsedMs":30}]}',
+      '[perf-json] {"requestId":"wsh_a","scope":"workshop.dashboard","databaseRoundTrips":2,"timings":[{"label":"workshop.branch.homebase","kind":"timing","elapsedMs":120},{"label":"database.select.projects","kind":"database","operation":"select","relation":"projects","elapsedMs":20},{"label":"database.rpc.list_pending_collaboration_invitations","kind":"database","operation":"rpc","relation":"list_pending_collaboration_invitations","elapsedMs":40}]}',
+      '[perf-json] {"requestId":"wsh_b","scope":"workshop.dashboard","databaseRoundTrips":1,"timings":[{"label":"workshop.branch.homebase","kind":"timing","elapsedMs":90},{"label":"database.select.estimates","kind":"database","operation":"select","relation":"estimates","elapsedMs":30}]}',
     ].join("\n");
 
     const snapshots = parseWorkshopDashboardTraceLog(log);
     const report = buildWorkshopDashboardQueryCountReport("synthetic.log", snapshots);
 
     expect(report.sampleCount).toBe(2);
-    expect(report.medianSupabaseRoundTrips).toBe(1);
-    expect(report.p95SupabaseRoundTrips).toBe(2);
+    expect(report.medianDatabaseRoundTrips).toBe(1);
+    expect(report.p95DatabaseRoundTrips).toBe(2);
     expect(report.relationCounts).toEqual([
       { relation: "estimates", operation: "select", count: 1 },
       { relation: "list_pending_collaboration_invitations", operation: "rpc", count: 1 },

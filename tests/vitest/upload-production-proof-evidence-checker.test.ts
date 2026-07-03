@@ -9,8 +9,9 @@ import {
   writeUploadProductionProofEvidenceReport,
 } from "../../scripts/check-upload-production-proof-evidence";
 
-const PLAN_EVIDENCE_DIR = ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence";
-const PRODUCTION_PROOF_RUNBOOK = ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/UPLOAD_PRODUCTION_PROOF_RUNBOOK.md";
+const UPLOAD_PLAN_DIR = ".ai/03_plans/000-Follow Ups/2026-06-26-File-Upload-Audit-And-Improvement";
+const PLAN_EVIDENCE_DIR = `${UPLOAD_PLAN_DIR}/evidence`;
+const PRODUCTION_PROOF_RUNBOOK = `${UPLOAD_PLAN_DIR}/UPLOAD_PRODUCTION_PROOF_RUNBOOK.md`;
 
 function writeJson(dir: string, file: string, value: unknown) {
   writeFileSync(join(dir, file), `${JSON.stringify(value, null, 2)}\n`);

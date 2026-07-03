@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Behavioral tests for AC-MOD-02 (rotate in place) and AC-MOD-03 (resend send-before-persist).
-// These mock the Supabase admin client and the action's collaborators so we can assert the exact
+// These mock the D1 publication admin client and the action's collaborators so we can assert the exact
 // DB-call shape (in-place UPDATE vs revoke+insert; resend send ordering vs early-write).
 
 const PROJECT_ID = "11111111-1111-4111-8111-111111111111";
@@ -30,7 +30,7 @@ function setRequiredEnv() {
 }
 
 /**
- * Build a chainable Supabase query mock for a single table interaction.
+ * Build a chainable D1 admin query mock for a single table interaction.
  * `resolveResult` decides what a terminal/awaited query resolves to based on the recorded query.
  */
 function makeAdminClient({
@@ -109,13 +109,13 @@ function makeAdminClient({
     return builder;
   }
 
-  const rpc = vi.fn((functionName: string, args: Record<string, unknown>) => {
+  const callProcedure = vi.fn((functionName: string, args: Record<string, unknown>) => {
     const call = { functionName, args };
     recordedRpc.push(call);
     return Promise.resolve(resolveRpc?.(call) ?? { data: true, error: null });
   });
 
-  return { from, rpc };
+  return { callProcedure, from };
 }
 
 function findFilter(query: RecordedQuery, column: string) {
@@ -123,7 +123,7 @@ function findFilter(query: RecordedQuery, column: string) {
 }
 
 afterEach(() => {
-  vi.doUnmock("@supabase/supabase-js");
+  vi.doUnmock("@/lib/publication/admin-d1-client");
   vi.doUnmock("@/lib/auth/session");
   vi.doUnmock("next/cache");
   vi.doUnmock("next/headers");
@@ -165,8 +165,8 @@ describe("AC-MOD-02 rotateProjectPublicationLink rotates the token in place", ()
       ),
     }));
 
-    vi.doMock("@supabase/supabase-js", () => ({
-      createClient: vi.fn(() =>
+    vi.doMock("@/lib/publication/admin-d1-client", () => ({
+      createPublicationAdminD1Client: vi.fn(() =>
         makeAdminClient({
           recorded,
           recordedRpc,
@@ -281,8 +281,8 @@ describe("AC-MOD-02 rotateProjectPublicationLink rotates the token in place", ()
       ),
     }));
 
-    vi.doMock("@supabase/supabase-js", () => ({
-      createClient: vi.fn(() =>
+    vi.doMock("@/lib/publication/admin-d1-client", () => ({
+      createPublicationAdminD1Client: vi.fn(() =>
         makeAdminClient({
           recorded,
           recordedRpc,
@@ -387,8 +387,8 @@ describe("AC-MOD-10 republishProjectPublication writes expires_at conditionally"
       ),
     }));
 
-    vi.doMock("@supabase/supabase-js", () => ({
-      createClient: vi.fn(() =>
+    vi.doMock("@/lib/publication/admin-d1-client", () => ({
+      createPublicationAdminD1Client: vi.fn(() =>
         makeAdminClient({
           recorded,
           resolveResult: (query) => {
@@ -565,8 +565,8 @@ describe("AC-MOD-15 setting a too-short password is rejected and never persisted
         decryptPublicationToken: vi.fn(() => "existing-token"),
       };
     });
-    vi.doMock("@supabase/supabase-js", () => ({
-      createClient: vi.fn(() =>
+    vi.doMock("@/lib/publication/admin-d1-client", () => ({
+      createPublicationAdminD1Client: vi.fn(() =>
         makeAdminClient({
           recorded,
           recordedRpc,
@@ -732,8 +732,8 @@ describe("AC-MOD-03 resendSharedLinkRecipientEmail sends before persisting", () 
         : { ok: false, error: "smtp exploded" };
     });
 
-    vi.doMock("@supabase/supabase-js", () => ({
-      createClient: vi.fn(() =>
+    vi.doMock("@/lib/publication/admin-d1-client", () => ({
+      createPublicationAdminD1Client: vi.fn(() =>
         makeAdminClient({
           recorded,
           recordedRpc,
@@ -896,8 +896,8 @@ describe("AC-MOD-17 addSharedLinkRecipients surfaces inserted id + neutral dupli
       };
     });
 
-    vi.doMock("@supabase/supabase-js", () => ({
-      createClient: vi.fn(() =>
+    vi.doMock("@/lib/publication/admin-d1-client", () => ({
+      createPublicationAdminD1Client: vi.fn(() =>
         makeAdminClient({
           recorded,
           resolveResult: (query) => {
@@ -1060,8 +1060,8 @@ describe("AC-MOD-20 dead-link abort: never email an unresolvable /share/<uuid> l
         }),
       };
     });
-    vi.doMock("@supabase/supabase-js", () => ({
-      createClient: vi.fn(() =>
+    vi.doMock("@/lib/publication/admin-d1-client", () => ({
+      createPublicationAdminD1Client: vi.fn(() =>
         makeAdminClient({
           recorded,
           resolveResult: (query) => {

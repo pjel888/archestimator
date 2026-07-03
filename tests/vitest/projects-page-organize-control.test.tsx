@@ -93,29 +93,35 @@ function sharedItem(o: Partial<Tables<"projects">> = {}): ProjectListItem {
   return item(o, { accessKind: "project-member", currentUserRole: "editor", ownerWorkspaceName: "Acme" });
 }
 
-describe("ProjectsPageClient organize-by control", () => {
+async function selectGroupBy(user: ReturnType<typeof userEvent.setup>, label: string) {
+  await user.click(screen.getByRole("combobox", { name: "Group by" }));
+  await user.click(screen.getByRole("option", { name: label }));
+}
+
+describe("ProjectsPageClient group-by control", () => {
   beforeEach(() => {
     window.localStorage.clear();
     Object.values(mocks).forEach((m) => "mockClear" in m && m.mockClear());
   });
 
-  it("defaults to date organization for a date sort and shows date flags", () => {
+  it("defaults to no grouping", () => {
     renderClient(<ProjectsPageClient projects={[item({ id: "p1", name: "A", updated_at: "2026-02-01T00:00:00.000Z" })]} />);
-    expect(screen.getByRole("combobox", { name: "Organize by" })).toHaveAttribute("title", "By date");
-    expect(screen.getByLabelText("2026 · February")).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Group by" })).toHaveAttribute("title", "No grouping");
+    expect(screen.queryByLabelText("2026 · February")).not.toBeInTheDocument();
+    expect(within(screen.getByLabelText("Live projects")).getAllByRole("article")).toHaveLength(1);
   });
 
-  it("switches to no grouping and removes flags", async () => {
+  it("switches between date grouping and no grouping", async () => {
     const user = userEvent.setup();
     renderClient(<ProjectsPageClient projects={[item({ id: "p1", name: "A", updated_at: "2026-02-01T00:00:00.000Z" })]} />);
-    await user.click(screen.getByRole("combobox", { name: "Organize by" }));
-    await user.click(screen.getByRole("option", { name: "No grouping" }));
+    await selectGroupBy(user, "Last updated");
+    expect(screen.getByLabelText("2026 · February")).toBeInTheDocument();
+    await selectGroupBy(user, "No grouping");
     expect(screen.queryByLabelText("2026 · February")).not.toBeInTheDocument();
     expect(within(screen.getByLabelText("Live projects")).getAllByRole("article")).toHaveLength(1);
   });
 
   it("keeps newest-first ordering in no-grouping mode (no flags, ordering branch untouched)", async () => {
-    const user = userEvent.setup();
     renderClient(
       <ProjectsPageClient
         projects={[
@@ -125,9 +131,7 @@ describe("ProjectsPageClient organize-by control", () => {
         ]}
       />,
     );
-    await user.click(screen.getByRole("combobox", { name: "Organize by" }));
-    await user.click(screen.getByRole("option", { name: "No grouping" }));
-    // Default newest-first ordering survives organizeBy="none" (no flags rendered).
+    // Default newest-first ordering survives groupBy="none" (no flags rendered).
     expect(screen.getByLabelText("Live projects").querySelectorAll("[data-project-group-label]")).toHaveLength(0);
     const names = within(screen.getByLabelText("Live projects"))
       .getAllByRole("article")
@@ -138,24 +142,22 @@ describe("ProjectsPageClient organize-by control", () => {
   it("persists the organize preference across remounts via localStorage", async () => {
     const user = userEvent.setup();
     const { unmount } = renderClient(<ProjectsPageClient projects={[item({ id: "p1", updated_at: "2026-02-01T00:00:00.000Z" })]} />);
-    await user.click(screen.getByRole("combobox", { name: "Organize by" }));
-    await user.click(screen.getByRole("option", { name: "No grouping" }));
-    expect(window.localStorage.getItem("archestimator_projects_organize_by_v1")).toBe("none");
+    await selectGroupBy(user, "Last updated");
+    expect(window.localStorage.getItem("archestimator_projects_group_by_v1")).toBe("updated_at");
     unmount();
     renderClient(<ProjectsPageClient projects={[item({ id: "p1", updated_at: "2026-02-01T00:00:00.000Z" })]} />);
-    expect(screen.getByRole("combobox", { name: "Organize by" })).toHaveAttribute("title", "No grouping");
+    expect(screen.getByRole("combobox", { name: "Group by" })).toHaveAttribute("title", "Last updated");
   });
 
   it("keeps Sort visible and active in every organize mode", async () => {
     const user = userEvent.setup();
     renderClient(<ProjectsPageClient projects={[item({ id: "p1", updated_at: "2026-02-01T00:00:00.000Z" })]} />);
-    await user.click(screen.getByRole("combobox", { name: "Organize by" }));
-    await user.click(screen.getByRole("option", { name: "No grouping" }));
+    await selectGroupBy(user, "Last updated");
     expect(screen.getByRole("combobox", { name: "Sort field" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Sort direction" })).toBeInTheDocument();
   });
 
-  it("disables By group and coerces away from group when viewing Shared", async () => {
+  it("disables Project group and coerces away from group when viewing Shared", async () => {
     const user = userEvent.setup();
     renderClient(
       <ProjectsPageClient
@@ -168,21 +170,21 @@ describe("ProjectsPageClient organize-by control", () => {
     );
 
     // Put Your Projects into group mode.
-    await user.click(screen.getByRole("combobox", { name: "Organize by" }));
-    await user.click(screen.getByRole("option", { name: "By group" }));
+    await selectGroupBy(user, "Project group");
     expect(screen.getByLabelText("Pipeline")).toBeInTheDocument();
 
-    // Switch to Shared: organize coerces away from group; By group is disabled.
+    // Switch to Shared: grouping coerces away from project groups; Project group is disabled.
     await user.click(screen.getByRole("tab", { name: "Shared" }));
     expect(screen.queryByLabelText("Pipeline")).not.toBeInTheDocument();
-    const organize = screen.getByRole("combobox", { name: /grouping unavailable on shared projects/i });
+    const organize = screen.getByRole("combobox", { name: "Group by" });
+    expect(organize).toHaveAttribute("title", "No grouping");
     await user.click(organize);
-    expect(screen.getByRole("option", { name: "By group" })).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("option", { name: "Project group" })).toHaveAttribute("aria-disabled", "true");
   });
 
   it("does not clobber a stored 'none' preference when coercing on Shared", async () => {
     const user = userEvent.setup();
-    window.localStorage.setItem("archestimator_projects_organize_by_v1", "none");
+    window.localStorage.setItem("archestimator_projects_group_by_v1", "none");
     renderClient(
       <ProjectsPageClient
         projects={[
@@ -193,11 +195,11 @@ describe("ProjectsPageClient organize-by control", () => {
     );
     // 'none' is not 'group', so Shared does not coerce — preference is preserved.
     await user.click(screen.getByRole("tab", { name: "Shared" }));
-    expect(screen.getByRole("combobox", { name: /grouping unavailable on shared projects/i })).toHaveAttribute("title", "No grouping");
+    expect(screen.getByRole("combobox", { name: "Group by" })).toHaveAttribute("title", "No grouping");
     // Returning to Your Projects still shows 'none'.
     await user.click(screen.getByRole("tab", { name: /Projects/i }));
-    expect(screen.getByRole("combobox", { name: "Organize by" })).toHaveAttribute("title", "No grouping");
-    expect(window.localStorage.getItem("archestimator_projects_organize_by_v1")).toBe("none");
+    expect(screen.getByRole("combobox", { name: "Group by" })).toHaveAttribute("title", "No grouping");
+    expect(window.localStorage.getItem("archestimator_projects_group_by_v1")).toBe("none");
   });
 
   it("preserves selectedProjectIds across organize-mode switches (selection is keyed by id)", async () => {
@@ -219,9 +221,9 @@ describe("ProjectsPageClient organize-by control", () => {
     );
     expect(screen.getByRole("region", { name: "Bulk action toolbar" })).toHaveTextContent("1 selected");
 
-    // Switch organize mode (date → none → group is unavailable here, use none): selection survives.
-    await user.click(screen.getByRole("combobox", { name: "Organize by" }));
-    await user.click(screen.getByRole("option", { name: "No grouping" }));
+    // Switch group mode (none -> date -> none): selection survives.
+    await selectGroupBy(user, "Last updated");
+    await selectGroupBy(user, "No grouping");
     expect(screen.getByRole("region", { name: "Bulk action toolbar" })).toHaveTextContent("1 selected");
     expect(
       within(screen.getByLabelText("Owned A project, owned access")).getByRole("checkbox", {

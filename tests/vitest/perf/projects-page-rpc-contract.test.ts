@@ -3,14 +3,16 @@ import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const testMocks = vi.hoisted(() => ({
-  createSupabaseServerClient: vi.fn(),
+  getCloudflareD1Database: vi.fn(),
   requireCurrentUserContext: vi.fn(),
   headers: vi.fn(),
   cookies: vi.fn(),
 }));
 
-vi.mock("@/lib/supabase/server", () => ({
-  createSupabaseServerClient: testMocks.createSupabaseServerClient,
+vi.mock("server-only", () => ({}));
+
+vi.mock("@/lib/cloudflare/d1", () => ({
+  getCloudflareD1Database: testMocks.getCloudflareD1Database,
 }));
 
 vi.mock("@/lib/auth/session", () => ({
@@ -36,10 +38,12 @@ const WORKSPACE = {
   name: "Workspace One",
   slug: null,
   created_by: "user-1",
+  created_at: "2026-06-01T00:00:00.000Z",
+  updated_at: "2026-06-01T00:00:00.000Z",
 };
 
 function extractSqlFunctionBlock(sql: string, functionName: string) {
-  const pattern = new RegExp(`create or replace function public\\.${functionName}\\([\\s\\S]*?\\n\\$\\$;`, "i");
+  const pattern = new RegExp(`create(?:\\s+or\\s+replace)?\\s+function public\\.${functionName}\\([\\s\\S]*?\\n\\$\\$;`, "i");
   const match = sql.match(pattern);
   if (!match) throw new Error(`Could not find SQL function block for ${functionName}.`);
   return match[0];
@@ -62,73 +66,83 @@ function createProject(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function createWorkspaceBuilder(data: unknown) {
-  const builder = {
-    select: () => builder,
-    eq: () => builder,
-    maybeSingle: () => Promise.resolve({ data, error: null }),
-  };
-  return builder;
+type D1Value = string | number | boolean | null | ArrayBuffer;
+
+type PreparedD1Statement = {
+  sql: string;
+  values: D1Value[];
+};
+
+class FakeWorkspaceProjectsD1Statement {
+  private values: D1Value[] = [];
+
+  constructor(
+    private readonly database: FakeWorkspaceProjectsD1Database,
+    private readonly sql: string,
+  ) {}
+
+  bind(...values: D1Value[]) {
+    this.values = values;
+    this.database.prepared.push({ sql: this.sql, values });
+    return this;
+  }
+
+  async first<T>() {
+    return this.database.first<T>(this.sql, this.values);
+  }
+
+  async all<T>() {
+    return { results: this.database.all<T>(this.sql, this.values) };
+  }
+
+  async run() {
+    return { success: true, meta: { changes: 0 } };
+  }
 }
 
-function createRpcSupabaseClient(payload: unknown) {
-  return {
-    from: vi.fn((table: string) => {
-      if (table !== "workspaces") throw new Error(`Unexpected table read in RPC fast-path test: ${table}`);
-      return createWorkspaceBuilder(WORKSPACE);
-    }),
-    rpc: vi.fn(async () => ({ data: payload, error: null })),
-  };
-}
+class FakeWorkspaceProjectsD1Database {
+  readonly prepared: PreparedD1Statement[] = [];
+  readonly payload = createProjectsSummaryPayload();
 
-function createQueryBuilder(data: unknown) {
-  const builder = {
-    select: () => builder,
-    eq: () => builder,
-    in: () => builder,
-    order: () => builder,
-    is: () => builder,
-    gt: () => builder,
-    limit: () => builder,
-    maybeSingle: () => Promise.resolve({ data, error: null }),
-    then: (
-      onFulfilled: (value: { data: unknown; error: null }) => unknown,
-      onRejected?: (reason: unknown) => unknown,
-    ) => Promise.resolve({ data, error: null }).then(onFulfilled, onRejected),
-  };
-  return builder;
-}
+  prepare(sql: string) {
+    return new FakeWorkspaceProjectsD1Statement(this, sql);
+  }
 
-function createFallbackSupabaseClient() {
-  const fromCallCounts = new Map<string, number>();
-  const ownedProject = createProject({ id: "fallback-project", name: "Fallback Project" });
-  const dataByTable: Record<string, unknown> = {
-    workspaces: WORKSPACE,
-    projects: [ownedProject],
-    project_favorites: [],
-    estimate_favorites: [],
-    project_members: [],
-    estimate_sheet_members: [],
-    workspace_members: { role: "owner" },
-    project_groups: [],
-    project_group_memberships: [],
-    project_publications: [],
-    collaboration_invitations: [],
-  };
+  first<T>(sql: string): T | null {
+    if (sql.includes("FROM workspaces")) return WORKSPACE as T;
+    if (sql.includes("FROM workspace_members")) return this.payload.workspaceMembership as T;
+    if (sql.includes("FROM profiles")) return PROFILE as T;
+    throw new Error(`Unexpected D1 first query: ${sql}`);
+  }
 
-  return {
-    from: vi.fn((table: string) => {
-      fromCallCounts.set(table, (fromCallCounts.get(table) ?? 0) + 1);
-      return createQueryBuilder(dataByTable[table] ?? []);
-    }),
-    rpc: vi.fn((name: string) => {
-      if (name === "workspace_projects_summary") {
-        return Promise.resolve({ data: { ownedProjects: "not-an-array" }, error: null });
-      }
-      return createQueryBuilder([]);
-    }),
-    fromCallCounts,
-  };
+  all<T>(sql: string, values: D1Value[]): T[] {
+    if (sql.includes("FROM collaboration_invitations invitation")) {
+      return this.payload.receivedPendingInvites as T[];
+    }
+    if (sql.includes("FROM collaboration_invitations") && sql.includes("WHERE project_id IN")) {
+      const projectIds = new Set(values.slice(0, -1).filter((value): value is string => typeof value === "string"));
+      return this.payload.sentInviteCounts.flatMap((row) =>
+        projectIds.has(row.project_id)
+          ? Array.from({ length: row.count }, () => ({ project_id: row.project_id }))
+          : [],
+      ) as T[];
+    }
+    if (sql.includes("FROM projects") && sql.includes("WHERE workspace_id = ?")) {
+      return this.payload.ownedProjects as T[];
+    }
+    if (sql.includes("FROM projects") && sql.includes("WHERE id IN")) {
+      return this.payload.sharedProjects as T[];
+    }
+    if (sql.includes("FROM project_favorites")) return this.payload.projectFavorites as T[];
+    if (sql.includes("FROM estimate_favorites")) return this.payload.estimateFavorites as T[];
+    if (sql.includes("FROM project_members")) return this.payload.projectMembers as T[];
+    if (sql.includes("FROM estimate_sheet_members")) return this.payload.sheetMembers as T[];
+    if (sql.includes("FROM project_groups")) return this.payload.projectGroups as T[];
+    if (sql.includes("FROM project_group_memberships")) return this.payload.projectGroupMemberships as T[];
+    if (sql.includes("FROM estimates")) return this.payload.favoriteEstimates as T[];
+    if (sql.includes("FROM project_publications")) return this.payload.publications as T[];
+    throw new Error(`Unexpected D1 all query: ${sql}`);
+  }
 }
 
 function createProjectsSummaryPayload() {
@@ -236,7 +250,7 @@ function createProjectsSummaryPayload() {
 beforeEach(() => {
   vi.resetModules();
   delete process.env.WORKSHOP_PROJECTS_SUMMARY_RPC_DISABLED;
-  testMocks.createSupabaseServerClient.mockReset();
+  testMocks.getCloudflareD1Database.mockReset();
   testMocks.requireCurrentUserContext.mockReset().mockResolvedValue({
     userId: PROFILE.id,
     email: PROFILE.email,
@@ -249,7 +263,7 @@ beforeEach(() => {
   testMocks.cookies.mockReset().mockResolvedValue({ get: () => undefined });
 });
 
-describe("workspace_projects_summary RPC contract", () => {
+describe("workspace projects page data contract", () => {
   it("keeps the migration payload keys in sync with the projects-page parser", () => {
     const migration = readFileSync(
       join(process.cwd(), "supabase/migrations/20260623023000_workspace_projects_summary.sql"),
@@ -384,16 +398,21 @@ describe("workspace_projects_summary RPC contract", () => {
     expect(parsed.sentInviteCounts[0]?.count).toBe(3);
   });
 
-  it("assembles the list output through the RPC fast path with app-path semantics", async () => {
-    const rpcClient = createRpcSupabaseClient(createProjectsSummaryPayload());
-    testMocks.createSupabaseServerClient.mockResolvedValue(rpcClient);
+  it("assembles the list output through the Cloudflare D1 app path", async () => {
+    const database = new FakeWorkspaceProjectsD1Database();
+    testMocks.getCloudflareD1Database.mockResolvedValue(database);
 
     const { listCurrentWorkspaceProjects } = await import("@/lib/repositories/workspace-repository");
     const result = await listCurrentWorkspaceProjects();
 
-    expect(rpcClient.rpc).toHaveBeenCalledWith("workspace_projects_summary", {
-      target_workspace_id: WORKSPACE.id,
-    });
+    expect(database.prepared.map((entry) => entry.sql)).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("FROM workspaces"),
+        expect.stringContaining("FROM projects"),
+        expect.stringContaining("FROM project_favorites"),
+        expect.stringContaining("FROM collaboration_invitations"),
+      ]),
+    );
     expect(result.favoriteProjectIds).toEqual(["project-owned"]);
     expect(result.projectGroups.map((group) => group.id)).toEqual(["group-early", "group-late"]);
 
@@ -441,23 +460,13 @@ describe("workspace_projects_summary RPC contract", () => {
     expect(result.projects.some((item) => item.project.id === "project-owned" && item.pendingInvite?.id === "invite-accepted")).toBe(false);
   });
 
-  it("falls back to the app path when the RPC payload shape drifts", async () => {
-    const fallbackClient = createFallbackSupabaseClient();
-    testMocks.createSupabaseServerClient.mockResolvedValue(fallbackClient);
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+  it("fails closed when the Cloudflare D1 binding is unavailable", async () => {
+    testMocks.getCloudflareD1Database.mockResolvedValue(null);
 
-    try {
-      const { listCurrentWorkspaceProjects } = await import("@/lib/repositories/workspace-repository");
-      const result = await listCurrentWorkspaceProjects();
+    const { listCurrentWorkspaceProjects } = await import("@/lib/repositories/workspace-repository");
 
-      expect(fallbackClient.rpc).toHaveBeenCalledWith("workspace_projects_summary", {
-        target_workspace_id: WORKSPACE.id,
-      });
-      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("RPC returned an incompatible payload"));
-      expect(fallbackClient.fromCallCounts.get("projects")).toBe(1);
-      expect(result.projects.map((item) => item.project.id)).toEqual(["fallback-project"]);
-    } finally {
-      warnSpy.mockRestore();
-    }
+    await expect(listCurrentWorkspaceProjects()).rejects.toThrow(
+      "Cloudflare D1 binding ARCH_DB is required for workspace repository reads.",
+    );
   });
 });

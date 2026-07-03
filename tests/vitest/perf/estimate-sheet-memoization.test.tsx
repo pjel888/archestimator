@@ -109,6 +109,7 @@ function renderSheet() {
         nodes={makeTree(3, 3)}
         projectId="memo-project"
         estimateId="memo-estimate"
+        canEditEstimate
         renderSidebar={false}
       />
     </QueryClientProvider>,

@@ -3,10 +3,52 @@ import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const publicRepositorySource = readFileSync("src/lib/publication/public-repository.ts", "utf8");
+const d1StoreSource = readFileSync("src/lib/publication/d1-store.ts", "utf8");
 
-// Shared helper: drive recordProjectPublicationAnalyticsEvent against a mocked Supabase client
-// and return the row that would be inserted into project_publication_events (so we can read the
-// computed ip_hash / user_agent_hash). Telemetry is force-enabled via env.
+function buildMockPublicationStore(overrides: Record<string, unknown> = {}) {
+  return {
+    getComment: vi.fn().mockResolvedValue({
+      id: "row-id",
+      created_at: "2026-06-03T01:10:00.000Z",
+      body: "valid post under the right publication",
+      author_name: null,
+      recipient_id: "recipient-bound-to-A",
+      estimate_id: null,
+      row_id: null,
+      target_kind: "proposal",
+      target_label: "the proposal",
+      target_secondary_label: null,
+      snapshot_version_at_comment: 1,
+    }),
+    getPublicationAccessByTokenHash: vi.fn().mockResolvedValue({
+      id: "publication-1",
+      status: "published",
+      password_hash: null,
+      expires_at: null,
+      revoked_at: null,
+      snapshot_version: 1,
+    }),
+    getPublicationWriteContextByTokenHash: vi.fn().mockResolvedValue({
+      id: "publication-1",
+      activity_target_labels_json: {
+        estimateLabels: {},
+        rowLabels: {},
+        rowEstimateIds: {},
+      },
+      snapshot_json: {},
+      snapshot_version: 1,
+    }),
+    getRecipientTokenHash: vi.fn().mockResolvedValue("recipient-hash"),
+    insertClientComment: vi.fn().mockResolvedValue("row-id"),
+    insertPublicationEvent: vi.fn().mockResolvedValue(undefined),
+    submitClientResponse: vi.fn().mockResolvedValue("response-id"),
+    ...overrides,
+  };
+}
+
+// Shared helper: drive recordProjectPublicationAnalyticsEvent against a mocked D1 store and
+// return the event that would be inserted into project_publication_events so the computed
+// ipHash / userAgentHash can be asserted. Telemetry is force-enabled via env.
 async function captureAnalyticsInsert({
   pepper,
   forwardedFor,
@@ -27,25 +69,10 @@ async function captureAnalyticsInsert({
     vi.stubEnv("ARCHESTIMATOR_TELEMETRY_HASH_PEPPER", pepper);
   }
 
-  const publicationQuery = {
-    select: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    maybeSingle: vi.fn().mockResolvedValue({
-      data: { id: "publication-1", status: "published", password_hash: null, expires_at: null, revoked_at: null, snapshot_version: 1 },
-      error: null,
-    }),
-  };
-  const eventInsert = vi.fn().mockResolvedValue({ error: null });
+  const store = buildMockPublicationStore();
 
-  vi.doMock("@supabase/supabase-js", () => ({
-    createClient: vi.fn(() => ({
-      from: vi.fn((table: string) => {
-        if (table === "project_publications") return publicationQuery;
-        if (table === "project_publication_events") return { insert: eventInsert };
-        throw new Error(`Unexpected table: ${table}`);
-      }),
-      rpc: vi.fn(),
-    })),
+  vi.doMock("@/lib/publication/d1-store", () => ({
+    createPublicationD1Store: vi.fn(() => store),
   }));
 
   const { recordProjectPublicationAnalyticsEvent } = await import("@/lib/publication/public-repository");
@@ -59,14 +86,15 @@ async function captureAnalyticsInsert({
     }),
   });
 
-  const inserted = eventInsert.mock.calls[0]?.[0] as { ip_hash?: string | null; user_agent_hash?: string | null };
+  const inserted = store.insertPublicationEvent.mock.calls[0]?.[0] as { ipHash?: string | null; userAgentHash?: string | null };
   return inserted;
 }
 
 describe("SEC-02 (AC-SEC-02) — keyed HMAC for ip_hash / user_agent_hash", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
-    vi.doUnmock("@supabase/supabase-js");
+    vi.doUnmock("@/lib/publication/d1-store");
+    vi.restoreAllMocks();
     vi.resetModules();
   });
 
@@ -76,22 +104,22 @@ describe("SEC-02 (AC-SEC-02) — keyed HMAC for ip_hash / user_agent_hash", () =
     const second = await captureAnalyticsInsert({ pepper: "pepper-two", forwardedFor: "203.0.113.44", userAgent: ua });
 
     // Non-vacuous: hashes must be present, must NOT contain the raw values, and must differ across peppers.
-    expect(first.ip_hash).toEqual(expect.any(String));
-    expect(second.ip_hash).toEqual(expect.any(String));
-    expect(first.ip_hash).not.toContain("203.0.113.44");
-    expect(first.ip_hash).not.toBe(second.ip_hash);
+    expect(first.ipHash).toEqual(expect.any(String));
+    expect(second.ipHash).toEqual(expect.any(String));
+    expect(first.ipHash).not.toContain("203.0.113.44");
+    expect(first.ipHash).not.toBe(second.ipHash);
 
-    expect(first.user_agent_hash).toEqual(expect.any(String));
-    expect(second.user_agent_hash).toEqual(expect.any(String));
-    expect(first.user_agent_hash).not.toBe(second.user_agent_hash);
+    expect(first.userAgentHash).toEqual(expect.any(String));
+    expect(second.userAgentHash).toEqual(expect.any(String));
+    expect(first.userAgentHash).not.toBe(second.userAgentHash);
   });
 
   it("is deterministic for the same ip under the same pepper (so analytics dedup/group still works)", async () => {
     const ua = "curl/8.4.0";
     const a = await captureAnalyticsInsert({ pepper: "stable-pepper", forwardedFor: "198.51.100.7", userAgent: ua });
     const b = await captureAnalyticsInsert({ pepper: "stable-pepper", forwardedFor: "198.51.100.7", userAgent: ua });
-    expect(a.ip_hash).toBe(b.ip_hash);
-    expect(a.user_agent_hash).toBe(b.user_agent_hash);
+    expect(a.ipHash).toBe(b.ipHash);
+    expect(a.userAgentHash).toBe(b.userAgentHash);
   });
 
   it("static guard: ip/user-agent hashing goes through a keyed HMAC, never a bare sha256(value)", () => {
@@ -119,65 +147,48 @@ describe("SEC-02 (AC-SEC-02) — keyed HMAC for ip_hash / user_agent_hash", () =
 describe("SEC-06 (AC-SEC-06) — recipient lookups are publication-scoped", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
-    vi.doUnmock("@supabase/supabase-js");
+    vi.doUnmock("@/lib/publication/d1-store");
+    vi.restoreAllMocks();
     vi.resetModules();
   });
 
   // Mock two publications (A=under-token-A, B=under-token-B) plus a recipient bound to A.
-  // The recipient lookup is constrained by .eq("id", recipientId).eq("publication_id", <pubB>),
-  // so resolving recipient-A's id under publication B returns 0 rows -> "Recipient not found".
-  function buildSupabaseMock({
+  // The recipient lookup is constrained by getRecipientTokenHash(<publicationId>, recipientId),
+  // so resolving recipient-A's id under publication B returns no token hash -> "Recipient not found".
+  function buildRepositoryMock({
     publicationId,
     recipientRow,
   }: {
     publicationId: string;
     recipientRow: { recipient_token_hash: string } | null;
   }) {
-    const recipientEq = vi.fn().mockReturnThis();
-    const recipientQuery = {
-      select: vi.fn().mockReturnThis(),
-      eq: recipientEq,
-      maybeSingle: vi.fn().mockResolvedValue({ data: recipientRow, error: null }),
-    };
-    const publicationQuery = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      maybeSingle: vi.fn().mockResolvedValue({ data: { id: publicationId }, error: null }),
-    };
-    const commentQuery = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      maybeSingle: vi.fn().mockResolvedValue({
-        data: {
-          id: "row-id",
-          created_at: "2026-06-03T01:10:00.000Z",
-          body: "valid post under the right publication",
-          author_name: null,
-          recipient_id: "recipient-bound-to-A",
+    return buildMockPublicationStore({
+      getPublicationWriteContextByTokenHash: vi.fn().mockResolvedValue({
+        id: publicationId,
+        activity_target_labels_json: {
+          estimateLabels: {},
+          rowLabels: {},
+          rowEstimateIds: {},
         },
-        error: null,
+        snapshot_json: {},
+        snapshot_version: 1,
       }),
-    };
-    const rpc = vi.fn().mockResolvedValue({ data: "row-id", error: null });
-    return { recipientEq, recipientQuery, publicationQuery, commentQuery, rpc };
+      getRecipientTokenHash: vi.fn(async (resolvedPublicationId: string, recipientId: string) => {
+        return resolvedPublicationId === publicationId && recipientId === "recipient-bound-to-A"
+          ? recipientRow?.recipient_token_hash ?? null
+          : null;
+      }),
+    });
   }
 
-  async function setupRepository(mock: ReturnType<typeof buildSupabaseMock>) {
+  async function setupRepository(store: ReturnType<typeof buildRepositoryMock>) {
     vi.resetModules();
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://archestimator.test");
     vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "service-role-key");
     vi.stubEnv("PUBLICATION_TOKEN_HASH_SECRET", "publication-token-hash-secret");
 
-    vi.doMock("@supabase/supabase-js", () => ({
-      createClient: vi.fn(() => ({
-        from: vi.fn((table: string) => {
-          if (table === "project_publications") return mock.publicationQuery;
-          if (table === "shared_link_recipients") return mock.recipientQuery;
-          if (table === "shared_link_comments") return mock.commentQuery;
-          throw new Error(`Unexpected table: ${table}`);
-        }),
-        rpc: mock.rpc,
-      })),
+    vi.doMock("@/lib/publication/d1-store", () => ({
+      createPublicationD1Store: vi.fn(() => store),
     }));
 
     return import("@/lib/publication/public-repository");
@@ -185,8 +196,8 @@ describe("SEC-06 (AC-SEC-06) — recipient lookups are publication-scoped", () =
 
   it("comment: a recipientId bound to publication A cannot resolve under publication B (0 rows -> not found)", async () => {
     // Publication B resolves to id "publication-B"; the recipient row lookup under B's id finds nothing.
-    const mock = buildSupabaseMock({ publicationId: "publication-B", recipientRow: null });
-    const { insertSharedLinkComment } = await setupRepository(mock);
+    const store = buildRepositoryMock({ publicationId: "publication-B", recipientRow: null });
+    const { insertSharedLinkComment } = await setupRepository(store);
 
     await expect(
       insertSharedLinkComment({
@@ -197,16 +208,14 @@ describe("SEC-06 (AC-SEC-06) — recipient lookups are publication-scoped", () =
       }),
     ).rejects.toThrow(/recipient not found/i);
 
-    // The recipient lookup MUST have been scoped by publication_id (the cross-publication guard).
-    expect(mock.recipientEq).toHaveBeenCalledWith("id", "recipient-bound-to-A");
-    expect(mock.recipientEq).toHaveBeenCalledWith("publication_id", "publication-B");
-    // RPC never reached because the app-layer lookup already rejected.
-    expect(mock.rpc).not.toHaveBeenCalled();
+    // The app-layer recipient lookup MUST be scoped by publication_id before writing.
+    expect(store.getRecipientTokenHash).toHaveBeenCalledWith("publication-B", "recipient-bound-to-A");
+    expect(store.insertClientComment).not.toHaveBeenCalled();
   });
 
   it("decision: a recipientId bound to publication A cannot resolve under publication B (0 rows -> not found)", async () => {
-    const mock = buildSupabaseMock({ publicationId: "publication-B", recipientRow: null });
-    const { submitSharedLinkDecision } = await setupRepository(mock);
+    const store = buildRepositoryMock({ publicationId: "publication-B", recipientRow: null });
+    const { submitSharedLinkDecision } = await setupRepository(store);
 
     await expect(
       submitSharedLinkDecision({
@@ -217,14 +226,13 @@ describe("SEC-06 (AC-SEC-06) — recipient lookups are publication-scoped", () =
       }),
     ).rejects.toThrow(/recipient not found/i);
 
-    expect(mock.recipientEq).toHaveBeenCalledWith("id", "recipient-bound-to-A");
-    expect(mock.recipientEq).toHaveBeenCalledWith("publication_id", "publication-B");
-    expect(mock.rpc).not.toHaveBeenCalled();
+    expect(store.getRecipientTokenHash).toHaveBeenCalledWith("publication-B", "recipient-bound-to-A");
+    expect(store.submitClientResponse).not.toHaveBeenCalled();
   });
 
   it("comment: a recipientId that IS bound to the resolving publication still posts (scoping is not over-broad)", async () => {
-    const mock = buildSupabaseMock({ publicationId: "publication-A", recipientRow: { recipient_token_hash: "recipient-hash" } });
-    const { insertSharedLinkComment } = await setupRepository(mock);
+    const store = buildRepositoryMock({ publicationId: "publication-A", recipientRow: { recipient_token_hash: "recipient-hash" } });
+    const { insertSharedLinkComment } = await setupRepository(store);
 
     await expect(
       insertSharedLinkComment({
@@ -241,19 +249,29 @@ describe("SEC-06 (AC-SEC-06) — recipient lookups are publication-scoped", () =
         createdAt: "2026-06-03T01:10:00.000Z",
         authorName: "Client",
         authorType: "recipient",
+        estimateId: null,
+        rowId: null,
+        targetKind: "proposal",
+        targetLabel: "the proposal",
+        targetSecondaryLabel: null,
+        snapshotVersionAtComment: 1,
       },
     });
 
-    expect(mock.recipientEq).toHaveBeenCalledWith("publication_id", "publication-A");
-    expect(mock.rpc).toHaveBeenCalledWith("insert_client_comment", expect.objectContaining({ p_recipient_token_hash: "recipient-hash" }));
+    expect(store.getRecipientTokenHash).toHaveBeenCalledWith("publication-A", "recipient-bound-to-A");
+    expect(store.insertClientComment).toHaveBeenCalledWith(expect.objectContaining({ publicationId: "publication-A", recipientTokenHash: "recipient-hash" }));
   });
 
   it("static guard: both write-path recipient lookups carry a publication_id constraint", () => {
-    // insertSharedLinkComment + submitSharedLinkDecision each scope the shared_link_recipients
-    // lookup by both id and publication_id.
-    const scopedLookups = publicRepositorySource.match(
-      /from\("shared_link_recipients"\)\s*\.select\("recipient_token_hash"\)\s*\.eq\("id", params\.recipientId\)\s*\.eq\("publication_id", publicationId\)/g,
-    ) ?? [];
+    // insertSharedLinkComment + submitSharedLinkDecision each resolve the publication context
+    // first, then ask the D1 store for a recipient token hash scoped by publication id.
+    const scopedLookups = publicRepositorySource.match(/store\.getRecipientTokenHash\(publicationId, params\.recipientId\)/g) ?? [];
     expect(scopedLookups.length).toBe(2);
+    expect(publicRepositorySource).toMatch(/resolvePublicationContextByTokenHash\(store, pubHash\)[\s\S]*?store\.getRecipientTokenHash\(publicationId, params\.recipientId\)/);
+
+    // The D1 store query keeps that boundary enforced at the SQL layer.
+    expect(d1StoreSource).toMatch(/async getRecipientTokenHash[\s\S]*?FROM shared_link_recipients[\s\S]*?WHERE publication_id = \? AND id = \?[\s\S]*?\[publicationId, recipientId\]/);
+    expect(d1StoreSource).toMatch(/async insertClientComment[\s\S]*?FROM shared_link_recipients[\s\S]*?WHERE publication_id = \? AND recipient_token_hash = \?[\s\S]*?\[publication\.id, input\.recipientTokenHash\]/);
+    expect(d1StoreSource).toMatch(/async submitClientResponse[\s\S]*?FROM shared_link_recipients[\s\S]*?WHERE publication_id = \? AND recipient_token_hash = \?[\s\S]*?\[publication\.id, input\.recipientTokenHash\]/);
   });
 });

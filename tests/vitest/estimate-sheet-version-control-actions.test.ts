@@ -8,8 +8,8 @@ const repositoryMocks = vi.hoisted(() => ({
   getProjectEstimateTreeByEstimate: vi.fn(),
 }));
 
-const supabaseServerMocks = vi.hoisted(() => ({
-  createSupabaseServerClient: vi.fn(),
+const estimateActionsD1ClientMocks = vi.hoisted(() => ({
+  createEstimateActionsD1Client: vi.fn(),
 }));
 
 const authMocks = vi.hoisted(() => ({
@@ -26,7 +26,7 @@ const nextNavigationMocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/repositories/workspace-repository", () => repositoryMocks);
-vi.mock("@/lib/supabase/server", () => supabaseServerMocks);
+vi.mock("@/lib/estimates/d1-action-client", () => estimateActionsD1ClientMocks);
 vi.mock("@/lib/auth/session", () => authMocks);
 vi.mock("next/cache", () => nextCacheMocks);
 vi.mock("next/navigation", () => nextNavigationMocks);
@@ -92,6 +92,13 @@ function getRpcArgs(supabase: { rpc: { mock: { calls: [string, Record<string, un
   const call = supabase.rpc.mock.calls.find(([name]) => name === fn);
   expect(call).toBeDefined();
   return call?.[1] ?? {};
+}
+
+function mockEstimateActionsDataStore<T extends { rpc: (name: string, args?: Record<string, unknown>) => unknown }>(store: T) {
+  estimateActionsD1ClientMocks.createEstimateActionsD1Client.mockResolvedValue({
+    ...store,
+    call: (name: string, args: Record<string, unknown>) => store.rpc(name, args),
+  });
 }
 
 function makeSupabase({
@@ -356,7 +363,7 @@ describe("estimate sheet version control server actions", () => {
       from: vi.fn(),
       rpc: vi.fn(),
     };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const formData = new FormData();
     formData.set("kind", "area");
     formData.set("name", "New Area Node");
@@ -380,12 +387,12 @@ describe("estimate sheet version control server actions", () => {
     })).rejects.toThrow("Estimate tree update parent id is invalid.");
 
     expect(repositoryMocks.getCurrentWorkspaceProject).not.toHaveBeenCalled();
-    expect(supabaseServerMocks.createSupabaseServerClient).not.toHaveBeenCalled();
+    expect(estimateActionsD1ClientMocks.createEstimateActionsD1Client).not.toHaveBeenCalled();
   });
 
   it("updates row scalar fields through the history RPC with row revision and mutation id", async () => {
     const supabase = makeSupabase();
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { updateEstimateRowItem } = await import("@/lib/estimates/actions");
 
     const result = await updateEstimateRowItem({
@@ -412,7 +419,7 @@ describe("estimate sheet version control server actions", () => {
 
   it("keeps manual row scalar updates unlinked in the history RPC patch", async () => {
     const supabase = makeSupabase({ sourceLibraryItemId: null });
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { updateEstimateRowItem } = await import("@/lib/estimates/actions");
 
     await updateEstimateRowItem({
@@ -431,7 +438,7 @@ describe("estimate sheet version control server actions", () => {
   it("maps raw row revision conflicts to a stable stale-data error code", async () => {
     const conflict = Object.assign(new Error("estimate_sheet_row_revision_conflict"), { code: "P0001" });
     const supabase = makeSupabase({ rpcError: conflict });
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { updateEstimateRowItem } = await import("@/lib/estimates/actions");
 
     try {
@@ -461,7 +468,7 @@ describe("estimate sheet version control server actions", () => {
         details: "{\"code\":\"estimate_sheet_row_revision_conflict\",\"rowId\":\"row-1\"}",
       },
     });
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { deleteEstimateRowItemsBulk } = await import("@/lib/estimates/actions");
 
     await expect(deleteEstimateRowItemsBulk({
@@ -486,7 +493,7 @@ describe("estimate sheet version control server actions", () => {
 
   it("replaces row source through the history RPC with the existing row revision", async () => {
     const supabase = makeSupabase();
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { replaceEstimateRowItemWithLibrary } = await import("@/lib/estimates/actions");
 
     const result = await replaceEstimateRowItemWithLibrary({
@@ -527,7 +534,7 @@ describe("estimate sheet version control server actions", () => {
         lifecycle_state: "available",
       },
     });
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { replaceEstimateRowItemWithLibrary } = await import("@/lib/estimates/actions");
 
     await expect(replaceEstimateRowItemWithLibrary({
@@ -545,7 +552,7 @@ describe("estimate sheet version control server actions", () => {
       sourceLibraryItemId: null,
       rowMetadata: { expressComponent: { kind: "express", schemaVersion: 1, id: "express-row-1" } },
     });
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { replaceEstimateRowItemWithLibrary } = await import("@/lib/estimates/actions");
 
     const result = await replaceEstimateRowItemWithLibrary({
@@ -578,7 +585,7 @@ describe("estimate sheet version control server actions", () => {
 
   it("deletes row items through the history RPC before removing data", async () => {
     const supabase = makeSupabase();
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { deleteEstimateRowItem } = await import("@/lib/estimates/actions");
 
     const result = await deleteEstimateRowItem({
@@ -601,7 +608,7 @@ describe("estimate sheet version control server actions", () => {
 
   it("moves a center row component through one atomic history RPC", async () => {
     const supabase = makeAtomicRowSupabase();
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { moveEstimateRowComponentWithHistory } = await import("@/lib/estimates/actions");
 
     const result = await moveEstimateRowComponentWithHistory({
@@ -656,7 +663,7 @@ describe("estimate sheet version control server actions", () => {
 
   it("bulk-deletes center rows through one all-or-nothing history RPC", async () => {
     const supabase = makeAtomicRowSupabase();
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { deleteEstimateRowItemsBulk } = await import("@/lib/estimates/actions");
 
     const result = await deleteEstimateRowItemsBulk({
@@ -681,7 +688,7 @@ describe("estimate sheet version control server actions", () => {
 
   it("restores deleted center rows through the row restore history RPC", async () => {
     const supabase = makeAtomicRowSupabase();
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { restoreDeletedEstimateRows } = await import("@/lib/estimates/actions");
 
     const result = await restoreDeletedEstimateRows({
@@ -726,7 +733,7 @@ describe("estimate sheet version control server actions", () => {
         },
       },
     });
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { detachEstimateRowItemFromLibrary } = await import("@/lib/estimates/actions");
 
     const result = await detachEstimateRowItemFromLibrary({
@@ -758,7 +765,7 @@ describe("estimate sheet version control server actions", () => {
 
   it("blocks project-specific row detach when the caller cannot edit the estimate", async () => {
     const supabase = makeSupabase({ canEditEstimate: false });
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { detachEstimateRowItemFromLibrary } = await import("@/lib/estimates/actions");
 
     await expect(
@@ -776,7 +783,7 @@ describe("estimate sheet version control server actions", () => {
 
   it("inserts library rows through the history RPC with a compact row payload", async () => {
     const supabase = makeSupabase();
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { insertEstimateRowItemFromLibrary } = await import("@/lib/estimates/actions");
 
     await insertEstimateRowItemFromLibrary({
@@ -805,7 +812,7 @@ describe("estimate sheet version control server actions", () => {
 
   it("updates estimate details through the history RPC", async () => {
     const supabase = makeEstimateSupabase({ estimate: makeEstimateRecord({ name: "Renamed estimate", sheet_code: "ES-009" }) });
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { updateEstimateDetails } = await import("@/lib/estimates/actions");
 
     const result = await updateEstimateDetails({
@@ -834,10 +841,10 @@ describe("estimate sheet version control server actions", () => {
     expect(actions).not.toHaveProperty("restoreEstimateSheetVersionAsCopy");
   });
 
-  it("keeps hardcoded history RPC names aligned with generated Supabase function types", () => {
+  it("keeps hardcoded history procedure names aligned with generated Supabase function types", () => {
     const actionsSource = readFileSync(join(process.cwd(), "src/lib/estimates/actions.ts"), "utf8");
     const generatedTypesSource = readFileSync(join(process.cwd(), "src/lib/supabase/types.ts"), "utf8");
-    const rpcNames = Array.from(actionsSource.matchAll(/supabase\.rpc\("([^"]+_with_history|update_estimate_details_with_history)"/g))
+    const rpcNames = Array.from(actionsSource.matchAll(/dataStore\.call\(\s*"([^"]+_with_history|update_estimate_details_with_history)"/g))
       .map((match) => match[1])
       .sort();
 
@@ -929,7 +936,7 @@ describe("estimate sheet version control server actions", () => {
         throw new Error(`Unexpected table ${table}`);
       }),
     };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { fetchEstimateSheetVersionControl } = await import("@/lib/estimates/actions");
 
     const result = await fetchEstimateSheetVersionControl({
@@ -967,7 +974,7 @@ describe("estimate sheet version control server actions", () => {
         throw new Error(`Unexpected table ${table}`);
       }),
     };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { fetchEstimateSheetVersionControl } = await import("@/lib/estimates/actions");
 
     await fetchEstimateSheetVersionControl({
@@ -1045,7 +1052,7 @@ describe("estimate sheet version control server actions", () => {
         throw new Error(`Unexpected table ${table}`);
       }),
     };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { fetchEstimateSheetVersionControl } = await import("@/lib/estimates/actions");
 
     const result = await fetchEstimateSheetVersionControl({
@@ -1068,7 +1075,7 @@ describe("estimate sheet version control server actions", () => {
         throw new Error(`Unexpected table ${table}`);
       }),
     };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { fetchEstimateSheetVersionControl } = await import("@/lib/estimates/actions");
 
     const result = await fetchEstimateSheetVersionControl({
@@ -1097,7 +1104,7 @@ describe("estimate sheet version control server actions", () => {
         throw new Error(`Unexpected table ${table}`);
       }),
     };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { fetchEstimateSheetVersionControl } = await import("@/lib/estimates/actions");
 
     const result = await fetchEstimateSheetVersionControl({
@@ -1139,7 +1146,7 @@ describe("estimate sheet version control server actions", () => {
     nodeQuery.select.mockImplementationOnce(() => nodeQuery).mockImplementationOnce(() => descendantsQuery);
     descendantsQuery.eq.mockImplementation(() => descendantsQuery);
     rowsQuery.select.mockImplementation(() => rowsQuery);
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { fetchEstimateSheetVersionControl } = await import("@/lib/estimates/actions");
 
     await fetchEstimateSheetVersionControl({
@@ -1163,7 +1170,7 @@ describe("estimate sheet version control server actions", () => {
         throw new Error(`Unexpected table ${table}`);
       }),
     };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { fetchEstimateSheetVersionControl } = await import("@/lib/estimates/actions");
 
     await fetchEstimateSheetVersionControl({
@@ -1192,7 +1199,7 @@ describe("estimate sheet version control server actions", () => {
         throw new Error(`Unexpected table ${table}`);
       }),
     };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { fetchEstimateSheetVersionControl } = await import("@/lib/estimates/actions");
 
     await expect(fetchEstimateSheetVersionControl({
@@ -1234,7 +1241,7 @@ describe("estimate sheet version control server actions", () => {
         throw new Error(`Unexpected table ${table}`);
       }),
     };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { fetchEstimateSheetVersionControl } = await import("@/lib/estimates/actions");
 
     const result = await fetchEstimateSheetVersionControl({
@@ -1283,7 +1290,7 @@ describe("estimate sheet version control server actions", () => {
         throw new Error(`Unexpected table ${table}`);
       }),
     };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { fetchEstimateSheetVersionControl } = await import("@/lib/estimates/actions");
 
     const result = await fetchEstimateSheetVersionControl({
@@ -1313,7 +1320,7 @@ describe("estimate sheet version control server actions", () => {
     const supabase = {
       rpc: vi.fn(async () => metricsResult),
     };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { fetchEstimateActivityRetentionMetrics } = await import("@/lib/estimates/actions");
 
     const result = await fetchEstimateActivityRetentionMetrics({ projectId: "project-1" });
@@ -1333,7 +1340,7 @@ describe("estimate sheet version control server actions", () => {
         throw new Error(`Unexpected table ${table}`);
       }),
     };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { fetchEstimateSheetVersionControl } = await import("@/lib/estimates/actions");
 
     await expect(fetchEstimateSheetVersionControl({

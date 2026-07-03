@@ -53,8 +53,8 @@ describe("MainSidebar proposals item", () => {
   it("keeps the planned shortcut order in the source config", () => {
     const source = readFileSync("src/components/sidebar/MainSidebar.tsx", "utf8");
 
-    expect(source).toContain("EnvelopeSimple");
-    expect(source).toContain('{ id: "proposals", href: "/workshop/proposals", label: "Proposals", icon: EnvelopeSimple, shortcut: "⌘4" }');
+    expect(source).toContain("Presentation");
+    expect(source).toContain('{ id: "proposals", href: "/workshop/proposals", label: "Proposals", icon: Presentation, shortcut: "⌘4" }');
     expect(source).toContain('{ id: "publisher", href: "/workshop/publisher", label: "Publisher", icon: NewspaperClipping, shortcut: "⌘5" }');
   });
 });

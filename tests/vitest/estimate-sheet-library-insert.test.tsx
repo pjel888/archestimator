@@ -783,11 +783,10 @@ describe("estimate sheet library insertion persistence", () => {
 
   it("uploads a selected image for a newly inserted express row with the inserted row revision", async () => {
     process.env.NEXT_PUBLIC_EXPRESS_COMPONENTS_ENABLED = "true";
-    vi.stubGlobal("URL", {
-      ...URL,
-      createObjectURL: vi.fn(() => "blob:express-reference-preview"),
-      revokeObjectURL: vi.fn(),
-    });
+    const MockURL = class extends URL {} as typeof URL;
+    MockURL.createObjectURL = vi.fn(() => "blob:express-reference-preview") as typeof URL.createObjectURL;
+    MockURL.revokeObjectURL = vi.fn() as typeof URL.revokeObjectURL;
+    vi.stubGlobal("URL", MockURL);
     const uploadedUrl = "https://assets.example.test/new-express-reference.webp";
     const imageAsset = uploadedImageAsset(uploadedUrl, "asset-new-express");
     const fetchMock = vi.fn().mockResolvedValue({

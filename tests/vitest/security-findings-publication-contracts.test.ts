@@ -2,6 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import { latestFunction, latestMigrationBySuffix, migrationText, read } from "./security-findings-test-helpers";
 
+function d1StoreMethod(source: string, name: string) {
+  const marker = `async ${name}(`;
+  const start = source.indexOf(marker);
+  expect(start, `${name} D1 store method missing`).toBeGreaterThanOrEqual(0);
+  const next = source.indexOf("\n    async ", start + marker.length);
+  return source.slice(start, next === -1 ? source.length : next);
+}
+
 describe("Codex publication and public-surface hardening contracts", () => {
   it("keeps every public share mutation behind same-origin CSRF guards", () => {
     const guardedMutations = [
@@ -85,10 +93,18 @@ describe("Codex publication and public-surface hardening contracts", () => {
 
   it("gates public activity for password-protected links and scopes decisions/events to verified recipients", () => {
     const activityRoute = read("src/app/api/share/[token]/activity/route.ts");
+    const d1Store = read("src/lib/publication/d1-store.ts");
+    const responseReader = d1StoreMethod(d1Store, "listRecipientActivityResponses");
+    const eventReader = d1StoreMethod(d1Store, "listRecipientActivityEvents");
 
     expect(activityRoute).toContain("password_hash");
     expect(activityRoute).toContain("hasPublicationAccessCookie");
-    expect(activityRoute).toContain('.eq("recipient_id", verifiedRecipientId)');
+    expect(activityRoute).toContain("listRecipientActivityResponses({ publicationId: pubId, recipientId: verifiedRecipientId");
+    expect(activityRoute).toContain("listRecipientActivityEvents({ publicationId: pubId, recipientId: verifiedRecipientId");
+    expect(responseReader).toContain("WHERE publication_id = ? AND recipient_id = ?");
+    expect(responseReader).toContain("[input.publicationId, input.recipientId");
+    expect(eventReader).toContain("WHERE publication_id = ? AND recipient_id = ?");
+    expect(eventReader).toContain("[input.publicationId, input.recipientId");
     expect(activityRoute).not.toContain('snapshotVersion: "1"');
   });
 
@@ -107,6 +123,8 @@ describe("Codex publication and public-surface hardening contracts", () => {
   it("locks shared-link decisions to the recipient-viewed publication snapshot version", () => {
     const decisionRoute = read("src/app/api/share/[token]/decision/route.ts");
     const publicRepository = read("src/lib/publication/public-repository.ts");
+    const d1Store = read("src/lib/publication/d1-store.ts");
+    const submitClientResponse = d1StoreMethod(d1Store, "submitClientResponse");
     const latestSubmitClientResponse = latestFunction("submit_client_response");
 
     expect(migrationText).toContain("drop function if exists public.submit_client_response(text, text, text, text, integer)");
@@ -119,12 +137,17 @@ describe("Codex publication and public-surface hardening contracts", () => {
     expect(decisionRoute).toContain("viewedSnapshotVersion !== access.snapshotVersion");
     expect(decisionRoute).toContain("const expectedSnapshotVersion = viewedSnapshotVersion ?? access.snapshotVersion");
     expect(publicRepository).toContain("expectedSnapshotVersion: number");
-    expect(publicRepository).toContain("p_expected_snapshot_version: params.expectedSnapshotVersion");
+    expect(publicRepository).toContain("expectedSnapshotVersion: params.expectedSnapshotVersion");
+    expect(submitClientResponse).toContain("publication.id !== input.publicationId || publication.snapshot_version !== input.expectedSnapshotVersion");
+    expect(submitClientResponse).toContain("snapshot_version_at_decision");
+    expect(submitClientResponse).toContain("input.expectedSnapshotVersion");
   });
 
   it("locks shared-link comments to the recipient-viewed publication snapshot version", () => {
     const commentRoute = read("src/app/api/share/[token]/comment/route.ts");
     const publicRepository = read("src/lib/publication/public-repository.ts");
+    const d1Store = read("src/lib/publication/d1-store.ts");
+    const insertClientComment = d1StoreMethod(d1Store, "insertClientComment");
     const latestInsertClientComment = latestFunction("insert_client_comment");
 
     expect(migrationText).toContain("drop function if exists public.insert_client_comment(text, text, uuid, uuid, text, integer)");
@@ -135,7 +158,10 @@ describe("Codex publication and public-surface hardening contracts", () => {
     expect(commentRoute).toContain("viewedSnapshotVersion !== access.snapshotVersion");
     expect(commentRoute).toContain("const expectedSnapshotVersion = viewedSnapshotVersion ?? access.snapshotVersion");
     expect(publicRepository).toContain("expectedSnapshotVersion: number");
-    expect(publicRepository).toContain("p_expected_snapshot_version: params.expectedSnapshotVersion");
+    expect(publicRepository).toContain("expectedSnapshotVersion: params.expectedSnapshotVersion");
+    expect(insertClientComment).toContain("publication.id !== input.publicationId || publication.snapshot_version !== input.expectedSnapshotVersion");
+    expect(insertClientComment).toContain("snapshot_version_at_comment");
+    expect(insertClientComment).toContain("input.expectedSnapshotVersion");
   });
 
   it("uses HMAC-peppered public telemetry hashes for structured share route logs", () => {

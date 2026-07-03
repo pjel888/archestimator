@@ -972,10 +972,9 @@ describe("sensitive API auth boundaries", () => {
       ],
     });
     expect(storage.from).toHaveBeenCalledWith("component-images");
-    expect(storage.remove).toHaveBeenCalledWith([
-      "workspace-1/user-1/component.webp",
-      "workspace-1/user-1/component-thumb.webp",
-    ]);
+    expect(storage.remove).toHaveBeenCalledTimes(2);
+    expect(storage.remove).toHaveBeenNthCalledWith(1, ["workspace-1/user-1/component.webp"]);
+    expect(storage.remove).toHaveBeenNthCalledWith(2, ["workspace-1/user-1/component-thumb.webp"]);
   });
 
   it("rejects component image deletion when the user cannot manage the library", async () => {
@@ -1113,10 +1112,9 @@ describe("sensitive API auth boundaries", () => {
       ],
     });
     expect(storage.from).toHaveBeenCalledWith("component-attachments");
-    expect(storage.remove).toHaveBeenCalledWith([
-      "workspace-1/user-1/spec.pdf",
-      "workspace-1/user-1/schedule.xlsx",
-    ]);
+    expect(storage.remove).toHaveBeenCalledTimes(2);
+    expect(storage.remove).toHaveBeenNthCalledWith(1, ["workspace-1/user-1/spec.pdf"]);
+    expect(storage.remove).toHaveBeenNthCalledWith(2, ["workspace-1/user-1/schedule.xlsx"]);
   });
 
   it("removes owned component attachment paths through R2 when Cloudflare storage is selected", async () => {
@@ -1146,10 +1144,9 @@ describe("sensitive API auth boundaries", () => {
       ],
     });
     expect(storage.remove).not.toHaveBeenCalled();
-    expect(r2.delete).toHaveBeenCalledWith([
-      "component-attachments/workspace-1/user-1/spec.pdf",
-      "component-attachments/workspace-1/user-1/schedule.xlsx",
-    ]);
+    expect(r2.delete).toHaveBeenCalledTimes(2);
+    expect(r2.delete).toHaveBeenNthCalledWith(1, "component-attachments/workspace-1/user-1/spec.pdf");
+    expect(r2.delete).toHaveBeenNthCalledWith(2, "component-attachments/workspace-1/user-1/schedule.xlsx");
   });
 
   it("rejects component attachment deletion when the user cannot manage the library", async () => {
@@ -1537,10 +1534,9 @@ describe("sensitive API auth boundaries", () => {
     });
     expect(d1PreparedStatements(projectLookup.d1, /FROM projects project/)).toHaveLength(1);
     expect(storage.from).toHaveBeenCalledWith("project-images");
-    expect(storage.remove).toHaveBeenCalledWith([
-      `${workspaceId}/${userId}/project-images/${projectId}/image.webp`,
-      `${workspaceId}/${userId}/project-images/${projectId}/image-thumb.webp`,
-    ]);
+    expect(storage.remove).toHaveBeenCalledTimes(2);
+    expect(storage.remove).toHaveBeenNthCalledWith(1, [`${workspaceId}/${userId}/project-images/${projectId}/image.webp`]);
+    expect(storage.remove).toHaveBeenNthCalledWith(2, [`${workspaceId}/${userId}/project-images/${projectId}/image-thumb.webp`]);
   });
 
   it("rejects project image deletion when the user cannot edit the project", async () => {

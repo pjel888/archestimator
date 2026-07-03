@@ -1,7 +1,6 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { expect, it } from "vitest";
 
-import { describe, expect, it } from "vitest";
+import { optionalUploadProviderProof } from "./upload-provider-proof-fixture";
 
 type StorageDenialCheck = {
   label: string;
@@ -26,12 +25,9 @@ type StorageDenialProof = {
   };
 };
 
-const proof = JSON.parse(readFileSync(join(
-  process.cwd(),
-  ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-storage-denial-proof.json",
-), "utf8")) as StorageDenialProof;
+const { describeProof, proof } = optionalUploadProviderProof<StorageDenialProof>("upload-storage-denial-proof.json");
 
-describe("upload storage denial provider proof evidence", () => {
+describeProof("upload storage denial provider proof evidence", () => {
   it("records a passed linked-provider direct storage denial proof without credential material", () => {
     expect(proof.proofBoundary).toBe("linked-provider");
     expect(proof.passed).toBe(true);

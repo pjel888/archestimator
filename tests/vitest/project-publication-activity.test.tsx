@@ -15,11 +15,10 @@ const mocks = vi.hoisted(() => ({
   requireCurrentUserContext: vi.fn(),
   // P8 extensions (additive)
   createPublicationServiceClient: vi.fn(),
+  createPublicationAdminD1Client: vi.fn(),
   checkProjectPublicationActivityRateLimit: vi.fn(),
   recordProjectPublicationEvent: vi.fn(),
   sendEmail: vi.fn(),
-  // Realtime mock
-  createClient: vi.fn(),
   channel: vi.fn(() => ({
     on: vi.fn().mockReturnThis(),
     subscribe: vi.fn().mockReturnThis(),
@@ -65,8 +64,8 @@ vi.mock("@/lib/email/transactional-email-client", () => ({
   sendEmail: mocks.sendEmail,
 }));
 
-vi.mock("@supabase/supabase-js", () => ({
-  createClient: mocks.createClient,
+vi.mock("@/lib/publication/admin-d1-client", () => ({
+  createPublicationAdminD1Client: mocks.createPublicationAdminD1Client,
 }));
 
 vi.mock("@/lib/publication/actions", async () => {
@@ -129,134 +128,142 @@ const compactTargetLabels = {
   rowLabels: { "row-1": "Living Area" },
 };
 
-function createActivityRouteSupabaseMock(queryRecords: QueryRecord[] = []) {
+function createActivityRoutePublicationServiceMock(
+  queryRecords: QueryRecord[] = [],
+  overrides: {
+    publication?: Partial<{
+      activity_target_labels_json: typeof compactTargetLabels;
+      expires_at: string | null;
+      id: string;
+      password_hash: string | null;
+      revoked_at: string | null;
+      snapshot_version: number;
+      status: string;
+    }>;
+  } = {},
+) {
+  const publication = {
+    id: "pub1",
+    status: "published",
+    revoked_at: null,
+    expires_at: null,
+    password_hash: null,
+    snapshot_version: 7,
+    activity_target_labels_json: compactTargetLabels,
+    ...overrides.publication,
+  };
+  const comments = [
+    {
+      id: "11111111-1111-4111-8111-111111111111",
+      created_at: "2026-05-28T10:00:00Z",
+      body: "Looks good",
+      is_internal: false,
+      author_email: "recipient@example.com",
+      recipient_id: "recipient-1",
+      estimate_id: "est-1",
+      row_id: "row-1",
+      target_kind: "row",
+      target_label: "Living Area",
+      target_secondary_label: "Main Estimate",
+      snapshot_version_at_comment: 7,
+    },
+    {
+      id: "11111111-1111-4111-8111-111111111110",
+      created_at: "2026-05-28T10:00:00Z",
+      body: "Duplicate timestamp comment",
+      is_internal: false,
+      author_email: "recipient@example.com",
+      recipient_id: "recipient-1",
+      estimate_id: "est-1",
+      row_id: "row-1",
+      target_kind: "row",
+      target_label: "Living Area",
+      target_secondary_label: "Main Estimate",
+      snapshot_version_at_comment: 7,
+    },
+  ];
+  const responses = [
+    {
+      id: "22222222-2222-4222-8222-222222222222",
+      created_at: "2026-05-28T11:00:00Z",
+      decision: "revision_requested",
+      note: "Please revise this item.",
+      recipient_id: "recipient-1",
+      estimate_id: "est-1",
+      row_id: "row-1",
+      target_kind: "row",
+      target_label: "Concrete works",
+      target_secondary_label: "Main Estimate",
+    },
+  ];
+  const events = [
+    {
+      id: "33333333-3333-4333-8333-333333333333",
+      created_at: "2026-05-28T12:00:00Z",
+      event_type: "open",
+      metadata_json: {},
+      recipient_id: "recipient-1",
+    },
+  ];
+  const recipients = [{ id: "recipient-1", display_name: "Maria" }];
+
+  function recordQuery(table: string, data: unknown, selectValue: string) {
+    const query = createQueryResult(data);
+    query.select(selectValue);
+    queryRecords.push({ table, query });
+    return query;
+  }
+
   return {
-    from: vi.fn((table: string) => {
-      let query: QueryResultMock;
-      if (table === "project_publications") {
-        query = createQueryResult({
-          id: "pub1",
-          status: "published",
-          revoked_at: null,
-          expires_at: null,
-          password_hash: null,
-          snapshot_version: 7,
-          activity_target_labels_json: compactTargetLabels,
-        });
-        queryRecords.push({ table, query });
-        return query;
-      }
-      if (table === "shared_link_comments") {
-        query = createQueryResult([
-          {
-            id: "11111111-1111-4111-8111-111111111111",
-            created_at: "2026-05-28T10:00:00Z",
-            body: "Looks good",
-            is_internal: false,
-            author_email: "recipient@example.com",
-            recipient_id: "recipient-1",
-            estimate_id: "est-1",
-            row_id: "row-1",
-            target_kind: "row",
-            target_label: "Living Area",
-            target_secondary_label: "Main Estimate",
-            snapshot_version_at_comment: 7,
-          },
-          {
-            id: "11111111-1111-4111-8111-111111111110",
-            created_at: "2026-05-28T10:00:00Z",
-            body: "Duplicate timestamp comment",
-            is_internal: false,
-            author_email: "recipient@example.com",
-            recipient_id: "recipient-1",
-            estimate_id: "est-1",
-            row_id: "row-1",
-            target_kind: "row",
-            target_label: "Living Area",
-            target_secondary_label: "Main Estimate",
-            snapshot_version_at_comment: 7,
-          },
-        ]);
-        queryRecords.push({ table, query });
-        return query;
-      }
-      if (table === "shared_link_responses") {
-        query = createQueryResult([
-          {
-            id: "22222222-2222-4222-8222-222222222222",
-            created_at: "2026-05-28T11:00:00Z",
-            decision: "revision_requested",
-            note: "Please revise this item.",
-            recipient_id: "recipient-1",
-            estimate_id: "est-1",
-            row_id: "row-1",
-            target_kind: "row",
-            target_label: "Concrete works",
-            target_secondary_label: "Main Estimate",
-          },
-        ]);
-        queryRecords.push({ table, query });
-        return query;
-      }
-      if (table === "shared_link_events") {
-        query = createQueryResult([
-          {
-            id: "33333333-3333-4333-8333-333333333333",
-            created_at: "2026-05-28T12:00:00Z",
-            event_type: "open",
-            metadata_json: {},
-            recipient_id: "recipient-1",
-          },
-        ]);
-        queryRecords.push({ table, query });
-        return query;
-      }
-      if (table === "shared_link_recipients") {
-        query = createQueryResult([{ id: "recipient-1", display_name: "Maria" }]);
-        queryRecords.push({ table, query });
-        return query;
-      }
-      if (table === "project_publication_events") {
-        query = createQueryResult([
-          {
-            id: "access-2",
-            created_at: "2026-05-28T12:30:00Z",
-            event_type: "open",
-            metadata_json: { access_stage: "page_visit", eventType: "open", recipient_known: true, bot: false, device_type: "desktop", browser_family: "Chrome", os_family: "macOS", country: "PH" },
-            ip_hash: "ip-secret",
-            user_agent_hash: "ua-secret",
-          },
-          {
-            id: "access-2-duplicate",
-            created_at: "2026-05-28T12:30:00Z",
-            event_type: "open",
-            metadata_json: { access_stage: "page_visit", eventType: "open", recipient_known: true, bot: false, device_type: "desktop", browser_family: "Chrome", os_family: "macOS", country: "PH" },
-            ip_hash: "ip-secret",
-            user_agent_hash: "ua-secret",
-          },
-          {
-            id: "access-bot",
-            created_at: "2026-05-28T12:31:00Z",
-            event_type: "open",
-            metadata_json: { access_stage: "page_visit", eventType: "open", recipient_known: false, bot: true, device_type: "bot" },
-            ip_hash: "bot-ip-secret",
-            user_agent_hash: "bot-ua-secret",
-          },
-        ]);
-        queryRecords.push({ table, query });
-        return query;
-      }
-      query = createQueryResult([]);
-      queryRecords.push({ table, query });
-      return query;
+    getPublicationActivityContextByTokenHash: vi.fn(async () => {
+      recordQuery(
+        "project_publications",
+        publication,
+        "id, status, revoked_at, expires_at, password_hash, activity_target_labels_json, snapshot_version",
+      );
+      return publication;
+    }),
+    listPublicActivityComments: vi.fn(async () => {
+      recordQuery(
+        "shared_link_comments",
+        comments,
+        "id, created_at, body, is_internal, author_email, author_name, recipient_id, estimate_id, row_id, target_kind, target_label, target_secondary_label, snapshot_version_at_comment",
+      );
+      return comments;
+    }),
+    listRecipientActivityResponses: vi.fn(async () => {
+      recordQuery(
+        "shared_link_responses",
+        responses,
+        "id, created_at, decision, note, recipient_id, estimate_id, row_id, target_kind, target_label, target_secondary_label",
+      );
+      return responses;
+    }),
+    listRecipientActivityEvents: vi.fn(async () => {
+      recordQuery(
+        "shared_link_events",
+        events,
+        "id, created_at, event_type, metadata_json, recipient_id",
+      );
+      return events;
+    }),
+    listRecipientDisplayNames: vi.fn(async () => {
+      recordQuery("shared_link_recipients", recipients, "id, display_name");
+      return recipients;
     }),
   };
 }
 
-function createPublicationActionsSupabaseMock(queryRecords: QueryRecord[] = []) {
+function createPublicationActionsD1ClientMock(queryRecords: QueryRecord[] = []) {
   return {
     channel: mocks.channel,
     removeChannel: vi.fn(),
+    callProcedure: vi.fn(async (functionName: string) => {
+      if (functionName === "reserve_security_rate_limit_slot") {
+        return { data: true, error: null };
+      }
+      return { data: null, error: null };
+    }),
     rpc: vi.fn(async (functionName: string) => {
       if (functionName === "reserve_security_rate_limit_slot") {
         return { data: true, error: null };
@@ -428,17 +435,8 @@ function createPublicationActionsSupabaseMock(queryRecords: QueryRecord[] = []) 
 }
 
 describe("P8 — Shared Link Activity Feed & Notifications (red tests written FIRST before any route/action/component impl)", () => {
-  const originalEnv = {
-    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
-  };
-
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
-    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role";
     mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
     mocks.assertSameOrigin.mockReturnValue({ ok: true });
     mocks.createSharedLinkSessionCookieName.mockReturnValue("shared_link_session_abc123");
@@ -453,9 +451,9 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
       email: "owner@example.com",
       role: "admin",
     });
-    mocks.createPublicationServiceClient.mockReturnValue(createActivityRouteSupabaseMock());
+    mocks.createPublicationServiceClient.mockReturnValue(createActivityRoutePublicationServiceMock());
     mocks.sendEmail.mockResolvedValue({ ok: true, mocked: true });
-    mocks.createClient.mockReturnValue(createPublicationActionsSupabaseMock());
+    mocks.createPublicationAdminD1Client.mockReturnValue(createPublicationActionsD1ClientMock());
     // @ts-expect-error test env
     global.fetch = vi.fn();
   });
@@ -463,21 +461,6 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
-    if (originalEnv.NEXT_PUBLIC_SUPABASE_URL === undefined) {
-      delete process.env.NEXT_PUBLIC_SUPABASE_URL;
-    } else {
-      process.env.NEXT_PUBLIC_SUPABASE_URL = originalEnv.NEXT_PUBLIC_SUPABASE_URL;
-    }
-    if (originalEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY === undefined) {
-      delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    } else {
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = originalEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    }
-    if (originalEnv.SUPABASE_SERVICE_ROLE_KEY === undefined) {
-      delete process.env.SUPABASE_SERVICE_ROLE_KEY;
-    } else {
-      process.env.SUPABASE_SERVICE_ROLE_KEY = originalEnv.SUPABASE_SERVICE_ROLE_KEY;
-    }
   });
 
   describe("GET /api/share/[token]/activity route (public filtered + session aware, is_internal filter for unauth)", () => {
@@ -496,7 +479,7 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
 
     it("loads compact target labels without selecting the full snapshot", async () => {
       const queryRecords: QueryRecord[] = [];
-      mocks.createPublicationServiceClient.mockReturnValueOnce(createActivityRouteSupabaseMock(queryRecords));
+      mocks.createPublicationServiceClient.mockReturnValueOnce(createActivityRoutePublicationServiceMock(queryRecords));
 
       const res = await GET(makeRequest({ origin: "http://localhost" }), params());
 
@@ -510,7 +493,7 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
 
     it("selects stored target context for comments and responses before composing public activity", async () => {
       const queryRecords: QueryRecord[] = [];
-      mocks.createPublicationServiceClient.mockReturnValueOnce(createActivityRouteSupabaseMock(queryRecords));
+      mocks.createPublicationServiceClient.mockReturnValueOnce(createActivityRoutePublicationServiceMock(queryRecords));
       mocks.verifySharedLinkSessionCookieValue.mockReturnValueOnce(true);
       const parsableSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwaWVudC0xIn0:dummy";
 
@@ -571,22 +554,13 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
     });
 
     it("requires the publication access cookie before exposing password-protected activity", async () => {
-      mocks.createPublicationServiceClient.mockReturnValueOnce({
-        from: vi.fn((table: string) => {
-          if (table === "project_publications") {
-            return createQueryResult({
-              id: "pub1",
-              status: "published",
-              revoked_at: null,
-              expires_at: null,
-              password_hash: "hashed-password",
-              snapshot_version: 7,
-              activity_target_labels_json: compactTargetLabels,
-            });
-          }
-          return createQueryResult([]);
+      mocks.createPublicationServiceClient.mockReturnValueOnce(
+        createActivityRoutePublicationServiceMock([], {
+          publication: {
+            password_hash: "hashed-password",
+          },
         }),
-      });
+      );
 
       const res = await GET(makeRequest({ cookie: "" }), params());
 
@@ -753,7 +727,7 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
 
     it("loads owner activity target labels without selecting the full snapshot", async () => {
       const queryRecords: QueryRecord[] = [];
-      mocks.createClient.mockReturnValueOnce(createPublicationActionsSupabaseMock(queryRecords));
+      mocks.createPublicationAdminD1Client.mockReturnValueOnce(createPublicationActionsD1ClientMock(queryRecords));
 
       const result = await loadSharedLinkActivity("client-pub-token-123");
 

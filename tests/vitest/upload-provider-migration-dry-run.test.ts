@@ -1,12 +1,8 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { expect, it } from "vitest";
 
-import { describe, expect, it } from "vitest";
+import { optionalUploadProviderProof } from "./upload-provider-proof-fixture";
 
-const migrationDryRun = JSON.parse(readFileSync(join(
-  process.cwd(),
-  ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-provider-migration-dry-run.json",
-), "utf8")) as {
+const { describeProof, proof: migrationDryRun } = optionalUploadProviderProof<{
   proofBoundary: string;
   projectId: string;
   passed: boolean;
@@ -20,9 +16,9 @@ const migrationDryRun = JSON.parse(readFileSync(join(
     componentImagesPrivateMigrationLocalPath: string;
   };
   evidenceLimitations: string[];
-};
+}>("upload-provider-migration-dry-run.json");
 
-describe("upload provider migration dry-run evidence", () => {
+describeProof("upload provider migration dry-run evidence", () => {
   it("records linked Supabase dry-run parity without overstating provider portability", () => {
     expect(migrationDryRun).toMatchObject({
       proofBoundary: "linked-provider-dry-run",

@@ -32,7 +32,7 @@ describe("Workshop Dashboard query batching plan RED contracts", () => {
     expect(existsSync(join(root, measureScriptPath))).toBe(true);
     expect(serverTiming).toContain("AsyncLocalStorage");
     expect(serverTiming).toMatch(/request(?:Id|LocalId)/);
-    expect(serverTiming).toMatch(/Supabase.*request|request.*Supabase/i);
+    expect(serverTiming).toMatch(/database.*request|request.*database/i);
   });
 
   it("fetches recent and favorite homebase estimate arms in one bounded Phase 1 wave", () => {
@@ -40,10 +40,11 @@ describe("Workshop Dashboard query batching plan RED contracts", () => {
     const body = getFunctionBody(repository, "getWorkshopHomebaseDataAppPath");
 
     expect(body).toContain("recentEstimateProjectIds");
-    expect(body).toMatch(/recentEstimate(?:s)?Result/);
-    expect(body).toMatch(/favoriteEstimate(?:s)?Result/);
-    expect(body).toMatch(/Promise\.all\(\s*\[\s*[\s\S]*recentEstimate(?:s)?Result[\s\S]*favoriteEstimate(?:s)?Result[\s\S]*\]\s*\)/);
-    expect(body).toMatch(/favoriteEstimateIds\.slice\(0,\s*(?:50|WORKSHOP_HOMEBASE_FAVORITE_ESTIMATE_LIMIT)\)/);
+    expect(body).toContain("recentEstimatesPromise");
+    expect(body).toContain("favoriteEstimatesPromise");
+    expect(body).toMatch(/Promise\.all\(\s*\[\s*recentEstimatesPromise,\s*favoriteEstimatesPromise\s*\]\s*\)/);
+    expect(body).toContain("limitedFavoriteEstimateIds");
+    expect(body).toContain("favoriteEstimateIds.slice(0, WORKSHOP_HOMEBASE_FAVORITE_ESTIMATE_LIMIT)");
   });
 
   it("uses one merged project backfill for favorite projects and missing estimate projects", () => {

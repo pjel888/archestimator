@@ -11,6 +11,8 @@ import {
   type UploadImageReferenceRecord,
 } from "@/lib/uploads/component-image-backfill";
 
+const UPLOAD_PLAN_DIR = ".ai/03_plans/000-Follow Ups/2026-06-26-File-Upload-Audit-And-Improvement";
+
 describe("component image backfill readiness", () => {
   it("classifies asset-backed and brokered private references as ready", () => {
     const records: UploadImageReferenceRecord[] = [
@@ -208,16 +210,15 @@ describe("component image backfill readiness", () => {
       const classifications = references.map(classifyUploadImageReference);
 
       expect(snapshot.estimates[0]?.rows.map((row) => row.imageUrl)).toEqual([
-        legacyPublicUrl,
+        null,
         "/component-thumbnails/cabinet.webp",
       ]);
       expect(classifications).toEqual([
         {
           id: "publication:estimate-1:row:legacy-public-component",
           context: "publication-snapshot",
-          status: "legacy_public_component_image",
-          action: "backfill_to_private_resolver",
-          storagePath: "workspace-1/user-1/component-legacy.webp",
+          status: "missing",
+          action: "none",
         },
         {
           id: "publication:estimate-1:row:local-thumbnail",
@@ -229,10 +230,10 @@ describe("component image backfill readiness", () => {
       expect(summarizeUploadComponentImageBackfillReadiness(classifications)).toEqual({
         total: 2,
         ready: 1,
-        needsBackfill: 1,
+        needsBackfill: 0,
         manualReview: 0,
-        missing: 0,
-        hasLegacyPublicReferences: true,
+        missing: 1,
+        hasLegacyPublicReferences: false,
         hasManualReviewReferences: false,
       });
     } finally {
@@ -247,7 +248,7 @@ describe("component image backfill readiness", () => {
   it("records the non-empty publication snapshot migration proof artifact", () => {
     const evidence = JSON.parse(readFileSync(join(
       process.cwd(),
-      ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-component-image-publication-snapshot-migration-proof.json",
+      `${UPLOAD_PLAN_DIR}/evidence/upload-component-image-publication-snapshot-migration-proof.json`,
     ), "utf8"));
 
     expect(evidence).toEqual(expect.objectContaining({

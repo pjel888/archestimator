@@ -51,6 +51,9 @@ describe("hosted auth route smoke script", () => {
     expect(inputs.markdownFile).toBe("/tmp/auth.md");
     expect(inputs.baseUrl).toBe("https://www.archestimator.com");
     expect(inputs.cases.find((authCase) => authCase.name === "allowed")?.cookie).toBe("allowed-session-secret");
+    expect(inputs.cases.find((authCase) => authCase.name === "malformed")?.cookie).toContain(
+      "codex-malformed-session.invalid-signature",
+    );
   });
 
   it("merges platform and session cookies only into request headers", () => {
@@ -101,6 +104,14 @@ describe("hosted auth route smoke script", () => {
 
     expect(evaluateCase({
       name: "expired",
+      status: 307,
+      ok: false,
+      location: "https://preview.example/login?next=%2Fworkshop",
+      normalizedLocationPath: "/login?next=%2Fworkshop",
+    })).toBe(true);
+
+    expect(evaluateCase({
+      name: "malformed",
       status: 307,
       ok: false,
       location: "https://preview.example/login?next=%2Fworkshop",
@@ -175,6 +186,10 @@ describe("hosted auth route smoke script", () => {
         status: 307,
         headers: { "cache-control": cacheControl, location: "https://preview.example/login?next=%2Fworkshop" },
       }),
+      new Response(null, {
+        status: 307,
+        headers: { "cache-control": cacheControl, location: "https://preview.example/login?next=%2Fworkshop" },
+      }),
     ];
     const fetchMock = vi.fn(async () => responses.shift()!);
 
@@ -189,6 +204,7 @@ describe("hosted auth route smoke script", () => {
         { name: "denied", cookie: "denied-session-secret", required: true },
         { name: "revoked", cookie: "revoked-session-secret", required: true },
         { name: "expired", cookie: "expired-session-secret", required: true },
+        { name: "malformed", cookie: "malformed-session-cookie", required: true },
       ],
     }, fetchMock as unknown as typeof fetch);
 

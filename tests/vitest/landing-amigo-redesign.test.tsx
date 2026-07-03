@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
+import type { ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import LandingPage from "@/app/page";
@@ -30,9 +32,17 @@ const readActiveHomepageSource = () =>
     readProjectFile("src/components/landing-v3/landing-content.ts"),
   ].join("\n");
 
+function makeQueryClient() {
+  return new QueryClient({ defaultOptions: { mutations: { retry: false }, queries: { retry: false } } });
+}
+
+function renderWithQueryClient(ui: ReactElement) {
+  return render(<QueryClientProvider client={makeQueryClient()}>{ui}</QueryClientProvider>);
+}
+
 describe("landing-v3 homepage contract", () => {
   it("renders the living-estimate homepage with connected workflow content", async () => {
-    const { container } = render(await LandingPage());
+    const { container } = renderWithQueryClient(await LandingPage());
 
     const main = screen.getByRole("main");
     expect(main).toHaveAttribute("data-landing-page-root", "true");
@@ -40,7 +50,7 @@ describe("landing-v3 homepage contract", () => {
     expect(
       screen.getByRole("heading", {
         level: 1,
-        name: /The estimate that keeps working after you send it\./i,
+        name: /Where estimates become client‑approved proposals\./i,
       }),
     ).toBeInTheDocument();
     expect(screen.getByText(/AEC construction cost estimating & proposal platform/i)).toBeInTheDocument();
@@ -72,7 +82,7 @@ describe("landing-v3 homepage contract", () => {
   });
 
   it("renders workspace CTAs without sign-in links for authenticated visitors", () => {
-    render(<ArchestimatorLandingPage isLoggedIn={true} />);
+    renderWithQueryClient(<ArchestimatorLandingPage isLoggedIn={true} />);
 
     expect(screen.getAllByRole("link", { name: /Open workspace|Workspace/i }).length).toBeGreaterThan(0);
     expect(screen.queryByRole("link", { name: /^Sign in$/i })).not.toBeInTheDocument();

@@ -82,7 +82,7 @@ describe("ProjectsPageClient view modes", () => {
     const user = userEvent.setup();
     const { container } = render(<ProjectsPageClient projects={[PROJECT_FIXTURE]} />);
 
-    expect(container.firstElementChild).toHaveClass("dashboard-canvas-wash");
+    expect(container.firstElementChild).toHaveClass("flex", "h-full", "flex-col");
     expect(screen.getByLabelText("Project tools")).toHaveClass("bg-transparent");
     expect(screen.getByRole("tablist", { name: "Project access tabs" }).closest("[data-navigation-tabs]")).toHaveClass(
       "bg-transparent",
@@ -266,7 +266,7 @@ describe("ProjectsPageClient view modes", () => {
 
     await user.click(screen.getByRole("button", { name: "Add projects" }));
 
-    expect(await screen.findByRole("dialog", { name: "Create project" })).toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: /create project/i })).toBeInTheDocument();
   });
 
   it("keeps the live-project shell for live project search misses", async () => {

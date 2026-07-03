@@ -13,15 +13,17 @@ afterEach(() => {
 });
 
 describe("estimate row image URL policy", () => {
-  it("allows only local component thumbnails and configured Supabase component images", () => {
-    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
-    const safeSupabaseImage = "https://example.supabase.co/storage/v1/object/public/component-images/ws/user/components/fixture.webp";
+  it("allows only local component thumbnails and brokered component image routes", () => {
+    const safeBrokeredImage = "/api/component-library/images?path=steel-frame.jpg";
+    const legacySupabaseImage = "https://example.supabase.co/storage/v1/object/public/component-images/ws/user/components/fixture.webp";
 
     expect(normalizeEstimateRowImageUrl("/component-thumbnails/lib-sofa.jpg")).toBe("/component-thumbnails/lib-sofa.jpg");
-    expect(normalizeEstimateRowImageUrl(safeSupabaseImage)).toBe(safeSupabaseImage);
+    expect(normalizeEstimateRowImageUrl(safeBrokeredImage)).toBe(safeBrokeredImage);
+    expect(normalizeEstimateRowImageUrl(legacySupabaseImage)).toBeNull();
     expect(normalizeEstimateRowImageUrl("https://tracker.example/pixel.svg?viewer=1")).toBeNull();
     expect(normalizeEstimateRowImageUrl("https://example.supabase.co/storage/v1/object/public/component-images/ws/user/components/fixture.webp?viewer=1")).toBeNull();
     expect(normalizeEstimateRowImageUrl("https://example.supabase.co/storage/v1/object/public/component-images/ws/user/%2e%2e/fixture.webp")).toBeNull();
+    expect(normalizeEstimateRowImageUrl("/api/projects/images?path=project-images/project/cover.webp")).toBeNull();
     expect(normalizeEstimateRowImageUrl("data:image/svg+xml,<svg></svg>")).toBeNull();
     expect(normalizeEstimateRowImageUrl("javascript:alert(1)")).toBeNull();
   });

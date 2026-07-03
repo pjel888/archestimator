@@ -112,6 +112,7 @@ function renderSheet({ expressFirstRow = false }: { expressFirstRow?: boolean } 
         nodes={expressFirstRow ? makeExpressTree() : makeTree(3, 3)}
         projectId="relief-project"
         estimateId="relief-estimate"
+        canEditEstimate
         renderSidebar={false}
       />
     </QueryClientProvider>,

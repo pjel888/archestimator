@@ -96,7 +96,7 @@ async function submitNewProject() {
   await user.click(screen.getByRole("button", { name: "Add projects" }));
   const projectName = await screen.findByRole("textbox", { name: "Project name" });
   await user.type(projectName, CREATED_PROJECT.name);
-  await user.type(screen.getByRole("textbox", { name: "Client" }), CREATED_PROJECT.client_name ?? "");
+  await user.type(screen.getByRole("combobox", { name: "Client" }), CREATED_PROJECT.client_name ?? "");
   await user.type(screen.getByRole("textbox", { name: "Location" }), CREATED_PROJECT.location ?? "");
   await user.click(screen.getByRole("button", { name: "Create project" }));
 }
@@ -129,7 +129,7 @@ describe("ProjectsPageClient optimistic project creation", () => {
     const pendingCard = await screen.findByLabelText("Instant Tower project, owned access");
     expect(pendingCard).toHaveAttribute("aria-busy", "true");
     expect(within(pendingCard).getByRole("status")).toHaveTextContent("Creating project...");
-    expect(screen.queryByRole("dialog", { name: "Create project" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: /create project/i })).not.toBeInTheDocument();
     expect(estimateMocks.createEstimateSheetDraft).not.toHaveBeenCalled();
 
     resolveCreate(CREATED_PROJECT);

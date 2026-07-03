@@ -149,6 +149,7 @@ function renderSheet() {
         estimateId="cursor-estimate"
         collaborationUserId="local-user"
         collaborationDisplayName="Local User"
+        canEditEstimate
         renderSidebar={false}
       />
     </QueryClientProvider>,

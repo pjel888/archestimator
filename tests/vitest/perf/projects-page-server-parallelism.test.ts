@@ -1,19 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-process.env.WORKSHOP_PROJECTS_SUMMARY_RPC_DISABLED = "1";
-
 /**
  * Phase-1 server-parallelism proof for `listCurrentWorkspaceProjects`
  * (src/lib/repositories/workspace-repository.ts).
  *
  * The optimization issues two query "waves" concurrently:
- *   - Wave 2: sharedProjects (from "projects" .in id)  ∥  favoriteEstimates (from "estimates" .in id)
- *   - Wave 3: readOptionalProjectPublications (from "project_publications")
- *             ∥ readPendingCollaborationVisibilitySummary
- *               (rpc "list_pending_collaboration_invitations" + from "collaboration_invitations")
+ *   - Wave 2: sharedProjects (D1 "projects" id IN read) ∥ favoriteEstimates (D1 "estimates" id IN read)
+ *   - Wave 3: readOptionalProjectPublications (D1 "project_publications")
+ *             ∥ readPendingCollaborationVisibilitySummary (D1 "collaboration_invitations")
  *
- * Method: we replace the Supabase server client with a builder whose every awaited
- * query/rpc resolves after a fixed delay AND records {table, startTime, endTime}.
+ * Method: we replace the Cloudflare D1 binding with statements whose first/all
+ * calls resolve after a fixed delay AND record {table, startTime, endTime}.
  * If the two queries in a wave are kicked off together and awaited via Promise.all,
  * their [start,end] intervals OVERLAP in wall-clock. If they were serial, the second
  * query's start would be >= the first query's end (no overlap) and the total
@@ -28,6 +25,7 @@ process.env.WORKSHOP_PROJECTS_SUMMARY_RPC_DISABLED = "1";
 const QUERY_DELAY_MS = 50;
 
 type QueryRecord = { table: string; startTime: number; endTime: number };
+type D1Value = string | number | boolean | null | ArrayBuffer;
 
 const queryLog: QueryRecord[] = [];
 
@@ -35,41 +33,7 @@ function delay(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
 
-/**
- * A chainable, thenable Supabase query-builder mock. Every chain method returns
- * `this` so the function-under-test can call .select/.eq/.in/.order/.is/.gt/.limit/
- * .maybeSingle in any order. Awaiting the builder (its .then) starts the clock,
- * waits QUERY_DELAY_MS, then resolves `{ data, error }` and records the interval.
- *
- * Crucially the timer only STARTS when the builder is awaited (.then invoked), so
- * two builders awaited together (Promise.all) both begin their delay immediately
- * and overlap. A serial `await a; await b` would not overlap.
- */
-function createQueryBuilder(table: string, data: unknown) {
-  let settled: Promise<{ data: unknown; error: null }> | null = null;
-
-  const start = () => {
-    if (settled) return settled;
-    const startTime = performance.now();
-    settled = delay(QUERY_DELAY_MS).then(() => {
-      queryLog.push({ table, startTime, endTime: performance.now() });
-      return { data, error: null };
-    });
-    return settled;
-  };
-
-  const builder: Record<string, unknown> = {
-    then(onFulfilled: (value: { data: unknown; error: null }) => unknown, onRejected?: (reason: unknown) => unknown) {
-      return start().then(onFulfilled, onRejected);
-    },
-  };
-  for (const method of ["select", "eq", "in", "order", "is", "gt", "limit", "maybeSingle"]) {
-    builder[method] = () => builder;
-  }
-  return builder;
-}
-
-// ---- Fixture data, keyed by table/rpc so each chain resolves with realistic rows ----
+// ---- Fixture data, keyed by D1 query table so each statement resolves with realistic rows ----
 
 const OWNED_PROJECT = {
   id: "project-owned",
@@ -110,9 +74,8 @@ const tableData: Record<string, unknown> = {
   project_groups: [],
   project_group_memberships: [],
   // Wave 2
-  // `projects` is reused for the sharedProjects (.in id) read; the builder is created
-  // fresh per `.from(...)` call, so we differentiate shared rows via the rpc/table map
-  // below isn't enough — instead we hand the shared read its own table key.
+  // `projects` is reused for the sharedProjects (id IN) read; the statement is
+  // created fresh per D1 prepare call, so call order distinguishes owned/shared rows.
   estimates: [
     { id: "estimate-fav-1", project_id: "project-owned", name: "Lobby", sheet_code: "EST-1", updated_at: "2026-06-08T00:00:00.000Z" },
   ],
@@ -130,40 +93,90 @@ const tableData: Record<string, unknown> = {
       revoked_at: null,
       open_count: 0,
       latest_opened_at: null,
+      location_visibility: "hidden",
     },
   ],
   collaboration_invitations: [{ id: "inv-1", project_id: "project-owned" }],
-  workspaces: { id: "workspace-1", name: "Workspace One", slug: null, created_by: "user-1" },
+  workspaces: {
+    id: "workspace-1",
+    name: "Workspace One",
+    slug: null,
+    created_by: "user-1",
+    created_at: "2026-06-01T00:00:00.000Z",
+    updated_at: "2026-06-01T00:00:00.000Z",
+  },
 };
 
-// The shared-projects wave-2 read also hits `.from("projects")`. We want it to return
-// the SHARED project rows (so sharedProjects is non-empty). We detect the wave-2 read
-// by call-order: the FIRST `.from("projects")` is the owned read (wave 1), the SECOND
-// is the shared read (wave 2). Track per-table call counts to vary the payload.
-const fromCallCounts: Record<string, number> = {};
+const d1Mocks = vi.hoisted(() => ({
+  getCloudflareD1Database: vi.fn(),
+}));
 
-function dataForFrom(table: string): unknown {
-  fromCallCounts[table] = (fromCallCounts[table] ?? 0) + 1;
-  if (table === "projects" && fromCallCounts[table] === 2) {
+// The shared-projects wave-2 read also hits `FROM projects`. We want it to return
+// the SHARED project rows (so sharedProjects is non-empty). We detect the wave-2 read
+// by call-order: the FIRST projects query is the owned read (wave 1), the SECOND
+// is the shared read (wave 2). Track per-table call counts to vary the payload.
+const d1QueryCallCounts: Record<string, number> = {};
+
+function tableForSql(sql: string) {
+  if (sql.includes("FROM collaboration_invitations")) return "collaboration_invitations";
+  if (sql.includes("FROM project_publications")) return "project_publications";
+  if (sql.includes("FROM project_group_memberships")) return "project_group_memberships";
+  if (sql.includes("FROM project_groups")) return "project_groups";
+  if (sql.includes("FROM estimate_sheet_members")) return "estimate_sheet_members";
+  if (sql.includes("FROM project_members")) return "project_members";
+  if (sql.includes("FROM estimate_favorites")) return "estimate_favorites";
+  if (sql.includes("FROM project_favorites")) return "project_favorites";
+  if (sql.includes("FROM workspace_members")) return "workspace_members";
+  if (sql.includes("FROM workspaces")) return "workspaces";
+  if (sql.includes("FROM estimates")) return "estimates";
+  if (sql.includes("FROM projects")) return "projects";
+  throw new Error(`Unexpected D1 query: ${sql}`);
+}
+
+function dataForD1Query(table: string): unknown {
+  d1QueryCallCounts[table] = (d1QueryCallCounts[table] ?? 0) + 1;
+  if (table === "projects" && d1QueryCallCounts[table] === 2) {
     return [SHARED_PROJECT];
   }
+  if (table === "workspace_members") return tableData.workspace_members;
   return tableData[table] ?? [];
 }
 
-const supabaseMock = {
-  from(table: string) {
-    return createQueryBuilder(table, dataForFrom(table));
-  },
-  rpc(name: string) {
-    // Only `list_pending_collaboration_invitations` is reached in this path; it returns
-    // received pending invites. Return an empty (but timed) result so wave-3 timing is
-    // still recorded for the rpc leg.
-    return createQueryBuilder(`rpc:${name}`, []);
-  },
-};
+class TimedD1Statement {
+  constructor(private readonly sql: string) {}
 
-vi.mock("@/lib/supabase/server", () => ({
-  createSupabaseServerClient: vi.fn(async () => supabaseMock),
+  bind(..._values: D1Value[]) {
+    void _values;
+    return this;
+  }
+
+  private async resolve<T>() {
+    const table = tableForSql(this.sql);
+    const startTime = performance.now();
+    await delay(QUERY_DELAY_MS);
+    queryLog.push({ table, startTime, endTime: performance.now() });
+    return dataForD1Query(table) as T;
+  }
+
+  async first<T>() {
+    const data = await this.resolve<T | T[]>();
+    return Array.isArray(data) ? (data[0] ?? null) : data;
+  }
+
+  async all<T>() {
+    const data = await this.resolve<T[]>();
+    return { results: Array.isArray(data) ? data : [] };
+  }
+
+  async run() {
+    return { success: true, meta: { changes: 0 } };
+  }
+}
+
+vi.mock("server-only", () => ({}));
+
+vi.mock("@/lib/cloudflare/d1", () => ({
+  getCloudflareD1Database: d1Mocks.getCloudflareD1Database,
 }));
 
 vi.mock("@/lib/auth/session", () => ({
@@ -190,9 +203,13 @@ vi.mock("next/headers", () => ({
 }));
 
 beforeEach(() => {
-  process.env.WORKSHOP_PROJECTS_SUMMARY_RPC_DISABLED = "1";
+  vi.resetModules();
+  vi.clearAllMocks();
   queryLog.length = 0;
-  for (const key of Object.keys(fromCallCounts)) delete fromCallCounts[key];
+  for (const key of Object.keys(d1QueryCallCounts)) delete d1QueryCallCounts[key];
+  d1Mocks.getCloudflareD1Database.mockResolvedValue({
+    prepare: (sql: string) => new TimedD1Statement(sql),
+  });
 });
 
 function record(table: string) {
@@ -247,7 +264,6 @@ describe("listCurrentWorkspaceProjects server query parallelism (Phase 1)", () =
     expect(overallTotalMs).toBeLessThan(allSerialFloorMs);
 
     // Emit the measured numbers for the report (visible with --reporter=verbose / on failure).
-    // eslint-disable-next-line no-console
     console.log(
       JSON.stringify(
         {

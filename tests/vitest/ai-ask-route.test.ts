@@ -12,7 +12,7 @@ function makeRequest(body: unknown) {
   });
 }
 
-const supabaseUserContext = { userId: "user-1", email: "user@example.com", workspaceId: "workspace-1", authMode: "better-auth" as const };
+const providerBackedUserContext = { userId: "user-1", email: "user@example.com", workspaceId: "workspace-1", authMode: "better-auth" as const };
 const allowQuota = async () => ({ allowed: true as const });
 
 function makeEmptyReadContext(): AiAskReadContext {
@@ -82,7 +82,7 @@ describe("AI Ask route", () => {
 
   it("returns 503 when DeepSeek is not configured", async () => {
     const response = await handleAiAskRequest(makeRequest({ message: "Summarize this estimate." }), {
-      getUserContext: async () => supabaseUserContext,
+      getUserContext: async () => providerBackedUserContext,
       askDeepSeek: vi.fn(),
       hasApiKey: () => false,
     });
@@ -96,7 +96,7 @@ describe("AI Ask route", () => {
     const recordAudit = vi.fn();
     const readContext = vi.fn();
     const response = await handleAiAskRequest(makeRequest({ message: "Summarize this estimate." }), {
-      getUserContext: async () => supabaseUserContext,
+      getUserContext: async () => providerBackedUserContext,
       askDeepSeek,
       hasApiKey: () => true,
       recordAudit,
@@ -117,7 +117,7 @@ describe("AI Ask route", () => {
     const recordAudit = vi.fn();
     const readContext = vi.fn();
     const response = await handleAiAskRequest(makeRequest({ message: "Summarize this estimate." }), {
-      getUserContext: async () => supabaseUserContext,
+      getUserContext: async () => providerBackedUserContext,
       askDeepSeek,
       hasApiKey: () => true,
       recordAudit,
@@ -154,7 +154,7 @@ describe("AI Ask route", () => {
     await expect(response.json()).resolves.toMatchObject({ error: "Authentication required." });
   });
 
-  it("rejects real Supabase users without a workspace before calling DeepSeek", async () => {
+  it("rejects provider-backed users without a workspace before calling DeepSeek", async () => {
     const askDeepSeek = vi.fn();
     const recordAudit = vi.fn();
     const readContext = vi.fn();
@@ -332,7 +332,7 @@ describe("AI Ask route", () => {
     }));
 
     const response = await handleAiAskRequest(makeRequest({ message: "List down my projects." }), {
-      getUserContext: async () => supabaseUserContext,
+      getUserContext: async () => providerBackedUserContext,
       readContext,
       askDeepSeek,
       hasApiKey: () => true,
@@ -422,7 +422,7 @@ describe("AI Ask route", () => {
     }));
 
     const response = await handleAiAskRequest(makeRequest({ message: "Do we have a water closet component and what is the unit cost?" }), {
-      getUserContext: async () => supabaseUserContext,
+      getUserContext: async () => providerBackedUserContext,
       readContext,
       askDeepSeek,
       hasApiKey: () => true,
@@ -516,7 +516,7 @@ describe("AI Ask route", () => {
         },
       }),
       {
-        getUserContext: async () => supabaseUserContext,
+        getUserContext: async () => providerBackedUserContext,
         readContext,
         askDeepSeek,
         hasApiKey: () => true,
@@ -613,7 +613,7 @@ describe("AI Ask route", () => {
     }));
 
     const response = await handleAiAskRequest(makeRequest({ message: "What reusable estimate template fits a condo bathroom?" }), {
-      getUserContext: async () => supabaseUserContext,
+      getUserContext: async () => providerBackedUserContext,
       readContext,
       askDeepSeek,
       hasApiKey: () => true,
@@ -704,7 +704,7 @@ describe("AI Ask route", () => {
     }));
 
     const response = await handleAiAskRequest(makeRequest({ message: "Have we used water closets in other projects before?" }), {
-      getUserContext: async () => supabaseUserContext,
+      getUserContext: async () => providerBackedUserContext,
       readContext,
       askDeepSeek,
       hasApiKey: () => true,
@@ -798,7 +798,7 @@ describe("AI Ask route", () => {
       message: "What do the project charts show by space and supplier?",
       routeContext: { projectId: "11111111-1111-4111-8111-111111111111" },
     }), {
-      getUserContext: async () => supabaseUserContext,
+      getUserContext: async () => providerBackedUserContext,
       readContext,
       askDeepSeek,
       hasApiKey: () => true,
@@ -895,7 +895,7 @@ describe("AI Ask route", () => {
         selectedNodeId: "33333333-3333-4333-8333-333333333333",
       },
     }), {
-      getUserContext: async () => supabaseUserContext,
+      getUserContext: async () => providerBackedUserContext,
       readContext,
       askDeepSeek,
       hasApiKey: () => true,
@@ -975,7 +975,7 @@ describe("AI Ask route", () => {
       throw new Error("audit insert failed");
     });
     const response = await handleAiAskRequest(makeRequest({ message: "How many projects do I have?" }), {
-      getUserContext: async () => supabaseUserContext,
+      getUserContext: async () => providerBackedUserContext,
       readContext: async () => makeEmptyReadContext(),
       askDeepSeek,
       hasApiKey: () => true,
@@ -1006,7 +1006,7 @@ describe("AI Ask route", () => {
         },
       }),
       {
-        getUserContext: async () => supabaseUserContext,
+        getUserContext: async () => providerBackedUserContext,
         readContext: async () => makeEmptyReadContext(),
         askDeepSeek,
         hasApiKey: () => true,
@@ -1035,7 +1035,7 @@ describe("AI Ask route", () => {
     expect(response.status).toBe(403);
     expect(readContext).not.toHaveBeenCalled();
     await expect(response.json()).resolves.toMatchObject({
-      error: "AI requires a real Supabase account session. Disable local admin DB bypass and sign in to use account data.",
+      error: "AI requires a signed-in account session. Disable local admin DB bypass and sign in to use account data.",
     });
   });
 
@@ -1053,14 +1053,14 @@ describe("AI Ask route", () => {
     expect(askDeepSeek).not.toHaveBeenCalled();
     expect(readContext).not.toHaveBeenCalled();
     await expect(response.json()).resolves.toMatchObject({
-      error: "AI requires a real Supabase account session. Disable local admin DB bypass and sign in to use account data.",
+      error: "AI requires a signed-in account session. Disable local admin DB bypass and sign in to use account data.",
     });
   });
 
   it("maps upstream failures to safe JSON", async () => {
     const recordAudit = vi.fn();
     const response = await handleAiAskRequest(makeRequest({ message: "Hello" }), {
-      getUserContext: async () => supabaseUserContext,
+      getUserContext: async () => providerBackedUserContext,
       readContext: async () => makeEmptyReadContext(),
       askDeepSeek: async () => {
         throw new Error("Bearer secret should not be exposed");
@@ -1091,7 +1091,7 @@ describe("AI Ask route", () => {
       model: "deepseek-v4-flash",
     }));
     const response = await handleAiAskRequest(makeRequest({ message: "Hello" }), {
-      getUserContext: async () => supabaseUserContext,
+      getUserContext: async () => providerBackedUserContext,
       readContext: async () => makeEmptyReadContext(),
       askDeepSeek,
       hasApiKey: () => true,

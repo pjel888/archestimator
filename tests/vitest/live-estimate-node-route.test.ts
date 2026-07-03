@@ -15,7 +15,7 @@ const workspaceRepository = readFileSync("src/lib/repositories/workspace-reposit
 const estimateActions = readFileSync("src/lib/estimates/actions.ts", "utf8");
 
 describe("live estimate node route", () => {
-  it("loads project-scoped Supabase estimate tree data instead of sample project/tree data", () => {
+  it("loads project-scoped estimate tree data instead of sample project/tree data", () => {
     expect(estimateNodePage).toContain("resolveEstimateTabRouteContext(projectId, nodeId, ESTIMATE_SHEET_TREE_LOAD_LIMITS)");
     expect(estimateNodePage).not.toContain("sampleProjects");
     expect(estimateNodePage).not.toContain("sampleEstimateTree");
@@ -143,8 +143,8 @@ describe("live estimate node route", () => {
   });
 
   it("repository validates node ownership through project-scoped estimate join", () => {
-    expect(workspaceRepository).toContain("estimates!inner");
-    expect(workspaceRepository).toContain('.eq("estimates.project_id", project.id)');
+    expect(workspaceRepository).toContain("INNER JOIN estimates estimate ON estimate.id = node.estimate_id");
+    expect(workspaceRepository).toContain("AND estimate.project_id = ?");
     expect(workspaceRepository).toContain("return getProjectEstimateTreeByEstimate(projectId, nodeId)");
     expect(workspaceRepository).toContain("buildEstimateTree");
   });

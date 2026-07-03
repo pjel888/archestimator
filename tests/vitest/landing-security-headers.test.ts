@@ -65,8 +65,10 @@ describe("landing security headers", () => {
     expect(workshop?.headers.some((header) => header.key === "Content-Security-Policy-Report-Only")).toBe(true);
     expect(workshop?.headers.some((header) => header.key === "Content-Security-Policy")).toBe(false);
 
-    // The Report-Only policy must keep Supabase Realtime websockets allowed for /workshop.
+    // Durable Object collaboration connects through same-origin Worker routes;
+    // the Cloudflare-only app must not keep legacy Supabase Realtime allowances.
     const workshopCsp = workshop?.headers.find((header) => header.key === "Content-Security-Policy-Report-Only")?.value;
-    expect(workshopCsp).toContain("wss://*.supabase.co");
+    expect(workshopCsp).toContain("connect-src 'self'");
+    expect(workshopCsp).not.toContain("supabase.co");
   });
 });

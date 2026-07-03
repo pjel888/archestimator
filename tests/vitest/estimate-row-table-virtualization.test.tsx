@@ -127,7 +127,7 @@ describe("estimate row table virtualization", () => {
       unit: "box",
     };
 
-    render(
+    const { container } = render(
       <EstimateRowItemsTable
         items={[row]}
         editableRows={{}}
@@ -153,7 +153,13 @@ describe("estimate row table virtualization", () => {
     expect(quantityCell).toBeInstanceOf(HTMLElement);
     expect(within(quantityCell as HTMLElement).getByText("boxes")).toHaveClass("!text-[10px]");
     expect(within(quantityCell as HTMLElement).queryByText("/ box")).not.toBeInTheDocument();
-    expect(screen.getByText("/ box")).toBeInTheDocument();
+    const materialUnitLabel = container.querySelector<HTMLElement>("[data-estimate-material-unit-label]");
+    expect(materialUnitLabel).toHaveAttribute("title", "per box");
+    expect(materialUnitLabel?.querySelector("[data-estimate-material-unit-slash]")).toHaveTextContent("/");
+    expect(within(materialUnitLabel as HTMLElement).getByText("box")).toHaveAttribute(
+      "data-estimate-material-unit-value",
+      "true",
+    );
   });
 
   it("renders left-edge resize handles in each node table header when column resizing is enabled", () => {

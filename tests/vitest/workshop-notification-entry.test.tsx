@@ -77,6 +77,7 @@ describe("workshop notification entry", () => {
     expect(providersSource).toContain("<NotificationProvider>");
     expect(shellSource).toContain("WorkshopNotificationEntry");
     expect(shellSource).toContain("WorkshopSettingsModal");
+    expect(shellSource).toContain("WorkshopSettingsEntry");
     expect(shellSource).toContain("const headerActions");
     expect(shellSource).toContain("actions={headerActions}");
     const headerActionsStart = shellSource.indexOf("const headerActions");
@@ -85,7 +86,7 @@ describe("workshop notification entry", () => {
       shellSource.indexOf("return (", headerActionsStart),
     );
     expect(headerActionsSource.indexOf("<WorkshopNotificationEntry")).toBeLessThan(
-      headerActionsSource.indexOf("<WorkshopSettingsModal"),
+      headerActionsSource.indexOf("<WorkshopSettingsEntry"),
     );
   });
 });

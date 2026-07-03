@@ -9,8 +9,9 @@ import {
   writeUploadRequirementCoverageAuditReport,
 } from "../../scripts/check-upload-requirement-coverage";
 
-const REQUIREMENTS_FILE = ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/04_REQUIREMENTS_SPECIFICATION.md";
-const RELEASE_GATES_FILE = ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-release-gates.json";
+const UPLOAD_PLAN_DIR = ".ai/03_plans/000-Follow Ups/2026-06-26-File-Upload-Audit-And-Improvement";
+const REQUIREMENTS_FILE = `${UPLOAD_PLAN_DIR}/04_REQUIREMENTS_SPECIFICATION.md`;
+const RELEASE_GATES_FILE = `${UPLOAD_PLAN_DIR}/evidence/upload-release-gates.json`;
 
 function writeJson(path: string, value: unknown) {
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);

@@ -91,6 +91,6 @@ describe("mass deletion server action contract", () => {
     expect(actions).not.toMatch(/preview_bulk_archive_library_components|execute_bulk_archive_library_components|supabase\.rpc/);
     expect(actions).toContain("expectedPreviewHash");
     expect(actions).toContain("revalidateLibraryRoutes()");
-    expect(repository).toContain('.neq("lifecycle_state", "archived")');
+    expect(repository).toContain("AND lifecycle_state <> 'archived'");
   });
 });

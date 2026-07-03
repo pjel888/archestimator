@@ -1,12 +1,8 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { expect, it } from "vitest";
 
-import { describe, expect, it } from "vitest";
+import { optionalUploadProviderProof } from "./upload-provider-proof-fixture";
 
-const proof = JSON.parse(readFileSync(join(
-  process.cwd(),
-  ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-scan-worker-provider-proof.json",
-), "utf8")) as {
+const { describeProof, proof } = optionalUploadProviderProof<{
   proofBoundary: string;
   passed: boolean;
   skipped?: boolean;
@@ -41,9 +37,9 @@ const proof = JSON.parse(readFileSync(join(
     scanOutcomeCounts: Record<string, number>;
   }>;
   rawStoragePathRecorded: boolean;
-};
+}>("upload-scan-worker-provider-proof.json");
 
-describe("upload scan worker provider proof evidence", () => {
+describeProof("upload scan worker provider proof evidence", () => {
   it("records a passed linked-provider scan worker readback proof", () => {
     expect(proof.proofBoundary).toBe("linked-provider-operation-proof");
     expect(proof.passed).toBe(true);

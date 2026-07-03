@@ -60,8 +60,8 @@ describe("workshop favorites schema", () => {
     expect(supabaseTypes).toContain("estimate_favorites: {");
     expect(repository).toContain("export async function getWorkshopHomebaseData");
     expect(repository).toContain("export const listCurrentWorkspaceProjects = cache(");
-    expect(repository).toContain(".from(\"project_favorites\")");
-    expect(repository).toContain(".from(\"estimate_favorites\")");
+    expect(repository).toContain("FROM project_favorites");
+    expect(repository).toContain("FROM estimate_favorites");
     expect(repository).toContain("favoriteProjectIds:");
     expect(repository).toContain("mergeHomebaseRecords");
     expect(actions).toContain("export async function setProjectFavorite");
@@ -79,10 +79,11 @@ describe("workshop favorites schema", () => {
     expect(mainSidebarMigration).toContain("limit (select safe_sheet_limit from input)");
     expect(mainSidebarMigration).toContain("grant execute on function public.main_sidebar_favorite_projects(uuid, int, int) to authenticated");
     expect(supabaseTypes).toContain("main_sidebar_favorite_projects: {");
-    expect(sidebarFavoritesRepository).toContain('rpc("main_sidebar_favorite_projects"');
-    expect(sidebarFavoritesRepository).toContain("parseMainSidebarFavoriteProjectsPayload");
-    expect(sidebarFavoritesRepository).toContain(".from(\"project_favorites\")");
-    expect(sidebarFavoritesRepository).toContain(".from(\"estimate_favorites\")");
+    expect(repository).toContain("export function parseMainSidebarFavoriteProjectsPayload");
+    expect(sidebarFavoritesRepository).toContain("async function listMainSidebarFavoriteProjectsRpcPath");
+    expect(sidebarFavoritesRepository).toContain("return null;");
+    expect(sidebarFavoritesRepository).toContain("FROM project_favorites");
+    expect(sidebarFavoritesRepository).toContain("FROM estimate_favorites");
     expect(sidebarFavoritesRepository).toContain("favoriteEstimateProjectIds");
     expect(sidebarFavoritesRepository).toContain("sidebarProjectIds");
     expect(sidebarFavoritesRepository).toContain("projectFavoriteCreatedAt");

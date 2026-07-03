@@ -16,6 +16,7 @@ describe("closed beta pricing copy", () => {
   it("keeps beta access copy on active signup and contact routes", () => {
     const combined = [
       readFileSync(join(process.cwd(), "src/app/signup/page.tsx"), "utf8"),
+      readFileSync(join(process.cwd(), "src/components/auth/ClosedBetaGate.tsx"), "utf8"),
       readFileSync(join(process.cwd(), "src/app/contact/page.tsx"), "utf8"),
     ].join("\n");
 

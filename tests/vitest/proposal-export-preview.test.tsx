@@ -320,6 +320,7 @@ describe("ProposalExportPreviewDialog", () => {
           selectedNodeId="main-house"
           nodes={nodes}
           proposalExportMetadata={metadata}
+          canEditEstimate
           renderSidebar={false}
         />
         <EstimateHeaderActions />

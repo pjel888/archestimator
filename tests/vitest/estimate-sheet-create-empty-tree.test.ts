@@ -7,7 +7,7 @@ const USER_ID = "55555555-5555-4555-8555-555555555555";
 
 const getCurrentWorkspaceProject = vi.hoisted(() => vi.fn());
 const requireCurrentUserContext = vi.hoisted(() => vi.fn());
-const createSupabaseServerClient = vi.hoisted(() => vi.fn());
+const createEstimateActionsD1Client = vi.hoisted(() => vi.fn());
 const revalidatePath = vi.hoisted(() => vi.fn());
 const redirect = vi.hoisted(() => vi.fn());
 
@@ -23,8 +23,8 @@ vi.mock("@/lib/auth/session", () => ({
   requireCurrentUserContext,
 }));
 
-vi.mock("@/lib/supabase/server", () => ({
-  createSupabaseServerClient,
+vi.mock("@/lib/estimates/d1-action-client", () => ({
+  createEstimateActionsD1Client,
 }));
 
 vi.mock("next/cache", () => ({
@@ -103,7 +103,7 @@ function createQuery(table: string, inserts: InsertCall[]) {
   return query;
 }
 
-function createSupabaseMock({ canEditProject = true }: { canEditProject?: boolean } = {}) {
+function createEstimateActionsDataStoreMock({ canEditProject = true }: { canEditProject?: boolean } = {}) {
   const inserts: InsertCall[] = [];
   const from = vi.fn((table: string) => createQuery(table, inserts));
   const rpc = vi.fn(async (fn: string) => {
@@ -119,11 +119,18 @@ function createSupabaseMock({ canEditProject = true }: { canEditProject?: boolea
   };
 }
 
+function mockEstimateActionsDataStore<T extends { rpc: (name: string, args?: Record<string, unknown>) => unknown }>(store: T) {
+  createEstimateActionsD1Client.mockResolvedValue({
+    ...store,
+    call: (name: string, args: Record<string, unknown>) => store.rpc(name, args),
+  });
+}
+
 describe("estimate sheet empty-tree creation", () => {
   beforeEach(() => {
     getCurrentWorkspaceProject.mockReset();
     requireCurrentUserContext.mockReset();
-    createSupabaseServerClient.mockReset();
+    createEstimateActionsD1Client.mockReset();
     revalidatePath.mockReset();
     redirect.mockReset();
 
@@ -132,14 +139,14 @@ describe("estimate sheet empty-tree creation", () => {
   });
 
   it("creates a default tab without seeding estimate nodes", async () => {
-    const supabase = createSupabaseMock();
-    createSupabaseServerClient.mockResolvedValue(supabase.client);
+    const dataStore = createEstimateActionsDataStoreMock();
+    mockEstimateActionsDataStore(dataStore.client);
 
     const result = await createEstimateSheetDraft(PROJECT_ID);
 
-    expect(supabase.rpc).toHaveBeenCalledWith("can_edit_project", { target_project_id: PROJECT_ID });
-    expect(supabase.inserts.map((call) => call.table)).toEqual(["estimates", "estimate_tabs"]);
-    expect(supabase.inserts.some((call) => call.table === "estimate_nodes")).toBe(false);
+    expect(dataStore.rpc).toHaveBeenCalledWith("can_edit_project", { target_project_id: PROJECT_ID });
+    expect(dataStore.inserts.map((call) => call.table)).toEqual(["estimates", "estimate_tabs"]);
+    expect(dataStore.inserts.some((call) => call.table === "estimate_nodes")).toBe(false);
     expect(result.row.firstNodeId).toBeNull();
     expect(result.firstNodeId).toBeNull();
     expect(result.row.nodeCount).toBe(0);
@@ -150,29 +157,29 @@ describe("estimate sheet empty-tree creation", () => {
   });
 
   it("redirects legacy form creates to the estimate route when no first node exists", async () => {
-    const supabase = createSupabaseMock();
-    createSupabaseServerClient.mockResolvedValue(supabase.client);
+    const dataStore = createEstimateActionsDataStoreMock();
+    mockEstimateActionsDataStore(dataStore.client);
     const formData = new FormData();
     formData.set("name", "Initial Estimate");
 
     await createEstimate(PROJECT_ID, formData);
 
-    expect(supabase.inserts.map((call) => call.table)).toEqual(["estimates", "estimate_tabs"]);
-    expect(supabase.inserts.some((call) => call.table === "estimate_nodes")).toBe(false);
-    expect(supabase.rpc).toHaveBeenCalledWith("can_edit_project", { target_project_id: PROJECT_ID });
+    expect(dataStore.inserts.map((call) => call.table)).toEqual(["estimates", "estimate_tabs"]);
+    expect(dataStore.inserts.some((call) => call.table === "estimate_nodes")).toBe(false);
+    expect(dataStore.rpc).toHaveBeenCalledWith("can_edit_project", { target_project_id: PROJECT_ID });
     expect(redirect).toHaveBeenCalledWith(`/workshop/projects/${PROJECT_ID}/estimates/${ESTIMATE_ID}`);
   });
 
   it("denies legacy form creates for project viewers before any estimate writes", async () => {
-    const supabase = createSupabaseMock({ canEditProject: false });
-    createSupabaseServerClient.mockResolvedValue(supabase.client);
+    const dataStore = createEstimateActionsDataStoreMock({ canEditProject: false });
+    mockEstimateActionsDataStore(dataStore.client);
     const formData = new FormData();
     formData.set("name", "Viewer Attempt");
 
     await expect(createEstimate(PROJECT_ID, formData)).rejects.toThrow(/edit access denied/i);
 
-    expect(supabase.rpc).toHaveBeenCalledWith("can_edit_project", { target_project_id: PROJECT_ID });
-    expect(supabase.inserts).toEqual([]);
+    expect(dataStore.rpc).toHaveBeenCalledWith("can_edit_project", { target_project_id: PROJECT_ID });
+    expect(dataStore.inserts).toEqual([]);
     expect(redirect).not.toHaveBeenCalled();
   });
 });

@@ -153,6 +153,7 @@ function renderPersistedEstimateSheet(rows: EstimateRowItem[]) {
         nodes={nodes}
         projectId={projectId}
         estimateId={estimateId}
+        canEditEstimate
         renderSidebar={false}
       />
     </QueryClientProvider>,

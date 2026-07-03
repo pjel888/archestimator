@@ -196,7 +196,7 @@ describe("component library lazy load (U4)", () => {
     expect(screen.getByRole("tab", { name: "Project" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Templates" })).toBeInTheDocument();
     expect(screen.getByRole("status", { name: "Loading Library tree" })).toBeInTheDocument();
-    expect(loadProjectLibraryMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(loadProjectLibraryMock).toHaveBeenCalledTimes(1));
     expect(loadProjectLibraryMock).toHaveBeenCalledWith("lazy-project");
     expect(loadLibraryMock).not.toHaveBeenCalled();
 

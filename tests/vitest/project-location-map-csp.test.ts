@@ -18,7 +18,8 @@ describe("project location map CSP", () => {
     expect(workshopCsp).toContain("worker-src 'self' blob:");
     expect(workshopCsp).toContain("child-src 'self' blob:");
     expect(workshopCsp).toContain("img-src 'self' data: blob:");
-    expect(workshopCsp).toContain("connect-src 'self' https://*.supabase.co wss://*.supabase.co");
+    expect(workshopCsp).toContain("connect-src 'self'");
+    expect(workshopCsp).not.toContain("supabase.co");
     expect(workshopCsp).not.toContain("img-src *");
     expect(workshopCsp).not.toContain("img-src https:");
     expect(workshopCsp).not.toContain("connect-src *");

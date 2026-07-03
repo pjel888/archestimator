@@ -1,12 +1,8 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { expect, it } from "vitest";
 
-import { describe, expect, it } from "vitest";
+import { optionalUploadProviderProof } from "./upload-provider-proof-fixture";
 
-const proof = JSON.parse(readFileSync(join(
-  process.cwd(),
-  ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-clean-download-provider-proof.json",
-), "utf8")) as {
+const { describeProof, proof } = optionalUploadProviderProof<{
   proofBoundary: string;
   passed: boolean;
   skipped: boolean;
@@ -50,9 +46,9 @@ const proof = JSON.parse(readFileSync(join(
   checks: Array<{ label: string; passed: boolean }>;
   failedChecks: string[];
   cleanupErrors: unknown[];
-};
+}>("upload-clean-download-provider-proof.json");
 
-describe("upload clean download provider proof evidence", () => {
+describeProof("upload clean download provider proof evidence", () => {
   it("records a passed linked-provider clean download readback proof", () => {
     expect(proof.proofBoundary).toBe("linked-provider-clean-download-readback");
     expect(proof.passed).toBe(true);

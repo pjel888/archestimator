@@ -204,7 +204,7 @@ describe("estimate sheet cost inputs", () => {
 
   it("uses the shared hover-revealed selection checkbox for estimate rows", async () => {
     const user = userEvent.setup();
-    renderEstimateSheet("living-area");
+    renderEstimateSheet("living-area", { canEditEstimate: true });
 
     const selector = screen.getByRole("checkbox", { name: "Select Hardwood Oak Flooring" });
     expect(selector).toHaveAttribute("aria-checked", "false");
@@ -219,7 +219,7 @@ describe("estimate sheet cost inputs", () => {
 
   it("displays the misc cost input as pesos when idle but keeps focused typing uninterrupted", async () => {
     const user = userEvent.setup();
-    renderEstimateSheet("main-house");
+    renderEstimateSheet("main-house", { canEditEstimate: true });
 
     const miscCostInput = screen.getByLabelText("HEMLINGBY Loveseat misc cost");
     const row = miscCostInput.closest("tr");
@@ -311,7 +311,7 @@ describe("estimate sheet cost inputs", () => {
 
     render(
       <QueryClientProvider client={makeQueryClient()}>
-        <EstimateSheetContent selectedNodeId="manual-area" nodes={persistedBlankRowTree} renderSidebar={false} />
+        <EstimateSheetContent selectedNodeId="manual-area" nodes={persistedBlankRowTree} canEditEstimate renderSidebar={false} />
       </QueryClientProvider>,
     );
 
@@ -322,7 +322,7 @@ describe("estimate sheet cost inputs", () => {
   });
 
   it("keeps drop prompts hidden at rest and offers a quiet add-row affordance instead", () => {
-    renderEstimateSheet("living-area");
+    renderEstimateSheet("living-area", { canEditEstimate: true });
 
     const livingAreaSection = screen.getByLabelText("Living Area");
     expect(within(livingAreaSection).queryByText("Add or drag estimate component")).not.toBeInTheDocument();
@@ -335,7 +335,7 @@ describe("estimate sheet cost inputs", () => {
 
   it("opens row details from the row action menu", async () => {
     const user = userEvent.setup();
-    renderEstimateSheet("living-area");
+    renderEstimateSheet("living-area", { canEditEstimate: true });
 
     await user.click(screen.getByRole("button", { name: "Open row details for Hardwood Oak Flooring" }));
 
@@ -348,7 +348,7 @@ describe("estimate sheet cost inputs", () => {
 
   it("opens sheet activity from the local sheet header", async () => {
     const user = userEvent.setup();
-    renderEstimateSheet("living-area");
+    renderEstimateSheet("living-area", { canEditEstimate: true });
 
     await user.click(screen.getByRole("button", { name: "Activity" }));
 
@@ -358,7 +358,7 @@ describe("estimate sheet cost inputs", () => {
   });
 
   it("does not expose discipline or designation as estimate row item fields", () => {
-    renderEstimateSheet("living-area");
+    renderEstimateSheet("living-area", { canEditEstimate: true });
 
     const livingAreaSection = screen.getByLabelText("Living Area");
     expect(within(livingAreaSection).queryByText("Discipline / Designation")).not.toBeInTheDocument();
@@ -367,7 +367,7 @@ describe("estimate sheet cost inputs", () => {
   });
 
   it("labels the total column once without repeating the description in every row", () => {
-    renderEstimateSheet("living-area");
+    renderEstimateSheet("living-area", { canEditEstimate: true });
 
     const livingAreaSection = screen.getByLabelText("Living Area");
     const materialHeader = within(livingAreaSection).getByRole("columnheader", { name: "Materials" });
@@ -387,7 +387,7 @@ describe("estimate sheet cost inputs", () => {
   });
 
   it("centers subtotal, contingency, adjustment, and misc cost row values", () => {
-    renderEstimateSheet("living-area");
+    renderEstimateSheet("living-area", { canEditEstimate: true });
 
     const livingAreaSection = screen.getByLabelText("Living Area");
     const subtotalCell = within(livingAreaSection).getByText("₱ 57,600.00").closest("td");
@@ -614,7 +614,7 @@ describe("estimate sheet cost inputs", () => {
 
   it("commits row cells on Enter without moving to the next cell", async () => {
     const user = userEvent.setup();
-    renderEstimateSheet("living-area");
+    renderEstimateSheet("living-area", { canEditEstimate: true });
 
     const firstQuantity = screen.getByLabelText("Hardwood Oak Flooring quantity");
     await user.click(firstQuantity);
@@ -648,7 +648,7 @@ describe("estimate sheet cost inputs", () => {
 
   it("commits row cells when focus leaves the edited input", async () => {
     const user = userEvent.setup();
-    renderEstimateSheet("living-area");
+    renderEstimateSheet("living-area", { canEditEstimate: true });
 
     const firstQuantity = screen.getByLabelText("Hardwood Oak Flooring quantity");
     const materialCell = screen.getByLabelText("Hardwood Oak Flooring replaceable estimate component");
@@ -667,7 +667,7 @@ describe("estimate sheet cost inputs", () => {
 
   it("keeps row save state out of the visible spreadsheet cells while editing", async () => {
     const user = userEvent.setup();
-    renderEstimateSheet("living-area");
+    renderEstimateSheet("living-area", { canEditEstimate: true });
 
     const livingAreaSection = screen.getByLabelText("Living Area");
     const quantityInput = within(livingAreaSection).getByLabelText("Hardwood Oak Flooring quantity");
@@ -684,7 +684,7 @@ describe("estimate sheet cost inputs", () => {
 
   it("marks estimate component cells as replaceable targets with component action handles and highlights focused row editing", async () => {
     const user = userEvent.setup();
-    renderEstimateSheet("living-area");
+    renderEstimateSheet("living-area", { canEditEstimate: true });
 
     const materialCell = screen.getByLabelText("Hardwood Oak Flooring replaceable estimate component");
     const rowDragIcon = screen.getByLabelText("Drag component Hardwood Oak Flooring");
@@ -708,7 +708,7 @@ describe("estimate sheet cost inputs", () => {
   });
 
   it("positions the row move handle with the row selection control", () => {
-    renderEstimateSheet("living-area");
+    renderEstimateSheet("living-area", { canEditEstimate: true });
 
     const quantityInput = screen.getByLabelText("Hardwood Oak Flooring quantity");
     const row = quantityInput.closest("tr");
@@ -726,7 +726,7 @@ describe("estimate sheet cost inputs", () => {
   });
 
   it("shows real tooltips for icon-only row actions on keyboard focus", async () => {
-    renderEstimateSheet("living-area");
+    renderEstimateSheet("living-area", { canEditEstimate: true });
 
     const rowDetailsAction = screen.getByRole("button", { name: "Open row details for Hardwood Oak Flooring" });
     fireEvent.focus(rowDetailsAction);
@@ -745,7 +745,7 @@ describe("estimate sheet cost inputs", () => {
 
   it("opens the row component tab from the in-card component action", async () => {
     const user = userEvent.setup();
-    renderEstimateSheet("living-area");
+    renderEstimateSheet("living-area", { canEditEstimate: true });
 
     const materialCell = screen.getByLabelText("Hardwood Oak Flooring replaceable estimate component");
     await user.click(within(materialCell).getByRole("button", { name: "Open component details for Hardwood Oak Flooring" }));
@@ -884,7 +884,7 @@ describe("estimate sheet cost inputs", () => {
   });
 
   it("treats a cancelled component drag as non-destructive", async () => {
-    renderEstimateSheet("living-area");
+    renderEstimateSheet("living-area", { canEditEstimate: true });
 
     const materialCell = screen.getByLabelText("Hardwood Oak Flooring replaceable estimate component");
     const row = materialCell.closest("tr");
@@ -1065,14 +1065,14 @@ describe("estimate sheet filter + group/sort (D2)", () => {
   }
 
   it("renders a Filter button and a Group button on the middle Tab tools header", () => {
-    renderEstimateSheet("fg-group", { nodes: makeFilterGroupTree() });
+    renderEstimateSheet("fg-group", { nodes: makeFilterGroupTree(), canEditEstimate: true });
     const sheetTools = within(screen.getByLabelText("Tab controls")).getByLabelText("Tab tools");
     expect(within(sheetTools).getByRole("button", { name: "Filter sheet" })).toBeInTheDocument();
     expect(within(sheetTools).getByRole("button", { name: "Group tab" })).toBeInTheDocument();
   });
 
   it("selecting a supplier facet hides non-matching rows but keeps the area", () => {
-    renderEstimateSheet("fg-group", { nodes: makeFilterGroupTree() });
+    renderEstimateSheet("fg-group", { nodes: makeFilterGroupTree(), canEditEstimate: true });
     const sheetTools = within(screen.getByLabelText("Tab controls")).getByLabelText("Tab tools");
 
     // Baseline: all four rows present across the two areas.
@@ -1095,7 +1095,7 @@ describe("estimate sheet filter + group/sort (D2)", () => {
   });
 
   it("choosing Group → Category reorders rows within an area without flattening", () => {
-    renderEstimateSheet("fg-group", { nodes: makeFilterGroupTree() });
+    renderEstimateSheet("fg-group", { nodes: makeFilterGroupTree(), canEditEstimate: true });
     const sheetTools = within(screen.getByLabelText("Tab controls")).getByLabelText("Tab tools");
 
     const area1 = ["fg-r1", "fg-r2", "fg-r3"];

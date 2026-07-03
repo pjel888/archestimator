@@ -15,18 +15,22 @@ describe("Codex auth and estimate-access hardening contracts", () => {
     const devGate = read("src/lib/auth/dev-auth-gate.ts");
     const proxy = read("src/lib/auth/request-proxy.ts");
     const devAuth = read("src/lib/auth/dev-auth.ts");
-    const serverClient = read("src/lib/supabase/server.ts");
+    const profileD1Store = read("src/lib/auth/profile-d1-store.ts");
 
     expect(devGate).toContain("ARCHESTIMATOR_DEV_AUTH_BYPASS_SECRET");
     expect(devGate).toContain("expectedCredential.length >= 32");
+    expect(devGate).toContain("isLocalDevHostname(hostname)");
     expect(proxy).toContain("devAuthBypassCredential");
     expect(devAuth).toContain("devAuthBypassCredential");
-    expect(serverClient).toContain("devAuthBypassCredential");
+    expect(devAuth).toContain("getProfileByEmailFromCloudflareD1(email)");
+    expect(profileD1Store).toContain("FROM profiles");
   });
 
-  it("blocks profile role self-promotion and removes role from authenticated profile update grants", () => {
+  it("blocks profile role self-promotion and keeps current D1 profile updates off the role column", () => {
     const hardeningMigration = read("supabase/migrations/20260602090000_harden_beta_allowlist_admin.sql");
-    const sessionSource = read("src/lib/auth/session.ts");
+    const profileD1Migration = read("migrations/0003_profiles.sql");
+    const profileD1Store = read("src/lib/auth/profile-d1-store.ts");
+    const accountActions = read("src/lib/auth/account-actions.ts");
 
     expect(migrationText).toContain("prevent_profile_role_self_update");
     expect(migrationText).toContain("before update of role on public.profiles");
@@ -36,20 +40,27 @@ describe("Codex auth and estimate-access hardening contracts", () => {
     expect(hardeningMigration).toContain("demoted unexpected elevated role during beta allowlist hardening");
     expect(hardeningMigration).toContain("create or replace function public.ensure_current_user_profile");
     expect(hardeningMigration).toContain("grant execute on function public.ensure_current_user_profile(text, text) to authenticated");
-    expect(sessionSource).toContain('"ensure_current_user_profile"');
-    expect(sessionSource).not.toContain('.from("profiles")\n    .insert');
+    expect(profileD1Migration).toContain("role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('ceo', 'admin', 'member'))");
+    expect(profileD1Store).toContain('return value === "ceo" || value === "admin" || value === "member";');
+    expect(profileD1Store).toContain('role: isAppRole(row.role) ? row.role : "member"');
+    expect(accountActions).toContain("UPDATE profiles\n       SET display_name = ?, updated_at = ?\n       WHERE id = ?");
+    expect(accountActions).not.toMatch(/UPDATE profiles[\s\S]{0,240}\brole\s*=/);
   });
 
-  it("fails closed around ensure_current_user_profile instead of falling back to direct profile inserts", () => {
+  it("keeps Better Auth session profile resolution read-only instead of falling back to direct profile inserts", () => {
     const hardeningMigration = read("supabase/migrations/20260602090000_harden_beta_allowlist_admin.sql");
     const sessionSource = read("src/lib/auth/session.ts");
+    const profileD1Store = read("src/lib/auth/profile-d1-store.ts");
 
     expect(hardeningMigration).toContain("raise exception 'Authenticated user context is required to create a profile.'");
     expect(hardeningMigration).toContain("returning * into created_profile");
-    expect(sessionSource).toContain('"ensure_current_user_profile"');
-    expect(sessionSource).toContain("if (error) throw error;");
-    expect(sessionSource).toContain('if (!createdProfile) throw new Error("Authenticated profile could not be created.");');
-    expect(sessionSource).not.toContain('.from("profiles")\n    .insert');
+    expect(sessionSource).toContain("getProfileByEmailFromCloudflareD1(identity.email)");
+    expect(sessionSource).toContain("profile ?? createSyntheticBetterAuthProfile(identity)");
+    expect(sessionSource).toContain('role: "member"');
+    expect(sessionSource).not.toContain("ensure_current_user_profile");
+    expect(sessionSource).not.toMatch(/INSERT INTO profiles|UPDATE profiles|@supabase\/supabase-js/);
+    expect(profileD1Store).toContain("FROM profiles");
+    expect(profileD1Store).not.toMatch(/INSERT INTO profiles|UPDATE profiles/);
   });
 
   it("lets the beta allowlist hardening migration demote unexpected roles without tripping its own trigger", () => {
@@ -64,10 +75,20 @@ describe("Codex auth and estimate-access hardening contracts", () => {
   });
 
   it("routes closed beta allowlist admin through actor-derived RPCs instead of direct table reachability", () => {
+    const allowlistAdmin = read("src/lib/auth/beta-allowlist-admin.ts");
+    const allowlistActions = read("src/lib/auth/beta-allowlist-admin-actions.ts");
+    const allowlistD1Store = read("src/lib/auth/closed-beta-d1-store.ts");
+
     expect(migrationText).toContain("20260602090000_harden_beta_allowlist_admin");
     expect(migrationText).toContain("revoke all on table public.closed_beta_allowed_emails from anon, authenticated");
-    expect(read("src/lib/auth/beta-allowlist-admin.ts")).toContain('rpc("read_closed_beta_allowlist_queue"');
-    expect(read("src/lib/auth/beta-allowlist-admin-actions.ts")).toContain('rpc("create_closed_beta_allowlist_entry"');
+    expect(allowlistAdmin).toContain("requireCurrentUserContext()");
+    expect(allowlistAdmin).toContain("canManageClosedBetaAllowlist(context.role)");
+    expect(allowlistAdmin).toContain("readClosedBetaAllowlistQueueFromD1(requestedStatus)");
+    expect(allowlistActions).toContain("createClosedBetaAllowlistEntryInD1({");
+    expect(allowlistActions).toContain("actorUserId: context.userId");
+    expect(allowlistActions).toContain("updateClosedBetaAllowlistEntryInD1({");
+    expect(allowlistD1Store).toContain("INSERT INTO closed_beta_allowed_emails");
+    expect(allowlistD1Store).toContain("INSERT INTO closed_beta_allowlist_audit_events");
   });
 
   it("keeps estimate SECURITY DEFINER bypasses tied to auth.role service_role only", () => {
@@ -90,11 +111,11 @@ describe("Codex auth and estimate-access hardening contracts", () => {
       "export async function updateEstimateRowItem",
     );
     const insertRpc = latestFunction("insert_estimate_row_item_with_history");
-    const actionGuardIndex = insertAction.indexOf("await assertCanEditEstimate(supabase, estimateId);");
+    const actionGuardIndex = insertAction.indexOf("await assertCanEditEstimate(dataStore, estimateId);");
 
     expect(actionGuardIndex).toBeGreaterThanOrEqual(0);
     expect(actionGuardIndex).toBeLessThan(insertAction.indexOf('.from("estimate_nodes")'));
-    expect(actionGuardIndex).toBeLessThan(insertAction.indexOf('supabase.rpc("insert_estimate_row_item_with_history"'));
+    expect(actionGuardIndex).toBeLessThan(insertAction.indexOf('dataStore.call("insert_estimate_row_item_with_history"'));
     expect(insertRpc).toContain("public.assert_can_edit_estimate_for_history(target_project_id, target_estimate_id, acting_user_id)");
     expect(insertRpc).not.toContain("resolved_workspace_id := public.resolve_estimate_workspace(target_project_id, target_estimate_id, acting_user_id);");
   });
@@ -160,7 +181,8 @@ describe("Codex auth and estimate-access hardening contracts", () => {
     const adjustmentRpc = latestFunction("update_estimate_sheet_adjustment_with_history");
     const adjustmentHardening = latestMigrationBySuffix("_harden_estimate_sheet_adjustment_writes.sql");
 
-    expect(adjustmentAction).toContain('supabase.rpc("update_estimate_sheet_adjustment_with_history"');
+    expect(adjustmentAction).toContain("await assertCanEditEstimate(dataStore, estimateId);");
+    expect(adjustmentAction).toContain('dataStore.call("update_estimate_sheet_adjustment_with_history"');
     expect(adjustmentAction).not.toContain('.from("estimate_sheet_adjustments")');
     expect(adjustmentRpc).toContain("public.assert_can_edit_estimate_for_history(target_project_id, target_estimate_id, acting_user_id)");
     expect(adjustmentRpc).toContain("public.estimate_sheet_event_result(target_estimate_id, correlation_id)");
@@ -179,10 +201,10 @@ describe("Codex auth and estimate-access hardening contracts", () => {
     const hardeningMigration = latestMigrationBySuffix("_estimate_sheet_bulk_delete_and_edit_rpc_hardening.sql");
     const insertNodeRpc = latestFunction("insert_estimate_template_node_into_estimate_with_history");
 
-    expect(insertNodeAction).toContain('await assertCanEditEstimate(supabase, estimateId);');
-    expect(insertNodeAction).toContain('supabase.rpc("insert_estimate_template_node_into_estimate_with_history"');
-    expect(insertNodeAction).not.toContain('supabase.rpc("create_estimate_node_with_history"');
-    expect(insertNodeAction).not.toContain('supabase.rpc("insert_estimate_row_item_with_history"');
+    expect(insertNodeAction).toContain("await assertCanEditEstimate(dataStore, estimateId);");
+    expect(insertNodeAction).toContain('dataStore.call("insert_estimate_template_node_into_estimate_with_history"');
+    expect(insertNodeAction).not.toContain('dataStore.call("create_estimate_node_with_history"');
+    expect(insertNodeAction).not.toContain('dataStore.call("insert_estimate_row_item_with_history"');
     expect(insertNodeRpc).toContain("public.assert_can_edit_estimate_for_history(target_project_id, target_estimate_id, acting_user_id)");
     expect(insertNodeRpc).toContain("public.create_estimate_node_with_history");
     expect(insertNodeRpc).toContain("public.insert_estimate_row_item_with_history");
@@ -203,15 +225,15 @@ describe("Codex auth and estimate-access hardening contracts", () => {
       "export async function createEstimateTemplateFromEstimateTab",
       "export async function renameEstimateTemplate",
     );
-    const sourceEditGuard = "await assertCanPublishEstimateTemplateFromEstimate(supabase, input.estimateId);";
+    const sourceEditGuard = "await assertCanPublishEstimateTemplateFromEstimate(database, input.estimateId, currentUser);";
 
-    expect(libraryActions).toContain('supabase.rpc("can_edit_estimate", { target_estimate_id: estimateId })');
+    expect(libraryActions).toContain("canEditEstimateInD1(database, estimateId, user)");
     expect(nodePublishAction.indexOf(sourceEditGuard)).toBeGreaterThan(nodePublishAction.indexOf('if (!estimate) throw new Error("Estimate not found in the current workspace.");'));
-    expect(nodePublishAction.indexOf(sourceEditGuard)).toBeLessThan(nodePublishAction.indexOf('.from("estimate_nodes")'));
-    expect(nodePublishAction.indexOf(sourceEditGuard)).toBeLessThan(nodePublishAction.indexOf('.from("estimate_templates")'));
+    expect(nodePublishAction.indexOf(sourceEditGuard)).toBeLessThan(nodePublishAction.indexOf("FROM estimate_nodes"));
+    expect(nodePublishAction.indexOf(sourceEditGuard)).toBeLessThan(nodePublishAction.indexOf("assertWithinLibraryQuota"));
     expect(tabPublishAction.indexOf(sourceEditGuard)).toBeGreaterThan(tabPublishAction.indexOf('if (!estimate) throw new Error("Estimate not found in the current workspace.");'));
-    expect(tabPublishAction.indexOf(sourceEditGuard)).toBeLessThan(tabPublishAction.indexOf('.from("estimate_nodes")'));
-    expect(tabPublishAction.indexOf(sourceEditGuard)).toBeLessThan(tabPublishAction.indexOf('.from("estimate_templates")'));
+    expect(tabPublishAction.indexOf(sourceEditGuard)).toBeLessThan(tabPublishAction.indexOf("FROM estimate_nodes"));
+    expect(tabPublishAction.indexOf(sourceEditGuard)).toBeLessThan(tabPublishAction.indexOf("assertWithinLibraryQuota"));
   });
 
   it("hardens estimate metadata history updates at the RPC and UI edit-affordance boundaries", () => {
@@ -222,7 +244,7 @@ describe("Codex auth and estimate-access hardening contracts", () => {
     expect(metadataRpcHardening).toContain("public.assert_can_edit_estimate_for_history(target_project_id, target_estimate_id, acting_user_id)");
     expect(metadataRpcHardening).toContain("raise exception 'public.update_estimate_details_with_history is missing estimate edit authorization.'");
     expect(metadataRpcHardening).toContain("grant execute on function public.update_estimate_details_with_history(uuid, uuid, jsonb, uuid, uuid) to authenticated");
-    expect(estimateActions).toContain("await assertCanEditEstimate(supabase, input.estimateId);");
+    expect(estimateActions).toContain("await assertCanEditEstimate(dataStore, input.estimateId);");
     expect(metadataStrip).toContain("canEditEstimate: canEditEstimate === true");
     expect(metadataStrip).toContain("if (!metadata || !canEditEstimate) return;");
     expect(metadataStrip).toContain("disabled={!metadata || !canEditEstimate || isPending}");

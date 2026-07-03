@@ -9,6 +9,8 @@ import {
   writeUploadProductionObservationReports,
 } from "../../scripts/verify-upload-production-observations";
 
+const UPLOAD_PLAN_DIR = ".ai/03_plans/000-Follow Ups/2026-06-26-File-Upload-Audit-And-Improvement";
+
 function completeObservationInput() {
   return {
     dashboard: {
@@ -37,7 +39,7 @@ function completeObservationInput() {
 function readTemplateInput() {
   return JSON.parse(readFileSync(join(
     process.cwd(),
-    ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-production-observations-input.template.json",
+    `${UPLOAD_PLAN_DIR}/evidence/upload-production-observations-input.template.json`,
   ), "utf8")) as ReturnType<typeof completeObservationInput>;
 }
 

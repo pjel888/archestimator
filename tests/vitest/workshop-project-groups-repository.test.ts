@@ -28,25 +28,26 @@ describe("project groups repository wiring (Part 7c, additive)", () => {
     const fnEnd = repository.indexOf("\nfunction mergeHomebaseRecords", fnStart);
     const body = repository.slice(fnStart, fnEnd === -1 ? undefined : fnEnd);
 
-    // Both reads exist in this function...
-    expect(body).toContain('.from("project_groups")');
-    expect(body).toContain('.from("project_group_memberships")');
+    // Both D1 reads exist in this function...
+    expect(body).toContain("FROM project_groups");
+    expect(body).toContain("FROM project_group_memberships");
 
     // ...and they live in the SAME Promise.all wave as the favorites read, not a
-    // new serial await. Anchor: the group reads must appear before the favorites
-    // result is destructured (which happens right after the single Promise.all).
+    // new serial await. Anchor: the group reads must appear before the first
+    // post-batch owned-project processing.
     const promiseAllIndex = body.indexOf("Promise.all([");
-    const groupsReadIndex = body.indexOf('.from("project_groups")');
-    const membershipsReadIndex = body.indexOf('.from("project_group_memberships")');
-    const destructureIndex = body.indexOf("if (projectsResult.error) throw projectsResult.error;");
+    const groupsReadIndex = body.indexOf("FROM project_groups");
+    const membershipsReadIndex = body.indexOf("FROM project_group_memberships");
+    const postBatchIndex = body.indexOf("const ownedProjectIds");
     expect(promiseAllIndex).toBeGreaterThan(-1);
+    expect(postBatchIndex).toBeGreaterThan(-1);
     expect(groupsReadIndex).toBeGreaterThan(promiseAllIndex);
     expect(membershipsReadIndex).toBeGreaterThan(promiseAllIndex);
-    expect(groupsReadIndex).toBeLessThan(destructureIndex);
-    expect(membershipsReadIndex).toBeLessThan(destructureIndex);
+    expect(groupsReadIndex).toBeLessThan(postBatchIndex);
+    expect(membershipsReadIndex).toBeLessThan(postBatchIndex);
 
     // Per-user + per-workspace scoping (mirrors favorites RLS predicate usage).
-    expect(body).toContain('.eq("user_id", profile.id)');
+    expect(body).toContain("AND user_id = ?");
   });
 
   test("returns projectGroups additively alongside the existing keys", () => {
@@ -67,7 +68,7 @@ describe("project groups repository wiring (Part 7c, additive)", () => {
     // map only ever holds THIS user's group rows. Every stamp site MUST resolve a
     // miss to null — never undefined, never another user's group. Pin both the
     // per-user scoping on the read and the null-default at the stamp site.
-    expect(repository).toContain('.from("project_group_memberships")');
+    expect(repository).toContain("FROM project_group_memberships");
     expect(repository).toContain("groupIdByProjectId.get(project.id) ?? null");
     // The synthetic pending-invite item (never in a user group) defaults to null too.
     expect(repository).toContain("groupId: null");

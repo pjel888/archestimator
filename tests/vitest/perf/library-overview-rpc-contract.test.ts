@@ -1,14 +1,14 @@
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const testMocks = vi.hoisted(() => ({
-  createSupabaseServerClient: vi.fn(),
+  getCloudflareD1Database: vi.fn(),
   ensureDefaultWorkspace: vi.fn(),
 }));
 
-vi.mock("@/lib/supabase/server", () => ({
-  createSupabaseServerClient: testMocks.createSupabaseServerClient,
+vi.mock("@/lib/cloudflare/d1", () => ({
+  getCloudflareD1Database: testMocks.getCloudflareD1Database,
 }));
 
 vi.mock("@/lib/repositories/workspace-repository", () => ({
@@ -22,323 +22,520 @@ const WORKSPACE = {
   created_by: "user-1",
 };
 
+const TEMPLATE_ID = "11111111-1111-4111-8111-111111111111";
+const GROUP_NODE_ID = "22222222-2222-4222-8222-222222222222";
+const AREA_NODE_ID = "33333333-3333-4333-8333-333333333333";
+const ROW_ID = "44444444-4444-4444-8444-444444444444";
+const ITEM_ID = "55555555-5555-4555-8555-555555555555";
+const PRICE_OPTION_ID = "66666666-6666-4666-8666-666666666666";
+const COST_ENTRY_ID = "77777777-7777-4777-8777-777777777777";
+
 function createOverviewPayload(overrides: Record<string, unknown> = {}) {
   return {
     componentCount: 2,
-    categoryCount: 3,
-    supplierCount: 4,
+    categoryCount: 1,
+    supplierCount: 1,
     brandCount: 1,
-    templateCount: 2,
-    templateCategories: ["Residential", "Commercial"],
-    recentComponents: [
-      {
-        id: "component-1",
-        name: "Fast Component",
-        category: "Concrete",
-        supplier: null,
-        unit: "bag",
-        unit_cost: 250,
-        thumbnail_path: null,
-        pricing_source: "Catalog",
-        pricing_date: "2026-06-01",
-        confidence: "high",
-        lifecycle_state: "available",
-        updated_at: "2026-06-20T00:00:00.000Z",
-      },
-    ],
-    recentTemplateRows: [
-      {
-        id: "template-1",
-        workspace_id: "workspace-1",
-        name: "Starter Template",
-        description: "A fast template",
-        category: "Residential",
-        sort_order: 10,
-        metadata: {},
-        created_by: null,
-        created_at: "2026-06-01T00:00:00.000Z",
-        updated_at: "2026-06-21T00:00:00.000Z",
-      },
-    ],
-    recentTemplateNodes: [
-      {
-        id: "group-1",
-        template_id: "template-1",
-        parent_id: null,
-        kind: "group",
-        name: "Shell",
-        sort_order: 10,
-        metadata: {},
-        created_at: "2026-06-01T00:00:00.000Z",
-        updated_at: "2026-06-01T00:00:00.000Z",
-      },
-      {
-        id: "area-1",
-        template_id: "template-1",
-        parent_id: "group-1",
-        kind: "area",
-        name: "Slab",
-        sort_order: 20,
-        metadata: {},
-        created_at: "2026-06-01T00:00:00.000Z",
-        updated_at: "2026-06-01T00:00:00.000Z",
-      },
-    ],
-    recentTemplateRowItems: [
-      {
-        id: "row-1",
-        template_id: "template-1",
-        template_node_id: "area-1",
-        sort_order: 10,
-        source_library_item_id: "component-1",
-        source_snapshot: {},
-        category_node_id: null,
-        supplier_id: null,
-        material: "Fast Component",
-        description: "",
-        supplier: "",
-        unit: "bag",
-        quantity: 2,
-        unit_cost: 100,
-        misc_cost: 15,
-        contingency_percentage: 0,
-        discipline: "",
-        designation: "",
-        link_state: "linked-clean",
-        metadata: {},
-        created_at: "2026-06-01T00:00:00.000Z",
-        updated_at: "2026-06-01T00:00:00.000Z",
-      },
-    ],
+    templateCount: 1,
+    templateCategories: ["Residential"],
+    recentComponents: [createCostLibraryItemRow()],
+    recentTemplateRows: [createTemplateRow()],
+    recentTemplateNodes: createTemplateNodes(),
+    recentTemplateRowItems: createTemplateRowItems(),
     health: {
       staleComponentCount: 1,
       discontinuedInUseCount: 0,
       missingBrandCount: 1,
-      lastLibraryUpdate: "2026-06-20T00:00:00.000Z",
+      lastLibraryUpdate: "2026-06-22T00:00:00.000Z",
     },
     ...overrides,
   };
 }
 
-function createComponentRowsSeedPayload(overrides: Record<string, unknown> = {}) {
-  return {
-    componentCount: 0,
-    categoryRows: [],
-    suppliers: [],
-    brands: [],
-    libraryFolders: [],
-    itemRows: [],
-    priceOptions: [],
-    costEntries: [],
-    ...overrides,
-  };
+function createCategoryRows() {
+  return [
+    {
+      id: "category-concrete",
+      parent_id: null,
+      label: "Concrete",
+      node_type: "category",
+      sort_order: 10,
+      code: "CON",
+      metadata: {},
+    },
+  ];
 }
 
 function createCostLibraryItemRow(overrides: Record<string, unknown> = {}) {
   return {
-    id: "55555555-5555-4555-8555-555555555555",
+    id: ITEM_ID,
     workspace_id: WORKSPACE.id,
-    name: "Bounded Component",
-    description: "",
-    supplier: "",
+    name: "Fast Component",
+    description: "Browse row",
+    supplier: "Supplier A",
     supplier_id: null,
-    brand: null,
+    brand: "Brand A",
     brand_id: null,
-    category: "Hardware",
-    category_node_id: null,
+    category: "Concrete",
+    category_node_id: "category-concrete",
     library_folder_id: null,
-    unit: "pc",
-    unit_cost: 10,
-    misc_cost: 0,
+    unit: "bag",
+    unit_cost: 100,
+    misc_cost: 5,
     pricing_source: "Catalog",
     pricing_date: "2026-06-01",
     confidence: "high",
-    metadata: {},
+    metadata: { source: "library", sourceUrl: "https://example.com/detail-only", notes: "detail-only" },
     thumbnail_path: null,
-    active_price_option_id: null,
-    current_version_number: 1,
+    active_price_option_id: PRICE_OPTION_ID,
+    current_version_number: 7,
     lifecycle_state: "available",
     lifecycle_state_changed_at: "2026-06-20T00:00:00.000Z",
     created_at: "2026-06-20T00:00:00.000Z",
-    updated_at: "2026-06-20T00:00:00.000Z",
+    updated_at: "2026-06-22T00:00:00.000Z",
     ...overrides,
   };
 }
 
-function createTemplatesSeedPayload(overrides: Record<string, unknown> = {}) {
+function createPriceOptionRow(overrides: Record<string, unknown> = {}) {
   return {
-    templates: [
-      {
-        id: "11111111-1111-4111-8111-111111111111",
-        workspace_id: WORKSPACE.id,
-        name: "Starter Template",
-        description: "A fast template",
-        category: "Residential",
-        sort_order: 10,
-        metadata: {},
-        created_by: null,
-        created_at: "2026-06-01T00:00:00.000Z",
-        updated_at: "2026-06-21T00:00:00.000Z",
-      },
-    ],
-    nodes: [
-      {
-        id: "22222222-2222-4222-8222-222222222222",
-        template_id: "11111111-1111-4111-8111-111111111111",
-        parent_id: null,
-        kind: "group",
-        name: "Shell",
-        sort_order: 10,
-        metadata: {},
-        created_at: "2026-06-01T00:00:00.000Z",
-        updated_at: "2026-06-01T00:00:00.000Z",
-      },
-      {
-        id: "33333333-3333-4333-8333-333333333333",
-        template_id: "11111111-1111-4111-8111-111111111111",
-        parent_id: "22222222-2222-4222-8222-222222222222",
-        kind: "area",
-        name: "Slab",
-        sort_order: 20,
-        metadata: {},
-        created_at: "2026-06-01T00:00:00.000Z",
-        updated_at: "2026-06-01T00:00:00.000Z",
-      },
-    ],
-    rowItems: [
-      {
-        id: "44444444-4444-4444-8444-444444444444",
-        template_id: "11111111-1111-4111-8111-111111111111",
-        template_node_id: "33333333-3333-4333-8333-333333333333",
-        sort_order: 10,
-        source_library_item_id: null,
-        source_snapshot: {},
-        category_node_id: null,
-        supplier_id: null,
-        material: "Fast Component",
-        description: "",
-        supplier: "",
-        unit: "bag",
-        quantity: 2,
-        unit_cost: 100,
-        misc_cost: 15,
-        contingency_percentage: 0,
-        discipline: "",
-        designation: "",
-        link_state: "linked-clean",
-        metadata: {},
-        created_at: "2026-06-01T00:00:00.000Z",
-        updated_at: "2026-06-01T00:00:00.000Z",
-      },
-    ],
+    id: PRICE_OPTION_ID,
+    workspace_id: WORKSPACE.id,
+    item_id: ITEM_ID,
+    label: "Current option",
+    sku: "SKU-1",
+    variant_description: "Detail-only variant",
+    variant_sort_order: 1,
+    unit: "bag",
+    unit_cost: 250,
+    misc_cost: 15,
+    currency: "PHP",
+    pricing_source: "Supplier quote",
+    pricing_date: "2026-06-15",
+    confidence: "medium",
+    source_url: "https://example.com/variant",
+    notes: "detail-only option notes",
+    supplier_id: null,
+    active_cost_entry_id: COST_ENTRY_ID,
+    package_quantity: null,
+    package_unit: null,
+    dimension_length: null,
+    dimension_width: null,
+    dimension_height: null,
+    dimension_unit: null,
+    mass: null,
+    mass_unit: null,
+    image_bucket: null,
+    image_path: null,
+    thumbnail_path: null,
+    image_metadata: {},
+    metadata_json: {},
+    variant_metadata: {},
+    is_active: 1,
+    is_default: 1,
+    created_at: "2026-06-20T00:00:00.000Z",
+    updated_at: "2026-06-22T00:00:00.000Z",
     ...overrides,
   };
 }
 
-function createSupabaseTableChain(result: { data: unknown[] | null; error: unknown }) {
-  const chain = {
-    select: vi.fn(() => chain),
-    eq: vi.fn(() => chain),
-    neq: vi.fn(() => chain),
-    in: vi.fn(() => chain),
-    is: vi.fn(() => chain),
-    order: vi.fn(() => chain),
-    limit: vi.fn(() => Promise.resolve(result)),
-    range: vi.fn(() => Promise.resolve(result)),
-    maybeSingle: vi.fn(() => Promise.resolve({ data: result.data?.[0] ?? null, error: result.error })),
-    then: (resolve: (value: typeof result) => unknown, reject?: (reason: unknown) => unknown) =>
-      Promise.resolve(result).then(resolve, reject),
+function createCostEntryRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: COST_ENTRY_ID,
+    workspace_id: WORKSPACE.id,
+    item_id: ITEM_ID,
+    price_option_id: PRICE_OPTION_ID,
+    unit_cost: 321,
+    misc_cost: 9,
+    currency: "PHP",
+    pricing_source: "Latest supplier quote",
+    pricing_date: "2026-06-22",
+    confidence: "high",
+    source_url: "https://example.com/cost-entry",
+    notes: "detail-only cost entry notes",
+    is_current: 1,
+    deleted_at: null,
+    created_at: "2026-06-21T00:00:00.000Z",
+    updated_at: "2026-06-22T00:00:00.000Z",
+    ...overrides,
   };
-  return chain;
+}
+
+function createTemplateRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: TEMPLATE_ID,
+    workspace_id: WORKSPACE.id,
+    name: "Starter Template",
+    description: "A fast template",
+    category: "Residential",
+    sort_order: 10,
+    metadata: {},
+    created_by: null,
+    created_at: "2026-06-01T00:00:00.000Z",
+    updated_at: "2026-06-21T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+function createTemplateNodes() {
+  return [
+    {
+      id: GROUP_NODE_ID,
+      template_id: TEMPLATE_ID,
+      parent_id: null,
+      kind: "group",
+      name: "Shell",
+      sort_order: 10,
+      metadata: {},
+      created_at: "2026-06-01T00:00:00.000Z",
+      updated_at: "2026-06-01T00:00:00.000Z",
+    },
+    {
+      id: AREA_NODE_ID,
+      template_id: TEMPLATE_ID,
+      parent_id: GROUP_NODE_ID,
+      kind: "area",
+      name: "Slab",
+      sort_order: 20,
+      metadata: {},
+      created_at: "2026-06-01T00:00:00.000Z",
+      updated_at: "2026-06-01T00:00:00.000Z",
+    },
+  ];
+}
+
+function createTemplateRowItems() {
+  return [
+    {
+      id: ROW_ID,
+      template_id: TEMPLATE_ID,
+      template_node_id: AREA_NODE_ID,
+      sort_order: 10,
+      source_library_item_id: ITEM_ID,
+      source_snapshot: {},
+      category_node_id: null,
+      supplier_id: null,
+      material: "Fast Component",
+      description: "",
+      supplier: "",
+      unit: "bag",
+      quantity: 2,
+      unit_cost: 100,
+      misc_cost: 15,
+      contingency_percentage: 0,
+      discipline: "",
+      designation: "",
+      link_state: "linked-clean",
+      metadata: {},
+      created_at: "2026-06-01T00:00:00.000Z",
+      updated_at: "2026-06-01T00:00:00.000Z",
+    },
+  ];
+}
+
+function createComponentLibraryD1Payload(overrides: Partial<ComponentLibraryD1Payload> = {}): ComponentLibraryD1Payload {
+  return {
+    categoryRows: createCategoryRows(),
+    suppliers: [
+      {
+        id: "supplier-1",
+        name: "Supplier A",
+        normalized_name: "supplier a",
+        sort_order: 1,
+      },
+    ],
+    brands: [
+      {
+        id: "brand-1",
+        name: "Brand A",
+        normalized_name: "brand a",
+        sort_order: 1,
+      },
+    ],
+    libraryFolders: [],
+    itemRows: [createCostLibraryItemRow()],
+    priceOptions: [createPriceOptionRow()],
+    costEntries: [createCostEntryRow()],
+    templates: [createTemplateRow()],
+    nodes: createTemplateNodes(),
+    rowItems: createTemplateRowItems(),
+    discontinuedRows: [],
+    templateRefRows: [],
+    estimateRefRows: [],
+    overview: createOverviewPayload(),
+    ...overrides,
+  };
+}
+
+type ComponentLibraryD1Payload = {
+  categoryRows: Record<string, unknown>[];
+  suppliers: Record<string, unknown>[];
+  brands: Record<string, unknown>[];
+  libraryFolders: Record<string, unknown>[];
+  itemRows: Record<string, unknown>[];
+  priceOptions: Record<string, unknown>[];
+  costEntries: Record<string, unknown>[];
+  templates: Record<string, unknown>[];
+  nodes: Record<string, unknown>[];
+  rowItems: Record<string, unknown>[];
+  discontinuedRows: Record<string, unknown>[];
+  templateRefRows: Record<string, unknown>[];
+  estimateRefRows: Record<string, unknown>[];
+  overview: ReturnType<typeof createOverviewPayload>;
+};
+
+type D1Value = string | number | boolean | null | ArrayBuffer;
+
+type PreparedD1Statement = {
+  sql: string;
+  values: D1Value[];
+};
+
+class FakeComponentLibraryD1Statement {
+  private values: D1Value[] = [];
+
+  constructor(
+    private readonly database: FakeComponentLibraryD1Database,
+    private readonly sql: string,
+  ) {}
+
+  bind(...values: D1Value[]) {
+    this.values = values;
+    this.database.prepared.push({ sql: this.sql, values });
+    return this;
+  }
+
+  async first<T>() {
+    return this.database.first<T>(this.sql, this.values);
+  }
+
+  async all<T>() {
+    return { results: this.database.all<T>(this.sql, this.values) };
+  }
+
+  async run() {
+    return { success: true, meta: { changes: 0 } };
+  }
+}
+
+class FakeComponentLibraryD1Database {
+  readonly prepared: PreparedD1Statement[] = [];
+  readonly payload: ComponentLibraryD1Payload;
+
+  constructor(payload: Partial<ComponentLibraryD1Payload> = {}) {
+    this.payload = createComponentLibraryD1Payload(payload);
+  }
+
+  prepare(sql: string) {
+    return new FakeComponentLibraryD1Statement(this, sql);
+  }
+
+  first<T>(sql: string): T | null {
+    const overview = this.payload.overview;
+
+    if (sql.includes("FROM cost_library_items") && sql.includes("pricing_date < ?")) {
+      return { count: overview.health.staleComponentCount } as T;
+    }
+    if (sql.includes("FROM cost_library_items") && sql.includes("brand_id IS NULL")) {
+      return { count: overview.health.missingBrandCount } as T;
+    }
+    if (sql.includes("COUNT(*) AS count FROM cost_library_items")) {
+      return { count: overview.componentCount } as T;
+    }
+    if (sql.includes("COUNT(*) AS count FROM component_category_nodes")) {
+      const count = this.payload.categoryRows.filter((row) => row.parent_id === null).length;
+      return { count } as T;
+    }
+    if (sql.includes("COUNT(*) AS count FROM component_suppliers")) {
+      return { count: this.payload.suppliers.length } as T;
+    }
+    if (sql.includes("COUNT(*) AS count FROM component_brands")) {
+      return { count: this.payload.brands.length } as T;
+    }
+    if (sql.includes("SELECT updated_at") && sql.includes("FROM cost_library_items")) {
+      return { updated_at: overview.health.lastLibraryUpdate } as T;
+    }
+
+    throw new Error(`Unexpected D1 first query: ${sql}`);
+  }
+
+  all<T>(sql: string, values: D1Value[]): T[] {
+    if (sql.includes("FROM component_category_nodes")) return this.payload.categoryRows as T[];
+    if (sql.includes("FROM component_suppliers")) return this.payload.suppliers as T[];
+    if (sql.includes("FROM component_brands")) return this.payload.brands as T[];
+    if (sql.includes("FROM library_folders")) return this.payload.libraryFolders as T[];
+    if (sql.includes("FROM cost_library_item_price_options")) {
+      return this.filterBySelectedIds(this.payload.priceOptions, values, "item_id", sql) as T[];
+    }
+    if (sql.includes("FROM cost_library_item_variant_cost_entries")) {
+      return this.filterBySelectedIds(this.payload.costEntries, values, "item_id", sql) as T[];
+    }
+    if (sql.includes("FROM cost_library_item_versions")) return [];
+    if (sql.includes("FROM cost_library_item_price_history")) return [];
+    if (sql.includes("FROM cost_library_item_state_history")) return [];
+    if (sql.includes("FROM cost_library_item_variant_attachments")) return [];
+    if (sql.includes("FROM cost_library_items") && sql.includes("lifecycle_state = 'discontinued'")) {
+      return this.payload.discontinuedRows as T[];
+    }
+    if (sql.includes("FROM cost_library_items")) {
+      return this.costLibraryItems(sql, values) as T[];
+    }
+    if (sql.includes("SELECT category FROM estimate_templates")) {
+      return this.payload.templates.map((row) => ({ category: row.category })) as T[];
+    }
+    if (sql.includes("FROM estimate_templates")) {
+      return this.filterBySelectedIds(this.payload.templates, values, "id", sql) as T[];
+    }
+    if (sql.includes("FROM estimate_template_nodes")) {
+      return this.filterBySelectedIds(this.payload.nodes, values, "template_id", sql) as T[];
+    }
+    if (sql.includes("FROM estimate_template_row_items") && sql.includes("source_library_item_id IN")) {
+      return this.filterBySelectedIds(this.payload.templateRefRows, values, "source_library_item_id", sql) as T[];
+    }
+    if (sql.includes("FROM estimate_template_row_items")) {
+      return this.filterBySelectedIds(this.payload.rowItems, values, "template_id", sql) as T[];
+    }
+    if (sql.includes("FROM estimate_row_items")) {
+      return this.filterBySelectedIds(this.payload.estimateRefRows, values, "source_library_item_id", sql) as T[];
+    }
+
+    throw new Error(`Unexpected D1 all query: ${sql}`);
+  }
+
+  private costLibraryItems(sql: string, values: D1Value[]) {
+    const rows = this.filterBySelectedIds(this.payload.itemRows, values, "id", sql);
+    if (sql.includes("LIMIT ? OFFSET ?")) {
+      const limit = Number(values[values.length - 2]);
+      const offset = Number(values[values.length - 1]);
+      return rows.slice(offset, offset + limit);
+    }
+    if (sql.includes("LIMIT ?")) {
+      const limit = Number(values[values.length - 1]);
+      return rows.slice(0, limit);
+    }
+    if (sql.includes("LIMIT 6")) return rows.slice(0, 6);
+    return rows;
+  }
+
+  private filterBySelectedIds(rows: Record<string, unknown>[], values: D1Value[], key: string, sql: string) {
+    if (!sql.includes(" IN (")) return rows;
+    const selected = new Set(values.filter((value): value is string => typeof value === "string"));
+    return rows.filter((row) => typeof row[key] === "string" && selected.has(row[key]));
+  }
 }
 
 beforeEach(() => {
   vi.resetModules();
-  testMocks.createSupabaseServerClient.mockReset();
+  delete process.env.WORKSHOP_LIBRARY_OVERVIEW_RPC_DISABLED;
+  delete process.env.WORKSHOP_LIBRARY_COMPONENT_ROWS_RPC_DISABLED;
+  delete process.env.WORKSHOP_LIBRARY_TEMPLATES_RPC_DISABLED;
+  testMocks.getCloudflareD1Database.mockReset();
   testMocks.ensureDefaultWorkspace.mockReset().mockResolvedValue({
     workspace: WORKSPACE,
     profile: { id: "user-1" },
   });
 });
 
-describe("library_overview_summary RPC contract", () => {
-  it("defines an invoker JSONB RPC with explicit grants and workspace-gated output", () => {
-    const migrationPath = "supabase/migrations/20260625010000_library_overview_summary.sql";
-    const migration = readFileSync(join(process.cwd(), migrationPath), "utf8");
+describe("component library Cloudflare D1 app-path contract", () => {
+  it("keeps the historical Supabase RPC migrations workspace-gated and grant-scoped", () => {
+    const overviewMigration = readFileSync(
+      join(process.cwd(), "supabase/migrations/20260625010000_library_overview_summary.sql"),
+      "utf8",
+    );
+    const componentRowsMigration = readFileSync(
+      join(process.cwd(), "supabase/migrations/20260625023000_library_component_rows_seed_browse_projection.sql"),
+      "utf8",
+    );
+    const templatesMigration = readFileSync(
+      join(process.cwd(), "supabase/migrations/20260625021500_library_templates_seed.sql"),
+      "utf8",
+    );
 
-    expect(existsSync(join(process.cwd(), migrationPath))).toBe(true);
-    expect(migration).toMatch(/create or replace function public\.library_overview_summary\(\s*target_workspace_id uuid\s*\)/i);
-    expect(migration).toMatch(/returns jsonb/i);
-    expect(migration).toMatch(/language sql/i);
-    expect(migration).toMatch(/stable/i);
-    expect(migration).toMatch(/security invoker/i);
-    expect(migration).toMatch(/set search_path = public/i);
-    expect(migration).toContain("authorized_workspace");
-    expect(migration).toContain("public.is_workspace_member(workspace.id)");
-    expect(migration).not.toContain("public.is_platform_admin()");
-    expect(migration).toContain("cross join public.component_category_nodes category");
-    expect(migration).toContain("item.lifecycle_state <> 'archived'");
-    expect(migration).toContain("limit 6");
-    expect(migration).toContain("limit 5");
-    expect(migration).toContain("revoke execute on function public.library_overview_summary(uuid) from public, anon");
-    expect(migration).toContain("grant execute on function public.library_overview_summary(uuid) to authenticated");
+    for (const migration of [overviewMigration, componentRowsMigration, templatesMigration]) {
+      expect(migration).toMatch(/security invoker/i);
+      expect(migration).toContain("public.is_workspace_member(workspace.id)");
+      expect(migration).not.toContain("public.is_platform_admin()");
+      expect(migration).toContain("from public, anon");
+      expect(migration).toContain("to authenticated");
+    }
+
+    expect(componentRowsMigration).toContain("item.active_price_option_id");
+    expect(componentRowsMigration).toContain("option_row.active_cost_entry_id");
+    expect(templatesMigration).toContain("target_template_id is null");
   });
 
-  it("splices additive Supabase types and a rollout-safe repository path", () => {
+  it("keeps the repository on Cloudflare D1 without Supabase RPC rollout flags", () => {
     const repository = readFileSync(
       join(process.cwd(), "src/lib/repositories/component-library-repository.ts"),
       "utf8",
     );
-    const types = readFileSync(join(process.cwd(), "src/lib/supabase/types.ts"), "utf8");
 
-    expect(types).toContain("library_overview_summary");
-    expect(types).toContain("Args: { target_workspace_id: string }");
-    expect(types).toContain("Returns: Json");
-    expect(repository).toContain("WORKSHOP_LIBRARY_OVERVIEW_RPC_DISABLED");
-    expect(repository).not.toContain("NEXT_PUBLIC_WORKSHOP_LIBRARY_OVERVIEW_RPC_DISABLED");
-    expect(repository).toContain('rpc("library_overview_summary"');
-    expect(repository).toContain("getLibraryOverviewAppPath");
-    expect(repository).toContain("using app path");
+    expect(repository).toContain("getCloudflareD1Database");
+    expect(repository).toContain("return getLibraryOverviewAppPath();");
+    expect(repository).toContain("return loadCurrentWorkspaceComponentRowsLibraryAppPath({");
+    expect(repository).toContain("return loadCurrentWorkspaceEstimateTemplatesAppPath({");
+    expect(repository).not.toContain("createSupabaseServerClient");
+    expect(repository).not.toContain(".rpc(");
+    expect(repository).not.toContain("WORKSHOP_LIBRARY_OVERVIEW_RPC_DISABLED");
+    expect(repository).not.toContain("WORKSHOP_LIBRARY_COMPONENT_ROWS_RPC_DISABLED");
+    expect(repository).not.toContain("WORKSHOP_LIBRARY_TEMPLATES_RPC_DISABLED");
   });
 
-  it("assembles the overview through the RPC fast path with app-path semantics", async () => {
-    const rpcClient = {
-      rpc: vi.fn(async () => ({ data: createOverviewPayload(), error: null })),
-      from: vi.fn(() => {
-        throw new Error("RPC fast path should not issue table reads");
-      }),
-    };
-    testMocks.createSupabaseServerClient.mockResolvedValue(rpcClient);
+  it("assembles the overview through the Cloudflare D1 app path", async () => {
+    const database = new FakeComponentLibraryD1Database();
+    testMocks.getCloudflareD1Database.mockResolvedValue(database);
 
     const { getLibraryOverview } = await import("@/lib/repositories/component-library-repository");
     const overview = await getLibraryOverview();
 
-    expect(rpcClient.rpc).toHaveBeenCalledWith("library_overview_summary", {
-      target_workspace_id: WORKSPACE.id,
+    expect(database.prepared.map((entry) => entry.sql)).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("FROM cost_library_items"),
+        expect.stringContaining("FROM component_category_nodes"),
+        expect.stringContaining("FROM component_suppliers"),
+        expect.stringContaining("FROM component_brands"),
+        expect.stringContaining("FROM estimate_templates"),
+      ]),
+    );
+    expect(overview).toMatchObject({
+      componentCount: 2,
+      categoryCount: 1,
+      supplierCount: 1,
+      brandCount: 1,
+      templateCount: 1,
+      templateCategories: ["Residential"],
+      health: {
+        staleComponentCount: 1,
+        discontinuedInUseCount: 0,
+        missingBrandCount: 1,
+        lastLibraryUpdate: "2026-06-22T00:00:00.000Z",
+      },
     });
-    expect(overview.componentCount).toBe(2);
     expect(overview.recentComponents[0]).toMatchObject({
-      id: "component-1",
-      supplier: "",
-      unitCost: 250,
+      id: ITEM_ID,
+      supplier: "Supplier A",
+      unitCost: 100,
     });
-    expect(overview.templateCategories).toEqual(["Commercial", "Residential"]);
     expect(overview.recentTemplates[0]).toMatchObject({
-      id: "template-1",
+      id: TEMPLATE_ID,
       groupCount: 1,
       areaCount: 1,
       rowCount: 1,
       total: 215,
     });
-    expect(overview.health).toEqual({
-      staleComponentCount: 1,
-      discontinuedInUseCount: 0,
-      missingBrandCount: 1,
-      lastLibraryUpdate: "2026-06-20T00:00:00.000Z",
-    });
   });
 
-  it("rejects incompatible payloads instead of casting them silently", async () => {
+  it("fails closed when the Cloudflare D1 binding is unavailable", async () => {
+    testMocks.getCloudflareD1Database.mockResolvedValue(null);
+
+    const { getLibraryOverview } = await import("@/lib/repositories/component-library-repository");
+
+    await expect(getLibraryOverview()).rejects.toThrow(
+      "Cloudflare D1 binding ARCH_DB is required for component library reads.",
+    );
+  });
+
+  it("keeps parser guards for the historical overview payload shape", async () => {
     const { parseLibraryOverviewSummaryPayload } = await import("@/lib/repositories/component-library-repository");
 
     expect(() => parseLibraryOverviewSummaryPayload(null)).toThrow("library_overview_summary invalid payload");
@@ -357,296 +554,33 @@ describe("library_overview_summary RPC contract", () => {
   });
 });
 
-describe("library_component_rows_seed RPC contract", () => {
-  it("defines an invoker JSONB RPC with explicit grants and workspace-gated browse seed arrays", () => {
-    const migrationPath = "supabase/migrations/20260625013000_library_component_rows_seed.sql";
-    const migration = readFileSync(join(process.cwd(), migrationPath), "utf8");
-
-    expect(existsSync(join(process.cwd(), migrationPath))).toBe(true);
-    expect(migration).toMatch(/create or replace function public\.library_component_rows_seed\(\s*target_workspace_id uuid\s*\)/i);
-    expect(migration).toMatch(/returns jsonb/i);
-    expect(migration).toMatch(/language sql/i);
-    expect(migration).toMatch(/stable/i);
-    expect(migration).toMatch(/security invoker/i);
-    expect(migration).toMatch(/set search_path = public/i);
-    expect(migration).toContain("authorized_workspace");
-    expect(migration).toContain("public.is_workspace_member(workspace.id)");
-    expect(migration).not.toContain("public.is_platform_admin()");
-    expect(migration).toContain("item.lifecycle_state <> 'archived'");
-    expect(migration).toContain("public.cost_library_item_price_options");
-    expect(migration).toContain("public.cost_library_item_variant_cost_entries");
-    expect(migration).toContain("revoke execute on function public.library_component_rows_seed(uuid) from public, anon");
-    expect(migration).toContain("grant execute on function public.library_component_rows_seed(uuid) to authenticated");
-  });
-
-  it("adds an item-limit signature for partial first paint seeds", () => {
-    const migrationPath = "supabase/migrations/20260625020000_library_component_rows_seed_item_limit.sql";
-    const migration = readFileSync(join(process.cwd(), migrationPath), "utf8");
-
-    expect(existsSync(join(process.cwd(), migrationPath))).toBe(true);
-    expect(migration).toMatch(/drop function if exists public\.library_component_rows_seed\(uuid\)/i);
-    expect(migration).toMatch(/target_workspace_id uuid,\s*item_limit integer default null/i);
-    expect(migration).toContain("'componentCount'");
-    expect(migration).toContain("limit (select value from bounded_limit)");
-    expect(migration).toContain("public.is_workspace_member(workspace.id)");
-    expect(migration).not.toContain("public.is_platform_admin()");
-    expect(migration).toContain("revoke execute on function public.library_component_rows_seed(uuid, integer) from public, anon");
-    expect(migration).toContain("grant execute on function public.library_component_rows_seed(uuid, integer) to authenticated");
-  });
-
-  it("keeps the item-limit RPC on an explicit browse projection", () => {
-    const migrationPath = "supabase/migrations/20260625023000_library_component_rows_seed_browse_projection.sql";
-    const migration = readFileSync(join(process.cwd(), migrationPath), "utf8");
-
-    expect(existsSync(join(process.cwd(), migrationPath))).toBe(true);
-    expect(migration).toMatch(/create or replace function public\.library_component_rows_seed\(\s*target_workspace_id uuid,\s*item_limit integer default null\s*\)/i);
-    expect(migration).toContain("item.active_price_option_id");
-    expect(migration).toContain("option_row.active_cost_entry_id");
-    expect(migration).toContain("cost_entry.price_option_id");
-    expect(migration).toContain("select supplier.id, supplier.name, supplier.normalized_name, supplier.sort_order");
-    expect(migration).toContain("folder.source_category_node_id");
-    expect(migration).not.toContain("select item.*\n  from public.cost_library_items");
-    expect(migration).toContain("revoke execute on function public.library_component_rows_seed(uuid, integer) from public, anon");
-    expect(migration).toContain("grant execute on function public.library_component_rows_seed(uuid, integer) to authenticated");
-  });
-
-  it("adds a partial browse-order index for the limited first-paint seed", () => {
-    const migrationPath = "supabase/migrations/20260625024500_library_component_rows_seed_browse_index.sql";
-    const migration = readFileSync(join(process.cwd(), migrationPath), "utf8");
-
-    expect(existsSync(join(process.cwd(), migrationPath))).toBe(true);
-    expect(migration).toContain("create index if not exists cost_library_items_workspace_browse_active_idx");
-    expect(migration).toContain("on public.cost_library_items(workspace_id, category, name, id)");
-    expect(migration).toContain("where lifecycle_state <> 'archived'");
-  });
-
-  it("splices additive Supabase types and a rollout-safe components browse path", () => {
-    const repository = readFileSync(
-      join(process.cwd(), "src/lib/repositories/component-library-repository.ts"),
-      "utf8",
-    );
-    const types = readFileSync(join(process.cwd(), "src/lib/supabase/types.ts"), "utf8");
-
-    expect(types).toContain("library_component_rows_seed");
-    expect(types).toContain("Args: { item_limit?: number | null; target_workspace_id: string }");
-    expect(types).toContain("Returns: Json");
-    expect(repository).toContain("WORKSHOP_LIBRARY_COMPONENT_ROWS_RPC_DISABLED");
-    expect(repository).not.toContain("NEXT_PUBLIC_WORKSHOP_LIBRARY_COMPONENT_ROWS_RPC_DISABLED");
-    expect(repository).toContain('rpc("library_component_rows_seed"');
-    expect(repository).toContain("loadCurrentWorkspaceComponentRowsLibraryAppPath");
-    expect(repository).toContain("using app path");
-  });
-
-  it("assembles the components browse seed through the RPC fast path without table reads", async () => {
-    const rpcClient = {
-      rpc: vi.fn(async () => ({ data: createComponentRowsSeedPayload(), error: null })),
-      from: vi.fn(() => {
-        throw new Error("RPC fast path should not issue table reads");
-      }),
-    };
-    testMocks.createSupabaseServerClient.mockResolvedValue(rpcClient);
-
-    const { getCurrentWorkspaceComponentRowsLibrary } = await import("@/lib/repositories/component-library-repository");
-    const library = await getCurrentWorkspaceComponentRowsLibrary({ includeDetailGraph: false });
-
-    expect(rpcClient.rpc).toHaveBeenCalledWith("library_component_rows_seed", {
-      item_limit: null,
-      target_workspace_id: WORKSPACE.id,
-    });
-    expect(library.workspaceId).toBe(WORKSPACE.id);
-    expect(library.categoryTree.length).toBeGreaterThan(0);
-    expect(library.suppliers).toEqual([]);
-    expect(library.brands).toEqual([]);
-    expect(library.libraryFolders).toEqual([]);
-    expect(library.libraryItems).toEqual([]);
-  });
-
-  it("passes item limits through the RPC fast path and marks partial browse seeds", async () => {
-    const rpcClient = {
-      rpc: vi.fn(async () => ({
-        data: createComponentRowsSeedPayload({
-          componentCount: 2,
-          itemRows: [createCostLibraryItemRow()],
-        }),
-        error: null,
-      })),
-      from: vi.fn(() => {
-        throw new Error("RPC fast path should not issue table reads");
-      }),
-    };
-    testMocks.createSupabaseServerClient.mockResolvedValue(rpcClient);
-
-    const { getCurrentWorkspaceComponentRowsLibrary } = await import("@/lib/repositories/component-library-repository");
-    const library = await getCurrentWorkspaceComponentRowsLibrary({ includeDetailGraph: false, itemLimit: 48 });
-
-    expect(rpcClient.rpc).toHaveBeenCalledWith("library_component_rows_seed", {
-      item_limit: 48,
-      target_workspace_id: WORKSPACE.id,
-    });
-    expect(library.libraryItems).toHaveLength(1);
-    expect(library.isPartial).toBe(true);
-    expect(library.loadedComponentCount).toBe(1);
-    expect(library.totalComponentCount).toBe(2);
-  });
-
-  it("does not mark bounded app-path fallback seeds partial when fewer rows than the limit are returned", async () => {
-    const previousFlag = process.env.WORKSHOP_LIBRARY_COMPONENT_ROWS_RPC_DISABLED;
-    process.env.WORKSHOP_LIBRARY_COMPONENT_ROWS_RPC_DISABLED = "1";
-    const rowsByTable: Record<string, unknown[]> = {
-      component_category_nodes: [],
-      component_suppliers: [],
-      component_brands: [],
-      library_folders: [],
-      cost_library_items: [createCostLibraryItemRow()],
-      cost_library_item_price_options: [],
-      cost_library_item_variant_cost_entries: [],
-    };
-    const appPathClient = {
-      rpc: vi.fn(() => {
-        throw new Error("RPC should be disabled for this fallback test");
-      }),
-      from: vi.fn((table: string) => createSupabaseTableChain({
-        data: rowsByTable[table] ?? [],
-        error: null,
-      })),
-    };
-    testMocks.createSupabaseServerClient.mockResolvedValue(appPathClient);
-
-    try {
-      const { getCurrentWorkspaceComponentRowsLibrary } = await import("@/lib/repositories/component-library-repository");
-      const library = await getCurrentWorkspaceComponentRowsLibrary({ includeDetailGraph: false, itemLimit: 48 });
-
-      expect(appPathClient.rpc).toHaveBeenCalledTimes(0);
-      expect(appPathClient.from.mock.calls.map(([table]) => table)).toContain("cost_library_items");
-      expect(library.libraryItems).toHaveLength(1);
-      expect(library.isPartial).toBe(false);
-      expect(library.loadedComponentCount).toBe(1);
-      expect(library.totalComponentCount).toBe(1);
-    } finally {
-      if (previousFlag === undefined) {
-        delete process.env.WORKSHOP_LIBRARY_COMPONENT_ROWS_RPC_DISABLED;
-      } else {
-        process.env.WORKSHOP_LIBRARY_COMPONENT_ROWS_RPC_DISABLED = previousFlag;
-      }
-    }
-  });
-
-  it("keeps the components browse seed slim while preserving current price fields", async () => {
-    const createdAt = "2026-06-20T00:00:00.000Z";
-    const itemId = "component-1";
-    const priceOptionId = "price-option-1";
-    const rpcClient = {
-      rpc: vi.fn(async () => ({
-        data: createComponentRowsSeedPayload({
-          itemRows: [
-            {
-              id: itemId,
-              workspace_id: WORKSPACE.id,
-              name: "Fast Cabinet Pull",
-              description: "Browse row",
-              supplier: "Supplier A",
-              supplier_id: null,
-              brand: "Brand A",
-              brand_id: null,
-              category: "Hardware",
-              category_node_id: null,
-              library_folder_id: null,
-              unit: "pc",
-              unit_cost: 100,
-              misc_cost: 5,
-              pricing_source: "Catalog",
-              pricing_date: "2026-06-01",
-              confidence: "high",
-              metadata: { sourceUrl: "https://example.com/detail-only", notes: "detail-only" },
-              thumbnail_path: null,
-              active_price_option_id: priceOptionId,
-              current_version_number: 7,
-              lifecycle_state: "available",
-              lifecycle_state_changed_at: createdAt,
-              created_at: createdAt,
-              updated_at: createdAt,
-            },
-          ],
-          priceOptions: [
-            {
-              id: priceOptionId,
-              workspace_id: WORKSPACE.id,
-              item_id: itemId,
-              label: "Current option",
-              sku: "SKU-1",
-              variant_description: "Detail-only variant",
-              variant_sort_order: 1,
-              unit: "pc",
-              unit_cost: 250,
-              misc_cost: 15,
-              currency: "PHP",
-              pricing_source: "Supplier quote",
-              pricing_date: "2026-06-15",
-              confidence: "medium",
-              source_url: "https://example.com/variant",
-              notes: "detail-only option notes",
-              supplier_id: null,
-              active_cost_entry_id: "cost-entry-1",
-              package_quantity: null,
-              package_unit: null,
-              dimension_length: null,
-              dimension_width: null,
-              dimension_height: null,
-              dimension_unit: null,
-              mass: null,
-              mass_unit: null,
-              image_bucket: null,
-              image_path: null,
-              thumbnail_path: null,
-              image_metadata: {},
-              variant_metadata: {},
-              is_active: true,
-              is_default: true,
-              created_at: createdAt,
-              updated_at: createdAt,
-            },
-          ],
-          costEntries: [
-            {
-              id: "cost-entry-1",
-              workspace_id: WORKSPACE.id,
-              item_id: itemId,
-              price_option_id: priceOptionId,
-              unit_cost: 321,
-              misc_cost: 9,
-              currency: "PHP",
-              pricing_source: "Latest supplier quote",
-              pricing_date: "2026-06-22",
-              confidence: "high",
-              source_url: "https://example.com/cost-entry",
-              notes: "detail-only cost entry notes",
-              is_current: true,
-              deleted_at: null,
-              created_at: createdAt,
-              updated_at: createdAt,
-            },
-          ],
-        }),
-        error: null,
-      })),
-      from: vi.fn(() => {
-        throw new Error("RPC fast path should not issue table reads");
-      }),
-    };
-    testMocks.createSupabaseServerClient.mockResolvedValue(rpcClient);
+describe("component library browse and template D1 contract", () => {
+  it("loads a slim component browse seed through D1 while preserving current price fields", async () => {
+    const database = new FakeComponentLibraryD1Database();
+    testMocks.getCloudflareD1Database.mockResolvedValue(database);
 
     const { getCurrentWorkspaceComponentRowsLibrary } = await import("@/lib/repositories/component-library-repository");
     const library = await getCurrentWorkspaceComponentRowsLibrary({ includeDetailGraph: false });
     const [item] = library.libraryItems;
 
+    expect(database.prepared.map((entry) => entry.sql)).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("FROM component_category_nodes"),
+        expect.stringContaining("FROM cost_library_items"),
+        expect.stringContaining("FROM cost_library_item_price_options"),
+        expect.stringContaining("FROM cost_library_item_variant_cost_entries"),
+      ]),
+    );
+    expect(library.workspaceId).toBe(WORKSPACE.id);
+    expect(library.categoryTree).toHaveLength(1);
     expect(item).toMatchObject({
-      id: itemId,
+      id: ITEM_ID,
       itemCost: 321,
       miscCost: 9,
       pricingSource: "Latest supplier quote",
       pricingDate: "2026-06-22",
       confidence: "high",
-      priceOptionId,
+      priceOptionId: PRICE_OPTION_ID,
       priceOptionLabel: "Current option",
     });
     expect(item).not.toHaveProperty("priceOptions");
@@ -655,89 +589,64 @@ describe("library_component_rows_seed RPC contract", () => {
     expect(item).not.toHaveProperty("sourceUrl");
   });
 
-  it("rejects incompatible component browse payloads instead of casting them silently", async () => {
-    const { parseLibraryComponentRowsSeedPayload } = await import("@/lib/repositories/component-library-repository");
+  it("marks bounded browse seeds partial when D1 returns the requested limit", async () => {
+    const database = new FakeComponentLibraryD1Database({
+      itemRows: [
+        createCostLibraryItemRow({ id: ITEM_ID, name: "First Component" }),
+        createCostLibraryItemRow({ id: "88888888-8888-4888-8888-888888888888", name: "Second Component" }),
+      ],
+    });
+    testMocks.getCloudflareD1Database.mockResolvedValue(database);
 
-    expect(() => parseLibraryComponentRowsSeedPayload(null)).toThrow("library_component_rows_seed invalid payload");
-    expect(() => parseLibraryComponentRowsSeedPayload(createComponentRowsSeedPayload({ suppliers: "not-an-array" }))).toThrow(
-      "suppliers is not an array",
-    );
-    expect(() => parseLibraryComponentRowsSeedPayload(createComponentRowsSeedPayload({ itemRows: ["bad-row"] }))).toThrow(
-      /library_component_rows_seed invalid array element.*itemRows\[0\]/,
-    );
-  });
-});
+    const { getCurrentWorkspaceComponentRowsLibrary } = await import("@/lib/repositories/component-library-repository");
+    const library = await getCurrentWorkspaceComponentRowsLibrary({ includeDetailGraph: false, itemLimit: 1 });
 
-describe("library_templates_seed RPC contract", () => {
-  it("defines an invoker JSONB RPC with explicit grants and workspace-gated template arrays", () => {
-    const migrationPath = "supabase/migrations/20260625021500_library_templates_seed.sql";
-    const migration = readFileSync(join(process.cwd(), migrationPath), "utf8");
-
-    expect(existsSync(join(process.cwd(), migrationPath))).toBe(true);
-    expect(migration).toMatch(/create or replace function public\.library_templates_seed\(\s*target_workspace_id uuid,\s*target_template_id uuid default null\s*\)/i);
-    expect(migration).toMatch(/returns jsonb/i);
-    expect(migration).toMatch(/language sql/i);
-    expect(migration).toMatch(/stable/i);
-    expect(migration).toMatch(/security invoker/i);
-    expect(migration).toMatch(/set search_path = public/i);
-    expect(migration).toContain("authorized_workspace");
-    expect(migration).toContain("public.is_workspace_member(workspace.id)");
-    expect(migration).not.toContain("public.is_platform_admin()");
-    expect(migration).toContain("target_template_id is null");
-    expect(migration).toContain("public.estimate_template_nodes");
-    expect(migration).toContain("public.estimate_template_row_items");
-    expect(migration).toContain("revoke execute on function public.library_templates_seed(uuid, uuid) from public, anon");
-    expect(migration).toContain("grant execute on function public.library_templates_seed(uuid, uuid) to authenticated");
+    expect(library.libraryItems).toHaveLength(1);
+    expect(library.isPartial).toBe(true);
+    expect(library.loadedComponentCount).toBe(1);
+    expect(library.totalComponentCount).toBeUndefined();
   });
 
-  it("splices additive Supabase types and a rollout-safe templates path", () => {
-    const repository = readFileSync(
-      join(process.cwd(), "src/lib/repositories/component-library-repository.ts"),
-      "utf8",
-    );
-    const types = readFileSync(join(process.cwd(), "src/lib/supabase/types.ts"), "utf8");
+  it("does not mark bounded D1 browse seeds partial when fewer rows than the limit are returned", async () => {
+    const database = new FakeComponentLibraryD1Database();
+    testMocks.getCloudflareD1Database.mockResolvedValue(database);
 
-    expect(types).toContain("library_templates_seed");
-    expect(types).toContain("target_template_id?: string | null");
-    expect(types).toContain("target_workspace_id: string");
-    expect(types).toContain("Returns: Json");
-    expect(repository).toContain("WORKSHOP_LIBRARY_TEMPLATES_RPC_DISABLED");
-    expect(repository).not.toContain("NEXT_PUBLIC_WORKSHOP_LIBRARY_TEMPLATES_RPC_DISABLED");
-    expect(repository).toContain('rpc("library_templates_seed"');
-    expect(repository).toContain("loadCurrentWorkspaceEstimateTemplatesAppPath");
-    expect(repository).toContain("parseLibraryTemplatesSeedPayload");
-    expect(repository).toContain("using app path");
+    const { getCurrentWorkspaceComponentRowsLibrary } = await import("@/lib/repositories/component-library-repository");
+    const library = await getCurrentWorkspaceComponentRowsLibrary({ includeDetailGraph: false, itemLimit: 48 });
+
+    expect(library.libraryItems).toHaveLength(1);
+    expect(library.isPartial).toBe(false);
+    expect(library.loadedComponentCount).toBe(1);
+    expect(library.totalComponentCount).toBe(1);
   });
 
-  it("assembles the templates browse seed through the RPC fast path without table reads", async () => {
-    const rpcClient = {
-      rpc: vi.fn(async () => ({ data: createTemplatesSeedPayload(), error: null })),
-      from: vi.fn(() => {
-        throw new Error("RPC fast path should not issue table reads");
-      }),
-    };
-    testMocks.createSupabaseServerClient.mockResolvedValue(rpcClient);
+  it("loads the template browse seed through D1", async () => {
+    const database = new FakeComponentLibraryD1Database();
+    testMocks.getCloudflareD1Database.mockResolvedValue(database);
 
     const { getCurrentWorkspaceEstimateTemplatesSeed } = await import("@/lib/repositories/component-library-repository");
     const seed = await getCurrentWorkspaceEstimateTemplatesSeed();
 
-    expect(rpcClient.rpc).toHaveBeenCalledWith("library_templates_seed", {
-      target_template_id: null,
-      target_workspace_id: WORKSPACE.id,
-    });
+    expect(database.prepared.map((entry) => entry.sql)).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("FROM estimate_templates"),
+        expect.stringContaining("FROM estimate_template_nodes"),
+        expect.stringContaining("FROM estimate_template_row_items"),
+      ]),
+    );
     expect(seed.workspaceId).toBe(WORKSPACE.id);
-    expect(seed.templates).toHaveLength(1);
+    expect(seed.userId).toBe("user-1");
     expect(seed.templates[0]).toMatchObject({
-      id: "11111111-1111-4111-8111-111111111111",
+      id: TEMPLATE_ID,
       nodes: [
         {
-          id: "22222222-2222-4222-8222-222222222222",
+          id: GROUP_NODE_ID,
           children: [
             {
-              id: "33333333-3333-4333-8333-333333333333",
+              id: AREA_NODE_ID,
               estimateRowItems: [
                 {
-                  id: "44444444-4444-4444-8444-444444444444",
+                  id: ROW_ID,
                   totalItemCosts: 215,
                 },
               ],
@@ -748,55 +657,50 @@ describe("library_templates_seed RPC contract", () => {
     });
   });
 
-  it("loads a single template detail through the RPC fast path", async () => {
-    const templateId = "11111111-1111-4111-8111-111111111111";
-    const rpcClient = {
-      rpc: vi.fn(async () => ({ data: createTemplatesSeedPayload(), error: null })),
-      from: vi.fn(() => {
-        throw new Error("RPC fast path should not issue table reads");
-      }),
-    };
-    testMocks.createSupabaseServerClient.mockResolvedValue(rpcClient);
+  it("loads a single template detail through the D1 app path", async () => {
+    const otherTemplateId = "99999999-9999-4999-8999-999999999999";
+    const database = new FakeComponentLibraryD1Database({
+      templates: [
+        createTemplateRow({ id: TEMPLATE_ID, name: "Selected Template" }),
+        createTemplateRow({ id: otherTemplateId, name: "Other Template" }),
+      ],
+    });
+    testMocks.getCloudflareD1Database.mockResolvedValue(database);
 
     const { getEstimateTemplateById } = await import("@/lib/repositories/component-library-repository");
-    const template = await getEstimateTemplateById(templateId);
+    const template = await getEstimateTemplateById(TEMPLATE_ID);
 
-    expect(rpcClient.rpc).toHaveBeenCalledWith("library_templates_seed", {
-      target_template_id: templateId,
-      target_workspace_id: WORKSPACE.id,
-    });
+    expect(database.prepared.find((entry) => entry.sql.includes("FROM estimate_templates"))?.values).toEqual([
+      WORKSPACE.id,
+      TEMPLATE_ID,
+    ]);
     expect(template).toMatchObject({
-      id: templateId,
-      nodes: [
-        {
-          id: "22222222-2222-4222-8222-222222222222",
-          children: [
-            {
-              id: "33333333-3333-4333-8333-333333333333",
-              estimateRowItems: [
-                {
-                  id: "44444444-4444-4444-8444-444444444444",
-                  totalItemCosts: 215,
-                },
-              ],
-            },
-          ],
-        },
-      ],
+      id: TEMPLATE_ID,
+      name: "Selected Template",
     });
   });
 
-  it("rejects incompatible template seed payloads instead of casting them silently", async () => {
-    const { parseLibraryTemplatesSeedPayload } = await import("@/lib/repositories/component-library-repository");
+  it("keeps parser guards for the historical component and template payload shapes", async () => {
+    const {
+      parseLibraryComponentRowsSeedPayload,
+      parseLibraryTemplatesSeedPayload,
+    } = await import("@/lib/repositories/component-library-repository");
 
+    expect(() => parseLibraryComponentRowsSeedPayload(null)).toThrow("library_component_rows_seed invalid payload");
+    expect(() => parseLibraryComponentRowsSeedPayload({ ...createComponentLibraryD1Payload(), suppliers: "not-an-array" })).toThrow(
+      "suppliers is not an array",
+    );
+    expect(() => parseLibraryComponentRowsSeedPayload({ ...createComponentLibraryD1Payload(), itemRows: ["bad-row"] })).toThrow(
+      /library_component_rows_seed invalid array element.*itemRows\[0\]/,
+    );
     expect(() => parseLibraryTemplatesSeedPayload(null)).toThrow("library_templates_seed invalid payload");
-    expect(() => parseLibraryTemplatesSeedPayload(createTemplatesSeedPayload({ templates: "not-an-array" }))).toThrow(
+    expect(() => parseLibraryTemplatesSeedPayload({ ...createComponentLibraryD1Payload(), templates: "not-an-array" })).toThrow(
       "templates is not an array",
     );
-    expect(() => parseLibraryTemplatesSeedPayload(createTemplatesSeedPayload({ nodes: ["bad-row"] }))).toThrow(
+    expect(() => parseLibraryTemplatesSeedPayload({ ...createComponentLibraryD1Payload(), nodes: ["bad-row"] })).toThrow(
       /library_templates_seed invalid array element.*nodes\[0\]/,
     );
-    expect(() => parseLibraryTemplatesSeedPayload(createTemplatesSeedPayload({ templates: [{ id: "template-1" }] }))).toThrow(
+    expect(() => parseLibraryTemplatesSeedPayload({ ...createComponentLibraryD1Payload(), templates: [{ id: TEMPLATE_ID }] })).toThrow(
       /library_templates_seed invalid row shape/,
     );
   });

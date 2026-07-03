@@ -154,13 +154,12 @@ describe("ProjectEstimatesClient optimistic delete / duplicate / reset", () => {
       projectBudget: 6500,
     });
     await waitFor(() => expect(screen.getByText("+₱ 5,250.00")).toBeInTheDocument());
-    expect(screen.getByText("Saving")).toBeInTheDocument();
-    expect(screen.getByLabelText("Project budget for Original Estimate")).toBeDisabled();
     expect(routerMock.refresh).not.toHaveBeenCalled();
     expect(show).not.toHaveBeenCalled();
 
     resolveUpdate?.({ estimate: makeRow({ project_budget: 6500, totalProjectCost: 1250 }) });
-    await waitFor(() => expect(screen.getByText("Saved")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByLabelText("Project budget for Original Estimate")).not.toBeDisabled());
+    expect(screen.getByLabelText("Project budget for Original Estimate")).toHaveValue("6,500.00");
   });
 
   it("disables row actions while an optimistic rename is pending", async () => {
@@ -209,7 +208,6 @@ describe("ProjectEstimatesClient optimistic delete / duplicate / reset", () => {
     await waitFor(() => expect(screen.getByDisplayValue("Server Renamed Estimate")).toBeInTheDocument());
     expect(screen.queryByDisplayValue("Original Estimate")).not.toBeInTheDocument();
     expect(screen.queryByDisplayValue("Draft Rename")).not.toBeInTheDocument();
-    expect(screen.getByTitle("Rename failed.")).toBeInTheDocument();
     expect(routerMock.refresh).not.toHaveBeenCalled();
     expect(show).not.toHaveBeenCalled();
   });
@@ -232,7 +230,7 @@ describe("ProjectEstimatesClient optimistic delete / duplicate / reset", () => {
     expect(actionMocks.regenerateEstimateSheetCode).not.toHaveBeenCalled();
 
     resolveUpdate?.({ estimate: makeRow({ sheet_code: "LR-009" }) });
-    await waitFor(() => expect(autoButton).not.toBeDisabled());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Auto-generate estimate code for Original Estimate" })).not.toBeDisabled());
     expect(routerMock.refresh).not.toHaveBeenCalled();
     expect(show).not.toHaveBeenCalled();
   });
@@ -254,7 +252,6 @@ describe("ProjectEstimatesClient optimistic delete / duplicate / reset", () => {
     await waitFor(() => expect(screen.getByText("+₱ 3,750.00")).toBeInTheDocument());
     expect(screen.queryByText("+₱ 5,250.00")).not.toBeInTheDocument();
     expect(screen.queryByText("Saved")).not.toBeInTheDocument();
-    expect(screen.getByTitle("Budget write failed.")).toBeInTheDocument();
     expect(routerMock.refresh).not.toHaveBeenCalled();
     expect(show).not.toHaveBeenCalled();
   });

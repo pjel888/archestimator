@@ -3,14 +3,27 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-describe("/beta/access-required page contract", () => {
-  it("gives denied beta users a clear non-looping path", () => {
-    const source = readFileSync(join(process.cwd(), "src/app/beta/access-required/page.tsx"), "utf8");
+import nextConfig from "../../next.config";
 
-    expect(source).toMatch(/invite-only beta/i);
+describe("/access-required page contract", () => {
+  it("gives denied beta users a clear non-looping path", () => {
+    const source = readFileSync(join(process.cwd(), "src/app/access-required/page.tsx"), "utf8");
+
+    expect(source).toMatch(/invite-only access/i);
     expect(source).toMatch(/support@archestimator\.com/);
     expect(source).not.toMatch(/philipjonlewis@gmail\.com/);
     expect(source).toMatch(/href=["']\/login["']/);
     expect(source).not.toMatch(/\/workshop/);
+  });
+
+  it("keeps retired beta access URLs as non-permanent redirects to the canonical page", async () => {
+    const redirects = await nextConfig.redirects?.();
+
+    expect(redirects).toEqual(
+      expect.arrayContaining([
+        { source: "/beta/access-required", destination: "/access-required", permanent: false },
+        { source: "/beta", destination: "/access-required", permanent: false },
+      ]),
+    );
   });
 });

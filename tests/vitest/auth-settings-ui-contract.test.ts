@@ -29,6 +29,7 @@ describe("auth onboarding and settings route contracts", () => {
     const source = read("src/components/workshop/WorkshopSettingsModalContentView.tsx");
     const modalSource = read("src/components/workshop/WorkshopSettingsModal.tsx");
     const pageSource = read("src/app/workshop/settings/page.tsx");
+    const nextConfigSource = read("next.config.ts");
 
     expect(source).toContain('aria-label="Settings navigation"');
     expect(source).toContain('id="settings-detail-panel"');
@@ -39,8 +40,11 @@ describe("auth onboarding and settings route contracts", () => {
     expect(source).toContain('href: "/terms"');
     expect(source).toContain("Support and legal");
     expect(source).toContain("support@archestimator.com");
-    expect(source).toContain('href: "/workshop/settings/beta-users"');
+    expect(source).toContain('href: "/workshop/settings/users"');
+    expect(source).not.toContain('href: "/workshop/settings/beta-users"');
     expect(source).toContain('href: "/workshop/settings/feedback"');
+    expect(nextConfigSource).toContain('source: "/workshop/settings/beta-users"');
+    expect(nextConfigSource).toContain('destination: "/workshop/settings/users"');
     expect(wrapperSource).toContain('import { signOut } from "@/lib/auth/actions"');
     expect(wrapperSource).toContain("action={signOut}");
     expect(source).toContain("Sign out");

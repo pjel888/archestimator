@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { EMPTY_ESTIMATE_COLUMN_WIDTHS } from "@/lib/estimate-sheet/column-model";
+import { EMPTY_ESTIMATE_COLUMN_WIDTHS, getResizableEstimateColumnDefinition } from "@/lib/estimate-sheet/column-model";
 import { useEstimateColumnWidthsStore } from "@/stores/estimate-column-widths-store";
 
 const STORAGE_PREFIX = "archestimator:estimate-column-widths:v1";
@@ -34,7 +34,7 @@ describe("estimate column widths store", () => {
 
     expect(useEstimateColumnWidthsStore.getState().widthsByEstimateId["estimate-1"]).toEqual({
       material: 240,
-      quantity: 52,
+      quantity: getResizableEstimateColumnDefinition("quantity").minWidth,
     });
   });
 
@@ -51,11 +51,11 @@ describe("estimate column widths store", () => {
 
     expect(JSON.parse(window.localStorage.getItem(estimateKey) ?? "{}")).toEqual({
       version: 1,
-      widths: { material: 260 },
+      widths: { material: 260, quantity: 58 },
     });
     expect(JSON.parse(window.localStorage.getItem(lastUsedKey) ?? "{}")).toEqual({
       version: 1,
-      widths: { material: 260 },
+      widths: { material: 260, quantity: 58 },
     });
 
     useEstimateColumnWidthsStore.getState().resetEstimateColumnWidths("estimate-1");

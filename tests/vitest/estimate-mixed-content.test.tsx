@@ -92,7 +92,7 @@ function renderSheet(nodes: EstimateTreeNode[], selectedNodeId: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <EstimateSheetContent selectedNodeId={selectedNodeId} nodes={nodes} renderSidebar={false} />
+      <EstimateSheetContent selectedNodeId={selectedNodeId} nodes={nodes} canEditEstimate renderSidebar={false} />
     </QueryClientProvider>,
   );
 }

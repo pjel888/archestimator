@@ -10,8 +10,8 @@ const repositoryMocks = vi.hoisted(() => ({
   getProjectEstimateTreeByEstimate: vi.fn(),
 }));
 
-const supabaseServerMocks = vi.hoisted(() => ({
-  createSupabaseServerClient: vi.fn(),
+const estimateActionsD1ClientMocks = vi.hoisted(() => ({
+  createEstimateActionsD1Client: vi.fn(),
 }));
 
 const authMocks = vi.hoisted(() => ({
@@ -28,7 +28,7 @@ const nextNavigationMocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/repositories/workspace-repository", () => repositoryMocks);
-vi.mock("@/lib/supabase/server", () => supabaseServerMocks);
+vi.mock("@/lib/estimates/d1-action-client", () => estimateActionsD1ClientMocks);
 vi.mock("@/lib/auth/session", () => authMocks);
 vi.mock("next/cache", () => nextCacheMocks);
 vi.mock("next/navigation", () => nextNavigationMocks);
@@ -93,6 +93,13 @@ function makeSupabase({
   return supabase;
 }
 
+function mockEstimateActionsDataStore<T extends { rpc: (name: string, args?: Record<string, unknown>) => unknown }>(store: T) {
+  estimateActionsD1ClientMocks.createEstimateActionsD1Client.mockResolvedValue({
+    ...store,
+    call: (name: string, args: Record<string, unknown>) => store.rpc(name, args),
+  });
+}
+
 describe("reorderEstimateTreeNodes server action", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -117,7 +124,7 @@ describe("reorderEstimateTreeNodes server action", () => {
         ],
       }),
     ).rejects.toThrow("Duplicate estimate tree node update: kitchen.");
-    expect(supabaseServerMocks.createSupabaseServerClient).not.toHaveBeenCalled();
+    expect(estimateActionsD1ClientMocks.createEstimateActionsD1Client).not.toHaveBeenCalled();
   });
 
   it("converts camelCase updates to one scoped history-aware reorder RPC and returns the fresh nested tree", async () => {
@@ -130,7 +137,7 @@ describe("reorderEstimateTreeNodes server action", () => {
         { id: "front-yard", kind: "area", estimate_id: "estimate-1", parent_id: "site-works" },
       ],
     });
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { reorderEstimateTreeNodes } = await import("@/lib/estimates/actions");
 
     const result = await reorderEstimateTreeNodes("project-1", "estimate-1", {
@@ -158,7 +165,7 @@ describe("reorderEstimateTreeNodes server action", () => {
     expect(nextNavigationMocks.redirect).not.toHaveBeenCalled();
   });
 
-  it("calls Supabase rpc with the client receiver when nesting one Group Node under another", async () => {
+  it("calls the action client with the receiver when nesting one Group Node under another", async () => {
     const estimateQuery = queryResult({ data: { id: "estimate-1", project_id: "project-1" }, error: null });
     const nodeQuery = queryResult({
       data: [
@@ -183,7 +190,7 @@ describe("reorderEstimateTreeNodes server action", () => {
         return this.rest.rpc(fn, args);
       },
     };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { reorderEstimateTreeNodes } = await import("@/lib/estimates/actions");
 
     await reorderEstimateTreeNodes("project-1", "estimate-1", {
@@ -214,7 +221,7 @@ describe("reorderEstimateTreeNodes server action", () => {
         { id: "kitchen", kind: "area", estimate_id: "estimate-1", parent_id: "ground-floor" },
       ],
     });
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { reorderEstimateTreeNodes } = await import("@/lib/estimates/actions");
 
     await reorderEstimateTreeNodes("project-1", "estimate-1", {
@@ -237,7 +244,7 @@ describe("reorderEstimateTreeNodes server action", () => {
         { id: "master-bedroom", kind: "area", estimate_id: "estimate-1", parent_id: "second-floor" },
       ],
     });
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { reorderEstimateTreeNodes } = await import("@/lib/estimates/actions");
 
     await reorderEstimateTreeNodes("project-1", "estimate-1", {
@@ -259,7 +266,7 @@ describe("reorderEstimateTreeNodes server action", () => {
         { id: "kitchen", kind: "area", estimate_id: "estimate-1", parent_id: "ground-floor" },
       ],
     });
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { reorderEstimateTreeNodes } = await import("@/lib/estimates/actions");
 
     await reorderEstimateTreeNodes("project-1", "estimate-1", {
@@ -281,7 +288,7 @@ describe("reorderEstimateTreeNodes server action", () => {
         { id: "other-estimate-parent", kind: "group", estimate_id: "other-estimate", parent_id: null },
       ],
     });
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { reorderEstimateTreeNodes } = await import("@/lib/estimates/actions");
 
     await expect(
@@ -306,7 +313,7 @@ describe("reorderEstimateTreeNodes server action", () => {
         { id: "site-works", kind: "group", estimate_id: "estimate-1", estimate_tab_id: "tab-b", parent_id: null },
       ],
     });
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { reorderEstimateTreeNodes } = await import("@/lib/estimates/actions");
 
     await expect(
@@ -323,7 +330,7 @@ describe("reorderEstimateTreeNodes server action", () => {
       nodes: [{ id: "project-scope", kind: "group", estimate_id: "estimate-1", parent_id: null }],
       rpcResult: { data: 0, error: new Error("cycle detected") },
     });
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { reorderEstimateTreeNodes } = await import("@/lib/estimates/actions");
 
     await expect(
@@ -386,7 +393,7 @@ describe("createEstimateNode server action", () => {
         return { data: { nodeId: "new-bedroom" }, error: null };
       }),
     };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const formData = new FormData();
     formData.set("name", "New Bedroom");
     formData.set("kind", "area");
@@ -435,7 +442,7 @@ describe("createEstimateNode server action", () => {
         return { data: { nodeId: "new-group" }, error: null };
       }),
     };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const formData = new FormData();
     formData.set("name", "New Group");
     formData.set("kind", "group");
@@ -472,7 +479,7 @@ describe("createEstimateNode server action", () => {
         return { data: { nodeId: "new-root-group" }, error: null };
       }),
     };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const formData = new FormData();
     formData.set("name", "Alternate Scope");
     formData.set("kind", "group");
@@ -521,7 +528,7 @@ describe("createEstimateNode server action", () => {
         return { data: null, error: new Error("duplicate estimate node reorder slots") };
       }),
     };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const formData = new FormData();
     formData.set("name", "New Group");
     formData.set("kind", "group");
@@ -583,7 +590,7 @@ describe("renameEstimateNode and deleteEstimateNode server actions", () => {
   it("trims names before updating and returns a minimal reconciliation patch", async () => {
     const mutationQuery = queryResult({ data: null, error: null });
     const supabase = scopedNodeSupabase({ mutationQuery });
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { renameEstimateNode } = await import("@/lib/estimates/actions");
 
     const result = await renameEstimateNode("project-1", "estimate-1", "kitchen", "  Chef Kitchen  ");
@@ -610,7 +617,7 @@ describe("renameEstimateNode and deleteEstimateNode server actions", () => {
 
     await expect(renameEstimateNode("project-1", "estimate-1", "kitchen", "   ")).rejects.toThrow("Estimate tree node name is required.");
     expect(repositoryMocks.getCurrentWorkspaceProject).not.toHaveBeenCalled();
-    expect(supabaseServerMocks.createSupabaseServerClient).not.toHaveBeenCalled();
+    expect(estimateActionsD1ClientMocks.createEstimateActionsD1Client).not.toHaveBeenCalled();
   });
 
   it("scopes rename validation to project, estimate, and node", async () => {
@@ -618,7 +625,7 @@ describe("renameEstimateNode and deleteEstimateNode server actions", () => {
       nodeResult: { data: null, error: null },
       mutationQuery: queryResult({ data: null, error: null }),
     });
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { renameEstimateNode } = await import("@/lib/estimates/actions");
 
     await expect(renameEstimateNode("project-1", "estimate-1", "other-node", "New Name")).rejects.toThrow(
@@ -636,7 +643,7 @@ describe("renameEstimateNode and deleteEstimateNode server actions", () => {
   it("scopes delete by project, estimate, and node and returns deleted ids with refreshed tree data", async () => {
     const mutationQuery = queryResult({ data: null, error: null });
     const supabase = scopedNodeSupabase({ mutationQuery });
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     repositoryMocks.getProjectEstimateTreeByEstimate
       .mockResolvedValueOnce({
         project: { id: "project-1" },
@@ -721,7 +728,7 @@ describe("renameEstimateNode and deleteEstimateNode server actions", () => {
         };
       }),
     };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     repositoryMocks.getProjectEstimateTreeByEstimate
       .mockResolvedValueOnce({
         project: { id: "project-1" },
@@ -808,7 +815,7 @@ describe("renameEstimateNode and deleteEstimateNode server actions", () => {
         return { data: { eventId: "delete-event-1" }, error: null };
       }),
     };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { deleteEstimateNodesBulk } = await import("@/lib/estimates/actions");
 
     await expect(deleteEstimateNodesBulk("project-1", "estimate-1", ["ground-floor", "other-node"])).rejects.toThrow(
@@ -839,7 +846,7 @@ describe("renameEstimateNode and deleteEstimateNode server actions", () => {
         };
       }),
     };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     repositoryMocks.getEstimateTabTree.mockResolvedValueOnce({
       project: { id: "project-1" },
       estimate: { id: "estimate-1" },
@@ -921,7 +928,7 @@ describe("insertEstimateRowItemFromLibrary server action", () => {
         return { data: { rowId: "row-1", row: { id: "row-1", nodeId: "55555555-5555-4555-8555-555555555561" } }, error: null };
       }),
     };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { insertEstimateRowItemFromLibrary } = await import("@/lib/estimates/actions");
 
     await insertEstimateRowItemFromLibrary({
@@ -999,7 +1006,7 @@ describe("insertEstimateTemplateIntoEstimate server action", () => {
         return { data: rpcResult, error: null };
       }),
     };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { insertEstimateTemplateIntoEstimate } = await import("@/lib/estimates/actions");
 
     const result = await insertEstimateTemplateIntoEstimate({
@@ -1045,7 +1052,7 @@ describe("insertEstimateTemplateIntoEstimate server action", () => {
         return { data: null, error: new Error("Template row items must belong to area nodes.") };
       }),
     };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { insertEstimateTemplateIntoEstimate } = await import("@/lib/estimates/actions");
 
     await expect(
@@ -1072,7 +1079,7 @@ describe("insertEstimateTemplateIntoEstimate server action", () => {
         throw new Error(`denied insert must not call ${name}`);
       }),
     };
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    mockEstimateActionsDataStore(supabase);
     const { insertEstimateTemplateIntoEstimate } = await import("@/lib/estimates/actions");
 
     await expect(
@@ -1108,7 +1115,7 @@ describe("insertEstimateTemplateNodeIntoEstimate server action", () => {
       if (name === "can_edit_estimate") return { data: false, error: null };
       throw new Error(`denied node insert must not call ${name}`);
     });
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
+    mockEstimateActionsDataStore({ from, rpc });
     const { insertEstimateTemplateNodeIntoEstimate } = await import("@/lib/estimates/actions");
 
     await expect(
@@ -1137,7 +1144,7 @@ describe("insertEstimateTemplateNodeIntoEstimate server action", () => {
       }
       throw new Error(`Unexpected RPC ${name}`);
     });
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
+    mockEstimateActionsDataStore({ from, rpc });
     const { insertEstimateTemplateNodeIntoEstimate } = await import("@/lib/estimates/actions");
 
     const result = await insertEstimateTemplateNodeIntoEstimate({

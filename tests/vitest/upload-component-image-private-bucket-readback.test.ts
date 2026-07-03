@@ -1,12 +1,8 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { expect, it } from "vitest";
 
-import { describe, expect, it } from "vitest";
+import { optionalUploadProviderProof } from "./upload-provider-proof-fixture";
 
-const privateBucketReadback = JSON.parse(readFileSync(join(
-  process.cwd(),
-  ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-component-image-private-bucket-readback.json",
-), "utf8")) as {
+const { describeProof, proof: privateBucketReadback } = optionalUploadProviderProof<{
   proofBoundary: string;
   projectId: string;
   migration: {
@@ -25,9 +21,9 @@ const privateBucketReadback = JSON.parse(readFileSync(join(
   };
   passed: boolean;
   limitations: string[];
-};
+}>("upload-component-image-private-bucket-readback.json");
 
-describe("upload component image private bucket provider readback", () => {
+describeProof("upload component image private bucket provider readback", () => {
   it("records the linked provider bucket privacy flip and public policy removal", () => {
     expect(privateBucketReadback.projectId).toBe("ebxxqidacheyapmmzavr");
     expect(privateBucketReadback.proofBoundary).toBe("linked-provider-storage-catalog-readback");

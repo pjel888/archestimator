@@ -35,15 +35,17 @@ describe("public static route contract", () => {
     }
   });
 
-  it("keeps the auth entry route dynamic so Google OAuth server actions cannot serve stale HTML", () => {
+  it("keeps the auth entry shell cacheable with query-specific state in client islands", () => {
     const loginSource = readProjectFile("src/app/login/page.tsx");
 
-    expect(loginSource).toContain('export const dynamic = "force-dynamic"');
-    expect(loginSource).toContain("export const revalidate = 0");
+    expect(loginSource).not.toContain('export const dynamic = "force-dynamic"');
+    expect(loginSource).not.toContain("export const revalidate = 0");
     expect(loginSource).not.toContain('export const dynamic = "force-static"');
     expect(loginSource).not.toContain("next/headers");
     expect(loginSource).not.toMatch(/\bcookies\(\)/);
     expect(loginSource).not.toMatch(/\bheaders\(\)/);
+    expect(loginSource).toContain("LoginFormFromSearchParams");
+    expect(loginSource).toContain('<LoginForm next="/workshop" />');
   });
 
   it("keeps URL-specific public state in client Suspense islands", () => {

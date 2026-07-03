@@ -13,16 +13,22 @@ const EST_B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const EST_DELETED = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 
 const mocks = vi.hoisted(() => ({
+  requireAuth: vi.fn(),
   requireCurrentUserContext: vi.fn(),
-  createClient: vi.fn(),
+  createPublicationAdminD1Client: vi.fn(),
 }));
 
 vi.mock("@/lib/auth/session", () => ({
+  requireAuth: mocks.requireAuth,
   requireCurrentUserContext: mocks.requireCurrentUserContext,
 }));
 
-vi.mock("@supabase/supabase-js", () => ({
-  createClient: mocks.createClient,
+vi.mock("@/lib/publication/admin-d1-client", () => ({
+  createPublicationAdminD1Client: mocks.createPublicationAdminD1Client,
+}));
+
+vi.mock("@/lib/auth/account-audit", () => ({
+  recordAccountSecurityEvent: vi.fn(),
 }));
 
 // Security: keep real token/hash crypto, but stub the env-secret readers so the actions can run
@@ -164,7 +170,7 @@ function createAdminMock({
 
   let publicationCall = 0;
   return {
-    rpc: vi.fn((functionName: string, args: Record<string, unknown>) => {
+    callProcedure: vi.fn((functionName: string, args: Record<string, unknown>) => {
       captured.rpcs.push({ args, functionName });
       return Promise.resolve({ data: "publication-id", error: null });
     }),
@@ -191,19 +197,21 @@ beforeEach(() => {
   process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
   process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
   // Manager via global role short-circuit (ceo) — skips workspace/project membership reads.
-  mocks.requireCurrentUserContext.mockResolvedValue({
+  const ownerContext = {
     userId: "user-1",
     email: "owner@example.com",
     role: "ceo",
     displayName: "Owner",
-  });
+  };
+  mocks.requireAuth.mockResolvedValue(ownerContext);
+  mocks.requireCurrentUserContext.mockResolvedValue(ownerContext);
 });
 
 describe("createProjectPublication — resolved selected_estimate_ids (MOD-SHEET-06 / MOD-SHEET-05)", () => {
   it("persists only the estimate ids that actually resolved into the snapshot, dropping deleted sheets", async () => {
     const captured: CapturedWrites = { inserts: [], rpcs: [], updates: [] };
     // Requested A, B, and a since-deleted sheet — but the snapshot read only resolves A and B.
-    mocks.createClient.mockReturnValue(
+    mocks.createPublicationAdminD1Client.mockReturnValue(
       createAdminMock({
         estimateRowsForSnapshot: [
           { id: EST_A, name: "Foundation", sheet_code: "S-100", updated_at: "2026-06-01T00:00:00.000Z" },
@@ -233,7 +241,7 @@ describe("createProjectPublication — resolved selected_estimate_ids (MOD-SHEET
 
   it("rejects publishing a project that resolves to zero estimates and writes nothing", async () => {
     const captured: CapturedWrites = { inserts: [], rpcs: [], updates: [] };
-    mocks.createClient.mockReturnValue(
+    mocks.createPublicationAdminD1Client.mockReturnValue(
       createAdminMock({
         estimateRowsForSnapshot: [], // nothing resolves — e.g. all requested sheets were deleted
         latestPublication: null,
@@ -258,7 +266,7 @@ describe("createProjectPublication — resolved selected_estimate_ids (MOD-SHEET
 describe("republishProjectPublication — resolved selected_estimate_ids (MOD-SHEET-06 / MOD-SHEET-05)", () => {
   it("persists the resolved ids present in the rebuilt snapshot, not the requested array", async () => {
     const captured: CapturedWrites = { inserts: [], rpcs: [], updates: [] };
-    mocks.createClient.mockReturnValue(
+    mocks.createPublicationAdminD1Client.mockReturnValue(
       createAdminMock({
         estimateRowsForSnapshot: [
           { id: EST_A, name: "Foundation", sheet_code: "S-100", updated_at: "2026-06-01T00:00:00.000Z" },
@@ -291,7 +299,7 @@ describe("republishProjectPublication — resolved selected_estimate_ids (MOD-SH
 
   it("rejects republishing into a zero-estimate snapshot and writes nothing", async () => {
     const captured: CapturedWrites = { inserts: [], rpcs: [], updates: [] };
-    mocks.createClient.mockReturnValue(
+    mocks.createPublicationAdminD1Client.mockReturnValue(
       createAdminMock({
         estimateRowsForSnapshot: [],
         latestPublication: {

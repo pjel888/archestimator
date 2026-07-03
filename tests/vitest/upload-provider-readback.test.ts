@@ -1,12 +1,8 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { expect, it } from "vitest";
 
-import { describe, expect, it } from "vitest";
+import { optionalUploadProviderProof } from "./upload-provider-proof-fixture";
 
-const providerReadback = JSON.parse(readFileSync(join(
-  process.cwd(),
-  ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-provider-readback.json",
-), "utf8")) as {
+const { describeProof, proof: providerReadback } = optionalUploadProviderProof<{
   proofBoundary: string;
   projectId: string;
   passed: boolean;
@@ -36,9 +32,9 @@ const providerReadback = JSON.parse(readFileSync(join(
     serviceRoleExecute: boolean;
   }>;
   evidenceLimitations: string[];
-};
+}>("upload-provider-readback.json");
 
-describe("upload provider readback evidence", () => {
+describeProof("upload provider readback evidence", () => {
   it("records linked-provider migration, RLS, grant, and storage-policy readback without overstating proof", () => {
     expect(providerReadback).toMatchObject({
       proofBoundary: "linked-provider-readback",

@@ -92,7 +92,7 @@ describe("project creation UI governance", () => {
     expect(newProjectImagePanel).toContain('type="file"');
   });
 
-  it("renders live Supabase project cards separately from sample references", () => {
+  it("renders live project cards separately from sample references", () => {
     expect(projectsPage).toContain("ProjectsPageClient");
     expect(projectsPage).toContain("favoriteProjectIds={favoriteProjectIds}");
     expect(projectsPage).toContain("googleMapsApiKey={googleMapsApiKey}");
@@ -122,7 +122,7 @@ describe("project creation UI governance", () => {
       "data-project-view-mode={projectViewMode}",
     );
     expect(projectsPageClient).toContain("viewMode={projectViewMode}");
-    expect(liveProjectCard).toContain('project: Tables<"projects">');
+    expect(liveProjectCard).toContain("project: ProjectRow");
     expect(liveProjectCard).toContain("viewMode?: ProjectCardViewMode;");
     expect(liveProjectCard).toContain("data-project-card-view={viewMode}");
     expect(liveProjectCard).toContain(
@@ -172,7 +172,7 @@ describe("project creation UI governance", () => {
   });
 
   it("keeps newly created projects visible while create/setup work settles", () => {
-    expect(projectActions).toContain("return project");
+    expect(projectActions).toContain("return toProjectRecord(project)");
     expect(newProjectModal).toContain("onOptimisticProjectChange");
     expect(newProjectForm).toContain(
       "export type NewProjectOptimisticSnapshot",
@@ -434,7 +434,7 @@ describe("project creation UI governance", () => {
     );
   });
 
-  it("uses Supabase Storage upload controls instead of a project image URL field", () => {
+  it("uses private project image upload controls instead of a project image URL field", () => {
     expect(projectDetailsModal).toContain(
       'accept="image/jpeg,image/png,image/webp,image/avif"',
     );
@@ -460,16 +460,17 @@ describe("project creation UI governance", () => {
       "metadata.projectImageThumbnailPath = image.thumbnailPath",
     );
     expect(projectActions).toContain("getProjectImageStoragePaths(metadata)");
-    expect(projectActions).toContain("createRuntimeUploadStorageProvider(supabase)");
-    expect(projectActions).toContain(
-      "await removeStoredProjectImagePaths(storageProvider, getProjectImageStoragePaths(metadata))",
-    );
+    expect(projectActions).toContain("createRuntimeUploadStorageProvider()");
+    expect(projectActions).toContain("await removeStoredProjectImagePaths(");
+    expect(projectActions).toContain("storageProvider,");
+    expect(projectActions).toContain("getProjectImageStoragePaths(metadata)");
     expect(projectImageRoute).toContain(
       'const PROJECT_IMAGE_BUCKET = "project-images"',
     );
     expect(projectImageRoute).toContain("createProjectImageRouteUrl(path)");
     expect(projectImageRoute).toContain('formData.get("projectId"');
-    expect(projectImageRoute).toContain('eq("workspace_id", workspace.id)');
+    expect(projectImageRoute).toContain("readProjectInWorkspaceFromD1(uploadMetadataDb, projectId, workspace.id)");
+    expect(projectImageRoute).toContain("canEditProjectInD1(uploadMetadataDb, projectId, currentUser)");
     expect(projectImageRoute).toContain(
       "${PROJECT_IMAGE_PATH_SEGMENT}/${projectId}",
     );

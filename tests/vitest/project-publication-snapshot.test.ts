@@ -459,7 +459,7 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
 
     try {
-      const safeSupabaseCover = "https://example.supabase.co/storage/v1/object/public/component-images/ws/user/components/cover.webp";
+      const legacySupabaseCover = "https://example.supabase.co/storage/v1/object/public/component-images/ws/user/components/cover.webp";
       const snapshot = buildProjectPublicationSnapshot({
         generatedAt: "2026-05-27T00:00:00.000Z",
         project: {
@@ -469,7 +469,7 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
           clientName: "Client Family",
           location: "Quezon City",
           currencyCode: "PHP",
-          coverImageUrl: safeSupabaseCover,
+          coverImageUrl: legacySupabaseCover,
         },
         estimates: [
           {
@@ -528,7 +528,7 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
                 unitCost: 1,
                 miscCost: 0,
                 contingencyPercentage: 0,
-                imageUrl: `${safeSupabaseCover}?recipient=client`,
+                imageUrl: `${legacySupabaseCover}?recipient=client`,
               },
               {
                 id: "unsafe-supabase-svg-row",
@@ -561,7 +561,7 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
         ],
       });
 
-      expect(snapshot.project.coverImageUrl).toBe(safeSupabaseCover);
+      expect(snapshot.project.coverImageUrl).toBeNull();
       expect(snapshot.estimates[0]?.rows[0]?.imageUrl).toBe("/component-thumbnails/lib-sofa.jpg");
       expect(snapshot.estimates[0]?.rows[1]?.imageUrl).toBeNull();
       expect(snapshot.estimates[0]?.rows[2]?.imageUrl).toBeNull();

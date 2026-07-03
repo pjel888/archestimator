@@ -47,7 +47,9 @@ describe("deferred liquid-glass arming", () => {
   });
 
   it("arms the blur for every gated surface behind @supports, gated only by data-glass", () => {
-    expect(globalsCss).toContain("@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)))");
+    expect(globalsCss).toMatch(
+      /@supports\s*\(\s*\(backdrop-filter:\s*blur\(1px\)\)\s*or\s*\(-webkit-backdrop-filter:\s*blur\(1px\)\)\s*\)/,
+    );
     for (const cls of GATED_GLASS_CLASSES) {
       expect(globalsCss).toContain(`:root[data-glass="ready"] .${cls}`);
     }

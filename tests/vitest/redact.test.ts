@@ -43,6 +43,14 @@ describe("redactForLog", () => {
     expect(result.tainted).toBe(true);
   });
 
+  it("redacts prefixed service-role env assignments in diagnostic messages", () => {
+    const result = redactMessage("SUPABASE_SERVICE_ROLE_KEY=secret database constraint failed");
+
+    expect(result.value).toBe("SUPABASE_SERVICE_ROLE_KEY=[REDACTED] database constraint failed");
+    expect(result.value).not.toContain("secret");
+    expect(result.tainted).toBe(true);
+  });
+
   it("labels tainted fields without deleting diagnostic structure", () => {
     const result = redactForLog({
       event: "client-error",

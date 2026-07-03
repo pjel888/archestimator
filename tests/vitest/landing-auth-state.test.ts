@@ -19,16 +19,13 @@ describe("landing auth state (display-only cookie hint)", () => {
     cookiesMock.mockReset();
   });
 
-  it("returns true when a Supabase auth cookie is present", async () => {
-    withCookies([{ name: "sb-abcdefghijklmnop-auth-token", value: "base64-session" }]);
+  it("returns true when a Better Auth session cookie is present", async () => {
+    withCookies([{ name: "better-auth.session_token", value: "signed-session" }]);
     await expect(getLandingAuthState()).resolves.toBe(true);
   });
 
-  it("returns true for chunked Supabase auth cookies", async () => {
-    withCookies([
-      { name: "sb-abcdefghijklmnop-auth-token.0", value: "chunk-a" },
-      { name: "sb-abcdefghijklmnop-auth-token.1", value: "chunk-b" },
-    ]);
+  it("returns true for secure Better Auth session cookies", async () => {
+    withCookies([{ name: "__Secure-better-auth.session_token", value: "signed-session" }]);
     await expect(getLandingAuthState()).resolves.toBe(true);
   });
 
@@ -38,7 +35,15 @@ describe("landing auth state (display-only cookie hint)", () => {
   });
 
   it("ignores empty auth cookie values", async () => {
-    withCookies([{ name: "sb-abcdefghijklmnop-auth-token", value: "" }]);
+    withCookies([{ name: "better-auth.session_token", value: "" }]);
+    await expect(getLandingAuthState()).resolves.toBe(false);
+  });
+
+  it("ignores Better Auth OAuth state cookies without a session", async () => {
+    withCookies([
+      { name: "__Secure-better-auth.state", value: "oauth-state" },
+      { name: "better-auth.oauth_state", value: "oauth-state" },
+    ]);
     await expect(getLandingAuthState()).resolves.toBe(false);
   });
 
@@ -47,12 +52,12 @@ describe("landing auth state (display-only cookie hint)", () => {
     await expect(getLandingAuthState()).resolves.toBe(false);
   });
 
-  it("performs no Supabase auth network round-trip", () => {
-    // Display-only contract: the helper must not import the Supabase server
-    // client. Protected routes keep fail-closed getUser() validation.
+  it("performs no Better Auth D1/network validation round-trip", () => {
+    // Display-only contract: the helper must not import the Better Auth route
+    // gate. Protected routes keep fail-closed server-side validation.
     const source = readFileSync(path.join(process.cwd(), "src/lib/landing/get-landing-auth-state.ts"), "utf8");
-    expect(source).not.toContain("createSupabaseServerClient");
-    expect(source).not.toContain("@/lib/supabase/server");
-    expect(source).not.toContain("supabase.auth.getUser(");
+    expect(source).not.toContain("createCloudflareBetterAuthForRequest");
+    expect(source).not.toContain("getCloudflareBetterAuthIdentityFromRequest");
+    expect(source).not.toContain("@/lib/auth/cloudflare-better-auth-runtime");
   });
 });

@@ -116,6 +116,10 @@ async function waitForLibraryWorkspace() {
   await screen.findByRole("button", { name: /View by:/ }, { timeout: 10_000 });
 }
 
+function queryComponentInspectButton(componentId: string) {
+  return document.querySelector(`[data-component-card-inspect="${componentId}"]`);
+}
+
 beforeEach(() => {
   navigationMocks.push.mockReset();
   navigationMocks.refresh.mockReset();
@@ -150,13 +154,13 @@ describe("Library applied filters", () => {
     const appliedFilters = screen.getByLabelText("Applied component filters");
     expect(within(appliedFilters).getByText("Supplier: Tile Supplier")).toBeInTheDocument();
     expect(document.querySelector('[data-component-sheet-context-strip="true"]')).toHaveTextContent("All Components · 1 shown · 3 in scope");
-    expect(screen.getByRole("button", { name: "View details for Alpha Tile" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "View details for Beta Paint" })).not.toBeInTheDocument();
+    expect(queryComponentInspectButton("component-alpha")).toBeInTheDocument();
+    expect(queryComponentInspectButton("component-beta")).not.toBeInTheDocument();
 
     fireEvent.click(within(appliedFilters).getByRole("button", { name: "Remove Supplier: Tile Supplier filter" }));
 
     await waitFor(() => expect(screen.queryByLabelText("Applied component filters")).not.toBeInTheDocument());
-    expect(screen.getByRole("button", { name: "View details for Beta Paint" })).toBeInTheDocument();
+    expect(queryComponentInspectButton("component-beta")).toBeInTheDocument();
     expect(document.querySelector('[data-component-sheet-context-strip="true"]')).toHaveTextContent("All Components · 3 components");
   });
 
@@ -176,13 +180,13 @@ describe("Library applied filters", () => {
     const appliedFilters = screen.getByLabelText("Applied component filters");
     expect(within(appliedFilters).getByText("Brand: No brand")).toBeInTheDocument();
     expect(within(appliedFilters).getByText("Pricing: Older than 90 days")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "View details for Beta Paint" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "View details for Alpha Tile" })).not.toBeInTheDocument();
+    expect(queryComponentInspectButton("component-beta")).toBeInTheDocument();
+    expect(queryComponentInspectButton("component-alpha")).not.toBeInTheDocument();
 
     fireEvent.click(within(appliedFilters).getByRole("button", { name: "Clear filters" }));
 
     await waitFor(() => expect(screen.queryByLabelText("Applied component filters")).not.toBeInTheDocument());
-    expect(screen.getByRole("button", { name: "View details for Alpha Tile" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "View details for Gamma Fixture" })).toBeInTheDocument();
+    expect(queryComponentInspectButton("component-alpha")).toBeInTheDocument();
+    expect(queryComponentInspectButton("component-gamma")).toBeInTheDocument();
   });
 });

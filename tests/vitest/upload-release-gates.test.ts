@@ -1,42 +1,29 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { expect, it } from "vitest";
 
-import { describe, expect, it } from "vitest";
+import { optionalUploadProviderProof } from "./upload-provider-proof-fixture";
 
-const releaseGates = JSON.parse(readFileSync(join(
-  process.cwd(),
-  ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-release-gates.json",
-), "utf8")) as {
+const { describeProof, proof: releaseGates } = optionalUploadProviderProof<{
   proofBoundary: string;
   closedBeta: { status: string; blockers: Array<{ id: string }> };
   production: { status: string; blockers: Array<{ id: string }>; localPasses?: Array<{ id: string }> };
   platform: { status: string; blockers: Array<{ id: string }>; localPasses?: Array<{ id: string }> };
   hostedEvidence?: Array<{ command: string; exit: number; result: string; artifact?: string }>;
   localEvidence: Array<{ command: string; exit: number; result: string }>;
-};
+}>("upload-release-gates.json");
 
-const hostedRuntimeFailClosedProof = JSON.parse(readFileSync(join(
-  process.cwd(),
-  ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-hosted-runtime-fail-closed-proof.json",
-), "utf8")) as {
+const { proof: hostedRuntimeFailClosedProof } = optionalUploadProviderProof<{
   passed: boolean;
   productionProofReady: boolean;
   samples: Array<{ status: number; hasNoStoreCacheControl: boolean }>;
-};
+}>("upload-hosted-runtime-fail-closed-proof.json");
 
-const hostedOperationsFailClosedProof = JSON.parse(readFileSync(join(
-  process.cwd(),
-  ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-hosted-operations-fail-closed-proof.json",
-), "utf8")) as {
+const { proof: hostedOperationsFailClosedProof } = optionalUploadProviderProof<{
   passed: boolean;
   productionProofReady: boolean;
   results: Array<{ samples: Array<{ status: number; hasNoStoreCacheControl: boolean }> }>;
-};
+}>("upload-hosted-operations-fail-closed-proof.json");
 
-const hostedDeploymentReadback = JSON.parse(readFileSync(join(
-  process.cwd(),
-  ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-hosted-deployment-readback.json",
-), "utf8")) as {
+const { proof: hostedDeploymentReadback } = optionalUploadProviderProof<{
   passed: boolean;
   productionProofReady: boolean;
   proofBoundary: string;
@@ -62,22 +49,16 @@ const hostedDeploymentReadback = JSON.parse(readFileSync(join(
   };
   runtimeLogReadback: { uploadProofLogsFound: boolean; result: string };
   failedChecks: string[];
-};
+}>("upload-hosted-deployment-readback.json");
 
-const productionProofEvidenceCheck = JSON.parse(readFileSync(join(
-  process.cwd(),
-  ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-production-proof-evidence-check.json",
-), "utf8")) as {
+const { proof: productionProofEvidenceCheck } = optionalUploadProviderProof<{
   passed: boolean;
   productionProofReady: boolean;
   totals: { required: number; passed: number; failed: number; missing: number; invalid: number };
   requirements: Array<{ key: string; status: string; failedChecks: string[] }>;
-};
+}>("upload-production-proof-evidence-check.json");
 
-const requirementCoverageAudit = JSON.parse(readFileSync(join(
-  process.cwd(),
-  ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-requirement-coverage-audit.json",
-), "utf8")) as {
+const { proof: requirementCoverageAudit } = optionalUploadProviderProof<{
   passed: boolean;
   traceabilityReady: boolean;
   productionReady: boolean;
@@ -89,59 +70,44 @@ const requirementCoverageAudit = JSON.parse(readFileSync(join(
     evidenceRefs: Array<{ id: string }>;
     blockerRefs: Array<{ id: string }>;
   }>;
-};
+}>("upload-requirement-coverage-audit.json");
 
-const alertDeliveryProof = JSON.parse(readFileSync(join(
-  process.cwd(),
-  ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-alert-delivery-production-proof.json",
-), "utf8")) as {
+const { proof: alertDeliveryProof } = optionalUploadProviderProof<{
   passed: boolean;
   proofBoundary: string;
   delivery: { delivered: boolean; secretRedacted: boolean; payloadPathSafe: boolean };
   failedChecks: string[];
-};
+}>("upload-alert-delivery-production-proof.json");
 
-const liveClamdProof = JSON.parse(readFileSync(join(
-  process.cwd(),
-  ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-clamd-live-proof.json",
-), "utf8")) as {
+const { proof: liveClamdProof } = optionalUploadProviderProof<{
   passed: boolean;
   proofBoundary: string;
   skipped: boolean;
   reason: string;
-};
+}>("upload-clamd-live-proof.json");
 
-const dashboardProductionProof = JSON.parse(readFileSync(join(
-  process.cwd(),
-  ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-dashboard-production-proof.json",
-), "utf8")) as {
+const { proof: dashboardProductionProof } = optionalUploadProviderProof<{
   passed: boolean;
   proofBoundary: string;
   skipped: boolean;
   dashboard: { hostedObserved: boolean; pathSafe: boolean };
-};
+}>("upload-dashboard-production-proof.json");
 
-const backpressureProductionProof = JSON.parse(readFileSync(join(
-  process.cwd(),
-  ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-backpressure-production-proof.json",
-), "utf8")) as {
+const { proof: backpressureProductionProof } = optionalUploadProviderProof<{
   passed: boolean;
   proofBoundary: string;
   skipped: boolean;
   exercise: { hosted: boolean; rejectionStatus: number | null; pathSafe: boolean };
-};
+}>("upload-backpressure-production-proof.json");
 
-const retentionRunbookProductionProof = JSON.parse(readFileSync(join(
-  process.cwd(),
-  ".ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/upload-retention-runbook-production-proof.json",
-), "utf8")) as {
+const { proof: retentionRunbookProductionProof } = optionalUploadProviderProof<{
   passed: boolean;
   proofBoundary: string;
   skipped: boolean;
   runbook: { hostedCronObserved: boolean; noRawStoragePaths: boolean };
-};
+}>("upload-retention-runbook-production-proof.json");
 
-describe("upload release gates", () => {
+describeProof("upload release gates", () => {
   it("separates closed-beta and platform readiness from missing production proof", () => {
     expect(releaseGates.proofBoundary).toBe("local-plus-linked-provider-operation-proof");
     expect(releaseGates.closedBeta.status).toBe("ready");

@@ -1437,9 +1437,9 @@ describe("component library UI", () => {
     expect(image).toHaveAttribute("decoding", "async");
   });
 
-  it("allows bundled and configured Supabase thumbnails without accepting unsafe direct URLs", () => {
-    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
-    const safeSupabaseImage = "https://example.supabase.co/storage/v1/object/public/component-images/ws/user/components/fixture.webp";
+  it("allows bundled and brokered thumbnails without accepting unsafe direct URLs", () => {
+    const safeBrokeredImage = "/api/component-library/images?path=steel-frame.jpg";
+    const legacySupabaseImage = "https://example.supabase.co/storage/v1/object/public/component-images/ws/user/components/fixture.webp";
     const directImageItems: EstimateRowItem[] = [
       {
         ...sharedLibraryItems[0],
@@ -1450,24 +1450,31 @@ describe("component library UI", () => {
       },
       {
         ...sharedLibraryItems[0],
+        id: "brokered-thumbnail-item",
+        material: "Brokered Thumbnail Component",
+        name: "Brokered Thumbnail Component",
+        imageUrl: safeBrokeredImage,
+      },
+      {
+        ...sharedLibraryItems[0],
         id: "supabase-thumbnail-item",
         material: "Supabase Thumbnail Component",
         name: "Supabase Thumbnail Component",
-        imageUrl: safeSupabaseImage,
+        imageUrl: legacySupabaseImage,
       },
       {
         ...sharedLibraryItems[0],
         id: "supabase-query-thumbnail-item",
         material: "Supabase Query Thumbnail Component",
         name: "Supabase Query Thumbnail Component",
-        imageUrl: `${safeSupabaseImage}?viewer=1`,
+        imageUrl: `${legacySupabaseImage}?viewer=1`,
       },
       {
         ...sharedLibraryItems[0],
         id: "supabase-hash-thumbnail-item",
         material: "Supabase Hash Thumbnail Component",
         name: "Supabase Hash Thumbnail Component",
-        imageUrl: `${safeSupabaseImage}#preview`,
+        imageUrl: `${legacySupabaseImage}#preview`,
       },
       {
         ...sharedLibraryItems[0],
@@ -1538,12 +1545,13 @@ describe("component library UI", () => {
       .querySelector("[data-component-library-row-thumbnail] img");
     expect(bundledImage?.getAttribute("src")).toMatch(/\/component-thumbnails\/lib-sofa\.jpg$/);
 
-    const supabaseImage = screen
-      .getByRole("treeitem", { name: "Supabase Thumbnail Component" })
+    const brokeredImage = screen
+      .getByRole("treeitem", { name: "Brokered Thumbnail Component" })
       .querySelector("[data-component-library-row-thumbnail] img");
-    expect(supabaseImage).toHaveAttribute("src", safeSupabaseImage);
+    expect(brokeredImage?.getAttribute("src")).toMatch(/\/api\/component-library\/images\?path=steel-frame\.jpg$/);
 
     for (const name of [
+      "Supabase Thumbnail Component",
       "Supabase Query Thumbnail Component",
       "Supabase Hash Thumbnail Component",
       "Supabase Userinfo Thumbnail Component",

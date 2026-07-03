@@ -89,7 +89,7 @@ describe("Estimate Sheet sidebar Library consumers", () => {
     expect(rowHandlersSource).toContain("trust_insert_gate_confirmed");
     expect(rowHandlersSource).toContain('item.source === "supplier"');
     expect(estimateActionsSource).toContain("libraryItem.sourceLibraryItemId && isUuid(libraryItem.sourceLibraryItemId)");
-    expect(estimateActionsSource).toContain("assertCurrentLibrarySourceForEstimateCommit(supabase, libraryItem)");
+    expect(estimateActionsSource).toContain("assertCurrentLibrarySourceForEstimateCommit(dataStore, libraryItem)");
   });
 
   it("keeps the estimate sidebar Library fetch bounded to the first trusted page", () => {

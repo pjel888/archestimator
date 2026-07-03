@@ -27,7 +27,7 @@ describe("component library durable telemetry", () => {
     expect(actions).toContain("export async function recordComponentLibraryTelemetryEvent");
     expect(actions).toContain("sanitizeLibraryTelemetryRecord(input)");
     expect(actions).toContain("await requireCurrentUserContext()");
-    expect(actions).toContain("is_workspace_member");
+    expect(actions).toContain("isWorkspaceMemberInD1");
     expect(actions).toContain("recordComponentLibraryTelemetryEventInCloudflareD1");
     expect(actions).not.toContain("archestimator-component-library-telemetry");
     expect(actions).not.toContain("createSupabaseServiceRoleClient");

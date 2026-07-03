@@ -1,9 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { createClient, type Session } from "@supabase/supabase-js";
 import { describe, expect, it } from "vitest";
-
-import type { Database } from "@/lib/supabase/types";
 
 const runRlsProof = process.env.ARCHESTIMATOR_NOTIFICATION_RLS_PROOF === "1";
 const branchSafeTargetAllowed = process.env.ARCHESTIMATOR_NOTIFICATION_RLS_BRANCH_SAFE === "1";
@@ -11,11 +8,49 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+type SupabaseClientFactory = (url: string, key: string, options?: unknown) => DatabaseClient;
+
+type DatabaseClient = {
+  auth: {
+    setSession(session: { access_token: string; refresh_token: string }): Promise<{ error: unknown | null }>;
+    signInWithPassword(credentials: { email: string; password: string }): Promise<{
+      data: { session: RlsProofSession | null };
+      error: unknown | null;
+    }>;
+    admin: {
+      createUser(credentials: { email: string; password: string; email_confirm: boolean }): Promise<{
+        data: { user: { id: string } | null };
+        error: unknown | null;
+      }>;
+      deleteUser(userId: string): Promise<unknown>;
+    };
+  };
+  from(table: string): {
+    select(columns?: string): QueryBuilder;
+    insert(value: unknown): Promise<{ error: unknown | null }>;
+    update(value: unknown): QueryBuilder;
+    delete(): QueryBuilder;
+  };
+};
+
+type QueryData = Record<string, unknown> | Array<Record<string, unknown>> | null;
+
+type QueryBuilder = Promise<{ data?: QueryData; error: unknown | null }> & {
+  eq(column: string, value: unknown): QueryBuilder;
+  in(column: string, values: unknown[]): Promise<{ error: unknown | null }>;
+  maybeSingle(): Promise<{ data: { id?: string } | null; error: unknown | null }>;
+};
+
+type RlsProofSession = {
+  access_token: string;
+  refresh_token: string;
+};
+
 type RlsProofUser = {
   id: string;
   email: string;
   password: string;
-  session: Session;
+  session: RlsProofSession;
 };
 
 type RlsProofFixture = {
@@ -65,22 +100,37 @@ function requireSupabaseEnv() {
   };
 }
 
-function createAdminClient() {
+let createClientPromise: Promise<SupabaseClientFactory> | null = null;
+
+async function loadSupabaseClientFactory() {
+  createClientPromise ??= (async () => {
+    const importModule = new Function("specifier", "return import(specifier)") as (
+      specifier: string,
+    ) => Promise<{ createClient: SupabaseClientFactory }>;
+    const supabaseJs = await importModule("@supabase/supabase-js");
+    return supabaseJs.createClient;
+  })();
+  return createClientPromise;
+}
+
+async function createAdminClient() {
   const env = requireSupabaseEnv();
-  return createClient<Database>(env.supabaseUrl, env.serviceRoleKey, {
+  const createClient = await loadSupabaseClientFactory();
+  return createClient(env.supabaseUrl, env.serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 }
 
-function createAnonClient() {
+async function createAnonClient() {
   const env = requireSupabaseEnv();
-  return createClient<Database>(env.supabaseUrl, env.anonKey, {
+  const createClient = await loadSupabaseClientFactory();
+  return createClient(env.supabaseUrl, env.anonKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 }
 
-async function createAuthenticatedClient(session: Session) {
-  const supabase = createAnonClient();
+async function createAuthenticatedClient(session: RlsProofSession) {
+  const supabase = await createAnonClient();
   const { error } = await supabase.auth.setSession({
     access_token: session.access_token,
     refresh_token: session.refresh_token,
@@ -90,8 +140,8 @@ async function createAuthenticatedClient(session: Session) {
 }
 
 async function createRlsProofUser(label: string, onCreated?: (user: Pick<RlsProofUser, "id">) => void): Promise<RlsProofUser> {
-  const admin = createAdminClient();
-  const anon = createAnonClient();
+  const admin = await createAdminClient();
+  const anon = await createAnonClient();
   const stamp = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const email = `notification-rls-${label}-${stamp}@archestimator.local`.toLowerCase();
   const password = `Notification-${label}-${stamp}!`;
@@ -113,7 +163,7 @@ async function createRlsProofUser(label: string, onCreated?: (user: Pick<RlsProo
 }
 
 async function createRlsProofFixture(): Promise<RlsProofFixture> {
-  const admin = createAdminClient();
+  const admin = await createAdminClient();
   const definitionA = randomUUID();
   const definitionB = randomUUID();
   const deliveryA = randomUUID();
@@ -190,7 +240,7 @@ async function createRlsProofFixture(): Promise<RlsProofFixture> {
 
 async function cleanupRlsProofFixture(fixture: RlsProofFixture | RlsProofCleanupTarget | null) {
   if (!fixture) return;
-  const admin = createAdminClient();
+  const admin = await createAdminClient();
   await admin.from("notification_deliveries").delete().in("id", [fixture.deliveryA, fixture.deliveryB]);
   await admin.from("notification_definitions").delete().in("id", [fixture.definitionA, fixture.definitionB]);
   if (fixture.userA) await admin.auth.admin.deleteUser(fixture.userA.id);
@@ -207,7 +257,7 @@ describeRlsProof("notification RLS proof", () => {
       fixture = await createRlsProofFixture();
       const userAClient = await createAuthenticatedClient(fixture.userA.session);
       const userBClient = await createAuthenticatedClient(fixture.userB.session);
-      const anonymousClient = createAnonClient();
+      const anonymousClient = await createAnonClient();
 
       const userAOwnDelivery = await userAClient.from("notification_deliveries").select("id,user_id").eq("id", fixture.deliveryA).maybeSingle();
       expect(userAOwnDelivery.error).toBeNull();

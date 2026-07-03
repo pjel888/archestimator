@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   getCurrentPerfTraceSnapshot,
-  traceSupabaseFetch,
+  traceDatabaseFetch,
   traced,
   withPerfTraceRequest,
 } from "@/lib/perf/server-timing";
@@ -13,13 +13,13 @@ describe("workshop dashboard perf tracing", () => {
     vi.restoreAllMocks();
   });
 
-  it("correlates nested timings and Supabase round trips to one request id", async () => {
+  it("correlates nested timings and database round trips to one request id", async () => {
     vi.stubEnv("PERF_TRACE", "1");
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
 
     const result = await withPerfTraceRequest("workshop.dashboard", async () => {
       await traced("workshop.branch.homebase", async () => "homebase");
-      await traceSupabaseFetch("homebase.H1.projects", "select", "projects", async () => new Response("[]"));
+      await traceDatabaseFetch("homebase.H1.projects", "select", "projects", async () => new Response("[]"));
       return getCurrentPerfTraceSnapshot();
     });
 
@@ -29,12 +29,12 @@ describe("workshop dashboard perf tracing", () => {
       expect.objectContaining({ label: "workshop.branch.homebase", kind: "timing" }),
       expect.objectContaining({
         label: "homebase.H1.projects",
-        kind: "supabase",
+        kind: "database",
         operation: "select",
         relation: "projects",
       }),
     ]);
-    expect(result?.supabaseRoundTrips).toBe(1);
+    expect(result?.databaseRoundTrips).toBe(1);
     expect(log).toHaveBeenCalledWith(expect.stringContaining("[perf-json]"));
     expect(log.mock.calls.map((call) => String(call[0])).join("\n")).not.toMatch(
       /workspace_id|project_id|estimate_id|email|authorization|cookie/i,
@@ -47,7 +47,7 @@ describe("workshop dashboard perf tracing", () => {
 
     const result = await withPerfTraceRequest("workshop.dashboard", async () => {
       await traced("workshop.branch.homebase", async () => "homebase");
-      await traceSupabaseFetch("homebase.H1.projects", "select", "projects", async () => new Response("[]"));
+      await traceDatabaseFetch("homebase.H1.projects", "select", "projects", async () => new Response("[]"));
       return getCurrentPerfTraceSnapshot();
     });
 
