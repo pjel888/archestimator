@@ -55,8 +55,9 @@ preserving engineering quality:
   deliberately.
 - Type safety: TypeScript, domain models, validation, and generated types prevent
   avoidable invalid states.
-- Data integrity: Supabase/Postgres changes preserve tenant boundaries, RLS,
-  transactional correctness, migration safety, and recovery paths.
+- Data integrity: Cloudflare D1/R2/Durable Object/Queue changes preserve
+  workspace boundaries, app authorization, consistency/transaction expectations,
+  migration safety, recovery paths, and provider proof.
 - Security and privacy: permissions, trust boundaries, secrets, logging, abuse
   cases, and sensitive data exposure are explicitly controlled.
 - Performance: no performance claim is complete without a baseline, target,
@@ -95,10 +96,12 @@ Before any implementation edit:
    `node_modules/next/dist/docs/` before changing App Router, rendering, route
    handlers, Server Actions, caching, revalidation, middleware/proxy, build, or
    deployment behavior.
-8. For current React, Next.js, Supabase, browser, Vercel, or SDK behavior that
-   materially affects correctness and is not fully settled by repo-local docs,
-   check authoritative official documentation. Do not rely on model memory for
-   current framework behavior.
+8. For current React, Next.js, Cloudflare, D1, R2, Durable Objects, Queues,
+   Better Auth, browser, or SDK behavior that materially affects correctness and
+   is not fully settled by repo-local docs, check authoritative official
+   documentation. Use Supabase/Vercel/Resend docs only for explicitly scoped
+   legacy-provider export, comparison, or exit work. Do not rely on model memory
+   for current framework behavior.
 9. Treat current source files, tests, schemas, migrations, and provider evidence
    as the authority for actual repo behavior.
 10. If a plan conflicts with current code, current docs, or repository
@@ -214,7 +217,7 @@ irrelevant:
 - Frontend / UX / accessibility implementer.
 - React / Next.js rendering and state reviewer.
 - Backend / API / Server Action / integration implementer.
-- Data / Supabase / migration implementer.
+- Data / Cloudflare D1/R2/Durable Object/Queue / migration implementer.
 - Security and privacy reviewer.
 - Performance and reliability reviewer.
 - Test engineer and regression owner.
@@ -355,7 +358,8 @@ Locate and understand:
   that the work touches.
 - Current domain language and model boundaries.
 - Current data flow and request/mutation flow.
-- Current auth, permission, workspace, tenant, and RLS boundaries.
+- Current auth, permission, workspace, tenant, app-authorization, and any legacy
+  RLS boundaries.
 - Existing design-system primitives and feature-specific UI patterns.
 - Existing tests and known validation gaps.
 - Existing error handling, logging, observability, and operational patterns.
@@ -439,10 +443,13 @@ General code standards:
 
 REACT / NEXT.JS 16 / REACT 19 EXECUTION BAR
 
-Archestimator's baseline stack is Next.js 16 App Router, React 19, Bun,
-TypeScript, Tailwind v4, Supabase/Postgres, TanStack Query, Zustand, and
-repository-boundary patterns. Verify the current stack from source files before
-relying on it.
+Archestimator's active baseline stack is Next.js 16 App Router, React 19, Bun,
+TypeScript, Tailwind v4, OpenNext on Cloudflare Workers, Cloudflare D1,
+Cloudflare R2, Durable Objects/WebSockets, Cloudflare Queues/Cron, Cloudflare
+Email, Better Auth, TanStack Query, Zustand, and repository-boundary patterns.
+Verify the current stack from source files before relying on it. Treat
+Supabase/Postgres, Vercel, and Resend as historical/provider-exit surfaces
+unless current source/config/provider readback proves active runtime use.
 
 For every Next.js or React change, implement and verify:
 
@@ -456,7 +463,7 @@ For every Next.js or React change, implement and verify:
   code, heavy packages, or unnecessary component trees into the client graph.
 - Serializable props from Server Components to Client Components.
 - Data fetching owner: Server Component, data-access layer, Server Action, Route
-  Handler, TanStack Query, or Supabase client. Do not call internal Route
+  Handler, TanStack Query, or Cloudflare/D1 repository helper. Do not call internal Route
   Handlers from Server Components when the underlying server data function is
   available.
 - Fetching and streaming: avoid waterfalls, use parallel data fetching where
@@ -464,7 +471,7 @@ For every Next.js or React change, implement and verify:
   boundaries, and design loading states that communicate real progress.
 - Cache and freshness owner: Next cache, `use cache`, `cacheLife`, `cacheTag`,
   `revalidatePath`, `revalidateTag`, `updateTag`, TanStack Query invalidation,
-  Supabase realtime, or no cache. Define key inputs, lifetime, isolation,
+  Durable Object/WebSocket updates, Queue/Cron refresh, or no cache. Define key inputs, lifetime, isolation,
   staleness tolerance, read-your-own-writes needs, invalidation blast radius,
   and failure behavior.
 - Runtime API implications: cookies, headers, params, search params, connection,
@@ -487,8 +494,9 @@ For every Next.js or React change, implement and verify:
 - State ownership: URL/search params for shareable navigation state, Server
   Components/server data for authoritative data, TanStack Query for client
   server-state caching, Zustand only for legitimate cross-component client
-  state, local React state for isolated interaction state, and Supabase/Postgres
-  for durable state.
+  state, local React state for isolated interaction state, Cloudflare D1 for
+  durable relational/app/auth state, R2 for objects, and Durable Objects for
+  room-local realtime coordination where already established.
 - Rendering performance: stable list keys, no avoidable render loops, memoize
   only for measured hot paths, expensive calculations, or memoized child
   contracts, and preserve React Compiler compatibility where applicable.
@@ -523,28 +531,35 @@ For every UI-affecting change:
   review, type/lint, DOM tests, or component tests are enough for low-risk copy,
   spacing, color, icon, or class-only changes when they prove the edit.
 
-DATA, SUPABASE, API, AND INTEGRATION BAR
+DATA, CLOUDFLARE, API, AND INTEGRATION BAR
 
 For every data, API, or provider change:
 
-- Stay inside the Archestimator Supabase project `ebxxqidacheyapmmzavr` only.
-  Never mutate unrelated provider projects.
+- Stay inside the authorized Archestimator Cloudflare resources proven by
+  `wrangler.jsonc`, `cloudflare-env.d.ts`, package `cf:*` scripts, and provider
+  readback. Supabase project `ebxxqidacheyapmmzavr` is relevant only for
+  explicitly scoped legacy export, migration archaeology, or provider-exit
+  cleanup. Never mutate unrelated provider projects.
 - Verify provider/project boundary before applying provider changes.
 - Define data ownership, lifecycle, retention, deletion, audit, and recovery.
-- Preserve workspace, tenant, auth, anonymous, and service-role boundaries.
-- Define RLS policies, grants, RPCs, triggers, indexes, constraints, storage
-  policies, generated types, and seed/test data impacts.
+- Preserve workspace, tenant, auth, anonymous, service/admin, job, and system boundaries; include legacy Supabase service-role boundaries only when old-provider paths are in scope.
+- Define D1 tables, indexes, constraints, migrations, repository helpers, app
+  authorization checks, R2 object-key/policy/lifecycle impacts, Durable Object
+  room semantics, Queue retry/dead-letter behavior, Worker Env generated types,
+  and seed/test data impacts.
 - Use migrations that are ordered, reversible where possible, safe for existing
   data, and paired with rollback or fix-forward strategy.
-- Refresh generated types when schema changes require it.
+- Refresh generated types when schema or Cloudflare bindings require it
+  (`bun run cf:typegen` for Worker Env changes).
 - Validate with local SQL, provider readback, or scoped proof scripts when the
   claim depends on real provider state.
 - Define API DTOs, serialization, versioning, compatibility, status codes,
   errors, retries, timeouts, cancellation, idempotency, and rate limiting.
 - Avoid N+1 queries and uncontrolled payload growth.
-- Analyze query plans, cardinality, index selectivity, and RLS cost when data
-  volume or route performance can be affected.
-- Keep service-role usage isolated, justified, and tested when required.
+- Analyze D1 query plans, cardinality, index selectivity, app-authz query cost,
+  R2 object-list/read/write pressure, Queue amplification, and Durable Object
+  hot-room risk when data volume or route performance can be affected.
+- Keep elevated service/admin/job/system usage isolated, justified, and tested when required; scope legacy Supabase service-role usage only to old-provider paths.
 
 SECURITY AND PRIVACY BAR
 
@@ -588,7 +603,7 @@ Consider these dimensions when relevant:
 - Server/client boundary bloat and unnecessary client JavaScript.
 - Sequential data waterfalls and avoidable network roundtrips.
 - Cache key isolation and invalidation blast radius.
-- Supabase query count, indexes, RLS cost, and EXPLAIN evidence.
+- Cloudflare D1 query count, indexes, app-authz cost, and query-plan evidence.
 - Virtualization, pagination, and streaming for large lists.
 - Timeouts, cancellation, retries with caps, backoff, and circuit-breaker style
   degradation where appropriate.
@@ -720,8 +735,9 @@ Review at least:
 - Architecture and boundary consistency.
 - React / Next.js Server/Client/data/cache/mutation correctness.
 - TypeScript and domain model safety.
-- Security, privacy, auth, and RLS implications.
-- Supabase/Postgres migration and provider boundary evidence.
+- Security, privacy, auth, app-authorization, and any legacy RLS implications.
+- Cloudflare D1/R2/Durable Object/Queue/Email migration and provider boundary
+  evidence, plus legacy-provider-exit evidence when in scope.
 - Performance evaluator and regression risk.
 - Accessibility and UX state coverage.
 - Test adequacy and skipped validation risks.
@@ -767,8 +783,10 @@ Completion gates:
 - UX states match the plan.
 - Accessibility requirements are satisfied.
 - APIs, Server Actions, integrations, and data flows behave as specified.
-- Database changes, migrations, generated types, RLS, grants, RPCs, and storage
-  policies are verified when relevant.
+- Database/provider changes, D1 migrations, generated Worker Env types, app
+  authorization checks, repository helpers, R2 object policy/lifecycle, Durable
+  Object room semantics, Queue behavior, and legacy RLS/RPC/storage policies are
+  verified when relevant.
 - Authentication and authorization are enforced server-side.
 - Security review has no unresolved critical issue.
 - Performance evaluator passes or measured limitations are documented with
@@ -846,8 +864,8 @@ Provide a concise but complete final report:
   - Blocking work on the main thread or request path.
   - Rendering, hydration, and client bundle impact for UI work.
   - Server latency, data fetching, caching, and revalidation for Next.js work.
-  - Database query count, query shape, indexes, RLS cost, and payload size for
-    Supabase/Postgres work.
+  - Database query count, query shape, indexes, app-authz cost, and payload size
+    for Cloudflare D1 work.
   - Network calls, retries, timeouts, rate limits, and provider latency for
     integration work.
   - Build, test, script, agent-loop, or developer-workflow latency for tooling
@@ -862,7 +880,8 @@ Provide a concise but complete final report:
 - Architectural decisions and rejected alternatives.
 - React / Next.js Server/Client/data/cache/mutation decisions.
 - UX/accessibility changes and evidence.
-- Database, migration, generated type, RLS, RPC, storage, and provider changes.
+- Database, migration, generated type, app-authz, repository, storage, provider,
+  and legacy RLS/RPC changes when old-provider paths remain in scope.
 - Security and privacy implications.
 - Performance baseline, target, evaluator, result, and residual risk.
 - Observability, rollout, and rollback notes.

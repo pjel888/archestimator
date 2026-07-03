@@ -123,8 +123,11 @@ Use evidence in this order:
    Fast Path, relevant `.ai/10_state/decisions.md` entries, and relevant specs.
 4. Current source code, tests, migrations, package metadata, and configuration.
 5. Local framework docs, especially `node_modules/next/dist/docs/` for Next.js.
-6. Official external docs for React, Next.js, Vercel, Supabase, browser
-   platform APIs, accessibility, security, and performance standards.
+6. Official external docs for React, Next.js, Cloudflare, OpenNext,
+   Cloudflare D1/R2/Durable Objects/Queues/Email, Better Auth, browser platform
+   APIs, accessibility, security, and performance standards. Use
+   Supabase/Vercel/Resend docs only for explicitly scoped legacy-provider
+   export, comparison, or exit work.
 7. Older plans, notes, archive entries, and clearly labeled inference.
 
 Do not rely on model memory for version-sensitive framework behavior. For
@@ -258,9 +261,10 @@ Launch or emulate these workstreams:
      integrations.
 
 7. Data and database planner
-   - Plans schema changes, migrations, RLS/policies, indexes, backfills,
-     constraints, data ownership, rollback, provider proof, and data integrity
-     checks.
+   - Plans D1 schema changes, migrations, app authorization paths, indexes,
+     backfills, constraints, data ownership, R2 object policy, Durable
+     Object/Queue implications, rollback/recovery, provider proof, and data
+     integrity checks.
 
 8. Security and privacy reviewer
    - Threat-models auth, authorization, direct POST/server-action reachability,
@@ -383,9 +387,10 @@ work package, list:
 - Exact files expected to change.
 - Exact new files expected.
 - Files expected to be removed, deprecated, or left intentionally unchanged.
-- Named functions, components, hooks, types, tables, RPCs, policies, routes,
-  server actions, route handlers, cache tags, stores, and provider objects
-  affected where knowable.
+- Named functions, components, hooks, types, tables, repository methods,
+  app-authz checks, routes, server actions, route handlers, cache tags, stores,
+  and provider bindings/objects affected where knowable. Include legacy
+  RPCs/policies only when old-provider paths are in scope.
 - Caller/import relationships and ownership boundaries.
 - Whether the change is additive, replacement, deletion, migration, provider
   proof, config-only, documentation-only, or test-only.
@@ -622,9 +627,9 @@ Cover:
 - `ROUTE-PERF-GATE`: define Core Web Vitals, route transition, streaming/static
   shell, query, and bundle-budget checks for route work.
 
-Provider, hosted, manual, GitHub, Vercel, Supabase, or production proof must not
-be claimed from local checks. If proof must happen later, the plan must name it
-as a gate and state who or what can provide it.
+Provider, hosted, manual, GitHub, Cloudflare, legacy Vercel/Supabase/Resend, or
+production proof must not be claimed from local checks. If proof must happen
+later, the plan must name it as a gate and state who or what can provide it.
 
 ## Performance and Scalability Gate
 
@@ -669,7 +674,8 @@ Cover:
 - Authentication and authorization checks at the mutation/read boundary.
 - Cross-tenant and cross-workspace access risks.
 - Tenant/workspace isolation checks.
-- RLS, policy, RPC, and storage implications when database-backed.
+- D1 app-authorization, repository/query, R2 object-policy, Durable Object,
+  Queue, and legacy RLS/RPC/storage implications when relevant.
 - Input validation boundary by route, action, RPC, repository, or provider
   adapter.
 - Server-only modules, DTO minimization, and client exposure risk.
@@ -697,7 +703,7 @@ Cover every applicable layer:
 - Route handler/API contract tests.
 - Repository/data-access tests.
 - Migration and rollback tests.
-- RLS/policy/provider tests.
+- App-authorization, D1/R2/Durable Object/Queue/provider tests.
 - Integration tests across boundaries.
 - Accessibility tests.
 - Security/abuse tests.
@@ -745,7 +751,8 @@ Select the smallest plan profile that preserves implementation safety:
   posture, and final verification.
 - `standard`: normal product or engineering work. Use the section set below,
   omitting only clearly inapplicable sections with reasons.
-- `exhaustive`: required for auth, database/Supabase/RLS/RPC/migrations,
+- `exhaustive`: required for auth, database/D1/R2/Durable Objects/Queues,
+  app authorization, legacy provider exit, migrations,
   publication/shared links, public exports, security, data integrity, release
   readiness, agent-framework/prompt/orchestration policy, broad refactors, or
   any explicit exhaustive request. Use the full section set below.
@@ -892,11 +899,12 @@ rejected/deferred with rationale.
 - Schema changes.
 - Data ownership.
 - Validation rules and constraints.
-- RLS/policy changes.
+- D1 app-authorization/repository changes and any legacy RLS/policy changes when
+  old-provider paths remain in scope.
 - Indexing.
 - Migration sequence.
 - Backfill.
-- Generated types.
+- Generated types, including Worker Env bindings when Cloudflare bindings change.
 - Compatibility with existing data.
 - Rollback and recovery.
 - Provider proof required.
@@ -1166,7 +1174,8 @@ Use this scoring rubric:
   at 75.
 - Missing security threat model for applicable auth/data/API work caps
   readiness at 70.
-- Missing migration rollback/recovery plan for applicable database work caps
+- Missing D1 migration rollback/recovery or data-export/fix-forward plan for
+  applicable database work caps
   readiness at 70.
 - Missing concrete testing strategy caps readiness at 75.
 - Claiming provider, hosted, production, browser, or manual proof from local-only
@@ -1187,7 +1196,8 @@ The plan is not implementation-ready if any of these are true:
 - React/Next.js route, data, caching, or server/client boundaries are omitted
   for UI/App Router work.
 - Server Actions or mutations lack auth/authz and direct-request analysis.
-- Database changes lack migration, rollback, and integrity verification.
+- Database or provider data changes lack migration, rollback/recovery, export,
+  fix-forward, and integrity verification.
 - Security-sensitive work lacks a threat model.
 - Performance-sensitive work lacks a baseline, budget, or verification plan.
 - User-facing work lacks accessibility states and interaction coverage.

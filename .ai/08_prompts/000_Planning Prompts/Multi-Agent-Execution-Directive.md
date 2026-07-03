@@ -82,9 +82,14 @@ EXTERNAL DECISIONS` means `CONDITIONALLY READY`; reviewer verdicts such as
 package status labels.
 
 For Archestimator work, verify the current stack from repo files before relying
-on memory. The baseline is Next.js 16, React 19, Bun, TypeScript, Tailwind v4,
-Supabase/Postgres, TanStack Query, Zustand, and repository-boundary patterns.
-For framework-sensitive Next.js work, consult the relevant local docs under
+on memory. The active baseline is Next.js 16, React 19, Bun, TypeScript,
+Tailwind v4, OpenNext on Cloudflare Workers, Cloudflare D1, Cloudflare R2,
+Durable Objects/WebSockets, Cloudflare Queues/Cron, Cloudflare Email, Better
+Auth, TanStack Query, Zustand, and repository-boundary patterns. Treat
+Supabase/Postgres, Vercel, and Resend references as historical migration,
+rollback-comparison, export, or provider-exit evidence unless current
+source/config/provider readback proves active runtime use. For
+framework-sensitive Next.js work, consult the relevant local docs under
 `node_modules/next/dist/docs/` before making implementation claims.
 
 For Cloudflare-sensitive work, load the relevant installed Cloudflare skills and
@@ -158,7 +163,7 @@ Required coverage domains, when applicable:
 | Product/UX/accessibility planner | User journeys, UI states, keyboard/focus/screen-reader behavior | State matrix, accessibility proof matrix |
 | React/Next.js specialist | Server/Client boundaries, routing, caching, rendering, mutations | Route/cache contract, framework-doc evidence |
 | Backend/API/integration planner | Server Actions, route handlers, services, external APIs | Contract matrix, error/idempotency plan |
-| Data/database planner | Schema, migrations, RLS, indexes, rollback, provider proof | Database blueprint, readback query plan |
+| Data/database planner | D1 schema/migrations, app authorization paths, indexes, rollback/recovery, provider proof | Database blueprint, readback query plan |
 | Security/privacy reviewer | Threat model, authz, input validation, secrets, abuse | Attack surface inventory, denial tests |
 | Performance/reliability reviewer | Baseline, budgets, evaluator, failure/degraded behavior | Performance contract, rollback threshold |
 | Test/QA strategist | Unit/DOM/integration/E2E/security/a11y/perf coverage | Test matrix, commands, expected evidence |
@@ -470,8 +475,8 @@ React and Next.js:
 - Define route ownership, loading, error, not-found, metadata, streaming,
   Suspense, and navigation behavior.
 - Define data fetching owner: Server Component, repository/data layer, Server
-  Action, Route Handler, TanStack Query, Supabase client, or other existing
-  pattern.
+  Action, Route Handler, TanStack Query, Cloudflare/D1 repository helper, or
+  other existing pattern.
 - Define cache owner, cache key, privacy dimensions, staleness tolerance,
   invalidation primitive, and read-your-own-writes behavior.
 - Define URL-state and pagination semantics. Do not call a cursor or query
@@ -505,19 +510,26 @@ UX, UI, and accessibility:
   interaction, routing, auth/data state, complex focus, responsive layout, or
   explicit visual acceptance.
 
-Data, Supabase, API, and integrations:
+Data, Cloudflare, API, and integrations:
 
 - Stay inside the authorized provider/project boundary.
-- For Archestimator Supabase work, the project boundary is
-  `ebxxqidacheyapmmzavr`; never mutate unrelated provider projects.
+- For Archestimator Cloudflare work, derive the authorized Worker, D1, R2,
+  Queue, Durable Object, Email, and route boundaries from `wrangler.jsonc`,
+  `cloudflare-env.d.ts`, package `cf:*` scripts, and current provider evidence;
+  never mutate unrelated provider projects. Supabase project
+  `ebxxqidacheyapmmzavr` is only relevant for explicitly scoped legacy export,
+  migration archaeology, or provider-exit cleanup.
 - Define data ownership, lifecycle, retention, deletion, audit, recovery,
-  transaction boundaries, idempotency, concurrency, RLS, grants, RPCs, triggers,
-  indexes, storage policies, generated types, and provider-proof requirements.
-- For multi-source plans, include a per-table/RPC access-path matrix:
-  `Source | Chosen API/client | Client role | Required grants | Latest RLS/policy posture | Proof source | Fallback`.
-  If the chosen client role cannot read or call a source after the latest
-  migrations and deny policies, treat it as a P0 planning defect and either add
-  a scoped policy/RPC/migration path or remove that source from the plan.
+  transaction boundaries, idempotency, concurrency, D1 schema/index/query
+  shape, app authorization checks, repository helpers, R2 object policy, Durable
+  Object room semantics, Queue retry/dead-letter behavior, generated Worker Env
+  types, and provider-proof requirements.
+- For multi-source plans, include an access-path matrix:
+  `Source | Chosen API/repository/binding | Runtime role | Authorization check | Latest schema/policy posture | Proof source | Fallback`.
+  If the chosen runtime path cannot read, write, or call a source after current
+  D1 migrations, app-authz checks, object policies, or legacy deny policies,
+  treat it as a P0 planning defect and either add a scoped implementation path
+  or remove that source from the plan.
 - Use migrations that are ordered, compatible with existing data, and paired
   with rollback or fix-forward strategy.
 - Define request/response DTOs, validation, status codes, errors, retries,
@@ -530,18 +542,17 @@ Data, Supabase, API, and integrations:
   bindings/secrets, compatibility date/flags, observability config, local
   simulation limits, Cloudflare preview/provider proof, and rollback before a
   Worker slice is production-ready.
-- If the owner explicitly wants a full Cloudflare-native prelaunch redesign,
-  do not default to a hybrid recommendation. Plan the all-Cloudflare target
-  first, including Workers/OpenNext, D1, Better Auth, R2, Queues/Cron,
-  Durable Objects/WebSockets, KV-only-safe-cache, Email Service, WAF/rate
-  limiting/DDoS, Turnstile, Web Analytics, Workers Observability, provider
-  fallback, and performance budgets. Treat D1 as a data/auth/realtime redesign,
-  not a Postgres port, and preserve current providers as rollback/comparison
-  surfaces until proof gates pass.
+- Because Archestimator is Cloudflare-first, do not default to a hybrid
+  recommendation. Plan active runtime work around Workers/OpenNext, D1, Better
+  Auth, R2, Queues/Cron, Durable Objects/WebSockets, KV-only-safe-cache, Email
+  Service, WAF/rate limiting/DDoS, Turnstile where in scope, Web Analytics,
+  Workers Observability, legacy-provider exit gates, and performance budgets.
+  Treat D1 as a data/auth/realtime architecture, not a Postgres port, and
+  preserve old providers only as explicit rollback/comparison/export surfaces.
 - Require execution-grade Cloudflare plans to include inventory worksheets for
-  routes/actions, provider coupling, SQL/RLS/RPC/policies, storage, realtime,
-  email, readiness scripts, cost inputs, performance fixtures, and proof-spike
-  pass/fail criteria. Do not call the plan close to complete while those
+  routes/actions, provider coupling, D1 SQL/app-authz/repository paths, storage,
+  realtime, email, readiness scripts, cost inputs, performance fixtures, and
+  proof-spike pass/fail criteria. Do not call the plan close to complete while those
   worksheets are missing or unfilled.
 
 Security and privacy:
@@ -621,7 +632,7 @@ Separate evidence classes in reports:
 | Local static | file inspection, `git diff --check`, source map | Runtime, browser, provider, hosted, production behavior |
 | Local automated | typecheck, lint, unit/DOM/integration tests | Provider/production state unless connected to that state |
 | Browser/manual | Playwright, screenshots, manual QA transcript | Provider/production unless targeting those environments |
-| Provider-backed | Supabase/Vercel/GitHub readback, scoped SQL | User UX unless paired with UI proof |
+| Provider-backed | Cloudflare readback, Wrangler/provider-resource check, hosted D1/R2/DO/Queue/Email proof, scoped legacy-provider export/readback | User UX unless paired with UI proof |
 | Hosted/production | deployed route probe, production logs, provider dashboard | Local code path details without source inspection |
 | Inferred | reasoned from code or docs | Completion claims requiring direct proof |
 

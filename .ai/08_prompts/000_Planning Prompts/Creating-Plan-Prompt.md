@@ -40,8 +40,8 @@ Do not produce a generic checklist. Produce a codebase-specific plan that:
 - Names the exact current-state architecture and target-state architecture.
 - Converts every requirement into observable behavior, code areas, validation evidence, and rollout checks.
 - Forces clean, simple, maintainable implementation choices instead of novelty, abstraction sprawl, or vague "best practices."
-- Treats React, Next.js, TypeScript, Tailwind, Supabase/Postgres, TanStack Query, Zustand, and deployment/operations as one production system.
-- Treats provider-migration briefs, including Cloudflare migration proposals, as high-blast-radius planning work requiring official-doc research, provider parity, cost modeling, staged proof gates, and rollback before any execution prompt is produced.
+- Treats React, Next.js, TypeScript, Tailwind, OpenNext/Cloudflare Workers, D1, R2, Durable Objects, Queues/Cron, Cloudflare Email, Better Auth, TanStack Query, Zustand, and deployment/operations as one production system.
+- Treats provider-migration or provider-exit briefs, including legacy Supabase/Vercel/Resend cleanup and Cloudflare runtime changes, as high-blast-radius planning work requiring official-doc research, provider parity or exit evidence, cost modeling, staged proof gates, and rollback before any execution prompt is produced.
 - Defines measurable performance, reliability, security, accessibility, and data-integrity gates.
 - Separates evidence from inference and clearly labels assumptions.
 - Gives the implementation AI enough context to execute without broad rediscovery, while still requiring it to verify current files before editing.
@@ -808,31 +808,33 @@ Classify each impact as:
 - Explicitly unaffected
 
 ======================================================================
-8A. NEXT.JS, REACT, TYPESCRIPT, AND SUPABASE PRODUCTION ENGINEERING BAR
+8A. NEXT.JS, REACT, TYPESCRIPT, AND CLOUDFLARE PRODUCTION ENGINEERING BAR
 ======================================================================
 
-Archestimator's baseline stack is Next.js 16, React 19, Bun, TypeScript, Tailwind v4, Supabase/Postgres, TanStack Query, Zustand, and repository-boundary patterns. Every relevant plan must translate that stack into concrete engineering decisions.
+Archestimator's active baseline stack is Next.js 16, React 19, Bun, TypeScript, Tailwind v4, OpenNext on Cloudflare Workers, Cloudflare D1, Cloudflare R2, Durable Objects/WebSockets, Cloudflare Queues/Cron, Cloudflare Email, Better Auth, TanStack Query, Zustand, and repository-boundary patterns. Every relevant plan must translate that stack into concrete engineering decisions from current repo evidence.
+
+Treat Supabase/Postgres, Vercel, and Resend as historical migration, rollback-comparison, export, or provider-exit surfaces unless current source/config/provider readback proves active runtime use. If older docs such as `AGENTS.md`, `README.md`, archived plans, or previous agent output still describe Supabase/Vercel as the baseline, current-state Fast Path plus current source/config controls until those docs are separately repaired.
 
 Before planning framework-sensitive work, read the relevant local Next.js 16 documentation under `node_modules/next/dist/docs/`. Do not rely on older Next.js assumptions for App Router, route handlers, Server Components, caching, revalidation, Server Actions, testing, or deployment behavior.
 
-When a brief proposes migrating any Archestimator provider surface to Cloudflare, Cloudflare Workers, D1, KV, R2, Queues, Hyperdrive, Email Routing/Email Service, Cloudflare WAF/DDoS, Better Auth, or another replacement platform, activate this provider-migration overlay:
+When a brief touches Archestimator provider surfaces, Cloudflare Workers, D1, KV, R2, Queues, Hyperdrive, Email Routing/Email Service, Cloudflare WAF/DDoS, Better Auth, legacy-provider exit, or another platform change, activate this provider overlay:
 
 - Classify the plan profile as `exhaustive`.
 - Treat the task as planning-only unless the caller separately provides an approved implementation package.
 - Research current official docs and pricing for every proposed provider primitive before making recommendations.
 - Read local Next.js docs because Next.js 16 adapter, runtime, deployment, caching, Server Actions, Middleware/Proxy, image, and platform behavior may differ from older assumptions.
-- Produce a provider parity matrix mapping current Vercel/Supabase/Postgres/Supabase Auth/Supabase Storage/Supabase Realtime/Resend behavior to the proposed target primitives.
+- Produce a provider-state matrix marking each runtime surface as `active`, `transitional`, `legacy`, or `decommission-target`. For legacy-provider work, map historical Vercel/Supabase/Postgres/Supabase Auth/Supabase Storage/Supabase Realtime/Resend behavior to active Cloudflare primitives and explicit export/retention/rollback evidence.
 - Produce a usage-based cost model input sheet. Do not claim savings from pricing pages alone.
-- Treat Cloudflare D1 as a SQLite/serverless database, not a drop-in Postgres replacement. Require explicit proof for RLS, RPCs, triggers, generated types, transactions, backups/restore, query performance, and realtime replacement before any core-data cutover.
+- Treat Cloudflare D1 as the active SQLite/serverless app and auth data store, not a drop-in Postgres port. Require explicit proof for app authorization paths, transaction/consistency needs, backups/restore/export, query performance, D1 migration order, and Durable Object/WebSocket replacement semantics before changing core data behavior.
 - Treat Better Auth as a separate auth architecture decision. Require parity proof for SSR sessions, route gates, OAuth, magic links, claims/user identity, invites, service/admin paths, closed-beta access, legal terms gates, and database authorization identity.
 - Treat KV as eventually consistent cache only. Do not plan KV as a source of truth for sessions, permissions, locks, strong counters, or transactional state.
-- Treat R2 migration as object-storage redesign. Require app-level authorization, signed access, object-key design, scan/cleanup lifecycle, image/CSP behavior, backup, and rollback.
-- Treat Queues migration as background-job redesign. Require idempotency, duplicate delivery handling, retry/dead-letter behavior, backlog visibility, scheduling, and rollback.
+- Treat R2 work as object-storage design. Require app-level authorization, signed access, object-key design, scan/cleanup lifecycle, image/CSP behavior, backup, and rollback or fix-forward.
+- Treat Queues/Cron work as background-job design. Require idempotency, duplicate delivery handling, retry/dead-letter behavior, backlog visibility, scheduling, and rollback or disablement.
 - Treat Hyperdrive as acceleration/pooling for Worker-to-external-Postgres/MySQL paths, not D1 acceleration and not a database replacement.
-- Distinguish inbound Email Routing from outbound Email Service/Sending. Keep the current transactional email provider as baseline until deliverability, webhook/event, retry, bounce, circuit-breaker, and analytics parity is proven.
+- Distinguish inbound Email Routing from outbound Email Service/Sending. Treat Cloudflare Email as the active selected provider when `ARCHESTIMATOR_EMAIL_PROVIDER=cloudflare-email` is current source evidence, and require deliverability, retry, bounce/failure, circuit-breaker, and analytics gaps to be explicit.
 - Treat Cloudflare WAF/DDoS/rate limiting as front-door security work with plan-tier limits, false-positive handling, webhook/OAuth allowlists, event review, and rollback.
-- Include a staged migration recommendation that separates front-door adoption, storage pilots, queue pilots, Worker sidecars, runtime hosting proof, auth proof, database proof, and production cutover.
-- Mark the package `CONDITIONALLY READY` or `NOT READY` for implementation when cost inputs or provider parity proof is missing.
+- Separate active Cloudflare implementation work from legacy-provider exit work. Do not mix final provider-exit blockers with ordinary feature readiness unless the feature depends on those blockers.
+- Mark the package `CONDITIONALLY READY` or `NOT READY` for implementation when active-provider proof, required cost inputs, or legacy-provider parity/export evidence required by the feature or provider-exit scope is missing.
 
 If a feature does not touch one of the categories below, state why with evidence. If it does touch the category, the plan must include decisions, affected files, validation, and risks.
 
@@ -869,7 +871,7 @@ For every cached or cacheable data path, define:
 - Failure behavior when cache refresh fails.
 - Validation evidence that stale, fresh, and invalidated states behave correctly.
 
-If the implementation may use Next.js Cache Components, `use cache`, `cacheLife`, `cacheTag`, `revalidateTag`, `updateTag`, `revalidatePath`, TanStack Query invalidation, or Supabase realtime/subscriptions, the plan must explicitly decide which layer owns freshness and why.
+If the implementation may use Next.js Cache Components, `use cache`, `cacheLife`, `cacheTag`, `revalidateTag`, `updateTag`, `revalidatePath`, TanStack Query invalidation, Durable Object/WebSocket collaboration updates, or other event streams, the plan must explicitly decide which layer owns freshness and why.
 
 SERVER ACTIONS, FORMS, AND MUTATIONS
 
@@ -931,7 +933,7 @@ For every stateful workflow, decide the state owner:
 - TanStack Query for client-side server-state caching and invalidation.
 - Zustand only for legitimate cross-component client state that is not server data and not better represented in URL or local component state.
 - Local React state for isolated interaction state.
-- Supabase/Postgres for durable state.
+- Cloudflare D1 for durable relational/app/auth state; R2 for objects; Durable Objects for room-local realtime coordination where already established.
 
 The plan must describe synchronization boundaries and failure behavior when server state, client state, URL state, and optimistic UI disagree.
 
@@ -942,20 +944,20 @@ The plan must require:
 - Typed request, response, action, repository, and component boundaries.
 - Domain types that prevent impossible states where practical.
 - Runtime validation at trust boundaries.
-- Generated Supabase types or an explicit type-refresh plan when schema changes occur.
+- D1 schema/repository row-model updates and a `cloudflare-env.d.ts`/Worker Env type-refresh plan when bindings or Cloudflare types change.
 - No broad `any`, unsafe casts, or stringly-typed domain states without a documented reason.
 - Exhaustive handling for discriminated unions, workflow statuses, and error variants.
 
-SUPABASE, POSTGRES, AND DATA INTEGRITY
+CLOUDFLARE D1, R2, DURABLE OBJECTS, AND DATA INTEGRITY
 
 For every database-relevant feature, analyze:
 
-- Target Supabase project boundary: Archestimator project `ebxxqidacheyapmmzavr` only; never plan mutations against unrelated provider projects such as `archestimator`.
-- Current tables, RPCs, RLS policies, triggers, indexes, generated types, repositories, and seed/test data.
+- Target Cloudflare resource boundary from `wrangler.jsonc`, `cloudflare-env.d.ts`, package `cf:*` scripts, and current provider evidence. Never plan mutations against unrelated provider projects. Supabase project `ebxxqidacheyapmmzavr` is relevant only for explicitly scoped legacy export, comparison, or provider-exit cleanup.
+- Current D1 tables, migrations, indexes, constraints, repository helpers, app-authorization functions, R2 object namespaces, Durable Object room semantics, Queue jobs, and seed/test data.
 - Workspace and tenant boundaries.
-- Authenticated, anonymous, and service-role access paths.
-- Whether service role is prohibited, isolated, or intentionally required.
-- RLS read/write/select/update/delete behavior.
+- Authenticated, anonymous, service/admin, job, and system access paths.
+- Whether elevated service/admin/job/system access is prohibited, isolated, or intentionally required; include legacy Supabase service-role access only when old-provider paths are in scope.
+- App-level read/write/select/update/delete authorization behavior and any legacy RLS parity/exit evidence when historical Supabase paths are in scope.
 - Transaction boundaries and lock needs.
 - Idempotency, uniqueness, constraints, and conflict handling.
 - Migration order, reversibility, backfill safety, existing-data compatibility, and provider-readback proof.
@@ -967,7 +969,7 @@ Never plan a database change without a rollback or fix-forward strategy and a va
 For every database-impacting task, include a Database Change Blueprint:
 
 - Exact migration filename pattern and ordering dependencies.
-- Tables, columns, indexes, constraints, triggers, RLS policies, RPCs, grants, and storage policies affected.
+- Tables, columns, indexes, constraints, triggers where applicable, repository/query helpers, app-authz checks, Cloudflare bindings, object-key policies, queue/cron handlers, and storage lifecycle affected.
 - SQL sketch or structured pseudocode detailed enough to implement without inventing the contract.
 - Backfill strategy.
 - Data-volume assumptions.
@@ -976,8 +978,8 @@ For every database-impacting task, include a Database Change Blueprint:
 - Expected cardinality at current, 10x, 100x, and 1000x data volume.
 - Index selectivity assumptions.
 - Pagination, limits, ordering, search/filter behavior, and worst-case scan risks.
-- RLS policy cost and whether a security-definer RPC, denormalized summary, or repository helper is justified.
-- Generated type impact, including exact command and affected imports.
+- D1 query/authz cost and whether a denormalized summary, repository helper, Durable Object coordination path, or Queue handoff is justified.
+- Generated type impact, including exact command and affected imports (`bun run cf:typegen` when Worker Env bindings change).
 - Rollback or fix-forward strategy.
 - Local proof command.
 - Linked-provider proof boundary.
@@ -993,7 +995,7 @@ The plan must include a threat model for relevant features covering:
 - Insecure direct object reference.
 - Privilege escalation.
 - Server Action direct POST access.
-- RLS bypass risk.
+- D1 app-authorization bypass risk and any legacy RLS bypass risk only when historical Supabase paths remain in scope.
 - XSS and HTML/Markdown rendering risk.
 - CSRF or same-site behavior where relevant.
 - SSRF or outbound fetch risk.
@@ -1069,8 +1071,8 @@ Choose the lightest proof that actually proves the claim:
 - Pure domain logic: unit tests.
 - React component interaction: DOM tests with React Testing Library.
 - Async Server Components or route-level behavior: E2E or integration proof when unit tools cannot exercise the behavior.
-- Server Actions, Route Handlers, repositories, and RPCs: direct action/handler/repository tests plus provider proof when the behavior depends on Supabase.
-- Auth/RLS/security: role-matrix tests and denial proof.
+- Server Actions, Route Handlers, repositories, and provider adapters: direct action/handler/repository tests plus provider proof when the behavior depends on Cloudflare D1/R2/Durable Objects/Queues/Email.
+- Auth/app-authorization/security: role-matrix tests and denial proof.
 - Performance: evaluator harness, profiler, query plan, build artifact, bundle analysis, or browser measurement based on the risk.
 - Accessibility: semantic DOM assertions and keyboard/focus tests; browser proof for complex focus or route transitions.
 
@@ -1107,8 +1109,9 @@ Select a plan profile before creating documents:
 - `exhaustive`: high-blast-radius, security/data/auth/provider/release,
   cross-cutting, or explicitly exhaustive planning.
 
-Use `exhaustive` when the task touches database/Supabase/RLS/RPC/migrations,
-auth, publication/shared links, security, data integrity, release readiness,
+Use `exhaustive` when the task touches database/D1/R2/Durable Objects/Queues,
+Cloudflare bindings, legacy provider exit, app authorization, migrations, auth,
+publication/shared links, security, data integrity, release readiness,
 agent-framework/prompt/orchestration policy, broad refactors, or when the owner
 asks for exhaustive planning. Use `standard` when uncertainty spans multiple
 product or technical domains. Use `compact` only when the scope is narrow and
@@ -1197,7 +1200,7 @@ It must include:
 - Archive policy: archive after full completion, archive only named completed
   slices, or do not archive automatically.
 
-`18_STACK_CONTRACT_AND_PRODUCTION_STANDARDS.md` must consolidate the Next.js, React, Tailwind, Supabase, TypeScript, performance, security, and design-system production decisions that cut across the plan.
+`18_STACK_CONTRACT_AND_PRODUCTION_STANDARDS.md` must consolidate the Next.js, React, Tailwind, Cloudflare Workers/OpenNext, D1, R2, Durable Objects, Queues/Cron, Cloudflare Email, Better Auth, TypeScript, performance, security, and design-system production decisions that cut across the plan.
 
 `19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md` must contain:
 
@@ -1303,7 +1306,8 @@ For every phase include:
 - Database query-count and index impact.
 - Render-count and client-state impact.
 - Tailwind/design-system impact.
-- Supabase project-boundary impact.
+- Cloudflare resource-boundary impact and legacy-provider boundary impact when
+  old providers are in scope.
 - Performance measurement and rollback gate.
 - Validation commands.
 - Tests required.
@@ -1447,7 +1451,7 @@ Do not select an approach without evaluating credible alternatives.
 `13_ROLLOUT_ROLLBACK_AND_OPERATIONS.md` must define rollout performance gates when performance, route behavior, data volume, API latency, or user interaction speed is relevant:
 
 - Baseline and target metrics for affected routes/actions, such as TTFB, LCP, INP, route transition duration, RSC request count, API duration, query count, payload size, error rate, and retry rate.
-- Observability source for each metric, such as local benchmark, React Profiler, Vercel Speed Insights, logs, Supabase query evidence, custom telemetry, manual dashboard proof, or provider proof.
+- Observability source for each metric, such as local benchmark, React Profiler, Cloudflare Workers Observability/Analytics, hosted route-performance scripts, D1 query evidence, logs, custom telemetry, manual dashboard proof, or provider proof.
 - Release gates: what blocks merge, what blocks closed-beta rollout, what blocks production rollout, what requires staged rollout, and what triggers rollback.
 - Regression comparison window and minimum sample size when provider metrics are required.
 - Metric owner.
@@ -1500,8 +1504,8 @@ Continue iterating while any of these remain:
 - Missing cache, revalidation, TanStack Query, or Zustand consistency contract.
 - Missing route navigation, prefetch, refresh, or instant-navigation behavior.
 - Missing bundle, RSC payload, API payload, or client-JS budget.
-- Missing Supabase/Postgres query-count, index, row-volume, RLS-cost, or `EXPLAIN` evidence plan.
-- Missing migration, RLS, RPC, storage-policy, typegen, or provider-proof boundary for database work.
+- Missing Cloudflare D1 query-count, index, row-volume, authorization-cost, or query-plan evidence.
+- Missing D1 migration, app-authz, repository/adapter, R2 object-policy, Worker Env typegen, Durable Object/Queue, or provider-proof boundary for data/provider work.
 - Missing render-count, memoization, subscription, hydration, or client-state risk analysis.
 - Missing Tailwind v4, design-system, or design-lint impact for UI work.
 - Missing before/after performance baseline, regression gate, observability signal, or rollback threshold.
@@ -1591,7 +1595,8 @@ Final readiness may be marked PASS only when all of the following are true:
 - Performance and scalability readiness is at least 95 when user-facing, data-heavy, route-level, or integration behavior is in scope.
 - Testing and validation readiness is at least 95.
 - Requirements traceability is at least 95.
-- No task has unresolved architecture, path, contract, migration, auth/RLS, data-integrity, or validation decisions.
+- No task has unresolved architecture, path, contract, migration,
+  auth/app-authorization, legacy RLS, data-integrity, or validation decisions.
 - Every score below 100 has a non-blocking deficiency with an owner and an implementation-safe path.
 
 If any condition above is false, mark the package:
@@ -1655,7 +1660,7 @@ The verifier must actively search for:
 - Missing exact paths or symbols.
 - Missing Server/Client Component boundary decisions.
 - Missing cache and revalidation contracts.
-- Missing Supabase/RLS/provider-proof boundaries.
+- Missing Cloudflare D1/R2/Durable Object/Queue/Email, app-authz, legacy-provider-exit, or provider-proof boundaries.
 - Missing performance budgets or evaluator evidence.
 - Missing shadow-path coverage.
 

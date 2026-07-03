@@ -146,7 +146,8 @@ Before revising the package, establish source authority:
    - `tsconfig.json`
    - lint/test/build configuration
    - relevant `src/app`, `src/components`, `src/lib`, `src/hooks`,
-     `src/stores`, Supabase migrations, and tests
+     `src/stores`, Cloudflare/D1/R2/Durable Object/Queue/Email adapters,
+     relevant D1 migrations, legacy provider-exit artifacts, and tests
    - `DESIGN.md` and `src/components/ui` when user-facing UI is affected
 5. Inspect only the additional source files, tests, schemas, configs, and docs
    needed to verify planning claims.
@@ -173,9 +174,11 @@ Before revising the package, establish source authority:
 11. If a claim cannot be verified, label it as `ASSUMPTION`,
     `DECISION NEEDED`, or `NOT VERIFIED`.
 
-Do not rely on model memory for current React, Next.js, Supabase, Vercel,
-Cloudflare, browser performance, security, or accessibility behavior when the
-plan depends on exact details.
+Do not rely on model memory for current React, Next.js, Cloudflare, D1, R2,
+Durable Objects, Queues, Better Auth, browser performance, security, or
+accessibility behavior when the plan depends on exact details. Treat
+Supabase/Postgres, Vercel, and Resend as historical/provider-exit surfaces
+unless current repo evidence proves active runtime use.
 
 Unsupported implementation details may not be converted into requirements.
 Unsupported recommendations may not be made blockers.
@@ -253,7 +256,8 @@ Recommended specialist lanes:
 - Requirements, scope, non-goals, and acceptance criteria
 - UX, UI, accessibility, information architecture, and user journeys
 - React / Next.js architecture and Server/Client boundary design
-- Data model, persistence, Supabase/Postgres, RLS, migrations, and backfills
+- Data model, persistence, Cloudflare D1/R2/Durable Objects, app authorization,
+  migrations, legacy-provider exit, and backfills
 - API, Server Actions, Route Handlers, network contracts, and idempotency
 - Security, privacy, abuse prevention, threat modeling, and compliance
 - Performance, scalability, caching, bundle impact, and Core Web Vitals
@@ -368,8 +372,9 @@ Use these categories:
 5. Data, API, and Integration Safety
    - Data ownership and lifecycle
    - Schema, migration, backfill, and rollback implications
-   - Supabase/Postgres RLS, policies, grants, RPCs, generated types, and
-     transactional integrity when relevant
+   - Cloudflare D1 schema/index/query shape, app authorization paths, R2 object
+     policy, Durable Object/Queue behavior, generated Worker Env types, and
+     transactional/consistency integrity when relevant
    - API contracts, DTOs, serialization, versioning, and compatibility
    - Idempotency, retries, timeouts, race conditions, concurrency, and
      consistency model
@@ -584,7 +589,8 @@ For any React / Next.js work, require explicit planning for:
 - Server Component vs Client Component ownership
 - Exact `"use client"` boundary rationale and expected client-bundle impact
 - Whether state belongs in URL, server data, React local state, context,
-  Zustand, TanStack Query, Supabase realtime, or another existing repo pattern
+  Zustand, TanStack Query, Durable Object/WebSocket updates, or another existing
+  repo pattern
 - Hooks rules, dependency arrays, effect cleanup, abort behavior, and derived
   state avoidance
 - React Compiler posture: whether the project should rely on compiler behavior,
@@ -647,14 +653,16 @@ When data is touched, require:
 
 - Data ownership and lifecycle
 - Read/write authority and trust boundaries
-- Schema changes, generated types, migrations, backfills, and data retention
-- RLS policies, grants, RPCs, triggers, storage policies, and least privilege
-  where relevant
-- A per-table/RPC access-path matrix for every planned source:
-  `Source | Chosen API/client | Client role | Required grants | Latest RLS/policy posture | Proof source | Fallback`.
-  If the chosen client role cannot actually read/call the source after the
-  latest migrations and deny policies, treat it as a P0 blocker and either add
-  a scoped policy/RPC/migration path or remove the source from v1.
+- Schema changes, generated types, D1 migrations, backfills, and data retention
+- App authorization checks, repository helpers, D1 indexes/constraints,
+  triggers where applicable, R2 object policies, Durable Object room semantics,
+  Queue retry/dead-letter behavior, and least privilege where relevant
+- An access-path matrix for every planned source:
+  `Source | Chosen API/repository/binding | Runtime role | Authorization check | Latest schema/policy posture | Proof source | Fallback`.
+  If the chosen runtime path cannot actually read, write, or call the source
+  after current D1 migrations, app-authz checks, object policies, or legacy deny
+  policies, treat it as a P0 blocker and either add a scoped implementation path
+  or remove the source from v1.
 - Transaction boundaries and race-condition handling
 - Idempotency and duplicate-submission behavior
 - Concurrency model and conflict resolution
@@ -663,9 +671,13 @@ When data is touched, require:
 - Provider-specific proof required before launch
 - Test data and safe fixture strategy
 - Tenant/workspace isolation and actor/role/permission matrix
-- In this repo, provider work must stay inside the Archestimator Supabase
-  project `ebxxqidacheyapmmzavr`; do not mutate unrelated provider projects,
-  and do not enable PITR or paid add-ons without explicit owner approval.
+- In this repo, provider work must stay inside the authorized Archestimator
+  Cloudflare resources proven by `wrangler.jsonc`, `cloudflare-env.d.ts`,
+  package `cf:*` scripts, and provider readback. Supabase project
+  `ebxxqidacheyapmmzavr` is relevant only for explicitly scoped legacy export,
+  migration archaeology, or provider-exit cleanup. Do not mutate unrelated
+  provider projects or enable paid add-ons such as PITR without explicit owner
+  approval.
 
 7. APIs, Server Actions, Networking, and Integrations
 
@@ -870,8 +882,8 @@ Each implementation unit must include:
 If a plan identifies release-blocking data/security/provider hardening, that
 hardening must be sequenced before broad UX/refactor phases or marked as an
 explicit gate with owner, waiver condition, and residual risk. A plan that
-defers release-blocking authz, RLS, direct-write, migration, public/export DTO,
-secret, or provider hardening behind broad UI work cannot be scored
+defers release-blocking authz, D1/app-authorization, legacy RLS, direct-write,
+migration, public/export DTO, secret, or provider hardening behind broad UI work cannot be scored
 implementation-ready.
 
 Implementation units must be small enough to review and verify, but not so small
@@ -1033,7 +1045,8 @@ gates pass:
 - Technical architecture and module boundaries are clear.
 - Data, API, network, security, privacy, and performance implications are
   covered.
-- Supabase/Postgres/provider implications are covered when relevant.
+- Cloudflare D1/R2/Durable Object/Queue/Email, Better Auth, legacy-provider-exit,
+  and provider implications are covered when relevant.
 - Dependencies and blast radius are documented.
 - Risks have severity, mitigation, owner, and decision deadline or trigger.
 - Implementation units are scoped, sequenced, and testable.
