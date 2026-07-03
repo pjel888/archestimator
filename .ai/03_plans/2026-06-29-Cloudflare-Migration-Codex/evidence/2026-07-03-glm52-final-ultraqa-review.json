@@ -1,0 +1,199 @@
+{
+  "schema": "archestimator-cloudflare-migration-ultraqa-static-review/v1",
+  "generatedAt": "2026-07-03T10:53:32Z",
+  "reviewMode": "static-local-plus-prior-independent-verifier-and-current-codex-refresh",
+  "scope": {
+    "planPack": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex",
+    "question": "Has the Cloudflare migration plan pack been fully implemented, and are there missing safe local pieces?",
+    "safetyBoundary": [
+      "No provider cancellation, downgrade, DNS change, secret rotation, deploy, or external mutation.",
+      "No browser automation or screenshots in this pass.",
+      "No secret values, cookies, provider exports, or raw mailbox/provider screenshots read into this artifact.",
+      "Dirty worktree preserved."
+    ]
+  },
+  "verdict": {
+    "classification": "PARTIAL",
+    "fullPlanImplemented": false,
+    "appRuntimeState": "Cloudflare closed-beta app runtime remains ready with no known P0 app-runtime blocker.",
+    "providerExitState": "OPEN / NOT READY",
+    "providerExitReason": "The provider-exit operator record is missing and six external/operator gates remain open."
+  },
+  "verifierEvidence": {
+    "agentId": "019f26bd-bf23-7a23-aef1-545effc566a4",
+    "nickname": "Galileo",
+    "verificationMode": "independent-prior-pass-plus-current-same-agent-refresh",
+    "verdict": "PARTIAL",
+    "summary": "The plan pack cannot honestly be called fully implemented. It can honestly be called Cloudflare closed-beta app-runtime ready with a provider-exit pack generated, but full migration/provider exit remains open.",
+    "currentRefreshGeneratedAt": "2026-07-03T10:53:32Z",
+    "evidenceReported": [
+      "AGENTS.md, current-state.md, and plan docs 35/36/37 preserve the app-runtime-ready but provider-exit-open boundary.",
+      "2026-07-03-cloudflare-provider-exit-pack.md/json reports OPEN / NOT READY, missing operator record, and six blockers.",
+      "git status / git diff inspection found a broad dirty tree, including untracked provider-exit artifacts and auth-audit plan files.",
+      "Current refresh confirms release gates generatedAt=2026-07-03T10:35:33.942Z with blockers empty; hosted auth matrix cleanup counts are zero; Cloudflare Email generatedAt=2026-07-03T10:41:35.143Z; workbook keeps strictHostedClientP95Ready=false.",
+      "git diff --check passed before this artifact write.",
+      "Scoped secret/raw-export scan over Cloudflare migration evidence and the untracked auth audit plan found no PEM, JWT, or API-key-shaped leaks; two hits were redacted cookie examples and one SQL hit was a D1 component taxonomy seed, not a provider export."
+    ]
+  },
+  "leadStaticChecks": [
+    {
+      "id": "LSC-001",
+      "check": "Provider-exit pack readiness extraction",
+      "result": "PASS_FOR_OPEN_STATUS",
+      "evidence": {
+        "file": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-provider-exit-pack.json",
+        "generatedAt": "2026-07-03T10:41:40.108Z",
+        "appRuntimeExitPrerequisitesReady": true,
+        "providerExitReady": false,
+        "operatorRecordPresent": false,
+        "readinessPath": "readiness.appRuntimeExitPrerequisitesReady / readiness.providerExitReady",
+        "operatorRecordPath": "artifacts.operatorRecord.present",
+        "legacyBlockerCount": 0,
+        "blockers": [
+          "Provider exports or accepted-retention/accepted-loss decision recorded.",
+          "Resend account/API-key/domain status recorded.",
+          "Obsolete provider secret removal/rotation recorded.",
+          "Post-exit Cloudflare smoke recorded.",
+          "Real non-owner Google proof recorded.",
+          "Real recipient mailbox proof or accepted deferral recorded."
+        ]
+      }
+    },
+    {
+      "id": "LSC-002",
+      "check": "Provider-exit artifact secret-shaped token scan",
+      "result": "PASS",
+      "evidence": {
+        "scanned": [
+          ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-provider-exit-operator-record.template.json",
+          ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-provider-exit-pack.json",
+          ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-provider-exit-pack.md"
+        ],
+        "patternCount": 7,
+        "findingCount": 0
+      }
+    },
+    {
+      "id": "LSC-003",
+      "check": "Provider-exit pack script regression",
+      "result": "PASS",
+      "evidence": "`bunx vitest run tests/vitest/provider-exit-pack-script.test.ts --maxWorkers=1` passed 1 file / 6 tests; scoped ESLint for the provider-exit script/test passed."
+    },
+    {
+      "id": "LSC-004",
+      "check": "Provider-resource readback timestamp sanity",
+      "result": "PASS_AFTER_LEDGER_REFRESH",
+      "evidence": {
+        "file": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-provider-resource-readback.json",
+        "generatedAt": "2026-07-03T10:35:30.209Z",
+        "blockers": []
+      }
+    },
+    {
+      "id": "LSC-005",
+      "check": "Release/performance freshness",
+      "result": "PASS_FOR_HONEST_PARTIAL_STATUS",
+      "evidence": {
+        "releaseGatesGeneratedAt": "2026-07-03T10:35:33.942Z",
+        "releaseGateBlockers": [],
+        "hostedPerformanceGeneratedAt": "2026-07-03T10:32:52.047Z",
+        "hostedCredentialFreePerformanceReady": true,
+        "strictHostedClientP95Ready": false,
+        "latestStrictP95Miss": {
+          "path": "/terms",
+          "p95TtfbMs": 564.56,
+          "budgetMs": 300
+        }
+      }
+    },
+    {
+      "id": "LSC-006",
+      "check": "Broad DOM baseline freshness",
+      "result": "PASS_FOR_LOCAL_TEST_MAINTENANCE",
+      "evidence": {
+        "command": "bun run test:dom -- --reporter=json --outputFile=/tmp/archestimator-testdom-20260703-after-optional-upload-evidence.json",
+        "suitesPassed": 1350,
+        "suitesTotal": 1350,
+        "testsPassed": 4010,
+        "testsTotal": 4055,
+        "testsSkipped": 40,
+        "testsTodo": 5,
+        "testsFailed": 0,
+        "scope": "Local DOM regression evidence only; not provider, deploy, mailbox, or persona proof."
+      }
+    }
+  ],
+  "scenarioMatrix": [
+    {
+      "id": "ADV-001",
+      "scenario": "Dirty worktree during QA",
+      "result": "PASS_WITH_CAUTION",
+      "note": "Existing user/agent edits were preserved; this pass adds only static evidence/ledger updates."
+    },
+    {
+      "id": "ADV-002",
+      "scenario": "Provider-exit pack masks missing operator gates",
+      "result": "PASS",
+      "note": "The pack remains OPEN / NOT READY without the sanitized operator record and enumerates all six blockers."
+    },
+    {
+      "id": "ADV-003",
+      "scenario": "Active legacy provider runtime dependency remains",
+      "result": "PASS_FOR_ACTIVE_RUNTIME_SCAN",
+      "note": "Provider-exit pack reports zero blocker-level active Supabase/Vercel/Resend runtime dependencies; informational Resend lexical references remain visible."
+    },
+    {
+      "id": "ADV-004",
+      "scenario": "Evidence leaks secrets or raw provider exports",
+      "result": "PASS_FOR_SCOPED_SCAN",
+      "note": "No secret-shaped findings were found in the new provider-exit pack artifacts. This is not a full-repository secret audit."
+    },
+    {
+      "id": "ADV-005",
+      "scenario": "Script success masks failure",
+      "result": "PASS",
+      "note": "Provider-exit tests prove missing operator evidence keeps the pack open instead of reporting final readiness."
+    },
+    {
+      "id": "ADV-006",
+      "scenario": "External proof gates are still missing",
+      "result": "OPEN_EXTERNAL_GATE",
+      "note": "Non-owner Google, recipient mailbox, export/retention, Resend status, obsolete-secret cleanup, and post-exit smoke require operator/provider/persona evidence."
+    },
+    {
+      "id": "ADV-007",
+      "scenario": "Latest deploy/source proof is current",
+      "result": "OPEN_DEPLOY_GATE",
+      "note": "No deploy or hosted browser smoke was run in this pass. Latest recorded production deploy proof is Worker d47bcd1d-37f0-41e3-864a-05a90b28518b at 2026-07-02T04:31:00Z; the checked-in AuthStateMismatchRecoveryScript warning fix landed later in commit cdf74b72d at 2026-07-02T14:02:31Z, so latest-branch deploy/smoke remains open."
+    },
+    {
+      "id": "ADV-008",
+      "scenario": "Stale artifact claims after 10:41 provider-exit refresh",
+      "result": "PASS_AFTER_REFRESH",
+      "note": "This artifact now points at the 2026-07-03T10:41:40.108Z provider-exit pack, the 2026-07-03T10:35:33.942Z release gates, and the current Doc 37 deploy-source watch."
+    }
+  ],
+  "remainingBlockers": [
+    "Final exports/backups or accepted retention/loss decision.",
+    "Resend account, API-key, and domain status.",
+    "Obsolete provider secret removal or rotation record.",
+    "Post-exit Cloudflare smoke after provider actions.",
+    "Real non-owner Google proof.",
+    "Real recipient mailbox proof or accepted deferral.",
+    "Latest-branch deploy/smoke proof if required before final provider-exit closure."
+  ],
+  "knownLocalGaps": [
+    "Broad DOM is locally green after later test-maintenance repairs, but this is local test evidence only and does not prove provider exit, deploy currency, real mailbox delivery, or non-owner Google behavior.",
+    "Provider-exit artifacts and this UltraQA evidence are local working-tree evidence until committed.",
+    "This pass did not perform provider actions, browser proof, deploys, or a full-repository secret audit."
+  ],
+  "filesAdded": [
+    ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-glm52-final-ultraqa-review.json",
+    ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-glm52-final-ultraqa-review.md"
+  ],
+  "filesUpdated": [
+    ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/36_COMPREHENSIVE_FOLLOWUP_QA_LEDGER.md",
+    ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/37_GLM52_CLOUDFLARE_MIGRATION_HANDOFF.md",
+    ".ai/10_state/current-state.md"
+  ]
+}

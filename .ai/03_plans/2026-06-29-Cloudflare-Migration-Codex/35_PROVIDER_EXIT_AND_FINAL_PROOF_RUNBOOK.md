@@ -2,7 +2,7 @@
 title: Provider Exit And Final Proof Runbook
 plan_id: 2026-06-29-cloudflare-migration-codex
 document: 35
-last_updated: 2026-07-02
+last_updated: 2026-07-03
 ---
 
 # Provider Exit And Final Proof Runbook
@@ -19,9 +19,76 @@ exit is still an operations step, not a code migration shortcut.
 
 | Provider | Current role after Cloudflare migration | Exit posture |
 | --- | --- | --- |
-| Vercel | Historical hosting/build reference only; active runtime should not depend on it. | Safe to downgrade/cancel only after export, rollback-window decision, DNS check, and post-downgrade smoke. |
-| Supabase | Historical Postgres/Auth/Storage source and migration archaeology; active app/runtime source should use D1/R2/Better Auth. | Keep until final logical export and rollback-retention decision are complete. Do not delete data before export verification. |
+| Vercel | Historical hosting/build reference only; active runtime should not depend on it. | Owner reports subscription cancellation is already done; still preserve export/rollback-window, DNS, and post-exit smoke evidence before full provider-exit closure. |
+| Supabase | Historical Postgres/Auth/Storage source and migration archaeology; active app/runtime source should use D1/R2/Better Auth. | Owner reports subscription cancellation is already done; still preserve final logical export or accepted-retention/accepted-loss decision before full provider-exit closure. Do not delete data before export verification or an explicit owner risk decision. |
 | Resend | Historical email provider; Cloudflare Email proof covers current outbound auth/proof email path. | Safe to downgrade/cancel after confirming no active API key use, preserving delivery/audit records needed for support. |
+
+2026-07-03 ledger note: the follow-up QA ledger records owner confirmation
+that Vercel and Supabase subscriptions have already been cancelled. This
+reduces billing cleanup risk, but it is not by itself a complete provider-exit
+evidence pack: repository evidence still needs to preserve the export/backup
+posture, rollback/data-retention decision, Resend status, obsolete-secret
+handling, and post-exit Cloudflare smoke before the full migration goal is
+closed.
+
+2026-07-03 non-destructive provider-exit pack:
+`evidence/2026-07-03-cloudflare-provider-exit-pack.*` now records that app
+runtime exit prerequisites are ready: release gates, Cloudflare provider
+resource readback, Cloudflare Email readiness, hosted auth matrix, and active
+legacy-provider runtime scan all pass. It intentionally keeps full provider
+exit `OPEN / NOT READY` because final exports or accepted-retention/loss
+decision, Resend account/API-key/domain status, obsolete-secret
+removal/rotation, post-exit Cloudflare smoke, non-owner Google proof, and real
+recipient mailbox proof or accepted deferral remain unproven.
+
+The latest pack was regenerated at `2026-07-03T10:41:40.108Z` after refreshing
+non-destructive hosted route, hosted performance, hosted auth matrix,
+provider-resource readback, Cloudflare Email readiness, workbook, and release
+gate evidence. No real operator record is present yet, so provider exit
+remains open. Credential-free hosted performance and release gates remain
+blocker-free for app runtime; strict public p95 stayed a watch item, not a
+provider-exit blocker.
+
+## Sanitized Operator Record
+
+`bun run cf:provider-exit-pack` now optionally reads
+`PROVIDER_EXIT_OPERATOR_RECORD_FILE`, or this default path when the environment
+variable is unset:
+
+`evidence/2026-07-03-cloudflare-provider-exit-operator-record.json`
+
+Run `bun run cf:provider-exit-operator-template` to refresh the provider-exit
+pack and write the sanitized starter template at:
+
+`evidence/2026-07-03-cloudflare-provider-exit-operator-record.template.json`
+
+The generated pack also includes an "Operator Record Diagnostics" table that
+names missing fields only. It does not echo operator-record values.
+
+This record is the repo-safe bridge between external provider/persona evidence
+and the provider-exit ledger. It must contain only sanitized booleans,
+timestamps, decision labels, redacted provider-status summaries, and pointers
+to evidence stored outside the repo. Do not commit raw exports, SQL dumps,
+secret values, cookies, mailbox content, provider tokens, or private screenshots.
+
+The pack will close external gates only when the matching sanitized sections
+are present:
+
+- `finalExportsOrRetentionDecision`: `status: "recorded"`, decision
+  `exported`, `accepted-retention`, or `accepted-loss`, an `acceptedBy` value,
+  and a rollback decision. Exported decisions also need a non-secret backup
+  location description.
+- `resendStatus`: recorded account plan, API-key, sending-domain, and evidence
+  source summaries.
+- `obsoleteSecretRotation`: recorded Cloudflare secret-name review, obsolete
+  secret removal/rotation, and `secretValuesNotRecorded: true`.
+- `postExitSmoke`: recorded smoke timestamp, command list, and
+  `cloudflareSmokePassed: true`.
+- `nonOwnerGoogleProof`: recorded non-owner outcome and evidence source with
+  no credentials/cookies recorded, or an explicitly accepted deferral.
+- `recipientMailboxProofOrDeferral`: recorded mailbox receipt plus
+  recipient-scoped action proof with no private mailbox content recorded, or an
+  explicitly accepted deferral.
 
 ## Hard Rules
 
@@ -84,10 +151,13 @@ Evidence: `evidence/2026-07-02-google-oauth-local-production-readback.*`.
 Provider downgrade/cancellation is ready to schedule only when:
 
 - Current Cloudflare release gates are green.
-- Final exports are created and stored outside the repo.
+- Final exports are created and stored outside the repo, or the owner records
+  an explicit accepted-retention/accepted-loss decision for already-cancelled
+  historical providers.
 - Owner accepts the rollback window and data-retention posture.
 - Post-downgrade Cloudflare smoke passes.
 
 Until then, the correct status is: Cloudflare app migration is effectively
 complete for closed-beta runtime, while legacy provider account exit is
-pending backup/export and billing cleanup execution.
+pending backup/export, Resend status, obsolete-secret, and post-exit-smoke
+evidence closure.

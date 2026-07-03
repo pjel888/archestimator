@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-02T06:22:55.331Z",
+  "generatedAt": "2026-07-03T10:32:07.954Z",
   "mode": "cloudflare-hosted-auth-synthetic-cookie-matrix",
   "verifierMode": "hosted-auth-route-smoke",
   "baseUrl": "https://archestimator.com",
@@ -8,34 +8,34 @@
   "syntheticFixtures": [
     {
       "caseName": "allowed",
-      "userId": "7c3b7c19-ea5a-4473-b51e-62e3e08f42fc",
-      "email": "codex-authz-allowed-20260702062255331@example.invalid",
+      "userId": "c49290e9-4b87-4132-9be5-2b9abf734dd6",
+      "email": "codex-authz-allowed-20260703103207954@example.invalid",
       "betaStatus": "active",
-      "sessionExpiresAt": "2026-07-02T07:22:55.331Z",
+      "sessionExpiresAt": "2026-07-03T11:32:07.954Z",
       "providedCookie": true
     },
     {
       "caseName": "denied",
-      "userId": "5476a0f3-2141-4212-b0d8-69b9f8542b15",
-      "email": "codex-authz-denied-20260702062255331@example.invalid",
+      "userId": "29574097-ae8f-4235-a3b3-db2cfa6834fe",
+      "email": "codex-authz-denied-20260703103207954@example.invalid",
       "betaStatus": "missing",
-      "sessionExpiresAt": "2026-07-02T07:22:55.331Z",
+      "sessionExpiresAt": "2026-07-03T11:32:07.954Z",
       "providedCookie": true
     },
     {
       "caseName": "revoked",
-      "userId": "7f8c76af-85da-4c30-98b3-b0c48e52ec85",
-      "email": "codex-authz-revoked-20260702062255331@example.invalid",
+      "userId": "93f096c2-05b3-4256-9c4c-2cfca0c413c5",
+      "email": "codex-authz-revoked-20260703103207954@example.invalid",
       "betaStatus": "revoked",
-      "sessionExpiresAt": "2026-07-02T07:22:55.331Z",
+      "sessionExpiresAt": "2026-07-03T11:32:07.954Z",
       "providedCookie": true
     },
     {
       "caseName": "expired",
-      "userId": "2f5e4c78-307c-42f0-84b8-9a6f8b20a4ff",
-      "email": "codex-authz-expired-20260702062255331@example.invalid",
+      "userId": "15ad668c-62c5-4a28-9b00-4eec1d4b3eed",
+      "email": "codex-authz-expired-20260703103207954@example.invalid",
       "betaStatus": "active",
-      "sessionExpiresAt": "2026-07-02T05:22:55.331Z",
+      "sessionExpiresAt": "2026-07-03T09:32:07.954Z",
       "providedCookie": true
     }
   ],
@@ -49,7 +49,7 @@
     "syntheticWorkspaces": 0
   },
   "authResult": {
-    "generatedAt": "2026-07-02T06:23:10.865Z",
+    "generatedAt": "2026-07-03T10:32:16.391Z",
     "mode": "hosted-auth-route-smoke",
     "baseUrl": "https://archestimator.com",
     "runs": 1,
@@ -57,7 +57,7 @@
       {
         "name": "signedOut",
         "route": "/workshop",
-        "expected": "signed-out or expired session redirects to /login with a safe next path",
+        "expected": "signed-out, expired, or malformed session redirects to /login with a safe next path",
         "providedAuthMaterial": false,
         "status": 307,
         "location": "/login?next=%2Fworkshop",
@@ -65,7 +65,7 @@
         "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
         "hasPrivateNoStoreCacheControl": true,
         "ok": false,
-        "durationMs": 920,
+        "durationMs": 951,
         "passed": true,
         "error": null,
         "samples": [
@@ -76,14 +76,14 @@
             "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
             "hasPrivateNoStoreCacheControl": true,
             "ok": false,
-            "durationMs": 920,
+            "durationMs": 951,
             "passed": true,
             "error": null
           }
         ],
-        "minDurationMs": 920,
-        "maxDurationMs": 920,
-        "averageDurationMs": 920
+        "minDurationMs": 951,
+        "maxDurationMs": 951,
+        "averageDurationMs": 951
       },
       {
         "name": "allowed",
@@ -96,7 +96,7 @@
         "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
         "hasPrivateNoStoreCacheControl": true,
         "ok": true,
-        "durationMs": 1545,
+        "durationMs": 2111,
         "passed": true,
         "error": null,
         "samples": [
@@ -107,14 +107,14 @@
             "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
             "hasPrivateNoStoreCacheControl": true,
             "ok": true,
-            "durationMs": 1545,
+            "durationMs": 2111,
             "passed": true,
             "error": null
           }
         ],
-        "minDurationMs": 1545,
-        "maxDurationMs": 1545,
-        "averageDurationMs": 1545
+        "minDurationMs": 2111,
+        "maxDurationMs": 2111,
+        "averageDurationMs": 2111
       },
       {
         "name": "denied",
@@ -127,7 +127,7 @@
         "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
         "hasPrivateNoStoreCacheControl": true,
         "ok": false,
-        "durationMs": 4181,
+        "durationMs": 1346,
         "passed": true,
         "error": null,
         "samples": [
@@ -138,14 +138,14 @@
             "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
             "hasPrivateNoStoreCacheControl": true,
             "ok": false,
-            "durationMs": 4181,
+            "durationMs": 1346,
             "passed": true,
             "error": null
           }
         ],
-        "minDurationMs": 4181,
-        "maxDurationMs": 4181,
-        "averageDurationMs": 4181
+        "minDurationMs": 1346,
+        "maxDurationMs": 1346,
+        "averageDurationMs": 1346
       },
       {
         "name": "revoked",
@@ -158,7 +158,7 @@
         "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
         "hasPrivateNoStoreCacheControl": true,
         "ok": false,
-        "durationMs": 2001,
+        "durationMs": 208,
         "passed": true,
         "error": null,
         "samples": [
@@ -169,19 +169,19 @@
             "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
             "hasPrivateNoStoreCacheControl": true,
             "ok": false,
-            "durationMs": 2001,
+            "durationMs": 208,
             "passed": true,
             "error": null
           }
         ],
-        "minDurationMs": 2001,
-        "maxDurationMs": 2001,
-        "averageDurationMs": 2001
+        "minDurationMs": 208,
+        "maxDurationMs": 208,
+        "averageDurationMs": 208
       },
       {
         "name": "expired",
         "route": "/workshop",
-        "expected": "signed-out or expired session redirects to /login with a safe next path",
+        "expected": "signed-out, expired, or malformed session redirects to /login with a safe next path",
         "providedAuthMaterial": true,
         "status": 307,
         "location": "/login?next=%2Fworkshop",
@@ -189,7 +189,7 @@
         "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
         "hasPrivateNoStoreCacheControl": true,
         "ok": false,
-        "durationMs": 329,
+        "durationMs": 155,
         "passed": true,
         "error": null,
         "samples": [
@@ -200,14 +200,45 @@
             "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
             "hasPrivateNoStoreCacheControl": true,
             "ok": false,
-            "durationMs": 329,
+            "durationMs": 155,
             "passed": true,
             "error": null
           }
         ],
-        "minDurationMs": 329,
-        "maxDurationMs": 329,
-        "averageDurationMs": 329
+        "minDurationMs": 155,
+        "maxDurationMs": 155,
+        "averageDurationMs": 155
+      },
+      {
+        "name": "malformed",
+        "route": "/workshop",
+        "expected": "signed-out, expired, or malformed session redirects to /login with a safe next path",
+        "providedAuthMaterial": true,
+        "status": 307,
+        "location": "/login?next=%2Fworkshop",
+        "normalizedLocationPath": "/login?next=%2Fworkshop",
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "hasPrivateNoStoreCacheControl": true,
+        "ok": false,
+        "durationMs": 56,
+        "passed": true,
+        "error": null,
+        "samples": [
+          {
+            "status": 307,
+            "location": "/login?next=%2Fworkshop",
+            "normalizedLocationPath": "/login?next=%2Fworkshop",
+            "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+            "hasPrivateNoStoreCacheControl": true,
+            "ok": false,
+            "durationMs": 56,
+            "passed": true,
+            "error": null
+          }
+        ],
+        "minDurationMs": 56,
+        "maxDurationMs": 56,
+        "averageDurationMs": 56
       }
     ],
     "passed": true,

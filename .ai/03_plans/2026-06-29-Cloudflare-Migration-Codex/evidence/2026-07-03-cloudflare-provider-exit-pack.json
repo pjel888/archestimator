@@ -1,0 +1,1022 @@
+{
+  "generatedAt": "2026-07-03T10:41:40.108Z",
+  "mode": "cloudflare-provider-exit-pack",
+  "sources": {
+    "runbook": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/35_PROVIDER_EXIT_AND_FINAL_PROOF_RUNBOOK.md",
+    "ledger": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/36_COMPREHENSIVE_FOLLOWUP_QA_LEDGER.md",
+    "handoff": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/37_GLM52_CLOUDFLARE_MIGRATION_HANDOFF.md"
+  },
+  "artifacts": {
+    "releaseGates": {
+      "present": true,
+      "generatedAt": "2026-07-03T10:35:33.942Z"
+    },
+    "providerResources": {
+      "present": true,
+      "generatedAt": "2026-07-03T10:33:50.211Z"
+    },
+    "emailReadiness": {
+      "present": true,
+      "generatedAt": "2026-07-03T10:41:35.143Z"
+    },
+    "hostedAuthMatrix": {
+      "present": true,
+      "generatedAt": "2026-07-03T10:32:07.954Z"
+    },
+    "operatorRecord": {
+      "present": false,
+      "generatedAt": null
+    }
+  },
+  "legacyProviderScan": {
+    "scannedPaths": [
+      "src",
+      "worker.ts",
+      "package.json",
+      "wrangler.jsonc"
+    ],
+    "blockerCount": 0,
+    "informationalCount": 117,
+    "blockers": [],
+    "informational": [
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 13,
+        "snippet": "resendSharedLinkRecipientEmail,"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 69,
+        "snippet": "resendingRecipientId: string | null;"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 71,
+        "snippet": "pendingResend: LocalRecipient | null;"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 90,
+        "snippet": "| { type: \"recipientResendApplied\"; recipientId: string; ok: boolean; message: string }"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 93,
+        "snippet": "| { type: \"resendingRecipientChanged\"; recipientId: string | null }"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 95,
+        "snippet": "| { type: \"pendingResendChanged\"; recipient: LocalRecipient | null };"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 103,
+        "snippet": "resendingRecipientId: null,"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 105,
+        "snippet": "pendingResend: null,"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 186,
+        "snippet": "case \"recipientResendApplied\":"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 214,
+        "snippet": "case \"resendingRecipientChanged\":"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 217,
+        "snippet": "resendingRecipientId: action.recipientId,"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 224,
+        "snippet": "case \"pendingResendChanged\":"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 227,
+        "snippet": "pendingResend: action.recipient,"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 243,
+        "snippet": "// when their token rotates on resend, so only those require a confirm. pending/sent resend directly."
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 244,
+        "snippet": "function resendNeedsConfirm(rec: LocalRecipient) {"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 301,
+        "snippet": "resendingRecipientId,"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 303,
+        "snippet": "pendingResend,"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 308,
+        "snippet": "// resending rotates it and downgrades their status. Gate those resends behind a confirm so the"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 309,
+        "snippet": "// owner doesn't silently invalidate an engaged recipient's link. pending/sent resend directly."
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 426,
+        "snippet": "// and adopt `match.id` so a just-added chip immediately supports resend/remove (both require"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 458,
+        "snippet": "async function handleResend(rec: LocalRecipient) {"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 460,
+        "snippet": "if (!rec.id || resendingRecipientId || emailDeliveryConfigured !== true) return;"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 461,
+        "snippet": "dispatch({ type: \"resendingRecipientChanged\", recipientId: retryKey });"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 465,
+        "snippet": "const result = await resendSharedLinkRecipientEmail({"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 470,
+        "snippet": "dispatch({ type: \"recipientResendApplied\", recipientId: rec.id, ok: result.ok, message: result.message });"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 473,
+        "snippet": "const msg = err instanceof Error ? err.message : \"Recipient resend failed.\";"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 476,
+        "snippet": "dispatch({ type: \"resendingRecipientChanged\", recipientId: null });"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 482,
+        "snippet": "void handleResend(rec);"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 485,
+        "snippet": "if (resendingRecipientId || emailDeliveryConfigured !== true) return;"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 487,
+        "snippet": "dispatch({ type: \"resendingRecipientChanged\", recipientId: retryKey });"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 504,
+        "snippet": "dispatch({ type: \"resendingRecipientChanged\", recipientId: null });"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 552,
+        "snippet": "disabled={emailDisabled || isSending || Boolean(resendingRecipientId) || Boolean(chip.email_unsubscribed_at)}"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 562,
+        "snippet": "aria-label={`Resend ${chip.email}`}"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 565,
+        "snippet": "// AC-MOD-13 (MOD-REC-06): opened/responded recipients confirm first; the rest resend now."
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 566,
+        "snippet": "if (resendNeedsConfirm(chip)) {"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 567,
+        "snippet": "dispatch({ type: \"pendingResendChanged\", recipient: chip });"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 569,
+        "snippet": "void handleResend(chip);"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 572,
+        "snippet": "disabled={emailDisabled || isSending || Boolean(resendingRecipientId) || Boolean(chip.email_unsubscribed_at)}"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 719,
+        "snippet": "{/* AC-MOD-13 (MOD-REC-06): confirm before resending an opened/responded recipient, since"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 720,
+        "snippet": "the resend rotates their token and downgrades their status. */}"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 722,
+        "snippet": "open={pendingResend !== null}"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 723,
+        "snippet": "title=\"Resend a new link?\""
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 725,
+        "snippet": "if (!next) dispatch({ type: \"pendingResendChanged\", recipient: null });"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 731,
+        "snippet": "<strong className=\"font-medium\">{pendingResend?.email}</strong> has already opened this shared"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 732,
+        "snippet": "page. Resending replaces their current link — their existing link will stop working and their"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 741,
+        "snippet": "onClick={() => dispatch({ type: \"pendingResendChanged\", recipient: null })}"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 750,
+        "snippet": "aria-label=\"Resend new link\""
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 752,
+        "snippet": "const target = pendingResend;"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 753,
+        "snippet": "dispatch({ type: \"pendingResendChanged\", recipient: null });"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 754,
+        "snippet": "if (target) void handleResend(target);"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/components/workshop/publication/RecipientEmailComposer.tsx",
+        "line": 757,
+        "snippet": "Resend new link"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/collaboration/invite-entry.ts",
+        "line": 95,
+        "snippet": "| \"collaboration_invite_resend\";"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/collaboration/invite-entry.ts",
+        "line": 240,
+        "snippet": "export async function checkInviteResendRateLimit({"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/collaboration/invite-entry.ts",
+        "line": 252,
+        "snippet": "scope: \"collaboration_invite_resend\","
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/collaboration/actions.ts",
+        "line": 12,
+        "snippet": "checkInviteResendRateLimit,"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/collaboration/actions.ts",
+        "line": 1202,
+        "snippet": "const rateLimit = await checkInviteResendRateLimit({"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/collaboration/actions.ts",
+        "line": 1225,
+        "snippet": "export async function resendProjectInviteEmail({"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/collaboration/actions.ts",
+        "line": 1253,
+        "snippet": "return { ok: false, message: \"Invite email resend requires invite links to be enabled.\" };"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/collaboration/actions.ts",
+        "line": 1256,
+        "snippet": "return { ok: false, message: \"Invite email resend is disabled until email delivery is explicitly enabled.\" };"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/collaboration/actions.ts",
+        "line": 1259,
+        "snippet": "const rateLimit = await checkInviteResendRateLimit({"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/actions.ts",
+        "line": 172,
+        "snippet": "type RecipientResendRow = {"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/actions.ts",
+        "line": 239,
+        "snippet": "| \"publisher_recipient_resend\""
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/actions.ts",
+        "line": 261,
+        "snippet": "const SHARED_LINK_RECIPIENT_RESEND_SCOPE = \"shared_link_recipient_resend\";"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/actions.ts",
+        "line": 262,
+        "snippet": "const SHARED_LINK_RECIPIENT_RESEND_WINDOW_SECONDS = 5 * 60;"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/actions.ts",
+        "line": 1073,
+        "snippet": "resend_email_id: string | null;"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/actions.ts",
+        "line": 1074,
+        "snippet": "resend_last_event_at: string | null;"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/actions.ts",
+        "line": 1075,
+        "snippet": "resend_last_event_type: string | null;"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/actions.ts",
+        "line": 1242,
+        "snippet": "async function checkSharedLinkRecipientResendRateLimit({"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/actions.ts",
+        "line": 1260,
+        "snippet": "metadata: { publication_id: publicationId, recipient_id: recipientId, route: SHARED_LINK_RECIPIENT_RESEND_SCOPE },"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/actions.ts",
+        "line": 1261,
+        "snippet": "scope: SHARED_LINK_RECIPIENT_RESEND_SCOPE,"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/actions.ts",
+        "line": 1262,
+        "snippet": "windowSeconds: SHARED_LINK_RECIPIENT_RESEND_WINDOW_SECONDS,"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/actions.ts",
+        "line": 1340,
+        "snippet": "\"id, publication_id, email, display_name, email_unsubscribed_at, invited_by, invited_at, delivery_status, last_opened_at, resend_email_id, resend_last_event_at, resend_last_event_type, created_at, updated_at\","
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/actions.ts",
+        "line": 1499,
+        "snippet": "resend_email_id: sendResult.messageId ?? null,"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/actions.ts",
+        "line": 1504,
+        "snippet": "// just-added chip immediately supports resend/remove without remounting the modal."
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/actions.ts",
+        "line": 1553,
+        "snippet": "export async function resendSharedLinkRecipientEmail({"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/actions.ts",
+        "line": 1569,
+        "snippet": "const rateLimit = await checkSharedLinkRecipientResendRateLimit({"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/actions.ts",
+        "line": 1579,
+        "snippet": ".from<RecipientResendRow>(\"shared_link_recipients\")"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/actions.ts",
+        "line": 1595,
+        "snippet": "// (e.g. the encrypted token can't be decrypted after secret rotation), abort the resend instead"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/actions.ts",
+        "line": 1600,
+        "snippet": "return { ok: false, message: \"Could not resolve the shared link to resend. No email was sent.\" };"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/actions.ts",
+        "line": 1621,
+        "snippet": "console.warn(\"[P4] recipient email resend non-fatal failure\", { error: sendResult.error, publicationId, recipientId });"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/actions.ts",
+        "line": 1624,
+        "snippet": "return { ok: false, message: \"Recipient email resend failed. The previous link is still active.\" };"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/actions.ts",
+        "line": 1627,
+        "snippet": "const { data: persisted, error: sentUpdateError } = await callPublicationD1Procedure<boolean>(admin, \"persist_shared_link_recipient_resend\", {"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/actions.ts",
+        "line": 1632,
+        "snippet": "p_resend_email_id: sendResult.messageId ?? null,"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/actions.ts",
+        "line": 1637,
+        "snippet": "return { ok: false, message: \"Shared link changed while resending. Send the recipient email again from the current link.\" };"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/actions.ts",
+        "line": 1642,
+        "snippet": "eventType: \"publisher_recipient_resend\","
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/actions.ts",
+        "line": 1759,
+        "snippet": "resend_message_id: messageId ?? null,"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/admin-d1-client.ts",
+        "line": 69,
+        "snippet": "\"resend_delivery_metadata\","
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/admin-d1-client.ts",
+        "line": 141,
+        "snippet": "row.resend_delivery_metadata ??= {};"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/admin-d1-client.ts",
+        "line": 586,
+        "snippet": "resend_email_id = NULL,"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/admin-d1-client.ts",
+        "line": 587,
+        "snippet": "resend_last_event_at = NULL,"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/admin-d1-client.ts",
+        "line": 588,
+        "snippet": "resend_last_event_type = NULL,"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/admin-d1-client.ts",
+        "line": 596,
+        "snippet": "async function persistSharedLinkRecipientResend(db: D1DatabaseLike, args: Record<string, unknown>) {"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/admin-d1-client.ts",
+        "line": 609,
+        "snippet": "resend_email_id = ?,"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/admin-d1-client.ts",
+        "line": 615,
+        "snippet": "args.p_resend_email_id ?? null,"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/admin-d1-client.ts",
+        "line": 681,
+        "snippet": "} else if (functionName === \"persist_shared_link_recipient_resend\") {"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/publication/admin-d1-client.ts",
+        "line": 682,
+        "snippet": "data = await persistSharedLinkRecipientResend(db, args);"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/supabase/types.ts",
+        "line": 3264,
+        "snippet": "resend_message_id: string | null"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/supabase/types.ts",
+        "line": 3274,
+        "snippet": "resend_message_id?: string | null"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/supabase/types.ts",
+        "line": 3284,
+        "snippet": "resend_message_id?: string | null"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/supabase/types.ts",
+        "line": 3587,
+        "snippet": "resend_delivery_metadata: Json"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/supabase/types.ts",
+        "line": 3588,
+        "snippet": "resend_email_id: string | null"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/supabase/types.ts",
+        "line": 3589,
+        "snippet": "resend_last_event_at: string | null"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/supabase/types.ts",
+        "line": 3590,
+        "snippet": "resend_last_event_id: string | null"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/supabase/types.ts",
+        "line": 3591,
+        "snippet": "resend_last_event_type: string | null"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/supabase/types.ts",
+        "line": 3606,
+        "snippet": "resend_delivery_metadata?: Json"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/supabase/types.ts",
+        "line": 3607,
+        "snippet": "resend_email_id?: string | null"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/supabase/types.ts",
+        "line": 3608,
+        "snippet": "resend_last_event_at?: string | null"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/supabase/types.ts",
+        "line": 3609,
+        "snippet": "resend_last_event_id?: string | null"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/supabase/types.ts",
+        "line": 3610,
+        "snippet": "resend_last_event_type?: string | null"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/supabase/types.ts",
+        "line": 3625,
+        "snippet": "resend_delivery_metadata?: Json"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/supabase/types.ts",
+        "line": 3626,
+        "snippet": "resend_email_id?: string | null"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/supabase/types.ts",
+        "line": 3627,
+        "snippet": "resend_last_event_at?: string | null"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/supabase/types.ts",
+        "line": 3628,
+        "snippet": "resend_last_event_id?: string | null"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/supabase/types.ts",
+        "line": 3629,
+        "snippet": "resend_last_event_type?: string | null"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/email/cloudflare-email-client.ts",
+        "line": 19,
+        "snippet": "type CloudflareSendEmailBinding = {"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/email/cloudflare-email-client.ts",
+        "line": 33,
+        "snippet": "EMAIL?: CloudflareSendEmailBinding;"
+      },
+      {
+        "provider": "resend",
+        "severity": "informational",
+        "file": "src/lib/email/cloudflare-email-client.ts",
+        "line": 45,
+        "snippet": "binding?: CloudflareSendEmailBinding | null;"
+      }
+    ]
+  },
+  "operatorRecordDiagnostics": {
+    "path": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-provider-exit-operator-record.json",
+    "present": false,
+    "templatePath": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-provider-exit-operator-record.template.json",
+    "diagnostics": [
+      {
+        "gateKey": "exports-or-retention-decision-recorded",
+        "section": "finalExportsOrRetentionDecision",
+        "ready": false,
+        "status": null,
+        "acceptedDeferral": false,
+        "missingFields": [
+          "operator record file"
+        ]
+      },
+      {
+        "gateKey": "resend-account-status-recorded",
+        "section": "resendStatus",
+        "ready": false,
+        "status": null,
+        "acceptedDeferral": false,
+        "missingFields": [
+          "operator record file"
+        ]
+      },
+      {
+        "gateKey": "obsolete-secret-rotation-recorded",
+        "section": "obsoleteSecretRotation",
+        "ready": false,
+        "status": null,
+        "acceptedDeferral": false,
+        "missingFields": [
+          "operator record file"
+        ]
+      },
+      {
+        "gateKey": "post-exit-smoke-recorded",
+        "section": "postExitSmoke",
+        "ready": false,
+        "status": null,
+        "acceptedDeferral": false,
+        "missingFields": [
+          "operator record file"
+        ]
+      },
+      {
+        "gateKey": "non-owner-google-proof-recorded",
+        "section": "nonOwnerGoogleProof",
+        "ready": false,
+        "status": null,
+        "acceptedDeferral": false,
+        "missingFields": [
+          "operator record file"
+        ]
+      },
+      {
+        "gateKey": "recipient-mailbox-proof-or-deferral-recorded",
+        "section": "recipientMailboxProofOrDeferral",
+        "ready": false,
+        "status": null,
+        "acceptedDeferral": false,
+        "missingFields": [
+          "operator record file"
+        ]
+      }
+    ]
+  },
+  "gates": [
+    {
+      "key": "release-gates-green",
+      "label": "Cloudflare release gates green",
+      "ready": true,
+      "evidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-release-gates.json",
+      "blocker": null
+    },
+    {
+      "key": "provider-resources-readable",
+      "label": "Cloudflare provider resources readable",
+      "ready": true,
+      "evidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-provider-resource-readback.json",
+      "blocker": null
+    },
+    {
+      "key": "cloudflare-email-ready",
+      "label": "Cloudflare Email ready",
+      "ready": true,
+      "evidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-email-readiness.json",
+      "blocker": null
+    },
+    {
+      "key": "hosted-auth-matrix-ready",
+      "label": "Hosted auth matrix ready",
+      "ready": true,
+      "evidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-auth-synthetic-cookie-matrix.json",
+      "blocker": null
+    },
+    {
+      "key": "no-active-legacy-provider-runtime",
+      "label": "No active Supabase/Vercel/Resend runtime dependency in scanned source",
+      "ready": true,
+      "evidence": "source scan",
+      "blocker": null
+    },
+    {
+      "key": "exports-or-retention-decision-recorded",
+      "label": "Provider exports or accepted-retention/accepted-loss decision recorded",
+      "ready": false,
+      "evidence": "sanitized provider-exit operator record required",
+      "blocker": "No repository evidence proves final exports are stored outside the repo or that accepted-retention/accepted-loss is recorded."
+    },
+    {
+      "key": "resend-account-status-recorded",
+      "label": "Resend account/API-key/domain status recorded",
+      "ready": false,
+      "evidence": "sanitized provider-exit operator record required",
+      "blocker": "Cloudflare Email is ready, but Resend account/API-key/sending-domain status is not recorded."
+    },
+    {
+      "key": "obsolete-secret-rotation-recorded",
+      "label": "Obsolete provider secret removal/rotation recorded",
+      "ready": false,
+      "evidence": "sanitized provider-exit operator record required",
+      "blocker": "No evidence shows obsolete provider secrets were removed or rotated after exit decisions."
+    },
+    {
+      "key": "post-exit-smoke-recorded",
+      "label": "Post-exit Cloudflare smoke recorded",
+      "ready": false,
+      "evidence": "sanitized provider-exit operator record required",
+      "blocker": "No post-exit smoke exists after provider export/retention/secret decisions."
+    },
+    {
+      "key": "non-owner-google-proof-recorded",
+      "label": "Real non-owner Google proof recorded",
+      "ready": false,
+      "evidence": "sanitized provider-exit operator record required",
+      "blocker": "No real non-owner Google account journey evidence is recorded."
+    },
+    {
+      "key": "recipient-mailbox-proof-or-deferral-recorded",
+      "label": "Real recipient mailbox proof or accepted deferral recorded",
+      "ready": false,
+      "evidence": "sanitized provider-exit operator record required",
+      "blocker": "No real recipient mailbox receipt proof or accepted deferral is recorded."
+    }
+  ],
+  "readiness": {
+    "appRuntimeExitPrerequisitesReady": true,
+    "providerExitReady": false
+  },
+  "blockers": [
+    "Provider exports or accepted-retention/accepted-loss decision recorded: No repository evidence proves final exports are stored outside the repo or that accepted-retention/accepted-loss is recorded.",
+    "Resend account/API-key/domain status recorded: Cloudflare Email is ready, but Resend account/API-key/sending-domain status is not recorded.",
+    "Obsolete provider secret removal/rotation recorded: No evidence shows obsolete provider secrets were removed or rotated after exit decisions.",
+    "Post-exit Cloudflare smoke recorded: No post-exit smoke exists after provider export/retention/secret decisions.",
+    "Real non-owner Google proof recorded: No real non-owner Google account journey evidence is recorded.",
+    "Real recipient mailbox proof or accepted deferral recorded: No real recipient mailbox receipt proof or accepted deferral is recorded."
+  ],
+  "note": "Non-destructive provider-exit evidence pack. This script reads current source and sanitized evidence artifacts only. It does not read .env files, print secrets, create exports, deploy, rotate secrets, cancel providers, delete data, change DNS, or prove real mailbox/persona access."
+}

@@ -1,0 +1,47 @@
+{
+  "generatedAt": "2026-07-03T10:41:40.108Z",
+  "mode": "cloudflare-provider-exit-operator-record",
+  "boundary": "Sanitized operator record only. Do not record secrets, tokens, cookies, raw mailbox content, provider screenshots with private values, private backup paths, or credential material.",
+  "finalExportsOrRetentionDecision": {
+    "status": "missing",
+    "decision": "",
+    "acceptedBy": "",
+    "rollbackDecision": "",
+    "backupLocationDescription": ""
+  },
+  "resendStatus": {
+    "status": "missing",
+    "accountPlanStatus": "",
+    "apiKeyStatus": "",
+    "sendingDomainStatus": "",
+    "domainEvidenceSource": ""
+  },
+  "obsoleteSecretRotation": {
+    "status": "missing",
+    "cloudflareSecretNamesReviewed": false,
+    "obsoleteProviderSecretsRemovedOrRotated": false,
+    "secretValuesNotRecorded": false
+  },
+  "postExitSmoke": {
+    "status": "missing",
+    "runAt": "",
+    "cloudflareSmokePassed": false,
+    "commands": []
+  },
+  "nonOwnerGoogleProof": {
+    "status": "missing",
+    "policyOutcome": "",
+    "evidenceSource": "",
+    "noCredentialsOrCookiesRecorded": false,
+    "acceptedBy": "",
+    "deferralRationale": ""
+  },
+  "recipientMailboxProofOrDeferral": {
+    "status": "missing",
+    "mailboxReceiptObserved": false,
+    "recipientScopedActionObserved": false,
+    "noPrivateEmailContentRecorded": false,
+    "acceptedBy": "",
+    "deferralRationale": ""
+  }
+}

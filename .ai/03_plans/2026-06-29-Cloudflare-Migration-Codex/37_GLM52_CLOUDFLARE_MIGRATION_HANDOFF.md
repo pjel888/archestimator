@@ -7,6 +7,34 @@
 
 **Tech Stack:** Next.js 16, React 19, Bun, TypeScript, Tailwind v4, OpenNext Cloudflare, Cloudflare Workers, D1, R2, Durable Objects, Queues, Cloudflare Email, Better Auth, Playwright, Vitest, Wrangler, Google OAuth, local developer OAuth on `http://localhost:3000`, production domain `https://archestimator.com`.
 
+**2026-07-03 status refresh:** Doc 36 now contains a fresh independent
+verification/test-maintenance pass, and `.ai/10_state/current-state.md` has
+been updated with that evidence. Cloudflare app runtime remains closed-beta
+ready; full migration completion remains open until the non-owner Google proof,
+real recipient mailbox proof or accepted deferral, provider
+export/retention/post-exit evidence, and final smoke/review gates are closed.
+Owner-reported Vercel/Supabase cancellation does not, by itself, satisfy the
+formal provider exit evidence pack.
+
+**2026-07-03 provider-exit pack refresh:** Codex added
+`evidence/2026-07-03-cloudflare-provider-exit-pack.*`. It proves app-runtime
+exit prerequisites and zero blocker-level active Supabase/Vercel/Resend
+runtime references in scanned source, while keeping provider exit `OPEN / NOT
+READY` on exports or accepted retention/loss, Resend account status,
+obsolete-secret rotation, post-exit smoke, non-owner Google proof, and real
+recipient mailbox proof or accepted deferral.
+
+The latest provider-exit pack was regenerated at `2026-07-03T10:41:40.108Z`
+after refreshing hosted route, hosted performance, hosted auth matrix,
+provider-resource readback, Cloudflare Email readiness, workbook, and release
+gate evidence. It also preserves optional sanitized operator-record intake,
+field-level diagnostics, and a generated operator-record template at
+`evidence/2026-07-03-cloudflare-provider-exit-operator-record.template.json`.
+No real operator record is present yet, so provider exit remains open. Release
+gates remain `productionCutoverReady=true` with blockers empty. Strict public
+p95 remains visible as a watch item; the latest miss is `/terms` at `564.56ms`
+against the `300ms` budget.
+
 ## Global Constraints
 
 - Work from `/Users/philiplewis/Documents/archestimator`.
@@ -33,8 +61,8 @@ This section is the truth to start from. Verify it against the current source an
 | --- | --- | --- |
 | Overall app runtime | Cloudflare-only closed-beta app runtime is about `99.7/100`. No known P0 app-runtime blocker remains. | `evidence/2026-07-02-cloudflare-wrap-up-assessment.*` |
 | Overall migration including provider exit | About `97/100`. The remaining 3% is external-persona proof, recipient mailbox proof, provider exports/downgrades, post-exit smoke, and p95 watch. | `36_COMPREHENSIVE_FOLLOWUP_QA_LEDGER.md` |
-| Release gates | `productionCutoverReady=true` and blockers empty at `2026-07-02T14:02:36.486Z`. | `evidence/2026-07-01-cloudflare-release-gates.*` |
-| Cost/performance workbook | Runtime/cost decision readiness green. Strict hosted public-route p95 remains red as a watch item: `strictHostedClientP95Ready=false`; `hostedPerformanceReady=false`; `aggregateHostedPerformanceReady=true`. | `evidence/2026-07-01-cloudflare-cost-performance-workbook.*` |
+| Release gates | `productionCutoverReady=true` and blockers empty at `2026-07-03T10:35:33.942Z`. | `evidence/2026-07-01-cloudflare-release-gates.*` |
+| Cost/performance workbook | Runtime/cost decision readiness green at `2026-07-03T10:32:56.734Z`. Strict hosted public-route p95 remains red as a watch item: `strictHostedClientP95Ready=false`; `hostedPerformanceReady=false`; `aggregateHostedPerformanceReady=true`; latest miss is `/terms` p95 TTFB `564.56ms` against `300ms`. | `evidence/2026-07-01-cloudflare-cost-performance-workbook.*`; `evidence/2026-06-30-cloudflare-hosted-performance.*` |
 | Production Google OAuth owner flow | Real desktop Chrome proof passed on `https://archestimator.com`; no `state_mismatch`; landed in `/workshop`. | `evidence/2026-07-02-production-google-oauth-real-browser-proof.*` |
 | Local developer Google OAuth | Real desktop Chrome proof passed on `http://localhost:3000`; D1 local user/account/session/terms readback passed. | `evidence/2026-07-02-local-dev-google-oauth-real-browser-proof.*` |
 | Google OAuth provider configuration | Production and local callbacks/origins configured; Audience is `In production`; user type is `External`; no sensitive/restricted custom scopes recorded. | `evidence/2026-07-02-google-oauth-local-production-readback.*` |
@@ -43,8 +71,8 @@ This section is the truth to start from. Verify it against the current source an
 | Uploads/media | Hosted upload UI, R2 checksum, D1 upload session/asset/event readback, app cleanup, and R2 cleanup passed. | `evidence/2026-07-02-cloudflare-hosted-upload-ui-proof.*` |
 | Collaboration | Hosted two-client collaboration UI proof passed with Durable Object subscriptions and remote cursor rendering. | `evidence/2026-07-02-cloudflare-hosted-collaboration-ui-proof.*` |
 | Publication/share/recipient app flow | Owner publish/public share/recipient app interaction green. Real external recipient mailbox receipt remains open. | `evidence/2026-07-02-cloudflare-hosted-publication-owner-public-proof.*`, `evidence/2026-07-02-cloudflare-hosted-d1-row-publication-refresh-proof.*`, `evidence/2026-07-02-cloudflare-hosted-publication-recipient-comment-decision-proof.*`, and `evidence/2026-07-02-cloudflare-hosted-recipient-composer-ui-proof.*` |
-| Provider exit | Not executed. Supabase, Vercel, and Resend billing/account cleanup remains an operations lane after exports and post-exit smoke. | `35_PROVIDER_EXIT_AND_FINAL_PROOF_RUNBOOK.md` |
-| Latest deploy source watch | Main Worker current-source deploy proof predates the final React/Next script-warning fix. Production auth is green, but deploy latest branch once more before provider-exit smoke if the deployed Worker does not include that fix. | `evidence/2026-07-02-cloudflare-main-worker-current-source-deploy.*`; `src/components/auth/AuthStateMismatchRecoveryScript.tsx` |
+| Provider exit | App-runtime exit prerequisites are packaged as non-destructive evidence at `2026-07-03T10:41:40.108Z`, but full provider exit remains open. Owner reports Vercel/Supabase cancellation is already done; export/retention, Resend status, obsolete-secret handling, rollback posture, external-persona/mailbox proof, and post-exit smoke remain an operations/evidence lane. `cf:provider-exit-pack` supports a sanitized operator record for those external gates, and `cf:provider-exit-operator-template` writes the template plus diagnostics, but the real record is not present yet. | `evidence/2026-07-03-cloudflare-provider-exit-pack.*`; `evidence/2026-07-03-cloudflare-provider-exit-operator-record.template.json`; `35_PROVIDER_EXIT_AND_FINAL_PROOF_RUNBOOK.md`; `36_COMPREHENSIVE_FOLLOWUP_QA_LEDGER.md` |
+| Latest deploy source watch | Latest recorded production deploy evidence includes Worker version `d47bcd1d-37f0-41e3-864a-05a90b28518b` at `2026-07-02T04:31:00Z`, but the checked-in React/Next warning fix for `AuthStateMismatchRecoveryScript` landed later in source commit `cdf74b72d` at `2026-07-02T14:02:31Z`. Production auth is green, but deploy/smoke the latest branch once more before provider-exit smoke to prove that fix is live. | `evidence/2026-07-02-cloudflare-hosted-d1-row-publication-refresh-proof.*`; `evidence/2026-07-02-cloudflare-main-worker-current-source-deploy.*`; `src/components/auth/AuthStateMismatchRecoveryScript.tsx` |
 
 Note on the publication evidence row: run this exact inventory command to see the complete file set without guessing:
 
@@ -138,7 +166,7 @@ You are the Recipient/email proof worker. Use the production Cloudflare app and 
 **Thread D prompt:**
 
 ```text
-You are the Provider-exit ops worker. Do not delete or cancel providers until the export pack and rollback decision record exist. Build a repo-safe evidence pack for Supabase, Vercel, and Resend: active use check, backup/export path outside the repo, sanitized provider status, environment-variable names only, domain/DNS status, and post-exit smoke command plan. If the exit-window decision is already recorded and the governing policy permits destructive billing actions, execute one provider at a time in the runbook order: Resend, Vercel, Supabase. After each provider action, run Cloudflare smoke and write evidence/YYYY-MM-DD-glm52-provider-exit-pack.*. Never commit exports or secrets.
+You are the Provider-exit ops worker. Do not delete or cancel providers until the export pack and rollback decision record exist. Build a repo-safe evidence pack for Supabase, Vercel, and Resend: active use check, backup/export path outside the repo, sanitized provider status, environment-variable names only, domain/DNS status, and post-exit smoke command plan. Start from `bun run cf:provider-exit-operator-template` if the sanitized operator-record template is missing, then record the sanitized external gate state in `evidence/2026-07-03-cloudflare-provider-exit-operator-record.json` or pass its path through `PROVIDER_EXIT_OPERATOR_RECORD_FILE`, and rerun `bun run cf:provider-exit-pack`. If the exit-window decision is already recorded and the governing policy permits destructive billing actions, execute one provider at a time in the runbook order: Resend, Vercel, Supabase. After each provider action, run Cloudflare smoke and write evidence/YYYY-MM-DD-glm52-provider-exit-pack.*. Never commit exports or secrets.
 ```
 
 **Thread E prompt:**
@@ -634,14 +662,15 @@ Use these evidence slots for the remaining work. If a lane runs on a later date,
 .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-glm52-non-owner-google-oauth-proof.json
 .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-glm52-recipient-mailbox-proof.md
 .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-glm52-recipient-mailbox-proof.json
-.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-glm52-provider-exit-pack.md
-.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-glm52-provider-exit-pack.json
+.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-provider-exit-pack.md
+.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-provider-exit-pack.json
+.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-provider-exit-operator-record.json
 .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-glm52-provider-post-exit-smoke.md
 .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-glm52-provider-post-exit-smoke.json
 .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-glm52-public-p95-watch.md
 .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-glm52-public-p95-watch.json
-.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-glm52-final-ultraqa-review.md
-.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-glm52-final-ultraqa-review.json
+.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-glm52-final-ultraqa-review.md
+.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-glm52-final-ultraqa-review.json
 ```
 
 Markdown evidence structure:
@@ -815,9 +844,9 @@ Evidence:
 - Latest deploy smoke: .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-glm52-latest-deploy-smoke.md
 - Non-owner Google proof: .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-glm52-non-owner-google-oauth-proof.md
 - Recipient mailbox proof: .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-glm52-recipient-mailbox-proof.md
-- Provider exit pack: .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-glm52-provider-exit-pack.md
+- Provider exit pack: .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-provider-exit-pack.md
 - Post-exit smoke: .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-glm52-provider-post-exit-smoke.md
-- Final UltraQA review: .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-glm52-final-ultraqa-review.md
+- Final UltraQA review: .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-glm52-final-ultraqa-review.md
 
 Verification:
 - Hosted route/auth/sensitive checks passed.

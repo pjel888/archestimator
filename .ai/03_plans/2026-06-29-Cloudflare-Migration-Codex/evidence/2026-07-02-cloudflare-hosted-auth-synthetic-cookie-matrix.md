@@ -2,7 +2,7 @@
 
 Status: **PASSED**
 
-Generated: `2026-07-02T06:22:55.331Z`
+Generated: `2026-07-03T10:32:07.954Z`
 
 Base URL: `https://archestimator.com`
 
@@ -12,18 +12,19 @@ Workspace fixture: `258b50ee-3fde-4f6a-a9d9-c360ec44cd0b`
 
 | Case | Result | Latest status | Latest redirect path | Cache-Control | Avg duration | Error |
 | --- | --- | --- | --- | --- | --- | --- |
-| signedOut | pass | 307 | /login?next=%2Fworkshop | private, no-cache, no-store, max-age=0, must-revalidate | 920ms |  |
-| allowed | pass | 200 | n/a | private, no-cache, no-store, max-age=0, must-revalidate | 1545ms |  |
-| denied | pass | 307 | /access-required | private, no-cache, no-store, max-age=0, must-revalidate | 4181ms |  |
-| revoked | pass | 307 | /access-required?status=revoked | private, no-cache, no-store, max-age=0, must-revalidate | 2001ms |  |
-| expired | pass | 307 | /login?next=%2Fworkshop | private, no-cache, no-store, max-age=0, must-revalidate | 329ms |  |
+| signedOut | pass | 307 | /login?next=%2Fworkshop | private, no-cache, no-store, max-age=0, must-revalidate | 951ms |  |
+| allowed | pass | 200 | n/a | private, no-cache, no-store, max-age=0, must-revalidate | 2111ms |  |
+| denied | pass | 307 | /access-required | private, no-cache, no-store, max-age=0, must-revalidate | 1346ms |  |
+| revoked | pass | 307 | /access-required?status=revoked | private, no-cache, no-store, max-age=0, must-revalidate | 208ms |  |
+| expired | pass | 307 | /login?next=%2Fworkshop | private, no-cache, no-store, max-age=0, must-revalidate | 155ms |  |
+| malformed | pass | 307 | /login?next=%2Fworkshop | private, no-cache, no-store, max-age=0, must-revalidate | 56ms |  |
 
 | Fixture | Email | User id | Closed beta status | Session expiry |
 | --- | --- | --- | --- | --- |
-| allowed | codex-authz-allowed-20260702062255331@example.invalid | 7c3b7c19-ea5a-4473-b51e-62e3e08f42fc | active | 2026-07-02T07:22:55.331Z |
-| denied | codex-authz-denied-20260702062255331@example.invalid | 5476a0f3-2141-4212-b0d8-69b9f8542b15 | missing | 2026-07-02T07:22:55.331Z |
-| revoked | codex-authz-revoked-20260702062255331@example.invalid | 7f8c76af-85da-4c30-98b3-b0c48e52ec85 | revoked | 2026-07-02T07:22:55.331Z |
-| expired | codex-authz-expired-20260702062255331@example.invalid | 2f5e4c78-307c-42f0-84b8-9a6f8b20a4ff | active | 2026-07-02T05:22:55.331Z |
+| allowed | codex-authz-allowed-20260703103207954@example.invalid | c49290e9-4b87-4132-9be5-2b9abf734dd6 | active | 2026-07-03T11:32:07.954Z |
+| denied | codex-authz-denied-20260703103207954@example.invalid | 29574097-ae8f-4235-a3b3-db2cfa6834fe | missing | 2026-07-03T11:32:07.954Z |
+| revoked | codex-authz-revoked-20260703103207954@example.invalid | 93f096c2-05b3-4256-9c4c-2cfca0c413c5 | revoked | 2026-07-03T11:32:07.954Z |
+| expired | codex-authz-expired-20260703103207954@example.invalid | 15ad668c-62c5-4a28-9b00-4eec1d4b3eed | active | 2026-07-03T09:32:07.954Z |
 
 Cleanup counts after proof:
 
@@ -33,5 +34,5 @@ Cleanup counts after proof:
 
 Notes:
 - Session cookies and signed token values were generated in memory only and are not written to this report.
-- The hosted verifier exercises `/workshop` on the production Worker with anonymous, allowed, missing-allowlist, revoked, and expired Better Auth session states.
+- The hosted verifier exercises `/workshop` on the production Worker with anonymous, allowed, missing-allowlist, revoked, expired, and malformed Better Auth session states.
 - A pass requires the expected route behavior plus private/no-store cache control and zero synthetic D1 residue after cleanup.
