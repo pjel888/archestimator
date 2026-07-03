@@ -16,6 +16,7 @@ export default function Loading() {
         "flex h-full min-h-0 overflow-hidden rounded-xs border border-[color:var(--glass-border)] p-2",
         librarySurfaceClass("glass", "root"),
       )}
+      role="status"
       aria-label="Loading library"
     >
       <div

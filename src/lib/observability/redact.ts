@@ -63,7 +63,7 @@ export function redactMessage(message: string): RedactionResult<string> {
     tainted = true;
     return `${prefix}[REDACTED]`;
   });
-  value = value.replace(/\b(?:password|token|api_key|secret|service_role_key)=[^\s,;&\\]+/gi, (match) => {
+  value = value.replace(/\b[A-Za-z0-9_]*(?:password|token|api_key|secret|service_role_key)[A-Za-z0-9_]*=[^\s,;&\\]+/gi, (match) => {
     tainted = true;
     const [key] = match.split("=");
     return `${key}=[REDACTED]`;

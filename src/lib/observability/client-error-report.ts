@@ -25,7 +25,7 @@ export function sanitizeClientErrorText(value: string | undefined, maxLength: nu
     .replace(/\/Users\/[^\s)'"`]+/g, "[LOCAL_PATH]")
     .replace(/\bprivate_[A-Za-z0-9_]+\b/gi, "[REDACTED_IDENTIFIER]")
     .replace(/([?&](?:password|token|api_key|secret)=)([^&#\\\s]*)/gi, "$1[REDACTED]")
-    .replace(/\b(?:password|token|api_key|secret|service_role_key)=[^\s,;&\\]+/gi, (match) => {
+    .replace(/\b[A-Za-z0-9_]*(?:password|token|api_key|secret|service_role_key)[A-Za-z0-9_]*=[^\s,;&\\]+/gi, (match) => {
       const [key] = match.split("=");
       return `${key}=[REDACTED]`;
     })

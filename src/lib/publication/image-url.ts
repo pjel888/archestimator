@@ -15,7 +15,15 @@ export function normalizePublicationImageUrl(value: unknown): string | null {
 
   if (LOCAL_BROKERED_IMAGE_ROUTE_PATTERN.test(rawUrl)) {
     const imageUrl = new URL(rawUrl, "https://archestimator.local");
-    const path = imageUrl.searchParams.get("path") ?? "";
+    const params = Array.from(imageUrl.searchParams.entries());
+    if (params.length !== 1 || params[0]?.[0] !== "path") return null;
+    const path = params[0]?.[1] ?? "";
+    if (imageUrl.pathname.includes("/project-images/")) return null;
+    if (
+      path === "project-images"
+      || path.startsWith("project-images/")
+      || path.includes("/project-images/")
+    ) return null;
     if (!path || path.includes("..") || path.includes("\\")) return null;
     if (!/\.(?:avif|jpe?g|png|webp)$/i.test(path)) return null;
     return `${imageUrl.pathname}?${imageUrl.searchParams.toString()}`;
