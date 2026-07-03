@@ -6,6 +6,38 @@ document: 30
 
 # Completion Audit
 
+## 2026-07-03 Implementation Completion Audit Refresh
+
+Evidence:
+`evidence/2026-07-03-cloudflare-migration-implementation-completion-audit.*`.
+
+Answer for the current implementation goal: **near-complete, not fully
+implemented**.
+
+The original audit below answered whether the planning-quality loop could stop.
+That answer remains useful historically, but it is no longer sufficient for the
+active implementation-completion question. The refreshed implementation audit
+maps the current plan-pack requirements to evidence and classifies the remaining
+gates:
+
+- Release gates, provider-resource readback, Cloudflare Email readiness, hosted
+  auth synthetic matrix, active legacy-provider runtime scan, provider-exit pack
+  generation, broad local DOM, and final static UltraQA evidence are current.
+- The strict hosted public p95 miss remains visible as a watch item, not hidden
+  as a release blocker.
+- Latest-branch deploy/source smoke remains incomplete because the latest
+  recorded production deploy proof predates the checked-in
+  `AuthStateMismatchRecoveryScript` warning fix.
+- Full provider exit remains `OPEN / NOT READY` because the sanitized operator
+  record is absent and six external/operator gates remain: final exports or
+  accepted retention/loss, Resend status, obsolete-secret cleanup, post-exit
+  Cloudflare smoke, real non-owner Google proof, and real recipient mailbox
+  proof or accepted deferral.
+
+Do not use this plan pack as a completed-migration claim until Doc 37's "Full
+migration complete" row is satisfied or the external/persona/mailbox gates are
+explicitly accepted as deferred in the ledger.
+
 ## Audit Question
 
 Are the Cloudflare migration planning documents good enough to stop the documentation-quality loop?

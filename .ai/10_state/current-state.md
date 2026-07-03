@@ -99,6 +99,581 @@ Stable current truth (verify against git/source before relying on a detail):
   deferral, latest-branch deploy/smoke as needed, old-provider exports/backups,
   downgrade/cancel sequencing, and post-exit smoke are complete. Evidence:
   `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-wrap-up-assessment.*`.
+- Cloudflare migration independent verification refresh as of 2026-07-03:
+  the follow-up QA ledger now records a fresh verification and narrow
+  test-maintenance pass. `bun run type-check`, `bun run test`, scoped
+  `eslint src/`, hosted route/performance/sensitive-route checks, workbook,
+  release gates, Cloudflare Email readiness, Wrangler auth, provider-resource
+  readback, state-mismatch recovery, and local credential-free route probes all
+  passed or recorded a bounded setup gap. `eslint.config.mjs` now ignores
+  local-only state/cache dirs so repo-wide lint no longer traverses
+  `.supermemory/`, `.gitnexus/`, `.code-review-graph/`, `.chunkhound/`,
+  `.open-next/`, legacy `.opennext/`, or `.cache/`. AI route tests were
+  aligned from the historical
+  Supabase auth-mode fixture to `better-auth`, and
+  `src/lib/auth/request-proxy.ts` has a behavior-preserving `prefer-const`
+  cleanup. `bun run test:dom` remains a stale-test maintenance gap, down from
+  about 319 to about 305 failures after the AI auth-mode fix; the broad suite
+  has not been rerun after focused Codex repairs. Since that baseline, the
+  observed `requireAuth` mock-export class, the Supabase-era publication
+  activity harness, both projects-page perf D1 harness files
+  (`tests/vitest/perf/projects-page-rpc-contract.test.ts` and
+  `tests/vitest/perf/projects-page-server-parallelism.test.ts`), the
+  component-library perf D1 contract
+  (`tests/vitest/perf/library-overview-rpc-contract.test.ts`), plus
+  `tests/vitest/auth-onboarding-guard.test.ts` and
+  three estimate action factory harnesses
+  (`tests/vitest/estimate-node-reorder-action.test.ts` and
+  `tests/vitest/estimate-sheet-version-control-actions.test.ts`, plus
+  `tests/vitest/estimate-sheet-create-empty-tree.test.ts`) are locally repaired with
+  focused green tests and current Cloudflare D1/action-client harnesses. The
+  auth-sensitive API boundary test is also repaired for the current per-key
+  storage/R2 deletion behavior. `tests/vitest/library-overview.test.tsx` is
+  repaired from its retired pre-consolidation overview DOM contract to the current
+  empty overview shell plus persistent-header search/add ownership contract.
+  The projects-page organize/view/create DOM contract slice is also repaired:
+  `tests/vitest/projects-page-organize-control.test.tsx` now targets the current
+  `Group by` labels/storage key/shared-tab behavior, and
+  `tests/vitest/projects-page-view-mode.test.tsx` now targets the current
+  collection shell and create-project dialog accessible name. The optimistic
+  create-project test now uses the current Client combobox contract and dialog
+  accessible-name lookup; the full local projects-page cluster now passes
+  `9` files / `88` tests.
+  A focused estimate-sheet editable harness slice is also repaired for the
+  current explicit edit-mode gate: four editable perf files plus
+  `tests/vitest/estimate-sheet-row-details-crud.test.tsx` and
+  `tests/vitest/estimate-sheet-cost-inputs.test.tsx` now render
+  `EstimateSheetContent` with `canEditEstimate` for editable assertions, and
+  the local estimate-sheet editable cluster passes `7` files / `66` tests.
+  A second estimate/proposal DOM slice is also repaired: mixed-content editable
+  assertions now opt into `canEditEstimate`, the express image upload URL mock
+  remains a real `URL` constructor, the proposal preview quantity-edit harness
+  opts into edit mode, and the lazy sidebar test waits for the intentional
+  post-paint library query. The repaired cluster passes `10` files / `119`
+  tests.
+  Publication snapshot image sanitization is now repaired for the current private
+  storage posture: `src/lib/publication/image-url.ts` strips brokered
+  `project-images` routes, `tests/vitest/project-publication-snapshot.test.ts`
+  expects legacy Supabase public image URLs to be stripped, and
+  `tests/vitest/security-findings-publication-contracts.test.ts` now asserts the
+  current D1-store recipient/snapshot guards. The repaired local group now passes
+  `13` files / `216` tests. Remaining documented
+  failure classes are per-file D1 mocks outside the repaired files, UI DOM drift
+  outside the repaired library overview/projects-page/estimate slices, and remaining
+  mock-call/assertion drift outside the repaired files. This is not treated as a Cloudflare runtime
+  blocker because production/source gates are green and each major failure
+  class is traced to test maintenance. Do not mark the durable Cloudflare migration goal complete
+  until real non-owner Google proof, real recipient mailbox proof or accepted
+  deferral, provider-export/post-exit evidence, and any latest-deploy/smoke
+  requirements are closed. Current source ledger:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/36_COMPREHENSIVE_FOLLOWUP_QA_LEDGER.md`.
+- Cloudflare migration continuation verification as of 2026-07-03 04:28 UTC:
+  repo-wide `bun run lint` now completes and exits 0 with warnings only after
+  generated/local runtime output ignores were expanded to include the actual
+  `.open-next/**` tree plus related local tool state dirs, and obsolete
+  TypeScript suppression comments were removed from `worker.ts`. Fresh
+  `bun run type-check`, `bun run lint`, focused auth/release Vitest
+  (`5` files / `52` tests), hosted-auth verifier-script Vitest (`1` file /
+  `11` tests), `bun run test` (`31/31`), `git diff --check`, and `bun run
+  cf:check-email` all passed. The standalone
+  `launch:verify-hosted-auth` operator helper remains a setup gap for
+  allowed/denied/revoked/expired cases without manually supplied
+  `HOSTED_AUTH_*_COOKIE` fixtures, but the purpose-built hosted synthetic
+  cookie matrix passed signed-out/allowed/denied/revoked/expired/malformed
+  route states and left `cleanupAfter` counts at zero in
+  `evidence/2026-07-02-cloudflare-hosted-auth-synthetic-cookie-matrix.*`.
+  Hosted synthetic mutation surfaces are
+  accepted unchanged from the 2026-07-02 project/estimate/library/upload/
+  publication/collaboration proof set because subsequent app/source commits
+  are auth proxy/recovery, lint, and test-only. Full migration completion still
+  remains open on non-owner Google proof, real recipient mailbox proof or
+  accepted deferral, provider-export/retention/post-exit-smoke evidence, and
+  final deploy/smoke/review closure.
+- Cloudflare provider-exit evidence refresh as of 2026-07-03 10:41 UTC:
+  non-destructive hosted/provider artifacts were refreshed after the broad DOM
+  suite was made green. Latest hosted routes passed at
+  `2026-07-03T10:35:09.780Z`; hosted sensitive-route fail-closed passed for
+  invalid share/private image probes; the direct hosted-auth helper still has a
+  setup gap without sanitized `HOSTED_AUTH_*_COOKIE` fixtures, while the
+  synthetic hosted auth matrix passed all signed-out/allowed/denied/revoked/
+  expired/malformed cases with zero cleanup at `2026-07-03T10:32:07.954Z`.
+  Hosted performance passed hard gates at `2026-07-03T10:32:52.047Z` with
+  `hostedCredentialFreePerformanceReady=true`; strict public p95 remains a
+  watch item because `/terms` was `564.56ms` against the `300ms` strict budget.
+  Workbook generated at `2026-07-03T10:32:56.734Z` reports
+  `aggregateHostedPerformanceReady=true`, `productionCostDecisionReady=true`,
+  `strictHostedClientP95Ready=false`, and `hostedPerformanceReady=false`.
+  Provider-resource readback passed at `2026-07-03T10:35:30.209Z` for Worker
+  deployments, D1, R2, Queues, and expected Worker secret names; Cloudflare
+  Email readiness is READY at `2026-07-03T10:41:35.143Z`; release gates passed
+  at `2026-07-03T10:35:33.942Z` with `productionCutoverReady=true` and blockers
+  empty. The provider-exit pack regenerated at `2026-07-03T10:41:40.108Z` with
+  `appRuntimeExitPrerequisitesReady=true`, `activeLegacyProviderRuntimeBlockers=0`,
+  and `providerExitReady=false`. The six remaining blockers are still external/
+  operator gates: final exports or accepted-retention/loss, Resend status,
+  obsolete-secret removal/rotation, post-exit Cloudflare smoke, real non-owner
+  Google proof, and real recipient mailbox proof or accepted deferral.
+  Verification passed: provider-exit pack Vitest (`2` suites / `6` tests),
+  scoped ESLint for the pack script/test, and `git diff --check`.
+- Cloudflare final static UltraQA review refresh as of 2026-07-03 10:53 UTC:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-glm52-final-ultraqa-review.*`
+  now points at the current provider-exit pack generated
+  `2026-07-03T10:41:40.108Z`. Verdict remains `PARTIAL`: app runtime exit
+  prerequisites are ready (`readiness.appRuntimeExitPrerequisitesReady=true`),
+  active legacy-provider runtime blockers are `0`, but full provider exit is
+  `OPEN / NOT READY` (`readiness.providerExitReady=false`) because the
+  sanitized operator record is absent (`artifacts.operatorRecord.present=false`).
+  The same six external/operator blockers remain: final exports or accepted
+  retention/loss, Resend account/API-key/domain status, obsolete-secret
+  removal/rotation, post-exit Cloudflare smoke, real non-owner Google proof, and
+  real recipient mailbox proof or accepted deferral. Current local/sanitized
+  app-runtime evidence is green where it is allowed to be local: release gates
+  generated at `2026-07-03T10:35:33.942Z` with blockers empty, provider-resource
+  readback generated at `2026-07-03T10:35:30.209Z` with blockers empty, and
+  Cloudflare Email readiness generated at `2026-07-03T10:41:35.143Z`. Hosted
+  performance generated at `2026-07-03T10:32:52.047Z` keeps
+  `hostedCredentialFreePerformanceReady=true`, but strict public p95 remains a
+  watch item because `/terms` measured `564.56ms` against a `300ms` budget.
+  This refresh did not deploy, mutate providers, rotate secrets, export data,
+  prove a mailbox, prove a real non-owner persona, or run hosted browser smoke;
+  latest-branch deploy/source proof therefore remains open before final
+  provider-exit closure.
+- Cloudflare migration implementation completion audit refresh as of
+  2026-07-03 11:04 UTC:
+  `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-migration-implementation-completion-audit.*`
+  maps current plan-pack requirements to proof classes and statuses. Verdict:
+  `NEAR-COMPLETE, NOT FULLY IMPLEMENTED`. Independent read-only verifier Jason
+  (`019f27a6-30a1-72a1-a69f-a473bc96093d`) returned `PARTIAL` and confirmed the
+  same split: app-runtime readiness is well evidenced, while provider-exit
+  closure remains incomplete. Safe local audit evidence is current, but the
+  provider-exit generator/tests/fixture and new evidence artifacts are still
+  untracked working-tree files until commit/staging is explicitly authorized;
+  Doc 37's strict app-runtime-complete row still needs latest-branch
+  deploy/source smoke; and full migration remains open on the same six
+  external/operator gates: export or accepted retention/loss, Resend status,
+  obsolete-secret cleanup, post-exit smoke, real non-owner Google proof, and
+  real recipient mailbox proof or accepted deferral.
+- Cloudflare migration broad DOM validation refresh as of 2026-07-03: the stale
+  broad DOM gap is now closed locally after focused residual repairs. A focused
+  mixed residual rerun passed (`24` suites / `89` tests). A fresh broad DOM run
+  then exposed the last local stale contracts: `estimate-sheet-sidebar-library-consumers`
+  still expected the old Supabase variable name for
+  `assertCurrentLibrarySourceForEstimateCommit(...)`, and six upload evidence
+  tests still read optional legacy provider artifacts at import time. Those
+  were repaired with test-only changes:
+  `tests/vitest/estimate-sheet-sidebar-library-consumers.test.tsx` now asserts
+  the current `dataStore` call, and
+  `tests/vitest/upload-component-image-private-bucket-readback.test.ts`,
+  `tests/vitest/upload-component-image-provider-scan.test.ts`,
+  `tests/vitest/upload-operations-runbook-local-proof.test.ts`,
+  `tests/vitest/upload-provider-migration-dry-run.test.ts`,
+  `tests/vitest/upload-provider-readback.test.ts`, and
+  `tests/vitest/upload-release-gates.test.ts` now use the existing
+  `optionalUploadProviderProof(...)` helper so absent historical provider
+  artifacts skip instead of failing suite initialization. Fresh local evidence
+  passed: exact broad-failure cluster (`14` suites / `21` tests: `8` passed,
+  `13` skipped), scoped ESLint, `git diff --check`, and full
+  `bun run test:dom -- --reporter=json --outputFile=/tmp/archestimator-testdom-20260703-after-optional-upload-evidence.json`
+  (`1350` / `1350` suites passed, `4010` / `4055` tests passed, `40` skipped,
+  `5` todo, `0` failed). This does not mutate providers, deploy, rotate
+  secrets, export data, prove a mailbox, or prove a non-owner persona; full
+  provider exit remains open on the existing external/operator gates.
+- Cloudflare migration auth/security static contract sync as of 2026-07-03: a
+  narrow `security-findings-auth-contracts` residual slice is repaired with
+  test updates only and without provider mutation, deployment, browser
+  automation, secret rotation, exports, mailbox proof, or persona proof. The
+  file now keeps historical Supabase migration hardening assertions where they
+  still document archived migration behavior, but active-source assertions now
+  target Better Auth and Cloudflare D1 seams: dev-auth bypass requires a
+  32-character secret and local hostname plus D1 profile lookup; profile/session
+  resolution is read-only and synthetic profiles default to member; closed-beta
+  allowlist admin uses actor-derived D1 helpers and audit inserts; estimate and
+  template write paths assert `assertCanEditEstimate(dataStore, ...)`,
+  `dataStore.call(...)`, `canEditEstimateInD1(...)`, and D1 SQL reads instead of
+  retired Supabase query-builder/RPC text. Fresh focused evidence passed:
+  auth/security contracts Vitest (`2` suites / `17` tests), scoped ESLint, and
+  `git diff --check`. The earlier mixed residual probe also exposed
+  `tests/vitest/project-publication-rotate-resend.test.ts` as a stale
+  Supabase admin-action harness; that adjacent file is now repaired by the
+  publication rotate/resend D1 harness slice below. The broad `bun run
+  test:dom` suite still has no fresh completed JSON after the interrupted
+  refresh attempt, and full provider exit remains open on external/operator
+  gates.
+- Cloudflare migration publication security-hardening contract sync as of
+  2026-07-03: a narrow `project-publication-security-hardening` residual slice
+  is repaired with test updates only and without provider mutation, deployment,
+  browser automation, secret rotation, exports, mailbox proof, or persona
+  proof. `tests/vitest/project-publication-security-hardening.test.ts` now
+  mocks the current publication D1 store boundary instead of stale Supabase
+  clients. It still proves keyed HMAC telemetry hashing and publication-scoped
+  recipient lookup behavior, and its static guard now asserts the current
+  `getRecipientTokenHash(publicationId, recipientId)` app-layer contract plus
+  D1 SQL `publication_id` constraints in `src/lib/publication/d1-store.ts`.
+  Fresh focused evidence passed: publication security-hardening Vitest (`3`
+  suites / `7` tests), scoped ESLint, and `git diff --check`. At this checkpoint
+  the adjacent `tests/vitest/project-publication-rotate-resend.test.ts` probe
+  failed `20/20` on a stale Supabase admin-action harness; the following
+  rotate/resend D1 harness slice now closes it. The broad `bun run test:dom`
+  suite still has no fresh completed JSON after the interrupted refresh
+  attempt, and full provider exit remains open on external/operator gates.
+- Cloudflare migration publication rotate/resend D1 admin-action harness repair
+  as of 2026-07-03: a narrow
+  `project-publication-rotate-resend` residual slice is repaired with test
+  updates only and without provider mutation, deployment, browser automation,
+  secret rotation, exports, mailbox proof, or persona proof.
+  `tests/vitest/project-publication-rotate-resend.test.ts` now mocks the
+  current `@/lib/publication/admin-d1-client` module and records
+  `callProcedure(...)` calls instead of intercepting the retired Supabase
+  `createClient` path. The file still proves in-place rotation through
+  `rotate_project_publication_credentials`, atomic publication replacement
+  through `replace_project_publication`, send-before-persist resend through
+  `persist_shared_link_recipient_resend`, add-recipient duplicate/dead-link
+  guards, and bounded invitation concurrency. Fresh focused evidence passed:
+  rotate/resend Vitest (`7` suites / `20` tests), scoped ESLint, and `git diff
+  --check`. A combined residual run across
+  `project-publication-security-hardening`, `security-findings-auth-contracts`,
+  and `project-publication-rotate-resend` passed (`12` suites / `44` tests).
+  The broad `bun run test:dom` suite still has no fresh completed JSON after
+  the interrupted refresh attempt, and full provider exit remains open on
+  external/operator gates.
+- Cloudflare migration project-estimates DOM contract sync as of 2026-07-03: a
+  narrow optimistic delete/duplicate/reset residual slice is repaired with test
+  updates only and without provider mutation, deployment, browser automation,
+  secret rotation, exports, mailbox proof, or persona proof.
+  `tests/vitest/project-estimates-delete-duplicate.test.tsx` still proves
+  optimistic duplicate placeholders/reconciliation, duplicate rollback,
+  immediate remaining-budget math, fresher server-reseeded names, sheet-code
+  auto-generation blocking during manual save, budget rollback, delete
+  idempotency, and no router refresh/toast fallback. It no longer asserts
+  transient inline Saving/Saved/error badges or pending disabled budget input
+  states that are remounted away by the current table/store reconciliation
+  model. Fresh focused evidence passed: project-estimates DOM Vitest (`2`
+  suites / `11` tests), scoped ESLint, and `git diff --check`. The broader
+  mixed residual probe still has unrepaired publication/security failures,
+  broad `bun run test:dom` still has no fresh completed JSON after the
+  interrupted refresh attempt, and full provider exit remains open on
+  external/operator gates.
+- Cloudflare migration upsert grant scanner contract sync as of 2026-07-03: a
+  narrow source-contract residual slice is repaired with test updates only and
+  without provider mutation, deployment, browser automation, secret rotation,
+  exports, mailbox proof, or persona proof.
+  `tests/vitest/upsert-update-grant-contract.test.ts` now reflects that the
+  old Supabase `.from(...).upsert(...)` sites for the fixed tables were removed
+  from active app code by the Cloudflare D1 migration. The scanner tripwire is
+  still guarded by an inline DO-UPDATE / DO-NOTHING fixture, and its
+  `ignoreDuplicates` lookahead no longer bleeds into adjacent upsert calls.
+  Fresh focused evidence passed: upsert grant Vitest (`2` suites / `6` tests),
+  scoped ESLint, and `git diff --check`. The broader mixed residual probe
+  still has unrepaired failures outside this slice, broad `bun run test:dom`
+  still has no fresh completed JSON after the interrupted refresh attempt, and
+  full provider exit remains open on external/operator gates.
+- Cloudflare migration live-route/project-creation contract sync as of
+  2026-07-03: a narrow static source-contract residual slice is repaired with
+  test updates only and without provider mutation, deployment, browser
+  automation, secret rotation, exports, mailbox proof, or persona proof.
+  `tests/vitest/live-estimate-node-route.test.ts` now asserts the current D1
+  `INNER JOIN estimates` / `estimate.project_id = ?` project-scoping contract
+  instead of Supabase `estimates!inner` query-builder syntax.
+  `tests/vitest/project-creation-ui.test.ts` now follows the current
+  `ProjectRow` card prop, D1 `toProjectRecord(project)` creation return,
+  no-arg runtime upload storage provider, and D1 project-image route helpers.
+  Fresh focused evidence passed: live-route/project-creation Vitest (`4`
+  suites / `22` tests), scoped ESLint, and `git diff --check`. The broader
+  mixed residual probe still has unrepaired failures outside this slice, broad
+  `bun run test:dom` still has no fresh completed JSON after the interrupted
+  refresh attempt, and full provider exit remains open on external/operator
+  gates.
+- Cloudflare migration workshop-dashboard perf contract sync as of
+  2026-07-03: a narrow residual slice is repaired with test updates only and
+  without provider mutation, deployment, browser automation, secret rotation,
+  exports, mailbox proof, or persona proof. A mixed residual probe still fails
+  outside this slice, but `tests/vitest/workshop-dashboard-perf-tracing.test.ts`
+  now targets the current `traceDatabaseFetch` / `databaseRoundTrips` tracing
+  API instead of the retired `traceSupabaseFetch` / `supabaseRoundTrips` seam,
+  and `tests/vitest/workshop-dashboard-query-batching-plan-red.test.ts` now
+  asserts the current database request wording and
+  `recentEstimatesPromise` / `favoriteEstimatesPromise` batching names. Fresh
+  focused evidence passed: workshop-dashboard perf Vitest (`4` suites / `6`
+  tests), scoped ESLint, and `git diff --check`. Broad `bun run test:dom`
+  still has no fresh completed JSON after the interrupted refresh attempt; full
+  provider exit remains open on external/operator gates.
+- Cloudflare migration upload residual contract sync as of 2026-07-03: a
+  focused upload cleanup/backfill/production-proof audit cluster is repaired
+  with local test/script updates only and without provider mutation,
+  deployment, browser automation, secret rotation, exports, mailbox proof, or
+  persona proof. `tests/vitest/upload-cleanup-route.test.ts` now follows the
+  current single-key R2 delete call. Upload proof and requirement audit tests
+  now read the migrated upload audit plan under
+  `.ai/03_plans/000-Follow Ups/2026-06-26-File-Upload-Audit-And-Improvement/`,
+  and `scripts/check-upload-requirement-coverage.ts` defaults to that path.
+  `tests/vitest/upload-component-image-backfill.test.ts` now tracks the current
+  publication-snapshot privacy posture: legacy public Supabase image URLs are
+  sanitized to `null`, retained as `missing` traceability rows, and no longer
+  counted as live legacy public references. Reproduction evidence before
+  repair: focused upload cluster failed `9` / `28` tests. Fresh focused
+  evidence passed: upload Vitest (`10` suites / `28` tests), scoped ESLint,
+  and `git diff --check`. Broad `bun run test:dom` still has no fresh
+  completed JSON after the interrupted refresh attempt; full provider exit
+  remains open on external/operator gates.
+- Cloudflare migration workshop-library D1/modal contract sync as of
+  2026-07-03: a focused local residual cluster is repaired with test updates
+  only and without provider mutation, deployment, browser automation, secret
+  rotation, exports, mailbox proof, or persona proof.
+  `tests/vitest/library-applied-filters.test.tsx` now uses the stable
+  `data-component-card-inspect` boundary for component-card visibility.
+  `tests/vitest/workshop-favorites-schema.test.ts` and
+  `tests/vitest/workshop-project-groups-repository.test.ts` now follow current
+  D1 SQL repository reads and cached app-path fallbacks. The large
+  `tests/vitest/workshop-library-consolidation-ui.test.tsx` contract now tracks
+  current local Next image patterns, path-only optimized image safety, the Add
+  Component modal without an embedded folder tree, underline tabs, the
+  side `Manage variants` drawer, variant-scoped upload/cost/unit/equivalency
+  controls, and current `createCostLibraryComponent` payload shape.
+  Reproduction evidence before repair: focused workshop-library cluster failed
+  `9` / `25` tests. Fresh focused evidence passed: workshop-library Vitest
+  (`8` suites / `25` tests), scoped ESLint, and `git diff --check`. Broad
+  `bun run test:dom` still has no fresh completed JSON after the interrupted
+  refresh attempt; full provider exit remains open on external/operator gates.
+- Cloudflare migration component-library/deletion contract sync as of
+  2026-07-03: a focused source-contract residual cluster is repaired with test
+  updates only and without provider mutation, deployment, browser automation,
+  secret rotation, exports, mailbox proof, or persona proof.
+  `tests/vitest/component-library-durable-telemetry.test.ts` now follows the
+  current `isWorkspaceMemberInD1` telemetry authorization helper.
+  `tests/vitest/component-library-versioning-schema.test.ts` now tracks the
+  current add-component modal tablist, Activity panel, Manage variants drawer,
+  `V1` default variant label, and default-selection control.
+  `tests/vitest/mass-deletion-action-contract.test.ts` now asserts D1 SQL
+  archived-row filtering, and `tests/vitest/mass-deletion-ui-contract.test.ts`
+  follows the current selectable project-id helper plus
+  `ProjectCardSelectControl` accessibility boundary. Reproduction evidence
+  before repair: focused component-library/deletion cluster failed `5` / `19`
+  tests. Fresh focused evidence passed: component-library/deletion Vitest (`8`
+  suites / `19` tests), scoped ESLint, and `git diff --check`. Broad
+  `bun run test:dom` still has no fresh completed JSON after the interrupted
+  refresh attempt; full provider exit remains open on external/operator gates.
+- Cloudflare migration static CSS/library loading/perf script contract sync as
+  of 2026-07-03: another focused local residual cluster is repaired without
+  provider mutation, deployment, browser automation, secret rotation, exports,
+  mailbox proof, or persona proof. `tests/vitest/deferred-liquid-glass.test.ts`
+  now matches the current multiline `@supports` block while preserving deferred
+  glass selector guarantees. `src/app/workshop/library/loading.tsx` now exposes
+  the loading `<output>` with explicit `role="status"`.
+  `scripts/build-performance-query-inventory.ts` now uses database-neutral
+  wording and its test targets the current D1-compatible publication action
+  inventory instead of old Supabase bucket counts.
+  `scripts/measure-workshop-dashboard-query-count.ts` now prints
+  `medianDatabaseRoundTrips`, and the test fixture uses database-named trace
+  events. Reproduction evidence before repair: focused static/perf cluster
+  failed `4` / `15` tests. Fresh focused evidence passed: static/perf Vitest
+  (`8` suites / `15` tests), scoped ESLint, `bun run type-check`, and
+  `git diff --check`. Broad `bun run test:dom` still has no fresh completed
+  JSON after the interrupted refresh attempt; full provider exit remains open
+  on external/operator gates.
+- Cloudflare migration estimate-unit/workshop-header contract sync as of
+  2026-07-03: two more stale local DOM/source-contract failures are repaired
+  without app runtime, provider, deployment, browser, secret, export, mailbox,
+  or persona changes. A fresh broad DOM refresh attempt
+  (`bun run test:dom -- --reporter=json --outputFile=/tmp/archestimator-testdom-20260703-after-static-slices.json`)
+  was interrupted with exit `130` after an extended no-summary wait and wrote no
+  usable JSON, so no fresh broad count is claimed. The focused residual probe
+  initially failed `2` / `15` tests: the estimate row table test expected the
+  material per-unit label as one `/ box` text node even though the current UI
+  splits slash/value into stable `data-estimate-material-unit-*` spans, and the
+  workshop notification source contract expected `<WorkshopSettingsModal>`
+  directly in `headerActions` even though the current shell uses
+  `<WorkshopSettingsEntry>` there. Fresh focused evidence passed: residual
+  probe Vitest (`6` suites / `15` tests), scoped ESLint, and
+  `git diff --check`. Full provider exit remains open on external/operator
+  gates.
+- Cloudflare migration landing-v3 homepage contract harness repair as of
+  2026-07-03: another stale local DOM contract slice is repaired without app
+  runtime, provider, deployment, browser, secret, export, mailbox, or persona
+  changes. `tests/vitest/landing-amigo-redesign.test.tsx` now renders the
+  current landing page under a local TanStack `QueryClientProvider` and asserts
+  the active hero H1 (`Where estimates become client-approved proposals.`)
+  instead of retired launch copy. Reproduction evidence before repair: the
+  focused landing-v3 file failed first with `No QueryClient set`, then with the
+  stale H1 assertion after the provider was added. Fresh focused evidence
+  passed: landing-v3 Vitest (`2` suites / `5` tests), scoped ESLint, and
+  `git diff --check`. Broad `bun run test:dom` was not rerun after this slice;
+  full provider exit remains open on external/operator gates.
+- Cloudflare migration public/sidebar static contract sync as of 2026-07-03:
+  another stale local static slice is repaired without app runtime, provider,
+  deployment, browser, secret, export, mailbox, or persona changes.
+  `tests/vitest/public-static-route-contract.test.ts` now matches the current
+  cacheable `/login` shell contract, where query-specific state resolves inside
+  client Suspense islands rather than by forcing dynamic server rendering.
+  `tests/vitest/main-sidebar-proposals-item.test.tsx` now asserts the active
+  Proposals sidebar icon (`Presentation`) while preserving route/order shortcut
+  coverage. Reproduction evidence before repair: focused public/sidebar cluster
+  failed `2` tests. Fresh focused evidence passed: public/sidebar Vitest (`4`
+  suites / `5` tests), scoped ESLint, and `git diff --check`. Broad
+  `bun run test:dom` was not rerun after this slice; full provider exit remains
+  open on external/operator gates.
+- Cloudflare migration agent-tooling hook contract repair as of 2026-07-03:
+  a stale local static tooling failure is repaired without app runtime,
+  provider, deployment, browser, secret, export, mailbox, or persona changes.
+  `.claude/settings.json` now preserves its plugin/env settings while restoring
+  the documented shared `"hooks": {}` posture; Codex hooks were already empty.
+  Reproduction evidence before repair: focused agent/tooling contract cluster
+  failed `3` tests because `.claude/settings.json` had a shared `PostToolBatch`
+  hook. Fresh focused evidence passed: agent/tooling Vitest (`4` suites / `13`
+  tests), `bun run validate:agents`, and `git diff --check`. Broad
+  `bun run test:dom` was not rerun after this slice; full provider exit remains
+  open on external/operator gates.
+- Cloudflare migration settings/support/pricing static contract sync as of
+  2026-07-03: another stale broad-DOM failure slice is repaired without runtime,
+  provider, deployment, browser, secret, export, mailbox, or persona changes.
+  `tests/vitest/auth-settings-ui-contract.test.ts` now treats
+  `/workshop/settings/users` as the active platform-management route while
+  keeping the legacy `/workshop/settings/beta-users` redirect covered in
+  `next.config.ts`. `tests/vitest/support-contact-readiness.test.ts` now follows
+  the current helper/store boundaries for support mailto copy and D1 persisted
+  beta feedback, and `tests/vitest/closed-beta-pricing-copy.test.ts` includes
+  `ClosedBetaGate` in the active `/signup` copy contract. Reproduction evidence
+  before repair: focused settings/support/pricing static cluster failed `4`
+  tests. Fresh focused evidence passed: combined settings/support/pricing Vitest
+  (`7` suites / `13` tests), scoped ESLint, and `git diff --check`. Broad
+  `bun run test:dom` was not rerun after this slice; full provider exit remains
+  open on external/operator gates.
+- Cloudflare migration optional shared-link proof-script import cleanup as of
+  2026-07-03: two broad-DOM runtime failures are repaired without restoring
+  Supabase as an active dependency. `scripts/prove-shared-link-hosted-password-route.ts`
+  and `scripts/seed-shared-link-smoke.ts` no longer statically import
+  `@supabase/supabase-js`; they load it through guarded `@vite-ignore` dynamic
+  imports only inside optional legacy provider-backed execution paths after the
+  existing env/project guards. The `.ts` shebangs were removed because the
+  scripts are invoked via `bun scripts/...` and Vite could not import them as
+  modules after injecting code before `#!`. Fresh focused evidence passed:
+  shared-link proof/seed script Vitest (`4` suites / `9` tests), scoped ESLint,
+  and `git diff --check`. This keeps pure safety/formatting helpers importable
+  in tests; it does not run provider proof, mutate providers, or close any
+  provider-exit gate.
+- Cloudflare migration Better Auth/env/CSP contract sync as of 2026-07-03:
+  another stale broad-DOM failure slice is repaired without runtime/provider
+  changes. `tests/vitest/landing-auth-state.test.ts` now asserts
+  `better-auth.session_token` / `__Secure-better-auth.session_token`, ignores
+  Better Auth OAuth state cookies without a session, and keeps the landing
+  helper display-only by guarding against Better Auth Cloudflare runtime imports.
+  `tests/vitest/landing-security-headers.test.ts` and
+  `tests/vitest/project-location-map-csp.test.ts` now assert same-origin
+  `connect-src 'self'` coverage and absence of `supabase.co` allowances instead
+  of legacy Supabase Realtime websocket CSP. `tests/vitest/beta-access-required-page.test.ts`
+  now targets canonical `src/app/access-required/page.tsx` and verifies
+  non-permanent `/beta` redirects. `tests/vitest/closed-beta-env-manifest.test.ts`
+  now treats Better Auth, Cloudflare Email, Cloudflare R2, upload jobs, and the
+  current Cloudflare migration docs as active authority, with negative assertions
+  for active Supabase/Resend env names in `.env.example`. Reproduction evidence
+  before repair: focused auth/env/static group failed `7` tests (`6` / `13`
+  passed; `0` / `8` suites passed), and project-location CSP failed on the same
+  Supabase websocket expectation. Fresh focused evidence passed: combined
+  Better Auth/env/CSP Vitest (`10` suites / `16` tests), scoped ESLint, and
+  `git diff --check`. Broad `bun run test:dom` was not rerun after this slice.
+- Cloudflare migration fresh DOM baseline/redaction/column-width follow-up as
+  of 2026-07-03: after focused Cloudflare migration test-maintenance repairs,
+  `bun run test:dom -- --reporter=json --outputFile=/tmp/archestimator-testdom-20260703-after-focused-repairs.json`
+  exited `1`; the Vitest JSON reports `1238` / `1342` suites passed and
+  `3895` / `4030` tests passed, with `104` failed suites, `103` failed tests,
+  `27` skipped tests, `5` todo tests, and `612` files represented. This
+  supersedes the older truncated broad DOM counts, but it is still a failing
+  baseline. The broad run happened before the latest redaction and column-width
+  repairs, so no post-fix broad DOM count is claimed. A representative D1/action
+  slice passed `12` files / `145` tests. The local redaction leak is repaired:
+  `src/lib/observability/redact.ts` and
+  `src/lib/observability/client-error-report.ts` now redact assignment names
+  that include secret-like prefixes/suffixes such as
+  `SUPABASE_SERVICE_ROLE_KEY=...`, and `tests/vitest/redact.test.ts` covers the
+  regression. The estimate column-width store/a11y tests now derive
+  min/default assertions from the current estimate column model rather than
+  retired constants. Fresh focused evidence passed: combined redaction +
+  column-width Vitest (`10` suites / `23` tests), scoped ESLint for the touched
+  source/tests, and `git diff --check`. Remaining broad DOM residual classes
+  are static stale contracts, deleted/moved beta/upload evidence docs,
+  publication/action D1-binding harnesses, upload provider-proof artifact gaps,
+  and remaining UI/test assertion drift outside the repaired slices. Full
+  migration/provider-exit remains open on the external/operator gates.
+- Cloudflare migration fresh DOM baseline and image URL hardening as of
+  2026-07-03: `bun run test:dom` was rerun and exited `1`; the visible final
+  summary reported `18` failed suites, `160` failed tests, and `3` unhandled
+  errors. Output was truncated, so no fresh pass total is claimed. This
+  supersedes the older `319` / inferred `~305` residual-count notes as the
+  freshest broad DOM baseline. Visible categories at that baseline included
+  provider-proof tests still importing missing `@supabase/supabase-js`, missing
+  upload proof artifact fixtures, estimate-sheet UI/performance drift,
+  project/page UI drift, D1-binding publication/action harness gaps, and stale
+  image URL assertions. The stale image URL slice is now repaired:
+  `src/lib/publication/image-url.ts` requires brokered publication image URLs to
+  contain exactly one `path` query parameter and rejects decoded
+  `project-images` paths at the first segment or deeper in the path; the related
+  tests now allow only bundled `/component-thumbnails/...` and safe brokered
+  component-library routes while stripping direct legacy Supabase storage URLs.
+  Fresh local evidence passed: edited image URL/publication UI group (`4` files
+  / `151` tests), expanded affected publication/security sweep (`6` files /
+  `172` tests), scoped ESLint for the touched normalizer/tests, and `git diff
+  --check`. Provider-exit gates remain unchanged.
+- Cloudflare migration optional provider-proof harness repair as of 2026-07-03:
+  the stale local failure class for optional legacy provider proofs is repaired
+  without running external provider proofs. `tests/vitest/notification-rls-proof.test.ts`
+  no longer statically imports absent `@supabase/supabase-js`; it dynamically
+  loads the client only after `ARCHESTIMATOR_NOTIFICATION_RLS_PROOF=1`, required
+  env vars, and the local/branch-safe target guard pass. The nine upload
+  linked-provider evidence tests now share
+  `tests/vitest/upload-provider-proof-fixture.ts` and skip when optional legacy
+  evidence artifacts under `.ai/03_plans/2026-06-26-File-Upload-Audit-And-Improvement/evidence/`
+  are absent, while still parsing and validating any present artifact normally.
+  Fresh local evidence passed: combined provider-proof/script-contract Vitest
+  (`19` files: `9` passed / `10` skipped; `43` tests: `19` passed / `24`
+  skipped), scoped ESLint for the touched harnesses, and `git diff --check`.
+  Broad `bun run test:dom` was not rerun after this repair; provider-exit gates
+  remain unchanged.
+- Cloudflare migration AI auth-mode test harness repair as of 2026-07-03:
+  a full DOM refresh attempt using `bunx vitest run --maxWorkers=1 --reporter=json --outputFile=/tmp/archestimator-testdom-20260703-after-provider-proof.json`
+  was stopped with exit `130` after an extended no-result wait, so no broad
+  pass/fail count is claimed from that run. The focused stale AI auth-mode class
+  is repaired: `tests/vitest/ai-ask-route.test.ts` now uses
+  `providerBackedUserContext`, no longer refers to real Supabase users for the
+  provider-backed workspace guard, and expects the current
+  `AI requires a signed-in account session...` message. Fresh evidence passed:
+  exact AI Ask route file (`1` file / `23` tests), nearby AI route/auth group
+  (`4` files / `69` tests), scoped ESLint for the touched file, stale-Supabase
+  AI wording scan, and `git diff --check`. Provider-exit gates remain unchanged.
+- Cloudflare migration publication activity mock cleanup as of 2026-07-03:
+  `tests/vitest/project-publication-activity.test.tsx` no longer carries the
+  obsolete `@supabase/supabase-js` mock, Supabase env setup, or Supabase-named
+  publication activity/action helper functions. The file now uses
+  publication-service/admin-D1 helper names while retaining the explicit
+  regression test that legacy Supabase Realtime is not recreated. Fresh evidence
+  passed: exact publication activity file (`1` file / `34` tests), publication
+  regression group (`6` files / `105` tests), scoped ESLint for the publication
+  group, and `git diff --check`. Provider-exit gates remain unchanged.
+- Cloudflare migration estimate empty-tree mock cleanup as of 2026-07-03:
+  `tests/vitest/estimate-sheet-create-empty-tree.test.ts` no longer uses the
+  stale `createSupabaseMock` helper or local `supabase` fixture name. The file
+  now uses `createEstimateActionsDataStoreMock()` / `dataStore`, matching the
+  current `createEstimateActionsD1Client()` seam already used by the repaired
+  estimate action tests. Fresh evidence passed: exact estimate empty-tree file
+  (`1` file / `3` tests), adjacent estimate D1 action-client group (`4` files /
+  `83` tests), scoped ESLint for the touched file, stale-helper `rg` scan with
+  no matches, and `git diff --check`. Broad `bun run test:dom` was not rerun;
+  provider-exit gates remain unchanged.
+- Cloudflare migration test-maintenance continuation as of 2026-07-03:
+  `tests/vitest/project-publication-resolved-ids.test.ts` is repaired for the
+  current Better Auth + publication D1 admin harness, and
+  `tests/vitest/project-publication-activity.test.tsx` is repaired for the
+  current publication D1 store/admin-client harness. The resolved-ids test's
+  `@/lib/auth/session` mock now exports `requireAuth`; both publication harnesses
+  mock the current `@/lib/publication/admin-d1-client` seam instead of retired
+  Supabase client paths; the activity route harness exposes the current
+  publication store methods; and digest tests reach the current
+  `reserve_security_rate_limit_slot` procedure path. Fresh evidence passed:
+  resolved-ids exact file (`1` file / `4` tests), activity exact file (`1` file /
+  `34` tests), publication action regression group (`4` files / `72` tests), a
+  publication-focused missing-`requireAuth` sweep with no remaining signature,
+  scoped ESLint for the touched publication tests, and `bun run type-check`.
+  Broad `bun run test:dom` was not rerun, so remaining test debt is still the
+  documented D1 binding mocks outside this repaired publication slice, UI DOM
+  drift, and other assertion drift; provider-exit gates are unchanged.
 - Latest hosted upload + collaboration UI proof as of 2026-07-02 09:54 UTC:
   `archestimator-proof` Worker version
   `2f246bbf-9ea5-4c15-bf31-97344f9b6f09` is deployed at 100% on
