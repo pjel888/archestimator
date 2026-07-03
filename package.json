@@ -20,6 +20,8 @@
     "cf:check-wrangler-auth": "bun run scripts/check-cloudflare-wrangler-auth.ts",
     "cf:sync-worker-secrets": "bun run scripts/sync-cloudflare-worker-secrets.ts",
     "cf:check-provider-resources": "bun run scripts/check-cloudflare-provider-resources.ts",
+    "cf:provider-exit-pack": "bun run scripts/generate-cloudflare-provider-exit-pack.ts",
+    "cf:provider-exit-operator-template": "WRITE_OPERATOR_RECORD_TEMPLATE=1 bun run scripts/generate-cloudflare-provider-exit-pack.ts",
     "cf:provider-proof": "bun run scripts/verify-cloudflare-provider-proof.ts",
     "cf:jobs-proof": "bun run scripts/verify-cloudflare-jobs-proof.ts",
     "cf:inventory": "bun run scripts/generate-cloudflare-migration-inventory.ts",
