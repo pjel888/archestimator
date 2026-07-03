@@ -12,6 +12,14 @@ Readiness: this README is the original **pre-cutover planning baseline**. Curren
 
 Planning-quality loop status: **PASS** as of the completion audit in `30_COMPLETION_AUDIT.md`. Later execution evidence now proves Cloudflare cutover gates for closed-beta runtime; provider deletion/removal remains intentionally separate.
 
+Current implementation evidence as of 2026-07-03 14:46 UTC is indexed in
+`29_CURRENT_EVIDENCE_INVENTORY.md` and the active ledgers `35`-`37`. The short
+state is: closed-beta app runtime is near-complete, but strict app-runtime
+completion remains open on latest deploy/source smoke; full provider exit is
+`OPEN / NOT READY` until the sanitized operator record, external/provider gates,
+real non-owner Google proof, and recipient mailbox proof or accepted deferral are
+closed.
+
 This package evaluates whether Archestimator should migrate from the current Next.js/Vercel/Supabase/Resend shape toward Cloudflare Workers, D1, KV, R2, Queues, Hyperdrive, Email Service, WAF, and DDoS protection.
 
 The short answer: because Archestimator has not launched yet, the risky full-Cloudflare path is worth preparing now. The target should be a Cloudflare-native redesign proof, not a blind production cutover. D1 can potentially replace Supabase Postgres only if the domain model is redesigned for SQLite/D1, authorization moves out of Postgres RLS into explicit app-layer checks, RPC/realtime behavior is replaced, and restore/performance proof passes.

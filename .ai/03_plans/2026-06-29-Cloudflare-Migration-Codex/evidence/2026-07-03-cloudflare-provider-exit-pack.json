@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-03T10:41:40.108Z",
+  "generatedAt": "2026-07-03T14:46:59.752Z",
   "mode": "cloudflare-provider-exit-pack",
   "sources": {
     "runbook": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/35_PROVIDER_EXIT_AND_FINAL_PROOF_RUNBOOK.md",
@@ -9,23 +9,33 @@
   "artifacts": {
     "releaseGates": {
       "present": true,
-      "generatedAt": "2026-07-03T10:35:33.942Z"
+      "generatedAt": "2026-07-03T10:35:33.942Z",
+      "parseError": null
     },
     "providerResources": {
       "present": true,
-      "generatedAt": "2026-07-03T10:33:50.211Z"
+      "generatedAt": "2026-07-03T10:35:30.209Z",
+      "parseError": null
     },
     "emailReadiness": {
       "present": true,
-      "generatedAt": "2026-07-03T10:41:35.143Z"
+      "generatedAt": "2026-07-03T10:41:35.143Z",
+      "parseError": null
     },
     "hostedAuthMatrix": {
       "present": true,
-      "generatedAt": "2026-07-03T10:32:07.954Z"
+      "generatedAt": "2026-07-03T10:32:07.954Z",
+      "parseError": null
+    },
+    "latestDeploySourceSmoke": {
+      "present": true,
+      "generatedAt": "2026-07-03T14:46:55.585Z",
+      "parseError": null
     },
     "operatorRecord": {
       "present": false,
-      "generatedAt": null
+      "generatedAt": null,
+      "parseError": null
     }
   },
   "legacyProviderScan": {
@@ -33,7 +43,12 @@
       "src",
       "worker.ts",
       "package.json",
-      "wrangler.jsonc"
+      "bun.lock",
+      "wrangler.jsonc",
+      "cloudflare-env.d.ts",
+      "next.config.ts",
+      "open-next.config.ts",
+      "src/middleware.ts"
     ],
     "blockerCount": 0,
     "informationalCount": 117,
@@ -863,6 +878,7 @@
   "operatorRecordDiagnostics": {
     "path": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-provider-exit-operator-record.json",
     "present": false,
+    "parseError": null,
     "templatePath": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-provider-exit-operator-record.template.json",
     "diagnostics": [
       {
@@ -939,7 +955,7 @@
       "key": "provider-resources-readable",
       "label": "Cloudflare provider resources readable",
       "ready": true,
-      "evidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-provider-resource-readback.json",
+      "evidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-provider-resource-readback.json",
       "blocker": null
     },
     {
@@ -962,6 +978,13 @@
       "ready": true,
       "evidence": "source scan",
       "blocker": null
+    },
+    {
+      "key": "latest-deploy-source-smoke-ready",
+      "label": "Latest deploy source smoke ready",
+      "ready": false,
+      "evidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.json",
+      "blocker": "Latest deployed-source smoke proof is missing, malformed, stale, or blocked."
     },
     {
       "key": "exports-or-retention-decision-recorded",
@@ -993,10 +1016,10 @@
     },
     {
       "key": "non-owner-google-proof-recorded",
-      "label": "Real non-owner Google proof recorded",
+      "label": "Real non-owner Google proof or accepted deferral recorded",
       "ready": false,
       "evidence": "sanitized provider-exit operator record required",
-      "blocker": "No real non-owner Google account journey evidence is recorded."
+      "blocker": "No real non-owner Google account journey evidence or accepted deferral is recorded."
     },
     {
       "key": "recipient-mailbox-proof-or-deferral-recorded",
@@ -1007,15 +1030,16 @@
     }
   ],
   "readiness": {
-    "appRuntimeExitPrerequisitesReady": true,
+    "appRuntimeExitPrerequisitesReady": false,
     "providerExitReady": false
   },
   "blockers": [
+    "Latest deploy source smoke ready: Latest deployed-source smoke proof is missing, malformed, stale, or blocked.",
     "Provider exports or accepted-retention/accepted-loss decision recorded: No repository evidence proves final exports are stored outside the repo or that accepted-retention/accepted-loss is recorded.",
     "Resend account/API-key/domain status recorded: Cloudflare Email is ready, but Resend account/API-key/sending-domain status is not recorded.",
     "Obsolete provider secret removal/rotation recorded: No evidence shows obsolete provider secrets were removed or rotated after exit decisions.",
     "Post-exit Cloudflare smoke recorded: No post-exit smoke exists after provider export/retention/secret decisions.",
-    "Real non-owner Google proof recorded: No real non-owner Google account journey evidence is recorded.",
+    "Real non-owner Google proof or accepted deferral recorded: No real non-owner Google account journey evidence or accepted deferral is recorded.",
     "Real recipient mailbox proof or accepted deferral recorded: No real recipient mailbox receipt proof or accepted deferral is recorded."
   ],
   "note": "Non-destructive provider-exit evidence pack. This script reads current source and sanitized evidence artifacts only. It does not read .env files, print secrets, create exports, deploy, rotate secrets, cancel providers, delete data, change DNS, or prove real mailbox/persona access."

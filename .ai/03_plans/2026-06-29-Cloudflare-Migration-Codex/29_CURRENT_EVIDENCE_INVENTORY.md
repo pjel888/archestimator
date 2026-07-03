@@ -16,6 +16,30 @@ Initially collected on 2026-06-29 from the local repository only. The 2026-06-30
 
 Current 2026-07-02 addendum: this inventory is historical planning evidence and is superseded for cutover readiness by the active ledgers `33_POST_CUTOVER_FULL_APP_QA_LEDGER.md` and `34_FULL_CLOUDFLARE_APP_VERIFICATION_LEDGER.md`. Hosted evidence now exists for Cloudflare Worker/OpenNext serving `archestimator.com`, Better Auth + D1 auth, D1 app-data workflows, R2 upload runtime/lifecycle/UI, Durable Object collaboration transport plus two-client hosted collaboration UI, Cloudflare Email proof, DNS delegation, Google OAuth client/Audience provider readback including localhost developer callback support, provider resource readback, and release gates. Local browser evidence now also shows the default Playwright suite is Cloudflare-compatible after quarantining legacy Supabase-only E2E specs behind `ARCHESTIMATOR_E2E_ENABLE_LEGACY_SUPABASE=1`; the default suite no longer fails on the removed Supabase SDK import. Local developer Google OAuth is now proven end-to-end on `http://localhost:3000`: Chrome completed Google sign-in, returned without `state_mismatch`, reached the local terms gate, accepted clickwrap, rendered `/workshop`, and local D1 readback found Better Auth user/account/session rows plus a terms acceptance. Use `localhost` rather than `127.0.0.1` unless host-dynamic Better Auth configuration is added. Provider cancellation/deletion remains intentionally unproven and belongs to `35_PROVIDER_EXIT_AND_FINAL_PROOF_RUNBOOK.md`.
 
+Current 2026-07-03 implementation addendum: this inventory remains the
+historical proof-surface map, but the active implementation-completion evidence
+now lives in the follow-up ledger and the generated proof artifacts below. These
+artifacts are the current source for the active goal question "is the plan pack
+implemented?":
+
+| Evidence | Current result | Boundary |
+| --- | --- | --- |
+| `evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.*` | Generated `2026-07-03T14:46:55.585Z`; `latestDeploySourceSmokeReady=false`. Deploy evidence exists and includes passing hosted route/release-gate smoke, but it does not record the deployed git source commit and predates current `HEAD`. The runtime source status contract covers `src`, `worker.ts`, `package.json`, `bun.lock`, `wrangler.jsonc`, `cloudflare-env.d.ts`, `next.config.ts`, `open-next.config.ts`, and `src/middleware.ts`; proof-tooling-only `package.json` script additions are no longer counted as deploy-relevant runtime dirtiness, while `bun.lock`, dependency, build, runtime script, or other package metadata changes still block. The artifact schema records `parseError` so malformed JSON cannot masquerade as a pass, and the CLI supports `STRICT_READINESS_EXIT=1` / `FAIL_ON_BLOCKERS=1` so blocked readiness can produce a nonzero verifier exit after artifacts are written. | Local/source and sanitized hosted-evidence aggregation only; no deploy or browser proof was performed in this refresh. |
+| `evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.template.json` | Sanitized starter for the future current-source deploy lane. | Not proof; placeholders must be replaced by real post-deploy production-version, hosted-route, and release-gate evidence. |
+| `evidence/2026-07-03-cloudflare-provider-exit-pack.*` | Generated `2026-07-03T14:46:59.752Z`; `activeLegacyProviderRuntimeBlockers=0`, `appRuntimeExitPrerequisitesReady=false`, `providerExitReady=false`, seven blockers. The active runtime scan now covers `src`, `worker.ts`, `package.json`, `bun.lock`, `wrangler.jsonc`, `cloudflare-env.d.ts`, `next.config.ts`, `open-next.config.ts`, and `src/middleware.ts` where present. The provider-resource gate reads the current `2026-07-01-cloudflare-provider-resource-readback.json`; the non-owner Google gate accepts either real proof or an accepted deferral. The artifact summary and operator diagnostics preserve malformed-JSON blockers via `parseError`, and the CLI supports `STRICT_READINESS_EXIT=1` / `FAIL_ON_BLOCKERS=1` so blocked provider-exit readiness can produce a nonzero verifier exit after artifacts are written. | Non-destructive evidence only; no export, provider cancellation, secret rotation, post-exit smoke, persona, or mailbox proof. |
+| `evidence/2026-07-03-cloudflare-provider-exit-operator-record.template.json` | Sanitized operator-record template exists and requires evidence-source pointers for external/provider gates. | Not proof; the real operator record is intentionally absent until external/provider work is done or accepted as deferred. |
+| `evidence/2026-07-03-cloudflare-migration-implementation-completion-audit.*` | Generated `2026-07-03T14:46:59Z`; verdict `NEAR-COMPLETE, NOT FULLY IMPLEMENTED`; goal should not be marked complete. | Completion audit is local/static plus automated evidence; it does not replace deploy, browser, provider, persona, or mailbox proof. |
+| `evidence/2026-07-03-cloudflare-migration-blocked-audit.*` | Generated `2026-07-03T15:31:00Z`; strict blocked audit records that the same external deploy/source, provider/operator, persona, and mailbox blockers have recurred after safe local proof-tooling and review work was exhausted. | Blocked-audit evidence only; it does not replace the missing external/provider proof and does not make the migration complete. |
+| `evidence/2026-07-03-glm52-final-ultraqa-review.*` | Generated `2026-07-03T14:46:59Z`; verdict `PARTIAL`; Doc 37 scenario matrix has `23` rows with explicit pass/open classifications, including malformed proof-artifact parse-error coverage, strict readiness-exit CLI coverage for QA-SCRIPT-001, provider-exit scan-surface/filesystem scanner coverage, `bun.lock` scan coverage, accepted-deferral coverage, deployed-commit mismatch/deployment-time coverage, fresh local QA-R2/QA-SHARE residual refresh proof, and the 14:46 proof-tooling package/lockfile precision refresh. | Same-agent/local refresh plus prior verifier evidence; external/operator gates remain open. |
+| `evidence/2026-07-03-codex-independent-proof-tooling-code-review.*` | Generated `2026-07-03T15:10:50Z`; independent native `code-reviewer` Hilbert found no scoped correctness issues and no safe local fixes in the proof-tooling/plan-pack diff. Focused Vitest passed `2` files / `32` tests, `bun run type-check` passed, scoped `git diff --check` passed, and static secret/provider-mutation pattern review found no blockers. | Read-only local review; it does not replace current-source deploy proof, provider/operator evidence, browser/persona proof, mailbox proof, or commit/staging durability. |
+
+As of this addendum, Cloudflare closed-beta app runtime is near-complete, but
+strict app-runtime completion is still open on latest deploy/source smoke. Full
+migration/provider exit remains open on final exports or accepted
+retention/loss, Resend status, obsolete provider secret cleanup, post-exit
+Cloudflare smoke, real non-owner Google proof, and real recipient mailbox proof
+or accepted deferral.
+
 What this evidence proves:
 
 - The migration has broad provider coupling and cannot be safely planned as a narrow hosting swap.
@@ -26,10 +50,12 @@ What this evidence proves:
 What this evidence does not prove:
 
 - Cloudflare will be cheaper for real Archestimator usage.
-- Next.js 16 will run correctly on Workers/OpenNext for this app.
-- D1, Better Auth, Durable Objects, Cloudflare Images, or Email Service meet production parity.
-- The hosted Worker, Worker secrets, custom domain, production Cron execution, Web Analytics receipt, or Cloudflare Images subscription are ready.
-- Production cutover is safe.
+- Current-source deploy/source smoke for the latest dirty worktree state.
+- Full provider exit, post-exit smoke, provider export/retention posture, or
+  obsolete secret cleanup.
+- Real non-owner Google persona behavior.
+- Real recipient mailbox receipt or owner-accepted deferral.
+- Production cutover for any future source changes after the current proof set.
 
 ## Generated Inventory Refresh
 

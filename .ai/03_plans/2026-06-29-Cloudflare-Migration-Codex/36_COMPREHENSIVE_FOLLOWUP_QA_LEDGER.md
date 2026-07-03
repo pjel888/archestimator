@@ -7,9 +7,19 @@ Goal: prove Archestimator can run Cloudflare-only, with Google and magic-link au
 
 ## Executive State
 
-Current readiness classification: Cloudflare-only app path closed-beta ready, not final provider-exit complete.
+Current readiness classification: Cloudflare-only source, local proof tooling, and prior hosted app evidence are closed-beta ready, but strict app-runtime exit remains open until the latest deployed-source smoke is green; final provider exit is not complete.
 
-App-side migration progress is about 99.7/100. The owner production Google OAuth path and the local developer Gmail OAuth callback/session path are now freshly proven. The remaining auth-related proof gap is the P1 real non-owner closed-beta Google persona.
+App-side migration progress remains high, with strict app-runtime exit now waiting on the latest deploy/source smoke rather than a known source-level P0. The owner production Google OAuth path and the local developer Gmail OAuth callback/session path are freshly proven. The remaining auth-related proof gap is the P1 real non-owner closed-beta Google persona.
+
+2026-07-03 blocked-audit addendum:
+`evidence/2026-07-03-cloudflare-migration-blocked-audit.*` records the strict
+blocked audit for the active Codex goal. The remaining blockers are unchanged:
+latest deploy/source smoke is not ready with two blockers, provider exit is not
+ready with seven blockers, active legacy-provider runtime blocker count is
+zero, and the independent proof-tooling review found no safe local fixes. The
+unblock actions require external deploy/source proof, sanitized
+operator/provider evidence, real non-owner Google proof or accepted deferral,
+and real recipient mailbox proof or accepted deferral.
 
 Cloudflare for Platforms / Workers for Platforms is not needed for the current estimate-sheet user model. Use Better Auth, D1 users/sessions/memberships, Workers, D1, R2, Queues, Durable Objects, and Cloudflare Email. Reconsider Cloudflare for Platforms only if the product later needs tenant-owned custom domains, tenant-deployed workers, or hard runtime isolation per customer.
 
@@ -19,7 +29,7 @@ Public-route strict p95 is a visible watch item, not a release blocker by itself
 
 Current assessment artifact: `evidence/2026-07-02-cloudflare-wrap-up-assessment.*`.
 
-No known P0 app-runtime blocker remains. App-side Cloudflare closed-beta runtime readiness is about 99.7/100; overall migration including provider-exit operations is about 97/100. Fresh release gates generated at `2026-07-02T14:02:36.486Z` report `productionCutoverReady=true` and blockers empty, while the workbook generated at `2026-07-02T14:02:25.297Z` keeps strict hosted p95 red as a visible watch item. The durable goal should remain active until provider-exit smoke, non-owner Google, and real recipient-mailbox evidence are closed or explicitly deferred.
+At this 2026-07-02 checkpoint, no known source-level P0 app-runtime blocker remained. Subsequent 2026-07-03 provider-exit proof tooling added latest deploy/source smoke as an explicit app-runtime exit prerequisite. Fresh release gates generated at `2026-07-02T14:02:36.486Z` report `productionCutoverReady=true` and blockers empty, while the workbook generated at `2026-07-02T14:02:25.297Z` keeps strict hosted p95 red as a visible watch item. The durable goal should remain active until latest deploy/source smoke, provider-exit smoke, non-owner Google, and real recipient-mailbox evidence are closed or explicitly deferred.
 
 ## Execution Contract
 
@@ -57,7 +67,7 @@ No known P0 app-runtime blocker remains. App-side Cloudflare closed-beta runtime
 | G-09 Collaboration | Invitation, acceptance, and two-client Durable Object cursor/session behavior. | Previously green synthetic hosted proof. |
 | G-10 Security denial | Fail-closed sensitive routes, cross-workspace denial, token/state sanitization. | Previously green; security lane to refresh adversarial view. |
 | G-11 Performance/release | Hosted route contracts, hosted performance, workbook, release gates. | PASS for release gate: latest `cf:release-gates` at `2026-07-03T10:35:33.942Z` has `productionCutoverReady=true` and blockers empty. Strict public p95 remains a visible watch item: latest hosted performance passed hard gates, but `/terms` had p95 TTFB `564.56ms` against the `300ms` strict budget. |
-| G-12 Provider exit | Exports/backups or accepted-retention/accepted-loss decision, downgrade/cancel status, post-exit smoke, rollback path. | App-runtime exit prerequisites pass in latest `evidence/2026-07-03-cloudflare-provider-exit-pack.*` at `2026-07-03T10:41:40.108Z`; full provider exit is still open on export/retention, Resend status, obsolete-secret rotation, post-exit smoke, and external-persona/mailbox proof. The pack supports a sanitized operator evidence record at `evidence/2026-07-03-cloudflare-provider-exit-operator-record.json`, a starter template at `evidence/2026-07-03-cloudflare-provider-exit-operator-record.template.json`, and field-level diagnostics; no real operator record is present yet. |
+| G-12 Provider exit | Exports/backups or accepted-retention/accepted-loss decision, downgrade/cancel status, post-exit smoke, rollback path. | Active source has zero blocker-level Supabase/Vercel/Resend runtime references across the deploy-relevant scan surface (`src`, `worker.ts`, `package.json`, `bun.lock`, `wrangler.jsonc`, `cloudflare-env.d.ts`, `next.config.ts`, `open-next.config.ts`, and `src/middleware.ts` where present), but the latest `evidence/2026-07-03-cloudflare-provider-exit-pack.*` refresh at `2026-07-03T14:46:59.752Z` treats latest deploy/source smoke as a required app-runtime exit prerequisite. `appRuntimeExitPrerequisitesReady=false` until `evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.*` is ready; full provider exit is still open on export/retention, Resend status, obsolete-secret rotation, post-exit smoke, and external-persona/mailbox proof or accepted deferral. The latest deploy/source-smoke artifact generated `2026-07-03T14:46:55.585Z` remains open with two deploy-source evidence blockers and no deploy-relevant dirty runtime source paths. The pack supports a sanitized operator evidence record at `evidence/2026-07-03-cloudflare-provider-exit-operator-record.json`, a starter template at `evidence/2026-07-03-cloudflare-provider-exit-operator-record.template.json`, the latest deploy/source-smoke starter at `evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.template.json`, field-level diagnostics, and `parseError` blockers for malformed proof artifacts. The operator template now requires sanitized evidence-source pointers for external/provider gates; no real operator record is present yet. |
 
 ## Workstreams
 
@@ -134,8 +144,8 @@ Do not execute inside this QA loop. Required later:
 | Recipient session with no owner privileges | Can act only on recipient scope; cannot access owner workspace. | Previously green; mailbox receipt open. |
 | Viewer/cross-workspace write attempt | Denied and logged without mutation. | Previously green. |
 | Duplicate estimate row/history submit | Idempotent or safely rejected; no duplicate corruption. | Previously green. |
-| Upload oversize/bad type/path traversal | Rejected safely; no R2 path escape. | Needs security lane refresh. |
-| Public route cache leak | No authenticated data cached publicly. | Security lane refresh. |
+| Upload oversize/bad type/path traversal | Rejected safely; no R2 path escape. | Fresh local security refresh passed `auth-sensitive-api-boundaries` and `cloudflare-r2-storage-provider` at 2026-07-03T12:59Z. |
+| Public route cache leak | No authenticated data cached publicly. | Fresh local route/cache refresh passed share no-store, share GET route, hosted shared-link header, and publication security-header tests at 2026-07-03T12:59Z. |
 | Script success masking failure | Evidence JSON and exit code must agree. | Included in script tests. |
 | Dirty worktree during QA | Preserve unrelated changes and report touched files only. | Active. |
 
@@ -145,7 +155,7 @@ Do not execute inside this QA loop. Required later:
 | --- | --- | --- | --- |
 | P1 | Real non-owner Google account completion. | Closed-beta access policy needs external-persona confirmation. | Use browser/persona path or equivalent if available. |
 | P1 | Real recipient mailbox delivery. | Publication recipient workflow proof currently uses controlled/synthetic evidence. | Treat as ops follow-up unless email surface changes. |
-| P1 | Provider exit evidence not complete. | Cancellation alone does not prove export/retention, Resend status, obsolete-secret cleanup, rollback posture, or post-exit app health. | `evidence/2026-07-03-cloudflare-provider-exit-pack.*` proves app-runtime prerequisites and active runtime scan, writes a sanitized template through `bun run cf:provider-exit-operator-template`, and keeps the external/provider gates open until the sanitized operator record is supplied. |
+| P1 | Provider exit evidence not complete. | Cancellation alone does not prove export/retention, Resend status, obsolete-secret cleanup, rollback posture, or post-exit app health. | `evidence/2026-07-03-cloudflare-provider-exit-pack.*` proves the active runtime scan over the deploy-relevant source/config surface, preserves `appRuntimeExitPrerequisitesReady=false` while latest deploy/source smoke is open, writes a sanitized template through `bun run cf:provider-exit-operator-template`, and keeps the external/provider gates open until the sanitized operator record supplies the required evidence-source pointers. |
 | P1 | Strict public p95 watch. | User cares about site speed; watch should not disappear. | Keep workbook/release-gate visibility and optimize after auth is stable. |
 | P2 | Legacy Supabase E2E quarantine. | Broad default E2E cannot represent old Supabase fixtures. | Keep quarantined; do not use legacy failures as Cloudflare blockers. |
 
@@ -153,7 +163,7 @@ Do not execute inside this QA loop. Required later:
 
 - Cloudflare Platforms is deferred. Current users belong inside the app data model, not separate customer platform deployments.
 - Vercel/Supabase cancellation is owner-reported complete, but formal provider-exit closure still requires export/retention posture, rollback decision, obsolete-secret handling, and post-exit Cloudflare smoke.
-- The 2026-07-03 provider-exit pack is non-destructive evidence only: app-runtime exit prerequisites pass and active source has zero blocker-level Supabase/Vercel/Resend runtime references, but provider exit remains `OPEN / NOT READY`. The script can now consume a sanitized operator record for external gates, generate a starter template, and report field-level diagnostics; absent the real record, no external gate is treated as closed.
+- The 2026-07-03 provider-exit pack is non-destructive evidence only: active source has zero blocker-level Supabase/Vercel/Resend runtime references, but `appRuntimeExitPrerequisitesReady=false` after adding the latest deploy/source smoke gate, and provider exit remains `OPEN / NOT READY`. The script can consume a sanitized operator record for external gates, generate a starter template, and report field-level diagnostics. External/provider gates now require sanitized evidence-source pointers; absent the real record, no external gate is treated as closed.
 - Public strict p95 misses are a visible watch item, while hosted route contracts and aggregate/runtime provider readiness remain the release gate.
 - Production and local Google OAuth completion are both required. Both are now freshly proven for the owner profile; local start-only proof has been superseded by completed callback/session evidence.
 - 2026-07-02 wrap-up assessment: no P0 app-runtime blocker is known, but full migration completion is not claimed until provider-exit operations and remaining P1 external-persona proofs close.
@@ -498,9 +508,9 @@ The hosted auth matrix uses synthetic D1 fixtures and verifies cleanup.
 | `CLOUDFLARE_HOSTED_PERFORMANCE_BASE_URL=https://archestimator.com bun run cf:verify-hosted-performance` | Historical pre-refresh pass for the hard gate: route contracts and 20-sample p95 count passed, with strict p95 still watch-grade. Superseded for current status by the `2026-07-03T10:32:52.047Z` hosted-performance refresh below, where only `/terms` is over budget. |
 | `bun run cf:workbook` | Historical pre-refresh artifact generation pass: workbook reported aggregate hosted performance and production cost decisions ready, with strict hosted p95 still red. Superseded for current status by the `2026-07-03T10:32:56.734Z` workbook refresh below. |
 | `bun run cf:release-gates` | Historical pre-refresh release-gate pass: `productionCutoverReady=true`, blockers empty. Superseded for current status by the `2026-07-03T10:35:33.942Z` release-gates refresh below. |
-| `bun run cf:provider-exit-operator-template` | Historical pre-refresh OPEN / NOT READY result: app runtime exit prerequisites passed, active legacy-provider runtime blockers were `0`, the sanitized operator-record template was written, and the real optional sanitized operator record was missing. Superseded for current status by the `2026-07-03T10:41:40.108Z` provider-exit pack refresh below. |
-| `bunx vitest run tests/vitest/provider-exit-pack-script.test.ts --maxWorkers=1` | PASS, 1 file / 6 tests. Verifies the pack stays open without an operator record, treats active legacy imports as blockers, accepts sanitized operator evidence only when all external gates are represented, and does not echo private operator values. |
-| `bunx eslint scripts/generate-cloudflare-provider-exit-pack.ts tests/vitest/provider-exit-pack-script.test.ts` | PASS. |
+| `bun run cf:provider-exit-operator-template` | Historical pre-refresh OPEN / NOT READY result: app runtime exit prerequisites passed, active legacy-provider runtime blockers were `0`, the sanitized operator-record template was written, and the real optional sanitized operator record was missing. Superseded for current status by the later provider-exit pack refreshes below, currently `2026-07-03T14:46:59.752Z`. |
+| `bunx vitest run tests/vitest/provider-exit-pack-script.test.ts --maxWorkers=1` | Historical PASS, 1 file / 6 tests. Superseded by the focused 17-test run below after the deploy/source smoke gate, deploy-source template, evidence-source checks, and malformed proof-artifact regressions were added. |
+| `bunx eslint scripts/generate-cloudflare-provider-exit-pack.ts tests/vitest/provider-exit-pack-script.test.ts` | Historical PASS. Superseded by the scoped ESLint run below after the deploy/source smoke gate was added. |
 | `git diff --check` | PASS. |
 
 Source changes after the 2026-07-02 hosted mutation proofs do not touch the
@@ -515,44 +525,441 @@ the hosted synthetic mutation surfaces are accepted unchanged from the
 2026-07-02 proof set; they still need rerun if any related workflow source
 changes before final provider-exit smoke.
 
+## 2026-07-03 Codex Continuation - Latest Deploy Source-Smoke Gate
+
+Evidence:
+
+- `evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.*`
+- `evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.template.json`
+- `evidence/2026-07-03-cloudflare-provider-exit-pack.*`
+
+Codex added a non-destructive latest deploy/source-smoke checker and wired it
+into the provider-exit pack as an app-runtime exit prerequisite. The checker
+reads sanitized deployment evidence plus local git metadata only; it does not
+read env files, deploy Workers, mutate providers, rotate secrets, export data,
+or perform browser automation.
+
+Historical generated result, superseded by the 2026-07-03T13:57 proof-tooling
+refresh below:
+
+- `bun run cf:latest-deploy-source-smoke-template` generated
+  `evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.*` at
+  `2026-07-03T12:27:48.232Z` and wrote
+  `evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.template.json`.
+- `latestDeploySourceSmokeReady=false`.
+- The template is a sanitized starter only. Unchanged, it remains open because
+  production-version, hosted-route, and release-gate proof fields are
+  placeholders.
+- Blockers: runtime source paths have uncommitted deploy-relevant changes
+  (`package.json` from this local proof-tooling edit), the older deploy
+  evidence does not record a deployed git source commit, and the deployment
+  timestamp is older than current `HEAD`.
+- `bun run cf:provider-exit-operator-template` regenerated
+  `evidence/2026-07-03-cloudflare-provider-exit-pack.*` at
+  `2026-07-03T12:27:58.528Z` and refreshed
+  `evidence/2026-07-03-cloudflare-provider-exit-operator-record.template.json`.
+- `appRuntimeExitPrerequisitesReady=false`.
+- `activeLegacyProviderRuntimeBlockers=0`.
+- `providerExitReady=false`.
+- The pack now enumerates seven blockers: latest deploy/source smoke plus the
+  six external/operator gates.
+- The operator template now requires sanitized evidence-source pointers for
+  final export/retention, Resend account/API-key status, obsolete-secret
+  cleanup, post-exit smoke, and recorded recipient-mailbox proof.
+
+Verification:
+
+- `bunx vitest run tests/vitest/cloudflare-latest-deploy-source-smoke-script.test.ts tests/vitest/provider-exit-pack-script.test.ts --maxWorkers=1`
+  passed: `2` files / `13` tests.
+- `bunx eslint scripts/check-cloudflare-latest-deploy-source-smoke.ts scripts/generate-cloudflare-provider-exit-pack.ts tests/vitest/cloudflare-latest-deploy-source-smoke-script.test.ts tests/vitest/provider-exit-pack-script.test.ts`
+  passed.
+- JSON parse passed for latest deploy/source-smoke, deploy-source template,
+  provider-exit pack, operator template, implementation completion audit, and
+  `package.json`.
+- Scoped secret-shaped scan over regenerated proof artifacts returned no
+  matches.
+- `git diff --check` passed.
+
+Conclusion: app-runtime readiness remains near-complete, but the strict
+"Cloudflare app runtime complete" row is not satisfied until current-source
+deploy/smoke evidence is generated after the proof-tooling/source state is
+settled. Full provider exit remains open on the same external/operator
+requirements.
+
+## 2026-07-03 Codex Continuation - Provider-Exit Diagnostic Redaction Hardening
+
+Scope: close a narrow local proof-artifact safety gap found during same-agent
+inspection of the provider-exit pack generator. This pass did not deploy,
+mutate providers, rotate secrets, export data, prove a mailbox, or prove a
+separate non-owner persona.
+
+Change:
+
+- `scripts/generate-cloudflare-provider-exit-pack.ts` now sanitizes operator
+  diagnostic `status` output to the known labels `missing`, `recorded`,
+  `accepted-deferral`, or `invalid-or-unsupported`.
+- `tests/vitest/provider-exit-pack-script.test.ts` adds a regression where an
+  unexpected private-looking operator `status` value is rejected and not echoed
+  into either JSON diagnostics or Markdown.
+
+Verification:
+
+- Proof-first check: the new regression failed before the implementation patch
+  because diagnostics echoed `private-status-sentinel`.
+- `bunx vitest run tests/vitest/cloudflare-latest-deploy-source-smoke-script.test.ts tests/vitest/provider-exit-pack-script.test.ts --maxWorkers=1 --reporter=json --outputFile=/tmp/archestimator-provider-exit-status-redaction-20260703.json`
+  passed: `4` suites / `14` tests.
+- `bunx eslint scripts/check-cloudflare-latest-deploy-source-smoke.ts scripts/generate-cloudflare-provider-exit-pack.ts tests/vitest/cloudflare-latest-deploy-source-smoke-script.test.ts tests/vitest/provider-exit-pack-script.test.ts`
+  passed.
+- `git diff --check` passed.
+
+Conclusion: local provider-exit proof tooling is stricter about not echoing
+operator-record values. This does not close the latest deploy/source-smoke
+gate or any external/operator provider-exit gate.
+
+## 2026-07-03 Codex Continuation - Post-Refresh Consistency Verification
+
+Scope: independently check the scoped uncommitted proof-tooling and ledger diff
+for remaining repo-local, safe-to-fix inconsistencies. This pass did not edit
+files, deploy, mutate providers, read secrets, run browser automation, stage,
+commit, prove external operator status, prove a separate non-owner persona, or
+prove recipient mailbox receipt.
+
+Result:
+
+- Read-only verifier Mendel (`019f2850-fc29-70c0-a6fe-165f7cc86270`) found no
+  remaining repo-local, safe-to-fix inconsistencies in the scoped diff.
+- The verifier confirmed the then-current latest deploy/source-smoke artifact
+  remained `latestDeploySourceSmokeReady=false` and had three blockers; this
+  was superseded by the 2026-07-03T14:46 refresh, which has two blockers.
+- The verifier confirmed the provider-exit pack remains
+  `appRuntimeExitPrerequisitesReady=false`, `providerExitReady=false`, seven
+  blockers, and no operator record.
+- The verifier confirmed the completion audit remains
+  `NEAR_COMPLETE_NOT_FULLY_IMPLEMENTED` and UltraQA remains `PARTIAL`.
+
+Verification:
+
+- `bunx vitest run tests/vitest/cloudflare-latest-deploy-source-smoke-script.test.ts tests/vitest/provider-exit-pack-script.test.ts --maxWorkers=1`
+  passed: `2` files / `26` tests.
+- `bunx eslint scripts/check-cloudflare-latest-deploy-source-smoke.ts scripts/generate-cloudflare-provider-exit-pack.ts tests/vitest/cloudflare-latest-deploy-source-smoke-script.test.ts tests/vitest/provider-exit-pack-script.test.ts`
+  passed.
+- `bun run type-check` passed.
+- Scoped `git diff --check` passed.
+- JSON parsing passed for package/evidence/template files.
+
+Conclusion: no additional local implementation patch is justified from this
+post-refresh verifier pass. Remaining closure requires latest deploy/source
+proof and external/provider/operator/persona/mailbox evidence or accepted
+deferral where explicitly allowed.
+
+## 2026-07-03 Codex Continuation - Proof Artifact Parse-Error Hardening
+
+Scope: close a second local proof-artifact reliability gap. This pass did not
+deploy, mutate providers, rotate secrets, export data, prove a mailbox, prove a
+separate non-owner persona, or run browser automation.
+
+Change:
+
+- `scripts/check-cloudflare-latest-deploy-source-smoke.ts` and
+  `scripts/generate-cloudflare-provider-exit-pack.ts` now catch malformed JSON
+  evidence artifacts and carry a sanitized `parseError` field in report
+  summaries instead of throwing or treating corrupt input as a silent missing
+  value.
+- Provider-exit operator diagnostics now report `operator record JSON parse
+  error` for malformed operator records, keep affected gates open, and do not
+  treat the malformed file path as sanitized closure evidence.
+- The provider-exit pack's artifact-backed gates now classify malformed proof
+  artifacts as blockers.
+
+Verification:
+
+- Proof-first check: the new malformed-artifact regressions failed before the
+  implementation patch because `parseError` was absent from report summaries.
+- `bunx vitest run tests/vitest/cloudflare-latest-deploy-source-smoke-script.test.ts tests/vitest/provider-exit-pack-script.test.ts --maxWorkers=1 --reporter=json --outputFile=/tmp/archestimator-proof-artifact-parse-errors-green-20260703.json`
+  passed: `4` suites / `17` tests.
+- `bunx eslint scripts/check-cloudflare-latest-deploy-source-smoke.ts scripts/generate-cloudflare-provider-exit-pack.ts tests/vitest/cloudflare-latest-deploy-source-smoke-script.test.ts tests/vitest/provider-exit-pack-script.test.ts`
+  passed.
+- `bun run type-check` passed.
+- `bun run cf:latest-deploy-source-smoke-template` regenerated latest
+  deploy/source-smoke evidence at `2026-07-03T12:27:48.232Z`; this historical
+  artifact was superseded by the 2026-07-03T13:57 refresh, and readiness
+  remains false.
+- `bun run cf:provider-exit-operator-template` regenerated provider-exit
+  evidence at `2026-07-03T12:27:58.528Z`; provider exit remains false with
+  seven blockers.
+
+Conclusion: local proof tooling now fails closed on malformed JSON artifacts.
+This does not close the latest deploy/source-smoke gate or any
+external/operator provider-exit gate.
+
+## 2026-07-03 Codex Continuation - Strict Readiness Exit Hardening
+
+Scope: close the remaining local QA-SCRIPT-001 ambiguity where proof scripts
+printed `OPEN / NOT READY` JSON blockers but default report-generation CLI runs
+still exited `0`. This pass did not deploy, mutate providers, rotate secrets,
+export data, prove a mailbox, prove a separate non-owner persona, or run browser
+automation.
+
+Change:
+
+- `scripts/check-cloudflare-latest-deploy-source-smoke.ts` and
+  `scripts/generate-cloudflare-provider-exit-pack.ts` now support explicit
+  strict verifier mode through `STRICT_READINESS_EXIT=1` or
+  `FAIL_ON_BLOCKERS=1`.
+- Default mode remains non-fatal report generation: it still writes JSON and
+  Markdown artifacts and exits `0` even when readiness is open.
+- Strict mode writes the same artifacts first, prints `strictReadinessExit`
+  and `exitCode` in the CLI summary, then exits `1` when
+  `latestDeploySourceSmokeReady=false` or `providerExitReady=false`.
+- The focused tests now spawn the real Bun CLI for both scripts to prove
+  default non-fatal generation and strict nonzero blocked-readiness behavior.
+
+Verification:
+
+- `bunx vitest run tests/vitest/cloudflare-latest-deploy-source-smoke-script.test.ts tests/vitest/provider-exit-pack-script.test.ts --maxWorkers=1 --reporter=json --outputFile=/tmp/archestimator-proof-strict-readiness-exit-20260703.json`
+  passed: `2` test files / `19` tests / `0` failed; the JSON reporter records
+  `4` suites.
+- `bunx eslint scripts/check-cloudflare-latest-deploy-source-smoke.ts scripts/generate-cloudflare-provider-exit-pack.ts tests/vitest/cloudflare-latest-deploy-source-smoke-script.test.ts tests/vitest/provider-exit-pack-script.test.ts`
+  passed.
+
+Conclusion: QA-SCRIPT-001 now has executable strict-mode proof that JSON
+blockers and verifier exit status can agree. This hardening does not close the
+latest deploy/source-smoke gate or any external/operator provider-exit gate.
+
+## 2026-07-03 Codex Continuation - Provider-Exit Scan-Surface Hardening
+
+Scope: strengthen the local active legacy-provider runtime scan used by the
+provider-exit pack. This pass did not deploy, mutate providers, rotate secrets,
+export data, prove a mailbox, prove a separate non-owner persona, or run browser
+automation.
+
+Change:
+
+- `scripts/generate-cloudflare-provider-exit-pack.ts` now exports
+  `DEFAULT_PROVIDER_EXIT_SCAN_PATHS` and includes deploy-relevant root config
+  files in the default scan surface: `cloudflare-env.d.ts`, `next.config.ts`,
+  and `open-next.config.ts`, plus the then-current root middleware file
+  contract where present, in addition to `src`, `worker.ts`, `package.json`,
+  and `wrangler.jsonc`. This was superseded by the 2026-07-03T14:46 refresh,
+  whose default contract uses `src/middleware.ts` and includes `bun.lock`.
+- `tests/vitest/provider-exit-pack-script.test.ts` locks that default scan-path
+  contract so future proof-tooling changes cannot silently narrow active-source
+  coverage.
+- `bun run cf:provider-exit-operator-template` regenerated
+  `evidence/2026-07-03-cloudflare-provider-exit-pack.*` at
+  `2026-07-03T13:17:21.023Z`; this historical artifact was superseded by the
+  2026-07-03T13:57 provider-resource-path refresh.
+
+Result:
+
+- `appRuntimeExitPrerequisitesReady=false`.
+- `activeLegacyProviderRuntimeBlockers=0`.
+- `providerExitReady=false`.
+- The pack still enumerates seven blockers: latest deploy/source smoke plus the
+  six external/operator gates.
+- The active runtime scan then recorded `src`, `worker.ts`, `package.json`,
+  `wrangler.jsonc`, `cloudflare-env.d.ts`, `next.config.ts`, and
+  `open-next.config.ts` as scanned paths; its root middleware default was
+  superseded by the later `src/middleware.ts` default contract.
+
+Verification:
+
+- `bunx vitest run tests/vitest/provider-exit-pack-script.test.ts --maxWorkers=1 --reporter=json --outputFile=/tmp/archestimator-provider-exit-scan-surface-20260703.json`
+  passed: `2` suites / `13` tests / `0` failed.
+- `bunx vitest run tests/vitest/cloudflare-latest-deploy-source-smoke-script.test.ts tests/vitest/provider-exit-pack-script.test.ts --maxWorkers=1 --reporter=json --outputFile=/tmp/archestimator-provider-exit-proof-coverage-20260703.json`
+  passed: `4` suites / `24` tests / `0` failed.
+
+Conclusion: the active provider-exit runtime scan is broader and better aligned
+with the deploy/source-smoke runtime-source surface. This does not close latest
+deploy/source smoke or any external/operator provider-exit gate.
+
+## 2026-07-03 Codex Continuation - Provider-Exit Proof-Tool Coverage Hardening
+
+Scope: close safe local proof-tooling coverage gaps found by a read-only
+test-engineer lane. This pass did not deploy, mutate providers, rotate secrets,
+export data, prove a mailbox, prove a separate non-owner persona, or run browser
+automation.
+
+Change:
+
+- `tests/vitest/cloudflare-latest-deploy-source-smoke-script.test.ts` now
+  directly covers the case where otherwise green deploy evidence records a
+  deployed source commit that differs from current `HEAD`.
+- `tests/vitest/provider-exit-pack-script.test.ts` now exercises the real
+  filesystem scanner behind `scanLegacyProviderReferences`, including
+  blocker-level Supabase/Resend/Vercel references, informational Resend lexical
+  references, ignored `node_modules` traversal, non-text file filtering, and
+  stable line references.
+- `tests/vitest/provider-exit-pack-script.test.ts` now directly covers the
+  accepted-deferral path: a non-owner Google deferral closes only with
+  `acceptedBy` plus `deferralRationale`, while a recipient-mailbox deferral
+  without that acceptance metadata remains open.
+
+Verification:
+
+- `bunx vitest run tests/vitest/cloudflare-latest-deploy-source-smoke-script.test.ts tests/vitest/provider-exit-pack-script.test.ts --maxWorkers=1 --reporter=json --outputFile=/tmp/archestimator-provider-exit-proof-coverage-20260703.json`
+  passed: `4` suites / `24` tests / `0` failed.
+- `bunx eslint scripts/check-cloudflare-latest-deploy-source-smoke.ts scripts/generate-cloudflare-provider-exit-pack.ts tests/vitest/cloudflare-latest-deploy-source-smoke-script.test.ts tests/vitest/provider-exit-pack-script.test.ts`
+  passed.
+
+Conclusion: the local proof-tooling regressions now cover scanner traversal,
+accepted-deferral semantics, and deployed-commit mismatch semantics. This does
+not close latest deploy/source smoke or any external/operator provider-exit
+gate.
+
+## 2026-07-03 Codex Continuation - Provider-Exit Proof-Tooling Refresh
+
+Scope: close safe local consistency findings from an independent verifier lane.
+This pass did not deploy, mutate providers, rotate secrets, export data, prove a
+mailbox, prove a separate non-owner persona, or run browser automation.
+
+Change:
+
+- `scripts/generate-cloudflare-provider-exit-pack.ts` now reads the current
+  `2026-07-01-cloudflare-provider-resource-readback.json` artifact for the
+  provider-resource gate instead of the superseded 2026-06-30 artifact.
+- The non-owner Google provider-exit gate now labels its closure path as real
+  proof or accepted deferral, matching the operator-record semantics already
+  accepted by the pack.
+- `scripts/check-cloudflare-latest-deploy-source-smoke.ts` now renders the
+  production-version Markdown row from the same readiness predicate as JSON,
+  including a non-null deployment timestamp.
+
+Verification:
+
+- `bunx vitest run tests/vitest/cloudflare-latest-deploy-source-smoke-script.test.ts tests/vitest/provider-exit-pack-script.test.ts --maxWorkers=1`
+  passed: `2` files / `26` tests / `0` failed.
+- `bun run cf:latest-deploy-source-smoke-template` regenerated
+  `evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.*` at
+  `2026-07-03T14:27:41.764Z`; readiness remains false with two deploy-source
+  evidence blockers and no deploy-relevant dirty runtime source paths after the
+  later package/lockfile precision refresh below supersedes this artifact.
+- `bun run cf:provider-exit-operator-template` regenerated
+  `evidence/2026-07-03-cloudflare-provider-exit-pack.*` at
+  `2026-07-03T14:28:11.721Z`; provider exit remains false with seven blockers,
+  `activeLegacyProviderRuntimeBlockers=0`, and provider-resource evidence now
+  points to the current 2026-07-01 readback artifact. The later 14:46
+  package/lockfile precision refresh below is the current artifact set.
+
+Conclusion: local proof tooling is more internally consistent, but this does
+not close latest deploy/source smoke or any external/operator provider-exit
+gate.
+
 ## 2026-07-03 Codex Continuation - Final Static UltraQA Review
 
 Evidence: `evidence/2026-07-03-glm52-final-ultraqa-review.*`.
 
-The active UltraQA artifact was refreshed at `2026-07-03T10:53:32Z` after the
-latest `2026-07-03T10:41:40.108Z` provider-exit pack. Stale pre-refresh claims
-about the earlier provider-exit pack, provider-resource timestamp correction,
-and broad DOM residuals were removed from the active review. Current supporting
-evidence is release gates at `2026-07-03T10:35:33.942Z`, hosted performance at
+The active UltraQA artifact was refreshed at `2026-07-03T14:46:59Z` after the
+current `2026-07-03T14:46:59.752Z` provider-exit pack,
+`2026-07-03T14:46:55.585Z` latest deploy/source-smoke artifact. It now records
+Doc 37's named QA scenario matrix with `23` rows, including strict readiness
+exit coverage for QA-SCRIPT-001 and the later 32-test proof-tooling coverage
+run. Current supporting evidence is
+release gates at `2026-07-03T10:35:33.942Z`, hosted performance at
 `2026-07-03T10:32:52.047Z` with only `/terms` over strict p95 budget,
 provider-resource readback at `2026-07-03T10:35:30.209Z`, Cloudflare Email at
 `2026-07-03T10:41:35.143Z`, and the later broad DOM local pass recorded below.
 
 Independent verifier Galileo (`019f26bd-bf23-7a23-aef1-545effc566a4`) returned
-`PARTIAL`: the plan pack cannot honestly be called fully implemented; it can be
-called Cloudflare closed-beta app-runtime ready with a provider-exit pack
-generated. Full migration/provider exit remains open.
+`PARTIAL`: the plan pack cannot honestly be called fully implemented. After the
+later deploy/source-smoke gate, it should be called near-complete for app
+runtime rather than complete; full migration/provider exit remains open.
 
 The static review confirms:
 
 - `evidence/2026-07-03-cloudflare-provider-exit-pack.*` keeps full provider
   exit `OPEN / NOT READY` without the sanitized operator record.
-- The provider-exit pack enumerates six remaining blockers: exports or accepted
-  retention/loss, Resend account/API-key/domain status, obsolete provider secret
-  removal/rotation, post-exit Cloudflare smoke, real non-owner Google proof, and
-  real recipient mailbox proof or accepted deferral.
+- The current provider-exit pack enumerates seven remaining blockers: latest
+  deploy/source smoke plus exports or accepted retention/loss, Resend
+  account/API-key/domain status, obsolete provider secret removal/rotation,
+  post-exit Cloudflare smoke, real non-owner Google proof, and real recipient
+  mailbox proof or accepted deferral.
 - A scoped scan of the new provider-exit pack artifacts found no private-key,
   API-key, GitHub-token, OpenAI-key, JWT, bearer-token, or Resend-key shaped
   values.
+- The Doc 37 scenario matrix preserves pass/open distinctions: external gates
+  remain open for QA-AUTH-005, QA-EMAIL-002, QA-PROVIDER-002, QA-PROVIDER-003,
+  and QA-OPS-001; QA-R2-002 and QA-SHARE-002 now have fresh local automated
+  proof, but not hosted browser/provider smoke for final provider exit.
 - A later Codex continuation reran and repaired the final broad DOM residuals;
   `bun run test:dom` now has fresh local pass evidence in the section
   "Fresh Broad DOM Baseline And Optional Upload Evidence Sync" below.
 - No deploy, browser proof, provider mutation, secret rotation, provider export,
   mailbox proof, or full-repository secret audit was performed in this pass.
 
-Conclusion unchanged: app-runtime Cloudflare closed-beta readiness is preserved,
-but the durable migration goal remains open on external/operator provider-exit
-and persona/mailbox gates.
+Conclusion updated by the deploy/source-smoke gate: app-runtime Cloudflare
+closed-beta readiness remains near-complete, but not strictly complete; the
+durable migration goal remains open on latest deploy/source smoke plus
+external/operator provider-exit and persona/mailbox gates.
+
+## 2026-07-03 Codex Continuation - Latest Deploy Source Package/Lockfile Precision
+
+Scope: close a safe local proof-tooling false-positive where proof-only
+`package.json` script additions were counted as deploy-relevant runtime source
+dirtiness, while keeping `bun.lock` and provider-exit lockfile package markers
+inside the deploy/source proof surface. This pass did not deploy, mutate
+providers, rotate secrets, stage, commit, run browser automation, prove external
+operator status, prove a separate non-owner persona, or prove recipient mailbox
+receipt.
+
+Local repair:
+
+- `scripts/check-cloudflare-latest-deploy-source-smoke.ts` now ignores
+  `package.json` dirtiness only when the diff is limited to known
+  Cloudflare proof-tooling scripts (`cf:check-latest-deploy-source-smoke`,
+  `cf:latest-deploy-source-smoke-template`, `cf:provider-exit-pack`, and
+  `cf:provider-exit-operator-template`).
+- `bun.lock`, dependency, build-script, runtime-script, parse-error, or other
+  package metadata changes still count as runtime source dirtiness.
+- The latest deploy/source status path contract now records `src`,
+  `worker.ts`, `package.json`, `bun.lock`, `wrangler.jsonc`,
+  `cloudflare-env.d.ts`, `next.config.ts`, `open-next.config.ts`, and
+  `src/middleware.ts`.
+- `scripts/generate-cloudflare-provider-exit-pack.ts` now scans `bun.lock` as
+  text and treats direct lockfile `resend@...` package markers as blocker-level
+  legacy-provider references while still reporting the current repo with zero
+  active legacy-provider runtime blockers.
+- `tests/vitest/cloudflare-latest-deploy-source-smoke-script.test.ts` covers
+  proof-only package script additions, runtime dependency changes, non-proof
+  script changes, the trimmed `M package.json` git-status shape seen in this
+  worktree, dirty `bun.lock` preservation, and the corrected `src/middleware.ts`
+  status path.
+- `tests/vitest/provider-exit-pack-script.test.ts` covers the widened default
+  scan path contract and `bun.lock` legacy-provider package marker detection.
+
+Fresh evidence:
+
+- `bunx vitest run tests/vitest/cloudflare-latest-deploy-source-smoke-script.test.ts tests/vitest/provider-exit-pack-script.test.ts --maxWorkers=1 --reporter=json --outputFile=/tmp/archestimator-provider-exit-proof-coverage-20260703-lockfile.json` passed (`4` suites / `32` tests / `0` failed).
+- `bun run cf:latest-deploy-source-smoke-template` regenerated
+  `evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.*` at
+  `2026-07-03T14:46:55.585Z`; readiness remains false with two blockers:
+  missing deployed git source commit and deployment timestamp older than
+  current `HEAD`. `currentGit.dirtyRuntimeSourcePaths=[]`.
+- `bun run cf:provider-exit-operator-template` regenerated
+  `evidence/2026-07-03-cloudflare-provider-exit-pack.*` at
+  `2026-07-03T14:46:59.752Z`; provider exit remains false with seven blockers,
+  `activeLegacyProviderRuntimeBlockers=0`, and no real operator record.
+
+Conclusion unchanged except for blocker precision: local proof tooling no longer
+misclassifies proof-only package scripts as deploy-relevant runtime dirtiness,
+and it now keeps lockfile source/package evidence in scope; latest deploy/source
+smoke and external/operator provider-exit gates remain open.
+
+## 2026-07-03 Codex Continuation - R2/Share Local Residual Refresh
+
+Scope: close the remaining local QA-R2-002 and QA-SHARE-002 formerly residual evidence
+rows without deploys, browser automation, provider mutation, mailbox access, or
+secret inspection.
+
+Focused command:
+
+- `bunx vitest run tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/cloudflare-r2-storage-provider.test.ts tests/vitest/share-no-store-invariants.test.ts tests/vitest/share/share-page-get-routes-contract.test.ts tests/vitest/shared-link-header-smoke-script.test.ts tests/vitest/project-publication-security-headers.test.ts --maxWorkers=1 --reporter=json --outputFile=/tmp/archestimator-cloudflare-ultraqa-residual-refresh-20260703-rerun.json`
+
+Result: passed `12` suites / `96` tests / `0` failed. This supplies local
+automated proof for upload adversarial security and public-share cache/header
+contracts. It does not replace hosted browser/provider smoke, latest deploy
+source proof, mailbox proof, non-owner Google proof, or provider-exit operator
+evidence.
 
 ## 2026-07-03 Codex Continuation - Auth/Security Static Contract Sync
 
@@ -658,9 +1065,11 @@ Adjacent residual classification at this checkpoint:
 - `tests/vitest/security-findings-auth-contracts.test.ts` remains outside this
   repaired slice.
 
-`bun run test:dom` still has no fresh completed JSON after the interrupted
-refresh attempt documented above. Provider-exit gates remain open on the same
-external/operator requirements.
+At this checkpoint, `bun run test:dom` still had no fresh completed JSON after
+the interrupted refresh attempt documented above. This stale-test gap is
+superseded by the later "Fresh Broad DOM Baseline And Optional Upload Evidence
+Sync" section, where `bun run test:dom` passed. Provider-exit gates remain open
+on the same external/operator requirements.
 
 ## 2026-07-03 Codex Continuation - Publication Rotate/Resend D1 Admin-Action Harness Repair
 
@@ -702,9 +1111,11 @@ Fresh focused evidence:
   passed: `12` suites / `44` tests.
 - `git diff --check` passed.
 
-`bun run test:dom` still has no fresh completed JSON after the interrupted
-refresh attempt documented above. Provider-exit gates remain open on the same
-external/operator requirements.
+At this checkpoint, `bun run test:dom` still had no fresh completed JSON after
+the interrupted refresh attempt documented above. This stale-test gap is
+superseded by the later "Fresh Broad DOM Baseline And Optional Upload Evidence
+Sync" section, where `bun run test:dom` passed. Provider-exit gates remain open
+on the same external/operator requirements.
 
 ## 2026-07-03 Codex Continuation - Fresh Broad DOM Baseline And Optional Upload Evidence Sync
 
@@ -803,12 +1214,14 @@ Fresh hosted/provider evidence:
   sync: generatedAt `2026-07-03T10:35:33.942Z`,
   `productionCutoverReady=true`, blockers empty.
 
-Fresh provider-exit pack:
+Historical provider-exit pack before the latest deploy/source-smoke gate:
 
 - `bun run cf:provider-exit-operator-template` regenerated
   `evidence/2026-07-03-cloudflare-provider-exit-pack.*` at
   `2026-07-03T10:41:40.108Z`.
-- `appRuntimeExitPrerequisitesReady=true`.
+- Historical result: `appRuntimeExitPrerequisitesReady=true`. Superseded by the
+  `2026-07-03T12:27:58.528Z` pack, where the latest deploy/source-smoke gate
+  makes `appRuntimeExitPrerequisitesReady=false`.
 - `activeLegacyProviderRuntimeBlockers=0`.
 - `providerExitReady=false`, by design, because no sanitized operator record is
   present.
@@ -1731,6 +2144,42 @@ final exports/backups or accepted retention/loss, Resend account/API-key/domain
 status, obsolete provider secret removal/rotation, post-exit Cloudflare smoke,
 real non-owner Google proof, and real recipient mailbox proof or accepted
 deferral.
+
+## 2026-07-03 Codex Continuation - Independent Proof-Tooling Code Review
+
+Evidence:
+
+- `evidence/2026-07-03-codex-independent-proof-tooling-code-review.*`
+
+Scope: run an independent native `code-reviewer` review on the current
+uncommitted Cloudflare migration proof-tooling and plan-pack diff. This pass
+did not edit files, deploy, mutate providers, inspect secrets, run browser
+automation, stage, commit, or push.
+
+Reviewer Hilbert (`019f2884-6b36-7e41-9d2c-64294dad8a3d`) found no correctness
+issues and no remaining safe local fixes in the scoped diff.
+
+Review evidence:
+
+- `bunx vitest run tests/vitest/cloudflare-latest-deploy-source-smoke-script.test.ts tests/vitest/provider-exit-pack-script.test.ts --maxWorkers=1`
+  passed (`2` files / `32` tests).
+- `bun run type-check` passed (`tsc --noEmit`).
+- Scoped `git diff --check` reported no tracked whitespace errors.
+- Static scan for hardcoded secrets, `.env` reads, provider mutations, empty
+  catches, and suspicious API-key assignments found no blocking pattern.
+
+The reviewer accidentally ran default local report commands during review,
+which regenerated artifact timestamps, then restored those timestamp-only
+changes to the pre-review `14:46` evidence values and verified no
+transient review timestamp residue remained.
+
+Current result remains unchanged: latest deploy/source smoke is open with two
+deploy-source evidence blockers, provider exit is open with seven blockers, and
+active legacy-provider runtime blockers remain zero. No additional local
+implementation patch is justified from this review. Full migration/provider
+exit still requires current-source deploy proof, external/operator provider
+evidence, non-owner Google proof or accepted deferral, and recipient mailbox
+proof or accepted deferral.
 
 ## 2026-07-03 Codex Continuation - Remaining Estimate/Proposal DOM Harness Repair
 

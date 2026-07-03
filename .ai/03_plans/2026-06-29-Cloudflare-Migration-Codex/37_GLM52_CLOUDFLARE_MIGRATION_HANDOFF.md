@@ -7,30 +7,55 @@
 
 **Tech Stack:** Next.js 16, React 19, Bun, TypeScript, Tailwind v4, OpenNext Cloudflare, Cloudflare Workers, D1, R2, Durable Objects, Queues, Cloudflare Email, Better Auth, Playwright, Vitest, Wrangler, Google OAuth, local developer OAuth on `http://localhost:3000`, production domain `https://archestimator.com`.
 
-**2026-07-03 status refresh:** Doc 36 now contains a fresh independent
-verification/test-maintenance pass, and `.ai/10_state/current-state.md` has
-been updated with that evidence. Cloudflare app runtime remains closed-beta
-ready; full migration completion remains open until the non-owner Google proof,
-real recipient mailbox proof or accepted deferral, provider
-export/retention/post-exit evidence, and final smoke/review gates are closed.
-Owner-reported Vercel/Supabase cancellation does not, by itself, satisfy the
-formal provider exit evidence pack.
+**2026-07-03 status refresh:** Doc 36 now contains fresh independent
+verification/test-maintenance evidence, and `.ai/10_state/current-state.md` has
+been updated with that evidence. Cloudflare app runtime remains near-complete
+for closed-beta operation, but strict app-runtime completion is still open on
+latest deploy/source smoke. Full migration completion remains open until the
+non-owner Google proof, real recipient mailbox proof or accepted deferral,
+provider export/retention/post-exit evidence, and final smoke/review gates are
+closed. Owner-reported Vercel/Supabase cancellation does not, by itself,
+satisfy the formal provider exit evidence pack.
 
 **2026-07-03 provider-exit pack refresh:** Codex added
-`evidence/2026-07-03-cloudflare-provider-exit-pack.*`. It proves app-runtime
-exit prerequisites and zero blocker-level active Supabase/Vercel/Resend
-runtime references in scanned source, while keeping provider exit `OPEN / NOT
-READY` on exports or accepted retention/loss, Resend account status,
-obsolete-secret rotation, post-exit smoke, non-owner Google proof, and real
-recipient mailbox proof or accepted deferral.
+`evidence/2026-07-03-cloudflare-provider-exit-pack.*`. It proves zero
+blocker-level active Supabase/Vercel/Resend runtime references in scanned
+source, while keeping provider exit `OPEN / NOT READY` on deploy/source smoke,
+exports or accepted retention/loss, Resend account status, obsolete-secret
+rotation, post-exit smoke, non-owner Google proof, and real recipient mailbox
+proof or accepted deferral.
 
-The latest provider-exit pack was regenerated at `2026-07-03T10:41:40.108Z`
-after refreshing hosted route, hosted performance, hosted auth matrix,
-provider-resource readback, Cloudflare Email readiness, workbook, and release
-gate evidence. It also preserves optional sanitized operator-record intake,
-field-level diagnostics, and a generated operator-record template at
+**2026-07-03 latest deploy/source-smoke gate refresh:** Codex added
+`scripts/check-cloudflare-latest-deploy-source-smoke.ts` and `bun run
+cf:check-latest-deploy-source-smoke`, then extended it with
+`bun run cf:latest-deploy-source-smoke-template`. The latest provider-exit pack
+was regenerated at `2026-07-03T14:46:59.752Z` with
+`appRuntimeExitPrerequisitesReady=false`, `activeLegacyProviderRuntimeBlockers=0`,
+`providerExitReady=false`, latest deploy/source smoke open, operator record
+missing, and seven remaining blockers. Its active runtime scan now includes
+deploy-relevant root config files (`cloudflare-env.d.ts`, `next.config.ts`, and
+`open-next.config.ts`) in addition to `src`, `worker.ts`, `package.json`,
+`bun.lock`, `wrangler.jsonc`, and `src/middleware.ts`. The deploy-source checker generated
+`evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.*` at
+`2026-07-03T14:46:55.585Z` and reports
+`latestDeploySourceSmokeReady=false` with two remaining deploy-source evidence
+blockers: missing deployed git commit and a deployment timestamp older than the
+current commit. Proof-tooling-only `package.json` script additions are now
+excluded from runtime dirtiness; `bun.lock` and runtime
+package/dependency/build changes still block. It also writes a sanitized deploy-source starter template at
+`evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.template.json`; this
+template is not proof and remains open until real post-deploy production-version,
+hosted-route, and release-gate fields replace the placeholders. The provider
+exit workflow also preserves optional sanitized operator-record intake and now
+keeps malformed proof-artifact JSON open through explicit `parseError` and
+field-level diagnostics, plus a generated
+operator-record template at
 `evidence/2026-07-03-cloudflare-provider-exit-operator-record.template.json`.
-No real operator record is present yet, so provider exit remains open. Release
+The operator template now requires sanitized evidence-source pointers for
+external/provider gates before the pack will treat recorded booleans as proof.
+The provider-resource gate now reads the current `2026-07-01` readback artifact,
+and the non-owner Google gate now supports real proof or accepted deferral. No
+real operator record is present yet, so provider exit remains open. Release
 gates remain `productionCutoverReady=true` with blockers empty. Strict public
 p95 remains visible as a watch item; the latest miss is `/terms` at `564.56ms`
 against the `300ms` budget.
@@ -59,8 +84,8 @@ This section is the truth to start from. Verify it against the current source an
 
 | Area | Current state | Evidence |
 | --- | --- | --- |
-| Overall app runtime | Cloudflare-only closed-beta app runtime is about `99.7/100`. No known P0 app-runtime blocker remains. | `evidence/2026-07-02-cloudflare-wrap-up-assessment.*` |
-| Overall migration including provider exit | About `97/100`. The remaining 3% is external-persona proof, recipient mailbox proof, provider exports/downgrades, post-exit smoke, and p95 watch. | `36_COMPREHENSIVE_FOLLOWUP_QA_LEDGER.md` |
+| Overall app runtime | Near-complete for closed-beta operation, but not strict-complete: the latest deploy/source-smoke artifact has `latestDeploySourceSmokeReady=false` with two blockers, so the current branch is not proven deployed. | `evidence/2026-07-02-cloudflare-wrap-up-assessment.*`; `evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.*` |
+| Overall migration including provider exit | `OPEN / NOT READY`: the active provider-exit pack has `providerExitReady=false`, `appRuntimeExitPrerequisitesReady=false`, seven blockers, and no real operator record. Remaining gates are latest deploy/source proof plus external/provider/persona/mailbox evidence or accepted deferrals. | `36_COMPREHENSIVE_FOLLOWUP_QA_LEDGER.md`; `evidence/2026-07-03-cloudflare-provider-exit-pack.*`; `evidence/2026-07-03-cloudflare-migration-implementation-completion-audit.*` |
 | Release gates | `productionCutoverReady=true` and blockers empty at `2026-07-03T10:35:33.942Z`. | `evidence/2026-07-01-cloudflare-release-gates.*` |
 | Cost/performance workbook | Runtime/cost decision readiness green at `2026-07-03T10:32:56.734Z`. Strict hosted public-route p95 remains red as a watch item: `strictHostedClientP95Ready=false`; `hostedPerformanceReady=false`; `aggregateHostedPerformanceReady=true`; latest miss is `/terms` p95 TTFB `564.56ms` against `300ms`. | `evidence/2026-07-01-cloudflare-cost-performance-workbook.*`; `evidence/2026-06-30-cloudflare-hosted-performance.*` |
 | Production Google OAuth owner flow | Real desktop Chrome proof passed on `https://archestimator.com`; no `state_mismatch`; landed in `/workshop`. | `evidence/2026-07-02-production-google-oauth-real-browser-proof.*` |
@@ -71,8 +96,8 @@ This section is the truth to start from. Verify it against the current source an
 | Uploads/media | Hosted upload UI, R2 checksum, D1 upload session/asset/event readback, app cleanup, and R2 cleanup passed. | `evidence/2026-07-02-cloudflare-hosted-upload-ui-proof.*` |
 | Collaboration | Hosted two-client collaboration UI proof passed with Durable Object subscriptions and remote cursor rendering. | `evidence/2026-07-02-cloudflare-hosted-collaboration-ui-proof.*` |
 | Publication/share/recipient app flow | Owner publish/public share/recipient app interaction green. Real external recipient mailbox receipt remains open. | `evidence/2026-07-02-cloudflare-hosted-publication-owner-public-proof.*`, `evidence/2026-07-02-cloudflare-hosted-d1-row-publication-refresh-proof.*`, `evidence/2026-07-02-cloudflare-hosted-publication-recipient-comment-decision-proof.*`, and `evidence/2026-07-02-cloudflare-hosted-recipient-composer-ui-proof.*` |
-| Provider exit | App-runtime exit prerequisites are packaged as non-destructive evidence at `2026-07-03T10:41:40.108Z`, but full provider exit remains open. Owner reports Vercel/Supabase cancellation is already done; export/retention, Resend status, obsolete-secret handling, rollback posture, external-persona/mailbox proof, and post-exit smoke remain an operations/evidence lane. `cf:provider-exit-pack` supports a sanitized operator record for those external gates, and `cf:provider-exit-operator-template` writes the template plus diagnostics, but the real record is not present yet. | `evidence/2026-07-03-cloudflare-provider-exit-pack.*`; `evidence/2026-07-03-cloudflare-provider-exit-operator-record.template.json`; `35_PROVIDER_EXIT_AND_FINAL_PROOF_RUNBOOK.md`; `36_COMPREHENSIVE_FOLLOWUP_QA_LEDGER.md` |
-| Latest deploy source watch | Latest recorded production deploy evidence includes Worker version `d47bcd1d-37f0-41e3-864a-05a90b28518b` at `2026-07-02T04:31:00Z`, but the checked-in React/Next warning fix for `AuthStateMismatchRecoveryScript` landed later in source commit `cdf74b72d` at `2026-07-02T14:02:31Z`. Production auth is green, but deploy/smoke the latest branch once more before provider-exit smoke to prove that fix is live. | `evidence/2026-07-02-cloudflare-hosted-d1-row-publication-refresh-proof.*`; `evidence/2026-07-02-cloudflare-main-worker-current-source-deploy.*`; `src/components/auth/AuthStateMismatchRecoveryScript.tsx` |
+| Provider exit | App-runtime exit prerequisites are packaged as non-destructive evidence, but the active pack at `2026-07-03T14:46:59.752Z` has `appRuntimeExitPrerequisitesReady=false` because latest deploy/source smoke is open. The active runtime scan covers deploy-relevant source/config paths, including `bun.lock` and `src/middleware.ts`, and still has `activeLegacyProviderRuntimeBlockers=0`. Full provider exit remains open. Owner reports Vercel/Supabase cancellation is already done; export/retention, Resend status, obsolete-secret handling, rollback posture, external-persona/mailbox proof or accepted deferral, and post-exit smoke remain an operations/evidence lane. `cf:provider-exit-pack` supports a sanitized operator record for those external gates, and `cf:provider-exit-operator-template` writes the template plus diagnostics. The template now requires sanitized evidence-source pointers for final export/retention, Resend account/API-key status, obsolete-secret cleanup, post-exit smoke, and recorded recipient-mailbox proof; malformed proof artifacts are reported through `parseError`; the real record is not present yet. | `evidence/2026-07-03-cloudflare-provider-exit-pack.*`; `evidence/2026-07-03-cloudflare-provider-exit-operator-record.template.json`; `evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.*`; `evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.template.json`; `35_PROVIDER_EXIT_AND_FINAL_PROOF_RUNBOOK.md`; `36_COMPREHENSIVE_FOLLOWUP_QA_LEDGER.md` |
+| Latest deploy source watch | The generated latest deploy/source-smoke checker reports `latestDeploySourceSmokeReady=false` at `2026-07-03T14:46:55.585Z`: deploy evidence is present and contains passing hosted route/release-gate smoke, but it does not record the deployed git commit and the deployment timestamp is older than current `HEAD`. Proof-tooling-only `package.json` script additions are excluded from runtime dirtiness; `bun.lock`, dependency, build, runtime script, or other package metadata changes still block. Use `bun run cf:latest-deploy-source-smoke-template` as the sanitized starter, then deploy/smoke the current branch after source state is settled before claiming app-runtime complete or running final provider-exit smoke. | `evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.*`; `evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.template.json`; `evidence/2026-07-02-cloudflare-main-worker-current-source-deploy.*`; `src/components/auth/AuthStateMismatchRecoveryScript.tsx` |
 
 Note on the publication evidence row: run this exact inventory command to see the complete file set without guessing:
 
@@ -552,7 +577,7 @@ Run or prove each row. Mark any unrun row as a named residual risk, not as pass.
 | QA-PROVIDER-003 | Resend removed from runtime | Magic-link/share mail still works through Cloudflare Email. | Email proof. |
 | QA-SEC-001 | Secrets in repo/evidence | No secrets, dumps, cookies, OAuth codes, API keys, or raw exports committed. | `rg` and manual review. |
 | QA-WORKTREE-001 | Dirty worktree | Only intended files changed; unrelated edits preserved. | `git status` and diff summary. |
-| QA-SCRIPT-001 | Misleading success output | Exit code and JSON blockers agree; failed verifier output is not treated as pass. | Script output inspection. |
+| QA-SCRIPT-001 | Misleading success output | Exit code and JSON blockers agree in explicit strict verifier mode; default report-generation mode may remain non-fatal while still writing blockers. | Strict CLI test plus script output inspection. |
 | QA-OPS-001 | Provider cancellation rollback | Backups/checksums and rollback decision exist before irreversible action. | Provider exit pack. |
 
 Baseline commands:
@@ -644,7 +669,7 @@ Final completion status rules:
 
 | Status | Required evidence |
 | --- | --- |
-| Cloudflare app runtime complete | Latest deploy smoke, production/local auth, route/auth/sensitive gates, D1/R2/DO/email core surfaces, release gates, and UltraQA pass. |
+| Cloudflare app runtime complete | Latest deploy source-smoke gate ready, production/local auth, route/auth/sensitive gates, D1/R2/DO/email core surfaces, release gates, and UltraQA pass. |
 | Full migration complete | Cloudflare app runtime complete plus provider exports, provider downgrade/cancel or accepted retained-free posture, post-exit smoke, non-owner Google proof, recipient mailbox proof, and state/ledger updates. |
 | Near-complete | App runtime green, but provider exit or external-persona proof remains open. |
 | Blocked | A required provider/browser/account action cannot be completed and no safe alternate proof exists. |
@@ -857,15 +882,23 @@ Residual risk:
 - Strict hosted p95 remains a watch item if it is still red in the workbook.
 ```
 
-If provider exit remains unexecuted, use this wording:
+If latest deploy/source smoke is proven but provider exit remains unexecuted,
+use this wording:
 
 ```text
 Cloudflare app runtime is complete for closed-beta operation, but full provider account exit is still pending. The remaining work is provider exports/downgrade/cancel/post-exit smoke, plus any explicitly listed external-persona proof.
 ```
 
+If latest deploy/source smoke is still unproven, do not call the app runtime
+complete. Use the current readiness language instead:
+
+```text
+Cloudflare migration implementation has local proof/tooling coverage, but latest deployed-source smoke and provider exit remain open. The remaining work is latest-branch deploy/source evidence, provider exports/downgrade/cancel/post-exit smoke, plus any explicitly listed external-persona proof.
+```
+
 ## 10. Self-Review Checklist For This Handoff
 
-- [x] The plan states the exact current completion numbers and why the goal is not fully complete.
+- [x] The plan states the current readiness booleans, blocker counts, and why the goal is not fully complete.
 - [x] The plan names the remaining P1 gaps: non-owner Google, recipient mailbox, provider exit, p95 watch.
 - [x] The plan includes multiple agent/thread lanes with bounded scopes and outputs.
 - [x] The plan includes exact local and hosted verification commands from the current `package.json`.

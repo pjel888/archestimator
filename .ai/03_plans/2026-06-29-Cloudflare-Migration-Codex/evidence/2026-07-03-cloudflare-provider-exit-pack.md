@@ -2,9 +2,9 @@
 
 Status: **OPEN / NOT READY**
 
-Generated: `2026-07-03T10:41:40.108Z`
+Generated: `2026-07-03T14:46:59.752Z`
 
-App runtime exit prerequisites: **PASS**
+App runtime exit prerequisites: **OPEN**
 
 Provider exit ready: **OPEN**
 
@@ -19,15 +19,16 @@ Operator record template path: `.ai/03_plans/2026-06-29-Cloudflare-Migration-Cod
 | Gate | Result | Evidence | Blocker |
 | --- | --- | --- | --- |
 | Cloudflare release gates green | PASS | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-release-gates.json |  |
-| Cloudflare provider resources readable | PASS | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-provider-resource-readback.json |  |
+| Cloudflare provider resources readable | PASS | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-provider-resource-readback.json |  |
 | Cloudflare Email ready | PASS | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-email-readiness.json |  |
 | Hosted auth matrix ready | PASS | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-auth-synthetic-cookie-matrix.json |  |
 | No active Supabase/Vercel/Resend runtime dependency in scanned source | PASS | source scan |  |
+| Latest deploy source smoke ready | OPEN | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.json | Latest deployed-source smoke proof is missing, malformed, stale, or blocked. |
 | Provider exports or accepted-retention/accepted-loss decision recorded | OPEN | sanitized provider-exit operator record required | No repository evidence proves final exports are stored outside the repo or that accepted-retention/accepted-loss is recorded. |
 | Resend account/API-key/domain status recorded | OPEN | sanitized provider-exit operator record required | Cloudflare Email is ready, but Resend account/API-key/sending-domain status is not recorded. |
 | Obsolete provider secret removal/rotation recorded | OPEN | sanitized provider-exit operator record required | No evidence shows obsolete provider secrets were removed or rotated after exit decisions. |
 | Post-exit Cloudflare smoke recorded | OPEN | sanitized provider-exit operator record required | No post-exit smoke exists after provider export/retention/secret decisions. |
-| Real non-owner Google proof recorded | OPEN | sanitized provider-exit operator record required | No real non-owner Google account journey evidence is recorded. |
+| Real non-owner Google proof or accepted deferral recorded | OPEN | sanitized provider-exit operator record required | No real non-owner Google account journey evidence or accepted deferral is recorded. |
 | Real recipient mailbox proof or accepted deferral recorded | OPEN | sanitized provider-exit operator record required | No real recipient mailbox receipt proof or accepted deferral is recorded. |
 
 ## Operator Record Diagnostics
@@ -46,7 +47,7 @@ values from the provider-exit record.
 
 ## Active Legacy Provider Runtime Scan
 
-Scanned paths: `src`, `worker.ts`, `package.json`, `wrangler.jsonc`
+Scanned paths: `src`, `worker.ts`, `package.json`, `bun.lock`, `wrangler.jsonc`, `cloudflare-env.d.ts`, `next.config.ts`, `open-next.config.ts`, `src/middleware.ts`
 
 Blocker references: 0
 
@@ -85,11 +86,12 @@ themselves.
 
 ## Open Blockers
 
+- Latest deploy source smoke ready: Latest deployed-source smoke proof is missing, malformed, stale, or blocked.
 - Provider exports or accepted-retention/accepted-loss decision recorded: No repository evidence proves final exports are stored outside the repo or that accepted-retention/accepted-loss is recorded.
 - Resend account/API-key/domain status recorded: Cloudflare Email is ready, but Resend account/API-key/sending-domain status is not recorded.
 - Obsolete provider secret removal/rotation recorded: No evidence shows obsolete provider secrets were removed or rotated after exit decisions.
 - Post-exit Cloudflare smoke recorded: No post-exit smoke exists after provider export/retention/secret decisions.
-- Real non-owner Google proof recorded: No real non-owner Google account journey evidence is recorded.
+- Real non-owner Google proof or accepted deferral recorded: No real non-owner Google account journey evidence or accepted deferral is recorded.
 - Real recipient mailbox proof or accepted deferral recorded: No real recipient mailbox receipt proof or accepted deferral is recorded.
 
 ## Boundary

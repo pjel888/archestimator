@@ -23,16 +23,40 @@ gates:
 - Release gates, provider-resource readback, Cloudflare Email readiness, hosted
   auth synthetic matrix, active legacy-provider runtime scan, provider-exit pack
   generation, broad local DOM, and final static UltraQA evidence are current.
+- Independent native code-review evidence
+  `evidence/2026-07-03-codex-independent-proof-tooling-code-review.*` reports
+  no scoped proof-tooling findings and no remaining safe local fixes; it does
+  not replace external deploy/source, provider/operator, browser/persona,
+  mailbox, staging, commit, or production proof.
 - The strict hosted public p95 miss remains visible as a watch item, not hidden
   as a release blocker.
-- Latest-branch deploy/source smoke remains incomplete because the latest
-  recorded production deploy proof predates the checked-in
-  `AuthStateMismatchRecoveryScript` warning fix.
+- Latest-branch deploy/source smoke remains incomplete and is now a generated
+  provider-exit pack gate:
+  `evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.*` reports
+  `latestDeploySourceSmokeReady=false`.
+- A sanitized starter artifact for the future deploy/source evidence lane now
+  exists at
+  `evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.template.json`.
+  It is intentionally not proof; unchanged, the checker keeps it open because
+  production-version, hosted-route, and release-gate fields are placeholders.
 - Full provider exit remains `OPEN / NOT READY` because the sanitized operator
-  record is absent and six external/operator gates remain: final exports or
+  record is absent and the external/operator gates remain: final exports or
   accepted retention/loss, Resend status, obsolete-secret cleanup, post-exit
   Cloudflare smoke, real non-owner Google proof, and real recipient mailbox
-  proof or accepted deferral.
+  proof or accepted deferral. The active provider-exit pack generated
+  `2026-07-03T14:46:59.752Z` also requires sanitized evidence-source pointers
+  for external/provider gate closure, records malformed proof-artifact JSON
+  as explicit `parseError` blockers, and scans deploy-relevant runtime config
+  files in addition to `src`, `worker.ts`, `package.json`, `bun.lock`, and
+  `wrangler.jsonc`.
+  It also reads the current `2026-07-01` provider-resource readback artifact
+  and labels the non-owner Google gate as proof or accepted deferral.
+  With the deploy/source gate added, the active provider-exit pack has seven
+  blockers and `appRuntimeExitPrerequisitesReady=false`. The latest proof
+  scripts also have
+  explicit strict verifier mode (`STRICT_READINESS_EXIT=1` or
+  `FAIL_ON_BLOCKERS=1`) so blocked readiness can produce a nonzero CLI exit
+  after JSON/Markdown artifacts are written.
 
 Do not use this plan pack as a completed-migration claim until Doc 37's "Full
 migration complete" row is satisfied or the external/persona/mailbox gates are

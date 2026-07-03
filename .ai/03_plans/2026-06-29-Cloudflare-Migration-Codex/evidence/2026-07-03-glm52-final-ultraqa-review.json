@@ -1,7 +1,7 @@
 {
   "schema": "archestimator-cloudflare-migration-ultraqa-static-review/v1",
-  "generatedAt": "2026-07-03T10:53:32Z",
-  "reviewMode": "static-local-plus-prior-independent-verifier-and-current-codex-refresh",
+  "generatedAt": "2026-07-03T14:46:59Z",
+  "reviewMode": "static-local-plus-prior-independent-verifier-current-codex-refresh-focused-local-residual-refresh-and-doc37-scenario-matrix",
   "scope": {
     "planPack": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex",
     "question": "Has the Cloudflare migration plan pack been fully implemented, and are there missing safe local pieces?",
@@ -15,25 +15,41 @@
   "verdict": {
     "classification": "PARTIAL",
     "fullPlanImplemented": false,
-    "appRuntimeState": "Cloudflare closed-beta app runtime remains ready with no known P0 app-runtime blocker.",
+    "appRuntimeState": "Cloudflare closed-beta app runtime remains near-complete, but strict app-runtime completion is open until latest deploy/source smoke is ready.",
     "providerExitState": "OPEN / NOT READY",
-    "providerExitReason": "The provider-exit operator record is missing and six external/operator gates remain open."
+    "providerExitReason": "The latest deploy/source-smoke gate is open, the provider-exit operator record is missing, and six external/operator gates remain open."
   },
   "verifierEvidence": {
     "agentId": "019f26bd-bf23-7a23-aef1-545effc566a4",
     "nickname": "Galileo",
     "verificationMode": "independent-prior-pass-plus-current-same-agent-refresh",
     "verdict": "PARTIAL",
-    "summary": "The plan pack cannot honestly be called fully implemented. It can honestly be called Cloudflare closed-beta app-runtime ready with a provider-exit pack generated, but full migration/provider exit remains open.",
-    "currentRefreshGeneratedAt": "2026-07-03T10:53:32Z",
+    "summary": "The plan pack cannot honestly be called fully implemented. It can honestly be called near-complete for Cloudflare app runtime, but strict app-runtime completion and full migration/provider exit remain open.",
+    "currentRefreshGeneratedAt": "2026-07-03T14:46:59Z",
     "evidenceReported": [
-      "AGENTS.md, current-state.md, and plan docs 35/36/37 preserve the app-runtime-ready but provider-exit-open boundary.",
-      "2026-07-03-cloudflare-provider-exit-pack.md/json reports OPEN / NOT READY, missing operator record, and six blockers.",
+      "AGENTS.md, current-state.md, and plan docs 35/36/37 preserve the near-complete app-runtime but provider-exit-open boundary.",
+      "2026-07-03-cloudflare-provider-exit-pack.md/json generatedAt=2026-07-03T14:46:59.752Z reports OPEN / NOT READY, appRuntimeExitPrerequisitesReady=false, missing operator record, seven blockers, deploy-relevant source/config scan paths including bun.lock and src/middleware.ts, and current 2026-07-01 provider-resource readback evidence.",
       "git status / git diff inspection found a broad dirty tree, including untracked provider-exit artifacts and auth-audit plan files.",
-      "Current refresh confirms release gates generatedAt=2026-07-03T10:35:33.942Z with blockers empty; hosted auth matrix cleanup counts are zero; Cloudflare Email generatedAt=2026-07-03T10:41:35.143Z; workbook keeps strictHostedClientP95Ready=false.",
-      "git diff --check passed before this artifact write.",
-      "Scoped secret/raw-export scan over Cloudflare migration evidence and the untracked auth audit plan found no PEM, JWT, or API-key-shaped leaks; two hits were redacted cookie examples and one SQL hit was a D1 component taxonomy seed, not a provider export."
+      "Current refresh confirms release gates generatedAt=2026-07-03T10:35:33.942Z with blockers empty; hosted auth matrix cleanup counts are zero; Cloudflare Email generatedAt=2026-07-03T10:41:35.143Z; latest deploy/source-smoke generatedAt=2026-07-03T14:46:55.585Z remains open with two deploy-source evidence blockers and no deploy-relevant dirty runtime source paths; workbook keeps strictHostedClientP95Ready=false.",
+      "Focused latest-deploy/source-smoke plus provider-exit Vitest passed 2 test files / 32 tests / 0 failed after evidence-source, parse-error, strict-readiness-exit, provider-exit scan-surface/filesystem scanner, bun.lock scan coverage, accepted-deferral, deployed-commit mismatch, deployment-time Markdown, and default provider-resource path hardening; the JSON reporter for that run records 4 suites; scoped ESLint passed.",
+      "Focused local QA-R2/QA-SHARE residual refresh passed 12 suites / 96 tests / 0 failed via /tmp/archestimator-cloudflare-ultraqa-residual-refresh-20260703-rerun.json.",
+      "Scoped secret-shaped scan over the regenerated proof artifacts found no PEM, JWT, API-key, bearer-token, GitHub-token, OpenAI-key, or Resend-key shaped leaks."
     ]
+  },
+  "postReviewEvidence": {
+    "recordedAt": "2026-07-03T15:15:57Z",
+    "artifact": "evidence/2026-07-03-codex-independent-proof-tooling-code-review.json",
+    "reviewer": {
+      "agentId": "019f2884-6b36-7e41-9d2c-64294dad8a3d",
+      "nickname": "Hilbert",
+      "agentType": "code-reviewer"
+    },
+    "verificationMode": "independent-native-subagent",
+    "result": "PASS_NO_FINDINGS",
+    "findingCount": 0,
+    "safeLocalFixesStillNeeded": false,
+    "classificationImpact": "No change: PARTIAL, fullPlanImplemented=false, providerExitState=OPEN / NOT READY.",
+    "boundary": "Read-only code-review evidence over local proof tooling and ledgers; no deploy, provider mutation, browser automation, secret read, staging, or commit."
   },
   "leadStaticChecks": [
     {
@@ -42,19 +58,20 @@
       "result": "PASS_FOR_OPEN_STATUS",
       "evidence": {
         "file": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-provider-exit-pack.json",
-        "generatedAt": "2026-07-03T10:41:40.108Z",
-        "appRuntimeExitPrerequisitesReady": true,
+        "generatedAt": "2026-07-03T14:46:59.752Z",
+        "appRuntimeExitPrerequisitesReady": false,
         "providerExitReady": false,
         "operatorRecordPresent": false,
         "readinessPath": "readiness.appRuntimeExitPrerequisitesReady / readiness.providerExitReady",
         "operatorRecordPath": "artifacts.operatorRecord.present",
         "legacyBlockerCount": 0,
         "blockers": [
+          "Latest deploy source smoke ready.",
           "Provider exports or accepted-retention/accepted-loss decision recorded.",
           "Resend account/API-key/domain status recorded.",
           "Obsolete provider secret removal/rotation recorded.",
           "Post-exit Cloudflare smoke recorded.",
-          "Real non-owner Google proof recorded.",
+          "Real non-owner Google proof or accepted deferral recorded.",
           "Real recipient mailbox proof or accepted deferral recorded."
         ]
       }
@@ -65,6 +82,9 @@
       "result": "PASS",
       "evidence": {
         "scanned": [
+          ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.json",
+          ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.md",
+          ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.template.json",
           ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-provider-exit-operator-record.template.json",
           ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-provider-exit-pack.json",
           ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-provider-exit-pack.md"
@@ -75,9 +95,9 @@
     },
     {
       "id": "LSC-003",
-      "check": "Provider-exit pack script regression",
+      "check": "Latest deploy/source-smoke plus provider-exit script regression",
       "result": "PASS",
-      "evidence": "`bunx vitest run tests/vitest/provider-exit-pack-script.test.ts --maxWorkers=1` passed 1 file / 6 tests; scoped ESLint for the provider-exit script/test passed."
+      "evidence": "`bunx vitest run tests/vitest/cloudflare-latest-deploy-source-smoke-script.test.ts tests/vitest/provider-exit-pack-script.test.ts --maxWorkers=1 --reporter=json --outputFile=/tmp/archestimator-provider-exit-proof-coverage-20260703-lockfile.json` passed 2 test files / 32 tests / 0 failed after malformed proof-artifact, strict-readiness CLI exit, provider-exit scan-surface/filesystem scanner, bun.lock scan coverage, accepted-deferral, deployed-commit mismatch, deployment-time Markdown, and default provider-resource path regressions were covered; the JSON reporter records 4 suites; scoped ESLint for both scripts/tests passed."
     },
     {
       "id": "LSC-004",
@@ -121,79 +141,226 @@
         "testsFailed": 0,
         "scope": "Local DOM regression evidence only; not provider, deploy, mailbox, or persona proof."
       }
+    },
+    {
+      "id": "LSC-007",
+      "check": "Local R2/share residual refresh",
+      "result": "PASS",
+      "evidence": {
+        "command": "bunx vitest run tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/cloudflare-r2-storage-provider.test.ts tests/vitest/share-no-store-invariants.test.ts tests/vitest/share/share-page-get-routes-contract.test.ts tests/vitest/shared-link-header-smoke-script.test.ts tests/vitest/project-publication-security-headers.test.ts --maxWorkers=1 --reporter=json --outputFile=/tmp/archestimator-cloudflare-ultraqa-residual-refresh-20260703-rerun.json",
+        "suitesPassed": 12,
+        "suitesTotal": 12,
+        "testsPassed": 96,
+        "testsTotal": 96,
+        "testsFailed": 0,
+        "scope": "Local automated QA-R2-002 and QA-SHARE-002 evidence only; not hosted browser, provider, deploy, mailbox, or persona proof."
+      }
+    },
+    {
+      "id": "LSC-008",
+      "check": "Independent proof-tooling code review",
+      "result": "PASS_NO_FINDINGS",
+      "evidence": {
+        "file": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-codex-independent-proof-tooling-code-review.json",
+        "generatedAt": "2026-07-03T15:10:50Z",
+        "reviewer": "Hilbert (019f2884-6b36-7e41-9d2c-64294dad8a3d)",
+        "findingCount": 0,
+        "safeLocalFixesStillNeeded": false,
+        "scope": "Read-only review of local proof tooling, evidence, and ledger freshness. It does not replace external deploy/source, provider, browser, mailbox, persona, staging, commit, or production proof."
+      }
     }
   ],
   "scenarioMatrix": [
     {
-      "id": "ADV-001",
-      "scenario": "Dirty worktree during QA",
+      "id": "QA-AUTH-001",
+      "scenario": "Exact https://archestimator.com/?error=state_mismatch",
+      "result": "PASS_EXISTING_EVIDENCE",
+      "evidence": "Doc 36 records 302 to /login?next=%2Fworkshop&oauth_state_reset=1, state cookies cleared, no visible raw state_mismatch, and login restart available.",
+      "note": "Not rerun in this pass; accepted as current existing hosted evidence."
+    },
+    {
+      "id": "QA-AUTH-002",
+      "scenario": "Owner production Google OAuth",
+      "result": "PASS_EXISTING_BROWSER_EVIDENCE",
+      "evidence": "evidence/2026-07-02-production-google-oauth-real-browser-proof.*",
+      "note": "No new browser automation was run in this pass."
+    },
+    {
+      "id": "QA-AUTH-003",
+      "scenario": "Local http://localhost:3000 Google OAuth",
+      "result": "PASS_EXISTING_BROWSER_EVIDENCE",
+      "evidence": "evidence/2026-07-02-local-dev-google-oauth-real-browser-proof.*",
+      "note": "Local D1 user/account/session/terms readback was previously recorded."
+    },
+    {
+      "id": "QA-AUTH-004",
+      "scenario": "127.0.0.1 local login attempt",
+      "result": "PASS_BOUNDARY_RECORDED",
+      "evidence": "Doc 36 records localhost as the canonical local proof host and rejects 127.0.0.1 as substitute proof.",
+      "note": "Boundary documentation only; no browser rerun."
+    },
+    {
+      "id": "QA-AUTH-005",
+      "scenario": "Non-owner Google",
+      "result": "OPEN_EXTERNAL_PERSONA_GATE",
+      "evidence": "Provider-exit pack blocker: Real non-owner Google proof or accepted deferral recorded.",
+      "note": "Requires real non-owner Google persona/session evidence or accepted deferral."
+    },
+    {
+      "id": "QA-AUTH-006",
+      "scenario": "Revoked/expired/missing closed-beta session",
+      "result": "PASS_HOSTED_SYNTHETIC_EVIDENCE",
+      "evidence": "evidence/2026-07-02-cloudflare-hosted-auth-synthetic-cookie-matrix.* generated 2026-07-03T10:32:07.954Z with signedOut/allowed/denied/revoked/expired/malformed cases and cleanup counts zero.",
+      "note": "Direct hosted-auth helper still needs HOSTED_AUTH_* fixtures for real-cookie operator runs."
+    },
+    {
+      "id": "QA-EMAIL-001",
+      "scenario": "Magic link real mailbox",
+      "result": "PASS_EXISTING_MAILBOX_EVIDENCE",
+      "evidence": "evidence/2026-07-01-cloudflare-magic-link-ui-mailbox-proof.* and Cloudflare Email readiness generatedAt=2026-07-03T10:41:35.143Z.",
+      "note": "Rerun if auth/email code or provider secret posture changes."
+    },
+    {
+      "id": "QA-EMAIL-002",
+      "scenario": "Recipient invite real mailbox",
+      "result": "OPEN_MAILBOX_GATE",
+      "evidence": "Provider-exit pack blocker: Real recipient mailbox proof or accepted deferral recorded.",
+      "note": "Requires real recipient mailbox receipt and recipient-scoped action proof, or owner-accepted deferral."
+    },
+    {
+      "id": "QA-DATA-001",
+      "scenario": "Estimate row edit/idempotency",
+      "result": "PASS_EXISTING_HOSTED_EVIDENCE",
+      "evidence": "Doc 36 accepts unchanged hosted estimate mutation proof from the 2026-07-02 project/estimate proof set.",
+      "note": "Rerun before final provider-exit smoke if related source changes."
+    },
+    {
+      "id": "QA-DATA-002",
+      "scenario": "Cross-workspace write attempt",
+      "result": "PASS_EXISTING_DENIAL_EVIDENCE",
+      "evidence": "Doc 36 records previously green hosted denial/security evidence and repaired D1/action-client test slices.",
+      "note": "No new hosted mutation was run in this pass."
+    },
+    {
+      "id": "QA-R2-001",
+      "scenario": "Upload UI and cleanup",
+      "result": "PASS_EXISTING_HOSTED_EVIDENCE",
+      "evidence": "evidence/2026-07-02-cloudflare-hosted-upload-ui-proof.*",
+      "note": "Hosted upload UI, R2 checksum, D1 session/asset/event readback, app cleanup, and R2 cleanup were previously recorded."
+    },
+    {
+      "id": "QA-R2-002",
+      "scenario": "Bad file type/oversize/path traversal",
+      "result": "PASS_LOCAL_ADVERSARIAL_SECURITY_REFRESH",
+      "evidence": "Focused refresh passed tests/vitest/auth-sensitive-api-boundaries.test.ts and tests/vitest/cloudflare-r2-storage-provider.test.ts, covering oversized image rejection before auth/body/storage work, MIME/magic mismatch rejection before storage writes/upload records, owned-path-only project image deletion, malformed private image path fail-closed/no-store behavior, and unsafe R2 bucket/path rejection before R2 calls.",
+      "note": "Local automated proof only; rerun hosted smoke after final deploy/provider-exit work."
+    },
+    {
+      "id": "QA-DO-001",
+      "scenario": "Two-client collaboration",
+      "result": "PASS_EXISTING_HOSTED_EVIDENCE",
+      "evidence": "evidence/2026-07-02-cloudflare-hosted-collaboration-ui-proof.*",
+      "note": "Rerun if collaboration/DO source changes before final smoke."
+    },
+    {
+      "id": "QA-SHARE-001",
+      "scenario": "Invalid share token",
+      "result": "PASS_HOSTED_SENSITIVE_ROUTE_EVIDENCE",
+      "evidence": "Hosted sensitive-route fail-closed proof passed for invalid share/private image probes.",
+      "note": "Recorded in current-state and Doc 36."
+    },
+    {
+      "id": "QA-SHARE-002",
+      "scenario": "Public share cache safety",
+      "result": "PASS_LOCAL_ROUTE_CACHE_REFRESH",
+      "evidence": "Focused refresh passed tests/vitest/share-no-store-invariants.test.ts, tests/vitest/share/share-page-get-routes-contract.test.ts, tests/vitest/shared-link-header-smoke-script.test.ts, and tests/vitest/project-publication-security-headers.test.ts, covering no-store/dynamic share API invariants, share GET route cache headers, hosted shared-link header parsing, and publication security header config.",
+      "note": "Local automated proof only; it does not replace hosted browser/provider smoke for final provider exit."
+    },
+    {
+      "id": "QA-PERF-001",
+      "scenario": "Strict p95 red with release gate green",
+      "result": "PASS_WATCH_VISIBLE",
+      "evidence": "Hosted performance generatedAt=2026-07-03T10:32:52.047Z and workbook generatedAt=2026-07-03T10:32:56.734Z keep strictHostedClientP95Ready=false for /terms at 564.56ms against 300ms.",
+      "note": "Release gates remain green while strict p95 stays visible as a watch item."
+    },
+    {
+      "id": "QA-PROVIDER-001",
+      "scenario": "Supabase removed from runtime",
+      "result": "PASS_ACTIVE_SOURCE_SCAN",
+      "evidence": "Provider-exit pack generatedAt=2026-07-03T14:46:59.752Z reports activeLegacyProviderRuntimeBlockers=0, scannedPaths includes deploy-relevant source/config files including bun.lock and src/middleware.ts, and provider-resource evidence points to the current 2026-07-01 readback artifact.",
+      "note": "Historical migration artifacts remain allowed; active runtime blockers are zero."
+    },
+    {
+      "id": "QA-PROVIDER-002",
+      "scenario": "Vercel removed from runtime",
+      "result": "OPEN_PROVIDER_EXIT_GATE",
+      "evidence": "Provider-exit pack keeps full provider exit open; no post-downgrade/cancel DNS/provider smoke was run in this pass.",
+      "note": "Requires provider-exit operator record and post-exit Cloudflare smoke."
+    },
+    {
+      "id": "QA-PROVIDER-003",
+      "scenario": "Resend removed from runtime",
+      "result": "PARTIAL_OPEN_PROVIDER_STATUS",
+      "evidence": "Cloudflare Email readiness is READY, but provider-exit pack blocker remains: Resend account/API-key/domain status recorded.",
+      "note": "Requires sanitized Resend status and evidence-source pointers; no API key values."
+    },
+    {
+      "id": "QA-SEC-001",
+      "scenario": "Secrets in repo/evidence",
+      "result": "PASS_SCOPED_SCAN",
+      "evidence": "Scoped secret-shaped scan over regenerated proof artifacts returned no matches.",
+      "note": "This is not a full-repository secret audit."
+    },
+    {
+      "id": "QA-WORKTREE-001",
+      "scenario": "Dirty worktree",
       "result": "PASS_WITH_CAUTION",
-      "note": "Existing user/agent edits were preserved; this pass adds only static evidence/ledger updates."
+      "evidence": "git status shows intentional modified/untracked Cloudflare evidence/tooling files; unrelated work was preserved.",
+      "note": "No staging, commit, reset, clean, checkout, or destructive operation was performed."
     },
     {
-      "id": "ADV-002",
-      "scenario": "Provider-exit pack masks missing operator gates",
+      "id": "QA-SCRIPT-001",
+      "scenario": "Misleading success output",
       "result": "PASS",
-      "note": "The pack remains OPEN / NOT READY without the sanitized operator record and enumerates all six blockers."
+      "evidence": "Focused Vitest covers stale deploy/source smoke, missing operator record, missing evidence-source pointers, malformed proof-artifact JSON parse errors, provider-exit open status, default non-fatal artifact generation, and strict nonzero exit when blockers remain; JSON blockers/readiness are parsed directly.",
+      "note": "Latest focused run passed 2 test files / 32 tests / 0 failed; its JSON reporter records 4 suites."
     },
     {
-      "id": "ADV-003",
-      "scenario": "Active legacy provider runtime dependency remains",
-      "result": "PASS_FOR_ACTIVE_RUNTIME_SCAN",
-      "note": "Provider-exit pack reports zero blocker-level active Supabase/Vercel/Resend runtime dependencies; informational Resend lexical references remain visible."
-    },
-    {
-      "id": "ADV-004",
-      "scenario": "Evidence leaks secrets or raw provider exports",
-      "result": "PASS_FOR_SCOPED_SCAN",
-      "note": "No secret-shaped findings were found in the new provider-exit pack artifacts. This is not a full-repository secret audit."
-    },
-    {
-      "id": "ADV-005",
-      "scenario": "Script success masks failure",
-      "result": "PASS",
-      "note": "Provider-exit tests prove missing operator evidence keeps the pack open instead of reporting final readiness."
-    },
-    {
-      "id": "ADV-006",
-      "scenario": "External proof gates are still missing",
-      "result": "OPEN_EXTERNAL_GATE",
-      "note": "Non-owner Google, recipient mailbox, export/retention, Resend status, obsolete-secret cleanup, and post-exit smoke require operator/provider/persona evidence."
-    },
-    {
-      "id": "ADV-007",
-      "scenario": "Latest deploy/source proof is current",
-      "result": "OPEN_DEPLOY_GATE",
-      "note": "No deploy or hosted browser smoke was run in this pass. Latest recorded production deploy proof is Worker d47bcd1d-37f0-41e3-864a-05a90b28518b at 2026-07-02T04:31:00Z; the checked-in AuthStateMismatchRecoveryScript warning fix landed later in commit cdf74b72d at 2026-07-02T14:02:31Z, so latest-branch deploy/smoke remains open."
-    },
-    {
-      "id": "ADV-008",
-      "scenario": "Stale artifact claims after 10:41 provider-exit refresh",
-      "result": "PASS_AFTER_REFRESH",
-      "note": "This artifact now points at the 2026-07-03T10:41:40.108Z provider-exit pack, the 2026-07-03T10:35:33.942Z release gates, and the current Doc 37 deploy-source watch."
+      "id": "QA-OPS-001",
+      "scenario": "Provider cancellation rollback",
+      "result": "OPEN_PROVIDER_EXIT_GATE",
+      "evidence": "Provider-exit pack requires final exports/accepted-retention/loss, rollback decision, obsolete-secret handling, and post-exit smoke before closure.",
+      "note": "No destructive provider action was attempted."
     }
   ],
   "remainingBlockers": [
+    "Latest deploy/source smoke proof.",
     "Final exports/backups or accepted retention/loss decision.",
     "Resend account, API-key, and domain status.",
     "Obsolete provider secret removal or rotation record.",
     "Post-exit Cloudflare smoke after provider actions.",
     "Real non-owner Google proof.",
-    "Real recipient mailbox proof or accepted deferral.",
-    "Latest-branch deploy/smoke proof if required before final provider-exit closure."
+    "Real recipient mailbox proof or accepted deferral."
   ],
   "knownLocalGaps": [
-    "Broad DOM is locally green after later test-maintenance repairs, but this is local test evidence only and does not prove provider exit, deploy currency, real mailbox delivery, or non-owner Google behavior.",
+    "Broad DOM and the formerly residual QA-R2-002 / QA-SHARE-002 rows are locally green after test-maintenance/security-cache refreshes, but this is local test evidence only and does not prove provider exit, deploy currency, real mailbox delivery, non-owner Google behavior, or hosted browser/provider smoke.",
+    "Latest deploy/source smoke is still open after package/lockfile precision hardening; the remaining blockers are missing deployed git source commit and deployment timestamp older than current HEAD.",
     "Provider-exit artifacts and this UltraQA evidence are local working-tree evidence until committed.",
-    "This pass did not perform provider actions, browser proof, deploys, or a full-repository secret audit."
+    "This pass did not perform provider actions, browser proof, deploys, hosted reruns, or a full-repository secret audit."
   ],
   "filesAdded": [
     ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-glm52-final-ultraqa-review.json",
     ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-glm52-final-ultraqa-review.md"
   ],
   "filesUpdated": [
+    ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/30_COMPLETION_AUDIT.md",
+    ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/35_PROVIDER_EXIT_AND_FINAL_PROOF_RUNBOOK.md",
     ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/36_COMPREHENSIVE_FOLLOWUP_QA_LEDGER.md",
     ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/37_GLM52_CLOUDFLARE_MIGRATION_HANDOFF.md",
+    ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-migration-implementation-completion-audit.json",
+    ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-migration-implementation-completion-audit.md",
+    ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-provider-exit-pack.json",
+    ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-provider-exit-pack.md",
     ".ai/10_state/current-state.md"
   ]
 }

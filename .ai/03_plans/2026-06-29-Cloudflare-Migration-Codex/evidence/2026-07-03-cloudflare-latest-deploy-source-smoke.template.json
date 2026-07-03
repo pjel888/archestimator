@@ -1,0 +1,76 @@
+{
+  "generatedAt": "2026-07-03T14:46:55.585Z",
+  "mode": "cloudflare-latest-deploy-source-smoke-template",
+  "boundary": {
+    "purpose": "Starter artifact for sanitized post-deploy source and smoke evidence. Fill it only after deploying or promoting the current source and rerunning hosted-route and release-gate checks.",
+    "forbiddenMaterials": [
+      "raw cookies",
+      "session tokens",
+      "OAuth credentials",
+      "API keys",
+      "environment file contents",
+      "database dumps",
+      "raw provider logs"
+    ],
+    "allowedEvidence": [
+      "git commit hash",
+      "Worker name",
+      "Cloudflare Worker production version id",
+      "Cloudflare Worker production version number",
+      "production traffic percentage",
+      "deployment timestamp",
+      "sanitized hosted-route proof summary",
+      "sanitized release-gate proof summary"
+    ]
+  },
+  "source": {
+    "gitCommit": "ddbc9ac414c5faa11232fc194ed8094782afaee3",
+    "committedAt": "2026-07-03T19:13:24+08:00",
+    "subject": "docs(cloudflare-migration): add implementation completion audit evidence",
+    "runtimeSourceStatusPaths": [
+      "src",
+      "worker.ts",
+      "package.json",
+      "bun.lock",
+      "wrangler.jsonc",
+      "cloudflare-env.d.ts",
+      "next.config.ts",
+      "open-next.config.ts",
+      "src/middleware.ts"
+    ],
+    "workingTreeCleanForRuntimeSourcePaths": true,
+    "dirtyRuntimeSourcePaths": []
+  },
+  "worker": null,
+  "productionVersion": {
+    "id": null,
+    "number": null,
+    "trafficPercent": null,
+    "deployedAt": null
+  },
+  "hostedRouteProof": {
+    "command": "bun run cf:verify-hosted-routes",
+    "passed": false,
+    "routeContractReady": false,
+    "hostedRouteProofReady": false,
+    "blockers": [
+      "Replace this template section with sanitized post-deploy hosted-route proof."
+    ]
+  },
+  "releaseGates": {
+    "command": "bun run cf:release-gates",
+    "productionCutoverReady": false,
+    "blockers": [
+      "Replace this template section with sanitized post-deploy release-gate proof."
+    ]
+  },
+  "operatorInstructions": [
+    "Commit or otherwise settle deploy-relevant local source changes before deployment.",
+    "Deploy or promote the source commit recorded at source.gitCommit.",
+    "Record the resulting 100% production Worker version fields without copying provider secrets or raw logs.",
+    "Rerun hosted-route and release-gate checks after deployment and paste only sanitized boolean/blocker summaries.",
+    "Run bun run cf:check-latest-deploy-source-smoke against the completed evidence artifact.",
+    "Do not treat this template as proof until latestDeploySourceSmokeReady=true with zero blockers."
+  ],
+  "note": "Non-destructive latest deploy/source-smoke evidence check. This script reads sanitized deployment evidence and local git metadata only. It does not read .env files, print secrets, deploy Workers, change DNS, rotate secrets, cancel providers, mutate data, or prove browser/manual/provider-exit gates."
+}

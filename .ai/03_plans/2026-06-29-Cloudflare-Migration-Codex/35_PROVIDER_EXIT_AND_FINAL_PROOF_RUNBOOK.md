@@ -33,21 +33,31 @@ closed.
 
 2026-07-03 non-destructive provider-exit pack:
 `evidence/2026-07-03-cloudflare-provider-exit-pack.*` now records that app
-runtime exit prerequisites are ready: release gates, Cloudflare provider
+runtime exit prerequisites are not yet ready for strict completion because the
+latest deploy/source-smoke gate is open. Release gates, Cloudflare provider
 resource readback, Cloudflare Email readiness, hosted auth matrix, and active
-legacy-provider runtime scan all pass. It intentionally keeps full provider
-exit `OPEN / NOT READY` because final exports or accepted-retention/loss
-decision, Resend account/API-key/domain status, obsolete-secret
-removal/rotation, post-exit Cloudflare smoke, non-owner Google proof, and real
-recipient mailbox proof or accepted deferral remain unproven.
+legacy-provider runtime scan all pass, but the latest deploy evidence does not
+record the deployed git commit and predates current `HEAD`. Proof-tooling-only
+`package.json` script additions are filtered from runtime dirtiness; `bun.lock`
+and package dependency/build/runtime changes still block. It intentionally keeps full
+provider exit `OPEN / NOT READY` because latest deploy/source smoke, final
+exports or accepted-retention/loss decision, Resend account/API-key/domain
+status, obsolete-secret removal/rotation, post-exit Cloudflare smoke,
+non-owner Google proof, and real recipient mailbox proof or accepted deferral
+remain unproven.
 
-The latest pack was regenerated at `2026-07-03T10:41:40.108Z` after refreshing
-non-destructive hosted route, hosted performance, hosted auth matrix,
-provider-resource readback, Cloudflare Email readiness, workbook, and release
-gate evidence. No real operator record is present yet, so provider exit
-remains open. Credential-free hosted performance and release gates remain
-blocker-free for app runtime; strict public p95 stayed a watch item, not a
-provider-exit blocker.
+The latest pack was regenerated at `2026-07-03T14:46:59.752Z` after refreshing
+the latest deploy/source-smoke artifact at `2026-07-03T14:46:55.585Z`,
+tightening the operator template's sanitized evidence-source requirements,
+hardening proof-artifact JSON parse handling, ignoring proof-tooling-only
+`package.json` script additions as runtime dirtiness, and widening the active
+legacy-provider runtime scan to deploy-relevant source/config files including
+`bun.lock` and `src/middleware.ts`. No real
+operator record is present yet, so provider exit remains open. This refresh
+also consumes the current `2026-07-01` provider-resource readback artifact and
+labels non-owner Google closure as real proof or accepted deferral.
+Credential-free hosted performance and release gates remain blocker-free for
+app runtime; strict public p95 stayed a watch item, not a provider-exit blocker.
 
 ## Sanitized Operator Record
 
@@ -76,19 +86,30 @@ are present:
 
 - `finalExportsOrRetentionDecision`: `status: "recorded"`, decision
   `exported`, `accepted-retention`, or `accepted-loss`, an `acceptedBy` value,
-  and a rollback decision. Exported decisions also need a non-secret backup
-  location description.
-- `resendStatus`: recorded account plan, API-key, sending-domain, and evidence
+  a sanitized `evidenceSource`, and a rollback decision. Exported decisions
+  also need a non-secret backup location description.
+- `resendStatus`: recorded account plan, account evidence source, API-key
+  status, API-key evidence source, sending-domain status, and domain evidence
   source summaries.
 - `obsoleteSecretRotation`: recorded Cloudflare secret-name review, obsolete
-  secret removal/rotation, and `secretValuesNotRecorded: true`.
+  secret removal/rotation, `secretValuesNotRecorded: true`, and a sanitized
+  `evidenceSource`.
 - `postExitSmoke`: recorded smoke timestamp, command list, and
-  `cloudflareSmokePassed: true`.
+  `cloudflareSmokePassed: true`, plus a sanitized `evidenceSource`.
 - `nonOwnerGoogleProof`: recorded non-owner outcome and evidence source with
   no credentials/cookies recorded, or an explicitly accepted deferral.
 - `recipientMailboxProofOrDeferral`: recorded mailbox receipt plus
-  recipient-scoped action proof with no private mailbox content recorded, or an
-  explicitly accepted deferral.
+  recipient-scoped action proof with no private mailbox content recorded and a
+  sanitized `evidenceSource`, or an explicitly accepted deferral.
+
+For the latest deploy/source-smoke gate, run
+`bun run cf:latest-deploy-source-smoke-template` to write the starter template:
+
+`evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.template.json`
+
+This template is not proof. It records the current source commit and keeps the
+production-version, hosted-route, and release-gate proof fields open until a
+real current-source deploy or promote path and post-deploy smoke fills them.
 
 ## Hard Rules
 
