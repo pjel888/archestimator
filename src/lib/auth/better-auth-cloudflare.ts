@@ -194,6 +194,7 @@ export function resolveCloudflareBetterAuthSocialProviders(env: Record<string, s
     google: {
       clientId: googleClientId,
       clientSecret: googleClientSecret,
+      prompt: "select_account",
     },
   };
 }

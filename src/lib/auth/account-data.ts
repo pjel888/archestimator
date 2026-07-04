@@ -1,3 +1,8 @@
+import {
+  canManageWorkspaceAccountRole,
+  type WorkspaceAccountRole,
+} from "@/lib/auth/roles";
+
 type Option<Value extends string> = {
   value: Value;
   label: string;
@@ -57,7 +62,7 @@ export type UserCategory = (typeof USER_CATEGORY_OPTIONS)[number]["value"];
 export type OrganizationType = (typeof ORGANIZATION_TYPE_OPTIONS)[number]["value"];
 export type PrimaryUse = (typeof PRIMARY_USE_OPTIONS)[number]["value"];
 export type CompanySize = (typeof COMPANY_SIZE_OPTIONS)[number]["value"];
-export type WorkspaceAccountRole = "owner" | "admin" | "member" | "viewer";
+export type { WorkspaceAccountRole };
 
 export type ProfileSettingsPayload = {
   display_name: string;
@@ -333,7 +338,7 @@ export function parseWorkspaceSettingsSubmission(
 }
 
 export function canManageWorkspaceAccountSettings(role: WorkspaceAccountRole | null | undefined) {
-  return role === "owner" || role === "admin";
+  return canManageWorkspaceAccountRole(role);
 }
 
 function fieldName(name: string, options: ParseOptions) {

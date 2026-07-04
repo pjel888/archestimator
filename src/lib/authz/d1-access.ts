@@ -1,5 +1,6 @@
 import "server-only";
 
+import { isPlatformAdminRole } from "@/lib/auth/roles";
 import type { CurrentUserContext } from "@/lib/auth/session";
 import { type D1DatabaseLike } from "@/lib/cloudflare/d1";
 
@@ -21,11 +22,19 @@ export type D1EstimateRowItemAccessRow = {
 };
 
 function isPlatformAdmin(user: CurrentUserAccessContext) {
-  return user.role === "ceo" || user.role === "admin";
+  return isPlatformAdminRole(user.role);
 }
 
 function readAllowed(row: { allowed: number | boolean | null } | null) {
   return row?.allowed === true || row?.allowed === 1;
+}
+
+async function runAllowedProbe(operation: () => Promise<{ allowed: number | boolean | null } | null>) {
+  try {
+    return readAllowed(await operation());
+  } catch {
+    return false;
+  }
 }
 
 export async function readProjectFromD1(db: D1DatabaseLike, projectId: string) {
@@ -93,9 +102,10 @@ export async function canAccessProjectInD1(
   user: CurrentUserAccessContext,
 ) {
   if (isPlatformAdmin(user)) return true;
-  const row = await db
-    .prepare<{ allowed: number }>(
-      `
+  return runAllowedProbe(() =>
+    db
+      .prepare<{ allowed: number }>(
+        `
         SELECT 1 AS allowed
         FROM projects project
         WHERE project.id = ?
@@ -123,10 +133,10 @@ export async function canAccessProjectInD1(
           )
         LIMIT 1
       `,
-    )
-    .bind(projectId, user.userId, user.userId, user.userId, user.userId)
-    .first<{ allowed: number }>();
-  return readAllowed(row);
+      )
+      .bind(projectId, user.userId, user.userId, user.userId, user.userId)
+      .first<{ allowed: number }>(),
+  );
 }
 
 export async function canEditProjectInD1(
@@ -135,9 +145,10 @@ export async function canEditProjectInD1(
   user: CurrentUserAccessContext,
 ) {
   if (isPlatformAdmin(user)) return true;
-  const row = await db
-    .prepare<{ allowed: number }>(
-      `
+  return runAllowedProbe(() =>
+    db
+      .prepare<{ allowed: number }>(
+        `
         SELECT 1 AS allowed
         FROM projects project
         WHERE project.id = ?
@@ -161,10 +172,10 @@ export async function canEditProjectInD1(
           )
         LIMIT 1
       `,
-    )
-    .bind(projectId, user.userId, user.userId, user.userId)
-    .first<{ allowed: number }>();
-  return readAllowed(row);
+      )
+      .bind(projectId, user.userId, user.userId, user.userId)
+      .first<{ allowed: number }>(),
+  );
 }
 
 export async function canAccessEstimateInD1(
@@ -173,9 +184,10 @@ export async function canAccessEstimateInD1(
   user: CurrentUserAccessContext,
 ) {
   if (isPlatformAdmin(user)) return true;
-  const row = await db
-    .prepare<{ allowed: number }>(
-      `
+  return runAllowedProbe(() =>
+    db
+      .prepare<{ allowed: number }>(
+        `
         SELECT 1 AS allowed
         FROM estimates estimate
         JOIN projects project ON project.id = estimate.project_id
@@ -213,10 +225,10 @@ export async function canAccessEstimateInD1(
           )
         LIMIT 1
       `,
-    )
-    .bind(estimateId, user.userId, user.userId, user.userId, user.userId, user.userId)
-    .first<{ allowed: number }>();
-  return readAllowed(row);
+      )
+      .bind(estimateId, user.userId, user.userId, user.userId, user.userId, user.userId)
+      .first<{ allowed: number }>(),
+  );
 }
 
 export async function canEditEstimateInD1(
@@ -225,9 +237,10 @@ export async function canEditEstimateInD1(
   user: CurrentUserAccessContext,
 ) {
   if (isPlatformAdmin(user)) return true;
-  const row = await db
-    .prepare<{ allowed: number }>(
-      `
+  return runAllowedProbe(() =>
+    db
+      .prepare<{ allowed: number }>(
+        `
         SELECT 1 AS allowed
         FROM estimates estimate
         JOIN projects project ON project.id = estimate.project_id
@@ -268,10 +281,10 @@ export async function canEditEstimateInD1(
           )
         LIMIT 1
       `,
-    )
-    .bind(estimateId, user.userId, user.userId, user.userId, user.userId, user.userId)
-    .first<{ allowed: number }>();
-  return readAllowed(row);
+      )
+      .bind(estimateId, user.userId, user.userId, user.userId, user.userId, user.userId)
+      .first<{ allowed: number }>(),
+  );
 }
 
 export async function isWorkspaceEditorInD1(
@@ -280,9 +293,10 @@ export async function isWorkspaceEditorInD1(
   user: CurrentUserAccessContext,
 ) {
   if (isPlatformAdmin(user)) return true;
-  const row = await db
-    .prepare<{ allowed: number }>(
-      `
+  return runAllowedProbe(() =>
+    db
+      .prepare<{ allowed: number }>(
+        `
         SELECT 1 AS allowed
         FROM workspace_members workspace_member
         WHERE workspace_member.workspace_id = ?
@@ -290,10 +304,10 @@ export async function isWorkspaceEditorInD1(
           AND workspace_member.role IN ('owner', 'admin', 'member')
         LIMIT 1
       `,
-    )
-    .bind(workspaceId, user.userId)
-    .first<{ allowed: number }>();
-  return readAllowed(row);
+      )
+      .bind(workspaceId, user.userId)
+      .first<{ allowed: number }>(),
+  );
 }
 
 export async function isWorkspaceMemberInD1(
@@ -301,9 +315,10 @@ export async function isWorkspaceMemberInD1(
   workspaceId: string,
   user: CurrentUserAccessContext,
 ) {
-  const row = await db
-    .prepare<{ allowed: number }>(
-      `
+  return runAllowedProbe(() =>
+    db
+      .prepare<{ allowed: number }>(
+        `
         SELECT 1 AS allowed
         FROM workspace_members workspace_member
         WHERE workspace_member.workspace_id = ?
@@ -311,8 +326,8 @@ export async function isWorkspaceMemberInD1(
           AND workspace_member.role IN ('owner', 'admin', 'member')
         LIMIT 1
       `,
-    )
-    .bind(workspaceId, user.userId)
-    .first<{ allowed: number }>();
-  return readAllowed(row);
+      )
+      .bind(workspaceId, user.userId)
+      .first<{ allowed: number }>(),
+  );
 }

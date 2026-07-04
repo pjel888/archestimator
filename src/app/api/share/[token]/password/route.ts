@@ -9,10 +9,6 @@ import {
 import {
   assertSameOriginPublicPost,
   createPublicationAccessCookie,
-  getClientIp,
-  isPasswordLocked,
-  recordPasswordFailure,
-  recordPasswordSuccess,
 } from "@/lib/publication/security";
 import { logAppError } from "@/lib/observability/logger";
 import { after } from "next/server";
@@ -57,8 +53,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   const body = (await request.json().catch(() => ({}))) as { password?: string };
   const password = typeof body.password === "string" ? body.password : "";
 
-  const ip = getClientIp(request);
-
   const durableRateLimit = await checkProjectPublicationPasswordRateLimit({ token, request });
   if (!durableRateLimit.allowed) {
     await recordProjectPublicationEvent({
@@ -68,17 +62,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
       metadata: { success: false, reason: "locked" },
     });
     return rateLimitedResponse(durableRateLimit.message, durableRateLimit.retryAfter);
-  }
-
-  // P10: hard lockout check (additive; no-pw tokens bypass entirely via page gate)
-  if (isPasswordLocked(ip, token)) {
-    await recordProjectPublicationEvent({
-      token,
-      eventType: "password_attempt", // P10 (type extended additively in public-repository.ts per P3 migration)
-      request,
-      metadata: { success: false, reason: "locked" },
-    });
-    return rateLimitedResponse("Too many attempts. Please try again later.", 15 * 60);
   }
 
   const publicationAccess = await verifyProjectPublicationPasswordByToken(token, password);
@@ -101,14 +84,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
       request,
     });
     const durableFailure = await recordProjectPublicationPasswordFailure({ token, request });
-    const delayMs = Math.max(durableFailure.delayMs, recordPasswordFailure(ip, token));
+    const delayMs = durableFailure.delayMs;
     if (delayMs > 0) {
       await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
     return Response.json({ error: "Publication password is invalid." }, { status: 401, headers: noStoreHeaders });
   }
 
-  recordPasswordSuccess(ip, token);
   try {
     await clearProjectPublicationPasswordFailures({ token, request });
   } catch (error) {

@@ -2,6 +2,7 @@ import "server-only";
 
 import { normalizeClosedBetaEmail } from "@/lib/auth/closed-beta-access";
 import { readClosedBetaAllowlistQueueFromD1 } from "@/lib/auth/closed-beta-d1-store";
+import { isPlatformAdminRole } from "@/lib/auth/roles";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 
 export const CLOSED_BETA_ALLOWLIST_STATUSES = ["invited", "active", "revoked"] as const;
@@ -27,7 +28,7 @@ export type ClosedBetaAllowlistQueue = {
 };
 
 export function canManageClosedBetaAllowlist(role: string | null | undefined) {
-  return role === "ceo" || role === "admin";
+  return isPlatformAdminRole(role);
 }
 
 export function isClosedBetaAllowlistStatus(value: string): value is ClosedBetaAllowlistStatus {

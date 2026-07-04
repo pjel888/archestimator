@@ -1,9 +1,14 @@
 import "server-only";
 
 import { normalizeClosedBetaEmail } from "@/lib/auth/closed-beta-access";
+import {
+  isAppPlatformRole,
+  normalizeAppPlatformRole,
+  type AppPlatformRole,
+} from "@/lib/auth/roles";
 import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d1";
 
-export type AppRole = "ceo" | "admin" | "member";
+export type AppRole = AppPlatformRole;
 
 export type CurrentUserProfile = {
   avatar_url: string | null;
@@ -27,9 +32,7 @@ type ProfileD1Row = {
   updated_at: string;
 };
 
-function isAppRole(value: string): value is AppRole {
-  return value === "ceo" || value === "admin" || value === "member";
-}
+export { isAppPlatformRole as isAppRole };
 
 function toCurrentUserProfile(row: ProfileD1Row | null): CurrentUserProfile | null {
   if (!row) return null;
@@ -40,7 +43,7 @@ function toCurrentUserProfile(row: ProfileD1Row | null): CurrentUserProfile | nu
     display_name: row.display_name,
     email: row.email,
     id: row.id,
-    role: isAppRole(row.role) ? row.role : "member",
+    role: normalizeAppPlatformRole(row.role),
     updated_at: row.updated_at,
   };
 }
