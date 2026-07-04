@@ -34,4 +34,4 @@ Out of scope for this pack:
 2. Every credential or bearer material has storage, redaction, retention, rotation, and revocation guidance.
 3. Every P0/P1 risk has a phase, mitigation, and test evidence gate.
 4. Provider leftovers are classified before deletion or retention.
-5. The implementation agent can execute from `11_IMPLEMENTATION_PLAN.md` without redoing the planning audit.
+5. A future implementation-planning agent can start from `11_IMPLEMENTATION_PLAN.md` without redoing the planning audit, then produce the exact coding/test plan before source edits begin.

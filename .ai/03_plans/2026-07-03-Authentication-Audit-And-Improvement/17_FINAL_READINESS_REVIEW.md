@@ -4,7 +4,7 @@
 
 `CONDITIONALLY READY` as a planning package.
 
-It is ready for a bounded implementation agent to start Phase 1 and maintain phase gates. It is not ready to claim production auth hardening, Cloudflare cutover, or provider cleanup completion.
+It is ready for a bounded future implementation-planning agent to start Phase 1 and maintain phase gates. It is not a coding authorization and is not ready to claim production auth hardening, Cloudflare cutover, or provider cleanup completion.
 
 ## Why Not `IMPLEMENTATION-READY` For Everything
 
@@ -22,7 +22,7 @@ Specific blockers to full readiness:
 
 | Area | Ready? | Notes |
 |---|---|---|
-| Phase 1 Google picker planning | Yes | Source/docs identify likely Better Auth prompt fix and test shape. |
+| Phase 1 Google picker planning | Yes | Source/docs identify likely Better Auth prompt fix and test shape; a separate implementation plan must name exact source/test edits. |
 | Phase 2 lockout planning | Yes | Risk and durable-state options are clear. |
 | Phase 3 authz planning | Conditionally | Matrix shape is clear; must be filled against current source before broad edits. |
 | Phase 4 privacy/share planning | Conditionally | Threat model and taxonomy exist; tests must prove controls. |

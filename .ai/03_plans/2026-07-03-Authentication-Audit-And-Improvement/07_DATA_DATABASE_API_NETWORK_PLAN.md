@@ -4,7 +4,7 @@
 
 | Store | Auth-relevant use | Planning requirement |
 |---|---|---|
-| D1 `ARCH_DB` | Better Auth tables, profiles, security events, invites, collaboration/publication data | Scope every query by user/workspace/project/estimate/publication token as applicable |
+| D1 `ARCH_DB` | Better Auth tables, profiles, security events, invites, collaboration data, and target publication data after schema verification | Scope every query by user/workspace/project/estimate/publication token as applicable; verify required publication tables/migrations before Phase 2 or Phase 4 implementation planning |
 | R2 | Project/component assets | Signed URL and metadata access must be scoped to authorized project/library context |
 | Durable Objects | Collaboration/realtime and possible lockout singleton | Persist important state; no security-critical memory-only locks |
 | Cookies | Better Auth session, OAuth state, invite bridge, publication access/session/CSRF | HttpOnly/Secure/SameSite policy documented per cookie type |

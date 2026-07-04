@@ -1,21 +1,21 @@
-# 13 - Rollout, Rollback, And Operations
+# 13 - Future Rollout, Rollback, And Operations Planning
 
 ## Rollout Principles
 
-- Land phases independently where possible.
-- Keep source changes small and reversible.
-- Prefer tests that prove behavior before touching production/provider state.
+- Plan phases independently where possible.
+- Keep future source changes small and reversible.
+- Require tests that prove behavior before touching production/provider state.
 - Do not combine security-critical authz refactors with provider cleanup deletions.
 
-## Rollout Plan
+## Future Rollout Planning Considerations
 
-| Phase | Rollout |
+| Phase | Future rollout planning requirement |
 |---|---|
 | 1 | Local/test rollout first. If browser proof is needed, test Google OAuth in a controlled environment with redacted artifacts. |
-| 2 | Ship durable lockout behind clear tests. Monitor password-failure/locked events. |
+| 2 | Plan durable lockout behind clear tests. Monitor password-failure/locked events after implementation. |
 | 3 | Introduce role helpers/matrix incrementally; run denied/allowed tests per surface. |
-| 4 | Ship redaction and share-boundary tests before collecting new auth evidence. |
-| 5 | Delete provider leftovers only after classification and regression tests. |
+| 4 | Plan redaction and share-boundary tests before collecting new auth evidence. |
+| 5 | Plan provider-leftover deletion only after classification and regression tests. |
 
 ## Rollback Plan
 
@@ -36,9 +36,9 @@
 - Breach response: detect, investigate, decide awareness time, notify if required, preserve sanitized evidence.
 - Provider exit: stale Supabase/Vercel/Resend secret removal and post-exit smoke proof.
 
-## Post-Deployment Checks
+## Post-Implementation Evidence To Require
 
-Run only after implementation:
+Require only after a separate implementation task lands:
 - Google sign-in account picker check.
 - Sign-out policy check.
 - State mismatch log search.

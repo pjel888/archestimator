@@ -2,11 +2,11 @@
 
 **Plan pack:** `2026-07-03-Authentication-Audit-And-Improvement`
 
-**Status:** `CONDITIONALLY READY` for phase-scoped implementation planning. `NOT READY` for production security claims or full cutover until implementation evidence exists.
+**Status:** `CONDITIONALLY READY` for phase-scoped future implementation planning. `NOT READY` for coding authorization, production security claims, or full cutover until a separate implementation plan and implementation evidence exist.
 
 **Profile:** `exhaustive`
 
-**Verification mode:** `independent-assisted`; no runtime/provider/browser proof was run.
+**Verification mode:** `independent`; no runtime/provider/browser proof was run.
 
 ---
 
@@ -66,6 +66,6 @@ Closed correction:
 
 ## Readiness Verdict
 
-This pack is ready to hand to an implementation agent for Phase 1 discovery/edit/test work. It is not an authorization to batch all auth refactors at once. Each phase has a separate blast radius and should land independently unless the implementation agent proves a tighter grouping is safer.
+This pack is ready to hand to a future implementation-planning agent for Phase 1 discovery/edit/test planning. It is not an authorization to edit code or batch all auth refactors at once. Each phase has a separate blast radius and should land independently unless a later implementation plan proves a tighter grouping is safer.
 
 The final implementation claim must be evidence-backed by fresh tests and, where provider behavior is asserted, real provider/browser proof. Static planning docs are not enough for production auth claims.

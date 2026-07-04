@@ -1,10 +1,10 @@
 # 2026-07-03 - Authentication Audit And Improvement
 
-**Status:** `CONDITIONALLY READY` as a planning package. It is ready for a bounded implementation agent to start at `11_IMPLEMENTATION_PLAN.md`, but it is **not** production-cutover proof and it does not authorize source edits beyond the phase gates named in this pack.
+**Status:** `CONDITIONALLY READY` as a planning package. It is ready for a future phase-scoped implementation-planning pass to start at `11_IMPLEMENTATION_PLAN.md`, but it is **not** coding authorization, production-cutover proof, or permission to edit source files in this planning pass.
 
 **Plan profile:** `exhaustive`.
 
-**Verification mode:** `independent-assisted`. The pack integrates direct source inspection, official-doc research, and separate read-only lanes for repo mapping, UX, security review, and external standards. No browser/provider/runtime proof was run.
+**Verification mode:** `independent`. The pack integrates direct source inspection, official-doc research, and separate read-only lanes for repo mapping, UX, security review, and external standards. No browser/provider/runtime proof was run.
 
 **Plan directory:** `.ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement/`
 
@@ -59,12 +59,14 @@ Out of scope:
 
 ## Readiness Gates
 
-Implementation can begin only as phase-scoped work:
+Future implementation planning can begin only as phase-scoped work:
 - Phase 1 can address the Google picker/state/logout policy once tests are added.
 - Phase 2 must resolve durable publication password lockout before any claim of share-link hardening.
 - Phase 3 must finish the authz matrix and role taxonomy before broad tenant-authz refactors.
 - Phase 4 must prove viewer/publication isolation and redaction behavior.
 - Phase 5 must clean provider leftovers only after each artifact is classified as active, archaeology, delete, rotate/remove, or sibling-pack blocked.
+
+No coding, provider mutation, migration, deployment, secret rotation, or source cleanup starts from this pack alone. A separate coding/implementation plan or explicit implementation task must revalidate current source, choose the exact phase slice, and define the code/test ownership before edits begin.
 
 Production readiness remains blocked until:
 - All P0/P1 risks in `14_RISK_REGISTER.md` are closed or explicitly accepted.
@@ -89,7 +91,7 @@ Production readiness remains blocked until:
 | 08 | `08_SECURITY_PRIVACY_THREAT_MODEL.md` | Threat model, privacy controls, redaction policy | Drafted |
 | 09 | `09_PERFORMANCE_RELIABILITY_OBSERVABILITY.md` | Worker reliability, observability, rate-limit posture | Drafted |
 | 10 | `10_BLAST_RADIUS_AND_DEPENDENCIES.md` | Files, dependencies, provider leftovers, blast radius | Drafted |
-| 11 | `11_IMPLEMENTATION_PLAN.md` | Phase-by-phase execution plan | Drafted |
+| 11 | `11_IMPLEMENTATION_PLAN.md` | Future implementation-planning gates | Drafted |
 | 12 | `12_TEST_AND_VALIDATION_STRATEGY.md` | Required tests and evidence gates | Drafted |
 | 13 | `13_ROLLOUT_ROLLBACK_AND_OPERATIONS.md` | Staged rollout, rollback, operations | Drafted |
 | 14 | `14_RISK_REGISTER.md` | P0/P1/P2/P3 risks and mitigations | Drafted |
@@ -103,9 +105,9 @@ Production readiness remains blocked until:
 
 ---
 
-## Implementation Entrypoint
+## Future Implementation-Planning Entrypoint
 
-Start with `11_IMPLEMENTATION_PLAN.md`. Do not skip the phase gates or merge unrelated cleanup into auth/security phases.
+Start with `11_IMPLEMENTATION_PLAN.md` only after a separate implementation-planning or coding task is opened. Do not skip the phase gates, and do not merge unrelated cleanup into auth/security phases.
 
 ---
 

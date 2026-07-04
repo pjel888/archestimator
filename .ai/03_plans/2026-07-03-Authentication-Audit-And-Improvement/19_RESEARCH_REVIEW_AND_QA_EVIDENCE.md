@@ -58,3 +58,14 @@
 ## Validation Gap
 
 This document is research and static source evidence. It does not prove real Google, Cloudflare, email, D1, R2, Durable Object, or browser behavior. Those claims require the implementation-phase evidence named in `12_TEST_AND_VALIDATION_STRATEGY.md`.
+
+## Planning-Only Adversarial QA Matrix
+
+| ID | User/attacker model | Scenario | Expected signal | Actual result | Status | Evidence | Cleanup |
+|---|---|---|---|---|---|---|---|
+| ADV-DOC-001 | Future coding agent | Treats this planning package as immediate source-edit authorization | Pack says no code/provider/runtime edits start from this package alone | README, `00`, `01`, `11`, `13`, and `17` now distinguish future implementation planning from coding authorization | Passed | Static document review | No generated artifacts |
+| ADV-DOC-002 | Scope reducer | Reclassifies requested auth/security planning scope as deferred to look complete | Deferrals require explicit blocker/owner/rationale and cannot shrink the requested scope silently | Risk register and readiness gates keep P0/P1 work open; prompt/directive guardrails require evidence-backed blockers | Passed | Static document review and subagent findings | No generated artifacts |
+| ADV-DOC-003 | Provider-overclaiming agent | Claims Cloudflare, Google, email, D1/R2/DO, hosted, or browser proof from static docs | Static evidence is labeled as unable to prove provider/browser/runtime behavior | README, `12`, `17`, and validation gap state no runtime/provider/browser proof was run | Passed | Static document review | No generated artifacts |
+| ADV-DOC-004 | Stale-plan follower | Uses Supabase/Vercel/Resend-era wording as active runtime truth | Cloudflare-first/Better Auth/D1 posture controls; old-provider artifacts require classification | README, `01`, `03`, `18`, and `21` keep active-vs-legacy classification explicit | Passed | Static document review | No generated artifacts |
+| ADV-DOC-005 | Schema assumption follower | Assumes publication D1 coverage is complete despite partial migration evidence | Phase 2/4 planning must verify D1 publication schema before implementation planning | `07` and `11` now distinguish target publication coverage from schema verification gates | Passed | Static document review and coherence finding | No generated artifacts |
+| ADV-DOC-006 | Evidence leaker | Copies OAuth state/codes/cookies/invite/share URLs/raw emails into docs or proof | Credential-adjacent evidence is redacted in all future artifacts | `08`, `12`, `20`, and `00` require redaction; no raw secret values were added in this pass | Passed | Static document review | No generated artifacts |

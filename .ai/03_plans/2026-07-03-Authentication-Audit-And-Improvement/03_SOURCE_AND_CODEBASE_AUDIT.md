@@ -2,7 +2,7 @@
 
 **Audit window:** 2026-07-03, PHT. Read-only. No files were modified during this audit.
 
-**Verification mode:** `independent-assisted` after the 2026-07-03 refresh. This audit seed was originally lead-written; the current pack now also includes separate read-only repo, UX, security, and standards lanes summarized in `00_AGENT_COORDINATION.md` and `19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md`.
+**Verification mode:** `independent` after the 2026-07-03 refresh. This audit seed was originally lead-written; the current pack now also includes separate read-only repo, UX, security, and standards lanes summarized in `00_AGENT_COORDINATION.md` and `19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md`.
 
 **Scope confirmed via direct inspection:** `src/lib/auth/`, `src/lib/collaboration/`, `src/lib/publication/`, `src/lib/share/`, `src/app/login/`, `src/app/signup/`, `src/app/api/auth/`, `src/app/auth/callback/`, `src/app/invite/[token]/`, `src/app/share/[token]/`, `src/app/api/share/[token]/`, `src/components/auth/`, `src/middleware.ts`, `src/app/layout.tsx`, plus `package.json`, `.env.example`, and migration inventories under `./migrations/` and `./supabase/migrations/`.
 
