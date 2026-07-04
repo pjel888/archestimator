@@ -286,7 +286,7 @@ The ledger must also track:
 - Assumptions and whether they are validated.
 - Open decisions and whether they block implementation or release.
 - Tests and checks run, with exit status and key evidence.
-- Skipped validation and residual risk.
+- Skipped, failed, failed-closed, or unavailable validation and residual risk.
 - Generated artifacts and cleanup status.
 - Completion audit result.
 
@@ -638,7 +638,7 @@ Do not state that a command passed unless it was actually run, exited
 successfully, and its output was read. Success-looking text with a non-zero exit
 code is failure.
 
-For every skipped validation, record:
+For every skipped, failed, failed-closed, or unavailable validation, record:
 
 - The validation not performed.
 - Why it was skipped or unavailable.
@@ -760,6 +760,18 @@ scope was reduced without explicit authorization, recommendations are traceable
 to line references, and any proposed implementation is clearly labeled as
 future work.
 
+For final verification or completion-audit tasks, final audit must preserve the
+audit's own completion boundary. If a phase artifact, readiness review, final
+verifier, or coordination ledger says the goal remains active, non-complete,
+`CONDITIONALLY READY`, blocked by residual gates, limited by skipped proof, or
+limited by failed/failed-closed proof, do not summarize the package as complete,
+archive it as complete, or mark a native agent goal complete, including via
+`update_goal`. Skipped, unavailable, failed, or failed-closed browser, hosted,
+provider, operator, legal, privacy, cleanup, or final-review proof narrows the
+claim being made; it does not satisfy an outer goal that requires that proof
+unless the missing or failing gate is later proven or explicitly
+accepted/deferred by the owner or authoritative plan.
+
 Completion requires:
 
 - Every approved requirement is implemented, documented, verified, blocked with
@@ -803,7 +815,7 @@ At completion, provide a concise report with:
 - Requirements completed, blocked, deferred, superseded, or out of scope.
 - Requirement-to-evidence traceability summary.
 - Tests and validation executed, with key results.
-- Skipped validations and residual risks.
+- Skipped, failed, failed-closed, or unavailable validations and residual risks.
 - Defects found and corrected.
 - Conflicts encountered and resolved.
 - Major decisions and rejected alternatives.

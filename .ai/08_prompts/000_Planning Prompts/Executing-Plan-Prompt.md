@@ -7,8 +7,8 @@ Repository root:
 
 <REPOSITORY_ROOT>
 
-After successful implementation, verification, independent review, and archival,
-archive the completed planning folder under:
+After successful implementation, verification, independent review, and final
+completion audit, archive the completed planning folder under:
 
 <REPOSITORY_ROOT>/.ai/09_archive
 
@@ -16,10 +16,13 @@ Archive by copy by default. Move or remove the original planning folder only
 when the plan explicitly instructs that behavior and no active handoff depends
 on the original path.
 
-This is an implementation task. You may edit application code, tests,
-migrations, documentation, and supporting artifacts required by the approved
-plans, subject to the repository instructions, safety boundaries, and completion
-gates below.
+This prompt is for implementation tasks. If the current user request, planning
+folder, coordination ledger, or readiness review labels the work as
+planning-only, future-implementation-planning-only, review-only, or
+recommendation-only, first narrow the task to that authorized class of work. In
+that mode, do not edit application source, tests, migrations, package manifests,
+provider state, or runtime data unless a separate explicit coding task or
+canonical implementation plan authorizes those edits.
 
 PRIMARY OBJECTIVE
 
@@ -84,8 +87,12 @@ Before any implementation edit:
 2. Identify the authoritative implementation plan and any supporting specs,
    risks, open decisions, QA matrices, rollout notes, and traceability docs.
    If `IMPLEMENTATION_PLAN.md` exists, it is the canonical execution artifact
-   and supersedes `11_IMPLEMENTATION_PLAN.md`. If it does not exist, use
-   `11_IMPLEMENTATION_PLAN.md` as the execution guide.
+   and supersedes `11_IMPLEMENTATION_PLAN.md`. If it does not exist, inspect
+   `11_IMPLEMENTATION_PLAN.md` before treating it as an execution guide. Use it
+   for source/test implementation only when it clearly authorizes code work for
+   the selected slice. When `11_IMPLEMENTATION_PLAN.md` is labeled as future
+   implementation-planning gates, not coding authorization, stop before source
+   edits and create or repair the phase-scoped implementation plan instead.
 3. Read repository instructions such as `AGENTS.md`.
 4. Read the fast-path block at `.ai/10_state/current-state.md` when it exists.
 5. Inspect the current worktree with `git status --short --branch`.
@@ -125,8 +132,11 @@ Do not silently convert an assumption into implementation scope.
 Before broad implementation edits, verify the canonical planning status:
 
 - `IMPLEMENTATION-READY`: execute the approved scope.
-- `CONDITIONALLY READY`: execute only the named ready slice and preserve all
-  conditions, blockers, and residual risks in the ledger.
+- `CONDITIONALLY READY`: move only the named ready slice forward in the same
+  class of work the package authorizes. If the named slice is ready for
+  implementation planning, perform planning-package work only; do not promote it
+  to application source/test/migration edits without a separate coding task or
+  canonical implementation plan.
 - `NOT READY`: do not implement behavior. You may perform only safe read-only
   discovery, characterization, or planning-package repair when that work is
   clearly inside scope.
@@ -681,13 +691,32 @@ Do not state that a command passed unless it was actually run, exited
 successfully, and its output was read. Success-looking text with a non-zero exit
 code is failure.
 
-For every skipped or unavailable validation, report:
+For every skipped, failed, failed-closed, or unavailable validation, report:
 
 - The validation not performed.
+- The validation that ran but did not pass, when applicable.
 - Why it could not be performed.
 - The risk left behind.
 - The exact command or procedure needed to complete it.
 - The strongest substitute evidence gathered.
+
+Skipped, unavailable, failed, or failed-closed validation is disclosure, not a
+completion substitute. If browser, hosted, provider, operator, legal, privacy,
+cleanup, or final-review proof is skipped, unavailable, failed, or failed-closed
+and that proof is required for the outer goal, the goal remains incomplete
+unless the missing or failing gate is later proven or explicitly
+accepted/deferred by the owner or authoritative plan.
+
+Treat final verification audits and skipped-proof ledgers as evidence artifacts,
+not automatic completion authority. If any final audit, readiness review,
+coordination ledger, or phase artifact says the goal remains active,
+non-complete, `CONDITIONALLY READY`, or blocked by residual gates, preserve that
+state in the final report. Do not archive the folder or mark a native agent goal
+complete, including via `update_goal`, until those residual gates are proven,
+accepted, or converted into a separately authorized scope with durable evidence.
+Workflow names, skill invocations, prompt names, or tool availability are
+process constraints only; never use them as evidence that implementation,
+review, QA, provider proof, hosted proof, operator proof, or completion actually happened.
 
 Adversarial QA is required for runtime behavior, user-facing workflows, data
 mutation, integrations, routing, auth, security, performance, agent workflows,
@@ -740,7 +769,7 @@ Review at least:
   evidence, plus legacy-provider-exit evidence when in scope.
 - Performance evaluator and regression risk.
 - Accessibility and UX state coverage.
-- Test adequacy and skipped validation risks.
+- Test adequacy and skipped, failed, failed-closed, or unavailable validation risks.
 - Rollout, rollback, observability, and operations.
 - Worktree safety and unrelated-change preservation.
 
@@ -795,7 +824,8 @@ Completion gates:
 - Observability and operational checks exist where relevant.
 - Rollout and rollback procedures are valid.
 - Applicable tests and checks pass.
-- Skipped validation is documented with residual risk.
+- Skipped, failed, failed-closed, or unavailable validation is documented with
+  residual risk.
 - No unresolved P0/P1 defect remains.
 - No known external work was overwritten.
 - Independent verifier confirms implementation matches the approved plan.
@@ -886,7 +916,7 @@ Provide a concise but complete final report:
 - Performance baseline, target, evaluator, result, and residual risk.
 - Observability, rollout, and rollback notes.
 - Tests and checks run with results.
-- Skipped validations and resulting risks.
+- Skipped, failed, failed-closed, or unavailable validations and resulting risks.
 - Defects found and corrected.
 - Adversarial QA scenarios and outcome.
 - Independent review result.

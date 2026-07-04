@@ -14,15 +14,60 @@ Stable current truth (verify against git/source before relying on a detail):
   heavyweight regression ceremony. No external users yet.
 - Stack: Next.js 16 + React 19 + Bun + TypeScript + Tailwind v4 +
   Cloudflare Workers/OpenNext + D1 + R2 + Durable Objects + Better Auth,
-  TanStack Query, Zustand, repository boundaries. Historical Supabase/Postgres
-  artifacts may still exist for migration archaeology, but active app/runtime
-  source should stay Cloudflare-only.
+  TanStack Query, Zustand, repository boundaries. Active app/runtime source is
+  Cloudflare-only. Vercel/Supabase/Resend cleanup advanced on 2026-07-04 under
+  `.ai/03_plans/2026-07-04-Vercel-Supabase-Cleanup/`, but do **not** treat it
+  as final provider-cleanup/provider-exit proof: same-day auth follow-up work
+	  archived known Supabase-era proof scripts/tests under `supabase/**` and
+	  generated a broadened provider-cleanup allowlist report that classifies all
+	  current active-surface provider-boundary hits; the historical
+	  `src/lib/supabase/types.ts` artifact was then retired in
+  the current worktree, but the sibling pack's full provider-exit/hosted/operator/final-review
+  proof gates remain unresolved. Current evidence supports these repo-local
+  cleanup facts: `find src/lib/supabase -maxdepth 2 -type f -print` returns no
+  files; the generated type-reference inventory reports `4` active
+  path-reference files outside `supabase/**`, `0` deletion-blocking files, `4`
+  non-blocking negative guard/audit-tooling references, and
+	  `typeReferenceDeletionReady=true`; the provider-cleanup allowlist now reports
+	  `89` classified provider-boundary hit files (superseding the narrower `44`
+	  old-provider keyword-file count), `type-reference-retirement=0`,
+	  `finalProviderCleanupReady=true`, and no blockers; the
+  2026-07-04T09:04:19Z provider-exit/source-smoke/template refresh reports
+  `activeLegacyProviderRuntimeBlockers=0` but `providerExitReady=false`, with
+  latest deploy/source smoke now separately blocked by `3` current-tree issues
+  (uncommitted runtime source paths, deployed commit mismatch, deployment older
+  than current HEAD) plus four remaining operator/external gates:
+  export/retention, post-exit smoke, real Google persona, and real mailbox
+  proof/deferral; the refreshed source-smoke template and provider-exit
+  operator-record template remain sanitized handoff artifacts, not proof; scoped
+  read-only verifier/architect sidecars confirm the remaining gates are external
+  hosted/provider/operator/legal/privacy/cleanup/final-review claims, not locally closable from repo
+  evidence alone; the auth-pack completion-readiness checker now aggregates the
+  sanitized evidence and fails closed with `localProviderCleanupReady=true`,
+  `externalCompletionProofReady=false`, and
+  `finalAuthAuditCompletionReady=false` because latest deploy/source smoke,
+  provider-exit pack, legal-owner readiness, and final independent review remain
+  open;
+  low-risk direct `Tables<...>` fixture imports and remaining schema/source-read
+  tests have been migrated to current D1/domain/source contracts with focused
+  test evidence and high-memory typecheck evidence;
+  legacy Supabase folder `supabase/` is formalized as migration archaeology with
+  banner README; backfill scripts + many provider-parity proofs moved to
+  `supabase/migration-evidence/`; `.vercel/` folder and `.vercelignore` deleted.
 - Authentication audit/improvement planning pack as of 2026-07-03 16:24 UTC:
   `.ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement/` is
   `CONDITIONALLY READY` for a future phase-scoped implementation-planning pass,
   not coding authorization, production cutover proof, or browser/provider/runtime
   proof. `11_IMPLEMENTATION_PLAN.md` is now a future implementation-planning
   gates document; no code/provider/runtime edits start from that pack alone.
+  A 2026-07-04 continuation added
+  `22_PHASE_1_GOOGLE_PICKER_LOGOUT_STATE_PLAN.md` as the Phase 1
+  implementation-plan draft, patched the named
+  `.ai/08_prompts/000_Planning Prompts/Executing-Plan-Prompt.md` so a
+  future-implementation-planning `11_IMPLEMENTATION_PLAN.md` cannot silently
+  authorize source edits, and corrected the stale publication-schema framing:
+  migration `0014_publication_shared_links.sql` contains core publication/share
+  tables, while durable hard-lock enforcement remains a separate Phase 2 risk.
   The shared planning prompts
   `.ai/08_prompts/000_Planning Prompts/Improve-Plan-Prompt.md` and
   `Multi-Agent-Execution-Directive.md` now enforce clearer planning-only and
@@ -31,6 +76,363 @@ Stable current truth (verify against git/source before relying on a detail):
   shrinkage, and evidence-class honesty. Static/docs verification passed with
   independent verifier approval; broad tests, browser proof, provider checks,
   and runtime validation were intentionally not run for this planning-only pass.
+  A later 2026-07-04 Phase 1 local code slice implemented WP1-WP3 only:
+  Better Auth Google provider config now includes `prompt: "select_account"`,
+  focused tests lock local-current-session sign-out semantics and
+  `state_mismatch` reset URL redaction, and local validation passed
+  `bunx vitest run --maxWorkers=1` for the six focused auth files
+  (`57` tests), `git diff --check`, and
+  `NODE_OPTIONS=--max-old-space-size=8192 bun run type-check`. Default-heap
+  `bun run type-check` aborted from Node heap exhaustion before diagnostics.
+  Independent read-only code review found no scoped findings and repeated
+  diff/static/type/test checks for the edited auth files.
+  No Google browser/provider proof, deployment, provider mutation, migration, or
+  Phase 2-5 implementation was run in that slice.
+  A subsequent 2026-07-04 Phase 2 local code slice implemented durable
+  publication-password lockout through the existing D1 `security_rate_limit_events`
+  path: `src/app/api/share/[token]/password/route.ts` now relies only on
+  `checkProjectPublicationPasswordRateLimit`,
+  `recordProjectPublicationPasswordFailure`, and
+  `clearProjectPublicationPasswordFailures`; `src/lib/publication/security.ts`
+  no longer exports the process-local `passwordAttemptStore` / hard-lock helpers.
+  New local tests prove lockout survives route module reset and expires after
+  the 15-minute durable row window. Validation passed the red-to-green focused
+  lockout test, the focused publication route/security/repository suite
+  (`4` files / `53` tests), `project-publication-page.test.tsx`
+  (`42` tests), `git diff --check`, and high-memory TypeScript check. No hosted
+  Cloudflare Worker proof, production D1 row proof, browser proof, deployment,
+  provider mutation, or Phase 3-5 implementation was run in that slice.
+  A later 2026-07-04 Phase 3 planning slice added
+  `24_PHASE_3_AUTHZ_MATRIX_AND_ROLE_TAXONOMY_PLAN.md`: the static D1 authz
+  matrix generator reported `32` protected access paths with positive and
+  denial test coverage and no static blockers, but read-only review found a P1
+  realtime collaboration gap. `src/lib/collaboration/realtime-identity-actions.ts`
+  signs topic envelopes after auth/terms checks without project/estimate object
+  access, and `src/lib/cloudflare/collaboration-room.ts` accepts room traffic
+  without a verified authorization handshake. Phase 3 is therefore
+  implementation-plan ready, not implemented; WP1 should red-test and fix
+  realtime topic authorization and room admission before broader authz cleanup.
+  The same 2026-07-04 continuation then implemented Phase 3 WP1 locally:
+  `issueRealtimeIdentity` now requires D1 object access before signing
+  project/estimate topic envelopes and returns a short-lived room token;
+  `CollaborationRoom` requires a valid topic-bound room-token authorization
+  message before accepting broadcast/presence traffic or sending presence
+  snapshots; presence, cursor, and row-update clients authorize the room before
+  sending. Validation passed the red-to-green realtime authz/room tests
+  (`2` files / `8` tests), the related realtime/router/hook set
+  (`8` files / `40` tests), high-memory TypeScript check, static authz matrix
+  generation (`32` paths, no blockers), and `git diff --check`. At that point,
+  no hosted
+  Worker/Durable Object, browser, two-client, deployment, or Phase 3 WP2-WP6
+  proof was run. The same continuation then implemented Phase 3 WP2 locally:
+  `src/lib/authz/d1-access.ts` now routes D1 boolean authorization probes
+  through a shared fail-closed wrapper while preserving platform-admin
+  short-circuit behavior, and `tests/vitest/d1-access-role-boundaries.test.ts`
+  covers outsider project/estimate read denial, workspace/project/estimate
+  viewer edit denial, scoped project/estimate editor authority, inherited
+  estimate access, and D1 read-error fail-closed behavior. Validation passed
+  the red-to-green focused WP2 suite (`1` file / `7` tests) and adjacent D1
+  authz consumers (`6` files / `29` tests). Hosted/production D1 proof and
+  Phase 3 WP3-WP6 route/action/repository proof remained open at that point.
+  The same continuation then implemented Phase 3 WP3 local test coverage:
+  `tests/vitest/project-activity-page/route-contract.test.ts` now proves the
+  project activity API denies `canEdit=false` and throwing D1 edit probes
+  without reading feed data, and the activity page renders denied users with
+  empty feed/dropdown props; `tests/vitest/project-location-actions.test.ts`
+  proves save/clear location actions deny non-editors before D1 writes and
+  without `revalidatePath`; `tests/vitest/project-publication-actions.test.ts`
+  now explicitly includes project `editor` in the publication-manager denial
+  matrix for every mutation. Validation passed the focused WP3 suites (`3`
+  files / `43` tests). Hosted/browser/provider proof and Phase 3 WP4-WP6 remain
+  open. The same continuation then implemented Phase 3 WP4 repository behavior
+  coverage: `tests/vitest/workspace-repository-authz-behavior.test.ts`
+  exercises the real `getCurrentWorkspaceProject`, `listProjectEstimates`, and
+  `listProjectEstimateSheets` functions with fake D1 rows and real D1 authz
+  helpers, proving allowed shared-project access, cross-workspace outsider
+  denial, throwing project/estimate authz-probe fail-closed behavior, estimate
+  filtering, inaccessible-project empty lists, and lightweight sheet-list
+  filtering. Validation passed the focused WP4 behavior suite (`1` file / `8`
+  tests) and nearby repository/source-contract suites (`5` files / `22` tests).
+  The same continuation then implemented Phase 3 WP5 beta-admin action-boundary
+  coverage: `tests/vitest/beta-admin-action-boundaries.test.ts` proves non-admin
+  app roles (`member`, `owner`, `client`, and missing role) cannot create/update
+  closed-beta allowlist entries or update beta feedback review status before D1
+  mutation/revalidation, while `ceo/admin` positive paths still mutate,
+  revalidate, and redirect as intended. Validation passed the focused WP5 suite
+  (`1` file / `10` tests), adjacent beta suites (`4` files / `23` tests), the
+  combined WP1-WP5 focused regression suite (`24` files / `149` tests),
+  high-memory TypeScript check, `git diff --check`, and the static authz matrix
+  generator (`32` paths, no blockers). The same continuation then implemented
+  Phase 3 WP6 central role contracts: `src/lib/auth/roles.ts` now separates app
+  platform roles (`ceo/admin/member`), workspace account roles
+  (`owner/admin/member/viewer`), project/estimate collaboration roles
+  (`owner/admin/editor/viewer`), and public-share recipient authority;
+  `src/lib/types/database.ts` and `src/lib/repositories/workspace-repository.ts`
+  no longer expose the stale wide app-role union, and touched platform-admin
+  checks use the shared predicate. `tests/vitest/auth-role-contracts.test.ts`
+  locks stale app-role normalization, workspace `member` content-edit semantics,
+  collaboration `editor` non-manager semantics, and the public-share separation
+  marker. Validation passed the role/source/repository contract set (`8` files /
+  `56` tests), the expanded WP1-WP6 focused regression suite (`28` files / `181`
+  tests), high-memory TypeScript check, `git diff --check`, stale-role source
+  scan, and the static authz matrix generator (`32` paths, no blockers). Hosted
+  Worker/Durable Object, browser, deployment, and production D1 proof remain
+  open. The same continuation then implemented the first Phase 4
+  share/privacy/redaction local slice after adding
+  `25_PHASE_4_SHARE_PRIVACY_REDACTION_PLAN.md`: `auth-proxy.test.ts` proves
+  public share/viewer cookies do not satisfy `/workshop` app auth;
+  `project-publication-route.test.ts` and `project-publication-page.test.tsx`
+  prove Better Auth app cookies alone cannot unlock password-protected share
+  snapshots or create recipient sessions; `project-publication-security.test.ts`
+  now covers missing-origin, cross-origin, missing CSRF cookie/header, and CSRF
+  mismatch denial for public POST helpers; `src/lib/observability/redact.ts`,
+  `redact.test.ts`, and `client-error.test.ts` now redact tokenized
+  `/share/<token>`, `/api/share/<token>`, `/invite/<token>`, recipient/rt,
+  OAuth state/code, cookie-like fields, emails, bearer/JWT values, and raw
+  client-error share paths while preserving route shape. `20_CREDENTIAL_MATERIAL_TAXONOMY.md`
+  and `13_ROLLOUT_ROLLBACK_AND_OPERATIONS.md` now contain closed-beta retention,
+  DSAR, breach, and publication support runbook decisions; `0014` D1
+  publication schema reconciliation found no migration needed for this local
+  slice. Focused Phase 4 validation passed redaction/CSRF tests (`3` files /
+  `26` tests), app/share boundary tests (`3` files / `96` tests), share
+  no-store invariants (`1` file / `11` tests), `git diff --check`, and
+  high-memory TypeScript check. Hosted share/privacy log spot checks,
+  legal/public-launch retention policy, deployment/browser/provider proof, and
+  Phase 5 provider-leftover cleanup remained open at that point. A later
+  2026-07-04 continuation added
+  `26_PHASE_5_LEGACY_PROVIDER_CLEANUP_PLAN.md` as a docs-only classification
+  bridge: active runtime packages/config remain Cloudflare-first, the legacy
+  `/auth/callback` route is a disabled safety gate rather than a Supabase code
+  exchange, `src/lib/supabase/types.ts` is still a test/proof dependency and
+  cannot be deleted without a cascade, runtime email is Cloudflare Email only,
+  and broad source/script/test/env cleanup must coordinate with the planning-only
+  sibling pack `.ai/03_plans/2026-07-04-Vercel-Supabase-Cleanup/`. The same
+  pass corrected the root README legacy Supabase migration count to `182` and
+  refreshed the auth-pack README/traceability/worksheet index for docs `23-26`.
+  Focused Phase 5 validation passed `bunx vitest run --maxWorkers=1`
+  for `auth-callback-route`, `cloudflare-email-client`,
+  `closed-beta-env-manifest`, and `vercel-analytics-removed` (`4` files /
+  `13` tests), plus `git diff --check`. No provider mutation, secret value
+  capture, source deletion, hosted proof, deployment, or provider-secret
+  rotation/removal was performed in that Phase 5 classification slice. A later
+  current-worktree re-audit recorded partial cleanup in progress without
+  claiming completion: `scripts/check-supabase-*`, `scripts/check-vercel-*`,
+  package `check-supabase`/`check-vercel` entries, `.vercel`, and
+  `.vercelignore` are absent; 7 backfill scripts, 29 provider-parity proof
+  files plus 4 archived proof-test files, and 4 SQL proof files now
+  live under `supabase/migration-evidence/`;
+  and `supabase/README.md` marks the legacy folder as migration archaeology.
+  Remaining hits outside `supabase/**` include legacy proof scripts,
+  `src/lib/supabase/types.ts`, a stale `RESEND_API_KEY` e2e setup comment,
+  provider-backed proof tests, and negative assertions. The sibling cleanup
+  ledger now records substantial repo-local implementation evidence, but Phase 5
+  final provider-cleanup/provider-exit proof remains open because current scans
+  still find old-provider proof/test fixtures and hosted/provider-dashboard/operator proof
+  has not been gathered. A subsequent Phase 6 docs-only audit
+  added `27_PHASE_6_FINAL_VERIFICATION_COMPLETION_AUDIT.md`, wired it into the
+  auth-pack README/traceability/evidence/readiness docs, and kept the verdict at
+  `CONDITIONALLY READY`. The audit records tests run, skipped proof, P0/P1
+  residual risks, and the explicit non-completion verdict: the active goal
+  remains open until hosted/provider/operator/legal/privacy/cleanup/final-review gates are proven or
+  explicitly accepted. A prompt-surface hardening follow-up updated
+  `.ai/08_prompts/000_Planning Prompts/Executing-Plan-Prompt.md` and
+  `Multi-Agent-Execution-Directive.md` so skipped-proof audits and final
+  verification artifacts cannot be used as archival or native goal-completion
+  authority while residual gates remain open. A final docs/state reconciliation
+  pass on 2026-07-04 corrected final-cleanup boundary wording against the sibling
+  cleanup ledger and current provider-string scan; validation passed
+  `git diff --check`, no trailing-whitespace/conflict-marker scan, stale-claim
+  scan with only an older historical June 28 entry outside current scope, and
+  the focused provider/auth Vitest slice (`4` files / `13` tests). A later
+  continuation added `28_PHASE_5_REMAINING_PROVIDER_FIXTURE_CLEANUP_PLAN.md`
+  and `29_PHASE_5_PROVIDER_STRING_FILE_INVENTORY.md`: the fresh old-provider
+  string scan still has `60` files outside `supabase/**`, `28` buckets them
+  into cleanup slices, and `29` classifies every hit file while separately
+  recording `38` then-current consumers of the historical
+  `src/lib/supabase/types.ts` reference. This narrows the next cleanup slice
+  but does not close final provider-cleanup/provider-exit proof. A follow-up
+  planning-surface reconciliation added a current phase evidence overlay to
+  `11_IMPLEMENTATION_PLAN.md` so future agents start from docs `22`-`29` and do
+  not treat the final audit as source-edit or `update_goal` completion
+  authority. A traceability follow-up added the same boundary to
+  `16_REQUIREMENTS_TRACEABILITY_MATRIX.md` and the pack README: docs `22`-`29`
+  are evidence inputs only, not source/runtime/provider-edit or native-goal
+  completion authority while residual gates remain open. A further coordination
+  checkpoint in `00_AGENT_COORDINATION.md`
+  maps the active Codex goal objective to the pack, `11`, the two named prompt
+  surfaces, requested workflow skills, dirty-worktree concurrency constraint,
+  and still-open residual gates; it keeps the native goal active. A subsequent
+  ledger cleanup reframed `00_AGENT_COORDINATION.md` from broad
+  readiness/completion wording to future implementation-planning readiness and
+  planning-package sufficiency, then added
+  `16_REQUIREMENTS_TRACEABILITY_MATRIX.md` to the active-goal guardrail map. A
+  matching workflow QA checkpoint in
+  `19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md` and
+  `27_PHASE_6_FINAL_VERIFICATION_COMPLETION_AUDIT.md` records that workflow
+  skill usage and docs-only continuation work are guardrails, not completion
+  evidence, and that broad dirty-worktree changes from other agents must be
+  preserved. `Executing-Plan-Prompt.md` now mirrors the same rule: workflow
+  names, skill invocations, prompt names, and tool availability are not proof
+  that implementation, review, QA, provider/hosted proof, or completion
+  happened. A follow-up prompt wording cleanup replaced the redundant
+  "implementation, verification, independent review, and archival, archive..."
+  phrasing with "final completion audit" before archival, so archival remains a
+  post-completion action rather than completion proof. A subsequent Phase 5
+  planning-evidence recheck reran the provider-string and type-reference scans:
+  at that point counts remained `60` old-provider keyword files outside `supabase/**` and `38`
+  historical type-reference consumers. The stale proof-utility caller check
+  found direct dependent Vitest importers for `scripts/seed-shared-link-smoke.ts`
+  and `scripts/prove-shared-link-hosted-password-route.ts`, so those tests must
+  move/delete/rewrite with their scripts in any cleanup implementation slice. A
+  subsequent stale-audit reconciliation updated `01_EXECUTIVE_SUMMARY.md`,
+  `03_SOURCE_AND_CODEBASE_AUDIT.md`, and
+  `07_DATA_DATABASE_API_NETWORK_PLAN.md` so their original audit wording now
+  points to the current Phase 1-4 local evidence while preserving the
+  hosted/provider/operator/legal/privacy/cleanup/final-review gates as open. A later
+  continuation re-ran the provider-string/type-reference scans with the same
+  `60` / `38` counts and propagated the dependent-test boundary upward into
+  `16`, `19`, and `26` so the traceability matrix, evidence log, and Phase 5
+  bridge all name those tests before future cleanup implementation begins. A
+  subsequent continuation added the same dependent-test cascade to
+  `11_IMPLEMENTATION_PLAN.md`, so the named future implementation-planning
+  entrypoint now requires `shared-link-smoke-seed-script.test.ts` and
+  `shared-link-hosted-password-route-proof-script.test.ts` to move, delete, or
+  rewrite with their stale shared-link proof utilities. A follow-up
+  planning-surface propagation added the same direct dependent proof-test
+  cascade to the auth-pack executive summary, test strategy, rollout/ops,
+  risk register, final readiness review, README, and legacy provider cleanup
+  worksheet so future cleanup implementers see the gate before diving into
+  `28`/`29`. A follow-up blast-radius propagation added that cascade to
+  `10_BLAST_RADIUS_AND_DEPENDENCIES.md` as an explicit Phase 5 dependency and
+  cross-pack coordination item. A subsequent decisions-surface propagation added
+  the same live scan/caller-graph revalidation gate to
+  `15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md` so Phase 5 cleanup cannot rely
+  on the sibling ledger alone before moving/deleting stale proof utilities or
+  historical Supabase type references. A further requirements-surface
+  propagation aligned `FR-009` in `04_REQUIREMENTS_SPECIFICATION.md` with the
+  same live scan/caller-graph gate, so the originating provider-cleanup
+  requirement now blocks final provider-cleanup/provider-exit claims until the
+  `60` / `38` scans and direct Vitest importer cascade are rechecked. A later
+  evidence-log reconciliation widened
+  `19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md` to name the coordination ledger,
+  requirements, executive summary, blast-radius, decisions, readiness, README,
+  final audit, and current-state surfaces carrying that same Phase 5 guardrail.
+  The live post-reconciliation recheck at that point still returned `60` old-provider keyword
+  files, `38` historical type-reference consumers, and direct Vitest importers
+  for `scripts/seed-shared-link-smoke.ts` and
+  `scripts/prove-shared-link-hosted-password-route.ts`; no source, test,
+  provider, runtime, migration, package, staging, or commit changes were made
+  by that docs/state pass, and the active goal remains open. A later
+  continuation tightened `28_PHASE_5_REMAINING_PROVIDER_FIXTURE_CLEANUP_PLAN.md`
+  with a narrow Slice 0 handoff for the first low-risk stale text/scaffold
+  cleanup wave: `e2e/shared-link-receiver.spec.ts`, publication test env stubs,
+  `scripts/verify-upload-alert-delivery.ts`, and its direct
+  `upload-alert-delivery-proof-script.test.ts` importer. This remains planning
+  evidence only and deliberately excludes stale proof-utility archival,
+  `src/lib/supabase/types.ts` retirement, provider mutation, hosted proof,
+  deployment, and native goal completion. A follow-up entrypoint alignment now
+  points `11_IMPLEMENTATION_PLAN.md`, README, the Phase 5 test strategy, and
+  `FR-009` traceability at that Slice 0 handoff so later coding agents do not
+  jump directly into broader proof-utility or type-reference cleanup. A later
+  Slice 0 implementation updated
+  `e2e/shared-link-receiver.spec.ts`,
+  `scripts/verify-upload-alert-delivery.ts`,
+  `tests/vitest/upload-alert-delivery-proof-script.test.ts`,
+  `tests/vitest/project-publication-resolved-ids.test.ts`,
+  `tests/vitest/project-publication-rotate-resend.test.ts`, and
+  `tests/vitest/project-publication-security-hardening.test.ts`, then verified
+  the current-worktree `tests/vitest/project-publication-page.test.tsx` stale
+  env stub removal from a concurrent dirty change: the stale
+  Resend setup comment now points to Cloudflare Email / recipient fixtures,
+  upload-alert hosted observation now requires
+  `ARCH_UPLOAD_ALERT_DELIVERY_HOSTED_OBSERVED` instead of Vercel env fallbacks,
+  and publication tests no longer stub Supabase env. Focused validation
+  passed `5` Vitest files / `80` tests, a target old-provider literal scan with
+  no matches, and `git diff --check`. A subsequent Slice A archive moved the
+  stale shared-link/browser proof utilities and their two direct Vitest
+  importers under `supabase/migration-evidence/provider-parity-proofs/`; the
+  active caller check for the archived stale proof-utility names returns no
+  matches outside `supabase/**`. The primary old-provider keyword scan now
+  returns `45` files, while the active historical type-reference scan returns
+  `34`. Focused scanner/absence Vitest passed `5` files / `40` tests,
+  `git diff --check` passed for touched docs/state files, and the
+  trailing-whitespace/conflict-marker scan had no matches for touched docs and
+  archived files. Provider state, hosted runtime, migrations, package manifests,
+  staging, commits, and native-goal completion were not changed by this
+  verification. A subsequent Slice A2 archive moved
+  `tests/vitest/notification-rls-proof.test.ts` and
+  `tests/vitest/upload-storage-denial-proof.test.ts` into the same
+  `supabase/migration-evidence/provider-parity-proofs/tests/` archaeology
+  folder. The current active old-provider keyword scan remains `45` files, the
+  then-active historical type-reference scan remained `34`, and remaining active
+  references to those two old test names were provider-cleanup allowlist/scanner
+  fixtures rather than direct imports. A subsequent Slice B added
+  `scripts/generate-provider-cleanup-allowlist.ts`,
+  `tests/vitest/provider-cleanup-allowlist-script.test.ts`, and regenerated
+  `.ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement/evidence/2026-07-04-provider-cleanup-allowlist.{json,md}`.
+  The report classified all `45` then-current old-provider keyword hit files with
+  `activeRuntimeProviderReferencesReady=true`, `allProviderStringsClassified=true`,
+  `providerCleanupAllowlistReady=true`, zero cleanup candidates, and zero
+  unclassified files; the final-cleanup flag was still false at that checkpoint
+  because `src/lib/supabase/types.ts` and its active consumers remained, and
+  provider-exit pack/CI proof plus hosted/provider evidence were still separate
+  gates. Later Slice D0-D3 evidence supersedes the type-reference
+  count with `4` active path-reference files, `0` deletion blockers, and
+  `typeReferenceDeletionReady=true`. Focused Slice D validation passed the
+  migrated Vitest suite (`17` files / `136` tests), the Bun P3 shared-link
+  migration suite (`2` tests), the type-reference inventory-script suite
+  (`1` file / `3` tests), the provider-cleanup allowlist suite (`1` file /
+  `4` tests), regenerated both provider-cleanup/type-reference reports, and
+  high-memory TypeScript check. A subsequent Slice D3 deleted
+  `src/lib/supabase/types.ts`, left the narrow keyword scan at `44` files, and
+  regenerated the broadened provider-cleanup allowlist with `89` classified
+  active-surface provider-boundary files and `finalProviderCleanupReady=true`;
+  the type-reference inventory still reports `4` non-blocking path references
+  and `typeReferenceDeletionReady=true`, while the regenerated provider-exit
+  pack has `activeLegacyProviderRuntimeBlockers=0` but `providerExitReady=false`
+  and five remaining external/operator/hosted blockers. A later
+  2026-07-04T09:04:19Z non-destructive refresh of
+  `bun run cf:check-latest-deploy-source-smoke`,
+  `bun run cf:provider-exit-pack`,
+  `bun run cf:latest-deploy-source-smoke-template`, and
+  `bun run cf:provider-exit-operator-template` kept provider exit at
+  `OPEN / NOT READY`;
+  latest deploy/source smoke now has `3` blockers because the shared worktree has
+  uncommitted runtime source changes, the deployed commit is older than current
+  HEAD, and the deployment timestamp predates current HEAD. The matching
+  source-smoke template now lists six deploy/source-smoke operator steps, and
+  the provider-exit operator-record template keeps the six remaining evidence
+  sections as sanitized placeholders. Focused proof-tool
+  validation passed
+  `bunx vitest run tests/vitest/cloudflare-latest-deploy-source-smoke-script.test.ts tests/vitest/provider-exit-pack-script.test.ts --maxWorkers=1`
+  (`2` files / `32` tests). Final provider-exit, hosted, operator, and
+  final-review gates are not proven. A later 2026-07-04T09:14:50Z
+  non-destructive legal-owner readiness refresh wrote
+  `.ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement/evidence/2026-07-04-legal-owner-readiness.json`
+  and Markdown summary, exited `1`, and failed closed with
+  `legalOwnerReady=false`: all five legal proof flags are false and product
+  owner, legal reviewer, approval date, and approval reference are missing. This
+  is explicit negative legal/public-launch readiness evidence, not approval.
+  Focused validation passed
+  `bunx vitest run --maxWorkers=1 tests/vitest/legal-owner-readiness-script.test.ts`
+  (`1` file / `5` tests), plus scoped `git diff --check` and
+  conflict/trailing-whitespace scans for the touched auth-pack/current-state
+  paths. A later prompt-guard refresh tightened the named execution prompts so
+  skipped, unavailable, failed, and failed-closed hosted/provider/operator/legal
+  proof are all non-completion evidence, then aligned
+  `11_IMPLEMENTATION_PLAN.md`, `19`, and `27` with that boundary. A subsequent
+  legal-owner template pass added a sanitized operator input template under
+  `evidence/2026-07-04-legal-owner-readiness.template.json` and kept the real
+  readiness artifact failed closed at `legalOwnerReady=false`; the template is
+  a checklist, not approval. Focused validation passed the legal readiness
+  Vitest (`1` file / `6` tests), template generation, scoped diff/conflict/
+  trailing-whitespace checks, and high-memory `tsc --noEmit`. A subsequent
+  auth-audit completion-readiness checker wrote
+  `evidence/2026-07-04-auth-audit-completion-readiness.json` and Markdown,
+  exited `1` by design, and recorded `localProviderCleanupReady=true`,
+  `externalCompletionProofReady=false`, and
+  `finalAuthAuditCompletionReady=false`; focused checker Vitest passed (`1`
+  file / `4` tests). The active goal remains open.
 - Project-create D1 ownership regression fix as of 2026-07-03 18:00 UTC:
   local dev logs showed POST `/workshop/projects` failing after the project row
   was created, with cause `Project not found in the current workspace.` Root
