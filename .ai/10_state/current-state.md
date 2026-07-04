@@ -41,7 +41,7 @@ Stable current truth (verify against git/source before relying on a detail):
   proof/deferral; the refreshed source-smoke template and provider-exit
   operator-record template remain sanitized handoff artifacts, not proof; scoped
   read-only verifier/architect sidecars confirm the remaining gates are external
-  hosted/provider/operator/legal/privacy/cleanup/final-review claims, not locally closable from repo
+  hosted/provider/operator/legal/privacy/cleanup/provider-exit/final-review claims, not locally closable from repo
   evidence alone; the auth-pack completion-readiness checker now aggregates the
   sanitized evidence and fails closed with `localProviderCleanupReady=true`,
   `externalCompletionProofReady=false`, and
@@ -289,7 +289,7 @@ Stable current truth (verify against git/source before relying on a detail):
   `03_SOURCE_AND_CODEBASE_AUDIT.md`, and
   `07_DATA_DATABASE_API_NETWORK_PLAN.md` so their original audit wording now
   points to the current Phase 1-4 local evidence while preserving the
-  hosted/provider/operator/legal/privacy/cleanup/final-review gates as open. A later
+  hosted/provider/operator/legal/privacy/cleanup/provider-exit/final-review gates as open. A later
   continuation re-ran the provider-string/type-reference scans with the same
   `60` / `38` counts and propagated the dependent-test boundary upward into
   `16`, `19`, and `26` so the traceability matrix, evidence log, and Phase 5
@@ -376,7 +376,7 @@ Stable current truth (verify against git/source before relying on a detail):
   `providerCleanupAllowlistReady=true`, zero cleanup candidates, and zero
   unclassified files; the final-cleanup flag was still false at that checkpoint
   because `src/lib/supabase/types.ts` and its active consumers remained, and
-  provider-exit pack/CI proof plus hosted/provider/operator/legal/privacy/final-review
+  provider-exit pack/CI proof plus hosted/provider/operator/legal/privacy/cleanup/provider-exit/final-review
   evidence were still separate gates. Later Slice D0-D3 evidence supersedes the type-reference
   count with `4` active path-reference files, `0` deletion blockers, and
   `typeReferenceDeletionReady=true`. Focused Slice D validation passed the
