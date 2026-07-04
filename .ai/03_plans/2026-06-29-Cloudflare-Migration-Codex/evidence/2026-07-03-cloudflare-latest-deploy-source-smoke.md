@@ -2,7 +2,7 @@
 
 Status: **OPEN / NOT READY**
 
-Generated: `2026-07-04T09:04:19.515Z`
+Generated: `2026-07-04T10:22:54.664Z`
 
 Deploy evidence: `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-main-worker-current-source-deploy.json`
 
@@ -12,7 +12,7 @@ Deploy evidence: `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/20
 | --- | --- |
 | Deploy evidence present | PASS |
 | Deploy evidence parse error | none |
-| Runtime source paths clean | OPEN |
+| Runtime source paths clean | PASS |
 | 100% production Worker version with deployment time recorded | PASS |
 | Deployed source commit recorded | PASS |
 | Deployed source commit matches current HEAD | OPEN |
@@ -24,9 +24,9 @@ Deploy evidence: `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/20
 
 | Field | Value |
 | --- | --- |
-| commit | dad3843191e7f32768546777539efa8a1a7b0c76 |
-| committedAt | 2026-07-04T10:05:34+08:00 |
-| subject | feat(authz): harden D1 authorization, workspace scoping, and project-image ownership across API routes and domain actions |
+| commit | 5428375ce225d00a8fd888368d2cdfb348ed6761 |
+| committedAt | 2026-07-04T17:57:06+08:00 |
+| subject | docs(ai): refresh auth audit executive summary |
 
 Runtime source status paths:
 - `src`
@@ -40,45 +40,7 @@ Runtime source status paths:
 - `src/middleware.ts`
 
 Dirty runtime source entries:
-- `M package.json`
-- `M src/app/api/projects/images/route.ts`
-- `M src/app/api/share/[token]/password/route.ts`
-- `M src/app/globals.css`
-- `M src/app/workshop/projects/page.tsx`
-- `M src/app/workshop/settings/page.tsx`
-- `M src/components/ui/search-input.tsx`
-- `M src/components/ui/tree-panel-header.tsx`
-- `M src/components/workshop/LiveProjectCard.tsx`
-- `M src/components/workshop/ManageGroupsPopover.tsx`
-- `M src/components/workshop/ProjectCardThumbnailReveal.tsx`
-- `M src/components/workshop/ProjectGroupFlag.tsx`
-- `M src/components/workshop/ProjectGroupSection.tsx`
-- `M src/components/workshop/ProjectsListSkeleton.tsx`
-- `M src/components/workshop/WorkshopPageShell.tsx`
-- `M src/components/workshop/dashboard/lib.ts`
-- `M src/components/workshop/projects-page-client.tsx`
-- `M src/hooks/use-estimate-cursor-broadcast.ts`
-- `M src/hooks/use-estimate-row-update-broadcast.ts`
-- `M src/hooks/use-project-presence.ts`
-- `M src/lib/auth/account-data.ts`
-- `M src/lib/auth/beta-allowlist-admin.ts`
-- `M src/lib/auth/better-auth-cloudflare.ts`
-- `M src/lib/auth/profile-d1-store.ts`
-- `M src/lib/authz/d1-access.ts`
-- `M src/lib/cloudflare/collaboration-room-client.ts`
-- `M src/lib/cloudflare/collaboration-room.ts`
-- `M src/lib/collaboration/realtime-identity-actions.ts`
-- `M src/lib/collaboration/types.ts`
-- `M src/lib/observability/redact.ts`
-- `M src/lib/projects/actions.ts`
-- `M src/lib/publication/security.ts`
-- `M src/lib/repositories/workspace-repository.ts`
-- `D src/lib/supabase/types.ts`
-- `M src/lib/types/database.ts`
-- `M src/lib/uploads/scan-override.ts`
-- `M src/lib/workshop/beta-feedback-review.ts`
-- `?? src/lib/auth/roles.ts`
-- `?? src/lib/collaboration/realtime-room-token.ts`
+- none
 
 ## Deployment
 
@@ -93,7 +55,6 @@ Dirty runtime source entries:
 
 ## Open Blockers
 
-- Runtime source paths have uncommitted changes and cannot be claimed deployed.
 - Deployed git source commit does not match current HEAD.
 - Deployment timestamp is older than the current git commit timestamp.
 

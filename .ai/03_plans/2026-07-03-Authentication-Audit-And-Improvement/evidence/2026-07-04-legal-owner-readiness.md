@@ -1,8 +1,8 @@
 # 2026-07-04 Legal Owner Readiness Evidence
 
-**Generated at:** 2026-07-04T09:14:50.958Z
+**Generated at:** 2026-07-04T10:23:05.552Z
 **Source artifact:** `2026-07-04-legal-owner-readiness.json`
-**Command:** `OUTPUT_FILE=.ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement/evidence/2026-07-04-legal-owner-readiness.json bun run scripts/check-legal-owner-readiness.ts`
+**Command:** `OUTPUT_FILE=.ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement/evidence/2026-07-04-legal-owner-readiness.json bun run launch:check-legal-owner`
 **Exit code:** `1`
 
 ## Verdict

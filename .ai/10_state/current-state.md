@@ -17,7 +17,7 @@ Stable current truth (verify against git/source before relying on a detail):
   TanStack Query, Zustand, repository boundaries. Active app/runtime source is
   Cloudflare-only. Vercel/Supabase/Resend cleanup advanced on 2026-07-04 under
   `.ai/03_plans/2026-07-04-Vercel-Supabase-Cleanup/`, but do **not** treat it
-  as final provider-cleanup/provider-exit proof: same-day auth follow-up work
+  as final hosted/provider/operator/legal/privacy/cleanup/provider-exit/final-review proof: same-day auth follow-up work
 	  archived known Supabase-era proof scripts/tests under `supabase/**` and
 	  generated a broadened provider-cleanup allowlist report that classifies all
 	  current active-surface provider-boundary hits; the historical
@@ -32,11 +32,12 @@ Stable current truth (verify against git/source before relying on a detail):
 	  `89` classified provider-boundary hit files (superseding the narrower `44`
 	  old-provider keyword-file count), `type-reference-retirement=0`,
 	  `finalProviderCleanupReady=true`, and no blockers; the
-  2026-07-04T09:04:19Z provider-exit/source-smoke/template refresh reports
+  2026-07-04T10:22Z provider-exit/source-smoke evidence refresh reports
   `activeLegacyProviderRuntimeBlockers=0` but `providerExitReady=false`, with
-  latest deploy/source smoke now separately blocked by `3` current-tree issues
-  (uncommitted runtime source paths, deployed commit mismatch, deployment older
-  than current HEAD) plus four remaining operator/external gates:
+  latest deploy/source smoke now separately blocked by two deploy/source
+  freshness issues (deployed commit mismatch and deployment older than current
+  HEAD) after the runtime source-path scan passed, plus four remaining
+  operator/external gates:
   export/retention, post-exit smoke, real Google persona, and real mailbox
   proof/deferral; the refreshed source-smoke template and provider-exit
   operator-record template remain sanitized handoff artifacts, not proof; scoped
@@ -46,8 +47,10 @@ Stable current truth (verify against git/source before relying on a detail):
   sanitized evidence and fails closed with `localProviderCleanupReady=true`,
   `externalCompletionProofReady=false`, and
   `finalAuthAuditCompletionReady=false` because latest deploy/source smoke,
-  provider-exit pack, legal-owner readiness, and final independent review remain
-  open;
+  provider-exit pack, and legal-owner readiness remain open; the scoped final
+  independent review artifact now passes only the checker/docs review input and
+  is not provider, hosted runtime, legal/privacy, deployment, production,
+  browser, or native-goal completion proof;
   low-risk direct `Tables<...>` fixture imports and remaining schema/source-read
   tests have been migrated to current D1/domain/source contracts with focused
   test evidence and high-memory typecheck evidence;
@@ -226,7 +229,7 @@ Stable current truth (verify against git/source before relying on a detail):
   `src/lib/supabase/types.ts`, a stale `RESEND_API_KEY` e2e setup comment,
   provider-backed proof tests, and negative assertions. The sibling cleanup
   ledger now records substantial repo-local implementation evidence, but Phase 5
-  final provider-cleanup/provider-exit proof remained open at that checkpoint
+  final hosted/provider/operator/legal/privacy/cleanup/provider-exit/final-review proof remained open at that checkpoint
   because current scans still found old-provider proof/test fixtures, and
   hosted/provider-dashboard/operator proof plus legal/privacy/final-review
   acceptance had not been gathered. A subsequent Phase 6 docs-only audit
@@ -251,7 +254,7 @@ Stable current truth (verify against git/source before relying on a detail):
   into cleanup slices, and `29` classifies every hit file while separately
   recording `38` then-current consumers of the historical
   `src/lib/supabase/types.ts` reference. This narrows the next cleanup slice
-  but does not close final provider-cleanup/provider-exit proof. A follow-up
+  but does not close final hosted/provider/operator/legal/privacy/cleanup/provider-exit/final-review proof. A follow-up
   planning-surface reconciliation added a current phase evidence overlay to
   `11_IMPLEMENTATION_PLAN.md` so future agents start from docs `22`-`29` and do
   not treat the final audit as source-edit or `update_goal` completion
@@ -392,22 +395,20 @@ Stable current truth (verify against git/source before relying on a detail):
   and `typeReferenceDeletionReady=true`, while the regenerated provider-exit
   pack has `activeLegacyProviderRuntimeBlockers=0` but `providerExitReady=false`
   and five remaining external/operator/hosted blockers. A later
-  2026-07-04T09:04:19Z non-destructive refresh of
+  2026-07-04T10:22Z non-destructive refresh of
   `bun run cf:check-latest-deploy-source-smoke`,
-  `bun run cf:provider-exit-pack`,
-  `bun run cf:latest-deploy-source-smoke-template`, and
-  `bun run cf:provider-exit-operator-template` kept provider exit at
+  `bun run cf:provider-exit-pack` kept provider exit at
   `OPEN / NOT READY`;
-  latest deploy/source smoke now has `3` blockers because the shared worktree has
-  uncommitted runtime source changes, the deployed commit is older than current
-  HEAD, and the deployment timestamp predates current HEAD. The matching
-  source-smoke template now lists six deploy/source-smoke operator steps, and
+  latest deploy/source smoke now has runtime source paths clean and `2`
+  blockers because the deployed commit is older than current HEAD and the
+  deployment timestamp predates current HEAD. The matching
+  source-smoke template lists deploy/source-smoke operator steps, and
   the provider-exit operator-record template keeps the six remaining evidence
   sections as sanitized placeholders. Focused proof-tool
   validation passed
   `bunx vitest run tests/vitest/cloudflare-latest-deploy-source-smoke-script.test.ts tests/vitest/provider-exit-pack-script.test.ts --maxWorkers=1`
   (`2` files / `32` tests). Final provider-exit, hosted, operator, and
-  final-review gates are not proven. A later 2026-07-04T09:14:50Z
+  final-review gates are not proven. A later 2026-07-04T10:23:05Z
   non-destructive legal-owner readiness refresh wrote
   `.ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement/evidence/2026-07-04-legal-owner-readiness.json`
   and Markdown summary, exited `1`, and failed closed with
@@ -416,7 +417,7 @@ Stable current truth (verify against git/source before relying on a detail):
   is explicit negative legal/public-launch readiness evidence, not approval.
   Focused validation passed
   `bunx vitest run --maxWorkers=1 tests/vitest/legal-owner-readiness-script.test.ts`
-  (`1` file / `5` tests), plus scoped `git diff --check` and
+  (`1` file / `6` tests), plus scoped `git diff --check` and
   conflict/trailing-whitespace scans for the touched auth-pack/current-state
   paths. A later prompt-guard refresh tightened the named execution prompts so
   skipped, unavailable, failed, and failed-closed hosted/provider/operator/legal

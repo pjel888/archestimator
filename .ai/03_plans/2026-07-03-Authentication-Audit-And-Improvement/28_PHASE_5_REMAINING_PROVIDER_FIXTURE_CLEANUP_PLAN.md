@@ -43,7 +43,7 @@ No stale proof utilities, provider dashboards, deployments, migrations, package 
 
 2026-07-04 Slice A archive recheck: the stale Supabase-backed proof utilities named below were moved out of active `scripts/` and their two direct Vitest importers were moved out of active `tests/vitest/` into `supabase/migration-evidence/provider-parity-proofs/`. The primary old-provider keyword scan now returns `45` files outside `supabase/**`, the secondary historical type-reference scan now returns `34` files, and the focused active caller check across `package.json`, `scripts`, `tests`, `e2e`, and `.github` returns no matches for the archived utility names outside `supabase/**`.
 
-2026-07-04 Slice A2 archive recheck: the remaining two provider-only proof tests from this packet, `tests/vitest/notification-rls-proof.test.ts` and `tests/vitest/upload-storage-denial-proof.test.ts`, were moved under `supabase/migration-evidence/provider-parity-proofs/tests/`. At that checkpoint, the primary old-provider keyword scan returned `45` files outside `supabase/**`, and the secondary historical type-reference scan returned `34` active files. Remaining non-archive references to those two test names are provider-cleanup allowlist/scanner fixtures, not direct imports of the archived tests. This was a cleanup-slice improvement only; later Slice D/D3 work superseded the historical type-reference retirement blocker, while final provider-cleanup/provider-exit proof remains open for provider-exit pack/CI proof, hosted/provider-dashboard/operator evidence, outer-goal legal/privacy gates where applicable, and final review.
+2026-07-04 Slice A2 archive recheck: the remaining two provider-only proof tests from this packet, `tests/vitest/notification-rls-proof.test.ts` and `tests/vitest/upload-storage-denial-proof.test.ts`, were moved under `supabase/migration-evidence/provider-parity-proofs/tests/`. At that checkpoint, the primary old-provider keyword scan returned `45` files outside `supabase/**`, and the secondary historical type-reference scan returned `34` active files. Remaining non-archive references to those two test names are provider-cleanup allowlist/scanner fixtures, not direct imports of the archived tests. This was a cleanup-slice improvement only; later Slice D/D3 work superseded the historical type-reference retirement blocker, while final hosted/provider/operator/legal/privacy/cleanup/provider-exit/final-review proof remains open for provider-exit pack/CI proof, hosted/provider-dashboard/operator evidence, outer-goal legal/privacy gates where applicable, and final review.
 
 2026-07-04 Slice B allowlist recheck: `scripts/generate-provider-cleanup-allowlist.ts` generated JSON and Markdown evidence for the then-current provider-string inventory. The report classified all `45` then-current old-provider keyword hit files, reported zero active-runtime blockers, zero cleanup candidates, and zero unclassified files, and set `activeRuntimeProviderReferencesReady=true`, `allProviderStringsClassified=true`, and `providerCleanupAllowlistReady=true`. At that checkpoint, the final-cleanup flag was still false because `src/lib/supabase/types.ts` remained a `type-reference-retirement` blocker with `34` active consumers, and because provider-exit pack/CI, hosted/provider-dashboard/operator proof, legal/privacy acceptance, and final independent review remained separate gates. Slice D0/D1 superseded that checkpoint with an intermediate `22` raw / `18` deletion-blocking inventory, Slice D2 superseded it with `4` raw / `0` deletion-blocking references, and Slice D3 superseded the final historical-file blocker.
 
@@ -157,8 +157,8 @@ Results: the full Slice 0 suite passed `5` Vitest files / `80` tests; the target
 Out of scope for Slice 0:
 
 - Moving, deleting, archiving, or rewriting `scripts/seed-shared-link-smoke.ts`, `scripts/prove-shared-link-hosted-password-route.ts`, or their direct Vitest importers. This was handled later by Slice A.
-- Provider-exit/hosted/operator/final-review proof. Historical `src/lib/supabase/types.ts` deletion is now complete.
-- Claiming final provider-cleanup/provider-exit proof from a reduced string count alone.
+- Hosted/provider/operator/legal/privacy/cleanup/provider-exit/final-review proof. Historical `src/lib/supabase/types.ts` deletion is now complete.
+- Claiming final hosted/provider/operator/legal/privacy/cleanup/provider-exit/final-review proof from a reduced string count alone.
 - Running provider dashboards, deployments, browser proof, or hosted mutations.
 
 ### Slice A - Scripts And Proof Utilities
@@ -411,9 +411,9 @@ Run additional focused Vitest files for any script/test actually moved or delete
 
 ## Completion Boundary
 
-This plan advances `RISK-007` by converting the remaining provider-string scan into actionable cleanup slices; `29` records the file-level inventory behind those slices. Neither document closes `RISK-007` or proves final provider-cleanup/provider-exit completion.
+This plan advances `RISK-007` by converting the remaining provider-string scan into actionable cleanup slices; `29` records the file-level inventory behind those slices. Neither document closes `RISK-007` or proves final hosted/provider/operator/legal/privacy/cleanup/provider-exit/final-review completion.
 
-Final provider-cleanup/provider-exit proof still requires:
+Final hosted/provider/operator/legal/privacy/cleanup/provider-exit/final-review proof still requires:
 
 - stale proof utilities archived/deleted or replaced, with the eight known stale proof utilities archived in Slice A and four provider-only proof tests archived in Slice A/Slice A2,
 - intentional old-provider/provider-boundary strings allowlisted with rationale, which Slice B/D3 plus the scoped allowlist review fix now covers for the current `44` narrow keyword-hit files and `89` broadened provider-boundary hit files,
