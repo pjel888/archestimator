@@ -23,6 +23,21 @@ export type LegalOwnerReadinessResult = {
   note: string;
 };
 
+export type LegalOwnerReadinessTemplate = {
+  generatedAt: string;
+  mode: "legal-owner-readiness-template";
+  command: string;
+  acceptedFlagValues: string[];
+  proofFlags: Record<LegalProofFlagName, { required: true; placeholder: "approved" }>;
+  labels: {
+    LEGAL_OWNER_PRODUCT_OWNER: { required: true; maxLength: 100; placeholder: string };
+    LEGAL_OWNER_LEGAL_REVIEWER: { required: true; maxLength: 100; placeholder: string };
+    LEGAL_OWNER_APPROVAL_DATE: { required: true; format: "YYYY-MM-DD"; placeholder: string };
+    LEGAL_OWNER_APPROVAL_REFERENCE: { required: true; maxLength: 140; placeholder: string };
+  };
+  note: string;
+};
+
 const LEGAL_PROOF_FLAGS: LegalProofFlagName[] = [
   "LEGAL_OWNER_TERMS_CONFIRMED",
   "LEGAL_OWNER_PRIVACY_CONFIRMED",
@@ -101,13 +116,57 @@ export function checkLegalOwnerReadiness(env: Record<string, string | undefined>
   } satisfies LegalOwnerReadinessResult;
 }
 
-function writeOutput(outputFile: string, result: LegalOwnerReadinessResult) {
+export function buildLegalOwnerReadinessTemplate(generatedAt = new Date().toISOString()) {
+  return {
+    generatedAt,
+    mode: "legal-owner-readiness-template" as const,
+    command:
+      "LEGAL_OWNER_TERMS_CONFIRMED=approved LEGAL_OWNER_PRIVACY_CONFIRMED=approved LEGAL_OWNER_BETA_COPY_CONFIRMED=approved LEGAL_OWNER_DATA_RETENTION_CONFIRMED=approved LEGAL_OWNER_SUPPORT_COMMS_CONFIRMED=approved LEGAL_OWNER_PRODUCT_OWNER='<product owner label>' LEGAL_OWNER_LEGAL_REVIEWER='<legal reviewer label>' LEGAL_OWNER_APPROVAL_DATE=YYYY-MM-DD LEGAL_OWNER_APPROVAL_REFERENCE='<approval reference>' bun run launch:check-legal-owner",
+    acceptedFlagValues: ["1", "true", "yes", "approved"],
+    proofFlags: Object.fromEntries(
+      LEGAL_PROOF_FLAGS.map((name) => [name, { required: true, placeholder: "approved" }]),
+    ) as LegalOwnerReadinessTemplate["proofFlags"],
+    labels: {
+      LEGAL_OWNER_PRODUCT_OWNER: {
+        required: true,
+        maxLength: 100,
+        placeholder: "Product owner / decision owner label",
+      },
+      LEGAL_OWNER_LEGAL_REVIEWER: {
+        required: true,
+        maxLength: 100,
+        placeholder: "Legal reviewer / counsel label",
+      },
+      LEGAL_OWNER_APPROVAL_DATE: {
+        required: true,
+        format: "YYYY-MM-DD",
+        placeholder: "2026-07-04",
+      },
+      LEGAL_OWNER_APPROVAL_REFERENCE: {
+        required: true,
+        maxLength: 140,
+        placeholder: "Sanitized approval note, ticket, email subject, or decision record label",
+      },
+    },
+    note: "Sanitized operator input template only. Filling this template and rerunning the checker can produce readiness evidence, but the template itself is not legal advice, legal approval, provider proof, hosted proof, or launch authorization.",
+  } satisfies LegalOwnerReadinessTemplate;
+}
+
+function writeOutput(outputFile: string, result: LegalOwnerReadinessResult | LegalOwnerReadinessTemplate) {
   const resolved = resolve(outputFile);
   mkdirSync(dirname(resolved), { recursive: true });
   writeFileSync(resolved, `${JSON.stringify(result, null, 2)}\n`);
 }
 
 async function main() {
+  if (readEnv("WRITE_LEGAL_OWNER_READINESS_TEMPLATE")) {
+    const template = buildLegalOwnerReadinessTemplate();
+    const templateFile = readEnv("TEMPLATE_FILE");
+    if (templateFile) writeOutput(templateFile, template);
+    console.log(JSON.stringify(template, null, 2));
+    return;
+  }
+
   const result = checkLegalOwnerReadiness();
   const outputFile = readEnv("OUTPUT_FILE");
   if (outputFile) writeOutput(outputFile, result);

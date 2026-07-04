@@ -20,8 +20,6 @@ const PROOF_ENV_FILE_NAMES = new Set([
   "UPLOAD_OPERATIONS_ALERTS_ENABLED",
   "UPLOAD_OPERATIONS_ALERT_WEBHOOK_URL",
   "UPLOAD_OPERATIONS_ALERT_WEBHOOK_TOKEN",
-  "VERCEL",
-  "VERCEL_ENV",
 ]);
 
 type EnvFileResult = {
@@ -147,8 +145,7 @@ function isHttpsWebhook(value: string) {
 }
 
 function hostedObservationConfirmed() {
-  if (readEnv(HOSTED_OBSERVED_FLAG) === "1") return true;
-  return readEnv("VERCEL") === "1" && readEnv("VERCEL_ENV") === "production";
+  return readEnv(HOSTED_OBSERVED_FLAG) === "1";
 }
 
 function syntheticAlertRecord(): UploadOperationalTelemetryRecord {
@@ -290,7 +287,7 @@ export async function runUploadAlertDeliveryProductionProof(
         reason: !target.explicitProofOptIn
           ? `${PROOF_FLAG} is not set to 1.`
           : !target.hostedObservationConfirmed
-            ? `${HOSTED_OBSERVED_FLAG}=1 or VERCEL=1 with VERCEL_ENV=production is required before sending production alert proof.`
+            ? `${HOSTED_OBSERVED_FLAG}=1 is required before sending production alert proof.`
             : "alert delivery configuration is incomplete.",
         secretRedacted: true,
         webhookUrlRedacted: true,
