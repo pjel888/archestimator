@@ -15,17 +15,22 @@
  */
 
 import { getCurrentUserContext } from "@/lib/auth/session";
+import { canAccessEstimateInD1, canAccessProjectInD1 } from "@/lib/authz/d1-access";
+import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
 import { issueRealtimeIdentityEnvelope } from "@/lib/collaboration/realtime-identity-server";
 import type { RealtimeIdentityEnvelope } from "@/lib/collaboration/realtime-identity";
+import { issueRealtimeRoomToken, readRealtimeRoomTokenSecret } from "@/lib/collaboration/realtime-room-token";
 import { getCurrentUserTermsAcceptanceStatus } from "@/lib/legal/terms-acceptance";
 
 /** Topic must be `project:<uuid>` or `estimate:<uuid>` (36-char uuid form). */
-const TOPIC_PATTERN = /^(project|estimate):[0-9a-f-]{36}$/;
+const TOPIC_PATTERN = /^(project|estimate):([0-9a-f-]{36})$/;
 
 export type IssueRealtimeIdentityResult = {
   envelope: RealtimeIdentityEnvelope;
   /** Raw base64url public key for the client to cache and verify with. */
   publicKey: string;
+  /** Short-lived room admission token for the Cloudflare Durable Object. */
+  roomToken: string;
   /** Authenticated sender id, returned so cursor layers do not need route-time profile props. */
   userId: string;
   /** Escaped by React at render sites; used only as a best-effort collaboration label. */
@@ -49,18 +54,40 @@ export async function issueRealtimeIdentity({
   topic: string;
 }): Promise<IssueRealtimeIdentityResult | null> {
   const normalizedTopic = typeof topic === "string" ? topic.trim().toLowerCase() : "";
-  if (!TOPIC_PATTERN.test(normalizedTopic)) return null;
+  const topicMatch = TOPIC_PATTERN.exec(normalizedTopic);
+  if (!topicMatch) return null;
+  const [, topicKind, objectId] = topicMatch;
 
   const user = await getCurrentUserContext();
   if (!user) return null;
   const acceptanceStatus = await getCurrentUserTermsAcceptanceStatus(user.userId);
   if (acceptanceStatus.requiresAcceptance) return null;
 
+  const database = await getCloudflareD1Database();
+  if (!database) return null;
+
+  try {
+    const allowed = topicKind === "project"
+      ? await canAccessProjectInD1(database, objectId, user)
+      : await canAccessEstimateInD1(database, objectId, user);
+    if (!allowed) return null;
+  } catch {
+    return null;
+  }
+
+  const roomTokenSecret = readRealtimeRoomTokenSecret();
+  if (!roomTokenSecret) return null;
+
   const { envelope, publicKey } = await issueRealtimeIdentityEnvelope({
     sub: user.userId,
     topic: normalizedTopic,
     role: "member",
   });
+  const roomToken = await issueRealtimeRoomToken({
+    secret: roomTokenSecret,
+    sub: user.userId,
+    topic: normalizedTopic,
+  });
 
-  return { envelope, publicKey, userId: user.userId, displayName: user.displayName ?? null };
+  return { envelope, publicKey, roomToken, userId: user.userId, displayName: user.displayName ?? null };
 }

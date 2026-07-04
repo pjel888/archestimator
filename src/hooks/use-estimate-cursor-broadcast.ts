@@ -43,6 +43,7 @@ type EstimateCursorSendStatus = "idle" | "ok" | "error" | "timed out";
 
 // --- Transport seam (T0.3) -------------------------------------------------
 export type CursorChannelLike = {
+  authorize?: (token: string) => Promise<string> | string;
   on: (
     type: "broadcast",
     filter: { event: string },
@@ -63,6 +64,7 @@ export type RealtimeIdentityIssuer = (input: { topic: string }) => Promise<{
   publicKey: string;
   userId?: string | null;
   displayName?: string | null;
+  roomToken?: string | null;
 } | null>;
 
 const defaultCursorClientFactory: CursorClientFactory = () =>
@@ -171,6 +173,11 @@ export function useEstimateCursorCollaboration({
         ownDisplayNameRef.current = identity.displayName ?? displayName ?? null;
         envelopeRef.current = identity.envelope;
         verifyKeyRef.current = await importVerifyKey(identity.publicKey);
+        if (typeof channel.authorize === "function") {
+          if (!identity.roomToken) return;
+          const result = await channel.authorize(identity.roomToken);
+          if (result !== "ok") return;
+        }
         setRemoteCursorMap((current) => {
           const ownUserId = ownUserIdRef.current;
           if (!ownUserId || !current.has(ownUserId)) return current;

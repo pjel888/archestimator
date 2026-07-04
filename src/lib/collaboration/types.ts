@@ -1,4 +1,6 @@
-export type CollaborationRole = "owner" | "admin" | "editor" | "viewer";
+import type { ProjectEstimateCollaborationRole } from "@/lib/auth/roles";
+
+export type CollaborationRole = ProjectEstimateCollaborationRole;
 
 type ProjectCollaboratorSource = "project" | "workspace" | "sheet";
 

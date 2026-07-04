@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef } from "react";
 
 import { createCloudflareCollaborationRoomClient } from "@/lib/cloudflare/collaboration-room-client";
+import { issueRealtimeIdentity } from "@/lib/collaboration/realtime-identity-actions";
 import { ESTIMATE_COLLABORATION_CHANNEL_PREFIX } from "./use-estimate-cursor-broadcast";
 
 export const ESTIMATE_ROW_UPDATE_BROADCAST_EVENT = "row-update";
@@ -23,6 +24,7 @@ export type EstimateRowUpdateBroadcastPayload = {
 export type EstimateRowUpdateBroadcastFields = Omit<EstimateRowUpdateBroadcastPayload, "estimateId" | "tabId" | "sentAt">;
 
 type RowUpdateChannelLike = {
+  authorize?: (token: string) => Promise<string> | string;
   subscribe: (callback?: (status: string) => void) => RowUpdateChannelLike;
   send: (message: { type: "broadcast"; event: string; payload: EstimateRowUpdateBroadcastPayload }) => Promise<string> | string;
 };
@@ -33,6 +35,7 @@ type RowUpdateClientLike = {
 };
 
 export type RowUpdateClientFactory = () => RowUpdateClientLike;
+export type RowUpdateIdentityIssuer = typeof issueRealtimeIdentity;
 
 function isFiniteNonNegative(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) && value >= 0;
@@ -87,22 +90,27 @@ export function useEstimateRowUpdateBroadcast({
   tabId = null,
   enabled = true,
   clientFactory = defaultRowUpdateClientFactory,
+  identityIssuer = issueRealtimeIdentity,
 }: {
   estimateId?: string | null;
   tabId?: string | null;
   enabled?: boolean;
   clientFactory?: RowUpdateClientFactory;
+  identityIssuer?: RowUpdateIdentityIssuer;
 }) {
   const channelRef = useRef<RowUpdateChannelLike | null>(null);
   const subscribedRef = useRef(false);
   const clientFactoryRef = useRef(clientFactory);
+  const identityIssuerRef = useRef(identityIssuer);
 
   useEffect(() => {
     clientFactoryRef.current = clientFactory;
-  }, [clientFactory]);
+    identityIssuerRef.current = identityIssuer;
+  }, [clientFactory, identityIssuer]);
 
   useEffect(() => {
     if (!enabled || !estimateId) return;
+    let cancelled = false;
     let client: RowUpdateClientLike;
     try {
       client = clientFactoryRef.current();
@@ -110,14 +118,33 @@ export function useEstimateRowUpdateBroadcast({
       return;
     }
 
-    const channel = client.openRoom(`${ESTIMATE_COLLABORATION_CHANNEL_PREFIX}${estimateId}`);
+    const topic = `${ESTIMATE_COLLABORATION_CHANNEL_PREFIX}${estimateId}`;
+    const channel = client.openRoom(topic);
     channelRef.current = channel;
     subscribedRef.current = false;
     channel.subscribe((status) => {
-      subscribedRef.current = status === "SUBSCRIBED";
+      if (status !== "SUBSCRIBED") {
+        subscribedRef.current = false;
+        return;
+      }
+      if (typeof channel.authorize !== "function") {
+        subscribedRef.current = true;
+        return;
+      }
+      void identityIssuerRef.current({ topic })
+        .then(async (identity) => {
+          if (cancelled || !identity?.roomToken || channelRef.current !== channel) return;
+          const result = await channel.authorize?.(identity.roomToken);
+          if (cancelled || channelRef.current !== channel) return;
+          subscribedRef.current = result === "ok";
+        })
+        .catch(() => {
+          subscribedRef.current = false;
+        });
     });
 
     return () => {
+      cancelled = true;
       subscribedRef.current = false;
       channelRef.current = null;
       void client.closeRoom(channel);

@@ -1,5 +1,12 @@
+import {
+  readRealtimeRoomTokenSecret,
+  verifyRealtimeRoomToken,
+  type RealtimeRoomTokenClaims,
+} from "@/lib/collaboration/realtime-room-token";
+
 const MAX_MESSAGE_BYTES = 4096;
 const MAX_EVENT_NAME_LENGTH = 80;
+const COLLABORATION_ROOM_PATH_PREFIX = "/__cloudflare/collaboration-room/";
 
 type DurableObjectStateLike = {
   acceptWebSocket(ws: WebSocket, tags?: string[]): void;
@@ -19,7 +26,9 @@ type WebSocketWithAttachment = WebSocket & {
 };
 
 type SocketAttachment = {
+  authorized?: RealtimeRoomTokenClaims;
   presence?: unknown;
+  roomName?: string;
 };
 
 function isWebSocketUpgrade(request: Request) {
@@ -45,6 +54,13 @@ function isValidEventName(value: unknown) {
   return typeof value === "string" && value.length > 0 && value.length <= MAX_EVENT_NAME_LENGTH;
 }
 
+function readRoomNameFromRequest(request: Request) {
+  const url = new URL(request.url);
+  if (!url.pathname.startsWith(COLLABORATION_ROOM_PATH_PREFIX)) return null;
+  const roomName = decodeURIComponent(url.pathname.slice(COLLABORATION_ROOM_PATH_PREFIX.length)).trim();
+  return roomName || null;
+}
+
 function sendJson(ws: WebSocket, value: Record<string, unknown>) {
   try {
     ws.send(jsonMessage(value));
@@ -55,9 +71,11 @@ function sendJson(ws: WebSocket, value: Record<string, unknown>) {
 
 export class CollaborationRoom {
   private readonly ctx: DurableObjectStateLike;
+  private readonly env: Record<string, unknown>;
 
-  constructor(ctx: DurableObjectStateLike) {
+  constructor(ctx: DurableObjectStateLike, env: Record<string, unknown> = {}) {
     this.ctx = ctx;
+    this.env = env;
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -67,7 +85,12 @@ export class CollaborationRoom {
 
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
+    const roomName = readRoomNameFromRequest(request);
+    if (!roomName) {
+      return Response.json({ ok: false, error: "invalid_room" }, { status: 400 });
+    }
 
+    (server as WebSocketWithAttachment).serializeAttachment?.({ roomName } satisfies SocketAttachment);
     this.ctx.acceptWebSocket(server);
 
     return new Response(null, {
@@ -93,6 +116,16 @@ export class CollaborationRoom {
       return;
     }
 
+    if (parsed.type === "authorize") {
+      await this.authorizeSocket(ws, parsed.token);
+      return;
+    }
+
+    if (!this.isSocketAuthorized(ws)) {
+      sendJson(ws, { type: "error", code: "auth_required" });
+      return;
+    }
+
     if (parsed.type === "broadcast") {
       if (!isValidEventName(parsed.event)) {
         sendJson(ws, { type: "error", code: "invalid_event" });
@@ -107,13 +140,15 @@ export class CollaborationRoom {
     }
 
     if (parsed.type === "presence-track") {
-      ws.serializeAttachment?.({ presence: parsed.payload } satisfies SocketAttachment);
+      const attachment = ws.deserializeAttachment?.<SocketAttachment>() ?? {};
+      ws.serializeAttachment?.({ ...attachment, presence: parsed.payload } satisfies SocketAttachment);
       this.broadcastPresenceState();
       return;
     }
 
     if (parsed.type === "presence-untrack") {
-      ws.serializeAttachment?.({} satisfies SocketAttachment);
+      const attachment = ws.deserializeAttachment?.<SocketAttachment>() ?? {};
+      ws.serializeAttachment?.({ roomName: attachment.roomName, authorized: attachment.authorized } satisfies SocketAttachment);
       this.broadcastPresenceState();
       return;
     }
@@ -134,6 +169,7 @@ export class CollaborationRoom {
   private broadcast(sender: WebSocket, payload: Record<string, unknown>) {
     for (const peer of this.ctx.getWebSockets()) {
       if (peer === sender) continue;
+      if (!this.isSocketAuthorized(peer as WebSocketWithAttachment)) continue;
       sendJson(peer, payload);
     }
   }
@@ -142,6 +178,7 @@ export class CollaborationRoom {
     const state = this.readPresenceState(exclude);
     for (const peer of this.ctx.getWebSockets()) {
       if (peer === exclude) continue;
+      if (!this.isSocketAuthorized(peer as WebSocketWithAttachment)) continue;
       sendJson(peer, { type: "presence-state", state });
     }
   }
@@ -151,6 +188,10 @@ export class CollaborationRoom {
     let index = 0;
     for (const socket of this.ctx.getWebSockets() as WebSocketWithAttachment[]) {
       if (socket === exclude) continue;
+      if (!this.isSocketAuthorized(socket)) {
+        index += 1;
+        continue;
+      }
       const attachment = socket.deserializeAttachment?.<SocketAttachment>();
       if (attachment && Object.hasOwn(attachment, "presence")) {
         state[`connection:${index}`] = [attachment.presence];
@@ -158,5 +199,35 @@ export class CollaborationRoom {
       index += 1;
     }
     return state;
+  }
+
+  private async authorizeSocket(ws: WebSocketWithAttachment, token: unknown) {
+    const attachment = ws.deserializeAttachment?.<SocketAttachment>() ?? {};
+    const roomName = attachment.roomName;
+    const secret = readRealtimeRoomTokenSecret(this.env);
+    if (typeof token !== "string" || !roomName || !secret) {
+      sendJson(ws, { type: "error", code: "auth_failed" });
+      return;
+    }
+
+    const authorized = await verifyRealtimeRoomToken({
+      expectedTopic: roomName,
+      secret,
+      token,
+    });
+    if (!authorized) {
+      sendJson(ws, { type: "error", code: "auth_failed" });
+      return;
+    }
+
+    ws.serializeAttachment?.({ ...attachment, authorized } satisfies SocketAttachment);
+    sendJson(ws, { type: "authorized" });
+  }
+
+  private isSocketAuthorized(ws: WebSocketWithAttachment) {
+    const attachment = ws.deserializeAttachment?.<SocketAttachment>();
+    if (!attachment?.authorized || !attachment.roomName) return false;
+    if (attachment.authorized.topic !== attachment.roomName) return false;
+    return attachment.authorized.exp * 1000 > Date.now();
   }
 }

@@ -6,6 +6,7 @@ const SUBSCRIBE_TIMEOUT_MS = 10_000;
 export type CollaborationRoomStatus = "SUBSCRIBED" | "CHANNEL_ERROR" | "TIMED_OUT" | "CLOSED";
 
 export type CollaborationRoomLike = {
+  authorize(token: string): Promise<"ok" | "timed out"> | "ok" | "timed out";
   on(type: "presence", filter: { event: "sync" }, callback: () => void): CollaborationRoomLike;
   on(type: "broadcast", filter: { event: string }, callback: (message: { payload: unknown }) => void): CollaborationRoomLike;
   subscribe(callback?: (status: CollaborationRoomStatus) => void): CollaborationRoomLike;
@@ -107,6 +108,10 @@ class CollaborationRoomBrowserSocket implements CollaborationRoomLike {
     return this.sendRaw(message);
   }
 
+  authorize(token: string) {
+    return this.sendRaw({ type: "authorize", token });
+  }
+
   track(payload: unknown) {
     return this.sendRaw({ type: "presence-track", payload });
   }
@@ -147,6 +152,10 @@ class CollaborationRoomBrowserSocket implements CollaborationRoomLike {
       for (const listener of listeners) {
         listener({ payload: message.payload });
       }
+      return;
+    }
+
+    if (message.type === "authorized") {
       return;
     }
 
