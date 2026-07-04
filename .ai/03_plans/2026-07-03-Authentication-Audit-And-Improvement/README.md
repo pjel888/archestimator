@@ -1,6 +1,8 @@
 # 2026-07-03 - Authentication Audit And Improvement
 
-**Status:** `CONDITIONALLY READY` as a planning package. It is ready for a future phase-scoped implementation-planning pass to start at `11_IMPLEMENTATION_PLAN.md`, but it is **not** coding authorization, production-cutover proof, or permission to edit source files in this planning pass.
+**Status:** `CONDITIONALLY READY` as a planning package. Phase-scoped local implementation evidence now exists for Phases 1-4, and Phase 5 now has classification/current-worktree re-audit evidence, Slice 0 target-literal cleanup, Slice A proof-utility archive evidence, Slice A2 provider-only proof-test archive evidence, Slice B allowlist evidence, Slice D0-D3 type-reference inventory/migration/deletion evidence, historical `src/lib/supabase/types.ts` retirement evidence, and the `29` file-level provider-string inventory. Phase 6 final verification audit evidence exists in `27`, but this pack is still **not** production-cutover proof, provider/browser proof, provider-dashboard/hosted/operator provider-exit/final-review proof, or permission to mutate providers/secrets.
+
+Active-goal workflow checkpoint: `00`, `19`, and `27` record that requested workflow skills and docs-only continuation work are guardrails, not completion evidence. The 2026-07-04 legal-owner readiness artifact failed closed with `legalOwnerReady=false`, so the native goal remains active while hosted/provider/operator/legal/privacy/cleanup/final-review gates remain unproven or unaccepted.
 
 **Plan profile:** `exhaustive`.
 
@@ -60,13 +62,14 @@ Out of scope:
 ## Readiness Gates
 
 Future implementation planning can begin only as phase-scoped work:
-- Phase 1 can address the Google picker/state/logout policy once tests are added.
-- Phase 2 must resolve durable publication password lockout before any claim of share-link hardening.
-- Phase 3 must finish the authz matrix and role taxonomy before broad tenant-authz refactors.
-- Phase 4 must prove viewer/publication isolation and redaction behavior.
-- Phase 5 must clean provider leftovers only after each artifact is classified as active, archaeology, delete, rotate/remove, or sibling-pack blocked.
+- Phase 1 local code/test slice is recorded in `22`; browser/provider proof remains separate.
+- Phase 2 local durable-lockout slice is recorded in `23`; hosted D1/Worker proof remains separate.
+- Phase 3 local authz/role work packages are recorded in `24`; hosted/two-client proof remains separate.
+- Phase 4 local share/privacy/redaction slice is recorded in `25`; hosted log/legal proof remains separate.
+- Phase 5 classification and current-worktree re-audit are recorded in `26`; the sibling cleanup ledger now records substantial repo-local cleanup implementation, while current scans still intentionally find legacy provider scanner/test/security fixtures outside `supabase/**`. `15` records the decision guardrail that cleanup must re-run the live provider-string, type-reference, caller-graph, and broadened provider-boundary allowlist checks before further stale proof utility or provider-string references. `28` converts those remaining hits into implementation-ready cleanup buckets and records the Slice 0 target-literal cleanup/verification, Slice A proof-utility archive, Slice A2 provider-only proof-test archive, Slice B allowlist proof, Slice D0-D3 type-reference inventory/migration/deletion proof, historical `src/lib/supabase/types.ts` retirement proof, and scoped scanner-review fix; `29` records the original file-level inventory (`60` old-provider keyword hits), the current narrow count (`44` old-provider keyword hits), the broadened allowlist count (`89` active-surface provider-boundary hits), the current `4` active historical type-reference path-reference files split into `0` deletion blockers plus `4` non-blocking guard/audit-tooling files, no direct active imports for the archived shared-link proof utilities/provider-only proof tests outside `supabase/**`, `providerCleanupAllowlistReady=true`, `finalProviderCleanupReady=true`, and `typeReferenceDeletionReady=true`. The 2026-07-04T09:04:19Z provider-exit/source-smoke/template refresh still leaves provider exit blocked, with source-smoke blocked by the dirty/current-HEAD mismatch and operator/external gates still open; the source-smoke and operator-record templates are sanitized handoff artifacts rather than proof. Provider-dashboard/hosted/operator provider-exit/final-review proof remains separate.
+- Phase 6 final verification/completion audit is recorded in `27`; it keeps the active goal incomplete, including via `update_goal({status: "complete"})`, until residual hosted/provider/operator/legal/privacy/cleanup/final-review gates are proven or explicitly accepted. The current legal-owner helper artifact is negative evidence, not approval.
 
-No coding, provider mutation, migration, deployment, secret rotation, or source cleanup starts from this pack alone. A separate coding/implementation plan or explicit implementation task must revalidate current source, choose the exact phase slice, and define the code/test ownership before edits begin.
+Beyond the explicitly recorded local phase slices, no additional coding, provider mutation, migration, deployment, secret rotation, or source cleanup starts from this pack alone. A separate coding/implementation plan or explicit implementation task must revalidate current source, choose the exact phase slice, and define the code/test ownership before edits begin.
 
 Production readiness remains blocked until:
 - All P0/P1 risks in `14_RISK_REGISTER.md` are closed or explicitly accepted.
@@ -95,19 +98,27 @@ Production readiness remains blocked until:
 | 12 | `12_TEST_AND_VALIDATION_STRATEGY.md` | Required tests and evidence gates | Drafted |
 | 13 | `13_ROLLOUT_ROLLBACK_AND_OPERATIONS.md` | Staged rollout, rollback, operations | Drafted |
 | 14 | `14_RISK_REGISTER.md` | P0/P1/P2/P3 risks and mitigations | Drafted |
-| 15 | `15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md` | Decisions, assumptions, rejected options | Drafted |
+| 15 | `15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md` | Decisions, assumptions, rejected options, and Phase 5 live-scan/caller-graph revalidation guardrail | Drafted |
 | 16 | `16_REQUIREMENTS_TRACEABILITY_MATRIX.md` | Requirement-to-phase-to-test traceability | Drafted |
 | 17 | `17_FINAL_READINESS_REVIEW.md` | Current readiness verdict and open gates | Drafted |
 | 18 | `18_STACK_CONTRACT_AND_PRODUCTION_STANDARDS.md` | Stack/standards contract | Drafted |
 | 19 | `19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md` | Research and independent review evidence | Drafted |
 | 20 | `20_CREDENTIAL_MATERIAL_TAXONOMY.md` | Credential/bearer material inventory | Drafted |
 | 21 | `21_LEGACY_PROVIDER_CLEANUP_WORKSHEET.md` | Supabase/Vercel/Resend-era cleanup worksheet | Drafted |
+| 22 | `22_PHASE_1_GOOGLE_PICKER_LOGOUT_STATE_PLAN.md` | Phase 1 implementation plan and local validation evidence | Local slice complete |
+| 23 | `23_PHASE_2_DURABLE_PUBLICATION_LOCKOUT_PLAN.md` | Phase 2 durable publication password lockout plan and local validation evidence | Local slice complete |
+| 24 | `24_PHASE_3_AUTHZ_MATRIX_AND_ROLE_TAXONOMY_PLAN.md` | Phase 3 authz matrix, role taxonomy, implementation notes, and local validation evidence | Local WP1-WP6 complete |
+| 25 | `25_PHASE_4_SHARE_PRIVACY_REDACTION_PLAN.md` | Phase 4 share/app privacy, CSRF, redaction, runbook, and local validation evidence | First local slice complete |
+| 26 | `26_PHASE_5_LEGACY_PROVIDER_CLEANUP_PLAN.md` | Phase 5 legacy provider artifact classification and cleanup bridge plan | Classification and re-audit complete |
+| 27 | `27_PHASE_6_FINAL_VERIFICATION_COMPLETION_AUDIT.md` | Phase 6 final verification audit, skipped-proof log, residual-risk matrix, and non-completion verdict | Audit complete; goal remains open |
+| 28 | `28_PHASE_5_REMAINING_PROVIDER_FIXTURE_CLEANUP_PLAN.md` | Remaining old-provider string fixture cleanup buckets, Slice 0 target-literal cleanup evidence, Slice A/A2 archive evidence, Slice B allowlist proof, Slice D0-D3 type-reference inventory/migration/deletion proof, historical type-file retirement proof, scoped scanner-review fix, and validation contract | Local provider-cleanup classification/file-retirement evidence complete; provider-exit/hosted/operator/final-review gates still open |
+| 29 | `29_PHASE_5_PROVIDER_STRING_FILE_INVENTORY.md` | Original file-level classification plus post-Slice-A2 provider-string count delta, Slice B allowlist proof, Slice D0-D3 historical type-reference inventory/migration/deletion delta, post-retirement final-ready allowlist delta, and broadened provider-boundary scanner delta | Inventory updated; provider-exit/hosted/operator/final-review gates still open |
 
 ---
 
 ## Future Implementation-Planning Entrypoint
 
-Start with `11_IMPLEMENTATION_PLAN.md` only after a separate implementation-planning or coding task is opened. Do not skip the phase gates, and do not merge unrelated cleanup into auth/security phases.
+Start with `11_IMPLEMENTATION_PLAN.md` only after a separate implementation-planning or coding task is opened. For Phases 1-6, use `22` through `29` as the current phase-scoped evidence/plan artifacts after revalidating the files they name. For Phase 5 source/test cleanup, treat the low-risk Slice 0 item, the Slice A proof-utility archive, the Slice A2 provider-only proof-test archive, the Slice B allowlist report, the Slice D0-D3 type-reference inventory/migration/deletion chain, and the historical `src/lib/supabase/types.ts` retirement in `28` as locally cleared for their exact scopes. Do not skip the provider-exit/hosted/operator/final-review gates, and do not merge unrelated cleanup into auth/security phases.
 
 ---
 

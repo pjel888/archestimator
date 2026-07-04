@@ -4,7 +4,7 @@
 
 | Store | Auth-relevant use | Planning requirement |
 |---|---|---|
-| D1 `ARCH_DB` | Better Auth tables, profiles, security events, invites, collaboration data, and target publication data after schema verification | Scope every query by user/workspace/project/estimate/publication token as applicable; verify required publication tables/migrations before Phase 2 or Phase 4 implementation planning |
+| D1 `ARCH_DB` | Better Auth tables, profiles, security events, invites, collaboration data, publication/share tables from migrations, and rate-limit/event storage | Scope every query by user/workspace/project/estimate/publication token as applicable; verify applied schema before Phase 2 or Phase 4 edits and plan durable hard-lock state explicitly |
 | R2 | Project/component assets | Signed URL and metadata access must be scoped to authorized project/library context |
 | Durable Objects | Collaboration/realtime and possible lockout singleton | Persist important state; no security-critical memory-only locks |
 | Cookies | Better Auth session, OAuth state, invite bridge, publication access/session/CSRF | HttpOnly/Secure/SameSite policy documented per cookie type |
@@ -29,7 +29,7 @@ Every protected mutation/read must be documented as:
 |---|---|---|---|---|---|
 | Example | Primary App User | workspaceId/projectId | owner/admin/member/viewer as applicable | server action + repository SQL | denied user gets no data/mutation |
 
-Phase 3 cannot close until this matrix is filled from source and matched to tests.
+Phase 3 local WP1-WP6 evidence in `24_PHASE_3_AUTHZ_MATRIX_AND_ROLE_TAXONOMY_PLAN.md` now records the current filled matrix, role taxonomy, and fail-closed tests. Hosted Worker/D1, Durable Object, browser, and two-client realtime proof remain separate final-readiness gates.
 
 ## Network And Cache Rules
 

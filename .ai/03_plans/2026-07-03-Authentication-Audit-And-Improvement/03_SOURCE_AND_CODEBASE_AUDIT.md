@@ -8,6 +8,10 @@
 
 **2026-07-03 refresh note:** The detailed inventory below remains useful as source-audit seed material. Later docs in this pack are authoritative for readiness, risk, threat model, provider cleanup, and credential taxonomy. Stale findings corrected in this refresh are called out inline instead of silently removed.
 
+**2026-07-04 Phase 0 revalidation note:** Package/runtime assumptions still matched source (`next` 16.2.6, React 19.2.6, Better Auth 1.6.22, OpenNext Cloudflare 1.20.1, Wrangler 4.105.0). The auth files named here still exist. Current migrations now extend to `0030_workspace_owner_membership_backfill.sql`, and `0014_publication_shared_links.sql` contains core `project_publications` and `shared_link_*` tables. Phase 2 should therefore model the issue as existing durable publication rate-limit/event storage plus a remaining in-memory hard-lock path, not as a generic absence of publication schema.
+
+**2026-07-04 implementation overlay:** The detailed inventory below is a point-in-time audit seed, not the latest implementation status for every row. Local Phase 1-4 work later changed several findings: `22` records the Google provider prompt/local logout/state-recovery slice, `23` records D1-backed publication lockout, `24` records Phase 3 WP1-WP6 authz/role work, and `25` records the first share/privacy/redaction slice. Use those documents plus `11`/`17`/`27` for current readiness boundaries before converting any audit finding into new work.
+
 ---
 
 ## 1. Active stack (confirmed from source)
@@ -42,7 +46,7 @@ The README and project docs still describe Supabase Auth as active. **The README
 | `request-proxy.ts` | 227 | Next.js middleware (`proxy`) | Protected-route gate; `redirectStateMismatchToCleanLogin` on `?error=state_mismatch`; localhost bypass when session cookie present; trusted-origin checks |
 | `redirects.ts` | 172 | Origin resolution, path sanitization, `LOGIN_PATH`, `DEFAULT_AUTH_DESTINATION`, `buildLoginRedirectUrl`, `sanitizeNextPath` | Localhost origin trust only in non-production; rejects callback-path next values, nested unsafe next, control chars |
 | `set-cookie-forwarding.ts` | 211 | Parse + forward Set-Cookie; `clearBetterAuthOAuthStateCookies`; `normalizeBetterAuthOAuthStateCookieHeader` | Clears 4 state-cookie name variants (with/without `__Secure-` prefix × `state`/`oauth_state`); sec-flag = `!origin || origin.startsWith("https://")` |
-| `better-auth-cloudflare.ts` | 290 | Better Auth config builder; Google + magic-link provider resolver; `BETTER_AUTH_ROUTE_GATE_PARITY_MATRIX` | Google provider currently returns `{ clientId, clientSecret }` only — **no `prompt` set** (root cause of bug A in §5 below) |
+| `better-auth-cloudflare.ts` | 290 | Better Auth config builder; Google + magic-link provider resolver; `BETTER_AUTH_ROUTE_GATE_PARITY_MATRIX` | Original audit found no Google `prompt`; Phase 1 local implementation in `22` now records the selected account-picker prompt and focused source/test proof. |
 | `cloudflare-better-auth-runtime.ts` | 172 | Resolves Better Auth options from Cloudflare context (`@opennextjs/cloudflare`); loads `ARCH_DB` D1 binding; resolves baseURL/trustedOrigins | baseURL fallback chain: `BETTER_AUTH_URL` → `NEXT_PUBLIC_APP_URL` → `NEXT_PUBLIC_SITE_URL` → requestUrl → headers → `http://localhost:3000` |
 | `auth-provider-selection.ts` | 15 | `isCloudflareBetterAuthProviderEnabled` | Reads `ARCHESTIMATOR_AUTH_PROVIDER` env; accepts `better-auth`, `cloudflare-better-auth`, `d1-better-auth` |
 | `account-setup.ts` | (read by lane 2) | Post-auth destination resolution, redirect after sign-in | — |
@@ -105,7 +109,7 @@ The README and project docs still describe Supabase Auth as active. **The README
 | App-wide profile role (`AppRole`) | includes `ceo`, `admin`, others (full enum in `profile-d1-store.ts`) | `src/lib/auth/beta-allowlist-admin.ts:30` |
 | Closed-beta allowlist admin | `ceo` OR `admin` only | `src/lib/auth/beta-allowlist-admin.ts:29-31` |
 
-**Audit note**: The `editor` role appears in DB-level role precedence and acceptance SQL but NOT in the `WorkspaceAccountRole` TypeScript type. Confirm whether `editor` is allowed at the workspace level — likely NOT, but the type system does not currently enforce this distinction cleanly.
+**Audit note**: The original audit found that the `editor` role appeared in DB-level role precedence and acceptance SQL but not in the `WorkspaceAccountRole` TypeScript type. Phase 3 WP6 in `24` now records local central role-contract mitigation; keep future role changes routed through the current role helpers and tests.
 
 ### 3.2 Authorization helpers
 
@@ -264,7 +268,7 @@ This is defense-in-depth, NOT a primary CSRF barrier. The CSRF primary barrier i
 
 **Files**:
 - `src/components/auth/AuthStateMismatchRecoveryScript.tsx:1-39`
-- `src/lib/auth/request-proxy.ts:99-120` (`redirectStateMismatchToClearLogin`)
+- `src/lib/auth/request-proxy.ts:99-120` (`redirectStateMismatchToCleanLogin`)
 
 **Behavior**: When a state-mismatch error reaches the user (via `?error=state_mismatch`), the middleware redirects with `Clear-Site-Data: "cache", "cookies", "storage"` and the recovery script bounces through `/login?...&oauth_state_reset=1`. After cookies are cleared, the next sign-in attempt succeeds.
 
@@ -276,7 +280,7 @@ This is defense-in-depth, NOT a primary CSRF barrier. The CSRF primary barrier i
 
 ---
 
-## 6. D1 schema (auth-relevant tables, from migration filenames)
+## 6. D1 schema (selected auth-relevant tables, from migration filenames)
 
 ### Active D1 migrations (`./migrations/`)
 
@@ -292,8 +296,10 @@ This is defense-in-depth, NOT a primary CSRF barrier. The CSRF primary barrier i
 | 0008 | estimate_sheet_user_preferences | Per-user estimate UI prefs |
 | 0009 | notifications | User notifications |
 | 0010 | upload_metadata | File upload tracking |
+| 0014 | publication_shared_links | `project_publications`, shared-link recipients, comments, responses, and events |
+| 0030 | workspace_owner_membership_backfill | Insert-only backfill for owner workspace memberships |
 
-**Note**: The D1 migration set is partial — it covers auth/collaboration/notification core but additional migrations are needed for the full publication subsystem (publication tokens, recipient sessions, comments, decisions, events). These may live in `./supabase/migrations/` and require porting; confirm with the cloudflare-migration pack.
+**2026-07-04 correction**: The old publication-schema gap note was too broad. The D1 migration set now includes core publication/share tables in `0014_publication_shared_links.sql`; Phase 2 and Phase 4 still need to verify the currently applied D1 schema and decide whether durable hard-lock rows or a Durable Object singleton are needed beyond the existing D1 rate-limit/event storage.
 
 ### Supabase migrations retained (`./supabase/migrations/`, 20+ files)
 

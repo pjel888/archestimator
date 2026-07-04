@@ -1,0 +1,135 @@
+{
+  "generatedAt": "2026-07-04T08:59:53.266Z",
+  "mode": "supabase-type-reference-retirement-inventory",
+  "scan": {
+    "scannedPaths": [
+      "src",
+      "scripts",
+      "e2e",
+      "tests"
+    ],
+    "totalReferenceFiles": 4,
+    "deletionBlockingFiles": [],
+    "nonBlockingGuardFiles": [
+      "scripts/generate-supabase-type-reference-retirement-inventory.ts",
+      "tests/vitest/legal-terms-d1-store.test.ts",
+      "tests/vitest/project-estimate-list-row-contract.test.ts",
+      "tests/vitest/supabase-type-reference-retirement-inventory-script.test.ts"
+    ],
+    "unknownReferenceFiles": [],
+    "usageKindCounts": {
+      "type-import-fixture": 0,
+      "schema-source-read": 0,
+      "file-existence-guard": 0,
+      "negative-import-guard": 2,
+      "retirement-audit-tooling": 2,
+      "historical-comment": 0,
+      "unknown-reference": 0
+    },
+    "files": [
+      {
+        "file": "scripts/generate-supabase-type-reference-retirement-inventory.ts",
+        "usageKinds": [
+          "retirement-audit-tooling"
+        ],
+        "importedTypes": [],
+        "blocksTypeFileDeletion": false,
+        "retirementAction": "keep-retirement-audit-tooling",
+        "rationale": "The inventory scanner/test intentionally contains historical type-reference fixture strings to classify the retirement graph.",
+        "hits": [
+          {
+            "line": 202,
+            "usageKind": "retirement-audit-tooling",
+            "snippet": "rationale: \"The test reads src/lib/supabase/types.ts directly and should assert against D1 migrations/current repository contracts or archived migration evidence.\","
+          }
+        ]
+      },
+      {
+        "file": "tests/vitest/legal-terms-d1-store.test.ts",
+        "usageKinds": [
+          "negative-import-guard"
+        ],
+        "importedTypes": [],
+        "blocksTypeFileDeletion": false,
+        "retirementAction": "keep-or-generalize-negative-guard",
+        "rationale": "The test only asserts active current code does not import the old type path; it is not a dependency on the historical file contents.",
+        "hits": [
+          {
+            "line": 115,
+            "usageKind": "negative-import-guard",
+            "snippet": "expect(recordSource).not.toContain(\"@/lib/supabase/types\");"
+          }
+        ]
+      },
+      {
+        "file": "tests/vitest/project-estimate-list-row-contract.test.ts",
+        "usageKinds": [
+          "negative-import-guard"
+        ],
+        "importedTypes": [],
+        "blocksTypeFileDeletion": false,
+        "retirementAction": "keep-or-generalize-negative-guard",
+        "rationale": "The test only asserts active current code does not import the old type path; it is not a dependency on the historical file contents.",
+        "hits": [
+          {
+            "line": 48,
+            "usageKind": "negative-import-guard",
+            "snippet": "expect(source).not.toContain(\"@/lib/supabase/types\");"
+          }
+        ]
+      },
+      {
+        "file": "tests/vitest/supabase-type-reference-retirement-inventory-script.test.ts",
+        "usageKinds": [
+          "retirement-audit-tooling"
+        ],
+        "importedTypes": [
+          "Database",
+          "Tables"
+        ],
+        "blocksTypeFileDeletion": false,
+        "retirementAction": "keep-retirement-audit-tooling",
+        "rationale": "The inventory scanner/test intentionally contains historical type-reference fixture strings to classify the retirement graph.",
+        "hits": [
+          {
+            "line": 33,
+            "usageKind": "retirement-audit-tooling",
+            "snippet": "'import type { Database, Tables } from \"@/lib/supabase/types\";\\n',"
+          },
+          {
+            "line": 38,
+            "usageKind": "retirement-audit-tooling",
+            "snippet": "'const source = readFileSync(join(process.cwd(), \"src/lib/supabase/types.ts\"), \"utf8\");\\n',"
+          },
+          {
+            "line": 43,
+            "usageKind": "retirement-audit-tooling",
+            "snippet": "'expect(existsSync(join(process.cwd(), \"src/lib/supabase/types.ts\"))).toBe(true);\\n',"
+          },
+          {
+            "line": 48,
+            "usageKind": "retirement-audit-tooling",
+            "snippet": "'expect(source).not.toContain(\"@/lib/supabase/types\");\\n',"
+          },
+          {
+            "line": 53,
+            "usageKind": "retirement-audit-tooling",
+            "snippet": "'const legacyPath = \"@/lib/supabase/types\";\\n',"
+          },
+          {
+            "line": 58,
+            "usageKind": "retirement-audit-tooling",
+            "snippet": "'import type { Database } from \"@/lib/supabase/types\";\\n',"
+          }
+        ]
+      }
+    ]
+  },
+  "readiness": {
+    "allReferencesClassified": true,
+    "negativeImportGuardsSeparated": true,
+    "typeReferenceDeletionReady": true
+  },
+  "blockers": [],
+  "note": "Non-destructive Supabase type-reference retirement inventory. This script reads active source, scripts, e2e, and tests only; skips supabase/** migration archaeology and .ai/** planning artifacts; and does not read environment files, mutate providers, deploy, or delete data."
+}

@@ -1,0 +1,2905 @@
+{
+  "generatedAt": "2026-07-04T08:59:40.214Z",
+  "mode": "provider-cleanup-allowlist-report",
+  "scan": {
+    "scannedPaths": [
+      "src",
+      "scripts",
+      "e2e",
+      "tests"
+    ],
+    "totalHitFiles": 89,
+    "files": [
+      {
+        "file": "scripts/check-cloudflare-d1-auth-realtime-readiness.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "supabase-js",
+            "line": 608,
+            "snippet": "/createSupabase(?:Server|Browser|ServiceRole)Client|from\\s+[\"']@\\/lib\\/supabase\\/|from\\s+[\"']@supabase\\/supabase-js[\"']|\\.rpc\\s*\\(|\\bsupabase\\s*\\.\\s*from\\s*\\(/i,"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 608,
+            "snippet": "/createSupabase(?:Server|Browser|ServiceRole)Client|from\\s+[\"']@\\/lib\\/supabase\\/|from\\s+[\"']@supabase\\/supabase-js[\"']|\\.rpc\\s*\\(|\\bsupabase\\s*\\.\\s*from\\s*\\(/i,"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 612,
+            "snippet": "/\\.storage\\s*\\.|createSupabaseDirectUploadProvider|Supabase Storage|buildSupabaseTusResumableSignEndpoint/i,"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 616,
+            "snippet": "/createSupabaseServiceRoleClient|SUPABASE_SERVICE_ROLE_KEY|\\bserviceRole\\b/,"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 616,
+            "snippet": "/createSupabaseServiceRoleClient|SUPABASE_SERVICE_ROLE_KEY|\\bserviceRole\\b/,"
+          },
+          {
+            "provider": "supabase",
+            "token": "@supabase/",
+            "line": 1022,
+            "snippet": "hasSupabaseDependency: [...packageDependencyNames].some((name) => name.startsWith(\"@supabase/\")),"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase db",
+            "line": 1136,
+            "snippet": "[\"Supabase DB/RPC/client files\", String(report.sourceSignals.supabaseDatabaseFiles.length), report.sourceSignals.supabaseDatabaseFiles.slice(0, 8).join(\", \") || \"(none)\"],"
+          }
+        ],
+        "disposition": "keep-active-audit-tooling",
+        "rationale": "Cloudflare D1/Better Auth readiness scanner intentionally detects legacy Supabase/Resend patterns."
+      },
+      {
+        "file": "scripts/collect-live-db-performance-evidence.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "supabase db",
+            "line": 14,
+            "snippet": "// linked - read-only evidence via `supabase db query --linked`."
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 47,
+            "snippet": "const ALLOWED_SUPABASE_PROJECT_REF = \"ebxxqidacheyapmmzavr\";"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase db",
+            "line": 59,
+            "snippet": "linked - read-only evidence from a linked Supabase project via supabase db query."
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 64,
+            "snippet": "SUPABASE_PROJECT_ID Supabase project ref (optional; used for linked mode logging only)."
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 255,
+            "snippet": "errors.push(`Unable to prove linked Supabase project ref; expected ${ALLOWED_SUPABASE_PROJECT_REF}.`);"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 258,
+            "snippet": "if (linkedProjectRef !== ALLOWED_SUPABASE_PROJECT_REF) {"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 259,
+            "snippet": "errors.push(`Refusing linked SQL against project ${linkedProjectRef}; expected ${ALLOWED_SUPABASE_PROJECT_REF}.`);"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 263,
+            "snippet": "const envProjectRef = process.env.SUPABASE_PROJECT_ID?.trim();"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 264,
+            "snippet": "if (envProjectRef && envProjectRef !== ALLOWED_SUPABASE_PROJECT_REF) {"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 265,
+            "snippet": "errors.push(`SUPABASE_PROJECT_ID is ${envProjectRef}; expected ${ALLOWED_SUPABASE_PROJECT_REF}.`);"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase db",
+            "line": 331,
+            "snippet": "return { ok: false, error: `supabase db query failed:\\n${redactSensitive(result.stderr || result.stdout)}` };"
+          }
+        ],
+        "disposition": "keep-active-audit-tooling",
+        "rationale": "Historical performance evidence collector keeps explicit, guarded, read-only Supabase comparison modes; it is not runtime code."
+      },
+      {
+        "file": "scripts/generate-cloudflare-better-auth-proof.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 208,
+            "snippet": "const LEGACY_SUPABASE_AUTH_GATE_FILES = ["
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 347,
+            "snippet": "const legacyGateText = combineSourceFiles(LEGACY_SUPABASE_AUTH_GATE_FILES, sourceFileTextByPath);"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 613,
+            "snippet": "const legacyGateText = combineSourceFiles(LEGACY_SUPABASE_AUTH_GATE_FILES, inputs.sourceFileTextByPath);"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 711,
+            "snippet": "legacySupabaseAuthGateFiles: inputs.sources?.legacySupabaseAuthGateFiles ?? LEGACY_SUPABASE_AUTH_GATE_FILES,"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 886,
+            "snippet": "...LEGACY_SUPABASE_AUTH_GATE_FILES,"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 899,
+            "snippet": "legacySupabaseAuthGateFiles: LEGACY_SUPABASE_AUTH_GATE_FILES,"
+          }
+        ],
+        "disposition": "keep-active-audit-tooling",
+        "rationale": "Better Auth proof tooling intentionally checks retired Supabase auth-gate patterns while proving current Cloudflare/D1 behavior."
+      },
+      {
+        "file": "scripts/generate-cloudflare-cost-performance-workbook.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "supabase db",
+            "line": 325,
+            "snippet": "[\"Supabase DB size\", \"Supabase project metrics\"],"
+          }
+        ],
+        "disposition": "keep-active-audit-tooling",
+        "rationale": "Cloudflare cost/performance evidence workbook intentionally records legacy-provider comparison command labels."
+      },
+      {
+        "file": "scripts/generate-cloudflare-d1-authz-access-matrix.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 312,
+            "snippet": "for (const name of rpcNames) signals.add(`supabase.rpc:${name}`);"
+          }
+        ],
+        "disposition": "keep-active-audit-tooling",
+        "rationale": "D1 authorization matrix intentionally records old Supabase RPC signal labels while proving current coverage."
+      },
+      {
+        "file": "scripts/generate-cloudflare-migration-inventory.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "supabase-js",
+            "line": 98,
+            "snippet": "pattern: /@supabase\\/(?:supabase-js|ssr)|createServerClient|createBrowserClient|createClient<|createClient\\(/,"
+          }
+        ],
+        "disposition": "keep-active-audit-tooling",
+        "rationale": "Migration inventory tooling intentionally detects Supabase/Vercel coupling."
+      },
+      {
+        "file": "scripts/generate-cloudflare-provider-exit-pack.ts",
+        "hits": [
+          {
+            "provider": "resend",
+            "token": "RESEND_API_KEY",
+            "line": 656,
+            "snippet": "/from\\s+[\"']resend[\"']|new\\s+Resend\\s*\\(|RESEND_API_KEY|process\\.env\\.RESEND/i.test(line)"
+          }
+        ],
+        "disposition": "keep-active-audit-tooling",
+        "rationale": "Provider-exit pack intentionally scans for legacy Supabase/Vercel/Resend references."
+      },
+      {
+        "file": "scripts/generate-provider-cleanup-allowlist.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 89,
+            "snippet": "const HISTORICAL_SUPABASE_TYPES_PATH = [\"src\", \"lib\", \"supabase\", \"types.ts\"].join(\"/\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 124,
+            "snippet": "[HISTORICAL_SUPABASE_TYPES_PATH]: {"
+          },
+          {
+            "provider": "supabase",
+            "token": "@supabase/",
+            "line": 276,
+            "snippet": "{ provider: \"supabase\", token: \"@supabase/\", pattern: /@supabase\\//i },"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase-js",
+            "line": 277,
+            "snippet": "{ provider: \"supabase\", token: \"supabase-js\", pattern: /supabase-js/i },"
+          },
+          {
+            "provider": "supabase",
+            "token": "NEXT_PUBLIC_SUPABASE_*",
+            "line": 278,
+            "snippet": "{ provider: \"supabase\", token: \"NEXT_PUBLIC_SUPABASE_*\", pattern: /NEXT_PUBLIC_SUPABASE(?:_[A-Z0-9_]+)?/ },"
+          },
+          {
+            "provider": "supabase",
+            "token": "@/lib/supabase",
+            "line": 280,
+            "snippet": "{ provider: \"supabase\", token: \"@/lib/supabase\", pattern: /@\\/lib\\/supabase(?:\\/[A-Za-z0-9_-]+)?/ },"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 281,
+            "snippet": "{ provider: \"supabase\", token: \"createSupabase*\", pattern: /createSupabase[A-Za-z0-9_]*/ },"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase db",
+            "line": 282,
+            "snippet": "{ provider: \"supabase\", token: \"supabase db\", pattern: /\\bsupabase\\s+db\\b/i },"
+          },
+          {
+            "provider": "vercel",
+            "token": "@vercel/",
+            "line": 284,
+            "snippet": "{ provider: \"vercel\", token: \"@vercel/\", pattern: /@vercel\\//i },"
+          },
+          {
+            "provider": "resend",
+            "token": "RESEND_API_KEY",
+            "line": 286,
+            "snippet": "{ provider: \"resend\", token: \"RESEND_API_KEY\", pattern: /RESEND_API_KEY/ },"
+          }
+        ],
+        "disposition": "keep-active-audit-tooling",
+        "rationale": "Provider-cleanup allowlist report intentionally scans and classifies legacy provider strings."
+      },
+      {
+        "file": "tests/vitest/ai-audit-schema.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "supabase-js",
+            "line": 64,
+            "snippet": "expect(`${auditSource}\\n${rateLimitSource}`).not.toMatch(/SUPABASE_SERVICE_ROLE_KEY|@supabase\\/supabase-js|createClient/);"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 64,
+            "snippet": "expect(`${auditSource}\\n${rateLimitSource}`).not.toMatch(/SUPABASE_SERVICE_ROLE_KEY|@supabase\\/supabase-js|createClient/);"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/ai-package-builder-security-contract.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 18,
+            "snippet": "expect(applySource).not.toContain(\"SUPABASE_SERVICE_ROLE_KEY\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 20,
+            "snippet": "expect(readToolsSource).not.toContain(\"SUPABASE_SERVICE_ROLE_KEY\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 22,
+            "snippet": "expect(readContextSource).not.toContain(\"SUPABASE_SERVICE_ROLE_KEY\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 24,
+            "snippet": "expect(applySource).not.toContain(\"createSupabaseServerClient\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 26,
+            "snippet": "expect(readToolsSource).not.toContain(\"createSupabaseServerClient\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 27,
+            "snippet": "expect(readContextSource).not.toContain(\"createSupabaseServerClient\");"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/auth-account-audit-d1-store.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "supabase-js",
+            "line": 148,
+            "snippet": "/SUPABASE_SERVICE_ROLE_KEY|@supabase\\/supabase-js|@\\/lib\\/supabase\\/types|createClient/,"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 148,
+            "snippet": "/SUPABASE_SERVICE_ROLE_KEY|@supabase\\/supabase-js|@\\/lib\\/supabase\\/types|createClient/,"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/auth-account-data-contract.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 144,
+            "snippet": "expect(auditSource).not.toMatch(/SUPABASE_SERVICE_ROLE_KEY|createClient|persistSession/);"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/auth-account-data-schema.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 73,
+            "snippet": "expect(accountActions).not.toMatch(/createSupabaseServerClient|@\\/lib\\/supabase\\/server/);"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase-js",
+            "line": 76,
+            "snippet": "expect(d1Store).not.toMatch(/SUPABASE_SERVICE_ROLE_KEY|@supabase\\/supabase-js|createClient/);"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 76,
+            "snippet": "expect(d1Store).not.toMatch(/SUPABASE_SERVICE_ROLE_KEY|@supabase\\/supabase-js|createClient/);"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/auth-account-settings-d1-store.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "supabase-js",
+            "line": 183,
+            "snippet": "/account-service-role|createAccountServiceRoleClient|createSupabaseServerClient|SUPABASE_SERVICE_ROLE_KEY|@supabase\\/supabase-js/,"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 183,
+            "snippet": "/account-service-role|createAccountServiceRoleClient|createSupabaseServerClient|SUPABASE_SERVICE_ROLE_KEY|@supabase\\/supabase-js/,"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 183,
+            "snippet": "/account-service-role|createAccountServiceRoleClient|createSupabaseServerClient|SUPABASE_SERVICE_ROLE_KEY|@supabase\\/supabase-js/,"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/auth-callback-route.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 5,
+            "snippet": "createSupabaseServerClient: vi.fn(),"
+          },
+          {
+            "provider": "supabase",
+            "token": "@/lib/supabase",
+            "line": 16,
+            "snippet": "vi.mock(\"@/lib/supabase/server\", () => supabaseServerMocks);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 65,
+            "snippet": "expect(supabaseServerMocks.createSupabaseServerClient).not.toHaveBeenCalled();"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 95,
+            "snippet": "expect(supabaseServerMocks.createSupabaseServerClient).not.toHaveBeenCalled();"
+          }
+        ],
+        "disposition": "compatibility-guard",
+        "rationale": "Compatibility guard mocks or names retired Supabase modules to prove current code does not call the old provider path."
+      },
+      {
+        "file": "tests/vitest/auth-magic-link.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 66,
+            "snippet": "expect(devAuth).not.toContain(\"SUPABASE_SERVICE_ROLE_KEY\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "@supabase/",
+            "line": 67,
+            "snippet": "expect(devAuth).not.toContain(\"@supabase/supabase-js\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase-js",
+            "line": 67,
+            "snippet": "expect(devAuth).not.toContain(\"@supabase/supabase-js\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 77,
+            "snippet": "expect(`${devAuth}\\n${proxy}\\n${session}`).not.toContain(\"SUPABASE_SERVICE_ROLE_KEY\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "NEXT_PUBLIC_SUPABASE_*",
+            "line": 78,
+            "snippet": "expect(`${devAuth}\\n${proxy}\\n${session}`).not.toContain(\"NEXT_PUBLIC_SUPABASE_ANON_KEY\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 82,
+            "snippet": "expect(envExample).not.toContain(\"SUPABASE_SERVICE_ROLE_KEY=\");"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/auth-profile-d1-store.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 83,
+            "snippet": "expect(sessionSource).not.toMatch(/createSupabase|@\\/lib\\/supabase\\/server|@\\/lib\\/supabase\\/types/);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 85,
+            "snippet": "expect(storeSource).not.toMatch(/createSupabase|@\\/lib\\/supabase/);"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/auth-proxy.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "@supabase/",
+            "line": 25,
+            "snippet": "vi.mock(\"@supabase/ssr\", () => supabaseSsrMocks);"
+          },
+          {
+            "provider": "supabase",
+            "token": "NEXT_PUBLIC_SUPABASE_*",
+            "line": 119,
+            "snippet": "vi.stubEnv(\"NEXT_PUBLIC_SUPABASE_URL\", \"https://example.supabase.co\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "NEXT_PUBLIC_SUPABASE_*",
+            "line": 120,
+            "snippet": "vi.stubEnv(\"NEXT_PUBLIC_SUPABASE_ANON_KEY\", \"anon-key\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 121,
+            "snippet": "vi.stubEnv(\"SUPABASE_SERVICE_ROLE_KEY\", \"test-service-role-secret\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "NEXT_PUBLIC_SUPABASE_*",
+            "line": 144,
+            "snippet": "vi.stubEnv(\"NEXT_PUBLIC_SUPABASE_URL\", \"\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "NEXT_PUBLIC_SUPABASE_*",
+            "line": 145,
+            "snippet": "vi.stubEnv(\"NEXT_PUBLIC_SUPABASE_ANON_KEY\", \"\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "NEXT_PUBLIC_SUPABASE_*",
+            "line": 159,
+            "snippet": "vi.stubEnv(\"NEXT_PUBLIC_SUPABASE_URL\", \"\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "NEXT_PUBLIC_SUPABASE_*",
+            "line": 160,
+            "snippet": "vi.stubEnv(\"NEXT_PUBLIC_SUPABASE_ANON_KEY\", \"\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "NEXT_PUBLIC_SUPABASE_*",
+            "line": 226,
+            "snippet": "vi.stubEnv(\"NEXT_PUBLIC_SUPABASE_URL\", \"\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "NEXT_PUBLIC_SUPABASE_*",
+            "line": 227,
+            "snippet": "vi.stubEnv(\"NEXT_PUBLIC_SUPABASE_ANON_KEY\", \"\");"
+          }
+        ],
+        "disposition": "compatibility-guard",
+        "rationale": "Mocks retired Supabase proxy modules to prove Better Auth/proxy code does not call them."
+      },
+      {
+        "file": "tests/vitest/auth-sensitive-api-boundaries.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 20,
+            "snippet": "createSupabaseServerClient: vi.fn(),"
+          },
+          {
+            "provider": "supabase",
+            "token": "@/lib/supabase",
+            "line": 38,
+            "snippet": "vi.mock(\"@/lib/supabase/server\", () => supabaseServerMocks);"
+          },
+          {
+            "provider": "supabase",
+            "token": "@supabase/",
+            "line": 39,
+            "snippet": "vi.mock(\"@supabase/supabase-js\", () => supabaseJsMocks);"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase-js",
+            "line": 39,
+            "snippet": "vi.mock(\"@supabase/supabase-js\", () => supabaseJsMocks);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 421,
+            "snippet": "supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 485,
+            "snippet": "supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ rpc });"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 555,
+            "snippet": "supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({"
+          },
+          {
+            "provider": "supabase",
+            "token": "NEXT_PUBLIC_SUPABASE_*",
+            "line": 574,
+            "snippet": "vi.stubEnv(\"NEXT_PUBLIC_SUPABASE_URL\", \"https://example.supabase.co\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 575,
+            "snippet": "vi.stubEnv(\"SUPABASE_SERVICE_ROLE_KEY\", \"service-role\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 597,
+            "snippet": "expect(source).not.toContain(\"createSupabaseServerClient\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 619,
+            "snippet": "expect(source).not.toContain(\"createSupabaseServerClient\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 664,
+            "snippet": "expect(source).not.toContain(\"createSupabaseServerClient\");"
+          }
+        ],
+        "disposition": "compatibility-guard",
+        "rationale": "Uses legacy provider sentinels while asserting sensitive APIs stay on current D1/Cloudflare boundaries."
+      },
+      {
+        "file": "tests/vitest/auth-session-closed-beta.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 120,
+            "snippet": "expect(sessionSource).not.toMatch(/createSupabase|@\\/lib\\/supabase/);"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/closed-beta-env-manifest.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "NEXT_PUBLIC_SUPABASE_*",
+            "line": 89,
+            "snippet": "expect(envExample).not.toMatch(/^NEXT_PUBLIC_SUPABASE_URL=/m);"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 90,
+            "snippet": "expect(envExample).not.toMatch(/^SUPABASE_SERVICE_ROLE_KEY=/m);"
+          },
+          {
+            "provider": "resend",
+            "token": "RESEND_API_KEY",
+            "line": 91,
+            "snippet": "expect(envExample).not.toMatch(/^RESEND_API_KEY=/m);"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/cloudflare-better-auth-proof-script.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "@supabase/",
+            "line": 210,
+            "snippet": "\"src/lib/auth/request-proxy.ts\": \"isCloudflareBetterAuthProviderEnabled(); await getCloudflareBetterAuthIdentityFromRequest(request); await supabase.auth.getClaims(); import '@supabase/ssr';\","
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 210,
+            "snippet": "\"src/lib/auth/request-proxy.ts\": \"isCloudflareBetterAuthProviderEnabled(); await getCloudflareBetterAuthIdentityFromRequest(request); await supabase.auth.getClaims(); import '@supabase/ssr';\","
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 211,
+            "snippet": "\"src/lib/auth/session.ts\": \"isCloudflareBetterAuthProviderEnabled(); await getCloudflareBetterAuthIdentityFromRequest(request); await supabase.auth.getUser();\","
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 212,
+            "snippet": "\"src/app/auth/callback/route.ts\": \"await supabase.auth.exchangeCodeForSession(code);\","
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 213,
+            "snippet": "\"src/lib/auth/actions.ts\": \"isCloudflareBetterAuthProviderEnabled(); await createCloudflareBetterAuthForRequest(request); await supabase.auth.signInWithOtp({ email }); await supabase.auth.signOut();\","
+          }
+        ],
+        "disposition": "keep-active-audit-tooling-test",
+        "rationale": "Fixture coverage for Cloudflare Better Auth proof scanner migration detection."
+      },
+      {
+        "file": "tests/vitest/cloudflare-cost-performance-workbook-script.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "supabase db",
+            "line": 618,
+            "snippet": "\"Supabase DB size\","
+          }
+        ],
+        "disposition": "keep-active-audit-tooling-test",
+        "rationale": "Audit/proof fixture intentionally mentions legacy-provider commands or helpers while preserving an explicit non-runtime evidence boundary."
+      },
+      {
+        "file": "tests/vitest/cloudflare-d1-auth-realtime-readiness-script.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "@supabase/",
+            "line": 45,
+            "snippet": "\"@supabase/supabase-js\": \"2.106.2\","
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase-js",
+            "line": 45,
+            "snippet": "\"@supabase/supabase-js\": \"2.106.2\","
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 69,
+            "snippet": "\"src/app/auth/callback/route.ts\": \"await supabase.auth.exchangeCodeForSession(code);\","
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 153,
+            "snippet": "\"src/lib/auth/request-proxy.ts\": \"await supabase.auth.getClaims();\","
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 209,
+            "snippet": "\"src/app/invite/[token]/accept/route.ts\": \"const { data } = await supabase.auth.getUser();\","
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 257,
+            "snippet": "\"const admin = createSupabaseServiceRoleClient('proof'); const key = process.env.SUPABASE_SERVICE_ROLE_KEY;\","
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 257,
+            "snippet": "\"const admin = createSupabaseServiceRoleClient('proof'); const key = process.env.SUPABASE_SERVICE_ROLE_KEY;\","
+          }
+        ],
+        "disposition": "keep-active-audit-tooling-test",
+        "rationale": "Fixture coverage for legacy-provider readiness scanner detection."
+      },
+      {
+        "file": "tests/vitest/cloudflare-d1-authz-access-matrix-script.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 65,
+            "snippet": "'const { data } = await supabase.rpc(\"can_edit_project\", { target_project_id: projectId });',"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 67,
+            "snippet": "'await supabase.rpc(\"is_workspace_editor\", { target_workspace_id: workspaceId }); await supabase.rpc(\"create_cost_library_component\", {});',"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 71,
+            "snippet": "'createSupabaseBrowserClient().channel(`project:${projectId}`, { config: { private: true } });',"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 128,
+            "snippet": "'await supabase.rpc(\"execute_bulk_delete_projects\", { target_workspace_id: workspaceId });',"
+          }
+        ],
+        "disposition": "keep-active-audit-tooling-test",
+        "rationale": "Audit/proof fixture intentionally mentions legacy-provider commands or helpers while preserving an explicit non-runtime evidence boundary."
+      },
+      {
+        "file": "tests/vitest/cloudflare-migration-inventory-script.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "@supabase/",
+            "line": 38,
+            "snippet": "\"src/app/workshop/page.tsx\": \"import { createServerClient } from '@supabase/ssr'; export const x = createServerClient;\","
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 39,
+            "snippet": "\"src/app/api/share/[token]/route.ts\": \"await supabase.rpc('increment_project_publication_open', {});\","
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 41,
+            "snippet": "\"src/lib/uploads/storage-provider.ts\": \"await supabase.storage.from(bucket).download(path);\","
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 73,
+            "snippet": "await supabase.rpc(\"can_edit_project\", {});"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 75,
+            "snippet": "await supabase.rpc(dynamicName, {});"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 147,
+            "snippet": "\"const secret = 'do-not-leak-this-value'; await supabase.rpc('record_upload_scan_result', {});\","
+          }
+        ],
+        "disposition": "keep-active-audit-tooling-test",
+        "rationale": "Fixture coverage for migration inventory scanner detection."
+      },
+      {
+        "file": "tests/vitest/collaboration-invitation-d1-store.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "supabase-js",
+            "line": 321,
+            "snippet": "expect(`${page}\\n${acceptance}\\n${store}`).not.toMatch(/@supabase\\/supabase-js|createSupabase|createSupabaseServiceRoleClient|SUPABASE_SERVICE_ROLE_KEY|resolve_collaboration_invitation|accept_collaboration_invitation/);"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 321,
+            "snippet": "expect(`${page}\\n${acceptance}\\n${store}`).not.toMatch(/@supabase\\/supabase-js|createSupabase|createSupabaseServiceRoleClient|SUPABASE_SERVICE_ROLE_KEY|resolve_collaboration_invitation|accept_collaboration_invitation/);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 321,
+            "snippet": "expect(`${page}\\n${acceptance}\\n${store}`).not.toMatch(/@supabase\\/supabase-js|createSupabase|createSupabaseServiceRoleClient|SUPABASE_SERVICE_ROLE_KEY|resolve_collaboration_invitation|accept_collaboration_invitation/);"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/component-library-durable-telemetry.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 33,
+            "snippet": "expect(actions).not.toContain(\"createSupabaseServiceRoleClient\");"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/component-library-versioning-schema.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 161,
+            "snippet": "expect(actions).not.toContain('supabase.rpc(\"upsert_cost_library_component_price_option\"');"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/dbidx-repo-audit.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "supabase db",
+            "line": 15,
+            "snippet": "expect(script).not.toContain(\"supabase db\");"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/estimate-image-url.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "NEXT_PUBLIC_SUPABASE_*",
+            "line": 5,
+            "snippet": "const originalSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;"
+          },
+          {
+            "provider": "supabase",
+            "token": "NEXT_PUBLIC_SUPABASE_*",
+            "line": 9,
+            "snippet": "delete process.env.NEXT_PUBLIC_SUPABASE_URL;"
+          },
+          {
+            "provider": "supabase",
+            "token": "NEXT_PUBLIC_SUPABASE_*",
+            "line": 11,
+            "snippet": "process.env.NEXT_PUBLIC_SUPABASE_URL = originalSupabaseUrl;"
+          }
+        ],
+        "disposition": "keep-active-security-fixture",
+        "rationale": "Legacy public storage URL is an unsafe image URL sanitization fixture."
+      },
+      {
+        "file": "tests/vitest/estimate-node-reorder-action.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 152,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledWith(\"can_edit_estimate\", { target_estimate_id: \"estimate-1\" });"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 153,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledWith(\"reorder_estimate_nodes_with_history\", {"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 234,
+            "snippet": "const reorderCalls = supabase.rpc.mock.calls.filter(([fn]) => fn === \"reorder_estimate_nodes_with_history\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 254,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledWith(\"reorder_estimate_nodes_with_history\", {"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 276,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledWith(\"reorder_estimate_nodes_with_history\", {"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 304,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledWith(\"can_edit_estimate\", { target_estimate_id: \"estimate-1\" });"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 305,
+            "snippet": "expect(supabase.rpc).not.toHaveBeenCalledWith(\"reorder_estimate_nodes_with_history\", expect.anything());"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 324,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledWith(\"can_edit_estimate\", { target_estimate_id: \"estimate-1\" });"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 325,
+            "snippet": "expect(supabase.rpc).not.toHaveBeenCalledWith(\"reorder_estimate_nodes_with_history\", expect.anything());"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 405,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledWith(\"create_estimate_node_with_history\", {"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 454,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledWith(\"create_estimate_node_with_history\", {"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 493,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledWith(\"create_estimate_node_with_history\", {"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 599,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledWith(\"rename_estimate_node_with_history\", {"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 681,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledWith(\"delete_estimate_node_with_history\", {"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 776,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledWith(\"can_edit_estimate\", { target_estimate_id: \"estimate-1\" });"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 777,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledWith(\"delete_estimate_nodes_bulk_with_history\", {"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 827,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledWith(\"can_edit_estimate\", { target_estimate_id: \"estimate-1\" });"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 828,
+            "snippet": "expect(supabase.rpc).not.toHaveBeenCalledWith(\"delete_estimate_nodes_bulk_with_history\", expect.anything());"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 866,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledWith(\"restore_deleted_estimate_nodes_with_history\", {"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 957,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledTimes(2);"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 958,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledWith(\"can_edit_estimate\", { target_estimate_id: \"77777777-7777-4777-8777-777777777719\" });"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 959,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledWith(\"insert_estimate_row_item_with_history\", expect.objectContaining({"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 966,
+            "snippet": "const insertCall = supabase.rpc.mock.calls.find(([name]) => name === \"insert_estimate_row_item_with_history\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 1026,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledTimes(2);"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 1027,
+            "snippet": "expect(supabase.rpc).toHaveBeenNthCalledWith(1, \"can_edit_estimate\", { target_estimate_id: \"estimate-1\" });"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 1028,
+            "snippet": "expect(supabase.rpc).toHaveBeenNthCalledWith(2, \"insert_estimate_template_into_estimate_with_history\", {"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 1036,
+            "snippet": "expect(supabase.from).not.toHaveBeenCalled();"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 1067,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledTimes(2);"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 1068,
+            "snippet": "expect(supabase.from).not.toHaveBeenCalled();"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 1094,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledTimes(1);"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 1095,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledWith(\"can_edit_estimate\", { target_estimate_id: \"estimate-1\" });"
+          }
+        ],
+        "disposition": "compatibility-guard",
+        "rationale": "Compatibility guard mocks or names retired Supabase modules to prove current code does not call the old provider path."
+      },
+      {
+        "file": "tests/vitest/estimate-repository.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 35,
+            "snippet": "return source.includes(\"createSupabaseBrowserClient\") && estimateRowItemWritePattern.test(source);"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/estimate-route-server-concurrency.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 114,
+            "snippet": "expect(estimateNodePageSource).not.toContain(\"createSupabaseServiceRoleClient\");"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/estimate-sheet-actions-authz.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "@/lib/supabase",
+            "line": 89,
+            "snippet": "vi.mock(\"@/lib/supabase/server\", () => ({"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 90,
+            "snippet": "createSupabaseServerClient: vi.fn(async () => ({"
+          }
+        ],
+        "disposition": "compatibility-guard",
+        "rationale": "Compatibility guard mocks or names retired Supabase modules to prove current code does not call the old provider path."
+      },
+      {
+        "file": "tests/vitest/estimate-sheet-route-loading.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 41,
+            "snippet": "\"createSupabaseServerClient\","
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/estimate-sheet-user-preferences.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "supabase-js",
+            "line": 39,
+            "snippet": "expect(`${actions}\\n${store}`).not.toMatch(/@supabase\\/supabase-js|@\\/lib\\/supabase|createSupabase|SUPABASE_SERVICE_ROLE_KEY|can_access_estimate/);"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 39,
+            "snippet": "expect(`${actions}\\n${store}`).not.toMatch(/@supabase\\/supabase-js|@\\/lib\\/supabase|createSupabase|SUPABASE_SERVICE_ROLE_KEY|can_access_estimate/);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 39,
+            "snippet": "expect(`${actions}\\n${store}`).not.toMatch(/@supabase\\/supabase-js|@\\/lib\\/supabase|createSupabase|SUPABASE_SERVICE_ROLE_KEY|can_access_estimate/);"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/estimate-sheet-version-control-actions.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 92,
+            "snippet": "const call = supabase.rpc.mock.calls.find(([name]) => name === fn);"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 374,
+            "snippet": "expect(supabase.from).not.toHaveBeenCalled();"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 375,
+            "snippet": "expect(supabase.rpc).not.toHaveBeenCalled();"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 408,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledWith(\"update_estimate_row_item_with_history\", {"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 433,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledWith(\"update_estimate_row_item_with_history\", expect.objectContaining({"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 508,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledWith(\"replace_estimate_row_item_with_history\", expect.objectContaining({"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 547,
+            "snippet": "expect(supabase.rpc).not.toHaveBeenCalledWith(\"replace_estimate_row_item_with_history\", expect.anything());"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 567,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledWith(\"replace_estimate_row_item_with_history\", expect.objectContaining({"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 599,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledWith(\"delete_estimate_row_item_with_history\", {"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 640,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledWith(\"move_estimate_row_component_with_history\", expect.objectContaining({"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 661,
+            "snippet": "expect(supabase.rpc).not.toHaveBeenCalledWith(\"replace_estimate_row_item_with_history\", expect.anything());"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 678,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledWith(\"delete_estimate_row_items_bulk_with_history\", {"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 686,
+            "snippet": "expect(supabase.rpc).not.toHaveBeenCalledWith(\"delete_estimate_row_item_with_history\", expect.anything());"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 709,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledWith(\"restore_deleted_estimate_rows_with_history\", {"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 747,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledWith(\"unlink_estimate_row_item_from_library_with_history\", {"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 780,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledWith(\"can_edit_estimate\", { target_estimate_id: \"estimate-1\" });"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 781,
+            "snippet": "expect(supabase.rpc).not.toHaveBeenCalledWith(\"unlink_estimate_row_item_from_library_with_history\", expect.anything());"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 798,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledWith(\"insert_estimate_row_item_with_history\", expect.objectContaining({"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 825,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledWith(\"update_estimate_details_with_history\", expect.objectContaining({"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 1088,
+            "snippet": "expect(supabase.from).toHaveBeenCalledTimes(2);"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 1117,
+            "snippet": "expect(supabase.from).toHaveBeenCalledTimes(3);"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 1328,
+            "snippet": "expect(supabase.rpc).toHaveBeenCalledWith(\"get_estimate_activity_retention_metrics\", { target_project_id: \"project-1\" });"
+          }
+        ],
+        "disposition": "compatibility-guard",
+        "rationale": "Compatibility guard mocks or names retired Supabase modules to prove current code does not call the old provider path."
+      },
+      {
+        "file": "tests/vitest/estimate-sheet-version-control-db.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 4,
+            "snippet": "const runLiveDb = process.env.RUN_SUPABASE_INTEGRATION === \"1\";"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 48,
+            "snippet": "it(\"is skipped unless RUN_SUPABASE_INTEGRATION=1 because it mutates local Supabase state\", () => {"
+          }
+        ],
+        "disposition": "keep-active-audit-tooling-test",
+        "rationale": "Audit/proof fixture intentionally mentions legacy-provider commands or helpers while preserving an explicit non-runtime evidence boundary."
+      },
+      {
+        "file": "tests/vitest/legal-terms-d1-store.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 113,
+            "snippet": "expect(cookieSource).not.toContain(\"SUPABASE_SERVICE_ROLE_KEY\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 114,
+            "snippet": "expect(acceptanceSource).not.toMatch(/createSupabase|SUPABASE_SERVICE_ROLE_KEY|@\\/lib\\/supabase/);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 114,
+            "snippet": "expect(acceptanceSource).not.toMatch(/createSupabase|SUPABASE_SERVICE_ROLE_KEY|@\\/lib\\/supabase/);"
+          },
+          {
+            "provider": "supabase",
+            "token": "@/lib/supabase",
+            "line": 115,
+            "snippet": "expect(recordSource).not.toContain(\"@/lib/supabase/types\");"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/mass-deletion-action-contract.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 42,
+            "snippet": "/createSupabaseServerClient|supabase\\.rpc|preview_bulk_delete_projects|execute_bulk_delete_projects/,"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 60,
+            "snippet": "/createSupabaseServiceRoleClient|record_mass_deletion_storage_cleanup_result|SUPABASE_SERVICE_ROLE_KEY/,"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 60,
+            "snippet": "/createSupabaseServiceRoleClient|record_mass_deletion_storage_cleanup_result|SUPABASE_SERVICE_ROLE_KEY/,"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/notifications-actions.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "supabase-js",
+            "line": 83,
+            "snippet": "expect(`${actions}\\n${repository}`).not.toMatch(/createSupabase|@\\/lib\\/supabase|@supabase\\/supabase-js|SUPABASE_SERVICE_ROLE_KEY|serviceRole/);"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 83,
+            "snippet": "expect(`${actions}\\n${repository}`).not.toMatch(/createSupabase|@\\/lib\\/supabase|@supabase\\/supabase-js|SUPABASE_SERVICE_ROLE_KEY|serviceRole/);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 83,
+            "snippet": "expect(`${actions}\\n${repository}`).not.toMatch(/createSupabase|@\\/lib\\/supabase|@supabase\\/supabase-js|SUPABASE_SERVICE_ROLE_KEY|serviceRole/);"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/perf/library-overview-rpc-contract.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 477,
+            "snippet": "expect(repository).not.toContain(\"createSupabaseServerClient\");"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/project-activity-page/repository-contract.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 14,
+            "snippet": "expect(source).not.toContain(\"createSupabaseServerClient\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "@/lib/supabase",
+            "line": 15,
+            "snippet": "expect(source).not.toContain(\"@/lib/supabase/server\");"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/project-activity-page/route-contract.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 77,
+            "snippet": "expect(source).not.toContain(\"createSupabaseServerClient\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 99,
+            "snippet": "expect(source).not.toContain(\"createSupabaseServerClient\");"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/project-charts-d1-repository.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 169,
+            "snippet": "expect(source).not.toMatch(/createSupabaseServerClient|@\\/lib\\/supabase/);"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/project-collaboration-actions.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "supabase-js",
+            "line": 19,
+            "snippet": "expect(actions).not.toMatch(/@supabase\\/supabase-js|@\\/lib\\/supabase|createSupabase|SUPABASE_SERVICE_ROLE_KEY|auth\\.admin\\.inviteUserByEmail|issue_collaboration_invitation_token/);"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 19,
+            "snippet": "expect(actions).not.toMatch(/@supabase\\/supabase-js|@\\/lib\\/supabase|createSupabase|SUPABASE_SERVICE_ROLE_KEY|auth\\.admin\\.inviteUserByEmail|issue_collaboration_invitation_token/);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 19,
+            "snippet": "expect(actions).not.toMatch(/@supabase\\/supabase-js|@\\/lib\\/supabase|createSupabase|SUPABASE_SERVICE_ROLE_KEY|auth\\.admin\\.inviteUserByEmail|issue_collaboration_invitation_token/);"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/project-collaboration-realtime.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 164,
+            "snippet": "expect(realtimeIdentityServer).not.toContain(\"SUPABASE_SERVICE_ROLE_KEY\");"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/project-component-projection.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 170,
+            "snippet": "expect(projection).not.toMatch(/createSupabaseServerClient|@\\/lib\\/supabase/);"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/project-d1-audit.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "supabase-js",
+            "line": 127,
+            "snippet": "expect(`${actions}\\n${d1Audit}`).not.toMatch(/createSupabaseServiceRoleClient|SUPABASE_SERVICE_ROLE_KEY|@supabase\\/supabase-js/);"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 127,
+            "snippet": "expect(`${actions}\\n${d1Audit}`).not.toMatch(/createSupabaseServiceRoleClient|SUPABASE_SERVICE_ROLE_KEY|@supabase\\/supabase-js/);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 127,
+            "snippet": "expect(`${actions}\\n${d1Audit}`).not.toMatch(/createSupabaseServiceRoleClient|SUPABASE_SERVICE_ROLE_KEY|@supabase\\/supabase-js/);"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/project-dashboard-side-panel-ui.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 71,
+            "snippet": "expect(projectEstimatesPage).not.toContain(\"createSupabaseServerClient\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 72,
+            "snippet": "expect(projectEstimatesPage).not.toContain('supabase.rpc(\"can_edit_project\"');"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/project-estimate-list-row-contract.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "supabase db",
+            "line": 46,
+            "snippet": "it(\"does not import the Supabase DB types into the client list row\", () => {"
+          },
+          {
+            "provider": "supabase",
+            "token": "@/lib/supabase",
+            "line": 48,
+            "snippet": "expect(source).not.toContain(\"@/lib/supabase/types\");"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/project-estimate-list-summaries-scoping.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 134,
+            "snippet": "expect(source).not.toContain([\"createSupabase\", \"ServerClient\"].join(\"\"));"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/project-group-actions.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 15,
+            "snippet": "createSupabaseServerClient: vi.fn(),"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 39,
+            "snippet": "getCloudflareD1Database: supabaseMocks.createSupabaseServerClient,"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 196,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockReset();"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 222,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 232,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 243,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 259,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 282,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 294,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 311,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 321,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 330,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 342,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 360,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 372,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 381,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 393,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 406,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 437,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 447,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 464,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 475,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 486,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 498,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 513,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 524,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 539,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 557,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 573,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 586,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 603,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 624,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 646,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 665,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 682,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 693,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 717,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 752,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 769,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 784,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 798,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 816,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 840,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 857,
+            "snippet": "supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);"
+          }
+        ],
+        "disposition": "compatibility-guard",
+        "rationale": "Compatibility guard mocks or names retired Supabase modules to prove current code does not call the old provider path."
+      },
+      {
+        "file": "tests/vitest/project-invite-entry-route.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 17,
+            "snippet": "expect(route).not.toMatch(/@\\/lib\\/supabase\\/server|createSupabaseServerClient|resolve_collaboration_invitation/);"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 93,
+            "snippet": "expect(acceptRoute).not.toContain(\"supabase.auth\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 94,
+            "snippet": "expect(acceptRoute).not.toContain(\"createSupabaseServerClient\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase-js",
+            "line": 109,
+            "snippet": "expect(inviteEntry).not.toMatch(/@supabase\\/supabase-js|SUPABASE_SERVICE_ROLE_KEY|NEXT_PUBLIC_SUPABASE_URL|createClient<Database>/);"
+          },
+          {
+            "provider": "supabase",
+            "token": "NEXT_PUBLIC_SUPABASE_*",
+            "line": 109,
+            "snippet": "expect(inviteEntry).not.toMatch(/@supabase\\/supabase-js|SUPABASE_SERVICE_ROLE_KEY|NEXT_PUBLIC_SUPABASE_URL|createClient<Database>/);"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 109,
+            "snippet": "expect(inviteEntry).not.toMatch(/@supabase\\/supabase-js|SUPABASE_SERVICE_ROLE_KEY|NEXT_PUBLIC_SUPABASE_URL|createClient<Database>/);"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/project-invite-sign-out-route.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 4,
+            "snippet": "createSupabaseServerClient: vi.fn(),"
+          },
+          {
+            "provider": "supabase",
+            "token": "@/lib/supabase",
+            "line": 7,
+            "snippet": "vi.mock(\"@/lib/supabase/server\", () => supabaseServerMocks);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 43,
+            "snippet": "expect(supabaseServerMocks.createSupabaseServerClient).not.toHaveBeenCalled();"
+          }
+        ],
+        "disposition": "compatibility-guard",
+        "rationale": "Compatibility guard mocks or names retired Supabase modules to prove current code does not call the old provider path."
+      },
+      {
+        "file": "tests/vitest/project-location-schema.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 69,
+            "snippet": "expect(projectDashboardPage).not.toContain(\"createSupabaseServerClient\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 83,
+            "snippet": "expect(projectLocationRepository).not.toContain(\"createSupabaseServerClient\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 92,
+            "snippet": "expect(projectLocationActions).not.toContain(\"createSupabaseServerClient\");"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/project-publication-public-repository.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "@supabase/",
+            "line": 119,
+            "snippet": "expect(publicRepository).not.toContain(\"@supabase/supabase-js\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase-js",
+            "line": 119,
+            "snippet": "expect(publicRepository).not.toContain(\"@supabase/supabase-js\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 120,
+            "snippet": "expect(publicRepository).not.toContain(\"SUPABASE_SERVICE_ROLE_KEY\");"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/project-publication-snapshot.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "NEXT_PUBLIC_SUPABASE_*",
+            "line": 458,
+            "snippet": "const originalSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;"
+          },
+          {
+            "provider": "supabase",
+            "token": "NEXT_PUBLIC_SUPABASE_*",
+            "line": 459,
+            "snippet": "process.env.NEXT_PUBLIC_SUPABASE_URL = \"https://example.supabase.co\";"
+          },
+          {
+            "provider": "supabase",
+            "token": "NEXT_PUBLIC_SUPABASE_*",
+            "line": 602,
+            "snippet": "delete process.env.NEXT_PUBLIC_SUPABASE_URL;"
+          },
+          {
+            "provider": "supabase",
+            "token": "NEXT_PUBLIC_SUPABASE_*",
+            "line": 604,
+            "snippet": "process.env.NEXT_PUBLIC_SUPABASE_URL = originalSupabaseUrl;"
+          }
+        ],
+        "disposition": "keep-active-security-fixture",
+        "rationale": "Legacy public storage URL is used to prove publication snapshot image sanitization."
+      },
+      {
+        "file": "tests/vitest/provider-cleanup-allowlist-script.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "@supabase/",
+            "line": 33,
+            "snippet": "writeFixture(root, \"src/lib/runtime.ts\", \"import { createClient } from '@supabase/supabase-js';\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase-js",
+            "line": 33,
+            "snippet": "writeFixture(root, \"src/lib/runtime.ts\", \"import { createClient } from '@supabase/supabase-js';\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "@supabase/",
+            "line": 34,
+            "snippet": "writeFixture(root, historicalSupabaseTypesPath, \"// generated by @supabase/supabase-js\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase-js",
+            "line": 34,
+            "snippet": "writeFixture(root, historicalSupabaseTypesPath, \"// generated by @supabase/supabase-js\");"
+          },
+          {
+            "provider": "resend",
+            "token": "RESEND_API_KEY",
+            "line": 35,
+            "snippet": "writeFixture(root, \"scripts/generate-cloudflare-provider-exit-pack.ts\", \"const key = 'RESEND_API_KEY';\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "NEXT_PUBLIC_SUPABASE_*",
+            "line": 36,
+            "snippet": "writeFixture(root, \"tests/vitest/project-invite-entry-route.test.ts\", \"expect(source).not.toContain('NEXT_PUBLIC_SUPABASE_URL');\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 37,
+            "snippet": "writeFixture(root, \"tests/vitest/redact.test.ts\", \"redact('SUPABASE_SERVICE_ROLE_KEY=secret');\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "@supabase/",
+            "line": 38,
+            "snippet": "writeFixture(root, \"tests/vitest/auth-proxy.test.ts\", \"vi.mock('@supabase/ssr', () => ({}));\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "@supabase/",
+            "line": 39,
+            "snippet": "writeFixture(root, \"tests/vitest/notification-rls-proof.test.ts\", \"import { createClient } from '@supabase/supabase-js';\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase-js",
+            "line": 39,
+            "snippet": "writeFixture(root, \"tests/vitest/notification-rls-proof.test.ts\", \"import { createClient } from '@supabase/supabase-js';\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "@supabase/",
+            "line": 40,
+            "snippet": "writeFixture(root, \"supabase/migration-evidence/provider-parity-proofs/archived.ts\", \"import '@supabase/supabase-js';\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase-js",
+            "line": 40,
+            "snippet": "writeFixture(root, \"supabase/migration-evidence/provider-parity-proofs/archived.ts\", \"import '@supabase/supabase-js';\");"
+          },
+          {
+            "provider": "resend",
+            "token": "RESEND_API_KEY",
+            "line": 72,
+            "snippet": "writeFixture(root, \"scripts/generate-cloudflare-provider-exit-pack.ts\", \"const key = 'RESEND_API_KEY';\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "NEXT_PUBLIC_SUPABASE_*",
+            "line": 73,
+            "snippet": "writeFixture(root, \"tests/vitest/project-invite-entry-route.test.ts\", \"expect(source).not.toContain('NEXT_PUBLIC_SUPABASE_URL');\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "@supabase/",
+            "line": 74,
+            "snippet": "writeFixture(root, \"tests/vitest/notification-rls-proof.test.ts\", \"import { createClient } from '@supabase/supabase-js';\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase-js",
+            "line": 74,
+            "snippet": "writeFixture(root, \"tests/vitest/notification-rls-proof.test.ts\", \"import { createClient } from '@supabase/supabase-js';\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 75,
+            "snippet": "writeFixture(root, \"tests/vitest/upload-storage-denial-proof.test.ts\", \"process.env.SUPABASE_SERVICE_ROLE_KEY;\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 101,
+            "snippet": "\"const url = process.env.SUPABASE_DB_URL;\","
+          },
+          {
+            "provider": "supabase",
+            "token": "@/lib/supabase",
+            "line": 102,
+            "snippet": "\"import { createSupabaseServerClient } from '@/lib/supabase/server';\","
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 102,
+            "snippet": "\"import { createSupabaseServerClient } from '@/lib/supabase/server';\","
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 103,
+            "snippet": "\"const rows = supabase.from('projects').select('*');\","
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 106,
+            "snippet": "\"const ref = process.env.SUPABASE_PROJECT_ID;\","
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase db",
+            "line": 107,
+            "snippet": "\"const command = 'supabase db push --linked --dry-run';\","
+          },
+          {
+            "provider": "supabase",
+            "token": "@/lib/supabase",
+            "line": 122,
+            "snippet": "\"@/lib/supabase\","
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 123,
+            "snippet": "\"createSupabase*\","
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase db",
+            "line": 125,
+            "snippet": "\"supabase db\","
+          }
+        ],
+        "disposition": "keep-active-audit-tooling-test",
+        "rationale": "Fixture coverage for this provider-cleanup allowlist scanner."
+      },
+      {
+        "file": "tests/vitest/provider-exit-pack-script.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "@supabase/",
+            "line": 162,
+            "snippet": "\"import { createClient } from \\\"@supabase/supabase-js\\\";\","
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase-js",
+            "line": 162,
+            "snippet": "\"import { createClient } from \\\"@supabase/supabase-js\\\";\","
+          },
+          {
+            "provider": "vercel",
+            "token": "VERCEL_*",
+            "line": 164,
+            "snippet": "\"const provider = process.env.VERCEL_ENV;\","
+          },
+          {
+            "provider": "supabase",
+            "token": "@supabase/",
+            "line": 171,
+            "snippet": "writeFileSync(join(ignoredDir, \"runtime.ts\"), \"import { createClient } from \\\"@supabase/supabase-js\\\";\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase-js",
+            "line": 171,
+            "snippet": "writeFileSync(join(ignoredDir, \"runtime.ts\"), \"import { createClient } from \\\"@supabase/supabase-js\\\";\");"
+          }
+        ],
+        "disposition": "keep-active-audit-tooling-test",
+        "rationale": "Fixture coverage for provider-exit pack legacy-provider detection."
+      },
+      {
+        "file": "tests/vitest/publisher-activity-d1-repository.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 168,
+            "snippet": "expect(database.prepared.map((statement) => statement.sql).join(\"\\n\")).not.toContain(\"createSupabase\");"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/publisher-page-contract.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 13,
+            "snippet": "expect(source).not.toContain(\"createSupabaseServiceRoleClient\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 14,
+            "snippet": "expect(source).not.toContain(\"SUPABASE_SERVICE_ROLE_KEY\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 79,
+            "snippet": "expect(repositorySource).not.toContain(\"createSupabaseServerClient\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "@/lib/supabase",
+            "line": 80,
+            "snippet": "expect(repositorySource).not.toContain(\"@/lib/supabase\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 97,
+            "snippet": "expect(repositorySource).not.toContain(\"SUPABASE_SERVICE_ROLE_KEY\");"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/publisher-roster-repository.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "@/lib/supabase",
+            "line": 310,
+            "snippet": "expect(source).not.toContain(\"@/lib/supabase\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 311,
+            "snippet": "expect(source).not.toContain(\"createSupabaseServerClient\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 312,
+            "snippet": "expect(source).not.toContain(\"createSupabaseServiceRoleClient\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 313,
+            "snippet": "expect(source).not.toContain(\"SUPABASE_SERVICE_ROLE_KEY\");"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/realtime-auth-bridge-favorites-clear.test.tsx",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "@/lib/supabase",
+            "line": 7,
+            "snippet": "vi.mock(\"@/lib/supabase/client\", () => ({ createSupabaseBrowserClient: () => ({"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 7,
+            "snippet": "vi.mock(\"@/lib/supabase/client\", () => ({ createSupabaseBrowserClient: () => ({"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 24,
+            "snippet": "expect(source).not.toContain(\"createSupabaseBrowserClient\");"
+          }
+        ],
+        "disposition": "compatibility-guard",
+        "rationale": "Compatibility guard mocks or names retired Supabase modules to prove current code does not call the old provider path."
+      },
+      {
+        "file": "tests/vitest/recipient-proposals-route-gate.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 65,
+            "snippet": "expect(source).not.toMatch(/service_role|SUPABASE_SERVICE_ROLE_KEY|encrypted_token|token_hash/i);"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/redact.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 69,
+            "snippet": "const result = redactMessage(\"SUPABASE_SERVICE_ROLE_KEY=secret database constraint failed\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 71,
+            "snippet": "expect(result.value).toBe(\"SUPABASE_SERVICE_ROLE_KEY=[REDACTED] database constraint failed\");"
+          }
+        ],
+        "disposition": "keep-active-security-fixture",
+        "rationale": "Legacy provider key names are credential-adjacent redaction fixtures."
+      },
+      {
+        "file": "tests/vitest/security-findings-auth-contracts.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "supabase-js",
+            "line": 61,
+            "snippet": "expect(sessionSource).not.toMatch(/INSERT INTO profiles|UPDATE profiles|@supabase\\/supabase-js/);"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/security-findings-library-tooling-contracts.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 17,
+            "snippet": "expect(folderActions).not.toContain('supabase.rpc(\"delete_library_folder\"');"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/security-findings-proof-contracts.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 49,
+            "snippet": "expect(proof.sanitized_provider_readiness.supabase.project).toBe(\"SUPABASE_PROJECT_PLACEHOLDER\");"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/share/duplicate-decision-race.provider.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 10,
+            "snippet": "const databaseUrl = process.env.SUPABASE_DB_URL;"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 36,
+            "snippet": "if (!databaseUrl) return \"SUPABASE_DB_URL is required for the provider-backed duplicate-decision race proof.\";"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 179,
+            "snippet": "expect(raceProofSkipReason()).toMatch(/duplicate-decision race proof|SUPABASE_DB_URL|local Supabase|psql/);"
+          }
+        ],
+        "disposition": "keep-active-audit-tooling-test",
+        "rationale": "Audit/proof fixture intentionally mentions legacy-provider commands or helpers while preserving an explicit non-runtime evidence boundary."
+      },
+      {
+        "file": "tests/vitest/supabase-type-reference-retirement-inventory-script.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "@/lib/supabase",
+            "line": 33,
+            "snippet": "'import type { Database, Tables } from \"@/lib/supabase/types\";\\n',"
+          },
+          {
+            "provider": "supabase",
+            "token": "@/lib/supabase",
+            "line": 48,
+            "snippet": "'expect(source).not.toContain(\"@/lib/supabase/types\");\\n',"
+          },
+          {
+            "provider": "supabase",
+            "token": "@/lib/supabase",
+            "line": 53,
+            "snippet": "'const legacyPath = \"@/lib/supabase/types\";\\n',"
+          },
+          {
+            "provider": "supabase",
+            "token": "@/lib/supabase",
+            "line": 58,
+            "snippet": "'import type { Database } from \"@/lib/supabase/types\";\\n',"
+          }
+        ],
+        "disposition": "keep-active-audit-tooling-test",
+        "rationale": "Audit/proof fixture intentionally mentions legacy-provider commands or helpers while preserving an explicit non-runtime evidence boundary."
+      },
+      {
+        "file": "tests/vitest/terms-gate-direct-callers.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 18,
+            "snippet": "createSupabaseServerClient: vi.fn(),"
+          },
+          {
+            "provider": "supabase",
+            "token": "@/lib/supabase",
+            "line": 28,
+            "snippet": "vi.mock(\"@/lib/supabase/server\", () => supabaseServerMocks);"
+          },
+          {
+            "provider": "supabase",
+            "token": "@supabase/",
+            "line": 29,
+            "snippet": "vi.mock(\"@supabase/supabase-js\", () => supabaseJsMocks);"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase-js",
+            "line": 29,
+            "snippet": "vi.mock(\"@supabase/supabase-js\", () => supabaseJsMocks);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 74,
+            "snippet": "expect(supabaseServerMocks.createSupabaseServerClient).not.toHaveBeenCalled();"
+          }
+        ],
+        "disposition": "compatibility-guard",
+        "rationale": "Mocks retired Supabase modules to prove protected direct callers do not use them before terms acceptance."
+      },
+      {
+        "file": "tests/vitest/upload-component-image-backfill.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "NEXT_PUBLIC_SUPABASE_*",
+            "line": 156,
+            "snippet": "const originalSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;"
+          },
+          {
+            "provider": "supabase",
+            "token": "NEXT_PUBLIC_SUPABASE_*",
+            "line": 157,
+            "snippet": "process.env.NEXT_PUBLIC_SUPABASE_URL = \"https://example.supabase.co\";"
+          },
+          {
+            "provider": "supabase",
+            "token": "NEXT_PUBLIC_SUPABASE_*",
+            "line": 241,
+            "snippet": "delete process.env.NEXT_PUBLIC_SUPABASE_URL;"
+          },
+          {
+            "provider": "supabase",
+            "token": "NEXT_PUBLIC_SUPABASE_*",
+            "line": 243,
+            "snippet": "process.env.NEXT_PUBLIC_SUPABASE_URL = originalSupabaseUrl;"
+          }
+        ],
+        "disposition": "keep-active-security-fixture",
+        "rationale": "Legacy storage URLs are migration/sanitization fixtures for upload backfill behavior."
+      },
+      {
+        "file": "tests/vitest/upload-operations-runbook-local-proof-script.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 24,
+            "snippet": "expect(script).not.toContain(\"SUPABASE_SERVICE_ROLE_KEY\");"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/upload-provider-migration-dry-run.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "supabase db",
+            "line": 27,
+            "snippet": "source: \"supabase db push --linked --dry-run\","
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase db",
+            "line": 28,
+            "snippet": "command: \"supabase db push --linked --dry-run\","
+          }
+        ],
+        "disposition": "keep-active-audit-tooling-test",
+        "rationale": "Audit/proof fixture intentionally mentions legacy-provider commands or helpers while preserving an explicit non-runtime evidence boundary."
+      },
+      {
+        "file": "tests/vitest/upload-release-gates.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "supabase db",
+            "line": 739,
+            "snippet": "command: \"supabase db push --linked --dry-run\","
+          }
+        ],
+        "disposition": "keep-active-audit-tooling-test",
+        "rationale": "Audit/proof fixture intentionally mentions legacy-provider commands or helpers while preserving an explicit non-runtime evidence boundary."
+      },
+      {
+        "file": "tests/vitest/upload-scan-override-ui.test.tsx",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "supabase-js",
+            "line": 94,
+            "snippet": "expect(source).not.toMatch(/createSupabase|@\\/lib\\/supabase|@supabase\\/supabase-js|SUPABASE_SERVICE_ROLE_KEY|serviceRole/);"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 94,
+            "snippet": "expect(source).not.toMatch(/createSupabase|@\\/lib\\/supabase|@supabase\\/supabase-js|SUPABASE_SERVICE_ROLE_KEY|serviceRole/);"
+          },
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 94,
+            "snippet": "expect(source).not.toMatch(/createSupabase|@\\/lib\\/supabase|@supabase\\/supabase-js|SUPABASE_SERVICE_ROLE_KEY|serviceRole/);"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/upload-scan-worker-provider-proof-script.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 26,
+            "snippet": "expect(script).toContain(\"createSupabaseUploadScanStorage(serviceClient)\");"
+          }
+        ],
+        "disposition": "keep-active-audit-tooling-test",
+        "rationale": "Audit/proof fixture intentionally mentions legacy-provider commands or helpers while preserving an explicit non-runtime evidence boundary."
+      },
+      {
+        "file": "tests/vitest/upload-session-capacity-provider-proof.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 82,
+            "snippet": "expect(serialized).not.toContain(\"SUPABASE_SERVICE_ROLE_KEY\");"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/upload-signed-provider-proof-script.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 22,
+            "snippet": "expect(script).toContain(\"createSupabaseDirectUploadProvider\");"
+          }
+        ],
+        "disposition": "keep-active-audit-tooling-test",
+        "rationale": "Audit/proof fixture intentionally mentions legacy-provider commands or helpers while preserving an explicit non-runtime evidence boundary."
+      },
+      {
+        "file": "tests/vitest/upload-signed-route-proof-script.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 23,
+            "snippet": "expect(script).toContain(\"createSupabaseDirectUploadProvider\");"
+          }
+        ],
+        "disposition": "keep-active-audit-tooling-test",
+        "rationale": "Audit/proof fixture intentionally mentions legacy-provider commands or helpers while preserving an explicit non-runtime evidence boundary."
+      },
+      {
+        "file": "tests/vitest/upload-signed-route.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "@supabase/",
+            "line": 715,
+            "snippet": "expect(route).not.toContain(\"@supabase/supabase-js\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase-js",
+            "line": 715,
+            "snippet": "expect(route).not.toContain(\"@supabase/supabase-js\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 716,
+            "snippet": "expect(route).not.toContain(\"SUPABASE_SERVICE_ROLE_KEY\");"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/upload-tus-provider-proof-script.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "createSupabase*",
+            "line": 23,
+            "snippet": "expect(script).toContain(\"createSupabaseDirectUploadProvider\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 24,
+            "snippet": "expect(script).toContain(\"SUPABASE_TUS_CHUNK_SIZE_BYTES\");"
+          }
+        ],
+        "disposition": "keep-active-audit-tooling-test",
+        "rationale": "Audit/proof fixture intentionally mentions legacy-provider commands or helpers while preserving an explicit non-runtime evidence boundary."
+      },
+      {
+        "file": "tests/vitest/upsert-update-grant-contract.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 147,
+            "snippet": "'supabase.from(\"project_favorites\").upsert({ id: \"1\" }, { onConflict: \"user_id,project_id\" })',"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 148,
+            "snippet": "'supabase.from(\"estimate_favorites\").upsert({ id: \"1\" }, { onConflict: \"user_id,estimate_id\", ignoreDuplicates: true })',"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/vercel-analytics-removed.test.ts",
+        "hits": [
+          {
+            "provider": "vercel",
+            "token": "@vercel/",
+            "line": 22,
+            "snippet": "expect(names.has(\"@vercel/analytics\")).toBe(false);"
+          },
+          {
+            "provider": "vercel",
+            "token": "@vercel/",
+            "line": 23,
+            "snippet": "expect(names.has(\"@vercel/speed-insights\")).toBe(false);"
+          },
+          {
+            "provider": "vercel",
+            "token": "@vercel/",
+            "line": 27,
+            "snippet": "expect(rootLayout).not.toContain(\"@vercel/analytics\");"
+          },
+          {
+            "provider": "vercel",
+            "token": "@vercel/",
+            "line": 28,
+            "snippet": "expect(rootLayout).not.toContain(\"@vercel/speed-insights\");"
+          },
+          {
+            "provider": "vercel",
+            "token": "VERCEL_*",
+            "line": 31,
+            "snippet": "expect(rootLayout).not.toContain(\"NEXT_PUBLIC_ENABLE_VERCEL_ANALYTICS_IN_DEV\");"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/with-action-errors.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 48,
+            "snippet": "throw new Error(\"SUPABASE_SERVICE_ROLE_KEY=secret database constraint failed\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "SUPABASE_*",
+            "line": 57,
+            "snippet": "expect(JSON.stringify(result)).not.toContain(\"SUPABASE_SERVICE_ROLE_KEY\");"
+          }
+        ],
+        "disposition": "keep-active-security-fixture",
+        "rationale": "Legacy provider key names are error-redaction fixtures."
+      },
+      {
+        "file": "tests/vitest/workshop-homebase-summary-rpc-contract.test.ts",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 13,
+            "snippet": "expect(repository).not.toContain('supabase.rpc(\"workspace_homebase_summary\"');"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      },
+      {
+        "file": "tests/vitest/workshop-pending-invite.test.tsx",
+        "hits": [
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 120,
+            "snippet": "expect(pendingInviteResolver).not.toContain(\"supabase.auth\");"
+          },
+          {
+            "provider": "supabase",
+            "token": "supabase.*",
+            "line": 132,
+            "snippet": "expect(pendingInviteActions).not.toContain(\"supabase.auth\");"
+          }
+        ],
+        "disposition": "keep-active-negative-assertion",
+        "rationale": "Negative assertion test intentionally mentions old-provider strings to prove current Cloudflare/D1 paths avoid them."
+      }
+    ],
+    "dispositionCounts": {
+      "active-runtime-blocker": 0,
+      "cleanup-candidate": 0,
+      "compatibility-guard": 10,
+      "keep-active-audit-tooling": 8,
+      "keep-active-audit-tooling-test": 16,
+      "keep-active-negative-assertion": 50,
+      "keep-active-security-fixture": 5,
+      "type-reference-retirement": 0,
+      "unclassified": 0
+    },
+    "activeRuntimeBlockerFiles": [],
+    "cleanupCandidateFiles": [],
+    "typeReferenceRetirementFiles": [],
+    "unclassifiedFiles": []
+  },
+  "readiness": {
+    "activeRuntimeProviderReferencesReady": true,
+    "allProviderStringsClassified": true,
+    "providerCleanupAllowlistReady": true,
+    "finalProviderCleanupReady": true
+  },
+  "blockers": [],
+  "note": "Non-destructive provider-cleanup allowlist report. This script reads source, scripts, e2e, and tests only; it does not read .env files, print secrets, mutate providers, deploy, delete data, or prove hosted/provider-dashboard state."
+}

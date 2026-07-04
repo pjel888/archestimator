@@ -2,7 +2,7 @@
 
 Status: **OPEN / NOT READY**
 
-Generated: `2026-07-03T22:31:39.871Z`
+Generated: `2026-07-04T09:04:19.515Z`
 
 App runtime exit prerequisites: **OPEN**
 
@@ -51,7 +51,7 @@ Scanned paths: `src`, `worker.ts`, `package.json`, `bun.lock`, `wrangler.jsonc`,
 
 Blocker references: 0
 
-Informational Resend lexical references: 117
+Informational Resend lexical references: 99
 
 | Provider | Location | Snippet |
 | --- | --- | --- |

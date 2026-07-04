@@ -17,8 +17,9 @@
 | ASM-001 | Better Auth installed version still supports Google provider `prompt`. | Check installed types/docs before Phase 1. |
 | ASM-002 | Current Google callback path is `/api/auth/callback/google`, not legacy `/auth/callback`. | Check OAuth clients/provider config before deleting legacy route. |
 | ASM-003 | `.env.example` remains aligned with invite pepper names. | Check before closing docs/env cleanup. |
-| ASM-004 | D1 schema contains the needed tables for publication/share hardening. | Inspect migrations/current D1 schema before Phase 2/4. |
+| ASM-004 | D1 migrations contain core publication/share tables, but applied schema and durable hard-lock storage still need Phase 2/4 verification. | Inspect current D1 schema and `0014_publication_shared_links.sql` before Phase 2/4 edits. |
 | ASM-005 | Provider-exit sibling pack remains the authority for production provider removal. | Check sibling pack/current-state before Phase 5. |
+| ASM-006 | Phase 5 cleanup still depends on the live provider-string, provider-boundary allowlist, type-reference, and caller graph, not the sibling ledger alone. | Re-run the current old-provider keyword file scan (`44` files after Slice D3), the broadened provider-boundary allowlist scanner (`89` classified active-surface hit files), the `4` non-blocking retired-type path-reference scan, and shared-link proof-utility caller check from `28`/`29` before deleting or moving remaining stale proof utilities/types. |
 
 ## Rejected Alternatives
 
@@ -29,3 +30,4 @@
 | Rely on UI hiding for permissions. | D1 has no RLS fallback; server-side authz is mandatory. |
 | Keep in-memory publication lockout as "good enough". | Cloudflare Worker isolates make it non-durable for security-critical hard lock. |
 | Bulk delete all Supabase/Vercel/Resend references. | Some references may be archaeology, tests, proof scripts, or sibling-pack context; classify first. |
+| Delete or archive stale proof utilities without moving, deleting, or rewriting their direct tests. | Slice A moved the known direct Vitest importers with their shared-link seed and hosted-password proof scripts. Future script cleanup still has to carry any direct tests in the same slice to avoid broken or stale validation. |

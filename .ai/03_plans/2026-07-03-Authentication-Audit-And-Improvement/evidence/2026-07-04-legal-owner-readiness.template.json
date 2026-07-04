@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-07-04T09:30:32.204Z",
+  "mode": "legal-owner-readiness-template",
+  "command": "LEGAL_OWNER_TERMS_CONFIRMED=approved LEGAL_OWNER_PRIVACY_CONFIRMED=approved LEGAL_OWNER_BETA_COPY_CONFIRMED=approved LEGAL_OWNER_DATA_RETENTION_CONFIRMED=approved LEGAL_OWNER_SUPPORT_COMMS_CONFIRMED=approved LEGAL_OWNER_PRODUCT_OWNER='<product owner label>' LEGAL_OWNER_LEGAL_REVIEWER='<legal reviewer label>' LEGAL_OWNER_APPROVAL_DATE=YYYY-MM-DD LEGAL_OWNER_APPROVAL_REFERENCE='<approval reference>' bun run launch:check-legal-owner",
+  "acceptedFlagValues": [
+    "1",
+    "true",
+    "yes",
+    "approved"
+  ],
+  "proofFlags": {
+    "LEGAL_OWNER_TERMS_CONFIRMED": {
+      "required": true,
+      "placeholder": "approved"
+    },
+    "LEGAL_OWNER_PRIVACY_CONFIRMED": {
+      "required": true,
+      "placeholder": "approved"
+    },
+    "LEGAL_OWNER_BETA_COPY_CONFIRMED": {
+      "required": true,
+      "placeholder": "approved"
+    },
+    "LEGAL_OWNER_DATA_RETENTION_CONFIRMED": {
+      "required": true,
+      "placeholder": "approved"
+    },
+    "LEGAL_OWNER_SUPPORT_COMMS_CONFIRMED": {
+      "required": true,
+      "placeholder": "approved"
+    }
+  },
+  "labels": {
+    "LEGAL_OWNER_PRODUCT_OWNER": {
+      "required": true,
+      "maxLength": 100,
+      "placeholder": "Product owner / decision owner label"
+    },
+    "LEGAL_OWNER_LEGAL_REVIEWER": {
+      "required": true,
+      "maxLength": 100,
+      "placeholder": "Legal reviewer / counsel label"
+    },
+    "LEGAL_OWNER_APPROVAL_DATE": {
+      "required": true,
+      "format": "YYYY-MM-DD",
+      "placeholder": "2026-07-04"
+    },
+    "LEGAL_OWNER_APPROVAL_REFERENCE": {
+      "required": true,
+      "maxLength": 140,
+      "placeholder": "Sanitized approval note, ticket, email subject, or decision record label"
+    }
+  },
+  "note": "Sanitized operator input template only. Filling this template and rerunning the checker can produce readiness evidence, but the template itself is not legal advice, legal approval, provider proof, hosted proof, or launch authorization."
+}

@@ -14,7 +14,7 @@ Requirement IDs are stable for traceability in `16_REQUIREMENTS_TRACEABILITY_MAT
 | FR-006 | Workspace/project/estimate authorization must be checked server-side for every read/mutation surface. | Authz matrix has one row per server action/route/repository path and allowed/denied tests. |
 | FR-007 | Publication/share access must remain token/password/session scoped and must not satisfy primary app auth. | Viewer cookie cannot access `/workshop`; Better Auth session cannot bypass share password/session/CSRF. |
 | FR-008 | Publication password lockout must be durable across Cloudflare Worker isolates. | D1 or Durable Object hard-lock proof replaces in-memory-only lockout reliance. |
-| FR-009 | Provider leftovers must be classified before removal. | Each Supabase/Vercel/Resend auth artifact is active, archaeology, delete, rotate/remove, or sibling-pack blocked. |
+| FR-009 | Provider leftovers must be classified and revalidated before removal. | Each Supabase/Vercel/Resend auth artifact is active, archaeology, delete, rotate/remove, or sibling-pack blocked; before final provider-exit is claimed, rerun the live old-provider keyword file scan (currently `44` after Slice D3), the broader provider-boundary allowlist scanner (currently `89` classified active-surface hit files), the `4` active retired-type-path reference scan, stale proof-utility/test caller checks from `28`/`29`, and any provider-exit/hosted/operator proof required for the claim. |
 
 ## Security And Privacy Requirements
 

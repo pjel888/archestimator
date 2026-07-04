@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-03T22:31:39.871Z",
+  "generatedAt": "2026-07-04T09:04:19.515Z",
   "mode": "cloudflare-provider-exit-pack",
   "sources": {
     "runbook": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/35_PROVIDER_EXIT_AND_FINAL_PROOF_RUNBOOK.md",
@@ -29,7 +29,7 @@
     },
     "latestDeploySourceSmoke": {
       "present": true,
-      "generatedAt": "2026-07-03T22:30:57.328Z",
+      "generatedAt": "2026-07-04T09:03:58.581Z",
       "parseError": null
     },
     "operatorRecord": {
@@ -51,7 +51,7 @@
       "src/middleware.ts"
     ],
     "blockerCount": 0,
-    "informationalCount": 117,
+    "informationalCount": 99,
     "blockers": [],
     "informational": [
       {
@@ -725,132 +725,6 @@
         "file": "src/lib/publication/admin-d1-client.ts",
         "line": 682,
         "snippet": "data = await persistSharedLinkRecipientResend(db, args);"
-      },
-      {
-        "provider": "resend",
-        "severity": "informational",
-        "file": "src/lib/supabase/types.ts",
-        "line": 3264,
-        "snippet": "resend_message_id: string | null"
-      },
-      {
-        "provider": "resend",
-        "severity": "informational",
-        "file": "src/lib/supabase/types.ts",
-        "line": 3274,
-        "snippet": "resend_message_id?: string | null"
-      },
-      {
-        "provider": "resend",
-        "severity": "informational",
-        "file": "src/lib/supabase/types.ts",
-        "line": 3284,
-        "snippet": "resend_message_id?: string | null"
-      },
-      {
-        "provider": "resend",
-        "severity": "informational",
-        "file": "src/lib/supabase/types.ts",
-        "line": 3587,
-        "snippet": "resend_delivery_metadata: Json"
-      },
-      {
-        "provider": "resend",
-        "severity": "informational",
-        "file": "src/lib/supabase/types.ts",
-        "line": 3588,
-        "snippet": "resend_email_id: string | null"
-      },
-      {
-        "provider": "resend",
-        "severity": "informational",
-        "file": "src/lib/supabase/types.ts",
-        "line": 3589,
-        "snippet": "resend_last_event_at: string | null"
-      },
-      {
-        "provider": "resend",
-        "severity": "informational",
-        "file": "src/lib/supabase/types.ts",
-        "line": 3590,
-        "snippet": "resend_last_event_id: string | null"
-      },
-      {
-        "provider": "resend",
-        "severity": "informational",
-        "file": "src/lib/supabase/types.ts",
-        "line": 3591,
-        "snippet": "resend_last_event_type: string | null"
-      },
-      {
-        "provider": "resend",
-        "severity": "informational",
-        "file": "src/lib/supabase/types.ts",
-        "line": 3606,
-        "snippet": "resend_delivery_metadata?: Json"
-      },
-      {
-        "provider": "resend",
-        "severity": "informational",
-        "file": "src/lib/supabase/types.ts",
-        "line": 3607,
-        "snippet": "resend_email_id?: string | null"
-      },
-      {
-        "provider": "resend",
-        "severity": "informational",
-        "file": "src/lib/supabase/types.ts",
-        "line": 3608,
-        "snippet": "resend_last_event_at?: string | null"
-      },
-      {
-        "provider": "resend",
-        "severity": "informational",
-        "file": "src/lib/supabase/types.ts",
-        "line": 3609,
-        "snippet": "resend_last_event_id?: string | null"
-      },
-      {
-        "provider": "resend",
-        "severity": "informational",
-        "file": "src/lib/supabase/types.ts",
-        "line": 3610,
-        "snippet": "resend_last_event_type?: string | null"
-      },
-      {
-        "provider": "resend",
-        "severity": "informational",
-        "file": "src/lib/supabase/types.ts",
-        "line": 3625,
-        "snippet": "resend_delivery_metadata?: Json"
-      },
-      {
-        "provider": "resend",
-        "severity": "informational",
-        "file": "src/lib/supabase/types.ts",
-        "line": 3626,
-        "snippet": "resend_email_id?: string | null"
-      },
-      {
-        "provider": "resend",
-        "severity": "informational",
-        "file": "src/lib/supabase/types.ts",
-        "line": 3627,
-        "snippet": "resend_last_event_at?: string | null"
-      },
-      {
-        "provider": "resend",
-        "severity": "informational",
-        "file": "src/lib/supabase/types.ts",
-        "line": 3628,
-        "snippet": "resend_last_event_id?: string | null"
-      },
-      {
-        "provider": "resend",
-        "severity": "informational",
-        "file": "src/lib/supabase/types.ts",
-        "line": 3629,
-        "snippet": "resend_last_event_type?: string | null"
       },
       {
         "provider": "resend",
