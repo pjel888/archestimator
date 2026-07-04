@@ -27,11 +27,11 @@ Pull deeper files only when the task needs them:
 ## Current active work
 
 - Branch: `main`. Agents must verify the live branch with `git status --short --branch` before editing.
-- Mode: Post-reset MVP — active implementation with Supabase/Auth/Postgres backend. Archestimator is the cost intelligence layer for AEC teams (AEC-committed, not contractor-first), with the campaign tagline **"From cost proposal to client approval."**
+- Mode: Post-reset MVP — active implementation on a Cloudflare-first stack (Workers/OpenNext + D1 + R2 + Durable Objects + Queues/Cron + Cloudflare Email + Better Auth). Archestimator is the cost intelligence layer for AEC teams (AEC-committed, not contractor-first), with the campaign tagline **"From cost proposal to client approval."**
 - Preserved: `/` landing page with active A/B testing, consent banner, and CSP Report-Only.
 - Current implemented routes: cost proposal workspace — build, send, revise, approve, and track commercial estimates — backed by projects, estimates, the reusable component library, templates, D3 charts, settings, shared publication links, invite entry, and feature-flagged AI helpers.
-- Current state/data foundation: Supabase project `ebxxqidacheyapmmzavr` with 67+ local migration files (50+ applied to linked remote). TanStack Query, Zustand, React Complex Tree, D3, Radix context menu, Phosphor icons, Storybook 10.4.2 (review surface only, no production route migration), and ExcelJS are installed.
-- Stack: Next.js 16.2.6, React 19.2.6, Bun, TypeScript 6.0.3, Tailwind CSS v4, Storybook 10.4.2, Vitest 4.1.7.
+- Current state/data foundation: Cloudflare Worker `archestimator-proof` (custom domain `archestimator.com`) with bindings D1 `ARCH_DB` (`archestimator-proof-db`), R2 `ARCH_UPLOADS_R2` (`archestimator-proof-uploads`), Durable Object `COLLAB_ROOMS` (`CollaborationRoom`, SQLite-backed), Queue `UPLOAD_JOBS_QUEUE` (+ DLQ), Cloudflare Images `IMAGES`, and Cloudflare Email `EMAIL`. 29 active D1 migrations in `./migrations/` (latest `0029_estimate_actions_d1_support.sql`). TanStack Query, Zustand, React Complex Tree, D3, Radix context menu, Phosphor icons, Storybook 10.4.2 (review surface only, no production route migration), and ExcelJS are installed. `package.json` has zero `@supabase/*` packages; legacy Supabase project `ebxxqidacheyapmmzavr` and `./supabase/migrations/` (182 files) are historical/migration-archaeology only.
+- Stack: Next.js 16.2.6, React 19.2.6, Bun, TypeScript 6.0.3, Tailwind CSS v4, Cloudflare Workers/OpenNext (`@opennextjs/cloudflare` ^1.20.1), Wrangler ^4.105.0, D1, R2, Durable Objects, Queues, Cloudflare Email, Better Auth 1.6.22, Storybook 10.4.2, Vitest 4.1.7.
 - Current codebase: ~498 source files, ~218 test files (115 Vitest DOM, 2 Bun unit, 7 Playwright E2E), ~51 app routes/pages, ~17 API routes.
 - Current AI bench: Codex, Claude, OpenCode, CommandCode, Antigravity CLI (`agy`), Kimi, and DeepSeek. Ollama is not approved for agent chat models. Gemini is phased out unless explicitly reapproved.
 - Current agent workflow mandate: non-trivial product work is loop-engineered
@@ -43,17 +43,24 @@ Pull deeper files only when the task needs them:
   evidence, persist state outside chat, and decide the next iteration. See
   `.ai/09_archive/store/2026-06-13-loop-engineering-mandate-and-research/` and
   `.ai/13_research/loop-engineering-agentic-product-development-2026-06-13.md`.
-- Current database mandate: during pre-launch MVP, Philip grants standing
-  authorization for agents to make Archestimator Supabase/Postgres changes in
-  project `ebxxqidacheyapmmzavr` without per-change owner approval. Move fast,
-  make useful database changes, fix mistakes forward, and validate
-  proportionally because there are no external users yet. This does not allow
-  unrelated provider projects, secrets, paid add-ons, hosting production
+- Current Cloudflare-resource mandate: during pre-launch MVP, Philip grants
+  standing authorization for agents to make Archestimator Cloudflare
+  D1/R2/Durable Object/Queue/Email changes inside the resources bound in
+  `wrangler.jsonc` (Worker `archestimator-proof`, D1 `ARCH_DB`, R2
+  `ARCH_UPLOADS_R2`, DO `COLLAB_ROOMS`, Queue `UPLOAD_JOBS_QUEUE`, Email
+  `EMAIL`, Images `IMAGES`) without per-change owner approval. Move fast,
+  make useful changes, fix mistakes forward, and validate proportionally
+  because there are no external users yet. This does not allow unrelated
+  Cloudflare accounts/projects, the historical Supabase project
+  `ebxxqidacheyapmmzavr`, the unrelated `archestimator` provider project,
+  secrets, paid add-ons (D1 paid plan, R2 paid tier, Workers Smart Placement
+  paid, Workers Analytics paid, dedicated egress, etc.), hosting production
   deploys, or irreversible destructive actions without explicit fresh
-  instruction. This mandate supersedes older default owner-gated database
-  wording unless a newer, narrower decision explicitly reintroduces a gate.
+  instruction. This mandate supersedes the older Supabase/Postgres
+  owner-gated database wording unless a newer, narrower decision explicitly
+  reintroduces a gate.
 - Superseded: the deleted full prototype. Do not resume old plans without explicit reapproval.
-- Storybook 10.4.2 is installed and implemented as a review surface with 60+ UI components and 85+ stories. Production app route migration, public Storybook hosting, and Supabase/provider-backed stories remain explicitly unperformed. See `.ai/10_state/decisions.md` (2026-06-07) for implementation boundaries.
+- Storybook 10.4.2 is installed and implemented as a review surface with 60+ UI components and 85+ stories. Production app route migration, public Storybook hosting, and D1/Cloudflare-provider-backed stories remain explicitly unperformed. See `.ai/10_state/decisions.md` (2026-06-07) for implementation boundaries.
 - Read first for restart: `AGENTS.md` plus the FAST PATH block at the top of
   `.ai/10_state/current-state.md`; pull self-diagnostic, feature inventory, and
   decisions only when restart risk or task scope requires them.

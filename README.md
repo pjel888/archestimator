@@ -32,28 +32,38 @@ Primary market is the Philippines and Southeast Asia, where these teams still ru
 | Runtime | Bun (package manager, test runner, lockfile) |
 | Language | TypeScript (strict, ES2017 target) |
 | Styling | Tailwind CSS v4 (CSS-first config, no tailwind.config.ts) |
-| Database | Supabase/PostgreSQL 17 (67 local migration files, RLS everywhere) |
-| Auth | Supabase Auth (Google OAuth, magic link, SSR helpers) |
+| Deploy | OpenNext for Cloudflare Workers (`@opennextjs/cloudflare` ^1.20.1), Wrangler ^4.105.0, Worker `archestimator-proof`, custom domain `archestimator.com` |
+| Database | Cloudflare D1 (`ARCH_DB`, database `archestimator-proof-db`, 29 migrations in `./migrations/`) |
+| Storage | Cloudflare R2 (`ARCH_UPLOADS_R2`, bucket `archestimator-proof-uploads`) |
+| Realtime | Cloudflare Durable Objects (`COLLAB_ROOMS`, class `CollaborationRoom`, SQLite-backed) |
+| Background jobs | Cloudflare Queues (`UPLOAD_JOBS_QUEUE` + DLQ) + Cron (`0 3 * * *`, `15 3 * * *`) |
+| Auth | Better Auth 1.6.22 (Google OAuth + magic link, D1-backed, mounted at `/api/auth/[...all]`) |
+| Email | Cloudflare Email Service (`EMAIL` binding, replaces Resend) |
+| Images | Cloudflare Images (`IMAGES` binding) |
 | State | TanStack Query 5, Zustand 5 |
 | Charts | D3 7 |
 | Tree UI | React Complex Tree 2 |
 | Icons | Phosphor Icons, Lucide (shadcn) |
-| Email | Resend |
 | Testing | Bun test, Vitest + jsdom, Playwright E2E |
 | Linting | ESLint 9 (flat config), custom design-system linter, tsc |
+
+> **Migration status:** Cloudflare migration is complete. `package.json` contains zero `@supabase/*` packages. Legacy Supabase migrations in `./supabase/migrations/` (182 files) are retained only as migration archaeology — do not run or extend them. Supabase project `ebxxqidacheyapmmzavr` is historical provider-exit evidence only.
 
 ## Quick start
 
 ```bash
 bun install
-bun run dev              # http://localhost:3000
+bun run dev              # http://localhost:3000 (Next.js dev server)
 ```
 
-Supabase local stack must be running for authenticated routes:
+For local D1 + Worker-parity preview against the OpenNext Cloudflare build:
 
 ```bash
-npx supabase start
+bun run cf:preview       # opennextjs-cloudflare build + wrangler preview
+bun run cf:typegen       # regenerate cloudflare-env.d.ts from wrangler.jsonc
 ```
+
+Local Cloudflare bindings are defined in `wrangler.jsonc`. Apply new D1 migrations to the local preview DB with `wrangler d1 migrations apply ARCH_DB --local`.
 
 ## Commands
 
@@ -68,6 +78,26 @@ bun run build            # Next.js production build
 bun run validate         # Full gate: type-check + lint + design-system + unit + dom
 ```
 
+Cloudflare / Worker / D1 operations (50+ `cf:*` scripts in `package.json`):
+
+```bash
+bun run cf:build                           # opennextjs-cloudflare build
+bun run cf:preview                         # build + wrangler preview (local bindings)
+bun run cf:deploy                          # build + wrangler deploy to archestimator-proof
+bun run cf:typegen                         # regenerate cloudflare-env.d.ts
+bun run cf:check-readiness                 # Worker readiness gate
+bun run cf:check-provider                  # Cloudflare provider readiness
+bun run cf:check-email                     # Cloudflare Email readiness
+bun run cf:check-dns-delegation            # archestimator.com DNS gate
+bun run cf:queues-cron-proof               # Queue + cron proof
+bun run cf:better-auth-proof               # Better Auth on D1 proof
+bun run cf:d1-runtime-proof                # D1 runtime performance proof
+bun run cf:d1-restore-rehearsal            # D1 restore dry-run (cheaper recovery path)
+bun run cf:provider-exit-pack              # legacy provider-exit evidence pack
+bun run cf:release-gates                   # release-gate suite
+bun run cf:inventory                       # Cloudflare migration inventory
+```
+
 Full pre-push validation:
 
 ```bash
@@ -80,7 +110,7 @@ bun run test:e2e
 
 ```
 src/
-├── proxy.ts                       # Next.js middleware (auth gate, route protection)
+├── middleware.ts                   # Next.js middleware re-exporting Better Auth route gate (proxy) from @/lib/auth/request-proxy
 ├── app/                           # Next.js App Router
 │   ├── layout.tsx                 # Root layout (fonts, metadata, providers)
 │   ├── providers.tsx              # QueryClient, Toast, BFCache, perf monitoring
@@ -90,10 +120,10 @@ src/
 │   ├── features/                  # Features overview
 │   ├── pricing/                   # Pricing page
 │   ├── contact/                   # Contact page + form
-│   ├── login/                     # Auth (Google OAuth, magic link)
+│   ├── login/                     # Auth (Better Auth Google OAuth + magic link)
 │   ├── privacy/                   # Privacy placeholder
 │   ├── terms/                     # Terms placeholder
-│   ├── auth/callback/             # Supabase OAuth callback handler
+│   ├── auth/callback/             # Legacy Supabase OAuth callback (migration archaeology; Better Auth handler lives at /api/auth/[...all])
 │   ├── invite/[token]/            # Invite entry + accept/continue/sign-out routes
 │   ├── share/[token]/             # Public shared link viewer
 │   ├── workshop/                  # Authenticated workspace shell
@@ -110,10 +140,11 @@ src/
 │   │   ├── templates/             # Estimate templates
 │   │   └── pending-invite/        # Pending invite bridge handler
 │   └── api/
+│       ├── auth/[...all]/         # Better Auth route handler (Google OAuth + magic link, D1-backed)
 │       ├── ai/ask/                # "Ask Flip" AI assistant (deferred; hidden unless enabled)
 │       ├── ai/package-builder/    # AI package builder (deferred; hidden unless enabled)
-│       ├── component-library/attachments/  # PDF/XLS uploads
-│       ├── component-library/images/       # Component images
+│       ├── component-library/attachments/  # PDF/XLS uploads → R2
+│       ├── component-library/images/       # Component images → Cloudflare Images / R2
 │       ├── projects/images/                # Project cover images
 │       ├── projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/  # Excel export
 │       └── share/[token]/         # Publication APIs (comments, decisions, password, events)
@@ -132,20 +163,20 @@ src/
 ├── hooks/                         # 8 custom hooks
 │   ├── use-estimate-query.ts      # TanStack Query estimates (optimistic)
 │   ├── use-estimate-row-mutations.ts  # Row CRUD with optimistic updates
-│   ├── use-estimate-cursor-broadcast.ts  # Realtime cursor collaboration
+│   ├── use-estimate-cursor-broadcast.ts  # Realtime cursor collaboration (Durable Objects)
 │   ├── use-estimate-workspace-state.ts   # Zustand selection/expansion
 │   ├── use-navigation-router.ts   # Route-loading overlay
 │   ├── use-prefetch-on-hover.ts   # Link prefetch
-│   ├── use-project-presence.ts    # Realtime user presence
+│   ├── use-project-presence.ts    # Realtime user presence (Durable Objects)
 │   └── use-shared-link-session.ts # Share link session state
 ├── lib/
 │   ├── domain/                    # Core domain model (trees, rows, mutations, totals)
 │   ├── estimates/                 # Estimate service layer (server actions, tree ops)
-│   ├── repositories/              # Data access layer (estimate, library, charts, workspace)
-│   ├── supabase/                  # Browser + server clients, generated types
-│   ├── auth/                      # Auth gates, account management, dev bypass
+│   ├── repositories/              # D1 data-access layer (estimate, library, charts, workspace)
+│   ├── auth/                      # Better Auth (better-auth-cloudflare.ts, request-proxy.ts, account-actions, account-audit-d1-store, account-settings-d1-store, closed-beta-d1-store, dev-auth)
+│   ├── supabase/                  # Historical/migration-archaeology clients and generated types (not active runtime)
 │   ├── ai/                        # DeepSeek integration, ask/package-builder (deferred)
-│   ├── collaboration/             # Invites, access control, Realtime presence
+│   ├── collaboration/             # Invites, access control, Durable Object presence
 │   ├── component-library/         # CRUD actions, taxonomy, templates
 │   ├── project-charts/            # Chart aggregation
 │   ├── projects/                  # Project actions, code generation
@@ -155,7 +186,7 @@ src/
 │   ├── aec-classification/        # AEC discipline taxonomy
 │   ├── ab-testing/                # A/B experiment framework
 │   ├── landing/                   # Landing auth state, consent
-│   ├── email/                     # Resend client
+│   ├── email/                     # Cloudflare Email client (cloudflare-email-client.ts, transactional-email-client.ts)
 │   ├── workshop/                  # Workshop-level actions
 │   └── ui/                        # cn() helper, design tokens
 └── stores/                        # Zustand stores
@@ -170,14 +201,14 @@ Archestimator follows a server-actions-first architecture with optimistic local-
 1. **Server actions** (`src/lib/*/actions.ts`) handle all writes, triggered from client components
 2. **TanStack Query** caches server state with 30s staleTime, optimistic mutation rollbacks
 3. **Zustand** stores high-frequency UI state (selections, expansions, loading overlays)
-4. **Supabase Realtime** channels broadcast cursor positions and user presence
-5. **RLS** on every user-data table enforces access at the database level
+4. **Cloudflare Durable Objects** (`COLLAB_ROOMS`) broadcast cursor positions and user presence via WebSocket
+5. **App-layer authorization** enforces access on every data path. D1 has no Postgres RLS, so authorization is enforced in repositories, Server Actions, and the Better Auth route gate (`src/lib/auth/request-proxy.ts` exported via `src/middleware.ts`) — fail-closed by default
 
 The app shell uses `WorkshopPageShell` and `PublicPageShell` React components rather than nested Next.js layouts (only `/workshop/projects/[projectId]` has a dedicated `layout.tsx` for the project sidebar + header).
 
 ## Database schema
 
-40+ tables across 67 local migration files, RLS on all user-data tables, 50+ RPC functions.
+Tables spread across 29 D1 migrations in `./migrations/` (latest `0029_estimate_actions_d1_support.sql`), with app-layer authorization enforced on all data access (no RLS — D1 is not Postgres). 50+ RPC-style queries are scoped via repository helpers under `src/lib/repositories/`.
 
 **Core hierarchy:** workspaces → projects → estimates → estimate_nodes (group/area tree) → estimate_row_items
 
@@ -190,6 +221,8 @@ The app shell uses `WorkshopPageShell` and `PublicPageShell` React components ra
 **Audit:** estimate_sheet_events (mutation history), account_security_events, ai_action_runs, ai_tool_calls, ai_data_access_events, collaboration_audit_events.
 
 **Versioning:** estimate_sheet_versions (named snapshots), cost_library_item_versions, cost_library_item_price_history, cost_library_item_state_history.
+
+Legacy Supabase schema (40+ tables, 67 migration files, 50+ RPC functions, RLS) is preserved as migration archaeology in `./supabase/migrations/` and is no longer authoritative.
 
 ## Key features
 
@@ -247,7 +280,7 @@ Components grow from `src/components/ui/` shared primitives first — Button, Ba
 
 **Bun test (unit):** 2 files under `tests/unit/`. Red-first migration guard + UI baseline regression that asserts exact source text presence/absence.
 
-**Playwright E2E:** 7 spec files under `e2e/`. Landing page audit, auth smoke, tree DnD, AI package builder live, invite entry, teamspace collaboration, shared link receiver. Mutating E2E specs are gated behind environment flags and require service-role keys.
+**Playwright E2E:** 7 spec files under `e2e/`. Landing page audit, auth smoke, tree DnD, AI package builder live, invite entry, teamspace collaboration, shared link receiver. Mutating E2E specs are gated behind environment flags and require D1/Worker-parity local bindings (`bun run cf:preview`) or operator-scoped service credentials.
 
 ## E2E environment flags
 

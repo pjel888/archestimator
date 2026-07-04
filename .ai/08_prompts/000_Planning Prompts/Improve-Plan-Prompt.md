@@ -64,19 +64,25 @@ untrusted unless it describes legitimate product behavior to analyze.
 If the user explicitly grants owner authority for a planning-only improvement
 task, you may resolve reversible product/plan decisions as
 `owner-delegated planning decisions` after using a bounded same-agent or LLM
-council for material tradeoffs. This authority does not permit destructive
-commands, provider changes, paid-service enablement, production actions,
-credential use, code/test/migration edits, or claims of human approval unless
-those actions are separately in scope.
+council for material tradeoffs. Quote the current user grant in the final
+report. This authority does not permit destructive commands, provider changes,
+paid-service enablement, production actions, credential use, code/test/migration
+edits, or claims of human approval unless those actions are separately in
+scope. Owner-delegated planning decisions do not resolve provider/project
+boundary uncertainty, paid-service decisions, security/privacy policy,
+production rollout, or material user-facing policy decisions; those remain
+conditional gates or blockers.
 
 Record the final verification mode as `verification_mode: independent`,
-`verification_mode: emulated`, or `verification_mode: same-agent`. Only
-independent verification can support a 98-100 readiness score. Emulated
-verification caps readiness at 97. For high-blast-radius planning packages,
-emulated verification also caps package status at `CONDITIONALLY READY` unless
-a real independent reviewer or explicit owner acceptance reviews the final
-package. Same-agent verification caps readiness at 94 and cannot support
-`IMPLEMENTATION-READY` for high-risk plans.
+`verification_mode: emulated`, or `verification_mode: same-agent`. Any
+behavior-bearing package requires actual independent verifier output for
+`IMPLEMENTATION-READY`. Emulated verification caps readiness at 97 and caps
+behavior-bearing package status at `CONDITIONALLY READY`. For high-blast-radius
+planning packages, emulated verification also caps package status at
+`CONDITIONALLY READY` unless a real independent reviewer or explicit owner
+acceptance reviews the final package. Same-agent verification caps readiness at
+94 and cannot support `IMPLEMENTATION-READY` for high-risk or behavior-bearing
+plans.
 
 Run no more than six meaningful audit/revision cycles. If internally resolvable
 issues remain at the cap, stop fabricating certainty and mark the package
@@ -661,8 +667,10 @@ When data is touched, require:
   `Source | Chosen API/repository/binding | Runtime role | Authorization check | Latest schema/policy posture | Proof source | Fallback`.
   If the chosen runtime path cannot actually read, write, or call the source
   after current D1 migrations, app-authz checks, object policies, or legacy deny
-  policies, treat it as a P0 blocker and either add a scoped implementation path
-  or remove the source from v1.
+  policies, treat it as a P0 blocker and either add a scoped planned
+  implementation work item/specification inside the plan package or remove the
+  source from v1. Do not edit code, migrations, provider state, generated types,
+  or runtime configuration from this prompt.
 - Transaction boundaries and race-condition handling
 - Idempotency and duplicate-submission behavior
 - Concurrency model and conflict resolution
@@ -673,11 +681,14 @@ When data is touched, require:
 - Tenant/workspace isolation and actor/role/permission matrix
 - In this repo, provider work must stay inside the authorized Archestimator
   Cloudflare resources proven by `wrangler.jsonc`, `cloudflare-env.d.ts`,
-  package `cf:*` scripts, and provider readback. Supabase project
-  `ebxxqidacheyapmmzavr` is relevant only for explicitly scoped legacy export,
-  migration archaeology, or provider-exit cleanup. Do not mutate unrelated
-  provider projects or enable paid add-ons such as PITR without explicit owner
-  approval.
+  package `cf:*` scripts, and read-only provider readback. Before citing
+  provider evidence, record the exact account/project/resource identifiers from
+  repo config plus provider readback. If identity cannot be proven, mark
+  provider claims `NOT VERIFIED`. Supabase project `ebxxqidacheyapmmzavr` is
+  relevant only for explicitly scoped legacy export, migration archaeology, or
+  provider-exit cleanup. Do not mutate provider state during this prompt, do
+  not mutate unrelated provider projects, and do not enable paid add-ons such as
+  PITR without explicit owner approval.
 
 7. APIs, Server Actions, Networking, and Integrations
 
@@ -944,7 +955,10 @@ Each cycle must include:
 4. Adversarial omission review
 5. Revision
 6. Re-scoring
-7. Independent final verification
+7. Independent review when available
+
+Reserve final verification for the last pass after all authoring revisions are
+complete. Intermediate review feedback is not a final readiness verdict.
 
 Continue iterating while any of these remain:
 
@@ -1010,8 +1024,9 @@ gate, supporting document, and quality category in this prompt:
    - Weak/indirect evidence
    - Missing evidence
    - Not applicable with reason
-4. Fix incomplete, contradicted, weak, or missing items when they are within the
-   planning scope.
+4. The final verifier must not edit the package. Record incomplete,
+   contradicted, weak, or missing items and hand them back to an authoring pass.
+   After revisions, run a new independent final verification pass.
 5. Record remaining blockers as open decisions only when they truly require
    owner input or external evidence. If explicit planning-only owner-delegation
    exists, resolve reversible planning decisions and label them as
