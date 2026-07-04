@@ -356,6 +356,7 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
       { currentUserRole: "user", expectedError: "Only project owners and admins can publish shared links.", label: "authenticated user without project access", projectRole: null, workspaceRole: null },
       { currentUserRole: "user", expectedError: "Only project owners and admins can publish shared links.", label: "workspace member", projectRole: null, workspaceRole: "member" },
       { currentUserRole: "user", expectedError: "Only project owners and admins can publish shared links.", label: "project member", projectRole: "member", workspaceRole: null },
+      { currentUserRole: "user", expectedError: "Only project owners and admins can publish shared links.", label: "project editor", projectRole: "editor", workspaceRole: null },
       { currentUserRole: "user", expectedError: "Only project owners and admins can publish shared links.", label: "project viewer", projectRole: "viewer", workspaceRole: null },
       { currentUserRole: null, expectedError: "NEXT_REDIRECT:/login", label: "public recipient-token visitor", projectRole: null, workspaceRole: null },
     ];
@@ -787,10 +788,10 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
     const d1Store = readFileSync("src/lib/publication/d1-store.ts", "utf8");
     const recipientComposer = readFileSync("src/components/workshop/publication/RecipientEmailComposer.tsx", "utf8");
     const migrationText = readFileSync("supabase/migrations/20260531175141_shared_link_recipient_unsubscribe.sql", "utf8");
-    const types = readFileSync("src/lib/supabase/types.ts", "utf8");
+    const d1PublicationMigration = readFileSync("migrations/0014_publication_shared_links.sql", "utf8");
 
     expect(migrationText).toContain("email_unsubscribed_at timestamptz");
-    expect(types).toContain("email_unsubscribed_at: string | null");
+    expect(d1PublicationMigration).toContain("email_unsubscribed_at TEXT");
     expect(unsubscribeRoute).toContain("unsubscribeSharedLinkRecipientByToken");
     expect(unsubscribeRoute).toContain("get(\"recipient\")");
     // SEC-14: mutation is gated behind an explicit POST; GET is read-only.

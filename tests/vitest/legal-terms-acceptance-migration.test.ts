@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -44,7 +44,6 @@ describe("legal Terms acceptance migration", () => {
     const migration = readTermsAcceptanceMigration();
     const sql = migration?.sql ?? "";
 
-    expect(existsSync(join(process.cwd(), "src/lib/supabase/types.ts"))).toBe(true);
     expect(sql).toMatch(/alter table public\.legal_terms_acceptances enable row level security/i);
     expect(sql).toMatch(/revoke all on public\.legal_terms_acceptances from public/i);
     expect(sql).toMatch(/revoke all on public\.legal_terms_acceptances from anon/i);

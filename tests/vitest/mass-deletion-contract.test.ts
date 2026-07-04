@@ -70,16 +70,25 @@ describe("mass deletion backend contract", () => {
     expect(cleanupResultMigration).toContain("Mass deletion cleanup event not found or already finalized.");
   });
 
-  it("keeps generated types aware of mass deletion RPCs and project-access manager checks", () => {
-    const types = readFileSync("src/lib/supabase/types.ts", "utf8");
+  it("keeps active D1 mass deletion actions aligned with the historical provider contract", () => {
+    const d1Migration = readFileSync("migrations/0023_mass_deletion_events.sql", "utf8");
+    const projectActions = readFileSync("src/lib/projects/actions.ts", "utf8");
+    const estimateD1Client = readFileSync("src/lib/estimates/d1-action-client.ts", "utf8");
+    const componentActions = readFileSync("src/lib/component-library/actions.ts", "utf8");
 
-    expect(types).toContain("mass_deletion_events");
-    expect(types).toContain("can_manage_project_access");
-    expect(types).toContain("preview_bulk_delete_projects");
-    expect(types).toContain("execute_bulk_delete_projects");
-    expect(types).toContain("preview_bulk_delete_estimate_sheets");
-    expect(types).toContain("execute_bulk_delete_estimate_sheets");
-    expect(types).toContain("preview_bulk_archive_library_components");
-    expect(types).toContain("execute_bulk_archive_library_components");
+    expect(d1Migration).toContain("CREATE TABLE IF NOT EXISTS mass_deletion_events");
+    expect(d1Migration).toContain("target_type TEXT NOT NULL CHECK");
+    expect(d1Migration).toContain("'project', 'estimate_sheet', 'library_component'");
+    expect(d1Migration).toContain("preview_hash TEXT NOT NULL");
+    expect(d1Migration).toContain("correlation_id TEXT NOT NULL");
+    expect(projectActions).toContain("function canManageProjectRow");
+    expect(projectActions).toContain("previewBulkDeleteProjectsInD1");
+    expect(projectActions).toContain("executeBulkDeleteProjectsInD1");
+    expect(projectActions).toContain("INSERT INTO mass_deletion_events");
+    expect(estimateD1Client).toContain('if (name === "preview_bulk_delete_estimate_sheets")');
+    expect(estimateD1Client).toContain('if (name === "execute_bulk_delete_estimate_sheets")');
+    expect(componentActions).toContain("previewBulkArchiveLibraryComponents");
+    expect(componentActions).toContain("executeBulkArchiveLibraryComponents");
+    expect(componentActions).not.toMatch(/preview_bulk_archive_library_components|execute_bulk_archive_library_components|supabase\.rpc/);
   });
 });

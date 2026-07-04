@@ -304,6 +304,32 @@ describe("shared link publication route handlers (Shared Link V2 audit)", () => 
     expect((await unlockedResponse.json()).snapshot).toEqual(publicSnapshot);
   });
 
+  it("does not treat a Better Auth app session as public share password access", async () => {
+    mocks.resolveProjectPublicationAccessByToken.mockResolvedValue({
+      publicationId: "publication-1",
+      status: "published",
+      passwordRequired: true,
+      snapshotVersion: 7,
+      credentialVersion: "cred-test",
+    });
+
+    const response = await GET(
+      new Request("https://archestimator.test/api/share/client-token", {
+        headers: {
+          cookie: "better-auth.session_token=signed-app-session; __Secure-better-auth.session_token=signed-secure-app-session",
+        },
+      }),
+      params(),
+    );
+
+    expect(response.status).toBe(423);
+    expect(await response.json()).toEqual({
+      error: "Publication password required.",
+      passwordRequired: true,
+    });
+    expect(mocks.resolveProjectPublicationSnapshotByToken).not.toHaveBeenCalled();
+  });
+
   it("records public events only after same-origin CSRF verification", async () => {
     const response = await POST(
       new Request("https://archestimator.test/api/share/client-token/events", {

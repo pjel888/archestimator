@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { Tables } from "@/lib/supabase/types";
+import type { ProjectRow } from "@/lib/types/database";
 
 vi.mock("@/lib/projects/actions", () => ({
   updateProjectDetails: vi.fn(async () => undefined),
@@ -27,7 +27,7 @@ const PROJECT_FIXTURE = {
   created_at: "2026-05-20T00:00:00.000Z",
   updated_at: "2026-05-26T00:00:00.000Z",
   created_by: null,
-} satisfies Tables<"projects">;
+} satisfies ProjectRow;
 
 const PROJECT_LOCATION_FIXTURE = {
   id: "location-1",

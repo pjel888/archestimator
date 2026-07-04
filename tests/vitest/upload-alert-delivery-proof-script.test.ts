@@ -55,6 +55,26 @@ describe("upload alert delivery production proof script", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("does not treat Vercel production env vars as hosted observation proof", async () => {
+    configureAlertEnv();
+    const legacyHostEnvName = ["VER", "CEL"].join("");
+    const legacyHostEnvironmentName = `${legacyHostEnvName}_ENV`;
+    vi.stubEnv(legacyHostEnvName, "1");
+    vi.stubEnv(legacyHostEnvironmentName, "production");
+    const fetchMock = vi.fn(async () => new Response(null, { status: 204 })) as unknown as typeof fetch;
+
+    const report = await runUploadAlertDeliveryProductionProof({
+      generatedAt: "2026-06-27T00:00:00.000Z",
+      fetchImpl: fetchMock,
+    });
+
+    expect(report.passed).toBe(false);
+    expect(report.skipped).toBe(false);
+    expect(report.failedChecks).toContain("alert-delivery-hosted-observation-confirmed");
+    expect(report.delivery.reason).toBe("ARCH_UPLOAD_ALERT_DELIVERY_HOSTED_OBSERVED=1 is required before sending production alert proof.");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("passes only after a hosted 2xx alert delivery and does not record secrets or raw webhook URLs", async () => {
     configureAlertEnv();
     const observedHeaders: string[] = [];

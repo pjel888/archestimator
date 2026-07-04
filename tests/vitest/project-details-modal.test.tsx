@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectDetailsModal } from "@/components/workshop/ProjectDetailsModal";
 import { updateProjectDetails } from "@/lib/projects/actions";
 import { saveProjectLocation } from "@/lib/projects/location-actions";
-import type { Tables } from "@/lib/supabase/types";
+import type { ProjectRow } from "@/lib/types/database";
 
 const placesMocks = vi.hoisted(() => {
   const fetchFields = vi.fn(async () => undefined);
@@ -53,7 +53,7 @@ const PROJECT = {
   created_at: "2026-05-20T00:00:00.000Z",
   updated_at: "2026-05-26T00:00:00.000Z",
   created_by: null,
-} satisfies Tables<"projects">;
+} satisfies ProjectRow;
 
 const updateProjectDetailsMock = vi.mocked(updateProjectDetails);
 const saveProjectLocationMock = vi.mocked(saveProjectLocation);

@@ -18,6 +18,8 @@ describe("public image/font LCP audit", () => {
     expect(globals).toContain("--font-roboto-mono:");
     expect(globals).toContain("--font-geist:");
     expect(globals).toContain("--font-doto:");
+    expect(globals).toContain('url("/fonts/doto/doto-rond-100-400.ttf")');
+    expect(globals).toContain('font-variation-settings: "ROND" 100;');
     expect(rootLayout).not.toContain("Inter");
     expect(rootLayout).not.toContain("Poppins");
     expect(rootLayout).not.toContain("Source_Serif_4");

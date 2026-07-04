@@ -7,7 +7,7 @@ import {
   type ProjectListItem,
 } from "./projects-page-test-harness";
 import type { ProjectFavoriteEstimateSheetSummary } from "@/lib/repositories/workspace-repository";
-import type { Tables } from "@/lib/supabase/types";
+import type { ProjectRow } from "@/lib/types/database";
 
 const routerMock = vi.hoisted(() => ({
   refresh: vi.fn(),
@@ -35,7 +35,7 @@ const PROJECT_FIXTURE = {
   created_at: "2026-05-20T00:00:00.000Z",
   updated_at: "2026-05-26T00:00:00.000Z",
   created_by: null,
-} satisfies Tables<"projects">;
+} satisfies ProjectRow;
 
 function createFavoriteEstimateSheet(
   index: number,
@@ -52,7 +52,7 @@ function createFavoriteEstimateSheet(
 }
 
 function createProjectItem(
-  project: Tables<"projects">,
+  project: ProjectRow,
   favoriteEstimateSheets: ProjectFavoriteEstimateSheetSummary[] = [],
 ): ProjectListItem {
   return {
@@ -84,9 +84,7 @@ describe("ProjectsPageClient view modes", () => {
 
     expect(container.firstElementChild).toHaveClass("flex", "h-full", "flex-col");
     expect(screen.getByLabelText("Project tools")).toHaveClass("bg-transparent");
-    expect(screen.getByRole("tablist", { name: "Project access tabs" }).closest("[data-navigation-tabs]")).toHaveClass(
-      "bg-transparent",
-    );
+    expect(screen.queryByRole("tablist", { name: "Project access tabs" })).not.toBeInTheDocument();
     expect(screen.getByLabelText("Lewis Residence project, owned access")).toHaveClass("workshop-project-card-glass");
     expect(screen.getByLabelText("Live projects")).toHaveAttribute(
       "data-project-view-mode",
@@ -167,7 +165,7 @@ describe("ProjectsPageClient view modes", () => {
       id: "11111111-1111-4111-8111-111111111112",
       name: "Tropical House",
       project_code: "AE-TH-002",
-    } satisfies Tables<"projects">;
+    } satisfies ProjectRow;
 
     render(
       <ProjectsPageClient
@@ -219,7 +217,7 @@ describe("ProjectsPageClient view modes", () => {
       name: "Harbour Box",
       client_name: "Hong Kong Government",
       project_code: "AE-HB-003",
-    } satisfies Tables<"projects">;
+    } satisfies ProjectRow;
 
     render(
       <ProjectsPageClient
@@ -269,19 +267,50 @@ describe("ProjectsPageClient view modes", () => {
     expect(await screen.findByRole("dialog", { name: /create project/i })).toBeInTheDocument();
   });
 
-  it("keeps the live-project shell for live project search misses", async () => {
+  it("shows a modal-like empty state for live project search misses", async () => {
     const user = userEvent.setup();
     render(<ProjectsPageClient projects={[PROJECT_FIXTURE]} />);
 
     await user.click(screen.getByRole("button", { name: "Show projects search" }));
-    fireEvent.change(screen.getByRole("searchbox", { name: "Search projects" }), { target: { value: "zzzz-project" } });
+    const searchbox = screen.getByRole("searchbox", { name: "Search projects" });
+    const searchPanel = document.querySelector<HTMLElement>("[data-tree-search-panel='true']");
+    const searchRoot = searchbox.closest<HTMLElement>("[data-search-input-root='true']");
 
-    expect(within(screen.getByLabelText("Live projects")).queryAllByRole("article")).toHaveLength(0);
-    expect(screen.queryByText("No projects match your search")).not.toBeInTheDocument();
-    expect(screen.queryByText("Try adjusting your search terms")).not.toBeInTheDocument();
+    expect(searchPanel).toHaveClass("bg-white/70", "backdrop-blur-xl", "rounded-b-[8px]");
+    expect(searchRoot).toHaveClass("bg-transparent");
+    expect(searchbox).toHaveClass("appearance-none", "bg-transparent", "shadow-none");
+    expect(searchbox).toHaveAttribute("style", expect.stringContaining("background: transparent"));
+    expect(searchbox).toHaveAttribute("type", "text");
+    expect(searchbox).toHaveAttribute("role", "searchbox");
+    expect(searchPanel).not.toHaveClass("focus-within:ring-1", "focus-within:ring-focus/30");
+    expect(searchRoot).not.toHaveClass("focus-within:ring-1", "transition-[box-shadow,background-color,border-color]");
+
+    fireEvent.change(searchbox, { target: { value: "zzzz-project" } });
+
+    await waitFor(() => {
+      expect(within(screen.getByLabelText("Live projects")).queryAllByRole("article")).toHaveLength(0);
+    });
+    const emptyState = screen.getByRole("region", {
+      name: "No search results for zzzz-project",
+    });
+    expect(screen.getByLabelText("Projects")).toHaveClass("h-full", "min-h-0");
+    expect(screen.getByLabelText("Live projects")).toHaveClass("min-h-0", "flex-1");
+    expect(emptyState).toHaveAttribute("data-project-search-empty-state");
+    expect(emptyState).toHaveTextContent('No search results for "zzzz-project"');
+    expect(emptyState).toHaveTextContent("Try a project name, client, location, or project code.");
+    expect(emptyState).toHaveClass("bg-white", "shadow-[0_10px_24px_rgba(30,35,50,0.075),0_2px_7px_rgba(30,35,50,0.045),inset_0_1px_0_rgba(255,255,255,0.88)]");
+    expect(emptyState).not.toHaveClass("workshop-create-project-modal-glass");
+
+    await user.click(within(emptyState).getByRole("button", { name: "Clear search" }));
+
+    await waitFor(() => {
+      expect(searchbox).toHaveValue("");
+      expect(within(screen.getByLabelText("Live projects")).queryAllByRole("article")).toHaveLength(1);
+    });
+    expect(screen.queryByRole("region", { name: /No search results for/ })).not.toBeInTheDocument();
   });
 
-  it("labels shared project memberships without hiding them behind the owned view", () => {
+  it("does not render shared project memberships on the Projects page", () => {
     const { container } = render(
       <ProjectsPageClient
         projects={[
@@ -296,10 +325,10 @@ describe("ProjectsPageClient view modes", () => {
       />,
     );
 
-    expect(container.querySelector('[data-project-access-kind="project-member"]')).toBeInTheDocument();
-    expect(screen.getByText("Shared project")).toBeInTheDocument();
-    expect(screen.getByLabelText("Lewis Residence project, shared project, viewer access")).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Shared/i })).toHaveAttribute("aria-selected", "true");
+    expect(container.querySelector('[data-project-access-kind="project-member"]')).toBeNull();
+    expect(screen.queryByText("Shared project")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Lewis Residence project, shared project, viewer access")).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: /Shared/i })).not.toBeInTheDocument();
     expect(screen.queryByText("No live projects yet")).not.toBeInTheDocument();
   });
 });

@@ -4,9 +4,13 @@ import { describe, expect, it } from "vitest";
 import { latestMigrationBySuffix } from "./security-findings-test-helpers";
 
 const migration = readFileSync("supabase/migrations/20260526142913_project_sheet_collaboration_access.sql", "utf8");
+const d1CollaborationMigration = readFileSync("migrations/0007_collaboration_invitations.sql", "utf8");
+const d1EstimateAccessMigration = readFileSync("migrations/0008_estimate_sheet_user_preferences.sql", "utf8");
+const d1ProfileMigration = readFileSync("migrations/0003_profiles.sql", "utf8");
+const d1AccessSource = readFileSync("src/lib/authz/d1-access.ts", "utf8");
+const collaborationTypes = readFileSync("src/lib/collaboration/types.ts", "utf8");
 const membershipGuards = latestMigrationBySuffix("_teamspace_membership_atomic_guards.sql");
 const rlsAuthUidPerf = latestMigrationBySuffix("_teamspace_rls_authuid_perf.sql");
-const types = readFileSync("src/lib/supabase/types.ts", "utf8");
 
 describe("project and estimate sheet collaboration schema", () => {
   it("adds durable project/sheet access tables, role helpers, RLS policies, and realtime authorization", () => {
@@ -94,12 +98,16 @@ describe("project and estimate sheet collaboration schema", () => {
     expect(bareCount).toBe(wrappedCount);
   });
 
-  it("keeps generated Supabase types aligned with the collaboration schema", () => {
-    expect(types).toContain("collaboration_role: \"owner\" | \"admin\" | \"editor\" | \"viewer\"");
-    expect(types).toContain("collaboration_invitations: {");
-    expect(types).toContain("project_members: {");
-    expect(types).toContain("estimate_sheet_access_settings: {");
-    expect(types).toContain("estimate_sheet_members: {");
-    expect(types).toContain("avatar_url: string | null");
+  it("keeps active D1 collaboration schema and source types aligned", () => {
+    expect(d1CollaborationMigration).toContain("role TEXT NOT NULL DEFAULT 'editor' CHECK (role IN ('owner', 'admin', 'editor', 'viewer'))");
+    expect(d1CollaborationMigration).toContain("CREATE TABLE IF NOT EXISTS project_members");
+    expect(d1CollaborationMigration).toContain("CREATE TABLE IF NOT EXISTS estimate_sheet_members");
+    expect(d1CollaborationMigration).toContain("CREATE TABLE IF NOT EXISTS collaboration_invitations");
+    expect(d1EstimateAccessMigration).toContain("CREATE TABLE IF NOT EXISTS estimate_sheet_access_settings");
+    expect(d1ProfileMigration).toContain("avatar_url TEXT");
+    expect(collaborationTypes).toContain("export type CollaborationRole = ProjectEstimateCollaborationRole");
+    expect(d1AccessSource).toContain("FROM project_members project_member");
+    expect(d1AccessSource).toContain("FROM estimate_sheet_members sheet_member");
+    expect(d1AccessSource).toContain("LEFT JOIN estimate_sheet_access_settings access");
   });
 });

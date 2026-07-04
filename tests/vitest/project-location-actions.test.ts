@@ -167,6 +167,29 @@ describe("project location actions", () => {
     expect(nextCacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/shared-project");
   });
 
+  it("denies saving a project pin without edit access and skips writes and revalidation", async () => {
+    const database = new FakeD1Database(false);
+    cloudflareD1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+
+    const { saveProjectLocation } = await import("@/lib/projects/location-actions");
+    const result = await saveProjectLocation({ status: "idle", message: "" }, formData({
+      projectId: "project-1",
+      latitude: "14.5995122",
+      longitude: "120.9842224",
+      displayLabel: "Denied site",
+    }));
+
+    expect(result).toEqual({
+      status: "error",
+      message: "You do not have permission to edit this project location.",
+      fieldErrors: undefined,
+    });
+    expect(findPrepared(database, /SELECT 1 AS allowed/).values).toEqual(["project-1", "user-1", "user-1", "user-1"]);
+    expect(database.prepared.some((entry) => /INSERT INTO project_locations/.test(entry.sql))).toBe(false);
+    expect(database.prepared.some((entry) => /UPDATE projects/.test(entry.sql))).toBe(false);
+    expect(nextCacheMocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
   it("saves a Google place selection and syncs the formatted address back to the project", async () => {
     const database = new FakeD1Database();
     cloudflareD1Mocks.getCloudflareD1Database.mockResolvedValue(database);
@@ -215,5 +238,21 @@ describe("project location actions", () => {
     expect(findPrepared(database, /DELETE FROM project_locations/).values).toEqual(["project-1"]);
     expect(result).toEqual({ status: "success", message: "Project pin cleared." });
     expect(nextCacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/project-1");
+  });
+
+  it("denies clearing a project pin without edit access and skips writes and revalidation", async () => {
+    const database = new FakeD1Database(false);
+    cloudflareD1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+
+    const { clearProjectLocation } = await import("@/lib/projects/location-actions");
+    const result = await clearProjectLocation({ status: "idle", message: "" }, formData({ projectId: "project-1" }));
+
+    expect(result).toEqual({
+      status: "error",
+      message: "You do not have permission to edit this project location.",
+    });
+    expect(findPrepared(database, /SELECT 1 AS allowed/).values).toEqual(["project-1", "user-1", "user-1", "user-1"]);
+    expect(database.prepared.some((entry) => /DELETE FROM project_locations/.test(entry.sql))).toBe(false);
+    expect(nextCacheMocks.revalidatePath).not.toHaveBeenCalled();
   });
 });

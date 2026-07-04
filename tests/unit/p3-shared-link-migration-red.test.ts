@@ -1,47 +1,35 @@
-import { describe, it } from 'bun:test';
-import type { Database } from '@/lib/supabase/types';
+import { readFileSync } from "node:fs";
+import { describe, expect, it } from "bun:test";
 
 /**
- * P3 — Database Migration Red Verification Test (Shared Link Overhaul V2)
+ * P3 — Active D1 Shared Link Contract Verification (Shared Link Overhaul V2)
  *
- * This test is intentionally RED (will fail type-check via tsc --noEmit)
- * until:
- *   1. supabase/migrations/20260528220000_project_shared_link_overhaul.sql is applied
- *   2. Supabase types are regenerated into src/lib/supabase/types.ts
- *
- * It enforces the "Red tests FIRST" rule from the IMPLEMENTATION MASTER PROMPT.
- * The references below to the 4 new tables + 2 Security Definer RPCs will produce
- * TypeScript errors ("Property 'xxx' does not exist on type 'Tables' / 'Functions'")
- * until the generated types reflect the additive schema.
- *
- * After successful local `supabase db reset` + type regen, this becomes a permanent
- * green verification that the P3 tables/RPCs are present in the Database contract.
- *
- * Do not remove or weaken these references. They protect additive-only migration
- * guarantees and backwards compatibility for existing project_publications flows.
+ * The provider-exit migration replaced generated Supabase type parity with active
+ * Cloudflare D1 schema/source checks. This keeps the original shared-link contract
+ * covered without keeping old generated provider types deletion-blocking.
  */
 
-describe('P3 Shared Link Overhaul — Database Migration Red Verification', () => {
-  it('requires the 4 new shared_link_* tables in generated Database types (RED until P3 migration + regen)', () => {
-    // These assignments will FAIL type-check until the tables exist in types.ts
-    const _recipients: Database['public']['Tables']['shared_link_recipients'] = null as unknown as Database['public']['Tables']['shared_link_recipients'];
-    const _comments: Database['public']['Tables']['shared_link_comments'] = null as unknown as Database['public']['Tables']['shared_link_comments'];
-    const _responses: Database['public']['Tables']['shared_link_responses'] = null as unknown as Database['public']['Tables']['shared_link_responses'];
-    const _events: Database['public']['Tables']['shared_link_events'] = null as unknown as Database['public']['Tables']['shared_link_events'];
+const d1PublicationMigration = readFileSync("migrations/0014_publication_shared_links.sql", "utf8");
+const d1PublicationStore = readFileSync("src/lib/publication/d1-store.ts", "utf8");
+const publicRepository = readFileSync("src/lib/publication/public-repository.ts", "utf8");
 
-    // Force reference so tsc sees the missing keys before regen
-    void _recipients;
-    void _comments;
-    void _responses;
-    void _events;
+describe("P3 Shared Link Overhaul — Active D1 Contract Verification", () => {
+  it("keeps the shared_link_* tables in active D1 migrations", () => {
+    expect(d1PublicationMigration).toContain("CREATE TABLE IF NOT EXISTS shared_link_recipients");
+    expect(d1PublicationMigration).toContain("CREATE TABLE IF NOT EXISTS shared_link_comments");
+    expect(d1PublicationMigration).toContain("CREATE TABLE IF NOT EXISTS shared_link_responses");
+    expect(d1PublicationMigration).toContain("CREATE TABLE IF NOT EXISTS shared_link_events");
+    expect(d1PublicationMigration).toContain("recipient_token_hash TEXT NOT NULL UNIQUE");
+    expect(d1PublicationMigration).toContain("CREATE UNIQUE INDEX IF NOT EXISTS idx_shared_link_responses_recipient_publication");
   });
 
-  it('requires the 2 new Security Definer RPCs in generated Database types (RED until P3 migration + regen)', () => {
-    // RPCs appear under Database['Functions'] after type generation
-    const _insertComment: Database['public']['Functions']['insert_client_comment'] = null as unknown as Database['public']['Functions']['insert_client_comment'];
-    const _submitResponse: Database['public']['Functions']['submit_client_response'] = null as unknown as Database['public']['Functions']['submit_client_response'];
-
-    void _insertComment;
-    void _submitResponse;
+  it("keeps comment and response writes behind D1 store methods", () => {
+    expect(d1PublicationStore).toContain("async insertClientComment");
+    expect(d1PublicationStore).toContain("INSERT INTO shared_link_comments");
+    expect(d1PublicationStore).toContain("async submitClientResponse");
+    expect(d1PublicationStore).toContain("INSERT INTO shared_link_responses");
+    expect(d1PublicationStore).toContain("WHERE publication_id = ? AND recipient_token_hash = ?");
+    expect(publicRepository).toContain("store.insertClientComment");
+    expect(publicRepository).toContain("store.submitClientResponse");
   });
 });

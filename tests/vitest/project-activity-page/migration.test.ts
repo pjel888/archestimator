@@ -45,12 +45,14 @@ describe("project activity collaboration audit migration", () => {
     expect(sql).toContain("on public.collaboration_audit_events(project_id, created_at desc, id desc)");
   });
 
-  it("keeps generated Supabase types aligned with the new RPC", () => {
-    const types = readFileSync("src/lib/supabase/types.ts", "utf8");
+  it("keeps the active D1 activity repository aligned with the provider-era RPC contract", () => {
+    const source = readFileSync("src/lib/repositories/project-activity-feed-repository.ts", "utf8");
 
-    expect(types).toContain("read_project_collaboration_audit_events");
-    expect(types).toContain("target_action_buckets?: string[] | null");
-    expect(types).toContain("target_project_only?: boolean");
-    expect(types).toContain("source_total_count: number");
+    expect(source).toContain("FROM collaboration_audit_events");
+    expect(source).toContain("collaborationEventTypesForActions");
+    expect(source).toContain('if (args.scope.kind === "project-only") where.push("estimate_id IS NULL")');
+    expect(source).toContain("SELECT COUNT(*) AS count FROM collaboration_audit_events");
+    expect(source).toContain("source_total_count");
+    expect(source).not.toContain('rpc("read_project_collaboration_audit_events"');
   });
 });

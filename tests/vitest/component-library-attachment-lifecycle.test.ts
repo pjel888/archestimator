@@ -12,8 +12,9 @@ function latestMigration(suffix: string) {
 }
 
 const migration = latestMigration("_library_trust_governance.sql");
+const d1AttachmentMigration = readFileSync(join(process.cwd(), "migrations/0022_component_attachment_metadata.sql"), "utf8");
 const attachmentRoute = readFileSync(join(process.cwd(), "src/app/api/component-library/attachments/route.ts"), "utf8");
-const supabaseTypes = readFileSync(join(process.cwd(), "src/lib/supabase/types.ts"), "utf8");
+const uploadLifecycleProofRouter = readFileSync(join(process.cwd(), "src/lib/cloudflare/upload-lifecycle-proof-router.ts"), "utf8");
 
 describe("component library attachment lifecycle governance", () => {
   it("adds durable attachment review state scoped to item, price option, and cost entry", () => {
@@ -49,7 +50,6 @@ describe("component library attachment lifecycle governance", () => {
     for (const rpcName of rpcNames) {
       expect(migration).toContain(`create or replace function public.${rpcName}`);
       expect(migration).toContain(`grant execute on function public.${rpcName}`);
-      expect(supabaseTypes).toContain(`${rpcName}:`);
     }
   });
 
@@ -85,12 +85,15 @@ describe("component library attachment lifecycle governance", () => {
     expect(attachmentRoute).toContain('"download_url_issued"');
   });
 
-  it("keeps generated Supabase types aligned with attachment governance", () => {
-    expect(supabaseTypes).toContain("cost_library_attachment_review_status:");
-    expect(supabaseTypes).toContain("cost_library_attachment_review_event_type:");
-    expect(supabaseTypes).toContain("cost_library_attachment_review_events");
-    expect(supabaseTypes).toContain("review_status: Database[\"public\"][\"Enums\"][\"cost_library_attachment_review_status\"]");
-    expect(supabaseTypes).toContain("applicable_cost_entry_id: string | null");
-    expect(supabaseTypes).toContain("is_current_approved: boolean");
+  it("keeps active D1 attachment metadata aligned with attachment governance", () => {
+    expect(d1AttachmentMigration).toContain("CREATE TABLE IF NOT EXISTS cost_library_item_variant_attachments");
+    expect(d1AttachmentMigration).toContain("review_status TEXT NOT NULL DEFAULT 'uploaded'");
+    expect(d1AttachmentMigration).toContain("review_status IN ('uploaded', 'approved', 'rejected', 'superseded')");
+    expect(d1AttachmentMigration).toContain("applicable_cost_entry_id TEXT");
+    expect(d1AttachmentMigration).toContain("is_current_approved INTEGER NOT NULL DEFAULT 0");
+    expect(d1AttachmentMigration).toContain("review_revision INTEGER NOT NULL DEFAULT 1");
+    expect(uploadLifecycleProofRouter).toContain("INSERT INTO cost_library_item_variant_attachments");
+    expect(uploadLifecycleProofRouter).toContain("review_status");
+    expect(uploadLifecycleProofRouter).toContain("is_current_approved");
   });
 });

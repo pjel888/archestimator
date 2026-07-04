@@ -118,7 +118,7 @@ describe("estimate sheet tree add-node toolbar flow", () => {
     expect(screen.queryByRole("toolbar", { name: "Bulk actions" })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Show tree search" }));
-    expect(document.querySelector("[data-tree-search-panel='true']")).toHaveClass("absolute", "left-0", "right-0", "top-[40px]");
+    expect(document.querySelector("[data-tree-search-panel='true']")).toHaveClass("absolute", "left-0", "right-0", "top-[38px]");
     expect(screen.getByLabelText("Search Tree")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Search Tree")).toBeInTheDocument();
 

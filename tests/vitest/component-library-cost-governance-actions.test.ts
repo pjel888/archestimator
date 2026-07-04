@@ -13,7 +13,8 @@ function latestMigration(suffix: string) {
 
 const migration = latestMigration("_library_trust_governance.sql");
 const variantAssetsMigration = latestMigration("_component_variant_assets_cost_entries.sql");
-const supabaseTypes = readFileSync(join(process.cwd(), "src/lib/supabase/types.ts"), "utf8");
+const d1ActionSupportMigration = readFileSync(join(process.cwd(), "migrations/0028_component_library_action_support.sql"), "utf8");
+const actions = readFileSync(join(process.cwd(), "src/lib/component-library/actions.ts"), "utf8");
 
 describe("component library cost governance actions", () => {
   it("adds durable cost-review status, assignments, locks, and event history", () => {
@@ -51,7 +52,6 @@ describe("component library cost governance actions", () => {
     for (const rpcName of rpcNames) {
       expect(migration).toContain(`create or replace function public.${rpcName}`);
       expect(migration).toContain(`grant execute on function public.${rpcName}`);
-      expect(supabaseTypes).toContain(`${rpcName}:`);
     }
 
     expect(migration.match(/expected_review_revision/g)?.length).toBeGreaterThanOrEqual(6);
@@ -70,13 +70,14 @@ describe("component library cost governance actions", () => {
     expect(migration).toContain("active_cost_entry_id = replacement_row.id");
   });
 
-  it("keeps generated Supabase types aligned with the local governance contract", () => {
-    expect(supabaseTypes).toContain("cost_library_cost_review_status:");
-    expect(supabaseTypes).toContain("cost_library_cost_review_event_type:");
-    expect(supabaseTypes).toContain("cost_library_cost_review_events");
-    expect(supabaseTypes).toContain("review_status: Database[\"public\"][\"Enums\"][\"cost_library_cost_review_status\"]");
-    expect(supabaseTypes).toContain("review_revision: number");
-    expect(supabaseTypes).toContain("locked_at: string | null");
-    expect(supabaseTypes).toContain("superseded_by: string | null");
+  it("keeps active D1 cost-entry persistence aligned with the migrated governance subset", () => {
+    expect(d1ActionSupportMigration).toContain("CREATE TABLE IF NOT EXISTS cost_library_item_variant_cost_entries");
+    expect(d1ActionSupportMigration).toContain("unit_cost REAL NOT NULL DEFAULT 0 CHECK (unit_cost >= 0)");
+    expect(d1ActionSupportMigration).toContain("misc_cost REAL NOT NULL DEFAULT 0 CHECK (misc_cost >= 0)");
+    expect(d1ActionSupportMigration).toContain("is_current INTEGER NOT NULL DEFAULT 0 CHECK (is_current IN (0, 1))");
+    expect(d1ActionSupportMigration).toContain("CREATE INDEX IF NOT EXISTS idx_cost_library_variant_cost_entries_option_current");
+    expect(actions).toContain("INSERT INTO cost_library_item_variant_cost_entries");
+    expect(actions).toContain("INSERT OR IGNORE INTO cost_library_item_price_history");
+    expect(actions).not.toMatch(/assign_cost_library_cost_refresh|accept_cost_library_cost_entry|lock_cost_library_cost_entry|unlock_cost_library_cost_entry|reject_cost_library_cost_entry|supersede_cost_library_cost_entry|supabase\.rpc/);
   });
 });

@@ -194,8 +194,6 @@ function createAdminMock({
 
 beforeEach(() => {
   vi.clearAllMocks();
-  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
-  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
   // Manager via global role short-circuit (ceo) — skips workspace/project membership reads.
   const ownerContext = {
     userId: "user-1",

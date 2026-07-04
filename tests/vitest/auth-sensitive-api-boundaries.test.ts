@@ -2535,6 +2535,37 @@ describe("sensitive API auth boundaries", () => {
     expect(storage.download).toHaveBeenCalledWith(path);
   });
 
+  it("serves private project images for non-UUID Better Auth user id path segments", async () => {
+    const workspaceId = "11111111-1111-4111-8111-111111111111";
+    const ownerUserId = "OSqP1zB0TgLTAzeGFpHCFEfRM6nQ79pG";
+    const projectId = "33333333-3333-4333-8333-333333333333";
+    const path = `${workspaceId}/${ownerUserId}/project-images/${projectId}/image.webp`;
+    const storage = mockStorageClient();
+    const projectLookup = mockProjectLookup({
+      id: projectId,
+      workspace_id: workspaceId,
+    });
+    const { GET } = await import("@/app/api/projects/images/route");
+
+    const response = await GET(
+      new Request(
+        `http://localhost/api/projects/images?path=${encodeURIComponent(path)}`,
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("image/webp");
+    expect(response.headers.get("cache-control")).toBe(PRIVATE_NO_STORE);
+    expect(
+      d1PreparedStatements(projectLookup.d1, /FROM projects\s+WHERE id = \?/),
+    ).toHaveLength(1);
+    expect(
+      d1PreparedStatements(projectLookup.d1, /FROM projects project/),
+    ).toHaveLength(1);
+    expect(storage.from).toHaveBeenCalledWith("project-images");
+    expect(storage.download).toHaveBeenCalledWith(path);
+  });
+
   it("serves estimate row images when estimate access resolves without project-wide access", async () => {
     const workspaceId = "11111111-1111-4111-8111-111111111111";
     const ownerUserId = "22222222-2222-4222-8222-222222222222";

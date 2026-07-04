@@ -195,6 +195,33 @@ describe("auth proxy", () => {
     expect(response.headers.get(`x-middleware-request-${AUTH_REQUEST_PATH_HEADER}`)).toBe("/workshop/projects");
   });
 
+  it("does not treat public share cookies as a local Better Auth session for workshop routes", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("ARCHESTIMATOR_AUTH_PROVIDER", "better-auth");
+    mockUser(null);
+    const { proxy } = await import("@/proxy");
+
+    const response = await proxy(request("http://localhost:3000/workshop/projects", {
+      headers: {
+        cookie: [
+          "shared_link_session_abc=signed-viewer-session",
+          "shared_link_session_abc_ok=1",
+          "ae_publication_access_abc=signed-publication-access",
+          "ae_publication_csrf=csrf-token",
+        ].join("; "),
+      },
+    }));
+
+    expect(betterAuthRuntimeMocks.getCloudflareBetterAuthIdentityFromRequest).toHaveBeenCalledWith({
+      headers: expect.any(Headers),
+      requestUrl: "http://localhost:3000/workshop/projects",
+    });
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("http://localhost:3000/login?next=%2Fworkshop%2Fprojects");
+    expect(response.headers.get(`x-middleware-request-${AUTH_VERIFIED_REQUEST_HEADER}`)).toBeNull();
+    expect(response.headers.get(`x-middleware-request-${TERMS_ACCEPTED_REQUEST_HEADER}`)).toBeNull();
+  });
+
   it("keeps the login route renderable instead of creating a Supabase client when hosted env is missing", async () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "");
@@ -401,6 +428,25 @@ describe("auth proxy", () => {
     expect(response.headers.get("Cache-Control")).toBe("private, no-cache, no-store, max-age=0, must-revalidate");
     expect(response.headers.get("Clear-Site-Data")).toBe(OAUTH_STATE_RESET_CLEAR_SITE_DATA);
     expect(response.headers.get("set-cookie")).toContain("__Secure-better-auth.state=; Path=/;");
+    expect(supabaseSsrMocks.createServerClient).not.toHaveBeenCalled();
+  });
+
+  it("does not carry OAuth callback details into the state mismatch reset URL", async () => {
+    mockUser({ id: "user-1" });
+    const { proxy } = await import("@/proxy");
+    const next = encodeURIComponent("/api/auth/callback/google?code=raw-code");
+
+    const response = await proxy(
+      request(
+        `http://localhost:3000/?error=state_mismatch&state=raw-state&code=raw-code&cookie=raw-cookie&provider_error=invalid_grant&next=${next}`,
+      ),
+    );
+    const location = response.headers.get("location") ?? "";
+
+    expect(location).toBe("http://localhost:3000/login?next=%2Fworkshop&oauth_state_reset=1");
+    expect(location).not.toMatch(/raw-state|raw-code|raw-cookie|provider_error|callback|code=/);
+    expect(response.headers.get("Cache-Control")).toBe("private, no-cache, no-store, max-age=0, must-revalidate");
+    expect(response.headers.get("Clear-Site-Data")).toBe(OAUTH_STATE_RESET_CLEAR_SITE_DATA);
     expect(supabaseSsrMocks.createServerClient).not.toHaveBeenCalled();
   });
 

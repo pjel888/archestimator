@@ -96,7 +96,6 @@ function renderWithQueryClient(ui: ReactNode) {
 describe("shared link (receiver publication) page — Shared Link Overhaul V2", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => ({
@@ -487,6 +486,39 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
     expect(limitedResponse.headers.get("retry-after")).toBe("60");
     expect(await limitedResponse.json()).toEqual({ error: "Too many attempts. Please wait 60 seconds." });
     expect(mocks.verifySharedLinkRecipientToken).not.toHaveBeenCalled();
+  });
+
+  it("does not let a Better Auth app session create a recipient session for a password-protected share", async () => {
+    mocks.resolveProjectPublicationAccessByToken.mockResolvedValueOnce({
+      publicationId: "publication-1",
+      status: "published",
+      passwordRequired: true,
+      snapshotVersion: 7,
+      credentialVersion: "cred-test",
+    });
+    const { POST } = await import("@/app/api/share/[token]/session/route");
+
+    const response = await POST(
+      new Request("https://archestimator.test/api/share/client-token/session", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "https://archestimator.test",
+          cookie: "ae_publication_csrf=csrf-token; better-auth.session_token=signed-app-session",
+          "x-archestimator-csrf": "csrf-token",
+        },
+        body: JSON.stringify({ recipientToken: "raw-recipient-token" }),
+      }),
+      { params: Promise.resolve({ token: "client-token" }) },
+    );
+
+    expect(response.status).toBe(423);
+    expect(await response.json()).toEqual({
+      error: "Publication password required.",
+      passwordRequired: true,
+    });
+    expect(mocks.verifySharedLinkRecipientToken).not.toHaveBeenCalled();
+    expect(response.headers.get("set-cookie")).toBeNull();
   });
 
   it("expires recipient session cookies without exposing the raw share token", async () => {

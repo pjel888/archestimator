@@ -54,7 +54,8 @@ const repository = readFileSync(join(process.cwd(), "src/lib/repositories/compon
 const actions = readFileSync(join(process.cwd(), "src/lib/component-library/actions.ts"), "utf8");
 const manager = readFileSync(join(process.cwd(), "src/components/workshop/component-library-manager/ComponentLibraryManager.tsx"), "utf8");
 const addModal = readFileSync(join(process.cwd(), "src/components/workshop/component-library-manager/AddComponentModal.tsx"), "utf8");
-const supabaseTypes = readFileSync(join(process.cwd(), "src/lib/supabase/types.ts"), "utf8");
+const d1PromotionMigration = readFileSync(join(process.cwd(), "migrations/0026_component_promotion_support.sql"), "utf8");
+const d1ActionSupportMigration = readFileSync(join(process.cwd(), "migrations/0028_component_library_action_support.sql"), "utf8");
 
 describe("component library item versioning schema", () => {
   it("adds lifecycle state, price options, and append-only history tables", () => {
@@ -116,8 +117,9 @@ describe("component library item versioning schema", () => {
     expect(addModal).toContain('const DEFAULT_VARIANT_LABEL = "V1"');
     expect(addModal).toContain("Add variant");
     expect(addModal).toContain("aria-label=\"Unit cost\"");
-    expect(supabaseTypes).toContain("cost_library_item_price_options");
-    expect(supabaseTypes).toContain("component_lifecycle_state");
+    expect(d1PromotionMigration).toContain("CREATE TABLE IF NOT EXISTS cost_library_item_price_options");
+    expect(d1PromotionMigration).toContain("lifecycle_state TEXT NOT NULL DEFAULT 'available'");
+    expect(d1ActionSupportMigration).toContain("CREATE TABLE IF NOT EXISTS cost_library_item_versions");
   });
 
   it("extends price options into component variants without replacing component identity", () => {
@@ -132,7 +134,7 @@ describe("component library item versioning schema", () => {
     expect(variantsMigration).toContain("'Variant changed'");
     expect(actions).toContain("variantDescription");
     expect(repository).toContain("variantDescription");
-    expect(supabaseTypes).toContain("variant_description");
+    expect(repository).toContain("variant_description?: string | null;");
   });
 
   it("keeps component variant mutation RPCs off the anonymous execute surface", () => {
@@ -197,7 +199,8 @@ describe("component library item versioning schema", () => {
     expect(addModal).toContain("label=\"SKU / Reference\"");
     expect(addModal).toContain("setActiveVariantAsDefault");
     expect(addModal).toContain("aria-pressed={activeVariant?.isDefault ?? false}");
-    expect(supabaseTypes).toContain("sku: string | null");
-    expect(supabaseTypes).not.toContain("kind: Database[\"public\"][\"Enums\"][\"cost_library_item_kind\"]");
+    expect(repository).toContain("sku?: string | null;");
+    expect(addModal).toContain("sku: variant.sku || null");
+    expect(repository).not.toContain("component_kind");
   });
 });

@@ -22,8 +22,6 @@ type RecordedRpc = {
 };
 
 function setRequiredEnv() {
-  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://archestimator.test";
-  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
   process.env.PUBLICATION_TOKEN_HASH_SECRET = "publication-token-hash-secret";
   process.env.PUBLICATION_TOKEN_ENCRYPTION_SECRET = "publication-token-encryption-secret";
   process.env.NEXT_PUBLIC_APP_URL = "https://www.archestimator.com";

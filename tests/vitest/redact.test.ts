@@ -43,6 +43,28 @@ describe("redactForLog", () => {
     expect(result.tainted).toBe(true);
   });
 
+  it("redacts tokenized share, invite, recipient, and auth callback diagnostics", () => {
+    const result = redactMessage(
+      [
+        "GET https://archestimator.test/share/raw-share-token?recipient=raw-recipient-token&rt=legacy-token",
+        "POST /api/share/raw-share-token/session?state=oauth-state&code=oauth-code",
+        "invite /invite/raw-invite-token",
+        "template /api/share/[token]/comment",
+      ].join(" "),
+    );
+
+    expect(result.value).toContain("/share/[REDACTED_TOKEN]");
+    expect(result.value).toContain("/api/share/[REDACTED_TOKEN]/session");
+    expect(result.value).toContain("/invite/[REDACTED_TOKEN]");
+    expect(result.value).toContain("recipient=[REDACTED]");
+    expect(result.value).toContain("rt=[REDACTED]");
+    expect(result.value).toContain("state=[REDACTED]");
+    expect(result.value).toContain("code=[REDACTED]");
+    expect(result.value).toContain("/api/share/[token]/comment");
+    expect(result.value).not.toMatch(/raw-share-token|raw-recipient-token|legacy-token|oauth-state|oauth-code|raw-invite-token/);
+    expect(result.tainted).toBe(true);
+  });
+
   it("redacts prefixed service-role env assignments in diagnostic messages", () => {
     const result = redactMessage("SUPABASE_SERVICE_ROLE_KEY=secret database constraint failed");
 

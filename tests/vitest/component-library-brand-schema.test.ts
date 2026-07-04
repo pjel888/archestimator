@@ -4,7 +4,8 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const migrationPath = join(process.cwd(), "supabase/migrations/20260524053500_component_brand_library.sql");
-const supabaseTypesPath = join(process.cwd(), "src/lib/supabase/types.ts");
+const d1MigrationPath = join(process.cwd(), "migrations/0028_component_library_action_support.sql");
+const d1PromotionMigrationPath = join(process.cwd(), "migrations/0026_component_promotion_support.sql");
 const repositoryPath = join(process.cwd(), "src/lib/repositories/component-library-repository.ts");
 
 describe("component brand schema", () => {
@@ -20,13 +21,13 @@ describe("component brand schema", () => {
     expect(migration).toContain("'brandId', item.brand_id");
   });
 
-  it("exposes brand records through generated types and the component library repository", () => {
-    const supabaseTypes = readFileSync(supabaseTypesPath, "utf8");
+  it("exposes brand records through the active D1 schema and component library repository", () => {
+    const d1Migration = readFileSync(d1MigrationPath, "utf8");
+    const d1PromotionMigration = readFileSync(d1PromotionMigrationPath, "utf8");
     const repository = readFileSync(repositoryPath, "utf8");
 
-    expect(supabaseTypes).toContain("component_brands");
-    expect(supabaseTypes).toContain("brand_id: string | null");
-    expect(supabaseTypes).toContain('referencedRelation: "component_brands"');
+    expect(d1Migration).toContain("CREATE TABLE IF NOT EXISTS component_brands");
+    expect(d1PromotionMigration).toContain("brand_id TEXT");
     expect(repository).toContain("export type ComponentLibraryBrand");
     expect(repository).toContain("FROM component_brands");
     expect(repository).toContain("WHERE workspace_id = ?");

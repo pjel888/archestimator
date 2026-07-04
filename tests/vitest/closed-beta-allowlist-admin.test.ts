@@ -67,7 +67,7 @@ describe("closed beta allowlist admin", () => {
   });
 
   it("keeps app management platform-admin scoped and route-backed", () => {
-    expect(helperSource).toContain('role === "ceo" || role === "admin"');
+    expect(helperSource).toContain("isPlatformAdminRole(role)");
     expect(helperSource).toContain("readClosedBetaAllowlistQueueFromD1");
     expect(actionSource).toContain("canManageClosedBetaAllowlist");
     expect(actionSource).toContain("createClosedBetaAllowlistEntryInD1");

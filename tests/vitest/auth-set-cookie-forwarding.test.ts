@@ -32,6 +32,20 @@ describe("Better Auth Set-Cookie forwarding", () => {
     expect(authActions).toContain("url.searchParams.set(\"next\", next)");
   });
 
+  it("keeps sign-out scoped to the current local Better Auth session", () => {
+    const authActions = readFileSync(join(process.cwd(), "src/lib/auth/actions.ts"), "utf8");
+    const signOutStart = authActions.indexOf("export async function signOut()");
+    const signOutSource = authActions.slice(signOutStart);
+
+    expect(signOutStart).toBeGreaterThanOrEqual(0);
+    expect(signOutSource).toContain('path: "/api/auth/sign-out"');
+    expect(signOutSource).toContain("clearBetterAuthSessionCookies()");
+    expect(signOutSource).toContain('redirect("/login")');
+    expect(signOutSource).not.toMatch(
+      /accounts\.google\.com\/Logout|oauth2\/revoke|token\/revoke|googleLogout|revokeGoogle/i,
+    );
+  });
+
   it("decodes Better Auth state cookie values before Next re-serializes them", () => {
     const parsed = parseForwardedSetCookie(
       "__Secure-better-auth.state=state-token.signature%2Fwith%3Dencoding; Max-Age=300; Path=/; HttpOnly; Secure; SameSite=Lax",

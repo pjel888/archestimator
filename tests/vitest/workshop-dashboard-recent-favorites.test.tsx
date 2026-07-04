@@ -169,6 +169,21 @@ describe("workshop dashboard recent favorite controls", () => {
     );
   });
 
+  it("opens a recent sheet by estimate id when it has no first node yet", () => {
+    renderWithQueryClient(
+      <RecentSheetsList
+        estimates={[estimate({ firstNodeId: null })]}
+        favoriteProjects={[favoriteProject()]}
+        favoritesScope={scope}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: /Concept Budget/i })).toHaveAttribute(
+      "href",
+      "/workshop/projects/project-1/estimates/estimate-1",
+    );
+  });
+
   it("unfavorites a sheet from a filled star", async () => {
     const user = userEvent.setup();
     renderWithQueryClient(

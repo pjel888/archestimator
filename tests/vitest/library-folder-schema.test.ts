@@ -11,7 +11,7 @@ if (!migrationPath) throw new Error("Missing library folder organization migrati
 
 const migration = readFileSync(join(process.cwd(), "supabase/migrations", migrationPath), "utf8");
 const repository = readFileSync(join(process.cwd(), "src/lib/repositories/component-library-repository.ts"), "utf8");
-const supabaseTypes = readFileSync(join(process.cwd(), "src/lib/supabase/types.ts"), "utf8");
+const d1Migration = readFileSync(join(process.cwd(), "migrations/0026_component_promotion_support.sql"), "utf8");
 
 describe("library folder schema", () => {
   it("adds workspace-scoped folders with RLS and cost-library assignment", () => {
@@ -40,7 +40,8 @@ describe("library folder schema", () => {
     expect(repository).toContain("FROM library_folders");
     expect(repository).toContain("folder_kind = 'custom'");
     expect(repository).toContain("library_folder_id");
-    expect(supabaseTypes).toContain("library_folders");
-    expect(supabaseTypes).toContain("library_folder_id: string | null");
+    expect(d1Migration).toContain("CREATE TABLE IF NOT EXISTS library_folders");
+    expect(d1Migration).toContain("folder_kind TEXT NOT NULL DEFAULT 'custom'");
+    expect(d1Migration).toContain("library_folder_id TEXT REFERENCES library_folders(id) ON DELETE SET NULL");
   });
 });

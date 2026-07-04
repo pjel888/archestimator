@@ -6,6 +6,9 @@ const routeMocks = vi.hoisted(() => ({
   canEditProjectInD1: vi.fn(),
   getCloudflareD1Database: vi.fn(),
   getCurrentWorkspaceProject: vi.fn(),
+  listProjectEstimatesForDropdown: vi.fn(),
+  listProjectMembersForDropdown: vi.fn(),
+  listProjectRecipientsForDropdown: vi.fn(),
   readProjectActivityFeed: vi.fn(),
   requireCurrentUserContext: vi.fn(),
 }));
@@ -23,11 +26,32 @@ vi.mock("@/lib/cloudflare/d1", () => ({
 }));
 
 vi.mock("@/lib/repositories/project-activity-feed-repository", () => ({
+  listProjectEstimatesForDropdown: routeMocks.listProjectEstimatesForDropdown,
+  listProjectMembersForDropdown: routeMocks.listProjectMembersForDropdown,
+  listProjectRecipientsForDropdown: routeMocks.listProjectRecipientsForDropdown,
   readProjectActivityFeed: routeMocks.readProjectActivityFeed,
 }));
 
 vi.mock("@/lib/repositories/workspace-repository", () => ({
   getCurrentWorkspaceProject: routeMocks.getCurrentWorkspaceProject,
+}));
+
+vi.mock("@/components/workshop/project-activity/ProjectActivityClient", () => ({
+  ProjectActivityClient: () => null,
+}));
+
+vi.mock("@/lib/perf/server-timing", () => ({
+  traced: (_name: string, operation: () => unknown) => operation(),
+  withPerfTraceRequest: (_name: string, operation: () => unknown) => operation(),
+}));
+
+vi.mock("next/navigation", () => ({
+  notFound: vi.fn(() => {
+    throw new Error("NEXT_NOT_FOUND");
+  }),
+  redirect: vi.fn((path: string) => {
+    throw new Error(`NEXT_REDIRECT:${path}`);
+  }),
 }));
 
 const PROJECT_ID = "11111111-1111-4111-8111-111111111111";
@@ -113,5 +137,108 @@ describe("project activity route contracts", () => {
       projectId: PROJECT_ID,
     }));
     expect(response.headers.get("cache-control")).toBe("private, no-store, max-age=0");
+  });
+
+  it("denies load-more activity when the user cannot edit the project", async () => {
+    const db = {};
+    const currentUser = {
+      userId: USER_ID,
+      email: "viewer@example.test",
+      role: "member",
+      profile: { default_workspace_id: DEFAULT_WORKSPACE_ID },
+    };
+    routeMocks.requireCurrentUserContext.mockResolvedValue(currentUser);
+    routeMocks.getCurrentWorkspaceProject.mockResolvedValue({
+      project: { id: PROJECT_ID, workspace_id: SHARED_WORKSPACE_ID },
+    });
+    routeMocks.getCloudflareD1Database.mockResolvedValue(db);
+    routeMocks.canEditProjectInD1.mockResolvedValue(false);
+    const { GET } = await import("@/app/api/projects/[projectId]/activity/route");
+
+    const response = await GET(
+      new NextRequest(new URL(`http://localhost/api/projects/${PROJECT_ID}/activity?cursor=cursor-1`)),
+      { params: Promise.resolve({ projectId: PROJECT_ID }) },
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({ error: "Project activity is not available." });
+    expect(routeMocks.readProjectActivityFeed).not.toHaveBeenCalled();
+    expect(response.headers.get("cache-control")).toBe("private, no-store, max-age=0");
+  });
+
+  it("fails closed without reading activity when the project edit probe throws", async () => {
+    const db = {};
+    const currentUser = {
+      userId: USER_ID,
+      email: "viewer@example.test",
+      role: "member",
+      profile: { default_workspace_id: DEFAULT_WORKSPACE_ID },
+    };
+    routeMocks.requireCurrentUserContext.mockResolvedValue(currentUser);
+    routeMocks.getCurrentWorkspaceProject.mockResolvedValue({
+      project: { id: PROJECT_ID, workspace_id: SHARED_WORKSPACE_ID },
+    });
+    routeMocks.getCloudflareD1Database.mockResolvedValue(db);
+    routeMocks.canEditProjectInD1.mockRejectedValue(new Error("d1 unavailable"));
+    const { GET } = await import("@/app/api/projects/[projectId]/activity/route");
+
+    const response = await GET(
+      new NextRequest(new URL(`http://localhost/api/projects/${PROJECT_ID}/activity?cursor=cursor-1`)),
+      { params: Promise.resolve({ projectId: PROJECT_ID }) },
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({ error: "Project activity is not available." });
+    expect(routeMocks.readProjectActivityFeed).not.toHaveBeenCalled();
+  });
+
+  it("renders denied activity pages with empty data and without prefetching activity", async () => {
+    const db = {};
+    const currentUser = {
+      userId: USER_ID,
+      email: "viewer@example.test",
+      role: "member",
+      profile: { default_workspace_id: DEFAULT_WORKSPACE_ID },
+    };
+    routeMocks.requireCurrentUserContext.mockResolvedValue(currentUser);
+    routeMocks.getCurrentWorkspaceProject.mockResolvedValue({
+      project: { id: PROJECT_ID, name: "Shared Project", workspace_id: SHARED_WORKSPACE_ID },
+    });
+    routeMocks.getCloudflareD1Database.mockResolvedValue(db);
+    routeMocks.canEditProjectInD1.mockResolvedValue(false);
+    const { default: ProjectActivityPage } = await import("@/app/workshop/projects/[projectId]/activity/page");
+
+    const suspenseElement = ProjectActivityPage({
+      params: Promise.resolve({ projectId: PROJECT_ID }),
+      searchParams: Promise.resolve({ scope: "all" }),
+    }) as { props: { children: { props: unknown; type: (props: unknown) => Promise<{ props: Record<string, unknown> }> } } };
+    const contentElement = suspenseElement.props.children;
+    const activityElement = await contentElement.type(contentElement.props);
+
+    expect(activityElement.props).toEqual(expect.objectContaining({
+      canEdit: false,
+      currentUserId: USER_ID,
+      initialLoadFailed: false,
+      projectId: PROJECT_ID,
+      projectName: "Shared Project",
+    }));
+    expect(activityElement.props.initialData).toEqual({
+      items: [],
+      nextCursor: null,
+      partial: false,
+      unavailableSources: [],
+      counts: {
+        loadedCount: 0,
+        filteredTotalCount: 0,
+        scopeTotalCount: 0,
+      },
+    });
+    expect(activityElement.props.estimates).toEqual([]);
+    expect(activityElement.props.members).toEqual([]);
+    expect(activityElement.props.recipients).toEqual([]);
+    expect(routeMocks.readProjectActivityFeed).not.toHaveBeenCalled();
+    expect(routeMocks.listProjectEstimatesForDropdown).not.toHaveBeenCalled();
+    expect(routeMocks.listProjectMembersForDropdown).not.toHaveBeenCalled();
+    expect(routeMocks.listProjectRecipientsForDropdown).not.toHaveBeenCalled();
   });
 });

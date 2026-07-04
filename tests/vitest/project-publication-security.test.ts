@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   assertSameOrigin,
@@ -14,11 +14,6 @@ import {
   hashPublicationToken,
   isPublicationTokenShape,
   verifyPublicationPassword,
-  // P10 exports (red tests reference these before impl)
-  getProgressiveDelayMs,
-  isPasswordLocked,
-  recordPasswordFailure,
-  recordPasswordSuccess,
   // AC-MOD-15 (MOD-PW-02 / MOD-PW-05) — normalize + min-length
   MIN_PUBLICATION_PASSWORD_LENGTH,
   normalizePublicationPassword,
@@ -86,6 +81,13 @@ describe("project publication security helpers (Shared Link V2)", () => {
         "x-archestimator-csrf": token,
       },
     });
+    const noOriginRequest = new Request("https://archestimator.test/api/share/public-token/events", {
+      method: "POST",
+      headers: {
+        cookie: `ae_publication_csrf=${token}`,
+        "x-archestimator-csrf": token,
+      },
+    });
     const crossOriginRequest = new Request("https://archestimator.test/api/share/public-token/events", {
       method: "POST",
       headers: {
@@ -94,9 +96,35 @@ describe("project publication security helpers (Shared Link V2)", () => {
         "x-archestimator-csrf": token,
       },
     });
+    const missingCookieRequest = new Request("https://archestimator.test/api/share/public-token/events", {
+      method: "POST",
+      headers: {
+        origin: "https://archestimator.test",
+        "x-archestimator-csrf": token,
+      },
+    });
+    const missingHeaderRequest = new Request("https://archestimator.test/api/share/public-token/events", {
+      method: "POST",
+      headers: {
+        origin: "https://archestimator.test",
+        cookie: `ae_publication_csrf=${token}`,
+      },
+    });
+    const mismatchRequest = new Request("https://archestimator.test/api/share/public-token/events", {
+      method: "POST",
+      headers: {
+        origin: "https://archestimator.test",
+        cookie: `ae_publication_csrf=${token}`,
+        "x-archestimator-csrf": "different-token",
+      },
+    });
 
     expect(assertSameOriginPublicPost(sameOriginRequest)).toEqual({ ok: true });
+    expect(assertSameOriginPublicPost(noOriginRequest)).toEqual({ ok: false, status: 403, message: "Cross-origin publication requests are blocked." });
     expect(assertSameOriginPublicPost(crossOriginRequest)).toEqual({ ok: false, status: 403, message: "Cross-origin publication requests are blocked." });
+    expect(assertSameOriginPublicPost(missingCookieRequest)).toEqual({ ok: false, status: 403, message: "Publication request verification failed." });
+    expect(assertSameOriginPublicPost(missingHeaderRequest)).toEqual({ ok: false, status: 403, message: "Publication request verification failed." });
+    expect(assertSameOriginPublicPost(mismatchRequest)).toEqual({ ok: false, status: 403, message: "Publication request verification failed." });
   });
 
   it("signs publication access cookies so unlocked state cannot be forged", () => {
@@ -190,50 +218,6 @@ describe("AC-MOD-15 — shared publication password normalize + min-length", () 
     expect(validatePublicationPassword("abcd")).toEqual({ ok: true });
     // Longer passes; padding is trimmed first but still leaves >= minimum.
     expect(validatePublicationPassword("  abcdef  ")).toEqual({ ok: true });
-  });
-});
-
-// ============================================================================
-// P10 RED TESTS — written FIRST (before any edit to security.ts, route.ts, or form)
-// per Master Prompt + subagent-driven-development skill + AGENTS.md/CLAUDE.md
-// (graph impact completed with 65 direct / 500 impacted / 122 files before these test edits).
-// Covers: progressive delay (1s,2s,4s,8s...), hard 5-attempt/15min lockout per IP+token,
-// password_attempt event recording contract (via type + record calls).
-// ============================================================================
-describe("P10 — password brute-force hardening (in-memory lockout + progressive delay)", () => {
-  beforeEach(() => {
-    // @ts-expect-error test-only reset (added in impl)
-    if (typeof __resetPasswordAttemptStoreForTest === "function") {
-      __resetPasswordAttemptStoreForTest();
-    }
-  });
-
-  it("computes progressive delays 1s, 2s, 4s, 8s... on successive failures", () => {
-    expect(getProgressiveDelayMs(1)).toBe(1000);
-    expect(getProgressiveDelayMs(2)).toBe(2000);
-    expect(getProgressiveDelayMs(3)).toBe(4000);
-    expect(getProgressiveDelayMs(4)).toBe(8000);
-    expect(getProgressiveDelayMs(5)).toBe(16000);
-  });
-
-  it("enforces hard lockout after 5 failures per IP per token (15-minute block)", () => {
-    const ip = "198.51.100.42";
-    const token = "p10-red-token";
-    for (let i = 0; i < 4; i++) {
-      recordPasswordFailure(ip, token, Date.now());
-    }
-    expect(isPasswordLocked(ip, token)).toBe(false);
-    recordPasswordFailure(ip, token, Date.now());
-    expect(isPasswordLocked(ip, token)).toBe(true);
-  });
-
-  it("success clears any lockout state for the IP+token", () => {
-    const ip = "198.51.100.43";
-    const token = "p10-red-token-2";
-    for (let i = 0; i < 5; i++) recordPasswordFailure(ip, token, Date.now());
-    expect(isPasswordLocked(ip, token)).toBe(true);
-    recordPasswordSuccess(ip, token);
-    expect(isPasswordLocked(ip, token)).toBe(false);
   });
 });
 

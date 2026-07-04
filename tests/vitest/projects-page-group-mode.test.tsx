@@ -14,8 +14,9 @@ import {
 } from "./projects-page-test-harness";
 import { ToastProvider } from "@/components/ui/toast";
 import { MAX_PROJECT_GROUPS } from "@/lib/workshop/group-constants";
+import { resolveAccent } from "@/lib/workshop/group-accent";
 import type { ProjectGroupSummary } from "@/lib/repositories/workspace-repository";
-import type { Tables } from "@/lib/supabase/types";
+import type { ProjectRow } from "@/lib/types/database";
 
 const mocks = vi.hoisted(() => ({
   refresh: vi.fn(),
@@ -104,7 +105,58 @@ function renderClient(ui: React.ReactElement) {
   return render(<ToastProvider>{ui}</ToastProvider>);
 }
 
-function project(o: Partial<Tables<"projects">> = {}): Tables<"projects"> {
+function hexToRgb(hex: string) {
+  const value = hex.replace("#", "");
+  return `rgb(${parseInt(value.slice(0, 2), 16)}, ${parseInt(
+    value.slice(2, 4),
+    16,
+  )}, ${parseInt(value.slice(4, 6), 16)})`;
+}
+
+function mockDataTransfer() {
+  const store = new Map<string, string>();
+  return {
+    dropEffect: "move",
+    effectAllowed: "all",
+    getData: (key: string) => store.get(key) ?? "",
+    setData: (key: string, value: string) => {
+      store.set(key, value);
+    },
+    setDragImage: () => undefined,
+  };
+}
+
+function setGroupSectionRect(element: HTMLElement, top = 0, height = 80) {
+  element.getBoundingClientRect = () => ({
+    x: 0,
+    y: top,
+    top,
+    left: 0,
+    right: 320,
+    bottom: top + height,
+    width: 320,
+    height,
+    toJSON: () => ({}),
+  });
+}
+
+function dispatchProjectGroupDragEvent(
+  element: HTMLElement,
+  type: "dragstart" | "dragover" | "drop" | "dragend",
+  options: {
+    clientY?: number;
+    dataTransfer: ReturnType<typeof mockDataTransfer>;
+  },
+) {
+  const event = new Event(type, { bubbles: true, cancelable: true });
+  Object.defineProperty(event, "dataTransfer", { value: options.dataTransfer });
+  if (options.clientY !== undefined) {
+    Object.defineProperty(event, "clientY", { value: options.clientY });
+  }
+  fireEvent(element, event);
+}
+
+function project(o: Partial<ProjectRow> = {}): ProjectRow {
   return {
     id: o.id ?? "00000000-0000-4000-8000-000000000001",
     workspace_id: "00000000-0000-4000-8000-100000000001",
@@ -120,7 +172,7 @@ function project(o: Partial<Tables<"projects">> = {}): Tables<"projects"> {
   };
 }
 function item(
-  o: Partial<Tables<"projects">> = {},
+  o: Partial<ProjectRow> = {},
   extra: Partial<ProjectListItem> = {},
 ): ProjectListItem {
   return {
@@ -218,6 +270,33 @@ describe("ProjectsPageClient group mode", () => {
     expect(revealWrapper).toHaveClass("group-focus-within:opacity-100");
   });
 
+  it("shows a project-card drag handle immediately before the selection checkbox", () => {
+    renderClient(
+      <ProjectsPageClient
+        projects={[item({ id: "p1", name: "Loose" }, { groupId: null })]}
+        projectGroups={groups}
+      />,
+    );
+
+    const card = screen.getByLabelText("Loose project, owned access");
+    const dragHandle = within(card).getByRole("button", {
+      name: "Drag Loose to a group",
+    });
+    const checkbox = within(card).getByRole("checkbox", {
+      name: "Select Loose for deletion",
+    });
+    const topStrip = card.querySelector("[data-project-card-top-strip]");
+    const leftControls = Array.from(
+      topStrip?.querySelectorAll(
+        "[data-project-card-drag-handle], input[type='checkbox']",
+      ) ?? [],
+    );
+
+    expect(dragHandle).toHaveAttribute("draggable", "true");
+    expect(dragHandle).toHaveClass("cursor-grab", "group-hover:opacity-100");
+    expect(leftControls).toEqual([dragHandle, checkbox]);
+  });
+
   it("buckets a dangling groupId into Ungrouped (cross-tab deletion defense)", () => {
     renderClient(
       <ProjectsPageClient
@@ -278,6 +357,58 @@ describe("ProjectsPageClient group mode", () => {
       pipeline.querySelector("[data-project-group-accent-dot]"),
     ).toBeNull();
   });
+
+  it("reorders named groups by dragging a group handle", async () => {
+    renderClient(
+      <ProjectsPageClient
+        projects={[
+          item({ id: "p1", name: "In Pipeline" }, { groupId: "g1" }),
+          item({ id: "p2", name: "In Backlog" }, { groupId: "g2" }),
+          item({ id: "p3", name: "In Done" }, { groupId: "g3" }),
+        ]}
+        projectGroups={[
+          { id: "g1", name: "Pipeline", accentId: null, position: 0 },
+          { id: "g2", name: "Backlog", accentId: null, position: 1 },
+          { id: "g3", name: "Done", accentId: null, position: 2 },
+        ]}
+      />,
+    );
+
+    const liveProjects = screen.getByLabelText("Live projects");
+    const groupLabels = () =>
+      within(liveProjects)
+        .getAllByRole("region")
+        .map((section) => section.getAttribute("aria-label"));
+    expect(groupLabels()).toEqual(["Pipeline", "Backlog", "Done"]);
+
+    const pipeline = screen.getByLabelText("Pipeline") as HTMLElement;
+    const backlog = screen.getByLabelText("Backlog") as HTMLElement;
+    const handle = within(backlog).getByRole("button", {
+      name: "Reorder Backlog group",
+    });
+    expect(handle).toHaveAttribute("draggable", "true");
+    setGroupSectionRect(pipeline, 0, 80);
+
+    const dataTransfer = mockDataTransfer();
+    dispatchProjectGroupDragEvent(handle, "dragstart", { dataTransfer });
+    dispatchProjectGroupDragEvent(pipeline, "dragover", {
+      dataTransfer,
+      clientY: 1,
+    });
+    expect(pipeline).toHaveAttribute("data-project-group-drop-position", "before");
+    dispatchProjectGroupDragEvent(pipeline, "drop", {
+      dataTransfer,
+      clientY: 1,
+    });
+
+    expect(mocks.reorderProjectGroups).toHaveBeenCalledWith({
+      orderedGroupIds: ["g2", "g1", "g3"],
+    });
+    await waitFor(() =>
+      expect(groupLabels()).toEqual(["Backlog", "Pipeline", "Done"]),
+    );
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled());
+  });
 });
 
 describe("ProjectsPageClient group mode — zero groups", () => {
@@ -314,23 +445,6 @@ describe("ProjectsPageClient group mode — zero groups", () => {
       wall.compareDocumentPosition(ungrouped) &
         Node.DOCUMENT_POSITION_CONTAINED_BY,
     ).toBeTruthy();
-  });
-
-  it("opens the Manage-groups popover from the toolbar when no groups exist", async () => {
-    const user = userEvent.setup();
-    renderClient(
-      <ProjectsPageClient
-        projects={[item({ id: "p1", name: "Loose One" }, { groupId: null })]}
-        projectGroups={[]}
-      />,
-    );
-    await user.click(screen.getByRole("button", { name: "Manage groups" }));
-    expect(
-      screen.getByRole("dialog", { name: "Manage groups" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("textbox", { name: "New group name" }),
-    ).toBeInTheDocument();
   });
 
   it("does NOT show the zero-groups empty state once at least one group exists", () => {
@@ -387,7 +501,7 @@ describe("ProjectsPageClient group mode — search-empty fallback (LD-10)", () =
   });
 });
 
-describe("ManageGroupsPopover via ProjectsPageClient", () => {
+describe("Project group toolbar and flag actions", () => {
   beforeEach(() => {
     window.localStorage.clear();
     Object.values(mocks).forEach((m) => "mockClear" in m && m.mockClear());
@@ -397,12 +511,7 @@ describe("ManageGroupsPopover via ProjectsPageClient", () => {
     );
   });
 
-  async function openPopover(user: ReturnType<typeof userEvent.setup>) {
-    await user.click(screen.getByRole("button", { name: "Manage groups" }));
-    return screen.getByRole("dialog", { name: "Manage groups" });
-  }
-
-  it("places Manage groups in the trailing action cluster before Add projects", () => {
+  it("places Add group in the trailing action cluster before Add projects without Manage groups", () => {
     renderClient(
       <ProjectsPageClient
         projects={[item({ id: "p1", name: "Loose" }, { groupId: null })]}
@@ -416,7 +525,16 @@ describe("ManageGroupsPopover via ProjectsPageClient", () => {
     const actionLabels = within(toolbar)
       .getAllByRole("button")
       .map((button) => button.getAttribute("aria-label"));
-    expect(actionLabels.slice(-2)).toEqual(["Manage groups", "Add projects"]);
+    expect(actionLabels.slice(-2)).toEqual(["Add group", "Add projects"]);
+    expect(
+      within(toolbar).queryByRole("button", { name: "Manage groups" }),
+    ).toBeNull();
+    expect(
+      within(toolbar).getByRole("button", { name: "Add group" }),
+    ).toHaveClass("bg-orange-100", "text-orange-700", "cursor-pointer");
+    expect(
+      within(toolbar).getByRole("button", { name: "Add projects" }),
+    ).toHaveClass("bg-orange-100", "text-orange-700", "cursor-pointer");
     expect(
       within(
         screen.getByRole("group", { name: "projects view filters" }),
@@ -426,116 +544,187 @@ describe("ManageGroupsPopover via ProjectsPageClient", () => {
     ).toBeNull();
   });
 
-  it("creates a group through the New-group input", async () => {
+  it("clicking Add group creates a neutral default group, shows it immediately, switches to group view, and opens no dialog", async () => {
     const user = userEvent.setup();
+    let resolveCreate: (value: { id: string }) => void = () => {};
+    mocks.createProjectGroup.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveCreate = resolve;
+        }),
+    );
+    window.localStorage.setItem("archestimator_projects_group_by_v1", "none");
+    window.localStorage.setItem("archestimator_projects_organize_by_v1", "none");
     renderClient(
       <ProjectsPageClient
         projects={[item({ id: "p1", name: "Loose" }, { groupId: null })]}
         projectGroups={[
-          { id: "g1", name: "Pipeline", accentId: null, position: 0 },
+          { id: "g1", name: "New group", accentId: "teal", position: 0 },
         ]}
       />,
     );
-    const dialog = await openPopover(user);
-    await user.type(
-      within(dialog).getByRole("textbox", { name: "New group name" }),
-      "Drafts",
-    );
-    await user.click(within(dialog).getByRole("button", { name: "Add group" }));
+
+    await user.click(screen.getByRole("button", { name: "Add group" }));
+
     expect(mocks.createProjectGroup).toHaveBeenCalledWith({
-      name: "Drafts",
+      name: "New group 2",
       accentId: null,
     });
+    expect(
+      screen.queryByRole("dialog", { name: "Manage groups" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByLabelText("New group 2")).toBeInTheDocument();
+    expect(mocks.refresh).not.toHaveBeenCalled();
+    expect(window.localStorage.getItem("archestimator_projects_group_by_v1")).toBe(
+      "group",
+    );
+    resolveCreate({ id: "g-new" });
     await waitFor(() => expect(mocks.refresh).toHaveBeenCalled());
   });
 
-  it("renames a group on blur", async () => {
+  it("opens direct flag actions for neutral color and delete from the group kebab", async () => {
     const user = userEvent.setup();
     renderClient(
       <ProjectsPageClient
-        projects={[item({ id: "p1", name: "Loose" }, { groupId: null })]}
-        projectGroups={[
-          { id: "g1", name: "Pipeline", accentId: null, position: 0 },
-        ]}
-      />,
-    );
-    const dialog = await openPopover(user);
-    const rename = within(dialog).getByRole("textbox", {
-      name: "Rename Pipeline",
-    });
-    await user.clear(rename);
-    await user.type(rename, "Renamed");
-    fireEvent.blur(rename);
-    expect(mocks.renameProjectGroup).toHaveBeenCalledWith({
-      groupId: "g1",
-      name: "Renamed",
-    });
-  });
-
-  it("recolors a group via the recolor swatches with the current color checked", async () => {
-    const user = userEvent.setup();
-    renderClient(
-      <ProjectsPageClient
-        projects={[item({ id: "p1", name: "Loose" }, { groupId: null })]}
+        projects={[item({ id: "p1", name: "Loose" }, { groupId: "g1" })]}
         projectGroups={[
           { id: "g1", name: "Pipeline", accentId: "teal", position: 0 },
         ]}
       />,
     );
-    const dialog = await openPopover(user);
-    await user.click(
-      within(dialog).getByRole("button", { name: "Recolor Pipeline" }),
-    );
-    // Scope to the recolor radiogroup (the New-group row also has accent swatches).
-    const recolorGroup = within(dialog).getByRole("radiogroup", {
-      name: "Recolor Pipeline",
-    });
-    // Current color (teal) shows a check indicator and is the checked radio.
-    const tealSwatch = within(recolorGroup).getByRole("radio", {
-      name: "Teal",
-    });
-    expect(tealSwatch).toBeChecked();
+
+    const pipeline = screen.getByLabelText("Pipeline");
     expect(
-      tealSwatch.querySelector("[data-action-menu-item-check]"),
+      pipeline.querySelector("[data-project-group-drag-handle]"),
     ).not.toBeNull();
     await user.click(
-      within(recolorGroup).getByRole("radio", { name: "Indigo" }),
+      within(pipeline).getByRole("button", {
+        name: "Group actions for Pipeline",
+      }),
     );
+    const neutralColorItem = screen.getByRole("menuitem", {
+      name: "Neutral grey",
+    });
+    const neutralSwatch = neutralColorItem.querySelector(
+      "[data-project-group-color-swatch='neutral']",
+    ) as HTMLElement;
+    const tealSwatch = screen
+      .getByRole("menuitem", { name: "Teal" })
+      .querySelector("[data-project-group-color-swatch='teal']") as HTMLElement;
+    expect(neutralSwatch).not.toBeNull();
+    expect(neutralSwatch.style.backgroundColor).toBe(
+      hexToRgb(resolveAccent(null).ruleColor),
+    );
+    expect(tealSwatch).not.toBeNull();
+    expect(tealSwatch.style.backgroundColor).toBe(
+      hexToRgb(resolveAccent("teal").ruleColor),
+    );
+    await user.click(neutralColorItem);
     expect(mocks.recolorProjectGroup).toHaveBeenCalledWith({
       groupId: "g1",
-      accentId: "indigo",
+      accentId: null,
     });
-  });
 
-  it("deletes a group through an inline two-click confirm (never the bulk modal)", async () => {
-    const user = userEvent.setup();
-    renderClient(
-      <ProjectsPageClient
-        projects={[item({ id: "p1", name: "Loose" }, { groupId: null })]}
-        projectGroups={[
-          { id: "g1", name: "Pipeline", accentId: null, position: 0 },
-        ]}
-      />,
-    );
-    const dialog = await openPopover(user);
     await user.click(
-      within(dialog).getByRole("button", { name: "Delete Pipeline" }),
+      within(pipeline).getByRole("button", {
+        name: "Group actions for Pipeline",
+      }),
     );
-    // Inline confirm appears; no destructive preview modal.
-    expect(
-      within(dialog).getByRole("button", { name: "Confirm delete Pipeline" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("dialog", { name: /Delete project/i }),
-    ).not.toBeInTheDocument();
-    await user.click(
-      within(dialog).getByRole("button", { name: "Confirm delete Pipeline" }),
-    );
+    await user.click(screen.getByRole("menuitem", { name: "Delete group" }));
     expect(mocks.deleteProjectGroup).toHaveBeenCalledWith({ groupId: "g1" });
   });
 
-  it("shows the at-limit message when the group cap is reached", async () => {
+  it("recolors a group immediately while the server refresh is still pending", async () => {
     const user = userEvent.setup();
+    let resolveRecolor: () => void = () => {};
+    mocks.recolorProjectGroup.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveRecolor = resolve;
+        }),
+    );
+    renderClient(
+      <ProjectsPageClient
+        projects={[item({ id: "p1", name: "Loose" }, { groupId: "g1" })]}
+        projectGroups={[
+          { id: "g1", name: "Pipeline", accentId: "teal", position: 0 },
+        ]}
+      />,
+    );
+
+    const pipeline = screen.getByLabelText("Pipeline");
+    expect(
+      (
+        pipeline.querySelector("[data-project-group-label]") as HTMLElement
+      ).style.borderColor,
+    ).toBe(hexToRgb(resolveAccent("teal").ruleColor));
+
+    await user.click(
+      within(pipeline).getByRole("button", {
+        name: "Group actions for Pipeline",
+      }),
+    );
+    await user.click(screen.getByRole("menuitem", { name: "Slate" }));
+
+    expect(mocks.recolorProjectGroup).toHaveBeenCalledWith({
+      groupId: "g1",
+      accentId: "slate",
+    });
+    expect(
+      (
+        screen
+          .getByLabelText("Pipeline")
+          .querySelector("[data-project-group-label]") as HTMLElement
+      ).style.borderColor,
+    ).toBe(hexToRgb(resolveAccent("slate").ruleColor));
+    expect(mocks.refresh).not.toHaveBeenCalled();
+
+    resolveRecolor();
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled());
+  });
+
+  it("renames a group inline immediately on Enter while the server refresh is still pending", async () => {
+    const user = userEvent.setup();
+    let resolveRename: () => void = () => {};
+    mocks.renameProjectGroup.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveRename = resolve;
+        }),
+    );
+    renderClient(
+      <ProjectsPageClient
+        projects={[item({ id: "p1", name: "Loose" }, { groupId: "g1" })]}
+        projectGroups={[
+          { id: "g1", name: "Pipeline", accentId: "teal", position: 0 },
+        ]}
+      />,
+    );
+
+    await user.click(
+      within(screen.getByLabelText("Pipeline")).getByRole("button", {
+        name: "Rename Pipeline group",
+      }),
+    );
+    const input = screen.getByRole("textbox", {
+      name: "Rename Pipeline group",
+    });
+    await user.clear(input);
+    await user.type(input, "Roadmap{Enter}");
+
+    expect(mocks.renameProjectGroup).toHaveBeenCalledWith({
+      groupId: "g1",
+      name: "Roadmap",
+    });
+    expect(screen.getByLabelText("Roadmap")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Pipeline")).not.toBeInTheDocument();
+    expect(mocks.refresh).not.toHaveBeenCalled();
+
+    resolveRename();
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled());
+  });
+
+  it("disables Add group when the group cap is reached", () => {
     const maxGroups: ProjectGroupSummary[] = Array.from(
       { length: MAX_PROJECT_GROUPS },
       (_, index) => ({
@@ -551,12 +740,8 @@ describe("ManageGroupsPopover via ProjectsPageClient", () => {
         projectGroups={maxGroups}
       />,
     );
-    const dialog = await openPopover(user);
     expect(
-      within(dialog).getByText(/reached the .*-group limit/i),
-    ).toBeInTheDocument();
-    expect(
-      within(dialog).getByRole("button", { name: "Add group" }),
+      screen.getByRole("button", { name: "Add group" }),
     ).toBeDisabled();
   });
 });
@@ -609,6 +794,70 @@ describe("ProjectsPageClient group assignment", () => {
     // NOT inside a router.refresh().then(). Here we only assert the refresh was triggered;
     // the no-flicker reconciliation invariant is pinned by the interleaving test below.
     await waitFor(() => expect(mocks.refresh).toHaveBeenCalled());
+  });
+
+  it("moves a card into a group by dragging the project-card handle onto the group section", async () => {
+    renderClient(
+      <ProjectsPageClient
+        projects={[item({ id: "p1", name: "Loose" }, { groupId: null })]}
+        projectGroups={assignGroups}
+      />,
+    );
+
+    expect(
+      within(screen.getByLabelText("Ungrouped")).getByRole("article"),
+    ).toHaveTextContent("Loose");
+
+    const card = screen.getByLabelText("Loose project, owned access");
+    const handle = within(card).getByRole("button", {
+      name: "Drag Loose to a group",
+    });
+    const pipeline = screen.getByLabelText("Pipeline") as HTMLElement;
+    const dataTransfer = mockDataTransfer();
+
+    dispatchProjectGroupDragEvent(handle, "dragstart", { dataTransfer });
+    dispatchProjectGroupDragEvent(pipeline, "dragover", { dataTransfer });
+    expect(pipeline).toHaveAttribute("data-project-card-drop-active", "");
+    dispatchProjectGroupDragEvent(pipeline, "drop", { dataTransfer });
+
+    expect(mocks.moveProjectToGroup).toHaveBeenCalledWith({
+      projectId: "p1",
+      groupId: "g1",
+    });
+    expect(
+      within(screen.getByLabelText("Pipeline")).getByRole("article"),
+    ).toHaveTextContent("Loose");
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled());
+  });
+
+  it("reveals an empty Ungrouped drop target while dragging a grouped card out", async () => {
+    renderClient(
+      <ProjectsPageClient
+        projects={[item({ id: "p1", name: "In Pipeline" }, { groupId: "g1" })]}
+        projectGroups={assignGroups}
+      />,
+    );
+    expect(screen.queryByLabelText("Ungrouped")).not.toBeInTheDocument();
+
+    const card = screen.getByLabelText("In Pipeline project, owned access");
+    const handle = within(card).getByRole("button", {
+      name: "Drag In Pipeline to a group",
+    });
+    const dataTransfer = mockDataTransfer();
+    dispatchProjectGroupDragEvent(handle, "dragstart", { dataTransfer });
+
+    const ungrouped = screen.getByLabelText("Ungrouped") as HTMLElement;
+    expect(ungrouped).toHaveAttribute("data-project-group-virtual", "");
+    dispatchProjectGroupDragEvent(ungrouped, "dragover", { dataTransfer });
+    dispatchProjectGroupDragEvent(ungrouped, "drop", { dataTransfer });
+
+    expect(mocks.moveProjectToGroup).toHaveBeenCalledWith({
+      projectId: "p1",
+      groupId: null,
+    });
+    expect(
+      within(screen.getByLabelText("Ungrouped")).getByRole("article"),
+    ).toHaveTextContent("In Pipeline");
   });
 
   it("restores the prior bucket and toasts when the move action rejects", async () => {

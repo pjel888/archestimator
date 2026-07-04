@@ -1,15 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { groupEstimateTabTrees, type EstimateTreeNodeQueryRow } from "@/lib/repositories/workspace-repository";
+import { groupEstimateTabTrees, type EstimateTreeNodeQueryRow, type EstimateTreeRowItemQueryRow } from "@/lib/repositories/workspace-repository";
 import type { EstimateTabSummary } from "@/lib/estimates/types";
-import type { Tables } from "@/lib/supabase/types";
 
 const createdAt = "2026-05-20T00:00:00.000Z";
 
 function node(input: {
   id: string;
   parent_id: string | null;
-  kind: Tables<"estimate_nodes">["kind"];
+  kind: EstimateTreeNodeQueryRow["kind"];
   name: string;
   estimate_tab_id: string;
 }): EstimateTreeNodeQueryRow & { estimate_tab_id: string } {
@@ -17,21 +16,26 @@ function node(input: {
 }
 
 function row(
-  input: Pick<Tables<"estimate_row_items">, "id" | "node_id" | "material" | "quantity" | "unit_cost" | "misc_cost" | "sort_order">,
-): Tables<"estimate_row_items"> {
+  input: Pick<EstimateTreeRowItemQueryRow, "id" | "node_id" | "material" | "quantity" | "unit_cost" | "misc_cost" | "sort_order">,
+): EstimateTreeRowItemQueryRow {
   return {
-    estimate_id: "estimate-1",
     source_library_item_id: null,
     source_snapshot: { category: "General" },
     description: "",
     supplier: "",
+    supplier_id: null,
     unit: "unit",
+    quantity_base: null,
+    quantity_contingency_amount: null,
+    contingency_percentage: 0,
+    adjustment_percentage: 0,
     discipline: "",
     designation: "",
     link_state: "unlinked",
+    row_revision: 0,
+    category_node_id: null,
     metadata: {},
     created_at: createdAt,
-    updated_at: createdAt,
     ...input,
   };
 }

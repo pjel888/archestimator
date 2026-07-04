@@ -4,7 +4,8 @@ import { describe, expect, it } from "vitest";
 const migration = readFileSync("supabase/migrations/20260527120000_project_client_publication.sql", "utf8");
 const eventContextMigration = readFileSync("supabase/migrations/20260621042221_shared_link_event_context.sql", "utf8");
 const eventContextRepairMigration = readFileSync("supabase/migrations/20260621051701_shared_link_event_context_backfill_repair.sql", "utf8");
-const types = readFileSync("src/lib/supabase/types.ts", "utf8");
+const d1PublicationMigration = readFileSync("migrations/0014_publication_shared_links.sql", "utf8");
+const d1Store = readFileSync("src/lib/publication/d1-store.ts", "utf8");
 
 describe("project client publication schema (Shared Link V2)", () => {
   it("adds token-hashed immutable client publications with snapshots, manager RLS, and service-role event writes", () => {
@@ -42,16 +43,16 @@ describe("project client publication schema (Shared Link V2)", () => {
     expect(migration).not.toMatch(/force\s+row\s+level\s+security/i);
   });
 
-  it("keeps generated Supabase types aligned with the publication tables", () => {
-    expect(types).toContain('project_publication_status: "published" | "expired" | "revoked"');
-    expect(types).toContain("project_publication_event_type:");
-    expect(types).toContain('"password_success"');
-    expect(types).toContain('"download_attempt_blocked"');
-    expect(types).toContain("project_publications: {");
-    expect(types).toContain("encrypted_token: string");
-    expect(types).toContain("snapshot_json: Json");
-    expect(types).toContain("project_publication_events: {");
-    expect(types).toContain("publication_id: string");
+  it("keeps active D1 publication schema and source types aligned", () => {
+    expect(d1PublicationMigration).toContain("CREATE TABLE IF NOT EXISTS project_publications");
+    expect(d1PublicationMigration).toContain("status TEXT NOT NULL DEFAULT 'published' CHECK (status IN ('published', 'expired', 'revoked'))");
+    expect(d1PublicationMigration).toContain("encrypted_token TEXT NOT NULL");
+    expect(d1PublicationMigration).toContain("snapshot_json TEXT NOT NULL CHECK (json_valid(snapshot_json))");
+    expect(d1PublicationMigration).toContain("CREATE TABLE IF NOT EXISTS project_publication_events");
+    expect(d1PublicationMigration).toContain("event_type IN ('open', 'password_success', 'password_failure', 'download_attempt_blocked', 'password_attempt')");
+    expect(d1Store).toContain('export type PublicationEventType = "open" | "password_success" | "password_failure" | "download_attempt_blocked" | "password_attempt";');
+    expect(d1Store).toContain("snapshot_json: JsonValue");
+    expect(d1Store).toContain("INSERT INTO project_publication_events");
   });
 
   it("adds immutable shared-link target context columns and service-role RPC signatures", () => {

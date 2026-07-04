@@ -198,6 +198,82 @@ describe("project publication public repository (Cloudflare D1 context)", () => 
     expect(store.cleanupExpiredRateLimitEvents).toHaveBeenCalledTimes(1);
   });
 
+  it("blocks publication password attempts from durable D1 failure rows", async () => {
+    const now = 1_717_000_000_000;
+    vi.spyOn(Date, "now").mockReturnValue(now);
+    const store = createMockPublicationStore({
+      countRateLimitEvents: vi.fn().mockResolvedValue(5),
+    });
+    const { repository } = await importRepositoryWithStore(store);
+    const request = new Request("https://archestimator.test/share/client-token", {
+      headers: { "x-forwarded-for": "203.0.113.10" },
+    });
+
+    await expect(repository.checkProjectPublicationPasswordRateLimit({ token: "client-token", request })).resolves.toEqual({
+      allowed: false,
+      message: "Too many attempts. Please wait 900 seconds.",
+      retryAfter: 900,
+    });
+
+    expect(store.countRateLimitEvents).toHaveBeenCalledWith({
+      keyHash: expect.any(String),
+      scope: "project_publication_password",
+      since: new Date(now - 15 * 60 * 1000).toISOString(),
+    });
+    expect(store.insertRateLimitEvent).not.toHaveBeenCalled();
+  });
+
+  it("records publication password failures as durable D1 rows and returns progressive delays", async () => {
+    const now = 1_717_000_000_000;
+    vi.spyOn(Date, "now").mockReturnValue(now);
+    const store = createMockPublicationStore({
+      countRateLimitEvents: vi
+        .fn()
+        .mockResolvedValueOnce(1)
+        .mockResolvedValueOnce(2)
+        .mockResolvedValueOnce(3)
+        .mockResolvedValueOnce(4)
+        .mockResolvedValueOnce(5)
+        .mockResolvedValueOnce(6),
+    });
+    const { repository } = await importRepositoryWithStore(store);
+    const request = new Request("https://archestimator.test/share/client-token", {
+      headers: { "x-forwarded-for": "203.0.113.10" },
+    });
+
+    const delays = [];
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      const result = await repository.recordProjectPublicationPasswordFailure({ token: "client-token", request });
+      delays.push(result.delayMs);
+    }
+
+    expect(delays).toEqual([1000, 2000, 4000, 8000, 16000, 30000]);
+    expect(store.insertRateLimitEvent).toHaveBeenCalledTimes(6);
+    expect(store.insertRateLimitEvent).toHaveBeenCalledWith({
+      keyHash: expect.any(String),
+      metadata: { route: "password", success: false },
+      scope: "project_publication_password",
+      ttlSeconds: 15 * 60,
+    });
+    expect(store.countRateLimitEvents).toHaveBeenCalledWith({
+      keyHash: expect.any(String),
+      scope: "project_publication_password",
+      since: new Date(now - 15 * 60 * 1000).toISOString(),
+    });
+  });
+
+  it("clears durable publication password failure rows after successful unlock", async () => {
+    const store = createMockPublicationStore();
+    const { repository } = await importRepositoryWithStore(store);
+    const request = new Request("https://archestimator.test/share/client-token", {
+      headers: { "x-forwarded-for": "203.0.113.10" },
+    });
+
+    await repository.clearProjectPublicationPasswordFailures({ token: "client-token", request });
+
+    expect(store.deleteRateLimitEvents).toHaveBeenCalledWith("project_publication_password", expect.any(String));
+  });
+
   it("preserves duplicate decision conflicts when the D1 submit returns no id", async () => {
     const store = createMockPublicationStore({
       submitClientResponse: vi.fn().mockResolvedValue(null),

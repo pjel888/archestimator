@@ -1,9 +1,11 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ProjectsPageClient, type ProjectListItem } from "./projects-page-test-harness";
-import type { Tables } from "@/lib/supabase/types";
+import {
+  ProjectsPageClient,
+  type ProjectListItem,
+} from "./projects-page-test-harness";
+import type { ProjectRow } from "@/lib/types/database";
 
 const routerMock = vi.hoisted(() => ({
   refresh: vi.fn(),
@@ -25,7 +27,11 @@ vi.mock("@/lib/projects/actions", () => ({
     ids: input.projectIds,
     eligibleIds: input.projectIds,
     previewHash: "preview-hash",
-    summary: { requestedCount: input.projectIds.length, eligibleCount: input.projectIds.length, blockedCount: 0 },
+    summary: {
+      requestedCount: input.projectIds.length,
+      eligibleCount: input.projectIds.length,
+      blockedCount: 0,
+    },
     issues: [],
     blocked: [],
     storageTargets: [],
@@ -35,7 +41,11 @@ vi.mock("@/lib/projects/actions", () => ({
     targetType: "project",
     ids: input.projectIds,
     deletedIds: input.projectIds,
-    summary: { requestedCount: input.projectIds.length, eligibleCount: input.projectIds.length, blockedCount: 0 },
+    summary: {
+      requestedCount: input.projectIds.length,
+      eligibleCount: input.projectIds.length,
+      blockedCount: 0,
+    },
     issues: [],
     blocked: [],
     storageTargets: [],
@@ -58,7 +68,7 @@ const OWNED_PROJECT = {
   created_at: "2026-05-20T00:00:00.000Z",
   updated_at: "2026-05-26T00:00:00.000Z",
   created_by: null,
-} satisfies Tables<"projects">;
+} satisfies ProjectRow;
 
 const SHARED_PROJECT = {
   id: "33333333-3333-4333-8333-333333333333",
@@ -72,7 +82,7 @@ const SHARED_PROJECT = {
   created_at: "2026-05-20T00:00:00.000Z",
   updated_at: "2026-05-26T00:00:00.000Z",
   created_by: null,
-} satisfies Tables<"projects">;
+} satisfies ProjectRow;
 
 const SHEET_ONLY_PROJECT = {
   id: "55555555-5555-4555-8555-555555555555",
@@ -86,7 +96,21 @@ const SHEET_ONLY_PROJECT = {
   created_at: "2026-05-20T00:00:00.000Z",
   updated_at: "2026-05-26T00:00:00.000Z",
   created_by: null,
-} satisfies Tables<"projects">;
+} satisfies ProjectRow;
+
+const PENDING_INVITE_PROJECT = {
+  id: "77777777-7777-4777-8777-777777777777",
+  workspace_id: "88888888-8888-4888-8888-888888888888",
+  name: "Pending Museum Wing",
+  client_name: "Pending invite",
+  location: null,
+  project_code: "AE-PM-301",
+  currency_code: "PHP",
+  metadata: {},
+  created_at: "2026-06-01T00:00:00.000Z",
+  updated_at: "2026-06-01T00:00:00.000Z",
+  created_by: null,
+} satisfies ProjectRow;
 
 const PROJECTS: ProjectListItem[] = [
   {
@@ -109,44 +133,47 @@ const PROJECTS: ProjectListItem[] = [
     sharedEstimateCount: 2,
     ownerWorkspaceName: "Consultant Workspace",
   },
+  {
+    project: PENDING_INVITE_PROJECT,
+    accessKind: "pending-invite",
+    currentUserRole: "viewer",
+    ownerWorkspaceName: "Studio Partner",
+    pendingInvite: {
+      id: "invitation-1",
+      projectId: PENDING_INVITE_PROJECT.id,
+      estimateId: null,
+      projectName: PENDING_INVITE_PROJECT.name,
+      projectCode: PENDING_INVITE_PROJECT.project_code,
+      estimateName: null,
+      role: "viewer",
+      scope: "project",
+      inviterLabel: "Studio Partner",
+      state: "pending",
+      expiresAt: "2026-06-10T00:00:00.000Z",
+      lastOpenedAt: "2026-06-01T00:00:00.000Z",
+    },
+  },
 ];
 
-const PENDING_INVITE_PROJECT = {
-  id: "77777777-7777-4777-8777-777777777777",
-  workspace_id: "88888888-8888-4888-8888-888888888888",
-  name: "Pending Museum Wing",
-  client_name: "Pending invite",
-  location: null,
-  project_code: "AE-PM-301",
-  currency_code: "PHP",
-  metadata: {},
-  created_at: "2026-06-01T00:00:00.000Z",
-  updated_at: "2026-06-01T00:00:00.000Z",
-  created_by: null,
-} satisfies Tables<"projects">;
-
-describe("ProjectsPageClient shared access", () => {
+describe("ProjectsPageClient shared access exclusion", () => {
   beforeEach(() => {
     window.localStorage.clear();
     routerMock.refresh.mockClear();
   });
 
-  it("renders owned, shared project, and estimate-only cards with text badges", async () => {
-    const user = userEvent.setup();
+  it("keeps received shared project, estimate-only, and pending invite rows off Projects", () => {
     render(<ProjectsPageClient projects={PROJECTS} />);
 
-    expect(screen.getByLabelText("Lewis Residence project, owned access")).toBeInTheDocument();
-    await user.click(screen.getByRole("tab", { name: /Shared/i }));
-
-    expect(screen.getByLabelText("Shared Clinic Fit-Out project, shared project, viewer access")).toBeInTheDocument();
-    expect(screen.getByLabelText("Shared Sheet Project project, estimate-only access, viewer access")).toBeInTheDocument();
-    expect(screen.getByText("Shared project")).toBeInTheDocument();
-    expect(screen.getByText("Estimate-only")).toBeInTheDocument();
-    expect(screen.getByText("2 shared estimates")).toBeInTheDocument();
-    expect(screen.getByText("Shared by Studio Partner")).toBeInTheDocument();
+    const liveProjects = screen.getByLabelText("Live projects");
+    expect(within(liveProjects).getByText("Lewis Residence")).toBeInTheDocument();
+    expect(within(liveProjects).queryByText("Shared Clinic Fit-Out")).not.toBeInTheDocument();
+    expect(within(liveProjects).queryByText("Shared Sheet Project")).not.toBeInTheDocument();
+    expect(within(liveProjects).queryByText("Pending Museum Wing")).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Shared" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Accept invite for Pending Museum Wing" })).not.toBeInTheDocument();
   });
 
-  it("surfaces live shared-link status and open activity on owned project cards", () => {
+  it("surfaces owned live shared-link status and open actions on project cards", () => {
     render(
       <ProjectsPageClient
         projects={[
@@ -167,166 +194,16 @@ describe("ProjectsPageClient shared access", () => {
     const card = screen.getByLabelText("Lewis Residence project, owned access");
     expect(card.querySelector("[data-project-card-shared-link-indicator]")).toBeNull();
     expect(card.querySelector("[data-project-card-details-action]")).not.toBeNull();
-    // NOTE: the inline "N opens" activity count was removed from the card in the
-    // concurrent card-links refactor (formatOpenCount/renderOpenActivityRow deleted,
-    // replaced by an icon-based Open action). Assertion dropped to match the shipped card.
   });
 
-  it("does not show the empty sample state when only shared projects exist", () => {
-    render(<ProjectsPageClient projects={[PROJECTS[1], PROJECTS[2]]} />);
+  it("renders the standard empty live-project shell when there are only received rows", () => {
+    render(<ProjectsPageClient projects={PROJECTS.slice(1)} />);
 
-    expect(screen.getByRole("tab", { name: /Shared/i })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByLabelText("Live projects")).toBeInTheDocument();
-    expect(screen.queryByText("No live projects yet.")).not.toBeInTheDocument();
-    expect(screen.getByText("Shared project")).toBeInTheDocument();
-    expect(screen.getByText("Estimate-only")).toBeInTheDocument();
-  });
-
-  it("renders invitee pending-invite project cards with accept actions", async () => {
-    const user = userEvent.setup();
-    render(
-      <ProjectsPageClient
-        projects={[
-          ...PROJECTS,
-          {
-            project: PENDING_INVITE_PROJECT,
-            accessKind: "pending-invite",
-            currentUserRole: "viewer",
-            ownerWorkspaceName: "Studio Partner",
-            pendingInvite: {
-              id: "invitation-1",
-              projectId: PENDING_INVITE_PROJECT.id,
-              estimateId: null,
-              projectName: PENDING_INVITE_PROJECT.name,
-              projectCode: PENDING_INVITE_PROJECT.project_code,
-              estimateName: null,
-              role: "viewer",
-              scope: "project",
-              inviterLabel: "Studio Partner",
-              state: "pending",
-              expiresAt: "2026-06-10T00:00:00.000Z",
-              lastOpenedAt: "2026-06-01T00:00:00.000Z",
-            },
-          },
-          {
-            project: {
-              ...PENDING_INVITE_PROJECT,
-              id: "99999999-9999-4999-8999-999999999999",
-              name: "Expired Gallery Wing",
-              project_code: "AE-EG-401",
-            },
-            accessKind: "pending-invite",
-            currentUserRole: "viewer",
-            ownerWorkspaceName: "Studio Partner",
-            pendingInvite: {
-              id: "invitation-expired",
-              projectId: "99999999-9999-4999-8999-999999999999",
-              estimateId: null,
-              projectName: "Expired Gallery Wing",
-              projectCode: "AE-EG-401",
-              estimateName: null,
-              role: "viewer",
-              scope: "project",
-              inviterLabel: "Studio Partner",
-              state: "expired",
-              expiresAt: "2026-06-01T00:00:00.000Z",
-              lastOpenedAt: null,
-            },
-          },
-        ]}
-      />,
-    );
-
-    await user.click(screen.getByRole("tab", { name: /Shared/i }));
-
-    const pendingCard = screen.getByLabelText("Pending Museum Wing project, pending invite, viewer access");
-    expect(pendingCard).toHaveAttribute("data-project-access-kind", "pending-invite");
-    expect(within(pendingCard).getAllByText("Pending invite")).toHaveLength(2);
-    expect(within(pendingCard).getByText("Expires Jun 10")).toBeInTheDocument();
-    expect(within(pendingCard).getByRole("button", { name: "Accept invite for Pending Museum Wing" })).toBeInTheDocument();
-
-    const expiredCard = screen.getByLabelText("Expired Gallery Wing project, pending invite, viewer access");
-    expect(within(expiredCard).getByText("Invite expired")).toBeInTheDocument();
-    expect(within(expiredCard).getByText("Expired Jun 1")).toBeInTheDocument();
-    expect(within(expiredCard).getByRole("button", { name: "Expired" })).toBeDisabled();
-    expect(within(expiredCard).queryByRole("button", { name: "Accept invite for Expired Gallery Wing" })).not.toBeInTheDocument();
-  });
-
-  it("search matches shared projects within the shared tab", async () => {
-    const user = userEvent.setup();
-    render(<ProjectsPageClient projects={PROJECTS} />);
-
-    expect(screen.getByRole("tab", { name: /Projects/i })).toHaveAttribute("aria-selected", "true");
-    await user.click(screen.getByRole("tab", { name: /Shared/i }));
-
-    expect(screen.queryByText("Lewis Residence")).not.toBeInTheDocument();
-    expect(screen.getByText("Shared Clinic Fit-Out")).toBeInTheDocument();
-    expect(screen.getByText("Shared Sheet Project")).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Show projects search" }));
-    fireEvent.change(screen.getByRole("searchbox", { name: "Search projects" }), { target: { value: "clinic" } });
-
-    expect(screen.getByText("Shared Clinic Fit-Out")).toBeInTheDocument();
+    const liveProjects = screen.getByLabelText("Live projects");
+    expect(within(liveProjects).queryAllByRole("article")).toHaveLength(0);
+    expect(screen.queryByText("Shared Clinic Fit-Out")).not.toBeInTheDocument();
     expect(screen.queryByText("Shared Sheet Project")).not.toBeInTheDocument();
-  });
-
-  it("hides project deletion from shared viewer details", async () => {
-    const user = userEvent.setup();
-    render(<ProjectsPageClient projects={PROJECTS} />);
-
-    await user.click(screen.getByRole("button", { name: "Expand Lewis Residence details" }));
-    expect(await screen.findByRole("dialog", { name: "Lewis Residence" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Delete project" })).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Close project details" }));
-    await waitFor(() => {
-      expect(screen.queryByRole("dialog", { name: "Lewis Residence" })).not.toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole("tab", { name: /Shared/i }));
-    await user.click(screen.getByRole("button", { name: "Expand Shared Clinic Fit-Out details" }));
-
-    expect(await screen.findByRole("dialog", { name: "Shared Clinic Fit-Out" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Delete project" })).not.toBeInTheDocument();
-  });
-
-  it("keeps project deletion available for shared project admins", async () => {
-    const user = userEvent.setup();
-    render(
-      <ProjectsPageClient
-        projects={[
-          {
-            ...PROJECTS[1],
-            currentUserRole: "admin",
-          },
-        ]}
-      />,
-    );
-
-    await user.click(screen.getByRole("button", { name: "Expand Shared Clinic Fit-Out details" }));
-
-    expect(await screen.findByRole("dialog", { name: "Shared Clinic Fit-Out" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Delete project" })).toBeInTheDocument();
-  });
-
-  it("all card density modes preserve shared badges", async () => {
-    const user = userEvent.setup();
-    render(<ProjectsPageClient projects={PROJECTS} />);
-
-    await user.click(screen.getByRole("tab", { name: /Shared/i }));
-
-    for (const [label, mode] of [["List", "list"], ["Small", "small"], ["Medium", "medium"], ["Large", "large"]] as const) {
-      await user.click(screen.getByRole("combobox", { name: "View" }));
-      await user.click(screen.getByRole("option", { name: label }));
-      await waitFor(() => {
-        expect(screen.getByLabelText("Live projects")).toHaveAttribute(
-          "data-project-view-mode",
-          mode,
-        );
-      });
-      const sharedCard = screen.getByLabelText("Shared Clinic Fit-Out project, shared project, viewer access");
-      expect(sharedCard).toHaveAttribute("data-project-access-kind", "project-member");
-      expect(within(sharedCard).getByText("Shared project")).toBeInTheDocument();
-    }
+    expect(screen.queryByText("Pending Museum Wing")).not.toBeInTheDocument();
+    expect(screen.queryByText("No live projects yet.")).not.toBeInTheDocument();
   });
 });

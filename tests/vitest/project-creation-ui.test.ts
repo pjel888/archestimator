@@ -14,10 +14,6 @@ const projectDetailsModal = readFileSync(
   "src/components/workshop/ProjectDetailsModal.tsx",
   "utf8",
 );
-const manageGroupsPopover = readFileSync(
-  "src/components/workshop/ManageGroupsPopover.tsx",
-  "utf8",
-);
 const newProjectForm = readFileSync(
   "src/components/workshop/NewProjectForm.tsx",
   "utf8",
@@ -156,6 +152,8 @@ describe("project creation UI governance", () => {
     );
     expect(projectCardSource).toContain("line-clamp-2");
     expect(projectCardSource).toContain("data-project-card-hover-reveal");
+    expect(projectCardThumbnailReveal).toContain('<Star size={10} weight="fill"');
+    expect(projectCardThumbnailReveal).not.toContain('<Star size={10} weight="regular"');
     expect(projectCardSource).toContain("aria-pressed={isFavorite}");
     expect(projectCardSource).toContain('weight="regular"');
     expect(projectCardSource).toContain(
@@ -229,15 +227,14 @@ describe("project creation UI governance", () => {
     expect(projectsPageClient).not.toContain("addVisibleLabel");
   });
 
-  it("keeps project group management beside project creation with semantic icons", () => {
-    expect(projectsPageClient).toContain('id: "manage-groups"');
-    expect(projectsPageClient).toContain('label: "Manage groups"');
-    expect(projectsPageClient.indexOf('label: "Manage groups"')).toBeLessThan(
+  it("keeps direct group creation beside project creation without a Manage groups toolbar action", () => {
+    expect(projectsPageClient).toContain('id: "add-group"');
+    expect(projectsPageClient).toContain('label: "Add group"');
+    expect(projectsPageClient.indexOf('label: "Add group"')).toBeLessThan(
       projectsPageClient.indexOf('label: "Add projects"'),
     );
-    expect(manageGroupsPopover).toContain("FolderPlus");
-    expect(manageGroupsPopover).toContain("Palette");
-    expect(manageGroupsPopover).not.toContain("GearSix");
+    expect(projectsPageClient).not.toContain('id: "manage-groups"');
+    expect(projectsPageClient).not.toContain('label: "Manage groups"');
   });
 
   it("keeps project deletion copy aligned with active shared-link revocation", () => {

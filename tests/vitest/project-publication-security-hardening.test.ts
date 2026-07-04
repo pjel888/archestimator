@@ -59,8 +59,6 @@ async function captureAnalyticsInsert({
   userAgent: string;
 }): Promise<{ ip_hash?: string | null; user_agent_hash?: string | null }> {
   vi.resetModules();
-  vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://archestimator.test");
-  vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "service-role-key");
   vi.stubEnv("PUBLICATION_TOKEN_HASH_SECRET", "publication-token-hash-secret");
   vi.stubEnv("ARCHESTIMATOR_ACCESS_TELEMETRY_ENABLED", "true");
   if (pepper === undefined) {
@@ -183,8 +181,6 @@ describe("SEC-06 (AC-SEC-06) — recipient lookups are publication-scoped", () =
 
   async function setupRepository(store: ReturnType<typeof buildRepositoryMock>) {
     vi.resetModules();
-    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://archestimator.test");
-    vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "service-role-key");
     vi.stubEnv("PUBLICATION_TOKEN_HASH_SECRET", "publication-token-hash-secret");
 
     vi.doMock("@/lib/publication/d1-store", () => ({

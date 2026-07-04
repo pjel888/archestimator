@@ -10,7 +10,9 @@ const migrationPath = readdirSync(join(process.cwd(), "supabase/migrations"))
 if (!migrationPath) throw new Error("Missing estimate sheet project budget migration.");
 
 const migration = readFileSync(join(process.cwd(), "supabase/migrations", migrationPath), "utf8");
-const supabaseTypes = readFileSync(join(process.cwd(), "src/lib/supabase/types.ts"), "utf8");
+const d1ProjectBudgetMigration = readFileSync(join(process.cwd(), "migrations/0017_estimate_sheet_summary_fields.sql"), "utf8");
+const d1EstimateActionsMigration = readFileSync(join(process.cwd(), "migrations/0029_estimate_actions_d1_support.sql"), "utf8");
+const databaseTypes = readFileSync(join(process.cwd(), "src/lib/types/database.ts"), "utf8");
 const estimatesTable = readFileSync(join(process.cwd(), "src/components/workshop/ProjectEstimatesTable.tsx"), "utf8");
 const metadataStrip = readFileSync(join(process.cwd(), "src/components/workshop/ProjectEstimateMetadataStrip.tsx"), "utf8");
 const projectLayout = readFileSync(join(process.cwd(), "src/app/workshop/projects/[projectId]/layout.tsx"), "utf8");
@@ -30,7 +32,8 @@ describe("estimate sheet project budget schema", () => {
     expect(migration).toContain("'projectBudget', old_estimate.project_budget");
     expect(migration).toContain("when estimate_patch ? 'projectBudget'");
     expect(migration).toContain("array['name', 'sheetCode', 'projectBudget', 'metadata']");
-    expect(supabaseTypes).toContain("project_budget: number | null");
+    expect(d1ProjectBudgetMigration).toContain("ALTER TABLE estimates ADD COLUMN project_budget REAL");
+    expect(databaseTypes).toContain("project_budget: number | null");
   });
 
   it("keeps budget UI attached to estimates instead of project metadata", () => {
@@ -60,7 +63,8 @@ describe("estimate sheet project budget schema", () => {
     expect(notesMigration).toContain("'notes', old_estimate.notes");
     expect(notesMigration).toContain("when estimate_patch ? 'notes'");
     expect(notesMigration).toContain("array['name', 'sheetCode', 'notes', 'projectBudget', 'metadata']");
-    expect(supabaseTypes).toContain("notes: string | null");
+    expect(d1EstimateActionsMigration).toContain("ALTER TABLE estimates ADD COLUMN notes TEXT");
+    expect(databaseTypes).toContain("notes: string | null");
     expect(estimatesTable).toContain('field="notes"');
     expect(nameHeader).toBeGreaterThan(-1);
     expect(notesHeader).toBeGreaterThan(nameHeader);

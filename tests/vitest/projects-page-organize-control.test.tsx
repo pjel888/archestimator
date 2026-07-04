@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ProjectsPageClient, type ProjectListItem } from "./projects-page-test-harness";
 import { ToastProvider } from "@/components/ui/toast";
-import type { Tables } from "@/lib/supabase/types";
+import type { ProjectRow } from "@/lib/types/database";
 
 const mocks = vi.hoisted(() => ({
   refresh: vi.fn(),
@@ -61,7 +61,7 @@ function renderClient(ui: React.ReactElement) {
   return render(<ToastProvider>{ui}</ToastProvider>);
 }
 
-function project(o: Partial<Tables<"projects">> = {}): Tables<"projects"> {
+function project(o: Partial<ProjectRow> = {}): ProjectRow {
   return {
     id: o.id ?? "00000000-0000-4000-8000-000000000001",
     workspace_id: "00000000-0000-4000-8000-100000000001",
@@ -76,7 +76,7 @@ function project(o: Partial<Tables<"projects">> = {}): Tables<"projects"> {
     created_by: "00000000-0000-4000-8000-200000000001",
   };
 }
-function item(o: Partial<Tables<"projects">> = {}, extra: Partial<ProjectListItem> = {}): ProjectListItem {
+function item(o: Partial<ProjectRow> = {}, extra: Partial<ProjectListItem> = {}): ProjectListItem {
   return {
     project: project(o),
     accessKind: "owned",
@@ -89,7 +89,7 @@ function item(o: Partial<Tables<"projects">> = {}, extra: Partial<ProjectListIte
     ...extra,
   };
 }
-function sharedItem(o: Partial<Tables<"projects">> = {}): ProjectListItem {
+function sharedItem(o: Partial<ProjectRow> = {}): ProjectListItem {
   return item(o, { accessKind: "project-member", currentUserRole: "editor", ownerWorkspaceName: "Acme" });
 }
 
@@ -157,7 +157,7 @@ describe("ProjectsPageClient group-by control", () => {
     expect(screen.getByRole("combobox", { name: "Sort direction" })).toBeInTheDocument();
   });
 
-  it("disables Project group and coerces away from group when viewing Shared", async () => {
+  it("keeps project grouping owned-only when non-owned rows are present", async () => {
     const user = userEvent.setup();
     renderClient(
       <ProjectsPageClient
@@ -169,37 +169,11 @@ describe("ProjectsPageClient group-by control", () => {
       />,
     );
 
-    // Put Your Projects into group mode.
-    await selectGroupBy(user, "Project group");
+    await selectGroupBy(user, "Manual group order");
     expect(screen.getByLabelText("Pipeline")).toBeInTheDocument();
-
-    // Switch to Shared: grouping coerces away from project groups; Project group is disabled.
-    await user.click(screen.getByRole("tab", { name: "Shared" }));
-    expect(screen.queryByLabelText("Pipeline")).not.toBeInTheDocument();
-    const organize = screen.getByRole("combobox", { name: "Group by" });
-    expect(organize).toHaveAttribute("title", "No grouping");
-    await user.click(organize);
-    expect(screen.getByRole("option", { name: "Project group" })).toHaveAttribute("aria-disabled", "true");
-  });
-
-  it("does not clobber a stored 'none' preference when coercing on Shared", async () => {
-    const user = userEvent.setup();
-    window.localStorage.setItem("archestimator_projects_group_by_v1", "none");
-    renderClient(
-      <ProjectsPageClient
-        projects={[
-          item({ id: "p1", name: "Owned", updated_at: "2026-02-01T00:00:00.000Z" }),
-          sharedItem({ id: "p2", name: "Shared", updated_at: "2026-02-01T00:00:00.000Z" }),
-        ]}
-      />,
-    );
-    // 'none' is not 'group', so Shared does not coerce — preference is preserved.
-    await user.click(screen.getByRole("tab", { name: "Shared" }));
-    expect(screen.getByRole("combobox", { name: "Group by" })).toHaveAttribute("title", "No grouping");
-    // Returning to Your Projects still shows 'none'.
-    await user.click(screen.getByRole("tab", { name: /Projects/i }));
-    expect(screen.getByRole("combobox", { name: "Group by" })).toHaveAttribute("title", "No grouping");
-    expect(window.localStorage.getItem("archestimator_projects_group_by_v1")).toBe("none");
+    expect(within(screen.getByLabelText("Pipeline")).getByText("Owned")).toBeInTheDocument();
+    expect(screen.queryByText("Shared")).not.toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Group by" })).toHaveAttribute("title", "Manual group order");
   });
 
   it("preserves selectedProjectIds across organize-mode switches (selection is keyed by id)", async () => {

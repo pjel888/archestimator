@@ -7,7 +7,7 @@ import {
   ProjectsPageClient,
   type ProjectListItem,
 } from "../projects-page-test-harness";
-import type { Tables } from "@/lib/supabase/types";
+import type { ProjectRow } from "@/lib/types/database";
 
 /**
  * RENDER-EFFICIENCY BASELINE for the projects page perf refactor.
@@ -123,7 +123,7 @@ vi.mock("@/lib/collaboration/pending-invite-actions", () => ({
   acceptPendingInvitationById: vi.fn(async () => undefined),
 }));
 
-function createProject(index: number): Tables<"projects"> {
+function createProject(index: number): ProjectRow {
   // Deterministic, unique per index so sort and search behave predictably.
   const padded = String(index).padStart(2, "0");
   return {

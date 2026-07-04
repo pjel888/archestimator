@@ -19,9 +19,12 @@ const d1EstimateFavoritesMigration = readFileSync(
   join(process.cwd(), "migrations/0018_estimate_favorites.sql"),
   "utf8",
 );
+const d1ProjectFavoritesMigration = readFileSync(
+  join(process.cwd(), "migrations/0013_collaboration_management_sidecars.sql"),
+  "utf8",
+);
 const repository = readFileSync(join(process.cwd(), "src/lib/repositories/workspace-repository.ts"), "utf8");
 const actions = readFileSync(join(process.cwd(), "src/lib/workshop/actions.ts"), "utf8");
-const supabaseTypes = readFileSync(join(process.cwd(), "src/lib/supabase/types.ts"), "utf8");
 const sidebarFavoritesRepository = repository.slice(
   repository.indexOf("export const listMainSidebarFavoriteProjects"),
   repository.indexOf("export const getCurrentWorkspaceProject"),
@@ -47,7 +50,10 @@ describe("workshop favorites schema", () => {
     expect(migration).toContain("grant select, insert, delete on public.estimate_favorites to authenticated");
   });
 
-  test("mirrors estimate favorites into the Cloudflare D1 schema", () => {
+  test("mirrors project and estimate favorites into the Cloudflare D1 schema", () => {
+    expect(d1ProjectFavoritesMigration).toContain("CREATE TABLE IF NOT EXISTS project_favorites");
+    expect(d1ProjectFavoritesMigration).toContain("UNIQUE (user_id, project_id)");
+    expect(d1ProjectFavoritesMigration).toContain("FOREIGN KEY (project_id, workspace_id) REFERENCES projects(id, workspace_id)");
     expect(d1EstimateFavoritesMigration).toContain("CREATE TABLE IF NOT EXISTS estimate_favorites");
     expect(d1EstimateFavoritesMigration).toContain("UNIQUE (user_id, estimate_id)");
     expect(d1EstimateFavoritesMigration).toContain("FOREIGN KEY (project_id, workspace_id) REFERENCES projects(id, workspace_id)");
@@ -55,9 +61,9 @@ describe("workshop favorites schema", () => {
     expect(d1EstimateFavoritesMigration).toContain("idx_estimate_favorites_workspace_user_created");
   });
 
-  test("keeps generated types and server data access in sync with the favorite tables", () => {
-    expect(supabaseTypes).toContain("project_favorites: {");
-    expect(supabaseTypes).toContain("estimate_favorites: {");
+  test("keeps server data access in sync with the favorite tables", () => {
+    expect(d1ProjectFavoritesMigration).toContain("project_favorites");
+    expect(d1EstimateFavoritesMigration).toContain("estimate_favorites");
     expect(repository).toContain("export async function getWorkshopHomebaseData");
     expect(repository).toContain("export const listCurrentWorkspaceProjects = cache(");
     expect(repository).toContain("FROM project_favorites");
@@ -78,7 +84,6 @@ describe("workshop favorites schema", () => {
     expect(mainSidebarMigration).toContain("limit (select safe_project_limit from input)");
     expect(mainSidebarMigration).toContain("limit (select safe_sheet_limit from input)");
     expect(mainSidebarMigration).toContain("grant execute on function public.main_sidebar_favorite_projects(uuid, int, int) to authenticated");
-    expect(supabaseTypes).toContain("main_sidebar_favorite_projects: {");
     expect(repository).toContain("export function parseMainSidebarFavoriteProjectsPayload");
     expect(sidebarFavoritesRepository).toContain("async function listMainSidebarFavoriteProjectsRpcPath");
     expect(sidebarFavoritesRepository).toContain("return null;");

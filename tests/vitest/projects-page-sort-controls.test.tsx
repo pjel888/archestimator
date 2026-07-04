@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { HEADER_ICON_TOOLBAR_DIVIDER_CLASSNAME } from "@/components/ui/header-icon-toolbar";
 import { ProjectsPageClient, type ProjectListItem } from "./projects-page-test-harness";
-import type { Tables } from "@/lib/supabase/types";
+import type { ProjectRow } from "@/lib/types/database";
 
 const mocks = vi.hoisted(() => ({
   refresh: vi.fn(),
@@ -62,7 +62,7 @@ vi.mock("@/lib/collaboration/pending-invite-actions", () => ({
   acceptPendingInvitationById: vi.fn(async () => undefined),
 }));
 
-function project(overrides: Partial<Tables<"projects">> = {}): Tables<"projects"> {
+function project(overrides: Partial<ProjectRow> = {}): ProjectRow {
   return {
     id: overrides.id ?? "00000000-0000-4000-8000-000000000001",
     workspace_id: overrides.workspace_id ?? "00000000-0000-4000-8000-100000000001",
@@ -78,7 +78,7 @@ function project(overrides: Partial<Tables<"projects">> = {}): Tables<"projects"
   };
 }
 
-function item(overrides: Partial<Tables<"projects">> = {}): ProjectListItem {
+function item(overrides: Partial<ProjectRow> = {}): ProjectListItem {
   return {
     project: project(overrides),
     accessKind: "owned",

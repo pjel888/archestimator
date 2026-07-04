@@ -15,7 +15,8 @@ const betterAuthInviteAcceptActorBridgeMigration = readFileSync(
   "supabase/migrations/20260701013000_better_auth_invite_accept_actor_bridge.sql",
   "utf8",
 );
-const types = readFileSync("src/lib/supabase/types.ts", "utf8");
+const d1CollaborationMigration = readFileSync("migrations/0007_collaboration_invitations.sql", "utf8");
+const invitationD1Store = readFileSync("src/lib/collaboration/invitation-d1-store.ts", "utf8");
 
 function extractApplyPendingOverride() {
   return inviteEntryMigration.match(
@@ -164,21 +165,20 @@ describe("project invite entry schema", () => {
     expect(usedIndex).toBeLessThan(wrongAccountIndex);
   });
 
-  it("keeps generated Supabase types aligned with invite entry tables and RPCs", () => {
-    expect(types).toContain("collaboration_invitation_tokens: {");
-    expect(types).toContain("collaboration_audit_events: {");
-    expect(types).toContain("lifecycle_state: string");
-    expect(types).toContain("accepted_via: string | null");
-    expect(types).toContain("resolve_collaboration_invitation: {");
-    expect(types).toContain("inviter_email: string");
-    expect(types).toContain("accept_collaboration_invitation: {");
-    expect(types).toContain("accept_collaboration_invitation_by_id: {");
-    expect(types).toContain("accept_collaboration_invitation_for_actor: {");
-    expect(types).toContain("accept_collaboration_invitation_by_id_for_actor: {");
-    expect(types).toContain("actor_email: string");
-    expect(types).toContain("actor_user_id: string");
-    expect(types).toContain("list_pending_collaboration_invitations: {");
-    expect(types).toContain("state: string");
-    expect(types).toContain("last_opened_at: string");
+  it("keeps active D1 invite entry tables and handlers aligned", () => {
+    expect(d1CollaborationMigration).toContain("CREATE TABLE IF NOT EXISTS collaboration_invitation_tokens");
+    expect(d1CollaborationMigration).toContain("CREATE TABLE IF NOT EXISTS collaboration_audit_events");
+    expect(d1CollaborationMigration).toContain("lifecycle_state TEXT NOT NULL DEFAULT 'pending'");
+    expect(d1CollaborationMigration).toContain("accepted_via TEXT CHECK");
+    expect(d1CollaborationMigration).toContain("last_opened_at TEXT");
+    expect(invitationD1Store).toContain("export type InviteResolutionRow = {");
+    expect(invitationD1Store).toContain("inviter_email: string | null;");
+    expect(invitationD1Store).toContain("actorEmail: string;");
+    expect(invitationD1Store).toContain("actorUserId: string;");
+    expect(invitationD1Store).toContain("resolveCollaborationInvitationFromD1");
+    expect(invitationD1Store).toContain("acceptCollaborationInvitationTokenInD1");
+    expect(invitationD1Store).toContain("acceptCollaborationInvitationByIdInD1");
+    expect(invitationD1Store).toContain("UPDATE collaboration_invitations");
+    expect(invitationD1Store).toContain("INSERT INTO collaboration_audit_events");
   });
 });

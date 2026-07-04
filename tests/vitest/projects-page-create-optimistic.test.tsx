@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ProjectsPageClient } from "./projects-page-test-harness";
-import type { Tables } from "@/lib/supabase/types";
+import type { ProjectRow } from "@/lib/types/database";
 
 const routerMock = vi.hoisted(() => ({
   refresh: vi.fn(),
@@ -89,7 +89,7 @@ const CREATED_PROJECT = {
   created_at: "2026-06-23T00:00:00.000Z",
   updated_at: "2026-06-23T00:00:00.000Z",
   created_by: "user-test",
-} satisfies Tables<"projects">;
+} satisfies ProjectRow;
 
 async function submitNewProject() {
   const user = userEvent.setup();
@@ -115,9 +115,9 @@ describe("ProjectsPageClient optimistic project creation", () => {
   });
 
   it("shows a pending project card immediately while the primary create request is still in flight", async () => {
-    let resolveCreate!: (project: Tables<"projects">) => void;
+    let resolveCreate!: (project: ProjectRow) => void;
     actionMocks.createProjectRecord.mockReturnValue(
-      new Promise<Tables<"projects">>((resolve) => {
+      new Promise<ProjectRow>((resolve) => {
         resolveCreate = resolve;
       }),
     );
@@ -171,7 +171,7 @@ describe("ProjectsPageClient optimistic project creation", () => {
   it("removes the pending card when the primary project insert fails", async () => {
     let rejectCreate!: (error: Error) => void;
     actionMocks.createProjectRecord.mockReturnValue(
-      new Promise<Tables<"projects">>((_resolve, reject) => {
+      new Promise<ProjectRow>((_resolve, reject) => {
         rejectCreate = reject;
       }),
     );

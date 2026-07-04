@@ -52,7 +52,7 @@ describe("auth onboarding and settings route contracts", () => {
     expect(modalSource).toContain('bodyClassName="bg-white p-0"');
     expect(modalSource).toContain("PROJECT_HEADER_ACTION_BUTTON_CLASS");
     expect(modalSource).toContain("window.location.assign(closeHref)");
-    expect(pageSource).toContain('context.role === "ceo" || context.role === "admin"');
+    expect(pageSource).toContain("isPlatformAdminRole(context.role)");
     expect(pageSource).toContain('trigger="none"');
     expect(pageSource).toContain('closeHref="/workshop/projects"');
     expect(pageSource).toContain('location="Workshop / Settings"');

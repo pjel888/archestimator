@@ -40,7 +40,7 @@ describe("workspace repository D1 authorization contract", () => {
 
     expect(sidebarFavoritesRepository).toContain("async function filterAccessibleSidebarProjectIds");
     expect(sidebarFavoritesRepository).toContain("canAccessProjectInD1(database, projectId");
-    expect(sidebarFavoritesRepository).toContain('role: profile.role === "admin" || profile.role === "ceo" ? profile.role : undefined');
+    expect(sidebarFavoritesRepository).toContain("role: isPlatformAdminRole(profile.role) ? profile.role : undefined");
     expect(sidebarFavoritesRepository).toContain("userId: profile.id");
     expect(sidebarFavoritesRepository).toContain("const accessibleSidebarProjectIds = await filterAccessibleSidebarProjectIds");
     expect(sidebarFavoritesRepository).toContain("WHERE id IN (${placeholders(accessibleSidebarProjectIds)})");

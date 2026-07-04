@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -7,7 +7,7 @@ import {
   type ProjectListItem,
 } from "./projects-page-test-harness";
 import type { ProjectAccessKind } from "@/components/workshop/LiveProjectCard";
-import type { Tables } from "@/lib/supabase/types";
+import type { ProjectRow } from "@/lib/types/database";
 
 const mocks = vi.hoisted(() => ({
   refresh: vi.fn(),
@@ -73,10 +73,13 @@ vi.mock("@/lib/collaboration/pending-invite-actions", () => ({
   acceptPendingInvitationById: vi.fn(async () => undefined),
 }));
 
-function createProject(overrides: Partial<Tables<"projects">> = {}): Tables<"projects"> {
+function createProject(
+  overrides: Partial<ProjectRow> = {},
+): ProjectRow {
   return {
     id: overrides.id ?? "00000000-0000-4000-8000-000000000001",
-    workspace_id: overrides.workspace_id ?? "00000000-0000-4000-8000-100000000001",
+    workspace_id:
+      overrides.workspace_id ?? "00000000-0000-4000-8000-100000000001",
     name: overrides.name ?? "Owned Residence",
     client_name: overrides.client_name ?? "Lewis Family",
     project_code: overrides.project_code ?? "OWN-001",
@@ -85,13 +88,16 @@ function createProject(overrides: Partial<Tables<"projects">> = {}): Tables<"pro
     metadata: overrides.metadata ?? {},
     created_at: overrides.created_at ?? "2026-06-01T00:00:00.000Z",
     updated_at: overrides.updated_at ?? "2026-06-02T00:00:00.000Z",
-    created_by: overrides.created_by ?? "00000000-0000-4000-8000-200000000001",
+    created_by:
+      overrides.created_by ?? "00000000-0000-4000-8000-200000000001",
   };
 }
 
 function createProjectItem(
   accessKind: ProjectAccessKind,
-  overrides: Partial<ProjectListItem> & { project?: Partial<Tables<"projects">> } = {},
+  overrides: Partial<ProjectListItem> & {
+    project?: Partial<ProjectRow>;
+  } = {},
 ): ProjectListItem {
   const projectName =
     overrides.project?.name ??
@@ -126,8 +132,10 @@ function createProjectItem(
       ...overrides.project,
     }),
     accessKind,
-    currentUserRole: overrides.currentUserRole ?? (accessKind === "owned" ? "owner" : "viewer"),
-    ownerWorkspaceName: overrides.ownerWorkspaceName ?? (accessKind === "owned" ? null : "Partner Studio"),
+    currentUserRole:
+      overrides.currentUserRole ?? (accessKind === "owned" ? "owner" : "viewer"),
+    ownerWorkspaceName:
+      overrides.ownerWorkspaceName ?? (accessKind === "owned" ? null : "Partner Studio"),
     pendingInvite:
       overrides.pendingInvite ??
       (accessKind === "pending-invite"
@@ -148,15 +156,12 @@ function createProjectItem(
         : null),
     pendingInviteCount: overrides.pendingInviteCount ?? 0,
     publicationSummary: overrides.publicationSummary ?? null,
-    sharedEstimateCount: overrides.sharedEstimateCount ?? (accessKind === "sheet-member" ? 1 : 0),
+    sharedEstimateCount:
+      overrides.sharedEstimateCount ?? (accessKind === "sheet-member" ? 1 : 0),
   };
 }
 
-function getActivePanel() {
-  return screen.getByRole("tabpanel");
-}
-
-describe("ProjectsPageClient access tabs", () => {
+describe("ProjectsPageClient owned-project surface", () => {
   beforeEach(() => {
     window.localStorage.clear();
     mocks.refresh.mockClear();
@@ -165,39 +170,25 @@ describe("ProjectsPageClient access tabs", () => {
     mocks.setProjectFavorite.mockClear();
   });
 
-  it("renders exactly the two requested access tabs and removes the old access filter", () => {
+  it("renders no access tablist or hidden shared panel", () => {
     render(
       <ProjectsPageClient
-        projects={[createProjectItem("owned"), createProjectItem("project-member")]}
+        projects={[
+          createProjectItem("owned"),
+          createProjectItem("project-member"),
+        ]}
       />,
     );
 
-    const tabs = screen.getAllByRole("tab");
-    expect(tabs).toHaveLength(2);
-    const tablist = screen.getByRole("tablist", { name: "Project access tabs" });
-    const ownedTab = screen.getByRole("tab", { name: "Projects" });
-    const tabsRoot = tablist.closest("[data-navigation-tabs]");
-    expect(tabsRoot).toBeInTheDocument();
-    expect(tabsRoot).toHaveClass("[&_[role=tablist]]:h-[41px]");
-    expect(tabsRoot).toHaveClass(
-      "[&_[role=tablist]]:grid-cols-[repeat(auto-fill,minmax(248px,1fr))]",
-      "[&_[role=tablist]]:gap-3",
-      "[&_[role=tablist]]:border-0",
-    );
-    expect(tabsRoot?.closest(".workshop-collection-tabs-chrome")).toHaveClass("bg-transparent");
-    expect(ownedTab).toHaveAccessibleName("Projects");
-    expect(ownedTab).toHaveClass("!min-h-[41px]", "w-full", "border-brand-orange");
-    expect(ownedTab).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Shared" })).toHaveAccessibleName("Shared");
-    expect(screen.getByRole("tabpanel", { name: "Projects" })).toBeInTheDocument();
-    expect(document.getElementById("panel-shared-to-you")).toHaveAttribute("hidden");
-    expect(within(tablist).queryByText("2")).not.toBeInTheDocument();
-    expect(within(tablist).queryByText("1")).not.toBeInTheDocument();
-    expect(screen.queryByRole("tab", { name: /^All/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("tab", { name: /^Owned/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("tablist", { name: "Project access tabs" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Shared" })).not.toBeInTheDocument();
+    expect(document.getElementById("panel-shared-to-you")).toBeNull();
+    expect(screen.getByLabelText("Projects")).toBeInTheDocument();
   });
 
-  it("starts on Projects when owned projects exist and scopes owned cards to that panel", () => {
+  it("shows owned projects and excludes shared, estimate-only, and pending invite rows", () => {
     render(
       <ProjectsPageClient
         projects={[
@@ -209,215 +200,83 @@ describe("ProjectsPageClient access tabs", () => {
       />,
     );
 
-    expect(screen.getByRole("tab", { name: /Projects/i })).toHaveAttribute("aria-selected", "true");
-    const panel = getActivePanel();
-    expect(within(panel).getByText("Owned Residence")).toBeInTheDocument();
-    expect(within(panel).queryByText("Shared Clinic")).not.toBeInTheDocument();
-    expect(within(panel).queryByText("Shared Sheet Tower")).not.toBeInTheDocument();
-    expect(within(panel).queryByText("Pending Museum Wing")).not.toBeInTheDocument();
+    const liveProjects = screen.getByLabelText("Live projects");
+    expect(within(liveProjects).getByText("Owned Residence")).toBeInTheDocument();
+    expect(within(liveProjects).queryByText("Shared Clinic")).not.toBeInTheDocument();
+    expect(within(liveProjects).queryByText("Shared Sheet Tower")).not.toBeInTheDocument();
+    expect(within(liveProjects).queryByText("Pending Museum Wing")).not.toBeInTheDocument();
+    expect(screen.queryByText("Shared project")).not.toBeInTheDocument();
+    expect(screen.queryByText("Estimate-only")).not.toBeInTheDocument();
+    expect(screen.queryByText("Pending invite")).not.toBeInTheDocument();
   });
 
-  it("shows all non-owned access kinds only in Shared", async () => {
+  it("keeps search scoped to owned projects", async () => {
     const user = userEvent.setup();
     render(
       <ProjectsPageClient
         projects={[
-          createProjectItem("owned"),
-          createProjectItem("project-member"),
-          createProjectItem("sheet-member"),
-          createProjectItem("pending-invite"),
-        ]}
-      />,
-    );
-
-    await user.click(screen.getByRole("tab", { name: /Shared/i }));
-
-    const panel = getActivePanel();
-    expect(within(panel).queryByText("Owned Residence")).not.toBeInTheDocument();
-    expect(within(panel).getByText("Shared Clinic")).toBeInTheDocument();
-    expect(within(panel).getByText("Shared Sheet Tower")).toBeInTheDocument();
-    expect(within(panel).getByText("Pending Museum Wing")).toBeInTheDocument();
-    expect(within(panel).getByText("Shared project")).toBeInTheDocument();
-    expect(within(panel).getByText("Estimate-only")).toBeInTheDocument();
-    expect(within(panel).getByText("Pending invite")).toBeInTheDocument();
-    expect(within(panel).getByRole("button", { name: "Accept invite for Pending Museum Wing" })).toBeInTheDocument();
-  });
-
-  it("defaults shared-only users into Shared without hiding Projects", () => {
-    render(
-      <ProjectsPageClient
-        projects={[createProjectItem("project-member"), createProjectItem("pending-invite")]}
-      />,
-    );
-
-    expect(screen.getByRole("tab", { name: /Shared/i })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("tab", { name: /Projects/i })).toBeInTheDocument();
-    expect(within(getActivePanel()).getByText("Shared Clinic")).toBeInTheDocument();
-    expect(within(getActivePanel()).getByText("Pending Museum Wing")).toBeInTheDocument();
-  });
-
-  it("searches within the active tab and preserves the query when switching tabs", async () => {
-    const user = userEvent.setup();
-    render(
-      <ProjectsPageClient
-        projects={[
-          createProjectItem("owned", { project: { name: "Owned Residence", client_name: "Lewis Family" } }),
-          createProjectItem("project-member", { project: { name: "Shared Clinic", client_name: "Clinic Group" } }),
+          createProjectItem("owned", {
+            project: { name: "Owned Residence", client_name: "Lewis Family" },
+          }),
+          createProjectItem("project-member", {
+            project: { name: "Shared Clinic", client_name: "Clinic Group" },
+          }),
         ]}
       />,
     );
 
     await user.click(screen.getByRole("button", { name: "Show projects search" }));
-    fireEvent.change(screen.getByRole("searchbox", { name: "Search projects" }), { target: { value: "clinic" } });
-
-    expect(within(getActivePanel()).getByLabelText("Live projects").querySelectorAll("article")).toHaveLength(0);
-    expect(within(getActivePanel()).queryByText("No projects match your search")).not.toBeInTheDocument();
-    expect(within(getActivePanel()).queryByText("Shared Clinic")).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole("tab", { name: /Shared/i }));
-
-    expect(screen.getByRole("searchbox", { name: "Search projects" })).toHaveValue("clinic");
-    expect(within(getActivePanel()).getByText("Shared Clinic")).toBeInTheDocument();
-    expect(within(getActivePanel()).queryByText("Owned Residence")).not.toBeInTheDocument();
-  });
-
-  it("keeps an empty shared tab in the normal project shell without a create action in that panel", async () => {
-    const user = userEvent.setup();
-    render(<ProjectsPageClient projects={[createProjectItem("owned")]} />);
-
-    await user.click(screen.getByRole("tab", { name: /Shared/i }));
-
-    const panel = getActivePanel();
-    expect(within(panel).getByLabelText("Live projects").querySelectorAll("article")).toHaveLength(0);
-    expect(within(panel).queryByText("No projects shared to you yet")).not.toBeInTheDocument();
-    expect(within(panel).queryByRole("button", { name: /Create/i })).not.toBeInTheDocument();
-  });
-
-  it("suppresses favorite controls for shared cards while preserving owned favorites", async () => {
-    const user = userEvent.setup();
-    render(
-      <ProjectsPageClient
-        projects={[createProjectItem("owned"), createProjectItem("project-member")]}
-      />,
-    );
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search projects" }), {
+      target: { value: "clinic" },
+    });
 
     expect(
-      within(getActivePanel()).getByRole("button", { name: "Add Owned Residence to favorite projects" }),
-    ).toBeInTheDocument();
-
-    await user.click(screen.getByRole("tab", { name: /Shared/i }));
-
-    expect(
-      within(getActivePanel()).queryByRole("button", { name: "Add Shared Clinic to favorite projects" }),
-    ).not.toBeInTheDocument();
+      within(screen.getByLabelText("Live projects")).queryAllByRole("article"),
+    ).toHaveLength(0);
+    expect(screen.queryByText("Shared Clinic")).not.toBeInTheDocument();
+    expect(screen.queryByText("No projects match your search")).not.toBeInTheDocument();
   });
 
-  it("keeps bulk selection scoped to the active visible tab while preserving hidden selections", async () => {
+  it("keeps owned bulk selection available without exposing shared selection controls", async () => {
     const user = userEvent.setup();
     render(
       <ProjectsPageClient
         projects={[
           createProjectItem("owned"),
           createProjectItem("project-member"),
-          createProjectItem("sheet-member"),
+        ]}
+      />,
+    );
+
+    await user.click(
+      within(screen.getByLabelText("Owned Residence project, owned access")).getByRole(
+        "checkbox",
+        { name: "Select Owned Residence for deletion" },
+      ),
+    );
+
+    expect(screen.getByRole("region", { name: "Bulk action toolbar" })).toHaveTextContent(
+      "1 selected",
+    );
+    expect(
+      screen.queryByRole("checkbox", { name: "Select Shared Clinic for deletion" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps the normal shell when the server provides only non-owned rows", () => {
+    render(
+      <ProjectsPageClient
+        projects={[
+          createProjectItem("project-member"),
           createProjectItem("pending-invite"),
         ]}
       />,
     );
 
-    await user.click(within(getActivePanel()).getByRole("checkbox", { name: "Select Owned Residence for deletion" }));
-
-    const toolbar = screen.getByRole("region", { name: "Bulk action toolbar" });
-    expect(toolbar).toHaveTextContent("1 selected");
-    expect(toolbar).toHaveClass("fixed");
-    expect(toolbar.className).toContain("bottom-[calc(3.5rem+env(safe-area-inset-bottom))]");
-    expect(getActivePanel()).toHaveClass("pb-20");
-    const dockSurface = toolbar.querySelector("[data-bulk-action-dock-surface]");
-    expect(dockSurface).toHaveClass(
-      "bg-white/95",
-      "flex-col",
-      "shadow-[0_22px_54px_-30px_rgba(17,17,17,0.75)]",
-      "backdrop-blur-md",
-      "w-36",
-    );
-    expect(toolbar).not.toHaveTextContent("Project deletion blocks active shared links");
-    expect(toolbar.querySelector("[data-bulk-action-count-floor]")).toHaveClass("h-6", "w-full");
-    expect(toolbar.querySelector("[data-bulk-action-count-floor] p")).toHaveClass("w-[12ch]", "tabular-nums");
-    expect(toolbar.querySelector("[data-bulk-action-icon-floor]")).toHaveClass(
-      "h-9",
-      "grid-cols-[2rem_2rem_1px_2rem]",
-    );
-    expect(screen.getByRole("group", { name: "Bulk selection actions" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Select visible" })).toHaveClass("size-8");
-    expect(screen.getByRole("button", { name: "Clear selection" })).toHaveClass("size-8");
-    expect(screen.getByRole("button", { name: "Delete selected projects" })).toHaveClass("size-8", "text-danger");
-
-    await user.click(screen.getByRole("tab", { name: /Shared/i }));
-
-    expect(screen.queryByRole("region", { name: "Bulk action toolbar" })).not.toBeInTheDocument();
-    expect(within(getActivePanel()).getByRole("checkbox", { name: "Select Shared Clinic for deletion" })).toBeDisabled();
-    expect(within(getActivePanel()).getByRole("checkbox", { name: "Select Shared Sheet Tower for deletion" })).toBeDisabled();
-
-    await user.click(screen.getByRole("tab", { name: /Projects/i }));
-
-    expect(screen.getByRole("region", { name: "Bulk action toolbar" })).toHaveTextContent("1 selected");
-  });
-
-  it("supports Arrow/Home/End keyboard tab activation and keeps view mode unchanged", async () => {
-    const user = userEvent.setup();
-    render(
-      <ProjectsPageClient
-        projects={[createProjectItem("owned"), createProjectItem("project-member")]}
-      />,
-    );
-
-    await user.click(screen.getByRole("combobox", { name: "View" }));
-    await user.click(screen.getByRole("option", { name: "List" }));
-    await waitFor(() => {
-      expect(screen.getByLabelText("Live projects")).toHaveAttribute("data-project-view-mode", "list");
-    });
-
-    const tabsRoot = screen.getByRole("tablist", { name: "Project access tabs" }).closest("[data-navigation-tabs]");
-    expect(tabsRoot).toHaveClass(
-      "[&_[role=tablist]]:grid-cols-[repeat(auto-fill,minmax(132px,1fr))]",
-      "[&_[role=tablist]]:gap-2",
-    );
-
-    await user.click(screen.getByRole("combobox", { name: "View" }));
-    await user.click(screen.getByRole("option", { name: "Small" }));
-    await waitFor(() => {
-      expect(screen.getByLabelText("Live projects")).toHaveAttribute("data-project-view-mode", "small");
-    });
-    expect(tabsRoot).toHaveClass(
-      "[&_[role=tablist]]:grid-cols-[repeat(auto-fill,minmax(132px,1fr))]",
-      "[&_[role=tablist]]:gap-2",
-    );
-
-    await user.click(screen.getByRole("combobox", { name: "View" }));
-    await user.click(screen.getByRole("option", { name: "Medium" }));
-    await waitFor(() => {
-      expect(screen.getByLabelText("Live projects")).toHaveAttribute("data-project-view-mode", "medium");
-    });
-    expect(tabsRoot).toHaveClass(
-      "[&_[role=tablist]]:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]",
-      "[&_[role=tablist]]:gap-3",
-    );
-
-    const ownedTab = screen.getByRole("tab", { name: /Projects/i });
-    ownedTab.focus();
-    await user.keyboard("{ArrowRight}");
-    expect(screen.getByRole("tab", { name: /Shared/i })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("tab", { name: /Shared/i })).toHaveFocus();
-    expect(screen.getByLabelText("Live projects")).toHaveAttribute("data-project-view-mode", "medium");
-
-    await user.keyboard("{ArrowLeft}");
-    expect(screen.getByRole("tab", { name: /Projects/i })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("tab", { name: /Projects/i })).toHaveFocus();
-
-    await user.keyboard("{End}");
-    expect(screen.getByRole("tab", { name: /Shared/i })).toHaveAttribute("aria-selected", "true");
-
-    await user.keyboard("{Home}");
-    expect(screen.getByRole("tab", { name: /Projects/i })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByLabelText("Live projects")).toBeInTheDocument();
+    expect(within(screen.getByLabelText("Live projects")).queryAllByRole("article")).toHaveLength(0);
+    expect(screen.queryByText("Shared Clinic")).not.toBeInTheDocument();
+    expect(screen.queryByText("Pending Museum Wing")).not.toBeInTheDocument();
+    expect(screen.queryByText("No live projects yet.")).not.toBeInTheDocument();
   });
 });

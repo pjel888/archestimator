@@ -940,7 +940,7 @@ describe("estimate sheet cost inputs", () => {
     fireEvent.click(showSearchButton);
     const searchPanel = within(actionHeader).getByRole("search");
     expect(searchPanel).toHaveAttribute("data-tree-search-panel", "true");
-    expect(searchPanel).toHaveClass("absolute", "left-0", "right-0", "top-[40px]");
+    expect(searchPanel).toHaveClass("absolute", "left-0", "right-0", "top-[38px]");
     expect(within(searchPanel).getByLabelText("Search Tab")).toBeEnabled();
     expect(within(sheetTools).getByRole("button", { name: "Hide tab search" })).toHaveAttribute("aria-expanded", "true");
 

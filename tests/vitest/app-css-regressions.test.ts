@@ -36,9 +36,10 @@ describe("app CSS regressions", () => {
     expect(cssWithoutBaseLayerBlocks).not.toMatch(/button,\s*input,\s*select,\s*textarea\s*{[\s\S]*font:\s*inherit;/);
   });
 
-  it("uses background-only focus affordance for editable form controls", () => {
-    expect(globalsCss).toContain("--editable-focus-bg: #eeeeee;");
-    expect(globalsCss).toMatch(/input:not\(\[type="button"\]\)[\s\S]*:not\(\[aria-invalid="true"\]\):focus,\s*textarea:not\(\[readonly\]\):not\(\[disabled\]\):not\(\[aria-invalid="true"\]\):focus,\s*select:not\(\[disabled\]\):not\(\[aria-invalid="true"\]\):focus\s*{[\s\S]*outline:\s*none\s*!important;[\s\S]*box-shadow:\s*none\s*!important;[\s\S]*background-color:\s*var\(--editable-focus-bg\)\s*!important;/);
+  it("does not globally recolor editable form controls on focus", () => {
+    expect(globalsCss).not.toContain("--editable-focus-bg");
+    expect(globalsCss).not.toContain("background-color: var(--editable-focus-bg)");
+    expect(globalsCss).toMatch(/input:not\(\[type="button"\]\)[\s\S]*:not\(\[aria-invalid="true"\]\):focus,\s*textarea:not\(\[readonly\]\):not\(\[disabled\]\):not\(\[aria-invalid="true"\]\):focus,\s*select:not\(\[disabled\]\):not\(\[aria-invalid="true"\]\):focus\s*{[\s\S]*outline:\s*none\s*!important;[\s\S]*box-shadow:\s*none\s*!important;\s*}/);
     expect(globalsCss).toMatch(/input:not\(\[type="button"\]\)[\s\S]*:focus,\s*textarea:focus,\s*select:focus\s*{[\s\S]*outline:\s*none\s*!important;[\s\S]*box-shadow:\s*none\s*!important;/);
   });
 

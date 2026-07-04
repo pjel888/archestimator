@@ -841,9 +841,9 @@ describe("estimate sheet version control server actions", () => {
     expect(actions).not.toHaveProperty("restoreEstimateSheetVersionAsCopy");
   });
 
-  it("keeps hardcoded history procedure names aligned with generated Supabase function types", () => {
+  it("keeps hardcoded history procedure names aligned with the Cloudflare D1 action client", () => {
     const actionsSource = readFileSync(join(process.cwd(), "src/lib/estimates/actions.ts"), "utf8");
-    const generatedTypesSource = readFileSync(join(process.cwd(), "src/lib/supabase/types.ts"), "utf8");
+    const d1ActionClientSource = readFileSync(join(process.cwd(), "src/lib/estimates/d1-action-client.ts"), "utf8");
     const rpcNames = Array.from(actionsSource.matchAll(/dataStore\.call\(\s*"([^"]+_with_history|update_estimate_details_with_history)"/g))
       .map((match) => match[1])
       .sort();
@@ -853,7 +853,7 @@ describe("estimate sheet version control server actions", () => {
     expect(uniqueRpcNames.length).toBeGreaterThan(0);
     expect(actionsSource).not.toContain("asEstimateHistoryRpcClient");
     for (const rpcName of uniqueRpcNames) {
-      expect(generatedTypesSource).toContain(`${rpcName}: {`);
+      expect(d1ActionClientSource).toContain(`name === "${rpcName}"`);
     }
   });
 

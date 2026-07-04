@@ -106,7 +106,7 @@ describe("closed beta feedback", () => {
     expect(reviewMigration).toContain("using (public.is_platform_admin())");
     expect(reviewMigration).toContain('create policy "platform admins can update beta feedback status"');
     expect(reviewMigration).toContain("for update");
-    expect(reviewSource).toContain('role === "ceo" || role === "admin"');
+    expect(reviewSource).toContain("isPlatformAdminRole(role)");
     expect(reviewSource).toContain("readBetaFeedbackReviewQueueFromD1");
     expect(reviewActionSource).toContain("parseBetaFeedbackStatusUpdate");
     expect(reviewActionSource).toContain("updateBetaFeedbackReviewStatusInD1");

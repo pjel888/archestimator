@@ -47,7 +47,9 @@ describe("Cloudflare collaboration room Durable Object scaffold", () => {
     expect(workerSource).toContain("routeCollaborationRoomRequest");
     expect(workerSource).toContain('export { CollaborationRoom } from "./src/lib/cloudflare/collaboration-room";');
     expect(roomSource).toContain("export class CollaborationRoom");
-    expect(roomSource).toContain("constructor(ctx: DurableObjectStateLike)");
+    expect(roomSource).toContain("constructor(ctx: DurableObjectStateLike, env: Record<string, unknown> = {})");
+    expect(roomSource).toContain("verifyRealtimeRoomToken");
+    expect(roomSource).toContain("auth_required");
     expect(roomSource).toContain("new WebSocketPair()");
     expect(roomSource).toContain("this.ctx.acceptWebSocket(server)");
     expect(roomSource).toContain("webSocketMessage");

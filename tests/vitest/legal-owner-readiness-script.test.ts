@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildLegalOwnerReadinessTemplate,
   checkLegalOwnerReadiness,
   parseApprovalDate,
   parseLegalProofFlag,
@@ -68,5 +69,20 @@ describe("legal owner readiness checker", () => {
     expect(result.legalReviewer).toBe("Counsel / Reviewer");
     expect(result.approvalDate).toBe("2026-06-02");
     expect(result.approvalReference).toBe("Closed beta legal approval note");
+  });
+
+  it("builds a sanitized operator template without closing readiness", () => {
+    const template = buildLegalOwnerReadinessTemplate("2026-07-04T00:00:00.000Z");
+
+    expect(template.mode).toBe("legal-owner-readiness-template");
+    expect(template.proofFlags.LEGAL_OWNER_TERMS_CONFIRMED).toEqual({
+      required: true,
+      placeholder: "approved",
+    });
+    expect(template.labels.LEGAL_OWNER_APPROVAL_DATE.format).toBe("YYYY-MM-DD");
+    expect(template.acceptedFlagValues).toContain("approved");
+    expect(template.note).toContain("the template itself is not legal advice");
+    expect(JSON.stringify(template)).not.toContain("secret");
+    expect(JSON.stringify(template)).not.toContain(".env");
   });
 });

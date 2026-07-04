@@ -4,13 +4,13 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import { ProjectGroupSection } from "@/components/workshop/ProjectGroupSection";
 import type { ProjectListItem } from "@/components/workshop/projects-page-client";
-import type { Tables } from "@/lib/supabase/types";
+import type { ProjectRow } from "@/lib/types/database";
 import { resolveAccent } from "@/lib/workshop/group-accent";
 
 const FLAG_BG_COLOR = "color-mix(in srgb, var(--brand-orange) 25%, white)";
 const FLAG_RULE_COLOR = "color-mix(in srgb, var(--brand-orange) 35%, white)";
 
-function project(overrides: Partial<Tables<"projects">> = {}): Tables<"projects"> {
+function project(overrides: Partial<ProjectRow> = {}): ProjectRow {
   return {
     id: overrides.id ?? "00000000-0000-4000-8000-000000000001",
     workspace_id: "00000000-0000-4000-8000-100000000001",
@@ -227,7 +227,53 @@ describe("ProjectGroupSection group mode (accent + collapse + menu)", () => {
     expect(within(collapsedSection).queryAllByRole("article")).toHaveLength(0);
   });
 
-  it("opens the header menu slot from right-click and marks the virtual bucket", async () => {
+  it("renames editable group labels inline on Enter and mouse leave", async () => {
+    const user = userEvent.setup();
+    const onRenameGroup = vi.fn();
+    render(
+      <ProjectGroupSection
+        mode="group"
+        group={{ key: "g1", label: "Pipeline", accentId: null }}
+        items={[item("A", "p1")]}
+        viewMode="large"
+        renderCard={renderCard}
+        layoutClassName={layout}
+        flagLayoutClassName={flagLayout}
+        onRenameGroup={onRenameGroup}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "Rename Pipeline group" }),
+    );
+    const enterInput = screen.getByRole("textbox", {
+      name: "Rename Pipeline group",
+    });
+    expect(enterInput).toHaveFocus();
+    expect(enterInput).toHaveClass("bg-transparent", "border-0");
+    expect(enterInput).not.toHaveClass("bg-white/75");
+    await user.clear(enterInput);
+    await user.type(enterInput, "Roadmap{Enter}");
+    expect(onRenameGroup).toHaveBeenCalledWith("g1", "Roadmap");
+
+    await user.click(
+      screen.getByRole("button", { name: "Rename Pipeline group" }),
+    );
+    const hoverInput = screen.getByRole("textbox", {
+      name: "Rename Pipeline group",
+    });
+    await user.clear(hoverInput);
+    await user.type(hoverInput, "Backlog");
+    fireEvent.mouseLeave(hoverInput);
+    expect(onRenameGroup).toHaveBeenLastCalledWith("g1", "Backlog");
+  });
+
+  it("shows drag and action affordances on editable flags and keeps virtual buckets inert", async () => {
+    const user = userEvent.setup();
+    const manageGroups = vi.fn();
+    const dragStart = vi.fn();
+    const dragEnd = vi.fn();
+    const toggleCollapse = vi.fn();
     const { rerender } = render(
       <ProjectGroupSection
         mode="group"
@@ -237,9 +283,44 @@ describe("ProjectGroupSection group mode (accent + collapse + menu)", () => {
         renderCard={renderCard}
         layoutClassName={layout}
         flagLayoutClassName={flagLayout}
-        headerMenuSlot={<div role="menuitem">Manage groups</div>}
+        isReorderable
+        onToggleCollapse={toggleCollapse}
+        onReorderDragStart={dragStart}
+        onReorderDragEnd={dragEnd}
+        headerActionGroups={[
+          {
+            id: "group-actions",
+            items: [
+              {
+                id: "manage-groups",
+                label: "Manage groups",
+                onSelect: manageGroups,
+              },
+            ],
+          },
+        ]}
       />,
     );
+    const editableSection = screen.getByLabelText("Pipeline");
+    const reorderButton = within(editableSection).getByRole("button", {
+      name: "Reorder Pipeline group",
+    });
+    expect(reorderButton).toHaveAttribute("draggable", "true");
+    const labelButtons = Array.from(
+      editableSection.querySelectorAll("[data-project-group-label] button"),
+    ).map((button) => button.getAttribute("aria-label"));
+    expect(labelButtons.slice(0, 2)).toEqual([
+      "Reorder Pipeline group",
+      "Collapse Pipeline",
+    ]);
+    const actionsButton = within(editableSection).getByRole("button", {
+      name: "Group actions for Pipeline",
+    });
+    expect(actionsButton).toBeInTheDocument();
+    await user.click(actionsButton);
+    await user.click(await screen.findByRole("menuitem", { name: "Manage groups" }));
+    expect(manageGroups).toHaveBeenCalledTimes(1);
+
     const editableLabel = screen.getByText("Pipeline").closest("[data-project-group-label]");
     expect(editableLabel).toBeInstanceOf(HTMLElement);
     expect(screen.queryByRole("menuitem", { name: "Manage groups" })).not.toBeInTheDocument();
@@ -255,13 +336,30 @@ describe("ProjectGroupSection group mode (accent + collapse + menu)", () => {
         renderCard={renderCard}
         layoutClassName={layout}
         flagLayoutClassName={flagLayout}
-        headerMenuSlot={<div role="menuitem">Manage groups</div>}
+        headerActionGroups={[
+          {
+            id: "group-actions",
+            items: [
+              {
+                id: "manage-groups",
+                label: "Manage groups",
+                onSelect: manageGroups,
+              },
+            ],
+          },
+        ]}
       />,
     );
     const virtualSection = screen.getByLabelText("Ungrouped");
     expect(virtualSection).toHaveAttribute("data-project-group", "__ungrouped__");
     expect(virtualSection).toHaveAttribute("data-project-group-virtual", "");
     // Virtual bucket: no editable header menu (it can't be renamed/recolored/deleted).
+    expect(virtualSection.querySelector("[data-project-group-drag-handle]")).toBeNull();
+    expect(
+      within(virtualSection).queryByRole("button", {
+        name: "Group actions for Ungrouped",
+      }),
+    ).toBeNull();
     expect(within(virtualSection).queryByRole("menuitem", { name: "Manage groups" })).toBeNull();
   });
 });

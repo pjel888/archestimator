@@ -14,7 +14,6 @@ const d1Migration = readFileSync(join(process.cwd(), "migrations/0006_ai_audit_r
 const auditSource = readFileSync(join(process.cwd(), "src/lib/ai/audit.ts"), "utf8");
 const d1StoreSource = readFileSync(join(process.cwd(), "src/lib/ai/audit-d1-store.ts"), "utf8");
 const rateLimitSource = readFileSync(join(process.cwd(), "src/lib/ai/rate-limit.ts"), "utf8");
-const supabaseTypes = readFileSync(join(process.cwd(), "src/lib/supabase/types.ts"), "utf8");
 
 describe("AI audit foundation schema", () => {
   it("creates metadata-only audit tables for action runs, tool calls, and data access", () => {
@@ -65,13 +64,13 @@ describe("AI audit foundation schema", () => {
     expect(`${auditSource}\n${rateLimitSource}`).not.toMatch(/SUPABASE_SERVICE_ROLE_KEY|@supabase\/supabase-js|createClient/);
     expect(auditSource).toContain("Ask request used bounded browser route context and no database read tools.");
     expect(d1Migration).toContain("CREATE TABLE IF NOT EXISTS ai_action_runs");
+    expect(d1Migration).toContain("CREATE TABLE IF NOT EXISTS ai_tool_calls");
+    expect(d1Migration).toContain("CREATE TABLE IF NOT EXISTS ai_data_access_events");
+    expect(d1Migration).toContain("mode TEXT NOT NULL CHECK (mode IN ('ask', 'draft', 'apply', 'eval'))");
     expect(d1Migration).toContain("provider_send_categories_json TEXT NOT NULL DEFAULT '[]'");
     expect(d1Migration).toContain("CREATE TABLE IF NOT EXISTS security_rate_limit_events");
     expect(d1StoreSource).toContain("recordAiAskAuditEventInD1");
     expect(d1StoreSource).toContain("recordSecurityRateLimitEventInD1");
-    expect(supabaseTypes).toContain("ai_action_runs");
-    expect(supabaseTypes).toContain("ai_tool_calls");
-    expect(supabaseTypes).toContain("ai_data_access_events");
-    expect(supabaseTypes).toContain("ai_interaction_mode: \"ask\" | \"draft\" | \"apply\" | \"eval\"");
+    expect(d1StoreSource).toContain('type AiInteractionMode = "ask" | "draft" | "apply" | "eval";');
   });
 });

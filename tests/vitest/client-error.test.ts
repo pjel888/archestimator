@@ -102,6 +102,25 @@ describe("/api/internal/client-error", () => {
     expect(JSON.stringify(record)).not.toMatch(/provider-secret|client@example.com|raw-secret/i);
   });
 
+  it("redacts tokenized share paths from normalized client error records", async () => {
+    const { POST } = await loadRoute();
+
+    const response = await POST(
+      request({
+        name: "Error",
+        message: "Open /api/share/raw-share-token/session?recipient=raw-recipient-token",
+        path: "/share/raw-share-token?recipient=raw-recipient-token&state=raw-state&code=raw-code",
+        source: "global-error",
+      }),
+    );
+
+    expect(response.status).toBe(202);
+    const record = JSON.parse(String(vi.mocked(console.error).mock.calls[0]?.[0]));
+    expect(record.context.path_normalized).toBe("/share/[REDACTED_TOKEN]?[REDACTED_QUERY]");
+    expect(record.context.client_message_redacted).toContain("/api/share/[REDACTED_TOKEN]/session");
+    expect(JSON.stringify(record)).not.toMatch(/raw-share-token|raw-recipient-token|raw-state|raw-code/);
+  });
+
   it("treats prompt-injection text as tainted diagnostic data", async () => {
     const { POST } = await loadRoute();
 

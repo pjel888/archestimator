@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { ProjectsPageClient, type ProjectListItem } from "./projects-page-test-harness";
 import type { ProjectFavoriteEstimateSheetSummary } from "@/lib/repositories/workspace-repository";
 import type { ProjectPublicationListSummary } from "@/lib/publication/types";
-import type { Tables } from "@/lib/supabase/types";
+import type { ProjectRow } from "@/lib/types/database";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
@@ -31,7 +31,7 @@ const PROJECT_FIXTURE = {
   created_at: "2026-05-20T00:00:00.000Z",
   updated_at: "2026-05-26T00:00:00.000Z",
   created_by: null,
-} satisfies Tables<"projects">;
+} satisfies ProjectRow;
 
 function favoriteSheet(name: string): ProjectFavoriteEstimateSheetSummary {
   return {
@@ -45,7 +45,7 @@ function favoriteSheet(name: string): ProjectFavoriteEstimateSheetSummary {
 }
 
 function projectItem(
-  project: Tables<"projects">,
+  project: ProjectRow,
   favoriteEstimateSheets: readonly ProjectFavoriteEstimateSheetSummary[] = [],
   publicationSummary: ProjectPublicationListSummary | null = null,
 ): ProjectListItem {
@@ -71,7 +71,7 @@ describe("Projects page card layout", () => {
         projectImageUrl: "/api/projects/images?path=project-images/full.webp",
         projectImageThumbnailUrl: "/api/projects/images?path=project-images/thumb.webp",
       },
-    } satisfies Tables<"projects">;
+    } satisfies ProjectRow;
 
     const { rerender } = render(
       <ProjectsPageClient
