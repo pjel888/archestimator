@@ -432,8 +432,12 @@ Stable current truth (verify against git/source before relying on a detail):
   `evidence/2026-07-04-auth-audit-completion-readiness.json` and Markdown,
   exited `1` by design, and recorded `localProviderCleanupReady=true`,
   `externalCompletionProofReady=false`, and
-  `finalAuthAuditCompletionReady=false`; focused checker Vitest passed (`1`
-  file / `4` tests). The active goal remains open.
+  `finalAuthAuditCompletionReady=false`; review-driven hardening now rejects
+  unsafe CLI artifact-path overrides, parseable non-object JSON artifacts, and
+  approval-shaped final-review artifacts without required provenance; focused
+  checker Vitest passed (`1` file / `8` tests), and combined checker/legal
+  readiness Vitest passed (`2` files / `14` tests). The active goal remains
+  open.
 - Project-create D1 ownership regression fix as of 2026-07-03 18:00 UTC:
   local dev logs showed POST `/workshop/projects` failing after the project row
   was created, with cause `Project not found in the current workspace.` Root
