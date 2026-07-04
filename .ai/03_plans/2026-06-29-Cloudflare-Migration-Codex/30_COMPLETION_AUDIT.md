@@ -33,27 +33,30 @@ gates:
 - Latest-branch deploy/source smoke remains incomplete and is now a generated
   provider-exit pack gate:
   `evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.*` reports
-  `latestDeploySourceSmokeReady=false`.
+  `latestDeploySourceSmokeReady=false` at `2026-07-03T22:15:48.057Z` with one
+  blocker: eight intended local CRUD/image-auth/favorites/component-library/sidebar-access runtime source files
+  are uncommitted and cannot be claimed deployed.
 - A sanitized starter artifact for the future deploy/source evidence lane now
   exists at
   `evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.template.json`.
   It is intentionally not proof; unchanged, the checker keeps it open because
   production-version, hosted-route, and release-gate fields are placeholders.
-- Full provider exit remains `OPEN / NOT READY` because the sanitized operator
-  record is absent and the external/operator gates remain: final exports or
-  accepted retention/loss, Resend status, obsolete-secret cleanup, post-exit
-  Cloudflare smoke, real non-owner Google proof, and real recipient mailbox
-  proof or accepted deferral. The active provider-exit pack generated
-  `2026-07-03T14:46:59.752Z` also requires sanitized evidence-source pointers
-  for external/provider gate closure, records malformed proof-artifact JSON
-  as explicit `parseError` blockers, and scans deploy-relevant runtime config
-  files in addition to `src`, `worker.ts`, `package.json`, `bun.lock`, and
-  `wrangler.jsonc`.
+- Full provider exit remains `OPEN / NOT READY`. A sanitized operator record is
+  now present and closes the obsolete-secret-name review gate plus the Resend
+  account/API-key/domain status gate using existing sanitized evidence. The
+  external/operator gates that remain are: final exports or accepted
+  retention/loss, post-exit Cloudflare smoke, real non-owner Google proof or
+  accepted deferral, and real recipient mailbox proof or accepted deferral. The
+  active provider-exit pack generated `2026-07-03T22:15:48.194Z` also requires
+  sanitized evidence-source pointers for external/provider gate closure,
+  records malformed proof-artifact JSON as explicit `parseError` blockers, and
+  scans deploy-relevant runtime config files in addition to `src`, `worker.ts`,
+  `package.json`, `bun.lock`, and `wrangler.jsonc`.
   It also reads the current `2026-07-01` provider-resource readback artifact
   and labels the non-owner Google gate as proof or accepted deferral.
-  With the deploy/source gate added, the active provider-exit pack has seven
-  blockers and `appRuntimeExitPrerequisitesReady=false`. The latest proof
-  scripts also have
+  With the deploy/source gate added, the active provider-exit pack has five
+  blockers, `activeLegacyProviderRuntimeBlockers=0`, and
+  `appRuntimeExitPrerequisitesReady=false`. The latest proof scripts also have
   explicit strict verifier mode (`STRICT_READINESS_EXIT=1` or
   `FAIL_ON_BLOCKERS=1`) so blocked readiness can produce a nonzero CLI exit
   after JSON/Markdown artifacts are written.

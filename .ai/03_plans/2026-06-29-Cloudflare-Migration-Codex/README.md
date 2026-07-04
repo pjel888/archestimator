@@ -12,13 +12,19 @@ Readiness: this README is the original **pre-cutover planning baseline**. Curren
 
 Planning-quality loop status: **PASS** as of the completion audit in `30_COMPLETION_AUDIT.md`. Later execution evidence now proves Cloudflare cutover gates for closed-beta runtime; provider deletion/removal remains intentionally separate.
 
-Current implementation evidence as of 2026-07-03 14:46 UTC is indexed in
+Current implementation evidence as of `2026-07-03T21:08:32Z` is indexed in
 `29_CURRENT_EVIDENCE_INVENTORY.md` and the active ledgers `35`-`37`. The short
-state is: closed-beta app runtime is near-complete, but strict app-runtime
-completion remains open on latest deploy/source smoke; full provider exit is
-`OPEN / NOT READY` until the sanitized operator record, external/provider gates,
-real non-owner Google proof, and recipient mailbox proof or accepted deferral are
-closed.
+state is: closed-beta app runtime remains open on latest deploy/source smoke
+because the shared-project CRUD/image-auth/favorites patch is local-only; full provider
+exit is `OPEN / NOT READY` until latest deploy/source smoke, final export or
+accepted retention/loss, post-exit Cloudflare smoke, real non-owner Google
+proof or accepted deferral, and recipient mailbox proof or accepted deferral
+are closed. A 2026-07-03 21:08 UTC proof-pack refresh keeps the same one
+deploy-source blocker and five provider-exit blockers, now with the current
+dirty runtime list including the favorites/read-path files added after the
+19:58 audit. The sanitized operator record exists and closes the
+obsolete-secret-name review gate plus the Resend account/API-key/domain status
+gate, using existing sanitized evidence only.
 
 This package evaluates whether Archestimator should migrate from the current Next.js/Vercel/Supabase/Resend shape toward Cloudflare Workers, D1, KV, R2, Queues, Hyperdrive, Email Service, WAF, and DDoS protection.
 

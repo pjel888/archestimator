@@ -24,21 +24,182 @@ implemented?":
 
 | Evidence | Current result | Boundary |
 | --- | --- | --- |
-| `evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.*` | Generated `2026-07-03T14:46:55.585Z`; `latestDeploySourceSmokeReady=false`. Deploy evidence exists and includes passing hosted route/release-gate smoke, but it does not record the deployed git source commit and predates current `HEAD`. The runtime source status contract covers `src`, `worker.ts`, `package.json`, `bun.lock`, `wrangler.jsonc`, `cloudflare-env.d.ts`, `next.config.ts`, `open-next.config.ts`, and `src/middleware.ts`; proof-tooling-only `package.json` script additions are no longer counted as deploy-relevant runtime dirtiness, while `bun.lock`, dependency, build, runtime script, or other package metadata changes still block. The artifact schema records `parseError` so malformed JSON cannot masquerade as a pass, and the CLI supports `STRICT_READINESS_EXIT=1` / `FAIL_ON_BLOCKERS=1` so blocked readiness can produce a nonzero verifier exit after artifacts are written. | Local/source and sanitized hosted-evidence aggregation only; no deploy or browser proof was performed in this refresh. |
+| `evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.*` | Generated `2026-07-03T22:15:48.057Z`; `latestDeploySourceSmokeReady=false` with one blocker: runtime source paths have uncommitted changes and cannot be claimed deployed. The dirty runtime entries include the intended local CRUD/image-auth/favorites plus component-library/sidebar-access source files: `src/app/api/estimate-row-images/route.ts`, `src/app/api/projects/images/route.ts`, `src/lib/component-library/actions.ts`, `src/lib/projects/actions.ts`, `src/lib/repositories/estimate-favorites-repository.ts`, `src/lib/repositories/workspace-repository.ts`, `src/lib/uploads/upload-records.ts`, and `src/lib/workshop/actions.ts`. The prior ready artifact recorded deployed source commit `230930b39ffed927cb397aec4d9dde161f8169b0`, production Worker version `01c577ee-ab6a-4da7-bcaf-ddab7baea524` / number `95`, deployment timestamp `2026-07-03T17:34:08.169674Z`, hosted route proof passing, and release gates passing; it is superseded for current-worktree readiness by this refresh because the shared-project CRUD/image-auth/favorites/component-library/sidebar-access patch is local and not yet committed/deployed. The runtime source status contract covers `src`, `worker.ts`, `package.json`, `bun.lock`, `wrangler.jsonc`, `cloudflare-env.d.ts`, `next.config.ts`, `open-next.config.ts`, and `src/middleware.ts`; proof-tooling-only `package.json` script additions are no longer counted as deploy-relevant runtime dirtiness, while `bun.lock`, dependency, build, runtime script, or other package metadata changes still block. The artifact schema records `parseError` so malformed JSON cannot masquerade as a pass, and the CLI supports `STRICT_READINESS_EXIT=1` / `FAIL_ON_BLOCKERS=1` so blocked readiness can produce a nonzero verifier exit after artifacts are written. | Sanitized current-source deploy/readback plus hosted-route/release-gate aggregation; no deploy of the local CRUD/image-auth/favorites/component-library/sidebar-access patch, provider-exit operator, non-owner persona, or recipient mailbox proof. |
 | `evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.template.json` | Sanitized starter for the future current-source deploy lane. | Not proof; placeholders must be replaced by real post-deploy production-version, hosted-route, and release-gate evidence. |
-| `evidence/2026-07-03-cloudflare-provider-exit-pack.*` | Generated `2026-07-03T14:46:59.752Z`; `activeLegacyProviderRuntimeBlockers=0`, `appRuntimeExitPrerequisitesReady=false`, `providerExitReady=false`, seven blockers. The active runtime scan now covers `src`, `worker.ts`, `package.json`, `bun.lock`, `wrangler.jsonc`, `cloudflare-env.d.ts`, `next.config.ts`, `open-next.config.ts`, and `src/middleware.ts` where present. The provider-resource gate reads the current `2026-07-01-cloudflare-provider-resource-readback.json`; the non-owner Google gate accepts either real proof or an accepted deferral. The artifact summary and operator diagnostics preserve malformed-JSON blockers via `parseError`, and the CLI supports `STRICT_READINESS_EXIT=1` / `FAIL_ON_BLOCKERS=1` so blocked provider-exit readiness can produce a nonzero verifier exit after artifacts are written. | Non-destructive evidence only; no export, provider cancellation, secret rotation, post-exit smoke, persona, or mailbox proof. |
-| `evidence/2026-07-03-cloudflare-provider-exit-operator-record.template.json` | Sanitized operator-record template exists and requires evidence-source pointers for external/provider gates. | Not proof; the real operator record is intentionally absent until external/provider work is done or accepted as deferred. |
+| `evidence/2026-07-03-cloudflare-provider-exit-pack.*` | Generated `2026-07-03T22:15:48.194Z`; `activeLegacyProviderRuntimeBlockers=0`, `appRuntimeExitPrerequisitesReady=false`, `providerExitReady=false`, five blockers. The sanitized obsolete-secret-name review gate and Resend account/API-key/domain status gate are ready through the durable operator record, but latest deploy/source smoke is blocked by the local undeployed CRUD/image-auth/favorites/component-library/sidebar-access source patch. Remaining blockers are latest deploy/source smoke, final exports or accepted-retention/loss, post-exit Cloudflare smoke, real non-owner Google proof or accepted deferral, and real recipient mailbox proof or accepted deferral. The active runtime scan covers `src`, `worker.ts`, `package.json`, `bun.lock`, `wrangler.jsonc`, `cloudflare-env.d.ts`, `next.config.ts`, `open-next.config.ts`, and `src/middleware.ts` where present. The provider-resource gate reads the current `2026-07-01-cloudflare-provider-resource-readback.json` generated `2026-07-03T19:09:20.522Z`; release gates generated `2026-07-03T19:09:27.829Z` are green; Cloudflare Email readiness is green; the non-owner Google gate accepts either real proof or an accepted deferral. The artifact summary and operator diagnostics preserve malformed-JSON blockers via `parseError`, and the CLI supports `STRICT_READINESS_EXIT=1` / `FAIL_ON_BLOCKERS=1` so blocked provider-exit readiness can produce a nonzero verifier exit after artifacts are written. | Non-destructive evidence only; no deployment of local source changes, export, provider cancellation, post-exit operator smoke, persona, mailbox proof, or fresh Resend dashboard/domain mutation. |
+| `evidence/2026-07-03-cloudflare-provider-exit-operator-record.json` | Sanitized operator record generated `2026-07-03T17:57:32.000Z` and locally updated at 2026-07-03 20:31 UTC; records Cloudflare secret-name review for obsolete provider secret cleanup plus Resend status from existing sanitized evidence. Resend account/key status points to the 2026-07-01 read-only Resend dashboard notes; domain status points to archived 2026-06-04 Resend verified-domain proof and current Cloudflare Email readiness. It states secret values were not read or recorded and that this run did not mutate or freshly refresh Resend domain settings. | Closes the obsolete-secret-name review gate and the Resend account/API-key/domain status gate; it does not prove exports, post-exit smoke, non-owner persona behavior, or recipient mailbox receipt. |
+| `evidence/2026-07-03-provider-exit-export-metadata-attempt.*` | Generated `2026-07-03T22:15:21Z`; created the owner-local dated backup directory outside the repo with `700` permissions and recorded read-only Vercel/Cloudflare metadata, but `exportsOrRetentionDecisionRecorded=false`. Vercel project/domain/env-name/deployment metadata readbacks passed without values; Cloudflare Wrangler auth/provider-resource/email readbacks passed. Supabase export for historical project `ebxxqidacheyapmmzavr` remains blocked: no `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, or `SUPABASE_PROJECT_REF` was present in the process environment; the Homebrew Supabase CLI exited `137` before output; and package-runner Supabase `2.109.0` printed its version but hung on `projects list` until interrupted. | Evidence-quality progress only; does not close the export/retention gate. No raw export, SQL dump, secret, provider mutation, provider cancellation, deploy, persona proof, or mailbox proof. |
+| `evidence/2026-07-03-cloudflare-provider-exit-operator-record.template.json` | Sanitized operator-record template exists and requires evidence-source pointers for external/provider gates. | Template only; use the real operator record above for the one currently closed sanitized gate. |
 | `evidence/2026-07-03-cloudflare-migration-implementation-completion-audit.*` | Generated `2026-07-03T14:46:59Z`; verdict `NEAR-COMPLETE, NOT FULLY IMPLEMENTED`; goal should not be marked complete. | Completion audit is local/static plus automated evidence; it does not replace deploy, browser, provider, persona, or mailbox proof. |
-| `evidence/2026-07-03-cloudflare-migration-blocked-audit.*` | Generated `2026-07-03T15:31:00Z`; strict blocked audit records that the same external deploy/source, provider/operator, persona, and mailbox blockers have recurred after safe local proof-tooling and review work was exhausted. | Blocked-audit evidence only; it does not replace the missing external/provider proof and does not make the migration complete. |
+| `evidence/2026-07-03-cloudflare-migration-blocked-audit.*` | Generated `2026-07-03T15:31:00Z`; historical strict blocked audit records blockers present at that time. Its deploy/source blocker was temporarily superseded by deployed-commit proof, but is open again for the current worktree because local CRUD runtime source changes are not deployed; provider/operator, persona, and mailbox blockers remain open. | Blocked-audit evidence only; it does not replace the missing external/provider proof and does not make the migration complete. |
 | `evidence/2026-07-03-glm52-final-ultraqa-review.*` | Generated `2026-07-03T14:46:59Z`; verdict `PARTIAL`; Doc 37 scenario matrix has `23` rows with explicit pass/open classifications, including malformed proof-artifact parse-error coverage, strict readiness-exit CLI coverage for QA-SCRIPT-001, provider-exit scan-surface/filesystem scanner coverage, `bun.lock` scan coverage, accepted-deferral coverage, deployed-commit mismatch/deployment-time coverage, fresh local QA-R2/QA-SHARE residual refresh proof, and the 14:46 proof-tooling package/lockfile precision refresh. | Same-agent/local refresh plus prior verifier evidence; external/operator gates remain open. |
 | `evidence/2026-07-03-codex-independent-proof-tooling-code-review.*` | Generated `2026-07-03T15:10:50Z`; independent native `code-reviewer` Hilbert found no scoped correctness issues and no safe local fixes in the proof-tooling/plan-pack diff. Focused Vitest passed `2` files / `32` tests, `bun run type-check` passed, scoped `git diff --check` passed, and static secret/provider-mutation pattern review found no blockers. | Read-only local review; it does not replace current-source deploy proof, provider/operator evidence, browser/persona proof, mailbox proof, or commit/staging durability. |
 
-As of this addendum, Cloudflare closed-beta app runtime is near-complete, but
-strict app-runtime completion is still open on latest deploy/source smoke. Full
-migration/provider exit remains open on final exports or accepted
-retention/loss, Resend status, obsolete provider secret cleanup, post-exit
-Cloudflare smoke, real non-owner Google proof, and real recipient mailbox proof
-or accepted deferral.
+As of this addendum, Cloudflare closed-beta app runtime had deploy/source proof
+for commit `230930b39ffed927cb397aec4d9dde161f8169b0`, but current-worktree
+deploy/source proof is open again because the shared-project CRUD/image-auth
+and favorites/sidebar-access patch is local and not yet committed/deployed. Full migration/provider exit
+remains open on latest deploy/source smoke, final exports or accepted
+retention/loss, post-exit Cloudflare smoke, real non-owner Google proof, and
+real recipient mailbox proof or accepted deferral. Resend account/API-key/domain
+status is now recorded in the sanitized operator record from existing evidence,
+with the explicit boundary that this pass did not freshly refresh Resend domain
+settings.
+
+2026-07-03 18:40 UTC local follow-up evidence: the local CRUD/image-auth patch
+now also pins shared-workspace project-image DELETE, collaborator-owned project
+image path rejection before project lookup/storage deletion, cross-project
+project-image DELETE atomic denial when any current-user target project is not
+editable, project detail thumbnail path rejection, shared-workspace
+project-image metadata cleanup, project bulk-delete foreign image metadata
+filtering, mixed eligible/forbidden bulk-delete non-execution, exact R2 cleanup
+paths, R2 cleanup failure reporting, and project bulk-delete
+project-admin/non-manager collaborator eligibility. Verification passed:
+focused modified Vitest (`5` files / `111` tests), metadata/bulk-delete
+follow-up matrix (`2` files / `17` tests), `bun run type-check`,
+`bun run cf:build` (runtime source unchanged since this check), and
+`git diff --check`. Independent read-only code review approved the scoped
+CRUD/image-auth runtime patch with no correctness or security findings. This is
+local evidence only; it does not close the current-source deploy/source blocker.
+
+2026-07-03 19:22 UTC local CRUD/access follow-up evidence: the remaining
+`Project not found in the current workspace.` occurrences in estimate and
+location actions were rechecked. They are behind the repaired
+`getCurrentWorkspaceProject` D1 target-project access gate or downstream
+project/estimate scoping, so no new default-workspace CRUD source defect was
+found in that pass. Fresh focused verification passed:
+`bunx vitest run tests/vitest/d1-access-created-by.test.ts tests/vitest/workspace-repository-authz-contract.test.ts tests/vitest/project-location-actions.test.ts tests/vitest/project-location-schema.test.ts tests/vitest/estimate-sheet-actions-authz.test.ts tests/vitest/project-metadata-audit.test.ts tests/vitest/project-bulk-delete-d1-actions.test.ts tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/upload-domain-contracts.test.ts tests/vitest/project-creation-ui.test.ts --maxWorkers=1`
+(`10` files / `142` tests), `bun run type-check`, `git diff --check`, and
+`bun run cf:build`. This is local-only evidence; it does not deploy the
+CRUD/image-auth patch and does not close provider-exit, persona, or mailbox
+gates.
+
+2026-07-03 19:30 UTC local CRUD/image-auth proof refresh: a focused D1
+validator regression was added to prove estimate-row upload assets are recorded
+with the row id as `target_entity_id` while preserving separate `project_id`
+and `estimate_id` lookup ids for the active D1 validator. Fresh verification
+passed the focused CRUD/authz suite above with `10` files / `143` tests,
+`bun run type-check`, `git diff --check`, and `bun run cf:build`. Independent
+native `code-reviewer` Faraday returned zero findings on the scoped patch, and
+independent native `verifier` Kuhn returned `PASS` for the local-ready claim.
+`bun run cf:check-latest-deploy-source-smoke` regenerated the source-smoke
+artifact at `2026-07-03T21:08:28.881Z` and kept readiness false with the same
+uncommitted-runtime-source blocker, now including the later favorites/read-path
+files in the dirty runtime list. `bun run cf:provider-exit-pack` regenerated
+the provider-exit pack at `2026-07-03T21:08:32.788Z` with
+`activeLegacyProviderRuntimeBlockers=0` and five external/provider blockers at
+that checkpoint. The focused proof-script regression suite also passed
+(`2` files / `32` tests). This is still local/non-destructive proof only; no
+commit, deploy, provider mutation, browser proof, external persona proof, or
+mailbox proof was performed.
+
+2026-07-03 21:28 UTC local component-library shared-project follow-up: the
+estimate-template source actions no longer bind reusable source estimate lookup
+to the user's default workspace. `createEstimateTemplateFromEstimateNode`,
+`createEstimateTemplateFromEstimateTab`, and `resolveEstimateTemplateInsertTarget`
+now resolve the source estimate by target project/estimate, then use the
+estimate's real `workspace_id` for library editor checks, quota/sort-order
+reads, template inserts, and insert-target telemetry. Fresh focused verification
+passed `bunx vitest run tests/vitest/estimate-insert-target-authz.test.tsx tests/vitest/library-viewer-authz.test.tsx tests/vitest/security-findings-auth-contracts.test.ts --maxWorkers=1`
+(`3` files / `27` tests), the broader related template/library suite passed
+`8` files / `148` tests, `bun run type-check`, `git diff --check`, and
+`bun run cf:build` passed. The latest deploy/source-smoke and provider-exit
+pack were regenerated at `2026-07-03T21:28:12.165Z`; readiness remains open
+with the same one source blocker / five provider-exit blockers, now listing
+`src/lib/component-library/actions.ts` in the dirty runtime source set. This is
+local/non-destructive proof only; no commit, deploy, provider mutation, browser
+proof, external persona proof, or mailbox proof was performed.
+
+2026-07-03 21:43 UTC local estimate-row image delete follow-up: a scoped
+review found an authz asymmetry in `src/app/api/projects/images/route.ts`.
+Estimate-row image upload and download allowed estimate-only editors, but the
+shared DELETE endpoint still required project edit for estimate-row image paths.
+The local patch now allows current-user estimate-row image path removal when
+`canEditEstimateInD1` resolves for the target estimate and still requires
+project edit for project-cover image deletion. Fresh verification passed
+`bunx vitest run tests/vitest/auth-sensitive-api-boundaries.test.ts --maxWorkers=1`
+(`1` file / `74` tests), the related upload/CRUD subset (`6` files / `49`
+tests), the dirty-runtime regression pack (`14` files / `156` tests), the
+broader component/template suite (`8` files / `148` tests), `bun run
+type-check`, `git diff --check`, `bun run cf:build`, and scoped code-review
+graph analysis of the eight dirty runtime files. `bun run logs:debug` still
+reports only the stale `2026-07-03T16:40:42.495Z` project-create record. The
+latest deploy/source-smoke and provider-exit pack were regenerated at
+`2026-07-03T21:43:06.524Z` and `2026-07-03T21:43:09.008Z`; readiness remains
+open with the same one source blocker / five provider-exit blockers. This is
+local/non-destructive proof only; no commit, deploy, provider mutation, browser
+proof, external persona proof, mailbox proof, or provider export was performed.
+
+2026-07-03 21:51 UTC safe-local blocker audit refresh: after the estimate-row
+image DELETE follow-up, a targeted source audit rechecked project bulk-delete
+execution, project/estimate-row image API access, component-library
+shared-project template actions, workspace project access summaries, workshop
+favorites, upload metadata, and the remaining estimate-action
+`Project not found in the current workspace.` paths. No additional confirmed
+safe local source defect was found. Fresh validation passed:
+`bunx vitest run tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/upload-domain-contracts.test.ts tests/vitest/project-metadata-audit.test.ts tests/vitest/project-bulk-delete-d1-actions.test.ts tests/vitest/workshop-favorite-actions-hygiene.test.ts tests/vitest/estimate-favorites-repository.test.ts tests/vitest/project-activity-page/route-contract.test.ts tests/vitest/project-location-actions.test.ts tests/vitest/library-viewer-authz.test.tsx tests/vitest/estimate-insert-target-authz.test.tsx tests/vitest/estimate-sheet-create-empty-tree.test.ts tests/vitest/express-promotion-action.test.ts --maxWorkers=1`
+(`12` files / `139` tests), `bun run type-check`, `git diff --check`, and
+`bun run cf:build`. `bun run logs:debug` still reports only the stale
+`2026-07-03T16:40:42.495Z` project-create record. The latest
+deploy/source-smoke and provider-exit pack were regenerated at
+`2026-07-03T21:51:36.422Z` and `2026-07-03T21:51:41.373Z`; readiness remains
+open with the same one source blocker / five provider-exit blockers. This is
+local/non-destructive proof only; no commit, deploy, provider mutation, browser
+proof, external persona proof, mailbox proof, provider export, or accepted
+deferral was performed.
+
+2026-07-03 20:32 UTC provider-exit evidence refresh: the sanitized operator
+record now records Resend account/API-key/domain status from existing repo-safe
+evidence. `bun run cf:provider-exit-pack` regenerated the provider-exit pack at
+`2026-07-03T20:31:56.818Z`; `activeLegacyProviderRuntimeBlockers=0`,
+`appRuntimeExitPrerequisitesReady=false`, and `providerExitReady=false` remain
+unchanged, but the computed blocker count dropped to five because the Resend
+status gate is now `PASS`. Focused verification passed
+`bunx vitest run tests/vitest/provider-exit-pack-script.test.ts --maxWorkers=1`
+(`1` file / `18` tests). This is still local/non-destructive proof only; no
+commit, deploy, provider mutation, browser proof, external persona proof,
+mailbox proof, or fresh Resend dashboard/domain refresh was performed.
+
+2026-07-03 20:12 UTC local project-create setup-path evidence: a regression in
+`tests/vitest/d1-access-created-by.test.ts` now proves the real D1 estimate
+action client call path, `EstimateActionsD1Client.call("can_edit_project")`,
+grants edit access through the repaired `projects.created_by` predicate. This
+targets the default-estimate creation guard that runs after project creation and
+can surface "Project was created, but setup needs attention." if it fails.
+Focused verification passed:
+`bunx vitest run tests/vitest/d1-access-created-by.test.ts tests/vitest/estimate-sheet-create-empty-tree.test.ts tests/vitest/projects-page-create-optimistic.test.tsx --maxWorkers=1`
+(`3` files / `10` tests), `bun run type-check`, and `git diff --check`. This is
+local evidence only; it does not close deploy/source, provider-exit,
+external-persona, or mailbox gates.
+
+2026-07-03 20:17 UTC local project-create image setup-path evidence:
+`tests/vitest/auth-sensitive-api-boundaries.test.ts` now proves the project
+image upload route allows a just-created project owner through the real D1
+`canEditProjectInD1` created-by predicate even when membership-style edit grants
+are false. `tests/vitest/project-metadata-audit.test.ts` now proves
+`updateProjectImageMetadata` saves image metadata through the same predicate.
+Focused verification passed:
+`bunx vitest run tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/project-metadata-audit.test.ts --maxWorkers=1`
+(`2` files / `84` tests), followed by integrated setup-path verification:
+`bunx vitest run tests/vitest/d1-access-created-by.test.ts tests/vitest/estimate-sheet-create-empty-tree.test.ts tests/vitest/projects-page-create-optimistic.test.tsx tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/project-metadata-audit.test.ts --maxWorkers=1`
+(`5` files / `94` tests), `bun run type-check`, and `git diff --check`. This is
+local evidence only; it does not close deploy/source, provider-exit,
+external-persona, or mailbox gates.
+
+2026-07-03 20:24 UTC local shared-project express promotion evidence:
+`tests/vitest/express-promotion-action.test.ts` now proves express component
+promotion for a shared-project row outside the user's default workspace binds
+library access and library-folder validation to the source row's
+`workspace_id`, then inserts the cost library item and price option into that
+same project workspace. Focused verification passed
+`bunx vitest run tests/vitest/express-promotion-action.test.ts --maxWorkers=1`
+(`1` file / `5` tests). Expanded local CRUD/authz verification passed
+`bunx vitest run tests/vitest/express-promotion-action.test.ts tests/vitest/d1-access-created-by.test.ts tests/vitest/estimate-sheet-create-empty-tree.test.ts tests/vitest/projects-page-create-optimistic.test.tsx tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/project-metadata-audit.test.ts tests/vitest/project-activity-page/route-contract.test.ts tests/vitest/project-bulk-delete-d1-actions.test.ts tests/vitest/project-creation-ui.test.ts tests/vitest/project-location-actions.test.ts tests/vitest/upload-domain-contracts.test.ts --maxWorkers=1`
+(`11` files / `139` tests), plus `bun run type-check` and
+`git diff --check`; `bun run cf:build` also completed successfully and wrote
+`.open-next/worker.js` locally without deployment. This is local evidence only;
+it does not close deploy/source, provider-exit, external-persona, or mailbox
+gates.
 
 What this evidence proves:
 
@@ -50,9 +211,10 @@ What this evidence proves:
 What this evidence does not prove:
 
 - Cloudflare will be cheaper for real Archestimator usage.
-- Current-source deploy/source smoke for the latest dirty worktree state.
+- Current-source deploy/source smoke for the local shared-project
+  CRUD/image-auth patch.
 - Full provider exit, post-exit smoke, provider export/retention posture, or
-  obsolete secret cleanup.
+  Resend provider status.
 - Real non-owner Google persona behavior.
 - Real recipient mailbox receipt or owner-accepted deferral.
 - Production cutover for any future source changes after the current proof set.
@@ -227,12 +389,15 @@ Current blocker recorded by the snapshot: none for Wrangler/API auth. Production
 
 ## Generated Provider Resource Readback
 
-Generated on 2026-06-30 local time with `bun run cf:check-provider-resources`.
+Generated on 2026-06-30 local time with `bun run cf:check-provider-resources`;
+the current release-gate artifact path was refreshed on 2026-07-03 19:09 UTC.
 
 Artifacts:
 
 - `evidence/2026-06-30-cloudflare-provider-resource-readback.json`
 - `evidence/2026-06-30-cloudflare-provider-resource-readback.md`
+- `evidence/2026-07-01-cloudflare-provider-resource-readback.json`
+- `evidence/2026-07-01-cloudflare-provider-resource-readback.md`
 
 The generated readback is a read-only Wrangler resource gate. It reads `wrangler.jsonc`, the Wrangler auth artifact, and the Worker readiness artifact, then runs provider list/status commands only after Wrangler/API auth is proven. It does not print raw command output, secret values, tokens, or env files; does not deploy, update, delete, purge, purchase, change DNS, or make Vercel/Supabase/Resend removable.
 
@@ -240,23 +405,29 @@ The generated readback is a read-only Wrangler resource gate. It reads `wrangler
 | --- | --- |
 | Wrangler authenticated | yes |
 | Provider readback attempted | yes |
-| Worker deployment readback ready | no |
+| Worker deployment readback ready | yes |
 | D1 database readback ready | yes |
 | R2 bucket readback ready | yes |
 | Queues readback ready | yes |
-| Worker secret name readback ready | no |
-| Provider resource readback ready | no |
+| Worker secret name readback ready | yes |
+| Provider resource readback ready | yes |
 | Production cutover ready | no |
 
 Expected proof resource names recorded by the artifact: Worker `archestimator-proof`, D1 database `archestimator-proof-db`, R2 buckets `archestimator-proof-uploads` and `archestimator-proof-uploads-dev`, Queues `archestimator-upload-jobs` and `archestimator-upload-jobs-dlq`, and the required Worker secret names from the readiness artifact.
 
 Provider resources now created/read back: D1 `archestimator-proof-db` (`9bdb29bb-687e-4f51-ae81-7659c426ea5f`), preview D1 `archestimator-proof-db-dev` (`363c756a-7c4d-42fe-908f-6d328bfa4acb`), R2 buckets `archestimator-proof-uploads` and `archestimator-proof-uploads-dev`, and Queues `archestimator-upload-jobs` and `archestimator-upload-jobs-dlq`.
 
-Current blockers recorded by the readback: Worker/D1/R2/Queue resources now read back, but the Worker secret-name gate is still red because `BETTER_AUTH_GOOGLE_CLIENT_ID` and `BETTER_AUTH_GOOGLE_CLIENT_SECRET` are not present on `archestimator-proof`. This keeps the provider resource gate red and blocks Google OAuth/auth cutover.
+Current blockers recorded by the 2026-07-03 19:09 UTC readback: none.
+The Worker deployment list, D1 database list, R2 bucket list, Queue list, and
+Worker secret-name list all passed. `productionCutoverReady` remains false in
+this provider-resource artifact because deploy/source and release readiness are
+separate aggregate gates.
 
 ## Generated Wrangler Deploy Dry-Run Snapshot
 
-Generated on 2026-06-30 local time with `bun run cf:check-deploy-dry-run`.
+Generated on 2026-06-30 local time with `bun run cf:check-deploy-dry-run`;
+refreshed on 2026-07-03 19:03 UTC after the local CRUD/image-auth patch and
+Cloudflare build refresh.
 
 Artifacts:
 
@@ -273,10 +444,10 @@ The generated snapshot runs `wrangler deploy --dry-run` against the local OpenNe
 Captured local facts:
 
 - Wrangler dry-run exit code `0` with the no-upload marker present.
-- `302` asset files read from `.open-next/assets`.
-- Bundle upload estimate: `20431.97 KiB`, gzip `4432.50 KiB`.
-- Required bindings present in the dry-run output: `ARCH_DB`, `ARCH_UPLOADS_R2`, `ASSETS`, `COLLAB_ROOMS`, `IMAGES`, and `UPLOAD_JOBS_QUEUE`.
-- Metafile read: `50` inputs, `2` outputs, `50292260` output bytes.
+- `289` asset files read from `.open-next/assets`.
+- Bundle upload estimate: `25204.46 KiB`, gzip `5395.01 KiB`.
+- Required bindings present in the dry-run output: `ARCH_DB`, `ARCH_UPLOADS_R2`, `ASSETS`, `COLLAB_ROOMS`, `EMAIL`, `IMAGES`, and `UPLOAD_JOBS_QUEUE`.
+- Metafile read: `680` inputs, `2` outputs, `63219877` output bytes.
 - Warning captured: none.
 
 This is local no-upload bundling evidence only. It does not prove Cloudflare authentication, hosted deployment, custom domains, remote binding resources, request handling, production traffic, logs/observability receipt, DNS cutover, or rollback.
@@ -604,7 +775,14 @@ The generated snapshot aggregates the current local and sanitized proof artifact
 | Local release-gate report ready | yes |
 | Production cutover ready | no |
 
-Current blockers recorded by the aggregate gate: D1/Auth/Realtime production proof, hosted Worker route matrix proof, Wrangler/API auth readback, provider resource readback, hosted Worker/custom-domain proof, Workers Paid/secrets, provider-backed R2/Images proof, Cron/Queues/dead-letter proof, Cloudflare analytics/observability receipt, sanitized current-provider cost inputs, hosted Cloudflare usage inputs, hosted performance proof, and production cost decision evidence.
+Historical blockers recorded by the older 2026-06-30 aggregate gate: D1/Auth/Realtime production proof, hosted Worker route matrix proof, Wrangler/API auth readback, provider resource readback, hosted Worker/custom-domain proof, Workers Paid/secrets, provider-backed R2/Images proof, Cron/Queues/dead-letter proof, Cloudflare analytics/observability receipt, sanitized current-provider cost inputs, hosted Cloudflare usage inputs, hosted performance proof, and production cost decision evidence.
+
+Current aggregate release gates were refreshed at `2026-07-03T19:09:27.829Z`
+in `evidence/2026-07-01-cloudflare-release-gates.*`; they report
+`productionCutoverReady=true` with `blockers=[]`. This does not close the
+latest deploy/source-smoke blocker for the local CRUD/image-auth/favorites patch
+and does not make the remaining provider-exit operator/persona/mailbox gates
+complete.
 
 This is an aggregate evidence index only. A passing local release-gate report does not prove production deploy readiness or make Vercel/Supabase/Resend removable.
 

@@ -1,0 +1,53 @@
+{
+  "generatedAt": "2026-07-03T17:57:32.000Z",
+  "mode": "cloudflare-provider-exit-operator-record",
+  "boundary": "Sanitized operator record only. Do not record secrets, tokens, cookies, raw mailbox content, provider screenshots with private values, private backup paths, or credential material.",
+  "finalExportsOrRetentionDecision": {
+    "status": "missing",
+    "decision": "",
+    "acceptedBy": "",
+    "evidenceSource": "",
+    "rollbackDecision": "",
+    "backupLocationDescription": ""
+  },
+  "resendStatus": {
+    "status": "recorded",
+    "accountPlanStatus": "Read-only Resend dashboard evidence from 2026-07-01 shows Free Transactional and Marketing subscriptions at $0/mo, no payment methods, and no invoices.",
+    "accountEvidenceSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-cost-performance-workbook-root-shell-refresh.md rows `Resend plan cost`; .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-sanitized-usage-inputs.json key `Resend plan cost`.",
+    "apiKeyStatus": "Read-only Resend dashboard evidence from 2026-07-01 shows one legacy Sending key named Onboarding, created about 1 month earlier and last used 26 days earlier. Active app runtime evidence records Cloudflare Email as the email path and no Resend email files. The key was not opened, copied, deleted, rotated, or printed.",
+    "apiKeyEvidenceSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-cost-performance-workbook-root-shell-refresh.md row `Resend sends/events`; .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-sanitized-usage-inputs.json key `Resend sends/events`; .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-provider-exit-pack.json active legacy provider runtime scan.",
+    "sendingDomainStatus": "Historical sanitized provider evidence records Resend domain contact.archestimator.com as Verified on 2026-06-04, with a production send probe ok and webhook enabled. Active app sending has moved to Cloudflare Email for archestimator.com and is ready. This run did not mutate or freshly refresh Resend domain settings.",
+    "domainEvidenceSource": ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-domain-verified-email-enabled-2026-06-04T1235Z.json; .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-email-readiness.json."
+  },
+  "obsoleteSecretRotation": {
+    "status": "recorded",
+    "cloudflareSecretNamesReviewed": true,
+    "obsoleteProviderSecretsRemovedOrRotated": true,
+    "secretValuesNotRecorded": true,
+    "evidenceSource": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-provider-resource-readback.json commands[key=secrets] and 2026-07-03 live read-only `wrangler secret list --name archestimator-proof`; secret names only; no SUPABASE_, VERCEL_, RESEND_, or provider-named obsolete secret names present; secret values were not read or recorded."
+  },
+  "postExitSmoke": {
+    "status": "missing",
+    "runAt": "",
+    "cloudflareSmokePassed": false,
+    "commands": [],
+    "evidenceSource": ""
+  },
+  "nonOwnerGoogleProof": {
+    "status": "missing",
+    "policyOutcome": "",
+    "evidenceSource": "",
+    "noCredentialsOrCookiesRecorded": false,
+    "acceptedBy": "",
+    "deferralRationale": ""
+  },
+  "recipientMailboxProofOrDeferral": {
+    "status": "missing",
+    "mailboxReceiptObserved": false,
+    "recipientScopedActionObserved": false,
+    "noPrivateEmailContentRecorded": false,
+    "evidenceSource": "",
+    "acceptedBy": "",
+    "deferralRationale": ""
+  }
+}

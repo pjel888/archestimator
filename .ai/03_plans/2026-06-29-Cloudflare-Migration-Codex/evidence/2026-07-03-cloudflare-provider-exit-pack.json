@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-03T14:46:59.752Z",
+  "generatedAt": "2026-07-03T22:31:39.871Z",
   "mode": "cloudflare-provider-exit-pack",
   "sources": {
     "runbook": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/35_PROVIDER_EXIT_AND_FINAL_PROOF_RUNBOOK.md",
@@ -9,17 +9,17 @@
   "artifacts": {
     "releaseGates": {
       "present": true,
-      "generatedAt": "2026-07-03T10:35:33.942Z",
+      "generatedAt": "2026-07-03T22:31:24.265Z",
       "parseError": null
     },
     "providerResources": {
       "present": true,
-      "generatedAt": "2026-07-03T10:35:30.209Z",
+      "generatedAt": "2026-07-03T19:09:20.522Z",
       "parseError": null
     },
     "emailReadiness": {
       "present": true,
-      "generatedAt": "2026-07-03T10:41:35.143Z",
+      "generatedAt": "2026-07-03T22:31:31.761Z",
       "parseError": null
     },
     "hostedAuthMatrix": {
@@ -29,12 +29,12 @@
     },
     "latestDeploySourceSmoke": {
       "present": true,
-      "generatedAt": "2026-07-03T14:46:55.585Z",
+      "generatedAt": "2026-07-03T22:30:57.328Z",
       "parseError": null
     },
     "operatorRecord": {
-      "present": false,
-      "generatedAt": null,
+      "present": true,
+      "generatedAt": "2026-07-03T17:57:32.000Z",
       "parseError": null
     }
   },
@@ -877,7 +877,7 @@
   },
   "operatorRecordDiagnostics": {
     "path": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-provider-exit-operator-record.json",
-    "present": false,
+    "present": true,
     "parseError": null,
     "templatePath": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-provider-exit-operator-record.template.json",
     "diagnostics": [
@@ -885,60 +885,71 @@
         "gateKey": "exports-or-retention-decision-recorded",
         "section": "finalExportsOrRetentionDecision",
         "ready": false,
-        "status": null,
+        "status": "missing",
         "acceptedDeferral": false,
         "missingFields": [
-          "operator record file"
+          "finalExportsOrRetentionDecision.status=recorded",
+          "finalExportsOrRetentionDecision.decision(exported|accepted-retention|accepted-loss)",
+          "finalExportsOrRetentionDecision.acceptedBy",
+          "finalExportsOrRetentionDecision.evidenceSource",
+          "finalExportsOrRetentionDecision.rollbackDecision"
         ]
       },
       {
         "gateKey": "resend-account-status-recorded",
         "section": "resendStatus",
-        "ready": false,
-        "status": null,
+        "ready": true,
+        "status": "recorded",
         "acceptedDeferral": false,
-        "missingFields": [
-          "operator record file"
-        ]
+        "missingFields": []
       },
       {
         "gateKey": "obsolete-secret-rotation-recorded",
         "section": "obsoleteSecretRotation",
-        "ready": false,
-        "status": null,
+        "ready": true,
+        "status": "recorded",
         "acceptedDeferral": false,
-        "missingFields": [
-          "operator record file"
-        ]
+        "missingFields": []
       },
       {
         "gateKey": "post-exit-smoke-recorded",
         "section": "postExitSmoke",
         "ready": false,
-        "status": null,
+        "status": "missing",
         "acceptedDeferral": false,
         "missingFields": [
-          "operator record file"
+          "postExitSmoke.status=recorded",
+          "postExitSmoke.cloudflareSmokePassed=true",
+          "postExitSmoke.runAt",
+          "postExitSmoke.commands[]",
+          "postExitSmoke.evidenceSource"
         ]
       },
       {
         "gateKey": "non-owner-google-proof-recorded",
         "section": "nonOwnerGoogleProof",
         "ready": false,
-        "status": null,
+        "status": "missing",
         "acceptedDeferral": false,
         "missingFields": [
-          "operator record file"
+          "nonOwnerGoogleProof.status=recorded|accepted-deferral",
+          "nonOwnerGoogleProof.policyOutcome",
+          "nonOwnerGoogleProof.evidenceSource",
+          "nonOwnerGoogleProof.noCredentialsOrCookiesRecorded=true"
         ]
       },
       {
         "gateKey": "recipient-mailbox-proof-or-deferral-recorded",
         "section": "recipientMailboxProofOrDeferral",
         "ready": false,
-        "status": null,
+        "status": "missing",
         "acceptedDeferral": false,
         "missingFields": [
-          "operator record file"
+          "recipientMailboxProofOrDeferral.status=recorded|accepted-deferral",
+          "recipientMailboxProofOrDeferral.mailboxReceiptObserved=true",
+          "recipientMailboxProofOrDeferral.recipientScopedActionObserved=true",
+          "recipientMailboxProofOrDeferral.noPrivateEmailContentRecorded=true",
+          "recipientMailboxProofOrDeferral.evidenceSource"
         ]
       }
     ]
@@ -990,42 +1001,42 @@
       "key": "exports-or-retention-decision-recorded",
       "label": "Provider exports or accepted-retention/accepted-loss decision recorded",
       "ready": false,
-      "evidence": "sanitized provider-exit operator record required",
+      "evidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-provider-exit-operator-record.json",
       "blocker": "No repository evidence proves final exports are stored outside the repo or that accepted-retention/accepted-loss is recorded."
     },
     {
       "key": "resend-account-status-recorded",
       "label": "Resend account/API-key/domain status recorded",
-      "ready": false,
-      "evidence": "sanitized provider-exit operator record required",
-      "blocker": "Cloudflare Email is ready, but Resend account/API-key/sending-domain status is not recorded."
+      "ready": true,
+      "evidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-provider-exit-operator-record.json",
+      "blocker": null
     },
     {
       "key": "obsolete-secret-rotation-recorded",
       "label": "Obsolete provider secret removal/rotation recorded",
-      "ready": false,
-      "evidence": "sanitized provider-exit operator record required",
-      "blocker": "No evidence shows obsolete provider secrets were removed or rotated after exit decisions."
+      "ready": true,
+      "evidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-provider-exit-operator-record.json",
+      "blocker": null
     },
     {
       "key": "post-exit-smoke-recorded",
       "label": "Post-exit Cloudflare smoke recorded",
       "ready": false,
-      "evidence": "sanitized provider-exit operator record required",
+      "evidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-provider-exit-operator-record.json",
       "blocker": "No post-exit smoke exists after provider export/retention/secret decisions."
     },
     {
       "key": "non-owner-google-proof-recorded",
       "label": "Real non-owner Google proof or accepted deferral recorded",
       "ready": false,
-      "evidence": "sanitized provider-exit operator record required",
+      "evidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-provider-exit-operator-record.json",
       "blocker": "No real non-owner Google account journey evidence or accepted deferral is recorded."
     },
     {
       "key": "recipient-mailbox-proof-or-deferral-recorded",
       "label": "Real recipient mailbox proof or accepted deferral recorded",
       "ready": false,
-      "evidence": "sanitized provider-exit operator record required",
+      "evidence": ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-provider-exit-operator-record.json",
       "blocker": "No real recipient mailbox receipt proof or accepted deferral is recorded."
     }
   ],
@@ -1036,8 +1047,6 @@
   "blockers": [
     "Latest deploy source smoke ready: Latest deployed-source smoke proof is missing, malformed, stale, or blocked.",
     "Provider exports or accepted-retention/accepted-loss decision recorded: No repository evidence proves final exports are stored outside the repo or that accepted-retention/accepted-loss is recorded.",
-    "Resend account/API-key/domain status recorded: Cloudflare Email is ready, but Resend account/API-key/sending-domain status is not recorded.",
-    "Obsolete provider secret removal/rotation recorded: No evidence shows obsolete provider secrets were removed or rotated after exit decisions.",
     "Post-exit Cloudflare smoke recorded: No post-exit smoke exists after provider export/retention/secret decisions.",
     "Real non-owner Google proof or accepted deferral recorded: No real non-owner Google account journey evidence or accepted deferral is recorded.",
     "Real recipient mailbox proof or accepted deferral recorded: No real recipient mailbox receipt proof or accepted deferral is recorded."

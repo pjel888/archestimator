@@ -1,53 +1,52 @@
 ---
 title: Cloudflare Main Worker Current-Source Deploy
-generated: 2026-07-01T22:49:28Z
+generated: 2026-07-03T17:36:48.000Z
 status: pass
 ---
 
 # Cloudflare Main Worker Current-Source Deploy
 
-`archestimator-proof` current source uploaded and deployed successfully after trimming the Worker bundle.
+`archestimator-proof` current source deployed successfully for the D1 creator ownership fix.
+
+## Source
+
+- Commit: `230930b39ffed927cb397aec4d9dde161f8169b0`
+- Committed at: `2026-07-04T01:29:30+08:00`
+- Subject: `Fix D1 creator ownership before deploy proof`
 
 ## Production Version
 
-- Worker version: `3d3f3873-3232-4591-9436-2e963860ddbb`
-- Version number: `83`
-- Tag: `lightweight-xlsx-direct-magic-link`
+- Worker version: `01c577ee-ab6a-4da7-bcaf-ddab7baea524`
+- Version number: `95`
 - Traffic: `100%`
-- Deployment: `290812ff-9865-4e1a-b248-eeb3d9154445`
-- Deployed at: `2026-07-01T22:46:35.454876Z`
+- Deployment: `1c42a5c0-7b14-4c11-9fba-6501381d5c49`
+- Deployed at: `2026-07-03T17:34:08.169674Z`
+- Message: `Deploy D1 creator ownership fix 230930b3`
 
 ## Upload Evidence
 
-- Wrangler: `4.106.0`
-- Total upload: `17019.69 KiB`
-- Gzip: `4656.31 KiB`
-- Worker startup: `36 ms`
+- Wrangler: `4.105.0`
+- Total upload: `17237.70 KiB`
+- Gzip: `4709.11 KiB`
+- Worker startup: `28 ms`
+- Upload/deploy duration: `214.61 s`
 - Previous upload blocker: resolved
 
-The bundle trim removed runtime `exceljs` from the Worker path by adding a small proposal XLSX writer, and replaced `better-auth/plugins` barrel imports with the `better-auth/plugins/magic-link` subpath.
+## D1 Ownership Fix
 
-## Live Auth Recheck
-
-Exact user-reported URL:
-
-`https://archestimator.com/?error=state_mismatch`
-
-Result:
-
-- Redirect chain: `302 -> 302 -> 200`
-- Final URL: `https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset_done=1`
-- Final status: `200`
-- Final title: `Sign in — Archestimator — Archestimator`
-- Body `state_mismatch` count: `0`
-- Fresh Chromium: same final URL, no visible `state_mismatch`, one Google button, no state cookies left after cleanup
+- Remote D1 migration `0030_workspace_owner_membership_backfill.sql`: applied at `2026-07-03 17:03:17`
+- Migration conflict policy: insert-only, preserves existing memberships
+- Missing owner memberships: `0`
+- Inaccessible creator projects: `0`
+- Inaccessible creator estimates: `0`
 
 ## Verification
 
-- `CLOUDFLARE_HOSTED_ROUTE_BASE_URL=https://archestimator.com bun run cf:verify-hosted-routes`: passed, blockers empty
-- `bun run cf:release-gates`: passed, `productionCutoverReady=true`, blockers empty
-- Focused auth regression: `5` files / `66` tests passed
-- Proposal/export + Better Auth proof regression: `5` files / `55` tests passed
-- `git diff --check`: passed
+- `CLOUDFLARE_HOSTED_ROUTE_BASE_URL=https://archestimator.com bun run cf:verify-hosted-routes`: passed, blockers empty, generated `2026-07-03T17:36:07.357Z`
+- `bun run cf:release-gates`: `productionCutoverReady=true`, blockers empty, generated `2026-07-03T17:36:02.789Z`
+- Focused CRUD/authz regression cluster: `17` files / `95` tests passed
+- Insert-only migration regression cluster: `4` files / `16` tests passed
+- `bun run type-check`: passed
+- `bun run cf:build`: passed
 
-The broad `archestimator-auth-callback-normalizer` edge adapter remains active as defense-in-depth, but the main `archestimator-proof` Worker is no longer stale. This artifact did not delete, downgrade, cancel, or mutate provider billing/resources.
+This artifact did not delete, downgrade, cancel, rotate, or mutate Vercel, Supabase, Resend, DNS, billing resources, or provider-exit operator decisions.

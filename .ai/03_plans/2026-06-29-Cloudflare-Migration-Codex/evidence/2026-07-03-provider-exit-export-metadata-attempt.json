@@ -1,0 +1,149 @@
+{
+  "generatedAt": "2026-07-03T22:15:21Z",
+  "mode": "provider-exit-export-metadata-attempt",
+  "boundary": "Repo-safe evidence only. No raw database dump, provider export, secret value, token, cookie, mailbox content, or private provider screenshot is stored in this artifact.",
+  "backupLocation": {
+    "created": true,
+    "outsideRepository": true,
+    "permissions": "700",
+    "description": "Owner-local dated provider-exit backup directory under Documents, outside /Users/philiplewis/Documents/archestimator.",
+    "fileCountObserved": 0,
+    "checksumStatus": "not-applicable-no-export-files"
+  },
+  "supabase": {
+    "projectRefBoundary": "ebxxqidacheyapmmzavr only",
+    "status": "blocked",
+    "reason": "Supabase dump was not produced because the available CLI paths did not reach a usable authenticated dump command in this session.",
+    "commands": [
+      {
+        "command": "supabase --version",
+        "result": "failed",
+        "exitCode": 137,
+        "notes": "Homebrew Supabase CLI 2.105.0 binary was killed before output."
+      },
+      {
+        "command": "bunx supabase@2.105.0 --version",
+        "result": "failed",
+        "signal": "SIGKILL",
+        "notes": "Package-runner Supabase 2.105.0 used a separate binary and was also killed before output."
+      },
+      {
+        "command": "bunx supabase@latest --version",
+        "result": "passed",
+        "version": "2.109.0"
+      },
+      {
+        "command": "bunx supabase@latest projects list",
+        "result": "interrupted",
+        "exitCode": 130,
+        "notes": "No output after bounded wait; stopped to avoid an indefinite provider CLI hang."
+      },
+      {
+        "command": "bunx supabase@latest db dump --linked --dry-run --file <outside-repo-backup-dir>/supabase-ebxxqidacheyapmmzavr-dry-run.sql",
+        "result": "interrupted",
+        "exitCode": 130,
+        "notes": "No output after bounded wait; stopped before any raw dump or prompt could persist."
+      },
+      {
+        "command": "node env-presence check for SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD, SUPABASE_PROJECT_REF",
+        "result": "passed",
+        "notes": "All three process environment variables were missing; no secret values were read or printed."
+      },
+      {
+        "command": "which supabase && which bunx && which vercel && which wrangler",
+        "result": "passed",
+        "notes": "Homebrew supabase, bunx, and vercel were present; wrangler was not on PATH for direct shell use."
+      },
+      {
+        "command": "supabase --version && supabase projects list",
+        "result": "failed",
+        "exitCode": 137,
+        "notes": "The Homebrew Supabase CLI still exited before printing output."
+      },
+      {
+        "command": "bunx supabase@latest --version && bunx supabase@latest projects list",
+        "result": "interrupted",
+        "exitCode": 130,
+        "notes": "Package-runner Supabase printed version 2.109.0, then project listing produced no output during the bounded wait and was stopped."
+      }
+    ],
+    "rawExportCreated": false,
+    "repoExportCommitted": false
+  },
+  "vercel": {
+    "status": "metadata-recorded",
+    "cliVersion": "54.9.1",
+    "projectList": {
+      "command": "vercel projects ls",
+      "result": "passed",
+      "projectName": "archestimator",
+      "latestProductionUrl": "https://www.archestimator.com",
+      "teamOrScope": "philipjonlewis-projects"
+    },
+    "domainList": {
+      "command": "vercel domains ls",
+      "result": "passed",
+      "accountLevelDomainsFound": 0,
+      "notes": "Consistent with DNS/custom-domain ownership having moved to Cloudflare."
+    },
+    "envNames": {
+      "command": "vercel env ls",
+      "result": "passed",
+      "valuesPrinted": false,
+      "legacyProviderNamesObserved": [
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "RESEND_API_KEY",
+        "RESEND_FROM",
+        "RESEND_REPLY_TO",
+        "RESEND_WEBHOOK_SECRET"
+      ],
+      "notes": "Only encrypted environment-variable names/environments/ages were shown; no values were read or recorded."
+    },
+    "deployments": {
+      "command": "vercel ls archestimator --format=json",
+      "result": "passed",
+      "latestProductionDeployment": {
+        "url": "archestimator-9pefb48bs-philipjonlewis-projects.vercel.app",
+        "state": "READY",
+        "target": "production",
+        "githubCommitSha": "e43b98dccc0163d9ff73b75726f27a04b9b512c0",
+        "githubCommitRef": "main"
+      },
+      "rollbackReferenceAvailable": true
+    }
+  },
+  "cloudflare": {
+    "wranglerAuth": {
+      "command": "bun run cf:check-wrangler-auth",
+      "result": "passed",
+      "generatedAt": "2026-07-03T20:44:51.538Z",
+      "wranglerApiAuthenticated": true,
+      "blockers": []
+    },
+    "providerResources": {
+      "command": "bun run cf:check-provider-resources",
+      "result": "passed",
+      "generatedAt": "2026-07-03T20:45:12.874Z",
+      "providerResourceReadbackReady": true,
+      "blockers": []
+    },
+    "emailReadiness": {
+      "command": "bun run cf:check-email",
+      "result": "passed",
+      "generatedAt": "2026-07-03T20:45:15.605Z",
+      "blockers": []
+    }
+  },
+  "readiness": {
+    "exportsOrRetentionDecisionRecorded": false,
+    "providerExitPackShouldRemainOpen": true,
+    "blocker": "Final provider export/retention gate still requires either Supabase export metadata/checksums from files stored outside the repo or an explicit accepted-retention/accepted-loss decision with rollback posture."
+  },
+  "nextUnblockActions": [
+    "Run a working Supabase export path for project ebxxqidacheyapmmzavr and store raw dumps outside the repo, then record only filenames, sizes, and checksums in repo evidence.",
+    "Or record an explicit owner accepted-retention/accepted-loss decision with rollback/data-retention posture in the sanitized provider-exit operator record.",
+    "Do not downgrade, cancel, delete provider resources, rotate obsolete provider secrets, or claim post-exit smoke until the export/retention decision is recorded."
+  ]
+}

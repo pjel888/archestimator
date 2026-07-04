@@ -27,37 +27,81 @@ exit is still an operations step, not a code migration shortcut.
 that Vercel and Supabase subscriptions have already been cancelled. This
 reduces billing cleanup risk, but it is not by itself a complete provider-exit
 evidence pack: repository evidence still needs to preserve the export/backup
-posture, rollback/data-retention decision, Resend status, obsolete-secret
-handling, and post-exit Cloudflare smoke before the full migration goal is
-closed.
+posture, rollback/data-retention decision, and post-exit
+Cloudflare smoke before the full migration goal is closed. The later sanitized
+operator record closes the obsolete-secret-name review gate and the Resend
+account/API-key/domain status gate, using existing sanitized evidence only.
 
 2026-07-03 non-destructive provider-exit pack:
 `evidence/2026-07-03-cloudflare-provider-exit-pack.*` now records that app
-runtime exit prerequisites are not yet ready for strict completion because the
-latest deploy/source-smoke gate is open. Release gates, Cloudflare provider
-resource readback, Cloudflare Email readiness, hosted auth matrix, and active
-legacy-provider runtime scan all pass, but the latest deploy evidence does not
-record the deployed git commit and predates current `HEAD`. Proof-tooling-only
-`package.json` script additions are filtered from runtime dirtiness; `bun.lock`
-and package dependency/build/runtime changes still block. It intentionally keeps full
-provider exit `OPEN / NOT READY` because latest deploy/source smoke, final
-exports or accepted-retention/loss decision, Resend account/API-key/domain
-status, obsolete-secret removal/rotation, post-exit Cloudflare smoke,
-non-owner Google proof, and real recipient mailbox proof or accepted deferral
-remain unproven.
+runtime exit prerequisites are not ready for the current worktree because the
+shared-project CRUD/image-auth/favorites patch is local and not yet committed/deployed. The
+same pack includes passing release gates, Cloudflare provider resource readback,
+Cloudflare Email readiness, hosted auth matrix, active legacy-provider runtime
+scan, and sanitized obsolete-secret-name review, but latest deploy/source smoke
+is blocked by uncommitted runtime source paths. It intentionally keeps full provider exit
+`OPEN / NOT READY` because latest deploy/source smoke, final exports or
+accepted-retention/loss decision, post-exit Cloudflare smoke, real non-owner
+Google proof or accepted deferral, and real recipient mailbox proof or accepted
+deferral remain unproven.
 
-The latest pack was regenerated at `2026-07-03T14:46:59.752Z` after refreshing
-the latest deploy/source-smoke artifact at `2026-07-03T14:46:55.585Z`,
-tightening the operator template's sanitized evidence-source requirements,
-hardening proof-artifact JSON parse handling, ignoring proof-tooling-only
-`package.json` script additions as runtime dirtiness, and widening the active
-legacy-provider runtime scan to deploy-relevant source/config files including
-`bun.lock` and `src/middleware.ts`. No real
-operator record is present yet, so provider exit remains open. This refresh
-also consumes the current `2026-07-01` provider-resource readback artifact and
-labels non-owner Google closure as real proof or accepted deferral.
-Credential-free hosted performance and release gates remain blocker-free for
-app runtime; strict public p95 stayed a watch item, not a provider-exit blocker.
+The latest pack was regenerated at `2026-07-03T21:08:32.788Z` after recording
+Resend status from existing sanitized evidence in the operator record at
+`evidence/2026-07-03-cloudflare-provider-exit-operator-record.json`. That
+record closes the obsolete-secret-name review gate using secret-name readback
+evidence, and closes the Resend account/API-key/domain status gate using
+2026-07-01 read-only Resend dashboard notes plus archived sender-domain proof.
+It does not record secret values, did not freshly refresh or mutate Resend
+domain settings in this pass, and does not close export, post-exit smoke,
+persona, or mailbox gates. The previous
+deploy/source-smoke artifact was ready at `2026-07-03T17:37:52.639Z` for
+production Worker version `01c577ee-ab6a-4da7-bcaf-ddab7baea524` / number `95`
+and commit `230930b39ffed927cb397aec4d9dde161f8169b0`; the current artifact
+supersedes that readiness until the local CRUD/image-auth/favorites source patch is
+committed and deployed.
+
+2026-07-03 18:40 UTC local refresh: the undeployed CRUD/image-auth patch now has
+additional regression coverage for shared-workspace project-image DELETE,
+collaborator-owned image path rejection before lookup/storage deletion,
+cross-project project-image DELETE atomic denial when any current-user target
+project is not editable, project detail thumbnail path rejection,
+shared-workspace project-image metadata cleanup, project bulk-delete foreign
+image metadata filtering, mixed eligible/forbidden bulk-delete non-execution,
+exact R2 cleanup paths, R2 cleanup failure reporting, and project bulk-delete
+project-admin/non-manager collaborator eligibility. Verification passed with
+focused modified Vitest (`5` files / `111` tests), a metadata/bulk-delete
+follow-up matrix (`2` files / `17` tests), `bun run type-check`,
+`bun run cf:build` (runtime source unchanged since this check), and
+`git diff --check`. Independent read-only code review approved the scoped
+CRUD/image-auth runtime patch with no correctness or security findings. This
+improves local confidence only; provider exit remains blocked until the patch is
+committed, deployed, and followed by refreshed source/deploy smoke evidence.
+
+2026-07-03 19:30 UTC local proof refresh: a focused D1 validator regression now
+proves estimate-row upload assets use the row id as `target_entity_id` while
+preserving separate `project_id` and `estimate_id` lookup ids. The broader
+focused CRUD/authz suite passed `10` files / `143` tests, followed by
+`bun run type-check`, `git diff --check`, and `bun run cf:build`.
+Independent native `code-reviewer` Faraday returned zero scoped findings, and
+independent native `verifier` Kuhn returned `PASS` for the local-ready claim.
+This still improves local confidence only: no commit, deploy, browser proof,
+provider mutation, external persona proof, or mailbox proof was performed.
+
+2026-07-03 21:08 UTC local proof refresh: source-smoke and provider-exit
+artifacts were regenerated after the favorites/read-path local patch. The
+latest source-smoke artifact remains `OPEN / NOT READY` with one blocker and
+now lists seven dirty runtime source files:
+`src/app/api/estimate-row-images/route.ts`,
+`src/app/api/projects/images/route.ts`, `src/lib/projects/actions.ts`,
+`src/lib/repositories/estimate-favorites-repository.ts`,
+`src/lib/repositories/workspace-repository.ts`,
+`src/lib/uploads/upload-records.ts`, and `src/lib/workshop/actions.ts`. The
+provider-exit pack remains at five blockers with
+`activeLegacyProviderRuntimeBlockers=0`. Focused proof-script verification
+passed `bunx vitest run tests/vitest/cloudflare-latest-deploy-source-smoke-script.test.ts tests/vitest/provider-exit-pack-script.test.ts --maxWorkers=1`
+(`2` files / `32` tests). This is non-destructive local evidence only; it does
+not commit, deploy, mutate providers, prove exports, prove post-exit smoke,
+prove a non-owner persona, or prove mailbox receipt.
 
 ## Sanitized Operator Record
 
@@ -180,5 +224,6 @@ Provider downgrade/cancellation is ready to schedule only when:
 
 Until then, the correct status is: Cloudflare app migration is effectively
 complete for closed-beta runtime, while legacy provider account exit is
-pending backup/export, Resend status, obsolete-secret, and post-exit-smoke
-evidence closure.
+pending current-source deployment proof, backup/export or
+accepted-retention/loss, Resend status, post-exit smoke, non-owner persona
+proof, and recipient mailbox proof evidence closure.

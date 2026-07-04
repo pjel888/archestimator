@@ -2,7 +2,7 @@
 
 Status: **OPEN / NOT READY**
 
-Generated: `2026-07-03T14:46:55.585Z`
+Generated: `2026-07-03T22:30:57.328Z`
 
 Deploy evidence: `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-main-worker-current-source-deploy.json`
 
@@ -12,11 +12,11 @@ Deploy evidence: `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/20
 | --- | --- |
 | Deploy evidence present | PASS |
 | Deploy evidence parse error | none |
-| Runtime source paths clean | PASS |
+| Runtime source paths clean | OPEN |
 | 100% production Worker version with deployment time recorded | PASS |
-| Deployed source commit recorded | OPEN |
-| Deployed source commit matches current HEAD | OPEN |
-| Deployment is not older than current commit | OPEN |
+| Deployed source commit recorded | PASS |
+| Deployed source commit matches current HEAD | PASS |
+| Deployment is not older than current commit | PASS |
 | Hosted route smoke passed | PASS |
 | Release gates passed after deploy | PASS |
 
@@ -24,9 +24,9 @@ Deploy evidence: `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/20
 
 | Field | Value |
 | --- | --- |
-| commit | ddbc9ac414c5faa11232fc194ed8094782afaee3 |
-| committedAt | 2026-07-03T19:13:24+08:00 |
-| subject | docs(cloudflare-migration): add implementation completion audit evidence |
+| commit | 230930b39ffed927cb397aec4d9dde161f8169b0 |
+| committedAt | 2026-07-04T01:29:30+08:00 |
+| subject | Fix D1 creator ownership before deploy proof |
 
 Runtime source status paths:
 - `src`
@@ -40,23 +40,29 @@ Runtime source status paths:
 - `src/middleware.ts`
 
 Dirty runtime source entries:
-- none
+- `M src/app/api/estimate-row-images/route.ts`
+- `M src/app/api/projects/images/route.ts`
+- `M src/lib/component-library/actions.ts`
+- `M src/lib/projects/actions.ts`
+- `M src/lib/repositories/estimate-favorites-repository.ts`
+- `M src/lib/repositories/workspace-repository.ts`
+- `M src/lib/uploads/upload-records.ts`
+- `M src/lib/workshop/actions.ts`
 
 ## Deployment
 
 | Field | Value |
 | --- | --- |
 | worker | archestimator-proof |
-| productionVersionId | 3d3f3873-3232-4591-9436-2e963860ddbb |
-| productionVersionNumber | 83 |
+| productionVersionId | 01c577ee-ab6a-4da7-bcaf-ddab7baea524 |
+| productionVersionNumber | 95 |
 | trafficPercent | 100 |
-| deployedAt | 2026-07-01T22:46:35.454876Z |
-| deployedSourceCommit | (missing) |
+| deployedAt | 2026-07-03T17:34:08.169674Z |
+| deployedSourceCommit | 230930b39ffed927cb397aec4d9dde161f8169b0 |
 
 ## Open Blockers
 
-- Deploy evidence does not record the deployed git source commit.
-- Deployment timestamp is older than the current git commit timestamp.
+- Runtime source paths have uncommitted changes and cannot be claimed deployed.
 
 ## Boundary
 

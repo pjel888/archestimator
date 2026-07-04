@@ -1,50 +1,43 @@
 {
-  "generatedAt": "2026-07-01T22:49:28Z",
+  "generatedAt": "2026-07-03T17:36:48.000Z",
   "mode": "cloudflare-main-worker-current-source-deploy",
   "worker": "archestimator-proof",
   "accountId": "7f6229cfea61b59f6f48b517fde86039",
+  "source": {
+    "gitCommit": "230930b39ffed927cb397aec4d9dde161f8169b0",
+    "committedAt": "2026-07-04T01:29:30+08:00",
+    "subject": "Fix D1 creator ownership before deploy proof"
+  },
   "productionVersion": {
-    "id": "3d3f3873-3232-4591-9436-2e963860ddbb",
-    "number": 83,
-    "tag": "lightweight-xlsx-direct-magic-link",
-    "message": "Cloudflare migration auth hardening and Worker bundle trim",
+    "id": "01c577ee-ab6a-4da7-bcaf-ddab7baea524",
+    "number": 95,
+    "tag": null,
+    "message": "Deploy D1 creator ownership fix 230930b3",
     "trafficPercent": 100,
-    "deploymentId": "290812ff-9865-4e1a-b248-eeb3d9154445",
-    "deployedAt": "2026-07-01T22:46:35.454876Z",
-    "deploymentMessage": "Promote Cloudflare migration auth hardening and Worker bundle trim"
+    "deploymentId": "1c42a5c0-7b14-4c11-9fba-6501381d5c49",
+    "deployedAt": "2026-07-03T17:34:08.169674Z",
+    "deploymentMessage": "Deploy D1 creator ownership fix 230930b3"
   },
   "upload": {
-    "wranglerVersion": "4.106.0",
-    "totalUploadKiB": 17019.69,
-    "gzipKiB": 4656.31,
-    "workerStartupMs": 36,
-    "durationSeconds": 177.23,
+    "wranglerVersion": "4.105.0",
+    "totalUploadKiB": 17237.7,
+    "gzipKiB": 4709.11,
+    "workerStartupMs": 28,
+    "durationSeconds": 214.61,
     "previousUploadBlockerResolved": true
   },
-  "bundleTrim": {
-    "handlerBytes": 15783268,
-    "indexBytes": 109185,
-    "middlewareHandlerBytes": 1550513,
-    "activeEntrypointBytes": 4086,
-    "activeJsTotalBytes": 17447052,
-    "removedRuntimeExcelJsFromWorkerBundle": true,
-    "replacedProposalExportRuntimeExcelJsWithLightweightXlsxWriter": true,
-    "replacedBetterAuthPluginBarrelImportsWithMagicLinkSubpath": true
-  },
-  "liveStateMismatchProbe": {
-    "inputUrl": "https://archestimator.com/?error=state_mismatch",
-    "finalUrl": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset_done=1",
-    "status": 200,
-    "redirects": 2,
-    "title": "Sign in — Archestimator — Archestimator",
-    "bodyStateMismatchCount": 0,
-    "browserFinalUrl": "https://archestimator.com/login?next=%2Fworkshop&oauth_state_reset_done=1",
-    "browserBodyHasStateMismatch": false,
-    "browserGoogleButtonCount": 1,
-    "browserStateCookies": []
+  "d1OwnershipFix": {
+    "localMigration": "migrations/0030_workspace_owner_membership_backfill.sql",
+    "remoteD1MigrationAppliedAt": "2026-07-03 17:03:17",
+    "migrationConflictPolicy": "insert-only-preserve-existing-memberships",
+    "remoteMissingOwnerMemberships": 0,
+    "remoteInaccessibleUnderDeployedMembershipPredicate": 0,
+    "remoteInaccessibleCreatorProjects": 0,
+    "remoteInaccessibleCreatorEstimates": 0
   },
   "hostedRouteProof": {
     "command": "CLOUDFLARE_HOSTED_ROUTE_BASE_URL=https://archestimator.com bun run cf:verify-hosted-routes",
+    "generatedAt": "2026-07-03T17:36:07.357Z",
     "passed": true,
     "routeContractReady": true,
     "hostedRouteProofReady": true,
@@ -52,30 +45,43 @@
   },
   "releaseGates": {
     "command": "bun run cf:release-gates",
+    "generatedAt": "2026-07-03T17:36:02.789Z",
     "productionCutoverReady": true,
     "blockers": []
   },
   "regressionChecks": [
     {
-      "command": "bunx vitest run tests/vitest/auth-callback-normalizer-worker.test.ts tests/vitest/cloudflare-worker-route-optimizations.test.ts tests/vitest/auth-proxy.test.ts tests/vitest/auth-set-cookie-forwarding.test.ts tests/vitest/cloudflare-better-auth-route.test.ts --maxWorkers=1",
+      "command": "bunx vitest run tests/vitest/d1-access-created-by.test.ts tests/vitest/account-membership-d1.test.ts tests/vitest/project-creation-ui.test.ts tests/vitest/workspace-repository-authz-contract.test.ts tests/vitest/workspace-repository-project-list.test.ts tests/vitest/estimate-sheet-actions-authz.test.ts tests/vitest/project-estimates-create-optimistic.test.tsx tests/vitest/project-estimates-delete-duplicate.test.tsx tests/vitest/project-estimates-inline-edit.test.tsx --maxWorkers=1",
       "passed": true,
-      "testFiles": 5,
-      "tests": 66
+      "testFiles": 9,
+      "tests": 60
     },
     {
-      "command": "bunx vitest run tests/vitest/proposal-workbook.test.ts tests/vitest/proposal-export-route-workbook.test.ts tests/vitest/proposal-export-route.test.ts tests/vitest/cloudflare-better-auth-route-gate.test.ts tests/vitest/cloudflare-better-auth-proof-script.test.ts --maxWorkers=1",
+      "command": "bunx vitest run tests/vitest/project-bulk-delete-d1-actions.test.ts tests/vitest/project-estimate-sheets-repository.test.ts tests/vitest/project-estimate-list-summaries-scoping.test.ts tests/vitest/project-estimate-list-summaries-parity.test.ts tests/vitest/estimate-sheet-row-details-crud.test.tsx tests/vitest/estimate-row-update-broadcast.test.ts tests/vitest/estimate-insert-target-authz.test.tsx tests/vitest/project-source-insert-action.test.ts --maxWorkers=1",
       "passed": true,
-      "testFiles": 5,
-      "tests": 55
+      "testFiles": 8,
+      "tests": 35
     },
     {
-      "command": "git diff --check",
+      "command": "bun run type-check",
       "passed": true
+    },
+    {
+      "command": "bun run cf:build",
+      "passed": true
+    },
+    {
+      "command": "bunx vitest run tests/vitest/workspace-owner-membership-backfill-migration.test.ts tests/vitest/d1-access-created-by.test.ts tests/vitest/auth-onboarding-guard.test.ts tests/vitest/workspace-repository-authz-contract.test.ts --maxWorkers=1",
+      "passed": true,
+      "testFiles": 4,
+      "tests": 16,
+      "purpose": "Regression for insert-only migration behavior after independent review finding"
     }
   ],
   "notes": [
-    "The previous main Worker upload stall at roughly 21.6 MiB no longer reproduces after removing runtime ExcelJS from the Worker bundle and replacing Better Auth plugin barrel imports with the magic-link subpath import.",
-    "The broad auth-callback-normalizer edge adapter remains active as defense-in-depth, but the current-source archestimator-proof Worker is now deployed at 100% behind it.",
-    "This evidence does not delete, downgrade, cancel, or mutate Vercel, Supabase, Resend, DNS, or billing resources."
+    "This deployment publishes commit 230930b3 with the D1 creator ownership fallback, created-by authorization checks, insert-only owner-membership backfill migration, OpenNext worker declaration, and Cloudflare cold-build workaround.",
+    "The remote D1 ownership backfill had already been applied before deployment; this Worker deployment fixes future fallback workspace creation and creator-owned project/estimate access in runtime source.",
+    "The amended migration uses ON CONFLICT DO NOTHING so existing non-owner membership roles are preserved instead of promoted during future backfills.",
+    "This evidence does not delete, downgrade, cancel, rotate, or mutate Vercel, Supabase, Resend, DNS, billing resources, or provider-exit operator decisions."
   ]
 }
