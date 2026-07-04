@@ -8,7 +8,7 @@ import { test, expect } from '@playwright/test';
  * They are skipped by default because they require:
  *   - ARCHESTIMATOR_E2E_SHARED_LINK=1
  *   - A running dev server (or staging) with a seeded test project/publication + recipient token
- *   - Valid RESEND_API_KEY (for recipient email flows, if exercised)
+ *   - Seeded Cloudflare Email / recipient fixtures for email flows, if exercised
  *
  * This satisfies "every E2E Playwright test in the testing strategy is written".
  * Full execution happens in CI/staging nightly (see strategy §8).
