@@ -60,6 +60,7 @@ export type ProjectPresenceState = {
 // channel (no live socket). The Cloudflare room client satisfies a superset and
 // is cast in the default factory.
 export type PresenceRoomLike = {
+  authorize?: (token: string) => Promise<string> | string;
   on: (type: "presence", filter: { event: string }, callback: () => void) => PresenceRoomLike;
   subscribe: (callback?: (status: string, err?: Error) => void) => PresenceRoomLike;
   track: (payload: ProjectPresencePayload) => unknown;
@@ -157,13 +158,18 @@ export function useProjectPresence({
       };
     }
 
-    async function provisionIdentity() {
+    async function provisionIdentity(room?: PresenceRoomLike) {
       try {
         const identity = await identityIssuerRef.current({ topic });
         if (cancelled || !identity) return false;
         ownUserIdRef.current = identity.userId ?? identity.envelope.sub;
         envelopeRef.current = identity.envelope;
         verifyKeyRef.current = await importVerifyKey(identity.publicKey);
+        if (typeof room?.authorize === "function") {
+          if (!identity.roomToken) return false;
+          const result = await room.authorize(identity.roomToken);
+          if (result !== "ok") return false;
+        }
         return true;
       } catch (error) {
         reportRealtimeEvent({
@@ -236,7 +242,7 @@ export function useProjectPresence({
             isSubscribedRef.current = true;
             retries = 0;
             reportRealtimeEvent({ type: "subscribed", topic });
-            void provisionIdentity().then((ready) => {
+            void provisionIdentity(room).then((ready) => {
               const payload = ready ? buildPayload() : null;
               if (!cancelled && payload) void room.track(payload);
             });

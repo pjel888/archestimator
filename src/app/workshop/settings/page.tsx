@@ -1,11 +1,12 @@
 import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
 import { WorkshopSettingsModal } from "@/components/workshop/WorkshopSettingsModal";
 import { WorkshopSettingsModalContent } from "@/components/workshop/WorkshopSettingsModalContent";
+import { isPlatformAdminRole } from "@/lib/auth/roles";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 
 export default async function WorkshopSettingsPage() {
   const context = await requireCurrentUserContext();
-  const canManagePlatform = context.role === "ceo" || context.role === "admin";
+  const canManagePlatform = isPlatformAdminRole(context.role);
 
   return (
     <WorkshopPageShell

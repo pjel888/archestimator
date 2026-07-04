@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { memo, useMemo, type ReactNode } from "react";
+import { memo, useMemo, type DragEvent, type ReactNode } from "react";
 import {
   ArrowSquareOut,
   Clock,
+  DotsSixVertical,
   FileText,
   Globe,
   MapPin,
@@ -68,6 +69,12 @@ type LiveProjectCardProps = {
   onToggleSelected?: (projectId: string) => void;
   onToggleFavorite?: (projectId: string, favorite: boolean) => void;
   onExpand?: (project: ProjectRow) => void;
+  canDragToGroup?: boolean;
+  onProjectDragStart?: (
+    projectId: string,
+    event: DragEvent<HTMLButtonElement>,
+  ) => void;
+  onProjectDragEnd?: () => void;
   /**
    * Group-assignment menu (D8): the "Move to group" affordance rendered next to the
    * details-action control on owned cards. The card stays agnostic — the page builds
@@ -207,6 +214,9 @@ function LiveProjectCardImpl({
   onToggleSelected,
   onToggleFavorite,
   onExpand,
+  canDragToGroup = false,
+  onProjectDragStart,
+  onProjectDragEnd,
   groupAssignMenu,
 }: LiveProjectCardProps) {
   const imageUrl = getProjectImageUrl(project.metadata);
@@ -285,6 +295,10 @@ function LiveProjectCardImpl({
     onToggleFavorite?.(project.id, !isFavorite);
   }
 
+  function handleProjectDragStart(event: DragEvent<HTMLButtonElement>) {
+    onProjectDragStart?.(project.id, event);
+  }
+
   const selectControl = (
     <ProjectCardSelectControl
       canSelect={canSelect}
@@ -296,6 +310,24 @@ function LiveProjectCardImpl({
       onToggleSelected={handleToggleSelected}
     />
   );
+  const projectDragControl = canDragToGroup ? (
+    <button
+      type="button"
+      draggable
+      aria-label={`Drag ${project.name} to a group`}
+      title={`Drag ${project.name} to a group`}
+      className={cn(
+        "workshop-project-card-control grid size-6 shrink-0 cursor-grab touch-none place-items-center rounded-xs border border-hairline text-ink active:cursor-grabbing",
+        REVEAL_ON_INTENT,
+      )}
+      data-project-card-drag-handle
+      onClick={(event) => event.preventDefault()}
+      onDragStart={handleProjectDragStart}
+      onDragEnd={onProjectDragEnd}
+    >
+      <DotsSixVertical size={13} weight="bold" aria-hidden="true" />
+    </button>
+  ) : null;
 
   const favoriteControl = (
     <ProjectCardFavoriteControl
@@ -584,6 +616,7 @@ function LiveProjectCardImpl({
             isPendingInvite ? null : "pointer-events-none",
           )}
         >
+          {projectDragControl}
           {selectControl}
           {favoriteControl}
           {revealedGroupAssignMenu}
@@ -672,7 +705,10 @@ function LiveProjectCardImpl({
         data-project-card-top-strip=""
         className="relative z-20 flex items-center justify-between gap-2 pb-2"
       >
-        <div className="flex shrink-0 items-center gap-1">{selectControl}</div>
+        <div className="flex shrink-0 items-center gap-1">
+          {projectDragControl}
+          {selectControl}
+        </div>
         <div className="flex shrink-0 items-center gap-1">
           {revealedGroupAssignMenu}
           {favoriteControl}

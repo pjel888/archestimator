@@ -16,7 +16,10 @@ import {
   DropdownPopupPanel,
   useDropdownPopup,
 } from "@/components/ui/dropdown-popup";
-import { ToolbarIconButton } from "@/components/ui/toolbar-icon-button";
+import {
+  ADD_BUTTON_CLASSNAME,
+  ToolbarIconButton,
+} from "@/components/ui/toolbar-icon-button";
 import { cn } from "@/lib/ui/cn";
 import {
   GROUP_ACCENT_SWATCHES,
@@ -98,6 +101,7 @@ export function ManageGroupsPopover({
           aria-haspopup="dialog"
           aria-expanded={open}
           label="Manage groups"
+          className={ADD_BUTTON_CLASSNAME}
           onClick={() => setOpen(!open)}
         >
           <FolderPlus size={14} weight="regular" aria-hidden="true" />

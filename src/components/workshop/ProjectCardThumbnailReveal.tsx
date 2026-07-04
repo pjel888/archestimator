@@ -52,7 +52,7 @@ export function ProjectCardThumbnailReveal({
         {hasSheets ? (
           <>
             <div className="flex min-w-0 items-center gap-1 text-[8px] font-medium uppercase leading-[10px] text-secondary">
-              <Star size={10} weight="regular" aria-hidden="true" className="shrink-0 text-warning" />
+              <Star size={10} weight="fill" aria-hidden="true" className="shrink-0 text-warning" />
             </div>
             <div
               className={cn(

@@ -79,6 +79,12 @@ export type TreePanelHeaderProps = {
 };
 
 const EMPTY_HEADER_ACTIONS: HeaderIconToolbarAddAction[] = [];
+const SEARCH_TOGGLE_ACTIVE_CLASSNAME =
+  "bg-white/55 text-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.62),inset_0_0_0_1px_rgba(61,61,61,0.04)] hover:bg-white/70";
+const SEARCH_DISCLOSURE_PANEL_CLASSNAME =
+  "absolute left-0 right-0 top-[38px] z-30 overflow-hidden rounded-b-[8px] rounded-t-none border-x border-b border-white/55 bg-white/70 shadow-[0_12px_28px_rgba(15,23,42,0.10),inset_0_1px_0_rgba(255,255,255,0.58)] backdrop-blur-xl backdrop-saturate-150";
+const SEARCH_DISCLOSURE_INPUT_CLASSNAME =
+  "w-full bg-transparent shadow-none focus-within:ring-0";
 
 /**
  * Sticky header for tree side panels: a `HeaderIconToolbar` with a
@@ -184,9 +190,7 @@ export function TreePanelHeader({
           pressed: searchActive,
           ariaControls: panelId,
           ariaExpanded: open,
-          className: searchActive
-            ? "bg-surfaceMuted text-ink hover:bg-surfaceMuted focus-visible:bg-surfaceMuted"
-            : undefined,
+          className: searchActive ? SEARCH_TOGGLE_ACTIVE_CLASSNAME : undefined,
         },
         ...startActions,
       ]
@@ -236,12 +240,12 @@ export function TreePanelHeader({
           <div
             id={panelId}
             role="search"
-            className="absolute left-0 right-0 top-[40px] z-30 rounded-xs border border-hairline bg-white shadow-sm"
+            className={SEARCH_DISCLOSURE_PANEL_CLASSNAME}
             data-tree-search-panel="true"
           >
             <SearchInput
               ref={assignInputRef}
-              wrapperClassName="w-full"
+              wrapperClassName={SEARCH_DISCLOSURE_INPUT_CLASSNAME}
               placeholder={searchPlaceholder}
               aria-label={searchLabel ?? searchPlaceholder}
               value={searchValue}

@@ -48,13 +48,12 @@ export function projectEstimatesHref(projectId: string): string {
 
 /**
  * Deep-link straight into an estimate sheet's editor when we know its first node
- * (the "continue where you left off" jump). Falls back to the project's estimate
- * list when the sheet has no nodes yet.
+ * (the "continue where you left off" jump). Falls back to the estimate id route
+ * when the sheet has no nodes yet so the link still opens the sheet surface, not
+ * the project's estimate table.
  */
-export function estimateHref(estimate: Pick<WorkshopEstimateSummary, "project_id" | "firstNodeId">): string {
-  return estimate.firstNodeId
-    ? `/workshop/projects/${estimate.project_id}/estimates/${estimate.firstNodeId}`
-    : projectEstimatesHref(estimate.project_id);
+export function estimateHref(estimate: Pick<WorkshopEstimateSummary, "id" | "project_id" | "firstNodeId">): string {
+  return `/workshop/projects/${estimate.project_id}/estimates/${estimate.firstNodeId ?? estimate.id}`;
 }
 
 // ── Formatters (match existing repo convention in WorkshopHomebaseClient) ──────

@@ -3,6 +3,15 @@
 @source not "../../.ai";
 @source not "../../.gitnexus";
 
+@font-face {
+  font-family: "Doto";
+  /* Doto's default ROND@0 cut is smooth; ROND@100 is the dotted robotic display cut. */
+  src: url("/fonts/doto/doto-rond-100-400.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #3d3d3d;
@@ -172,7 +181,6 @@
   --source-boundary: #e8d8cf;
   --accent-dark: #2a2a2a;
   --accent-soft: #f5f5f5;
-  --editable-focus-bg: #eeeeee;
   --focus: #3d3d3d;
   --success: #15803d;
   --success-soft: #dcfce7;
@@ -528,7 +536,6 @@ body:has(.dashboard-transparent-shell) {
   select:not([disabled]):not([aria-invalid="true"]):focus {
     outline: none !important;
     box-shadow: none !important;
-    background-color: var(--editable-focus-bg) !important;
   }
 
   input:not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):focus,
@@ -2599,6 +2606,11 @@ input[type="number"] {
   color: var(--destination-muted);
 }
 .dashboard-destination-card-title {
+  font-family: var(--font-display);
+  font-variation-settings: "ROND" 100;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: uppercase;
   transition: color 180ms ease-out;
   color: var(--destination-ink);
 }
