@@ -1,0 +1,121 @@
+   724:10  warning  'parseComponentCreateApplyResult' is defined but never used  @typescript-eslint/no-unused-vars
+  1071:10  warning  'readRowNodeId' is defined but never used                    @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/Documents/archestimator/src/lib/ai/package-builder/read-tools.ts
+  18:7  warning  'PACKAGE_BUILDER_READ_TOOL_NAMES' is assigned a value but only used as a type  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/Documents/archestimator/src/lib/auth/account-actions.ts
+  48:16  warning  'completeOnboarding' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/Documents/archestimator/src/lib/auth/session.ts
+  100:49  warning  '_options' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/Documents/archestimator/src/lib/cloudflare/estimate-history-proof-router.ts
+  84:16  warning  'queryRows' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/Documents/archestimator/src/lib/collaboration/feature-flags.ts
+  57:10  warning  'readTeamspaceFeatureFlags' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/Documents/archestimator/src/lib/component-library/actions.ts
+   301:10  warning  'getMassDeletionCorrelationId' is defined but never used  @typescript-eslint/no-unused-vars
+   477:20  warning  '_workspaceId' is assigned a value but never used         @typescript-eslint/no-unused-vars
+   478:18  warning  '_projectId' is assigned a value but never used           @typescript-eslint/no-unused-vars
+   479:19  warning  '_estimateId' is assigned a value but never used          @typescript-eslint/no-unused-vars
+  1870:6   warning  'EstimateTabNodeSourceRowD1' is defined but never used    @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/Documents/archestimator/src/lib/component-library/project-component-projection.ts
+   15:7   warning  'PROJECT_COMPONENTS_EXPRESS_FOLDER_SUFFIX' is assigned a value but never used           @typescript-eslint/no-unused-vars
+   16:7   warning  'PROJECT_COMPONENTS_PROJECT_SPECIFIC_FOLDER_SUFFIX' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  164:10  warning  'getProjectComponentsGroupFolderId' is defined but never used                           @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/Documents/archestimator/src/lib/component-library/unit-options.ts
+  166:7  warning  'PACKAGE_UNIT_OPTIONS' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  177:7  warning  'MASS_UNIT_OPTIONS' is assigned a value but never used     @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/Documents/archestimator/src/lib/domain/estimate-tree.ts
+  61:10  warning  'isDescendantNode' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/Documents/archestimator/src/lib/estimates/d1-action-client.ts
+   419:16  warning  'readEstimateContext' is defined but never used   @typescript-eslint/no-unused-vars
+  1832:9   warning  'estimateIds' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/Documents/archestimator/src/lib/estimates/parse-quantity-expression.ts
+  77:9  warning  'hasContingencyExpression' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/Documents/archestimator/src/lib/estimates/tree-hierarchy.ts
+  9:7  warning  'ESTIMATE_NODE_DISPLAY_NAME' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/Documents/archestimator/src/lib/landing/seo-metadata.ts
+  73:10  warning  'buildNoIndexMetadata' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/Documents/archestimator/src/lib/publication/admin-d1-client.ts
+  5:61  warning  'D1Result' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/Documents/archestimator/src/lib/publication/snapshot.ts
+  313:34  warning  '_privateIdNamespace' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/Documents/archestimator/src/lib/repositories/component-library-repository.ts
+  1671:10  warning  'buildLibraryOverviewFromSummaryPayload' is defined but never used   @typescript-eslint/no-unused-vars
+  2021:7   warning  'componentLibraryDatasetVersion' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/Documents/archestimator/src/lib/repositories/estimate-repository.ts
+  54:10  warning  'toEstimateNode' is defined but never used     @typescript-eslint/no-unused-vars
+  68:10  warning  'toEstimateRowItem' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/Documents/archestimator/src/lib/repositories/workspace-repository.ts
+   405:10  warning  'readD1JsonRecord' is defined but never used                            @typescript-eslint/no-unused-vars
+  1689:10  warning  'assertRpcOptionalNumber' is defined but never used                     @typescript-eslint/no-unused-vars
+  1697:10  warning  'assertRpcBoolean' is defined but never used                            @typescript-eslint/no-unused-vars
+  1756:10  warning  'assertWorkspaceRecord' is defined but never used                       @typescript-eslint/no-unused-vars
+  1972:10  warning  'isWorkspaceProjectsSummaryContractError' is defined but never used     @typescript-eslint/no-unused-vars
+  1980:10  warning  'isMainSidebarFavoriteProjectsContractError' is defined but never used  @typescript-eslint/no-unused-vars
+  2234:10  warning  'toMainSidebarFavoriteProject' is defined but never used                @typescript-eslint/no-unused-vars
+  3979:16  warning  'getProjectEstimateTreeByNodeLegacy' is defined but never used          @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/Documents/archestimator/src/lib/reusable-sources/actions.ts
+  128:10  warning  'normalizeD1Value' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/Documents/archestimator/src/lib/reusable-sources/display.ts
+  16:10  warning  'getReusableSourceDisplayName' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/Documents/archestimator/src/lib/share/aggregate-share-chart-buckets.ts
+  91:7  warning  'CHART_CONSTANTS' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/Documents/archestimator/src/stories/domain/workshop/modal-patterns.stories.tsx
+  380:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/philiplewis/Documents/archestimator/tests/vitest/ai-package-builder-apply.test.ts
+  74:10  warning  'parseJson' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/Documents/archestimator/tests/vitest/auth-sensitive-api-boundaries.test.ts
+  294:20  warning  '_values' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/Documents/archestimator/tests/vitest/cloudflare-d1-performance-proof-router.test.ts
+  41:20  warning  '_values' is defined but never used  @typescript-eslint/no-unused-vars
+  47:20  warning  '_values' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/Documents/archestimator/tests/vitest/cloudflare-image-processing.test.ts
+  23:24  warning  '_stream' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/Documents/archestimator/tests/vitest/estimate-insert-target-authz.test.tsx
+  50:10  warning  'queryResult' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/Documents/archestimator/tests/vitest/estimate-unification-oracle.test.ts
+  24:3  warning  'phaseAtLeast' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/Documents/archestimator/tests/vitest/project-activity-repository.test.ts
+  49:24  warning  '_values' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/Documents/archestimator/tests/vitest/publisher-activity-d1-repository.test.ts
+  47:24  warning  '_values' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/Documents/archestimator/tests/vitest/publisher-roster-d1-repository.test.ts
+  67:24  warning  '_values' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/Documents/archestimator/worker.ts
+  56:1  warning  Assign object to a variable before exporting as module default  import/no-anonymous-default-export
+
+✖ 129 problems (0 errors, 129 warnings)
+  0 errors and 3 warnings potentially fixable with the `--fix` option.
+
+LINT_EXIT=0
