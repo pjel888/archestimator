@@ -222,7 +222,7 @@ Tables spread across 29 D1 migrations in `./migrations/` (latest `0029_estimate_
 
 **Versioning:** estimate_sheet_versions (named snapshots), cost_library_item_versions, cost_library_item_price_history, cost_library_item_state_history.
 
-Legacy Supabase schema (40+ tables, 67 migration files, 50+ RPC functions, RLS) is preserved as migration archaeology in `./supabase/migrations/` and is no longer authoritative.
+Legacy Supabase schema (40+ tables, 182 migration files, 50+ RPC functions, RLS) is preserved as migration archaeology in `./supabase/migrations/` and is no longer authoritative.
 
 ## Key features
 

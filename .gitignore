@@ -54,9 +54,6 @@ yarn-error.log*
 .env*
 !.env.example
 
-# vercel
-.vercel
-
 # cloudflare
 /.open-next/
 /.wrangler/
