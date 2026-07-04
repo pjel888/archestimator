@@ -1,7 +1,7 @@
 # 26 - Phase 5 Legacy Provider Cleanup Plan
 
 **Date:** 2026-07-04
-**Status:** Classification, current-worktree re-audit, Slice B/D3 allowlist evidence, and local type-reference retirement complete; sibling-ledger repo-local cleanup evidence exists, but provider-exit/hosted/operator/final-review proof remains open.
+**Status:** Classification, current-worktree re-audit, Slice B/D3 allowlist evidence, and local type-reference retirement complete; sibling-ledger repo-local cleanup evidence exists, but hosted/provider/operator/legal/privacy/cleanup/provider-exit/final-review proof remains open.
 
 ## Objective
 
@@ -29,8 +29,8 @@ Turn the Phase 5 gate in `11_IMPLEMENTATION_PLAN.md` and the worksheet in `21_LE
 | `.ai/03_plans/2026-07-04-Vercel-Supabase-Cleanup/LOOP_LEDGER.md` | Sibling ledger records 2026-07-04 implementation complete with 16/18 findings resolved, owner-waived Supabase key rotation as not in use, legacy env vars removed from `.env.local`, legacy check scripts deleted, selected proof/backfill assets archived under `supabase/migration-evidence/`, stale specs/roadmap archived, `.vercel`/`.vercelignore` removed, and two non-blocking deferrals. Treat this as repo-local cleanup evidence, not hosted/provider-dashboard/operator proof. |
 | Current cleanup artifacts in the dirty worktree | `scripts/check-supabase-*` and `scripts/check-vercel-*` are absent; `package.json` has no `check-supabase` or `check-vercel` entries; `.vercel` and `.vercelignore` are absent; 7 backfill scripts, 29 provider-parity proof files plus 4 archived proof-test files, and 4 SQL files are archived under `supabase/migration-evidence/`; `supabase/README.md` formalizes the folder as migration archaeology. |
 | Current remaining provider-string hits outside `supabase/**` | Fresh auth follow-up scan still has a narrow `44` old-provider keyword-file count after Slice 0 target-literal cleanup, Slice A proof-utility archive, Slice A2 proof-test archive, and Slice D3 deletion of the historical type file. The canonical provider-cleanup allowlist report now uses a broader provider-boundary token set and classifies `89` active-surface hit files, sets `activeRuntimeProviderReferencesReady=true`, `allProviderStringsClassified=true`, `providerCleanupAllowlistReady=true`, and `finalProviderCleanupReady=true`, with zero active-runtime blockers, zero cleanup candidates, zero unclassified files, and zero type-reference-retirement files. The current path-reference inventory reports `4` total files, `0` deletion blockers, `4` non-blocking guard/audit-tooling files, and `typeReferenceDeletionReady=true`. |
-| `28_PHASE_5_REMAINING_PROVIDER_FIXTURE_CLEANUP_PLAN.md` | Follow-up cleanup packet records the original `60`-file inventory, Slice 0 target-literal cleanup/verification, Slice A archive evidence for stale proof utilities and their direct tests, Slice A2 archive evidence for the remaining provider-only proof tests, Slice B/D3 allowlist proof, scoped review feedback, the broadened `89`-file provider-boundary allowlist pass, and historical type-file retirement. The active caller checks for the archived stale proof-utility/test names now return no direct imports outside `supabase/**`. This closes the local provider-cleanup gate but does not close hosted/provider-exit/operator/final-review proof. |
-| `29_PHASE_5_PROVIDER_STRING_FILE_INVENTORY.md` | File-level companion inventory now classifies the original old-provider keyword hit files, marks the Slice 0 cleared files/current-worktree page-test cleanup, records Slice A stale proof-utility archive evidence, records Slice A2 provider-only proof-test archive evidence, adds the Slice B/D3 scanner/report artifacts, records Slice D type-reference deletion-readiness evidence (`4` current path-reference files, `0` deletion blockers, `4` non-blocking guard/audit-tooling files), and records the deleted historical type file. This sharpens the cleanup/allowlist work but does not complete hosted/provider-exit/operator/final-review proof. |
+| `28_PHASE_5_REMAINING_PROVIDER_FIXTURE_CLEANUP_PLAN.md` | Follow-up cleanup packet records the original `60`-file inventory, Slice 0 target-literal cleanup/verification, Slice A archive evidence for stale proof utilities and their direct tests, Slice A2 archive evidence for the remaining provider-only proof tests, Slice B/D3 allowlist proof, scoped review feedback, the broadened `89`-file provider-boundary allowlist pass, and historical type-file retirement. The active caller checks for the archived stale proof-utility/test names now return no direct imports outside `supabase/**`. This closes the local provider-cleanup gate but does not close hosted/provider/operator/legal/privacy/cleanup/provider-exit/final-review proof. |
+| `29_PHASE_5_PROVIDER_STRING_FILE_INVENTORY.md` | File-level companion inventory now classifies the original old-provider keyword hit files, marks the Slice 0 cleared files/current-worktree page-test cleanup, records Slice A stale proof-utility archive evidence, records Slice A2 provider-only proof-test archive evidence, adds the Slice B/D3 scanner/report artifacts, records Slice D type-reference deletion-readiness evidence (`4` current path-reference files, `0` deletion blockers, `4` non-blocking guard/audit-tooling files), and records the deleted historical type file. This sharpens the cleanup/allowlist work but does not complete hosted/provider/operator/legal/privacy/cleanup/provider-exit/final-review proof. |
 | `evidence/2026-07-04-provider-cleanup-allowlist.json` and `.md` | Non-destructive generated allowlist evidence for the current `89` provider-boundary hit files. The report passes the local provider-cleanup gate and sets `finalProviderCleanupReady=true`. It does not prove provider-dashboard, hosted runtime, provider-exit pack/CI, or final review gates. |
 | `evidence/2026-07-04-supabase-type-reference-retirement-inventory.json` and `.md` | Non-destructive generated retirement inventory for current `src/lib/supabase/types.ts` path references. It classifies all current references, proves there are no unknown path-reference patterns, separates negative guards/audit-tooling from true blockers, and reports `deletionBlockingFileCount=0` with `typeReferenceDeletionReady=true`. |
 | Provider-exit proof boundary | The 2026-07-04T09:04:19Z regenerated sibling provider-exit/source-smoke/template artifacts report `activeLegacyProviderRuntimeBlockers=0`, but `providerExitReady=false` with five blockers: latest deploy/source smoke, final exports or accepted retention/loss decision, post-exit Cloudflare smoke, real non-owner Google proof or accepted deferral, and real recipient mailbox proof or accepted deferral. The matching latest deploy/source-smoke artifact is also `NOT READY` with `3` current-tree blockers: uncommitted runtime source paths, deployed commit mismatch, and deployment older than current HEAD. The refreshed source-smoke template and provider-exit operator-record template are sanitized handoff artifacts for the remaining gates, not completion proof. |
@@ -41,7 +41,7 @@ Turn the Phase 5 gate in `11_IMPLEMENTATION_PLAN.md` and the worksheet in `21_LE
 |---|---|---|
 | Active app/runtime dependencies | `keep-active-cloudflare` | Keep `better-auth`, OpenNext Cloudflare, D1/R2/DO/Queue/Email tooling. Do not introduce old-provider packages. |
 | `src/app/auth/callback/route.ts` | `transitional-disabled-legacy-gate` | Keep until provider/OAuth redirect URI proof shows no external traffic depends on `/auth/callback`, then delete with route and redirect-sanitizer tests. |
-| `src/lib/supabase/types.ts` | `deleted-retired-type-reference` | Deleted locally after active deletion-blocking consumers were migrated. Keep the four remaining guard/audit-tooling path references intentional, and do not conflate this local cleanup pass with provider-exit/hosted/operator proof. |
+| `src/lib/supabase/types.ts` | `deleted-retired-type-reference` | Deleted locally after active deletion-blocking consumers were migrated. Keep the four remaining guard/audit-tooling path references intentional, and do not conflate this local cleanup pass with hosted/provider/operator/legal/privacy/cleanup/provider-exit/final-review proof. |
 | Legacy proof scripts importing `@supabase/supabase-js` | `migration-archaeology` | Keep, archive, or delete only after owner disposition. If archived, move with tests or remove test cascade in the same wave. |
 | Cloudflare audit/proof scripts that mention legacy providers | `keep-active-audit-tooling` | Keep when the reference is a negative scan, provider-exit report, or Cloudflare readiness check. |
 | Supabase migrations and provider evidence | `migration-archaeology` | Keep with a clear banner or move to archive per owner decision. Do not run, extend, or mutate historical Supabase resources. |
@@ -76,7 +76,7 @@ Acceptance criteria:
 
 ### WP3 - Supabase Types And Legacy Proof Scripts
 
-**Status:** Active consumer migration and historical type-file deletion complete locally; provider-exit/hosted/operator/final-review proof remains open.
+**Status:** Active consumer migration and historical type-file deletion complete locally; hosted/provider/operator/legal/privacy/cleanup/provider-exit/final-review proof remains open.
 
 Required sequence:
 1. Use the generated type-reference inventory as the authoritative active path-reference map.
@@ -105,7 +105,7 @@ Acceptance criteria:
 
 ### WP5 - Documentation And Test Cascade
 
-**Status:** Coordinate with `.ai/03_plans/2026-07-04-Vercel-Supabase-Cleanup/`; sibling-ledger repo-local cleanup evidence exists, and retained legacy provider scan hits are now classified with zero cleanup candidates. Final proof remains blocked by provider-exit, hosted, operator, and final-review evidence.
+**Status:** Coordinate with `.ai/03_plans/2026-07-04-Vercel-Supabase-Cleanup/`; sibling-ledger repo-local cleanup evidence exists, and retained legacy provider scan hits are now classified with zero cleanup candidates. Final proof remains blocked by hosted, provider, operator, legal, privacy, cleanup, provider-exit, and final-review evidence.
 
 Required sequence:
 - Use the sibling pack's wave plan for repository-wide doc/script/test/folder cleanup.
@@ -137,7 +137,7 @@ Remaining cleanup limits and gates from the same scan:
 - Several tests intentionally keep old-provider strings as negative assertions, mocks, scanner fixtures, or security fixtures; Slice B now classifies these in the generated allowlist report.
 - Provider-dashboard/hosted proof was not performed in this auth pass; the sibling ledger says Supabase key rotation was owner-waived as not in use, which is owner disposition evidence but not provider-dashboard proof.
 
-The sibling cleanup pack now has implementation ledger evidence, `28` converts the remaining scan hits into cleanup buckets, Slice B/D3 generated the current allowlist proof, and Slice D/D3 proves active type-reference retirement. This pack still cannot treat Phase 5 or the active goal as complete until provider-exit/hosted/operator/final-review proof is gathered or explicitly accepted.
+The sibling cleanup pack now has implementation ledger evidence, `28` converts the remaining scan hits into cleanup buckets, Slice B/D3 generated the current allowlist proof, and Slice D/D3 proves active type-reference retirement. This pack still cannot treat Phase 5 or the active goal as complete until hosted/provider/operator/legal/privacy/cleanup/provider-exit/final-review proof is gathered or explicitly accepted.
 
 ## Validation Plan
 
@@ -169,7 +169,7 @@ Run targeted Vitest/e2e suites based on the files actually changed by the cleanu
 
 ## Implementation Evidence
 
-Status: no broad source cleanup implementation in this auth pack. Substantial repo-local cleanup is visible in the current dirty worktree and sibling cleanup ledger. Local provider-cleanup/type-reference retirement is now green, but this is not provider-exit completion because hosted/provider-dashboard/operator proof remains open.
+Status: no broad source cleanup implementation in this auth pack. Substantial repo-local cleanup is visible in the current dirty worktree and sibling cleanup ledger. Local provider-cleanup/type-reference retirement is now green, but this is not provider-exit completion because hosted/provider-dashboard/operator proof plus legal/privacy/final-review acceptance remain open.
 
 Local evidence collected on 2026-07-04:
 - Runtime package/config scan confirms `package.json` has no old-provider packages and `wrangler.jsonc` remains Cloudflare-bound.

@@ -22,7 +22,7 @@ Stable current truth (verify against git/source before relying on a detail):
 	  generated a broadened provider-cleanup allowlist report that classifies all
 	  current active-surface provider-boundary hits; the historical
 	  `src/lib/supabase/types.ts` artifact was then retired in
-  the current worktree, but the sibling pack's full provider-exit/hosted/operator/final-review
+  the current worktree, but the sibling pack's full hosted/provider/operator/legal/privacy/cleanup/provider-exit/final-review
   proof gates remain unresolved. Current evidence supports these repo-local
   cleanup facts: `find src/lib/supabase -maxdepth 2 -type f -print` returns no
   files; the generated type-reference inventory reports `4` active
@@ -226,14 +226,15 @@ Stable current truth (verify against git/source before relying on a detail):
   `src/lib/supabase/types.ts`, a stale `RESEND_API_KEY` e2e setup comment,
   provider-backed proof tests, and negative assertions. The sibling cleanup
   ledger now records substantial repo-local implementation evidence, but Phase 5
-  final provider-cleanup/provider-exit proof remains open because current scans
-  still find old-provider proof/test fixtures and hosted/provider-dashboard/operator proof
-  has not been gathered. A subsequent Phase 6 docs-only audit
+  final provider-cleanup/provider-exit proof remained open at that checkpoint
+  because current scans still found old-provider proof/test fixtures, and
+  hosted/provider-dashboard/operator proof plus legal/privacy/final-review
+  acceptance had not been gathered. A subsequent Phase 6 docs-only audit
   added `27_PHASE_6_FINAL_VERIFICATION_COMPLETION_AUDIT.md`, wired it into the
   auth-pack README/traceability/evidence/readiness docs, and kept the verdict at
   `CONDITIONALLY READY`. The audit records tests run, skipped proof, P0/P1
   residual risks, and the explicit non-completion verdict: the active goal
-  remains open until hosted/provider/operator/legal/privacy/cleanup/final-review gates are proven or
+  remains open until hosted/provider/operator/legal/privacy/cleanup/provider-exit/final-review gates are proven or
   explicitly accepted. A prompt-surface hardening follow-up updated
   `.ai/08_prompts/000_Planning Prompts/Executing-Plan-Prompt.md` and
   `Multi-Agent-Execution-Directive.md` so skipped-proof audits and final
@@ -375,8 +376,8 @@ Stable current truth (verify against git/source before relying on a detail):
   `providerCleanupAllowlistReady=true`, zero cleanup candidates, and zero
   unclassified files; the final-cleanup flag was still false at that checkpoint
   because `src/lib/supabase/types.ts` and its active consumers remained, and
-  provider-exit pack/CI proof plus hosted/provider evidence were still separate
-  gates. Later Slice D0-D3 evidence supersedes the type-reference
+  provider-exit pack/CI proof plus hosted/provider/operator/legal/privacy/final-review
+  evidence were still separate gates. Later Slice D0-D3 evidence supersedes the type-reference
   count with `4` active path-reference files, `0` deletion blockers, and
   `typeReferenceDeletionReady=true`. Focused Slice D validation passed the
   migrated Vitest suite (`17` files / `136` tests), the Bun P3 shared-link

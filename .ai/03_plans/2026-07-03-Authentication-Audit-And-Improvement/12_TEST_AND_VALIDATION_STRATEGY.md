@@ -15,7 +15,7 @@
 | 2 | Publication password failures, hard lock, lock expiry, correct password after lock, simulated isolate/global reset |
 | 3 | Role helper exhaustiveness; workspace/project/estimate allowed/denied; beta-admin allowed/denied; invite acceptance wrong-account/role states |
 | 4 | Viewer cookie rejected by `/workshop`; Better Auth session rejected as share password bypass; CSRF/no-store; token/url/evidence redaction |
-| 5 | Legacy route/docs/tests cleanup does not break Better Auth callback, invite, auth proxy, active provider-exit scanners, negative assertions, or proof scripts still intentionally retained. The low-risk Slice 0 target-literal validation contract, Slice A stale proof-utility archive, Slice A2 provider-only proof-test archive, and Slice B allowlist report in `28` are locally complete for their exact scopes; treat historical type-reference retirement and final provider-exit/hosted/operator/final-review proof as separate slices. |
+| 5 | Legacy route/docs/tests cleanup does not break Better Auth callback, invite, auth proxy, active provider-exit scanners, negative assertions, or proof scripts still intentionally retained. The low-risk Slice 0 target-literal validation contract, Slice A stale proof-utility archive, Slice A2 provider-only proof-test archive, and Slice B allowlist report in `28` are locally complete for their exact scopes; treat historical type-reference retirement and final hosted/provider/operator/legal/privacy/cleanup/provider-exit/final-review proof as separate slices. |
 
 ## Candidate Existing Test Areas
 

@@ -78,7 +78,7 @@ Risks are categorized P0 (blocker), P1 (must fix before launch/security claim), 
 
 **Phase:** 5
 
-**Status:** Classification, current-worktree re-audit, sibling-ledger repo-local cleanup evidence, Slice A archive evidence for the stale shared-link proof utilities and direct dependent tests, Slice A2 archive evidence for the remaining provider-only proof tests, Slice B/D3 allowlist proof, historical type-file retirement, and a full current file-level inventory exist; final provider-exit proof remains open because hosted/provider-dashboard/operator proof and provider-exit pack/CI readiness are not resolved here.
+**Status:** Classification, current-worktree re-audit, sibling-ledger repo-local cleanup evidence, Slice A archive evidence for the stale shared-link proof utilities and direct dependent tests, Slice A2 archive evidence for the remaining provider-only proof tests, Slice B/D3 allowlist proof, historical type-file retirement, and a full current file-level inventory exist; final provider-exit proof remains open because hosted/provider-dashboard/operator proof, legal/privacy/final-review acceptance, and provider-exit pack/CI readiness are not resolved here.
 
 ### RISK-008 - Evidence/logging can leak credential-adjacent material
 

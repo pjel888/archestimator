@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
 
 type Artifact<T extends Record<string, unknown> = Record<string, unknown>> = {
   path: string;
@@ -67,6 +67,7 @@ export const DEFAULT_AUTH_AUDIT_COMPLETION_ARTIFACTS: AuthAuditCompletionArtifac
 
 const DEFAULT_OUTPUT_FILE = `${AUTH_EVIDENCE_ROOT}/2026-07-04-auth-audit-completion-readiness.json`;
 const DEFAULT_MARKDOWN_FILE = `${AUTH_EVIDENCE_ROOT}/2026-07-04-auth-audit-completion-readiness.md`;
+const SANITIZED_EVIDENCE_ROOTS = [AUTH_EVIDENCE_ROOT, CLOUDFLARE_MIGRATION_EVIDENCE_ROOT].map((root) => resolve(root));
 
 const NOTE =
   "Fail-closed auth audit completion gate. This script reads sanitized evidence artifacts only; it does not read .env files, print secrets, mutate providers, deploy, run browser automation, approve legal/privacy posture, or mark native goals complete.";
@@ -88,7 +89,18 @@ export function readJsonArtifact<T extends Record<string, unknown>>(path: string
   }
 
   try {
-    const value = JSON.parse(readFileSync(path, "utf8")) as T;
+    const parsed = JSON.parse(readFileSync(path, "utf8")) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return {
+        path,
+        present: true,
+        generatedAt: null,
+        value: null,
+        parseError: "JSON artifact must be an object",
+      };
+    }
+
+    const value = parsed as T;
     return {
       path,
       present: true,
@@ -123,6 +135,23 @@ function stringAt(value: Record<string, unknown> | null, path: string[]) {
     current = (current as Record<string, unknown>)[segment];
   }
   return typeof current === "string" && current.trim() ? current.trim() : null;
+}
+
+function stringArrayAt(value: Record<string, unknown> | null, path: string[]) {
+  let current: unknown = value;
+  for (const segment of path) {
+    if (!current || typeof current !== "object" || Array.isArray(current)) return null;
+    current = (current as Record<string, unknown>)[segment];
+  }
+  if (!Array.isArray(current)) return null;
+  const strings = current.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+  return strings.length === current.length && strings.length > 0 ? strings : null;
+}
+
+function isIsoTimestamp(value: string | null) {
+  if (!value) return false;
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) && new Date(timestamp).toISOString() === value;
 }
 
 function artifactSummary(artifact: Artifact) {
@@ -189,22 +218,45 @@ function finalIndependentReviewGate(artifact: Artifact): Gate {
 
   const recommendation = stringAt(artifact.value, ["recommendation"]);
   const architectStatus = stringAt(artifact.value, ["architectStatus"]);
+  const mode = stringAt(artifact.value, ["mode"]);
+  const scope = stringAt(artifact.value, ["scope"]);
+  const reviewedArtifacts = stringArrayAt(artifact.value, ["reviewedArtifacts"]);
+  const verificationCommands = stringArrayAt(artifact.value, ["verification", "commands"]);
+  const codeReviewerAgentId = stringAt(artifact.value, ["independentReview", "codeReviewer", "agentId"]);
   const codeReviewerRole = stringAt(artifact.value, ["independentReview", "codeReviewer", "agentRole"]);
   const codeReviewerStatus = stringAt(artifact.value, ["independentReview", "codeReviewer", "status"]);
+  const codeReviewerRecommendation = stringAt(artifact.value, ["independentReview", "codeReviewer", "recommendation"]);
   const codeReviewerEvidence = stringAt(artifact.value, ["independentReview", "codeReviewer", "evidence"]);
+  const codeReviewerVerification = stringArrayAt(artifact.value, ["independentReview", "codeReviewer", "verification"]);
+  const architectAgentId = stringAt(artifact.value, ["independentReview", "architect", "agentId"]);
   const architectRole = stringAt(artifact.value, ["independentReview", "architect", "agentRole"]);
   const architectStatusValue = stringAt(artifact.value, ["independentReview", "architect", "status"]);
+  const architectReviewStatus = stringAt(artifact.value, ["independentReview", "architect", "architectStatus"]);
   const architectEvidence = stringAt(artifact.value, ["independentReview", "architect", "evidence"]);
+  const architectVerification = stringArrayAt(artifact.value, ["independentReview", "architect", "verification"]);
+  const distinctAgents = Boolean(codeReviewerAgentId && architectAgentId && codeReviewerAgentId !== architectAgentId);
 
   const missing = [
+    mode !== "auth-audit-final-independent-review" ? "mode=auth-audit-final-independent-review" : null,
+    scope !== "auth-audit-completion-readiness" ? "scope=auth-audit-completion-readiness" : null,
+    !isIsoTimestamp(artifact.generatedAt) ? "ISO generatedAt" : null,
+    !reviewedArtifacts ? "reviewedArtifacts[]" : null,
+    !verificationCommands ? "verification.commands[]" : null,
     recommendation !== "APPROVE" ? "recommendation=APPROVE" : null,
     architectStatus !== "CLEAR" ? "architectStatus=CLEAR" : null,
+    !codeReviewerAgentId ? "code-reviewer agentId" : null,
     codeReviewerRole !== "code-reviewer" ? "independent code-reviewer role" : null,
     codeReviewerStatus !== "complete" ? "completed code-reviewer status" : null,
+    codeReviewerRecommendation !== "APPROVE" ? "code-reviewer recommendation=APPROVE" : null,
     !codeReviewerEvidence ? "code-reviewer evidence" : null,
+    !codeReviewerVerification ? "code-reviewer verification[]" : null,
+    !architectAgentId ? "architect agentId" : null,
     architectRole !== "architect" ? "independent architect role" : null,
     architectStatusValue !== "complete" ? "completed architect status" : null,
+    architectReviewStatus !== "CLEAR" ? "architect review status=CLEAR" : null,
     !architectEvidence ? "architect evidence" : null,
+    !architectVerification ? "architect verification[]" : null,
+    !distinctAgents ? "distinct code-reviewer and architect agents" : null,
   ].filter((item): item is string => Boolean(item));
 
   const ready = missing.length === 0;
@@ -363,20 +415,55 @@ function writeFile(path: string, value: string) {
   writeFileSync(resolved, value);
 }
 
+function assertSanitizedArtifactPath(envName: string, path: string) {
+  const resolved = resolve(path);
+  const allowed = SANITIZED_EVIDENCE_ROOTS.some((root) => {
+    const rel = relative(root, resolved);
+    return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
+  });
+  if (!allowed) {
+    throw new Error(`${envName} must point inside a known sanitized evidence directory.`);
+  }
+  return path;
+}
+
+function readCliArtifactPathEnv(envName: string, fallback: string) {
+  const value = readEnv(envName);
+  return value ? assertSanitizedArtifactPath(envName, value) : fallback;
+}
+
 function artifactsFromEnv(): AuthAuditCompletionArtifactPaths {
   return {
     providerCleanupAllowlist:
-      readEnv("AUTH_PROVIDER_CLEANUP_ALLOWLIST_FILE") ?? DEFAULT_AUTH_AUDIT_COMPLETION_ARTIFACTS.providerCleanupAllowlist,
+      readCliArtifactPathEnv(
+        "AUTH_PROVIDER_CLEANUP_ALLOWLIST_FILE",
+        DEFAULT_AUTH_AUDIT_COMPLETION_ARTIFACTS.providerCleanupAllowlist,
+      ),
     typeReferenceInventory:
-      readEnv("AUTH_TYPE_REFERENCE_INVENTORY_FILE") ?? DEFAULT_AUTH_AUDIT_COMPLETION_ARTIFACTS.typeReferenceInventory,
+      readCliArtifactPathEnv(
+        "AUTH_TYPE_REFERENCE_INVENTORY_FILE",
+        DEFAULT_AUTH_AUDIT_COMPLETION_ARTIFACTS.typeReferenceInventory,
+      ),
     legalOwnerReadiness:
-      readEnv("AUTH_LEGAL_OWNER_READINESS_FILE") ?? DEFAULT_AUTH_AUDIT_COMPLETION_ARTIFACTS.legalOwnerReadiness,
+      readCliArtifactPathEnv(
+        "AUTH_LEGAL_OWNER_READINESS_FILE",
+        DEFAULT_AUTH_AUDIT_COMPLETION_ARTIFACTS.legalOwnerReadiness,
+      ),
     latestDeploySourceSmoke:
-      readEnv("AUTH_LATEST_DEPLOY_SOURCE_SMOKE_FILE") ?? DEFAULT_AUTH_AUDIT_COMPLETION_ARTIFACTS.latestDeploySourceSmoke,
+      readCliArtifactPathEnv(
+        "AUTH_LATEST_DEPLOY_SOURCE_SMOKE_FILE",
+        DEFAULT_AUTH_AUDIT_COMPLETION_ARTIFACTS.latestDeploySourceSmoke,
+      ),
     providerExitPack:
-      readEnv("AUTH_PROVIDER_EXIT_PACK_FILE") ?? DEFAULT_AUTH_AUDIT_COMPLETION_ARTIFACTS.providerExitPack,
+      readCliArtifactPathEnv(
+        "AUTH_PROVIDER_EXIT_PACK_FILE",
+        DEFAULT_AUTH_AUDIT_COMPLETION_ARTIFACTS.providerExitPack,
+      ),
     finalIndependentReview:
-      readEnv("AUTH_FINAL_INDEPENDENT_REVIEW_FILE") ?? DEFAULT_AUTH_AUDIT_COMPLETION_ARTIFACTS.finalIndependentReview,
+      readCliArtifactPathEnv(
+        "AUTH_FINAL_INDEPENDENT_REVIEW_FILE",
+        DEFAULT_AUTH_AUDIT_COMPLETION_ARTIFACTS.finalIndependentReview,
+      ),
   };
 }
 
