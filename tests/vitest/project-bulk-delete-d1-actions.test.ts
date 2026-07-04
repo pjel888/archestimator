@@ -27,6 +27,8 @@ const WORKSPACE_ID = "22222222-2222-4222-8222-222222222222";
 const USER_ID = "33333333-3333-4333-8333-333333333333";
 const ESTIMATE_ID = "44444444-4444-4444-8444-444444444444";
 const PUBLICATION_ID = "55555555-5555-4555-8555-555555555555";
+const OTHER_PROJECT_ID = "66666666-6666-4666-8666-666666666666";
+const OTHER_WORKSPACE_ID = "88888888-8888-4888-8888-888888888888";
 
 type FakeProjectRow = {
   id: string;
@@ -136,8 +138,8 @@ class FakeD1Database {
       project_code: "LT-01",
       currency_code: "PHP",
       metadata: JSON.stringify({
-        projectImagePath: `${WORKSPACE_ID}/project-images/tower.webp`,
-        projectImageThumbnailPath: `${WORKSPACE_ID}/project-images/tower-thumb.webp`,
+        projectImagePath: `${WORKSPACE_ID}/${USER_ID}/project-images/${PROJECT_ID}/tower.webp`,
+        projectImageThumbnailPath: `${WORKSPACE_ID}/${USER_ID}/project-images/${PROJECT_ID}/tower-thumb.webp`,
       }),
       created_by: USER_ID,
       created_at: "2026-07-01T00:00:00.000Z",
@@ -208,17 +210,181 @@ describe("project bulk deletion D1 actions", () => {
     expect(preview.storageTargets).toEqual([
       {
         bucket: "project-images",
-        path: `${WORKSPACE_ID}/project-images/tower-thumb.webp`,
+        path: `${WORKSPACE_ID}/${USER_ID}/project-images/${PROJECT_ID}/tower-thumb.webp`,
       },
       {
         bucket: "project-images",
-        path: `${WORKSPACE_ID}/project-images/tower.webp`,
+        path: `${WORKSPACE_ID}/${USER_ID}/project-images/${PROJECT_ID}/tower.webp`,
       },
     ]);
   });
 
+  it("previews deletion for project admins without workspace admin membership", async () => {
+    const database = new FakeD1Database();
+    database.projects[0] = {
+      ...database.projects[0],
+      workspace_role: null,
+      project_role: "admin",
+    };
+    getCloudflareD1Database.mockResolvedValue(database);
+
+    const preview = await previewBulkDeleteProjects({
+      projectIds: [PROJECT_ID],
+    });
+
+    expect(preview.ok).toBe(true);
+    expect(preview.eligibleIds).toEqual([PROJECT_ID]);
+    expect(preview.blocked).toEqual([]);
+    expect(preview.summary).toMatchObject({
+      eligibleCount: 1,
+      blockedCount: 0,
+      storageTargetCount: 2,
+    });
+  });
+
+  it("blocks project deletion for non-manager project collaborators", async () => {
+    const database = new FakeD1Database();
+    database.projects[0] = {
+      ...database.projects[0],
+      workspace_role: null,
+      project_role: "editor",
+    };
+    getCloudflareD1Database.mockResolvedValue(database);
+
+    const preview = await previewBulkDeleteProjects({
+      projectIds: [PROJECT_ID],
+    });
+
+    expect(preview.ok).toBe(false);
+    expect(preview.eligibleIds).toEqual([]);
+    expect(preview.storageTargets).toEqual([]);
+    expect(preview.summary).toMatchObject({
+      eligibleCount: 0,
+      blockedCount: 1,
+      storageTargetCount: 0,
+    });
+    expect(preview.blocked).toEqual([
+      expect.objectContaining({
+        id: PROJECT_ID,
+        code: "forbidden",
+      }),
+    ]);
+  });
+
+  it("filters foreign image metadata out of project deletion cleanup targets", async () => {
+    const database = new FakeD1Database();
+    const validPath = `${WORKSPACE_ID}/${USER_ID}/project-images/${PROJECT_ID}/tower.webp`;
+    const foreignPath = `${WORKSPACE_ID}/${USER_ID}/project-images/77777777-7777-4777-8777-777777777777/foreign.webp`;
+    database.projects[0] = {
+      ...database.projects[0],
+      metadata: JSON.stringify({
+        projectImagePath: validPath,
+        projectImageThumbnailPath: foreignPath,
+      }),
+    };
+    getCloudflareD1Database.mockResolvedValue(database);
+
+    const preview = await previewBulkDeleteProjects({
+      projectIds: [PROJECT_ID],
+    });
+
+    expect(preview.ok).toBe(true);
+    expect(preview.storageTargets).toEqual([
+      {
+        bucket: "project-images",
+        path: validPath,
+      },
+    ]);
+  });
+
+  it("keeps mixed-eligibility bulk deletion non-executable while preserving eligible previews", async () => {
+    const database = new FakeD1Database();
+    database.projects.push({
+      ...database.projects[0],
+      id: OTHER_PROJECT_ID,
+      name: "Collaborator Project",
+      project_code: "CP-01",
+      metadata: "{}",
+      workspace_role: null,
+      project_role: "editor",
+    });
+    getCloudflareD1Database.mockResolvedValue(database);
+
+    const preview = await previewBulkDeleteProjects({
+      projectIds: [PROJECT_ID, OTHER_PROJECT_ID],
+    });
+    const executed = await executeBulkDeleteProjects({
+      projectIds: [PROJECT_ID, OTHER_PROJECT_ID],
+      expectedPreviewHash: preview.previewHash ?? "",
+    });
+
+    expect(preview.ok).toBe(false);
+    expect(preview.eligibleIds).toEqual([PROJECT_ID]);
+    expect(preview.blocked).toEqual([
+      expect.objectContaining({
+        id: OTHER_PROJECT_ID,
+        code: "forbidden",
+      }),
+    ]);
+    expect(preview.storageTargets).toEqual([
+      {
+        bucket: "project-images",
+        path: `${WORKSPACE_ID}/${USER_ID}/project-images/${PROJECT_ID}/tower-thumb.webp`,
+      },
+      {
+        bucket: "project-images",
+        path: `${WORKSPACE_ID}/${USER_ID}/project-images/${PROJECT_ID}/tower.webp`,
+      },
+    ]);
+    expect(executed.ok).toBe(false);
+    expect(executed.deletedIds).toEqual([]);
+    expect(database.batchStatements).toEqual([]);
+    expect(createRuntimeUploadStorageProvider).not.toHaveBeenCalled();
+  });
+
+  it("blocks cross-workspace project deletion so audit events stay workspace-scoped", async () => {
+    const database = new FakeD1Database();
+    database.projects.push({
+      ...database.projects[0],
+      id: OTHER_PROJECT_ID,
+      workspace_id: OTHER_WORKSPACE_ID,
+      name: "Other Workspace Project",
+      project_code: "OW-01",
+      metadata: JSON.stringify({
+        projectImagePath: `${OTHER_WORKSPACE_ID}/${USER_ID}/project-images/${OTHER_PROJECT_ID}/other.webp`,
+      }),
+      workspace_role: "owner",
+      project_role: null,
+    });
+    getCloudflareD1Database.mockResolvedValue(database);
+
+    const preview = await previewBulkDeleteProjects({
+      projectIds: [PROJECT_ID, OTHER_PROJECT_ID],
+    });
+    const executed = await executeBulkDeleteProjects({
+      projectIds: [PROJECT_ID, OTHER_PROJECT_ID],
+      expectedPreviewHash: preview.previewHash ?? "",
+    });
+
+    expect(preview.ok).toBe(false);
+    expect(preview.eligibleIds).toEqual([PROJECT_ID, OTHER_PROJECT_ID]);
+    expect(preview.blocked).toEqual([
+      expect.objectContaining({
+        code: "blocked",
+        message: expect.stringContaining("one workspace at a time"),
+        details: { workspaceIds: [WORKSPACE_ID, OTHER_WORKSPACE_ID] },
+      }),
+    ]);
+    expect(executed.ok).toBe(false);
+    expect(executed.deletedIds).toEqual([]);
+    expect(database.batchStatements).toEqual([]);
+    expect(createRuntimeUploadStorageProvider).not.toHaveBeenCalled();
+  });
+
   it("executes project deletion through a D1 batch and rejects stale previews", async () => {
     const database = new FakeD1Database();
+    const removeObjects = vi.fn(async () => undefined);
+    createRuntimeUploadStorageProvider.mockResolvedValue({ removeObjects });
     getCloudflareD1Database.mockResolvedValue(database);
 
     const preview = await previewBulkDeleteProjects({
@@ -253,6 +419,63 @@ describe("project bulk deletion D1 actions", () => {
       database.batchStatements.map((statement) => statement.sql).join("\n"),
     ).toContain("DELETE FROM projects");
     expect(createRuntimeUploadStorageProvider).toHaveBeenCalledTimes(1);
+    expect(removeObjects).toHaveBeenCalledWith("project-images", [
+      `${WORKSPACE_ID}/${USER_ID}/project-images/${PROJECT_ID}/tower-thumb.webp`,
+      `${WORKSPACE_ID}/${USER_ID}/project-images/${PROJECT_ID}/tower.webp`,
+    ]);
+    expect(executed.storageCleanup).toEqual({
+      removed: [
+        {
+          bucket: "project-images",
+          path: `${WORKSPACE_ID}/${USER_ID}/project-images/${PROJECT_ID}/tower-thumb.webp`,
+        },
+        {
+          bucket: "project-images",
+          path: `${WORKSPACE_ID}/${USER_ID}/project-images/${PROJECT_ID}/tower.webp`,
+        },
+      ],
+      rejected: [],
+      failed: [],
+    });
     expect(revalidatePath).toHaveBeenCalledWith("/workshop/projects");
+  });
+
+  it("keeps D1 project deletion successful when R2 cleanup fails and reports cleanup failures", async () => {
+    const database = new FakeD1Database();
+    const removeObjects = vi.fn(async () => {
+      throw new Error("R2 unavailable");
+    });
+    createRuntimeUploadStorageProvider.mockResolvedValue({ removeObjects });
+    getCloudflareD1Database.mockResolvedValue(database);
+
+    const preview = await previewBulkDeleteProjects({
+      projectIds: [PROJECT_ID],
+    });
+    const executed = await executeBulkDeleteProjects({
+      projectIds: [PROJECT_ID],
+      expectedPreviewHash: preview.previewHash ?? "",
+    });
+
+    expect(executed.ok).toBe(true);
+    expect(executed.deletedIds).toEqual([PROJECT_ID]);
+    expect(
+      database.batchStatements.map((statement) => statement.sql).join("\n"),
+    ).toContain("DELETE FROM projects");
+    expect(executed.storageCleanup).toEqual({
+      removed: [],
+      rejected: [],
+      failed: [
+        {
+          bucket: "project-images",
+          path: `${WORKSPACE_ID}/${USER_ID}/project-images/${PROJECT_ID}/tower-thumb.webp`,
+          message: "R2 unavailable",
+        },
+        {
+          bucket: "project-images",
+          path: `${WORKSPACE_ID}/${USER_ID}/project-images/${PROJECT_ID}/tower.webp`,
+          message: "R2 unavailable",
+        },
+      ],
+    });
   });
 });

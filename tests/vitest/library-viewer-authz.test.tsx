@@ -39,6 +39,8 @@ const PROJECT_ID = "00000000-0000-4000-8000-000000000006";
 const ESTIMATE_ID = "00000000-0000-4000-8000-000000000007";
 const SOURCE_NODE_ID = "00000000-0000-4000-8000-000000000008";
 const TAB_ID = "00000000-0000-4000-8000-000000000009";
+const SHARED_WORKSPACE_ID = "00000000-0000-4000-8000-000000000010";
+const TEMPLATE_NODE_ID = "00000000-0000-4000-8000-000000000011";
 
 const validComponentInput = {
   name: "Viewer Guard Component",
@@ -52,6 +54,35 @@ const validComponentInput = {
     },
   ],
 };
+
+function templateD1Row(workspaceId: string) {
+  return {
+    id: TEMPLATE_ID,
+    workspace_id: workspaceId,
+    name: "Shared Source Template",
+    description: "",
+    category: "General",
+    sort_order: 0,
+    metadata: "{}",
+    created_by: USER_ID,
+    created_at: "2026-07-03T00:00:00.000Z",
+    updated_at: "2026-07-03T00:00:00.000Z",
+  };
+}
+
+function templateNodeD1Row() {
+  return {
+    id: TEMPLATE_NODE_ID,
+    template_id: TEMPLATE_ID,
+    parent_id: null,
+    kind: "group",
+    name: "Shared Node",
+    sort_order: 0,
+    metadata: "{}",
+    created_at: "2026-07-03T00:00:00.000Z",
+    updated_at: "2026-07-03T00:00:00.000Z",
+  };
+}
 
 function createD1Fixture(options: {
   firstResults?: unknown[];
@@ -111,6 +142,29 @@ describe("library viewer mutation authorization", () => {
       () => actions.duplicateEstimateTemplate({ templateId: TEMPLATE_ID }),
       () => actions.moveEstimateTemplateToCategory({ templateId: TEMPLATE_ID, category: "Viewer" }),
       () => actions.renameTemplateCategory({ from: "Old", to: "New" }),
+    ];
+
+    for (const attempt of libraryMutationAttempts) {
+      await expect(attempt()).rejects.toThrow("Only workspace editors/admins can manage the library.");
+    }
+
+    expect(authzMocks.isWorkspaceEditorInD1).toHaveBeenCalledTimes(libraryMutationAttempts.length);
+    expect(authzMocks.isWorkspaceEditorInD1).toHaveBeenCalledWith(d1, WORKSPACE_ID, expect.objectContaining({ userId: USER_ID }));
+    expect(d1.prepare).not.toHaveBeenCalled();
+    expect(cacheMocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("denies workspace viewers before saving target-workspace estimate sources as templates", async () => {
+    const d1 = createD1Fixture({
+      firstResults: [
+        { id: ESTIMATE_ID, project_id: PROJECT_ID, workspace_id: WORKSPACE_ID },
+        { id: ESTIMATE_ID, project_id: PROJECT_ID, workspace_id: WORKSPACE_ID },
+      ],
+    });
+    authzMocks.isWorkspaceEditorInD1.mockResolvedValue(false);
+    const actions = await import("@/lib/component-library/actions");
+
+    const sourceTemplateAttempts = [
       () => actions.createEstimateTemplateFromEstimateNode({
         projectId: PROJECT_ID,
         estimateId: ESTIMATE_ID,
@@ -126,14 +180,88 @@ describe("library viewer mutation authorization", () => {
       }),
     ];
 
-    for (const attempt of libraryMutationAttempts) {
+    for (const attempt of sourceTemplateAttempts) {
       await expect(attempt()).rejects.toThrow("Only workspace editors/admins can manage the library.");
     }
 
-    expect(authzMocks.isWorkspaceEditorInD1).toHaveBeenCalledTimes(libraryMutationAttempts.length);
+    expect(authzMocks.isWorkspaceEditorInD1).toHaveBeenCalledTimes(sourceTemplateAttempts.length);
     expect(authzMocks.isWorkspaceEditorInD1).toHaveBeenCalledWith(d1, WORKSPACE_ID, expect.objectContaining({ userId: USER_ID }));
-    expect(d1.prepare).not.toHaveBeenCalled();
+    expect(authzMocks.canEditEstimateInD1).not.toHaveBeenCalled();
+    expect(d1.statements).toHaveLength(sourceTemplateAttempts.length);
+    expect(d1.statements.every((statement) => statement.sql.includes("FROM estimates estimate"))).toBe(true);
+    expect(d1.statements.every((statement) => !statement.sql.includes("project.workspace_id = ?"))).toBe(true);
     expect(cacheMocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("saves estimate-node templates into the source project's workspace instead of the default workspace", async () => {
+    const d1 = createD1Fixture({
+      firstResults: [
+        { id: ESTIMATE_ID, project_id: PROJECT_ID, workspace_id: SHARED_WORKSPACE_ID },
+        { count: 0 },
+        null,
+        templateD1Row(SHARED_WORKSPACE_ID),
+        templateD1Row(SHARED_WORKSPACE_ID),
+      ],
+      allResults: [
+        [{ id: SOURCE_NODE_ID, parent_id: null, kind: "group", name: "Shared Node", sort_order: 0 }],
+        [],
+        [templateNodeD1Row()],
+        [],
+      ],
+    });
+    const actions = await import("@/lib/component-library/actions");
+
+    const result = await actions.createEstimateTemplateFromEstimateNode({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      sourceNodeId: SOURCE_NODE_ID,
+      name: "Shared Source Template",
+    });
+
+    expect(result.template.id).toBe(TEMPLATE_ID);
+    expect(authzMocks.isWorkspaceEditorInD1).toHaveBeenCalledWith(d1, SHARED_WORKSPACE_ID, expect.objectContaining({ userId: USER_ID }));
+    expect(authzMocks.canEditEstimateInD1).toHaveBeenCalledWith(d1, ESTIMATE_ID, expect.objectContaining({ userId: USER_ID }));
+    const quotaCheck = d1.statements.find((statement) => statement.sql.includes("SELECT COUNT(*) AS count FROM estimate_templates"));
+    expect(quotaCheck?.values).toEqual([SHARED_WORKSPACE_ID]);
+    const sortOrderRead = d1.statements.find((statement) => statement.sql.includes("FROM estimate_templates") && statement.sql.includes("ORDER BY sort_order DESC"));
+    expect(sortOrderRead?.values).toEqual([SHARED_WORKSPACE_ID]);
+    const insertTemplate = d1.statements.find((statement) => statement.sql.includes("INSERT INTO estimate_templates"));
+    expect(insertTemplate?.values[1]).toBe(SHARED_WORKSPACE_ID);
+    expect(insertTemplate?.values).not.toContain(WORKSPACE_ID);
+  });
+
+  it("saves estimate-tab templates into the source project's workspace instead of the default workspace", async () => {
+    const d1 = createD1Fixture({
+      firstResults: [
+        { id: ESTIMATE_ID, project_id: PROJECT_ID, workspace_id: SHARED_WORKSPACE_ID },
+        { count: 0 },
+        null,
+        templateD1Row(SHARED_WORKSPACE_ID),
+        templateD1Row(SHARED_WORKSPACE_ID),
+      ],
+      allResults: [
+        [{ id: SOURCE_NODE_ID, parent_id: null, kind: "group", name: "Shared Node", sort_order: 0 }],
+        [],
+        [templateNodeD1Row()],
+        [],
+      ],
+    });
+    const actions = await import("@/lib/component-library/actions");
+
+    const result = await actions.createEstimateTemplateFromEstimateTab({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      tabId: TAB_ID,
+      tabName: "Main",
+      name: "Shared Tab Template",
+    });
+
+    expect(result.template.id).toBe(TEMPLATE_ID);
+    expect(authzMocks.isWorkspaceEditorInD1).toHaveBeenCalledWith(d1, SHARED_WORKSPACE_ID, expect.objectContaining({ userId: USER_ID }));
+    expect(authzMocks.canEditEstimateInD1).toHaveBeenCalledWith(d1, ESTIMATE_ID, expect.objectContaining({ userId: USER_ID }));
+    const insertTemplate = d1.statements.find((statement) => statement.sql.includes("INSERT INTO estimate_templates"));
+    expect(insertTemplate?.values[1]).toBe(SHARED_WORKSPACE_ID);
+    expect(insertTemplate?.values).not.toContain(WORKSPACE_ID);
   });
 
   it("denies workspace viewers before folder mutations reach D1 write paths", async () => {

@@ -4,10 +4,14 @@ import { randomUUID } from "node:crypto";
 
 import { revalidatePath } from "next/cache";
 
-import { requireAuth } from "@/lib/auth/session";
+import {
+  canAccessEstimateInD1,
+  canAccessProjectInD1,
+  readProjectFromD1,
+} from "@/lib/authz/d1-access";
+import { requireCurrentUserContext } from "@/lib/auth/session";
 import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
 import { isUuid } from "@/lib/ids";
-import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 
 type FavoriteActionInput = {
   favorite: boolean;
@@ -47,20 +51,31 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+async function readEstimateFavoriteTarget(database: D1DatabaseLike, estimateId: string) {
+  return first<{ id: string; project_id: string; workspace_id: string }>(
+    database,
+    `SELECT estimate.id, estimate.project_id, project.workspace_id
+     FROM estimates estimate
+     JOIN projects project ON project.id = estimate.project_id
+     WHERE estimate.id = ?
+     LIMIT 1`,
+    [estimateId],
+  );
+}
+
 export async function setProjectFavorite({ projectId, favorite }: ProjectFavoriteInput) {
-  await requireAuth();
   if (typeof favorite !== "boolean") throw new Error("Invalid input.");
   assertUuid(projectId, "Project");
 
-  const { workspace, profile } = await ensureDefaultWorkspace();
+  const currentUser = await requireCurrentUserContext();
   const database = await requireWorkshopActionsD1Database();
 
   if (!favorite) {
     await run(
       database,
       `DELETE FROM project_favorites
-       WHERE workspace_id = ? AND user_id = ? AND project_id = ?`,
-      [workspace.id, profile.id, projectId],
+       WHERE user_id = ? AND project_id = ?`,
+      [currentUser.userId, projectId],
     );
 
     revalidatePath("/workshop");
@@ -68,22 +83,18 @@ export async function setProjectFavorite({ projectId, favorite }: ProjectFavorit
     return;
   }
 
-  const project = await first<{ id: string; workspace_id: string }>(
-    database,
-    `SELECT id, workspace_id
-     FROM projects
-     WHERE id = ? AND workspace_id = ?
-     LIMIT 1`,
-    [projectId, workspace.id],
-  );
-  if (!project) throw new Error("Project was not found in this workspace.");
+  const project = await readProjectFromD1(database, projectId);
+  const canAccessProject = project
+    ? await canAccessProjectInD1(database, project.id, currentUser)
+    : false;
+  if (!project || !canAccessProject) throw new Error("Project was not found or is not accessible.");
 
   await run(
     database,
     `INSERT INTO project_favorites (id, workspace_id, user_id, project_id, created_at)
      VALUES (?, ?, ?, ?, ?)
      ON CONFLICT(user_id, project_id) DO NOTHING`,
-    [randomUUID(), workspace.id, profile.id, project.id, nowIso()],
+    [randomUUID(), project.workspace_id, currentUser.userId, project.id, nowIso()],
   );
 
   revalidatePath("/workshop");
@@ -91,42 +102,35 @@ export async function setProjectFavorite({ projectId, favorite }: ProjectFavorit
 }
 
 export async function setEstimateFavorite({ estimateId, favorite }: EstimateFavoriteInput) {
-  await requireAuth();
   if (typeof favorite !== "boolean") throw new Error("Invalid input.");
   assertUuid(estimateId, "Estimate");
 
-  const { workspace, profile } = await ensureDefaultWorkspace();
+  const currentUser = await requireCurrentUserContext();
   const database = await requireWorkshopActionsD1Database();
-
-  const estimate = await first<{ id: string; project_id: string }>(
-    database,
-    `SELECT estimate.id, estimate.project_id
-     FROM estimates estimate
-     JOIN projects project ON project.id = estimate.project_id
-     WHERE estimate.id = ? AND project.workspace_id = ?
-     LIMIT 1`,
-    [estimateId, workspace.id],
-  );
-
-  if (!estimate) throw new Error("Estimate was not found in this workspace.");
+  const estimate = await readEstimateFavoriteTarget(database, estimateId);
 
   if (favorite) {
+    const canAccessEstimate = estimate
+      ? await canAccessEstimateInD1(database, estimate.id, currentUser)
+      : false;
+    if (!estimate || !canAccessEstimate) throw new Error("Estimate was not found or is not accessible.");
+
     await run(
       database,
       `INSERT INTO estimate_favorites (id, workspace_id, user_id, project_id, estimate_id, created_at)
        VALUES (?, ?, ?, ?, ?, ?)
        ON CONFLICT(user_id, estimate_id) DO NOTHING`,
-      [randomUUID(), workspace.id, profile.id, estimate.project_id, estimate.id, nowIso()],
+      [randomUUID(), estimate.workspace_id, currentUser.userId, estimate.project_id, estimate.id, nowIso()],
     );
   } else {
     await run(
       database,
       `DELETE FROM estimate_favorites
-       WHERE workspace_id = ? AND user_id = ? AND estimate_id = ?`,
-      [workspace.id, profile.id, estimate.id],
+       WHERE user_id = ? AND estimate_id = ?`,
+      [currentUser.userId, estimateId],
     );
   }
 
   revalidatePath("/workshop");
-  revalidatePath(`/workshop/projects/${estimate.project_id}/estimates`);
+  if (estimate?.project_id) revalidatePath(`/workshop/projects/${estimate.project_id}/estimates`);
 }

@@ -45,6 +45,7 @@ const ESTIMATE_ID = "00000000-0000-4000-8000-000000000004";
 const TARGET_PARENT_NODE_ID = "00000000-0000-4000-8000-000000000005";
 const TEMPLATE_ID = "00000000-0000-4000-8000-000000000006";
 const TEMPLATE_NODE_ID = "00000000-0000-4000-8000-000000000007";
+const SHARED_WORKSPACE_ID = "00000000-0000-4000-8000-000000000008";
 
 function queryResult(data: unknown) {
   const query = {
@@ -115,7 +116,7 @@ beforeEach(() => {
 });
 
 describe("library estimate insert-target authorization", () => {
-  it("resolves template insert targets only after proving the estimate is in the current workspace", async () => {
+  it("resolves template insert targets only after proving the estimate belongs to the target project", async () => {
     const d1 = createD1Fixture({ firstResults: [null] });
     const { resolveEstimateTemplateInsertTarget } = await import("@/lib/component-library/actions");
 
@@ -125,8 +126,39 @@ describe("library estimate insert-target authorization", () => {
 
     expect(d1.statements).toHaveLength(1);
     expect(d1.statements[0]?.sql).toContain("FROM estimates estimate");
-    expect(d1.statements[0]?.values).toEqual([ESTIMATE_ID, PROJECT_ID, WORKSPACE_ID]);
+    expect(d1.statements[0]?.sql).not.toContain("project.workspace_id = ?");
+    expect(d1.statements[0]?.values).toEqual([ESTIMATE_ID, PROJECT_ID]);
     expect(authzMocks.canEditEstimateInD1).not.toHaveBeenCalled();
+  });
+
+  it("resolves template insert targets for shared project estimates outside the default workspace", async () => {
+    const d1 = createD1Fixture({
+      firstResults: [{
+        id: ESTIMATE_ID,
+        project_id: PROJECT_ID,
+        workspace_id: SHARED_WORKSPACE_ID,
+      }],
+      allResults: [[{
+        id: TARGET_PARENT_NODE_ID,
+        parent_id: null,
+        kind: "group",
+        name: "Shared Root",
+      }]],
+    });
+    const { resolveEstimateTemplateInsertTarget } = await import("@/lib/component-library/actions");
+
+    const result = await resolveEstimateTemplateInsertTarget({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID });
+
+    expect(result).toEqual({
+      targetParentNodeId: TARGET_PARENT_NODE_ID,
+      targetParentNodeName: "Shared Root",
+      targetParentNodeKind: "group",
+      targetParentNodePath: ["Shared Root"],
+    });
+    expect(d1.statements[0]?.values).toEqual([ESTIMATE_ID, PROJECT_ID]);
+    expect(d1.statements[0]?.values).not.toContain(WORKSPACE_ID);
+    expect(d1.statements[1]?.values).toEqual([ESTIMATE_ID]);
+    expect(authzMocks.canEditEstimateInD1).toHaveBeenCalledWith(d1, ESTIMATE_ID, expect.objectContaining({ userId: USER_ID }));
   });
 
   it("denies a viewer before resolving template insert target nodes", async () => {
@@ -146,6 +178,7 @@ describe("library estimate insert-target authorization", () => {
 
     expect(d1.statements).toHaveLength(1);
     expect(d1.statements[0]?.sql).toContain("FROM estimates estimate");
+    expect(d1.statements[0]?.values).toEqual([ESTIMATE_ID, PROJECT_ID]);
     expect(authzMocks.canEditEstimateInD1).toHaveBeenCalledWith(d1, ESTIMATE_ID, expect.objectContaining({ userId: USER_ID }));
   });
 

@@ -9,6 +9,7 @@ import {
   type D1DatabaseLike,
   type D1Value,
 } from "@/lib/cloudflare/d1";
+import { canEditProjectInD1, readProjectFromD1 } from "@/lib/authz/d1-access";
 import {
   buildRejectedPreviewResult,
   coerceBulkExecutionResult,
@@ -104,7 +105,8 @@ function readOptionalStoragePath(formData: FormData, key: string) {
   if (
     !value.endsWith(".webp") ||
     value.includes("..") ||
-    value.includes("//")
+    value.includes("//") ||
+    value.includes("\\")
   ) {
     throw new Error(`${key} must be a valid stored WebP image path.`);
   }
@@ -153,22 +155,64 @@ function getProjectImageStoragePaths(metadata: Record<string, Json>) {
   ].filter((path): path is string => Boolean(path));
 }
 
-function isProjectImageStoragePath(path: string | null | undefined) {
+type ProjectImagePathOwner = Pick<ProjectD1Row, "id" | "workspace_id">;
+
+function parseStoredProjectImagePath(path: string | null | undefined) {
+  const normalized = path?.trim();
+  if (!normalized) return null;
+  if (
+    !normalized.endsWith(".webp") ||
+    normalized.includes("..") ||
+    normalized.includes("//") ||
+    normalized.includes("\\")
+  ) {
+    return null;
+  }
+
+  const segments = normalized.split("/");
+  if (segments.length < 5 || segments.some((segment) => segment.length === 0))
+    return null;
+  const [workspaceId, , marker, projectId] = segments;
+  if (marker !== PROJECT_IMAGE_BUCKET) return null;
+  if (!workspaceId || !projectId) return null;
+
+  return { workspaceId, projectId, path: normalized };
+}
+
+function isProjectImageStoragePathForProject(
+  path: string | null | undefined,
+  project: ProjectImagePathOwner,
+) {
+  const parsed = parseStoredProjectImagePath(path);
   return Boolean(
-    path &&
-    path.endsWith(".webp") &&
-    path.includes("/project-images/") &&
-    !path.includes("..") &&
-    !path.includes("//"),
+    parsed &&
+    parsed.workspaceId === project.workspace_id &&
+    parsed.projectId === project.id,
   );
+}
+
+function assertProjectImagePathForProject(
+  key: string,
+  path: string | null | undefined,
+  project: ProjectImagePathOwner,
+) {
+  if (!path) return;
+  if (!isProjectImageStoragePathForProject(path, project)) {
+    throw new Error(`${key} must belong to this project.`);
+  }
 }
 
 async function removeStoredProjectImagePaths(
   storageProvider: Pick<UploadStorageProvider, "removeObjects">,
   paths: string[],
+  project: ProjectImagePathOwner,
 ) {
   const safePaths = Array.from(
-    new Set(paths.filter(isProjectImageStoragePath)),
+    new Set(
+      paths.filter((path) =>
+        isProjectImageStoragePathForProject(path, project),
+      ),
+    ),
   );
   if (safePaths.length === 0) return;
   await storageProvider.removeObjects(PROJECT_IMAGE_BUCKET, safePaths);
@@ -316,7 +360,7 @@ function createProjectStorageTargets(rows: ProjectD1Row[]) {
     for (const path of getProjectImageStoragePaths(
       asProjectMetadata(row.metadata),
     )) {
-      if (!isProjectImageStoragePath(path)) continue;
+      if (!isProjectImageStoragePathForProject(path, row)) continue;
       targets.set(path, { bucket: PROJECT_IMAGE_BUCKET, path });
     }
   }
@@ -403,6 +447,18 @@ async function previewBulkDeleteProjectsInD1(
       continue;
     }
     eligibleRows.push(row);
+  }
+
+  const eligibleWorkspaceIds = Array.from(
+    new Set(eligibleRows.map((row) => row.workspace_id)),
+  ).sort();
+  if (eligibleWorkspaceIds.length > 1) {
+    blocked.push({
+      code: "blocked",
+      message:
+        "Delete projects from one workspace at a time so audit and storage cleanup stay scoped.",
+      details: { workspaceIds: eligibleWorkspaceIds },
+    });
   }
 
   const eligibleIds = eligibleRows.map((row) => row.id).sort();
@@ -932,15 +988,29 @@ export async function updateProjectImageMetadata(
   image: ProjectImageMetadataInput,
 ) {
   await requireAuth();
-  const { workspace } = await ensureDefaultWorkspace();
+  const currentUser = await requireCurrentUserContext();
   const database = await requireProjectsD1Database();
+  const project = await readProjectFromD1(database, projectId);
+  if (!project) throw new Error("Project not found.");
+  if (!(await canEditProjectInD1(database, projectId, currentUser))) {
+    throw new Error("You do not have permission to edit this project.");
+  }
+  assertProjectImagePathForProject("projectImagePath", image.path, project);
+  assertProjectImagePathForProject(
+    "projectImageThumbnailPath",
+    image.thumbnailPath,
+    project,
+  );
+  if (image.bucket && image.bucket !== PROJECT_IMAGE_BUCKET) {
+    throw new Error("projectImageBucket must be the project image bucket.");
+  }
 
   const existing = await first<Pick<ProjectD1Row, "metadata">>(
     database,
     "SELECT metadata FROM projects WHERE id = ? AND workspace_id = ? LIMIT 1",
-    [projectId, workspace.id],
+    [projectId, project.workspace_id],
   );
-  if (!existing) throw new Error("Project not found in the current workspace.");
+  if (!existing) throw new Error("Project not found.");
 
   const metadata = applyProjectImageMetadata(
     asProjectMetadata(existing.metadata),
@@ -953,7 +1023,7 @@ export async function updateProjectImageMetadata(
       JSON.stringify(metadata),
       new Date().toISOString(),
       projectId,
-      workspace.id,
+      project.workspace_id,
     ],
   );
 
@@ -963,7 +1033,7 @@ export async function updateProjectImageMetadata(
 
 export async function updateProjectDetails(formData: FormData) {
   await requireAuth();
-  const { workspace } = await ensureDefaultWorkspace();
+  const currentUser = await requireCurrentUserContext();
   const database = await requireProjectsD1Database();
 
   const projectId = readRequiredText(formData, "projectId");
@@ -1001,18 +1071,36 @@ export async function updateProjectDetails(formData: FormData) {
       | "project_code"
       | "currency_code"
       | "metadata"
+      | "workspace_id"
     >
   >(
     database,
     `
-      SELECT name, client_name, location, project_code, currency_code, metadata
+      SELECT name, client_name, location, project_code, currency_code, metadata, workspace_id
       FROM projects
-      WHERE id = ? AND workspace_id = ?
+      WHERE id = ?
       LIMIT 1
     `,
-    [projectId, workspace.id],
+    [projectId],
   );
-  if (!existing) throw new Error("Project not found in the current workspace.");
+  if (!existing) throw new Error("Project not found.");
+  if (!(await canEditProjectInD1(database, projectId, currentUser))) {
+    throw new Error("You do not have permission to edit this project.");
+  }
+  const targetProject = { id: projectId, workspace_id: existing.workspace_id };
+  assertProjectImagePathForProject(
+    "projectImagePath",
+    projectImagePath,
+    targetProject,
+  );
+  assertProjectImagePathForProject(
+    "projectImageThumbnailPath",
+    projectImageThumbnailPath,
+    targetProject,
+  );
+  if (projectImageBucket && projectImageBucket !== PROJECT_IMAGE_BUCKET) {
+    throw new Error("projectImageBucket must be the project image bucket.");
+  }
 
   const changedFields = diffProjectMetadataFields(existing, {
     name,
@@ -1070,7 +1158,7 @@ export async function updateProjectDetails(formData: FormData) {
       JSON.stringify(nextMetadata),
       new Date().toISOString(),
       projectId,
-      workspace.id,
+      existing.workspace_id,
     ],
   );
 
@@ -1084,6 +1172,7 @@ export async function updateProjectDetails(formData: FormData) {
     await removeStoredProjectImagePaths(
       storageProvider,
       getProjectImageStoragePaths(metadata),
+      targetProject,
     );
   }
 

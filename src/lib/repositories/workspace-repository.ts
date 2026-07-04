@@ -1398,18 +1398,16 @@ async function listCurrentWorkspaceProjectsAppPath() {
       database,
       `SELECT project_id
        FROM project_favorites
-       WHERE workspace_id = ?
-         AND user_id = ?`,
-      [workspace.id, profile.id],
+       WHERE user_id = ?`,
+      [profile.id],
     ),
     all<WorkshopHomebaseFavoriteEstimateRef>(
       database,
       `SELECT estimate_id, project_id, created_at
        FROM estimate_favorites
-       WHERE workspace_id = ?
-         AND user_id = ?
+       WHERE user_id = ?
        ORDER BY created_at DESC`,
-      [workspace.id, profile.id],
+      [profile.id],
     ),
     all<ProjectMemberRow>(
       database,
@@ -2010,21 +2008,19 @@ async function getWorkshopHomebaseDataAppPath(): Promise<WorkshopHomebaseData> {
       database,
       `SELECT project_id, created_at
        FROM project_favorites
-       WHERE workspace_id = ?
-         AND user_id = ?
+       WHERE user_id = ?
        ORDER BY created_at DESC
        LIMIT ?`,
-      [workspace.id, profile.id, WORKSHOP_HOMEBASE_ITEM_LIMIT],
+      [profile.id, WORKSHOP_HOMEBASE_ITEM_LIMIT],
     ),
     all<WorkshopHomebaseFavoriteEstimateRef>(
       database,
       `SELECT estimate_id, project_id, created_at
        FROM estimate_favorites
-       WHERE workspace_id = ?
-         AND user_id = ?
+       WHERE user_id = ?
        ORDER BY created_at DESC
        LIMIT ?`,
-      [workspace.id, profile.id, WORKSHOP_HOMEBASE_ITEM_LIMIT],
+      [profile.id, WORKSHOP_HOMEBASE_ITEM_LIMIT],
     ),
     all<WorkshopProjectRecord>(
       database,
@@ -2264,8 +2260,27 @@ async function listMainSidebarFavoriteProjectsRpcPath(): Promise<MainSidebarFavo
   return null;
 }
 
+async function filterAccessibleSidebarProjectIds(
+  database: D1DatabaseLike,
+  projectIds: string[],
+  profile: ProfileRow,
+) {
+  const accessPairs = await Promise.all(
+    projectIds.map(async (projectId) => [
+      projectId,
+      await canAccessProjectInD1(database, projectId, {
+        role: profile.role === "admin" || profile.role === "ceo" ? profile.role : undefined,
+        userId: profile.id,
+      }),
+    ] as const),
+  );
+  return accessPairs
+    .filter(([, allowed]) => allowed)
+    .map(([projectId]) => projectId);
+}
+
 async function listMainSidebarFavoriteProjectsAppPath(): Promise<MainSidebarFavoriteProject[]> {
-  const { workspace, profile } = await ensureDefaultWorkspace();
+  const { profile } = await ensureDefaultWorkspace();
   const database = await requireWorkspaceRepositoryD1Database();
 
   const [favoriteProjectRows, estimateFavoriteProjectCandidateRows] = await Promise.all([
@@ -2273,21 +2288,19 @@ async function listMainSidebarFavoriteProjectsAppPath(): Promise<MainSidebarFavo
       database,
       `SELECT project_id, created_at
        FROM project_favorites
-       WHERE workspace_id = ?
-         AND user_id = ?
+       WHERE user_id = ?
        ORDER BY created_at DESC
        LIMIT ?`,
-      [workspace.id, profile.id, MAIN_SIDEBAR_FAVORITE_PROJECT_LIMIT],
+      [profile.id, MAIN_SIDEBAR_FAVORITE_PROJECT_LIMIT],
     ),
     all<{ project_id: string; created_at: string }>(
       database,
       `SELECT project_id, created_at
        FROM estimate_favorites
-       WHERE workspace_id = ?
-         AND user_id = ?
+       WHERE user_id = ?
        ORDER BY created_at DESC
        LIMIT ?`,
-      [workspace.id, profile.id, MAIN_SIDEBAR_FAVORITE_FALLBACK_ESTIMATE_SCAN_LIMIT],
+      [profile.id, MAIN_SIDEBAR_FAVORITE_FALLBACK_ESTIMATE_SCAN_LIMIT],
     ),
   ]);
 
@@ -2323,33 +2336,37 @@ async function listMainSidebarFavoriteProjectsAppPath(): Promise<MainSidebarFavo
     .slice(0, MAIN_SIDEBAR_FAVORITE_PROJECT_LIMIT)
     .map((candidate) => candidate.projectId);
   if (sidebarProjectIds.length === 0) return [];
+  const accessibleSidebarProjectIds = await filterAccessibleSidebarProjectIds(
+    database,
+    sidebarProjectIds,
+    profile,
+  );
+  if (accessibleSidebarProjectIds.length === 0) return [];
 
   const [projects, selectedProjectFavorites, favoriteEstimateRows] = await Promise.all([
     all<Pick<Tables<"projects">, "id" | "name" | "project_code">>(
       database,
       `SELECT id, name, project_code
        FROM projects
-       WHERE id IN (${placeholders(sidebarProjectIds)})`,
-      sidebarProjectIds,
+       WHERE id IN (${placeholders(accessibleSidebarProjectIds)})`,
+      accessibleSidebarProjectIds,
     ),
     all<WorkshopHomebaseFavoriteProjectRef>(
       database,
       `SELECT project_id, created_at
        FROM project_favorites
-       WHERE workspace_id = ?
-         AND user_id = ?
-         AND project_id IN (${placeholders(sidebarProjectIds)})`,
-      [workspace.id, profile.id, ...sidebarProjectIds],
+       WHERE user_id = ?
+         AND project_id IN (${placeholders(accessibleSidebarProjectIds)})`,
+      [profile.id, ...accessibleSidebarProjectIds],
     ),
     all<WorkshopHomebaseFavoriteEstimateRef>(
       database,
       `SELECT estimate_id, project_id, created_at
        FROM estimate_favorites
-       WHERE workspace_id = ?
-         AND user_id = ?
-         AND project_id IN (${placeholders(sidebarProjectIds)})
+       WHERE user_id = ?
+         AND project_id IN (${placeholders(accessibleSidebarProjectIds)})
        ORDER BY project_id ASC, created_at DESC`,
-      [workspace.id, profile.id, ...sidebarProjectIds],
+      [profile.id, ...accessibleSidebarProjectIds],
     ),
   ]);
 
@@ -2387,7 +2404,7 @@ async function listMainSidebarFavoriteProjectsAppPath(): Promise<MainSidebarFavo
 
   const projectById = new Map(projects.map((project) => [project.id, project]));
 
-  return sidebarProjectIds
+  return accessibleSidebarProjectIds
     .flatMap((projectId): MainSidebarFavoriteProject[] => {
       const project = projectById.get(projectId);
       if (!project) return [];

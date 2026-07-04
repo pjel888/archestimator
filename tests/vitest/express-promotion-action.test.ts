@@ -30,11 +30,14 @@ function makePromotionD1Database(options: {
   folderExists?: boolean;
   existingPayload?: Record<string, unknown> | null;
   existingLibraryItem?: { item_id: string; active_price_option_id: string | null } | null;
+  sourceWorkspaceId?: string;
 } = {}) {
   const statements: StatementRecord[] = [];
+  const firstStatements: StatementRecord[] = [];
+  const sourceWorkspaceId = options.sourceWorkspaceId ?? WORKSPACE_ID;
   const sourceRow = {
     project_id: PROJECT_ID,
-    workspace_id: WORKSPACE_ID,
+    workspace_id: sourceWorkspaceId,
     estimate_id: ESTIMATE_ID,
     row_id: ROW_ID,
     node_id: "99999999-9999-4999-8999-999999999999",
@@ -56,6 +59,7 @@ function makePromotionD1Database(options: {
   };
 
   const readFirst = async (sql: string, values: unknown[]) => {
+    firstStatements.push({ sql, values });
     if (sql.includes("SELECT payload") && sql.includes("FROM estimate_sheet_events")) {
       return options.existingPayload ? { payload: JSON.stringify(options.existingPayload) } : null;
     }
@@ -66,9 +70,11 @@ function makePromotionD1Database(options: {
       return options.canEditEstimate === false ? null : { allowed: 1 };
     }
     if (sql.includes("FROM workspace_members workspace_member")) {
+      if (values[0] !== sourceWorkspaceId) return null;
       return options.canManageLibrary === false ? null : { allowed: 1 };
     }
     if (sql.includes("FROM library_folders")) {
+      if (values[1] !== sourceWorkspaceId) return null;
       return options.folderExists === false ? null : { id: FOLDER_ID };
     }
     if (sql.includes("FROM cost_library_items") && sql.includes("source_estimate_row_item_id")) {
@@ -96,6 +102,7 @@ function makePromotionD1Database(options: {
       for (const statement of batchStatements) results.push(await statement.run());
       return results;
     }),
+    firstStatements,
     statements,
   };
 
@@ -147,6 +154,42 @@ describe("promoteEstimateRowToLibraryComponent", () => {
     expect(cacheMocks.revalidatePath).not.toHaveBeenCalledWith(`/workshop/projects/${PROJECT_ID}/components`);
     expect(cacheMocks.revalidatePath).toHaveBeenCalledWith(`/workshop/projects/${PROJECT_ID}/estimates/${ESTIMATE_ID}`);
     expect(repositoryMocks.clearEstimateRouteContextProcessCache).toHaveBeenCalledWith(PROJECT_ID);
+  });
+
+  it("promotes shared-project rows into the source project workspace library instead of the user's default workspace", async () => {
+    const sourceWorkspaceId = "shared-project-workspace";
+    authMocks.requireCurrentUserContext.mockResolvedValue({
+      userId: USER_ID,
+      role: "member",
+      profile: { default_workspace_id: "default-workspace" },
+    });
+    const database = makePromotionD1Database({ sourceWorkspaceId });
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+
+    const { promoteEstimateRowToLibraryComponent } = await import("@/lib/estimates/express-promotion-actions");
+    const result = await promoteEstimateRowToLibraryComponent({
+      projectId: PROJECT_ID,
+      estimateId: ESTIMATE_ID,
+      rowId: ROW_ID,
+      libraryFolderId: FOLDER_ID,
+      mutationId: "88888888-8888-4888-8888-888888888888",
+    });
+
+    expect(result).toMatchObject({ rowId: ROW_ID, idempotent: false });
+    const workspaceEditorCheck = database.firstStatements.find(
+      (statement) => statement.sql.includes("FROM workspace_members workspace_member") && statement.values[0] === sourceWorkspaceId,
+    );
+    expect(workspaceEditorCheck?.values[0]).toBe(sourceWorkspaceId);
+    expect(database.firstStatements.find((statement) => statement.sql.includes("FROM library_folders"))?.values).toEqual([
+      FOLDER_ID,
+      sourceWorkspaceId,
+    ]);
+    expect(database.statements.find((statement) => statement.sql.includes("INSERT INTO cost_library_items"))?.values).toEqual(
+      expect.arrayContaining([sourceWorkspaceId, "Custom vanity", ROW_ID, USER_ID]),
+    );
+    expect(database.statements.find((statement) => statement.sql.includes("INSERT INTO cost_library_item_price_options"))?.values).toEqual(
+      expect.arrayContaining([sourceWorkspaceId, "pc", 1200, 75, "PHP"]),
+    );
   });
 
   it("returns the existing D1 promotion payload for a repeated mutation id", async () => {

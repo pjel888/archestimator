@@ -469,8 +469,13 @@ describe("project creation UI governance", () => {
     );
     expect(projectImageRoute).toContain("createProjectImageRouteUrl(path)");
     expect(projectImageRoute).toContain('formData.get("projectId"');
-    expect(projectImageRoute).toContain("readProjectInWorkspaceFromD1(uploadMetadataDb, projectId, workspace.id)");
-    expect(projectImageRoute).toContain("canEditProjectInD1(uploadMetadataDb, projectId, currentUser)");
+    expect(projectImageRoute).toContain(
+      "readProjectFromD1(uploadMetadataDb, projectId)",
+    );
+    expect(projectImageRoute).toContain("workspaceId: project.workspace_id");
+    expect(projectImageRoute).toContain(
+      "canEditProjectInD1(uploadMetadataDb, projectId, currentUser)",
+    );
     expect(projectImageRoute).toContain(
       "${PROJECT_IMAGE_PATH_SEGMENT}/${projectId}",
     );

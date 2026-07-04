@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const workspaceRepositoryMocks = vi.hoisted(() => ({
-  ensureDefaultWorkspace: vi.fn(),
+const authMocks = vi.hoisted(() => ({
+  requireCurrentUserContext: vi.fn(),
 }));
 
 const d1Mocks = vi.hoisted(() => ({
   getCloudflareD1Database: vi.fn(),
 }));
 
-vi.mock("@/lib/repositories/workspace-repository", () => workspaceRepositoryMocks);
+vi.mock("@/lib/auth/session", () => authMocks);
 vi.mock("@/lib/cloudflare/d1", () => d1Mocks);
 
 class FakeD1Statement {
@@ -42,10 +42,7 @@ class FakeD1Database {
 beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
-  workspaceRepositoryMocks.ensureDefaultWorkspace.mockResolvedValue({
-    workspace: { id: "workspace-1" },
-    profile: { id: "user-1" },
-  });
+  authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "user-1" });
 });
 
 describe("estimate favorites repository", () => {
@@ -63,10 +60,10 @@ describe("estimate favorites repository", () => {
     const result = await listCurrentUserEstimateFavoriteCreatedAtById(["estimate-1", "estimate-2", "estimate-1"]);
 
     expect(database.statement?.sql).toContain("FROM estimate_favorites");
-    expect(database.statement?.sql).toContain("workspace_id = ?");
+    expect(database.statement?.sql).not.toContain("workspace_id = ?");
     expect(database.statement?.sql).toContain("user_id = ?");
     expect(database.statement?.sql).toContain("estimate_id IN (?, ?)");
-    expect(database.statement?.values).toEqual(["workspace-1", "user-1", "estimate-1", "estimate-2"]);
+    expect(database.statement?.values).toEqual(["user-1", "estimate-1", "estimate-2"]);
     expect(result).toEqual(
       new Map([
         ["estimate-1", "2026-06-01T00:00:00.000Z"],
@@ -81,7 +78,7 @@ describe("estimate favorites repository", () => {
     );
     await expect(listCurrentUserEstimateFavoriteCreatedAtById([])).resolves.toEqual(new Map());
 
-    expect(workspaceRepositoryMocks.ensureDefaultWorkspace).not.toHaveBeenCalled();
+    expect(authMocks.requireCurrentUserContext).not.toHaveBeenCalled();
     expect(d1Mocks.getCloudflareD1Database).not.toHaveBeenCalled();
   });
 });

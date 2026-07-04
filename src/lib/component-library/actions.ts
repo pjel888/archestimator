@@ -1921,7 +1921,7 @@ function toTemplateRowItem(row: EstimateTemplateRowItemD1Row): EstimateTemplateR
   } as EstimateTemplateRowItemTableRow;
 }
 
-async function readEstimateForTemplateSource(database: D1DatabaseLike, input: { workspaceId: string; projectId: string; estimateId: string }) {
+async function readEstimateForTemplateSource(database: D1DatabaseLike, input: { projectId: string; estimateId: string }) {
   return first<EstimateSourceRowD1>(
     database,
     `
@@ -1930,10 +1930,9 @@ async function readEstimateForTemplateSource(database: D1DatabaseLike, input: { 
       JOIN projects project ON project.id = estimate.project_id
       WHERE estimate.id = ?
         AND estimate.project_id = ?
-        AND project.workspace_id = ?
       LIMIT 1
     `,
-    [input.estimateId, input.projectId, input.workspaceId],
+    [input.estimateId, input.projectId],
   );
 }
 
@@ -2157,9 +2156,8 @@ type EstimateNodeSubtreeRow = {
  * estimate before its nodes and rows can be copied into shared templates.
  */
 export async function createEstimateTemplateFromEstimateNode(input: CreateEstimateTemplateFromNodeInput) {
-  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const currentUser = await requireCurrentUserContext();
   const database = await requireComponentLibraryActionsD1Database();
-  await assertCanManageLibrary(database, workspace.id, currentUser);
 
   const templateName = input.name.trim();
   if (!templateName) throw new Error("Template name is required.");
@@ -2170,13 +2168,13 @@ export async function createEstimateTemplateFromEstimateNode(input: CreateEstima
   }
 
   const estimate = await readEstimateForTemplateSource(database, {
-    workspaceId: workspace.id,
     projectId: input.projectId,
     estimateId: input.estimateId,
   });
   if (!estimate) throw new Error("Estimate not found in the current workspace.");
+  await assertCanManageLibrary(database, estimate.workspace_id, currentUser);
   await assertCanPublishEstimateTemplateFromEstimate(database, input.estimateId, currentUser);
-  await assertWithinLibraryQuota(database, "estimate_templates", workspace.id, LIBRARY_TEMPLATE_CAP, "template");
+  await assertWithinLibraryQuota(database, "estimate_templates", estimate.workspace_id, LIBRARY_TEMPLATE_CAP, "template");
 
   const nodeRows = await all<EstimateNodeSubtreeRow>(
     database,
@@ -2227,11 +2225,11 @@ export async function createEstimateTemplateFromEstimateNode(input: CreateEstima
     : [];
 
   const insertedTemplate = await insertTemplate(database, {
-    workspaceId: workspace.id,
+    workspaceId: estimate.workspace_id,
     name: templateName,
     description: templateDescription,
     category: templateCategory,
-    sortOrder: await readNextTemplateSortOrder(database, workspace.id),
+    sortOrder: await readNextTemplateSortOrder(database, estimate.workspace_id),
     createdBy: currentUser.userId,
     metadata: {
       savedFrom: "estimate-workspace",
@@ -2292,9 +2290,8 @@ type EstimateTabTemplateNodeRow = EstimateNodeSubtreeRow & {
 };
 
 export async function createEstimateTemplateFromEstimateTab(input: CreateEstimateTemplateFromTabInput) {
-  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const currentUser = await requireCurrentUserContext();
   const database = await requireComponentLibraryActionsD1Database();
-  await assertCanManageLibrary(database, workspace.id, currentUser);
 
   const templateName = input.name.trim();
   if (!templateName) throw new Error("Template name is required.");
@@ -2306,13 +2303,13 @@ export async function createEstimateTemplateFromEstimateTab(input: CreateEstimat
   }
 
   const estimate = await readEstimateForTemplateSource(database, {
-    workspaceId: workspace.id,
     projectId: input.projectId,
     estimateId: input.estimateId,
   });
   if (!estimate) throw new Error("Estimate not found in the current workspace.");
+  await assertCanManageLibrary(database, estimate.workspace_id, currentUser);
   await assertCanPublishEstimateTemplateFromEstimate(database, input.estimateId, currentUser);
-  await assertWithinLibraryQuota(database, "estimate_templates", workspace.id, LIBRARY_TEMPLATE_CAP, "template");
+  await assertWithinLibraryQuota(database, "estimate_templates", estimate.workspace_id, LIBRARY_TEMPLATE_CAP, "template");
 
   const nodeRows = await all<EstimateTabTemplateNodeRow>(
     database,
@@ -2351,11 +2348,11 @@ export async function createEstimateTemplateFromEstimateTab(input: CreateEstimat
   );
 
   const insertedTemplate = await insertTemplate(database, {
-    workspaceId: workspace.id,
+    workspaceId: estimate.workspace_id,
     name: templateName,
     description: templateDescription,
     category: templateCategory,
-    sortOrder: await readNextTemplateSortOrder(database, workspace.id),
+    sortOrder: await readNextTemplateSortOrder(database, estimate.workspace_id),
     createdBy: currentUser.userId,
     metadata: {
       savedFrom: "estimate-workspace-tab",
@@ -2680,19 +2677,18 @@ export type EstimateTemplateInsertTargetResolution = {
  * buildEstimateTree.
  */
 export async function resolveEstimateTemplateInsertTarget(input: { projectId: string; estimateId: string }): Promise<EstimateTemplateInsertTargetResolution> {
-  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const currentUser = await requireCurrentUserContext();
   if (!isUuid(input.projectId) || !isUuid(input.estimateId)) {
     throw new Error("Estimate not found in the current workspace.");
   }
 
   const database = await requireComponentLibraryActionsD1Database();
   const estimate = await readEstimateForTemplateSource(database, {
-    workspaceId: workspace.id,
     projectId: input.projectId,
     estimateId: input.estimateId,
   });
   if (!estimate) throw new Error("Estimate not found in the current workspace.");
-  await assertCanEditEstimate(database, workspace.id, input.estimateId, currentUser);
+  await assertCanEditEstimate(database, estimate.workspace_id, input.estimateId, currentUser);
 
   const nodeRows = await all<EstimateInsertTargetNodeRow>(
     database,

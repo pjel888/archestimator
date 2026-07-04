@@ -139,6 +139,34 @@ describe("project location actions", () => {
     expect(nextCacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/project-1");
   });
 
+  it("saves a shared project pin using the target project workspace instead of the user's default workspace", async () => {
+    authMocks.requireCurrentUserContext.mockResolvedValue({
+      userId: "user-1",
+      email: "editor@example.test",
+      role: "member",
+      profile: { default_workspace_id: "workspace-default" },
+    });
+    workspaceRepositoryMocks.getCurrentWorkspaceProject.mockResolvedValueOnce({
+      project: { id: "shared-project", workspace_id: "workspace-shared" },
+    });
+    const database = new FakeD1Database();
+    cloudflareD1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+
+    const { saveProjectLocation } = await import("@/lib/projects/location-actions");
+    const result = await saveProjectLocation({ status: "idle", message: "" }, formData({
+      projectId: "shared-project",
+      latitude: "14.5995122",
+      longitude: "120.9842224",
+      displayLabel: "Shared site",
+    }));
+
+    expect(findPrepared(database, /SELECT 1 AS allowed/).values).toEqual(["shared-project", "user-1", "user-1", "user-1"]);
+    const upsert = findPrepared(database, /INSERT INTO project_locations/);
+    expect(upsert.values.slice(1, 3)).toEqual(["shared-project", "workspace-shared"]);
+    expect(result).toEqual({ status: "success", message: "Project pin saved." });
+    expect(nextCacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/shared-project");
+  });
+
   it("saves a Google place selection and syncs the formatted address back to the project", async () => {
     const database = new FakeD1Database();
     cloudflareD1Mocks.getCloudflareD1Database.mockResolvedValue(database);

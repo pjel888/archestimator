@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import type { CurrentUserContext } from "@/lib/auth/session";
 import type { D1DatabaseLike, D1Value } from "@/lib/cloudflare/d1";
 import {
   canAccessEstimateInD1,
@@ -7,6 +8,7 @@ import {
   canEditEstimateInD1,
   canEditProjectInD1,
 } from "@/lib/authz/d1-access";
+import { EstimateActionsD1Client } from "@/lib/estimates/d1-action-client";
 
 vi.mock("server-only", () => ({}));
 
@@ -38,6 +40,28 @@ function createAuthzProbeDatabase({
   return { db, queries };
 }
 
+function createCurrentUserContext(userId: string): CurrentUserContext {
+  const email = `${userId}@example.test`;
+  const now = "2026-07-03T00:00:00.000Z";
+  return {
+    avatarUrl: null,
+    displayName: userId,
+    email,
+    profile: {
+      avatar_url: null,
+      created_at: now,
+      default_workspace_id: null,
+      display_name: userId,
+      email,
+      id: userId,
+      role: "member",
+      updated_at: now,
+    },
+    role: "member",
+    userId,
+  };
+}
+
 describe("D1 created-by authorization", () => {
   it("allows project creators to read and edit their own project without membership rows", async () => {
     const user = { userId: "user-1", role: "member" as const };
@@ -51,6 +75,20 @@ describe("D1 created-by authorization", () => {
     await expect(canAccessProjectInD1(accessProbe.db, "project-1", user)).resolves.toBe(true);
     await expect(canEditProjectInD1(editProbe.db, "project-1", user)).resolves.toBe(true);
     expect(accessProbe.queries[0]?.values).toEqual(["project-1", "user-1", "user-1", "user-1", "user-1"]);
+    expect(editProbe.queries[0]?.values).toEqual(["project-1", "user-1", "user-1", "user-1"]);
+  });
+
+  it("allows project creators through the D1 estimate action client project edit guard", async () => {
+    const user = createCurrentUserContext("user-1");
+    const editProbe = createAuthzProbeDatabase({
+      allowWhen: ({ sql, values }) => sql.includes("project.created_by = ?") && values[1] === user.userId,
+    });
+    const client = new EstimateActionsD1Client(editProbe.db, user);
+
+    await expect(client.call("can_edit_project", { target_project_id: "project-1" })).resolves.toEqual({
+      data: true,
+      error: null,
+    });
     expect(editProbe.queries[0]?.values).toEqual(["project-1", "user-1", "user-1", "user-1"]);
   });
 

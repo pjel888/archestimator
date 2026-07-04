@@ -4,7 +4,13 @@ import type { D1DatabaseLike } from "@/lib/cloudflare/d1";
 
 import type { UploadSurface } from "./policy";
 
-type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
 
 export type UploadScanStatus = "not_required" | "pending";
 
@@ -44,17 +50,27 @@ function targetEntityValue(value: string | null | undefined) {
   return value?.trim() || null;
 }
 
+function metadataStringValue(
+  metadata: Record<string, Json | undefined> | undefined,
+  key: string,
+) {
+  const value = metadata?.[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
 function projectIdForAsset(input: RecordUploadAssetInput) {
   if (input.surface !== "project-image") return null;
-  if (input.targetEntityType === "project" || input.targetEntityType === "estimate-row") {
+  if (input.targetEntityType === "project") {
     return targetEntityValue(input.targetEntityId);
+  }
+  if (input.targetEntityType === "estimate-row") {
+    return metadataStringValue(input.metadata, "projectId");
   }
   return null;
 }
 
 function estimateIdForAsset(input: RecordUploadAssetInput) {
-  const estimateId = input.metadata?.estimateId;
-  return typeof estimateId === "string" && estimateId.trim() ? estimateId.trim() : null;
+  return metadataStringValue(input.metadata, "estimateId");
 }
 
 export async function recordUploadAsset(

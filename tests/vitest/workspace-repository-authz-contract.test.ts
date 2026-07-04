@@ -31,4 +31,20 @@ describe("workspace repository D1 authorization contract", () => {
     expect(workspaceRepository).toContain("WHERE estimate.id IN (${placeholders(estimateIds)})");
     expect(workspaceRepository).toContain("return filterAccessibleEstimates(database, sheets, context)");
   });
+
+  it("filters sidebar favorite projects through the current D1 access gate", () => {
+    const sidebarFavoritesRepository = workspaceRepository.slice(
+      workspaceRepository.indexOf("export const listMainSidebarFavoriteProjects"),
+      workspaceRepository.indexOf("export const getCurrentWorkspaceProject"),
+    );
+
+    expect(sidebarFavoritesRepository).toContain("async function filterAccessibleSidebarProjectIds");
+    expect(sidebarFavoritesRepository).toContain("canAccessProjectInD1(database, projectId");
+    expect(sidebarFavoritesRepository).toContain('role: profile.role === "admin" || profile.role === "ceo" ? profile.role : undefined');
+    expect(sidebarFavoritesRepository).toContain("userId: profile.id");
+    expect(sidebarFavoritesRepository).toContain("const accessibleSidebarProjectIds = await filterAccessibleSidebarProjectIds");
+    expect(sidebarFavoritesRepository).toContain("WHERE id IN (${placeholders(accessibleSidebarProjectIds)})");
+    expect(sidebarFavoritesRepository).toContain("AND project_id IN (${placeholders(accessibleSidebarProjectIds)})");
+    expect(sidebarFavoritesRepository).toContain("return accessibleSidebarProjectIds");
+  });
 });

@@ -2,18 +2,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const PROJECT_ID = "22222222-2222-4222-8222-222222222222";
 const ESTIMATE_ID = "33333333-3333-4333-8333-333333333333";
-const WORKSPACE_ID = "ws-1";
+const TARGET_WORKSPACE_ID = "shared-ws-1";
 const USER_ID = "11111111-1111-4111-8111-111111111111";
 
 const mocks = vi.hoisted(() => ({
-  ensureDefaultWorkspace: vi.fn(),
   getCloudflareD1Database: vi.fn(),
   revalidatePath: vi.fn(),
-  requireAuth: vi.fn(),
+  requireCurrentUserContext: vi.fn(),
 }));
 
-vi.mock("@/lib/auth/session", () => ({ requireAuth: mocks.requireAuth }));
-vi.mock("@/lib/repositories/workspace-repository", () => ({ ensureDefaultWorkspace: mocks.ensureDefaultWorkspace }));
+vi.mock("@/lib/auth/session", () => ({ requireCurrentUserContext: mocks.requireCurrentUserContext }));
 vi.mock("@/lib/cloudflare/d1", () => ({ getCloudflareD1Database: mocks.getCloudflareD1Database }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 
@@ -58,8 +56,7 @@ class FakeD1Database {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.ensureDefaultWorkspace.mockResolvedValue({ workspace: { id: WORKSPACE_ID }, profile: { id: USER_ID } });
-  mocks.requireAuth.mockResolvedValue(undefined);
+  mocks.requireCurrentUserContext.mockResolvedValue({ role: "member", userId: USER_ID });
 });
 
 describe("favorite actions boolean hygiene", () => {
@@ -69,7 +66,7 @@ describe("favorite actions boolean hygiene", () => {
     // @ts-expect-error simulates a raw POST payload that bypasses the TS type.
     await expect(setProjectFavorite({ projectId: PROJECT_ID, favorite: "true" })).rejects.toThrow(/invalid input/i);
 
-    expect(mocks.ensureDefaultWorkspace).not.toHaveBeenCalled();
+    expect(mocks.requireCurrentUserContext).not.toHaveBeenCalled();
     expect(mocks.getCloudflareD1Database).not.toHaveBeenCalled();
   });
 
@@ -79,13 +76,13 @@ describe("favorite actions boolean hygiene", () => {
     // @ts-expect-error simulates a raw POST payload that bypasses the TS type.
     await expect(setEstimateFavorite({ estimateId: ESTIMATE_ID, favorite: 1 })).rejects.toThrow(/invalid input/i);
 
-    expect(mocks.ensureDefaultWorkspace).not.toHaveBeenCalled();
+    expect(mocks.requireCurrentUserContext).not.toHaveBeenCalled();
     expect(mocks.getCloudflareD1Database).not.toHaveBeenCalled();
   });
 });
 
 describe("favorite actions D1 writes", () => {
-  it("scopes project unfavorite deletes by workspace_id, user_id, and project_id", async () => {
+  it("scopes project unfavorite deletes by user_id and project_id", async () => {
     const database = new FakeD1Database();
     mocks.getCloudflareD1Database.mockResolvedValue(database);
 
@@ -93,35 +90,44 @@ describe("favorite actions D1 writes", () => {
     await setProjectFavorite({ projectId: PROJECT_ID, favorite: false });
 
     expect(database.runStatements[0]?.sql).toContain("DELETE FROM project_favorites");
-    expect(database.runStatements[0]?.values).toEqual([WORKSPACE_ID, USER_ID, PROJECT_ID]);
+    expect(database.runStatements[0]?.sql).not.toContain("workspace_id");
+    expect(database.runStatements[0]?.values).toEqual([USER_ID, PROJECT_ID]);
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/workshop");
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects");
   });
 
-  it("validates project workspace membership before inserting a project favorite", async () => {
+  it("uses the target project workspace when inserting a project favorite", async () => {
     const database = new FakeD1Database();
-    database.firstRows = [{ id: PROJECT_ID, workspace_id: WORKSPACE_ID }];
+    database.firstRows = [
+      { id: PROJECT_ID, workspace_id: TARGET_WORKSPACE_ID },
+      { allowed: 1 },
+    ];
     mocks.getCloudflareD1Database.mockResolvedValue(database);
 
     const { setProjectFavorite } = await import("@/lib/workshop/actions");
     await setProjectFavorite({ projectId: PROJECT_ID, favorite: true });
 
     expect(database.prepared[0]?.sql).toContain("FROM projects");
-    expect(database.prepared[0]?.values).toEqual([PROJECT_ID, WORKSPACE_ID]);
+    expect(database.prepared[0]?.values).toEqual([PROJECT_ID]);
+    expect(database.prepared[1]?.sql).toContain("FROM projects project");
+    expect(database.prepared[1]?.values).toEqual([PROJECT_ID, USER_ID, USER_ID, USER_ID, USER_ID]);
     expect(database.runStatements[0]?.sql).toContain("INSERT INTO project_favorites");
     expect(database.runStatements[0]?.sql).toContain("ON CONFLICT(user_id, project_id) DO NOTHING");
     expect(database.runStatements[0]?.values).toEqual([
       expect.any(String),
-      WORKSPACE_ID,
+      TARGET_WORKSPACE_ID,
       USER_ID,
       PROJECT_ID,
       expect.any(String),
     ]);
   });
 
-  it("validates estimate workspace membership before inserting an estimate favorite", async () => {
+  it("uses the target project workspace when inserting an estimate favorite", async () => {
     const database = new FakeD1Database();
-    database.firstRows = [{ id: ESTIMATE_ID, project_id: PROJECT_ID }];
+    database.firstRows = [
+      { id: ESTIMATE_ID, project_id: PROJECT_ID, workspace_id: TARGET_WORKSPACE_ID },
+      { allowed: 1 },
+    ];
     mocks.getCloudflareD1Database.mockResolvedValue(database);
 
     const { setEstimateFavorite } = await import("@/lib/workshop/actions");
@@ -129,12 +135,14 @@ describe("favorite actions D1 writes", () => {
 
     expect(database.prepared[0]?.sql).toContain("FROM estimates estimate");
     expect(database.prepared[0]?.sql).toContain("JOIN projects project");
-    expect(database.prepared[0]?.values).toEqual([ESTIMATE_ID, WORKSPACE_ID]);
+    expect(database.prepared[0]?.values).toEqual([ESTIMATE_ID]);
+    expect(database.prepared[1]?.sql).toContain("FROM estimates estimate");
+    expect(database.prepared[1]?.values).toEqual([ESTIMATE_ID, USER_ID, USER_ID, USER_ID, USER_ID, USER_ID]);
     expect(database.runStatements[0]?.sql).toContain("INSERT INTO estimate_favorites");
     expect(database.runStatements[0]?.sql).toContain("ON CONFLICT(user_id, estimate_id) DO NOTHING");
     expect(database.runStatements[0]?.values).toEqual([
       expect.any(String),
-      WORKSPACE_ID,
+      TARGET_WORKSPACE_ID,
       USER_ID,
       PROJECT_ID,
       ESTIMATE_ID,
@@ -143,15 +151,16 @@ describe("favorite actions D1 writes", () => {
     expect(mocks.revalidatePath).toHaveBeenCalledWith(`/workshop/projects/${PROJECT_ID}/estimates`);
   });
 
-  it("scopes estimate unfavorite deletes by workspace_id, user_id, and estimate_id", async () => {
+  it("scopes estimate unfavorite deletes by user_id and estimate_id", async () => {
     const database = new FakeD1Database();
-    database.firstRows = [{ id: ESTIMATE_ID, project_id: PROJECT_ID }];
+    database.firstRows = [{ id: ESTIMATE_ID, project_id: PROJECT_ID, workspace_id: TARGET_WORKSPACE_ID }];
     mocks.getCloudflareD1Database.mockResolvedValue(database);
 
     const { setEstimateFavorite } = await import("@/lib/workshop/actions");
     await setEstimateFavorite({ estimateId: ESTIMATE_ID, favorite: false });
 
     expect(database.runStatements[0]?.sql).toContain("DELETE FROM estimate_favorites");
-    expect(database.runStatements[0]?.values).toEqual([WORKSPACE_ID, USER_ID, ESTIMATE_ID]);
+    expect(database.runStatements[0]?.sql).not.toContain("workspace_id");
+    expect(database.runStatements[0]?.values).toEqual([USER_ID, ESTIMATE_ID]);
   });
 });
