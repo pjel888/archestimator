@@ -4,6 +4,12 @@ import { cookies, headers } from "next/headers";
 
 import { getDevAuthBypassCredentialFromRequestParts, isDevAdminDatabaseBypassRequest } from "@/lib/auth/dev-auth-gate";
 import { readFirstAccountWorkspaceMembership } from "@/lib/auth/account-membership";
+import {
+  canManageProjectEstimateCollaborationRole,
+  isPlatformAdminRole,
+  projectEstimateCollaborationRoleRank,
+  type AppPlatformRole,
+} from "@/lib/auth/roles";
 import { canAccessEstimateInD1, canAccessProjectInD1, canEditEstimateInD1 } from "@/lib/authz/d1-access";
 import type { EstimateRowItem, EstimateSheetAdjustment, EstimateTabSummary, EstimateTreeNode } from "@/lib/estimates/types";
 import { buildEstimateTreeSubtreePayload, type EstimateTreeSubtreeCompleteness, type EstimateTreeSubtreePayload } from "@/lib/estimates/estimate-tree-lazy";
@@ -52,7 +58,7 @@ type ProfileRow = {
   display_name: string | null;
   email: string;
   id: string;
-  role: "owner" | "admin" | "member" | "client" | "ceo";
+  role: AppPlatformRole;
   updated_at: string;
 };
 
@@ -583,10 +589,10 @@ type PendingCollaborationVisibilitySummary = {
 };
 
 const collaborationRoleRank: Record<CollaborationRole, number> = {
-  owner: 40,
-  admin: 30,
-  editor: 20,
-  viewer: 10,
+  owner: projectEstimateCollaborationRoleRank("owner"),
+  admin: projectEstimateCollaborationRoleRank("admin"),
+  editor: projectEstimateCollaborationRoleRank("editor"),
+  viewer: projectEstimateCollaborationRoleRank("viewer"),
 };
 
 function mapWorkspaceRoleToCollaborationRole(role: Tables<"workspace_members">["role"]): CollaborationRole {
@@ -602,7 +608,7 @@ function readHighestCollaborationRole(current: CollaborationRole | undefined, ne
 }
 
 function canManageCollaborationRole(role: CollaborationRole) {
-  return collaborationRoleRank[role] >= collaborationRoleRank.admin;
+  return canManageProjectEstimateCollaborationRole(role);
 }
 
 function normalizeCollaborationRole(role: string | null | undefined): CollaborationRole {
@@ -1205,7 +1211,7 @@ function readProfileDisplayName(profile: CollaborationProfileRow | undefined, fa
 }
 
 function isPlatformAdminContext(context: Pick<CurrentUserContext, "role">) {
-  return context.role === "ceo" || context.role === "admin";
+  return isPlatformAdminRole(context.role);
 }
 
 async function canUseWorkspaceAsDefault(
@@ -2202,8 +2208,7 @@ async function getWorkshopHomebaseDataAppPath(): Promise<WorkshopHomebaseData> {
         location: project.location,
         updated_at: project.updated_at,
         ...access,
-        canManagePublication:
-          profile.role === "ceo" || profile.role === "admin" || canManageCollaborationRole(access.currentUserRole),
+        canManagePublication: isPlatformAdminRole(profile.role) || canManageCollaborationRole(access.currentUserRole),
         isFavorite: projectFavoriteCreatedAt.has(project.id),
         favoriteCreatedAt: projectFavoriteCreatedAt.get(project.id) ?? null,
         pendingInviteCount: pendingInviteVisibility.sentPendingInviteCountByProjectId.get(project.id) ?? 0,
@@ -2269,7 +2274,7 @@ async function filterAccessibleSidebarProjectIds(
     projectIds.map(async (projectId) => [
       projectId,
       await canAccessProjectInD1(database, projectId, {
-        role: profile.role === "admin" || profile.role === "ceo" ? profile.role : undefined,
+        role: isPlatformAdminRole(profile.role) ? profile.role : undefined,
         userId: profile.id,
       }),
     ] as const),
@@ -2722,7 +2727,7 @@ export const getProjectPublicationSummary = cache(async function getProjectPubli
     projectRole ?? "viewer",
   );
   const canReadPublisherRoster = currentUserRole !== "viewer";
-  const canManagePublication = profile.role === "ceo" || profile.role === "admin" || canManageCollaborationRole(currentUserRole);
+  const canManagePublication = isPlatformAdminRole(profile.role) || canManageCollaborationRole(currentUserRole);
   const publicationStatus = readPublicationStatus(publication);
   const clientLinkPath = publicationStatus === "published" ? readPublicationClientLinkPath(publication) : null;
   const [latestEstimateUpdatedAt, latestRecipientOpen, latestCommentAt, latestResponseAt] = publication

@@ -146,8 +146,7 @@ function parseProjectImageStoragePath(path: string) {
   if (segments.length < 5) return null;
   const [workspaceId, ownerUserId, marker, projectId] = segments;
   if (marker !== PROJECT_IMAGE_PATH_SEGMENT) return null;
-  if (!isUuid(workspaceId) || !isUuid(ownerUserId) || !isUuid(projectId))
-    return null;
+  if (!isUuid(workspaceId) || !ownerUserId || !isUuid(projectId)) return null;
   if (segments.some((segment) => segment.length === 0)) return null;
 
   if (segments[4] !== ESTIMATE_ROW_IMAGE_PATH_SEGMENT) {

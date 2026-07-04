@@ -1,5 +1,6 @@
 import "server-only";
 
+import { isPlatformAdminRole } from "@/lib/auth/roles";
 import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d1";
 
 export type UploadScanOverrideCommand = {
@@ -41,7 +42,7 @@ function readStringField(body: unknown, field: string) {
 }
 
 export function canApproveUploadScanOverride(role: string | null | undefined) {
-  return role === "ceo" || role === "admin";
+  return isPlatformAdminRole(role);
 }
 
 export function parseUploadScanOverrideRequest(

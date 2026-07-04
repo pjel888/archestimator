@@ -42,6 +42,11 @@ function sanitizeControlCharacters(value: string) {
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
 }
 
+function redactRouteSegment(match: string, prefix: string, segment: string) {
+  if (segment.startsWith("[") && segment.endsWith("]")) return match;
+  return `${prefix}[REDACTED_TOKEN]`;
+}
+
 export function redactMessage(message: string): RedactionResult<string> {
   let tainted = false;
   let value = sanitizeControlCharacters(message);
@@ -59,11 +64,21 @@ export function redactMessage(message: string): RedactionResult<string> {
     tainted = true;
     return "[REDACTED_JWT]";
   });
-  value = value.replace(/([?&](?:password|token|api_key|secret)=)([^&#\\\s]*)/gi, (_match, prefix: string) => {
+  value = value.replace(/((?:\/api)?\/share\/)([^/?#\s"'<>),;]+)/g, (match, prefix: string, segment: string) => {
+    const redacted = redactRouteSegment(match, prefix, segment);
+    if (redacted !== match) tainted = true;
+    return redacted;
+  });
+  value = value.replace(/(\/invite\/)([^/?#\s"'<>),;]+)/g, (match, prefix: string, segment: string) => {
+    const redacted = redactRouteSegment(match, prefix, segment);
+    if (redacted !== match) tainted = true;
+    return redacted;
+  });
+  value = value.replace(/([?&](?:[a-z_]*token|password|api_key|secret|recipient|rt|state|code|cookie)=)([^&#\\\s]*)/gi, (_match, prefix: string) => {
     tainted = true;
     return `${prefix}[REDACTED]`;
   });
-  value = value.replace(/\b[A-Za-z0-9_]*(?:password|token|api_key|secret|service_role_key)[A-Za-z0-9_]*=[^\s,;&\\]+/gi, (match) => {
+  value = value.replace(/\b[A-Za-z0-9_]*(?:password|token|api_key|secret|service_role_key|cookie|csrf|state|code|recipient)[A-Za-z0-9_]*=[^\s,;&\\]+/gi, (match) => {
     tainted = true;
     const [key] = match.split("=");
     return `${key}=[REDACTED]`;

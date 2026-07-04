@@ -1,5 +1,6 @@
 import "server-only";
 
+import { isPlatformAdminRole } from "@/lib/auth/roles";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { isBetaFeedbackStatus, type BetaFeedbackStatus } from "@/lib/workshop/beta-feedback";
 import { readBetaFeedbackReviewQueueFromD1 } from "@/lib/workshop/beta-feedback-d1-store";
@@ -25,7 +26,7 @@ export type BetaFeedbackReviewQueue = {
 };
 
 export function canReviewBetaFeedback(role: string | null | undefined) {
-  return role === "ceo" || role === "admin";
+  return isPlatformAdminRole(role);
 }
 
 export async function readBetaFeedbackReviewQueue(status?: string): Promise<BetaFeedbackReviewQueue> {

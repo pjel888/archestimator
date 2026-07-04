@@ -1,6 +1,7 @@
 import type { Json } from "./json";
+import type { AppPlatformRole } from "@/lib/auth/roles";
 
-export type AppRole = "owner" | "admin" | "member" | "client" | "ceo";
+export type { AppPlatformRole };
 
 export type ProjectRow = {
   client_name: string | null;
@@ -46,6 +47,6 @@ export type ProfileRow = {
   display_name: string | null;
   email: string;
   id: string;
-  role: AppRole;
+  role: AppPlatformRole;
   updated_at: string;
 };

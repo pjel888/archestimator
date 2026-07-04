@@ -4,6 +4,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAuth, requireCurrentUserContext } from "@/lib/auth/session";
+import { isPlatformAdminRole } from "@/lib/auth/roles";
 import {
   getCloudflareD1Database,
   type D1DatabaseLike,
@@ -314,7 +315,7 @@ function toProjectRecord(row: ProjectD1Row) {
 }
 
 function isPlatformAdmin(user: { role?: string | null }) {
-  return user.role === "ceo" || user.role === "admin";
+  return isPlatformAdminRole(user.role);
 }
 
 function canManageProjectRow(
