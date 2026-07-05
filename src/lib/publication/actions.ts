@@ -1171,9 +1171,8 @@ function readShareLinkToken(linkBase: string): string | null {
 }
 
 function getClientIp(headersList: HeaderReader) {
-  const forwardedFor = headersList.get("x-forwarded-for");
-  if (forwardedFor) return forwardedFor.split(",")[0]?.trim() || "unknown";
-  return headersList.get("x-real-ip") || headersList.get("cf-connecting-ip") || "unknown";
+  return headersList.get("cf-connecting-ip")?.trim()
+    || "unknown";
 }
 
 function hashPublicationRateLimitKey(scope: string, parts: string[]) {

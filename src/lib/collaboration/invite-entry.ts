@@ -95,9 +95,8 @@ type InviteRateLimitScope =
   | "collaboration_invite_resend";
 
 function getClientIp(headers: HeaderReader) {
-  const forwardedFor = headers.get("x-forwarded-for");
-  if (forwardedFor) return forwardedFor.split(",")[0].trim();
-  return headers.get("x-real-ip") || headers.get("cf-connecting-ip") || "unknown";
+  return headers.get("cf-connecting-ip")?.trim()
+    || "unknown";
 }
 
 function hashRateLimitKey(scope: InviteRateLimitScope, parts: string[]) {

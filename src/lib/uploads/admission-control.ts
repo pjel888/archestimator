@@ -32,9 +32,7 @@ const activeByActor = new Map<string, number>();
 const activeByWorkspace = new Map<string, number>();
 
 function getClientIp(headers: Headers) {
-  return headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-    || headers.get("cf-connecting-ip")?.trim()
-    || headers.get("x-real-ip")?.trim()
+  return headers.get("cf-connecting-ip")?.trim()
     || "unknown";
 }
 

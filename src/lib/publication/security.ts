@@ -548,7 +548,5 @@ export function createSharedLinkSessionCookie(
 
 // Shared request identity helper for durable publication rate-limit keys and analytics.
 export function getClientIp(request: Request): string {
-  const fwd = request.headers.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0].trim();
-  return request.headers.get("x-real-ip") || "unknown";
+  return request.headers.get("cf-connecting-ip")?.trim() || "unknown";
 }

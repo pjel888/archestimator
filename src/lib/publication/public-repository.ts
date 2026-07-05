@@ -701,7 +701,7 @@ export async function recordProjectPublicationAnalyticsEvent({
   const publication = await getCachedPublicationAccessRowByToken(token);
   if (!publication || !isActivePublication(publication)) return { recorded: false, reason: "inactive" };
 
-  const ipHash = hashRequestValue(request.headers.get("x-forwarded-for") ?? getClientIp(request));
+  const ipHash = hashRequestValue(getClientIp(request));
   const userAgentHash = hashRequestValue(request.headers.get("user-agent"));
   const metadata = buildAccessTelemetryMetadata({ accessStage, passwordSuccess, recipientKnown, request });
   const eventMetadata = recipientId ? { ...metadata, recipient_known: true } : metadata;
@@ -738,7 +738,7 @@ export async function recordProjectPublicationEvent({
   if (!publication || !isActivePublication(publication)) return;
 
   const eventMetadata = recipientId ? { ...metadata, recipient_id: recipientId } : metadata;
-  const ipHash = hashRequestValue(request.headers.get("x-forwarded-for"));
+  const ipHash = hashRequestValue(getClientIp(request));
   const userAgentHash = hashRequestValue(request.headers.get("user-agent"));
 
   await store.insertPublicationEvent({
