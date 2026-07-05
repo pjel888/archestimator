@@ -275,3 +275,52 @@ Authorship phase stops when:
 Execution phase (separate authorization required) starts only when:
 - Owner explicitly authorizes implementation of a named phase (e.g., "execute P0.1")
 - For OPEN-DEC-gated items, the corresponding decision is resolved
+
+---
+
+## 2026-07-05 Active Goal Continuation - P0.2/P1.8 Evidence Correction
+
+Trigger:
+
+- Four-pack completion audit found two remaining local evidence/claim issues:
+  P1.8 retention cron code used named D1 bind placeholders not supported by
+  Cloudflare D1, and the follow-up tracker/ledger wording could be read as
+  full P0.2 CSP completion even though current source proves staged CSP.
+
+Actions:
+
+- Updated `src/lib/compliance/retention-repository.ts` to use D1 positional
+  placeholders (`?1`) and ordered `.bind(...)` calls for retention select/apply
+  statements.
+- Changed retention audit metadata from sampled purged row IDs to aggregate
+  `selected_count`.
+- Added `tests/vitest/compliance-retention-repository.test.ts` covering rule
+  registry compatibility, no-D1 no-op behavior, dry-run behavior, apply/audit
+  behavior, and minimized metadata.
+- Added `.ai/10_state/compliance/csp-decision-brief.md` for OPEN-DEC-007 and
+  OPEN-DEC-008.
+- Updated `.ai/03_plans/000-Follow Ups/2026-07-04-Security-Compliance-Followups.md`
+  so P0.2 is explicitly partial: global hardening headers are implemented,
+  `/share/:path*` has enforced CSP, but strict global nonced CSP remains open.
+- Updated `.ai/10_state/compliance/retention-schedule.md` and
+  `.ai/10_state/current-state.md` with the new evidence and boundaries.
+
+Evidence:
+
+- `bunx vitest run tests/vitest/landing-security-headers.test.ts tests/vitest/project-publication-security-headers.test.ts tests/vitest/compliance-retention-repository.test.ts tests/vitest/compliance-privacy-request-repository.test.ts tests/vitest/client-identity.test.ts tests/vitest/problem-details.test.ts --maxWorkers=1`
+  passed: 6 files / 31 tests.
+- `NODE_OPTIONS=--max-old-space-size=8192 bun run type-check` passed.
+- `git diff --check` passed.
+- `bun run launch:check-legal-owner` failed closed as expected with
+  `legalOwnerReady=false`; all five proof flags are false and owner/legal
+  labels plus approval date/reference are missing.
+
+Decision:
+
+- P1.8 local retention engine is hardened but remains policy-incomplete until
+  OPEN-DEC-004 TTLs, DSAR propagation, and 30-day hosted cron/D1 observation
+  close.
+- P0.2 remains partial until OPEN-DEC-007/OPEN-DEC-008, strict nonced CSP
+  implementation, browser proof, and telemetry gates close.
+- The security/compliance pack cannot be archived or marked complete from local
+  engineering evidence alone.

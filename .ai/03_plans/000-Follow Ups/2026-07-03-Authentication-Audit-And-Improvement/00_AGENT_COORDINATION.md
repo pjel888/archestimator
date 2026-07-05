@@ -106,3 +106,31 @@ Do not let older Supabase/Vercel-era docs override current source.
 | Whether Better Auth organization/RBAC plugin is adopted now or deferred | Phase 3 future design plan | Do not adopt a plugin until it maps cleanly to workspace/project/estimate roles. |
 | Whether legacy `/auth/callback` is deleted or retained with disabled telemetry | Phase 5 future cleanup plan | Delete only after OAuth client redirect URIs and stale-cookie behavior are verified. |
 | What retention window applies to auth/session/invite/publication audit events | Privacy/ops completion | Minimize and document; do not keep credential-adjacent evidence indefinitely. |
+
+---
+
+## 2026-07-05 Active Goal Completion Audit Addendum
+
+Scope:
+
+- Four-pack completion audit continuation for the active goal that includes this
+  auth pack plus the API rate-limiting and security/compliance packs.
+
+Evidence:
+
+- Independent verifier lane reported this pack remains `PARTIAL` for the
+  aggregate goal: local auth hardening evidence is strong, but
+  `finalAuthAuditCompletionReady=false`.
+- Fresh local command `bun run launch:check-legal-owner` failed closed at
+  `2026-07-05T15:37:29.324Z` with `legalOwnerReady=false`.
+- Missing legal/owner inputs remain: terms review, privacy review, closed-beta
+  copy approval, data-retention wording, support communications wording,
+  product owner label, legal reviewer label, approval date, and approval
+  reference.
+
+Decision:
+
+- This pack cannot be archived or marked complete under the active goal while
+  provider-exit and legal-owner readiness remain open.
+- No auth source edits were made in this continuation; the addendum records
+  completion-gate evidence only.

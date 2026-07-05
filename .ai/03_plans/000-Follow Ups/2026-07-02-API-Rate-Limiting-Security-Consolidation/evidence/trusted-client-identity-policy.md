@@ -9,6 +9,14 @@ Depends on: `evidence/runtime-store-ledger.md`, `evidence/error-cache-trace-cont
 
 Define one canonical policy for deriving trusted client identity (IP address and related identifiers) across all Archestimator routes and actions. PH-3 consolidation target.
 
+## Current reconciliation (2026-07-05)
+
+The immediate PH-3 security migration is complete locally: `LOOP_LEDGER.md` iterations 19-23 and `AUDIT_AND_HANDOFF.md` record all 11 production `x-forwarded-for` security-decision sites migrated to `cf-connecting-ip`.
+
+`deriveClientIdentity()` exists at `src/lib/observability/client-identity.ts` and is covered by `tests/vitest/client-identity.test.ts`, but it remains a Wave 2 primitive and is not yet consumed by production call sites. Production currently closes the spoofable-header risk through existing per-surface helpers that read `cf-connecting-ip`.
+
+The historical Wave 3 inventory and blocker notes in earlier versions of this policy are superseded by the post-migration status below. Remaining gates are production/hosted proof and future consolidation, not open `x-forwarded-for` source reads.
+
 ## Trust order (Cloudflare Workers)
 
 Cloudflare Workers run behind the Cloudflare edge. Header trust is ordered:
@@ -24,44 +32,23 @@ Cloudflare Workers run behind the Cloudflare edge. Header trust is ordered:
 
 ## Canonical extraction helper
 
-Single source of truth (to be added in Wave 2 PH-2 source baseline):
+Single source of truth primitive (added in Wave 2 PH-2 source baseline):
 
 ```typescript
-// src/lib/observability/client-identity.ts (NEW — Wave 2 candidate)
-
 export type ClientIdentity = {
-  ip: string;                  // canonical IP for rate-limiting (already aggregated)
-  ipHash: string;              // HMAC of raw IP with server pepper (for persistence)
+  ip: string;                  // canonical IP for in-memory decisions
   ipPrefix: string;            // aggregated prefix for coarse audit (IPv4 /24, IPv6 /48)
-  isDev: boolean;              // true when CF-Connecting-IP absent and dev flag set
-  isPreview: boolean;          // true for *.workers.dev routes
+  isDev: boolean;
+  isPreview: boolean;
   source: 'cf-connecting-ip' | 'dev-localhost' | 'preview-internal';
 };
 
 export function deriveClientIdentity(request: Request, env: { DEV_AUTH_BYPASS?: string }): ClientIdentity | null {
-  const cfIp = request.headers.get('CF-Connecting-IP');
-  if (cfIp) {
-    return {
-      ip: aggregateIp(cfIp),
-      ipHash: hashIp(cfIp),
-      ipPrefix: prefixIp(cfIp),
-      isDev: false,
-      isPreview: false,
-      source: 'cf-connecting-ip',
-    };
-  }
-  // CF-Connecting-IP absent → not via edge
-  if (env.DEV_AUTH_BYPASS === '1' && isLocalhostRequest(request)) {
-    return { ip: '127.0.0.1', ipHash: hashIp('127.0.0.1'), ipPrefix: '127.0.0.0/24', isDev: true, isPreview: false, source: 'dev-localhost' };
-  }
-  if (isWorkersPreviewRoute(request)) {
-    return { ip: '0.0.0.0', ipHash: hashIp('preview'), ipPrefix: '0.0.0.0/24', isDev: false, isPreview: true, source: 'preview-internal' };
-  }
-  return null; // untrusted origin; fail-closed
+  // See source for exact validation and IPv6 prefix expansion.
 }
 ```
 
-**Rule**: never use `request.headers.get('X-Forwarded-For')` for any security decision.
+**Rule**: never use `request.headers.get('X-Forwarded-For')` for any security decision. If a caller persists identity material, it must derive an HMAC separately; `deriveClientIdentity()` intentionally does not write or persist raw IP data.
 
 ## IPv6 aggregation
 
@@ -141,66 +128,23 @@ Wave 2 source baseline introduces the helper; Wave 3 (PH-3) refactors share/invi
 | Whether `True-Client-IP` should ever be trusted | Default: NO until Cloudflare enterprise feature is enabled (out of scope first slice) | |
 | Hash pepper rotation policy | Default: env var `ARCHESTIMATOR_RATE_LIMIT_HASH_PEPPER`; rotation path deferred to security ops |
 
-## Migration scope (Wave 3 PH-3 — per-surface TDD required)
+## Post-migration status (Wave 3 PH-3)
 
-Inventory as of 2026-07-05 (iteration 17): **5 separate `getClientIp` implementations** exist across the codebase. Each is a distinct migration target with its own caller graph and tests. Per-surface TDD is required because changing IP derivation changes the limiter key hash, which can break existing fixtures.
+Local source reconciliation is complete for the immediate spoofable-header risk:
 
-| Surface | Location | Consumers | Migration risk | Priority |
-|---|---|---|---|---|
-| Shared `getClientIp` export | `src/lib/publication/security.ts:550` (trusts `X-Forwarded-For`) | `src/lib/ai/rate-limit.ts:54`, `src/lib/publication/public-repository.ts:398,429` | medium — 2 importer files | P1 |
-| Direct `x-forwarded-for` read | `src/lib/publication/public-repository.ts:704` (`request.headers.get("x-forwarded-for") ?? getClientIp(request)`) | share/[token]/password P10 lockout | **highest** — anonymous surface, direct header trust | **P0** |
-| Local `getClientIp` | `src/lib/publication/actions.ts:1173` | publication actions | medium | P1 |
-| Local `getClientIp` | `src/lib/collaboration/invite-entry.ts:97` | invite rate-limit HMAC key | medium — anonymous invite accept | P1 |
-| Local `getClientIp` | `src/lib/uploads/admission-control.ts:34` | upload admission | low — authenticated surface | P2 |
+- `src/lib/uploads/admission-control.ts` reads `cf-connecting-ip` for upload admission.
+- `src/lib/publication/actions.ts` reads `cf-connecting-ip` for publication action rate-limit keys.
+- `src/lib/collaboration/invite-entry.ts` reads `cf-connecting-ip` for invite HMAC keys.
+- `src/lib/publication/security.ts` exports a shared `getClientIp(request)` helper backed by `cf-connecting-ip`.
+- `src/lib/publication/public-repository.ts` uses the shared helper instead of direct `x-forwarded-for` reads for share/publication lockout and analytics keys.
 
-**Migration pattern (apply per surface)**:
-1. Read current implementation + existing tests for that surface.
-2. Write characterization test if none exists, to pin current behavior.
-3. Replace `getClientIp(request)` with `deriveClientIdentity(request, env)` and use `identity?.ip ?? failClosed()`.
-4. For surfaces that currently fall back to `"unknown"`, decide explicitly: fail-closed (return 403) or accept placeholder (only for authenticated surfaces where IP is secondary to `userId`).
-5. Verify all existing tests still pass; update fixtures that explicitly set `X-Forwarded-For` to instead set `CF-Connecting-IP`.
-6. Add adversarial test: spoofed `X-Forwarded-For` MUST NOT change the derived limiter key when `CF-Connecting-IP` is set.
+Verification recorded in `LOOP_LEDGER.md` iteration 23:
 
-**Per-surface acceptance gate**:
-- Surface uses `deriveClientIdentity` exclusively; no direct `request.headers.get("x-forwarded-for")` for security decisions.
-- Existing tests pass.
-- New adversarial test passes.
-- `git diff --check` clean.
+- `rg "x-forwarded-for|X-Forwarded-For" src/` returns exactly one intentional source hit: the warning comment in `src/lib/observability/client-identity.ts`.
+- Intentional test references remain only as adversarial spoofing/negative-persistence checks.
+- The first-slice test ledger remains 318 Vitest tests across 22 files green.
 
-**Cross-surface invariant** (enforce after all 5 migrations):
-- Grep `rg "x-forwarded-for|X-Forwarded-For" src/` returns zero hits in security-decision paths (audit logs / observability may still read it for non-security purposes).
+Residual work:
 
-## Wave 3 P0 blocker — test-fixture coupling (concrete, discovered 2026-07-05 iter 18)
-
-**The migration is blocked on synchronized test-fixture updates, not production logic.**
-
-Concrete blocker discovered when attempting `publicationRequestRateLimitKey` (line 397-399) migration:
-
-- `tests/vitest/project-publication-password-lockout-route.test.ts` has its own local `clientIp()` helper (lines 12-16) mirroring the insecure production pattern:
-  ```ts
-  function clientIp(request: Request) {
-    const forwarded = request.headers.get("x-forwarded-for");
-    if (forwarded) return forwarded.split(",")[0]?.trim() || "unknown";
-    return request.headers.get("x-real-ip") || "unknown";
-  }
-  ```
-- Same test uses `"x-forwarded-for": ip` in mock Request fixtures (line 94) for the password lockout assertions.
-- The test's lockout-key assertions assume production derives the IP from `x-forwarded-for`. Migrating production to `deriveClientIdentity` (which ignores `x-forwarded-for`) would cause the test's local helper and the production code to disagree on the derived IP → lockout-key mismatch → test failure.
-
-**Implication**: Production migration of any `getClientIp` surface requires synchronized migration of:
-1. The production call site (5 surfaces enumerated above).
-2. Every test file that mocks IP headers using `x-forwarded-for` (currently at least 1 confirmed: `project-publication-password-lockout-route.test.ts`; likely more in the 10 test files importing from `public-repository.ts`).
-3. Every test file's local `clientIp()` helper that mirrors the insecure pattern.
-
-**Required pre-migration discovery** (per-surface):
-- `rg "x-forwarded-for|X-Forwarded-For" tests/` — full inventory of test fixtures to update.
-- For each test file: identify whether it mocks IP via header (requires fixture migration) or via higher-level D1 store mock (no fixture change needed).
-
-**Recommended migration order** (smallest blast radius first):
-1. `src/lib/uploads/admission-control.ts:34` — local, authenticated surface, likely few test fixtures.
-2. `src/lib/publication/actions.ts:1173` — local, used by publication actions.
-3. `src/lib/collaboration/invite-entry.ts:97` — local, used by invite HMAC key.
-4. `src/lib/publication/security.ts:550` — shared export, 2 importers.
-5. `src/lib/publication/public-repository.ts:704` — direct x-forwarded-for read, highest risk, most test fixtures.
-
-Each migration is its own TDD cycle with: read existing tests → update fixtures → migrate production → verify. None is a single-commit change.
+- Future cleanup can migrate production call sites from per-surface `getClientIp` helpers to `deriveClientIdentity()` for consistency. That is a refactor, not an open spoofable-header security hole.
+- Hosted/two-client Worker proof, quota split, origin/host parity, WAF/Turnstile provider enforcement, and independent production review remain outside this local evidence artifact.

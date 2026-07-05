@@ -6,6 +6,10 @@
 **Audit table:** `data_retention_events` (migration `0034_data_retention_events.sql`)
 **Cron:** `30 3 * * *` (daily 03:30 UTC), wired in `worker.ts` scheduled()
 
+**Local engineering evidence (2026-07-05):** `tests/vitest/compliance-retention-repository.test.ts` (5 tests pass) verifies the retention rule registry uses Cloudflare D1-supported positional binds, dry-run mode does not delete rows or write audit events, apply mode records retention events, and audit metadata stores aggregate counts rather than samples of purged row IDs.
+
+**Boundary:** The local engine currently enforces the implemented rule subset in `DEFAULT_RETENTION_RULES`. The full per-class TTL policy, DSAR erasure propagation, and 30-day hosted cron/D1 observation remain blocked on OPEN-DEC-004 and operations proof.
+
 ## Industry defaults applied
 
 These TTLs reflect common SaaS industry practice and the principle of data minimization (GDPR Art. 5(1)(c) + Philippine DPA IRR §11(c)). Counsel should adjust per jurisdiction-specific statutory minimums and any client contractual requirements.

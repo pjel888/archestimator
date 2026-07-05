@@ -12,6 +12,22 @@ single biggest source of slow agent startup.
 Stable current truth (verify against git/source before relying on a detail):
 - Stage: pre-launch closed-beta MVP. Bias to fast, useful iteration over
   heavyweight regression ceremony. No external users yet.
+- Security/compliance follow-up (2026-07-05 late): P1.8 retention enforcement
+  is locally hardened but not policy-complete. `src/lib/compliance/retention-repository.ts`
+  now uses Cloudflare D1-supported positional binds for retention select/apply
+  statements and records aggregate audit metadata instead of samples of purged
+  row IDs. `tests/vitest/compliance-retention-repository.test.ts` proves the
+  rule registry, dry-run behavior, apply/audit path, and no-D1 no-op path
+  (5 tests). Remaining P1.8 gates are still OPEN-DEC-004 final TTLs, DSAR
+  propagation, and 30-day hosted cron/D1 observation.
+- Security/compliance P0.2 CSP status (2026-07-05 late): current source proves
+  staged CSP/global hardening, not strict global CSP completion. `/share/:path*`
+  has enforced CSP, landing/workshop/invite use CSP Report-Only, and the
+  `/:path*` catch-all carries the four hardening headers without CSP. The
+  decision brief `.ai/10_state/compliance/csp-decision-brief.md` records
+  OPEN-DEC-007/OPEN-DEC-008; P0.2 remains partial until strict nonced CSP
+  location, third-party allowlist, implementation, browser proof, and telemetry
+  gates close.
 - Stack: Next.js 16 + React 19 + Bun + TypeScript + Tailwind v4 +
   Cloudflare Workers/OpenNext + D1 + R2 + Durable Objects + Better Auth,
   TanStack Query, Zustand, repository boundaries. Active app/runtime source is

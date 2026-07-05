@@ -1401,3 +1401,37 @@ Residual risk:
 - Future implementation agent must read `AUDIT_AND_HANDOFF.md` first
   before resuming any PH-4+ work, then re-verify the four blockers
   against then-current reality before claiming any production release.
+
+## Iteration 25: Trusted Client Identity Evidence Reconciliation (2026-07-05)
+
+Trigger:
+
+- Active four-pack completion audit found `evidence/trusted-client-identity-policy.md`
+  still contained stale Wave 3 migration-scope and blocker text from iterations
+  17-18, even though this ledger iteration 23 and `AUDIT_AND_HANDOFF.md` record
+  all 11 production `x-forwarded-for` security-decision sites migrated.
+
+Actions:
+
+- Updated `evidence/trusted-client-identity-policy.md` to add a current
+  reconciliation section.
+- Replaced the stale pending-migration inventory with a post-migration status
+  section naming the current `cf-connecting-ip` production helpers and the
+  remaining residual work.
+- Preserved the key boundary: `deriveClientIdentity()` is tested but still a
+  Wave 2 primitive, not currently consumed by production call sites.
+
+Evidence:
+
+- `bunx vitest run tests/vitest/landing-security-headers.test.ts tests/vitest/project-publication-security-headers.test.ts tests/vitest/compliance-retention-repository.test.ts tests/vitest/compliance-privacy-request-repository.test.ts tests/vitest/client-identity.test.ts tests/vitest/problem-details.test.ts --maxWorkers=1`
+  passed: 6 files / 31 tests.
+- `NODE_OPTIONS=--max-old-space-size=8192 bun run type-check` passed.
+- `git diff --check` passed.
+
+Decision:
+
+- This is a documentation/evidence correction, not a new PH-4+ implementation
+  wave.
+- First-slice local status remains substantially complete; production
+  enforcement remains blocked by the same WAF/Turnstile dashboard, independent
+  review, PH-4..PH-6 scope, and hosted/two-client runtime proof gates.
