@@ -13,7 +13,7 @@ function request(body: unknown, init: RequestInit = {}) {
       host: "archestimator.test",
       "content-type": "application/json",
       "user-agent": "vitest-client-error",
-      "x-forwarded-for": "203.0.113.10",
+      "cf-connecting-ip": "203.0.113.10",
       ...init.headers,
     },
     body: typeof body === "string" ? body : JSON.stringify(body),

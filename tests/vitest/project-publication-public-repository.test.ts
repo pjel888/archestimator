@@ -480,7 +480,7 @@ describe("project publication public repository (Cloudflare D1 context)", () => 
       recipientKnown: false,
       request: new Request("https://archestimator.test/share/client-token", {
         headers: {
-          "x-forwarded-for": "203.0.113.44",
+          "cf-connecting-ip": "203.0.113.44",
           "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/537.36 Chrome/125.0.6422.0 Safari/537.36",
           "cf-ipcountry": "PH",
           referer: "https://client.example/private",
@@ -521,7 +521,7 @@ describe("project publication public repository (Cloudflare D1 context)", () => 
       eventType: "open",
       request: new Request("https://archestimator.test/share/client-token", {
         headers: {
-          "x-forwarded-for": "203.0.113.44",
+          "cf-connecting-ip": "203.0.113.44",
           "user-agent": userAgent,
         },
       }),
