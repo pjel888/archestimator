@@ -1168,3 +1168,49 @@ Residual risk:
   `problemDetailsResponse` await Route Handler migration to consume
   them.
 - Production enforcement remains NOT READY.
+
+## Iteration 22: Wave 3 P0 Surfaces #7+#8 — share/[token] Route Handlers Migrated GREEN (2026-07-05)
+
+Trigger:
+
+- TODO continuation hook. Surfaces #7+#8 are the last anonymous-share
+  P1 sites: `share/[token]/decision/route.ts` and
+  `share/[token]/comment/route.ts` Route Handlers, both with local
+  `getIpHash(request)` helpers using INSECURE order.
+
+Actions:
+
+- Migrated `src/app/api/share/[token]/decision/route.ts:31-37`
+  `getIpHash(request)` — was
+  `x-forwarded-for → cf-connecting-ip → x-real-ip → "unknown"`,
+  now `cf-connecting-ip → "unknown"`.
+- Migrated `src/app/api/share/[token]/comment/route.ts:76-82`
+  `getIpHash(request)` — IDENTICAL pattern, same migration.
+- Updated 2 test fixtures in
+  `tests/vitest/project-publication-comments.test.tsx` (lines 497, 929):
+  `"x-forwarded-for": "203.0.113.x"` → `"cf-connecting-ip": "203.0.113.x"`.
+
+Evidence:
+
+- Test runner output: 62 tests across decision + comment files GREEN;
+  cumulative 225 tests across 17 test files GREEN with zero regression.
+- `verification_mode: same-agent` (cap 94 binds).
+- `git diff --check` clean.
+- HEAD stable for this iteration.
+- Scope warning fired at 24, 25 files modified — acknowledged.
+
+Decision:
+
+- Close iteration 22 with surfaces #7+#8 complete.
+- 8 of 11 production `x-forwarded-for` sites now CLOSED.
+- All anonymous-surface security-decision paths now use secure
+  `cf-connecting-ip` derivation.
+- User explicit direction received after iter 22 close: "proceed" —
+  proceed with remaining 3 audit-path sites.
+
+Residual risk:
+
+- 3 production `x-forwarded-for` audit-path reads remain (closing
+  in iter 23 per user "proceed" direction).
+- Wave 2a/2b primitives UNCONSUMED.
+- Production enforcement remains NOT READY.
