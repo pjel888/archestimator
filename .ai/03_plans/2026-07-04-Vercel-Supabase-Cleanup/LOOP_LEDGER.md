@@ -335,7 +335,7 @@ Skipped validations (residual risk):
 - F-014: COMPLETE (Iter 2) — 8 cascade tests deleted
 - F-015: COMPLETE (Iter 2) — `.gitignore:58` `.vercel` entry removed
 - F-016: COMPLETE (Iter 2) — `scripts/sql/*.sql` moved to `supabase/migration-evidence/sql/`
-- F-017: COMPLETE (Iter 3) — WS-B task B-5 misc-script review concluded: all 14 flagged scripts are Cloudflare-era scanners/proof generators that mention legacy for comparison/inventory purposes (legitimate `tooling-reference`). No `dead-code` found. LEAVE all.
+- F-017: COMPLETE (Iter 3) — WS-B task B-5 misc-script review concluded: all flagged scripts are Cloudflare-era scanners/proof generators that mention legacy for comparison/inventory purposes (legitimate `tooling-reference`). No `dead-code` found. LEAVE all. *(Round-3-fix clarification: Iter 3 was written as "all 14 flagged scripts" but only 13 existed at this point — `scripts/seed-shared-link-smoke.ts` had already been deleted by an earlier commit before Iter 3 ran. The "all 14" wording was inaccurate even at the time of writing; the corrected count is 13 extant + 1 already-deleted. Iter 4 verified this by per-file body review with verbatim line refs — see Iteration 4 EXECUTE table.)*
 - F-018: COMPLETE (Iter 2) — `.gitignore:57` `# vercel` comment removed
 - F-019 (provider-exit pack regen): DEFERRED — concurrent-agent risk on `scripts/generate-cloudflare-provider-exit-pack.ts` consumers. Historical pack remains valid. Carry-over.
 
@@ -362,7 +362,8 @@ Two carry-over items from Iter 3:
 
 - **F-019** — provider-exit pack regeneration was DEFERRED in Iter 2/3 with
   rationale "concurrent-agent risk on `scripts/generate-cloudflare-provider-exit-pack.ts` consumers". Re-checked: the script's last commit was `d401bf858 feat(scripts): add latest-deploy-source-smoke checker and strengthen provider-exit pack` (part of the prior cleanup, not concurrent). Safe to run.
-- **F-017** — closed in Iter 3 by keyword classification (all 14 flagged
+- **F-017** — closed in Iter 3 by keyword classification (the audit flagged 14
+  scripts; 1 had already been deleted by an earlier commit, leaving 13 extant
   scripts labeled `tooling-reference`). Owner asked for the deeper per-file
   review now.
 
@@ -388,8 +389,8 @@ Two carry-over items from Iter 3:
 | Run | `bun run cf:provider-exit-pack` | exit 0; output JSON summary printed |
 | Verify | `generatedAt` updated | `2026-07-04T10:22:59.173Z` → `2026-07-05T03:13:39.368Z` |
 | Verify | `legacyProviderScan.blockerCount` (JSON) / `activeLegacyProviderRuntimeBlockers` (console summary) | **0** — confirms the cleanup removed all live-runtime legacy references |
-| Verify | `blockerCount` | 5 (unchanged — these are external/hosted gates, not source-side blockers) |
-| Verify | `providerExitReady` | `false` (unchanged — the 5 remaining blockers are operator/legal/mailbox/deploy-freshness gates, not source-cleanup gates) |
+| Verify | `blockers.length` (top-level JSON array) | 5 at commit time; current value may shift as the operator-record evidence is updated by concurrent agents. The tracked `blockers` array names external/hosted gates (deploy/source smoke, exports/retention decision, post-exit smoke, non-owner Google proof, recipient mailbox proof), not source-side blockers. |
+| Verify | `readiness.providerExitReady` (nested under `readiness`) | `false` (unchanged — the gates listed in `blockers` are operator/legal/mailbox/deploy-freshness gates, not source-cleanup gates. `readiness.appRuntimeExitPrerequisitesReady` is also tracked at the same nested path.) |
 | Diff | `git diff --stat` for evidence dir | 2 files, +2/-2 lines (timestamp-only change) |
 
 ### F-017 — Deeper misc-script review
