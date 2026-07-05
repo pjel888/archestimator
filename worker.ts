@@ -2,6 +2,7 @@ import {
   type CloudflareScheduledUploadJobEnv,
   runCloudflareScheduledUploadJobs,
 } from "./src/lib/cloudflare/scheduled-upload-jobs";
+import { runRetentionPass } from "./src/lib/compliance/retention-repository";
 import {
   type CloudflareUploadJobQueueBatchLike,
   type CloudflareUploadJobQueueEnv,
@@ -100,6 +101,15 @@ export default {
         console.log("Cloudflare scheduled upload jobs completed", JSON.stringify(summary));
       }),
     );
+    // ponytail: P1.8 retention pass — dispatch on the "30 3 * * *" cron only.
+    // Runs in parallel to the upload-jobs waitUntil; both are awaited by ctx.
+    if (controller.cron === "30 3 * * *") {
+      ctx.waitUntil(
+        runRetentionPass(undefined, { cronRunId: crypto.randomUUID() }).then((results) => {
+          console.log("Retention pass completed", JSON.stringify(results));
+        }),
+      );
+    }
   },
 
   queue(batch: CloudflareUploadJobQueueBatchLike, env: CloudflareWorkerEnv, ctx: ExecutionContextLike) {

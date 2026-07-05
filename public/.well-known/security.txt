@@ -1,0 +1,14 @@
+# P1.6 (Security & Compliance Program): RFC 9116 security.txt
+# Public vulnerability disclosure policy for Archestimator.
+# Contact: security@archestimator.com (Cloudflare Email routing to Philip).
+# Policy: https://archestimator.com/security
+# Reporters: please do NOT disclose publicly until we have acknowledged
+# and agreed on a remediation timeline (coordinated disclosure, 90-day
+# default per industry norm).
+Acknowledgments: https://archestimator.com/security#hall-of-fame
+Preferred-Languages: en
+Canonical: https://archestimator.com/.well-known/security.txt
+Contact: mailto:security@archestimator.com
+Encryption: https://archestimator.com/.well-known/pgp-key.txt
+Expires: 2027-07-05T23:59:59Z
+Policy: https://archestimator.com/security

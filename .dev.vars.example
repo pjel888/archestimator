@@ -35,6 +35,13 @@ PUBLICATION_TOKEN_ENCRYPTION_SECRET=
 PUBLICATION_TOKEN_HASH_SECRET=
 PUBLICATION_ACCESS_COOKIE_SECRET=
 
+# P0.6 (Security & Compliance Program): HMAC-SHA-256 pepper for account audit
+# ip_hash / user_agent_hash. Required in production; falls back to a non-secret
+# dev value when NODE_ENV is not production. Set via `wrangler secret put` for
+# deployed Workers. Treat legacy plain `sha256:` rows as pseudonymous personal
+# data — see .ai/03_plans/000-Follow Ups/2026-07-04-Security-Compliance-Followups.md
+AUTH_AUDIT_HASH_PEPPER=
+
 # Cloudflare R2 is the required Worker upload storage path; retired legacy
 # provider values are rejected at runtime.
 ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER=cloudflare-r2

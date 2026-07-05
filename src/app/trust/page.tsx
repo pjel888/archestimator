@@ -89,9 +89,10 @@ export default function TrustPage() {
               ))}
             </ul>
             <p className="mt-[var(--landing-space-md)] max-w-[var(--landing-measure-prose)] text-landing-text-caption text-landing-ink-muted">
-              Rate limiting is Postgres, not Redis. Turnstile is not yet built. Anything beyond this
-              list (SOC2/GDPR/HIPAA/DPA badges, formal compliance guarantees) waits on the legal
-              entity and DPA work.
+              Rate limiting runs in Cloudflare Workers + D1 (not Redis, not Postgres). Turnstile is not
+              yet built. D1 has no database-native row-level security, so every data path is gated by
+              server-side app-layer authorization. Anything beyond this list (SOC2/GDPR/HIPAA/DPA
+              badges, formal compliance guarantees) waits on the legal entity and DPA work.
             </p>
           </SectionShell>
 
@@ -157,9 +158,9 @@ const SECURITY_CLAIMS = [
   "Token expiry and revocation.",
   "POST-only mutations — GET confirms, POST grants.",
   "HttpOnly, Secure, SameSite cookies. No tokens in localStorage.",
-  "Durable composite-key rate limiting with Retry-After (Postgres).",
+  "Durable composite-key rate limiting with Retry-After (Cloudflare Workers + D1).",
   "Audit logging and metrics/alerts on the collaboration surface.",
-  "Row-level security enforced on every table.",
+  "Server-side app-layer authorization on every D1 data path (D1 has no database-native row-level security).",
   "Better Auth session gating, Google OAuth and magic-link flows, plus signed Cloudflare collaboration rooms.",
 ] as const;
 
