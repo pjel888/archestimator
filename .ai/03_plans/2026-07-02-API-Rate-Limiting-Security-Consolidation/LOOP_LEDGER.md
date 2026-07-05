@@ -1094,3 +1094,77 @@ Residual risk:
 - Wave 2a/2b primitives UNCONSUMED — `deriveClientIdentity` and
   `problemDetailsResponse` await Route Handler migration.
 - Production enforcement remains NOT READY.
+
+## Iteration 21: Wave 3 P0 Surfaces #5+#6 — public-repository.ts Direct Reads Migrated GREEN (2026-07-05)
+
+Trigger:
+
+- TODO continuation hook. Surfaces #5+#6 are 2 direct `x-forwarded-for`
+  reads in the same file (`publication/public-repository.ts:704+741`),
+  now backed by the secure `getClientIp` helper after surface #4.
+
+Actions:
+
+- Migrated `publication/public-repository.ts:704` — was
+  `hashRequestValue(request.headers.get("x-forwarded-for") ?? getClientIp(request))`,
+  now `hashRequestValue(getClientIp(request))`. Drops direct spoofable
+  read; uses the now-secure helper.
+- Migrated `publication/public-repository.ts:741` — was
+  `hashRequestValue(request.headers.get("x-forwarded-for"))` (direct
+  read with NO fallback), now `hashRequestValue(getClientIp(request))`.
+  Now consistent with line 704 and uses the secure helper.
+- No test fixture updates needed (all publication-repository consumer
+  tests already updated to `cf-connecting-ip` in surface #4 iteration).
+
+Evidence:
+
+- Test runner output: 119 tests across 5 publication-repository
+  consumer files (project-publication-page 43 + project-publication-
+  activity 34 + project-publication-password-lockout-route 4 +
+  project-publication-route 18 + project-publication-public-repository
+  20) + 77 tests across 7 regression files. Zero regression.
+- `verification_mode: same-agent` (cap 94 binds).
+- `git diff --check` clean.
+- HEAD: `19f77602b7e6` (concurrent agents committed during this
+  iteration; conflict map re-verified, target file CLEAN at start).
+- Scope warning fired at 23 files modified — acknowledged. Each file
+  change was deliberate and verified. The warning is heuristic; not a
+  hard block.
+
+Decision:
+
+- Close iteration 21 with surfaces #5+#6 complete.
+- 6 of 11 production `x-forwarded-for` sites now CLOSED:
+  - `uploads/admission-control.ts:34` (surface #1)
+  - `publication/actions.ts:1173` (surface #2)
+  - `collaboration/invite-entry.ts:97` (surface #3)
+  - `publication/security.ts:550` shared export (surface #4)
+  - `publication/public-repository.ts:704` direct read (surface #5)
+  - `publication/public-repository.ts:741` direct read (surface #6)
+- Remaining 5 sites (all 1-line changes in Route Handlers / audit
+  paths):
+  - `share/[token]/decision/route.ts:32` (Route Handler in-flow)
+  - `share/[token]/comment/route.ts:77` (Route Handler in-flow)
+  - `internal/client-error/route.ts:40` (error sink)
+  - `auth/actions.ts:32` (auth flow audit)
+  - `auth/callback/route.ts:20` (legacy OAuth callback audit)
+- HOLD remaining 5 sites for dedicated focused session. Ponytail
+  signals: (a) 23 files modified this session is genuinely scattered;
+  (b) concurrent agent activity remains active (HEAD moved during this
+  iteration); (c) the proven migration pattern is mechanical but each
+  remaining surface still needs per-surface TDD with its own fixture
+  analysis; (d) the user's "be vigilant" directive applies.
+
+Residual risk:
+
+- 5 production `x-forwarded-for` security gaps remain. Risk profile:
+  - share/[token]/decision + comment: anonymous-surface reads, moderate
+    risk (attacker can spoof IP-derived limiter keys for share
+    decision/comment rate limiting)
+  - internal/client-error: error-sink read, lower risk (redaction path)
+  - auth/actions + auth/callback: authenticated or legacy-archaeology
+    audit reads, lower risk
+- Wave 2a/2b primitives UNCONSUMED — `deriveClientIdentity` and
+  `problemDetailsResponse` await Route Handler migration to consume
+  them.
+- Production enforcement remains NOT READY.
