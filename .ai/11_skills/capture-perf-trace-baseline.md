@@ -1,7 +1,7 @@
 ---
 status: active
 last_updated: 2026-07-05
-plan_reference: .ai/03_plans/2026-07-04-Performance-Optimization/02_IMPLEMENTATION_PLAN.md
+plan_reference: .ai/09_archive/store/2026-07-05-Performance-Optimization/02_IMPLEMENTATION_PLAN.md
 work_package: WP-P4-02
 ---
 
@@ -99,7 +99,7 @@ Add both files to the plan's evidence directory. Update the plan README §6 read
 
 ## Cross-references
 
-- Plan: `.ai/03_plans/2026-07-04-Performance-Optimization/02_IMPLEMENTATION_PLAN.md` WP-P2-01
+- Plan (archived): `.ai/09_archive/store/2026-07-05-Performance-Optimization/02_IMPLEMENTATION_PLAN.md` WP-P2-01
 - Existing scripts: `scripts/measure-workshop-dashboard-query-count.ts`, `scripts/measure-route-transitions.ts`, `scripts/measure-library-performance-baseline.ts`
 - Server-timing source: `src/lib/perf/server-timing.ts`
 - Web vitals probe: `src/components/workshop/WebVitalsProbe.tsx`

@@ -32,4 +32,4 @@ to D1. It is intentionally preserved for audit and rollback-comparison.
 ## Related plans
 
 - Original migration: `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/`
-- Cleanup plan that formalized this status: `.ai/03_plans/2026-07-04-Vercel-Supabase-Cleanup/`
+- Cleanup plan that formalized this status: `.ai/09_archive/store/2026-07-05-Vercel-Supabase-Cleanup-complete/`
