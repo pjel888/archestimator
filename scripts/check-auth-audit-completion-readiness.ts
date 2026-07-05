@@ -51,7 +51,7 @@ export type AuthAuditCompletionReadinessReport = {
   note: string;
 };
 
-const AUTH_PLAN_ROOT = ".ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement";
+const AUTH_PLAN_ROOT = ".ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement";
 const AUTH_EVIDENCE_ROOT = `${AUTH_PLAN_ROOT}/evidence`;
 const CLOUDFLARE_MIGRATION_PLAN_ROOT = ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex";
 const CLOUDFLARE_MIGRATION_EVIDENCE_ROOT = `${CLOUDFLARE_MIGRATION_PLAN_ROOT}/evidence`;

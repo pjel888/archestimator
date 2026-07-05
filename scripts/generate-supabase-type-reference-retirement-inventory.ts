@@ -54,9 +54,9 @@ export type SupabaseTypeReferenceRetirementInventory = {
 export const DEFAULT_TYPE_REFERENCE_SCAN_PATHS = ["src", "scripts", "e2e", "tests"];
 
 const DEFAULT_OUTPUT_FILE =
-  ".ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement/evidence/2026-07-04-supabase-type-reference-retirement-inventory.json";
+  ".ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement/evidence/2026-07-04-supabase-type-reference-retirement-inventory.json";
 const DEFAULT_MARKDOWN_FILE =
-  ".ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement/evidence/2026-07-04-supabase-type-reference-retirement-inventory.md";
+  ".ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement/evidence/2026-07-04-supabase-type-reference-retirement-inventory.md";
 
 const NOTE =
   "Non-destructive Supabase type-reference retirement inventory. This script reads active source, scripts, e2e, and tests only; skips supabase/** migration archaeology and .ai/** planning artifacts; and does not read environment files, mutate providers, deploy, or delete data.";

@@ -67,9 +67,9 @@ export type ProviderCleanupAllowlistReport = {
 export const DEFAULT_PROVIDER_CLEANUP_SCAN_PATHS = ["src", "scripts", "e2e", "tests"];
 
 const DEFAULT_OUTPUT_FILE =
-  ".ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement/evidence/2026-07-04-provider-cleanup-allowlist.json";
+  ".ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement/evidence/2026-07-04-provider-cleanup-allowlist.json";
 const DEFAULT_MARKDOWN_FILE =
-  ".ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement/evidence/2026-07-04-provider-cleanup-allowlist.md";
+  ".ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement/evidence/2026-07-04-provider-cleanup-allowlist.md";
 
 const TEXT_EXTENSIONS = new Set([
   ".cjs",
