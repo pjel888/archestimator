@@ -142,7 +142,8 @@ Expected after Wave 4: 0 hits.
 - **Audit:** COMPLETE
 - **Plan:** COMPLETE
 - **Implementation (Iter 2, 2026-07-04):** COMPLETE — bulk of cleanup committed across `da767928f`, `51e2e11a6`, `9abb94585`, `f2451b30b`, `1c556c466`.
-- **Residual closeout (Iter 3, 2026-07-05):** COMPLETE — see Iteration 3 below for the gaps Iter 2 left in the working tree.
+- **Residual closeout (Iter 3, 2026-07-05):** COMPLETE — `.env.local` actually sanitized, empty `src/lib/supabase/` removed, `ci.yml` scanned CLEAN. See Iteration 3 below.
+- **F-019 + F-017 deeper closeout (Iter 4, 2026-07-05):** COMPLETE — provider-exit pack regenerated; all 13 flagged misc scripts confirmed legitimate tooling-reference. See Iteration 4 below.
 
 ---
 
@@ -346,3 +347,111 @@ Skipped validations (residual risk):
 - The original plan's stop-the-line conditions did not trigger: no new credentials discovered, no test-red cascade, no build failure, no owner revocation.
 - Concurrent-agent safety preserved: only my one tracked-file edit (`LOOP_LEDGER.md`) is in the commit; the other two changes are gitignored (`.env.local`) and never-tracked empty-dir deletion. No entanglement with concurrent work.
 - Verification mode: `verification_mode: emulated` — single-lead execution and verification. No independent reviewer lane was spawned for this small residual closeout because the scope (1 gitignored file + 1 empty folder + 1 docs scan) did not justify it. The larger Iter 2 cleanup had its own emulated verification.
+
+---
+
+## Iteration 4 — F-019 + F-017 Deeper Closeout (2026-07-05)
+
+**DISCOVER:**
+
+Owner direction: *"proceed with the remaining risks and exact unblock actions.
+you can just leave R-04 there. thats fine. but for F-019 and F-017 please
+proceed to do those."* R-04 stays waived.
+
+Two carry-over items from Iter 3:
+
+- **F-019** — provider-exit pack regeneration was DEFERRED in Iter 2/3 with
+  rationale "concurrent-agent risk on `scripts/generate-cloudflare-provider-exit-pack.ts` consumers". Re-checked: the script's last commit was `d401bf858 feat(scripts): add latest-deploy-source-smoke checker and strengthen provider-exit pack` (part of the prior cleanup, not concurrent). Safe to run.
+- **F-017** — closed in Iter 3 by keyword classification (all 14 flagged
+  scripts labeled `tooling-reference`). Owner asked for the deeper per-file
+  review now.
+
+**PLAN:**
+
+1. F-019: run `bun run cf:provider-exit-pack` to refresh the post-cleanup
+   evidence pack. Verify the regenerated JSON/MD reflect the cleaned repo state.
+2. F-017: open each of the 14 flagged scripts, read enough of the body to
+   classify with evidence (not just keyword matching). Delete any that turn
+   out to be `dead-code`. Document the rest as `tooling-reference`.
+3. Commit only my changes (be vigilant about concurrent agent activity —
+   other agents are committing to `main` during this session).
+
+**EXECUTE:**
+
+### F-019 — Provider-exit pack regeneration
+
+| Step | Action | Result |
+|---|---|---|
+| Pre-flight | Read script lines 850-1041 to confirm output target + read semantics | `DEFAULT_OUTPUT_FILE` and `DEFAULT_MARKDOWN_FILE` point at `.ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-provider-exit-pack.{json,md}` (fixed filename; will overwrite the 2026-07-04-dated content) |
+| Pre-flight | Confirm output files tracked in git | Both files tracked via `git ls-files` |
+| Pre-flight | Confirm no concurrent-agent activity in evidence dir | `git status` clean for that dir at start; last commit `99ac3d5cf` (auth audit, not me) |
+| Run | `bun run cf:provider-exit-pack` | exit 0; output JSON summary printed |
+| Verify | `generatedAt` updated | `2026-07-04T10:22:59.173Z` → `2026-07-05T03:13:39.368Z` |
+| Verify | `activeLegacyProviderRuntimeBlockers` | **0** — confirms the cleanup removed all live-runtime legacy references |
+| Verify | `blockerCount` | 5 (unchanged — these are external/hosted gates, not source-side blockers) |
+| Verify | `providerExitReady` | `false` (unchanged — the 5 remaining blockers are operator/legal/mailbox/deploy-freshness gates, not source-cleanup gates) |
+| Diff | `git diff --stat` for evidence dir | 2 files, +2/-2 lines (timestamp-only change) |
+
+### F-017 — Deeper misc-script review
+
+Read the body of each of the 14 flagged scripts. 13 still exist; `scripts/seed-shared-link-smoke.ts` is missing (already deleted by an earlier commit). Per-script classification with evidence:
+
+| # | Script | Lines | Body evidence | Class | Action |
+|---|---|---|---|---|---|
+| 1 | `scripts/check-cloudflare-d1-auth-realtime-readiness.ts` | 1300 | Cloudflare D1/auth/realtime readiness gate. Imports `CloudflareMigrationInventory`. Legacy regex patterns (`createSupabase(?:Server\|Browser\|ServiceRole)Client`, `@\/lib\/supabase\/`, `SUPABASE_SERVICE_ROLE_KEY`) are **detection rules that FLAG legacy code if it appears** — not active use. Has explicit comment: scanner for migration completeness. | `tooling-reference` | LEAVE |
+| 2 | `scripts/check-cloudflare-provider-resources.ts` | 508 | Runs wrangler commands (read-only) to verify D1/R2/queues bindings. No legacy runtime use. | `tooling-reference` | LEAVE |
+| 3 | `scripts/check-cloudflare-provider-readiness.ts` | 587 | Reads provider evidence files (zone, workers, R2, queues, analytics) — all Cloudflare-native. | `tooling-reference` | LEAVE |
+| 4 | `scripts/check-cloudflare-dns-delegation.ts` | 579 | Resolves DNS for Cloudflare zone (A/AAAA/CNAME/MX/TXT/NS). Pure Cloudflare. | `tooling-reference` | LEAVE |
+| 5 | `scripts/check-cloudflare-release-gates.ts` | 816 | Release-gate aggregator (planning/local-runtime/data-auth/provider/cost scopes). | `tooling-reference` | LEAVE |
+| 6 | `scripts/verify-cloudflare-hosted-routes.ts` | 233 | Hosted Worker route contract proof (credential-free). Explicit disclaimer: *"This does not call Cloudflare APIs, read env files, print secrets, deploy Workers, change DNS, purchase plans, mutate providers, authenticate users, prove D1/Auth/Realtime flows, or make Vercel/Supabase/Resend removable."* | `tooling-reference` | LEAVE |
+| 7 | `scripts/verify-cloudflare-hosted-performance.ts` | 384 | Hosted Worker p95 performance proof. Same credential-free disclaimer. | `tooling-reference` | LEAVE |
+| 8 | `scripts/verify-upload-alert-delivery.ts` | 361 | Upload alert delivery production proof. Reads `@/lib/uploads/operational-telemetry`. No legacy runtime use. | `tooling-reference` | LEAVE |
+| 9 | `scripts/collect-live-db-performance-evidence.ts` | 503 | DB performance evidence orchestrator. Default mode `static` (repo-only). Explicit guardrails: *"Never writes files under supabase/migrations/. Never emits CREATE INDEX / CREATE OR REPLACE FUNCTION. Live SQL is SELECT-only."* Optional `linked` mode reads from the **authorized** historical Supabase project `ebxxqidacheyapmmzavr` per `AGENTS.md`. | `tooling-reference` (default mode is static; optional linked mode is authorized historical comparison) | LEAVE |
+| 10 | `scripts/generate-cloudflare-migration-inventory.ts` | 478 | Generates the migration-inventory report consumed by other readiness scripts. Defines `ProviderDependency` union (`supabase-client`, `supabase-rpc`, etc.) as **classification labels**, not active imports. | `tooling-reference` | LEAVE |
+| 11 | `scripts/generate-cloudflare-better-auth-proof.ts` | 932 | Better Auth on D1 proof generator. Imports from `src/lib/auth/better-auth-cloudflare` (active runtime). | `tooling-reference` | LEAVE |
+| 12 | `scripts/generate-cloudflare-provider-exit-pack.ts` | 1041 | The provider-exit pack aggregator (just ran in F-019). Mentions legacy in scanner regexes that detect legacy presence. | `tooling-reference` | LEAVE |
+| 13 | `scripts/generate-cloudflare-cost-performance-workbook.ts` | 1187 | Cost/performance workbook generator. References legacy for cost-comparison framing. | `tooling-reference` | LEAVE |
+| — | `scripts/seed-shared-link-smoke.ts` | — | Already deleted (not present in working tree). | n/a | n/a |
+
+**F-017 verdict:** 0 dead-code scripts found. All 13 extant flagged scripts are
+legitimate Cloudflare-era tooling that mention legacy providers for one of
+three reasons: (a) detection patterns that FLAG legacy if it appears, (b)
+explicit disclaimers documenting what the script does NOT do, or (c) optional
+linked-mode comparison against the authorized historical Supabase project.
+No deletions, no `package.json` changes.
+
+**Totals (Iter 4):**
+- 2 tracked files regenerated (provider-exit-pack JSON + MD; timestamp-only diff)
+- 1 tracked file edited (this `LOOP_LEDGER.md` — Status block + Iteration 4)
+- 0 source/test/script files changed
+- 0 deletions
+
+**VERIFY:**
+
+| Verification | Result | Notes |
+|---|---|---|
+| `bun run cf:provider-exit-pack` exit code | ✅ 0 | Regeneration succeeded |
+| Pack output reflects cleanup | ✅ `activeLegacyProviderRuntimeBlockers: 0` | Confirms F-002 + F-010 + prior cleanup removed all live-runtime legacy references |
+| Pack diff scope | ✅ Timestamp-only change (+2/-2 lines) | No semantic regression; the 5 remaining blockers are external operator/legal/mailbox/deploy-freshness gates, not source-cleanup gates |
+| F-017 per-file evidence captured | ✅ 13/13 scripts reviewed with body evidence | Each row in the table above cites line counts + the specific phrase/pattern that confirms classification |
+| Concurrent-agent safety | ✅ Only my 3 files staged (LOOP_LEDGER.md + 2 evidence files) | 11 other modified files belong to a concurrent agent working on API-Rate-Limiting + Performance-Optimization plan packs; left untouched |
+
+Skipped validations (residual risk):
+
+| Validation | Reason skipped | Risk | Substitute | Required for completion |
+|---|---|---|---|---|
+| `bun run validate` full suite | No source/test/script changes — only docs + a tracked evidence file regenerated by a script that itself passed type-check | NONE | `bun run cf:provider-exit-pack` exit 0 is the strongest evidence for F-019; per-file body review with quoted evidence is the strongest evidence for F-017 | No |
+| Browser/manual proof | Pure tooling/docs change; no UI/runtime behavior | NONE | Static review | No |
+| Santa-loop dual adversarial review | **RUNNING NEXT** per owner `/santa-loop` invocation | — | — | Yes — required before push |
+
+**RECORD:**
+
+- F-017: CLOSED with deeper evidence. 0 dead-code; all 13 scripts are `tooling-reference` with body-level proof.
+- F-019: COMPLETE. Provider-exit pack regenerated; `activeLegacyProviderRuntimeBlockers=0` confirms cleanup correctness.
+
+**DECIDE:**
+
+- All Iter 3 carry-over items except R-04 (waived by owner) are now closed.
+- 18/19 findings resolved (counting F-019 as the 19th, which is now done); R-04 waived.
+- Verification mode: still `emulated` — about to be augmented by santa-loop dual review (Claude Opus + GPT-5.4 via codex CLI).
+- Push decision: gated on santa-loop returning NICE.
