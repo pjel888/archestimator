@@ -1,7 +1,7 @@
 # Cloudflare D1 Runtime Performance Proof
 
-Generated: 2026-07-01T09:15:14.833Z
-Base URL: https://archestimator-proof.philipjonlewis.workers.dev
+Generated: 2026-07-05T05:05:27.900Z
+Base URL: https://archestimator.com
 Endpoint: /__cloudflare/d1-performance-proof
 Provider backed: yes
 Response status: 200
@@ -34,11 +34,11 @@ Calls the deployed proof Worker D1 performance endpoint with a local bearer secr
 
 | Surface | Planned/query budget | Hosted p95/budget | Samples | Rows returned | Status |
 | --- | ---: | ---: | ---: | ---: | --- |
-| workspace_homebase_summary | 1/3 | 80ms/600ms | 9 | 2 | hosted-pass |
-| project_estimate_list_summaries | 1/3 | 57ms/600ms | 9 | 2 | hosted-pass |
-| library_overview_summary | 1/3 | 65ms/600ms | 9 | 3 | hosted-pass |
-| can_edit_project | 1/2 | 55ms/600ms | 9 | 1 | hosted-pass |
-| estimate_row_mutation | 1/3 | 91ms/500ms | 9 | 1 | hosted-pass |
+| workspace_homebase_summary | 1/3 | 20ms/600ms | 9 | 2 | hosted-pass |
+| project_estimate_list_summaries | 1/3 | 14ms/600ms | 9 | 2 | hosted-pass |
+| library_overview_summary | 1/3 | 15ms/600ms | 9 | 3 | hosted-pass |
+| can_edit_project | 1/2 | 17ms/600ms | 9 | 1 | hosted-pass |
+| estimate_row_mutation | 1/3 | 15ms/500ms | 9 | 1 | hosted-pass |
 
 ## Blockers
 

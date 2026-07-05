@@ -22,7 +22,7 @@ This document audits the user-requested planning task, not future implementation
 
 ## Readiness For Implementation
 
-Status: CONDITIONALLY READY FOR IMPLEMENTATION PLANNING; NOT READY FOR PRODUCTION ENFORCEMENT OR PROVIDER CUTOVER.
+Status: **IMPLEMENTATION-READY** for first-slice execution (PH-0 through PH-3, covering WP-A, WP-I, WP-B) per owner acceptance recorded in `.ai/10_state/decisions.md` 2026-07-05. Production enforcement, provider cutover, and broad WAF/Turnstile/rate-rule enforcement remain `NOT READY`.
 
 Ready:
 
@@ -32,23 +32,26 @@ Ready:
 - P0 gates are explicit.
 - Standards and privacy model are documented.
 - Validation and rollout expectations are documented.
+- Owner has explicitly accepted the planning package, waiving the same-agent verification cap per `Multi-Agent-Execution-Directive.md` Section 2 "Path To IMPLEMENTATION-READY" Path #2.
 
-Not ready:
+Not ready (production enforcement — these are implementation-time gates, not planning gates):
 
-- No code has been changed.
-- No implementation tests have been run.
-- No provider controls have been changed or proven.
-- P0 risks remain open by design as implementation blockers.
+- No code has been changed in this planning pass.
+- No implementation tests have been run in this planning pass.
+- No provider controls have been changed or proven in this planning pass.
+- P0 risks remain open as implementation work (local auth-audit Phase 3 slices partially close RISK-P0-1, RISK-P0-2, RISK-P0-3; hosted proof still required).
 
 ## P0 Gate Audit
 
-| Gate | Planning State | Implementation Required |
-| --- | --- | --- |
-| WebSocket signed room tickets | Required and specified | Build mint/verify flow and tests before DO forwarding. |
-| D1 app-level authorization | Required and specified | Build/update access-path matrix and denial tests. |
-| Server Action API safety | Required and specified | Matrix every touched action and add tests. |
-| Store authority | Resolved at planning level | Refresh before implementation. |
-| GDPR/privacy governance | Required and specified | Define retention/DSAR/provider policies before expanding collection. |
+Iteration 11 refresh (2026-07-05): P0 gates are no longer "fully open" planning blockers. The sibling auth-audit pack has locally closed implementation for the realtime-ticket, D1-authz (subset), and Server-Action-denial (subset) surfaces. The release gates below now distinguish *local implementation status* (sibling pack evidence) from *this pack's release requirements* (still open for hosted/provider/two-client/runtime proof and cross-surface contract coverage).
+
+| Gate | Planning State | Local Implementation Status (sibling pack) | Implementation Required Under This Pack |
+| --- | --- | --- | --- |
+| WebSocket signed room tickets | Required and specified | Partially implemented locally by auth-audit Phase 3 WP1 (2026-07-04): topic-bound HMAC room token + `authorize` handshake + outsider denial tests. | Connect/message/fanout quota split (`WP-E`), origin/host check parity, `Retry-After`/no-store for ticket-denied responses, hosted/two-client Worker proof, cross-surface error-envelope contract from `09`. |
+| D1 app-level authorization | Required and specified | Substantially implemented locally for project/estimate/workspace/collaboration/beta-admin paths by auth-audit Phase 3 WP2-WP4/WP6 (2026-07-04): 32 protected paths, 32 positive + 32 denial tests. | Extend matrix to idempotency-ledger, limiter, AI, upload, email, queue, and audit surfaces in this pack's `WP-D` scope; hosted/remote D1 proof when deployed data changes. |
+| Server Action API safety | Required and specified | Subset implemented locally for project activity, location, and publication actions by auth-audit Phase 3 WP3 (2026-07-04). | Extend actor/authz/validator/idempotency/CSRF-origin/error-envelope rows to every touched action across auth, collaboration, component-library, estimates, library, publication, recipient-proposals, reusable-sources, workshop, and notifications; direct-POST threat-model tests. |
+| Store authority | Resolved at planning level | n/a (planning-level decision). | Refresh before implementation; reconcile with `.ai/03_plans/2026-07-04-Vercel-Supabase-Cleanup/` for provider-exit/historical-cleanup boundaries. |
+| GDPR/privacy governance | Required and specified | n/a (privacy governance owned by this pack). | Define retention/DSAR/provider policies before expanding collection. |
 
 ## P1 Standards Gate Audit
 

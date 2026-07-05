@@ -1,6 +1,6 @@
 # 2026-07-02 API, Rate Limiting, and Security Consolidation
 
-Status: CONDITIONALLY READY FOR IMPLEMENTATION PLANNING; NOT READY FOR PRODUCTION ENFORCEMENT OR PROVIDER CUTOVER.
+Status: **IMPLEMENTATION-READY** for first-slice execution (PH-0 through PH-3, covering WP-A, WP-I, WP-B) per owner acceptance recorded in `.ai/10_state/decisions.md` 2026-07-05. Production enforcement, provider cutover, and broad WAF/Turnstile/rate-rule enforcement remain `NOT READY` — gated by implementation-time hosted/provider/two-client/runtime proof in `06_VALIDATION_QA_AND_ROLLOUT_PLAN.md` and `IMPLEMENTATION_PLAN.md` Section 17 PH-8.
 
 This pack supersedes:
 
@@ -113,13 +113,28 @@ External standards/reference anchors:
 - AWS Builders Library safe retries with idempotent APIs: https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/
 - AWS Builders Library timeouts, retries, and backoff with jitter: https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/
 
+## Related Plan Packs (Cross-References)
+
+This pack was authored 2026-07-02. Four sibling packs authored afterwards touch overlapping or adjacent surfaces. Implementation agents must reconcile against the latest of these before editing; do not treat this pack as the sole authority for surfaces the newer packs address.
+
+| Sibling pack | Relationship | Surfaces that overlap | Backlink status |
+|---|---|---|---|
+| `.ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement/` | **Direct overlap.** Phase 3 WP1-WP6 locally implemented 2026-07-04 on the surfaces this pack treats as open P0 blockers. | `RISK-P0-1` (WebSocket ticket), `RISK-P0-2` (D1 authz matrix), `RISK-P0-3` (Server Action safety), `WP-C` (Better Auth), `WP-D` (D1 authz), `WP-E` (realtime ticket). See `07_RISK_REGISTER_AND_DECISIONS.md` status refresh and `02_SOURCE_AUTHORITY_AND_CURRENT_RUNTIME.md` realtime/D1 subsections. | Not yet reciprocal — auth-audit pack does not yet backlink to this pack. Add backlink when that pack next iterates. |
+| `.ai/03_plans/2026-07-04-Security-Compliance-Program/` | Adjacent. Broader security-compliance roadmap (P0/P1/P2) that already cites this pack as a source. | Shared OWASP API Top 10 / GDPR / RFC 9457 surface area. | **Reciprocal** — compliance pack README and P0.4 already cite this pack. Do not duplicate risk-register entries. |
+| `.ai/03_plans/2026-07-04-Performance-Optimization/` | Adjacent. Performance findings and phases. | Backend cost/spend budgets, D1 round-trip counts, Worker CPU/duration pressure cited in this pack's `06_VALIDATION_QA_AND_ROLLOUT_PLAN.md` and `IMPLEMENTATION_PLAN.md` Section 13. | Not yet reciprocal — performance pack mentions concurrent activity but no formal backlink. Add backlink when that pack next iterates. |
+| `.ai/03_plans/2026-07-04-Vercel-Supabase-Cleanup/` | Adjacent. Provider-exit cleanup. | `RISK-P0-4` (store authority) supersedes the same Supabase/Postgres active-store wording this pack already classifies as migration archaeology. | Not yet reciprocal — cleanup pack has zero mentions of this pack. Add backlink when that pack next iterates. The cleanup pack's hosted/provider/operator gates remain open and supersede any local-only claim here. |
+
+Coordination rule: when a sibling pack has newer local implementation evidence for a surface this pack treats as an open blocker, the sibling pack's evidence controls for *implementation status*; this pack retains authority for *program-level scope, sequencing, and cross-surface contracts* (idempotency, error envelope, cache, trace, async at-least-once). See `00_COORDINATION_LEDGER.md` "Concurrent Plan-Pack Coordination" for the ownership boundary. Asymmetric backlinks (only some sibling packs reciprocate yet) are tracked in the table above; do not assume bidirectional coverage where the table marks it as not yet reciprocal.
+
 ## Implementation Stop Condition
 
 Do not mark a future implementation complete until:
 
 - The current runtime/store ledger is refreshed from source.
 - The implementation run starts from `IMPLEMENTATION_PLAN.md` and records loop progress, Supermemory availability, and source/provider proof boundaries in the loop ledger or run log.
-- P0 gates are closed with code, tests, and provider evidence where relevant.
+- P0 gates are closed with code, tests, and provider evidence where relevant. Local implementation slices in sibling packs (e.g., auth-audit Phase 3 WP1-WP6) close the *local* portion only; hosted/provider/two-client/runtime proof remains required before this pack's release gates pass.
 - The security/privacy standards matrix has proof references, not only assertions.
 - Narrow staged rollout has hosted evidence and rollback steps.
 - Old contradictory plan assumptions are not reintroduced.
+
+Note (iteration 12, 2026-07-05): the package planning status is now `IMPLEMENTATION-READY` for first-slice execution per owner acceptance. The stop condition above still binds every implementation run; planning-level acceptance does not waive implementation-time evidence gates.

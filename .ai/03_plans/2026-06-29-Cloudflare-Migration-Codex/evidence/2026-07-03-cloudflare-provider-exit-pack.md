@@ -2,9 +2,9 @@
 
 Status: **OPEN / NOT READY**
 
-Generated: `2026-07-05T03:13:39.368Z`
+Generated: `2026-07-05T05:07:29.224Z`
 
-App runtime exit prerequisites: **OPEN**
+App runtime exit prerequisites: **PASS**
 
 Provider exit ready: **OPEN**
 
@@ -23,7 +23,7 @@ Operator record template path: `.ai/03_plans/2026-06-29-Cloudflare-Migration-Cod
 | Cloudflare Email ready | PASS | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-06-30-cloudflare-email-readiness.json |  |
 | Hosted auth matrix ready | PASS | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-02-cloudflare-hosted-auth-synthetic-cookie-matrix.json |  |
 | No active Supabase/Vercel/Resend runtime dependency in scanned source | PASS | source scan |  |
-| Latest deploy source smoke ready | OPEN | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.json | Latest deployed-source smoke proof is missing, malformed, stale, or blocked. |
+| Latest deploy source smoke ready | PASS | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-latest-deploy-source-smoke.json |  |
 | Provider exports or accepted-retention/accepted-loss decision recorded | OPEN | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-provider-exit-operator-record.json | No repository evidence proves final exports are stored outside the repo or that accepted-retention/accepted-loss is recorded. |
 | Resend account/API-key/domain status recorded | PASS | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-provider-exit-operator-record.json |  |
 | Obsolete provider secret removal/rotation recorded | PASS | .ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-03-cloudflare-provider-exit-operator-record.json |  |
@@ -86,7 +86,6 @@ themselves.
 
 ## Open Blockers
 
-- Latest deploy source smoke ready: Latest deployed-source smoke proof is missing, malformed, stale, or blocked.
 - Provider exports or accepted-retention/accepted-loss decision recorded: No repository evidence proves final exports are stored outside the repo or that accepted-retention/accepted-loss is recorded.
 - Post-exit Cloudflare smoke recorded: No post-exit smoke exists after provider export/retention/secret decisions.
 - Real non-owner Google proof or accepted deferral recorded: No real non-owner Google account journey evidence or accepted deferral is recorded.

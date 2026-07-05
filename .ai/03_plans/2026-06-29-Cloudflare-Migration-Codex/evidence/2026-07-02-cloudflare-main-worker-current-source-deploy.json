@@ -1,29 +1,31 @@
 {
-  "generatedAt": "2026-07-03T17:36:48.000Z",
+  "generatedAt": "2026-07-05T05:06:03.000Z",
   "mode": "cloudflare-main-worker-current-source-deploy",
   "worker": "archestimator-proof",
   "accountId": "7f6229cfea61b59f6f48b517fde86039",
   "source": {
-    "gitCommit": "230930b39ffed927cb397aec4d9dde161f8169b0",
-    "committedAt": "2026-07-04T01:29:30+08:00",
-    "subject": "Fix D1 creator ownership before deploy proof"
+    "gitCommit": "fd2a164553ad9820390a7641240f177cb338171d",
+    "committedAt": "2026-07-05T12:54:07+08:00",
+    "subject": "Keep project-group deploy work inside React Doctor gates"
   },
   "productionVersion": {
-    "id": "01c577ee-ab6a-4da7-bcaf-ddab7baea524",
-    "number": 95,
+    "id": "a57a03a7-af11-4310-a55e-73c87188bba2",
+    "number": 96,
     "tag": null,
-    "message": "Deploy D1 creator ownership fix 230930b3",
+    "message": null,
     "trafficPercent": 100,
-    "deploymentId": "1c42a5c0-7b14-4c11-9fba-6501381d5c49",
-    "deployedAt": "2026-07-03T17:34:08.169674Z",
-    "deploymentMessage": "Deploy D1 creator ownership fix 230930b3"
+    "deploymentId": "1f07f9e7-2494-4afa-adfb-3da69a478257",
+    "deployedAt": "2026-07-05T05:04:34.644159Z",
+    "deploymentMessage": null
   },
   "upload": {
     "wranglerVersion": "4.105.0",
-    "totalUploadKiB": 17237.7,
-    "gzipKiB": 4709.11,
-    "workerStartupMs": 28,
-    "durationSeconds": 214.61,
+    "totalUploadKiB": 17385.27,
+    "gzipKiB": 4762.4,
+    "workerStartupMs": 38,
+    "durationSeconds": 421.78,
+    "workerUploadSeconds": 418.37,
+    "triggerDeploySeconds": 3.41,
     "previousUploadBlockerResolved": true
   },
   "d1OwnershipFix": {
@@ -37,7 +39,7 @@
   },
   "hostedRouteProof": {
     "command": "CLOUDFLARE_HOSTED_ROUTE_BASE_URL=https://archestimator.com bun run cf:verify-hosted-routes",
-    "generatedAt": "2026-07-03T17:36:07.357Z",
+    "generatedAt": "2026-07-05T05:05:30.426Z",
     "passed": true,
     "routeContractReady": true,
     "hostedRouteProofReady": true,
@@ -45,8 +47,17 @@
   },
   "releaseGates": {
     "command": "bun run cf:release-gates",
-    "generatedAt": "2026-07-03T17:36:02.789Z",
+    "generatedAt": "2026-07-05T05:05:12.996Z",
     "productionCutoverReady": true,
+    "blockers": []
+  },
+  "d1RuntimeProof": {
+    "command": "CLOUDFLARE_HOSTED_ROUTE_BASE_URL=https://archestimator.com bun run cf:d1-runtime-proof",
+    "generatedAt": "2026-07-05T05:05:27.900Z",
+    "d1RuntimeProofReady": true,
+    "hostedWorkerD1PerformanceReady": true,
+    "hostedP95Ready": true,
+    "queryCountBudgetsReady": true,
     "blockers": []
   },
   "regressionChecks": [
@@ -79,9 +90,10 @@
     }
   ],
   "notes": [
-    "This deployment publishes commit 230930b3 with the D1 creator ownership fallback, created-by authorization checks, insert-only owner-membership backfill migration, OpenNext worker declaration, and Cloudflare cold-build workaround.",
+    "This deployment publishes commit fd2a1645 with D1-backed project-group ordering/runtime source plus the React Doctor staged-gate cleanup on top of the D1 creator ownership deployment.",
     "The remote D1 ownership backfill had already been applied before deployment; this Worker deployment fixes future fallback workspace creation and creator-owned project/estimate access in runtime source.",
     "The amended migration uses ON CONFLICT DO NOTHING so existing non-owner membership roles are preserved instead of promoted during future backfills.",
+    "Wrangler deploy output printed the configured preview D1 id, but hosted D1 runtime proof against https://archestimator.com passed schema, seed, cleanup, query-count, and p95 checks after deployment.",
     "This evidence does not delete, downgrade, cancel, rotate, or mutate Vercel, Supabase, Resend, DNS, billing resources, or provider-exit operator decisions."
   ]
 }

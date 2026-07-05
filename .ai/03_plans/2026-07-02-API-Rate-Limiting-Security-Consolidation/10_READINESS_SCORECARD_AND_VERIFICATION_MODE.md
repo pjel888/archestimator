@@ -91,13 +91,13 @@ Critical blockers: none for planning. Implementation blockers listed in P0 gates
 
 | Category | Score | Deduction reason |
 | --- | ---: | --- |
-| Current runtime ledger accuracy | 96 | Cloudflare-only runtime confirmed against current source. |
+| Current runtime ledger accuracy | 96 | Cloudflare-only runtime confirmed against current source. Iteration 11 (2026-07-05) verified all 14 cited source files still exist with expected responsibilities and package.json version pins match. |
 | API route inventory | 88 | Snapshot is planning-time; implementation must regenerate. |
 | Server Action inventory | 88 | Snapshot is planning-time; implementation must regenerate. |
 | Limiter/idempotency asset map | 92 | Real source primitives cited; all 14 verified to exist. |
-| Conflict reconciliation | 95 | Realtime, D1 authz, store authority, idempotency, async, token, and path-drift conflicts all addressed. |
+| Conflict reconciliation | 95 | Realtime, D1 authz, store authority, idempotency, async, token, and path-drift conflicts all addressed. Iteration 11 refresh adds sibling-pack auth-audit Phase 3 local implementation status to Realtime and D1 Authorization subsections. |
 | Handoff checklist | 92 | Concrete re-read list; line-level proof deferred to implementation. |
-| **Weighted overall** | **93** | Strong source reconciliation; inventory regeneration is implementation work. |
+| **Weighted overall** | **93** | Strong source reconciliation; inventory regeneration is implementation work. Iteration 11 adds cross-pack coordination note without changing the verification-mode cap. |
 
 ### `03_REQUIREMENTS_AND_TRACEABILITY.md`
 
@@ -147,24 +147,24 @@ Critical blockers: none for planning. Implementation blockers listed in P0 gates
 
 | Category | Score | Deduction reason |
 | --- | ---: | --- |
-| P0 risk coverage | 95 | Five P0 risks with impact and required mitigation. |
+| P0 risk coverage | 95 | Five P0 risks with impact and required mitigation. Iteration 11 refresh (2026-07-05) adds sibling-pack local-implementation status for RISK-P0-1, RISK-P0-2, RISK-P0-3 without inflating release status. |
 | P1 risk coverage | 94 | Ten P1 risks including idempotency, async, and error/cache/trace drift. |
 | P2 risk coverage | 92 | Four P2 risks (doc currency, CSP, inventory drift, draft churn). |
 | Decisions explicitness | 95 | Seven decisions with rationale. |
 | Open decisions | 92 | Ten open decisions for implementation listed. |
 | Rejected alternatives | 94 | Six rejected alternatives with rationale. |
-| **Weighted overall** | **94** | Mature; risk owner and deadline/trigger are implicit, not tableed per risk. |
+| **Weighted overall** | **94** | Mature; risk owner and deadline/trigger remain implicit, not tableed per risk. Iteration 11 adds cross-pack coordination evidence without changing the verification-mode cap. |
 
 ### `08_FINAL_READINESS_AND_COMPLETION_AUDIT.md`
 
 | Category | Score | Deduction reason |
 | --- | ---: | --- |
 | User requirement audit | 95 | All 9 user requirements verified satisfied. |
-| P0/P1 gate audit | 94 | Each gate's planning state and implementation requirement explicit. |
+| P0/P1 gate audit | 94 | Each gate's planning state and implementation requirement explicit. Iteration 11 refresh (2026-07-05) adds "Local Implementation Status (sibling pack)" column to distinguish local implementation evidence from this pack's release requirements. |
 | Standards audit | 94 | 14 standards/references with planning coverage notes. |
 | Residual risk honesty | 92 | Residual risks listed including GitNexus staleness and Supermemory gap. |
 | Stop condition clarity | 94 | Stop conditions enumerated. |
-| **Weighted overall** | **94** | Mature; explicit `verification_mode` label and cap application added in this improvement pass (see patch below). |
+| **Weighted overall** | **94** | Mature; explicit `verification_mode` label and cap application added in iteration 10, expanded with sibling-pack coordination in iteration 11. |
 
 ### `09_IDEMPOTENCY_RETRY_AND_RESILIENCE_STANDARDS.md`
 
@@ -202,9 +202,9 @@ Critical blockers: none for planning. Implementation blockers listed in P0 gates
 | Category | Score | Deduction reason |
 | --- | ---: | --- |
 | Loop contract | 96 | Task, loop, and stop condition explicit. |
-| Iteration record | 95 | Nine iterations recorded through Iteration 9. |
+| Iteration record | 95 | Twelve iterations recorded through Iteration 12 (owner acceptance and status lift, 2026-07-05). |
 | Decision trail | 94 | Per-iteration decisions named. |
-| **Weighted overall** | **95** | Mature; this pass appends Iteration 10. |
+| **Weighted overall** | **95** | Mature; iteration 10 added verification-mode scorecard, iteration 11 added cross-pack coordination, iteration 12 recorded owner acceptance lifting the planning status to IMPLEMENTATION-READY. |
 
 ## Package-Level Weighted Score
 
@@ -304,8 +304,16 @@ To lift the package above the cap, one of the following must occur:
    residual-risk acknowledgment in `.ai/10_state/decisions.md` and reference
    it here.
 
-Either path closes the cap. Neither path is satisfied by the current
-self-authored scorecard in this document.
+**Status of this path (iteration 12, 2026-07-05):** Path #2 was invoked. The
+owner acceptance statement is recorded in
+`.ai/10_state/decisions.md` under
+`## 2026-07-05 — Rate-limit pack owner acceptance to IMPLEMENTATION-READY`.
+The acceptance waives the same-agent verification cap for the planning layer
+only; it does not waive hosted/provider/two-client/runtime/browser proof for
+production-enforcement claims, which remain implementation-time gates per
+`06_VALIDATION_QA_AND_ROLLOUT_PLAN.md` and `IMPLEMENTATION_PLAN.md` Section 17
+PH-8. The package planning status is now `IMPLEMENTATION-READY` for
+first-slice execution (PH-0 through PH-3).
 
 ## Evidence Class Table
 
@@ -397,15 +405,22 @@ maximum floor.
 
 Authoritative package status after this improvement pass:
 
-- Status: `CONDITIONALLY READY FOR IMPLEMENTATION PLANNING; NOT READY FOR
-  PRODUCTION ENFORCEMENT OR PROVIDER CUTOVER.`
+- Status: **`IMPLEMENTATION-READY`** for first-slice execution (PH-0 through
+  PH-3, covering WP-A, WP-I, WP-B) per owner acceptance recorded in
+  `.ai/10_state/decisions.md` 2026-07-05.
 - First implementation subset (`PH-0` through `PH-3`, covering `WP-A`,
-  `WP-I`, `WP-B`): `CONDITIONALLY READY`.
-- Binding cap: same-agent final verifier plus emulated test/QA lane.
-  Readiness cannot exceed 94 (same-agent) and package status cannot reach
-  `IMPLEMENTATION-READY` for this high-blast-radius package without
-  independent reviewer sign-off or explicit owner acceptance.
-- Path to lift the cap: documented above in "Path To IMPLEMENTATION-READY".
+  `WP-I`, `WP-B`): `IMPLEMENTATION-READY`.
+- Production enforcement, provider cutover, and broad WAF/Turnstile/rate-rule
+  enforcement: still `NOT READY` — gated by implementation-time
+  hosted/provider/two-client/runtime proof in `06_VALIDATION_QA_AND_ROLLOUT_PLAN.md`
+  and `IMPLEMENTATION_PLAN.md` Section 17 PH-8.
+- Owner acceptance invoked Path #2 of the "Path To IMPLEMENTATION-READY"
+  section above, waiving the same-agent verification cap. The cap was the
+  only remaining planning-layer blocker; the planning package itself was
+  complete as of iteration 11.
+- Path for production enforcement remains: implement PH-0 through PH-8 per
+  `IMPLEMENTATION_PLAN.md`, gather hosted/provider/two-client/runtime/browser
+  proof at PH-8, then make a separate production-release decision.
 
 ## Residual Risks Added By This Pass
 
@@ -419,6 +434,37 @@ Authoritative package status after this improvement pass:
 - Source file citations are accurate as of 2026-07-02; the repo is actively
   changing and implementation must regenerate the route/action/store
   inventory before relying on the planning snapshots in `02`.
+
+## Iteration 11 Additions (2026-07-05)
+
+- Added cross-references to four sibling plan packs created between 2026-07-03
+  and 2026-07-04 (`2026-07-03-Authentication-Audit-And-Improvement/`,
+  `2026-07-04-Security-Compliance-Program/`, `2026-07-04-Performance-Optimization/`,
+  `2026-07-04-Vercel-Supabase-Cleanup/`) in `README.md` and
+  `00_COORDINATION_LEDGER.md`.
+- Updated `07_RISK_REGISTER_AND_DECISIONS.md` RISK-P0-1, RISK-P0-2, RISK-P0-3
+  status from "open implementation blocker" to "partially addressed by sibling
+  pack; remains open for hosted/provider/two-client/runtime proof and
+  cross-surface contract coverage."
+- Updated `02_SOURCE_AUTHORITY_AND_CURRENT_RUNTIME.md` Realtime and D1
+  Authorization subsections with auth-audit Phase 3 WP1-WP4/WP6 local
+  implementation evidence.
+- Updated `05_CONSOLIDATED_ARCHITECTURE_AND_WORK_PACKAGES.md` WP-C, WP-D, WP-E
+  with sibling-pack overlap notes.
+- Updated `08_FINAL_READINESS_AND_COMPLETION_AUDIT.md` P0 gate audit table
+  with a "Local Implementation Status (sibling pack)" column.
+- Strengthened `Multi-Agent-Execution-Directive.md` Section 6 with
+  high-concurrency agent environment discipline and Section 10 with Next.js 16
+  Cache Components gate.
+- Strengthened `Improve-Plan-Prompt.md` Phase 3 #4 with concrete Cache
+  Components verification sub-bullets.
+
+No readiness scores were inflated. No verification-mode caps were changed.
+Package status remains `CONDITIONALLY READY FOR IMPLEMENTATION PLANNING;
+NOT READY FOR PRODUCTION ENFORCEMENT OR PROVIDER CUTOVER`. The same-agent
+cap (94) and high-blast-radius emulated cap (97 → CONDITIONALLY READY)
+still bind. Path to `IMPLEMENTATION-READY` still requires real independent
+reviewer sign-off or explicit owner acceptance.
 
 ## Stop Condition For This Improvement Pass
 

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-03T17:36:07.357Z",
+  "generatedAt": "2026-07-05T05:05:30.426Z",
   "mode": "cloudflare-hosted-worker-routes",
   "baseUrl": "https://archestimator.com",
   "providerBacked": true,
@@ -24,13 +24,13 @@
         {
           "run": 1,
           "status": 200,
-          "ttfbMs": 811.71,
-          "durationMs": 811.71,
-          "bodyDownloadMs": 0.4,
+          "ttfbMs": 4401.23,
+          "durationMs": 4401.23,
+          "bodyDownloadMs": 0.6,
           "contentType": "application/json",
           "cacheControl": "no-store",
           "cfCacheStatus": null,
-          "cfRay": "a157a67398acfce6-SIN",
+          "cfRay": "a163d5a86a39ccce-SIN",
           "age": null,
           "xOpenNext": null,
           "xNextjsPrerender": null,
@@ -38,15 +38,15 @@
           "location": null,
           "setCookiePresent": false,
           "bodyBytes": 76,
-          "bodyPreview": "{\"ok\":true,\"service\":\"archestimator\",\"timestamp\":\"2026-07-03T17:36:03.663Z\"}",
+          "bodyPreview": "{\"ok\":true,\"service\":\"archestimator\",\"timestamp\":\"2026-07-05T05:05:26.825Z\"}",
           "passed": true,
           "reason": "health_json_ok",
           "error": null
         }
       ],
-      "minDurationMs": 811.71,
-      "avgDurationMs": 811.71,
-      "maxDurationMs": 811.71,
+      "minDurationMs": 4401.23,
+      "avgDurationMs": 4401.23,
+      "maxDurationMs": 4401.23,
       "passed": true
     },
     {
@@ -60,14 +60,14 @@
         {
           "run": 1,
           "status": 200,
-          "ttfbMs": 73.79,
-          "durationMs": 73.79,
-          "bodyDownloadMs": 3.66,
+          "ttfbMs": 174.33,
+          "durationMs": 174.33,
+          "bodyDownloadMs": 6.66,
           "contentType": "text/html; charset=utf-8",
           "cacheControl": "max-age=14400, s-maxage=31536000",
           "cfCacheStatus": "HIT",
-          "cfRay": "a157a67729effce6-SIN",
-          "age": "210166",
+          "cfRay": "a163d5af1c0bccce-SIN",
+          "age": "337929",
           "xOpenNext": "1",
           "xNextjsPrerender": "1",
           "hasNoStoreCacheControl": false,
@@ -80,9 +80,9 @@
           "error": null
         }
       ],
-      "minDurationMs": 73.79,
-      "avgDurationMs": 73.79,
-      "maxDurationMs": 73.79,
+      "minDurationMs": 174.33,
+      "avgDurationMs": 174.33,
+      "maxDurationMs": 174.33,
       "passed": true
     },
     {
@@ -96,13 +96,13 @@
         {
           "run": 1,
           "status": 200,
-          "ttfbMs": 911.01,
-          "durationMs": 911.01,
-          "bodyDownloadMs": 1.09,
+          "ttfbMs": 2036.75,
+          "durationMs": 2036.75,
+          "bodyDownloadMs": 6.98,
           "contentType": "text/html; charset=utf-8",
           "cacheControl": "s-maxage=31536000",
           "cfCacheStatus": null,
-          "cfRay": "a157a677bb53fce6-SIN",
+          "cfRay": "a163d5b23c44ccce-SIN",
           "age": null,
           "xOpenNext": "1",
           "xNextjsPrerender": "1",
@@ -116,9 +116,9 @@
           "error": null
         }
       ],
-      "minDurationMs": 911.01,
-      "avgDurationMs": 911.01,
-      "maxDurationMs": 911.01,
+      "minDurationMs": 2036.75,
+      "avgDurationMs": 2036.75,
+      "maxDurationMs": 2036.75,
       "passed": true
     },
     {
@@ -132,14 +132,14 @@
         {
           "run": 1,
           "status": 200,
-          "ttfbMs": 67.27,
-          "durationMs": 67.27,
-          "bodyDownloadMs": 1.25,
+          "ttfbMs": 67.81,
+          "durationMs": 67.81,
+          "bodyDownloadMs": 8.73,
           "contentType": "text/html; charset=utf-8",
           "cacheControl": "max-age=14400, s-maxage=31536000",
           "cfCacheStatus": "HIT",
-          "cfRay": "a157a67d5ab5fce6-SIN",
-          "age": "210166",
+          "cfRay": "a163d5bcf9f9ccce-SIN",
+          "age": "337930",
           "xOpenNext": "1",
           "xNextjsPrerender": "1",
           "hasNoStoreCacheControl": false,
@@ -152,9 +152,9 @@
           "error": null
         }
       ],
-      "minDurationMs": 67.27,
-      "avgDurationMs": 67.27,
-      "maxDurationMs": 67.27,
+      "minDurationMs": 67.81,
+      "avgDurationMs": 67.81,
+      "maxDurationMs": 67.81,
       "passed": true
     },
     {
@@ -168,14 +168,14 @@
         {
           "run": 1,
           "status": 200,
-          "ttfbMs": 68.96,
-          "durationMs": 68.96,
-          "bodyDownloadMs": 0.6,
+          "ttfbMs": 69.58,
+          "durationMs": 69.58,
+          "bodyDownloadMs": 6.94,
           "contentType": "text/html; charset=utf-8",
           "cacheControl": "max-age=14400, s-maxage=31536000",
           "cfCacheStatus": "HIT",
-          "cfRay": "a157a67dcbf5fce6-SIN",
-          "age": "210165",
+          "cfRay": "a163d5bd7b72ccce-SIN",
+          "age": "337930",
           "xOpenNext": "1",
           "xNextjsPrerender": "1",
           "hasNoStoreCacheControl": false,
@@ -188,9 +188,9 @@
           "error": null
         }
       ],
-      "minDurationMs": 68.96,
-      "avgDurationMs": 68.96,
-      "maxDurationMs": 68.96,
+      "minDurationMs": 69.58,
+      "avgDurationMs": 69.58,
+      "maxDurationMs": 69.58,
       "passed": true
     },
     {
@@ -204,14 +204,14 @@
         {
           "run": 1,
           "status": 200,
-          "ttfbMs": 59.42,
-          "durationMs": 59.42,
-          "bodyDownloadMs": 0.99,
+          "ttfbMs": 74.03,
+          "durationMs": 74.03,
+          "bodyDownloadMs": 6,
           "contentType": "text/html; charset=utf-8",
           "cacheControl": "max-age=14400, s-maxage=31536000",
           "cfCacheStatus": "HIT",
-          "cfRay": "a157a67e3cfbfce6-SIN",
-          "age": "210165",
+          "cfRay": "a163d5be0ccdccce-SIN",
+          "age": "337929",
           "xOpenNext": "1",
           "xNextjsPrerender": "1",
           "hasNoStoreCacheControl": false,
@@ -224,9 +224,9 @@
           "error": null
         }
       ],
-      "minDurationMs": 59.42,
-      "avgDurationMs": 59.42,
-      "maxDurationMs": 59.42,
+      "minDurationMs": 74.03,
+      "avgDurationMs": 74.03,
+      "maxDurationMs": 74.03,
       "passed": true
     },
     {
@@ -240,14 +240,14 @@
         {
           "run": 1,
           "status": 200,
-          "ttfbMs": 67.92,
-          "durationMs": 67.92,
-          "bodyDownloadMs": 1.18,
+          "ttfbMs": 79.71,
+          "durationMs": 79.71,
+          "bodyDownloadMs": 6.74,
           "contentType": "text/html; charset=utf-8",
           "cacheControl": "max-age=14400, s-maxage=31536000",
           "cfCacheStatus": "HIT",
-          "cfRay": "a157a67eae14fce6-SIN",
-          "age": "210164",
+          "cfRay": "a163d5be7e58ccce-SIN",
+          "age": "337929",
           "xOpenNext": "1",
           "xNextjsPrerender": "1",
           "hasNoStoreCacheControl": false,
@@ -260,9 +260,9 @@
           "error": null
         }
       ],
-      "minDurationMs": 67.92,
-      "avgDurationMs": 67.92,
-      "maxDurationMs": 67.92,
+      "minDurationMs": 79.71,
+      "avgDurationMs": 79.71,
+      "maxDurationMs": 79.71,
       "passed": true
     },
     {
@@ -276,29 +276,29 @@
         {
           "run": 1,
           "status": 200,
-          "ttfbMs": 62.31,
-          "durationMs": 62.31,
-          "bodyDownloadMs": 5.05,
+          "ttfbMs": 283.97,
+          "durationMs": 283.97,
+          "bodyDownloadMs": 2.08,
           "contentType": "text/html; charset=utf-8",
           "cacheControl": "max-age=14400, s-maxage=31536000",
           "cfCacheStatus": "HIT",
-          "cfRay": "a157a67f0f01fce6-SIN",
-          "age": "210164",
+          "cfRay": "a163d5c05b64ccce-SIN",
+          "age": "3873",
           "xOpenNext": "1",
           "xNextjsPrerender": "1",
           "hasNoStoreCacheControl": false,
           "location": null,
           "setCookiePresent": false,
-          "bodyBytes": 139742,
+          "bodyBytes": 140839,
           "bodyPreview": "<!DOCTYPE html><html lang=\"en\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"",
           "passed": true,
           "reason": "public_html_ok",
           "error": null
         }
       ],
-      "minDurationMs": 62.31,
-      "avgDurationMs": 62.31,
-      "maxDurationMs": 62.31,
+      "minDurationMs": 283.97,
+      "avgDurationMs": 283.97,
+      "maxDurationMs": 283.97,
       "passed": true
     },
     {
@@ -312,14 +312,14 @@
         {
           "run": 1,
           "status": 200,
-          "ttfbMs": 66.58,
-          "durationMs": 66.58,
-          "bodyDownloadMs": 10.54,
+          "ttfbMs": 68.44,
+          "durationMs": 68.44,
+          "bodyDownloadMs": 5.74,
           "contentType": "text/html; charset=utf-8",
           "cacheControl": "max-age=14400, s-maxage=31536000",
           "cfCacheStatus": "HIT",
-          "cfRay": "a157a67f7821fce6-SIN",
-          "age": "210163",
+          "cfRay": "a163d5c0ccd8ccce-SIN",
+          "age": "337928",
           "xOpenNext": "1",
           "xNextjsPrerender": "1",
           "hasNoStoreCacheControl": false,
@@ -332,9 +332,9 @@
           "error": null
         }
       ],
-      "minDurationMs": 66.58,
-      "avgDurationMs": 66.58,
-      "maxDurationMs": 66.58,
+      "minDurationMs": 68.44,
+      "avgDurationMs": 68.44,
+      "maxDurationMs": 68.44,
       "passed": true
     },
     {
@@ -348,14 +348,14 @@
         {
           "run": 1,
           "status": 200,
-          "ttfbMs": 69.03,
-          "durationMs": 69.03,
-          "bodyDownloadMs": 0.73,
+          "ttfbMs": 68.5,
+          "durationMs": 68.5,
+          "bodyDownloadMs": 5.95,
           "contentType": "text/html; charset=utf-8",
           "cacheControl": "max-age=14400, s-maxage=31536000",
           "cfCacheStatus": "HIT",
-          "cfRay": "a157a67ff996fce6-SIN",
-          "age": "210163",
+          "cfRay": "a163d5c14e24ccce-SIN",
+          "age": "337928",
           "xOpenNext": "1",
           "xNextjsPrerender": "1",
           "hasNoStoreCacheControl": false,
@@ -368,9 +368,9 @@
           "error": null
         }
       ],
-      "minDurationMs": 69.03,
-      "avgDurationMs": 69.03,
-      "maxDurationMs": 69.03,
+      "minDurationMs": 68.5,
+      "avgDurationMs": 68.5,
+      "maxDurationMs": 68.5,
       "passed": true
     },
     {
@@ -384,14 +384,14 @@
         {
           "run": 1,
           "status": 200,
-          "ttfbMs": 71.29,
-          "durationMs": 71.29,
-          "bodyDownloadMs": 2.56,
+          "ttfbMs": 86.4,
+          "durationMs": 86.4,
+          "bodyDownloadMs": 0.03,
           "contentType": "text/html; charset=utf-8",
           "cacheControl": "max-age=14400, s-maxage=31536000",
           "cfCacheStatus": "HIT",
-          "cfRay": "a157a6806a9dfce6-SIN",
-          "age": "174010",
+          "cfRay": "a163d5c1bf57ccce-SIN",
+          "age": "301775",
           "xOpenNext": "1",
           "xNextjsPrerender": "1",
           "hasNoStoreCacheControl": false,
@@ -404,9 +404,9 @@
           "error": null
         }
       ],
-      "minDurationMs": 71.29,
-      "avgDurationMs": 71.29,
-      "maxDurationMs": 71.29,
+      "minDurationMs": 86.4,
+      "avgDurationMs": 86.4,
+      "maxDurationMs": 86.4,
       "passed": true
     },
     {
@@ -420,13 +420,13 @@
         {
           "run": 1,
           "status": 200,
-          "ttfbMs": 94.8,
-          "durationMs": 94.8,
-          "bodyDownloadMs": 14.97,
+          "ttfbMs": 101.78,
+          "durationMs": 101.78,
+          "bodyDownloadMs": 9.75,
           "contentType": "text/html; charset=utf-8",
           "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
           "cfCacheStatus": null,
-          "cfRay": "a157a680dbc7fce6-SIN",
+          "cfRay": "a163d5c248eaccce-SIN",
           "age": null,
           "xOpenNext": "1",
           "xNextjsPrerender": null,
@@ -440,9 +440,9 @@
           "error": null
         }
       ],
-      "minDurationMs": 94.8,
-      "avgDurationMs": 94.8,
-      "maxDurationMs": 94.8,
+      "minDurationMs": 101.78,
+      "avgDurationMs": 101.78,
+      "maxDurationMs": 101.78,
       "passed": true
     },
     {
@@ -456,13 +456,13 @@
         {
           "run": 1,
           "status": 307,
-          "ttfbMs": 62.21,
-          "durationMs": 62.21,
-          "bodyDownloadMs": 6.83,
+          "ttfbMs": 66.59,
+          "durationMs": 66.59,
+          "bodyDownloadMs": 5.76,
           "contentType": null,
           "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
           "cfCacheStatus": null,
-          "cfRay": "a157a6819dbffce6-SIN",
+          "cfRay": "a163d5c2fac3ccce-SIN",
           "age": null,
           "xOpenNext": null,
           "xNextjsPrerender": null,
@@ -476,9 +476,9 @@
           "error": null
         }
       ],
-      "minDurationMs": 62.21,
-      "avgDurationMs": 62.21,
-      "maxDurationMs": 62.21,
+      "minDurationMs": 66.59,
+      "avgDurationMs": 66.59,
+      "maxDurationMs": 66.59,
       "passed": true
     },
     {
@@ -492,13 +492,13 @@
         {
           "run": 1,
           "status": 404,
-          "ttfbMs": 53.04,
-          "durationMs": 53.04,
+          "ttfbMs": 53.42,
+          "durationMs": 53.42,
           "bodyDownloadMs": 0.01,
           "contentType": "text/html; charset=utf-8",
           "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
           "cfCacheStatus": null,
-          "cfRay": "a157a681fec5fce6-SIN",
+          "cfRay": "a163d5c36bdeccce-SIN",
           "age": null,
           "xOpenNext": null,
           "xNextjsPrerender": null,
@@ -512,9 +512,9 @@
           "error": null
         }
       ],
-      "minDurationMs": 53.04,
-      "avgDurationMs": 53.04,
-      "maxDurationMs": 53.04,
+      "minDurationMs": 53.42,
+      "avgDurationMs": 53.42,
+      "maxDurationMs": 53.42,
       "passed": true
     },
     {
@@ -528,13 +528,13 @@
         {
           "run": 1,
           "status": 404,
-          "ttfbMs": 1895.24,
-          "durationMs": 1895.24,
-          "bodyDownloadMs": 8.68,
+          "ttfbMs": 229.12,
+          "durationMs": 229.12,
+          "bodyDownloadMs": 5.92,
           "contentType": "application/json",
           "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
           "cfCacheStatus": null,
-          "cfRay": "a157a6824f96fce6-SIN",
+          "cfRay": "a163d5c3ccc5ccce-SIN",
           "age": null,
           "xOpenNext": "1",
           "xNextjsPrerender": null,
@@ -548,9 +548,9 @@
           "error": null
         }
       ],
-      "minDurationMs": 1895.24,
-      "avgDurationMs": 1895.24,
-      "maxDurationMs": 1895.24,
+      "minDurationMs": 229.12,
+      "avgDurationMs": 229.12,
+      "maxDurationMs": 229.12,
       "passed": true
     },
     {
@@ -564,13 +564,13 @@
         {
           "run": 1,
           "status": 404,
-          "ttfbMs": 69.22,
-          "durationMs": 69.22,
-          "bodyDownloadMs": 5.62,
+          "ttfbMs": 83.01,
+          "durationMs": 83.01,
+          "bodyDownloadMs": 10.06,
           "contentType": "application/json",
           "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
           "cfCacheStatus": null,
-          "cfRay": "a157a68e3f41fce6-SIN",
+          "cfRay": "a163d5c538f8ccce-SIN",
           "age": null,
           "xOpenNext": "1",
           "xNextjsPrerender": null,
@@ -584,9 +584,9 @@
           "error": null
         }
       ],
-      "minDurationMs": 69.22,
-      "avgDurationMs": 69.22,
-      "maxDurationMs": 69.22,
+      "minDurationMs": 83.01,
+      "avgDurationMs": 83.01,
+      "maxDurationMs": 83.01,
       "passed": true
     }
   ]

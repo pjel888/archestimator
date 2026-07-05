@@ -111,3 +111,18 @@ Any implementation agent must start by re-reading:
 - `07_RISK_REGISTER_AND_DECISIONS.md`.
 
 Then it must re-check current source before editing. This pack is a planning authority, not a substitute for fresh implementation evidence.
+
+## Concurrent Plan-Pack Coordination (Iteration 11 Update)
+
+This pack was authored 2026-07-02. Four sibling packs authored between 2026-07-03 and 2026-07-04 touch surfaces this pack treats as open P0/P1 blockers. Coordination is required to avoid duplicate implementation, conflicting assumptions, or silent scope shrinkage.
+
+| Sibling pack | Surfaces that overlap | Coordination rule |
+|---|---|---|
+| `.ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement/` | `RISK-P0-1` (WebSocket ticket), `RISK-P0-2` (D1 authz matrix), `RISK-P0-3` (Server Action safety); `WP-C` (Better Auth), `WP-D` (D1 authz), `WP-E` (realtime ticket). | Auth-audit Phase 3 WP1-WP6 (locally implemented 2026-07-04) controls *local implementation status* for these surfaces. This pack controls *program-level scope, sequencing, and cross-surface contracts* (idempotency key/ttl/storage/replay, error envelope, cache/revocation, trace/correlation, async at-least-once delivery). Implementation agents must read `24_PHASE_3_AUTHZ_MATRIX_AND_ROLE_TAXONOMY_PLAN.md` and the rate-limit plan's `09_IDEMPOTENCY_RETRY_AND_RESILIENCE_STANDARDS.md` together before editing any of those surfaces. |
+| `.ai/03_plans/2026-07-04-Security-Compliance-Program/` | Shared OWASP API Top 10 / GDPR / RFC 9457 surface area. | The compliance pack already cites this pack as a source. Cite reciprocally; do not duplicate risk-register entries. New program-level security/compliance risks go to the compliance pack; new cross-surface API contract gates go to this pack. |
+| `.ai/03_plans/2026-07-04-Performance-Optimization/` | Backend cost/spend budgets, D1 round-trip counts, Worker CPU/duration pressure (this pack's `06_VALIDATION_QA_AND_ROLLOUT_PLAN.md`, `IMPLEMENTATION_PLAN.md` Section 13). | The performance pack owns benchmark/baseline/target/regression evidence; this pack owns the per-surface spend/round-trip budget posture. Implementation that changes either must cite both. |
+| `.ai/03_plans/2026-07-04-Vercel-Supabase-Cleanup/` | `RISK-P0-4` (store authority). | The cleanup pack's hosted/provider/operator gates remain open. This pack's classification of Supabase/Postgres references as migration archaeology still controls for *active-runtime* claims; the cleanup pack controls for *provider-exit/historical-cleanup* claims. |
+
+Drift rule: if any sibling pack updates a surface's implementation status, this pack's risk register (`07`) and source authority (`02`) must be re-checked for status updates in the same loop. Silent staleness here is exactly the kind of issue that triggered the 2026-07-04 auth-audit work being untracked in this ledger before iteration 11.
+
+Cross-pack proof rule: hosted/provider/two-client/runtime/browser proof is never closed by a sibling pack's local-only slice. When a sibling pack records "Phase X WP-Y locally complete", that closes only the local implementation layer. The release gates in this pack's `06` and `IMPLEMENTATION_PLAN.md` Section 17 (PH-8) still require hosted/provider proof before the program can claim production-ready.

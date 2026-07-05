@@ -2,7 +2,7 @@
 
 ## Readiness
 
-Status: CONDITIONALLY READY FOR IMPLEMENTATION PLANNING; NOT READY FOR PRODUCTION ENFORCEMENT OR PROVIDER CUTOVER.
+Status: **IMPLEMENTATION-READY** for first-slice execution (PH-0 through PH-3, covering WP-A, WP-I, WP-B) per owner acceptance recorded in `.ai/10_state/decisions.md` 2026-07-05. Production enforcement, provider cutover, and broad WAF/Turnstile/rate-rule enforcement remain `NOT READY` — gated by implementation-time hosted/provider/two-client/runtime proof.
 
 The two source packs overlap heavily and should be treated as one program: API security, app-level authorization, rate limiting, privacy governance, and provider controls must be planned together. Rate limiting alone cannot protect an authorization gap. An API audit alone cannot close abuse risk if enforcement creates privacy or false-positive risk.
 

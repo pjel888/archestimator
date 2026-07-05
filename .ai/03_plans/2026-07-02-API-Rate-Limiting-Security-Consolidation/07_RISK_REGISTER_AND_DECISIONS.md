@@ -23,7 +23,9 @@ Required mitigation:
 - Origin/host checks.
 - Connect/message/fanout quotas.
 
-Status: open implementation blocker.
+Status (iteration 11 refresh, 2026-07-05): **partially addressed by sibling pack** `.ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement/24_PHASE_3_AUTHZ_MATRIX_AND_ROLE_TAXONOMY_PLAN.md` WP1 (locally implemented 2026-07-04). Local implementation: `src/lib/collaboration/realtime-identity-actions.ts` now requires `canAccessProjectInD1` / `canAccessEstimateInD1` before signing a topic envelope and returns a short-lived `roomToken`; `src/lib/collaboration/realtime-room-token.ts` issues/verifies topic-bound HMAC room tokens using `REALTIME_ROOM_TOKEN_SECRET`; `src/lib/cloudflare/collaboration-room.ts` requires an `authorize` message with a valid topic-bound room token before accepting broadcast/presence traffic. Local tests cover outsider denial, stale/wrong-topic denial, and presence/broadcast denial without handshake.
+
+Remains open for: hosted/two-client Worker proof, origin/host check parity with this pack's specification, separate connect/message/fanout quotas (this pack's `WP-E` quota split is not yet proven in the auth-audit local slice), `Retry-After`/no-store posture for ticket-denied responses, and the cross-surface idempotency/error-envelope contract from `09_IDEMPOTENCY_RETRY_AND_RESILIENCE_STANDARDS.md`. Risk is **not closed** for production enforcement.
 
 ### RISK-P0-2: D1 No-RLS Authorization Gap
 
@@ -42,7 +44,9 @@ Required mitigation:
 - Service/admin/internal exception policy.
 - Use and extend existing D1 authz helpers where appropriate.
 
-Status: open implementation blocker.
+Status (iteration 11 refresh, 2026-07-05): **partially addressed by sibling pack** `.ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement/24_PHASE_3_AUTHZ_MATRIX_AND_ROLE_TAXONOMY_PLAN.md` WP2-WP4 (locally implemented 2026-07-04). Local implementation: the static D1 authz matrix generator reported `32` protected access paths, `32` positive tests, `32` denial tests, `30` cross-workspace denial tests, and `allProtectedAccessPathsCovered: true` with no static blockers. `src/lib/authz/d1-access.ts` now routes D1 boolean probes through a shared fail-closed wrapper while preserving the platform-admin short-circuit. WP3 added route/action denial tests for project activity, location actions, and publication management; WP4 added workspace repository authz behavior tests. WP6 locked role-domain values and stale app-role normalization.
+
+Remains open for: complete coverage of every D1 path touched by this pack's `WP-D` (the auth-audit WP2-WP4 set is bounded to project/estimate/workspace/collaboration/beta-admin surfaces; this pack's program scope includes idempotency ledger, limiter, AI, upload, email, and queue paths not yet in the authz matrix), hosted/remote D1 proof when deployed data behavior changes, and the cross-surface authorization matrix required by `REQ-D1` for any new ledger or rate-limit table created under this pack. Risk is **not closed** for production enforcement.
 
 ### RISK-P0-3: Server Actions Treated As Internal Implementation Detail
 
@@ -61,7 +65,9 @@ Required mitigation:
 - Actor/authz/validator/idempotency/CSRF-origin/error-envelope matrix.
 - Denial and replay tests.
 
-Status: open implementation blocker for any touched action.
+Status (iteration 11 refresh, 2026-07-05): **partially addressed by sibling pack** `.ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement/24_PHASE_3_AUTHZ_MATRIX_AND_ROLE_TAXONOMY_PLAN.md` WP3 (locally implemented 2026-07-04). Local implementation: route/action denial tests added for `src/app/api/projects/[projectId]/activity/route.ts`, `src/lib/projects/location-actions.ts`, and `src/lib/projects/publication-actions.ts`, covering no-write/no-revalidate behavior on `canEdit=false`, denied activity page empty-data rendering, and project-editor publication-manager denial.
+
+Remains open for: complete Server Action matrix required by this pack's `WP-D` (the auth-audit WP3 set covers a subset of project/workspace/publication actions; this pack's program scope requires actor/authz/validator/idempotency/CSRF-origin/error-envelope rows for *every* touched action across auth, collaboration, component-library, estimates, library, publication, recipient-proposals, reusable-sources, workshop, and notifications domains), the cross-surface idempotency/CSRF-origin/error-envelope contract from `09_IDEMPOTENCY_RETRY_AND_RESILIENCE_STANDARDS.md`, and direct-POST threat-model tests. Risk is **not closed** for production enforcement.
 
 ### RISK-P0-4: Store Authority Conflict
 

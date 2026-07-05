@@ -100,6 +100,8 @@ Exit criteria:
 
 Goal: make Better Auth the clear identity boundary and coordinate it with app/provider controls.
 
+Sibling-pack overlap (iteration 11): `.ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement/` Phase 1 (Google picker/logout/state) and Phase 2 (durable publication lockout) are locally implemented. This pack's `WP-C` retains authority for cross-surface coordination between Better Auth built-in limiter, app limiter, and Cloudflare controls; do not duplicate the Better Auth matrix work, build on it.
+
 Scope:
 
 - Verify trusted origins.
@@ -128,6 +130,8 @@ Exit criteria:
 
 Goal: close D1 no-RLS risk and make Server Actions safe API surfaces.
 
+Sibling-pack overlap (iteration 11): `.ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement/24_PHASE_3_AUTHZ_MATRIX_AND_ROLE_TAXONOMY_PLAN.md` WP2-WP4 + WP6 (locally implemented 2026-07-04) cover project/estimate/workspace/collaboration/beta-admin D1 access paths and role taxonomy. This pack's `WP-D` retains authority for the broader surface set (idempotency ledger, limiter/security, AI, upload, email, queue paths not in the auth-audit matrix) and for the cross-surface Server Action API contract (actor/authz/validator/idempotency/CSRF-origin/error-envelope rows). Implementation agents must extend the existing matrix rather than start a parallel one.
+
 Scope:
 
 - Create D1 access-path matrix for touched tables and queries.
@@ -153,6 +157,8 @@ Exit criteria:
 ## Work Package E: Realtime WebSocket Ticketing And Durable Object Controls
 
 Goal: prevent anonymous or unauthorized room access and abusive realtime fanout.
+
+Sibling-pack overlap (iteration 11): `.ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement/24_PHASE_3_AUTHZ_MATRIX_AND_ROLE_TAXONOMY_PLAN.md` WP1 (locally implemented 2026-07-04) closes the local implementation layer for topic-bound HMAC room tokens (`src/lib/collaboration/realtime-room-token.ts`) and Durable Object `authorize` handshake (`src/lib/cloudflare/collaboration-room.ts`). This pack's `WP-E` retains authority for: separate connect/message/fanout quotas (not yet in the auth-audit slice), origin/host check parity, `Retry-After`/no-store posture for ticket-denied responses, hosted/two-client Worker proof, and the cross-surface error-envelope/idempotency contract from `09`. Do not reimplement ticket mint/verify; extend the existing implementation.
 
 Scope:
 
