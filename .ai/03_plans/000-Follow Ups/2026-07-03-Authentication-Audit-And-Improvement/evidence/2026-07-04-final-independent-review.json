@@ -7,10 +7,10 @@
   "reviewedArtifacts": [
     "scripts/check-auth-audit-completion-readiness.ts",
     "tests/vitest/auth-audit-completion-readiness-script.test.ts",
-    ".ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement/evidence/2026-07-04-auth-audit-completion-readiness.json",
-    ".ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement/evidence/2026-07-04-auth-audit-completion-readiness.md",
-    ".ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement/19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md",
-    ".ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement/27_PHASE_6_FINAL_VERIFICATION_COMPLETION_AUDIT.md",
+    ".ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement/evidence/2026-07-04-auth-audit-completion-readiness.json",
+    ".ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement/evidence/2026-07-04-auth-audit-completion-readiness.md",
+    ".ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement/19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md",
+    ".ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement/27_PHASE_6_FINAL_VERIFICATION_COMPLETION_AUDIT.md",
     ".ai/10_state/current-state.md"
   ],
   "verification": {
@@ -18,9 +18,9 @@
       "bunx vitest run --maxWorkers=1 tests/vitest/auth-audit-completion-readiness-script.test.ts",
       "bunx vitest run --maxWorkers=1 tests/vitest/auth-audit-completion-readiness-script.test.ts tests/vitest/legal-owner-readiness-script.test.ts",
       "NODE_OPTIONS=--max-old-space-size=8192 bun run type-check",
-      "git diff --check -- scripts/check-auth-audit-completion-readiness.ts tests/vitest/auth-audit-completion-readiness-script.test.ts .ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement/19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md .ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement/27_PHASE_6_FINAL_VERIFICATION_COMPLETION_AUDIT.md .ai/10_state/current-state.md",
-      "rg -n \"^(<<<<<<<|=======$|>>>>>>>)\" scripts/check-auth-audit-completion-readiness.ts tests/vitest/auth-audit-completion-readiness-script.test.ts .ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement/19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md .ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement/27_PHASE_6_FINAL_VERIFICATION_COMPLETION_AUDIT.md .ai/10_state/current-state.md",
-      "rg -n \"[[:blank:]]+$\" scripts/check-auth-audit-completion-readiness.ts tests/vitest/auth-audit-completion-readiness-script.test.ts .ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement/19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md .ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement/27_PHASE_6_FINAL_VERIFICATION_COMPLETION_AUDIT.md .ai/10_state/current-state.md"
+      "git diff --check -- scripts/check-auth-audit-completion-readiness.ts tests/vitest/auth-audit-completion-readiness-script.test.ts .ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement/19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md .ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement/27_PHASE_6_FINAL_VERIFICATION_COMPLETION_AUDIT.md .ai/10_state/current-state.md",
+      "rg -n \"^(<<<<<<<|=======$|>>>>>>>)\" scripts/check-auth-audit-completion-readiness.ts tests/vitest/auth-audit-completion-readiness-script.test.ts .ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement/19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md .ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement/27_PHASE_6_FINAL_VERIFICATION_COMPLETION_AUDIT.md .ai/10_state/current-state.md",
+      "rg -n \"[[:blank:]]+$\" scripts/check-auth-audit-completion-readiness.ts tests/vitest/auth-audit-completion-readiness-script.test.ts .ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement/19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md .ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement/27_PHASE_6_FINAL_VERIFICATION_COMPLETION_AUDIT.md .ai/10_state/current-state.md"
     ]
   },
   "independentReview": {

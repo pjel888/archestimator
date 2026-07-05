@@ -32,7 +32,7 @@ Use `rg --files` to confirm exact filenames before running:
 ## Static Validation
 
 For planning/doc-only changes:
-- `git diff --check -- .ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement`
+- `git diff --check -- '.ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement'`
 - `rg` for stale contradictions such as missing-doc statuses, raw OAuth state examples, and stale Supabase-active claims inside this pack.
 - For Phase 5 provider cleanup planning, recheck the provider-string inventory counts and active caller checks before claiming the cleanup implementation surface is complete.
 

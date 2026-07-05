@@ -389,8 +389,8 @@ Only after Slice A and active-test migration:
 Planning/doc-only validation for this artifact:
 
 ```bash
-git diff --check -- .ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement
-rg -n "[[:blank:]]$|^(<<<<<<<|=======$|>>>>>>>)" .ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement
+git diff --check -- '.ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement'
+rg -n "[[:blank:]]$|^(<<<<<<<|=======$|>>>>>>>)" '.ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement'
 ```
 
 Future implementation validation:

@@ -14,10 +14,10 @@ This review is scoped to the local completion-readiness checker and documentatio
 
 - `scripts/check-auth-audit-completion-readiness.ts`
 - `tests/vitest/auth-audit-completion-readiness-script.test.ts`
-- `.ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement/evidence/2026-07-04-auth-audit-completion-readiness.json`
-- `.ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement/evidence/2026-07-04-auth-audit-completion-readiness.md`
-- `.ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement/19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md`
-- `.ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement/27_PHASE_6_FINAL_VERIFICATION_COMPLETION_AUDIT.md`
+- `.ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement/evidence/2026-07-04-auth-audit-completion-readiness.json`
+- `.ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement/evidence/2026-07-04-auth-audit-completion-readiness.md`
+- `.ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement/19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md`
+- `.ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement/27_PHASE_6_FINAL_VERIFICATION_COMPLETION_AUDIT.md`
 - `.ai/10_state/current-state.md`
 
 ## Code Review
