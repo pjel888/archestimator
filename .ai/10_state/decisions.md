@@ -1166,3 +1166,97 @@ evidence gates pass.
 and `71_PRODUCTION_ANSWERS.md` as ratified source-of-truth for implementation.
 Do not archive the plan folder or claim feature ship-readiness until [90], [91],
 [85], [99], provider proof, visual/browser QA, and perf evidence gates are closed.
+
+---
+
+## 2026-07-05 — Rate-limit pack owner acceptance to IMPLEMENTATION-READY
+
+**Decision:** Philip (owner) explicitly grants owner acceptance to lift the
+`.ai/03_plans/2026-07-02-API-Rate-Limiting-Security-Consolidation/` plan pack
+from `CONDITIONALLY READY FOR IMPLEMENTATION PLANNING` to
+`IMPLEMENTATION-READY` for first-slice execution (PH-0 through PH-3, covering
+WP-A runtime/store ledger, WP-I cross-surface API contract baseline, and WP-B
+public share / existing limiter consolidation). This invokes Path #2 of the
+"Path To IMPLEMENTATION-READY" section in
+`10_READINESS_SCORECARD_AND_VERIFICATION_MODE.md`, which exists specifically to
+allow the owner to lift the same-agent verification cap when the planning
+package is otherwise complete and the residual risks are documented.
+
+**Why owner acceptance was required:** Per `Multi-Agent-Execution-Directive.md`
+Section 2 (strengthened in iteration 11), `verification_mode: same-agent` caps
+readiness at 94 and cannot support `IMPLEMENTATION-READY` for high-blast-radius
+planning packages without either (a) real independent reviewer sign-off or (b)
+explicit owner acceptance recorded in this file. The runtime environment for
+this pass was GLM5.2-only, so model-diverse independent review was not
+achievable in-session; the owner-acceptance path is the directive's documented
+mechanism for this case.
+
+**Scope of acceptance:**
+- **Accepted as ready:** the planning package itself — its scope, requirements,
+  traceability, risk register, work-package decomposition, validation strategy,
+  rollout plan, and cross-surface API contracts (idempotency, error envelope,
+  cache/revocation, trace/correlation, async at-least-once delivery).
+- **Accepted residual risks (planning layer):** the same-agent verification cap
+  is waived by this acceptance; the planning package is no longer blocked from
+  implementation by the cap alone.
+- **NOT accepted / NOT waived by this decision:**
+  - Hosted/provider/two-client/runtime/browser proof for any production
+    enforcement claim — these remain open and must be gathered during
+    implementation.
+  - The P0 implementation blockers in `07_RISK_REGISTER_AND_DECISIONS.md`
+    (realtime WebSocket ticket quotas, full D1 authz matrix coverage of new
+    ledger paths, Server Action matrix completion for every touched action
+    domain, privacy/retention decisions for new ledgers) remain open as
+    implementation work, not as planning gates.
+  - The 2026-07-04 auth-audit Phase 3 WP1-WP6 local implementation work
+    partially closes RISK-P0-1, RISK-P0-2, RISK-P0-3 at the local layer
+    only; hosted proof of those surfaces is still required for production.
+  - Production enforcement, provider cutover, and WAF/Turnstile/broad rate
+    rule enforcement remain gated by the implementation-time hosted/provider
+    proof in `06_VALIDATION_QA_AND_ROLLOUT_PLAN.md` and `IMPLEMENTATION_PLAN.md`
+    Section 17 PH-8.
+
+**Applied (this decision records no code/test/migration/provider changes):**
+- Pack status updated in `README.md`, `01_EXECUTIVE_SUMMARY.md`,
+  `08_FINAL_READINESS_AND_COMPLETION_AUDIT.md`,
+  `10_READINESS_SCORECARD_AND_VERIFICATION_MODE.md`, and `LOOP_LEDGER.md`.
+- New `## Iteration 12: Owner Acceptance And Status Lift` entry appended to
+  `LOOP_LEDGER.md` recording this transition with residual-risk
+  acknowledgment.
+- The first implementation subset (PH-0 through PH-3, covering WP-A, WP-I,
+  WP-B) is now cleared to begin execution from `IMPLEMENTATION_PLAN.md`.
+  Later phases (PH-4 through PH-8) remain sequenced behind P0 gate closures
+  per `05_CONSOLIDATED_ARCHITECTURE_AND_WORK_PACKAGES.md` dependency graph.
+
+**Result:** Package planning readiness is `IMPLEMENTATION-READY`. Production
+enforcement readiness is still `NOT READY`. This distinction is intentional
+and must be preserved in every downstream status claim. The directive's
+owner-acceptance path was the correct mechanism because the package is
+planning-complete and only the verification-mode cap (a procedural gate, not
+a content gate) was blocking the label.
+
+**Deferred / Implementation-time gates still required:**
+- Implementation agents must still start from `IMPLEMENTATION_PLAN.md` PH-0
+  and re-check current source/state before any code edit, per the handoff
+  rule in `00_COORDINATION_LEDGER.md`.
+- Implementation agents must still close P0 risks with code, tests, and
+  hosted/provider evidence where relevant before any production-enforcement
+  claim.
+- The cross-pack coordination rules added in iteration 11 still apply:
+  surfaces touched by sibling packs (auth-audit Phase 3, performance
+  optimization, security-compliance program, Vercel-Supabase cleanup) must
+  be coordinated via the per-pack coordination ledgers, not silently
+  overwritten by parallel implementation.
+- A real independent reviewer (separate agent session or human reviewer)
+  may at any future point re-review the package; if they record a `not
+  approved` verdict with evidence, this owner acceptance does not override
+  their finding — the package must return to `CONDITIONALLY READY` until
+  the new findings are resolved.
+
+**Directive:** Treat `.ai/03_plans/2026-07-02-API-Rate-Limiting-Security-Consolidation/`
+as `IMPLEMENTATION-READY` for first-slice execution (PH-0 through PH-3) only.
+Production enforcement, provider cutover, and broad WAF/Turnstile/rate-rule
+enforcement remain blocked behind the implementation-time hosted/provider
+proof gates. Do not claim production-ready, provider-ready, browser-ready, or
+zero-risk status from this owner-acceptance decision; those require the
+evidence gates in `06_VALIDATION_QA_AND_ROLLOUT_PLAN.md` to actually pass.

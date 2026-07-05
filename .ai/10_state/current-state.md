@@ -32,25 +32,27 @@ Stable current truth (verify against git/source before relying on a detail):
 	  `89` classified provider-boundary hit files (superseding the narrower `44`
 	  old-provider keyword-file count), `type-reference-retirement=0`,
 	  `finalProviderCleanupReady=true`, and no blockers; the
-  2026-07-04T10:22Z provider-exit/source-smoke evidence refresh reports
-  `activeLegacyProviderRuntimeBlockers=0` but `providerExitReady=false`, with
-  latest deploy/source smoke now separately blocked by two deploy/source
-  freshness issues (deployed commit mismatch and deployment older than current
-  HEAD) after the runtime source-path scan passed, plus four remaining
-  operator/external gates:
-  export/retention, post-exit smoke, real Google persona, and real mailbox
-  proof/deferral; the refreshed source-smoke template and provider-exit
-  operator-record template remain sanitized handoff artifacts, not proof; scoped
-  read-only verifier/architect sidecars confirm the remaining gates are external
-  hosted/provider/operator/legal/privacy/cleanup/provider-exit/final-review claims, not locally closable from repo
-  evidence alone; the auth-pack completion-readiness checker now aggregates the
-  sanitized evidence and fails closed with `localProviderCleanupReady=true`,
-  `externalCompletionProofReady=false`, and
-  `finalAuthAuditCompletionReady=false` because latest deploy/source smoke,
-  provider-exit pack, and legal-owner readiness remain open; the scoped final
-  independent review artifact now passes only the checker/docs review input and
-  is not provider, hosted runtime, legal/privacy, deployment, production,
-  browser, or native-goal completion proof;
+	  2026-07-05T05:07Z evidence now proves current source freshness for the
+	  Cloudflare Worker: HEAD `fd2a164553ad9820390a7641240f177cb338171d` is
+	  committed, deployed as Worker version `96`
+	  (`a57a03a7-af11-4310-a55e-73c87188bba2`) at 100% traffic, hosted route
+	  proof and hosted D1 runtime proof pass on `https://archestimator.com`, and
+	  latest deploy/source smoke reports `latestDeploySourceSmokeReady=true` with
+	  no blockers. The provider-exit pack still reports
+	  `activeLegacyProviderRuntimeBlockers=0` and
+	  `appRuntimeExitPrerequisitesReady=true` but `providerExitReady=false`, with
+	  four remaining operator/external gates: export/retention, post-exit smoke,
+	  real Google persona, and real mailbox proof/deferral. The auth-pack
+	  completion-readiness checker now aggregates the refreshed source-smoke,
+	  provider-exit, and legal-owner evidence and fails closed with
+	  `localProviderCleanupReady=true`, `externalCompletionProofReady=false`, and
+	  `finalAuthAuditCompletionReady=false` because provider-exit and legal-owner
+	  readiness remain open. Legal-owner readiness generated at
+	  `2026-07-05T05:09:33.295Z` is false until terms/privacy/beta-copy/data
+	  retention/support-comms confirmations plus product owner, legal reviewer,
+	  approval date, and approval reference are recorded; the scoped final
+	  independent review artifact passes only the checker/docs review input and is
+	  not provider, legal/privacy, browser, or native-goal completion proof;
   low-risk direct `Tables<...>` fixture imports and remaining schema/source-read
   tests have been migrated to current D1/domain/source contracts with focused
   test evidence and high-memory typecheck evidence;
@@ -58,7 +60,7 @@ Stable current truth (verify against git/source before relying on a detail):
   banner README; backfill scripts + many provider-parity proofs moved to
   `supabase/migration-evidence/`; `.vercel/` folder and `.vercelignore` deleted.
 - Authentication audit/improvement planning pack as of 2026-07-03 16:24 UTC:
-  `.ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement/` is
+  `.ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement/` is
   `CONDITIONALLY READY` for a future phase-scoped implementation-planning pass,
   not coding authorization, production cutover proof, or browser/provider/runtime
   proof. `11_IMPLEMENTATION_PLAN.md` is now a future implementation-planning
@@ -373,7 +375,7 @@ Stable current truth (verify against git/source before relying on a detail):
   fixtures rather than direct imports. A subsequent Slice B added
   `scripts/generate-provider-cleanup-allowlist.ts`,
   `tests/vitest/provider-cleanup-allowlist-script.test.ts`, and regenerated
-  `.ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement/evidence/2026-07-04-provider-cleanup-allowlist.{json,md}`.
+  `.ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement/evidence/2026-07-04-provider-cleanup-allowlist.{json,md}`.
   The report classified all `45` then-current old-provider keyword hit files with
   `activeRuntimeProviderReferencesReady=true`, `allProviderStringsClassified=true`,
   `providerCleanupAllowlistReady=true`, zero cleanup candidates, and zero
@@ -395,11 +397,11 @@ Stable current truth (verify against git/source before relying on a detail):
   and `typeReferenceDeletionReady=true`, while the regenerated provider-exit
   pack has `activeLegacyProviderRuntimeBlockers=0` but `providerExitReady=false`
   and five remaining external/operator/hosted blockers. A later
-  2026-07-04T10:22Z non-destructive refresh of
+  2026-07-05T03:46Z non-destructive refresh of
   `bun run cf:check-latest-deploy-source-smoke`,
   `bun run cf:provider-exit-pack` kept provider exit at
   `OPEN / NOT READY`;
-  latest deploy/source smoke now has runtime source paths clean and `2`
+  latest deploy/source smoke now has dirty runtime source paths and `3`
   blockers because the deployed commit is older than current HEAD and the
   deployment timestamp predates current HEAD. The matching
   source-smoke template lists deploy/source-smoke operator steps, and
@@ -408,9 +410,9 @@ Stable current truth (verify against git/source before relying on a detail):
   validation passed
   `bunx vitest run tests/vitest/cloudflare-latest-deploy-source-smoke-script.test.ts tests/vitest/provider-exit-pack-script.test.ts --maxWorkers=1`
   (`2` files / `32` tests). Final provider-exit, hosted, operator, and
-  final-review gates are not proven. A later 2026-07-04T10:23:05Z
+  final-review gates are not proven. A later 2026-07-05T03:46:33Z
   non-destructive legal-owner readiness refresh wrote
-  `.ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement/evidence/2026-07-04-legal-owner-readiness.json`
+  `.ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement/evidence/2026-07-04-legal-owner-readiness.json`
   and Markdown summary, exited `1`, and failed closed with
   `legalOwnerReady=false`: all five legal proof flags are false and product
   owner, legal reviewer, approval date, and approval reference are missing. This

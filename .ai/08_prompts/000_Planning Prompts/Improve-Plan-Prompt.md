@@ -629,7 +629,26 @@ For any React / Next.js work, require explicit planning for:
 - Multi-instance deployment skew, CDN/cache-control, `Vary` behavior, and
   Server Action allowed-origin implications when relevant
 - Stale API and framework-version checks, especially when Next.js 16 Cache
-  Components or route segment behavior affects the plan
+  Components or route segment behavior affects the plan. When Cache Components
+  is in scope, the plan must:
+  - Read the local Next.js 16 Cache Components docs under
+    `node_modules/next/dist/docs/01-app/02-guides/` (especially
+    `caching-without-cache-components.md` and
+    `migrating-to-cache-components.md`) before finalizing cache claims.
+  - Name the exact route files affected and classify each as static,
+    dynamic, or partial under the Cache Components model.
+  - Identify every `use cache` boundary, every `cacheLife`/`cacheTag`
+    primitive in use, and the revalidation primitive chosen
+    (`revalidatePath`, `revalidateTag`, `updateTag`, router refresh, or
+    no revalidation).
+  - Prove that token-bearing, private-tenant, auth, share-session,
+    upload, AI, and security/error responses still default to no-store
+    under the Cache Components model — do not carry over Next.js 14/15
+    fetch-cache assumptions.
+  - Verify read-your-own-writes behavior is preserved for any mutation
+    path that depends on cache invalidation.
+  - Name the local docs paths cited as evidence so a verifier can
+    re-check them.
 
 Plans that touch App Router routes must name the exact route files and include
 the route-level boundary/cache contract above. A generic "use cache correctly"

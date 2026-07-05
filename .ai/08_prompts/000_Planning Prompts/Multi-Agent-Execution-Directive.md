@@ -341,6 +341,40 @@ action:
 Prefer isolated branches or worktrees for independent agents when practical.
 Otherwise use strict file ownership and serialize shared-file changes.
 
+High-concurrency agent environments (iteration 11 addition, 2026-07-05):
+
+When multiple AI agents operate on the same repository concurrently (the
+Archestimator baseline), the Section 6 rules above are necessary but not
+sufficient. Add the following discipline:
+
+- File-ownership declaration: before editing a file, record the file path
+  and edit-intent in a shared coordination ledger
+  (`.ai/03_plans/<pack>/00_COORDINATION_LEDGER.md`,
+  `.ai/05_logs/<date>-<topic>.md`, or run-log) so other agents can detect
+  overlap. Re-check the ledger immediately before applying the edit.
+- Periodic re-check during long edit sequences: if an agent reads a file,
+  deliberates for more than a few minutes, then edits, re-read the file
+  immediately before the edit to detect concurrent changes.
+- Conflict detection on save: after every edit, verify the diff matches
+  intent and that no other agent's edit was inadvertently overwritten.
+  `git diff --check` plus a focused diff review is the minimum.
+- File-level ownership lease: when working on a multi-file pack, declare
+  ownership of the pack directory in the ledger so sibling packs know the
+  boundary. Cross-pack references are read-only; in-pack edits are leased.
+- Branch isolation for parallel agents: when practical, isolated branches
+  or worktrees prevent edit collisions entirely. Default to main-branch
+  work only when the user explicitly asks for it (consistent with
+  Archestimator's main-branch default).
+- Preserve unfamiliar changes: if `git status` shows files changed by
+  another agent, do not revert, stage, or commit them. Roll back only
+  your own edits if a retry is needed.
+- Stale-context recovery: if an agent resumes after a long pause, it must
+  re-read every file it intends to edit, recheck git status, and recheck
+  the coordination ledger before any edit. Cached reads from before the
+  pause are not authoritative.
+
+These rules apply in addition to the destructive-operation blocklist above.
+
 ======================================================================
 7. DISCOVERY, REQUIREMENTS, AND TRACEABILITY
 ======================================================================
@@ -501,6 +535,14 @@ React and Next.js:
   other existing pattern.
 - Define cache owner, cache key, privacy dimensions, staleness tolerance,
   invalidation primitive, and read-your-own-writes behavior.
+- For Next.js 16+ work, distinguish the Cache Components model from the
+  legacy `fetch` cache directives. When Cache Components is enabled,
+  identify which routes are static vs dynamic vs partial, name the
+  `use cache` boundaries, name the `cacheLife`/`cacheTag` primitives in
+  use, and prove that token-bearing, private-tenant, auth, share-session,
+  upload, AI, and security/error responses still default to no-store.
+  Do not carry over Next.js 14/15 cache assumptions without reading the
+  local `node_modules/next/dist/docs/` migration guides first.
 - Define URL-state and pagination semantics. Do not call a cursor or query
   param shareable unless reload/share/back-forward reproduces the same visible
   state. If pagination is transient, name the client state owner, loader/API
