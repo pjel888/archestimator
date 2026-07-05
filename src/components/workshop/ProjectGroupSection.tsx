@@ -1,6 +1,6 @@
 "use client";
 
-import type { DragEvent, ReactNode } from "react";
+import { Fragment, type DragEvent, type ReactNode } from "react";
 
 import type { ActionMenuGroup } from "@/components/ui/action-menu";
 import { cn } from "@/lib/ui/cn";
@@ -18,6 +18,12 @@ export type ProjectGroupSectionGroup = {
   isVirtual?: boolean;
 };
 export type ProjectGroupDropPosition = "before" | "after";
+export type ProjectCardDropPosition = "before" | "after" | "end";
+export type ProjectCardDropTarget = {
+  groupKey: string;
+  projectId: string | null;
+  position: ProjectCardDropPosition;
+};
 
 export type ProjectGroupSectionProps = {
   mode: "date" | "client" | "group";
@@ -45,10 +51,23 @@ export type ProjectGroupSectionProps = {
   onReorderDragOver?: (key: string, event: DragEvent<HTMLElement>) => void;
   onReorderDrop?: (key: string, event: DragEvent<HTMLElement>) => void;
   onReorderDragEnd?: () => void;
+  isProjectDragActive?: boolean;
+  isProjectDropAvailable?: boolean;
   isProjectDropTarget?: boolean;
+  projectCardDropTarget?: ProjectCardDropTarget | null;
   onProjectDragOver?: (key: string, event: DragEvent<HTMLElement>) => void;
   onProjectDrop?: (key: string, event: DragEvent<HTMLElement>) => void;
   onProjectDragLeave?: (key: string, event: DragEvent<HTMLElement>) => void;
+  onProjectCardDragOver?: (
+    key: string,
+    projectId: string,
+    event: DragEvent<HTMLElement>,
+  ) => void;
+  onProjectCardDrop?: (
+    key: string,
+    projectId: string,
+    event: DragEvent<HTMLElement>,
+  ) => void;
 };
 
 /**
@@ -58,6 +77,7 @@ export function ProjectGroupSection({
   mode,
   group,
   items,
+  viewMode,
   renderCard,
   layoutClassName,
   flagLayoutClassName,
@@ -74,15 +94,50 @@ export function ProjectGroupSection({
   onReorderDragOver,
   onReorderDrop,
   onReorderDragEnd,
+  isProjectDragActive = false,
+  isProjectDropAvailable = false,
   isProjectDropTarget = false,
+  projectCardDropTarget = null,
   onProjectDragOver,
   onProjectDrop,
   onProjectDragLeave,
+  onProjectCardDragOver,
+  onProjectCardDrop,
 }: ProjectGroupSectionProps) {
   const isVirtual = Boolean(group.isVirtual);
   const canReorder = mode === "group" && !isVirtual && isReorderable;
   const canReceiveProjectDrop =
     mode === "group" && Boolean(onProjectDragOver || onProjectDrop);
+  const showProjectDropSkeleton =
+    canReceiveProjectDrop && !collapsed && isProjectDragActive && isProjectDropAvailable;
+  const activeCardDropTarget =
+    projectCardDropTarget?.groupKey === group.key ? projectCardDropTarget : null;
+  const showEndProjectDropSkeleton =
+    showProjectDropSkeleton && activeCardDropTarget?.position !== "before" && activeCardDropTarget?.position !== "after";
+
+  function renderProjectDropSkeleton(position: ProjectCardDropPosition) {
+    return (
+      <div
+        aria-hidden="true"
+        className={cn(
+          "project-group-card-drop-skeleton",
+          position === "before" || position === "after"
+            ? "project-group-card-drop-skeleton--insertion"
+            : undefined,
+        )}
+        data-project-card-drop-skeleton=""
+        data-project-card-drop-skeleton-position={position}
+        data-project-card-drop-skeleton-view={viewMode}
+      >
+        <span className="project-group-card-drop-skeleton__thumb" />
+        <span className="project-group-card-drop-skeleton__body">
+          <span />
+          <span />
+          <span />
+        </span>
+      </div>
+    );
+  }
 
   function handleDragOver(event: DragEvent<HTMLElement>) {
     if (canReceiveProjectDrop) onProjectDragOver?.(group.key, event);
@@ -114,9 +169,8 @@ export function ProjectGroupSection({
         dropPosition === "after"
           ? "shadow-[inset_0_-2px_0_rgb(251_146_60)]"
           : undefined,
-        isProjectDropTarget
-          ? "shadow-[inset_0_0_0_1px_rgba(251,146,60,0.42)]"
-          : undefined,
+        isProjectDropAvailable ? "project-group-card-drop-section" : undefined,
+        isProjectDropTarget ? "project-group-card-drop-section--active" : undefined,
       )}
       data-project-group={group.key}
       data-project-group-kind={mode === "client" ? "client" : mode}
@@ -146,7 +200,59 @@ export function ProjectGroupSection({
           onReorderDragEnd={onReorderDragEnd}
         />
       </div>
-      {collapsed ? null : <div className={layoutClassName}>{items.map(renderCard)}</div>}
+      {collapsed ? null : (
+        <div
+          className={cn(
+            layoutClassName,
+            isProjectDropAvailable ? "project-group-card-drop-body" : undefined,
+            isProjectDropTarget
+              ? "project-group-card-drop-body--active"
+              : undefined,
+          )}
+          data-project-card-drop-body={
+            isProjectDropAvailable ? "" : undefined
+          }
+          data-project-card-drop-body-active={
+            isProjectDropTarget ? "" : undefined
+          }
+        >
+          {items.map((item) => {
+            const projectId = item.project.id;
+            const isBeforeTarget =
+              activeCardDropTarget?.projectId === projectId &&
+              activeCardDropTarget.position === "before";
+            const isAfterTarget =
+              activeCardDropTarget?.projectId === projectId &&
+              activeCardDropTarget.position === "after";
+            return (
+              <Fragment key={projectId}>
+                {isBeforeTarget ? renderProjectDropSkeleton("before") : null}
+                <div
+                  className="project-group-card-drop-slot"
+                  data-project-card-drop-slot={projectId}
+                  data-project-card-drop-slot-active={
+                    isBeforeTarget || isAfterTarget ? "" : undefined
+                  }
+                  onDragOver={
+                    onProjectCardDragOver
+                      ? (event) => onProjectCardDragOver(group.key, projectId, event)
+                      : undefined
+                  }
+                  onDrop={
+                    onProjectCardDrop
+                      ? (event) => onProjectCardDrop(group.key, projectId, event)
+                      : undefined
+                  }
+                >
+                  {renderCard(item)}
+                </div>
+                {isAfterTarget ? renderProjectDropSkeleton("after") : null}
+              </Fragment>
+            );
+          })}
+          {showEndProjectDropSkeleton ? renderProjectDropSkeleton("end") : null}
+        </div>
+      )}
     </section>
   );
 }

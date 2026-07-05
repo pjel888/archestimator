@@ -120,7 +120,11 @@ function makeSupabaseStub() {
         workspace_id: values[2],
         user_id: values[3],
         project_id: values[4],
+        position: values[5],
       };
+    }
+    if (table === "project_group_memberships" && op === "update") {
+      return { position: values[0], updated_at: values[1] };
     }
     return undefined;
   }
@@ -140,6 +144,14 @@ function makeSupabaseStub() {
         values.length === 2
           ? { method: "eq", args: ["project_id", values[1]] }
           : { method: "in", args: ["project_id", values.slice(1)] },
+      ];
+    }
+    if (table === "project_group_memberships" && op === "update") {
+      return [
+        { method: "eq", args: ["group_id", values[2]] },
+        { method: "eq", args: ["user_id", values[3]] },
+        { method: "eq", args: ["workspace_id", values[4]] },
+        { method: "eq", args: ["project_id", values[5]] },
       ];
     }
     return [] as Array<{ method: string; args: unknown[] }>;
@@ -211,6 +223,7 @@ describe("project group actions module", () => {
     expect(typeof mod.recolorProjectGroup).toBe("function");
     expect(typeof mod.deleteProjectGroup).toBe("function");
     expect(typeof mod.reorderProjectGroups).toBe("function");
+    expect(typeof mod.reorderProjectsInGroup).toBe("function");
     expect(typeof mod.moveProjectToGroup).toBe("function");
     expect(typeof mod.bulkAssignProjectsToGroup).toBe("function");
   });
@@ -507,6 +520,78 @@ describe("reorderProjectGroups", () => {
   });
 });
 
+describe("reorderProjectsInGroup", () => {
+  it("rejects when any project id is not a uuid before any write", async () => {
+    const stub = makeSupabaseStub();
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { reorderProjectsInGroup } = await import("@/lib/workshop/group-actions");
+
+    await expect(
+      reorderProjectsInGroup({
+        groupId: GROUP_ID,
+        orderedProjectIds: [PROJECT_ID, "not-a-uuid"],
+      }),
+    ).rejects.toThrow(/invalid/i);
+    expect(stub.calls).toEqual([]);
+  });
+
+  it("updates membership positions for the complete current group order", async () => {
+    const stub = makeSupabaseStub();
+    stub.queueResult("project_groups", { data: { id: GROUP_ID }, error: null });
+    stub.queueResult("project_group_memberships", {
+      data: [
+        { project_id: PROJECT_ID, group_id: GROUP_ID },
+        { project_id: PROJECT_ID_2, group_id: GROUP_ID },
+      ],
+      error: null,
+    });
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { reorderProjectsInGroup } = await import("@/lib/workshop/group-actions");
+
+    await reorderProjectsInGroup({
+      groupId: GROUP_ID,
+      orderedProjectIds: [PROJECT_ID_2, PROJECT_ID],
+    });
+
+    const updates = stub.calls.filter(
+      (call) => call.table === "project_group_memberships" && call.op === "update",
+    );
+    expect(updates).toHaveLength(2);
+    expect(updates.map((update) => update.payload)).toEqual([
+      { position: 0, updated_at: expect.any(String) },
+      { position: 1, updated_at: expect.any(String) },
+    ]);
+    expect(updates[0]?.filters).toEqual(
+      expect.arrayContaining([
+        { method: "eq", args: ["group_id", GROUP_ID] },
+        { method: "eq", args: ["user_id", USER_ID] },
+        { method: "eq", args: ["workspace_id", WORKSPACE_ID] },
+        { method: "eq", args: ["project_id", PROJECT_ID_2] },
+      ]),
+    );
+    expect(nextCacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects");
+  });
+
+  it("fails closed when the submitted order does not match current group membership", async () => {
+    const stub = makeSupabaseStub();
+    stub.queueResult("project_groups", { data: { id: GROUP_ID }, error: null });
+    stub.queueResult("project_group_memberships", {
+      data: [{ project_id: PROJECT_ID, group_id: GROUP_ID }],
+      error: null,
+    });
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { reorderProjectsInGroup } = await import("@/lib/workshop/group-actions");
+
+    await expect(
+      reorderProjectsInGroup({
+        groupId: GROUP_ID,
+        orderedProjectIds: [PROJECT_ID, PROJECT_ID_2],
+      }),
+    ).rejects.toThrow(/stale/i);
+    expect(stub.calls.some((call) => call.op === "update")).toBe(false);
+  });
+});
+
 describe("moveProjectToGroup", () => {
   it("rejects a non-uuid project id", async () => {
     const stub = makeSupabaseStub();
@@ -612,6 +697,7 @@ describe("moveProjectToGroup", () => {
       workspace_id: WORKSPACE_ID,
       user_id: USER_ID,
       project_id: PROJECT_ID,
+      position: 0,
     });
     expect(upsert?.options).toEqual({ onConflict: "user_id,project_id" });
   });

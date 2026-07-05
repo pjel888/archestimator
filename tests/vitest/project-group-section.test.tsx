@@ -227,6 +227,88 @@ describe("ProjectGroupSection group mode (accent + collapse + menu)", () => {
     expect(within(collapsedSection).queryAllByRole("article")).toHaveLength(0);
   });
 
+  it("renders the full group body as a card drop zone with a project-card skeleton", () => {
+    render(
+      <ProjectGroupSection
+        mode="group"
+        group={{ key: "g1", label: "Pipeline", accentId: null }}
+        items={[item("A", "p1")]}
+        viewMode="large"
+        renderCard={renderCard}
+        layoutClassName={layout}
+        flagLayoutClassName={flagLayout}
+        isProjectDragActive
+        isProjectDropAvailable
+        isProjectDropTarget
+        onProjectDragOver={vi.fn()}
+        onProjectDrop={vi.fn()}
+      />,
+    );
+
+    const section = screen.getByLabelText("Pipeline");
+    expect(section).toHaveAttribute("data-project-card-drop-active", "");
+    expect(section).toHaveClass(
+      "project-group-card-drop-section",
+      "project-group-card-drop-section--active",
+    );
+
+    const body = section.querySelector("[data-project-card-drop-body]");
+    expect(body).toBeInstanceOf(HTMLElement);
+    expect(body).toHaveClass(
+      "project-group-card-drop-body",
+      "project-group-card-drop-body--active",
+    );
+    expect(
+      section.querySelector("[data-project-card-drop-skeleton]"),
+    ).toBeInTheDocument();
+    expect(body?.lastElementChild).toHaveAttribute(
+      "data-project-card-drop-skeleton",
+      "",
+    );
+  });
+
+  it("moves the project-card skeleton into the active reorder slot", () => {
+    render(
+      <ProjectGroupSection
+        mode="group"
+        group={{ key: "g1", label: "Pipeline", accentId: null }}
+        items={[item("A", "p1"), item("B", "p2")]}
+        viewMode="large"
+        renderCard={renderCard}
+        layoutClassName={layout}
+        flagLayoutClassName={flagLayout}
+        isProjectDragActive
+        isProjectDropAvailable
+        isProjectDropTarget
+        projectCardDropTarget={{
+          groupKey: "g1",
+          projectId: "p2",
+          position: "before",
+        }}
+        onProjectDragOver={vi.fn()}
+        onProjectDrop={vi.fn()}
+        onProjectCardDragOver={vi.fn()}
+        onProjectCardDrop={vi.fn()}
+      />,
+    );
+
+    const section = screen.getByLabelText("Pipeline");
+    const skeleton = section.querySelector("[data-project-card-drop-skeleton]");
+    expect(skeleton).toHaveAttribute(
+      "data-project-card-drop-skeleton-position",
+      "before",
+    );
+    expect(
+      section.querySelector('[data-project-card-drop-slot="p2"]')
+        ?.previousElementSibling,
+    ).toBe(skeleton);
+    expect(
+      section.querySelector(
+        '[data-project-card-drop-skeleton-position="end"]',
+      ),
+    ).not.toBeInTheDocument();
+  });
+
   it("renames editable group labels inline on Enter and mouse leave", async () => {
     const user = userEvent.setup();
     const onRenameGroup = vi.fn();

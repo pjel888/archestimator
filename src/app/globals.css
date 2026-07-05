@@ -1667,6 +1667,27 @@ input[type="number"] {
     var(--glass-inset-hi);
 }
 
+.workshop-project-card-glass[data-project-card-draggable] {
+  transform-origin: 50% 55%;
+}
+
+.workshop-project-card-glass[data-project-card-draggable]:has(
+    [data-project-card-drag-handle]:active
+  ) {
+  transform: translateY(-3px) scale(1.012) rotate(0.35deg);
+  border-color: color-mix(
+    in srgb,
+    var(--ink) 18%,
+    rgba(255, 255, 255, 0.64)
+  );
+  box-shadow:
+    0 22px 42px rgba(16, 22, 34, 0.18),
+    0 8px 18px rgba(16, 22, 34, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.42),
+    var(--glass-inset-hi);
+}
+
 .workshop-project-card-control {
   background: rgba(255, 255, 255, 0.66);
   border-color: rgba(30, 35, 50, 0.09);
@@ -1684,6 +1705,31 @@ input[type="number"] {
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
     inset 0 -1px 0 rgba(255, 255, 255, 0.42),
     0 2px 5px rgba(30, 35, 50, 0.08);
+}
+
+[data-project-card-drag-handle] {
+  transition:
+    transform 160ms var(--ease-out),
+    border-color 160ms var(--ease-out),
+    background-color 160ms var(--ease-out),
+    box-shadow 160ms var(--ease-out),
+    opacity 150ms var(--ease-out);
+}
+
+[data-project-card-drag-handle]:hover,
+[data-project-card-drag-handle]:focus-visible {
+  transform: translateY(-1px);
+  color: var(--ink);
+}
+
+[data-project-card-drag-handle]:active {
+  transform: translateY(-1px) scale(0.96);
+  border-color: color-mix(in srgb, var(--ink) 18%, rgba(30, 35, 50, 0.12));
+  background: color-mix(in srgb, var(--ink) 5%, rgba(255, 255, 255, 0.82));
+}
+
+.project-group-card-drop-slot {
+  min-width: 0;
 }
 
 /* Compact vitals row inside the project card meta stack. Tiny glass pills stay
@@ -1817,6 +1863,186 @@ input[type="number"] {
       transparent 58%
     ),
     rgba(255, 255, 255, 0.24);
+}
+
+.project-group-card-drop-section {
+  transition:
+    box-shadow 180ms var(--ease-out),
+    background-color 180ms var(--ease-out);
+}
+
+.project-group-card-drop-section--active {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--ink) 4%, transparent),
+      transparent 64%
+    );
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--ink) 18%, transparent),
+    0 8px 18px rgba(30, 35, 50, 0.055);
+}
+
+.project-group-card-drop-body {
+  position: relative;
+  min-height: 116px;
+  border-radius: var(--radius-xs);
+  outline: 1px dashed color-mix(in srgb, var(--ink) 14%, transparent);
+  outline-offset: 5px;
+  transition:
+    outline-color 180ms var(--ease-out),
+    background-color 180ms var(--ease-out);
+}
+
+.project-group-card-drop-body--active {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--ink) 5%, rgba(255, 255, 255, 0.2)),
+      rgba(255, 255, 255, 0.04)
+    );
+  outline-color: color-mix(in srgb, var(--ink) 32%, transparent);
+}
+
+.project-group-card-drop-skeleton {
+  position: relative;
+  min-height: 168px;
+  border: 1px dashed color-mix(in srgb, var(--ink) 32%, rgba(30, 35, 50, 0.12));
+  border-radius: var(--project-card-base-radius);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--ink) 5%, rgba(255, 255, 255, 0.68)),
+      rgba(255, 255, 255, 0.42)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.74),
+    0 8px 18px rgba(30, 35, 50, 0.045);
+}
+
+.project-group-card-drop-skeleton--insertion {
+  animation: project-card-drop-slot-enter 180ms var(--ease-out);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--ink) 10%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 10px 22px rgba(30, 35, 50, 0.06);
+}
+
+.project-group-card-drop-skeleton[data-project-card-drop-skeleton-view="list"] {
+  min-height: 82px;
+}
+
+.project-group-card-drop-skeleton[data-project-card-drop-skeleton-view="list"]
+  .project-group-card-drop-skeleton__thumb {
+  float: left;
+  width: 5.75rem;
+  margin-right: 0;
+}
+
+.project-group-card-drop-skeleton[data-project-card-drop-skeleton-view="list"]
+  .project-group-card-drop-skeleton__body {
+  min-height: 4.5rem;
+  align-content: center;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+.project-group-card-drop-skeleton::after {
+  content: "Drop project here";
+  position: absolute;
+  right: 0.625rem;
+  bottom: 0.625rem;
+  border-radius: var(--radius-xs);
+  background: rgba(255, 255, 255, 0.72);
+  padding: 0.1875rem 0.375rem;
+  font-size: 0.5rem;
+  line-height: 0.625rem;
+  font-weight: 500;
+  color: var(--secondary);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.project-group-card-drop-skeleton__thumb {
+  display: block;
+  aspect-ratio: 4 / 3;
+  margin: 0.5rem;
+  border-radius: var(--project-card-inner-radius);
+  border: 1px dashed color-mix(in srgb, var(--ink) 18%, rgba(30, 35, 50, 0.1));
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.58),
+      color-mix(in srgb, var(--ink) 4%, rgba(244, 248, 252, 0.44))
+    );
+}
+
+.project-group-card-drop-skeleton__body {
+  display: grid;
+  gap: 0.375rem;
+  padding: 0 0.625rem 2rem;
+}
+
+.project-group-card-drop-skeleton__body span {
+  display: block;
+  height: 0.375rem;
+  border-radius: var(--radius-xs);
+  background: color-mix(in srgb, var(--ink) 12%, rgba(30, 35, 50, 0.08));
+}
+
+.project-group-card-drop-skeleton__body span:first-child {
+  width: 62%;
+}
+
+.project-group-card-drop-skeleton__body span:nth-child(2) {
+  width: 84%;
+}
+
+.project-group-card-drop-skeleton__body span:last-child {
+  width: 46%;
+}
+
+[data-project-card-drop-body-active] .project-group-card-drop-skeleton {
+  border-color: color-mix(in srgb, var(--ink) 42%, rgba(30, 35, 50, 0.12));
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--ink) 7%, rgba(255, 255, 255, 0.74)),
+      rgba(255, 255, 255, 0.48)
+    );
+}
+
+@keyframes project-card-drop-slot-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workshop-project-card-glass[data-project-card-draggable],
+  [data-project-card-drag-handle],
+  .project-group-card-drop-section,
+  .project-group-card-drop-body {
+    transition: none;
+  }
+
+  .workshop-project-card-glass[data-project-card-draggable]:has(
+      [data-project-card-drag-handle]:active
+    ),
+  [data-project-card-drag-handle]:hover,
+  [data-project-card-drag-handle]:focus-visible,
+  [data-project-card-drag-handle]:active {
+    transform: none;
+  }
+
+  .project-group-card-drop-skeleton--insertion {
+    animation: none;
+  }
 }
 
 /* Create-project modal: one centered liquid-glass plate with paper-grade

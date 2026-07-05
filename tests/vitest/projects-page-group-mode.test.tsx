@@ -35,6 +35,7 @@ const mocks = vi.hoisted(() => ({
   recolorProjectGroup: vi.fn(async () => undefined),
   deleteProjectGroup: vi.fn(async () => undefined),
   reorderProjectGroups: vi.fn(async () => undefined),
+  reorderProjectsInGroup: vi.fn(async () => undefined),
 }));
 
 vi.mock("@/hooks/use-navigation-router", () => ({
@@ -63,6 +64,7 @@ vi.mock("@/lib/workshop/group-actions", () => ({
   recolorProjectGroup: mocks.recolorProjectGroup,
   deleteProjectGroup: mocks.deleteProjectGroup,
   reorderProjectGroups: mocks.reorderProjectGroups,
+  reorderProjectsInGroup: mocks.reorderProjectsInGroup,
   ProjectGroupCapError: class extends Error {},
   ProjectGroupNameError: class extends Error {},
 }));
@@ -818,6 +820,12 @@ describe("ProjectsPageClient group assignment", () => {
     dispatchProjectGroupDragEvent(handle, "dragstart", { dataTransfer });
     dispatchProjectGroupDragEvent(pipeline, "dragover", { dataTransfer });
     expect(pipeline).toHaveAttribute("data-project-card-drop-active", "");
+    expect(
+      pipeline.querySelector("[data-project-card-drop-body-active]"),
+    ).toBeInTheDocument();
+    expect(
+      pipeline.querySelector("[data-project-card-drop-skeleton]"),
+    ).toBeInTheDocument();
     dispatchProjectGroupDragEvent(pipeline, "drop", { dataTransfer });
 
     expect(mocks.moveProjectToGroup).toHaveBeenCalledWith({
@@ -848,6 +856,9 @@ describe("ProjectsPageClient group assignment", () => {
 
     const ungrouped = screen.getByLabelText("Ungrouped") as HTMLElement;
     expect(ungrouped).toHaveAttribute("data-project-group-virtual", "");
+    expect(
+      ungrouped.querySelector("[data-project-card-drop-skeleton]"),
+    ).toBeInTheDocument();
     dispatchProjectGroupDragEvent(ungrouped, "dragover", { dataTransfer });
     dispatchProjectGroupDragEvent(ungrouped, "drop", { dataTransfer });
 
@@ -858,6 +869,60 @@ describe("ProjectsPageClient group assignment", () => {
     expect(
       within(screen.getByLabelText("Ungrouped")).getByRole("article"),
     ).toHaveTextContent("In Pipeline");
+  });
+
+  it("reorders project cards within the same named group by dragging onto a card slot", async () => {
+    renderClient(
+      <ProjectsPageClient
+        projects={[
+          item({ id: "p1", name: "First" }, { groupId: "g1" }),
+          item({ id: "p2", name: "Second" }, { groupId: "g1" }),
+        ]}
+        projectGroups={assignGroups}
+      />,
+    );
+
+    const pipeline = screen.getByLabelText("Pipeline") as HTMLElement;
+    expect(
+      within(pipeline).getAllByRole("article").map((card) => card.textContent),
+    ).toEqual([expect.stringContaining("First"), expect.stringContaining("Second")]);
+
+    const firstCard = screen.getByLabelText("First project, owned access");
+    const handle = within(firstCard).getByRole("button", {
+      name: "Drag First to a group",
+    });
+    const secondSlot = pipeline.querySelector(
+      '[data-project-card-drop-slot="p2"]',
+    ) as HTMLElement;
+    expect(secondSlot).toBeInstanceOf(HTMLElement);
+    setGroupSectionRect(secondSlot, 0, 100);
+
+    const dataTransfer = mockDataTransfer();
+    dispatchProjectGroupDragEvent(handle, "dragstart", { dataTransfer });
+    dispatchProjectGroupDragEvent(secondSlot, "dragover", {
+      dataTransfer,
+      clientY: 88,
+    });
+
+    const insertionSkeleton = pipeline.querySelector(
+      '[data-project-card-drop-skeleton-position="after"]',
+    );
+    expect(insertionSkeleton).toBeInTheDocument();
+    expect(secondSlot.nextElementSibling).toBe(insertionSkeleton);
+
+    dispatchProjectGroupDragEvent(secondSlot, "drop", {
+      dataTransfer,
+      clientY: 88,
+    });
+
+    expect(mocks.reorderProjectsInGroup).toHaveBeenCalledWith({
+      groupId: "g1",
+      orderedProjectIds: ["p2", "p1"],
+    });
+    expect(
+      within(pipeline).getAllByRole("article").map((card) => card.textContent),
+    ).toEqual([expect.stringContaining("Second"), expect.stringContaining("First")]);
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled());
   });
 
   it("restores the prior bucket and toasts when the move action rejects", async () => {

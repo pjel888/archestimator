@@ -505,6 +505,7 @@ function LiveProjectCardImpl({
     return (
       <article
         data-project-card-view={viewMode}
+        data-project-card-draggable={canDragToGroup ? "" : undefined}
         data-project-access-kind={accessKind}
         data-project-card-selected={selectedForDeletion ? "true" : undefined}
         data-project-card-setup-state={setupStatus?.state}
@@ -672,6 +673,7 @@ function LiveProjectCardImpl({
   return (
     <article
       data-project-card-view={viewMode}
+      data-project-card-draggable={canDragToGroup ? "" : undefined}
       data-project-access-kind={accessKind}
       data-project-card-selected={selectedForDeletion ? "true" : undefined}
       data-project-card-setup-state={setupStatus?.state}

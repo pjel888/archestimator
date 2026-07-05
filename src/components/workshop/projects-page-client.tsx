@@ -71,6 +71,7 @@ import {
   recolorProjectGroup,
   renameProjectGroup,
   reorderProjectGroups,
+  reorderProjectsInGroup,
 } from "@/lib/workshop/group-actions";
 import type { ProjectRow } from "@/lib/types/database";
 import { cn } from "@/lib/ui/cn";
@@ -97,6 +98,8 @@ import {
 import { createProjectClientOptions } from "./project-client-options";
 import {
   ProjectGroupSection,
+  type ProjectCardDropPosition,
+  type ProjectCardDropTarget,
   type ProjectGroupDropPosition,
 } from "./ProjectGroupSection";
 import { WorkshopCollectionLayout } from "./WorkshopCollectionLayout";
@@ -128,6 +131,8 @@ export type ProjectListItem = {
   // Part 7c (Project Groups): which user-group this project belongs to (null/absent = Ungrouped).
   // Optional so synthesized items (normalizeProjectListItem) stay valid; `?? null` collapses undefined.
   groupId?: string | null;
+  // Manual card order inside a named group. Null/absent keeps the active sort fallback.
+  groupPosition?: number | null;
 };
 
 const EMPTY_FAVORITE_PROJECT_IDS: string[] = [];
@@ -272,6 +277,10 @@ type ProjectsPageClientState = {
   sortField: ProjectSortField;
   sortDirection: ProjectSortDirection;
   sortTouched: boolean;
+  optimisticGroupOrderIds: string[] | null;
+  optimisticProjectGroups: ProjectGroupSummary[];
+  optimisticProjectGroupOverrides: Record<string, OptimisticProjectGroupOverride>;
+  optimisticProjectOrderIdsByGroup: Record<string, string[]>;
   groupOverrides: Record<string, string | null>;
   pendingGroupProjectId: string | null;
   collapsedGroupKeys: Set<string>;
@@ -301,6 +310,19 @@ type ProjectsPageClientAction =
   | { type: "setSortField"; value: ProjectSortField }
   | { type: "setSortDirection"; value: ProjectSortDirection }
   | { type: "setSortTouched"; value: boolean }
+  | { type: "setOptimisticGroupOrderIds"; value: StateUpdater<string[] | null> }
+  | {
+      type: "setOptimisticProjectGroups";
+      value: StateUpdater<ProjectGroupSummary[]>;
+    }
+  | {
+      type: "setOptimisticProjectGroupOverrides";
+      value: StateUpdater<Record<string, OptimisticProjectGroupOverride>>;
+    }
+  | {
+      type: "setOptimisticProjectOrderIdsByGroup";
+      value: StateUpdater<Record<string, string[]>>;
+    }
   | {
       type: "setGroupOverrides";
       value: StateUpdater<Record<string, string | null>>;
@@ -343,6 +365,10 @@ function createProjectsPageClientState(): ProjectsPageClientState {
     sortField: "updated_at",
     sortDirection: "desc",
     sortTouched: false,
+    optimisticGroupOrderIds: null,
+    optimisticProjectGroups: [],
+    optimisticProjectGroupOverrides: {},
+    optimisticProjectOrderIdsByGroup: {},
     groupOverrides: {},
     pendingGroupProjectId: null,
     collapsedGroupKeys: new Set(),
@@ -406,6 +432,38 @@ function projectsPageClientReducer(
       return { ...state, sortDirection: action.value };
     case "setSortTouched":
       return { ...state, sortTouched: action.value };
+    case "setOptimisticGroupOrderIds":
+      return {
+        ...state,
+        optimisticGroupOrderIds: resolveStateUpdater(
+          state.optimisticGroupOrderIds,
+          action.value,
+        ),
+      };
+    case "setOptimisticProjectGroups":
+      return {
+        ...state,
+        optimisticProjectGroups: resolveStateUpdater(
+          state.optimisticProjectGroups,
+          action.value,
+        ),
+      };
+    case "setOptimisticProjectGroupOverrides":
+      return {
+        ...state,
+        optimisticProjectGroupOverrides: resolveStateUpdater(
+          state.optimisticProjectGroupOverrides,
+          action.value,
+        ),
+      };
+    case "setOptimisticProjectOrderIdsByGroup":
+      return {
+        ...state,
+        optimisticProjectOrderIdsByGroup: resolveStateUpdater(
+          state.optimisticProjectOrderIdsByGroup,
+          action.value,
+        ),
+      };
     case "setGroupOverrides":
       return {
         ...state,
@@ -645,6 +703,50 @@ function haveSameStringSet(first: readonly string[], second: readonly string[]) 
   return second.every((value) => values.has(value));
 }
 
+function getProjectItemGroupPosition(item: ProjectListItem) {
+  return typeof item.groupPosition === "number" ? item.groupPosition : null;
+}
+
+function orderProjectItemsByIds(
+  items: readonly ProjectListItem[],
+  orderedIds: readonly string[] | undefined,
+): ProjectListItem[] {
+  if (!orderedIds) return [...items];
+  const byId = new Map(items.map((item) => [item.project.id, item]));
+  const ordered: ProjectListItem[] = [];
+  const seen = new Set<string>();
+
+  for (const id of orderedIds) {
+    const item = byId.get(id);
+    if (!item) continue;
+    ordered.push(item);
+    seen.add(id);
+  }
+
+  for (const item of items) {
+    if (!seen.has(item.project.id)) ordered.push(item);
+  }
+
+  return ordered;
+}
+
+function orderProjectItemsWithinUserGroup(
+  items: readonly ProjectListItem[],
+  orderedIds: readonly string[] | undefined,
+): ProjectListItem[] {
+  if (orderedIds) return orderProjectItemsByIds(items, orderedIds);
+  return [...items].sort((first, second) => {
+    const firstPosition = getProjectItemGroupPosition(first);
+    const secondPosition = getProjectItemGroupPosition(second);
+    if (firstPosition !== null && secondPosition !== null) {
+      return firstPosition - secondPosition;
+    }
+    if (firstPosition !== null) return -1;
+    if (secondPosition !== null) return 1;
+    return 0;
+  });
+}
+
 function orderProjectGroups(
   groups: readonly ProjectGroupSummary[],
   orderedIds: readonly string[] | null,
@@ -676,6 +778,23 @@ function moveProjectGroupId(
 ) {
   if (draggedId === targetId) return [...ids];
   const withoutDragged = ids.filter((id) => id !== draggedId);
+  const targetIndex = withoutDragged.indexOf(targetId);
+  if (targetIndex === -1) return [...ids];
+  const insertionIndex = position === "after" ? targetIndex + 1 : targetIndex;
+  return withoutDragged.toSpliced(insertionIndex, 0, draggedId);
+}
+
+function moveProjectCardId(
+  ids: readonly string[],
+  draggedId: string,
+  targetId: string | null,
+  position: ProjectCardDropPosition,
+) {
+  const withoutDragged = ids.filter((id) => id !== draggedId);
+  if (targetId === null || position === "end") {
+    return withoutDragged.toSpliced(withoutDragged.length, 0, draggedId);
+  }
+  if (draggedId === targetId) return [...ids];
   const targetIndex = withoutDragged.indexOf(targetId);
   if (targetIndex === -1) return [...ids];
   const insertionIndex = position === "after" ? targetIndex + 1 : targetIndex;
@@ -877,7 +996,11 @@ type ProjectUserGroup = {
 function groupProjectsByUserGroup(
   items: ProjectListItem[],
   groups: ProjectGroupSummary[],
-  options: { isSearching: boolean; showUngroupedWhenEmpty?: boolean },
+  options: {
+    isSearching: boolean;
+    showUngroupedWhenEmpty?: boolean;
+    optimisticOrderIdsByGroup?: Record<string, string[]>;
+  },
 ): ProjectUserGroup[] {
   const known = new Set(groups.map((group) => group.id));
   const byGroup = new Map<string, ProjectListItem[]>();
@@ -898,7 +1021,10 @@ function groupProjectsByUserGroup(
   const sections: ProjectUserGroup[] = [];
   // groups arrive in position order from the repository read.
   for (const group of groups) {
-    const groupItems = byGroup.get(group.id) ?? [];
+    const groupItems = orderProjectItemsWithinUserGroup(
+      byGroup.get(group.id) ?? [],
+      options.optimisticOrderIdsByGroup?.[group.id],
+    );
     // During search, hide any group with zero matches; otherwise render empty named groups.
     if (options.isSearching && groupItems.length === 0) continue;
     sections.push({
@@ -919,7 +1045,10 @@ function groupProjectsByUserGroup(
       accentId: null,
       isVirtual: true,
       kind: "group",
-      items: ungrouped,
+      items: orderProjectItemsWithinUserGroup(
+        ungrouped,
+        options.optimisticOrderIdsByGroup?.[UNGROUPED_GROUP_KEY],
+      ),
     });
   }
 
@@ -1124,6 +1253,10 @@ export function ProjectsPageClient({
     sortField,
     sortDirection,
     sortTouched,
+    optimisticGroupOrderIds,
+    optimisticProjectGroups,
+    optimisticProjectGroupOverrides,
+    optimisticProjectOrderIdsByGroup,
     groupOverrides,
     pendingGroupProjectId,
     collapsedGroupKeys,
@@ -1156,6 +1289,25 @@ export function ProjectsPageClient({
         dispatchPageState({ type: "setSortDirection", value }),
       setSortTouched: (value: boolean) =>
         dispatchPageState({ type: "setSortTouched", value }),
+      setOptimisticGroupOrderIds: (value: StateUpdater<string[] | null>) =>
+        dispatchPageState({ type: "setOptimisticGroupOrderIds", value }),
+      setOptimisticProjectGroups: (
+        value: StateUpdater<ProjectGroupSummary[]>,
+      ) => dispatchPageState({ type: "setOptimisticProjectGroups", value }),
+      setOptimisticProjectGroupOverrides: (
+        value: StateUpdater<Record<string, OptimisticProjectGroupOverride>>,
+      ) =>
+        dispatchPageState({
+          type: "setOptimisticProjectGroupOverrides",
+          value,
+        }),
+      setOptimisticProjectOrderIdsByGroup: (
+        value: StateUpdater<Record<string, string[]>>,
+      ) =>
+        dispatchPageState({
+          type: "setOptimisticProjectOrderIdsByGroup",
+          value,
+        }),
       setGroupOverrides: (value: StateUpdater<Record<string, string | null>>) =>
         dispatchPageState({ type: "setGroupOverrides", value }),
       setPendingGroupProjectId: (value: string | null) =>
@@ -1187,6 +1339,10 @@ export function ProjectsPageClient({
     setSortField,
     setSortDirection,
     setSortTouched,
+    setOptimisticGroupOrderIds,
+    setOptimisticProjectGroups,
+    setOptimisticProjectGroupOverrides,
+    setOptimisticProjectOrderIdsByGroup,
     setGroupOverrides,
     setPendingGroupProjectId,
     setCollapsedGroupKeys,
@@ -1268,14 +1424,6 @@ export function ProjectsPageClient({
   // gate and stall (or mis-time) override clearing. Group-CRUD + delete still use the
   // shared `startTransition` above (their byte-identity is unchanged).
   const [isGroupAssignPending, startGroupAssignTransition] = useTransition();
-  const [optimisticGroupOrderIds, setOptimisticGroupOrderIds] = useState<
-    string[] | null
-  >(null);
-  const [optimisticProjectGroups, setOptimisticProjectGroups] = useState<
-    ProjectGroupSummary[]
-  >([]);
-  const [optimisticProjectGroupOverrides, setOptimisticProjectGroupOverrides] =
-    useState<Record<string, OptimisticProjectGroupOverride>>({});
   const [draggingProjectGroupId, setDraggingProjectGroupId] = useState<
     string | null
   >(null);
@@ -1286,9 +1434,8 @@ export function ProjectsPageClient({
   const [draggingProjectCardId, setDraggingProjectCardId] = useState<
     string | null
   >(null);
-  const [projectCardDropTargetKey, setProjectCardDropTargetKey] = useState<
-    string | null
-  >(null);
+  const [projectCardDropTarget, setProjectCardDropTarget] =
+    useState<ProjectCardDropTarget | null>(null);
 
   const visibleProjectGroups = useMemo(() => {
     const serverIds = new Set(projectGroups.map((group) => group.id));
@@ -1323,7 +1470,7 @@ export function ProjectsPageClient({
       const next = current.filter((group) => !serverIds.has(group.id));
       return next.length === current.length ? current : next;
     });
-  }, [projectGroups]);
+  }, [projectGroups, setOptimisticProjectGroups]);
 
   useEffect(() => {
     setOptimisticProjectGroupOverrides((current) => {
@@ -1352,7 +1499,7 @@ export function ProjectsPageClient({
       }
       return changed ? next : current;
     });
-  }, [projectGroups]);
+  }, [projectGroups, setOptimisticProjectGroupOverrides]);
 
   useEffect(() => {
     if (!optimisticGroupOrderIds) return;
@@ -1370,7 +1517,7 @@ export function ProjectsPageClient({
     setOptimisticGroupOrderIds(
       areStringArraysEqual(reconciledIds, serverIds) ? null : reconciledIds,
     );
-  }, [optimisticGroupOrderIds, projectGroups]);
+  }, [optimisticGroupOrderIds, projectGroups, setOptimisticGroupOrderIds]);
 
   const favoriteIds = useMemo(() => {
     const ids = new Set(favoriteProjectIds);
@@ -1457,6 +1604,54 @@ export function ProjectsPageClient({
       }),
     [displayLiveProjects, groupOverrides],
   );
+
+  useEffect(() => {
+    setOptimisticProjectOrderIdsByGroup((current) => {
+      const groupKeys = Object.keys(current);
+      if (groupKeys.length === 0) return current;
+
+      const itemsWithOverrides = projectItems.map((item) => {
+        const override = groupOverrides[item.project.id];
+        if (override === undefined) return item;
+        return { ...item, groupId: override };
+      });
+      const serverSections = groupProjectsByUserGroup(
+        itemsWithOverrides,
+        orderedProjectGroups,
+        { isSearching: false },
+      );
+      const serverIdsByGroup = new Map(
+        serverSections.map((section) => [
+          section.key,
+          section.items.map((item) => item.project.id),
+        ]),
+      );
+
+      let changed = false;
+      const next = { ...current };
+      for (const groupKey of groupKeys) {
+        const serverIds = serverIdsByGroup.get(groupKey) ?? [];
+        if (areStringArraysEqual(current[groupKey] ?? [], serverIds)) {
+          delete next[groupKey];
+          changed = true;
+          continue;
+        }
+        if (haveSameStringSet(current[groupKey] ?? [], serverIds)) continue;
+        next[groupKey] = [
+          ...(current[groupKey] ?? []).filter((id) => serverIds.includes(id)),
+          ...serverIds.filter((id) => !(current[groupKey] ?? []).includes(id)),
+        ];
+        changed = true;
+      }
+      return changed ? next : current;
+    });
+  }, [
+    groupOverrides,
+    orderedProjectGroups,
+    projectItems,
+    setOptimisticProjectOrderIdsByGroup,
+  ]);
+
   const isSearching = normalizedSearchQuery.length > 0;
   const hasNoSearchResults =
     isSearching &&
@@ -1470,12 +1665,14 @@ export function ProjectsPageClient({
         ? groupProjectsByUserGroup(groupItemsWithOverrides, orderedProjectGroups, {
             isSearching,
             showUngroupedWhenEmpty: draggingProjectCardId !== null,
+            optimisticOrderIdsByGroup: optimisticProjectOrderIdsByGroup,
           })
         : [],
     [
       groupBy,
       groupItemsWithOverrides,
       orderedProjectGroups,
+      optimisticProjectOrderIdsByGroup,
       isSearching,
       draggingProjectCardId,
     ],
@@ -1928,7 +2125,7 @@ export function ProjectsPageClient({
     event.dataTransfer.setData("text/plain", projectId);
     event.dataTransfer.setData(PROJECT_CARD_DRAG_MIME_TYPE, projectId);
     setDraggingProjectCardId(projectId);
-    setProjectCardDropTargetKey(null);
+    setProjectCardDropTarget(null);
     setGroupDropTarget(null);
   }
 
@@ -1939,16 +2136,57 @@ export function ProjectsPageClient({
     );
   }
 
+  function getEffectiveProjectGroupId(projectId: string) {
+    const item = projectItems.find((entry) => entry.project.id === projectId);
+    if (!item) return undefined;
+    const override = groupOverrides[projectId];
+    return override !== undefined ? override : (item.groupId ?? null);
+  }
+
+  function getEffectiveProjectGroupKey(projectId: string) {
+    const groupId = getEffectiveProjectGroupId(projectId);
+    if (groupId === undefined) return undefined;
+    return groupId ?? UNGROUPED_GROUP_KEY;
+  }
+
+  function canUseProjectCardDrag(projectId: string) {
+    const item = projectItems.find((entry) => entry.project.id === projectId);
+    return Boolean(item && canAssignProjectToGroup(item));
+  }
+
   function canDropProjectCardOnGroup(projectId: string, groupKey: string) {
     if (groupKey !== UNGROUPED_GROUP_KEY && isOptimisticProjectGroupId(groupKey)) {
       return false;
     }
-    const item = projectItems.find((entry) => entry.project.id === projectId);
-    if (!item || !canAssignProjectToGroup(item)) return false;
-    const override = groupOverrides[projectId];
-    const currentGroupId =
-      override !== undefined ? override : (item.groupId ?? null);
-    return currentGroupId !== getProjectDropGroupId(groupKey);
+    if (!canUseProjectCardDrag(projectId)) return false;
+    return getEffectiveProjectGroupId(projectId) !== getProjectDropGroupId(groupKey);
+  }
+
+  function getProjectGroupItems(groupKey: string) {
+    return groupedByUserGroup.find((group) => group.key === groupKey)?.items ?? [];
+  }
+
+  function canReorderProjectCardInGroup(
+    projectId: string,
+    groupKey: string,
+    targetProjectId: string | null,
+    position: ProjectCardDropPosition,
+  ) {
+    if (isSearching) return false;
+    if (groupKey === UNGROUPED_GROUP_KEY || isOptimisticProjectGroupId(groupKey)) return false;
+    if (!canUseProjectCardDrag(projectId)) return false;
+    if (getEffectiveProjectGroupKey(projectId) !== groupKey) return false;
+    if (targetProjectId && getEffectiveProjectGroupKey(targetProjectId) !== groupKey) return false;
+    const ids = getProjectGroupItems(groupKey).map((item) => item.project.id);
+    if (ids.length < 2 || !ids.includes(projectId)) return false;
+    if (targetProjectId === projectId) return false;
+    const nextIds = moveProjectCardId(ids, projectId, targetProjectId, position);
+    return !areStringArraysEqual(ids, nextIds);
+  }
+
+  function canDropProjectCardAtGroupEnd(projectId: string, groupKey: string) {
+    if (canDropProjectCardOnGroup(projectId, groupKey)) return true;
+    return canReorderProjectCardInGroup(projectId, groupKey, null, "end");
   }
 
   function handleProjectCardDragOver(
@@ -1956,11 +2194,13 @@ export function ProjectsPageClient({
     event: DragEvent<HTMLElement>,
   ) {
     const projectId = readDraggedProjectCardId(event);
-    if (!projectId || !canDropProjectCardOnGroup(projectId, groupKey)) return;
+    if (!projectId || !canDropProjectCardAtGroupEnd(projectId, groupKey)) return;
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
-    setProjectCardDropTargetKey((current) =>
-      current === groupKey ? current : groupKey,
+    setProjectCardDropTarget((current) =>
+      current?.groupKey === groupKey && current.position === "end"
+        ? current
+        : { groupKey, projectId: null, position: "end" },
     );
   }
 
@@ -1970,10 +2210,67 @@ export function ProjectsPageClient({
   ) {
     const projectId = readDraggedProjectCardId(event);
     setDraggingProjectCardId(null);
-    setProjectCardDropTargetKey(null);
-    if (!projectId || !canDropProjectCardOnGroup(projectId, groupKey)) return;
+    setProjectCardDropTarget(null);
+    if (!projectId || !canDropProjectCardAtGroupEnd(projectId, groupKey)) return;
     event.preventDefault();
-    assignProjectToGroup(projectId, getProjectDropGroupId(groupKey));
+    if (canDropProjectCardOnGroup(projectId, groupKey)) {
+      assignProjectToGroup(projectId, getProjectDropGroupId(groupKey));
+      return;
+    }
+    reorderProjectCardInGroup(projectId, groupKey, null, "end");
+  }
+
+  function handleProjectCardSlotDragOver(
+    groupKey: string,
+    targetProjectId: string,
+    event: DragEvent<HTMLElement>,
+  ) {
+    const projectId = readDraggedProjectCardId(event);
+    const position = getProjectGroupDropPosition(event);
+    if (
+      !projectId ||
+      !canReorderProjectCardInGroup(projectId, groupKey, targetProjectId, position)
+    ) {
+      if (projectId && getEffectiveProjectGroupKey(projectId) === groupKey) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = "move";
+    setProjectCardDropTarget((current) =>
+      current?.groupKey === groupKey &&
+      current.projectId === targetProjectId &&
+      current.position === position
+        ? current
+        : { groupKey, projectId: targetProjectId, position },
+    );
+  }
+
+  function handleProjectCardSlotDrop(
+    groupKey: string,
+    targetProjectId: string,
+    event: DragEvent<HTMLElement>,
+  ) {
+    const projectId = readDraggedProjectCardId(event);
+    const position = getProjectGroupDropPosition(event);
+    setDraggingProjectCardId(null);
+    setProjectCardDropTarget(null);
+    if (
+      !projectId ||
+      !canReorderProjectCardInGroup(projectId, groupKey, targetProjectId, position)
+    ) {
+      if (projectId && getEffectiveProjectGroupKey(projectId) === groupKey) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    reorderProjectCardInGroup(projectId, groupKey, targetProjectId, position);
   }
 
   function handleProjectCardDragLeave(
@@ -1987,14 +2284,54 @@ export function ProjectsPageClient({
     ) {
       return;
     }
-    setProjectCardDropTargetKey((current) =>
-      current === groupKey ? null : current,
+    setProjectCardDropTarget((current) =>
+      current?.groupKey === groupKey ? null : current,
     );
   }
 
   function handleProjectCardDragEnd() {
     setDraggingProjectCardId(null);
-    setProjectCardDropTargetKey(null);
+    setProjectCardDropTarget(null);
+  }
+
+  function reorderProjectCardInGroup(
+    projectId: string,
+    groupKey: string,
+    targetProjectId: string | null,
+    position: ProjectCardDropPosition,
+  ) {
+    if (groupKey === UNGROUPED_GROUP_KEY) return;
+    const previousOrderIds = getProjectGroupItems(groupKey).map((item) => item.project.id);
+    const nextOrderIds = moveProjectCardId(
+      previousOrderIds,
+      projectId,
+      targetProjectId,
+      position,
+    );
+    if (areStringArraysEqual(previousOrderIds, nextOrderIds)) return;
+
+    setOptimisticProjectOrderIdsByGroup((current) => ({
+      ...current,
+      [groupKey]: nextOrderIds,
+    }));
+    setPendingGroupProjectId(projectId);
+    startGroupAssignTransition(() => {
+      void reorderProjectsInGroup({ groupId: groupKey, orderedProjectIds: nextOrderIds })
+        .then(() => {
+          router.refresh();
+        })
+        .catch(() => {
+          setOptimisticProjectOrderIdsByGroup((current) => ({
+            ...current,
+            [groupKey]: previousOrderIds,
+          }));
+          toast({
+            message: "Could not reorder the projects. Try again.",
+            tone: "error",
+          });
+        })
+        .finally(() => setPendingGroupProjectId(null));
+    });
   }
 
   // LD-6 optimistic single-card move. Set the override immediately, then wrap the action
@@ -2561,10 +2898,23 @@ export function ProjectsPageClient({
                   onReorderDragOver={handleGroupReorderDragOver}
                   onReorderDrop={handleGroupReorderDrop}
                   onReorderDragEnd={handleGroupReorderDragEnd}
-                  isProjectDropTarget={projectCardDropTargetKey === group.key}
+                  isProjectDragActive={draggingProjectCardId !== null}
+                  isProjectDropAvailable={
+                    draggingProjectCardId
+                      ? canDropProjectCardAtGroupEnd(draggingProjectCardId, group.key)
+                      : false
+                  }
+                  isProjectDropTarget={projectCardDropTarget?.groupKey === group.key}
+                  projectCardDropTarget={
+                    projectCardDropTarget?.groupKey === group.key
+                      ? projectCardDropTarget
+                      : null
+                  }
                   onProjectDragOver={handleProjectCardDragOver}
                   onProjectDrop={handleProjectCardDrop}
                   onProjectDragLeave={handleProjectCardDragLeave}
+                  onProjectCardDragOver={handleProjectCardSlotDragOver}
+                  onProjectCardDrop={handleProjectCardSlotDrop}
                   headerActionGroups={
                     group.isVirtual || isOptimisticProjectGroupId(group.key)
                       ? undefined

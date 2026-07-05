@@ -30,6 +30,8 @@ type ProjectOwnershipRow = {
   created_by: string | null;
 };
 
+const MAX_PROJECTS_PER_GROUP_REORDER = 500;
+
 function assertUuid(value: string, label: string) {
   if (!isUuid(value)) throw new Error(`${label} is invalid.`);
 }
@@ -113,6 +115,13 @@ async function run(database: D1DatabaseLike, sql: string, values: D1Value[] = []
 
 function placeholders(count: number) {
   return Array.from({ length: count }, () => "?").join(", ");
+}
+
+function haveSameStringSet(first: readonly string[], second: readonly string[]) {
+  if (first.length !== second.length) return false;
+  const values = new Set(first);
+  if (values.size !== second.length) return false;
+  return second.every((value) => values.has(value));
 }
 
 // LD-2 ownership gate — mirrors the repository `owned` derivation
@@ -343,6 +352,74 @@ export async function reorderProjectGroups(input: { orderedGroupIds: string[] })
   revalidateWorkshop();
 }
 
+export async function reorderProjectsInGroup(input: {
+  groupId: string;
+  orderedProjectIds: string[];
+}): Promise<void> {
+  await requireAuth();
+  assertUuid(input.groupId, "Group");
+  if (input.orderedProjectIds.length === 0) return;
+  if (input.orderedProjectIds.length > MAX_PROJECTS_PER_GROUP_REORDER) {
+    throw new Error(`Cannot reorder more than ${MAX_PROJECTS_PER_GROUP_REORDER} projects at once.`);
+  }
+  const uniqueProjectIds = new Set(input.orderedProjectIds);
+  if (uniqueProjectIds.size !== input.orderedProjectIds.length) {
+    throw new Error("Project order cannot contain duplicates.");
+  }
+  for (const projectId of input.orderedProjectIds) {
+    assertUuid(projectId, "Project");
+  }
+
+  const { workspace, profile } = await ensureDefaultWorkspace();
+  const database = await requireGroupActionsD1Database();
+
+  const group = await first<{ id: string }>(
+    database,
+    `SELECT id
+     FROM project_groups
+     WHERE id = ?
+       AND user_id = ?
+       AND workspace_id = ?
+     LIMIT 1`,
+    [input.groupId, profile.id, workspace.id],
+  );
+  if (!group) throw new Error("Group was not found in this workspace.");
+
+  const currentMemberships = await all<{ project_id: string }>(
+    database,
+    `SELECT project_id
+     FROM project_group_memberships
+     WHERE group_id = ?
+       AND user_id = ?
+       AND workspace_id = ?
+     ORDER BY position ASC, created_at ASC, project_id ASC`,
+    [input.groupId, profile.id, workspace.id],
+  );
+  const currentProjectIds = currentMemberships.map((membership) => membership.project_id);
+  if (!haveSameStringSet(input.orderedProjectIds, currentProjectIds)) {
+    throw new Error("Project order is stale. Refresh and try again.");
+  }
+
+  const now = new Date().toISOString();
+  await Promise.all(
+    input.orderedProjectIds.map((projectId, index) =>
+      run(
+        database,
+        `UPDATE project_group_memberships
+         SET position = ?,
+             updated_at = ?
+         WHERE group_id = ?
+           AND user_id = ?
+           AND workspace_id = ?
+           AND project_id = ?`,
+        [index, now, input.groupId, profile.id, workspace.id, projectId],
+      ),
+    ),
+  );
+
+  revalidateWorkshop();
+}
+
 export async function moveProjectToGroup(input: {
   projectId: string;
   groupId: string | null;
@@ -465,15 +542,15 @@ export async function bulkAssignProjectsToGroup(input: {
   );
   if (!group) throw new Error("Group was not found in this workspace.");
 
-  await Promise.all(verified.map((project) =>
-    upsertProjectGroupMembership(database, {
+  for (const project of verified) {
+    await upsertProjectGroupMembership(database, {
       groupId: group.id,
       // workspace_id from the verified project row (composite-FK-safe), not ensureDefaultWorkspace.
       workspaceId: project.workspace_id,
       userId: profile.id,
       projectId: project.id,
-    }),
-  ));
+    });
+  }
   revalidateWorkshop();
   return { movedProjectIds: verifiedIds, skippedProjectIds };
 }
@@ -493,6 +570,31 @@ async function upsertProjectGroupMembership(
   },
 ) {
   const now = new Date().toISOString();
+  const existingMembership = await first<{ group_id: string; position: number | null }>(
+    database,
+    `SELECT group_id, position
+     FROM project_group_memberships
+     WHERE user_id = ?
+       AND project_id = ?
+     LIMIT 1`,
+    [userId, projectId],
+  );
+  const lastPosition = await first<{ position: number | null }>(
+    database,
+    `SELECT position
+     FROM project_group_memberships
+     WHERE workspace_id = ?
+       AND user_id = ?
+       AND group_id = ?
+     ORDER BY position DESC
+     LIMIT 1`,
+    [workspaceId, userId, groupId],
+  );
+  const nextPosition =
+    existingMembership?.group_id === groupId
+      ? (existingMembership.position ?? 0)
+      : (lastPosition?.position ?? -1) + 1;
+
   await run(
     database,
     `INSERT INTO project_group_memberships (
@@ -501,14 +603,16 @@ async function upsertProjectGroupMembership(
        workspace_id,
        user_id,
        project_id,
+       position,
        created_at,
        updated_at
      )
-     VALUES (?, ?, ?, ?, ?, ?, ?)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(user_id, project_id) DO UPDATE SET
        group_id = excluded.group_id,
        workspace_id = excluded.workspace_id,
+       position = excluded.position,
        updated_at = excluded.updated_at`,
-    [randomUUID(), groupId, workspaceId, userId, projectId, now, now],
+    [randomUUID(), groupId, workspaceId, userId, projectId, nextPosition, now, now],
   );
 }

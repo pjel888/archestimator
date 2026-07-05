@@ -61,6 +61,7 @@ describe("project groups repository wiring (Part 7c, additive)", () => {
     expect(repository).toContain("groupId:");
     // The internal list-item type carries the field.
     expect(repository).toContain("groupId: string | null");
+    expect(repository).toContain("groupPosition: number | null");
   });
 
   test("resolves groupId to null for shared / non-owned list items (per-user membership scoping)", () => {
@@ -69,9 +70,11 @@ describe("project groups repository wiring (Part 7c, additive)", () => {
     // miss to null — never undefined, never another user's group. Pin both the
     // per-user scoping on the read and the null-default at the stamp site.
     expect(repository).toContain("FROM project_group_memberships");
-    expect(repository).toContain("groupIdByProjectId.get(project.id) ?? null");
+    expect(repository).toContain("groupMembershipByProjectId.get(project.id)?.group_id ?? null");
+    expect(repository).toContain("groupMembershipByProjectId.get(project.id)?.position ?? null");
     // The synthetic pending-invite item (never in a user group) defaults to null too.
     expect(repository).toContain("groupId: null");
+    expect(repository).toContain("groupPosition: null");
   });
 
   test("client ProjectListItem and page wiring expose groups additively", () => {

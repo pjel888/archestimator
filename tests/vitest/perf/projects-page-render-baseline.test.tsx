@@ -84,6 +84,7 @@ const mocks = vi.hoisted(() => ({
   recolorProjectGroup: vi.fn(async () => undefined),
   deleteProjectGroup: vi.fn(async () => undefined),
   reorderProjectGroups: vi.fn(async () => undefined),
+  reorderProjectsInGroup: vi.fn(async () => undefined),
 }));
 
 vi.mock("@/hooks/use-navigation-router", () => ({
@@ -115,6 +116,7 @@ vi.mock("@/lib/workshop/group-actions", () => ({
   recolorProjectGroup: mocks.recolorProjectGroup,
   deleteProjectGroup: mocks.deleteProjectGroup,
   reorderProjectGroups: mocks.reorderProjectGroups,
+  reorderProjectsInGroup: mocks.reorderProjectsInGroup,
   ProjectGroupCapError: class extends Error {},
   ProjectGroupNameError: class extends Error {},
 }));

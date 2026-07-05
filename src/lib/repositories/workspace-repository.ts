@@ -170,6 +170,7 @@ type DatabaseTables = {
   project_group_memberships: {
     project_id: string;
     group_id: string;
+    position: number;
   };
   workspace_members: {
     workspace_id: string;
@@ -313,6 +314,8 @@ type WorkshopProjectListItem = {
   // Part 7c (Project Groups): which user-group this project belongs to (null = Ungrouped).
   // Non-optional: the repository stamps it on EVERY item (real value or null).
   groupId: string | null;
+  // Manual card order inside the user's named group. Null for ungrouped/shared/missing rows.
+  groupPosition: number | null;
 };
 
 // Columns fetched for the /workshop/projects list. We fetch workspace_id + created_by because
@@ -528,7 +531,9 @@ type MainSidebarFavoriteProjectRpcRow = Pick<Tables<"projects">, "id" | "name" |
   project_favorite_created_at: string | null;
   favorite_estimate_sheets: MainSidebarFavoriteSheetRpcRow[];
 };
-type ProjectGroupMembershipRow = Pick<Tables<"project_group_memberships">, "project_id" | "group_id">;
+type ProjectGroupMembershipRow = Pick<Tables<"project_group_memberships">, "project_id" | "group_id"> & {
+  position: number | null;
+};
 type WorkspaceMembershipRoleRow = Pick<Tables<"workspace_members">, "role">;
 type SentPendingInviteCountRow = { project_id: string; count: number };
 type WorkshopProjectsSummaryPayload = {
@@ -900,6 +905,7 @@ function createPendingInviteProjectListItem({
     favoriteEstimateSheets: [],
     // Part 7c (Project Groups): pending invites are never in a user group.
     groupId: null,
+    groupPosition: null,
   };
 }
 
@@ -1455,10 +1461,11 @@ async function listCurrentWorkspaceProjectsAppPath() {
     ),
     all<ProjectGroupMembershipRow>(
       database,
-      `SELECT project_id, group_id
+      `SELECT project_id, group_id, position
        FROM project_group_memberships
        WHERE workspace_id = ?
-         AND user_id = ?`,
+         AND user_id = ?
+       ORDER BY group_id ASC, position ASC, created_at ASC, project_id ASC`,
       [workspace.id, profile.id],
     ),
   ]));
@@ -1539,10 +1546,10 @@ async function listCurrentWorkspaceProjectsAppPath() {
     accentId: group.accent_id,
     position: group.position,
   }));
-  const groupIdByProjectId = new Map<string, string>(
+  const groupMembershipByProjectId = new Map<string, ProjectGroupMembershipRow>(
     projectGroupMembershipRows.map((membership) => [
       membership.project_id,
-      membership.group_id,
+      membership,
     ]),
   );
 
@@ -1556,7 +1563,8 @@ async function listCurrentWorkspaceProjectsAppPath() {
       pendingInviteCount: 0,
       publicationSummary: null,
       favoriteEstimateSheets: favoriteEstimateSheetsByProjectId.get(project.id) ?? [],
-      groupId: groupIdByProjectId.get(project.id) ?? null,
+      groupId: groupMembershipByProjectId.get(project.id)?.group_id ?? null,
+      groupPosition: groupMembershipByProjectId.get(project.id)?.position ?? null,
     };
   }
 
@@ -1840,6 +1848,7 @@ function assertProjectGroupMembershipRow(value: Record<string, unknown>, path: s
   return {
     project_id: assertRpcString(value.project_id, `${path}.project_id`),
     group_id: assertRpcString(value.group_id, `${path}.group_id`),
+    position: assertRpcOptionalNumber(value.position, `${path}.position`) ?? null,
   };
 }
 
@@ -2270,19 +2279,54 @@ async function filterAccessibleSidebarProjectIds(
   projectIds: string[],
   profile: ProfileRow,
 ) {
-  const accessPairs = await Promise.all(
-    projectIds.map(async (projectId) => [
-      projectId,
-      await canAccessProjectInD1(database, projectId, {
-        role: isPlatformAdminRole(profile.role) ? profile.role : undefined,
-        userId: profile.id,
-      }),
-    ] as const),
+  // ponytail: batched authz fix (WP-P1-03, 2026-07-05). Replaced the per-project
+  // Promise.all(canAccessProjectInD1) loop — which issued 3N EXISTS probes for
+  // N sidebar favorites — with a single batched SQL query that lifts the 4
+  // access branches (created_by + 3 EXISTS) into one prepared statement.
+  // The platform-admin JS short-circuit is preserved before any SQL, matching
+  // branch 1 of canAccessProjectInD1.
+  if (isPlatformAdminRole(profile.role)) return projectIds;
+  if (projectIds.length === 0) return [];
+
+  const userId = profile.id;
+  const accessibleRows = await all<{ id: string }>(
+    database,
+    `SELECT project.id
+     FROM projects project
+     WHERE project.id IN (${placeholders(projectIds)})
+       AND (
+         project.created_by = ?
+         OR EXISTS (
+           SELECT 1
+           FROM workspace_members workspace_member
+           WHERE workspace_member.workspace_id = project.workspace_id
+             AND workspace_member.user_id = ?
+         )
+         OR EXISTS (
+           SELECT 1
+           FROM project_members project_member
+           WHERE project_member.project_id = project.id
+             AND project_member.user_id = ?
+         )
+         OR EXISTS (
+           SELECT 1
+           FROM estimate_sheet_members sheet_member
+           WHERE sheet_member.project_id = project.id
+             AND sheet_member.user_id = ?
+         )
+       )`,
+    [...projectIds, userId, userId, userId, userId],
   );
-  return accessPairs
-    .filter(([, allowed]) => allowed)
-    .map(([projectId]) => projectId);
+  const accessibleSet = new Set(accessibleRows.map((row) => row.id));
+  // Preserve input order: callers rely on the favorite-ranking order produced
+  // by the upstream sort, not on SQL row order.
+  return projectIds.filter((id) => accessibleSet.has(id));
 }
+
+// ponytail: test seam for behavioral tests under tests/vitest/. Marked with
+// the __testing__ prefix to keep the public API surface clean. Not used by any
+// runtime consumer.
+export const __testing__filterAccessibleSidebarProjectIds = filterAccessibleSidebarProjectIds;
 
 async function listMainSidebarFavoriteProjectsAppPath(): Promise<MainSidebarFavoriteProject[]> {
   const { profile } = await ensureDefaultWorkspace();
