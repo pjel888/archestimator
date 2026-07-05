@@ -1214,3 +1214,93 @@ Residual risk:
   in iter 23 per user "proceed" direction).
 - Wave 2a/2b primitives UNCONSUMED.
 - Production enforcement remains NOT READY.
+
+## Iteration 23: Wave 3 P0 Surfaces #9+#10+#11 — ALL Audit-Path Sites Migrated GREEN (2026-07-05)
+
+Trigger:
+
+- User explicit direction: "proceed" (in response to iter 22 report
+  that 3 audit-path sites remain).
+
+Actions:
+
+- Migrated `src/app/auth/callback/route.ts:20` — inline audit
+  `ipAddress` derivation. Was
+  `request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null`,
+  now `request.headers.get("cf-connecting-ip")?.trim() ?? null`.
+- Migrated `src/app/api/internal/client-error/route.ts:38-44`
+  `clientKey(request)` helper. Was
+  `x-forwarded-for → x-real-ip → "unknown"`, now
+  `cf-connecting-ip → "unknown"`. NOTE: this is a SECURITY decision
+  (rate-limit key for client error reports), not just audit — was
+  misclassified as audit-only in iter 19 inventory.
+- Migrated `src/lib/auth/actions.ts:32` — inline audit `ipAddress`
+  derivation in `getRequestMetadata()` Server Action helper. Same
+  pattern as auth/callback.
+- Updated 2 stale test fixtures for fidelity (tests were passing
+  via "unknown" fallback but not exercising secure path):
+  - `tests/vitest/client-error.test.ts:16` (`x-forwarded-for` →
+    `cf-connecting-ip`)
+  - `tests/vitest/project-publication-public-repository.test.ts:483,524`
+    (2 sites via `replaceAll`)
+
+Evidence:
+
+- Test runner output: 318 tests across 22 test files GREEN with zero
+  regression. Cumulative since iter 13: 318 tests verify all PH-0..PH-3
+  first-slice work (Wave 2a/2b primitives + 11 surface migrations +
+  Wave 1 matrices + inventories).
+- `verification_mode: same-agent` (cap 94 binds).
+- `git diff --check` clean.
+- HEAD stable during this iteration.
+- Scope warning fired at 28, 29 files modified — acknowledged.
+
+Final security-decision inventory (src/):
+
+- `rg "x-forwarded-for|X-Forwarded-For" src/` returns exactly ONE hit:
+  `src/lib/observability/client-identity.ts:2` — my own comment line
+  documenting what the new helper replaces. ZERO production
+  security-decision reads of `x-forwarded-for` remain.
+
+Final test-fixture inventory (tests/):
+
+- 2 intentional `x-forwarded-for` references remain:
+  - `tests/vitest/client-identity.test.ts:22,25` — asserts
+    `deriveClientIdentity` IGNORES spoofed `X-Forwarded-For` when
+    `CF-Connecting-IP` is set (positive security test)
+  - `tests/vitest/legal-terms-acceptance-record.test.ts:25` —
+    negative assertion verifying `x-forwarded-for` is NOT persisted
+    in audit data
+
+Decision:
+
+- Close iteration 23 with ALL 11 production `x-forwarded-for` sites
+  migrated to secure `cf-connecting-ip` derivation.
+- ALL anonymous-surface security-decision paths now use trusted
+  Cloudflare edge IP. Spoofing risk for rate-limit keys, limiter
+  buckets, IP-derived hashes, and audit `ipAddress` fields is closed.
+- Wave 3 P0 first-slice source migration COMPLETE.
+- Production enforcement, provider cutover, and broad WAF/Turnstile/
+  rate-rule enforcement remain `NOT READY` per plan release gates
+  (hosted/provider/two-client/runtime proof still required per
+  `06_VALIDATION_QA_AND_ROLLOUT_PLAN.md` and `IMPLEMENTATION_PLAN.md`
+  Section 17 PH-8).
+
+Residual risk:
+
+- Wave 2a/2b primitives (`deriveClientIdentity`, `problemDetailsResponse`)
+  remain UNCONSUMED by production code. The 11 migrated sites use the
+  simpler inline `cf-connecting-ip` derivation rather than the new
+  helpers. Consuming the helpers is a future refactor that would
+  unify the IP-derivation logic but is not required for security.
+- `verification_mode: same-agent` cap (94) still binds. To lift
+  above 94, an independent reviewer session or human must audit the
+  23 LOOP_LEDGER iterations + 11 surface migrations + 22 evidence
+  files.
+- The full project `bun run validate` / `bun run type-check` was not
+  run to completion (120s timeout on early attempt). Targeted vitest
+  runs covering 318 tests across 22 files are the binding evidence.
+  Full validate should run before any release-claim.
+- 5 concurrent agent packs were active during this run, committing
+  9+ times. HEAD moved from `a0de0bd71` → `013b9b79` during the
+  session. All their dirty files preserved untouched.
