@@ -1,32 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowsOutSimple, Star } from "@phosphor-icons/react/dist/ssr";
+import { ArrowsOutSimple, FileText } from "@phosphor-icons/react/dist/ssr";
 
 import { cn } from "@/lib/ui/cn";
-import type { ProjectFavoriteEstimateSheetSummary } from "@/lib/repositories/workspace-repository";
+import type { ProjectCardEstimateSheetSummary } from "@/lib/repositories/workspace-repository";
 
 type ProjectCardThumbnailRevealProps = {
-  getSheetHref: (sheet: ProjectFavoriteEstimateSheetSummary) => string;
+  estimateSheets: ProjectCardEstimateSheetSummary[];
+  getSheetHref: (sheet: ProjectCardEstimateSheetSummary) => string;
   projectName: string;
   viewMode: "list" | "small" | "medium" | "large";
-  visibleFavoriteEstimateSheets: ProjectFavoriteEstimateSheetSummary[];
 };
 
-// Hover overlay for the thumbnail, now trimmed to the favorite-estimate-sheet
-// tray only. The select / favorite / kebab controls moved up to the card's
-// translucent top strip (see LiveProjectCard). The overlay keeps the same
-// reveal gating (hidden by default, shown on hover/focus / touch).
+// Hover overlay for the thumbnail, trimmed to the recent estimate-sheet tray
+// only. The select / favorite / kebab controls live in the card's translucent
+// top strip (see LiveProjectCard). The tray scrolls when a project has many
+// sheets so the thumbnail frame remains stable.
 export function ProjectCardThumbnailReveal({
+  estimateSheets,
   getSheetHref,
   projectName,
   viewMode,
-  visibleFavoriteEstimateSheets,
 }: ProjectCardThumbnailRevealProps) {
-  const maxVisible = viewMode === "small" ? 2 : viewMode === "medium" ? 3 : 5;
-  const sheets = visibleFavoriteEstimateSheets.slice(0, maxVisible);
-  const hiddenCount = visibleFavoriteEstimateSheets.length - sheets.length;
-  const hasSheets = sheets.length > 0;
+  const hasSheets = estimateSheets.length > 0;
 
   return (
     <div
@@ -41,26 +38,34 @@ export function ProjectCardThumbnailReveal({
       )}
     >
       <div
-        data-project-card-favorite-sheets=""
+        data-project-card-estimate-sheets=""
         aria-label={
           hasSheets
-            ? `Favorite estimate sheets for ${projectName}`
-            : `No favorite estimate sheets for ${projectName}`
+            ? `Estimate sheets for ${projectName}`
+            : `No estimate sheets for ${projectName}`
         }
-        className={cn("min-h-0 min-w-0", hasSheets ? "block" : "hidden")}
+        className={cn(
+          "min-h-0 min-w-0",
+          hasSheets
+            ? "flex w-full flex-1 flex-col items-start justify-start"
+            : "hidden",
+        )}
       >
         {hasSheets ? (
           <>
             <div className="flex min-w-0 items-center gap-1 text-[8px] font-medium uppercase leading-[10px] text-secondary">
-              <Star size={10} weight="fill" aria-hidden="true" className="shrink-0 text-warning" />
+              <FileText size={10} weight="regular" aria-hidden="true" className="shrink-0 text-secondary" />
             </div>
             <div
+              data-project-card-estimate-sheet-list=""
               className={cn(
-                "mt-1.5 min-w-0 text-[9px] font-medium leading-3 text-ink",
-                viewMode === "large" ? "grid grid-cols-1 gap-1" : "space-y-1",
+                "mt-1.5 min-h-0 min-w-0 w-full flex-1 overflow-y-auto overscroll-contain pr-1 text-[9px] font-medium leading-3 text-ink [scrollbar-width:thin]",
+                viewMode === "large"
+                  ? "grid auto-rows-max content-start grid-cols-1 gap-1"
+                  : "space-y-1",
               )}
             >
-              {sheets.map((sheet) => (
+              {estimateSheets.map((sheet) => (
                 <Link
                   key={sheet.id}
                   href={getSheetHref(sheet)}
@@ -72,9 +77,6 @@ export function ProjectCardThumbnailReveal({
                   <ArrowsOutSimple size={10} weight="regular" aria-hidden="true" className="shrink-0 text-secondary transition-colors group-hover/link:text-ink" />
                 </Link>
               ))}
-              {hiddenCount > 0 ? (
-                <span className="block truncate px-1 text-tertiary">+{hiddenCount} more</span>
-              ) : null}
             </div>
           </>
         ) : null}

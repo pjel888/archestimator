@@ -305,6 +305,37 @@ describe("HeaderIconToolbar", () => {
     expect(onGroup).toHaveBeenCalledTimes(1);
   });
 
+  it("can render disabled expand and collapse controls without firing actions", async () => {
+    const user = userEvent.setup();
+    const onExpandAll = vi.fn();
+    const onCollapseAll = vi.fn();
+    render(
+      <HeaderIconToolbar
+        ariaLabel="Project tools"
+        labelPrefix="projects"
+        onExpandAll={onExpandAll}
+        expandAllDisabled
+        onCollapseAll={onCollapseAll}
+        collapseAllDisabled
+        addActions={[]}
+      />,
+    );
+
+    const expandAll = screen.getByRole("button", {
+      name: "Expand all projects",
+    });
+    const collapseAll = screen.getByRole("button", {
+      name: "Collapse all projects",
+    });
+
+    expect(expandAll).toBeDisabled();
+    expect(collapseAll).toBeDisabled();
+    await user.click(expandAll);
+    await user.click(collapseAll);
+    expect(onExpandAll).not.toHaveBeenCalled();
+    expect(onCollapseAll).not.toHaveBeenCalled();
+  });
+
   it("dismisses icon tooltips when their action is clicked", async () => {
     const user = userEvent.setup();
     const onFilter = vi.fn();

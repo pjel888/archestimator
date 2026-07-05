@@ -60,20 +60,22 @@ type ProjectAddressAutocompleteState = {
   readonly suggestions: GoogleAutocompleteSuggestion[];
   readonly status: string;
   readonly activeIndex: number;
+  readonly isLoadingSuggestions: boolean;
 };
 
 type ProjectAddressAutocompleteAction =
   | { readonly type: "replaceSuggestions"; readonly suggestions: GoogleAutocompleteSuggestion[] }
   | { readonly type: "suggestionsUnavailable"; readonly message: string }
   | { readonly type: "setStatus"; readonly status: string }
+  | { readonly type: "setLoadingSuggestions"; readonly isLoadingSuggestions: boolean }
   | { readonly type: "setActiveIndex"; readonly activeIndex: number }
   | { readonly type: "moveActiveIndex"; readonly direction: 1 | -1 };
 
-const PROJECT_ADDRESS_AUTOCOMPLETE_TYPES = ["street_address", "route", "locality", "sublocality", "neighborhood"] as const;
 const EMPTY_PROJECT_ADDRESS_AUTOCOMPLETE_STATE: ProjectAddressAutocompleteState = {
   suggestions: [],
   status: "",
   activeIndex: -1,
+  isLoadingSuggestions: false,
 };
 
 function readCoordinatePart(value: (() => number) | number | undefined) {
@@ -117,18 +119,26 @@ function projectAddressAutocompleteReducer(
         ...state,
         suggestions: action.suggestions,
         activeIndex: action.suggestions.length > 0 ? 0 : -1,
+        isLoadingSuggestions: false,
+        status: action.suggestions.length > 0 ? "" : state.status,
       };
     case "suggestionsUnavailable":
       return {
         ...state,
         suggestions: [],
         activeIndex: -1,
+        isLoadingSuggestions: false,
         status: action.message,
       };
     case "setStatus":
       return {
         ...state,
         status: action.status,
+      };
+    case "setLoadingSuggestions":
+      return {
+        ...state,
+        isLoadingSuggestions: action.isLoadingSuggestions,
       };
     case "setActiveIndex":
       return {
@@ -208,12 +218,14 @@ export function ProjectAddressAutocomplete({
   onPlaceSelect,
 }: ProjectAddressAutocompleteProps) {
   const { placesLibrary, setPlacesLibrary } = usePlacesLibraryState();
-  const [{ suggestions, status, activeIndex }, dispatchAutocomplete] = useReducer(
+  const [{ suggestions, status, activeIndex, isLoadingSuggestions }, dispatchAutocomplete] = useReducer(
     projectAddressAutocompleteReducer,
     EMPTY_PROJECT_ADDRESS_AUTOCOMPLETE_STATE,
   );
   const [isPending, startTransition] = useTransition();
   const isFocusedRef = useRef(false);
+  const selectedAddressRef = useRef<string | null>(null);
+  const suppressNextEmptyPopupRef = useRef(false);
   const sessionTokenRef = useRef<unknown>(null);
   const generatedInputId = useId();
   const inputId = id ?? generatedInputId;
@@ -235,6 +247,7 @@ export function ProjectAddressAutocomplete({
   });
   const activeOptionId = open && activeIndex >= 0 ? suggestionOptionId(listboxId, activeIndex) : undefined;
   const { requestPlacesLoad, shouldLoadPlaces } = usePlacesLoadRequest(canUseGooglePlaces);
+  const trimmedValue = value.trim();
 
   useEffect(() => {
     if (!canUseGooglePlaces || !shouldLoadPlaces) return;
@@ -259,22 +272,34 @@ export function ProjectAddressAutocomplete({
   const replaceSuggestions = useCallback(
     (nextSuggestions: GoogleAutocompleteSuggestion[]) => {
       dispatchAutocomplete({ type: "replaceSuggestions", suggestions: nextSuggestions });
-      if (isFocusedRef.current && nextSuggestions.length > 0) {
+      const suppressEmptyPopup =
+        nextSuggestions.length === 0 && suppressNextEmptyPopupRef.current;
+      if (suppressEmptyPopup) suppressNextEmptyPopupRef.current = false;
+      if (isFocusedRef.current && canUseGooglePlaces && !suppressEmptyPopup) {
         openPopup();
         return;
       }
       close("manual");
     },
-    [close, openPopup],
+    [canUseGooglePlaces, close, openPopup],
   );
 
   useEffect(() => {
-    if (!placesLibrary || readOnly || value.trim().length < 3) {
+    if (
+      !placesLibrary ||
+      readOnly ||
+      trimmedValue.length < 3 ||
+      selectedAddressRef.current === value
+    ) {
+      suppressNextEmptyPopupRef.current = selectedAddressRef.current === value;
       queueMicrotask(() => replaceSuggestions([]));
+      dispatchAutocomplete({ type: "setLoadingSuggestions", isLoadingSuggestions: false });
       return;
     }
 
     let cancelled = false;
+    dispatchAutocomplete({ type: "setLoadingSuggestions", isLoadingSuggestions: true });
+    if (isFocusedRef.current) openPopup();
     const timeout = window.setTimeout(() => {
       if (!sessionTokenRef.current) {
         sessionTokenRef.current = new placesLibrary.AutocompleteSessionToken();
@@ -282,11 +307,17 @@ export function ProjectAddressAutocomplete({
 
       placesLibrary.AutocompleteSuggestion.fetchAutocompleteSuggestions({
         input: value,
-        includedPrimaryTypes: PROJECT_ADDRESS_AUTOCOMPLETE_TYPES,
+        // Do not set a primary-type filter here: project addresses often start
+        // from named buildings, campuses, landmarks, businesses, and POIs.
         sessionToken: sessionTokenRef.current,
       })
         .then((result) => {
-          if (!cancelled) replaceSuggestions((result.suggestions ?? []).filter((suggestion) => Boolean(suggestion.placePrediction)));
+          if (cancelled) return;
+          const nextSuggestions = (result.suggestions ?? []).filter((suggestion) => Boolean(suggestion.placePrediction));
+          replaceSuggestions(nextSuggestions);
+          if (nextSuggestions.length === 0) {
+            dispatchAutocomplete({ type: "setStatus", status: "No Google address suggestions found" });
+          }
         })
         .catch(() => {
           if (!cancelled) dispatchAutocomplete({ type: "suggestionsUnavailable", message: "Google suggestions unavailable" });
@@ -297,7 +328,7 @@ export function ProjectAddressAutocomplete({
       cancelled = true;
       window.clearTimeout(timeout);
     };
-  }, [placesLibrary, readOnly, replaceSuggestions, value]);
+  }, [openPopup, placesLibrary, readOnly, replaceSuggestions, trimmedValue, value]);
 
   useEffect(() => {
     if (!open || activeIndex < 0) return;
@@ -305,6 +336,22 @@ export function ProjectAddressAutocomplete({
     const item = panel?.querySelector<HTMLElement>(`[data-address-suggestion-index="${activeIndex}"]`);
     if (panel && item) scrollPopupItemIntoView(panel, item);
   }, [activeIndex, open, panelRef, position]);
+
+  const addressPopupMessage =
+    suggestions.length > 0 || !canUseGooglePlaces
+      ? ""
+      : status ||
+        (!placesLibrary && shouldLoadPlaces
+          ? "Loading Google address search..."
+          : trimmedValue.length < 3
+            ? "Type at least 3 characters to search Google Maps."
+            : isLoadingSuggestions
+              ? "Searching Google Maps..."
+              : "No Google address suggestions found. You can keep typing this address.");
+  const showAddressPopup =
+    canUseGooglePlaces &&
+    open &&
+    (suggestions.length > 0 || addressPopupMessage.length > 0);
 
   function handleSuggestionSelect(suggestion: GoogleAutocompleteSuggestion) {
     const prediction = suggestion.placePrediction;
@@ -323,6 +370,8 @@ export function ProjectAddressAutocomplete({
           return;
         }
 
+        selectedAddressRef.current = addressText;
+        suppressNextEmptyPopupRef.current = true;
         onValueChange(addressText);
         replaceSuggestions([]);
         sessionTokenRef.current = placesLibrary ? new placesLibrary.AutocompleteSessionToken() : null;
@@ -392,7 +441,7 @@ export function ProjectAddressAutocomplete({
         onFocus={() => {
           requestPlacesLoad();
           isFocusedRef.current = true;
-          if (suggestions.length > 0) openPopup();
+          if (canUseGooglePlaces) openPopup();
         }}
         onBlur={(event) => {
           const relatedTarget = event.relatedTarget as Node | null;
@@ -402,19 +451,22 @@ export function ProjectAddressAutocomplete({
         }}
         onClick={() => {
           requestPlacesLoad();
-          if (suggestions.length > 0) openPopup();
+          if (canUseGooglePlaces) openPopup();
         }}
         onKeyDown={handleInputKeyDown}
         onChange={(event) => {
           requestPlacesLoad();
+          selectedAddressRef.current = null;
+          suppressNextEmptyPopupRef.current = false;
           dispatchAutocomplete({ type: "setStatus", status: "" });
+          if (canUseGooglePlaces) openPopup();
           onValueChange(event.currentTarget.value);
         }}
-        placeholder="Search or type project address"
+        placeholder={canUseGooglePlaces ? "Search Google Maps or type project address" : "Type project address"}
         readOnly={readOnly}
         aria-readonly={readOnly ? "true" : undefined}
         aria-autocomplete={canUseGooglePlaces ? "list" : undefined}
-        aria-expanded={canUseGooglePlaces ? open && suggestions.length > 0 : undefined}
+        aria-expanded={canUseGooglePlaces ? showAddressPopup : undefined}
         aria-controls={canUseGooglePlaces ? listboxId : undefined}
         aria-activedescendant={activeOptionId}
         className={cn(
@@ -423,7 +475,7 @@ export function ProjectAddressAutocomplete({
           readOnly ? "cursor-default bg-transparent hover:border-transparent hover:bg-transparent focus:border-transparent focus:bg-transparent focus:ring-0" : "",
         )}
       />
-      {suggestions.length > 0 ? (
+      {showAddressPopup ? (
         <DropdownPopupPanel
           id={listboxId}
           role="listbox"
@@ -434,7 +486,7 @@ export function ProjectAddressAutocomplete({
           panelRef={panelRef}
           className="w-[min(28rem,calc(100vw-1rem))] border-white/70 bg-white/92 p-1.5 shadow-[0_14px_36px_rgba(17,17,17,0.13)] backdrop-blur-[10px]"
         >
-          {suggestions.map((suggestion, index) => {
+          {suggestions.length > 0 ? suggestions.map((suggestion, index) => {
             const label = suggestionLabel(suggestion);
             const { primary, secondary } = splitSuggestionLabel(label);
             const isActive = index === activeIndex;
@@ -461,7 +513,17 @@ export function ProjectAddressAutocomplete({
                 ) : null}
               </button>
             );
-          })}
+          }) : (
+            <div
+              role="option"
+              aria-selected="false"
+              aria-disabled="true"
+              data-address-suggestions-status=""
+              className="min-h-9 rounded-xs px-2 py-1.5 text-[10px] font-medium leading-4 text-tertiary"
+            >
+              {addressPopupMessage}
+            </div>
+          )}
         </DropdownPopupPanel>
       ) : null}
       <output className="sr-only" aria-live="polite">

@@ -65,7 +65,7 @@ export function WorkshopBreadcrumbs({ breadcrumbs, projectId, className }: Works
           ) : (
             <span className="truncate">{item.label}</span>
           )}
-          {index < resolvedBreadcrumbs.length - 1 ? <span className="text-divider" aria-hidden="true">/</span> : null}
+          {index < resolvedBreadcrumbs.length - 1 ? <span className="text-current" aria-hidden="true">/</span> : null}
         </span>
       ))}
     </nav>

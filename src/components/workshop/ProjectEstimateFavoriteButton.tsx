@@ -146,7 +146,12 @@ export function ProjectEstimateFavoriteButton({
         onClick={toggleFavorite}
         title={currentErrorMessage ?? (isFavorite ? "Remove from favorite estimate sheets" : "Add to favorite estimate sheets")}
       >
-        <Star size={12} weight="regular" aria-hidden="true" />
+        <Star
+          size={12}
+          weight={isFavorite ? "fill" : "regular"}
+          data-favorite-icon-state={isFavorite ? "filled" : "outline"}
+          aria-hidden="true"
+        />
       </button>
       {currentErrorMessage ? <span className="sr-only">{currentErrorMessage}</span> : null}
     </>

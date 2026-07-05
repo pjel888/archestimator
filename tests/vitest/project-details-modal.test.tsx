@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -247,7 +247,8 @@ describe("ProjectDetailsModal", () => {
     fireEvent.focus(locationInput);
     fireEvent.change(locationInput, { target: { value: "Makati City" } });
 
-    await screen.findByRole("listbox", { name: "Project address suggestions" });
+    const suggestions = await screen.findByRole("listbox", { name: "Project address suggestions" });
+    await within(suggestions).findByText("Makati City");
     fireEvent.keyDown(locationInput, { key: "Enter" });
 
     await waitFor(() => {

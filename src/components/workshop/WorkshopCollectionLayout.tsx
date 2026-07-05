@@ -15,7 +15,9 @@ type WorkshopCollectionLayoutProps = {
   onFilter?: () => void;
   onGroup?: () => void;
   onExpandAll?: () => void;
+  expandAllDisabled?: boolean;
   onCollapseAll?: () => void;
+  collapseAllDisabled?: boolean;
   leadingActions?: HeaderIconToolbarAddAction[];
   leadingActionsLabel?: string;
   filterSlot?: ReactNode;
@@ -38,7 +40,9 @@ export function WorkshopCollectionLayout({
   onFilter,
   onGroup,
   onExpandAll,
+  expandAllDisabled,
   onCollapseAll,
+  collapseAllDisabled,
   leadingActions,
   leadingActionsLabel,
   filterSlot,
@@ -64,7 +68,9 @@ export function WorkshopCollectionLayout({
         onFilter={onFilter}
         onGroup={onGroup}
         onExpandAll={onExpandAll}
+        expandAllDisabled={expandAllDisabled}
         onCollapseAll={onCollapseAll}
+        collapseAllDisabled={collapseAllDisabled}
         leadingActions={leadingActions}
         leadingActionsLabel={leadingActionsLabel}
         filterSlot={filterSlot}

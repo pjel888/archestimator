@@ -82,6 +82,37 @@ describe("DropdownSelect", () => {
     expect(screen.getByTestId("list-icon")).toBeInTheDocument();
   });
 
+  it("supports a contextual icon-only trigger title and a trigger-specific icon", () => {
+    const groupOptions: DropdownSelectOption[] = [
+      {
+        value: "updated_at",
+        label: "Last updated",
+        icon: <span data-testid="field-icon" />,
+        triggerIcon: <span data-testid="group-trigger-icon" />,
+      },
+    ];
+
+    render(
+      <DropdownSelect
+        options={groupOptions}
+        value="updated_at"
+        triggerDisplay="icon"
+        triggerTitlePrefix="Group by"
+        aria-label="Group by"
+      />,
+    );
+
+    const combobox = trigger("Group by");
+    expect(combobox).toHaveAttribute("title", "Group by: Last updated");
+    expect(screen.getByTestId("group-trigger-icon")).toBeInTheDocument();
+    expect(screen.queryByTestId("field-icon")).not.toBeInTheDocument();
+
+    fireEvent.click(combobox);
+
+    expect(screen.getByRole("option", { name: "Last updated" })).toBeInTheDocument();
+    expect(screen.getByTestId("field-icon")).toBeInTheDocument();
+  });
+
   it("opens with the selected option active (not the first) and keeps DOM focus on the trigger", () => {
     render(
       <DropdownSelect options={MODE_OPTIONS} defaultValue="discount" aria-label="Adjustment type" />,

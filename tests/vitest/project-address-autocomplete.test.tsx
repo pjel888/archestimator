@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -119,6 +119,20 @@ describe("ProjectAddressAutocomplete", () => {
     expect(placesMocks.loadGoogleMapsApi).not.toHaveBeenCalled();
   });
 
+  it("opens a Google search dropdown before suggestions load", () => {
+    render(<AddressHarness onPlaceSelect={vi.fn()} />);
+
+    const input = screen.getByRole("combobox");
+    fireEvent.focus(input);
+
+    const listbox = screen.getByRole("listbox", { name: "Project address suggestions" });
+    expect(input).toHaveAttribute("aria-expanded", "true");
+    expect(input).toHaveAttribute("aria-controls", listbox.id);
+    expect(
+      within(listbox).getByText(/Google address search|3 characters/),
+    ).toBeInTheDocument();
+  });
+
   it("renders Google suggestions in the shared fixed popup layer and selects by keyboard", async () => {
     const onPlaceSelect = vi.fn(async () => undefined);
     render(<AddressHarness onPlaceSelect={onPlaceSelect} />);
@@ -131,18 +145,20 @@ describe("ProjectAddressAutocomplete", () => {
     fireEvent.change(input, { target: { value: "Quezon City" } });
 
     const listbox = await screen.findByRole("listbox", { name: "Project address suggestions" });
+    await waitFor(() =>
+      expect(placesMocks.fetchAutocompleteSuggestions).toHaveBeenCalledWith(
+        expect.objectContaining({
+          input: "Quezon City",
+        }),
+      ),
+    );
+    expect(placesMocks.fetchAutocompleteSuggestions.mock.calls[0]?.[0]).not.toHaveProperty("includedPrimaryTypes");
     expect(placesMocks.loadGoogleMapsApi).toHaveBeenCalledWith("test-google-browser-key");
     expect(placesMocks.importLibrary).toHaveBeenCalledWith("places");
-    expect(placesMocks.fetchAutocompleteSuggestions).toHaveBeenCalledWith(
-      expect.objectContaining({
-        input: "Quezon City",
-        includedPrimaryTypes: ["street_address", "route", "locality", "sublocality", "neighborhood"],
-      }),
-    );
     expect(listbox).toHaveClass("fixed", "z-[1050]");
     expect(input).toHaveAttribute("aria-expanded", "true");
     expect(input).toHaveAttribute("aria-controls", listbox.id);
-    expect(screen.getByText("Quezon City")).toBeInTheDocument();
+    expect(await screen.findByText("Quezon City")).toBeInTheDocument();
     expect(screen.getByText("Metro Manila, Philippines")).toBeInTheDocument();
 
     fireEvent.keyDown(input, { key: "Enter" });
@@ -158,5 +174,21 @@ describe("ProjectAddressAutocomplete", () => {
     });
     expect(input).toHaveValue("Quezon City, Metro Manila, Philippines");
     expect(screen.queryByRole("listbox", { name: "Project address suggestions" })).not.toBeInTheDocument();
+  });
+
+  it("keeps the dropdown visible when Google returns no address suggestions", async () => {
+    placesMocks.fetchAutocompleteSuggestions.mockResolvedValueOnce({ suggestions: [] });
+    render(<AddressHarness onPlaceSelect={vi.fn()} />);
+
+    const input = screen.getByRole("combobox");
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "Unlisted address" } });
+
+    expect(await screen.findByRole("listbox", { name: "Project address suggestions" })).toBeInTheDocument();
+    await waitFor(() => {
+      const listbox = screen.getByRole("listbox", { name: "Project address suggestions" });
+      expect(within(listbox).getByText("No Google address suggestions found")).toBeInTheDocument();
+    });
+    expect(input).toHaveValue("Unlisted address");
   });
 });

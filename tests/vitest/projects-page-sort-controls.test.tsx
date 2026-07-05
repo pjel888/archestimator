@@ -152,10 +152,10 @@ describe("ProjectsPageClient sort controls", () => {
       />,
     );
 
-    expect(screen.getByRole("combobox", { name: "View" })).toHaveAttribute("title", "Large");
-    expect(screen.getByRole("combobox", { name: "Group by" })).toHaveAttribute("title", "No grouping");
-    expect(screen.getByRole("combobox", { name: "Sort field" })).toHaveAttribute("title", "Last updated");
-    expect(screen.getByRole("combobox", { name: "Sort direction" })).toHaveAttribute("title", "Newest first");
+    expect(screen.getByRole("combobox", { name: "View" })).toHaveAttribute("title", "View: Large");
+    expect(screen.getByRole("combobox", { name: "Group by" })).toHaveAttribute("title", "Group by: No grouping");
+    expect(screen.getByRole("combobox", { name: "Sort field" })).toHaveAttribute("title", "Sort by: Last updated");
+    expect(screen.getByRole("combobox", { name: "Sort direction" })).toHaveAttribute("title", "Sort order: Newest first");
     for (const controlName of ["View", "Group by", "Sort field", "Sort direction"]) {
       const control = screen.getByRole("combobox", { name: controlName });
       expect(control).toHaveClass("border-0", "gap-1.5", "px-1.5");
@@ -187,14 +187,15 @@ describe("ProjectsPageClient sort controls", () => {
 
     expect(projectDateGroupLabels()).toEqual(["2026 · February"]);
     expect(screen.getByLabelText("2026 · February")).toBeInTheDocument();
-    expect(screen.getByText("2026 · February")).toHaveClass("border-x", "border-b", "text-brand-orange-dark");
-    expect(screen.getByText("2026 · February").getAttribute("style")).toContain(
+    const dateGroupLabel = screen.getByLabelText("2026 · February").querySelector("[data-project-group-label]");
+    expect(dateGroupLabel).toHaveClass("border-x", "border-b", "text-brand-orange-dark");
+    expect(dateGroupLabel?.getAttribute("style")).toContain(
       "color-mix(in srgb, var(--brand-orange) 25%, white)",
     );
-    expect(screen.getByText("2026 · February").getAttribute("style")).toContain(
+    expect(dateGroupLabel?.getAttribute("style")).toContain(
       "color-mix(in srgb, var(--brand-orange) 35%, white)",
     );
-    expect(screen.getByText("2026 · February")).not.toHaveClass("bg-hairline");
+    expect(dateGroupLabel).not.toHaveClass("bg-hairline");
     expect(screen.getByLabelText("2026 · February").querySelector("[data-project-group-rule]")?.getAttribute("style")).toContain(
       "color-mix(in srgb, var(--brand-orange) 35%, white)",
     );
@@ -223,7 +224,7 @@ describe("ProjectsPageClient sort controls", () => {
     expect(screen.getByLabelText("2026 · March")).toBeInTheDocument();
 
     await selectSortDirection(user, "Oldest first");
-    expect(screen.getByRole("combobox", { name: "Sort direction" })).toHaveAttribute("title", "Oldest first");
+    expect(screen.getByRole("combobox", { name: "Sort direction" })).toHaveAttribute("title", "Sort order: Oldest first");
     expect(liveProjectNames()).toEqual(["Older", "Middle", "Newer"]);
     expect(projectDateGroupLabels()).toEqual([
       "2026 · January",
@@ -319,7 +320,7 @@ describe("ProjectsPageClient sort controls", () => {
 
     await selectSortField(user, "Client");
     await selectGroupBy(user, "Client");
-    expect(screen.getByRole("combobox", { name: "Sort direction" })).toHaveAttribute("title", "A to Z");
+    expect(screen.getByRole("combobox", { name: "Sort direction" })).toHaveAttribute("title", "Sort order: A to Z");
     expect(liveProjectNames()).toEqual(["project 2", "Project 10", "Project 1"]);
     expect(projectDateGroupLabels()).toEqual(["alpha", "Beta", "No client yet"]);
     expect(screen.getByLabelText("alpha").querySelector("[data-project-group-label]")).toHaveClass(

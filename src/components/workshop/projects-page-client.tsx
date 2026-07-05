@@ -8,12 +8,14 @@ import {
   useEffect,
   useMemo,
   useReducer,
+  useRef,
   useState,
   useSyncExternalStore,
   useTransition,
   type DragEvent,
   type ReactNode,
 } from "react";
+import { flushSync } from "react-dom";
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import {
@@ -23,6 +25,7 @@ import {
   FolderPlus,
   FolderSimple,
   GridFour,
+  ListBullets,
   MagnifyingGlass,
   Rows,
   SortAscending,
@@ -79,6 +82,7 @@ import { filterMapBy } from "@/lib/util/array";
 import type { CollaborationRole } from "@/lib/collaboration/types";
 import type { ProjectPublicationListSummary } from "@/lib/publication/types";
 import type {
+  ProjectCardEstimateSheetSummary,
   ProjectFavoriteEstimateSheetSummary,
   ProjectGroupSummary,
   WorkshopPendingInviteSummary,
@@ -128,6 +132,7 @@ export type ProjectListItem = {
   publicationSummary?: ProjectPublicationListSummary | null;
   sharedEstimateCount?: number;
   favoriteEstimateSheets?: ProjectFavoriteEstimateSheetSummary[];
+  estimateSheets?: ProjectCardEstimateSheetSummary[];
   // Part 7c (Project Groups): which user-group this project belongs to (null/absent = Ungrouped).
   // Optional so synthesized items (normalizeProjectListItem) stay valid; `?? null` collapses undefined.
   groupId?: string | null;
@@ -208,6 +213,9 @@ const VIEW_SELECT_OPTIONS: DropdownSelectOption[] =
     label,
     icon: <Icon size={12} weight="regular" aria-hidden="true" />,
   }));
+const GROUP_BY_TRIGGER_ICON = (
+  <ListBullets size={12} weight="regular" aria-hidden="true" />
+);
 const PROJECT_SORT_FIELD_OPTIONS = [
   {
     value: "updated_at",
@@ -246,6 +254,7 @@ const PROJECT_GROUP_BY_OPTIONS = [
   {
     value: "updated_at",
     label: "Last updated",
+    triggerIcon: GROUP_BY_TRIGGER_ICON,
     icon: (
       <ClockCounterClockwise size={12} weight="regular" aria-hidden="true" />
     ),
@@ -253,11 +262,13 @@ const PROJECT_GROUP_BY_OPTIONS = [
   {
     value: "created_at",
     label: "Date created",
+    triggerIcon: GROUP_BY_TRIGGER_ICON,
     icon: <CalendarBlank size={12} weight="regular" aria-hidden="true" />,
   },
   {
     value: "client_name",
     label: "Client",
+    triggerIcon: GROUP_BY_TRIGGER_ICON,
     icon: <User size={12} weight="regular" aria-hidden="true" />,
   },
 ] as const satisfies readonly DropdownSelectOption[];
@@ -510,6 +521,7 @@ function normalizeProjectListItem(
     publicationSummary: null,
     sharedEstimateCount: 0,
     favoriteEstimateSheets: [],
+    estimateSheets: [],
   };
 }
 
@@ -524,6 +536,7 @@ function optimisticProjectSnapshotToListItem(
     publicationSummary: null,
     sharedEstimateCount: 0,
     favoriteEstimateSheets: [],
+    estimateSheets: [],
     groupId: null,
     isOptimisticCreate: true,
     setupStatus: snapshot.setupStatus,
@@ -1236,6 +1249,7 @@ const ProjectCardRow = memo(function ProjectCardRow({
       publicationSummary={item.publicationSummary}
       sharedEstimateCount={item.sharedEstimateCount}
       favoriteEstimateSheets={item.favoriteEstimateSheets}
+      estimateSheets={item.estimateSheets}
       viewMode={viewMode}
       isFavorite={isFavorite}
       favoriteBusy={favoriteBusy}
@@ -1464,6 +1478,7 @@ export function ProjectsPageClient({
     targetId: string;
     position: ProjectGroupDropPosition;
   } | null>(null);
+  const groupReorderPersistenceFrameRef = useRef<number | null>(null);
   const [draggingProjectCardId, setDraggingProjectCardId] = useState<
     string | null
   >(null);
@@ -1548,6 +1563,20 @@ export function ProjectsPageClient({
       areStringArraysEqual(reconciledIds, serverIds) ? null : reconciledIds,
     );
   }, [optimisticGroupOrderIds, projectGroups, setOptimisticGroupOrderIds]);
+
+  useEffect(
+    () => () => {
+      const frameId = groupReorderPersistenceFrameRef.current;
+      if (
+        frameId !== null &&
+        typeof window !== "undefined" &&
+        typeof window.cancelAnimationFrame === "function"
+      ) {
+        window.cancelAnimationFrame(frameId);
+      }
+    },
+    [],
+  );
 
   const favoriteIds = useMemo(() => {
     const ids = new Set(favoriteProjectIds);
@@ -1711,6 +1740,21 @@ export function ProjectsPageClient({
     ],
   );
   const isUserGroupOrganize = groupBy === "group";
+  const activeGroupedProjectSectionKeys = useMemo(() => {
+    if (hasNoSearchResults) return [];
+    if (isUserGroupOrganize)
+      return groupedByUserGroup.map((group) => group.key);
+    if (shouldGroupProjects)
+      return groupedLiveProjects.map((group) => group.key);
+    return [];
+  }, [
+    groupedByUserGroup,
+    groupedLiveProjects,
+    hasNoSearchResults,
+    isUserGroupOrganize,
+    shouldGroupProjects,
+  ]);
+  const hasGroupedProjectSections = activeGroupedProjectSectionKeys.length > 0;
   const selectableDisplayProjectIds = useMemo(
     () =>
       filterMapBy(
@@ -1931,6 +1975,14 @@ export function ProjectsPageClient({
     });
   }
 
+  function expandAllProjectGroups() {
+    setCollapsedGroupKeys(new Set());
+  }
+
+  function collapseAllProjectGroups() {
+    setCollapsedGroupKeys(new Set(activeGroupedProjectSectionKeys));
+  }
+
   function handleCreateGroup(name: string, accentId: GroupAccentId | null) {
     if (visibleProjectGroups.length >= MAX_PROJECT_GROUPS) return;
     const optimisticId = createOptimisticProjectGroupId();
@@ -2115,9 +2167,11 @@ export function ProjectsPageClient({
     event: DragEvent<HTMLElement>,
   ) {
     const draggedId = readDraggedProjectGroupId(event);
-    setDraggingProjectGroupId(null);
-    setGroupDropTarget(null);
-    if (!draggedId || draggedId === targetId) return;
+    if (!draggedId || draggedId === targetId) {
+      setDraggingProjectGroupId(null);
+      setGroupDropTarget(null);
+      return;
+    }
     event.preventDefault();
     const position = getProjectGroupDropPosition(event);
     const previousOrderIds: string[] = [];
@@ -2132,20 +2186,48 @@ export function ProjectsPageClient({
       targetId,
       position,
     );
-    if (areStringArraysEqual(previousOrderIds, nextOrderIds)) return;
+    if (areStringArraysEqual(previousOrderIds, nextOrderIds)) {
+      setDraggingProjectGroupId(null);
+      setGroupDropTarget(null);
+      return;
+    }
 
-    setOptimisticGroupOrderIds(nextOrderIds);
-    startTransition(() => {
-      void reorderProjectGroups({ orderedGroupIds: nextOrderIds })
-        .then(() => router.refresh())
-        .catch(() => {
-          setOptimisticGroupOrderIds(previousOrderIds);
-          toast({
-            message: "Could not reorder the groups.",
-            tone: "error",
-          });
-        });
+    flushSync(() => {
+      setDraggingProjectGroupId(null);
+      setGroupDropTarget(null);
+      setOptimisticGroupOrderIds(nextOrderIds);
     });
+    const persistGroupOrder = () => {
+      groupReorderPersistenceFrameRef.current = null;
+      startTransition(() => {
+        void reorderProjectGroups({ orderedGroupIds: nextOrderIds })
+          .then(() => router.refresh())
+          .catch(() => {
+            setOptimisticGroupOrderIds(previousOrderIds);
+            toast({
+              message: "Could not reorder the groups.",
+              tone: "error",
+            });
+          });
+      });
+    };
+    const pendingFrameId = groupReorderPersistenceFrameRef.current;
+    if (
+      pendingFrameId !== null &&
+      typeof window !== "undefined" &&
+      typeof window.cancelAnimationFrame === "function"
+    ) {
+      window.cancelAnimationFrame(pendingFrameId);
+    }
+    if (
+      typeof window !== "undefined" &&
+      typeof window.requestAnimationFrame === "function"
+    ) {
+      groupReorderPersistenceFrameRef.current =
+        window.requestAnimationFrame(persistGroupOrder);
+      return;
+    }
+    persistGroupOrder();
   }
 
   function handleGroupReorderDragEnd() {
@@ -2781,6 +2863,10 @@ export function ProjectsPageClient({
       onSearchChange={setSearchQuery}
       toolbarLabel="Project tools"
       toolbarPrefix="projects"
+      onExpandAll={expandAllProjectGroups}
+      expandAllDisabled={!hasGroupedProjectSections}
+      onCollapseAll={collapseAllProjectGroups}
+      collapseAllDisabled={!hasGroupedProjectSections}
       filterSlot={
         <div className="flex min-w-0 flex-nowrap items-center gap-1.5">
           <DropdownSelect
@@ -2792,6 +2878,7 @@ export function ProjectsPageClient({
             }
             variant="boxed"
             triggerDisplay="icon"
+            triggerTitlePrefix="View"
             className={PROJECT_TOOLBAR_SELECT_TRIGGER_CLASS}
           />
           <span
@@ -2806,6 +2893,7 @@ export function ProjectsPageClient({
             onValueChange={handleProjectGroupByChange}
             variant="boxed"
             triggerDisplay="icon"
+            triggerTitlePrefix="Group by"
             className={PROJECT_TOOLBAR_SELECT_TRIGGER_CLASS}
           />
           <DropdownSelect
@@ -2815,6 +2903,7 @@ export function ProjectsPageClient({
             onValueChange={handleSortFieldChange}
             variant="boxed"
             triggerDisplay="icon"
+            triggerTitlePrefix="Sort by"
             className={PROJECT_TOOLBAR_SELECT_TRIGGER_CLASS}
           />
           <DropdownSelect
@@ -2824,6 +2913,7 @@ export function ProjectsPageClient({
             onValueChange={handleSortDirectionChange}
             variant="boxed"
             triggerDisplay="icon"
+            triggerTitlePrefix="Sort order"
             className={PROJECT_TOOLBAR_SELECT_TRIGGER_CLASS}
           />
         </div>
@@ -2970,6 +3060,8 @@ export function ProjectsPageClient({
                     getCardNode={renderLiveProjectCard}
                     layoutClassName={projectLayoutClassName}
                     flagLayoutClassName={projectDateFlagLayoutClassName}
+                    collapsed={collapsedGroupKeys.has(group.key)}
+                    onToggleCollapse={toggleGroupCollapsed}
                     legacyHeaderDataAttr={
                       group.kind === "date"
                         ? "data-project-date-group-label"

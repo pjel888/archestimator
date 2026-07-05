@@ -222,6 +222,7 @@ describe("project estimates table inline editing", () => {
     expect(screen.queryByLabelText("View version history for Original Estimate")).not.toBeInTheDocument();
     expect(selectInput).toHaveClass("cursor-pointer");
     expect(favoriteButton).toHaveClass("cursor-pointer");
+    expect(favoriteButton.querySelector("svg")).toHaveAttribute("data-favorite-icon-state", "outline");
     expect(deleteButton).toHaveClass("cursor-pointer");
     expect(duplicateButton).toHaveClass("cursor-pointer");
     expect(openLink).toHaveClass("cursor-pointer");
@@ -230,12 +231,37 @@ describe("project estimates table inline editing", () => {
 
     expect(favoriteButton).toHaveAttribute("aria-pressed", "true");
     expect(favoriteButton).toHaveClass("text-brand-orange");
+    expect(favoriteButton.querySelector("svg")).toHaveAttribute("data-favorite-icon-state", "filled");
     expect(favoriteButton).not.toHaveClass("bg-surface-muted", "hover:bg-surface-muted");
     await waitFor(() => expect(workshopActionMocks.setEstimateFavorite).toHaveBeenCalledTimes(1));
     expect(workshopActionMocks.setEstimateFavorite).toHaveBeenCalledWith({
       estimateId: "estimate-1",
       favorite: true,
     });
+  });
+
+  it("uses the floating bottom dock for selected estimate bulk actions", async () => {
+    const user = userEvent.setup();
+
+    renderTable();
+
+    await user.click(screen.getByRole("checkbox", { name: "Select Original Estimate" }));
+
+    const toolbar = screen.getByLabelText("Bulk action toolbar");
+    expect(toolbar).toHaveClass("pointer-events-none", "fixed", "bottom-[calc(3.5rem+env(safe-area-inset-bottom))]");
+    expect(toolbar).not.toHaveClass("shrink-0", "border-b", "bg-surfaceMuted");
+    expect(toolbar.querySelector("[data-bulk-action-dock-surface]")).not.toBeNull();
+    expect(toolbar.querySelector("[data-bulk-action-count-floor]")).toHaveTextContent("1 selected");
+  });
+
+  it("renders a filled star for favorited estimate rows", () => {
+    renderTable(makeEstimate({ isFavorite: true, favoriteCreatedAt: "2026-06-02T00:00:00.000Z" }));
+
+    const favoriteButton = screen.getByRole("button", { name: "Remove Original Estimate from favorite estimate sheets" });
+
+    expect(favoriteButton).toHaveAttribute("aria-pressed", "true");
+    expect(favoriteButton).toHaveClass("text-brand-orange");
+    expect(favoriteButton.querySelector("svg")).toHaveAttribute("data-favorite-icon-state", "filled");
   });
 
   it("keeps editable cells borderless on hover and tints read-only cells", () => {

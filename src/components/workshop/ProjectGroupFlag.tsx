@@ -75,7 +75,7 @@ export function ProjectGroupFlag({
   const [draftName, setDraftName] = useState(group.label);
   const isGroupMode = mode === "group";
   const isVirtual = Boolean(group.isVirtual);
-  const canCollapse = isGroupMode && typeof onToggleCollapse === "function";
+  const canCollapse = typeof onToggleCollapse === "function";
   const canRename = isGroupMode && !isVirtual && typeof onRenameGroup === "function";
   const hasActionMenu =
     isGroupMode &&
@@ -96,10 +96,6 @@ export function ProjectGroupFlag({
 
   // Verbatim legacy date attribute carried on the <h3> label.
   const labelLegacyAttr = legacyHeaderDataAttr ? { [legacyHeaderDataAttr]: "" } : {};
-
-  useEffect(() => {
-    if (!editingName) setDraftName(group.label);
-  }, [editingName, group.label]);
 
   useEffect(() => {
     if (!editingName) return;
@@ -262,7 +258,8 @@ export function ProjectGroupFlag({
       }}
       {...labelLegacyAttr}
     >
-      {group.label}
+      {caretButton}
+      <span className="min-w-0 flex-1 truncate">{group.label}</span>
     </h3>
   );
 

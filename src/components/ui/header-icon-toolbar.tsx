@@ -41,7 +41,9 @@ type HeaderIconToolbarProps = {
   onFilter?: () => void;
   onGroup?: () => void;
   onExpandAll?: () => void;
+  expandAllDisabled?: boolean;
   onCollapseAll?: () => void;
+  collapseAllDisabled?: boolean;
   startActions?: HeaderIconToolbarAddAction[];
   startActionsLabel?: string;
   leadingActions?: HeaderIconToolbarAddAction[];
@@ -66,7 +68,9 @@ export function HeaderIconToolbar({
   onFilter,
   onGroup,
   onExpandAll,
+  expandAllDisabled = false,
   onCollapseAll,
+  collapseAllDisabled = false,
   startActions = EMPTY_HEADER_ACTIONS,
   startActionsLabel,
   leadingActions = EMPTY_HEADER_ACTIONS,
@@ -184,6 +188,7 @@ export function HeaderIconToolbar({
         <ToolbarIconButton
           label={`Expand all ${labelPrefix}`}
           onClick={onExpandAll}
+          disabled={expandAllDisabled}
         >
           <CaretDoubleDown size={12} weight="regular" aria-hidden="true" />
         </ToolbarIconButton>
@@ -192,6 +197,7 @@ export function HeaderIconToolbar({
         <ToolbarIconButton
           label={`Collapse all ${labelPrefix}`}
           onClick={onCollapseAll}
+          disabled={collapseAllDisabled}
         >
           <CaretDoubleUp size={12} weight="regular" aria-hidden="true" />
         </ToolbarIconButton>

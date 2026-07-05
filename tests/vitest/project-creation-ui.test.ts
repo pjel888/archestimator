@@ -152,8 +152,8 @@ describe("project creation UI governance", () => {
     );
     expect(projectCardSource).toContain("line-clamp-2");
     expect(projectCardSource).toContain("data-project-card-hover-reveal");
-    expect(projectCardThumbnailReveal).toContain('<Star size={10} weight="fill"');
-    expect(projectCardThumbnailReveal).not.toContain('<Star size={10} weight="regular"');
+    expect(projectCardThumbnailReveal).toContain('<FileText size={10} weight="regular"');
+    expect(projectCardThumbnailReveal).not.toContain('<Star size={10}');
     expect(projectCardSource).toContain("aria-pressed={isFavorite}");
     expect(projectCardSource).toContain('weight="regular"');
     expect(projectCardSource).toContain(

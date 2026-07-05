@@ -108,7 +108,7 @@ describe("ProjectsPageClient group-by control", () => {
 
   it("defaults to no grouping", () => {
     renderClient(<ProjectsPageClient projects={[item({ id: "p1", name: "A", updated_at: "2026-02-01T00:00:00.000Z" })]} />);
-    expect(screen.getByRole("combobox", { name: "Group by" })).toHaveAttribute("title", "No grouping");
+    expect(screen.getByRole("combobox", { name: "Group by" })).toHaveAttribute("title", "Group by: No grouping");
     expect(screen.queryByLabelText("2026 · February")).not.toBeInTheDocument();
     expect(within(screen.getByLabelText("Live projects")).getAllByRole("article")).toHaveLength(1);
   });
@@ -148,7 +148,7 @@ describe("ProjectsPageClient group-by control", () => {
     expect(window.localStorage.getItem("archestimator_projects_group_by_v1")).toBe("updated_at");
     unmount();
     renderClient(<ProjectsPageClient projects={[item({ id: "p1", updated_at: "2026-02-01T00:00:00.000Z" })]} />);
-    expect(screen.getByRole("combobox", { name: "Group by" })).toHaveAttribute("title", "Last updated");
+    expect(screen.getByRole("combobox", { name: "Group by" })).toHaveAttribute("title", "Group by: Last updated");
   });
 
   it("keeps Sort visible and active in every organize mode", async () => {
@@ -175,7 +175,7 @@ describe("ProjectsPageClient group-by control", () => {
     expect(screen.getByLabelText("Pipeline")).toBeInTheDocument();
     expect(within(screen.getByLabelText("Pipeline")).getByText("Owned")).toBeInTheDocument();
     expect(screen.queryByText("Shared")).not.toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: "Group by" })).toHaveAttribute("title", "Manual group order");
+    expect(screen.getByRole("combobox", { name: "Group by" })).toHaveAttribute("title", "Group by: Manual group order");
   });
 
   it("preserves selectedProjectIds across organize-mode switches (selection is keyed by id)", async () => {

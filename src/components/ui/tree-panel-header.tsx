@@ -28,7 +28,9 @@ export type TreePanelHeaderProps = {
   onFilter?: () => void;
   onGroup?: () => void;
   onExpandAll?: () => void;
+  expandAllDisabled?: boolean;
   onCollapseAll?: () => void;
+  collapseAllDisabled?: boolean;
   /** Extra start-slot actions rendered after the built-in search toggle. */
   startActions?: HeaderIconToolbarAddAction[];
   startActionsLabel?: string;
@@ -97,7 +99,9 @@ export function TreePanelHeader({
     onFilter,
     onGroup,
     onExpandAll,
+    expandAllDisabled,
     onCollapseAll,
+    collapseAllDisabled,
     startActions = EMPTY_HEADER_ACTIONS,
     startActionsLabel,
     leadingActions,
@@ -223,7 +227,9 @@ export function TreePanelHeader({
           onFilter={onFilter}
           onGroup={onGroup}
           onExpandAll={onExpandAll}
+          expandAllDisabled={expandAllDisabled}
           onCollapseAll={onCollapseAll}
+          collapseAllDisabled={collapseAllDisabled}
           startActions={toolbarStartActions}
           startActionsLabel={startActionsLabel ?? `${labelPrefix} search`}
           leadingActions={leadingActions}

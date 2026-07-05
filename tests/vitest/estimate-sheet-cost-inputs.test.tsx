@@ -135,6 +135,7 @@ describe("estimate shell chrome", () => {
     expect(within(breadcrumbs).getByText("Modern Bungalow")).toBeInTheDocument();
     expect(within(breadcrumbs).getByText("Estimates")).toBeInTheDocument();
     expect(within(breadcrumbs).queryByText("Modern Bungalow - 001")).not.toBeInTheDocument();
+    expect(within(breadcrumbs).getAllByText("/").every((separator) => separator.className.includes("text-current"))).toBe(true);
     expect(screen.getByRole("banner")).toContainElement(breadcrumbs);
     expect(screen.getByRole("contentinfo")).not.toContainElement(breadcrumbs);
   });

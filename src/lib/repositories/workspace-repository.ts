@@ -20,7 +20,10 @@ import { isUuid } from "@/lib/ids";
 import { normalizeEstimateTreeNodeKind, selectFirstEstimateNodeIds } from "@/lib/estimates/tree-hierarchy";
 import { traced } from "@/lib/perf/server-timing";
 import { normalizeEstimateRecord, type EstimateRecordWithLegacy } from "@/lib/repositories/estimate-schema-compat";
-import { listProjectEstimateSheetsForProject, type ProjectEstimateSheetSummary } from "@/lib/repositories/project-estimate-sheets-repository";
+import {
+  listProjectEstimateSheetsForProject,
+  type ProjectEstimateSheetSummary as ProjectEstimateSheetPickerSummary,
+} from "@/lib/repositories/project-estimate-sheets-repository";
 import type {
   CollaborationInvitationSummary,
   CollaborationRole,
@@ -311,6 +314,7 @@ type WorkshopProjectListItem = {
   publicationSummary: ProjectPublicationListSummary | null;
   sharedEstimateCount: number;
   favoriteEstimateSheets: ProjectFavoriteEstimateSheetSummary[];
+  estimateSheets: ProjectCardEstimateSheetSummary[];
   // Part 7c (Project Groups): which user-group this project belongs to (null = Ungrouped).
   // Non-optional: the repository stamps it on EVERY item (real value or null).
   groupId: string | null;
@@ -334,10 +338,12 @@ function toClientProjectRow(project: Tables<"projects">): Tables<"projects"> {
   return rest as Tables<"projects">;
 }
 
-export type ProjectFavoriteEstimateSheetSummary = Pick<
+export type ProjectCardEstimateSheetSummary = Pick<
   Tables<"estimates">,
   "id" | "project_id" | "name" | "sheet_code" | "updated_at"
-> & {
+>;
+
+export type ProjectFavoriteEstimateSheetSummary = ProjectCardEstimateSheetSummary & {
   favoriteCreatedAt: string;
 };
 
@@ -903,6 +909,7 @@ function createPendingInviteProjectListItem({
     publicationSummary: null,
     sharedEstimateCount: invite.scope === "estimate" ? 1 : 0,
     favoriteEstimateSheets: [],
+    estimateSheets: [],
     // Part 7c (Project Groups): pending invites are never in a user group.
     groupId: null,
     groupPosition: null,
@@ -1486,8 +1493,10 @@ async function listCurrentWorkspaceProjectsAppPath() {
     favoriteEstimateRows.map((favorite) => [favorite.estimate_id, favorite.created_at]),
   );
 
-  const [sharedProjects, favoriteEstimates] = await traced(
-    "projects.wave2.shared+favorites",
+  const visibleProjectIds = [...ownedProjectIds, ...sharedProjectIds];
+
+  const [sharedProjects, favoriteEstimates, projectEstimateSheets] = await traced(
+    "projects.wave2.shared+favorites+estimates",
     () =>
       Promise.all([
         sharedProjectIds.length > 0
@@ -1509,10 +1518,29 @@ async function listCurrentWorkspaceProjectsAppPath() {
               favoriteEstimateIds,
             )
           : Promise.resolve([]),
+        visibleProjectIds.length > 0
+          ? all<ProjectCardEstimateSheetSummary>(
+              database,
+              `SELECT id, project_id, name, sheet_code, updated_at
+               FROM estimates
+               WHERE project_id IN (${placeholders(visibleProjectIds)})
+               ORDER BY project_id ASC, updated_at DESC, id DESC`,
+              visibleProjectIds,
+            )
+          : Promise.resolve([]),
       ]),
   );
 
   let favoriteEstimateSheetsByProjectId = new Map<string, ProjectFavoriteEstimateSheetSummary[]>();
+  const estimateSheetsByProjectId = projectEstimateSheets.reduce((byProject, sheet) => {
+    const sheets = byProject.get(sheet.project_id) ?? [];
+    sheets.push(sheet);
+    byProject.set(sheet.project_id, sheets);
+    return byProject;
+  }, new Map<string, ProjectCardEstimateSheetSummary[]>());
+  const sheetMemberEstimateIds = new Set(
+    sheetMembers.map((member) => member.estimate_id),
+  );
 
   if (favoriteEstimateIds.length > 0) {
     const favoriteEstimateById = new Map(
@@ -1557,12 +1585,18 @@ async function listCurrentWorkspaceProjectsAppPath() {
     // Resolve access off the FULL row (needs workspace_id/created_by), then ship the trimmed
     // client row so the two server-only columns never enter the serialized payload.
     const access = resolveProjectAccess(project);
+    const projectEstimateSheets = estimateSheetsByProjectId.get(project.id) ?? [];
+    const estimateSheets =
+      access.accessKind === "sheet-member"
+        ? projectEstimateSheets.filter((sheet) => sheetMemberEstimateIds.has(sheet.id))
+        : projectEstimateSheets;
     return {
       project: toClientProjectRow(project),
       ...access,
       pendingInviteCount: 0,
       publicationSummary: null,
       favoriteEstimateSheets: favoriteEstimateSheetsByProjectId.get(project.id) ?? [],
+      estimateSheets,
       groupId: groupMembershipByProjectId.get(project.id)?.group_id ?? null,
       groupPosition: groupMembershipByProjectId.get(project.id)?.position ?? null,
     };
@@ -2941,7 +2975,7 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
  * Used by Publisher drawer sheet pickers without loading heavy node/row aggregates.
  * Additive for Shared Link Overhaul V2 (P1).
  */
-export async function listProjectEstimateSheets(projectId: string, options: { limit?: number } = {}): Promise<ProjectEstimateSheetSummary[]> {
+export async function listProjectEstimateSheets(projectId: string, options: { limit?: number } = {}): Promise<ProjectEstimateSheetPickerSummary[]> {
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) return [];
 

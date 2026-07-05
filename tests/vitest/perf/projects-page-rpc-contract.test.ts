@@ -139,6 +139,9 @@ class FakeWorkspaceProjectsD1Database {
     if (sql.includes("FROM estimate_sheet_members")) return this.payload.sheetMembers as T[];
     if (sql.includes("FROM project_groups")) return this.payload.projectGroups as T[];
     if (sql.includes("FROM project_group_memberships")) return this.payload.projectGroupMemberships as T[];
+    if (sql.includes("FROM estimates") && sql.includes("WHERE project_id IN")) {
+      return this.payload.estimateSheets as T[];
+    }
     if (sql.includes("FROM estimates")) return this.payload.favoriteEstimates as T[];
     if (sql.includes("FROM project_publications")) return this.payload.publications as T[];
     throw new Error(`Unexpected D1 all query: ${sql}`);
@@ -154,6 +157,13 @@ function createProjectsSummaryPayload() {
     name: "Shared Project",
     project_code: "S-1",
   });
+  const sheetOnlyProject = createProject({
+    id: "project-sheet-only",
+    workspace_id: "workspace-other",
+    created_by: "user-2",
+    name: "Sheet Only Project",
+    project_code: "SO-1",
+  });
   const favoriteEstimates = Array.from({ length: 6 }, (_, index) => ({
     id: `estimate-${index + 1}`,
     project_id: "project-owned",
@@ -161,10 +171,41 @@ function createProjectsSummaryPayload() {
     sheet_code: `EST-${index + 1}`,
     updated_at: `2026-06-${String(index + 10).padStart(2, "0")}T00:00:00.000Z`,
   }));
+  const estimateSheets = [
+    ...[...favoriteEstimates].reverse(),
+    {
+      id: "shared-estimate-2",
+      project_id: "project-shared",
+      name: "Shared Newer Estimate",
+      sheet_code: "SH-2",
+      updated_at: "2026-06-22T00:00:00.000Z",
+    },
+    {
+      id: "shared-estimate-1",
+      project_id: "project-shared",
+      name: "Shared Older Estimate",
+      sheet_code: "SH-1",
+      updated_at: "2026-06-21T00:00:00.000Z",
+    },
+    {
+      id: "sheet-member-estimate-1",
+      project_id: "project-sheet-only",
+      name: "Accessible Sheet",
+      sheet_code: "SO-1",
+      updated_at: "2026-06-24T00:00:00.000Z",
+    },
+    {
+      id: "sheet-member-estimate-2",
+      project_id: "project-sheet-only",
+      name: "Hidden Sheet",
+      sheet_code: "SO-2",
+      updated_at: "2026-06-23T00:00:00.000Z",
+    },
+  ];
 
   return {
     ownedProjects: [ownedProject],
-    sharedProjects: [sharedProject],
+    sharedProjects: [sharedProject, sheetOnlyProject],
     projectFavorites: [{ project_id: "project-owned" }],
     estimateFavorites: favoriteEstimates.map((estimate, index) => ({
       estimate_id: estimate.id,
@@ -172,6 +213,7 @@ function createProjectsSummaryPayload() {
       created_at: `2026-06-${String(index + 1).padStart(2, "0")}T00:00:00.000Z`,
     })),
     favoriteEstimates,
+    estimateSheets,
     projectMembers: [
       {
         project_id: "project-shared",
@@ -184,6 +226,12 @@ function createProjectsSummaryPayload() {
       {
         estimate_id: "shared-estimate-1",
         project_id: "project-shared",
+        role: "viewer",
+        user_id: PROFILE.id,
+      },
+      {
+        estimate_id: "sheet-member-estimate-1",
+        project_id: "project-sheet-only",
         role: "viewer",
         user_id: PROFILE.id,
       },
@@ -410,6 +458,7 @@ describe("workspace projects page data contract", () => {
         expect.stringContaining("FROM workspaces"),
         expect.stringContaining("FROM projects"),
         expect.stringContaining("FROM project_favorites"),
+        expect.stringContaining("FROM estimates"),
         expect.stringContaining("FROM collaboration_invitations"),
       ]),
     );
@@ -439,6 +488,14 @@ describe("workspace projects page data contract", () => {
       "estimate-4",
       "estimate-5",
     ]);
+    expect(ownedProject?.estimateSheets.map((sheet) => sheet.id)).toEqual([
+      "estimate-6",
+      "estimate-5",
+      "estimate-4",
+      "estimate-3",
+      "estimate-2",
+      "estimate-1",
+    ]);
 
     const sharedProject = result.projects.find((item) => item.project.id === "project-shared");
     expect(sharedProject).toMatchObject({
@@ -448,6 +505,19 @@ describe("workspace projects page data contract", () => {
       sharedEstimateCount: 1,
       groupId: null,
     });
+    expect(sharedProject?.estimateSheets.map((sheet) => sheet.id)).toEqual([
+      "shared-estimate-2",
+      "shared-estimate-1",
+    ]);
+
+    const sheetOnlyProject = result.projects.find((item) => item.project.id === "project-sheet-only");
+    expect(sheetOnlyProject).toMatchObject({
+      accessKind: "sheet-member",
+      currentUserRole: "viewer",
+    });
+    expect(sheetOnlyProject?.estimateSheets.map((sheet) => sheet.id)).toEqual([
+      "sheet-member-estimate-1",
+    ]);
 
     const pendingInvite = result.projects.find((item) => item.project.id === "project-pending");
     expect(pendingInvite).toMatchObject({

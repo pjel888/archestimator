@@ -6,7 +6,7 @@ import {
   ProjectsPageClient,
   type ProjectListItem,
 } from "./projects-page-test-harness";
-import type { ProjectFavoriteEstimateSheetSummary } from "@/lib/repositories/workspace-repository";
+import type { ProjectCardEstimateSheetSummary } from "@/lib/repositories/workspace-repository";
 import type { ProjectRow } from "@/lib/types/database";
 
 const routerMock = vi.hoisted(() => ({
@@ -37,23 +37,22 @@ const PROJECT_FIXTURE = {
   created_by: null,
 } satisfies ProjectRow;
 
-function createFavoriteEstimateSheet(
+function createEstimateSheet(
   index: number,
   name: string,
-): ProjectFavoriteEstimateSheetSummary {
+): ProjectCardEstimateSheetSummary {
   return {
     id: `00000000-0000-4000-8000-00000000010${index}`,
     project_id: PROJECT_FIXTURE.id,
     name,
     sheet_code: `S-${index}`,
-    updated_at: "2026-05-26T00:00:00.000Z",
-    favoriteCreatedAt: `2026-05-2${index}T00:00:00.000Z`,
+    updated_at: `2026-05-2${index}T00:00:00.000Z`,
   };
 }
 
 function createProjectItem(
   project: ProjectRow,
-  favoriteEstimateSheets: ProjectFavoriteEstimateSheetSummary[] = [],
+  estimateSheets: ProjectCardEstimateSheetSummary[] = [],
 ): ProjectListItem {
   return {
     project,
@@ -63,7 +62,8 @@ function createProjectItem(
     pendingInviteCount: 0,
     publicationSummary: null,
     sharedEstimateCount: 0,
-    favoriteEstimateSheets,
+    favoriteEstimateSheets: [],
+    estimateSheets,
   };
 }
 
@@ -93,7 +93,7 @@ describe("ProjectsPageClient view modes", () => {
     const viewTrigger = screen.getByRole("combobox", { name: "View" });
     expect(viewTrigger).not.toHaveTextContent("View:");
     expect(viewTrigger).not.toHaveTextContent("Large thumbnails");
-    expect(viewTrigger).toHaveAttribute("title", "Large");
+    expect(viewTrigger).toHaveAttribute("title", "View: Large");
     expect(viewTrigger.querySelectorAll("svg")).toHaveLength(2);
     expect(
       screen.getByRole("button", { name: "Add projects" }).parentElement?.parentElement,
@@ -150,7 +150,7 @@ describe("ProjectsPageClient view modes", () => {
     const viewTrigger = screen.getByRole("combobox", { name: "View" });
     expect(viewTrigger).not.toHaveTextContent("View:");
     expect(viewTrigger).not.toHaveTextContent("List");
-    expect(viewTrigger).toHaveAttribute("title", "List");
+    expect(viewTrigger).toHaveAttribute("title", "View: List");
     expect(container.querySelector("[data-project-card-view]")).toHaveAttribute(
       "data-project-card-view",
       "list",
@@ -171,12 +171,12 @@ describe("ProjectsPageClient view modes", () => {
       <ProjectsPageClient
         projects={[
           createProjectItem(PROJECT_FIXTURE, [
-            createFavoriteEstimateSheet(1, "Foundation BOQ"),
-            createFavoriteEstimateSheet(2, "Roof Framing"),
-            createFavoriteEstimateSheet(3, "Interior Fit-Out"),
-            createFavoriteEstimateSheet(4, "Electrical Works"),
-            createFavoriteEstimateSheet(5, "Plumbing Rough-In"),
-            createFavoriteEstimateSheet(6, "Landscape Package"),
+            createEstimateSheet(1, "Foundation BOQ"),
+            createEstimateSheet(2, "Roof Framing"),
+            createEstimateSheet(3, "Interior Fit-Out"),
+            createEstimateSheet(4, "Electrical Works"),
+            createEstimateSheet(5, "Plumbing Rough-In"),
+            createEstimateSheet(6, "Landscape Package"),
           ]),
           createProjectItem(secondProject),
         ]}
@@ -184,27 +184,42 @@ describe("ProjectsPageClient view modes", () => {
     );
 
     const favoriteCard = screen.getByLabelText("Lewis Residence project, owned access");
-    const favoriteTray = favoriteCard.querySelector("[data-project-card-favorite-sheets]");
-    expect(favoriteTray).not.toBeNull();
-    expect(within(favoriteTray as HTMLElement).queryByText("Favorite sheets")).not.toBeInTheDocument();
-    expect(within(favoriteTray as HTMLElement).queryByText("5/5")).not.toBeInTheDocument();
-    expect(within(favoriteTray as HTMLElement).getByRole("link", { name: "Foundation BOQ" })).toHaveAttribute(
+    const estimateTray = favoriteCard.querySelector("[data-project-card-estimate-sheets]");
+    expect(estimateTray).not.toBeNull();
+    expect(estimateTray).toHaveAttribute("aria-label", "Estimate sheets for Lewis Residence");
+    expect(within(estimateTray as HTMLElement).queryByText("Favorite sheets")).not.toBeInTheDocument();
+    expect(within(estimateTray as HTMLElement).queryByText("5/5")).not.toBeInTheDocument();
+    expect(within(estimateTray as HTMLElement).getByRole("link", { name: "Foundation BOQ" })).toHaveAttribute(
       "href",
       "/workshop/projects/11111111-1111-4111-8111-111111111111/estimates/00000000-0000-4000-8000-000000000101",
     );
-    expect(within(favoriteTray as HTMLElement).getByRole("link", { name: "Plumbing Rough-In" })).toHaveAttribute(
+    expect(within(estimateTray as HTMLElement).getByRole("link", { name: "Plumbing Rough-In" })).toHaveAttribute(
       "href",
       "/workshop/projects/11111111-1111-4111-8111-111111111111/estimates/00000000-0000-4000-8000-000000000105",
     );
-    expect(within(favoriteTray as HTMLElement).queryByText("Landscape Package")).not.toBeInTheDocument();
+    expect(within(estimateTray as HTMLElement).getByRole("link", { name: "Landscape Package" })).toBeInTheDocument();
+    expect(within(estimateTray as HTMLElement).queryByText("+1 more")).not.toBeInTheDocument();
+    expect(
+      within(estimateTray as HTMLElement)
+        .getAllByRole("link")
+        .map((link) => link.textContent),
+    ).toEqual([
+      "Landscape Package",
+      "Plumbing Rough-In",
+      "Electrical Works",
+      "Interior Fit-Out",
+      "Roof Framing",
+      "Foundation BOQ",
+    ]);
+    expect(favoriteCard.querySelector("[data-project-card-estimate-sheet-list]")).toHaveClass("overflow-y-auto");
 
     const emptyCard = screen.getByLabelText("Tropical House project, owned access");
-    const emptyTray = emptyCard.querySelector("[data-project-card-favorite-sheets]");
+    const emptyTray = emptyCard.querySelector("[data-project-card-estimate-sheets]");
     expect(emptyTray).not.toBeNull();
     expect(emptyTray).toHaveTextContent("");
     expect(emptyTray).toHaveAttribute(
       "aria-label",
-      "No favorite estimate sheets for Tropical House",
+      "No estimate sheets for Tropical House",
     );
   });
 

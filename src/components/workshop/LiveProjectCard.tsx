@@ -9,7 +9,6 @@ import {
   FileText,
   Globe,
   MapPin,
-  Star,
   Users,
 } from "@phosphor-icons/react/dist/ssr";
 
@@ -21,6 +20,7 @@ import { cn } from "@/lib/ui/cn";
 import type { CollaborationRole } from "@/lib/collaboration/types";
 import type { ProjectPublicationListSummary } from "@/lib/publication/types";
 import type {
+  ProjectCardEstimateSheetSummary,
   ProjectFavoriteEstimateSheetSummary,
   WorkshopPendingInviteSummary,
 } from "@/lib/repositories/workspace-repository";
@@ -36,6 +36,7 @@ import { ProjectCardTitleBlock } from "./ProjectCardTitleBlock";
 
 const EMPTY_FAVORITE_ESTIMATE_SHEETS: ProjectFavoriteEstimateSheetSummary[] =
   [];
+const EMPTY_ESTIMATE_SHEETS: ProjectCardEstimateSheetSummary[] = [];
 
 export type ProjectCardViewMode = "list" | "small" | "medium" | "large";
 export type ProjectAccessKind =
@@ -62,6 +63,7 @@ type LiveProjectCardProps = {
   publicationSummary?: ProjectPublicationListSummary | null;
   sharedEstimateCount?: number;
   favoriteEstimateSheets?: ProjectFavoriteEstimateSheetSummary[];
+  estimateSheets?: ProjectCardEstimateSheetSummary[];
   isFavorite?: boolean;
   favoriteBusy?: boolean;
   selectedForDeletion?: boolean;
@@ -169,10 +171,18 @@ function getAccessBadgeLabel(accessKind: ProjectAccessKind) {
   return "Owned";
 }
 
-function getFavoriteEstimateSheetHref(
-  sheet: ProjectFavoriteEstimateSheetSummary,
-) {
+function getProjectEstimateSheetHref(sheet: ProjectCardEstimateSheetSummary) {
   return `/workshop/projects/${sheet.project_id}/estimates/${sheet.id}`;
+}
+
+function sortEstimateSheetsByMostRecent(
+  sheets: readonly ProjectCardEstimateSheetSummary[],
+) {
+  return [...sheets].sort((left, right) => {
+    const updatedAtCompare = right.updated_at.localeCompare(left.updated_at);
+    if (updatedAtCompare !== 0) return updatedAtCompare;
+    return right.id.localeCompare(left.id);
+  });
 }
 
 function getAccessibleAccessLabel({
@@ -207,6 +217,7 @@ function LiveProjectCardImpl({
   publicationSummary = null,
   sharedEstimateCount = 0,
   favoriteEstimateSheets = EMPTY_FAVORITE_ESTIMATE_SHEETS,
+  estimateSheets,
   isFavorite = false,
   favoriteBusy = false,
   selectedForDeletion = false,
@@ -251,7 +262,14 @@ function LiveProjectCardImpl({
   const showMeta = !isListView && viewMode !== "small";
   const showSecondaryMeta = viewMode === "large";
   const showFooter = !isListView && viewMode !== "small";
-  const visibleFavoriteEstimateSheets = favoriteEstimateSheets.slice(0, 5);
+  const recentEstimateSheets = useMemo(
+    () =>
+      sortEstimateSheetsByMostRecent(
+        estimateSheets ?? favoriteEstimateSheets ?? EMPTY_ESTIMATE_SHEETS,
+      ),
+    [estimateSheets, favoriteEstimateSheets],
+  );
+  const visibleListEstimateSheets = recentEstimateSheets.slice(0, 5);
 
   const accessChip = isPendingInvite ? (
     <span
@@ -487,10 +505,10 @@ function LiveProjectCardImpl({
   );
   const thumbnailReveal = (
     <ProjectCardThumbnailReveal
-      getSheetHref={getFavoriteEstimateSheetHref}
+      estimateSheets={recentEstimateSheets}
+      getSheetHref={getProjectEstimateSheetHref}
       projectName={project.name}
       viewMode={viewMode}
-      visibleFavoriteEstimateSheets={visibleFavoriteEstimateSheets}
     />
   );
 
@@ -540,30 +558,30 @@ function LiveProjectCardImpl({
         </div>
 
         <div
-          data-project-card-favorite-sheets=""
+          data-project-card-estimate-sheets=""
           aria-label={
-            visibleFavoriteEstimateSheets.length > 0
-              ? `Favorite estimate sheets for ${project.name}`
-              : `No favorite estimate sheets for ${project.name}`
+            visibleListEstimateSheets.length > 0
+              ? `Recent estimate sheets for ${project.name}`
+              : `No estimate sheets for ${project.name}`
           }
           className="hidden min-w-0 flex-[0_0_220px] md:block"
         >
-          {visibleFavoriteEstimateSheets.length > 0 ? (
+          {visibleListEstimateSheets.length > 0 ? (
             <>
-              <Star
+              <FileText
                 size={10}
                 weight="regular"
                 aria-hidden="true"
-                className="mb-1 text-warning"
+                className="mb-1 text-secondary"
               />
               <div className="relative z-20 flex min-w-0 flex-wrap gap-x-1 gap-y-0.5 text-[9px] leading-3 text-secondary">
-                {visibleFavoriteEstimateSheets.map((sheet, index) => (
+                {visibleListEstimateSheets.map((sheet, index) => (
                   <span
                     key={sheet.id}
                     className="inline-flex min-w-0 max-w-full items-center"
                   >
                     <Link
-                      href={getFavoriteEstimateSheetHref(sheet)}
+                      href={getProjectEstimateSheetHref(sheet)}
                       prefetch={false}
                       className="max-w-full truncate rounded-xs hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
                       title={
@@ -574,7 +592,7 @@ function LiveProjectCardImpl({
                     >
                       {sheet.name}
                     </Link>
-                    {index < visibleFavoriteEstimateSheets.length - 1 ? (
+                    {index < visibleListEstimateSheets.length - 1 ? (
                       <span aria-hidden="true">,</span>
                     ) : null}
                   </span>

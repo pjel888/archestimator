@@ -923,6 +923,7 @@ function ProjectEstimatesTableComponent({
   const lastVirtualRow = virtualRows[virtualRows.length - 1];
   const topSpacerHeight = firstVirtualRow ? firstVirtualRow.start : 0;
   const bottomSpacerHeight = lastVirtualRow ? Math.max(virtualTotalSize - (lastVirtualRow.start + lastVirtualRow.size), 0) : 0;
+  const selectedEstimateCount = selectedVisibleEstimateIds.length;
 
   return (
     <div className="flex h-full min-h-0 flex-col border-t border-hairline">
@@ -931,26 +932,10 @@ function ProjectEstimatesTableComponent({
           {duplicateError}
         </p>
       ) : null}
-      <BulkActionToolbar
-        selectedCount={selectedVisibleEstimateIds.length}
-        actionLabel="Delete selected estimates"
-        helperText="Preview dependencies before deleting estimates."
-        onAction={() => openDeleteEstimatePreview(selectedVisibleEstimateIds)}
-        onClear={() => dispatchTable({ type: "selectedEstimatesChanged", estimateIds: new Set() })}
-        onSelectVisible={() =>
-          dispatchTable({
-            type: "selectedEstimatesChanged",
-            estimateIds: new Set(
-              filterMapBy(
-                estimates,
-                (estimate) => editableEstimateIds.has(estimate.id),
-                (estimate) => estimate.id,
-              ),
-            ),
-          })
-        }
-      />
-      <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-auto [scrollbar-gutter:stable]">
+      <div
+        ref={scrollContainerRef}
+        className={cn("min-h-0 flex-1 overflow-auto [scrollbar-gutter:stable]", selectedEstimateCount ? "pb-20" : null)}
+      >
         <table className="table-fixed border-collapse text-left text-[10px]" style={tableStyle}>
           <ProjectEstimatesColGroup table={table} />
           <thead className="sticky top-0 z-10 bg-surface-muted text-[10px] font-medium text-tertiary">
@@ -1074,6 +1059,26 @@ function ProjectEstimatesTableComponent({
           Reset Column Widths
         </button>
       </div>
+      <BulkActionToolbar
+        selectedCount={selectedEstimateCount}
+        actionLabel="Delete selected estimates"
+        helperText="Preview dependencies before deleting estimates."
+        placement="bottom-dock"
+        onAction={() => openDeleteEstimatePreview(selectedVisibleEstimateIds)}
+        onClear={() => dispatchTable({ type: "selectedEstimatesChanged", estimateIds: new Set() })}
+        onSelectVisible={() =>
+          dispatchTable({
+            type: "selectedEstimatesChanged",
+            estimateIds: new Set(
+              filterMapBy(
+                estimates,
+                (estimate) => editableEstimateIds.has(estimate.id),
+                (estimate) => estimate.id,
+              ),
+            ),
+          })
+        }
+      />
       <BulkDestructivePreviewModal
         open={deleteEstimateTargetIds.length > 0}
         title={deleteEstimateModalTitle}

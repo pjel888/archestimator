@@ -403,13 +403,82 @@ describe("ProjectsPageClient group mode", () => {
       clientY: 1,
     });
 
-    expect(mocks.reorderProjectGroups).toHaveBeenCalledWith({
-      orderedGroupIds: ["g2", "g1", "g3"],
-    });
+    expect(groupLabels()).toEqual(["Backlog", "Pipeline", "Done"]);
+    await waitFor(() =>
+      expect(mocks.reorderProjectGroups).toHaveBeenCalledWith({
+        orderedGroupIds: ["g2", "g1", "g3"],
+      }),
+    );
     await waitFor(() =>
       expect(groupLabels()).toEqual(["Backlog", "Pipeline", "Done"]),
     );
     await waitFor(() => expect(mocks.refresh).toHaveBeenCalled());
+  });
+
+  it("paints Cultural above Residential before starting group reorder persistence", async () => {
+    const animationFrames: FrameRequestCallback[] = [];
+    const requestAnimationFrameSpy = vi
+      .spyOn(window, "requestAnimationFrame")
+      .mockImplementation((callback: FrameRequestCallback) => {
+        animationFrames.push(callback);
+        return animationFrames.length;
+      });
+
+    try {
+      renderClient(
+        <ProjectsPageClient
+          projects={[
+            item({ id: "p1", name: "House" }, { groupId: "g1" }),
+            item({ id: "p2", name: "Gallery" }, { groupId: "g2" }),
+            item({ id: "p3", name: "Office" }, { groupId: "g3" }),
+          ]}
+          projectGroups={[
+            { id: "g1", name: "Residential", accentId: null, position: 0 },
+            { id: "g2", name: "Cultural", accentId: null, position: 1 },
+            { id: "g3", name: "Commercial", accentId: null, position: 2 },
+          ]}
+        />,
+      );
+
+      const liveProjects = screen.getByLabelText("Live projects");
+      const groupLabels = () =>
+        within(liveProjects)
+          .getAllByRole("region")
+          .map((section) => section.getAttribute("aria-label"));
+      expect(groupLabels()).toEqual(["Residential", "Cultural", "Commercial"]);
+
+      const residential = screen.getByLabelText("Residential") as HTMLElement;
+      const cultural = screen.getByLabelText("Cultural") as HTMLElement;
+      const culturalHandle = within(cultural).getByRole("button", {
+        name: "Reorder Cultural group",
+      });
+      setGroupSectionRect(residential, 0, 80);
+
+      const dataTransfer = mockDataTransfer();
+      dispatchProjectGroupDragEvent(culturalHandle, "dragstart", {
+        dataTransfer,
+      });
+      dispatchProjectGroupDragEvent(residential, "dragover", {
+        dataTransfer,
+        clientY: 1,
+      });
+      dispatchProjectGroupDragEvent(residential, "drop", {
+        dataTransfer,
+        clientY: 1,
+      });
+
+      expect(groupLabels()).toEqual(["Cultural", "Residential", "Commercial"]);
+      expect(mocks.reorderProjectGroups).not.toHaveBeenCalled();
+      expect(animationFrames).toHaveLength(1);
+
+      animationFrames[0]?.(performance.now());
+      expect(mocks.reorderProjectGroups).toHaveBeenCalledWith({
+        orderedGroupIds: ["g2", "g1", "g3"],
+      });
+      await waitFor(() => expect(mocks.refresh).toHaveBeenCalled());
+    } finally {
+      requestAnimationFrameSpy.mockRestore();
+    }
   });
 });
 
@@ -510,6 +579,113 @@ describe("Project group toolbar and flag actions", () => {
     window.localStorage.setItem(
       "archestimator_projects_organize_by_v1",
       "group",
+    );
+  });
+
+  it("disables expand and collapse all in the flat no-grouping view", () => {
+    window.localStorage.setItem("archestimator_projects_group_by_v1", "none");
+    window.localStorage.setItem(
+      "archestimator_projects_organize_by_v1",
+      "none",
+    );
+    renderClient(
+      <ProjectsPageClient
+        projects={[item({ id: "p1", name: "Loose" }, { groupId: null })]}
+        projectGroups={groups}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Expand all projects" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Collapse all projects" }),
+    ).toBeDisabled();
+  });
+
+  it("expands and collapses all manual project groups from the header toolbar", async () => {
+    const user = userEvent.setup();
+    renderClient(
+      <ProjectsPageClient
+        projects={[
+          item({ id: "p1", name: "In Pipeline" }, { groupId: "g1" }),
+          item({ id: "p2", name: "In Archive" }, { groupId: "g2" }),
+        ]}
+        projectGroups={groups}
+      />,
+    );
+
+    const pipeline = screen.getByLabelText("Pipeline");
+    const archive = screen.getByLabelText("Archive");
+    const collapseAll = screen.getByRole("button", {
+      name: "Collapse all projects",
+    });
+    const expandAll = screen.getByRole("button", {
+      name: "Expand all projects",
+    });
+
+    expect(collapseAll).not.toBeDisabled();
+    expect(expandAll).not.toBeDisabled();
+    expect(within(pipeline).getByRole("article")).toHaveTextContent(
+      "In Pipeline",
+    );
+    expect(within(archive).getByRole("article")).toHaveTextContent(
+      "In Archive",
+    );
+
+    await user.click(collapseAll);
+    expect(within(pipeline).queryByRole("article")).toBeNull();
+    expect(within(archive).queryByRole("article")).toBeNull();
+    expect(
+      within(pipeline).getByRole("button", { name: "Expand Pipeline" }),
+    ).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(expandAll);
+    expect(within(pipeline).getByRole("article")).toHaveTextContent(
+      "In Pipeline",
+    );
+    expect(within(archive).getByRole("article")).toHaveTextContent(
+      "In Archive",
+    );
+  });
+
+  it("collapses and reopens scalar date groups without trapping the user", async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(
+      "archestimator_projects_group_by_v1",
+      "updated_at",
+    );
+    window.localStorage.setItem(
+      "archestimator_projects_organize_by_v1",
+      "updated_at",
+    );
+    renderClient(
+      <ProjectsPageClient
+        projects={[
+          item({
+            id: "p1",
+            name: "February Project",
+            updated_at: "2026-02-01T00:00:00.000Z",
+          }),
+        ]}
+        projectGroups={groups}
+      />,
+    );
+
+    const february = screen.getByLabelText("2026 · February");
+    await user.click(
+      screen.getByRole("button", { name: "Collapse all projects" }),
+    );
+
+    expect(within(february).queryByRole("article")).toBeNull();
+    const expandFebruary = within(february).getByRole("button", {
+      name: "Expand 2026 · February",
+    });
+    expect(expandFebruary).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(expandFebruary);
+    expect(within(february).getByRole("article")).toHaveTextContent(
+      "February Project",
     );
   });
 

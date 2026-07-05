@@ -54,8 +54,7 @@ describe("project location map source boundaries", () => {
     expect(addressAutocomplete).toContain("loadGoogleMapsApi");
     expect(addressAutocomplete).toContain('importLibrary("places")');
     expect(addressAutocomplete).toContain("DropdownPopupPanel");
-    expect(addressAutocomplete).toContain("PROJECT_ADDRESS_AUTOCOMPLETE_TYPES");
-    expect(addressAutocomplete).toContain("includedPrimaryTypes");
+    expect(addressAutocomplete).not.toContain("includedPrimaryTypes");
     expect(addressAutocomplete).toContain('role={canUseGooglePlaces ? "combobox" : undefined}');
     expect(addressAutocomplete).toContain('role="listbox"');
     expect(dashboardClient).toContain("PROJECT_METADATA_INPUT_CLASS");

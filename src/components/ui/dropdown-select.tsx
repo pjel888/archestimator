@@ -36,6 +36,7 @@ export type DropdownSelectOption = {
   label: string;
   disabled?: boolean;
   icon?: React.ReactNode;
+  triggerIcon?: React.ReactNode;
 };
 
 export type DropdownSelectProps = {
@@ -58,6 +59,7 @@ export type DropdownSelectProps = {
    *  "boxed" renders a full-height bordered input-style trigger. */
   variant?: "underline" | "boxed";
   triggerDisplay?: "label" | "icon";
+  triggerTitlePrefix?: string;
   className?: string;
   panelClassName?: string;
   id?: string;
@@ -106,6 +108,7 @@ export function DropdownSelect({
   side = "bottom",
   variant = "underline",
   triggerDisplay = "label",
+  triggerTitlePrefix,
   className,
   panelClassName,
   id,
@@ -332,7 +335,8 @@ export function DropdownSelect({
   };
 
   const triggerLabel = selectedOption?.label ?? placeholder;
-  const triggerIcon = selectedOption?.icon;
+  const triggerTitle = triggerTitlePrefix ? `${triggerTitlePrefix}: ${triggerLabel}` : triggerLabel;
+  const triggerIcon = selectedOption?.triggerIcon ?? selectedOption?.icon;
   const needsIconFallbackLabel = triggerDisplay === "icon" && !ariaLabel && !ariaLabelledBy;
   const activeOptionId = open && activeIndex >= 0 ? `${listboxId}-option-${activeIndex}` : undefined;
 
@@ -361,7 +365,7 @@ export function DropdownSelect({
         aria-invalid={invalid || undefined}
         aria-disabled={ariaDisabled || undefined}
         disabled={disabled}
-        title={triggerDisplay === "icon" ? triggerLabel : undefined}
+        title={triggerDisplay === "icon" ? triggerTitle : undefined}
         data-slot="dropdown-select-trigger"
         data-testid={dataTestId}
         data-placeholder={selectedOption ? undefined : "true"}

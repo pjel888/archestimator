@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { ProjectsPageClient, type ProjectListItem } from "./projects-page-test-harness";
-import type { ProjectFavoriteEstimateSheetSummary } from "@/lib/repositories/workspace-repository";
+import type { ProjectCardEstimateSheetSummary } from "@/lib/repositories/workspace-repository";
 import type { ProjectPublicationListSummary } from "@/lib/publication/types";
 import type { ProjectRow } from "@/lib/types/database";
 
@@ -33,27 +33,27 @@ const PROJECT_FIXTURE = {
   created_by: null,
 } satisfies ProjectRow;
 
-function favoriteSheet(name: string): ProjectFavoriteEstimateSheetSummary {
+function estimateSheet(name: string): ProjectCardEstimateSheetSummary {
   return {
     id: `00000000-0000-4000-8000-${name.toLowerCase().replaceAll(" ", "0").slice(0, 12).padEnd(12, "0")}`,
     project_id: PROJECT_FIXTURE.id,
     name,
     sheet_code: null,
     updated_at: "2026-05-26T00:00:00.000Z",
-    favoriteCreatedAt: "2026-05-26T00:00:00.000Z",
   };
 }
 
 function projectItem(
   project: ProjectRow,
-  favoriteEstimateSheets: readonly ProjectFavoriteEstimateSheetSummary[] = [],
+  estimateSheets: readonly ProjectCardEstimateSheetSummary[] = [],
   publicationSummary: ProjectPublicationListSummary | null = null,
 ): ProjectListItem {
   return {
     project,
     accessKind: "owned",
     currentUserRole: "owner",
-    favoriteEstimateSheets: [...favoriteEstimateSheets],
+    favoriteEstimateSheets: [],
+    estimateSheets: [...estimateSheets],
     pendingInviteCount: 0,
     publicationSummary,
     sharedEstimateCount: 0,
@@ -118,15 +118,15 @@ describe("Projects page card layout", () => {
     expect(thumbnail?.querySelector("[data-project-card-generated-gradient]")).not.toBeNull();
   });
 
-  it("keeps large cards stable while favorite sheet details reveal as an overlay", () => {
+  it("keeps large cards stable while estimate sheet details reveal as an overlay", () => {
     window.localStorage.setItem("archestimator_projects_view_mode_v1", "large");
 
     render(
       <ProjectsPageClient
         projects={[
           projectItem(PROJECT_FIXTURE, [
-            favoriteSheet("Concept Budget"),
-            favoriteSheet("Kitchen Fit-out Estimate"),
+            estimateSheet("Concept Budget"),
+            estimateSheet("Kitchen Fit-out Estimate"),
           ]),
         ]}
       />,
@@ -183,17 +183,22 @@ describe("Projects page card layout", () => {
     expect(hoverReveal).toHaveClass("group-hover/card:pointer-events-auto");
     expect(hoverReveal).toHaveClass("group-hover/card:opacity-100");
 
-    const favoriteTray = card.querySelector("[data-project-card-favorite-sheets]");
-    expect(favoriteTray).not.toBeNull();
-    expect(favoriteTray).not.toHaveClass("min-h-[76px]");
-    expect(within(favoriteTray as HTMLElement).queryByText("Favorite sheets")).not.toBeInTheDocument();
+    const estimateTray = card.querySelector("[data-project-card-estimate-sheets]");
+    expect(estimateTray).not.toBeNull();
+    expect(estimateTray).not.toHaveClass("min-h-[76px]");
+    expect(estimateTray).toHaveClass("items-start", "justify-start");
+    expect(within(estimateTray as HTMLElement).queryByText("Favorite sheets")).not.toBeInTheDocument();
+    expect(card.querySelector("[data-project-card-estimate-sheet-list]")).toHaveClass(
+      "content-start",
+      "auto-rows-max",
+    );
 
-    expect(within(favoriteTray as HTMLElement).getByRole("link", { name: "Concept Budget" })).toHaveAttribute(
+    expect(within(estimateTray as HTMLElement).getByRole("link", { name: "Concept Budget" })).toHaveAttribute(
       "href",
       "/workshop/projects/11111111-1111-4111-8111-111111111111/estimates/00000000-0000-4000-8000-concept0budg",
     );
     expect(
-      within(favoriteTray as HTMLElement).getByRole("link", { name: "Kitchen Fit-out Estimate" }),
+      within(estimateTray as HTMLElement).getByRole("link", { name: "Kitchen Fit-out Estimate" }),
     ).toHaveAttribute(
       "href",
       "/workshop/projects/11111111-1111-4111-8111-111111111111/estimates/00000000-0000-4000-8000-kitchen0fit-",
