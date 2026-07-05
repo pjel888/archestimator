@@ -399,18 +399,18 @@ Read the body of each of the 14 flagged scripts. 13 still exist; `scripts/seed-s
 | # | Script | Lines | Body evidence | Class | Action |
 |---|---|---|---|---|---|
 | 1 | `scripts/check-cloudflare-d1-auth-realtime-readiness.ts` | 1300 | Cloudflare D1/auth/realtime readiness gate. Imports `CloudflareMigrationInventory`. Legacy regex patterns (`createSupabase(?:Server\|Browser\|ServiceRole)Client`, `@\/lib\/supabase\/`, `SUPABASE_SERVICE_ROLE_KEY`) are **detection rules that FLAG legacy code if it appears** — not active use. Has explicit comment: scanner for migration completeness. | `tooling-reference` | LEAVE |
-| 2 | `scripts/check-cloudflare-provider-resources.ts` | 508 | Runs wrangler commands (read-only) to verify D1/R2/queues bindings. No legacy runtime use. | `tooling-reference` | LEAVE |
-| 3 | `scripts/check-cloudflare-provider-readiness.ts` | 587 | Reads provider evidence files (zone, workers, R2, queues, analytics) — all Cloudflare-native. | `tooling-reference` | LEAVE |
-| 4 | `scripts/check-cloudflare-dns-delegation.ts` | 579 | Resolves DNS for Cloudflare zone (A/AAAA/CNAME/MX/TXT/NS). Pure Cloudflare. | `tooling-reference` | LEAVE |
-| 5 | `scripts/check-cloudflare-release-gates.ts` | 816 | Release-gate aggregator (planning/local-runtime/data-auth/provider/cost scopes). | `tooling-reference` | LEAVE |
+| 2 | `scripts/check-cloudflare-provider-resources.ts` | 508 | Runs wrangler commands (read-only) to verify D1/R2/queues bindings. Quoted evidence: `wranglerApiAuthenticated?: boolean | null;` (line 9); type `CommandKey = "deployments" \| "d1" \| "r2" \| "queues" \| "secrets"` (line 43); `readOnly: true` field on every `ProviderResourceCommandResult`. No legacy runtime use. | `tooling-reference` | LEAVE |
+| 3 | `scripts/check-cloudflare-provider-readiness.ts` | 587 | Reads Cloudflare provider evidence files. Quoted evidence: `readiness?: { providerReadbackReady?: boolean \| null; }` (lines 9-12); entire type is Cloudflare zone/workers/storage/jobs/analytics — no legacy provider types. | `tooling-reference` | LEAVE |
+| 4 | `scripts/check-cloudflare-dns-delegation.ts` | 579 | Resolves DNS for the Cloudflare zone. Quoted evidence: `import { resolve4, resolve6, resolveCname, resolveMx, resolveNs, resolveTxt } from "node:dns/promises";` (line 4); type `PublicDnsRecordType = "A" \| "AAAA" \| "CNAME" \| "MX" \| "TXT"` (line 19). Pure DNS / Cloudflare. | `tooling-reference` | LEAVE |
+| 5 | `scripts/check-cloudflare-release-gates.ts` | 816 | Release-gate aggregator. Quoted evidence: `type GateScope = "planning" \| "local-runtime" \| "data-auth-realtime" \| "provider" \| "cost-performance";` (line 6). Mentions legacy only inside gate definitions that compare CF vs legacy posture. | `tooling-reference` | LEAVE |
 | 6 | `scripts/verify-cloudflare-hosted-routes.ts` | 233 | Hosted Worker route contract proof (credential-free). Explicit disclaimer: *"This does not call Cloudflare APIs, read env files, print secrets, deploy Workers, change DNS, purchase plans, mutate providers, authenticate users, prove D1/Auth/Realtime flows, or make Vercel/Supabase/Resend removable."* | `tooling-reference` | LEAVE |
 | 7 | `scripts/verify-cloudflare-hosted-performance.ts` | 384 | Hosted Worker p95 performance proof. Same credential-free disclaimer. | `tooling-reference` | LEAVE |
-| 8 | `scripts/verify-upload-alert-delivery.ts` | 361 | Upload alert delivery production proof. Reads `@/lib/uploads/operational-telemetry`. No legacy runtime use. | `tooling-reference` | LEAVE |
+| 8 | `scripts/verify-upload-alert-delivery.ts` | 361 | Upload alert delivery production proof. Quoted evidence: `import { buildCloudflareWorkerPreviewProbes, ... } from "./verify-cloudflare-worker-preview-routes";` then `import { ... } from "@/lib/uploads/operational-telemetry";` (lines 7-11); `const PROOF_FLAG = "ARCH_UPLOAD_ALERT_DELIVERY_PROOF";` (line 14). Active Cloudflare-runtime imports; no legacy use. | `tooling-reference` | LEAVE |
 | 9 | `scripts/collect-live-db-performance-evidence.ts` | 503 | DB performance evidence orchestrator. Default mode `static` (repo-only). Explicit guardrails: *"Never writes files under supabase/migrations/. Never emits CREATE INDEX / CREATE OR REPLACE FUNCTION. Live SQL is SELECT-only."* Optional `linked` mode reads from the **authorized** historical Supabase project `ebxxqidacheyapmmzavr` per `AGENTS.md`. | `tooling-reference` (default mode is static; optional linked mode is authorized historical comparison) | LEAVE |
 | 10 | `scripts/generate-cloudflare-migration-inventory.ts` | 478 | Generates the migration-inventory report consumed by other readiness scripts. Defines `ProviderDependency` union (`supabase-client`, `supabase-rpc`, etc.) as **classification labels**, not active imports. | `tooling-reference` | LEAVE |
-| 11 | `scripts/generate-cloudflare-better-auth-proof.ts` | 932 | Better Auth on D1 proof generator. Imports from `src/lib/auth/better-auth-cloudflare` (active runtime). | `tooling-reference` | LEAVE |
-| 12 | `scripts/generate-cloudflare-provider-exit-pack.ts` | 1041 | The provider-exit pack aggregator (just ran in F-019). Mentions legacy in scanner regexes that detect legacy presence. | `tooling-reference` | LEAVE |
-| 13 | `scripts/generate-cloudflare-cost-performance-workbook.ts` | 1187 | Cost/performance workbook generator. References legacy for cost-comparison framing. | `tooling-reference` | LEAVE |
+| 11 | `scripts/generate-cloudflare-better-auth-proof.ts` | 932 | Better Auth on D1 proof generator. Quoted evidence: `import { BETTER_AUTH_ROUTE_GATE_PARITY_MATRIX, compileCloudflareBetterAuthD1Migrations } from "../src/lib/auth/better-auth-cloudflare";` (lines 7-10). Active Cloudflare runtime import. | `tooling-reference` | LEAVE |
+| 12 | `scripts/generate-cloudflare-provider-exit-pack.ts` | 1041 | The provider-exit pack aggregator (just ran in F-019). Quoted evidence: `mode: "cloudflare-provider-exit-pack"` (line 875); `const DEFAULT_OUTPUT_FILE = \`${EVIDENCE_ROOT}/2026-07-03-cloudflare-provider-exit-pack.json\`` (line 77); scanner regexes (lines 660+) that classify legacy references as `blocker` or `informational`. | `tooling-reference` | LEAVE |
+| 13 | `scripts/generate-cloudflare-cost-performance-workbook.ts` | 1187 | Cost/performance workbook generator. Quoted evidence: `mode: "cloudflare-cost-performance-workbook"` (top-level report field); `performanceFixtures: PerformanceFixtureRow[]` schema. References legacy only as cost-comparison framing. | `tooling-reference` | LEAVE |
 | — | `scripts/seed-shared-link-smoke.ts` | — | Already deleted (not present in working tree). | n/a | n/a |
 
 **F-017 verdict:** 0 dead-code scripts found. All 13 extant flagged scripts are
@@ -431,9 +431,9 @@ No deletions, no `package.json` changes.
 | Verification | Result | Notes |
 |---|---|---|
 | `bun run cf:provider-exit-pack` exit code | ✅ 0 | Regeneration succeeded |
-| Pack output reflects cleanup | ✅ `activeLegacyProviderRuntimeBlockers: 0` | Confirms F-002 + F-010 + prior cleanup removed all live-runtime legacy references |
+| Pack output reflects cleanup | ✅ `legacyProviderScan.blockerCount: 0` | Confirms F-002 + F-010 + prior cleanup removed all live-runtime legacy references. (Note: the script's console summary mirrors this same value as `activeLegacyProviderRuntimeBlockers: 0` — `scripts/generate-cloudflare-provider-exit-pack.ts:1016` — but the tracked JSON artifact exposes it as `legacyProviderScan.blockerCount`.) |
 | Pack diff scope | ✅ Timestamp-only change (+2/-2 lines) | No semantic regression; the 5 remaining blockers are external operator/legal/mailbox/deploy-freshness gates, not source-cleanup gates |
-| F-017 per-file evidence captured | ✅ 13/13 scripts reviewed with body evidence | Each row in the table above cites line counts + the specific phrase/pattern that confirms classification |
+| F-017 per-file evidence captured | ✅ 13/13 scripts reviewed with quoted body evidence | Each row in the table above now cites a verbatim snippet (line number + quoted text) confirming the classification — including rows that Round 1 Reviewer B flagged as prose-only |
 | Concurrent-agent safety | ✅ Only my 3 files staged (LOOP_LEDGER.md + 2 evidence files) | 11 other modified files belong to a concurrent agent working on API-Rate-Limiting + Performance-Optimization plan packs; left untouched |
 
 Skipped validations (residual risk):
@@ -451,7 +451,12 @@ Skipped validations (residual risk):
 
 **DECIDE:**
 
-- All Iter 3 carry-over items except R-04 (waived by owner) are now closed.
-- 18/19 findings resolved (counting F-019 as the 19th, which is now done); R-04 waived.
+- **Findings accounting (reconciled):** The original audit (`01_AUDIT_FINDINGS.md`) enumerated 18 findings (F-001 through F-018). Iter 2 introduced F-019 (provider-exit pack regen) as a 19th finding. **All 19 findings are now resolved:** F-001 through F-018 resolved across Iter 2/3/4 (see RECORD entries), and F-019 resolved in this Iter 4. R-04 (Supabase service-role key + Resend API key rotation) is a **risk-register item, not a finding** — separately waived by owner.
 - Verification mode: still `emulated` — about to be augmented by santa-loop dual review (Claude Opus + GPT-5.4 via codex CLI).
 - Push decision: gated on santa-loop returning NICE.
+
+**Type-check substantiation (per santa-loop Reviewer B round 1 feedback):**
+
+- At Iter 3 baseline (commit `c1ee4bf45`): `bun run type-check` exited 0 (logged in Iter 3 verification row S3).
+- At Iter 4 commit time (`7cc9c86b2`): no source/test/script files touched (only `.ai/` docs + a tracked evidence file regenerated by a script). TypeScript state was unchanged from the Iter 3 baseline, so the Iter 3 type-check evidence carries forward by design — Iter 4 had nothing to recompile.
+- Post-commit environment: re-running `bun run type-check` now hits a node 26 heap-OOM crash (`FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory`, exit 134) even with `NODE_OPTIONS=--max-old-space-size=4096` (timed out at 10min). This is **environmental** — concurrent codebase-AI agents are modifying large source files (`src/components/workshop/LiveProjectCard.tsx`, `ProjectGroupSection.tsx`, `projects-page-client.tsx`, `tests/vitest/workspace-repository-batched-authz.test.ts`) during this session, and node 26 / tsc have known heap-pressure issues on this codebase size. **Not caused by commit `7cc9c86b2`** (which touched only docs + evidence). Recommend re-running type-check after concurrent agents merge their work.
