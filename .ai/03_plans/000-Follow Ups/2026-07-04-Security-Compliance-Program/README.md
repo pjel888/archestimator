@@ -121,7 +121,7 @@ P2 (before enterprise positioning)
 | [`2026-06-01-security-owasp-compliance-audit`](../2026-06-01-security-owasp-compliance-audit/) | Technical code-level OWASP audit. Source of evidence for this pack's P2.1 ASVS matrix. |
 | [`2026-07-02-API-Rate-Limiting-Security-Consolidation`](../2026-07-02-API-Rate-Limiting-Security-Consolidation/) | Implements durable API rate limiting. P0.4 references its output. |
 | [`2026-07-03-Authentication-Audit-And-Improvement`](../000-Follow%20Ups/2026-07-03-Authentication-Audit-And-Improvement/) | Implements auth hardening; P0/P1 references its threat model. |
-| [`2026-07-04-Vercel-Supabase-Cleanup`](../2026-07-04-Vercel-Supabase-Cleanup/) | Provider-exit cleanup; trust page corrections must align with its claims. |
+| [`2026-07-04-Vercel-Supabase-Cleanup`](../../09_archive/store/2026-07-05-Vercel-Supabase-Cleanup-complete/) | Provider-exit cleanup; trust page corrections must align with its claims. |
 
 ## Documents in this pack
 

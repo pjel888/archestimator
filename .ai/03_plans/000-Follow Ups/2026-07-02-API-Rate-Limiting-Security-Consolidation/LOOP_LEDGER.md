@@ -1304,3 +1304,100 @@ Residual risk:
 - 5 concurrent agent packs were active during this run, committing
   9+ times. HEAD moved from `a0de0bd71` → `013b9b79` during the
   session. All their dirty files preserved untouched.
+
+## Iteration 24: Owner-Directed Audit → Move To 000-Follow Ups (2026-07-05)
+
+Trigger:
+
+- Owner directive (2026-07-05): "Audit and check this folder if it has been
+  implemented already, if yes then please archive this folder and then if
+  not, please proceed to implement all that is remaining. If there are
+  blockers beyond your control please put the plan pack folder in
+  `.ai/03_plans/000-Follow Ups`."
+
+Actions:
+
+- Re-read `README.md`, `00_COORDINATION_LEDGER.md`,
+  `08_FINAL_READINESS_AND_COMPLETION_AUDIT.md`, the end of this ledger
+  (iter 23 close), and `IMPLEMENTATION_PLAN.md` Section 17 (PH-0..PH-8).
+- Verified implementation claims with parallel spot-checks:
+  - `src/lib/observability/client-identity.ts` exists (Wave 2a primitive
+    `deriveClientIdentity`).
+  - `src/lib/observability/route-error.ts:57` exports `problemDetailsResponse`
+    (Wave 2b primitive).
+  - `rg "x-forwarded-for|X-Forwarded-For" src/` returns exactly ONE hit:
+    a documentation comment in `client-identity.ts:2` describing what the
+    helper replaces. ZERO production security-decision reads of the
+    spoofable header remain.
+  - `evidence/` folder contains the seven Wave 1 matrices (request-semantics,
+    idempotency, error-cache-trace, async-at-least-once, trusted-client-
+    identity, runtime-store-ledger, route-action-inventory).
+  - Targeted vitest smoke (`client-identity.test.ts`, `problem-details.test.ts`):
+    18/18 GREEN in 2.02s — primitives are real and tested, not vapor.
+- Cross-checked owner-acceptance decision in `.ai/10_state/decisions.md`
+  (2026-07-05 entry): the owner explicitly limited acceptance to PH-0..PH-3
+  first-slice and reserved production enforcement (PH-4..PH-8) as still
+  NOT READY.
+- Cross-checked `AGENTS.md` standing authorization: Philip grants agents
+  authority over D1/R2/Durable Object/Queue/Email changes **inside the
+  resources bound in `wrangler.jsonc`**. Cloudflare WAF Rate Limiting
+  Rules, Turnstile, and Security Events are zone/dashboard-level controls
+  — they are NOT bindings in `wrangler.jsonc` and are NOT covered by the
+  standing authorization. PH-7 (WAF/Turnstile observe mode) therefore
+  requires owner-directed dashboard actions outside agent scope.
+- `git mv` the entire plan pack from `.ai/03_plans/` to
+  `.ai/03_plans/000-Follow Ups/` (history preserved; folder name
+  unchanged so historical cross-references in sibling packs still
+  resolve by relative identity).
+- Appended this iteration and created `AUDIT_AND_HANDOFF.md` at the new
+  location capturing what's done, what's blocked, and how to resume.
+
+Evidence:
+
+- Folder now lives at
+  `.ai/03_plans/000-Follow Ups/2026-07-02-API-Rate-Limiting-Security-Consolidation/`.
+- First-slice implementation status (PH-0..PH-3): **SUBSTANTIALLY
+  COMPLETE LOCALLY** per iterations 13-23 of this ledger. 318 vitest
+  tests across 22 files GREEN. All 11 production `x-forwarded-for`
+  security-decision sites migrated to trusted `cf-connecting-ip`
+  derivation. Wave 1 matrices and Wave 2a/2b primitives shipped.
+- Production enforcement status (PH-4..PH-8): **NOT READY** and
+  blocked by factors beyond a single agent session's control. See
+  `AUDIT_AND_HANDOFF.md` Section "Blockers Beyond Agent Control" for
+  the four named blockers and the evidence each requires.
+- `git status` shows the rename cleanly; no file content changed in
+  this iteration.
+
+Decision:
+
+- This pack is **partially implemented** with structural production-release
+  blockers. Per the owner's directive this maps to the third branch:
+  "if there are blockers beyond your control please put the plan pack
+  folder in `000-Follow Ups`." The pack now lives there as durable
+  follow-up backlog.
+- First-slice implementation work is preserved in source (Wave 2a/2b
+  primitives, 11 migrated surfaces, 318 GREEN tests). Production
+  enforcement remains sequenced behind the four blockers documented in
+  `AUDIT_AND_HANDOFF.md`.
+- This is a status/relocation action, not an implementation wave. No
+  source, test, migration, provider, or dashboard changes were made in
+  this iteration beyond the git rename and the audit handoff doc.
+
+Residual risk:
+
+- Same four blockers documented in `AUDIT_AND_HANDOFF.md` (WAF/Turnstile
+  dashboard scope, structural independent-reviewer cap, PH-4..PH-6
+  multi-week scope, hosted/two-client runtime proof) remain open and
+  bind any future production-enforcement claim.
+- Wave 2a/2b primitives remain UNCONSUMED by production code (still
+  true as of iter 23 close; not regressed in iter 24 since iter 24
+  made no source changes).
+- Cross-references to the original `.ai/03_plans/2026-07-02-…` path
+  appear in `.ai/10_state/decisions.md` (historical record, intentionally
+  preserved verbatim), `.ai/10_state/current-state.md` (active fast-path
+  pointer — updated in iter 24 to point at the new location), and
+  several sibling plan packs (cross-reference drift; their next iteration
+  should update if they cite the path explicitly).
+- Future implementation agent must read `AUDIT_AND_HANDOFF.md` first
+  before resuming any PH-4+ work, then re-verify the four blockers
+  against then-current reality before claiming any production release.
