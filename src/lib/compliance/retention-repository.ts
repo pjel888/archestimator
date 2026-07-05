@@ -92,63 +92,63 @@ export const DEFAULT_RETENTION_RULES: readonly RetentionRule[] = [
     ttlDays: 365,
     action: "purged",
     selectSql:
-      "SELECT id FROM account_security_events WHERE created_at < :cutoff LIMIT 500",
+      "SELECT id FROM account_security_events WHERE created_at < ?1 LIMIT 500",
     applySql:
-      "DELETE FROM account_security_events WHERE id IN (SELECT value FROM json_each(:ids))",
+      "DELETE FROM account_security_events WHERE id IN (SELECT value FROM json_each(?1))",
   },
   {
     className: "account_audit_legacy_sha256",
     ttlDays: 180,
     action: "purged",
     selectSql:
-      "SELECT id FROM account_security_events WHERE created_at < :cutoff AND ip_hash LIKE 'sha256:%' LIMIT 500",
+      "SELECT id FROM account_security_events WHERE created_at < ?1 AND ip_hash LIKE 'sha256:%' LIMIT 500",
     applySql:
-      "DELETE FROM account_security_events WHERE id IN (SELECT value FROM json_each(:ids))",
+      "DELETE FROM account_security_events WHERE id IN (SELECT value FROM json_each(?1))",
   },
   {
     className: "collaboration_audit_events",
     ttlDays: 365,
     action: "purged",
     selectSql:
-      "SELECT id FROM collaboration_audit_events WHERE created_at < :cutoff LIMIT 500",
+      "SELECT id FROM collaboration_audit_events WHERE created_at < ?1 LIMIT 500",
     applySql:
-      "DELETE FROM collaboration_audit_events WHERE id IN (SELECT value FROM json_each(:ids))",
+      "DELETE FROM collaboration_audit_events WHERE id IN (SELECT value FROM json_each(?1))",
   },
   {
     className: "shared_link_events",
     ttlDays: 90,
     action: "purged",
     selectSql:
-      "SELECT id FROM shared_link_events WHERE created_at < :cutoff LIMIT 500",
+      "SELECT id FROM shared_link_events WHERE created_at < ?1 LIMIT 500",
     applySql:
-      "DELETE FROM shared_link_events WHERE id IN (SELECT value FROM json_each(:ids))",
+      "DELETE FROM shared_link_events WHERE id IN (SELECT value FROM json_each(?1))",
   },
   {
     className: "estimate_sheet_events",
     ttlDays: 365,
     action: "purged",
     selectSql:
-      "SELECT id FROM estimate_sheet_events WHERE created_at < :cutoff LIMIT 500",
+      "SELECT id FROM estimate_sheet_events WHERE created_at < ?1 LIMIT 500",
     applySql:
-      "DELETE FROM estimate_sheet_events WHERE id IN (SELECT value FROM json_each(:ids))",
+      "DELETE FROM estimate_sheet_events WHERE id IN (SELECT value FROM json_each(?1))",
   },
   {
     className: "privacy_requests_completed",
     ttlDays: 2555,
     action: "purged",
     selectSql:
-      "SELECT id FROM privacy_requests WHERE status = 'completed' AND created_at < :cutoff LIMIT 100",
+      "SELECT id FROM privacy_requests WHERE status = 'completed' AND created_at < ?1 LIMIT 100",
     applySql:
-      "DELETE FROM privacy_requests WHERE id IN (SELECT value FROM json_each(:ids))",
+      "DELETE FROM privacy_requests WHERE id IN (SELECT value FROM json_each(?1))",
   },
   {
     className: "privacy_requests_rejected",
     ttlDays: 365,
     action: "purged",
     selectSql:
-      "SELECT id FROM privacy_requests WHERE status = 'rejected' AND created_at < :cutoff LIMIT 100",
+      "SELECT id FROM privacy_requests WHERE status = 'rejected' AND created_at < ?1 LIMIT 100",
     applySql:
-      "DELETE FROM privacy_requests WHERE id IN (SELECT value FROM json_each(:ids))",
+      "DELETE FROM privacy_requests WHERE id IN (SELECT value FROM json_each(?1))",
   },
 ];
 
@@ -168,7 +168,7 @@ export async function runRetentionPass(
     try {
       const selectStmt = db.prepare(rule.selectSql);
       const selectResult = await selectStmt
-        .bind({ cutoff: cutoffTimestamp } as never)
+        .bind(cutoffTimestamp)
         .all<{ id: string }>();
       const ids = (selectResult.results ?? []).map((r) => r.id);
       if (ids.length === 0) {
@@ -199,7 +199,7 @@ export async function runRetentionPass(
 
       const applyStmt = db.prepare(rule.applySql);
       const applyResult = await applyStmt
-        .bind({ ids: JSON.stringify(ids) } as never)
+        .bind(JSON.stringify(ids))
         .run();
       const rowsAffected = applyResult.meta?.changes ?? 0;
 
@@ -209,7 +209,7 @@ export async function runRetentionPass(
         rowsAffected,
         cutoffTimestamp,
         cronRunId: options.cronRunId,
-        metadata: { ids_sample: ids.slice(0, 10) },
+        metadata: { selected_count: ids.length },
       });
 
       results.push({
