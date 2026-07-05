@@ -16,7 +16,7 @@ Stable current truth (verify against git/source before relying on a detail):
   Cloudflare Workers/OpenNext + D1 + R2 + Durable Objects + Better Auth,
   TanStack Query, Zustand, repository boundaries. Active app/runtime source is
   Cloudflare-only. Vercel/Supabase/Resend cleanup advanced on 2026-07-04 under
-  `.ai/03_plans/2026-07-04-Vercel-Supabase-Cleanup/`, but do **not** treat it
+  `.ai/09_archive/store/2026-07-05-Vercel-Supabase-Cleanup-complete/`, but do **not** treat it
   as final hosted/provider/operator/legal/privacy/cleanup/provider-exit/final-review proof: same-day auth follow-up work
 	  archived known Supabase-era proof scripts/tests under `supabase/**` and
 	  generated a broadened provider-cleanup allowlist report that classifies all
@@ -211,7 +211,7 @@ Stable current truth (verify against git/source before relying on a detail):
   exchange, `src/lib/supabase/types.ts` is still a test/proof dependency and
   cannot be deleted without a cascade, runtime email is Cloudflare Email only,
   and broad source/script/test/env cleanup must coordinate with the planning-only
-  sibling pack `.ai/03_plans/2026-07-04-Vercel-Supabase-Cleanup/`. The same
+  sibling pack `.ai/09_archive/store/2026-07-05-Vercel-Supabase-Cleanup-complete/`. The same
   pass corrected the root README legacy Supabase migration count to `182` and
   refreshed the auth-pack README/traceability/worksheet index for docs `23-26`.
   Focused Phase 5 validation passed `bunx vitest run --maxWorkers=1`
@@ -884,11 +884,14 @@ Stable current truth (verify against git/source before relying on a detail):
   `.ai/08_prompts/templates/codebase-ai-loop-task.md`; source note:
   `.ai/13_research/2026-07-02-karpathy-skills-agent-workflow-guardrails.md`.
 - API/rate-limiting/security planning consolidation as of 2026-07-02:
-  `.ai/03_plans/2026-07-02-API-Rate-Limiting-Security-Consolidation/`
-  supersedes `.ai/03_plans/2026-06-29-Rate-Limiting/` and
-  the user-provided `.ai/03_plans/2026-07-01-API-Audit/` workspace copy, plus
-  tracked/historical API-audit path drift under
-  `.ai/03_plans/2026-07-21-API-Audit/`. Status: CONDITIONALLY READY FOR
+  `.ai/03_plans/000-Follow Ups/2026-07-02-API-Rate-Limiting-Security-Consolidation/`
+  (relocated to `000-Follow Ups/` on 2026-07-05 after first-slice PH-0..PH-3
+  implementation substantially completed locally and production-enforcement
+  PH-4..PH-8 hit four blockers beyond single-agent control — see
+  `AUDIT_AND_HANDOFF.md` at that path). Pack supersedes
+  `.ai/03_plans/2026-06-29-Rate-Limiting/` and the user-provided
+  `.ai/03_plans/2026-07-01-API-Audit/` workspace copy, plus tracked/historical
+  API-audit path drift under `.ai/03_plans/2026-07-21-API-Audit/`. Status: CONDITIONALLY READY FOR
   IMPLEMENTATION PLANNING, not ready for production enforcement/provider
   cutover. P0 implementation gates are WebSocket signed room tickets before
   Durable Object forwarding, 100% D1 app-authorization access-path proof,

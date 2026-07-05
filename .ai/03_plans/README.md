@@ -161,6 +161,15 @@ A new plan must state:
 
 Do not create broad route families, dashboards, proposal systems, component libraries, grids, or persistence layers without explicit approval in the plan.
 
+## Rules for archiving plan packs
+
+When a plan pack is archived (moved to `.ai/09_archive/store/<archive-date>-<slug>/`):
+
+- **Move the entire folder.** Do not leave a stub, tombstone, `ARCHIVED.md`, README redirect, or any other residual file at the original `.ai/03_plans/<YYYY-MM-DD>-<slug>/` path. The active plans folder must contain only active plans — no graveyard of empty stub folders.
+- Verify every file is present at the archive destination before deleting the source.
+- If inbound references elsewhere in `.ai/` point at the old path, update them as part of the same commit. Do not leave a tombstone "so the path resolves" — fix the references, then remove the source.
+- The archive destination is the only canonical location after archiving. `git mv` or move-then-delete is the correct shape; copy-then-leave-stub is forbidden.
+
 ## Superseded historical plans
 
 Remaining older plans in this folder may still mention Glide, proposal grouping, or broad MVP definition work. Treat them as proposed or incomplete historical context only unless a future plan explicitly reactivates a specific piece.

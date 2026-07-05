@@ -35,7 +35,7 @@ Purpose: clean old Vercel/Supabase/Resend-era auth assumptions without deleting 
 - `/auth/callback` is a disabled legacy safety gate, not an active Supabase exchange route.
 - `src/lib/supabase/types.ts` is deleted in the current worktree after tests/proof references were migrated, archived, or reduced to non-blocking guard/audit-tooling references.
 - runtime email is Cloudflare Email only.
-- broad source/script/test/env cleanup should run through `.ai/03_plans/2026-07-04-Vercel-Supabase-Cleanup/` and its ledger.
+- broad source/script/test/env cleanup should run through `.ai/09_archive/store/2026-07-05-Vercel-Supabase-Cleanup-complete/` and its ledger.
 - current dirty-worktree re-audit shows substantial repo-local cleanup is present: `check-supabase`/`check-vercel` scripts and package entries are absent, `.vercel`/`.vercelignore` are absent, and migration evidence has been moved under `supabase/migration-evidence/`.
 - the sibling cleanup ledger now records implementation evidence, but this worksheet still treats final hosted/provider/operator/legal/privacy/cleanup/provider-exit/final-review proof as open because provider-exit pack/CI, hosted/provider-dashboard, operator, legal/privacy, and final-review gates are separate from local string classification.
 - remaining non-`supabase/**` provider hits are classified scanner/report tooling, negative assertions, compatibility guards, and security fixtures.
