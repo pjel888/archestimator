@@ -62,7 +62,7 @@ describe("ProjectGroupSection date mode (legacy orange-flag DOM parity)", () => 
         group={{ key: "created_at:2026 · March", label: "2026 · March" }}
         items={[item("March One", "p1")]}
         viewMode="large"
-        renderCard={renderCard}
+        getCardNode={renderCard}
         layoutClassName={layout}
         flagLayoutClassName={flagLayout}
         legacyHeaderDataAttr="data-project-date-group-label"
@@ -98,7 +98,7 @@ describe("ProjectGroupSection date mode (legacy orange-flag DOM parity)", () => 
         group={{ key: "created_at:2026 · March", label: "2026 · March" }}
         items={[item("March One", "p1"), item("March Two", "p2")]}
         viewMode="large"
-        renderCard={renderCard}
+        getCardNode={renderCard}
         layoutClassName={layout}
         flagLayoutClassName={flagLayout}
         legacyHeaderDataAttr="data-project-date-group-label"
@@ -117,7 +117,7 @@ describe("ProjectGroupSection client mode", () => {
         group={{ key: "client_name:acme", label: "Acme" }}
         items={[item("Acme One", "p1")]}
         viewMode="large"
-        renderCard={renderCard}
+        getCardNode={renderCard}
         layoutClassName={layout}
         flagLayoutClassName={flagLayout}
         legacySectionDataAttr={{ "data-project-client-group": "client_name:acme" }}
@@ -150,7 +150,7 @@ describe("ProjectGroupSection group mode (accent + collapse + menu)", () => {
         group={{ key: "g1", label: "Pipeline", accentId: "teal" }}
         items={[item("In Group", "p1")]}
         viewMode="large"
-        renderCard={renderCard}
+        getCardNode={renderCard}
         layoutClassName={layout}
         flagLayoutClassName={flagLayout}
       />,
@@ -190,7 +190,7 @@ describe("ProjectGroupSection group mode (accent + collapse + menu)", () => {
         group={{ key: "g1", label: "Pipeline", accentId: null }}
         items={[item("A", "p1"), item("B", "p2")]}
         viewMode="large"
-        renderCard={renderCard}
+        getCardNode={renderCard}
         layoutClassName={layout}
         flagLayoutClassName={flagLayout}
         collapsed={false}
@@ -213,7 +213,7 @@ describe("ProjectGroupSection group mode (accent + collapse + menu)", () => {
         group={{ key: "g1", label: "Pipeline", accentId: null }}
         items={[item("A", "p1"), item("B", "p2")]}
         viewMode="large"
-        renderCard={renderCard}
+        getCardNode={renderCard}
         layoutClassName={layout}
         flagLayoutClassName={flagLayout}
         collapsed
@@ -234,12 +234,14 @@ describe("ProjectGroupSection group mode (accent + collapse + menu)", () => {
         group={{ key: "g1", label: "Pipeline", accentId: null }}
         items={[item("A", "p1")]}
         viewMode="large"
-        renderCard={renderCard}
+        getCardNode={renderCard}
         layoutClassName={layout}
         flagLayoutClassName={flagLayout}
-        isProjectDragActive
-        isProjectDropAvailable
-        isProjectDropTarget
+        projectCardDropState={{
+          isDragActive: true,
+          isDropAvailable: true,
+          isDropTarget: true,
+        }}
         onProjectDragOver={vi.fn()}
         onProjectDrop={vi.fn()}
       />,
@@ -274,16 +276,18 @@ describe("ProjectGroupSection group mode (accent + collapse + menu)", () => {
         group={{ key: "g1", label: "Pipeline", accentId: null }}
         items={[item("A", "p1"), item("B", "p2")]}
         viewMode="large"
-        renderCard={renderCard}
+        getCardNode={renderCard}
         layoutClassName={layout}
         flagLayoutClassName={flagLayout}
-        isProjectDragActive
-        isProjectDropAvailable
-        isProjectDropTarget
-        projectCardDropTarget={{
-          groupKey: "g1",
-          projectId: "p2",
-          position: "before",
+        projectCardDropState={{
+          isDragActive: true,
+          isDropAvailable: true,
+          isDropTarget: true,
+          target: {
+            groupKey: "g1",
+            projectId: "p2",
+            position: "before",
+          },
         }}
         onProjectDragOver={vi.fn()}
         onProjectDrop={vi.fn()}
@@ -318,7 +322,7 @@ describe("ProjectGroupSection group mode (accent + collapse + menu)", () => {
         group={{ key: "g1", label: "Pipeline", accentId: null }}
         items={[item("A", "p1")]}
         viewMode="large"
-        renderCard={renderCard}
+        getCardNode={renderCard}
         layoutClassName={layout}
         flagLayoutClassName={flagLayout}
         onRenameGroup={onRenameGroup}
@@ -362,10 +366,10 @@ describe("ProjectGroupSection group mode (accent + collapse + menu)", () => {
         group={{ key: "g1", label: "Pipeline", accentId: null }}
         items={[item("In Group", "p1")]}
         viewMode="large"
-        renderCard={renderCard}
+        getCardNode={renderCard}
         layoutClassName={layout}
         flagLayoutClassName={flagLayout}
-        isReorderable
+        reorderState={{ isReorderable: true }}
         onToggleCollapse={toggleCollapse}
         onReorderDragStart={dragStart}
         onReorderDragEnd={dragEnd}
@@ -415,7 +419,7 @@ describe("ProjectGroupSection group mode (accent + collapse + menu)", () => {
         group={{ key: "__ungrouped__", label: "Ungrouped", accentId: null, isVirtual: true }}
         items={[item("Loose", "p1")]}
         viewMode="large"
-        renderCard={renderCard}
+        getCardNode={renderCard}
         layoutClassName={layout}
         flagLayoutClassName={flagLayout}
         headerActionGroups={[

@@ -24,13 +24,24 @@ export type ProjectCardDropTarget = {
   projectId: string | null;
   position: ProjectCardDropPosition;
 };
+export type ProjectGroupReorderState = {
+  isReorderable?: boolean;
+  isDragging?: boolean;
+  dropPosition?: ProjectGroupDropPosition | null;
+};
+export type ProjectCardDropState = {
+  isDragActive?: boolean;
+  isDropAvailable?: boolean;
+  isDropTarget?: boolean;
+  target?: ProjectCardDropTarget | null;
+};
 
 export type ProjectGroupSectionProps = {
   mode: "date" | "client" | "group";
   group: ProjectGroupSectionGroup;
   items: ProjectListItem[];
   viewMode: ProjectCardViewMode;
-  renderCard: (item: ProjectListItem) => ReactNode;
+  getCardNode: (item: ProjectListItem) => ReactNode;
   /** = getProjectGridClassName(viewMode) from project-grid-layout.ts */
   layoutClassName: string;
   /** = getProjectDateFlagLayoutClassName(viewMode) */
@@ -44,17 +55,12 @@ export type ProjectGroupSectionProps = {
   /** Group-mode editable bucket only: visible kebab + context-menu actions. Hidden for virtual + date/client. */
   headerActionGroups?: ActionMenuGroup[];
   onRenameGroup?: (key: string, name: string) => void;
-  isReorderable?: boolean;
-  isDragging?: boolean;
-  dropPosition?: ProjectGroupDropPosition | null;
+  reorderState?: ProjectGroupReorderState;
   onReorderDragStart?: (key: string, event: DragEvent<HTMLElement>) => void;
   onReorderDragOver?: (key: string, event: DragEvent<HTMLElement>) => void;
   onReorderDrop?: (key: string, event: DragEvent<HTMLElement>) => void;
   onReorderDragEnd?: () => void;
-  isProjectDragActive?: boolean;
-  isProjectDropAvailable?: boolean;
-  isProjectDropTarget?: boolean;
-  projectCardDropTarget?: ProjectCardDropTarget | null;
+  projectCardDropState?: ProjectCardDropState;
   onProjectDragOver?: (key: string, event: DragEvent<HTMLElement>) => void;
   onProjectDrop?: (key: string, event: DragEvent<HTMLElement>) => void;
   onProjectDragLeave?: (key: string, event: DragEvent<HTMLElement>) => void;
@@ -78,7 +84,7 @@ export function ProjectGroupSection({
   group,
   items,
   viewMode,
-  renderCard,
+  getCardNode,
   layoutClassName,
   flagLayoutClassName,
   collapsed = false,
@@ -87,17 +93,12 @@ export function ProjectGroupSection({
   legacySectionDataAttr,
   headerActionGroups,
   onRenameGroup,
-  isReorderable = false,
-  isDragging = false,
-  dropPosition = null,
+  reorderState,
   onReorderDragStart,
   onReorderDragOver,
   onReorderDrop,
   onReorderDragEnd,
-  isProjectDragActive = false,
-  isProjectDropAvailable = false,
-  isProjectDropTarget = false,
-  projectCardDropTarget = null,
+  projectCardDropState,
   onProjectDragOver,
   onProjectDrop,
   onProjectDragLeave,
@@ -105,6 +106,14 @@ export function ProjectGroupSection({
   onProjectCardDrop,
 }: ProjectGroupSectionProps) {
   const isVirtual = Boolean(group.isVirtual);
+  const isReorderable = reorderState?.isReorderable ?? false;
+  const isDragging = reorderState?.isDragging ?? false;
+  const dropPosition = reorderState?.dropPosition ?? null;
+  const isProjectDragActive = projectCardDropState?.isDragActive ?? false;
+  const isProjectDropAvailable =
+    projectCardDropState?.isDropAvailable ?? false;
+  const isProjectDropTarget = projectCardDropState?.isDropTarget ?? false;
+  const projectCardDropTarget = projectCardDropState?.target ?? null;
   const canReorder = mode === "group" && !isVirtual && isReorderable;
   const canReceiveProjectDrop =
     mode === "group" && Boolean(onProjectDragOver || onProjectDrop);
@@ -244,7 +253,7 @@ export function ProjectGroupSection({
                       : undefined
                   }
                 >
-                  {renderCard(item)}
+                  {getCardNode(item)}
                 </div>
                 {isAfterTarget ? renderProjectDropSkeleton("after") : null}
               </Fragment>

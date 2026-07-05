@@ -692,8 +692,10 @@ function renderGroupColorPreview(
 }
 
 function areStringArraysEqual(first: readonly string[], second: readonly string[]) {
-  if (first.length !== second.length) return false;
-  return first.every((value, index) => value === second[index]);
+  return (
+    first.length === second.length &&
+    first.every((value, index) => value === second[index])
+  );
 }
 
 function haveSameStringSet(first: readonly string[], second: readonly string[]) {
@@ -735,7 +737,7 @@ function orderProjectItemsWithinUserGroup(
   orderedIds: readonly string[] | undefined,
 ): ProjectListItem[] {
   if (orderedIds) return orderProjectItemsByIds(items, orderedIds);
-  return [...items].sort((first, second) => {
+  return items.toSorted((first, second) => {
     const firstPosition = getProjectItemGroupPosition(first);
     const secondPosition = getProjectItemGroupPosition(second);
     if (firstPosition !== null && secondPosition !== null) {
@@ -768,6 +770,37 @@ function orderProjectGroups(
   }
 
   return ordered;
+}
+
+function getVisibleProjectGroups(
+  projectGroups: readonly ProjectGroupSummary[],
+  optimisticProjectGroups: readonly ProjectGroupSummary[],
+  optimisticProjectGroupOverrides: Record<string, OptimisticProjectGroupOverride>,
+): ProjectGroupSummary[] {
+  const serverIds = new Set<string>();
+  const groups: ProjectGroupSummary[] = [];
+
+  for (const group of projectGroups) {
+    serverIds.add(group.id);
+    groups.push(
+      applyOptimisticProjectGroupOverride(
+        group,
+        optimisticProjectGroupOverrides[group.id],
+      ),
+    );
+  }
+
+  for (const group of optimisticProjectGroups) {
+    if (serverIds.has(group.id)) continue;
+    groups.push(
+      applyOptimisticProjectGroupOverride(
+        group,
+        optimisticProjectGroupOverrides[group.id],
+      ),
+    );
+  }
+
+  return groups;
 }
 
 function moveProjectGroupId(
@@ -1437,19 +1470,16 @@ export function ProjectsPageClient({
   const [projectCardDropTarget, setProjectCardDropTarget] =
     useState<ProjectCardDropTarget | null>(null);
 
-  const visibleProjectGroups = useMemo(() => {
-    const serverIds = new Set(projectGroups.map((group) => group.id));
-    const groups = [
-      ...projectGroups,
-      ...optimisticProjectGroups.filter((group) => !serverIds.has(group.id)),
-    ];
-    return groups.map((group) =>
-      applyOptimisticProjectGroupOverride(
-        group,
-        optimisticProjectGroupOverrides[group.id],
+  const visibleProjectGroups = useMemo(
+    () =>
+      getVisibleProjectGroups(
+        // react-doctor-disable-next-line react-doctor/no-event-handler -- False positive: pure visible group derivation in render memo, not effect-driven event logic.
+        projectGroups,
+        optimisticProjectGroups,
+        optimisticProjectGroupOverrides,
       ),
-    );
-  }, [projectGroups, optimisticProjectGroups, optimisticProjectGroupOverrides]);
+    [projectGroups, optimisticProjectGroups, optimisticProjectGroupOverrides],
+  );
   const orderedProjectGroups = useMemo(
     () => orderProjectGroups(visibleProjectGroups, optimisticGroupOrderIds),
     [visibleProjectGroups, optimisticGroupOrderIds],
@@ -1637,9 +1667,12 @@ export function ProjectsPageClient({
           continue;
         }
         if (haveSameStringSet(current[groupKey] ?? [], serverIds)) continue;
+        const currentIds = current[groupKey] ?? [];
+        const serverIdSet = new Set(serverIds);
+        const currentIdSet = new Set(currentIds);
         next[groupKey] = [
-          ...(current[groupKey] ?? []).filter((id) => serverIds.includes(id)),
-          ...serverIds.filter((id) => !(current[groupKey] ?? []).includes(id)),
+          ...currentIds.filter((id) => serverIdSet.has(id)),
+          ...serverIds.filter((id) => !currentIdSet.has(id)),
         ];
         changed = true;
       }
@@ -2087,9 +2120,12 @@ export function ProjectsPageClient({
     if (!draggedId || draggedId === targetId) return;
     event.preventDefault();
     const position = getProjectGroupDropPosition(event);
-    const previousOrderIds = orderedProjectGroups
-      .filter((group) => !isOptimisticProjectGroupId(group.id))
-      .map((group) => group.id);
+    const previousOrderIds: string[] = [];
+    for (const group of orderedProjectGroups) {
+      if (!isOptimisticProjectGroupId(group.id)) {
+        previousOrderIds.push(group.id);
+      }
+    }
     const nextOrderIds = moveProjectGroupId(
       previousOrderIds,
       draggedId,
@@ -2828,8 +2864,7 @@ export function ProjectsPageClient({
             <div
               className="grid h-full min-h-[420px] place-items-center px-4 py-10"
             >
-              <div
-                role="region"
+              <section
                 aria-live="polite"
                 aria-label={`No search results for ${emptySearchQuery}`}
                 data-project-search-empty-state=""
@@ -2860,7 +2895,7 @@ export function ProjectsPageClient({
                 >
                   Clear search
                 </Button>
-              </div>
+              </section>
             </div>
           ) : isUserGroupOrganize
             ? groupedByUserGroup.map((group) => (
@@ -2875,7 +2910,7 @@ export function ProjectsPageClient({
                   }}
                   items={group.items}
                   viewMode={projectViewMode}
-                  renderCard={renderLiveProjectCard}
+                  getCardNode={renderLiveProjectCard}
                   layoutClassName={projectLayoutClassName}
                   flagLayoutClassName={projectDateFlagLayoutClassName}
                   collapsed={collapsedGroupKeys.has(group.key)}
@@ -2885,31 +2920,33 @@ export function ProjectsPageClient({
                       ? undefined
                       : handleRenameGroup
                   }
-                  isReorderable={
-                    !group.isVirtual && !isOptimisticProjectGroupId(group.key)
-                  }
-                  isDragging={draggingProjectGroupId === group.key}
-                  dropPosition={
-                    groupDropTarget?.targetId === group.key
-                      ? groupDropTarget.position
-                      : null
-                  }
+                  reorderState={{
+                    isReorderable:
+                      !group.isVirtual && !isOptimisticProjectGroupId(group.key),
+                    isDragging: draggingProjectGroupId === group.key,
+                    dropPosition:
+                      groupDropTarget?.targetId === group.key
+                        ? groupDropTarget.position
+                        : null,
+                  }}
                   onReorderDragStart={handleGroupReorderDragStart}
                   onReorderDragOver={handleGroupReorderDragOver}
                   onReorderDrop={handleGroupReorderDrop}
                   onReorderDragEnd={handleGroupReorderDragEnd}
-                  isProjectDragActive={draggingProjectCardId !== null}
-                  isProjectDropAvailable={
-                    draggingProjectCardId
-                      ? canDropProjectCardAtGroupEnd(draggingProjectCardId, group.key)
-                      : false
-                  }
-                  isProjectDropTarget={projectCardDropTarget?.groupKey === group.key}
-                  projectCardDropTarget={
-                    projectCardDropTarget?.groupKey === group.key
-                      ? projectCardDropTarget
-                      : null
-                  }
+                  projectCardDropState={{
+                    isDragActive: draggingProjectCardId !== null,
+                    isDropAvailable: draggingProjectCardId
+                      ? canDropProjectCardAtGroupEnd(
+                          draggingProjectCardId,
+                          group.key,
+                        )
+                      : false,
+                    isDropTarget: projectCardDropTarget?.groupKey === group.key,
+                    target:
+                      projectCardDropTarget?.groupKey === group.key
+                        ? projectCardDropTarget
+                        : null,
+                  }}
                   onProjectDragOver={handleProjectCardDragOver}
                   onProjectDrop={handleProjectCardDrop}
                   onProjectDragLeave={handleProjectCardDragLeave}
@@ -2930,7 +2967,7 @@ export function ProjectsPageClient({
                     group={{ key: group.key, label: group.label }}
                     items={group.items}
                     viewMode={projectViewMode}
-                    renderCard={renderLiveProjectCard}
+                    getCardNode={renderLiveProjectCard}
                     layoutClassName={projectLayoutClassName}
                     flagLayoutClassName={projectDateFlagLayoutClassName}
                     legacyHeaderDataAttr={
