@@ -494,7 +494,7 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
       mocks.insertSharedLinkComment.mockRejectedValue(new Error(rawDbError));
       const req = makeRequest(
         { body: "comment that triggers an unexpected db error" },
-        { cookie: validSessionCookie(), "x-archestimator-csrf": "csrf", "x-forwarded-for": "203.0.113.9" },
+        { cookie: validSessionCookie(), "x-archestimator-csrf": "csrf", "cf-connecting-ip": "203.0.113.9" },
       );
 
       const res = await POST(req, params());
@@ -926,7 +926,7 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
         mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
         mocks.insertSharedLinkComment.mockRejectedValue(new Error("simulated failure for log test"));
 
-        const req = makeRequest({ body: "log test" }, { cookie: validSessionCookie(), "x-archestimator-csrf": "csrf", "x-forwarded-for": "203.0.113.50" });
+        const req = makeRequest({ body: "log test" }, { cookie: validSessionCookie(), "x-archestimator-csrf": "csrf", "cf-connecting-ip": "203.0.113.50" });
         await POST(req, params());
 
         // After impl: at least one log with required fields
