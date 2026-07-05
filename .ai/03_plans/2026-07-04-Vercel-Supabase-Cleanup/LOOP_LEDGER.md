@@ -141,8 +141,10 @@ Expected after Wave 4: 0 hits.
 
 - **Audit:** COMPLETE
 - **Plan:** COMPLETE
-- **Implementation:** COMPLETE (2026-07-04)
-- **Next action:** Owner reviews changed files and commits at the right moment (concurrent agents active; changes left uncommitted in working tree to avoid entangling with other agents' work)
+- **Implementation (Iter 2, 2026-07-04):** COMPLETE — bulk of cleanup committed across `da767928f`, `51e2e11a6`, `9abb94585`, `f2451b30b`, `1c556c466`.
+- **Residual closeout (Iter 3, 2026-07-05):** COMPLETE — see Iteration 3 below for the gaps Iter 2 left in the working tree.
+
+---
 
 ---
 
@@ -232,3 +234,115 @@ Expected after Wave 4: 0 hits.
 - Source migration plan (accurate-historical): `../2026-06-29-Cloudflare-Migration-Codex/`
 - Multi-Agent Execution Directive: `../../08_prompts/000_Planning Prompts/Multi-Agent-Execution-Directive.md`
 - Project entry: `AGENTS.md` (root)
+
+---
+
+## Iteration 3 — Residual Closeout (2026-07-05)
+
+**DISCOVER:**
+
+Re-verified current repo state against Iter 2's claims because the user flagged
+concurrent codebase-AI activity and asked for vigilance around data loss and
+conflicts. Findings:
+
+- Iter 2's narrative ("changes left uncommitted in working tree") was
+  **inaccurate**. The bulk of the cleanup WAS committed on 2026-07-04 across
+  five commits on `main`:
+  - `da767928f` docs(root): update canonical docs for Cloudflare-first stack and remove Vercel artifacts
+  - `51e2e11a6` test(e2e): remove obsolete Playwright specs and update shared-link receiver
+  - `9abb94585` chore(scripts): retire Supabase/Vercel readiness scripts and archive migration evidence
+  - `f2451b30b` test(vitest): retire Supabase/Vercel readiness tests and add auth audit coverage
+  - `1c556c466` docs(ai): archive superseded roadmap, spec, and prompt artifacts
+- `git status` showed a clean working tree at the start of Iter 3 (no uncommitted
+  cleanup residue), confirming the five commits above captured the work.
+- **Three residual gaps remained** that Iter 2 did not actually close:
+
+  | Gap | Reality | Plan target |
+  |---|---|---|
+  | F-002 `.env.local` sanitization | File mtime `Jul 2 21:34` — never edited despite Iter 2 claim "COMPLETE — 6 legacy env vars removed". All 6 legacy entries still present. | WS-D task D-1 |
+  | F-010 `src/lib/supabase/` folder | Folder existed but was **empty** (`types.ts` already retired by an earlier commit). Orphan directory. | WS-A task A-2 |
+  | WS-G `.github/workflows/ci.yml` scan | Iter 2 marked DEFERRED. Never actually run. | WS-G task G-1 |
+
+- Standing owner decisions reaffirmed: D-2 credential rotation waived (per
+  Iter 2), F-009 archived (Option B, done in Iter 2), F-011 banner (Option A,
+  done in Iter 2). F-019 provider-exit pack regen remains deferred
+  (concurrent-agent risk on `scripts/generate-cloudflare-provider-exit-pack.ts`).
+
+**PLAN:**
+
+Close the three residual gaps with the smallest possible change set. No new
+cleanup branch — the prior cleanup commits are already on `main`, and the
+residual scope is tiny (one gitignored env file, one empty folder, one docs
+scan). Commit any tracked-file changes (LOOP_LEDGER.md) directly to `main`
+consistent with the prior cleanup commit pattern.
+
+**EXECUTE:**
+
+| WS | Task | Files | Status |
+|---|---|---|---|
+| WS-D | F-002 sanitized `.env.local` for real — removed 6 legacy entries (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, Postgres-shaped `DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `RESEND_API_KEY`) and the stale `# Local database URL for CLI/migrations only…` comment. Active vars (BETTER_AUTH_*, ARCHESTIMATOR_*, CRON_SECRET, UPLOAD_*, DEEPSEEK_, GOOGLE_MAPS_, NEXT_PUBLIC_CLARITY_, NEXT_PUBLIC_GA_, PROJECT_INVITE_, NEXT_PUBLIC_APP_URL, NEXT_PUBLIC_SITE_URL, ARCHESTIMATOR_ALLOWED_APP_ORIGINS, CLOSED_BETA_ACCESS_ENABLED, ARCHESTIMATOR_AI_ENABLED, NEXT_PUBLIC_ASK_FLIP_UI_ENABLED, NEXT_PUBLIC_ESTIMATE_COLUMN_RESIZE_ENABLED) preserved. File reduced 40 → 30 lines. | `.env.local` (gitignored — local-only) | COMPLETE |
+| WS-A | F-010 orphan folder — `rmdir src/lib/supabase`. Folder was already empty (types.ts retired earlier); git does not track empty dirs, so this is a working-tree-only cleanup with no git diff. Verified 0 files via `find -type f` before deletion. | `src/lib/supabase/` (never tracked — empty dir) | COMPLETE |
+| WS-G | G-1 CI scan — `.github/workflows/ci.yml` is **CLEAN**. Uses `bun run validate`, `bun run build`, `bun run lint:design`, `bunx playwright install chromium --with-deps`, `bun run test:e2e`, `bun run test:e2e:perf`. Zero `vercel`/`supabase` CLI commands, zero `VERCEL_TOKEN`/`SUPABASE_ACCESS_TOKEN` env-var assumptions, no deployment steps outside the cf:deploy-aligned `bun run build`. No edit required. | `.github/workflows/ci.yml` (read-only — no edit) | COMPLETE |
+| WS-V | Ponytail single-check scan — re-ran the standing proof command. All residuals are negative assertions (tests asserting source does NOT contain legacy patterns), scanner scripts that detect legacy presence, or `vi.mock()` virtual mocks. Zero live-runtime imports. LEAVE per plan. | — | COMPLETE |
+| WS-H | F-019 provider-exit pack regen — remains deferred. Concurrent agents are touching `scripts/generate-cloudflare-provider-exit-pack.ts` consumers; the prior pack (under `.ai/02_audits/` or cloudflare-evidence folder) is still valid as historical evidence. | — | DEFERRED (carry-over) |
+
+**Totals (Iter 3):**
+- 1 gitignored local file edited (`.env.local`, 40 → 30 lines)
+- 1 empty folder removed from working tree (`src/lib/supabase/`, no git diff)
+- 1 tracked file edited (`LOOP_LEDGER.md` — this Iteration 3 entry + Status update above)
+- 0 source/test/script files changed
+
+**VERIFY:**
+
+| Verification | Result | Notes |
+|---|---|---|
+| `bun run type-check` (`tsc --noEmit`) baseline | ✅ exit 0 | Captured before any edit |
+| `bun run type-check` after F-002 + F-010 | ✅ exit 0 | No regressions |
+| S1 — `grep -cE '^(NEXT_PUBLIC_SUPABASE_\|SUPABASE_\|RESEND_\|DATABASE_URL=postgresql)' .env.local` | ✅ 0 | Was 6 before; all legacy entries gone |
+| S1 — Active vars preserved | ✅ 21 entries | BETTER_AUTH_*, ARCHESTIMATOR_*, CRON_SECRET, UPLOAD_*, DEEPSEEK_, GOOGLE_MAPS_, CLARITY/GA, PROJECT_INVITE_, etc. |
+| S1 — `.env.local` still gitignored | ✅ `.gitignore:54: .env*` matches | No accidental tracking |
+| S2 — `ls src/lib/supabase/` | ✅ "No such file or directory" | Empty folder removed |
+| S3 — `bun run type-check` exit code | ✅ 0 | Matches baseline; folder deletion did not break test mocks |
+| S4 — Ponytail single-check scan | ✅ All residuals classified | 0 live-runtime imports; all hits are negative-assertion tests, scanner scripts, or `vi.mock()` virtual mocks |
+| WS-G — `ci.yml` content scan | ✅ CLEAN | No Vercel/Supabase commands or env-var assumptions |
+| Concurrent-agent safety — `git status --short --branch` | ✅ Only unrelated untracked file (`.ai/03_plans/2026-07-04-Performance-Optimization/_evidence/` from another agent) | No entanglement with concurrent work |
+
+Skipped validations (residual risk):
+
+| Validation | Reason skipped | Risk | Substitute | Required for completion |
+|---|---|---|---|---|
+| Full `bun run validate` suite | Did not re-run lint/test:test/test:dom full suites; type-check + targeted review covers the actual edits | LOW — neither edit touches source/tests/configs tracked by lint or test runners | `bun run type-check` exit 0 + manual scan of `.env.local` and `ci.yml` | No — full suite is unchanged because edits don't touch covered files |
+| `bun run cf:provider-exit-pack` regen | Concurrent-agent risk on the script's consumers; deferred per Iter 2 | LOW — historical evidence pack remains valid | Read-only CI scan confirms no new legacy runtime blockers | No — F-019 remains an owner-disposition item, not a completion gate |
+| Browser/manual proof | Edit is config + empty-folder deletion; no UI/runtime behavior change | NONE | Static review of `.env.local` + ci.yml is the strongest possible evidence for this class | No |
+| `post-cleanup-2026-07-04` git tag | Low value; lazy/skip per Ponytail | NONE | The five cleanup commits + this Iter 3 ledger entry are the durable record | No |
+
+**RECORD:**
+
+- F-001: COMPLETE (Iter 2) — 24 e2e files + helpers deleted
+- F-002: COMPLETE (Iter 3) — `.env.local` actually sanitized this time (Iter 2 claim was inaccurate)
+- F-003: COMPLETE (Iter 2) — spec archived
+- F-004: COMPLETE (Iter 2) — spec archived
+- F-005: COMPLETE (Iter 2) — roadmap item archived
+- F-006: COMPLETE (Iter 2) — roadmap item archived
+- F-007: COMPLETE (Iter 2) — 6 check scripts deleted
+- F-008: COMPLETE (Iter 2) — 7 backfill scripts archived; 5 `cf:d1-*-backfill` package.json entries dropped
+- F-009: COMPLETE (Iter 2) — 21 proof scripts archived
+- F-010: COMPLETE (Iter 3) — orphan empty folder removed (types.ts was already retired earlier)
+- F-011: COMPLETE (Iter 2) — `supabase/README.md` banner added
+- F-012: COMPLETE (Iter 2) — `.vercel/` + `.vercelignore` deleted
+- F-013: COMPLETE (Iter 2) — `AGENTS.md:97` `vercel:agent-browser` replaced with `playwright` skill
+- F-014: COMPLETE (Iter 2) — 8 cascade tests deleted
+- F-015: COMPLETE (Iter 2) — `.gitignore:58` `.vercel` entry removed
+- F-016: COMPLETE (Iter 2) — `scripts/sql/*.sql` moved to `supabase/migration-evidence/sql/`
+- F-017: COMPLETE (Iter 3) — WS-B task B-5 misc-script review concluded: all 14 flagged scripts are Cloudflare-era scanners/proof generators that mention legacy for comparison/inventory purposes (legitimate `tooling-reference`). No `dead-code` found. LEAVE all.
+- F-018: COMPLETE (Iter 2) — `.gitignore:57` `# vercel` comment removed
+- F-019 (provider-exit pack regen): DEFERRED — concurrent-agent risk on `scripts/generate-cloudflare-provider-exit-pack.ts` consumers. Historical pack remains valid. Carry-over.
+
+**DECIDE:**
+
+- All 18 original findings + F-019 from Iter 2 are now resolved or explicitly deferred with rationale.
+- 17/19 findings resolved; 2 deferred (F-019 provider-exit pack regen, R-04 credential rotation waived by owner).
+- The plan pack's headline claim (`IMPLEMENTATION-READY → complete`) is now genuinely true at the repo-local-evidence level.
+- The original plan's stop-the-line conditions did not trigger: no new credentials discovered, no test-red cascade, no build failure, no owner revocation.
+- Concurrent-agent safety preserved: only my one tracked-file edit (`LOOP_LEDGER.md`) is in the commit; the other two changes are gitignored (`.env.local`) and never-tracked empty-dir deletion. No entanglement with concurrent work.
+- Verification mode: `verification_mode: emulated` — single-lead execution and verification. No independent reviewer lane was spawned for this small residual closeout because the scope (1 gitignored file + 1 empty folder + 1 docs scan) did not justify it. The larger Iter 2 cleanup had its own emulated verification.
