@@ -2,7 +2,7 @@
 
 > **Plan profile:** `standard` (multi-domain, bounded scope, not exhaustive)
 > **Plan status:** `CONDITIONALLY READY` *(overall)*. **Phase 1 is `NOT READY`** for implementation until WP-P1-01 produces EXPLAIN artifacts against the corrected schema; Phases 2–4 remain `NOT READY` pending their baselines. See `03_RISK_AND_READINESS.md` §4.2 for the full phase-status table.
-> **Revision:** Round 4 (post-Codex-review, 2026-07-04). Round 1 had fabricated schema names (`variant_cost_entries`, `owner_user_id`); Rounds 2–4 corrected schema references (`projects.created_by`, `workspaces.created_by`, `cost_library_item_variant_cost_entries` already indexed in migration `0028`), severity counts (MED = 9 not 7/8), authz test cases (6, not 5), Phase 1 readiness (NOT READY), and cross-references.
+> **Revision:** Round 6 (post-Codex-review, 2026-07-04). Round 1 had fabricated schema names (`variant_cost_entries`, `owner_user_id`); Rounds 2–6 progressively corrected schema references (`projects.created_by`, `workspaces.created_by`, `cost_library_item_variant_cost_entries` already indexed in migration `0028`, `collaboration_invitations` 3 indexes in `0007`), severity counts (MED = 9 not 7/8), authz test cases (6, not 5), Phase 1 readiness (NOT READY), Phase 1 finding severity language, F-MIG-02 inclusion in findings index, WP-P4-01 evaluator section, and F-REACT-02 / WP-P3-04 useState count (16, not 15).
 > **Verification mode:** `emulated` — author and reviewer are Claude-family. Codex (gpt-5.4) provided independent review (NAUGHTY → fix cycle → Round 2). Per the planning directive this caps overall readiness at 97.
 > **Author:** Sisyphus (OpenCode / Claude Opus 4.7), 2026-07-04 (Asia/Manila)
 > **Scope owner:** Philip

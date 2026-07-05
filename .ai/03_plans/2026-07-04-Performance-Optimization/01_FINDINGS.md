@@ -19,7 +19,7 @@
 | F-ACT-02 | MED | Server actions | `estimates/actions.ts` has 40 `await` keywords; some actions repeat `getCurrentWorkspaceProject` + `createEstimateActionsD1Client` per call |
 | F-ACT-03 | LOW | Mutations | `use-estimate-row-mutations.ts` has 8+ invalidation call sites; verify scope is per-estimate, not per-workspace |
 | F-REACT-01 | MED | Client bundle | 25 `"use client"` files exceed 300 lines; top 5 exceed 2000 lines — heavy initial bundle |
-| F-REACT-02 | MED | React / hot path | `component-library-manager/AddComponentModal.tsx` (1781 lines, 15 useState, 6 useEffect) — effect-loop risk |
+| F-REACT-02 | MED | React / hot path | `component-library-manager/AddComponentModal.tsx` (1781 lines, 16 useState/useTransition, 6 useEffect) — effect-loop risk |
 | F-REACT-03 | MED | React / hot path | `estimate-sheet/rows/row-table.tsx` (1239 lines, 9 useState, 4 useEffect) — render cost on every keystroke in the sheet |
 | F-REACT-04 | LOW | React / hot path | `projects-page-client.tsx` (2653 lines, 8 useState, 6 useEffect) — likely safe but needs Profiler confirmation |
 | F-REACT-05 | LOW | Code-splitting | Zero `React.lazy` usage. `next/dynamic` is used in 10+ workshop files; verify it covers editor/charts/modals |
@@ -30,6 +30,7 @@
 | F-DEAD-01 | LOW | Dead code | `console.log`/`console.debug` appears 2× in `src/lib` — minor; verify they are dev-gated |
 | F-DEAD-02 | LOW | Dead code | Only 1 truly unimported file in `src/lib` (`sharp-cloudflare-stub.ts`, intentional via next.config alias) — codebase is clean |
 | F-MIG-01 | INFO | Migration archaeology | 30 active D1 migrations; `supabase/migrations/` (182 files) is retained as archaeology — confirm no test or active source imports it |
+| F-MIG-02 | INFO | Migration archaeology | Legacy Supabase archaeology retained (`supabase/migrations/`, `supabase/migration-evidence/`) — out of scope for this plan, owned by `2026-07-04-Vercel-Supabase-Cleanup` |
 
 ---
 
@@ -67,7 +68,7 @@ The following table maps every database table to its explicit secondary indexes 
 | **`projects`** | **0** *(PRIMARY KEY and `UNIQUE (id, workspace_id)` are auto-indexed; no `(workspace_id, created_at)` or `(created_by)` index)* | `0007` |
 | **`workspaces`** | **0** *(PRIMARY KEY and `slug` UNIQUE auto-indexed; no `(created_by)` index)* | `0007` |
 | **`estimate_sheets`** | N/A *(not a separate table — `estimates` covers it)* | — |
-| **`collaboration_invitations`** | **0 explicit** *(token uniqueness may auto-index; verify)* | `0007` |
+| `collaboration_invitations` | 3 (`email_lifecycle`, `project_lifecycle`, `estimate_lifecycle`) | `0007` *(corrected in Round 5 after Codex caught the prior "0 explicit" claim was wrong — `migrations/0007_collaboration_invitations.sql:145-152`)* |
 
 **Gap interpretation:**
 

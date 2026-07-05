@@ -26,9 +26,9 @@ Phase 3 (Client bundle + React hot paths) ─────┘
 
 ## Phase 1 — D1 indexes + N+1 fix
 
-**Goal:** eliminate the two HIGH findings (F-D1-01, F-D1-02) and reduce D1 round-trip count on the workshop dashboard render.
+**Goal:** eliminate the HIGH finding F-D1-01 (N+1 authz loop) and reduce the MED finding F-D1-02 (missing indexes), and reduce D1 round-trip count on the workshop dashboard render.
 
-**Findings addressed:** F-D1-01, F-D1-02.
+**Findings addressed:** F-D1-01 (HIGH), F-D1-02 (MED). *(Round 5 correction: previously drafted as "two HIGH findings"; F-D1-02 was downgraded to MED in Round 2 after schema verification.)*
 
 **Out of scope for Phase 1:** F-D1-03 (action waterfalls), F-D1-04 (file size), F-D1-05 (bulk ops).
 
@@ -329,7 +329,7 @@ bun run perf:dashboard-query-count PERF_TRACE_INPUT=<captured-log-path>
 
 ### WP-P3-04 — Audit `AddComponentModal.tsx` for effect loops
 
-**Goal:** determine whether the 15 useState / 6 useEffect is a real problem or a false positive.
+**Goal:** determine whether the 16 `useState`/`useTransition` + 6 `useEffect` count is a real problem or a false positive. *(Count corrected in Round 6 to match `01_FINDINGS.md` F-REACT-02 body; was previously drafted as "15 useState / 6 useEffect" — Codex Round 6 caught the drift.)*
 
 **Steps:**
 
@@ -384,6 +384,12 @@ bun run perf:dashboard-query-count PERF_TRACE_INPUT=<captured-log-path>
 **Owner decision:** OPEN-PERF-05 (advisory for 2 weeks, then promote to blocking).
 
 **Stop condition:** CI step runs, posts a comment on the PR if a budget is exceeded, does not fail the build.
+
+**Evaluator / regression threshold:** the gate's evaluator is itself: run on every PR via `.github/workflows/ci.yml`, post the bundle size and route-transition p95 numbers as a comment. Regression threshold: any PR that pushes the metric > 10% above the budget triggers an advisory comment; after the 2-week advisory window, the same threshold fails the build. Budgets are calibrated against the Phase 1–3 baseline artifacts (`_evidence/phase-1/`, `_evidence/phase-2/`, `_evidence/phase-3/`) and recomputed each release.
+
+**Real script names** *(verified against `package.json:89-92` in Round 5)*: the repo exposes both `perf:measure-routes` (runs `scripts/measure-route-transitions.ts`) and `perf:check-routes` (runs `scripts/check-route-transition-readiness.ts`). Either is a valid baseline source for the route-transition p95 budget row.
+
+**Post-review note (Codex Round 5, 2026-07-04):** this WP originally lacked an evaluator/regression section; added above. The Round 5 review also flagged the `perf:check-routes` reference as nonexistent — that flag was a false positive (`perf:check-routes` is wired at `package.json:90`).
 
 ---
 
