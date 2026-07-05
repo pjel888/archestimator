@@ -37,8 +37,7 @@ function passesFetchMetadata(request: Request) {
 
 function clientKey(request: Request) {
   return (
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip")?.trim() ||
+    request.headers.get("cf-connecting-ip")?.trim() ||
     "unknown"
   );
 }

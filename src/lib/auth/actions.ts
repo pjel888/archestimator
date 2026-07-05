@@ -29,7 +29,7 @@ async function getRequestMetadata() {
       requestUrl,
     }),
     requestId: headersList.get("x-request-id") ?? headersList.get("cf-ray"),
-    ipAddress: headersList.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+    ipAddress: headersList.get("cf-connecting-ip")?.trim() ?? null,
     userAgent: headersList.get("user-agent"),
   };
 }

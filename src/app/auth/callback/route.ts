@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
   const next = sanitizeNextPath(requestUrl.searchParams.get("next"));
   const auditRequest = {
     requestId: request.headers.get("x-request-id") ?? request.headers.get("cf-ray"),
-    ipAddress: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+    ipAddress: request.headers.get("cf-connecting-ip")?.trim() ?? null,
     userAgent: request.headers.get("user-agent"),
   };
 
