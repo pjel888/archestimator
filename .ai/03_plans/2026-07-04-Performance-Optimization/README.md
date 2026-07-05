@@ -175,3 +175,72 @@ When implementation of any phase completes, the implementer's final report must 
 - Confirmation that `bun run validate` and `bun run cf:d1-runtime-proof` still pass on the affected surfaces.
 
 Without that evidence, the phase is not done.
+
+---
+
+## 12. Baseline capture pass (2026-07-05)
+
+> **Captured by:** Sisyphus (OpenCode / Claude Opus 4.7) under the Multi-Agent Execution Directive. Read-only / measurement-only. Zero source files modified.
+
+### Work packages executed
+
+| WP | Status | Evidence |
+|---|---|---|
+| WP-P1-01 (EXPLAIN baselines) | ✅ DONE | `_evidence/phase-1/explain-before-20260705.md` |
+| WP-P3-01 (Bundle baseline) | ✅ DONE — Turbopack-native route-bundle stats used; all routes meet ≤ 350 KB gzipped target | `_evidence/phase-3/bundle-baseline-20260705/source-attribution.md` |
+| WP-P2-01 prep (Action inventory) | ✅ DONE — corrected 4 of 5 estimate action names | `_evidence/phase-2/action-inventory.md` |
+| WP-P2-03 (Invalidation audit) | ✅ CLOSED — NO ACTION. 44 sites all OK. | `_evidence/phase-2/invalidation-audit.md` |
+| WP-P3-04 (AddComponentModal audit) | ✅ CLOSED — NO ACTION. Plan over-counted hooks (15/5, not 16/6). All effects SYNC. Modal not on hot path. | `_evidence/phase-3/add-component-modal-effect-audit.md` |
+
+### Critical plan corrections surfaced by baselines
+
+1. **Phase 1 index shape was wrong.** The plan proposed `(workspace_id, created_at DESC)`. Actual hot-path queries ORDER BY `updated_at` (lines 1405-1406 and 2044-2045 of `workspace-repository.ts`; current as of 2026-07-05). Corrected to `(workspace_id, updated_at DESC)`. The 2 of 3 proposed indexes on `created_by` are disproven (no SQL filter uses `created_by`). Migration collapses to a single 1-line `CREATE INDEX`.
+2. **Phase 2 estimate action names were wrong.** `loadEstimateSheet` → `fetchEstimateTree`; `createEstimateRow` → `insertEstimateRowItemFromLibrary`; `updateEstimateRow` → `updateEstimateRowItem`; `deleteEstimateRow` → `deleteEstimateRowItem`. Only `reorderEstimateNodes` was close (actual: `reorderEstimateTreeNodes`). All 5 library action names verified correct.
+3. **WP-P2-03 can be closed.** All 44 invalidation sites use narrow `estimateQueryKeys.detail/tabTree/areaTree` keys. The plan's hypothesis ("broad `['estimates']` keys") does not apply.
+4. **WP-P3-04 can be closed.** All 5 effects in AddComponentModal are SYNC (ref-mirroring + focus + cleanup). Component is a modal, not on per-keystroke hot path.
+
+### Updated phase readiness (supersedes §6 for phases where baselines landed)
+
+| Phase | Pre-baseline (§6) | Post-baseline (this section) | Next step to IMPLEMENTATION-READY |
+|---|---|---|---|
+| Phase 1 | NOT READY | **CONDITIONALLY READY** — EXPLAIN confirms missing index, corrected shape accepted | Owner accepts corrected `(workspace_id, updated_at DESC)` migration; 1-line `CREATE INDEX`, additive-only |
+| Phase 2 (WP-P2-01 prep) | NOT READY | **CONDITIONALLY READY for action names** — 10 actions verified, top target = `loadCurrentWorkspaceComponentLibrary` | Run PERF_TRACE=1 baselines per WP-P2-01 (needs `bun run cf:preview` + Playwright) |
+| Phase 2 (WP-P2-02 refactors) | NOT READY | NOT READY — needs PERF_TRACE timing data | Awaits WP-P2-01 PERF_TRACE artifacts |
+| Phase 2 (WP-P2-03 audit) | NOT READY | **CLOSED — NO ACTION** | None |
+| Phase 3 (WP-P3-01 bundle) | NOT READY | **CLOSED — TARGET MET** — all 40 routes measured via Turbopack-native `.next/diagnostics/route-bundle-stats.json`; all under 350 KB gzipped first-load target | None needed — see `_evidence/phase-3/bundle-baseline-20260705/source-attribution.md` |
+| Phase 3 (WP-P3-02/03 Profiler) | NOT READY | NOT READY — needs React Profiler traces on estimate editor | Run dev server with Profiler enabled against 100-row × 5-col fixture (per WP-P3-02) |
+| Phase 3 (WP-P3-04 AddComponentModal) | NOT READY | **CLOSED — NO ACTION** | None |
+| Phase 4 | NOT READY | NOT READY — still depends on Phase 1-3 baselines | Awaits Phase 1 promotion + Phase 2 PERF_TRACE + Phase 3 analyzer |
+
+### Decision points for Philip
+
+The baselines reduced the plan's complexity substantially. Three paths forward:
+
+1. **Implement Phase 1 only** (recommended, smallest-coherent-change / ponytail). Apply the corrected 1-line additive index migration locally + remotely, re-run EXPLAIN-after, run `cf:d1-runtime-proof`. Defer Phases 2-4. Estimated effort: 2 hours. **Zero UI/UX changes.** Zero authz changes.
+2. **Implement Phase 1 + Phase 2 PERF_TRACE capture** (medium). Adds the WP-P2-01 PERF_TRACE baselines for the 10 verified actions. Estimated effort: 1 day. Still zero source changes — measurement-only.
+3. **Full plan** (heavy). Implement Phase 1 + Phase 2 + Phase 3 + Phase 4. Requires React Profiler traces + Turbopack-native bundle diagnostics (via `.next/diagnostics/route-bundle-stats.json`) + CI gate. Estimated effort: 7-12 days per plan §4.
+
+**Recommendation: Path 1.** Phase 1 alone addresses the highest-impact finding (D1 round-trips dominate Worker request latency) at the smallest blast radius. Phase 2 / 3 baselines can proceed in parallel without blocking Phase 1 ship.
+
+### Concurrent-agent safety
+
+- All work confined to `.ai/03_plans/2026-07-04-Performance-Optimization/_evidence/`.
+- Zero source files modified (verified via `git diff --name-only -- src/ migrations/ package.json next.config.ts worker.ts wrangler.jsonc` → empty).
+- Zero remote D1 mutations (all EXPLAIN queries used `--local`).
+- Concurrent agent activity observed: `.ai/03_plans/2026-07-02-API-Rate-Limiting-Security-Consolidation/README.md` was modified during this pass — different plan, no conflict.
+
+### Santa-loop round 1 → round 2 fixes (2026-07-05)
+
+After the first implementation pass shipped Phase 1 (authz batched fix + migration), an independent Codex Reviewer B (santa-loop) returned **NAUGHTY** with 5 critical issues. Round 2 fixes applied:
+
+1. **Fail-closed parity restored** — `filterAccessibleSidebarProjectIds` now wraps the batched SQL in try/catch returning `[]` on error, preserving the `runAllowedProbe` contract from `src/lib/authz/d1-access.ts:27-38`.
+2. **`PERF_BUDGET_STRICT=1` env var honored** — `scripts/check-performance-budgets.mjs` now treats both `--strict` arg and `PERF_BUDGET_STRICT=1` env as strict mode.
+3. **Overage math fixed** — was `(r.gzKb / 1024 - BUDGET_KB)` (double-divided); corrected to `(r.gzKb - BUDGET_KB)`.
+4. **`ProfileRow` import removed** — test now uses a local `TestProfileRow` type matching only the fields exercised (`id`, `role`), avoiding the file-private-type import.
+5. **Stale evidence corrected** — `bundle-baseline-20260705/baseline.md` no longer claims "no analyzer wired" (the analyzer IS wired, it just no-ops under Turbopack). Migration SQL line refs corrected (1398→1405, 2034→2044) to match current line numbers.
+6. **Two regression tests added** — fail-closed parity test (D1-outage scenario) + platform-admin-no-SQL test.
+
+### Scope clarification on ship commit `73fe69019`
+
+Philip committed the Phase 1 source changes (migration `0031_performance_indexes_additive.sql`, the batched authz rewrite in `workspace-repository.ts`, and the two test files) as part of broader commit `73fe69019 "Make project-group ordering deployable on D1"` (2026-07-05 12:39 +0800). That commit **also** contains unrelated project-group work (migration `0032_project_group_membership_positions.sql`, UI changes in `src/components/workshop/ProjectGroupSection.tsx`, `LiveProjectCard.tsx`, `projects-page-client.tsx`, and `globals.css`). The UI changes in that commit are **not** part of this performance plan — they are the project-group-ordering feature work. The perf-plan-attributable changes are scoped properly within the commit (the 4 perf files); reviewers evaluating "no UI changes" should diff `73fe69019` filtered to only the perf-plan file paths.
+

@@ -23,6 +23,17 @@ jobs:
         run: bun run validate
       - name: Build
         run: bun run build
+      - name: Performance budget advisory
+        # ponytail: WP-P4-01 — non-blocking advisory per OPEN-PERF-05.
+        # Promotes to blocking after 2-week advisory window by setting
+        # PERF_BUDGET_STRICT=1 (env) at the workflow level — the script honors
+        # both the env var and the --strict arg.
+        # When strict mode is active, continue-on-error is false so CI fails
+        # on any route over budget.
+        env:
+          PERF_BUDGET_STRICT: ${{ secrets.PERF_BUDGET_STRICT }}
+        run: bun run scripts/check-performance-budgets.mjs
+        continue-on-error: ${{ secrets.PERF_BUDGET_STRICT != '1' }}
       - name: Impeccable design audit
         run: bun run lint:design
       - name: Install Playwright Chromium

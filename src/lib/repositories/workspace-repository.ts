@@ -2285,42 +2285,51 @@ async function filterAccessibleSidebarProjectIds(
   // access branches (created_by + 3 EXISTS) into one prepared statement.
   // The platform-admin JS short-circuit is preserved before any SQL, matching
   // branch 1 of canAccessProjectInD1.
+  // Santa-loop round 2: wrapped in try/catch to preserve the fail-closed
+  // semantics of canAccessProjectInD1's runAllowedProbe — on D1 error, return
+  // an empty list (deny all) instead of throwing.
   if (isPlatformAdminRole(profile.role)) return projectIds;
   if (projectIds.length === 0) return [];
 
   const userId = profile.id;
-  const accessibleRows = await all<{ id: string }>(
-    database,
-    `SELECT project.id
-     FROM projects project
-     WHERE project.id IN (${placeholders(projectIds)})
-       AND (
-         project.created_by = ?
-         OR EXISTS (
-           SELECT 1
-           FROM workspace_members workspace_member
-           WHERE workspace_member.workspace_id = project.workspace_id
-             AND workspace_member.user_id = ?
-         )
-         OR EXISTS (
-           SELECT 1
-           FROM project_members project_member
-           WHERE project_member.project_id = project.id
-             AND project_member.user_id = ?
-         )
-         OR EXISTS (
-           SELECT 1
-           FROM estimate_sheet_members sheet_member
-           WHERE sheet_member.project_id = project.id
-             AND sheet_member.user_id = ?
-         )
-       )`,
-    [...projectIds, userId, userId, userId, userId],
-  );
-  const accessibleSet = new Set(accessibleRows.map((row) => row.id));
-  // Preserve input order: callers rely on the favorite-ranking order produced
-  // by the upstream sort, not on SQL row order.
-  return projectIds.filter((id) => accessibleSet.has(id));
+  try {
+    const accessibleRows = await all<{ id: string }>(
+      database,
+      `SELECT project.id
+       FROM projects project
+       WHERE project.id IN (${placeholders(projectIds)})
+         AND (
+           project.created_by = ?
+           OR EXISTS (
+             SELECT 1
+             FROM workspace_members workspace_member
+             WHERE workspace_member.workspace_id = project.workspace_id
+               AND workspace_member.user_id = ?
+           )
+           OR EXISTS (
+             SELECT 1
+             FROM project_members project_member
+             WHERE project_member.project_id = project.id
+               AND project_member.user_id = ?
+           )
+           OR EXISTS (
+             SELECT 1
+             FROM estimate_sheet_members sheet_member
+             WHERE sheet_member.project_id = project.id
+               AND sheet_member.user_id = ?
+           )
+         )`,
+      [...projectIds, userId, userId, userId, userId],
+    );
+    const accessibleSet = new Set(accessibleRows.map((row) => row.id));
+    // Preserve input order: callers rely on the favorite-ranking order produced
+    // by the upstream sort, not on SQL row order.
+    return projectIds.filter((id) => accessibleSet.has(id));
+  } catch {
+    // Fail-closed parity with runAllowedProbe in src/lib/authz/d1-access.ts:27-38.
+    // On D1 error or query failure, deny all sidebar favorites rather than throw.
+    return [];
+  }
 }
 
 // ponytail: test seam for behavioral tests under tests/vitest/. Marked with

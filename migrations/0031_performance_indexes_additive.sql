@@ -7,9 +7,10 @@
 --   SELECT * FROM projects WHERE workspace_id = ? ORDER BY updated_at DESC
 --
 -- Source queries that benefit (verified against actual SQL in
--- src/lib/repositories/workspace-repository.ts on 2026-07-05):
---   - line 1398: WHERE workspace_id = ? ORDER BY updated_at DESC
---   - line 2034: WHERE workspace_id = ? ORDER BY updated_at DESC LIMIT ?
+-- src/lib/repositories/workspace-repository.ts on 2026-07-05;
+-- line numbers confirmed by santa-loop round 2 review):
+--   - line 1405-1406: WHERE workspace_id = ? ORDER BY updated_at DESC
+--   - line 2044-2045: WHERE workspace_id = ? ORDER BY updated_at DESC LIMIT ?
 --
 -- The composite (workspace_id, updated_at DESC) eliminates both the SCAN and
 -- the TEMP B-TREE FOR ORDER BY: the index is sorted by workspace_id (filter)

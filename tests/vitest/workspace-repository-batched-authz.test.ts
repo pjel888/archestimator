@@ -1,12 +1,21 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { D1DatabaseLike, D1Value } from "@/lib/cloudflare/d1";
-import type { ProfileRow } from "@/lib/repositories/workspace-repository";
 
 // Mock server-only so the module loads in the test environment.
 vi.mock("server-only", () => ({}));
 
 import { __testing__filterAccessibleSidebarProjectIds } from "@/lib/repositories/workspace-repository";
+
+// ponytail: ProfileRow is a file-private type in workspace-repository.ts:54.
+// Rather than widen the public API to export it, mirror only the fields the
+// test exercises. If the source ProfileRow shape drifts, the
+// __testing__filterAccessibleSidebarProjectIds call site is the integration
+// boundary that would surface the mismatch.
+type TestProfileRow = {
+  id: string;
+  role: "owner" | "admin" | "member";
+};
 
 // Helper: build a fake D1DatabaseLike whose `.all()` returns a synthetic result
 // set based on a preconfigured access set. Lets the test simulate each branch
@@ -47,18 +56,10 @@ function createBatchedAuthzDatabase({
   return db;
 }
 
-function createProfile(role: ProfileRow["role"], id = "user-1"): ProfileRow {
-  const now = "2026-07-05T00:00:00.000Z";
-  return {
-    avatar_url: null,
-    created_at: now,
-    default_workspace_id: null,
-    display_name: id,
-    email: `${id}@example.test`,
-    id,
-    role,
-    updated_at: now,
-  };
+function createProfile(role: TestProfileRow["role"], id = "user-1"): TestProfileRow {
+  // ponytail: __testing__filterAccessibleSidebarProjectIds only reads id + role.
+  // Full ProfileRow has more fields but they are not exercised here.
+  return { id, role };
 }
 
 describe("filterAccessibleSidebarProjectIds (batched authz)", () => {
@@ -146,5 +147,48 @@ describe("filterAccessibleSidebarProjectIds (batched authz)", () => {
       createProfile("member"),
     );
     expect(result).toEqual([]);
+  });
+
+  it("fails closed on D1 error: returns empty array instead of throwing (parity with runAllowedProbe)", async () => {
+    // ponytail: Santa-loop round 2 regression test. The original canAccessProjectInD1
+    // wraps its probe in runAllowedProbe() and returns false on D1 errors
+    // (src/lib/authz/d1-access.ts:27-38). The batched path must preserve that
+    // fail-closed contract: a D1 outage or query error must NOT throw into the
+    // caller (which would 500 the sidebar), and must NOT silently allow access
+    // to projects that haven't been verified.
+    const throwingDb: D1DatabaseLike = {
+      prepare: vi.fn(() => {
+        const statement = {
+          bind: vi.fn(() => statement),
+          all: vi.fn(async () => {
+            throw new Error("simulated D1 outage");
+          }),
+          first: vi.fn(async () => null),
+          run: vi.fn(async () => ({ success: false, meta: { changes: 0 } })),
+        };
+        return statement;
+      }),
+    };
+    const result = await __testing__filterAccessibleSidebarProjectIds(
+      throwingDb,
+      ["p1", "p2", "p3"],
+      createProfile("member"),
+    );
+    expect(result).toEqual([]);
+  });
+
+  it("does not execute SQL after the platform-admin short-circuit (no D1 round-trip for admins)", async () => {
+    // ponytail: regression guard. Branch 1 of canAccessProjectInD1 must remain
+    // a pure JavaScript short-circuit. If a future refactor accidentally moves
+    // the admin check into SQL, the platform admin would incur a D1 round-trip
+    // and the security short-circuit would be lost.
+    const db = createBatchedAuthzDatabase({
+      accessibleProjectIds: new Set(),
+      capture: () => {
+        throw new Error("SQL must not execute when user is platform admin");
+      },
+    });
+    const result = await __testing__filterAccessibleSidebarProjectIds(db, ["p1", "p2"], createProfile("admin"));
+    expect(result).toEqual(["p1", "p2"]);
   });
 });
