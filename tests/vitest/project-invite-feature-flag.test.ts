@@ -163,7 +163,7 @@ describe("project invite entry feature flag", () => {
   });
 
   it("rate-limits the 31st rapid invite resolution request", async () => {
-    const headers = new Headers({ "x-forwarded-for": "203.0.113.10" });
+    const headers = new Headers({ "cf-connecting-ip": "203.0.113.10" });
 
     for (let attempt = 0; attempt < 30; attempt += 1) {
       await expect(checkInviteResolutionRateLimit({ headers, rawToken: "route-token" })).resolves.toEqual({ allowed: true });
@@ -177,7 +177,7 @@ describe("project invite entry feature flag", () => {
   });
 
   it("keys invite rate-limit IP hashing with a server-side pepper", async () => {
-    const headers = new Headers({ "x-forwarded-for": "203.0.113.10" });
+    const headers = new Headers({ "cf-connecting-ip": "203.0.113.10" });
 
     await expect(checkInviteCreateRateLimit({ headers, projectId: "project-1", userId: "user-1" })).resolves.toEqual({ allowed: true });
     const tokenPepperKeyHash = rateLimitEvents[0]?.key_hash;
@@ -195,7 +195,7 @@ describe("project invite entry feature flag", () => {
 
   it("rate-limits the 6th rapid invite accept attempt for a user and token", async () => {
     const request = new Request("https://archestimator.test/invite/route-token/accept", {
-      headers: { "x-forwarded-for": "203.0.113.10" },
+      headers: { "cf-connecting-ip": "203.0.113.10" },
     });
 
     for (let attempt = 0; attempt < 5; attempt += 1) {

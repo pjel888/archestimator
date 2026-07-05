@@ -8,7 +8,7 @@ import {
 
 function requestForIp(ip: string) {
   return {
-    headers: new Headers({ "x-forwarded-for": `${ip}, 10.0.0.1` }),
+    headers: new Headers({ "cf-connecting-ip": ip }),
   } as Request;
 }
 

@@ -161,7 +161,7 @@ describe("project publication public repository (Cloudflare D1 context)", () => 
     const store = createMockPublicationStore();
     const { repository } = await importRepositoryWithStore(store);
     const request = new Request("https://archestimator.test/share/client-token", {
-      headers: { "x-forwarded-for": "203.0.113.10" },
+      headers: { "cf-connecting-ip": "203.0.113.10" },
     });
 
     await expect(repository.checkProjectPublicationEventRateLimit({ token: "client-token", request })).resolves.toEqual({ allowed: true });
@@ -183,7 +183,7 @@ describe("project publication public repository (Cloudflare D1 context)", () => 
     });
     const { repository } = await importRepositoryWithStore(store);
     const request = new Request("https://archestimator.test/share/client-token", {
-      headers: { "x-forwarded-for": "203.0.113.10" },
+      headers: { "cf-connecting-ip": "203.0.113.10" },
     });
 
     const first = repository.checkProjectPublicationEventRateLimit({ token: "client-token", request });
@@ -206,7 +206,7 @@ describe("project publication public repository (Cloudflare D1 context)", () => 
     });
     const { repository } = await importRepositoryWithStore(store);
     const request = new Request("https://archestimator.test/share/client-token", {
-      headers: { "x-forwarded-for": "203.0.113.10" },
+      headers: { "cf-connecting-ip": "203.0.113.10" },
     });
 
     await expect(repository.checkProjectPublicationPasswordRateLimit({ token: "client-token", request })).resolves.toEqual({
@@ -238,7 +238,7 @@ describe("project publication public repository (Cloudflare D1 context)", () => 
     });
     const { repository } = await importRepositoryWithStore(store);
     const request = new Request("https://archestimator.test/share/client-token", {
-      headers: { "x-forwarded-for": "203.0.113.10" },
+      headers: { "cf-connecting-ip": "203.0.113.10" },
     });
 
     const delays = [];
@@ -266,7 +266,7 @@ describe("project publication public repository (Cloudflare D1 context)", () => 
     const store = createMockPublicationStore();
     const { repository } = await importRepositoryWithStore(store);
     const request = new Request("https://archestimator.test/share/client-token", {
-      headers: { "x-forwarded-for": "203.0.113.10" },
+      headers: { "cf-connecting-ip": "203.0.113.10" },
     });
 
     await repository.clearProjectPublicationPasswordFailures({ token: "client-token", request });

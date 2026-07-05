@@ -80,7 +80,7 @@ async function captureAnalyticsInsert({
     accessStage: "page_visit",
     recipientKnown: false,
     request: new Request("https://archestimator.test/share/client-token", {
-      headers: { "x-forwarded-for": forwardedFor, "user-agent": userAgent },
+      headers: { "cf-connecting-ip": forwardedFor, "user-agent": userAgent },
     }),
   });
 

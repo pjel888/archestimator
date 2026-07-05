@@ -377,7 +377,7 @@ describe("AI audit event builder", () => {
     const database = new FakeD1Database();
     d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
     const request = new Request("https://example.com/api/ai/ask", {
-      headers: { "x-forwarded-for": "203.0.113.10" },
+      headers: { "cf-connecting-ip": "203.0.113.10" },
     });
     const userContext = {
       userId: "22222222-2222-4222-8222-222222222222",

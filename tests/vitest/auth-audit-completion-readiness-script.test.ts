@@ -245,7 +245,7 @@ describe("auth audit completion readiness checker", () => {
 
   it("CLI accepts artifact path overrides under sanitized evidence roots", () => {
     const evidenceRoot = mkdtempSync(
-      join(process.cwd(), ".ai/03_plans/2026-07-03-Authentication-Audit-And-Improvement/evidence/test-auth-readiness-"),
+      join(process.cwd(), ".ai/03_plans/000-Follow Ups/2026-07-03-Authentication-Audit-And-Improvement/evidence/test-auth-readiness-"),
     );
     const outputRoot = mkdtempSync(join(tmpdir(), "auth-audit-completion-cli-safe-"));
     try {
