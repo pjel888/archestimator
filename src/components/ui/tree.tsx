@@ -25,7 +25,7 @@ import {
   DotsSixVertical,
 } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/ui/cn";
-import { SelectionCheckbox } from "@/components/ui/selection-checkbox";
+import { SelectionCheckbox, type SelectionCheckboxTone } from "@/components/ui/selection-checkbox";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -275,6 +275,12 @@ export interface TreeProps {
   onDrop?: (draggedId: string, targetId: string, position: TreeDropPosition) => void;
   /** Domain validation for drops; the tree already blocks self/descendant drops. */
   canDrop?: (draggedId: string, targetId: string, position: TreeDropPosition) => boolean;
+  /**
+   * How to surface invalid drop targets. Defaults to a visible/status message;
+   * use "silent" when the product surface wants invalid/no-op drops to simply
+   * refuse without treating the hover as an error.
+   */
+  invalidDropFeedback?: "message" | "silent";
   /** Per-node drag gate, combined with `node.draggable !== false`. */
   canDrag?: (node: TreeNode) => boolean;
   /** Human-readable reason used when `canDrag` blocks an otherwise draggable node. */
@@ -344,6 +350,8 @@ export interface TreeProps {
   railsPinned?: boolean;
   /** Shows the selected-row fill. Disable when the left rail/current marker is the intended signal. */
   showSelectedBackground?: boolean;
+  /** Visual tone for tree selection checkboxes and the default selected-row fill. */
+  selectionCheckboxTone?: SelectionCheckboxTone;
   /** Custom content for the label area of the default row. */
   renderRow?: (node: TreeNode, depth: number, isSelected: boolean, isExpanded: boolean) => ReactNode;
   /** Horizontal indent applied per depth level. Defaults to `TREE_INDENT_STEP`. */
@@ -467,6 +475,7 @@ interface DefaultTreeRowProps {
   /** Keep the affordance rails open (e.g. while a selection exists). */
   railsPinned: boolean;
   showSelectedBackground: boolean;
+  selectionCheckboxTone: SelectionCheckboxTone;
   indentStep: number;
   onCheckboxClick: (nodeId: string, event: MouseEvent<HTMLInputElement>) => void;
   rowRenderer?: (node: TreeNode, depth: number, isSelected: boolean, isExpanded: boolean) => ReactNode;
@@ -483,6 +492,7 @@ const DefaultTreeRow = memo(function DefaultTreeRow({
   nodeDragHandleVisible,
   railsPinned,
   showSelectedBackground,
+  selectionCheckboxTone,
   indentStep,
   onCheckboxClick,
   rowRenderer,
@@ -519,14 +529,17 @@ const DefaultTreeRow = memo(function DefaultTreeRow({
           "group/tree-row flex min-h-7 items-center px-1 text-[10px] text-ink tracking-normal transition-colors outline-none",
           "border border-transparent",
           node.rowClassName,
-          showSelectedBackground && isSelected && "bg-accentSoft",
+          showSelectedBackground && selectionCheckboxTone === "neutral" && isSelected && "bg-accentSoft",
+          showSelectedBackground && selectionCheckboxTone === "blue" && isSelected && "bg-blue-50/70",
+          showSelectedBackground && selectionCheckboxTone === "blue" && !isSelected && isIndeterminate && "bg-blue-50/40",
           (isCurrent || state.isFocused) && "border-l-focus",
           state.isDragSource && "opacity-70",
           isDropTarget && dropPosition === "inside" && "bg-surfaceMuted",
           isDropTarget && dropPosition === "before" && "border-t-2 border-t-primary",
           isDropTarget && dropPosition === "after" && "border-b-2 border-b-primary",
           isInvalidDropTarget && "border-danger/50 bg-dangerSoft/40",
-          "hover:bg-surfaceMuted cursor-pointer"
+          selectionCheckboxTone === "blue" && (isSelected || isIndeterminate) ? "hover:bg-blue-100/60" : "hover:bg-surfaceMuted",
+          "cursor-pointer"
         )}
       >
         {/* Left rail: drag handle and checkbox sit at the row edge, outside
@@ -578,6 +591,7 @@ const DefaultTreeRow = memo(function DefaultTreeRow({
               <SelectionCheckbox
                 checked={isSelected}
                 indeterminate={isIndeterminate}
+                tone={selectionCheckboxTone}
                 ariaLabel={`Select ${node.label}`}
                 tabIndex={-1}
                 onClick={(e) => onCheckboxClick(node.id, e)}
@@ -654,6 +668,7 @@ interface TreeFlatRowProps {
   nodeDragHandleVisible: boolean;
   railsPinned: boolean;
   showSelectedBackground: boolean;
+  selectionCheckboxTone: SelectionCheckboxTone;
   indentStep: number;
   onCheckboxClick: (nodeId: string, event: MouseEvent<HTMLInputElement>) => void;
   rowRenderer?: TreeProps["renderRow"];
@@ -672,6 +687,7 @@ const TreeFlatRow = memo(function TreeFlatRow({
   nodeDragHandleVisible,
   railsPinned,
   showSelectedBackground,
+  selectionCheckboxTone,
   indentStep,
   onCheckboxClick,
   rowRenderer,
@@ -697,6 +713,7 @@ const TreeFlatRow = memo(function TreeFlatRow({
       nodeDragHandleVisible={nodeDragHandleVisible}
       railsPinned={railsPinned}
       showSelectedBackground={showSelectedBackground}
+      selectionCheckboxTone={selectionCheckboxTone}
       indentStep={indentStep}
       onCheckboxClick={onCheckboxClick}
       rowRenderer={rowRenderer}
@@ -716,6 +733,7 @@ export function Tree({
       currentId,
       onDrop,
       canDrop,
+      invalidDropFeedback = "message",
       canDrag,
       getDragDisabledReason,
       onNodeDragStart,
@@ -741,6 +759,7 @@ export function Tree({
       emptyState,
       railsPinned = false,
       showSelectedBackground = true,
+      selectionCheckboxTone = "neutral",
       renderRow,
       indentStep = TREE_INDENT_STEP,
       renderItem,
@@ -1050,7 +1069,12 @@ export function Tree({
           if (!intent) {
             const position = readDropPositionFromEvent(event, flat.isFolder || allowInsideOnLeaves);
             dispatchTreeState({ type: "setDropTarget", value: (current) => (isDropIntentForRow(current, flat) ? null : current) });
-            dispatchTreeState({ type: "setInvalidDropTarget", value: { id: flat.id, position, reason: "Drop is not available here." } });
+            dispatchTreeState({
+              type: "setInvalidDropTarget",
+              value: invalidDropFeedback === "message"
+                ? { id: flat.id, position, reason: "Drop is not available here." }
+                : null,
+            });
             return;
           }
           event.preventDefault();
@@ -1071,7 +1095,10 @@ export function Tree({
         const dropDisabledReason = getDropDisabledReason(draggedId, intent.id, intent.position);
         if (dropDisabledReason) {
           dispatchTreeState({ type: "setDropTarget", value: (current) => (isDropIntentForRow(current, flat) ? null : current) });
-          dispatchTreeState({ type: "setInvalidDropTarget", value: { ...intent, reason: dropDisabledReason } });
+          dispatchTreeState({
+            type: "setInvalidDropTarget",
+            value: invalidDropFeedback === "message" ? { ...intent, reason: dropDisabledReason } : null,
+          });
           dispatchTreeState({ type: "setActiveRootDropEdge", value: null });
           return;
         }
@@ -1085,7 +1112,7 @@ export function Tree({
         dispatchTreeState({ type: "setInvalidDropTarget", value: null });
         dispatchTreeState({ type: "setActiveRootDropEdge", value: null });
       },
-      [draggable, externalDrop, onDrop, readDraggedId, readExternalDragTypes, resolveDropIntent, resolveExternalDropIntent, getDropDisabledReason, isDropIntentForRow, allowInsideOnLeaves]
+      [draggable, externalDrop, onDrop, readDraggedId, readExternalDragTypes, resolveDropIntent, resolveExternalDropIntent, getDropDisabledReason, isDropIntentForRow, allowInsideOnLeaves, invalidDropFeedback]
     );
 
     const handleDragLeave = useCallback(
@@ -1607,6 +1634,7 @@ export function Tree({
                       nodeDragHandleVisible={dragActivation === "handle" ? isNodeDragEligible(flat.node) : isNodeDraggable(flat.node)}
                       railsPinned={railsPinned || (selectable && selectedSet.size > 0)}
                       showSelectedBackground={showSelectedBackground}
+                      selectionCheckboxTone={selectionCheckboxTone}
                       indentStep={indentStep}
                       onCheckboxClick={handleCheckboxClick}
                       rowRenderer={renderRow}
@@ -1631,6 +1659,7 @@ export function Tree({
                 nodeDragHandleVisible={dragActivation === "handle" ? isNodeDragEligible(flat.node) : isNodeDraggable(flat.node)}
                 railsPinned={railsPinned || (selectable && selectedSet.size > 0)}
                 showSelectedBackground={showSelectedBackground}
+                selectionCheckboxTone={selectionCheckboxTone}
                 indentStep={indentStep}
                 onCheckboxClick={handleCheckboxClick}
                 rowRenderer={renderRow}

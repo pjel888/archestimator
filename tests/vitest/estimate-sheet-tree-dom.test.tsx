@@ -390,7 +390,23 @@ describe("estimate sheet tree DOM integration", () => {
     expect(actionMocks.createEstimateNode).not.toHaveBeenCalled();
   });
 
-  it("exposes invalid internal drop targets with structural state and a compact reason", () => {
+  it("keeps no-op parent drops quiet instead of presenting an error", () => {
+    renderTree();
+
+    const groundFloor = treeNodeButton("ground-floor");
+    const dataTransfer = mockDataTransfer();
+
+    fireEvent.dragStart(treeDragHandle("kitchen"), { dataTransfer });
+    setMiddleDropRect(groundFloor);
+    fireEvent.dragOver(groundFloor, { clientY: 0, dataTransfer });
+
+    expect(groundFloor).toHaveAttribute("data-tree-drop-state", "valid");
+    expect(groundFloor).toHaveAttribute("data-tree-drop-position", "inside");
+    expect(groundFloor).not.toHaveAttribute("data-tree-drop-reason");
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("keeps invalid internal estimate-tree drops silent", () => {
     renderTree();
 
     const projectScope = treeNodeButton("project-scope");
@@ -401,10 +417,11 @@ describe("estimate sheet tree DOM integration", () => {
     setMiddleDropRect(kitchen);
     fireEvent.dragOver(kitchen, { clientY: 0, dataTransfer });
 
-    expect(kitchen).toHaveAttribute("data-tree-drop-state", "invalid");
-    expect(kitchen).toHaveAttribute("data-tree-drop-position", "inside");
-    expect(kitchen).toHaveAttribute("data-tree-drop-reason", "Cannot move a node inside its own descendant.");
-    expect(screen.getByRole("status")).toHaveTextContent("Cannot move a node inside its own descendant.");
+    expect(projectScope).toHaveAttribute("aria-grabbed", "true");
+    expect(kitchen).not.toHaveAttribute("data-tree-drop-state");
+    expect(kitchen).not.toHaveAttribute("data-tree-drop-position");
+    expect(kitchen).not.toHaveAttribute("data-tree-drop-reason");
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("accepts sidebar template drags on group rows and hands the insert to the sheet", () => {

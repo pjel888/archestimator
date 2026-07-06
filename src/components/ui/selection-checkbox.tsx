@@ -5,10 +5,13 @@ import { useEffect, useRef, type KeyboardEventHandler, type MouseEventHandler } 
 
 import { cn } from "@/lib/ui/cn";
 
+export type SelectionCheckboxTone = "neutral" | "blue";
+
 export type SelectionCheckboxProps = {
   checked: boolean;
   disabled?: boolean;
   indeterminate?: boolean;
+  tone?: SelectionCheckboxTone;
   ariaLabel: string;
   tabIndex?: number;
   className?: string;
@@ -21,6 +24,7 @@ export function SelectionCheckbox({
   checked,
   disabled = false,
   indeterminate = false,
+  tone = "neutral",
   ariaLabel,
   tabIndex = -1,
   className,
@@ -36,13 +40,16 @@ export function SelectionCheckbox({
     }
   }, [indeterminate]);
 
+  const active = checked || indeterminate;
+  const state = indeterminate ? "mixed" : checked ? "checked" : "unchecked";
+
   return (
     <span
       className={cn(
         "relative flex h-3.5 w-3.5 shrink-0 items-center justify-center transition-all",
-        (checked || indeterminate) && "opacity-100",
-        !checked && !indeterminate && "opacity-0",
-        !checked && !indeterminate && uncheckedRevealClassName,
+        active && "opacity-100",
+        !active && "opacity-0",
+        !active && uncheckedRevealClassName,
         className,
       )}
     >
@@ -55,21 +62,36 @@ export function SelectionCheckbox({
         aria-checked={indeterminate ? "mixed" : checked}
         aria-label={ariaLabel}
         tabIndex={tabIndex}
+        data-selection-checkbox-tone={tone}
+        data-selection-checkbox-state={state}
         onClick={onClick}
         onKeyDown={onKeyDown}
         className={cn(
-          "absolute inset-0 h-full w-full cursor-pointer appearance-none rounded-xs border transition-all disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1",
-          (checked || indeterminate) && "opacity-100",
-          !checked && !indeterminate && "opacity-0",
-          !checked && !indeterminate && uncheckedRevealClassName,
-          checked && !indeterminate && "border-[#ABABAB] bg-[#ABABAB]",
-          indeterminate && "border-[#D9D9D9] bg-[#E4E4E4]",
-          !checked && !indeterminate && "border-tertiary bg-transparent",
+          "absolute inset-0 h-full w-full cursor-pointer appearance-none rounded-xs border transition-all disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
+          tone === "blue" ? "focus-visible:ring-blue-500/40" : "focus-visible:ring-focus",
+          active && "opacity-100",
+          !active && "opacity-0",
+          !active && uncheckedRevealClassName,
+          checked && !indeterminate && (tone === "blue" ? "border-blue-500 bg-blue-50" : "border-[#ABABAB] bg-[#ABABAB]"),
+          indeterminate && (tone === "blue" ? "border-blue-500 bg-blue-50" : "border-[#D9D9D9] bg-[#E4E4E4]"),
+          !active && "border-tertiary bg-transparent",
           className,
         )}
       />
-      {checked && !indeterminate && <Check weight="regular" className="h-2.5 w-2.5 text-white" />}
-      {indeterminate && <Minus weight="regular" className="h-2.5 w-2.5 text-tertiary" />}
+      {checked && !indeterminate && (
+        <Check
+          weight="regular"
+          data-selection-checkbox-icon="checked"
+          className={cn("h-2.5 w-2.5", tone === "blue" ? "text-blue-700" : "text-white")}
+        />
+      )}
+      {indeterminate && (
+        <Minus
+          weight="regular"
+          data-selection-checkbox-icon="mixed"
+          className={cn("h-2.5 w-2.5", tone === "blue" ? "text-blue-700" : "text-tertiary")}
+        />
+      )}
     </span>
   );
 }

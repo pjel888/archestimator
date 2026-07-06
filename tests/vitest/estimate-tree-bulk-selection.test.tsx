@@ -127,12 +127,21 @@ describe("estimate tree bulk selection", () => {
     const groundFloorCheckbox = screen.getByRole("checkbox", { name: "Select Ground Floor" });
     fireEvent.click(groundFloorCheckbox);
 
+    expect(groundFloorCheckbox).toHaveAttribute("data-selection-checkbox-tone", "blue");
+    expect(groundFloorCheckbox).toHaveAttribute("data-selection-checkbox-state", "checked");
+    expect(groundFloorCheckbox).toHaveClass("border-blue-500", "bg-blue-50");
+    expect(groundFloorCheckbox.parentElement?.querySelector('[data-selection-checkbox-icon="checked"]')).toHaveClass("text-blue-700");
+    expect(treeNode("ground-floor")).toHaveClass("bg-blue-50/70");
     expect(screen.getByRole("checkbox", { name: "Select Kitchen" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Select Living Area" })).toBeChecked();
 
     fireEvent.click(screen.getByRole("checkbox", { name: "Select Kitchen" }));
 
     await waitFor(() => expect(groundFloorCheckbox).toHaveAttribute("aria-checked", "mixed"));
+    expect(groundFloorCheckbox).toHaveAttribute("data-selection-checkbox-state", "mixed");
+    expect(groundFloorCheckbox).toHaveClass("border-blue-500", "bg-blue-50");
+    expect(groundFloorCheckbox.parentElement?.querySelector('[data-selection-checkbox-icon="mixed"]')).toHaveClass("text-blue-700");
+    expect(treeNode("ground-floor")).toHaveClass("bg-blue-50/40");
   });
 
   it("bulk deletes selected nodes with optimistic removal and server confirmation", async () => {

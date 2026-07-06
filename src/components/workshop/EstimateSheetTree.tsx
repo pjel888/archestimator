@@ -852,11 +852,12 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   const handleTreeCanDrop = useCallback((draggedId: string, targetId: string, position: TreeDropPosition) => {
     if (!canEditEstimate || !canReorderNow || editingNodeId || treeSearchActive) return false;
     if (isOptimisticEstimateNodeId(draggedId) || isOptimisticEstimateNodeId(targetId)) return false;
-    return validateEstimateTreeDrop({
+    const result = validateEstimateTreeDrop({
       nodes: localNodes,
       draggedNodeIds: [draggedId],
       target: { targetNodeId: targetId, position },
-    }).ok;
+    });
+    return result.ok || result.code === "no-op";
   }, [canEditEstimate, canReorderNow, editingNodeId, localNodes, treeSearchActive]);
 
   const suppressPrimaryActionAfterDrag = useCallback(() => {
@@ -2003,6 +2004,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
                         onToggle={handleTreeToggle}
                         selectedIds={bulkSelectedIds}
                         onCheckboxToggle={handleCheckboxToggle}
+                        selectionCheckboxTone="blue"
                         currentId={activeSelectedNodeId}
                         railsPinned={contextMenuOpen}
                         draggable
@@ -2013,6 +2015,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
                         canDrag={handleTreeCanDrag}
                         getDragDisabledReason={getTreeDragDisabledReason}
                         canDrop={handleTreeCanDrop}
+                        invalidDropFeedback="silent"
                         onDrop={handleTreeDrop}
                         externalDrop={treeExternalDrop}
                         onNodeDragStart={suppressPrimaryActionAfterDrag}
