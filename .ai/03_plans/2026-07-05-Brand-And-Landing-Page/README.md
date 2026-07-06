@@ -19,6 +19,26 @@ The continuation pass sharpens the plan around the user's newest direction:
 - Reduce founder blockers to true owner decisions: access CTA, founder bio, pricing numbers, proof screenshots, and explicit visual-archetype override.
 - Make validation proportional: docs-only changes use `git diff --check`; browser/visual proof is implementation-time evidence only when it proves layout, interaction, or above-the-fold preservation.
 
+## 2026-07-06 landing page audit summary
+
+User feedback crystallizes the gap between the strong hero concept and the rest of the page.
+
+**What works (keep):**
+
+- Hero composition: mountain photo + estimate-sheet mockup + three feature cards.
+- The product-first proof idea: visitors immediately see an estimating workspace, not a consulting page.
+
+**What fails (fix in this plan):**
+
+| # | User complaint | Evidence in source | Plan response |
+|---|---|---|---|
+| 1 | Copy and the rest of the landing page feel off | Hero subhead is salesy (`"spend less time working and more time winning"`); final-CTA body is verbose; FAQ uses softball questions; supporting pages (`/pricing`, `/about`, `/contact`) lead with beta-apology framing | `06` anti-beta-wording policy + `19` ready-to-paste recasts; FAQ replaced with buyer-journey questions; supporting-page reframes in `07` §4 |
+| 2 | Font sizes are "weird and big" | Section H2 scales to `4.7rem` (`landing-v3.module.css:1536`), 1.8× the hero H1 max (`2.625rem`); workflow step number is `2.5rem`, larger than its own heading; body copy is `0.875rem` in hero but larger elsewhere; radii range from `2px` to `16px` | `09` §3 unified stepped type scale: H1 max `4rem`, section H2 max `2.5rem`, no viewport-width scaling; radius family collapsed to `2px/4px/6px/8px/999px` |
+| 3 | "Sign In" button does not match the CTA | `.signInLink` is a plain text link (`ArchestimatorLandingPage.tsx:127`); `.primaryCta`/`.secondaryCta` are `border-radius: 6px`, `font-family: var(--font-roboto-mono)`; secondary CTA inverts border/color between hero and dark sections | `09` §4.2 shared CTA geometry: Sign In becomes a small secondary pill; primary/secondary CTAs become `rounded-full` pills; one button-in-button trailing-icon island pattern; remove `Roboto Mono` from CTAs |
+| 4 | General design feels template-ish | Edge-to-edge sticky nav + stacked AudienceBanner; generic 1px grey borders + harsh drop shadows; no consistent card primitive; no scroll-entry animation; mobile menu is a bare `details`/`summary` dropdown | `09` §4 floating glass-pill nav, precision-frame primitive, scroll-reveal motion, hamburger-to-X mobile menu; `11` Phase 1E makes this the first visual foundation |
+
+**Design thesis (confirmed):** Archestimator should read as a precision commercial instrument for AEC teams — quiet, architectural, and product-led. The hero stays. Everything below it is rebuilt with disciplined type, consistent CTAs, real product proof, and calm-conviction copy.
+
 Read first after this revision:
 
 1. `20_DESIGN_AUDIT_AND_VISUAL_DIRECTION.md` §0.
@@ -56,25 +76,25 @@ The honesty principle stays. Where it lives on the public surface changes.
 
 | Gate | Status | Evidence |
 |---|---|---|
-| Codebase audit | ✅ passed | `03_SOURCE_AND_CODEBASE_AUDIT.md` (file-by-file, line-by-line) |
+| Codebase audit | ✅ passed | `03_SOURCE_AND_CODEBASE_AUDIT.md` + `README.md` §"Landing page audit summary" |
 | Brand + voice direction | ✅ passed | `06_BRAND_AND_COPY_DIRECTION.md` |
 | Section architecture | ✅ passed | `07_LANDING_PAGE_SECTIONS.md` |
 | Product definition | ✅ passed | `08_PRODUCT_DEFINITION_AND_FEATURES.md` |
-| Design system direction | ✅ revised | `09` §0 + `20` §0 supersede the earlier warm-luxury direction |
+| Design system direction | ✅ revised | `09` §0 + `20` §0 supersede the earlier warm-luxury direction; user-feedback findings folded in |
 | Competitive positioning | ✅ passed | `10_COMPETITIVE_AND_MARKET_POSITIONING.md` |
-| Phased rollout | ✅ passed | `11_IMPLEMENTATION_PLAN.md` |
+| Phased rollout | ✅ revised | `11_IMPLEMENTATION_PLAN.md` — visual consistency elevated to Phase 1 priority |
 | Test & validation strategy | ✅ passed | `12_TEST_AND_VALIDATION_STRATEGY.md` |
-| Risk + decisions register | ✅ passed | `14_RISK_REGISTER.md`, `15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md` |
+| Risk + decisions register | ✅ revised | `14_RISK_REGISTER.md`, `15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md` — visual defaults now plan defaults |
 | Traceability matrix | ✅ passed | `16_REQUIREMENTS_TRACEABILITY_MATRIX.md` |
 | External cited research | ⚠️ partial | `18_RESEARCH_AND_EVIDENCE.md` — `verification_mode: emulated` (librarian + explore ran in background; integration is the same agent) |
-| Design audit + high-end visual direction | ✅ passed | `20_DESIGN_AUDIT_AND_VISUAL_DIRECTION.md` |
+| Design audit + high-end visual direction | ✅ revised | `20_DESIGN_AUDIT_AND_VISUAL_DIRECTION.md` — user complaints explicitly mapped to fixes |
 | Founder sign-off on voice recasts | ⛔ blocked | OPEN-DEC-001 in `15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md` |
 | Founder sign-off on pricing page reframe | ⛔ blocked | OPEN-DEC-002 |
 | Founder sign-off on AI/deferred-roadmap framing | ⛔ blocked | OPEN-DEC-003 |
 | Founder sign-off on founder-bio slot treatment | ⛔ blocked | OPEN-DEC-004 |
-| Founder sign-off on visual archetype | ⚠️ defaulted | Precision Editorial is the default; only explicit override blocks |
-| Founder sign-off on mono font replacement | ⚠️ defaulted | Existing configured mono/system mono; no new dependency |
-| Founder sign-off on floating nav | ⚠️ defaulted | Use contained/floating nav treatment if accessible |
+| Visual archetype (Precision Editorial) | ✅ defaulted | User feedback confirms: keep cool backbone, fix type/button consistency; explicit override only |
+| Mono font replacement | ✅ defaulted | Use existing configured mono/system mono; no new dependency |
+| Floating nav + Sign In/CTA unification | ✅ defaulted | User feedback confirms fix; accessible implementation required |
 
 This package is **ready to enter implementation planning** for the safe-default slices in `11` §0. Work that still needs founder input is limited to the CTA access model, founder bio/photo, public pricing numbers, proof screenshot selection, and any explicit rejection of Precision Editorial.
 
@@ -149,7 +169,7 @@ graph TD
     P5 --> P6
 ```
 
-Phases 1A–1D are **parallel-safe** (different file scopes, no shared content). Phases 2A onward are mostly **sequential** because they share the landing copy file `src/components/landing-v3/landing-content.ts`.
+Phases 1A–1E are **parallel-safe** (different file scopes, no shared content). Phase 1E is the visual foundation and should start as soon as possible because it fixes the user's most visible complaints (type scale, Sign In/CTA mismatch, nav, precision frames). Phases 2A onward are mostly **sequential** because they share the landing copy file `src/components/landing-v3/landing-content.ts`.
 
 ---
 

@@ -12,14 +12,44 @@ single biggest source of slow agent startup.
 Stable current truth (verify against git/source before relying on a detail):
 - Stage: pre-launch closed-beta MVP. Bias to fast, useful iteration over
   heavyweight regression ceremony. No external users yet.
+- Auth audit D1 schema repair (2026-07-06 local): `account_security_events`
+  originally accepted only legacy `sha256:` request digests while
+  `src/lib/auth/account-audit.ts` now writes `hmac-sha256:` digests. Migration
+  `0035_account_security_events_hmac_checks.sql` rebuilds the D1 table to allow
+  both digest formats and preserve rows; `0004_account_security_events.sql` was
+  updated for fresh databases. Focused auth audit tests pass, temp SQLite apply
+  preserved legacy rows and accepted HMAC rows, and local D1 `ARCH_DB` applied
+  `0035` plus accepted/deleted an HMAC proof row. Remote `ARCH_DB` was not
+  changed in this pass because `wrangler d1 migrations list --remote` shows
+  broader pending migrations `0033`, `0034`, and `0035`.
+- Next dev Cloudflare binding repair (2026-07-06 local): plain `bun dev`
+  previously let OpenNext/Wrangler load the production `wrangler.jsonc`, which
+  includes the Worker-only `COLLAB_ROOMS` Durable Object plus local observability
+  state; this produced local Workerd warnings that `CollaborationRoom` was not
+  exported from the platform-proxy worker and could hit `SENTRY_DO` SQLite lock
+  failures. `next.config.ts` now initializes OpenNext dev context from
+  `wrangler.next-dev.jsonc`, a binding-only local manifest with D1/R2/Images/
+  Email/queue producer/vars but no Durable Objects, migrations, queue consumers,
+  triggers, or observability. Default browser realtime transport is also off in
+  plain `NODE_ENV=development` unless `NEXT_PUBLIC_TEAMSPACE_REALTIME_TRANSPORT`
+  explicitly enables it; use `bun run cf:preview` for Worker-parity Durable
+  Object WebSocket proof. Focused realtime/config tests pass, direct Wrangler
+  platform-proxy smoke exposes `ARCH_DB`, `ARCH_UPLOADS_R2`, `IMAGES`, `EMAIL`,
+  and `UPLOAD_JOBS_QUEUE` with no `COLLAB_ROOMS`, high-memory typecheck passes,
+  and `git diff --check` is clean.
 - Project Activity UX/UI improvement (2026-07-06): the planning pack
-  `.ai/03_plans/2026-07-06-Project-Activity-UX-UI-Improvement/` now has a first
-  implementation pass. The activity page uses a compact project-ledger layout
-  with a stable header, overlaid filters, date-grouped rows, a matching loading
-  skeleton, and safer fallback copy for unknown activity. Focused Vitest,
-  type-check, design lint, and `git diff --check` passed; in-app browser proof
-  loaded the new ledger with no horizontal overflow, then the browser control
-  connection timed out on deeper interaction checks.
+  `.ai/03_plans/2026-07-06-Project-Activity-UX-UI-Improvement/` now has a stable
+  ledger implementation pass. The activity page uses a compact project-ledger
+  layout with a stable header, overlaid filters, date-grouped rows, a desktop
+  column guide, fixed time/source stacking, reserved detail/status slots, a
+  matching loading skeleton, and safer fallback copy for unknown activity.
+  Focused Vitest, type-check, design lint, and `git diff --check` passed; in-app
+  browser proof confirmed the live page has the column guide, no horizontal
+  overflow, 11 rows with 22 detail slots and 22 status slots, and the `System`
+  source chip below the time in the complaint row. Follow-up actor identity fix:
+  the activity feed now resolves Better Auth `user` names for non-UUID
+  `actor_user_id` values before falling back to legacy `profiles`; browser proof
+  confirmed rows that said `Unknown user` now show `Philip Lewis`.
 - Security/compliance follow-up (2026-07-05 late): P1.8 retention enforcement
   is locally hardened but not policy-complete. `src/lib/compliance/retention-repository.ts`
   now uses Cloudflare D1-supported positional binds for retention select/apply

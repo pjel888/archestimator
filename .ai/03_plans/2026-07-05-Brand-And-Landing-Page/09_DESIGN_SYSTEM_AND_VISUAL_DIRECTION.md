@@ -23,6 +23,17 @@ The corrected design system direction is **Precision Editorial**:
 
 Where this section conflicts with later sections, this correction wins.
 
+### 0.1 User-feedback driven design rules
+
+The user explicitly confirmed the hero composition is strong and asked for the rest of the page to feel as intentional. The following rules are non-negotiable for implementation:
+
+1. **The H1 is the largest type on the page.** No heading below the hero may exceed the hero H1 size. The current page violates this: section H2s grow to `4.7rem` while the hero H1 maxes at `2.625rem`.
+2. **"Sign in" must be visually related to the primary CTA.** A plain text link next to a shaped button is the specific complaint. Sign in becomes a small secondary pill.
+3. **One CTA family, not two.** Primary, secondary, and nav auth actions share pill geometry, padding rhythm, and hover physics.
+4. **No viewport-width font scaling on headings.** It makes sizes feel "weird and big" at intermediate breakpoints. Use stepped media-query values.
+5. **Repeated cards use one frame primitive.** The current page mixes `2px`, `3px`, `6px`, `8px`, `10px`, `12px`, `14px`, `16px`, and `999px` radii. Collapse to the radius family in §4.1.
+6. **No decorative warmth repaint.** Keep the cool canvas; warmth only as small controlled accents.
+
 ---
 
 ## 1. Current landing visual direction (revised baseline)
@@ -103,7 +114,21 @@ AEC buyers live with documents, rates, drawings, approvals, and assumptions. The
 | `label` | `0.6875rem` | `0.6875rem` | 600 | 1 | `0.12em` max | Uppercase micro-labels only |
 | `mono-lg` | `1rem` | `0.9375rem` | 500 | 1 | 0 | Hero card ordinals (`01`, `02`, `03`) |
 
-**Rule:** no landing text exceeds `4rem`. The H1 must remain the largest type on the page. Do not use viewport-width font scaling; implement desktop/mobile steps through media or container queries.
+**Rules:**
+
+1. **No landing text exceeds `4rem`.** The H1 must remain the largest type on the page.
+2. **Do not use viewport-width font scaling (`clamp(..., vw, ...)`).** It is the direct cause of the "weird and big" complaint at intermediate widths. Use media-query or container-query steps.
+3. **Letter spacing stays `0`** for normal text. Only uppercase micro-labels may use positive tracking up to `0.12em`.
+4. **Hero subhead is `body-lg` (17px)** and must fit in 3 lines or fewer at mobile widths.
+
+**Current-state violation map:**
+
+| Current value | Location | Violation | Target |
+|---|---|---|---|
+| Section H2 `clamp(2.45rem, 4.5vw, 4.7rem)` | `landing-v3.module.css:1536` | Exceeds hero H1; viewport-width scaling | `headline` token, max `2.5rem` |
+| Workflow step number `2.5rem` | `landing-v3.module.css:1662` | Larger than its own H3 | `title` token, `1.5rem` |
+| Hero body `0.875rem` while later body is larger | `landing-v3.module.css:375` | Inconsistent hierarchy | `body-lg` `1.0625rem` for hero subhead |
+| Eyebrow `0.72rem` | `landing-v3.module.css:349` | Too small relative to H1 | `label` `0.6875rem` with `0.12em` tracking |
 
 ---
 

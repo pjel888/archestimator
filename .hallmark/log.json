@@ -14,5 +14,13 @@
     "components": ["Straight brand header", "Editorial hero", "Workflow rows", "Audience list", "Statement footer"],
     "tone": "Construction estimating workflow",
     "notes": "Rebuilt / around connected estimating work, shared proposal review, and source-backed cost knowledge without fake metrics, testimonials, customer logos, browser chrome, or borrowed product-proof language."
+  },
+  {
+    "date": "2026-07-06",
+    "scope": "src/app/new + src/components/landing-new",
+    "macrostructure": "Workbench + Narrative Workflow",
+    "components": ["N5 floating pill nav", "H8 product-workbench hero", "F4 workflow sequence", "F3 feature sheet", "Ft5 statement footer"],
+    "tone": "Precision Editorial AEC product proof",
+    "notes": "Implemented isolated /new route from an imagegen reference, preserving the existing / route and using inspectable product surfaces instead of fake metrics, testimonials, logo walls, or generated browser chrome."
   }
 ]

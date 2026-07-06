@@ -1,8 +1,9 @@
 # Project Activity UX/UI Improvement Plan
 
-Status: FIRST IMPLEMENTATION PASS COMPLETE.
-This pack began as research, audit, and design direction. The first scoped
-source pass is now implemented and recorded in `04_IMPLEMENTATION_EVIDENCE.md`.
+Status: STABLE LEDGER IMPLEMENTATION PASS COMPLETE.
+This pack began as research, audit, and design direction. The scoped source
+pass and follow-up stable-row visual refinement are implemented and recorded in
+`04_IMPLEMENTATION_EVIDENCE.md`.
 
 Last updated: 2026-07-06
 
@@ -49,6 +50,8 @@ stable ledger/timeline layout:
 
 - Current desktop screenshot:
   `.omx/artifacts/project-activity-ux-plan/01-current-desktop-top.png`
+- Stable ledger ImageGen reference:
+  `.omx/artifacts/project-activity-ux-plan/03-stable-ledger-reference.png`
 - First implementation evidence:
   `04_IMPLEMENTATION_EVIDENCE.md`
 - Current page source:
