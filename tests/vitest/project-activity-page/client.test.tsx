@@ -179,6 +179,45 @@ describe("ProjectActivityClient", () => {
     );
   });
 
+  it("reserves the same time, detail, and status slots for every activity row", () => {
+    renderClient({
+      initialData: page({
+        items: [
+          activity({
+            id: "estimate-activity",
+            source: "estimate",
+            facts: [{ label: "Project", value: "New Area" }],
+            badges: ["System"],
+          }),
+          activity({
+            id: "system-activity",
+            source: "system",
+            action: "changed",
+            occurredAt: "2026-06-28T08:56:00.000Z",
+            title: "Unknown user updated project location.",
+            summary: "",
+            facts: [],
+            actor: { kind: "system", displayName: "Unknown user", isSafeForClient: false },
+            target: { kind: "project", label: "Project" },
+            badges: [],
+          }),
+        ],
+        counts: { loadedCount: 2, filteredTotalCount: 2, scopeTotalCount: 2 },
+      }),
+    });
+
+    const rows = screen.getAllByTestId("activity-row");
+    expect(rows).toHaveLength(2);
+    for (const row of rows) {
+      expect(within(row).getByTestId("activity-time-source")).toHaveClass("grid");
+      expect(within(row).getAllByTestId("activity-detail-slot")).toHaveLength(2);
+      expect(within(row).getAllByTestId("activity-status-slot")).toHaveLength(2);
+    }
+    expect(screen.getByTestId("activity-source-estimate-activity")).toHaveTextContent("Estimate");
+    expect(screen.getByTestId("activity-source-system-activity")).toHaveTextContent("System");
+    expect(within(rows[1]).getByTestId("activity-status-column")).toHaveTextContent("—");
+  });
+
   it("refresh clears appended rows and transient load errors", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(

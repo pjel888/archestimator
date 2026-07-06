@@ -142,7 +142,8 @@ type CollaborationAuditRpcRow = {
   project_id: string | null;
   source_total_count: number;
 };
-type ProfileRow = { display_name: string | null; id: string };
+type ProfileRow = { display_name: string | null; email?: string | null; id: string };
+type AuthUserRow = { email: string | null; id: string; name: string | null };
 type RecipientRow = { display_name: string | null; id: string; publication_id: string };
 type CountRow = { count: number };
 type EstimateDropdownRow = { id: string; name: string; sheet_code: string | null };
@@ -151,6 +152,7 @@ type PublicationIdRow = { id: string };
 
 const DEFAULT_ACTIVITY_FEED_LIMIT = 20;
 const MAX_ACTIVITY_FEED_LIMIT = 50;
+const MAX_ACTOR_USER_ID_LENGTH = 191;
 const CURSOR_VERSION = "project-activity-cursor-v1";
 const SHARED_LINK_VIEW_EVENT_TYPES = ["open", "password_attempt"] as const;
 
@@ -325,6 +327,12 @@ type NormalizedFilters = {
   recipientId: string | null;
 };
 
+function normalizeActorUserId(value?: string | null) {
+  const trimmed = value?.trim();
+  if (!trimmed || trimmed.length > MAX_ACTOR_USER_ID_LENGTH) return null;
+  return trimmed;
+}
+
 async function normalizeFilters(filters: ProjectActivityFeedFilters | undefined): Promise<NormalizedFilters> {
   let actorUserId = filters?.actorUserId ?? null;
   if (actorUserId === "me") {
@@ -334,7 +342,7 @@ async function normalizeFilters(filters: ProjectActivityFeedFilters | undefined)
 
   return {
     actions: normalizeActions(filters?.actions),
-    actorUserId: actorUserId && isUuid(actorUserId) ? actorUserId : null,
+    actorUserId: normalizeActorUserId(actorUserId),
     recipientId: filters?.recipientId && isUuid(filters.recipientId) ? filters.recipientId : null,
   };
 }
@@ -362,31 +370,62 @@ function createSharedMetadata(row: {
   };
 }
 
+function actorLabelFromEmail(value?: string | null) {
+  const email = value?.trim().toLowerCase();
+  if (!email) return null;
+  const [localPart] = email.split("@");
+  const label = localPart?.replace(/[._-]+/g, " ").trim();
+  return label || email;
+}
+
 function readProfileLabel(profile: ProfileRow) {
-  return profile.display_name?.trim() || "Unknown user";
+  return profile.display_name?.trim() || actorLabelFromEmail(profile.email) || "Unknown user";
+}
+
+function readAuthUserLabel(user: AuthUserRow) {
+  return user.name?.trim() || actorLabelFromEmail(user.email) || "Unknown user";
 }
 
 async function readActorLabels(
   database: D1DatabaseLike,
   actorUserIds: string[],
 ) {
-  const uniqueIds = Array.from(new Set(actorUserIds.filter((id) => isUuid(id))));
+  const uniqueIds = Array.from(new Set(
+    actorUserIds.map((id) => normalizeActorUserId(id)).filter((id): id is string => Boolean(id)),
+  ));
   if (!uniqueIds.length) return new Map<string, string>();
 
-  let rows: ProfileRow[] = [];
+  const labels = new Map<string, string>();
   try {
-    rows = await all<ProfileRow>(
+    const users = await all<AuthUserRow>(
       database,
-      `SELECT id, display_name
-       FROM profiles
+      `SELECT id, name, email
+       FROM "user"
        WHERE id IN (${placeholders(uniqueIds)})`,
       uniqueIds,
     );
+    for (const user of users) labels.set(user.id, readAuthUserLabel(user));
   } catch {
-    return new Map<string, string>();
+    // Older D1 fixtures and migration states may not have Better Auth's user table.
   }
 
-  return new Map(rows.map((profile) => [profile.id, readProfileLabel(profile)]));
+  const unresolvedIds = uniqueIds.filter((id) => !labels.has(id));
+  if (unresolvedIds.length) {
+    try {
+      const profiles = await all<ProfileRow>(
+        database,
+        `SELECT id, display_name, email
+         FROM profiles
+         WHERE id IN (${placeholders(unresolvedIds)})`,
+        unresolvedIds,
+      );
+      for (const profile of profiles) labels.set(profile.id, readProfileLabel(profile));
+    } catch {
+      // Keep unresolved actors on the explicit Unknown user fallback path.
+    }
+  }
+
+  return labels;
 }
 
 async function readRecipientDisplayNames(
@@ -1214,19 +1253,15 @@ export async function listProjectMembersForDropdown(projectId: string): Promise<
     [project.id, project.workspace_id],
   );
 
-  const userIds = Array.from(new Set(members.map((member) => member.user_id).filter((id): id is string => typeof id === "string" && isUuid(id))));
+  const userIds = Array.from(new Set(
+    members.map((member) => normalizeActorUserId(member.user_id)).filter((id): id is string => Boolean(id)),
+  ));
   if (!userIds.length) return [];
 
-  const profiles = await all<ProfileRow>(
-    database,
-    `SELECT id, display_name
-     FROM profiles
-     WHERE id IN (${placeholders(userIds)})`,
-    userIds,
-  );
+  const actorLabels = await readActorLabels(database, userIds);
 
-  return profiles
-    .map((profile) => ({ id: profile.id, label: readProfileLabel(profile) }))
+  return userIds
+    .map((id) => ({ id, label: actorLabels.get(id) ?? "Unknown user" }))
     .sort((left, right) => left.label.localeCompare(right.label));
 }
 

@@ -48,6 +48,13 @@ type ActivityGroup = {
   items: ActivityViewModel[];
 };
 
+type ActivityDetailSlot = {
+  label: string;
+  value: string;
+};
+
+const EMPTY_SLOT = "—";
+
 const actionLabels: Record<ProjectActivityConcreteActionBucket, string> = {
   created: "Created",
   edited: "Edited",
@@ -164,12 +171,38 @@ function factValue(fact: ActivityFact) {
   return fact.current ?? fact.value ?? fact.previous ?? "";
 }
 
+function slotText(value?: string | null) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : EMPTY_SLOT;
+}
+
 function compactFacts(activity: ActivityViewModel) {
   const facts = activity.facts?.filter((fact) => factValue(fact)).slice(0, 2) ?? [];
   if (facts.length) return facts;
   if (activity.delta) return [{ label: "Total change", value: activity.delta.formatted }];
   if (/^Activity recorded\.?$/i.test(activity.title.trim())) return [{ label: "Detail", value: "Unmapped event" }];
   return [];
+}
+
+function detailSlots(activity: ActivityViewModel): ActivityDetailSlot[] {
+  const slots = compactFacts(activity).map((fact) => ({
+    label: fact.label,
+    value: slotText(factValue(fact)),
+  }));
+  const summary = displaySummary(activity);
+  if (!slots.length && summary) {
+    slots.push({ label: "Detail", value: summary });
+  }
+  while (slots.length < 2) {
+    slots.push({ label: slots.length === 0 ? "Detail" : "Change", value: EMPTY_SLOT });
+  }
+  return slots.slice(0, 2);
+}
+
+function visibilityLabel(visibility: ActivityViewModel["visibility"]) {
+  if (visibility === "owner") return "Owner";
+  if (visibility === "public") return "Public";
+  return "Internal";
 }
 
 function activityTarget(activity: ActivityViewModel) {
@@ -196,6 +229,21 @@ function ActivitySurfaceMessage({
   );
 }
 
+function ActivityLedgerColumnHeader() {
+  return (
+    <div
+      aria-hidden="true"
+      className="hidden h-8 grid-cols-[5.25rem_minmax(9rem,13rem)_minmax(0,1.45fr)_minmax(10rem,1fr)_5.75rem] items-center border-b border-hairline bg-white/85 px-2 text-[9px] font-medium uppercase leading-3 text-tertiary md:grid md:gap-3"
+    >
+      <span>Time & Source</span>
+      <span>Actor</span>
+      <span>Event</span>
+      <span>Details</span>
+      <span className="text-right">Status</span>
+    </div>
+  );
+}
+
 function ActivityRow({
   activity,
   index,
@@ -206,53 +254,62 @@ function ActivityRow({
   total: number;
 }) {
   const bucket = deriveActionBucket(activity);
-  const facts = compactFacts(activity);
-  const summary = displaySummary(activity);
+  const details = detailSlots(activity);
+  const source = sourceLabel(activity);
+  const badge = activity.badges?.[0] ?? EMPTY_SLOT;
 
   return (
     <li className="border-t border-hairline first:border-t-0">
       <article
+        data-testid="activity-row"
         aria-posinset={index + 1}
         aria-setsize={total}
-        className="grid min-h-[76px] grid-cols-1 gap-1.5 px-2 py-2 md:grid-cols-[5.75rem_minmax(9rem,13rem)_minmax(0,1.45fr)_minmax(9rem,1fr)_5.5rem] md:items-center md:gap-3"
+        className="grid min-h-[92px] grid-cols-[5.25rem_minmax(0,1fr)] gap-x-2 gap-y-1 px-2 py-2 md:grid-cols-[5.25rem_minmax(9rem,13rem)_minmax(0,1.45fr)_minmax(10rem,1fr)_5.75rem] md:items-center md:gap-3"
       >
-        <div className="flex min-w-0 items-center gap-1.5 md:block">
-          <time className="shrink-0 text-[10px] font-medium leading-4 text-ink" dateTime={activity.occurredAt}>
+        <div
+          className="row-span-4 grid min-h-12 grid-rows-[1rem_1.25rem] content-start gap-1 md:row-span-1"
+          data-testid="activity-time-source"
+        >
+          <time className="block text-[10px] font-medium leading-4 text-ink" dateTime={activity.occurredAt}>
             {formatTime(activity.occurredAt)}
           </time>
-          <span className="inline-flex h-5 max-w-[6.5rem] items-center rounded-xs border border-hairline bg-surfaceMuted px-1.5 text-[9px] font-medium leading-none text-secondary md:mt-1">
-            <span className="truncate">{sourceLabel(activity)}</span>
+          <span
+            aria-label={`Source: ${source}`}
+            className="inline-flex h-5 w-[4.75rem] items-center justify-center rounded-xs border border-hairline bg-surfaceMuted px-1.5 text-[9px] font-medium leading-none text-secondary"
+            data-testid={`activity-source-${activity.id}`}
+          >
+            <span className="truncate">{source}</span>
           </span>
         </div>
 
-        <div className="min-w-0">
+        <div className="min-w-0" data-testid="activity-actor-action">
           <p className="truncate text-[10px] font-medium leading-4 text-ink">{actionLabels[bucket]}</p>
-          <p className="truncate text-[10px] leading-4 text-tertiary">{activity.actor.displayName}</p>
+          <p className="truncate text-[10px] leading-4 text-tertiary">{slotText(activity.actor.displayName)}</p>
         </div>
 
-        <div className="min-w-0">
+        <div className="min-w-0" data-testid="activity-event-slot">
           <p className="truncate text-[12px] font-medium leading-4 text-ink">{displayTitle(activity)}</p>
           <p className="truncate text-[10px] leading-4 text-secondary">{activityTarget(activity)}</p>
         </div>
 
-        <div className="min-w-0">
-          {facts.length ? (
-            <dl className="grid gap-1">
-              {facts.map((fact) => (
-                <div key={`${activity.id}-${fact.label}`} className="grid min-w-0 grid-cols-[5.5rem_minmax(0,1fr)] gap-1 text-[10px] leading-4">
-                  <dt className="truncate text-tertiary">{fact.label}</dt>
-                  <dd className="truncate text-secondary">{factValue(fact)}</dd>
-                </div>
-              ))}
-            </dl>
-          ) : (
-            <p className="truncate text-[10px] leading-4 text-tertiary">{summary || "No additional detail"}</p>
-          )}
+        <div className="min-w-0" data-testid="activity-detail-column">
+          <dl className="grid grid-rows-[1rem_1rem] gap-1">
+            {details.map((detail, detailIndex) => (
+              <div
+                key={`${activity.id}-${detail.label}-${detailIndex}`}
+                className="grid min-w-0 grid-cols-[5rem_minmax(0,1fr)] gap-1 text-[10px] leading-4"
+                data-testid="activity-detail-slot"
+              >
+                <dt className="truncate text-tertiary">{detail.label}</dt>
+                <dd className="truncate text-secondary">{detail.value}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
 
-        <div className="hidden min-w-0 justify-self-end text-right md:block">
-          <p className="truncate text-[9px] font-medium leading-3 text-tertiary">{activity.visibility}</p>
-          {activity.badges?.[0] ? <p className="mt-1 truncate text-[9px] leading-3 text-secondary">{activity.badges[0]}</p> : null}
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_5.75rem] gap-1 text-[9px] leading-3 md:block md:justify-self-end md:text-right" data-testid="activity-status-column">
+          <p className="truncate font-medium text-tertiary" data-testid="activity-status-slot">{visibilityLabel(activity.visibility)}</p>
+          <p className="truncate text-secondary md:mt-1" data-testid="activity-status-slot">{badge}</p>
         </div>
       </article>
     </li>
@@ -521,6 +578,7 @@ export function ProjectActivityClient({
             </div>
           ) : (
             <div role="feed" aria-label="Project activity ledger" aria-busy={loadingMore || undefined}>
+              <ActivityLedgerColumnHeader />
               {groups.map((group) => (
                 <section key={group.key} aria-label={group.label}>
                   <div className="sticky top-0 z-[1] flex h-8 items-center justify-between border-b border-hairline bg-white/95 px-2">

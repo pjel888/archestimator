@@ -28,6 +28,7 @@ import { readProjectActivityFeed } from "@/lib/repositories/project-activity-fee
 const PROJECT_ID = "11111111-1111-4111-8111-111111111111";
 const WORKSPACE_ID = "22222222-2222-4222-8222-222222222222";
 const ESTIMATE_ID = "33333333-3333-4333-8333-333333333333";
+const BETTER_AUTH_USER_ID = "OSqP1zB0TgLTAzeGFpHCFEfRM6nQ79pG";
 
 type PreparedRecord = {
   sql: string;
@@ -86,6 +87,7 @@ class FakeD1Database {
     if (sql.includes("FROM shared_link_events")) return this.rows.shared_link_events ?? [];
     if (sql.includes("FROM collaboration_audit_events")) return this.rows.collaboration_audit_events ?? [];
     if (sql.includes("FROM shared_link_recipients")) return this.rows.shared_link_recipients ?? [];
+    if (sql.includes('FROM "user"')) return this.rows.user ?? [];
     if (sql.includes("FROM profiles")) return this.rows.profiles ?? [];
     return [];
   }
@@ -108,6 +110,29 @@ function publicationRow(overrides: Record<string, unknown> = {}) {
 
 function d1RecordsFor(database: FakeD1Database, table: string) {
   return database.records.filter((record) => record.sql.includes(`FROM ${table}`));
+}
+
+function estimateEventRow(overrides: Record<string, unknown> = {}) {
+  return {
+    actor_user_id: BETTER_AUTH_USER_ID,
+    changed_fields: ["name"],
+    correlation_id: "corr-1",
+    created_at: "2026-06-28T09:00:00.000Z",
+    estimate_id: ESTIMATE_ID,
+    estimate_node_id: null,
+    estimate_tab_id: null,
+    event_source: "server_action",
+    event_type: "estimate_details_updated",
+    id: "event-1",
+    new_snapshot: { name: "Main Estimate" },
+    old_snapshot: { name: "Original Estimate" },
+    payload: {},
+    project_id: PROJECT_ID,
+    row_context: {},
+    target_row_id: null,
+    total_delta: null,
+    ...overrides,
+  };
 }
 
 describe("project activity repository behavior", () => {
@@ -190,5 +215,42 @@ describe("project activity repository behavior", () => {
 
     expect(sourceRead?.values).toEqual(["pub-project", "open", "password_attempt", 21]);
     expect(filteredCount?.values).toEqual(["pub-project", "open", "password_attempt"]);
+  });
+
+  it("resolves Better Auth actor names without requiring legacy profile rows or UUID ids", async () => {
+    const database = new FakeD1Database({
+      estimate_sheet_events: [estimateEventRow()],
+      user: [{ id: BETTER_AUTH_USER_ID, name: "Philip Lewis", email: "philip@example.test" }],
+    });
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+
+    const page = await readProjectActivityFeed({
+      projectId: PROJECT_ID,
+      limit: 20,
+    });
+
+    expect(page.items[0]?.actor).toMatchObject({
+      id: BETTER_AUTH_USER_ID,
+      displayName: "Philip Lewis",
+      kind: "user",
+    });
+    expect(page.items[0]?.title).toContain("Philip Lewis");
+  });
+
+  it("keeps Better Auth ids when filtering activity by the current actor", async () => {
+    mocks.getCurrentUserContext.mockResolvedValue({ userId: BETTER_AUTH_USER_ID });
+    const database = new FakeD1Database({ estimate_sheet_events: [] });
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+
+    await readProjectActivityFeed({
+      projectId: PROJECT_ID,
+      filters: { actorUserId: "me" },
+      limit: 20,
+    });
+
+    const sourceRead = d1RecordsFor(database, "estimate_sheet_events")
+      .find((record) => record.sql.includes("SELECT id, event_type"));
+    expect(sourceRead?.sql).toContain("actor_user_id = ?");
+    expect(sourceRead?.values).toContain(BETTER_AUTH_USER_ID);
   });
 });
