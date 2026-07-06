@@ -8,6 +8,7 @@ import { ConfirmDialog } from "@/components/ui/overlays/confirm-dialog";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { InspectorDrawer } from "@/components/ui/overlays/sheet-drawer";
 import { Modal } from "@/components/ui/modal";
+import { FilterPopover } from "@/components/ui/overlays/popover";
 import { ResizableModal } from "@/components/ui/overlays/resizable-modal";
 import { SectionLabel } from "@/components/ui/section-label";
 import { Tooltip } from "@/components/ui/overlays/tooltip";
@@ -212,6 +213,51 @@ describe("shared modal and toolbar tooltip primitives", () => {
     expect(tooltip).toHaveTextContent("Filter estimate tree");
     expect(tooltip).toHaveClass("fixed", "z-[1100]");
     expect(container.querySelector("[role='tooltip']")).toBeNull();
+  });
+
+  it("closes icon popovers on outside pointerdown while keeping inside interactions open", async () => {
+    const user = userEvent.setup();
+    render(
+      <div>
+        <FilterPopover trigger={<span aria-hidden="true">F</span>} triggerLabel="Filter estimate tree">
+          <label>
+            <input type="checkbox" />
+            Hide empty areas
+          </label>
+        </FilterPopover>
+        <button type="button">Outside target</button>
+      </div>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Filter estimate tree" }));
+    expect(screen.getByText("Hide empty areas")).toBeInTheDocument();
+
+    fireEvent.pointerDown(screen.getByText("Hide empty areas"));
+    expect(screen.getByText("Hide empty areas")).toBeInTheDocument();
+
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Outside target" }));
+    expect(screen.queryByText("Hide empty areas")).not.toBeInTheDocument();
+  });
+
+  it("closes icon popovers on Escape and restores focus to the trigger", async () => {
+    const user = userEvent.setup();
+    render(
+      <FilterPopover trigger={<span aria-hidden="true">F</span>} triggerLabel="Filter estimate tree">
+        <label>
+          <input type="checkbox" />
+          Hide empty areas
+        </label>
+      </FilterPopover>,
+    );
+
+    const trigger = screen.getByRole("button", { name: "Filter estimate tree" });
+    await user.click(trigger);
+    expect(screen.getByText("Hide empty areas")).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByText("Hide empty areas")).not.toBeInTheDocument();
+
+    await waitFor(() => expect(trigger).toHaveFocus());
   });
 
   // ToolbarIconSelect retired with the DropdownSelect migration; its

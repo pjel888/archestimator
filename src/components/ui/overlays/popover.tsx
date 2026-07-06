@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useId, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react";
 
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { cn } from "@/lib/ui/cn";
@@ -64,15 +64,41 @@ export function Popover({
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
   const contentId = useId();
   const titleId = useId();
+  const rootRef = useRef<HTMLSpanElement | null>(null);
   const isOpen = open ?? internalOpen;
 
-  function setOpen(nextOpen: boolean) {
+  const setOpen = useCallback((nextOpen: boolean) => {
     onOpenChange?.(nextOpen);
     if (open === undefined) setInternalOpen(nextOpen);
-  }
+  }, [onOpenChange, open]);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target;
+      if (target instanceof Node && rootRef.current?.contains(target)) return;
+      setOpen(false);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      setOpen(false);
+      requestAnimationFrame(() => rootRef.current?.querySelector("button")?.focus());
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown, true);
+    document.addEventListener("keydown", handleKeyDown, true);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown, true);
+      document.removeEventListener("keydown", handleKeyDown, true);
+    };
+  }, [isOpen, setOpen]);
 
   return (
-    <span className={cn("relative inline-flex", className)}>
+    <span ref={rootRef} className={cn("relative inline-flex", className)}>
       <Button
         type="button"
         aria-label={triggerLabel}
