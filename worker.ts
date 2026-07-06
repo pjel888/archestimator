@@ -2,7 +2,7 @@ import {
   type CloudflareScheduledUploadJobEnv,
   runCloudflareScheduledUploadJobs,
 } from "./src/lib/cloudflare/scheduled-upload-jobs";
-import { runRetentionPass } from "./src/lib/compliance/retention-repository";
+import { runRetentionPassInD1, type RetentionD1DatabaseLike } from "./src/lib/compliance/retention-core";
 import {
   type CloudflareUploadJobQueueBatchLike,
   type CloudflareUploadJobQueueEnv,
@@ -38,7 +38,10 @@ type CloudflareWorkerEnv = Record<string, unknown>
   & CloudflareScheduledUploadJobEnv
   & CloudflareUploadJobQueueEnv
   & CloudflareCollaborationRoomEnv
-  & CloudflareProtectedProofEnv;
+  & CloudflareProtectedProofEnv
+  & {
+    ARCH_DB?: RetentionD1DatabaseLike;
+  };
 
 type ExecutionContextLike = {
   waitUntil(promise: Promise<unknown>): void;
@@ -105,7 +108,7 @@ export default {
     // Runs in parallel to the upload-jobs waitUntil; both are awaited by ctx.
     if (controller.cron === "30 3 * * *") {
       ctx.waitUntil(
-        runRetentionPass(undefined, { cronRunId: crypto.randomUUID() }).then((results) => {
+        runRetentionPassInD1(env.ARCH_DB, undefined, { cronRunId: crypto.randomUUID() }).then((results) => {
           console.log("Retention pass completed", JSON.stringify(results));
         }),
       );

@@ -9,6 +9,7 @@ vi.mock("@/lib/cloudflare/d1", () => d1Mocks);
 import {
   DEFAULT_RETENTION_RULES,
   recordRetentionEvent,
+  runRetentionPassInD1,
   runRetentionPass,
   type RetentionRule,
 } from "@/lib/compliance/retention-repository";
@@ -183,6 +184,30 @@ describe("retention repository", () => {
     expect(JSON.parse(event!.metadataJson)).toEqual({ selected_count: 2 });
     expect(event!.metadataJson).not.toContain("row-a");
     expect(event!.metadataJson).not.toContain("row-b");
+  });
+
+  it("can run from a Worker-injected D1 binding without resolving OpenNext context", async () => {
+    const database = new FakeD1Database();
+    database.applyChanges = 1;
+    database.selectRows = [{ id: "row-a" }];
+
+    const results = await runRetentionPassInD1(database, [testRule], { cronRunId: "worker-cron" });
+
+    expect(d1Mocks.getCloudflareD1Database).not.toHaveBeenCalled();
+    expect(results).toEqual([
+      expect.objectContaining({
+        action: "purged",
+        className: "shared_link_events",
+        rowsAffected: 1,
+        skipped: false,
+      }),
+    ]);
+    expect(database.retentionEvents[0]).toEqual(
+      expect.objectContaining({
+        cronRunId: "worker-cron",
+        rowsAffected: 1,
+      }),
+    );
   });
 
   it("recordRetentionEvent no-ops safely without a D1 binding", async () => {
