@@ -242,7 +242,11 @@ function deleteKitchenAndLivingTree(): EstimateTreeNode[] {
   ];
 }
 
-function renderTree(nodes = fixtureTree(), selectedNodeId: string | null = "kitchen") {
+function renderTree(
+  nodes = fixtureTree(),
+  selectedNodeId: string | null = "kitchen",
+  options: { canEditEstimate?: boolean } = {},
+) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   queryClient.setQueryData(estimateQueryKeys.areaTree("estimate-1"), nodes);
 
@@ -256,6 +260,7 @@ function renderTree(nodes = fixtureTree(), selectedNodeId: string | null = "kitc
             projectName="Modern Bungalow"
             selectedNodeId={selectedNodeId}
             nodes={nodes}
+            canEditEstimate={options.canEditEstimate}
           />
         </div>
       </ToastProvider>
@@ -374,6 +379,26 @@ describe("estimate tree context menu", () => {
     expect(screen.getByRole("menuitem", { name: "Rename" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Delete" })).toBeInTheDocument();
     expect(routerMock.push).not.toHaveBeenCalled();
+  });
+
+  it("keeps mutating context menu actions disabled for view-only estimates", async () => {
+    renderTree(fixtureTree(), "kitchen", { canEditEstimate: false });
+
+    await openContextMenu("kitchen");
+
+    for (const name of ["Add area inside", "Save as template", "Rename", "Move...", "Delete"]) {
+      const item = screen.getByRole("menuitem", { name });
+      expect(item).toHaveAttribute("data-disabled");
+      expect(item).toHaveAttribute("title", "View-only estimate.");
+      fireEvent.click(item);
+    }
+
+    expect(screen.queryByLabelText("Rename Kitchen")).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Move Kitchen" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Delete Kitchen" })).not.toBeInTheDocument();
+    expect(actionMocks.createEstimateNode).not.toHaveBeenCalled();
+    expect(actionMocks.renameEstimateNode).not.toHaveBeenCalled();
+    expect(actionMocks.deleteEstimateNode).not.toHaveBeenCalled();
   });
 
   it("adds an area under a row-owning node (former area), proving no wrap and no error (P6)", async () => {

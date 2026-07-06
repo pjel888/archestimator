@@ -83,7 +83,11 @@ function fixtureTree(): EstimateTreeNode[] {
   ];
 }
 
-function renderTree(nodes = fixtureTree(), selectedNodeId: string | null = "kitchen") {
+function renderTree(
+  nodes = fixtureTree(),
+  selectedNodeId: string | null = "kitchen",
+  options: { canEditEstimate?: boolean } = {},
+) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
 
   render(
@@ -94,6 +98,7 @@ function renderTree(nodes = fixtureTree(), selectedNodeId: string | null = "kitc
         projectName="Modern Bungalow"
         selectedNodeId={selectedNodeId}
         nodes={nodes}
+        canEditEstimate={options.canEditEstimate}
       />
     </QueryClientProvider>,
   );
@@ -363,6 +368,26 @@ describe("estimate sheet tree DOM integration", () => {
       expect(kitchenHandle).toHaveAttribute("title", "Clear tree search before dragging nodes.");
       expect(kitchenHandle).toHaveAccessibleName("Drag Kitchen unavailable: Clear tree search before dragging nodes.");
     });
+  });
+
+  it("disables edit-only tree affordances with a view-only reason", () => {
+    renderTree(fixtureTree(), "kitchen", { canEditEstimate: false });
+
+    expect(screen.getByRole("button", { name: "Add Branch" })).toBeDisabled();
+    expect(screen.queryByRole("checkbox", { name: "Select Kitchen" })).not.toBeInTheDocument();
+
+    const kitchenHandle = treeDragHandle("kitchen");
+    expect(kitchenHandle).toHaveAttribute("draggable", "false");
+    expect(kitchenHandle).toHaveAttribute("aria-disabled", "true");
+    expect(kitchenHandle).toHaveAttribute("data-tree-drag-disabled-reason", "View-only estimate.");
+    expect(kitchenHandle).toHaveAccessibleName("Drag Kitchen unavailable: View-only estimate.");
+
+    const dataTransfer = mockDataTransfer();
+    fireEvent.dragStart(kitchenHandle, { dataTransfer });
+    expect(dataTransfer.setData).not.toHaveBeenCalledWith("application/x-archestimator-estimate-tree-item", "kitchen");
+
+    fireEvent.click(screen.getByRole("button", { name: "Add Branch" }));
+    expect(actionMocks.createEstimateNode).not.toHaveBeenCalled();
   });
 
   it("exposes invalid internal drop targets with structural state and a compact reason", () => {

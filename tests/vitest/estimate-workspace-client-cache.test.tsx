@@ -85,14 +85,14 @@ describe("EstimateWorkspaceClient tab-cache reconciliation", () => {
     expect(fetchEstimateTabs).not.toHaveBeenCalled();
   });
 
-  it("renders a focusable below-desktop fallback notice for the estimate workspace", () => {
+  it("renders a below-desktop fallback notice for the estimate workspace without adding a dead tab stop", () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     renderClient(queryClient);
 
     const notice = screen.getByRole("note", { name: "Desktop workspace notice" });
 
     expect(notice).toHaveClass("lg:hidden");
-    expect(notice).toHaveAttribute("tabindex", "0");
+    expect(notice).not.toHaveAttribute("tabindex");
     expect(notice).toHaveTextContent("Estimate editing works best on a desktop-width screen.");
     expect(notice).toHaveTextContent("Side panels open as compact drawers on this width; use a wider display for full three-panel editing.");
   });

@@ -103,11 +103,13 @@ type EstimateSheetTreeProps = {
   selectedNodeId: string | null;
   nodes: EstimateTreeNode[];
   loadLimitState?: EstimateTreeLoadLimitState;
+  canEditEstimate?: boolean;
   disableRouteSync?: boolean;
 };
 
 const ESTIMATE_TREE_LEFT_EXTENSION_WIDTH = 104;
 const ESTIMATE_TREE_TABS = [{ id: "sheets", label: "Estimate Tree" }] as const;
+const VIEW_ONLY_ESTIMATE_REASON = "View-only estimate.";
 
 type ReorderStatus =
   | { state: "idle" }
@@ -446,7 +448,7 @@ function resolveConfirmedDeleteFallbackNodeId(tree: EstimateTreeNode[], fallback
 }
 
 // react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
-export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialTabId, projectName, selectedNodeId, nodes, loadLimitState, disableRouteSync = false }: EstimateSheetTreeProps) {
+export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialTabId, projectName, selectedNodeId, nodes, loadLimitState, canEditEstimate = true, disableRouteSync = false }: EstimateSheetTreeProps) {
   const surfaceVariant = useEstimateSurfaceVariant();
   const routeParams = useParams<{ nodeId?: string | string[] }>();
   const routeNodeIdParam = Array.isArray(routeParams?.nodeId) ? routeParams.nodeId[0] : routeParams?.nodeId;
@@ -831,30 +833,31 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   // Nodes whose create has not settled yet cannot be dragged: the server
   // does not know their id.
   const handleTreeCanDrag = useCallback(
-    (treeNode: UiTreeNode) => canReorderNow && !editingNodeId && !treeSearchActive && !isOptimisticEstimateNodeId(treeNode.id),
-    [canReorderNow, editingNodeId, treeSearchActive],
+    (treeNode: UiTreeNode) => canEditEstimate && canReorderNow && !editingNodeId && !treeSearchActive && !isOptimisticEstimateNodeId(treeNode.id),
+    [canEditEstimate, canReorderNow, editingNodeId, treeSearchActive],
   );
 
   const getTreeDragDisabledReason = useCallback(
     (treeNode: UiTreeNode) => {
+      if (!canEditEstimate) return VIEW_ONLY_ESTIMATE_REASON;
       if (treeSearchActive) return "Clear tree search before dragging nodes.";
       if (editingNodeId) return "Finish renaming before dragging nodes.";
       if (!canReorderNow) return "Finish the current tree save before dragging nodes.";
       if (isOptimisticEstimateNodeId(treeNode.id)) return "Wait for this new node to finish saving first.";
       return null;
     },
-    [canReorderNow, editingNodeId, treeSearchActive],
+    [canEditEstimate, canReorderNow, editingNodeId, treeSearchActive],
   );
 
   const handleTreeCanDrop = useCallback((draggedId: string, targetId: string, position: TreeDropPosition) => {
-    if (!canReorderNow || editingNodeId || treeSearchActive) return false;
+    if (!canEditEstimate || !canReorderNow || editingNodeId || treeSearchActive) return false;
     if (isOptimisticEstimateNodeId(draggedId) || isOptimisticEstimateNodeId(targetId)) return false;
     return validateEstimateTreeDrop({
       nodes: localNodes,
       draggedNodeIds: [draggedId],
       target: { targetNodeId: targetId, position },
     }).ok;
-  }, [canReorderNow, editingNodeId, localNodes, treeSearchActive]);
+  }, [canEditEstimate, canReorderNow, editingNodeId, localNodes, treeSearchActive]);
 
   const suppressPrimaryActionAfterDrag = useCallback(() => {
     suppressPrimaryActionUntilRef.current = Date.now() + 500;
@@ -862,7 +865,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
 
   const handleTreeDrop = useCallback((draggedId: string, targetId: string, position: TreeDropPosition) => {
     suppressPrimaryActionAfterDrag();
-    if (!canReorderNow || editingNodeId || treeSearchActive) return;
+    if (!canEditEstimate || !canReorderNow || editingNodeId || treeSearchActive) return;
     if (isOptimisticEstimateNodeId(draggedId) || isOptimisticEstimateNodeId(targetId)) return;
 
     const target = { targetNodeId: targetId, position };
@@ -924,6 +927,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     })();
   }, [
     activeTabId,
+    canEditEstimate,
     canReorderNow,
     editingNodeId,
     estimateId,
@@ -946,6 +950,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     types: [ESTIMATE_TEMPLATE_DRAG_MIME_TYPE, PROJECT_SOURCE_DRAG_MIME_TYPE, ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE],
     dropEffect: (types) => types.includes(ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE) ? "move" : "copy",
     canDrop: (types, targetId, position) => {
+      if (!canEditEstimate) return false;
       if (position !== "inside") return false;
       if (isOptimisticEstimateNodeId(targetId)) return false;
       const targetNode = findEstimateNode(localNodes, targetId);
@@ -957,6 +962,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
         || types.includes(ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE);
     },
     onDrop: (event, targetId) => {
+      if (!canEditEstimate) return;
       const targetNode = findEstimateNode(localNodes, targetId);
       if (!targetNode) return;
 
@@ -1002,7 +1008,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
         }));
       }
     },
-  }), [localNodes, suppressPrimaryActionAfterDrag]);
+  }), [canEditEstimate, localNodes, suppressPrimaryActionAfterDrag]);
 
   // P6 single create flow: "Add Area" makes a child area of the given parent
   // (or a root area when no parent). There is no kind choice and no
@@ -1010,6 +1016,8 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   // create succeeds. Internal `kind` is always "area" (the surviving label);
   // the user only ever sees "Area".
   const handleAddTreeNode = useCallback((parentNodeIdOverride?: string) => {
+    if (!canEditEstimate) return;
+
     const targetParentNodeId = parentNodeIdOverride ?? selectedParentNodeId;
 
     const nodeName = "New Area";
@@ -1097,6 +1105,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   }, [
     activeSelectedNodeId,
     activeTabId,
+    canEditEstimate,
     estimateId,
     expandedItems,
     localNodes,
@@ -1162,7 +1171,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   }, []);
 
   const beginRenameNode = useCallback((node: EstimateTreeNode, options?: { fromContextMenu?: boolean }) => {
-    if (isTreeMutationSaving) return;
+    if (!canEditEstimate || isTreeMutationSaving) return;
     if (options?.fromContextMenu) {
       armContextMenuRenameHandoff();
     } else {
@@ -1173,7 +1182,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     setEditingNodeId(node.id);
     setEditingNodeName(node.name);
     setEditingNodeError(null);
-  }, [armContextMenuRenameHandoff, isTreeMutationSaving]);
+  }, [armContextMenuRenameHandoff, canEditEstimate, isTreeMutationSaving]);
 
   const cancelRenameNode = useCallback(() => {
     suppressContextMenuCloseAutoFocusRef.current = false;
@@ -1184,7 +1193,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   }, []);
 
   const commitRenameNode = useCallback((node: EstimateTreeNode) => {
-    if (renameCommitInFlightRef.current) return;
+    if (!canEditEstimate || renameCommitInFlightRef.current) return;
     suppressContextMenuCloseAutoFocusRef.current = false;
     ignoreRenameBlurDuringContextMenuCloseRef.current = false;
 
@@ -1248,6 +1257,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     })();
   }, [
     cancelRenameNode,
+    canEditEstimate,
     editingNodeName,
     estimateId,
     localNodes,
@@ -1325,7 +1335,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   ]);
 
   const handleConfirmDeleteNode = useCallback(() => {
-    if (!deleteTargetNode || isTreeMutationSaving) return;
+    if (!canEditEstimate || !deleteTargetNode || isTreeMutationSaving) return;
 
     const targetNode = deleteTargetNode;
     const previousSelectedNodeId = activeSelectedNodeId;
@@ -1408,6 +1418,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   }, [
     activeSelectedNodeId,
     activeTabId,
+    canEditEstimate,
     currentRouteNodeId,
     deleteTargetNode,
     estimateId,
@@ -1429,7 +1440,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   }, [deletePending]);
 
   const handleConfirmBulkDeleteNodes = useCallback(() => {
-    if (bulkDeletePending || isTreeMutationSaving || bulkDeleteRootNodeIds.length === 0) return;
+    if (!canEditEstimate || bulkDeletePending || isTreeMutationSaving || bulkDeleteRootNodeIds.length === 0) return;
 
     const previousSelectedNodeId = activeSelectedNodeId;
     const previousBulkSelection = new Set(bulkSelectedNodeIds);
@@ -1527,6 +1538,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     bulkDeletePending,
     bulkDeleteRootNodeIds,
     bulkSelectedNodeIds,
+    canEditEstimate,
     currentRouteNodeId,
     estimateId,
     getLocalTreeRevision,
@@ -1554,19 +1566,20 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   }, [editingNodeId, localNodes, setSelectedNodeId, syncEstimateRouteUrl]);
 
   const handleCheckboxToggle = useCallback((nodeId: string, checked: boolean) => {
-    if (isTreeMutationSaving) return;
+    if (!canEditEstimate || isTreeMutationSaving) return;
     setBulkSelectedNodeIds((current) => toggleCascadeSelection(treeSelectionNodes, current, nodeId, checked));
-  }, [isTreeMutationSaving, treeSelectionNodes]);
+  }, [canEditEstimate, isTreeMutationSaving, treeSelectionNodes]);
 
   const handleTreeContextMenu = useCallback((nodeId: string) => {
     setContextMenuNode(findEstimateNode(localNodes, nodeId) ?? null);
   }, [localNodes]);
 
   const handleTreeRenameShortcut = useCallback((nodeId: string) => {
+    if (!canEditEstimate) return;
     const node = findEstimateNode(localNodes, nodeId);
     if (!node) return;
     beginRenameNode(node, { fromContextMenu: false });
-  }, [beginRenameNode, localNodes]);
+  }, [beginRenameNode, canEditEstimate, localNodes]);
 
   const handleTreeKeyboardContextMenu = useCallback((nodeId: string) => {
     const node = findEstimateNode(localNodes, nodeId);
@@ -1590,21 +1603,22 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   }, [localNodes]);
 
   const openTreeMoveDialog = useCallback((node: EstimateTreeNode) => {
+    if (!canEditEstimate) return;
     setMoveTargetNode(node);
     setMoveSelection(null);
-  }, []);
+  }, [canEditEstimate]);
 
   const treeMoveDestinationOptions = useMemo(() => {
     if (!moveTargetNode) return [];
     return buildEstimateTreeMoveOptions({
       nodes: localNodes,
       sourceNodeId: moveTargetNode.id,
-      canReorderNow,
+      canReorderNow: canEditEstimate && canReorderNow,
       editingNodeActive: Boolean(editingNodeId),
       treeSearchActive,
       isOptimisticNodeId: isOptimisticEstimateNodeId,
     });
-  }, [canReorderNow, editingNodeId, localNodes, moveTargetNode, treeSearchActive]);
+  }, [canEditEstimate, canReorderNow, editingNodeId, localNodes, moveTargetNode, treeSearchActive]);
 
   const selectedMoveDestination = useMemo(
     () => (moveSelection ? treeMoveDestinationOptions.find((option) => option.id === moveSelection.id) ?? null : null),
@@ -1641,6 +1655,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   const contextMenuGroups = useMemo<ActionMenuGroup[]>(() => {
     if (!contextMenuNode) return [];
     const nodeIsPendingCreate = isOptimisticEstimateNodeId(contextMenuNode.id);
+    const editDisabledReason = canEditEstimate ? undefined : VIEW_ONLY_ESTIMATE_REASON;
 
     return [
       // P6 single-node model: "Add area inside" is UNCONDITIONAL on every node —
@@ -1653,6 +1668,8 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
             id: "add-area-inside",
             label: "Add area inside",
             icon: <Log size={12} weight="regular" aria-hidden="true" />,
+            disabled: !canEditEstimate,
+            disabledReason: editDisabledReason,
             onSelect: () => {
               armContextMenuRenameHandoff();
               handleAddTreeNode(contextMenuNode.id);
@@ -1667,8 +1684,8 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
             id: "save-as-template",
             label: "Save as template",
             icon: <StackPlus size={12} weight="regular" aria-hidden="true" />,
-            disabled: nodeIsPendingCreate,
-            disabledReason: "Wait for this node to finish saving first.",
+            disabled: !canEditEstimate || nodeIsPendingCreate,
+            disabledReason: editDisabledReason ?? "Wait for this node to finish saving first.",
             onSelect: () => {
               window.dispatchEvent(
                 new CustomEvent<CreateEstimateTemplateFromNodeEventDetail>(CREATE_ESTIMATE_TEMPLATE_FROM_NODE_EVENT, {
@@ -1681,22 +1698,22 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
             id: "rename",
             label: "Rename",
             icon: <PencilSimple size={12} weight="regular" aria-hidden="true" />,
-            disabled: isTreeMutationSaving,
-            disabledReason: "Finish the current tree save before renaming another node.",
+            disabled: !canEditEstimate || isTreeMutationSaving,
+            disabledReason: editDisabledReason ?? "Finish the current tree save before renaming another node.",
             onSelect: () => beginRenameNode(contextMenuNode, { fromContextMenu: true }),
           },
           {
             id: "move",
             label: "Move...",
             icon: <ArrowsOutCardinal size={12} weight="regular" aria-hidden="true" />,
-            disabled: isTreeMutationSaving || treeSearchActive || nodeIsPendingCreate,
-            disabledReason: treeSearchActive
+            disabled: !canEditEstimate || isTreeMutationSaving || treeSearchActive || nodeIsPendingCreate,
+            disabledReason: editDisabledReason ?? (treeSearchActive
               ? "Clear tree search before moving areas."
               : nodeIsPendingCreate
                 ? "Wait for this area to finish saving first."
                 : isTreeMutationSaving
                   ? "Finish the current tree save before moving another area."
-                  : undefined,
+                  : undefined),
             onSelect: () => openTreeMoveDialog(contextMenuNode),
           },
         ],
@@ -1709,14 +1726,14 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
             label: "Delete",
             icon: <Trash size={12} weight="regular" aria-hidden="true" />,
             tone: "destructive" as const,
-            disabled: isTreeMutationSaving,
-            disabledReason: "Finish the current tree save before deleting another node.",
+            disabled: !canEditEstimate || isTreeMutationSaving,
+            disabledReason: editDisabledReason ?? "Finish the current tree save before deleting another node.",
             onSelect: () => setDeleteTargetNode(contextMenuNode),
           },
         ],
       },
     ];
-  }, [armContextMenuRenameHandoff, beginRenameNode, contextMenuNode, handleAddTreeNode, isTreeMutationSaving, openTreeMoveDialog, treeSearchActive]);
+  }, [armContextMenuRenameHandoff, beginRenameNode, canEditEstimate, contextMenuNode, handleAddTreeNode, isTreeMutationSaving, openTreeMoveDialog, treeSearchActive]);
 
   const renderEstimateTreeRowLabel = useCallback((treeNode: UiTreeNode) => {
     const node = (treeNode.data?.node as EstimateTreeNode | undefined) ?? findEstimateNode(localNodes, treeNode.id);
@@ -1939,6 +1956,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
               label: "Add Branch",
               icon: <AddTreeActionIcon />,
               onClick: () => handleAddArea(),
+              disabled: !canEditEstimate,
               className: ADD_BUTTON_CLASSNAME,
             },
           ]}
@@ -1989,7 +2007,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
                         railsPinned={contextMenuOpen}
                         draggable
                         dragActivation="handle"
-                        selectable
+                        selectable={canEditEstimate}
                         allowInsideOnLeaves
                         dragDataType={ESTIMATE_TREE_DRAG_MIME_TYPE}
                         canDrag={handleTreeCanDrag}
@@ -2015,6 +2033,8 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
                               variant="secondary"
                               size="xs"
                               className="min-w-0 gap-1 px-2"
+                              disabled={!canEditEstimate}
+                              title={canEditEstimate ? undefined : VIEW_ONLY_ESTIMATE_REASON}
                               onClick={() => handleAddArea()}
                             >
                               <AddTreeActionIcon />
@@ -2047,8 +2067,11 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
                 label: "Delete selected",
                 icon: <Trash size={12} weight="regular" />,
                 variant: "danger",
-                disabled: isTreeMutationSaving || bulkDeleteRootNodeIds.length === 0,
-                onClick: () => setBulkDeleteConfirmOpen(true),
+                disabled: !canEditEstimate || isTreeMutationSaving || bulkDeleteRootNodeIds.length === 0,
+                title: canEditEstimate ? undefined : VIEW_ONLY_ESTIMATE_REASON,
+                onClick: () => {
+                  if (canEditEstimate) setBulkDeleteConfirmOpen(true);
+                },
               },
             ]}
           />
@@ -2083,7 +2106,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
               type="button"
               variant="danger"
               size="sm"
-              disabled={bulkDeletePending || bulkDeleteRootNodeIds.length === 0}
+              disabled={!canEditEstimate || bulkDeletePending || bulkDeleteRootNodeIds.length === 0}
               onClick={handleConfirmBulkDeleteNodes}
             >
               Delete
@@ -2129,7 +2152,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
               type="button"
               variant="danger"
               size="sm"
-              disabled={deletePending}
+              disabled={!canEditEstimate || deletePending}
               onClick={handleConfirmDeleteNode}
             >
               Delete
