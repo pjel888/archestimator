@@ -74,6 +74,7 @@ function openComponentViewMenu() {
 const actionMocks = vi.hoisted(() => ({
   changeCostLibraryComponentLifecycleState: vi.fn(),
   createCostLibraryComponent: vi.fn(),
+  saveCostLibraryComponentDraft: vi.fn(),
   createLibraryFolder: vi.fn(),
   deleteLibraryFolder: vi.fn(),
   deleteLibraryFoldersBulk: vi.fn(),
@@ -242,6 +243,11 @@ describe("workshop library consolidation UI", () => {
   beforeEach(() => {
     actionMocks.createLibraryFolder.mockReset();
     actionMocks.createCostLibraryComponent.mockReset();
+    actionMocks.saveCostLibraryComponentDraft.mockReset();
+    actionMocks.saveCostLibraryComponentDraft.mockResolvedValue({
+      draftId: "component-draft-1",
+      savedAt: "2026-07-06T00:00:00.000Z",
+    });
     actionMocks.deleteLibraryFolder.mockReset();
     actionMocks.deleteLibraryFoldersBulk.mockReset();
     actionMocks.executeBulkArchiveLibraryComponents.mockReset();

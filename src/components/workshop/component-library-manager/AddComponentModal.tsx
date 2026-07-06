@@ -19,9 +19,9 @@ import { ControlField, ControlInput, ControlTextarea } from "@/components/ui/con
 import { CreatableCombobox, type CreatableComboboxOption } from "@/components/ui/creatable-combobox";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { Modal } from "@/components/ui/modal";
-import { ConfirmDialog } from "@/components/ui/overlays/confirm-dialog";
 import {
   createCostLibraryComponent,
+  saveCostLibraryComponentDraft,
   type ComponentLifecycleState,
   type CreateCostLibraryComponentInput,
 } from "@/lib/component-library/actions";
@@ -186,7 +186,7 @@ const OPENDESIGN_MODAL_BG_CLASS =
 const OPENDESIGN_MODAL_SHADOW_CLASS =
   "shadow-[0_28px_70px_-24px_rgba(23,29,40,0.32),0_10px_26px_-18px_rgba(23,29,40,0.24),inset_0_1px_0_rgba(255,255,255,0.82)]";
 const OPENDESIGN_DRAWER_SHADOW_CLASS =
-  "shadow-[28px_26px_58px_-34px_rgba(23,29,40,0.56),inset_0_1px_0_rgba(255,255,255,0.72),inset_0_0_0_1px_rgba(61,61,61,0.025)]";
+  "shadow-[32px_34px_64px_-34px_rgba(23,29,40,0.58),inset_0_1px_0_rgba(255,255,255,0.72),inset_0_0_0_1px_rgba(61,61,61,0.025)]";
 const OPENDESIGN_RAIL_SHADOW_CLASS =
   "shadow-[10px_12px_24px_-19px_rgba(23,29,40,0.42),inset_0_1px_0_rgba(255,255,255,0.72),inset_0_0_0_1px_rgba(61,61,61,0.025)]";
 const OPENDESIGN_RAIL_ACTIVE_SHADOW_CLASS =
@@ -512,11 +512,13 @@ function OpenAddComponentModal({
   const [imageUpload, setImageUpload] = useState<ImageUploadState>({ state: "idle" });
   const [attachmentUpload, setAttachmentUpload] = useState<ImageUploadState>({ state: "idle" });
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
+  const [draftSaveError, setDraftSaveError] = useState("");
   const [duplicateCheckReady, setDuplicateCheckReady] = useState(false);
   const [duplicateAcknowledged, setDuplicateAcknowledged] = useState(false);
   const [error, setError] = useState("");
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [draftSavePending, startDraftSaveTransition] = useTransition();
   const thumbnailInputId = useId();
   const variantThumbnailInputId = useId();
   const attachmentInputId = useId();
@@ -734,11 +736,99 @@ function OpenAddComponentModal({
     setDiscardDialogOpen(true);
   }
 
+  function buildComponentPayload(): CreateCostLibraryComponentInput {
+    const fallbackVariant = defaultVariant ?? draft.variants[0] ?? makeVariantDraft(1);
+    const defaultVariantImage = getVariantImage(draft, fallbackVariant);
+    const defaultThumbnailPath = defaultVariantImage?.thumbnailUrl || defaultVariantImage?.thumbnailPath || null;
+    return {
+      fieldContract: "opendesign-add-component",
+      name: draft.name,
+      description: fallbackVariant.description,
+      category: draft.category.trim(),
+      categoryNodeId: draft.categoryNodeId,
+      supplier: selectedSupplier?.name ?? draft.supplierName,
+      supplierId: draft.supplierId || null,
+      brand: (selectedBrand?.name ?? draft.brand) || null,
+      brandId: draft.brandId || null,
+      unit: fallbackVariant.unit || "unit",
+      thumbnailPath: defaultThumbnailPath,
+      lifecycleState: draft.lifecycleState,
+      effectiveAt: draft.effectiveAt,
+      changeReason: draft.changeReason,
+      metadata: {},
+      priceOptions: draft.variants.map((variant, index) => {
+        const variantImage = getVariantImage(draft, variant);
+        return {
+          label: variant.label,
+          sku: variant.sku || null,
+          variantDescription: variant.description,
+          variantSortOrder: index + 1,
+          unit: variant.unit || fallbackVariant.unit || "unit",
+          unitCost: parseMoney(variant.unitCost),
+          currency: "PHP",
+          supplierId: draft.supplierId || null,
+          packageQuantity: unitUsesContentConversion(variant.unit) ? readOptionalPositiveNumber(variant.packageQuantity) : null,
+          packageUnit: unitUsesContentConversion(variant.unit) ? variant.packageUnit || null : null,
+          imageBucket: variantImage?.bucket ?? null,
+          imagePath: variantImage?.path ?? null,
+          thumbnailPath: variantImage?.thumbnailUrl || variantImage?.thumbnailPath || null,
+          imageMetadata: buildImageMetadata(variantImage),
+          attachments: variant.attachments.map((attachment) => ({
+            bucket: attachment.bucket,
+            path: attachment.path,
+            fileName: attachment.fileName,
+            contentType: attachment.contentType,
+            sizeBytes: attachment.sizeBytes,
+            kind: getAttachmentKind(attachment.contentType),
+          })),
+          isDefault: variant.isDefault,
+          isActive: true,
+          effectiveAt: draft.effectiveAt,
+          changeReason: draft.changeReason,
+        };
+      }),
+    };
+  }
+
   function confirmDiscardDraft() {
     cleanupUploadedDraftAssets();
     dirtyRef.current = false;
     setDiscardDialogOpen(false);
     onOpenChange(false);
+  }
+
+  function saveDraftAndClose() {
+    if (imageBusy || attachmentBusy || draftSavePending) {
+      setDraftSaveError("Wait for uploads to finish before saving this draft.");
+      return;
+    }
+    startDraftSaveTransition(async () => {
+      setDraftSaveError("");
+      try {
+        await saveCostLibraryComponentDraft({
+          fieldContract: "opendesign-add-component",
+          title: draft.name,
+          draft: {
+            form: draft,
+            componentPayload: buildComponentPayload(),
+            activeTab,
+            activeVariantId,
+            variantDrawerOpen,
+            variantDrawerView,
+          },
+        });
+        dirtyRef.current = false;
+        setDiscardDialogOpen(false);
+        onOpenChange(false);
+      } catch (saveError) {
+        setDraftSaveError(saveError instanceof Error ? saveError.message : "Could not save this component draft.");
+      }
+    });
+  }
+
+  function submitFromCloseDialog() {
+    setDiscardDialogOpen(false);
+    submit();
   }
 
   async function handleThumbnailUpload(file: File) {
@@ -972,57 +1062,7 @@ function OpenAddComponentModal({
       setError("");
       return;
     }
-    const fallbackVariant = defaultVariant ?? draft.variants[0] ?? makeVariantDraft(1);
-    const defaultVariantImage = getVariantImage(draft, fallbackVariant);
-    const defaultThumbnailPath = defaultVariantImage?.thumbnailUrl || defaultVariantImage?.thumbnailPath || null;
-    const payload: CreateCostLibraryComponentInput = {
-      fieldContract: "opendesign-add-component",
-      name: draft.name,
-      description: fallbackVariant.description,
-      category: draft.category.trim(),
-      categoryNodeId: draft.categoryNodeId,
-      supplier: selectedSupplier?.name ?? draft.supplierName,
-      supplierId: draft.supplierId || null,
-      brand: (selectedBrand?.name ?? draft.brand) || null,
-      brandId: draft.brandId || null,
-      unit: fallbackVariant.unit || "unit",
-      thumbnailPath: defaultThumbnailPath,
-      lifecycleState: draft.lifecycleState,
-      effectiveAt: draft.effectiveAt,
-      changeReason: draft.changeReason,
-      metadata: {},
-      priceOptions: draft.variants.map((variant, index) => {
-        const variantImage = getVariantImage(draft, variant);
-        return {
-          label: variant.label,
-          sku: variant.sku || null,
-          variantDescription: variant.description,
-          variantSortOrder: index + 1,
-          unit: variant.unit || fallbackVariant.unit || "unit",
-          unitCost: parseMoney(variant.unitCost),
-          currency: "PHP",
-          supplierId: draft.supplierId || null,
-          packageQuantity: unitUsesContentConversion(variant.unit) ? readOptionalPositiveNumber(variant.packageQuantity) : null,
-          packageUnit: unitUsesContentConversion(variant.unit) ? variant.packageUnit || null : null,
-          imageBucket: variantImage?.bucket ?? null,
-          imagePath: variantImage?.path ?? null,
-          thumbnailPath: variantImage?.thumbnailUrl || variantImage?.thumbnailPath || null,
-          imageMetadata: buildImageMetadata(variantImage),
-          attachments: variant.attachments.map((attachment) => ({
-            bucket: attachment.bucket,
-            path: attachment.path,
-            fileName: attachment.fileName,
-            contentType: attachment.contentType,
-            sizeBytes: attachment.sizeBytes,
-            kind: getAttachmentKind(attachment.contentType),
-          })),
-          isDefault: variant.isDefault,
-          isActive: true,
-          effectiveAt: draft.effectiveAt,
-          changeReason: draft.changeReason,
-        };
-      }),
-    };
+    const payload = buildComponentPayload();
 
     startTransition(async () => {
       setError("");
@@ -1051,6 +1091,8 @@ function OpenAddComponentModal({
         title="Add Component"
         onOpenChange={requestClose}
         closeLabel="Close add component modal"
+        closeOnOverlayClick={false}
+        closeOnEscape={false}
         blurBackdrop
         transparentBackdrop
         bodyClassName="overflow-visible p-0"
@@ -1395,7 +1437,7 @@ function OpenAddComponentModal({
             aria-hidden="true"
             data-add-component-drawer-seam-shadow
             className={cn(
-              "pointer-events-none absolute bottom-0 right-[-36px] top-[77px] z-[3] w-9 -translate-x-2 bg-[linear-gradient(90deg,rgba(23,29,40,0.22),rgba(23,29,40,0.08)_52%,transparent)] opacity-0 transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+              "pointer-events-none absolute bottom-0 right-[-36px] top-8 z-[3] w-9 -translate-x-2 bg-[linear-gradient(90deg,rgba(23,29,40,0.22),rgba(23,29,40,0.08)_52%,transparent)] opacity-0 transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
               variantDrawerOpen && "translate-x-0 opacity-100",
             )}
           />
@@ -1407,7 +1449,7 @@ function OpenAddComponentModal({
             aria-hidden={!variantDrawerOpen}
             inert={!variantDrawerOpen}
             className={cn(
-              "absolute bottom-0 left-[calc(100%-1px)] top-[33px] z-10 flex w-[min(533px,calc(100vw-32px))] origin-left flex-col overflow-visible rounded-r-[6px] border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.94)] backdrop-blur-[18px] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+              "absolute bottom-0 left-[calc(100%-1px)] top-8 z-10 flex w-[min(533px,calc(100vw-32px))] origin-left flex-col overflow-visible rounded-r-[6px] border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.94)] backdrop-blur-[18px] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
               OPENDESIGN_DRAWER_SHADOW_CLASS,
               variantDrawerOpen ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-[calc(-100%+1px)] opacity-100 max-[1120px]:translate-x-[calc(100%+8px)]",
               "max-[1120px]:right-2 max-[1120px]:left-auto max-[1120px]:w-[min(430px,calc(100%-24px))] max-[1120px]:origin-right max-[1120px]:rounded-[6px] max-[1120px]:rounded-r-none max-[1120px]:border-l max-[1120px]:border-r-0 max-[1120px]:shadow-[-26px_0_44px_-34px_rgba(23,29,40,0.52),inset_0_1px_0_rgba(255,255,255,0.72),inset_0_0_0_1px_rgba(61,61,61,0.025)]",
@@ -1447,7 +1489,14 @@ function OpenAddComponentModal({
               </button>
             </div>
 
-            <nav className="absolute left-full top-[45px] z-[3] grid w-[30px] gap-0 max-[1120px]:hidden" aria-label="Variant navigation">
+            <nav
+              className={cn(
+                "absolute left-full top-[45px] z-[3] grid w-[30px] gap-0 transition-opacity duration-150 max-[1120px]:hidden motion-reduce:transition-none",
+                variantDrawerOpen ? "opacity-100" : "pointer-events-none opacity-0",
+              )}
+              aria-label="Variant navigation"
+              aria-hidden={!variantDrawerOpen}
+            >
               <div className="grid gap-0">
                 <button
                   type="button"
@@ -1751,7 +1800,7 @@ function OpenAddComponentModal({
                 </div>
               ) : null}
             </div>
-            <footer className="flex h-[49px] shrink-0 items-center justify-start border-t border-[rgba(61,61,61,0.08)] px-4">
+            <footer className="flex h-[49px] min-h-[49px] shrink-0 items-center justify-start border-t border-[rgba(61,61,61,0.08)] px-4">
               {variantDrawerView === "variant" && activeVariant ? (
                 <button
                   type="button"
@@ -1766,16 +1815,46 @@ function OpenAddComponentModal({
           </aside>
         </div>
       </Modal>
-      <ConfirmDialog
+      <Modal
         open={discardDialogOpen}
-        onOpenChange={setDiscardDialogOpen}
-        title="Discard this draft?"
-        description="You have unsaved changes to this component. They are lost if you leave."
-        confirmLabel="Discard draft"
-        cancelLabel="Keep editing"
+        onOpenChange={(nextOpen) => {
+          if (draftSavePending) return;
+          setDiscardDialogOpen(nextOpen);
+        }}
+        title="Save component draft?"
+        description="This add component form has unsaved data. Save it as a draft, add it to the library, or discard it."
         tone="warning"
-        onConfirm={confirmDiscardDraft}
-      />
+        size="sm"
+        closeLabel="Close save draft dialog"
+        closeOnOverlayClick={false}
+        closeOnEscape={false}
+        bodyClassName="space-y-3"
+        footer={
+          <>
+            <Button type="button" variant="ghost" onClick={() => setDiscardDialogOpen(false)} disabled={draftSavePending}>
+              Keep editing
+            </Button>
+            <Button type="button" variant="danger" onClick={confirmDiscardDraft} disabled={draftSavePending}>
+              Discard draft
+            </Button>
+            <Button type="button" variant="secondary" onClick={saveDraftAndClose} disabled={draftSavePending || imageBusy || attachmentBusy}>
+              {draftSavePending ? "Saving..." : "Save to drafts"}
+            </Button>
+            <Button type="button" variant="primary" onClick={submitFromCloseDialog} disabled={isPending || imageBusy || attachmentBusy || draftSavePending}>
+              Add Component
+            </Button>
+          </>
+        }
+      >
+        {draftSaveError ? (
+          <div role="alert" className="border border-dangerSoft bg-dangerSoft px-2 py-1.5 text-[9px] leading-4 tracking-normal text-danger">
+            {draftSaveError}
+          </div>
+        ) : null}
+        <p className="m-0 text-[10px] leading-4 tracking-normal text-secondary">
+          Drafts keep the form state separate from published library components until you return and finish them.
+        </p>
+      </Modal>
     </>
   );
 }

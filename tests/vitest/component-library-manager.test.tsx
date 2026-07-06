@@ -9,6 +9,7 @@ import { withExpressComponentMetadata, withProjectComponentProjectionMetadata } 
 const actionMocks = vi.hoisted(() => ({
   changeCostLibraryComponentLifecycleState: vi.fn(),
   createCostLibraryComponent: vi.fn(),
+  saveCostLibraryComponentDraft: vi.fn(),
   createLibraryFolder: vi.fn(),
   deleteLibraryFolder: vi.fn(),
   deleteLibraryFoldersBulk: vi.fn(),
@@ -161,6 +162,11 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
     navigationMocks.push.mockReset();
     navigationMocks.refresh.mockReset();
     navigationMocks.replace.mockReset();
+    actionMocks.saveCostLibraryComponentDraft.mockReset();
+    actionMocks.saveCostLibraryComponentDraft.mockResolvedValue({
+      draftId: "component-draft-1",
+      savedAt: "2026-07-06T00:00:00.000Z",
+    });
     actionMocks.getCostLibraryComponentUsage.mockReset();
     actionMocks.getCostLibraryComponentUsage.mockResolvedValue({ templateRowCount: 2, estimateRowCount: 6 });
     actionMocks.loadCostLibraryComponentRowDetail.mockReset();

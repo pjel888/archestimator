@@ -263,6 +263,17 @@ export type CreateCostLibraryComponentInput = CostLibraryComponentInput & {
   priceOptions: ComponentPriceOptionInput[];
 };
 
+export type SaveCostLibraryComponentDraftInput = {
+  fieldContract?: "opendesign-add-component";
+  title?: string | null;
+  draft: unknown;
+};
+
+export type SaveCostLibraryComponentDraftResult = {
+  draftId: string;
+  savedAt: string;
+};
+
 export type LibraryFolderActionResult = {
   folder: LibraryFolderRow;
 };
@@ -1336,6 +1347,39 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
     activePriceOptionId: activePriceOption?.id,
     priceOptions: persistedPriceOptions.map((option) => ({ id: option.id, label: option.label, isDefault: option.isDefault })),
   };
+}
+
+export async function saveCostLibraryComponentDraft(input: SaveCostLibraryComponentDraftInput): Promise<SaveCostLibraryComponentDraftResult> {
+  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const database = await requireComponentLibraryActionsD1Database();
+  await assertCanManageLibrary(database, workspace.id, currentUser, "save_component_draft");
+  if (input.fieldContract !== "opendesign-add-component") {
+    throw new Error("Unsupported component draft contract.");
+  }
+
+  const title = readOptionalComponentText(input.title, "Draft title", QUICK_ADD_TEXT_LIMITS.name) ?? "Untitled component";
+  const timestamp = nowIso();
+  const draftId = randomUUID();
+  await run(
+    database,
+    `
+      INSERT INTO cost_library_component_drafts (
+        id, workspace_id, created_by, title, draft_json, status, created_at, updated_at
+      )
+      VALUES (?, ?, ?, ?, ?, 'active', ?, ?)
+    `,
+    [
+      draftId,
+      workspace.id,
+      currentUser.userId,
+      title,
+      jsonText(input.draft),
+      timestamp,
+      timestamp,
+    ],
+  );
+  revalidateLibraryRoutes();
+  return { draftId, savedAt: timestamp };
 }
 
 export async function updateCostLibraryComponent(itemId: string, input: CostLibraryComponentInput) {

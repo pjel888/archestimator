@@ -27,6 +27,7 @@ const navigationMocks = vi.hoisted(() => {
 
 const actionMocks = vi.hoisted(() => ({
   createCostLibraryComponent: vi.fn(),
+  saveCostLibraryComponentDraft: vi.fn(),
   createLibraryFolder: vi.fn(),
   deleteLibraryFolder: vi.fn(),
   executeBulkArchiveLibraryComponents: vi.fn(),
@@ -309,6 +310,11 @@ describe("component library manager UI", () => {
     navigationMocks.searchParams = "";
     window.history.replaceState(null, "", navigationMocks.pathname);
     actionMocks.createCostLibraryComponent.mockReset();
+    actionMocks.saveCostLibraryComponentDraft.mockReset();
+    actionMocks.saveCostLibraryComponentDraft.mockResolvedValue({
+      draftId: "component-draft-1",
+      savedAt: "2026-07-06T00:00:00.000Z",
+    });
     actionMocks.createLibraryFolder.mockReset();
     actionMocks.deleteLibraryFolder.mockReset();
     actionMocks.executeBulkArchiveLibraryComponents.mockReset();
@@ -418,7 +424,9 @@ describe("component library manager UI", () => {
 
     const addComponentModalSource = readFileSync(join(process.cwd(), "src/components/workshop/component-library-manager/AddComponentModal.tsx"), "utf8");
     expect(addComponentModalSource).not.toContain("window.confirm");
-    expect(addComponentModalSource).toContain("ConfirmDialog");
+    expect(addComponentModalSource).toContain("saveCostLibraryComponentDraft");
+    expect(addComponentModalSource).toContain("closeOnOverlayClick={false}");
+    expect(addComponentModalSource).toContain("closeOnEscape={false}");
 
     fireEvent.click(screen.getByRole("button", { name: "Add component" }));
     const addDialog = await screen.findByRole("dialog", { name: "Add Component" }, { timeout: 15_000 });
@@ -428,15 +436,52 @@ describe("component library manager UI", () => {
     });
     fireEvent.click(within(addDialog).getByRole("button", { name: "Close add component modal" }));
 
-    const discardDialog = await screen.findByRole("dialog", { name: "Discard this draft?" });
-    expect(discardDialog).toHaveTextContent("You have unsaved changes to this component. They are lost if you leave.");
+    const discardDialog = await screen.findByRole("dialog", { name: "Save component draft?" });
+    expect(discardDialog).toHaveTextContent("This add component form has unsaved data.");
+    expect(within(discardDialog).getByRole("button", { name: "Save to drafts" })).toBeInTheDocument();
+    expect(within(discardDialog).getByRole("button", { name: "Add Component" })).toBeInTheDocument();
 
     fireEvent.click(within(discardDialog).getByRole("button", { name: "Keep editing" }));
 
     await waitFor(() => {
-      expect(screen.queryByRole("dialog", { name: "Discard this draft?" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("dialog", { name: "Save component draft?" })).not.toBeInTheDocument();
     });
     expect(screen.getByRole("dialog", { name: "Add Component" })).toBeInTheDocument();
+  });
+
+  it("saves dirty Add Component state as a component draft from the close warning", async () => {
+    await renderLibrary();
+
+    fireEvent.click(screen.getByRole("button", { name: "Add component" }));
+    const addDialog = await screen.findByRole("dialog", { name: "Add Component" }, { timeout: 15_000 });
+
+    fireEvent.change(within(addDialog).getByLabelText("Name"), {
+      target: { value: "Draft component" },
+    });
+    fireEvent.change(within(addDialog).getByRole("combobox", { name: "Category" }), {
+      target: { value: "Fabrication" },
+    });
+    fireEvent.click(within(addDialog).getByRole("button", { name: "Close add component modal" }));
+
+    const saveDialog = await screen.findByRole("dialog", { name: "Save component draft?" });
+    fireEvent.click(within(saveDialog).getByRole("button", { name: "Save to drafts" }));
+
+    await waitFor(() => expect(actionMocks.saveCostLibraryComponentDraft).toHaveBeenCalledTimes(1));
+    expect(actionMocks.saveCostLibraryComponentDraft).toHaveBeenCalledWith(expect.objectContaining({
+      fieldContract: "opendesign-add-component",
+      title: "Draft component",
+      draft: expect.objectContaining({
+        form: expect.objectContaining({
+          name: "Draft component",
+          category: "Fabrication",
+        }),
+        componentPayload: expect.objectContaining({
+          fieldContract: "opendesign-add-component",
+          name: "Draft component",
+        }),
+      }),
+    }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Add Component" })).not.toBeInTheDocument());
   });
 
   it("opens and closes the component inspector from route state without dropping other params", async () => {
@@ -779,10 +824,14 @@ describe("component library manager UI", () => {
     expect(addComponentModalSource).toContain("OPENDESIGN_MODAL_SHADOW_CLASS");
     expect(addComponentModalSource).toContain("0_28px_70px_-24px_rgba(23,29,40,0.32)");
     expect(addComponentModalSource).toContain("OPENDESIGN_DRAWER_SHADOW_CLASS");
-    expect(addComponentModalSource).toContain("28px_26px_58px_-34px_rgba(23,29,40,0.56)");
+    expect(addComponentModalSource).toContain("32px_34px_64px_-34px_rgba(23,29,40,0.58)");
     expect(addComponentModalSource).toContain("data-add-component-drawer-seam-shadow");
-    expect(addComponentModalSource).toContain("right-[-36px] top-[77px] z-[3] w-9");
-    expect(addComponentModalSource).toContain("top-[33px] z-10 flex w-[min(533px,calc(100vw-32px))]");
+    expect(addComponentModalSource).toContain("right-[-36px] top-8 z-[3] w-9");
+    expect(addComponentModalSource).toContain('aria-hidden={!variantDrawerOpen}');
+    expect(addComponentModalSource).toContain('variantDrawerOpen ? "opacity-100" : "pointer-events-none opacity-0"');
+    expect(addComponentModalSource).toContain("top-8 z-10 flex w-[min(533px,calc(100vw-32px))]");
+    expect(addComponentModalSource).not.toContain("top-[77px] z-10 flex");
+    expect(addComponentModalSource).toContain("h-[49px] min-h-[49px] shrink-0");
     expect(addComponentModalSource).toContain("min-h-[176px]");
     expect(addComponentModalSource).toContain("h-[99px] grid-cols-[99px_minmax(0,1fr)]");
     expect(addComponentModalSource).toContain("pt-[6px]");

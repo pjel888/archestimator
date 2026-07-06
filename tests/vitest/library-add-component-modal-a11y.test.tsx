@@ -9,6 +9,7 @@ import type { EstimateRowItem } from "@/lib/estimates/types";
 
 const actionMocks = vi.hoisted(() => ({
   createCostLibraryComponent: vi.fn(),
+  saveCostLibraryComponentDraft: vi.fn(),
 }));
 
 vi.mock("@/lib/component-library/actions", () => actionMocks);
@@ -118,6 +119,10 @@ describe("AddComponentModal OpenDesign field contract", () => {
       activePriceOptionId: "price-created",
       versionNumber: 1,
     });
+    actionMocks.saveCostLibraryComponentDraft.mockResolvedValue({
+      draftId: "component-draft-1",
+      savedAt: "2026-07-06T00:00:00.000Z",
+    });
   });
 
   afterEach(() => {
@@ -182,7 +187,7 @@ describe("AddComponentModal OpenDesign field contract", () => {
     fireEvent.change(within(form).getByLabelText("Name"), { target: { value: "Door Stop" } });
     fireEvent.click(screen.getByRole("button", { name: "Close add component modal" }));
 
-    expect(await screen.findByRole("dialog", { name: "Discard this draft?" })).toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: "Save component draft?" })).toBeInTheDocument();
     expect(nativeConfirm).not.toHaveBeenCalled();
     expect(props.onOpenChange).not.toHaveBeenCalledWith(false);
 

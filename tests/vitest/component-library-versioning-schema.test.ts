@@ -56,6 +56,7 @@ const manager = readFileSync(join(process.cwd(), "src/components/workshop/compon
 const addModal = readFileSync(join(process.cwd(), "src/components/workshop/component-library-manager/AddComponentModal.tsx"), "utf8");
 const d1PromotionMigration = readFileSync(join(process.cwd(), "migrations/0026_component_promotion_support.sql"), "utf8");
 const d1ActionSupportMigration = readFileSync(join(process.cwd(), "migrations/0028_component_library_action_support.sql"), "utf8");
+const d1ComponentDraftsMigration = readFileSync(join(process.cwd(), "migrations/0036_cost_library_component_drafts.sql"), "utf8");
 
 describe("component library item versioning schema", () => {
   it("adds lifecycle state, price options, and append-only history tables", () => {
@@ -120,6 +121,21 @@ describe("component library item versioning schema", () => {
     expect(d1PromotionMigration).toContain("CREATE TABLE IF NOT EXISTS cost_library_item_price_options");
     expect(d1PromotionMigration).toContain("lifecycle_state TEXT NOT NULL DEFAULT 'available'");
     expect(d1ActionSupportMigration).toContain("CREATE TABLE IF NOT EXISTS cost_library_item_versions");
+  });
+
+  it("adds D1 component drafts for the Add Component close-warning save path", () => {
+    expect(d1ComponentDraftsMigration).toContain("CREATE TABLE IF NOT EXISTS cost_library_component_drafts");
+    expect(d1ComponentDraftsMigration).toContain("workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE");
+    expect(d1ComponentDraftsMigration).toContain("draft_json TEXT NOT NULL DEFAULT '{}'");
+    expect(d1ComponentDraftsMigration).toContain("json_valid(draft_json)");
+    expect(d1ComponentDraftsMigration).toContain("status TEXT NOT NULL DEFAULT 'active'");
+    expect(d1ComponentDraftsMigration).toContain("status IN ('active', 'converted', 'discarded')");
+    expect(d1ComponentDraftsMigration).toContain("idx_cost_library_component_drafts_workspace_status");
+    expect(actions).toContain("saveCostLibraryComponentDraft");
+    expect(actions).toContain('assertCanManageLibrary(database, workspace.id, currentUser, "save_component_draft")');
+    expect(actions).toContain("INSERT INTO cost_library_component_drafts");
+    expect(addModal).toContain("Save component draft?");
+    expect(addModal).toContain("saveCostLibraryComponentDraft");
   });
 
   it("extends price options into component variants without replacing component identity", () => {
