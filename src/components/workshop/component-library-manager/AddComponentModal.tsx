@@ -1395,8 +1395,8 @@ function OpenAddComponentModal({
             aria-hidden="true"
             data-add-component-drawer-seam-shadow
             className={cn(
-              "pointer-events-none absolute bottom-0 right-[-36px] top-[77px] z-[3] w-9 bg-[linear-gradient(90deg,rgba(23,29,40,0.22),rgba(23,29,40,0.08)_52%,transparent)] opacity-0 transition-opacity duration-200",
-              variantDrawerOpen && "opacity-100",
+              "pointer-events-none absolute bottom-0 right-[-36px] top-[77px] z-[3] w-9 -translate-x-2 bg-[linear-gradient(90deg,rgba(23,29,40,0.22),rgba(23,29,40,0.08)_52%,transparent)] opacity-0 transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+              variantDrawerOpen && "translate-x-0 opacity-100",
             )}
           />
 
@@ -1407,9 +1407,9 @@ function OpenAddComponentModal({
             aria-hidden={!variantDrawerOpen}
             inert={!variantDrawerOpen}
             className={cn(
-              "absolute bottom-0 left-[calc(100%-1px)] top-[33px] z-10 flex w-[min(533px,calc(100vw-32px))] origin-left flex-col overflow-visible rounded-r-[6px] border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.94)] backdrop-blur-[18px] transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.2,0,0,1)]",
+              "absolute bottom-0 left-[calc(100%-1px)] top-[33px] z-10 flex w-[min(533px,calc(100vw-32px))] origin-left flex-col overflow-visible rounded-r-[6px] border border-l-0 border-[rgba(61,61,61,0.10)] bg-[rgba(255,255,255,0.94)] backdrop-blur-[18px] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
               OPENDESIGN_DRAWER_SHADOW_CLASS,
-              variantDrawerOpen ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-[calc(-100%+1px)] opacity-0",
+              variantDrawerOpen ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-[calc(-100%+1px)] opacity-100 max-[1120px]:translate-x-[calc(100%+8px)]",
               "max-[1120px]:right-2 max-[1120px]:left-auto max-[1120px]:w-[min(430px,calc(100%-24px))] max-[1120px]:origin-right max-[1120px]:rounded-[6px] max-[1120px]:rounded-r-none max-[1120px]:border-l max-[1120px]:border-r-0 max-[1120px]:shadow-[-26px_0_44px_-34px_rgba(23,29,40,0.52),inset_0_1px_0_rgba(255,255,255,0.72),inset_0_0_0_1px_rgba(61,61,61,0.025)]",
               "max-[900px]:right-0 max-[900px]:w-[min(430px,calc(100%-8px))]",
               "max-[640px]:inset-x-0 max-[640px]:w-full max-[640px]:rounded-none",

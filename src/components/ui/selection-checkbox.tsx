@@ -7,6 +7,7 @@ import { cn } from "@/lib/ui/cn";
 
 export type SelectionCheckboxProps = {
   checked: boolean;
+  disabled?: boolean;
   indeterminate?: boolean;
   ariaLabel: string;
   tabIndex?: number;
@@ -18,6 +19,7 @@ export type SelectionCheckboxProps = {
 
 export function SelectionCheckbox({
   checked,
+  disabled = false,
   indeterminate = false,
   ariaLabel,
   tabIndex = -1,
@@ -48,6 +50,7 @@ export function SelectionCheckbox({
         ref={inputRef}
         type="checkbox"
         checked={checked}
+        disabled={disabled}
         readOnly
         aria-checked={indeterminate ? "mixed" : checked}
         aria-label={ariaLabel}
@@ -55,7 +58,7 @@ export function SelectionCheckbox({
         onClick={onClick}
         onKeyDown={onKeyDown}
         className={cn(
-          "absolute inset-0 h-full w-full cursor-pointer appearance-none rounded-xs border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1",
+          "absolute inset-0 h-full w-full cursor-pointer appearance-none rounded-xs border transition-all disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1",
           (checked || indeterminate) && "opacity-100",
           !checked && !indeterminate && "opacity-0",
           !checked && !indeterminate && uncheckedRevealClassName,

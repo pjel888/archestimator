@@ -771,8 +771,11 @@ describe("component library manager UI", () => {
     expect(addComponentModalSource).toContain("blurBackdrop");
     expect(addComponentModalSource).toContain("relative isolate flex");
     expect(addComponentModalSource).not.toContain("lg:-translate-x-[184px]");
-    expect(addComponentModalSource).toContain("translate-x-[calc(-100%+1px)]");
-    expect(addComponentModalSource).toContain("transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.2,0,0,1)]");
+    expect(addComponentModalSource).toContain("translate-x-[calc(-100%+1px)] opacity-100");
+    expect(addComponentModalSource).not.toContain("translate-x-[calc(-100%+1px)] opacity-0");
+    expect(addComponentModalSource).toContain("transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]");
+    expect(addComponentModalSource).toContain("max-[1120px]:translate-x-[calc(100%+8px)]");
+    expect(addComponentModalSource).toContain("motion-reduce:transition-none");
     expect(addComponentModalSource).toContain("OPENDESIGN_MODAL_SHADOW_CLASS");
     expect(addComponentModalSource).toContain("0_28px_70px_-24px_rgba(23,29,40,0.32)");
     expect(addComponentModalSource).toContain("OPENDESIGN_DRAWER_SHADOW_CLASS");

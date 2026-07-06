@@ -17,6 +17,7 @@ import {
 } from "@tanstack/react-table";
 
 import { Button } from "@/components/ui/button";
+import { SelectionCheckbox } from "@/components/ui/selection-checkbox";
 import { BulkActionToolbar } from "@/components/workshop/BulkActionToolbar";
 import { BulkDestructivePreviewModal } from "@/components/workshop/BulkDestructivePreviewModal";
 import type { EstimateFavoriteParentProject, EstimateFavoriteScope } from "@/components/workshop/ProjectEstimateFavoriteButton";
@@ -318,6 +319,27 @@ function formatCount(value: number, singular: string, plural: string) {
   return `${value} ${value === 1 ? singular : plural}`;
 }
 
+function handleEstimateSelectionCheckboxKeyDown(event: KeyboardEvent<HTMLInputElement>, onToggle: () => void) {
+  if (event.key !== " " && event.key !== "Enter") return;
+  event.preventDefault();
+  event.stopPropagation();
+  onToggle();
+}
+
+function getSelectableEstimateIds(
+  estimates: ProjectEstimateTableRow[],
+  editableEstimateIds: Set<string>,
+  isEstimateSettling: (estimateId: string) => boolean,
+  settlingVersion: number,
+) {
+  void settlingVersion;
+  return filterMapBy(
+    estimates,
+    (estimate) => editableEstimateIds.has(estimate.id) && !estimate.pendingStatus && !isEstimateSettling(estimate.id),
+    (estimate) => estimate.id,
+  );
+}
+
 function ProjectEstimateBlankNameCreateCell({
   disabled,
   onCreateEstimateFromName,
@@ -422,6 +444,39 @@ function ProjectEstimateFillerRows({
 
 ProjectEstimateFillerRows.displayName = "ProjectEstimateFillerRows";
 
+function ProjectEstimateSelectAllHeaderCell({
+  allSelected,
+  hasSelectableEstimates,
+  onToggleSelection,
+  partiallySelected,
+}: {
+  allSelected: boolean;
+  hasSelectableEstimates: boolean;
+  onToggleSelection: () => void;
+  partiallySelected: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-center">
+      <SelectionCheckbox
+        checked={allSelected}
+        disabled={!hasSelectableEstimates}
+        indeterminate={partiallySelected}
+        ariaLabel={allSelected ? "Clear selected estimates" : "Select all estimates"}
+        tabIndex={0}
+        uncheckedRevealClassName="opacity-100"
+        className="opacity-100"
+        onClick={(event) => {
+          event.stopPropagation();
+          onToggleSelection();
+        }}
+        onKeyDown={(event) => handleEstimateSelectionCheckboxKeyDown(event, onToggleSelection)}
+      />
+    </div>
+  );
+}
+
+ProjectEstimateSelectAllHeaderCell.displayName = "ProjectEstimateSelectAllHeaderCell";
+
 // react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
 function ProjectEstimatesTableComponent({
   canEditEstimateById,
@@ -454,6 +509,7 @@ function ProjectEstimatesTableComponent({
     deleteEstimatePreview,
     deleteEstimateError,
     deleteEstimateState,
+    settlingVersion,
   } = tableState;
   const columnSizing = useMemo(
     () => columnSizingState.storageKey === columnWidthStorageKey ? columnSizingState.value : readColumnSizingFromStorage(columnWidthStorageKey),
@@ -562,6 +618,27 @@ function ProjectEstimatesTableComponent({
     [editableEstimateIds, estimates, selectedEstimateIds],
   );
   const selectedVisibleEstimateIdSet = useMemo(() => new Set(selectedVisibleEstimateIds), [selectedVisibleEstimateIds]);
+  const selectableEstimateIds = useMemo(
+    () => getSelectableEstimateIds(estimates, editableEstimateIds, isEstimateSettling, settlingVersion),
+    [editableEstimateIds, estimates, isEstimateSettling, settlingVersion],
+  );
+  const selectableEstimateIdSet = useMemo(() => new Set(selectableEstimateIds), [selectableEstimateIds]);
+  const selectedSelectableEstimateCount = useMemo(
+    () => selectableEstimateIds.reduce((count, estimateId) => count + (selectedEstimateIds.has(estimateId) ? 1 : 0), 0),
+    [selectableEstimateIds, selectedEstimateIds],
+  );
+  const hasSelectableEstimates = selectableEstimateIds.length > 0;
+  const allSelectableEstimatesSelected = hasSelectableEstimates && selectedSelectableEstimateCount === selectableEstimateIds.length;
+  const someSelectableEstimatesSelected = selectedSelectableEstimateCount > 0 && !allSelectableEstimatesSelected;
+  const toggleAllSelectableEstimates = useCallback(() => {
+    const nextSelectedEstimateIds = new Set(selectedEstimateIds);
+    if (allSelectableEstimatesSelected) {
+      for (const estimateId of selectableEstimateIdSet) nextSelectedEstimateIds.delete(estimateId);
+    } else {
+      for (const estimateId of selectableEstimateIds) nextSelectedEstimateIds.add(estimateId);
+    }
+    dispatchTable({ type: "selectedEstimatesChanged", estimateIds: nextSelectedEstimateIds });
+  }, [allSelectableEstimatesSelected, selectableEstimateIdSet, selectableEstimateIds, selectedEstimateIds]);
   const deleteEstimatePhrase = deleteEstimateTargetIds.length === 1 ? "DELETE ESTIMATE" : `DELETE ${deleteEstimateTargetIds.length} ESTIMATES`;
   const deleteEstimateModalTitle = deleteEstimateTargetIds.length === 1 ? "Delete estimate" : `Delete ${deleteEstimateTargetIds.length} estimates`;
 
@@ -642,7 +719,14 @@ function ProjectEstimatesTableComponent({
     () => [
       {
         id: "select_action",
-        header: "",
+        header: () => (
+          <ProjectEstimateSelectAllHeaderCell
+            allSelected={allSelectableEstimatesSelected}
+            hasSelectableEstimates={hasSelectableEstimates}
+            onToggleSelection={toggleAllSelectableEstimates}
+            partiallySelected={someSelectableEstimatesSelected}
+          />
+        ),
         size: 40,
         minSize: 36,
         maxSize: 44,
@@ -858,7 +942,7 @@ function ProjectEstimatesTableComponent({
         ),
       },
     ],
-    [announceCue, canEditEstimate, handlePrefetchCancel, handlePrefetchStart, isEstimateSettling, openDeleteEstimatePreview, optimistic, parentProject, projectId, scope, selectedVisibleEstimateIdSet, setEstimateSettling, store, toggleEstimateSelection],
+    [allSelectableEstimatesSelected, announceCue, canEditEstimate, handlePrefetchCancel, handlePrefetchStart, hasSelectableEstimates, isEstimateSettling, openDeleteEstimatePreview, optimistic, parentProject, projectId, scope, selectedVisibleEstimateIdSet, setEstimateSettling, someSelectableEstimatesSelected, store, toggleAllSelectableEstimates, toggleEstimateSelection],
   );
 
   const table = useReactTable({
@@ -1069,13 +1153,7 @@ function ProjectEstimatesTableComponent({
         onSelectVisible={() =>
           dispatchTable({
             type: "selectedEstimatesChanged",
-            estimateIds: new Set(
-              filterMapBy(
-                estimates,
-                (estimate) => editableEstimateIds.has(estimate.id),
-                (estimate) => estimate.id,
-              ),
-            ),
+            estimateIds: new Set(selectableEstimateIds),
           })
         }
       />

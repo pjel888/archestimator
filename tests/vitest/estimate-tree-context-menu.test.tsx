@@ -435,9 +435,13 @@ describe("estimate tree context menu", () => {
 
     const input = screen.getByLabelText("Rename Kitchen") as HTMLInputElement;
     expect(input).toHaveValue("Kitchen");
+    expect(input).toHaveClass("bg-transparent", "border-0", "text-[10px]", "font-normal", "shadow-none");
+    expect(input).not.toHaveClass("bg-white");
     expect(treeNodeButton("living")).toHaveTextContent("Living Area");
-    expect(screen.getByRole("button", { name: "Confirm rename Kitchen" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Reset rename Kitchen" })).toBeInTheDocument();
+    const confirmButton = screen.getByRole("button", { name: "Confirm rename Kitchen" });
+    const cancelButton = screen.getByRole("button", { name: "Cancel rename Kitchen" });
+    expect(confirmButton).toHaveClass("bg-transparent", "border-0", "text-tertiary");
+    expect(cancelButton).toHaveClass("bg-transparent", "border-0", "text-tertiary");
     await waitFor(() => expect(input.selectionStart).toBe(0));
     expect(input.selectionEnd).toBe("Kitchen".length);
     expect(input).toHaveFocus();
@@ -509,16 +513,16 @@ describe("estimate tree context menu", () => {
     expect(actionMocks.renameEstimateNode).not.toHaveBeenCalled();
   });
 
-  it("reset button restores the original name without closing rename mode", async () => {
+  it("cancel button closes inline rename without saving", async () => {
     renderTree();
     await chooseMenuItem("kitchen", "Rename");
 
     const input = screen.getByLabelText("Rename Kitchen");
     fireEvent.change(input, { target: { value: "Chef Kitchen" } });
-    fireEvent.click(screen.getByRole("button", { name: "Reset rename Kitchen" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel rename Kitchen" }));
 
-    expect(screen.getByLabelText("Rename Kitchen")).toHaveValue("Kitchen");
-    expect(screen.getByLabelText("Rename Kitchen")).toHaveFocus();
+    expect(screen.queryByLabelText("Rename Kitchen")).not.toBeInTheDocument();
+    expect(treeNodeButton("kitchen")).toHaveTextContent("Kitchen");
     expect(actionMocks.renameEstimateNode).not.toHaveBeenCalled();
   });
 
@@ -598,7 +602,7 @@ describe("estimate tree context menu", () => {
     expect(pendingInput).toBeDisabled();
     expect(screen.getByText("Saving...")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Confirm rename Kitchen" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Reset rename Kitchen" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel rename Kitchen" })).toBeDisabled();
 
     await act(async () => {
       pending.resolve({ nodeId: "kitchen", name: "Chef Kitchen" });

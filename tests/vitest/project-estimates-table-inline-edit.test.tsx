@@ -254,6 +254,43 @@ describe("project estimates table inline editing", () => {
     expect(toolbar.querySelector("[data-bulk-action-count-floor]")).toHaveTextContent("1 selected");
   });
 
+  it("selects and clears all selectable estimates from the header checkbox", async () => {
+    const user = userEvent.setup();
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ProjectEstimatesTable
+          estimates={[
+            makeEstimate({ id: "estimate-1", name: "First Estimate", sheet_code: "ES-001", firstNodeId: "node-1" }),
+            makeEstimate({ id: "estimate-2", name: "Second Estimate", sheet_code: "ES-002", firstNodeId: "node-2" }),
+            makeEstimate({ id: "estimate-3", name: "Read Only Estimate", sheet_code: "ES-003", firstNodeId: "node-3" }),
+          ]}
+          projectId="project-1"
+          canEditEstimateById={{ "estimate-1": true, "estimate-2": true, "estimate-3": false }}
+        />
+      </QueryClientProvider>,
+    );
+
+    await user.click(screen.getByRole("checkbox", { name: "Select all estimates" }));
+
+    expect(screen.getByRole("checkbox", { name: "Select First Estimate" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Select Second Estimate" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Select Read Only Estimate" })).toBeDisabled();
+    expect(screen.getByRole("checkbox", { name: "Select Read Only Estimate" })).not.toBeChecked();
+    expect(screen.getByLabelText("Bulk action toolbar")).toHaveTextContent("2 selected");
+
+    await user.click(screen.getByRole("checkbox", { name: "Clear selected estimates" }));
+
+    expect(screen.getByRole("checkbox", { name: "Select First Estimate" })).not.toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Select Second Estimate" })).not.toBeChecked();
+    expect(screen.queryByLabelText("Bulk action toolbar")).not.toBeInTheDocument();
+  });
+
   it("renders a filled star for favorited estimate rows", () => {
     renderTable(makeEstimate({ isFavorite: true, favoriteCreatedAt: "2026-06-02T00:00:00.000Z" }));
 
@@ -443,6 +480,7 @@ describe("project estimates table inline editing", () => {
 
     renderTable(makeEstimate(), { canEditEstimateById: { "estimate-1": false } });
 
+    expect(screen.getByRole("checkbox", { name: "Select all estimates" })).toBeDisabled();
     expect(screen.getByRole("checkbox", { name: "Select Original Estimate" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Delete Original Estimate" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Duplicate Original Estimate" })).toBeDisabled();

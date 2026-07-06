@@ -3,7 +3,6 @@
 import { unstable_rethrow, useParams } from "next/navigation";
 import { useCallback, useEffect, useEffectEvent, useMemo, useReducer, useRef, useState } from "react";
 import {
-  ArrowCounterClockwise,
   ArrowsOutCardinal,
   Check,
   FunnelSimple,
@@ -11,6 +10,7 @@ import {
   PencilSimple,
   StackPlus,
   Trash,
+  X,
 } from "@phosphor-icons/react/dist/ssr";
 
 import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
@@ -20,7 +20,6 @@ import { Button } from "@/components/ui/button";
 import { ADD_BUTTON_CLASSNAME } from "@/components/ui/toolbar-icon-button";
 import { ContextActionMenuContent, type ActionMenuGroup } from "@/components/ui/action-menu";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
-import { ControlInput } from "@/components/ui/control-input";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { Tree, type TreeDropPosition, type TreeExternalDropOptions, type TreeNode as UiTreeNode } from "@/components/ui/tree";
@@ -1168,17 +1167,6 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     setEditingNodeError(null);
   }, []);
 
-  const resetRenameNode = useCallback((node: EstimateTreeNode) => {
-    setEditingNodeName(node.name);
-    setEditingNodeError(null);
-    renameInputRef.current?.focus();
-    renameInputRef.current?.select();
-    window.requestAnimationFrame(() => {
-      renameInputRef.current?.focus();
-      renameInputRef.current?.select();
-    });
-  }, []);
-
   const commitRenameNode = useCallback((node: EstimateTreeNode) => {
     if (renameCommitInFlightRef.current) return;
     suppressContextMenuCloseAutoFocusRef.current = false;
@@ -1780,7 +1768,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     ].filter(Boolean).join(" ") || undefined;
     return (
       <span className="relative flex min-w-0 flex-1 items-center gap-1">
-        <ControlInput
+        <input
           ref={attachRenameInputRef}
           value={editingNodeName}
           aria-label={`Rename ${node.name}`}
@@ -1823,8 +1811,8 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
             }
           }}
           className={cn(
-            "h-5 min-h-0 flex-1 rounded-xs border-focus bg-white px-1 py-0 font-normal leading-5 shadow-[inset_0_0_0_1px_rgba(61,61,61,0.08)] hover:border-focus focus:border-focus focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus/50",
-            editingNodeError ? "border-danger focus:border-danger focus-visible:ring-danger/40" : "",
+            "h-5 min-h-0 min-w-0 flex-1 border-0 bg-transparent px-0 py-0 text-[10px] font-normal leading-5 tracking-normal text-ink outline-none shadow-none placeholder:text-tertiary focus:outline-none focus-visible:outline-none disabled:cursor-default disabled:opacity-70",
+            editingNodeError ? "text-danger placeholder:text-danger" : "",
           )}
         />
         <button
@@ -1833,7 +1821,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
           aria-label={`Confirm rename ${node.name}`}
           title="Confirm rename"
           disabled={renameSavePending}
-          className="grid size-5 shrink-0 place-items-center rounded-xs border border-accent bg-white text-warning transition hover:bg-accentSoft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accentSoft"
+          className="grid size-5 shrink-0 place-items-center rounded-xs border-0 bg-transparent text-tertiary opacity-70 transition-[color,opacity] hover:text-ink hover:opacity-100 focus-visible:outline-none focus-visible:text-ink disabled:cursor-not-allowed disabled:opacity-35"
           onPointerDown={(event) => {
             event.preventDefault();
             event.stopPropagation();
@@ -1853,10 +1841,10 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
         <button
           type="button"
           data-estimate-tree-rename-control="true"
-          aria-label={`Reset rename ${node.name}`}
-          title="Reset name"
+          aria-label={`Cancel rename ${node.name}`}
+          title="Cancel rename"
           disabled={renameSavePending}
-          className="grid size-5 shrink-0 place-items-center rounded-xs border border-accent/70 bg-white text-warning transition hover:bg-accentSoft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accentSoft"
+          className="grid size-5 shrink-0 place-items-center rounded-xs border-0 bg-transparent text-tertiary opacity-70 transition-[color,opacity] hover:text-ink hover:opacity-100 focus-visible:outline-none focus-visible:text-ink disabled:cursor-not-allowed disabled:opacity-35"
           onPointerDown={(event) => {
             event.preventDefault();
             event.stopPropagation();
@@ -1868,10 +1856,10 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
           onClick={(event) => {
             event.preventDefault();
             event.stopPropagation();
-            resetRenameNode(node);
+            cancelRenameNode();
           }}
         >
-          <ArrowCounterClockwise size={12} weight="regular" aria-hidden="true" />
+          <X size={12} weight="regular" aria-hidden="true" />
         </button>
         {renameSavePending ? (
           <output
@@ -1902,7 +1890,6 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     editingNodeName,
     localNodes,
     renamingNodeId,
-    resetRenameNode,
   ]);
 
   const deleteConfirmationDescription = deleteTargetNode
