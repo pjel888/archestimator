@@ -824,12 +824,13 @@ describe("component library manager UI", () => {
     expect(addComponentModalSource).toContain("OPENDESIGN_MODAL_SHADOW_CLASS");
     expect(addComponentModalSource).toContain("0_28px_70px_-24px_rgba(23,29,40,0.32)");
     expect(addComponentModalSource).toContain("OPENDESIGN_DRAWER_SHADOW_CLASS");
-    expect(addComponentModalSource).toContain("32px_34px_64px_-34px_rgba(23,29,40,0.58)");
-    expect(addComponentModalSource).toContain("data-add-component-drawer-seam-shadow");
-    expect(addComponentModalSource).toContain("right-[-36px] top-8 z-[3] w-9");
+    expect(addComponentModalSource).toContain("24px_0_42px_-34px_rgba(23,29,40,0.48)");
+    expect(addComponentModalSource).toContain("data-add-component-modal-over-drawer-shadow");
+    expect(addComponentModalSource).toContain("right-[-32px] top-8 z-30 w-8");
     expect(addComponentModalSource).toContain('aria-hidden={!variantDrawerOpen}');
     expect(addComponentModalSource).toContain('variantDrawerOpen ? "opacity-100" : "pointer-events-none opacity-0"');
-    expect(addComponentModalSource).toContain("top-8 z-10 flex w-[min(533px,calc(100vw-32px))]");
+    expect(addComponentModalSource).toContain("left-[calc(100%-1px)] top-8 z-10 flex w-[min(533px,calc(100vw-32px))]");
+    expect(addComponentModalSource).not.toContain("left-[calc(100%-8px)] top-8 z-10");
     expect(addComponentModalSource).not.toContain("top-[77px] z-10 flex");
     expect(addComponentModalSource).toContain("h-[49px] min-h-[49px] shrink-0");
     expect(addComponentModalSource).toContain("min-h-[176px]");

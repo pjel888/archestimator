@@ -186,7 +186,7 @@ const OPENDESIGN_MODAL_BG_CLASS =
 const OPENDESIGN_MODAL_SHADOW_CLASS =
   "shadow-[0_28px_70px_-24px_rgba(23,29,40,0.32),0_10px_26px_-18px_rgba(23,29,40,0.24),inset_0_1px_0_rgba(255,255,255,0.82)]";
 const OPENDESIGN_DRAWER_SHADOW_CLASS =
-  "shadow-[32px_34px_64px_-34px_rgba(23,29,40,0.58),inset_0_1px_0_rgba(255,255,255,0.72),inset_0_0_0_1px_rgba(61,61,61,0.025)]";
+  "shadow-[24px_0_42px_-34px_rgba(23,29,40,0.48),inset_0_1px_0_rgba(255,255,255,0.72),inset_0_0_0_1px_rgba(61,61,61,0.025)]";
 const OPENDESIGN_RAIL_SHADOW_CLASS =
   "shadow-[10px_12px_24px_-19px_rgba(23,29,40,0.42),inset_0_1px_0_rgba(255,255,255,0.72),inset_0_0_0_1px_rgba(61,61,61,0.025)]";
 const OPENDESIGN_RAIL_ACTIVE_SHADOW_CLASS =
@@ -1435,10 +1435,10 @@ function OpenAddComponentModal({
 
           <div
             aria-hidden="true"
-            data-add-component-drawer-seam-shadow
+            data-add-component-modal-over-drawer-shadow
             className={cn(
-              "pointer-events-none absolute bottom-0 right-[-36px] top-8 z-[3] w-9 -translate-x-2 bg-[linear-gradient(90deg,rgba(23,29,40,0.22),rgba(23,29,40,0.08)_52%,transparent)] opacity-0 transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-              variantDrawerOpen && "translate-x-0 opacity-100",
+              "pointer-events-none absolute bottom-0 right-[-32px] top-8 z-30 w-8 bg-[linear-gradient(90deg,rgba(23,29,40,0.24),rgba(23,29,40,0.12)_32%,rgba(23,29,40,0.035)_70%,transparent)] opacity-0 transition-opacity duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+              variantDrawerOpen && "opacity-100",
             )}
           />
 

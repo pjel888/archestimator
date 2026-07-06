@@ -327,7 +327,6 @@ type ComponentLibraryManagerState = {
 
 type ComponentLibraryManagerInit = {
   normalizedPropFolders: LibraryFolderRecord[];
-  addComponentInitiallyOpen: boolean;
   libraryItems: EstimateRowItem[];
 };
 
@@ -359,7 +358,6 @@ function resolveStateUpdater<T>(current: T, value: StateUpdater<T>): T {
 
 function createInitialComponentLibraryManagerState({
   normalizedPropFolders,
-  addComponentInitiallyOpen,
   libraryItems,
 }: ComponentLibraryManagerInit): ComponentLibraryManagerState {
   return {
@@ -370,7 +368,7 @@ function createInitialComponentLibraryManagerState({
     selectedBrandNodeId: "all-brands",
     reorderStatus: { state: "idle" },
     sheetStatus: { state: "idle" },
-    addComponentOpen: addComponentInitiallyOpen,
+    addComponentOpen: false,
     libraryItemState: {
       source: libraryItems,
       items: libraryItems,
@@ -2064,6 +2062,7 @@ export function ComponentLibraryManager({
   const quickAddSessionCounterRef = useRef(0);
   const quickAddSessionRef = useRef<{ id: string } | null>(null);
   const selectedRouteTelemetryRef = useRef<string | null>(null);
+  const handledAddComponentRouteRequestRef = useRef<string | null>(null);
   const detailHydratedItemIdsRef = useRef<Set<string> | null>(null);
   if (detailHydratedItemIdsRef.current === null) detailHydratedItemIdsRef.current = new Set<string>();
   const normalizedPropFolders = useMemo(
@@ -2072,18 +2071,17 @@ export function ComponentLibraryManager({
     [libraryFolders],
   );
   // Library Optimization Plan P1 T8 (F23): the Overview "Add component" CTA navigates
-  // here with ?add=component; open the Add Component modal on arrival instead of just
-  // landing on the tab. Seeding the initial state from the param (not an effect) opens
-  // it exactly once on mount with no cascading re-render.
+  // here with ?add=component; handle it after hydration so the modal portal does not
+  // change the first client render relative to server HTML.
   const pathname = usePathname();
   const addComponentSearchParams = useSearchParams();
   const componentRouteSearchParamsKey = addComponentSearchParams?.toString() ?? "";
   const routeComponentId = addComponentSearchParams?.get(COMPONENT_ROUTE_PARAM) ?? null;
-  const addComponentInitiallyOpen = addComponentSearchParams?.get("add") === "component";
+  const addComponentRequested = addComponentSearchParams?.get("add") === "component";
   const [managerState, dispatchManager] = useReducer(
     componentLibraryManagerReducer,
     // react-doctor-disable-next-line react-doctor/no-event-handler -- False positive: reducer initializer payload, not effect-driven event logic.
-    { normalizedPropFolders, addComponentInitiallyOpen, libraryItems },
+    { normalizedPropFolders, libraryItems },
     createInitialComponentLibraryManagerState,
   );
   const {
@@ -2227,6 +2225,19 @@ export function ComponentLibraryManager({
     });
     setAddComponentOpen(true);
   }
+
+  useEffect(() => {
+    if (!addComponentRequested) {
+      handledAddComponentRouteRequestRef.current = null;
+      return;
+    }
+
+    const requestKey = `${pathname ?? ""}?${componentRouteSearchParamsKey}`;
+    if (handledAddComponentRouteRequestRef.current === requestKey) return;
+    handledAddComponentRouteRequestRef.current = requestKey;
+    if (addComponentOpen) return;
+    setAddComponentOpen(true);
+  }, [addComponentOpen, addComponentRequested, componentRouteSearchParamsKey, pathname]);
 
   function restoreAddComponentTriggerFocus() {
     const target = addButtonReturnRef.current;
