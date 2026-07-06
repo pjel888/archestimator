@@ -12,12 +12,14 @@ single biggest source of slow agent startup.
 Stable current truth (verify against git/source before relying on a detail):
 - Stage: pre-launch closed-beta MVP. Bias to fast, useful iteration over
   heavyweight regression ceremony. No external users yet.
-- Project Activity UX/UI improvement planning (2026-07-06): the planning pack
-  `.ai/03_plans/2026-07-06-Project-Activity-UX-UI-Improvement/` is a
-  research/audit/design handoff, not an implemented source change. It frames the
-  activity page as a compact project ledger, maps estimate/share/comment/decision
-  access/collaboration activity families, and makes no-layout-shift behavior a
-  first-class acceptance gate for any future implementation.
+- Project Activity UX/UI improvement (2026-07-06): the planning pack
+  `.ai/03_plans/2026-07-06-Project-Activity-UX-UI-Improvement/` now has a first
+  implementation pass. The activity page uses a compact project-ledger layout
+  with a stable header, overlaid filters, date-grouped rows, a matching loading
+  skeleton, and safer fallback copy for unknown activity. Focused Vitest,
+  type-check, design lint, and `git diff --check` passed; in-app browser proof
+  loaded the new ledger with no horizontal overflow, then the browser control
+  connection timed out on deeper interaction checks.
 - Security/compliance follow-up (2026-07-05 late): P1.8 retention enforcement
   is locally hardened but not policy-complete. `src/lib/compliance/retention-repository.ts`
   now uses Cloudflare D1-supported positional binds for retention select/apply

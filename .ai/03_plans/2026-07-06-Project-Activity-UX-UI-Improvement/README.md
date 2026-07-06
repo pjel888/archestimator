@@ -1,8 +1,8 @@
 # Project Activity UX/UI Improvement Plan
 
-Status: CONDITIONALLY READY for implementation planning and scoped execution.
-This pack is research, audit, and design direction only. It does not claim that
-the activity page has been changed.
+Status: FIRST IMPLEMENTATION PASS COMPLETE.
+This pack began as research, audit, and design direction. The first scoped
+source pass is now implemented and recorded in `04_IMPLEMENTATION_EVIDENCE.md`.
 
 Last updated: 2026-07-06
 
@@ -42,11 +42,15 @@ stable ledger/timeline layout:
    responsive behavior, states, accessibility, and no-shift rules.
 3. `03_IMPLEMENTATION_HANDOFF_AND_VALIDATION.md` - work packages, expected
    source/test files, acceptance criteria, validation commands, and risks.
+4. `04_IMPLEMENTATION_EVIDENCE.md` - changed source, validation evidence, and
+   known browser-proof limits for the first implementation pass.
 
 ## Key Evidence
 
 - Current desktop screenshot:
   `.omx/artifacts/project-activity-ux-plan/01-current-desktop-top.png`
+- First implementation evidence:
+  `04_IMPLEMENTATION_EVIDENCE.md`
 - Current page source:
   `src/app/workshop/projects/[projectId]/activity/page.tsx`
 - Client UI:
@@ -71,12 +75,11 @@ stable ledger/timeline layout:
   do not dominate the page.
 - Keep URL-backed filters and transient pagination cursor behavior.
 
-## Open Decisions Before Code
+## First-Pass Decisions
 
-- Whether to ship the first implementation as a UI-only refactor using the
-  existing view models, or include copy/composer improvements for unknown
-  estimate/system events in the same slice.
-- Whether the filter surface should be a popover on desktop and drawer on mobile,
-  or a single responsive drawer for all viewports.
-- Whether rows should be expandable in the first pass. The plan recommends
-  expansion only if the implementation can keep closed-row heights stable.
+- The first implementation includes both the UI refactor and scoped
+  copy/composer improvements for unknown estimate/system events.
+- The filter surface ships as an overlaid responsive panel, not an always-open
+  block in the toolbar.
+- Rows stay non-expandable in the first pass to preserve scan density and stable
+  closed-row heights.
