@@ -30,6 +30,12 @@ function row(id: string) {
   return element;
 }
 
+function dragHandle(id: string) {
+  const element = row(id).querySelector(`[data-tree-drag-handle="${id}"]`);
+  if (!(element instanceof HTMLElement)) throw new Error(`Missing drag handle ${id}`);
+  return element;
+}
+
 function mockDataTransfer() {
   const store = new Map<string, string>();
   return {
@@ -150,6 +156,57 @@ describe("ui tree", () => {
     expect(row("a").querySelector('[data-tree-rail="drag"]')).not.toHaveClass("w-0");
   });
 
+  it("keeps row drag activation as the default", () => {
+    const onNodeDragStart = vi.fn();
+    render(
+      <Tree
+        nodes={sampleNodes()}
+        ariaLabel="Sample tree"
+        draggable
+        onDrop={() => undefined}
+        onNodeDragStart={onNodeDragStart}
+      />,
+    );
+
+    expect(row("c")).toHaveAttribute("draggable", "true");
+    expect(row("c")).toHaveAttribute("data-tree-drag-activation", "row");
+
+    const dataTransfer = mockDataTransfer();
+    dispatchDragEvent(row("c"), "dragstart", { dataTransfer });
+
+    expect(dataTransfer.getData("text/plain")).toBe("c");
+    expect(onNodeDragStart).toHaveBeenCalledWith("c", expect.any(Object));
+  });
+
+  it("can require drag activation from the handle while leaving the row body inert", () => {
+    const onNodeDragStart = vi.fn();
+    render(
+      <Tree
+        nodes={sampleNodes()}
+        ariaLabel="Sample tree"
+        draggable
+        dragActivation="handle"
+        onDrop={() => undefined}
+        onNodeDragStart={onNodeDragStart}
+      />,
+    );
+
+    expect(row("c")).toHaveAttribute("draggable", "false");
+    expect(row("c")).toHaveAttribute("data-tree-drag-activation", "handle");
+
+    const rowDataTransfer = mockDataTransfer();
+    dispatchDragEvent(row("c"), "dragstart", { dataTransfer: rowDataTransfer });
+    expect(rowDataTransfer.getData("text/plain")).toBe("");
+    expect(onNodeDragStart).not.toHaveBeenCalled();
+
+    const handleDataTransfer = mockDataTransfer();
+    expect(dragHandle("c")).toHaveAttribute("draggable", "true");
+    dispatchDragEvent(dragHandle("c"), "dragstart", { dataTransfer: handleDataTransfer });
+
+    expect(handleDataTransfer.getData("text/plain")).toBe("c");
+    expect(onNodeDragStart).toHaveBeenCalledWith("c", expect.any(Object));
+  });
+
   it("keeps the keyboard-focused row distinct with a left border only", async () => {
     render(
       <Tree
@@ -256,6 +313,8 @@ describe("ui tree", () => {
 
     dispatchDragEvent(row("c"), "dragstart", { dataTransfer });
     dispatchDragEvent(alpha, "dragover", { dataTransfer, clientY: 26 });
+    expect(row("a1")).toHaveAttribute("data-tree-drop-state", "valid");
+    expect(row("a1")).toHaveAttribute("data-tree-drop-position", "before");
     dispatchDragEvent(alpha, "drop", { dataTransfer, clientY: 26 });
 
     expect(onDrop).toHaveBeenCalledWith("c", "a1", "before");
@@ -322,6 +381,10 @@ describe("ui tree", () => {
 
     dispatchDragEvent(row("a"), "dragstart", { dataTransfer });
     dispatchDragEvent(alphaChild, "dragover", { dataTransfer, clientY: 14 });
+    expect(alphaChild).toHaveAttribute("data-tree-drop-state", "invalid");
+    expect(alphaChild).toHaveAttribute("data-tree-drop-position", "after");
+    expect(alphaChild).toHaveAttribute("data-tree-drop-reason", "Cannot move a node inside its own descendant.");
+    expect(screen.getByRole("status")).toHaveTextContent("Cannot move a node inside its own descendant.");
     dispatchDragEvent(alphaChild, "drop", { dataTransfer, clientY: 14 });
 
     expect(onDrop).not.toHaveBeenCalled();

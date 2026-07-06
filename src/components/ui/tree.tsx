@@ -6,6 +6,7 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useId,
   useMemo,
   useReducer,
   useRef,
@@ -55,6 +56,8 @@ export type TreeDropPosition = "before" | "after" | "inside";
 
 export type TreeRootDropEdge = "top" | "bottom";
 
+export type TreeDragActivation = "row" | "handle";
+
 /** Horizontal indent applied per depth level, in pixels. */
 const TREE_INDENT_STEP = 16;
 
@@ -69,10 +72,13 @@ const EMPTY_TREE_ID_LIST: string[] = [];
 
 type TreeDropTarget = { id: string; position: TreeDropPosition } | null;
 
+type TreeInvalidDropTarget = { id: string; position: TreeDropPosition; reason: string } | null;
+
 type TreeState = {
   uncontrolledExpanded: Set<string>;
   dragSourceId: string | null;
   dropTarget: TreeDropTarget;
+  invalidDropTarget: TreeInvalidDropTarget;
   activeRootDropEdge: TreeRootDropEdge | null;
   focusId: string | null;
 };
@@ -81,6 +87,7 @@ type TreeStateAction =
   | { type: "setUncontrolledExpanded"; value: SetStateAction<Set<string>> }
   | { type: "setDragSourceId"; value: SetStateAction<string | null> }
   | { type: "setDropTarget"; value: SetStateAction<TreeDropTarget> }
+  | { type: "setInvalidDropTarget"; value: SetStateAction<TreeInvalidDropTarget> }
   | { type: "setActiveRootDropEdge"; value: SetStateAction<TreeRootDropEdge | null> }
   | { type: "setFocusId"; value: SetStateAction<string | null> }
   | { type: "clearDragState" }
@@ -95,6 +102,7 @@ function createInitialTreeState(defaultExpandedIds: readonly string[]): TreeStat
     uncontrolledExpanded: new Set(defaultExpandedIds),
     dragSourceId: null,
     dropTarget: null,
+    invalidDropTarget: null,
     activeRootDropEdge: null,
     focusId: null,
   };
@@ -114,6 +122,10 @@ function treeReducer(state: TreeState, action: TreeStateAction): TreeState {
       const dropTarget = resolveTreeStateAction(action.value, state.dropTarget);
       return dropTarget === state.dropTarget ? state : { ...state, dropTarget };
     }
+    case "setInvalidDropTarget": {
+      const invalidDropTarget = resolveTreeStateAction(action.value, state.invalidDropTarget);
+      return invalidDropTarget === state.invalidDropTarget ? state : { ...state, invalidDropTarget };
+    }
     case "setActiveRootDropEdge": {
       const activeRootDropEdge = resolveTreeStateAction(action.value, state.activeRootDropEdge);
       return activeRootDropEdge === state.activeRootDropEdge ? state : { ...state, activeRootDropEdge };
@@ -123,12 +135,12 @@ function treeReducer(state: TreeState, action: TreeStateAction): TreeState {
       return focusId === state.focusId ? state : { ...state, focusId };
     }
     case "clearDragState": {
-      if (!state.dragSourceId && !state.dropTarget && !state.activeRootDropEdge) return state;
-      return { ...state, dragSourceId: null, dropTarget: null, activeRootDropEdge: null };
+      if (!state.dragSourceId && !state.dropTarget && !state.invalidDropTarget && !state.activeRootDropEdge) return state;
+      return { ...state, dragSourceId: null, dropTarget: null, invalidDropTarget: null, activeRootDropEdge: null };
     }
     case "clearDropIndicators": {
-      if (!state.dropTarget && !state.activeRootDropEdge) return state;
-      return { ...state, dropTarget: null, activeRootDropEdge: null };
+      if (!state.dropTarget && !state.invalidDropTarget && !state.activeRootDropEdge) return state;
+      return { ...state, dropTarget: null, invalidDropTarget: null, activeRootDropEdge: null };
     }
   }
 }
@@ -147,7 +159,9 @@ export interface TreeItemState {
   isFocused: boolean;
   isDragSource: boolean;
   isDropTarget: boolean;
+  isInvalidDropTarget: boolean;
   dropPosition: TreeDropPosition | null;
+  dropDisabledReason: string | null;
   setSize: number;
   posInSet: number;
   toggle: () => void;
@@ -163,12 +177,17 @@ export type TreeRowDomProps = {
   "aria-selected"?: boolean;
   "aria-current"?: "page";
   "aria-label"?: string;
+  "aria-describedby"?: string;
   "aria-grabbed"?: boolean;
   "aria-dropeffect"?: "move" | "copy";
   tabIndex: number;
   draggable: boolean;
   ref: RefCallback<HTMLElement>;
   "data-tree-row": string;
+  "data-tree-drag-activation": TreeDragActivation;
+  "data-tree-drop-state"?: "valid" | "invalid";
+  "data-tree-drop-position"?: TreeDropPosition;
+  "data-tree-drop-reason"?: string;
   onClick: (event: MouseEvent<HTMLElement>) => void;
   onDoubleClick?: (event: MouseEvent<HTMLElement>) => void;
   onContextMenu?: (event: MouseEvent<HTMLElement>) => void;
@@ -176,6 +195,18 @@ export type TreeRowDomProps = {
   onDragOver: (event: DragEvent<HTMLElement>) => void;
   onDragLeave: (event: DragEvent<HTMLElement>) => void;
   onDrop: (event: DragEvent<HTMLElement>) => void;
+  onDragEnd: (event: DragEvent<HTMLElement>) => void;
+};
+
+export type TreeDragHandleDomProps = {
+  "aria-label": string;
+  "aria-disabled"?: true;
+  draggable: boolean;
+  "data-tree-drag-handle": string;
+  "data-tree-drag-disabled-reason"?: string;
+  title?: string;
+  onClick: (event: MouseEvent<HTMLElement>) => void;
+  onDragStart: (event: DragEvent<HTMLElement>) => void;
   onDragEnd: (event: DragEvent<HTMLElement>) => void;
 };
 
@@ -246,6 +277,8 @@ export interface TreeProps {
   canDrop?: (draggedId: string, targetId: string, position: TreeDropPosition) => boolean;
   /** Per-node drag gate, combined with `node.draggable !== false`. */
   canDrag?: (node: TreeNode) => boolean;
+  /** Human-readable reason used when `canDrag` blocks an otherwise draggable node. */
+  getDragDisabledReason?: (node: TreeNode) => string | null;
   /**
    * Fires after the default drag payload (`text/plain` = node id, move
    * effect) is stamped, so consumers can replace the payload, effect, or
@@ -268,6 +301,12 @@ export interface TreeProps {
   /** Uncontrolled: initially expanded node IDs */
   defaultExpandedIds?: string[];
   draggable?: boolean;
+  /**
+   * Pointer drag source. Defaults to row for backwards compatibility; handle
+   * mode leaves row click/focus/context-menu behavior untouched and starts
+   * reorders only from the grip.
+   */
+  dragActivation?: TreeDragActivation;
   selectable?: boolean;
   expandable?: boolean;
   /**
@@ -310,7 +349,7 @@ export interface TreeProps {
   /** Horizontal indent applied per depth level. Defaults to `TREE_INDENT_STEP`. */
   indentStep?: number;
   /** Full row control: replaces the default row entirely. Spread `rowProps` onto your row element. */
-  renderItem?: (state: TreeItemState, rowProps: TreeRowDomProps) => ReactNode;
+  renderItem?: (state: TreeItemState, rowProps: TreeRowDomProps, dragHandleProps: TreeDragHandleDomProps) => ReactNode;
   /** Optional default-off virtual rendering for very large flat trees. */
   virtualization?: TreeVirtualizationOptions;
   ref?: Ref<HTMLDivElement>;
@@ -419,10 +458,12 @@ function readDropPositionFromEvent(
 interface DefaultTreeRowProps {
   state: TreeItemState;
   rowProps: TreeRowDomProps;
+  dragHandleProps: TreeDragHandleDomProps;
+  dragActivation: TreeDragActivation;
   draggable: boolean;
   selectable: boolean;
   expandable: boolean;
-  nodeDraggable: boolean;
+  nodeDragHandleVisible: boolean;
   /** Keep the affordance rails open (e.g. while a selection exists). */
   railsPinned: boolean;
   showSelectedBackground: boolean;
@@ -434,17 +475,39 @@ interface DefaultTreeRowProps {
 const DefaultTreeRow = memo(function DefaultTreeRow({
   state,
   rowProps,
+  dragHandleProps,
+  dragActivation,
   draggable,
   selectable,
   expandable,
-  nodeDraggable,
+  nodeDragHandleVisible,
   railsPinned,
   showSelectedBackground,
   indentStep,
   onCheckboxClick,
   rowRenderer,
 }: DefaultTreeRowProps) {
-  const { node, depth, isFolder, isExpanded, isSelected, isIndeterminate, isCurrent, isDropTarget, dropPosition } = state;
+  const {
+    node,
+    depth,
+    isFolder,
+    isExpanded,
+    isSelected,
+    isIndeterminate,
+    isCurrent,
+    isDropTarget,
+    isInvalidDropTarget,
+    dropPosition,
+  } = state;
+  const renderedDragHandleProps =
+    dragActivation === "handle"
+      ? dragHandleProps
+      : {
+          "aria-label": dragHandleProps["aria-label"],
+          "data-tree-drag-handle": node.id,
+          onClick: dragHandleProps.onClick,
+        };
+  const dragHandleDisabled = dragActivation === "handle" && dragHandleProps["aria-disabled"] === true;
 
   return (
     <div className="select-none">
@@ -458,9 +521,11 @@ const DefaultTreeRow = memo(function DefaultTreeRow({
           node.rowClassName,
           showSelectedBackground && isSelected && "bg-accentSoft",
           (isCurrent || state.isFocused) && "border-l-focus",
+          state.isDragSource && "opacity-70",
           isDropTarget && dropPosition === "inside" && "bg-surfaceMuted",
           isDropTarget && dropPosition === "before" && "border-t-2 border-t-primary",
           isDropTarget && dropPosition === "after" && "border-b-2 border-b-primary",
+          isInvalidDropTarget && "border-danger/50 bg-dangerSoft/40",
           "hover:bg-surfaceMuted cursor-pointer"
         )}
       >
@@ -484,10 +549,13 @@ const DefaultTreeRow = memo(function DefaultTreeRow({
                 : "mr-0 w-0 group-hover/tree:mr-1 group-hover/tree:w-4 group-focus-within/tree:mr-1 group-focus-within/tree:w-4",
             )}
           >
-            {nodeDraggable && (
+            {nodeDragHandleVisible && (
               <span
-                onClick={(e) => e.stopPropagation()}
-                className="flex cursor-grab items-center justify-center opacity-0 transition-opacity group-hover/tree-row:opacity-100"
+                {...renderedDragHandleProps}
+                className={cn(
+                  "flex items-center justify-center opacity-0 transition-opacity group-hover/tree-row:opacity-100",
+                  dragHandleDisabled ? "cursor-not-allowed" : "cursor-grab",
+                )}
               >
                 <DotsSixVertical weight="regular" className="h-3.5 w-3.5 text-muted" />
               </span>
@@ -578,10 +646,12 @@ interface TreeFlatRowProps {
   flat: FlatNode;
   buildItemState: (flat: FlatNode) => TreeItemState;
   buildRowProps: (flat: FlatNode) => TreeRowDomProps;
+  buildDragHandleProps: (flat: FlatNode) => TreeDragHandleDomProps;
+  dragActivation: TreeDragActivation;
   draggable: boolean;
   selectable: boolean;
   expandable: boolean;
-  nodeDraggable: boolean;
+  nodeDragHandleVisible: boolean;
   railsPinned: boolean;
   showSelectedBackground: boolean;
   indentStep: number;
@@ -594,10 +664,12 @@ const TreeFlatRow = memo(function TreeFlatRow({
   flat,
   buildItemState,
   buildRowProps,
+  buildDragHandleProps,
+  dragActivation,
   draggable,
   selectable,
   expandable,
-  nodeDraggable,
+  nodeDragHandleVisible,
   railsPinned,
   showSelectedBackground,
   indentStep,
@@ -607,19 +679,22 @@ const TreeFlatRow = memo(function TreeFlatRow({
 }: TreeFlatRowProps) {
   const state = buildItemState(flat);
   const rowProps = buildRowProps(flat);
+  const dragHandleProps = buildDragHandleProps(flat);
 
   if (itemRenderer) {
-    return <Fragment>{itemRenderer(state, rowProps)}</Fragment>;
+    return <Fragment>{itemRenderer(state, rowProps, dragHandleProps)}</Fragment>;
   }
 
   return (
     <DefaultTreeRow
       state={state}
       rowProps={rowProps}
+      dragHandleProps={dragHandleProps}
+      dragActivation={dragActivation}
       draggable={draggable}
       selectable={selectable}
       expandable={expandable}
-      nodeDraggable={nodeDraggable}
+      nodeDragHandleVisible={nodeDragHandleVisible}
       railsPinned={railsPinned}
       showSelectedBackground={showSelectedBackground}
       indentStep={indentStep}
@@ -642,6 +717,7 @@ export function Tree({
       onDrop,
       canDrop,
       canDrag,
+      getDragDisabledReason,
       onNodeDragStart,
       onNodeDragEnd,
       onToggle,
@@ -654,6 +730,7 @@ export function Tree({
       onExpandedChange,
       defaultExpandedIds = EMPTY_TREE_ID_LIST,
       draggable = false,
+      dragActivation = "row",
       selectable = false,
       expandable = true,
       allowInsideOnLeaves = false,
@@ -673,6 +750,7 @@ export function Tree({
     // react-doctor-disable-next-line react-doctor/no-event-handler -- False positive: controlled/uncontrolled setup is render state, not effect-driven event logic.
     const isControlled = controlledExpandedIds !== undefined;
     const treeRootRef = useRef<HTMLDivElement | null>(null);
+    const dropStatusId = useId();
     useImperativeHandle(ref, () => treeRootRef.current as HTMLDivElement, []);
 
     const [treeState, dispatchTreeState] = useReducer(
@@ -685,6 +763,7 @@ export function Tree({
       uncontrolledExpanded,
       dragSourceId,
       dropTarget,
+      invalidDropTarget,
       activeRootDropEdge,
       focusId,
     } = treeState;
@@ -810,12 +889,25 @@ export function Tree({
 
     // ─── Drag/drop ─────────────────────────────────────────────────
 
+    const isNodeDragEligible = useCallback(
+      (node: TreeNode) => draggable && node.draggable !== false,
+      [draggable]
+    );
+
     const isNodeDraggable = useCallback(
       (node: TreeNode) => {
-        if (!draggable || node.draggable === false) return false;
+        if (!isNodeDragEligible(node)) return false;
         return canDrag ? canDrag(node) : true;
       },
-      [draggable, canDrag]
+      [isNodeDragEligible, canDrag]
+    );
+
+    const getNodeDragDisabledReason = useCallback(
+      (node: TreeNode) => {
+        if (!isNodeDragEligible(node) || isNodeDraggable(node)) return null;
+        return getDragDisabledReason?.(node) ?? "Drag is not available for this item.";
+      },
+      [getDragDisabledReason, isNodeDragEligible, isNodeDraggable]
     );
 
     const readDraggedId = useCallback(
@@ -827,15 +919,23 @@ export function Tree({
       [dragSourceId, dragDataType]
     );
 
-    const isDropAllowed = useCallback(
+    const getDropDisabledReason = useCallback(
       (draggedId: string, targetId: string, position: TreeDropPosition) => {
-        if (draggedId === targetId) return false;
+        if (draggedId === targetId) return "Cannot drop a node onto itself.";
         const draggedNode = nodeIndex.get(draggedId);
-        if (!draggedNode || !nodeIndex.has(targetId)) return false;
-        if (containsDescendant(draggedNode, targetId)) return false;
-        return canDrop ? canDrop(draggedId, targetId, position) : true;
+        if (!draggedNode) return "Drag source is unavailable.";
+        if (!nodeIndex.has(targetId)) return "Drop target is unavailable.";
+        if (containsDescendant(draggedNode, targetId)) return "Cannot move a node inside its own descendant.";
+        if (canDrop && !canDrop(draggedId, targetId, position)) return "Drop is not allowed here.";
+        return null;
       },
       [nodeIndex, canDrop]
+    );
+
+    const isDropAllowed = useCallback(
+      (draggedId: string, targetId: string, position: TreeDropPosition) =>
+        getDropDisabledReason(draggedId, targetId, position) === null,
+      [getDropDisabledReason]
     );
 
     const clearDragState = useCallback(() => {
@@ -948,7 +1048,9 @@ export function Tree({
         if (externalTypes) {
           const intent = resolveExternalDropIntent(flat, event, externalTypes);
           if (!intent) {
+            const position = readDropPositionFromEvent(event, flat.isFolder || allowInsideOnLeaves);
             dispatchTreeState({ type: "setDropTarget", value: (current) => (isDropIntentForRow(current, flat) ? null : current) });
+            dispatchTreeState({ type: "setInvalidDropTarget", value: { id: flat.id, position, reason: "Drop is not available here." } });
             return;
           }
           event.preventDefault();
@@ -958,6 +1060,7 @@ export function Tree({
           dispatchTreeState({ type: "setDropTarget", value: (current) =>
             current?.id === intent.id && current.position === intent.position ? current : intent
           });
+          dispatchTreeState({ type: "setInvalidDropTarget", value: null });
           dispatchTreeState({ type: "setActiveRootDropEdge", value: null });
           return;
         }
@@ -965,8 +1068,11 @@ export function Tree({
         const draggedId = readDraggedId(event);
         if (!draggedId) return;
         const intent = resolveDropIntent(flat, event);
-        if (!isDropAllowed(draggedId, intent.id, intent.position)) {
+        const dropDisabledReason = getDropDisabledReason(draggedId, intent.id, intent.position);
+        if (dropDisabledReason) {
           dispatchTreeState({ type: "setDropTarget", value: (current) => (isDropIntentForRow(current, flat) ? null : current) });
+          dispatchTreeState({ type: "setInvalidDropTarget", value: { ...intent, reason: dropDisabledReason } });
+          dispatchTreeState({ type: "setActiveRootDropEdge", value: null });
           return;
         }
         event.preventDefault();
@@ -976,9 +1082,10 @@ export function Tree({
             ? current
             : intent
         });
+        dispatchTreeState({ type: "setInvalidDropTarget", value: null });
         dispatchTreeState({ type: "setActiveRootDropEdge", value: null });
       },
-      [draggable, externalDrop, onDrop, readDraggedId, readExternalDragTypes, resolveDropIntent, resolveExternalDropIntent, isDropAllowed, isDropIntentForRow]
+      [draggable, externalDrop, onDrop, readDraggedId, readExternalDragTypes, resolveDropIntent, resolveExternalDropIntent, getDropDisabledReason, isDropIntentForRow, allowInsideOnLeaves]
     );
 
     const handleDragLeave = useCallback(
@@ -990,6 +1097,7 @@ export function Tree({
           return;
         }
         dispatchTreeState({ type: "setDropTarget", value: (current) => (isDropIntentForRow(current, flat) ? null : current) });
+        dispatchTreeState({ type: "setInvalidDropTarget", value: (current) => (isDropIntentForRow(current, flat) ? null : current) });
       },
       [isDropIntentForRow]
     );
@@ -1070,6 +1178,7 @@ export function Tree({
         if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
         dispatchTreeState({ type: "setActiveRootDropEdge", value: edge });
         dispatchTreeState({ type: "setDropTarget", value: null });
+        dispatchTreeState({ type: "setInvalidDropTarget", value: null });
       },
       [onDrop, readDraggedId, resolveRootEdgeTarget, isDropAllowed]
     );
@@ -1282,6 +1391,13 @@ export function Tree({
     const buildRowProps = useCallback(
       (flat: FlatNode): TreeRowDomProps => {
         const isSelected = selectedIds.includes(flat.id);
+        const isDropTargetRow = dropTarget?.id === flat.id;
+        const isInvalidDropTargetRow = invalidDropTarget?.id === flat.id;
+        const activeDropPosition = isDropTargetRow
+          ? dropTarget.position
+          : isInvalidDropTargetRow
+            ? invalidDropTarget.position
+            : undefined;
         return {
           role: "treeitem",
           "aria-level": flat.depth + 1,
@@ -1291,8 +1407,9 @@ export function Tree({
           "aria-selected": selectable || isSelected ? isSelected : undefined,
           "aria-current": currentId === flat.id ? "page" : undefined,
           "aria-label": flat.node.ariaLabel,
+          "aria-describedby": isInvalidDropTargetRow ? dropStatusId : undefined,
           tabIndex: effectiveFocusId === flat.id ? 0 : -1,
-          draggable: isNodeDraggable(flat.node),
+          draggable: dragActivation === "row" && isNodeDraggable(flat.node),
           ref: (element) => {
             if (element) {
               rowElementsRef.current.set(flat.id, element);
@@ -1305,8 +1422,12 @@ export function Tree({
           // effect that would apply — "move" for an intra-tree reorder (a drag
           // source exists) or "copy" for an external insert (template/project source).
           "aria-grabbed": isNodeDraggable(flat.node) ? dragSourceId === flat.id : undefined,
-          "aria-dropeffect": dropTarget?.id === flat.id ? (dragSourceId ? "move" : "copy") : undefined,
+          "aria-dropeffect": isDropTargetRow ? (dragSourceId ? "move" : "copy") : undefined,
           "data-tree-row": flat.id,
+          "data-tree-drag-activation": dragActivation,
+          "data-tree-drop-state": isDropTargetRow ? "valid" : isInvalidDropTargetRow ? "invalid" : undefined,
+          "data-tree-drop-position": activeDropPosition,
+          "data-tree-drop-reason": isInvalidDropTargetRow ? invalidDropTarget.reason : undefined,
           onClick: (event) => handleRowClick(flat.id, flat.node, event),
           onDoubleClick: onRowDoubleClick
             ? (event) => {
@@ -1320,11 +1441,19 @@ export function Tree({
           onContextMenu: onContextMenu
             ? (event) => onContextMenu(flat.id, flat.node, event)
             : undefined,
-          onDragStart: (event) => handleDragStart(flat, event),
+          onDragStart: (event) => {
+            if (dragActivation !== "row") {
+              event.preventDefault();
+              return;
+            }
+            handleDragStart(flat, event);
+          },
           onDragOver: (event) => handleDragOver(flat, event),
           onDragLeave: (event) => handleDragLeave(flat, event),
           onDrop: (event) => handleDrop(flat, event),
-          onDragEnd: () => handleDragEnd(flat),
+          onDragEnd: () => {
+            if (dragActivation === "row") handleDragEnd(flat);
+          },
         };
       },
       [
@@ -1333,8 +1462,11 @@ export function Tree({
         currentId,
         effectiveFocusId,
         isNodeDraggable,
+        dragActivation,
         dragSourceId,
         dropTarget,
+        invalidDropTarget,
+        dropStatusId,
         onContextMenu,
         onRowDoubleClick,
         handleRowClick,
@@ -1346,9 +1478,44 @@ export function Tree({
       ]
     );
 
+    const buildDragHandleProps = useCallback(
+      (flat: FlatNode): TreeDragHandleDomProps => {
+        const disabledReason = getNodeDragDisabledReason(flat.node);
+        const ariaLabel = disabledReason
+          ? `Drag ${flat.node.label} unavailable: ${disabledReason}`
+          : `Drag ${flat.node.label}`;
+        return {
+          "aria-label": ariaLabel,
+          "aria-disabled": disabledReason ? true : undefined,
+          draggable: dragActivation === "handle" && !disabledReason && isNodeDraggable(flat.node),
+          "data-tree-drag-handle": flat.id,
+          "data-tree-drag-disabled-reason": disabledReason ?? undefined,
+          title: disabledReason ?? undefined,
+          onClick: (event) => {
+            event.stopPropagation();
+          },
+          onDragStart: (event) => {
+            event.stopPropagation();
+            if (dragActivation !== "handle" || disabledReason) {
+              event.preventDefault();
+              return;
+            }
+            handleDragStart(flat, event);
+          },
+          onDragEnd: (event) => {
+            event.stopPropagation();
+            if (dragActivation !== "handle" || disabledReason) return;
+            handleDragEnd(flat);
+          },
+        };
+      },
+      [dragActivation, getNodeDragDisabledReason, isNodeDraggable, handleDragStart, handleDragEnd]
+    );
+
     const buildItemState = useCallback(
       (flat: FlatNode): TreeItemState => {
         const isDropTargetRow = dropTarget?.id === flat.id;
+        const isInvalidDropTargetRow = invalidDropTarget?.id === flat.id;
         return {
           node: flat.node,
           depth: flat.depth,
@@ -1360,13 +1527,15 @@ export function Tree({
           isFocused: effectiveFocusId === flat.id,
           isDragSource: dragSourceId === flat.id,
           isDropTarget: isDropTargetRow,
-          dropPosition: isDropTargetRow ? dropTarget?.position ?? null : null,
+          isInvalidDropTarget: isInvalidDropTargetRow,
+          dropPosition: isDropTargetRow ? dropTarget?.position ?? null : isInvalidDropTargetRow ? invalidDropTarget.position : null,
+          dropDisabledReason: isInvalidDropTargetRow ? invalidDropTarget.reason : null,
           setSize: flat.setSize,
           posInSet: flat.posInSet,
           toggle: () => handleToggle(flat.id),
         };
       },
-      [dropTarget, selectedSet, indeterminateIds, currentId, effectiveFocusId, dragSourceId, handleToggle]
+      [dropTarget, invalidDropTarget, selectedSet, indeterminateIds, currentId, effectiveFocusId, dragSourceId, handleToggle]
     );
 
     const virtualEstimateRowHeight = virtualization?.estimateRowHeight ?? 28;
@@ -1388,89 +1557,106 @@ export function Tree({
           })
         )
       : measuredVirtualRows;
+    const dropStatusMessage = invalidDropTarget?.reason ?? null;
 
     return (
-      <div
-        ref={treeRootRef}
-        role="tree"
-        aria-label={ariaLabel}
-        tabIndex={0}
-        className={cn("group/tree overflow-auto outline-none", className)}
-        onKeyDown={handleKeyDown}
-        onClick={() => flatNodes.length > 0 && !focusId && dispatchTreeState({ type: "setFocusId", value: effectiveFocusId })}
-      >
-        {rootDropZonesEnabled && rootDropEdgeEnabled("top") && renderRootEdge("top")}
-        {virtualEnabled ? (
-          <div
-            data-tree-virtualizer="true"
-            data-tree-virtual-total-count={flatNodes.length}
-            data-tree-virtual-mounted-count={renderedVirtualRows.length}
-            style={{ height: rowVirtualizer.getTotalSize(), position: "relative", width: "100%" }}
-          >
-            {renderedVirtualRows.map((virtualRow) => {
-              const flat = flatNodes[virtualRow.index];
-              if (!flat) return null;
-              return (
-                <div
-                  key={virtualRow.key}
-                  ref={rowVirtualizer.measureElement}
-                  data-index={virtualRow.index}
-                  data-tree-virtual-row={flat.id}
-                  style={{
-                    left: 0,
-                    position: "absolute",
-                    top: 0,
-                    transform: `translateY(${virtualRow.start}px)`,
-                    width: "100%",
-                  }}
-                >
-                  <TreeFlatRow
-                    flat={flat}
-                    buildItemState={buildItemState}
-                    buildRowProps={buildRowProps}
-                    draggable={draggable}
-                    selectable={selectable}
-                    expandable={expandable}
-                    nodeDraggable={isNodeDraggable(flat.node)}
-                    railsPinned={railsPinned || (selectable && selectedSet.size > 0)}
-                    showSelectedBackground={showSelectedBackground}
-                    indentStep={indentStep}
-                    onCheckboxClick={handleCheckboxClick}
-                    rowRenderer={renderRow}
-                    itemRenderer={renderItem}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          flatNodes.map((flat) => (
-            <TreeFlatRow
-              key={flat.id}
-              flat={flat}
-              buildItemState={buildItemState}
-              buildRowProps={buildRowProps}
-              draggable={draggable}
-              selectable={selectable}
-              expandable={expandable}
-              nodeDraggable={isNodeDraggable(flat.node)}
-              railsPinned={railsPinned || (selectable && selectedSet.size > 0)}
-              showSelectedBackground={showSelectedBackground}
-              indentStep={indentStep}
-              onCheckboxClick={handleCheckboxClick}
-              rowRenderer={renderRow}
-              itemRenderer={renderItem}
-            />
-          ))
-        )}
-        {rootDropZonesEnabled && rootDropEdgeEnabled("bottom") && renderRootEdge("bottom")}
-        {nodes.length === 0 && (
-          emptyState ?? (
-            <div className="flex items-center justify-center py-8 text-[10px] text-muted">
-              No items to display
+      <>
+        <div
+          ref={treeRootRef}
+          role="tree"
+          aria-label={ariaLabel}
+          tabIndex={0}
+          className={cn("group/tree overflow-auto outline-none", className)}
+          onKeyDown={handleKeyDown}
+          onClick={() => flatNodes.length > 0 && !focusId && dispatchTreeState({ type: "setFocusId", value: effectiveFocusId })}
+        >
+          {rootDropZonesEnabled && rootDropEdgeEnabled("top") && renderRootEdge("top")}
+          {virtualEnabled ? (
+            <div
+              data-tree-virtualizer="true"
+              data-tree-virtual-total-count={flatNodes.length}
+              data-tree-virtual-mounted-count={renderedVirtualRows.length}
+              style={{ height: rowVirtualizer.getTotalSize(), position: "relative", width: "100%" }}
+            >
+              {renderedVirtualRows.map((virtualRow) => {
+                const flat = flatNodes[virtualRow.index];
+                if (!flat) return null;
+                return (
+                  <div
+                    key={virtualRow.key}
+                    ref={rowVirtualizer.measureElement}
+                    data-index={virtualRow.index}
+                    data-tree-virtual-row={flat.id}
+                    style={{
+                      left: 0,
+                      position: "absolute",
+                      top: 0,
+                      transform: `translateY(${virtualRow.start}px)`,
+                      width: "100%",
+                    }}
+                  >
+                    <TreeFlatRow
+                      flat={flat}
+                      buildItemState={buildItemState}
+                      buildRowProps={buildRowProps}
+                      buildDragHandleProps={buildDragHandleProps}
+                      dragActivation={dragActivation}
+                      draggable={draggable}
+                      selectable={selectable}
+                      expandable={expandable}
+                      nodeDragHandleVisible={dragActivation === "handle" ? isNodeDragEligible(flat.node) : isNodeDraggable(flat.node)}
+                      railsPinned={railsPinned || (selectable && selectedSet.size > 0)}
+                      showSelectedBackground={showSelectedBackground}
+                      indentStep={indentStep}
+                      onCheckboxClick={handleCheckboxClick}
+                      rowRenderer={renderRow}
+                      itemRenderer={renderItem}
+                    />
+                  </div>
+                );
+              })}
             </div>
-          )
-        )}
-      </div>
+          ) : (
+            flatNodes.map((flat) => (
+              <TreeFlatRow
+                key={flat.id}
+                flat={flat}
+                buildItemState={buildItemState}
+                buildRowProps={buildRowProps}
+                buildDragHandleProps={buildDragHandleProps}
+                dragActivation={dragActivation}
+                draggable={draggable}
+                selectable={selectable}
+                expandable={expandable}
+                nodeDragHandleVisible={dragActivation === "handle" ? isNodeDragEligible(flat.node) : isNodeDraggable(flat.node)}
+                railsPinned={railsPinned || (selectable && selectedSet.size > 0)}
+                showSelectedBackground={showSelectedBackground}
+                indentStep={indentStep}
+                onCheckboxClick={handleCheckboxClick}
+                rowRenderer={renderRow}
+                itemRenderer={renderItem}
+              />
+            ))
+          )}
+          {rootDropZonesEnabled && rootDropEdgeEnabled("bottom") && renderRootEdge("bottom")}
+          {nodes.length === 0 && (
+            emptyState ?? (
+              <div className="flex items-center justify-center py-8 text-[10px] text-muted">
+                No items to display
+              </div>
+            )
+          )}
+        </div>
+        {dropStatusMessage ? (
+          <output
+            id={dropStatusId}
+            aria-live="polite"
+            data-tree-drop-status
+            className="block border-t border-hairline px-2 py-1 text-[9px] font-medium leading-3 text-danger"
+          >
+            {dropStatusMessage}
+          </output>
+        ) : null}
+      </>
     );
 }

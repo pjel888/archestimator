@@ -281,6 +281,12 @@ function treeNodeRow(id: string) {
   return element;
 }
 
+function treeNodeDragHandle(id: string) {
+  const element = treeNodeRow(id).querySelector(`[data-tree-drag-handle="${id}"]`);
+  if (!(element instanceof HTMLElement)) throw new Error(`Missing tree node drag handle ${id}`);
+  return element;
+}
+
 function renderedIds() {
   const tree = screen.getByRole("tree", { name: "Modern Bungalow estimate areas" });
   return Array.from(tree.querySelectorAll("[data-tree-row]")).map((row) =>
@@ -314,10 +320,10 @@ function mockDataTransfer() {
  */
 async function dropOnto(sourceId: string, targetId: string) {
   const dataTransfer = mockDataTransfer();
-  fireEvent.dragStart(treeNodeRow(sourceId), { dataTransfer });
+  fireEvent.dragStart(treeNodeDragHandle(sourceId), { dataTransfer });
   fireEvent.dragOver(treeNodeRow(targetId), { dataTransfer });
   fireEvent.drop(treeNodeRow(targetId), { dataTransfer });
-  fireEvent.dragEnd(treeNodeRow(sourceId), { dataTransfer });
+  fireEvent.dragEnd(treeNodeDragHandle(sourceId), { dataTransfer });
 }
 
 describe("estimate sheet tree drag/drop", () => {
@@ -334,7 +340,7 @@ describe("estimate sheet tree drag/drop", () => {
     actionMocks.fetchEstimateTree.mockResolvedValue(fixtureTree());
   });
 
-  it("renders draggable rows with tree semantics and expanded folders by default", () => {
+  it("renders handle-draggable rows with tree semantics and expanded folders by default", () => {
     renderTree();
 
     expect(renderedIds()).toEqual(["project-scope", "ground-floor", "kitchen", "living", "site-works", "front-yard"]);
@@ -343,12 +349,15 @@ describe("estimate sheet tree drag/drop", () => {
     expect(projectScope).toHaveAttribute("role", "treeitem");
     expect(projectScope).toHaveAttribute("aria-level", "1");
     expect(projectScope).toHaveAttribute("aria-expanded", "true");
-    expect(projectScope).toHaveAttribute("draggable", "true");
+    expect(projectScope).toHaveAttribute("draggable", "false");
+    expect(projectScope).toHaveAttribute("data-tree-drag-activation", "handle");
+    expect(treeNodeDragHandle("project-scope")).toHaveAttribute("draggable", "true");
 
     const kitchen = treeNodeRow("kitchen");
     expect(kitchen).toHaveAttribute("aria-level", "3");
     expect(kitchen).not.toHaveAttribute("aria-expanded");
-    expect(kitchen).toHaveAttribute("draggable", "true");
+    expect(kitchen).toHaveAttribute("draggable", "false");
+    expect(treeNodeDragHandle("kitchen")).toHaveAttribute("draggable", "true");
   });
 
   it("keeps collapsed tree state after selecting a node and remounting for the new route", () => {

@@ -105,6 +105,12 @@ function treeNodeButton(id: string) {
   return element;
 }
 
+function treeDragHandle(id: string) {
+  const element = treeNodeButton(id).querySelector(`[data-tree-drag-handle="${id}"]`);
+  if (!(element instanceof HTMLElement)) throw new Error(`Missing tree node drag handle ${id}`);
+  return element;
+}
+
 function rootDropZone(edge: "top" | "bottom") {
   const element = document.querySelector(`[data-tree-root-drop-edge='${edge}']`);
   if (!(element instanceof HTMLElement)) throw new Error(`Missing root ${edge} drop zone.`);
@@ -188,7 +194,7 @@ describe("estimate sheet tree DOM integration", () => {
     expect(screen.getByRole("button", { name: "Add Area" })).toBeInTheDocument();
   });
 
-  it("renders visible nested items as draggable treeitems with the shared tree row styling", () => {
+  it("renders visible nested items as handle-draggable treeitems with the shared tree row styling", () => {
     renderTree();
 
     const tree = screen.getByRole("tree", { name: "Modern Bungalow estimate areas" });
@@ -208,8 +214,9 @@ describe("estimate sheet tree DOM integration", () => {
     expect(groundFloor).toHaveAttribute("aria-level", "2");
     expect(kitchen).toHaveAttribute("aria-level", "3");
     expect(kitchen).not.toHaveAttribute("aria-expanded");
-    expect(kitchen).toHaveAttribute("draggable", "true");
-    expect(alternates).toHaveAttribute("draggable", "true");
+    expect(kitchen).toHaveAttribute("draggable", "false");
+    expect(alternates).toHaveAttribute("draggable", "false");
+    expect(kitchen).toHaveAttribute("data-tree-drag-activation", "handle");
     expect(kitchen).toHaveAttribute("aria-current", "page");
     expect(kitchen).toHaveClass("border-l-focus");
     expect(kitchen).not.toHaveClass("bg-accentSoft", "bg-surfaceMuted");
@@ -229,6 +236,7 @@ describe("estimate sheet tree DOM integration", () => {
     expect(kitchenCheckbox).toHaveClass("opacity-0", "group-hover/tree-row:opacity-100");
     const kitchenDragGrip = kitchen.querySelector(".cursor-grab");
     expect(kitchenDragGrip).toHaveClass("opacity-0", "group-hover/tree-row:opacity-100");
+    expect(treeDragHandle("kitchen")).toHaveAttribute("draggable", "true");
 
     // Drag grip and checkbox live in the left rail, before the indent
     // spacer, so they never drift with depth.
@@ -314,11 +322,64 @@ describe("estimate sheet tree DOM integration", () => {
     const dataTransfer = mockDataTransfer();
     setMiddleDropRect(groundFloor);
 
-    fireEvent.dragStart(phaseTwo, { dataTransfer });
+    fireEvent.dragStart(treeDragHandle("phase-two"), { dataTransfer });
     expect(dataTransfer.setData).toHaveBeenCalledWith("application/x-archestimator-estimate-tree-item", "phase-two");
     fireEvent.dragOver(groundFloor, { clientY: 14, dataTransfer });
 
     expect(treeNodeButton("ground-floor")).toHaveClass("bg-surfaceMuted");
+    expect(treeNodeButton("ground-floor")).toHaveAttribute("data-tree-drop-state", "valid");
+    expect(treeNodeButton("ground-floor")).toHaveAttribute("data-tree-drop-position", "inside");
+  });
+
+  it("keeps row-body drags from starting an estimate tree reorder", () => {
+    renderTree();
+
+    const phaseTwo = treeNodeButton("phase-two");
+    const projectScope = treeNodeButton("project-scope");
+    const rowDataTransfer = mockDataTransfer();
+
+    fireEvent.dragStart(phaseTwo, { dataTransfer: rowDataTransfer });
+    expect(rowDataTransfer.setData).not.toHaveBeenCalledWith("application/x-archestimator-estimate-tree-item", "phase-two");
+
+    setTopDropRect(projectScope);
+    fireDragOverAt(projectScope, rowDataTransfer, 0);
+    fireDropAt(projectScope, rowDataTransfer, 0);
+
+    expect(actionMocks.reorderEstimateTreeNodes).not.toHaveBeenCalled();
+  });
+
+  it("keeps the drag handle visible with a reason while tree search disables reorder", async () => {
+    renderTree();
+
+    fireEvent.click(screen.getByRole("button", { name: "Show tree search" }));
+    const searchInput = await screen.findByPlaceholderText("Search Tree");
+    fireEvent.change(searchInput, { target: { value: "Kitchen" } });
+
+    await waitFor(() => {
+      const kitchenHandle = treeDragHandle("kitchen");
+      expect(kitchenHandle).toHaveAttribute("draggable", "false");
+      expect(kitchenHandle).toHaveAttribute("aria-disabled", "true");
+      expect(kitchenHandle).toHaveAttribute("data-tree-drag-disabled-reason", "Clear tree search before dragging nodes.");
+      expect(kitchenHandle).toHaveAttribute("title", "Clear tree search before dragging nodes.");
+      expect(kitchenHandle).toHaveAccessibleName("Drag Kitchen unavailable: Clear tree search before dragging nodes.");
+    });
+  });
+
+  it("exposes invalid internal drop targets with structural state and a compact reason", () => {
+    renderTree();
+
+    const projectScope = treeNodeButton("project-scope");
+    const kitchen = treeNodeButton("kitchen");
+    const dataTransfer = mockDataTransfer();
+
+    fireEvent.dragStart(treeDragHandle("project-scope"), { dataTransfer });
+    setMiddleDropRect(kitchen);
+    fireEvent.dragOver(kitchen, { clientY: 0, dataTransfer });
+
+    expect(kitchen).toHaveAttribute("data-tree-drop-state", "invalid");
+    expect(kitchen).toHaveAttribute("data-tree-drop-position", "inside");
+    expect(kitchen).toHaveAttribute("data-tree-drop-reason", "Cannot move a node inside its own descendant.");
+    expect(screen.getByRole("status")).toHaveTextContent("Cannot move a node inside its own descendant.");
   });
 
   it("accepts sidebar template drags on group rows and hands the insert to the sheet", () => {
@@ -441,7 +502,7 @@ describe("estimate sheet tree DOM integration", () => {
     const projectScope = treeNodeButton("project-scope");
     const dataTransfer = mockDataTransfer();
 
-    fireEvent.dragStart(phaseTwo, { dataTransfer });
+    fireEvent.dragStart(treeDragHandle("phase-two"), { dataTransfer });
     setTopDropRect(projectScope);
     fireDragOverAt(projectScope, dataTransfer, 0);
 
@@ -514,7 +575,7 @@ describe("estimate sheet tree DOM integration", () => {
     const rootBottomDropZone = rootDropZone("bottom");
     const dataTransfer = mockDataTransfer();
 
-    fireEvent.dragStart(alternates, { dataTransfer });
+    fireEvent.dragStart(treeDragHandle("alternates"), { dataTransfer });
     fireEvent.dragOver(rootBottomDropZone, { dataTransfer });
 
     expect(rootDropZone("bottom")).toHaveAttribute("data-tree-root-drop-active", "true");

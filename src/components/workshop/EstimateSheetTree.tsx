@@ -846,6 +846,17 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     [canReorderNow, editingNodeId, treeSearchActive],
   );
 
+  const getTreeDragDisabledReason = useCallback(
+    (treeNode: UiTreeNode) => {
+      if (treeSearchActive) return "Clear tree search before dragging nodes.";
+      if (editingNodeId) return "Finish renaming before dragging nodes.";
+      if (!canReorderNow) return "Finish the current tree save before dragging nodes.";
+      if (isOptimisticEstimateNodeId(treeNode.id)) return "Wait for this new node to finish saving first.";
+      return null;
+    },
+    [canReorderNow, editingNodeId, treeSearchActive],
+  );
+
   const handleTreeCanDrop = useCallback((draggedId: string, targetId: string, position: TreeDropPosition) => {
     if (!canReorderNow || editingNodeId || treeSearchActive) return false;
     if (isOptimisticEstimateNodeId(draggedId) || isOptimisticEstimateNodeId(targetId)) return false;
@@ -2081,10 +2092,12 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
                         currentId={activeSelectedNodeId}
                         railsPinned={contextMenuOpen}
                         draggable
+                        dragActivation="handle"
                         selectable
                         allowInsideOnLeaves
                         dragDataType={ESTIMATE_TREE_DRAG_MIME_TYPE}
                         canDrag={handleTreeCanDrag}
+                        getDragDisabledReason={getTreeDragDisabledReason}
                         canDrop={handleTreeCanDrop}
                         onDrop={handleTreeDrop}
                         externalDrop={treeExternalDrop}
