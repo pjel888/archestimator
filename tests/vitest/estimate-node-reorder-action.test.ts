@@ -329,6 +329,31 @@ describe("reorderEstimateTreeNodes server action", () => {
     expect(supabase.rpc).not.toHaveBeenCalledWith("reorder_estimate_nodes_with_history", expect.anything());
   });
 
+  it("rejects self-parenting and descendant cycles before the reorder RPC", async () => {
+    const supabase = makeSupabase({
+      nodes: [
+        { id: "project-scope", kind: "group", estimate_id: "estimate-1", estimate_tab_id: "tab-a", parent_id: null },
+        { id: "ground-floor", kind: "group", estimate_id: "estimate-1", estimate_tab_id: "tab-a", parent_id: "project-scope" },
+        { id: "kitchen", kind: "area", estimate_id: "estimate-1", estimate_tab_id: "tab-a", parent_id: "ground-floor" },
+      ],
+    });
+    mockEstimateActionsDataStore(supabase);
+    const { reorderEstimateTreeNodes } = await import("@/lib/estimates/actions");
+
+    await expect(
+      reorderEstimateTreeNodes("project-1", "estimate-1", {
+        updates: [{ id: "kitchen", parentId: "kitchen", sortOrder: 10 }],
+      }),
+    ).rejects.toThrow("An estimate tree node cannot be moved inside itself or one of its descendants.");
+    await expect(
+      reorderEstimateTreeNodes("project-1", "estimate-1", {
+        updates: [{ id: "ground-floor", parentId: "kitchen", sortOrder: 10 }],
+      }),
+    ).rejects.toThrow("An estimate tree node cannot be moved inside itself or one of its descendants.");
+    expect(supabase.rpc).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: "estimate-1" });
+    expect(supabase.rpc).not.toHaveBeenCalledWith("reorder_estimate_nodes_with_history", expect.anything());
+  });
+
   it("converts RPC errors into a user-readable reorder failure", async () => {
     const supabase = makeSupabase({
       nodes: [{ id: "project-scope", kind: "group", estimate_id: "estimate-1", parent_id: null }],

@@ -25,7 +25,7 @@ import {
 import { recordEstimateMutationEvent } from "@/lib/estimates/estimate-mutation-telemetry";
 import { sumEstimateRowLineTotals } from "@/lib/estimates/estimate-row-total";
 import { planEstimateTreeDelete } from "@/lib/estimates/estimate-tree-edit";
-import { ESTIMATE_TREE_SORT_ORDER_STEP } from "@/lib/estimates/estimate-tree-reorder";
+import { ESTIMATE_TREE_SORT_ORDER_STEP, validateProjectedEstimateTreeReorder } from "@/lib/estimates/estimate-tree-reorder";
 import { dedupeSelectedRoots, type TreeSelectionNode } from "@/lib/bulk-selection/tree-selection";
 import { sanitizeComponentSourceUrl } from "@/lib/component-library/source-url";
 import { isUuid } from "@/lib/ids";
@@ -2199,14 +2199,10 @@ export async function reorderEstimateTreeNodes(
   if (!estimate) throw new Error("Estimate not found in the current project.");
   await assertCanEditEstimate(dataStore, estimate.id);
 
-  const referencedNodeIds = Array.from(new Set([
-    ...input.updates.map((update) => update.id),
-    ...input.updates.flatMap((update) => (update.parentId ? [update.parentId] : [])),
-  ]));
   const tabScopedNodeResult = await dataStore
     .from("estimate_nodes")
     .select("id, estimate_id, estimate_tab_id, parent_id, kind")
-    .in("id", referencedNodeIds);
+    .eq("estimate_id", estimate.id);
   let referencedNodes: unknown = tabScopedNodeResult.data;
   let nodeError = tabScopedNodeResult.error;
 
@@ -2214,7 +2210,7 @@ export async function reorderEstimateTreeNodes(
     const legacyResult = await dataStore
       .from("estimate_nodes")
       .select("id, estimate_id, parent_id, kind")
-      .in("id", referencedNodeIds);
+      .eq("estimate_id", estimate.id);
     referencedNodes = legacyResult.data;
     nodeError = legacyResult.error;
   }
@@ -2223,6 +2219,21 @@ export async function reorderEstimateTreeNodes(
 
   const referencedNodeRows = (referencedNodes ?? []) as ReorderEstimateNodeRow[];
   const nodesById = new Map(referencedNodeRows.map((node) => [node.id, node]));
+  const projectedTreeValidation = validateProjectedEstimateTreeReorder({
+    estimateId: estimate.id,
+    nodes: referencedNodeRows.map((node) => ({
+      id: node.id,
+      estimateId: node.estimate_id,
+      parentId: node.parent_id,
+      tabId: node.estimate_tab_id ?? null,
+    })),
+    updates: input.updates.map((update) => ({
+      id: update.id,
+      parentId: update.parentId,
+    })),
+  });
+  if (!projectedTreeValidation.ok) throw new Error(projectedTreeValidation.message);
+
   for (const update of input.updates) {
     const node = nodesById.get(update.id);
     if (!node || node.estimate_id !== estimate.id) throw new Error("Estimate tree update node not found in the current estimate.");
@@ -2237,8 +2248,8 @@ export async function reorderEstimateTreeNodes(
 
     // P6 single-node model: any node may parent any node. The kind label is no
     // longer a nesting discriminant, so the only structural rules left here are
-    // same-estimate ownership (above) and cross-tab isolation (above); cycle
-    // detection is enforced by the DB reorder RPC.
+    // same-estimate ownership, cross-tab isolation, and projected cycle
+    // detection enforced before the write.
     if (!normalizeEstimateTreeNodeKind(node.kind)) throw new Error("Unsupported estimate node kind.");
     if (parentNode && !normalizeEstimateTreeNodeKind(parentNode.kind)) throw new Error("Unsupported estimate node kind.");
   }

@@ -26,6 +26,7 @@ type FakeEstimateRow = {
 type FakeNodeRow = {
   id: string;
   estimate_id: string;
+  estimate_tab_id?: string | null;
   parent_id: string | null;
   sort_order: number;
 };
@@ -117,6 +118,13 @@ class FakeD1Statement<T = Record<string, unknown>> {
 
   async all<R = T>(): Promise<D1Result<R>> {
     this.database.allStatements.push(this);
+    if (this.sql.includes("FROM estimate_nodes") && this.sql.includes("WHERE estimate_id = ?")) {
+      const estimateId = String(this.values[0] ?? "");
+      const results = [...this.database.nodes.values()]
+        .filter((node) => node.estimate_id === estimateId)
+        .map((node) => ({ ...node })) as R[];
+      return { results, success: true };
+    }
     return { results: [], success: true };
   }
 
@@ -224,6 +232,61 @@ describe("EstimateActionsD1Client reorder history", () => {
       changed_fields: ["parent_id", "sort_order"],
       payload: { updates },
     });
+  });
+
+  it("rejects self-parenting and descendant cycles before writing reorder history", async () => {
+    const database = new FakeD1Database();
+    database.nodes = new Map<string, FakeNodeRow>([
+      ["project-scope", { id: "project-scope", estimate_id: ESTIMATE_ID, estimate_tab_id: "tab-a", parent_id: null, sort_order: 10 }],
+      ["ground-floor", { id: "ground-floor", estimate_id: ESTIMATE_ID, estimate_tab_id: "tab-a", parent_id: "project-scope", sort_order: 20 }],
+      ["kitchen", { id: "kitchen", estimate_id: ESTIMATE_ID, estimate_tab_id: "tab-a", parent_id: "ground-floor", sort_order: 30 }],
+    ]);
+    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
+
+    const selfResult = await client.call("reorder_estimate_nodes_with_history", {
+      target_project_id: PROJECT_ID,
+      target_estimate_id: ESTIMATE_ID,
+      move_updates: [{ id: "kitchen", parent_id: "kitchen", sort_order: 10 }],
+      acting_user_id: USER_ID,
+      correlation_id: "reorder-correlation-self",
+    });
+    const cycleResult = await client.call("reorder_estimate_nodes_with_history", {
+      target_project_id: PROJECT_ID,
+      target_estimate_id: ESTIMATE_ID,
+      move_updates: [{ id: "ground-floor", parent_id: "kitchen", sort_order: 10 }],
+      acting_user_id: USER_ID,
+      correlation_id: "reorder-correlation-cycle",
+    });
+
+    expect(selfResult.data).toBeNull();
+    expect(selfResult.error?.message).toBe("An estimate tree node cannot be moved inside itself or one of its descendants.");
+    expect(cycleResult.data).toBeNull();
+    expect(cycleResult.error?.message).toBe("An estimate tree node cannot be moved inside itself or one of its descendants.");
+    expect(database.batchStatements).toEqual([]);
+    expect(database.historyEvents).toEqual([]);
+  });
+
+  it("rejects cross-tab reparenting before writing reorder history", async () => {
+    const database = new FakeD1Database();
+    database.nodes = new Map<string, FakeNodeRow>([
+      ["ground-floor", { id: "ground-floor", estimate_id: ESTIMATE_ID, estimate_tab_id: "tab-a", parent_id: null, sort_order: 10 }],
+      ["kitchen", { id: "kitchen", estimate_id: ESTIMATE_ID, estimate_tab_id: "tab-a", parent_id: "ground-floor", sort_order: 20 }],
+      ["site-works", { id: "site-works", estimate_id: ESTIMATE_ID, estimate_tab_id: "tab-b", parent_id: null, sort_order: 30 }],
+    ]);
+    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
+
+    const result = await client.call("reorder_estimate_nodes_with_history", {
+      target_project_id: PROJECT_ID,
+      target_estimate_id: ESTIMATE_ID,
+      move_updates: [{ id: "kitchen", parent_id: "site-works", sort_order: 10 }],
+      acting_user_id: USER_ID,
+      correlation_id: "reorder-correlation-cross-tab",
+    });
+
+    expect(result.data).toBeNull();
+    expect(result.error?.message).toBe("Estimate tree nodes cannot be moved across tabs.");
+    expect(database.batchStatements).toEqual([]);
+    expect(database.historyEvents).toEqual([]);
   });
 
   it.each([

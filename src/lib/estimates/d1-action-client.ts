@@ -6,6 +6,7 @@ import { requireCurrentUserContext, type CurrentUserContext } from "@/lib/auth/s
 import { canEditEstimateInD1, canEditProjectInD1 } from "@/lib/authz/d1-access";
 import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
 import { computeEstimateRowLineTotal, sumEstimateRowLineTotals } from "@/lib/estimates/estimate-row-total";
+import { validateProjectedEstimateTreeReorder } from "@/lib/estimates/estimate-tree-reorder";
 import type { Json } from "@/lib/types/json";
 
 type QueryResult<T> = {
@@ -1344,9 +1345,42 @@ async function reorderEstimateNodes(database: D1DatabaseLike, args: Record<strin
   const projectId = String(args.target_project_id ?? "");
   const estimateId = String(args.target_estimate_id ?? "");
   const updates = Array.isArray(args.move_updates) ? args.move_updates as Array<Record<string, unknown>> : [];
-  await runBatch(database, updates.map((update) => ({
+  const moveUpdates = updates.map((update) => ({
+    id: String(update.id ?? ""),
+    parent_id: typeof update.parent_id === "string" && update.parent_id ? update.parent_id : null,
+    sort_order: Number(update.sort_order),
+  }));
+
+  const updateIds = new Set<string>();
+  for (const update of moveUpdates) {
+    if (updateIds.has(update.id)) throw new Error(`Duplicate estimate tree node update: ${update.id}.`);
+    updateIds.add(update.id);
+    if (!Number.isFinite(update.sort_order) || update.sort_order < 0) throw new Error("Estimate tree node sort order must be a non-negative number.");
+  }
+
+  const currentNodes = await all<Pick<EstimateNodeRow, "id" | "estimate_id" | "estimate_tab_id" | "parent_id">>(
+    database,
+    "SELECT id, estimate_id, estimate_tab_id, parent_id FROM estimate_nodes WHERE estimate_id = ?",
+    [estimateId],
+  );
+  const projectedTreeValidation = validateProjectedEstimateTreeReorder({
+    estimateId,
+    nodes: currentNodes.map((node) => ({
+      id: node.id,
+      estimateId: node.estimate_id,
+      parentId: node.parent_id,
+      tabId: node.estimate_tab_id ?? null,
+    })),
+    updates: moveUpdates.map((update) => ({
+      id: update.id,
+      parentId: update.parent_id,
+    })),
+  });
+  if (!projectedTreeValidation.ok) throw new Error(projectedTreeValidation.message);
+
+  await runBatch(database, moveUpdates.map((update) => ({
     sql: "UPDATE estimate_nodes SET parent_id = ?, sort_order = ?, updated_at = ? WHERE id = ? AND estimate_id = ?",
-    values: [update.parent_id ?? null, readNumber(update.sort_order), nowIso(), update.id, estimateId],
+    values: [update.parent_id, update.sort_order, nowIso(), update.id, estimateId],
   })));
   await insertHistoryEvent(database, {
     projectId,
@@ -1355,9 +1389,9 @@ async function reorderEstimateNodes(database: D1DatabaseLike, args: Record<strin
     actorUserId: String(args.acting_user_id ?? "") || null,
     correlationId: String(args.correlation_id ?? randomUUID()),
     changedFields: ["parent_id", "sort_order"],
-    payload: { updates },
+    payload: { updates: moveUpdates },
   });
-  return { updatedNodeCount: updates.length };
+  return { updatedNodeCount: moveUpdates.length };
 }
 
 async function collectDescendantNodeIds(database: D1DatabaseLike, estimateId: string, rootIds: string[]) {

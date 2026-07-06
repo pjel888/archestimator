@@ -38,6 +38,30 @@ export type EstimateNodeReorderResult =
   | { ok: true; plan: EstimateNodeReorderPlan }
   | { ok: false; code: ReorderFailureCode; message: string };
 
+export type ProjectedEstimateTreeNodeRow = {
+  id: string;
+  estimateId: string;
+  parentId: string | null;
+  tabId?: string | null;
+};
+
+export type ProjectedEstimateTreeReorderUpdate = {
+  id: string;
+  parentId: string | null;
+};
+
+export type ProjectedEstimateTreeReorderFailureCode =
+  | "duplicate-update"
+  | "unknown-node"
+  | "unknown-parent"
+  | "self-parent"
+  | "cycle"
+  | "cross-tab";
+
+export type ProjectedEstimateTreeReorderResult =
+  | { ok: true }
+  | { ok: false; code: ProjectedEstimateTreeReorderFailureCode; message: string };
+
 export type EstimateTreeDropValidationResult =
   | {
       ok: true;
@@ -60,6 +84,77 @@ type RemoveNodeResult = {
 
 function fail(code: ReorderFailureCode, message: string): { ok: false; code: ReorderFailureCode; message: string } {
   return { ok: false, code, message };
+}
+
+function projectedFail(
+  code: ProjectedEstimateTreeReorderFailureCode,
+  message: string,
+): { ok: false; code: ProjectedEstimateTreeReorderFailureCode; message: string } {
+  return { ok: false, code, message };
+}
+
+export function validateProjectedEstimateTreeReorder({
+  nodes,
+  updates,
+  estimateId,
+}: {
+  nodes: ProjectedEstimateTreeNodeRow[];
+  updates: ProjectedEstimateTreeReorderUpdate[];
+  estimateId: string;
+}): ProjectedEstimateTreeReorderResult {
+  const nodesById = new Map(nodes.map((node) => [node.id, node]));
+  const updateIds = new Set<string>();
+
+  for (const update of updates) {
+    if (updateIds.has(update.id)) {
+      return projectedFail("duplicate-update", `Duplicate estimate tree node update: ${update.id}.`);
+    }
+    updateIds.add(update.id);
+
+    const node = nodesById.get(update.id);
+    if (!node || node.estimateId !== estimateId) {
+      return projectedFail("unknown-node", "Estimate tree update node not found in the current estimate.");
+    }
+
+    if (update.parentId === update.id) {
+      return projectedFail("self-parent", "An estimate tree node cannot be moved inside itself or one of its descendants.");
+    }
+
+    const parentNode = update.parentId ? nodesById.get(update.parentId) : null;
+    if (update.parentId && (!parentNode || parentNode.estimateId !== estimateId)) {
+      return projectedFail("unknown-parent", "Estimate tree update parent not found in the current estimate.");
+    }
+
+    if (parentNode && node.tabId && parentNode.tabId && node.tabId !== parentNode.tabId) {
+      return projectedFail("cross-tab", "Estimate tree nodes cannot be moved across tabs.");
+    }
+  }
+
+  const projectedParentById: Map<string, string | null> = new Map(nodes.map((node) => [node.id, node.parentId]));
+  for (const update of updates) {
+    projectedParentById.set(update.id, update.parentId);
+  }
+
+  for (const update of updates) {
+    const visited = new Set<string>();
+    let cursorId: string | null = update.id;
+
+    while (cursorId) {
+      if (visited.has(cursorId)) {
+        return projectedFail("cycle", "An estimate tree node cannot be moved inside itself or one of its descendants.");
+      }
+      visited.add(cursorId);
+
+      const parentId: string | null = projectedParentById.get(cursorId) ?? null;
+      if (!parentId) break;
+
+      const parentNode = nodesById.get(parentId);
+      if (!parentNode || parentNode.estimateId !== estimateId) break;
+      cursorId = parentId;
+    }
+  }
+
+  return { ok: true };
 }
 
 function cloneNode(node: EstimateTreeNode): EstimateTreeNode {

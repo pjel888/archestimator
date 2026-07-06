@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { selectFirstEstimateNodeIds } from "@/lib/estimates/tree-hierarchy";
 import { buildEstimateTree, type EstimateTreeNodeQueryRow, type EstimateTreeRowItemQueryRow } from "@/lib/repositories/workspace-repository";
@@ -391,5 +393,14 @@ describe("estimate landing-node selection", () => {
     ]);
 
     expect(firstNodes.get("estimate-1")).toBe("area-under-unknown");
+  });
+});
+
+describe("workspace repository estimate tree readback", () => {
+  it("reads estimate tree nodes with deterministic sort_order then id ordering", () => {
+    const repositorySource = readFileSync(join(process.cwd(), "src/lib/repositories/workspace-repository.ts"), "utf8");
+
+    expect(repositorySource).toContain("function readEstimateNodes(");
+    expect(repositorySource).toContain("ORDER BY sort_order ASC, id ASC${limitSql}");
   });
 });
