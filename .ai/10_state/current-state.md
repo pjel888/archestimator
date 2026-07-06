@@ -37,6 +37,23 @@ Stable current truth (verify against git/source before relying on a detail):
   platform-proxy smoke exposes `ARCH_DB`, `ARCH_UPLOADS_R2`, `IMAGES`, `EMAIL`,
   and `UPLOAD_JOBS_QUEUE` with no `COLLAB_ROOMS`, high-memory typecheck passes,
   and `git diff --check` is clean.
+- Component library route-modal hydration repair (2026-07-07 local): the live
+  dev log showed `/workshop/library/components?add=component` hydrating with an
+  `AddComponentModal` portal on the first client render that was absent from
+  server HTML. `ComponentLibraryManager` now initializes `addComponentOpen`
+  closed and handles the `?add=component` request in a guarded post-hydration
+  effect, preserving the deep-link modal while avoiding first-render portal
+  drift. Focused proof: `bunx vitest run tests/vitest/component-library-manager-hydration.test.tsx --maxWorkers=1`
+  and `bunx vitest run tests/vitest/component-library-manager-ui.test.tsx --maxWorkers=1`
+  passed; scoped `git diff --check` passed.
+- Next 16 proxy convention repair (2026-07-07 local): the startup warning about
+  deprecated `middleware` was caused by `src/middleware.ts` remaining as the
+  active file convention while `src/proxy/index.ts` was only an import
+  convenience module. The active entrypoint is now `src/proxy.ts`, exporting
+  `config` and `proxy` from `src/lib/auth/request-proxy.ts`; `src/middleware.ts`
+  and `src/proxy/index.ts` were removed, and provider/source smoke scan roots now
+  point at `src/proxy.ts`. Focused proof: proxy convention/auth proxy tests and
+  provider-exit/latest-deploy-source smoke script tests passed.
 - Project Activity UX/UI improvement (2026-07-06): the planning pack
   `.ai/03_plans/2026-07-06-Project-Activity-UX-UI-Improvement/` now has a stable
   ledger implementation pass. The activity page uses a compact project-ledger
