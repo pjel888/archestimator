@@ -1227,7 +1227,7 @@ export function writeMarkdown(report: CloudflareD1AuthRealtimeReadinessReport, m
 }
 
 function collectRepoInputs(): CheckInputs {
-  const sourceRoots = ["src/app", "src/lib", "src/components", "src/hooks", "src/proxy", "src/middleware.ts", "worker.ts"]
+  const sourceRoots = ["src/app", "src/lib", "src/components", "src/hooks", "src/proxy.ts", "worker.ts"]
     .map((path) => resolve(path))
     .filter(existsSync);
   const sourceFiles = sourceRoots.flatMap((root) => listFilesRecursively(root, isSourceFile)).map(toRepoRelativePath);

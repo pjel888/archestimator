@@ -96,7 +96,7 @@ describe("latest deploy source smoke script", () => {
       "cloudflare-env.d.ts",
       "next.config.ts",
       "open-next.config.ts",
-      "src/middleware.ts",
+      "src/proxy.ts",
     ]));
     expect(DEFAULT_RUNTIME_SOURCE_STATUS_PATHS).not.toContain("middleware.ts");
   });

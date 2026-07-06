@@ -113,7 +113,7 @@ export const DEFAULT_RUNTIME_SOURCE_STATUS_PATHS = [
   "cloudflare-env.d.ts",
   "next.config.ts",
   "open-next.config.ts",
-  "src/middleware.ts",
+  "src/proxy.ts",
 ];
 
 const PROOF_ONLY_PACKAGE_SCRIPT_KEYS = [

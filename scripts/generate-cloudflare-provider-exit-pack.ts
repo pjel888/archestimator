@@ -86,7 +86,7 @@ export const DEFAULT_PROVIDER_EXIT_SCAN_PATHS = [
   "cloudflare-env.d.ts",
   "next.config.ts",
   "open-next.config.ts",
-  "src/middleware.ts",
+  "src/proxy.ts",
 ];
 const TEXT_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".json", ".jsonc", ".lock"]);
 

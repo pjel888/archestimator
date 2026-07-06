@@ -149,7 +149,7 @@ describe("provider exit pack script", () => {
       "cloudflare-env.d.ts",
       "next.config.ts",
       "open-next.config.ts",
-      "src/middleware.ts",
+      "src/proxy.ts",
     ]));
     expect(DEFAULT_PROVIDER_EXIT_SCAN_PATHS).not.toContain("middleware.ts");
   });

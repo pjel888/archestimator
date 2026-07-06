@@ -558,7 +558,7 @@ export function writeMarkdown(report: CloudflareD1AuthzAccessMatrixReport, markd
 }
 
 function collectRepoInputs(): AccessMatrixInputs {
-  const sourceRoots = ["src/app", "src/lib", "src/components", "src/hooks", "src/proxy", "src/middleware.ts", "worker.ts"]
+  const sourceRoots = ["src/app", "src/lib", "src/components", "src/hooks", "src/proxy.ts", "worker.ts"]
     .map((path) => resolve(path))
     .filter(existsSync);
   const testRoots = ["tests/vitest"].map((path) => resolve(path)).filter(existsSync);
