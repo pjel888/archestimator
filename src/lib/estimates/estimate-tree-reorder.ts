@@ -324,6 +324,7 @@ export function mergeEstimateTreeStructureWithCachedNodes({
       ...mergedNode,
       id: structureNode.id,
       kind: structureNode.kind,
+      sortOrder: structureNode.sortOrder,
       children: structureNode.children?.map(mergeNode) ?? structureNode.children,
     };
   }

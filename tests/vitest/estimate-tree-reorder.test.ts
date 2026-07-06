@@ -288,6 +288,76 @@ describe("estimate tree reorder planning", () => {
     expect(childIds(result.plan.nextNodes, "living")).toEqual(["front-yard"]);
   });
 
+  it("preserves descendants when moving a branch before a sibling", () => {
+    const result = evaluateEstimateTreeDrop({
+      nodes: fixtureTree(),
+      draggedNodeIds: ["site-works"],
+      target: { targetNodeId: "ground-floor", position: "before" },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.message);
+    expect(childIds(result.plan.nextNodes, "project-scope")).toEqual(["site-works", "ground-floor"]);
+    expect(childIds(result.plan.nextNodes, "site-works")).toEqual(["front-yard"]);
+    expect(getDescendantEstimateNodeIds(byId(result.plan.nextNodes, "site-works"))).toEqual(new Set(["front-yard"]));
+  });
+
+  it("preserves descendants when moving a branch after a sibling", () => {
+    const result = evaluateEstimateTreeDrop({
+      nodes: fixtureTree(),
+      draggedNodeIds: ["ground-floor"],
+      target: { targetNodeId: "site-works", position: "after" },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.message);
+    expect(childIds(result.plan.nextNodes, "project-scope")).toEqual(["site-works", "ground-floor"]);
+    expect(childIds(result.plan.nextNodes, "ground-floor")).toEqual(["kitchen", "living"]);
+    expect(getDescendantEstimateNodeIds(byId(result.plan.nextNodes, "ground-floor"))).toEqual(new Set(["kitchen", "living"]));
+  });
+
+  it("preserves descendants when moving a branch inside another node", () => {
+    const result = evaluateEstimateTreeDrop({
+      nodes: fixtureTree(),
+      draggedNodeIds: ["site-works"],
+      target: { targetNodeId: "ground-floor", position: "inside" },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.message);
+    expect(childIds(result.plan.nextNodes, "project-scope")).toEqual(["ground-floor"]);
+    expect(childIds(result.plan.nextNodes, "ground-floor")).toEqual(["kitchen", "living", "site-works"]);
+    expect(childIds(result.plan.nextNodes, "site-works")).toEqual(["front-yard"]);
+  });
+
+  it("preserves descendants when moving a branch to the estimate root top", () => {
+    const result = buildEstimateNodeReorderPlan({
+      nodes: fixtureTree(),
+      draggedNodeId: "ground-floor",
+      targetParentId: null,
+      targetIndex: 0,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.message);
+    expect(childIds(result.plan.nextNodes, null)).toEqual(["ground-floor", "project-scope", "alternates"]);
+    expect(childIds(result.plan.nextNodes, "ground-floor")).toEqual(["kitchen", "living"]);
+  });
+
+  it("preserves descendants when moving a branch to the estimate root bottom", () => {
+    const result = buildEstimateNodeReorderPlan({
+      nodes: fixtureTree(),
+      draggedNodeId: "ground-floor",
+      targetParentId: null,
+      targetIndex: Number.POSITIVE_INFINITY,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.message);
+    expect(childIds(result.plan.nextNodes, null)).toEqual(["project-scope", "alternates", "ground-floor"]);
+    expect(childIds(result.plan.nextNodes, "ground-floor")).toEqual(["kitchen", "living"]);
+  });
+
   it("rejects unknown dragged nodes, unknown targets, multi-drag, and no-op drops", () => {
     expect(buildEstimateNodeReorderPlan({ nodes: fixtureTree(), draggedNodeId: "missing", targetParentId: null, targetIndex: 0 })).toMatchObject({ ok: false, code: "unknown-dragged-node" });
     expect(buildEstimateNodeReorderPlan({ nodes: fixtureTree(), draggedNodeId: "kitchen", targetParentId: "missing", targetIndex: 0 })).toMatchObject({ ok: false, code: "unknown-target-parent" });
@@ -463,6 +533,67 @@ describe("estimate tree reorder planning", () => {
     });
 
     expect(childIds(merged, "site-works")).toEqual(["front-yard", "kitchen"]);
+    expect(byId(merged, "kitchen").estimateRowItems?.map((row) => row.id)).toEqual(["cached-row-edit"]);
+  });
+
+  it("adopts confirmed structural sort order while preserving cached row content", () => {
+    const cachedNodes = [
+      node({
+        id: "project-scope",
+        name: "Project Scope",
+        kind: "group",
+        sortOrder: 10,
+        children: [
+          node({
+            id: "kitchen",
+            name: "Cached Kitchen Draft",
+            kind: "area",
+            sortOrder: 10,
+            estimateRowItems: [
+              {
+                id: "cached-row-edit",
+                material: "Cached Row",
+                description: "Local edit stays in cache while reorder settles.",
+                supplier: "Local cache",
+                source: "project",
+                unit: "pc",
+                itemCost: 100,
+                quantity: 1,
+                subTotal: 100,
+                miscCost: 0,
+                totalItemCosts: 100,
+                category: "General",
+                pricingSource: "Fixture",
+                pricingDate: "2026-05-21",
+              },
+            ],
+            children: [],
+          }),
+          node({ id: "living", name: "Cached Living", kind: "area", sortOrder: 20, children: [] }),
+        ],
+      }),
+    ];
+    const structureNodes = [
+      node({
+        id: "project-scope",
+        name: "Server Project Scope",
+        kind: "group",
+        sortOrder: 10,
+        children: [
+          node({ id: "living", name: "Server Living", kind: "area", sortOrder: 10, children: [] }),
+          node({ id: "kitchen", name: "Server Kitchen", kind: "area", sortOrder: 30, children: [] }),
+        ],
+      }),
+    ];
+
+    const merged = mergeEstimateTreeStructureWithCachedNodes({
+      structureNodes,
+      cachedNodes,
+    });
+
+    expect(childIds(merged, "project-scope")).toEqual(["living", "kitchen"]);
+    expect(byId(merged, "living")).toMatchObject({ name: "Cached Living", sortOrder: 10 });
+    expect(byId(merged, "kitchen")).toMatchObject({ name: "Cached Kitchen Draft", sortOrder: 30 });
     expect(byId(merged, "kitchen").estimateRowItems?.map((row) => row.id)).toEqual(["cached-row-edit"]);
   });
 });
