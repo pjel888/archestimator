@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { isCursorBroadcastEnabled } from "@/lib/collaboration/feature-flags";
+import {
+  isCursorBroadcastEnabled,
+  isRealtimeTransportEnabled,
+} from "@/lib/collaboration/feature-flags";
 import {
   importVerifyKey,
   verifyRealtimeIdentity,
@@ -67,8 +70,10 @@ export type RealtimeIdentityIssuer = (input: { topic: string }) => Promise<{
   roomToken?: string | null;
 } | null>;
 
-const defaultCursorClientFactory: CursorClientFactory = () =>
-  createCloudflareCollaborationRoomClient() as unknown as CursorClientLike;
+const defaultCursorClientFactory: CursorClientFactory = () => {
+  if (!isRealtimeTransportEnabled()) throw new Error("realtime_transport_disabled");
+  return createCloudflareCollaborationRoomClient() as unknown as CursorClientLike;
+};
 
 type UseEstimateCursorBroadcastInput = {
   estimateId: string | null | undefined;

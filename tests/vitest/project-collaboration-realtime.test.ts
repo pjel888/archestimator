@@ -9,12 +9,15 @@ import {
   type ProjectPresencePayload,
   useProjectPresence,
 } from "@/hooks/use-project-presence";
+import { isRealtimeTransportEnabled } from "@/lib/collaboration/feature-flags";
 import { issueRealtimeIdentityEnvelope } from "@/lib/collaboration/realtime-identity-server";
 
 const presenceHook = readFileSync("src/hooks/use-project-presence.ts", "utf8");
 const cursorHook = readFileSync("src/hooks/use-estimate-cursor-broadcast.ts", "utf8");
+const rowUpdateHook = readFileSync("src/hooks/use-estimate-row-update-broadcast.ts", "utf8");
 const collaborationColors = readFileSync("src/lib/collaboration/colors.ts", "utf8");
 const estimateSheetContent = readFileSync("src/components/workshop/EstimateSheetContent.tsx", "utf8");
+const featureFlags = readFileSync("src/lib/collaboration/feature-flags.ts", "utf8");
 const realtimeIdentityServer = readFileSync("src/lib/collaboration/realtime-identity-server.ts", "utf8");
 
 // --- Fake realtime transport (T0.3 seam) -----------------------------------
@@ -111,6 +114,7 @@ describe("useProjectPresence — payload scope & lifecycle (T1.1 / T0.3)", () =>
   });
   afterEach(() => {
     vi.useRealTimers();
+    vi.unstubAllEnvs();
   });
 
   it("tracks ONLY coarse fields — no raw route, estimate, tab, or cell leaks", async () => {
@@ -269,6 +273,31 @@ describe("useProjectPresence — payload scope & lifecycle (T1.1 / T0.3)", () =>
       useProjectPresence({ projectId: null, currentUser: { id: "user-a" }, clientFactory: () => client }),
     );
     expect(client.__channels.length).toBe(0);
+  });
+
+  it("disables the default Cloudflare WebSocket transport in plain next dev", () => {
+    expect(featureFlags).toContain("NEXT_PUBLIC_TEAMSPACE_REALTIME_TRANSPORT");
+    expect(featureFlags).toContain("isRealtimeTransportEnabled");
+    expect(featureFlags).toContain('process.env.NODE_ENV !== "development"');
+    expect(presenceHook).toContain("isRealtimeTransportEnabled");
+    expect(cursorHook).toContain("isRealtimeTransportEnabled");
+    expect(rowUpdateHook).toContain("isRealtimeTransportEnabled");
+  });
+
+  it("keeps realtime transport off by default in development and overrideable", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("NEXT_PUBLIC_TEAMSPACE_REALTIME_TRANSPORT", "");
+    expect(isRealtimeTransportEnabled()).toBe(false);
+
+    vi.stubEnv("NEXT_PUBLIC_TEAMSPACE_REALTIME_TRANSPORT", "on");
+    expect(isRealtimeTransportEnabled()).toBe(true);
+
+    vi.stubEnv("NEXT_PUBLIC_TEAMSPACE_REALTIME_TRANSPORT", "off");
+    expect(isRealtimeTransportEnabled()).toBe(false);
+
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_TEAMSPACE_REALTIME_TRANSPORT", "");
+    expect(isRealtimeTransportEnabled()).toBe(true);
   });
 });
 

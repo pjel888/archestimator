@@ -10,6 +10,7 @@
  * Values are inlined at build time by Next.js; treat them as build-time config,
  * not per-request toggles. The defaults below are the SAFE production posture:
  *   - cursor broadcast (the already-shipped sheet cursors): ON
+ *   - realtime transport in plain next dev: OFF unless explicitly enabled
  *   - project-wide page cursors (new, fan-out heavy): OFF until D-1 tier confirmed
  *   - follow mode (deferred, D-6): OFF
  */
@@ -32,6 +33,17 @@ export function isCursorBroadcastEnabled(): boolean {
 }
 
 /**
+ * Cloudflare Durable Object WebSockets are mounted by the Worker wrapper, not
+ * by plain `next dev`. Keep the default transport off in local Next dev; use
+ * `bun run cf:preview` for Worker-parity realtime, or explicitly enable this
+ * flag when running a local WebSocket-compatible proxy.
+ */
+export function isRealtimeTransportEnabled(): boolean {
+  return readFlag(process.env.NEXT_PUBLIC_TEAMSPACE_REALTIME_TRANSPORT)
+    ?? process.env.NODE_ENV !== "development";
+}
+
+/**
  * Project-wide page cursors (T5.3). Capacity-gated by decision D-1 (needs
  * Cloudflare realtime headroom). Default OFF; enable per-environment with
  * `NEXT_PUBLIC_TEAMSPACE_PROJECT_CURSORS=on` once the tier is confirmed.
@@ -50,6 +62,7 @@ function isFollowModeEnabled(): boolean {
 
 export type TeamspaceFeatureFlags = {
   cursorBroadcast: boolean;
+  realtimeTransport: boolean;
   projectPageCursors: boolean;
   followMode: boolean;
 };
@@ -57,6 +70,7 @@ export type TeamspaceFeatureFlags = {
 function readTeamspaceFeatureFlags(): TeamspaceFeatureFlags {
   return {
     cursorBroadcast: isCursorBroadcastEnabled(),
+    realtimeTransport: isRealtimeTransportEnabled(),
     projectPageCursors: isProjectPageCursorsEnabled(),
     followMode: isFollowModeEnabled(),
   };

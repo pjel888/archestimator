@@ -7,6 +7,7 @@ import {
   isActiveSurface,
   readCurrentActiveSurface,
 } from "@/lib/collaboration/presence-surface";
+import { isRealtimeTransportEnabled } from "@/lib/collaboration/feature-flags";
 import {
   importVerifyKey,
   verifyRealtimeIdentity,
@@ -78,8 +79,10 @@ export type PresenceClientLike = {
 export type PresenceClientFactory = () => PresenceClientLike;
 export type PresenceIdentityIssuer = typeof issueRealtimeIdentity;
 
-const defaultClientFactory: PresenceClientFactory = () =>
-  createCloudflareCollaborationRoomClient() as unknown as PresenceClientLike;
+const defaultClientFactory: PresenceClientFactory = () => {
+  if (!isRealtimeTransportEnabled()) throw new Error("realtime_transport_disabled");
+  return createCloudflareCollaborationRoomClient() as unknown as PresenceClientLike;
+};
 
 type UseProjectPresenceInput = {
   projectId: string | null | undefined;

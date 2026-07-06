@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef } from "react";
 
 import { createCloudflareCollaborationRoomClient } from "@/lib/cloudflare/collaboration-room-client";
+import { isRealtimeTransportEnabled } from "@/lib/collaboration/feature-flags";
 import { issueRealtimeIdentity } from "@/lib/collaboration/realtime-identity-actions";
 import { ESTIMATE_COLLABORATION_CHANNEL_PREFIX } from "./use-estimate-cursor-broadcast";
 
@@ -82,8 +83,10 @@ export function shouldApplyEstimateRowUpdateBroadcast(
   return payload.rowRevision > (current.rowRevision ?? 0);
 }
 
-const defaultRowUpdateClientFactory: RowUpdateClientFactory = () =>
-  createCloudflareCollaborationRoomClient() as unknown as RowUpdateClientLike;
+const defaultRowUpdateClientFactory: RowUpdateClientFactory = () => {
+  if (!isRealtimeTransportEnabled()) throw new Error("realtime_transport_disabled");
+  return createCloudflareCollaborationRoomClient() as unknown as RowUpdateClientLike;
+};
 
 export function useEstimateRowUpdateBroadcast({
   estimateId,
