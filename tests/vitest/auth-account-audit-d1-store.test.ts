@@ -77,6 +77,16 @@ class FakeD1Database {
 }
 
 describe("Cloudflare D1 account security audit store", () => {
+  it("allows current HMAC audit digests in the D1 schema", () => {
+    const baseMigration = readFileSync("migrations/0004_account_security_events.sql", "utf8");
+    const repairMigration = readFileSync("migrations/0035_account_security_events_hmac_checks.sql", "utf8");
+    const schemaContract = `${baseMigration}\n${repairMigration}`;
+
+    expect(schemaContract).toContain("hmac-sha256");
+    expect(schemaContract).toContain("length(ip_hash) = 76");
+    expect(schemaContract).toContain("length(user_agent_hash) = 76");
+  });
+
   it("inserts sanitized account security events into D1", async () => {
     const database = new FakeD1Database();
     const row = buildAccountSecurityAuditRow({

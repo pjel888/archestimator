@@ -10,12 +10,20 @@ CREATE TABLE IF NOT EXISTS account_security_events (
       length(ip_hash) = 71
       AND ip_hash GLOB 'sha256:[0-9a-f]*'
     )
+    OR (
+      length(ip_hash) = 76
+      AND ip_hash GLOB 'hmac-sha256:[0-9a-f]*'
+    )
   ),
   user_agent_hash TEXT CHECK (
     user_agent_hash IS NULL
     OR (
       length(user_agent_hash) = 71
       AND user_agent_hash GLOB 'sha256:[0-9a-f]*'
+    )
+    OR (
+      length(user_agent_hash) = 76
+      AND user_agent_hash GLOB 'hmac-sha256:[0-9a-f]*'
     )
   ),
   metadata_json TEXT NOT NULL DEFAULT '{}' CHECK (
