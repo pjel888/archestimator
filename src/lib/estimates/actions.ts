@@ -2250,6 +2250,7 @@ export async function reorderEstimateTreeNodes(
   }));
   const currentUser = await requireCurrentUserContext();
   const rpcPayload = {
+    target_project_id: project.id,
     target_estimate_id: estimate.id,
     move_updates: moveUpdates,
     acting_user_id: currentUser.userId,

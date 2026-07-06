@@ -151,6 +151,7 @@ describe("reorderEstimateTreeNodes server action", () => {
     expect(repositoryMocks.getCurrentWorkspaceProject).toHaveBeenCalledWith("project-1");
     expect(supabase.rpc).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: "estimate-1" });
     expect(supabase.rpc).toHaveBeenCalledWith("reorder_estimate_nodes_with_history", {
+      target_project_id: "project-1",
       target_estimate_id: "estimate-1",
       move_updates: [
         { id: "living", parent_id: "ground-floor", sort_order: 10 },
@@ -201,6 +202,7 @@ describe("reorderEstimateTreeNodes server action", () => {
     });
 
     expect(restRpc).toHaveBeenCalledWith("reorder_estimate_nodes_with_history", {
+      target_project_id: "project-1",
       target_estimate_id: "estimate-1",
       move_updates: [
         { id: "site-works", parent_id: "ground-floor", sort_order: 10 },
@@ -252,6 +254,7 @@ describe("reorderEstimateTreeNodes server action", () => {
     });
 
     expect(supabase.rpc).toHaveBeenCalledWith("reorder_estimate_nodes_with_history", {
+      target_project_id: "project-1",
       target_estimate_id: "estimate-1",
       move_updates: [{ id: "master-bedroom", parent_id: "second-floor", sort_order: 20 }],
       acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
@@ -274,6 +277,7 @@ describe("reorderEstimateTreeNodes server action", () => {
     });
 
     expect(supabase.rpc).toHaveBeenCalledWith("reorder_estimate_nodes_with_history", {
+      target_project_id: "project-1",
       target_estimate_id: "estimate-1",
       move_updates: [{ id: "kitchen", parent_id: "ground-floor", sort_order: 15.5 }],
       acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
