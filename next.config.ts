@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import createBundleAnalyzer from "@next/bundle-analyzer";
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 
 type ImageRemotePattern = Exclude<NonNullable<NonNullable<NextConfig["images"]>["remotePatterns"]>[number], URL>;
 type ImageLocalPattern = NonNullable<NonNullable<NextConfig["images"]>["localPatterns"]>[number];
@@ -9,6 +10,12 @@ const __impeccableLiveDev =
   process.env.NODE_ENV === "development" ? " http://localhost:8400" : "";
 const isCloudflareWorkersProofBuild = process.env.ARCHESTIMATOR_CLOUDFLARE_BUILD === "1";
 const useCloudflareImageLoader = isCloudflareWorkersProofBuild;
+
+if (process.env.NODE_ENV === "development" && !isCloudflareWorkersProofBuild) {
+  void initOpenNextCloudflareForDev({
+    configPath: "wrangler.next-dev.jsonc",
+  });
+}
 
 const landingReportOnlyCsp = [
   "default-src 'self'",
