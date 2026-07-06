@@ -110,6 +110,22 @@ type ReorderStatus =
   | { state: "saved"; message: string }
   | { state: "error"; message: string };
 
+type EstimateTreeMoveSelection = {
+  id: string;
+  targetNodeId: string;
+  position: TreeDropPosition;
+};
+
+type EstimateTreeMoveOption = {
+  id: string;
+  label: string;
+  detail: string;
+  depth: number;
+  selection: EstimateTreeMoveSelection;
+  disabled: boolean;
+  reason: string;
+};
+
 // Same icon scale as the right-sidebar trees: every tree panel renders row
 // icons at the shared TREE_ROW_ICON_SIZE so no panel reads "bigger". One
 // neutral node glyph for every node — containment is shown by the disclosure
@@ -276,7 +292,7 @@ type EstimateSheetTreeState = {
   renamingNodeId: string | null;
   deleteTargetNode: EstimateTreeNode | null;
   moveTargetNode: EstimateTreeNode | null;
-  moveDestinationNodeId: string;
+  moveSelection: EstimateTreeMoveSelection | null;
   deletePending: boolean;
   bulkDeleteConfirmOpen: boolean;
   bulkDeletePending: boolean;
@@ -295,7 +311,7 @@ type EstimateSheetTreeAction =
   | { type: "renamingNodeIdChanged"; renamingNodeId: string | null }
   | { type: "deleteTargetNodeChanged"; deleteTargetNode: EstimateTreeNode | null }
   | { type: "moveTargetNodeChanged"; moveTargetNode: EstimateTreeNode | null }
-  | { type: "moveDestinationNodeIdChanged"; moveDestinationNodeId: string }
+  | { type: "moveSelectionChanged"; moveSelection: EstimateTreeMoveSelection | null }
   | { type: "deletePendingChanged"; deletePending: boolean }
   | { type: "bulkDeleteConfirmOpenChanged"; bulkDeleteConfirmOpen: boolean }
   | { type: "bulkDeletePendingChanged"; bulkDeletePending: boolean }
@@ -318,7 +334,7 @@ function createEstimateSheetTreeState(): EstimateSheetTreeState {
     renamingNodeId: null,
     deleteTargetNode: null,
     moveTargetNode: null,
-    moveDestinationNodeId: "",
+    moveSelection: null,
     deletePending: false,
     bulkDeleteConfirmOpen: false,
     bulkDeletePending: false,
@@ -349,8 +365,8 @@ function estimateSheetTreeReducer(
       return { ...state, deleteTargetNode: action.deleteTargetNode };
     case "moveTargetNodeChanged":
       return { ...state, moveTargetNode: action.moveTargetNode };
-    case "moveDestinationNodeIdChanged":
-      return { ...state, moveDestinationNodeId: action.moveDestinationNodeId };
+    case "moveSelectionChanged":
+      return { ...state, moveSelection: action.moveSelection };
     case "deletePendingChanged":
       return { ...state, deletePending: action.deletePending };
     case "bulkDeleteConfirmOpenChanged":
@@ -491,7 +507,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     renamingNodeId,
     deleteTargetNode,
     moveTargetNode,
-    moveDestinationNodeId,
+    moveSelection,
     deletePending,
     bulkDeleteConfirmOpen,
     bulkDeletePending,
@@ -519,8 +535,8 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     dispatchTreeState({ type: "deleteTargetNodeChanged", deleteTargetNode });
   const setMoveTargetNode = (moveTargetNode: EstimateTreeNode | null) =>
     dispatchTreeState({ type: "moveTargetNodeChanged", moveTargetNode });
-  const setMoveDestinationNodeId = (moveDestinationNodeId: string) =>
-    dispatchTreeState({ type: "moveDestinationNodeIdChanged", moveDestinationNodeId });
+  const setMoveSelection = (moveSelection: EstimateTreeMoveSelection | null) =>
+    dispatchTreeState({ type: "moveSelectionChanged", moveSelection });
   const setDeletePending = (deletePending: boolean) =>
     dispatchTreeState({ type: "deletePendingChanged", deletePending });
   const setBulkDeleteConfirmOpen = (bulkDeleteConfirmOpen: boolean) =>
@@ -1575,46 +1591,105 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
 
   const openTreeMoveDialog = useCallback((node: EstimateTreeNode) => {
     setMoveTargetNode(node);
-    setMoveDestinationNodeId("");
+    setMoveSelection(null);
   }, []);
 
   const treeMoveDestinationOptions = useMemo(() => {
     if (!moveTargetNode) return [];
     const sourceNodeId = moveTargetNode.id;
-    const options: Array<{
-      id: string;
-      name: string;
-      depth: number;
-      path: string;
-      disabled: boolean;
-      reason: string;
-    }> = [];
+    const options: EstimateTreeMoveOption[] = [];
     const globalDisabled = !canReorderNow || Boolean(editingNodeId) || treeSearchActive || isOptimisticEstimateNodeId(sourceNodeId);
     const globalReason = treeSearchActive
-      ? "Clear tree search before moving areas."
+      ? "Clear tree search before moving nodes."
       : editingNodeId
-        ? "Finish renaming before moving areas."
+        ? "Finish renaming before moving nodes."
         : !canReorderNow
-          ? "Finish the current tree save before moving areas."
+          ? "Finish the current tree save before moving nodes."
           : isOptimisticEstimateNodeId(sourceNodeId)
-            ? "Wait for this new area to finish saving first."
+            ? "Wait for this new node to finish saving first."
             : "";
+
+    function addOption({
+      id,
+      label,
+      detail,
+      depth,
+      targetNodeId,
+      position,
+    }: {
+      id: string;
+      label: string;
+      detail: string;
+      depth: number;
+      targetNodeId: string;
+      position: TreeDropPosition;
+    }) {
+      const validation = validateEstimateTreeDrop({
+        nodes: localNodes,
+        draggedNodeIds: [sourceNodeId],
+        target: { targetNodeId, position },
+      });
+      const targetIsPendingCreate = isOptimisticEstimateNodeId(targetNodeId);
+      options.push({
+        id,
+        label,
+        detail,
+        depth,
+        selection: { id, targetNodeId, position },
+        disabled: globalDisabled || targetIsPendingCreate || !validation.ok,
+        reason: globalReason || (targetIsPendingCreate ? "Wait for this node to finish saving first." : validation.ok ? detail : validation.message),
+      });
+    }
+
+    const firstRoot = localNodes[0];
+    const lastRoot = localNodes[localNodes.length - 1];
+    if (firstRoot) {
+      addOption({
+        id: "root:top",
+        label: "Top of tree",
+        detail: `Before ${firstRoot.name}`,
+        depth: 0,
+        targetNodeId: firstRoot.id,
+        position: "before",
+      });
+    }
+    if (lastRoot) {
+      addOption({
+        id: "root:bottom",
+        label: "Bottom of tree",
+        detail: `After ${lastRoot.name}`,
+        depth: 0,
+        targetNodeId: lastRoot.id,
+        position: "after",
+      });
+    }
 
     function visit(nodesToVisit: EstimateTreeNode[], depth: number, parentPath: string[]) {
       nodesToVisit.forEach((node) => {
-        const validation = validateEstimateTreeDrop({
-          nodes: localNodes,
-          draggedNodeIds: [sourceNodeId],
-          target: { targetNodeId: node.id, position: "inside" },
-        });
-        const nodeIsPendingCreate = isOptimisticEstimateNodeId(node.id);
-        options.push({
-          id: node.id,
-          name: node.name,
+        const path = [...parentPath, node.name].join(" / ");
+        addOption({
+          id: `${node.id}:before`,
+          label: `Before ${node.name}`,
+          detail: path,
           depth,
-          path: [...parentPath, node.name].join(" / "),
-          disabled: globalDisabled || nodeIsPendingCreate || !validation.ok,
-          reason: globalReason || (nodeIsPendingCreate ? "Wait for this area to finish saving first." : validation.ok ? "" : validation.message),
+          targetNodeId: node.id,
+          position: "before",
+        });
+        addOption({
+          id: `${node.id}:inside`,
+          label: `Inside ${node.name}`,
+          detail: path,
+          depth: depth + 1,
+          targetNodeId: node.id,
+          position: "inside",
+        });
+        addOption({
+          id: `${node.id}:after`,
+          label: `After ${node.name}`,
+          detail: path,
+          depth,
+          targetNodeId: node.id,
+          position: "after",
         });
         visit(node.children ?? [], depth + 1, [...parentPath, node.name]);
       });
@@ -1625,13 +1700,13 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   }, [canReorderNow, editingNodeId, localNodes, moveTargetNode, treeSearchActive]);
 
   const selectedMoveDestination = useMemo(
-    () => treeMoveDestinationOptions.find((option) => option.id === moveDestinationNodeId) ?? null,
-    [moveDestinationNodeId, treeMoveDestinationOptions],
+    () => (moveSelection ? treeMoveDestinationOptions.find((option) => option.id === moveSelection.id) ?? null : null),
+    [moveSelection, treeMoveDestinationOptions],
   );
 
   const closeTreeMoveDialog = useCallback((sourceNodeId?: string) => {
     setMoveTargetNode(null);
-    setMoveDestinationNodeId("");
+    setMoveSelection(null);
     if (sourceNodeId) {
       window.setTimeout(() => findRenderedTreeRow(sourceNodeId)?.focus(), 0);
     }
@@ -1640,7 +1715,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   const confirmTreeMove = useCallback(() => {
     if (!moveTargetNode || !selectedMoveDestination || selectedMoveDestination.disabled) return;
     const sourceNodeId = moveTargetNode.id;
-    handleTreeDrop(sourceNodeId, selectedMoveDestination.id, "inside");
+    handleTreeDrop(sourceNodeId, selectedMoveDestination.selection.targetNodeId, selectedMoveDestination.selection.position);
     closeTreeMoveDialog(sourceNodeId);
   }, [closeTreeMoveDialog, handleTreeDrop, moveTargetNode, selectedMoveDestination]);
 
@@ -2119,7 +2194,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
       >
         <div className="space-y-3">
           <fieldset className="space-y-1">
-            <legend className="text-[10px] font-medium leading-4 text-ink">Destination area</legend>
+            <legend className="text-[10px] font-medium leading-4 text-ink">Destination</legend>
             <div className="max-h-72 overflow-auto rounded-xs border border-hairline bg-white">
               {treeMoveDestinationOptions.length > 0 ? (
                 treeMoveDestinationOptions.map((option) => (
@@ -2135,21 +2210,21 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
                       type="radio"
                       name="estimate-tree-move-destination"
                       value={option.id}
-                      checked={moveDestinationNodeId === option.id}
+                      checked={moveSelection?.id === option.id}
                       disabled={option.disabled}
-                      onChange={() => setMoveDestinationNodeId(option.id)}
+                      onChange={() => setMoveSelection(option.selection)}
                       className="mt-0.5 size-3"
                     />
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[10px] font-medium leading-4 text-ink">{option.name}</span>
+                      <span className="block truncate text-[10px] font-medium leading-4 text-ink">{option.label}</span>
                       <span className="block truncate text-[9px] leading-3 text-tertiary">
-                        {option.disabled ? option.reason : option.path}
+                        {option.disabled ? option.reason : option.detail}
                       </span>
                     </span>
                   </label>
                 ))
               ) : (
-                <p className="px-2 py-3 text-[10px] leading-4 text-tertiary">No destination areas are available.</p>
+                <p className="px-2 py-3 text-[10px] leading-4 text-tertiary">No destinations are available.</p>
               )}
             </div>
           </fieldset>

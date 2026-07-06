@@ -301,6 +301,14 @@ async function chooseMenuItem(nodeId: string, name: string) {
   fireEvent.click(screen.getByRole("menuitem", { name }));
 }
 
+function moveDialogRadio(dialog: HTMLElement, value: string): HTMLInputElement {
+  const radio = within(dialog)
+    .getAllByRole("radio")
+    .find((element) => element.getAttribute("value") === value);
+  if (!(radio instanceof HTMLInputElement)) throw new Error(`Missing move dialog radio ${value}`);
+  return radio;
+}
+
 beforeAll(() => {
   if (!window.PointerEvent) {
     window.PointerEvent = MouseEvent as unknown as typeof PointerEvent;
@@ -479,12 +487,8 @@ describe("estimate tree context menu", () => {
     await chooseMenuItem("kitchen", "Move...");
 
     const dialog = await screen.findByRole("dialog", { name: "Move Kitchen" });
-    expect(within(dialog).getByRole("radio", { name: /Kitchen/ })).toBeDisabled();
-    const siteWorksDestination = within(dialog)
-      .getAllByRole("radio")
-      .find((radio) => radio.getAttribute("value") === "site-works");
-    expect(siteWorksDestination).toBeDefined();
-    fireEvent.click(siteWorksDestination!);
+    expect(moveDialogRadio(dialog, "kitchen:inside")).toBeDisabled();
+    fireEvent.click(moveDialogRadio(dialog, "site-works:inside"));
     fireEvent.click(within(dialog).getByRole("button", { name: "Move" }));
 
     await waitFor(() => expect(actionMocks.reorderEstimateTreeNodes).toHaveBeenCalledTimes(1));
@@ -498,6 +502,86 @@ describe("estimate tree context menu", () => {
       }),
     );
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Move Kitchen" })).not.toBeInTheDocument());
+  });
+
+  it("shows before, inside, after, and root move choices with visible disabled reasons", async () => {
+    renderTree();
+
+    await chooseMenuItem("kitchen", "Move...");
+
+    const dialog = await screen.findByRole("dialog", { name: "Move Kitchen" });
+    expect(moveDialogRadio(dialog, "root:top")).toBeEnabled();
+    expect(moveDialogRadio(dialog, "root:bottom")).toBeEnabled();
+    expect(moveDialogRadio(dialog, "site-works:before")).toBeEnabled();
+    expect(moveDialogRadio(dialog, "site-works:inside")).toBeEnabled();
+    expect(moveDialogRadio(dialog, "site-works:after")).toBeEnabled();
+    expect(moveDialogRadio(dialog, "kitchen:before")).toBeDisabled();
+    expect(moveDialogRadio(dialog, "kitchen:inside")).toBeDisabled();
+    expect(moveDialogRadio(dialog, "kitchen:after")).toBeDisabled();
+    expect(within(dialog).getByText("Top of tree")).toBeInTheDocument();
+    expect(within(dialog).getByText("Bottom of tree")).toBeInTheDocument();
+    expect(within(dialog).getByText("An estimate tree node cannot be dropped inside itself.")).toBeInTheDocument();
+  });
+
+  it("moves a tree row after a sibling through the Move dialog", async () => {
+    actionMocks.reorderEstimateTreeNodes.mockResolvedValue({ tree: fixtureTree() });
+    renderTree();
+
+    await chooseMenuItem("kitchen", "Move...");
+
+    const dialog = await screen.findByRole("dialog", { name: "Move Kitchen" });
+    fireEvent.click(moveDialogRadio(dialog, "living:after"));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Move" }));
+
+    await waitFor(() => expect(actionMocks.reorderEstimateTreeNodes).toHaveBeenCalledTimes(1));
+    expect(actionMocks.reorderEstimateTreeNodes).toHaveBeenCalledWith(
+      "project-1",
+      "estimate-1",
+      expect.objectContaining({
+        updates: expect.arrayContaining([
+          expect.objectContaining({ id: "kitchen", parentId: "ground-floor" }),
+        ]),
+      }),
+    );
+  });
+
+  it("resolves root move sentinels to top-level before/after drops", async () => {
+    actionMocks.reorderEstimateTreeNodes.mockResolvedValue({ tree: fixtureTree() });
+    renderTree();
+
+    await chooseMenuItem("kitchen", "Move...");
+
+    const dialog = await screen.findByRole("dialog", { name: "Move Kitchen" });
+    fireEvent.click(moveDialogRadio(dialog, "root:bottom"));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Move" }));
+
+    await waitFor(() => expect(actionMocks.reorderEstimateTreeNodes).toHaveBeenCalledTimes(1));
+    expect(actionMocks.reorderEstimateTreeNodes).toHaveBeenCalledWith(
+      "project-1",
+      "estimate-1",
+      expect.objectContaining({
+        updates: expect.arrayContaining([
+          expect.objectContaining({ id: "kitchen", parentId: null }),
+        ]),
+      }),
+    );
+  });
+
+  it("returns focus to the source row after cancel and failed Move dialog submits", async () => {
+    renderTree();
+
+    await chooseMenuItem("kitchen", "Move...");
+    fireEvent.click(within(await screen.findByRole("dialog", { name: "Move Kitchen" })).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(treeNodeButton("kitchen")).toHaveFocus());
+
+    actionMocks.reorderEstimateTreeNodes.mockRejectedValueOnce(new Error("Could not save move."));
+    await chooseMenuItem("kitchen", "Move...");
+    const dialog = await screen.findByRole("dialog", { name: "Move Kitchen" });
+    fireEvent.click(moveDialogRadio(dialog, "root:bottom"));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Move" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Move Kitchen" })).not.toBeInTheDocument());
+    await waitFor(() => expect(treeNodeButton("kitchen")).toHaveFocus());
   });
 
   it("keeps rename active while the pointer moves outside the input", async () => {
