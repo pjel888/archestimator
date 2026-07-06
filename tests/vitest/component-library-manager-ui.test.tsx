@@ -449,6 +449,15 @@ describe("component library manager UI", () => {
     expect(screen.getByRole("dialog", { name: "Add Component" })).toBeInTheDocument();
   });
 
+  it("keeps Add Component duplicate checks indexed instead of scanning every library item while typing", () => {
+    const addComponentModalSource = readFileSync(join(process.cwd(), "src/components/workshop/component-library-manager/AddComponentModal.tsx"), "utf8");
+
+    expect(addComponentModalSource).toContain("const duplicateIdentityIndex = useMemo");
+    expect(addComponentModalSource).toContain("duplicateIdentityIndex.bySupplier.get");
+    expect(addComponentModalSource).toContain("duplicateIdentityIndex.byBrand.get");
+    expect(addComponentModalSource).not.toContain("libraryItems.find((item) =>");
+  });
+
   it("saves dirty Add Component state as a component draft from the close warning", async () => {
     await renderLibrary();
 

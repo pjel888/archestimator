@@ -272,6 +272,19 @@ function normalizeDuplicateIdentityValue(value: string | null | undefined) {
   return (value ?? "").trim().replace(/\s+/g, " ").toLowerCase();
 }
 
+function duplicateIdentityKey(name: string, category: string, matchValue: string) {
+  return `${name}\u001f${category}\u001f${matchValue}`;
+}
+
+function setDuplicateIdentityIndexEntry(
+  index: Map<string, { item: EstimateRowItem; order: number }>,
+  key: string,
+  item: EstimateRowItem,
+  order: number,
+) {
+  if (!index.has(key)) index.set(key, { item, order });
+}
+
 function getAttachmentKind(contentType: string): "pdf" | "excel" {
   return contentType === "application/pdf" ? "pdf" : "excel";
 }
@@ -550,6 +563,20 @@ function OpenAddComponentModal({
     () => (draft.categoryNodeId ? findComponentCategoryPath(categoryTree, draft.categoryNodeId) ?? [] : []),
     [categoryTree, draft.categoryNodeId],
   );
+  const duplicateIdentityIndex = useMemo(() => {
+    const bySupplier = new Map<string, { item: EstimateRowItem; order: number }>();
+    const byBrand = new Map<string, { item: EstimateRowItem; order: number }>();
+    libraryItems.forEach((item, order) => {
+      const name = normalizeDuplicateIdentityValue(item.name ?? item.material);
+      const category = normalizeDuplicateIdentityValue(item.category);
+      if (!name || !category) return;
+      const supplier = normalizeDuplicateIdentityValue(item.supplier);
+      const brand = normalizeDuplicateIdentityValue(item.brand);
+      if (supplier) setDuplicateIdentityIndexEntry(bySupplier, duplicateIdentityKey(name, category, supplier), item, order);
+      if (brand) setDuplicateIdentityIndexEntry(byBrand, duplicateIdentityKey(name, category, brand), item, order);
+    });
+    return { bySupplier, byBrand };
+  }, [libraryItems]);
   const quickAddValidation = useMemo(() => validateQuickAddComponentInput({
     name: draft.name,
     category: draft.category,
@@ -574,21 +601,18 @@ function OpenAddComponentModal({
     const supplier = normalizeDuplicateIdentityValue(selectedSupplier?.name ?? draft.supplierName);
     const brand = normalizeDuplicateIdentityValue(selectedBrand?.name ?? draft.brand);
     if (!name || !category || (!supplier && !brand)) return null;
-    return libraryItems.find((item) => {
-      const itemName = normalizeDuplicateIdentityValue(item.name ?? item.material);
-      const itemCategory = normalizeDuplicateIdentityValue(item.category);
-      const itemSupplier = normalizeDuplicateIdentityValue(item.supplier);
-      const itemBrand = normalizeDuplicateIdentityValue(item.brand);
-      return itemName === name && itemCategory === category && ((supplier && itemSupplier === supplier) || (brand && itemBrand === brand));
-    }) ?? null;
+    const supplierMatch = supplier ? duplicateIdentityIndex.bySupplier.get(duplicateIdentityKey(name, category, supplier)) : null;
+    const brandMatch = brand ? duplicateIdentityIndex.byBrand.get(duplicateIdentityKey(name, category, brand)) : null;
+    if (supplierMatch && brandMatch) return supplierMatch.order <= brandMatch.order ? supplierMatch.item : brandMatch.item;
+    return supplierMatch?.item ?? brandMatch?.item ?? null;
   }, [
     duplicateAcknowledged,
     duplicateCheckReady,
+    duplicateIdentityIndex,
     draft.brand,
     draft.category,
     draft.name,
     draft.supplierName,
-    libraryItems,
     selectedBrand?.name,
     selectedSupplier?.name,
   ]);
