@@ -301,11 +301,11 @@ async function chooseMenuItem(nodeId: string, name: string) {
   fireEvent.click(screen.getByRole("menuitem", { name }));
 }
 
-function moveDialogRadio(dialog: HTMLElement, value: string): HTMLInputElement {
+function moveDialogRadio(dialog: HTMLElement, value: string): HTMLElement {
   const radio = within(dialog)
     .getAllByRole("radio")
     .find((element) => element.getAttribute("value") === value);
-  if (!(radio instanceof HTMLInputElement)) throw new Error(`Missing move dialog radio ${value}`);
+  if (!(radio instanceof HTMLElement)) throw new Error(`Missing move dialog radio ${value}`);
   return radio;
 }
 
@@ -487,7 +487,7 @@ describe("estimate tree context menu", () => {
     await chooseMenuItem("kitchen", "Move...");
 
     const dialog = await screen.findByRole("dialog", { name: "Move Kitchen" });
-    expect(moveDialogRadio(dialog, "kitchen:inside")).toBeDisabled();
+    expect(moveDialogRadio(dialog, "kitchen:inside")).toHaveAttribute("aria-disabled", "true");
     fireEvent.click(moveDialogRadio(dialog, "site-works:inside"));
     fireEvent.click(within(dialog).getByRole("button", { name: "Move" }));
 
@@ -510,14 +510,16 @@ describe("estimate tree context menu", () => {
     await chooseMenuItem("kitchen", "Move...");
 
     const dialog = await screen.findByRole("dialog", { name: "Move Kitchen" });
-    expect(moveDialogRadio(dialog, "root:top")).toBeEnabled();
-    expect(moveDialogRadio(dialog, "root:bottom")).toBeEnabled();
-    expect(moveDialogRadio(dialog, "site-works:before")).toBeEnabled();
-    expect(moveDialogRadio(dialog, "site-works:inside")).toBeEnabled();
-    expect(moveDialogRadio(dialog, "site-works:after")).toBeEnabled();
-    expect(moveDialogRadio(dialog, "kitchen:before")).toBeDisabled();
-    expect(moveDialogRadio(dialog, "kitchen:inside")).toBeDisabled();
-    expect(moveDialogRadio(dialog, "kitchen:after")).toBeDisabled();
+    expect(moveDialogRadio(dialog, "root:top")).not.toHaveAttribute("aria-disabled");
+    expect(moveDialogRadio(dialog, "root:bottom")).not.toHaveAttribute("aria-disabled");
+    expect(moveDialogRadio(dialog, "site-works:before")).not.toHaveAttribute("aria-disabled");
+    expect(moveDialogRadio(dialog, "site-works:inside")).not.toHaveAttribute("aria-disabled");
+    expect(moveDialogRadio(dialog, "site-works:after")).not.toHaveAttribute("aria-disabled");
+    expect(moveDialogRadio(dialog, "kitchen:before")).toHaveAttribute("aria-disabled", "true");
+    expect(moveDialogRadio(dialog, "kitchen:inside")).toHaveAttribute("aria-disabled", "true");
+    expect(moveDialogRadio(dialog, "kitchen:after")).toHaveAttribute("aria-disabled", "true");
+    moveDialogRadio(dialog, "kitchen:inside").focus();
+    expect(moveDialogRadio(dialog, "kitchen:inside")).toHaveFocus();
     expect(within(dialog).getByText("Top of tree")).toBeInTheDocument();
     expect(within(dialog).getByText("Bottom of tree")).toBeInTheDocument();
     expect(within(dialog).getByText("An estimate tree node cannot be dropped inside itself.")).toBeInTheDocument();

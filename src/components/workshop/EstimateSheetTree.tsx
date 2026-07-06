@@ -88,6 +88,11 @@ import {
 } from "./estimate-sheet/rows/constants";
 import { endEstimateWorkshopDrag } from "./estimate-workshop-drag";
 import { ResizableSidePanel } from "./ResizableSidePanel";
+import { EstimateTreeMoveDialog } from "./estimate-tree/EstimateTreeMoveDialog";
+import {
+  buildEstimateTreeMoveOptions,
+  type EstimateTreeMoveSelection,
+} from "./estimate-tree/estimate-tree-node-options";
 
 type EstimateSheetTreeProps = {
   projectId: string;
@@ -109,22 +114,6 @@ type ReorderStatus =
   | { state: "saving"; message: string }
   | { state: "saved"; message: string }
   | { state: "error"; message: string };
-
-type EstimateTreeMoveSelection = {
-  id: string;
-  targetNodeId: string;
-  position: TreeDropPosition;
-};
-
-type EstimateTreeMoveOption = {
-  id: string;
-  label: string;
-  detail: string;
-  depth: number;
-  selection: EstimateTreeMoveSelection;
-  disabled: boolean;
-  reason: string;
-};
 
 // Same icon scale as the right-sidebar trees: every tree panel renders row
 // icons at the shared TREE_ROW_ICON_SIZE so no panel reads "bigger". One
@@ -1607,107 +1596,14 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
 
   const treeMoveDestinationOptions = useMemo(() => {
     if (!moveTargetNode) return [];
-    const sourceNodeId = moveTargetNode.id;
-    const options: EstimateTreeMoveOption[] = [];
-    const globalDisabled = !canReorderNow || Boolean(editingNodeId) || treeSearchActive || isOptimisticEstimateNodeId(sourceNodeId);
-    const globalReason = treeSearchActive
-      ? "Clear tree search before moving nodes."
-      : editingNodeId
-        ? "Finish renaming before moving nodes."
-        : !canReorderNow
-          ? "Finish the current tree save before moving nodes."
-          : isOptimisticEstimateNodeId(sourceNodeId)
-            ? "Wait for this new node to finish saving first."
-            : "";
-
-    function addOption({
-      id,
-      label,
-      detail,
-      depth,
-      targetNodeId,
-      position,
-    }: {
-      id: string;
-      label: string;
-      detail: string;
-      depth: number;
-      targetNodeId: string;
-      position: TreeDropPosition;
-    }) {
-      const validation = validateEstimateTreeDrop({
-        nodes: localNodes,
-        draggedNodeIds: [sourceNodeId],
-        target: { targetNodeId, position },
-      });
-      const targetIsPendingCreate = isOptimisticEstimateNodeId(targetNodeId);
-      options.push({
-        id,
-        label,
-        detail,
-        depth,
-        selection: { id, targetNodeId, position },
-        disabled: globalDisabled || targetIsPendingCreate || !validation.ok,
-        reason: globalReason || (targetIsPendingCreate ? "Wait for this node to finish saving first." : validation.ok ? detail : validation.message),
-      });
-    }
-
-    const firstRoot = localNodes[0];
-    const lastRoot = localNodes[localNodes.length - 1];
-    if (firstRoot) {
-      addOption({
-        id: "root:top",
-        label: "Top of tree",
-        detail: `Before ${firstRoot.name}`,
-        depth: 0,
-        targetNodeId: firstRoot.id,
-        position: "before",
-      });
-    }
-    if (lastRoot) {
-      addOption({
-        id: "root:bottom",
-        label: "Bottom of tree",
-        detail: `After ${lastRoot.name}`,
-        depth: 0,
-        targetNodeId: lastRoot.id,
-        position: "after",
-      });
-    }
-
-    function visit(nodesToVisit: EstimateTreeNode[], depth: number, parentPath: string[]) {
-      nodesToVisit.forEach((node) => {
-        const path = [...parentPath, node.name].join(" / ");
-        addOption({
-          id: `${node.id}:before`,
-          label: `Before ${node.name}`,
-          detail: path,
-          depth,
-          targetNodeId: node.id,
-          position: "before",
-        });
-        addOption({
-          id: `${node.id}:inside`,
-          label: `Inside ${node.name}`,
-          detail: path,
-          depth: depth + 1,
-          targetNodeId: node.id,
-          position: "inside",
-        });
-        addOption({
-          id: `${node.id}:after`,
-          label: `After ${node.name}`,
-          detail: path,
-          depth,
-          targetNodeId: node.id,
-          position: "after",
-        });
-        visit(node.children ?? [], depth + 1, [...parentPath, node.name]);
-      });
-    }
-
-    visit(localNodes, 0, []);
-    return options;
+    return buildEstimateTreeMoveOptions({
+      nodes: localNodes,
+      sourceNodeId: moveTargetNode.id,
+      canReorderNow,
+      editingNodeActive: Boolean(editingNodeId),
+      treeSearchActive,
+      isOptimisticNodeId: isOptimisticEstimateNodeId,
+    });
   }, [canReorderNow, editingNodeId, localNodes, moveTargetNode, treeSearchActive]);
 
   const selectedMoveDestination = useMemo(
@@ -2195,73 +2091,14 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
           </div>
         </div>
       </Modal>
-      <Modal
-        open={Boolean(moveTargetNode)}
-        title={moveTargetNode ? `Move ${moveTargetNode.name}` : "Move Area"}
-        description="Choose the area that should contain this area. Invalid targets stay visible with a reason."
-        onOpenChange={(open) => {
-          if (!open) closeTreeMoveDialog(moveTargetNode?.id);
-        }}
-        closeLabel="Cancel move"
-        className="max-w-md"
-      >
-        <div className="space-y-3">
-          <fieldset className="space-y-1">
-            <legend className="text-[10px] font-medium leading-4 text-ink">Destination</legend>
-            <div className="max-h-72 overflow-auto rounded-xs border border-hairline bg-white">
-              {treeMoveDestinationOptions.length > 0 ? (
-                treeMoveDestinationOptions.map((option) => (
-                  <label
-                    key={option.id}
-                    className={cn(
-                      "flex min-h-8 cursor-pointer items-start gap-2 border-b border-hairline px-2 py-1.5 last:border-b-0",
-                      option.disabled ? "cursor-not-allowed opacity-60" : "hover:bg-surfaceMuted",
-                    )}
-                    style={{ paddingLeft: `${8 + option.depth * 14}px` }}
-                  >
-                    <input
-                      type="radio"
-                      name="estimate-tree-move-destination"
-                      value={option.id}
-                      checked={moveSelection?.id === option.id}
-                      disabled={option.disabled}
-                      onChange={() => setMoveSelection(option.selection)}
-                      className="mt-0.5 size-3"
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[10px] font-medium leading-4 text-ink">{option.label}</span>
-                      <span className="block truncate text-[9px] leading-3 text-tertiary">
-                        {option.disabled ? option.reason : option.detail}
-                      </span>
-                    </span>
-                  </label>
-                ))
-              ) : (
-                <p className="px-2 py-3 text-[10px] leading-4 text-tertiary">No destinations are available.</p>
-              )}
-            </div>
-          </fieldset>
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => closeTreeMoveDialog(moveTargetNode?.id)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="primary"
-              size="sm"
-              disabled={!selectedMoveDestination || selectedMoveDestination.disabled}
-              onClick={confirmTreeMove}
-            >
-              Move
-            </Button>
-          </div>
-        </div>
-      </Modal>
+      <EstimateTreeMoveDialog
+        sourceNode={moveTargetNode}
+        options={treeMoveDestinationOptions}
+        selection={moveSelection}
+        onSelectionChange={setMoveSelection}
+        onCancel={closeTreeMoveDialog}
+        onConfirm={confirmTreeMove}
+      />
       <Modal
         open={Boolean(deleteTargetNode)}
         title={deleteTargetNode ? `Delete ${deleteTargetNode.name}` : "Delete Area"}
