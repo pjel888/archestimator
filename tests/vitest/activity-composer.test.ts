@@ -23,6 +23,9 @@ describe("activity composer", () => {
 
   it("never throws for unknown estimate events", () => {
     expect(() => composeEstimateActivity(makeEstimateEvent("future_event"))).not.toThrow();
-    expect(composeEstimateActivity(makeEstimateEvent("future_event")).title).toBe("Activity recorded.");
+    const activity = composeEstimateActivity(makeEstimateEvent("future_event"));
+    expect(activity.title).toBe("Philip Lewis recorded estimate activity.");
+    expect(activity.summary).toContain("Quantity from 1 to 2");
+    expect(activity.title).not.toContain("future_event");
   });
 });

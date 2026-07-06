@@ -313,8 +313,13 @@ function estimateTitle(event: EstimateActivityInput, actor: string, target: Acti
     case "tab_deleted":
       return `${actor} deleted tab ${target.label}.`;
     default:
-      return "Activity recorded.";
+      return `${actor} recorded estimate activity.`;
   }
+}
+
+function fallbackEstimateSummary(event: EstimateActivityInput) {
+  if (ESTIMATE_EVENT_ACTIONS[event.eventType]) return undefined;
+  return "This estimate event is preserved but not mapped to detailed copy yet.";
 }
 
 function sanitizeViewModel(activity: ActivityViewModel): ActivityViewModel {
@@ -345,7 +350,7 @@ export function composeEstimateActivity(event: EstimateActivityInput, opts: Comp
     const actor = formatActivityActor(event.actorUserId, event.actorLabel, audience);
     const target = targetForEstimate(event);
     const changes = changesForEstimate(event);
-    const summary = estimateSummary(event, changes);
+    const summary = estimateSummary(event, changes) ?? fallbackEstimateSummary(event);
     const base: ActivityViewModel = sanitizeViewModel({
       id: event.id,
       source: "estimate",
@@ -410,7 +415,7 @@ export function composeSharedLinkActivity(item: SharedLinkActivityInput, opts: C
     const actor = sharedActor(item, opts);
     const metadata = item.metadata ?? {};
     let action: ActivityViewModel["action"] = "recorded";
-    let title = "Activity recorded.";
+    let title = "Shared activity recorded.";
     const body = item.body ? stripUnsafeText(item.body, "Comment") : undefined;
     const target = targetForShared(metadata);
     const badges: string[] = [];
@@ -427,7 +432,7 @@ export function composeSharedLinkActivity(item: SharedLinkActivityInput, opts: C
         ? `${actor.displayName} requested revisions.`
         : `${actor.displayName} requested revisions for ${objectLabel}.`;
       else if (action === "declined") title = `${actor.displayName} declined ${objectLabel}.`;
-      else title = "Activity recorded.";
+      else title = "Shared decision recorded.";
     } else if (item.type === "event") {
       const eventType = String(metadata.eventType ?? metadata.event_type ?? "");
       if (eventType === "open") {
@@ -436,6 +441,8 @@ export function composeSharedLinkActivity(item: SharedLinkActivityInput, opts: C
       } else if (eventType === "password_attempt") {
         action = "password_attempted";
         title = `${actor.displayName} entered the shared link password.`;
+      } else {
+        title = "Shared link activity recorded.";
       }
     }
 
@@ -494,7 +501,7 @@ function collaborationActionAndTitle(
       };
     }
     default:
-      return { action: COLLABORATION_EVENT_ACTIONS[event.eventType] ?? "recorded", title: "Activity recorded." };
+      return { action: COLLABORATION_EVENT_ACTIONS[event.eventType] ?? "recorded", title: `${actorName} recorded project activity.` };
   }
 }
 

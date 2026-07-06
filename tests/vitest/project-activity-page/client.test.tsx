@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -139,6 +139,44 @@ describe("ProjectActivityClient", () => {
     );
     expect(navigationMocks.replace).not.toHaveBeenCalledWith(expect.stringContaining("cursor"), expect.anything());
     fetchMock.mockRestore();
+  });
+
+  it("renders activity as a grouped ledger and keeps action filters in the filter panel", async () => {
+    const user = userEvent.setup();
+    renderClient({
+      initialData: page({
+        items: [
+          activity(),
+          activity({
+            id: "activity-2",
+            source: "share",
+            action: "viewed",
+            occurredAt: "2026-06-27T09:00:00.000Z",
+            title: "Maria Santos viewed the proposal.",
+            actor: { kind: "recipient", displayName: "Maria Santos", isSafeForClient: true },
+            target: { kind: "proposal", label: "Proposal" },
+            raw: { id: "activity-2", eventType: "open" },
+          }),
+        ],
+        counts: { loadedCount: 2, filteredTotalCount: 2, scopeTotalCount: 2 },
+      }),
+    });
+
+    const ledger = screen.getByRole("feed", { name: "Project activity ledger" });
+    expect(within(ledger).getByText("Jun 28, 2026")).toBeVisible();
+    expect(within(ledger).getByText("Jun 27, 2026")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Created" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /filters/i }));
+    const filters = screen.getByRole("region", { name: "Activity filters" });
+    expect(filters).toHaveClass("absolute");
+    expect(filters).toHaveClass("z-20");
+    await user.click(screen.getByRole("button", { name: "Created" }));
+
+    expect(navigationMocks.replace).toHaveBeenCalledWith(
+      `${navigationMocks.pathname}?action=created`,
+      { scroll: false },
+    );
   });
 
   it("refresh clears appended rows and transient load errors", async () => {

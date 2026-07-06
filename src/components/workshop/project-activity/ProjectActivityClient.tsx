@@ -1,13 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { ArrowClockwise, ClockCounterClockwise, FunnelSimple, WarningCircle } from "@phosphor-icons/react/dist/ssr";
 import { usePathname, useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { DropdownSelect, type DropdownSelectOption } from "@/components/ui/dropdown-select";
-import type { ActivityViewModel } from "@/lib/activity";
+import type { ActivityFact, ActivityViewModel } from "@/lib/activity";
 import type { ProjectActivityDropdownOption, ProjectActivityFeedPage } from "@/lib/repositories/project-activity-feed-repository";
 import { cn } from "@/lib/ui/cn";
 import {
@@ -42,6 +42,12 @@ type AppendState = {
   unavailableSources: ProjectActivityFeedPage["unavailableSources"];
 };
 
+type ActivityGroup = {
+  key: string;
+  label: string;
+  items: ActivityViewModel[];
+};
+
 const actionLabels: Record<ProjectActivityConcreteActionBucket, string> = {
   created: "Created",
   edited: "Edited",
@@ -59,8 +65,14 @@ const actionLabels: Record<ProjectActivityConcreteActionBucket, string> = {
 const dateFormatter = new Intl.DateTimeFormat("en", {
   month: "short",
   day: "numeric",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+const timeFormatter = new Intl.DateTimeFormat("en", {
   hour: "numeric",
   minute: "2-digit",
+  timeZone: "UTC",
 });
 
 function scopeValue(state: ActivityPageState) {
@@ -82,8 +94,169 @@ function sourceLabel(activity: ActivityViewModel) {
 
 function formatTime(value: string) {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Unknown time";
+  if (Number.isNaN(date.getTime())) return "Unknown";
+  return timeFormatter.format(date);
+}
+
+function formatDay(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Undated";
   return dateFormatter.format(date);
+}
+
+function dayKey(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "undated";
+  return date.toISOString().slice(0, 10);
+}
+
+function groupActivities(items: ActivityViewModel[]): ActivityGroup[] {
+  const groups: ActivityGroup[] = [];
+  const indexByKey = new Map<string, number>();
+  for (const item of items) {
+    const key = dayKey(item.occurredAt);
+    const existingIndex = indexByKey.get(key);
+    if (existingIndex !== undefined) {
+      groups[existingIndex]?.items.push(item);
+      continue;
+    }
+    indexByKey.set(key, groups.length);
+    groups.push({ key, label: formatDay(item.occurredAt), items: [item] });
+  }
+  return groups;
+}
+
+function selectedOptionLabel(options: readonly DropdownSelectOption[], value: string, fallback: string) {
+  return options.find((option) => option.value === value)?.label ?? fallback;
+}
+
+function activeFilterSummary(
+  state: ActivityPageState,
+  scopeOptions: readonly DropdownSelectOption[],
+  actorOptions: readonly DropdownSelectOption[],
+  recipientOptions: readonly DropdownSelectOption[],
+) {
+  const parts = [
+    selectedOptionLabel(scopeOptions, scopeValue(state), "Whole project"),
+    state.actor ? selectedOptionLabel(actorOptions, state.actor, "Selected actor") : "All actors",
+    state.client ? selectedOptionLabel(recipientOptions, state.client, "Selected client") : "All clients",
+  ];
+  if (state.actions.length) {
+    parts.push(`${state.actions.length} action ${state.actions.length === 1 ? "type" : "types"}`);
+  } else {
+    parts.push("All activity");
+  }
+  return parts.join(" · ");
+}
+
+function displayTitle(activity: ActivityViewModel) {
+  if (!/^Activity recorded\.?$/i.test(activity.title.trim())) return activity.title;
+  return `${sourceLabel(activity)} activity recorded.`;
+}
+
+function displaySummary(activity: ActivityViewModel) {
+  if (activity.summary) return activity.summary;
+  if (/^Activity recorded\.?$/i.test(activity.title.trim())) return "Details are not mapped yet, but the event is preserved in the project ledger.";
+  return "";
+}
+
+function factValue(fact: ActivityFact) {
+  return fact.current ?? fact.value ?? fact.previous ?? "";
+}
+
+function compactFacts(activity: ActivityViewModel) {
+  const facts = activity.facts?.filter((fact) => factValue(fact)).slice(0, 2) ?? [];
+  if (facts.length) return facts;
+  if (activity.delta) return [{ label: "Total change", value: activity.delta.formatted }];
+  if (/^Activity recorded\.?$/i.test(activity.title.trim())) return [{ label: "Detail", value: "Unmapped event" }];
+  return [];
+}
+
+function activityTarget(activity: ActivityViewModel) {
+  return activity.target.secondaryLabel ? `${activity.target.label} · ${activity.target.secondaryLabel}` : activity.target.label;
+}
+
+function ActivitySurfaceMessage({
+  title,
+  body,
+  action,
+}: {
+  title: string;
+  body: string;
+  action?: ReactNode;
+}) {
+  return (
+    <section className="flex h-full min-h-0 flex-col bg-[color:var(--glass-bg)] p-3" aria-label="Project activity">
+      <div className="max-w-xl rounded-xs border border-hairline bg-white/75 p-3 shadow-[0_1px_0_rgba(15,23,42,0.03)]">
+        <h2 className="text-[12px] font-medium leading-4 text-ink">{title}</h2>
+        <p className="mt-1 text-[10px] leading-4 text-secondary">{body}</p>
+        {action}
+      </div>
+    </section>
+  );
+}
+
+function ActivityRow({
+  activity,
+  index,
+  total,
+}: {
+  activity: ActivityViewModel;
+  index: number;
+  total: number;
+}) {
+  const bucket = deriveActionBucket(activity);
+  const facts = compactFacts(activity);
+  const summary = displaySummary(activity);
+
+  return (
+    <li className="border-t border-hairline first:border-t-0">
+      <article
+        aria-posinset={index + 1}
+        aria-setsize={total}
+        className="grid min-h-[76px] grid-cols-1 gap-1.5 px-2 py-2 md:grid-cols-[5.75rem_minmax(9rem,13rem)_minmax(0,1.45fr)_minmax(9rem,1fr)_5.5rem] md:items-center md:gap-3"
+      >
+        <div className="flex min-w-0 items-center gap-1.5 md:block">
+          <time className="shrink-0 text-[10px] font-medium leading-4 text-ink" dateTime={activity.occurredAt}>
+            {formatTime(activity.occurredAt)}
+          </time>
+          <span className="inline-flex h-5 max-w-[6.5rem] items-center rounded-xs border border-hairline bg-surfaceMuted px-1.5 text-[9px] font-medium leading-none text-secondary md:mt-1">
+            <span className="truncate">{sourceLabel(activity)}</span>
+          </span>
+        </div>
+
+        <div className="min-w-0">
+          <p className="truncate text-[10px] font-medium leading-4 text-ink">{actionLabels[bucket]}</p>
+          <p className="truncate text-[10px] leading-4 text-tertiary">{activity.actor.displayName}</p>
+        </div>
+
+        <div className="min-w-0">
+          <p className="truncate text-[12px] font-medium leading-4 text-ink">{displayTitle(activity)}</p>
+          <p className="truncate text-[10px] leading-4 text-secondary">{activityTarget(activity)}</p>
+        </div>
+
+        <div className="min-w-0">
+          {facts.length ? (
+            <dl className="grid gap-1">
+              {facts.map((fact) => (
+                <div key={`${activity.id}-${fact.label}`} className="grid min-w-0 grid-cols-[5.5rem_minmax(0,1fr)] gap-1 text-[10px] leading-4">
+                  <dt className="truncate text-tertiary">{fact.label}</dt>
+                  <dd className="truncate text-secondary">{factValue(fact)}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : (
+            <p className="truncate text-[10px] leading-4 text-tertiary">{summary || "No additional detail"}</p>
+          )}
+        </div>
+
+        <div className="hidden min-w-0 justify-self-end text-right md:block">
+          <p className="truncate text-[9px] font-medium leading-3 text-tertiary">{activity.visibility}</p>
+          {activity.badges?.[0] ? <p className="mt-1 truncate text-[9px] leading-3 text-secondary">{activity.badges[0]}</p> : null}
+        </div>
+      </article>
+    </li>
+  );
 }
 
 export function ProjectActivityClient({
@@ -112,9 +285,11 @@ export function ProjectActivityClient({
   ].join("|"), [initialData, initialState]);
   const [appendState, setAppendState] = useState<AppendState | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [errorState, setErrorState] = useState<{ key: string; message: string } | null>(null);
   const activeAppendState = appendState?.key === initialKey ? appendState : null;
   const items = activeAppendState ? [...initialData.items, ...activeAppendState.appendedItems] : initialData.items;
+  const groups = useMemo(() => groupActivities(items), [items]);
   const nextCursor = activeAppendState?.nextCursor ?? initialData.nextCursor;
   const counts = activeAppendState?.counts ?? initialData.counts;
   const partial = activeAppendState?.partial ?? initialData.partial;
@@ -211,38 +386,42 @@ export function ProjectActivityClient({
 
   if (!canEdit) {
     return (
-      <section className="flex h-full min-h-0 flex-col bg-[color:var(--glass-bg)] p-3" aria-label="Project activity">
-        <div className="max-w-xl rounded-xs border border-hairline bg-white/70 p-3">
-          <h2 className="text-[12px] font-medium leading-4 text-ink">Activity is editor-only</h2>
-          <p className="mt-1 text-[10px] leading-4 text-secondary">You can view this project, but activity history is only available to editors.</p>
-        </div>
-      </section>
+      <ActivitySurfaceMessage
+        title="Activity is editor-only"
+        body="You can view this project, but activity history is only available to editors."
+      />
     );
   }
 
   if (initialLoadFailed) {
     return (
-      <section className="flex h-full min-h-0 flex-col bg-[color:var(--glass-bg)] p-3" aria-label="Project activity">
-        <div className="max-w-xl rounded-xs border border-hairline bg-white/70 p-3">
-          <h2 className="text-[12px] font-medium leading-4 text-ink">Activity could not be loaded</h2>
-          <p className="mt-1 text-[10px] leading-4 text-secondary">Try refreshing the activity timeline. Project data and permissions were not changed.</p>
+      <ActivitySurfaceMessage
+        title="Activity could not be loaded"
+        body="Try refreshing the activity timeline. Project data and permissions were not changed."
+        action={(
           <Button className="mt-3" variant="outline" size="xs" onClick={refreshActivity}>
             <ArrowClockwise size={12} aria-hidden="true" />
             Retry
           </Button>
-        </div>
-      </section>
+        )}
+      />
     );
   }
 
   const hasFilters = initialState.scope.kind !== "whole-project" || initialState.actions.length > 0 || Boolean(initialState.actor || initialState.client);
   const noActivity = counts.scopeTotalCount === 0;
   const noMatches = counts.scopeTotalCount > 0 && counts.filteredTotalCount === 0;
+  const summary = activeFilterSummary(initialState, scopeOptions, actorOptions, recipientOptions);
+  const statusText = partial
+    ? `Some activity sources are unavailable: ${unavailableSources.join(", ")}.`
+    : hasFilters
+      ? `${counts.filteredTotalCount} matching ${counts.filteredTotalCount === 1 ? "event" : "events"} in this view.`
+      : "Feed complete for the selected scope.";
 
   return (
     <section className="flex h-full min-h-0 flex-col bg-[color:var(--glass-bg)]" aria-label="Project activity">
-      <div className="shrink-0 border-b border-[color:var(--glass-border)] bg-white/75 px-3 py-2 backdrop-blur">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="relative z-10 shrink-0 border-b border-[color:var(--glass-border)] bg-white/85 px-3 py-2 shadow-[0_1px_0_rgba(15,23,42,0.03)] backdrop-blur">
+        <div className="flex min-h-9 flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
             <h2 className="flex items-center gap-1 text-[12px] font-medium leading-4 text-ink">
               <ClockCounterClockwise size={14} aria-hidden="true" />
@@ -250,87 +429,127 @@ export function ProjectActivityClient({
             </h2>
             <p className="truncate text-[10px] leading-4 text-tertiary">{projectName}</p>
           </div>
-          <p className="text-[10px] leading-4 text-secondary" aria-live="polite">
-            Showing {items.length} of {counts.filteredTotalCount}
-          </p>
-        </div>
-
-        <form className="mt-2 flex flex-wrap items-center gap-2" role="search" aria-label="Filter project activity">
-          <DropdownSelect options={scopeOptions} value={scopeValue(initialState)} onValueChange={setScope} variant="boxed" aria-label="Activity scope" className="w-[172px]" />
-          <DropdownSelect options={actorOptions} value={initialState.actor ?? ""} onValueChange={setActor} variant="boxed" aria-label="Actor filter" className="w-[150px]" />
-          <DropdownSelect options={recipientOptions} value={initialState.client ?? ""} onValueChange={setClient} variant="boxed" aria-label="Client filter" className="w-[150px]" />
-          <Button variant={initialState.actor === "me" ? "primary" : "outline"} size="xs" onClick={() => setActor(initialState.actor === "me" ? "" : "me")}>
-            <FunnelSimple size={12} aria-hidden="true" />
-            Edited by me
-          </Button>
-          <Button variant="outline" size="xs" onClick={refreshActivity}>
-            <ArrowClockwise size={12} aria-hidden="true" />
-            Refresh
-          </Button>
-          <Button variant="plain" size="xs" onClick={clearFilters} disabled={!hasFilters}>Clear</Button>
-        </form>
-
-        <div className="mt-2 flex flex-wrap gap-1" aria-label="Action filters">
-          {PROJECT_ACTIVITY_ACTION_BUCKETS.filter((bucket): bucket is ProjectActivityConcreteActionBucket => bucket !== "all").map((action) => (
-            <Chip key={action} active={initialState.actions.includes(action)} onClick={() => toggleAction(action)}>
-              {actionLabels[action]}
-            </Chip>
-          ))}
-        </div>
-      </div>
-
-      {partial ? (
-        <div className="shrink-0 border-b border-warning/20 bg-warning/10 px-3 py-2 text-[10px] leading-4 text-ink">
-          <span className="inline-flex items-center gap-1">
-            <WarningCircle size={12} aria-hidden="true" />
-            Some activity sources are unavailable: {unavailableSources.join(", ")}.
-          </span>
-        </div>
-      ) : null}
-
-      <div className="min-h-0 flex-1 overflow-auto p-3">
-        {noActivity || noMatches ? (
-          <div className="rounded-xs border border-hairline bg-white/65 p-4">
-            <h3 className="text-[12px] font-medium leading-4 text-ink">{noActivity ? "No activity yet" : "No activity matches these filters"}</h3>
-            <p className="mt-1 text-[10px] leading-4 text-secondary">
-              {noActivity ? "Changes, shares, comments, decisions, and collaborator events will appear here." : "Clear one or more filters to broaden the timeline."}
+          <div className="flex min-w-0 items-center gap-2">
+            <p className="shrink-0 text-[10px] leading-4 text-secondary" aria-live="polite">
+              Showing {items.length} of {counts.filteredTotalCount}
             </p>
-          </div>
-        ) : (
-          <ol className="space-y-2" aria-label="Activity timeline">
-            {items.map((activity) => (
-              <li key={activity.id} className="rounded-xs border border-hairline bg-white/70 p-2">
-                <div className="flex flex-wrap items-center gap-1 text-[9px] font-medium leading-3 text-tertiary">
-                  <span className="rounded-xs border border-hairline bg-surfaceMuted px-1 py-px text-ink">{sourceLabel(activity)}</span>
-                  <span>{actionLabels[deriveActionBucket(activity)]}</span>
-                  <span aria-hidden="true">·</span>
-                  <time dateTime={activity.occurredAt}>{formatTime(activity.occurredAt)}</time>
-                </div>
-                <p className="mt-1 text-[12px] font-medium leading-4 text-ink">{activity.title}</p>
-                {activity.summary ? <p className="mt-1 text-[10px] leading-4 text-secondary">{activity.summary}</p> : null}
-                <p className="mt-1 text-[10px] leading-4 text-tertiary">{activity.actor.displayName} · {activity.target.label}</p>
-                {activity.facts?.length ? (
-                  <dl className="mt-2 grid gap-1 sm:grid-cols-2">
-                    {activity.facts.slice(0, 4).map((fact) => (
-                      <div key={`${activity.id}-${fact.label}`} className="flex gap-1 text-[10px] leading-4">
-                        <dt className="text-tertiary">{fact.label}</dt>
-                        <dd className={cn("min-w-0 truncate text-secondary", (fact.current || fact.value) && "text-ink")}>{fact.current ?? fact.value ?? fact.previous}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                ) : null}
-              </li>
-            ))}
-          </ol>
-        )}
-        {error ? <p className="mt-2 text-[10px] leading-4 text-danger" role="alert">{error}</p> : null}
-        {nextCursor && !noActivity && !noMatches ? (
-          <div className="mt-3 flex justify-center">
-            <Button variant="outline" size="sm" onClick={loadMore} disabled={loadingMore}>
-              {loadingMore ? "Loading" : "Load more"}
+            <Button variant="outline" size="icon-xs" aria-label="Refresh activity" onClick={refreshActivity}>
+              <ArrowClockwise size={12} aria-hidden="true" />
             </Button>
           </div>
+        </div>
+
+        <div className="mt-2 grid min-h-8 grid-cols-[minmax(0,1fr)_auto] gap-2 md:grid-cols-[minmax(12rem,17rem)_minmax(0,1fr)_auto]">
+          <DropdownSelect
+            options={scopeOptions}
+            value={scopeValue(initialState)}
+            onValueChange={setScope}
+            variant="boxed"
+            aria-label="Activity scope"
+            className="h-8"
+          />
+          <div className="hidden min-w-0 items-center rounded-xs border border-hairline bg-surface/80 px-2 text-[10px] leading-4 text-secondary md:flex">
+            <span className="truncate">{summary}</span>
+          </div>
+          <div className="flex items-center justify-end gap-1">
+            <Button
+              variant={filtersOpen || hasFilters ? "secondary" : "outline"}
+              size="xs"
+              className="min-w-[84px]"
+              aria-expanded={filtersOpen}
+              aria-controls="project-activity-filters"
+              onClick={() => setFiltersOpen((open) => !open)}
+            >
+              <FunnelSimple size={12} aria-hidden="true" />
+              Filters
+            </Button>
+            <Button variant="plain" size="xs" className="min-w-[56px]" onClick={clearFilters} disabled={!hasFilters}>
+              Clear
+            </Button>
+          </div>
+        </div>
+
+        <div className="mt-2 flex h-7 items-center rounded-xs border border-transparent bg-transparent text-[10px] leading-4" role="status" aria-live="polite">
+          <span className={cn("inline-flex min-w-0 items-center gap-1 truncate", partial ? "text-ink" : "text-tertiary")}>
+            {partial ? <WarningCircle size={12} aria-hidden="true" className="shrink-0 text-warning" /> : null}
+            <span className="truncate">{statusText}</span>
+          </span>
+        </div>
+
+        {filtersOpen ? (
+          <div
+            id="project-activity-filters"
+            aria-label="Activity filters"
+            role="region"
+            className="absolute left-3 right-3 top-[calc(100%-0.25rem)] z-20 rounded-xs border border-hairline bg-white p-2 shadow-[0_12px_32px_rgba(15,23,42,0.14)]"
+          >
+            <div className="grid gap-2 md:grid-cols-[minmax(10rem,13rem)_minmax(10rem,13rem)_auto] md:items-end">
+              <DropdownSelect options={actorOptions} value={initialState.actor ?? ""} onValueChange={setActor} variant="boxed" aria-label="Actor filter" className="h-8" />
+              <DropdownSelect options={recipientOptions} value={initialState.client ?? ""} onValueChange={setClient} variant="boxed" aria-label="Client filter" className="h-8" />
+              <Button
+                variant={initialState.actor === "me" ? "primary" : "outline"}
+                size="xs"
+                className="min-w-[110px]"
+                aria-pressed={initialState.actor === "me"}
+                onClick={() => setActor(initialState.actor === "me" ? "" : "me")}
+              >
+                Edited by me
+              </Button>
+            </div>
+            <div className="mt-2">
+              <p className="mb-1 text-[9px] font-medium leading-3 text-tertiary">Activity types</p>
+              <div className="flex flex-wrap gap-1.5" aria-label="Action filters">
+                {PROJECT_ACTIVITY_ACTION_BUCKETS.filter((bucket): bucket is ProjectActivityConcreteActionBucket => bucket !== "all").map((action) => (
+                  <Chip key={action} className="min-h-6 px-2" active={initialState.actions.includes(action)} onClick={() => toggleAction(action)}>
+                    {actionLabels[action]}
+                  </Chip>
+                ))}
+              </div>
+            </div>
+          </div>
         ) : null}
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-auto p-3">
+        <div className="min-h-full overflow-hidden rounded-xs border border-hairline bg-white/70">
+          {noActivity || noMatches ? (
+            <div className="p-4">
+              <h3 className="text-[12px] font-medium leading-4 text-ink">{noActivity ? "No activity yet" : "No activity matches these filters"}</h3>
+              <p className="mt-1 text-[10px] leading-4 text-secondary">
+                {noActivity ? "Changes, shares, comments, decisions, and collaborator events will appear here." : "Clear one or more filters to broaden the timeline."}
+              </p>
+            </div>
+          ) : (
+            <div role="feed" aria-label="Project activity ledger" aria-busy={loadingMore || undefined}>
+              {groups.map((group) => (
+                <section key={group.key} aria-label={group.label}>
+                  <div className="sticky top-0 z-[1] flex h-8 items-center justify-between border-b border-hairline bg-white/95 px-2">
+                    <h3 className="text-[10px] font-medium leading-4 text-ink">{group.label}</h3>
+                    <p className="text-[9px] leading-3 text-tertiary">{group.items.length} {group.items.length === 1 ? "event" : "events"}</p>
+                  </div>
+                  <ol>
+                    {group.items.map((activity, groupIndex) => (
+                      <ActivityRow key={activity.id} activity={activity} index={groupIndex} total={group.items.length} />
+                    ))}
+                  </ol>
+                </section>
+              ))}
+            </div>
+          )}
+
+          <div className="min-h-12 border-t border-hairline px-3 py-2">
+            {error ? <p className="text-[10px] leading-4 text-danger" role="alert">{error}</p> : null}
+            {nextCursor && !noActivity && !noMatches ? (
+              <div className="flex justify-center">
+                <Button variant="outline" size="sm" onClick={loadMore} disabled={loadingMore}>
+                  {loadingMore ? "Loading" : "Load more"}
+                </Button>
+              </div>
+            ) : !error ? (
+              <p className="text-center text-[10px] leading-4 text-tertiary">End of current activity</p>
+            ) : null}
+          </div>
+        </div>
       </div>
     </section>
   );

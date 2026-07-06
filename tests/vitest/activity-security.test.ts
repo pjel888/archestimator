@@ -83,6 +83,6 @@ describe("activity security", () => {
 
   it("safeCompose returns fallback instead of throwing", () => {
     const activity = safeCompose(() => { throw new Error("boom"); });
-    expect(activity.title).toBe("Activity recorded.");
+    expect(activity.title).toBe("System activity recorded.");
   });
 });

@@ -10,9 +10,9 @@ export function createFallbackActivityViewModel(id = "activity", occurredAt = ne
     occurredAt,
     actor: { kind: "system", displayName: "System", isSafeForClient: true },
     target: { kind: "unknown", label: "Activity" },
-    title: "Activity recorded.",
-    summary: "An activity entry was recorded, but the details are not available.",
-    facts: rawEventType ? [{ label: "Source", value: "Unavailable" }] : [],
+    title: "System activity recorded.",
+    summary: "An activity entry was preserved, but its details are not mapped yet.",
+    facts: rawEventType ? [{ label: "Detail", value: "Unmapped event" }] : [],
     raw: rawEventType ? { id, eventType: rawEventType } : undefined,
   };
 }
