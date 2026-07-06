@@ -980,18 +980,20 @@ async function upsertComponentPriceOptionInD1(database: D1DatabaseLike, input: {
   const priceOptionId = input.priceOption.id && isUuid(input.priceOption.id) ? input.priceOption.id : randomUUID();
   const timestamp = nowIso();
   const metadata = priceOptionSnapshot({ ...input.priceOption, id: priceOptionId });
-  const oldSnapshotRow = await first<{ metadata_json: string | null }>(
-    database,
-    `
-      SELECT metadata_json
-      FROM cost_library_item_price_options
-      WHERE id = ?
-        AND item_id = ?
-        AND workspace_id = ?
-      LIMIT 1
-    `,
-    [priceOptionId, input.itemId, input.workspaceId],
-  );
+  const oldSnapshotRow = input.writeHistory
+    ? await first<{ metadata_json: string | null }>(
+      database,
+      `
+        SELECT metadata_json
+        FROM cost_library_item_price_options
+        WHERE id = ?
+          AND item_id = ?
+          AND workspace_id = ?
+        LIMIT 1
+      `,
+      [priceOptionId, input.itemId, input.workspaceId],
+    )
+    : null;
 
   if (input.priceOption.isDefault) {
     await run(
@@ -1378,7 +1380,8 @@ export async function saveCostLibraryComponentDraft(input: SaveCostLibraryCompon
       timestamp,
     ],
   );
-  revalidateLibraryRoutes();
+  // Drafts are not part of the cached component table yet, so close-save should
+  // avoid invalidating the library route on every modal exit.
   return { draftId, savedAt: timestamp };
 }
 

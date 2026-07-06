@@ -358,6 +358,7 @@ describe("library viewer mutation authorization", () => {
 
     const priceOptionInserts = d1.statements.filter((statement) => statement.sql.includes("INSERT INTO cost_library_item_price_options"));
     expect(priceOptionInserts).toHaveLength(2);
+    expect(d1.statements.filter((statement) => statement.sql.includes("SELECT metadata_json"))).toHaveLength(0);
     expect(priceOptionInserts[0]?.values[3]).toBe("V1");
     expect(priceOptionInserts[0]?.values[5]).toBe(12.34);
     expect(priceOptionInserts[0]?.values[6]).toBe(0);
@@ -372,5 +373,26 @@ describe("library viewer mutation authorization", () => {
       packageQuantity: 12,
       packageUnit: "pieces",
     }));
+  });
+
+  it("saves component drafts without invalidating cached component library routes", async () => {
+    const d1 = createD1Fixture();
+    const actions = await import("@/lib/component-library/actions");
+
+    await expect(actions.saveCostLibraryComponentDraft({
+      fieldContract: "opendesign-add-component",
+      title: "Fast draft",
+      draft: {
+        form: { name: "Fast draft" },
+        activeTab: "component",
+      },
+    })).resolves.toEqual({
+      draftId: expect.any(String),
+      savedAt: expect.any(String),
+    });
+
+    const draftInsert = d1.statements.find((statement) => statement.sql.includes("INSERT INTO cost_library_component_drafts"));
+    expect(draftInsert).toBeDefined();
+    expect(cacheMocks.revalidatePath).not.toHaveBeenCalled();
   });
 });

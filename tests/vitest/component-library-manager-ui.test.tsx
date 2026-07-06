@@ -475,12 +475,13 @@ describe("component library manager UI", () => {
           name: "Draft component",
           category: "Fabrication",
         }),
-        componentPayload: expect.objectContaining({
-          fieldContract: "opendesign-add-component",
-          name: "Draft component",
-        }),
+        activeTab: "component",
+        activeVariantId: expect.any(String),
+        variantDrawerOpen: false,
+        variantDrawerView: "manager",
       }),
     }));
+    expect(actionMocks.saveCostLibraryComponentDraft.mock.calls[0]?.[0]?.draft).not.toHaveProperty("componentPayload");
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Add Component" })).not.toBeInTheDocument());
   });
 

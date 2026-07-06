@@ -49,11 +49,18 @@ Stable current truth (verify against git/source before relying on a detail):
 - Next 16 proxy convention repair (2026-07-07 local): the startup warning about
   deprecated `middleware` was caused by `src/middleware.ts` remaining as the
   active file convention while `src/proxy/index.ts` was only an import
-  convenience module. The active entrypoint is now `src/proxy.ts`, exporting
-  `config` and `proxy` from `src/lib/auth/request-proxy.ts`; `src/middleware.ts`
-  and `src/proxy/index.ts` were removed, and provider/source smoke scan roots now
-  point at `src/proxy.ts`. Focused proof: proxy convention/auth proxy tests and
-  provider-exit/latest-deploy-source smoke script tests passed.
+  convenience module. The active entrypoint is now `src/proxy.ts`; it wraps the
+  auth proxy implementation from `src/lib/auth/request-proxy.ts` and owns a
+  literal `config.matcher` export so Next/Turbopack can statically parse it.
+  `src/middleware.ts` and `src/proxy/index.ts` were removed, and provider/source
+  smoke scan roots now point at `src/proxy.ts`. Focused proof:
+  `bunx vitest run tests/vitest/proxy-file-convention.test.ts tests/vitest/auth-proxy.test.ts --maxWorkers=1`
+  passed, `bunx tsc --noEmit --pretty false` passed, and a clean `bun dev`
+  startup plus `HEAD /` returned 200 with no `middleware`, `COLLAB_ROOMS`,
+  `SENTRY_DO`, hydration, realtime, audit, or proxy re-export errors in the
+  filtered dev log before shutdown. A `fetch failed` record observed after
+  Ctrl-C was shutdown fallout from in-flight RSC requests, not the root proxy
+  issue.
 - Project Activity UX/UI improvement (2026-07-06): the planning pack
   `.ai/03_plans/2026-07-06-Project-Activity-UX-UI-Improvement/` now has a stable
   ledger implementation pass. The activity page uses a compact project-ledger

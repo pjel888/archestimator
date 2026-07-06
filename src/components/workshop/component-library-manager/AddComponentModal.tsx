@@ -810,7 +810,6 @@ function OpenAddComponentModal({
           title: draft.name,
           draft: {
             form: draft,
-            componentPayload: buildComponentPayload(),
             activeTab,
             activeVariantId,
             variantDrawerOpen,
