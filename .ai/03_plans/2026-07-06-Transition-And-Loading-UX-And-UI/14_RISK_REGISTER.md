@@ -1,0 +1,18 @@
+# Risk Register
+
+| ID | Description | Trigger | Probability | Impact | Severity | Affected | Detection | Prevention | Mitigation | Contingency | Owner | Residual | Status |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| RISK-01 | `ssr:false` on EstimateSheetTree breaks react-complex-tree hydration (drag/DnD/selection) | Phase 2 ARCH-02 | Medium | High | High | estimate route | P2-T1 discovery spike; CRUD-latency spec | discovery before apply | revert dynamic options | keep SSR with Suspense split instead | impl | medium | Open |
+| RISK-02 | RUM beacon leaks PII | PERF-02 | Low | High | High | privacy | redaction tests; CSP audit | payload schema; query-strip; review | disable beacon; purge sink data | GA4-only or defer | owner | low (post-tests) | Open |
+| RISK-03 | Strict CI bundle gate blocks legitimate merges | PERF-03 | Medium | Medium | Medium | dev velocity | CI status | stage advisory→strict; tighten gradually | flip back to advisory | per-route overrides w/ owner note | owner | medium | Open |
+| RISK-04 | CI auth fixture accidentally enables prod bypass | PERF-04 | Low | High | High | security | security review; env isolation | CI-only secret; seeded dev data, never prod keys | rotate; remove fixture | manual authed perf only | owner/sec | low (post-review) | Open |
+| RISK-05 | Loading skeletons cause CLS | Phase 1 | Medium | Medium | Medium | UX | Playwright CLS capture; visual | dimension-matched skeletons | fix dimensions; rollback file | overlay fallback | impl | low | Open |
+| RISK-06 | Overlay suppression removes feedback on slow networks | UX-03 | Medium | Medium | Medium | UX | route-transition spec w/ Slow 3G | debounced threshold | raise threshold | keep overlay always | owner | medium | Open |
+| RISK-07 | Agent rules drift/ignored by future agents | Phase 4 | Medium | Medium | Medium | governance | `validate:agents`; AGENTS.md required reading | pointer in AGENTS.md; skill procedure | periodic audit | owner reasserts | owner | low | Open |
+| RISK-08 | Cache Components adoption (future) breaks every uncached boundary | F-INSTANT | Medium | Very High | Very High | whole app | build-time `unstable_instant` validation | separate plan pack; staged | revert config flag | incremental `instant=false` | owner | high | Open (future) |
+| RISK-09 | Share migration to TanStack Query changes cache invalidation semantics | ARCH-03 | Low-Med | Medium | Medium | share receiver | shared-link-receiver spec | preserve query keys; tests | rollback | keep fetch w/ explicit cache | impl | low | Open |
+| RISK-10 | `metrics/` baselines not reproducible (flake) | Phase 0 | Medium | Low | Low-Med | measurement | re-run variance check | drop min/max; median; document flake | widen threshold | manual capture | impl | low | Open |
+| RISK-11 | Concurrent agents edit AGENTS.md during Phase 4-T2 | Phase 4 | Low | Low | Low | governance | re-read before edit; ledger | file ownership lease | reapply line | coordinate | impl | low | Open |
+| RISK-12 | Perpetual skeleton with no escape on network drop | REL-02 | Low | Medium | Medium | UX | adversarial scenario | timeout → error boundary | fallback | none | impl | low | Open |
+
+No critical risk is unmitigated within the planning scope. RISK-08 (future Cache Components) is explicitly deferred and owner-gated.
