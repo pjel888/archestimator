@@ -1259,6 +1259,18 @@ async function filterAccessibleEstimates<T extends { id: string }>(
   return estimates.filter((_estimate, index) => accessResults[index]);
 }
 
+async function filterAccessibleEstimateIds(
+  database: D1DatabaseLike,
+  estimateIds: string[],
+  context: Pick<CurrentUserContext, "role" | "userId">,
+) {
+  if (estimateIds.length === 0) return estimateIds;
+  const accessResults = await Promise.all(
+    estimateIds.map((estimateId) => canAccessEstimateInD1(database, estimateId, context)),
+  );
+  return estimateIds.filter((_estimateId, index) => accessResults[index]);
+}
+
 function canReadProjectCollaborationRoster({
   context,
   profileId,
@@ -2117,8 +2129,17 @@ async function getWorkshopHomebaseDataAppPath(): Promise<WorkshopHomebaseData> {
   const estimateFavoriteCreatedAt = new Map(
     estimateFavoriteRows.map((favorite) => [favorite.estimate_id, favorite.created_at]),
   );
-  const favoriteProjectIds = [...projectFavoriteCreatedAt.keys()];
-  const favoriteEstimateIds = [...estimateFavoriteCreatedAt.keys()];
+  const context = { role: profile.role, userId: profile.id };
+  const favoriteProjectIds = await filterAccessibleSidebarProjectIds(
+    database,
+    [...projectFavoriteCreatedAt.keys()],
+    profile,
+  );
+  const favoriteEstimateIds = await filterAccessibleEstimateIds(
+    database,
+    [...estimateFavoriteCreatedAt.keys()],
+    context,
+  );
   const workspaceRole = workspaceMembership?.role
     ? mapWorkspaceRoleToCollaborationRole(workspaceMembership.role)
     : null;

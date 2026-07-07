@@ -32,6 +32,23 @@ describe("workspace repository D1 authorization contract", () => {
     expect(workspaceRepository).toContain("return filterAccessibleEstimates(database, sheets, context)");
   });
 
+  it("filters homebase favorite-derived ids through current D1 access before metadata, node, or publication reads", () => {
+    const homebaseRepository = workspaceRepository.slice(
+      workspaceRepository.indexOf("async function getWorkshopHomebaseDataAppPath"),
+      workspaceRepository.indexOf("function toMainSidebarFavoriteProject"),
+    );
+
+    expect(workspaceRepository).toContain("async function filterAccessibleEstimateIds");
+    expect(workspaceRepository).toContain("canAccessEstimateInD1(database, estimateId, context)");
+    expect(homebaseRepository).toContain("const context = { role: profile.role, userId: profile.id }");
+    expect(homebaseRepository).toContain("const favoriteProjectIds = await filterAccessibleSidebarProjectIds");
+    expect(homebaseRepository).toContain("const favoriteEstimateIds = await filterAccessibleEstimateIds");
+    expect(homebaseRepository).toContain("const recentEstimateProjectIds = [...new Set([...recentProjectIds, ...favoriteProjectIds])]");
+    expect(homebaseRepository).toContain("const limitedFavoriteEstimateIds = favoriteEstimateIds.slice(0, WORKSHOP_HOMEBASE_FAVORITE_ESTIMATE_LIMIT)");
+    expect(homebaseRepository).toContain("const backfillProjectIds = [...new Set([...favoriteProjectIds, ...missingProjectIds])]");
+    expect(homebaseRepository).toContain("readOptionalProjectPublications(database, allProjectIds)");
+  });
+
   it("filters sidebar favorite projects through the current D1 access gate via a single batched SQL query", () => {
     const sidebarFavoritesRepository = workspaceRepository.slice(
       workspaceRepository.indexOf("export const listMainSidebarFavoriteProjects"),
