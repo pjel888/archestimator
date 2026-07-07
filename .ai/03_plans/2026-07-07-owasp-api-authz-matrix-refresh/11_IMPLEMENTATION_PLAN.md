@@ -134,10 +134,51 @@ then P1, then P2 hardening. Each task has exact paths/symbols, validation, and r
   creates, OR document acceptable replay semantics.
 - **Complexity:** Medium. Lower priority.
 
-### Task WP-12 — Cleanup dead config (SEC-08/09)
-- **Target:** `.env.example` (remove or wire `ARCHESTIMATOR_ALLOWED_APP_ORIGINS`);
-  document `signedReadUrlFactory` invariant in `r2-storage-provider.ts`.
-- **Complexity:** Small.
+### Task WP-12 — R2 signed-URL invariant doc + origin-source reconciliation (SEC-09/10)
+- **Requirement IDs:** REQ-DOC-03 (new, LOW).
+- **Objective:** (a) Document the `signedReadUrlFactory` invariant in
+  `src/lib/uploads/r2-storage-provider.ts` (must run app-authz before minting any
+  presigned URL if ever wired). (b) Document why per-request share/invite origin checks
+  derive from `request.url` while `ARCHESTIMATOR_ALLOWED_APP_ORIGINS` feeds
+  `trustedOrigins`/redirects/email links, so multi-origin deployments don't drift.
+- **Target:** code comments / a short note in `.ai/` or `DESIGN.md`; **DO NOT remove**
+  `ARCHESTIMATOR_ALLOWED_APP_ORIGINS` from `.env.example` (it is actively consumed — see
+  retracted SEC-08 / Doc 20 ADV-01).
+- **Complexity:** Small. **Parallelization:** parallel-safe.
+
+### Task WP-13 — Audit caller-authorized Server Actions (SEC-05/11 / REQ-DEFENSE-01)
+- **Requirement IDs:** REQ-DEFENSE-01.
+- **Objective:** Audit `"use server"` exports that rely on caller-layer auth rather than
+  action-layer auth. Confirmed instance: `maybeTriggerSharedLinkActivityDigest`
+  (`src/lib/publication/actions.ts:1968`). Either (a) add an internal guard that verifies
+  the publication token before sending the digest, or (b) document explicitly that this
+  is an internal-only helper whose callers (comment/decision routes) authorize, and add a
+  contract test asserting direct POST without a valid publication context is a no-op.
+- **Target:** `src/lib/publication/actions.ts:1968` + audit pass over other `"use server"`
+  exports for the same pattern (extend the SEC-05 audit).
+- **Tests:** new contract test; extend `security-findings-publication-contracts.test.ts`.
+- **Complexity:** Small–Medium. **Parallelization:** parallel-safe after audit.
+
+## Durable-goal ledger (per phase)
+
+Each phase must record: goal ID, objective, scope, requirements covered, required
+evidence, completion audit, checkpoint artifacts, stop condition, blocker condition,
+review gate, QA gate.
+
+| Phase | Goal ID | Stop condition | QA gate |
+|---|---|---|---|
+| 0 | GOAL-P0 | WP-01/02/03 pass focused tests + type-check | adversarial denial tests green |
+| 1 | GOAL-P1 | WP-04..09 + WP-13 done or owner-deferred | REQ-NEG-02 + SEC-05/11 tests green |
+| 2 | GOAL-P2 | WP-10/11/12 done or deferred | owner sign-off |
+
+## Files explicitly off-limits during implementation
+- `supabase/migrations/**` (migration archaeology — never extend).
+- `.ai/10_state/current-state.md` (append-only; do not rewrite history).
+- Any file outside the named target paths per task.
+
+## Files intentionally unaffected
+- Marketing pages, health endpoint, design-system tokens, Storybook config.
+- Better Auth core tables schema (no migration needed).
 
 ## Durable-goal ledger (per phase)
 
