@@ -101,6 +101,14 @@ describe("landing-v3 homepage contract", () => {
     expect(page).not.toContain(deletedNamespace);
   });
 
+  it("keeps navigation and hero CTAs on one typography scale", () => {
+    const css = readProjectFile("src/components/landing-v3/landing-v3.module.css");
+
+    expect(css).toMatch(/\.signInLink,\n\.primaryCta,\n\.secondaryCta\s*{[^}]*font-family: var\(--font-roboto-mono\)/);
+    expect(css).toMatch(/\.signInLink,\n\.primaryCta,\n\.secondaryCta\s*{[^}]*font-size: 0\.75rem/);
+    expect(css).toMatch(/\.signInLink,\n\.primaryCta,\n\.secondaryCta\s*{[^}]*font-weight: 650/);
+  });
+
   it("keeps the active public copy on winning bids workflow positioning", () => {
     const activeCopy = readActiveHomepageSource();
 
