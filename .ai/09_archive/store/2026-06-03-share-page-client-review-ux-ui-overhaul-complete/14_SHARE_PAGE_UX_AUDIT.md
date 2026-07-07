@@ -7,7 +7,7 @@
 
 ## Audit Method
 
-Visual inspection of source code + running dev server at `http://localhost:3000/share/vTePfd5eq4ZbBFzHNae0JYOCLfPd_QcrW4F3cnf9Y_E`.
+Visual inspection of source code + running dev server at `http://localhost:3000/share/SHARE_TOKEN_PLACEHOLDER`.
 
 ---
 
@@ -126,7 +126,7 @@ Visual inspection of source code + running dev server at `http://localhost:3000/
 ## Before/After Screenshot Locations
 
 Screenshots should be captured at:
-- `bun run dev` → `http://localhost:3000/share/vTePfd5eq4ZbBFzHNae0JYOCLfPd_QcrW4F3cnf9Y_E`
+- `bun run dev` → `http://localhost:3000/share/SHARE_TOKEN_PLACEHOLDER`
 - Desktop (1440px), Tablet (768px), Mobile (375px)
 - Before implementation (for comparison)
 - After implementation (for verification)

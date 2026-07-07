@@ -45,22 +45,7 @@ run_react_doctor() {
     return
   fi
 
-  if command -v react-doctor >/dev/null 2>&1; then
-    react-doctor --verbose --scope changed --blocking warning --no-score
-    return
-  fi
-
-  if command -v pnpm >/dev/null 2>&1; then
-    pnpm dlx react-doctor@latest --verbose --scope changed --blocking warning --no-score
-    return
-  fi
-
-  if command -v npx >/dev/null 2>&1; then
-    npx --yes react-doctor@latest --verbose --scope changed --blocking warning --no-score
-    return
-  fi
-
-  printf '%s\n' 'react-doctor: command not found; skipping agent hook scan.'
+  printf '%s\n' 'react-doctor: local project binary not found; skipping agent hook scan. Run `bun install --frozen-lockfile` to enable it.'
   return 0
 }
 

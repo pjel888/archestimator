@@ -256,4 +256,4 @@ Complete bug plans in .ai/15_Bugs/ — read before fixing.
 - Archive folder: `.ai/09_archive/`
 - Feature branch: `feat/share-page-client-review-ux-ui-overhaul`
 - Commit message: `feat(share): client review UX/UI overhaul for share page`
-- Target share URL: `http://localhost:3000/share/vTePfd5eq4ZbBFzHNae0JYOCLfPd_QcrW4F3cnf9Y_E`
+- Target share URL: `http://localhost:3000/share/SHARE_TOKEN_PLACEHOLDER`
