@@ -74,7 +74,7 @@ Implementation bias: **minimal**. Honor the brief's "do not overbuild a CRM." Ev
 - **Objective**: Add `first_response_at`, `responded_at`, `alerted_at` + sweep index.
 - **Target files**: new `migrations/0039_beta_feedback_sla_columns.sql`.
 - **Instructions**: see `21_DATABASE_CHANGE_BLUEPRINTS.md` for the SQL sketch.
-- **Validation**: apply locally (`bun run cf:d1-migrate-local` or equivalent); readback via `scripts/generate-cloudflare-d1-beta-feedback-proof.ts`.
+- **Validation**: apply locally via `bunx wrangler d1 migrations apply ARCH_DB --local` (no custom migrate script exists in the repo — verified); readback via `bun run cf:d1-beta-feedback-proof` (`scripts/generate-cloudflare-d1-beta-feedback-proof.ts`, extend to assert the 3 new columns + `idx_beta_feedback_sla_sweep`). See `21` DB-01 for the partial-apply idempotency note (`ALTER TABLE ADD COLUMN` is not idempotent in SQLite).
 - **Rollback**: `DROP COLUMN` ×3 + `DROP INDEX`.
 - **Complexity**: Small.
 

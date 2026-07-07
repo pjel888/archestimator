@@ -13,6 +13,9 @@ edit another lane's entry.
 | 2026-07-07 | explore-2 | COMPLETE | mapped D1 repos, DO, retention, upload flows, budget var reads, tests |
 | 2026-07-07 | research | COMPLETE | free-tier Cloudflare observability facts + citations |
 | 2026-07-07 | lead | COMPLETE | synthesized 00-19 + README + LOOP_LEDGER; status CONDITIONALLY READY |
+| 2026-07-07 | adversarial (indep) | COMPLETE | 2×P0 + 8×P1 + 4×P2 findings vs. actual codebase (see 17 §17.1) |
+| 2026-07-07 | final-verifier (indep) | COMPLETE | 9/9 deliverables + 3/3 constraints PROVEN; test-command flaw + ALS claim flagged (see 19 §19.10) |
+| 2026-07-07 | lead (revision) | COMPLETE | applied all P0/P1/P2 fixes; re-scored 96; status CONDITIONALLY READY (emulated cap + OPEN-05) |
 
 ## Implementation lanes (to be filled at execution time)
 

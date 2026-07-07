@@ -82,6 +82,9 @@ No skill was fabricated. No reusable skill was created (no genuine gap).
 | Explore-2 | Map D1 repos, DO, retention, upload flow, budget var reads, tests | `src/lib/repositories/**`, `collaboration-room.ts`, `retention-core.ts`, `uploads/**`, `wrangler.jsonc` vars | file:line map in `03_…` | none | Budget vars never enforced; retention unbounded; DO has no logging/metrics; O(N) fan-out | none | COMPLETE |
 | Research | Free-tier Cloudflare observability facts | WebSearch + web reader on developers.cloudflare.com / blog | citations in `19_…` | none | Traces share logs quota since Mar 2026; AE free at 100k pts/day; native alerting weak on Free | none | COMPLETE |
 | Lead | Synthesize pack | all of above | all docs | 3 lanes above | — | — | COMPLETE |
+| Adversarial (independent) | Try to break the pack vs. actual codebase | all docs + worker.ts/wrangler.jsonc/package.json/src/lib | 2×P0 + 8×P1 + 4×P2 report in `17_…` §17.1 | codebase read | test-runner wrong; sampling landmine; ALS unverified; token leak; cf-ray runbook; streaming; inbound-id; matrix cols; proof-contract/attack-surface; manual rollback | none | COMPLETE (all resolved) |
+| Final-verifier (independent) | Requirement-by-requirement audit + evidence-class table | PROMPT.md + all docs + codebase | `19_…` §19.10–19.12 | codebase read | 9/9 deliverables + 3/3 constraints PROVEN; test-command flaw confirmed; ALS weakest claim | none | COMPLETE (all resolved) |
+| Lead (revision) | Apply all P0/P1/P2 fixes | 12,11,13,04,08,16,17,19,10,07,15,01,00,README | revised docs | adversarial + verifier | — | — | COMPLETE |
 
 ## File-ownership lease
 

@@ -2,9 +2,9 @@
 
 **Plan:** Invite Token Flow Hardening
 **Plan folder:** `.ai/03_plans/2026-07-07-invite-token-flow-hardening/`
-**Plan status:** `CONDITIONALLY READY` (see `17_FINAL_READINESS_REVIEW.md`; `verification_mode: emulated` caps an exhaustive auth-adjacent pack at `CONDITIONALLY READY` until an independent reviewer or the owner signs off).
+**Plan status:** `CONDITIONALLY READY` (see `17_FINAL_READINESS_REVIEW.md`). **Overall readiness: 93** (honest re-score after the Improve pass; the original 95 was over-asserted — it ignored the Data cap-89 from the unverified D1 SQLite version and the Performance code-review-gate reality). The binding constraints are Data=89 (D1 version NOT VERIFIED — resolves at impl) and Performance=94 (PC-17 query-count assertion lands at impl), not the `emulated` cap (97). `verification_mode: emulated` additionally caps an exhaustive auth-adjacent pack at `CONDITIONALLY READY` until an independent reviewer or the owner signs off.
 **Plan profile:** `exhaustive`
-**Created:** 2026-07-07 (Asia/Manila)
+**Created:** 2026-07-07 (Asia/Manila) · **Improved:** 2026-07-07 (Asia/Manila, Improve-pass cycle 3)
 
 ## What this plan is
 
