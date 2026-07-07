@@ -23,7 +23,7 @@ Per the Creating-Plan-Prompt §4A performance-goal contract:
 |---|---|
 | Baseline metric | `/invite/[token]` resolve query count + `/accept` query count (from `collaboration-invitation-d1-store.test.ts` / proof harness) |
 | Target metric | No increase in query count per route after hardening |
-| Measurement command | `bun run test -- collaboration-invitation-d1-store` (query-count assertions) + hosted proof harness |
+| Measurement command | `bun run test -- collaboration-invitation-d1-store` + hosted proof harness. **No query-count assertion exists in that test today** — PC-17 (Phase 6) adds an explicit resolve/accept query-count assertion. Until PC-17 lands, PERF-01's evidence is a code-review gate (the origin check is pure header-parse; the revoke action is manager-only/off-hot-path), not an automated regression signal. |
 | Dataset/fixture size | Existing proof fixtures (`codex-collab-proof-*`) |
 | Runs / flake policy | Single run (deterministic unit/proof); 3 runs for any timing claim |
 | Regression threshold | +0 queries on resolve; +0 on accept (beyond the existing 5-7) |

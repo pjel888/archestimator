@@ -87,7 +87,7 @@
 
 | ID | Decision | Owner | Options | Recommendation | Impact if deferred |
 |---|---|---|---|---|---|
-| OPEN-01 | AE binding name | Philip | ARCH_METRICS / OBSERVABILITY / WORKER_ANALYTICS | ARCH_METRICS | Phase 7/2/8 use placeholder; rename trivial |
+| OPEN-01 | AE binding name | Philip | ARCH_METRICS / OBSERVABILITY / WORKER_ANALYTICS | ARCH_METRICS | Phase 7/8 use placeholder; rename trivial |
 | OPEN-02 | Exact KPI set (beyond route/outcome/duration) | Philip | +upload count/size, +DO active rooms, +AI latency | start with route/outcome/duration; expand later | AE emits fewer points; no block |
 | OPEN-03 | Alert-polling destination (GitHub Actions vs external service) | Philip | GH Actions / UptimeRobot / second Worker | GH Actions (free, in-repo) | alerting gap remains documented; not blocking |
 | OPEN-04 | Whether to enforce the 5 `ARCH_UPLOAD_HOSTED_*` vars live | Philip | enforce / keep advisory | keep advisory (out of scope here) | none for this plan |

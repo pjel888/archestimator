@@ -2,12 +2,21 @@
 
 ## 13.1 Rollout rings
 
-| Ring | Audience | Gate | Auto-rollback trigger |
+| Ring | Audience | Gate | Rollback trigger (detection mode) |
 |---|---|---|---|
 | Ring 0 | local dev | type-check + unit + integration green | n/a |
 | Ring 1 | `wrangler dev` / preview | manual curl: header on 200/308/500; `wrangler tail` shows lifecycle events | n/a |
-| Ring 2 | production deploy (`archestimator-proof`) | deploy dry-run valid; AE binding live | error rate > 0.5% by route; any `exceededCpu` on non-cron; D1 rows-written/day > 70% ceiling |
-| Ring 3 | closed-beta confidence | 24h clean on production | same |
+| Ring 2 | production deploy (`archestimator-proof`) | deploy dry-run valid; AE binding live | error rate > 0.5% by route; any `exceededCpu` on non-cron; D1 rows-written/day > 70% ceiling — **MANUAL detection** (see §13.5) |
+| Ring 3 | closed-beta confidence | 24h clean on production | same — **MANUAL detection** |
+
+> **Honesty note (P1-8):** on the **Free** tier, Cloudflare's native Worker
+> error-rate / `exceededCpu` alerting is weak/Enterprise-only (RISK-15, §13.5).
+> The triggers above are **manual rollback criteria**: an operator must notice
+> them in the dashboard or via a self-poll GraphQL cron (OPEN-03, a separate
+> follow-up task) within the 24h Ring-3 window. **No gate is automated on Free.**
+> Do not treat these as auto-rollback. The realistic free-tier safety net is
+> (a) `bun run cf:release-gates` / `cf:check-readiness` pre-deploy, (b) manual
+> dashboard watch post-deploy, (c) the self-poll alert worker once OPEN-03 lands.
 
 The change is **non-user-facing** (additive header + logging + budgets), so the
 blast radius of rollout is low. The main risk is the AE binding + sampling
@@ -127,13 +136,14 @@ change). Fix-forward is equally viable for any logic bug.
 
 ## 13.6 Rollout performance gates (recap from `09_…`)
 
-| Gate | Metric | Source | Pass | Fail action |
-|---|---|---|---|---|
-| Merge | type/lint/test green | local | green | fix |
-| Closed-beta | error rate < 0.5%/route | Workers Logs | below | hold |
-| Prod | 0 `exceededCpu` non-cron/24h | Workers Logs | 0 | fix-forward |
-| Prod | D1 rows-written < 70% ceiling | D1 analytics | below | reduce writes |
-| Prod | AE points < 70% ceiling | AE analytics | below | sample |
+| Gate | Metric | Source | Pass | Fail action | Detection |
+|---|---|---|---|---|---|
+| Merge | type/lint/test green | local (`type-check`+`test:dom`) | green | fix | **automated** (CI/local) |
+| Closed-beta | error rate < 0.5%/route | Workers Logs | below | hold | **manual** (dashboard) |
+| Prod | 0 `exceededCpu` non-cron/24h | Workers Logs | 0 | fix-forward | **manual** (dashboard/self-poll) |
+| Prod | D1 rows-written < 70% ceiling | D1 analytics | below | reduce writes | **manual** (dashboard) |
+| Prod | AE points < 70% ceiling | AE analytics | below | sample | **manual** (dashboard) |
+| Prod | sampling actually 1.0 (T-7.1) | resolved wrangler config | one effective rate | fix config | **manual** (deploy-dry-run grep) |
 
 ## 13.7 Post-release verification (hosted, manual)
 

@@ -15,7 +15,7 @@
 | Revoke RPC | Yes (new) | `src/lib/collaboration/invitation-d1-store.ts` | **Required change (new function)** | P3 |
 | Revoke UI | Yes (new) | `src/components/workshop/publisher/*` | **Required change (new component)** | P3 |
 | Migration `0038` | Yes (new) | `migrations/0038_*.sql` | **Required change (additive)** | P3 |
-| Direct-grant helpers | Yes (promotion-only) | `src/lib/collaboration/actions.ts:785-852` | **Required change** | P4 |
+| Direct-grant call sites | Yes (promotion guard at call site only) | `src/lib/collaboration/actions.ts:973,1094` (NOT the shared helper 785-852) | **Required change** | P4 |
 | Realtime identity | Yes (pepper separation) | `src/lib/collaboration/realtime-identity-server.ts`, `realtime-room-token.ts` | **Required change (owner-gated)** | P5 |
 | Env examples | Yes (new vars) | `.env.example`, `.dev.vars.example` | **Required change** | P1/P5 |
 | Tests | Yes (extend + new) | `tests/vitest/*invite*` + new revoke test | **Required change** | P1-P3 |
