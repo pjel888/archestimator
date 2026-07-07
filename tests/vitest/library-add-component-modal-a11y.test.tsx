@@ -84,6 +84,7 @@ function makeAddModalProps(overrides: Partial<ComponentProps<typeof AddComponent
     brands: [{ id: "brand-hinge", name: "Hinge Co", normalized_name: "hinge co", sort_order: 1 }],
     libraryItems: [],
     selectedFolderId: null,
+    catalogueOptionsStorageScope: "catalogue-options-default-test-scope",
     onOpenChange: vi.fn(),
     onComponentCreated: vi.fn(),
     ...overrides,
@@ -455,6 +456,9 @@ describe("AddComponentModal OpenDesign field contract", () => {
     expect(payload.priceOptions[0]).not.toHaveProperty("dimensionLength");
     expect(payload.priceOptions[0]).not.toHaveProperty("costEntries");
     await waitFor(() => expect(props.onComponentCreated).toHaveBeenCalledTimes(1));
+    const createdItem = props.onComponentCreated.mock.calls[0][0] as EstimateRowItem;
+    expect(createdItem.category).toBe("Hardware");
+    expect(createdItem.categoryPath).toBeUndefined();
   });
 
   it("opens the variants drawer with OpenDesign variant-only fields", async () => {

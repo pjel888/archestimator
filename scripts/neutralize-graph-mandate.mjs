@@ -14,8 +14,8 @@
  * IDEMPOTENT: it only acts when an absolutist marker is present, so it is a no-op on already-proportional
  * files (and on files with no such block). It NEVER fails the caller — always exits 0.
  *
- * Run it AFTER the generators, via `bun run graph:reindex` (analyze + neutralize) or `bun run
- * graph:neutralize` (standalone, e.g. after a code-review-graph re-install). It is deliberately NOT a
+ * Run it AFTER the generators, via `bun run graph:reindex` (safe-runner guard + analyze + neutralize)
+ * or `bun run graph:neutralize` (standalone, e.g. after a code-review-graph re-install). It is deliberately NOT a
  * global editor hook, so it has no effect on other agents' sessions until the canonical re-index path runs.
  *
  * Usage: node scripts/neutralize-graph-mandate.mjs [file ...]   (defaults: AGENTS.md CLAUDE.md GEMINI.md)

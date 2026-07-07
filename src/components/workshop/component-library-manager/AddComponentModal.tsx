@@ -153,7 +153,7 @@ type AddComponentModalProps = {
   onDeleteFolder?: (folderId: string, currentName: string) => void;
   reorderStatus?: ReorderStatus;
   treeMutationPending?: boolean;
-  catalogueOptionsStorageScope?: string;
+  catalogueOptionsStorageScope: string;
 };
 
 type AddComponentModalTab = "component" | "activity";
@@ -253,8 +253,8 @@ function isLocalCatalogueComboboxOption(option: CreatableComboboxOption): boolea
   return isLocalCatalogueOptionId(option.id);
 }
 
-function getCatalogueOptionsStorageKey(scope: string | null | undefined): string {
-  const normalizedScope = (scope ?? "fallback-workspace").trim().replace(/[^a-zA-Z0-9_.:-]+/g, "-") || "fallback-workspace";
+function getCatalogueOptionsStorageKey(scope: string): string {
+  const normalizedScope = scope.trim().replace(/[^a-zA-Z0-9_.:-]+/g, "-") || "blank-scope";
   return `${ADD_COMPONENT_CATALOGUE_OPTIONS_STORAGE_PREFIX}:${normalizedScope}`;
 }
 
@@ -668,7 +668,6 @@ function OpenAddComponentModal({
   const defaultCost = Number.isFinite(parseMoney(defaultVariant?.unitCost ?? ""))
     ? formatAccountingMoney(defaultVariant?.unitCost ?? "")
     : "0.00";
-  const selectedCategoryPath: string[] = [];
   const duplicateIdentityIndex = useMemo(() => {
     const bySupplier = new Map<string, { item: EstimateRowItem; order: number }>();
     const byBrand = new Map<string, { item: EstimateRowItem; order: number }>();
@@ -1220,7 +1219,7 @@ function OpenAddComponentModal({
       imageUrl: variantImage?.thumbnailUrl || variantImage?.thumbnailPath || draft.thumbnailPath || undefined,
       category,
       categoryNodeId: draft.categoryNodeId || undefined,
-      categoryPath: selectedCategoryPath,
+      categoryPath: undefined,
       brand: brandName || undefined,
       brandId: draft.brandId || undefined,
       sku: variant?.sku || undefined,
