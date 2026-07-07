@@ -19,15 +19,18 @@ const globalsCss = readFileSync("src/app/globals.css", "utf8");
 const armer = readFileSync("src/components/system/LiquidGlassReady.tsx", "utf8");
 
 // Every surface whose blur is deferred. Each must ship un-armed `backdrop-filter:
-// none` AND have a `:root[data-glass="ready"]` armed rule.
+// none` AND have a `:root[data-glass="ready"]` armed rule. The main sidebar is
+// deliberately excluded because expand/collapse must never repaint a full-height
+// backdrop blur.
 const GATED_GLASS_CLASSES = [
-  "sidebar-glass",
   "dashboard-glass",
   "dashboard-glass-warm",
   "workshop-workspace-glass-surface",
   "dashboard-destination-card",
   "workshop-liquid-button",
 ] as const;
+
+const FLAT_GLASS_CLASSES = ["sidebar-glass"] as const;
 
 describe("deferred liquid-glass arming", () => {
   it("registers the animatable blur custom property and only sets it once armed", () => {
@@ -53,8 +56,20 @@ describe("deferred liquid-glass arming", () => {
     for (const cls of GATED_GLASS_CLASSES) {
       expect(globalsCss).toContain(`:root[data-glass="ready"] .${cls}`);
     }
-    // Sidebar desktop refraction still swaps to the SVG filter, but only once armed.
-    expect(globalsCss).toContain(`:root[data-glass="ready"] .sidebar-glass[data-refraction="true"]`);
+    for (const cls of FLAT_GLASS_CLASSES) {
+      expect(globalsCss).not.toContain(`:root[data-glass="ready"] .${cls}`);
+    }
+    expect(globalsCss).not.toContain(`:root[data-glass="ready"] .sidebar-glass[data-refraction="true"]`);
+  });
+
+  it("keeps the main sidebar blur-free even after glass arming", () => {
+    expect(globalsCss).toMatch(
+      /\.sidebar-glass\s*{[\s\S]*?-webkit-backdrop-filter:\s*none;[\s\S]*?backdrop-filter:\s*none;[\s\S]*?}/,
+    );
+    expect(globalsCss).not.toMatch(
+      /:root\[data-glass="ready"\]\s+\.sidebar-glass(?:\s|,|\{|\[)/,
+    );
+    expect(globalsCss).not.toMatch(/backdrop-filter:\s*url\(#sc-sidebar-glass\)/);
   });
 
   it("never gates arming on prefers-reduced-transparency: no-preference (strands older engines)", () => {
@@ -65,13 +80,13 @@ describe("deferred liquid-glass arming", () => {
   it("disarms blur live for reduced-transparency users even after arming", () => {
     // An inner @media reduce block inside the armed @supports removes blur again.
     expect(globalsCss).toMatch(
-      /@media\s*\(prefers-reduced-transparency:\s*reduce\)\s*{[\s\S]*?:root\[data-glass="ready"\]\s*\.sidebar-glass[\s\S]*?backdrop-filter:\s*none;/,
+      /@media\s*\(prefers-reduced-transparency:\s*reduce\)\s*{[\s\S]*?:root\[data-glass="ready"\]\s*\.dashboard-glass[\s\S]*?backdrop-filter:\s*none;/,
     );
   });
 
   it("keeps every gated base rule un-armed (backdrop-filter: none) so first paint is cheap", () => {
-    // One `/* deferred */` marker per gated base rule (sidebar, dashboard-glass,
-    // workspace surface, liquid-button, glass-warm, destination-card).
+    // One `/* deferred */` marker per gated base rule (dashboard-glass, workspace
+    // surface, liquid-button, glass-warm, destination-card).
     const deferredMarkers = globalsCss.match(/backdrop-filter:\s*none;\s*\/\* deferred/g) ?? [];
     expect(deferredMarkers.length).toBeGreaterThanOrEqual(GATED_GLASS_CLASSES.length - 1);
   });

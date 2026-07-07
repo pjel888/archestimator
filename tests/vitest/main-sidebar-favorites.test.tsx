@@ -219,6 +219,31 @@ describe("MainSidebar favorites", () => {
     expect(await within(nav).findByText("Star a project or estimate sheet to pin it here.")).toBeInTheDocument();
   });
 
+  it("hydrates deferred favorites when the keyboard shortcut expands the sidebar", async () => {
+    fetchSidebarFavoriteProjectsMock.mockResolvedValue([
+      favoriteProject({ id: "project-keyboard", href: "/workshop/projects/project-keyboard", name: "Keyboard Project" }),
+    ]);
+
+    renderWithClient(
+      <MainSidebar
+        favoritesScope={scope}
+        favoriteProjects={[]}
+        favoriteProjectsFresh={false}
+        user={{ displayName: "Philip Lewis", email: "philip@example.com" }}
+      />,
+    );
+
+    await act(async () => { await Promise.resolve(); });
+    expect(fetchSidebarFavoriteProjectsMock).not.toHaveBeenCalled();
+
+    await userEvent.keyboard("{Control>}b{/Control}");
+
+    expect(screen.getByRole("button", { name: "Collapse sidebar" })).toBeInTheDocument();
+    await waitFor(() => expect(fetchSidebarFavoriteProjectsMock).toHaveBeenCalledTimes(1));
+    const nav = screen.getByRole("navigation", { name: "Main navigation" });
+    expect(await within(nav).findByRole("link", { name: "Keyboard Project" })).toHaveAttribute("href", "/workshop/projects/project-keyboard");
+  });
+
   it("does not flash to empty on a workshop navigation — the SSR-seeded list is authoritative, no mount reconcile", async () => {
     const seeded: MainSidebarFavoriteProject[] = [
       {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -14,13 +14,9 @@ import { useSidebarFavoritesQuery } from "@/hooks/use-sidebar-favorites-query";
 import { useSidebarFavoritesAnnouncer } from "@/hooks/use-sidebar-favorites-announcer";
 import { SidebarHeader } from "./SidebarHeader";
 import { SidebarNavItemRow } from "./SidebarNavItemRow";
-import SidebarGlassFilter from "./SidebarGlassFilter";
 import { GLASS_GRAIN_DATA_URI } from "./glass-grain";
-import { useLiquidGlassRefraction } from "./useLiquidGlassRefraction";
 import {
-  SIDEBAR_GLASS_RADIUS,
   SIDEBAR_PADDING,
-  SIDEBAR_TRANSITION,
   SIDEBAR_WIDTH_COLLAPSED,
   SIDEBAR_WIDTH_EXPANDED,
   type MainSidebarFavoriteProject,
@@ -134,12 +130,16 @@ export function MainSidebar({
   const pathname = usePathname();
   const favoritesScopeKey = favoritesScope ? `${favoritesScope.workspaceId}:${favoritesScope.userId}` : null;
   const [favoritesHydrationRequestScopeKey, setFavoritesHydrationRequestScopeKey] = useState<string | null>(null);
+  const [, startFavoritesHydrationTransition] = useTransition();
   const favoritesHydrationRequested =
     favoriteProjectsFresh || (favoritesScopeKey !== null && favoritesHydrationRequestScopeKey === favoritesScopeKey);
   const favoritesQueryEnabled = Boolean(favoritesScope) && favoritesHydrationRequested;
   const requestFavoritesHydration = useCallback(() => {
-    if (favoritesScopeKey) setFavoritesHydrationRequestScopeKey(favoritesScopeKey);
-  }, [favoritesScopeKey]);
+    if (!favoritesScopeKey || favoritesHydrationRequestScopeKey === favoritesScopeKey) return;
+    startFavoritesHydrationTransition(() => {
+      setFavoritesHydrationRequestScopeKey(favoritesScopeKey);
+    });
+  }, [favoritesHydrationRequestScopeKey, favoritesScopeKey, startFavoritesHydrationTransition]);
   const favoritesQuery = useSidebarFavoritesQuery({
     scope: favoritesScope ?? { workspaceId: "none", userId: "none" }, // hook always called; null scope reads initialData
     initialData: favoriteProjects,
@@ -210,9 +210,17 @@ export function MainSidebar({
     .map((part) => part[0]?.toUpperCase())
     .join("") || "AE";
   const [expanded, setExpanded] = useState(false);
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(() =>
-    typeof window === "undefined" ? false : window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-  );
+
+  const toggleExpanded = useCallback(() => {
+    requestFavoritesHydration();
+    setExpanded((value) => !value);
+  }, [requestFavoritesHydration]);
+
+  const collapseExpanded = useCallback(() => {
+    setExpanded(false);
+  }, []);
+  const toggleExpandedFromKeyDown = useEffectEvent(() => toggleExpanded());
+  const collapseExpandedFromKeyDown = useEffectEvent(() => collapseExpanded());
 
   const resolvedSidebarNavItems = useMemo(() => {
     const projectsBadgeCount = status?.projectsBadgeCount ?? 0;
@@ -227,53 +235,32 @@ export function MainSidebar({
   }, [status?.projectsBadgeCount]);
 
   useEffect(() => {
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const onChange = (event: MediaQueryListEvent) => setPrefersReducedMotion(event.matches);
-    media.addEventListener("change", onChange);
-    return () => media.removeEventListener("change", onChange);
-  }, []);
-
-  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "b") {
         event.preventDefault();
-        requestFavoritesHydration();
-        setExpanded((value) => !value);
+        toggleExpandedFromKeyDown();
         return;
       }
       if (event.key === "Escape") {
-        setExpanded(false);
+        collapseExpandedFromKeyDown();
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [requestFavoritesHydration]);
+  }, []);
 
-  const { refractionEnabled } = useLiquidGlassRefraction();
-  const clippedWidth = SIDEBAR_WIDTH_EXPANDED - SIDEBAR_WIDTH_COLLAPSED;
   const sidebarStyle = useMemo<React.CSSProperties>(() => {
-    // The glass surface, border, radius, and grain come from the `sidebar-glass`
-    // class. Only the dynamic collapse clip lives inline. The `round` keyword keeps
-    // the clipped rail's revealed right edge curved to match the floating slab.
-    const base: React.CSSProperties = {
-      width: SIDEBAR_WIDTH_EXPANDED,
-      clipPath: expanded
-        ? `inset(0 0 0 0 round ${SIDEBAR_GLASS_RADIUS}px)`
-        : `inset(0 ${clippedWidth}px 0 0 round ${SIDEBAR_GLASS_RADIUS}px)`,
-    };
-
-    if (prefersReducedMotion) return base;
-
+    // Keep the toggle path cheap: switching the fixed rail width avoids the
+    // clip-path + backdrop-filter repaint loop that made expand/collapse feel
+    // sticky on desktop Chromium.
     return {
-      ...base,
-      transition: `clip-path ${expanded ? SIDEBAR_TRANSITION.expandDuration : SIDEBAR_TRANSITION.collapseDuration}ms ${SIDEBAR_TRANSITION.easing}`,
+      width: expanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED,
     };
-  }, [clippedWidth, expanded, prefersReducedMotion]);
+  }, [expanded]);
 
-  // Unclipped shadow plate sitting behind the panel: its width tracks the collapse
-  // so the floating drop-shadow always hugs the visible rail (clip-path would crop
-  // a shadow drawn on the panel itself).
+  // Separate shadow plate keeps the floating drop-shadow hugging the visible rail
+  // while the foreground glass panel switches between collapsed and expanded width.
   const shadowPlateStyle = useMemo<React.CSSProperties>(() => {
     return {
       width: expanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED,
@@ -287,10 +274,9 @@ export function MainSidebar({
           size="scrim"
           aria-label="Close sidebar overlay"
           className="z-30 hidden lg:block"
-          onClick={() => setExpanded(false)}
+          onClick={collapseExpanded}
         />
       )}
-      {refractionEnabled ? <SidebarGlassFilter /> : null}
       <div
         aria-hidden="true"
         className="sidebar-glass-shadow pointer-events-none fixed left-2 top-2 z-[99] hidden h-[calc(100dvh-16px)] lg:block"
@@ -299,8 +285,7 @@ export function MainSidebar({
       <nav
         ref={navRef}
         aria-label="Main navigation"
-        data-refraction={refractionEnabled ? "true" : "false"}
-        className="sidebar-glass fixed left-2 top-2 z-[100] hidden h-[calc(100dvh-16px)] flex-col overflow-hidden will-change-[clip-path] lg:flex"
+        className="sidebar-glass fixed left-2 top-2 z-[100] hidden h-[calc(100dvh-16px)] flex-col overflow-hidden lg:flex"
         style={sidebarStyle}
         onFocusCapture={requestFavoritesHydration}
         onMouseEnter={requestFavoritesHydration}
@@ -339,10 +324,7 @@ export function MainSidebar({
           <div className="shrink-0" style={{ paddingInline: SIDEBAR_PADDING }}>
             <button
               type="button"
-              onClick={() => {
-                requestFavoritesHydration();
-                setExpanded((value) => !value);
-              }}
+              onClick={toggleExpanded}
               aria-expanded={expanded}
               aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
               className={TOGGLE_ROW_CLASSNAME}

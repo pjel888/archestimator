@@ -547,14 +547,18 @@ body:has(.dashboard-transparent-shell) {
 }
 
 /* ─── Deferred liquid-glass arming (performance) ─────────────────────────────
-   The stacked backdrop-filter blurs (the sidebar rail, the full workspace frost,
-   and the many dashboard tiles) are the single heaviest paint on /workshop, and
-   they all composite at once on first paint. We keep them OFF at first paint —
-   every glass surface ships `backdrop-filter: none`, so content paints with zero
+   The stacked backdrop-filter blurs (the full workspace frost and the many
+   dashboard tiles) are the single heaviest paint on /workshop, and they all
+   composite at once on first paint. We keep them OFF at first paint — every
+   gated glass surface ships `backdrop-filter: none`, so content paints with zero
    GPU blur layers — then ARM them after the first cheap paint has committed and
    the main thread goes idle, via `<html data-glass="ready">` (set by
    LiquidGlassReady). The blur radius rides an animatable registered custom
    property so it ramps in smoothly instead of popping.
+
+   The main sidebar is intentionally not gated or armed anymore: it stays on the
+   flat glass wash so expand/collapse never forces a full-height backdrop blur
+   repaint on the toggle path.
 
    Opt-outs: no-support browsers can't even parse the ARMED block (it's inside
    `@supports (backdrop-filter)`), so they keep the solid `@supports not(...)`
@@ -594,18 +598,14 @@ body:has(.dashboard-transparent-shell) {
 }
 
 /* ─── Liquid-glass sidebar surface ──────────────────────────────────────────
-   The ONE backdrop-filter in the sidebar subtree lives here. Children fake glass
-   with plain translucent fills only (never their own backdrop-filter). The outer
-   floating drop-shadow is carried by a separate, unclipped "shadow plate" element
-   because clip-path (used for the collapse animation) is applied AFTER filter and
-   would otherwise crop the shadow at the rail edge. */
+   Sidebar performance contract: no backdrop-filter in the sidebar subtree. The
+   fixed rail uses the glass wash, border, grain, and shadow only, keeping
+   expand/collapse free from full-height backdrop rasterization. Children fake
+   glass with plain translucent fills only. */
 .sidebar-glass {
   /* Translucent dashboard-matched rail: keeps the same quiet wash, but with an
-     alpha base so the page below actually shows through the frost. */
+     alpha base so the page below softly shows through the fixed glass wash. */
   background: var(--sidebar-glass-wash);
-  /* Deferred: blur is OFF until armed (see the arming block above + ARMED block
-     below). The translucent wash sits over the fixed backdrop mesh, so it reads
-     as an intentional flat panel — never see-through content — before arming. */
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   border: 1px solid var(--glass-border);
@@ -613,10 +613,6 @@ body:has(.dashboard-transparent-shell) {
   border-radius: var(--glass-radius);
   box-shadow: var(--glass-inset-hi);
 }
-
-/* Desktop-Chromium refraction swaps the sidebar's single backdrop-filter to the
-   inline SVG displacement filter — but only once armed, so it lives in the ARMED
-   block below (gated by useLiquidGlassRefraction() AND data-glass="ready"). */
 
 /* Soft 1px specular line along the top edge (simulates a light source above).
    Kept gentle and centre-weighted so it reads as a glass glint, not a white stripe. */
@@ -704,13 +700,9 @@ body:has(.dashboard-transparent-shell) {
   }
 }
 
-/* Fallback B — user prefers reduced transparency → solid panel, no blur.
-   The `[data-refraction]` reset is repeated here at matching specificity so the
-   desktop refraction variant (0,2,0) can't win the cascade and re-introduce the
-   SVG displacement backdrop-filter; the JS gate also excludes this mode. */
+/* Fallback B — user prefers reduced transparency → solid panel, no blur. */
 @media (prefers-reduced-transparency: reduce) {
-  .sidebar-glass,
-  .sidebar-glass[data-refraction="true"] {
+  .sidebar-glass {
     background: var(--sidebar-glass-wash-fallback);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
@@ -2713,7 +2705,6 @@ input[type="number"] {
 @supports (
   (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
 ) {
-  :root[data-glass="ready"] .sidebar-glass,
   :root[data-glass="ready"] .dashboard-glass,
   :root[data-glass="ready"] .dashboard-glass-warm,
   :root[data-glass="ready"] .workshop-workspace-glass-surface,
@@ -2729,12 +2720,6 @@ input[type="number"] {
     -webkit-backdrop-filter: blur(12px) saturate(124%);
     backdrop-filter: blur(12px) saturate(124%);
   }
-  /* Desktop refraction still swaps to the SVG displacement filter, but only
-     once armed. (0,4,0) keeps it ahead of the plain armed sidebar rule above. */
-  :root[data-glass="ready"] .sidebar-glass[data-refraction="true"] {
-    -webkit-backdrop-filter: url(#sc-sidebar-glass);
-    backdrop-filter: url(#sc-sidebar-glass);
-  }
   /* Chrome buttons use a fixed 10px frost; snap it on (tiny surface, no ramp). */
   :root[data-glass="ready"] .workshop-liquid-button {
     -webkit-backdrop-filter: blur(10px) saturate(120%);
@@ -2744,7 +2729,6 @@ input[type="number"] {
      AFTER the page armed gets blur removed immediately (also covers JS-on users
      should the attribute ever be set while reduced). */
   @media (prefers-reduced-transparency: reduce) {
-    :root[data-glass="ready"] .sidebar-glass,
     :root[data-glass="ready"] .dashboard-glass,
     :root[data-glass="ready"] .dashboard-glass-warm,
     :root[data-glass="ready"] .workshop-workspace-glass-surface,
@@ -2752,7 +2736,6 @@ input[type="number"] {
     :root[data-glass="ready"] .workshop-project-card-glass,
     :root[data-glass="ready"] .workshop-create-project-modal-glass,
     :root[data-glass="ready"] .workshop-estimates-list-glass,
-    :root[data-glass="ready"] .sidebar-glass[data-refraction="true"],
     :root[data-glass="ready"] .workshop-liquid-button {
       -webkit-backdrop-filter: none;
       backdrop-filter: none;
