@@ -10,6 +10,14 @@ only those entries. Do NOT read all ~2,500 lines on every task — that is the
 single biggest source of slow agent startup.
 
 Stable current truth (verify against git/source before relying on a detail):
+- Branch/PR consolidation complete (2026-07-07 local/remote): all branch heads
+  from the open GitHub PR/security backlog were merged or intentionally
+  superseded into `main`, then `main` was pushed to `origin` at
+  `ad11fd81243648ff726acedf09760d5e2f21c559`. Local branches now list only
+  `main`; remote heads list only `refs/heads/main`; `gh pr list --state open`
+  returns `[]`. Deleted branch refs are preserved in
+  `.omx/branch-archives/pre-main-consolidation-2026-07-07.bundle` with
+  `.omx/branch-archives/pre-main-consolidation-2026-07-07.refs.tsv`.
 - Shared-link password lockout hardening (2026-07-07 local): Aardvark flagged that the password unlock route relied only on durable 5-failure/15-minute rows after the process-local hard-lockout removal. The durable D1 limiter now keeps the same 5-failure threshold but uses a 1-hour failure counting/TTL window for `project_publication_password`, preserving module-reset-safe durable enforcement while restoring the stronger online guessing budget. Focused proof: `bunx vitest run tests/vitest/project-publication-password-lockout-route.test.ts tests/vitest/project-publication-public-repository.test.ts --maxWorkers=1` passed.
 - Stage: pre-launch closed-beta MVP. Bias to fast, useful iteration over
   heavyweight regression ceremony. No external users yet.
@@ -39,7 +47,8 @@ Stable current truth (verify against git/source before relying on a detail):
   YAML files back into `.github/workflows/` and restoring `.github/dependabot.yml`;
   local pinning/config tests read the disabled archive path so the preserved
   definitions stay checked.
-- GitHub security PR/comment loop (2026-07-07 local): live GitHub inventory
+- GitHub security PR/comment loop (2026-07-07 historical pre-consolidation;
+  superseded by the branch/PR consolidation entry above): live GitHub inventory
   found 26 open PRs for `pjel888/archestimator`, no open issues, 20 unresolved
   non-outdated review threads across PRs 107, 108, 109, 114, 115, 118, 121,
   122, and 123 after PR120 chunking was pushed/resolved and two new PR108
