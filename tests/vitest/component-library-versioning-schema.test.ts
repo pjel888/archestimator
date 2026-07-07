@@ -57,7 +57,7 @@ const addModal = readFileSync(join(process.cwd(), "src/components/workshop/compo
 const d1PromotionMigration = readFileSync(join(process.cwd(), "migrations/0026_component_promotion_support.sql"), "utf8");
 const d1ActionSupportMigration = readFileSync(join(process.cwd(), "migrations/0028_component_library_action_support.sql"), "utf8");
 const d1ComponentDraftsMigration = readFileSync(join(process.cwd(), "migrations/0036_cost_library_component_drafts.sql"), "utf8");
-const d1ComponentDraftLimitsMigration = readFileSync(join(process.cwd(), "migrations/0037_component_draft_resource_limits.sql"), "utf8");
+const d1ComponentDraftLimitsMigration = readFileSync(join(process.cwd(), "migrations/0038_component_draft_resource_limits.sql"), "utf8");
 
 describe("component library item versioning schema", () => {
   it("adds lifecycle state, price options, and append-only history tables", () => {
@@ -142,6 +142,7 @@ describe("component library item versioning schema", () => {
     expect(actions).toContain('assertCanManageLibrary(database, workspace.id, currentUser, "save_component_draft")');
     expect(actions).toContain("LIBRARY_COMPONENT_DRAFT_CAP = 100");
     expect(actions).toContain("LIBRARY_COMPONENT_DRAFT_JSON_MAX_BYTES = 64 * 1024");
+    expect(actions).toContain("discardOlderActiveComponentDraftsBeforeInsert");
     expect(actions).toContain("readComponentDraftJson(input.draft)");
     expect(actions).toContain("cost_library_component_drafts");
     expect(actions).toContain("INSERT INTO cost_library_component_drafts");

@@ -378,6 +378,7 @@ async function assertCanPublishEstimateTemplateFromEstimate(
 const LIBRARY_COMPONENT_CAP = 10_000;
 const LIBRARY_TEMPLATE_CAP = 2_000;
 const LIBRARY_COMPONENT_DRAFT_CAP = 100;
+const LIBRARY_COMPONENT_DRAFT_RETAIN_BEFORE_INSERT = LIBRARY_COMPONENT_DRAFT_CAP - 1;
 const LIBRARY_COMPONENT_DRAFT_JSON_MAX_BYTES = 64 * 1024;
 
 type ComponentLibraryPreferenceTab = "components" | "project" | "templates";
@@ -582,6 +583,33 @@ function readComponentDraftJson(value: unknown) {
     throw new Error(`Component drafts must be ${LIBRARY_COMPONENT_DRAFT_JSON_MAX_BYTES} bytes or smaller.`);
   }
   return text;
+}
+
+async function discardOlderActiveComponentDraftsBeforeInsert(
+  database: D1DatabaseLike,
+  workspaceId: string,
+  timestamp: string,
+) {
+  await run(
+    database,
+    `
+      UPDATE cost_library_component_drafts
+      SET status = 'discarded',
+          discarded_at = COALESCE(discarded_at, ?),
+          updated_at = ?
+      WHERE workspace_id = ?
+        AND status = 'active'
+        AND id NOT IN (
+          SELECT id
+          FROM cost_library_component_drafts
+          WHERE workspace_id = ?
+            AND status = 'active'
+          ORDER BY updated_at DESC, created_at DESC, id DESC
+          LIMIT -1 OFFSET ?
+        )
+    `,
+    [timestamp, timestamp, workspaceId, workspaceId, LIBRARY_COMPONENT_DRAFT_RETAIN_BEFORE_INSERT],
+  );
 }
 
 function readRequiredComponentText(value: string | undefined | null, label: string, maxLength?: number) {
@@ -1373,6 +1401,8 @@ export async function saveCostLibraryComponentDraft(input: SaveCostLibraryCompon
 
   const title = readOptionalComponentText(input.title, "Draft title", QUICK_ADD_TEXT_LIMITS.name) ?? "Untitled component";
   const draftJson = readComponentDraftJson(input.draft);
+  const timestamp = nowIso();
+  await discardOlderActiveComponentDraftsBeforeInsert(database, workspace.id, timestamp);
   await assertWithinLibraryQuota(
     database,
     "cost_library_component_drafts",
@@ -1380,7 +1410,6 @@ export async function saveCostLibraryComponentDraft(input: SaveCostLibraryCompon
     LIBRARY_COMPONENT_DRAFT_CAP,
     "active component draft",
   );
-  const timestamp = nowIso();
   const draftId = randomUUID();
   await run(
     database,

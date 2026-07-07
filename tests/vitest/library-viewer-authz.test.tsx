@@ -376,7 +376,7 @@ describe("library viewer mutation authorization", () => {
   });
 
   it("saves component drafts without invalidating cached component library routes", async () => {
-    const d1 = createD1Fixture();
+    const d1 = createD1Fixture({ firstResults: [{ count: 0 }] });
     const actions = await import("@/lib/component-library/actions");
 
     await expect(actions.saveCostLibraryComponentDraft({
@@ -391,12 +391,49 @@ describe("library viewer mutation authorization", () => {
       savedAt: expect.any(String),
     });
 
+    const draftCleanup = d1.statements.find((statement) => (
+      statement.sql.includes("UPDATE cost_library_component_drafts")
+      && statement.sql.includes("status = 'discarded'")
+      && statement.sql.includes("LIMIT -1 OFFSET ?")
+    ));
+    expect(draftCleanup?.values.at(-1)).toBe(99);
     const draftInsert = d1.statements.find((statement) => statement.sql.includes("INSERT INTO cost_library_component_drafts"));
     expect(draftInsert).toBeDefined();
     expect(cacheMocks.revalidatePath).not.toHaveBeenCalled();
   });
 
-  it("limits active component drafts before inserting a new draft row", async () => {
+  it("discards older active component drafts before checking the active draft cap", async () => {
+    const d1 = createD1Fixture({ firstResults: [{ count: 99 }] });
+    const actions = await import("@/lib/component-library/actions");
+
+    await expect(actions.saveCostLibraryComponentDraft({
+      fieldContract: "opendesign-add-component",
+      title: "Keeps latest drafts",
+      draft: {
+        form: { name: "Keeps latest drafts" },
+      },
+    })).resolves.toEqual({
+      draftId: expect.any(String),
+      savedAt: expect.any(String),
+    });
+
+    const cleanupIndex = d1.statements.findIndex((statement) => statement.sql.includes("UPDATE cost_library_component_drafts"));
+    const countIndex = d1.statements.findIndex((statement) => statement.sql.includes("SELECT COUNT(*) AS count FROM cost_library_component_drafts"));
+    const insertIndex = d1.statements.findIndex((statement) => statement.sql.includes("INSERT INTO cost_library_component_drafts"));
+    expect(cleanupIndex).toBeGreaterThanOrEqual(0);
+    expect(countIndex).toBeGreaterThan(cleanupIndex);
+    expect(insertIndex).toBeGreaterThan(countIndex);
+    expect(d1.statements[cleanupIndex]?.sql).toContain("status = 'discarded'");
+    expect(d1.statements[cleanupIndex]?.values).toEqual([
+      expect.any(String),
+      expect.any(String),
+      WORKSPACE_ID,
+      WORKSPACE_ID,
+      99,
+    ]);
+  });
+
+  it("limits active component drafts after cleanup if the workspace is still at cap", async () => {
     const d1 = createD1Fixture({ firstResults: [{ count: 100 }] });
     const actions = await import("@/lib/component-library/actions");
 
