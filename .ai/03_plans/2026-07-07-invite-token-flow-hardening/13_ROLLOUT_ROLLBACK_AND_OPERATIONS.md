@@ -6,7 +6,7 @@
 |---|---|---|---|
 | P1 (origin + cookie attrs) | owner approval | preview → production | `ARCHESTIMATOR_INVITE_ORIGIN_STRICT=false` (env, no redeploy) |
 | P2 (fail-closed rate limits) | OPEN-SEC-02; P1 stable 24h | preview → production | revert route short-circuits (redeploy) |
-| P3 (revoke + migration `0037`) | P2 stable | preview (apply migration) → production | revert action + UI (migration column harmless) |
+| P3 (revoke + migration `0038`) | P2 stable | preview (apply migration) → production | revert action + UI (migration column harmless) |
 | P4 (promotion-only) | P3 stable | preview → production | revert CASE (redeploy) |
 | P5 (pepper separation) | OPEN-REL-02; owner confirms realtime rotation | preview (rotate realtime key) → production | restore realtime fallback (redeploy) |
 | P6 (audit) | P1-P5 complete | — | — |
@@ -17,7 +17,7 @@
 
 - **P1:** `bun run test -- invite-origin invite-continue project-invite-sign-out-route` green; `bun run type-check`; code review on `invite-origin.ts`.
 - **P2:** `bun run test -- project-invite-feature-flag` green.
-- **P3:** `bun run test -- revoke-invitation collaboration-invitation-d1-store publisher-revoke-invite migration-0037` green; migration applied to local D1 + readback; proof harness extended.
+- **P3:** `bun run test -- revoke-invitation collaboration-invitation-d1-store publisher-revoke-invite migration-0038` green; migration applied to local D1 + readback; proof harness extended.
 - **P4:** `bun run test -- project-collaboration-actions` green.
 - **P5:** `bun run test -- realtime room-auth` green; env examples updated.
 - **P6:** `bun run test -- invite collaboration` green; `rg` scan clean; `bun run build` bundle delta within noise.

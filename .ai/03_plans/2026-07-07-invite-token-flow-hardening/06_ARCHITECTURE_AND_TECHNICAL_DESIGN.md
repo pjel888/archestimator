@@ -118,7 +118,7 @@ No state-ownership changes in this hardening.
 
 ## 8. Migration impact (database)
 
-- **One additive migration:** `0037_collaboration_invitation_revoke_reason.sql` — adds nullable `revoked_reason TEXT` to `collaboration_invitations`. Full blueprint in `21_DATABASE_CHANGE_BLUEPRINTS.md`.
+- **One additive migration:** `0038_collaboration_invitation_revoke_reason.sql` — adds nullable `revoked_reason TEXT` to `collaboration_invitations`. Full blueprint in `21_DATABASE_CHANGE_BLUEPRINTS.md`.
 - **No Worker Env binding changes** → `cf:typegen` not required.
 - **No generated-types changes** for the invite flow beyond the new column (the repository row type picks it up as optional).
 

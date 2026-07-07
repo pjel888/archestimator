@@ -50,13 +50,13 @@ This is the authoritative execution guide. Phases are dependency-aware (see READ
 
 **Objective:** close EXPLAIN-confirmed index gaps G1–G4. G5 by cache (P2).
 
-**Requirements addressed:** PERF-004.
+**Requirements addressed:** PERF-004, PERF-011 (P1 indexes collapse scans → probes, reducing rows-read/request).
 
 **Prerequisites:** confirm migration numbers free (README checklist step 5).
 
 **Database blueprints:** `07` DB-CHG-001, DB-CHG-002.
 
-**Exit criteria:** migrations `0037`, `0038` applied to local D1; `EXPLAIN QUERY PLAN` (local) confirms index use on G1–G4; `cf:d1-runtime-proof` green.
+**Exit criteria:** migrations `0037`, `0038` applied to local D1; `EXPLAIN QUERY PLAN` (local) confirms index use on G1–G4 with no `TEMP B-TREE` for the targeted ORDER BY; `cf:d1-runtime-proof` green; **no hot-path query's `EXPLAIN` shows a full scan** (PERF-011 CI gate).
 
 ### T-P1-01 — `0037_favorites_user_indexes_additive.sql` (G1 + G2)
 - **Requirement IDs:** PERF-004.
@@ -76,8 +76,8 @@ This is the authoritative execution guide. Phases are dependency-aware (see READ
 - **Requirement IDs:** PERF-004.
 - **Objective:** see `07` DB-CHG-002.
 - **Target file (new):** `migrations/0038_responses_and_adjustments_indexes_additive.sql`.
-- **DISCOVERY-REQUIRED sub-step (read-only, safe):** before authoring G4's index, run `wrangler d1 execute ARCH_DB --local --command ".indexes estimate_sheet_adjustments"` and `EXPLAIN QUERY PLAN` on the HP-4 query to confirm whether `idx_estimate_sheet_adjustments_updated` already leads on `estimate_id`. Stop condition: column list confirmed. If it leads on `estimate_id`, skip G4's index (document in migration comment). If not, add `idx_estimate_sheet_adjustments_estimate`.
-- **SQL:** as in `07` DB-CHG-002.
+- **G4 is confirmed needed (no longer DISCOVERY):** the audit verification confirmed `idx_estimate_sheet_adjustments_updated` leads on `updated_at DESC` with `estimate_id` as a trailing column (`migrations/0029_estimate_actions_d1_support.sql:24-25`), so it does NOT support a leading probe on `estimate_id`. The `idx_estimate_sheet_adjustments_estimate` index is definitely required.
+- **SQL:** as in `07` DB-CHG-002 (both G3 and G4 indexes, unconditionally).
 - **Inputs:** `03` §3 G3/G4.
 - **Expected output:** 1–2 `CREATE INDEX IF NOT EXISTS`.
 - **Failure cases:** G4 confirmed already-covered → skip index (not a failure).
@@ -100,12 +100,12 @@ This is the authoritative execution guide. Phases are dependency-aware (see READ
 ### T-P2-01 — Batch the `canEditEstimateInD1` per-estimate N+1 (F1) — HIGHEST RISK
 - **Requirement IDs:** PERF-006.
 - **Objective:** replace `Promise.all(estimateIds.map(id => canEditEstimateInD1(...)))` with a single set-based query returning the editable subset.
-- **Why:** confirmed N+1 at `estimates/page.tsx:103-109`; `canEditEstimateInD1` is a 6-EXISTS probe (`d1-access.ts:234`). Cost = `4 + N` queries.
+- **Why:** confirmed N+1 at `estimates/page.tsx:103-109`; `canEditEstimateInD1` is a 3-EXISTS + 2-creator probe (`d1-access.ts:271`). Cost = `4 + N` queries.
 - **Target files (existing, modify):**
-  - `src/lib/authz/d1-access.ts` — add `canEditEstimateSetInD1(userId, projectId, estimateIds: string[]): Promise<Set<string>>` alongside `canEditEstimateInD1`. Co-located to avoid drift.
+  - `src/lib/authz/d1-access.ts` — add `canEditEstimateSetInD1(userId, projectId, estimateIds: string[]): Promise<Set<string>>` alongside `canEditEstimateInD1` (`:271`). Co-located to avoid drift.
   - `src/app/workshop/projects/[projectId]/estimates/page.tsx:103-109` — call the batched variant; compute `accessibleEstimateIds` set; pass to render.
-- **Relevant symbols:** `canEditEstimateInD1` (`d1-access.ts:234`), the render path in `estimates/page.tsx`.
-- **Implementation instructions:** the batched SQL is the *same* 6-clause OR-of-EXISTS as `canEditEstimateInD1`, but `WHERE estimate.id IN (?, ?, …)` instead of `WHERE estimate.id = ?`, returning all matching ids. Author it to be a literal generalization — do not invent new access rules. The route then treats any estimate in the returned set as editable and any not in the set as denied — identical to today's per-id call.
+- **Relevant symbols:** `canEditEstimateInD1` (`d1-access.ts:271`), `resolveEstimateListEditCapabilities` (`estimates/page.tsx:90`), the render path in `estimates/page.tsx`.
+- **Implementation instructions:** the batched SQL is the *same* predicate structure as `canEditEstimateInD1` (3 EXISTS subqueries on `estimate_sheet_members`/`workspace_members`/`project_members` + 2 `created_by` short-circuits + the `COALESCE(access.inherit_project_access…)` gate), but `WHERE estimate.id IN (?, ?, …)` instead of `WHERE estimate.id = ?`, returning all matching ids. Author it to be a literal generalization — do not invent new access rules. The route then treats any estimate in the returned set as editable and any not in the set as denied — identical to today's per-id call.
 - **Security implications:** see `08` — denial-parity test `TEST-SEC-01` is mandatory. Cross-workspace scoping preserved (`project_id = ?` + workspace-membership EXISTS unchanged).
 - **Failure cases:**
   - Batched query widens access → `TEST-SEC-01` must fail CI. Author SQL as literal generalization.

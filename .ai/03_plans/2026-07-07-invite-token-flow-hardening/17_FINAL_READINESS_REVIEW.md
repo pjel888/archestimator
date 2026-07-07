@@ -122,7 +122,7 @@
 | rate limits fail-open on disabled flag | SEC-05 / DEC-04 / P2-T1 / OPEN-SEC-02 |
 | pepper reused for realtime | SEC-09 / DEC-06 / OPEN-REL-02 |
 | revoke needs IDOR guard | SEC-15 / P3-T3 denial test |
-| revoke needs audit metadata | DEC-09 / migration 0037 |
+| revoke needs audit metadata | DEC-09 / migration 0038 |
 
 No unresolved P0/P1 findings.
 

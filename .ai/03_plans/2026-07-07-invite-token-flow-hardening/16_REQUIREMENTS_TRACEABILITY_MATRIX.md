@@ -27,7 +27,7 @@
 | SRC-DERIVED | ARCH-01 | `invite-origin.ts` shared helper | repo evidence + derived | 04 ARCH-01 | P1-T1 | AC-ARCH-01a | grep + review | — | Planned | — |
 | SRC-REPO | ARCH-02 | `wrangler.jsonc` | repo evidence | 04 ARCH-02 | P6 audit | AC-ARCH-02a | `git diff wrangler.jsonc` empty | — | Constraint | — |
 | SRC-REPO | ARCH-03 | `actions.ts` patterns | repo evidence | 04 ARCH-03 | P3-T3 | AC-ARCH-03a | revoke test | — | Planned | — |
-| SRC-REPO | DATA-01 | `migrations/0007` | repo evidence | 04 DATA-01; 07 §2; 21 | P3-T1 | AC-DATA-01a/b | `migration-0037-revoke-reason.test.ts` | RISK-04 | Planned | DEC-09 |
+| SRC-REPO | DATA-01 | `migrations/0007` | repo evidence | 04 DATA-01; 07 §2; 21 | P3-T1 | AC-DATA-01a/b | `migration-0038-revoke-reason.test.ts` | RISK-04 | Planned | DEC-09 |
 | SRC-REPO | DATA-02 | `migrations/0007:94-107` | repo evidence | 04 DATA-02 | P6 audit | AC-DATA-02a | `project-invite-entry-schema.test.ts` | — | Non-regression | — |
 | SRC-REPO | UX-01 | `page.tsx:173-239` | repo evidence | 04 UX-01; 05 §2 | P6 | AC-UX-01a/b | `project-invite-entry-route.test.ts` | — | Non-regression | — |
 | SRC-DERIVED | UX-02 | `page.tsx` rate-limited branch | repo evidence + derived | 04 UX-02 | P6 | AC-UX-02a | `project-invite-entry-route.test.ts` | — | Non-regression | — |

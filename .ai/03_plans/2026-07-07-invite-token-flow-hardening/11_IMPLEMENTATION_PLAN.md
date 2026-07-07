@@ -2,7 +2,7 @@
 
 > **Execution boundary:** This is the authoritative execution guide for the future implementation AI. `IMPLEMENTATION-READY` / `CONDITIONALLY READY` means **planning** is complete; it does not auto-authorize execution. The owner must approve implementation, and each phase has its own review/QA gate.
 
-**Phase order:** **Phase 1** (origin + cookie-attr hardening — release-blocking, kill-switch-gated) → **Phase 2** (rate-limit fail-closed) → **Phase 3** (explicit revoke + migration `0037`) → **Phase 4** (direct-grant promotion-only) → **Phase 5** (pepper separation + `auth_trigger` cleanup — owner-gated) → **Phase 6** (non-regression + adversarial audit + hosted-proof extension).
+**Phase order:** **Phase 1** (origin + cookie-attr hardening — release-blocking, kill-switch-gated) → **Phase 2** (rate-limit fail-closed) → **Phase 3** (explicit revoke + migration `0038`) → **Phase 4** (direct-grant promotion-only) → **Phase 5** (pepper separation + `auth_trigger` cleanup — owner-gated) → **Phase 6** (non-regression + adversarial audit + hosted-proof extension).
 
 Phases 1→2→3 are sequential (P2's disabled-flag short-circuit depends on P1's route changes being stable; P3's revoke UI depends on the route layer being hardened). P4 can run parallel to P3 (disjoint files in `actions.ts` but different functions — serialize on shared-file risk). P5 is owner-gated and independent. P6 follows all others.
 
@@ -119,7 +119,7 @@ Phases 1→2→3 are sequential (P2's disabled-flag short-circuit depends on P1'
 
 ---
 
-## Phase 3 — Explicit revoke + migration `0037`
+## Phase 3 — Explicit revoke + migration `0038`
 
 **Durable-goal contract:**
 - **Goal ID:** P3-REVOKE
@@ -134,14 +134,14 @@ Phases 1→2→3 are sequential (P2's disabled-flag short-circuit depends on P1'
 
 ### P3 Tasks
 
-#### P3-T1 — Migration `0037_collaboration_invitation_revoke_reason.sql`
+#### P3-T1 — Migration `0038_collaboration_invitation_revoke_reason.sql`
 - **Task ID:** P3-T1
 - **Req IDs:** DATA-01
 - **Objective:** Add nullable `revoked_reason TEXT` to `collaboration_invitations`.
-- **Target path (new):** `migrations/0037_collaboration_invitation_revoke_reason.sql`.
+- **Target path (new):** `migrations/0038_collaboration_invitation_revoke_reason.sql`.
 - **DISCOVERY-REQUIRED sub-step:** Confirm D1's SQLite version supports `ALTER TABLE ... DROP COLUMN` (3.35.0+) via `bun run cf:d1:read "SELECT sqlite_version();"` against `ARCH_DB`. Stop condition: version string recorded; rollback path confirmed.
 - **SQL sketch:** see `21_DATABASE_CHANGE_BLUEPRINTS.md`.
-- **Tests/val:** New `tests/vitest/migration-0037-revoke-reason.test.ts` or extend `infosec-db-pending-review-contract.test.ts`.
+- **Tests/val:** New `tests/vitest/migration-0038-revoke-reason.test.ts` or extend `infosec-db-pending-review-contract.test.ts`.
 - **Complexity:** Small.
 
 #### P3-T2 — `revokeInvitationInD1` RPC
@@ -295,7 +295,7 @@ Phases 1→2→3 are sequential (P2's disabled-flag short-circuit depends on P1'
 flowchart LR
   P1[Phase 1: Origin+cookie attrs<br/>kill-switch-gated] --> P2[Phase 2: Fail-closed rate limits]
   P1 --> P6[Phase 6: Non-regression + adversarial]
-  P2 --> P3[Phase 3: Revoke + migration 0037]
+  P2 --> P3[Phase 3: Revoke + migration 0038]
   P3 --> P4[Phase 4: Promotion-only direct-grant]
   P4 --> P6
   P3 --> P6

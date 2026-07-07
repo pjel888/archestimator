@@ -55,7 +55,7 @@ The collaboration invite flow already has strong security primitives. This plan 
 | DEC-06 | Separate the realtime identity signing key from the invite pepper via a distinct `REALTIME_IDENTITY_SIGNING_KEY` (already an env name; make it required, not fallback). | Recommended (owner-confirm, rollout-coordinated) |
 | DEC-07 | Align direct-grant role writes to promotion-only semantics (matching accept). | Recommended |
 | DEC-08 | Add an `accepted_via` login-time grant path (wire `auth_trigger`) OR remove the enum value. | OPEN-SEC-01 (owner picks) |
-| DEC-09 | Add a `revoked_reason` column + revoke audit event; no other schema change required for the core hardening. | Recommended (migration `0037`) |
+| DEC-09 | Add a `revoked_reason` column + revoke audit event; no other schema change required for the core hardening. | Recommended (migration `0038`) |
 | DEC-10 | Keep email delivery synchronous for now; document async queue + bounce webhook as future work. | Recommended |
 
 ## Remaining external decisions (full detail in README §Blocked decisions)
@@ -70,7 +70,7 @@ None that block the core hardening phases (P1–P4). The `auth_trigger` cleanup 
 
 ## Stack-contract summary (full detail in `18_STACK_CONTRACT_AND_PRODUCTION_STANDARDS.md`)
 
-Next.js 16 App Router route handlers + Server Components; React 19; Cloudflare Workers/OpenNext; D1 (`ARCH_DB`) as the invite/membership store; Better Auth 1.6.22 against D1 with cookie cache disabled; Cloudflare Email (`EMAIL` binding) for invite delivery; no new bindings required. The only schema change is additive (`revoked_reason` + optional revoke-audit metadata), migration `0037`, fully reversible. `cf:typegen` is not required (no Worker Env binding changes).
+Next.js 16 App Router route handlers + Server Components; React 19; Cloudflare Workers/OpenNext; D1 (`ARCH_DB`) as the invite/membership store; Better Auth 1.6.22 against D1 with cookie cache disabled; Cloudflare Email (`EMAIL` binding) for invite delivery; no new bindings required. The only schema change is additive (`revoked_reason` + optional revoke-audit metadata), migration `0038`, fully reversible. `cf:typegen` is not required (no Worker Env binding changes).
 
 ## Performance/reliability summary (full detail in `09_PERFORMANCE_RELIABILITY_OBSERVABILITY.md`)
 

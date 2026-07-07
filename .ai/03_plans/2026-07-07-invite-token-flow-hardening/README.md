@@ -59,7 +59,7 @@ The collaboration invite flow already has strong primitives (peppered token hash
 flowchart LR
   P1[Phase 1: Origin+cookie attrs<br/>kill-switch-gated<br/>SEC-01/02/04] --> P2[Phase 2: Fail-closed rate limits<br/>SEC-05]
   P1 --> P6[Phase 6: Non-regression + adversarial]
-  P2 --> P3[Phase 3: Revoke + migration 0037<br/>SEC-07/15, DATA-01]
+  P2 --> P3[Phase 3: Revoke + migration 0038<br/>SEC-07/15, DATA-01]
   P3 --> P4[Phase 4: Promotion-only direct-grant<br/>SEC-10]
   P4 --> P6
   P3 --> P6
@@ -67,7 +67,7 @@ flowchart LR
   P5 -.OPEN-REL-02.-> RT[(Future: realtime key rotation)]
 ```
 
-**Phase order:** Phase 1 (origin + cookie attrs, kill-switch-gated, release-blocking) → Phase 2 (fail-closed rate limits) → Phase 3 (explicit revoke + migration `0037`) → Phase 4 (promotion-only direct-grant) → Phase 5 (pepper separation + `auth_trigger` cleanup, owner-gated) → Phase 6 (non-regression + adversarial audit + hosted-proof extension).
+**Phase order:** Phase 1 (origin + cookie attrs, kill-switch-gated, release-blocking) → Phase 2 (fail-closed rate limits) → Phase 3 (explicit revoke + migration `0038`) → Phase 4 (promotion-only direct-grant) → Phase 5 (pepper separation + `auth_trigger` cleanup, owner-gated) → Phase 6 (non-regression + adversarial audit + hosted-proof extension).
 
 ## Requirement/task/test traceability
 
@@ -81,7 +81,7 @@ flowchart LR
 
 - [ ] `git status` clean of invite-related conflicts; recheck concurrent work on `src/components/workshop/publisher/*` (RISK-03).
 - [ ] `rg 'isAllowedInviteOrigin' src/` — confirm the helper still lives in `src/lib/collaboration/invite-origin.ts` and the three mutating routes still call it (or the continue route still lacks it, confirming SEC-02 is still needed).
-- [ ] Confirm `migrations/0036_*.sql` is still the latest migration (else renumber `0037`).
+- [ ] Confirm the latest migration number (at planning time `0037_remove_preloaded_component_categories.sql` was latest, so this pack's revoke migration is `0038`; if more concurrent migrations land, renumber `0038`/`0039` accordingly). Run `ls migrations/ | sort | tail -1`.
 - [ ] Re-read `src/lib/collaboration/invite-origin.ts`, `continue/route.ts`, `accept/route.ts`, `sign-out/route.ts` for concurrent changes.
 - [ ] Confirm `ARCHESTIMATOR_INVITE_TOKEN_PEPPER` is still the realtime fallback in `realtime-identity-server.ts` (else SEC-09 may be partially resolved).
 - [ ] Confirm OPEN-SEC-01/02, OPEN-REL-02 resolution status with the owner.
@@ -119,7 +119,7 @@ After each phase, run the phase-specific focused tests in [`12`](./12_TEST_AND_V
 ## External proof still required before production rollout (future phases)
 
 - **Phase 1:** 24h 403-rate monitoring on `/invite/[token]/{accept,continue}` in Cloudflare Workers Analytics (<1% threshold); manual FR-03 e2e on preview (signed-out invite → continue → auth → pending-invite → accepted).
-- **Phase 3:** migration `0037` applied to preview D1 + readback; hosted proof harness extended for revoke; manager revoke manual proof on preview.
+- **Phase 3:** migration `0038` applied to preview D1 + readback; hosted proof harness extended for revoke; manager revoke manual proof on preview.
 - **Phase 5:** realtime key rotation on preview; realtime sessions healthy.
 - **Phase 6:** `rg` token-leak scan clean; full invite test suite green; `bun run build` bundle delta within noise.
 
@@ -153,4 +153,4 @@ After each phase, run the phase-specific focused tests in [`12`](./12_TEST_AND_V
 | [`18_STACK_CONTRACT_AND_PRODUCTION_STANDARDS.md`](./18_STACK_CONTRACT_AND_PRODUCTION_STANDARDS.md) | Cross-cutting stack production bar |
 | [`19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md`](./19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md) | Research, adversarial matrix, evaluator, gaps |
 | [`20_ATTACK_SURFACE_AND_CREDENTIAL_MATERIAL.md`](./20_ATTACK_SURFACE_AND_CREDENTIAL_MATERIAL.md) | Credential taxonomy, attack surface inventory |
-| [`21_DATABASE_CHANGE_BLUEPRINTS.md`](./21_DATABASE_CHANGE_BLUEPRINTS.md) | Migration `0037` (+ conditional `0038`) blueprints |
+| [`21_DATABASE_CHANGE_BLUEPRINTS.md`](./21_DATABASE_CHANGE_BLUEPRINTS.md) | Migration `0038` (+ conditional `0038`) blueprints |

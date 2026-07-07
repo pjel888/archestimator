@@ -108,7 +108,7 @@ Stable IDs per category. Each requirement: statement, rationale, source, priorit
 - **Rationale.** Today revocation only happens implicitly inside `issueInviteEntryLink` when a new token is issued. A manager cannot kill a leaked-but-unused invite without re-sending/re-copying a link. This is an operational and abuse gap.
 - **Source.** `repo evidence` (no `revokeInvitation` action found; `issueInviteEntryLink:532-546` is the only revoke path); `brief` ("resend/revoke behavior").
 - **Priority.** P1 (operational/abuse).
-- **Dependencies.** SEC-11 (decide `revoked_reason` column — migration `0037`); UI placement (UX-03).
+- **Dependencies.** SEC-11 (decide `revoked_reason` column — migration `0038`); UI placement (UX-03).
 - **Acceptance criteria.**
   - AC-SEC-07a: A manager invoking revoke on a pending invitation transitions it to `lifecycle_state='revoked'`, sets `revoked_at`, and revokes all active tokens.
   - AC-SEC-07b: A non-manager invoking revoke is denied (403/authorization error).
@@ -116,7 +116,7 @@ Stable IDs per category. Each requirement: statement, rationale, source, priorit
   - AC-SEC-07d: A `collaboration_invite_revoked` audit event is recorded.
   - AC-SEC-07e: Revoking an already-accepted/expired/revoked invitation is a no-op-or-error with a clear message (no state regression).
 - **Validation.** New `tests/vitest/project-collaboration-revoke-invitation.test.ts` covering manager success, non-manager deny, already-terminal no-op, audit event, token revocation. Extend `project-collaboration-actions.test.ts`.
-- **Affected areas.** New `revokeCollaborationInvitation` in `src/lib/collaboration/actions.ts`; revoke helper in `invitation-d1-store.ts`; revoke button in publisher members panel (`src/components/workshop/publisher/*`); migration `0037` (additive `revoked_reason`); audit event type.
+- **Affected areas.** New `revokeCollaborationInvitation` in `src/lib/collaboration/actions.ts`; revoke helper in `invitation-d1-store.ts`; revoke button in publisher members panel (`src/components/workshop/publisher/*`); migration `0038` (additive `revoked_reason`); audit event type.
 - **Risks.** Revoke UI placement must not conflict with existing role-change/remove controls. Confirmed "at least one owner/admin" guard does not apply to revoke (revoke targets invitations, not members).
 - **Status.** Planned (Phase 3).
 
@@ -170,7 +170,7 @@ Stable IDs per category. Each requirement: statement, rationale, source, priorit
 - **Priority.** P3 (cleanliness).
 - **Dependencies.** OPEN-SEC-01 (owner decision).
 - **Acceptance criteria.**
-  - AC-SEC-11a: Either a login-time grant path exists with tests, or the enum value is removed via migration `0037`/`0038` with a regression test confirming the remaining values still work.
+  - AC-SEC-11a: Either a login-time grant path exists with tests, or the enum value is removed via migration `0038`/`0038` with a regression test confirming the remaining values still work.
 - **Validation.** New test or migration test depending on the chosen path.
 - **Affected areas.** Either `src/lib/auth/account-actions.ts`/`account-setup.ts` (login-time grant) or a new migration.
 - **Risks.** Wiring a login-time grant adds an auth-adjacent mutation — must be carefully gated. Removing is simpler and safer if no product need exists.
@@ -280,13 +280,13 @@ Stable IDs per category. Each requirement: statement, rationale, source, priorit
 
 ## Data requirements (DATA)
 
-### DATA-01 — Migration `0037` is additive and reversible
+### DATA-01 — Migration `0038` is additive and reversible
 - **Statement.** The only schema change is an optional `revoked_reason TEXT` column on `collaboration_invitations` (nullable, default NULL) to support SEC-07 audit context. No column/index drops. Reversible via `ALTER TABLE ... DROP COLUMN` (D1/SQLite supports drop column from 3.35+; confirm local D1 version — DISCOVERY-REQUIRED in the blueprint).
 - **Source.** `repo evidence` (`migrations/0007`); SEC-07/SEC-11.
 - **Priority.** P2.
-- **Acceptance criteria.** AC-DATA-01a: migration `0037_collaboration_invitation_revoke_reason.sql` adds only the nullable column + documents rollback. AC-DATA-01b: existing rows unaffected.
-- **Validation.** New migration test `tests/vitest/migration-0037-revoke-reason.test.ts` (or extend `infosec-db-pending-review-contract.test.ts`).
-- **Affected areas.** `migrations/0037_*.sql`; tests.
+- **Acceptance criteria.** AC-DATA-01a: migration `0038_collaboration_invitation_revoke_reason.sql` adds only the nullable column + documents rollback. AC-DATA-01b: existing rows unaffected.
+- **Validation.** New migration test `tests/vitest/migration-0038-revoke-reason.test.ts` (or extend `infosec-db-pending-review-contract.test.ts`).
+- **Affected areas.** `migrations/0038_*.sql`; tests.
 - **Risks.** D1 DROP COLUMN support — confirm via `cf:d1` readback; if unsupported, rollback is fix-forward (ignore the column).
 - **Status.** Planned (Phase 3; blueprint in `21_DATABASE_CHANGE_BLUEPRINTS.md`).
 

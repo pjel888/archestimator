@@ -2,15 +2,15 @@
 
 **Authority boundary:** All work inside bound D1 `ARCH_DB` (`archestimator-proof-db`, id `9bdb29bb-687e-4f51-ae81-7659c426ea5f`). Standing owner authorization covers D1 schema/migration changes. No raw token values below.
 
-## Blueprint 1 — `0037_collaboration_invitation_revoke_reason.sql`
+## Blueprint 1 — `0038_collaboration_invitation_revoke_reason.sql`
 
 ### Purpose
 Add a nullable `revoked_reason TEXT` column to `collaboration_invitations` so the new revoke Server Action (SEC-07) can record why a manager revoked an invitation, for abuse forensics.
 
 ### Migration filename + ordering
-- **Filename:** `migrations/0037_collaboration_invitation_revoke_reason.sql`
+- **Filename:** `migrations/0038_collaboration_invitation_revoke_reason.sql`
 - **Ordering dependency:** applies after `0036_cost_library_component_drafts.sql` (the current latest). No dependency on any other pending migration.
-- **Latest-migration confirmation:** `migrations/0036_cost_library_component_drafts.sql` is the highest-numbered file in `./migrations/` (verified by L3 discovery). `0037` is the next available number.
+- **Latest-migration confirmation:** At planning time, `migrations/0037_remove_preloaded_component_categories.sql` is the highest-numbered file in `./migrations/` (created by concurrent work during this session -- `0036_cost_library_component_drafts.sql` was latest when the L3 lane ran, but was overtaken). **This blueprint's migration is therefore numbered `0038`**, the next available. **Re-verify with `ls migrations/ | sort | tail -1` before authoring** -- if more concurrent migrations land, renumber accordingly.
 
 ### Tables/columns/indexes/constraints affected
 - **Table:** `collaboration_invitations`
@@ -25,7 +25,7 @@ Add a nullable `revoked_reason TEXT` column to `collaboration_invitations` so th
 
 ### SQL sketch
 ```sql
--- 0037_collaboration_invitation_revoke_reason.sql
+-- 0038_collaboration_invitation_revoke_reason.sql
 -- Additive: nullable revoked_reason for explicit invitation revocation (SEC-07).
 -- Rollback: ALTER TABLE collaboration_invitations DROP COLUMN revoked_reason;
 --   (requires SQLite 3.35.0+; confirm via `SELECT sqlite_version();` on ARCH_DB.
@@ -78,7 +78,7 @@ Not justified. The column is a simple audit field.
 ### Local proof command
 - Apply: `bun run cf:d1:migrate:local` (or project equivalent — confirm exact script in `package.json` `cf:*`).
 - Readback: `bun run cf:d1:read "PRAGMA table_info(collaboration_invitations);"` against `ARCH_DB` — confirm `revoked_reason` row present.
-- Migration test: `tests/vitest/migration-0037-revoke-reason.test.ts` (new) or extend `infosec-db-pending-review-contract.test.ts`.
+- Migration test: `tests/vitest/migration-0038-revoke-reason.test.ts` (new) or extend `infosec-db-pending-review-contract.test.ts`.
 
 ### Linked-provider proof boundary
 - Local D1: migrate + readback.
@@ -98,7 +98,7 @@ The revoke UPDATEs use PK/index lookups — constant-time per row. No EXPLAIN co
 Remove `auth_trigger` from the `accepted_via` CHECK constraint (dead enum value).
 
 ### Migration filename + ordering
-- `migrations/0038_collaboration_invitations_drop_auth_trigger_accepted_via.sql` (after `0037`).
+- `migrations/0039_collaboration_invitations_drop_auth_trigger_accepted_via.sql` (after `0038`).
 
 ### Affected
 - **Table:** `collaboration_invitations`

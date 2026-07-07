@@ -90,7 +90,7 @@ No conflict between the brief and repo reality was found. The brief's claim ("Or
 1. **Preserve the first-user beta invite flow.** The signed-out-preview → continue → bridge → login → onboarding → pending-invite-accept path must keep working for an unauthenticated invitee. Any origin/CSRF tightening must not break the legitimate same-site form POST or the magic-link/Google auth round-trip that carries the `next=/workshop/pending-invite` parameter.
 2. **Never expose token values** in logs, evidence, docs, error messages, audit events, or rendered HTML. Audit events use `token_hint` (last 6 chars) only. The hosted proof harness must keep its "does not return raw tokens" guarantee.
 3. **Planning-only.** No application source, tests, migrations, configs, provider state, or runtime data are modified by this task. All writes are confined to this plan folder.
-4. **Stay inside bound Cloudflare resources** (`ARCH_DB`, `EMAIL`, etc. per `wrangler.jsonc`). The recommended migration `0037` is additive and reversible.
+4. **Stay inside bound Cloudflare resources** (`ARCH_DB`, `EMAIL`, etc. per `wrangler.jsonc`). The recommended migration `0038` is additive and reversible.
 5. **Free-tier posture.** No paid add-ons; the hardening must not add per-request D1 writes on the hot path.
 
 ## 6. Success criteria for the planning pack itself

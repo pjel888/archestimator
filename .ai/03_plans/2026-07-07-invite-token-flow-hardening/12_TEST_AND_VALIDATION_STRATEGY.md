@@ -14,7 +14,7 @@
 | DOM (route contract) | `bun run test -- project-invite-entry-route` | Terminal states, preview, wrong-account |
 | DOM (pending invite) | `bun run test -- workshop-pending-invite` | Bridge consumption, banners, accept-by-id |
 | DOM (revoke UI) | `bun run test -- publisher-revoke-invite` (new) | Button, dialog, keyboard, a11y |
-| Migration | `bun run test -- migration-0037` (new) | Additive column, rollback |
+| Migration | `bun run test -- migration-0038` (new) | Additive column, rollback |
 | Hosted proof | `bun run test -- collaboration-invitation-proof-script` | End-to-end D1 invariants (extend for revoke) |
 | Type/lint | `bun run type-check && bun run lint` | Compile-time + design-system lint |
 | Build | `bun run build` | Bundle-size delta (PERF-02) |
@@ -41,7 +41,7 @@ Broad `bun run validate` / `bun run build` reserved for release-gate (P6) per AG
 | FR-02/04/05/06 | `tests/vitest/collaboration-invitation-d1-store.test.ts`, `tests/vitest/project-invite-entry-route.test.ts` | Unit/DOM | Existing (verify) | D1 fixtures | `bun run test -- collaboration-invitation-d1-store` / `project-invite-entry-route` | terminal states, wrong-account, replay, expiry | none | impl |
 | FR-03 | manual e2e (preview) | Manual | New | preview deploy + test invite | curl + browser | signed-out → continue → auth → pending-invite → accepted | none | impl |
 | UX-03, A11Y-01 | `tests/vitest/publisher-revoke-invite.test.tsx` (new) | DOM/a11y | New | render members panel | `bun run test -- publisher-revoke-invite` | button pending-only, dialog, keyboard, a11y name | none | impl |
-| DATA-01 | `tests/vitest/migration-0037-revoke-reason.test.ts` (new) | Migration | New | local D1 | `bun run test -- migration-0037` | column present, rollback | none | impl |
+| DATA-01 | `tests/vitest/migration-0038-revoke-reason.test.ts` (new) | Migration | New | local D1 | `bun run test -- migration-0038` | column present, rollback | none | impl |
 | PERF-01 | `tests/vitest/collaboration-invitation-d1-store.test.ts` (query-count) | Unit | Extend | — | `bun run test -- collaboration-invitation-d1-store` | resolve/accept query count unchanged | none | impl |
 
 **Completion rule:** No requirement may have only "manual QA" without exact steps, actor, setup, expected observations, and pass/fail criteria. FR-03's manual e2e is specified: actor=invited collaborator (test email), setup=manager invites test email on preview, steps=open `/invite/<token>` signed-out → Continue → complete magic-link auth → land on `/workshop/pending-invite` → membership created, expected=`/workshop?invite=accepted` + project visible, pass/fail=membership row exists in D1 + banner shows accepted.

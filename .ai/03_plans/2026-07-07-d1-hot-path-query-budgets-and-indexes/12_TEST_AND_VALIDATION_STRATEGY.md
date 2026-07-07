@@ -11,22 +11,37 @@ This is data-layer performance work. The lightest proof that actually proves eac
 - **Proof-route security (P4):** unit tests for auth + PII redaction.
 - **Browser/Playwright:** intentionally skipped (no browser-only claim — per `05` and AGENTS.md speed guardrail).
 
-## Test Execution Matrix
+## Test Execution Matrix (proof-contract rows, directive Phase 3 §11 format)
 
-| Requirement | Test file path | Test type | Existing/new | Fixture/data setup | Command | Expected evidence | Known pre-existing reds | Owner |
-|---|---|---|---|---|---|---|---|---|
-| PERF-002 | (proof scripts, not unit) | proof | new (P3) | 10× fixture manifest | `bun run cf:d1-*-proof` | JSON `passed:true`, p95 ≤ budget | none | impl agent |
-| PERF-004 (G1/G2) | `tests/vitest/migration-0037.test.ts` | unit (sqlite apply) | new | temp sqlite3 | `bunx vitest run tests/vitest/migration-0037.test.ts` | indexes present; EXPLAIN uses index | none | impl agent |
-| PERF-004 (G3/G4) | `tests/vitest/migration-0038.test.ts` | unit | new | temp sqlite3 | `bunx vitest run tests/vitest/migration-0038.test.ts` | indexes present | none | impl agent |
-| PERF-006 (TEST-SEC-01) | `tests/vitest/d1-access-batch-parity.test.ts` | unit + property | new | role-matrix fixture | `bunx vitest run tests/vitest/d1-access-batch-parity.test.ts` | batched === looped across ≥20 random sets per role | none | impl agent |
-| PERF-006 (TEST-SEC-04) | `tests/vitest/d1-access-cross-workspace-deny.test.ts` | unit | new | two-workspace fixture | `bunx vitest run tests/vitest/d1-access-cross-workspace-deny.test.ts` | workspace A user denied workspace B estimates | none | impl agent |
-| PERF-006 (query count) | `tests/vitest/estimates-page-query-count.test.ts` | unit | new | projects with 5/20/50 estimates | `bunx vitest run tests/vitest/estimates-page-query-count.test.ts` | query count flat (≤6) | none | impl agent |
-| PERF-002 (LIMITs) | repository tests (extend) | unit | extend | cap+1 rows | `bunx vitest run tests/vitest/<repo>.test.ts` | only cap rows returned | none | impl agent |
-| PERF-004 G5 / cache | `tests/vitest/category-cache-invalidation.test.ts` | unit | new | category write | `bunx vitest run tests/vitest/category-cache-invalidation.test.ts` | cache cleared on write | none | impl agent |
-| PERF-007 (helper) | `tests/unit/d1-query-budget.test.ts` | unit | new | known arrays | `bunx vitest run tests/unit/d1-query-budget.test.ts` | percentile/measureSurface correct | none | impl agent |
-| PERF-007 (inventory) | `tests/unit/build-performance-query-inventory.test.ts` | unit | new | repo map | `bunx vitest run tests/unit/build-performance-query-inventory.test.ts` | all 12 repos in output | none | impl agent |
-| TEST-SEC-02 (PII) | `tests/vitest/d1-performance-proof-router.test.ts` | unit | new | fixture ids | `bunx vitest run tests/vitest/d1-performance-proof-router.test.ts` | no `@` outside fixture domains in JSON | none | impl agent |
-| TEST-SEC-03 (auth) | (same file) | unit | new | missing/wrong secret | (same) | 401 without valid `CRON_SECRET` | none | impl agent |
+Each row: `Proof ID | Requirement IDs | Implementation unit | Layer | Fixture/input | Assertion | File target | Command/evidence | Red/green expectation | Cleanup/skip rule`.
+
+| Proof ID | Requirement IDs | Implementation unit | Layer | Fixture/input | Assertion | File target | Command/evidence | Red/green expectation | Cleanup/skip rule |
+|---|---|---|---|---|---|---|---|---|---|
+| PROOF-001 | PERF-004, PERF-011 | T-P1-01 (G1/G2 indexes) | migration (sqlite apply) | temp sqlite3 DB | indexes present; EXPLAIN uses index, no TEMP B-TREE | `tests/vitest/migration-0037.test.ts` | `bunx vitest run tests/vitest/migration-0037.test.ts` | red before migration applied; green after | temp DB torn down per test |
+| PROOF-002 | PERF-004, PERF-011 | T-P1-02 (G3/G4 indexes) | migration (sqlite apply) | temp sqlite3 DB | indexes present; G3 EXPLAIN shows `publication_recipient` index; G4 shows `estimate` index | `tests/vitest/migration-0038.test.ts` | `bunx vitest run tests/vitest/migration-0038.test.ts` | red before; green after | temp DB torn down |
+| PROOF-003 (TEST-SEC-01) | PERF-006 | T-P2-01 (batched capability) | unit + property | role-matrix fixture: ≥20 randomized estimate-id sets per role mixing allowed/denied | `canEditEstimateSetInD1` result === set of ids where `canEditEstimateInD1` returns true, for every randomized case | `tests/vitest/d1-access-batch-parity.test.ts` | `bunx vitest run tests/vitest/d1-access-batch-parity.test.ts` | red if any drift; green on exact parity | none (pure function) |
+| PROOF-004 (TEST-SEC-04) | PERF-006 | T-P2-01 (cross-workspace) | unit | two-workspace fixture; workspace A user | batched path returns empty for workspace B estimate IDs | `tests/vitest/d1-access-cross-workspace-deny.test.ts` | `bunx vitest run tests/vitest/d1-access-cross-workspace-deny.test.ts` | red if any B id returned; green if empty | none |
+| PROOF-005 | PERF-006 | T-P2-01 (query count) | unit | projects with 5, 20, 50 estimates | HP-5 D1 statement count flat (≤6) regardless of N | `tests/vitest/estimates-page-query-count.test.ts` | `bunx vitest run tests/vitest/estimates-page-query-count.test.ts` | red if count grows with N (pre-fix); green if flat (post-fix) | none |
+| PROOF-006 | PERF-002, PERF-011 | T-P2-02 (LIMITs) | unit | fixture with cap+1 rows per repo | only `cap` rows returned; no error | extend each `tests/vitest/<repo>.test.ts` | `bunx vitest run tests/vitest/<repo>.test.ts` | red if >cap returned; green if exactly cap | none |
+| PROOF-007 | PERF-004 (G5), PERF-011 | T-P2-03 (category cache) | unit | category write action | cache cleared on write; next read fresh | `tests/vitest/category-cache-invalidation.test.ts` | `bunx vitest run tests/vitest/category-cache-invalidation.test.ts` | red if stale; green if fresh post-write | none |
+| PROOF-008 | PERF-007 | T-P0-01 (budget helper) | unit | known arrays (percentile correctness); measureSurface shape | `percentile([1..100], 95)` correct; `BUDGET_RESULT` well-formed | `tests/unit/d1-query-budget.test.ts` | `bunx vitest run tests/unit/d1-query-budget.test.ts` | red on wrong percentile; green on correct | none |
+| PROOF-009 | PERF-001, PERF-007 | T-P0-02 (inventory) | unit | repo map fixture | output contains all 12 D1-backed repos | `tests/unit/build-performance-query-inventory.test.ts` | `bunx vitest run tests/unit/build-performance-query-inventory.test.ts` | red if any repo missing; green if all 12 present | none |
+| PROOF-010 (TEST-SEC-02) | PERF-007 | T-P4-01 (proof route PII) | unit | fixture IDs (synthetic) | JSON contains no `@` outside fixture domains; no `display_name`/`email` keys | `tests/vitest/d1-performance-proof-router.test.ts` | `bunx vitest run tests/vitest/d1-performance-proof-router.test.ts` | red if PII present; green if redacted | none |
+| PROOF-011 (TEST-SEC-03) | PERF-007 | T-P4-01 (proof route auth) | unit | missing Bearer / wrong secret | 401 without valid `CRON_SECRET`; 200 with | (same file as PROOF-010) | (same command) | red if 200 without secret; green if 401 | none |
+| PROOF-012 | PERF-002, PERF-003, PERF-007, PERF-011 | T-P3-01…08 (8 repo proofs) | proof (local sqlite3) | 1×/10× fixture manifest | `passed:true`; `plannedQueries ≤ queryBudget`; `localP95Ms ≤ budget` | `scripts/generate-cloudflare-d1-{repo}-proof.ts` output JSON | `bun run cf:d1-{repo}-proof` | red if any budget exceeded; green if all pass | fixture manifest regenerable |
+| PROOF-013 | PERF-002, PERF-003, PERF-007, PERF-011 | T-P4-01/02/03 (hosted proof) | proof (hosted D1) | hosted fixture (server-side) | `hostedP95Ms ≤ budget`; `subrequestCount ≤ budget`; **`rowsRead/req ≤ budget`**; EXPLAIN shows expected indexes | `cf:d1-runtime-proof` output JSON | `bun run cf:d1-runtime-proof` | red if any hosted budget exceeded; green if all pass | release-gate (not CI); needs CRON_SECRET |
+| PROOF-014 | PERF-011 | T-P5-01 (CI EXPLAIN gate) | CI | every hot-path query | no hot-path query's EXPLAIN shows `SCAN` (full scan) | `.github/workflows/ci.yml` job | CI run on PR | red if any SCAN; green if all index-probes | advisory mode if flaky (RISK-12) |
+
+**Testing-strategy layer classification (directive §11):**
+- Unit: PROOF-001…011 (vitest).
+- Migration: PROOF-001, PROOF-002.
+- Repository/database: PROOF-003…007.
+- Contract: PROOF-010, PROOF-011 (proof-route shape/auth).
+- Performance: PROOF-012 (local), PROOF-013 (hosted).
+- Security: PROOF-003, PROOF-004, PROOF-010, PROOF-011.
+- CI: PROOF-014.
+- E2E/browser: **intentionally skipped** (no browser-only claim — see `05`).
+- Manual QA: **none** (every claim has an automated proof).
 
 ## Adversarial scenario matrix (UltraQA-style, directive 4A)
 

@@ -25,7 +25,7 @@ Consolidates the Next.js, React, Tailwind, Cloudflare, D1, R2, Durable Objects, 
 
 ## Data (D1 — `ARCH_DB`)
 - Active store for invitations, tokens, audit events, memberships, rate-limit events, profiles.
-- One additive migration `0037` (`revoked_reason`); fully reversible.
+- One additive migration `0038` (`revoked_reason`); fully reversible.
 - App-level authorization (`assertProjectAccessManager`, wrong-account check) — no RLS (D1 has none).
 - D1 batch for revoke atomicity.
 - Better Auth tables (`user`/`session`/`account`/`verification`) are Better-Auth-generated, not in `./migrations/`.

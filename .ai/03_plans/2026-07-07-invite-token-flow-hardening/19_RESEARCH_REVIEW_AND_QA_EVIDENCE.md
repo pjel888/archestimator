@@ -6,7 +6,7 @@
 |---|---|---|---|---|---|---|
 | R1 | Do browsers always send `Origin` on same-origin form POST? | Fetch spec + MDN | Official: yes, Origin is sent on all same-origin POST/PUT/DELETE; community sometimes confuses with Referer | Confirms DEC-01 won't break same-site form POST (Accept button) | Fetch spec "Origin header"; MDN | — |
 | R2 | Does `Referrer-Policy: no-referrer` strip Referer on `<a>` clicks (vs form POST)? | MDN + Fetch spec | Official: yes, `no-referrer` suppresses Referer entirely on navigation | Drives P1-T2 DISCOVERY: switch Continue CTA to form POST so Origin is sent | MDN "Referrer-Policy" | — |
-| R3 | Does D1 (SQLite) support `ALTER TABLE ADD COLUMN` (nullable) atomically? | SQLite docs | Official: yes, metadata-only for nullable | Confirms migration `0037` is safe | SQLite "ALTER TABLE" | — |
+| R3 | Does D1 (SQLite) support `ALTER TABLE ADD COLUMN` (nullable) atomically? | SQLite docs | Official: yes, metadata-only for nullable | Confirms migration `0038` is safe | SQLite "ALTER TABLE" | — |
 | R4 | Does D1 support `DROP COLUMN` (for rollback)? | SQLite docs + Cloudflare D1 docs | Official: SQLite 3.35.0+; D1 version unconfirmed | Drives RISK-04 + P3-T1 DISCOVERY (`SELECT sqlite_version()`) | SQLite 3.35 release notes | D1's exact SQLite version (to confirm at impl) |
 | R5 | Is Better Auth's CSRF library-default sufficient for `/api/auth`? | Better Auth 1.6.22 docs (local `node_modules/better-auth`) | Official: Better Auth applies origin + cookie-token CSRF on its routes | Confirms no new CSRF needed on `/api/auth`; invite routes need their own origin check | better-auth docs | — |
 | R6 | Should the invite origin guard use an env allowlist or same-host comparison? | Repo evidence (`getAllowedAppOrigins` exists but unused by invite) | Community: allowlist; repo convention: same-host comparison for invites | DEC-01 keeps same-host comparison (simpler, matches existing pattern) | repo `redirects.ts` | — |
@@ -32,7 +32,7 @@
 
 - **L1 (invite source map):** full lifecycle map → 03 §1; surfaced SEC-02, SEC-07, SEC-10, SEC-11.
 - **L2 (origin/CSRF/cookie):** policy logic quoted → 03 §3; surfaced SEC-01, SEC-04; CSP Report-Only residual.
-- **L3 (auth/membership/email/D1):** schema + email + auth join → 03 §2,§4-5, 07; surfaced SEC-08, REL-02; next migration `0037`.
+- **L3 (auth/membership/email/D1):** schema + email + auth join → 03 §2,§4-5, 07; surfaced SEC-08, REL-02; next migration `0038`.
 - **L4 (sibling shape):** convention match → document structure across the pack.
 
 ## 4. Critique-and-revision cycle summaries

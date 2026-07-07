@@ -52,7 +52,7 @@ From `migrations/0007_collaboration_invitations.sql` + `0013_collaboration_manag
 
 Full SQL blueprint in `21_DATABASE_CHANGE_BLUEPRINTS.md`. Summary:
 
-### `0037_collaboration_invitation_revoke_reason.sql` (additive)
+### `0038_collaboration_invitation_revoke_reason.sql` (additive)
 - **Change:** `ALTER TABLE collaboration_invitations ADD COLUMN revoked_reason TEXT;` (nullable, default NULL).
 - **Purpose:** support SEC-07 audit context (why a manager revoked) — optional but recommended for abuse forensics.
 - **Backfill:** none (nullable).
@@ -140,7 +140,7 @@ Origin check (SEC-01/02) adds **zero** queries (pure header parse). Rate-limit f
 
 ## 8. Rollback / fix-forward
 
-- **Migration `0037`:** additive; rollback via DROP COLUMN (if D1 supports) or fix-forward (leave column). See blueprint.
+- **Migration `0038`:** additive; rollback via DROP COLUMN (if D1 supports) or fix-forward (leave column). See blueprint.
 - **Revoke action/UI:** revert the action + UI; the migration column is harmless if left.
 - **Origin tightening:** revert `invite-origin.ts` + route edits.
 - **SEC-09 pepper separation:** restore the fallback in `realtime-identity-server.ts`.

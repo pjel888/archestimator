@@ -10,9 +10,11 @@
 
 ## Master goal
 
-Give the implementation agent a complete, codebase-specific plan to set **measurable D1 query budgets**, close **index-coverage gaps**, and add **hosted performance proof** for every first-user hot path — without adding paid Cloudflare features, and without mixing in general UX work.
+Give the implementation agent a complete, codebase-specific plan to set **measurable D1 query budgets** (query-count + p95 + **rows-read** + subrequest), close **index-coverage gaps**, and add **hosted performance proof** for every first-user hot path — without adding paid Cloudflare features, and without mixing in general UX work.
 
-Outcome: an executor can implement measurable D1 hot-path budgets (query-count + p95 + subrequest) and prove them against representative fixture data, both locally and against hosted D1, with every active repository path covered by a budget and every budget enforced by a script.
+**Why rows-read is the load-bearing metric:** D1 Free bills "rows read" by counting every *scanned* row (including JOIN fan-out and predicate-eliminated rows), not rows returned. The free ceiling is **5M rows read/day** (resets 00:00 UTC). At 10× first-user volume, the unindexed/un-LIMIT-ed hot paths would exceed this and the D1 API returns errors until reset. So P1 (indexes) and P2 (LIMITs + N+1 fix) are free-tier-budget necessities, not optimizations. See `09` §"Free-tier ceilings" for the full verified limit table.
+
+Outcome: an executor can implement measurable D1 hot-path budgets (query-count + p95 + rows-read + subrequest) and prove them against representative fixture data, both locally and against hosted D1, with every active repository path covered by a budget and every budget enforced by a script.
 
 Non-goals (explicitly out of scope): general UX redesign, bundle-size work (covered by `2026-07-07-bundle-and-route-performance-gate-hardening`), D1 migration state/schema integrity (covered by `2026-07-07-d1-migration-state-and-schema-integrity`), R2/backup ops, durable-object realtime scale. This plan consumes the additive-index migrations and query-counter infrastructure those packs or the current repo already provide, but does not redefine them.
 

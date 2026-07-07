@@ -54,7 +54,7 @@
 - **Problem:** Dead enum value.
 - **Options:** (a) wire login-time grant; (b) remove the enum value. **Recommend (b) remove** unless a product need exists for login-time acceptance (e.g., a user signing up with the invited email auto-accepts). Owner decides.
 
-### DEC-09 — Migration `0037` adds `revoked_reason` only
+### DEC-09 — Migration `0038` adds `revoked_reason` only
 - **Problem:** Revoke needs audit context.
 - **Options:** (a) add nullable `revoked_reason` (recommended); (b) store reason in audit `metadata_json` only (no schema change). (a) is queryable for forensics.
 - **Recommended:** (a).
