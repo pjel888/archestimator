@@ -124,7 +124,7 @@ function LandingNav({ isLoggedIn }: LandingPageProps) {
         </nav>
         <div className={styles.navActions}>
           {isLoggedIn ? null : (
-            <Link href={LOGIN_HREF} className={styles.signInLink}>
+            <Link href={LOGIN_HREF} className={cn(styles.secondaryCta, styles.navSecondaryCta)}>
               Sign in
             </Link>
           )}
@@ -138,8 +138,16 @@ function LandingNav({ isLoggedIn }: LandingPageProps) {
                 {item.label}
               </Link>
             ))}
-            {isLoggedIn ? null : <Link href={LOGIN_HREF}>Sign in</Link>}
-            <Link href={isLoggedIn ? WORKSPACE_HREF : WALKTHROUGH_HREF}>{isLoggedIn ? "Open workspace" : "Book a walkthrough"}</Link>
+            <div className={styles.mobileMenuActions}>
+              {isLoggedIn ? null : (
+                <Link href={LOGIN_HREF} className={cn(styles.secondaryCta, styles.mobileMenuSecondaryCta)}>
+                  Sign in
+                </Link>
+              )}
+              <Link href={isLoggedIn ? WORKSPACE_HREF : WALKTHROUGH_HREF} className={cn(styles.primaryCta, styles.mobileMenuPrimaryCta)}>
+                {isLoggedIn ? "Open workspace" : "Book a walkthrough"}
+              </Link>
+            </div>
           </nav>
         </details>
       </div>

@@ -103,10 +103,16 @@ describe("landing-v3 homepage contract", () => {
 
   it("keeps navigation and hero CTAs on one typography scale", () => {
     const css = readProjectFile("src/components/landing-v3/landing-v3.module.css");
+    const source = readProjectFile("src/components/landing-v3/ArchestimatorLandingPage.tsx");
 
-    expect(css).toMatch(/\.signInLink,\n\.primaryCta,\n\.secondaryCta\s*{[^}]*font-family: var\(--font-roboto-mono\)/);
-    expect(css).toMatch(/\.signInLink,\n\.primaryCta,\n\.secondaryCta\s*{[^}]*font-size: 0\.75rem/);
-    expect(css).toMatch(/\.signInLink,\n\.primaryCta,\n\.secondaryCta\s*{[^}]*font-weight: 650/);
+    expect(css).toMatch(/--landing-cta-font-family: var\(--font-geist\)/);
+    expect(css).toMatch(/--landing-cta-font-size: 0\.8125rem/);
+    expect(css).toMatch(/--landing-cta-min-height: 2\.625rem/);
+    expect(css).toMatch(/\.primaryCta,\n\.secondaryCta\s*{[^}]*font-family: var\(--landing-cta-font-family\)/);
+    expect(css).toMatch(/\.primaryCta,\n\.secondaryCta\s*{[^}]*font-size: var\(--landing-cta-font-size\)/);
+    expect(css).toMatch(/\.primaryCta,\n\.secondaryCta\s*{[^}]*font-weight: var\(--landing-cta-font-weight\)/);
+    expect(css).toMatch(/\.primaryCta,\n\.secondaryCta\s*{[^}]*min-height: var\(--landing-cta-min-height\)/);
+    expect(source).toContain("className={cn(styles.secondaryCta, styles.navSecondaryCta)}");
   });
 
   it("keeps the active public copy on winning bids workflow positioning", () => {

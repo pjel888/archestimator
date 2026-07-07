@@ -15,6 +15,11 @@
   --signal: #f24405;
   --signal-aa: #c63804;
   --signal-wash: color-mix(in srgb, var(--signal) 10%, white);
+  --landing-cta-font-family: var(--font-geist), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --landing-cta-font-size: 0.8125rem;
+  --landing-cta-font-weight: 620;
+  --landing-cta-letter-spacing: 0;
+  --landing-cta-min-height: 2.625rem;
   /* Keep the public landing full-width through common 21-inch desktop browser widths. */
   --grid-max: 2048px;
   --landing-frame-max: 2048px;
@@ -209,33 +214,22 @@
   }
 }
 
-.signInLink,
 .primaryCta,
 .secondaryCta {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-roboto-mono), ui-monospace, monospace;
-  font-size: 0.75rem;
-  font-weight: 650;
+  font-family: var(--landing-cta-font-family);
+  font-size: var(--landing-cta-font-size);
+  font-weight: var(--landing-cta-font-weight);
+  letter-spacing: var(--landing-cta-letter-spacing);
   line-height: 1;
   text-decoration: none;
 }
 
-.signInLink {
-  min-height: 40px;
-  padding: 0.6rem 0.25rem;
-  color: color-mix(in srgb, var(--ink) 76%, white);
-  transition: color 180ms var(--ease);
-}
-
-.signInLink:hover {
-  color: var(--ink);
-}
-
 .primaryCta,
 .secondaryCta {
-  min-height: 40px;
+  min-height: var(--landing-cta-min-height);
   gap: 0.62rem;
   border-radius: 6px;
   padding: 0.6rem 0.86rem;
@@ -285,6 +279,34 @@
 .secondaryCta:hover {
   border-color: rgb(255 255 255 / 0.5);
   background: rgb(255 255 255 / 0.06);
+}
+
+.navSecondaryCta,
+.mobileMenuSecondaryCta {
+  border-color: var(--hairline);
+  background: rgb(255 255 255 / 0.42);
+  color: var(--ink);
+}
+
+.navSecondaryCta:hover,
+.mobileMenuSecondaryCta:hover {
+  border-color: color-mix(in srgb, var(--signal) 34%, var(--hairline));
+  background: var(--surface);
+  color: var(--ink);
+  transform: translateY(-1px) scale(1.01);
+}
+
+.mobileMenuActions {
+  display: grid;
+  gap: 0.45rem;
+  margin-block-start: 0.45rem;
+  padding-block-start: 0.55rem;
+  border-block-start: 1px solid var(--hairline-cool);
+}
+
+.mobileMenuPrimaryCta,
+.mobileMenuSecondaryCta {
+  inline-size: 100%;
 }
 
 .hero .secondaryCta {
