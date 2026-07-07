@@ -13,7 +13,7 @@ Triggers: "why did this rule fire", "I disagree with this rule", "turn this rule
 2. Explain it before changing anything:
 
 ```bash
-npx react-doctor@latest rules explain react-doctor/no-array-index-as-key
+bun run doctor -- rules explain react-doctor/no-array-index-as-key
 ```
 
 3. Pick the narrowest control that matches the user's intent (see decision guide).
@@ -21,22 +21,22 @@ npx react-doctor@latest rules explain react-doctor/no-array-index-as-key
 5. Validate the change did what they wanted:
 
 ```bash
-npx react-doctor@latest --verbose --diff
+bun run doctor -- --verbose --diff
 ```
 
 ## Commands
 
 ```bash
-npx react-doctor@latest rules list                         # every rule + its effective severity
-npx react-doctor@latest rules list --configured            # only what your config changed
-npx react-doctor@latest rules list --category Performance   # filter by category
-npx react-doctor@latest rules explain <rule>               # why it matters + how to configure
-npx react-doctor@latest rules disable <rule>               # rule never runs
-npx react-doctor@latest rules enable <rule>                # turn back on at its recommended severity
-npx react-doctor@latest rules set <rule> warn              # off | warn | error
-npx react-doctor@latest rules category "React Native" off   # whole category
-npx react-doctor@latest rules ignore-tag design            # skip a rule family (design, test-noise, …)
-npx react-doctor@latest rules unignore-tag design
+bun run doctor -- rules list                         # every rule + its effective severity
+bun run doctor -- rules list --configured            # only what your config changed
+bun run doctor -- rules list --category Performance   # filter by category
+bun run doctor -- rules explain <rule>               # why it matters + how to configure
+bun run doctor -- rules disable <rule>               # rule never runs
+bun run doctor -- rules enable <rule>                # turn back on at its recommended severity
+bun run doctor -- rules set <rule> warn              # off | warn | error
+bun run doctor -- rules category "React Native" off   # whole category
+bun run doctor -- rules ignore-tag design            # skip a rule family (design, test-noise, …)
+bun run doctor -- rules unignore-tag design
 ```
 
 Rule references accept the full key (`react-doctor/no-danger`), the bare id (`no-danger`), or a legacy key (`react/no-danger`).
@@ -69,4 +69,4 @@ export default {
 
 ## Educating the user
 
-When explaining a rule, lead with the "Why it matters" guidance from `rules explain` and, when they want depth, the per-rule recipe at `https://www.react.doctor/prompts/rules/<plugin>/<rule>.md`. Only after they understand it should you offer to disable it — many "bad" rules are catching real issues.
+When explaining a rule, lead with the "Why it matters" guidance from `rules explain` and, when they want depth, the checked-in rule guidance available through the local `rules explain` command. Only after they understand it should you offer to disable it — many "bad" rules are catching real issues.
