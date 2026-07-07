@@ -10,11 +10,12 @@
 
 ## What this pack is
 
-A single current authorization matrix mapping **every API route handler (33 files),
-every Server Action (~90 actions across 12 domains), and the entire public
-share/publication surface** to explicit verdicts on auth, authz/ownership, input
-validation, rate-limiting, and test coverage — plus a prioritized remediation roadmap
-that can drive one implementation pass to reach launch-ready authorization posture.
+A single current authorization matrix mapping **all 33 API route handlers (file:line),
+the Server Action surface (30 `"use server"` modules across 15 subdirs, ~162 exports —
+inventoried at domain + authz-pattern level), and the entire public share/publication
+surface** to explicit verdicts on auth, authz/ownership, input validation, rate-limiting,
+and test coverage — plus a prioritized remediation roadmap that can drive one
+implementation pass to reach launch-ready authorization posture.
 
 ## Implementation start document
 
