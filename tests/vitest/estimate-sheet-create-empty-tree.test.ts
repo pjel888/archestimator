@@ -6,6 +6,7 @@ const TAB_ID = "44444444-4444-4444-8444-444444444444";
 const USER_ID = "55555555-5555-4555-8555-555555555555";
 
 const getCurrentWorkspaceProject = vi.hoisted(() => vi.fn());
+const getCurrentWorkspaceProjectForEstimate = vi.hoisted(() => vi.fn());
 const requireCurrentUserContext = vi.hoisted(() => vi.fn());
 const createSupabaseServerClient = vi.hoisted(() => vi.fn());
 const revalidatePath = vi.hoisted(() => vi.fn());
@@ -14,6 +15,7 @@ const redirect = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/repositories/workspace-repository", () => ({
   clearEstimateRouteContextProcessCache: vi.fn(),
   getCurrentWorkspaceProject,
+  getCurrentWorkspaceProjectForEstimate,
   getEstimateTabTree: vi.fn(),
   getEstimateTabs: vi.fn(),
   getProjectEstimateTreeByEstimate: vi.fn(),
@@ -25,6 +27,13 @@ vi.mock("@/lib/auth/session", () => ({
 
 vi.mock("@/lib/supabase/server", () => ({
   createSupabaseServerClient,
+}));
+
+vi.mock("@/lib/estimates/d1-action-client", () => ({
+  createEstimateActionsD1Client: vi.fn(async () => {
+    const client = await createSupabaseServerClient();
+    return { ...client, call: client.rpc };
+  }),
 }));
 
 vi.mock("next/cache", () => ({

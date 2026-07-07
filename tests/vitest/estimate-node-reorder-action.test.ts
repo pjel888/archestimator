@@ -6,6 +6,7 @@ import { ESTIMATE_TREE_SORT_ORDER_STEP } from "@/lib/estimates/estimate-tree-reo
 
 const repositoryMocks = vi.hoisted(() => ({
   getCurrentWorkspaceProject: vi.fn(),
+  getCurrentWorkspaceProjectForEstimate: vi.fn(),
   getEstimateTabTree: vi.fn(),
   getProjectEstimateTreeByEstimate: vi.fn(),
 }));
@@ -29,6 +30,12 @@ const nextNavigationMocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/repositories/workspace-repository", () => repositoryMocks);
 vi.mock("@/lib/supabase/server", () => supabaseServerMocks);
+vi.mock("@/lib/estimates/d1-action-client", () => ({
+  createEstimateActionsD1Client: vi.fn(async () => {
+    const client = await supabaseServerMocks.createSupabaseServerClient();
+    return { ...client, call: client.rpc };
+  }),
+}));
 vi.mock("@/lib/auth/session", () => authMocks);
 vi.mock("next/cache", () => nextCacheMocks);
 vi.mock("next/navigation", () => nextNavigationMocks);
@@ -98,6 +105,7 @@ describe("reorderEstimateTreeNodes server action", () => {
     vi.clearAllMocks();
     authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" });
     repositoryMocks.getCurrentWorkspaceProject.mockResolvedValue({ project: { id: "project-1" } });
+    repositoryMocks.getCurrentWorkspaceProjectForEstimate.mockResolvedValue({ project: { id: "project-1" } });
     repositoryMocks.getProjectEstimateTreeByEstimate.mockResolvedValue({
       project: { id: "project-1" },
       estimate: { id: "estimate-1" },
@@ -141,7 +149,8 @@ describe("reorderEstimateTreeNodes server action", () => {
       ],
     });
 
-    expect(repositoryMocks.getCurrentWorkspaceProject).toHaveBeenCalledWith("project-1");
+    expect(repositoryMocks.getCurrentWorkspaceProjectForEstimate).toHaveBeenCalledWith("project-1", "estimate-1");
+    expect(repositoryMocks.getCurrentWorkspaceProject).not.toHaveBeenCalled();
     expect(supabase.rpc).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: "estimate-1" });
     expect(supabase.rpc).toHaveBeenCalledWith("reorder_estimate_nodes_with_history", {
       target_estimate_id: "estimate-1",
@@ -351,6 +360,7 @@ describe("createEstimateNode server action", () => {
     vi.clearAllMocks();
     authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" });
     repositoryMocks.getCurrentWorkspaceProject.mockResolvedValue({ project: { id: "project-1" } });
+    repositoryMocks.getCurrentWorkspaceProjectForEstimate.mockResolvedValue({ project: { id: "project-1" } });
     repositoryMocks.getEstimateTabTree.mockResolvedValue({
       project: { id: "project-1" },
       estimate: { id: "estimate-1" },
@@ -544,6 +554,7 @@ describe("renameEstimateNode and deleteEstimateNode server actions", () => {
     vi.clearAllMocks();
     authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" });
     repositoryMocks.getCurrentWorkspaceProject.mockResolvedValue({ project: { id: "project-1" } });
+    repositoryMocks.getCurrentWorkspaceProjectForEstimate.mockResolvedValue({ project: { id: "project-1" } });
   });
 
   function scopedNodeSupabase({
@@ -610,6 +621,7 @@ describe("renameEstimateNode and deleteEstimateNode server actions", () => {
 
     await expect(renameEstimateNode("project-1", "estimate-1", "kitchen", "   ")).rejects.toThrow("Estimate tree node name is required.");
     expect(repositoryMocks.getCurrentWorkspaceProject).not.toHaveBeenCalled();
+    expect(repositoryMocks.getCurrentWorkspaceProjectForEstimate).not.toHaveBeenCalled();
     expect(supabaseServerMocks.createSupabaseServerClient).not.toHaveBeenCalled();
   });
 
@@ -902,6 +914,7 @@ describe("insertEstimateRowItemFromLibrary server action", () => {
     vi.clearAllMocks();
     authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" });
     repositoryMocks.getCurrentWorkspaceProject.mockResolvedValue({ project: { id: "project-1" } });
+    repositoryMocks.getCurrentWorkspaceProjectForEstimate.mockResolvedValue({ project: { id: "project-1" } });
   });
 
   it("normalizes non-UUID row ids before inserting library rows", async () => {
@@ -974,8 +987,10 @@ describe("insertEstimateTemplateIntoEstimate server action", () => {
     vi.clearAllMocks();
     authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" });
     repositoryMocks.getCurrentWorkspaceProject.mockReset();
+    repositoryMocks.getCurrentWorkspaceProjectForEstimate.mockReset();
     repositoryMocks.getProjectEstimateTreeByEstimate.mockReset();
     repositoryMocks.getCurrentWorkspaceProject.mockResolvedValue({ project: { id: "project-1" } });
+    repositoryMocks.getCurrentWorkspaceProjectForEstimate.mockResolvedValue({ project: { id: "project-1" } });
     repositoryMocks.getProjectEstimateTreeByEstimate.mockResolvedValue({
       project: { id: "project-1" },
       estimate: { id: "estimate-1" },
@@ -1018,6 +1033,8 @@ describe("insertEstimateTemplateIntoEstimate server action", () => {
 
     expect(supabase.rpc).toHaveBeenCalledTimes(2);
     expect(supabase.rpc).toHaveBeenNthCalledWith(1, "can_edit_estimate", { target_estimate_id: "estimate-1" });
+    expect(repositoryMocks.getCurrentWorkspaceProjectForEstimate).toHaveBeenCalledWith("project-1", "estimate-1");
+    expect(repositoryMocks.getCurrentWorkspaceProject).not.toHaveBeenCalled();
     expect(supabase.rpc).toHaveBeenNthCalledWith(2, "insert_estimate_template_into_estimate_with_history", {
       target_project_id: "project-1",
       target_estimate_id: "estimate-1",
@@ -1095,6 +1112,7 @@ describe("insertEstimateTemplateNodeIntoEstimate server action", () => {
     vi.clearAllMocks();
     authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" });
     repositoryMocks.getCurrentWorkspaceProject.mockResolvedValue({ project: { id: "project-1" } });
+    repositoryMocks.getCurrentWorkspaceProjectForEstimate.mockResolvedValue({ project: { id: "project-1" } });
   });
 
   it("denies a viewer before any node/row write on the direct-call path (U4)", async () => {

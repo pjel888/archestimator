@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const repositoryMocks = vi.hoisted(() => ({
   ensureDefaultWorkspace: vi.fn(),
   getCurrentWorkspaceProject: vi.fn(),
+  getCurrentWorkspaceProjectForEstimate: vi.fn(),
   getEstimateTabTree: vi.fn(),
   getProjectEstimateTreeByEstimate: vi.fn(),
   listCurrentWorkspaceProjects: vi.fn(),
@@ -33,6 +34,12 @@ const nextCacheMocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/repositories/workspace-repository", () => repositoryMocks);
 vi.mock("@/lib/supabase/server", () => supabaseServerMocks);
+vi.mock("@/lib/estimates/d1-action-client", () => ({
+  createEstimateActionsD1Client: vi.fn(async () => {
+    const client = await supabaseServerMocks.createSupabaseServerClient();
+    return { ...client, call: client.rpc };
+  }),
+}));
 vi.mock("@/lib/cloudflare/d1", () => d1Mocks);
 vi.mock("@/lib/authz/d1-access", () => authzMocks);
 vi.mock("@/lib/auth/session", () => authMocks);
@@ -89,6 +96,7 @@ beforeEach(() => {
     profile: { id: USER_ID },
   });
   repositoryMocks.getCurrentWorkspaceProject.mockResolvedValue({ project: { id: PROJECT_ID } });
+  repositoryMocks.getCurrentWorkspaceProjectForEstimate.mockResolvedValue({ project: { id: PROJECT_ID } });
   repositoryMocks.getProjectEstimateTreeByEstimate.mockResolvedValue({
     project: { id: PROJECT_ID },
     estimate: { id: ESTIMATE_ID },

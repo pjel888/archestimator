@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const repositoryMocks = vi.hoisted(() => ({
   clearEstimateRouteContextProcessCache: vi.fn(),
   getCurrentWorkspaceProject: vi.fn(),
+  getCurrentWorkspaceProjectForEstimate: vi.fn(),
   getProjectEstimateTreeByEstimate: vi.fn(),
 }));
 
@@ -27,6 +28,12 @@ const nextNavigationMocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/repositories/workspace-repository", () => repositoryMocks);
 vi.mock("@/lib/supabase/server", () => supabaseServerMocks);
+vi.mock("@/lib/estimates/d1-action-client", () => ({
+  createEstimateActionsD1Client: vi.fn(async () => {
+    const client = await supabaseServerMocks.createSupabaseServerClient();
+    return { ...client, call: client.rpc };
+  }),
+}));
 vi.mock("@/lib/auth/session", () => authMocks);
 vi.mock("next/cache", () => nextCacheMocks);
 vi.mock("next/navigation", () => nextNavigationMocks);
@@ -342,6 +349,7 @@ describe("estimate sheet version control server actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     repositoryMocks.getCurrentWorkspaceProject.mockResolvedValue({ project: { id: "project-1" } });
+    repositoryMocks.getCurrentWorkspaceProjectForEstimate.mockResolvedValue({ project: { id: "project-1" } });
     repositoryMocks.getProjectEstimateTreeByEstimate.mockResolvedValue({
       project: { id: "project-1" },
       estimate: { id: "estimate-1" },
@@ -380,6 +388,7 @@ describe("estimate sheet version control server actions", () => {
     })).rejects.toThrow("Estimate tree update parent id is invalid.");
 
     expect(repositoryMocks.getCurrentWorkspaceProject).not.toHaveBeenCalled();
+    expect(repositoryMocks.getCurrentWorkspaceProjectForEstimate).not.toHaveBeenCalled();
     expect(supabaseServerMocks.createSupabaseServerClient).not.toHaveBeenCalled();
   });
 
@@ -668,6 +677,8 @@ describe("estimate sheet version control server actions", () => {
     });
 
     expect(result).toEqual({ eventId: "bulk-delete-event-1", deletedRowIds: ["source-row", "target-row"], deletedRowCount: 2 });
+    expect(repositoryMocks.getCurrentWorkspaceProjectForEstimate).toHaveBeenCalledWith("project-1", "estimate-1");
+    expect(repositoryMocks.getCurrentWorkspaceProject).not.toHaveBeenCalled();
     expect(supabase.rpc).toHaveBeenCalledWith("delete_estimate_row_items_bulk_with_history", {
       target_project_id: "project-1",
       target_estimate_id: "estimate-1",
@@ -837,7 +848,7 @@ describe("estimate sheet version control server actions", () => {
   it("keeps hardcoded history RPC names aligned with generated Supabase function types", () => {
     const actionsSource = readFileSync(join(process.cwd(), "src/lib/estimates/actions.ts"), "utf8");
     const generatedTypesSource = readFileSync(join(process.cwd(), "src/lib/supabase/types.ts"), "utf8");
-    const rpcNames = Array.from(actionsSource.matchAll(/supabase\.rpc\("([^"]+_with_history|update_estimate_details_with_history)"/g))
+    const rpcNames = Array.from(actionsSource.matchAll(/(?:supabase\.rpc|dataStore\.call)\("([^"]+_with_history|update_estimate_details_with_history)"/g))
       .map((match) => match[1])
       .sort();
 

@@ -2379,7 +2379,7 @@ export const getCurrentWorkspaceProject = cache(async function getCurrentWorkspa
   return readWorkspaceProjectContext(database, projectRow);
 });
 
-const getCurrentWorkspaceProjectForEstimate = cache(async function getCurrentWorkspaceProjectForEstimate(
+export const getCurrentWorkspaceProjectForEstimate = cache(async function getCurrentWorkspaceProjectForEstimate(
   projectId: string,
   estimateId: string,
 ) {
