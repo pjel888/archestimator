@@ -26,6 +26,21 @@ Stable current truth (verify against git/source before relying on a detail):
   returns `[]`. Deleted branch refs are preserved in
   `.omx/branch-archives/pre-main-consolidation-2026-07-07.bundle` with
   `.omx/branch-archives/pre-main-consolidation-2026-07-07.refs.tsv`.
+- GitHub security CODEX review loop post-consolidation (2026-07-07 local):
+  current `main` has follow-up fixes for merged PR121/PR122/PR123 findings:
+  privacy request intake stream-enforces the 16 KiB cap and uses conditional D1
+  rate-limit reservations with rollback; publication password lockout counts
+  only active `expires_at > now` rows after cleanup; workshop homebase preserves
+  raw favorite project IDs for cleanup but filters all favorite/recent estimate
+  metadata through estimate-level D1 access. Evidence passed: privacy route 1
+  file / 6 tests, publication lockout 2 files / 25 tests, workspace authz 4
+  files / 30 tests, created-by/batched authz 3 files / 12 tests, share/security
+  3 files / 44 tests, library authz 3 files / 99 tests, `ci-workflow-pinning` 1
+  file / 2 tests, targeted ESLint no errors, and high-memory `bun run
+  type-check`. GitHub hosted security controls remain unavailable rather than
+  clean: code scanning 403 disabled, Dependabot alerts 403 disabled plus extra
+  scope request, secret scanning 404 disabled. Ledger:
+  `.ai/03_plans/2026-07-07-github-security-pr-comment-loop/LOOP_LEDGER.md`.
 - Shared-link password lockout hardening (2026-07-07 local): Aardvark flagged that the password unlock route relied only on durable 5-failure/15-minute rows after the process-local hard-lockout removal. The durable D1 limiter now keeps the same 5-failure threshold but uses a 1-hour failure counting/TTL window for `project_publication_password`, preserving module-reset-safe durable enforcement while restoring the stronger online guessing budget. Focused proof: `bunx vitest run tests/vitest/project-publication-password-lockout-route.test.ts tests/vitest/project-publication-public-repository.test.ts --maxWorkers=1` passed.
 - Stage: pre-launch closed-beta MVP. Bias to fast, useful iteration over
   heavyweight regression ceremony. No external users yet.

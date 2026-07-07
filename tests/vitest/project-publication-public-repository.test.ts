@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const publicRepository = readFileSync("src/lib/publication/public-repository.ts", "utf8");
+const publicationD1Store = readFileSync("src/lib/publication/d1-store.ts", "utf8");
 const validPublicationToken = "a".repeat(43);
 const publicationAccessRow = {
   id: "publication-1",
@@ -216,10 +217,12 @@ describe("project publication public repository (Cloudflare D1 context)", () => 
     });
 
     expect(store.countRateLimitEvents).toHaveBeenCalledWith({
+      activeAt: new Date(now).toISOString(),
       keyHash: expect.any(String),
       scope: "project_publication_password",
       since: new Date(now - 60 * 60 * 1000).toISOString(),
     });
+    expect(publicationD1Store).toContain("AND expires_at > ?");
     expect(store.insertRateLimitEvent).not.toHaveBeenCalled();
   });
 

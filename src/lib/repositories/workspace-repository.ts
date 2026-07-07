@@ -2203,9 +2203,10 @@ async function getWorkshopHomebaseDataAppPath(): Promise<WorkshopHomebaseData> {
     estimateFavoriteRows.map((favorite) => [favorite.estimate_id, favorite.created_at]),
   );
   const context = { role: profile.role, userId: profile.id };
+  const rawFavoriteProjectIds = [...projectFavoriteCreatedAt.keys()];
   const favoriteProjectIds = await filterAccessibleSidebarProjectIds(
     database,
-    [...projectFavoriteCreatedAt.keys()],
+    rawFavoriteProjectIds,
     profile,
   );
   const favoriteEstimateIds = await filterAccessibleEstimateIds(
@@ -2254,9 +2255,16 @@ async function getWorkshopHomebaseDataAppPath(): Promise<WorkshopHomebaseData> {
     Promise.all([recentEstimatesPromise, favoriteEstimatesPromise]),
   );
 
-  const recentEstimates = sortByUpdatedAtDescThenIdDesc(recentEstimateRows);
+  const accessibleHomebaseEstimateIds = await readAccessibleEstimateIdSet(
+    database,
+    [...new Set([...recentEstimateRows.map((estimate) => estimate.id), ...favoriteEstimateResultRows.map((estimate) => estimate.id)])],
+    context,
+  );
+  const accessibleRecentEstimateRows = recentEstimateRows.filter((estimate) => accessibleHomebaseEstimateIds.has(estimate.id));
+  const accessibleFavoriteEstimateRows = favoriteEstimateResultRows.filter((estimate) => accessibleHomebaseEstimateIds.has(estimate.id));
+  const recentEstimates = sortByUpdatedAtDescThenIdDesc(accessibleRecentEstimateRows);
   const favoriteEstimates = sortByFavoriteCreatedAt(
-    favoriteEstimateResultRows,
+    accessibleFavoriteEstimateRows,
     estimateFavoriteCreatedAt,
   );
   const estimates = mergeHomebaseRecords(recentEstimates, favoriteEstimates);
@@ -2281,7 +2289,7 @@ async function getWorkshopHomebaseDataAppPath(): Promise<WorkshopHomebaseData> {
   const favoriteProjects = backfillProjects.filter((project) => projectFavoriteCreatedAt.has(project.id));
   const visibleFavoriteProjectIds = new Set(favoriteProjects.map((project) => project.id));
   const removedProjectFavorites = filterMapBy(
-    favoriteProjectIds,
+    rawFavoriteProjectIds,
     (projectId) => !visibleFavoriteProjectIds.has(projectId),
     (projectId) => ({
       id: projectId,

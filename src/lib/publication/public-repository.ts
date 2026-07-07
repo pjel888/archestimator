@@ -318,16 +318,20 @@ async function cleanupExpiredRateLimitEventsIfDue(now = Date.now()) {
 }
 
 async function countRateLimitEvents({
+  activeAt,
   keyHash,
   scope,
   since,
 }: {
+  activeAt?: string;
   keyHash: string;
   scope: RateLimitScope;
   since: string;
 }) {
   const store = createPublicationServiceClient();
-  return store.countRateLimitEvents({ keyHash, scope, since });
+  return activeAt
+    ? store.countRateLimitEvents({ activeAt, keyHash, scope, since })
+    : store.countRateLimitEvents({ keyHash, scope, since });
 }
 
 async function recordRateLimitEvent({
@@ -389,8 +393,11 @@ async function checkExistingRateLimit({
   window: RateLimitWindow;
 }): Promise<DurableRateLimitResult> {
   const keyHash = hashRateLimitKey(scope, keyParts);
-  const since = new Date(Date.now() - window.seconds * 1000).toISOString();
-  const count = await countRateLimitEvents({ keyHash, scope, since });
+  const now = Date.now();
+  await cleanupExpiredRateLimitEventsIfDue(now);
+  const activeAt = new Date(now).toISOString();
+  const since = new Date(now - window.seconds * 1000).toISOString();
+  const count = await countRateLimitEvents({ activeAt, keyHash, scope, since });
   if (count >= window.limit) {
     return { allowed: false, retryAfter: window.seconds, message: window.message(window.seconds) };
   }

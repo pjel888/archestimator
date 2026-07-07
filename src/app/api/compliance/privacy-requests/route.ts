@@ -38,6 +38,18 @@ type RateLimitCheck =
   | { allowed: true }
   | { allowed: false; retryAfter: number; message: string };
 
+type RateLimitReservationInput = {
+  maxAttempts: number;
+  rawKey: string;
+  scope: string;
+};
+
+type RateLimitReservation = {
+  id: string;
+};
+
+class RequestBodyTooLargeError extends Error {}
+
 function jsonError(message: string, status: number, headers: Record<string, string> = {}) {
   return Response.json(
     { error: message },
@@ -66,8 +78,37 @@ function parseBody(value: unknown): ParsedPrivacyRequestBody {
   };
 }
 
-function utf8Length(value: string): number {
-  return new TextEncoder().encode(value).length;
+async function readRequestBodyBytesWithSizeLimit(request: Request): Promise<Uint8Array> {
+  const reader = request.body?.getReader();
+  if (!reader) return new Uint8Array();
+
+  const chunks: Uint8Array[] = [];
+  let totalLength = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+
+      totalLength += value.byteLength;
+      if (totalLength > REQUEST_BODY_MAX_BYTES) {
+        await reader.cancel().catch(() => undefined);
+        throw new RequestBodyTooLargeError("Request body is too large.");
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const bytes = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
 }
 
 async function readJsonWithSizeLimit(request: Request): Promise<{ body?: unknown; error?: Response }> {
@@ -82,15 +123,21 @@ async function readJsonWithSizeLimit(request: Request): Promise<{ body?: unknown
     }
   }
 
-  let text: string;
+  let bytes: Uint8Array;
   try {
-    text = await request.text();
-  } catch {
+    bytes = await readRequestBodyBytesWithSizeLimit(request);
+  } catch (error) {
+    if (error instanceof RequestBodyTooLargeError) {
+      return { error: jsonError("Request body is too large.", 413) };
+    }
     return { error: jsonError("Invalid request body.", 400) };
   }
 
-  if (utf8Length(text) > REQUEST_BODY_MAX_BYTES) {
-    return { error: jsonError("Request body is too large.", 413) };
+  let text: string;
+  try {
+    text = new TextDecoder().decode(bytes);
+  } catch {
+    return { error: jsonError("Invalid request body.", 400) };
   }
 
   try {
@@ -168,22 +215,42 @@ async function reserveRateLimitSlot({
   rawKey: string;
   maxAttempts: number;
   now: Date;
-}): Promise<RateLimitCheck> {
+}): Promise<RateLimitCheck & { reservation?: RateLimitReservation }> {
   const keyHash = hashAccountSecurityValue(rawKey);
   const nowIso = now.toISOString();
   const windowStart = new Date(now.getTime() - RATE_LIMIT_WINDOW_SECONDS * 1000).toISOString();
   const expiresAt = new Date(now.getTime() + RATE_LIMIT_WINDOW_SECONDS * 1000).toISOString();
+  const reservationId = crypto.randomUUID();
 
-  await db.prepare("DELETE FROM security_rate_limit_events WHERE expires_at < ?").bind(nowIso).run();
-
-  const recent = await db
-    .prepare<{ count: number }>(
-      "SELECT COUNT(*) AS count FROM security_rate_limit_events WHERE scope = ? AND key_hash = ? AND occurred_at >= ?",
+  const result = await db
+    .prepare(
+      `INSERT INTO security_rate_limit_events (id, scope, key_hash, metadata_json, occurred_at, expires_at)
+       SELECT ?, ?, ?, ?, ?, ?
+       WHERE (
+         SELECT COUNT(*)
+         FROM security_rate_limit_events
+         WHERE scope = ?
+           AND key_hash = ?
+           AND occurred_at >= ?
+           AND expires_at > ?
+       ) < ?`,
     )
-    .bind(scope, keyHash, windowStart)
-    .first<{ count: number }>();
-  const count = Number(recent?.count ?? 0);
-  if (count >= maxAttempts) {
+    .bind(
+      reservationId,
+      scope,
+      keyHash,
+      "{}",
+      nowIso,
+      expiresAt,
+      scope,
+      keyHash,
+      windowStart,
+      nowIso,
+      maxAttempts,
+    )
+    .run();
+
+  if (Number(result.meta?.changes ?? 0) < 1) {
     return {
       allowed: false,
       retryAfter: RATE_LIMIT_WINDOW_SECONDS,
@@ -191,13 +258,46 @@ async function reserveRateLimitSlot({
     };
   }
 
+  return { allowed: true, reservation: { id: reservationId } };
+}
+
+async function releaseRateLimitReservations(db: D1DatabaseLike, reservations: RateLimitReservation[]) {
+  if (reservations.length === 0) return;
   await db
     .prepare(
-      `INSERT INTO security_rate_limit_events (id, scope, key_hash, metadata_json, occurred_at, expires_at)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `DELETE FROM security_rate_limit_events
+       WHERE id IN (${reservations.map(() => "?").join(", ")})`,
     )
-    .bind(crypto.randomUUID(), scope, keyHash, "{}", nowIso, expiresAt)
+    .bind(...reservations.map((reservation) => reservation.id))
     .run();
+}
+
+async function reserveRateLimitSlots({
+  db,
+  reservations,
+  now,
+}: {
+  db: D1DatabaseLike;
+  reservations: RateLimitReservationInput[];
+  now: Date;
+}): Promise<RateLimitCheck> {
+  const insertedReservations: RateLimitReservation[] = [];
+  await db.prepare("DELETE FROM security_rate_limit_events WHERE expires_at < ?").bind(now.toISOString()).run();
+
+  for (const reservation of reservations) {
+    const result = await reserveRateLimitSlot({
+      db,
+      scope: reservation.scope,
+      rawKey: reservation.rawKey,
+      maxAttempts: reservation.maxAttempts,
+      now,
+    });
+    if (!result.allowed) {
+      await releaseRateLimitReservations(db, insertedReservations);
+      return result;
+    }
+    if (result.reservation) insertedReservations.push(result.reservation);
+  }
 
   return { allowed: true };
 }
@@ -243,29 +343,24 @@ export async function POST(request: Request) {
 
   const clientIp = deriveClientIp(request);
   const now = new Date();
-  if (clientIp) {
-    const ipRateLimit = await reserveRateLimitSlot({
-      db,
-      scope: "privacy_request_ip",
-      rawKey: clientIp,
-      maxAttempts: RATE_LIMIT_MAX_PER_IP,
-      now,
-    });
-    if (!ipRateLimit.allowed) {
-      return jsonError(ipRateLimit.message, 429, { "Retry-After": String(ipRateLimit.retryAfter) });
-    }
-  }
+  const rateLimitReservations: RateLimitReservationInput[] = [];
   if (requesterEmail.value) {
-    const emailRateLimit = await reserveRateLimitSlot({
-      db,
+    rateLimitReservations.push({
       scope: "privacy_request_email",
       rawKey: requesterEmail.value.toLowerCase(),
       maxAttempts: RATE_LIMIT_MAX_PER_EMAIL,
-      now,
     });
-    if (!emailRateLimit.allowed) {
-      return jsonError(emailRateLimit.message, 429, { "Retry-After": String(emailRateLimit.retryAfter) });
-    }
+  }
+  if (clientIp) {
+    rateLimitReservations.push({
+      scope: "privacy_request_ip",
+      rawKey: clientIp,
+      maxAttempts: RATE_LIMIT_MAX_PER_IP,
+    });
+  }
+  const rateLimit = await reserveRateLimitSlots({ db, reservations: rateLimitReservations, now });
+  if (!rateLimit.allowed) {
+    return jsonError(rateLimit.message, 429, { "Retry-After": String(rateLimit.retryAfter) });
   }
 
   try {

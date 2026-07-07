@@ -296,14 +296,17 @@ export function createPublicationD1Store(databasePromise: Promise<D1DatabaseLike
       );
     },
 
-    async countRateLimitEvents(input: { keyHash: string; scope: string; since: string }) {
+    async countRateLimitEvents(input: { activeAt?: string; keyHash: string; scope: string; since: string }) {
       const db = await getDb();
+      const activeFilter = input.activeAt ? " AND expires_at > ?" : "";
       const row = await first<RateLimitCountRow>(
         db,
         `SELECT COUNT(*) AS count
          FROM security_rate_limit_events
-         WHERE scope = ? AND key_hash = ? AND occurred_at >= ?`,
-        [input.scope, input.keyHash, input.since],
+         WHERE scope = ? AND key_hash = ? AND occurred_at >= ?${activeFilter}`,
+        input.activeAt
+          ? [input.scope, input.keyHash, input.since, input.activeAt]
+          : [input.scope, input.keyHash, input.since],
       );
       return row?.count ?? 0;
     },

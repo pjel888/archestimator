@@ -55,6 +55,8 @@ type AccessResult = "allow" | "deny" | "throw";
 type FakeWorkspaceRepositoryOptions = {
   estimateAccess?: Record<string, AccessResult>;
   favoriteEstimateRows?: Array<{ estimate_id: string; project_id: string; created_at: string }>;
+  projectFavoriteRows?: Array<{ project_id: string; created_at: string }>;
+  recentProjects?: ReturnType<typeof defaultWorkspaceProjectRow>[];
   projectAccess?: AccessResult | "sheet-only";
 };
 
@@ -173,12 +175,16 @@ class FakeWorkspaceRepositoryD1Database implements D1DatabaseLike {
   readonly runs: D1Query[] = [];
   private readonly estimateAccess: Record<string, AccessResult>;
   private readonly favoriteEstimateRows: Array<{ estimate_id: string; project_id: string; created_at: string }>;
+  private readonly projectFavoriteRows: Array<{ project_id: string; created_at: string }>;
+  private readonly recentProjects: ReturnType<typeof defaultWorkspaceProjectRow>[];
   private readonly projectAccess: AccessResult | "sheet-only";
 
   constructor(options: FakeWorkspaceRepositoryOptions = {}) {
     this.projectAccess = options.projectAccess ?? "allow";
     this.estimateAccess = options.estimateAccess ?? { [ESTIMATE_ALLOWED_ID]: "allow", [ESTIMATE_DENIED_ID]: "deny" };
     this.favoriteEstimateRows = options.favoriteEstimateRows ?? [];
+    this.projectFavoriteRows = options.projectFavoriteRows ?? [];
+    this.recentProjects = options.recentProjects ?? [defaultWorkspaceProjectRow()];
   }
 
   prepare<T = Record<string, unknown>>(sql: string): D1PreparedStatementLike<T> {
@@ -228,11 +234,11 @@ class FakeWorkspaceRepositoryD1Database implements D1DatabaseLike {
     this.queries.push({ sql, values });
 
     if (sql.includes("FROM projects") && sql.includes("WHERE workspace_id = ?")) {
-      return { results: values[0] === DEFAULT_WORKSPACE_ID ? [defaultWorkspaceProjectRow()] : [] };
+      return { results: values[0] === DEFAULT_WORKSPACE_ID ? this.recentProjects : [] };
     }
 
     if (sql.includes("SELECT project_id") && sql.includes("FROM project_favorites")) {
-      return { results: [] };
+      return { results: this.projectFavoriteRows };
     }
 
     if (sql.includes("SELECT estimate_id, project_id, created_at") && sql.includes("FROM estimate_favorites")) {
@@ -253,6 +259,15 @@ class FakeWorkspaceRepositoryD1Database implements D1DatabaseLike {
 
     if (sql.includes("FROM project_group_memberships")) {
       return { results: [] };
+    }
+
+    if (sql.includes("SELECT project.id") && sql.includes("FROM projects project") && sql.includes("WHERE project.id IN")) {
+      if (this.projectAccess === "throw" || this.projectAccess === "deny") return { results: [] };
+      return {
+        results: values
+          .filter((value): value is string => typeof value === "string" && value === PROJECT_ID)
+          .map((id) => ({ id })),
+      };
     }
 
     if (sql.includes("FROM projects") && sql.includes("WHERE id IN")) {
@@ -557,5 +572,57 @@ describe("workspace repository D1 authorization behavior", () => {
     expect(database.queries.some((query) =>
       query.sql.includes("SELECT 1 AS allowed") && query.sql.includes("FROM estimates estimate")
     )).toBe(false);
+  });
+
+  it("filters homebase favorite-project estimates before reading node metadata", async () => {
+    const database = new FakeWorkspaceRepositoryD1Database({
+      estimateAccess: { [ESTIMATE_ALLOWED_ID]: "allow", [ESTIMATE_DENIED_ID]: "deny" },
+      projectAccess: "sheet-only",
+      projectFavoriteRows: [{ project_id: PROJECT_ID, created_at: "2026-07-04T00:00:00.000Z" }],
+      recentProjects: [],
+    });
+    const { getWorkshopHomebaseData } = await importWorkspaceRepository(database);
+
+    const result = await getWorkshopHomebaseData();
+
+    expect(result.estimates.map((estimate) => estimate.id)).toEqual([ESTIMATE_ALLOWED_ID]);
+    const homebaseAccessQuery = database.queries.find((query) =>
+      query.sql.includes("SELECT estimate.id") &&
+      query.sql.includes("FROM estimates estimate") &&
+      query.values.includes(ESTIMATE_ALLOWED_ID) &&
+      query.values.includes(ESTIMATE_DENIED_ID)
+    );
+    expect(homebaseAccessQuery?.values).toEqual(expect.arrayContaining([ESTIMATE_ALLOWED_ID, ESTIMATE_DENIED_ID, USER_ID]));
+    const nodeQuery = database.queries.find((query) => query.sql.includes("FROM estimate_nodes"));
+    expect(nodeQuery?.values).toEqual([ESTIMATE_ALLOWED_ID]);
+  });
+
+  it("keeps inaccessible raw project favorites visible to the cleanup banner without fetching metadata", async () => {
+    const database = new FakeWorkspaceRepositoryD1Database({
+      projectAccess: "deny",
+      projectFavoriteRows: [{ project_id: PROJECT_ID, created_at: "2026-07-04T00:00:00.000Z" }],
+      recentProjects: [],
+    });
+    const { getWorkshopHomebaseData } = await importWorkspaceRepository(database);
+
+    const result = await getWorkshopHomebaseData();
+
+    expect(result.projects).toEqual([]);
+    expect(result.estimates).toEqual([]);
+    expect(result.removedProjectFavorites).toEqual([
+      {
+        id: PROJECT_ID,
+        name: null,
+        projectCode: null,
+        favoriteCreatedAt: "2026-07-04T00:00:00.000Z",
+      },
+    ]);
+    expect(database.queries.some((query) =>
+      query.sql.includes("SELECT id, name, client_name") &&
+      query.sql.includes("FROM projects") &&
+      query.sql.includes("WHERE id IN") &&
+      query.values.includes(PROJECT_ID)
+    )).toBe(false);
+    expect(database.queries.some((query) => query.sql.includes("FROM estimate_nodes"))).toBe(false);
   });
 });

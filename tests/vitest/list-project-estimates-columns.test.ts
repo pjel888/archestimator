@@ -30,7 +30,7 @@ function createD1Fixture() {
           return {
             async first() {
               if (sql.includes("SELECT 1 AS allowed") && sql.includes("FROM projects project")) {
-                return { allowed: 1 };
+                return values.includes("11111111-1111-4111-8111-111111111111") ? { allowed: 1 } : null;
               }
               if (sql.includes("SELECT 1 AS allowed") && sql.includes("FROM estimates estimate")) {
                 return values[0] === ESTIMATE_ID ? { allowed: 1 } : null;
@@ -63,6 +63,13 @@ function createD1Fixture() {
               return null;
             },
             async all() {
+              if (sql.includes("SELECT estimate.id") && sql.includes("FROM estimates estimate")) {
+                return {
+                  results: values.includes("11111111-1111-4111-8111-111111111111")
+                    ? [{ id: ESTIMATE_ID }]
+                    : [],
+                };
+              }
               if (sql.includes("FROM estimates") && sql.includes("WHERE project_id = ?")) {
                 return {
                   results: [
@@ -95,7 +102,7 @@ function createD1Fixture() {
                   ],
                 };
               }
-              if (sql.includes("FROM estimates estimate")) {
+              if (sql.includes("FROM estimates estimate") && sql.includes("node_count")) {
                 expect(values).toEqual([ESTIMATE_ID]);
                 return {
                   results: [{ estimate_id: ESTIMATE_ID, node_count: 7, row_count: 3, total_cost: 1234.5 }],
@@ -111,6 +118,9 @@ function createD1Fixture() {
               }
               return { results: [] };
             },
+            async run() {
+              return { success: true, meta: { changes: 1 } };
+            },
           };
         },
       };
@@ -124,8 +134,8 @@ describe("listProjectEstimates read path (F8 / F9 — P2-1, P2-2)", () => {
     requireCurrentUserContext.mockResolvedValue({
       userId: "11111111-1111-4111-8111-111111111111",
       email: "owner@example.com",
-      role: "admin",
-      profile: { id: "11111111-1111-4111-8111-111111111111", default_workspace_id: "ws-1", role: "admin" },
+      role: "member",
+      profile: { id: "11111111-1111-4111-8111-111111111111", default_workspace_id: "ws-1", role: "member" },
     });
     getCloudflareD1Database.mockResolvedValue(createD1Fixture());
   });
@@ -167,9 +177,10 @@ describe("listProjectEstimates read path (F8 / F9 — P2-1, P2-2)", () => {
   it("keeps D1 project and estimate reads behind explicit access checks", () => {
     const source = readFileSync("src/lib/repositories/workspace-repository.ts", "utf8");
 
-    expect(source).toContain("canAccessWholeProjectInD1(database, projectRow.id, userContext)");
-    expect(source).toContain("canAccessEstimateInD1(database, normalizedEstimate.id, userContext)");
-    expect(source).toContain("AND estimate.id IN (${placeholders(estimateIds)})");
+    expect(source).toContain("canAccessWholeProjectInD1(database, projectRow.id, context)");
+    expect(source).toContain("const normalizedEstimates = await filterAccessibleEstimates");
+    expect(source).toContain("const accessibleEstimateIds = await readAccessibleEstimateIdSet");
+    expect(source).toContain("WHERE estimate.id IN (${placeholders(estimateIdBatch)})");
     expect(source).toContain("canAccessEstimateInD1(database, estimate.id, userContext)");
   });
 
