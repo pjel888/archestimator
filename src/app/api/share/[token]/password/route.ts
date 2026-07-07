@@ -49,7 +49,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     return Response.json({ error: sameOrigin.message }, { status: sameOrigin.status, headers: noStoreHeaders });
   }
 
-  const { token } = await params;
+  const { token: routeToken } = await params;
+  const token = routeToken.trim();
   const body = (await request.json().catch(() => ({}))) as { password?: string };
   const password = typeof body.password === "string" ? body.password : "";
 

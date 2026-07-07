@@ -263,6 +263,19 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
     expect(mocks.recordProjectPublicationEvent).not.toHaveBeenCalled();
   });
 
+  it("redirects padded share tokens to the canonical share URL before cookie checks", async () => {
+    await expect(
+      SharePage({
+        params: Promise.resolve({ token: " client-token " }),
+        searchParams: Promise.resolve({ recipient: "raw-recipient-token" }),
+      }),
+    ).rejects.toThrow("NEXT_REDIRECT:/share/client-token?recipient=raw-recipient-token");
+
+    expect(mocks.resolveProjectPublicationAccessByToken).not.toHaveBeenCalled();
+    expect(mocks.cookieGet).not.toHaveBeenCalled();
+    expect(mocks.recordProjectPublicationEvent).not.toHaveBeenCalled();
+  });
+
   it("keeps malformed recipient query values out of page rendering and server-side cookie mutation", async () => {
     await expect(
       SharePage({

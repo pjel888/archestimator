@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   assertSameOriginPublicPost: vi.fn(),
   verifySharedLinkSessionCookieValue: vi.fn(),
   createSharedLinkSessionCookieName: vi.fn(),
+  hasPublicationAccessCookie: vi.fn(),
   readPublicationViewSnapshotVersion: vi.fn(),
   readPublicationTokenHashSecret: vi.fn(() => "test-publication-hash-secret"),
   useSharedLinkSession: vi.fn(),
@@ -22,6 +23,7 @@ vi.mock("@/lib/publication/security", () => ({
   assertSameOriginPublicPost: mocks.assertSameOriginPublicPost,
   verifySharedLinkSessionCookieValue: mocks.verifySharedLinkSessionCookieValue,
   createSharedLinkSessionCookieName: mocks.createSharedLinkSessionCookieName,
+  hasPublicationAccessCookie: mocks.hasPublicationAccessCookie,
   readPublicationViewSnapshotVersion: mocks.readPublicationViewSnapshotVersion,
   readPublicationTokenHashSecret: mocks.readPublicationTokenHashSecret,
 }));
@@ -78,6 +80,7 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.createSharedLinkSessionCookieName.mockReturnValue("shared_link_session_abc123");
+    mocks.hasPublicationAccessCookie.mockReturnValue(false);
     mocks.readPublicationViewSnapshotVersion.mockReturnValue(1);
     mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
     mocks.resolveProjectPublicationAccessByToken.mockResolvedValue({
@@ -154,6 +157,38 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       expect(res.status).toBe(409);
       const json = await res.json();
       expect(json.error).toMatch(/already submitted|duplicate|decision/i);
+    });
+
+    it("requires the publication password access cookie before accepting decisions on password-protected shares", async () => {
+      mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
+      mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
+      mocks.resolveProjectPublicationAccessByToken.mockResolvedValueOnce({
+        publicationId: "pub1",
+        snapshotVersion: 1,
+        passwordRequired: true,
+        status: "published",
+        expiresAt: null,
+        credentialVersion: "cred-v1",
+      });
+      const parsableSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
+
+      const res = await POST(
+        makeRequest(
+          { decision: "declined", note: "blocked before password" },
+          { cookie: `shared_link_session_abc123=${encodeURIComponent(parsableSession)}`, "x-archestimator-csrf": "csrf-token-xyz" },
+        ),
+        params(),
+      );
+
+      expect(res.status).toBe(423);
+      await expect(res.json()).resolves.toEqual({ error: "Publication password required.", passwordRequired: true });
+      expect(mocks.hasPublicationAccessCookie).toHaveBeenCalledWith(expect.stringContaining("shared_link_session_abc123"), {
+        token: "client-pub-token-123",
+        publicationId: "pub1",
+        credentialVersion: "cred-v1",
+      });
+      expect(mocks.verifySharedLinkSessionCookieValue).not.toHaveBeenCalled();
+      expect(mocks.submitSharedLinkDecision).not.toHaveBeenCalled();
     });
 
     it("rejects sessions bound to a stale credential against the current publication", async () => {

@@ -115,7 +115,8 @@ function readOptionalReviewTargetId(value: unknown, label: string): { ok: true; 
 }
 
 export async function GET(request: Request, { params }: { params: Promise<{ token: string }> }) {
-  const { token } = await params;
+  const { token: routeToken } = await params;
+  const token = routeToken.trim();
   const access = await resolveProjectPublicationAccessByToken(token);
   if (!access) {
     return Response.json(sharedLinkUnavailableErrorBody(), { status: 404, headers: noStoreHeaders });
@@ -175,7 +176,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     return Response.json({ error: sameOrigin.message }, { status: sameOrigin.status, headers: { "Cache-Control": "no-store" } });
   }
 
-  const { token } = await params;
+  const { token: routeToken } = await params;
+  const token = routeToken.trim();
   const body = (await request.json().catch(() => ({}))) as {
     decision?: string;
     estimateId?: unknown;
@@ -220,6 +222,22 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     const ipHash = getIpHash(request);
     logStructured("warn", "/api/share/[token]/decision", "PUBLICATION_NOT_FOUND", ipHash);
     return Response.json(sharedLinkUnavailableErrorBody(), { status: 404, headers: { "Cache-Control": "no-store" } });
+  }
+
+  if (
+    access.passwordRequired &&
+    !hasPublicationAccessCookie(cookieHeader, {
+      token,
+      publicationId: access.publicationId,
+      credentialVersion: access.credentialVersion,
+    })
+  ) {
+    const ipHash = getIpHash(request);
+    logStructured("warn", "/api/share/[token]/decision", "PASSWORD_REQUIRED", ipHash);
+    return Response.json(
+      { error: "Publication password required.", passwordRequired: true },
+      { status: 423, headers: { "Cache-Control": "no-store" } },
+    );
   }
 
   // Verify P5 session against the current DB publication snapshot, not the cookie-derived snapshot.

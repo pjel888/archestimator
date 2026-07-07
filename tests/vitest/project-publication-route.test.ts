@@ -601,6 +601,41 @@ describe("shared link publication route handlers (Shared Link V2 audit)", () => 
     expect(mocks.verifyProjectPublicationPasswordByToken).not.toHaveBeenCalled();
   });
 
+  it("normalizes password route tokens before rate limiting and lockout bookkeeping", async () => {
+    mocks.verifyProjectPublicationPasswordByToken.mockResolvedValueOnce(false);
+
+    const response = await POST_PASSWORD(
+      new Request("https://archestimator.test/api/share/%20client-token%20/password", {
+        method: "POST",
+        headers: {
+          origin: "https://archestimator.test",
+          cookie: "ae_publication_csrf=csrf-token",
+          "content-type": "application/json",
+          "x-archestimator-csrf": "csrf-token",
+        },
+        body: JSON.stringify({ password: "wrong" }),
+      }),
+      params(" client-token "),
+    );
+
+    expect(response.status).toBe(401);
+    expect(mocks.checkProjectPublicationPasswordRateLimit).toHaveBeenCalledWith({
+      token: "client-token",
+      request: expect.any(Request),
+    });
+    expect(mocks.verifyProjectPublicationPasswordByToken).toHaveBeenCalledWith("client-token", "wrong");
+    expect(mocks.recordProjectPublicationEvent).toHaveBeenCalledWith({
+      token: "client-token",
+      eventType: "password_attempt",
+      request: expect.any(Request),
+      metadata: { success: false },
+    });
+    expect(mocks.recordProjectPublicationPasswordFailure).toHaveBeenCalledWith({
+      token: "client-token",
+      request: expect.any(Request),
+    });
+  });
+
   it("rejects invalid publication passwords without setting an access cookie", async () => {
     mocks.verifyProjectPublicationPasswordByToken.mockResolvedValueOnce(false);
 

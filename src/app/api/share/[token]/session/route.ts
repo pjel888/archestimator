@@ -133,7 +133,8 @@ async function createRecipientSessionResponse({
 }
 
 export async function GET(request: Request, { params }: { params: Promise<{ token: string }> }) {
-  const { token } = await params;
+  const { token: routeToken } = await params;
+  const token = routeToken.trim();
   const recipientToken = new URL(request.url).searchParams.get("recipient")?.trim() ?? "";
   if (!recipientToken) {
     return NextResponse.json({ error: "Recipient token is required." }, { status: 400, headers: noStoreHeaders });
@@ -148,7 +149,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     return NextResponse.json({ error: sameOrigin.message }, { status: sameOrigin.status, headers: noStoreHeaders });
   }
 
-  const { token } = await params;
+  const { token: routeToken } = await params;
+  const token = routeToken.trim();
   const body = (await request.json().catch(() => ({}))) as { recipientToken?: unknown };
   const recipientToken = typeof body.recipientToken === "string" ? body.recipientToken.trim() : "";
   if (!recipientToken) {
@@ -164,7 +166,8 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ t
     return NextResponse.json({ error: sameOrigin.message }, { status: sameOrigin.status, headers: noStoreHeaders });
   }
 
-  const { token } = await params;
+  const { token: routeToken } = await params;
+  const token = routeToken.trim();
   const sessionName = createSharedLinkSessionCookieName(token);
   const response = NextResponse.json({ ok: true }, { headers: noStoreHeaders });
 

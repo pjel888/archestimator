@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   assertSameOriginPublicPost: vi.fn(),
   verifySharedLinkSessionCookieValue: vi.fn(),
   createSharedLinkSessionCookieName: vi.fn(),
+  hasPublicationAccessCookie: vi.fn(),
   readPublicationViewSnapshotVersion: vi.fn(),
   readPublicationTokenHashSecret: vi.fn(() => "test-publication-hash-secret"),
   // For component
@@ -22,6 +23,7 @@ vi.mock("@/lib/publication/security", () => ({
   assertSameOriginPublicPost: mocks.assertSameOriginPublicPost,
   verifySharedLinkSessionCookieValue: mocks.verifySharedLinkSessionCookieValue,
   createSharedLinkSessionCookieName: mocks.createSharedLinkSessionCookieName,
+  hasPublicationAccessCookie: mocks.hasPublicationAccessCookie,
   readPublicationViewSnapshotVersion: mocks.readPublicationViewSnapshotVersion,
   readPublicationTokenHashSecret: mocks.readPublicationTokenHashSecret,
 }));
@@ -71,6 +73,7 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
     window.localStorage.clear();
     window.sessionStorage.clear();
     mocks.createSharedLinkSessionCookieName.mockReturnValue("shared_link_session_abc123");
+    mocks.hasPublicationAccessCookie.mockReturnValue(false);
     mocks.readPublicationViewSnapshotVersion.mockReturnValue(1);
     mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
     mocks.insertSharedLinkComment.mockResolvedValue({
@@ -157,6 +160,36 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
       expect(res.status).toBe(429);
       expect(res.headers.get("retry-after")).toBe("60");
       expect(await res.json()).toEqual({ error: "Too many comments. Please wait 60 seconds." });
+      expect(mocks.insertSharedLinkComment).not.toHaveBeenCalled();
+    });
+
+    it("requires the publication password access cookie before accepting comments on password-protected shares", async () => {
+      mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
+      mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
+      mocks.resolveProjectPublicationAccessByToken.mockResolvedValueOnce({
+        publicationId: "pub1",
+        status: "published",
+        passwordRequired: true,
+        snapshotVersion: 1,
+        credentialVersion: "cred-v1",
+      });
+
+      const res = await POST(
+        makeRequest(
+          { body: "blocked before password" },
+          { cookie: validSessionCookie(), "x-archestimator-csrf": "csrf" },
+        ),
+        params(),
+      );
+
+      expect(res.status).toBe(423);
+      await expect(res.json()).resolves.toEqual({ error: "Publication password required.", passwordRequired: true });
+      expect(mocks.hasPublicationAccessCookie).toHaveBeenCalledWith(expect.stringContaining("shared_link_session_abc123"), {
+        token: "client-pub-token-123",
+        publicationId: "pub1",
+        credentialVersion: "cred-v1",
+      });
+      expect(mocks.verifySharedLinkSessionCookieValue).not.toHaveBeenCalled();
       expect(mocks.insertSharedLinkComment).not.toHaveBeenCalled();
     });
 

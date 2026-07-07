@@ -125,11 +125,25 @@ function ProjectPublicationPasswordGate({ token }: { token: string }) {
   );
 }
 
+function createCanonicalSharePath(token: string, searchParamsData: Record<string, string | undefined>) {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(searchParamsData)) {
+    if (typeof value === "string") query.set(key, value);
+  }
+  const queryString = query.toString();
+  return `/share/${encodeURIComponent(token)}${queryString ? `?${queryString}` : ""}`;
+}
+
 export default async function SharePage({ params, searchParams }: SharePageProps) {
-  const [{ token }, searchParamsData] = await Promise.all([
+  const [{ token: routeToken }, searchParamsData] = await Promise.all([
     params,
     searchParams ?? Promise.resolve<Record<string, string | undefined>>({}),
   ]);
+  const token = routeToken.trim();
+  if (!token) notFound();
+  if (token !== routeToken) {
+    redirect(createCanonicalSharePath(token, searchParamsData));
+  }
   const canonicalRecipientToken =
     typeof searchParamsData.recipient === "string" ? searchParamsData.recipient.trim() : "";
   const legacyRecipientToken = typeof searchParamsData.rt === "string" ? searchParamsData.rt.trim() : "";
@@ -296,7 +310,11 @@ const publicPublicationMetadata = {
 } satisfies Metadata;
 
 export async function generateMetadata({ params }: SharePageProps): Promise<Metadata> {
-  const { token } = await params;
+  const { token: routeToken } = await params;
+  const token = routeToken.trim();
+  if (!token) {
+    return { title: "Shared Link | Archestimator" };
+  }
 
   try {
     const access = await resolveProjectPublicationAccessByToken(token);
