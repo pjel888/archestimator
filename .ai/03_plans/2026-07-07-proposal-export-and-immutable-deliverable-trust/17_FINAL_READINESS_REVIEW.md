@@ -1,20 +1,33 @@
 # 17 — Final Readiness Review
 
-`verification_mode: emulated`
+`verification_mode: independent`
 
-This planning task ran as a single lead orchestrator using **native Explore subagents** for four
-read-only discovery lanes (real delegation, independent output) and **emulated** synthesis,
-adversarial, and verification passes (no separate authoring verifier agent was allocated to this
-planning-only task). Per the Suite Succession and Authority Contract:
+The final verification of this pack was performed by a **genuinely separate native Explore
+verifier agent** with distinct output (not the lead author). Discovery was also delegated to four
+independent native Explore subagents. The synthesis (document writing) and critique-and-revision
+cycles were lead-authored (emulated passes), but those are not the final verification pass.
 
-- `emulated` verification caps overall readiness at **97**.
-- For high-blast-radius planning packages, `emulated` also caps package status at
-  **CONDITIONALLY READY** unless a real independent reviewer or explicit owner acceptance reviews
-  the final package.
+## Independent verifier result (summary)
 
-This package is high-blast-radius (D1 schema, publication/auth surfaces, data integrity, release
-readiness). Therefore the status is **CONDITIONALLY READY** pending owner/independent review, with
-the named trust-core slices implementation-ready.
+The independent verifier audited all 15 exhaustive-profile completion gates. **Result: 15/15
+satisfied** (14 clean PASS + 1 PASS with a minor qualitative-cardinality note on the DB blueprint
+that does not undermine it). The weakness-signal scan found **no hidden defects**: no vague tasks,
+no unmarked approximate paths, no cross-document contradictions, no missing server/client or
+cache/revalidation contracts, no unowned placeholders, no untraced requirements. Full verifier
+output is recorded in `19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md`.
+
+## Why status is `CONDITIONALLY READY` (not IMPLEMENTATION-READY)
+
+With `verification_mode: independent`, the verification cap alone would permit 98–100. The package
+is **CONDITIONALLY READY** instead because a **content threshold** gate is not met: **Performance
+and scalability readiness = 92**, and the suite PASS rule requires performance readiness ≥ 95 when
+user-facing/data-heavy/route-level behavior is in scope (it is — XLSX export + `/share` read).
+The 92 reflects that performance thresholds are deliberately **DISCOVERY-REQUIRED** (T3.0 evaluator)
+rather than guessed, and the streaming/async path (Phase 3) is gated on those thresholds + hosted
+smoke. This is an honest, non-blocking deficiency with a named owner and an implementation-safe
+path (run the evaluator).
+
+Named slices ARE implementation-ready (see below); the gating is isolated to Phase 3 + PDF.
 
 ## Independent-verifier-style audit (emulated)
 

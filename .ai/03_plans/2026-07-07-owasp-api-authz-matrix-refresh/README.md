@@ -27,9 +27,10 @@ validation, rollback.
   WP-02 (durable estimate rate limit), WP-03 (CollaborationRoom upgrade limit).
 - **Phase 1 (P1 broad-launch):** WP-04 (edge/WAF — owner-gated), WP-05 (public body cap),
   WP-06 (read-repo denial tests), WP-07 (action-boundary authz), WP-08 (CSP — owner-gated),
-  WP-09 (June audit supersession pointer).
+  WP-09 (June audit supersession pointer), WP-13 (caller-authorized action audit SEC-05/11).
 - **Phase 2 (P2 hardening):** WP-10 (validation standard — owner-gated), WP-11 (idempotency),
-  WP-12 (dead config cleanup).
+  WP-12 (R2 signed-URL invariant + origin-source reconciliation — **do NOT remove**
+  `ARCHESTIMATOR_ALLOWED_APP_ORIGINS`).
 
 ### Dependency graph
 ```
