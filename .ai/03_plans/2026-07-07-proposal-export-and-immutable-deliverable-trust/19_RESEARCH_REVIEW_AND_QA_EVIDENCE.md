@@ -70,8 +70,17 @@ JSON + hosted perf report.
 
 ## Independent final verifier evidence
 
-See `17_FINAL_READINESS_REVIEW.md`. Mode: `emulated` (no separate verifier agent allocated to this
-planning-only task). Cap applied.
+`verification_mode: independent`. The final verification was performed by a **separate native
+Explore verifier agent** with distinct output (a different agent id than the lead author). It
+audited all 15 exhaustive-profile completion gates and returned **15/15 satisfied** (14 clean PASS
++ 1 PASS with a minor qualitative-cardinality note). The weakness-signal scan found no hidden
+defects (no vague tasks, no unmarked approximate paths, no cross-doc contradictions, no missing
+boundary/cache contracts, no unowned placeholders, no untraced requirements).
+
+Full verifier result is summarized in `17_FINAL_READINESS_REVIEW.md` ("Independent verifier
+result"). Because the final verifier is genuinely independent, the verification cap does **not**
+limit the readiness claim; the `CONDITIONALLY READY` status is driven by the Performance-content
+gate (92 < 95), not by verification mode.
 
 ## Critique-and-revision cycle summaries
 
