@@ -82,10 +82,12 @@ documents, not immutable issued records… future decision."
 
 ## Readiness (summary — full in `17_*.md`)
 
-`verification_mode: emulated` → overall readiness capped at 97, package status capped at
-`CONDITIONALLY READY` unless an independent reviewer or explicit owner acceptance reviews the final
-package. The one `BLOCKED-EXTERNAL` (PDF renderer decision, DEC-FORMAT-1) is isolated from the
-XLSX/snapshot trust core, so named slices are implementation-ready.
+`verification_mode: independent` (separate native verifier agent — 15/15 completion gates passed,
+no hidden defects). The status is `CONDITIONALLY READY` (not `IMPLEMENTATION-READY`) because
+**Performance readiness = 92 < 95** (required for user-facing exports) — performance thresholds are
+deliberately DISCOVERY-REQUIRED, not guessed. This is a content gate, not a verification cap. The
+one `BLOCKED-EXTERNAL` (PDF renderer decision, DEC-FORMAT-1) is isolated from the XLSX/snapshot
+trust core, so named slices are implementation-ready.
 
 **Initial scores** (pre-revision draft) and **final scores** are in `17_FINAL_READINESS_REVIEW.md`.
 
