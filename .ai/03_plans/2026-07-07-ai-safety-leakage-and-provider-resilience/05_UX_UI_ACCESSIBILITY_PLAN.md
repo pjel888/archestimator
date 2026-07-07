@@ -51,3 +51,20 @@ UI scope is intentionally narrow: AI surfaces are (1) a floating copilot button 
 - Static: a11y attributes present in component source.
 - DOM test: button presence/absence by flag; focus management; dialog open/close.
 - Browser proof (only if interaction/auth claim needs it): apply confirmation flow + provider-down fallback rendering. Otherwise intentionally skipped per AGENTS.md.
+
+## Action-level accessibility proof matrix (Improve pass — required by PHASE 3 §3)
+
+`Action | Keyboard path | Focus target/restoration | Accessible name / live-region | Proof type`
+
+| Action | Keyboard path | Focus target/restoration | Accessible name / live-region | Proof type |
+|---|---|---|---|---|
+| Open Ask Flip panel | Tab to floating button → Enter/Space | focus → first focusable in panel; Esc restores to button | button `aria-label="Ask Flip, read-only assistant"`; `aria-expanded`/`aria-controls` | DOM assertion (keyboard + focus + attrs) |
+| Submit question | type → Tab to submit → Enter | focus stays in panel; result region announced | `role="status"`/`aria-live="polite"` on answer region | DOM assertion |
+| Close panel | Esc | focus restored to opener button | announcement "closed" optional | DOM assertion |
+| Apply (package-builder confirm) | Tab to checkbox → Space; Tab to Apply → Enter | focus to Apply; on success focus to inserted region or status | checkbox label states consequence; `aria-live` status "inserted N rows" | DOM assertion; browser proof only if focus-after-insert claim needs it |
+| Provider-down state | n/a (passive) | n/a | `aria-live="polite"` "AI temporarily unavailable" | DOM assertion |
+| Rate-limited state | n/a (passive) | n/a | `aria-live` "slow down, retry in Ns" | DOM assertion |
+
+WCAG 2.2 AA alignment: visible focus, keyboard operable, semantic roles/labels, live-regions for async updates, contrast (reuse design tokens), reduced-motion respected. State matrix (loading/empty/success/partial/error/conflict/permission-denied/offline/retry/timeout/cancellation) is in the "Screen / component states" table above.
+
+Explicit non-goals (per Improve §3): no decorative redesign; no marketing-page drift; no generic SaaS chrome — AI UI reuses `src/components/ui/` primitives.

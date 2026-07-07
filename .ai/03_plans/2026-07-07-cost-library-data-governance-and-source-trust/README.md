@@ -5,7 +5,10 @@ Plan folder: `.ai/03_plans/2026-07-07-cost-library-data-governance-and-source-tr
 Plan profile: `exhaustive`
 Plan status: **`CONDITIONALLY READY`** (named slices may proceed; see below)
 Verification mode: `emulated` (caps overall readiness at 97; see `17`)
+Overall readiness: **95/100** (post Improve-Plan audit + repair; see `17`/`20`)
 Authoritative execution guide: **`11_IMPLEMENTATION_PLAN.md`**
+
+> **Improve-Plan pass complete (2026-07-07).** The pack was audited against the directive, re-verified against current `main`, and repaired. Drift found + fixed: migration renumbered `0037`→`0038` (the `0037` slot was taken the same day), D1 table citation corrected (`0028` not `0026`), schema gap G2 scoped D1-only (Supabase already has the columns), and migration-tree convention disambiguated. Directive-required artifacts added: route cache contract (`06`), Attack Surface Inventory (`08`), action-level a11y proof matrix (`05`), D1/Cloudflare per-resource budget (`09`), proof-contract rows (`12`), directive-schema traceability matrix (`16`). Audit trail in `20_AUDIT_AND_REVISION_LOG.md`.
 
 ## What this is
 

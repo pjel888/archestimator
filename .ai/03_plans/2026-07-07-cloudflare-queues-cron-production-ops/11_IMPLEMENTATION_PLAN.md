@@ -164,57 +164,67 @@ Phase 5 (hosted proof, owner-gated) ◄─────────────�
 
 ## Phase 4 — Operator runbook (DOC-001, FR-002/005/006/008, REL-001/002, SEC-001)
 
-### Task T-007 — Write OPERATIONS_RUNBOOK.md
-- **Req:** DOC-001, FR-002, FR-005, FR-006, FR-008, REL-001, REL-002, SEC-001, ARCH-001/003, API-002.
-- **Objective:** Single operator doc. **Target file:**
-  `.ai/10_state/runbooks/queues-cron-retention-operations.md` (new; create the
-  `runbooks/` dir if absent) — OR keep a copy in this plan pack and link from
-  `13`. **Recommendation:** canonical live doc in `.ai/10_state/runbooks/`, with
-  `13_ROLLOUT_ROLLBACK_AND_OPERATIONS.md` in this pack summarizing + linking.
-- **Sections (required):**
-  1. Cron routing table (3 crons → what runs).
-  2. Queue job taxonomy + message schema v1 + versioning rule.
-  3. Idempotency contract (per-batch, minute key, cross-batch re-run).
-  4. Retry & DLQ policy (3/60s/DLQ; DLQ moved by infra; `deadLetterExpected` is app flag).
-  5. Dry-run & live-enable sequence.
-  6. Secrets (names, fallback, rotation via `cf:sync-worker-secrets` with overlap).
-  7. Backlog checks (SQL + thresholds).
-  8. Alert thresholds table.
-  9. DLQ operations (peek/inspect/replay/discard, idempotency check before replay, destructive discard needs owner sign-off).
-  10. Failure recovery matrix.
-  11. Hosted proof command sequence (FR-008).
-  12. Retention schedule pointer + OPEN-DEC-004 note.
-- **Validation:** doc review; cross-link check; no raw secrets.
-- **Parallelization:** depends on decisions (Phase 0); can draft sections 1–6 in parallel with Phase 2.
+### Implementation Unit T-007 — Write OPERATIONS_RUNBOOK.md
+- **Unit ID:** T-007
+- **Requirement IDs:** DOC-001, FR-002, FR-005, FR-006, FR-008, REL-001, REL-002, SEC-001, ARCH-001, ARCH-003, API-002
+- **Goal:** Single canonical operator runbook for the queue/cron/retention system.
+- **User/system outcome:** an operator can diagnose, drain, replay, rotate secrets, and prove hosted readiness from one document.
+- **Scope:** one new live doc + a summary/link in `13`.
+- **Non-goals:** do not duplicate `retention-schedule.md` (link to it); do not write code.
+- **Files to create:** `.ai/10_state/runbooks/queues-cron-retention-operations.md` (create `runbooks/` dir if absent). `13` links to it.
+- **Existing patterns:** `retention-schedule.md` is the model for a `.ai/10_state/compliance/` live doc; mirror its header/status style.
+- **Dependencies/sequencing:** depends on decisions D-CRONSOT/D-IDEMP/D-DLQDRAIN (Phase 0). Sections 1–6 can be drafted in parallel with Phase 2.
+- **Data/security/perf implications:** none (doc); but §6 secrets and §9 DLQ must reflect D-DLQDRAIN (pull-consumer, not a wrangler drain command).
+- **Detailed test scenarios:** n/a (doc). Verification = review + cross-link check + `rg` for raw secrets (must be 0).
+- **Required sections:** (1) Cron routing table (3 crons→what runs); (2) Queue job taxonomy + message schema v1 + versioning rule; (3) Idempotency contract (per-batch, minute key, cross-batch re-run); (4) Retry & DLQ policy (`max_retries=3`, code `retryDelaySeconds=60` **overrides** Cloudflare default exponential backoff → flat 60s; DLQ moved by Cloudflare infra at retry limit; `deadLetterExpected` is an app-computed flag); (5) Dry-run & live-enable sequence; (6) Secrets (names, fallback, rotation via `cf:sync-worker-secrets` with overlap); (7) Backlog checks (SQL + thresholds); (8) Alert thresholds table (flag Cloudflare Analytics metrics as hosted-evidence-dependent); (9) **DLQ operations using real mechanisms** — (a) dashboard "Debug Queues" send/list/ack, (b) pull-consumer HTTP API against `archestimator-upload-jobs-dlq`, or (c) a temporary consumer Worker; idempotency check before replay; destructive discard needs owner sign-off; (10) Failure recovery matrix; (11) Hosted proof command sequence (FR-008); (12) Retention schedule pointer + OPEN-DEC-004 note.
+- **Verification command/evidence:** doc review; `rg -i "secret|token|password" <runbook>` returns no raw values; all 12 sections present.
+- **Rollback/recovery:** delete the doc; `13` link removed.
+- **Stop/blocker:** none (drafting can proceed; DLQ section uses D-DLQDRAIN recommendation).
+- **Done criteria:** 12 sections present, internally consistent, no raw secrets, cross-links valid.
 - **Complexity:** Medium-Large (breadth, not depth).
 
 ---
 
 ## Phase 5 — Hosted provider proof (FR-008) — OWNER-GATED
 
-### Task T-008 — Execute hosted proof sequence
-- **Req:** FR-008, REL-003.
-- **Objective:** Move `productionJobsMessagingReady` false→true.
-- **Steps (runbook §11):**
-  1. Confirm `CRON_SECRET` (+ route-specific secrets) present on the deployed Worker.
-  2. `bun run cf:jobs-proof` → captures hosted JobsProof receipt, writes evidence JSON+MD.
-  3. Confirm R2 `provider-proof/jobs/<id>.json` receipt written (consumer side).
-  4. `bun run cf:queues-cron-proof` → merges jobs-runtime-proof; flips `productionJobsMessagingReady` if all sub-flags true.
-  5. `bun run cf:release-gates` → confirm queues/cron/DLQ gate green.
-- **Classification:** `BLOCKED-EXTERNAL` until owner authorizes a deploy/proof run against hosted (it touches hosted Worker state observation, not mutation — but proof execution against production is owner-gated per repo policy).
-- **Validation:** hosted/provider-backed evidence (explicitly NOT local).
-- **Parallelization:** sequential after deploy; owner-gated.
+### Implementation Unit T-008 — Execute hosted proof sequence
+- **Unit ID:** T-008
+- **Requirement IDs:** FR-008, REL-003
+- **Goal:** Move `productionJobsMessagingReady` from false→true with provider-backed evidence.
+- **User/system outcome:** the queue/cron runtime is proven against the real Cloudflare provider, not just local simulation.
+- **Scope:** run the existing proof scripts against hosted; capture evidence.
+- **Non-goals:** do not mutate provider state beyond observation; do not enable paid add-ons.
+- **Files to produce:** evidence JSON+MD under `2026-06-29-Cloudflare-Migration-Codex/evidence/` (script-defined paths); R2 receipt `provider-proof/jobs/<id>.json`.
+- **Existing patterns:** `cf:jobs-proof`, `cf:queues-cron-proof`, `cf:release-gates` scripts already exist and write these paths.
+- **Dependencies/sequencing:** after deploy with secrets present; **`BLOCKED-EXTERNAL`** (OPEN-DEC-008 owner authorization).
+- **Implications:** touches hosted Worker observation (read-only); owner-gated per repo policy.
+- **Test scenarios / proof:** PROOF-HOSTEDJOBS — confirm `productionJobsMessagingReady=true`, `queueSendReady`, `queueConsumerReceiptReady`, `cronProviderExecutionProven` all true; R2 receipt present.
+- **Steps (runbook §11):** (1) confirm `CRON_SECRET`+route secrets present on deployed Worker; (2) `bun run cf:jobs-proof`; (3) confirm R2 `provider-proof/jobs/<id>.json` receipt; (4) `bun run cf:queues-cron-proof` (merges jobs-runtime-proof); (5) `bun run cf:release-gates` → queues/cron/DLQ gate green.
+- **Verification command/evidence:** hosted/provider-backed (explicitly NOT local). Evidence class = provider/production.
+- **Rollback/recovery:** n/a (observation-only); if a deploy caused regression, revert deploy.
+- **Stop/blocker:** owner authorization (OPEN-DEC-008).
+- **Done criteria:** `productionJobsMessagingReady=true` in evidence JSON; `cf:release-gates` green for the queues/cron/DLQ gate.
 - **Complexity:** Medium.
 
 ---
 
 ## Phase 6 — Observation gate (REL-003) — TIME-BOXED
 
-### Task T-009 — 30-day hosted observation
-- **Req:** REL-003.
-- **Objective:** Observe 30 days of hosted cron/D1 behavior; confirm retention ran daily, no over-deletion, DLQ stayed empty (or was drained), alert thresholds calibrated.
-- **Classification:** `BLOCKED-EXTERNAL` (calendar time + hosted observation).
-- **Validation:** `data_retention_events` rows for 30 consecutive UTC days; upload-ops dashboard stable.
+### Implementation Unit T-009 — 30-day hosted observation
+- **Unit ID:** T-009
+- **Requirement IDs:** REL-003
+- **Goal:** Characterize 30 days of hosted cron/D1 behavior before declaring retention production-proven.
+- **User/system outcome:** confidence that retention runs daily without over-deletion and the DLQ stays healthy.
+- **Scope:** observation + threshold calibration; no code.
+- **Non-goals:** do not change TTLs (OPEN-DEC-004); do not calibrate from synthetic data.
+- **Files to produce:** an observation log entry (append to `current-state.md` or an evidence note).
+- **Dependencies/sequencing:** after T-008; **`BLOCKED-EXTERNAL`** (calendar time).
+- **Implications:** none (observation).
+- **Test scenarios / proof:** PROOF-CRONDIDFIRE — `data_retention_events` row for each of 30 consecutive UTC days; upload-ops dashboard stable (scan/cleanup backlog flat); DLQ empty or drained.
+- **Verification command/evidence:** D1 query daily for 30 days; production-evidence class.
+- **Rollback/recovery:** n/a; if a day is missed, investigate cron/D1 and extend the window.
+- **Stop/blocker:** calendar; a missed day resets the relevant counter.
+- **Done criteria:** 30/30 audit days + stable backlogs + calibrated alert thresholds.
 - **Complexity:** n/a (waiting).
 
 ---
