@@ -442,6 +442,16 @@ export async function loadProjectComponentLibraryLite(projectId: string): Promis
 // server fetch via initialData and refetches through this on warm-cache expiry, so a
 // tab revisit renders from cache without re-suspending the route. Fail-closed for
 // anonymous callers, matching the page-load auth gate.
+
+export async function canManageCurrentWorkspaceLibrary() {
+  await requireCurrentUserContext();
+  const { workspace } = await ensureDefaultWorkspace();
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc("is_workspace_editor", { target_workspace_id: workspace.id });
+  if (error) throwActionError("Could not verify library access.", error);
+  return data === true;
+}
+
 export async function loadCurrentWorkspaceComponentRowsLibrary(): Promise<ComponentRowsLibraryDataset> {
   await requireCurrentUserContext();
   return getCurrentWorkspaceComponentRowsLibrary();

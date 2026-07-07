@@ -120,7 +120,7 @@ const fixtureItems: EstimateRowItem[] = [
   }),
 ];
 
-function renderManager() {
+function renderManager(options: { canManageLibrary?: boolean } = {}) {
   return render(
     <ComponentLibraryManager
       categoryTree={categoryTree}
@@ -131,6 +131,7 @@ function renderManager() {
       ]}
       libraryFolders={folders}
       libraryItems={fixtureItems}
+      canManageLibrary={options.canManageLibrary ?? true}
     />,
   );
 }
@@ -287,6 +288,18 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
     await waitFor(() => {
       expect(cardButton).toHaveFocus();
     });
+  });
+
+  it("hides inspector mutation controls for read-only workspace viewers", async () => {
+    renderManager({ canManageLibrary: false });
+
+    expect(screen.queryByRole("button", { name: "Add component" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "View details for Fresh Tile" }));
+    const dock = await screen.findByRole("region", { name: "Component details for Fresh Tile" });
+
+    expect(within(dock).queryByRole("button", { name: "Edit component" })).not.toBeInTheDocument();
+    expect(within(dock).queryByRole("button", { name: "Duplicate" })).not.toBeInTheDocument();
   });
 
   it("opens the edit drawer from the inspector and saves through the versioned actions", async () => {

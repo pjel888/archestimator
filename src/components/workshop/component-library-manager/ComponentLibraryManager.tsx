@@ -810,6 +810,7 @@ function ComponentLibrarySheet({
   status,
   selectedItemIds,
   inspectorItemId,
+  canManageLibrary,
   onAddComponent,
   onArchiveSelected,
   onClearSelected,
@@ -832,6 +833,7 @@ function ComponentLibrarySheet({
   status: SheetStatus;
   selectedItemIds: Set<string>;
   inspectorItemId: string | null;
+  canManageLibrary: boolean;
   onAddComponent: () => void;
   onArchiveSelected: (itemIds: string[]) => void;
   onClearSelected: () => void;
@@ -948,15 +950,19 @@ function ComponentLibrarySheet({
               onFiltersChange={setFacetFilters}
             />
           }
-          addActions={[
-            {
-              label: "Add component",
-              visibleLabel: "Add component",
-              showVisibleLabel: true,
-              icon: <Plus size={12} weight="regular" aria-hidden="true" />,
-              onClick: onAddComponent,
-            },
-          ]}
+          addActions={
+            canManageLibrary
+              ? [
+                  {
+                    label: "Add component",
+                    visibleLabel: "Add component",
+                    showVisibleLabel: true,
+                    icon: <Plus size={12} weight="regular" aria-hidden="true" />,
+                    onClick: onAddComponent,
+                  },
+                ]
+              : []
+          }
         />
         <div
           className="flex h-7 shrink-0 items-center justify-between gap-2 border-b border-hairline px-2"
@@ -985,14 +991,16 @@ function ComponentLibrarySheet({
             {status.message}
           </div>
         ) : null}
-        <BulkActionToolbar
-          selectedCount={selectedVisibleItemIds.length}
-          actionLabel="Archive selected"
-          helperText="Archive is reversible and hides components from sheet insertion."
-          onAction={() => onArchiveSelected(selectedVisibleItemIds)}
-          onClear={onClearSelected}
-          onSelectVisible={() => onSelectVisible(visibleItems.map((item) => item.id))}
-        />
+        {canManageLibrary ? (
+          <BulkActionToolbar
+            selectedCount={selectedVisibleItemIds.length}
+            actionLabel="Archive selected"
+            helperText="Archive is reversible and hides components from sheet insertion."
+            onAction={() => onArchiveSelected(selectedVisibleItemIds)}
+            onClear={onClearSelected}
+            onSelectVisible={() => onSelectVisible(visibleItems.map((item) => item.id))}
+          />
+        ) : null}
       </header>
 
       <div className="min-h-0 flex-1 overflow-auto p-2">
@@ -1065,6 +1073,7 @@ function ComponentLibrarySheetPanel({
   status,
   selectedItemIds,
   inspectorItemId,
+  canManageLibrary,
   onAddComponent,
   onArchiveSelected,
   onClearSelected,
@@ -1087,6 +1096,7 @@ function ComponentLibrarySheetPanel({
   status: SheetStatus;
   selectedItemIds: Set<string>;
   inspectorItemId: string | null;
+  canManageLibrary: boolean;
   onAddComponent: () => void;
   onArchiveSelected: (itemIds: string[]) => void;
   onClearSelected: () => void;
@@ -1112,6 +1122,7 @@ function ComponentLibrarySheetPanel({
         status={status}
         selectedItemIds={selectedItemIds}
         inspectorItemId={inspectorItemId}
+        canManageLibrary={canManageLibrary}
         onAddComponent={onAddComponent}
         onArchiveSelected={onArchiveSelected}
         onClearSelected={onClearSelected}
@@ -1135,6 +1146,7 @@ export function ComponentLibraryManager({
   onLibraryFoldersMutated = () => {},
   projectId,
   promotionEnabled = false,
+  canManageLibrary = true,
   onProjectPromotionSucceeded = () => {},
 }: {
   categoryTree?: ComponentLibraryTaxonomyNode[];
@@ -1151,6 +1163,7 @@ export function ComponentLibraryManager({
   onLibraryFoldersMutated?: (updater: (folders: LibraryFolderRecord[]) => LibraryFolderRecord[]) => void;
   projectId?: string;
   promotionEnabled?: boolean;
+  canManageLibrary?: boolean;
   onProjectPromotionSucceeded?: () => void;
 } = {}) {
   // Mutations call these to keep the route shell's warm query cache coherent
@@ -1190,7 +1203,7 @@ export function ComponentLibraryManager({
   // it exactly once on mount with no cascading re-render.
   const addComponentSearchParams = useSearchParams();
   const [addComponentOpen, setAddComponentOpen] = useState(
-    () => addComponentSearchParams?.get("add") === "component",
+    () => canManageLibrary && addComponentSearchParams?.get("add") === "component",
   );
   const [libraryItemState, setLibraryItemState] = useState<{ source: EstimateRowItem[]; items: EstimateRowItem[] }>(() => ({
     source: libraryItems,
@@ -1257,6 +1270,10 @@ export function ComponentLibraryManager({
   }
 
   function openAddComponentModal() {
+    if (!canManageLibrary) {
+      setSheetStatus({ state: "error", message: "Only workspace editors/admins can add components." });
+      return;
+    }
     addButtonReturnRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setAddComponentOpen(true);
   }
@@ -1310,6 +1327,10 @@ export function ComponentLibraryManager({
   }
 
   function duplicateInspectorComponent() {
+    if (!canManageLibrary) {
+      setSheetStatus({ state: "error", message: "Only workspace editors/admins can duplicate components." });
+      return;
+    }
     const source = inspectorItem;
     if (!source) return;
     const copyName = `${source.name?.trim() || source.material} copy`;
@@ -1418,6 +1439,10 @@ export function ComponentLibraryManager({
   }
 
   function openArchiveComponentPreview(itemIds: string[]) {
+    if (!canManageLibrary) {
+      setSheetStatus({ state: "error", message: "Only workspace editors/admins can archive components." });
+      return;
+    }
     const itemsById = new Map(localLibraryItems.map((item) => [item.id, item]));
     const ids = Array.from(new Set(itemIds)).filter((id) => {
       const item = itemsById.get(id);
@@ -1618,6 +1643,7 @@ export function ComponentLibraryManager({
             status={sheetStatus}
             selectedItemIds={selectedItemIds}
             inspectorItemId={inspectorItemId}
+            canManageLibrary={canManageLibrary}
             onAddComponent={openAddComponentModal}
             onArchiveSelected={openArchiveComponentPreview}
             onClearSelected={clearComponentSelection}
@@ -1635,9 +1661,9 @@ export function ComponentLibraryManager({
               onDuplicate={duplicateInspectorComponent}
               onArchive={() => openArchiveComponentPreview([inspectorItem.id])}
               duplicatePending={isDuplicatePending}
-              canEdit={!isProjectProjectionItem(inspectorItem)}
-              canDuplicate={!isProjectProjectionItem(inspectorItem)}
-              canArchive={!isProjectProjectionItem(inspectorItem)}
+              canEdit={canManageLibrary && !isProjectProjectionItem(inspectorItem)}
+              canDuplicate={canManageLibrary && !isProjectProjectionItem(inspectorItem)}
+              canArchive={canManageLibrary && !isProjectProjectionItem(inspectorItem)}
               promoteAction={canPromoteProjectProjectionItem(inspectorItem, projectId, promotionEnabled) ? {
                 label: "Promote to library",
                 pending: promotingItemId === inspectorItem.id,
@@ -1667,7 +1693,7 @@ export function ComponentLibraryManager({
           treeMutationPending={isTreeMutationPending}
         />
       ) : null}
-      {inspectorItem ? (
+      {canManageLibrary && inspectorItem ? (
         <EditComponentDrawer
           item={inspectorItem}
           open={editDrawerOpen}

@@ -1,4 +1,5 @@
 import { LibraryPageClient } from "@/components/workshop/LibraryPageClient";
+import { canManageCurrentWorkspaceLibrary } from "@/lib/component-library/actions";
 import { getCurrentWorkspaceComponentRowsLibrary } from "@/lib/repositories/component-library-repository";
 
 /**
@@ -10,7 +11,10 @@ export async function LibraryComponentsRoute() {
   // The server fetch seeds the client TanStack Query cache via initialData so the
   // first paint is still SSR'd; warm tab revisits then render from the client cache
   // without re-suspending this route (Library Optimization Plan P0 T3).
-  const componentLibrary = await getCurrentWorkspaceComponentRowsLibrary();
+  const [componentLibrary, canManageLibrary] = await Promise.all([
+    getCurrentWorkspaceComponentRowsLibrary(),
+    canManageCurrentWorkspaceLibrary(),
+  ]);
 
-  return <LibraryPageClient initialLibrary={componentLibrary} />;
+  return <LibraryPageClient initialLibrary={componentLibrary} canManageLibrary={canManageLibrary} />;
 }

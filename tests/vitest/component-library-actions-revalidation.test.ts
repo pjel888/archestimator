@@ -78,6 +78,52 @@ describe("template-surface revalidation (U11)", () => {
     expect(cacheMocks.revalidatePath).not.toHaveBeenCalled();
   });
 
+  it("denies component create/update/price mutations for workspace viewers before RPC writes", async () => {
+    const rpc = vi.fn(async (name: string) => {
+      if (name === "is_workspace_editor") return { data: false, error: null };
+      return { data: {}, error: null };
+    });
+    const quotaBuilder: Record<string, unknown> = {};
+    quotaBuilder.select = () => quotaBuilder;
+    quotaBuilder.eq = () => quotaBuilder;
+    quotaBuilder.then = (resolve: (v: { count: number; error: null }) => unknown) =>
+      resolve({ count: 0, error: null });
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({
+      from: () => quotaBuilder,
+      rpc,
+    });
+    const {
+      createCostLibraryComponent,
+      updateCostLibraryComponent,
+      upsertCostLibraryComponentPriceOption,
+    } = await import("@/lib/component-library/actions");
+
+    await expect(createCostLibraryComponent({
+      name: "Viewer copy",
+      category: "Finishes",
+      unit: "pc",
+      priceOptions: [{ label: "Default", unit: "pc", unitCost: 1, isDefault: true }],
+    })).rejects.toThrow(/editors\/admins/);
+    await expect(updateCostLibraryComponent("item-1", {
+      name: "Viewer edit",
+      category: "Finishes",
+      unit: "pc",
+    })).rejects.toThrow(/editors\/admins/);
+    await expect(upsertCostLibraryComponentPriceOption("item-1", {
+      label: "Default",
+      unit: "pc",
+      unitCost: 1,
+      isDefault: true,
+    })).rejects.toThrow(/editors\/admins/);
+
+    expect(rpc).toHaveBeenCalledTimes(3);
+    expect(rpc).toHaveBeenCalledWith("is_workspace_editor", { target_workspace_id: WORKSPACE_ID });
+    expect(rpc).not.toHaveBeenCalledWith("create_cost_library_component", expect.anything());
+    expect(rpc).not.toHaveBeenCalledWith("update_cost_library_component", expect.anything());
+    expect(rpc).not.toHaveBeenCalledWith("upsert_cost_library_component_price_option", expect.anything());
+    expect(cacheMocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
   it("rejects creation when the workspace is at its quota (P3 T19 / F24)", async () => {
     // editor allowed, but the head-count query reports the workspace is at the cap.
     const insert = vi.fn(() => ({ select: () => ({ single: async () => ({ data: {}, error: null }) }) }));
@@ -96,5 +142,20 @@ describe("template-surface revalidation (U11)", () => {
     await expect(createEstimateTemplate({ name: "Over the limit" })).rejects.toThrow(/limit/);
     expect(insert).not.toHaveBeenCalled();
     expect(cacheMocks.revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+describe("component library mutation RPC authorization", () => {
+  it("keeps direct component mutation RPCs behind workspace editor checks", async () => {
+    const { readFileSync } = await import("node:fs");
+    const migration = readFileSync(
+      "supabase/migrations/20260616152309_harden_component_library_editor_rpc_access.sql",
+      "utf8",
+    );
+
+    expect(migration).toContain("public.is_workspace_editor(target_workspace_id) is not true");
+    expect(migration).toContain("create or replace function public.validate_cost_library_component_refs");
+    expect(migration).toContain("create or replace function public.upsert_cost_library_component_price_option");
+    expect(migration).not.toContain("from public.workspace_members member\n    where member.workspace_id = target_workspace_id");
   });
 });
