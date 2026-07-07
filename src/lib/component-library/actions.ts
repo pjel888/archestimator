@@ -599,7 +599,7 @@ async function discardOlderActiveComponentDraftsBeforeInsert(
           updated_at = ?
       WHERE workspace_id = ?
         AND status = 'active'
-        AND id NOT IN (
+        AND id IN (
           SELECT id
           FROM cost_library_component_drafts
           WHERE workspace_id = ?

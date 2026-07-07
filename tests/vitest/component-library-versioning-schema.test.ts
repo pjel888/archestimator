@@ -143,6 +143,8 @@ describe("component library item versioning schema", () => {
     expect(actions).toContain("LIBRARY_COMPONENT_DRAFT_CAP = 100");
     expect(actions).toContain("LIBRARY_COMPONENT_DRAFT_JSON_MAX_BYTES = 64 * 1024");
     expect(actions).toContain("discardOlderActiveComponentDraftsBeforeInsert");
+    expect(actions).toContain("AND id IN (");
+    expect(actions).not.toContain("AND id NOT IN (");
     expect(actions).toContain("readComponentDraftJson(input.draft)");
     expect(actions).toContain("cost_library_component_drafts");
     expect(actions).toContain("INSERT INTO cost_library_component_drafts");
