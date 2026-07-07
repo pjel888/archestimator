@@ -12,6 +12,179 @@ single biggest source of slow agent startup.
 Stable current truth (verify against git/source before relying on a detail):
 - Stage: pre-launch closed-beta MVP. Bias to fast, useful iteration over
   heavyweight regression ceremony. No external users yet.
+- Project component sidebar sync (2026-07-07 local): estimate-row project
+  component edits now patch the active Project tab projection cache immediately
+  for row updates/deletes/promotions, with active lite-query refetch as
+  reconciliation. Project tab component drags into the estimate tree use the
+  normal library-item insert event with an explicit target node id. Second-pass
+  review removed duplicate projection refetches and left a WATCH caveat that
+  fully structural folder reconstruction still relies on active refetch.
+  Plan/evidence archived:
+  `.ai/09_archive/2026-07-07-project-component-estimate-sidebar-sync/`.
+- Component library preloaded taxonomy removed (2026-07-07 local/remote): the
+  fallback taxonomy now has zero default category sections and zero default
+  categories. D1 cleanup migration
+  `0037_remove_preloaded_component_categories.sql` clears category-node
+  references from folders, cost library items, estimate rows, and template rows,
+  then deletes all global `component_category_nodes`. Remote `ARCH_DB` was
+  cleaned directly with that migration SQL after readback proved the remaining
+  rows were all seeded `taxonomyVersion` rows; final readback found zero
+  category rows and zero remaining category-node links in the affected tables.
+- GitHub Actions disabled temporarily (2026-07-07 local): active workflow files
+  were moved from `.github/workflows/` to `.github/workflows-disabled/`, and
+  `.github/dependabot.yml` was archived at `.github/workflows-disabled/` to stop
+  failing CI/CodeQL/React Doctor/Dependabot update work from consuming resources
+  while failures are acceptable during fast iteration. Re-enable by moving the
+  YAML files back into `.github/workflows/` and restoring `.github/dependabot.yml`;
+  local pinning/config tests read the disabled archive path so the preserved
+  definitions stay checked.
+- GitHub security PR/comment loop (2026-07-07 local): live GitHub inventory
+  found 22 open PRs for `pjel888/archestimator`, no open issues, 13 unresolved
+  non-outdated review threads across PRs 107, 108, 109, 114, 115, and 118
+  after PR106 was pushed/resolved and a new PR108 follow-up thread appeared.
+  Hosted alert readbacks are unavailable rather than clean: code scanning
+  returned 403 disabled, Dependabot alerts returned 403 disabled plus an
+  `admin:repo_hook` scope request, and secret scanning returned 404 disabled
+  with the current token.
+  Ledger:
+  `.ai/03_plans/2026-07-07-github-security-pr-comment-loop/LOOP_LEDGER.md`.
+  PR106 branch `codex/fix-unpinned-npm-exec-vulnerability` was updated on
+  GitHub to head `a3dff410`: the `supermemory` SDK-wrapper dependency was
+  removed, `bun run supermemory:start` now uses
+  `scripts/start-verified-supermemory-server.mjs`, and local Supermemory
+  startup fails closed unless `SUPERMEMORY_SERVER_BIN` points to an executable
+  `supermemory-server` binary, `SUPERMEMORY_SERVER_SHA256` matches it, and
+  first-boot configuration is non-interactive through a provider env config or
+  non-empty `~/.supermemory/env`. No npm/bunx/pnpm wrapper or second-stage
+  download is treated as safe startup. The launcher ignores generic `PORT` and
+  only honors `SUPERMEMORY_PORT` to override the fixed `6767` default. Focused
+  launcher tests, syntax check, targeted ESLint, typecheck, `validate:agents`,
+  prompt resolver checks, stale-string scans, and scoped `git diff --check`
+  passed. GraphQL readback resolved both PR106 follow-up threads; one was
+  outdated after the fix and one remained current before resolution.
+  PR107 branch `codex/fix-d1-project-component-loader-vulnerability` was updated
+  on GitHub to head `b6cfb387`: project component projection now uses a
+  whole-project D1 authz helper that excludes estimate-only access before
+  loading project rows, and the projection query also filters restricted
+  estimates unless inheritance is enabled, the caller is an explicit sheet
+  member, or the caller is a platform admin. GraphQL readback first showed all
+  active PR107 projection review threads resolved; a later refresh found 1 new
+  active PR107 follow-up thread on creator access without membership rows. PR105
+  removed
+  historical `project.created_by` / `estimate.created_by` branches from D1
+  project/estimate access/edit helpers, including the whole-project helper;
+  owner continuity now relies on current `workspace_members` owner insertion
+  plus migration `0030_workspace_owner_membership_backfill.sql`, not
+  `created_by` authz fallback. The batched sidebar favorite project gate also
+  dropped its `project.created_by` read branch. PR108 branch
+  `codex/fix-d1-project-reads-authorization-bypass` was updated on GitHub to
+  head `01b639ec`: it now uses that membership-only whole-project helper for
+  `getCurrentWorkspaceProject`, inserts an owner `workspace_members` row for
+  auto-provisioned default workspaces, adds
+  `0030_workspace_owner_membership_backfill.sql`, and denies sheet-only
+  collaborators at project-wide readers while estimate-specific paths keep
+  estimate-level checks. PR108 focused tests/typecheck passed and GraphQL
+  readback resolved both original PR108 threads; a later refresh found 1 new
+  active PR108 follow-up thread on preserving estimate-scoped readers for sheet
+  invitees. Local fixes for PR109/PR110
+  canonicalized padded share
+  tokens before password-cookie checks, trimmed share API route tokens, and
+  require the password access cookie before recipient comment/decision POSTs.
+  PR111 pins Cursor's Chrome DevTools MCP package to
+  `chrome-devtools-mcp@1.4.0` and removes the implicit `-y` registry execution
+  flag. PR112 now runs React Doctor through
+  `./node_modules/.bin/react-doctor` and removes global/`npx`/remote prompt
+  fallbacks from the hook and duplicated skill docs; PR112 branch
+  `codex/analyze-vulnerability-in-unpinned-react-hook` was updated on GitHub to
+  head `78615fca`, and GraphQL readback showed no active unresolved PR112
+  threads because the old package-script thread is now outdated. PR113 removes active
+  unpinned GitNexus fallback guidance from `AGENTS.md`, `CLAUDE.md`, and the
+  hardlinked GitNexus adapter skills; `package.json` now routes `graph:reindex`
+  and `graph:gitnexus` through `scripts/run-safe-gitnexus-command.mjs`. Local
+  `.gitnexus/run.cjs` was inspected and found to contain
+  `gitnexus@latest`/`npx`/`pnpm dlx` fallback logic, so the guarded scripts
+  intentionally fail closed on this checkout and no GitNexus runner was
+  executed. PR116 redacted archived Markdown public-share
+  URLs to `SHARE_TOKEN_PLACEHOLDER` and recorded a raw-share-token taxonomy in
+  the ledger; scans for the exposed value and concrete long-token share URLs
+  now return no matches in scanned Markdown paths. Focused proof passed for
+  creator-revocation D1 authz, authz/projection, workspace project authz,
+  publication route/page, source-contract, Supermemory verified-start
+  fail-closed wrapper, React Doctor local help, Cursor MCP pinning,
+  GitNexus fallback scans, guarded GitNexus command
+  fail-closed checks, unsafe-command scans, share-token redaction scans,
+  `validate:agents`, scoped `git diff --check`, and high-memory typecheck.
+  PR103 was partially applied as a curated runtime/security-relevant dependency
+  subset: `better-auth` `1.6.23`, `next` `16.2.10`, `react`/`react-dom`
+  `19.2.7`, and `sharp` `^0.35.3` are now in `package.json`/`bun.lock`.
+  `@firecms/neat` stayed at `0.8.0` because the repo carries a local patch for
+  that version, and `@tanstack/react-query` stayed at `5.100.14` for separate
+  query/cache validation. Focused Better Auth, publication/FormData,
+  upload/image, security-contract, proof-script tests, scoped `git diff --check`,
+  and high-memory typecheck passed after the dependency subset. PR104 remains
+  deferred because its grouped dev-tooling update includes major `eslint` 10 and
+  `@types/node` 26 changes. PR114's current component-library authorization
+  concern was remapped to the active D1/server/client stack instead of applying
+  its legacy Supabase migration: `LibraryComponentsRoute` now derives a
+  `canManageLibrary` capability from current workspace editor/admin membership,
+  `LibraryPageClient` defaults that capability to false, and
+  `ComponentLibraryManager` hides or unwires add/archive/select/folder/edit/
+  duplicate mutation affordances for read-only viewers. Current D1 server actions
+  already enforce editor guards for component, lifecycle, price-option, folder,
+  and template mutations; PR118 remains classified as stale-provider SQL with
+  the current action layer covered by viewer-denial tests. Focused component-
+  library tests passed 5 files / 54 tests, scoped `git diff --check` passed, and
+  high-memory typecheck passed after the PR114 capability plumbing. PR115's live
+  unresolved threads target a legacy Supabase component seed-repair migration;
+  current project state has removed preloaded component taxonomy through
+  `0037_remove_preloaded_component_categories.sql`, so that fixture taxonomy/
+  supplier repair was classified stale-provider with no D1 edit. PR117 has no
+  unresolved threads and targets Supabase RLS closed-beta helpers; current
+  Better Auth/D1 session resolution checks `closed_beta_allowed_emails` before
+  returning `requireCurrentUserContext`, and `ensureDefaultWorkspace` runs behind
+  that gate. Focused closed-beta/session/auth/taxonomy tests passed 5 files / 32
+  tests for the PR115/PR117 remap. PR119's current component-draft resource
+  concern was valid because the proposed cap had no cleanup path before
+  enforcement and would block future saves after 100 active drafts. The current
+  D1 implementation now discards older active component drafts before the quota
+  check, keeps the latest 99 active drafts before each insert, discards only the
+  overflow rows selected by the retention subquery, enforces a 64KiB serialized
+  draft payload limit in app code, and adds non-conflicting D1 trigger migration
+  `0038_component_draft_resource_limits.sql`; focused draft tests, SQLite
+  trigger/cleanup proofs, high-memory typecheck, and scoped `git diff --check`
+  passed. PR119 branch `codex/fix-unbounded-component-draft-saves` was updated
+  on GitHub to head `16f8369b`, and GraphQL readback showed both active PR119
+  review threads resolved with no remaining unresolved PR119 threads.
+  Other GitHub threads/PRs were not resolved in this pass.
+- Component library account preference save gating (2026-07-07 local): the
+  pasted dev log still showed repeated/slow
+  `saveComponentLibraryUserPreferences` calls after the earlier load-coalescing
+  fix. Root cause was `EstimateRightSidebar` allowing locally hydrated tab/view
+  state to schedule an account save while the account preference load was still
+  pending. The sidebar now keeps localStorage persistence active but blocks the
+  server-save branch until account preference initialization settles; a
+  companion regression proves user tab changes still save after the load settles.
+  Focused proof: the new pending-load regression first failed with one
+  premature save, then passed; sidebar/component preference tests, typecheck,
+  and `git diff --check` passed.
+- Tailwind/Node 26 deprecation repair (2026-07-07 local): the visible
+  `[DEP0205] module.register()` warning in dev/test was traced with
+  `NODE_OPTIONS=--trace-deprecation` to `@tailwindcss/node@4.3.0` calling
+  `module.register` under Node `v26.0.0`. Tailwind `4.3.2` uses
+  `module.registerHooks` when available, so `tailwindcss` and
+  `@tailwindcss/postcss` are now pinned at `^4.3.2` and the lockfile resolves
+  `@tailwindcss/node`/`oxide` to `4.3.2`. Proof: direct
+  `node --trace-deprecation` import emitted no warning, traced Vitest emitted no
+  DEP0205 warning, typecheck passed, and traced `bun dev` plus `HEAD /` returned
+  200 with no DEP0205 output.
+- Dev log shutdown-artifact classification (2026-07-07 local): generic server
+  log cause serialization now preserves `Error.code` plus nested generic
+  `Error.cause`, so future `next_request_error` records can retain
+  `ECONNRESET`/`ECONNREFUSED` evidence. `logs:debug` classifies those
+  evidence-backed Next request errors as likely local dev shutdown/restart
+  network aborts while keeping ordinary `fetch failed` records on the normal
+  route-debug path. The stale record from the prior Ctrl-C still lacks nested
+  evidence because it was written before this serializer repair.
 - Auth audit D1 schema repair (2026-07-06 local): `account_security_events`
   originally accepted only legacy `sha256:` request digests while
   `src/lib/auth/account-audit.ts` now writes `hmac-sha256:` digests. Migration
@@ -36,7 +209,10 @@ Stable current truth (verify against git/source before relying on a detail):
   Object WebSocket proof. Focused realtime/config tests pass, direct Wrangler
   platform-proxy smoke exposes `ARCH_DB`, `ARCH_UPLOADS_R2`, `IMAGES`, `EMAIL`,
   and `UPLOAD_JOBS_QUEUE` with no `COLLAB_ROOMS`, high-memory typecheck passes,
-  and `git diff --check` is clean.
+  and `git diff --check` is clean. Follow-up regression coverage now mounts the
+  project presence, estimate cursor, and row-update hooks with their default
+  client factories in plain development and proves they neither construct a
+  WebSocket nor emit `[realtime:*]` telemetry when the transport flag is unset.
 - Component library route-modal hydration repair (2026-07-07 local): the live
   dev log showed `/workshop/library/components?add=component` hydrating with an
   `AddComponentModal` portal on the first client render that was absent from
@@ -46,6 +222,36 @@ Stable current truth (verify against git/source before relying on a detail):
   drift. Focused proof: `bunx vitest run tests/vitest/component-library-manager-hydration.test.tsx --maxWorkers=1`
   and `bunx vitest run tests/vitest/component-library-manager-ui.test.tsx --maxWorkers=1`
   passed; scoped `git diff --check` passed.
+- Component library account preference coalescing (2026-07-07 local): the
+  remaining slow estimate-sheet log family included repeated
+  `loadComponentLibraryUserPreferences` calls from duplicate stored-preference
+  sidebar mounts. `EstimateRightSidebar` now routes account preference load/save
+  through a client helper with one shared in-flight load, a 30-second settled
+  cache, and save-time invalidation. Focused proof: the duplicate-mount
+  regression first failed with two server-action calls, then passed with one;
+  related sidebar/library tests, typecheck, and `git diff --check` passed.
+- Estimate-sheet column-width preference coalescing (2026-07-07 local): the
+  pasted log showed slow repeated `loadEstimateSheetUserPreferences` plus
+  `saveEstimateSheetUserPreferences` calls. Root cause was the sheet treating
+  locally hydrated column widths as account-dirty before the account load had
+  settled, and remounts had no in-flight/cached account read. The sheet now uses
+  a client helper with one shared in-flight load, a 30-second settled cache, and
+  save-time invalidation; `EstimateSheetContent` also waits for account load
+  completion before account saves and only preserves user-initiated dirty edits.
+  Focused proof: regressions for "no save while account load is pending" and
+  duplicate-mount load coalescing passed, adjacent estimate-sheet tests passed,
+  typecheck passed, and `git diff --check` passed.
+- Estimate-sheet lite-library refetch repair (2026-07-07 local): the pasted log
+  showed `insertEstimateRowItemFromLibrary` followed by a slow active
+  `loadProjectComponentLibraryLite` refetch. Root cause was the express/project
+  component projection refresh invalidating the shared library prefix with
+  `refetchType: "active"`, which also matched the heavy in-estimate lite library
+  query. Projection refresh now stale-marks that shared prefix with
+  `refetchType: "none"` and keeps active refresh scoped to the rows-library
+  projection key. Proof: the cache-contract regression first failed on the
+  active refetch, then passed; adjacent lazy-library and insert suites passed,
+  typecheck passed, `git diff --check` passed, and GitNexus detect stayed on the
+  expected sidebar/library affected flow.
 - Next 16 proxy convention repair (2026-07-07 local): the startup warning about
   deprecated `middleware` was caused by `src/middleware.ts` remaining as the
   active file convention while `src/proxy/index.ts` was only an import
@@ -944,7 +1150,7 @@ Stable current truth (verify against git/source before relying on a detail):
   CommandCode, Antigravity, Kimi, DeepSeek, Hermes if approved, Gemini if
   reapproved, Ollama-backed embedding pipelines, Cursor, and future configured
   harnesses. Agent adapters should check it before meaningful work, start
-  `npm exec supermemory local` when it is down and local process startup is
+  `./node_modules/.bin/supermemory local` when it is down and local process startup is
   available, search memory before broad/non-trivial work, and update memory at
   closeout when durable project truth changes. `.ai`, current source, tests,
   and provider evidence remain authoritative; never store secrets in
