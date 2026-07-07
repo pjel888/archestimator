@@ -120,7 +120,7 @@ beforeEach(() => {
 });
 
 describe("project component projection D1 repository", () => {
-  it("does not load all project rows for estimate-only project visibility", async () => {
+  it("returns only the workspace library when the user cannot access the project", async () => {
     const database = new FakeProjectComponentProjectionD1Database();
     database.rowItems = [
       {
@@ -143,7 +143,6 @@ describe("project component projection D1 repository", () => {
     expect(database.prepared.some((entry) => entry.sql.includes("FROM estimate_row_items row_items"))).toBe(false);
     expect(result.libraryItems).toEqual([{ id: "workspace-item", material: "Workspace component" }]);
   });
-
   it("loads project component projection rows from Cloudflare D1", async () => {
     const database = new FakeProjectComponentProjectionD1Database();
     database.rowItems = [
@@ -187,8 +186,12 @@ describe("project component projection D1 repository", () => {
     });
 
     const statement = findPrepared(database, /FROM estimate_row_items row_items/);
-    expect(statement.values).toEqual(["project-1", 7]);
+    expect(statement.values).toEqual(["project-1", 0, "user-1", 7]);
     expect(statement.sql).toContain("INNER JOIN estimates ON estimates.id = row_items.estimate_id");
+    expect(statement.sql).toContain("LEFT JOIN estimate_sheet_access_settings access ON access.estimate_id = estimates.id");
+    expect(statement.sql).toContain("COALESCE(access.inherit_project_access, 1) = 1");
+    expect(statement.sql).toContain("sheet_member.estimate_id = estimates.id");
+    expect(statement.sql).toContain("sheet_member.user_id = ?");
     expect(authzMocks.canAccessWholeProjectInD1).toHaveBeenCalledWith(database, "project-1", { userId: "user-1", role: "member" });
     expect(componentLibraryMocks.getCurrentWorkspaceComponentRowsLibrary).toHaveBeenCalledWith({
       includeDetailGraph: true,
