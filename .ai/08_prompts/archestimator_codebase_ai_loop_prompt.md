@@ -111,8 +111,12 @@ For this audit and every future codebase-AI workflow:
    background and retry until the check passes:
 
    ```sh
-   nohup npm exec supermemory local >/tmp/supermemory-local.log 2>&1 &
+   test -x ./node_modules/.bin/supermemory && \
+     nohup ./node_modules/.bin/supermemory local >/tmp/supermemory-local.log 2>&1 &
    ```
+
+   Do not use `npm exec`, `npx`, or any startup command that can install or
+   run an unpinned registry package.
 
 3. Search Supermemory for relevant repo/task memory before broad, non-trivial,
    recovery, review, or handoff work. Use the configured harness plugin, MCP,
