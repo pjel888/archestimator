@@ -285,6 +285,7 @@ export async function getProjectComponentRowsLibrary(
   const currentUser = await requireCurrentUserContext();
   const canAccessWholeProject = await canAccessWholeProjectInD1(database, project.id, currentUser);
   if (!canAccessWholeProject) return library;
+  const canReadRestrictedEstimates = currentUser.role === "ceo" || currentUser.role === "admin";
 
   const projectRowLimit = normalizeProjectComponentRowLimit(options.projectRowLimit);
   const projectRows = await all<ProjectComponentProjectionD1Row>(
@@ -320,10 +321,21 @@ export async function getProjectComponentRowsLibrary(
      FROM estimate_row_items row_items
      LEFT JOIN estimate_nodes nodes ON nodes.id = row_items.node_id
      INNER JOIN estimates ON estimates.id = row_items.estimate_id
+     LEFT JOIN estimate_sheet_access_settings access ON access.estimate_id = estimates.id
      WHERE estimates.project_id = ?
+       AND (
+         ? = 1
+         OR COALESCE(access.inherit_project_access, 1) = 1
+         OR EXISTS (
+           SELECT 1
+           FROM estimate_sheet_members sheet_member
+           WHERE sheet_member.estimate_id = estimates.id
+             AND sheet_member.user_id = ?
+         )
+       )
      ORDER BY row_items.created_at DESC, row_items.id DESC
      LIMIT ?`,
-    [project.id, projectRowLimit ?? SIDEBAR_COMPONENT_LIBRARY_MAX_LIMIT],
+    [project.id, canReadRestrictedEstimates ? 1 : 0, currentUser.userId, projectRowLimit ?? SIDEBAR_COMPONENT_LIBRARY_MAX_LIMIT],
   );
 
   const projectedRows = projectRows

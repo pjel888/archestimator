@@ -186,8 +186,12 @@ describe("project component projection D1 repository", () => {
     });
 
     const statement = findPrepared(database, /FROM estimate_row_items row_items/);
-    expect(statement.values).toEqual(["project-1", 7]);
+    expect(statement.values).toEqual(["project-1", 0, "user-1", 7]);
     expect(statement.sql).toContain("INNER JOIN estimates ON estimates.id = row_items.estimate_id");
+    expect(statement.sql).toContain("LEFT JOIN estimate_sheet_access_settings access ON access.estimate_id = estimates.id");
+    expect(statement.sql).toContain("COALESCE(access.inherit_project_access, 1) = 1");
+    expect(statement.sql).toContain("sheet_member.estimate_id = estimates.id");
+    expect(statement.sql).toContain("sheet_member.user_id = ?");
     expect(authzMocks.canAccessWholeProjectInD1).toHaveBeenCalledWith(database, "project-1", { userId: "user-1", role: "member" });
     expect(componentLibraryMocks.getCurrentWorkspaceComponentRowsLibrary).toHaveBeenCalledWith({
       includeDetailGraph: true,
