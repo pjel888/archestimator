@@ -95,7 +95,7 @@ describe("Codex component-library and tooling hardening contracts", () => {
 
   it("uses the repo-pinned Impeccable detector instead of mutable npx resolution", () => {
     const packageJson = read("package.json");
-    const ciWorkflow = read(".github/workflows/ci.yml");
+    const ciWorkflow = read(".github/workflows-disabled/ci.yml");
     const validationMatrix = read(".ai/00_system/VALIDATION_MATRIX.md");
     const floatingCommand = ["npx", "impeccable", "detect", "--strict"].join(" ");
 
