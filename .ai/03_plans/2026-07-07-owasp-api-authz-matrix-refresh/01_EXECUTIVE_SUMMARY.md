@@ -108,7 +108,7 @@ exploration claims (several exploration P0s were downgraded). Full detail in
 ## Plan status: `CONDITIONALLY READY`
 
 The matrix is internally complete and can drive an implementation pass for the named
-gaps (SEC-01 through SEC-09 + coverage gaps in Doc 12). It is **not** `IMPLEMENTATION-READY`
+gaps (SEC-01 through SEC-07, SEC-09 through SEC-11 + coverage gaps in Doc 12). It is **not** `IMPLEMENTATION-READY`
 because:
 
 1. `verification_mode: emulated` caps overall readiness at 97 and (high-blast-radius
