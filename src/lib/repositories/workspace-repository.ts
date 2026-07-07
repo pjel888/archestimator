@@ -3831,10 +3831,12 @@ export async function resolveEstimateTabRouteContext(
   routeSegment: string,
   options: LiveEstimateTreeLoadOptions = {},
 ): Promise<EstimateTabRouteContext> {
-  const { workspace, project } = await traced("estimate-route-context.project", () =>
-    getCurrentWorkspaceProject(projectId),
-  );
-  if (!isUuid(projectId) || !project) return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
+  if (!isUuid(projectId)) {
+    const { workspace, project } = await traced("estimate-route-context.project", () =>
+      getCurrentWorkspaceProject(projectId),
+    );
+    return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
+  }
 
   const database = await traced("estimate-route-context.d1-client", () => requireWorkspaceRepositoryD1Database());
   const userContext = await requireCurrentUserContext();
@@ -3853,6 +3855,16 @@ export async function resolveEstimateTabRouteContext(
       [routeSegment, projectId],
     ),
   );
+
+  const routeEstimateId = selectedNode?.estimate_id ?? (isUuid(routeSegment) ? routeSegment : null);
+  const { workspace, project } = routeEstimateId
+    ? await traced("estimate-route-context.project", () =>
+        getCurrentWorkspaceProjectForEstimate(projectId, routeEstimateId),
+      )
+    : await traced("estimate-route-context.project", () =>
+        getCurrentWorkspaceProject(projectId),
+      );
+  if (!project) return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
 
   if (selectedNode?.estimate_tab_id) {
     // U21 / Routing Page Optimization P3-T3: resolve the tab tree and tab list in
@@ -3966,8 +3978,10 @@ async function getProjectEstimateTreeByNodeLegacy(projectId: string, nodeId: str
 }
 
 export async function getProjectEstimateTreeByNode(projectId: string, nodeId: string): Promise<LiveEstimateTreeResult> {
-  const { workspace, project } = await getCurrentWorkspaceProject(projectId);
-  if (!project) return { workspace, project, estimate: null, selectedNodeId: null, tree: [] };
+  if (!isUuid(projectId)) {
+    const { workspace, project } = await getCurrentWorkspaceProject(projectId);
+    return { workspace, project, estimate: null, selectedNodeId: null, tree: [] };
+  }
 
   const database = await requireWorkspaceRepositoryD1Database();
   const selectedNode = await first<{ id: string; estimate_id: string; estimate_tab_id: string | null }>(
@@ -3978,9 +3992,12 @@ export async function getProjectEstimateTreeByNode(projectId: string, nodeId: st
      WHERE node.id = ?
        AND estimate.project_id = ?
      LIMIT 1`,
-    [nodeId, project.id],
+    [nodeId, projectId],
   );
   if (!selectedNode) return getProjectEstimateTreeByEstimate(projectId, nodeId);
+
+  const { workspace, project } = await getCurrentWorkspaceProjectForEstimate(projectId, selectedNode.estimate_id);
+  if (!project) return { workspace, project, estimate: null, selectedNodeId: null, tree: [] };
 
   if (selectedNode.estimate_tab_id) {
     const result = await getEstimateTabTree(projectId, selectedNode.estimate_id, selectedNode.estimate_tab_id);

@@ -21,7 +21,11 @@ vi.mock("@/lib/cloudflare/d1", () => ({
   getCloudflareD1Database,
 }));
 
-import { getEstimateTreesForTabs, getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
+import {
+  getEstimateTreesForTabs,
+  getProjectEstimateTreeByEstimate,
+  resolveEstimateTabRouteContext,
+} from "@/lib/repositories/workspace-repository";
 
 type CapturedQuery = {
   sql: string;
@@ -109,6 +113,9 @@ function createD1Fixture() {
           if (sql.includes("FROM workspaces") && sql.includes("WHERE id = ?")) return workspaceRow();
           if (sql.includes("FROM estimate_tabs") && sql.includes("is_default = 1")) return tabRow();
           if (sql.includes("FROM estimate_tabs") && sql.includes("WHERE id = ?")) return tabRow();
+          if (sql.includes("SELECT node.id, node.estimate_id, node.estimate_tab_id")) {
+            return { id: NODE_ID, estimate_id: ESTIMATE_ID, estimate_tab_id: TAB_ID };
+          }
           if (sql.includes("FROM estimate_sheet_adjustments")) return null;
           return null;
         }),
@@ -131,6 +138,7 @@ function createD1Fixture() {
             };
           }
           if (sql.includes("FROM estimate_row_items")) return { results: [] };
+          if (sql.includes("FROM estimate_tabs")) return { results: [tabRow()] };
           return { results: [] };
         }),
         run: vi.fn(async () => ({ success: true, meta: { changes: 0 } })),
@@ -203,5 +211,36 @@ describe("estimate-scoped project context", () => {
       query.sql.includes("FROM estimates estimate")
     );
     expect(estimateCheck?.sql).toContain("estimate_sheet_members sheet_member");
+  });
+
+  it("lets sheet-only collaborators resolve the estimate route through a node segment", async () => {
+    const fixture = createD1Fixture();
+    getCloudflareD1Database.mockResolvedValue(fixture.db);
+
+    const result = await resolveEstimateTabRouteContext(PROJECT_ID, NODE_ID);
+
+    expect(result.project?.id).toBe(PROJECT_ID);
+    expect(result.estimate?.id).toBe(ESTIMATE_ID);
+    expect(result.tab?.id).toBe(TAB_ID);
+    expect(result.selectedNodeId).toBe(NODE_ID);
+    expect(result.tree).toHaveLength(1);
+
+    const selectedNodeLookup = fixture.queries.find((query) =>
+      query.sql.includes("SELECT node.id, node.estimate_id, node.estimate_tab_id")
+    );
+    expect(selectedNodeLookup?.values).toEqual([NODE_ID, PROJECT_ID]);
+
+    const wholeProjectCheck = fixture.queries.find((query) =>
+      query.sql.includes("SELECT 1 AS allowed") &&
+      query.sql.includes("FROM projects project")
+    );
+    expect(wholeProjectCheck?.sql).not.toContain("estimate_sheet_members");
+
+    const estimateCheck = fixture.queries.find((query) =>
+      query.sql.includes("SELECT 1 AS allowed") &&
+      query.sql.includes("FROM estimates estimate")
+    );
+    expect(estimateCheck?.sql).toContain("estimate_sheet_members sheet_member");
+    expect(estimateCheck?.values).toContain(ESTIMATE_ID);
   });
 });

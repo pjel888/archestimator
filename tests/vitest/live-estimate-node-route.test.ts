@@ -143,8 +143,10 @@ describe("live estimate node route", () => {
   });
 
   it("repository validates node ownership through project-scoped estimate join", () => {
-    expect(workspaceRepository).toContain("estimates!inner");
-    expect(workspaceRepository).toContain('.eq("estimates.project_id", project.id)');
+    expect(workspaceRepository).toContain("SELECT node.id, node.estimate_id, node.estimate_tab_id");
+    expect(workspaceRepository).toContain("INNER JOIN estimates estimate ON estimate.id = node.estimate_id");
+    expect(workspaceRepository).toContain("AND estimate.project_id = ?");
+    expect(workspaceRepository).toContain("getCurrentWorkspaceProjectForEstimate(projectId, selectedNode.estimate_id)");
     expect(workspaceRepository).toContain("return getProjectEstimateTreeByEstimate(projectId, nodeId)");
     expect(workspaceRepository).toContain("buildEstimateTree");
   });
