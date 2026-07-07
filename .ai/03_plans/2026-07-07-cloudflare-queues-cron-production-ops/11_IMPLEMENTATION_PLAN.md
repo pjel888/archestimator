@@ -62,70 +62,101 @@ Phase 5 (hosted proof, owner-gated) ◄─────────────�
 - **Done criteria:** test green; manual red-check confirms it bites.
 - **Complexity:** Small.
 
-### Task T-002 — Add cron union guard test
-- **Req:** FR-001.
-- **Objective:** Pin the cron SoT so future drift fails CI.
-- **Target file:** `tests/vitest/cloudflare-scheduled-upload-jobs.test.ts` (extend existing) OR a new `tests/vitest/cloudflare-cron-source-of-truth.test.ts`.
-- **What it asserts:** `new Set([...wranglerCrons]) === new Set([CLOUDFLARE_UPLOAD_CLEANUP_CRON, CLOUDFLARE_UPLOAD_SCAN_CRON, "30 3 * * *"])` AND the worker.ts retention branch references `"30 3 * * *"`.
-- **Validation:** `bun run test:dom`.
-- **Acceptance:** test green; temporarily editing `wrangler.jsonc` to 2 crons makes it red (manual check during implementation).
-- **Parallelization:** parallel-safe.
-- **Complexity:** Small.
-
 ---
 
 ## Phase 2 — Close test gaps (TEST-001, TEST-002, FR-003, FR-004)
 
-### Task T-003 — Consumer exception + DLQ-boundary + minute-key tests
-- **Req:** TEST-001, FR-003, FR-004.
-- **Objective:** Add focused vitest cases to `tests/vitest/cloudflare-upload-job-queue.test.ts`:
-  - (a) fetcher `throw`s → outcome `reason:"exception"`, `action:"retry"`, message.retried true.
-  - (b) failed job at `attempts=2` (< MAX_RETRIES) → `deadLetterExpected=false`.
-  - (c) `buildIdempotencyKey` at `03:00:59Z` vs `03:01:00Z` → different keys; same minute → same key.
-  - (d) two same-key messages in **separate** `runCloudflareUploadJobQueueBatch` calls → both execute (no cross-batch dedup), asserting the per-batch Set is reset.
-  - (e) consumer with no secret → ack reason `"missing-secret"` (route-side skip).
-  - (f) consumer with unmatched cron body → ack reason `"unmatched-cron"`.
-- **Target file:** `tests/vitest/cloudflare-upload-job-queue.test.ts`.
-- **Target symbols:** `runCloudflareUploadJobQueueBatch`, `buildCloudflareUploadJobQueueMessages`, `buildIdempotencyKey` (export it or test via `buildCloudflareUploadJobQueueMessages` with controlled `enqueuedAt`).
-- **Validation:** `bun run test:dom`.
-- **Parallelization:** parallel-safe (test file owned by this task).
+### Implementation Unit T-003 — Consumer exception + DLQ-boundary + minute-key + consumer-skip tests
+- **Unit ID:** T-003
+- **Requirement IDs:** TEST-001, FR-003, FR-004, API-001
+- **Goal:** Close the untested branches of `runCloudflareUploadJobQueueBatch`.
+- **User/system outcome:** the queue consumer's idempotency, retry, DLQ, and skip decisions are regression-protected.
+- **Scope:** add cases (a)–(g) to one existing test file.
+- **Non-goals:** do not change source behavior; do not test the worker `queue()` wrapper (that's T-004).
+- **Files to modify:** `tests/vitest/cloudflare-upload-job-queue.test.ts`.
+- **Existing patterns:** the file already uses `FakeQueueMessage` + `runCloudflareUploadJobQueueBatch` (L81+) — extend it.
+- **Dependencies/sequencing:** none; parallel-safe (owns the file).
+- **Implications:** none (test-only).
+- **Detailed test scenarios:**
+  - (a) **exception:** fetcher `throw`s → outcome `reason:"exception"`, `action:"retry"`, `message.retried===true`. (PROOF-EXC)
+  - (b) **DLQ low boundary:** failed job at `attempts=2` (< `MAX_RETRIES=3`) → `deadLetterExpected===false`. (PROOF-DLQLO)
+  - (c) **minute key boundary:** via `buildCloudflareUploadJobQueueMessages` with `enqueuedAt` `03:00:59Z` vs `03:01:00Z` → different `idempotencyKey`; same minute → same key. (PROOF-IDEMPMIN) — avoid exporting `buildIdempotencyKey`; test through the public builder.
+  - (d) **cross-batch no-dedup:** two separate `runCloudflareUploadJobQueueBatch` calls with the same key → both execute (assert the per-batch `seenIdempotencyKeys` Set does not leak across calls). (PROOF-IDEMPXBAT)
+  - (e) **missing-secret through consumer:** route-side skip → ack reason `"missing-secret"`. (PROOF-CONSNODSEC)
+  - (f) **unmatched-cron through consumer:** body cron `99 9 * * *` → ack reason `"unmatched-cron"`. (PROOF-CONSUNMATCH)
+  - (g) **malformed proof id:** `providerProof.id="x"` → `safeProviderProofId` rejects, no R2 receipt written. (PROOF-IDVALID)
+- **Verification command/evidence:** `bun run test:dom -- cloudflare-upload-job-queue`.
+- **Rollback:** delete the added `it` blocks.
+- **Stop/blocker:** none.
+- **Done criteria:** all 7 cases green; `bun run test:dom` overall green.
 - **Complexity:** Medium.
-- **Risks:** exposing `buildIdempotencyKey` if not exported — prefer testing through `buildCloudflareUploadJobQueueMessages` to avoid changing source exports.
 
-### Task T-004 — Worker handler invocation test
-- **Req:** TEST-002.
-- **Objective:** Import `worker.ts` default export; invoke `scheduled({cron:"0 3 * * *"}, env, fakeCtx)` and `scheduled({cron:"30 3 * * *"}, ...)` and `queue(fakeBatch, env, fakeCtx)`; assert `fakeCtx.waitUntil` was called and the awaited promise resolves with the expected summary shape.
-- **Target file:** new `tests/vitest/worker-handlers.test.ts`.
-- **Challenge (executor note):** `worker.ts` imports `./.open-next/worker.js` which is generated by `cf:build`. The test must either (a) mock/stub that import via vitest `vi.mock`, or (b) guard the import. **DISCOVERY-REQUIRED** if the generated file is absent in the test env — the executor must first verify whether `.open-next/worker.js` exists at test time or needs a build step. Stop condition: a test that imports the default export and invokes the handlers without a real OpenNext fetch (mock the fetcher path).
-- **Validation:** `bun run test:dom`.
-- **Acceptance:** `scheduled()` retention branch (cron `30 3`) is asserted to call `runRetentionPassInD1` (mock the D1 binding to a spy).
-- **Parallelization:** parallel-safe.
-- **Complexity:** Medium (mocking the generated import is the hard part).
+### Implementation Unit T-004 — Worker handler invocation test
+- **Unit ID:** T-004
+- **Requirement IDs:** TEST-002
+- **Goal:** Invoke the real `scheduled()` and `queue()` handlers (not source-grep).
+- **User/system outcome:** a refactor that breaks cron/queue dispatch is caught.
+- **Scope:** one new test file.
+- **Non-goals:** do not test OpenNext fetch internals; mock the fetcher.
+- **Files to create:** `tests/vitest/worker-handlers.test.ts`.
+- **Existing patterns:** none directly (no existing worker.ts import test); use vitest `vi.mock`.
+- **Dependencies/sequencing:** **DISCOVERY-REQUIRED sub-step** — before writing assertions, verify whether `.open-next/worker.js` exists at test time. Scope: `ls .open-next/worker.js` + check `cf:build` output. Stop condition: confirm presence OR confirm `vi.mock("./.open-next/worker.js", ...)` resolves the import. Expected evidence: the import either resolves or the mock is in place. No code change beyond the test. If discovery finds the file is always generated by `cf:build` and absent in a fresh `test:dom` run, the mock is the required path.
+- **Implications:** none (test-only).
+- **Test scenarios:**
+  - `scheduled({cron:"0 3 * * *"}, env, fakeCtx)` → `fakeCtx.waitUntil` called; awaited promise resolves.
+  - `scheduled({cron:"30 3 * * *"}, env, fakeCtx)` → retention branch hits the D1 spy (`runRetentionPassInD1` called with `env.ARCH_DB`).
+  - `queue(fakeBatch, env, fakeCtx)` → `waitUntil` called; `runCloudflareUploadJobQueueBatch` summary shape returned.
+- **Verification:** `bun run test:dom -- worker-handlers`.
+- **Rollback:** delete the file.
+- **Stop/blocker:** if the generated-import mock proves infeasible, fall back to a focused test of `runCloudflareScheduledUploadJobs`/`runRetentionPassInD1` dispatch wiring via a thin wrapper — record the fallback.
+- **Done criteria:** `scheduled()` retention branch asserted; `queue()` wrapper asserted.
+- **Complexity:** Medium (the mock is the hard part).
 
-### Task T-005 — Retention branch tests
-- **Req:** TEST-001.
-- **Objective:** Extend `tests/vitest/compliance-retention-repository.test.ts`:
-  - (a) no-rows-skip branch (`selectResult.results=[]` → `notes:"no rows past cutoff"`, `skipped:true`, no DELETE, no audit).
-  - (b) per-rule error branch (FakeD1.prepare throws for one rule) → that rule `skipped:true, notes:"error:*"`, other rules still apply.
-  - (c) run `DEFAULT_RETENTION_RULES` (all 7) through a FakeD1 and assert each produces a result (currently only a synthetic `testRule` is run).
-- **Target file:** `tests/vitest/compliance-retention-repository.test.ts`.
-- **Validation:** `bun run test:dom`.
-- **Parallelization:** parallel-safe.
+### Implementation Unit T-005 — Retention branch tests
+- **Unit ID:** T-005
+- **Requirement IDs:** TEST-001
+- **Goal:** Cover the retention engine's untested branches.
+- **User/system outcome:** a retention rule error or empty result set is correctly skipped without aborting the pass.
+- **Scope:** extend one existing test file with (a)–(c).
+- **Non-goals:** do not change retention rules (OPEN-DEC-007 is separate).
+- **Files to modify:** `tests/vitest/compliance-retention-repository.test.ts`.
+- **Existing patterns:** the file uses a `FakeD1` (L59+); extend it to throw / return empty.
+- **Dependencies/sequencing:** none; parallel-safe.
+- **Implications:** none (test-only).
+- **Test scenarios:**
+  - (a) **no-rows-skip:** `selectResult.results=[]` → `notes:"no rows past cutoff"`, `skipped:true`, no DELETE, no audit INSERT. (PROOF-RETNOROWS)
+  - (b) **per-rule error:** `FakeD1.prepare` throws for one rule → that rule `skipped:true, notes:"error:*"`, other rules still apply+audit. (PROOF-RETRERR)
+  - (c) **all 7 rules:** run `DEFAULT_RETENTION_RULES` through a seeded FakeD1 → 7 results, each with correct cutoff. (PROOF-RETALL7)
+- **Verification:** `bun run test:dom -- compliance-retention-repository`.
+- **Rollback:** delete added cases.
+- **Stop/blocker:** none.
+- **Done criteria:** (a)(b)(c) green.
 - **Complexity:** Medium.
 
 ---
 
 ## Phase 3 — Retention `created_at` indexes (DATA-001, DB-INDEX)
 
-### Task T-006 — Create migration 0039
-- **Req:** DATA-001. Decision: D-INDEX (assumed approved).
-- **Objective:** Add standalone `created_at` indexes for the 4 tables that need them (per `07` revision: NOT `privacy_requests`).
-- **Target file:** `migrations/0039_retention_created_at_indexes.sql`.
-- **SQL:** as in `07` DB-INDEX (4 `CREATE INDEX IF NOT EXISTS`), with a header comment citing DATA-001 / DB-INDEX.
-- **Validation:** `bun run cf:build` (type); apply to preview D1; `EXPLAIN QUERY PLAN` shows range scan; readback `PRAGMA index_list`.
-- **Apply to remote:** under standing Cloudflare authorization, after preview proof.
-- **Rollback:** `DROP INDEX IF EXISTS idx_*_retention_created;` (migration `0040` if needed, or manual).
-- **Parallelization:** sequential wrt deploy (must be applied before a deploy that relies on it); independent of Phases 1–2.
+### Implementation Unit T-006 — Migration 0039 + EXPLAIN proof
+- **Unit ID:** T-006
+- **Requirement IDs:** DATA-001 (decision D-INDEX, owner-approved-pending)
+- **Goal:** Make retention purges use range scans instead of full scans.
+- **User/system outcome:** the daily 03:30 UTC retention pass stays cheap as audit tables grow, avoiding a free-tier row-read spike.
+- **Scope:** one additive migration (4 indexes) + EXPLAIN proof on preview + readback on remote.
+- **Non-goals:** do NOT index `privacy_requests` (its existing `(status,created_at)`/`(request_kind,created_at)` indexes already cover the retention query); do not change retention SQL.
+- **Files to create:** `migrations/0039_retention_created_at_indexes.sql`.
+- **Existing patterns:** migrations are plain SQL, `IF NOT EXISTS`, header comment citing the requirement/plan (`0034` style).
+- **Dependencies/sequencing:** sequential wrt deploy (apply before relying on it); independent of Phases 1–2. Preview → readback → remote under standing Cloudflare authorization.
+- **Data implications:** additive only; no data change; reversible. See DB blueprint in `07`.
+- **API/security implications:** none.
+- **Performance implications:** retention SELECT rows-read drops full-scan→range; write cost on the 4 tables negligible (append-heavy audit tables, once-daily off-peak read).
+- **Test scenarios / proof:**
+  - PROOF-EXPLAIN: `EXPLAIN QUERY PLAN SELECT id FROM account_security_events WHERE created_at < ? LIMIT 500` on preview D1 → shows `USING INDEX idx_account_security_events_retention_created` (range), not `SCAN`. Same for the other 3 tables.
+  - PROOF-IDXREADBACK: `PRAGMA index_list(account_security_events)` etc. on remote → 4 indexes present.
+- **Verification command/evidence:** `bun run cf:build` (type); `wrangler d1 execute ARCH_DB --preview --command "EXPLAIN QUERY PLAN ..."`; `wrangler d1 execute ARCH_DB --remote --command "PRAGMA index_list(...)"`; write `evidence/retention-index-explain.json`.
+- **Rollback/recovery:** `DROP INDEX IF EXISTS idx_*_retention_created;` (migration `0040` or manual remote SQL) — fully reversible, no data loss; SELECTs work without the index (just slower at scale).
+- **Stop/blocker:** if EXPLAIN shows a full scan despite the index → investigate D1 stats/`ANALYZE`; do not claim success.
+- **Done criteria:** EXPLAIN range-scan on preview + applied to remote + readback shows 4 indexes.
 - **Complexity:** Small.
 - **DB blueprint:** see `07` DB-INDEX (full).
 
