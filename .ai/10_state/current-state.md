@@ -39,7 +39,10 @@ Stable current truth (verify against git/source before relying on a detail):
   file / 2 tests, targeted ESLint no errors, and high-memory `bun run
   type-check`. GitHub hosted security controls remain unavailable rather than
   clean: code scanning 403 disabled, Dependabot alerts 403 disabled plus extra
-  scope request, secret scanning 404 disabled. Ledger:
+  scope request, secret scanning 404 disabled. After replying/resolving the
+  evidence-backed or stale-provider CODEX threads on merged PRs 107, 108, 109,
+  112, 114, 115, 118, 121, 122, and 123, GitHub GraphQL readback across merged
+  PRs 106-123 returned unresolved CODEX review-thread count 0. Ledger:
   `.ai/03_plans/2026-07-07-github-security-pr-comment-loop/LOOP_LEDGER.md`.
 - Shared-link password lockout hardening (2026-07-07 local): Aardvark flagged that the password unlock route relied only on durable 5-failure/15-minute rows after the process-local hard-lockout removal. The durable D1 limiter now keeps the same 5-failure threshold but uses a 1-hour failure counting/TTL window for `project_publication_password`, preserving module-reset-safe durable enforcement while restoring the stronger online guessing budget. Focused proof: `bunx vitest run tests/vitest/project-publication-password-lockout-route.test.ts tests/vitest/project-publication-public-repository.test.ts --maxWorkers=1` passed.
 - Stage: pre-launch closed-beta MVP. Bias to fast, useful iteration over
