@@ -89,7 +89,8 @@ and unresolved at planning time (thresholds are DISCOVERY).
 
 ## Final determination
 
-- **Status: `CONDITIONALLY READY`** (emulated verification on a high-blast-radius package).
+- **Status: `CONDITIONALLY READY`** (content gate: Performance 92 < 95, not a verification cap;
+  final verification was independent).
 - **Implementation-ready slices (named):**
   - Phase 0 (schema, repository, checksum, redaction-policy+byte-scan, staleness helper) — ready
     after DISCOVERY T0.4 (allowlist owner review).
