@@ -1,6 +1,6 @@
 import { classifyEstimateRowSource, isExpressComponentProjectFolderEnabled, readEstimateRowMetadata, withProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
 import { sanitizeEstimateRowSourceSnapshot } from "@/lib/estimates/image-url";
-import { canAccessProjectInD1 } from "@/lib/authz/d1-access";
+import { canAccessWholeProjectInD1 } from "@/lib/authz/d1-access";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
 import {
@@ -283,8 +283,8 @@ export async function getProjectComponentRowsLibrary(
 
   const database = await requireProjectComponentProjectionD1Database();
   const currentUser = await requireCurrentUserContext();
-  const canAccessProject = await canAccessProjectInD1(database, project.id, currentUser);
-  if (!canAccessProject) return library;
+  const canAccessWholeProject = await canAccessWholeProjectInD1(database, project.id, currentUser);
+  if (!canAccessWholeProject) return library;
 
   const projectRowLimit = normalizeProjectComponentRowLimit(options.projectRowLimit);
   const projectRows = await all<ProjectComponentProjectionD1Row>(

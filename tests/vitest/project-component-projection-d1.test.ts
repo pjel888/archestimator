@@ -7,7 +7,7 @@ const authSessionMocks = vi.hoisted(() => ({
 }));
 
 const authzMocks = vi.hoisted(() => ({
-  canAccessProjectInD1: vi.fn(),
+  canAccessWholeProjectInD1: vi.fn(),
 }));
 
 const d1Mocks = vi.hoisted(() => ({
@@ -88,7 +88,7 @@ beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
   authSessionMocks.requireCurrentUserContext.mockResolvedValue({ userId: "user-1", role: "member" });
-  authzMocks.canAccessProjectInD1.mockResolvedValue(true);
+  authzMocks.canAccessWholeProjectInD1.mockResolvedValue(true);
   componentLibraryMocks.getCurrentWorkspaceComponentRowsLibrary.mockResolvedValue({
     libraryFolders: [
       {
@@ -130,7 +130,7 @@ describe("project component projection D1 repository", () => {
       },
     ];
     d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
-    authzMocks.canAccessProjectInD1.mockResolvedValue(false);
+    authzMocks.canAccessWholeProjectInD1.mockResolvedValue(false);
 
     const { getProjectComponentRowsLibrary } = await import("@/lib/component-library/project-component-projection");
     const result = await getProjectComponentRowsLibrary("project-1", {
@@ -139,7 +139,7 @@ describe("project component projection D1 repository", () => {
       projectRowLimit: 7,
     });
 
-    expect(authzMocks.canAccessProjectInD1).toHaveBeenCalledWith(database, "project-1", { userId: "user-1", role: "member" });
+    expect(authzMocks.canAccessWholeProjectInD1).toHaveBeenCalledWith(database, "project-1", { userId: "user-1", role: "member" });
     expect(database.prepared.some((entry) => entry.sql.includes("FROM estimate_row_items row_items"))).toBe(false);
     expect(result.libraryItems).toEqual([{ id: "workspace-item", material: "Workspace component" }]);
   });
@@ -188,7 +188,7 @@ describe("project component projection D1 repository", () => {
     const statement = findPrepared(database, /FROM estimate_row_items row_items/);
     expect(statement.values).toEqual(["project-1", 7]);
     expect(statement.sql).toContain("INNER JOIN estimates ON estimates.id = row_items.estimate_id");
-    expect(authzMocks.canAccessProjectInD1).toHaveBeenCalledWith(database, "project-1", { userId: "user-1", role: "member" });
+    expect(authzMocks.canAccessWholeProjectInD1).toHaveBeenCalledWith(database, "project-1", { userId: "user-1", role: "member" });
     expect(componentLibraryMocks.getCurrentWorkspaceComponentRowsLibrary).toHaveBeenCalledWith({
       includeDetailGraph: true,
       itemLimit: 25,
