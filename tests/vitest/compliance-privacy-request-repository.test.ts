@@ -66,6 +66,30 @@ describe("privacy request register (P0.5)", () => {
     ).rejects.toThrow(/request_kind/i);
   });
 
+
+  it("createPrivacyRequest rejects oversized requester fields and metadata", async () => {
+    vi.doMock("@/lib/cloudflare/d1", () => ({
+      getCloudflareD1Database: async () => new FakeD1(),
+    }));
+    const mod = await import("@/lib/compliance/privacy-request-repository");
+
+    await expect(
+      mod.createPrivacyRequest({
+        requestKind: "access",
+        description: "Please send my data.",
+        requesterName: "x".repeat(201),
+      }),
+    ).rejects.toThrow(/requesterName/);
+
+    await expect(
+      mod.createPrivacyRequest({
+        requestKind: "access",
+        description: "Please send my data.",
+        metadata: { nested: { value: "not accepted" } },
+      }),
+    ).rejects.toThrow(/metadata values/);
+  });
+
   // Scenario SLA-1 (REQ-005): list returns rows for triage queue
   it("listPrivacyRequests returns rows from D1 ordered by created_at desc (SLA-1)", async () => {
     fakeRows.push(
