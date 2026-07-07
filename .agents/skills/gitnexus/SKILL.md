@@ -18,11 +18,10 @@ here.
 ### Before you start
 
 - If the index is stale (the skill says "Index is stale"), run
-  `node .gitnexus/run.cjs analyze` only when the gitignored local runner exists
-  and has been inspected for this checkout to confirm it does not resolve
-  `gitnexus@latest`, `npx`, `npm exec`, `pnpm dlx`, or global installs. If it is
-  absent or contains registry-resolved fallback logic, skip the refresh until a
-  pinned, lockfile-controlled GitNexus runner is reviewed and added.
+  `bun run graph:reindex` only when its safe-runner guard passes. If the local
+  runner is absent or contains registry-resolved fallback logic, skip the
+  refresh until a pinned, lockfile-controlled GitNexus runner is reviewed and
+  added.
 - For any task, reading `gitnexus://repo/archestimator/context` first gives the
   codebase overview and freshness check (~150 tokens).
 

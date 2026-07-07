@@ -48,7 +48,7 @@ code-review-graph blocks below ("MUST run impact analysis before editing any sym
 defaults that are SUBORDINATE to the proportional graph policy in `.ai/00_system/AGENT_OPERATING_PROTOCOL.md` (Safety rules) and
 `AGENT_FRAMEWORK_PROTOCOL.md`: prefer `rg`/targeted reads/LSP for normal and narrow work, and
 reach for the graph on broad architecture questions, high-risk shared-symbol/API refactors, or
-unfamiliar call chains. Do not treat the generated absolutes ("MUST"/"NEVER"/"ALWAYS") as policy. Re-index via `bun run graph:reindex` (which re-applies this proportional policy after the generator runs), and run `bun run graph:neutralize` after any `code-review-graph install`/`init`.
+unfamiliar call chains. Do not treat the generated absolutes ("MUST"/"NEVER"/"ALWAYS") as policy. Re-index via `bun run graph:reindex` only when its safe-runner guard passes (it re-applies this proportional policy after the generator runs), and run `bun run graph:neutralize` after any `code-review-graph install`/`init`.
 
 ## Codex Delegation (codex-plugin-cc)
 
@@ -72,7 +72,7 @@ and `CODEX.md` — not duplicated here.
 
 This project is indexed by GitNexus as **archestimator** (22108 symbols, 52883 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
-> Index stale? Run `node .gitnexus/run.cjs analyze` only when the gitignored local runner exists and has been inspected for this checkout to confirm it does not resolve `gitnexus@latest`, `npx`, `npm exec`, `pnpm dlx`, or global installs. If `.gitnexus/run.cjs` is absent or contains registry-resolved fallback logic, skip the refresh and use available MCP/code-review-graph context until a pinned, lockfile-controlled GitNexus runner is reviewed and added.
+> Index stale? Run `bun run graph:reindex` only when its safe-runner guard passes. If `.gitnexus/run.cjs` is absent or contains registry-resolved fallback logic, skip the refresh and use available MCP/code-review-graph context until a pinned, lockfile-controlled GitNexus runner is reviewed and added.
 
 ## Always Do
 
