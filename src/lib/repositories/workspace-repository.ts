@@ -10,7 +10,7 @@ import {
   projectEstimateCollaborationRoleRank,
   type AppPlatformRole,
 } from "@/lib/auth/roles";
-import { canAccessEstimateInD1, canAccessProjectInD1, canEditEstimateInD1 } from "@/lib/authz/d1-access";
+import { canAccessEstimateInD1, canAccessWholeProjectInD1, canEditEstimateInD1 } from "@/lib/authz/d1-access";
 import type { EstimateRowItem, EstimateSheetAdjustment, EstimateTabSummary, EstimateTreeNode } from "@/lib/estimates/types";
 import { buildEstimateTreeSubtreePayload, type EstimateTreeSubtreeCompleteness, type EstimateTreeSubtreePayload } from "@/lib/estimates/estimate-tree-lazy";
 import { readEstimateRowMetadata } from "@/lib/estimates/express-components";
@@ -2315,10 +2315,9 @@ async function filterAccessibleSidebarProjectIds(
 ) {
   // ponytail: batched authz fix (WP-P1-03, 2026-07-05). Replaced the per-project
   // Promise.all(canAccessProjectInD1) loop — which issued 3N EXISTS probes for
-  // N sidebar favorites — with a single batched SQL query that lifts the 4
-  // access branches (created_by + 3 EXISTS) into one prepared statement.
-  // The platform-admin JS short-circuit is preserved before any SQL, matching
-  // branch 1 of canAccessProjectInD1.
+  // N sidebar favorites — with a single batched SQL query that lifts the
+  // membership access branches into one prepared statement.
+  // The platform-admin JS short-circuit is preserved before any SQL.
   // Santa-loop round 2: wrapped in try/catch to preserve the fail-closed
   // semantics of canAccessProjectInD1's runAllowedProbe — on D1 error, return
   // an empty list (deny all) instead of throwing.
@@ -2333,8 +2332,7 @@ async function filterAccessibleSidebarProjectIds(
        FROM projects project
        WHERE project.id IN (${placeholders(projectIds)})
          AND (
-           project.created_by = ?
-           OR EXISTS (
+           EXISTS (
              SELECT 1
              FROM workspace_members workspace_member
              WHERE workspace_member.workspace_id = project.workspace_id
@@ -2353,7 +2351,7 @@ async function filterAccessibleSidebarProjectIds(
                AND sheet_member.user_id = ?
            )
          )`,
-      [...projectIds, userId, userId, userId, userId],
+      [...projectIds, userId, userId, userId],
     );
     const accessibleSet = new Set(accessibleRows.map((row) => row.id));
     // Preserve input order: callers rely on the favorite-ranking order produced
@@ -2549,7 +2547,7 @@ export const getCurrentWorkspaceProject = cache(async function getCurrentWorkspa
 
   const projectRow = normalizeProjectRow(project);
   const canAccessProject = await traced("workspace-project.access-check", () =>
-    canAccessProjectInD1(database, projectRow.id, context),
+    canAccessWholeProjectInD1(database, projectRow.id, context),
   );
   if (!canAccessProject) {
     const { workspace: defaultWorkspace } = await traced("workspace-project.ensure-default-workspace", () => ensureDefaultWorkspace());

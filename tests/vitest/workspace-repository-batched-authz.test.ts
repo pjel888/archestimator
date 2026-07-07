@@ -37,10 +37,11 @@ function createBatchedAuthzDatabase({
         }),
         all: vi.fn(async <T>() => {
           capture?.({ sql, values: boundValues });
-          // The batched SQL binds [projectIds..., userId x4] (created_by,
-          // workspace_members.user_id, project_members.user_id,
-          // estimate_sheet_members.user_id).
-          const trailingUserIdCount = 4;
+          // The batched SQL binds [projectIds..., userId x3]
+          // (workspace_members.user_id, project_members.user_id,
+          // estimate_sheet_members.user_id). Historical created_by metadata is
+          // intentionally not an authorization branch.
+          const trailingUserIdCount = 3;
           const inputProjectIds = boundValues.slice(0, boundValues.length - trailingUserIdCount);
           const results = inputProjectIds
             .filter((id): id is string => typeof id === "string" && accessibleProjectIds.has(id))
@@ -99,11 +100,11 @@ describe("filterAccessibleSidebarProjectIds (batched authz)", () => {
     );
     expect(result).toEqual(["p1", "p3", "p5"]);
     expect(captured).toHaveLength(1);
-    // Verify the SQL uses the batched IN-list shape and the 4 EXISTS/created_by branches
+    // Verify the SQL uses the batched IN-list shape and membership branches.
     const sql = captured[0]?.sql ?? "";
     expect(sql).toContain("FROM projects");
     expect(sql).toContain("id IN (");
-    expect(sql).toContain("created_by = ?");
+    expect(sql).not.toContain("created_by = ?");
     expect(sql).toContain("FROM workspace_members");
     expect(sql).toContain("FROM project_members");
     expect(sql).toContain("FROM estimate_sheet_members");

@@ -77,11 +77,9 @@ describe("D1 access role boundaries", () => {
     await expect(canAccessProjectInD1(projectProbe.db, "project-1", user)).resolves.toBe(false);
     await expect(canAccessEstimateInD1(estimateProbe.db, "estimate-1", user)).resolves.toBe(false);
 
-    expect(projectProbe.queries[0]?.values).toEqual(["project-1", "user-1", "user-1", "user-1", "user-1"]);
+    expect(projectProbe.queries[0]?.values).toEqual(["project-1", "user-1", "user-1", "user-1"]);
     expect(estimateProbe.queries[0]?.values).toEqual([
       "estimate-1",
-      "user-1",
-      "user-1",
       "user-1",
       "user-1",
       "user-1",
@@ -121,7 +119,7 @@ describe("D1 access role boundaries", () => {
       allowWhen: ({ sql, values }) =>
         sql.includes("project_member.project_id = project.id") &&
         sql.includes("project_member.role IN ('owner', 'admin', 'editor')") &&
-        values[3] === user.userId,
+        values[2] === user.userId,
     });
     const estimateOnlyEditorProbe = createAuthzRoleDatabase({ allowWhen: () => false });
 
@@ -134,7 +132,7 @@ describe("D1 access role boundaries", () => {
       allowWhen: ({ sql, values }) =>
         sql.includes("FROM estimate_sheet_members sheet_member") &&
         sql.includes("sheet_member.project_id = project.id") &&
-        values[4] === user.userId,
+        values[3] === user.userId,
     });
     const wholeProjectProbe = createAuthzRoleDatabase({
       allowWhen: ({ sql }) => sql.includes("FROM estimate_sheet_members sheet_member"),
@@ -144,7 +142,7 @@ describe("D1 access role boundaries", () => {
     await expect(canAccessWholeProjectInD1(wholeProjectProbe.db, "project-1", user)).resolves.toBe(false);
 
     expect(wholeProjectProbe.queries[0]?.sql).not.toContain("estimate_sheet_members");
-    expect(wholeProjectProbe.queries[0]?.values).toEqual(["project-1", "user-1", "user-1", "user-1"]);
+    expect(wholeProjectProbe.queries[0]?.values).toEqual(["project-1", "user-1", "user-1"]);
   });
 
   it("allows estimate editors only through scoped estimate edit authority", async () => {
@@ -152,7 +150,7 @@ describe("D1 access role boundaries", () => {
       allowWhen: ({ sql, values }) =>
         sql.includes("sheet_member.estimate_id = estimate.id") &&
         sql.includes("sheet_member.role IN ('owner', 'admin', 'editor')") &&
-        values[2] === user.userId,
+        values[1] === user.userId,
     });
     const projectViewerProbe = createAuthzRoleDatabase({ allowWhen: () => false });
 
@@ -165,13 +163,13 @@ describe("D1 access role boundaries", () => {
       allowWhen: ({ sql, values }) =>
         sql.includes("COALESCE(access.inherit_project_access, 1) = 1") &&
         sql.includes("project_member.project_id = project.id") &&
-        values[5] === user.userId,
+        values[3] === user.userId,
     });
     const inheritedProjectEditProbe = createAuthzRoleDatabase({
       allowWhen: ({ sql, values }) =>
         sql.includes("COALESCE(access.inherit_project_access, 1) = 1") &&
         sql.includes("project_member.role IN ('owner', 'admin', 'editor')") &&
-        values[5] === user.userId,
+        values[3] === user.userId,
     });
     const inheritDisabledProbe = createAuthzRoleDatabase({ allowWhen: () => false });
 

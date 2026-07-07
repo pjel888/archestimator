@@ -12,8 +12,14 @@ describe("workspace repository D1 authorization contract", () => {
     expect(workspaceRepository).toContain("existingWorkspace && await canUseWorkspaceAsDefault(database, existingWorkspace, context)");
   });
 
-  it("gates project lookup by D1 project access before returning a project row", () => {
-    expect(workspaceRepository).toContain("canAccessProjectInD1(database, projectRow.id, context)");
+  it("gates project lookup by D1 whole-project access before returning a project row", () => {
+    const projectLookupBody = workspaceRepository.slice(
+      workspaceRepository.indexOf("export const getCurrentWorkspaceProject"),
+      workspaceRepository.indexOf("// Request-scoped dedupe of project_members"),
+    );
+
+    expect(projectLookupBody).toContain("canAccessWholeProjectInD1(database, projectRow.id, context)");
+    expect(projectLookupBody).not.toContain("canAccessProjectInD1(database, projectRow.id, context)");
     expect(workspaceRepository).toContain("if (!canAccessProject)");
     expect(workspaceRepository).toContain("return { workspace: defaultWorkspace, project: null }");
   });
@@ -41,15 +47,14 @@ describe("workspace repository D1 authorization contract", () => {
     expect(sidebarFavoritesRepository).toContain("async function filterAccessibleSidebarProjectIds");
     // ponytail: batched authz fix (WP-P1-03, 2026-07-05). Replaced per-project
     // Promise.all(canAccessProjectInD1) loop with a single batched SQL query
-    // that lifts the 4 access branches (created_by + 3 EXISTS) into one
-    // prepared statement. The platform-admin JS short-circuit is preserved
-    // before any SQL.
+    // that lifts the membership branches into one prepared statement. The
+    // platform-admin JS short-circuit is preserved before any SQL.
     expect(sidebarFavoritesRepository).toContain("isPlatformAdminRole(profile.role)");
     expect(sidebarFavoritesRepository).toContain("if (isPlatformAdminRole(profile.role))");
     expect(sidebarFavoritesRepository).toContain("return projectIds;");
     expect(sidebarFavoritesRepository).toContain("FROM projects");
     expect(sidebarFavoritesRepository).toContain("WHERE project.id IN (");
-    expect(sidebarFavoritesRepository).toContain("project.created_by = ?");
+    expect(sidebarFavoritesRepository).not.toContain("project.created_by = ?");
     expect(sidebarFavoritesRepository).toContain("FROM workspace_members");
     expect(sidebarFavoritesRepository).toContain("FROM project_members");
     expect(sidebarFavoritesRepository).toContain("FROM estimate_sheet_members");

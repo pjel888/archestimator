@@ -53,7 +53,7 @@ type AccessResult = "allow" | "deny" | "throw";
 
 type FakeWorkspaceRepositoryOptions = {
   estimateAccess?: Record<string, AccessResult>;
-  projectAccess?: AccessResult;
+  projectAccess?: AccessResult | "sheet-only";
 };
 
 type D1Query = {
@@ -156,7 +156,7 @@ class FakeWorkspaceRepositoryD1Database implements D1DatabaseLike {
   readonly queries: D1Query[] = [];
   readonly runs: D1Query[] = [];
   private readonly estimateAccess: Record<string, AccessResult>;
-  private readonly projectAccess: AccessResult;
+  private readonly projectAccess: AccessResult | "sheet-only";
 
   constructor(options: FakeWorkspaceRepositoryOptions = {}) {
     this.projectAccess = options.projectAccess ?? "allow";
@@ -172,6 +172,9 @@ class FakeWorkspaceRepositoryD1Database implements D1DatabaseLike {
 
     if (sql.includes("SELECT 1 AS allowed") && sql.includes("FROM projects project")) {
       if (this.projectAccess === "throw") throw new Error("project access probe failed");
+      if (this.projectAccess === "sheet-only") {
+        return sql.includes("FROM estimate_sheet_members") ? { allowed: 1 } : null;
+      }
       return this.projectAccess === "allow" ? { allowed: 1 } : null;
     }
 
@@ -313,6 +316,21 @@ describe("workspace repository D1 authorization behavior", () => {
     expect(result.project).toBeNull();
     expect(result.estimates).toEqual([]);
     expect(result.nodeCountByEstimateId.size).toBe(0);
+  });
+
+  it("does not treat sheet-only membership as whole-project access", async () => {
+    const database = new FakeWorkspaceRepositoryD1Database({ projectAccess: "sheet-only" });
+    const { getCurrentWorkspaceProject, listProjectEstimateSheets } = await importWorkspaceRepository(database);
+
+    const result = await getCurrentWorkspaceProject(PROJECT_ID);
+    const sheets = await listProjectEstimateSheets(PROJECT_ID);
+
+    expect(result.project).toBeNull();
+    expect(sheets).toEqual([]);
+    expect(projectSheetMocks.listProjectEstimateSheetsForProject).not.toHaveBeenCalled();
+    expect(database.queries.find((query) => query.sql.includes("SELECT 1 AS allowed"))?.sql).not.toContain(
+      "estimate_sheet_members",
+    );
   });
 
   it("fails closed when estimate-level access probes throw", async () => {
