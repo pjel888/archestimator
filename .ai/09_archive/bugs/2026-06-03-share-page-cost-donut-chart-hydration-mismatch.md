@@ -25,7 +25,7 @@ Server and client differ by floating-point precision in SVG path `d` attribute:
 - Client: `177.28813627494233`
 
 **Next.js Version:** 16.2.6 (Turbopack)
-**Target URL:** `http://localhost:3000/share/vTePfd5eq4ZbBFzHNae0JYOCLfPd_QcrW4F3cnf9Y_E`
+**Target URL:** `http://localhost:3000/share/SHARE_TOKEN_PLACEHOLDER`
 
 ## Reproduction
 

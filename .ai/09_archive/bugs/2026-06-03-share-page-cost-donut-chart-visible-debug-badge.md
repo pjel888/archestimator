@@ -25,7 +25,7 @@ The comment itself says "always visible so user can report back what they see" ‚
 ## Reproduction
 
 1. Run `bun run dev`
-2. Navigate to any share URL with estimate data: `http://localhost:3000/share/vTePfd5eq4ZbBFzHNae0JYOCLfPd_QcrW4F3cnf9Y_E`
+2. Navigate to any share URL with estimate data: `http://localhost:3000/share/SHARE_TOKEN_PLACEHOLDER`
 3. Observe the "üç© buckets:X total:YYYYY" badge in the top-right corner of the donut chart
 
 ## Expected Behavior

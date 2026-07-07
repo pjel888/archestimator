@@ -160,7 +160,7 @@ Automated tests verify determinism and precision, but **real hydration mismatch 
 ### Share Page (Production Build)
 ```bash
 bun run build && bun run start
-# Navigate to: http://localhost:3000/share/vTePfd5eq4ZbBFzHNae0JYOCLfPd_QcrW4F3cnf9Y_E
+# Navigate to: http://localhost:3000/share/SHARE_TOKEN_PLACEHOLDER
 ```
 
 **Checks:**
