@@ -570,7 +570,7 @@ function collectDraftAttachments(draft: ComponentDraft) {
 
 export function AddComponentModal(props: AddComponentModalProps) {
   if (!props.open) return null;
-  return <OpenAddComponentModal {...props} />;
+  return <OpenAddComponentModal key={getCatalogueOptionsStorageKey(props.catalogueOptionsStorageScope)} {...props} />;
 }
 
 function OpenAddComponentModal({
@@ -578,7 +578,6 @@ function OpenAddComponentModal({
   suppliers,
   brands,
   libraryItems,
-  selectedFolderId,
   selectedSupplierId,
   selectedBrandId,
   onOpenChange,
@@ -752,10 +751,6 @@ function OpenAddComponentModal({
   useEffect(() => {
     sharedPreviewUrlRef.current = sharedPreviewUrl;
   }, [sharedPreviewUrl]);
-
-  useEffect(() => {
-    setLocalCatalogueOptions(readLocalCatalogueOptionsState(catalogueOptionsStorageKey));
-  }, [catalogueOptionsStorageKey]);
 
   useEffect(() => {
     writeLocalCatalogueOptionsState(catalogueOptionsStorageKey, localCatalogueOptions);

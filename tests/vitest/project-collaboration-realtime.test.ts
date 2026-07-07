@@ -9,6 +9,8 @@ import {
   type ProjectPresencePayload,
   useProjectPresence,
 } from "@/hooks/use-project-presence";
+import { useEstimateCursorCollaboration } from "@/hooks/use-estimate-cursor-broadcast";
+import { useEstimateRowUpdateBroadcast } from "@/hooks/use-estimate-row-update-broadcast";
 import { isRealtimeTransportEnabled } from "@/lib/collaboration/feature-flags";
 import { issueRealtimeIdentityEnvelope } from "@/lib/collaboration/realtime-identity-server";
 
@@ -114,7 +116,9 @@ describe("useProjectPresence — payload scope & lifecycle (T1.1 / T0.3)", () =>
   });
   afterEach(() => {
     vi.useRealTimers();
+    vi.restoreAllMocks();
     vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
   });
 
   it("tracks ONLY coarse fields — no raw route, estimate, tab, or cell leaks", async () => {
@@ -298,6 +302,66 @@ describe("useProjectPresence — payload scope & lifecycle (T1.1 / T0.3)", () =>
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("NEXT_PUBLIC_TEAMSPACE_REALTIME_TRANSPORT", "");
     expect(isRealtimeTransportEnabled()).toBe(true);
+  });
+
+  it("does not open default realtime sockets or emit realtime telemetry in plain development", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("NEXT_PUBLIC_TEAMSPACE_REALTIME_TRANSPORT", "");
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const WebSocketStub = vi.fn(() => {
+      throw new Error("unexpected websocket in plain next dev");
+    });
+    vi.stubGlobal("WebSocket", WebSocketStub);
+
+    const projectId = "11111111-1111-1111-1111-111111111111";
+    const estimateId = "22222222-2222-2222-2222-222222222222";
+    const presence = renderHook(() =>
+      useProjectPresence({
+        projectId,
+        currentUser: { id: "user-a" },
+        activeSurface: "estimates",
+      }),
+    );
+    const cursors = renderHook(() =>
+      useEstimateCursorCollaboration({
+        estimateId,
+        userId: "user-a",
+      }),
+    );
+    const broadcastRowUpdate = renderHook(() =>
+      useEstimateRowUpdateBroadcast({
+        estimateId,
+      }),
+    );
+
+    act(() => {
+      cursors.result.current.broadcastCursor({
+        tabId: null,
+        x: 24,
+        y: 12,
+        rowId: "row-1",
+        columnId: "quantity",
+      });
+      broadcastRowUpdate.result.current({
+        rowId: "row-1",
+        rowRevision: 1,
+        quantity: 1,
+        quantityBase: null,
+        quantityContingencyAmount: null,
+        contingencyPercentage: 0,
+      });
+    });
+
+    await waitFor(() => {
+      expect(presence.result.current.status).toBe("idle");
+      expect(cursors.result.current.channelStatus).toBe("idle");
+    });
+    expect(WebSocketStub).not.toHaveBeenCalled();
+    expect(
+      consoleWarn.mock.calls.filter(([message]) =>
+        typeof message === "string" && message.startsWith("[realtime:"),
+      ),
+    ).toEqual([]);
   });
 });
 

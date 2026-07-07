@@ -56,7 +56,7 @@
     "cf:check-provider": "bun run scripts/check-cloudflare-provider-readiness.ts",
     "cf:check-dns-delegation": "bun run scripts/check-cloudflare-dns-delegation.ts",
     "cf:check-email": "bun run scripts/check-cloudflare-email-readiness.ts",
-    "graph:reindex": "node .gitnexus/run.cjs analyze && node scripts/neutralize-graph-mandate.mjs",
+    "graph:reindex": "node scripts/run-safe-gitnexus-reindex.mjs",
     "graph:neutralize": "node scripts/neutralize-graph-mandate.mjs",
     "validate:agents": "node scripts/validate-ai-workflow-adapters.mjs",
     "storybook": "storybook dev -p 6006",
@@ -96,7 +96,7 @@
     "validate": "bun run type-check && bun run lint && bun run lint:design-system && bun run lint:design && bun run test && bun run test:dom",
     "lint:design": "node .agents/skills/impeccable/scripts/detect.mjs --strict src/components",
     "launch:verify-hosted-sensitive-routes": "bun run scripts/verify-hosted-sensitive-route-fail-closed.ts",
-    "doctor": "react-doctor"
+    "doctor": "./node_modules/.bin/react-doctor"
   },
   "dependencies": {
     "@firecms/neat": "0.8.0",

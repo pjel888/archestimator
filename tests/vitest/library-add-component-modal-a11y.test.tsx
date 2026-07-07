@@ -384,6 +384,42 @@ describe("AddComponentModal OpenDesign field contract", () => {
     expect(await within(dialog).findByRole("option", { name: "Old Brand" })).toBeInTheDocument();
   });
 
+  it("keeps saved catalogue options isolated when the storage scope changes", async () => {
+    const scopeA = "catalogue-options-scope-a";
+    const scopeB = "catalogue-options-scope-b";
+    window.localStorage.setItem(`${catalogueOptionsStoragePrefix}:${scopeB}`, JSON.stringify({
+      category: [
+        {
+          id: "local-catalogue-option:category:scope-b-category",
+          label: "Scope B Category",
+          createdAt: "2026-07-06T00:00:00.000Z",
+        },
+      ],
+      supplier: [],
+      brand: [],
+    }));
+
+    const { rerender } = render(<AddComponentModal {...makeAddModalProps({ catalogueOptionsStorageScope: scopeA })} />);
+    let dialog = await getAddDialog();
+
+    await createCatalogueOption(dialog, "Category", "Scope A Category");
+    expect(window.localStorage.getItem(`${catalogueOptionsStoragePrefix}:${scopeA}`)).toContain("Scope A Category");
+
+    rerender(<AddComponentModal {...makeAddModalProps({ catalogueOptionsStorageScope: scopeB })} />);
+    dialog = await getAddDialog();
+
+    const form = within(dialog).getByRole("form", { name: "Quick add component" });
+    const category = within(form).getByRole("combobox", { name: "Category" });
+    fireEvent.change(category, { target: { value: "Scope B" } });
+    expect(await within(dialog).findByRole("option", { name: "Scope B Category" })).toBeInTheDocument();
+
+    const storedScopeB = JSON.parse(window.localStorage.getItem(`${catalogueOptionsStoragePrefix}:${scopeB}`) ?? "{}");
+    expect(storedScopeB.category).toEqual([
+      expect.objectContaining({ label: "Scope B Category" }),
+    ]);
+    expect(JSON.stringify(storedScopeB)).not.toContain("Scope A Category");
+  });
+
   it("submits a field-contract payload without retired price/source fields", async () => {
     const props = renderAddModal();
     const dialog = await getAddDialog();

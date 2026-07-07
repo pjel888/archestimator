@@ -1,10 +1,10 @@
 {
   "$schema": "https://archestimator.local/schemas/component-category-taxonomy.v2.json",
   "schemaVersion": 2,
-  "version": "2026-05-22-draft-3",
+  "version": "2026-07-07-empty-preload",
   "status": "draft",
   "scope": "workshop-component-library",
-  "intent": "Provide a clean browse taxonomy for reusable estimate row items, with top-level organizers, categories, and subcategories kept separate for reporting.",
+  "intent": "Do not preload component categories; user and project data should define categories explicitly.",
   "principle": "The tree describes what the estimate row item is. Tags describe procurement scope, room, supplier, installer, standards crosswalk, and package ownership.",
   "rules": [
     "The nine top-level nodes are organizers only.",
@@ -25,26 +25,38 @@
     "defaultVisibility": "core",
     "copyrightPolicy": "Store standards as optional crosswalk references. Do not embed licensed CSI, OmniClass, UniFormat, RICS, or other proprietary full tables without explicit license coverage."
   },
-  "nodeTypes": ["organizer", "category", "subcategory"],
-  "lifecycleStates": ["candidate", "core", "advanced", "deprecated", "archived"],
+  "nodeTypes": [
+    "organizer",
+    "category",
+    "subcategory"
+  ],
+  "lifecycleStates": [
+    "candidate",
+    "core",
+    "advanced",
+    "deprecated",
+    "archived"
+  ],
   "childEncoding": "Category children are subcategory labels. The runtime compiles each child into a stable node id for selection and filtering.",
   "views": {
     "tabs": [
-      { "id": "categories", "label": "Categories", "purpose": "Primary browse tree for reusable estimate row categories." },
-      { "id": "suppliers", "label": "Suppliers", "purpose": "Group by supplier, vendor, manufacturer, showroom, source, or quote." },
-      { "id": "standards", "label": "Standards", "purpose": "Optional crosswalk view by CSI, UniFormat, OmniClass, Uniclass, NRM, cost code, or BIM category." }
+      {
+        "id": "categories",
+        "label": "Categories",
+        "purpose": "Primary browse tree for reusable estimate row categories."
+      },
+      {
+        "id": "suppliers",
+        "label": "Suppliers",
+        "purpose": "Group by supplier, vendor, manufacturer, showroom, source, or quote."
+      },
+      {
+        "id": "standards",
+        "label": "Standards",
+        "purpose": "Optional crosswalk view by CSI, UniFormat, OmniClass, Uniclass, NRM, cost code, or BIM category."
+      }
     ],
-    "primaryBrowseSections": [
-      { "id": "administration", "label": "Administration", "rootIds": ["project-requirements", "temporary-works", "existing-conditions", "demolition"] },
-      { "id": "site", "label": "Site", "rootIds": ["civil", "landscape", "exterior-works"] },
-      { "id": "structure", "label": "Structure", "rootIds": ["foundations", "concrete-work", "reinforcement", "structural-steel", "structural-timber", "structural-masonry"] },
-      { "id": "envelope", "label": "Envelope", "rootIds": ["roofing", "waterproofing", "exterior-walls", "exterior-cladding", "curtain-walls", "windows", "louvers", "exterior-shading", "insulation", "sealants"] },
-      { "id": "architecture", "label": "Architecture", "rootIds": ["doors", "partitions", "interior-glazing", "ceilings", "stairs", "railings", "millwork", "casework", "specialties", "signage"] },
-      { "id": "materials", "label": "Materials", "rootIds": ["concrete-material", "masonry-material", "stone", "tile-material", "wood", "metal", "glass-material", "gypsum", "plaster", "resin", "fabric", "composite-materials", "reclaimed-materials"] },
-      { "id": "finishes", "label": "Finishes", "rootIds": ["floor-finishes", "wall-finishes", "ceiling-finishes", "countertop-finishes", "paint", "coatings", "tile-finishes", "wood-finishes", "finish-accessories"] },
-      { "id": "objects", "label": "Objects", "rootIds": ["fixtures", "furniture", "equipment", "appliances", "electrical-devices", "controls", "faceplates", "accessories", "soft-furnishings", "window-treatments", "artwork", "decorative-objects"] },
-      { "id": "systems", "label": "Systems", "rootIds": ["hvac", "plumbing-systems", "sanitary-systems", "stormwater-systems", "fuel-gas-systems", "electrical-power", "lighting-systems", "communications", "audio-visual", "security", "building-automation", "fire-protection", "fire-alarm", "life-safety", "vertical-transportation"] }
-    ]
+    "primaryBrowseSections": []
   },
   "metadataFields": [
     "primaryCategory",
@@ -87,518 +99,74 @@
     "vendor-package",
     "by-others"
   ],
-  "categories": [
-    {
-      "id": "project-requirements",
-      "label": "Project Requirements",
-      "kind": "category",
-      "children": ["General Requirements", "Permits", "Fees", "Submittals", "Mockups", "Testing", "Commissioning", "Closeout"]
-    },
-    {
-      "id": "temporary-works",
-      "label": "Temporary Works",
-      "kind": "category",
-      "children": ["Site Protection", "Temporary Enclosures", "Temporary Utilities", "Scaffolding", "Shoring", "Construction Access", "Weather Protection"]
-    },
-    {
-      "id": "existing-conditions",
-      "label": "Existing Conditions",
-      "kind": "category",
-      "children": ["Site Surveys", "Measured Drawings", "Existing Structure", "Existing Envelope", "Existing Interiors", "Existing Services", "Salvaged Items"]
-    },
-    {
-      "id": "demolition",
-      "label": "Demolition",
-      "kind": "category",
-      "children": ["Selective Demolition", "Strip-Out", "Removal Items", "Salvage Items", "Protection Items", "Disposal"]
-    },
-    {
-      "id": "civil",
-      "label": "Civil",
-      "kind": "category",
-      "children": ["Earthwork", "Grading", "Excavation", "Backfill", "Retaining Structures", "Site Drainage", "Roads", "Parking", "Pavement Bases", "Underground Utilities", "Erosion Control"]
-    },
-    {
-      "id": "landscape",
-      "label": "Landscape",
-      "kind": "category",
-      "children": ["Hardscape", "Softscape", "Planting", "Irrigation", "Planters", "Garden Walls", "Fences", "Gates", "Pergolas", "Shade Structures", "Pools", "Water Features", "Outdoor Kitchens"]
-    },
-    {
-      "id": "exterior-works",
-      "label": "Exterior Works",
-      "kind": "category",
-      "children": ["Site Furniture", "Play Equipment", "Bollards", "Bike Racks", "Exterior Stairs", "Exterior Railings", "Trash Enclosures"]
-    },
-    {
-      "id": "foundations",
-      "label": "Foundations",
-      "kind": "category",
-      "children": ["Footings", "Pile Caps", "Piles", "Raft Foundations", "Grade Beams", "Foundation Walls", "Slab-On-Grade"]
-    },
-    {
-      "id": "concrete-work",
-      "label": "Concrete Work",
-      "kind": "category",
-      "children": ["Cast-In-Place Concrete", "Precast Concrete", "Concrete Slabs", "Concrete Beams", "Concrete Columns", "Concrete Walls", "Concrete Repairs"]
-    },
-    {
-      "id": "reinforcement",
-      "label": "Reinforcement",
-      "kind": "category",
-      "children": ["Rebar", "Mesh", "Post-Tensioning", "Dowels", "Anchors", "Couplers"]
-    },
-    {
-      "id": "structural-steel",
-      "label": "Structural Steel",
-      "kind": "category",
-      "children": ["Steel Columns", "Steel Beams", "Steel Trusses", "Steel Decking", "Base Plates", "Connections", "Bracing"]
-    },
-    {
-      "id": "structural-timber",
-      "label": "Structural Timber",
-      "kind": "category",
-      "children": ["Timber Posts", "Timber Beams", "Trusses", "Joists", "Engineered Timber", "Connections"]
-    },
-    {
-      "id": "structural-masonry",
-      "label": "Structural Masonry",
-      "kind": "category",
-      "children": ["CMU Walls", "Reinforced Masonry", "Lintels", "Bond Beams", "Masonry Repairs"]
-    },
-    {
-      "id": "roofing",
-      "label": "Roofing",
-      "kind": "category",
-      "children": ["Roof Membranes", "Metal Roofing", "Tile Roofing", "Roof Decks", "Roof Insulation", "Roof Accessories", "Roof Drains"]
-    },
-    {
-      "id": "waterproofing",
-      "label": "Waterproofing",
-      "kind": "category",
-      "children": ["Below-Grade Waterproofing", "Wet-Area Waterproofing", "Roof Waterproofing", "Liquid Membranes", "Sheet Membranes", "Waterstops"]
-    },
-    {
-      "id": "exterior-walls",
-      "label": "Exterior Walls",
-      "kind": "category",
-      "children": ["Wall Framing", "Sheathing", "Air Barriers", "Vapor Barriers", "Exterior Wall Assemblies"]
-    },
-    {
-      "id": "exterior-cladding",
-      "label": "Exterior Cladding",
-      "kind": "category",
-      "children": ["Stone Cladding", "Metal Cladding", "Wood Cladding", "Fiber Cement Cladding", "Rendered Facades", "Panel Systems"]
-    },
-    {
-      "id": "curtain-walls",
-      "label": "Curtain Walls",
-      "kind": "category",
-      "children": ["Stick Curtain Wall", "Unitized Curtain Wall", "Structural Glazing", "Mullions", "Spandrels"]
-    },
-    {
-      "id": "windows",
-      "label": "Windows",
-      "kind": "category",
-      "children": ["Fixed Windows", "Casement Windows", "Sliding Windows", "Awning Windows", "Window Hardware", "Window Screens", "Window Flashing"]
-    },
-    {
-      "id": "louvers",
-      "label": "Louvers",
-      "kind": "category",
-      "children": ["Fixed Louvers", "Operable Louvers", "Acoustic Louvers", "Weather Louvers", "Louver Screens"]
-    },
-    {
-      "id": "exterior-shading",
-      "label": "Exterior Shading",
-      "kind": "category",
-      "children": ["Sunshades", "Brise Soleil", "Awnings", "Exterior Blinds", "Screens"]
-    },
-    {
-      "id": "insulation",
-      "label": "Insulation",
-      "kind": "category",
-      "children": ["Thermal Insulation", "Acoustic Insulation", "Rigid Insulation", "Batt Insulation", "Spray Foam", "Pipe Insulation"]
-    },
-    {
-      "id": "sealants",
-      "label": "Sealants",
-      "kind": "category",
-      "children": ["Exterior Sealants", "Interior Sealants", "Expansion Joints", "Backer Rods", "Firestopping Sealants"]
-    },
-    {
-      "id": "doors",
-      "label": "Doors",
-      "kind": "category",
-      "children": ["Interior Doors", "Exterior Doors", "Sliding Doors", "Pocket Doors", "Folding Doors", "Fire-Rated Doors", "Door Frames", "Door Hardware", "Automatic Doors"]
-    },
-    {
-      "id": "partitions",
-      "label": "Partitions",
-      "kind": "category",
-      "children": ["Stud Partitions", "Masonry Partitions", "Demountable Partitions", "Toilet Partitions", "Acoustic Partitions", "Operable Partitions"]
-    },
-    {
-      "id": "interior-glazing",
-      "label": "Interior Glazing",
-      "kind": "category",
-      "children": ["Glass Partitions", "Interior Windows", "Glass Doors", "Mirrors", "Glass Rails"]
-    },
-    {
-      "id": "ceilings",
-      "label": "Ceilings",
-      "kind": "category",
-      "children": ["Gypsum Ceilings", "Acoustic Ceilings", "Metal Ceilings", "Wood Ceilings", "Ceiling Suspension", "Access Panels"]
-    },
-    {
-      "id": "stairs",
-      "label": "Stairs",
-      "kind": "category",
-      "children": ["Concrete Stairs", "Steel Stairs", "Timber Stairs", "Stair Treads", "Stair Nosings", "Ladders"]
-    },
-    {
-      "id": "railings",
-      "label": "Railings",
-      "kind": "category",
-      "children": ["Handrails", "Guardrails", "Glass Railings", "Metal Railings", "Timber Railings", "Balustrades"]
-    },
-    {
-      "id": "millwork",
-      "label": "Millwork",
-      "kind": "category",
-      "children": ["Wall Panels", "Feature Walls", "Reception Desks", "Banquettes", "Built-In Seating", "Shelving"]
-    },
-    {
-      "id": "casework",
-      "label": "Casework",
-      "kind": "category",
-      "children": ["Base Cabinets", "Wall Cabinets", "Tall Cabinets", "Vanities", "Counters", "Closets", "Storage Systems"]
-    },
-    {
-      "id": "specialties",
-      "label": "Specialties",
-      "kind": "category",
-      "children": ["Lockers", "Mailboxes", "Corner Guards", "Display Cases", "Fire Extinguisher Cabinets", "Access Doors", "Storage Specialties"]
-    },
-    {
-      "id": "signage",
-      "label": "Signage",
-      "kind": "category",
-      "children": ["Room Signage", "Code Signage", "Directional Signage", "Building Signage", "Brand Signage", "Digital Signage", "Wayfinding"]
-    },
-    {
-      "id": "concrete-material",
-      "label": "Concrete",
-      "kind": "category",
-      "children": ["Ready-Mix Concrete", "Cement", "Aggregates", "Admixtures", "Concrete Blocks", "Precast Units"]
-    },
-    {
-      "id": "masonry-material",
-      "label": "Masonry",
-      "kind": "category",
-      "children": ["Concrete Masonry Units", "Brick", "Stone Blocks", "Mortar", "Grout", "Masonry Accessories"]
-    },
-    {
-      "id": "stone",
-      "label": "Stone",
-      "kind": "category",
-      "children": ["Marble", "Granite", "Limestone", "Travertine", "Slate", "Engineered Stone"]
-    },
-    {
-      "id": "tile-material",
-      "label": "Tile",
-      "kind": "category",
-      "children": ["Ceramic Tile", "Porcelain Tile", "Mosaic Tile", "Glass Tile", "Cement Tile", "Quarry Tile"]
-    },
-    {
-      "id": "wood",
-      "label": "Wood",
-      "kind": "category",
-      "children": ["Solid Wood", "Veneer", "Plywood", "MDF", "Particleboard", "Engineered Wood"]
-    },
-    {
-      "id": "metal",
-      "label": "Metal",
-      "kind": "category",
-      "children": ["Steel", "Stainless Steel", "Aluminum", "Brass", "Bronze", "Copper", "Metal Mesh"]
-    },
-    {
-      "id": "glass-material",
-      "label": "Glass",
-      "kind": "category",
-      "children": ["Clear Glass", "Tempered Glass", "Laminated Glass", "Insulated Glass", "Textured Glass", "Mirror Glass"]
-    },
-    {
-      "id": "gypsum",
-      "label": "Gypsum",
-      "kind": "category",
-      "children": ["Gypsum Board", "Moisture-Resistant Board", "Fire-Rated Board", "Cement Board", "Joint Compound"]
-    },
-    {
-      "id": "plaster",
-      "label": "Plaster",
-      "kind": "category",
-      "children": ["Gypsum Plaster", "Lime Plaster", "Venetian Plaster", "Microcement", "Stucco"]
-    },
-    {
-      "id": "resin",
-      "label": "Resin",
-      "kind": "category",
-      "children": ["Epoxy Resin", "Polyurethane Resin", "Acrylic Resin", "Solid Surface Resin"]
-    },
-    {
-      "id": "fabric",
-      "label": "Fabric",
-      "kind": "category",
-      "children": ["Upholstery Fabric", "Drapery Fabric", "Acoustic Fabric", "Outdoor Fabric", "Leather", "Vinyl"]
-    },
-    {
-      "id": "composite-materials",
-      "label": "Composite Materials",
-      "kind": "category",
-      "children": ["Fiber Cement", "WPC", "FRP", "HPL", "Solid Surface", "Quartz Composite"]
-    },
-    {
-      "id": "reclaimed-materials",
-      "label": "Reclaimed Materials",
-      "kind": "category",
-      "children": ["Reclaimed Wood", "Reclaimed Brick", "Reclaimed Stone", "Salvaged Metal", "Vintage Fixtures"]
-    },
-    {
-      "id": "floor-finishes",
-      "label": "Floor Finishes",
-      "kind": "category",
-      "children": ["Tile Flooring", "Stone Flooring", "Wood Flooring", "Engineered Wood Flooring", "Vinyl Flooring", "Linoleum Flooring", "Carpet", "Terrazzo", "Concrete Finish", "Resin Flooring", "Epoxy Flooring"]
-    },
-    {
-      "id": "wall-finishes",
-      "label": "Wall Finishes",
-      "kind": "category",
-      "children": ["Paint Finish", "Specialty Coatings", "Limewash", "Venetian Plaster", "Microcement", "Tile Wall Finish", "Stone Wall Finish", "Wood Paneling", "Wallcovering", "Fabric Panels", "Acoustic Panels", "Metal Panels", "Glass Wall Finish", "Mirror Wall Finish"]
-    },
-    {
-      "id": "ceiling-finishes",
-      "label": "Ceiling Finishes",
-      "kind": "category",
-      "children": ["Painted Ceiling", "Plaster Ceiling", "Acoustic Ceiling Finish", "Wood Ceiling Finish", "Metal Ceiling Finish", "Stretch Ceiling", "Decorative Ceiling Panels"]
-    },
-    {
-      "id": "countertop-finishes",
-      "label": "Countertop Finishes",
-      "kind": "category",
-      "children": ["Natural Stone Countertop", "Quartz Countertop", "Solid Surface Countertop", "Tile Countertop", "Stainless Steel Countertop", "Wood Countertop", "Laminate Countertop", "Concrete Countertop"]
-    },
-    {
-      "id": "paint",
-      "label": "Paint",
-      "kind": "category",
-      "children": ["Interior Paint", "Exterior Paint", "Primer", "Putty", "Enamel Paint", "Textured Paint", "Anti-Mold Paint"]
-    },
-    {
-      "id": "coatings",
-      "label": "Coatings",
-      "kind": "category",
-      "children": ["Waterproof Coatings", "Epoxy Coatings", "Fire-Rated Coatings", "Anti-Graffiti Coatings", "Protective Coatings"]
-    },
-    {
-      "id": "tile-finishes",
-      "label": "Tile Finishes",
-      "kind": "category",
-      "children": ["Floor Tile Finish", "Wall Tile Finish", "Mosaic Finish", "Tile Trim", "Grout", "Tile Adhesive", "Tile Sealer"]
-    },
-    {
-      "id": "wood-finishes",
-      "label": "Wood Finishes",
-      "kind": "category",
-      "children": ["Stain", "Varnish", "Oil Finish", "Lacquer", "Wood Sealer", "Painted Wood Finish"]
-    },
-    {
-      "id": "finish-accessories",
-      "label": "Finish Accessories",
-      "kind": "category",
-      "children": ["Baseboards", "Trims", "Edge Profiles", "Transitions", "Grout", "Caulk", "Sealers", "Adhesives"]
-    },
-    {
-      "id": "fixtures",
-      "label": "Fixtures",
-      "kind": "category",
-      "children": ["Lighting Fixtures", "Plumbing Fixtures", "Sanitary Fixtures", "Kitchen Fixtures", "Bath Fixtures", "Exterior Fixtures"]
-    },
-    {
-      "id": "furniture",
-      "label": "Furniture",
-      "kind": "category",
-      "children": ["Seating", "Sofas", "Lounge Chairs", "Dining Chairs", "Stools", "Benches", "Tables", "Dining Tables", "Coffee Tables", "Side Tables", "Desks", "Beds", "Nightstands", "Dressers", "Consoles", "Shelving", "Outdoor Furniture", "Custom Furniture"]
-    },
-    {
-      "id": "equipment",
-      "label": "Equipment",
-      "kind": "category",
-      "children": ["Commercial Kitchen Equipment", "Wellness Equipment", "Fitness Equipment", "Office Equipment", "Utility Equipment", "Service Equipment", "Maintenance Equipment", "Specialty Equipment", "Owner-Furnished Equipment"]
-    },
-    {
-      "id": "appliances",
-      "label": "Appliances",
-      "kind": "category",
-      "children": ["Refrigerators", "Freezers", "Wine Coolers", "Cooktops", "Ovens", "Range Hoods", "Dishwashers", "Coffee Machines", "Washers", "Dryers", "Water Dispensers", "Small Appliances"]
-    },
-    {
-      "id": "electrical-devices",
-      "label": "Electrical Devices",
-      "kind": "category",
-      "children": ["Switches", "Receptacles", "Dimmers", "Data Outlets", "USB Outlets", "Floor Boxes", "Junction Boxes", "Weatherproof Outlets"]
-    },
-    {
-      "id": "controls",
-      "label": "Controls",
-      "kind": "category",
-      "children": ["Thermostats", "Keypads", "Touchscreens", "Occupancy Sensors", "Daylight Sensors", "Scene Controllers", "Smart Home Interfaces"]
-    },
-    {
-      "id": "faceplates",
-      "label": "Faceplates",
-      "kind": "category",
-      "children": ["Metal Faceplates", "Plastic Faceplates", "Custom Faceplates", "Multi-Gang Plates", "Data Plates", "Specialty Plates"]
-    },
-    {
-      "id": "accessories",
-      "label": "Accessories",
-      "kind": "category",
-      "children": ["Kitchen Accessories", "Bath Accessories", "Toilet Accessories", "Closet Accessories", "Laundry Accessories", "Hardware Accessories", "Shower Accessories", "Towel Bars", "Robe Hooks", "Soap Niches", "Paper Holders"]
-    },
-    {
-      "id": "soft-furnishings",
-      "label": "Soft Furnishings",
-      "kind": "category",
-      "children": ["Rugs", "Curtains", "Drapery", "Bedding", "Cushions", "Throws", "Upholstery Textiles"]
-    },
-    {
-      "id": "window-treatments",
-      "label": "Window Treatments",
-      "kind": "category",
-      "children": ["Roller Shades", "Roman Shades", "Drapery Systems", "Sheers", "Blackout Systems", "Blinds", "Shutters", "Motorized Tracks"]
-    },
-    {
-      "id": "artwork",
-      "label": "Artwork",
-      "kind": "category",
-      "children": ["Paintings", "Prints", "Photography", "Sculpture", "Wall Art", "Textile Art", "Commissioned Art"]
-    },
-    {
-      "id": "decorative-objects",
-      "label": "Decorative Objects",
-      "kind": "category",
-      "children": ["Vases", "Bowls", "Books", "Sculptural Objects", "Candles", "Trays", "Decorative Boxes", "Styling Props"]
-    },
-    {
-      "id": "hvac",
-      "label": "HVAC",
-      "kind": "category",
-      "children": ["Air Handling", "Ductwork", "Diffusers", "Registers", "Grilles", "Exhaust Fans", "Ventilation", "Fan Coil Units", "Split Systems", "VRF Systems", "Chillers", "Condensers"]
-    },
-    {
-      "id": "plumbing-systems",
-      "label": "Plumbing Systems",
-      "kind": "category",
-      "children": ["Domestic Cold Water", "Domestic Hot Water", "Water Heaters", "Water Treatment", "Pumps", "Tanks", "Valves", "Pipe Insulation", "Rainwater Harvesting"]
-    },
-    {
-      "id": "sanitary-systems",
-      "label": "Sanitary Systems",
-      "kind": "category",
-      "children": ["Soil Waste Vent", "Sanitary Piping", "Floor Drains", "Cleanouts", "Traps", "Grease Waste", "Grease Interceptors", "Sumps", "Sewage Ejectors", "Septic Systems"]
-    },
-    {
-      "id": "stormwater-systems",
-      "label": "Stormwater Systems",
-      "kind": "category",
-      "children": ["Roof Drains", "Area Drains", "Trench Drains", "Downspouts", "Gutters", "Catch Basins", "Retention Systems", "Detention Systems", "Stormwater Pumps"]
-    },
-    {
-      "id": "fuel-gas-systems",
-      "label": "Fuel Gas Systems",
-      "kind": "category",
-      "children": ["Gas Piping", "Regulators", "Shutoff Valves", "Gas Meters", "LPG Components", "Venting Components"]
-    },
-    {
-      "id": "electrical-power",
-      "label": "Electrical Power",
-      "kind": "category",
-      "children": ["Service Equipment", "Distribution Boards", "Panelboards", "Circuit Breakers", "Transformers", "Conduits", "Cable Trays", "Wiring", "Grounding", "Backup Power", "UPS", "Generators", "EV Charging"]
-    },
-    {
-      "id": "lighting-systems",
-      "label": "Lighting Systems",
-      "kind": "category",
-      "children": ["Lighting Control Systems", "Drivers", "Transformers", "Dimming Systems", "Emergency Lighting Systems", "Daylight Control Systems", "Lighting Control Panels"]
-    },
-    {
-      "id": "communications",
-      "label": "Communications",
-      "kind": "category",
-      "children": ["Data Cabling", "Network Racks", "Patch Panels", "Wi-Fi Components", "Telecom Components", "Structured Cabling"]
-    },
-    {
-      "id": "audio-visual",
-      "label": "Audio Visual",
-      "kind": "category",
-      "children": ["Speakers", "Displays", "Projectors", "AV Racks", "Microphones", "Control Processors", "Conferencing Equipment"]
-    },
-    {
-      "id": "security",
-      "label": "Security",
-      "kind": "category",
-      "children": ["Access Control", "Door Readers", "Electric Locks", "CCTV", "Intrusion Detection", "Intercoms", "Video Doorbells", "Security Panels"]
-    },
-    {
-      "id": "building-automation",
-      "label": "Building Automation",
-      "kind": "category",
-      "children": ["BMS Components", "Smart Home Systems", "Sensors", "Actuators", "Gateways", "Automation Panels", "Scene Logic"]
-    },
-    {
-      "id": "fire-protection",
-      "label": "Fire Protection",
-      "kind": "category",
-      "children": ["Sprinklers", "Standpipes", "Fire Pumps", "Fire Department Connections", "Fire Hose Cabinets", "Clean Agent Systems", "Fire Extinguishers"]
-    },
-    {
-      "id": "fire-alarm",
-      "label": "Fire Alarm",
-      "kind": "category",
-      "children": ["Smoke Detectors", "Heat Detectors", "Manual Pull Stations", "Horns", "Strobes", "Annunciators", "Fire Alarm Panels"]
-    },
-    {
-      "id": "life-safety",
-      "label": "Life Safety",
-      "kind": "category",
-      "children": ["Egress Components", "Exit Signs", "Emergency Equipment", "Safety Barriers", "Smoke Control Interfaces", "Evacuation Plans", "Refuge Area Components"]
-    },
-    {
-      "id": "vertical-transportation",
-      "label": "Vertical Transportation",
-      "kind": "category",
-      "children": ["Elevators", "Platform Lifts", "Stair Lifts", "Escalators", "Dumbwaiters", "Hoists"]
-    }
-  ],
+  "categories": [],
   "aliases": {
-    "luminaire": ["lighting fixtures", "lighting systems"],
-    "light fixture": ["lighting fixtures"],
-    "plumbing fixture": ["plumbing fixtures"],
-    "sanitary fixture": ["sanitary fixtures"],
-    "toilet": ["sanitary fixtures"],
-    "water closet": ["sanitary fixtures"],
-    "wc": ["sanitary fixtures"],
-    "paint system": ["paint", "coatings"],
-    "ffe": ["furniture", "fixtures", "equipment"],
-    "ff&e": ["furniture", "fixtures", "equipment"],
-    "ofoi": ["owner-furnished equipment"],
-    "ofci": ["owner-furnished equipment"],
-    "av": ["audio visual"],
-    "low voltage": ["communications", "security", "audio visual", "building automation"],
-    "smart home": ["building automation", "controls"],
-    "door": ["doors"],
-    "window": ["windows"],
-    "tile": ["tile", "tile finishes", "tile flooring", "tile wall finish"]
+    "luminaire": [
+      "lighting fixtures",
+      "lighting systems"
+    ],
+    "light fixture": [
+      "lighting fixtures"
+    ],
+    "plumbing fixture": [
+      "plumbing fixtures"
+    ],
+    "sanitary fixture": [
+      "sanitary fixtures"
+    ],
+    "toilet": [
+      "sanitary fixtures"
+    ],
+    "water closet": [
+      "sanitary fixtures"
+    ],
+    "wc": [
+      "sanitary fixtures"
+    ],
+    "paint system": [
+      "paint",
+      "coatings"
+    ],
+    "ffe": [
+      "furniture",
+      "fixtures",
+      "equipment"
+    ],
+    "ff&e": [
+      "furniture",
+      "fixtures",
+      "equipment"
+    ],
+    "ofoi": [
+      "owner-furnished equipment"
+    ],
+    "ofci": [
+      "owner-furnished equipment"
+    ],
+    "av": [
+      "audio visual"
+    ],
+    "low voltage": [
+      "communications",
+      "security",
+      "audio visual",
+      "building automation"
+    ],
+    "smart home": [
+      "building automation",
+      "controls"
+    ],
+    "door": [
+      "doors"
+    ],
+    "window": [
+      "windows"
+    ],
+    "tile": [
+      "tile",
+      "tile finishes",
+      "tile flooring",
+      "tile wall finish"
+    ]
   }
 }
