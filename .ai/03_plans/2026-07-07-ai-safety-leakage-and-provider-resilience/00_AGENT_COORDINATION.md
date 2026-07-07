@@ -2,7 +2,7 @@
 
 Plan pack: `2026-07-07-ai-safety-leakage-and-provider-resilience`
 Plan profile: **exhaustive** (touches security, data integrity, auth/tenant isolation, provider surfaces, AI prompt-injection, auditability, and release readiness).
-Created: 2026-07-07 (Asia/Manila).
+Created: 2026-07-07 (Asia/Manila). **Improve pass applied 2026-07-07** per `Improve-Plan-Prompt.md`.
 Lead coordinator / synthesizer: GLM-5.2 (single lead, native subagents unavailable in this session → emulated specialist lanes, see verification mode below).
 
 ## Master `/goal`

@@ -133,3 +133,82 @@ explicitly listed as *remaining required*, not asserted. The package is
 **`CONDITIONALLY READY`** for the Phase 1–4 implementation slices, with the
 Phase 5–6 (hosted proof, observation) and OPEN-DEC-004/007/008 slices gated as
 documented. No application code was modified.
+
+---
+
+# Improve-Plan pass additions (2026-07-07)
+
+This section records the `Improve-Plan-Prompt.md` artifacts required by §FINAL
+DELIVERABLE: final verification matrix + evidence-class table, and the
+reconciled scorecard. Baseline (before) vs final (after) scores live in
+`20_AUDIT_BASELINE_AND_SCORECARD.md`.
+
+## Final verification matrix (requirement-by-requirement, this prompt's gates)
+
+| Improve-Prompt gate / requirement | Authoritative evidence | Current state | Mark |
+|---|---|---|---|
+| Read every relevant planning document completely | all 21 docs read (this pass) | done | Proven |
+| Inventory + source authority documented | `20` Phase 1 inventory + source hierarchy | done | Proven |
+| All requirements traceable to source | `16` (Source ID + Source evidence + Source strength per row) | done | Proven |
+| Scope and non-goals explicit | `02`, `10` | done | Proven |
+| Cross-doc contradictions resolved or recorded | `20` (3 conflicts resolved: DLQ drain, explicit-ack, retry delay) | resolved | Proven |
+| Goals + success + guardrail metrics defined | `02` (success/failure metrics), `09` (guardrails via alert thresholds) | done | Proven |
+| User journeys + UX/UI states | `05` (N/A with reason: ops/docs plan) | N/A | Not applicable w/ reason |
+| Accessibility requirements for user-facing work | `05` (N/A) | N/A | Not applicable w/ reason |
+| React/Next Server/Client boundaries | `05`/`18` (N/A: no frontend) | N/A | Not applicable w/ reason |
+| Data fetching/caching/revalidation strategy | N/A (no frontend cache) | N/A | Not applicable w/ reason |
+| Route-specific App Router boundary/cache contracts | N/A (no App Router routes touched) | N/A | Not applicable w/ reason |
+| Technical architecture + module boundaries | `06` | done | Proven |
+| Data/API/network/security/privacy/perf covered | `07`,`08`,`09` | done | Proven |
+| Cloudflare D1/R2/DO/Queue/Email implications | `07`,`18` (Queue/D1/R2 in scope; DO/Email N/A) | done | Proven |
+| Dependencies + blast radius documented | `10` | done | Proven |
+| Risks have severity/mitigation/owner/trigger | `14` | done | Proven |
+| Implementation units scoped/sequenced/testable | `11` (T-001..T-009 full fields; T-010..T-012 decision-gated) | done | Proven |
+| Acceptance criteria objective + measurable | `04`, `16` | done | Proven |
+| Testing strategy maps to reqs + impl units | `12` (proof-contract rows) | done | Proven |
+| Performance budgets + measurement when perf affected | `09` PERF evaluator (DATA-001/FR-008/REL-003) | defined, not yet executed | Weak/indirect (baseline TBD) |
+| Observability/ops/rollout/monitoring/rollback | `13`,`09` | done | Proven |
+| Adversarial review no unresolved P0/P1 | `19` UQ-1..UQ-12; this pass added UQ for DLQ pull-consumer | no unresolved P0/P1 | Proven |
+| Final verification confirms scores; 98-100 needs independent | this doc; `verification_mode: emulated` → cap 97 | emulated | Proven (with cap) |
+| No unresolved critical ambiguity | external blockers isolated (OPEN-DEC-004/007/008, REL-003) | none internal | Proven |
+| No unsupported score of 100 | no doc claims 100 | honest | Proven |
+| Credential material taxonomy (auth/token touches) | `08` credential taxonomy table (raw bearer secrets) | done | Proven |
+| Attack Surface Inventory for auth/data/public/API | `08` Attack Surface Inventory table (added this pass) | done | Proven |
+| Proof-contract rows for every planned proof | `12` PROOF-* rows (added this pass) | done | Proven |
+| Traceability matrix required column shape | `16` (normalized this pass) | done | Proven |
+
+## Evidence-class table (local / browser / provider / production / manual / inferred)
+
+| Evidence class | Used for | Cannot prove | Present in pack |
+|---|---|---|---|
+| Local static | file/line/symbol citations, `git diff --check`, doc consistency | runtime, provider behavior | `03`, `20` inventory, all path citations |
+| Local automated | `bun run test:dom` (vitest), `cf:build` type, local proof simulation | provider/production state | `12` (PROOF-* unit tests), `cf:queues-cron-proof` local sim |
+| Browser/manual | n/a — no browser-only claim | — | intentionally skipped (`05`, `12`) |
+| Provider-backed | `cf:jobs-proof` hosted, R2 receipt readback, `PRAGMA index_list` on remote, D1 audit rows | user UX (no UI here) | `12` PROOF-HOSTEDJOBS, PROOF-IDXREADBACK; `13` |
+| Production | 30-day hosted cron/D1 observation | local code-path details without source | `12` PROOF-CRONDIDFIRE; `13` REL-003 |
+| Manual | doc review, DLQ dashboard inspection, secret-rotation drill | automated regression | `13` runbook |
+| Inferred | retention scan-cost reasoning (→ D-INDEX); alert threshold numbers | completion claims requiring direct proof | `09` (labeled `assumption`/`derived`), `15` ASSUMP-* |
+
+**Honesty note:** no local check is claimed as provider/production proof. The
+local `cf:queues-cron-proof` is explicitly "necessary-not-sufficient" (D-PROOF).
+Hosted proof (FR-008) and 30-day observation (REL-003) are listed as *remaining
+required*, not asserted.
+
+## Reconciled final scores (consistent with `20`)
+
+Overall implementation readiness: **90** (was 85 before this improve pass; +5
+from closing format gaps + provider grounding). `verification_mode: emulated`
+caps at 97; the external blockers cap status at `CONDITIONALLY READY`. Category
+scores and exact <100 reasons are in `20` Phase 2 Final scorecard. No category
+claims 100.
+
+## Verification-mode cap re-statement
+
+`verification_mode: emulated`. The Improve-Plan revisions and this verification
+were performed by the same lead as separated passes (research → inventory →
+fixes → re-verify). No native independent verifier lane ran. Per the authority
+contract, this caps overall readiness at 97 and the high-blast-radius package
+status at `CONDITIONALLY READY` unless an independent reviewer or the owner
+later approves. To reach `IMPLEMENTATION-READY`: (1) owner/independent reviewer
+approves the pack; (2) OPEN-DEC-004/007/008 resolve; (3) FR-008 hosted proof +
+REL-003 observation close.

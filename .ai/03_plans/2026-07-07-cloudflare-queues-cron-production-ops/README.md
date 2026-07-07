@@ -5,10 +5,16 @@
 
 ## Status
 
-**`CONDITIONALLY READY`**
+**`CONDITIONALLY READY`** (improve-pass 2026-07-07: overall readiness 85 → 90)
 
 - The docs + tests + additive-migration slices (Phases 1–4) are
   implementation-ready: exact paths, symbols, ACs, and validation are specified.
+- The improve pass closed the required-format gaps (traceability columns,
+  proof-contract rows, Attack Surface Inventory, normalized implementation
+  units, final verification matrix, evidence-class table) and grounded all
+  provider claims in official Cloudflare Queues docs (RQ-1 closed: DLQ drain =
+  consumer/pull, not a wrangler command; explicit-ack semantics; retry-delay
+  override). See `20_AUDIT_BASELINE_AND_SCORECARD.md`.
 - Three **external blockers** gate the "production-proven" claim and are
   isolated, not resolved: `OPEN-DEC-004` (counsel TTL sign-off),
   `OPEN-DEC-008` (hosted-proof authorization), and REL-003 (30-day observation).
@@ -62,6 +68,7 @@ decisions; Phase 5 after deploy; Phase 6 after Phase 5.
 | OPEN-DEC-008 | Philip | FR-008 hosted proof | authorize one-time proof run | authorize post-deploy |
 | D-RETDRY | Philip (owner-delegated) | T-010 | add RETENTION_DRY_RUN env / leave as-is | add it (Small, safer) |
 | D-INDEX | Philip | DATA-001 / T-006 | add 4 indexes / rely on composite | add (reversible, cheap) |
+| D-DLQDRAIN | Philip (owner-delegated) | runbook §9 DLQ procedure | dashboard / pull-consumer / temp consumer Worker | dashboard + pull-consumer (new — 2026-07-07 improve pass; RQ-1 closed) |
 
 ## Stale-plan revalidation checklist (before implementing)
 
@@ -141,4 +148,5 @@ external-gated slices to remain active.
 | `17_FINAL_READINESS_REVIEW.md` | Verifier findings + scores |
 | `18_STACK_CONTRACT_AND_PRODUCTION_STANDARDS.md` | Cross-cutting stack decisions |
 | `19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md` | Research, critique cycles, UltraQA matrix, gaps |
+| `20_AUDIT_BASELINE_AND_SCORECARD.md` | Improve-Plan inventory + source hierarchy + before/after scorecard |
 | `PROMPT.md` | Original brief (preserved) |

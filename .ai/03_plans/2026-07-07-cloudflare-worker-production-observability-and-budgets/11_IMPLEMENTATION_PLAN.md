@@ -171,10 +171,24 @@ scaffolding placeholders. **Requirements:** none (characterization).
 - **Acceptance:** Server Action errors now carry the request id.
 - **Complexity:** S.
 
-### Task T-3.3 (S, modify) — `instrumentation.ts` edge branch
+### Task T-3.3 (M, modify) — `instrumentation.ts` edge branch — **redact path + add id (P1-2)**
 - **Paths:** `src/instrumentation.ts:12-30` (edge runtime branch).
-- **Change:** include `request_id: getRequestContext()?.requestId ?? null` in the edge `console.error` JSON (ALS may be unavailable on edge; guard with try/catch).
-- **Complexity:** S.
+- **Problem (P1-2):** the edge branch emits `path: request.path` via raw
+  `console.error`. Routes include `/api/share/[token]/**` and `/invite/[token]/**`,
+  so `path` can be `/api/share/<SHARE_TOKEN>` or `/invite/<INVITE_TOKEN>` — a
+  **capability leaked** into persisted Workers Logs unredacted. `redact.ts` is not
+  applied on this path.
+- **Change:**
+  1. Route the emitted `path` through `redactMessage` (or a new
+     `redactPath(path)` helper) so `/api/share/<token>` → `/api/share/[REDACTED_TOKEN]`
+     and `/invite/<token>` → `/invite/[REDACTED_TOKEN]`. Reuse the existing
+     `redact.ts` regex (it already handles `/share/` and `/invite/` segments).
+  2. Add `request_id: getRequestContext()?.internalId ?? null` (guarded — ALS may
+     be unavailable at edge instrumentation; wrap in try/catch, fall back to null).
+  3. Do NOT introduce `node:fs` (edge runtime constraint — already why `logAppError`
+     is lazily imported in the nodejs branch).
+- **Acceptance:** P-13 (token redacted in edge error line); P-14 (corpus).
+- **Complexity:** M.
 
 ---
 
