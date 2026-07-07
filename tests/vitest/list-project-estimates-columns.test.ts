@@ -143,7 +143,7 @@ describe("listProjectEstimates read path (F8 / F9 — P2-1, P2-2)", () => {
   it("keeps D1 project and estimate reads behind explicit access checks", () => {
     const source = readFileSync("src/lib/repositories/workspace-repository.ts", "utf8");
 
-    expect(source).toContain("canAccessProjectInD1(database, projectRow.id, userContext)");
+    expect(source).toContain("canAccessWholeProjectInD1(database, projectRow.id, userContext)");
     expect(source).toContain("canAccessEstimateInD1(database, normalizedEstimate.id, userContext)");
     expect(source).toContain("AND estimate.id IN (${placeholders(estimateIds)})");
     expect(source).toContain("canAccessEstimateInD1(database, estimate.id, userContext)");

@@ -4,7 +4,7 @@ import { cookies, headers } from "next/headers";
 
 import { getDevAuthBypassCredentialFromRequestParts, isDevAdminDatabaseBypassRequest } from "@/lib/auth/dev-auth-gate";
 import { readFirstAccountWorkspaceMembership } from "@/lib/auth/account-membership";
-import { canAccessEstimateInD1, canAccessProjectInD1, canEditEstimateInD1 } from "@/lib/authz/d1-access";
+import { canAccessEstimateInD1, canAccessWholeProjectInD1, canEditEstimateInD1 } from "@/lib/authz/d1-access";
 import type { EstimateRowItem, EstimateSheetAdjustment, EstimateTabSummary, EstimateTreeNode } from "@/lib/estimates/types";
 import { buildEstimateTreeSubtreePayload, type EstimateTreeSubtreeCompleteness, type EstimateTreeSubtreePayload } from "@/lib/estimates/estimate-tree-lazy";
 import { readEstimateRowMetadata } from "@/lib/estimates/express-components";
@@ -1268,6 +1268,15 @@ export const ensureDefaultWorkspace = cache(async function ensureDefaultWorkspac
   );
   await run(
     database,
+    `INSERT INTO workspace_members (workspace_id, user_id, role, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT(workspace_id, user_id) DO UPDATE SET
+       role = excluded.role,
+       updated_at = excluded.updated_at`,
+    [workspace.id, context.userId, "owner", now, now],
+  );
+  await run(
+    database,
     `UPDATE profiles
      SET default_workspace_id = ?, updated_at = ?
      WHERE id = ?`,
@@ -2375,7 +2384,7 @@ export const getCurrentWorkspaceProject = cache(async function getCurrentWorkspa
   const projectRow = normalizeProjectRow(project);
   const userContext = await requireCurrentUserContext();
   const canAccessProject = await traced("workspace-project.access-check", () =>
-    canAccessProjectInD1(database, projectRow.id, userContext),
+    canAccessWholeProjectInD1(database, projectRow.id, userContext),
   );
   if (!canAccessProject) {
     const { workspace: defaultWorkspace } = await traced("workspace-project.ensure-default-workspace", () => ensureDefaultWorkspace());
