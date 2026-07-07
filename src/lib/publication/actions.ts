@@ -350,23 +350,25 @@ export async function openRecipientProposalAction(
     }
 
     const token = decryptPublicationToken(publication.encrypted_token, readPublicationTokenEncryptionSecret());
-    const credentialVersion = deriveCredentialVersion(publication.password_hash);
-    const parts = getSharedLinkSessionCookieParts({
-      token,
-      publicationId: publication.id,
-      credentialVersion,
-      recipientId: authorization.recipient_id,
-    });
-    const cookieStore = await cookies();
+    if (!publication.password_hash) {
+      const credentialVersion = deriveCredentialVersion(publication.password_hash);
+      const parts = getSharedLinkSessionCookieParts({
+        token,
+        publicationId: publication.id,
+        credentialVersion,
+        recipientId: authorization.recipient_id,
+      });
+      const cookieStore = await cookies();
 
-    cookieStore.set(parts.name, parts.value, parts.cookieOptions);
-    cookieStore.set(`${parts.name}_ok`, "1", {
-      path: "/",
-      httpOnly: false,
-      sameSite: "lax",
-      maxAge: 86400,
-      secure: process.env.NODE_ENV === "production",
-    });
+      cookieStore.set(parts.name, parts.value, parts.cookieOptions);
+      cookieStore.set(`${parts.name}_ok`, "1", {
+        path: "/",
+        httpOnly: false,
+        sameSite: "lax",
+        maxAge: 86400,
+        secure: process.env.NODE_ENV === "production",
+      });
+    }
 
     redirectPath = `/share/${encodeURIComponent(token)}`;
   } catch {

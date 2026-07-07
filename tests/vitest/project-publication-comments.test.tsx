@@ -173,7 +173,6 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
         snapshotVersion: 1,
         credentialVersion: "cred-v1",
       });
-
       const res = await POST(
         makeRequest(
           { body: "blocked before password" },
