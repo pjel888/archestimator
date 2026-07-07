@@ -6,9 +6,11 @@ import { closeSync, createReadStream, existsSync, openSync, statSync } from "nod
 import { access, constants } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
+import { setTimeout as sleep } from "node:timers/promises";
 
 const DEFAULT_PORT = "6767";
 const DEFAULT_LOG_PATH = "/tmp/supermemory-local.log";
+const DEFAULT_STARTUP_TIMEOUT_MS = 5000;
 const SAVED_ENV_PATH = join(homedir(), ".supermemory", "env");
 const PROVIDER_CONFIGS = [
   ["OPENAI_API_KEY"],
@@ -51,6 +53,50 @@ function hasSavedSupermemoryEnv() {
   }
 }
 
+function readPositiveIntegerEnv(name, fallback) {
+  const raw = process.env[name]?.trim();
+  if (!raw) return fallback;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function describeChildExit(code, signal) {
+  if (signal) return `signal ${signal}`;
+  return `code ${code ?? "unknown"}`;
+}
+
+async function assertChildBecomesHealthy(child, healthUrl, timeoutMs) {
+  let earlyExit = null;
+  let lastHealthError = null;
+  child.once("error", (error) => {
+    earlyExit = `startup error: ${error.message}`;
+  });
+  child.once("exit", (code, signal) => {
+    earlyExit = `exit ${describeChildExit(code, signal)}`;
+  });
+
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (earlyExit) throw new Error(`server exited before health check passed (${earlyExit})`);
+
+    try {
+      const response = await fetch(healthUrl);
+      if (response.ok) {
+        await response.arrayBuffer();
+        return;
+      }
+      lastHealthError = `HTTP ${response.status}`;
+    } catch (error) {
+      lastHealthError = error instanceof Error ? error.message : String(error);
+    }
+
+    await sleep(100);
+  }
+
+  if (earlyExit) throw new Error(`server exited before health check passed (${earlyExit})`);
+  throw new Error(`health check ${healthUrl} did not pass within ${timeoutMs}ms${lastHealthError ? `: ${lastHealthError}` : ""}`);
+}
+
 const configuredBin = process.env.SUPERMEMORY_SERVER_BIN;
 const expectedHash = process.env.SUPERMEMORY_SERVER_SHA256?.trim().toLowerCase();
 
@@ -85,12 +131,15 @@ if (!hasProviderConfig() && !hasSavedSupermemoryEnv()) {
 }
 
 const port = process.env.SUPERMEMORY_PORT?.trim() || DEFAULT_PORT;
+const healthUrl = process.env.SUPERMEMORY_HEALTH_URL?.trim() || `http://localhost:${port}/`;
+const startupTimeoutMs = readPositiveIntegerEnv("SUPERMEMORY_STARTUP_TIMEOUT_MS", DEFAULT_STARTUP_TIMEOUT_MS);
 const logPath = process.env.SUPERMEMORY_LOG_PATH || DEFAULT_LOG_PATH;
 const out = openSync(logPath, "a");
 const err = openSync(logPath, "a");
+let child = null;
 
 try {
-  const child = spawn(serverBin, [], {
+  child = spawn(serverBin, [], {
     detached: true,
     env: {
       ...process.env,
@@ -99,8 +148,12 @@ try {
     },
     stdio: ["ignore", out, err],
   });
+  await assertChildBecomesHealthy(child, healthUrl, startupTimeoutMs);
   child.unref();
-  process.stdout.write(`supermemory:start: started ${serverBin} on port ${port}; log ${logPath}; pid ${child.pid}\n`);
+  process.stdout.write(`supermemory:start: started ${serverBin} on port ${port}; health ${healthUrl}; log ${logPath}; pid ${child.pid}\n`);
+} catch (error) {
+  if (child && !child.killed) child.kill();
+  fail(error instanceof Error ? error.message : String(error));
 } finally {
   closeSync(out);
   closeSync(err);

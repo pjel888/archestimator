@@ -37,7 +37,8 @@ At the start of meaningful work, each agent or adapter should:
 1. Check availability:
 
    ```sh
-   curl -fsS http://localhost:6767/ >/dev/null
+   SUPERMEMORY_HEALTH_URL="${SUPERMEMORY_HEALTH_URL:-http://localhost:${SUPERMEMORY_PORT:-6767}/}"
+   curl -fsS "$SUPERMEMORY_HEALTH_URL" >/dev/null
    ```
 
 2. If the check fails and the harness can start local processes, start the
@@ -53,7 +54,10 @@ At the start of meaningful work, each agent or adapter should:
    configuration is already non-interactive: either `~/.supermemory/env`
    exists or a supported provider env configuration is present. The launcher
    ignores generic `PORT`; set `SUPERMEMORY_PORT` to override the fixed
-   `6767` default. Logs go to `/tmp/supermemory-local.log`.
+   `6767` default and use the matching `SUPERMEMORY_HEALTH_URL` if a harness
+   needs an explicit probe URL. The launcher waits for that health URL and
+   fails if the verified server exits before it becomes healthy. Logs go to
+   `/tmp/supermemory-local.log`.
 
    The verified server binary path is mandatory: do not use `npm exec`, `npx`,
    `bunx`, `pnpm dlx`, the npm wrapper installer, or any command that can
@@ -62,8 +66,7 @@ At the start of meaningful work, each agent or adapter should:
    provides a locally installed `supermemory-server` binary plus its expected
    SHA-256.
    Do not treat installer completion as a running memory layer; wait for the
-   `http://localhost:6767/` check to pass before claiming Supermemory is
-   available.
+   configured health check to pass before claiming Supermemory is available.
 
    If the harness cannot start it or the command fails, continue with an
    explicit `not-verified` memory gap instead of blocking safe local work.
