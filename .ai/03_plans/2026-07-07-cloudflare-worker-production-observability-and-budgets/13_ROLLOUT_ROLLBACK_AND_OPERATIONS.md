@@ -42,13 +42,29 @@ change). Fix-forward is equally viable for any logic bug.
 ## 13.4 Observability runbook (DOC-01)
 
 ### Find a request by id
-1. Get the `x-request-id` from the client (error toast) or `cf-ray`.
+1. Get the `x-request-id` from the client error toast (the app-level correlation
+   id generated at the Worker edge — this is the **primary** lookup key per
+   DEC-01). Do **not** use `cf-ray` for app-log lookup: `cf-ray` is a Cloudflare
+   invocation-log field only and is **not** present in the app's structured
+   `route_*`/`action_*`/`worker.*` log lines, so a `cf-ray` query returns nothing
+   for app logs and misleads (P1-3).
 2. Cloudflare dashboard → Workers & Pages → `archestimator-proof` → Observability
    → Query Builder.
-3. Query: `WHERE "cf-ray" = '<id>' OR event LIKE '%<id>%'` (or filter logs by
-   the request id field if present in the structured line).
-4. If not found: sampling dropped it. For pre-launch (1.0 sampling) this is rare;
-   raise the rate if needed.
+3. Query the **app structured logs** by the request id:
+   ```sql
+   SELECT timestamp, event, request_id, error.code, error.status_code, message
+   FROM workersLogs
+   WHERE request_id = '<the-x-request-id>'
+      OR event LIKE '%<the-x-request-id>%'
+   ORDER BY timestamp DESC LIMIT 100
+   ```
+4. To correlate with the raw Cloudflare invocation row (outcome, CPU, duration)
+   for the same request, **separately** query invocation logs by `cf-ray` (the
+   response also carries `cf-ray` as a response header set by Cloudflare). This
+   is the only valid use of `cf-ray` — it does not join to app logs.
+5. If not found in app logs: sampling dropped it. For pre-launch (1.0 sampling)
+   this is rare; raise the rate if needed (and confirm the top-level
+   `observability.head_sampling_rate` is actually 1.0 — see T-7.1).
 
 ### Read an error log line
 - JSON fields: `timestamp`, `level`, `event`, `message`, `action?`, `request_id`,

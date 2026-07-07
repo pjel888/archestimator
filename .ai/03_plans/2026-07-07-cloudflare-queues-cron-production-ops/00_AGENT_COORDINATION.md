@@ -168,3 +168,26 @@ mutated. The pre-existing `PROMPT.md` in the folder was preserved as-is.
 Tracked in `15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md` and the blocked
 decisions table in `README.md`. Headline: `OPEN-DEC-004` (counsel TTL sign-off)
 and the cross-batch idempotency-store decision are the two material open items.
+
+## Improve-Plan pass (2026-07-07)
+
+A second-suite pass (`Improve-Plan-Prompt.md`) audited and repaired the package.
+Artifacts and changes (recorded in `20_AUDIT_BASELINE_AND_SCORECARD.md` and
+`17` Improve-Plan section):
+
+- **Research closure (RQ-1):** official Cloudflare Queues docs confirm there is
+  no `wrangler queues dlq drain` command; DLQ is a normal queue drained via
+  dashboard / pull consumer / temp consumer Worker. ASSUMP-002 resolved.
+- **Provider-grounding fixes:** explicit-ack semantics, retry-delay override of
+  default exponential backoff, and DLQ mechanics corrected in `06`/`07`/`13`/`18`.
+- **Required-format gaps closed:** traceability matrix columns (`16`),
+  proof-contract rows (`12`), Attack Surface Inventory (`08`), normalized
+  implementation-unit fields (`11`), final verification matrix + evidence-class
+  table (`17`).
+- **New decision:** D-DLQDRAIN (DLQ drain via pull consumer + dashboard).
+- **Score:** overall 85 → 90; status unchanged (`CONDITIONALLY READY`, capped by
+  emulated verification + external blockers).
+
+The improve pass used the same Explore-lane evidence base plus official-doc
+research; final verification remained `verification_mode: emulated` (separated
+pass by the lead).
