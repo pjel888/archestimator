@@ -1253,10 +1253,77 @@ async function filterAccessibleEstimates<T extends { id: string }>(
   context: Pick<CurrentUserContext, "role" | "userId">,
 ) {
   if (estimates.length === 0) return estimates;
-  const accessResults = await Promise.all(
-    estimates.map((estimate) => canAccessEstimateInD1(database, estimate.id, context)),
+  const accessibleEstimateIds = await readAccessibleEstimateIdSet(
+    database,
+    estimates.map((estimate) => estimate.id),
+    context,
   );
-  return estimates.filter((_estimate, index) => accessResults[index]);
+  return estimates.filter((estimate) => accessibleEstimateIds.has(estimate.id));
+}
+
+const MAX_ESTIMATE_ACCESS_PROBE_BATCH_SIZE = 90;
+
+async function readAccessibleEstimateIdSet(
+  database: D1DatabaseLike,
+  estimateIds: string[],
+  context: Pick<CurrentUserContext, "role" | "userId">,
+) {
+  const uniqueEstimateIds = [...new Set(estimateIds)];
+  if (uniqueEstimateIds.length === 0) return new Set<string>();
+  if (isPlatformAdminContext(context)) return new Set(uniqueEstimateIds);
+
+  try {
+    const accessibleEstimateIds = new Set<string>();
+    for (let index = 0; index < uniqueEstimateIds.length; index += MAX_ESTIMATE_ACCESS_PROBE_BATCH_SIZE) {
+      const estimateIdBatch = uniqueEstimateIds.slice(index, index + MAX_ESTIMATE_ACCESS_PROBE_BATCH_SIZE);
+      const rows = await all<{ id: string }>(
+        database,
+        `SELECT estimate.id
+         FROM estimates estimate
+         JOIN projects project ON project.id = estimate.project_id
+         LEFT JOIN estimate_sheet_access_settings access
+           ON access.estimate_id = estimate.id
+         WHERE estimate.id IN (${placeholders(estimateIdBatch)})
+           AND (
+             EXISTS (
+               SELECT 1
+               FROM estimate_sheet_members sheet_member
+               WHERE sheet_member.estimate_id = estimate.id
+                 AND sheet_member.user_id = ?
+             )
+             OR (
+               COALESCE(access.inherit_project_access, 1) = 1
+               AND (
+                 EXISTS (
+                   SELECT 1
+                   FROM workspace_members workspace_member
+                   WHERE workspace_member.workspace_id = project.workspace_id
+                     AND workspace_member.user_id = ?
+                 )
+                 OR EXISTS (
+                   SELECT 1
+                   FROM project_members project_member
+                   WHERE project_member.project_id = project.id
+                     AND project_member.user_id = ?
+                 )
+               )
+             )
+           )`,
+        [
+          ...estimateIdBatch,
+          context.userId,
+          context.userId,
+          context.userId,
+        ],
+      );
+      for (const row of rows) {
+        accessibleEstimateIds.add(row.id);
+      }
+    }
+    return accessibleEstimateIds;
+  } catch {
+    return new Set<string>();
+  }
 }
 
 function canReadProjectCollaborationRoster({
@@ -1531,8 +1598,16 @@ async function listCurrentWorkspaceProjectsAppPath() {
       ]),
   );
 
+  const accessibleEstimateIds = await readAccessibleEstimateIdSet(
+    database,
+    [...projectEstimateSheets.map((sheet) => sheet.id), ...favoriteEstimates.map((estimate) => estimate.id)],
+    { role: profile.role, userId: profile.id },
+  );
+  const accessibleProjectEstimateSheets = projectEstimateSheets.filter((sheet) => accessibleEstimateIds.has(sheet.id));
+  const accessibleFavoriteEstimates = favoriteEstimates.filter((estimate) => accessibleEstimateIds.has(estimate.id));
+
   let favoriteEstimateSheetsByProjectId = new Map<string, ProjectFavoriteEstimateSheetSummary[]>();
-  const estimateSheetsByProjectId = projectEstimateSheets.reduce((byProject, sheet) => {
+  const estimateSheetsByProjectId = accessibleProjectEstimateSheets.reduce((byProject, sheet) => {
     const sheets = byProject.get(sheet.project_id) ?? [];
     sheets.push(sheet);
     byProject.set(sheet.project_id, sheets);
@@ -1544,7 +1619,7 @@ async function listCurrentWorkspaceProjectsAppPath() {
 
   if (favoriteEstimateIds.length > 0) {
     const favoriteEstimateById = new Map(
-      favoriteEstimates.map((estimate) => [estimate.id, estimate]),
+      accessibleFavoriteEstimates.map((estimate) => [estimate.id, estimate]),
     );
     favoriteEstimateSheetsByProjectId = favoriteEstimateRows.reduce((byProject, favorite) => {
       const estimate = favoriteEstimateById.get(favorite.estimate_id);
