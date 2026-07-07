@@ -59,7 +59,7 @@
     "lint:design": "node .agents/skills/impeccable/scripts/detect.mjs --strict src/components",
     "launch:verify-hosted-sensitive-routes": "bun run scripts/verify-hosted-sensitive-route-fail-closed.ts",
     "perf:check-speed-insights": "bun run scripts/check-vercel-speed-insights-readiness.ts",
-    "doctor": "react-doctor"
+    "doctor": "./node_modules/.bin/react-doctor"
   },
   "dependencies": {
     "@firecms/neat": "0.8.0",
