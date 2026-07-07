@@ -1,0 +1,16 @@
+# 14 — Risk Register
+
+| ID | Description | Trigger | Probability | Impact | Severity | Affected areas | Detection | Prevention | Mitigation | Contingency | Owner | Residual risk | Status |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| RISK-01 | Activation emit/milestone write blocks a core mutation | Inline hook throws | Low | High | High | Project/estimate/publication create | Action error in logs; user reports | Wrap all activation calls in try/catch (non-throwing) | If observed, hotfix remove the hook; rely on Phase-0 tests | Owner | Low | Open (mitigated by design) |
+| RISK-02 | Welcome panel mistaken for a required gate | User feels forced | Medium | Medium | Medium | UX, activation funnel | Beta feedback | Auto-hide after first project; dismiss control; clear copy | Add dismiss + copy review | Owner | Low | Open |
+| RISK-03 | Cross-workspace milestone leak | `getMilestones` takes client workspaceId | Low | High | High | Security | Denial test | Pass authorized workspaceId from session only | Denial test + fix | Security lane | Low | Open (mitigated by design) |
+| RISK-04 | Event payload PII leak | Free-form string in event | Low | High | High | Privacy | Redaction test | Typed enum schema + redact | Schema test + fix | Data lane | Low | Open (mitigated by design) |
+| RISK-05 | Homebase query-count regression | Milestone read not folded into `Promise.all` | Medium | Medium | Medium | Performance | Query-count test | Fold into batched wave | Perf-trace capture + fix | Perf lane | Low | Open |
+| RISK-06 | Existing dashboard/homebase tests break | Payload change not additive | Medium | Medium | Medium | Tests | CI | Additive-only fields; optional in parser | Extend tests additively | Dashboard lane | Low | Open |
+| RISK-07 | Stale Joyride plan re-executed by a future agent | Misreading of `.ai/03_plans` | Medium | Medium | Medium | Coordination | PR review | This pack explicitly supersedes it; note in `00_…` | Reject the PR | Lead | Low | Open |
+| RISK-08 | Sample data policy left unresolved → executor invents it | OPEN-DEC-01 deferred | Medium | Medium | Medium | Scope | Review | Isolated as Phase 7 BLOCKED-EXTERNAL | Owner decision before Phase 7 | Owner | Medium | Open (owner-isolated) |
+| RISK-09 | Collaborator welcome behavior undefined | OPEN-DEC-02 deferred | Low | Low | Low | UX | Review | Recorded as open decision | Owner decision | Owner | Low | Open (owner-isolated) |
+| RISK-10 | Two divergent estimate-creation paths confuse first users | `createEstimateWithDefaultTree` vs `createEstimateSheetDraft` | Medium | Low | Low | UX | Review | Document divergence; keep empty path; offer seeded only via explicit template choice | Copy review | Lead | Low | Open |
+| RISK-11 | `ensureDefaultWorkspace` milestone seeding races the first project create | Concurrent first request | Low | Low | Low | Data | Concurrency test | COALESCE upsert (DATA-002) | Reconciliation backfill | Data lane | Low | Open (mitigated by design) |
+| RISK-12 | Emulated verification (no independent reviewer) | Single-agent planning | Certain | Medium | Medium | Pack readiness | Review | Apply readiness cap (CONDITIONALLY READY); recommend owner/independent review | Mark cap honestly | Lead | Medium | Open (caps readiness) |
