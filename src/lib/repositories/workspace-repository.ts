@@ -1261,6 +1261,8 @@ async function filterAccessibleEstimates<T extends { id: string }>(
   return estimates.filter((estimate) => accessibleEstimateIds.has(estimate.id));
 }
 
+const MAX_ESTIMATE_ACCESS_PROBE_BATCH_SIZE = 90;
+
 async function readAccessibleEstimateIdSet(
   database: D1DatabaseLike,
   estimateIds: string[],
@@ -1271,51 +1273,58 @@ async function readAccessibleEstimateIdSet(
   if (isPlatformAdminContext(context)) return new Set(uniqueEstimateIds);
 
   try {
-    const rows = await all<{ id: string }>(
-      database,
-      `SELECT estimate.id
-       FROM estimates estimate
-       JOIN projects project ON project.id = estimate.project_id
-       LEFT JOIN estimate_sheet_access_settings access
-         ON access.estimate_id = estimate.id
-       WHERE estimate.id IN (${placeholders(uniqueEstimateIds)})
-         AND (
-           estimate.created_by = ?
-           OR EXISTS (
-             SELECT 1
-             FROM estimate_sheet_members sheet_member
-             WHERE sheet_member.estimate_id = estimate.id
-               AND sheet_member.user_id = ?
-           )
-           OR (
-             COALESCE(access.inherit_project_access, 1) = 1
-             AND (
-               project.created_by = ?
-               OR EXISTS (
-                 SELECT 1
-                 FROM workspace_members workspace_member
-                 WHERE workspace_member.workspace_id = project.workspace_id
-                   AND workspace_member.user_id = ?
-               )
-               OR EXISTS (
-                 SELECT 1
-                 FROM project_members project_member
-                 WHERE project_member.project_id = project.id
-                   AND project_member.user_id = ?
+    const accessibleEstimateIds = new Set<string>();
+    for (let index = 0; index < uniqueEstimateIds.length; index += MAX_ESTIMATE_ACCESS_PROBE_BATCH_SIZE) {
+      const estimateIdBatch = uniqueEstimateIds.slice(index, index + MAX_ESTIMATE_ACCESS_PROBE_BATCH_SIZE);
+      const rows = await all<{ id: string }>(
+        database,
+        `SELECT estimate.id
+         FROM estimates estimate
+         JOIN projects project ON project.id = estimate.project_id
+         LEFT JOIN estimate_sheet_access_settings access
+           ON access.estimate_id = estimate.id
+         WHERE estimate.id IN (${placeholders(estimateIdBatch)})
+           AND (
+             estimate.created_by = ?
+             OR EXISTS (
+               SELECT 1
+               FROM estimate_sheet_members sheet_member
+               WHERE sheet_member.estimate_id = estimate.id
+                 AND sheet_member.user_id = ?
+             )
+             OR (
+               COALESCE(access.inherit_project_access, 1) = 1
+               AND (
+                 project.created_by = ?
+                 OR EXISTS (
+                   SELECT 1
+                   FROM workspace_members workspace_member
+                   WHERE workspace_member.workspace_id = project.workspace_id
+                     AND workspace_member.user_id = ?
+                 )
+                 OR EXISTS (
+                   SELECT 1
+                   FROM project_members project_member
+                   WHERE project_member.project_id = project.id
+                     AND project_member.user_id = ?
+                 )
                )
              )
-           )
-         )`,
-      [
-        ...uniqueEstimateIds,
-        context.userId,
-        context.userId,
-        context.userId,
-        context.userId,
-        context.userId,
-      ],
-    );
-    return new Set(rows.map((row) => row.id));
+           )`,
+        [
+          ...estimateIdBatch,
+          context.userId,
+          context.userId,
+          context.userId,
+          context.userId,
+          context.userId,
+        ],
+      );
+      for (const row of rows) {
+        accessibleEstimateIds.add(row.id);
+      }
+    }
+    return accessibleEstimateIds;
   } catch {
     return new Set<string>();
   }

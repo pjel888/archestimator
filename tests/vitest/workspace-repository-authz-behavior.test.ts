@@ -48,6 +48,7 @@ const PROJECT_WORKSPACE_ID = "33333333-3333-4333-8333-333333333333";
 const PROJECT_ID = "44444444-4444-4444-8444-444444444444";
 const ESTIMATE_ALLOWED_ID = "55555555-5555-4555-8555-555555555555";
 const ESTIMATE_DENIED_ID = "66666666-6666-4666-8666-666666666666";
+const ESTIMATE_ACCESS_PROBE_BATCH_SIZE = 90;
 
 type AccessResult = "allow" | "deny" | "throw";
 
@@ -55,6 +56,13 @@ type FakeWorkspaceRepositoryOptions = {
   estimateAccess?: Record<string, AccessResult>;
   favoriteEstimateRows?: Array<{ estimate_id: string; project_id: string; created_at: string }>;
   projectAccess?: AccessResult;
+};
+
+type ProjectEstimateSheetMock = {
+  id: string;
+  name: string;
+  sheetCode: string;
+  updatedAt: string;
 };
 
 type D1Query = {
@@ -322,12 +330,15 @@ class FakeWorkspaceRepositoryD1Database implements D1DatabaseLike {
   }
 }
 
-async function importWorkspaceRepository(database: FakeWorkspaceRepositoryD1Database) {
+async function importWorkspaceRepository(
+  database: FakeWorkspaceRepositoryD1Database,
+  options: { projectEstimateSheets?: ProjectEstimateSheetMock[] } = {},
+) {
   vi.resetModules();
   authMocks.requireCurrentUserContext.mockResolvedValue(currentUserContext());
   authMocks.readFirstAccountWorkspaceMembership.mockResolvedValue(null);
   cloudflareMocks.getCloudflareD1Database.mockResolvedValue(database);
-  projectSheetMocks.listProjectEstimateSheetsForProject.mockResolvedValue([
+  projectSheetMocks.listProjectEstimateSheetsForProject.mockResolvedValue(options.projectEstimateSheets ?? [
     { id: ESTIMATE_ALLOWED_ID, name: "Allowed Estimate", sheetCode: "A-001", updatedAt: "2026-07-04T00:00:00.000Z" },
     { id: ESTIMATE_DENIED_ID, name: "Denied Estimate", sheetCode: "D-001", updatedAt: "2026-07-04T00:00:00.000Z" },
   ]);
@@ -420,6 +431,51 @@ describe("workspace repository D1 authorization behavior", () => {
 
     expect(projectSheetMocks.listProjectEstimateSheetsForProject).toHaveBeenCalledWith(PROJECT_ID, {});
     expect(sheets.map((sheet) => sheet.id)).toEqual([ESTIMATE_ALLOWED_ID]);
+  });
+
+  it("chunks batched lightweight project sheet access probes below D1 bind limits", async () => {
+    const projectEstimateSheets = Array.from({ length: 95 }, (_, index) => {
+      const position = String(index + 1).padStart(3, "0");
+      return {
+        id: `estimate-${position}`,
+        name: `Estimate ${position}`,
+        sheetCode: `E-${position}`,
+        updatedAt: "2026-07-04T00:00:00.000Z",
+      };
+    });
+    const estimateAccess: Record<string, AccessResult> = Object.fromEntries(
+      projectEstimateSheets.map((sheet, index) => [sheet.id, index % 2 === 0 ? "allow" : "deny"]),
+    );
+    const database = new FakeWorkspaceRepositoryD1Database({
+      estimateAccess,
+      projectAccess: "allow",
+    });
+    const { listProjectEstimateSheets } = await importWorkspaceRepository(database, { projectEstimateSheets });
+
+    const sheets = await listProjectEstimateSheets(PROJECT_ID);
+
+    expect(sheets.map((sheet) => sheet.id)).toEqual(
+      projectEstimateSheets.filter((_sheet, index) => index % 2 === 0).map((sheet) => sheet.id),
+    );
+    const batchedAccessQueries = database.queries.filter((query) =>
+      query.sql.includes("SELECT estimate.id") &&
+      query.sql.includes("FROM estimates estimate") &&
+      query.sql.includes("WHERE estimate.id IN")
+    );
+    expect(batchedAccessQueries).toHaveLength(2);
+    expect(batchedAccessQueries[0]?.values.slice(0, -5)).toEqual(
+      projectEstimateSheets.slice(0, ESTIMATE_ACCESS_PROBE_BATCH_SIZE).map((sheet) => sheet.id),
+    );
+    expect(batchedAccessQueries[1]?.values.slice(0, -5)).toEqual(
+      projectEstimateSheets.slice(ESTIMATE_ACCESS_PROBE_BATCH_SIZE).map((sheet) => sheet.id),
+    );
+    expect(batchedAccessQueries.map((query) => query.values.length)).toEqual([
+      ESTIMATE_ACCESS_PROBE_BATCH_SIZE + 5,
+      projectEstimateSheets.length - ESTIMATE_ACCESS_PROBE_BATCH_SIZE + 5,
+    ]);
+    expect(database.queries.some((query) =>
+      query.sql.includes("SELECT 1 AS allowed") && query.sql.includes("FROM estimates estimate")
+    )).toBe(false);
   });
 
   it("returns no lightweight project sheets when the project is inaccessible", async () => {
