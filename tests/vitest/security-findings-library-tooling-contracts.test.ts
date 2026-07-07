@@ -117,9 +117,12 @@ describe("Codex component-library and tooling hardening contracts", () => {
     expect(taxonomySeed).toContain("item.metadata || jsonb_build_object('workspaceScopedSeed', true)");
     expect(taxonomySeed).not.toMatch(/select\s+item\.id,\s+w\.id/i);
 
-    expect(seedIdRepair).toContain("select distinct on (legacy.metadata->>'sourceFixtureId')");
-    expect(seedIdRepair).toContain("cross join legacy_seed_items");
-    expect(seedIdRepair).toContain("public.component_library_seed_uuid(workspace.id, legacy.metadata->>'sourceFixtureId')");
+    expect(seedIdRepair).toContain("create temp table component_library_canonical_seed_items on commit drop as");
+    expect(seedIdRepair).toContain("cross join pg_temp.component_library_canonical_seed_items canonical");
+    expect(seedIdRepair).toContain('public.component_library_seed_uuid(workspace.id, canonical."sourceId")');
+    expect(seedIdRepair).toContain("legacy.metadata->>'sourceFixtureId' in (");
+    expect(seedIdRepair).not.toContain("legacy_seed_items");
+    expect(seedIdRepair).not.toContain("cross join legacy");
     expect(seedIdRepair).toContain("update public.estimate_row_items row_item");
     expect(seedIdRepair).toContain("to_jsonb(relink_targets.replacement_item_id::text)");
     expect(seedIdRepair).toContain("lifecycle_state = 'archived'::public.component_lifecycle_state");
