@@ -21,15 +21,19 @@
 1. Status → `resolved` → reporter email sent.
 2. Graceful if email unconfigured/invalid.
 
-## Screen / component states
+## Screen / component states (full 11-state matrix)
 
-| Surface | Loading | Empty | Success | Error | Disabled | Offline/degraded |
-|---|---|---|---|---|---|---|
-| `BetaFeedbackForm` (inline) | button "Sending" + disabled | initial `idle` (no output) | `<output>` accent + acknowledgement copy | `<output>` danger + code message | submit disabled while `inlinePending` | D1 fail → `<output>` warning + mailto fallback |
-| `BetaFeedbackForm` (redirect) | none (full post) | n/a | page `?saved=1` box | `?error=<code>` box | n/a | `?fallback=1` box + mailto |
-| Review queue (SSR) | none (server-rendered) | "No feedback matches this view." | notice on `?saved=1` | "Beta feedback could not be loaded." / `?error=forbidden|invalid|save` | status `<select>` always enabled | server error → danger box |
-| SLA badge | computed from timestamps | "—" when `created_at` null | on-track / due-soon / breached tones | n/a | n/a | n/a |
-| Toast (`src/components/ui/toast.tsx`) | available but currently unused by feedback | — | success tone possible | error tone possible | — | — |
+Mandated coverage: loading, empty, success, partial-success, error, conflict, permission-denied, offline, retry, timeout, cancellation.
+
+| Surface | Loading | Empty | Success | Partial-success | Error | Conflict | Permission-denied | Offline | Retry | Timeout | Cancellation |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| `BetaFeedbackForm` (inline) | button "Sending" + disabled | initial `idle` (no output box) | `<output>` accent + ack copy (FR-ACK-01) | **notify email fails but D1 save succeeds → still "saved" ack; notify failure logged silently** | `<output>` danger + code message (`message_too_short` etc.) | n/a (no optimistic UI) | n/a (gate is on action; form always renders for authed users) | D1 fail → `<output>` warning + mailto fallback (FR-ACK-02) | browser refresh/back re-submit → duplicate row; client button-disable mitigates | **notify `Promise.race` 2s timeout → ack still "saved"; notify logged `code:TIMEOUT`** | user closes modal mid-submit → request completes server-side (no abort hook); row may still be created — document, accept at beta |
+| `BetaFeedbackForm` (redirect) | none (full post → redirect) | n/a | page `?saved=1` box + ack copy | same as inline partial-success (notify fail invisible to user) | `?error=<code>` box (`invalid_type`/`message_too_long` etc.) | n/a | n/a | `?fallback=1` box + payload mailto | PRG prevents back-button re-POST; `Cache-Control: no-store` added (20) | notify 2s cap → `?saved=1` (user unaffected) | browser stops the POST → no row (request aborted) |
+| Review queue (SSR) | none (server-rendered, no skeleton) | "No feedback matches this view." | notice on `?saved=1` | n/a (single status update) | "Beta feedback could not be loaded." / `?error=forbidden\|invalid\|save` | last-write-wins on `status` (two admins) — no UI conflict shown; timestamps `IS NULL`-guarded | **`?error=forbidden`** → "Only platform admins can review feedback." | server error → danger box | refresh re-fetches (no client state) | n/a (SSR) | n/a |
+| SLA badge | computed from timestamps at render | "—" when `created_at` null | on-track (green) / due-soon (amber) / breached (red) + icon+text | n/a | n/a (derived) | n/a | n/a | n/a | n/a | n/a |
+| Toast (`src/components/ui/toast.tsx`) | available, **intentionally unused** for reporter ack (auto-dismiss loses it); reserved for possible future operator "new feedback" toast | — | success tone | — | error tone | — | — | — | — | — | — |
+
+**State-matrix notes:** "partial-success" is a genuine state here (notify email fails → save succeeds); it is rendered as plain success to the user (the notify failure is operator-visible only via logs + queue). "Cancellation" for the modal is accepted as "row may still be created" at beta (no abort signal wired; documenting, not fixing). These are the load-bearing answers; the rest are n/a-with-reason.
 
 ## Acknowledgement UX design (FR-ACK-01)
 
@@ -51,6 +55,21 @@
 - **Non-color cues**: SLA badge uses icon + text (not color alone) — e.g. "● On track" / "⚠ Due soon" / "✕ Breached".
 - **Contrast**: reuse existing tone classes (accent/warning/danger) already audited elsewhere.
 - **Reduced motion**: no new animations planned; existing primitives respect `prefers-reduced-motion`.
+
+## Action-level accessibility proof matrix
+
+Mandated (Improve-Plan-Prompt §3 UX). Each interactive action gets: keyboard path, focus target/restoration, accessible name/live-region behavior, proof type.
+
+| Action | Keyboard path | Focus target / restoration | Accessible name / live-region | Proof type |
+|---|---|---|---|---|
+| Submit feedback (inline mode) | Tab to fields → Tab to submit → Enter | on state change → focus moves to the `<output>` ack region (UX-A11Y-02); on modal close → focus returns to the Lifebuoy trigger (`Modal` primitive owns this) | submit button: existing `aria-label`/text; ack output: `role="status"` + `aria-live="polite"` (success) / `role="alert"` (error) | **RTL DOM test**: assert `document.activeElement === outputRef` after submit; assert `role` + `aria-live` attributes. (Browser proof intentionally skipped — RTL captures focus.) |
+| Submit feedback (redirect mode) | native form submit (Enter on textarea triggers submit) | n/a (full page redirect) | ack box: `role="status"`/`aria-live="polite"` on `?saved=1`; `role="alert"` on `?error=` | RTL/SSR test: render page with `?saved=1`/`?error=` searchParams → assert `role` + text |
+| Select Type / Severity | Tab to `DropdownSelect` → Enter/Space to open → arrow keys → Enter | focus stays on the dropdown trigger | **real `<label htmlFor>` (new, UX-A11Y-01)** associated to the control id (not a bare `aria-label`) | DOM test asserting `label` ↔ `control id` association (`htmlFor`/`aria-labelledby`); axe-oriented assertion |
+| Status `<select>` change (operator) | Tab to row's `<select>` → arrow keys → Tab to Save → Enter | focus stays on the select/Save button | `aria-label="Review status for feedback from ${user_email}"` (existing) | DOM test on `settings/feedback/page.tsx` render |
+| Pagination "Next page" | Tab to the control → Enter | focus moves to the top of the new page's table (or the control retains focus — pick one; recommend top-of-table for screen readers) | `aria-label="Next page"` + current page announced via `aria-live` on a page counter | DOM test asserting the control + label; focus-target decision documented |
+| Breach filter | Tab to filter `<select>` → select → Enter (form GET) | n/a (full page GET) | `aria-label="Filter by SLA status"` | DOM test |
+
+**WCAG 2.2 AA alignment**: the matrix above covers the relevant 2.2 AA criteria for this surface — keyboard operability (2.1.1), focus visible (2.4.7), name-role-value (4.1.2), status messages (4.1.3), on-focus/no-context-change (3.2.1), labels (2.4.6/3.3.2), contrast (1.4.3 — reuse audited tone classes), target size (2.5.8 — existing button sizing). Reduced motion (2.3.3) respected by existing primitives.
 
 ## Responsive behavior
 

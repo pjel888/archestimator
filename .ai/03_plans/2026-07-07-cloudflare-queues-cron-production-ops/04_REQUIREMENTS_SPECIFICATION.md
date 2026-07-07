@@ -60,10 +60,15 @@ Source-strength legend: `brief` = PROMPT.md; `repo evidence` = source file;
 - **Statement:** Operator runbook documents how to inspect, drain, and replay
   DLQ messages safely (read message, fix root cause, re-enqueue or discard),
   using only bound resources and behind evidence review.
-- **Source:** brief ("failure recovery"). `assumption` on exact Cloudflare CLI
-  surface (wrangler queues commands) — see `19` research.
-- **AC:** Runbook "DLQ operations" has steps for list/peek, inspect, replay,
-  discard, with the caveat that destructive discard needs owner sign-off.
+- **Source:** brief ("failure recovery") + `official docs` (Cloudflare Queues
+  DLQ/pull-consumer docs, retrieved 2026-07-07; RQ-1 resolved in `19`). The DLQ
+  is a normal queue drained via dashboard "Debug Queues", a pull consumer (HTTP
+  API), or a temporary consumer Worker — there is no `wrangler queues dlq` drain
+  command.
+- **AC:** Runbook "DLQ operations" uses the real mechanisms (dashboard / pull
+  consumer / temp consumer Worker) for list/inspect/replay/discard, with the
+  caveat that destructive discard needs owner sign-off and a pull consumer is a
+  new network surface requiring its own auth (D-DLQDRAIN, `08`).
 - **Validation:** doc review + dry-run of the read-only peek command.
 
 ### FR-006 (P1) — Backlog checks

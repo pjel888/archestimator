@@ -13,7 +13,7 @@
 | SRC-REPO | SEC-05 | `invite-entry.ts:184-185` | repo evidence | 04 SEC-05; 08 SEC-05 | P2-T1 | AC-SEC-05a/b | `project-invite-feature-flag.test.ts` | RISK-05 | Planned | OPEN-SEC-02 |
 | SRC-BRIEF | SEC-06 | PROMPT.md constraints; `invite-entry.ts:54-76`; `redact.ts` | brief + repo evidence | 04 SEC-06 | P6-T2 | AC-SEC-06a-c | rg scan + code review | RISK-10 | Non-regression | — |
 | SRC-REPO | SEC-07 | no revoke action; `actions.ts:532-546` implicit only | repo evidence + brief | 04 SEC-07; 08 SEC-07 | P3-T2/T3/T4 | AC-SEC-07a-e | `project-collaboration-revoke-invitation.test.ts` (new) | RISK-09 | Planned | DEC-03; DATA-01 |
-| SRC-REPO | SEC-08 | `session.ts:56-77`; `invitation-d1-store.ts:493-501` | repo evidence | 04 SEC-08 | P4 audit | AC-SEC-08a/b | `collaboration-invitation-d1-store.test.ts` | — | Planned | — |
+| SRC-REPO | SEC-08 | `session.ts:56-77`; `invitation-d1-store.ts:493-501` | repo evidence | 04 SEC-08 | P6 audit (non-regression) | AC-SEC-08a/b | `collaboration-invitation-d1-store.test.ts` | — | Non-regression | — |
 | SRC-REPO | SEC-09 | `realtime-identity-server.ts:41-55`; `realtime-room-token.ts:7` | repo evidence | 04 SEC-09; 08 SEC-09 | P5-T1 | AC-SEC-09a-c | `project-collaboration-realtime.test.ts`, `cloudflare-collaboration-room-auth.test.ts` | RISK-06, RISK-08 | Planned | DEC-06; OPEN-REL-02 |
 | SRC-REPO | SEC-10 | `actions.ts:785-852` vs `invitation-d1-store.ts:373-451` | repo evidence | 04 SEC-10 | P4-T1 | AC-SEC-10a/b | `project-collaboration-actions.test.ts` | RISK-07 | Planned | DEC-07; P4-T1 DISCOVERY |
 | SRC-REPO | SEC-11 | `migrations/0007:75-78` | repo evidence | 04 SEC-11 | P5-T2 | AC-SEC-11a | per OPEN-SEC-01 | — | Planned | OPEN-SEC-01 |
