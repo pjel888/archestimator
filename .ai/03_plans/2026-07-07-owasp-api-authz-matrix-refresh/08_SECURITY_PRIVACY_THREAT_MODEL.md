@@ -32,7 +32,7 @@
 | API5 Broken Function Level Authorization | Medium | Admin actions (`canManageClosedBetaAllowlist`, `canReviewBetaFeedback`, `canApproveUploadScanOverride`) verified role-gated at action body. Publication/invite manager gates verified. | ✅ Strong (after verification downgrades). |
 | API6 Unrestricted Access to Sensitive Flows | Medium | Publication password unlock has durable 5/hr lockout + escalating delays. Recipient/session binding prevents cross-publication reuse. | ✅ Strong. |
 | API7 SSRF | Low | No outbound fetch of user-supplied URLs found on public surfaces; AI route calls DeepSeek with server-side key only. | ✅ No finding. |
-| API8 Security Misconfiguration | Medium | CSP Report-Only except `/share` (SEC-07); `unsafe-inline`/`unsafe-eval`; dead `ARCHESTIMATOR_ALLOWED_APP_ORIGINS` (SEC-08); `signedReadUrlFactory` unused (SEC-09). | ⚠️ SEC-07/08/09. |
+| API8 Security Misconfiguration | Medium | CSP Report-Only except `/share` (SEC-07); `unsafe-inline`/`unsafe-eval`; `signedReadUrlFactory` unused (SEC-09); origin-source inconsistency request-url vs env (SEC-10). | ⚠️ SEC-07/09/10. |
 | API9 Improper Inventory Management | Medium | Legacy `webhooks/resend/` has no route file (confirmed absent, not a finding); Supabase archaeology retained but not live; June audit stale. | ✅ Managed. |
 | API10 Unsafe Consumption of APIs | Low | DeepSeek integration server-side; no third-party API consumed from client with user input. | ✅ No finding. |
 
@@ -63,7 +63,7 @@ See Doc 03 Section C. Key invariants:
 
 | ID | Threat | Vector | Current control | Residual risk |
 |---|---|---|---|---|
-| T-01 | Invite CSRF via stripped headers | cross-site POST to `/invite/<token>/accept` with no Origin/Referer | `isAllowedInviteOrigin` returns `true` (SEC-01); SameSite=Lax session cookie + session requirement | MED (defense-in-depth gap) |
+| T-01 | Invite CSRF via stripped headers | cross-site POST to `/invite/<token>/accept` with no Origin/Referer | `isAllowedInviteOrigin` returns `true` (SEC-01); **SameSite=Lax session cookie + authenticated-session requirement** (both present) ⇒ exploitability materially reduced | LOW–MED (defense-in-depth gap; demoted from HIGH after mitigation audit) |
 | T-02 | D1/Worker quota exhaustion | parallel hits to public/auth surfaces | app-level D1 limits; no edge limit (SEC-02) | MED-HIGH for broad launch |
 | T-03 | Estimate mutation abuse | high-frequency authenticated edits | in-memory per-isolate limiter (SEC-03) | MED |
 | T-04 | CollaborationRoom socket exhaustion | many unauthenticated upgrades | per-message authz correct; no upgrade rate limit (SEC-04) | MED |
@@ -71,6 +71,8 @@ See Doc 03 Section C. Key invariants:
 | T-06 | Oversized public JSON body | large `request.json()` before clamp | post-parse length clamps only (SEC-06) | LOW |
 | T-07 | Refactor drops repo-layer auth | moving `loadRecipientProposals` repo call | repository `getCurrentUserContext` (SEC-05) | LOW (defense-in-depth) |
 | T-08 | Token in URL leaked via Referer | outbound nav from `/share` | `Referrer-Policy: no-referrer` enforced | LOW (mitigated) |
+| T-09 | `assertSameOrigin` (read path) allows missing Origin | GET `/api/share/[token]/activity` with no Origin | read-only; allows missing Origin (standard for same-origin GET) | LOW (consistency asymmetry vs `assertSameOriginPublicPost`) |
+| T-10 | Caller-authorized Server Action without action-layer auth | direct POST to `maybeTriggerSharedLinkActivityDigest` | callers (comment/decision routes) authorize recipient token+CSRF+session | LOW (SEC-11, defense-in-depth) |
 
 ## Privacy / data minimization
 - Telemetry IP/UA is keyed-HMAC (not reversible) — cannot reconstruct IPs.
@@ -85,7 +87,12 @@ Recorded to prevent re-investigation:
 1. `group-actions.ts` auth-only — **non-issue** (per-user `WHERE workspace_id=? AND user_id=?`).
 2. `beta-allowlist-admin-actions.ts` auth-only — **non-issue** (`canManageClosedBetaAllowlist`).
 3. `beta-feedback-review-actions.ts` auth-only — **non-issue** (`canReviewBetaFeedback`).
-4. `publication/actions.ts` trust-RLS-only — **non-issue** (`assertProjectPublicationManager`).
+4. `publication/actions.ts` trust-RLS-only — **non-issue (with one exception → SEC-11)**:
+   every publication *mutation* taking a `projectId` calls `assertProjectPublicationManager`.
+   **Exception:** `maybeTriggerSharedLinkActivityDigest` (`actions.ts:1968`) has no
+   action-layer auth — it relies on callers (comment/decision routes) having authorized
+   the recipient. Refiled as SEC-11 (LOW, defense-in-depth), folded into SEC-05 audit scope.
+   Reads (`refreshProjectPublicationSummary`) use `requireAuth` + workspace-scoped queries.
 5. `template-editor-actions.ts` cross-ws IDOR — **non-issue** (`requireWorkspaceTemplate` SQL scope).
 6. `recipient-proposals/actions.ts` no auth — **downgraded to SEC-05** (repo-layer auth).
 
