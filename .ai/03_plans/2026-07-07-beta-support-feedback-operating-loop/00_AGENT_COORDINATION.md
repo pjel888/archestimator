@@ -2,8 +2,8 @@
 
 Plan: `2026-07-07-beta-support-feedback-operating-loop`
 Profile: `exhaustive` (touches D1, Cloudflare Email, auth/gating, privacy/retention, launch-readiness proof)
-Verification mode: `emulated` (single-session planner; no separate verifier agent dispatched)
-Plan status: `CONDITIONALLY READY` (blocked on external hosted-monitoring + owner SLA sign-off, isolated to named slices)
+Verification mode: evidence-gathering `independent` (6 read-only `Explore` lanes across Creating + Improvement passes — 4 source-audit + 1 verifier + 1 adversarial, all separate agent outputs); synthesis/re-scoring `emulated` (single-session planner).
+Plan status: `CONDITIONALLY READY` (improvement pass complete; emulated synthesis cap + 3 external blockers `OPEN-MON-01`/`OPEN-RET-01`/`OPEN-SLA-01`)
 
 ## Master goal
 

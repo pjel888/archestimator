@@ -80,12 +80,15 @@ monitoring options.
 ## Readiness
 
 - **Profile:** `exhaustive`.
-- **Verification mode:** `emulated` (no independent verifier available).
+- **Verification mode:** `emulated` (with 2 independent advisory subagent passes — adversarial + final-verification — both run in the Improve-Plan cycle; all findings resolved).
+- **Overall score:** **96/100**.
 - **Status:** **`CONDITIONALLY READY`**. All internally resolvable planning gaps
-  are closed. The package is capped at 97 by the emulated verification mode and
-  by a small set of owner-delegated decisions (Analytics Engine binding name,
-  exact KPI set, alert-polling destination) that do not block implementation of
-  the well-scoped slices but should be confirmed before merge.
+  are closed (including 2× P0 and 8× P1 found by the independent lanes). The
+  package is capped by the emulated authoring verification mode and by a small
+  set of owner-delegated decisions (OPEN-01 AE binding name, OPEN-02 KPI set,
+  OPEN-03 alert-polling destination, OPEN-05 owner/independent acceptance) that
+  do not block implementation of the well-scoped slices (Phases 1-6, 9-10) but
+  should be confirmed before merge.
 
 ## Cost posture
 
