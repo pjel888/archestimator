@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS cost_library_component_drafts (
   draft_json TEXT NOT NULL DEFAULT '{}' CHECK (
     json_valid(draft_json)
     AND json_type(draft_json) = 'object'
+    AND length(CAST(draft_json AS BLOB)) <= 65536
   ),
   status TEXT NOT NULL DEFAULT 'active' CHECK (
     status IN ('active', 'converted', 'discarded')

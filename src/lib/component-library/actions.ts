@@ -377,6 +377,8 @@ async function assertCanPublishEstimateTemplateFromEstimate(
 // (a head count, no migration). The caps are far above any legitimate workspace today.
 const LIBRARY_COMPONENT_CAP = 10_000;
 const LIBRARY_TEMPLATE_CAP = 2_000;
+const LIBRARY_COMPONENT_DRAFT_CAP = 100;
+const LIBRARY_COMPONENT_DRAFT_JSON_MAX_BYTES = 64 * 1024;
 
 type ComponentLibraryPreferenceTab = "components" | "project" | "templates";
 type ComponentLibraryPreferenceViewMode = "default" | "suppliers" | "brand";
@@ -557,19 +559,29 @@ export async function saveComponentLibraryUserPreferences(input: ComponentLibrar
 
 async function assertWithinLibraryQuota(
   database: D1DatabaseLike,
-  table: "cost_library_items" | "estimate_templates",
+  table: "cost_library_items" | "estimate_templates" | "cost_library_component_drafts",
   workspaceId: string,
   cap: number,
   label: string,
 ) {
   const row = await first<{ count: number }>(
     database,
-    `SELECT COUNT(*) AS count FROM ${table} WHERE workspace_id = ?`,
+    table === "cost_library_component_drafts"
+      ? `SELECT COUNT(*) AS count FROM ${table} WHERE workspace_id = ? AND status = 'active'`
+      : `SELECT COUNT(*) AS count FROM ${table} WHERE workspace_id = ?`,
     [workspaceId],
   );
   if (Number(row?.count ?? 0) >= cap) {
     throw new Error(`This workspace has reached its ${label} limit (${cap}). Archive or delete some first.`);
   }
+}
+
+function readComponentDraftJson(value: unknown) {
+  const text = jsonText(value);
+  if (new TextEncoder().encode(text).byteLength > LIBRARY_COMPONENT_DRAFT_JSON_MAX_BYTES) {
+    throw new Error(`Component drafts must be ${LIBRARY_COMPONENT_DRAFT_JSON_MAX_BYTES} bytes or smaller.`);
+  }
+  return text;
 }
 
 function readRequiredComponentText(value: string | undefined | null, label: string, maxLength?: number) {
@@ -1360,6 +1372,14 @@ export async function saveCostLibraryComponentDraft(input: SaveCostLibraryCompon
   }
 
   const title = readOptionalComponentText(input.title, "Draft title", QUICK_ADD_TEXT_LIMITS.name) ?? "Untitled component";
+  const draftJson = readComponentDraftJson(input.draft);
+  await assertWithinLibraryQuota(
+    database,
+    "cost_library_component_drafts",
+    workspace.id,
+    LIBRARY_COMPONENT_DRAFT_CAP,
+    "active component draft",
+  );
   const timestamp = nowIso();
   const draftId = randomUUID();
   await run(
@@ -1375,7 +1395,7 @@ export async function saveCostLibraryComponentDraft(input: SaveCostLibraryCompon
       workspace.id,
       currentUser.userId,
       title,
-      jsonText(input.draft),
+      draftJson,
       timestamp,
       timestamp,
     ],

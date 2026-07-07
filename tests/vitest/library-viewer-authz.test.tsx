@@ -395,4 +395,40 @@ describe("library viewer mutation authorization", () => {
     expect(draftInsert).toBeDefined();
     expect(cacheMocks.revalidatePath).not.toHaveBeenCalled();
   });
+
+  it("limits active component drafts before inserting a new draft row", async () => {
+    const d1 = createD1Fixture({ firstResults: [{ count: 100 }] });
+    const actions = await import("@/lib/component-library/actions");
+
+    await expect(actions.saveCostLibraryComponentDraft({
+      fieldContract: "opendesign-add-component",
+      title: "Too many drafts",
+      draft: {
+        form: { name: "Too many drafts" },
+      },
+    })).rejects.toThrow("active component draft limit (100)");
+
+    expect(d1.statements.some((statement) => (
+      statement.sql.includes("SELECT COUNT(*) AS count FROM cost_library_component_drafts")
+      && statement.sql.includes("status = 'active'")
+    ))).toBe(true);
+    expect(d1.statements.some((statement) => statement.sql.includes("INSERT INTO cost_library_component_drafts"))).toBe(false);
+    expect(cacheMocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("rejects oversized component draft payloads before quota checks or inserts", async () => {
+    const d1 = createD1Fixture();
+    const actions = await import("@/lib/component-library/actions");
+
+    await expect(actions.saveCostLibraryComponentDraft({
+      fieldContract: "opendesign-add-component",
+      title: "Oversized draft",
+      draft: {
+        form: { notes: "x".repeat(66 * 1024) },
+      },
+    })).rejects.toThrow("Component drafts must be 65536 bytes or smaller.");
+
+    expect(d1.prepare).not.toHaveBeenCalled();
+    expect(cacheMocks.revalidatePath).not.toHaveBeenCalled();
+  });
 });
