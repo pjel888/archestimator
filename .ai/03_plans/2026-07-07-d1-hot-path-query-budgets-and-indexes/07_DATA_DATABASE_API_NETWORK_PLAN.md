@@ -53,13 +53,12 @@ Numbering to be re-confirmed at execution (README checklist step 5 — sibling p
     ON shared_link_responses (publication_id, recipient_id, created_at DESC);
   ```
   Serves the HP-7 correlated subquery `WHERE publication_id=? AND recipient_id=? ORDER BY created_at DESC LIMIT 1` (`recipient-proposals-repository.ts:139-146`).
-- **G4 SQL sketch (conditional on column confirmation — DISCOVERY step in `T-P1-02`):**
+- **G4 SQL sketch (verified needed — `idx_estimate_sheet_adjustments_updated` leads on `updated_at DESC`, not `estimate_id`; confirmed `migrations/0029_estimate_actions_d1_support.sql:24-25`):**
   ```sql
-  -- Only if idx_estimate_sheet_adjustments_updated does NOT lead on estimate_id:
   CREATE INDEX IF NOT EXISTS idx_estimate_sheet_adjustments_estimate
     ON estimate_sheet_adjustments (estimate_id);
   ```
-  Serves HP-4 `WHERE estimate_id=? LIMIT 1` (`workspace-repository.ts:3276-3286`).
+  Serves HP-4 `WHERE estimate_id=? LIMIT 1` (`workspace-repository.ts:3276-3286`). The audit verification confirmed the existing index `(updated_at DESC, estimate_id)` does NOT support a leading probe on `estimate_id`, so this new index is definitely required (no longer conditional).
 - **Why additive:** same rationale as DB-CHG-001.
 - **Backfill:** none.
 - **Data-volume assumptions:** `shared_link_responses` grows with recipient engagement; at 100×, low thousands per publication. The `(publication_id, recipient_id, …)` composite pins the per-recipient lookup to a single index probe.

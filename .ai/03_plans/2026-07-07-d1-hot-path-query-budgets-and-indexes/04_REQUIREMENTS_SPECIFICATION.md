@@ -145,6 +145,22 @@ Source mapping: the PROMPT's "Required Plan Pack" sentence decomposes into seven
   - AC-PERF-010-3: `17_FINAL_READINESS_REVIEW.md` states `IMPLEMENTATION-READY` with verification mode.
 - **Status:** Done in this plan.
 
+## PERF-011 — D1 rows-read budget (free-tier load-bearing)
+- **Statement:** Every first-user hot path has a per-request rows-read budget AND the daily aggregate projection stays below the D1 Free **5M rows-read/day** ceiling with documented headroom; the per-request budget is measurable via hosted proof.
+- **Rationale:** D1 Free bills "rows read" by counting every *scanned* row (including JOIN fan-out and rows eliminated by predicates), not rows returned. At 10× first-user volume, unindexed/un-LIMIT-ed hot paths would exceed 5M/day and the D1 API returns errors until 00:00 UTC reset. This makes rows-read the **load-bearing** free-tier cost metric — more important than wall-clock p95 for staying free-tier. This requirement was missing from the original pack and is the primary improvement added in the audit pass.
+- **Source:** PROMPT "Constraints" (no paid features) + Cloudflare D1 Pricing docs (official, 2026-07-07). `brief` + `official docs`.
+- **Priority:** Must.
+- **Dependencies:** PERF-002, PERF-004 (indexes reduce scans), PERF-005.
+- **Acceptance criteria:**
+  - AC-PERF-011-1: `09` budget table includes a `rowsRead/req` and `rowsRead/day` column for every HP row.
+  - AC-PERF-011-2: Daily aggregate projection at 1× first-user volume is <5M with documented headroom (current projection: 1.8–2.4M, ~50–60% headroom).
+  - AC-PERF-011-3: At 10× volume the projection either stays <5M *because of* P1+P2, or the pack explicitly flags the gap and the owner decides (A1 volume assumption must be validated).
+  - AC-PERF-011-4: Hosted proof (P4) captures or estimates rows-read per surface; if D1 exposes `rows_read` it is captured directly, otherwise estimated from `EXPLAIN`+fixture counts and labeled `evidenceClass: derived`.
+- **Validation:** `09` budget table; P4 hosted proof rows-read column; `20` §"Research sources" cites the Cloudflare D1 Pricing page.
+- **Affected code areas:** `09` (planning); proof scripts + router (P3/P4 execution); CI gate (P5) asserts no hot-path query's `EXPLAIN` shows an unindexed scan.
+- **Risks:** rows-read/day projection depends on A1 (volume assumption) — if first-user volume is higher than A1, the projection breaks. Mitigation: P4 hosted proof validates the projection against real traffic; A1 is marked `assumption` not fact.
+- **Status:** Done in this audit pass.
+
 ## Shadow-path coverage note
 
 D1 hot-path reads are read-only at the route layer; the shadow paths that matter are: empty result (empty workspace), oversized result (heavy workspace at 10×), stale cache (after P2 app-layer cache), unauthorized cross-workspace (denied by gate — covered in `08`), and DB error (D1 unavailable — covered in `13`). The full shadow-path matrix per HP is in `12`.
