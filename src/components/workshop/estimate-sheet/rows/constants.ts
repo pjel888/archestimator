@@ -48,7 +48,11 @@ function isEstimateRowItemSource(value: unknown): value is EstimateRowItem["sour
 }
 
 function hasStringField(record: Record<string, unknown>, field: keyof EstimateRowItem) {
-  return typeof record[field] === "string" && String(record[field]).length > 0;
+  return typeof record[field] === "string";
+}
+
+function hasNonEmptyStringField(record: Record<string, unknown>, field: keyof EstimateRowItem) {
+  return hasStringField(record, field) && String(record[field]).length > 0;
 }
 
 function hasFiniteNumberField(record: Record<string, unknown>, field: keyof EstimateRowItem) {
@@ -60,7 +64,8 @@ export function readEstimateLibraryItemPayload(value: unknown): EstimateLibraryI
   if (!isRecord(value)) return { ok: false, reason: "not_object" };
 
   for (const field of ["id", "material", "description", "supplier", "unit", "category", "pricingSource", "pricingDate"] as const) {
-    if (!hasStringField(value, field)) return { ok: false, reason: "missing_required_field", field };
+    const hasRequiredString = field === "description" ? hasStringField(value, field) : hasNonEmptyStringField(value, field);
+    if (!hasRequiredString) return { ok: false, reason: "missing_required_field", field };
   }
 
   if (!isEstimateRowItemSource(value.source)) return { ok: false, reason: "invalid_source", field: "source" };
