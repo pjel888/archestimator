@@ -367,6 +367,7 @@ describe("estimate sheet tree drag/drop", () => {
     const projectComponentItem: EstimateRowItem = {
       ...rowItem("project-component-row"),
       material: "Project Component",
+      description: "",
       metadata: {
         projectComponentProjection: {
           projectId: "project-1",

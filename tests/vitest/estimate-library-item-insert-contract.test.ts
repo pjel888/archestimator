@@ -31,6 +31,30 @@ describe("estimate library item insert contract", () => {
     });
   });
 
+  it("accepts Project-tab component payloads with empty descriptions", () => {
+    const projectComponentItem = {
+      ...estimateLibraryItems[0],
+      source: "project" as const,
+      description: "",
+      metadata: {
+        projectComponentProjection: {
+          projectId: "project-1",
+          projectName: "Modern Bungalow",
+          estimateId: "estimate-1",
+          estimateName: "Main Estimate",
+          nodeId: "kitchen",
+          nodeName: "Kitchen",
+          classification: "express",
+        },
+      },
+    };
+
+    expect(readEstimateLibraryItemDragPayload(JSON.stringify(projectComponentItem))).toEqual({
+      ok: true,
+      item: projectComponentItem,
+    });
+  });
+
   it("supports acknowledged custom events while preserving the legacy raw-item detail", () => {
     const accepted = vi.fn();
     expect(readAddLibraryItemEventDetail({ libraryItem: estimateLibraryItems[0], onAccepted: accepted })).toMatchObject({
