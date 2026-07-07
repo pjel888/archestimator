@@ -283,6 +283,9 @@ function genericRateLimitMessage(retryAfter: number) {
   return `Too many attempts. Please wait ${retryAfter} seconds.`;
 }
 
+const PROJECT_PUBLICATION_PASSWORD_FAILURE_WINDOW_SECONDS = 60 * 60;
+const PROJECT_PUBLICATION_PASSWORD_FAILURE_LIMIT = 5;
+
 function commentRateLimitMessage(retryAfter: number) {
   return `Too many comments. Please wait ${retryAfter} seconds.`;
 }
@@ -493,7 +496,11 @@ export async function checkProjectPublicationPasswordRateLimit({
   return checkExistingRateLimit({
     scope: "project_publication_password",
     keyParts: publicationRequestRateLimitKey(token, request),
-    window: { seconds: 15 * 60, limit: 5, message: genericRateLimitMessage },
+    window: {
+      seconds: PROJECT_PUBLICATION_PASSWORD_FAILURE_WINDOW_SECONDS,
+      limit: PROJECT_PUBLICATION_PASSWORD_FAILURE_LIMIT,
+      message: genericRateLimitMessage,
+    },
   });
 }
 
@@ -513,10 +520,10 @@ export async function recordProjectPublicationPasswordFailure({
     scope: "project_publication_password",
     keyHash,
     metadata: { route: "password", success: false },
-    ttlSeconds: 15 * 60,
+    ttlSeconds: PROJECT_PUBLICATION_PASSWORD_FAILURE_WINDOW_SECONDS,
   });
 
-  const since = new Date(now - 15 * 60 * 1000).toISOString();
+  const since = new Date(now - PROJECT_PUBLICATION_PASSWORD_FAILURE_WINDOW_SECONDS * 1000).toISOString();
   const failureCount = await countRateLimitEvents({
     scope: "project_publication_password",
     keyHash,

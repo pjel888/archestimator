@@ -10,6 +10,7 @@ only those entries. Do NOT read all ~2,500 lines on every task — that is the
 single biggest source of slow agent startup.
 
 Stable current truth (verify against git/source before relying on a detail):
+- Shared-link password lockout hardening (2026-07-07 local): Aardvark flagged that the password unlock route relied only on durable 5-failure/15-minute rows after the process-local hard-lockout removal. The durable D1 limiter now keeps the same 5-failure threshold but uses a 1-hour failure counting/TTL window for `project_publication_password`, preserving module-reset-safe durable enforcement while restoring the stronger online guessing budget. Focused proof: `bunx vitest run tests/vitest/project-publication-password-lockout-route.test.ts tests/vitest/project-publication-public-repository.test.ts --maxWorkers=1` passed.
 - Stage: pre-launch closed-beta MVP. Bias to fast, useful iteration over
   heavyweight regression ceremony. No external users yet.
 - Auth audit D1 schema repair (2026-07-06 local): `account_security_events`
