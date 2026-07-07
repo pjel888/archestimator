@@ -109,6 +109,13 @@ function projectRow() {
   };
 }
 
+function defaultWorkspaceProjectRow() {
+  return {
+    ...projectRow(),
+    workspace_id: DEFAULT_WORKSPACE_ID,
+  };
+}
+
 function estimateRow(id: string, sheetCode: string) {
   return {
     id,
@@ -205,6 +212,59 @@ class FakeWorkspaceRepositoryD1Database implements D1DatabaseLike {
 
   async all({ sql, values }: D1Query) {
     this.queries.push({ sql, values });
+
+    if (sql.includes("FROM projects") && sql.includes("WHERE workspace_id = ?")) {
+      return { results: values[0] === DEFAULT_WORKSPACE_ID ? [defaultWorkspaceProjectRow()] : [] };
+    }
+
+    if (sql.includes("SELECT project_id") && sql.includes("FROM project_favorites")) {
+      return { results: [] };
+    }
+
+    if (sql.includes("SELECT estimate_id, project_id, created_at") && sql.includes("FROM estimate_favorites")) {
+      return { results: [] };
+    }
+
+    if (sql.includes("FROM project_members") && sql.includes("WHERE user_id = ?")) {
+      return { results: [] };
+    }
+
+    if (sql.includes("FROM estimate_sheet_members") && sql.includes("WHERE user_id = ?")) {
+      return { results: [] };
+    }
+
+    if (sql.includes("FROM project_groups")) {
+      return { results: [] };
+    }
+
+    if (sql.includes("FROM project_group_memberships")) {
+      return { results: [] };
+    }
+
+    if (sql.includes("FROM projects") && sql.includes("WHERE id IN")) {
+      return { results: [] };
+    }
+
+    if (sql.includes("SELECT id, project_id, name, sheet_code, updated_at") && sql.includes("WHERE id IN")) {
+      return { results: [] };
+    }
+
+    if (sql.includes("SELECT id, project_id, name, sheet_code, updated_at") && sql.includes("WHERE project_id IN")) {
+      return {
+        results: [
+          estimateRow(ESTIMATE_ALLOWED_ID, "A-001"),
+          estimateRow(ESTIMATE_DENIED_ID, "D-001"),
+        ],
+      };
+    }
+
+    if (sql.includes("FROM project_publications")) {
+      return { results: [] };
+    }
+
+    if (sql.includes("FROM collaboration_invitations")) {
+      return { results: [] };
+    }
 
     if (sql.includes("FROM estimates") && sql.includes("WHERE project_id = ?")) {
       return {
@@ -350,5 +410,24 @@ describe("workspace repository D1 authorization behavior", () => {
 
     expect(sheets).toEqual([]);
     expect(projectSheetMocks.listProjectEstimateSheetsForProject).not.toHaveBeenCalled();
+  });
+
+  it("filters project card estimate sheet summaries through estimate-level D1 access", async () => {
+    const database = new FakeWorkspaceRepositoryD1Database({
+      estimateAccess: { [ESTIMATE_ALLOWED_ID]: "allow", [ESTIMATE_DENIED_ID]: "deny" },
+      projectAccess: "allow",
+    });
+    const { listCurrentWorkspaceProjects } = await importWorkspaceRepository(database);
+
+    const result = await listCurrentWorkspaceProjects();
+
+    expect(result.projects).toHaveLength(1);
+    expect(result.projects[0]?.accessKind).toBe("owned");
+    expect(result.projects[0]?.estimateSheets.map((sheet) => sheet.id)).toEqual([ESTIMATE_ALLOWED_ID]);
+    expect(
+      database.queries.filter((query) => (
+        query.sql.includes("SELECT 1 AS allowed") && query.sql.includes("FROM estimates estimate")
+      )).map((query) => query.values[0]),
+    ).toEqual([ESTIMATE_ALLOWED_ID, ESTIMATE_DENIED_ID]);
   });
 });

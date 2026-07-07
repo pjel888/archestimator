@@ -1531,8 +1531,14 @@ async function listCurrentWorkspaceProjectsAppPath() {
       ]),
   );
 
+  const accessibleProjectEstimateSheets = await filterAccessibleEstimates(
+    database,
+    projectEstimateSheets,
+    { role: profile.role, userId: profile.id },
+  );
+
   let favoriteEstimateSheetsByProjectId = new Map<string, ProjectFavoriteEstimateSheetSummary[]>();
-  const estimateSheetsByProjectId = projectEstimateSheets.reduce((byProject, sheet) => {
+  const estimateSheetsByProjectId = accessibleProjectEstimateSheets.reduce((byProject, sheet) => {
     const sheets = byProject.get(sheet.project_id) ?? [];
     sheets.push(sheet);
     byProject.set(sheet.project_id, sheets);

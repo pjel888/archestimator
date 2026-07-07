@@ -109,6 +109,7 @@ class FakeWorkspaceProjectsD1Database {
   }
 
   first<T>(sql: string): T | null {
+    if (sql.includes("SELECT 1 AS allowed") && sql.includes("FROM estimates estimate")) return { allowed: 1 } as T;
     if (sql.includes("FROM workspaces")) return WORKSPACE as T;
     if (sql.includes("FROM workspace_members")) return this.payload.workspaceMembership as T;
     if (sql.includes("FROM profiles")) return PROFILE as T;
