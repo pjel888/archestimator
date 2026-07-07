@@ -47,6 +47,23 @@ Stable current truth (verify against git/source before relying on a detail):
 - Shared-link password lockout hardening (2026-07-07 local): Aardvark flagged that the password unlock route relied only on durable 5-failure/15-minute rows after the process-local hard-lockout removal. The durable D1 limiter now keeps the same 5-failure threshold but uses a 1-hour failure counting/TTL window for `project_publication_password`, preserving module-reset-safe durable enforcement while restoring the stronger online guessing budget. Focused proof: `bunx vitest run tests/vitest/project-publication-password-lockout-route.test.ts tests/vitest/project-publication-public-repository.test.ts --maxWorkers=1` passed.
 - Stage: pre-launch closed-beta MVP. Bias to fast, useful iteration over
   heavyweight regression ceremony. No external users yet.
+- Workshop project status tabs (2026-07-07 local WIP): `/workshop/projects`
+  restores the historical tab styling as status filters only: All Projects,
+  Ongoing, Completed, Archived. Active D1 migration
+  `0039_project_status.sql` adds `projects.status` with `ongoing` default plus
+  `completed`/`archived` values, and the project card ellipsis opens a context
+  menu for Edit project plus status changes instead of opening edit directly.
+- Project component identity/instances (2026-07-07 local): Project-tab
+  estimate-row components now project one stable component identity with
+  `projectComponentProjection.componentId`, `sourceRowId`, `instanceRowIds`, and
+  `instanceCount`. Dragging a Project-tab component into an estimate inserts a
+  new row instance that keeps the same component identity instead of creating a
+  second sidebar component. Project-component source snapshots are now treated
+  as the canonical fallback identity ahead of stale copied-row metadata, so
+  legacy/snapshot-only row instances still group and propagate correctly.
+  Component-level edits propagate across sibling row instances, while
+  quantity/contingency/misc costs remain row-instance fields; source snapshot
+  propagation preserves each row's own source row/project identity.
 - Project component sidebar sync (2026-07-07 local): estimate-row project
   component edits now patch the active Project tab projection cache immediately
   for row updates/deletes/promotions, with active lite-query refetch as
