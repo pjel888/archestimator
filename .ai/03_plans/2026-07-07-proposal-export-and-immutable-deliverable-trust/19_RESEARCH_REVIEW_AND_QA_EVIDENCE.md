@@ -102,4 +102,5 @@ gate (92 < 95), not by verification mode.
 - Threshold numbers are DISCOVERY (T3.0), not predetermined.
 - `result`/`status` columns in the adversarial matrix are TBD (implementation-time).
 - PDF (DEC-FORMAT-1) is BLOCKED-EXTERNAL.
-- No independent verifier agent (emulated cap).
+- No additional independent reviewer beyond the native verifier agent (final verification was
+  independent; optional owner acceptance would further strengthen).
