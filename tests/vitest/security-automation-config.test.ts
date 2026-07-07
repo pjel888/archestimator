@@ -2,19 +2,19 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-const dependabotConfig = readFileSync(".github/dependabot.yml", "utf8");
-const codeqlWorkflow = readFileSync(".github/workflows/codeql.yml", "utf8");
+const dependabotConfig = readFileSync(".github/workflows-disabled/dependabot.yml", "utf8");
+const codeqlWorkflow = readFileSync(".github/workflows-disabled/codeql.yml", "utf8");
 const codeqlConfig = readFileSync(".github/codeql/codeql-config.yml", "utf8");
 
 describe("security automation config", () => {
-  it("enables Dependabot for package and workflow ecosystems", () => {
+  it("preserves disabled Dependabot config for package and workflow ecosystems", () => {
     expect(dependabotConfig).toContain("package-ecosystem: npm");
     expect(dependabotConfig).toContain("package-ecosystem: github-actions");
     expect(dependabotConfig).toContain("open-pull-requests-limit: 5");
     expect(dependabotConfig).toContain("timezone: Asia/Manila");
   });
 
-  it("enables pinned CodeQL analysis for JavaScript and TypeScript", () => {
+  it("preserves disabled pinned CodeQL analysis for JavaScript and TypeScript", () => {
     expect(codeqlWorkflow).toContain("security-events: write");
     expect(codeqlWorkflow).toContain("runs-on: ubuntu-24.04");
     expect(codeqlWorkflow).toContain("github/codeql-action/init@411bbbe57033eedfc1a82d68c01345aa96c737d7");

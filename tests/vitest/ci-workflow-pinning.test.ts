@@ -3,14 +3,14 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const workflowPaths = [
-  ".github/workflows/ci.yml",
-  ".github/workflows/codeql.yml",
-  ".github/workflows/react-doctor.yml",
+  ".github/workflows-disabled/ci.yml",
+  ".github/workflows-disabled/codeql.yml",
+  ".github/workflows-disabled/react-doctor.yml",
 ] as const;
 const workflowTextByPath = workflowPaths.map((path) => [path, readFileSync(path, "utf8")] as const);
 const workflowText = workflowTextByPath.map(([, text]) => text).join("\n");
 
-describe("CI workflow pinning", () => {
+describe("disabled CI workflow pinning", () => {
   it("uses fixed GitHub-hosted runners and Bun version", () => {
     expect(workflowText).not.toContain("ubuntu-latest");
     expect(workflowText).not.toMatch(/bun-version:\s*latest\b/);
