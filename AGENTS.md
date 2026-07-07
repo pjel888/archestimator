@@ -118,6 +118,19 @@ without improving correctness.
 - Reuse existing UI primitives from `src/components/ui/` when it is practical and cheaper than duplicating behavior. Do not block small fixes on Storybook inventory work.
 - For Cloudflare D1/R2/Durable Object/Queue/Email changes, use the standing Cloudflare-resource authorization above: move quickly, keep migrations/recovery paths reviewable, document meaningful provider facts, and keep the project boundary strict — only the resources bound in `wrangler.jsonc` (Worker `archestimator-proof`, D1 `ARCH_DB`, R2 `ARCH_UPLOADS_R2`, DO `COLLAB_ROOMS`, Queue `UPLOAD_JOBS_QUEUE`, Email `EMAIL`, Images `IMAGES`), never the historical Supabase project `ebxxqidacheyapmmzavr`, the unrelated `archestimator` provider project, or other Cloudflare accounts.
 
+## GitHub Security PR Loop
+
+For GitHub security PRs, review comments, CodeQL/GitGuardian/Dependabot/secret-scanning alerts, or suspected Better Auth/share/invite/token leaks:
+
+- Maintain a live ledger under `.ai/03_plans/<YYYY-MM-DD>-github-security-pr-comment-loop/LOOP_LEDGER.md` or the active security plan folder. Record each PR/comment/alert with status, evidence, fix location, validation, and whether it is current, stale, superseded, blocked, or resolved.
+- Start from live GitHub state, not memory: list open PRs/issues, fetch unresolved review threads, inspect checks, and query code-scanning, Dependabot, and secret-scanning endpoints when the token permits it. If GitHub returns 404/permission errors, record the endpoint and do not claim that alert class is clean.
+- Treat old Codex PR branches as proposals. Before porting or resolving them, verify their diff against the current Cloudflare/D1/Better Auth source. Do not apply or extend legacy `supabase/migrations/` as active remediation unless the task is explicitly migration archaeology.
+- Do not resolve a review thread, close a PR, or claim a security finding fixed until the fix is present on the current worktree or deliberately classified stale with concrete evidence. Replies should cite the verification command or stale/superseded reason.
+- Redact security evidence. Never paste raw secrets, bearer values, OAuth state, Better Auth cookies, invite/share/password-reset tokens, private object keys, or full sensitive URLs into GitHub, `.ai`, logs, screenshots, or final reports. Use hashes, prefixes/suffixes, counts, and file/line references instead.
+- For Better Auth, public share, invite, password, publication, session, or token findings, write the credential-material taxonomy before fixing: raw/hash/encrypted/derived/public marker, storage, server/client visibility, cookie/URL/session use, rotation/revocation, and denial-test proof.
+- Hosted GitHub controls require hosted evidence: branch protection or rulesets, required CI, CodeQL, Dependabot alerts, secret scanning, environments, and `SECURITY.md` cannot be proven by local tests. Local checks may support code readiness only.
+- Hidden refs, PR branch history, archived docs, generated artifacts, and ignored local state can still leak sensitive strings. Include them in the ledger when a finding mentions historical exposure or retention, and use non-destructive redaction or history-purge planning unless the owner explicitly authorizes destructive Git history work.
+
 ## Verification Policy
 
 Verification is proportional to risk:
@@ -137,7 +150,7 @@ The repo should share durable agent/project intelligence across machines through
 - Canonical project truth: `.ai/`, especially `.ai/00_system`, `.ai/10_state`, `.ai/11_skills`, `.ai/12_agents`, and `.ai/08_prompts`.
 - Tool adapters that are safe to share: `.codex/`, `opencode.json`, intentionally authored `.opencode/` extension files, `.agents/`, `.claude/`, `.commandcode/`, and their README/config/skill/prompt/agent files.
 - Local-only state stays ignored: `.omx/`, `.omo/`, `.supermemory/`, `.gitnexus/`, `.code-review-graph/`, `.chunkhound/`, `.claude/worktrees/`, `.ai/99_scratch/`, `.ai/14_code_intelligence/`, build/test outputs, env files, caches, logs, sessions, and machine-local settings.
-- Local Supermemory at `http://localhost:6767` is the shared cross-agent memory layer. Agent adapters must follow `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`: check it, start `npm exec supermemory local` if it is down and local process startup is available, query it for relevant memory before meaningful work, and update it at closeout when durable project truth changes. Supermemory augments `.ai`; it never overrides current source or canonical docs.
+- Local Supermemory at `http://localhost:6767` is the shared cross-agent memory layer. Agent adapters must follow `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`: check it, start `./node_modules/.bin/supermemory local` if it is down and local process startup is available, query it for relevant memory before meaningful work, and update it at closeout when durable project truth changes. Supermemory augments `.ai`; it never overrides current source or canonical docs.
 - After changing `.ai/12_agents/payloads`, Codex/OpenCode adapter files, or related tool adapter files, run `bun run validate:agents` plus the relevant tool resolver (`codex debug prompt-input` or `opencode debug config`) before claiming the agent surface is clean.
 
 Never commit secrets, private keys, `.env*` values, raw provider tokens, or machine-local session state.

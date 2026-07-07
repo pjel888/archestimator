@@ -34,7 +34,7 @@ Start with `AGENTS.md` and the FAST PATH block at the top of
 ## Supermemory Workflow
 
 Check `http://localhost:6767/` before meaningful OpenCode work. If it is down
-and local process startup is available, run `npm exec supermemory local` in
+and local process startup is available, run `./node_modules/.bin/supermemory local` in
 the background and retry. Use the configured OpenCode Supermemory plugin, MCP,
 SDK, or local API reference to search relevant memory before broad/non-trivial
 work, then update memory at closeout when durable project truth changes.
