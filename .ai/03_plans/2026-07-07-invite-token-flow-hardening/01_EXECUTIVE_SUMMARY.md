@@ -76,31 +76,32 @@ Next.js 16 App Router route handlers + Server Components; React 19; Cloudflare W
 
 The hardening adds no new user-facing route and no new per-request DB write on the hot resolve path. The origin check is O(1) header parsing. The revoke action adds one manager-only mutation path. Rate-limit fail-closed does not add queries. The 30-min bridge cookie TTL and 14-day invitation expiry are unchanged. No Core Web Vitals impact; no bundle-size impact (server-only logic + one small revoke button). Performance evaluator: the existing `collaboration-invitation-proof` hosted harness remains the end-to-end correctness evaluator; a focused `invite-origin` unit suite is the regression gate for DEC-01/DEC-02.
 
-## Readiness scores (initial → final; full detail in `17_FINAL_READINESS_REVIEW.md`)
+## Readiness scores (initial → cycle-2 → Improve cycle-3; full detail in `17_FINAL_READINESS_REVIEW.md`)
 
-| Category | Initial | Final |
-|---|---|---|
-| Product strategy | 88 | 95 |
-| Scope clarity | 90 | 97 |
-| Requirements completeness | 82 | 96 |
-| UX/UI readiness | 80 | 93 |
-| Accessibility readiness | 80 | 92 |
-| Architecture readiness | 88 | 96 |
-| Data/database readiness | 85 | 96 |
-| API/network readiness | 86 | 96 |
-| Security/privacy readiness | 78 | 95 |
-| Performance/scalability | 88 | 95 |
-| Reliability/operations | 82 | 94 |
-| Blast-radius coverage | 86 | 96 |
-| Testing/validation | 84 | 95 |
-| Rollout/rollback | 84 | 94 |
-| Requirements traceability | 80 | 96 |
-| **Overall implementation readiness** | **83** | **95** (capped at 97 by `emulated` verification) |
+| Category | Initial | Cycle-2 | Improve cycle-3 | Notes |
+|---|---|---|---|---|
+| Product strategy | 88 | 95 | 96 | |
+| Scope clarity | 90 | 97 | 97 | |
+| Requirements completeness | 82 | 96 | 96 | SEC-12..15 added; SEC-05/10 reframed |
+| UX/UI readiness | 80 | 93 | 92 | revoke UI is a new subsection (larger scope) |
+| Accessibility readiness | 80 | 92 | 92 | |
+| Architecture readiness | 88 | 96 | 95 | route contract added (closes Improve gate) |
+| Data/database readiness | 85 | 96 | **89** | **D1 SQLite version NOT VERIFIED → cap-89** |
+| API/network readiness | 86 | 96 | 96 | Server-Action direct-POST threat added |
+| Security/privacy readiness | 78 | 95 | 96 | SEC-16/17 added; SEC-05/10 reframed |
+| Performance/scalability | 88 | 95 | 94 | PC-17 query-count assertion lands at impl |
+| Reliability/operations | 82 | 94 | 94 | |
+| Blast-radius coverage | 86 | 96 | 96 | direct-grant line range corrected |
+| Testing/validation | 84 | 95 | 95 | proof-contract format added (closes Improve gate) |
+| Rollout/rollback | 84 | 94 | 94 | |
+| Requirements traceability | 80 | 96 | 96 | |
+| **Overall implementation readiness** | **83** | **95** (over-asserted) | **93** | bounded by Data=89 + Perf=94, not the emulated cap |
 
-**Status:** `CONDITIONALLY READY`. The pack reaches the `≥95` PASS threshold on every category, but the Suite Authority Contract caps an `emulated`-verified exhaustive auth-adjacent pack at `CONDITIONALLY READY` until an independent reviewer or the owner signs off.
+**Status:** `CONDITIONALLY READY`. The Improve pass *lowered* the headline from 95→93 because the cycle-2 score was over-asserted (it ignored the Data cap-89 and the Perf code-review-gate reality). The improvements raised Architecture (route contract), Testing (proof-contract format), and Security (threat-model completeness + reframed SEC-05/10), and closed 3 DISCOVERY sub-steps from source. Two substantive planning defects were caught and fixed: the SEC-10 "shared helper" framing would have broken `updateProjectCollaboratorRole`; the cycle-2 95 score was unsupported. The `CONDITIONALLY READY` label is defensible throughout.
 
 ## Critique-and-revision cycles
 
-Two full cycles after the initial draft (required for `exhaustive`):
+Three full cycles after the initial draft (cycle 3 = the Improve pass):
 1. **Cycle 1:** Cross-document consistency, requirements traceability, shadow-path completeness, credential-material taxonomy. Closed 4 gaps (continue-route origin, sign-out cookie attrs, direct-grant asymmetry, `auth_trigger` dead code).
-2. **Cycle 2:** Adversarial (UltraQA) pass + final verifier pass. Closed 3 residual gaps (rate-limit fail-open under disabled flag, pepper reuse, revoke audit metadata). Confirmed no P0/P1 findings remain; residual items are owner decisions (OPEN-SEC-01/02, OPEN-REL-01).
+2. **Cycle 2:** Adversarial (UltraQA) pass + final verifier pass. Closed 3 residual gaps (rate-limit fail-open under disabled flag, pepper reuse, revoke audit metadata).
+3. **Cycle 3 (Improve pass):** Native adversarial `Explore` lane + targeted source re-verification. Closed 11 gaps — most notably: caught the SEC-10 shared-helper defect (would have broken role demotion), caught the over-asserted 95 score, added the mandated route-boundary/cache contract (06 §6.5), converted the test matrix to the mandated proof-contract ledger (12 §2 PC-01..18), resolved 3 DISCOVERY sub-steps from source (Continue `<a>`→`<form>`, revoke UI subsection, direct-grant call-site guard), and honestly capped Data at 89 (D1 version NOT VERIFIED). No P0/P1 findings remain; residual items are owner decisions (OPEN-SEC-01/02, OPEN-REL-01/02) and two impl-time evidence lifts (D1 version query, PC-17 assertion).

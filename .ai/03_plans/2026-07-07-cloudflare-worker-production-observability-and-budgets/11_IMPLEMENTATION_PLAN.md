@@ -354,10 +354,16 @@ scaffolding placeholders. **Requirements:** none (characterization).
 **Objective:** TEST-01, DOC-01. **Requirements:** TEST-01, DOC-01.
 **Prerequisites:** all.
 
-### Task T-10.1..T-10.7 (see `12_…` test matrix)
-New test files: `request-id.test.ts`, `worker-dispatch.test.ts`,
-`retention-budget.test.ts`, `collaboration-room-broadcast.test.ts`,
-`metrics.test.ts`, `server-timing.test.ts`, plus regression corpus for `redact.ts`.
+### Task T-10.1..T-10.7 (individual test files — see `12_…` §12.2 proof-contract for full detail)
+Each maps 1:1 to a Proof ID in `12_…` §12.2. Run with `bun run test:dom <file>`.
+- **T-10.1 (S, new)** — `tests/vitest/request-id.test.ts` — FR-01 id gen/validate/reuse + ALS — Proof P-01, P-02.
+- **T-10.2 (M, new)** — `tests/vitest/worker-dispatch.test.ts` — FR-01/03 header echo + sync try/catch — Proof P-04.
+- **T-10.3 (M, new)** — `tests/vitest/server-action-context.test.ts` — FR-05 **SA ALS gating** (P1-1, riskiest) — Proof P-03. **Stop condition: if red, escalate to architecture fallback before T-3.2.**
+- **T-10.4 (M, new)** — `tests/vitest/collaboration-room-broadcast.test.ts` — REL-03 DO cap + byteLength — Proof P-10.
+- **T-10.5 (M, new)** — `tests/vitest/retention-budget.test.ts` — REL-02 budget_reached — Proof P-09.
+- **T-10.6 (S, new)** — `tests/vitest/server-timing.test.ts` — FR-04 label allowlist + CRLF + cache-suppress — Proof P-07.
+- **T-10.7 (S, new)** — `tests/vitest/metrics.test.ts` — OBS-01 dimension allowlist + AE-absent swallow — Proof P-11, P-12.
+- **Also new (P1-2/P1-4/P1-5/P-16):** `worker-stream-error.test.ts` (P-06), `instrumentation-redaction.test.ts` (P-13), `inbound-id-isolation.test.ts` (P-15), `observability-perf.test.ts` (P-16); extend `route-error.test.ts` (P-08), `redact.test.ts` (P-14).
 
 ### Task T-10.8 (S, doc) — Runbook + state entry
 - **Paths (new):** `.ai/03_plans/<this pack>/RUNBOOK.md` (or extend `13_…`).
