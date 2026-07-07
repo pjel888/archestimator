@@ -243,8 +243,15 @@ resolves to POST endpoints at runtime but not progressively enhanced.
   `UPLOAD_*_JOB_SECRET`).
 - Bindings (`wrangler.jsonc`): `ARCH_DB`, `ARCH_UPLOADS_R2`, `COLLAB_ROOMS`,
   `UPLOAD_JOBS_QUEUE`, `EMAIL`, `IMAGES`.
-- **SEC-08:** `ARCHESTIMATOR_ALLOWED_APP_ORIGINS` declared but unused by share/invite
-  origin checks.
+- **SEC-09:** `signedReadUrlFactory` option exists but unused; must not bypass authz if wired.
+- **SEC-10 (consistency, refiled from retracted SEC-08):** `ARCHESTIMATOR_ALLOWED_APP_ORIGINS`
+  **is consumed** in four sites — `src/lib/publication/email-links.ts:37`,
+  `src/lib/auth/redirects.ts:26`, `src/lib/auth/cloudflare-better-auth-runtime.ts:101`
+  (Better Auth `trustedOrigins`), and the type at `:22`. It is **not** dead config. The
+  legitimate consistency note: per-request share/invite origin checks derive the allowed
+  origin from `request.url` rather than this env list; both patterns are valid but
+  unreconciled. (The earlier "dead config / remove from `.env.example`" finding was false
+  and is retracted — see Doc 20 ADV-01.)
 
 ### R2 object-key authz
 - **No presigned URLs** — all R2 reads server-mediated and app-authorized.
@@ -276,3 +283,71 @@ resolves to POST endpoints at runtime but not progressively enhanced.
 - **Cross-cutting:** rate-limit table `security_rate_limit_events` (shared by 5 domains);
   `next.config.ts` headers block (one file, all CSP/HSTS); the proxy (`request-proxy.ts`).
 - **Unaffected (intentionally):** marketing pages, health endpoint, Supabase archaeology.
+
+---
+
+## H. Attack Surface Inventory (Improve-Plan-Prompt mandated schema)
+
+Columns: `Entry point | Actor | Authn/authz & ownership check | Input validation | Output DTO | Cache/header behavior | Rate/abuse posture | Required tests`. Rows are grouped by access tier. This consolidates Section B/E into the mandated shape.
+
+### Public (no session)
+
+| Entry point | Actor | Authn/authz & ownership | Input validation | Output DTO | Cache/header | Rate/abuse | Required tests |
+|---|---|---|---|---|---|---|---|
+| `GET /api/health` | anon | none (intentional) | none | `{service,timestamp}` | no-store | none | — |
+| `POST /api/compliance/privacy-requests` | anon | none (anonymous intake) | 16 KiB stream cap `readRequestBodyBytesWithSizeLimit`; `PRIVACY_REQUEST_KINDS` allowlist; `sanitizeMetadataForIntake` strips token/secret/password/cookie/authorization | opaque `{received}` / error | no-store | D1 atomic reserve+rollback: email 3/hr, IP 5/hr | `compliance-privacy-request-route.test.ts` |
+| `* /api/share/[token]` (8 routes) | publication recipient / anon | token-shape → HMAC-hash lookup; `resolveProjectPublicationAccessByToken` (active/expiry/revoked); optional scrypt password + `ae_publication_access_*` HMAC cookie; recipient `verifySharedLinkRecipientToken` (publicationId-bound) + `shared_link_session_*` HMAC cookie; `assertSameOriginPublicPost` + double-submit CSRF (`ae_publication_csrf` ↔ `x-archestimator-csrf`) on all mutations; snapshot-view-token stale guard | token-shape regex; `sanitizeSharedLinkRecipientText` 1000 chars; review-target UUID/`est_|row_` regex; event/metadata allowlists ≤512B; cursor+limit clamps | public-sanitized snapshot (UUIDs→opaque IDs, GPS stripped, `location_visibility`); never echoes RPC/DB errors | **enforced** CSP + `frame-ancestors none` + `no-store` + `Referrer-Policy no-referrer` + HSTS + `X-Frame-Options DENY` | D1 durable: snapshot 60/min, password 5/hr lockout+delays, session 10/min+50/hr, comment 5/min+20/hr, decision 5/min, event 60/min, activity 60/min, unsubscribe 5/min+20/hr; + in-memory circuit breaker (comment) | `project-publication-password-lockout-route`, `csrf-origin-denial`, `comments/decision.test.tsx`, `security-hardening`, `unsubscribe-interstitial` |
+| `POST /api/internal/client-error` | anon (browser) | none; **`sameOrigin` + `passesFetchMetadata`** CSRF/origin | `normalizePayload`+`redactForLog`+16 KiB | opaque ack | no-store | in-memory 10/min/IP | — |
+| `GET/POST /invite/[token]/continue` | anon (invite bridge) | `createPendingInviteBridge` (HMAC-signed cookie) | token decode | redirect / cookie | no-store | D1 `checkInviteContinueRateLimit` | `pending-invite-cookie.test.ts` |
+| `GET /workshop/pending-invite` | cookie holder | `readPendingInviteBridge`+`acceptPendingInviteBridge` (HMAC cookie) | none | HTML interstitial | no-store | none | — |
+| `GET /auth/callback` | anon | legacy disabled; `resolveAuthOrigin`+`sanitizeNextPath` | code/next parse | redirect to login | no-store | none | — |
+
+### Authenticated (Better-Auth session)
+
+| Entry point | Actor | Authn/authz & ownership | Input validation | Output DTO | Cache/header | Rate/abuse | Required tests |
+|---|---|---|---|---|---|---|---|
+| `* /api/auth/[...all]` | session / pre-auth | Better Auth `handlers` + `trustedOrigins`; OAuth state-cookie edge validation | Better Auth internal | Better Auth DTOs | `no-store` (forced) | Better Auth internal | `cloudflare-better-auth-route*` |
+| `POST /api/ai/ask` | ws user | `getAiRequestUserContext` (rejects dev-bypass; provider-backed) | `typeof string` + 8000 cap | `{reply,…}` / 401/403/503 | no-store | D1 `checkAiAskQuota` 10/min 60/hr (ws+user+IP) | `ai-auth-guard.test.ts` |
+| `POST /api/ai/package-builder` | ws user | `getAiRequestUserContext` + `verifyPackageDraftToken` (HMAC user-bound) + apply confirmation | manual schema validators | draft/apply DTO | no-store | **none on this route** (gap note) | `ai-package-builder-security-contract` |
+| `GET /api/projects/[projectId]/activity` | editor | `requireCurrentUserContext` + `getCurrentWorkspaceProject` + `canEditProjectInD1` | `isUuid`, limit 1–50 | activity items | no-store | none | — |
+| `GET .../export/proposal.xlsx` | ws member | `getCurrentUserContext` + `resolveExportAudience`→`isWorkspaceMemberInD1` | `parseExportSettings` finite | xlsx binary (node/row capped) | no-store; `maxDuration=60` | D1 `checkProposalExportRateLimit` 12/min 120/hr | `proposal-export-route.test.ts` |
+| `* /api/projects/images`, `estimate-row-images`, `component-library/{images,attachments}` | ws editor / project editor | `requireCurrentUserContext` + `canEditProjectInD1`/`canEditEstimateInD1`/`isWorkspaceEditorInD1` + ownership-prefix on DELETE + scan-gate on attachment GET | magic-byte + size cap (12/20 MiB) + sharp re-encode | image/attachment bytes or opaque 404 | no-store | **in-memory** `reserveUploadAdmission` (per-isolate; SEC-02/03 caveat) | `auth-sensitive-api-boundaries.test.ts` |
+| `* /api/component-library/attachments/{direct-upload,scan-override}` | ws editor / **platform-admin** (scan-override) | as above; `canApproveUploadScanOverride` for scan-override | sha256/MIME/size/session | session/create/finalize DTO | no-store | in-memory + D1 capacity (3/actor, 6/ws) | `upload-signed-route.test.ts` |
+| `GET/POST/DELETE /invite/[token]/{accept,sign-out}` | session (nullable) | `getCurrentUserContext`; `acceptInvitationTokenForUser` (token-hash bound); **`isAllowedInviteOrigin` (SEC-01 — fails open on stripped headers)** | display text caps | redirect / cookie | no-store | D1 `checkInviteAcceptRateLimit` | `invite-accept-origin`, `project-invite-entry-route` |
+| Server Actions (15 modules, ~162 exports — see Section D + Appendix I) | session / ws member / editor / admin / manager | per-domain: `requireAuth`/`requireCurrentUserContext` + `canAccess*`/`canEdit*`/`assertCanManageLibrary`/`assertProjectPublicationManager`/`assertProjectAccessManager`/`canManageClosedBetaAllowlist`/`canReviewBetaFeedback` | hand-rolled (`readRequiredText`,`isUuid`,regex,length); **no zod** (SEC-06) | typed DTOs; opaque 404 on deny | `revalidatePath` + TanStack invalidate (no `revalidateTag`) | estimate: **in-memory** (SEC-03); invite/publication: D1 durable; most: none | extensive per-domain (Doc 12) |
+
+### Service / job (Bearer secret)
+
+| Entry point | Actor | Authn/authz & ownership | Input validation | Output DTO | Cache/header | Rate/abuse | Required tests |
+|---|---|---|---|---|---|---|---|
+| `* /api/internal/{upload-cleanup,upload-scan,upload-runtime,upload-lifecycle-proof,collaboration-invitation-proof,estimate-history-proof}` | job secret | `isAuthorized` Bearer = `CRON_SECRET` or job-specific secret | `readLimit`/`isDryRun`/router-internal | proof/job result | no-store | none (secret-gated) | proof-script tests |
+
+### Ownership tier note
+- Platform admin (`ceo`/`admin`) bypasses all D1 membership probes at the JS layer
+  (`isPlatformAdmin` short-circuit). Scan-override is the only route *restricted* to admin.
+- Workspace roles (`owner/admin/member/viewer`) and project/estimate collaboration roles
+  (`owner/admin/editor/viewer`) are enforced inside the `canEdit*` SQL predicates.
+
+---
+
+## I. Per-action coverage scope (honest correction of REQ-MATRIX-01)
+
+The earlier draft claimed "every Server Action (~90 across 12 domains) inventoried with
+file:line." **Improvement-audit correction (ADV-07):** there are **30 `"use server"`
+modules across 15 lib subdirectories exporting ~162 functions** (many are non-action
+helpers/type re-exports). Section D groups by **domain** (~22 rows) with authz-gate
+*patterns*, not per-export file:line verdicts. Therefore:
+
+- **Routes (33):** fully inventoried per-route with file:line in Section B/H — **proven**.
+- **Server Actions:** inventoried at the **domain + authz-pattern** level in Section D,
+  with per-action file:line detail only where a finding or task requires it (estimates,
+  publication, recipient-proposals). A full per-export appendix is **out of scope** for
+  this refresh (it would be a separate deliverable) but the **authz pattern coverage is
+  complete**: every domain's gate (`assertCanEditEstimate`, `assertCanManageLibrary`,
+  `assertProjectPublicationManager`, `assertProjectAccessManager`, `canManageClosedBetaAllowlist`,
+  workspace+user SQL scoping for groups) is identified and tested. REQ-MATRIX-01 is
+  corrected to "⚠️ partial" accordingly (Doc 04/16).
+
+**Note on `action-rate-limit.ts` line refs (ADV-12):** the in-memory `Map` is at
+**line 20**; `checkEstimateActionRateLimit` is at line 38. Both are correct citations for
+SEC-03 (the mechanism is the Map; the function is the call site).

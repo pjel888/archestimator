@@ -84,7 +84,7 @@ exploration claims (several exploration P0s were downgraded). Full detail in
 | `group-actions.ts` mutations auth-only (no ownership) | P0 | **Not a finding** | Every `project_groups` query scopes by both `workspace_id = ?` AND `user_id = ?`; these are per-user personal groupings with stronger isolation than RLS (`migrations/0020_project_groups.sql`). |
 | `beta-allowlist-admin-actions.ts` auth-only | P0 | **Not a finding** | Action calls `canManageClosedBetaAllowlist(context.role)` at lines 24 and 46 — platform-admin gated. |
 | `beta-feedback-review-actions.ts` auth-only | P0 | **Not a finding** | Action calls `canReviewBetaFeedback(context.role)` at line 15. |
-| `publication/actions.ts` trust-RLS-only | P1 | **Not a finding** | Every publication mutation calls `assertProjectPublicationManager(projectId)` (a real RBAC gate). |
+| `publication/actions.ts` trust-RLS-only | P1 | **Not a finding (with one exception → SEC-11)** | Every publication *mutation* that takes a `projectId` calls `assertProjectPublicationManager(projectId)` (a real RBAC gate). **Exception:** `maybeTriggerSharedLinkActivityDigest` (`actions.ts:1968`) has no action-layer auth — it is a caller-authorized internal helper (refiled as SEC-11, folded into SEC-05's audit scope). Reads like `refreshProjectPublicationSummary` use `requireAuth` + workspace-scoped queries (correct for reads). |
 | `template-editor-actions.ts` cross-workspace IDOR | P1 | **Not a finding** | Every mutation calls `requireWorkspaceTemplate` which SQL-scopes `WHERE id=? AND workspace_id=?`, plus `isWorkspaceEditorInD1`. |
 | `recipient-proposals/actions.ts` no auth | P0 | **Downgraded to SEC-05 (MED)** | Repository layer `getCurrentUserContext` enforces; it's a defense-in-depth weakness, not a hole. |
 
