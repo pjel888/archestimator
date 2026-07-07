@@ -72,7 +72,10 @@ message age p95) are hosted-evidence-dependent.
 ### Backlog checks (FR-006)
 - Scan backlog: `SELECT scan_status, COUNT(*) FROM upload_assets WHERE surface='component-attachment' AND status='finalized' GROUP BY scan_status;`
 - Cleanup backlog: `SELECT status, COUNT(*) FROM upload_assets WHERE status IN ('deleted') GROUP BY status;` + R2 existence check via proof script.
-- DLQ: `wrangler queues message archived-upload-jobs-dlq ...` (read-only peek) or dashboard.
+- DLQ count/age: dashboard "Debug Queues" (list messages on
+  `archestimator-upload-jobs-dlq`) **or** Cloudflare Analytics (queue message
+  age/backlog metrics). There is no `wrangler queues` DLQ drain command; the
+  DLQ is a normal queue (see DLQ operations below).
 
 ### Retry & DLQ semantics (grounded in official Cloudflare Queues docs)
 - `max_retries=3` (default); DLQ `archestimator-upload-jobs-dlq` receives

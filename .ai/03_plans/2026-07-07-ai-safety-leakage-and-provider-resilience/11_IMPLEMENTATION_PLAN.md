@@ -41,10 +41,10 @@ Objective: make the conservative launch posture provable and close the cheapest 
 
 **T-P0-1 (FR-001, OPS-003): OFF-state proof test**
 - Objective: assert routes 404 + UI hidden + no provider call when `ARCHESTIMATOR_AI_ENABLED=false`.
-- Target: new test (placement `DISCOVERY-REQUIRED`: locate existing `ai-*-route.test.ts` siblings, e.g. `ai-package-builder-route.test.ts`, add alongside).
-- Instructions: with flag false, POST both routes → 404; assert handler module not imported (dynamic import gate); assert `WorkshopPageShell` does not render the floating button.
+- Target: new test at `tests/vitest/ai-disabled-state.test.ts` (sibling to existing `ai-ask-route.test.ts` / `ai-package-builder-route.test.ts` — layout confirmed: 13 `ai-*.test.ts` files in `tests/vitest/`).
+- Instructions: with flag false, POST both routes → 404; assert handler module not imported (dynamic import gate in `route.ts`); assert `WorkshopPageShell` does not render the floating button.
 - Tests to add: the above.
-- Validation: `bun run test` (focused).
+- Validation: `bun test ai-disabled-state`.
 - Complexity: Small. Parallelization: parallel-safe (disjoint from T-P0-2).
 
 **T-P0-2 (SEC-008): Route apply-handler error through redacting logger**
@@ -87,9 +87,9 @@ Objective: close SEC-002 (sanitize) and SEC-004 (Ask output scrub) — the two h
 
 **T-P1-2 (SEC-004): `src/lib/ai/outbound-scrub.ts` for Ask output**
 - Objective: scrub identity/secret/SQL/command material from Ask model `content` before returning to client.
-- New file: `src/lib/ai/outbound-scrub.ts`. Export: `scrubAskOutput(content): string`. Reuse/extend `assertNoForbiddenIdentityKeys` logic from `package-builder/schemas.ts:356-369` + `provider.ts:180-192`.
-- Wire into `ask/handler.ts` around the response build (line ~220-225). Also strip obvious secret patterns (reuse `redact.ts` secret detectors) and SQL/command markers.
-- Tests: `ai-ask-outbound-scrub.test.ts` — model echoes `workspaceId`/a hex secret/`DROP TABLE` → scrubbed.
+- New file: `src/lib/ai/outbound-scrub.ts`. Export: `scrubAskOutput(content): string`. **Clean-engineering note (ADV-11):** `assertNoForbiddenIdentityKeys` is currently duplicated at `package-builder/schemas.ts:356` and `package-builder/provider.ts:180`. Extract a single shared helper (e.g. into `src/lib/ai/identity-scrub.ts`) and have schemas, provider, and the new Ask scrub all import it — do **not** add a third copy.
+- Wire into `ask/handler.ts` around the response build (`handler.ts:220-222`, where `result.content` is returned verbatim today). Reuse `redact.ts` secret detectors + SQL/command markers.
+- Tests: `tests/vitest/ai-ask-outbound-scrub.test.ts` — model echoes `workspaceId`/a hex secret/`DROP TABLE` → scrubbed.
 - Complexity: Medium. Parallelization: parallel-safe with T-P1-1 (different files) until wiring.
 
 ---
@@ -185,8 +185,11 @@ Objective: REL-001 (retry+jitter+breaker), REL-002 (env-config timeout/model).
 - New `.ai/.../ai-incident-runbook.md`: rotation cadence (~90d), revocation steps, disable-switch incident lever, rollback (re-apply idempotency). No secrets in doc.
 - Complexity: Small.
 
-**T-P6-2 (DATA-002): verify AI retention rules**
-- Inspect `retention-core.ts`; confirm rule rows for `ai_action_runs/tool_calls/data_access_events`; add if missing (additive). Test: retention suite covers AI tables.
+**T-P6-2 (DATA-002): add AI retention rule rows (CONFIRMED DEFECT)**
+- Confirmed this Improve pass: `retention-core.ts:32-34` puts `ai_action_runs`/`ai_tool_calls`/`ai_data_access_events` in the `RetentionClassName` union, but `DEFAULT_RETENTION_RULES` (`:79-135`) has **no rule rows** for them → AI audit rows are never purged.
+- Fix: add three rule rows to `DEFAULT_RETENTION_RULES` (additive config edit, **not** a migration) — ttlDays 365, action "purged", selectSql/applySql analogous to `estimate_sheet_events` rows (each table purged by `created_at`).
+- Also decide: add `ai_package_apply_commands` (migration 0027) and `ai_package_builder_memory_preferences` (migration 0019) to the union + rules if retention is desired (recommend: apply commands 365d for idempotency-history parity; memory 2555d or prune with workspace). Owner: impl + Philip for TTL sign-off (OPEN-DEC-004 referenced in `retention-core.ts:78`).
+- Test: extend the retention suite to assert AI rows past TTL are purged. Hosted proof (actual cron purge) remains a hosted gap.
 - Complexity: Small.
 
 **T-P6-3 (observability): structured provider-call log line**
@@ -217,8 +220,9 @@ Objective: REL-001 (retry+jitter+breaker), REL-002 (env-config timeout/model).
 ## Tasks blocked or discovery-required
 
 - **BLOCKED-EXTERNAL (OPEN-001):** whether to ship AI OFF (DEC-001) or ON after hardening. Owner: Philip. Impact: determines whether Phases 1–6 are pre-launch or post-launch. Phase 0 + Phase 7 are required either way.
-- **DISCOVERY-REQUIRED (test placement):** exact test directory/file names for new suites — search for existing `ai-*-route.test.ts` / `ai-package-builder-security-contract` to match layout. Stop condition: found; no code change in discovery.
+- **RESOLVED (was DISCOVERY-REQUIRED):** test placement — confirmed this Improve pass as `tests/vitest/ai-*.test.ts` (13 existing files). New suites use the same directory + `bun test`/vitest runner. No longer a blocker.
 - **BLOCKED-EXTERNAL (DEC-007/SEC-006):** platform-admin AI cross-tenant guard is a behavior change requiring owner sign-off (T-P4-3).
+- **INTERNALLY RESOLVABLE DEFECT (DATA-002, ADV-10):** AI retention rule rows missing in `retention-core.ts` — captured as work item T-P6-2 (additive config, not a migration). TTL sign-off references OPEN-DEC-004.
 
 ## Performance/rollback gate per phase
 

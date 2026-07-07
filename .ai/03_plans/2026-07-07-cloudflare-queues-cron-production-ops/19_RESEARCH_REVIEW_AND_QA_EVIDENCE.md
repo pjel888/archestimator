@@ -4,16 +4,23 @@
 
 | # | Question | Source consulted | Outcome | Changed a decision? |
 |---|---|---|---|---|
-| RQ-1 | Does `wrangler queues` CLI support read-only DLQ peek/replay? | repo `package.json` (no `cf:dlq*` script), `scripts/` inventory | **Not found in repo.** ASSUMP-002 — needs official Cloudflare docs confirmation at implementation time. Runbook FR-005 hedges ("dashboard or CLI"). | No (hedged) |
+| RQ-1 | Does `wrangler queues` CLI support read-only DLQ peek/replay? | **Official Cloudflare Queues docs** (DLQ, batching-retries, pull-consumers, configure-queues, limits) retrieved 2026-07-07 | **RESOLVED.** No DLQ-drain CLI. A DLQ is a normal queue; drain via dashboard "Debug Queues", pull consumer (HTTP API `POST /accounts/{account_id}/queues/{queue_id}/messages/pull`, `visibility_timeout` 30s default/12h max), or a temporary consumer Worker. `max_retries` default 3, max 100. | **Yes → D-DLQDRAIN; ASSUMP-002 closed; runbook/07/13/18 corrected** |
 | RQ-2 | Are Cloudflare Cron Triggers reliable enough for daily audit-row-absence detection? | `current-state.md` L244 ("30-day hosted cron/D1 observation" gate) | Yes-but-best-effort; the 30-day gate exists precisely to characterize this. | Confirmed REL-003 |
 | RQ-3 | Do retention-target composite indexes cover `WHERE created_at < ?`? | migrations 0004/0007/0014/0025/0033 (index defs) | No — all are composite with `created_at` trailing. Confirmed DATA-001. | Yes → D-INDEX |
 | RQ-4 | Is `productionJobsMessagingReady` currently true or false? | `current-state.md` L3466 + proof JSON existence | False locally; hosted provider-readiness broader gate green (L2912). Reconciliation → FR-008. | Yes → FR-008 path |
 | RQ-5 | Does the queue consumer dedupe across batches? | `upload-job-queue.ts:338` (per-batch Set) | No. Confirmed D-IDEMP. | Yes → FR-003 tests |
+| RQ-6 (new) | Does the consumer use whole-batch or explicit-ack retry? | Official batching-retries docs + `upload-job-queue.ts:329-410` | **Explicit per-message ack/retry** (not the default whole-batch retry). Failed messages are isolated. App `retryDelaySeconds=60` overrides default exponential backoff. | Yes → corrected 06/07/18 |
 
-**Searched for but not found:** an official Cloudflare docs page confirming
-exact `wrangler queues` DLQ subcommands (offline repo audit; no web fetch
-performed). Recorded as ASSUMP-002; executor must confirm at implementation
-time. This is a bounded gap, not a blocker — the dashboard is a fallback.
+**Searched for and now found (this pass):** the official Cloudflare Queues DLQ
+/ batching-retries / pull-consumers docs, retrieved 2026-07-07. RQ-1 is closed.
+The earlier "not found in repo" note was a repo-audit limitation, not a real
+gap — the provider docs resolve it.
+
+**New surface introduced by D-DLQDRAIN:** a DLQ pull consumer (HTTP API) is a
+new network-reachable surface if implemented. It must carry its own
+Bearer/Cloudflare-Access auth and is recorded in the `08` Attack Surface
+Inventory and the UQ matrix (adversarial: unauthorized pull). This is a
+bounded, documented addition, not a blocker.
 
 **Rubric:** research was sufficient when it (a) confirmed each decision against
 repo evidence, (b) labeled the one external-doc gap (RQ-1), and (c) did not

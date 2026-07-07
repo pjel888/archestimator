@@ -220,13 +220,31 @@ scaffolding placeholders. **Requirements:** none (characterization).
 **Objective:** OBS-01, OBS-02. **Requirements:** OBS-01, OBS-02.
 **Prerequisites:** Phase 1.
 
-### Task T-7.1 (S, modify) — `wrangler.jsonc` sampling
-- **Paths:** `wrangler.jsonc:83-96`.
-- **Change:** `logs.head_sampling_rate: 1.0` (pre-launch) — or `0.5` with a
-  comment if 1.0 feels risky; `traces.enabled: false` (comment the 0.01
-  alternative). Add a comment citing the 2026-03-01 shared-quota change.
-- **Acceptance:** config valid (`wrangler deploy --dry-run` if available).
-- **Complexity:** S.
+### Task T-7.1 (M, modify) — `wrangler.jsonc` sampling (all sampling keys)
+- **Paths:** `wrangler.jsonc:83-96` — note there are **three** sampling knobs today:
+  top-level `observability.head_sampling_rate: 0.1` (`:85`), nested
+  `observability.logs.head_sampling_rate: 0.1` (`:88`), and
+  `observability.traces.head_sampling_rate: 0.05` (`:94`). Also
+  `observability.traces.enabled: true` (`:93`) today.
+- **Change (P0 — do all three, or sampling stays silently at ~10% in prod):**
+  1. Set **top-level** `observability.head_sampling_rate: 1.0` (pre-launch). The
+     top-level key is the authoritative default applied to both logs and traces;
+     nested keys override per-signal. Set it explicitly so the deployed config
+     has exactly one effective rate.
+  2. Set `observability.logs.head_sampling_rate: 1.0` (pre-launch) — or `0.5`
+     with a comment if 1.0 feels risky for log volume.
+  3. Set `observability.traces.enabled: false` **and**
+     `observability.traces.head_sampling_rate: 0` — traces are currently **on**
+     and consuming the shared logs+traces quota (Mar 2026 change); disable for
+     pre-launch. Comment the re-enable path (`enabled: true, head_sampling_rate: 0.01`).
+- **Rationale cited in comment:** "Traces share the Workers Logs quota since
+  2026-03-01 (Open Beta). Pre-launch: logs 1.0, traces off. Walk down as traffic grows."
+- **Acceptance (AC-OBS-02a strengthened):**
+  - AC-OBS-02a1: `bun run cf:check-deploy-dry-run` passes.
+  - AC-OBS-02a2: the resolved config has exactly one effective sampling rate
+    (grep the wrangler-resolved config / dashboard for the sampling value);
+    no `traces.enabled: true` remains.
+- **Complexity:** M (multi-key, precedence-sensitive).
 
 ### Task T-7.2 (M, modify) — Add AE binding + typegen
 - **Paths:** `wrangler.jsonc` (add `analytics_engine_bindings: [{ binding: "ARCH_METRICS", dataset: "archestimator-metrics" }]` — **name subject to DEC-07**).
@@ -320,7 +338,7 @@ New test files: `request-id.test.ts`, `worker-dispatch.test.ts`,
 | 4 | G-4 | cron/queue correlation | log lines present | events emitted | n/a | wrangler tail | manual |
 | 5 | G-5 | retention budget | budget_reached test | guard works | n/a | unit | T-10.5 |
 | 6 | G-6 | DO cap + metrics | broadcast test | cap enforced | runtime byteLength support | unit | T-10.4 |
-| 7 | G-7 | sampling + AE binding | typegen + config valid | binding live | DEC-07 name | dry-run | manual |
+| 7 | G-7 | sampling (all 3 keys) + AE binding | typegen + `cf:check-deploy-dry-run` + resolved-config grep | binding live; exactly one effective sampling rate | DEC-07 name | dry-run + grep | manual |
 | 8 | G-8 | Server-Timing + metrics | header + AE point | gated emit | n/a | type-check | T-10.6/7 |
 | 9 | G-9 | redaction audit | audit artifact | all console.* classified | n/a | grep | audit |
 | 10 | G-10 | tests + runbook | test matrix green | full coverage | n/a | validate:agents | full |

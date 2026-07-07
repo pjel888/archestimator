@@ -32,6 +32,15 @@ runCloudflareScheduledUploadJobs → HTTP route`) **share the same job-execution
 core**. The queue path adds per-batch dedup, retry/DLQ decisioning, and R2
 proof receipts on top.
 
+**Acknowledgement mode (grounded in official Cloudflare Queues docs):**
+`runCloudflareUploadJobQueueBatch` calls **explicit per-message `ack()`/`retry()`**
+on every message. This is *not* Cloudflare's default behavior (the default is
+whole-batch retry when any message fails). Explicit ack means a failed message
+is isolated — it does not force redelivery of the whole batch. The app's
+`retry({delaySeconds:60})` overrides Cloudflare's default exponential backoff
+with a flat 60s delay. The actual DLQ move is performed by Cloudflare infra at
+`max_retries=3`; the app only computes a `deadLetterExpected` flag.
+
 ### Component boundaries (evidence)
 
 - **Worker entrypoint** (`worker.ts`) — fetch/scheduled/queue routing. Owns no

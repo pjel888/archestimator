@@ -86,7 +86,7 @@ Disabled flag → resolve/continue/accept deny or short-circuit safely [SEC-05, 
 
 ### 3.5 Cookie clear attributes (target)
 - **Files:** `src/app/invite/[token]/sign-out/route.ts`, `src/lib/collaboration/pending-invite-actions.ts`.
-- **Target:** both session-cookie clears use `{ httpOnly:true, secure: NODE_ENV==='production', sameSite:"lax", path:"/", maxAge:0 }`. Consider extracting a `clearBetterAuthSessionCookies(response)` helper to avoid duplication (the same pattern exists in 3 places: sign-out route, `signOutForPendingInvite`, and `set-cookie-forwarding.ts`'s OAuth clear).
+- **Target:** both session-cookie clears use `{ httpOnly:true, secure: NODE_ENV==='production', sameSite:"lax", path:"/", maxAge:0 }`. Consider extracting a `clearBetterAuthSessionCookies(response)` helper to avoid duplication. **Verified scope (2026-07-07):** the session-token-clear gap exists at **2 sites** (`sign-out/route.ts:42-43`, `pending-invite-actions.ts:48-49`). `set-cookie-forwarding.ts:135` clears OAuth-state cookies (a different cookie family) and already uses full attributes — it is not a session-token-clear site.
 
 ## 4. Data flow and control flow
 

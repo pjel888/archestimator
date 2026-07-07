@@ -71,8 +71,13 @@ PROMPT.md, `repo evidence` = file:line, `official docs` = Cloudflare docs (see
     caught, logged via `logAppError({event:"worker.fetch.unhandled"})` with the
     request id, and returns a 500 `problemDetailsResponse`.
   - AC-FR-03b: `scheduled()` and `queue()` catch and log with `event:"worker.scheduled.unhandled"` / `"worker.queue.unhandled"` without crashing the handler.
-- **Validation:** unit test injecting a throwing dispatch; integration test that
-  a broken route returns a 500 with `trace_id`.
+  - AC-FR-03c (P1-4): For any route returning a streaming `Response` (SSE for
+    `/api/share/[token]/events`, AI `/api/ai/ask` streaming, any `ReadableStream`
+    body), an error thrown **after** headers are committed is caught **inside**
+    the stream, logged with `request_id`, and the stream closes cleanly — the
+    client must not receive a truncated 200 with a garbage body and no envelope.
+- **Validation:** P-04 (sync throw → 500 + logged); **P-06** (streaming mid-stream
+  throw → clean close + correlated log).
 - **Affected code:** `worker.ts`.
 - **Risks:** swallowing errors silently (mitigate: always log at error level).
 - **Status:** planned.

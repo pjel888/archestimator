@@ -72,3 +72,57 @@ No missing requirements, hallucinated requirements, or cross-document contradict
 - For Track B: above + land Phases 1, 2, 3, 4, 5, 6 then re-verify.
 
 No application code was modified by this planning task.
+
+## Final verification matrix (Improve pass — required by PHASE 4 / FINAL VERIFICATION)
+
+Requirement-by-requirement audit against the Improve prompt's quality categories. Status codes: `proven`, `contradicted`, `incomplete`, `weak_or_indirect`, `missing`, `blocked_with_evidence`, `deferred_with_rationale`, `not_applicable_with_reason`.
+
+| Verify item | Authoritative evidence | Status |
+|---|---|---|
+| Every relevant source doc reviewed | doc-impact report (L5) in `19_*` + inventory in `22_*` | proven |
+| Inventory & source authority documented | `22_INVENTORY_AND_SOURCE_MAP.md` | proven |
+| All requirements traceable to source | `16_*` (Source strength + Gap/decision columns) | proven |
+| Scope & non-goals explicit | `02_*` | proven |
+| Cross-doc contradictions resolved/recorded | `22_*` conflicts section (resolved: test placement, DATA-002, doc drift) | proven |
+| Goals + success/guardrail metrics defined | `02_*`, PERF budgets in `09_*` | proven (guardrail = rollback triggers in `13_*`) |
+| User journeys & UX states defined | `05_*` state matrix | proven |
+| A11y requirements defined (action-level matrix) | `05_*` action a11y proof matrix | proven |
+| React/Next Server/Client boundaries clear | `06_*` route boundary/cache contract; `18_*` | proven |
+| Data fetch/cache/render/mutation/revalidation strategy | `06_*` route table (no-store + revalidatePath) | proven |
+| Route-specific boundary/cache contracts | `06_*` per-route table | proven |
+| Tech architecture & module boundaries | `06_*`, `18_*` | proven |
+| Data/API/network/security/perf covered | `07_*` (+access-path matrix), `08_*` (+attack-surface inventory), `09_*` | proven |
+| Cloudflare/Better Auth/legacy-exit implications | `18_*`, `21_*` | proven (no legacy AI exit needed) |
+| Dependencies & blast radius | `10_*` | proven |
+| Risks: severity/mitigation/owner/trigger | `14_*` | proven |
+| Implementation units scoped/sequenced/testable | `11_*` P0–P7 + durable-goal contracts | proven |
+| Acceptance criteria objective & measurable | `04_*`, `16_*` AC column | proven |
+| Test strategy maps to reqs + units | `12_*` (+proof contract PR-001..PR-PERF) | proven |
+| Perf budgets + measurement when relevant | `09_*` PERF evaluator | proven (mocked; hosted = gap) |
+| Observability/ops/rollout/monitoring/rollback | `13_*`, `09_*` | proven |
+| Adversarial review no unresolved P0/P1 | `19_*` adversarial structure | proven (no P0/P1 unresolved internally) |
+| Final verification confirms scores | this matrix + `23_*` scorecard | proven (emulated cap applied) |
+| No unresolved critical ambiguity | `22_*` missing-source list | proven |
+| No unsupported score of 100 | `23_*` (no doc scores 100) | proven |
+| Credential taxonomy depth | `08_*` depth table | proven |
+| Access-path matrix (no P0) | `07_*` | proven |
+| Attack surface inventory | `08_*` | proven |
+| Implementation-unit proof contracts | `12_*` PR-001..PR-PERF | proven |
+| DATA-002 retention defect → work item | `22_*` missing-source + `07_*` note + T-P6-2 | proven (defect confirmed, internally resolvable) |
+| OPEN-001 (Track A vs B) | `02_*`, `15_*` DEC-001 | blocked_with_evidence (external owner) |
+| DEC-007/SEC-006 admin guard | `15_*`, `14_*` RISK-AI-05 | blocked_with_evidence (external owner) |
+| SEC-010 subprocessor disclosure | `13_*`, `16_*` | blocked_with_evidence (external/legal) |
+| Hosted/provider metrics | `09_*`, `13_*` | weak_or_indirect (hosted gap, recorded) |
+
+## Evidence-class table (Improve pass — required by FINAL DELIVERABLE)
+
+| Class | Examples used in this pack | Cannot prove |
+|---|---|---|
+| Local static | file inspection, grep, doc audit (L5), inventory (`22_*`) | runtime/browser/provider/hosted behavior |
+| Local automated | existing `tests/vitest/ai-*.test.ts` (referenced, not run); planned PR-001..PR-PERF (not yet implemented — planning only) | provider/hosted state |
+| Browser/manual | none run (planning-only) | intentionally skipped per AGENTS.md proportional policy |
+| Provider-backed | none (no Wrangler/D1 readback run; no DeepSeek call) | runtime/provider facts not gathered |
+| Hosted/production | none | hosted metrics explicitly a gap |
+| Inferred | DeepSeek hosted p95 targets; resilience design; admin-bypass risk | labeled as inference/derived, not proof |
+
+This is a **planning-only** task: no validation commands were executed against the live AI surface (correctly — the directive forbids running app code/tests/migrations). Evidence is local-static (repo file/grep) + the existing internal authoritative docs. All "command" references (PR-*, `bun test ...`) are **planned** proof paths for the implementation phase, not results claimed here. Residual risk: until the planned tests run green in implementation, behavioral claims are design-level, not proven.

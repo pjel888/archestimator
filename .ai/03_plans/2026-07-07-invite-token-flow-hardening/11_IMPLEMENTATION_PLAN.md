@@ -80,7 +80,7 @@ Phases 1→2→3 are sequential (P2's disabled-flag short-circuit depends on P1'
 - **Why:** Today they use `{ maxAge:0, path:"/" }` only (hygiene gap).
 - **Target paths (existing):** `src/app/invite/[token]/sign-out/route.ts:42-43`; `src/lib/collaboration/pending-invite-actions.ts:42-51`.
 - **Target symbols:** `signOutAndReturn` cookie clear; `signOutForPendingInvite` cookie clear.
-- **Detailed instructions:** Consider extracting a shared `clearBetterAuthSessionCookies(response)` helper (the pattern repeats in 3 places: sign-out route, pending-invite action, `set-cookie-forwarding.ts`). If extracted, place it in `src/lib/auth/` (e.g. `session-cookie-helpers.ts`) and reuse. Otherwise inline the attribute object in both places.
+- **Detailed instructions:** Consider extracting a shared `clearBetterAuthSessionCookies(response)` helper for the **2 session-token-clear sites** (`sign-out/route.ts:42-43`, `pending-invite-actions.ts:48-49`). If extracted, place it in `src/lib/auth/` (e.g. `session-cookie-helpers.ts`) and reuse. Otherwise inline the attribute object at both sites. (Note: `set-cookie-forwarding.ts:135` clears OAuth-state cookies, a different family — not in scope.)
 - **Tests/val:** Extend `project-invite-sign-out-route.test.ts` + `workshop-pending-invite.test.tsx` to assert Set-Cookie attributes.
 - **Complexity:** Small.
 

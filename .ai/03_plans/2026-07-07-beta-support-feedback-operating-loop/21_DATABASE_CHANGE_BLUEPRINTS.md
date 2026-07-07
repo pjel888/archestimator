@@ -67,6 +67,14 @@ ALTER TABLE beta_feedback_submissions DROP COLUMN first_response_at;
 ```
 Code tolerates missing columns (null guards) → safe to roll back the schema even if a deploy with the new code is live (the new code paths no-op on null/missing).
 
+### Partial-apply / re-run idempotency (P1 fix — adversarial finding)
+**D1/SQLite `ALTER TABLE ADD COLUMN` is NOT idempotent** — re-running `0039` after a partial apply errors on the already-existing column. SQLite does not support `ADD COLUMN IF NOT EXISTS`. Wrangler's migration tracker (`d1_migrations` table) marks a migration applied after success, so a clean re-run is skipped; but a *partially-applied* migration (some columns added, then the statement failed) leaves the tracker inconsistent.
+
+Fix-forward rule for the implementer:
+- If `0039` partially applied (some columns exist), **do not re-run the migration file**. Instead run a one-off reconciliation: `ALTER TABLE` only for the missing columns individually, then manually mark `0039` applied in the `d1_migrations` tracker (or accept it as applied and move forward).
+- Each `ADD COLUMN` is a separate statement in `0039` (not a combined statement) so a failure at column N leaves columns 1..N-1 present.
+- Safer alternative considered: a single migration guarded by a `PRAGMA table_info` check in a script — rejected because Wrangler D1 migrations are plain SQL, not scripts. Accept the documented partial-apply reconciliation.
+
 ### Local proof command
 - **Apply (local):** `bunx wrangler d1 migrations apply ARCH_DB --local` (standard Wrangler; the repo has **no** custom migrate script — verified `rg "d1 migrations|migrate" package.json` finds only `cf:deploy`/`cf:typegen`). The `migrations/` directory is the D1 migrations source.
 - **Readback (local):** `bun run cf:d1-beta-feedback-proof` (script: `scripts/generate-cloudflare-d1-beta-feedback-proof.ts`) — extend it to assert the 3 new columns + the `idx_beta_feedback_sla_sweep` index.

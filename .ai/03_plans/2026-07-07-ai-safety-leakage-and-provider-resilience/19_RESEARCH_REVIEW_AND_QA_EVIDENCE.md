@@ -50,3 +50,34 @@ See `09_*` PERF table: mocked-fetch `ai-performance.smoke`, synthetic fixture at
 - Hosted p95/error-rate/retention-cron proof — hosted evidence gaps.
 - Browser proof for apply UX — only if interaction claim demands it.
 - Independent/owner review of the final pack — required to lift the CONDITIONALLY READY cap.
+
+## Adversarial review findings (Improve pass — required by PHASE 4 / ADVERSARIAL REVIEW)
+
+The adversarial lane tried to disprove readiness. Findings classified P0 (blocks implementation-ready), P1 (blocks before launch), P2 (improvement). All P0/P1 either resolved or isolated to external owner/hosted gates.
+
+| ID | Question tried | Finding | Severity | Resolution | Status |
+|---|---|---|---|---|---|
+| ADV-01 | Could AI leak cross-tenant data? | No present-day exploitable leak, but no DB safety net (no D1 RLS) + no test suite → R-011 open | P1 (Track B launch-blocker) | SEC-001/T-P4-1 leakage suite; scoped-query helper; Track A avoids the surface | resolved for Track A; gated for Track B |
+| ADV-02 | Could prompt injection exfiltrate via output? | Ask has no outbound scrub; user text unsanitized | P1 | SEC-002/T-P1-1 sanitize; SEC-004/T-P1-2 scrub | resolved (planned) |
+| ADV-03 | Could apply write to wrong tenant? | Strong controls (token+hash+authz+idempotency+library liveness) | — | verify with existing + new denial tests | no defect found |
+| ADV-04 | Could platform admin cross tenants via AI? | `isPlatformAdmin` bypasses probes | P2 (owner-gated) | DEC-007/T-P4-3 | blocked-external |
+| ADV-05 | Could logs leak secrets? | 1 bare `console.error` bypasses redaction | P1 | SEC-008/T-P0-2 | resolved (planned) |
+| ADV-06 | Could cost run away? | No PB rate limit | P2 | REL-003/T-P3-1 | resolved (planned) |
+| ADV-07 | Could provider outage hang AI? | 20s timeout only, no breaker | P2 | REL-001/T-P2-2 + deterministic fallback | resolved (planned) |
+| ADV-08 | Could signing-secret unset break prod apply? | throws-if-unset exists; but undocumented | P2 | OPS-001/T-P0-3 document + env-manifest | resolved (planned) |
+| ADV-09 | Could stale docs mislead implementer? | AI docs cite Supabase | P2 | DOC-001/T-P7-1 re-anchor | resolved (planned) |
+| ADV-10 | Could AI audit rows grow unbounded? | **Retention rule rows MISSING (DATA-002 defect confirmed)** | P2 | T-P6-2 add rule rows | resolved into work item (defect confirmed this pass) |
+| ADV-11 | Could duplicate-helper cause drift? | `assertNoForbiddenIdentityKeys` duplicated (`schemas.ts:356` + `provider.ts:180`) | P2 | T-P1-2 extract shared helper | resolved (planned) |
+| ADV-12 | Could two implementers interpret a task differently? | test placement was vague (`DISCOVERY-REQUIRED`) | P2 | resolved — concrete `tests/vitest/ai-*.test.ts` | resolved (this pass) |
+| ADV-13 | Is any score inflated? | none score 100; overall 95 within emulated cap | — | `23_*` | no inflation |
+| ADV-14 | Does any doc contradict another? | none unresolved (previously: test placement, DATA-002, doc drift) | — | `22_*` conflicts | resolved |
+| ADV-15 | Is any requirement untraceable? | no — all 32 traced with Source strength | — | `16_*` | resolved |
+| ADV-16 | Is any AC untestable? | no — every behavior req has objective AC + proof contract row | — | `12_*` PR-* | resolved |
+
+No unresolved P0 finding. No unresolved P1 finding that is internally resolvable. Track B's P1 (ADV-01 leakage suite) is a planned implementation gate, not a planning defect.
+
+## Independent vs emulated verification (transparency)
+
+- Discovery lanes (L1–L5): real independent `Explore` agents (distinct outputs).
+- Synthesized-pack adversarial + final-verifier passes: emulated (same lead, separated passes) because native subagents for synthesized-pack review were unavailable.
+- Cap applied: overall ≤97; package status ≤ `CONDITIONALLY READY` (high-blast-radius). Documented in `17_*`, `23_*`.

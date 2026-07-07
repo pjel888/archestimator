@@ -36,8 +36,9 @@
 - **Recommended:** (a). Gated on OPEN-SEC-02 (owner confirms the disabled-flag semantics).
 
 ### DEC-05 — Full cookie attributes on sign-out clear
-- **Problem:** `sign-out/route.ts:42-43` omits httpOnly/secure/sameSite.
-- **Options:** (a) inline the attribute object; (b) extract a shared `clearBetterAuthSessionCookies` helper (recommended — the pattern repeats 3x).
+- **Problem:** `sign-out/route.ts:42-43` and `pending-invite-actions.ts:48-49` omit httpOnly/secure/sameSite on the session-cookie clear (both use `{ maxAge: 0, path: "/" }` only).
+- **Source (verified 2026-07-07):** `sign-out/route.ts:42-43`, `pending-invite-actions.ts:48-49` (2 sites with the gap). **Note:** `set-cookie-forwarding.ts:135` `clearBetterAuthOAuthStateCookies` clears **OAuth state** cookies (not session tokens) and already uses full attributes — it is NOT a session-token-clear site, so the "3x" claim in the original draft was wrong. The session-token-clear duplication is **2x** (the two sites above).
+- **Options:** (a) inline the attribute object at both sites; (b) extract a shared `clearBetterAuthSessionCookies(response)` helper for the 2 session-token-clear sites (recommended).
 - **Recommended:** (b).
 
 ### DEC-06 — Separate realtime identity signing key from invite pepper

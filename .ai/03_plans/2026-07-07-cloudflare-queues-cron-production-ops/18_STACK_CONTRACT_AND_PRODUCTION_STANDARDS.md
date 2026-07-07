@@ -15,11 +15,21 @@ frontend or auth surfaces.
   bump = new consumer branch; never rewrite v1 in place.
 - **Idempotency:** minute-granularity key, **per-batch** dedup (D-IDEMP).
   Downstream jobs must be independently idempotent.
-- **Retry/DLQ:** app sets `retry({delaySeconds:60})`; `deadLetterExpected` is an
-  app-computed flag; the actual DLQ move is Cloudflare infra at `max_retries`.
+- **Acknowledgement mode:** the consumer uses **explicit per-message
+  `ack()`/`retry()`** (not Cloudflare's default whole-batch retry). This
+  isolates failed messages from the rest of the batch. (Official:
+  batching-retries docs.)
+- **Retry/DLQ:** `max_retries=3` (default). App `retry({delaySeconds:60})`
+  **overrides** Cloudflare's default exponential backoff → flat 60s.
+  `deadLetterExpected` is an app-computed flag; the actual DLQ move is
+  Cloudflare infra when `max_retries` is exhausted.
+- **DLQ mechanics:** the DLQ is a normal queue — there is no drain CLI.
+  Inspect/drain via dashboard "Debug Queues", a pull consumer (HTTP API), or a
+  temporary consumer Worker (D-DLQDRAIN). A pull consumer is a new network
+  surface and must be auth-scoped (`08`).
 - **Delivery semantics:** at-least-once. Assume redelivery; design for it.
-- **Backpressure:** `max_batch_size:5` bounds consumer concurrency per batch.
-  No app-level concurrency control needed.
+- **Backpressure:** `max_batch_size:5` bounds consumer batch; consumer
+  concurrency is Cloudflare-managed. No app-level concurrency control needed.
 
 ## Cloudflare Cron Triggers
 

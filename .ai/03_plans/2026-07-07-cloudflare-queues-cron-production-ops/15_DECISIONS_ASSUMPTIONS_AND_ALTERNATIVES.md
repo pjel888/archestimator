@@ -41,6 +41,25 @@
 - **Chosen:** treat local proof as necessary; hosted proof (T-008) as the gate for `productionJobsMessagingReady=true`. Never claim production readiness from local simulation.
 - **Rejected:** treating local green as production-ready.
 
+### D-DLQDRAIN — DLQ drain via pull consumer / dashboard (not a wrangler command)
+- **Problem:** the runbook needs a DLQ drain/inspect procedure; research (RQ-1,
+  resolved) confirms there is **no** `wrangler queues dlq drain` command. A DLQ
+  is a normal Cloudflare Queue.
+- **Options:** (A) dashboard "Debug Queues" send/list/ack (simplest, manual);
+  (B) pull consumer over the HTTP API
+  (`POST /accounts/{account_id}/queues/{queue_id}/messages/pull`) — scriptable
+  replay, but a new network surface needing auth scoping; (C) a temporary
+  consumer Worker bound to the DLQ.
+- **Chosen:** recommend **(B) pull consumer for scripted drill/replay** +
+  **(A) dashboard for ad-hoc inspection**. Record that a pull consumer is a new
+  network surface and must carry its own Bearer/Cloudflare-Access auth (`08`).
+- **Rejected (C)** as routine (spawns a throwaway Worker per drain); keep as a
+  fallback. **Rejected "wrangler drain"** — does not exist.
+- **Status:** owner-delegated planning decision. The lead recommends A+B;
+  confirm with Philip before the runbook is finalized. Effect: runbook §9 and
+  `07`/`13`/`18` already reflect this; a pull-consumer implementation (if taken)
+  becomes a small future task with its own auth threat-model row.
+
 ## Open / external decisions
 
 ### OPEN-DEC-004 — Retention TTL counsel sign-off (EXTERNAL, owner + counsel)
@@ -63,7 +82,7 @@
 ## Assumptions (labeled)
 
 - ASSUMP-001: Cloudflare Queues consumer config in `wrangler.jsonc` (`max_retries`, DLQ) is applied as-declared. (repo evidence; not separately provider-proven.)
-- ASSUMP-002: `wrangler queues ...` CLI supports read-only DLQ peek. (needs `19` research confirmation — if unavailable, use dashboard.)
+- ASSUMP-002: ~~`wrangler queues ...` CLI supports read-only DLQ peek.~~ **RESOLVED (2026-07-07):** there is no DLQ-drain CLI. A DLQ is a normal queue; drain via dashboard "Debug Queues", a pull consumer (HTTP API), or a temporary consumer Worker. See D-DLQDRAIN and `19` RQ-1 (citations). Downgraded from "unconfirmed assumption" to "verified with citations."
 - ASSUMP-003: The 5 retention-target tables are the only D1 purge targets today. (repo evidence — registry has 7 rules across 5 distinct tables + the `account_audit_legacy_sha256` alias.)
 - ASSUMP-004: Free-tier Workers Observability sampling (0.1/0.05) is acceptable for supportive signals; deterministic D1 audit rows are primary. (design choice.)
 - ASSUMP-005: Cron triggers fire reliably enough that daily audit-row absence is a meaningful failure signal. (Cloudflare Cron is best-effort; documented in `09`.)
