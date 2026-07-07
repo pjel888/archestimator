@@ -16,7 +16,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { ControlField, ControlInput, ControlTextarea } from "@/components/ui/control-input";
-import { CreatableCombobox, type CreatableComboboxOption } from "@/components/ui/creatable-combobox";
+import { CreatableCombobox, type CreatableComboboxChange, type CreatableComboboxOption } from "@/components/ui/creatable-combobox";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { Modal } from "@/components/ui/modal";
 import {
@@ -26,11 +26,10 @@ import {
   type CreateCostLibraryComponentInput,
 } from "@/lib/component-library/actions";
 import {
-  getUserLibraryFolders,
   type LibraryFolderRecord,
 } from "@/lib/component-library/library-folder-reorder";
 import { validateQuickAddComponentInput } from "@/lib/component-library/quick-add-validation";
-import { findComponentCategoryPath, type ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
+import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import {
   COMPONENT_UNIT_OPTIONS,
   CONTENT_UNIT_OPTIONS,
@@ -48,7 +47,6 @@ import {
 } from "@/lib/uploads/component-attachment-client";
 import type { ComponentLibrarySupplierOption } from "../component-library/tree/buildLibraryTree";
 import {
-  isAllComponentsFolderId,
   type CreateLibraryFolderHandler,
   type ReorderStatus,
 } from "./library-folder-tree-shared";
@@ -109,6 +107,16 @@ type ComponentDraft = {
   variants: VariantDraft[];
 };
 
+type CatalogueOptionKind = "category" | "supplier" | "brand";
+
+type LocalCatalogueOption = {
+  id: string;
+  label: string;
+  createdAt: string;
+};
+
+type LocalCatalogueOptionsState = Record<CatalogueOptionKind, LocalCatalogueOption[]>;
+
 type ImageUploadState =
   | { state: "idle" }
   | { state: "processing"; message: string }
@@ -145,6 +153,7 @@ type AddComponentModalProps = {
   onDeleteFolder?: (folderId: string, currentName: string) => void;
   reorderStatus?: ReorderStatus;
   treeMutationPending?: boolean;
+  catalogueOptionsStorageScope?: string;
 };
 
 type AddComponentModalTab = "component" | "activity";
@@ -191,6 +200,10 @@ const OPENDESIGN_RAIL_SHADOW_CLASS =
   "shadow-[10px_12px_24px_-19px_rgba(23,29,40,0.42),inset_0_1px_0_rgba(255,255,255,0.72),inset_0_0_0_1px_rgba(61,61,61,0.025)]";
 const OPENDESIGN_RAIL_ACTIVE_SHADOW_CLASS =
   "shadow-[16px_16px_30px_-24px_rgba(23,29,40,0.56),inset_0_1px_0_rgba(255,255,255,0.72),inset_0_0_0_1px_rgba(61,61,61,0.025)]";
+const LOCAL_CATALOGUE_OPTION_PREFIX = "local-catalogue-option";
+const ADD_COMPONENT_CATALOGUE_OPTIONS_STORAGE_PREFIX = "archestimator:add-component-catalogue-options:v1";
+const LOCAL_CATALOGUE_OPTION_LIMIT = 80;
+const CATALOGUE_OPTION_KINDS: CatalogueOptionKind[] = ["category", "supplier", "brand"];
 
 function toUnitComboboxOptions(options: ComponentUnitOption[]): CreatableComboboxOption[] {
   return options.map((option) => ({
@@ -205,22 +218,113 @@ function toComboboxOptions(options: Array<{ id: string; name: string }>): Creata
   return options.map((option) => ({ id: option.id, label: option.name }));
 }
 
-function toCategoryComboboxOptions(
-  nodes: ComponentLibraryTaxonomyNode[],
-  depth = 0,
-  path: string[] = [],
+function emptyLocalCatalogueOptionsState(): LocalCatalogueOptionsState {
+  return {
+    category: [],
+    supplier: [],
+    brand: [],
+  };
+}
+
+function normalizeCatalogueOptionLabel(value: string): string {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+function normalizeCatalogueOptionKey(value: string): string {
+  return normalizeCatalogueOptionLabel(value).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function makeLocalCatalogueOption(kind: CatalogueOptionKind, value: string): LocalCatalogueOption | null {
+  const label = normalizeCatalogueOptionLabel(value);
+  const key = normalizeCatalogueOptionKey(label).replace(/\s+/g, "-");
+  if (!label || !key) return null;
+  return {
+    id: `${LOCAL_CATALOGUE_OPTION_PREFIX}:${kind}:${key}`,
+    label,
+    createdAt: new Date().toISOString(),
+  };
+}
+
+function isLocalCatalogueOptionId(id: string | null | undefined): id is string {
+  return Boolean(id?.startsWith(`${LOCAL_CATALOGUE_OPTION_PREFIX}:`));
+}
+
+function isLocalCatalogueComboboxOption(option: CreatableComboboxOption): boolean {
+  return isLocalCatalogueOptionId(option.id);
+}
+
+function getCatalogueOptionsStorageKey(scope: string | null | undefined): string {
+  const normalizedScope = (scope ?? "fallback-workspace").trim().replace(/[^a-zA-Z0-9_.:-]+/g, "-") || "fallback-workspace";
+  return `${ADD_COMPONENT_CATALOGUE_OPTIONS_STORAGE_PREFIX}:${normalizedScope}`;
+}
+
+function sanitizeLocalCatalogueOptionsState(value: unknown): LocalCatalogueOptionsState {
+  const source = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  const next = emptyLocalCatalogueOptionsState();
+
+  for (const kind of CATALOGUE_OPTION_KINDS) {
+    const entries = Array.isArray(source[kind]) ? source[kind] : [];
+    const seen = new Set<string>();
+    for (const entry of entries) {
+      if (!entry || typeof entry !== "object") continue;
+      const record = entry as Record<string, unknown>;
+      const label = typeof record.label === "string" ? normalizeCatalogueOptionLabel(record.label) : "";
+      const key = normalizeCatalogueOptionKey(label);
+      if (!label || !key || seen.has(key)) continue;
+      const fallbackOption = makeLocalCatalogueOption(kind, label);
+      if (!fallbackOption) continue;
+      next[kind].push({
+        id: typeof record.id === "string" && isLocalCatalogueOptionId(record.id) ? record.id : fallbackOption.id,
+        label,
+        createdAt: typeof record.createdAt === "string" ? record.createdAt : fallbackOption.createdAt,
+      });
+      seen.add(key);
+    }
+    next[kind] = next[kind].slice(-LOCAL_CATALOGUE_OPTION_LIMIT);
+  }
+
+  return next;
+}
+
+function readLocalCatalogueOptionsState(storageKey: string): LocalCatalogueOptionsState {
+  if (typeof window === "undefined") return emptyLocalCatalogueOptionsState();
+  try {
+    const stored = window.localStorage.getItem(storageKey);
+    if (!stored) return emptyLocalCatalogueOptionsState();
+    return sanitizeLocalCatalogueOptionsState(JSON.parse(stored));
+  } catch {
+    return emptyLocalCatalogueOptionsState();
+  }
+}
+
+function writeLocalCatalogueOptionsState(storageKey: string, state: LocalCatalogueOptionsState) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(storageKey, JSON.stringify(sanitizeLocalCatalogueOptionsState(state)));
+}
+
+function toLocalCatalogueComboboxOptions(options: LocalCatalogueOption[]): CreatableComboboxOption[] {
+  return options.map((option) => ({ id: option.id, label: option.label }));
+}
+
+function mergeCatalogueComboboxOptions(
+  baseOptions: CreatableComboboxOption[],
+  localOptions: CreatableComboboxOption[],
 ): CreatableComboboxOption[] {
-  return nodes.flatMap((node) => {
-    const nextPath = [...path, node.label];
-    const option: CreatableComboboxOption = {
-      id: node.id,
-      label: node.label,
-      description: nextPath.join(" / "),
-      searchText: [node.label, node.code, node.meta, node.kind, ...(node.aliases ?? []), ...nextPath].filter(Boolean).join(" "),
-    };
-    const children = node.children ? toCategoryComboboxOptions(node.children, depth + 1, nextPath) : [];
-    return [option, ...children];
-  });
+  const seen = new Set<string>();
+  const merged: CreatableComboboxOption[] = [];
+  for (const option of [...baseOptions, ...localOptions]) {
+    const key = normalizeCatalogueOptionKey(option.label);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    merged.push(option);
+  }
+  return merged;
+}
+
+function findSelectedLocalCatalogueOptionId(value: string, options: CreatableComboboxOption[]): string | null {
+  const key = normalizeCatalogueOptionKey(value);
+  if (!key) return null;
+  return options.find((option) => normalizeCatalogueOptionKey(option.label) === key)?.id ?? null;
 }
 
 function getSelectedUnitId(value: string, options: CreatableComboboxOption[]): string | null {
@@ -350,47 +454,23 @@ function makeVariantDraft(index: number, overrides: Partial<VariantDraft> = {}):
   };
 }
 
-function resolveFolderCategoryNodeId(folders: LibraryFolderRecord[], folderId: string | null): string {
-  if (!folderId) return "";
-  const byId = new Map(folders.map((folder) => [folder.id, folder]));
-  let current = byId.get(folderId);
-  const seen = new Set<string>();
-  while (current && !seen.has(current.id)) {
-    seen.add(current.id);
-    if (current.source_category_node_id) return current.source_category_node_id;
-    current = current.parent_id ? byId.get(current.parent_id) : undefined;
-  }
-  return "";
-}
-
 function getInitialDraft({
-  folders,
-  categoryTree,
-  selectedFolderId,
   selectedSupplierId,
   selectedBrandId,
   suppliers,
   brands,
 }: {
-  folders: LibraryFolderRecord[];
-  categoryTree: ComponentLibraryTaxonomyNode[];
-  selectedFolderId: string | null;
   selectedSupplierId?: string | null;
   selectedBrandId?: string | null;
   suppliers: ComponentLibrarySupplierOption[];
   brands: ComponentLibraryBrand[];
 }): ComponentDraft {
-  const selectedFolder = selectedFolderId && !isAllComponentsFolderId(selectedFolderId)
-    ? folders.find((folder) => folder.id === selectedFolderId)
-    : undefined;
   const supplier = selectedSupplierId ? suppliers.find((entry) => entry.id === selectedSupplierId) : undefined;
   const brand = selectedBrandId ? brands.find((entry) => entry.id === selectedBrandId) : undefined;
-  const categoryNodeId = resolveFolderCategoryNodeId(folders, selectedFolder?.id ?? null);
-  const categoryPath = categoryNodeId ? findComponentCategoryPath(categoryTree, categoryNodeId) ?? [] : [];
   return {
     name: "",
-    category: categoryPath.at(-1) ?? "",
-    categoryNodeId,
+    category: "",
+    categoryNodeId: "",
     supplierId: supplier?.id ?? "",
     supplierName: supplier?.name ?? "",
     brand: brand?.name ?? "",
@@ -495,8 +575,6 @@ export function AddComponentModal(props: AddComponentModalProps) {
 
 function OpenAddComponentModal({
   open,
-  folders,
-  categoryTree,
   suppliers,
   brands,
   libraryItems,
@@ -505,12 +583,9 @@ function OpenAddComponentModal({
   selectedBrandId,
   onOpenChange,
   onComponentCreated,
+  catalogueOptionsStorageScope,
 }: AddComponentModalProps) {
-  const userFolders = useMemo(() => getUserLibraryFolders(folders), [folders]);
   const [draft, setDraft] = useState(() => getInitialDraft({
-    folders: userFolders,
-    categoryTree,
-    selectedFolderId,
     selectedSupplierId,
     selectedBrandId,
     suppliers,
@@ -541,12 +616,47 @@ function OpenAddComponentModal({
   const draftRef = useRef(draft);
   const variantPreviewUrlsRef = useRef(variantPreviewUrls);
   const sharedPreviewUrlRef = useRef(sharedPreviewUrl);
+  const catalogueOptionsStorageKey = useMemo(
+    () => getCatalogueOptionsStorageKey(catalogueOptionsStorageScope),
+    [catalogueOptionsStorageScope],
+  );
+  const [localCatalogueOptions, setLocalCatalogueOptions] = useState<LocalCatalogueOptionsState>(
+    () => readLocalCatalogueOptionsState(catalogueOptionsStorageKey),
+  );
 
-  const categoryOptions = useMemo(() => toCategoryComboboxOptions(categoryTree), [categoryTree]);
-  const brandOptions = useMemo(() => toComboboxOptions(brands), [brands]);
-  const supplierOptions = useMemo(() => toComboboxOptions(suppliers), [suppliers]);
+  const baseBrandOptions = useMemo(() => toComboboxOptions(brands), [brands]);
+  const baseSupplierOptions = useMemo(() => toComboboxOptions(suppliers), [suppliers]);
+  const localCategoryOptions = useMemo(
+    () => toLocalCatalogueComboboxOptions(localCatalogueOptions.category),
+    [localCatalogueOptions.category],
+  );
+  const localBrandOptions = useMemo(
+    () => toLocalCatalogueComboboxOptions(localCatalogueOptions.brand),
+    [localCatalogueOptions.brand],
+  );
+  const localSupplierOptions = useMemo(
+    () => toLocalCatalogueComboboxOptions(localCatalogueOptions.supplier),
+    [localCatalogueOptions.supplier],
+  );
+  const categoryOptions = useMemo(
+    () => localCategoryOptions,
+    [localCategoryOptions],
+  );
+  const brandOptions = useMemo(
+    () => mergeCatalogueComboboxOptions(baseBrandOptions, localBrandOptions),
+    [baseBrandOptions, localBrandOptions],
+  );
+  const supplierOptions = useMemo(
+    () => mergeCatalogueComboboxOptions(baseSupplierOptions, localSupplierOptions),
+    [baseSupplierOptions, localSupplierOptions],
+  );
   const selectedBrand = brands.find((brand) => brand.id === draft.brandId);
   const selectedSupplier = suppliers.find((supplier) => supplier.id === draft.supplierId);
+  const supplierValue = selectedSupplier?.name ?? draft.supplierName;
+  const brandValue = selectedBrand?.name ?? draft.brand;
+  const selectedCategoryOptionId = findSelectedLocalCatalogueOptionId(draft.category, localCategoryOptions);
+  const selectedSupplierOptionId = draft.supplierId || findSelectedLocalCatalogueOptionId(supplierValue, localSupplierOptions);
+  const selectedBrandOptionId = draft.brandId || findSelectedLocalCatalogueOptionId(brandValue, localBrandOptions);
   const defaultVariant = draft.variants.find((variant) => variant.isDefault) ?? draft.variants[0];
   const activeVariant = draft.variants.find((variant) => variant.id === activeVariantId) ?? defaultVariant ?? draft.variants[0];
   const activeVariantImage = getVariantImage(draft, activeVariant);
@@ -559,10 +669,7 @@ function OpenAddComponentModal({
   const defaultCost = Number.isFinite(parseMoney(defaultVariant?.unitCost ?? ""))
     ? formatAccountingMoney(defaultVariant?.unitCost ?? "")
     : "0.00";
-  const selectedCategoryPath = useMemo(
-    () => (draft.categoryNodeId ? findComponentCategoryPath(categoryTree, draft.categoryNodeId) ?? [] : []),
-    [categoryTree, draft.categoryNodeId],
-  );
+  const selectedCategoryPath: string[] = [];
   const duplicateIdentityIndex = useMemo(() => {
     const bySupplier = new Map<string, { item: EstimateRowItem; order: number }>();
     const byBrand = new Map<string, { item: EstimateRowItem; order: number }>();
@@ -647,6 +754,14 @@ function OpenAddComponentModal({
   }, [sharedPreviewUrl]);
 
   useEffect(() => {
+    setLocalCatalogueOptions(readLocalCatalogueOptionsState(catalogueOptionsStorageKey));
+  }, [catalogueOptionsStorageKey]);
+
+  useEffect(() => {
+    writeLocalCatalogueOptionsState(catalogueOptionsStorageKey, localCatalogueOptions);
+  }, [catalogueOptionsStorageKey, localCatalogueOptions]);
+
+  useEffect(() => {
     const focusFrame = window.requestAnimationFrame(() => initialFocusRef.current?.focus());
     return () => window.cancelAnimationFrame(focusFrame);
   }, []);
@@ -672,6 +787,51 @@ function OpenAddComponentModal({
     setDuplicateCheckReady(false);
     setDuplicateAcknowledged(false);
     updateDraft(update);
+  }
+
+  function getBaseCatalogueOptions(kind: CatalogueOptionKind): CreatableComboboxOption[] {
+    if (kind === "category") return [];
+    if (kind === "supplier") return baseSupplierOptions;
+    return baseBrandOptions;
+  }
+
+  function rememberCatalogueOption(kind: CatalogueOptionKind, value: string): LocalCatalogueOption | null {
+    const option = makeLocalCatalogueOption(kind, value);
+    if (!option) return null;
+    const optionKey = normalizeCatalogueOptionKey(option.label);
+    setLocalCatalogueOptions((current) => {
+      if (getBaseCatalogueOptions(kind).some((baseOption) => normalizeCatalogueOptionKey(baseOption.label) === optionKey)) {
+        return current;
+      }
+      if (current[kind].some((localOption) => normalizeCatalogueOptionKey(localOption.label) === optionKey)) {
+        return current;
+      }
+      return {
+        ...current,
+        [kind]: [...current[kind], option].slice(-LOCAL_CATALOGUE_OPTION_LIMIT),
+      };
+    });
+    return option;
+  }
+
+  function deleteCatalogueOption(kind: CatalogueOptionKind, option: CreatableComboboxOption) {
+    if (!isLocalCatalogueComboboxOption(option)) return;
+    const optionKey = normalizeCatalogueOptionKey(option.label);
+    setLocalCatalogueOptions((current) => {
+      const nextOptions = current[kind].filter((localOption) => normalizeCatalogueOptionKey(localOption.label) !== optionKey);
+      if (nextOptions.length === current[kind].length) return current;
+      return { ...current, [kind]: nextOptions };
+    });
+
+    if (kind === "category" && !draft.categoryNodeId && normalizeCatalogueOptionKey(draft.category) === optionKey) {
+      updateQuickAddIdentity({ category: "", categoryNodeId: "" });
+    }
+    if (kind === "supplier" && !draft.supplierId && normalizeCatalogueOptionKey(draft.supplierName) === optionKey) {
+      updateQuickAddIdentity({ supplierId: "", supplierName: "" });
+    }
+    if (kind === "brand" && !draft.brandId && normalizeCatalogueOptionKey(draft.brand) === optionKey) {
+      updateQuickAddIdentity({ brandId: "", brand: "" });
+    }
   }
 
   function scheduleDuplicateCheck() {
@@ -961,12 +1121,32 @@ function OpenAddComponentModal({
     updateDraft({ sharedImageForAllVariants: false });
   }
 
-  function selectCategory(change: { id: string | null; label: string }) {
-    const categoryNodeId = change.id ?? "";
-    const categoryPath = categoryNodeId ? findComponentCategoryPath(categoryTree, categoryNodeId) ?? [] : [];
+  function selectCategory(change: CreatableComboboxChange) {
+    const createdOption = change.reason === "create" ? rememberCatalogueOption("category", change.label) : null;
+    const fallbackLabel = change.reason === "input"
+      ? change.label
+      : normalizeCatalogueOptionLabel(createdOption?.label ?? change.label);
     updateQuickAddIdentity({
-      category: categoryPath.at(-1) ?? change.label,
-      categoryNodeId,
+      category: fallbackLabel,
+      categoryNodeId: "",
+    });
+  }
+
+  function selectSupplier(change: CreatableComboboxChange) {
+    const createdOption = change.reason === "create" ? rememberCatalogueOption("supplier", change.label) : null;
+    const supplierId = change.id && !isLocalCatalogueOptionId(change.id) ? change.id : "";
+    updateQuickAddIdentity({
+      supplierId,
+      supplierName: change.reason === "input" ? change.label : normalizeCatalogueOptionLabel(createdOption?.label ?? change.label),
+    });
+  }
+
+  function selectBrand(change: CreatableComboboxChange) {
+    const createdOption = change.reason === "create" ? rememberCatalogueOption("brand", change.label) : null;
+    const brandId = change.id && !isLocalCatalogueOptionId(change.id) ? change.id : "";
+    updateQuickAddIdentity({
+      brandId,
+      brand: change.reason === "input" ? change.label : normalizeCatalogueOptionLabel(createdOption?.label ?? change.label),
     });
   }
 
@@ -1333,7 +1513,7 @@ function OpenAddComponentModal({
                         ariaLabel="Category"
                         ariaRequired
                         value={draft.category}
-                        selectedId={draft.categoryNodeId || null}
+                        selectedId={selectedCategoryOptionId}
                         options={categoryOptions}
                         placeholder="Search categories"
                         emptyLabel="No categories found"
@@ -1341,6 +1521,9 @@ function OpenAddComponentModal({
                         invalid={Boolean(visibleValidationErrors.category)}
                         inputClassName={OPENDESIGN_INPUT_CLASS}
                         onChange={selectCategory}
+                        isOptionDeletable={isLocalCatalogueComboboxOption}
+                        onDeleteOption={(option) => deleteCatalogueOption("category", option)}
+                        getDeleteOptionLabel={(option) => `Delete category "${option.label}"`}
                         preferSelectionOnEnter
                         showClearButton={false}
                         showDropdownIndicator
@@ -1349,14 +1532,18 @@ function OpenAddComponentModal({
                     <ControlField as="div" label="Supplier" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS} errorText={visibleValidationErrors.supplier}>
                       <CreatableCombobox
                         ariaLabel="Supplier"
-                        value={selectedSupplier?.name ?? draft.supplierName}
-                        selectedId={draft.supplierId || null}
+                        value={supplierValue}
+                        selectedId={selectedSupplierOptionId}
                         options={supplierOptions}
                         placeholder="Search suppliers"
                         emptyLabel="No suppliers yet"
+                        createLabel={(value) => `Add supplier "${value}"`}
                         invalid={Boolean(visibleValidationErrors.supplier)}
                         inputClassName={OPENDESIGN_INPUT_CLASS}
-                        onChange={(change) => updateQuickAddIdentity({ supplierId: change.id ?? "", supplierName: change.label })}
+                        onChange={selectSupplier}
+                        isOptionDeletable={isLocalCatalogueComboboxOption}
+                        onDeleteOption={(option) => deleteCatalogueOption("supplier", option)}
+                        getDeleteOptionLabel={(option) => `Delete supplier "${option.label}"`}
                         showClearButton={false}
                         showDropdownIndicator
                       />
@@ -1364,14 +1551,18 @@ function OpenAddComponentModal({
                     <ControlField as="div" label="Brand" labelClassName={OPENDESIGN_FIELD_LABEL_CLASS} errorText={visibleValidationErrors.brand}>
                       <CreatableCombobox
                         ariaLabel="Brand"
-                        value={selectedBrand?.name ?? draft.brand}
-                        selectedId={draft.brandId || null}
+                        value={brandValue}
+                        selectedId={selectedBrandOptionId}
                         options={brandOptions}
                         placeholder="Search brands"
                         emptyLabel="No brands yet"
+                        createLabel={(value) => `Add brand "${value}"`}
                         invalid={Boolean(visibleValidationErrors.brand)}
                         inputClassName={OPENDESIGN_INPUT_CLASS}
-                        onChange={(change) => updateQuickAddIdentity({ brandId: change.id ?? "", brand: change.label })}
+                        onChange={selectBrand}
+                        isOptionDeletable={isLocalCatalogueComboboxOption}
+                        onDeleteOption={(option) => deleteCatalogueOption("brand", option)}
+                        getDeleteOptionLabel={(option) => `Delete brand "${option.label}"`}
                         showClearButton={false}
                         showDropdownIndicator
                       />

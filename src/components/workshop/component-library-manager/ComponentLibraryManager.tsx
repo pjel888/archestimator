@@ -2809,6 +2809,7 @@ export function ComponentLibraryManager({
           selectedBrandId={selectedBrandIdForModal}
           onOpenChange={setAddComponentOpenWithFocus}
           onComponentCreated={handleComponentCreated}
+          catalogueOptionsStorageScope={workspaceId}
           onCreateFolder={createFolder}
           onRenameFolder={renameFolder}
           onDeleteFolder={deleteFolder}

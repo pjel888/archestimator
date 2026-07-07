@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { CaretDown, Plus, X } from "@phosphor-icons/react/dist/ssr";
+import { CaretDown, Plus, Trash, X } from "@phosphor-icons/react/dist/ssr";
 
 import { cn } from "@/lib/ui/cn";
 import { CONTROL_INPUT_SURFACE_CLASS, ControlInput } from "./control-input";
@@ -41,6 +41,9 @@ type CreatableComboboxProps = {
   dropdownPlacement?: "bottom" | "top";
   showClearButton?: boolean;
   showDropdownIndicator?: boolean;
+  isOptionDeletable?: (option: CreatableComboboxOption) => boolean;
+  onDeleteOption?: (option: CreatableComboboxOption) => void;
+  getDeleteOptionLabel?: (option: CreatableComboboxOption) => string;
 };
 
 function normalizeLabel(value: string): string {
@@ -82,6 +85,9 @@ export function CreatableCombobox({
   dropdownPlacement = "bottom",
   showClearButton = true,
   showDropdownIndicator = false,
+  isOptionDeletable,
+  onDeleteOption,
+  getDeleteOptionLabel = (option) => `Delete ${option.label}`,
 }: CreatableComboboxProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -220,36 +226,31 @@ export function CreatableCombobox({
             </div>
           ) : null}
           {filteredOptions.length > 0 ? (
-            filteredOptions.map((option) => (
-              <button
-                key={option.id}
-                id={getOptionDomId(listboxId, option.id)}
-                type="button"
-                role="option"
-                aria-selected={selectedId === option.id}
-                aria-label={usesUnitPresentation ? `${option.label} ${option.description ?? option.label}` : undefined}
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => selectOption(option)}
-                className={cn(
-                  usesUnitPresentation
-                    ? "grid min-h-9 w-full grid-cols-[4.75rem_minmax(0,1fr)] items-center gap-2 rounded-xs px-2 py-1.5 text-left transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-                    : "flex min-h-7 w-full items-center px-2 text-left !text-[10px] leading-4 text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-                  selectedId === option.id
-                    ? usesUnitPresentation
-                      ? "bg-accentSoft"
-                      : "font-medium"
-                    : usesUnitPresentation
-                      ? "bg-white"
-                      : "font-normal",
-                )}
-              >
-                {usesUnitPresentation ? (
-                  <>
+            filteredOptions.map((option) => {
+              const optionIsSelected = selectedId === option.id;
+              const canDeleteOption = !usesUnitPresentation && Boolean(onDeleteOption && isOptionDeletable?.(option));
+
+              if (usesUnitPresentation) {
+                return (
+                  <button
+                    key={option.id}
+                    id={getOptionDomId(listboxId, option.id)}
+                    type="button"
+                    role="option"
+                    aria-selected={optionIsSelected}
+                    aria-label={`${option.label} ${option.description ?? option.label}`}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => selectOption(option)}
+                    className={cn(
+                      "grid min-h-9 w-full grid-cols-[4.75rem_minmax(0,1fr)] items-center gap-2 rounded-xs px-2 py-1.5 text-left transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+                      optionIsSelected ? "bg-accentSoft" : "bg-white",
+                    )}
+                  >
                     <span
                       data-combobox-option-code={option.id}
                       className={cn(
                         "inline-flex min-w-0 max-w-full items-center justify-center truncate rounded-xs border px-1.5 py-0.5 font-sans !text-[10px] font-medium leading-4 tabular-nums",
-                        selectedId === option.id
+                        optionIsSelected
                           ? "border-accent bg-white text-ink"
                           : "border-hairline bg-surfaceMuted/70 text-ink",
                       )}
@@ -264,17 +265,50 @@ export function CreatableCombobox({
                         {option.description ?? option.label}
                       </span>
                     </span>
-                  </>
-                ) : (
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate">{option.label}</span>
-                    {option.description ? (
-                      <span className="mt-0.5 block truncate text-[9px] font-medium leading-3 text-tertiary">{option.description}</span>
-                    ) : null}
-                  </span>
-                )}
-              </button>
-            ))
+                  </button>
+                );
+              }
+
+              return (
+                <div key={option.id} className="flex min-h-7 items-stretch">
+                  <button
+                    id={getOptionDomId(listboxId, option.id)}
+                    type="button"
+                    role="option"
+                    aria-selected={optionIsSelected}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => selectOption(option)}
+                    className={cn(
+                      "flex min-w-0 flex-1 items-center px-2 text-left !text-[10px] leading-4 text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+                      canDeleteOption ? "pr-1" : "",
+                      optionIsSelected ? "font-medium" : "font-normal",
+                    )}
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate">{option.label}</span>
+                      {option.description ? (
+                        <span className="mt-0.5 block truncate text-[9px] font-medium leading-3 text-tertiary">{option.description}</span>
+                      ) : null}
+                    </span>
+                  </button>
+                  {canDeleteOption ? (
+                    <button
+                      type="button"
+                      aria-label={getDeleteOptionLabel(option)}
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        onDeleteOption?.(option);
+                      }}
+                      className="grid w-7 shrink-0 place-items-center text-tertiary transition hover:bg-dangerSoft/50 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
+                    >
+                      <Trash size={10} weight="regular" aria-hidden="true" />
+                    </button>
+                  ) : null}
+                </div>
+              );
+            })
           ) : (
             <div className="px-2 py-1 text-[10px] leading-4 text-tertiary">{emptyLabel}</div>
           )}

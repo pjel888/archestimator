@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import type { ComponentProps } from "react";
+import { useState, type ComponentProps } from "react";
 
 import { AddComponentModal } from "@/components/workshop/component-library-manager/AddComponentModal";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
@@ -73,9 +73,10 @@ const brandDuplicateRows: EstimateRowItem[] = [
     brand: "Hinge Co",
   },
 ];
+const catalogueOptionsStoragePrefix = "archestimator:add-component-catalogue-options:v1";
 
-function renderAddModal(overrides: Partial<ComponentProps<typeof AddComponentModal>> = {}) {
-  const props: ComponentProps<typeof AddComponentModal> = {
+function makeAddModalProps(overrides: Partial<ComponentProps<typeof AddComponentModal>> = {}) {
+  return {
     open: true,
     folders,
     categoryTree,
@@ -87,13 +88,75 @@ function renderAddModal(overrides: Partial<ComponentProps<typeof AddComponentMod
     onComponentCreated: vi.fn(),
     ...overrides,
   };
+}
+
+function renderAddModal(overrides: Partial<ComponentProps<typeof AddComponentModal>> = {}) {
+  const props = makeAddModalProps(overrides);
 
   render(<AddComponentModal {...props} />);
   return props;
 }
 
+function StatefulAddModalHarness({ modalProps }: { modalProps: ComponentProps<typeof AddComponentModal> }) {
+  const [open, setOpen] = useState(modalProps.open);
+
+  return (
+    <>
+      <button type="button" onClick={() => setOpen(true)}>
+        Open add component
+      </button>
+      <AddComponentModal
+        {...modalProps}
+        open={open}
+        onOpenChange={(nextOpen) => {
+          modalProps.onOpenChange(nextOpen);
+          setOpen(nextOpen);
+        }}
+      />
+    </>
+  );
+}
+
+function renderStatefulAddModal(overrides: Partial<ComponentProps<typeof AddComponentModal>> = {}) {
+  const props = makeAddModalProps({
+    catalogueOptionsStorageScope: "catalogue-options-test-scope",
+    ...overrides,
+  });
+
+  render(<StatefulAddModalHarness modalProps={props} />);
+  return props;
+}
+
 async function getAddDialog() {
   return screen.findByRole("dialog", { name: "Add Component" }, { timeout: 10_000 });
+}
+
+async function createCatalogueOption(
+  dialog: HTMLElement,
+  fieldName: "Category" | "Supplier" | "Brand",
+  value: string,
+) {
+  const form = within(dialog).getByRole("form", { name: "Quick add component" });
+  const input = within(form).getByRole("combobox", { name: fieldName });
+  const kind = fieldName.toLowerCase();
+  fireEvent.change(input, { target: { value } });
+  fireEvent.click(await within(dialog).findByRole("option", { name: `Add ${kind} "${value}"` }));
+  await waitFor(() => expect(input).toHaveValue(value));
+  return input;
+}
+
+async function pickCatalogueOption(
+  dialog: HTMLElement,
+  fieldName: "Category" | "Supplier" | "Brand",
+  value: string,
+  searchValue = value,
+) {
+  const form = within(dialog).getByRole("form", { name: "Quick add component" });
+  const input = within(form).getByRole("combobox", { name: fieldName });
+  fireEvent.change(input, { target: { value: searchValue } });
+  fireEvent.click(await within(dialog).findByRole("option", { name: value }));
+  await waitFor(() => expect(input).toHaveValue(value));
+  return input;
 }
 
 function fillValidQuickAdd(dialog: HTMLElement) {
@@ -114,6 +177,7 @@ function openVariantDrawer(dialog: HTMLElement) {
 describe("AddComponentModal OpenDesign field contract", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.clear();
     actionMocks.createCostLibraryComponent.mockResolvedValue({
       itemId: "component-created",
       activePriceOptionId: "price-created",
@@ -127,6 +191,7 @@ describe("AddComponentModal OpenDesign field contract", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    window.localStorage.clear();
   });
 
   it("exposes only the OpenDesign required fields on the main component form", async () => {
@@ -208,6 +273,115 @@ describe("AddComponentModal OpenDesign field contract", () => {
     expect(within(form).getByRole("combobox", { name: "Category" })).toHaveValue("Hardware");
     expect(within(form).getByRole("combobox", { name: "Supplier" })).toHaveValue("Acme");
     expect(props.onComponentCreated).not.toHaveBeenCalled();
+  });
+
+  it("does not show category-tree values as Add Component category options", async () => {
+    renderAddModal();
+    const dialog = await getAddDialog();
+    const form = within(dialog).getByRole("form", { name: "Quick add component" });
+    const category = within(form).getByRole("combobox", { name: "Category" });
+
+    fireEvent.change(category, { target: { value: "Hardware" } });
+
+    expect(within(dialog).queryByRole("option", { name: "Hardware" })).not.toBeInTheDocument();
+    expect(await within(dialog).findByRole("option", { name: 'Add category "Hardware"' })).toBeInTheDocument();
+  });
+
+  it("does not prefill category from the selected library folder", async () => {
+    renderAddModal({ selectedFolderId: "folder-hardware" });
+    const dialog = await getAddDialog();
+    const form = within(dialog).getByRole("form", { name: "Quick add component" });
+
+    expect(within(form).getByRole("combobox", { name: "Category" })).toHaveValue("");
+  });
+
+  it("persists added catalogue options after discarding the component draft", async () => {
+    renderStatefulAddModal({ catalogueOptionsStorageScope: "catalogue-options-persist-test" });
+    let dialog = await getAddDialog();
+
+    await createCatalogueOption(dialog, "Category", "Custom Millwork");
+    await createCatalogueOption(dialog, "Supplier", "Saved Supplier Co");
+    await createCatalogueOption(dialog, "Brand", "Saved Brand Line");
+
+    fireEvent.click(screen.getByRole("button", { name: "Close add component modal" }));
+    const saveDialog = await screen.findByRole("dialog", { name: "Save component draft?" });
+    fireEvent.click(within(saveDialog).getByRole("button", { name: "Discard draft" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Add Component" })).not.toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: "Open add component" }));
+    dialog = await getAddDialog();
+
+    await pickCatalogueOption(dialog, "Category", "Custom Millwork", "Custom");
+    await pickCatalogueOption(dialog, "Supplier", "Saved Supplier Co", "Saved Supplier");
+    await pickCatalogueOption(dialog, "Brand", "Saved Brand Line", "Saved Brand");
+  });
+
+  it("deletes user-added catalogue options from the right side of each dropdown", async () => {
+    renderStatefulAddModal({ catalogueOptionsStorageScope: "catalogue-options-delete-test" });
+    const dialog = await getAddDialog();
+
+    await createCatalogueOption(dialog, "Category", "Delete Me Category");
+    await createCatalogueOption(dialog, "Supplier", "Delete Me Supplier");
+    await createCatalogueOption(dialog, "Brand", "Delete Me Brand");
+
+    const form = within(dialog).getByRole("form", { name: "Quick add component" });
+    const scenarios = [
+      ["Category", "category", "Delete Me Category"],
+      ["Supplier", "supplier", "Delete Me Supplier"],
+      ["Brand", "brand", "Delete Me Brand"],
+    ] as const;
+
+    for (const [fieldName, kind, value] of scenarios) {
+      const input = within(form).getByRole("combobox", { name: fieldName });
+      fireEvent.change(input, { target: { value: "" } });
+      fireEvent.change(input, { target: { value } });
+      expect(await within(dialog).findByRole("option", { name: value })).toBeInTheDocument();
+
+      fireEvent.click(await within(dialog).findByRole("button", { name: `Delete ${kind} "${value}"` }));
+      await waitFor(() => expect(input).toHaveValue(""));
+
+      fireEvent.change(input, { target: { value } });
+      await waitFor(() => expect(within(dialog).queryByRole("option", { name: value })).not.toBeInTheDocument());
+      expect(await within(dialog).findByRole("option", { name: `Add ${kind} "${value}"` })).toBeInTheDocument();
+    }
+
+    const supplier = within(form).getByRole("combobox", { name: "Supplier" });
+    fireEvent.change(supplier, { target: { value: "Acme" } });
+    expect(await within(dialog).findByRole("option", { name: "Acme" })).toBeInTheDocument();
+    expect(within(dialog).queryByRole("button", { name: 'Delete supplier "Acme"' })).not.toBeInTheDocument();
+  });
+
+  it("sanitizes malformed stored catalogue options before rendering dropdown choices", async () => {
+    const scope = "catalogue-options-malformed-test";
+    window.localStorage.setItem(`${catalogueOptionsStoragePrefix}:${scope}`, JSON.stringify({
+      category: [
+        { id: 42, label: "  Odd   Category  " },
+        { id: "local-catalogue-option:category:duplicate", label: "Odd Category" },
+        { id: "local-catalogue-option:category:blank", label: "   " },
+      ],
+      supplier: "not-an-array",
+      brand: [
+        { id: "local-catalogue-option:brand:old-brand", label: " Old Brand " },
+      ],
+    }));
+
+    renderStatefulAddModal({ catalogueOptionsStorageScope: scope });
+    const dialog = await getAddDialog();
+    const form = within(dialog).getByRole("form", { name: "Quick add component" });
+
+    const category = within(form).getByRole("combobox", { name: "Category" });
+    fireEvent.change(category, { target: { value: "Odd Category" } });
+    expect(await within(dialog).findByRole("option", { name: "Odd Category" })).toBeInTheDocument();
+    expect(within(dialog).getAllByRole("option", { name: "Odd Category" })).toHaveLength(1);
+
+    const supplier = within(form).getByRole("combobox", { name: "Supplier" });
+    fireEvent.change(supplier, { target: { value: "not-an-array" } });
+    expect(within(dialog).queryByRole("option", { name: "not-an-array" })).not.toBeInTheDocument();
+    expect(await within(dialog).findByRole("option", { name: 'Add supplier "not-an-array"' })).toBeInTheDocument();
+
+    const brand = within(form).getByRole("combobox", { name: "Brand" });
+    fireEvent.change(brand, { target: { value: "Old Brand" } });
+    expect(await within(dialog).findByRole("option", { name: "Old Brand" })).toBeInTheDocument();
   });
 
   it("submits a field-contract payload without retired price/source fields", async () => {
