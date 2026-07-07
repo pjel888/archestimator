@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { requireAuth, requireCurrentUserContext } from "@/lib/auth/session";
 import { assertEstimateActionRateLimit } from "@/lib/estimates/action-rate-limit";
 import type { EstimateRowLinkState, EstimateSheetAdjustment, EstimateSheetAdjustmentMode, EstimateTabSummary, EstimateTreeNode, EstimateRowItem } from "@/lib/estimates/types";
-import { LEGACY_BLANK_ROW_TAG, isExpressComponentRow, readEstimateRowMetadata } from "@/lib/estimates/express-components";
+import { LEGACY_BLANK_ROW_TAG, getProjectComponentIdentity, isExpressComponentRow, readEstimateRowMetadata, readExpressComponentMetadata, readProjectComponentProjectionMetadata, withProjectComponentProjectionMetadata, type EstimateRowMetadata } from "@/lib/estimates/express-components";
 import { ESTIMATE_SHEET_TREE_LOAD_LIMITS } from "@/lib/estimates/load-limits";
 import { normalizeEstimateRowImageUrl, sanitizeEstimateRowSourceSnapshot } from "@/lib/estimates/image-url";
 import {
@@ -1283,6 +1283,12 @@ function readEstimateNodeName(input: FormData | string) {
 }
 
 function getSourceSnapshot(libraryItem: EstimateRowItem): Json {
+  const sourceLibraryItemId = getSourceLibraryItemId(libraryItem);
+  const libraryItemSourceSnapshot = (libraryItem as EstimateRowItem & { sourceSnapshot?: unknown }).sourceSnapshot;
+  const projectComponentProjection = readProjectComponentProjectionMetadata(libraryItem.metadata);
+  const projectComponentId = libraryItem.source === "project"
+    ? getProjectComponentIdentity(libraryItem.metadata, libraryItem.id, libraryItemSourceSnapshot)
+    : null;
   return sanitizeEstimateRowSourceSnapshot({
     category: libraryItem.category,
     categoryNodeId: libraryItem.categoryNodeId ?? null,
@@ -1298,7 +1304,11 @@ function getSourceSnapshot(libraryItem: EstimateRowItem): Json {
     pricingDate: libraryItem.pricingDate,
     pricingSource: libraryItem.pricingSource,
     sourceUrl: libraryItem.sourceUrl ?? null,
-    sourceLibraryItemId: getSourceLibraryItemId(libraryItem),
+    sourceComponentId: sourceLibraryItemId ?? projectComponentId,
+    sourceEstimateRowId: projectComponentProjection?.sourceRowId ?? (projectComponentId ? libraryItem.id : null),
+    sourceLibraryItemId,
+    sourceProjectId: projectComponentProjection?.projectId ?? null,
+    sourceType: projectComponentId ? "project_component" : sourceLibraryItemId ? "library_component" : null,
     supplier: libraryItem.supplier ?? null,
     supplierId: libraryItem.supplierId ?? null,
     tags: libraryItem.tags ?? [],
@@ -1589,10 +1599,14 @@ async function removeUnvalidatedEstimateRowImageAsset({
 
 function getEstimateRowMetadata(libraryItem: EstimateRowItem): Json {
   const existingMetadata = readEstimateRowMetadata(libraryItem.metadata);
+  const libraryItemSourceSnapshot = (libraryItem as EstimateRowItem & { sourceSnapshot?: unknown }).sourceSnapshot;
   const sourceLibraryItemId = getSourceLibraryItemId(libraryItem);
+  const projectComponentId = libraryItem.source === "project"
+    ? getProjectComponentIdentity(existingMetadata, libraryItem.id, libraryItemSourceSnapshot)
+    : null;
   const tags = (libraryItem.tags ?? (Array.isArray(existingMetadata.tags) ? existingMetadata.tags : []))
     .filter((tag): tag is string => typeof tag === "string");
-  const metadata = {
+  let metadata: EstimateRowMetadata = {
     ...existingMetadata,
     categoryNodeId: libraryItem.categoryNodeId ?? null,
     categoryPath: libraryItem.categoryPath ?? [],
@@ -1604,6 +1618,27 @@ function getEstimateRowMetadata(libraryItem: EstimateRowItem): Json {
     priceOptionId: libraryItem.priceOptionId ?? null,
     tags,
   };
+
+  if (projectComponentId) {
+    const expressComponent = readExpressComponentMetadata(metadata);
+    if (expressComponent) {
+      metadata = {
+        ...metadata,
+        expressComponent: {
+          ...expressComponent,
+          componentId: expressComponent.componentId ?? projectComponentId,
+        },
+      };
+    }
+
+    const projection = readProjectComponentProjectionMetadata(metadata);
+    if (projection) {
+      metadata = withProjectComponentProjectionMetadata(metadata, {
+        ...projection,
+        componentId: projection.componentId ?? projectComponentId,
+      });
+    }
+  }
 
   if (isExpressComponentRow({ metadata })) {
     return {

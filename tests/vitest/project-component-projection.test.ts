@@ -58,7 +58,7 @@ describe("project component projection", () => {
     const item = projectEstimateRowToLibraryItem(row(), "project-1", "Casa Miguel");
 
     expect(item).toMatchObject({
-      id: "row-1",
+      id: "express-row-1",
       material: "Express vanity",
       source: "project",
       libraryFolderId: getProjectEstimateComponentsFolderId("project-1", "estimate-1"),
@@ -66,18 +66,49 @@ describe("project component projection", () => {
       metadata: {
         expressComponent: { kind: "express", id: "express-row-1" },
         projectComponentProjection: {
+          componentId: "express-row-1",
           projectId: "project-1",
           projectName: "Casa Miguel",
           estimateId: "estimate-1",
           estimateName: "Main",
           nodeId: "node-1",
           nodeName: "Powder Room",
+          sourceRowId: "row-1",
+          instanceRowIds: ["row-1"],
+          instanceCount: 1,
           classification: "express",
           imageAsset: estimateRowImageAsset,
         },
       },
     });
     expect(item?.tags).toEqual(expect.arrayContaining(["project-component", "express", "Main", "Powder Room"]));
+  });
+
+  it("uses project-component source snapshot identity ahead of stale copied row metadata", () => {
+    const item = projectEstimateRowToLibraryItem(row({
+      id: "copied-row-2",
+      metadata: withExpressComponentMetadata({}, { id: "stale-row-local-id" }),
+      source_snapshot: {
+        sourceType: "project_component",
+        sourceComponentId: "project-component-1",
+        sourceEstimateRowId: "row-1",
+        imageUrl: "https://example.com/pergo.jpg",
+        pricingSource: "Project estimate row",
+      },
+    }), "project-1", "Casa Miguel");
+
+    expect(item).toMatchObject({
+      id: "project-component-1",
+      metadata: {
+        expressComponent: { id: "stale-row-local-id" },
+        projectComponentProjection: {
+          componentId: "project-component-1",
+          sourceRowId: "copied-row-2",
+          instanceRowIds: ["copied-row-2"],
+          instanceCount: 1,
+        },
+      },
+    });
   });
 
   it("projects detached rows and excludes used copied rows, legacy blanks, and source-less manual rows", () => {

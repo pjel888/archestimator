@@ -49,9 +49,56 @@ type CapturedStatement = {
   values: D1Value[];
 };
 
+type FakeRowItem = Record<string, D1Value | undefined>;
+
 function parseJsonValue(value: D1Value | undefined) {
   if (typeof value !== "string") return value;
   return JSON.parse(value);
+}
+
+function readJsonRecord(value: unknown) {
+  if (typeof value === "string") {
+    try {
+      return readJsonRecord(JSON.parse(value) as unknown);
+    } catch {
+      return {};
+    }
+  }
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function projectComponentIdentity(row: FakeRowItem) {
+  const sourceSnapshot = readJsonRecord(row.source_snapshot_json);
+  if (
+    sourceSnapshot.sourceType === "project_component"
+    || sourceSnapshot.sourceType === "promoted_project_component"
+    || sourceSnapshot.sourceType === "promoted_express_component"
+    || sourceSnapshot.sourceType === "express_component"
+  ) {
+    const sourceComponentId = typeof sourceSnapshot.sourceComponentId === "string" ? sourceSnapshot.sourceComponentId.trim() : "";
+    if (sourceComponentId) return sourceComponentId;
+    const sourceEstimateRowId = typeof sourceSnapshot.sourceEstimateRowId === "string" ? sourceSnapshot.sourceEstimateRowId.trim() : "";
+    if (sourceEstimateRowId) return sourceEstimateRowId;
+  }
+
+  const metadata = readJsonRecord(row.metadata_json);
+  const projection = readJsonRecord(metadata.projectComponentProjection);
+  const expressComponent = readJsonRecord(metadata.expressComponent);
+  return String(projection.componentId ?? expressComponent.componentId ?? expressComponent.id ?? "");
+}
+
+function applyEstimateRowUpdate(database: FakeD1Database, statement: CapturedStatement) {
+  const assignments = statement.sql
+    .slice(statement.sql.indexOf(" SET ") + 5, statement.sql.indexOf(" WHERE "))
+    .split(",")
+    .map((assignment) => assignment.trim().split(" = ")[0]);
+  const rowId = String(statement.values[statement.values.length - 2] ?? "");
+  const estimateId = String(statement.values[statement.values.length - 1] ?? "");
+  const row = database.rowItems.get(rowId);
+  if (!row || row.estimate_id !== estimateId) return;
+  assignments.forEach((column, index) => {
+    row[column] = statement.values[index];
+  });
 }
 
 function createCurrentUserContext(): CurrentUserContext {
@@ -113,11 +160,32 @@ class FakeD1Statement<T = Record<string, unknown>> {
       return project ? ({ ...project } as R) : null;
     }
 
+    if (this.sql.includes("FROM estimate_row_items") && this.sql.includes("WHERE estimate_id = ?")) {
+      const estimateId = String(this.values[0] ?? "");
+      const rowId = String(this.values[1] ?? "");
+      const row = this.database.rowItems.get(rowId);
+      return row && row.estimate_id === estimateId ? ({ ...row } as R) : null;
+    }
+
     return null;
   }
 
   async all<R = T>(): Promise<D1Result<R>> {
     this.database.allStatements.push(this);
+    if (this.sql.includes("FROM estimate_row_items row_item") && this.sql.includes("INNER JOIN estimates estimate")) {
+      const projectId = String(this.values[0] ?? "");
+      const excludedRowId = String(this.values[1] ?? "");
+      const componentId = String(this.values[2] ?? "");
+      const results = [...this.database.rowItems.values()]
+        .filter((row) => {
+          const estimate = this.database.estimates.get(String(row.estimate_id ?? ""));
+          return estimate?.project_id === projectId
+            && row.id !== excludedRowId
+            && projectComponentIdentity(row) === componentId;
+        })
+        .map((row) => ({ ...row })) as R[];
+      return { results, success: true };
+    }
     if (this.sql.includes("FROM estimate_nodes") && this.sql.includes("WHERE estimate_id = ?")) {
       const estimateId = String(this.values[0] ?? "");
       const results = [...this.database.nodes.values()]
@@ -165,6 +233,11 @@ class FakeD1Statement<T = Record<string, unknown>> {
       return { success: true, meta: { changes: 1 } };
     }
 
+    if (this.sql.includes("UPDATE estimate_row_items SET")) {
+      applyEstimateRowUpdate(this.database, this);
+      return { success: true, meta: { changes: 1 } };
+    }
+
     return { success: true, meta: { changes: 0 } };
   }
 }
@@ -183,6 +256,7 @@ class FakeD1Database implements D1DatabaseLike {
   nodes = new Map<string, FakeNodeRow>([
     [NODE_ID, { id: NODE_ID, estimate_id: ESTIMATE_ID, parent_id: "old-parent", sort_order: 10 }],
   ]);
+  rowItems = new Map<string, FakeRowItem>();
   historyEvents: FakeHistoryEvent[] = [];
 
   prepare<T = Record<string, unknown>>(sql: string) {
@@ -199,6 +273,11 @@ class FakeD1Database implements D1DatabaseLike {
       if (!node || node.estimate_id !== estimateId) continue;
       node.parent_id = parentId === null ? null : String(parentId);
       node.sort_order = Number(sortOrder);
+      continue;
+    }
+    for (const statement of capturedStatements) {
+      if (!statement.sql.includes("UPDATE estimate_row_items SET")) continue;
+      applyEstimateRowUpdate(this, statement);
     }
     return statements.map(() => ({ success: true, meta: { changes: 1 } }));
   }
@@ -231,6 +310,233 @@ describe("EstimateActionsD1Client reorder history", () => {
       actor_user_id: USER_ID,
       changed_fields: ["parent_id", "sort_order"],
       payload: { updates },
+    });
+  });
+
+  it("propagates project component field edits to sibling row instances", async () => {
+    const database = new FakeD1Database();
+    const metadata = JSON.stringify({
+      expressComponent: {
+        kind: "express",
+        schemaVersion: 1,
+        id: "project-component-1",
+        componentId: "project-component-1",
+      },
+    });
+    database.rowItems = new Map<string, FakeRowItem>([
+      ["row-1", {
+        id: "row-1",
+        estimate_id: ESTIMATE_ID,
+        node_id: NODE_ID,
+        material: "Original cabinet",
+        description: "Original",
+        supplier: "Local shop",
+        unit: "lm",
+        quantity: 2,
+        quantity_base: null,
+        quantity_contingency_amount: null,
+        unit_cost: 100,
+        contingency_percentage: 0,
+        adjustment_percentage: 0,
+        misc_cost: 0,
+        source_snapshot_json: JSON.stringify({
+          sourceType: "project_component",
+          sourceComponentId: "project-component-1",
+          sourceEstimateRowId: "row-1",
+          brand: "Old brand",
+        }),
+        metadata_json: metadata,
+        link_state: "unlinked",
+        source_library_item_id: null,
+        sort_order: 1000,
+        row_revision: 1,
+        created_at: "2026-07-06T00:00:00.000Z",
+        updated_at: "2026-07-06T00:00:00.000Z",
+      }],
+      ["row-2", {
+        id: "row-2",
+        estimate_id: ESTIMATE_ID,
+        node_id: NODE_ID,
+        material: "Original cabinet",
+        description: "Second instance",
+        supplier: "Local shop",
+        unit: "lm",
+        quantity: 5,
+        quantity_base: null,
+        quantity_contingency_amount: null,
+        unit_cost: 100,
+        contingency_percentage: 0,
+        adjustment_percentage: 0,
+        misc_cost: 0,
+        source_snapshot_json: JSON.stringify({
+          sourceType: "project_component",
+          sourceComponentId: "project-component-1",
+          sourceEstimateRowId: "row-2",
+          brand: "Old brand",
+        }),
+        metadata_json: metadata,
+        link_state: "unlinked",
+        source_library_item_id: null,
+        sort_order: 2000,
+        row_revision: 3,
+        created_at: "2026-07-06T00:00:00.000Z",
+        updated_at: "2026-07-06T00:00:00.000Z",
+      }],
+    ]);
+    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
+
+    const result = await client.call("update_estimate_row_item_with_history", {
+      target_project_id: PROJECT_ID,
+      target_estimate_id: ESTIMATE_ID,
+      target_row_id: "row-1",
+      expected_row_revision: 1,
+      row_patch: {
+        material: "Updated shared cabinet",
+        quantity: 9,
+        unitCost: 150,
+        sourceSnapshot: {
+          sourceType: "project_component",
+          sourceComponentId: "project-component-1",
+          sourceEstimateRowId: "row-1",
+          brand: "Updated brand",
+        },
+      },
+      acting_user_id: USER_ID,
+      correlation_id: "row-update-correlation-1",
+    });
+
+    expect(result.error).toBeNull();
+    expect(database.rowItems.get("row-1")).toMatchObject({
+      material: "Updated shared cabinet",
+      quantity: 9,
+      unit_cost: 150,
+      row_revision: 2,
+    });
+    expect(database.rowItems.get("row-2")).toMatchObject({
+      material: "Updated shared cabinet",
+      quantity: 5,
+      unit_cost: 150,
+      row_revision: 4,
+    });
+    expect(readJsonRecord(database.rowItems.get("row-2")?.source_snapshot_json)).toMatchObject({
+      sourceComponentId: "project-component-1",
+      sourceEstimateRowId: "row-2",
+      brand: "Updated brand",
+    });
+    expect(database.historyEvents[0]).toMatchObject({
+      event_type: "row_updated",
+      payload: { rowId: "row-1", propagatedRowIds: ["row-2"] },
+    });
+  });
+
+  it("propagates project component edits to snapshot-linked siblings when metadata identity is missing", async () => {
+    const database = new FakeD1Database();
+    database.rowItems = new Map<string, FakeRowItem>([
+      ["row-1", {
+        id: "row-1",
+        estimate_id: ESTIMATE_ID,
+        node_id: NODE_ID,
+        material: "Pergo Flooring",
+        description: "Original flooring",
+        supplier: "Ace Hardware",
+        unit: "sqm",
+        quantity: 2,
+        quantity_base: null,
+        quantity_contingency_amount: null,
+        unit_cost: 100,
+        contingency_percentage: 0,
+        adjustment_percentage: 0,
+        misc_cost: 0,
+        source_snapshot_json: JSON.stringify({
+          sourceType: "project_component",
+          sourceComponentId: "project-component-1",
+          sourceEstimateRowId: "row-1",
+          brand: "Pergo",
+        }),
+        metadata_json: JSON.stringify({
+          expressComponent: {
+            kind: "express",
+            schemaVersion: 1,
+            id: "legacy-row-local-id",
+          },
+        }),
+        link_state: "unlinked",
+        source_library_item_id: null,
+        sort_order: 1000,
+        row_revision: 1,
+        created_at: "2026-07-06T00:00:00.000Z",
+        updated_at: "2026-07-06T00:00:00.000Z",
+      }],
+      ["row-2", {
+        id: "row-2",
+        estimate_id: ESTIMATE_ID,
+        node_id: NODE_ID,
+        material: "Pergo Flooring",
+        description: "Second instance",
+        supplier: "Ace Hardware",
+        unit: "sqm",
+        quantity: 5,
+        quantity_base: null,
+        quantity_contingency_amount: null,
+        unit_cost: 100,
+        contingency_percentage: 0,
+        adjustment_percentage: 0,
+        misc_cost: 0,
+        source_snapshot_json: JSON.stringify({
+          sourceType: "project_component",
+          sourceComponentId: "project-component-1",
+          sourceEstimateRowId: "row-1",
+          brand: "Pergo",
+        }),
+        metadata_json: JSON.stringify({}),
+        link_state: "unlinked",
+        source_library_item_id: null,
+        sort_order: 2000,
+        row_revision: 3,
+        created_at: "2026-07-06T00:00:00.000Z",
+        updated_at: "2026-07-06T00:00:00.000Z",
+      }],
+    ]);
+    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
+
+    const result = await client.call("update_estimate_row_item_with_history", {
+      target_project_id: PROJECT_ID,
+      target_estimate_id: ESTIMATE_ID,
+      target_row_id: "row-1",
+      expected_row_revision: 1,
+      row_patch: {
+        material: "Pergo Flooring 2",
+        quantity: 9,
+        sourceSnapshot: {
+          sourceType: "project_component",
+          sourceComponentId: "project-component-1",
+          sourceEstimateRowId: "row-1",
+          brand: "Pergo Updated",
+        },
+      },
+      acting_user_id: USER_ID,
+      correlation_id: "row-update-correlation-snapshot-identity",
+    });
+
+    expect(result.error).toBeNull();
+    expect(database.rowItems.get("row-1")).toMatchObject({
+      material: "Pergo Flooring 2",
+      quantity: 9,
+      row_revision: 2,
+    });
+    expect(database.rowItems.get("row-2")).toMatchObject({
+      material: "Pergo Flooring 2",
+      quantity: 5,
+      row_revision: 4,
+    });
+    expect(readJsonRecord(database.rowItems.get("row-2")?.source_snapshot_json)).toMatchObject({
+      sourceComponentId: "project-component-1",
+      sourceEstimateRowId: "row-1",
+      brand: "Pergo Updated",
+    });
+    expect(database.historyEvents[0]).toMatchObject({
+      event_type: "row_updated",
+      payload: { rowId: "row-1", propagatedRowIds: ["row-2"] },
     });
   });
 

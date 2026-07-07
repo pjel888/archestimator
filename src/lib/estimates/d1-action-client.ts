@@ -7,6 +7,7 @@ import { canEditEstimateInD1, canEditProjectInD1 } from "@/lib/authz/d1-access";
 import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
 import { computeEstimateRowLineTotal, sumEstimateRowLineTotals } from "@/lib/estimates/estimate-row-total";
 import { validateProjectedEstimateTreeReorder } from "@/lib/estimates/estimate-tree-reorder";
+import { getProjectComponentIdentity } from "@/lib/estimates/express-components";
 import type { Json } from "@/lib/types/json";
 
 type QueryResult<T> = {
@@ -1537,6 +1538,162 @@ function updateValuesForRowPatch(rowPatch: Record<string, unknown>) {
   return columns;
 }
 
+const SHARED_PROJECT_COMPONENT_ROW_PATCH_KEYS = new Set([
+  "material",
+  "description",
+  "supplier",
+  "unit",
+  "unitCost",
+  "sourceSnapshot",
+  "categoryNodeId",
+  "supplierId",
+  "discipline",
+  "designation",
+]);
+
+const SHARED_PROJECT_COMPONENT_SOURCE_SNAPSHOT_KEYS = new Set([
+  "brand",
+  "brandId",
+  "category",
+  "categoryNodeId",
+  "categoryPath",
+  "componentVersionId",
+  "componentVersionNumber",
+  "description",
+  "designation",
+  "discipline",
+  "imageAsset",
+  "imageUrl",
+  "lifecycleState",
+  "material",
+  "notSupplierPriced",
+  "priceOptionId",
+  "priceOptionLabel",
+  "priceOptionUpdatedAt",
+  "pricingDate",
+  "pricingSource",
+  "sku",
+  "source",
+  "sourceUrl",
+  "supplier",
+  "supplierId",
+  "tags",
+  "taxonomyVersion",
+  "unit",
+  "unit_cost",
+]);
+
+function pickSharedProjectComponentSourceSnapshot(value: unknown) {
+  if (value === null) return null;
+  const sourceSnapshot = readJsonRecord(value);
+  const shared: Record<string, unknown> = {};
+  for (const key of SHARED_PROJECT_COMPONENT_SOURCE_SNAPSHOT_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(sourceSnapshot, key)) shared[key] = sourceSnapshot[key];
+  }
+  return Object.keys(shared).length > 0 ? shared : undefined;
+}
+
+function pickSharedProjectComponentPatch(rowPatch: Record<string, unknown>) {
+  const shared: Record<string, unknown> = {};
+  for (const key of SHARED_PROJECT_COMPONENT_ROW_PATCH_KEYS) {
+    if (!Object.prototype.hasOwnProperty.call(rowPatch, key)) continue;
+    if (key === "sourceSnapshot") {
+      const sourceSnapshot = pickSharedProjectComponentSourceSnapshot(rowPatch.sourceSnapshot);
+      if (sourceSnapshot !== undefined) shared.sourceSnapshot = sourceSnapshot;
+      continue;
+    }
+    shared[key] = rowPatch[key];
+  }
+  return shared;
+}
+
+function mergeSharedSourceSnapshotIntoRow(row: EstimateRowItemRow, sourceSnapshot: unknown) {
+  if (sourceSnapshot === null) return null;
+  const sharedSourceSnapshot = pickSharedProjectComponentSourceSnapshot(sourceSnapshot);
+  if (sharedSourceSnapshot === undefined) return undefined;
+  return {
+    ...readJsonRecord(rowSourceSnapshot(row)),
+    ...sharedSourceSnapshot,
+  };
+}
+
+async function propagateProjectComponentRowPatch(database: D1DatabaseLike, input: {
+  projectId: string;
+  sourceRow: EstimateRowItemRow;
+  rowPatch: Record<string, unknown>;
+}) {
+  const sharedPatch = pickSharedProjectComponentPatch(input.rowPatch);
+  const sharedColumns = updateValuesForRowPatch(sharedPatch);
+  if (sharedColumns.length === 0) return { rowIds: [] as string[], totalDelta: 0 };
+
+  const componentId = getProjectComponentIdentity(rowMetadata(input.sourceRow), null, rowSourceSnapshot(input.sourceRow));
+  if (!componentId) return { rowIds: [] as string[], totalDelta: 0 };
+
+  const siblingRows = await all<EstimateRowItemRow>(
+    database,
+    `
+      SELECT row_item.*, row_item.source_snapshot_json, row_item.metadata_json
+      FROM estimate_row_items row_item
+      INNER JOIN estimates estimate ON estimate.id = row_item.estimate_id
+      WHERE estimate.project_id = ?
+        AND row_item.id <> ?
+        AND COALESCE(
+          CASE
+            WHEN json_extract(row_item.source_snapshot_json, '$.sourceType') IN ('project_component', 'promoted_project_component', 'promoted_express_component', 'express_component')
+            THEN NULLIF(json_extract(row_item.source_snapshot_json, '$.sourceComponentId'), '')
+          END,
+          CASE
+            WHEN json_extract(row_item.source_snapshot_json, '$.sourceType') IN ('project_component', 'promoted_project_component', 'promoted_express_component', 'express_component')
+            THEN NULLIF(json_extract(row_item.source_snapshot_json, '$.sourceEstimateRowId'), '')
+          END,
+          NULLIF(json_extract(row_item.metadata_json, '$.projectComponentProjection.componentId'), ''),
+          NULLIF(json_extract(row_item.metadata_json, '$.expressComponent.componentId'), ''),
+          NULLIF(json_extract(row_item.metadata_json, '$.expressComponent.id'), '')
+        ) = ?
+    `,
+    [input.projectId, input.sourceRow.id, componentId],
+  );
+  if (siblingRows.length === 0) return { rowIds: [] as string[], totalDelta: 0 };
+
+  const propagatedAt = nowIso();
+  const statements: Array<{ sql: string; values?: unknown[] }> = [];
+  let totalDelta = 0;
+
+  for (const row of siblingRows) {
+    const nextRevision = readNumber(row.row_revision, 1) + 1;
+    const columns = sharedColumns.map(([column, value]) => [column, value] as [string, unknown]);
+    if (Object.prototype.hasOwnProperty.call(sharedPatch, "sourceSnapshot")) {
+      const mergedSourceSnapshot = mergeSharedSourceSnapshotIntoRow(row, sharedPatch.sourceSnapshot);
+      if (mergedSourceSnapshot !== undefined) {
+        const sourceSnapshotIndex = columns.findIndex(([column]) => column === "source_snapshot_json");
+        const sourceSnapshotColumn: [string, unknown] = ["source_snapshot_json", jsonString(mergedSourceSnapshot, null)];
+        if (sourceSnapshotIndex >= 0) columns[sourceSnapshotIndex] = sourceSnapshotColumn;
+        else columns.push(sourceSnapshotColumn);
+      }
+    }
+    if (columns.length === 0) continue;
+
+    if (Object.prototype.hasOwnProperty.call(sharedPatch, "unitCost")) {
+      totalDelta += computeEstimateRowLineTotal({ ...row, unit_cost: sharedPatch.unitCost as EstimateRowItemRow["unit_cost"] }) - computeEstimateRowLineTotal(row);
+    }
+
+    const assignments = columns.map(([column]) => `${column} = ?`);
+    const values = columns.map(([, value]) => value);
+    assignments.push("row_revision = ?", "updated_at = ?");
+    values.push(nextRevision, propagatedAt, row.id, row.estimate_id);
+    statements.push({
+      sql: `UPDATE estimate_row_items SET ${assignments.join(", ")} WHERE id = ? AND estimate_id = ?`,
+      values,
+    });
+  }
+
+  await runBatch(database, statements);
+  return {
+    rowIds: siblingRows.map((row) => row.id),
+    totalDelta,
+  };
+}
+
 async function patchRowItem(database: D1DatabaseLike, args: Record<string, unknown>, eventType: string, rowPatch: Record<string, unknown>) {
   const projectId = String(args.target_project_id ?? "");
   const estimateId = String(args.target_estimate_id ?? "");
@@ -1562,6 +1719,9 @@ async function patchRowItem(database: D1DatabaseLike, args: Record<string, unkno
   await run(database, `UPDATE estimate_row_items SET ${assignments.join(", ")} WHERE id = ? AND estimate_id = ?`, values);
   const updated = await readRowById(database, estimateId, rowId);
   if (!updated) throw new Error("Estimate row item was not found after update.");
+  const propagation = eventType === "row_updated"
+    ? await propagateProjectComponentRowPatch(database, { projectId, sourceRow: row, rowPatch })
+    : { rowIds: [] as string[], totalDelta: 0 };
   const eventId = await insertHistoryEvent(database, {
     projectId,
     estimateId,
@@ -1574,8 +1734,8 @@ async function patchRowItem(database: D1DatabaseLike, args: Record<string, unkno
     oldSnapshot: row,
     newSnapshot: updated,
     rowContext: { material: updated.material, supplier: updated.supplier },
-    payload: { rowId },
-    totalDelta: computeEstimateRowLineTotal(updated) - computeEstimateRowLineTotal(row),
+    payload: { rowId, propagatedRowIds: propagation.rowIds },
+    totalDelta: computeEstimateRowLineTotal(updated) - computeEstimateRowLineTotal(row) + propagation.totalDelta,
   });
   return rowItemHistoryResult(updated, eventId);
 }

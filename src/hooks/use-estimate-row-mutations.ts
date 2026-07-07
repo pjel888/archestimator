@@ -30,7 +30,7 @@ import {
 import { reconcileEstimateRowItemMoveResultToTree } from "@/lib/estimates/estimate-row-tree-move";
 import { promoteEstimateRowToLibraryComponent, type PromoteEstimateRowToLibraryComponentResult } from "@/lib/estimates/express-promotion-actions";
 import { applyEstimateRowItemPatch, estimateRowMutationResultToPatch, findEstimateRowItemInTree, patchEstimateRowItemInTree, type EstimateRowItemPatch } from "@/lib/estimates/estimate-row-tree-patch";
-import { readProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
+import { getProjectComponentIdentity, readProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
 import { recordEstimateMutationEvent, type EstimateMutationOperation } from "@/lib/estimates/estimate-mutation-telemetry";
 import { ESTIMATE_ROW_REVISION_CONFLICT_CODE } from "@/lib/estimates/row-revision-conflict";
 import type { EstimateRowUpdateBroadcastFields } from "./use-estimate-row-update-broadcast";
@@ -222,6 +222,7 @@ type UpdateMutationContext = {
   mutationId?: string;
   startedAt: number;
   previousPatch?: EstimateRowItemPatch;
+  previousPatches?: Record<string, EstimateRowItemPatch>;
 };
 
 type ScopedMutationContext = {
@@ -395,19 +396,77 @@ function isProjectComponentProjectionItem(item: EstimateRowItem) {
   return item.source === "project" && readProjectComponentProjectionMetadata(item.metadata) !== null;
 }
 
+const SHARED_PROJECT_COMPONENT_PATCH_KEYS: Array<keyof EstimateRowItemPatch> = [
+  "material",
+  "description",
+  "brand",
+  "supplier",
+  "unit",
+  "itemCost",
+  "sourceSnapshot",
+  "imageUrl",
+  "sourceUrl",
+];
+
+function hasOwnPatchField(patch: EstimateRowItemPatch, key: keyof EstimateRowItemPatch) {
+  return Object.prototype.hasOwnProperty.call(patch, key);
+}
+
+function pickSharedProjectComponentPatch(patch: EstimateRowItemPatch): EstimateRowItemPatch {
+  const next: EstimateRowItemPatch = {};
+  for (const key of SHARED_PROJECT_COMPONENT_PATCH_KEYS) {
+    if (hasOwnPatchField(patch, key)) {
+      (next as Record<string, unknown>)[key] = patch[key];
+    }
+  }
+  return next;
+}
+
+function hasEstimateRowPatchFields(patch: EstimateRowItemPatch | undefined) {
+  return Boolean(patch && Object.keys(patch).length > 0);
+}
+
+function getProjectionInstanceRowIds(item: EstimateRowItem) {
+  const projection = readProjectComponentProjectionMetadata(item.metadata);
+  const rowIds = new Set<string>();
+  if (projection?.sourceRowId) rowIds.add(projection.sourceRowId);
+  for (const rowId of projection?.instanceRowIds ?? []) {
+    if (typeof rowId === "string" && rowId.length > 0) rowIds.add(rowId);
+  }
+  if (rowIds.size === 0) rowIds.add(item.id);
+  return rowIds;
+}
+
+function projectComponentProjectionMatchesRow(item: EstimateRowItem, rowId: string) {
+  if (item.id === rowId) return true;
+  return getProjectionInstanceRowIds(item).has(rowId);
+}
+
 function patchProjectComponentProjectionItem<T extends ComponentProjectionCacheDataset>(
   data: T | undefined,
   rowId: string,
   patch: EstimateRowItemPatch,
 ) {
   if (!data || !Array.isArray(data.libraryItems)) return data;
+  const sharedPatch = pickSharedProjectComponentPatch(patch);
+  if (!hasEstimateRowPatchFields(sharedPatch)) return data;
   let didChange = false;
   const libraryItems = data.libraryItems.map((item) => {
-    if (item.id !== rowId || !isProjectComponentProjectionItem(item)) return item;
+    if (!isProjectComponentProjectionItem(item) || !projectComponentProjectionMatchesRow(item, rowId)) return item;
     didChange = true;
-    return applyEstimateRowItemPatch(item, patch);
+    return applyEstimateRowItemPatch(item, sharedPatch);
   });
   return didChange ? { ...data, libraryItems } : data;
+}
+
+function shouldRemoveProjectComponentProjectionItem(item: EstimateRowItem, rowIdSet: Set<string>) {
+  if (!isProjectComponentProjectionItem(item)) return false;
+  const projection = readProjectComponentProjectionMetadata(item.metadata);
+  if (projection?.instanceRowIds?.length) {
+    return projection.instanceRowIds.every((rowId) => rowIdSet.has(rowId));
+  }
+  if (projection?.sourceRowId) return rowIdSet.has(projection.sourceRowId);
+  return rowIdSet.has(item.id);
 }
 
 function removeProjectComponentProjectionItems<T extends ComponentProjectionCacheDataset>(
@@ -416,8 +475,125 @@ function removeProjectComponentProjectionItems<T extends ComponentProjectionCach
 ) {
   if (!data || !Array.isArray(data.libraryItems) || rowIds.length === 0) return data;
   const rowIdSet = new Set(rowIds);
-  const libraryItems = data.libraryItems.filter((item) => !rowIdSet.has(item.id) || !isProjectComponentProjectionItem(item));
+  const libraryItems = data.libraryItems.filter((item) => !shouldRemoveProjectComponentProjectionItem(item, rowIdSet));
   return libraryItems.length === data.libraryItems.length ? data : { ...data, libraryItems };
+}
+
+function getEstimateRowItemProjectComponentIdentity(item: EstimateRowItem) {
+  const itemWithSnapshot = item as EstimateRowItem & { sourceSnapshot?: unknown };
+  return getProjectComponentIdentity(item.metadata, item.id, itemWithSnapshot.sourceSnapshot);
+}
+
+function findProjectComponentIdentityForRow(tree: EstimateTreeNode[], rowId: string) {
+  const row = findEstimateRowItemInTree(tree, rowId);
+  return row ? getEstimateRowItemProjectComponentIdentity(row) : null;
+}
+
+function projectComponentInstanceMatches(item: EstimateRowItem, componentId: string) {
+  return getEstimateRowItemProjectComponentIdentity(item) === componentId;
+}
+
+function patchProjectComponentInstanceRowsInTree(
+  tree: EstimateTreeNode[],
+  rowId: string,
+  patch: EstimateRowItemPatch,
+): EstimateTreeNode[] {
+  const componentId = findProjectComponentIdentityForRow(tree, rowId);
+  const sharedPatch = pickSharedProjectComponentPatch(patch);
+  if (!componentId || !hasEstimateRowPatchFields(sharedPatch)) return patchEstimateRowItemInTree(tree, rowId, patch);
+  const sharedComponentId = componentId;
+
+  let didChange = false;
+  function visit(node: EstimateTreeNode): EstimateTreeNode {
+    let nextItems = node.estimateRowItems;
+    if (node.estimateRowItems?.some((item) => item.id === rowId || projectComponentInstanceMatches(item, sharedComponentId))) {
+      nextItems = node.estimateRowItems.map((item) => {
+        if (item.id === rowId) {
+          didChange = true;
+          return applyEstimateRowItemPatch(item, patch);
+        }
+        if (projectComponentInstanceMatches(item, sharedComponentId)) {
+          didChange = true;
+          return applyEstimateRowItemPatch(item, sharedPatch);
+        }
+        return item;
+      });
+    }
+
+    let nextChildren = node.children;
+    if (node.children?.length) {
+      const patchedChildren = node.children.map(visit);
+      if (patchedChildren.some((child, index) => child !== node.children?.[index])) nextChildren = patchedChildren;
+    }
+
+    if (nextItems === node.estimateRowItems && nextChildren === node.children) return node;
+    return { ...node, estimateRowItems: nextItems, children: nextChildren };
+  }
+
+  const nextTree = tree.map(visit);
+  return didChange ? nextTree : tree;
+}
+
+function previousPatchForRow(item: EstimateRowItem, patch: EstimateRowItemPatch): EstimateRowItemPatch {
+  const itemJson = item as EstimateRowItem & { sourceSnapshot?: Json | null };
+  return {
+    ...(hasOwnPatchField(patch, "material") ? { material: item.material } : {}),
+    ...(hasOwnPatchField(patch, "description") ? { description: item.description } : {}),
+    ...(hasOwnPatchField(patch, "brand") ? { brand: item.brand ?? null } : {}),
+    ...(hasOwnPatchField(patch, "supplier") ? { supplier: item.supplier } : {}),
+    ...(hasOwnPatchField(patch, "unit") ? { unit: item.unit } : {}),
+    ...(hasOwnPatchField(patch, "quantity") ? { quantity: item.quantity } : {}),
+    ...(hasOwnPatchField(patch, "quantityBase") ? { quantityBase: item.quantityBase ?? null } : {}),
+    ...(hasOwnPatchField(patch, "quantityContingencyAmount") ? { quantityContingencyAmount: item.quantityContingencyAmount ?? null } : {}),
+    ...(hasOwnPatchField(patch, "itemCost") ? { itemCost: item.itemCost } : {}),
+    ...(hasOwnPatchField(patch, "contingencyPercentage") ? { contingencyPercentage: item.contingencyPercentage ?? 0 } : {}),
+    ...(hasOwnPatchField(patch, "adjustmentPercentage") ? { adjustmentPercentage: item.adjustmentPercentage ?? 0 } : {}),
+    ...(hasOwnPatchField(patch, "miscCost") ? { miscCost: item.miscCost } : {}),
+    ...(hasOwnPatchField(patch, "sourceSnapshot") ? {
+      sourceSnapshot: itemJson.sourceSnapshot ?? null,
+      brand: snapshotStringPatch(itemJson.sourceSnapshot, "brand"),
+      imageUrl: snapshotStringPatch(itemJson.sourceSnapshot, "imageUrl"),
+      sourceUrl: snapshotStringPatch(itemJson.sourceSnapshot, "sourceUrl"),
+    } : {}),
+    ...(hasOwnPatchField(patch, "metadata") ? { metadata: itemJson.metadata ?? {} } : {}),
+  };
+}
+
+function collectProjectComponentRollbackPatches(
+  tree: EstimateTreeNode[],
+  rowId: string,
+  patch: EstimateRowItemPatch,
+) {
+  const previousRow = findEstimateRowItemInTree(tree, rowId);
+  if (!previousRow) return undefined;
+  const componentId = getEstimateRowItemProjectComponentIdentity(previousRow);
+  const sharedPatch = pickSharedProjectComponentPatch(patch);
+  const patches: Record<string, EstimateRowItemPatch> = {
+    [rowId]: previousPatchForRow(previousRow, patch),
+  };
+  if (!componentId || !hasEstimateRowPatchFields(sharedPatch)) return patches;
+  const sharedComponentId = componentId;
+
+  function visit(node: EstimateTreeNode) {
+    for (const item of node.estimateRowItems ?? []) {
+      if (item.id !== rowId && projectComponentInstanceMatches(item, sharedComponentId)) {
+        patches[item.id] = previousPatchForRow(item, sharedPatch);
+      }
+    }
+    node.children?.forEach(visit);
+  }
+  tree.forEach(visit);
+  return patches;
+}
+
+function restoreEstimateRowPatchesInTree(
+  tree: EstimateTreeNode[],
+  patches: Record<string, EstimateRowItemPatch>,
+) {
+  return Object.entries(patches).reduce(
+    (nextTree, [rowId, patch]) => patchEstimateRowItemInTree(nextTree, rowId, patch),
+    tree,
+  );
 }
 
 export function useEstimateRowMutations(
@@ -1119,47 +1295,34 @@ export function useEstimateRowMutations(
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
       await queryClient.cancelQueries({ queryKey });
       const previousTree = queryClient.getQueryData<EstimateTreeNode[]>(queryKey);
-      const previousRow = previousTree ? findEstimateRowItemInTree(previousTree, input.rowId) : null;
-      const previousRowJson = previousRow as (EstimateRowItem & { sourceSnapshot?: Json | null }) | null;
-      const previousPatch = previousRow
-        ? {
-            itemCost: previousRow.itemCost,
-            rowRevision: previousRow.rowRevision,
-            ...(input.material !== undefined ? { material: previousRow.material } : {}),
-            ...(input.description !== undefined ? { description: previousRow.description } : {}),
-            ...(input.supplier !== undefined ? { supplier: previousRow.supplier } : {}),
-            ...(input.unit !== undefined ? { unit: previousRow.unit } : {}),
-            ...(input.quantity !== undefined ? { quantity: previousRow.quantity } : {}),
-            ...(input.quantityBase !== undefined ? { quantityBase: previousRow.quantityBase ?? null } : {}),
-            ...(input.quantityContingencyAmount !== undefined ? { quantityContingencyAmount: previousRow.quantityContingencyAmount ?? null } : {}),
-            ...(input.contingencyPercentage !== undefined ? { contingencyPercentage: previousRow.contingencyPercentage ?? 0 } : {}),
-            ...(input.adjustmentPercentage !== undefined ? { adjustmentPercentage: previousRow.adjustmentPercentage ?? 0 } : {}),
-            ...(input.miscCost !== undefined ? { miscCost: previousRow.miscCost } : {}),
-            ...(input.sourceSnapshot !== undefined ? { sourceSnapshot: previousRowJson?.sourceSnapshot ?? null } : {}),
-            ...(input.metadata !== undefined ? { metadata: previousRowJson?.metadata ?? {} } : {}),
-          }
+      const optimisticPatch = toOptimisticRowPatch(input);
+      const previousPatches = previousTree
+        ? collectProjectComponentRollbackPatches(previousTree, input.rowId, optimisticPatch)
         : undefined;
+      const previousPatch = previousPatches?.[input.rowId];
       if (previousTree) {
         queryClient.setQueryData<EstimateTreeNode[]>(
           queryKey,
-          patchEstimateRowItemInTree(previousTree, input.rowId, toOptimisticRowPatch(input)),
+          patchProjectComponentInstanceRowsInTree(previousTree, input.rowId, optimisticPatch),
         );
       }
-      patchProjectComponentProjectionCaches(input.rowId, toOptimisticRowPatch(input), input.projectId);
-      return { ...scopedMutation, previousPatch };
+      patchProjectComponentProjectionCaches(input.rowId, optimisticPatch, input.projectId);
+      return { ...scopedMutation, previousPatch, previousPatches };
     },
     onSuccess: (result: UpdateEstimateRowItemResult, input, context) => {
       markSaved();
       finishScopedRowMutation(context);
       if (!isLatestScopedRow(input.rowId, context)) return;
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
+      const serverPatch = toServerRowPatch(result, input);
       queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
-        currentTree ? patchEstimateRowItemInTree(currentTree, result.rowId, toServerRowPatch(result, input)) : currentTree,
+        currentTree ? patchProjectComponentInstanceRowsInTree(currentTree, result.rowId, serverPatch) : currentTree,
       );
-      patchProjectComponentProjectionCaches(result.rowId, toServerRowPatch(result, input), input.projectId);
+      patchProjectComponentProjectionCaches(result.rowId, serverPatch, input.projectId);
       invalidateProjectComponentProjectionCaches("update_row_success", context?.operation ?? "update_row", input.projectId);
-      void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
-      if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
+      const refetchType = context?.previousPatches && Object.keys(context.previousPatches).length > 1 ? "active" : "none";
+      void queryClient.invalidateQueries({ queryKey, refetchType });
+      if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType });
       input.onSuccess?.(result);
     },
     onError: (_error: Error, input, context) => {
@@ -1171,11 +1334,11 @@ export function useEstimateRowMutations(
       const offlineError = isEstimateRowOfflineError(_error);
       // Keep the user's same-session draft visible on offline failure; provider
       // state remains unchanged until the next retry.
-      if (!offlineError && context.previousPatch) {
+      if (!offlineError && context.previousPatches && Object.keys(context.previousPatches).length > 0) {
         queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
-          currentTree ? patchEstimateRowItemInTree(currentTree, input.rowId, context.previousPatch ?? {}) : currentTree,
+          currentTree ? restoreEstimateRowPatchesInTree(currentTree, context.previousPatches ?? {}) : currentTree,
         );
-        patchProjectComponentProjectionCaches(input.rowId, context.previousPatch, input.projectId);
+        patchProjectComponentProjectionCaches(input.rowId, context.previousPatch ?? context.previousPatches[input.rowId] ?? {}, input.projectId);
       } else if (!offlineError) input.rollback?.();
       input.onError?.(_error);
       finishScopedRowMutation(context, _error);

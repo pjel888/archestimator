@@ -1,4 +1,4 @@
-import { classifyEstimateRowSource, isExpressComponentProjectFolderEnabled, readEstimateRowMetadata, withProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
+import { classifyEstimateRowSource, getProjectComponentIdentity, isExpressComponentProjectFolderEnabled, readEstimateRowMetadata, readProjectComponentProjectionMetadata, withProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
 import { sanitizeEstimateRowSourceSnapshot } from "@/lib/estimates/image-url";
 import { canAccessWholeProjectInD1 } from "@/lib/authz/d1-access";
 import { requireCurrentUserContext } from "@/lib/auth/session";
@@ -41,6 +41,7 @@ export type ProjectComponentProjectionRow = {
   source_snapshot: unknown;
   metadata: unknown;
   created_at: string;
+  updated_at: string;
   estimate_nodes?: {
     id: string;
     name: string;
@@ -81,6 +82,7 @@ type ProjectComponentProjectionD1Row = {
   source_snapshot_json: string | null;
   metadata_json: string | null;
   created_at: string | null;
+  updated_at: string | null;
   node_id: string | null;
   node_name: string | null;
   estimate_id: string | null;
@@ -143,6 +145,7 @@ function fromD1ProjectComponentRow(row: ProjectComponentProjectionD1Row): Projec
     source_snapshot: readJsonRecord(row.source_snapshot_json),
     metadata: readJsonRecord(row.metadata_json),
     created_at: row.created_at ?? new Date(0).toISOString(),
+    updated_at: row.updated_at ?? row.created_at ?? new Date(0).toISOString(),
     estimate_nodes: row.node_id
       ? {
           id: row.node_id,
@@ -174,6 +177,7 @@ export function getProjectEstimateComponentsFolderId(projectId: string, estimate
 export function projectEstimateRowToLibraryItem(row: ProjectComponentProjectionRow, projectId: string, projectName?: string): EstimateRowItem | null {
   const sourceSnapshot = readRecord(sanitizeEstimateRowSourceSnapshot(row.source_snapshot));
   const metadata = readEstimateRowMetadata(row.metadata);
+  const componentId = getProjectComponentIdentity(metadata, row.id, sourceSnapshot) ?? row.id;
   const classification = classifyEstimateRowSource({
     material: row.material,
     description: row.description,
@@ -219,7 +223,7 @@ export function projectEstimateRowToLibraryItem(row: ProjectComponentProjectionR
   const imageAsset = readRecord(sourceSnapshot.imageAsset);
 
   return {
-    id: row.id,
+    id: componentId,
     material: row.material || "Untitled component",
     description: row.description,
     supplier: row.supplier || "No supplier",
@@ -246,12 +250,16 @@ export function projectEstimateRowToLibraryItem(row: ProjectComponentProjectionR
     imageUrl: typeof sourceSnapshot.imageUrl === "string" ? sourceSnapshot.imageUrl : undefined,
     sourceLibraryItemId: row.source_library_item_id,
     metadata: withProjectComponentProjectionMetadata(metadata, {
+      componentId,
       projectId,
       projectName: projectName ?? null,
       estimateId: estimateId ?? null,
       estimateName: estimateName ?? null,
       nodeId: nodeId ?? null,
       nodeName: nodeName ?? null,
+      sourceRowId: row.id,
+      instanceRowIds: [row.id],
+      instanceCount: 1,
       classification: projectionClassification,
       ...(Object.keys(imageAsset).length > 0 ? { imageAsset: imageAsset as Json } : {}),
     }),
@@ -266,6 +274,33 @@ export function projectEstimateRowToLibraryItem(row: ProjectComponentProjectionR
     pricingSource: typeof sourceSnapshot.pricingSource === "string" ? sourceSnapshot.pricingSource : "Project estimate row",
     pricingDate: typeof sourceSnapshot.pricingDate === "string" ? sourceSnapshot.pricingDate : row.created_at.slice(0, 10),
   };
+}
+
+function mergeProjectComponentProjectionItems(entries: Array<{ row: ProjectComponentProjectionRow; item: EstimateRowItem }>) {
+  const groups = new Map<string, Array<{ row: ProjectComponentProjectionRow; item: EstimateRowItem }>>();
+  for (const entry of entries) {
+    const componentId = getProjectComponentIdentity(entry.item.metadata, entry.item.id) ?? entry.item.id;
+    const group = groups.get(componentId);
+    if (group) group.push(entry);
+    else groups.set(componentId, [entry]);
+  }
+
+  return [...groups.entries()].map(([componentId, group]) => {
+    const [primary] = group;
+    const instanceRowIds = group.map(({ row }) => row.id);
+    const projection = readProjectComponentProjectionMetadata(primary.item.metadata);
+    return {
+      ...primary.item,
+      id: componentId,
+      metadata: withProjectComponentProjectionMetadata(primary.item.metadata, {
+        ...(projection ?? {}),
+        componentId,
+        sourceRowId: projection?.sourceRowId ?? primary.row.id,
+        instanceRowIds,
+        instanceCount: instanceRowIds.length,
+      }),
+    };
+  });
 }
 
 export async function getProjectComponentRowsLibrary(
@@ -313,6 +348,7 @@ export async function getProjectComponentRowsLibrary(
        row_items.source_snapshot_json,
        row_items.metadata_json,
        row_items.created_at,
+       row_items.updated_at,
        nodes.id AS node_id,
        nodes.name AS node_name,
        estimates.id AS estimate_id,
@@ -333,7 +369,7 @@ export async function getProjectComponentRowsLibrary(
              AND sheet_member.user_id = ?
          )
        )
-     ORDER BY row_items.created_at DESC, row_items.id DESC
+     ORDER BY row_items.updated_at DESC, row_items.created_at DESC, row_items.id DESC
      LIMIT ?`,
     [project.id, canReadRestrictedEstimates ? 1 : 0, currentUser.userId, projectRowLimit ?? SIDEBAR_COMPONENT_LIBRARY_MAX_LIMIT],
   );
@@ -342,7 +378,7 @@ export async function getProjectComponentRowsLibrary(
     .map(fromD1ProjectComponentRow)
     .map((row) => ({ row, item: projectEstimateRowToLibraryItem(row, project.id, project.name) }))
     .filter((entry): entry is { row: ProjectComponentProjectionRow; item: EstimateRowItem } => Boolean(entry.item));
-  const projectItems = projectedRows.map((entry) => entry.item);
+  const projectItems = mergeProjectComponentProjectionItems(projectedRows);
 
   const projectFolderId = getProjectComponentsFolderId(project.id);
   const estimateFoldersById = new Map<string, { id: string; name: string }>();

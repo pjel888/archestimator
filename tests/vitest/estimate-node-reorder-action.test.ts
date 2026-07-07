@@ -1010,6 +1010,85 @@ describe("insertEstimateRowItemFromLibrary server action", () => {
     expect(payload).not.toHaveProperty("labor_cost");
     expect(payload).not.toHaveProperty("supplementary_cost");
   });
+
+  it("preserves Project tab component identity when inserting project-owned rows", async () => {
+    const targetNodeQuery = queryResult({
+      data: { id: "55555555-5555-4555-8555-555555555561", estimate_id: "77777777-7777-4777-8777-777777777719", kind: "area" },
+      error: null,
+    });
+    const supabase = {
+      from: vi.fn((table: string) => {
+        if (table === "estimate_nodes") return targetNodeQuery;
+        throw new Error(`Unexpected table ${table}`);
+      }),
+      rpc: vi.fn(async (name: string) => {
+        if (name === "can_edit_estimate") return { data: true, error: null };
+        return { data: { rowId: "row-1", row: { id: "row-1", nodeId: "55555555-5555-4555-8555-555555555561" } }, error: null };
+      }),
+    };
+    mockEstimateActionsDataStore(supabase);
+    const { insertEstimateRowItemFromLibrary } = await import("@/lib/estimates/actions");
+
+    await insertEstimateRowItemFromLibrary({
+      projectId: "project-1",
+      estimateId: "77777777-7777-4777-8777-777777777719",
+      targetNodeId: "55555555-5555-4555-8555-555555555561",
+      rowId: "66666666-6666-4666-8666-666666666661",
+      libraryItem: {
+        id: "express-cabinet-component",
+        material: "Project cabinet",
+        description: "Shared project cabinet",
+        supplier: "Local shop",
+        source: "project",
+        unit: "lm",
+        itemCost: 1200,
+        quantity: 1,
+        subTotal: 1200,
+        miscCost: 0,
+        totalItemCosts: 1200,
+        category: "Cabinetry",
+        pricingSource: "Project estimate row",
+        pricingDate: "2026-05-22",
+        metadata: {
+          expressComponent: {
+            kind: "express",
+            schemaVersion: 1,
+            id: "express-cabinet-component",
+          },
+          projectComponentProjection: {
+            projectId: "project-1",
+            estimateId: "77777777-7777-4777-8777-777777777719",
+            sourceRowId: "source-row-1",
+            instanceRowIds: ["source-row-1"],
+            instanceCount: 1,
+            classification: "express",
+          },
+        },
+      },
+    });
+
+    const insertCall = supabase.rpc.mock.calls.find(([name]) => name === "insert_estimate_row_item_with_history");
+    expect(insertCall).toBeDefined();
+    const payload = insertCall?.[1].row_payload;
+    expect(payload.sourceLibraryItemId).toBeNull();
+    expect(payload.linkState).toBe("unlinked");
+    expect(payload.metadata).toMatchObject({
+      expressComponent: {
+        id: "express-cabinet-component",
+        componentId: "express-cabinet-component",
+      },
+      projectComponentProjection: {
+        componentId: "express-cabinet-component",
+        sourceRowId: "source-row-1",
+      },
+    });
+    expect(payload.sourceSnapshot).toMatchObject({
+      sourceType: "project_component",
+      sourceComponentId: "express-cabinet-component",
+      sourceEstimateRowId: "source-row-1",
+      sourceProjectId: "project-1",
+    });
+  });
 });
 
 describe("insertEstimateTemplateIntoEstimate server action", () => {

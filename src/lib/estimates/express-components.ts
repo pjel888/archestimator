@@ -19,12 +19,16 @@ export type EstimateRowMetadata = {
 };
 
 export type ProjectComponentProjectionMetadata = {
+  componentId?: string | null;
   projectId?: string | null;
   projectName?: string | null;
   estimateId?: string | null;
   estimateName?: string | null;
   nodeId?: string | null;
   nodeName?: string | null;
+  sourceRowId?: string | null;
+  instanceRowIds?: string[];
+  instanceCount?: number;
   classification?: "express" | "detached-library" | null;
   [key: string]: Json | undefined;
 };
@@ -96,6 +100,28 @@ const BLANK_TEXT_FIELDS = ["material", "description", "supplier", "unit"] as con
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function readNonEmptyString(value: unknown) {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+}
+
+function readRecordOrJson(value: unknown): Record<string, unknown> {
+  if (isRecord(value)) return value;
+  if (typeof value !== "string") return {};
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return isRecord(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function isProjectComponentSourceType(value: unknown) {
+  return value === "project_component"
+    || value === "promoted_project_component"
+    || value === "promoted_express_component"
+    || value === "express_component";
 }
 
 function isBlankText(value: unknown) {
@@ -184,6 +210,24 @@ export function readProjectComponentProjectionMetadata(metadata: unknown): Proje
   if (typeof projection.projectId !== "string" || projection.projectId.trim().length === 0) return null;
   if (projection.classification !== "express" && projection.classification !== "detached-library") return null;
   return { ...(projection as ProjectComponentProjectionMetadata) };
+}
+
+export function getProjectComponentIdentity(metadata: unknown, fallbackRowId?: string | null, sourceSnapshot?: unknown): string | null {
+  const snapshot = readRecordOrJson(sourceSnapshot);
+  if (isProjectComponentSourceType(snapshot.sourceType)) {
+    const snapshotComponentId = readNonEmptyString(snapshot.sourceComponentId) ?? readNonEmptyString(snapshot.sourceEstimateRowId);
+    if (snapshotComponentId) return snapshotComponentId;
+  }
+
+  const projection = readProjectComponentProjectionMetadata(metadata);
+  const projectedComponentId = readNonEmptyString(projection?.componentId);
+  if (projectedComponentId) return projectedComponentId;
+
+  const expressComponent = readExpressComponentMetadata(metadata);
+  const expressComponentId = readNonEmptyString(expressComponent?.componentId) ?? readNonEmptyString(expressComponent?.id);
+  if (expressComponentId) return expressComponentId;
+
+  return readNonEmptyString(fallbackRowId);
 }
 
 export function withProjectComponentProjectionMetadata(

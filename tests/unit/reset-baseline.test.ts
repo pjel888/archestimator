@@ -89,7 +89,8 @@ describe("workshop dashboard baseline", () => {
     expect(sidebar).not.toContain("w-px bg-dividerSibling");
     expect(sidebar).toContain("sidebar-glass-shadow");
     expect(sidebar).toContain("sidebar-glass-grain");
-    expect(sidebar).toContain("data-refraction");
+    expect(sidebar).not.toContain("data-refraction");
+    expect(sidebar).toContain("width: expanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED");
     expect(sidebar).toContain("href: \"/workshop/projects\"");
     expect(sidebar).toContain("href: \"/workshop/library\"");
     expect(sidebar).toContain("label: \"Library\"");
@@ -121,7 +122,7 @@ describe("workshop dashboard baseline", () => {
     expect(sidebar).toContain('aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}');
     expect(sidebarHeader).not.toContain("SidebarSimple");
     expect(sidebarNavItemRow).not.toContain('expanded ? "w-full pr-2"');
-    expect(sidebar).toContain("clipPath");
+    expect(sidebar).not.toContain("clipPath");
   });
 
   test("workshop shells share one glass footprint: same content offset, mesh backdrop, no flat canvas", async () => {

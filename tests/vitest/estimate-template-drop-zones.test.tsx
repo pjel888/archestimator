@@ -167,6 +167,13 @@ describe("estimate sheet drag-aware drop zones", () => {
     expect(activeSlot).not.toBeNull();
     expect(activeSlot?.firstElementChild).toHaveClass("h-16");
     expect(activeSlot?.firstElementChild).toHaveClass("border-dashed", "border-hairline", "bg-surfaceMuted/30", "opacity-60");
+    const annexDropZoneLabel = screen.getByText("Drag and drop estimate component into Annex");
+    const annexDropZone = annexDropZoneLabel.closest("[data-estimate-component-drop-zone]");
+    expect(annexDropZone).not.toBeNull();
+    expect(annexDropZone?.firstElementChild).toHaveClass("h-16");
+    expect(annexDropZone?.firstElementChild).toHaveClass("border-dashed", "border-hairline", "bg-surfaceMuted/30", "text-tertiary", "opacity-60");
+    expect(annexDropZone?.firstElementChild).not.toHaveClass("h-20", "border-brand-orange/40", "bg-brand-orange/5", "text-ink");
+    expect(document.querySelectorAll("[data-estimate-component-drop-zone]")).toHaveLength(3);
     expect(document.querySelector("[data-estimate-template-drop-zone]")).toBeNull();
 
     act(() => endEstimateWorkshopDrag());

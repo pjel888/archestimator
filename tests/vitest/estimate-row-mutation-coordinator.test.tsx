@@ -34,6 +34,8 @@ const estimateId = "77777777-7777-4777-8777-777777777719";
 const targetNodeId = "55555555-5555-4555-8555-555555555561";
 const cabinetRowId = "66666666-6666-4666-8666-666666666661";
 const sinkRowId = "66666666-6666-4666-8666-666666666662";
+const secondCabinetRowId = "66666666-6666-4666-8666-666666666663";
+const cabinetComponentId = "project-cabinet-component";
 
 const cabinetRow: EstimateRowItem = {
   id: cabinetRowId,
@@ -89,17 +91,103 @@ const nodesWithRow: EstimateTreeNode[] = [
 const projectedCabinetRow: EstimateRowItem = {
   ...cabinetRow,
   metadata: {
+    expressComponent: {
+      kind: "express",
+      schemaVersion: 1,
+      id: cabinetComponentId,
+      componentId: cabinetComponentId,
+    },
     projectComponentProjection: {
+      componentId: cabinetComponentId,
       projectId,
       projectName: "Modern Bungalow",
       estimateId,
       estimateName: "Main Estimate",
       nodeId: targetNodeId,
       nodeName: "Kitchen",
+      sourceRowId: cabinetRowId,
+      instanceRowIds: [cabinetRowId],
+      instanceCount: 1,
       classification: "express",
     },
   },
 };
+
+const secondProjectedCabinetRow: EstimateRowItem = {
+  ...projectedCabinetRow,
+  id: secondCabinetRowId,
+  quantity: 5,
+  subTotal: 500,
+  totalItemCosts: 510,
+  rowRevision: 2,
+  metadata: {
+    ...projectedCabinetRow.metadata,
+    projectComponentProjection: {
+      ...projectedCabinetRow.metadata?.projectComponentProjection,
+      sourceRowId: cabinetRowId,
+      instanceRowIds: [cabinetRowId, secondCabinetRowId],
+      instanceCount: 2,
+    },
+  },
+};
+
+const projectedCabinetComponentItem: EstimateRowItem = {
+  ...projectedCabinetRow,
+  id: cabinetComponentId,
+  metadata: {
+    ...projectedCabinetRow.metadata,
+    projectComponentProjection: {
+      ...projectedCabinetRow.metadata?.projectComponentProjection,
+      componentId: cabinetComponentId,
+      sourceRowId: cabinetRowId,
+      instanceRowIds: [cabinetRowId],
+      instanceCount: 1,
+    },
+  },
+};
+
+const projectedCabinetComponentWithTwoInstances: EstimateRowItem = {
+  ...projectedCabinetComponentItem,
+  metadata: {
+    ...projectedCabinetComponentItem.metadata,
+    projectComponentProjection: {
+      ...projectedCabinetComponentItem.metadata?.projectComponentProjection,
+      instanceRowIds: [cabinetRowId, secondCabinetRowId],
+      instanceCount: 2,
+    },
+  },
+};
+
+const snapshotIdentityCabinetRow = {
+  ...cabinetRow,
+  metadata: {
+    expressComponent: {
+      kind: "express",
+      schemaVersion: 1,
+      id: "legacy-cabinet-row-local-id",
+    },
+  },
+  sourceSnapshot: {
+    sourceType: "project_component",
+    sourceComponentId: cabinetComponentId,
+    sourceEstimateRowId: cabinetRowId,
+  },
+} as EstimateRowItem;
+
+const secondSnapshotIdentityCabinetRow = {
+  ...snapshotIdentityCabinetRow,
+  id: secondCabinetRowId,
+  quantity: 5,
+  subTotal: 500,
+  totalItemCosts: 510,
+  rowRevision: 2,
+  metadata: {},
+  sourceSnapshot: {
+    sourceType: "project_component",
+    sourceComponentId: cabinetComponentId,
+    sourceEstimateRowId: cabinetRowId,
+  },
+} as EstimateRowItem;
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -329,7 +417,7 @@ describe("estimate row mutation coordinator", () => {
       ...nodesWithRow[0],
       estimateRowItems: [projectedCabinetRow, sinkRow],
     }]);
-    queryClient.setQueryData(workspaceComponentLibraryLiteQueryKey(workspaceId, projectId), makeLibraryData([projectedCabinetRow]));
+    queryClient.setQueryData(workspaceComponentLibraryLiteQueryKey(workspaceId, projectId), makeLibraryData([projectedCabinetComponentItem]));
     const update = deferred<ReturnType<typeof makeCanonicalReplaceResult>>();
     actionMocks.updateEstimateRowItem.mockReturnValueOnce(update.promise);
 
@@ -361,13 +449,118 @@ describe("estimate row mutation coordinator", () => {
     expect(findCachedRow(queryClient, cabinetRowId)?.material).toBe("Confirmed Cabinet");
   });
 
+  it("patches every mounted project component instance for shared component-field edits", async () => {
+    const queryClient = makeQueryClient();
+    queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), [{
+      ...nodesWithRow[0],
+      estimateRowItems: [projectedCabinetRow, secondProjectedCabinetRow, sinkRow],
+    }]);
+    queryClient.setQueryData(workspaceComponentLibraryLiteQueryKey(workspaceId, projectId), makeLibraryData([projectedCabinetComponentWithTwoInstances]));
+    const update = deferred<ReturnType<typeof makeCanonicalReplaceResult>>();
+    actionMocks.updateEstimateRowItem.mockReturnValueOnce(update.promise);
+
+    const { result } = renderHook(
+      () => useEstimateRowMutations(estimateId, undefined, workspaceId, projectId),
+      { wrapper: makeWrapper(queryClient) },
+    );
+
+    act(() => {
+      result.current.updateRow({
+        projectId,
+        estimateId,
+        rowId: cabinetRowId,
+        material: "Shared Cabinet",
+        quantity: 9,
+      });
+    });
+
+    await waitFor(() => expect(findCachedRow(queryClient, cabinetRowId)?.material).toBe("Shared Cabinet"));
+    expect(findCachedRow(queryClient, cabinetRowId)?.quantity).toBe(9);
+    expect(findCachedRow(queryClient, secondCabinetRowId)).toMatchObject({
+      material: "Shared Cabinet",
+      quantity: 5,
+    });
+    expect(getCachedLibraryItems(queryClient)[0]).toMatchObject({
+      id: cabinetComponentId,
+      material: "Shared Cabinet",
+      quantity: 2,
+    });
+
+    await act(async () => {
+      update.resolve(makeCanonicalReplaceResult(cabinetRowId, {
+        ...projectedCabinetRow,
+        material: "Confirmed Shared Cabinet",
+        quantity: 9,
+      }, 8));
+      await update.promise;
+    });
+
+    await waitFor(() => expect(findCachedRow(queryClient, secondCabinetRowId)?.material).toBe("Confirmed Shared Cabinet"));
+    expect(findCachedRow(queryClient, secondCabinetRowId)?.quantity).toBe(5);
+    expect(getCachedLibraryItems(queryClient)[0]).toMatchObject({
+      id: cabinetComponentId,
+      material: "Confirmed Shared Cabinet",
+      quantity: 2,
+    });
+  });
+
+  it("patches mounted project component instances that only share source snapshot identity", async () => {
+    const queryClient = makeQueryClient();
+    queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), [{
+      ...nodesWithRow[0],
+      estimateRowItems: [snapshotIdentityCabinetRow, secondSnapshotIdentityCabinetRow, sinkRow],
+    }]);
+    queryClient.setQueryData(workspaceComponentLibraryLiteQueryKey(workspaceId, projectId), makeLibraryData([projectedCabinetComponentWithTwoInstances]));
+    const update = deferred<ReturnType<typeof makeCanonicalReplaceResult>>();
+    actionMocks.updateEstimateRowItem.mockReturnValueOnce(update.promise);
+
+    const { result } = renderHook(
+      () => useEstimateRowMutations(estimateId, undefined, workspaceId, projectId),
+      { wrapper: makeWrapper(queryClient) },
+    );
+
+    act(() => {
+      result.current.updateRow({
+        projectId,
+        estimateId,
+        rowId: cabinetRowId,
+        material: "Shared Snapshot Cabinet",
+        quantity: 9,
+      });
+    });
+
+    await waitFor(() => expect(findCachedRow(queryClient, secondCabinetRowId)?.material).toBe("Shared Snapshot Cabinet"));
+    expect(findCachedRow(queryClient, cabinetRowId)?.quantity).toBe(9);
+    expect(findCachedRow(queryClient, secondCabinetRowId)?.quantity).toBe(5);
+    expect(getCachedLibraryItems(queryClient)[0]).toMatchObject({
+      id: cabinetComponentId,
+      material: "Shared Snapshot Cabinet",
+    });
+
+    await act(async () => {
+      update.resolve(makeCanonicalReplaceResult(cabinetRowId, {
+        ...snapshotIdentityCabinetRow,
+        material: "Confirmed Snapshot Cabinet",
+        quantity: 9,
+      }, 8));
+      await update.promise;
+    });
+
+    await waitFor(() => expect(findCachedRow(queryClient, secondCabinetRowId)?.material).toBe("Confirmed Snapshot Cabinet"));
+    expect(findCachedRow(queryClient, secondCabinetRowId)?.quantity).toBe(5);
+    expect(getCachedLibraryItems(queryClient)[0]).toMatchObject({
+      id: cabinetComponentId,
+      material: "Confirmed Snapshot Cabinet",
+    });
+  });
+
   it("rolls back the mounted Project tab component projection when a row name update fails", async () => {
     const queryClient = makeQueryClient();
     queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), [{
       ...nodesWithRow[0],
       estimateRowItems: [projectedCabinetRow, sinkRow],
     }]);
-    queryClient.setQueryData(workspaceComponentLibraryLiteQueryKey(workspaceId, projectId), makeLibraryData([projectedCabinetRow]));
+    queryClient.setQueryData(workspaceComponentLibraryLiteQueryKey(workspaceId, projectId), makeLibraryData([projectedCabinetComponentItem]));
     const update = deferred<ReturnType<typeof makeCanonicalReplaceResult>>();
     actionMocks.updateEstimateRowItem.mockReturnValueOnce(update.promise);
 
@@ -407,7 +600,7 @@ describe("estimate row mutation coordinator", () => {
       ...nodesWithRow[0],
       estimateRowItems: [projectedCabinetRow, sinkRow],
     }]);
-    queryClient.setQueryData(workspaceComponentLibraryLiteQueryKey(workspaceId, projectId), makeLibraryData([projectedCabinetRow, sinkRow]));
+    queryClient.setQueryData(workspaceComponentLibraryLiteQueryKey(workspaceId, projectId), makeLibraryData([projectedCabinetComponentItem, sinkRow]));
     actionMocks.deleteEstimateRowItem.mockResolvedValueOnce({
       eventId: "event-delete-cabinet",
       deletedRowId: cabinetRowId,
@@ -427,7 +620,36 @@ describe("estimate row mutation coordinator", () => {
     });
 
     await waitFor(() => expect(actionMocks.deleteEstimateRowItem).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(getCachedLibraryItems(queryClient).map((item) => item.id)).not.toContain(cabinetRowId));
+    await waitFor(() => expect(getCachedLibraryItems(queryClient).map((item) => item.id)).not.toContain(cabinetComponentId));
     expect(getCachedLibraryItems(queryClient).map((item) => item.id)).toContain(sinkRowId);
+  });
+
+  it("keeps a Project tab component cached when only one of its row instances is deleted", async () => {
+    const queryClient = makeQueryClient();
+    queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), [{
+      ...nodesWithRow[0],
+      estimateRowItems: [projectedCabinetRow, secondProjectedCabinetRow, sinkRow],
+    }]);
+    queryClient.setQueryData(workspaceComponentLibraryLiteQueryKey(workspaceId, projectId), makeLibraryData([projectedCabinetComponentWithTwoInstances]));
+    actionMocks.deleteEstimateRowItem.mockResolvedValueOnce({
+      eventId: "event-delete-cabinet-instance",
+      deletedRowId: cabinetRowId,
+    });
+
+    const { result } = renderHook(
+      () => useEstimateRowMutations(estimateId, undefined, workspaceId, projectId),
+      { wrapper: makeWrapper(queryClient) },
+    );
+
+    act(() => {
+      result.current.deleteRow({
+        projectId,
+        estimateId,
+        rowId: cabinetRowId,
+      });
+    });
+
+    await waitFor(() => expect(actionMocks.deleteEstimateRowItem).toHaveBeenCalledTimes(1));
+    expect(getCachedLibraryItems(queryClient).map((item) => item.id)).toContain(cabinetComponentId);
   });
 });

@@ -26,12 +26,11 @@ const DROP_SLOT_CONTENT_CLASS = "flex items-center gap-1.5 text-[10px] font-norm
  * Dashed drop surface, rendered only while a compatible drag is in flight
  * (drag suppresses CSS hover, so the highlight is driven by `isDragOver`).
  */
-export function EstimateDropZone({ label, isDragOver = false, empty = false }: { label: string; isDragOver?: boolean; empty?: boolean }) {
+export function EstimateDropZone({ label, isDragOver = false }: { label: string; isDragOver?: boolean }) {
   return (
     <div
       className={cn(
         DROP_SLOT_SURFACE_CLASS,
-        empty ? "h-20 border-brand-orange/40 bg-brand-orange/5 text-ink" : null,
         isDragOver ? "border-brand-orange bg-brand-orange/10 opacity-100 shadow-inner" : "opacity-60",
       )}
     >
@@ -67,55 +66,28 @@ function QuietAddRowButton({ nodeId, nodeName, onAddBlankRow }: {
   );
 }
 
-/**
- * Library-item drop target for a node. The dashed zone only exists while a
- * component drag is in flight; at rest the node keeps a quiet add-row
- * affordance so the sheet is not littered with permanent drop targets or
- * explanatory copy.
- */
-export function ComponentDropTarget({
-  canEditEstimate = true,
+function ActiveComponentDropZone({
   nodeId,
   nodeName,
-  empty,
   onInsertLibraryItem,
-  onAddBlankRow,
   onMoveRowItem,
-  rowDropIndex = 0,
+  rowDropIndex,
+  rowItemDragActive,
 }: {
-  canEditEstimate?: boolean;
   nodeId: string;
   nodeName: string;
-  empty: boolean;
   onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void;
-  onAddBlankRow: (targetNodeId: string) => void;
   onMoveRowItem?: (rowItemId: string, targetNodeId: string, targetIndex: number) => void;
-  rowDropIndex?: number;
+  rowDropIndex: number;
+  rowItemDragActive: boolean;
 }) {
-  const activeDrag = useEstimateWorkshopDrag();
   const [dragCount, setDragCount] = useState(0);
-  const componentDragActive = activeDrag?.kind === "library-item";
-  const rowItemDragActive = activeDrag?.kind === "estimate-row-item";
-  const compatibleDragActive = componentDragActive || rowItemDragActive;
   const isDragOver = dragCount > 0;
-
-  // A cancelled drag never delivers the balancing dragleave; adjust the
-  // stale counter during render once the drag store empties.
-  if (!compatibleDragActive && dragCount !== 0) setDragCount(0);
-
-  if (!canEditEstimate) return null;
-
-  if (!compatibleDragActive) {
-    return (
-      <div className={cn("py-1", empty ? "py-1.5" : null)}>
-        <QuietAddRowButton nodeId={nodeId} nodeName={nodeName} onAddBlankRow={onAddBlankRow} />
-      </div>
-    );
-  }
 
   return (
     <div
       className="py-1"
+      data-estimate-component-drop-zone={nodeId}
       onDragEnter={() => setDragCount((c) => c + 1)}
       onDragLeave={() => setDragCount((c) => Math.max(0, c - 1))}
       onDragOver={(event) => {
@@ -149,9 +121,60 @@ export function ComponentDropTarget({
       <EstimateDropZone
         label={rowItemDragActive ? `Move row to ${nodeName}` : `Drag and drop estimate component into ${nodeName}`}
         isDragOver={isDragOver}
-        empty={empty}
       />
     </div>
+  );
+}
+
+/**
+ * Library-item drop target for a node. The dashed zone only exists while a
+ * component drag is in flight; at rest the node keeps a quiet add-row
+ * affordance so the sheet is not littered with permanent drop targets or
+ * explanatory copy.
+ */
+export function ComponentDropTarget({
+  canEditEstimate = true,
+  nodeId,
+  nodeName,
+  empty,
+  onInsertLibraryItem,
+  onAddBlankRow,
+  onMoveRowItem,
+  rowDropIndex = 0,
+}: {
+  canEditEstimate?: boolean;
+  nodeId: string;
+  nodeName: string;
+  empty: boolean;
+  onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void;
+  onAddBlankRow: (targetNodeId: string) => void;
+  onMoveRowItem?: (rowItemId: string, targetNodeId: string, targetIndex: number) => void;
+  rowDropIndex?: number;
+}) {
+  const activeDrag = useEstimateWorkshopDrag();
+  const componentDragActive = activeDrag?.kind === "library-item";
+  const rowItemDragActive = activeDrag?.kind === "estimate-row-item";
+  const compatibleDragActive = componentDragActive || rowItemDragActive;
+
+  if (!canEditEstimate) return null;
+
+  if (!compatibleDragActive) {
+    return (
+      <div className={cn("py-1", empty ? "py-1.5" : null)}>
+        <QuietAddRowButton nodeId={nodeId} nodeName={nodeName} onAddBlankRow={onAddBlankRow} />
+      </div>
+    );
+  }
+
+  return (
+    <ActiveComponentDropZone
+      nodeId={nodeId}
+      nodeName={nodeName}
+      onInsertLibraryItem={onInsertLibraryItem}
+      onMoveRowItem={onMoveRowItem}
+      rowDropIndex={rowDropIndex}
+      rowItemDragActive={rowItemDragActive}
+    />
   );
 }
 
