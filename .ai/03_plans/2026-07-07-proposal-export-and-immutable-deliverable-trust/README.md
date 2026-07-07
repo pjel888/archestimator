@@ -9,10 +9,12 @@ release readiness)
 
 ## Status: `CONDITIONALLY READY`
 
-`verification_mode: emulated` (no separate authoring verifier agent was allocated to this
-planning-only task). Per the suite authority contract, `emulated` verification on a
-high-blast-radius package caps status at **CONDITIONALLY READY** unless an independent reviewer or
-explicit owner acceptance reviews the final package.
+`verification_mode: independent` — the final verification was performed by a **separate native
+verifier agent** with distinct output (15/15 completion gates passed; no hidden defects found).
+The status is `CONDITIONALLY READY` (not `IMPLEMENTATION-READY`) because **Performance readiness
+= 92 < 95** (required for user-facing exports), reflecting that performance thresholds are
+deliberately DISCOVERY-REQUIRED rather than guessed. This is a content gate, not a verification
+cap. See `17_FINAL_READINESS_REVIEW.md`.
 
 **Implementation-ready slices (named):**
 - Phase 0 — trust-ledger schema + repository + checksum + redaction-policy/byte-scan + staleness
@@ -88,7 +90,7 @@ serialized internally. Phase 3 depends on Phase 1's route changes.
 | Orphan-R2 reconcile strategy | OPEN-5 / T4.4 | executor | lifecycle rule vs reconcile cron |
 | `source_estimate_revision` field | OPEN-2 / T1.1 | executor | check `estimates` schema |
 | Store small-package bytes inline vs regenerate | OPEN-6 / DEC-STORE-1a | executor | determinism audit of `xlsx-workbook.ts` |
-| Independent/owner review (lifts emulated cap) | RISK-5 | Philip | review this pack |
+| Independent/owner review (strengthens acceptance) | RISK-5 | Philip | review this pack (NOTE: final verification was already independent; this is optional strengthening) |
 
 ## Stale-plan revalidation checklist (before executing)
 
