@@ -5,7 +5,7 @@
 > Reason: every internally-resolvable planning decision is closed, but the plan
 > *cannot* reach `IMPLEMENTATION-READY` from this planning-only session because
 > (a) verification is `emulated` (no native independent verifier dispatched) and
-> (b) three owner decisions remain open (OPEN-SEC-01, OPEN-SEC-02, OPEN-REL-02).
+> (b) four owner decisions remain open (OPEN-SEC-01, OPEN-SEC-02, OPEN-REL-01, OPEN-REL-02).
 > Per the Suite Authority Contract, `emulated` verification caps overall
 > readiness at **97** and caps an exhaustive auth-adjacent pack at
 > **`CONDITIONALLY READY`** until an independent reviewer or the owner signs off.

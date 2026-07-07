@@ -68,8 +68,9 @@ ALTER TABLE beta_feedback_submissions DROP COLUMN first_response_at;
 Code tolerates missing columns (null guards) → safe to roll back the schema even if a deploy with the new code is live (the new code paths no-op on null/missing).
 
 ### Local proof command
-- Apply: `bun run cf:d1-migrate-local` (or the repo's local D1 migrate script — verify exact name at impl).
-- Readback: `bun run tsx scripts/generate-cloudflare-d1-beta-feedback-proof.ts` (extend to assert the 3 new columns + index).
+- **Apply (local):** `bunx wrangler d1 migrations apply ARCH_DB --local` (standard Wrangler; the repo has **no** custom migrate script — verified `rg "d1 migrations|migrate" package.json` finds only `cf:deploy`/`cf:typegen`). The `migrations/` directory is the D1 migrations source.
+- **Readback (local):** `bun run cf:d1-beta-feedback-proof` (script: `scripts/generate-cloudflare-d1-beta-feedback-proof.ts`) — extend it to assert the 3 new columns + the `idx_beta_feedback_sla_sweep` index.
+- **Hosted apply:** `bunx wrangler d1 migrations apply ARCH_DB --remote` at deploy time (owner-gated; standing Cloudflare-resource authorization covers `ARCH_DB`).
 
 ### Linked-provider proof boundary
 - D1 readback via the proof script confirms columns on `ARCH_DB`. Hosted apply is the deploy-time step (`13`).
@@ -79,33 +80,55 @@ Code tolerates missing columns (null guards) → safe to roll back the schema ev
 
 ## Blueprint DB-02 — Retention rule (P3, `CONDITIONALLY READY`)
 
-### Affected
-- Retention registry (`retention-core.ts` or equivalent — `DISCOVERY-REQUIRED`: locate via `rg "DEFAULT_RETENTION_RULES"` at impl).
-- `runRetentionPassInD1` rule list (`worker.ts` / retention module).
-- `beta_feedback_submissions` rows (purge target).
+**Source of truth (verified 2026-07-07):** `src/lib/compliance/retention-core.ts`. The rule registry is `DEFAULT_RETENTION_RULES: readonly RetentionRule[]` (`:79`). This is a **planned source-code edit, not an additive registry insert** — two changes are required in that file:
 
-### Rule
+### Affected (exact symbols — `src/lib/compliance/retention-core.ts`)
+1. **`RetentionClassName` union (`:28-42`)** — this is a *closed* string-literal union. Adding feedback requires appending `| "beta_feedback_submissions"` to the union. This is a source edit, not a data insert.
+2. **`DEFAULT_RETENTION_RULES` array (`:79-143`)** — append a new `RetentionRule` object matching the established `selectSql`/`applySql` two-step batched pattern (select ids `LIMIT 500`, then `DELETE ... WHERE id IN (SELECT value FROM json_each(?1))`).
+
+`runRetentionPassInD1` (`:180`) consumes the registry unchanged; the `worker.ts` cron (`30 3 * * *`) calls it with `undefined` rules → uses `DEFAULT_RETENTION_RULES`. No `worker.ts` change needed for the rule itself (the rule is picked up automatically once added to the array).
+
+### Real `RetentionRule` shape (from `retention-core.ts:44-50`)
 ```ts
+export type RetentionRule = {
+  className: RetentionClassName;
+  ttlDays: number;
+  action: RetentionAction;        // "tombstoned" | "anonymized" | "purged" | "soft_deleted" | "skipped_legal_hold"
+  selectSql: string;              // returns {id} rows, bound with cutoff timestamp (?1)
+  applySql: string;               // deletes/updates by json_each(?1) of the selected ids
+};
+```
+
+### Proposed rule (matches the established two-step pattern)
+```ts
+// Append to DEFAULT_RETENTION_RULES in src/lib/compliance/retention-core.ts
 {
-  table: "beta_feedback_submissions",
-  ttlDays: 365,
-  purgeSql: "DELETE FROM beta_feedback_submissions WHERE status = 'archived' AND created_at < ?",
-  rationale: "Consent + legitimate-interest support data; archived-only purge protects active support.",
+  className: "beta_feedback_submissions",   // ALSO add this literal to the RetentionClassName union
+  ttlDays: 365,                              // OPEN-RET-01 recommended; couples to OPEN-DEC-004 ratification
+  action: "purged",
+  selectSql:
+    "SELECT id FROM beta_feedback_submissions WHERE status = 'archived' AND created_at < ?1 LIMIT 500",
+  applySql:
+    "DELETE FROM beta_feedback_submissions WHERE id IN (SELECT value FROM json_each(?1))",
 }
 ```
 
-### Purge SQL
-`DELETE FROM beta_feedback_submissions WHERE status = 'archived' AND created_at < ?`
+### Safety guard (load-bearing)
+- `WHERE status = 'archived'` in `selectSql` — non-archived rows are **never** selected even if past TTL (T-11, RISK-04). A `new`/`reviewing`/`resolved` row past 365 days is retained.
+- `LIMIT 500` matches the established per-run batch cap; the daily cron catches up over multiple runs if backlog exceeds 500.
+- `applySql` deletes by `json_each` of *only the ids selected by `selectSql`* — so the archived-only filter is enforced at selection time, not deletion time (defense in depth).
 
-### Safety guard
-- `WHERE status = 'archived'` — non-archived rows are never purged even if past TTL (T-11, RISK-04).
-- Idempotent: re-running deletes nothing more.
+### Idempotency
+- Re-running the retention pass is safe: once a row is deleted it is gone; the next run selects nothing. The two-step select→delete is inherently idempotent under the `LIMIT 500` cap.
 
 ### Rollback
-- Remove the rule from the registry; existing rows unaffected (purge only deletes, never mutates non-archived).
+- Remove the rule object from `DEFAULT_RETENTION_RULES` and remove `"beta_feedback_submissions"` from the `RetentionClassName` union. Existing rows are unaffected (purge only deletes archived+old; never mutates non-archived). No migration rollback needed (retention is data, not schema).
+
+### Test
+- Extend the retention test suite (locate via `rg "DEFAULT_RETENTION_RULES|runRetentionPassInD1" tests/`) with a fixture: seed (a) an `archived` row older than 365d, (b) a `new` row older than 365d, (c) an `archived` row newer than 365d. Assert: only (a) is purged; (b) and (c) survive.
 
 ### Status
-`CONDITIONALLY READY` — couples to `OPEN-RET-01` (TTL value) and `OPEN-DEC-004` (retention-schedule ratification). The archived-only guard is safe regardless of the final TTL value.
+`CONDITIONALLY READY` — couples to `OPEN-RET-01` (TTL value) and `OPEN-DEC-004` (retention-schedule ratification). The archived-only guard and the two-step pattern are safe regardless of the final TTL value. The path is now exact (no `DISCOVERY-REQUIRED`): `src/lib/compliance/retention-core.ts`, `RetentionClassName` union + `DEFAULT_RETENTION_RULES` array.
 
 ## Blueprint DB-03 — DSAR reachability (P3, coupled)
 

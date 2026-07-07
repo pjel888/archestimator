@@ -101,3 +101,20 @@ Draft (deterministic or provider-assisted) → user confirm → `verifyPackageDr
 ## Decision rationale (summary; full in `15_*`)
 
 Architecture stays additive and within the existing repository-boundary pattern. All hardening composes with current invariants; nothing requires re-platforming or a paid resource.
+
+## Route-level App Router boundary & cache contract (Improve pass — required by PHASE 3 §4)
+
+The Improve prompt requires every affected App Router route to be forced down to exact route-boundary, rendering, DTO-crossing, cache-finalization, and revalidation decisions. Next.js 16 in this repo: AI routes are Route Handlers (not pages); no Cache Components `use cache` boundaries are introduced by this plan. Local docs evidence path for cache claims: `node_modules/next/dist/docs/01-app/02-guides/` (e.g. `caching-without-cache-components.md`).
+
+| Route file | Type | Server/Client ownership | Request-time APIs → rendering | DTO crossing client | Cache finalization | Revalidation | Notes |
+|---|---|---|---|---|---|---|---|
+| `src/app/api/ai/ask/route.ts` | Route Handler (POST, server-only) | server-only; handler dynamic-imported after kill-switch | none (no `cookies`/`headers`/`searchParams` for rendering — it reads request body) | response DTO `{message(scrubbed),provider,model,usage}` | **no-store** (dynamic, private, tenant-scoped, token-bearing) — no `use cache`, no fetch cache, `Cache-Control: private, no-store` | none (read-only) | never call from a Server Component (it's an API; server code calls the data function directly if ever needed) |
+| `src/app/api/ai/package-builder/route.ts` | Route Handler (POST, server-only) | server-only; dynamic-imported after kill-switch | none for rendering | response DTO `{mode,draft,draftHash,draftToken?,provider,model,usage,productionWrite,serverValidation}` | **no-store** | Apply path only: `revalidatePath(estimatePath)`, `revalidatePath(projectPath)` (existing in `apply.ts`) | draft token returned to client (one-shot, 30min) — bound to user+ws at verify |
+| `src/components/workshop/EstimateCopilotFloatingButton.tsx` | Client Component (`"use client"`, smallest boundary) | client UI only; no server data fetched in it; gated by `NEXT_PUBLIC_ASK_FLIP_UI_ENABLED` | n/a | client receives scrubbed Ask response DTO only | n/a (component) | n/a | lazy-mounted in `WorkshopPageShell.tsx` to keep workshop base bundle lean |
+| `src/components/workshop/WorkshopPageShell.tsx` | Server Component (gate) | server-rendered; reads flag at render | flag is `NEXT_PUBLIC_*` (build-time inlined) — does NOT opt route into dynamic rendering by itself | none | workshop route cache unchanged | n/a | flag-gate hides the button; no AI data in RSC payload |
+
+Cache-Components proof (required by Improve §4): AI responses are **private, tenant-scoped, token-bearing** → they default to no-store under any cache model. No `use cache`/`cacheLife`/`cacheTag` is introduced. Apply's `revalidatePath` is the only mutation-driven invalidation and it targets estimate/project paths (read-your-own-writes preserved — the applying user's next navigation shows the inserted rows; collaborators see changes on their next navigation, documented as RISK-AI-11). This does **not** carry Next.js 14/15 fetch-cache assumptions.
+
+Read-your-own-writes: preserved via `revalidatePath` after apply + idempotency ledger as the source of truth (not optimistic UI).
+
+Bundle: handler code is in a dynamic chunk when AI is off (build artifact must confirm). Client AI code is lazy-mounted + flag-gated.

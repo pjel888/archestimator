@@ -103,11 +103,26 @@ created_at)` indexes already cover. **No new index needed for privacy_requests.*
 | `source` | `"cloudflare-cron"` | producer marker |
 | `providerProof?` | object | optional proof receipt request |
 
-**Retry policy:** `max_retries=3`, `delaySeconds=60` (app-side `retry({delaySeconds})`);
-Cloudflare Queues applies its own backoff. DLQ after final failed attempt.
-**Consumer ack semantics:** `message.ack()` removes; `message.retry({delaySeconds})`
-re-delivers. `deadLetterExpected` is an app-computed flag for proof; the actual
-DLQ move is Cloudflare infra when `max_retries` exhausted.
+**Retry policy (grounded in official Cloudflare Queues docs):**
+- `max_retries=3` (Cloudflare default; max configurable 100). Messages exceeding
+  the retry limit are routed to the DLQ `archestimator-upload-jobs-dlq` (if a
+  DLQ is configured, which it is); without a DLQ they would be discarded.
+- **Explicit acknowledgement mode:** the code calls per-message `ack()`/`retry()`.
+  This is *not* the Cloudflare default (default = whole-batch retry on any
+  failure). Because the consumer uses explicit ack, individual messages are
+  isolated — a failed message does NOT force the whole batch to retry.
+- `retryDelaySeconds=60` set by the app **overrides** Cloudflare's default
+  exponential backoff for that message → a flat 60s delay before redelivery.
+- `deadLetterExpected` is an **app-computed flag** for proof/reporting; the
+  actual DLQ *move* is performed by Cloudflare infra when `max_retries` is
+  exhausted (the app does not move messages to the DLQ).
+- **DLQ drain mechanics (corrected):** the DLQ is a normal queue. There is no
+  `wrangler queues dlq drain` command. To inspect/drain it: (a) dashboard
+  "Debug Queues" (send/list/ack), (b) a pull consumer over the HTTP API
+  (`POST /accounts/{account_id}/queues/{queue_id}/messages/pull`,
+  `visibility_timeout` default 30s/max 12h), or (c) a temporary consumer Worker
+  bound to the DLQ. See D-DLQDRAIN and runbook §9. Sources: Cloudflare Queues
+  DLQ / batching-retries / pull-consumers docs (cited in `19`).
 
 ### Retention pass (in-process, no HTTP)
 

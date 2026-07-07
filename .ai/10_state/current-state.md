@@ -39,9 +39,9 @@ Stable current truth (verify against git/source before relying on a detail):
   local pinning/config tests read the disabled archive path so the preserved
   definitions stay checked.
 - GitHub security PR/comment loop (2026-07-07 local): live GitHub inventory
-  found 22 open PRs for `pjel888/archestimator`, no open issues, 13 unresolved
-  non-outdated review threads across PRs 107, 108, 109, 114, 115, and 118
-  after PR106 was pushed/resolved and a new PR108 follow-up thread appeared.
+  found 22 open PRs for `pjel888/archestimator`, no open issues, 14 unresolved
+  non-outdated review threads across PRs 106, 107, 109, 114, 115, and 118
+  after PR108 was pushed/resolved and new PR106 follow-up threads appeared.
   Hosted alert readbacks are unavailable rather than clean: code scanning
   returned 403 disabled, Dependabot alerts returned 403 disabled plus an
   `admin:repo_hook` scope request, and secret scanning returned 404 disabled
@@ -61,7 +61,10 @@ Stable current truth (verify against git/source before relying on a detail):
   launcher tests, syntax check, targeted ESLint, typecheck, `validate:agents`,
   prompt resolver checks, stale-string scans, and scoped `git diff --check`
   passed. GraphQL readback resolved both PR106 follow-up threads; one was
-  outdated after the fix and one remained current before resolution.
+  outdated after the fix and one remained current before resolution. A later
+  refresh found 2 new active PR106 follow-up threads on failing when the
+  verified server exits immediately and parameterizing the health-check port
+  when `SUPERMEMORY_PORT` overrides `6767`.
   PR107 branch `codex/fix-d1-project-component-loader-vulnerability` was updated
   on GitHub to head `b6cfb387`: project component projection now uses a
   whole-project D1 authz helper that excludes estimate-only access before
@@ -83,10 +86,15 @@ Stable current truth (verify against git/source before relying on a detail):
   auto-provisioned default workspaces, adds
   `0030_workspace_owner_membership_backfill.sql`, and denies sheet-only
   collaborators at project-wide readers while estimate-specific paths keep
-  estimate-level checks. PR108 focused tests/typecheck passed and GraphQL
-  readback resolved both original PR108 threads; a later refresh found 1 new
-  active PR108 follow-up thread on preserving estimate-scoped readers for sheet
-  invitees. Local fixes for PR109/PR110
+  estimate-level checks. PR108 branch was later updated to head `2fb2bb6d`:
+  estimate tree/tab/export readers now use a separate estimate-scoped project
+  context helper that keeps `canAccessWholeProjectInD1` for project-wide access
+  but falls back to `canAccessEstimateInD1` for the requested estimate only, so
+  sheet-only invitees can load or export their granted sheet. PR108
+  focused/adjacent tests passed 8 files / 45 tests, typecheck passed, targeted
+  ESLint exited 0 with only pre-existing unused-symbol warnings, scoped
+  `git diff --check` passed, and GraphQL readback resolved all active PR108
+  threads. Local fixes for PR109/PR110
   canonicalized padded share
   tokens before password-cookie checks, trimmed share API route tokens, and
   require the password access cookie before recipient comment/decision POSTs.

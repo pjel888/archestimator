@@ -29,7 +29,7 @@
 | SEC-08 | Account linking mismatch if invitee signs up with differently-cased/aliased email | `session.ts` email join, `invitation-d1-store.ts:493-501` | **Low-Medium** | SEC-08: normalizeEmail consistency + documentation. AC-SEC-08a/b. |
 | SEC-09 | Single pepper compromise affects invite hashing + rate-limit IP hashing + realtime identity signing | `invite-entry.ts:108-118`, `realtime-identity-server.ts:41-55` | **Low-Medium** | DEC-06: require `REALTIME_IDENTITY_SIGNING_KEY`. AC-SEC-09a-c. OPEN-REL-02. |
 | SEC-10 | Direct-grant downgrades an existing higher-role member | `actions.ts:785-852` | **Low** | DEC-07: promotion-only. AC-SEC-10a/b. |
-| SEC-11 | `accepted_via='auth_trigger'` dead enum value | `migrations/0007:77` | **Low (cleanliness)** | OPEN-SEC-01: wire or remove. AC-SEC-11a. |
+| SEC-11 | `accepted_via='auth_trigger'` dead enum value | `migrations/0007:75-78` | **Low (cleanliness)** | OPEN-SEC-01: wire or remove. AC-SEC-11a. |
 | SEC-12 | Token enumeration via timing on the resolve route | `readInvitationByTokenHash` | **Low (non-regression)** | Already mitigated: hash lookup is constant-time per row; rate-limited. |
 | SEC-13 | Invite email discloses project name + role + inviter to a wrong recipient | `sendCloudflareInviteEmail` | **Low-Medium (inherent)** | Inherent to email invites; mitigated by token-in-URL-only, manager-visible audit, revoke capability. Document. |
 | SEC-14 | Replay of a used token by a different actor | `acceptInvitationInD1` | **Low (non-regression)** | Already mitigated: `already_used` + `collaboration_invite_replay_blocked` audit. |

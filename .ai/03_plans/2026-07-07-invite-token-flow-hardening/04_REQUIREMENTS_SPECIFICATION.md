@@ -167,8 +167,8 @@ Stable IDs per category. Each requirement: statement, rationale, source, priorit
 
 ### SEC-11 — Resolve the `accepted_via = 'auth_trigger'` dead enum value
 - **Statement.** Either (a) wire a login-time grant that sets `accepted_via='auth_trigger'` when a user completes auth and has a pending invitation for their email, or (b) remove `auth_trigger` from the CHECK constraint in a forward-only migration. Owner decides (OPEN-SEC-01).
-- **Rationale.** The enum value exists in the schema CHECK (`migrations/0007:77`) but no code writes it. Dead schema surface.
-- **Source.** `repo evidence` (`migrations/0007_collaboration_invitations.sql:74-78`; no writer found).
+- **Rationale.** The enum value exists in the schema CHECK (`migrations/0007:75-78`) but no code writes it. Dead schema surface.
+- **Source.** `repo evidence` (`migrations/0007_collaboration_invitations.sql:75-78`; no writer found).
 - **Priority.** P3 (cleanliness).
 - **Dependencies.** OPEN-SEC-01 (owner decision).
 - **Acceptance criteria.**

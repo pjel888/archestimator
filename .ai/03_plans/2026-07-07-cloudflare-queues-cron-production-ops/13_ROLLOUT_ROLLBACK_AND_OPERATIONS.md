@@ -74,13 +74,31 @@ message age p95) are hosted-evidence-dependent.
 - Cleanup backlog: `SELECT status, COUNT(*) FROM upload_assets WHERE status IN ('deleted') GROUP BY status;` + R2 existence check via proof script.
 - DLQ: `wrangler queues message archived-upload-jobs-dlq ...` (read-only peek) or dashboard.
 
-### DLQ operations (FR-005)
-1. Peek/list DLQ messages (read-only).
-2. Inspect message body (jobName, cron, idempotencyKey).
-3. Determine root cause (route 503/401? scanner down?).
-4. Fix root cause.
-5. Replay: re-enqueue to `archestimator-upload-jobs` (verify idempotency holds — cleanup/scan are idempotent).
-6. Discard (destructive): **owner sign-off required**; record in `data_retention_events` notes or an incident log.
+### Retry & DLQ semantics (grounded in official Cloudflare Queues docs)
+- `max_retries=3` (default); DLQ `archestimator-upload-jobs-dlq` receives
+  messages that exceed the retry limit (without a DLQ they'd be discarded).
+- The consumer uses **explicit per-message ack/retry** (not Cloudflare's
+  default whole-batch retry), so one bad message does not force batch-wide
+  redelivery.
+- App `retry({delaySeconds:60})` **overrides** Cloudflare's default exponential
+  backoff → flat 60s delay.
+- `deadLetterExpected` is an app flag; the DLQ move is Cloudflare infra.
+
+### DLQ operations (FR-005) — corrected to real mechanisms
+The DLQ is a normal queue; there is **no** `wrangler queues dlq drain` command.
+1. **Inspect:** dashboard "Debug Queues" (send/list/ack) **or** a pull consumer
+   over the HTTP API (`POST /accounts/{account_id}/queues/{queue_id}/messages/pull`,
+   `visibility_timeout` default 30s) **or** a temporary consumer Worker bound to
+   `archestimator-upload-jobs-dlq`. (D-DLQDRAIN recommends the pull-consumer
+   drill for safe replay; a pull consumer is a new network surface — scope its
+   auth per `08` Attack Surface Inventory.)
+2. Read each message body (`jobName`, `cron`, `idempotencyKey`).
+3. Determine root cause (route 503/401? scanner down? consumer exception?).
+4. Fix root cause (secret rotation / scanner health / code fix + redeploy).
+5. **Replay:** re-enqueue the message body to `archestimator-upload-jobs`
+   (verify idempotency holds — cleanup/scan are idempotent, so replay is safe).
+6. **Discard (destructive):** owner sign-off required; ack the DLQ message
+   without replay; record in an incident log / `data_retention_events` notes.
 
 ### Alert thresholds (REL-001) — see `09` table.
 

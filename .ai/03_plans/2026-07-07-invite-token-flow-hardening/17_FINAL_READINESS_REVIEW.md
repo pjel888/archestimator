@@ -7,7 +7,7 @@
 | Doc | Score | Category driver | Exact reason below 100 |
 |---|---|---|---|
 | 00_AGENT_COORDINATION | 96 | Process | emulated verification (no native independent verifier) |
-| 01_EXECUTIVE_SUMMARY | 96 | Clarity | 3 owner decisions open (OPEN-SEC-01/02, OPEN-REL-01/02) |
+| 01_EXECUTIVE_SUMMARY | 96 | Clarity | 4 owner decisions open (OPEN-SEC-01, OPEN-SEC-02, OPEN-REL-01, OPEN-REL-02) |
 | 02_FEATURE_BRIEF_AND_SCOPE | 97 | Scope | — |
 | 03_SOURCE_AND_CODEBASE_AUDIT | 97 | Evidence | file:line evidence throughout; 3 DISCOVERY sub-steps pending |
 | 04_REQUIREMENTS_SPECIFICATION | 96 | Requirements | OPEN-SEC-01/02 gated requirements (SEC-05, SEC-11) |
@@ -21,7 +21,7 @@
 | 12_TEST_AND_VALIDATION_STRATEGY | 95 | Testing | no invite e2e Playwright spec (manual preview proof) |
 | 13_ROLLOUT_ROLLBACK_AND_OPERATIONS | 94 | Rollout | 24h 403 monitoring is the real P1 gate (not provable in planning) |
 | 14_RISK_REGISTER | 96 | Risk | RISK-01 (over-blocking) only fully resolved post-monitoring |
-| 15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES | 96 | Decisions | 3 owner decisions open |
+| 15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES | 96 | Decisions | 4 owner decisions open |
 | 16_REQUIREMENTS_TRACEABILITY_MATRIX | 96 | Traceability | — |
 | 18_STACK_CONTRACT_AND_PRODUCTION_STANDARDS | 96 | Stack | — |
 | 19_RESEARCH_REVIEW_AND_QA_EVIDENCE | 95 | QA | adversarial matrix is static-review + unit; no browser proof |

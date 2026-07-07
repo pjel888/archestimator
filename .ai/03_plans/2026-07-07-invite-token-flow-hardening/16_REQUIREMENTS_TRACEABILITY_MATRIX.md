@@ -16,7 +16,7 @@
 | SRC-REPO | SEC-08 | `session.ts:56-77`; `invitation-d1-store.ts:493-501` | repo evidence | 04 SEC-08 | P4 audit | AC-SEC-08a/b | `collaboration-invitation-d1-store.test.ts` | — | Planned | — |
 | SRC-REPO | SEC-09 | `realtime-identity-server.ts:41-55`; `realtime-room-token.ts:7` | repo evidence | 04 SEC-09; 08 SEC-09 | P5-T1 | AC-SEC-09a-c | `project-collaboration-realtime.test.ts`, `cloudflare-collaboration-room-auth.test.ts` | RISK-06, RISK-08 | Planned | DEC-06; OPEN-REL-02 |
 | SRC-REPO | SEC-10 | `actions.ts:785-852` vs `invitation-d1-store.ts:373-451` | repo evidence | 04 SEC-10 | P4-T1 | AC-SEC-10a/b | `project-collaboration-actions.test.ts` | RISK-07 | Planned | DEC-07; P4-T1 DISCOVERY |
-| SRC-REPO | SEC-11 | `migrations/0007:74-78` | repo evidence | 04 SEC-11 | P5-T2 | AC-SEC-11a | per OPEN-SEC-01 | — | Planned | OPEN-SEC-01 |
+| SRC-REPO | SEC-11 | `migrations/0007:75-78` | repo evidence | 04 SEC-11 | P5-T2 | AC-SEC-11a | per OPEN-SEC-01 | — | Planned | OPEN-SEC-01 |
 | SRC-REPO | SEC-15 | new revoke action (IDOR surface) | derived | 08 SEC-15 | P3-T3 | AC-SEC-07b (deny) | `project-collaboration-revoke-invitation.test.ts` | — | Planned | — |
 | SRC-REPO | FR-01 | `invite-entry.ts:54-80`; `actions.ts:503-612` | repo evidence | 04 FR-01 | P3 (revoke add) | AC-FR-01a/b | `project-invite-entry-schema.test.ts` + revoke test | — | Planned | — |
 | SRC-REPO | FR-02 | `invitation-d1-store.ts:78-123,281-336` | repo evidence | 04 FR-02 | P6-T1 | AC-FR-02a/b | `collaboration-invitation-d1-store.test.ts` | — | Non-regression | — |
