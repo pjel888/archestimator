@@ -53,11 +53,14 @@ local-only checks**.
 | Adversarial reviewer | same-agent emulated | `19_…` |
 | Final verifier | same-agent emulated | `17_…` |
 
-**Native subagents used:** 3 (2 Explore for codebase mapping, 1 general-purpose
-for Cloudflare official-docs research). **Verification mode: `emulated`.** No
-independent verifier was available, so the package is capped at 97 overall and
-marked `CONDITIONALLY READY` for the high-blast-radius exhaustive profile pending
-an owner or independent review pass.
+**Native subagents used:** 3 in original authoring (2 Explore + 1 general-purpose
+research) + **2 independent advisory lanes in the Improve-Plan cycle** (1
+adversarial-review general-purpose + 1 final-verification general-purpose, neither
+of which authored the package). **Verification mode: `emulated`** for the
+authoring session (the advisory passes do not retroactively make authoring
+independent, but their findings materially raised quality and all 2× P0 / 8× P1 /
+4× P2 findings were resolved). Overall readiness **96/100**; package
+`CONDITIONALLY READY` pending owner/independent acceptance (OPEN-05).
 
 ## Skills discovered and used
 
