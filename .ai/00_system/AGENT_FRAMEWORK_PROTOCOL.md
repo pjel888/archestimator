@@ -44,18 +44,24 @@ At the start of meaningful work, each agent or adapter should:
    local server in the background, then retry until the check passes:
 
    ```sh
-   test -x ./node_modules/.bin/supermemory && \
-     nohup ./node_modules/.bin/supermemory local start --port 6767 >/tmp/supermemory-local.log 2>&1 &
+   bun run supermemory:start
    ```
 
-   The local binary path is mandatory: do not use `npm exec`, `npx`, or any
-   command that can install or run an unpinned registry package. If the
-   repository does not provide a locked local `supermemory` binary, treat
-   startup as unavailable. Do not treat installer completion as a running
-   memory layer: if a harness uses an installer-only flow such as
-   `supermemory local install`, it must start the installed
-   `supermemory-server` afterward and wait for the `http://localhost:6767/`
-   check to pass before claiming Supermemory is available.
+   This command fails synchronously unless `SUPERMEMORY_SERVER_BIN` points to
+   an executable local `supermemory-server` binary and
+   `SUPERMEMORY_SERVER_SHA256` matches that binary. The server listens on
+   `SUPERMEMORY_PORT`/`PORT`, defaulting to `6767`, and logs to
+   `/tmp/supermemory-local.log`.
+
+   The verified server binary path is mandatory: do not use `npm exec`, `npx`,
+   `bunx`, `pnpm dlx`, the npm wrapper installer, or any command that can
+   install or run an unpinned registry package or second-stage download. If the
+   harness only has an installer flow, treat startup as unavailable until it
+   provides a locally installed `supermemory-server` binary plus its expected
+   SHA-256.
+   Do not treat installer completion as a running memory layer; wait for the
+   `http://localhost:6767/` check to pass before claiming Supermemory is
+   available.
 
    If the harness cannot start it or the command fails, continue with an
    explicit `not-verified` memory gap instead of blocking safe local work.

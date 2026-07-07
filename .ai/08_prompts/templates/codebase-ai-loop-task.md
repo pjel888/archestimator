@@ -18,7 +18,7 @@ the `<…>` fields. This template is an adapter — it points to the canonical m
 1. Read `AGENTS.md` and the FAST PATH block at the top of `.ai/10_state/current-state.md`;
    pull `.ai/00_system` source-of-truth docs only when the task/risk needs them.
 2. Check Supermemory local at `http://localhost:6767/`. If it is down and the
-   harness can start local processes, run `./node_modules/.bin/supermemory local start --port 6767` in the
+   harness can start local processes, run `bun run supermemory:start` in the
    background and retry. Search relevant memory before broad/non-trivial work
    and update it at closeout when durable project truth changes. Treat memory as
    advisory until verified against `.ai`, source, tests, or provider evidence.

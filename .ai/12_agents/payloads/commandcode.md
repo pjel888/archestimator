@@ -28,7 +28,7 @@ Start with `AGENTS.md` and the FAST PATH block at the top of
 ## Supermemory Workflow
 
 Check `http://localhost:6767/` before meaningful CommandCode work. If it is down
-and local process startup is available, run `./node_modules/.bin/supermemory local start --port 6767` in
+and local process startup is available, run `bun run supermemory:start` in
 the background and retry. Use the configured Supermemory plugin, MCP, SDK, or
 local API reference to search relevant memory before broad/non-trivial review or
 implementation work, then update memory at closeout when durable project truth

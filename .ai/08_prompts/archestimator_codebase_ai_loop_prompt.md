@@ -111,12 +111,12 @@ For this audit and every future codebase-AI workflow:
    background and retry until the check passes:
 
    ```sh
-   test -x ./node_modules/.bin/supermemory && \
-     nohup ./node_modules/.bin/supermemory local start --port 6767 >/tmp/supermemory-local.log 2>&1 &
+   bun run supermemory:start
    ```
 
-   Do not use `npm exec`, `npx`, or any startup command that can install or
-   run an unpinned registry package.
+   Do not use `npm exec`, `npx`, `bunx`, `pnpm dlx`, the npm wrapper installer,
+   or any startup command that can install or run an unpinned registry package
+   or unverified second-stage server download.
 
 3. Search Supermemory for relevant repo/task memory before broad, non-trivial,
    recovery, review, or handoff work. Use the configured harness plugin, MCP,

@@ -25,7 +25,7 @@ that happens, start with `AGENTS.md` and the FAST PATH block at the top of
 
 Ollama is not a chat/planning/coding agent. If approved embedding tooling uses
 Ollama with Supermemory, the active lead or approved agent owns the workflow:
-check `http://localhost:6767/`, start `./node_modules/.bin/supermemory local start --port 6767` in the
+check `http://localhost:6767/`, start `bun run supermemory:start` in the
 background if it is down and local process startup is available, search/update
 memory only through the approved tool surface, and treat retrieved memories as
 advisory until verified against current `.ai`, source, tests, or provider

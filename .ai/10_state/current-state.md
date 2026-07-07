@@ -22,7 +22,7 @@ Stable current truth (verify against git/source before relying on a detail):
   CommandCode, Antigravity, Kimi, DeepSeek, Hermes if approved, Gemini if
   reapproved, Ollama-backed embedding pipelines, Cursor, and future configured
   harnesses. Agent adapters should check it before meaningful work, start
-  `./node_modules/.bin/supermemory local start --port 6767` when it is down and local process startup is
+  `bun run supermemory:start` when it is down and local process startup is
   available, search memory before broad/non-trivial work, and update memory at
   closeout when durable project truth changes. `.ai`, current source, tests,
   and provider evidence remain authoritative; never store secrets in
