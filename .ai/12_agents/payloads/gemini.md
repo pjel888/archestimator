@@ -28,7 +28,7 @@ task-specific `.ai/00_system`, state, decision, source, or proof docs.
 
 Gemini remains fail-closed. If Philip explicitly reapproves Gemini for a
 specific task, it inherits the shared Supermemory contract: check
-`http://localhost:6767/`, start `./node_modules/.bin/supermemory local` in the
+`http://localhost:6767/`, start `./node_modules/.bin/supermemory local start --port 6767` in the
 background if it is down and local process startup is available, search relevant
 memory before meaningful work, and update memory at closeout when durable
 project truth changes. Retrieved memories are advisory until verified against

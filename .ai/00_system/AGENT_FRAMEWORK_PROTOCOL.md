@@ -45,13 +45,17 @@ At the start of meaningful work, each agent or adapter should:
 
    ```sh
    test -x ./node_modules/.bin/supermemory && \
-     nohup ./node_modules/.bin/supermemory local >/tmp/supermemory-local.log 2>&1 &
+     nohup ./node_modules/.bin/supermemory local start --port 6767 >/tmp/supermemory-local.log 2>&1 &
    ```
 
    The local binary path is mandatory: do not use `npm exec`, `npx`, or any
    command that can install or run an unpinned registry package. If the
    repository does not provide a locked local `supermemory` binary, treat
-   startup as unavailable.
+   startup as unavailable. Do not treat installer completion as a running
+   memory layer: if a harness uses an installer-only flow such as
+   `supermemory local install`, it must start the installed
+   `supermemory-server` afterward and wait for the `http://localhost:6767/`
+   check to pass before claiming Supermemory is available.
 
    If the harness cannot start it or the command fails, continue with an
    explicit `not-verified` memory gap instead of blocking safe local work.

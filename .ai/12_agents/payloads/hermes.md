@@ -28,7 +28,7 @@ the top of `.ai/10_state/current-state.md`, then pull only task-specific
 
 Hermes remains unapproved. If Philip explicitly approves Hermes later, it
 inherits the shared Supermemory contract: check `http://localhost:6767/`, start
-`./node_modules/.bin/supermemory local` in the background if it is down and local
+`./node_modules/.bin/supermemory local start --port 6767` in the background if it is down and local
 process startup is available, search relevant memory before meaningful work,
 and update memory at closeout when durable project truth changes. Retrieved
 memories are advisory until verified against current `.ai`, source, tests, or

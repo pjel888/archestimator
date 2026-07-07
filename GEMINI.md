@@ -11,7 +11,7 @@ scoped.
 
 If Gemini is ever reapproved for a specific task, it inherits the same
 Supermemory workflow as every other agent: check `http://localhost:6767/`, start
-`./node_modules/.bin/supermemory local` if it is down and local process startup is
+`./node_modules/.bin/supermemory local start --port 6767` if it is down and local process startup is
 available, search memory before meaningful work, and update it at closeout when
 durable project truth changes. Supermemory is advisory; `.ai`, current source,
 tests, and provider evidence remain authoritative.

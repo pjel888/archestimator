@@ -28,7 +28,7 @@ relevant plan/test/source files for the bug.
 ## Supermemory Workflow
 
 Check `http://localhost:6767/` before meaningful DeepSeek work. If it is down
-and local process startup is available, run `./node_modules/.bin/supermemory local` in
+and local process startup is available, run `./node_modules/.bin/supermemory local start --port 6767` in
 the background and retry. Use the configured Supermemory plugin, MCP, SDK, or
 local API reference to search relevant debugging/review memory before
 broad/non-trivial work, then update memory at closeout when durable project

@@ -29,7 +29,7 @@ that surface.
 ## Supermemory Workflow
 
 Check `http://localhost:6767/` before meaningful Codex work. If it is down and
-local process startup is available, run `./node_modules/.bin/supermemory local` in the
+local process startup is available, run `./node_modules/.bin/supermemory local start --port 6767` in the
 background and retry. Use the configured Codex Supermemory integration, MCP,
 SDK, or local API reference to search relevant memory before broad/non-trivial
 work, then update memory at closeout when durable project truth changes.

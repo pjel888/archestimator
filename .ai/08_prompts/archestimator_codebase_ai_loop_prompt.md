@@ -112,7 +112,7 @@ For this audit and every future codebase-AI workflow:
 
    ```sh
    test -x ./node_modules/.bin/supermemory && \
-     nohup ./node_modules/.bin/supermemory local >/tmp/supermemory-local.log 2>&1 &
+     nohup ./node_modules/.bin/supermemory local start --port 6767 >/tmp/supermemory-local.log 2>&1 &
    ```
 
    Do not use `npm exec`, `npx`, or any startup command that can install or
