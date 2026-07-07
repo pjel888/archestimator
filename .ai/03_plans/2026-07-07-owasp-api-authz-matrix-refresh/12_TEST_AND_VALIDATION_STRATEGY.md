@@ -83,3 +83,31 @@ Pending items map to implementation tasks. Verified items have existing tests.
 - Claiming DoS readiness from ordinary tests (cross-isolate test is the SEC-03 evaluator).
 - Claiming provider/edge proof from local-only checks (SEC-02 needs wrangler/provider proof).
 - Claiming GitHub hosted-control readiness from local checks (external gap).
+
+## Proof-contract table (Improve-Plan-Prompt mandated schema)
+
+Columns: `Proof ID | Requirement IDs | Implementation unit | Layer | Fixture/input | Assertion | File target | Command/evidence | Red/green expectation | Cleanup/skip rule`
+
+| Proof ID | Req IDs | Impl unit | Layer | Fixture/input | Assertion | File target | Command/evidence | Red/green | Cleanup/skip |
+|---|---|---|---|---|---|---|---|---|---|
+| PROOF-01 | REQ-CSRF-01 | WP-01 | unit | mocked Request, POST, no Origin/Referer | `isAllowedInviteOriginPost` → false | `tests/vitest/invite-accept-origin.test.ts` | `bunx vitest run tests/vitest/invite-accept-origin.test.ts --maxWorkers=1` | red before fix (current asserts true), green after | none |
+| PROOF-02 | REQ-CSRF-01 | WP-01 | unit | POST, same-origin Origin | → true | same | same | green throughout | none |
+| PROOF-03 | REQ-CSRF-01 | WP-01 | unit | GET, no Origin | → true (unchanged) | same | same | green throughout | none |
+| PROOF-04 | REQ-RATE-02 | WP-02 | unit | two limiter instances, 41 edits in 10s | combined 41st → 429 | new `tests/vitest/estimate-action-rate-limit-durable.test.ts` | `bunx vitest run tests/vitest/estimate-action-rate-limit-durable.test.ts` | red before (in-memory, no cross-isolate cap), green after | none |
+| PROOF-05 | REQ-RATE-02 | WP-02 | unit | window expiry | resumption allowed | same | same | green after | none |
+| PROOF-06 | REQ-DO-01 | WP-03 | unit | upgrade w/o token (Opt B) OR N+1 per-IP (Opt A) | rejected | `tests/vitest/cloudflare-collaboration-room-auth.test.ts` | `bunx vitest run tests/vitest/cloudflare-collaboration-room-auth.test.ts` | red before, green after | none |
+| PROOF-07 | REQ-BODY-01 | WP-05 | unit | 1 MiB JSON body to comment POST | 413 before parse | `tests/vitest/project-publication-comments.test.tsx` | `bunx vitest run tests/vitest/project-publication-comments.test.tsx` | red before, green after | none |
+| PROOF-08 | REQ-NEG-02 | WP-06 | unit | outsider session, project activity GET | empty/denied | new `tests/vitest/project-activity-cross-tenant.test.ts` | focused vitest | green (characterization) | none |
+| PROOF-09 | REQ-DEFENSE-01 | WP-07/13 | unit/contract | direct POST `maybeTriggerSharedLinkActivityDigest` w/o caller auth | no-op / denied | `tests/vitest/security-findings-publication-contracts.test.ts` | focused vitest | green after WP-13 | none |
+| PROOF-10 | REQ-TENANT-01 | — | unit | outsider estimate edit | `"Estimate edit access denied."` | `tests/vitest/d1-access-role-boundaries.test.ts` | focused vitest | green (existing) | none |
+| PROOF-11 | REQ-RATE-01 | — | unit | 6th password guess same token+IP | 429 + Retry-After 3600 | `tests/vitest/project-publication-password-lockout-route.test.ts` | focused vitest | green (existing) | none |
+| PROOF-12 | REQ-SECRET-01 | — | unit | token/password storage scan | no raw columns; HMAC/scrypt/AES prefixes only | `tests/vitest/project-publication-security.test.ts` | focused vitest | green (existing) | none |
+| PROOF-13 | REQ-CSP-01 | WP-08 | static | grep `unsafe-inline` absent after nonce | nonce enforced | new `tests/vitest/csp-nonce-enforcement.test.ts` | focused | owner-gated; skip if deferred | — |
+| PROOF-14 | REQ-RELEASE-01 | — | manual | release-gate checklist | all P0 + external status | Doc 13 | manual review | owner sign-off | — |
+
+**Known-red broad-validation posture:** per `.ai/10_state/current-state.md`, GitHub Actions
+are temporarily disabled (`.github/workflows-disabled/`) and hosted security controls
+return 403/404. Therefore broad CI/CodeQL/Dependabot gates are **known-red/unavailable**,
+not green. Targeted vitest files + `bun run type-check` replace broad validation for the
+current claims (per AGENTS.md proportional verification). No broad `bun run validate` is
+claimed green.
