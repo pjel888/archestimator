@@ -113,6 +113,16 @@ claimed from local checks.
 |---|---|---|---|---|
 | Hosted `cf:jobs-proof` not run | owner-gated (OPEN-DEC-008) | `productionJobsMessagingReady` stays false (RISK-010) | local proof green | owner authorizes run |
 | 30-day observation not elapsed | calendar (REL-003) | retention not "production-proven" | local retention tests + dryRun | wait + monitor |
-| `wrangler queues` DLQ CLI exact surface unconfirmed | no web fetch / offline audit | runbook §9 uses hedged wording | dashboard fallback | confirm at impl time |
+| ~~`wrangler queues` DLQ CLI exact surface unconfirmed~~ | **RESOLVED 2026-07-07** (RQ-1) | none — runbook now uses real mechanisms | dashboard / pull consumer / temp consumer | none |
 | OPEN-DEC-004 TTL sign-off pending | counsel (external) | retention live-run risk (RISK-009) | ship dry-run-only / RETENTION_DRY_RUN=1 | counsel sign-off |
 | Worker handler test DISCOVERY sub-step | `.open-next/worker.js` mock resolution | T-004 implementation detail | source-grep test (current) | resolve mock at impl |
+| DLQ pull-consumer auth (if D-DLQDRAIN taken) | new network surface | unauthorized DLQ drain | scope with Bearer/CF-Access; add denial test | implement behind its own task |
+
+## Sources (retrieved 2026-07-07, official Cloudflare docs)
+
+- Dead Letter Queues — https://developers.cloudflare.com/queues/configuration/dead-letter-queues/
+- Batching, Retries and Delays — https://developers.cloudflare.com/queues/configuration/batching-retries/
+- Pull consumers — https://developers.cloudflare.com/queues/configuration/pull-consumers/
+- Configure Queues — https://developers.cloudflare.com/queues/configuration/configure-queues/
+- Queues platform limits — https://developers.cloudflare.com/queues/platform/limits/
+- Debug Queues from the dash (blog) — https://blog.cloudflare.com/debug-queues-from-the-dash/

@@ -78,6 +78,29 @@ scaffolding placeholders. **Requirements:** none (characterization).
 - **Parallelization:** sequential after T-1.1.
 - **Complexity:** S.
 
+### Task T-1.3 (M, new) — Inbound-id isolation (P1-5 / T-06)
+- **Objective:** distinguish the **echo id** (may be attacker-supplied) from the
+  **internal correlation id** (always internally generated) so durable audit
+  rows never store an untrusted inbound value.
+- **New contract in `request-id.ts`:**
+  - `type ResolvedRequestId = { echoId: string; internalId: string; source: "inbound" | "generated" }`
+  - `resolveRequestId(request): ResolvedRequestId` — `internalId` is always a
+    fresh UUIDv4; `echoId` is the validated inbound id (or the internal id if none).
+  - **Persistence rule (documented + enforced at call sites):** D1 audit writes
+    (`account_security_events.request_id` via `account-audit.ts` /
+    `account-audit-d1-store.ts`) use `internalId` only. The response header
+    `x-request-id` uses `echoId`.
+- **Why:** prevents an attacker from injecting a chosen, durable,
+  account-scoped tracking/correlation key (P1-5).
+- **Paths:** new `request-id.ts` (extend T-1.1); `src/lib/auth/account-audit.ts`,
+  `src/lib/auth/account-audit-d1-store.ts`, `src/lib/auth/account-data.ts`,
+  `src/lib/auth/actions.ts`, `src/app/auth/callback/route.ts` — change the id
+  they pass to `recordAccountSecurityEvent` from `headersList.get("x-request-id")`
+  to `getRequestContext()?.internalId ?? headersList.get("cf-ray")`.
+- **Acceptance:** AC-FR-01b1; P-15.
+- **Parallelization:** sequential after T-1.1.
+- **Complexity:** M.
+
 ---
 
 ## Phase 2 — Worker dispatch try/catch + header echo

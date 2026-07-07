@@ -41,11 +41,14 @@ Submission/queue routes do not get a perf evaluator: they are O(1) indexed queri
 |---|---|---|
 | `sendEmail` returns `ok:false` (EMAIL_NOT_CONFIGURED/CIRCUIT_OPEN) | logged `event:"feedback_operator_notified"` with code | user unaffected; operator relies on queue + cron badge; readiness check flags config |
 | Webhook 4xx/5xx | `sendFeedbackAlert` returns `webhook_rejected` | logged; sweep still sets `alerted_at` (one alert per breach is the contract); operator sees breach in queue |
+| Webhook **hangs** (no response) | `AbortSignal.timeout(5000)` on the fetch (see T-10) — **the clone template lacks this; add it** | on timeout: log + skip setting `alerted_at` (retry next run); do not hang the sweep row |
 | D1 read fails on sweep | `try/catch` + `emitLogRecord` error + non-zero cron exit | next-day retry; idempotent |
-| Sweep timeout | `ctx.waitUntil` + per-row fetch timeout | partial progress logged |
-| Migration `0039` fails to apply | D1 returns error | fix-forward (additive; re-run); rollback is `DROP COLUMN` |
-| Duplicate submit | two rows | client disable + post-redirect-get; no dedupe at beta |
-| Status update race | last-write-wins; timestamps `IS NULL`-guarded | set-once semantics |
+| Sweep timeout (overall) | `ctx.waitUntil` + per-row `AbortSignal.timeout(5000)` cap | partial progress logged; breached-but-unalerted rows retry next day |
+| Migration `0039` **partial apply** | `ALTER TABLE ADD COLUMN` is NOT idempotent (SQLite has no `IF NOT EXISTS`); Wrangler's `d1_migrations` tracker may be inconsistent after a partial apply | fix-forward: `ALTER TABLE` only the missing columns individually + manually reconcile the tracker; do NOT re-run the file (see `21` DB-01 idempotency note) |
+| Duplicate submit | two rows | client `inlinePending` disables button + post-redirect-get; no dedupe at beta |
+| **Browser back-button after redirect submit** | back → re-POST → duplicate row | redirect mode uses POST→redirect→GET (PRG), so back-button lands on the GET `?saved=1` URL, not a re-POST; BUT if the browser re-submits the cached POST, a duplicate row is created. Mitigation: set `Cache-Control: no-store` on the action response + rely on client button disable. Acceptable at beta; document. |
+| **Status update on a row just purged by retention** | `updateBetaFeedbackReviewStatusInD1` hits 0 rows → throws → `?error=save` | distinguish "row archived/purged" from "never existed": if 0 rows AND a `beta_feedback_status_events` lookup finds the id absent, show operator "This feedback was removed by retention." instead of a generic save error. (Enhancement; the generic `?error=save` is the fallback.) |
+| Status update race | last-write-wins on `status`; `first_response_at`/`responded_at` set with `WHERE col IS NULL` guard → set once | set-once semantics |
 
 ## Observability
 

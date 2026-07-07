@@ -24,7 +24,18 @@ PROMPT.md, `repo evidence` = file:line, `official docs` = Cloudflare docs (see
     valid).
   - AC-FR-01b: The id is a UUIDv4 (`crypto.randomUUID()`) when no inbound
     `x-request-id` header is present; an inbound well-formed value (≤128 chars,
-    `^[A-Za-z0-9._:-]{1,128}$`) is reused.
+    `^[A-Za-z0-9._:-]{1,128}$`) is reused **for response echo and in-memory log
+    correlation only**. The id persisted to durable storage (e.g. D1
+    `account_security_events.request_id`) is the **internally-resolved** id — if
+    an inbound id is reused, it is treated as untrusted input and **must not**
+    be written to durable audit rows verbatim if it originated from an
+    unauthenticated/untrusted request (P1-5 / T-06). Acceptable designs: (a)
+    echo-only — generate a fresh internal id for correlation + D1, echo the
+    inbound id in the header; or (b) reuse inbound id in-memory but write the
+    internal id to D1. **Recommendation: (a) echo-only** for unauthenticated
+    requests, (b) reuse for authenticated requests where the user is already
+    identifiable. AC-FR-01b1: attacker-supplied valid id is NOT present in D1
+    `account_security_events.request_id` (P-15).
   - AC-FR-01c: The id is readable inside OpenNext (Server Components, Route
     Handlers, Server Actions) without a separate fetch round-trip.
   - AC-FR-01d: Fast-path short-circuits (`worker-route-optimizations.ts`) also

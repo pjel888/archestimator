@@ -3,6 +3,8 @@
 Plan folder: `.ai/03_plans/2026-07-07-ai-safety-leakage-and-provider-resilience`
 Date: 2026-07-07 (Asia/Manila). Profile: **exhaustive**. Mode: **planning only** — no application code changed.
 
+> **Improve pass applied.** This package was audited and upgraded by `Improve-Plan-Prompt.md`. Two new documents were added (`22_INVENTORY_AND_SOURCE_MAP.md`, `23_READINESS_SCORECARD.md`); the traceability matrix, security/data/test/UX/architecture/readiness/evidence documents were upgraded to the Improve-prompt's required artifact shapes (Source-strength + Gap/decision columns, Attack Surface Inventory, access-path matrix, proof contracts, action-level a11y matrix, route boundary/cache contract, verification matrix + evidence-class table). Status unchanged: **`CONDITIONALLY READY`** (emulated verification cap).
+
 ## Plan status
 
 **`CONDITIONALLY READY`** (`verification_mode: emulated`; high-blast-radius cap per the Suite Succession and Authority Contract).
@@ -82,3 +84,32 @@ Do **not** archive automatically. Archive after full Track completion (A or B) a
 ## One-line summary
 
 Archestimator's AI surface is narrow (DeepSeek-only, disabled-by-default, 2 routes) and already has strong controls (workspace scoping, metadata-only audit, signed-token apply, deterministic fallback); this pack proves the safe gated-off launch path and specifies the exact hardening (sanitization, outbound scrub, cross-tenant leakage suite, provider resilience) required before any enablement.
+
+## Document map (authoritative per topic)
+
+| Topic | Authoritative doc |
+|---|---|
+| Coordination / verification mode | `00_AGENT_COORDINATION.md` |
+| Overview / current-vs-target | `01_EXECUTIVE_SUMMARY.md` |
+| Scope & non-goals | `02_FEATURE_BRIEF_AND_SCOPE.md` |
+| Codebase evidence | `03_SOURCE_AND_CODEBASE_AUDIT.md` |
+| Requirements (canonical IDs) | `04_REQUIREMENTS_SPECIFICATION.md` |
+| UX / a11y | `05_UX_UI_ACCESSIBILITY_PLAN.md` |
+| Architecture + route/cache contract | `06_ARCHITECTURE_AND_TECHNICAL_DESIGN.md` |
+| Data / D1 / API / network + access-path matrix | `07_DATA_DATABASE_API_NETWORK_PLAN.md` |
+| Security / threat model + attack-surface inventory + cred taxonomy depth | `08_SECURITY_PRIVACY_THREAT_MODEL.md` |
+| Performance / reliability | `09_PERFORMANCE_RELIABILITY_OBSERVABILITY.md` |
+| Blast radius | `10_BLAST_RADIUS_AND_DEPENDENCIES.md` |
+| Implementation execution | `11_IMPLEMENTATION_PLAN.md` |
+| Test/QA + proof contracts | `12_TEST_AND_VALIDATION_STRATEGY.md` |
+| Rollout / rollback / ops | `13_ROLLOUT_ROLLBACK_AND_OPERATIONS.md` |
+| Risk register | `14_RISK_REGISTER.md` |
+| Decisions / assumptions / alternatives | `15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md` |
+| Traceability (Source strength + Gap/decision) | `16_REQUIREMENTS_TRACEABILITY_MATRIX.md` |
+| Readiness + verification matrix + evidence-class table | `17_FINAL_READINESS_REVIEW.md` |
+| Stack contract | `18_STACK_CONTRACT_AND_PRODUCTION_STANDARDS.md` |
+| Research / QA / adversarial evidence | `19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md` |
+| Cost model | `20_COST_MODEL_AND_PRICING_INPUTS.md` |
+| Provider parity | `21_PROVIDER_PARITY_MATRIX.md` |
+| **Inventory & source map (Phase 1)** | `22_INVENTORY_AND_SOURCE_MAP.md` |
+| **Readiness scorecard (Phase 2)** | `23_READINESS_SCORECARD.md` |

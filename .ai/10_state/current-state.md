@@ -39,9 +39,9 @@ Stable current truth (verify against git/source before relying on a detail):
   local pinning/config tests read the disabled archive path so the preserved
   definitions stay checked.
 - GitHub security PR/comment loop (2026-07-07 local): live GitHub inventory
-  found 22 open PRs for `pjel888/archestimator`, no open issues, 14 unresolved
-  non-outdated review threads across PRs 106, 107, 109, 114, 115, and 118
-  after PR108 was pushed/resolved and new PR106 follow-up threads appeared.
+  found 25 open PRs for `pjel888/archestimator`, no open issues, 13 unresolved
+  non-outdated review threads across PRs 107, 108, 109, 114, 115, and 118
+  after PR106 was pushed/resolved and a new PR108 follow-up thread appeared.
   Hosted alert readbacks are unavailable rather than clean: code scanning
   returned 403 disabled, Dependabot alerts returned 403 disabled plus an
   `admin:repo_hook` scope request, and secret scanning returned 404 disabled
@@ -49,7 +49,7 @@ Stable current truth (verify against git/source before relying on a detail):
   Ledger:
   `.ai/03_plans/2026-07-07-github-security-pr-comment-loop/LOOP_LEDGER.md`.
   PR106 branch `codex/fix-unpinned-npm-exec-vulnerability` was updated on
-  GitHub to head `a3dff410`: the `supermemory` SDK-wrapper dependency was
+  GitHub to head `24c107c5`: the `supermemory` SDK-wrapper dependency was
   removed, `bun run supermemory:start` now uses
   `scripts/start-verified-supermemory-server.mjs`, and local Supermemory
   startup fails closed unless `SUPERMEMORY_SERVER_BIN` points to an executable
@@ -57,14 +57,14 @@ Stable current truth (verify against git/source before relying on a detail):
   first-boot configuration is non-interactive through a provider env config or
   non-empty `~/.supermemory/env`. No npm/bunx/pnpm wrapper or second-stage
   download is treated as safe startup. The launcher ignores generic `PORT` and
-  only honors `SUPERMEMORY_PORT` to override the fixed `6767` default. Focused
-  launcher tests, syntax check, targeted ESLint, typecheck, `validate:agents`,
-  prompt resolver checks, stale-string scans, and scoped `git diff --check`
-  passed. GraphQL readback resolved both PR106 follow-up threads; one was
-  outdated after the fix and one remained current before resolution. A later
-  refresh found 2 new active PR106 follow-up threads on failing when the
-  verified server exits immediately and parameterizing the health-check port
-  when `SUPERMEMORY_PORT` overrides `6767`.
+  only honors `SUPERMEMORY_PORT` to override the fixed `6767` default. It now
+  derives the health URL from that configured port by default, waits for the
+  configured health URL before detaching, and fails if the verified server
+  emits `error`/`exit` before health passes. Focused launcher tests, syntax
+  check, targeted ESLint, typecheck, `validate:agents`, prompt resolver checks,
+  stale-string scans, and scoped `git diff --check` passed. GraphQL readback
+  resolved all active PR106 threads; the latest early-exit thread was outdated
+  after the fix and the health-port thread remained current before resolution.
   PR107 branch `codex/fix-d1-project-component-loader-vulnerability` was updated
   on GitHub to head `b6cfb387`: project component projection now uses a
   whole-project D1 authz helper that excludes estimate-only access before
@@ -93,8 +93,10 @@ Stable current truth (verify against git/source before relying on a detail):
   sheet-only invitees can load or export their granted sheet. PR108
   focused/adjacent tests passed 8 files / 45 tests, typecheck passed, targeted
   ESLint exited 0 with only pre-existing unused-symbol warnings, scoped
-  `git diff --check` passed, and GraphQL readback resolved all active PR108
-  threads. Local fixes for PR109/PR110
+  `git diff --check` passed, and GraphQL readback resolved the prior active
+  PR108 thread. A later refresh found a new active PR108 P1 follow-up on
+  sheet-only invitees still reaching the estimate route, so PR108 needs another
+  branch pass. Local fixes for PR109/PR110
   canonicalized padded share
   tokens before password-cookie checks, trimmed share API route tokens, and
   require the password access cookie before recipient comment/decision POSTs.

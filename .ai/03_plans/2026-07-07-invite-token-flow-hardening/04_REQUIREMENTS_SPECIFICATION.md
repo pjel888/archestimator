@@ -133,7 +133,7 @@ Stable IDs per category. Each requirement: statement, rationale, source, priorit
 - **Validation.** Extend `collaboration-invitation-d1-store.test.ts` with a mixed-case wrong-account case; grep audit.
 - **Affected areas.** Documentation in `08` + `15`; possible minor refactor if any site diverges (none found in audit).
 - **Risks.** None (consistency confirmation).
-- **Status.** Planned (Phase 4 audit; implementation only if a divergence is found).
+- **Status.** Non-regression (Phase 6 audit; implementation only if a divergence is found — none known today; `normalizeEmail` is already consistent across all four sites).
 
 ### SEC-09 — Separate the realtime identity signing key from the invite pepper
 - **Statement.** Require `REALTIME_IDENTITY_SIGNING_KEY` as its own secret for realtime Ed25519 signing, rather than falling back to `ARCHESTIMATOR_INVITE_TOKEN_PEPPER`. Document the rollout (rotate the realtime key; existing realtime sessions re-handshake on next connection).
