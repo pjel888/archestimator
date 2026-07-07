@@ -103,6 +103,7 @@ describe("listProjectEstimates read path (F8 / F9 — P2-1, P2-2)", () => {
     requireCurrentUserContext.mockResolvedValue({
       userId: "11111111-1111-4111-8111-111111111111",
       email: "owner@example.com",
+      role: "admin",
       profile: { id: "11111111-1111-4111-8111-111111111111", default_workspace_id: "ws-1", role: "admin" },
     });
     getCloudflareD1Database.mockResolvedValue(createD1Fixture());
@@ -137,5 +138,30 @@ describe("listProjectEstimates read path (F8 / F9 — P2-1, P2-2)", () => {
     expect(result.totalCostByEstimateId.get(ESTIMATE_ID)).toBe(1234.5);
     // first node still selected by the depth-first/area-first JS oracle (Path A).
     expect(result.firstNodeByEstimateId.get(ESTIMATE_ID)).toBe(AREA_NODE_ID);
+  });
+
+  it("keeps D1 project and estimate reads behind explicit access checks", () => {
+    const source = readFileSync("src/lib/repositories/workspace-repository.ts", "utf8");
+
+    expect(source).toContain("canAccessProjectInD1(database, projectRow.id, userContext)");
+    expect(source).toContain("canAccessEstimateInD1(database, normalizedEstimate.id, userContext)");
+    expect(source).toContain("AND estimate.id IN (${placeholders(estimateIds)})");
+    expect(source).toContain("canAccessEstimateInD1(database, estimate.id, userContext)");
+  });
+
+  it("does not return project estimates when the D1 access predicate denies the caller", async () => {
+    requireCurrentUserContext.mockResolvedValue({
+      userId: "99999999-9999-4999-8999-999999999999",
+      email: "attacker@example.com",
+      role: "member",
+      profile: { id: "99999999-9999-4999-8999-999999999999", default_workspace_id: "ws-1", role: "member" },
+    });
+
+    const result = await listProjectEstimates(PROJECT_ID);
+
+    expect(preparedSql.some((sql) => sql.includes("SELECT 1 AS allowed") && sql.includes("FROM projects project"))).toBe(true);
+    expect(result.project).toBeNull();
+    expect(result.estimates).toEqual([]);
+    expect(result.totalCostByEstimateId.size).toBe(0);
   });
 });
