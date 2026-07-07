@@ -56,6 +56,18 @@ const manager = readFileSync(join(process.cwd(), "src/components/workshop/compon
 const addModal = readFileSync(join(process.cwd(), "src/components/workshop/component-library-manager/AddComponentModal.tsx"), "utf8");
 const supabaseTypes = readFileSync(join(process.cwd(), "src/lib/supabase/types.ts"), "utf8");
 
+const editorAuthorizationMigrationPath = readdirSync(join(process.cwd(), "supabase/migrations"))
+  .filter((file) => file.endsWith("_harden_component_library_editor_authorization.sql"))
+  .sort()
+  .at(-1);
+
+if (!editorAuthorizationMigrationPath) throw new Error("Missing component library editor authorization hardening migration.");
+
+const editorAuthorizationMigration = readFileSync(
+  join(process.cwd(), "supabase/migrations", editorAuthorizationMigrationPath),
+  "utf8",
+);
+
 describe("component library item versioning schema", () => {
   it("adds lifecycle state, price options, and append-only history tables", () => {
     expect(migration).toContain("create type public.component_lifecycle_state as enum");
@@ -154,6 +166,29 @@ describe("component library item versioning schema", () => {
     expect(priceAuditGrantMigration).toContain("grant execute on function public.upsert_cost_library_component_price_option(uuid, uuid, jsonb) to authenticated");
     expect(actions).toContain('supabase.rpc("upsert_cost_library_component_price_option"');
     expect(actions).not.toContain('.from("cost_library_item_price_options")');
+  });
+
+
+  it("requires editor authorization for component versioning writes and direct history table mutations", () => {
+    expect(editorAuthorizationMigration).toContain("public.assert_cost_library_component_editor");
+    expect(editorAuthorizationMigration).toContain("public.is_platform_admin()");
+    expect(editorAuthorizationMigration).toContain("member.role in ('owner'::public.workspace_role, 'admin'::public.workspace_role, 'member'::public.workspace_role)");
+    expect(editorAuthorizationMigration).not.toContain("member.role in ('owner'::public.workspace_role, 'admin'::public.workspace_role, 'member'::public.workspace_role, 'viewer'::public.workspace_role)");
+    expect(editorAuthorizationMigration).toContain("current_user_id := public.assert_cost_library_component_editor(target_workspace_id, current_user_id)");
+    expect(editorAuthorizationMigration).toContain('drop policy if exists "members can insert component versions" on public.cost_library_item_versions');
+    expect(editorAuthorizationMigration).toContain('create policy "workspace editors can insert component versions" on public.cost_library_item_versions');
+    expect(editorAuthorizationMigration).toContain('create policy "workspace editors can insert component price options" on public.cost_library_item_price_options');
+    expect(editorAuthorizationMigration).toContain('create policy "workspace editors can update component price options" on public.cost_library_item_price_options');
+    expect(editorAuthorizationMigration).toContain('create policy "workspace editors can insert component price history" on public.cost_library_item_price_history');
+    expect(editorAuthorizationMigration).toContain('create policy "workspace editors can insert component state history" on public.cost_library_item_state_history');
+    expect(editorAuthorizationMigration).toContain("revoke insert, update, delete on public.cost_library_item_versions from authenticated");
+    expect(editorAuthorizationMigration).toContain("revoke insert, update, delete on public.cost_library_item_price_options from authenticated");
+    expect(editorAuthorizationMigration).toContain("revoke insert, update, delete on public.cost_library_item_price_history from authenticated");
+    expect(editorAuthorizationMigration).toContain("revoke insert, update, delete on public.cost_library_item_state_history from authenticated");
+    expect(editorAuthorizationMigration).toContain("grant select on public.cost_library_item_versions to authenticated");
+    expect(editorAuthorizationMigration).toContain("grant select on public.cost_library_item_price_options to authenticated");
+    expect(editorAuthorizationMigration).toContain("grant select on public.cost_library_item_price_history to authenticated");
+    expect(editorAuthorizationMigration).toContain("grant select on public.cost_library_item_state_history to authenticated");
   });
 
   it("adds variant-owned assets, private attachments, and selectable cost entries", () => {
