@@ -47,6 +47,21 @@
 
 No third cycle needed — remaining findings are owner-gated (OPEN-*) or Phase-0/2 execution artifacts.
 
+### Cycle 3 — Independent adversarial verifier (emulated, dispatched as a separate `Explore` lane)
+A separated adversarial + final-verification lane was dispatched after Cycles 1-2 (maker/checker separation). It read PROMPT.md + all 22 docs, spot-checked 20+ file:line claims against source, cross-referenced requirement/task IDs and scores, and produced P0/P1/P2 findings. Findings and resolutions:
+
+- **P0-1 (resolved):** Migration number collision — the pack said "latest is `0036`" and assigned Phase 7's migration `0037`, but `0037_remove_preloaded_component_categories.sql` already exists. **Fix applied:** renumbered to `0038_shared_link_session_generation.sql` in `07_…md`, `11_…md`, `13_…md`, `README.md`; corrected "latest is `0037`".
+- **P0-2 (resolved):** SEC-04/WP-1.5 cited `console.error` at `activity/route.ts:72` and listed `events/route.ts` as affected, but both routes are **silent** (zero logging — verified by grep). **Fix applied:** SEC-04/WP-1.5/01 split into sub-scope A (route the real raw-`error` `console.error` sites — `route.ts:72`, `comment/route.ts:84,120`, `decision/route.ts:38,76`, `password/route.ts:105`, `page.tsx:179,246,260,272` — through the redactor) and sub-scope B (add structured logging to the two silent routes). AC-SEC-04b added.
+- **P1-1 (resolved):** "Audit logging" was only implicitly covered. **Fix applied:** added AUD-01 requirement + explicit AUD-01 decision paragraph in `08_…md` Auditability.
+- **P1-2 (resolved):** WP-1.7 untraced. **Fix applied:** added WP-1.7 (cleanup) row to `16_…md`; softened the "no requirement untraced" claim to acknowledge the single non-requirement cleanup task.
+- **P2-1 (resolved):** WP-2.3 empty placeholder folded into WP-5.2.
+- **P2-2 (resolved):** `recipientSession` oracle added to `14_…md` as RISK-13 (accepted).
+- **P2-3 (resolved):** PERF-01 fixture rationale added to `09_…md`.
+- **P2-4 (noted):** `signerName` is a good positive SEC-03 test case (the current deny-list would *not* catch it; the allow-list must). Noted for the executor in WP-1.3.
+- **P1-3 (accepted):** Some §A line numbers in `03_…md` are off by ~2. The README stale-plan checklist already instructs executors to re-verify line numbers before edit, and the over-fetch lines (`~484`/`~545`) are tilde-prefixed and correct. Accepted as-is; executors re-verify before editing per the README checklist.
+
+**Verifier verdict (emulated):** the pack meets the PROMPT.md stop condition after the P0 fixes (now applied). Minimization slices (Phases 1/2/4/5-mech/8) are `IMPLEMENTATION-READY` in substance; the whole remains `CONDITIONALLY READY` due to the `emulated` cap + owner-gated slices. This matches the pack's own self-assessment in `17_…md`.
+
 ## UltraQA-style adversarial scenario matrix
 
 | ID | User/attacker model | Scenario | Setup | Command/harness | Expected signal | Actual result | Status | Evidence | Cleanup |

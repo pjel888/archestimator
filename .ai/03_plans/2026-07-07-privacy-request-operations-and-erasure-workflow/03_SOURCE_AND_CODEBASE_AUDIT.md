@@ -105,7 +105,7 @@
   - `src/app/workshop/settings/scan-overrides/`, `src/app/workshop/settings/upload-operations/`.
 - **No privacy-request triage/queue/fulfillment UI exists.** `listPrivacyRequests` has zero UI/route consumers. No `/api/compliance/[id]` route, no GET handler.
 
-**Relevance:** `P1-T6` adds an operator queue page (mirror `workshop/settings/users`) + a request-detail page; `P1-T2`/`P1-T3` add the GET/`[id]` routes that feed them.
+**Relevance:** `P1-T4` adds an operator queue page (mirror `workshop/settings/users`) + a request-detail page; `P1-T2` adds the GET/`[id]` routes that feed them.
 
 ## H. Observability / errors
 
@@ -130,7 +130,7 @@
 - `.ai/10_state/compliance/privacy-notice-draft.md` — full notice draft (P1.1, counsel-gated). Live page `src/app/privacy/page.tsx` is the **closed-beta** notice only; it tells users to email `support@archestimator.com` for deletion — does **not** point to `/api/compliance/privacy-requests`.
 - `.ai/10_state/compliance/retention-schedule.md`, `ropa.md`, `processor-register.md`, `dpia-screening.md`, `csrf-coverage.md`, `csp-decision-brief.md`, `audit-pepper-rotation-log.md`.
 - `.ai/11_skills/security/breach-response-runbook.md` — breach runbook (skill doc, not code).
-- `.ai/10_state/compliance/file-scanner-status.md` — scanner implementation-complete; only `OPEN-DEC-006` (paid provider) outstanding.
+- `.ai/10_state/compliance/file-scanner-status.md` — scanner implementation-complete; only `OPEN-DEC-006` (paid provider, a legacy-roadmap decision ID — **out of scope for this plan**; not mapped to any `OPEN-*` here) outstanding.
 
 **Relevance:** This plan references but does not author these. `OPEN-LEGAL-01` (privacy-notice wording) gates the public-form copy and confirmation-email body. `OPEN-LEGAL-02` (SLA policy) gates `P4`. `P3` erasure must align with the retention schedule.
 

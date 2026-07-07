@@ -14,6 +14,7 @@
 | RISK-10 | Secret-split rotation invalidates active sessions/tokens en masse | Phase 3 changes cookie/telemetry binding | Medium | Medium | Medium | share auth | session failures post-deploy | staged deploy; monitoring | Restore fallbacks temporarily | owner comms | Philip | Medium | Open (Phase 3) |
 | RISK-11 | Retention cron error silently skips a table | bug in new rule | Low | Medium | Medium | retention | `data_retention_events` audit | TEST-03 dry-run | next run resumes | manual purge | executor | Low after TEST | Open until WP-5.2 |
 | RISK-12 | Public DTO change breaks an untracked consumer | an unlogged component reads `meta` | Low | Low | Low | consumers | type-check + grep | verify no `meta` reads | restore field | n/a | executor | Low | Open (verified none) |
+| RISK-13 (accepted) | `recipientSession: boolean` in activity response is a low-severity oracle (tells anonymous caller whether a valid session cookie was accepted) | observed by auditor | Low | Very Low | Very Low | activity route | audit observation | by design — supports client feature detection | remove the flag only if a future threat model elevates it | n/a | Philip | Very Low (accepted) | Accepted — no remediation planned |
 
 ## Technical and non-technical risks
 

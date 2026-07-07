@@ -74,6 +74,24 @@
 
 - Per-workspace capped at `LIBRARY_COMPONENT_CAP=10_000`; variant entries multiply but bounded by price-option count. Cross-workspace scales horizontally on D1. Overview queries indexed.
 
+## D1 / Cloudflare per-resource budget (free-tier, closed-beta posture)
+
+Per `AGENTS.md`: stay on free-tier/bundled Cloudflare limits; no paid add-ons (D1 paid plan, R2 paid tier, Workers Smart Placement paid, etc.) without owner approval. This plan's incremental footprint:
+
+| Resource | Free-tier limit (verify at implementation via Cloudflare skill + current pricing) | Expected incremental use from this plan | Headroom | Action if exceeded |
+|---|---|---|---|---|
+| D1 rows read / day (free) | 5M rows read/day | +1 JOIN per estimate load; review actions ~5 queries each; overview indexed. Estimate: <1% of daily read budget at closed-beta volume | ample | index tuning (`09` evaluator 3) |
+| D1 rows written / day (free) | 100k rows written/day | review events + imports; bounded by admin cadence + import row cap | ample | row cap on import |
+| D1 storage (free) | 5 GB | review columns add ~100 bytes/entry; audit rows small. <1 MB at closed-beta | ample | retention policy (`13`) |
+| Workers requests / day (free) | 100k | review/import actions infrequent | ample | n/a |
+| Workers CPU (free, per invocation) | 10 ms (bundled) / 30s (unbound) | import parse bounded by 5 MB + row cap; `TASK-028` proves sub-budget | ample | size/row cap |
+| R2 Class A/B ops + storage | free-tier | unchanged (attachments path unchanged) | unchanged | n/a |
+| KV ops | n/a (not used as source of truth) | n/a | n/a | n/a |
+| Queues / Cron | free-tier | only if P4 async materialization chosen (stretch) | n/a unless stretch | owner approval if added |
+| Email | free-tier | unchanged | unchanged | n/a |
+
+**Cost model:** no metered cost at closed-beta volume. The plan adds no paid add-ons. Provider-pricing proof deferred to implementation (`cf:pricing` snapshot in `13`) — at planning time, free-tier posture is sufficient and bounded.
+
 ## Performance evidence required before release
 
 - Local vitest perf tests (evaluators 1–2).

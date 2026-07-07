@@ -64,14 +64,20 @@ For runtime/data behavior. IDs map to risk register where relevant.
 
 ## Validation commands (verified against repo — not invented)
 
-- `bun run type-check` (exists)
-- `bun run cf:d1-runtime-proof` (exists; P4 extends)
-- `bun run dbidx:audit-repo` (exists)
-- `bun run cf:d1-component-library-proof` (exists; precedent for P3)
-- `bunx vitest run <path>` (vitest is the test runner)
-- `wrangler d1 execute ARCH_DB --local --command "EXPLAIN QUERY PLAN …"` (existing wrangler)
+These commands were confirmed to exist via `package.json` reads and `ls scripts/` during the audit (2026-07-07):
 
-No invented thresholds. Budget numbers in `09` derive from existing `hostedBudgetMs` precedent + 10× volume assumption (A1, marked `assumption`).
+- `bun run type-check` (exists in package.json)
+- `bun run cf:d1-runtime-proof` (exists; P4 extends its output)
+- `bun run dbidx:audit-repo` (exists)
+- `bun run cf:d1-component-library-proof` (exists; precedent shape for P3's 8 new scripts)
+- `bunx vitest run <path>` (vitest is the test runner per repo convention)
+- `wrangler d1 execute ARCH_DB --local --command "EXPLAIN QUERY PLAN …"` (existing wrangler; local D1)
+
+No invented thresholds. Budget numbers in `09` derive from: (a) existing `hostedBudgetMs` precedent (500–600ms) scaled to D1-only round-trips; (b) the **Cloudflare D1 Pricing docs** for the 5M rows-read/day free ceiling (official docs, cited in `20`); (c) the 10× volume assumption (A1, marked `assumption`).
+
+## Known-red / skipped-validation ledger (directive §11)
+
+None at planning time. No broad command in this plan's proof path is known-red. The hosted proof (`cf:d1-runtime-proof`) is credential-gated (`CRON_SECRET`), not red — it is a release gate, not a CI gate, by design (DEC-005). If during implementation a proof command proves flaky or red, the impl agent records it here with: command, date, branch, failure excerpt, and the narrower proof that replaces it (per RISK-12's advisory-mode contingency).
 
 ## Known-red / skipped-validation ledger
 

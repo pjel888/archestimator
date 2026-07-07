@@ -38,7 +38,7 @@
 - `component-library-cost-governance-actions.test.ts` — currently asserts D1 actions do NOT use governance RPCs. After this plan, D1 actions implement equivalent behavior natively (not via Supabase RPC). **Test must be updated** to assert the new D1-native review actions exist and behave correctly, while still asserting no `supabase.rpc` calls. This is intentional, not a regression.
 - `estimate-library-item-insert-contract.test.ts`, `estimate-sheet-library-insert.test.tsx` — extend for `rejected`/`superseded` block behavior.
 - `library-add-component-modal-a11y.test.tsx` — extend for new fields.
-- All `component-library-*-schema.test.ts` — extend for migration `0037` columns.
+- All `component-library-*-schema.test.ts` — extend for migration `0038` columns.
 
 ## Backward compatibility
 
@@ -48,7 +48,7 @@
 
 ## Concurrency / multi-agent safety
 
-- Migration `0037` lands once; review/import actions land behind a flag. Implementation tasks own disjoint files where possible (see `11` parallelization). The shared file `actions.ts` is the integration point — serialized.
+- Migration `0038` lands once; review/import actions land behind a flag. Implementation tasks own disjoint files where possible (see `11` parallelization). The shared file `actions.ts` is the integration point — serialized.
 
 ## Dependencies (external)
 

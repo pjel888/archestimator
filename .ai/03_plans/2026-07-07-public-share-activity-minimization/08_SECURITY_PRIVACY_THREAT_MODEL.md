@@ -142,11 +142,15 @@ The full credential-material taxonomy and attack-surface inventory live in `21_A
 
 ## Auditability
 
-- `project_publication_events` + `shared_link_events` (open/comment/decision/password attempts) with HMAC'd IP/UA.
+**PROMPT.md requires the pack to "Define … audit logging." Decision (AUD-01): audit logging for the public activity *read* surface is unchanged and intentionally minimal — read access is not newly audited per-request, because the minimized response contains no PII post-Phase-1 (no `author_email`/recipient `email`/raw IDs), so a per-read audit row would add cost without privacy benefit.** The existing audit surfaces remain authoritative:
+
+- `project_publication_events` + `shared_link_events` (open/comment/decision/password attempts) with HMAC'd IP/UA — the write-side and access-telemetry audit trail.
 - `publication_digest_log` (owner digest).
-- `data_retention_events` (retention runs — extended by Phase 5).
+- `data_retention_events` (retention runs — extended by Phase 5; this is the one new audit row introduced by this plan, recording each purge).
 - `account_security_events` (account-level).
 - `privacy_requests` (DSAR).
+
+**No new audit table is required for Phases 1-5.** Phase 7 (`session_generation` bump on recipient removal) SHOULD write a `shared_link_events` row (existing table) recording the revocation — this is an implementation detail of WP-7.3, not a new audit surface. If a future requirement demands per-read auditing (e.g. compliance-mandated access logging), it would be a new `publication_read_events` table scoped to the publication + ip_hash + timestamp — out of scope here, recorded as a future option.
 
 ## Data minimization / privacy implications
 

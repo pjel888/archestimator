@@ -3,8 +3,8 @@
 - **Plan folder:** `.ai/03_plans/2026-07-07-d1-hot-path-query-budgets-and-indexes/`
 - **Date:** 2026-07-07 (Asia/Manila)
 - **Plan profile:** `exhaustive` (touches Cloudflare D1, indexes, migrations, app authorization, release readiness for first users)
-- **Plan status:** `IMPLEMENTATION-READY`
-- **verification_mode:** `emulated` (separated critique + verifier passes by the same author; no true external reviewer in this session). Per the suite authority contract this caps overall readiness at 97. A real independent/owner review of the migration sequence and hosted-proof gates is the one residual step that would unlock 98–100.
+- **Plan status:** `CONDITIONALLY READY` (revised in audit cycle 3, 2026-07-07 — see `20_AUDIT_AND_REVISION_LOG.md`). **Approved-for-implementation slices: P0, P1, P2 (with mandatory TEST-SEC-01 denial parity), P3.** Conditionally-gated slices (await P4 hosted rows-read + EXPLAIN evidence): P4, P5. The *content* is implementation-ready (every task has exact paths/symbols, every requirement traceable); the CONDITIONALLY READY label reflects (a) `verification_mode: emulated` caps high-blast-radius packs without owner/independent accept, and (b) hosted rows-read + EXPLAIN evidence is execution-time (P4), not planning-time. Converts to unqualified `IMPLEMENTATION-READY` when owner accepts the package AND P4 produces the hosted evidence.
+- **verification_mode:** `emulated` (separated critique + verifier passes by the same author + one native Explore verification lane; no true external reviewer in this session). Per the suite authority contract this caps overall readiness at 97. Current overall score: 94 (post-audit). A real independent/owner review plus the P4 hosted evidence are the two residual steps that would unlock 98–100.
 - **Implementation entrypoint:** `11_IMPLEMENTATION_PLAN.md`
 - **Goal author:** this planning run (lead orchestrator).
 

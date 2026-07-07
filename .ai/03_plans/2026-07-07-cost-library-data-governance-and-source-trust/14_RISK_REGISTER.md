@@ -12,7 +12,7 @@
 | RISK-8 | Self-accept without oversight (admin accepts own import) | single-admin workspace | Medium | Medium | Medium | trust | audit transparency | optional two-person rule (`OPEN-5`) | owner policy | owner | Medium | open |
 | RISK-9 | Chip clutter degrades UX | too many chips | Medium | Low | Low | UX | a11y/UX review | tone + title guidance | consolidate | impl | Low | open |
 | RISK-10 | Feature flag forgotten on/off | ops error | Low | Medium | Medium | ops | flag check in readiness | documented flag | manual verify | owner | Low | open |
-| RISK-11 | Migration ordering conflict with concurrent agent work | parallel migration authorship | Low | Medium | Medium | data | migration ledger | dated `0037` slot reserved | renumber | impl | Low | open |
+| RISK-11 | Migration ordering conflict with concurrent agent work | parallel migration authorship | Medium | Medium | Medium | data | migration ledger + git status re-check | confirmed `0037` taken; reserved `0038` slot | renumber again if `0038` taken at impl | impl | Low | open |
 | RISK-12 | `source-changed` false positives from clock/version skew | timezone/version compare bug | Low | Medium | Medium | data | integration test | derive from server version number, not timestamp | gate hides on failure | impl | Low | open |
 | RISK-13 | Existing test `component-library-cost-governance-actions.test.ts` breaks on update | intentional contract change | High | Low | Medium | tests | test run | document as intentional | update test | impl | Low | open |
 | RISK-14 | Free-tier D1 limits hit at scale | many workspaces | Low | Medium | Medium | ops | Workers Analytics | per-workspace cap | owner approval for paid | owner | Low | open |

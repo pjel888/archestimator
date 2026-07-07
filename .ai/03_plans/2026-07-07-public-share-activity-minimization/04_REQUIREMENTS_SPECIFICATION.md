@@ -103,13 +103,13 @@ Every requirement has a stable ID, objective acceptance criteria, a validation m
 **Affected code.** `src/lib/activity/activity-composer.ts:449-452`.
 **Risks.** Tightening may drop a currently-shown benign fact — audit current event metadata keys to confirm the allow-list covers them. **Status.** Ready (with discovery step).
 
-### SEC-04 (P0) — Route share-route logging through the redactor
-**Statement.** Share routes SHALL log errors via `logAppError`/`emitLogRecord` (which run `redactForLog`) instead of raw `console.error(error, …)`.
-**Rationale.** Logging safety (P2-2). Source: `repo evidence` (route.ts:72, comment/route.ts:120, decision/route.ts:76, password/route.ts:104, page.tsx:165,232,246,258; redact.ts:67-85).
+### SEC-04 (P0) — Route share-route logging through the redactor + add structured logging to silent routes
+**Statement.** Two-part: (a) share routes that currently call raw `console.error(error, …)` SHALL instead route through `logAppError`/`emitLogRecord` (which run `redactForLog`); (b) the canonical activity route and the events route, which are **currently silent** (no error logging at all), SHALL gain structured error logging via the redactor path so failures are observable without leaking tokens.
+**Rationale.** Logging safety (P2-2). Source: `repo evidence` — verified `console.error` sites: `src/app/api/share/[token]/route.ts:72` (root snapshot), `comment/route.ts:84,120`, `decision/route.ts:38,76`, `password/route.ts:105`, `src/app/share/[token]/page.tsx:179,246,260,272`. The activity route (`activity/route.ts`) and `events/route.ts` have **zero** logging calls (verified by grep). `redact.ts:67-85` defines `redactForLog`.
 **Priority.** P0.
-**Acceptance criteria.** AC-SEC-04a: A grep/test asserts no `console.error(` with a raw error object remains in `src/app/api/share/[token]/**`; a test that an error whose message contains `/share/<token>` or a `token_hash` value is redacted in the emitted log record.
+**Acceptance criteria.** AC-SEC-04a: A grep asserts no `console.error(` with a raw error object remains in `src/app/api/share/[token]/**` nor `src/app/share/[token]/page.tsx`; a test that an error whose message contains `/share/<token>` or a `token_hash` value is redacted in the emitted record; AC-SEC-04b: the activity route and events route emit a structured (redacted) error record on caught failures (currently they swallow silently).
 **Validation.** Focused vitest + grep assertion.
-**Affected code.** `src/app/api/share/[token]/activity/route.ts`, `comment/route.ts`, `decision/route.ts`, `password/route.ts`, `events/route.ts`, `src/app/share/[token]/page.tsx`.
+**Affected code.** `src/app/api/share/[token]/route.ts`, `comment/route.ts`, `decision/route.ts`, `password/route.ts` (route existing `console.error` through redactor); `src/app/api/share/[token]/activity/route.ts`, `events/route.ts` (add structured logging — currently absent); `src/app/share/[token]/page.tsx` (route existing `console.error` through redactor).
 **Status.** Ready.
 
 ### SEC-05 (P0) — Raw DB IDs re-hashed before emission (preserve)
@@ -287,6 +287,18 @@ Every requirement has a stable ID, objective acceptance criteria, a validation m
 **Priority.** P0.
 **Acceptance criteria.** AC-REL-01a: Route test — inject a D1 failure; response is 500 uniform, no partial body.
 **Validation.** Route-level vitest.
+**Status.** Ready.
+
+---
+
+## AUD — Audit-logging requirements
+
+### AUD-01 (P0) — Read-surface audit logging unchanged; document the decision
+**Statement.** Audit logging for the public activity *read* surface SHALL remain unchanged (no per-read audit row). Write-side events already land in `project_publication_events`/`shared_link_events`; retention runs are audited via `data_retention_events` (extended by DATA-01). No new audit table is required for Phases 1-5. Phase 7's session-revocation bump SHOULD write a `shared_link_events` row (existing table).
+**Rationale.** PROMPT.md "audit logging." Post-minimization responses contain no PII, so per-read auditing adds cost without privacy benefit. Source: `repo evidence` + `decision` (see `08_…md` Auditability).
+**Priority.** P0 (document; do not add per-read auditing).
+**Acceptance criteria.** AC-AUD-01a: Decision recorded in `08_…md` + here; no plan task adds a per-read audit table for Phases 1-5.
+**Validation.** Decision-record check.
 **Status.** Ready.
 
 ---

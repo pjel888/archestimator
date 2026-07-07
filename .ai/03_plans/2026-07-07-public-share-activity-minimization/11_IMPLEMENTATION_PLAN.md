@@ -64,14 +64,16 @@ This is the authoritative execution guide for the future implementation AI. Orga
 - **Validation:** `bun run type-check`.
 - **Complexity:** Small. **Parallel-safe**.
 
-### WP-1.5 — Route share-route logging through the redactor (SEC-04)
-- **Files:** `src/app/api/share/[token]/activity/route.ts`, `comment/route.ts`, `decision/route.ts`, `password/route.ts`, `events/route.ts`, `src/app/share/[token]/page.tsx`.
-- **Symbols:** the `console.error("[share] …", error)` call sites (route.ts:72, comment/route.ts:120, decision/route.ts:76, password/route.ts:104, page.tsx:165/232/246/258 — re-verify line numbers before edit).
-- **Instruction:** Replace each raw `console.error(error, …)` with `logAppError`/`emitLogRecord` (whichever the surrounding code uses for structured logging) so `redactForLog` (`src/lib/observability/redact.ts`) applies. Preserve the existing structured `logStructured` calls (they already pass only `ipHash` + `errorCode`).
+### WP-1.5 — Route share-route logging through the redactor + add structured logging to silent routes (SEC-04)
+- **Files (two distinct sub-scopes):**
+  - **Sub-scope A — route existing raw `console.error` through the redactor:** `src/app/api/share/[token]/route.ts:72` (root snapshot), `comment/route.ts:84,120`, `decision/route.ts:38,76`, `password/route.ts:105`, `src/app/share/[token]/page.tsx:179,246,260,272`.
+  - **Sub-scope B — add structured error logging (currently absent):** `src/app/api/share/[token]/activity/route.ts` (zero logging today — verified by grep) and `events/route.ts` (zero logging today — verified by grep). Wrap caught failures in a redacted `logAppError`/`emitLogRecord` call.
+- **Symbols:** the `console.error("[share] …" / "[publication] …", error)` call sites above (re-verify line numbers before edit — concurrent agents may have shifted them). NOTE: the structured `console.error({ level, route, errorCode, ipHash, … })` calls (e.g. comment/route.ts:84, decision/route.ts:38) already pass only `ipHash` + `errorCode` (no raw token) — preserve them; the targets are the calls that pass a raw `error` object as a second arg.
+- **Instruction:** For sub-scope A, replace each raw `console.error(error, …)` that passes a raw error object with `logAppError`/`emitLogRecord` so `redactForLog` (`src/lib/observability/redact.ts`) applies. For sub-scope B, add try/catch + structured logging around the activity/events route handlers' failure paths (they currently swallow). Preserve existing structured calls.
 - **Failure cases:** If the redactor drops a field needed for debugging, the structured call still carries `errorCode`. Acceptable tradeoff.
-- **Tests:** WP-2.4 (Phase 2) — a test that an error whose message contains `/share/<token>` or a `token_hash` is redacted in the emitted record.
-- **Validation:** focused vitest + grep assertion `rg -n "console\.error\(" src/app/api/share/[token] src/app/share/[token]` returns zero (or only intentionally-redacted static strings).
-- **Complexity:** Medium (6 files; mechanical but careful). **Parallel-safe** across the different route files (each owns its own call site) but coordinate via the ledger.
+- **Tests:** WP-2.4 (Phase 2) — a test that an error whose message contains `/share/<token>` or a `token_hash` is redacted in the emitted record; plus an assertion that the activity/events routes now emit a record on caught failure (currently silent).
+- **Validation:** focused vitest + grep assertion `rg -n "console\.error\(" src/app/api/share/[token] src/app/share/[token]` returns only the already-safe structured-object calls (no raw `error` second-arg).
+- **Complexity:** Medium (mechanical but careful across 6 files + 2 additive). **Parallel-safe** across the different route files (each owns its own call site) but coordinate via the ledger.
 
 ### WP-1.6 — Document no-soft-delete invariant (DATA-02)
 - **Files:** `src/lib/publication/d1-store.ts` (`listPublicActivityComments`).
@@ -128,7 +130,9 @@ This is the authoritative execution guide for the future implementation AI. Orga
 ### WP-2.2 — Facts allow-list test (SEC-03)
 - Extend `tests/vitest/activity-security.test.ts`. (Also referenced in WP-1.3; ensure both exist.)
 
-### WP-2.3 — Retention-rule test placeholder (Phase 5 joint)
+### WP-2.3 — Retention-rule test (folded into WP-5.2)
+
+(Placeholder removed during revision cycle — the retention-rule test is owned by WP-5.2 in Phase 5. No separate work here.)
 
 ### WP-2.4 — Redactor routing test (SEC-04)
 - Assert a share route error path emits a record via `logAppError`/`emitLogRecord` and the record is redacted for a token-bearing message.
@@ -202,9 +206,9 @@ This is the authoritative execution guide for the future implementation AI. Orga
 
 **Objective.** Invalidate stolen recipient session cookies without rotating the whole publication.
 **Requirements.** SEC-09.
-**Prerequisites.** Owner approval (OPEN-SEC-04); migration `0037_shared_link_session_generation.sql`.
+**Prerequisites.** Owner approval (OPEN-SEC-04); migration `0038_shared_link_session_generation.sql`.
 **Work packages:**
-- WP-7.1: Migration `migrations/0037_shared_link_session_generation.sql` — `ALTER TABLE shared_link_recipients ADD COLUMN session_generation INTEGER NOT NULL DEFAULT 0;` (+ optional index).
+- WP-7.1: Migration `migrations/0038_shared_link_session_generation.sql` (next sequential; latest is `0037_remove_preloaded_component_categories.sql`) — `ALTER TABLE shared_link_recipients ADD COLUMN session_generation INTEGER NOT NULL DEFAULT 0;` (+ optional index).
 - WP-7.2: `src/lib/publication/security.ts` session verify — read `session_generation`, bind to cookie, reject mismatch.
 - WP-7.3: `src/lib/publication/actions.ts` recipient removal — bump `session_generation`.
 - WP-7.4: Test — stale cookie rejected (401/419); re-session works.

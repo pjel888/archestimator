@@ -97,7 +97,7 @@ Phases 1, 2, 4, 5(mechanism), 8 are code-only → standard OpenNext/Cloudflare W
 6. Rollback: disable flag; remove WAF rule.
 
 ### Phase 7 — Session revocation runbook
-1. Apply migration `0037_shared_link_session_generation.sql` (`bun run cf:d1-migrate` or the project's apply path).
+1. Apply migration `0038_shared_link_session_generation.sql` (`bun run cf:d1-migrate` or the project's apply path).
 2. Deploy code that reads + binds `session_generation`.
 3. Verify: existing sessions still work (generation 0); removing a recipient invalidates their cookie.
 4. Rollback: drop column.

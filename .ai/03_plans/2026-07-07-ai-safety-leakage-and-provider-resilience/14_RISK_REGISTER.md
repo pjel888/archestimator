@@ -1,0 +1,18 @@
+# 14 — Risk Register
+
+| ID | Description | Trigger | Prob | Impact | Severity | Affected | Detection | Prevention | Mitigation | Contingency | Owner | Residual | Status |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| RISK-AI-01 | Cross-tenant data leakage via AI read path | forgotten `WHERE workspace_id=?` in new tool; transitive scoping refactor drops parent re-check | Medium | Critical | **Critical** | all tenants | leakage suite (TEST-001); audit `provider_send_categories` review | scoped-query helper; mandatory workspace binding test | disable switch; revert | none | Philip | structural (no DB safety net) | Open — launch-blocker for enable |
+| RISK-AI-02 | Prompt injection exfiltrates data via model output | crafted user message → model echoes workspace data/secrets | Medium | High | High | workspace data | injection suite (TEST-002); outbound scrub | sanitize + scrub + grounding prompts | disable switch | none | Philip | reduced post-Phase-1 | Open |
+| RISK-AI-03 | Provider outage degrades/hangs AI | DeepSeek down/slow | High | Medium | Medium | AI availability | audit error_class; breaker | timeout+breaker+fallback | deterministic draft (PB); 502 (Ask) | disable switch | Philip | acceptable for beta | Open (R-010) |
+| RISK-AI-04 | Cost runaway | abuse/spam; no PB rate limit | Medium | Medium | Medium | spend | quota metrics; DeepSeek dashboard | rate limits both routes (REL-003); max_tokens caps | tighten quota/disable | none | Philip | reduced post-Phase-3 | Open |
+| RISK-AI-05 | Platform-admin AI cross-tenant access | admin uses AI under elevated identity | Low | High | Medium | tenant isolation | SEC-006 denial test | DEC-007 AI-side guard | none | deny admin AI bypass | Philip | owner-gated | Open (DEC-007) |
+| RISK-AI-06 | Secret leak via logs | bare console.error embeds content | Low | High | Medium | secrets/PII | log-scan test | route through redacting logger (SEC-008) | none | none | Philip | closes in Phase 0 | Open |
+| RISK-AI-07 | Signing-secret unset in prod → apply throws | ops forgets to set `AI_PACKAGE_BUILDER_DRAFT_SIGNING_SECRET` | Medium | Medium | Medium | apply path | throws-if-unset (existing) | env-manifest test; document (OPS-001) | none | none | Philip | closes in Phase 0 | Open |
+| RISK-AI-08 | Forensic blindness (metadata-only) | incident requires exact prompt | Low | Medium | Low | incident response | none | none | accept tradeoff; category provenance | improve only if owner approves raw storage (DEC-005 rejected) | Philip | accepted | Accepted |
+| RISK-AI-09 | Doc drift leads implementer astray | AI docs cite Supabase | High | Medium | Medium | implementation | DOC-001 review | re-anchor docs (Phase 7) | none | none | Philip | closes in Phase 7 | Open |
+| RISK-AI-10 | Stale-context concurrent edit | another agent edits AI file mid-impl | Low | Low | Low | impl correctness | git status recheck (Directive §6) | re-read before edit | none | none | impl | low | Open |
+| RISK-AI-11 | Apply broadcast gap (collaborators don't see live) | no WS push in apply | Medium | Low | Low | UX | manual | document; rely on revalidatePath | none | none | Philip | accepted for beta | Accepted |
+| RISK-AI-12 | DeepSeek policy change (data retention/training) | external provider change | Low | High | Medium | privacy/legal | subprocessor review (SEC-010) | disclosure in privacy notice | switch provider (paid — needs approval) | disable | Philip/legal | external | Open |
+
+No unmitigated Critical risk remains for the **gated-off** path (Track A). For the **enable** path (Track B), RISK-AI-01 and RISK-AI-02 remain Critical/High until Phases 1 + 4 land — hence enablement is gated on those phases.

@@ -74,7 +74,7 @@ flowchart LR
   subgraph D1
     ITEMS
     PO
-    CE2[variant_cost_entries + governance columns - MIG 0037]
+    CE2[variant_cost_entries + governance columns - MIG 0038]
     VER
     HIST
     REV[event audit - extended or new]
@@ -101,7 +101,7 @@ flowchart LR
 | Authz (`src/lib/authz/d1-access.ts`) | Security | New governance-admin helper |
 | Repository (`component-library-repository.ts`) | Read projection | Add review-state columns to `SIDEBAR_COMPONENT_LIBRARY_ITEM_COLUMNS`; add stale-propagation read |
 | Estimate repository (`estimate-repository.ts`) | Read path | Compute `source-changed` on read |
-| D1 migration `0037` | Data | Additive only |
+| D1 migration `0038` | Data | Additive only |
 
 ## Data flow — review accept
 
@@ -149,6 +149,23 @@ sequenceDiagram
 ```
 
 Rationale: computed-on-read is always honest, has no write fan-out cost, and avoids stale materialized flags. Optional async materialization (P4 stretch) can precompute overview counts via a Cron/Queue job for scale — deferred unless overview p95 regresses (`09`).
+
+**Compare basis (pinned, ADV-10):** the read-side `source-changed` decision is derived from `componentVersionNumber` mismatch OR a price-hash compare (unit_cost + misc_cost + currency + pricing_source + pricing_date + confidence) between the estimate row snapshot and the current library entry. Wall-clock timestamps are **not** used for the drift decision (avoids timezone-skew false positives, RISK-12); `pricingDate` is part of the compare *input* (a changed pricing date flips the hash) but the comparison is equality-based, not time-based.
+
+## Route-specific App Router boundary and cache contract
+
+Every library/estimate route touched by this plan. (Cache Components posture: this plan does **not** introduce Cache Components; existing routes keep current behavior. If the repo later enables Cache Components repo-wide, the review/import actions must tag-invalidate library tags — noted as a future-proofing caveat, not a current requirement.)
+
+| Route file (repo-relative) | Rendering | Data owner | `use client` boundary | Request-time APIs → dynamic? | Mutation revalidation |
+|---|---|---|---|---|---|
+| `src/app/(workshop)/workshop/library/...` (existing library workspace) | dynamic (auth-gated, per-workspace) | Server Component → `component-library-repository` | existing client surfaces (chips, facet, inspector, import dialog) | `cookies()` (session) → dynamic | `revalidateLibraryRoutes()` after review/import + TanStack invalidation |
+| `src/app/(workshop)/workshop/library/overview/...` | dynamic | repository `getLibraryOverview` | existing overview client | `cookies()` → dynamic | `revalidateLibraryRoutes()` |
+| `src/app/(workshop)/workshop/library/templates-browse/...` | dynamic | repository template reads | existing template client | `cookies()` → dynamic | `revalidateTemplateSurfaces()` |
+| Estimate sheet route (existing) | dynamic | `estimate-repository` (gains stale-propagation compare) | existing estimate-sheet client | `cookies()` → dynamic | router refresh after library version bump is **not** required (computed-on-read on next load); TanStack invalidation on explicit re-link |
+| `src/app/api/component-library/attachments/route.ts` | n/a (Route Handler) | route handler | n/a | auth header → dynamic | unchanged |
+| `src/app/api/component-library/attachments/scan-override/route.ts`, `direct-upload/route.ts`, `images/route.ts` | n/a | route handler | n/a | auth → dynamic | unchanged |
+
+Read-your-own-writes: every review/import Server Action returns the updated row and the caller does `setQueryData` on the active TanStack query. No Server Component calls an internal Route Handler. No new static routes. No new `"use client"` boundaries beyond the already-client surfaces (inspector toolbar, import dialog).
 
 ## Control flow & shared contracts
 

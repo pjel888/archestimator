@@ -33,6 +33,8 @@
 | REL-01 | brief+repo | D1 failure → 500 uniform | Phase 2 (test) | WP-2.1 | route.ts | AC-REL-01a | TEST-01 | CI | Ready |
 | DOC-01 | brief | data contract doc | Phase 8 | WP-8.1 | this plan / .ai/06_specs | AC-DOC-01a | doc review | n/a | Ready |
 | DOC-02 | ops | runbooks | Phase 8 | WP-8.2 | 13_…md | AC-DOC-02a | doc review | n/a | Ready |
+| AUD-01 | brief | read-surface audit unchanged (decision) | n/a (decision) | n/a | n/a | AC-AUD-01a | decision record (08_…md) | n/a | Ready |
+| (cleanup) WP-1.7 | repo | SharePageComments dead author_email field | Phase 1 | WP-1.7 | src/components/share/SharePageComments.tsx | (no AC — hygiene; existing comments test stays green) | existing project-publication-comments.test.tsx | CI | Ready |
 
 ## Performance-sensitive requirements mapping
 
@@ -42,4 +44,4 @@
 
 ## No requirement untraced
 
-Every requirement (FR-01..07, SEC-01..11, DATA-01..03, API-01..02, TEST-01..04, PERF-01, REL-01, DOC-01..02) maps to source + task + AC + test + rollout check. SEC-11 is explicitly deferred with rationale.
+Every requirement (FR-01..07, SEC-01..11, DATA-01..03, API-01..02, TEST-01..04, PERF-01, REL-01, AUD-01, DOC-01..02) maps to source + task + AC + test + rollout check. SEC-11 is explicitly deferred with rationale. WP-1.7 is a non-requirement cleanup task (traced above as `(cleanup)`) — it is the only non-requirement task; it is not counted as an untraced requirement.

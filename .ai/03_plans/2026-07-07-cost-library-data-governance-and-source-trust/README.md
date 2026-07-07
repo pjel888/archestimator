@@ -17,7 +17,7 @@ A planning-only pack to make Archestimator's cost library **trustworthy, reviewa
 
 **May proceed to implementation now (no external blocker):**
 - **P0** (`TASK-001..004`) discovery + types + flag + authz — under `OPEN-5` assumption
-- **P1** (`TASK-005..008`) D1 migration `0037` + repository projection — under `OPEN-1` Mode A default
+- **P1** (`TASK-005..008`) D1 migration `0038` + repository projection — under `OPEN-1` Mode A default
 - **P2** (`TASK-009..014`) review actions + origin — under `OPEN-5`
 - **P3** (`TASK-015..019`) trust-model wiring — under `OPEN-3` free-text fallback
 - **P4** (`TASK-020..022`) stale propagation
@@ -61,6 +61,7 @@ P0 -> P1 -> {P2, P3} -> P4 -> P5 -> P6 -> P7
 | `17_FINAL_READINESS_REVIEW.md` | Verifier audit, scores, caps |
 | `18_STACK_CONTRACT_AND_PRODUCTION_STANDARDS.md` | Cross-cutting production decisions |
 | `19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md` | Research, cycles, UltraQA matrix, evaluator contract |
+| `20_AUDIT_AND_REVISION_LOG.md` | Improve-Plan audit: inventory, scorecard, adversarial findings, drift repairs |
 
 ## Requirement/task/test traceability
 
@@ -85,7 +86,7 @@ P0 -> P1 -> {P2, P3} -> P4 -> P5 -> P6 -> P7
 
 Before implementing, the implementation AI must re-verify (repo may have moved):
 1. `git status` + re-read every file this pack names in `10`/`11`.
-2. Confirm `migrations/0037` slot is still free (no concurrent agent took it); renumber if needed.
+2. Confirm `migrations/0038` slot is still free (no concurrent agent took it after this pack was written; `0037` was taken on 2026-07-07 by `0037_remove_preloaded_component_categories.sql`); renumber if needed.
 3. Confirm `actions.ts`, `source-trust-model.ts`, `d1-access.ts`, `component-library-repository.ts`, `estimate-repository` paths/symbols still match (`03`).
 4. Re-confirm the dual-persistence gap (grep `accept_cost_library_cost_entry` in `actions.ts` = 0).
 5. Re-confirm `source-changed` is still read-not-written (grep write sites).
@@ -98,7 +99,7 @@ Before implementing, the implementation AI must re-verify (repo may have moved):
 - `bun run type-check`
 - `rg "accept_cost_library_cost_entry" src/` (expect 0 in actions.ts)
 - `rg "link_state\s*=|linkState\s*=" src/lib/estimates src/lib/component-library` (confirm write sites)
-- `ls migrations/ | tail` (confirm 0037 free)
+- `ls migrations/ | tail` (confirm 0038 free)
 
 ## Files explicitly off-limits (this is planning-only)
 

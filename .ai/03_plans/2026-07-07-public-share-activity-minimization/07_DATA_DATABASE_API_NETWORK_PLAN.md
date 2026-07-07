@@ -21,7 +21,7 @@
 
 ### Database Change Blueprint (Phase 7 only — owner-gated)
 
-- **Migration filename:** `migrations/0037_shared_link_session_generation.sql` (next sequential; latest is `0036_cost_library_component_drafts.sql`).
+- **Migration filename:** `migrations/0038_shared_link_session_generation.sql` (next sequential; latest is `0037_remove_preloaded_component_categories.sql`).
 - **Tables/columns/indexes:** `ALTER TABLE shared_link_recipients ADD COLUMN session_generation INTEGER NOT NULL DEFAULT 0;` + optional `CREATE INDEX idx_shared_link_recipients_session_gen ON shared_link_recipients(publication_id, session_generation);`
 - **Repository/security.ts:** session verify (`verifySharedLinkSessionCookieValue`) reads `session_generation` and compares to cookie-bound value; mismatch → reject.
 - **actions.ts:** recipient removal bumps `session_generation` for the publication (or the row).

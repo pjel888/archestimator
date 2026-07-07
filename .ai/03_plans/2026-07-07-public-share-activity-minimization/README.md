@@ -80,7 +80,7 @@ flowchart LR
 5. Re-verify the `facts` filter is still a deny-list regex (activity-composer.ts:~449-452).
 6. Re-verify the retention gap (`retention-core.ts:79-143` does not cover share content).
 7. Re-verify `console.error(error, …)` sites on share routes.
-8. Re-verify the latest migration number (currently `0036`; Phase 7 would be `0037`).
+8. Re-verify the latest migration number (currently `0037_remove_preloaded_component_categories.sql`; Phase 7 would be `0038`).
 9. Re-check `git status` + coordination ledger for concurrent-agent edits.
 10. Re-read the relevant Next.js 16 local doc only if framework-sensitive (route-handler pattern is stable).
 

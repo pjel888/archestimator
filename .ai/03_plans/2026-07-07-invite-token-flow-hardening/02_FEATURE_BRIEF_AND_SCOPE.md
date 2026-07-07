@@ -62,7 +62,7 @@ No conflict between the brief and repo reality was found. The brief's claim ("Or
 
 ### 3.4 Data
 - `migrations/0007_collaboration_invitations.sql` — foundational invite schema.
-- Next available migration: **`0037`**.
+- Next available migration: **`0038`** (at planning time `0037_remove_preloaded_component_categories.sql` was latest; it was created by concurrent work during this session — re-verify with `ls migrations/ | sort | tail -1` before authoring).
 - `src/lib/repositories/workspace-repository.ts` — membership reads/writes, invite summary reads.
 
 ### 3.5 Observability / proof

@@ -153,4 +153,4 @@ After each phase, run the phase-specific focused tests in [`12`](./12_TEST_AND_V
 | [`18_STACK_CONTRACT_AND_PRODUCTION_STANDARDS.md`](./18_STACK_CONTRACT_AND_PRODUCTION_STANDARDS.md) | Cross-cutting stack production bar |
 | [`19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md`](./19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md) | Research, adversarial matrix, evaluator, gaps |
 | [`20_ATTACK_SURFACE_AND_CREDENTIAL_MATERIAL.md`](./20_ATTACK_SURFACE_AND_CREDENTIAL_MATERIAL.md) | Credential taxonomy, attack surface inventory |
-| [`21_DATABASE_CHANGE_BLUEPRINTS.md`](./21_DATABASE_CHANGE_BLUEPRINTS.md) | Migration `0038` (+ conditional `0038`) blueprints |
+| [`21_DATABASE_CHANGE_BLUEPRINTS.md`](./21_DATABASE_CHANGE_BLUEPRINTS.md) | Migration `0038` (revoke_reason, additive) + conditional `0039` (auth_trigger removal) blueprints |

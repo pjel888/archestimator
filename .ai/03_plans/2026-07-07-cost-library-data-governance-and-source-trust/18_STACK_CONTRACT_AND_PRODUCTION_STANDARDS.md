@@ -33,7 +33,7 @@ Next.js 16, React 19, Bun, TypeScript, Tailwind v4, OpenNext on Cloudflare Worke
 
 ## Cloudflare D1 / R2 / data integrity
 
-- D1 boundary: `ARCH_DB` only; additive migration `0037` (no new bindings); repository helpers for new columns; app-authz (`isCostLibraryGovernanceAdminInD1`) — D1 has no RLS, so authz is app-enforced and denial-tested.
+- D1 boundary: `ARCH_DB` only; additive migration `0038` (no new bindings; next free D1 slot after `0037_remove_preloaded_component_categories.sql`); repository helpers for new columns; app-authz (`isCostLibraryGovernanceAdminInD1`) — D1 has no RLS, so authz is app-enforced and denial-tested. **Migration-tree note:** D1 (`migrations/`, `00xx`) is the active runtime; Supabase (`supabase/migrations/`, timestamps) is reference/exit only.
 - R2: attachments unchanged (existing `attachments/route.ts`).
 - Transactions: accept/supersede use D1 transaction with `review_revision` optimistic guard; `cf:d1-rpc-transaction-proof.ts` template.
 - Migration: ordered, additive, reversible-by-fix-forward, Mode A backfill.

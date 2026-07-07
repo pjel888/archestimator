@@ -1,14 +1,18 @@
 # Plan Pack: Privacy Request Operations And Erasure Workflow
 
 - **Plan status:** `CONDITIONALLY READY`
-- **Implementation-ready slices:** `P0` (intake hardening + identity verification), `P1` (operator queue + lifecycle actions + confirmation email), `P2` (export fulfillment + evidence package)
-- **Owner-gated slices (NOT implementation-ready):** `P3` (erasure/anonymization execution — gated on `OPEN-ERASE-01` retention-conflict decision), `P4` (SLA breach escalation + breach runbook cross-link — gated on `OPEN-LEGAL-02`)
+- **Implementation-ready slices:** `P0` (intake hardening + identity verification **including the verify Server Action**, requester status lookup, rate limit)
+- **Conditionally-ready slices (gated on `OPEN-OPS-01`):** `P1` (operator queue + lifecycle actions + confirmation email), `P2` (export fulfillment + evidence package) — both depend on the operator-gate role decision, which `OPEN-OPS-01` recommends resolving as "reuse `isPlatformAdminRole`"
+- **Owner-gated slices (NOT implementation-ready):** `P3` (erasure/anonymization execution — gated on `OPEN-ERASE-01`), `P4` (SLA breach escalation — gated on `OPEN-LEGAL-02`)
 - **Verification mode:** `emulated` (same-agent separated passes; no native independent reviewer). Cap: overall readiness ≤ 97 and, for this high-blast-radius exhaustive pack, status capped at `CONDITIONALLY READY` until an independent reviewer or the owner accepts the package.
 - **Plan profile:** `exhaustive` (touches D1 schema/migrations, app authorization, identity verification, email, audit evidence, and data erasure — all high-blast-radius surfaces per `AGENT_OPERATING_PROTOCOL.md`).
 - **Created:** 2026-07-07 (Asia/Manila)
+- **Improved:** 2026-07-07 (Asia/Manila) — `Improve-Plan-Prompt.md` pass (see "What's new in the 2026-07-07 improvement pass" below)
 - **Plan folder:** `/Users/philiplewis/Documents/archestimator/.ai/03_plans/2026-07-07-privacy-request-operations-and-erasure-workflow`
 
 > This is a **planning-only** pack. No application code, tests, migrations, schemas, or provider state were modified. The pack is complete when a future executor can implement and verify privacy request operations end to end (per the `PROMPT.md` stop condition).
+
+> **What's new in the 2026-07-07 improvement pass.** An adversarial audit found 6 hard gate-failures and 6 internal contradictions. This pass: (1) resolved all contradictions (verify endpoint is now a **Server Action** matching the repo's `beta-allowlist-admin-actions.ts` `"use server"` + `formData` convention — not a Route Handler POST; the verify Server Action moved into **P0** to match IDENT-1's P0 priority; bad-token on status lookup is **404 uniform** to avoid enumeration; verify token travels in the Server-Action request body, never a URL query param); (2) added `20_ROUTE_BOUNDARY_AND_CACHE_CONTRACTS.md` (route-by-route App Router contract); (3) added `21_ATTACK_SURFACE_AND_CREDENTIAL_MATERIAL.md` (8-column Attack Surface Inventory + deepened credential taxonomy); (4) rewrote `12` to the exact proof-contract column shape + a known-red ledger; (5) re-headed `16` to `Source ID | Requirement | …` with an outcome column; (6) grounded framework claims in verified repo facts (Next.js 16.2.10 / React 19.2.7, **`cacheComponents` is NOT enabled**, `bun run validate` is **RED on main** → scoped proofs only).
 
 ---
 
@@ -16,8 +20,8 @@
 
 - **Implementation start document:** `11_IMPLEMENTATION_PLAN.md`
 - **Phase order:** `P0 → P1 → P2 → P3 → P4`. See the dependency graph below.
-- **Begin with** `P0-T1` (extend the repository with lifecycle functions) — it is the contract every downstream phase depends on and is fully implementation-ready.
-- The first three phases (`P0`, `P1`, `P2`) are self-contained and landable. `P3`/`P4` require the named owner decisions before any edit.
+- **Begin with** `P0-T1` (migration `0037`) — it is the contract every downstream phase depends on and is fully implementation-ready.
+- `P0` is implementation-ready now. `P1`/`P2` become implementation-ready the moment the owner confirms `OPEN-OPS-01` (recommended: reuse `isPlatformAdminRole`). `P3`/`P4` require `OPEN-ERASE-01` / `OPEN-LEGAL-02`.
 
 ## Headline findings
 
@@ -25,7 +29,7 @@
 - **The data model already carries lifecycle columns** (`triaged_at`, `resolved_at`, `triaged_by`) and a 5-state enum (`submitted → in_triage → in_progress → completed | rejected`), but no code writes them. The lifecycle is a build-out, not a schema greenfield — though a new migration is needed for SLA timers, notes/history, and verification evidence.
 - **Proven patterns exist for every missing piece.** Platform-admin queue gate (`beta-allowlist-admin.ts`), D1 sliding-window rate limit (`ai/rate-limit.ts`), HMAC-hashed audit (`account-audit.ts` + `AUTH_AUDIT_HASH_PEPPER`), Cloudflare Email with circuit breaker (`transactional-email-client.ts`), retention-driven deletion with audit (`retention-core.ts`). The plan reuses these rather than inventing new primitives.
 - **Retention already governs the end of life.** `retention-core.ts` rule registry purges `privacy_requests_completed` (2555d) and `privacy_requests_rejected` (365d) via the `worker.ts` daily cron. The erasure phase (`P3`) must reconcile **operator-initiated erasure** with this **schedule-driven purge** — this is the core tension behind `OPEN-ERASE-01`.
-- **Identity verification is the highest-risk gap.** The migration comment defers verification to "triage," but no token, email-confirmation-loop, or knowledge-based check exists. `P0-T3` builds a hashed-token email verification loop (mirrors the magic-link pattern) because erasure must not fire on an unverified anonymous request.
+- **Identity verification is the highest-risk gap.** The migration comment defers verification to "triage," but no token, email-confirmation-loop, or knowledge-based check exists. The verify loop (hashed-token, single-use, 24h — mirrors the magic-link pattern) is built in `P0` because erasure must not fire on an unverified anonymous request. The verify endpoint is a **Server Action** matching the repo's `beta-allowlist-admin-actions.ts` (`"use server"` + `formData`) convention; the raw token travels in the request body, never a URL query param.
 
 ## Blocked decisions (owner)
 
@@ -40,24 +44,28 @@
 
 ```mermaid
 flowchart LR
-  P0[P0: Repo lifecycle + identity verification + intake hardening]
-  P1[P1: Operator queue + lifecycle actions + confirmation email]
-  P2[P2: Export fulfillment + evidence package]
+  P0[P0: Migration 0037 + repo lifecycle\n+ identity verify Server Action\n+ intake hardening + rate limit\n+ requester status lookup]
+  P1[P1: Operator queue + lifecycle actions\n+ confirmation/status email\nGATED on OPEN-OPS-01]
+  P2[P2: Export fulfillment + evidence package\nGATED on OPEN-OPS-01]
   P3[P3: Erasure/anonymization\nGATED: OPEN-ERASE-01]
   P4[P4: SLA breach + escalation\nGATED: OPEN-LEGAL-02]
+  OPS[OPEN-OPS-01 operator role]
   P0 --> P1
   P1 --> P2
   P1 --> P3
   P2 --> P3
   P1 --> P4
+  OPS -. gates .-> P1
 ```
 
 ## Requirement / task / test traceability
 
 - Requirements register: `04_REQUIREMENTS_SPECIFICATION.md` (IDs `FR-*`, `IDENT-*`, `SLA-*`, `OPS-*`, `EMAIL-*`, `ERASE-*`, `EVID-*`, `ABUSE-*`, `UX-*`, `A11Y-*`, `ARCH-*`, `SEC-*`, `TEST-*`, `DOC-*`).
 - Implementation phases & tasks: `11_IMPLEMENTATION_PLAN.md` (tasks `P0-Tn` … `P4-Tn`).
-- Test & validation: `12_TEST_AND_VALIDATION_STRATEGY.md` (proof contracts `PC-01`…`PC-18`).
-- Full bidirectional trace: `16_REQUIREMENTS_TRACEABILITY_MATRIX.md`.
+- Test & validation: `12_TEST_AND_VALIDATION_STRATEGY.md` (proof contracts `PC-01`…`PC-18`, exact proof-contract column shape + known-red ledger).
+- Full bidirectional trace: `16_REQUIREMENTS_TRACEABILITY_MATRIX.md` (columns: `Source ID | Requirement | Source evidence | Source strength | Plan section | Work item | Acceptance criteria | Test/proof | Risk | Status | Gap/decision | User/system outcome`).
+- Route-by-route App Router contract: `20_ROUTE_BOUNDARY_AND_CACHE_CONTRACTS.md`.
+- Attack Surface Inventory + credential taxonomy: `21_ATTACK_SURFACE_AND_CREDENTIAL_MATERIAL.md`.
 
 ## Stale-plan revalidation checklist (before executing any phase)
 
@@ -125,3 +133,5 @@ Do **not** archive automatically. Archive the pack only after `P0`–`P2` are im
 | `17_FINAL_READINESS_REVIEW.md` | Per-doc + category scores, verification matrix, residual gaps |
 | `18_STACK_CONTRACT_AND_PRODUCTION_STANDARDS.md` | Cross-cutting stack production decisions |
 | `19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md` | Research, adversarial `AQ-*`, verifier evidence, validation gaps |
+| `20_ROUTE_BOUNDARY_AND_CACHE_CONTRACTS.md` | *(improvement pass)* Route-by-route App Router boundary + cache + revalidation contract |
+| `21_ATTACK_SURFACE_AND_CREDENTIAL_MATERIAL.md` | *(improvement pass)* Attack Surface Inventory (8-column) + deepened credential material taxonomy |

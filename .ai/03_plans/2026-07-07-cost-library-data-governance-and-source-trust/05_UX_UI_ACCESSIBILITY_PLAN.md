@@ -62,6 +62,28 @@
 - **Copy & hierarchy:** consistent labels ("Accepted", "Needs review", "Rejected", "Superseded", "Locked", "Proposed") across chips, gate, inspector, export.
 - **Undo/confirmation:** supersede and bulk reject require explicit confirm; lock has unlock path.
 
+## Action-level accessibility proof matrix (per Improve-Plan directive §3)
+
+For every new user-facing action: keyboard path, focus target/restoration, accessible name/live-region behavior, and proof type. WCAG 2.2 AA-aligned.
+
+| Action | Keyboard path | Focus target / restoration | Accessible name / live-region | Proof type |
+|---|---|---|---|---|
+| Open inspector review toolbar | Tab to entry → Enter opens dock | focus → first toolbar button; Esc → restore to entry row | dock labelled `aria-labelledby`; review-state announced via chip `aria-label` | DOM test |
+| Accept cost entry | Tab to "Accept" button → Enter/Space | focus stays on button → on success moves to next needs-review entry; on conflict focus stays + toast announced | button `aria-label="Accept cost entry"`; toast `aria-live="polite"` announces "Accepted" or "Conflict, refresh" | DOM test + targeted Playwright (focus restoration across dock) |
+| Reject cost entry (requires note) | Tab to "Reject" → Enter → focus moves to note field → Tab to confirm | focus → note field; cancel → restore to Reject button | field `aria-label="Rejection note"`; required-state announced | DOM test |
+| Lock / Unlock | Tab to "Lock" → Enter | focus stays; toggle announced | `aria-pressed` for toggle; live-region announces state | DOM test |
+| Supersede (confirm dialog) | Tab to "Supersede" → Enter → dialog opens → Tab through create-new fields → confirm | dialog focus → first field; Esc/cancel → restore to Supersede button | dialog `aria-labelledby`; confirm button name | DOM test + Playwright (dialog focus) |
+| Assign reviewer (combobox) | existing creatable-combobox pattern (`src/components/ui/creatable-combobox.tsx`) | combobox focus management reused | labelled combobox; selection announced | DOM test (existing pattern) |
+| Set origin = owner-accepted (admin only) | Tab to origin select → choose → confirm | focus stays; change announced | `aria-label`; admin-only affordance hidden from non-admin | DOM test + denial test |
+| Import: upload CSV | Tab to "Upload" → Enter → native file dialog → Tab to dry-run table → confirm | after upload, focus → dry-run table first row; confirm → toast | table caption + per-row errors `aria-label`; toast live-region | DOM test + Playwright (drag-drop) |
+| Export (format menu) | Tab to menu → Enter → choose format | menu focus management (existing menu primitive) | menu items labelled | DOM test |
+| Facet: filter by review state | existing facet keyboard pattern | facet focus reused | checkbox/toggle labelled | DOM test (existing `library-applied-filters.test.tsx`) |
+| Gate modal: confirm insert with warnings | existing gate; new reasons appended | existing focus to confirm/cancel | reasons list `aria-describedby`; tone + icon + text | DOM test (existing handler test extended) |
+
+**Responsive / touch / large-data notes:** inspector toolbar wraps on narrow widths; import dry-run table virtualizes/paginates beyond ~500 rows; chips wrap with `flex-wrap`; no hover-only affordances; tap targets ≥44px (existing primitives).
+
+**Reduced motion / contrast / reflow:** chip tone changes are color + icon + text (no animation dependency); review tones meet AA contrast against backgrounds (verify in `TASK-029` with `lint:design-system` + visual spot-check); inspector reflows at 320px width without horizontal scroll (verify in `TASK-029`/`TASK-031` DOM + targeted browser proof).
+
 ## UX regressions to guard
 
 - Existing chip density must not get noisier than today (≤ +1 chip typical).

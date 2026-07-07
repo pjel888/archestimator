@@ -19,7 +19,7 @@ Source-strength tags: `brief` (PROMPT.md), `repo evidence` (source/migrations/te
   - `AC-1.2` `validateQuickAddComponentInput` rejects future pricing dates, non-https pricingSource, formula-prefixed confidence (already true; extend to new fields). (test: `quick-add-validation` unit test)
   - `AC-1.3` Region/version label, if provided, is a non-empty trimmed string ≤120 chars; empty allowed (defaults to workspace default). (test: unit)
 - **Validation:** Unit tests on validators; D1 insert/read round-trip test.
-- **Affected code:** `src/lib/component-library/quick-add-validation.ts`, `actions.ts` (create/update paths), `src/lib/repositories/component-library-repository.ts`, migration `0037` (additive columns).
+- **Affected code:** `src/lib/component-library/quick-add-validation.ts`, `actions.ts` (create/update paths), `src/lib/repositories/component-library-repository.ts`, migration `0038` (additive columns).
 - **Risks:** Backfill of NULL region/version on existing rows (default NULL or workspace default — `OPEN-2`).
 - **Status:** pending.
 
@@ -35,7 +35,7 @@ Source-strength tags: `brief` (PROMPT.md), `repo evidence` (source/migrations/te
   - `AC-2.3` Promotion-from-estimate sets `origin='promoted-from-estimate'`. (promotion action test)
   - `AC-2.4` Only governance-admin can set `origin='owner-accepted'`; non-admin attempt returns authorization error. (denial test)
 - **Validation:** Unit + authz denial tests; migration backfill proof.
-- **Affected code:** `actions.ts` (create/promote paths), new import action, `src/lib/authz/d1-access.ts` (new helper), migration `0037`.
+- **Affected code:** `actions.ts` (create/promote paths), new import action, `src/lib/authz/d1-access.ts` (new helper), migration `0038`.
 - **Risks:** Mislabeling owner-accepted data — mitigation: admin-only + audit.
 - **Status:** pending.
 
@@ -48,12 +48,12 @@ Source-strength tags: `brief` (PROMPT.md), `repo evidence` (source/migrations/te
 - **Priority:** P0.
 - **Dependencies:** `REQ-1`, `G2`.
 - **Acceptance criteria:**
-  - `AC-3.1` Migration `0037` adds the column + CHECKs; applies cleanly on a DB with `0026..0036` applied; `wrangler d1 migrations list --local` shows it pending then applied. (D1 apply proof)
+  - `AC-3.1` Migration `0038` adds the column + CHECKs; applies cleanly on a DB with `0001..0037` applied (current D1 tip = `0037_remove_preloaded_component_categories.sql`); `wrangler d1 migrations list --local` shows it pending then applied. (D1 apply proof)
   - `AC-3.2` Existing current entries backfill to `accepted` (owner-gated default, `OPEN-1`) OR `proposed` if owner chooses "no seed trust"; backfill idempotent. (migration test on temp SQLite)
   - `AC-3.3` Inserting a row with `reviewStatus='accepted'` but no `reviewed_by` violates CHECK and is rejected. (constraint test)
   - `AC-3.4` At most one `accepted`+`is_current` entry per price option (unique partial index `cost_entries_one_accepted_current_per_option`). (constraint test)
 - **Validation:** D1 migration apply + constraint tests; provider readback in `13`.
-- **Affected code:** migration `0037`, `actions.ts` (insert/update respect state).
+- **Affected code:** migration `0038`, `actions.ts` (insert/update respect state).
 - **Risks:** Backfill default choice blocks full readiness (`OPEN-1`).
 - **Status:** pending.
 
@@ -84,7 +84,7 @@ Source-strength tags: `brief` (PROMPT.md), `repo evidence` (source/migrations/te
   - `AC-5.3` `lockCostEntry` sets `locked_by/locked_at/lock_reason`; further mutations blocked until unlock. (constraint test)
   - `AC-5.4` Non-admin caller denied on all five. (denial tests)
 - **Validation:** Action + concurrency + denial tests; D1 transaction proof.
-- **Affected code:** `actions.ts` (new actions), `src/lib/authz/d1-access.ts`, migration `0037` (columns).
+- **Affected code:** `actions.ts` (new actions), `src/lib/authz/d1-access.ts`, migration `0038` (columns).
 - **Risks:** D1 transaction limitations — mitigation: app-level transaction with revalidation; `cf:d1-rpc-transaction-proof.ts` pattern.
 - **Status:** pending.
 
@@ -179,7 +179,7 @@ Source-strength tags: `brief` (PROMPT.md), `repo evidence` (source/migrations/te
   - `AC-11.1` Setting region/version on create persists and round-trips. (test)
   - `AC-11.2` Facet filter narrows by region when ≥1 entry has a region. (DOM test)
 - **Validation:** Unit + DOM tests.
-- **Affected code:** migration `0037`, `actions.ts`, `component-facet-filter*.ts`.
+- **Affected code:** migration `0038`, `actions.ts`, `component-facet-filter*.ts`.
 - **Risks:** Scope creep into multi-region libraries — non-goal.
 - **Status:** pending (gated by `OPEN-2`).
 

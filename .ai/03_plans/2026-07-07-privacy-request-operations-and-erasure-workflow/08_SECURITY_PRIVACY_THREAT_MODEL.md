@@ -17,7 +17,7 @@
 | SEC-03 | Verification token theft/replay | verify route | High | single-use; short TTL (24h); only hash stored; bound to request id |
 | SEC-04 | Operator privilege escalation | operator actions | Medium | `isPlatformAdminRole` server-side on every surface; no client-only gate |
 | SEC-05 | Cross-requester data leak | export / detail | High | export scoped by `requester_user_id`; detail returns only the request's own data; status lookup token-bound |
-| SEC-06 | Enumeration of request ids | status lookup | Medium | token required with id; 404 (not 403) on unknown to avoid enumeration signal |
+| SEC-06 | Enumeration of request ids | status lookup | Medium | token required with id; **404 uniform** for unknown id / bad / expired / consumed token (no 403 — a 403 would leak that the id exists) |
 | SEC-07 | Raw personal data in logs/evidence | all | High | HMAC hash email/IP/UA; no raw token stored; logs redacted (EVID-2) |
 | SEC-08 | Erasure scope drift / legal-hold violation | erasure | Critical | counsel-approved scope list (assertable); `legal_hold` flag; dry-run + confirm + re-auth; audit to `data_retention_events` |
 | SEC-09 | Email body injection / content spoofing | email templates | Medium | no user-controlled HTML interpolation; copy gated on `OPEN-LEGAL-01` |
@@ -25,16 +25,19 @@
 
 ## Credential material taxonomy
 
-| Material | Marker | Created by | Stored in | Read by | Client-visible? | Used for URL/cookie/session? | Rotation/revocation | Proof |
-|---|---|---|---|---|---|---|---|---|
-| Verification token (raw) | raw bearer (one-time) | intake (for anonymous w/ email) | **not stored** (only sent in email link) | verify route, in-memory | yes (in email link only) | yes (URL query param) | consumed on use; expires 24h | PC-04 asserts raw-not-stored |
-| Verification token hash | hash (HMAC) | intake | `privacy_request_verification_tokens.token_hash` | verify route | no | no | consumed_at / expires_at | unit test |
-| `requester_email_hash` | hash (HMAC via `AUTH_AUDIT_HASH_PEPPER`) | intake | `privacy_requests` | operator (redacted display) | no | no | pepper rotation log | existing (`account-audit.ts`) |
-| `ip_hash` / `user_agent_hash` | hash (HMAC) | intake | `privacy_requests` | operator (never displayed raw) | no | no | pepper rotation log | existing |
-| Operator session | session cookie (Better Auth) | existing auth | existing | operator actions | cookie only | yes (session) | existing auth | existing |
-| R2 export object key | derived path (not secret) | export action | evidence_json + R2 | operator download | no (operator only) | no | object lifecycle (retention) | R2 proof at execution |
+## Credential material taxonomy
 
-**Key rule:** the raw verification token is a bearer while live — it must be transmitted only over the email link and consumed server-side; it is **never persisted**. A stored hash is not a substitute for the raw token in the verify link.
+> The full credential material taxonomy — distinguishing raw bearer / hash / encrypted / public ID / derived session, with created-by/stored-in/read-by/client-visibility/URL-or-cookie-use/rotation-revocation/lifecycle/proof for each material, plus the **handling-case matrix** (direct-POST / replay / copy-paste-URL / expired / revoked / duplicate-click / cross-recipient) — lives in `21_ATTACK_SURFACE_AND_CREDENTIAL_MATERIAL.md` §B. It is the authoritative source; this section summarizes the load-bearing rules to avoid drift.
+
+**Key rules (from `21`):**
+
+- **Verify token (raw):** one-time bearer, 24h, request-id-bound, 128-bit. Travels in the **`verifyPrivacyRequest` Server Action `formData` body — never a URL query param** (the verify surface is a Server Action matching `beta-allowlist-admin-actions.ts`, not a Route Handler). Only its HMAC hash is stored. A stored hash is a lookup key only — **never accepted by a public route** (the action requires the raw token, hashes-to-compare).
+- **Lookup token (raw):** the **only** URL-borne credential (`GET …/status?token=…`). Single-use, 24h, request-id-bound, re-issued on each transition, returns only `{status, updatedAt}` (no PII). Mitigations: `Referrer-Policy: no-referrer`, no-store, 128-bit, per-ip rate limit, 404 uniform.
+- **`dryRunToken` (erasure):** one-time bearer, 10 min, request-id-bound + scope-hash-bound; formData body only.
+- **Encrypted material:** none at the app level (D1/R2 encryption-at-rest is a platform property; no app ciphertext to decrypt → the "decrypt-only-after-authz" question is N/A).
+- **Operator session:** existing Better Auth session cookie; re-checked by `requirePlatformOperator()` on every Server Action.
+- **R2 export key:** derived path, **not a secret** — access is operator-gated, not capability-based.
+- **Revocation gap (honest):** no per-token revoke-before-TTL today; only TTL expiry or global pepper rotation. Accepted residual for closed-beta (`RISK-04`); a `revoked_at` column + UI is a documented revisit trigger.
 
 ## Privacy / data minimization
 

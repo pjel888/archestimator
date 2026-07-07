@@ -75,17 +75,18 @@ Stable IDs per category. Each requirement: statement, rationale, source, priorit
 - **Status.** Planned (Phase 1, task P1-T4).
 
 ### SEC-05 — Invite rate limits must fail-closed when the entry feature flag is disabled
-- **Statement.** When `readInviteEntryConfig().enabled` is false, the resolve/continue/accept rate-limit checks must **deny** (not allow) the request, because the routes still resolve/redirect. The create/resend checks (which already require auth + manager access) may keep current behavior or also deny — see OPEN-SEC-02.
-- **Rationale.** `invite-entry.ts:184-185` short-circuits all invite rate limits to `{ allowed: true }` when the flag is disabled. If the flag is accidentally disabled (e.g., pepper unset), all invite abuse protection vanishes even though `/invite/[token]` still renders and `/continue` still mints bridge cookies.
-- **Source.** `repo evidence` (`invite-entry.ts:184-185`).
-- **Priority.** P1 (fail-open under misconfiguration on a public route).
-- **Dependencies.** OPEN-SEC-02 (owner confirms the desired disabled-flag semantics).
+- **Statement.** When `readInviteEntryConfig().enabled` is false, the **continue route** (`/invite/[token]/continue`) must not mint a pending-invite bridge cookie and must short-circuit safely, because it is the only mutating invite route that currently fails open. (Scope corrected during the Improve pass: the resolve page and the accept route **already short-circuit safely** when disabled — `page.tsx:66` returns `invalid`/disabled and `accept/route.ts:100` redirects to `/workshop` — so they are non-regression targets, not gaps.)
+- **Rationale.** `invite-entry.ts:184-185` short-circuits all invite rate limits to `{ allowed: true }` when the flag is disabled. For resolve and accept this is harmless because the routes short-circuit on `!config.enabled` before the limiter matters. But `continue/route.ts` has **no `!config.enabled` short-circuit** — it proceeds to `createPendingInviteBridge` and sets the cookie even when the feature is disabled (the limiter's `allowed:true` bypass is the only gate). If the flag is accidentally disabled, the continue route still mints bridge cookies.
+- **Source.** `repo evidence` (`invite-entry.ts:184-185`; `accept/route.ts:99-100` already short-circuits; `page.tsx:66` already short-circuits; `continue/route.ts:39-72` does NOT short-circuit).
+- **Priority.** P2 (fail-open under misconfiguration, scoped to one route; resolve/accept already safe). Downgraded from the original P1 framing after the Improve-pass scope audit.
+- **Dependencies.** OPEN-SEC-02 (owner confirms the desired disabled-flag semantics for continue).
 - **Acceptance criteria.**
-  - AC-SEC-05a: With `PROJECT_INVITE_ENTRY_ENABLED !== "true"`, `/invite/[token]` resolve returns the disabled state (not a rate-limit bypass) and `/invite/[token]/continue` and `/accept` deny or short-circuit safely without relying on the rate limiter returning allowed.
-  - AC-SEC-05b: The rate-limit helper, when called on a disabled config, returns a deny result (or the caller short-circuits to the disabled state before consulting the limiter).
-- **Validation.** Extend `tests/vitest/project-invite-feature-flag.test.ts` to assert disabled-flag behavior on resolve/continue/accept.
-- **Affected areas.** `src/lib/collaboration/invite-entry.ts` (`checkInviteRateLimit` / callers); `src/app/invite/[token]/page.tsx`, `continue/route.ts`, `accept/route.ts` (disabled-state short-circuit).
-- **Risks.** Over-blocking if the flag is intentionally disabled for maintenance — but the disabled state already renders a "not available" page, so denying resolve is consistent. Coordinate with OPEN-SEC-02.
+  - AC-SEC-05a (continue): With `PROJECT_INVITE_ENTRY_ENABLED !== "true"`, `/invite/[token]/continue` does NOT set the `archestimator_pending_invite` cookie and redirects to the invite page (disabled state) without relying on the rate limiter.
+  - AC-SEC-05b (non-regression, resolve): the resolve page continues to return the disabled state when the flag is off (already the case at `page.tsx:66`).
+  - AC-SEC-05c (non-regression, accept): the accept route continues to redirect to `/workshop` when the flag is off (already the case at `accept/route.ts:100`).
+- **Validation.** Extend `tests/vitest/project-invite-feature-flag.test.ts`: (a) flag off → continue sets no cookie + redirects; (b) flag off → resolve renders disabled (non-regression); (c) flag off → accept redirects to `/workshop` without calling the RPC (non-regression).
+- **Affected areas.** `src/app/invite/[token]/continue/route.ts` (add `!config.enabled` short-circuit before `checkInviteContinueRateLimit`). The rate-limit helper's disabled-bypass at `invite-entry.ts:184-185` may stay (callers must short-circuit); documented belt-and-suspenders.
+- **Risks.** Over-blocking if the flag is intentionally disabled for maintenance — but the disabled state already renders a "not available" page, so denying continue is consistent. Coordinate with OPEN-SEC-02.
 - **Status.** Planned (Phase 2, task P2-T1; gated on OPEN-SEC-02).
 
 ### SEC-06 — Raw invite tokens must never be logged, rendered, or persisted in plaintext
@@ -149,18 +150,19 @@ Stable IDs per category. Each requirement: statement, rationale, source, priorit
 - **Risks.** Existing realtime sessions invalided on key rotation — coordinate rollout (Phase 5, owner gate). The fallback was likely a convenience; requiring the key is the safer default.
 - **Status.** Planned (Phase 5, owner-gated; OPEN-REL-02).
 
-### SEC-10 — Direct-grant role writes must be promotion-only (match accept semantics)
-- **Statement.** `upsertProjectMemberInD1` / `upsertEstimateSheetMemberInD1` (the direct-grant path) must use the same highest-role-wins `ON CONFLICT` CASE as `acceptProjectInvitation` / `acceptEstimateInvitation`, so re-inviting an existing higher-role member cannot downgrade them.
-- **Rationale.** Today direct-grant overwrites the role; accept is promotion-only. A manager re-inviting an existing owner/admin as an editor would silently downgrade them.
-- **Source.** `repo evidence` (`actions.ts:785-852` overwrite; `invitation-d1-store.ts:373-451` promotion CASE).
+### SEC-10 — Direct-grant call sites must not downgrade an existing higher-role member (scoped: NOT the shared helper)
+- **Statement.** The two **direct-grant** call sites — `inviteProjectCollaborator` (`actions.ts:973`) and `inviteEstimateSheetCollaborator` (`actions.ts:1094`) — must not write a role lower than an existing member's current role. The shared `upsertProjectMemberInD1`/`upsertEstimateSheetMemberInD1` helpers must **keep their current overwrite semantics** because `updateProjectCollaboratorRole` (`actions.ts:1326`) intentionally downgrades managers (guarded by the "at least one owner/admin" check) via the same helper.
+- **Rationale.** A manager re-inviting an existing owner/admin as an editor would silently downgrade them. The original "make the shared helper promotion-only" framing was a defect — it would have broken the legitimate `updateProjectCollaboratorRole` demotion path. Source re-verification during the Improve pass confirmed the shared helper has 4 callers, 2 of which rely on overwrite for explicit role changes.
+- **Source.** `repo evidence` (`actions.ts:973,1094` direct-grant; `actions.ts:1326` `updateProjectCollaboratorRole` intentional downgrade with `hasOtherProjectManager` guard at L1317-1324; `actions.ts:1512` `upsertSheetOwnerBeforeRestricting` self-promote; `invitation-d1-store.ts:373-451` accept-side promotion CASE for reference).
 - **Priority.** P2 (correctness; manager action).
 - **Dependencies.** None.
 - **Acceptance criteria.**
-  - AC-SEC-10a: Direct-granting an invitation with a role lower than the existing member's current role leaves the existing role unchanged.
+  - AC-SEC-10a: Direct-granting an invitation with a role lower than the existing member's current role leaves the existing role unchanged (scoped to `inviteProjectCollaborator`/`inviteEstimateSheetCollaborator`).
   - AC-SEC-10b: Direct-granting a higher role promotes (existing behavior preserved).
-- **Validation.** Extend `project-collaboration-actions.test.ts` with a downgrade-prevention case.
-- **Affected areas.** `src/lib/collaboration/actions.ts:785-852`; possibly extract a shared `resolveMembershipRoleConflict` helper.
-- **Risks.** If any caller relied on overwrite semantics to fix a wrong role, promotion-only would block that — but role-change (`updateProjectCollaboratorRole`) is the correct surface for explicit changes.
+  - AC-SEC-10c (regression): `updateProjectCollaboratorRole` demoting a manager to editor still works (proves the shared helper was not changed).
+- **Validation.** Extend `tests/vitest/project-collaboration-actions.test.ts` with: (a) direct-grant lower role → unchanged; (b) direct-grant higher role → promoted; (c) `updateProjectCollaboratorRole` demotion regression.
+- **Affected areas.** `src/lib/collaboration/actions.ts:936-1175` (direct-grant branches only); new `resolveDirectGrantRole` helper. **Explicitly NOT modified:** `upsertProjectMemberInD1`/`upsertEstimateSheetMemberInD1`, `updateProjectCollaboratorRole`.
+- **Risks.** None residual — the scoping corrects the original over-broad framing. The shared helper's overwrite semantics are preserved for the role-change surface.
 - **Status.** Planned (Phase 4).
 
 ### SEC-11 — Resolve the `accepted_via = 'auth_trigger'` dead enum value
@@ -170,7 +172,7 @@ Stable IDs per category. Each requirement: statement, rationale, source, priorit
 - **Priority.** P3 (cleanliness).
 - **Dependencies.** OPEN-SEC-01 (owner decision).
 - **Acceptance criteria.**
-  - AC-SEC-11a: Either a login-time grant path exists with tests, or the enum value is removed via migration `0038`/`0038` with a regression test confirming the remaining values still work.
+  - AC-SEC-11a: Either a login-time grant path exists with tests, or the enum value is removed via migration `0039` with a regression test confirming the remaining values still work.
 - **Validation.** New test or migration test depending on the chosen path.
 - **Affected areas.** Either `src/lib/auth/account-actions.ts`/`account-setup.ts` (login-time grant) or a new migration.
 - **Risks.** Wiring a login-time grant adds an auth-adjacent mutation — must be carefully gated. Removing is simpler and safer if no product need exists.

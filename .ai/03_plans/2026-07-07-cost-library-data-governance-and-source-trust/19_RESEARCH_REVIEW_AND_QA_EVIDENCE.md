@@ -9,7 +9,7 @@
 | Does the active D1 path call governance RPCs? | grep `actions.ts` (0 refs) + governance test | confirmed drift (G1) | repo | yes → `DEC-1` |
 | Is `source-changed` ever written on library mutation? | grep `src/` | no (G3) | repo | yes → `DEC-4` |
 | Existing test posture for library? | `tests/vitest/*library*` inventory | reuse + extend | repo | yes → `12` |
-| Cloudflare D1 migration ordering | `migrations/` (runs to 0036) | next = 0037 | repo | yes → naming |
+| Cloudflare D1 migration ordering | `migrations/` (D1 tree, runs to `0037_remove_preloaded_component_categories.sql` as of 2026-07-07) | next free D1 = `0038` (earlier draft said `0037`; corrected after verifying `0037` was taken same-day) | repo | yes → naming (DRIFT-1) |
 
 **Searched but not found:** library CSV/JSON/Excel importer (confirmed absent — `G4`); D1 native RLS (confirmed absent — app-authz used); automatic `source-changed` writer (confirmed absent — `G3`).
 

@@ -12,7 +12,7 @@
   - (d) Enforce CSP `form-action 'self'` (currently Report-Only). Defense-in-depth, not a replacement for the application-layer check; sibling plan owns CSP.
 - **Advantages of (a):** minimal new surface; fixes the exact gap; matches the repo's same-host comparison pattern; env kill switch for emergencies; no client changes.
 - **Disadvantages:** a corporate proxy stripping both headers would block legit traffic — mitigated by monitoring + kill switch.
-- **Security implications:** closes SEC-01 (Medium-High). Form POSTs always carry Origin in modern browsers; `<a>` clicks rely on Referer (stripped by `Referrer-Policy: no-referrer` on `/invite`) → P1-T2 DISCOVERY switches the Continue CTA to a form POST.
+- **Security implications:** closes SEC-01 (Medium-High). Form POSTs always carry Origin in modern browsers; `<a>` clicks rely on Referer (stripped by `Referrer-Policy: no-referrer` on `/invite`) → P1-T2 converts the Continue CTA to a form POST (source-confirmed: it is an `<a>` today at `page.tsx:165`).
 - **Performance:** O(1) header parse; no DB.
 - **Operational:** 24h 403-rate monitoring; env kill switch.
 - **Recommended option:** (a).
@@ -23,7 +23,7 @@
 ### DEC-02 — Add the origin guard to `/invite/[token]/continue`
 - **Problem:** `continue/route.ts` mints a state-changing bridge cookie with no origin check.
 - **Options:** (a) reuse `isAllowedInviteOrigin` (recommended); (b) separate CSRF token. (a) is consistent with accept/sign-out.
-- **Recommended:** (a). Dependency: switch the Continue CTA to a form POST so Origin is sent (DISCOVERY in P1-T2).
+- **Recommended:** (a). Dependency: switch the Continue CTA to a form POST so Origin is sent (P1-T2 — source-confirmed the CTA is an `<a>` today).
 
 ### DEC-03 — Add explicit `revokeCollaborationInvitation` Server Action + UI
 - **Problem:** No explicit revoke surface; revocation only on implicit re-issue.
@@ -45,10 +45,10 @@
 - **Options:** (a) require `REALTIME_IDENTITY_SIGNING_KEY` (recommended, owner-gated OPEN-REL-02); (b) status quo. (a) is key-separation hygiene.
 - **Recommended:** (a). Also consider a third distinct `ARCHESTIMATOR_INVITE_RATE_LIMIT_HASH_PEPPER` (already exists as a name; make it required, not fallback) — future work.
 
-### DEC-07 — Promotion-only direct-grant
-- **Problem:** Direct-grant overwrites roles; accept is promotion-only.
-- **Options:** (a) align direct-grant to promotion-only CASE (recommended); (b) status quo. (a) prevents accidental downgrade.
-- **Recommended:** (a).
+### DEC-07 — Promotion-only direct-grant, scoped to the two direct-grant call sites (NOT the shared helper)
+- **Problem:** Direct-grant overwrites roles; a manager re-inviting an existing higher-role member could silently downgrade them. The shared upsert helper is also used by `updateProjectCollaboratorRole` for **intentional** demotions (guarded).
+- **Options:** (a) make the shared helper promotion-only (REJECTED — breaks `updateProjectCollaboratorRole`'s legitimate demotion path); (b) scope a promotion guard to the two direct-grant call sites only (`inviteProjectCollaborator` L973, `inviteEstimateSheetCollaborator` L1094) via a `resolveDirectGrantRole` helper, leaving the shared helper and `updateProjectCollaboratorRole` untouched (recommended); (c) status quo.
+- **Recommended:** (b). Source re-verification during the Improve pass found 4 callers of the shared helper; 2 rely on overwrite for explicit role changes. The original DEC-07 framing (option a) was a defect.
 
 ### DEC-08 — Resolve `auth_trigger` enum (OPEN-SEC-01)
 - **Problem:** Dead enum value.
@@ -71,9 +71,9 @@
 | ASSUMP-01 | Browsers always send `Origin` on same-origin form POST | Yes ( Fetch spec) | official docs |
 | ASSUMP-02 | The invite page's `<a>` CTAs are subject to `Referrer-Policy: no-referrer` | Yes | `next.config.ts:248-257` |
 | ASSUMP-03 | D1 supports `ALTER TABLE ADD COLUMN` (nullable) atomically | Yes | SQLite spec |
-| ASSUMP-04 | D1 supports `DROP COLUMN` (3.35+) | **DISCOVERY-REQUIRED** | to confirm via `cf:d1:read sqlite_version()` |
-| ASSUMP-05 | No caller relies on direct-grant overwrite semantics | **DISCOVERY-REQUIRED** (P4-T1 grep) | to confirm |
-| ASSUMP-06 | The continue CTA is currently an `<a>` | **DISCOVERY-REQUIRED** (P1-T2) | to confirm |
+| ASSUMP-04 | D1 supports `DROP COLUMN` (3.35+) | **NOT VERIFIED** (planning-only; `wrangler d1 execute` read-back did not return within the session budget) | Resolved at implementation via `wrangler d1 execute archestimator-proof-db --command "SELECT sqlite_version();"`. Until verified, Data/database readiness is capped at 89 per the Improve directive (unverified provider claim controlling rollback). Rollback fallback = fix-forward (leave the nullable column), so the cap does not block implementation. |
+| ASSUMP-05 | No caller relies on direct-grant overwrite semantics | **Resolved (source, 2026-07-07)** | **FALSE** — `updateProjectCollaboratorRole` (`actions.ts:1326`) and `upsertSheetOwnerBeforeRestricting` (`:1512`) DO rely on overwrite for intentional role changes. SEC-10/DEC-07 rescoped to the direct-grant call sites only. |
+| ASSUMP-06 | The continue CTA is currently an `<a>` | **Resolved (source, 2026-07-07)** | **TRUE** — `src/app/invite/[token]/page.tsx:165` is `<a href=.../continue>`. P1-T2 now converts it to a form POST (no longer a DISCOVERY). |
 | ASSUMP-07 | `ARCHESTIMATOR_INVITE_ORIGIN_STRICT` env can be set without redeploy on Cloudflare | Yes | Cloudflare env vars are hot (Workers secrets / vars) |
 | ASSUMP-08 | The hosted proof harness can be extended for revoke without a new binding | Yes | existing harness structure |
 | ASSUMP-09 | Better Auth session cookie attributes are `__Secure-` prefixed in prod | Yes | `request-proxy.ts`, Better Auth defaults |

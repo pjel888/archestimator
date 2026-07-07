@@ -109,6 +109,27 @@ No state-ownership changes in this hardening.
 - Invite routes are **not cached** (`Cache-Control: no-store` enforced on `/invite/*` in `next.config.ts` + per-response headers). The proxy treats `/invite` as a public prefix and does not auth-gate it.
 - After revoke (SEC-07), the manager's members panel must reflect the change — `revalidatePath` on the project/estimate workshop path (existing pattern in sibling actions like `removeProjectCollaborator`).
 - The bridge cookie is not cacheable (HMAC + TTL).
+- **Cache Components posture:** invite routes are not on the Cache Components `use cache` path. No `cacheLife`/`cacheTag` boundaries exist on `/invite/*` or `/workshop/pending-invite`. Token-bearing responses default to no-store (verified: `next.config.ts:248-257` `appAndInviteHardening` headers + per-route `Cache-Control: no-store`). Read-your-own-writes for the accept/revoke mutations is satisfied by `revalidatePath` on the workshop route, not by cache-tag invalidation.
+
+## 6.5 Route-specific App Router boundary/cache contract (per Improve directive §4)
+
+One row per affected route. Rendering model, request-time APIs, server-owned data, what crosses to the client, cache control, and the exact revalidation primitive. All facts from current source.
+
+| Route | Rendering model | Request-time APIs | Server-owned data | Crosses to client | Cache control | Revalidation primitive |
+|---|---|---|---|---|---|---|
+| `src/app/invite/[token]/page.tsx` (RSC) | Dynamic (token in path + `headers()` for Origin/current-email probe); `runtime=nodejs`-compatible RSC | `params` (Promise), `headers()` (for `readInviteCurrentBetterAuthEmail`) | `readInviteEntryConfig`, `resolveCollaborationInvitationFromCloudflareD1`, current Better Auth email | Sanitized `InviteResolutionRow` + state kind (no raw token, no token_hash) | `no-store` (`next.config.ts:248-257`) + `Referrer-Policy: no-referrer` | None (read-only resolve; `last_opened_at` UPDATE is a side-effect, not a revalidation) |
+| `src/app/invite/[token]/accept/route.ts` | Route Handler, `force-dynamic` (mutating POST) | `params` (Promise), `request.formData()`, `getCurrentUserContext` (reads session cookie) | `acceptInvitationTokenForUser` RPC | None — 303 redirect to `/workshop?invite=...` (no body) | `no-store` on 429/403; redirect response | None on the route itself; the RPC mutates D1. Workshop redirect target re-renders server-side. No `revalidatePath` needed (redirect). |
+| `src/app/invite/[token]/continue/route.ts` | Route Handler, dynamic (GET + POST) | `params` (Promise) | `readInviteEntryConfig`, `createPendingInviteBridge` | None — 303 redirect + `Set-Cookie: archestimator_pending_invite` | `no-store` (cookie set) | None (cookie is the handoff; no D1 mutation until `/workshop/pending-invite`) |
+| `src/app/invite/[token]/sign-out/route.ts` | Route Handler, dynamic (POST) | `params` (Promise), `request.headers` (origin), Better Auth handler | Better Auth `/api/auth/sign-out` (internal same-origin request) | None — 303 redirect + session-cookie clear | `no-store` | None |
+| `src/app/workshop/pending-invite/route.ts` | Route Handler, dynamic (GET), proxy-auth-gated | `cookies()` (bridge cookie + session) | `readPendingInviteBridge`, `acceptPendingInviteBridge` (→ membership RPC) | HTML interstitial (meta-refresh); banner state in URL | `no-store`, `Referrer-Policy: no-referrer` | Bridge-cookie clear on success; no `revalidatePath` (redirect handles freshness) |
+| `revokeProjectInvitation` / `revokeEstimateSheetInvitation` (NEW `"use server"` Server Actions) | Server Action (POST endpoint) | `cookies()` (session), `headers()` (Next.js built-in Server-Action origin check) | `assertProjectAccessManager`/`assertEstimateAccessManager`, `revokeCollaborationInvitationInCloudflareD1` | `{ ok } | { ok:false, error }` DTO | n/a (Server Action) | **`revalidatePath('/workshop/projects/[id]')`** (and estimate path) after revoke so the members panel reflects the revoked invitation — mirrors `removeProjectCollaborator`. |
+
+**Server/Client boundary notes:**
+- The invite page is a Server Component; the only client-crossing payload is the sanitized state row (revoked → nulled details).
+- The accept/continue/sign-out/pending-invite routes return **redirects**, not JSON bodies, so no client DTO crosses except the cookie and the redirect URL.
+- The revoke Server Action is invoked from a `"use client"` button in the publisher members panel; its return DTO is `{ ok }`. No raw token or `token_hash` in the DTO.
+- **No Route Handler is called from a Server Component** in this flow (page.tsx calls the resolve data function directly, not the route handler — correct per App Router guidance).
+- **No mutation during render.** All mutations are in Route Handlers (accept) or Server Actions (revoke), never in the RSC render path. The `last_opened_at` UPDATE in resolve is an analytics side-effect inside the data function, not a user-visible mutation.
 
 ## 7. Server/Client component boundaries
 

@@ -6,7 +6,7 @@ Authoritative execution guide for the future implementation AI. Dependency-aware
 
 ```mermaid
 graph LR
-  P0[P0 Discovery + scaffolding] --> P1[P1 D1 migration 0037]
+  P0[P0 Discovery + scaffolding] --> P1[P1 D1 migration 0038]
   P1 --> P2[P2 Review actions + authz]
   P1 --> P3[P3 Trust model wiring]
   P2 --> P4[P4 Stale propagation]
@@ -36,7 +36,7 @@ graph LR
 
 ### `TASK-001` — Confirm D1 SQL capabilities for CHECK-on-ALTER
 - **Objective:** Determine whether D1 accepts inline multi-column CHECK via `ALTER TABLE ADD COLUMN` or requires table-rebuild.
-- **Why:** Migration `0037` correctness depends on it.
+- **Why:** Migration `0038` correctness depends on it.
 - **Target:** none (read-only discovery). Run a tiny local D1 apply with a CHECK constraint on a scratch table; record result.
 - **Inputs/dependencies:** local D1 (`wrangler d1 execute archestimator-proof-db --local --command "..."`).
 - **Instructions:** create scratch table, alter-add column with CHECK, attempt invalid insert, record accept/reject; clean up scratch table.
@@ -84,14 +84,14 @@ graph LR
 
 ---
 
-## Phase 1 — D1 migration `0037` (Sequential after P0; gates P2/P3)
+## Phase 1 — D1 migration `0038` (Sequential after P0; gates P2/P3)
 
 **Ultragoal contract:** Goal `P1`; evidence = local D1 apply clean + constraint tests + readback; stop = migration applied locally; blocker = backfill mode undecided → default Mode A with `OPEN-1` recorded.
 
-### `TASK-005` — Write migration `0037_cost_library_cost_review_governance.sql`
+### `TASK-005` — Write migration `0038_cost_library_cost_review_governance.sql`
 - **Objective:** Additive columns + CHECKs + indexes + state-history extension per `07` blueprint.
-- **Target (new):** `migrations/0037_cost_library_cost_review_governance.sql`.
-- **Ordering:** after `0036`.
+- **Target (new):** `migrations/0038_cost_library_cost_review_governance.sql`.
+- **Ordering:** after the current D1 tip `0037_remove_preloaded_component_categories.sql`. (Earlier draft proposed `0037`; `0037` was taken 2026-07-07, so the slot moved to `0038`.)
 - **Inputs:** `TASK-001` CHECK-behavior result (use table-rebuild if needed).
 - **Instructions:** follow SQL sketch in `07`; parameterized; idempotent (`IF NOT EXISTS` where supported).
 - **Tests:** `tests/vitest/component-library-review-schema.test.ts` — apply to temp SQLite, assert columns + CHECKs reject invalid (accepted without reviewed_by; superseded without superseded_by; locked_by/locked_at mismatch; duplicate accepted-current per option).
@@ -102,7 +102,7 @@ graph LR
 
 ### `TASK-006` — Backfill + readback
 - **Objective:** Apply Mode A backfill (existing `is_current` rows → `accepted`, `reviewed_by='system-backfill'`); verify count.
-- **Target:** within `0037` migration (UPDATE statement).
+- **Target:** within `0038` migration (UPDATE statement).
 - **Tests:** backfill idempotency test (re-run updates 0 rows); count before/after recorded.
 - **Validation:** local D1 `SELECT count(*) ... WHERE reviewed_by='system-backfill'`.
 - **Completion evidence:** readback count.
@@ -208,10 +208,10 @@ graph LR
 ## Phase 4 — Stale propagation (after P2 + P3)
 
 ### `TASK-020` — Compute `source-changed` on read
-- **Objective:** In the estimate read path, compare row's `componentVersionNumber`/price snapshot to the current library entry; set `linkState='source-changed'` when drift detected (pure read-side derivation).
-- **Target:** `src/lib/repositories/estimate-repository.ts` (or the row-mapping layer).
-- **Contract:** only for rows with `sourceLibraryItemId` and `linkState` not already `detached`/`unlinked`; derive from a joined query or app-level compare.
-- **Tests:** `tests/vitest/stale-propagation.test.ts` (update accepted cost → estimate read returns `source-changed`).
+- **Objective:** In the estimate read path, compare row's captured snapshot to the current library entry; set `linkState='source-changed'` when drift detected (pure read-side derivation).
+- **Target:** `src/lib/repositories/estimate-repository.ts` (or the row-mapping layer); the row already carries `componentVersionId/Number`, `priceOptionId`, `unitCost`, `pricingDate`, `pricingSource` snapshots (`EstimateRowItem` type `src/lib/estimates/types.ts:93`).
+- **Contract (compare basis pinned, ADV-10):** derive `source-changed` from **(a) `componentVersionNumber` mismatch** OR **(b) a price-hash compare** of the captured snapshot vs the current `cost_library_item_variant_cost_entries` row (unit_cost + misc_cost + currency + pricing_source + pricing_date + confidence). **Do NOT use wall-clock timestamps** for the drift decision (avoids false positives from timezone skew — RISK-12). Only for rows with `sourceLibraryItemId` and `linkState` not already `detached`/`unlinked`. Read-side only; no fan-out write.
+- **Tests:** `tests/vitest/stale-propagation.test.ts` (update accepted cost → bump version → estimate read returns `source-changed`; also: unchanged cost does NOT flag `source-changed` — false-positive guard).
 - **Validation:** integration test + perf evaluator 2 (`09`).
 - **Complexity:** Medium.
 

@@ -62,6 +62,21 @@ No P0/P1 finding remains. Cycle 2 found only documentation-completeness items, a
 
 **Cap reached:** 2 full cycles for exhaustive profile is the directive minimum; a 3rd cycle would not resolve anything further (remaining items are execution-time evidence, not planning defects).
 
+### Cycle 3 (Improve-Plan-Prompt audit, 2026-07-07)
+
+Cycle 3 was run under the suite's **second stage** (Improve-Plan-Prompt) and is recorded in full in `20_AUDIT_AND_REVISION_LOG.md`. Summary:
+
+- **Method:** 1 native `Explore` verification lane (codebase-claim checking — agent_a978cb90) + 1 official-docs web search (Cloudflare D1/Workers limits) + emulated adversarial + emulated final-verification passes.
+- **P0 finding (A1):** rows-read budget entirely missing → added PERF-011 + rowsRead columns + free-tier ceiling table + projection across `04`/`09`/`11`/`16`/`README`. Performance score 78 → 93 (+15).
+- **P0 finding (A2):** two factual errors from model memory (`canEditEstimateInD1` line 234→271, "6-way EXISTS"→3-EXISTS+2-creator; proof-router "5 surfaces"→4 reads+1 write) → fixed in `03`/`08`/`11`.
+- **P1 finding (A3):** G4 index uncertainty → verified confirmed-needed (`0029:24-25` leads on `updated_at`); DISCOVERY sub-step removed.
+- **P1 finding (A4):** missing Attack Surface Inventory + access-path matrix + credential taxonomy → added to `08`.
+- **P1 finding (A5):** test matrix not in proof-contract format → rewrote `12` as PROOF-001…014.
+- **P1 finding (A6):** traceability matrix not in mandated columns → rewrote `16`.
+- **P1 finding (A7):** readiness-status honesty → status corrected from `IMPLEMENTATION-READY` to `CONDITIONALLY READY` (P0–P3 approved; P4–P5 gated) per the emulated-verification cap for high-blast-radius packs.
+
+All cycle-3 findings resolved. No new contradiction introduced. The pack is internally consistent post-audit (cross-document status check: README, `01`, `17`, `20` all now state `CONDITIONALLY READY` with the same P0–P3/P4–P5 split).
+
 ## UltraQA-style adversarial scenario matrix
 
 See `12` (ADV-01 … ADV-12). Covers: cross-workspace denial (ADV-01/04), privilege escalation (ADV-02), unauth proof access (ADV-03), PII leak (ADV-04), empty workspace (ADV-05), heavy workspace (ADV-06), cache staleness (ADV-07), SQL injection (ADV-08), D1 unavailable (ADV-09), LIMIT truncation (ADV-10), concurrent-agent safety (ADV-11), CI flake (ADV-12).

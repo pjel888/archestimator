@@ -1,12 +1,15 @@
 # 07 — Data, Database, API, and Network Plan
 
-## Database change blueprint — migration `0037_cost_library_cost_review_governance.sql`
+> **Migration-tree convention (revised 2026-07-07):** Archestimator has **two separate migration trees**. The active runtime is **Cloudflare D1** at `migrations/` with `00xx_` numbering (currently `0001`..`0037`; `0037_remove_preloaded_component_categories.sql` was taken on 2026-07-07). Legacy **Supabase/Postgres** lives at `supabase/migrations/` with 14-digit timestamp names and is reference/exit-archaeology only. This plan's new migration targets the **D1 tree**, next free number **`0038`**. The Supabase governance migration `20260622143000_library_trust_governance.sql` is the **parity reference** (it already defines all 9 review columns + 6 RPCs + CHECKs on the Postgres side); this plan ports that contract to D1.
 
-(Exact filename pattern and ordering per `migrations/` convention; ordered after `0036`.)
+## Database change blueprint — migration `0038_cost_library_cost_review_governance.sql`
+
+(Ordered after the current D1 tip `0037_remove_preloaded_component_categories.sql`. The target table `cost_library_item_variant_cost_entries` is created in D1 migration **`0028_component_library_action_support.sql:65`** — not `0026`. `0026` creates `cost_library_items` / `cost_library_item_price_options`.)
 
 ### Tables / columns / constraints / indexes affected
 
-**Additive columns on `cost_library_item_variant_cost_entries`:**
+**Additive columns on `cost_library_item_variant_cost_entries`** (created in D1 `0028`; the 9 governance columns below are absent on D1 today — the schema gap G2 is **D1-only**: the Supabase/Postgres table already has them via `20260622143000:53-64`):
+- `review_status TEXT NOT NULL DEFAULT 'proposed' CHECK (review_status IN ('proposed','needs_review','accepted','rejected','superseded'))`
 - `review_status TEXT NOT NULL DEFAULT 'proposed' CHECK (review_status IN ('proposed','needs_review','accepted','rejected','superseded'))`
 - `reviewed_by TEXT` (references users; nullable; CHECK: `accepted`/`rejected` ⇒ `reviewed_by IS NOT NULL`)
 - `reviewed_at TEXT`
@@ -19,8 +22,9 @@
 - `superseded_by TEXT` REFERENCES `cost_library_item_variant_cost_entries(id)` ON DELETE SET NULL
 - `review_revision INTEGER NOT NULL DEFAULT 1 CHECK (review_revision > 0)`
 - `origin TEXT NOT NULL DEFAULT 'user-entered' CHECK (origin IN ('owner-accepted','imported','user-entered','supplier-quote','promoted-from-estimate'))`
-- `region TEXT` (nullable; app-normalized)
-- `version_label TEXT` (nullable; app-normalized)
+- `region TEXT` (nullable; app-normalized; gated by `OPEN-2`)
+- `version_label TEXT` (nullable; app-normalized; gated by `OPEN-2`)
+- `currency TEXT NOT NULL DEFAULT 'PHP'` (mirror of `cost_library_item_price_options.currency`; recorded per entry so variant entries can differ; no FX conversion — out of scope per `OPEN-2`)
 
 **CHECK constraints (ported from Supabase governance model):**
 - `ck_cost_entry_review_reviewed_consistency`: `(review_status IN ('accepted','rejected')) = (reviewed_by IS NOT NULL)`
@@ -42,7 +46,9 @@
 ### SQL sketch (structured pseudocode — not the final migration)
 
 ```sql
--- 0037_cost_library_cost_review_governance.sql
+-- 0038_cost_library_cost_review_governance.sql
+-- Ordered after 0037_remove_preloaded_component_categories.sql (current D1 tip).
+-- Target table cost_library_item_variant_cost_entries is created in 0028_component_library_action_support.sql.
 PRAGMA defer_foreign_keys;  -- D1/SQLite safe-additive
 
 ALTER TABLE cost_library_item_variant_cost_entries ADD COLUMN review_status TEXT NOT NULL DEFAULT 'proposed'
@@ -61,6 +67,7 @@ ALTER TABLE cost_library_item_variant_cost_entries ADD COLUMN origin TEXT NOT NU
   CHECK (origin IN ('owner-accepted','imported','user-entered','supplier-quote','promoted-from-estimate'));
 ALTER TABLE cost_library_item_variant_cost_entries ADD COLUMN region TEXT;
 ALTER TABLE cost_library_item_variant_cost_entries ADD COLUMN version_label TEXT;
+ALTER TABLE cost_library_item_variant_cost_entries ADD COLUMN currency TEXT NOT NULL DEFAULT 'PHP';
 
 -- Backfill (owner-gated default, OPEN-1): mark existing current entries as 'accepted'.
 -- Two backfill modes selected by owner; default mode A.
@@ -150,7 +157,7 @@ CREATE INDEX IF NOT EXISTS idx_state_history_review_event
 
 ### Rollback / fix-forward
 
-- **Rollback:** `0037` is additive (columns + indexes). Rolling back the migration means leaving columns in place (SQLite cannot easily DROP COLUMN with CHECK). Fix-forward is the strategy: if a CHECK is wrong, ship `0038` that rebuilds the table or relaxes the constraint.
+- **Rollback:** `0038` is additive (columns + indexes). Rolling back the migration means leaving columns in place (SQLite cannot easily DROP COLUMN with CHECK). Fix-forward is the strategy: if a CHECK is wrong, ship `0039` that rebuilds the table or relaxes the constraint.
 - **Data rollback:** if Mode A backfill is wrong, ship a follow-up to reset affected rows to `proposed` (tracked by `reviewed_by='system-backfill'`).
 - Application rollback: feature-flag review actions off (OPS gate in `13`); the additive columns are inert without the new actions.
 
@@ -185,7 +192,7 @@ CREATE INDEX IF NOT EXISTS idx_state_history_review_event
 
 - All string inputs through existing `normalizeQuickAddText`/control-char strip + length caps.
 - `pricingSource` https check reused.
-- Import: streaming CSV parse, per-row schema validation reusing `validateQuickAddComponentInput` shape, formula-prefix neutralization.
+- Import: streaming CSV parse, per-row schema validation reusing `validateQuickAddComponentInput` shape, formula-prefix neutralization. **Streaming-lib choice:** use a Worker-CPU-friendly streaming CSV parser (e.g. `papaparse` in streaming mode, or a repo-vetted equivalent) — confirm the chosen lib's bundle size and Worker compatibility in `TASK-024` before adoption; reject any lib that buffers the whole file. **Worker CPU/memory ceiling:** the 5 MB file cap + `LIBRARY_COMPONENT_CAP`-aware row cap keep parse within Workers free-tier CPU limits; `TASK-028` proves with a 5 MB / max-row fixture that parse + validate completes under the Workers CPU budget (sub-second to low-single-digit seconds) and rejects oversized input with `413`/`400` before CPU exhaustion.
 
 ### Idempotency / duplicate-submit
 
@@ -218,7 +225,7 @@ CREATE INDEX IF NOT EXISTS idx_state_history_review_event
 
 | Source | Chosen path | Runtime role | Authorization | Latest posture | Proof | Fallback |
 |---|---|---|---|---|---|---|
-| D1 `cost_library_item_variant_cost_entries` | repository + actions | Worker | `isCostLibraryGovernanceAdminInD1` (new) | additive migration 0037 | local + remote D1 readback | none needed (single source) |
+| D1 `cost_library_item_variant_cost_entries` | repository + actions | Worker | `isCostLibraryGovernanceAdminInD1` (new) | additive migration 0038 | local + remote D1 readback | none needed (single source) |
 | R2 `ARCH_UPLOADS_R2` (attachments) | existing `attachments/route.ts` | Worker | `isWorkspaceEditorInD1` | unchanged | existing | n/a |
 | Supabase (reference) | read-only migration file | none | n/a | exit archaeology | n/a | n/a |
 

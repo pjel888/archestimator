@@ -2,6 +2,8 @@
 
 ## Performance budgets
 
+**Fixture rationale:** the PERF-01 fixture (1000 comments + 50 recipients + 50 responses + 200 events) is chosen as a generous upper bound for a single publication at first-users scale. Rationale: the recipient cap is 50 per add-action (`recipient-limits.ts`), so 50 recipients is the per-publication ceiling; 1000 comments + 50 responses + 200 events represents several months of active review on one publication, well beyond expected launch volume but within the `limit ≤ 100` pagination ceiling's worst-case full-scan. The fixture stresses the `(publication_id, created_at DESC)` indexes and the batched display-name lookup (≤ 500 recipients). If real production volume diverges materially (e.g. a publication with 10K comments), re-baseline per RISK-08.
+
 | Surface | Baseline | Target | Measurement | Regression threshold | Rollback trigger |
 |---|---|---|---|---|---|
 | `GET /activity` p95 (limit=100, fixture) | current 3-query + display-name lookup | ≤ 300ms p95 | `shared-link-activity-benchmark.test.ts` extended | +20% p95 | p95 > 600ms |

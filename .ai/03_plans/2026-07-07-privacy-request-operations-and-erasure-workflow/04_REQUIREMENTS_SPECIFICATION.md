@@ -73,12 +73,12 @@
 ## IDENT — Identity verification
 
 ### IDENT-1 — Hashed-token email verification loop for anonymous requesters
-- **Statement:** Intake with an email generates a single-use verification token (`crypto.randomUUID()`-strength), stores **only its hash** (`hashAccountSecurityValue`), and emails a verification link. Clicking the link sets `identity_verified=true`. Tokens expire (default 24h) and are single-use.
-- **Rationale:** Erasure must not fire on an unverified anonymous request; mirrors magic-link discipline.
-- **Source:** `brief` ("identity checks"), `repo evidence` (`account-audit.ts` hashing; `better-auth-cloudflare.ts` magic-link), `derived`.
-- **Priority:** P0. **Dependencies:** migration `0037` (token columns), email client. **Affected:** repository, new verification route/action.
-- **Acceptance criteria:** `AC-IDENT-1a` only the hash is stored (assert no raw token column); `AC-IDENT-1b` expired or reused token returns 410/409 and does not set verified; `AC-IDENT-1c` successful verify sets `identity_verified=true` and consumes the token; `AC-IDENT-1d` token bound to the request id (not reusable across requests).
-- **Validation:** repository + route tests; raw-token-not-stored assertion in test. **Status:** specified.
+- **Statement:** Intake with an email generates a single-use verification token (`crypto.randomUUID()`-strength), stores **only its hash** (`hashAccountSecurityValue`), and emails a verification link. Clicking the link invokes the `verifyPrivacyRequest` **Server Action** (`"use server"`, `formData`) — matching the repo's `beta-allowlist-admin-actions.ts` convention — which sets `identity_verified=true`. The raw token travels in the **`formData` request body, never a URL query param**. Tokens expire (default 24h) and are single-use.
+- **Rationale:** Erasure must not fire on an unverified anonymous request; mirrors magic-link discipline; URL-query-param bearer tokens are a leak anti-pattern (directive §7), so verify is a Server Action POST body.
+- **Source:** `brief` ("identity checks"), `repo evidence` (`account-audit.ts` hashing; `better-auth-cloudflare.ts` magic-link; `beta-allowlist-admin-actions.ts` SA convention), `derived`.
+- **Priority:** P0. **Dependencies:** migration `0037` (token columns), email client. **Affected:** repository (`consumeVerificationToken`), new verify **Server Action** (P0-T5), email link to the action route.
+- **Acceptance criteria:** `AC-IDENT-1a` only the hash is stored (assert no raw token column); `AC-IDENT-1b` expired (410) or reused (409) token does not set verified; `AC-IDENT-1c` successful verify sets `identity_verified=true` and consumes the token; `AC-IDENT-1d` token bound to the request id (not reusable across requests); `AC-IDENT-1e` the raw token is never present in a URL query param or log fixture.
+- **Validation:** repository + Server Action tests; raw-token-not-stored + not-in-URL assertion in test (PC-04, PC-13). **Status:** specified.
 
 ### IDENT-2 — Authenticated-requester fast path
 - **Statement:** When intake is called with a valid session, `identity_verified=true` and `requester_user_id` are set at intake; no email loop is sent.
@@ -156,20 +156,26 @@
 ## UX / A11Y / ARCH / SEC / TEST / DOC
 
 ### UX-1 — Requester status lookup
-- **Statement:** A requester can look up their request status by id (+ the verification token for anonymous) without exposing other requests.
-- **Priority:** P1. **Acceptance:** `AC-UX-1a` valid id+token returns status; `AC-UX-1b` unknown id returns 404 (no enumeration). **Status:** specified. (See `05` for full UX.)
+- **Statement:** A requester can look up their request status by id (+ the lookup token for anonymous) without exposing other requests. The lookup token is single-use, 24h, request-id-bound, re-issued on each transition; it travels in the URL (`?token=…`) — the **only** URL-borne credential in the plan — with `Referrer-Policy: no-referrer` and returns only `{ status, updatedAt }` (no PII).
+- **Priority:** P0 (endpoint). **Acceptance:** `AC-UX-1a` valid id+token returns `{status, updatedAt}`; `AC-UX-1b` unknown id OR bad/expired/consumed token returns **404 uniform** (no enumeration). **Status:** specified. (See `05` for full UX; `21` for token lifecycle.)
 
 ### A11Y-1 — Operator queue is keyboard/screen-reader operable
 - **Statement:** Queue and detail pages use semantic primitives (`src/components/ui/`), keyboard navigation, visible focus, live-region status updates.
-- **Priority:** P1. **Acceptance:** `AC-A11Y-1a` keyboard path; `AC-A11Y-1b` accessible names; `AC-A11Y-1c` status changes announced. **Status:** specified. (Full matrix in `05`.)
+- **Priority:** P1. **Acceptance:** `AC-A11Y-1a` keyboard path; `AC-A11Y-1b` accessible names; `AC-A11Y-1c` status changes announced. **Status:** specified. (Full matrix in `05`.) **Gated on `OPEN-OPS-01`** (operator role).
 
 ### ARCH-1 — Server/Client boundary
-- **Statement:** Queue/detail are Server Components reading via the repository; mutations are Server Actions; the smallest `"use client"` boundary is the interactive filter/detail UI.
-- **Priority:** P1. **Status:** specified. (Detail in `06`.)
+- **Statement:** Queue/detail are Server Components reading via the repository; mutations are **Server Actions** (`"use server"`, `formData`, matching `beta-allowlist-admin-actions.ts`); the smallest `"use client"` boundary is the interactive filter/detail UI.
+- **Priority:** P1. **Status:** specified. (Detail in `06`, route-by-route in `20`.) **Gated on `OPEN-OPS-01`.**
 
 ### SEC-1 — Authorization at server boundary, not only UI
-- **Statement:** Every operator surface checks `isPlatformAdminRole` server-side; requester lookup checks token ownership server-side.
-- **Priority:** P1. **Status:** specified. (Threat model in `08`.)
+- **Statement:** Every operator surface checks `isPlatformAdminRole` server-side (via `requirePlatformOperator()`); requester lookup checks token ownership server-side; every Server Action re-runs authz on direct-POST.
+- **Priority:** P1. **Status:** specified. (Threat model in `08`; attack-surface inventory in `21-A`.) **Gated on `OPEN-OPS-01`.**
+
+> **Namespace note:** `SEC-1`, `SEC-2` below are **requirement IDs** (this doc). `08`'s `SEC-01`…`SEC-10` are **threat-model entry IDs** (a separate namespace, intentionally zero-padded to distinguish). They are not the same series.
+
+### SEC-2 — No enumeration of request ids at status lookup
+- **Statement:** The status-lookup route returns **404 uniform** for unknown id / bad / expired / consumed token (never 403, which would leak that an id exists).
+- **Priority:** P0 (lookup endpoint). **Acceptance:** `AC-SEC-2a` all failure modes return 404 with identical body/timing. **Status:** specified. (Threat: `08` SEC-06; handling: `21` §B.1.)
 
 ### TEST-1 — Anonymous + authenticated coverage
 - **Statement:** Tests cover anonymous + authenticated intake, operator denial, identity verification, lifecycle transitions, fulfillment (export; erasure dry-run/confirm), abuse rate limit, and no-raw-data assertions.
@@ -177,7 +183,7 @@
 
 ### DOC-1 — Privacy notice links the workflow (GATED)
 - **Statement:** Once `OPEN-LEGAL-01` resolves, `src/app/privacy/page.tsx` links to the request workflow instead of "email support."
-- **Priority:** P0-T4. **Status:** gated. (Detail in `13`.)
+- **Priority:** doc-update (not a code phase). **Status:** gated on `OPEN-LEGAL-01`. (Detail in `13`.)
 
 ---
 
@@ -191,11 +197,11 @@
 | Authenticated intake | 201 + id + verified=true | as above | as above | as above | N/A (session optional) | 500 opaque | as above | as above | "recorded" | PC-02 |
 | Rate-limited | 429 after limit | N/A | N/A | N/A | N/A | N/A | counter race (D1 atomic) | 429 retry-after | "too many requests" | PC-03 |
 
-### Matrix S2 — Identity verification
+### Matrix S2 — Identity verification (verifyPrivacyRequest Server Action)
 
 | Flow | Happy path | Nil/missing input | Empty input/result | Invalid input | Auth denied | Upstream/network error | Concurrency/race | Retry/idempotency | User-visible result | Test |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Verify token | 200, verified=true | 400 (no token) | 410 (expired) | 409 (reused) | N/A (token is bearer) | 500 opaque | single-use (consume atomically) | second use → 409 | "verified" | PC-04 |
+| Verify token | 200/redirect, verified=true | 400 (no token in formData) | 404 (unknown id, uniform) | 410 (expired) / 409 (reused) | N/A (token is bearer; raw token in formData body, not URL) | 500 opaque | single-use (consume atomically via CAS on `consumed_at`) | second use → 409 | "verified" | PC-04 |
 
 ### Matrix S3 — Operator transition
 

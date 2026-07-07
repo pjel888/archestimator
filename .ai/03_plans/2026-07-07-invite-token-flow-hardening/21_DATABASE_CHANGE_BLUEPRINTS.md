@@ -9,7 +9,7 @@ Add a nullable `revoked_reason TEXT` column to `collaboration_invitations` so th
 
 ### Migration filename + ordering
 - **Filename:** `migrations/0038_collaboration_invitation_revoke_reason.sql`
-- **Ordering dependency:** applies after `0036_cost_library_component_drafts.sql` (the current latest). No dependency on any other pending migration.
+- **Ordering dependency:** applies after the current latest migration (at planning time `0037_remove_preloaded_component_categories.sql`; re-verify before authoring). No dependency on any other pending migration.
 - **Latest-migration confirmation:** At planning time, `migrations/0037_remove_preloaded_component_categories.sql` is the highest-numbered file in `./migrations/` (created by concurrent work during this session -- `0036_cost_library_component_drafts.sql` was latest when the L3 lane ran, but was overtaken). **This blueprint's migration is therefore numbered `0038`**, the next available. **Re-verify with `ls migrations/ | sort | tail -1` before authoring** -- if more concurrent migrations land, renumber accordingly.
 
 ### Tables/columns/indexes/constraints affected
@@ -90,7 +90,7 @@ The revoke UPDATEs use PK/index lookups — constant-time per row. No EXPLAIN co
 
 ---
 
-## Blueprint 2 (conditional, OPEN-SEC-01-gated) — `0038` remove `auth_trigger` enum
+## Blueprint 2 (conditional, OPEN-SEC-01-gated) — `0039` remove `auth_trigger` enum
 
 **Only if the owner picks "remove" for SEC-11.** If the owner picks "wire login-time grant," no migration is needed.
 
@@ -106,7 +106,7 @@ Remove `auth_trigger` from the `accepted_via` CHECK constraint (dead enum value)
 
 ### SQL sketch (SQLite CHECK changes require table rebuild)
 ```sql
--- 0038: remove dead auth_trigger enum value from accepted_via CHECK.
+-- 0039: remove dead auth_trigger enum value from accepted_via CHECK.
 -- SQLite CHECK changes require table rebuild. Forward-only; rollback = re-add the value.
 -- Step 1: create new table without auth_trigger in the CHECK.
 -- Step 2: copy data.

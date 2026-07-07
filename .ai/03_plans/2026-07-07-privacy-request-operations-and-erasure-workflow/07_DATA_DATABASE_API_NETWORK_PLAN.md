@@ -34,44 +34,53 @@
 
 ## API / network contracts
 
-### `POST /api/compliance/privacy-requests` (modified)
+### `POST /api/compliance/privacy-requests` (R1, modified)
 - Request: same shape + optional `turnstileToken` (deferred).
 - Response: `201 { id, status, createdAt, identityVerified }`.
 - Auth: anonymous-or-session; rate-limited per ip (+email-hash).
 - Errors: 400 invalid; 429 rate-limited (+`Retry-After`); 500 opaque.
 
-### `GET /api/compliance/privacy-requests` (new, operator)
-- Query: `?status=&limit=&offset=`.
+### `GET /api/compliance/privacy-requests` (R3 backing read; operator)
+- Query: `?status=&limit=&offset=` (offset pagination — **transient, not shareable**; see `20` URL-state semantics).
 - Response: `200 { rows: RedactedRow[] }`, `no-store`.
-- Auth: `isPlatformAdminRole`; else 403.
+- Auth: `requirePlatformOperator()` → `isPlatformAdminRole`; else 403.
 
-### `GET /api/compliance/privacy-requests/[id]` (new, operator)
+### `GET /api/compliance/privacy-requests/[id]` (R4 backing read; operator)
 - Response: `200 { row, events }`, `no-store`. 404 unknown. 403 non-operator.
 
-### `POST /api/compliance/privacy-requests/[id]/transition` (new, operator, Server Action)
-- Body: `{ to, note? }`. Response: `200 { status }`; 409 illegal/unverified.
+### `verifyPrivacyRequest(formData)` (R5, **Server Action** — `"use server"`; token-bearer)
+- Convention: matches `beta-allowlist-admin-actions.ts` (`formData`, `requireCurrentUserContext`-style gating for the request, but this action is token-bearer not session). Token travels in the **`formData` request body, never a URL query param** (resolves the C2 transport contradiction).
+- Input: `formData` (`requestId`, `token`). Response: `redirect` to lookup with `?verified=1`, or `{ verified: true }`; **410** expired; **409** reused; **404** unknown id (uniform).
 
-### `POST /api/compliance/privacy-requests/[id]/verify` (new, token-bearer)
-- Body: `{ token }`. Response: `200 { verified:true }`; 410 expired; 409 reused.
+### `transitionPrivacyRequest(formData)` (R6, Server Action, operator)
+- `formData` (`requestId`, `to`, `note?`); `revalidatePath` operator paths; 409 illegal/unverified.
 
-### Requester status lookup (new)
-- `GET /api/compliance/privacy-requests/[id]/status?token=...` → `200 { status, updatedAt }`; 404 unknown; 403 bad token (no enumeration).
+### Requester status lookup (R2 — the only URL-token route)
+- `GET /api/compliance/privacy-requests/[id]/status?token=...` → `200 { status, updatedAt }`; **404 for unknown id AND for bad/expired/consumed token — uniform, no enumeration** (resolves the C5 contradiction). `Referrer-Policy: no-referrer`. Lookup token is single-use, 24h, request-id-bound, re-issued on each transition (resolves C6).
 
-### Export action (Server Action, operator)
+### Export action (R8, Server Action, operator)
 - `200 { evidence }`; writes R2 `privacy-exports/<requestId>/<uuid>.json`.
 
-### Erasure dry-run + confirm (Server Actions, operator; `P3`)
-- dry-run `200 { counts: {table: n}, dryRunToken }`; confirm `{ dryRunToken }` → `200 { retentionEventId, evidence }`.
+### Erasure dry-run + confirm (R9/R10, Server Actions, operator; `P3`)
+- dry-run `200 { counts: {table: n}, dryRunToken }`; confirm `formData(requestId, dryRunToken)` → re-auth + `200 { retentionEventId, evidence }`.
 
 ## Access-path matrix
 
-| Source | Chosen API/repository/binding | Runtime role | Authorization check | Latest schema/policy posture | Proof source | Fallback |
+> *(Improved 2026-07-07.)* Each row now cites the **existing** repository/authz symbol that authorizes the access today, or marks the symbol as **NEW** (to be added by the named task) with the gap flagged.
+
+| Source | Chosen API/repository/binding | Runtime role | Authorization check (existing symbol / NEW) | Latest schema/policy posture | Proof source | Fallback |
 |---|---|---|---|---|---|---|
-| privacy_requests | `privacy-request-repository` → D1 `ARCH_DB` | Worker | operator gate / token-bearer | 0033 + 0037 (additive) | local D1 apply + EXPLAIN | n/a |
-| rate limit | reuse `security_rate_limit_events` pattern | Worker | per-ip key | existing table | unit test | fail-open logged (closed-beta) |
-| export package | R2 `ARCH_UPLOADS_R2` `privacy-exports/` | Worker | operator gate | new namespace | R2 mock + provider proof at execution | action fails closed |
-| erasure audit | `data_retention_events` | Worker (cron + action) | operator gate | 0034 | retention-repository test | retention cron reconciles |
-| email | `EMAIL` binding via `sendEmail` | Worker | n/a | provider flag | Cloudflare Email proof at execution | circuit breaker degrades |
+| privacy_requests (intake write) | `createPrivacyRequest` → D1 `ARCH_DB` | Worker (anonymous) | **existing**: `assertRequestKind` + `sanitizeMetadata`; no authz (intentional public) | 0033 + 0037 | local D1 apply + EXPLAIN; PC-01/02 | 500 opaque |
+| privacy_requests (operator read) | `listPrivacyRequests`/`getById` (NEW `getById`) → D1 | Worker (operator) | **NEW** `requirePlatformOperator()` (P1-T1) wrapping **existing** `isPlatformAdminRole` | 0033 + 0037 | PC-07, PC-15 | 403 |
+| privacy_requests (verify) | NEW `consumeVerificationToken` → D1 | Worker (token-bearer) | **NEW** token-hash compare (P0-T2); raw token required, hash is lookup-only (see `21`) | 0037 token table | PC-04 | 409/410/404 |
+| privacy_requests (status lookup) | NEW `getById` + lookup-token verify → D1 | Worker (token-bearer) | **NEW** lookup-token-hash compare (P0-T4); 404 uniform | 0037 token table | PC-08 | 404 |
+| privacy_requests (transition) | NEW `transitionStatus` → D1 | Worker (operator) | **NEW** `requirePlatformOperator()` + state-machine guard (P0-T2/P1-T1) | 0033+0037 | PC-05/06 | 409 |
+| rate limit | reuse `security_rate_limit_events` pattern (`recordSecurityRateLimitEventInD1` etc.) | Worker | per-ip (+email-hash) key | existing table | PC-03 | fail-open logged (closed-beta) |
+| export package | R2 `ARCH_UPLOADS_R2` `privacy-exports/` | Worker (operator) | **NEW** `requirePlatformOperator()` + request `in_progress`+verified (P2-T1) | new namespace | PC-09/10 | action fails closed |
+| erasure audit | `data_retention_events` (existing sink) | Worker (cron + action) | **NEW** `requirePlatformOperator()` + re-auth (P3-T2) | 0034 | retention-repository test pattern; PC-11/12 | retention cron reconciles |
+| email | `EMAIL` binding via `sendEmail` | Worker | n/a (outbound) | `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED` + provider flag + `CLOUDFLARE_EMAIL_FROM` | `cf:check-email` readiness; **no send/deliverability proof script exists today** (gap) | circuit breaker degrades |
+
+**P0-defect check (directive §10):** every NEW authz symbol is named in a task (`P0-T2` for token/transition repo functions, `P1-T1` for `requirePlatformOperator`, `P2-T1`/`P3-T2` for fulfillment). No access path relies on a symbol that cannot read/write after current migrations. The email deliverability-proof gap is recorded: there is **no** `verify-cloudflare-email-proof.ts` script today (only `cf:check-email` readiness); execution must add a send/receive proof or accept the residual.
 
 ## Backward compatibility
 

@@ -42,24 +42,27 @@ Phases 1→2→3 are sequential (P2's disabled-flag short-circuit depends on P1'
 - **Parallelization:** Sequential (single owner file).
 - **Complexity:** Small.
 
-#### P1-T2 — Add `isAllowedInviteOrigin` to `/invite/[token]/continue` (DISCOVERY-REQUIRED first)
+#### P1-T2 — Convert Continue CTA to form POST + add `isAllowedInviteOrigin` to `/invite/[token]/continue`
 - **Task ID:** P1-T2
 - **Req IDs:** SEC-02
-- **Objective:** Add the origin guard to the continue route on GET and POST, before the cookie is set.
-- **Why:** `continue/route.ts` mints a state-changing cookie with no origin check today.
-- **Target path (existing):** `src/app/invite/[token]/continue/route.ts`.
-- **Target symbols:** `continueToAuth` (L39).
-- **DISCOVERY-REQUIRED sub-step:** Confirm how the signed-out-preview "Continue" CTA navigates. Scope: read `src/app/invite/[token]/page.tsx` around the Continue CTA (L? signed-out-preview branch). Stop condition: confirm whether Continue is an `<a href>` (GET, no Origin, Referer subject to `Referrer-Policy: no-referrer`) or a form POST (Origin sent). If it's an `<a>` under `Referrer-Policy: no-referrer`, the origin guard would block it → switch the CTA to a form POST (same pattern as the Accept button) so Origin is sent. Expected evidence: the exact JSX of the Continue CTA + a one-line note on whether Referer is present.
-- **Inputs/dependencies:** P1-T1 (the helper).
+- **Objective:** Switch the signed-out "Continue" CTA from an `<a>` to a form POST (so the browser sends `Origin`), then add the origin guard to the continue route on POST before the cookie is set.
+- **Why:** `continue/route.ts` mints a state-changing cookie with no origin check today. The current CTA at `src/app/invite/[token]/page.tsx:165` is `<a href="/invite/<token>/continue">` — a GET navigation that carries no `Origin` header, and `/invite/*` sets `Referrer-Policy: no-referrer` (`next.config.ts:272`), so a tightened origin guard would block the legitimate flow unless the CTA becomes a form POST (which always sends `Origin`).
+- **Source evidence (verified 2026-07-07):** `src/app/invite/[token]/page.tsx:165` (`<a className={inviteActionClassName} href={...}/continue}>Continue to Archestimator</a>`); `next.config.ts:272` (`Referrer-Policy: no-referrer` under `appAndInviteHardening`); `src/app/invite/[token]/page.tsx:157` (the Accept CTA already uses `<form action=... method="post">` — the pattern to mirror).
+- **Target paths (existing):**
+  - `src/app/invite/[token]/page.tsx` (Continue CTA, ~L165) — change `<a>` → `<form method="post" action={`/invite/${encodeURIComponent(rawToken)}/continue`}>` with a submit button labeled "Continue to Archestimator", mirroring the Accept form at L157.
+  - `src/app/invite/[token]/continue/route.ts` — `continueToAuth` (L39).
+- **Target symbols:** the Continue CTA JSX in `page.tsx`; `continueToAuth` in `continue/route.ts`.
 - **Detailed instructions:**
-  1. Run the DISCOVERY sub-step; adjust the page CTA if needed (switch `<a>` → `<form method="post" action="/invite/<token>/continue">`).
-  2. In `continueToAuth`, immediately after decoding the token, call `if (!isAllowedInviteOrigin(request)) return 403 no-store` — before `checkInviteContinueRateLimit` and before `createPendingInviteBridge`.
-- **Expected output:** Continue route rejects no-header/cross-host POSTs in prod; allows legitimate same-site navigation.
-- **Failure cases:** Blocking the Continue `<a>` if it relies on Referer under no-referrer (mitigated by DISCOVERY + form-POST switch).
-- **Tests/val:** New `tests/vitest/invite-continue-origin.test.ts` (or extend `project-invite-entry-route.test.ts`) covering: no-header-denied-in-prod, cross-host-denied, same-site-form-POST-allowed, dev-allow.
-- **Completion evidence:** Test output; DISCOVERY note in the task closeout.
+  1. In `page.tsx` (~L165), replace the `<a>` with a `<form method="post" action={`/invite/${encodeURIComponent(rawToken)}/continue`}>` containing a `<button type="submit" className={inviteActionClassName}>Continue to Archestimator</button>`. Match the Accept form's structure (L157) for consistency.
+  2. In `continueToAuth` (`continue/route.ts:39`), immediately after decoding the token (L41) and before `checkInviteContinueRateLimit` (L43), add: `if (!isAllowedInviteOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403, headers: { "Cache-Control": "no-store" } });`
+  3. The GET handler remains for direct-link/back-navigation resilience but the primary CTA is now POST. Verify the GET path also passes the guard (it will, since the guard treats same-host Referer or a same-site navigation permissively in dev; in prod a bare GET with no Origin/Referer is denied — acceptable because the CTA is now POST).
+- **Inputs/dependencies:** P1-T1 (the tightened helper).
+- **Expected output:** Continue route rejects no-header/cross-host POSTs in prod; the legitimate form-POST CTA carries `Origin` and is allowed.
+- **Failure cases:** None residual — the form-POST switch guarantees `Origin` on the legitimate path. (If a user bookmarked the `/continue` GET URL directly, prod denies it without Origin/Referer; acceptable — the CTA is the documented entry point.)
+- **Tests/val:** New `tests/vitest/invite-continue-origin.test.ts` covering: (a) POST no-Origin/Referer → 403 in prod; (b) POST cross-host Origin → 403; (c) POST same-host Origin → cookie set + redirect (the legitimate form-POST path); (d) dev env → allowed. Plus extend `project-invite-entry-route.test.ts` to assert the rendered CTA is a `<form method="post">` (DOM assertion), not an `<a>`.
+- **Completion evidence:** Test output green; DOM assertion confirms form-POST CTA.
 - **Parallelization:** Sequential after P1-T1.
-- **Complexity:** Small-Medium (DISCOVERY may require a page edit).
+- **Complexity:** Small.
 
 #### P1-T3 — (Already covered by P1-T1) sign-out route inherits the tightened guard
 - **Task ID:** P1-T3
@@ -165,20 +168,26 @@ Phases 1→2→3 are sequential (P2's disabled-flag short-circuit depends on P1'
 - **Tests/val:** New `tests/vitest/project-collaboration-revoke-invitation.test.ts`: manager success; non-manager deny (SEC-15); cross-workspace deny; already-terminal no-op; audit event.
 - **Complexity:** Medium.
 
-#### P3-T4 — Revoke UI in publisher members panel (DISCOVERY-REQUIRED first)
+#### P3-T4 — Revoke UI in publisher members panel
 - **Task ID:** P3-T4
 - **Req IDs:** SEC-07, UX-03, A11Y-01
-- **Objective:** Revoke button + confirmation dialog in the pending-invitations list.
-- **Target path (existing):** `src/components/workshop/publisher/*` (DISCOVERY to find the exact members-panel component — likely `PublisherProjectMembersPanel.tsx`).
-- **DISCOVERY-REQUIRED sub-step:** Locate the pending-invitations render in the publisher panel; confirm the existing Resend/Copy/Remove controls' component structure. Stop condition: exact file + JSX region identified for the revoke button placement.
+- **Objective:** Add a pending-invitations list section + revoke button + confirmation dialog to the publisher members panel.
+- **Source evidence (verified 2026-07-07):** `src/components/workshop/publisher/PublisherProjectMembersPanel.tsx` (472 lines) is the panel. **Today it renders *accepted members* only** — the comment at L305 says "Project members appear here after they are invited." **Pending invitations are NOT rendered as rows today** (grep confirms no `lifecycle_state`/invitation-row JSX in this file; `PublisherRosterRow.tsx` is for *publication* roster rows, a different surface). So SEC-07's revoke UI requires first adding a "Pending invitations" section that lists rows from the collaboration summary's pending-invitation data (already available server-side via `workspace-repository.ts:2611-2770` `pendingInvitations`).
+- **Target paths (existing):**
+  - `src/components/workshop/publisher/PublisherProjectMembersPanel.tsx` — add a "Pending invitations" subsection (below the members list) that maps over pending invitation rows; each row shows email + role + a "Revoke" `Button`.
+  - `src/components/workshop/publisher/publisher-queries.ts` — extend the panel's query to include pending invitations (the server already exposes them via the collaboration summary).
 - **Detailed instructions:**
-  1. Add a `Button` (ghost or destructive variant) "Revoke" next to existing controls on pending rows only.
-  2. Wire to an `AlertDialog` confirmation ("Revoke invitation for <email>?" / Cancel + Revoke).
-  3. On confirm, call the Server Action via TanStack Query mutation (existing pattern); show toast; `revalidatePath`.
-  4. Keyboard: Tab-reachable, Enter/Space activate, dialog focus-trap + restore, Esc cancel.
-  5. Accessible name "Revoke invitation for <email>"; live-region success announcement.
-- **Tests/val:** Component test (`tests/vitest/publisher-revoke-invite.test.tsx` or similar): button present on pending rows only; confirmation flow; keyboard path; accessible name.
-- **Complexity:** Medium.
+  1. Extend the panel's data query to fetch pending invitations (scope: `lifecycle_state='pending'`, `expires_at > now`) for the project/estimate, reusing the existing collaboration-summary `pendingInvitations` shape.
+  2. Render a "Pending invitations" subsection (only when ≥1 pending) with one row per invitation: invited email, role label, expiry, and a destructive `Button` "Revoke".
+  3. Wire the button to an `AlertDialog` confirmation ("Revoke invitation for <email>? They'll no longer be able to accept." / Cancel + Revoke), reusing the existing `pendingRemoval` dialog pattern at L455-461 as the structural template.
+  4. On confirm, call `revokeProjectInvitation`/`revokeEstimateSheetInvitation` via TanStack Query mutation (existing pattern); on success show a toast ("Invitation revoked.") and rely on the Server Action's `revalidatePath` to refresh the list.
+  5. Keyboard/a11y: Tab-reachable button; Enter/Space activate; dialog focus-trap + restore to trigger; Esc cancel; accessible name `Revoke invitation for <email>`; live-region success announcement. Match the existing removal-dialog a11y behavior.
+- **Expected output:** Pending invitations render with a working, confirmed, a11y revoke control; accepted members are unaffected.
+- **Failure cases:** The pending-invitations query shape mismatch (mitigated: reuse `pendingInvitations` from the collaboration summary verbatim). Concurrent edits to the panel (RISK-03) — coordinate via the file-ownership ledger.
+- **Tests/val:** New `tests/vitest/publisher-revoke-invite.test.tsx`: (a) panel renders a "Pending invitations" section when ≥1 pending; (b) revoke button present on pending rows only; (c) confirmation dialog opens on click; (d) keyboard path (Tab → button, Enter, dialog trap, Esc cancel, focus restore); (e) accessible name via `aria-label`/`getByRole`. Manual: Playwright/keyboard pass on a preview deploy for the focus-trap + restore (browser-only claim per AGENTS.md verification policy).
+- **Completion evidence:** Component test green; manual keyboard transcript on preview.
+- **Parallelization:** Sequential after P3-T3 (the action it calls).
+- **Complexity:** Medium-Large (adds a new panel subsection, not just a button — larger than the original estimate).
 
 #### P3-T5 — Extend hosted proof harness for revoke
 - **Task ID:** P3-T5
@@ -200,14 +209,27 @@ Phases 1→2→3 are sequential (P2's disabled-flag short-circuit depends on P1'
 
 ### P4 Tasks
 
-#### P4-T1 — Align `upsertProjectMemberInD1` / `upsertEstimateSheetMemberInD1` to promotion-only
+#### P4-T1 — Make ONLY the direct-grant call sites promotion-only (NOT the shared helper)
 - **Task ID:** P4-T1
 - **Req IDs:** SEC-10
-- **Objective:** Reuse the `acceptProjectInvitation`/`acceptEstimateInvitation` `ON CONFLICT` promotion CASE in the direct-grant helpers (or extract a shared `resolveMembershipRoleConflict` helper).
-- **Target path (existing):** `src/lib/collaboration/actions.ts:785-852`.
-- **DISCOVERY-REQUIRED sub-step:** Confirm no caller relies on overwrite semantics (grep callers of `upsertProjectMemberInD1`/`upsertEstimateSheetMemberInD1`). Stop condition: caller list recorded; confirm all use it for first-grant or promotion, never for explicit downgrade (which is `updateProjectCollaboratorRole`'s job).
-- **Tests/val:** Extend `project-collaboration-actions.test.ts`: direct-grant a lower role than existing → existing role unchanged; direct-grant a higher role → promoted.
-- **Complexity:** Small-Medium.
+- **Objective:** The two **direct-grant** call sites (`inviteProjectCollaborator` L973, `inviteEstimateSheetCollaborator` L1094) must not downgrade an existing higher-role member. The shared `upsertProjectMemberInD1`/`upsertEstimateSheetMemberInD1` helpers must **keep their current overwrite semantics** because two other callers (`updateProjectCollaboratorRole` L1326, `upsertSheetOwnerBeforeRestricting` L1512) **intentionally** use them for role changes, including legitimate downgrades guarded by the "at least one owner/admin" check.
+- **Source evidence (verified 2026-07-07, corrects the original SEC-10 framing):**
+  - `actions.ts:973` `upsertProjectMemberInD1(context, profile.id, role, directGrantedAt)` — direct-grant (the SEC-10 target).
+  - `actions.ts:1094` `upsertEstimateSheetMemberInD1(context, profile.id, role, directGrantedAt)` — direct-grant (the SEC-10 target).
+  - `actions.ts:1326` `upsertProjectMemberInD1(context, userId, role)` — inside `updateProjectCollaboratorRole`, the **explicit role-change** surface that intentionally downgrades (with the `hasOtherProjectManager` guard at L1317-1324). **Must keep overwrite semantics.**
+  - `actions.ts:1512` `upsertEstimateSheetMemberInD1(context, context.currentUserId, "owner")` — inside `upsertSheetOwnerBeforeRestricting`, promotes self to owner. **Must keep overwrite semantics** (promotion-only would also work here, but it's not the SEC-10 concern).
+- **Why the original "change the shared helper" framing was wrong:** a blanket promotion-only `ON CONFLICT` CASE in the shared helper would break `updateProjectCollaboratorRole`'s ability to demote a manager to editor/viewer — a legitimate, guard-protected manager action. This was caught during the Improve-pass source re-verification.
+- **Target paths (existing):**
+  - `src/lib/collaboration/actions.ts:936-1053` (`inviteProjectCollaborator`) and `:1055-1175` (`inviteEstimateSheetCollaborator`) — at the direct-grant branch (around L973 / L1094), guard the upsert so it does not write a role lower than the existing member's current role. Preferred: read the existing role first (or use a `CASE` in the `ON CONFLICT DO UPDATE` scoped to these call sites) and keep the higher rank.
+  - **Do NOT modify** `upsertProjectMemberInD1`/`upsertEstimateSheetMemberInD1` themselves.
+- **Detailed instructions:**
+  1. Add a small helper, e.g. `resolveDirectGrantRole(existingRole, invitedRole)`, returning the higher-rank role (reuse `collaborationRoleRank`).
+  2. In the direct-grant branch of `inviteProjectCollaborator`/`inviteEstimateSheetCollaborator`, before calling the upsert, resolve the effective role (if a membership row already exists, use `resolveDirectGrantRole`; else use the invited role).
+  3. Leave the shared upsert helpers and `updateProjectCollaboratorRole` untouched.
+- **Tests/val:** Extend `tests/vitest/project-collaboration-actions.test.ts`: (a) direct-grant a lower role than an existing member's → existing role unchanged; (b) direct-grant a higher role → promoted; (c) **regression:** `updateProjectCollaboratorRole` demoting a manager to editor still works (proves the shared helper was not changed).
+- **Completion evidence:** Test output green including the `updateProjectCollaboratorRole` regression case.
+- **Parallelization:** Sequential (single file, `actions.ts`) — partition from P3-T3 which also edits `actions.ts`.
+- **Complexity:** Medium (scoped guard + regression test, larger than the original "Small-Medium" because of the caller-analysis correction).
 
 ---
 
@@ -234,7 +256,7 @@ Phases 1→2→3 are sequential (P2's disabled-flag short-circuit depends on P1'
 #### P5-T2 — Resolve `auth_trigger` enum (OPEN-SEC-01-gated)
 - **Task ID:** P5-T2
 - **Req IDs:** SEC-11
-- **Objective:** Per owner decision: (a) wire login-time grant in `account-actions.ts`/`account-setup.ts`, or (b) remove the enum value via migration `0038` (table rebuild for CHECK change).
+- **Objective:** Per owner decision: (a) wire login-time grant in `account-actions.ts`/`account-setup.ts`, or (b) remove the enum value via migration `0039` (table rebuild for CHECK change).
 - **Blocker:** OPEN-SEC-01.
 - **Recommended:** (b) remove, unless a product need exists.
 - **Complexity:** Small (remove) / Medium (wire).
