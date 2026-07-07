@@ -39,9 +39,10 @@ Stable current truth (verify against git/source before relying on a detail):
   local pinning/config tests read the disabled archive path so the preserved
   definitions stay checked.
 - GitHub security PR/comment loop (2026-07-07 local): live GitHub inventory
-  found 25 open PRs for `pjel888/archestimator`, no open issues, 13 unresolved
-  non-outdated review threads across PRs 107, 108, 109, 114, 115, and 118
-  after PR106 was pushed/resolved and a new PR108 follow-up thread appeared.
+  found 26 open PRs for `pjel888/archestimator`, no open issues, 19 unresolved
+  non-outdated review threads across PRs 107, 109, 114, 115, 118, 120, 121,
+  and 123 after PR108 was pushed/resolved and new PR120/121/123 threads
+  appeared.
   Hosted alert readbacks are unavailable rather than clean: code scanning
   returned 403 disabled, Dependabot alerts returned 403 disabled plus an
   `admin:repo_hook` scope request, and secret scanning returned 404 disabled
@@ -90,13 +91,18 @@ Stable current truth (verify against git/source before relying on a detail):
   estimate tree/tab/export readers now use a separate estimate-scoped project
   context helper that keeps `canAccessWholeProjectInD1` for project-wide access
   but falls back to `canAccessEstimateInD1` for the requested estimate only, so
-  sheet-only invitees can load or export their granted sheet. PR108
-  focused/adjacent tests passed 8 files / 45 tests, typecheck passed, targeted
-  ESLint exited 0 with only pre-existing unused-symbol warnings, scoped
-  `git diff --check` passed, and GraphQL readback resolved the prior active
-  PR108 thread. A later refresh found a new active PR108 P1 follow-up on
-  sheet-only invitees still reaching the estimate route, so PR108 needs another
-  branch pass. Local fixes for PR109/PR110
+  sheet-only invitees can load or export their granted sheet. PR108 branch was
+  updated again to head `32874a05`: estimate-page route context now resolves a
+  node/estimate route segment to the owning estimate before selecting
+  `getCurrentWorkspaceProjectForEstimate`, so sheet-only invitees can reach
+  `/workshop/projects/:projectId/estimates/:nodeId` without broadening
+  `getCurrentWorkspaceProject`. PR108 focused/adjacent tests passed 10 files /
+  61 tests, typecheck passed, targeted ESLint exited 0 with only pre-existing
+  unused-symbol warnings, scoped `git diff --check` passed, and GraphQL readback
+  resolved all active PR108 threads. The latest refresh surfaced new active
+  threads on PR120 project-card/favorited estimate filtering, PR121 privacy
+  request intake rate/body handling, and PR123 homebase favorite filtering.
+  Local fixes for PR109/PR110
   canonicalized padded share
   tokens before password-cookie checks, trimmed share API route tokens, and
   require the password access cookie before recipient comment/decision POSTs.
