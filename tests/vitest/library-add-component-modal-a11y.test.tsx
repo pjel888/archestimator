@@ -141,7 +141,7 @@ async function createCatalogueOption(
   const input = within(form).getByRole("combobox", { name: fieldName });
   const kind = fieldName.toLowerCase();
   fireEvent.change(input, { target: { value } });
-  fireEvent.click(await within(dialog).findByRole("option", { name: `Add ${kind} "${value}"` }));
+  fireEvent.click(await screen.findByRole("option", { name: `Add ${kind} "${value}"` }));
   await waitFor(() => expect(input).toHaveValue(value));
   return input;
 }
@@ -155,7 +155,7 @@ async function pickCatalogueOption(
   const form = within(dialog).getByRole("form", { name: "Quick add component" });
   const input = within(form).getByRole("combobox", { name: fieldName });
   fireEvent.change(input, { target: { value: searchValue } });
-  fireEvent.click(await within(dialog).findByRole("option", { name: value }));
+  fireEvent.click(await screen.findByRole("option", { name: value }));
   await waitFor(() => expect(input).toHaveValue(value));
   return input;
 }
@@ -294,8 +294,8 @@ describe("AddComponentModal OpenDesign field contract", () => {
 
     fireEvent.change(category, { target: { value: "Hardware" } });
 
-    expect(within(dialog).queryByRole("option", { name: "Hardware" })).not.toBeInTheDocument();
-    expect(await within(dialog).findByRole("option", { name: 'Add category "Hardware"' })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Hardware" })).not.toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: 'Add category "Hardware"' })).toBeInTheDocument();
   });
 
   it("does not prefill category from the selected library folder", async () => {
@@ -346,20 +346,20 @@ describe("AddComponentModal OpenDesign field contract", () => {
       const input = within(form).getByRole("combobox", { name: fieldName });
       fireEvent.change(input, { target: { value: "" } });
       fireEvent.change(input, { target: { value } });
-      expect(await within(dialog).findByRole("option", { name: value })).toBeInTheDocument();
+      expect(await screen.findByRole("option", { name: value })).toBeInTheDocument();
 
-      fireEvent.click(await within(dialog).findByRole("button", { name: `Delete ${kind} "${value}"` }));
+      fireEvent.click(await screen.findByRole("button", { name: `Delete ${kind} "${value}"` }));
       await waitFor(() => expect(input).toHaveValue(""));
 
       fireEvent.change(input, { target: { value } });
-      await waitFor(() => expect(within(dialog).queryByRole("option", { name: value })).not.toBeInTheDocument());
-      expect(await within(dialog).findByRole("option", { name: `Add ${kind} "${value}"` })).toBeInTheDocument();
+      await waitFor(() => expect(screen.queryByRole("option", { name: value })).not.toBeInTheDocument());
+      expect(await screen.findByRole("option", { name: `Add ${kind} "${value}"` })).toBeInTheDocument();
     }
 
     const supplier = within(form).getByRole("combobox", { name: "Supplier" });
     fireEvent.change(supplier, { target: { value: "Acme" } });
-    expect(await within(dialog).findByRole("option", { name: "Acme" })).toBeInTheDocument();
-    expect(within(dialog).queryByRole("button", { name: 'Delete supplier "Acme"' })).not.toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: "Acme" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: 'Delete supplier "Acme"' })).not.toBeInTheDocument();
   });
 
   it("sanitizes malformed stored catalogue options before rendering dropdown choices", async () => {
@@ -382,17 +382,17 @@ describe("AddComponentModal OpenDesign field contract", () => {
 
     const category = within(form).getByRole("combobox", { name: "Category" });
     fireEvent.change(category, { target: { value: "Odd Category" } });
-    expect(await within(dialog).findByRole("option", { name: "Odd Category" })).toBeInTheDocument();
-    expect(within(dialog).getAllByRole("option", { name: "Odd Category" })).toHaveLength(1);
+    expect(await screen.findByRole("option", { name: "Odd Category" })).toBeInTheDocument();
+    expect(screen.getAllByRole("option", { name: "Odd Category" })).toHaveLength(1);
 
     const supplier = within(form).getByRole("combobox", { name: "Supplier" });
     fireEvent.change(supplier, { target: { value: "not-an-array" } });
-    expect(within(dialog).queryByRole("option", { name: "not-an-array" })).not.toBeInTheDocument();
-    expect(await within(dialog).findByRole("option", { name: 'Add supplier "not-an-array"' })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "not-an-array" })).not.toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: 'Add supplier "not-an-array"' })).toBeInTheDocument();
 
     const brand = within(form).getByRole("combobox", { name: "Brand" });
     fireEvent.change(brand, { target: { value: "Old Brand" } });
-    expect(await within(dialog).findByRole("option", { name: "Old Brand" })).toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: "Old Brand" })).toBeInTheDocument();
   });
 
   it("keeps saved catalogue options isolated when the storage scope changes", async () => {
@@ -422,7 +422,7 @@ describe("AddComponentModal OpenDesign field contract", () => {
     const form = within(dialog).getByRole("form", { name: "Quick add component" });
     const category = within(form).getByRole("combobox", { name: "Category" });
     fireEvent.change(category, { target: { value: "Scope B" } });
-    expect(await within(dialog).findByRole("option", { name: "Scope B Category" })).toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: "Scope B Category" })).toBeInTheDocument();
 
     const storedScopeB = JSON.parse(window.localStorage.getItem(`${catalogueOptionsStoragePrefix}:${scopeB}`) ?? "{}");
     expect(storedScopeB.category).toEqual([
