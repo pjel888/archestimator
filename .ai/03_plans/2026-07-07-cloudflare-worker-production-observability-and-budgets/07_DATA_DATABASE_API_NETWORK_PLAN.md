@@ -68,8 +68,7 @@ which can only *lower* writes.
 - **Rollback/fix-forward:** n/a (no schema change). The retention budget guard is
   config-driven (`maxDurationMs`, `maxRowsDeletedPerTick`) and can be relaxed
   without a migration.
-- **Local proof command:** `bun run cf:d1-local` (or the existing local D1
-  script) for retention test; no migration apply needed.
+- **Local proof command:** `wrangler d1 execute ARCH_DB --local --command="..."` (P2-4: no `cf:d1-local` script exists in `package.json` — use the wrangler CLI directly; the retention unit test uses a mock D1 so no real local DB is required).
 - **Linked-provider proof boundary:** retention progress visible in Workers Logs
   (`retention.rule` events) + existing `data_retention_events` D1 rows.
 
