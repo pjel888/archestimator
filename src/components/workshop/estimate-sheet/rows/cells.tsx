@@ -5,7 +5,17 @@ import { ArrowsClockwise, ArrowsOutCardinal, Cube, DotsSixVertical, DotsThreeVer
 
 import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
+import { CreatableCombobox, type CreatableComboboxChange, type CreatableComboboxOption } from "@/components/ui/creatable-combobox";
 import { Modal } from "@/components/ui/modal";
+import {
+  getComponentCatalogueComboboxValue,
+  getSelectedComponentCatalogueOptionId,
+} from "@/components/workshop/component-catalogue-combobox-options";
+import {
+  COMPONENT_UNIT_COMBOBOX_OPTIONS,
+  getSelectedUnitId,
+  getUnitComboboxValue,
+} from "@/components/workshop/component-unit-combobox-options";
 import { Tooltip } from "@/components/ui/overlays/tooltip";
 import { classifyEstimateRowSource, isExpressComponentRow, readProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
 import { cn } from "@/lib/ui/cn";
@@ -43,6 +53,7 @@ const MATERIAL_UNIT_SLASH_CLASS = "absolute -top-2 right-0 block h-2 leading-[8p
 const MATERIAL_UNIT_VALUE_CLASS = "block max-w-full truncate";
 const ESTIMATE_IMAGE_UPLOAD_MAX_BYTES = 12 * 1024 * 1024;
 const ESTIMATE_IMAGE_UPLOAD_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
+const EMPTY_CATALOGUE_COMBOBOX_OPTIONS: CreatableComboboxOption[] = [];
 
 type EstimateImageModalState = {
   open: boolean;
@@ -209,6 +220,7 @@ function getComponentSourceRailClass(source: ComponentSourceTone) {
 function EstimateMaterialCardFrame({
   image,
   name,
+  brand,
   supplier,
   cost,
   description,
@@ -216,6 +228,7 @@ function EstimateMaterialCardFrame({
 }: {
   image: ReactNode;
   name: ReactNode;
+  brand: ReactNode;
   supplier: ReactNode;
   cost: ReactNode;
   description: ReactNode;
@@ -228,6 +241,7 @@ function EstimateMaterialCardFrame({
         <div className="flex min-w-0 flex-1 flex-col">
           <div className={MATERIAL_TEXT_RESERVE_CLASS}>
             {name}
+            {brand}
             {supplier}
           </div>
           <div className="flex flex-1 items-start justify-end">
@@ -246,6 +260,7 @@ function EstimateMaterialCardFrame({
 }
 
 function EstimateMaterialCardContent({ item }: { item: EstimateMaterialCardItem }) {
+  const brand = item.brand?.trim();
   return (
     <EstimateMaterialCardFrame
       image={(
@@ -256,7 +271,14 @@ function EstimateMaterialCardContent({ item }: { item: EstimateMaterialCardItem 
         />
       )}
       name={<p className="truncate text-[11px] font-medium leading-4 text-ink">{item.material}</p>}
-      supplier={<p className="truncate text-[10px] font-medium leading-4 text-tertiary">{item.supplier}</p>}
+      brand={brand ? (
+        <p className="mt-0.5 flex min-w-0 leading-3">
+          <span className="inline-flex max-w-full items-center rounded-xs border border-hairline bg-surfaceMuted px-1.5 py-0.5 !text-[9px] font-medium leading-[11px] text-secondary" title={brand}>
+            <span className="truncate">{brand}</span>
+          </span>
+        </p>
+      ) : null}
+      supplier={<p className="truncate text-[10px] font-normal leading-4 text-tertiary">{item.supplier}</p>}
       cost={<p className="whitespace-nowrap text-[9px] font-medium leading-4 tabular-nums text-ink">{pesoFormatter.format(item.itemCost).replace("₱", "₱ ")}</p>}
       description={(
         <p className="truncate text-[10px] leading-4 text-secondary/60 transition-opacity group-hover:text-secondary" title={item.description}>
@@ -273,7 +295,7 @@ function EstimateMaterialCardContent({ item }: { item: EstimateMaterialCardItem 
   );
 }
 
-type ExpressEditableField = "name" | "description" | "supplier" | "unit" | "unitCost" | "imageUrl" | "sourceUrl";
+type ExpressEditableField = "name" | "description" | "brand" | "supplier" | "unit" | "unitCost" | "imageUrl" | "sourceUrl";
 
 function handleExpressFieldKeyDown(
   event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -609,6 +631,8 @@ function ExpressMaterialImageEditor({
 function ExpressMaterialEditor({
   item,
   editableRow,
+  brandOptions = EMPTY_CATALOGUE_COMBOBOX_OPTIONS,
+  supplierOptions = EMPTY_CATALOGUE_COMBOBOX_OPTIONS,
   projectId,
   estimateId,
   onChange,
@@ -621,6 +645,8 @@ function ExpressMaterialEditor({
 }: {
   item: EstimateRowItem;
   editableRow: EditableRowValue;
+  brandOptions?: CreatableComboboxOption[];
+  supplierOptions?: CreatableComboboxOption[];
   projectId?: string;
   estimateId?: string;
   onChange: (values: Partial<EditableRowValue>) => void;
@@ -633,9 +659,25 @@ function ExpressMaterialEditor({
 }) {
   const commitField = (field: ExpressEditableField, value: string) => onCommit({ [field]: value });
   const editorLabel = editableRow.name || item.material || "Project Component";
+  const editableBrand = editableRow.brand ?? "";
   const imageUrl = editableRow.imageUrl.trim();
   const imageStyle = imageUrl ? { backgroundImage: `url(${imageUrl})` } : undefined;
   const cardInputClass = "h-4 border-transparent bg-transparent px-0 py-0 shadow-none hover:border-hairline focus:border-hairline focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus/40";
+  const catalogueMetaInputClass =
+    "h-4 w-full rounded-none border-transparent bg-transparent px-0 py-0 pr-0 text-left shadow-none placeholder:text-tertiary hover:border-transparent hover:bg-transparent focus:border-transparent focus:bg-transparent focus-visible:ring-0";
+  const selectedBrandId = getSelectedComponentCatalogueOptionId(editableBrand, brandOptions);
+  const selectedSupplierId = getSelectedComponentCatalogueOptionId(editableRow.supplier, supplierOptions);
+
+  function handleCatalogueFieldChange(field: "brand" | "supplier", change: CreatableComboboxChange) {
+    const value = getComponentCatalogueComboboxValue(change);
+    if (field === "brand") {
+      onChange({ brand: value });
+      if (change.reason !== "input") onCommit({ brand: value });
+      return;
+    }
+    onChange({ supplier: value });
+    if (change.reason !== "input") onCommit({ supplier: value });
+  }
 
   return (
     <div
@@ -717,22 +759,54 @@ function ExpressMaterialEditor({
             className={cn(cardInputClass, "!text-[12px] font-medium leading-4 text-ink placeholder:text-ink")}
           />
         )}
+        brand={(
+          <CreatableCombobox
+            value={editableBrand}
+            selectedId={selectedBrandId}
+            options={brandOptions}
+            onChange={(change) => handleCatalogueFieldChange("brand", change)}
+            onInputFocus={() => onActiveChange(true)}
+            onInputBlur={(event) => {
+              commitField("brand", event.currentTarget.value);
+              onActiveChange(false);
+            }}
+            onInputKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "brand", onCommit: () => commitField("brand", event.currentTarget.value), onRevert })}
+            inputDataAttributes={{
+              "data-estimate-row-id": item.id,
+              "data-express-field": "brand",
+            }}
+            ariaLabel="Brand"
+            placeholder="Brand"
+            emptyLabel="No brands yet"
+            createLabel={(value) => `Add brand "${value}"`}
+            showClearButton={false}
+            className="mt-0.5 w-full max-w-full"
+            inputClassName={cn(catalogueMetaInputClass, "!text-[9px] font-medium leading-3 text-secondary")}
+          />
+        )}
         supplier={(
-          <ControlInput
-            type="text"
+          <CreatableCombobox
             value={editableRow.supplier}
-            onChange={(event) => onChange({ supplier: event.target.value })}
-            onFocus={() => onActiveChange(true)}
-            onBlur={(event) => {
+            selectedId={selectedSupplierId}
+            options={supplierOptions}
+            onChange={(change) => handleCatalogueFieldChange("supplier", change)}
+            onInputFocus={() => onActiveChange(true)}
+            onInputBlur={(event) => {
               commitField("supplier", event.currentTarget.value);
               onActiveChange(false);
             }}
-            onKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "supplier", onCommit: () => commitField("supplier", event.currentTarget.value), onRevert })}
-            data-estimate-row-id={item.id}
-            data-express-field="supplier"
-            aria-label="Supplier"
+            onInputKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "supplier", onCommit: () => commitField("supplier", event.currentTarget.value), onRevert })}
+            inputDataAttributes={{
+              "data-estimate-row-id": item.id,
+              "data-express-field": "supplier",
+            }}
+            ariaLabel="Supplier"
             placeholder="Supplier"
-            className={cn(cardInputClass, "!text-[10px] font-medium leading-3 text-tertiary placeholder:text-tertiary")}
+            emptyLabel="No suppliers yet"
+            createLabel={(value) => `Add supplier "${value}"`}
+            showClearButton={false}
+            className="w-full"
+            inputClassName={cn(catalogueMetaInputClass, "!text-[10px] font-normal leading-3 text-tertiary")}
           />
         )}
         cost={(
@@ -774,22 +848,30 @@ function ExpressMaterialEditor({
         unit={(
           <div className={cn(MATERIAL_UNIT_LABEL_CLASS, "w-full")} data-estimate-material-unit-label="true">
             <span className={MATERIAL_UNIT_SLASH_CLASS} data-estimate-material-unit-slash="true" aria-hidden="true">/</span>
-            <ControlInput
-              type="text"
+            <CreatableCombobox
               value={editableRow.unit}
-              onChange={(event) => onChange({ unit: event.target.value })}
-              onFocus={() => onActiveChange(true)}
-              onBlur={(event) => {
+              selectedId={getSelectedUnitId(editableRow.unit, COMPONENT_UNIT_COMBOBOX_OPTIONS)}
+              options={COMPONENT_UNIT_COMBOBOX_OPTIONS}
+              onChange={(change) => onChange({ unit: getUnitComboboxValue(change) })}
+              onInputFocus={() => onActiveChange(true)}
+              onInputBlur={(event) => {
                 commitField("unit", event.currentTarget.value);
                 onActiveChange(false);
               }}
-              onKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "unit", onCommit: () => commitField("unit", event.currentTarget.value), onRevert })}
-              data-estimate-row-id={item.id}
-              data-express-field="unit"
-              aria-label="Unit"
+              onInputKeyDown={(event) => handleExpressFieldKeyDown(event, { field: "unit", onCommit: () => commitField("unit", event.currentTarget.value), onRevert })}
+              inputDataAttributes={{
+                "data-estimate-row-id": item.id,
+                "data-express-field": "unit",
+              }}
+              ariaLabel="Unit"
               placeholder="unit"
-              align="right"
-              className={cn(cardInputClass, "h-4 w-full !text-[10px] font-medium leading-3 text-tertiary placeholder:text-tertiary")}
+              emptyLabel="No units found"
+              createLabel={(value) => `Add unit "${value}"`}
+              showClearButton={false}
+              optionPresentation="unit"
+              dropdownPlacement="top"
+              className="w-full"
+              inputClassName={cn(cardInputClass, "h-4 w-full pr-0 text-right !text-[10px] font-medium leading-3 text-tertiary placeholder:text-tertiary")}
             />
           </div>
         )}
@@ -802,6 +884,8 @@ export function EstimateMaterialCell({
   canEditEstimate = true,
   item,
   editableRow,
+  brandOptions = EMPTY_CATALOGUE_COMBOBOX_OPTIONS,
+  supplierOptions = EMPTY_CATALOGUE_COMBOBOX_OPTIONS,
   projectId,
   estimateId,
   isReplaceTarget,
@@ -827,6 +911,8 @@ export function EstimateMaterialCell({
   canEditEstimate?: boolean;
   item: EstimateRowItem;
   editableRow: EditableRowValue;
+  brandOptions?: CreatableComboboxOption[];
+  supplierOptions?: CreatableComboboxOption[];
   projectId?: string;
   estimateId?: string;
   isReplaceTarget: boolean;
@@ -903,7 +989,7 @@ export function EstimateMaterialCell({
   return (
     <div
       className={cn(
-        "group relative flex h-full flex-col gap-2 overflow-hidden py-2 pr-2 pl-3 transition",
+        "group relative flex h-full flex-col gap-2 overflow-visible py-2 pr-2 pl-3 transition",
         surfaceVariant === "glass" ? "hover:bg-white/40" : "bg-white hover:bg-neutral-50",
         isReplaceTarget && "bg-blue-100 ring-2 ring-inset ring-accent",
       )}
@@ -1044,6 +1130,8 @@ export function EstimateMaterialCell({
           key={`${item.id}:${editableRow.imageUrl}`}
           item={item}
           editableRow={editableRow}
+          brandOptions={brandOptions}
+          supplierOptions={supplierOptions}
           projectId={projectId}
           estimateId={estimateId}
           onChange={onExpressFieldChange}

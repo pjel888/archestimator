@@ -6,6 +6,7 @@ import { ArrowsOutSimple, DotsSixVertical, DotsThreeVertical, Trash } from "@pho
 
 import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
+import type { CreatableComboboxOption } from "@/components/ui/creatable-combobox";
 import { Tooltip } from "@/components/ui/overlays/tooltip";
 import { SelectionCheckbox } from "@/components/ui/selection-checkbox";
 import type { EstimateRowMutationStatus, EstimateRowMutationStatusMap } from "@/hooks/use-estimate-row-mutations";
@@ -66,6 +67,8 @@ export type EstimateRowItemsTableProps = {
   items: EstimateRowItem[];
   editableRows: Record<string, EditableRowValue>;
   setEditableRows: Dispatch<SetStateAction<Record<string, EditableRowValue>>>;
+  brandOptions?: CreatableComboboxOption[];
+  supplierOptions?: CreatableComboboxOption[];
   projectId?: string;
   estimateId?: string;
   targetNodeId: string;
@@ -121,6 +124,8 @@ function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTableProps, ne
     prev.estimateId !== next.estimateId ||
     prev.targetNodeId !== next.targetNodeId ||
     prev.setEditableRows !== next.setEditableRows ||
+    prev.brandOptions !== next.brandOptions ||
+    prev.supplierOptions !== next.supplierOptions ||
     prev.onInsertLibraryItem !== next.onInsertLibraryItem ||
     prev.onReplaceRowItem !== next.onReplaceRowItem ||
     prev.onDeleteRowItem !== next.onDeleteRowItem ||
@@ -246,6 +251,8 @@ type EstimateRowItemTableRowProps = {
   canEditEstimate: boolean;
   item: EstimateRowItem;
   editableRow: EditableRowValue | undefined;
+  brandOptions?: CreatableComboboxOption[];
+  supplierOptions?: CreatableComboboxOption[];
   projectId?: string;
   estimateId?: string;
   rowIndex: number;
@@ -285,6 +292,8 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   canEditEstimate,
   item,
   editableRow,
+  brandOptions,
+  supplierOptions,
   projectId,
   estimateId,
   rowIndex,
@@ -448,6 +457,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
     const patch: Partial<EditableRowValue> = {};
     if (values.name !== undefined && nextValues.name !== item.material) patch.name = nextValues.name;
     if (values.description !== undefined && nextValues.description !== item.description) patch.description = nextValues.description;
+    if (values.brand !== undefined && nextValues.brand !== (item.brand ?? "")) patch.brand = nextValues.brand;
     if (values.supplier !== undefined && nextValues.supplier !== item.supplier) patch.supplier = nextValues.supplier;
     if (values.unit !== undefined && nextValues.unit !== item.unit) patch.unit = nextValues.unit;
     if (values.unitCost !== undefined && parseNonNegativeEditableNumber(nextValues.unitCost) !== item.itemCost) patch.unitCost = nextValues.unitCost;
@@ -570,13 +580,13 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
           </output>
         ) : null}
       </td>
-      <td className="relative flex flex-col items-center justify-center gap-1 border-r border-hairline py-1 text-tertiary" data-estimate-row-select-cell="">
+      <td className="relative grid grid-cols-1 place-content-center justify-items-center gap-1 border-r border-hairline py-2 text-tertiary" data-estimate-row-select-cell="">
         {canEditEstimate && onOpenMoveRowItemDialog ? (
           <Tooltip label="Move row" side="right" contentClassName="z-[1200]">
             <button
               type="button"
               draggable
-              className="grid size-5 cursor-grab place-items-center rounded-xs text-tertiary opacity-0 transition hover:bg-surfaceMuted hover:text-ink hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus/50 active:cursor-grabbing group-hover/estimate-row:opacity-100 group-focus-within/estimate-row:opacity-100"
+              className="grid size-6 cursor-grab place-items-center rounded-xs text-tertiary opacity-0 transition hover:bg-surfaceMuted hover:text-ink hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus/50 active:cursor-grabbing group-hover/estimate-row:opacity-100 group-focus-within/estimate-row:opacity-100"
               aria-label={`Move row ${computedItemLabel}`}
               aria-haspopup="dialog"
               data-estimate-row-drag-handle=""
@@ -587,29 +597,35 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
             </button>
           </Tooltip>
         ) : (
-          <span className="size-5" aria-hidden="true" />
+          <span className="size-6" aria-hidden="true" />
         )}
         {canEditEstimate ? (
-          <SelectionCheckbox
-            checked={selected}
-            ariaLabel={`Select ${computedItemLabel}`}
-            tabIndex={0}
-            uncheckedRevealClassName="group-hover/estimate-row:opacity-100 group-focus-within/estimate-row:opacity-100"
-            onClick={(event) => {
-              event.stopPropagation();
-              onToggleRowSelection(computedItem.id, !selected);
-            }}
-            onKeyDown={(event) => handleSelectionCheckboxKeyDown(event, () => onToggleRowSelection(computedItem.id, !selected))}
-          />
+          <span className="flex size-6 items-center justify-center">
+            <SelectionCheckbox
+              checked={selected}
+              tone="blue"
+              ariaLabel={`Select ${computedItemLabel}`}
+              tabIndex={0}
+              uncheckedRevealClassName="group-hover/estimate-row:opacity-100 group-focus-within/estimate-row:opacity-100"
+              onClick={(event) => {
+                event.stopPropagation();
+                onToggleRowSelection(computedItem.id, !selected);
+              }}
+              onKeyDown={(event) => handleSelectionCheckboxKeyDown(event, () => onToggleRowSelection(computedItem.id, !selected))}
+            />
+          </span>
         ) : (
-          <span className="size-5" aria-hidden="true" />
+          <span className="size-6" aria-hidden="true" />
         )}
+        <span className="size-6" aria-hidden="true" />
       </td>
       <td className="min-w-0 border-r border-hairline">
         <EstimateMaterialCell
           canEditEstimate={canEditEstimate}
           item={computedItem}
           editableRow={resolvedEditableRow}
+          brandOptions={brandOptions}
+          supplierOptions={supplierOptions}
           projectId={projectId}
           estimateId={estimateId}
           isReplaceTarget={isReplaceTarget}
@@ -927,6 +943,8 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   items,
   editableRows,
   setEditableRows,
+  brandOptions,
+  supplierOptions,
   projectId,
   estimateId,
   targetNodeId,
@@ -1121,6 +1139,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
                 <SelectionCheckbox
                   checked={allRowsSelected}
                   indeterminate={someRowsSelected}
+                  tone="blue"
                   ariaLabel="Select all estimate row items"
                   tabIndex={0}
                   uncheckedRevealClassName="opacity-100"
@@ -1190,6 +1209,8 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
                 canEditEstimate={canEditEstimate}
                 item={item}
                 editableRow={editableRows[item.id]}
+                brandOptions={brandOptions}
+                supplierOptions={supplierOptions}
                 projectId={projectId}
                 estimateId={estimateId}
                 rowIndex={virtualRow.index}

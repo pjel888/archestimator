@@ -6,6 +6,7 @@ import type { PropsWithChildren } from "react";
 import type { EstimateRowItem, EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { useEstimateRowMutations } from "@/hooks/use-estimate-row-mutations";
 import { estimateQueryKeys } from "@/hooks/use-estimate-query";
+import { workspaceComponentLibraryLiteQueryKey } from "@/lib/component-library/query-keys";
 
 const actionMocks = vi.hoisted(() => ({
   deleteEstimateRowItem: vi.fn(),
@@ -28,6 +29,7 @@ vi.mock("@/lib/estimates/actions", () => actionMocks);
 vi.mock("@/lib/estimates/express-promotion-actions", () => promotionMocks);
 
 const projectId = "22222222-2222-4222-8222-222222222222";
+const workspaceId = "11111111-1111-4111-8111-111111111111";
 const estimateId = "77777777-7777-4777-8777-777777777719";
 const targetNodeId = "55555555-5555-4555-8555-555555555561";
 const cabinetRowId = "66666666-6666-4666-8666-666666666661";
@@ -84,6 +86,21 @@ const nodesWithRow: EstimateTreeNode[] = [
   },
 ];
 
+const projectedCabinetRow: EstimateRowItem = {
+  ...cabinetRow,
+  metadata: {
+    projectComponentProjection: {
+      projectId,
+      projectName: "Modern Bungalow",
+      estimateId,
+      estimateName: "Main Estimate",
+      nodeId: targetNodeId,
+      nodeName: "Kitchen",
+      classification: "express",
+    },
+  },
+};
+
 function deferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (reason?: unknown) => void;
@@ -118,9 +135,13 @@ function makeCanonicalReplaceResult(rowId: string, item: EstimateRowItem, rowRev
     supplier: item.supplier,
     unit: item.unit,
     quantity: item.quantity,
+    quantityBase: item.quantityBase ?? null,
+    quantityContingencyAmount: item.quantityContingencyAmount ?? null,
     itemCost: item.itemCost,
     contingencyPercentage: item.contingencyPercentage ?? 0,
     contingencyValue: item.contingencyValue ?? 0,
+    adjustmentPercentage: item.adjustmentPercentage ?? 0,
+    adjustmentValue: item.adjustmentValue ?? 0,
     miscCost: item.miscCost ?? 0,
     sourceSnapshot: item.sourceSnapshot ?? null,
     metadata: item.metadata ?? {},
@@ -132,6 +153,21 @@ function makeCanonicalReplaceResult(rowId: string, item: EstimateRowItem, rowRev
 function findCachedRow(queryClient: QueryClient, rowId: string) {
   const tree = queryClient.getQueryData<EstimateTreeNode[]>(estimateQueryKeys.areaTree(estimateId));
   return tree?.flatMap((node) => node.estimateRowItems ?? []).find((item) => item.id === rowId) ?? null;
+}
+
+function makeLibraryData(libraryItems: EstimateRowItem[]) {
+  return {
+    categoryTree: [],
+    suppliers: [],
+    brands: [],
+    libraryFolders: [],
+    libraryItems,
+    templates: [],
+  };
+}
+
+function getCachedLibraryItems(queryClient: QueryClient) {
+  return queryClient.getQueryData<ReturnType<typeof makeLibraryData>>(workspaceComponentLibraryLiteQueryKey(workspaceId, projectId))?.libraryItems ?? [];
 }
 
 describe("estimate row mutation coordinator", () => {
@@ -285,5 +321,113 @@ describe("estimate row mutation coordinator", () => {
     } finally {
       onlineSpy.mockRestore();
     }
+  });
+
+  it("patches the mounted Project tab component projection during row name updates", async () => {
+    const queryClient = makeQueryClient();
+    queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), [{
+      ...nodesWithRow[0],
+      estimateRowItems: [projectedCabinetRow, sinkRow],
+    }]);
+    queryClient.setQueryData(workspaceComponentLibraryLiteQueryKey(workspaceId, projectId), makeLibraryData([projectedCabinetRow]));
+    const update = deferred<ReturnType<typeof makeCanonicalReplaceResult>>();
+    actionMocks.updateEstimateRowItem.mockReturnValueOnce(update.promise);
+
+    const { result } = renderHook(
+      () => useEstimateRowMutations(estimateId, undefined, workspaceId, projectId),
+      { wrapper: makeWrapper(queryClient) },
+    );
+
+    act(() => {
+      result.current.updateRow({
+        projectId,
+        estimateId,
+        rowId: cabinetRowId,
+        material: "Custom Cabinet",
+      });
+    });
+
+    await waitFor(() => expect(getCachedLibraryItems(queryClient)[0]?.material).toBe("Custom Cabinet"));
+
+    await act(async () => {
+      update.resolve(makeCanonicalReplaceResult(cabinetRowId, {
+        ...projectedCabinetRow,
+        material: "Confirmed Cabinet",
+      }, 8));
+      await update.promise;
+    });
+
+    await waitFor(() => expect(getCachedLibraryItems(queryClient)[0]?.material).toBe("Confirmed Cabinet"));
+    expect(findCachedRow(queryClient, cabinetRowId)?.material).toBe("Confirmed Cabinet");
+  });
+
+  it("rolls back the mounted Project tab component projection when a row name update fails", async () => {
+    const queryClient = makeQueryClient();
+    queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), [{
+      ...nodesWithRow[0],
+      estimateRowItems: [projectedCabinetRow, sinkRow],
+    }]);
+    queryClient.setQueryData(workspaceComponentLibraryLiteQueryKey(workspaceId, projectId), makeLibraryData([projectedCabinetRow]));
+    const update = deferred<ReturnType<typeof makeCanonicalReplaceResult>>();
+    actionMocks.updateEstimateRowItem.mockReturnValueOnce(update.promise);
+
+    const { result } = renderHook(
+      () => useEstimateRowMutations(estimateId, undefined, workspaceId, projectId),
+      { wrapper: makeWrapper(queryClient) },
+    );
+
+    act(() => {
+      result.current.updateRow({
+        projectId,
+        estimateId,
+        rowId: cabinetRowId,
+        material: "Draft Cabinet",
+      });
+    });
+
+    await waitFor(() => expect(getCachedLibraryItems(queryClient)[0]?.material).toBe("Draft Cabinet"));
+
+    await act(async () => {
+      update.reject(new Error("save failed"));
+      try {
+        await update.promise;
+      } catch {
+        // The mutation queue owns the user-facing failure state.
+      }
+    });
+
+    await waitFor(() => expect(result.current.rowMutationStatuses[cabinetRowId]?.phase).toBe("failed"));
+    expect(getCachedLibraryItems(queryClient)[0]).toMatchObject({ material: "Kitchen Cabinet", rowRevision: 7 });
+    expect(findCachedRow(queryClient, cabinetRowId)).toMatchObject({ material: "Kitchen Cabinet", rowRevision: 7 });
+  });
+
+  it("removes deleted project component projections from the mounted Project tab cache", async () => {
+    const queryClient = makeQueryClient();
+    queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), [{
+      ...nodesWithRow[0],
+      estimateRowItems: [projectedCabinetRow, sinkRow],
+    }]);
+    queryClient.setQueryData(workspaceComponentLibraryLiteQueryKey(workspaceId, projectId), makeLibraryData([projectedCabinetRow, sinkRow]));
+    actionMocks.deleteEstimateRowItem.mockResolvedValueOnce({
+      eventId: "event-delete-cabinet",
+      deletedRowId: cabinetRowId,
+    });
+
+    const { result } = renderHook(
+      () => useEstimateRowMutations(estimateId, undefined, workspaceId, projectId),
+      { wrapper: makeWrapper(queryClient) },
+    );
+
+    act(() => {
+      result.current.deleteRow({
+        projectId,
+        estimateId,
+        rowId: cabinetRowId,
+      });
+    });
+
+    await waitFor(() => expect(actionMocks.deleteEstimateRowItem).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(getCachedLibraryItems(queryClient).map((item) => item.id)).not.toContain(cabinetRowId));
+    expect(getCachedLibraryItems(queryClient).map((item) => item.id)).toContain(sinkRowId);
   });
 });

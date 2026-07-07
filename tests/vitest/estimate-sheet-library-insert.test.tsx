@@ -564,6 +564,24 @@ describe("estimate sheet library insertion persistence", () => {
     expect(input.rowId).not.toContain(libraryItem.id);
   });
 
+  it("uses the add-library event target node instead of the selected insertion node", async () => {
+    renderPersistedEstimateSheet(nodesWithRowsInSeparateAreas);
+    const libraryItem = estimateLibraryItems[0];
+    const accepted = vi.fn();
+
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent(ADD_LIBRARY_ITEM_EVENT, {
+        cancelable: true,
+        detail: { libraryItem, targetNodeId: livingNodeId, onAccepted: accepted },
+      }));
+    });
+
+    await waitFor(() => expect(actionMocks.insertEstimateRowItemFromLibrary).toHaveBeenCalledTimes(1));
+    const input = actionMocks.insertEstimateRowItemFromLibrary.mock.calls[0][0];
+    expect(input).toMatchObject({ projectId, estimateId, targetNodeId: livingNodeId, libraryItem });
+    expect(accepted).toHaveBeenCalledWith(true);
+  });
+
   it("rejects malformed add-library custom events without mutating", async () => {
     const records: LibraryTelemetryRecord[] = [];
     setLibraryTelemetrySink((record) => records.push(record));

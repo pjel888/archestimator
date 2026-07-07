@@ -58,10 +58,18 @@ function TemplateNodeRowContent({ label, total }: { label: string; total: number
 }
 
 function TemplateComponentRowContent({ item }: { item: EstimateRowItem }) {
+  const brand = item.brand?.trim();
   return (
     <span className="flex min-w-0 flex-1 items-center gap-1.5 py-0.5">
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="truncate text-[10px] leading-4 text-ink">{getComponentName(item)}</span>
+        {brand ? (
+          <span className="mt-0.5 flex min-w-0 leading-3">
+            <span className="inline-flex max-w-full items-center rounded-xs border border-hairline bg-surfaceMuted px-1.5 py-0.5 !text-[9px] font-medium leading-[11px] text-secondary" title={brand}>
+              <span className="truncate">{brand}</span>
+            </span>
+          </span>
+        ) : null}
         <span className="truncate text-[9px] leading-3 text-tertiary">{item.supplier}</span>
       </span>
       <span className="flex shrink-0 flex-col items-end">

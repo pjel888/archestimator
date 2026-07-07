@@ -214,8 +214,10 @@ describe("estimate sheet cost inputs", () => {
     await user.click(selector);
 
     await waitFor(() => expect(selector).toHaveAttribute("aria-checked", "true"));
-    expect(selector).toHaveClass("bg-[#ABABAB]", "opacity-100");
+    expect(selector).toHaveClass("border-blue-500", "bg-blue-50", "opacity-100");
     expect(selector).not.toHaveClass("opacity-0");
+    const checkIcon = selector.parentElement?.querySelector("[data-selection-checkbox-icon='checked']");
+    expect(checkIcon).toHaveClass("text-blue-700");
   });
 
   it("displays the misc cost input as pesos when idle but keeps focused typing uninterrupted", async () => {
@@ -263,6 +265,17 @@ describe("estimate sheet cost inputs", () => {
     const componentName = await within(kitchenSection).findByLabelText("Component name") as HTMLInputElement;
     expect(componentName).toHaveValue("");
     expect(within(kitchenSection).queryByText("Drag or add a component here")).not.toBeInTheDocument();
+
+    const brandInput = within(kitchenSection).getByLabelText("Brand");
+    const supplierInput = within(kitchenSection).getByLabelText("Supplier");
+    expect(brandInput).toHaveClass("bg-transparent", "border-transparent", "text-left", "pr-0");
+    expect(supplierInput).toHaveClass("bg-transparent", "border-transparent", "text-left", "pr-0");
+    expect(brandInput.parentElement?.querySelector("svg")).toBeNull();
+    expect(supplierInput.parentElement?.querySelector("svg")).toBeNull();
+
+    const unitInput = within(kitchenSection).getByLabelText("Unit");
+    expect(unitInput).toHaveClass("text-right", "pr-0");
+    expect(unitInput.parentElement?.querySelector("svg")).toBeNull();
 
     await waitFor(() => expect(componentName).toHaveFocus());
   });
@@ -722,6 +735,8 @@ describe("estimate sheet cost inputs", () => {
 
     expect(selectCell).toContainElement(rowMoveHandle);
     expect(selectCell).toContainElement(rowSelection);
+    expect(selectCell).toHaveClass("grid", "place-content-center", "gap-1", "py-2");
+    expect(rowMoveHandle).toHaveClass("size-6");
     expect(rowMoveHandle.compareDocumentPosition(rowSelection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(row.querySelector("[data-estimate-row-move-action]")).toBeNull();
   });

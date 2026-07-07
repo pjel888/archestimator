@@ -4,6 +4,7 @@ import type { Json } from "@/lib/types/json";
 export type EstimateRowItemPatch = {
   material?: string;
   description?: string;
+  brand?: string | null;
   supplier?: string;
   unit?: string;
   quantity?: number;
@@ -53,7 +54,7 @@ export function findEstimateRowItemInTree(tree: EstimateTreeNode[], rowId: strin
   return null;
 }
 
-function readSnapshotString(value: Json | null | undefined, key: "imageUrl" | "sourceUrl") {
+function readSnapshotString(value: Json | null | undefined, key: "brand" | "imageUrl" | "sourceUrl") {
   if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
   const candidate = (value as Record<string, unknown>)[key];
   if (candidate === null) return null;
@@ -65,6 +66,7 @@ export function estimateRowMutationResultToPatch(result: EstimateRowMutationResu
     material: result.material,
     description: result.description,
     supplier: result.supplier,
+    brand: readSnapshotString(result.sourceSnapshot, "brand"),
     unit: result.unit,
     quantity: result.quantity,
     quantityBase: result.quantityBase,
@@ -113,6 +115,7 @@ export function applyEstimateRowItemPatch(item: EstimateRowItem, patch: Estimate
     totalItemCosts: subTotal + miscCost + contingencyValue + adjustmentValue,
     material: patch.material ?? item.material,
     description: patch.description ?? item.description,
+    ...(patch.brand !== undefined ? { brand: patch.brand ?? undefined } : {}),
     supplier: patch.supplier ?? item.supplier,
     unit: patch.unit ?? item.unit,
     rowRevision: patch.rowRevision ?? item.rowRevision,

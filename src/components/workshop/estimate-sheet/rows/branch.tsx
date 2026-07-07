@@ -23,6 +23,7 @@ import { useEstimateSurfaceVariant } from "../../estimate-surface-variant";
 import { ComponentDropTarget, TemplateDropZone } from "./drop-zones";
 import { EstimateRowItemsTable, type EstimateTableColumnResizeConfig } from "./row-table";
 import type { ExpressInsertDraftState } from "./cells";
+import type { CreatableComboboxOption } from "@/components/ui/creatable-combobox";
 import { useDragEdgeAutoScroll } from "./use-drag-edge-autoscroll";
 import { reportEstimateSheetBranchRender } from "../../estimate-sheet-render-probe";
 
@@ -36,6 +37,8 @@ export type EstimateSheetBranchProps = {
   canEditEstimate?: boolean;
   editableRows: Record<string, EditableRowValue>;
   setEditableRows: Dispatch<SetStateAction<Record<string, EditableRowValue>>>;
+  brandOptions?: CreatableComboboxOption[];
+  supplierOptions?: CreatableComboboxOption[];
   projectId?: string;
   estimateId?: string;
   onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void;
@@ -136,6 +139,8 @@ function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps, next: 
     prev.siblingIndex !== next.siblingIndex ||
     prev.renderChildBranches !== next.renderChildBranches ||
     prev.setEditableRows !== next.setEditableRows ||
+    prev.brandOptions !== next.brandOptions ||
+    prev.supplierOptions !== next.supplierOptions ||
     prev.onInsertLibraryItem !== next.onInsertLibraryItem ||
     prev.onInsertTemplates !== next.onInsertTemplates ||
     prev.onInsertTemplateNode !== next.onInsertTemplateNode ||
@@ -182,7 +187,7 @@ function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps, next: 
 }
 
 // react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
-function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRUMB_PATH, canEditEstimate = true, editableRows, setEditableRows, projectId, estimateId, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onPromoteRowToLibrary, promotingRowId, rowMutationStatuses, onMoveRowComponent, onMoveRowItem, onOpenMoveRowItemDialog, onOpenReplaceComponentPicker, onOpenMoveComponentPicker, expressInsertDraftStates, onRetryExpressDraft, onDeleteExpressDraft, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, columnResize, nodeTotals, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
+function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRUMB_PATH, canEditEstimate = true, editableRows, setEditableRows, brandOptions, supplierOptions, projectId, estimateId, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onPromoteRowToLibrary, promotingRowId, rowMutationStatuses, onMoveRowComponent, onMoveRowItem, onOpenMoveRowItemDialog, onOpenReplaceComponentPicker, onOpenMoveComponentPicker, expressInsertDraftStates, onRetryExpressDraft, onDeleteExpressDraft, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, columnResize, nodeTotals, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
   reportEstimateSheetBranchRender(node.id);
   const { collapsedNodeIds, setCollapsedNodeIds, searchActive = false } = useEstimateSheetExpansion();
   // Only the root (depth 0) drives edge auto-scroll for the whole sheet; it
@@ -419,6 +424,8 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
               items={estimateRowItems}
               editableRows={editableRows}
               setEditableRows={setEditableRows}
+              brandOptions={brandOptions}
+              supplierOptions={supplierOptions}
               projectId={projectId}
               estimateId={estimateId}
               targetNodeId={node.id}
@@ -474,6 +481,8 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
                 canEditEstimate={canEditEstimate}
                 editableRows={editableRows}
                 setEditableRows={setEditableRows}
+                brandOptions={brandOptions}
+                supplierOptions={supplierOptions}
                 projectId={projectId}
                 estimateId={estimateId}
                 onInsertLibraryItem={onInsertLibraryItem}

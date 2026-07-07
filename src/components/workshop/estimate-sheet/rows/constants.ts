@@ -24,6 +24,7 @@ export type EstimateLibraryItemPayloadResult =
 
 export type AddLibraryItemEventDetail = {
   libraryItem: unknown;
+  targetNodeId?: string;
   onAccepted?: (accepted: boolean) => void;
 };
 
@@ -94,24 +95,27 @@ export function readEstimateLibraryItemDragPayload(rawPayload: string): Estimate
 }
 
 export function readAddLibraryItemEventDetail(detail: unknown): EstimateLibraryItemPayloadResult & {
+  targetNodeId?: string;
   onAccepted?: (accepted: boolean) => void;
 } {
   if (isRecord(detail) && "libraryItem" in detail) {
     const result = readEstimateLibraryItemPayload(detail.libraryItem);
     return {
       ...result,
+      targetNodeId: typeof detail.targetNodeId === "string" && detail.targetNodeId.length > 0 ? detail.targetNodeId : undefined,
       onAccepted: typeof detail.onAccepted === "function" ? detail.onAccepted as (accepted: boolean) => void : undefined,
     };
   }
   return readEstimateLibraryItemPayload(detail);
 }
 
-export function dispatchAddLibraryItemEvent(libraryItem: EstimateRowItem) {
+export function dispatchAddLibraryItemEvent(libraryItem: EstimateRowItem, targetNodeId?: string) {
   let accepted = false;
   const event = new CustomEvent<AddLibraryItemEventDetail>(ADD_LIBRARY_ITEM_EVENT, {
     cancelable: true,
     detail: {
       libraryItem,
+      targetNodeId,
       onAccepted: (nextAccepted) => {
         accepted = nextAccepted;
       },

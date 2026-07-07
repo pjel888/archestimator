@@ -83,8 +83,12 @@ import {
   type RequestEstimateTreeNodeCreateEventDetail,
 } from "./estimate-sheet/events";
 import {
+  ADD_LIBRARY_ITEM_EVENT,
   ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE,
+  LIBRARY_ITEM_DRAG_MIME_TYPE,
+  readEstimateLibraryItemDragPayload,
   readEstimateRowItemDragPayload,
+  type AddLibraryItemEventDetail,
 } from "./estimate-sheet/rows/constants";
 import { endEstimateWorkshopDrag } from "./estimate-workshop-drag";
 import { ResizableSidePanel } from "./ResizableSidePanel";
@@ -943,12 +947,12 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     treeSearchActive,
   ]);
 
-  // P6 single-node model: a template OR a project source dropped "inside" any
+  // P6 single-node model: a template, library item, or project source dropped "inside" any
   // node row inserts directly as a child of that node — every node can take
   // children now, so there is no group gate and no area-wrap path. (Drops are
   // still "inside" only — no root or between-row placement here.)
   const treeExternalDrop = useMemo<TreeExternalDropOptions>(() => ({
-    types: [ESTIMATE_TEMPLATE_DRAG_MIME_TYPE, PROJECT_SOURCE_DRAG_MIME_TYPE, ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE],
+    types: [ESTIMATE_TEMPLATE_DRAG_MIME_TYPE, PROJECT_SOURCE_DRAG_MIME_TYPE, ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE, LIBRARY_ITEM_DRAG_MIME_TYPE],
     dropEffect: (types) => types.includes(ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE) ? "move" : "copy",
     canDrop: (types, targetId, position) => {
       if (!canEditEstimate) return false;
@@ -960,7 +964,8 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
       // project sources now; row-item drops append to the target node's rows.
       return types.includes(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE)
         || types.includes(PROJECT_SOURCE_DRAG_MIME_TYPE)
-        || types.includes(ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE);
+        || types.includes(ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE)
+        || types.includes(LIBRARY_ITEM_DRAG_MIME_TYPE);
     },
     onDrop: (event, targetId) => {
       if (!canEditEstimate) return;
@@ -978,6 +983,18 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
           targetPlacement: "end",
         };
         window.dispatchEvent(new CustomEvent<RequestEstimateRowItemMoveEventDetail>(REQUEST_ESTIMATE_ROW_ITEM_MOVE_EVENT, { detail }));
+        return;
+      }
+
+      const libraryItemPayload = readEstimateLibraryItemDragPayload(event.dataTransfer.getData(LIBRARY_ITEM_DRAG_MIME_TYPE));
+      if (libraryItemPayload.ok) {
+        endEstimateWorkshopDrag();
+        suppressPrimaryActionAfterDrag();
+        const detail: AddLibraryItemEventDetail = {
+          libraryItem: libraryItemPayload.item,
+          targetNodeId: targetId,
+        };
+        window.dispatchEvent(new CustomEvent<AddLibraryItemEventDetail>(ADD_LIBRARY_ITEM_EVENT, { detail }));
         return;
       }
 

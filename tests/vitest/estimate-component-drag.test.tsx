@@ -29,6 +29,7 @@ function renderCell(overrides: Partial<Parameters<typeof EstimateMaterialCell>[0
       estimateId="estimate-1"
       editableRow={{
         name: item.material,
+        brand: item.brand ?? "",
         description: item.description,
         supplier: item.supplier,
         unit: item.unit,
@@ -155,6 +156,26 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
     expectNeutralRailWithInteractiveSourceColor(getComponentSourceRail(componentShell as HTMLElement), "bg-[#E8B99D]");
   });
 
+  it("renders component identity as name, brand, then supplier", () => {
+    const item = {
+      ...estimateLibraryItems[0],
+      id: "branded-row-1",
+      brand: "Oakline Studio",
+      supplier: "Builder Supplier",
+    };
+    renderCell({ item });
+
+    const componentShell = screen.getByLabelText(`${item.material} replaceable estimate component`);
+    const name = within(componentShell).getByText(item.material);
+    const brand = within(componentShell).getByText("Oakline Studio");
+    const supplier = within(componentShell).getByText("Builder Supplier");
+
+    expect(name.compareDocumentPosition(brand) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(brand.compareDocumentPosition(supplier) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(brand.parentElement).toHaveClass("bg-surfaceMuted", "!text-[9px]", "font-medium");
+    expect(supplier).toHaveClass("text-[10px]", "font-normal", "text-tertiary");
+  });
+
   it("renders read-only component units in a fixed right-aligned slot", () => {
     const { container, item } = renderCell();
 
@@ -195,7 +216,7 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
       },
     });
 
-    const unitInput = screen.getByRole("textbox", { name: "Unit" });
+    const unitInput = screen.getByRole("combobox", { name: "Unit" });
     expect(unitInput).toHaveClass("w-full", "!text-[10px]");
     const unitLabel = unitInput.closest("[data-estimate-material-unit-label='true']");
     expect(unitLabel).toHaveClass("relative", "items-center", "justify-end");
@@ -898,6 +919,116 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
     expect(slot).toContainElement(unitInput);
     expect(unitInput).toHaveClass("w-full", "text-right");
     expect(unitInput).toHaveValue("month");
+  });
+
+  it("shows the existing unit dropdown when editing an express component unit", () => {
+    const item = {
+      ...estimateLibraryItems[0],
+      id: "express-row-1",
+      sourceLibraryItemId: null,
+      linkState: "unlinked" as const,
+      metadata: withExpressComponentMetadata({}, { id: "express-1" }),
+    };
+    const onExpressFieldChange = vi.fn();
+    const onExpressFieldCommit = vi.fn();
+    renderCell({
+      item,
+      editableRow: {
+        name: item.material,
+        description: item.description,
+        supplier: item.supplier,
+        unit: "",
+        unitCost: String(item.itemCost),
+        quantity: String(item.quantity),
+        contingencyMode: "contingency",
+        contingencyPercentage: String(item.contingencyPercentage ?? 0),
+        miscCost: String(item.miscCost),
+        imageUrl: item.imageUrl ?? "",
+        sourceUrl: item.sourceUrl ?? "",
+      },
+      onExpressFieldChange,
+      onExpressFieldCommit,
+    });
+
+    const unitCombobox = screen.getByRole("combobox", { name: "Unit" });
+    fireEvent.focus(unitCombobox);
+
+    const unitListbox = screen.getByRole("listbox", { name: "Unit options" });
+    expect(unitListbox).toBeInTheDocument();
+    expect(unitListbox.parentElement).toBe(document.body);
+    expect(unitListbox).toHaveClass("fixed", "z-[1050]");
+    expect(screen.getByRole("option", { name: "pc Piece" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("option", { name: "pc Piece" }));
+    expect(onExpressFieldChange).toHaveBeenCalledWith({ unit: "pc" });
+
+    fireEvent.blur(unitCombobox, { target: { value: "pc" } });
+    expect(onExpressFieldCommit).toHaveBeenCalledWith({ unit: "pc" });
+  });
+
+  it("shows existing brand and supplier dropdowns when editing an express component", () => {
+    const item = {
+      ...estimateLibraryItems[0],
+      id: "express-row-1",
+      sourceLibraryItemId: null,
+      linkState: "unlinked" as const,
+      metadata: withExpressComponentMetadata({}, { id: "express-1" }),
+    };
+    const onExpressFieldChange = vi.fn();
+    const onExpressFieldCommit = vi.fn();
+    renderCell({
+      item,
+      editableRow: {
+        name: item.material,
+        brand: "",
+        description: item.description,
+        supplier: "",
+        unit: item.unit,
+        unitCost: String(item.itemCost),
+        quantity: String(item.quantity),
+        contingencyMode: "contingency",
+        contingencyPercentage: String(item.contingencyPercentage ?? 0),
+        miscCost: String(item.miscCost),
+        imageUrl: item.imageUrl ?? "",
+        sourceUrl: item.sourceUrl ?? "",
+      },
+      brandOptions: [
+        { id: "brand-acme", label: "Acme Brand" },
+        { id: "brand-oakline", label: "Oakline" },
+      ],
+      supplierOptions: [
+        { id: "supplier-builder", label: "Builder Supply" },
+        { id: "supplier-jobsite", label: "Jobsite Depot" },
+      ],
+      onExpressFieldChange,
+      onExpressFieldCommit,
+    });
+
+    const brandInput = screen.getByRole("combobox", { name: "Brand" });
+    fireEvent.focus(brandInput);
+    const brandListbox = screen.getByRole("listbox", { name: "Brand options" });
+    expect(brandListbox.parentElement).toBe(document.body);
+    expect(brandListbox).toHaveClass("fixed", "z-[1050]");
+    expect(within(brandListbox).getByRole("option", { name: "Acme Brand" })).toBeInTheDocument();
+    expect(within(brandListbox).getByRole("option", { name: "Oakline" })).toBeInTheDocument();
+
+    fireEvent.change(brandInput, { target: { value: "oak" } });
+    expect(onExpressFieldChange).toHaveBeenCalledWith({ brand: "oak" });
+    fireEvent.click(within(brandListbox).getByRole("option", { name: "Oakline" }));
+    expect(onExpressFieldChange).toHaveBeenCalledWith({ brand: "Oakline" });
+    expect(onExpressFieldCommit).toHaveBeenCalledWith({ brand: "Oakline" });
+
+    const supplierInput = screen.getByRole("combobox", { name: "Supplier" });
+    fireEvent.focus(supplierInput);
+    const supplierListbox = screen.getByRole("listbox", { name: "Supplier options" });
+    expect(supplierListbox.parentElement).toBe(document.body);
+    expect(supplierListbox).toHaveClass("fixed", "z-[1050]");
+    expect(within(supplierListbox).getByRole("option", { name: "Builder Supply" })).toBeInTheDocument();
+    expect(within(supplierListbox).getByRole("option", { name: "Jobsite Depot" })).toBeInTheDocument();
+
+    fireEvent.click(within(supplierListbox).getByRole("option", { name: "Builder Supply" }));
+    expect(onExpressFieldChange).toHaveBeenCalledWith({ supplier: "Builder Supply" });
+    expect(onExpressFieldCommit).toHaveBeenCalledWith({ supplier: "Builder Supply" });
   });
 
   it("keeps the express source rail neutral until the row or component is interactive", () => {

@@ -4,7 +4,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { startTransition, useCallback, useEffect, useRef, useState } from "react";
 
 import type { EstimateRowItem, EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
-import { WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, workspaceComponentLibraryQueryKey, workspaceComponentRowsLibraryQueryKey } from "@/lib/component-library/query-keys";
+import { WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, workspaceComponentLibraryLiteQueryKey, workspaceComponentLibraryQueryKey, workspaceComponentRowsLibraryQueryKey } from "@/lib/component-library/query-keys";
+import type { ComponentLibraryDataset, ComponentRowsLibraryDataset } from "@/lib/repositories/component-library-repository";
 import type { Json } from "@/lib/types/json";
 import {
   deleteEstimateRowItem,
@@ -28,7 +29,8 @@ import {
 } from "@/lib/estimates/actions";
 import { reconcileEstimateRowItemMoveResultToTree } from "@/lib/estimates/estimate-row-tree-move";
 import { promoteEstimateRowToLibraryComponent, type PromoteEstimateRowToLibraryComponentResult } from "@/lib/estimates/express-promotion-actions";
-import { estimateRowMutationResultToPatch, findEstimateRowItemInTree, patchEstimateRowItemInTree, type EstimateRowItemPatch } from "@/lib/estimates/estimate-row-tree-patch";
+import { applyEstimateRowItemPatch, estimateRowMutationResultToPatch, findEstimateRowItemInTree, patchEstimateRowItemInTree, type EstimateRowItemPatch } from "@/lib/estimates/estimate-row-tree-patch";
+import { readProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
 import { recordEstimateMutationEvent, type EstimateMutationOperation } from "@/lib/estimates/estimate-mutation-telemetry";
 import { ESTIMATE_ROW_REVISION_CONFLICT_CODE } from "@/lib/estimates/row-revision-conflict";
 import type { EstimateRowUpdateBroadcastFields } from "./use-estimate-row-update-broadcast";
@@ -234,7 +236,7 @@ function readSnapshotRecord(value: Json | null | undefined): Record<string, unkn
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
-function snapshotStringPatch(value: Json | null | undefined, key: "imageUrl" | "sourceUrl") {
+function snapshotStringPatch(value: Json | null | undefined, key: "brand" | "imageUrl" | "sourceUrl") {
   const candidate = readSnapshotRecord(value)[key];
   if (candidate === null) return null;
   return typeof candidate === "string" ? candidate : undefined;
@@ -255,6 +257,7 @@ function toOptimisticRowPatch(input: UpdateEstimateRowInput): EstimateRowItemPat
     ...(input.miscCost !== undefined ? { miscCost: input.miscCost } : {}),
     ...(input.sourceSnapshot !== undefined ? {
       sourceSnapshot: input.sourceSnapshot,
+      brand: snapshotStringPatch(input.sourceSnapshot, "brand"),
       imageUrl: snapshotStringPatch(input.sourceSnapshot, "imageUrl"),
       sourceUrl: snapshotStringPatch(input.sourceSnapshot, "sourceUrl"),
     } : {}),
@@ -278,6 +281,7 @@ function toServerRowPatch(result: UpdateEstimateRowItemResult, input: UpdateEsti
     ...(input.miscCost !== undefined ? { miscCost: result.miscCost } : {}),
     ...(input.sourceSnapshot !== undefined ? {
       sourceSnapshot: result.sourceSnapshot,
+      brand: snapshotStringPatch(result.sourceSnapshot, "brand"),
       imageUrl: snapshotStringPatch(result.sourceSnapshot, "imageUrl"),
       sourceUrl: snapshotStringPatch(result.sourceSnapshot, "sourceUrl"),
     } : {}),
@@ -385,6 +389,37 @@ function runEstimateRowServerAction<T>(action: () => Promise<T>) {
   });
 }
 
+type ComponentProjectionCacheDataset = ComponentLibraryDataset | ComponentRowsLibraryDataset;
+
+function isProjectComponentProjectionItem(item: EstimateRowItem) {
+  return item.source === "project" && readProjectComponentProjectionMetadata(item.metadata) !== null;
+}
+
+function patchProjectComponentProjectionItem<T extends ComponentProjectionCacheDataset>(
+  data: T | undefined,
+  rowId: string,
+  patch: EstimateRowItemPatch,
+) {
+  if (!data || !Array.isArray(data.libraryItems)) return data;
+  let didChange = false;
+  const libraryItems = data.libraryItems.map((item) => {
+    if (item.id !== rowId || !isProjectComponentProjectionItem(item)) return item;
+    didChange = true;
+    return applyEstimateRowItemPatch(item, patch);
+  });
+  return didChange ? { ...data, libraryItems } : data;
+}
+
+function removeProjectComponentProjectionItems<T extends ComponentProjectionCacheDataset>(
+  data: T | undefined,
+  rowIds: readonly string[],
+) {
+  if (!data || !Array.isArray(data.libraryItems) || rowIds.length === 0) return data;
+  const rowIdSet = new Set(rowIds);
+  const libraryItems = data.libraryItems.filter((item) => !rowIdSet.has(item.id) || !isProjectComponentProjectionItem(item));
+  return libraryItems.length === data.libraryItems.length ? data : { ...data, libraryItems };
+}
+
 export function useEstimateRowMutations(
   estimateId?: string,
   estimateTabId?: string,
@@ -443,6 +478,67 @@ export function useEstimateRowMutations(
       void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType });
     }
   }, [detailQueryKey, queryClient, recordCacheRefetch, treeQueryKey]);
+
+  const updateProjectComponentProjectionQueries = useCallback((
+    updater: <T extends ComponentProjectionCacheDataset>(data: T | undefined) => T | undefined,
+    scopeProjectId = projectId,
+  ) => {
+    if (!workspaceId) return;
+    if (scopeProjectId) {
+      queryClient.setQueryData<ComponentLibraryDataset>(
+        workspaceComponentLibraryLiteQueryKey(workspaceId, scopeProjectId),
+        (data) => updater(data),
+      );
+      queryClient.setQueryData<ComponentRowsLibraryDataset>(
+        workspaceComponentRowsLibraryQueryKey(workspaceId, scopeProjectId),
+        (data) => updater(data),
+      );
+      return;
+    }
+    queryClient.setQueriesData<ComponentLibraryDataset>(
+      { queryKey: workspaceComponentLibraryQueryKey(workspaceId) },
+      (data) => updater(data),
+    );
+    queryClient.setQueriesData<ComponentRowsLibraryDataset>(
+      { queryKey: WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY },
+      (data) => updater(data),
+    );
+  }, [projectId, queryClient, workspaceId]);
+
+  const patchProjectComponentProjectionCaches = useCallback((rowId: string, patch: EstimateRowItemPatch, scopeProjectId?: string) => {
+    updateProjectComponentProjectionQueries(
+      (data) => patchProjectComponentProjectionItem(data, rowId, patch),
+      scopeProjectId,
+    );
+  }, [updateProjectComponentProjectionQueries]);
+
+  const removeProjectComponentProjectionCaches = useCallback((rowIds: readonly string[], scopeProjectId?: string) => {
+    updateProjectComponentProjectionQueries(
+      (data) => removeProjectComponentProjectionItems(data, rowIds),
+      scopeProjectId,
+    );
+  }, [updateProjectComponentProjectionQueries]);
+
+  const invalidateProjectComponentProjectionCaches = useCallback((
+    reason: string,
+    operation?: EstimateMutationOperation,
+    scopeProjectId = projectId,
+  ) => {
+    if (!workspaceId) return;
+    recordCacheRefetch({
+      operation,
+      reason,
+      refetchType: "active",
+      queryScope: "component_projection",
+    });
+    if (scopeProjectId) {
+      void queryClient.invalidateQueries({ queryKey: workspaceComponentLibraryLiteQueryKey(workspaceId, scopeProjectId), refetchType: "active" });
+      void queryClient.invalidateQueries({ queryKey: workspaceComponentRowsLibraryQueryKey(workspaceId, scopeProjectId), refetchType: "active" });
+      return;
+    }
+    void queryClient.invalidateQueries({ queryKey: workspaceComponentLibraryQueryKey(workspaceId), refetchType: "active" });
+    void queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, refetchType: "active" });
+  }, [projectId, queryClient, recordCacheRefetch, workspaceId]);
 
   const beginScopedRowMutation = useCallback((
     rowIds: readonly string[],
@@ -636,6 +732,7 @@ export function useEstimateRowMutations(
         );
       }
       input.onSuccess?.(result);
+      invalidateProjectComponentProjectionCaches("insert_row_success", context?.operation ?? "insert_row", input.projectId);
       void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
       if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
     },
@@ -666,7 +763,9 @@ export function useEstimateRowMutations(
       queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
         currentTree ? patchEstimateRowItemInTree(currentTree, result.rowId, estimateRowMutationResultToPatch(result)) : currentTree,
       );
+      removeProjectComponentProjectionCaches([input.rowId], input.projectId);
       input.onSuccess?.(result);
+      invalidateProjectComponentProjectionCaches("replace_row_success", context?.operation ?? "replace_row", input.projectId);
       void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
       if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
     },
@@ -697,6 +796,8 @@ export function useEstimateRowMutations(
       markSaved();
       finishScopedRowMutation(context);
       input.onSuccess?.(result);
+      removeProjectComponentProjectionCaches([input.rowId], input.projectId);
+      invalidateProjectComponentProjectionCaches("delete_row_success", context?.operation ?? "delete_row", input.projectId);
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
       void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
       if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
@@ -729,13 +830,16 @@ export function useEstimateRowMutations(
         let nextTree = currentTree;
         if (isLatestScopedRow(result.sourceRow.rowId, context)) {
           nextTree = patchEstimateRowItemInTree(nextTree, result.sourceRow.rowId, estimateRowMutationResultToPatch(result.sourceRow));
+          patchProjectComponentProjectionCaches(result.sourceRow.rowId, estimateRowMutationResultToPatch(result.sourceRow), input.projectId);
         }
         if (isLatestScopedRow(result.targetRow.rowId, context)) {
           nextTree = patchEstimateRowItemInTree(nextTree, result.targetRow.rowId, estimateRowMutationResultToPatch(result.targetRow));
+          patchProjectComponentProjectionCaches(result.targetRow.rowId, estimateRowMutationResultToPatch(result.targetRow), input.projectId);
         }
         return nextTree;
       });
       if (isLatestScopedRow(input.sourceRowId, context) && isLatestScopedRow(input.targetRowId, context)) input.onSuccess?.(result);
+      invalidateProjectComponentProjectionCaches("move_component_success", context?.operation ?? "move_component", input.projectId);
       void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
       if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
     },
@@ -781,6 +885,7 @@ export function useEstimateRowMutations(
         markSaved();
         finishScopedRowMutation(context);
         if (!hasStaleRows) input.onSuccess?.(result);
+        invalidateProjectComponentProjectionCaches("move_row_success", context?.operation ?? "move_row", input.projectId);
         void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
         if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
         return;
@@ -804,6 +909,7 @@ export function useEstimateRowMutations(
         return;
       }
       void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
+      invalidateProjectComponentProjectionCaches("move_row_recovered", context?.operation ?? "move_row", input.projectId);
       if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
     },
     onError: (error: Error, input, context) => {
@@ -833,6 +939,8 @@ export function useEstimateRowMutations(
       markSaved();
       finishScopedRowMutation(context);
       input.onSuccess?.(result);
+      removeProjectComponentProjectionCaches(input.rowIds, input.projectId);
+      invalidateProjectComponentProjectionCaches("delete_rows_success", context?.operation ?? "delete_rows", input.projectId);
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
       void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
       if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
@@ -860,6 +968,7 @@ export function useEstimateRowMutations(
       markSaved();
       finishScopedRowMutation(context);
       input.onSuccess?.(result);
+      invalidateProjectComponentProjectionCaches("restore_rows_success", context?.operation ?? "restore_rows", input.projectId);
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
       void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
       if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
@@ -903,6 +1012,11 @@ export function useEstimateRowMutations(
           }),
         );
       }
+      patchProjectComponentProjectionCaches(input.rowId, {
+        source: "project",
+        sourceLibraryItemId: null,
+        linkState: "detached",
+      }, input.projectId);
       return { ...scopedMutation, previousPatch };
     },
     onSuccess: (result: UpdateEstimateRowItemResult, input, context) => {
@@ -913,6 +1027,8 @@ export function useEstimateRowMutations(
       queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
         currentTree ? patchEstimateRowItemInTree(currentTree, result.rowId, toDetachedRowPatch(result)) : currentTree,
       );
+      patchProjectComponentProjectionCaches(result.rowId, toDetachedRowPatch(result), input.projectId);
+      invalidateProjectComponentProjectionCaches("detach_row_success", context?.operation ?? "detach_row", input.projectId);
       void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
       if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
       broadcastRowUpdate?.({
@@ -935,6 +1051,7 @@ export function useEstimateRowMutations(
         queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
           currentTree ? patchEstimateRowItemInTree(currentTree, input.rowId, context.previousPatch ?? {}) : currentTree,
         );
+        patchProjectComponentProjectionCaches(input.rowId, context.previousPatch, input.projectId);
       } else input.rollback?.();
       input.onError?.(_error);
       finishScopedRowMutation(context, _error);
@@ -963,6 +1080,7 @@ export function useEstimateRowMutations(
       queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
         currentTree ? patchEstimateRowItemInTree(currentTree, result.rowId, toPromotedRowPatch(result)) : currentTree,
       );
+      removeProjectComponentProjectionCaches([input.rowId], input.projectId || projectId);
       void queryClient.invalidateQueries({ queryKey, refetchType: "active" });
       if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "active" });
       if (workspaceId) void queryClient.invalidateQueries({ queryKey: workspaceComponentLibraryQueryKey(workspaceId), refetchType: "active" });
@@ -1027,6 +1145,7 @@ export function useEstimateRowMutations(
           patchEstimateRowItemInTree(previousTree, input.rowId, toOptimisticRowPatch(input)),
         );
       }
+      patchProjectComponentProjectionCaches(input.rowId, toOptimisticRowPatch(input), input.projectId);
       return { ...scopedMutation, previousPatch };
     },
     onSuccess: (result: UpdateEstimateRowItemResult, input, context) => {
@@ -1037,6 +1156,8 @@ export function useEstimateRowMutations(
       queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
         currentTree ? patchEstimateRowItemInTree(currentTree, result.rowId, toServerRowPatch(result, input)) : currentTree,
       );
+      patchProjectComponentProjectionCaches(result.rowId, toServerRowPatch(result, input), input.projectId);
+      invalidateProjectComponentProjectionCaches("update_row_success", context?.operation ?? "update_row", input.projectId);
       void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
       if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
       input.onSuccess?.(result);
@@ -1054,6 +1175,7 @@ export function useEstimateRowMutations(
         queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
           currentTree ? patchEstimateRowItemInTree(currentTree, input.rowId, context.previousPatch ?? {}) : currentTree,
         );
+        patchProjectComponentProjectionCaches(input.rowId, context.previousPatch, input.projectId);
       } else if (!offlineError) input.rollback?.();
       input.onError?.(_error);
       finishScopedRowMutation(context, _error);
@@ -1129,6 +1251,7 @@ export function useEstimateRowMutations(
       queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
         currentTree ? patchEstimateRowItemInTree(currentTree, normalizedInput.rowId, toOptimisticRowPatch(normalizedInput)) : currentTree,
       );
+      patchProjectComponentProjectionCaches(normalizedInput.rowId, toOptimisticRowPatch(normalizedInput), normalizedInput.projectId);
       const offlineError = new Error(ESTIMATE_ROW_OFFLINE_MESSAGE);
       normalizedInput.onError?.(offlineError);
       finishScopedRowMutation(context, offlineError);

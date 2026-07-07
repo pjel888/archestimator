@@ -25,11 +25,12 @@ const LIFECYCLE_BADGE_CLASSES: Record<string, string> = {
 
 /**
  * Compact recently-updated component card for the Library Overview home:
- * 72px thumb, name, `subcategory · supplier`, price + unit. Clicking opens
+ * 72px thumb, name, brand, `subcategory · supplier`, price + unit. Clicking opens
  * the Components tab with the item inspector selected via route state.
  */
 export function RecentComponentCard({ component }: { component: LibraryOverviewComponent }) {
   const surfaceVariant = useLibrarySurfaceVariant();
+  const brand = component.brand?.trim();
   const subline = [component.category, component.supplier].filter(Boolean).join(" · ");
   const lifecycleBadge = component.lifecycleState !== "available"
     ? {
@@ -82,6 +83,13 @@ export function RecentComponentCard({ component }: { component: LibraryOverviewC
           <p className="truncate text-[10px] font-medium leading-4 text-ink" title={component.name}>
             {component.name}
           </p>
+          {brand ? (
+            <p className="flex min-w-0 leading-3">
+              <span className="inline-flex max-w-full items-center rounded-xs border border-hairline bg-surfaceMuted px-1.5 py-0.5 !text-[9px] font-medium leading-[11px] text-secondary" title={brand}>
+                <span className="truncate">{brand}</span>
+              </span>
+            </p>
+          ) : null}
           {subline ? (
             <p className="truncate text-[9px] font-normal leading-3 text-tertiary" title={subline}>
               {subline}

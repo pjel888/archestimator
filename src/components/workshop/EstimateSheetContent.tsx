@@ -72,6 +72,7 @@ import {
   reportEstimateSheetContentRender,
 } from "./estimate-sheet-render-probe";
 import type { ComponentLibrarySupplierOption } from "./component-library/tree/buildLibraryTree";
+import { buildComponentCatalogueComboboxOptions } from "./component-catalogue-combobox-options";
 import { findEstimateNode, sampleEstimateTree, type EstimateTreeNode, type EstimateRowItem } from "./estimate-tree-data";
 import { EstimateTabStrip, type EstimateTabStripHandle } from "./estimate-sheet/EstimateTabStrip";
 import { loadEstimateSheetAccountPreferences, saveEstimateSheetAccountPreferences } from "./estimate-sheet/account-preferences-client";
@@ -366,7 +367,7 @@ const EMPTY_COLLAPSED_NODE_IDS = new Set<string>();
 const EMPTY_NODE_TOTALS: ReadonlyMap<string, number> = new Map();
 
 function estimateSheetRowMatchesQuery(item: EstimateRowItem, normalizedQuery: string) {
-  return [item.material, item.name, item.category, item.supplier, item.description]
+  return [item.material, item.name, item.category, item.brand, item.supplier, item.description]
     .some((value) => typeof value === "string" && value.toLowerCase().includes(normalizedQuery));
 }
 
@@ -452,6 +453,22 @@ function collectSheetFacetOptions(node: EstimateTreeNode | null): { suppliers: s
     suppliers: Array.from(suppliers).sort((a, b) => a.localeCompare(b)),
     categories: Array.from(categories).sort((a, b) => a.localeCompare(b)),
   };
+}
+
+function collectEstimateTreeComponentCatalogueInputs(nodes: EstimateTreeNode[]) {
+  const suppliers: string[] = [];
+  const brands: string[] = [];
+
+  function visit(current: EstimateTreeNode) {
+    current.estimateRowItems?.forEach((item) => {
+      if (item.supplier) suppliers.push(item.supplier);
+      if (item.brand) brands.push(item.brand);
+    });
+    current.children?.forEach(visit);
+  }
+
+  nodes.forEach(visit);
+  return { suppliers, brands };
 }
 
 /**
@@ -1333,6 +1350,34 @@ export function EstimateSheetContent({
   const librarySidebarCanHydrate = !shouldLoadLibraryLazily || libraryIntentActive || delayedLibrarySidebarReleased || Boolean(lazyLibrary);
   const isLazyLibraryLoading = shouldLoadLibraryLazily && !lazyLibrary && !isLazyLibraryError;
   const resolvedLibraryItems = libraryItems ?? lazyLibrary?.libraryItems;
+  const sheetCatalogueInputs = useMemo(
+    () => collectEstimateTreeComponentCatalogueInputs(estimateTree),
+    [estimateTree],
+  );
+  const resolvedSupplierOptions = useMemo(
+    () => buildComponentCatalogueComboboxOptions("supplier", [
+      ...(librarySuppliers ?? lazyLibrary?.suppliers ?? []),
+      ...((resolvedLibraryItems ?? EMPTY_ESTIMATE_ROW_ITEMS).map((item) => ({
+        id: item.supplierId,
+        name: item.supplier,
+        searchText: [item.material, item.name, item.category].filter(Boolean).join(" "),
+      }))),
+      ...sheetCatalogueInputs.suppliers,
+    ]),
+    [lazyLibrary?.suppliers, librarySuppliers, resolvedLibraryItems, sheetCatalogueInputs.suppliers],
+  );
+  const resolvedBrandOptions = useMemo(
+    () => buildComponentCatalogueComboboxOptions("brand", [
+      ...(libraryBrands ?? lazyLibrary?.brands ?? []),
+      ...((resolvedLibraryItems ?? EMPTY_ESTIMATE_ROW_ITEMS).map((item) => ({
+        id: item.brandId,
+        name: item.brand,
+        searchText: [item.material, item.name, item.category, item.supplier].filter(Boolean).join(" "),
+      }))),
+      ...sheetCatalogueInputs.brands,
+    ]),
+    [lazyLibrary?.brands, libraryBrands, resolvedLibraryItems, sheetCatalogueInputs.brands],
+  );
   const queryClient = useQueryClient();
   // Library mutations in the sidebar update its local state; the lazy query
   // cache must also be marked stale or remounts re-seed from pre-mutation data.
@@ -1345,9 +1390,10 @@ export function EstimateSheetContent({
     if (workspaceId) void queryClient.invalidateQueries({ queryKey: workspaceComponentLibraryQueryKey(workspaceId), refetchType: "none" });
   });
   const refetchProjectComponentProjection = useStableCallback(() => {
-    // Project-row mutations can alter project component projections; mark the
-    // heavy lazy library dataset stale without re-running it during row edits.
-    if (workspaceId) void queryClient.invalidateQueries({ queryKey: workspaceComponentLibraryQueryKey(workspaceId), refetchType: "none" });
+    // Project-row mutations can alter the mounted Project tab projection. Keep
+    // active sidebar observers reconciled even when the row mutation already
+    // applied an optimistic cache patch.
+    if (workspaceId) void queryClient.invalidateQueries({ queryKey: workspaceComponentLibraryLiteQueryKey(workspaceId, projectId), refetchType: "active" });
     if (workspaceId && projectId) {
       void queryClient.invalidateQueries({ queryKey: workspaceComponentRowsLibraryQueryKey(workspaceId, projectId), refetchType: "active" });
     } else {
@@ -1596,6 +1642,7 @@ export function EstimateSheetContent({
         [
           item.name,
           item.material,
+          item.brand,
           item.supplier,
           item.category,
           item.unit,
@@ -1611,6 +1658,7 @@ export function EstimateSheetContent({
         if (!normalizedRowComponentPickerQuery) return true;
         return [
           row.item.material,
+          row.item.brand,
           row.item.supplier,
           row.item.unit,
           row.nodePath.join(" / "),
@@ -1872,7 +1920,6 @@ export function EstimateSheetContent({
     getEstimateTreeRevision,
     restoreEstimateState,
     closeRowComponentPicker,
-    refetchProjectComponentProjection,
     handleLibraryDataChanged,
     recordReadOnlyLibraryMutationAttempt,
     toast,
@@ -2038,12 +2085,13 @@ export function EstimateSheetContent({
       customEvent.preventDefault();
       return;
     }
-    if (!insertTargetNodeId) {
+    const targetNodeId = result.targetNodeId ?? insertTargetNodeId;
+    if (!targetNodeId) {
       result.onAccepted?.(false);
       customEvent.preventDefault();
       return;
     }
-    const accepted = insertLibraryItem(insertTargetNodeId, result.item);
+    const accepted = insertLibraryItem(targetNodeId, result.item);
     result.onAccepted?.(accepted);
     if (!accepted) customEvent.preventDefault();
   });
@@ -2639,6 +2687,8 @@ export function EstimateSheetContent({
                       canEditEstimate={canEditEstimate}
                       editableRows={editableRows}
                       setEditableRows={setEditableRows}
+                      brandOptions={resolvedBrandOptions}
+                      supplierOptions={resolvedSupplierOptions}
                       projectId={projectId}
                       estimateId={estimateId}
                       onInsertLibraryItem={insertLibraryItem}

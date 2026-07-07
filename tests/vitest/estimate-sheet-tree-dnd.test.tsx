@@ -4,7 +4,8 @@ import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EstimateSheetTree } from "@/components/workshop/EstimateSheetTree";
-import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
+import type { EstimateRowItem, EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
+import { ADD_LIBRARY_ITEM_EVENT, LIBRARY_ITEM_DRAG_MIME_TYPE } from "@/components/workshop/estimate-sheet/rows/constants";
 import { resetEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 import { estimateQueryKeys } from "@/hooks/use-estimate-query";
 import { ToastProvider } from "@/components/ui/toast";
@@ -300,9 +301,10 @@ function toastViewport() {
   return viewport;
 }
 
-function mockDataTransfer() {
+function mockDataTransfer(types: string[] = []) {
   const transferStore = new Map<string, string>();
   return {
+    types,
     dropEffect: "move",
     effectAllowed: "all",
     getData: vi.fn((key: string) => transferStore.get(key) ?? ""),
@@ -358,6 +360,46 @@ describe("estimate sheet tree drag/drop", () => {
     expect(kitchen).not.toHaveAttribute("aria-expanded");
     expect(kitchen).toHaveAttribute("draggable", "false");
     expect(treeNodeDragHandle("kitchen")).toHaveAttribute("draggable", "true");
+  });
+
+  it("routes Project-tab component drops on tree rows through the library item insert event", () => {
+    renderTree();
+    const projectComponentItem: EstimateRowItem = {
+      ...rowItem("project-component-row"),
+      material: "Project Component",
+      metadata: {
+        projectComponentProjection: {
+          projectId: "project-1",
+          projectName: "Modern Bungalow",
+          estimateId: "estimate-1",
+          estimateName: "Main Estimate",
+          nodeId: "kitchen",
+          nodeName: "Kitchen",
+          classification: "express",
+        },
+      },
+    };
+    const onAddLibraryItem = vi.fn();
+    window.addEventListener(ADD_LIBRARY_ITEM_EVENT, onAddLibraryItem as EventListener);
+    const dataTransfer = mockDataTransfer([LIBRARY_ITEM_DRAG_MIME_TYPE]);
+    dataTransfer.setData(LIBRARY_ITEM_DRAG_MIME_TYPE, JSON.stringify(projectComponentItem));
+
+    try {
+      fireEvent.dragOver(treeNodeRow("kitchen"), { dataTransfer });
+      fireEvent.drop(treeNodeRow("kitchen"), { dataTransfer });
+
+      expect(onAddLibraryItem).toHaveBeenCalledTimes(1);
+      const event = onAddLibraryItem.mock.calls[0]?.[0] as CustomEvent;
+      expect(event.detail.targetNodeId).toBe("kitchen");
+      expect(event.detail.libraryItem).toMatchObject({
+        id: "project-component-row",
+        material: "Project Component",
+        source: "project",
+      });
+      expect(actionMocks.reorderEstimateTreeNodes).not.toHaveBeenCalled();
+    } finally {
+      window.removeEventListener(ADD_LIBRARY_ITEM_EVENT, onAddLibraryItem as EventListener);
+    }
   });
 
   it("keeps collapsed tree state after selecting a node and remounting for the new route", () => {

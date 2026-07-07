@@ -911,7 +911,9 @@ describe("component library manager UI", () => {
     fireEvent.focus(unitInput);
     fireEvent.change(unitInput, { target: { value: "" } });
 
-    const unitOptions = within(dialog).getByRole("listbox", { name: "Unit options" });
+    const unitOptions = screen.getByRole("listbox", { name: "Unit options" });
+    expect(unitOptions.parentElement).toBe(document.body);
+    expect(unitOptions).toHaveClass("fixed", "z-[1050]");
     expect(within(unitOptions).getByText("Code")).toBeInTheDocument();
     expect(within(unitOptions).getByText("Meaning")).toBeInTheDocument();
     expect(unitOptions.querySelector('[data-combobox-option-code="pc"]')).toHaveTextContent("pc");
@@ -927,8 +929,9 @@ describe("component library manager UI", () => {
     const equivalentUnitInput = within(drawer).getByRole("combobox", { name: "Equivalent unit" });
     fireEvent.focus(equivalentUnitInput);
 
-    const equivalentUnitOptions = within(drawer).getByRole("listbox", { name: "Equivalent unit options" });
-    expect(equivalentUnitOptions).toHaveAttribute("data-combobox-popup-placement", "top");
+    const equivalentUnitOptions = screen.getByRole("listbox", { name: "Equivalent unit options" });
+    expect(equivalentUnitOptions.parentElement).toBe(document.body);
+    expect(equivalentUnitOptions).toHaveClass("fixed", "z-[1050]");
     expect(within(equivalentUnitOptions).getByText("Code")).toBeInTheDocument();
     expect(within(equivalentUnitOptions).getByText("Meaning")).toBeInTheDocument();
     expect(equivalentUnitOptions.querySelector('[data-combobox-option-code="pieces"]')).toHaveTextContent("pieces");

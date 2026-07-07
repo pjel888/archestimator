@@ -970,6 +970,8 @@ function normalizeTemplateRowItem(row: EstimateTemplateRowItemRow): EstimateRowI
     imageUrl: readString(sourceSnapshot.imageUrl),
     category: readString(sourceSnapshot.category) ?? "General",
     categoryNodeId: categoryNodeId ?? undefined,
+    brand: readString(sourceSnapshot.brand),
+    brandId: readString(sourceSnapshot.brandId),
     discipline: row.discipline || readString(sourceSnapshot.discipline),
     designation: row.designation || readString(sourceSnapshot.designation),
     tags: readStringArray(metadata.tags) ?? readStringArray(sourceSnapshot.tags),
@@ -1394,6 +1396,7 @@ export type LibraryOverviewComponent = {
   id: string;
   name: string;
   category: string;
+  brand: string;
   supplier: string;
   unit: string;
   unitCost: number;
@@ -1460,13 +1463,14 @@ function toLibraryOverviewTemplate(template: EstimateTemplate): LibraryOverviewT
 }
 
 const LIBRARY_DASHBOARD_RECENT_COMPONENT_COLUMNS =
-  "id, name, category, supplier, unit, unit_cost, thumbnail_path, pricing_source, pricing_date, confidence, lifecycle_state, updated_at";
+  "id, name, category, brand, supplier, unit, unit_cost, thumbnail_path, pricing_source, pricing_date, confidence, lifecycle_state, updated_at";
 
 type LibraryOverviewComponentRow = Pick<
   CostLibraryItemRow,
   | "id"
   | "name"
   | "category"
+  | "brand"
   | "supplier"
   | "unit"
   | "unit_cost"
@@ -1483,6 +1487,7 @@ function toLibraryOverviewComponent(row: LibraryOverviewComponentRow): LibraryOv
     id: row.id,
     name: row.name,
     category: row.category,
+    brand: row.brand ?? "",
     supplier: row.supplier ?? "",
     unit: row.unit,
     unitCost: Number(row.unit_cost),
@@ -1565,6 +1570,7 @@ function assertLibraryOverviewComponentRow(value: Record<string, unknown>, path:
     id: assertLibraryOverviewRpcString(value.id, `${path}.id`),
     name: assertLibraryOverviewRpcString(value.name, `${path}.name`),
     category: assertLibraryOverviewRpcString(value.category, `${path}.category`),
+    brand: assertLibraryOverviewRpcOptionalString(value.brand, `${path}.brand`),
     supplier: assertLibraryOverviewRpcOptionalString(value.supplier, `${path}.supplier`),
     unit: assertLibraryOverviewRpcString(value.unit, `${path}.unit`),
     unit_cost: assertLibraryOverviewRpcNumber(value.unit_cost, `${path}.unit_cost`),

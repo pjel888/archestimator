@@ -72,6 +72,7 @@ export function updateEditableRowValue(
       miscCost: currentRow?.miscCost ?? toEditableNumber(item.miscCost),
       name: currentRow?.name ?? item.material,
       description: currentRow?.description ?? item.description,
+      brand: currentRow?.brand ?? item.brand ?? "",
       supplier: currentRow?.supplier ?? item.supplier,
       unit: currentRow?.unit ?? item.unit,
       unitCost: currentRow?.unitCost ?? toEditableNumber(item.itemCost),
@@ -93,6 +94,7 @@ export type EditableRowValue = {
   miscCost: string;
   name: string;
   description: string;
+  brand: string;
   supplier: string;
   unit: string;
   unitCost: string;
@@ -322,6 +324,7 @@ export function getInitialEditableRow(item: EstimateRowItem): EditableRowValue {
     miscCost: toEditableNumber(item.miscCost),
     name: editableName,
     description: item.description,
+    brand: item.brand ?? "",
     supplier: item.supplier,
     unit: editableUnit,
     unitCost: toEditableNumber(item.itemCost),
@@ -400,6 +403,7 @@ export function materializeEditableEstimateTree(nodes: EstimateTreeNode[], edita
         ...item,
         material: editableRow.name,
         description: editableRow.description,
+        brand: editableRow.brand || undefined,
         supplier: editableRow.supplier,
         unit: editableRow.unit,
         itemCost: amounts.itemCost,
@@ -434,6 +438,7 @@ export function flattenEstimateRows(nodes: EstimateTreeNode[], editableRows: Rec
           ...item,
           material: editableRow.name,
           description: editableRow.description,
+          brand: editableRow.brand || undefined,
           supplier: editableRow.supplier,
           unit: editableRow.unit,
           itemCost: amounts.itemCost,

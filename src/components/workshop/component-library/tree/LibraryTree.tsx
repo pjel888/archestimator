@@ -185,6 +185,7 @@ function LibraryItemRowContent({
   const price = getComponentPrice(item);
   const trustChips = showSourceTrustChips ? getComponentSourceTrustChips(item) : [];
   const sourceScope = sourceScopeLabel.trim();
+  const brand = item.brand?.trim();
   const supplierLabel = item.supplier || "No supplier";
   const sourceLabel = sourceScope ? `${sourceScope} · ${supplierLabel}` : supplierLabel;
   const resolvedAddLabel = addDisabled
@@ -200,6 +201,13 @@ function LibraryItemRowContent({
         <span data-component-library-tree-label className="truncate text-[10px] font-medium leading-4 text-ink">
           {name}
         </span>
+        {brand ? (
+          <span className="mt-0.5 flex min-w-0 leading-3">
+            <span className="inline-flex max-w-full items-center rounded-xs border border-hairline bg-surfaceMuted px-1.5 py-0.5 !text-[9px] font-medium leading-[11px] text-secondary" title={brand}>
+              <span className="truncate">{brand}</span>
+            </span>
+          </span>
+        ) : null}
         <span className="truncate text-[9px] leading-3 text-tertiary">{sourceLabel}</span>
         {showSourceTrustChips ? (
           <SourceTrustChips

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useId, useMemo, type FocusEvent, type KeyboardEvent } from "react";
 import { CaretDown, Plus, Trash, X } from "@phosphor-icons/react/dist/ssr";
 
 import { cn } from "@/lib/ui/cn";
+import { DropdownPopupPanel, useDropdownPopup } from "./dropdown-popup";
 import { CONTROL_INPUT_SURFACE_CLASS, ControlInput } from "./control-input";
 
 export type CreatableComboboxOption = {
@@ -41,6 +42,10 @@ type CreatableComboboxProps = {
   dropdownPlacement?: "bottom" | "top";
   showClearButton?: boolean;
   showDropdownIndicator?: boolean;
+  onInputFocus?: (event: FocusEvent<HTMLInputElement>) => void;
+  onInputBlur?: (event: FocusEvent<HTMLInputElement>) => void;
+  onInputKeyDown?: (event: KeyboardEvent<HTMLInputElement>) => void;
+  inputDataAttributes?: Record<`data-${string}`, string | number | boolean | undefined>;
   isOptionDeletable?: (option: CreatableComboboxOption) => boolean;
   onDeleteOption?: (option: CreatableComboboxOption) => void;
   getDeleteOptionLabel?: (option: CreatableComboboxOption) => string;
@@ -85,15 +90,30 @@ export function CreatableCombobox({
   dropdownPlacement = "bottom",
   showClearButton = true,
   showDropdownIndicator = false,
+  onInputFocus,
+  onInputBlur,
+  onInputKeyDown,
+  inputDataAttributes,
   isOptionDeletable,
   onDeleteOption,
   getDeleteOptionLabel = (option) => `Delete ${option.label}`,
 }: CreatableComboboxProps) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
   const listboxId = useId();
   const query = value.trim();
   const usesUnitPresentation = optionPresentation === "unit";
+  const {
+    open,
+    position,
+    rootRef,
+    triggerRef,
+    panelRef,
+    openPopup,
+    close,
+  } = useDropdownPopup({
+    align: usesUnitPresentation ? "end" : "start",
+    side: dropdownPlacement,
+  });
+  const popupPlacement = position?.placement ?? dropdownPlacement;
   const normalizedQuery = normalizeLabel(query);
   const filteredOptions = useMemo(() => {
     if (!normalizedQuery) return options.slice(0, 8);
@@ -111,25 +131,15 @@ export function CreatableCombobox({
       ? getOptionDomId(listboxId, selectedId)
       : undefined;
 
-  useEffect(() => {
-    function handlePointerDown(event: MouseEvent) {
-      if (rootRef.current?.contains(event.target as Node)) return;
-      setOpen(false);
-    }
-
-    document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
-  }, []);
-
   function selectOption(option: CreatableComboboxOption) {
     onChange({ id: option.id, label: option.label, reason: "select" });
-    setOpen(false);
+    close("select");
   }
 
   function createOption() {
     if (!query) return;
     onChange({ id: null, label: query, reason: "create" });
-    setOpen(false);
+    close("select");
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
@@ -138,27 +148,35 @@ export function CreatableCombobox({
         event.preventDefault();
         event.stopPropagation();
       }
-      setOpen(false);
+      close("escape");
+      if (!event.defaultPrevented) onInputKeyDown?.(event);
       return;
     }
-    if (event.key !== "Enter") return;
-    if (!open) return;
-    event.preventDefault();
-    const firstOption = filteredOptions[0];
-    if (preferSelectionOnEnter && firstOption) {
-      selectOption(firstOption);
-      return;
+    if (event.key === "Enter" && open) {
+      event.preventDefault();
+      const firstOption = filteredOptions[0];
+      if (preferSelectionOnEnter && firstOption) {
+        selectOption(firstOption);
+        return;
+      }
+      if (canCreate) {
+        createOption();
+        return;
+      }
+      if (firstOption) {
+        selectOption(firstOption);
+        return;
+      }
     }
-    if (canCreate) {
-      createOption();
-      return;
-    }
-    if (firstOption) selectOption(firstOption);
+    onInputKeyDown?.(event);
   }
 
   return (
     <div ref={rootRef} className={cn("relative", className)}>
       <ControlInput
+        ref={(node) => {
+          triggerRef.current = node;
+        }}
         id={id}
         name={name}
         value={value}
@@ -173,13 +191,18 @@ export function CreatableCombobox({
         autoComplete="off"
         invalid={invalid}
         className={cn(CONTROL_INPUT_SURFACE_CLASS, "pr-10", inputClassName)}
-        onFocus={() => setOpen(true)}
-        onClick={() => setOpen(true)}
+        onFocus={(event) => {
+          openPopup();
+          onInputFocus?.(event);
+        }}
+        onBlur={onInputBlur}
+        onClick={openPopup}
         onKeyDown={handleKeyDown}
         onChange={(event) => {
           onChange({ id: null, label: event.target.value, reason: "input" });
-          setOpen(true);
+          openPopup();
         }}
+        {...inputDataAttributes}
       />
       {showClearButton && value ? (
         <button
@@ -187,7 +210,7 @@ export function CreatableCombobox({
           aria-label={`Clear ${ariaLabel}`}
           onClick={() => {
             onChange({ id: null, label: "", reason: "clear" });
-            setOpen(false);
+            close("manual");
           }}
           className="absolute right-1.5 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-xs text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
         >
@@ -203,17 +226,19 @@ export function CreatableCombobox({
       ) : null}
       {open ? (
         // react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- This is an ARIA combobox popup, not a native datalist-backed input.
-        <div
+        <DropdownPopupPanel
           id={listboxId}
           role="listbox"
           aria-label={`${ariaLabel} options`}
-          data-combobox-popup-placement={dropdownPlacement}
+          open={open}
+          position={position}
+          panelRef={panelRef}
+          data-combobox-popup-placement={popupPlacement}
           className={cn(
-            "absolute z-50 rounded-xs border border-hairline bg-white shadow-[0_12px_32px_rgba(17,17,17,0.14)]",
-            dropdownPlacement === "top" ? "bottom-[calc(100%+4px)]" : "top-[calc(100%+4px)]",
+            "rounded-xs border border-hairline bg-white shadow-[0_12px_32px_rgba(17,17,17,0.14)]",
             usesUnitPresentation
-              ? "right-0 max-h-72 min-w-full w-[min(22rem,calc(100vw-2rem))] overflow-auto p-1.5"
-              : "left-0 right-0 overflow-hidden py-1",
+              ? "w-[min(22rem,calc(100vw-2rem))] p-1.5"
+              : "overflow-hidden px-0 py-1",
           )}
         >
           {usesUnitPresentation && filteredOptions.length > 0 ? (
@@ -330,7 +355,7 @@ export function CreatableCombobox({
               <span className="min-w-0 flex-1 truncate">{createLabel(query)}</span>
             </button>
           ) : null}
-        </div>
+        </DropdownPopupPanel>
       ) : null}
     </div>
   );

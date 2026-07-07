@@ -104,11 +104,12 @@ describe("workspace component-library cache scoping", () => {
     const libraryPageSource = source("src/components/workshop/LibraryPageClient.tsx");
 
     expect(sheetSource).toContain("workspaceComponentRowsLibraryQueryKey(workspaceId, projectId)");
+    expect(mutationHookSource).toContain("workspaceComponentRowsLibraryQueryKey(workspaceId, scopeProjectId)");
     expect(mutationHookSource).toContain("workspaceComponentRowsLibraryQueryKey(workspaceId, input.projectId || projectId)");
     expect(libraryPageSource).not.toContain("invalidateQueries({ queryKey: WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY })");
   });
 
-  it("does not actively refetch the heavy lite library dataset for project projection refreshes", () => {
+  it("actively refetches only scoped project projection datasets", () => {
     const sheetSource = source("src/components/workshop/EstimateSheetContent.tsx");
     const projectionRefresh = sourceBetween(
       sheetSource,
@@ -116,8 +117,8 @@ describe("workspace component-library cache scoping", () => {
       "  const availableTemplates",
     );
 
-    expect(projectionRefresh).toContain("workspaceComponentLibraryQueryKey(workspaceId)");
-    expect(projectionRefresh).toContain('refetchType: "none"');
+    expect(projectionRefresh).toContain("workspaceComponentLibraryLiteQueryKey(workspaceId, projectId)");
+    expect(projectionRefresh).not.toContain("workspaceComponentLibraryQueryKey(workspaceId)");
     expect(projectionRefresh).not.toContain('workspaceComponentLibraryQueryKey(workspaceId), refetchType: "active"');
     expect(projectionRefresh).toContain("workspaceComponentRowsLibraryQueryKey(workspaceId, projectId)");
     expect(projectionRefresh).toContain('refetchType: "active"');

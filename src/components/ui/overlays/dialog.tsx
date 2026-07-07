@@ -359,9 +359,11 @@ type DialogActionsProps = {
 
 export function DialogActions({ left, right, children, className }: DialogActionsProps) {
   return (
-    <div className={cn("flex min-w-0 items-center justify-between gap-2", className)}>
-      <div className="min-w-0">{left}</div>
-      <div className="ml-auto flex shrink-0 items-center gap-1">{right ?? children}</div>
+    <div className={cn("flex w-full min-w-0 flex-wrap items-center justify-between gap-2", className)}>
+      {left ? <div className="min-w-0">{left}</div> : null}
+      <div className={cn("ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1", !left && "flex-1")}>
+        {right ?? children}
+      </div>
     </div>
   );
 }

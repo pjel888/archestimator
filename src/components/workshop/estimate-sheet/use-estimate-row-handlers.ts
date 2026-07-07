@@ -120,7 +120,6 @@ type UseEstimateRowHandlersInput = {
   getEstimateTreeRevision: () => number;
   restoreEstimateState: RestoreEstimateState;
   closeRowComponentPicker: () => void;
-  refetchProjectComponentProjection: () => void;
   handleLibraryDataChanged: () => void;
   recordReadOnlyLibraryMutationAttempt: (action: string) => void;
   toast: Toast;
@@ -137,6 +136,7 @@ const EDITABLE_ROW_FIELDS: Array<keyof EditableRowValue> = [
   "miscCost",
   "name",
   "description",
+  "brand",
   "supplier",
   "unit",
   "unitCost",
@@ -174,6 +174,7 @@ function createBlankEstimateRowTemplate(): EstimateRowItem {
     id: "manual-estimate-row-template",
     material: BLANK_ESTIMATE_ROW_COMPONENT_LABEL,
     description: "",
+    brand: "",
     supplier: "",
     source: "project",
     unit: "unit",
@@ -200,6 +201,7 @@ function createExpressEstimateRowTemplate(): EstimateRowItem {
     id: "express-estimate-row-template",
     material: "",
     description: "",
+    brand: "",
     supplier: "",
     source: "project",
     unit: "",
@@ -378,7 +380,6 @@ export function useEstimateRowHandlers({
   getEstimateTreeRevision,
   restoreEstimateState,
   closeRowComponentPicker,
-  refetchProjectComponentProjection,
   handleLibraryDataChanged,
   recordReadOnlyLibraryMutationAttempt,
   toast,
@@ -491,6 +492,7 @@ export function useEstimateRowHandlers({
     const nextEditableRow: EditableRowValue = {
       name: values.name ?? currentEditableRow?.name ?? "",
       description: values.description ?? currentEditableRow?.description ?? "",
+      brand: values.brand ?? currentEditableRow?.brand ?? "",
       supplier: values.supplier ?? currentEditableRow?.supplier ?? "",
       unit: values.unit ?? currentEditableRow?.unit ?? "unit",
       unitCost: values.unitCost ?? currentEditableRow?.unitCost ?? "0",
@@ -505,12 +507,13 @@ export function useEstimateRowHandlers({
       adjustmentPercentage: values.adjustmentPercentage ?? currentEditableRow?.adjustmentPercentage ?? "0",
       miscCost: values.miscCost ?? currentEditableRow?.miscCost ?? "0",
     };
-    const expressFieldNames = ["name", "description", "supplier", "unit", "unitCost", "imageUrl", "sourceUrl"].filter((fieldName) => values[fieldName as keyof EditableRowValue] !== undefined);
+    const expressFieldNames = ["name", "description", "brand", "supplier", "unit", "unitCost", "imageUrl", "sourceUrl"].filter((fieldName) => values[fieldName as keyof EditableRowValue] !== undefined);
     if (expressFieldNames.length > 0) {
       recordExpressComponentEvent("save_requested", { projectId, estimateId, rowId: rowItemId, fieldNames: expressFieldNames });
     }
-    const sourceSnapshotPatch = values.imageUrl !== undefined || values.sourceUrl !== undefined || values.imageAsset !== undefined
+    const sourceSnapshotPatch = values.brand !== undefined || values.imageUrl !== undefined || values.sourceUrl !== undefined || values.imageAsset !== undefined
       ? {
+          ...(values.brand !== undefined ? { brand: values.brand.trim() || null } : {}),
           ...(values.imageUrl !== undefined ? { imageUrl: values.imageUrl.trim() || null } : {}),
           ...(values.imageAsset !== undefined ? { imageAsset: values.imageAsset ?? null } : {}),
           ...(values.sourceUrl !== undefined ? { sourceUrl: values.sourceUrl.trim() || null } : {}),
@@ -552,7 +555,6 @@ export function useEstimateRowHandlers({
         }),
       } : {}),
       rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
-      onSuccess: () => refetchProjectComponentProjection(),
     });
   });
 
@@ -588,7 +590,6 @@ export function useEstimateRowHandlers({
       return next;
     });
     recordExpressComponentEvent("insert_succeeded", { projectId, estimateId, rowId: rowItemId });
-    refetchProjectComponentProjection();
     if (bufferedPatch && Object.keys(bufferedPatch).length > 0) {
       queueMicrotask(() => commitRowItemUpdate(rowItemId, bufferedPatch));
     }
@@ -779,7 +780,6 @@ export function useEstimateRowHandlers({
         rowId: rowItemId,
         libraryItem: replacementLibraryItem,
         rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
-        onSuccess: () => refetchProjectComponentProjection(),
         onError: () => toast({ tone: "error", message: "Couldn't replace the component. Try again." }),
       });
     }
@@ -911,7 +911,6 @@ export function useEstimateRowHandlers({
         sourceSnapshot: null,
         metadata: getClearedEstimateRowMetadata(currentRowItem.metadata),
         rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
-        onSuccess: () => refetchProjectComponentProjection(),
       });
     }
   });
@@ -969,7 +968,6 @@ export function useEstimateRowHandlers({
           }),
         );
         setPromotingRowId(null);
-        refetchProjectComponentProjection();
         handleLibraryDataChanged();
         toast({ tone: "success", message: `${rowItem.material || "Component"} promoted to the workspace library.` });
       },
@@ -995,7 +993,6 @@ export function useEstimateRowHandlers({
       estimateId,
       rowId: rowItemId,
       rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
-      onSuccess: () => refetchProjectComponentProjection(),
     });
     setProjectSpecificRowId("");
   });
@@ -1060,7 +1057,6 @@ export function useEstimateRowHandlers({
             [result.sourceRow.rowId]: getInitialEditableRow(nextSourceItem),
             [result.targetRow.rowId]: getInitialEditableRow(nextTargetItem),
           }));
-          refetchProjectComponentProjection();
         },
         onError: () => toast({ tone: "error", message: "Couldn't move the component. Try again." }),
       });
@@ -1133,7 +1129,6 @@ export function useEstimateRowHandlers({
         rollback: () => restoreEstimateState(previousTree, previousRows, nextRevision ?? rollbackRevision),
         onSuccess: (result) => {
           setEstimateTree((current) => applyEstimateRowItemMoveResultToTree(current, result.rows));
-          refetchProjectComponentProjection();
         },
         onError: () => {
           toast({ tone: "error", message: "Couldn't move the row. Try again." });
@@ -1181,7 +1176,6 @@ export function useEstimateRowHandlers({
           }
         },
         onSuccess: (result) => {
-          refetchProjectComponentProjection();
           if (!previousRowLocation) return;
           toast({
             id: `estimate-row-delete-${rowItemId}`,
@@ -1206,7 +1200,6 @@ export function useEstimateRowHandlers({
                       ...current,
                       [rowItemId]: previousEditableRow ?? getInitialEditableRow(restoredItem),
                     }));
-                    refetchProjectComponentProjection();
                     toast({ tone: "success", message: "Row restored." });
                   },
                   onError: () => toast({ tone: "error", message: "Couldn't restore the row. Try again." }),
@@ -1250,7 +1243,6 @@ export function useEstimateRowHandlers({
       rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
       onSuccess: (result) => {
         setBulkSelectedRowIds(new Set());
-        refetchProjectComponentProjection();
         if (previousLocations.length === 0) return;
         toast({
           id: "estimate-rows-delete",
@@ -1287,7 +1279,6 @@ export function useEstimateRowHandlers({
                     for (const { item } of restoredLocations) nextRows[item.id] = previousRows[item.id] ?? getInitialEditableRow(item);
                     return nextRows;
                   });
-                  refetchProjectComponentProjection();
                   toast({ tone: "success", message: `${restoreResult.restoredRowCount} ${restoreResult.restoredRowCount === 1 ? "row" : "rows"} restored.` });
                 },
                 onError: () => toast({ tone: "error", message: "Couldn't restore the selected rows. Try again." }),

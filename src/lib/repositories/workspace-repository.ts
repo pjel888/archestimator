@@ -3344,6 +3344,8 @@ function toUiRow(row: EstimateTreeRowItemQueryRow): EstimateRowItem {
     rowRevision: row.row_revision,
     category,
     categoryNodeId: categoryNodeId ?? undefined,
+    brand: typeof sourceSnapshot.brand === "string" ? sourceSnapshot.brand : undefined,
+    brandId: typeof sourceSnapshot.brandId === "string" ? sourceSnapshot.brandId : undefined,
     discipline: row.discipline ?? undefined,
     designation: row.designation ?? undefined,
     tags,

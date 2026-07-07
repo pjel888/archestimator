@@ -58,7 +58,7 @@ export type ActivityScopeTreeItem = {
   row: FlattenedEstimateRow | null;
 };
 
-export type EstimateMaterialCardItem = Pick<EstimateRowItem, "material" | "supplier" | "itemCost" | "description" | "unit" | "imageUrl" | "category">;
+export type EstimateMaterialCardItem = Pick<EstimateRowItem, "material" | "brand" | "supplier" | "itemCost" | "description" | "unit" | "imageUrl" | "category">;
 
 export const pesoFormatter = new Intl.NumberFormat("en-PH", {
   style: "currency",
