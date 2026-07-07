@@ -13,7 +13,7 @@
 6. `/workshop/pending-invite` reads bridge cookie → `acceptPendingInviteBridge` → membership created → banner "accepted" → redirect to project/estimate.
 7. Onboarding: `getAccountSetupState` sees `invitedCollaborator` (no default workspace but has membership) → routes to invited-collaborator onboarding (not self-serve workspace creation).
 
-**Hardening impact:** SEC-01/SEC-02 tightening must not block step 3 (same-site Continue) or step 6 (workshop accept). The Continue navigation mechanism must carry either Origin (form POST) or Referer (anchor click, modulo `Referrer-Policy: no-referrer` on `/invite`). **DISCOVERY-REQUIRED in P1-T2** to confirm the exact mechanism and adjust (likely switch the Continue CTA to a form POST to guarantee an Origin header).
+**Hardening impact:** SEC-01/SEC-02 tightening must not block step 3 (same-site Continue) or step 6 (workshop accept). **Resolved at planning (Improve pass):** the Continue CTA is an `<a href>` today (`page.tsx:165`) and `/invite/*` sets `Referrer-Policy: no-referrer`, so P1-T2 **converts it to a `<form method="post">`** (mirroring the Accept form at `page.tsx:157`) to guarantee the browser sends `Origin`. The legitimate flow is preserved; no discovery risk remains.
 
 ### J2 — Invited collaborator, signed-in as the correct account
 1. Open `/invite/<token>` → **signed-in-preview** with "Accept" form POST.

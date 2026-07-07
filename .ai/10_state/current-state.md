@@ -39,10 +39,10 @@ Stable current truth (verify against git/source before relying on a detail):
   local pinning/config tests read the disabled archive path so the preserved
   definitions stay checked.
 - GitHub security PR/comment loop (2026-07-07 local): live GitHub inventory
-  found 26 open PRs for `pjel888/archestimator`, no open issues, 19 unresolved
+  found 26 open PRs for `pjel888/archestimator`, no open issues, 20 unresolved
   non-outdated review threads across PRs 107, 108, 109, 114, 115, 118, 121,
-  122, and 123 after PR120 was pushed/resolved and new PR108/PR122 threads
-  appeared.
+  122, and 123 after PR120 chunking was pushed/resolved and two new PR108
+  estimate-context/list-batching threads surfaced.
   Hosted alert readbacks are unavailable rather than clean: code scanning
   returned 403 disabled, Dependabot alerts returned 403 disabled plus an
   `admin:repo_hook` scope request, and secret scanning returned 404 disabled
@@ -99,16 +99,29 @@ Stable current truth (verify against git/source before relying on a detail):
   `getCurrentWorkspaceProject`. PR108 focused/adjacent tests passed 10 files /
   61 tests, typecheck passed, targeted ESLint exited 0 with only pre-existing
   unused-symbol warnings, scoped `git diff --check` passed, and GraphQL readback
-  resolved the then-active PR108 route thread. A later refresh surfaced a new
-  active PR108 thread on preserving sheet-editor access for estimate mutations;
-  re-triage the mutation path before resolving. PR120 branch
+  resolved the then-active PR108 route thread. PR108 branch was updated again
+  to head `845cb8090`: existing-sheet estimate actions now resolve project
+  context through `getCurrentWorkspaceProjectForEstimate` before existing
+  `assertCanEditEstimate` checks, preserving sheet-editor mutation access while
+  leaving project-wide paths on `getCurrentWorkspaceProject`. Focused mutation
+  context tests passed 6 files / 76 tests, high-memory typecheck passed,
+  targeted ESLint exited 0 with only pre-existing unused-symbol warnings,
+  scoped `git diff --check` passed, and GraphQL readback resolved the active
+  mutation thread. A later refresh after PR120 chunking resolution surfaced two
+  new active PR108 threads: estimate-scoped project context must always run
+  `canAccessEstimateInD1` so private sheets with disabled inheritance stay
+  private, and `listProjectEstimates` needs batched estimate access checks to
+  avoid one D1 auth probe per sheet. PR120 branch
   `codex/fix-restricted-estimate-sheet-metadata-leak` was updated on GitHub to
-  head `87fa003d7`: project-card estimate sheets and favorited estimate sheets
-  now share one batched estimate-access id set before payload shaping. Focused
-  authz/performance/static-contract tests passed 5 files / 24 tests,
-  high-memory typecheck passed, targeted ESLint exited 0 with only pre-existing
-  unused-symbol warnings, scoped `git diff --check` passed, and GraphQL
-  resolved both PR120 threads after they became outdated on the pushed diff.
+  head `5bc7d9940`: project-card estimate sheets and favorited estimate sheets
+  now share one batched estimate-access id set before payload shaping, and that
+  shared probe chunks candidate estimate ids in batches of 90 so each D1 query
+  binds at most 95 values including the five user predicates. Focused
+  authz/performance/static-contract tests passed 5 files / 25 tests,
+  high-memory typecheck passed after linking the generated `.open-next` worker
+  artifact into the PR worktree, targeted ESLint exited 0 with only
+  pre-existing unused-symbol warnings, scoped `git diff --check` passed, and
+  GraphQL resolved all PR120 threads.
   The latest refresh also surfaced active threads on PR121 privacy request
   intake rate/body handling, PR122 public-share password expiry, and PR123
   homebase favorite filtering.

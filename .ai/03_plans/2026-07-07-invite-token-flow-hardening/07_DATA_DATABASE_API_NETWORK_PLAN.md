@@ -63,7 +63,7 @@ Full SQL blueprint in `21_DATABASE_CHANGE_BLUEPRINTS.md`. Summary:
 - **Generated types:** repository row type picks up the new optional field; no `cf:typegen` (no Worker Env change).
 
 ### Optional follow-up migration (SEC-11, OPEN-SEC-01-gated)
-- If the owner picks "remove `auth_trigger`": a forward-only migration `0038` would rebuild the CHECK constraint without the value. SQLite CHECK changes require table rebuild — heavier; only if the owner confirms removal. **Deferred until OPEN-SEC-01 resolves.**
+- If the owner picks "remove `auth_trigger`": a forward-only migration `0039` would rebuild the CHECK constraint without the value. SQLite CHECK changes require table rebuild — heavier; only if the owner confirms removal. **Deferred until OPEN-SEC-01 resolves.** (Blueprint in `21` §Blueprint 2.)
 
 ## 3. Repository / query helpers (target changes)
 

@@ -4,7 +4,9 @@
 **Plan folder:** `.ai/03_plans/2026-07-07-invite-token-flow-hardening/`
 **Plan profile:** `exhaustive` — auth/invite/shared-link flow is explicitly on the high-blast-radius plan-pack list in `archestimator-plan-pack/SKILL.md` §1 and triggers the `exhaustive` provider/security overlay in the Creating-Plan-Prompt directive §8A.
 **Created:** 2026-07-07 (Asia/Manila)
-**Verification mode:** `emulated` — separated specialist passes by the lead agent; no native independent verifier lane was dispatched in this session. Per the Suite Authority Contract, `emulated` caps overall readiness at **97** and, for a high-blast-radius exhaustive package, caps status at **`CONDITIONALLY READY`** until an independent reviewer or the owner signs off (see `17_FINAL_READINESS_REVIEW.md`).
+**Verification mode:** `emulated` — separated specialist passes by the lead agent; no native independent verifier lane was dispatched in this session. Per the Suite Authority Contract, `emulated` caps overall readiness at **97** and, for a high-blast-radius exhaustive package, caps status at **`CONDITIONALLY READY`** until an independent reviewer or the owner signs off (see `17_FINAL_READINESS_REVIEW.md`). **Post-Improve note:** the binding constraint on overall readiness is *not* the emulated cap — it is the Data category cap (89, D1 SQLite version NOT VERIFIED) and Performance (94, PC-17 not yet landed). **Overall readiness after the Improve pass: 93** (down from the over-asserted cycle-2 95; see `17` §2 for the honest re-score and `01` for the cycle-3 summary).
+
+**Improve pass (cycle 3, 2026-07-07):** a native adversarial `Explore` lane (L8) audited the pack against the Improve directive and surfaced 7 P1 + 10 P2 findings. The lead fixed all P1 and the material P2 items via source-grounded corrections. Two planning defects of substance were caught: the SEC-10 "shared helper" framing would have broken `updateProjectCollaboratorRole` (rescoped to direct-grant call sites), and the cycle-2 "95 overall" score was unsupported under the Improve directive's category caps (honestly re-scored to 93). See `17` §6 for the finding-by-finding resolution and `19` §4 for the cycle-3 summary.
 
 ## Master `/goal`
 
@@ -74,6 +76,7 @@ No skills were fabricated. No skill name is used as evidence of work done.
 | L5 | Lead coordinator & synthesizer | lead (same-agent) | Done | All docs; integration + consistency passes |
 | L6 | Adversarial review (UltraQA-style) | emulated pass | Done | `19` §5; `08` §2; `12` §3 |
 | L7 | Independent final verifier | emulated pass | Done | `17_FINAL_READINESS_REVIEW.md` |
+| L8 | Improve-pass adversarial audit (cycle 3) | native `Explore` subagent | Done | `17` §6 (11 findings, all resolved); source re-verification of invite-origin/continue/accept/sign-out/page/actions/0007 |
 
 Lanes L1–L4 ran concurrently as read-only `Explore` subagents (real native delegation). L6–L7 are emulated separated passes by the lead because no second native verifier lane was dispatched this session — this is the source of the `verification_mode: emulated` cap.
 

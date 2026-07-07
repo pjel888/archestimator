@@ -1,24 +1,33 @@
 # Invite Token Flow Hardening — Plan Pack
 
-> **Plan status: `CONDITIONALLY READY`**
+> **Plan status: `CONDITIONALLY READY`** · **Overall readiness: 93** (honest re-score after the Improve pass)
 > Readiness aliases: maps to legacy `READY WITH EXTERNAL DECISIONS`.
-> Reason: every internally-resolvable planning decision is closed, but the plan
-> *cannot* reach `IMPLEMENTATION-READY` from this planning-only session because
-> (a) verification is `emulated` (no native independent verifier dispatched) and
-> (b) four owner decisions remain open (OPEN-SEC-01, OPEN-SEC-02, OPEN-REL-01, OPEN-REL-02).
-> Per the Suite Authority Contract, `emulated` verification caps overall
-> readiness at **97** and caps an exhaustive auth-adjacent pack at
-> **`CONDITIONALLY READY`** until an independent reviewer or the owner signs off.
+> Reason: the plan *cannot* reach `IMPLEMENTATION-READY` from this planning-only session because:
+> (a) **Data readiness is capped at 89** — D1's SQLite version (needed to confirm the `DROP COLUMN` rollback path) is **NOT VERIFIED** in planning (`wrangler d1 execute` read-back did not return in-session). Resolves at impl via one read-only query.
+> (b) **Performance readiness is 94** — the PERF-01 query-count assertion (PC-17) lands at implementation, not in planning.
+> (c) verification is `emulated` (no native independent verifier dispatched) — independently caps at 97, which is *not* the binding constraint.
+> (d) four owner decisions remain open (OPEN-SEC-01, OPEN-SEC-02, OPEN-REL-01, OPEN-REL-02).
+> Per the Suite Authority Contract, an exhaustive auth-adjacent pack under `emulated` verification is capped at **`CONDITIONALLY READY`** until an independent reviewer or the owner signs off.
 > See [`17_FINAL_READINESS_REVIEW.md`](./17_FINAL_READINESS_REVIEW.md).
 >
 > **`verification_mode: emulated`** — separated specialist passes by the lead
-> agent. Phases 1–4 are implementation-ready slices pending owner sign-off;
-> Phase 5 is owner-gated on OPEN-REL-02/OPEN-SEC-01.
+> agent. Phases 1, 2, and 4 are implementation-ready slices; Phase 3's migration
+> is gated on the D1-version read-back; Phase 5 is owner-gated on
+> OPEN-REL-02/OPEN-SEC-01.
 
 **Plan profile:** `exhaustive` (auth/invite/shared-link flow — mandatory plan-pack surface per `archestimator-plan-pack/SKILL.md` §1)
-**Created:** 2026-07-07 (Asia/Manila)
+**Created:** 2026-07-07 (Asia/Manila) · **Improved:** 2026-07-07 (Asia/Manila, Improve-pass cycle 3)
 **Plan folder:** `.ai/03_plans/2026-07-07-invite-token-flow-hardening/`
 **Mode:** planning only. No application code, tests, migrations, configs, or provider state changed by this task.
+
+## What changed in the 2026-07-07 Improve pass (cycle 3)
+
+A native adversarial `Explore` lane + targeted source re-verification caught and fixed 11 gaps. The two most substantive:
+
+- **SEC-10 scoping defect (caught before it could break production):** the original "make the shared `upsertProjectMemberInD1` helper promotion-only" framing would have broken `updateProjectCollaboratorRole`'s legitimate manager-demotion path (`actions.ts:1326`). Rescoped to the two direct-grant call sites only (L973, L1094); AC-SEC-10c regression test added.
+- **Score honesty:** the cycle-2 "95 overall" was over-asserted — it ignored the Improve directive's cap-89 on the unverified D1 SQLite version and the Performance code-review-gate reality. Honest re-score to **93**. The improvements *raised* Architecture (route contract added), Testing (proof-contract format), and Security (threat-model completeness + reframed SEC-05/10).
+
+Other cycle-3 closures: migration numbers normalized (0038 revoke / 0039 auth_trigger); route-specific App Router boundary/cache contract added (06 §6.5); test matrix converted to the mandated 10-column proof-contract ledger (12 §2 PC-01..18); 3 DISCOVERY sub-steps resolved from source (Continue `<a>`→`<form>`; revoke UI subsection; direct-grant call-site guard); SEC-12..15 added as full requirements; SEC-05 rescoped to continue-route-only; SEC-16/17 threat rows added; DEC-05 corrected (2 session-cookie sites, not 3). Full finding-by-finding resolution in `17` §6.
 
 ## Start here
 

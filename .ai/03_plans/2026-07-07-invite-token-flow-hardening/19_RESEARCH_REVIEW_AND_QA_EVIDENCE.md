@@ -39,6 +39,7 @@
 
 - **Cycle 1:** consistency + traceability + shadow-path + credential taxonomy. Closed SEC-02, SEC-04, SEC-10, SEC-11 gaps. Added `20_ATTACK_SURFACE_AND_CREDENTIAL_MATERIAL.md`.
 - **Cycle 2:** adversarial (UltraQA) + final verifier. Closed SEC-05, SEC-09, DEC-09 (revoke audit metadata). Confirmed no P0/P1.
+- **Cycle 3 (Improve pass):** native adversarial `Explore` lane (L8) audited the pack against the Improve-Plan-Prompt directive and surfaced 7 P1 + 10 P2 findings. Lead fixed all P1 + material P2 via source-grounded corrections. Two substantive defects caught: (a) SEC-10 "shared helper" framing would have broken `updateProjectCollaboratorRole` (rescoped to direct-grant call sites after re-verifying `actions.ts:1326/1512` callers); (b) cycle-2 "95 overall" unsupported under Improve category caps (honestly re-scored to 93 — Data capped at 89 for unverified D1 SQLite version; Performance at 94 because PC-17 lands at impl). Closures: migration numbers normalized (0038/0039); route-boundary/cache contract added (06 §6.5); proof-contract ledger PC-01..18 (12 §2); 3 DISCOVERY→concrete (P1-T2 Continue `<a>`→`<form>`; P3-T4 revoke subsection; P4-T1 direct-grant call-site guard); SEC-12..15 added; SEC-05 rescoped to continue-only (accept/page already short-circuit); SEC-16/17 threat rows; DEC-05 corrected (2x not 3x); 0007 CHECK lines fixed (75-78). No P0/P1 remain. Full resolution in `17` §6.
 
 ## 5. UltraQA-style adversarial scenario matrix
 
