@@ -396,6 +396,8 @@ describe("library viewer mutation authorization", () => {
       && statement.sql.includes("status = 'discarded'")
       && statement.sql.includes("LIMIT -1 OFFSET ?")
     ));
+    expect(draftCleanup?.sql).toContain("AND id IN (");
+    expect(draftCleanup?.sql).not.toContain("AND id NOT IN (");
     expect(draftCleanup?.values.at(-1)).toBe(99);
     const draftInsert = d1.statements.find((statement) => statement.sql.includes("INSERT INTO cost_library_component_drafts"));
     expect(draftInsert).toBeDefined();
@@ -424,6 +426,8 @@ describe("library viewer mutation authorization", () => {
     expect(countIndex).toBeGreaterThan(cleanupIndex);
     expect(insertIndex).toBeGreaterThan(countIndex);
     expect(d1.statements[cleanupIndex]?.sql).toContain("status = 'discarded'");
+    expect(d1.statements[cleanupIndex]?.sql).toContain("AND id IN (");
+    expect(d1.statements[cleanupIndex]?.sql).not.toContain("AND id NOT IN (");
     expect(d1.statements[cleanupIndex]?.values).toEqual([
       expect.any(String),
       expect.any(String),
