@@ -29,7 +29,7 @@ long history files. If the agent feels stale, confused, or off-direction, stop a
 Claude Code also inherits the shared Supermemory workflow in
 `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md` and
 `.ai/12_agents/payloads/claude.md`: check `http://localhost:6767/`, start
-`./node_modules/.bin/supermemory local` if it is down and local process startup is
+`bun run supermemory:start` if it is down and local process startup is
 available, search memory before meaningful work, and update it at closeout when
 durable project truth changes. Supermemory is advisory; `.ai`, current source,
 tests, and provider evidence remain authoritative.

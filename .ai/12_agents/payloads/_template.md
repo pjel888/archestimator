@@ -42,7 +42,7 @@ release, provider, UI, or framework work, pull the relevant `.ai/00_system`,
 When this payload is approved or assigned for a task, follow the shared
 Supermemory local memory contract in
 `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`: check `http://localhost:6767/`,
-start `./node_modules/.bin/supermemory local` in the background if it is down and local
+start `bun run supermemory:start` if it is down and local
 process startup is available, search relevant memory before meaningful work,
 and update memory at closeout when durable project truth changes. Supermemory is
 advisory until verified against current `.ai`, source, tests, logs, or provider

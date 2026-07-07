@@ -25,7 +25,7 @@ than fork a second behavioral contract.
 
 All agents and harnesses also inherit the shared Supermemory workflow from
 `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`: check `http://localhost:6767/`,
-start `./node_modules/.bin/supermemory local` when it is down and local process startup
+start `bun run supermemory:start` when it is down and local process startup
 is available, search relevant memory before meaningful work, and update memory
 at closeout when durable project truth changes. Supermemory is advisory memory,
 not authority; `.ai`, current source, tests, and provider evidence win.

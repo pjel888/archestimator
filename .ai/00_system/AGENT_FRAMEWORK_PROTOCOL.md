@@ -37,21 +37,22 @@ At the start of meaningful work, each agent or adapter should:
 1. Check availability:
 
    ```sh
-   curl -fsS http://localhost:6767/ >/dev/null
+   SUPERMEMORY_HEALTH_URL="${SUPERMEMORY_HEALTH_URL:-http://localhost:${SUPERMEMORY_PORT:-6767}/}"
+   curl -fsS "$SUPERMEMORY_HEALTH_URL" >/dev/null
    ```
 
 2. If the check fails and the harness can start local processes, start the
-   local server in the background, then retry until the check passes:
+   verified local server, then retry until the check passes:
 
    ```sh
-   test -x ./node_modules/.bin/supermemory && \
-     nohup ./node_modules/.bin/supermemory local >/tmp/supermemory-local.log 2>&1 &
+   bun run supermemory:start
    ```
 
-   The local binary path is mandatory: do not use `npm exec`, `npx`, or any
-   command that can install or run an unpinned registry package. If the
-   repository does not provide a locked local `supermemory` binary, treat
-   startup as unavailable.
+   The launcher requires `SUPERMEMORY_SERVER_BIN` to point at an executable
+   `supermemory-server` binary and `SUPERMEMORY_SERVER_SHA256` to match it. Do
+   not use `npm exec`, `npx`, `bunx`, `pnpm dlx`, the npm wrapper installer, or
+   any command that can install or run an unpinned registry package or
+   unverified second-stage server download.
 
    If the harness cannot start it or the command fails, continue with an
    explicit `not-verified` memory gap instead of blocking safe local work.

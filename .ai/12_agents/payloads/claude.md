@@ -29,8 +29,8 @@ Pull `DESIGN.md` for UI work.
 ## Supermemory Workflow
 
 Check `http://localhost:6767/` before meaningful Claude Code work. If it is down
-and local process startup is available, run `./node_modules/.bin/supermemory local` in
-the background and retry. Use the configured Claude Code Supermemory plugin,
+and local process startup is available, run `bun run supermemory:start` and
+retry. Use the configured Claude Code Supermemory plugin,
 MCP, SDK, or local API reference to search relevant memory before
 broad/non-trivial work, then update memory at closeout when durable project
 truth changes. Retrieved memories are advisory until verified against current
