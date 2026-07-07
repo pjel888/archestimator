@@ -60,6 +60,15 @@ export type CreatePrivacyRequestResult = {
   createdAt: string;
 };
 
+const REQUESTER_NAME_MAX = 200;
+const REQUESTER_USER_ID_MAX = 128;
+const WORKSPACE_ID_MAX = 128;
+const USER_AGENT_MAX = 512;
+const METADATA_MAX_KEYS = 16;
+const METADATA_KEY_MAX = 64;
+const METADATA_STRING_MAX = 512;
+const METADATA_JSON_MAX = 4096;
+
 function assertRequestKind(
   value: PrivacyRequestInput["requestKind"],
 ): asserts value is PrivacyRequestKind {
@@ -79,15 +88,55 @@ function normalizeDescription(value: string): string {
   return trimmed;
 }
 
+function normalizeOptionalString(
+  value: string | null | undefined,
+  field: string,
+  maxLength: number,
+): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (trimmed.length > maxLength) {
+    throw new Error(`${field} must be ${maxLength} characters or fewer`);
+  }
+  return trimmed;
+}
+
 function sanitizeMetadata(
   value: PrivacyRequestInput["metadata"],
 ): Record<string, unknown> {
-  if (!value || typeof value !== "object") return {};
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   // Defense in depth — never trust caller filtering for secret-shaped keys.
+  const entries = Object.entries(value);
+  if (entries.length > METADATA_MAX_KEYS) {
+    throw new Error(`metadata must contain ${METADATA_MAX_KEYS} keys or fewer`);
+  }
+
   const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(value)) {
+  for (const [k, v] of entries) {
+    if (k.length === 0 || k.length > METADATA_KEY_MAX) {
+      throw new Error(`metadata keys must be ${METADATA_KEY_MAX} characters or fewer`);
+    }
     if (/token|secret|password|cookie|authorization/i.test(k)) continue;
-    out[k] = v;
+    if (v == null || typeof v === "boolean") {
+      out[k] = v;
+      continue;
+    }
+    if (typeof v === "number" && Number.isFinite(v)) {
+      out[k] = v;
+      continue;
+    }
+    if (typeof v === "string") {
+      if (v.length > METADATA_STRING_MAX) {
+        throw new Error(`metadata string values must be ${METADATA_STRING_MAX} characters or fewer`);
+      }
+      out[k] = v;
+      continue;
+    }
+    throw new Error("metadata values must be strings, finite numbers, booleans, or null");
+  }
+  if (JSON.stringify(out).length > METADATA_JSON_MAX) {
+    throw new Error(`metadata JSON must be ${METADATA_JSON_MAX} characters or fewer`);
   }
   return out;
 }
@@ -105,6 +154,10 @@ export async function createPrivacyRequest(
   const description = normalizeDescription(input.description);
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
+  const requesterName = normalizeOptionalString(input.requesterName, "requesterName", REQUESTER_NAME_MAX);
+  const requesterUserId = normalizeOptionalString(input.requesterUserId, "requesterUserId", REQUESTER_USER_ID_MAX);
+  const workspaceId = normalizeOptionalString(input.workspaceId, "workspaceId", WORKSPACE_ID_MAX);
+  const userAgent = normalizeOptionalString(input.userAgent, "userAgent", USER_AGENT_MAX);
   const metadataJson = JSON.stringify(sanitizeMetadata(input.metadata));
 
   const db = dbOverride ?? (await getCloudflareD1Database());
@@ -131,12 +184,12 @@ export async function createPrivacyRequest(
       input.requestKind,
       "submitted",
       optionalEmailHash(input.requesterEmail ?? null),
-      input.requesterName?.trim() || null,
-      input.requesterUserId || null,
+      requesterName,
+      requesterUserId,
       description,
-      input.workspaceId || null,
+      workspaceId,
       input.ipAddress ? hashAccountSecurityValue(input.ipAddress) : null,
-      input.userAgent ? hashAccountSecurityValue(input.userAgent) : null,
+      userAgent ? hashAccountSecurityValue(userAgent) : null,
       metadataJson,
       now,
       now,

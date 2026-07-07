@@ -1,11 +1,11 @@
 import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const LOCKOUT_WINDOW_MS = 15 * 60 * 1000;
-const LOCKOUT_WINDOW_SECONDS = 15 * 60;
+const LOCKOUT_WINDOW_MS = 60 * 60 * 1000;
+const LOCKOUT_WINDOW_SECONDS = 60 * 60;
 
 const durableMocks = vi.hoisted(() => {
-  const lockoutWindowMs = 15 * 60 * 1000;
+  const lockoutWindowMs = 60 * 60 * 1000;
   const failureRows: Array<{ at: number; ip: string; token: string }> = [];
 
   function clientIp(request: Request) {
@@ -41,8 +41,8 @@ const durableMocks = vi.hoisted(() => {
       if (countFailures(token, request) >= 5) {
         return {
           allowed: false,
-          message: "Too many attempts. Please wait 900 seconds.",
-          retryAfter: 900,
+          message: "Too many attempts. Please wait 3600 seconds.",
+          retryAfter: 3600,
         };
       }
       return { allowed: true };
@@ -155,7 +155,7 @@ describe("publication password route durable lockout", () => {
 
     expect(lockedResponse.status).toBe(429);
     expect(lockedResponse.headers.get("retry-after")).toBe(String(LOCKOUT_WINDOW_SECONDS));
-    expect(await lockedResponse.json()).toEqual({ error: "Too many attempts. Please wait 900 seconds." });
+    expect(await lockedResponse.json()).toEqual({ error: "Too many attempts. Please wait 3600 seconds." });
     expect(durableMocks.verifyProjectPublicationPasswordByToken).not.toHaveBeenCalled();
   });
 
@@ -168,6 +168,21 @@ describe("publication password route durable lockout", () => {
     route = await importPasswordRouteAfterModuleReset();
     durableMocks.verifyProjectPublicationPasswordByToken.mockClear();
     const lockedResponse = await postPassword(route.POST, "client-secret");
+
+    expect(lockedResponse.status).toBe(429);
+    expect(lockedResponse.headers.get("set-cookie")).toBeNull();
+    expect(durableMocks.verifyProjectPublicationPasswordByToken).not.toHaveBeenCalled();
+  });
+
+  it("keeps lockout after the previous 15-minute window elapses", async () => {
+    const { POST } = await importPasswordRouteAfterModuleReset();
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      await postPassword(POST, "wrong");
+    }
+
+    vi.setSystemTime(Date.now() + 15 * 60 * 1000 + 1);
+    durableMocks.verifyProjectPublicationPasswordByToken.mockClear();
+    const lockedResponse = await postPassword(POST, "client-secret");
 
     expect(lockedResponse.status).toBe(429);
     expect(lockedResponse.headers.get("set-cookie")).toBeNull();

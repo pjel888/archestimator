@@ -211,14 +211,14 @@ describe("project publication public repository (Cloudflare D1 context)", () => 
 
     await expect(repository.checkProjectPublicationPasswordRateLimit({ token: "client-token", request })).resolves.toEqual({
       allowed: false,
-      message: "Too many attempts. Please wait 900 seconds.",
-      retryAfter: 900,
+      message: "Too many attempts. Please wait 3600 seconds.",
+      retryAfter: 3600,
     });
 
     expect(store.countRateLimitEvents).toHaveBeenCalledWith({
       keyHash: expect.any(String),
       scope: "project_publication_password",
-      since: new Date(now - 15 * 60 * 1000).toISOString(),
+      since: new Date(now - 60 * 60 * 1000).toISOString(),
     });
     expect(store.insertRateLimitEvent).not.toHaveBeenCalled();
   });
@@ -253,12 +253,12 @@ describe("project publication public repository (Cloudflare D1 context)", () => 
       keyHash: expect.any(String),
       metadata: { route: "password", success: false },
       scope: "project_publication_password",
-      ttlSeconds: 15 * 60,
+      ttlSeconds: 60 * 60,
     });
     expect(store.countRateLimitEvents).toHaveBeenCalledWith({
       keyHash: expect.any(String),
       scope: "project_publication_password",
-      since: new Date(now - 15 * 60 * 1000).toISOString(),
+      since: new Date(now - 60 * 60 * 1000).toISOString(),
     });
   });
 
