@@ -24,7 +24,7 @@
 | SEC-05 action-layer auth | `recipient-proposals/actions.ts` (+ audit other actions) | recipient proposal UX | Verification only (defense-in-depth) |
 | SEC-06 body cap / validation | share POST routes (+ optional zod) | public surface | Possible change (P2) |
 | SEC-07 CSP nonce | `next.config.ts`, app layout | all client routes | Possible change (broad-launch) |
-| SEC-08/09 dead config | `.env.example`, `r2-storage-provider.ts` | none | Verification only |
+| SEC-09/10 signed-URL invariant + origin-source reconciliation | `r2-storage-provider.ts`, origin-source doc | none | Verification only (DO NOT remove `ARCHESTIMATOR_ALLOWED_APP_ORIGINS` — retracted SEC-08, Doc 20 ADV-01) |
 | REQ-NEG-02 read-repo tests | new test files | none | Verification only |
 
 ## Dependencies / ordering
