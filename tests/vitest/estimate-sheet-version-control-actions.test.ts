@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const repositoryMocks = vi.hoisted(() => ({
   clearEstimateRouteContextProcessCache: vi.fn(),
   getCurrentWorkspaceProject: vi.fn(),
+  getCurrentWorkspaceProjectForEstimate: vi.fn(),
   getProjectEstimateTreeByEstimate: vi.fn(),
 }));
 
@@ -349,6 +350,7 @@ describe("estimate sheet version control server actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     repositoryMocks.getCurrentWorkspaceProject.mockResolvedValue({ project: { id: "project-1" } });
+    repositoryMocks.getCurrentWorkspaceProjectForEstimate.mockResolvedValue({ project: { id: "project-1" } });
     repositoryMocks.getProjectEstimateTreeByEstimate.mockResolvedValue({
       project: { id: "project-1" },
       estimate: { id: "estimate-1" },
@@ -387,6 +389,7 @@ describe("estimate sheet version control server actions", () => {
     })).rejects.toThrow("Estimate tree update parent id is invalid.");
 
     expect(repositoryMocks.getCurrentWorkspaceProject).not.toHaveBeenCalled();
+    expect(repositoryMocks.getCurrentWorkspaceProjectForEstimate).not.toHaveBeenCalled();
     expect(estimateActionsD1ClientMocks.createEstimateActionsD1Client).not.toHaveBeenCalled();
   });
 
@@ -675,6 +678,8 @@ describe("estimate sheet version control server actions", () => {
     });
 
     expect(result).toEqual({ eventId: "bulk-delete-event-1", deletedRowIds: ["source-row", "target-row"], deletedRowCount: 2 });
+    expect(repositoryMocks.getCurrentWorkspaceProjectForEstimate).toHaveBeenCalledWith("project-1", "estimate-1");
+    expect(repositoryMocks.getCurrentWorkspaceProject).not.toHaveBeenCalled();
     expect(supabase.rpc).toHaveBeenCalledWith("delete_estimate_row_items_bulk_with_history", {
       target_project_id: "project-1",
       target_estimate_id: "estimate-1",

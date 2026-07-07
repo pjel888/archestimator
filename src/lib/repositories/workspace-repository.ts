@@ -2523,13 +2523,53 @@ async function listMainSidebarFavoriteProjectsAppPath(): Promise<MainSidebarFavo
 
 export const getCurrentWorkspaceProject = cache(async function getCurrentWorkspaceProject(projectId: string) {
   if (!isUuid(projectId)) {
-    const { workspace: defaultWorkspace } = await traced("workspace-project.ensure-default-workspace", () => ensureDefaultWorkspace());
-    return { workspace: defaultWorkspace, project: null };
+    return readDefaultWorkspaceProjectContext();
   }
 
   const database = await traced("workspace-project.d1-client", () => requireWorkspaceRepositoryD1Database());
   const contextPromise = traced("workspace-project.current-user", () => requireCurrentUserContext());
-  const projectPromise = traced("workspace-project.project-lookup", () =>
+  const projectPromise = readProjectForWorkspaceContext(database, projectId);
+  const [context, projectRow] = await Promise.all([contextPromise, projectPromise]);
+  if (!projectRow) return readDefaultWorkspaceProjectContext();
+
+  const canAccessProject = await traced("workspace-project.access-check", () =>
+    canAccessWholeProjectInD1(database, projectRow.id, context),
+  );
+  if (!canAccessProject) return readDefaultWorkspaceProjectContext();
+
+  return readWorkspaceProjectContext(database, projectRow);
+});
+
+export const getCurrentWorkspaceProjectForEstimate = cache(async function getCurrentWorkspaceProjectForEstimate(
+  projectId: string,
+  estimateId: string,
+) {
+  if (!isUuid(projectId) || !isUuid(estimateId)) return readDefaultWorkspaceProjectContext();
+
+  const database = await traced("workspace-estimate-project.d1-client", () => requireWorkspaceRepositoryD1Database());
+  const contextPromise = traced("workspace-estimate-project.current-user", () => requireCurrentUserContext());
+  const projectPromise = readProjectForWorkspaceContext(database, projectId);
+  const [context, projectRow] = await Promise.all([contextPromise, projectPromise]);
+  if (!projectRow) return readDefaultWorkspaceProjectContext();
+
+  const estimate = await readEstimateForProject(database, estimateId, projectRow.id);
+  if (!estimate) return readDefaultWorkspaceProjectContext();
+
+  const canAccessEstimate = await traced("workspace-estimate-project.estimate-access-check", () =>
+    canAccessEstimateInD1(database, estimate.id, context),
+  );
+  if (!canAccessEstimate) return readDefaultWorkspaceProjectContext();
+
+  return readWorkspaceProjectContext(database, projectRow);
+});
+
+async function readDefaultWorkspaceProjectContext() {
+  const { workspace: defaultWorkspace } = await traced("workspace-project.ensure-default-workspace", () => ensureDefaultWorkspace());
+  return { workspace: defaultWorkspace, project: null };
+}
+
+async function readProjectForWorkspaceContext(database: D1DatabaseLike, projectId: string): Promise<ProjectRow | null> {
+  const project = await traced("workspace-project.project-lookup", () =>
     first<ProjectRow>(
       database,
       `SELECT id, workspace_id, created_by, name, client_name, location, project_code, currency_code, metadata, created_at, updated_at
@@ -2539,27 +2579,16 @@ export const getCurrentWorkspaceProject = cache(async function getCurrentWorkspa
       [projectId],
     ),
   );
-  const [context, project] = await Promise.all([contextPromise, projectPromise]);
-  if (!project) {
-    const { workspace: defaultWorkspace } = await traced("workspace-project.ensure-default-workspace", () => ensureDefaultWorkspace());
-    return { workspace: defaultWorkspace, project: null };
-  }
+  return project ? normalizeProjectRow(project) : null;
+}
 
-  const projectRow = normalizeProjectRow(project);
-  const canAccessProject = await traced("workspace-project.access-check", () =>
-    canAccessWholeProjectInD1(database, projectRow.id, context),
-  );
-  if (!canAccessProject) {
-    const { workspace: defaultWorkspace } = await traced("workspace-project.ensure-default-workspace", () => ensureDefaultWorkspace());
-    return { workspace: defaultWorkspace, project: null };
-  }
-
+async function readWorkspaceProjectContext(database: D1DatabaseLike, projectRow: ProjectRow) {
   const projectWorkspace = await readWorkspaceById(database, projectRow.workspace_id);
   if (projectWorkspace) return { workspace: projectWorkspace, project: projectRow };
 
-  const { workspace: defaultWorkspace } = await traced("workspace-project.ensure-default-workspace", () => ensureDefaultWorkspace());
-  return { workspace: defaultWorkspace, project: null };
-});
+  const { workspace: defaultWorkspace } = await readDefaultWorkspaceProjectContext();
+  return { workspace: defaultWorkspace, project: projectRow };
+}
 
 // Request-scoped dedupe of project_members (Teamspace plan T2.2 / F-P8 / F10).
 // The collaboration summary AND the publication summary both read this table in
@@ -3470,12 +3499,16 @@ async function getProjectEstimateTreeByEstimateLegacy(
   estimateId: string,
   options: LiveEstimateTreeLoadOptions = {},
 ): Promise<LiveEstimateTreeResult> {
-  const { workspace, project } = await getCurrentWorkspaceProject(projectId);
+  const { workspace, project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) return { workspace, project, estimate: null, selectedNodeId: null, tree: [] };
 
   const database = await requireWorkspaceRepositoryD1Database();
   const estimate = await readEstimateForProject(database, estimateId, project.id);
   if (!estimate) return { workspace, project, estimate: null, selectedNodeId: null, tree: [] };
+  const userContext = await requireCurrentUserContext();
+  if (!(await canAccessEstimateInD1(database, estimate.id, userContext))) {
+    return { workspace, project, estimate: null, selectedNodeId: null, tree: [] };
+  }
 
   const maxNodeCount = normalizeTreeLoadLimit(options.maxNodeCount);
   const maxRowItemCount = normalizeTreeLoadLimit(options.maxRowItemCount);
@@ -3523,12 +3556,14 @@ export async function getEstimateTabs(
   estimateId: string,
   options: { allowLegacyFallback?: boolean; maxTabCount?: number } = {},
 ): Promise<EstimateTabSummary[]> {
-  const { project } = await getCurrentWorkspaceProject(projectId);
+  const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) return [];
 
   const database = await requireWorkspaceRepositoryD1Database();
   const estimate = await readEstimateForProject(database, estimateId, project.id);
   if (!estimate) return [];
+  const userContext = await requireCurrentUserContext();
+  if (!(await canAccessEstimateInD1(database, estimate.id, userContext))) return [];
 
   try {
     return await readEstimateTabsForEstimate(database, estimate.id, options);
@@ -3601,12 +3636,16 @@ export async function getEstimateTabTree(
     return buildLegacyTabTree(projectId, estimateId, options);
   }
 
-  const { workspace, project } = await getCurrentWorkspaceProject(projectId);
+  const { workspace, project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
 
   const database = await requireWorkspaceRepositoryD1Database();
   const estimate = await readEstimateForProject(database, estimateId, project.id);
   if (!estimate) return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
+  const userContext = await requireCurrentUserContext();
+  if (!(await canAccessEstimateInD1(database, estimate.id, userContext))) {
+    return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
+  }
 
   return getEstimateTabTreeForResolvedEstimate(
     database,
@@ -3627,12 +3666,16 @@ export async function getEstimateNodeSubtree(
   },
 ): Promise<LiveEstimateNodeSubtreeResult> {
   const options = input.options ?? {};
-  const { workspace, project } = await getCurrentWorkspaceProject(projectId);
+  const { workspace, project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [], payload: null };
 
   const database = await requireWorkspaceRepositoryD1Database();
   const estimate = await readEstimateForProject(database, estimateId, project.id);
   if (!estimate) return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [], payload: null };
+  const userContext = await requireCurrentUserContext();
+  if (!(await canAccessEstimateInD1(database, estimate.id, userContext))) {
+    return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [], payload: null };
+  }
 
   const requestedTabId = input.tabId ?? null;
   const tabScopedId = requestedTabId && requestedTabId !== LEGACY_MAIN_TAB_ID ? requestedTabId : null;
@@ -3888,12 +3931,16 @@ export async function getEstimateTreesForTabs(
   tabs: EstimateTabSummary[],
   options: LiveEstimateTreeLoadOptions = {},
 ): Promise<LiveEstimateTreesForTabsResult> {
-  const { workspace, project } = await getCurrentWorkspaceProject(projectId);
+  const { workspace, project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) return { workspace, project: null, estimate: null, tabs: [] };
 
   const database = await requireWorkspaceRepositoryD1Database();
   const estimate = await readEstimateForProject(database, estimateId, project.id);
   if (!estimate) return { workspace, project, estimate: null, tabs: [] };
+  const userContext = await requireCurrentUserContext();
+  if (!(await canAccessEstimateInD1(database, estimate.id, userContext))) {
+    return { workspace, project, estimate: null, tabs: [] };
+  }
 
   const tabIds = tabs.map((tab) => tab.id);
   const maxNodeCount = normalizeTreeLoadLimit(options.maxNodeCount);
@@ -3975,14 +4022,17 @@ export async function resolveEstimateTabRouteContext(
   routeSegment: string,
   options: LiveEstimateTreeLoadOptions = {},
 ): Promise<EstimateTabRouteContext> {
-  const { workspace, project } = await traced("estimate-route-context.project", () =>
-    getCurrentWorkspaceProject(projectId),
-  );
-  if (!isUuid(projectId) || !project) return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
+  if (!isUuid(projectId)) {
+    const { workspace, project } = await traced("estimate-route-context.project", () =>
+      getCurrentWorkspaceProject(projectId),
+    );
+    return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
+  }
 
   const database = await traced("estimate-route-context.d1-client", () => requireWorkspaceRepositoryD1Database());
+  const userContext = await requireCurrentUserContext();
   const fastRouteContext = await readEstimateNodeRouteContextD1FastPath(database, projectId, routeSegment, options);
-  if (fastRouteContext) return fastRouteContext;
+  if (fastRouteContext?.estimate && await canAccessEstimateInD1(database, fastRouteContext.estimate.id, userContext)) return fastRouteContext;
 
   const selectedNode = await traced("estimate-route-context.selected-node", () =>
     first<{ id: string; estimate_id: string; estimate_tab_id: string | null }>(
@@ -3997,6 +4047,16 @@ export async function resolveEstimateTabRouteContext(
     ),
   );
 
+  const routeEstimateId = selectedNode?.estimate_id ?? (isUuid(routeSegment) ? routeSegment : null);
+  const { workspace, project } = routeEstimateId
+    ? await traced("estimate-route-context.project", () =>
+        getCurrentWorkspaceProjectForEstimate(projectId, routeEstimateId),
+      )
+    : await traced("estimate-route-context.project", () =>
+        getCurrentWorkspaceProject(projectId),
+      );
+  if (!project) return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
+
   if (selectedNode?.estimate_tab_id) {
     // U21 / Routing Page Optimization P3-T3: resolve the tab tree and tab list in
     // parallel without a duplicate selected-tab lookup. The route node's
@@ -4004,6 +4064,9 @@ export async function resolveEstimateTabRouteContext(
     // / active-tab authority before we expose the tree to the page.
     const estimate = await readEstimateForProject(database, selectedNode.estimate_id, project.id);
     if (!estimate) return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
+    if (!(await canAccessEstimateInD1(database, estimate.id, userContext))) {
+      return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
+    }
     const selectedTabId = selectedNode.estimate_tab_id;
     const [treePayload, tabs] = await Promise.all([
       traced("estimate-route-context.tab-tree", () =>
@@ -4046,6 +4109,9 @@ export async function resolveEstimateTabRouteContext(
     );
     const defaultTab = tabs.find((candidate) => candidate.isDefault) ?? null;
     if (defaultTab) {
+      if (!(await canAccessEstimateInD1(database, resolvedEstimate.id, userContext))) {
+        return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [], tabs };
+      }
       const result = await traced(
         "estimate-route-context.default-tab-tree",
         () =>
@@ -4087,6 +4153,10 @@ async function getProjectEstimateTreeByNodeLegacy(projectId: string, nodeId: str
 
   const estimate = await readEstimateForProject(database, selectedNode.estimate_id, project.id);
   if (!estimate) return { workspace, project, estimate: null, selectedNodeId: null, tree: [] };
+  const userContext = await requireCurrentUserContext();
+  if (!(await canAccessEstimateInD1(database, estimate.id, userContext))) {
+    return { workspace, project, estimate: null, selectedNodeId: null, tree: [] };
+  }
   const [nodes, rows] = await Promise.all([
     readEstimateNodes(database, selectedNode.estimate_id),
     readEstimateRows(database, selectedNode.estimate_id),
@@ -4099,8 +4169,10 @@ async function getProjectEstimateTreeByNodeLegacy(projectId: string, nodeId: str
 }
 
 export async function getProjectEstimateTreeByNode(projectId: string, nodeId: string): Promise<LiveEstimateTreeResult> {
-  const { workspace, project } = await getCurrentWorkspaceProject(projectId);
-  if (!project) return { workspace, project, estimate: null, selectedNodeId: null, tree: [] };
+  if (!isUuid(projectId)) {
+    const { workspace, project } = await getCurrentWorkspaceProject(projectId);
+    return { workspace, project, estimate: null, selectedNodeId: null, tree: [] };
+  }
 
   const database = await requireWorkspaceRepositoryD1Database();
   const selectedNode = await first<{ id: string; estimate_id: string; estimate_tab_id: string | null }>(
@@ -4111,9 +4183,12 @@ export async function getProjectEstimateTreeByNode(projectId: string, nodeId: st
      WHERE node.id = ?
        AND estimate.project_id = ?
      LIMIT 1`,
-    [nodeId, project.id],
+    [nodeId, projectId],
   );
   if (!selectedNode) return getProjectEstimateTreeByEstimate(projectId, nodeId);
+
+  const { workspace, project } = await getCurrentWorkspaceProjectForEstimate(projectId, selectedNode.estimate_id);
+  if (!project) return { workspace, project, estimate: null, selectedNodeId: null, tree: [] };
 
   if (selectedNode.estimate_tab_id) {
     const result = await getEstimateTabTree(projectId, selectedNode.estimate_id, selectedNode.estimate_tab_id);
@@ -4125,6 +4200,10 @@ export async function getProjectEstimateTreeByNode(projectId: string, nodeId: st
 
   const estimate = await readEstimateForProject(database, selectedNode.estimate_id, project.id);
   if (!estimate) return { workspace, project, estimate: null, selectedNodeId: null, tree: [] };
+  const userContext = await requireCurrentUserContext();
+  if (!(await canAccessEstimateInD1(database, estimate.id, userContext))) {
+    return { workspace, project, estimate: null, selectedNodeId: null, tree: [] };
+  }
   const [nodes, rows] = await Promise.all([
     readEstimateNodes(database, selectedNode.estimate_id),
     readEstimateRows(database, selectedNode.estimate_id),

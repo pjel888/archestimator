@@ -12,16 +12,36 @@ describe("workspace repository D1 authorization contract", () => {
     expect(workspaceRepository).toContain("existingWorkspace && await canUseWorkspaceAsDefault(database, existingWorkspace, context)");
   });
 
+  it("creates an owner membership row for auto-provisioned default workspaces", () => {
+    const ensureDefaultWorkspaceBody = workspaceRepository.slice(
+      workspaceRepository.indexOf("export const ensureDefaultWorkspace"),
+      workspaceRepository.indexOf("export const listCurrentWorkspaceProjects"),
+    );
+
+    expect(ensureDefaultWorkspaceBody).toContain("INSERT INTO workspace_members (workspace_id, user_id, role, created_at, updated_at)");
+    expect(ensureDefaultWorkspaceBody).toContain("[workspace.id, context.userId, \"owner\", now, now]");
+  });
+
   it("gates project lookup by D1 whole-project access before returning a project row", () => {
     const projectLookupBody = workspaceRepository.slice(
       workspaceRepository.indexOf("export const getCurrentWorkspaceProject"),
-      workspaceRepository.indexOf("// Request-scoped dedupe of project_members"),
+      workspaceRepository.indexOf("export const getCurrentWorkspaceProjectForEstimate"),
     );
 
     expect(projectLookupBody).toContain("canAccessWholeProjectInD1(database, projectRow.id, context)");
     expect(projectLookupBody).not.toContain("canAccessProjectInD1(database, projectRow.id, context)");
-    expect(workspaceRepository).toContain("if (!canAccessProject)");
-    expect(workspaceRepository).toContain("return { workspace: defaultWorkspace, project: null }");
+    expect(projectLookupBody).toContain("if (!canAccessProject) return readDefaultWorkspaceProjectContext()");
+  });
+
+  it("requires estimate-scoped project context to prove target estimate access", () => {
+    const estimateProjectLookupBody = workspaceRepository.slice(
+      workspaceRepository.indexOf("export const getCurrentWorkspaceProjectForEstimate"),
+      workspaceRepository.indexOf("async function readDefaultWorkspaceProjectContext"),
+    );
+
+    expect(estimateProjectLookupBody).toContain("readEstimateForProject(database, estimateId, projectRow.id)");
+    expect(estimateProjectLookupBody).toContain("canAccessEstimateInD1(database, estimate.id, context)");
+    expect(estimateProjectLookupBody).not.toContain("canAccessWholeProjectInD1(database, projectRow.id, context)");
   });
 
   it("does not synthesize project owner roles for non-creator users", () => {
@@ -45,10 +65,6 @@ describe("workspace repository D1 authorization contract", () => {
     );
 
     expect(sidebarFavoritesRepository).toContain("async function filterAccessibleSidebarProjectIds");
-    // ponytail: batched authz fix (WP-P1-03, 2026-07-05). Replaced per-project
-    // Promise.all(canAccessProjectInD1) loop with a single batched SQL query
-    // that lifts the membership branches into one prepared statement. The
-    // platform-admin JS short-circuit is preserved before any SQL.
     expect(sidebarFavoritesRepository).toContain("isPlatformAdminRole(profile.role)");
     expect(sidebarFavoritesRepository).toContain("if (isPlatformAdminRole(profile.role))");
     expect(sidebarFavoritesRepository).toContain("return projectIds;");

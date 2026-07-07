@@ -38,7 +38,7 @@ import {
   type BulkActionPreviewResult,
 } from "@/lib/mass-deletion/bulk-action";
 import { isMissingColumnError, normalizeEstimateRecord, type EstimateRecordWithLegacy } from "@/lib/repositories/estimate-schema-compat";
-import { clearEstimateRouteContextProcessCache, getCurrentWorkspaceProject, getEstimateTabTree, getEstimateTabs, getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
+import { clearEstimateRouteContextProcessCache, getCurrentWorkspaceProject, getCurrentWorkspaceProjectForEstimate, getEstimateTabTree, getEstimateTabs, getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
 import { createEstimateActionsD1Client, type EstimateActionsD1Client } from "@/lib/estimates/d1-action-client";
 import type { EstimateRow as EstimateDatabaseRow, ProjectRow as ProjectDatabaseRow } from "@/lib/types/database";
 import type { Json } from "@/lib/types/json";
@@ -1223,7 +1223,7 @@ async function resolveEstimateActivityNodeScope({
 }
 
 async function getValidatedEstimateRow(projectId: string, estimateId: string, rowId: string, options?: { requireEdit?: boolean }) {
-  const { project } = await getCurrentWorkspaceProject(projectId);
+  const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
   const dataStore = await createEstimateActionsD1Client();
@@ -1248,7 +1248,7 @@ async function getValidatedEstimateNode(
   nodeId: string,
   options?: { requireEdit?: boolean },
 ) {
-  const { project } = await getCurrentWorkspaceProject(projectId);
+  const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
   const dataStore = await createEstimateActionsD1Client();
@@ -1964,7 +1964,7 @@ export async function fetchEstimateTabs({ projectId, estimateId }: FetchEstimate
 
 export async function fetchEstimateEditCapability({ projectId, estimateId }: FetchEstimateTreeInput) {
   await requireAuth();
-  const { project } = await getCurrentWorkspaceProject(projectId);
+  const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) return false;
 
   const dataStore = await createEstimateActionsD1Client();
@@ -2007,7 +2007,7 @@ export async function fetchEstimateSheetVersionControl({
   scope = "both",
 }: FetchEstimateSheetVersionControlInput): Promise<EstimateSheetVersionControlData> {
   await requireAuth();
-  const { project } = await getCurrentWorkspaceProject(projectId);
+  const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
   const dataStore = await createEstimateActionsD1Client();
@@ -2184,7 +2184,7 @@ export async function reorderEstimateTreeNodes(
     if (!Number.isFinite(update.sortOrder) || update.sortOrder < 0) throw new Error("Estimate tree node sort order must be a non-negative number.");
   }
 
-  const { project } = await getCurrentWorkspaceProject(projectId);
+  const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
   const dataStore = await createEstimateActionsD1Client();
@@ -2648,7 +2648,7 @@ export async function deleteEstimateSheet(input: DeleteEstimateSheetInput): Prom
 }
 
 export async function updateEstimateDetails(input: UpdateEstimateDetailsInput) {
-  const { project } = await getCurrentWorkspaceProject(input.projectId);
+  const { project } = await getCurrentWorkspaceProjectForEstimate(input.projectId, input.estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
   const dataStore = await createEstimateActionsD1Client();
@@ -2698,7 +2698,7 @@ export async function updateEstimateDetails(input: UpdateEstimateDetailsInput) {
 }
 
 export async function regenerateEstimateSheetCode(input: { projectId: string; estimateId: string }) {
-  const { project } = await getCurrentWorkspaceProject(input.projectId);
+  const { project } = await getCurrentWorkspaceProjectForEstimate(input.projectId, input.estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
   const dataStore = await createEstimateActionsD1Client();
@@ -2734,7 +2734,7 @@ function readEstimateTabMutationResult(value: unknown, fallbackTabId?: string): 
 }
 
 async function getProjectScopedEstimateActionContext(projectId: string, estimateId: string) {
-  const { project } = await getCurrentWorkspaceProject(projectId);
+  const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
   const dataStore = await createEstimateActionsD1Client();
@@ -2850,7 +2850,7 @@ export async function deleteEstimateTab(input: EstimateTabActionInput): Promise<
 }
 
 export async function createEstimateNode(projectId: string, estimateId: string, formData: FormData) {
-  const { project } = await getCurrentWorkspaceProject(projectId);
+  const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
   const dataStore = await createEstimateActionsD1Client();
@@ -3021,7 +3021,7 @@ export async function deleteEstimateNodesBulk(
   }))];
   if (requestedNodeIds.length === 0) throw new Error("At least one estimate tree node is required for bulk delete.");
 
-  const { project } = await getCurrentWorkspaceProject(projectId);
+  const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
   const dataStore = await createEstimateActionsD1Client();
@@ -3112,7 +3112,7 @@ export async function insertEstimateTemplateIntoEstimate({
   templateId,
   targetTabId,
 }: InsertEstimateTemplateIntoEstimateInput): Promise<InsertEstimateTemplateIntoEstimateResult> {
-  const { project } = await getCurrentWorkspaceProject(projectId);
+  const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
   const dataStore = await createEstimateActionsD1Client();
@@ -3156,7 +3156,7 @@ export async function insertEstimateTemplatesIntoEstimate({
 }: InsertEstimateTemplatesIntoEstimateInput): Promise<InsertEstimateTemplateIntoEstimateResult> {
   if (templateIds.length === 0) throw new Error("At least one estimate template is required.");
 
-  const { project } = await getCurrentWorkspaceProject(projectId);
+  const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
   const dataStore = await createEstimateActionsD1Client();
@@ -3212,7 +3212,7 @@ export async function insertEstimateTemplateNodeIntoEstimate({
   templateNodeId,
   targetTabId,
 }: InsertEstimateTemplateNodeIntoEstimateInput): Promise<InsertEstimateTemplateNodeIntoEstimateResult> {
-  const { project } = await getCurrentWorkspaceProject(projectId);
+  const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
   const dataStore = await createEstimateActionsD1Client();
@@ -3249,7 +3249,7 @@ export async function insertEstimateTemplateNodeIntoEstimate({
 }
 
 export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, targetNodeId, rowId, libraryItem, mutationId }: InsertEstimateRowItemFromLibraryInput) {
-  const { project } = await getCurrentWorkspaceProject(projectId);
+  const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
   const dataStore = await createEstimateActionsD1Client();
@@ -3321,7 +3321,7 @@ export async function updateEstimateSheetAdjustment({
   mutationId,
   expectedRowRevision,
 }: UpdateEstimateSheetAdjustmentInput): Promise<UpdateEstimateSheetAdjustmentResult> {
-  const { project } = await getCurrentWorkspaceProject(projectId);
+  const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
   const dataStore = await createEstimateActionsD1Client();
@@ -3540,7 +3540,7 @@ export async function moveEstimateRowItemWithHistory({
     throw new Error("Moved estimate row must be included in the target row order updates.");
   }
 
-  const { project } = await getCurrentWorkspaceProject(projectId);
+  const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
   const dataStore = await createEstimateActionsD1Client();
@@ -3600,7 +3600,7 @@ export async function deleteEstimateRowItemsBulk({
   expectedRowRevisions,
 }: DeleteEstimateRowItemsBulkInput): Promise<DeleteEstimateRowItemsBulkResult> {
   const normalizedRowIds = normalizeEstimateRowIdSelection(rowIds);
-  const { project } = await getCurrentWorkspaceProject(projectId);
+  const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
   const dataStore = await createEstimateActionsD1Client();
@@ -3641,7 +3641,7 @@ export async function restoreDeletedEstimateRows({
   rowIds,
   mutationId,
 }: RestoreDeletedEstimateRowsInput): Promise<RestoreDeletedEstimateRowsResult> {
-  const { project } = await getCurrentWorkspaceProject(projectId);
+  const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
   const normalizedRowIds = rowIds && rowIds.length > 0 ? normalizeEstimateRowIdSelection(rowIds) : null;
@@ -3669,7 +3669,7 @@ export async function restoreDeletedEstimateNodes({
   targetTabId,
   mutationId,
 }: RestoreDeletedEstimateNodesInput): Promise<RestoreDeletedEstimateNodesResult> {
-  const { project } = await getCurrentWorkspaceProject(projectId);
+  const { project } = await getCurrentWorkspaceProjectForEstimate(projectId, estimateId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
   const normalizedNodeIds = nodeIds && nodeIds.length > 0 ? normalizeEstimateNodeIdSelection(nodeIds) : null;

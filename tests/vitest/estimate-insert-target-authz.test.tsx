@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const repositoryMocks = vi.hoisted(() => ({
   ensureDefaultWorkspace: vi.fn(),
   getCurrentWorkspaceProject: vi.fn(),
+  getCurrentWorkspaceProjectForEstimate: vi.fn(),
   getEstimateTabTree: vi.fn(),
   getProjectEstimateTreeByEstimate: vi.fn(),
   listCurrentWorkspaceProjects: vi.fn(),
@@ -104,6 +105,7 @@ beforeEach(() => {
     profile: { id: USER_ID },
   });
   repositoryMocks.getCurrentWorkspaceProject.mockResolvedValue({ project: { id: PROJECT_ID } });
+  repositoryMocks.getCurrentWorkspaceProjectForEstimate.mockResolvedValue({ project: { id: PROJECT_ID } });
   repositoryMocks.getProjectEstimateTreeByEstimate.mockResolvedValue({
     project: { id: PROJECT_ID },
     estimate: { id: ESTIMATE_ID },

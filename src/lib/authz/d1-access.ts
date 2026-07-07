@@ -172,40 +172,6 @@ export async function canAccessWholeProjectInD1(
   );
 }
 
-export async function canAccessWholeProjectInD1(
-  db: D1DatabaseLike,
-  projectId: string,
-  user: CurrentUserAccessContext,
-) {
-  if (isPlatformAdmin(user)) return true;
-  const row = await db
-    .prepare<{ allowed: number }>(
-      `
-        SELECT 1 AS allowed
-        FROM projects project
-        WHERE project.id = ?
-          AND (
-            EXISTS (
-              SELECT 1
-              FROM workspace_members workspace_member
-              WHERE workspace_member.workspace_id = project.workspace_id
-                AND workspace_member.user_id = ?
-            )
-            OR EXISTS (
-              SELECT 1
-              FROM project_members project_member
-              WHERE project_member.project_id = project.id
-                AND project_member.user_id = ?
-            )
-          )
-        LIMIT 1
-      `,
-    )
-    .bind(projectId, user.userId, user.userId)
-    .first<{ allowed: number }>();
-  return readAllowed(row);
-}
-
 export async function canEditProjectInD1(
   db: D1DatabaseLike,
   projectId: string,
