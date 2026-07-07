@@ -59,7 +59,8 @@ without rediscovering requirements, architecture, affected files, failure modes,
 ## Orchestration model
 
 This task ran as a **single lead orchestrator** (the authoring agent) using **native read-only
-Explore subagents** for four parallel discovery lanes, plus emulated adversarial + verification
+Explore subagents** for four parallel discovery lanes, plus an independent native verifier and
+lead-authored (emulated) adversarial/critique
 passes. Native subagents were used for discovery (independent, read-only, disjoint scope). The
 synthesis, review, and verification passes are emulated by the lead because no separate authoring
 verifier agent is allocated to this planning-only task.
