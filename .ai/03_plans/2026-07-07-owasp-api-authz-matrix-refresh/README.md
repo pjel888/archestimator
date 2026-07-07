@@ -44,19 +44,26 @@ block other tasks on them.
 
 | ID | Severity | Finding | Task |
 |---|---|---|---|
-| SEC-01 | HIGH | Invite origin gate returns `true` on stripped Origin+Referer | WP-01 |
+| SEC-01 | **MED** (defense-in-depth) | Invite origin gate returns `true` on stripped Origin+Referer (mitigated by SameSite=Lax + session) | WP-01 |
 | SEC-02 | HIGH (broad) / MED (beta) | No edge/WAF rate limiting | WP-04 (owner) |
 | SEC-03 | MED | Estimate mutation limiter is in-memory (per-isolate) | WP-02 |
 | SEC-04 | MED | CollaborationRoom WS upgrade accepts before auth | WP-03 |
-| SEC-05 | MED | Authz at repo layer only for some actions (defense-in-depth) | WP-07 |
+| SEC-05/11 | MED/LOW | Authz at repo/caller layer only for some actions (defense-in-depth) | WP-07/13 |
 | SEC-06 | MED | No zod; raw JSON reads unbounded pre-parse | WP-05/WP-10 |
 | SEC-07 | MED (broad) | CSP unsafe-inline/eval; Report-Only except /share | WP-08 (owner) |
-| SEC-08/09 | LOW | Dead config / unused signed-URL factory | WP-12 |
+| SEC-09 | LOW | Unused `signedReadUrlFactory` (must not bypass authz if wired) | WP-12 |
+| SEC-10 | LOW | Origin-source inconsistency (request-url vs env) | WP-12 |
 
-**6 exploration P0/P1 flags were DISPROVEN by direct source read** (group-actions,
+> **RETRACTED (Doc 20 ADV-01):** an earlier draft included SEC-08 claiming
+> `ARCHESTIMATOR_ALLOWED_APP_ORIGINS` was "dead config." That was **false** — the env var
+> is consumed in 4 sites (`email-links.ts:37`, `redirects.ts:26`,
+> `cloudflare-better-auth-runtime.ts:101`, type at `:22`). The "remove from `.env.example`"
+> remediation was **dangerous** and is deleted. Refiled as SEC-10 (LOW consistency note).
+
+**7 exploration/audit flags were resolved by direct source read** (group-actions,
 beta-allowlist-admin, beta-feedback-review, publication/actions, template-editor,
-recipient-proposals) — see Doc 08 §verified-non-issues. This correction is the core
-maker/checker value of the pass.
+recipient-proposals, + the retracted SEC-08) — see Doc 08 §verified-non-issues and
+Doc 20 §adversarial-findings.
 
 ## Document index
 

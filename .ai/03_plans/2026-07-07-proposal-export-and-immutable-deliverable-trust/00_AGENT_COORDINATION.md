@@ -73,17 +73,23 @@ verifier agent is allocated to this planning-only task.
 | L3 Publication/share + security | Map publication/share flows + authz + redaction + recipient proof | `src/lib/publication/*`, `src/app/api/share/*`, `src/app/share/*`, edge proxy | route inventory; sheet-selection storage; redaction posture; threat-model starter; Better Auth boundary | none | `/share` is public+token-gated; opaque IDs + location redaction; `signature_intent_hash` binds version not content; cost split reaches client XLSX | none | COMPLETE |
 | L4 Risk docs + tests + UX | Risk-doc quotes; test inventory; UI primitives; package scripts | `.ai/10_state/*`, `DESIGN.md`, `README.md`, `tests/**`, `src/components/ui/*`, `package.json` | verbatim risk quotes; test matrix; primitive inventory; scripts | none | "mutable XLSX only; immutable issued snapshots = future work" explicit; no checksum/streaming/immutability/redaction-byte-scan tests; plan pack unbuilt | none | COMPLETE |
 
-### Synthesis + review + verification (lead, emulated)
+### Synthesis + review + verification
 
 | Pass | Mode | Output |
 |---|---|---|
-| Synthesis | lead | Documents 01–19 + README |
-| Adversarial review | emulated | `19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md` adversarial matrix + `14_RISK_REGISTER.md` |
-| Final verification | emulated | `17_FINAL_READINESS_REVIEW.md` (`verification_mode: emulated`) |
+| Discovery (4 lanes) | **independent** (native Explore subagents, distinct output) | L1–L4 findings feeding `03_*.md` |
+| Synthesis (writing docs) | same-agent (lead) | Documents 01–19 + README |
+| Adversarial review + critique cycles | emulated (separated passes by lead) | `19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md` adversarial matrix + `14_RISK_REGISTER.md` |
+| Final verification | **independent** (separate native Explore verifier agent, distinct output) | `17_FINAL_READINESS_REVIEW.md` (`verification_mode: independent`) |
 
-**Verification-mode cap applied:** `emulated` caps overall readiness at 97 and, for high-blast-
-radius planning packages, caps package status at `CONDITIONALLY READY` unless a real independent
-reviewer or explicit owner acceptance reviews the final package. See `17_FINAL_READINESS_REVIEW.md`.
+**Verification-mode determination:** the **final verifier** was a genuinely separate native agent
+with distinct output → `verification_mode: independent`, which can support 98–100 readiness when
+all other gates pass. The synthesis and critique cycles were lead-authored (emulated/same-agent),
+but those are not the final verification. The package status remains `CONDITIONALLY READY` not
+because of the verification cap but because **Performance readiness (92) is below the 95 threshold**
+required for `IMPLEMENTATION-READY` when performance is in scope (it is — user-facing exports).
+See `17_FINAL_READINESS_REVIEW.md` for the full scoring and the smallest set of actions to reach
+IMPLEMENTATION-READY.
 
 ## Skills discovered / used
 
