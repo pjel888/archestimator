@@ -2,6 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { withExpressComponentMetadata } from "@/lib/estimates/express-components";
 
+const authSessionMocks = vi.hoisted(() => ({
+  requireCurrentUserContext: vi.fn(),
+}));
+
+const authzMocks = vi.hoisted(() => ({
+  canAccessProjectInD1: vi.fn(),
+}));
+
 const d1Mocks = vi.hoisted(() => ({
   getCloudflareD1Database: vi.fn(),
 }));
@@ -20,6 +28,8 @@ const workspaceRepositoryMocks = vi.hoisted(() => ({
   getCurrentWorkspaceProject: vi.fn(),
 }));
 
+vi.mock("@/lib/auth/session", () => authSessionMocks);
+vi.mock("@/lib/authz/d1-access", () => authzMocks);
 vi.mock("@/lib/cloudflare/d1", () => d1Mocks);
 vi.mock("@/lib/repositories/component-library-repository", () => componentLibraryMocks);
 vi.mock("@/lib/repositories/workspace-repository", () => workspaceRepositoryMocks);
@@ -77,6 +87,8 @@ function findPrepared(database: FakeProjectComponentProjectionD1Database, patter
 beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
+  authSessionMocks.requireCurrentUserContext.mockResolvedValue({ userId: "user-1", role: "member" });
+  authzMocks.canAccessProjectInD1.mockResolvedValue(true);
   componentLibraryMocks.getCurrentWorkspaceComponentRowsLibrary.mockResolvedValue({
     libraryFolders: [
       {
@@ -108,6 +120,29 @@ beforeEach(() => {
 });
 
 describe("project component projection D1 repository", () => {
+  it("returns only the workspace library when the user cannot access the project", async () => {
+    const database = new FakeProjectComponentProjectionD1Database();
+    database.rowItems = [
+      {
+        id: "row-1",
+        material: "Victim component",
+        metadata_json: JSON.stringify(withExpressComponentMetadata({}, { id: "express-row-1" })),
+      },
+    ];
+    d1Mocks.getCloudflareD1Database.mockResolvedValue(database);
+    authzMocks.canAccessProjectInD1.mockResolvedValue(false);
+
+    const { getProjectComponentRowsLibrary } = await import("@/lib/component-library/project-component-projection");
+    const result = await getProjectComponentRowsLibrary("project-1", {
+      includeDetailGraph: false,
+      itemLimit: 25,
+      projectRowLimit: 7,
+    });
+
+    expect(authzMocks.canAccessProjectInD1).toHaveBeenCalledWith(database, "project-1", { userId: "user-1", role: "member" });
+    expect(database.prepared.some((entry) => entry.sql.includes("FROM estimate_row_items row_items"))).toBe(false);
+    expect(result.libraryItems).toEqual([{ id: "workspace-item", material: "Workspace component" }]);
+  });
   it("loads project component projection rows from Cloudflare D1", async () => {
     const database = new FakeProjectComponentProjectionD1Database();
     database.rowItems = [
@@ -153,6 +188,7 @@ describe("project component projection D1 repository", () => {
     const statement = findPrepared(database, /FROM estimate_row_items row_items/);
     expect(statement.values).toEqual(["project-1", 7]);
     expect(statement.sql).toContain("INNER JOIN estimates ON estimates.id = row_items.estimate_id");
+    expect(authzMocks.canAccessProjectInD1).toHaveBeenCalledWith(database, "project-1", { userId: "user-1", role: "member" });
     expect(componentLibraryMocks.getCurrentWorkspaceComponentRowsLibrary).toHaveBeenCalledWith({
       includeDetailGraph: true,
       itemLimit: 25,
