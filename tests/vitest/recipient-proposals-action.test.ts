@@ -192,8 +192,17 @@ describe("openRecipientProposalAction", () => {
     expect(harness.cookieSet).not.toHaveBeenCalled();
   });
 
-  it("mints the shared-link session cookies and redirects to the recovered share URL", async () => {
-    const harness = await loadHarness();
+  it("mints the shared-link session cookies for publications without a password and redirects to the recovered share URL", async () => {
+    const harness = await loadHarness({
+      publication: {
+        encrypted_token: "encrypted-recipient-token",
+        expires_at: "2999-01-01T00:00:00.000Z",
+        id: PUBLICATION_ID,
+        password_hash: null,
+        revoked_at: null,
+        status: "published",
+      },
+    });
 
     await expect(harness.openRecipientProposalAction(null, formData())).rejects.toThrow(
       "NEXT_REDIRECT:/share/recipient-token",
@@ -222,6 +231,29 @@ describe("openRecipientProposalAction", () => {
     expect(harness.redirect).toHaveBeenCalledWith("/share/recipient-token");
   });
 
+
+  it("does not mint shared-link session cookies for password-protected publications", async () => {
+    const harness = await loadHarness({
+      publication: {
+        encrypted_token: "encrypted-recipient-token",
+        expires_at: "2999-01-01T00:00:00.000Z",
+        id: PUBLICATION_ID,
+        password_hash: "password-hash",
+        revoked_at: null,
+        status: "published",
+      },
+    });
+
+    await expect(harness.openRecipientProposalAction(null, formData())).rejects.toThrow(
+      "NEXT_REDIRECT:/share/recipient-token",
+    );
+
+    expect(harness.decryptPublicationToken).toHaveBeenCalledWith("encrypted-recipient-token", "encryption-secret");
+    expect(harness.getSharedLinkSessionCookieParts).not.toHaveBeenCalled();
+    expect(harness.cookieSet).not.toHaveBeenCalled();
+    expect(harness.redirect).toHaveBeenCalledWith("/share/recipient-token");
+  });
+
   it("keeps the action source ordered authorization-first and free of returned credential material", () => {
     const source = readFileSync("src/lib/publication/actions.ts", "utf8");
     const actionSource = source.slice(
@@ -232,6 +264,7 @@ describe("openRecipientProposalAction", () => {
     expect(actionSource.indexOf("authorize_recipient_publication_for_current_user")).toBeLessThan(
       actionSource.indexOf("createPublicationAdminClient()"),
     );
+    expect(actionSource).toContain("if (!publication.password_hash)");
     expect(actionSource).toContain("getSharedLinkSessionCookieParts");
     expect(actionSource).toContain("cookieStore.set(parts.name, parts.value, parts.cookieOptions)");
     expect(actionSource).toContain("cookieStore.set(`${parts.name}_ok`");

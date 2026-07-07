@@ -247,6 +247,22 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     return Response.json(sharedLinkUnavailableErrorBody(), { status: 404, headers: { "Cache-Control": "no-store" } });
   }
 
+  if (
+    access.passwordRequired &&
+    !hasPublicationAccessCookie(cookieHeader, {
+      token,
+      publicationId: access.publicationId,
+      credentialVersion: access.credentialVersion,
+    })
+  ) {
+    const ipHash = getIpHash(request);
+    logStructured("warn", "/api/share/[token]/comment", "PASSWORD_REQUIRED", ipHash);
+    return Response.json(
+      { error: "Publication password required.", passwordRequired: true },
+      { status: 423, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
   // Verify P5 session against the current DB publication snapshot, not the cookie-derived snapshot.
   const sessionOk = Boolean(recipientIdFromCookie) && verifySharedLinkSessionCookieValue(sessionValue, {
     token,
