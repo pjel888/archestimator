@@ -88,3 +88,41 @@ not a redesign:
 - **Move authz into a middleware-only layer:** rejected — defense-in-depth requires
   authz at the resource boundary (route/action/repository), not only at the edge;
   the proxy cannot know resource ownership.
+
+## Per-route App Router boundary & cache contract (Improve-Plan-Prompt mandate)
+
+A generic "use cache correctly" is insufficient. Every affected route's boundary,
+rendering mode, cache directive, and revalidation owner is specified below. **No route
+uses Next.js Cache Components / `use cache` / `cacheLife` / `cacheTag`** — the project is
+on the default App Router caching model. Token-bearing/private routes all default to
+no-store.
+
+| Route | Boundary | Dynamic? | Cache / header directive | Revalidation owner | Notes |
+|---|---|---|---|---|---|
+| `/api/auth/[...all]` (all methods) | Route Handler (node runtime) | force-dynamic | `Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate` (forced by `withAuthNoStore`) | n/a (Better Auth internal) | OAuth state-cookie normalized at worker edge |
+| `/api/ai/*` | Route Handler | force-dynamic | no-store (handler-set) | n/a | feature-flagged |
+| `/api/compliance/privacy-requests` | Route Handler | force-dynamic | no-store | n/a | anonymous intake |
+| `/api/component-library/*`, `/api/projects/*`, `/api/estimate-row-images` | Route Handler | force-dynamic | no-store; image/attachment bytes streamed | n/a | opaque 404 on auth fail |
+| `/api/internal/*` | Route Handler | force-dynamic | no-store | n/a | Bearer-secret job routes |
+| `/api/share/[token]/*` (8 routes) | Route Handler | force-dynamic | **enforced** `Cache-Control: no-store` + `shareHardeningHeaders` (nosniff, DENY frame, no-referrer, HSTS, noindex) | n/a | per-request `React.cache` memoization of access/snapshot rows |
+| `/api/health` | Route Handler | static-eligible | none (public) | n/a | service+timestamp only |
+| `/share/[token]` (page) | Server Component | `export const dynamic = "force-dynamic"` | enforced CSP + `shareHardeningHeaders` + no-store | n/a (read-only) | `generateMetadata` Server Component; loading skeleton + not-found |
+| `/invite/[token]/*` | Route Handler + Server Component | force-dynamic | no-store + hardening headers | n/a | pending-invite cookie |
+| `/workshop/**` (pages) | Server Component (data) + Client Components (interaction) | dynamic (session-derived) | `private, no-cache, no-store` via `withSensitiveRouteCacheControl` | TanStack Query client invalidate + `revalidatePath` on mutations | terms gate via proxy |
+| Marketing pages (`/`, `/about`, etc.) | Server Component | static | `s-maxage=31536000` (public, cacheable) | deploy | public |
+
+**Mutation revalidation model:** Server Actions use `revalidatePath` (no `revalidateTag`
+anywhere in `src/`) for the affected path + TanStack Query `invalidateQueries` on the
+client. Estimate tree mutations **deliberately skip** `revalidatePath` (comment at
+`actions.ts:2971`) — the client reconciles optimistic state + refetch. Read-your-own-writes
+is preserved via pessimistic invalidate-on-success
+(`src/hooks/use-estimate-row-mutations.ts:643,654,698-716`).
+
+**Read-your-own-writes invariant:** publication access rows are memoized per-request via
+`React.cache` (`getCachedPublicationAccessRowByToken`) so a single request sees consistent
+state; cross-request freshness is guaranteed by `force-dynamic` + no-store.
+
+**Cache Components not in scope:** confirmed — no `use cache` / `cacheLife` / `cacheTag`
+boundaries exist on any auth surface. If Cache Components is later adopted, token-bearing
+routes must be re-proven to default to no-store (local docs:
+`node_modules/next/dist/docs/01-app/02-guides/caching-without-cache-components.md`).
