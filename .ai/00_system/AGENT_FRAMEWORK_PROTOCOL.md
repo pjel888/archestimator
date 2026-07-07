@@ -48,10 +48,12 @@ At the start of meaningful work, each agent or adapter should:
    ```
 
    This command fails synchronously unless `SUPERMEMORY_SERVER_BIN` points to
-   an executable local `supermemory-server` binary and
-   `SUPERMEMORY_SERVER_SHA256` matches that binary. The server listens on
-   `SUPERMEMORY_PORT`/`PORT`, defaulting to `6767`, and logs to
-   `/tmp/supermemory-local.log`.
+   an executable local `supermemory-server` binary,
+   `SUPERMEMORY_SERVER_SHA256` matches that binary, and first-boot
+   configuration is already non-interactive: either `~/.supermemory/env`
+   exists or a supported provider env configuration is present. The launcher
+   ignores generic `PORT`; set `SUPERMEMORY_PORT` to override the fixed
+   `6767` default. Logs go to `/tmp/supermemory-local.log`.
 
    The verified server binary path is mandatory: do not use `npm exec`, `npx`,
    `bunx`, `pnpm dlx`, the npm wrapper installer, or any command that can

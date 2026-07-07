@@ -2,12 +2,22 @@
 
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { closeSync, createReadStream, openSync } from "node:fs";
+import { closeSync, createReadStream, existsSync, openSync, statSync } from "node:fs";
 import { access, constants } from "node:fs/promises";
-import { resolve } from "node:path";
+import { homedir } from "node:os";
+import { join, resolve } from "node:path";
 
 const DEFAULT_PORT = "6767";
 const DEFAULT_LOG_PATH = "/tmp/supermemory-local.log";
+const SAVED_ENV_PATH = join(homedir(), ".supermemory", "env");
+const PROVIDER_CONFIGS = [
+  ["OPENAI_API_KEY"],
+  ["ANTHROPIC_API_KEY"],
+  ["GEMINI_API_KEY"],
+  ["GROQ_API_KEY"],
+  ["WORKERS_AI_API_KEY", "CLOUDFLARE_ACCOUNT_ID"],
+  ["GOOGLE_VERTEX_PROJECT_ID", "GOOGLE_VERTEX_LOCATION"],
+];
 
 function fail(message) {
   process.stderr.write(`supermemory:start: ${message}\n`);
@@ -23,6 +33,22 @@ async function sha256(filePath) {
     stream.on("end", resolvePromise);
   });
   return hash.digest("hex");
+}
+
+function hasEnv(name) {
+  return Boolean(process.env[name]?.trim());
+}
+
+function hasProviderConfig() {
+  return PROVIDER_CONFIGS.some((requiredNames) => requiredNames.every(hasEnv));
+}
+
+function hasSavedSupermemoryEnv() {
+  try {
+    return existsSync(SAVED_ENV_PATH) && statSync(SAVED_ENV_PATH).size > 0;
+  } catch {
+    return false;
+  }
 }
 
 const configuredBin = process.env.SUPERMEMORY_SERVER_BIN;
@@ -49,7 +75,16 @@ if (actualHash !== expectedHash) {
   fail(`checksum mismatch for ${serverBin}: expected ${expectedHash}, got ${actualHash}.`);
 }
 
-const port = process.env.SUPERMEMORY_PORT || process.env.PORT || DEFAULT_PORT;
+if (!hasProviderConfig() && !hasSavedSupermemoryEnv()) {
+  fail(
+    "non-interactive startup requires an LLM provider env var or existing ~/.supermemory/env. "
+      + "Run supermemory-server interactively once, or set one of OPENAI_API_KEY, ANTHROPIC_API_KEY, "
+      + "GEMINI_API_KEY, GROQ_API_KEY, WORKERS_AI_API_KEY+CLOUDFLARE_ACCOUNT_ID, "
+      + "or GOOGLE_VERTEX_PROJECT_ID+GOOGLE_VERTEX_LOCATION.",
+  );
+}
+
+const port = process.env.SUPERMEMORY_PORT?.trim() || DEFAULT_PORT;
 const logPath = process.env.SUPERMEMORY_LOG_PATH || DEFAULT_LOG_PATH;
 const out = openSync(logPath, "a");
 const err = openSync(logPath, "a");
