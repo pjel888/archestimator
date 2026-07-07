@@ -10,6 +10,7 @@ only those entries. Do NOT read all ~2,500 lines on every task — that is the
 single biggest source of slow agent startup.
 
 Stable current truth (verify against git/source before relying on a detail):
+- A 2026-07-04 security follow-up removes historical `created_by` metadata from D1 project/estimate access and edit authorization. `canAccessProjectInD1`, `canEditProjectInD1`, `canAccessEstimateInD1`, and `canEditEstimateInD1` now require current workspace/project/sheet membership (or platform admin), so revoked or downgraded creators do not retain D1 read/write rights. Focused Vitest passed for `tests/vitest/d1-access-created-by.test.ts`, `tests/vitest/project-metadata-audit.test.ts`, and `tests/vitest/auth-sensitive-api-boundaries.test.ts` (`3` files / `88` tests). `git diff --check` passed. `bun run type-check` remains blocked by pre-existing unrelated diagnostics in `src/components/landing/NeatWireframeBackground.tsx` (`NeatGradient.paused`) and `worker.ts` (missing generated `.open-next/worker.js`).
 - Stage: pre-launch closed-beta MVP. Bias to fast, useful iteration over
   heavyweight regression ceremony. No external users yet.
 - Stack: Next.js 16 + React 19 + Bun + TypeScript + Tailwind v4 +

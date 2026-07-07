@@ -63,61 +63,52 @@ function createCurrentUserContext(userId: string): CurrentUserContext {
 }
 
 describe("D1 created-by authorization", () => {
-  it("allows project creators to read and edit their own project without membership rows", async () => {
+  it("does not grant project access or edit rights from historical project.created_by metadata", async () => {
     const user = { userId: "user-1", role: "member" as const };
     const accessProbe = createAuthzProbeDatabase({
-      allowWhen: ({ sql, values }) => sql.includes("project.created_by = ?") && values[1] === user.userId,
+      allowWhen: ({ sql, values }) => sql.includes("project.created_by = ?") && values.includes(user.userId),
     });
     const editProbe = createAuthzProbeDatabase({
-      allowWhen: ({ sql, values }) => sql.includes("project.created_by = ?") && values[1] === user.userId,
+      allowWhen: ({ sql, values }) => sql.includes("project.created_by = ?") && values.includes(user.userId),
     });
 
-    await expect(canAccessProjectInD1(accessProbe.db, "project-1", user)).resolves.toBe(true);
-    await expect(canEditProjectInD1(editProbe.db, "project-1", user)).resolves.toBe(true);
-    expect(accessProbe.queries[0]?.values).toEqual(["project-1", "user-1", "user-1", "user-1", "user-1"]);
-    expect(editProbe.queries[0]?.values).toEqual(["project-1", "user-1", "user-1", "user-1"]);
+    await expect(canAccessProjectInD1(accessProbe.db, "project-1", user)).resolves.toBe(false);
+    await expect(canEditProjectInD1(editProbe.db, "project-1", user)).resolves.toBe(false);
+    expect(accessProbe.queries[0]?.sql).not.toContain("project.created_by = ?");
+    expect(editProbe.queries[0]?.sql).not.toContain("project.created_by = ?");
+    expect(accessProbe.queries[0]?.values).toEqual(["project-1", "user-1", "user-1", "user-1"]);
+    expect(editProbe.queries[0]?.values).toEqual(["project-1", "user-1", "user-1"]);
   });
 
-  it("allows project creators through the D1 estimate action client project edit guard", async () => {
+  it("does not grant project edit through the D1 estimate action client from created_by metadata", async () => {
     const user = createCurrentUserContext("user-1");
     const editProbe = createAuthzProbeDatabase({
-      allowWhen: ({ sql, values }) => sql.includes("project.created_by = ?") && values[1] === user.userId,
+      allowWhen: ({ sql, values }) => sql.includes("project.created_by = ?") && values.includes(user.userId),
     });
     const client = new EstimateActionsD1Client(editProbe.db, user);
 
     await expect(client.call("can_edit_project", { target_project_id: "project-1" })).resolves.toEqual({
-      data: true,
+      data: false,
       error: null,
     });
-    expect(editProbe.queries[0]?.values).toEqual(["project-1", "user-1", "user-1", "user-1"]);
+    expect(editProbe.queries[0]?.sql).not.toContain("project.created_by = ?");
+    expect(editProbe.queries[0]?.values).toEqual(["project-1", "user-1", "user-1"]);
   });
 
-  it("allows estimate creators and inherited project creators to access estimate sheets", async () => {
+  it("does not grant estimate access or edit rights from estimate or inherited project created_by metadata", async () => {
     const user = { userId: "user-1", role: "member" as const };
     const directEstimateProbe = createAuthzProbeDatabase({
-      allowWhen: ({ sql, values }) => sql.includes("estimate.created_by = ?") && values[1] === user.userId,
+      allowWhen: ({ sql, values }) => sql.includes("estimate.created_by = ?") && values.includes(user.userId),
     });
     const inheritedProjectProbe = createAuthzProbeDatabase({
-      allowWhen: ({ sql, values }) => sql.includes("project.created_by = ?") && values[3] === user.userId,
+      allowWhen: ({ sql, values }) => sql.includes("project.created_by = ?") && values.includes(user.userId),
     });
 
-    await expect(canAccessEstimateInD1(directEstimateProbe.db, "estimate-1", user)).resolves.toBe(true);
-    await expect(canEditEstimateInD1(inheritedProjectProbe.db, "estimate-1", user)).resolves.toBe(true);
-    expect(directEstimateProbe.queries[0]?.values).toEqual([
-      "estimate-1",
-      "user-1",
-      "user-1",
-      "user-1",
-      "user-1",
-      "user-1",
-    ]);
-    expect(inheritedProjectProbe.queries[0]?.values).toEqual([
-      "estimate-1",
-      "user-1",
-      "user-1",
-      "user-1",
-      "user-1",
-      "user-1",
-    ]);
+    await expect(canAccessEstimateInD1(directEstimateProbe.db, "estimate-1", user)).resolves.toBe(false);
+    await expect(canEditEstimateInD1(inheritedProjectProbe.db, "estimate-1", user)).resolves.toBe(false);
+    expect(directEstimateProbe.queries[0]?.sql).not.toContain("estimate.created_by = ?");
+    expect(inheritedProjectProbe.queries[0]?.sql).not.toContain("project.created_by = ?");
+    expect(directEstimateProbe.queries[0]?.values).toEqual(["estimate-1", "user-1", "user-1", "user-1"]);
+    expect(inheritedProjectProbe.queries[0]?.values).toEqual(["estimate-1", "user-1", "user-1", "user-1"]);
   });
 });

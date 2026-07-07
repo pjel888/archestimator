@@ -241,7 +241,7 @@ describe("updateProjectDetails audit instrumentation (R11)", () => {
     ]);
   });
 
-  it("allows just-created project owners to save project image metadata through the D1 created-by edit guard", async () => {
+  it("rejects project image metadata edits when only historical created_by matches", async () => {
     const database = new FakeD1Database({
       ...EXISTING,
       workspace_id: "shared-workspace",
@@ -255,29 +255,20 @@ describe("updateProjectDetails audit instrumentation (R11)", () => {
       role: "member",
     });
 
-    await updateProjectImageMetadata(PROJECT_ID, {
-      url: `/api/projects/images?path=shared-workspace/user-1/project-images/${PROJECT_ID}/cover.webp`,
-      path: `shared-workspace/user-1/project-images/${PROJECT_ID}/cover.webp`,
-      thumbnailPath: `shared-workspace/user-1/project-images/${PROJECT_ID}/cover-thumb.webp`,
-    });
+    await expect(
+      updateProjectImageMetadata(PROJECT_ID, {
+        url: `/api/projects/images?path=shared-workspace/user-1/project-images/${PROJECT_ID}/cover.webp`,
+        path: `shared-workspace/user-1/project-images/${PROJECT_ID}/cover.webp`,
+        thumbnailPath: `shared-workspace/user-1/project-images/${PROJECT_ID}/cover-thumb.webp`,
+      }),
+    ).rejects.toThrow("You do not have permission to edit this project.");
 
     const editGuard = database.firstStatements.find((statement) =>
       statement.sql.includes("FROM projects project"),
     );
-    expect(editGuard?.sql).toContain("project.created_by = ?");
-    expect(editGuard?.values).toEqual([
-      PROJECT_ID,
-      "user-1",
-      "user-1",
-      "user-1",
-    ]);
-    expect(database.runStatements[0]?.sql).toContain(
-      "WHERE id = ? AND workspace_id = ?",
-    );
-    expect(database.runStatements[0]?.values.slice(-2)).toEqual([
-      PROJECT_ID,
-      "shared-workspace",
-    ]);
+    expect(editGuard?.sql).not.toContain("project.created_by = ?");
+    expect(editGuard?.values).toEqual([PROJECT_ID, "user-1", "user-1"]);
+    expect(database.runStatements).toHaveLength(0);
   });
 
   it("rejects project image metadata paths outside the target project", async () => {

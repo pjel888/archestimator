@@ -1132,7 +1132,7 @@ describe("sensitive API auth boundaries", () => {
     );
   });
 
-  it("allows just-created project owners to upload project images through the D1 created-by edit guard", async () => {
+  it("rejects project image uploads when only historical created_by matches", async () => {
     const storage = mockStorageClient();
     const projectLookup = mockProjectLookup(
       { id: "project-1", workspace_id: DEFAULT_WORKSPACE_ID },
@@ -1146,27 +1146,16 @@ describe("sensitive API auth boundaries", () => {
 
     const response = await POST(createFormRequest(formData));
 
-    expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({
-      bucket: "project-images",
-      path: expect.stringMatching(
-        /^workspace-1\/user-1\/project-images\/project-1\/owner-cover-[0-9a-f-]+\.webp$/,
-      ),
-    });
+    expect(response.status).toBe(403);
     const editGuard = d1PreparedStatements(
       projectLookup.d1,
       /FROM projects project/,
     ).find((statement) =>
       statement.sql.includes("role IN ('owner', 'admin', 'member')"),
     );
-    expect(editGuard?.sql).toContain("project.created_by = ?");
-    expect(editGuard?.values).toEqual([
-      "project-1",
-      DEFAULT_USER_ID,
-      DEFAULT_USER_ID,
-      DEFAULT_USER_ID,
-    ]);
-    expect(storage.upload).toHaveBeenCalledTimes(2);
+    expect(editGuard?.sql).not.toContain("project.created_by = ?");
+    expect(editGuard?.values).toEqual(["project-1", DEFAULT_USER_ID, DEFAULT_USER_ID]);
+    expect(storage.upload).not.toHaveBeenCalled();
   });
 
   it("uploads estimate row images into the private project image bucket and returns row asset descriptors", async () => {
