@@ -19,6 +19,14 @@ function source(path: string) {
   return readFileSync(path, "utf8");
 }
 
+function sourceBetween(text: string, start: string, end: string) {
+  const startIndex = text.indexOf(start);
+  expect(startIndex).toBeGreaterThanOrEqual(0);
+  const endIndex = text.indexOf(end, startIndex);
+  expect(endIndex).toBeGreaterThan(startIndex);
+  return text.slice(startIndex, endIndex);
+}
+
 describe("workspace component-library cache scoping", () => {
   it("partitions full library keys by workspace", () => {
     expect(workspaceComponentLibraryQueryKey("workspace-a")).toEqual([
@@ -98,5 +106,20 @@ describe("workspace component-library cache scoping", () => {
     expect(sheetSource).toContain("workspaceComponentRowsLibraryQueryKey(workspaceId, projectId)");
     expect(mutationHookSource).toContain("workspaceComponentRowsLibraryQueryKey(workspaceId, input.projectId || projectId)");
     expect(libraryPageSource).not.toContain("invalidateQueries({ queryKey: WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY })");
+  });
+
+  it("does not actively refetch the heavy lite library dataset for project projection refreshes", () => {
+    const sheetSource = source("src/components/workshop/EstimateSheetContent.tsx");
+    const projectionRefresh = sourceBetween(
+      sheetSource,
+      "const refetchProjectComponentProjection = useStableCallback(() => {",
+      "  const availableTemplates",
+    );
+
+    expect(projectionRefresh).toContain("workspaceComponentLibraryQueryKey(workspaceId)");
+    expect(projectionRefresh).toContain('refetchType: "none"');
+    expect(projectionRefresh).not.toContain('workspaceComponentLibraryQueryKey(workspaceId), refetchType: "active"');
+    expect(projectionRefresh).toContain("workspaceComponentRowsLibraryQueryKey(workspaceId, projectId)");
+    expect(projectionRefresh).toContain('refetchType: "active"');
   });
 });

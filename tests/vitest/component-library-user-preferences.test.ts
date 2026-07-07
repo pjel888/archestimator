@@ -43,9 +43,13 @@ describe("component library user preferences", () => {
 
   it("hydrates local preferences first and then syncs account preferences outside tests", () => {
     const sidebar = source("src/components/workshop/component-library/index.tsx");
+    const accountPreferencesClient = source("src/components/workshop/component-library/account-preferences-client.ts");
 
-    expect(sidebar).toContain("loadComponentLibraryUserPreferences()");
-    expect(sidebar).toContain("saveComponentLibraryUserPreferences(preferences)");
+    expect(sidebar).toContain("loadComponentLibraryAccountPreferences()");
+    expect(sidebar).toContain("saveComponentLibraryAccountPreferences(preferences)");
+    expect(accountPreferencesClient).toContain("loadComponentLibraryUserPreferences()");
+    expect(accountPreferencesClient).toContain("saveComponentLibraryUserPreferences(preferences)");
+    expect(accountPreferencesClient).toContain("accountPreferencesLoadPromise");
     expect(sidebar).toContain("process.env.NODE_ENV !== \"test\"");
     expect(sidebar).toContain("process.env.NODE_ENV === \"test\"");
     expect(sidebar).toContain("serializeLibraryAccountPrefs(preferences)");

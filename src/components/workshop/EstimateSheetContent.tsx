@@ -19,7 +19,6 @@ import { useEstimateRowMutations, type EstimateRowMutationError, type EstimateSa
 import { useEstimateRowUpdateBroadcast } from "@/hooks/use-estimate-row-update-broadcast";
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import { buildEstimateColumnVars, EMPTY_ESTIMATE_COLUMN_WIDTHS } from "@/lib/estimate-sheet/column-model";
-import { loadEstimateSheetUserPreferences, saveEstimateSheetUserPreferences } from "@/lib/estimate-sheet/user-preferences-actions";
 import { loadProjectComponentLibraryLite } from "@/lib/component-library/actions";
 import { WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, workspaceComponentLibraryLiteQueryKey, workspaceComponentLibraryQueryKey, workspaceComponentRowsLibraryQueryKey } from "@/lib/component-library/query-keys";
 import { recordLibraryEvent } from "@/lib/component-library/library-telemetry";
@@ -75,6 +74,7 @@ import {
 import type { ComponentLibrarySupplierOption } from "./component-library/tree/buildLibraryTree";
 import { findEstimateNode, sampleEstimateTree, type EstimateTreeNode, type EstimateRowItem } from "./estimate-tree-data";
 import { EstimateTabStrip, type EstimateTabStripHandle } from "./estimate-sheet/EstimateTabStrip";
+import { loadEstimateSheetAccountPreferences, saveEstimateSheetAccountPreferences } from "./estimate-sheet/account-preferences-client";
 import {
   REQUEST_ESTIMATE_ROW_ITEM_MOVE_EVENT,
   REQUEST_ESTIMATE_TREE_NODE_CREATE_EVENT,
@@ -1051,6 +1051,9 @@ export function EstimateSheetContent({
   const estimatePointerSurfaceRef = useRef<HTMLDivElement | null>(null);
   const skipEditableRowsSyncRef = useRef(0);
   const accountColumnWidthsSnapshotRef = useRef<string | null>(null);
+  const accountColumnWidthsDirtyRef = useRef(false);
+  const committedEstimateColumnWidthsRef = useRef(EMPTY_ESTIMATE_COLUMN_WIDTHS);
+  const [accountColumnWidthsLoadedEstimateId, setAccountColumnWidthsLoadedEstimateId] = useState<string | null>(null);
   const [contentState, dispatchContentState] = useReducer(
     estimateSheetContentReducer,
     nodes,
@@ -1176,6 +1179,7 @@ export function EstimateSheetContent({
   const committedEstimateColumnWidths = useEstimateColumnWidthsStore((state) =>
     estimateId ? state.widthsByEstimateId[estimateId] ?? state.lastUsedWidths : EMPTY_ESTIMATE_COLUMN_WIDTHS,
   );
+  committedEstimateColumnWidthsRef.current = committedEstimateColumnWidths;
   const hydrateEstimateColumnWidths = useEstimateColumnWidthsStore((state) => state.hydrateEstimateColumnWidths);
   const commitEstimateColumnWidths = useEstimateColumnWidthsStore((state) => state.commitEstimateColumnWidths);
   const resetEstimateColumnWidths = useEstimateColumnWidthsStore((state) => state.resetEstimateColumnWidths);
@@ -1188,8 +1192,14 @@ export function EstimateSheetContent({
     return {
       surfaceRef: estimatePointerSurfaceRef,
       widths: committedEstimateColumnWidths,
-      onCommitWidths: (widths: typeof committedEstimateColumnWidths) => commitEstimateColumnWidths(estimateId, widths),
-      onResetWidths: () => resetEstimateColumnWidths(estimateId),
+      onCommitWidths: (widths: typeof committedEstimateColumnWidths) => {
+        accountColumnWidthsDirtyRef.current = true;
+        commitEstimateColumnWidths(estimateId, widths);
+      },
+      onResetWidths: () => {
+        accountColumnWidthsDirtyRef.current = true;
+        resetEstimateColumnWidths(estimateId);
+      },
     };
   }, [commitEstimateColumnWidths, committedEstimateColumnWidths, estimateColumnResizeEnabled, estimateId, resetEstimateColumnWidths]);
 
@@ -1200,15 +1210,33 @@ export function EstimateSheetContent({
 
   useEffect(() => {
     if (!estimateColumnResizeEnabled || !estimateId || process.env.NODE_ENV === "test") return undefined;
+    setAccountColumnWidthsLoadedEstimateId(null);
+    accountColumnWidthsSnapshotRef.current = null;
+    accountColumnWidthsDirtyRef.current = false;
     let cancelled = false;
-    void loadEstimateSheetUserPreferences(estimateId)
+    void loadEstimateSheetAccountPreferences(estimateId)
       .then((preferences) => {
-        if (cancelled || !preferences) return;
-        const snapshot = JSON.stringify(preferences.columnWidths);
-        accountColumnWidthsSnapshotRef.current = snapshot;
-        commitEstimateColumnWidths(estimateId, preferences.columnWidths);
+        if (cancelled) return;
+        if (preferences) {
+          const snapshot = JSON.stringify(preferences.columnWidths);
+          accountColumnWidthsSnapshotRef.current = snapshot;
+          if (!accountColumnWidthsDirtyRef.current) {
+            commitEstimateColumnWidths(estimateId, preferences.columnWidths);
+          }
+          return;
+        }
+        if (!accountColumnWidthsDirtyRef.current) {
+          accountColumnWidthsSnapshotRef.current = JSON.stringify(committedEstimateColumnWidthsRef.current);
+        }
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (!cancelled && !accountColumnWidthsDirtyRef.current) {
+          accountColumnWidthsSnapshotRef.current = JSON.stringify(committedEstimateColumnWidthsRef.current);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setAccountColumnWidthsLoadedEstimateId(estimateId);
+      });
     return () => {
       cancelled = true;
     };
@@ -1216,17 +1244,22 @@ export function EstimateSheetContent({
 
   useEffect(() => {
     if (!estimateColumnResizeEnabled || !estimateId || process.env.NODE_ENV === "test") return undefined;
+    if (accountColumnWidthsLoadedEstimateId !== estimateId) return undefined;
     const snapshot = JSON.stringify(committedEstimateColumnWidths);
     if (accountColumnWidthsSnapshotRef.current === snapshot) return undefined;
     accountColumnWidthsSnapshotRef.current = snapshot;
     const timer = window.setTimeout(() => {
-      void saveEstimateSheetUserPreferences({
+      void saveEstimateSheetAccountPreferences({
         estimateId,
         columnWidths: committedEstimateColumnWidths,
-      }).catch(() => undefined);
+      })
+        .then((result) => {
+          if (result.ok) accountColumnWidthsDirtyRef.current = false;
+        })
+        .catch(() => undefined);
     }, 350);
     return () => window.clearTimeout(timer);
-  }, [committedEstimateColumnWidths, estimateColumnResizeEnabled, estimateId]);
+  }, [accountColumnWidthsLoadedEstimateId, committedEstimateColumnWidths, estimateColumnResizeEnabled, estimateId]);
 
   const expressInsertDraftStates = useMemo<Record<string, ExpressInsertDraftState>>(
     () => Object.fromEntries(Object.entries(expressInsertDrafts).map(([rowId, draft]) => [rowId, draft.status])),
@@ -1312,7 +1345,9 @@ export function EstimateSheetContent({
     if (workspaceId) void queryClient.invalidateQueries({ queryKey: workspaceComponentLibraryQueryKey(workspaceId), refetchType: "none" });
   });
   const refetchProjectComponentProjection = useStableCallback(() => {
-    if (workspaceId) void queryClient.invalidateQueries({ queryKey: workspaceComponentLibraryQueryKey(workspaceId), refetchType: "active" });
+    // Project-row mutations can alter project component projections; mark the
+    // heavy lazy library dataset stale without re-running it during row edits.
+    if (workspaceId) void queryClient.invalidateQueries({ queryKey: workspaceComponentLibraryQueryKey(workspaceId), refetchType: "none" });
     if (workspaceId && projectId) {
       void queryClient.invalidateQueries({ queryKey: workspaceComponentRowsLibraryQueryKey(workspaceId, projectId), refetchType: "active" });
     } else {

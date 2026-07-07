@@ -23,13 +23,11 @@ import {
   createLibraryFolder,
   deleteEstimateTemplate,
   executeBulkArchiveLibraryComponents,
-  loadComponentLibraryUserPreferences,
   previewBulkArchiveLibraryComponents,
   recordComponentLibraryTelemetryEvent,
   renameEstimateTemplate,
   renameLibraryFolder,
   reorderLibraryFolders,
-  saveComponentLibraryUserPreferences,
   type ComponentLibraryUserPreferences,
 } from "@/lib/component-library/actions";
 import { setLibraryTelemetrySink } from "@/lib/component-library/library-telemetry";
@@ -109,6 +107,7 @@ import {
 } from "./tree/TemplatesTreeModel";
 import { TemplatesTree } from "./tree/TemplatesTree";
 import { LibraryTree } from "./tree/LibraryTree";
+import { loadComponentLibraryAccountPreferences, saveComponentLibraryAccountPreferences } from "./account-preferences-client";
 import {
   applyLibraryTreeOrder,
   filterTree,
@@ -1035,6 +1034,7 @@ function useEstimateRightSidebarContent({
   const treeHeaderRef = useRef<HTMLDivElement>(null);
   const libraryToolsRef = useRef<HTMLDivElement>(null);
   const libraryPrefsHydratedRef = useRef(!useStoredPreferences);
+  const libraryAccountPrefsLoadedRef = useRef(!useStoredPreferences || process.env.NODE_ENV === "test");
   const libraryAccountPrefsSaveSnapshotRef = useRef<string | null>(null);
   const syncedInitialLibraryItemsRef = useRef(initialLibraryItems);
   const syncedLibraryFoldersRef = useRef(libraryFolders);
@@ -1262,7 +1262,8 @@ function useEstimateRightSidebarContent({
       applyStoredLibraryPrefs({ favoriteIds, storedRecentIds, storedPrefs, storedTreeOrder, legacyStoredTab });
     });
     if (process.env.NODE_ENV !== "test") {
-      void loadComponentLibraryUserPreferences()
+      libraryAccountPrefsLoadedRef.current = false;
+      void loadComponentLibraryAccountPreferences()
         .then((preferences) => {
           if (cancelled || !preferences) return;
           libraryAccountPrefsSaveSnapshotRef.current = serializeLibraryAccountPrefs(preferences);
@@ -1275,7 +1276,10 @@ function useEstimateRightSidebarContent({
           safeSetJsonStorage(LIBRARY_TREE_ORDER_KEY, preferences.treeOrder);
           applyStoredLibraryPrefs(toStoredLibraryPrefs(preferences));
         })
-        .catch(() => undefined);
+        .catch(() => undefined)
+        .finally(() => {
+          if (!cancelled) libraryAccountPrefsLoadedRef.current = true;
+        });
     }
     return () => {
       cancelled = true;
@@ -1506,13 +1510,14 @@ function useEstimateRightSidebarContent({
       recentItemIds: recentIds,
       treeOrder: customOrderByViewMode,
     };
+    if (!libraryAccountPrefsLoadedRef.current) return undefined;
     const snapshot = serializeLibraryAccountPrefs(preferences);
     if (libraryAccountPrefsSaveSnapshotRef.current === snapshot) return undefined;
     libraryAccountPrefsSaveSnapshotRef.current = snapshot;
     if (process.env.NODE_ENV === "test") return undefined;
 
     const timer = window.setTimeout(() => {
-      void saveComponentLibraryUserPreferences(preferences).catch(() => undefined);
+      void saveComponentLibraryAccountPreferences(preferences).catch(() => undefined);
     }, 350);
     return () => window.clearTimeout(timer);
   }, [componentViewMode, customOrderByViewMode, favoriteIds, recentIds, useStoredPreferences, visibleActiveTab]);
@@ -3037,6 +3042,7 @@ function useEstimateRightSidebarContent({
             selectedFolderId={null}
             onOpenChange={setAddComponentOpen}
             onComponentCreated={handleComponentCreated}
+            catalogueOptionsStorageScope={projectId ?? estimateId ?? "estimate-sidebar"}
           />
         ) : null}
 

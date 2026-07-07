@@ -1,9 +1,11 @@
 import { Profiler, type ComponentProps } from "react";
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EstimateRightSidebar } from "@/components/workshop/component-library";
+import { resetComponentLibraryAccountPreferencesClientCacheForTests } from "@/components/workshop/component-library/account-preferences-client";
+import { LIBRARY_PREFS_KEY } from "@/components/workshop/component-library/helpers";
 import { estimateLibraryItems, type EstimateRowItem } from "@/components/workshop/estimate-tree-data";
 import type { EstimateTemplate } from "@/components/workshop/component-library/templates";
 
@@ -139,12 +141,16 @@ describe("EstimateRightSidebar active-tab render scope (F-13)", () => {
   beforeEach(() => {
     treeRenderCounts.reset();
     componentLibraryActionMocks.loadComponentLibraryUserPreferences.mockResolvedValue(null);
+    componentLibraryActionMocks.saveComponentLibraryUserPreferences.mockResolvedValue({ ok: true });
   });
 
   afterEach(() => {
     cleanup();
     treeRenderCounts.reset();
+    resetComponentLibraryAccountPreferencesClientCacheForTests();
+    vi.useRealTimers();
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
     window.localStorage.clear();
   });
 
@@ -213,5 +219,85 @@ describe("EstimateRightSidebar active-tab render scope (F-13)", () => {
     expect(screen.queryByTestId("templates-tree")).not.toBeInTheDocument();
     expect(treeRenderCounts.templates).toBe(0);
     expect(tabs).toBeInTheDocument();
+  });
+
+  it("coalesces account preference loads across duplicate stored-preference mounts", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    componentLibraryActionMocks.loadComponentLibraryUserPreferences.mockReturnValue(new Promise<null>(() => undefined));
+
+    render(
+      <>
+        <EstimateRightSidebar
+          initialLibraryItems={sidebarItems}
+          templates={sidebarTemplates}
+          enableReusableProjectSources={false}
+          useStoredPreferences
+        />
+        <EstimateRightSidebar
+          initialLibraryItems={sidebarItems}
+          templates={sidebarTemplates}
+          enableReusableProjectSources={false}
+          useStoredPreferences
+        />
+      </>,
+    );
+
+    expect(componentLibraryActionMocks.loadComponentLibraryUserPreferences).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not save locally hydrated preferences before the account load settles", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.useFakeTimers();
+    componentLibraryActionMocks.loadComponentLibraryUserPreferences.mockReturnValue(new Promise<null>(() => undefined));
+    window.localStorage.setItem(
+      LIBRARY_PREFS_KEY,
+      JSON.stringify({ activeTab: "templates", componentViewMode: "default" }),
+    );
+
+    render(
+      <EstimateRightSidebar
+        initialLibraryItems={sidebarItems}
+        templates={sidebarTemplates}
+        enableReusableProjectSources={false}
+        useStoredPreferences
+      />,
+    );
+
+    await act(async () => undefined);
+    expect(componentLibraryActionMocks.loadComponentLibraryUserPreferences).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(400);
+    });
+
+    expect(componentLibraryActionMocks.saveComponentLibraryUserPreferences).not.toHaveBeenCalled();
+  });
+
+  it("saves user preference changes after the account load settles", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.useFakeTimers();
+    componentLibraryActionMocks.loadComponentLibraryUserPreferences.mockResolvedValue(null);
+
+    render(
+      <EstimateRightSidebar
+        initialLibraryItems={sidebarItems}
+        templates={sidebarTemplates}
+        enableReusableProjectSources={false}
+        useStoredPreferences
+      />,
+    );
+
+    await act(async () => undefined);
+    componentLibraryActionMocks.saveComponentLibraryUserPreferences.mockClear();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Templates" }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(400);
+    });
+
+    expect(componentLibraryActionMocks.saveComponentLibraryUserPreferences).toHaveBeenCalledTimes(1);
+    expect(componentLibraryActionMocks.saveComponentLibraryUserPreferences).toHaveBeenCalledWith(
+      expect.objectContaining({ activeTab: "templates" }),
+    );
   });
 });

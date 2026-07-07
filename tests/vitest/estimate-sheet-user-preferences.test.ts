@@ -41,10 +41,14 @@ describe("estimate sheet user preferences", () => {
 
   it("syncs center column widths outside tests without replacing local first paint", () => {
     const sheet = source("src/components/workshop/EstimateSheetContent.tsx");
+    const accountPreferencesClient = source("src/components/workshop/estimate-sheet/account-preferences-client.ts");
 
     expect(sheet).toContain("hydrateEstimateColumnWidths(estimateId)");
-    expect(sheet).toContain("loadEstimateSheetUserPreferences(estimateId)");
-    expect(sheet).toContain("saveEstimateSheetUserPreferences({");
+    expect(sheet).toContain("loadEstimateSheetAccountPreferences(estimateId)");
+    expect(sheet).toContain("saveEstimateSheetAccountPreferences({");
+    expect(accountPreferencesClient).toContain("loadEstimateSheetUserPreferences(estimateId)");
+    expect(accountPreferencesClient).toContain("saveEstimateSheetUserPreferences(input)");
+    expect(accountPreferencesClient).toContain("accountPreferenceLoadPromises");
     expect(sheet).toContain("accountColumnWidthsSnapshotRef.current");
     expect(sheet).toContain("process.env.NODE_ENV === \"test\"");
   });
