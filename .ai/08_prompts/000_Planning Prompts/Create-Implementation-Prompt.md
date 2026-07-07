@@ -100,6 +100,8 @@ Not allowed:
 - Deploying.
 - Changing environment variables or provider configuration.
 - Adding dependencies.
+- Creating, switching, checking out, deleting, pushing, or recommending
+  automatic Git branches or Git worktrees as a default implementation setup.
 - Running broad or destructive cleanup.
 - Treating planning assumptions as implemented facts.
 - Embedding secrets or asking for secrets.
@@ -107,6 +109,17 @@ Not allowed:
   artifact path in the final response.
 
 All plan file references must use repo-relative paths.
+
+## Shared Worktree And Branch Policy
+
+Assume Archestimator is a live shared worktree with multiple codebase AI agents
+and humans active at the same time. Plans must not make branch or worktree
+creation the default implementation safety mechanism. Future implementation
+instructions should require `git status --short --branch`, file-scope
+coordination, preservation of unfamiliar changes, and re-reading touched files
+immediately before edits. Branch/worktree operations require an explicit human
+request or an approved plan decision that names the exact Git action and why
+same-worktree execution is unsafe.
 
 ## Evidence Hierarchy
 

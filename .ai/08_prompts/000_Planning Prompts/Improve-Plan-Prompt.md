@@ -146,7 +146,16 @@ Before revising the package, establish source authority:
    - repo instructions such as `AGENTS.md`
    - current project state such as `.ai/10_state/current-state.md` fast path
    - relevant decisions in `.ai/10_state/decisions.md`
-4. Inspect the minimum current codebase evidence needed for technical planning:
+4. Enforce Archestimator's shared-worktree branch policy: planning packages must
+   not tell implementers to automatically create, switch, checkout, delete, or
+   push branches, and must not recommend Git worktrees by default. Assume
+   multiple codebase AI agents are active in the same repository. Replace
+   branch/worktree isolation defaults with fresh status checks, file-scope
+   ownership, small diffs, preservation of unfamiliar changes, and re-reading
+   touched files immediately before edits. Allow branch/worktree actions only
+   when a human explicitly requested the exact action or the plan records why
+   same-worktree execution is unsafe.
+5. Inspect the minimum current codebase evidence needed for technical planning:
    - `package.json`
    - `next.config.ts` or equivalent Next config
    - `tsconfig.json`
@@ -155,9 +164,9 @@ Before revising the package, establish source authority:
      `src/stores`, Cloudflare/D1/R2/Durable Object/Queue/Email adapters,
      relevant D1 migrations, legacy provider-exit artifacts, and tests
    - `DESIGN.md` and `src/components/ui` when user-facing UI is affected
-5. Inspect only the additional source files, tests, schemas, configs, and docs
+6. Inspect only the additional source files, tests, schemas, configs, and docs
    needed to verify planning claims.
-6. For Next.js, React, framework APIs, provider behavior, or unfamiliar SDKs,
+7. For Next.js, React, framework APIs, provider behavior, or unfamiliar SDKs,
    check authoritative documentation before making technical claims. Use local
    installed Next.js docs for this repo where applicable, and use `react.dev`
    for current React API and React Server Components behavior.

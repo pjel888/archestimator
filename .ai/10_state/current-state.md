@@ -10,6 +10,14 @@ only those entries. Do NOT read all ~2,500 lines on every task — that is the
 single biggest source of slow agent startup.
 
 Stable current truth (verify against git/source before relying on a detail):
+- Shared-worktree branch policy (2026-07-07 local): Codex AGENTS instructions
+  and planning/execution prompts now forbid automatic branch or worktree
+  creation as a default implementation safety measure. Agents must assume
+  multiple codebase AI agents and humans are active in the same repository,
+  stay on the current branch/worktree unless a human explicitly requests the
+  exact Git action or an approved plan records why same-worktree execution is
+  unsafe, and coordinate with fresh status checks, file-scope ownership, small
+  diffs, and re-reading touched files before edits.
 - Branch/PR consolidation complete (2026-07-07 local/remote): all branch heads
   from the open GitHub PR/security backlog were merged or intentionally
   superseded into `main`, then `main` was pushed to `origin` at

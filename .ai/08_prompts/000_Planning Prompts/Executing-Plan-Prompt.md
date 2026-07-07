@@ -316,9 +316,13 @@ cycle, or integration step:
 - Do not rewrite unrelated history.
 - Do not stash or remove another agent's work without explicit authorization.
 
-Prefer isolated branches or worktrees for independent agents when the
-environment supports them. Otherwise use strict file ownership and serialize
-shared-file edits.
+Assume Archestimator is a live shared worktree with multiple codebase AI agents
+and humans active. Stay on the current branch/worktree by default. Do not
+create, switch, checkout, rename, delete, or push branches, and do not create
+Git worktrees, unless the user explicitly requested that exact Git action or an
+approved plan decision names the action and explains why same-worktree execution
+is unsafe. Coordinate with strict file ownership, small diffs, fresh status
+checks, and serialized shared-file edits.
 
 Do not commit, merge, push, deploy, create pull requests, delete branches, or
 alter external production/provider resources unless the task explicitly

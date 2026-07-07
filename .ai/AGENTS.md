@@ -23,6 +23,7 @@ This file governs the Archestimator `.ai/` subtree.
 5. Do not store secrets, credentials, private keys, or raw confidential client data.
 6. When project reality changes, update `10_state/current-state.md` and any affected source-of-truth doc.
 7. Keep model-specific payloads thin. They should point back to shared `.ai` rules instead of forking them.
+8. Assume a shared live worktree with multiple codebase AI agents. Do not write prompts, plans, or agent instructions that tell implementers to automatically create, switch, checkout, delete, or push branches, or to create Git worktrees, unless a human explicitly requested that exact Git action. Prefer file-scope coordination, fresh status checks, and small reversible diffs.
 
 ## Validation
 

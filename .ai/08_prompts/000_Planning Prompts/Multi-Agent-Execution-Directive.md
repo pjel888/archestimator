@@ -338,8 +338,12 @@ action:
 - Reverting another agent's work
 - Broad filesystem cleanup
 
-Prefer isolated branches or worktrees for independent agents when practical.
-Otherwise use strict file ownership and serialize shared-file changes.
+Assume Archestimator is a shared live worktree by default. Do not automatically
+create, switch, checkout, rename, delete, or push branches, and do not create
+Git worktrees. Branch/worktree actions require an explicit human request or an
+approved plan decision that names the exact Git action and why same-worktree
+execution is unsafe. Otherwise use strict file ownership, fresh status checks,
+small diffs, and serialized shared-file changes.
 
 High-concurrency agent environments (iteration 11 addition, 2026-07-05):
 
@@ -361,10 +365,11 @@ sufficient. Add the following discipline:
 - File-level ownership lease: when working on a multi-file pack, declare
   ownership of the pack directory in the ledger so sibling packs know the
   boundary. Cross-pack references are read-only; in-pack edits are leased.
-- Branch isolation for parallel agents: when practical, isolated branches
-  or worktrees prevent edit collisions entirely. Default to main-branch
-  work only when the user explicitly asks for it (consistent with
-  Archestimator's main-branch default).
+- Branch/worktree discipline: do not use branch or worktree isolation as the
+  default collision-avoidance mechanism. Default to the current shared
+  branch/worktree, coordinate by file ownership, and escalate only when a
+  specific branch/worktree operation is explicitly requested or documented as
+  required because same-worktree execution is unsafe.
 - Preserve unfamiliar changes: if `git status` shows files changed by
   another agent, do not revert, stage, or commit them. Roll back only
   your own edits if a retry is needed.

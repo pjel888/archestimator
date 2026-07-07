@@ -60,6 +60,7 @@ Do not:
 - Run formatters, generators, migrations, or other commands that may change repository files.
 - Refactor unrelated files.
 - Commit, push, merge, switch branches, or alter Git history.
+- Create, recommend, or assume a new branch or Git worktree as the default implementation path.
 - Overwrite another agent’s work.
 - Claim that the feature itself has been implemented.
 
@@ -482,6 +483,13 @@ Never use destructive Git operations, including:
 - Restoring files over uncommitted work
 
 Do not stage, commit, merge, push, or delete branches as part of this task.
+Do not create, switch, checkout, or recommend automatic branches or worktrees
+for future implementation. Archestimator is a shared live worktree: assume
+multiple codebase AI agents are active, and direct implementers to coordinate
+with fresh status checks, file-scope ownership, small diffs, and re-reading
+touched files immediately before edits. Branch or worktree operations require
+an explicit human request or an approved plan decision that names the exact Git
+action and why same-worktree execution is unsafe.
 
 ======================================================================
 6. AUDIT THE ENTIRE RELEVANT CODEBASE
