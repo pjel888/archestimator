@@ -17,25 +17,29 @@ Implementation bias: **minimal**. Honor the brief's "do not overbuild a CRM." Ev
 - **Req IDs**: FR-ACK-01, UX-A11Y-02.
 - **Objective**: Add status-expectation copy + `aria-live`/focus to the acknowledgement.
 - **Target files**: `src/app/workshop/feedback/page.tsx`, `src/components/workshop/BetaFeedbackForm.tsx`, `src/lib/workshop/beta-feedback.ts` (copy constants) or a new `beta-feedback-copy.ts`.
-- **Symbols**: `feedbackErrorMessage`, `BetaFeedbackForm`, new `ACK_COPY`/`STATUS_EXPECTATION` constants.
+- **Symbols**: `feedbackErrorMessage` (note: this is a **non-exported module function** in `page.tsx:6` — either export it or move ack copy to the constants module and import), `BetaFeedbackForm`, new `ACK_COPY`/`STATUS_EXPECTATION` constants.
 - **Instructions**: add severity-aware ack text; wrap success `<output>` with `role="status"`/`aria-live="polite"`; error with `role="alert"`; on inline state change, move focus to the output (`outputRef.current.focus()`).
 - **Output**: ack region renders promise text; focus moves.
 - **Failure cases**: copy drift between modes; focus not moving in headless test.
-- **Tests**: extend `tests/vitest/beta-feedback-*.test.ts` (RTL) — assert ack text + `role` + `activeElement`.
-- **Validation**: `bun run test:dom` focused; `bun run type-check`.
+- **Tests**: extend `tests/vitest/beta-feedback-form-ui.test.tsx` (RTL) — assert ack text + `role` + `activeElement`.
+- **Validation**: `bun run test:dom -- beta-feedback-form-ui`; `bun run type-check`.
 - **Completion evidence**: DOM test assertions pass.
 - **Complexity**: Small.
 
-### P0-T2 — Payload-preserving mailto fallback (Small)
+### P0-T2 — Payload-preserving mailto fallback (Small→Medium)
 - **Req IDs**: FR-ACK-02, SEC-DATA-02.
-- **Objective**: Wire `buildBetaFeedbackMailto(payload)` into the redirect-mode fallback so the user's message is preserved.
-- **Target files**: `src/lib/workshop/beta-feedback-actions.ts` (`feedbackRedirect`), `src/lib/workshop/beta-feedback.ts`.
-- **Symbols**: `feedbackRedirect`, `buildBetaFeedbackMailto`.
-- **Instructions**: on `fallback` code, build the mailto from the parsed payload (before discarding); pass encoded subject/body via redirect params; the page builds the `mailto:` link from params. Do not log the raw message.
-- **Output**: fallback mailto carries message/type/severity.
-- **Tests**: unit test on `buildBetaFeedbackMailto`; action test asserting fallback path produces a payload-bearing link.
+- **Objective**: Wire `buildBetaFeedbackMailto(payload)` into the fallback so the user's message is preserved.
+- **Target files**: `src/lib/workshop/beta-feedback-actions.ts` (`feedbackRedirect`/`submitBetaFeedbackInline`), `src/lib/workshop/beta-feedback.ts`, `src/app/workshop/feedback/page.tsx:21` (static mailto).
+- **Symbols**: `feedbackRedirect`, `buildBetaFeedbackMailto`, `submitBetaFeedbackInline` (inline fallback at `:64`).
+- **Instructions**:
+  - **Inline mode (preferred, no URL-length limit):** call `buildBetaFeedbackMailto(payload)` server-side and return the built `mailto:` URL string in `BetaFeedbackInlineState` (add a `mailtoHref?: string` field) so the modal renders a real link carrying the message. No redirect, no URL limit.
+  - **Redirect mode (URL-length constrained):** a 4000-char message URL-encodes to up to ~12k chars, exceeding browser/server URL limits (~2000 browser / ~8k server). **Do NOT pass the full message via redirect params.** Instead: pass only `type`/`severity` (short enums) + a truncated message (e.g. first 280 chars) via params, OR (cleaner) write a short-lived signed fallback token to D1 (`beta_feedback_submissions`-adjacent or a `feedback_fallback_drafts` lightweight row) keyed by a random id, pass only `?fallback=<id>`, and have the page read+render the mailto from that id then delete it. **Recommended (smallest):** inline-mode carries full payload; redirect-mode truncates to 280 chars with an explicit "(message truncated — full text preserved in the inline path or email)" note. Pick one at impl; document the choice.
+  - Do not log the raw message.
+- **Output**: fallback mailto carries (full or truncated-with-note) message/type/severity.
+- **Failure cases**: truncation loses tail of long message (mitigated by inline path + note); signed-token variant adds a table (rejected as CRM-adjacent — prefer truncation).
+- **Tests**: unit test on `buildBetaFeedbackMailto`; action test asserting inline fallback returns a payload-bearing `mailtoHref`; redirect-mode truncation test (message >280 → truncated + note).
 - **Validation**: focused vitest.
-- **Complexity**: Small.
+- **Complexity**: Medium (URL-length handling).
 
 ### P0-T3 — Operator notify on new blocker/high (Medium)
 - **Req IDs**: FR-NOTIFY-01, SEC-DATA-01, REL-01, ARCH-02.
@@ -93,7 +97,7 @@ Implementation bias: **minimal**. Honor the brief's "do not overbuild a CRM." Ev
 ### P1-T4 — SLA sweep + cron + alert (Medium)
 - **Req IDs**: FR-SLA-02, ARCH-03, SEC-DATA-01.
 - **Objective**: new `beta-feedback-sla-sweep.ts` `runFeedbackSlaSweep(env)` + new `beta-feedback-alert.ts` `sendFeedbackAlert` (clone of `sendUploadOperationalAlert`) + new `worker.ts` cron branch (e.g. `45 3 * * *`) + `wrangler.jsonc` cron entry.
-- **Instructions**: sweep reads non-archived rows; for each breached row with `alerted_at IS NULL`, fire `sendFeedbackAlert` + `UPDATE alerted_at` + `emitLogRecord("feedback_sla_breached")`; emit summary `feedback_sla_swept`. Wrap in try/catch; non-fatal.
+- **Instructions**: sweep reads non-archived rows; for each breached row with `alerted_at IS NULL`, fire `sendFeedbackAlert` (+ `AbortSignal.timeout(5000)` on its fetch — template lacks it, T-10) + `UPDATE alerted_at` + `emitLogRecord("feedback_sla_breached")`; emit summary `feedback_sla_swept`. Wrap in try/catch; non-fatal. **CRITICAL cron gate:** add the branch as `if (controller.cron === "45 3 * * *") { ctx.waitUntil(runFeedbackSlaSweep(env)); }` in `worker.ts scheduled()` — mirroring the retention-pass gate at `worker.ts:109`. Do NOT add it to the ungated `runCloudflareScheduledUploadJobs` `ctx.waitUntil` (which runs on every cron).
 - **Tests**: `tests/vitest/beta-feedback-sla-sweep.test.ts` — fixed fixtures; idempotency (`alerted_at` guard); alert called once; perf test variant at 1000 rows (evaluator).
 - **Complexity**: Medium.
 
