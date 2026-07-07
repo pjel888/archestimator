@@ -47,8 +47,13 @@ acceptance criteria, test coverage, and rollout check. No requirement untraced.
 | REL-01 (P0) | reliability | non-blocking | P2 | T-2.3 | `rum-client.ts` | AC-REL-01a | unit test | AQ-11 | ready |
 | REL-02 (P1) | reliability | swallow 5xx | P2 | T-2.3 | `rum-client.ts` | AC-REL-02a | unit test | AQ-11 | ready |
 | REL-03 (P0) | bfcache | preserve bfcache | P2 | T-2.4 | `RumReporter.tsx` | AC-REL-03a | `test:e2e:perf` | AQ-9 | ready |
-| TEST-01–04 | testing | coverage | P9 | T-9.1 | tests | ACs | matrix | — | ready |
-| DOC-01/02/03 | docs | runbook/notice/diagram | P9 | T-9.2/9.3 | docs | ACs | review | — | DOC-02 blocked (OPEN-CONSENT-01) |
+| TEST-01 (P1) | testing | unit/DOM client logic | P9 | T-9.1 | `tests/vitest/rum-client.test.ts`, `RumReporter.test.tsx`, `rum-route-bucket.test.ts` | AC-TEST-01a | matrix | `test:dom` | ready |
+| TEST-02 (P1) | testing | route handler unit tests | P3/P9 | T-9.1 | `tests/vitest/api-internal-rum-route.test.ts`, `rum-server.test.ts` | AC-TEST-02a | matrix | `bun test` | ready |
+| TEST-03 (P1) | testing | end-to-end real beacon | P9 | T-9.1 | `e2e/rum-beacon.spec.ts` | AC-TEST-03a | matrix | `test:e2e` | ready |
+| TEST-04 (P1) | testing | bfcache preserved | P9 | T-9.1 | `e2e/route-transition-performance.spec.ts` (existing) | AC-TEST-04a | matrix | `test:e2e:perf` | ready |
+| DOC-01 (P1) | docs | runbook | P9 | T-9.2 | runbook | AC-DOC-01a | review | doc review | ready |
+| DOC-02 (P1) | docs | privacy notice | P9 | T-9.3 | privacy page | AC-DOC-02a | review | owner review | blocked (OPEN-CONSENT-01) |
+| DOC-03 (P2) | docs | architecture diagram | 06 | — | `06_…` (Mermaid) | AC-DOC-03a | doc | — | ready |
 
 ## Performance-sensitive requirements — extra mapping
 

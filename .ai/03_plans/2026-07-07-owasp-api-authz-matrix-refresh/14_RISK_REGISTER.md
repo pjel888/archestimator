@@ -2,7 +2,7 @@
 
 | ID | Description | Trigger | Prob | Impact | Severity | Affected | Detection | Prevention | Mitigation | Contingency | Owner | Residual | Status |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| RISK-SEC-01 | Invite CSRF via stripped headers | attacker POSTs to `/invite/<token>/accept` w/o Origin/Referer | Med | Med | HIGH | invite accept/sign-out | WP-01 test | fix fail-closed | SameSite=Lax + session | owner-defer doc | impl/owner | MED (until WP-01) | open |
+| RISK-SEC-01 | Invite CSRF via stripped headers (defense-in-depth gap) | attacker POSTs to `/invite/<token>/accept` w/o Origin/Referer | Med | Low–Med | **MED** (mitigations present: SameSite=Lax + authenticated session) | invite accept/sign-out | WP-01 test | fix fail-closed for POST | SameSite=Lax + session both present | owner-defer doc | impl/owner | LOW (after WP-01) | open — **severity unified to MED across all docs (Doc 20 ADV-09)** |
 | RISK-SEC-02 | D1/Worker quota exhaustion (no edge limit) | parallel attack | Med | High | HIGH (broad) / MED (beta) | all public/auth | dashboard | edge/WAF (owner) | app-level limits | rate-limit + degrade | owner | MED-HIGH | owner-gated |
 | RISK-SEC-03 | Estimate mutation abuse | high-freq edits | Med | Med | MED | estimate mutations | telemetry | durable limit (WP-02) | in-memory (weak) | revert | impl | MED | open |
 | RISK-SEC-04 | DO socket exhaustion | many upgrades | Low | Med | MED | collaboration | DO metrics | upgrade limit (WP-03) | per-message authz | disable realtime | impl | MED | open |
@@ -13,6 +13,8 @@
 | RISK-EXT-01 | Hosted GitHub controls disabled | release gate | High | High | HIGH | release | re-enable CI/CodeQL/Dependabot/secret-scan | n/a | n/a | owner action | owner | HIGH | external |
 | RISK-VER-01 | Emulated verification overstates readiness | single-author bias | Med | Med | MED | pack quality | independent review | cap at 97 / CONDITIONALLY READY | owner/independent review | re-audit | owner | MED | open |
 | RISK-PROBE-01 | `canAccessProjectInD1` misused where `canAccessWholeProjectInD1` needed | refactor | Low | High | MED | estimate-only sheet-member leakage | static contract test | convention + tests | existing tests catch | revert | impl | LOW (tests guard) | mitigated |
+| RISK-SEC-11 | Caller-authorized Server Action (`maybeTriggerSharedLinkActivityDigest`) without action-layer auth | direct POST to the action | Low | Low | LOW | publication digest | contract test (WP-13) | callers authorize | document+test | revert | impl | LOW | open (SEC-11) |
+| RISK-AUDIT-01 | Retracted SEC-08 ("dead config") could be acted on by an implementer reading a stale copy | implementer removes `ARCHESTIMATOR_ALLOWED_APP_ORIGINS` | Low | High | MED (if acted on) | trustedOrigins + share email links | Doc 20 ADV-01 retraction | WP-12 explicitly says DO NOT remove | n/a | n/a | impl | LOW (retracted in current pack) | mitigated by retraction |
 
 ## Non-technical risks
 - **Owner decision load:** SEC-02/07/10/08 each need an owner call; bundling them into one

@@ -18,7 +18,7 @@ config may be changed by this pack's work.
 | Adversarial QA + test strategy | Adversarial scenario matrix, test execution matrix | Depends on requirements + architecture | requirements, architecture | COMPLETE | See `12_TEST_AND_VALIDATION_STRATEGY.md`, `19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md` §Adversarial QA. |
 | Critique-and-revision cycle 1 | Cross-document consistency, gap hunt, vagueness hunt | Depends on full draft | all authoring | COMPLETE | See `17_FINAL_READINESS_REVIEW.md` §Cycle 1. Resolved 3×P0, 6×P1, 4×P2. |
 | Critique-and-revision cycle 2 | Targeted re-review of P0/P1 fixes + readiness scoring integrity | Depends on cycle 1 | cycle 1 | COMPLETE | See `17_FINAL_READINESS_REVIEW.md` §Cycle 2. No new P0/P1. |
-| Final verification (emulated) | Requirement-by-requirement completion audit of the planning pack itself | Depends on cycle 2 | cycle 2 | COMPLETE | See `17_FINAL_READINESS_REVIEW.md`. verification_mode: emulated. Overall 96/100, CONDITIONALLY READY (capped by emulated verification + owner-gated decisions). |
+| Final verification (emulated) | Requirement-by-requirement completion audit of the planning pack itself | Depends on cycle 2 | cycle 2 | COMPLETE | See `17_FINAL_READINESS_REVIEW.md`. verification_mode: emulated. Overall 96/100, CONDITIONALLY READY (capped by emulated verification + owner-gated decisions). Completion-audit pass found 3 requirement IDs (DOC-03, TEST-02, TEST-03) covered by grouped rows but not cited by literal ID in `16`; matrix expanded so all 44 IDs in `04` are explicitly traced (verified by empty diff of ID sets). |
 
 ## Conflicts encountered and resolutions
 

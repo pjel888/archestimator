@@ -45,6 +45,12 @@ are historical.
 - Key design `{workspaceId}/{userId}/...` enforces tenant+actor partition.
 - DELETE re-validates ownership prefix.
 - `signedReadUrlFactory` unused (must not bypass authz if wired — SEC-09).
+- **Origin sources (SEC-10, audit correction):** `ARCHESTIMATOR_ALLOWED_APP_ORIGINS` is
+  **actively consumed** in `email-links.ts:37`, `redirects.ts:26`, and
+  `cloudflare-better-auth-runtime.ts:101` (Better Auth `trustedOrigins`). Per-request
+  share/invite origin checks derive from `request.url` instead. Both patterns are valid;
+  they are not reconciled in one place (SEC-10 consistency note). The earlier "dead config"
+  claim (SEC-08) was **false and retracted** (Doc 20 ADV-01).
 
 ## Cloudflare Durable Object (`COLLAB_ROOMS`)
 - `CollaborationRoom` class; per-message authz (`authorizeSocket` + `isSocketAuthorized`).
