@@ -1,41 +1,52 @@
 # 16 — Requirements Traceability Matrix
 
-Every requirement maps to source, task(s), code area, AC, test, rollout check.
+Required column shape (per `Improve-Plan-Prompt.md` §PHASE 3.2):
+`Source ID | Requirement | Source evidence | Source strength | Plan section | Work item | Acceptance criteria | Test/proof | Risk | Status | Gap/decision`
 
-| Req ID | Source | User/system outcome | Phase | Task IDs | Code areas | Acceptance criteria | Test coverage | Rollout check | Status |
-|---|---|---|---|---|---|---|---|---|---|
-| FR-001 | brief + `AGENTS.md:40`/`wrangler.jsonc:59-65` | single cron SoT | 1 | T-001, T-002 | AGENTS.md, guard test | 3 crons in all surfaces; guard green | T-002 | grep check | pending |
-| FR-002 | repo `upload-job-queue.ts:16-28` | taxonomy documented | 4 | T-007 | runbook | runbook §2 | doc review | n/a | pending |
-| FR-003 | repo `upload-job-queue.ts:119-122,338` | idempotency explicit+tested | 2 | T-003c,d | upload-job-queue.ts | boundary tests | T-003c,d | n/a | pending |
-| FR-004 | repo `wrangler.jsonc:73-81`,`upload-job-queue.ts:321` | retry/DLQ documented+both-side tested | 2,4 | T-003b, T-007 | runbook + test | `deadLetterExpected` both sides | T-003b + existing | n/a | pending |
-| FR-005 | brief | DLQ drain runbook | 4 | T-007 | runbook §9 | steps present | doc review | DLQ peek dry-run | pending |
-| FR-006 | brief | backlog checks | 4 | T-007 | runbook §7 | SQL+thresholds | SQL on preview D1 | n/a | pending |
-| FR-007 | repo `scheduled-upload-jobs.ts:63-65` | dry-run default preserved | 2,4 | T-007 (+T-010 opt) | runbook §5 | existing tests + runbook | existing | n/a | pending |
-| FR-008 | repo proof scripts | hosted proof path | 5 | T-008 | scripts | `productionJobsMessagingReady=true` | hosted (provider) | release-gates green | pending (owner-gated) |
-| FR-009 | repo registry 7/14 | registry completeness decision | 0 | OPEN-DEC-007 | retention-core.ts, runbook | decision recorded | doc review | n/a | pending (owner) |
-| ARCH-001 | repo `worker.ts:97-116` | cron routing documented | 4 | T-007 | runbook §1 | table present | doc review | n/a | pending |
-| ARCH-002 | repo 3+ inline copies | shared helper (optional) | opt | T-011 | new helper + routes | helper + tests | unit | deploy | deferred (optional) |
-| ARCH-003 | repo `worker.ts:97-115` | parallel waitUntil documented | 4 | T-007 | runbook | note + RISK-004 | doc review | n/a | pending |
-| DATA-001 | repo composite indexes | retention range scan | 3 | T-006 | migrations/0039 | EXPLAIN range | EXPLAIN | PRAGMA readback | pending (D-INDEX) |
-| DATA-002 | repo `retention-core.ts:231-238` | retention audit integrity | — | — (existing) | data_retention_events | audit row per delete | existing test | n/a | proven (existing) |
-| API-001 | repo route handlers | route shadow paths | — | — (existing) + T-003e,f | routes | matrix complete | existing + new | n/a | pending (tests) |
-| API-002 | repo `scheduled-upload-jobs.ts:67-85` | origin documented | 4 | T-007 | runbook | note | doc review | n/a | pending |
-| SEC-001 | derived | secret rotation runbook | 4 | T-007 | runbook §6 | steps present | doc review | rotation drill | pending |
-| SEC-002 | repo `upload-job-queue.ts:220-280` | no secret leak | — | — (existing) | proof scripts | sanitized | existing test | n/a | proven (existing) |
-| REL-001 | brief | alert thresholds | 4 | T-007 | runbook §8 | table | doc review | thresholds calibrated post-obs | pending |
-| REL-002 | brief | failure recovery matrix | 4 | T-007 | runbook §10 | matrix | doc review | n/a | pending |
-| REL-003 | repo `current-state.md:244` | 30-day obs gate | 6 | T-009 | observation | 30 audit days | hosted | calendar | pending (time-boxed) |
-| TEST-001 | `12` gaps | test gaps closed | 2 | T-003,T-005 | tests | `test:dom` green | new tests | n/a | pending |
-| TEST-002 | `12` gaps | worker handler test | 2 | T-004 | tests | invocation asserts | new test | n/a | pending (DISCOVERY sub-step) |
-| DOC-001 | brief | runbook created | 4 | T-007 | runbook | exists+consistent | doc review | n/a | pending |
-| DOC-002 | brief + AGENTS.md:40 | AGENTS.md fixed | 1 | T-001 | AGENTS.md | diff shows fix | grep | n/a | pending |
+Source-strength legend: `brief` = PROMPT.md; `repo evidence` = source file:line;
+`official docs` = Cloudflare/Next docs (cited in `19`); `provider proof` =
+hosted evidence; `assumption` = inferred (labeled); `derived` = synthesized;
+`owner-delegated` = planning decision.
+
+| Source ID | Requirement | Source evidence | Source strength | Plan section | Work item | Acceptance criteria | Test/proof | Risk | Status | Gap/decision |
+|---|---|---|---|---|---|---|---|---|---|---|
+| SRC-BRIEF | FR-001 single cron SoT | `AGENTS.md:40` (2 crons) vs `wrangler.jsonc:59-65` (3 crons); `scheduled-upload-jobs.ts:1-2` | repo evidence + brief | 04, 13 | T-001, T-002 | 3 crons in all 5 surfaces; guard test green | T-002 vitest | RISK-001 | pending | none |
+| SRC-REPO | FR-002 queue taxonomy | `upload-job-queue.ts:16-28` (message v1) | repo evidence | 04 | T-007 | runbook §2 lists jobs+fields+version rule | doc review | — | pending | none |
+| SRC-REPO | FR-003 idempotency contract | `upload-job-queue.ts:119-122` (key), `:338` (per-batch Set) | repo evidence | 04, 06 | T-003c,d | minute-boundary + cross-batch tests | T-003c,d | RISK-002, RISK-013 | pending | none |
+| SRC-REPO+OFFICIAL | FR-004 retry/DLQ policy | `wrangler.jsonc:73-81` (max_retries 3, DLQ); `upload-job-queue.ts:321`; official DLQ/retries docs (`19`) | repo evidence + official docs | 04, 07, 18 | T-003b, T-007 | `deadLetterExpected` both sides; numbers in runbook | T-003b + existing | RISK-003 | pending | D-DLQDRAIN (drain mechanism) |
+| SRC-BRIEF | FR-005 DLQ drain/replay runbook | PROMPT "failure recovery"; official DLQ/pull-consumer docs | brief + official docs | 04, 13 | T-007 | runbook §9 uses real mechanisms (consumer/pull/dashboard) | doc review + pull-consumer drill | RISK-003, RISK-013 | pending | D-DLQDRAIN recommended |
+| SRC-BRIEF+REPO | FR-006 backlog checks | PROMPT "backlog checks"; route `scan_status`/`status` queries | brief + repo evidence | 04, 13 | T-007 | SQL+thresholds in runbook §7 | SQL on preview D1 (read-only) | — | pending | thresholds `assumption` |
+| SRC-REPO | FR-007 dry-run default | `scheduled-upload-jobs.ts:63-65`; `retention-core.ts:212-223` | repo evidence | 04, 13 | T-007 (+T-010 opt) | existing tests + runbook §5 | existing | — | pending | D-RETDRY owner-delegated |
+| SRC-REPO | FR-008 hosted proof path | `generate-cloudflare-queues-cron-proof.ts:388-407`; `verify-cloudflare-jobs-proof.ts` | repo evidence | 04, 13 | T-008 | `productionJobsMessagingReady=true` | hosted `cf:jobs-proof` (provider) | RISK-010 | pending | OPEN-DEC-008 owner-gated |
+| SRC-REPO | FR-009 registry completeness | `retention-core.ts:79-143` (7/14); `retention-schedule.md` | repo evidence | 04, 15 | OPEN-DEC-007 | decision recorded per class | doc review | — | pending | OPEN-DEC-007 owner |
+| SRC-REPO | ARCH-001 cron routing | `worker.ts:97-116`; `scheduled-upload-jobs.ts:100-112` | repo evidence | 06 | T-007 | runbook §1 routing table | doc review | — | pending | none |
+| SRC-REPO | ARCH-002 shared auth helper | route handlers (3+ inline copies) | repo evidence | 06, 11 | T-011 (opt) | helper+tests if implemented | unit | RISK-006 | deferred | optional follow-up |
+| SRC-REPO | ARCH-003 parallel waitUntil | `worker.ts:97-115` | repo evidence | 06 | T-007 | runbook note + RISK-004 | doc review | RISK-004 | pending | none |
+| SRC-REPO+INFER | DATA-001 created_at indexes | migrations 0004/0007/0014/0025/0033 (composite only); inference on scan cost | repo evidence + derived | 07 (DB-INDEX) | T-006 | EXPLAIN range scan; PRAGMA readback | EXPLAIN on preview D1 | RISK-008 | pending | D-INDEX owner-approved-pending |
+| SRC-REPO | DATA-002 retention audit | `retention-core.ts:231-238` | repo evidence | 07 | — (existing) | audit row per delete | existing test | — | proven (existing) | none |
+| SRC-REPO | API-001 route shadow paths | route handlers; `04` shadow matrix | repo evidence | 04 | T-003e,f (+existing) | matrix cells all answered | existing + T-003e,f | — | pending | none |
+| SRC-REPO | API-002 origin header | `scheduled-upload-jobs.ts:67-85` | repo evidence | 04, 13 | T-007 | runbook note | doc review | — | pending | none |
+| SRC-DERIVED | SEC-001 secret rotation | secret-fallback semantics; `cf:sync-worker-secrets` | derived | 04, 13 | T-007 | runbook §6 steps; overlap procedure | doc review + rotation drill | RISK-005 | pending | none |
+| SRC-REPO | SEC-002 no secret leak | `upload-job-queue.ts:220-280` | repo evidence | 08 | — (existing) | sanitized receipts | existing `markdown no secret leak` test | — | proven (existing) | none |
+| SRC-BRIEF | REL-001 alert thresholds | PROMPT "alert thresholds" | brief | 04, 09, 13 | T-007 | runbook §8 table; hosted metrics flagged | doc review | RISK-007 | pending | thresholds `assumption` |
+| SRC-BRIEF | REL-002 failure recovery | PROMPT "failure recovery" | brief | 04, 13 | T-007 | runbook §10 matrix | doc review | — | pending | none |
+| SRC-REPO | REL-003 30-day observation | `current-state.md:244` | repo evidence | 13 | T-009 | 30 consecutive audit days | hosted observation | RISK-012 | pending | calendar-gated |
+| SRC-ANALYSIS | TEST-001 test gaps | `12` gap analysis | derived | 12 | T-003, T-005 | `test:dom` green | new vitest | — | pending | none |
+| SRC-ANALYSIS | TEST-002 worker handler test | `12` gap | derived | 12 | T-004 | handler invocation asserts | new vitest | RISK-011 | pending | DISCOVERY sub-step (opennext mock) |
+| SRC-BRIEF | DOC-001 runbook | PROMPT | brief | 11, 13 | T-007 | doc exists+consistent | doc review | — | pending | none |
+| SRC-BRIEF+REPO | DOC-002 AGENTS.md fix | PROMPT + `AGENTS.md:40` | brief + repo evidence | 11 | T-001 | diff shows fix | grep check | — | pending | none |
 
 ## Performance-sensitive requirements (PERF mapping)
 
-| Req | Baseline | Target | Measurement | Regression threshold | Rollback trigger |
+| Req | Baseline | Target | Measurement source | Regression threshold | Rollback trigger |
 |---|---|---|---|---|---|
-| DATA-001 | full scan retention SELECT | range scan (post-index) | `EXPLAIN` on preview D1 | rows-read doubles w/o row-count doubling | `DROP INDEX` |
-| FR-008 | `productionJobsMessagingReady=false` | `=true` | `cf:jobs-proof` hosted | flag false post-deploy | re-run proof / revert deploy |
+| DATA-001 | full-scan retention SELECT | range scan (post-index) | `EXPLAIN` on preview D1 | rows-read doubles w/o row-count doubling | `DROP INDEX` |
+| FR-008 | `productionJobsMessagingReady=false` | `=true` | hosted `cf:jobs-proof` | flag false post-deploy | re-run proof / revert deploy |
 | REL-003 | no observation | 30 stable days | `data_retention_events` daily | missing day | investigate cron/D1 |
 
-No requirement is untraced. Every task maps to ≥1 requirement.
+## Completion-criteria check
+
+- No requirement lacks source evidence: ✅ (every row has Source evidence + strength).
+- No requirement lacks AC: ✅.
+- No requirement lacks a planned proof path: ✅.
+- Every work item traces back to a source requirement or recorded decision: ✅ (T-010→D-RETDRY, T-011→ARCH-002, T-012→OPEN-DEC-007 are decision-linked; T-001…T-009 are requirement-linked).

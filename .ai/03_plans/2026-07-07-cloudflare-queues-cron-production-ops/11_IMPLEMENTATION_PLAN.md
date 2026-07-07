@@ -25,16 +25,41 @@ Phase 5 (hosted proof, owner-gated) ◄─────────────�
 
 ## Phase 1 — Documentation consistency + cron guard (FR-001, DOC-002, DOC-001 start)
 
-### Task T-001 — Fix AGENTS.md cron drift
-- **Req:** FR-001, DOC-002.
-- **Objective:** Correct `AGENTS.md:40` from "Two cron triggers" to three.
-- **Target file:** `AGENTS.md`.
-- **Target symbol/line:** line 40, the binding-summary sentence ending "Two cron triggers (`0 3 * * *`, `15 3 * * *`)."
-- **Exact change:** replace with: "...Queue `UPLOAD_JOBS_QUEUE` (`archestimator-upload-jobs` + DLQ `archestimator-upload-jobs-dlq`), ... Three cron triggers (`0 3 * * *` upload-cleanup, `15 3 * * *` upload-scan, `30 3 * * *` retention), ...". (Executor: preserve the surrounding sentence structure and the DLQ mention.)
-- **Validation:** `git diff --check`; grep `AGENTS.md` for "Two cron" returns 0 hits, "Three cron" returns 1.
-- **Acceptance:** drift resolved.
-- **Rollback:** revert the one-line edit.
-- **Parallelization:** parallel-safe (no file overlap with other tasks except runbook, which is a different file).
+### Implementation Unit T-001 — Fix AGENTS.md cron drift
+- **Unit ID:** T-001
+- **Requirement IDs:** FR-001, DOC-002
+- **Goal:** Resolve the "two vs three cron triggers" documentation drift.
+- **User/system outcome:** Agents/operators read a binding summary that matches the deployed cron config, so retention isn't silently invisible.
+- **Scope:** One sentence in `AGENTS.md`.
+- **Non-goals:** do not rewrite the binding-summary block; do not touch other docs here (`retention-schedule.md`, `current-state.md` are separate appends).
+- **Files to modify:** `AGENTS.md` (line 40, binding-summary sentence ending "Two cron triggers (`0 3 * * *`, `15 3 * * *`).").
+- **Existing patterns to follow:** the surrounding sentence already names bindings parenthetically; mirror that style.
+- **Dependencies/sequencing:** none; parallel-safe (no file overlap with tests/migrations/runbook).
+- **Data/API/security/perf implications:** none (docs-only).
+- **Detailed test scenarios:** n/a (doc); verification is grep-based.
+- **Verification command/evidence:** `git diff --check`; `rg -c "Two cron" AGENTS.md` → 0; `rg -c "Three cron" AGENTS.md` → 1.
+- **Rollback/recovery:** `git revert` the one-line edit.
+- **Stop/blocker condition:** none.
+- **Done criteria:** sentence lists three triggers + DLQ name; grep checks pass.
+- **Complexity:** Small.
+
+### Implementation Unit T-002 — Cron union guard test
+- **Unit ID:** T-002
+- **Requirement IDs:** FR-001
+- **Goal:** Pin the cron source of truth so future drift fails the test suite.
+- **User/system outcome:** any edit that desynchronizes `wrangler.jsonc` from the code constants is caught in CI.
+- **Scope:** one new (or extended) vitest.
+- **Non-goals:** do not test cron *firing* (hosted); only the static union.
+- **Files to create/modify:** `tests/vitest/cloudflare-cron-source-of-truth.test.ts` (new) OR extend `tests/vitest/cloudflare-scheduled-upload-jobs.test.ts`.
+- **Existing patterns:** `cloudflare-scheduled-upload-jobs.test.ts` already reads `wrangler.jsonc` from disk (L31) — mirror that read.
+- **Dependencies/sequencing:** none; parallel-safe.
+- **Implications:** none (test-only).
+- **Test scenarios:** (1) `new Set(wranglerCrons) === {CLOUDFLARE_UPLOAD_CLEANUP_CRON, CLOUDFLARE_UPLOAD_SCAN_CRON, "30 3 * * *"}`; (2) `worker.ts` source contains the literal `"30 3 * * *"` in the retention branch.
+- **Verification:** `bun run test:dom -- cloudflare-cron-source-of-truth`.
+- **Manual red-check (during impl):** temporarily edit `wrangler.jsonc` to 2 crons → test red; restore.
+- **Rollback:** delete the test file.
+- **Stop/blocker:** none.
+- **Done criteria:** test green; manual red-check confirms it bites.
 - **Complexity:** Small.
 
 ### Task T-002 — Add cron union guard test

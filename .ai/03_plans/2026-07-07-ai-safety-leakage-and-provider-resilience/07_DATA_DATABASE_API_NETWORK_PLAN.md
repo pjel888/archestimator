@@ -69,3 +69,27 @@ Map AI failures to the existing taxonomy (`src/lib/observability/app-error.ts`):
 
 - Apply writes are inside the existing `estimate_sheet_events` atomicity pattern (correlation_id idempotency). D1 transactions are limited; the idempotency ledger is the safety net. No new transaction needs.
 - Rate-limit counters: best-effort increment (acceptable; over-counting errs safe).
+
+## Access-path matrix (Improve pass — required by PHASE 3 §6)
+
+`Source | Chosen API/repository/binding | Runtime role | Authorization check | Latest schema/policy posture | Proof source | Fallback`. If a chosen path cannot read/write/call the source after current migrations/app-authz/policies, it is a P0 — none found here (all paths are live and workspace-scoped).
+
+| Source | Chosen path | Runtime role | Authorization check | Schema/policy posture | Proof source | Fallback |
+|---|---|---|---|---|---|---|
+| `projects` / `estimates` / `estimate_nodes` / `estimate_row_items` | `src/lib/ai/read-context.ts`, `package-builder/read-tools.ts` (D1 `ARCH_DB`, parameterized, `WHERE workspace_id=?`) | Worker (server-only) | session `workspaceId` bound in SQL; transitive child reads re-validate parent against workspace | D1 migrations 0007/0015/0021/0025/0026; **no D1 RLS** — app-code isolation | `tests/vitest/ai-ask-read-context.test.ts`, `ai-package-builder-read-tools.test.ts` | return `available:false` / empty |
+| `cost_library_items` + price options / `library_folders` | read-context + read-tools (D1, workspace-bound) | Worker | `workspace_id=?` | migration 0026 | read-tools test | empty |
+| `estimate_templates` + nodes/rows | read-context + read-tools | Worker | `workspace_id=?` | migration 0024 | read-tools test | empty |
+| `estimate_sheet_events` (write) | `package-builder/apply.ts` | Worker as ws editor | `canEditEstimateInD1` + token + idempotency | migration 0021/0025; `metadata.source='ai-package-builder-apply'` | `tests/vitest/ai-package-builder-apply.test.ts` | rollback via history + idempotency |
+| `cost_library_items` (write via apply) | apply.ts `validateLinkedLibraryRows` | Worker as ws editor | re-verify workspace ownership + active + version/`updated_at` match | migration 0026 | apply test | reject stale/foreign |
+| `ai_action_runs` / `ai_tool_calls` / `ai_data_access_events` (audit write) | `audit-d1-store.ts` | Worker | server-only; `workspace_id`+`actor_user_id` NOT NULL; hash CHECKs | migration 0006; **retention rule rows MISSING (DATA-002 defect)** | `tests/vitest/ai-audit-flow.test.ts`, `ai-audit-schema.test.ts` | best-effort (except Apply authz fail-closed) |
+| `ai_package_apply_commands` (idempotency) | apply.ts | Worker as ws editor | `UNIQUE(workspace_id,idempotency_key)` | migration 0027 | apply test | idempotent replay |
+| `ai_package_builder_memory_preferences` | memory.ts (default OFF) | Worker | `workspace_id→workspaces` | migration 0019; **not in retention union** | `tests/vitest/ai-package-builder-memory.test.ts` | disabled by flag |
+| `security_rate_limit_events` | rate-limit.ts | Worker | hashed key `[ws,user,ip]` | migration 0006 | (Ask) route test | deny 429 |
+| DeepSeek HTTP API | `deepseek.ts`, `provider.ts` (raw `fetch`, Bearer) | Worker (server-only) | server env key; hard-coded URL (no SSRF) | external; no repo schema | mocked-fetch tests; no real call in scope | Ask→502; PB→deterministic draft |
+| Better Auth session (D1) | `getCurrentUserContext` | Worker | DB-verified session; cookie-cache disabled | Better Auth 1.6.22 on D1 | auth tests | 401 |
+
+No P0 access-path gap: every AI read/write resolves through a live, workspace-scoped D1 path or a server-only external call. The one defect (AI retention rule rows) is operational (purge), not an access-path blockage.
+
+## DATA-002 defect note (confirmed this pass)
+
+`retention-core.ts:79-135` `DEFAULT_RETENTION_RULES` has rows for `account_security_events`, `account_audit_legacy_sha256`, `collaboration_audit_events`, `shared_link_events`, `estimate_sheet_events`, `privacy_requests_*` — but **none for `ai_action_runs`, `ai_tool_calls`, `ai_data_access_events`** despite those being in the `RetentionClassName` union (lines 32-34). Consequence: AI audit rows accumulate indefinitely. Resolution = work item T-P6-2 (add rule rows, additive config, no migration). Hosted proof of actual purge remains a hosted gap.

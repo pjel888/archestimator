@@ -4,7 +4,7 @@
 
 | Area | Impact | Classification | Evidence |
 |---|---|---|---|
-| `migrations/0037_*` (new) | new governance columns + indexes + state-history extension | Required change | `07` |
+| `migrations/0038_*` (new) | new governance columns + indexes + state-history extension | Required change | `07` |
 | `src/lib/component-library/actions.ts` | new review/import/export actions; existing create/update set `origin` default | Required change | `03`,`07` |
 | `src/lib/component-library/quick-add-validation.ts` | extend for region/version/origin fields | Probable change | `04` REQ-1 |
 | `src/lib/authz/d1-access.ts` | new `isCostLibraryGovernanceAdminInD1` helper | Required change | `04` REQ-9 |

@@ -178,6 +178,45 @@ Stable IDs per category. Each requirement: statement, rationale, source, priorit
 - **Risks.** Wiring a login-time grant adds an auth-adjacent mutation — must be carefully gated. Removing is simpler and safer if no product need exists.
 - **Status.** Planned (Phase 5; gated on OPEN-SEC-01).
 
+### SEC-12 — Resolve-route token-shape validation must reject malformed/oversized tokens (non-regression)
+- **Statement.** The `/invite/[token]` resolve path must continue to reject tokens outside `^[A-Za-z0-9_-]{32,256}$` before any DB lookup.
+- **Rationale.** Defense-in-depth against enumeration/oversized-input attacks. Already implemented (`page.tsx:22` `TOKEN_SHAPE_PATTERN`); non-regression gate.
+- **Source.** `repo evidence` (`page.tsx:22,66`).
+- **Priority.** P2 (non-regression).
+- **Acceptance criteria.** AC-SEC-12a: malformed/oversized/short tokens return the `invalid` terminal state without a DB lookup.
+- **Validation.** Existing `project-invite-entry-route.test.ts` invalid-token cases.
+- **Status.** Non-regression (Phase 6 audit).
+
+### SEC-13 — Invite emails must not leak more than necessary (inherent disclosure documented)
+- **Statement.** The invite email body discloses project name, role, and inviter email (necessary for the recipient to decide). This is an inherent disclosure risk if the email is mis-delivered; mitigate via manager-visible audit + the new revoke capability (SEC-07), not by redacting the email.
+- **Rationale.** Documented residual risk (SEC-13 in `08`); not a code change.
+- **Source.** `repo evidence` (`actions.ts:614-644` `sendCloudflareInviteEmail`).
+- **Priority.** P3 (documentation).
+- **Acceptance criteria.** AC-SEC-13a: the disclosure risk is documented in `08` residual risk + `14`; revoke (SEC-07) provides the mitigation.
+- **Validation.** Doc review.
+- **Status.** Documented (Phase 6 audit).
+
+### SEC-14 — Replay of a used token by a different actor must be denied (non-regression)
+- **Statement.** Already covered by FR-05; cross-listed here for traceability since the threat model (`08` SEC-14) references it. No separate code change.
+- **Source.** `repo evidence` (`invitation-d1-store.ts:125-131,476-481`).
+- **Priority.** P1 (non-regression).
+- **Acceptance criteria.** AC-SEC-14a: same as AC-FR-05a.
+- **Status.** Non-regression (Phase 6 audit; duplicate of FR-05 — kept only for traceability to the threat model).
+
+### SEC-15 — Revoke must prevent IDOR (cross-workspace invitation revocation denied)
+- **Statement.** The new `revokeProjectInvitation`/`revokeEstimateSheetInvitation` Server Actions must deny a manager attempting to revoke an invitation belonging to a different workspace/project/estimate (inferred invitationId from another context). The existing `assertProjectAccessManager`/`assertEstimateAccessManager` guards plus the invitation's `workspace_id`/`project_id`/`estimate_id` scoping enforce this.
+- **Rationale.** The new revoke action is a new IDOR surface; the threat model (`08` SEC-15) requires an explicit denial test.
+- **Source.** `repo evidence` (the assert-manager pattern in sibling actions; invitation scoping columns in `migrations/0007`).
+- **Priority.** P1 (new mutation surface).
+- **Dependencies.** SEC-07 (the action).
+- **Acceptance criteria.**
+  - AC-SEC-15a: A manager of project A invoking revoke with an `invitationId` belonging to project B is denied (the assert-manager guard fails because the invitation's `project_id` ≠ the request's `projectId`).
+  - AC-SEC-15b: A direct-POST to the revoke Server Action endpoint from a cross-site origin is rejected by Next.js's built-in Server-Action Origin check before `assertProjectAccessManager` runs (verified by AQ-11).
+- **Validation.** `tests/vitest/project-collaboration-revoke-invitation.test.ts` cross-workspace denial case; AQ-11 in `19`.
+- **Affected areas.** The new revoke actions in `src/lib/collaboration/actions.ts` (reusing the existing assert guards).
+- **Risks.** None — the guards are the same proven pattern used by `removeProjectCollaborator`.
+- **Status.** Planned (Phase 3, P3-T3; subsumed under SEC-07's denial test).
+
 ---
 
 ## Functional requirements (FR)

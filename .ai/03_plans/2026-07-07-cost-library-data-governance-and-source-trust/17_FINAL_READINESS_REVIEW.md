@@ -63,7 +63,7 @@ However, two conditions prevent `IMPLEMENTATION-READY`:
 
 Named slices that CAN proceed to implementation immediately (no external blocker):
 - P0 (`TASK-001..004`): discovery, types, flag, authz helper (under `OPEN-5` assumption).
-- P1 (`TASK-005..008`): migration `0037` (under `OPEN-1` Mode A default), repository projection.
+- P1 (`TASK-005..008`): migration `0038` (under `OPEN-1` Mode A default), repository projection.
 - P2 (`TASK-009..014`): review actions + authz + origin (under `OPEN-5`).
 - P3 (`TASK-015..019`): trust model wiring + freshness consistency (under `OPEN-3` free-text fallback).
 - P4 (`TASK-020..022`): stale propagation.

@@ -24,10 +24,39 @@ proof scripts, and the secrets that authorize them. No user-facing surface.
 2. **Queue message body** — if an attacker could inject a message (they cannot
    without the queue binding, which is Worker-only), the consumer validates via
    `isUploadJobQueueMessage` and acks invalid as `"invalid-message"`.
-3. **Proof receipts in R2** — sanitized, no secrets; `safeProviderProofId`
+3. **DLQ pull-consumer (new, optional)** — if D-DLQDRAIN is taken (pull consumer
+   over HTTP to drain `archestimator-upload-jobs-dlq`), that HTTP pull endpoint
+   becomes a new network surface requiring its own auth/scoping. See `13` §9.
+4. **Proof receipts in R2** — sanitized, no secrets; `safeProviderProofId`
    regex-gates the key.
-4. **Logs** — `console.log(JSON.stringify(summary))` in `worker.ts`; summaries
+5. **Logs** — `console.log(JSON.stringify(summary))` in `worker.ts`; summaries
    contain no secrets (verified by route code: summaries are counts/paths/status).
+
+## Attack Surface Inventory (required format)
+
+Format (per `Improve-Plan-Prompt.md` §PHASE 3.7):
+`Entry point | Actor | Authn/authz and ownership check | Input validation | Output DTO | Cache/header behavior | Rate/abuse posture | Required tests`
+
+| Entry point | Actor | Authn/authz + ownership check | Input validation | Output DTO | Cache/header | Rate/abuse posture | Required tests |
+|---|---|---|---|---|---|---|---|
+| `POST /api/internal/upload-cleanup` | Cron/queue (Worker-internal fetch) **or attacker (direct POST)** | Bearer ∈ {`CRON_SECRET`,`UPLOAD_CLEANUP_JOB_SECRET`}; 503 if unset, 401 if wrong; no per-user ownership (operator job) | `?limit=` clamped ≤1000; `?dryRun=` 1/true; `UPLOAD_JOBS_ENABLED=1` for live | planner/cleanup summary: runId, candidate/rejected counts, removed/failed/rejected, audit event counts, operationalSnapshot — **no raw storage paths, tokens, or PII** | `Cache-Control: private,no-cache,no-store` | no app rate limit (Worker-internal); Cloudflare WAF/edge rate-limit at the custom domain; once-daily cron bounded by `limit` | PROOF-CLEANUPAUTH (503/401); existing route tests |
+| `POST /api/internal/upload-scan` | Cron/queue **or attacker** | Bearer ∈ {`CRON_SECRET`,`UPLOAD_SCAN_JOB_SECRET`}; same fail-closed | `?limit=` ≤500; `?dryRun=`; enabled-gate | scan result: scannedCount, downloadFailedCount, scannerFailedCount, writeFailedCount, outcomeCounts — **no raw bytes/paths** | same no-store | same; scanner provider has its own quota | PROOF-SCANAUTH (503/401); existing |
+| `queue()` handler (Cloudflare Queue delivery) | Cloudflare Queues infra only | binding-gated (not network-reachable by external actors); consumer validates message via `isUploadJobQueueMessage` | message schema v1 validator; `matchingJobExists`; `safeProviderProofId` regex | batch summary logged; R2 receipt sanitized | n/a (in-process) | `max_batch_size:5` bounds batch; consumer concurrency managed by Cloudflare | PROOF-POISON, PROOF-IDVALID, PROOF-EXC |
+| `scheduled()` handler (Cron Trigger) | Cloudflare Cron only | platform-invoked; retention branch in-process (no Bearer — trusted because not network-reachable) | cron string matched against registry; retention rules are static code | console.log summary (counts); `data_retention_events` audit row | n/a | 3 crons, once-daily, off-peak | PROOF-WORKERSCHED |
+| (optional, D-DLQDRAIN) DLQ pull-consumer HTTP API | Operator only | **MUST** require a Bearer secret or Cloudflare Access token scoped to the operator; **not** open | pull batch size bounded | ack/retry per message; no PII echoed | n/a | visibility_timeout 30s default; operator-only | denial test if implemented (UQ matrix) |
+| R2 `provider-proof/jobs/<id>.json` | Operator read | R2 object policy (Worker-bound; not public) | `safeProviderProofId` regex on key | sanitized receipt JSON | `Cache-Control: no-store` | none (write-once per proof id) | PROOF-NOLEAK |
+| `console.log` summaries (Workers Observability) | Cloudflare platform | sampled 0.1 (logs); not a security control | n/a | counts/status only | n/a | n/a | SEC-002 (no-leak test on proof artifacts) |
+
+**DTO minimization note:** all output DTOs are aggregate counts + status; raw
+storage paths are hashed (cleanup) or absent (scan). No raw tokens, user IDs,
+or PII cross into any DTO. This is verified by existing tests
+(`rawStoragePathRecorded=false`) and the `markdown no secret leak` proof.
+
+**Abuse posture:** these are operator-only, once-daily, Bearer-gated endpoints.
+The primary abuse vector is a leaked bearer secret (T-1/T-3) → mitigated by
+rotation (SEC-001). No per-user rate limiting is needed because there is no
+per-user access. Edge WAF/rate-limiting at `archestimator.com` provides
+platform-level protection against direct-POST flooding.
 
 ## Threat model
 

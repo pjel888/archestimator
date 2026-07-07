@@ -108,17 +108,20 @@ Phases 1→2→3 are sequential (P2's disabled-flag short-circuit depends on P1'
 
 ### P2 Tasks
 
-#### P2-T1 — Fail-closed rate limits + route disabled-state short-circuit
+#### P2-T1 — Add disabled-state short-circuit to the continue route (scoped: resolve + accept already safe)
 - **Task ID:** P2-T1
 - **Req IDs:** SEC-05
-- **Objective:** When the invite feature is disabled, resolve/continue/accept either (a) return the disabled state at the route level before consulting the limiter, or (b) the limiter returns deny. Preferred: route-level short-circuit (clearer, no rate-limit DB writes when disabled).
-- **Why:** `invite-entry.ts:184-185` returns `{ allowed: true }` when disabled → all abuse protection vanishes.
-- **Target paths (existing):** `src/lib/collaboration/invite-entry.ts` (the disabled branch); `src/app/invite/[token]/page.tsx` (resolve disabled state — already exists), `src/app/invite/[token]/continue/route.ts`, `src/app/invite/[token]/accept/route.ts` (add `if (!config.enabled) return <disabled>` short-circuits).
+- **Objective:** Add a `!config.enabled` short-circuit to `/invite/[token]/continue` so it does not mint the bridge cookie when the feature is disabled. (Scope corrected during the Improve pass: the resolve page at `page.tsx:66` and the accept route at `accept/route.ts:100` **already short-circuit safely** when disabled — verified in source — so they are non-regression targets, not work items. Only the continue route fails open.)
+- **Why:** `continue/route.ts:39-72` has no `!config.enabled` check; it relies on the rate limiter, which returns `allowed:true` when disabled (`invite-entry.ts:184-185`). So a disabled flag still allows bridge-cookie minting on the continue route.
+- **Source evidence (verified 2026-07-07):** `accept/route.ts:99-100` (`const config = readInviteEntryConfig(); if (!config.enabled) return redirectToPath(request, "/workshop");`); `page.tsx:64-68` (`if (!config.enabled || !isRouteTokenShapeValid(rawToken)) return { kind: "invalid" ...}`); `continue/route.ts:39-72` (NO such check).
+- **Target path (existing):** `src/app/invite/[token]/continue/route.ts`.
+- **Target symbol:** `continueToAuth` (L39).
 - **Detailed instructions:**
-  1. In each of the three routes, after reading `readInviteEntryConfig()`, if `!config.enabled` return the appropriate disabled response (resolve: existing disabled state on the page; continue: redirect to invite with no cookie; accept: redirect to `/workshop` — already done at `accept/route.ts:100`).
-  2. In `checkInviteRateLimit`, change the disabled branch to return a deny result **or** document that callers must short-circuit before calling it. Preferred: keep the helper's disabled-allow (it's only reachable if a caller forgets to short-circuit) AND add the route short-circuits. Belt-and-suspenders.
-- **Tests/val:** Extend `project-invite-feature-flag.test.ts`: with flag off, resolve renders disabled (not active); continue sets no cookie; accept redirects to `/workshop` without calling the RPC.
-- **Complexity:** Small-Medium.
+  1. In `continueToAuth`, immediately after decoding the token (L41), add: `const config = readInviteEntryConfig(); if (!config.enabled) return redirectToInvite(request, rawToken);` (reusing the existing `redirectToInvite` helper at L27) — before the rate-limit check and before `createPendingInviteBridge`. This mirrors the accept route's pattern.
+  2. Optionally also harden `checkInviteRateLimit`'s disabled branch to return a deny result (belt-and-suspenders; not strictly needed once the route short-circuits). Document the choice in code comments.
+  3. Do NOT modify the resolve page or accept route (they already short-circuit).
+- **Tests/val:** Extend `tests/vitest/project-invite-feature-flag.test.ts`: (a) flag off → continue sets NO cookie + redirects to invite; (b) non-regression: flag off → resolve renders disabled (already passes); (c) non-regression: flag off → accept redirects to `/workshop` (already passes).
+- **Complexity:** Small (single-route guard, mirroring an existing pattern).
 
 ---
 
