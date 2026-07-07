@@ -13,72 +13,119 @@ then P1, then P2 hardening. Each task has exact paths/symbols, validation, and r
 ## Phase 0 — P0 launch-blockers (parallel-safe across disjoint files)
 
 ### Task WP-01 — Close invite-origin fail-open (SEC-01 / REQ-CSRF-01)
+- **Unit ID:** WP-01.
 - **Requirement IDs:** REQ-CSRF-01.
-- **Objective:** `isAllowedInviteOrigin` must fail closed for state-changing POST when
-  both `Origin` and `Referer` are absent.
-- **Target file:** `src/lib/collaboration/invite-origin.ts:39`.
-- **Target symbol:** `isAllowedInviteOrigin`.
-- **Why:** documented CSRF defense for `/invite/<token>/accept` POST and `/sign-out`
-  currently returns `true` on stripped headers.
+- **Goal:** `isAllowedInviteOrigin` must fail closed for state-changing POST when both
+  `Origin` and `Referer` are absent.
+- **User/system outcome:** a cross-site request with stripped headers can no longer pass
+  the invite same-origin guard for POST mutations.
+- **Scope:** the terminal `return true` at `src/lib/collaboration/invite-origin.ts:39`.
+- **Non-goals:** do NOT change GET (redirect) behavior; do NOT remove the `!appHost → true`
+  local-dev escape (line 27); do NOT change `assertSameOriginPublicPost` (share surface,
+  already correct).
+- **Files (repo-relative):** modify `src/lib/collaboration/invite-origin.ts`; update test
+  `tests/vitest/invite-accept-origin.test.ts`. Callers
+  (`src/app/invite/[token]/accept/route.ts`, `src/app/invite/[token]/sign-out/route.ts`)
+  pass through unchanged.
+- **Target symbol:** `isAllowedInviteOrigin` (split into `isAllowedInviteOriginPost` or
+  accept a method argument).
+- **Existing patterns to follow:** `assertSameOriginPublicPost`
+  (`src/lib/publication/security.ts:373`) is the model — it denies on missing Origin.
+- **Dependencies/sequencing:** none (disjoint file). Parallel-safe with WP-02/03.
+- **Data/API/security/perf implications:** security-positive (closes defense-in-depth gap);
+  no data change; no perf impact (header read).
 - **Instructions:** Change the terminal `return true` (line 39) to `return false` **for
-  POST requests** (pass method or split into `isAllowedInviteOriginPost`). GET (redirect)
-  may remain permissive. Preserve the `!appHost → true` local-dev escape. Alternative
-  (owner decision): document reliance on SameSite=Lax + session and record the dependency.
-- **Tests to update:** `tests/vitest/invite-accept-origin.test.ts:66` (currently asserts
-  `true` on absent — flip to assert denial for POST).
-- **Validation:** `bunx vitest run tests/vitest/invite-accept-origin.test.ts
+  POST requests**. Preserve `!appHost → true`. Alternative (owner decision): document
+  reliance on SameSite=Lax + session and record the dependency as an accepted residual.
+- **Detailed test scenarios:** (1) POST, no Origin, no Referer → **denied** (flip current
+  assertion at `invite-accept-origin.test.ts:66`); (2) POST, same-origin Origin → allowed;
+  (3) POST, same-origin Referer fallback → allowed; (4) GET, no Origin → allowed
+  (unchanged); (5) `!appHost` environment → allowed (local-dev escape preserved); (6)
+  cross-origin Origin → denied.
+- **Verification command:** `bunx vitest run tests/vitest/invite-accept-origin.test.ts
   tests/vitest/project-invite-entry-route.test.ts --maxWorkers=1`; `bun run type-check`.
-- **Acceptance:** POST with no Origin+Referer → denied; GET unchanged; existing same-origin
-  cases pass.
+- **Manual/browser/provider proof:** not required — header logic is unit-provable.
+- **Acceptance / Done criteria:** POST with no Origin+Referer → denied; GET unchanged; all
+  6 scenarios green; type-check clean.
 - **Rollback:** revert single-file change.
+- **Stop/blocker condition:** none — fully specified, implementation-ready.
 - **Complexity:** Small.
-- **Parallelization:** parallel-safe (disjoint file).
-- **Status:** DISCOVERY-REQUIRED → now fully specified; implementation-ready.
 
 ### Task WP-02 — Durable estimate mutation rate limit (SEC-03 / REQ-RATE-02)
+- **Unit ID:** WP-02.
 - **Requirement IDs:** REQ-RATE-02.
-- **Objective:** Replace/augment the in-memory `assertEstimateActionRateLimit` with a
-  globally-effective cap.
-- **Target files:** `src/lib/estimates/action-rate-limit.ts:38`; consumers in
+- **Goal:** replace/augment the in-memory `assertEstimateActionRateLimit` with a
+  globally-effective cap across Worker isolates.
+- **User/system outcome:** high-frequency estimate edits are throttled globally, not just
+  per-isolate, reducing authenticated abuse surface.
+- **Scope:** `src/lib/estimates/action-rate-limit.ts` (the in-memory `Map` at line 20 and
+  `checkEstimateActionRateLimit`/`assertEstimateActionRateLimit` at line 38); consumers in
   `src/lib/estimates/d1-action-client.ts` and `actions.ts`.
-- **Target symbol:** `assertEstimateActionRateLimit` / `checkEstimateActionRateLimit`.
-- **Why:** in-memory `Map` is per-Worker-isolate; no real abuse throttle on the
-  highest-volume authenticated mutation surface.
-- **Instructions:** Reuse the durable `security_rate_limit_events` pattern (see
-  `src/app/api/compliance/privacy-requests/route.ts:206-280` for the atomic
-  reserve pattern, or `src/lib/publication/public-repository.ts:357` for record/count).
-  Add scope `estimate_action` keyed by `userId` (and optionally `estimateId`). Keep
-  existing limits (40/10s, 120/60s) or owner-approved equivalents. Preserve fail-closed
-  semantics (on D1 error, allow the action — availability over throttling — but log).
-  **Alternative:** add a free-tier Cloudflare WAF rate-limit rule for `/workshop` mutation
-  endpoints (cheaper, but less granular).
-- **Tests to add:** new test simulating two "isolates" (two limiter instances) proving
-  the combined count enforces the cap. Extend `estimate-sheet-actions-authz.test.ts`.
-- **Validation:** focused vitest; `bun run type-check`.
-- **Acceptance:** cross-isolate cap enforced; existing per-user edit semantics preserved.
-- **Rollback:** revert to in-memory limiter (no migration since scope is append-only).
+- **Non-goals:** do NOT change estimate authz (`assertCanEditEstimate`); do NOT add a
+  migration (reuse `security_rate_limit_events` with a new append-only scope); do NOT
+  throttle reads.
+- **Files:** `src/lib/estimates/action-rate-limit.ts`; possibly a shared durable helper
+  extracted alongside `src/lib/publication/public-repository.ts` rate-limit core.
+- **Existing patterns to follow:** durable record/count in
+  `src/lib/publication/public-repository.ts:357` (`checkRecordedRateLimit`); atomic
+  reserve+rollback in `src/app/api/compliance/privacy-requests/route.ts:206-280`
+  (`reserveRateLimitSlots`).
+- **Dependencies/sequencing:** none (disjoint). Parallel-safe with WP-01/03.
+- **Data/API/security/perf implications:** one D1 insert+count per estimate mutation
+  (cheap; index `(scope,key_hash,occurred_at)`); fail-open on D1 error (availability over
+  throttling) with logging, OR fail-closed if owner prefers security (decision point).
+- **Instructions:** add scope `estimate_action` keyed by `userId` (optionally
+  `estimateId`); keep limits 40/10s, 120/60s or owner-approved equivalents.
+- **Detailed test scenarios:** (1) single isolate: 41st action in 10s → 429; (2) **two
+  limiter instances** (simulating two isolates) combined count enforces the cap (the
+  declared SEC-03 evaluator); (3) window expiry allows resumption; (4) D1-error path
+  behaves per chosen fail mode; (5) existing `estimate-sheet-actions-authz.test.ts` still
+  passes.
+- **Verification command:** new `tests/vitest/estimate-action-rate-limit-durable.test.ts`;
+  `bunx vitest run tests/vitest/estimate-sheet-actions-authz.test.ts`; `bun run type-check`.
+- **Manual/browser/provider proof:** not required — limiter logic is unit-provable;
+  cross-isolate behavior is simulated by two instances in one process.
+- **Acceptance / Done criteria:** cross-isolate cap enforced; existing edit semantics
+  preserved; fail mode documented.
+- **Rollback:** revert to in-memory limiter (scope is append-only ⇒ no data cleanup).
+- **Stop/blocker condition:** owner must pick fail-open vs fail-closed on D1 error (a
+  documented decision point, not a blocker — default fail-open with logging).
 - **Complexity:** Medium.
-- **Parallelization:** parallel-safe (disjoint from WP-01/03/04).
-- **Status:** implementation-ready (no external decision needed if D1 limiter chosen).
 
 ### Task WP-03 — CollaborationRoom WebSocket upgrade rate limit (SEC-04 / REQ-DO-01)
+- **Unit ID:** WP-03.
 - **Requirement IDs:** REQ-DO-01.
-- **Objective:** Mitigate unauthenticated socket-upgrade exhaustion.
-- **Target file:** `src/lib/cloudflare/collaboration-room.ts` (`fetch()` upgrade path ~line 95).
-- **Why:** upgrade accepts socket before `authorizeSocket`; no per-IP upgrade cap.
-- **Instructions:** Add a per-IP upgrade rate limit (in-memory in the DO is acceptable
-  since a single DO instance handles a room; or use the D1 limiter keyed by IP+room).
-  **Alternative (stronger):** require a valid realtime-room token in the upgrade query
-  string before accepting the socket (the token is already issued by
-  `issueRealtimeRoomToken` with `canAccessProjectInD1`/`canAccessEstimateInD1`).
-- **Tests to add:** extend `cloudflare-collaboration-room-auth.test.ts` to assert upgrade
-  is rejected without a token / after N upgrades.
-- **Validation:** `bunx vitest run tests/vitest/cloudflare-collaboration-room-auth.test.ts`.
-- **Acceptance:** unauthenticated upgrade is rate-limited or token-gated.
+- **Goal:** mitigate unauthenticated socket-upgrade exhaustion in `CollaborationRoom`.
+- **User/system outcome:** an attacker cannot open many unauthenticated sockets to drain
+  DO resources; legitimate collaboration unaffected.
+- **Scope:** `src/lib/cloudflare/collaboration-room.ts` `fetch()` upgrade path (accepts
+  socket at ~line 94 before `authorizeSocket`).
+- **Non-goals:** do NOT change per-message authz (`authorizeSocket`/`isSocketAuthorized` —
+  already correct); do NOT change token issuance (`issueRealtimeRoomToken`).
+- **Files:** `src/lib/cloudflare/collaboration-room.ts`; test
+  `tests/vitest/cloudflare-collaboration-room-auth.test.ts`.
+- **Existing patterns to follow:** per-message `authorizeSocket` token verify
+  (`verifyRealtimeRoomToken`, HMAC + topic + exp).
+- **Dependencies/sequencing:** none (disjoint). Parallel-safe with WP-01/02.
+- **Data/API/security/perf implications:** reduces DO memory/connection pressure; no data
+  change; per-IP state in the DO (single instance per room) or D1 limiter.
+- **Instructions:** Option A — per-IP upgrade rate limit in the DO (single-instance ⇒
+  in-memory acceptable). Option B (stronger) — require a valid realtime-room token in the
+  upgrade query string before `acceptWebSocket`. Recommend B if token-in-upgrade is
+  feasible without breaking the client handshake.
+- **Detailed test scenarios:** (1) upgrade without token → rejected (Option B) OR N+1th
+  upgrade from same IP → rejected (Option A); (2) valid token → upgrade accepted +
+  subsequent authorize succeeds; (3) token for wrong topic → rejected; (4) existing
+  per-message authz tests still pass.
+- **Verification command:** `bunx vitest run tests/vitest/cloudflare-collaboration-room-auth.test.ts
+  tests/vitest/cloudflare-collaboration-room-router.test.ts --maxWorkers=1`.
+- **Manual/browser/provider proof:** not required — DO logic is unit-provable; real WS
+  behavior is covered by existing tests.
+- **Acceptance / Done criteria:** unauthenticated upgrade is rate-limited or token-gated;
+  legitimate collaboration unaffected.
 - **Rollback:** revert DO change.
+- **Stop/blocker condition:** none — implementation-ready.
 - **Complexity:** Medium.
-- **Parallelization:** parallel-safe (disjoint file).
-- **Status:** implementation-ready.
 
 ## Phase 1 — P1 broad-launch hardening
 
