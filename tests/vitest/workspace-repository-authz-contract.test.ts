@@ -25,10 +25,12 @@ describe("workspace repository D1 authorization contract", () => {
 
   it("filters project sheet lists and estimate summaries through estimate-level D1 access", () => {
     expect(workspaceRepository).toContain("async function filterAccessibleEstimates");
-    expect(workspaceRepository).toContain("canAccessEstimateInD1(database, estimate.id, context)");
+    expect(workspaceRepository).toContain("async function readAccessibleEstimateIdSet");
+    expect(workspaceRepository).toContain("SELECT estimate.id");
+    expect(workspaceRepository).toContain("WHERE estimate.id IN (${placeholders(uniqueEstimateIds)})");
     expect(workspaceRepository).toContain("const estimates = await filterAccessibleEstimates(database, rawEstimates ?? [], context)");
     expect(workspaceRepository).toContain("const normalizedEstimates = await filterAccessibleEstimates");
-    expect(workspaceRepository).toContain("WHERE estimate.id IN (${placeholders(estimateIds)})");
+    expect(workspaceRepository).toContain("const accessibleFavoriteEstimates = favoriteEstimates.filter");
     expect(workspaceRepository).toContain("return filterAccessibleEstimates(database, sheets, context)");
   });
 

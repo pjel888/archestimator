@@ -53,6 +53,7 @@ type AccessResult = "allow" | "deny" | "throw";
 
 type FakeWorkspaceRepositoryOptions = {
   estimateAccess?: Record<string, AccessResult>;
+  favoriteEstimateRows?: Array<{ estimate_id: string; project_id: string; created_at: string }>;
   projectAccess?: AccessResult;
 };
 
@@ -163,11 +164,13 @@ class FakeWorkspaceRepositoryD1Database implements D1DatabaseLike {
   readonly queries: D1Query[] = [];
   readonly runs: D1Query[] = [];
   private readonly estimateAccess: Record<string, AccessResult>;
+  private readonly favoriteEstimateRows: Array<{ estimate_id: string; project_id: string; created_at: string }>;
   private readonly projectAccess: AccessResult;
 
   constructor(options: FakeWorkspaceRepositoryOptions = {}) {
     this.projectAccess = options.projectAccess ?? "allow";
     this.estimateAccess = options.estimateAccess ?? { [ESTIMATE_ALLOWED_ID]: "allow", [ESTIMATE_DENIED_ID]: "deny" };
+    this.favoriteEstimateRows = options.favoriteEstimateRows ?? [];
   }
 
   prepare<T = Record<string, unknown>>(sql: string): D1PreparedStatementLike<T> {
@@ -222,7 +225,7 @@ class FakeWorkspaceRepositoryD1Database implements D1DatabaseLike {
     }
 
     if (sql.includes("SELECT estimate_id, project_id, created_at") && sql.includes("FROM estimate_favorites")) {
-      return { results: [] };
+      return { results: this.favoriteEstimateRows };
     }
 
     if (sql.includes("FROM project_members") && sql.includes("WHERE user_id = ?")) {
@@ -246,7 +249,11 @@ class FakeWorkspaceRepositoryD1Database implements D1DatabaseLike {
     }
 
     if (sql.includes("SELECT id, project_id, name, sheet_code, updated_at") && sql.includes("WHERE id IN")) {
-      return { results: [] };
+      return {
+        results: values
+          .filter((value): value is string => typeof value === "string")
+          .map((id) => estimateRow(id, id === ESTIMATE_ALLOWED_ID ? "A-001" : "D-001")),
+      };
     }
 
     if (sql.includes("SELECT id, project_id, name, sheet_code, updated_at") && sql.includes("WHERE project_id IN")) {
@@ -255,6 +262,19 @@ class FakeWorkspaceRepositoryD1Database implements D1DatabaseLike {
           estimateRow(ESTIMATE_ALLOWED_ID, "A-001"),
           estimateRow(ESTIMATE_DENIED_ID, "D-001"),
         ],
+      };
+    }
+
+    if (sql.includes("SELECT estimate.id") && sql.includes("FROM estimates estimate") && sql.includes("WHERE estimate.id IN")) {
+      const estimateIds = values.filter((value): value is string =>
+        typeof value === "string" && Object.hasOwn(this.estimateAccess, value)
+      );
+      return {
+        results: estimateIds.flatMap((estimateId) => {
+          const access = this.estimateAccess[estimateId] ?? "deny";
+          if (access === "throw") throw new Error("estimate access batch failed");
+          return access === "allow" ? [{ id: estimateId }] : [];
+        }),
       };
     }
 
@@ -424,10 +444,44 @@ describe("workspace repository D1 authorization behavior", () => {
     expect(result.projects).toHaveLength(1);
     expect(result.projects[0]?.accessKind).toBe("owned");
     expect(result.projects[0]?.estimateSheets.map((sheet) => sheet.id)).toEqual([ESTIMATE_ALLOWED_ID]);
-    expect(
-      database.queries.filter((query) => (
-        query.sql.includes("SELECT 1 AS allowed") && query.sql.includes("FROM estimates estimate")
-      )).map((query) => query.values[0]),
-    ).toEqual([ESTIMATE_ALLOWED_ID, ESTIMATE_DENIED_ID]);
+    const batchedAccessQueries = database.queries.filter((query) =>
+      query.sql.includes("SELECT estimate.id") &&
+      query.sql.includes("FROM estimates estimate") &&
+      query.sql.includes("WHERE estimate.id IN")
+    );
+    expect(batchedAccessQueries).toHaveLength(1);
+    expect(batchedAccessQueries[0]?.values).toEqual(
+      expect.arrayContaining([ESTIMATE_ALLOWED_ID, ESTIMATE_DENIED_ID, USER_ID]),
+    );
+    expect(database.queries.some((query) =>
+      query.sql.includes("SELECT 1 AS allowed") && query.sql.includes("FROM estimates estimate")
+    )).toBe(false);
+  });
+
+  it("filters favorite project card estimate sheets through the same batched estimate access", async () => {
+    const database = new FakeWorkspaceRepositoryD1Database({
+      estimateAccess: { [ESTIMATE_ALLOWED_ID]: "allow", [ESTIMATE_DENIED_ID]: "deny" },
+      favoriteEstimateRows: [
+        { estimate_id: ESTIMATE_ALLOWED_ID, project_id: PROJECT_ID, created_at: "2026-07-04T00:00:00.000Z" },
+        { estimate_id: ESTIMATE_DENIED_ID, project_id: PROJECT_ID, created_at: "2026-07-05T00:00:00.000Z" },
+      ],
+      projectAccess: "allow",
+    });
+    const { listCurrentWorkspaceProjects } = await importWorkspaceRepository(database);
+
+    const result = await listCurrentWorkspaceProjects();
+
+    expect(result.projects).toHaveLength(1);
+    expect(result.projects[0]?.estimateSheets.map((sheet) => sheet.id)).toEqual([ESTIMATE_ALLOWED_ID]);
+    expect(result.projects[0]?.favoriteEstimateSheets.map((sheet) => sheet.id)).toEqual([ESTIMATE_ALLOWED_ID]);
+    const batchedAccessQueries = database.queries.filter((query) =>
+      query.sql.includes("SELECT estimate.id") &&
+      query.sql.includes("FROM estimates estimate") &&
+      query.sql.includes("WHERE estimate.id IN")
+    );
+    expect(batchedAccessQueries).toHaveLength(1);
+    expect(database.queries.some((query) =>
+      query.sql.includes("SELECT 1 AS allowed") && query.sql.includes("FROM estimates estimate")
+    )).toBe(false);
   });
 });

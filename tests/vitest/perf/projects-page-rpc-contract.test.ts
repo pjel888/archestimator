@@ -136,6 +136,15 @@ class FakeWorkspaceProjectsD1Database {
     }
     if (sql.includes("FROM project_favorites")) return this.payload.projectFavorites as T[];
     if (sql.includes("FROM estimate_favorites")) return this.payload.estimateFavorites as T[];
+    if (sql.includes("SELECT estimate.id") && sql.includes("FROM estimates estimate") && sql.includes("WHERE estimate.id IN")) {
+      const knownEstimateIds = new Set([
+        ...this.payload.favoriteEstimates.map((estimate) => estimate.id),
+        ...this.payload.estimateSheets.map((estimate) => estimate.id),
+      ]);
+      return values
+        .filter((value): value is string => typeof value === "string" && knownEstimateIds.has(value))
+        .map((id) => ({ id }) as T);
+    }
     if (sql.includes("FROM project_members")) return this.payload.projectMembers as T[];
     if (sql.includes("FROM estimate_sheet_members")) return this.payload.sheetMembers as T[];
     if (sql.includes("FROM project_groups")) return this.payload.projectGroups as T[];
