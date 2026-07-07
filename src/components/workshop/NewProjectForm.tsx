@@ -8,6 +8,7 @@ import {
   createProjectRecord,
   updateProjectImageMetadata,
 } from "@/lib/projects/actions";
+import { DEFAULT_PROJECT_STATUS } from "@/lib/projects/status";
 import { initialProjectLocationActionState } from "@/lib/projects/location-action-state";
 import { saveProjectLocation } from "@/lib/projects/location-actions";
 import { generateProjectCode } from "@/lib/projects/project-code";
@@ -72,6 +73,7 @@ function createOptimisticProject(formData: FormData, clientId: string, createdAt
     location: readDraftText(formData, "location"),
     project_code: readDraftText(formData, "projectCode"),
     currency_code: String(formData.get("currencyCode") ?? "PHP").trim().toUpperCase() || "PHP",
+    status: DEFAULT_PROJECT_STATUS,
     metadata: {},
     created_at: createdAt,
     updated_at: createdAt,

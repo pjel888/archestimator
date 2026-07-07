@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   push: vi.fn(),
   replace: vi.fn(),
   setProjectFavorite: vi.fn(async () => undefined),
+  updateProjectStatus: vi.fn(async () => undefined),
 }));
 
 vi.mock("@/hooks/use-navigation-router", () => ({
@@ -38,6 +39,7 @@ vi.mock("@/lib/workshop/actions", () => ({
 }));
 
 vi.mock("@/lib/projects/actions", () => ({
+  updateProjectStatus: mocks.updateProjectStatus,
   previewBulkDeleteProjects: vi.fn(async (input: { projectIds: string[] }) => ({
     ok: true,
     targetType: "project",
@@ -85,6 +87,7 @@ function createProject(
     project_code: overrides.project_code ?? "OWN-001",
     location: overrides.location ?? "Manila",
     currency_code: overrides.currency_code ?? "PHP",
+    status: overrides.status ?? "ongoing",
     metadata: overrides.metadata ?? {},
     created_at: overrides.created_at ?? "2026-06-01T00:00:00.000Z",
     updated_at: overrides.updated_at ?? "2026-06-02T00:00:00.000Z",
@@ -168,24 +171,94 @@ describe("ProjectsPageClient owned-project surface", () => {
     mocks.push.mockClear();
     mocks.replace.mockClear();
     mocks.setProjectFavorite.mockClear();
+    mocks.updateProjectStatus.mockClear();
   });
 
-  it("renders no access tablist or hidden shared panel", () => {
+  it("renders status tabs without restoring the shared access tab surface", () => {
     render(
       <ProjectsPageClient
         projects={[
           createProjectItem("owned"),
+          createProjectItem("owned", {
+            project: {
+              id: "00000000-0000-4000-8000-000000000005",
+              name: "Completed Villa",
+              status: "completed",
+            },
+          }),
           createProjectItem("project-member"),
         ]}
       />,
     );
 
+    const tabs = screen.getByRole("tablist", { name: "Project status tabs" });
+    expect(within(tabs).getByRole("tab", { name: /All Projects/i })).toHaveTextContent("2");
+    expect(within(tabs).getByRole("tab", { name: /Ongoing/i })).toHaveTextContent("1");
+    expect(within(tabs).getByRole("tab", { name: /Completed/i })).toHaveTextContent("1");
+    expect(within(tabs).getByRole("tab", { name: /Archived/i })).toHaveTextContent("0");
     expect(
       screen.queryByRole("tablist", { name: "Project access tabs" }),
     ).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Shared" })).not.toBeInTheDocument();
     expect(document.getElementById("panel-shared-to-you")).toBeNull();
     expect(screen.getByLabelText("Projects")).toBeInTheDocument();
+  });
+
+  it("filters owned projects by status tab", async () => {
+    const user = userEvent.setup();
+    render(
+      <ProjectsPageClient
+        projects={[
+          createProjectItem("owned", {
+            project: { name: "Ongoing Residence", status: "ongoing" },
+          }),
+          createProjectItem("owned", {
+            project: {
+              id: "00000000-0000-4000-8000-000000000006",
+              name: "Completed Villa",
+              status: "completed",
+            },
+          }),
+          createProjectItem("owned", {
+            project: {
+              id: "00000000-0000-4000-8000-000000000007",
+              name: "Archived Studio",
+              status: "archived",
+            },
+          }),
+        ]}
+      />,
+    );
+
+    await user.click(screen.getByRole("tab", { name: /Completed/i }));
+
+    const liveProjects = screen.getByLabelText("Live projects");
+    expect(within(liveProjects).getByText("Completed Villa")).toBeInTheDocument();
+    expect(within(liveProjects).queryByText("Ongoing Residence")).not.toBeInTheDocument();
+    expect(within(liveProjects).queryByText("Archived Studio")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: /All Projects/i }));
+
+    expect(within(liveProjects).getByText("Ongoing Residence")).toBeInTheDocument();
+    expect(within(liveProjects).getByText("Completed Villa")).toBeInTheDocument();
+    expect(within(liveProjects).getByText("Archived Studio")).toBeInTheDocument();
+  });
+
+  it("opens project actions from the card menu and changes status", async () => {
+    const user = userEvent.setup();
+    render(
+      <ProjectsPageClient projects={[createProjectItem("owned")]} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open actions for Owned Residence" }));
+
+    expect(await screen.findByRole("menuitem", { name: "Edit project" })).toBeInTheDocument();
+    await user.click(screen.getByRole("menuitem", { name: "Completed" }));
+
+    expect(mocks.updateProjectStatus).toHaveBeenCalledWith({
+      projectId: "00000000-0000-4000-8000-000000000001",
+      status: "completed",
+    });
   });
 
   it("shows owned projects and excludes shared, estimate-only, and pending invite rows", () => {

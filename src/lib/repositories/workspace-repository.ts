@@ -36,6 +36,7 @@ import { decryptPublicationToken, readPublicationTokenEncryptionSecret } from "@
 import { normalizeProjectPublicationLocationVisibility } from "@/lib/publication/snapshot";
 import type { ProjectPublicationListSummary, ProjectPublicationSummary } from "@/lib/publication/types";
 import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
+import { DEFAULT_PROJECT_STATUS, normalizeProjectStatus, type ProjectStatus } from "@/lib/projects/status";
 import type { Json } from "@/lib/types/json";
 import type { MainSidebarFavoriteProject } from "@/components/sidebar/sidebar-types";
 import { filterMapBy } from "@/lib/util/array";
@@ -74,6 +75,7 @@ type ProjectRow = {
   location: string | null;
   project_code: string | null;
   currency_code: string;
+  status: ProjectStatus;
   metadata: Json;
   created_at: string;
   updated_at: string;
@@ -327,7 +329,7 @@ type WorkshopProjectListItem = {
 // stripped from the client payload by toClientProjectRow — no client consumer reads them, so
 // shipping them in the RSC Flight stream is pure waste (~2 UUIDs + keys ≈ 100 bytes/project).
 const WORKSHOP_PROJECT_LIST_COLUMNS =
-  "id, workspace_id, created_by, name, client_name, location, project_code, currency_code, metadata, created_at, updated_at" as const;
+  "id, workspace_id, created_by, name, client_name, location, project_code, currency_code, status, metadata, created_at, updated_at" as const;
 
 // Drop the two server-only columns the access resolver consumed so they never reach the client.
 // Keeps the return type as the full projects Row (no consumer reads these fields at runtime).
@@ -448,6 +450,7 @@ function normalizeProjectRow(project: ProjectRow & { metadata?: Json | string | 
     location: project.location ?? null,
     project_code: project.project_code ?? null,
     currency_code: project.currency_code ?? "PHP",
+    status: normalizeProjectStatus(project.status),
     metadata: readD1Json(project.metadata),
   };
 }
@@ -504,7 +507,15 @@ function normalizePublicationRow<T extends ProjectPublicationRow | ProjectPublic
 
 type WorkshopProjectRecord = Pick<
   Tables<"projects">,
-  "id" | "name" | "client_name" | "project_code" | "location" | "updated_at" | "workspace_id" | "created_by"
+  | "id"
+  | "name"
+  | "client_name"
+  | "project_code"
+  | "location"
+  | "status"
+  | "updated_at"
+  | "workspace_id"
+  | "created_by"
 >;
 
 type WorkshopEstimateRecord = Pick<
@@ -896,6 +907,7 @@ function createPendingInviteProjectListItem({
       location: null,
       project_code: invite.projectCode,
       currency_code: "PHP",
+      status: DEFAULT_PROJECT_STATUS,
       metadata: {},
       created_at: timestamp,
       updated_at: timestamp,
@@ -1880,6 +1892,7 @@ function assertProjectListRecord(value: Record<string, unknown>, path: string): 
     location: assertRpcOptionalString(value.location, `${path}.location`),
     project_code: assertRpcOptionalString(value.project_code, `${path}.project_code`),
     currency_code: assertRpcString(value.currency_code, `${path}.currency_code`),
+    status: normalizeProjectStatus(value.status),
     metadata: assertRpcJson(value.metadata, `${path}.metadata`),
     created_at: assertRpcString(value.created_at, `${path}.created_at`),
     updated_at: assertRpcString(value.updated_at, `${path}.updated_at`),
@@ -1904,6 +1917,7 @@ function assertProjectRecord(value: Record<string, unknown>, path: string): Work
     client_name: assertRpcOptionalString(value.client_name, `${path}.client_name`),
     project_code: assertRpcOptionalString(value.project_code, `${path}.project_code`),
     location: assertRpcOptionalString(value.location, `${path}.location`),
+    status: normalizeProjectStatus(value.status),
     updated_at: assertRpcString(value.updated_at, `${path}.updated_at`),
     workspace_id: assertRpcString(value.workspace_id, `${path}.workspace_id`),
     created_by: assertRpcOptionalString(value.created_by, `${path}.created_by`),
@@ -2158,7 +2172,7 @@ async function getWorkshopHomebaseDataAppPath(): Promise<WorkshopHomebaseData> {
     ),
     all<WorkshopProjectRecord>(
       database,
-      `SELECT id, name, client_name, project_code, location, updated_at, workspace_id, created_by
+      `SELECT id, name, client_name, project_code, location, status, updated_at, workspace_id, created_by
        FROM projects
        WHERE workspace_id = ?
        ORDER BY updated_at DESC
@@ -2278,7 +2292,7 @@ async function getWorkshopHomebaseDataAppPath(): Promise<WorkshopHomebaseData> {
     backfillProjects = await traced("homebase.H2H5.projects", () =>
       all<WorkshopProjectRecord>(
         database,
-        `SELECT id, name, client_name, project_code, location, updated_at, workspace_id, created_by
+        `SELECT id, name, client_name, project_code, location, status, updated_at, workspace_id, created_by
          FROM projects
          WHERE id IN (${placeholders(backfillProjectIds)})`,
         backfillProjectIds,

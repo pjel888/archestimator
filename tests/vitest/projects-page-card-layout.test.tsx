@@ -15,6 +15,7 @@ vi.mock("@/lib/workshop/actions", () => ({
 }));
 
 vi.mock("@/lib/projects/actions", () => ({
+  updateProjectStatus: vi.fn(async () => undefined),
   previewBulkDeleteProjects: vi.fn(),
   executeBulkDeleteProjects: vi.fn(),
 }));
@@ -27,6 +28,7 @@ const PROJECT_FIXTURE = {
   location: "Quezon City, Metro Manila, Philippines",
   project_code: "AE-LR-001",
   currency_code: "PHP",
+  status: "ongoing",
   metadata: {},
   created_at: "2026-05-20T00:00:00.000Z",
   updated_at: "2026-05-26T00:00:00.000Z",
@@ -142,7 +144,7 @@ describe("Projects page card layout", () => {
     expect(topStrip).not.toBeNull();
     expect(topStrip).toHaveClass("flex");
     expect(within(topStrip as HTMLElement).getByRole("checkbox", { name: "Select Lewis Residence for deletion" })).toBeInTheDocument();
-    expect(within(topStrip as HTMLElement).getByRole("button", { name: "Expand Lewis Residence details" })).toBeInTheDocument();
+    expect(within(topStrip as HTMLElement).getByRole("button", { name: "Open actions for Lewis Residence" })).toBeInTheDocument();
 
     // INSET translucent inner panel wraps the thumbnail + content (no second blur).
     const inner = card.querySelector("[data-project-card-inner]");
@@ -165,7 +167,7 @@ describe("Projects page card layout", () => {
     expect(titleBlock).not.toHaveClass("pt-2");
     expect(titleBlock).not.toHaveClass("pr-2");
     expect(within(titleBlock as HTMLElement).getByText("Quezon City, Metro Manila, Philippines")).toBeInTheDocument();
-    expect(within(titleBlock as HTMLElement).queryByRole("button", { name: "Expand Lewis Residence details" })).toBeNull();
+    expect(within(titleBlock as HTMLElement).queryByRole("button", { name: "Open actions for Lewis Residence" })).toBeNull();
 
     const thumbnail = card.querySelector("[data-project-card-thumbnail]");
     expect(thumbnail).toHaveClass("aspect-[4/3]");
@@ -297,7 +299,7 @@ describe("Projects page card layout", () => {
 
     expect(card.querySelector("[data-project-card-shared-link-indicator]")).toBeNull();
     expect(card.querySelector("[data-project-card-details-action]")).not.toBeNull();
-    expect(within(card).getByRole("button", { name: "Expand Lewis Residence details" })).toBeInTheDocument();
+    expect(within(card).getByRole("button", { name: "Open actions for Lewis Residence" })).toBeInTheDocument();
 
     expect(card.querySelector("[data-project-card-shared-link-meta]")).toBeNull();
     expect(card).not.toHaveTextContent("4 opens");

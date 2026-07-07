@@ -31,6 +31,7 @@ vi.mock("@/lib/projects/d1-audit", () => ({
 import {
   updateProjectDetails,
   updateProjectImageMetadata,
+  updateProjectStatus,
 } from "@/lib/projects/actions";
 
 const EXISTING = {
@@ -204,6 +205,37 @@ describe("updateProjectDetails audit instrumentation (R11)", () => {
       PROJECT_ID,
       WORKSPACE_ID,
     ]);
+  });
+
+  it("updates project status through the target workspace and audits status", async () => {
+    const database = new FakeD1Database();
+    getCloudflareD1Database.mockResolvedValue(database);
+    requireCurrentUserContext.mockResolvedValue({
+      userId: "user-1",
+      email: "a@b.co",
+      role: "user",
+    });
+
+    await updateProjectStatus({ projectId: PROJECT_ID, status: "completed" });
+
+    expect(database.firstStatements[0]?.sql).toContain("WHERE id = ?");
+    expect(database.firstStatements[1]?.sql).toContain("FROM projects project");
+    expect(database.runStatements[0]?.sql).toContain("UPDATE projects");
+    expect(database.runStatements[0]?.sql).toContain("SET status = ?");
+    expect(database.runStatements[0]?.sql).toContain(
+      "WHERE id = ? AND workspace_id = ?",
+    );
+    expect(database.runStatements[0]?.values.slice(-2)).toEqual([
+      PROJECT_ID,
+      WORKSPACE_ID,
+    ]);
+    expect(
+      recordProjectMetadataUpdatedEventInCloudflareD1,
+    ).toHaveBeenCalledWith({
+      actorUserId: "user-1",
+      changedFields: ["status"],
+      projectId: PROJECT_ID,
+    });
   });
 
   it("updates project image metadata through the target project workspace", async () => {

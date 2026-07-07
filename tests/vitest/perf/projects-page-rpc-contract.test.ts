@@ -59,6 +59,7 @@ function createProject(overrides: Record<string, unknown> = {}) {
     location: null,
     project_code: "P-1",
     currency_code: "PHP",
+    status: "ongoing",
     metadata: {},
     created_at: "2026-06-01T00:00:00.000Z",
     updated_at: "2026-06-02T00:00:00.000Z",

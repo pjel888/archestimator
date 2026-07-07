@@ -121,6 +121,12 @@ vi.mock("@/lib/workshop/group-actions", () => ({
   ProjectGroupNameError: class extends Error {},
 }));
 
+vi.mock("@/lib/projects/actions", () => ({
+  updateProjectStatus: vi.fn(async () => undefined),
+  previewBulkDeleteProjects: vi.fn(),
+  executeBulkDeleteProjects: vi.fn(),
+}));
+
 vi.mock("@/lib/collaboration/pending-invite-actions", () => ({
   acceptPendingInvitationById: vi.fn(async () => undefined),
 }));
@@ -136,6 +142,7 @@ function createProject(index: number): ProjectRow {
     project_code: `OWN-${padded}`,
     location: `City ${padded}`,
     currency_code: "PHP",
+    status: "ongoing",
     metadata: {},
     // Stagger dates so a sort is a real reorder, not a no-op.
     created_at: `2026-05-${padded}T00:00:00.000Z`,

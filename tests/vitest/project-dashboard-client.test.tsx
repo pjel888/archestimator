@@ -5,6 +5,7 @@ import type { ProjectRow } from "@/lib/types/database";
 
 vi.mock("@/lib/projects/actions", () => ({
   updateProjectDetails: vi.fn(async () => undefined),
+  updateProjectStatus: vi.fn(async () => undefined),
 }));
 
 vi.mock("@/lib/projects/location-actions", () => ({
@@ -23,6 +24,7 @@ const PROJECT_FIXTURE = {
   location: "Quezon City, Metro Manila, Philippines",
   project_code: "AE-LR-001",
   currency_code: "PHP",
+  status: "ongoing",
   metadata: { projectImageUrl: "https://cdn.example.test/project.jpg" },
   created_at: "2026-05-20T00:00:00.000Z",
   updated_at: "2026-05-26T00:00:00.000Z",

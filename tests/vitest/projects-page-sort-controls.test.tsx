@@ -35,6 +35,7 @@ vi.mock("@/lib/workshop/actions", () => ({
 }));
 
 vi.mock("@/lib/projects/actions", () => ({
+  updateProjectStatus: vi.fn(async () => undefined),
   previewBulkDeleteProjects: vi.fn(async (input: { projectIds: string[] }) => ({
     ok: true,
     targetType: "project",
@@ -71,6 +72,7 @@ function project(overrides: Partial<ProjectRow> = {}): ProjectRow {
     project_code: overrides.project_code ?? "P-001",
     location: overrides.location ?? "Manila",
     currency_code: overrides.currency_code ?? "PHP",
+    status: overrides.status ?? "ongoing",
     metadata: overrides.metadata ?? {},
     created_at: overrides.created_at ?? "2026-01-01T00:00:00.000Z",
     updated_at: overrides.updated_at ?? "2026-01-02T00:00:00.000Z",

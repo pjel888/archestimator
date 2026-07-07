@@ -6,7 +6,13 @@ import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d
 
 type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
-export type ProjectMetadataAuditField = "name" | "client_name" | "location" | "project_code" | "currency_code";
+export type ProjectMetadataAuditField =
+  | "name"
+  | "client_name"
+  | "location"
+  | "project_code"
+  | "currency_code"
+  | "status";
 
 export type MassDeletionStorageCleanupAuditRecord = {
   targetEventId: string;

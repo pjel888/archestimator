@@ -21,6 +21,7 @@ vi.mock("@/lib/workshop/actions", () => ({
 
 vi.mock("@/lib/projects/actions", () => ({
   updateProjectDetails: vi.fn(async () => undefined),
+  updateProjectStatus: vi.fn(async () => undefined),
   previewBulkDeleteProjects: vi.fn(async (input: { projectIds: string[] }) => ({
     ok: true,
     targetType: "project",
@@ -64,6 +65,7 @@ const OWNED_PROJECT = {
   location: "Quezon City",
   project_code: "AE-LR-001",
   currency_code: "PHP",
+  status: "ongoing",
   metadata: {},
   created_at: "2026-05-20T00:00:00.000Z",
   updated_at: "2026-05-26T00:00:00.000Z",
@@ -78,6 +80,7 @@ const SHARED_PROJECT = {
   location: "Makati",
   project_code: "AE-SC-101",
   currency_code: "PHP",
+  status: "ongoing",
   metadata: {},
   created_at: "2026-05-20T00:00:00.000Z",
   updated_at: "2026-05-26T00:00:00.000Z",
@@ -92,6 +95,7 @@ const SHEET_ONLY_PROJECT = {
   location: "Pasig",
   project_code: "AE-SS-201",
   currency_code: "PHP",
+  status: "ongoing",
   metadata: {},
   created_at: "2026-05-20T00:00:00.000Z",
   updated_at: "2026-05-26T00:00:00.000Z",
@@ -106,6 +110,7 @@ const PENDING_INVITE_PROJECT = {
   location: null,
   project_code: "AE-PM-301",
   currency_code: "PHP",
+  status: "ongoing",
   metadata: {},
   created_at: "2026-06-01T00:00:00.000Z",
   updated_at: "2026-06-01T00:00:00.000Z",

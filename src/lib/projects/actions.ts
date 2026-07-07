@@ -27,6 +27,11 @@ import {
   recordMassDeletionStorageCleanupResultInCloudflareD1,
   recordProjectMetadataUpdatedEventInCloudflareD1,
 } from "@/lib/projects/d1-audit";
+import {
+  isProjectStatus,
+  normalizeProjectStatus,
+  type ProjectStatus,
+} from "@/lib/projects/status";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import type { Json } from "@/lib/types/json";
 import { isUuid } from "@/lib/ids";
@@ -60,6 +65,7 @@ type ProjectD1Row = {
   location: string | null;
   project_code: string | null;
   currency_code: string | null;
+  status?: ProjectStatus | string | null;
   metadata: string | Record<string, Json> | null;
   created_by: string | null;
   created_at: string;
@@ -310,6 +316,7 @@ function toProjectRecord(row: ProjectD1Row) {
   return {
     ...row,
     currency_code: row.currency_code ?? "USD",
+    status: normalizeProjectStatus(row.status),
     metadata: asProjectMetadata(row.metadata),
   };
 }
@@ -1032,6 +1039,46 @@ export async function updateProjectImageMetadata(
   revalidatePath(`/workshop/projects/${projectId}`);
 }
 
+export type UpdateProjectStatusInput = {
+  projectId: string;
+  status: ProjectStatus;
+};
+
+export async function updateProjectStatus(
+  input: UpdateProjectStatusInput | null | undefined,
+) {
+  await requireAuth();
+  const currentUser = await requireCurrentUserContext();
+  const database = await requireProjectsD1Database();
+  const projectId = String(input?.projectId ?? "").trim();
+  if (!projectId) throw new Error("projectId is required.");
+  const status = input?.status;
+  if (!isProjectStatus(status)) {
+    throw new Error("status must be ongoing, completed, or archived.");
+  }
+
+  const project = await readProjectFromD1(database, projectId);
+  if (!project) throw new Error("Project not found.");
+  if (!(await canEditProjectInD1(database, projectId, currentUser))) {
+    throw new Error("You do not have permission to edit this project.");
+  }
+
+  await run(
+    database,
+    `
+      UPDATE projects
+      SET status = ?,
+          updated_at = ?
+      WHERE id = ? AND workspace_id = ?
+    `,
+    [status, new Date().toISOString(), projectId, project.workspace_id],
+  );
+
+  await emitProjectMetadataUpdatedEvent(projectId, ["status"]);
+  revalidatePath("/workshop/projects");
+  revalidatePath(`/workshop/projects/${projectId}`);
+}
+
 export async function updateProjectDetails(formData: FormData) {
   await requireAuth();
   const currentUser = await requireCurrentUserContext();
@@ -1191,9 +1238,12 @@ const PROJECT_METADATA_AUDIT_FIELDS = [
   "location",
   "project_code",
   "currency_code",
+  "status",
 ] as const;
 type ProjectMetadataAuditField = (typeof PROJECT_METADATA_AUDIT_FIELDS)[number];
-type ProjectMetadataValues = Record<ProjectMetadataAuditField, string | null>;
+type ProjectMetadataValues = Partial<
+  Record<ProjectMetadataAuditField, string | null>
+>;
 
 /** Compare previous vs incoming project fields; returns the names that changed. */
 function diffProjectMetadataFields(

@@ -19,6 +19,7 @@ function project(overrides: Partial<ProjectRow> = {}): ProjectRow {
     project_code: "P-001",
     location: "Manila",
     currency_code: "PHP",
+    status: overrides.status ?? "ongoing",
     metadata: {},
     created_at: "2026-01-01T00:00:00.000Z",
     updated_at: "2026-01-02T00:00:00.000Z",
@@ -75,9 +76,9 @@ describe("ProjectGroupSection date mode (legacy orange-flag DOM parity)", () => 
     expect(section).toHaveAttribute("data-project-group-kind", "date");
     expect(section).toHaveAttribute("data-project-date-group", "created_at:2026 · March");
 
-    // The label text resolves to the <h3> that carries the orange flag classes/styles.
-    const label = screen.getByText("2026 · March");
-    expect(label.tagName).toBe("H3");
+    // The label text sits inside the <h3> that carries the orange flag classes/styles.
+    const label = screen.getByText("2026 · March").closest("h3");
+    if (!label) throw new Error("Expected date label heading");
     expect(label).toHaveAttribute("data-project-group-label");
     expect(label).toHaveAttribute("data-project-date-group-label", "");
     expect(label).toHaveClass("border-x", "border-b", "text-brand-orange-dark");

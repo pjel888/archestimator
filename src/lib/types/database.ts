@@ -1,5 +1,6 @@
 import type { Json } from "./json";
 import type { AppPlatformRole } from "@/lib/auth/roles";
+import type { ProjectStatus } from "@/lib/projects/status";
 
 export type { AppPlatformRole };
 
@@ -13,6 +14,7 @@ export type ProjectRow = {
   metadata: Json;
   name: string;
   project_code: string | null;
+  status: ProjectStatus;
   updated_at: string;
   workspace_id: string;
 };

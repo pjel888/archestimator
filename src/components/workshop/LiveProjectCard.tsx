@@ -16,6 +16,10 @@ import { usePrefetchOnHover } from "@/hooks/use-prefetch-on-hover";
 import type { Json } from "@/lib/types/json";
 import type { ProjectRow } from "@/lib/types/database";
 import { getProjectLocationStaticMapStyleParams } from "@/lib/google-maps/project-location-map-style";
+import {
+  PROJECT_STATUS_LABELS,
+  normalizeProjectStatus,
+} from "@/lib/projects/status";
 import { cn } from "@/lib/ui/cn";
 import type { CollaborationRole } from "@/lib/collaboration/types";
 import type { ProjectPublicationListSummary } from "@/lib/publication/types";
@@ -85,6 +89,7 @@ type LiveProjectCardProps = {
    * treatment as the sibling top-strip controls.
    */
   groupAssignMenu?: ReactNode;
+  projectActionsMenu?: ReactNode;
 };
 
 // Action affordances rest hidden and reveal on hover or keyboard focus so the
@@ -229,6 +234,7 @@ function LiveProjectCardImpl({
   onProjectDragStart,
   onProjectDragEnd,
   groupAssignMenu,
+  projectActionsMenu,
 }: LiveProjectCardProps) {
   const imageUrl = getProjectImageUrl(project.metadata);
   const mapImageUrl = imageUrl
@@ -359,13 +365,29 @@ function LiveProjectCardImpl({
     />
   );
 
-  const statusChips = [accessChip, invitesChip].filter(Boolean);
+  const projectStatus = normalizeProjectStatus(project.status);
+  const projectStatusChip =
+    accessKind === "owned" ? (
+      <span
+        key="status"
+        className="workshop-project-card-vital inline-flex shrink-0 items-center gap-1 rounded-xs px-1.5 py-0.5 text-[8px] font-medium leading-[10px]"
+      >
+        {PROJECT_STATUS_LABELS[projectStatus]}
+      </span>
+    ) : null;
+  const statusChips = [projectStatusChip, accessChip, invitesChip].filter(
+    Boolean,
+  );
 
   function handleExpandDetails() {
     onExpand?.(project);
   }
 
-  const expandControl = isPendingInvite ? null : (
+  const expandControl = isPendingInvite ? null : projectActionsMenu ? (
+    <span className={cn("inline-flex", REVEAL_ON_INTENT)}>
+      {projectActionsMenu}
+    </span>
+  ) : (
     <ProjectCardDetailsControl
       className={cn(CONTROL_BUTTON, "relative z-20 text-ink", REVEAL_ON_INTENT)}
       disabled={setupNavigationDisabled}

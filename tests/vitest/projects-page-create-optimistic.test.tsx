@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -57,6 +57,7 @@ vi.mock("@/lib/projects/actions", () => ({
   createProjectRecord: actionMocks.createProjectRecord,
   updateProjectImageMetadata: actionMocks.updateProjectImageMetadata,
   updateProjectDetails: vi.fn(async () => undefined),
+  updateProjectStatus: vi.fn(async () => undefined),
   previewBulkDeleteProjects: actionMocks.previewBulkDeleteProjects,
   executeBulkDeleteProjects: actionMocks.executeBulkDeleteProjects,
 }));
@@ -85,6 +86,7 @@ const CREATED_PROJECT = {
   location: "Manila",
   project_code: "AE-FAST-001",
   currency_code: "PHP",
+  status: "ongoing",
   metadata: {},
   created_at: "2026-06-23T00:00:00.000Z",
   updated_at: "2026-06-23T00:00:00.000Z",
@@ -95,10 +97,16 @@ async function submitNewProject() {
   const user = userEvent.setup();
   await user.click(screen.getByRole("button", { name: "Add projects" }));
   const projectName = await screen.findByRole("textbox", { name: "Project name" });
-  await user.type(projectName, CREATED_PROJECT.name);
-  await user.type(screen.getByRole("combobox", { name: "Client" }), CREATED_PROJECT.client_name ?? "");
-  await user.type(screen.getByRole("textbox", { name: "Location" }), CREATED_PROJECT.location ?? "");
-  await user.click(screen.getByRole("button", { name: "Create project" }));
+  fireEvent.change(projectName, { target: { value: CREATED_PROJECT.name } });
+  fireEvent.change(screen.getByRole("combobox", { name: "Client" }), {
+    target: { value: CREATED_PROJECT.client_name ?? "" },
+  });
+  fireEvent.change(screen.getByRole("textbox", { name: "Location" }), {
+    target: { value: CREATED_PROJECT.location ?? "" },
+  });
+  const form = projectName.closest("form");
+  if (!form) throw new Error("Expected create project form");
+  fireEvent.submit(form);
 }
 
 describe("ProjectsPageClient optimistic project creation", () => {
@@ -150,10 +158,14 @@ describe("ProjectsPageClient optimistic project creation", () => {
     const { rerender } = render(<ProjectsPageClient projects={[]} />);
     await submitNewProject();
 
-    const card = await screen.findByLabelText("Instant Tower project, owned access");
+    await screen.findByLabelText("Instant Tower project, owned access");
     await waitFor(() => {
-      expect(within(card).getByRole("alert")).toHaveTextContent("Project was created, but setup needs attention.");
+      const currentCard = screen.getByLabelText("Instant Tower project, owned access");
+      expect(within(currentCard).getByRole("alert")).toHaveTextContent(
+        "Project was created, but setup needs attention.",
+      );
     });
+    const card = screen.getByLabelText("Instant Tower project, owned access");
     expect(card).not.toHaveAttribute("aria-busy", "true");
     expect(screen.getByLabelText("Instant Tower project, owned access")).toBeInTheDocument();
     expect(routerMock.refresh).toHaveBeenCalledTimes(1);

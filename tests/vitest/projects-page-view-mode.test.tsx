@@ -21,6 +21,31 @@ vi.mock("@/lib/workshop/actions", () => ({
   setProjectFavorite: vi.fn(async () => undefined),
 }));
 
+vi.mock("@/lib/projects/actions", () => ({
+  updateProjectStatus: vi.fn(async () => undefined),
+  previewBulkDeleteProjects: vi.fn(async () => ({
+    ok: true,
+    targetType: "project",
+    ids: [],
+    eligibleIds: [],
+    previewHash: "preview-hash",
+    summary: { requestedCount: 0, eligibleCount: 0, blockedCount: 0 },
+    issues: [],
+    blocked: [],
+    storageTargets: [],
+  })),
+  executeBulkDeleteProjects: vi.fn(async () => ({
+    ok: true,
+    targetType: "project",
+    ids: [],
+    deletedIds: [],
+    summary: { requestedCount: 0, eligibleCount: 0, blockedCount: 0 },
+    issues: [],
+    blocked: [],
+    storageTargets: [],
+  })),
+}));
+
 const STORAGE_KEY = "archestimator_projects_view_mode_v1";
 
 const PROJECT_FIXTURE = {
@@ -31,6 +56,7 @@ const PROJECT_FIXTURE = {
   location: "Quezon City, Metro Manila, Philippines",
   project_code: "AE-LR-001",
   currency_code: "PHP",
+  status: "ongoing",
   metadata: {},
   created_at: "2026-05-20T00:00:00.000Z",
   updated_at: "2026-05-26T00:00:00.000Z",
@@ -84,6 +110,7 @@ describe("ProjectsPageClient view modes", () => {
 
     expect(container.firstElementChild).toHaveClass("flex", "h-full", "flex-col");
     expect(screen.getByLabelText("Project tools")).toHaveClass("bg-transparent");
+    expect(screen.getByRole("tablist", { name: "Project status tabs" })).toBeInTheDocument();
     expect(screen.queryByRole("tablist", { name: "Project access tabs" })).not.toBeInTheDocument();
     expect(screen.getByLabelText("Lewis Residence project, owned access")).toHaveClass("workshop-project-card-glass");
     expect(screen.getByLabelText("Live projects")).toHaveAttribute(
@@ -256,7 +283,7 @@ describe("ProjectsPageClient view modes", () => {
     const plainCard = screen.getByLabelText("Harbour Box project, owned access");
 
     const plainStatusSlot = plainCard.querySelector("[data-project-card-status-slot]");
-    expect(plainStatusSlot).toHaveTextContent("");
+    expect(plainStatusSlot).toHaveTextContent("Ongoing");
 
     expect(publishedCard.querySelector("[data-project-card-shared-link-indicator]")).toBeNull();
     expect(publishedCard.querySelector("[data-project-card-details-action]")).not.toBeNull();

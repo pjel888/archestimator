@@ -49,6 +49,7 @@ const PROJECT = {
   location: "Quezon City",
   project_code: "AE-LR-001",
   currency_code: "PHP",
+  status: "ongoing",
   metadata: {},
   created_at: "2026-05-20T00:00:00.000Z",
   updated_at: "2026-05-26T00:00:00.000Z",

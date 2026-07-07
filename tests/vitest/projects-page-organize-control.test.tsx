@@ -44,6 +44,7 @@ vi.mock("@/lib/workshop/group-actions", () => ({
   ProjectGroupNameError: class extends Error {},
 }));
 vi.mock("@/lib/projects/actions", () => ({
+  updateProjectStatus: vi.fn(async () => undefined),
   previewBulkDeleteProjects: vi.fn(async (i: { projectIds: string[] }) => ({
     ok: true, targetType: "project", ids: i.projectIds, eligibleIds: i.projectIds, previewHash: "h",
     summary: { requestedCount: i.projectIds.length, eligibleCount: i.projectIds.length, blockedCount: 0 },
@@ -72,6 +73,7 @@ function project(o: Partial<ProjectRow> = {}): ProjectRow {
     project_code: o.project_code ?? "P-001",
     location: o.location ?? "Manila",
     currency_code: "PHP",
+    status: o.status ?? "ongoing",
     metadata: {},
     created_at: o.created_at ?? "2026-01-01T00:00:00.000Z",
     updated_at: o.updated_at ?? "2026-01-02T00:00:00.000Z",

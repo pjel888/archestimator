@@ -44,6 +44,7 @@ import {
   DropdownSelect,
   type DropdownSelectOption,
 } from "@/components/ui/dropdown-select";
+import { Tabs, type TabItem } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
 import { BulkActionToolbar } from "@/components/workshop/BulkActionToolbar";
 import {
@@ -54,7 +55,15 @@ import { ADD_BUTTON_CLASSNAME } from "@/components/ui/toolbar-icon-button";
 import {
   executeBulkDeleteProjects,
   previewBulkDeleteProjects,
+  updateProjectStatus,
 } from "@/lib/projects/actions";
+import {
+  DEFAULT_PROJECT_STATUS,
+  PROJECT_STATUS_LABELS,
+  PROJECT_STATUS_VALUES,
+  normalizeProjectStatus,
+  type ProjectStatus,
+} from "@/lib/projects/status";
 import {
   createBulkActionCorrelationId,
   type BulkActionPreviewResult,
@@ -94,6 +103,7 @@ import {
   type ProjectCardSetupStatus,
   type ProjectCardViewMode,
 } from "./LiveProjectCard";
+import { ProjectCardDetailsControl } from "./ProjectCardDetailsControl";
 import type { NewProjectOptimisticSnapshot } from "./NewProjectForm";
 import {
   getProjectDateFlagLayoutClassName,
@@ -275,13 +285,76 @@ const PROJECT_GROUP_BY_OPTIONS = [
 type ProjectSortField = (typeof PROJECT_SORT_FIELD_OPTIONS)[number]["value"];
 type ProjectSortDirection = "asc" | "desc";
 type ProjectScalarGroupBy = Exclude<ProjectGroupBy, "none" | "group">;
+type ProjectStatusTab = "all" | ProjectStatus;
 type ProjectDeleteState = "idle" | "loading" | "ready" | "executing";
 type StateUpdater<T> = T | ((current: T) => T);
+const PROJECT_STATUS_TAB_ID_BASE = "project-status";
+const PROJECT_STATUS_TAB_IDS = [
+  "all",
+  ...PROJECT_STATUS_VALUES,
+] as const satisfies readonly ProjectStatusTab[];
+const projectStatusCountFormatter = new Intl.NumberFormat("en-US");
+
+function getProjectStatusTabId(tab: ProjectStatusTab) {
+  return `${PROJECT_STATUS_TAB_ID_BASE}-tab-${tab}`;
+}
+
+function getProjectStatusPanelId(tab: ProjectStatusTab) {
+  return `${PROJECT_STATUS_TAB_ID_BASE}-panel-${tab}`;
+}
+
+function getProjectStatusTabLabel(tab: ProjectStatusTab) {
+  return tab === "all" ? "All Projects" : PROJECT_STATUS_LABELS[tab];
+}
+
+function getProjectStatusTabsLayoutClassName(viewMode: ProjectCardViewMode) {
+  if (viewMode === "list" || viewMode === "small") {
+    return "[&_[role=tablist]]:grid [&_[role=tablist]]:grid-cols-[repeat(auto-fill,minmax(132px,1fr))]";
+  }
+  if (viewMode === "medium") {
+    return "[&_[role=tablist]]:grid [&_[role=tablist]]:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]";
+  }
+  return "[&_[role=tablist]]:grid [&_[role=tablist]]:grid-cols-[repeat(auto-fill,minmax(248px,1fr))]";
+}
+
+function ProjectStatusTabs({
+  activeTab,
+  tabs,
+  viewMode,
+  onTabChange,
+}: {
+  activeTab: ProjectStatusTab;
+  tabs: readonly TabItem[];
+  viewMode: ProjectCardViewMode;
+  onTabChange: (tab: ProjectStatusTab) => void;
+}) {
+  return (
+    <Tabs
+      tabs={tabs}
+      activeId={activeTab}
+      onChange={(tab) => onTabChange(tab as ProjectStatusTab)}
+      variant="underline"
+      ariaLabel="Project status tabs"
+      idBase={PROJECT_STATUS_TAB_ID_BASE}
+      className={cn(
+        "bg-transparent px-2 [&_[role=tablist]]:h-[41px] [&_[role=tablist]]:overflow-visible [&_[role=tablist]]:border-0",
+        getProjectStatusTabsLayoutClassName(viewMode),
+      )}
+      getTabButtonProps={() => ({
+        className: "h-full !min-h-[41px] w-full justify-start px-2.5",
+      })}
+    />
+  );
+}
+
 type ProjectsPageClientState = {
   isModalOpen: boolean;
   expandedProject: ProjectRow | null;
+  activeStatusTab: ProjectStatusTab;
   searchQuery: string;
   optimisticProjectCreates: Record<string, NewProjectOptimisticSnapshot>;
+  optimisticProjectStatusOverrides: Record<string, ProjectStatus>;
+  pendingStatusProjectId: string | null;
   favoriteOverrides: Record<string, boolean>;
   pendingFavoriteId: string | null;
   selectedProjectIds: Set<string>;
@@ -307,11 +380,17 @@ type ProjectsPageClientAction =
       type: "setExpandedProject";
       value: StateUpdater<ProjectRow | null>;
     }
+  | { type: "setActiveStatusTab"; value: ProjectStatusTab }
   | { type: "setSearchQuery"; value: string }
   | {
       type: "setOptimisticProjectCreates";
       value: StateUpdater<Record<string, NewProjectOptimisticSnapshot>>;
     }
+  | {
+      type: "setOptimisticProjectStatusOverrides";
+      value: StateUpdater<Record<string, ProjectStatus>>;
+    }
+  | { type: "setPendingStatusProjectId"; value: string | null }
   | {
       type: "setFavoriteOverrides";
       value: StateUpdater<Record<string, boolean>>;
@@ -368,8 +447,11 @@ function createProjectsPageClientState(): ProjectsPageClientState {
   return {
     isModalOpen: false,
     expandedProject: null,
+    activeStatusTab: "all",
     searchQuery: "",
     optimisticProjectCreates: {},
+    optimisticProjectStatusOverrides: {},
+    pendingStatusProjectId: null,
     favoriteOverrides: {},
     pendingFavoriteId: null,
     selectedProjectIds: new Set(),
@@ -409,6 +491,8 @@ function projectsPageClientReducer(
           action.value,
         ),
       };
+    case "setActiveStatusTab":
+      return { ...state, activeStatusTab: action.value };
     case "setSearchQuery":
       return { ...state, searchQuery: action.value };
     case "setOptimisticProjectCreates":
@@ -419,6 +503,16 @@ function projectsPageClientReducer(
           action.value,
         ),
       };
+    case "setOptimisticProjectStatusOverrides":
+      return {
+        ...state,
+        optimisticProjectStatusOverrides: resolveStateUpdater(
+          state.optimisticProjectStatusOverrides,
+          action.value,
+        ),
+      };
+    case "setPendingStatusProjectId":
+      return { ...state, pendingStatusProjectId: action.value };
     case "setFavoriteOverrides":
       return {
         ...state,
@@ -1143,8 +1237,10 @@ type ProjectCardRowProps = {
   canSelect: boolean;
   setupStatus?: ProjectCardSetupStatus | null;
   setupNavigationDisabled?: boolean;
+  statusBusy: boolean;
   onToggleSelected: (projectId: string) => void;
   onToggleFavorite: (projectId: string, nextFavorite: boolean) => void;
+  onChangeProjectStatus: (projectId: string, status: ProjectStatus) => void;
   onExpand: (project: ProjectRow) => void;
   // Group-menu inputs are passed as PRIMITIVES so this row's memo can compare them by value.
   // The menu node is built inside the memo boundary, so an unrelated parent re-render (search
@@ -1178,8 +1274,10 @@ const ProjectCardRow = memo(function ProjectCardRow({
   canSelect,
   setupStatus,
   setupNavigationDisabled,
+  statusBusy,
   onToggleSelected,
   onToggleFavorite,
+  onChangeProjectStatus,
   onExpand,
   showGroupMenu,
   projectGroups,
@@ -1234,6 +1332,47 @@ const ProjectCardRow = memo(function ProjectCardRow({
     item.project.name,
     onAssignToGroup,
   ]);
+  const projectStatus = normalizeProjectStatus(item.project.status);
+  const projectActionsMenu = useMemo<ReactNode>(() => {
+    if (item.accessKind !== "owned") return undefined;
+    return (
+      <DropdownMenu
+        align="end"
+        trigger={
+          <ProjectCardDetailsControl
+            className="workshop-project-card-control size-6 border-hairline relative z-20 text-ink"
+            disabled={Boolean(setupNavigationDisabled)}
+            projectName={item.project.name}
+            ariaLabel={`Open actions for ${item.project.name}`}
+          />
+        }
+      >
+        <DropdownMenu.Item
+          label="Edit project"
+          onClick={() => onExpand(item.project)}
+        />
+        <DropdownMenu.Group label="Change status">
+          {PROJECT_STATUS_VALUES.map((status) => (
+            <DropdownMenu.Item
+              key={status}
+              label={PROJECT_STATUS_LABELS[status]}
+              selected={projectStatus === status}
+              disabled={statusBusy || projectStatus === status}
+              onClick={() => onChangeProjectStatus(item.project.id, status)}
+            />
+          ))}
+        </DropdownMenu.Group>
+      </DropdownMenu>
+    );
+  }, [
+    item.accessKind,
+    item.project,
+    onChangeProjectStatus,
+    onExpand,
+    projectStatus,
+    setupNavigationDisabled,
+    statusBusy,
+  ]);
 
   return (
     <LiveProjectCard
@@ -1262,6 +1401,7 @@ const ProjectCardRow = memo(function ProjectCardRow({
       onProjectDragStart={onProjectDragStart}
       onProjectDragEnd={onProjectDragEnd}
       groupAssignMenu={groupAssignMenu}
+      projectActionsMenu={projectActionsMenu}
     />
   );
 });
@@ -1292,8 +1432,11 @@ export function ProjectsPageClient({
   const {
     isModalOpen,
     expandedProject,
+    activeStatusTab,
     searchQuery,
     optimisticProjectCreates,
+    optimisticProjectStatusOverrides,
+    pendingStatusProjectId,
     favoriteOverrides,
     pendingFavoriteId,
     selectedProjectIds,
@@ -1319,11 +1462,22 @@ export function ProjectsPageClient({
         dispatchPageState({ type: "setIsModalOpen", value }),
       setExpandedProject: (value: StateUpdater<ProjectRow | null>) =>
         dispatchPageState({ type: "setExpandedProject", value }),
+      setActiveStatusTab: (value: ProjectStatusTab) =>
+        dispatchPageState({ type: "setActiveStatusTab", value }),
       setSearchQuery: (value: string) =>
         dispatchPageState({ type: "setSearchQuery", value }),
       setOptimisticProjectCreates: (
         value: StateUpdater<Record<string, NewProjectOptimisticSnapshot>>,
       ) => dispatchPageState({ type: "setOptimisticProjectCreates", value }),
+      setOptimisticProjectStatusOverrides: (
+        value: StateUpdater<Record<string, ProjectStatus>>,
+      ) =>
+        dispatchPageState({
+          type: "setOptimisticProjectStatusOverrides",
+          value,
+        }),
+      setPendingStatusProjectId: (value: string | null) =>
+        dispatchPageState({ type: "setPendingStatusProjectId", value }),
       setFavoriteOverrides: (value: StateUpdater<Record<string, boolean>>) =>
         dispatchPageState({ type: "setFavoriteOverrides", value }),
       setPendingFavoriteId: (value: string | null) =>
@@ -1378,8 +1532,11 @@ export function ProjectsPageClient({
   const {
     setIsModalOpen,
     setExpandedProject,
+    setActiveStatusTab,
     setSearchQuery,
     setOptimisticProjectCreates,
+    setOptimisticProjectStatusOverrides,
+    setPendingStatusProjectId,
     setFavoriteOverrides,
     setPendingFavoriteId,
     setSelectedProjectIds,
@@ -1421,19 +1578,64 @@ export function ProjectsPageClient({
       ),
     [optimisticProjectItems],
   );
-  const projectItems = useMemo(
-    () => [
+  const projectItems = useMemo(() => {
+    const items = [
       ...optimisticProjectItems,
       ...serverProjectItems.filter(
         (item) => !optimisticRealProjectIds.has(item.project.id),
       ),
-    ],
-    [optimisticProjectItems, optimisticRealProjectIds, serverProjectItems],
-  );
+    ];
+    if (Object.keys(optimisticProjectStatusOverrides).length === 0) {
+      return items;
+    }
+    return items.map((item) => {
+      const status = optimisticProjectStatusOverrides[item.project.id];
+      if (!status || normalizeProjectStatus(item.project.status) === status) {
+        return item;
+      }
+      return {
+        ...item,
+        project: {
+          ...item.project,
+          status,
+        },
+      };
+    });
+  }, [
+    optimisticProjectItems,
+    optimisticProjectStatusOverrides,
+    optimisticRealProjectIds,
+    serverProjectItems,
+  ]);
   const ownedProjectItems = useMemo(
     () => projectItems.filter((item) => item.accessKind === "owned"),
     [projectItems],
   );
+  useEffect(() => {
+    if (Object.keys(optimisticProjectStatusOverrides).length === 0) return;
+    const serverStatusById = new Map(
+      serverProjectItems.map((item) => [
+        item.project.id,
+        normalizeProjectStatus(item.project.status),
+      ]),
+    );
+    setOptimisticProjectStatusOverrides((current) => {
+      let changed = false;
+      const next = { ...current };
+      for (const [projectId, status] of Object.entries(current)) {
+        const serverStatus = serverStatusById.get(projectId);
+        if (!serverStatus || serverStatus === status) {
+          delete next[projectId];
+          changed = true;
+        }
+      }
+      return changed ? next : current;
+    });
+  }, [
+    optimisticProjectStatusOverrides,
+    serverProjectItems,
+    setOptimisticProjectStatusOverrides,
+  ]);
   const projectClientOptions = useMemo(
     () =>
       createProjectClientOptions(
@@ -1592,6 +1794,37 @@ export function ProjectsPageClient({
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const normalizedSearchQuery = searchQuery.trim();
   const normalizedDeferredSearchQuery = deferredSearchQuery.trim();
+  const projectStatusCounts = useMemo(() => {
+    const counts: Record<ProjectStatusTab, number> = {
+      all: ownedProjectItems.length,
+      ongoing: 0,
+      completed: 0,
+      archived: 0,
+    };
+    for (const item of ownedProjectItems) {
+      counts[normalizeProjectStatus(item.project.status)] += 1;
+    }
+    return counts;
+  }, [ownedProjectItems]);
+  const projectStatusTabs = useMemo<TabItem[]>(
+    () =>
+      PROJECT_STATUS_TAB_IDS.map((id) => ({
+        id,
+        label: getProjectStatusTabLabel(id),
+        badge: projectStatusCountFormatter.format(projectStatusCounts[id]),
+      })),
+    [projectStatusCounts],
+  );
+  const statusFilteredProjectItems = useMemo(
+    () =>
+      activeStatusTab === "all"
+        ? ownedProjectItems
+        : ownedProjectItems.filter(
+            (item) =>
+              normalizeProjectStatus(item.project.status) === activeStatusTab,
+          ),
+    [activeStatusTab, ownedProjectItems],
+  );
 
   // Identity-stable handlers so memoized project cards can skip re-render when only an
   // unrelated parent state slice changes (the wrappers always invoke the latest closure).
@@ -1599,6 +1832,7 @@ export function ProjectsPageClient({
   const stableToggleProjectSelection = useStableCallback(
     toggleProjectSelection,
   );
+  const stableChangeProjectStatus = useStableCallback(changeProjectStatus);
   const stableAssignProjectToGroup = useStableCallback(assignProjectToGroup);
   const stableProjectCardDragStart = useStableCallback(handleProjectCardDragStart);
   const stableProjectCardDragEnd = useStableCallback(handleProjectCardDragEnd);
@@ -1606,8 +1840,8 @@ export function ProjectsPageClient({
   const displayProjects = useMemo(() => {
     const query = normalizedDeferredSearchQuery.toLowerCase();
     const searchedProjects = !query
-      ? ownedProjectItems
-      : ownedProjectItems.filter(
+      ? statusFilteredProjectItems
+      : statusFilteredProjectItems.filter(
           (item) =>
             optimisticProjectItemIds.has(item.project.id) ||
             item.project.name?.toLowerCase().includes(query) ||
@@ -1627,11 +1861,11 @@ export function ProjectsPageClient({
     );
   }, [
     normalizedDeferredSearchQuery,
-    ownedProjectItems,
     optimisticProjectItemIds,
     sortDirection,
     sortField,
     sortTouched,
+    statusFilteredProjectItems,
   ]);
 
   const displayLiveProjects = displayProjects;
@@ -1719,6 +1953,11 @@ export function ProjectsPageClient({
     isSearching &&
     normalizedDeferredSearchQuery.length > 0 &&
     displayLiveProjects.length === 0;
+  const hasNoStatusResults =
+    !isSearching &&
+    activeStatusTab !== "all" &&
+    displayLiveProjects.length === 0;
+  const hasProjectEmptyState = hasNoSearchResults || hasNoStatusResults;
   const emptySearchQuery =
     normalizedDeferredSearchQuery || normalizedSearchQuery;
   const groupedByUserGroup = useMemo(
@@ -1741,7 +1980,7 @@ export function ProjectsPageClient({
   );
   const isUserGroupOrganize = groupBy === "group";
   const activeGroupedProjectSectionKeys = useMemo(() => {
-    if (hasNoSearchResults) return [];
+    if (hasProjectEmptyState) return [];
     if (isUserGroupOrganize)
       return groupedByUserGroup.map((group) => group.key);
     if (shouldGroupProjects)
@@ -1750,7 +1989,7 @@ export function ProjectsPageClient({
   }, [
     groupedByUserGroup,
     groupedLiveProjects,
-    hasNoSearchResults,
+    hasProjectEmptyState,
     isUserGroupOrganize,
     shouldGroupProjects,
   ]);
@@ -2630,6 +2869,38 @@ export function ProjectsPageClient({
     );
   }
 
+  function changeProjectStatus(projectId: string, nextStatus: ProjectStatus) {
+    const item = projectItems.find((entry) => entry.project.id === projectId);
+    if (!item) return;
+    const previousStatus = normalizeProjectStatus(
+      item.project.status ?? DEFAULT_PROJECT_STATUS,
+    );
+    if (previousStatus === nextStatus) return;
+    setOptimisticProjectStatusOverrides((current) => ({
+      ...current,
+      [projectId]: nextStatus,
+    }));
+    setPendingStatusProjectId(projectId);
+    startTransition(() => {
+      void updateProjectStatus({ projectId, status: nextStatus })
+        .then(() => router.refresh())
+        .catch(() => {
+          setOptimisticProjectStatusOverrides((current) => {
+            if (current[projectId] !== nextStatus) return current;
+            return {
+              ...current,
+              [projectId]: previousStatus,
+            };
+          });
+          toast({
+            message: "Could not update project status.",
+            tone: "error",
+          });
+        })
+        .finally(() => setPendingStatusProjectId(null));
+    });
+  }
+
   // D8 card kebab: the per-card "Move to group" menu (owned cards in Group mode only) is built
   // inside the memoized ProjectCardRow from the primitive inputs computed here — see
   // ProjectCardRow for why this preserves memo while keeping the override-aware checkmark (LD-10).
@@ -2661,8 +2932,10 @@ export function ProjectsPageClient({
         canSelect={canSelectProjectForDeletion(item) && !isProjectSetupPending}
         setupStatus={item.setupStatus}
         setupNavigationDisabled={item.setupNavigationDisabled}
+        statusBusy={pendingStatusProjectId === item.project.id}
         onToggleSelected={stableToggleProjectSelection}
         onToggleFavorite={stableToggleProjectFavorite}
+        onChangeProjectStatus={stableChangeProjectStatus}
         onExpand={setExpandedProject}
         showGroupMenu={showGroupMenu}
         projectGroups={assignableProjectGroups}
@@ -2919,11 +3192,24 @@ export function ProjectsPageClient({
         </div>
       }
       addActions={projectToolbarActions}
+      toolbarPanel={
+        <ProjectStatusTabs
+          activeTab={activeStatusTab}
+          tabs={projectStatusTabs}
+          viewMode={projectViewMode}
+          onTabChange={setActiveStatusTab}
+        />
+      }
     >
       <section
         aria-label="Projects"
+        role="tabpanel"
+        id={getProjectStatusPanelId(activeStatusTab)}
+        aria-labelledby={getProjectStatusTabId(activeStatusTab)}
         className={cn(
-          hasNoSearchResults ? "flex h-full min-h-0 flex-col gap-2" : "space-y-2",
+          hasProjectEmptyState
+            ? "flex h-full min-h-0 flex-col gap-2"
+            : "space-y-2",
           selectedVisibleProjectIds.length ? "pb-20" : null,
         )}
       >
@@ -2943,7 +3229,7 @@ export function ProjectsPageClient({
           aria-label="Live projects"
           data-project-view-mode={projectViewMode}
           className={
-            hasNoSearchResults
+            hasProjectEmptyState
               ? "min-h-0 flex-1"
               : shouldGroupProjects || isUserGroupOrganize
               ? "space-y-4"
@@ -2984,6 +3270,40 @@ export function ProjectsPageClient({
                   onClick={() => setSearchQuery("")}
                 >
                   Clear search
+                </Button>
+              </section>
+            </div>
+          ) : hasNoStatusResults ? (
+            <div
+              className="grid h-full min-h-[420px] place-items-center px-4 py-10"
+            >
+              <section
+                aria-live="polite"
+                aria-label={`No ${getProjectStatusTabLabel(activeStatusTab).toLowerCase()} projects`}
+                data-project-status-empty-state=""
+                className="flex w-full max-w-[420px] flex-col items-center rounded-[12px] border border-white/80 bg-white px-5 py-6 text-center shadow-[0_10px_24px_rgba(30,35,50,0.075),0_2px_7px_rgba(30,35,50,0.045),inset_0_1px_0_rgba(255,255,255,0.88)]"
+              >
+                <div className="grid size-9 place-items-center rounded-full border border-divider bg-surfaceMuted/60 text-secondary">
+                  <FolderSimple
+                    size={16}
+                    weight="regular"
+                    aria-hidden="true"
+                  />
+                </div>
+                <p className="mt-3 max-w-full text-[12px] font-medium leading-5 text-ink">
+                  No {getProjectStatusTabLabel(activeStatusTab).toLowerCase()} projects yet.
+                </p>
+                <p className="mt-1 max-w-[300px] text-[10px] leading-4 text-tertiary">
+                  Change a project status from the card actions menu.
+                </p>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="xs"
+                  className="mt-4 min-w-[104px] border-white/70 bg-white/75 hover:bg-white/90"
+                  onClick={() => setActiveStatusTab("all")}
+                >
+                  Show all projects
                 </Button>
               </section>
             </div>
