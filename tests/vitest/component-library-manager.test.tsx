@@ -130,7 +130,7 @@ const fixtureItems: EstimateRowItem[] = [
   }),
 ];
 
-function renderManager() {
+function renderManager({ canManageLibrary = true }: { canManageLibrary?: boolean } = {}) {
   return render(
     <ComponentLibraryManager
       categoryTree={categoryTree}
@@ -141,6 +141,7 @@ function renderManager() {
       ]}
       libraryFolders={folders}
       libraryItems={fixtureItems}
+      canManageLibrary={canManageLibrary}
     />,
   );
 }
@@ -188,6 +189,21 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
     expect(
       treePanel!.compareDocumentPosition(sheetPanel!) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  it("hides mutation affordances when library management capability is read-only", async () => {
+    renderManager({ canManageLibrary: false });
+    await screen.findByRole("button", { name: "Filter components" });
+
+    expect(screen.queryByRole("button", { name: "Add component" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add library folder" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Select Fresh Tile for archive")).not.toBeInTheDocument();
+    expect(screen.queryByText("Archive selected")).not.toBeInTheDocument();
+
+    fireEvent.click(getComponentNameInspectButton("item-fresh"));
+    const dock = await screen.findByRole("region", { name: "Component details for Fresh Tile" });
+    expect(within(dock).queryByRole("button", { name: "Edit component" })).not.toBeInTheDocument();
+    expect(within(dock).queryByRole("button", { name: "Duplicate" })).not.toBeInTheDocument();
   });
 
   it("renders a lifecycle badge on non-available components only", async () => {
@@ -407,6 +423,7 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
         libraryItems={[projectItem]}
         projectId="project-1"
         promotionEnabled
+        canManageLibrary
       />,
     );
     await waitForSheet();
@@ -468,6 +485,7 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
         libraryItems={[projectItem]}
         projectId="project-1"
         promotionEnabled
+        canManageLibrary
       />,
     );
     await waitForSheet();

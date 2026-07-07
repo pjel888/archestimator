@@ -169,10 +169,20 @@ function fillValidQuickAdd(dialog: HTMLElement) {
   return form;
 }
 
-function openVariantDrawer(dialog: HTMLElement) {
+function openVariantManager(dialog: HTMLElement) {
   fireEvent.click(within(dialog).getByRole("button", { name: "Open variants panel" }));
-  fireEvent.click(within(dialog).getByRole("button", { name: "Open V1" }));
   return within(dialog).getByRole("dialog", { name: "Manage variants" });
+}
+
+function clickAddVariant(drawer: HTMLElement) {
+  const addButtons = within(drawer).getAllByRole("button", { name: "Add variant" });
+  fireEvent.click(addButtons[addButtons.length - 1]);
+}
+
+function openVariantDrawer(dialog: HTMLElement) {
+  const drawer = openVariantManager(dialog);
+  clickAddVariant(drawer);
+  return drawer;
 }
 
 describe("AddComponentModal OpenDesign field contract", () => {
@@ -485,6 +495,29 @@ describe("AddComponentModal OpenDesign field contract", () => {
     expect(within(drawer).queryByLabelText("Pricing source")).not.toBeInTheDocument();
     expect(within(drawer).queryByLabelText("Confidence")).not.toBeInTheDocument();
     expect(within(drawer).queryByLabelText("Dimension unit")).not.toBeInTheDocument();
+  });
+
+  it("starts with no variants and deletes the last added variant", async () => {
+    renderAddModal();
+    const dialog = await getAddDialog();
+    const drawer = openVariantManager(dialog);
+
+    expect(within(drawer).getByLabelText("Variant manager")).toBeInTheDocument();
+    expect(within(drawer).getByText("No variants yet.")).toBeInTheDocument();
+    expect(within(drawer).queryByRole("button", { name: "Open V1" })).not.toBeInTheDocument();
+    expect(within(drawer).getByRole("button", { name: "Default" })).toBeDisabled();
+
+    clickAddVariant(drawer);
+
+    expect(within(drawer).getByLabelText("Variant editor")).toBeInTheDocument();
+    expect(within(drawer).getByRole("button", { name: "Open V1" })).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(within(drawer).getByRole("button", { name: "Delete variant" }));
+
+    await waitFor(() => expect(within(drawer).queryByRole("button", { name: "Open V1" })).not.toBeInTheDocument());
+    expect(within(drawer).getByText("No variants yet.")).toBeInTheDocument();
+    expect(within(drawer).queryByLabelText("Variant editor")).not.toBeInTheDocument();
+    expect(within(drawer).getByRole("button", { name: "Default" })).toBeDisabled();
   });
 
   it("renders uploaded variant attachments in the drawer carousel", async () => {

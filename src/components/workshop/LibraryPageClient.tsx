@@ -71,6 +71,7 @@ type LibraryPageClientProps = {
   libraryItems?: EstimateRowItem[];
   projectId?: string;
   promotionEnabled?: boolean;
+  canManageLibrary?: boolean;
 };
 
 export function LibraryPageClient({
@@ -82,6 +83,7 @@ export function LibraryPageClient({
   libraryItems,
   projectId,
   promotionEnabled = false,
+  canManageLibrary = false,
 }: LibraryPageClientProps = {}) {
   const queryClient = useQueryClient();
   const seed: ComponentRowsLibraryDataset | undefined =
@@ -143,6 +145,7 @@ export function LibraryPageClient({
         workspaceId={library?.workspaceId}
         projectId={projectId}
         promotionEnabled={promotionEnabled}
+        canManageLibrary={canManageLibrary}
         componentRowsLoadState={library ? {
           isPartial: library.isPartial === true,
           loadedComponentCount: library.loadedComponentCount ?? library.libraryItems.length,

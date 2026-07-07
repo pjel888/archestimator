@@ -20,6 +20,12 @@ import { CreatableCombobox, type CreatableComboboxChange, type CreatableCombobox
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { Modal } from "@/components/ui/modal";
 import {
+  COMPONENT_UNIT_COMBOBOX_OPTIONS,
+  CONTENT_UNIT_COMBOBOX_OPTIONS,
+  getSelectedUnitId,
+  getUnitComboboxValue,
+} from "@/components/workshop/component-unit-combobox-options";
+import {
   createCostLibraryComponent,
   saveCostLibraryComponentDraft,
   type ComponentLifecycleState,
@@ -31,10 +37,7 @@ import {
 import { validateQuickAddComponentInput } from "@/lib/component-library/quick-add-validation";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import {
-  COMPONENT_UNIT_OPTIONS,
-  CONTENT_UNIT_OPTIONS,
   getUnitDisplayLabel,
-  type ComponentUnitOption,
   unitUsesContentConversion,
 } from "@/lib/component-library/unit-options";
 import type { EstimateRowItem } from "@/lib/estimates/types";
@@ -179,8 +182,6 @@ const ADD_COMPONENT_MODAL_TABS: Array<{ id: AddComponentModalTab; label: string 
   { id: "component", label: "Component" },
   { id: "activity", label: "Activity" },
 ];
-const COMPONENT_UNIT_COMBOBOX_OPTIONS = toUnitComboboxOptions(COMPONENT_UNIT_OPTIONS);
-const CONTENT_UNIT_COMBOBOX_OPTIONS = toUnitComboboxOptions(CONTENT_UNIT_OPTIONS);
 const OPENDESIGN_INPUT_CLASS =
   "h-8 rounded-[6px] border-0 bg-[rgba(61,61,61,0.05)] px-2 !text-[10px] font-medium shadow-none hover:bg-[rgba(61,61,61,0.064)] focus:bg-[rgba(61,61,61,0.058)] focus:shadow-[0_0_0_1px_rgba(242,68,5,0.42),inset_0_1px_0_rgba(255,255,255,0.75)] focus-visible:ring-2 focus-visible:ring-[rgba(242,68,5,0.32)]";
 const OPENDESIGN_TEXTAREA_CLASS =
@@ -204,15 +205,6 @@ const LOCAL_CATALOGUE_OPTION_PREFIX = "local-catalogue-option";
 const ADD_COMPONENT_CATALOGUE_OPTIONS_STORAGE_PREFIX = "archestimator:add-component-catalogue-options:v1";
 const LOCAL_CATALOGUE_OPTION_LIMIT = 80;
 const CATALOGUE_OPTION_KINDS: CatalogueOptionKind[] = ["category", "supplier", "brand"];
-
-function toUnitComboboxOptions(options: ComponentUnitOption[]): CreatableComboboxOption[] {
-  return options.map((option) => ({
-    id: option.value,
-    label: option.label,
-    description: option.description,
-    searchText: option.searchText,
-  }));
-}
 
 function toComboboxOptions(options: Array<{ id: string; name: string }>): CreatableComboboxOption[] {
   return options.map((option) => ({ id: option.id, label: option.name }));
@@ -325,15 +317,6 @@ function findSelectedLocalCatalogueOptionId(value: string, options: CreatableCom
   const key = normalizeCatalogueOptionKey(value);
   if (!key) return null;
   return options.find((option) => normalizeCatalogueOptionKey(option.label) === key)?.id ?? null;
-}
-
-function getSelectedUnitId(value: string, options: CreatableComboboxOption[]): string | null {
-  const trimmedValue = value.trim();
-  return options.some((option) => option.id === trimmedValue) ? trimmedValue : null;
-}
-
-function getUnitComboboxValue(change: { id: string | null; label: string }) {
-  return change.id ?? change.label;
 }
 
 function today() {
@@ -481,7 +464,7 @@ function getInitialDraft({
     changeReason: "Component created from workshop library.",
     sharedImageForAllVariants: false,
     sharedImage: null,
-    variants: [makeVariantDraft(1)],
+    variants: [],
   };
 }
 
@@ -844,6 +827,23 @@ function OpenAddComponentModal({
     }));
   }
 
+  function updatePrimaryVariant(update: Partial<VariantDraft>) {
+    markDirty();
+    setDraft((current) => {
+      const primaryVariant = current.variants.find((variant) => variant.isDefault) ?? current.variants[0];
+      if (primaryVariant) {
+        return {
+          ...current,
+          variants: current.variants.map((variant) => (variant.id === primaryVariant.id ? { ...variant, ...update } : variant)),
+        };
+      }
+      return {
+        ...current,
+        variants: [makeVariantDraft(1, update)],
+      };
+    });
+  }
+
   function updateActiveVariant(update: Partial<VariantDraft>) {
     if (!activeVariant) return;
     updateVariant(activeVariant.id, update);
@@ -868,7 +868,7 @@ function OpenAddComponentModal({
   }
 
   function removeActiveVariant() {
-    if (!activeVariant || draft.variants.length <= 1) return;
+    if (!activeVariant) return;
     markDirty();
     const removedImage = draft.sharedImageForAllVariants ? null : activeVariant.image;
     const removedAttachments = activeVariant.attachments;
@@ -880,6 +880,7 @@ function OpenAddComponentModal({
     const nextActive = ensuredVariants[Math.max(0, Math.min(removedIndex, ensuredVariants.length - 1))];
     setDraft((current) => ({ ...current, variants: ensuredVariants }));
     setActiveVariantId(nextActive?.id ?? "");
+    if (!nextActive) setVariantDrawerView("manager");
     if (removedImage) void removeComponentImageUpload(removedImage);
     for (const attachment of removedAttachments) void removeComponentAttachmentUpload(attachment);
   }
@@ -1436,10 +1437,7 @@ function OpenAddComponentModal({
                       <ControlTextarea
                         aria-label="Description"
                         value={defaultVariant?.description ?? ""}
-                        onChange={(event) => {
-                          if (!defaultVariant) return;
-                          updateVariant(defaultVariant.id, { description: event.target.value });
-                        }}
+                        onChange={(event) => updatePrimaryVariant({ description: event.target.value })}
                         className={OPENDESIGN_TEXTAREA_CLASS}
                       />
                     </ControlField>
@@ -1460,10 +1458,7 @@ function OpenAddComponentModal({
                               aria-required="true"
                               inputMode="decimal"
                               value={defaultVariant?.unitCost ?? ""}
-                              onChange={(event) => {
-                                if (!defaultVariant) return;
-                                updateVariant(defaultVariant.id, { unitCost: formatAccountingMoney(normalizeMoneyInput(event.target.value)) });
-                              }}
+                              onChange={(event) => updatePrimaryVariant({ unitCost: formatAccountingMoney(normalizeMoneyInput(event.target.value)) })}
                               invalid={Boolean(visibleValidationErrors.unitCost)}
                               className={cn(OPENDESIGN_INPUT_CLASS, "pl-[34px] text-right tabular-nums")}
                               placeholder="0.00"
@@ -1483,9 +1478,8 @@ function OpenAddComponentModal({
                             invalid={Boolean(visibleValidationErrors.unit)}
                             inputClassName={OPENDESIGN_INPUT_CLASS}
                             onChange={(change) => {
-                              if (!defaultVariant) return;
                               const unit = getUnitComboboxValue(change);
-                              updateVariant(defaultVariant.id, {
+                              updatePrimaryVariant({
                                 unit,
                                 ...(unitUsesContentConversion(unit) ? {} : { packageQuantity: "", packageUnit: "" }),
                               });
@@ -1762,6 +1756,11 @@ function OpenAddComponentModal({
             <div className="min-h-0 flex-1 overflow-auto px-2 pb-2 pl-4 pt-[6px]">
               {variantDrawerView === "manager" ? (
                 <div className="grid gap-2" aria-label="Variant manager">
+                  {draft.variants.length === 0 ? (
+                    <div className="grid min-h-[64px] place-items-center rounded-[3px] bg-[rgba(61,61,61,0.05)] px-3 text-center text-[10px] font-medium leading-[1.35] text-tertiary">
+                      No variants yet.
+                    </div>
+                  ) : null}
                   {draft.variants.map((variant, index) => (
                     <button
                       key={variant.id}
@@ -1786,14 +1785,14 @@ function OpenAddComponentModal({
                 </div>
               ) : activeVariant ? (
                 <div className="grid gap-2" aria-label="Variant editor">
-                  <section className="grid h-[99px] grid-cols-[99px_minmax(0,1fr)] items-center gap-2 rounded-[3px] bg-[rgba(61,61,61,0.035)] p-2" aria-label="Variant image">
+                  <section className="grid h-[99px] grid-cols-[83px_minmax(0,1fr)] items-center gap-2 rounded-[3px] bg-[rgba(61,61,61,0.035)] p-2" aria-label="Variant image">
                     <div className={OPENDESIGN_IMAGE_WELL_CLASS}>
                       {activeImageSrc ? (
                         <Image
                           src={activeImageSrc}
                           alt="Variant thumbnail preview"
                           fill
-                          sizes="96px"
+                          sizes="83px"
                           className="object-cover"
                           unoptimized={Boolean(activePreviewUrl || activeImageSrc.startsWith("http"))}
                         />
@@ -2030,38 +2029,64 @@ function OpenAddComponentModal({
           setDiscardDialogOpen(nextOpen);
         }}
         title="Save component draft?"
-        description="This add component form has unsaved data. Save it as a draft, add it to the library, or discard it."
-        tone="warning"
-        size="sm"
+        description="This component has unsaved edits. Choose how to handle it before closing."
+        tone="default"
+        size="md"
         closeLabel="Close save draft dialog"
         closeOnOverlayClick={false}
         closeOnEscape={false}
-        bodyClassName="space-y-3"
+        contentClassName={cn("rounded-[12px] border-[rgba(61,61,61,0.08)]", OPENDESIGN_MODAL_BG_CLASS, OPENDESIGN_MODAL_SHADOW_CLASS)}
+        bodyClassName="space-y-3 bg-white/65 p-4"
         footer={
-          <>
-            <Button type="button" variant="ghost" onClick={() => setDiscardDialogOpen(false)} disabled={draftSavePending}>
+          <div className="grid w-full min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto] sm:items-center">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="w-full justify-center sm:w-auto sm:justify-self-start"
+              data-dialog-initial-focus
+              onClick={() => setDiscardDialogOpen(false)}
+              disabled={draftSavePending}
+            >
               Keep editing
             </Button>
-            <Button type="button" variant="danger" onClick={confirmDiscardDraft} disabled={draftSavePending}>
+            <Button type="button" variant="danger" size="sm" className="w-full sm:w-auto" onClick={confirmDiscardDraft} disabled={draftSavePending}>
               Discard draft
             </Button>
-            <Button type="button" variant="secondary" onClick={saveDraftAndClose} disabled={draftSavePending || imageBusy || attachmentBusy}>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="w-full sm:w-auto"
+              onClick={saveDraftAndClose}
+              disabled={draftSavePending || imageBusy || attachmentBusy}
+            >
               {draftSavePending ? "Saving..." : "Save to drafts"}
             </Button>
-            <Button type="button" variant="primary" onClick={submitFromCloseDialog} disabled={isPending || imageBusy || attachmentBusy || draftSavePending}>
+            <Button
+              type="button"
+              variant="brand"
+              size="sm"
+              className="w-full sm:w-auto"
+              onClick={submitFromCloseDialog}
+              disabled={isPending || imageBusy || attachmentBusy || draftSavePending}
+            >
               Add Component
             </Button>
-          </>
+          </div>
         }
       >
         {draftSaveError ? (
-          <div role="alert" className="border border-dangerSoft bg-dangerSoft px-2 py-1.5 text-[9px] leading-4 tracking-normal text-danger">
+          <div role="alert" className="rounded-[6px] border border-dangerSoft bg-dangerSoft px-2.5 py-2 text-[9.5px] leading-4 tracking-normal text-danger">
             {draftSaveError}
           </div>
         ) : null}
-        <p className="m-0 text-[10px] leading-4 tracking-normal text-secondary">
-          Drafts keep the form state separate from published library components until you return and finish them.
-        </p>
+        <div className="rounded-[8px] border border-[rgba(61,61,61,0.08)] bg-white/78 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)]">
+          <p className="m-0 text-[11px] font-medium leading-4 tracking-normal text-ink">Keep this component out of the library until it is ready.</p>
+          <p className="m-0 mt-1 text-[10px] leading-4 tracking-normal text-secondary">
+            Saving a draft preserves the form, catalogue fields, variants, costs, thumbnails, and attachments for later.
+          </p>
+        </div>
       </Modal>
     </>
   );

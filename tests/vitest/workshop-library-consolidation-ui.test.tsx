@@ -66,6 +66,11 @@ async function waitForLibraryWorkspace() {
   await screen.findByRole("button", { name: /View by:/ }, { timeout: 10_000 });
 }
 
+function clickDrawerAddVariant(drawer: HTMLElement) {
+  const addVariantButtons = within(drawer).getAllByRole("button", { name: "Add variant" });
+  fireEvent.click(addVariantButtons[addVariantButtons.length - 1]);
+}
+
 function openComponentViewMenu() {
   fireEvent.click(screen.getByRole("button", { name: /View by:/ }));
   return screen.getByRole("menu", { name: "Component view mode" });
@@ -418,6 +423,7 @@ describe("workshop library consolidation UI", () => {
           { ...sharedLibraryItems[1], confidence: "Allowance", lifecycleState: "draft" },
           { ...sharedLibraryItems[2], confidence: "", lifecycleState: "discontinued" },
         ]}
+        canManageLibrary
       />,
     );
     await waitForLibraryWorkspace();
@@ -429,7 +435,7 @@ describe("workshop library consolidation UI", () => {
     expect(window.localStorage.getItem("archestimator_component_library_display_mode_v1")).toBe("dense");
     const table = screen.getByRole("table", { name: "All Components dense component table" });
     expect(table).toHaveAttribute("data-library-virtualization-source", "WORKSHOP_VIRTUALIZATION_FLAGS");
-    for (const column of ["Name", "Folder", "Supplier", "Brand", "Cost", "Pricing source", "Pricing date", "Confidence", "Lifecycle", "Usage", "Actions"]) {
+    for (const column of ["Name", "Folder", "Brand", "Supplier", "Cost", "Pricing source", "Pricing date", "Confidence", "Lifecycle", "Usage", "Actions"]) {
       expect(within(table).getByRole("columnheader", { name: new RegExp(column, "i") })).toBeInTheDocument();
     }
 
@@ -497,6 +503,7 @@ describe("workshop library consolidation UI", () => {
         brands={sharedBrands}
         libraryFolders={sharedFolders}
         libraryItems={sharedLibraryItems}
+        canManageLibrary
       />,
     );
     await waitForLibraryWorkspace();
@@ -525,6 +532,7 @@ describe("workshop library consolidation UI", () => {
         brands={sharedBrands}
         libraryFolders={sharedFolders}
         libraryItems={sharedLibraryItems}
+        canManageLibrary
       />,
     );
     await waitForLibraryWorkspace();
@@ -551,6 +559,7 @@ describe("workshop library consolidation UI", () => {
         brands={sharedBrands}
         libraryFolders={sharedFolders}
         libraryItems={sharedLibraryItems}
+        canManageLibrary
       />,
     );
     await waitForLibraryWorkspace();
@@ -617,9 +626,15 @@ describe("workshop library consolidation UI", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Open variants panel" }));
     const variantsPanel = await within(dialog).findByRole("dialog", { name: "Manage variants" });
     expect(within(variantsPanel).getByLabelText("Variant manager")).toBeInTheDocument();
+    expect(within(variantsPanel).getByText("No variants yet.")).toBeInTheDocument();
+    expect(within(variantsPanel).queryByRole("button", { name: "Open V1" })).not.toBeInTheDocument();
     const defaultVariantAction = within(variantsPanel).getByRole("button", { name: "Default" });
-    expect(defaultVariantAction).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(within(variantsPanel).getByRole("button", { name: "Open V1" }));
+    expect(defaultVariantAction).toBeDisabled();
+    clickDrawerAddVariant(variantsPanel);
+    await waitFor(() => expect(within(variantsPanel).getByRole("button", { name: "Open V1" })).toHaveAttribute("aria-pressed", "true"));
+    const defaultVariantActionAfterAdd = within(variantsPanel).getByRole("button", { name: "Default" });
+    expect(defaultVariantActionAfterAdd).toHaveAttribute("aria-pressed", "true");
+    expect(defaultVariantActionAfterAdd).not.toBeDisabled();
     const variantOneEditor = within(variantsPanel).getByLabelText("Variant editor");
     expect(within(variantOneEditor).getByLabelText("Upload attachment")).toHaveAttribute("type", "file");
     fireEvent.change(within(variantOneEditor).getByLabelText("Variant Name"), { target: { value: "Variant 1" } });
@@ -640,7 +655,7 @@ describe("workshop library consolidation UI", () => {
     expect(within(variantOneEditor).getByRole("option", { name: /^pieces/i })).toBeInTheDocument();
     fireEvent.click(within(variantOneEditor).getByRole("option", { name: /^pieces/i }));
     expect(equivalentUnitCombobox).toHaveValue("pieces");
-    fireEvent.click(within(variantsPanel).getByRole("button", { name: "Add variant" }));
+    clickDrawerAddVariant(variantsPanel);
     await waitFor(() => expect(within(variantsPanel).getByRole("button", { name: "Open V2" })).toHaveAttribute("aria-pressed", "true"));
     const variantTwoEditor = within(variantsPanel).getByLabelText("Variant editor");
     fireEvent.change(within(variantTwoEditor).getByLabelText("Variant Name"), { target: { value: "Variant 2" } });
@@ -751,9 +766,15 @@ describe("workshop library consolidation UI", () => {
     const branch = within(sheet).getByLabelText("Fabrication component catalogue branch");
     const card = branch.querySelector('[data-component-catalogue-card-id="db-library-steel-frame"]');
     expect(card).not.toBeNull();
-    expect(within(card as HTMLElement).getByText("Database Steel Frame")).toBeInTheDocument();
-    expect(within(card as HTMLElement).getByText("Database Supplier")).toBeInTheDocument();
-    expect(within(card as HTMLElement).getByText("Database Brand")).toBeInTheDocument();
+    const cardElement = card as HTMLElement;
+    const cardName = within(cardElement).getByText("Database Steel Frame");
+    const cardBrand = within(cardElement).getByText("Database Brand");
+    const cardSupplier = within(cardElement).getByText("Database Supplier");
+    expect(cardName).toBeInTheDocument();
+    expect(cardBrand).toBeInTheDocument();
+    expect(cardSupplier).toBeInTheDocument();
+    expect(cardName.compareDocumentPosition(cardBrand) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(cardBrand.compareDocumentPosition(cardSupplier) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(within(card as HTMLElement).getByText("₱1,200.00")).toBeInTheDocument();
     expect(within(card as HTMLElement).getByText("Cost / pc")).toBeInTheDocument();
     expect(within(sheet).queryByText("History / v1")).not.toBeInTheDocument();
@@ -798,6 +819,7 @@ describe("workshop library consolidation UI", () => {
         suppliers={[{ id: "db-supplier", name: "Database Supplier", sort_order: 1 }]}
         libraryFolders={sharedFolders}
         libraryItems={sharedLibraryItems}
+        canManageLibrary
       />,
     );
     await waitForLibraryWorkspace();
@@ -834,6 +856,7 @@ describe("workshop library consolidation UI", () => {
         suppliers={[{ id: "db-supplier", name: "Database Supplier", sort_order: 1 }]}
         libraryFolders={sharedFolders}
         libraryItems={sharedLibraryItems}
+        canManageLibrary
       />,
     );
     await waitForLibraryWorkspace();

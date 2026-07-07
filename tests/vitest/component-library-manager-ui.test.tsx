@@ -228,6 +228,7 @@ async function renderLibrary(overrides: Partial<ComponentProps<typeof LibraryPag
         brands={sharedBrands}
         libraryFolders={sharedLibraryFolders}
         libraryItems={sharedLibraryItems}
+        canManageLibrary
         {...overrides}
       />,
     ),
@@ -242,6 +243,11 @@ function getSheetContextStrip(sheet: HTMLElement) {
   const strip = sheet.querySelector('[data-component-sheet-context-strip="true"]');
   if (!strip) throw new Error("Component table context strip not found");
   return strip as HTMLElement;
+}
+
+function clickDrawerAddVariant(drawer: HTMLElement) {
+  const addVariantButtons = within(drawer).getAllByRole("button", { name: "Add variant" });
+  fireEvent.click(addVariantButtons[addVariantButtons.length - 1]);
 }
 
 function openLibraryTreeSearch() {
@@ -427,6 +433,13 @@ describe("component library manager UI", () => {
     expect(addComponentModalSource).toContain("saveCostLibraryComponentDraft");
     expect(addComponentModalSource).toContain("closeOnOverlayClick={false}");
     expect(addComponentModalSource).toContain("closeOnEscape={false}");
+    expect(addComponentModalSource).toContain('size="md"');
+    expect(addComponentModalSource).toContain("sm:grid-cols-[minmax(0,1fr)_auto_auto_auto]");
+    expect(addComponentModalSource).toContain('variant="brand"');
+
+    const dialogSource = readFileSync(join(process.cwd(), "src/components/ui/overlays/dialog.tsx"), "utf8");
+    expect(dialogSource).toContain("flex-wrap");
+    expect(dialogSource).not.toContain("flex shrink-0 items-center gap-1");
 
     fireEvent.click(screen.getByRole("button", { name: "Add component" }));
     const addDialog = await screen.findByRole("dialog", { name: "Add Component" }, { timeout: 15_000 });
@@ -437,7 +450,8 @@ describe("component library manager UI", () => {
     fireEvent.click(within(addDialog).getByRole("button", { name: "Close add component modal" }));
 
     const discardDialog = await screen.findByRole("dialog", { name: "Save component draft?" });
-    expect(discardDialog).toHaveTextContent("This add component form has unsaved data.");
+    expect(discardDialog).toHaveTextContent("This component has unsaved edits.");
+    expect(discardDialog).toHaveTextContent("Keep this component out of the library until it is ready.");
     expect(within(discardDialog).getByRole("button", { name: "Save to drafts" })).toBeInTheDocument();
     expect(within(discardDialog).getByRole("button", { name: "Add Component" })).toBeInTheDocument();
 
@@ -797,9 +811,11 @@ describe("component library manager UI", () => {
 
     const dialog = await screen.findByRole("dialog", { name: "Add Component" });
     fireEvent.click(within(dialog).getByRole("button", { name: "Open variants panel" }));
-    fireEvent.click(within(dialog).getByRole("button", { name: "Open V1" }));
 
     const drawer = within(dialog).getByRole("dialog", { name: "Manage variants" });
+    expect(within(drawer).getByText("No variants yet.")).toBeInTheDocument();
+    clickDrawerAddVariant(drawer);
+    await waitFor(() => expect(within(drawer).getByRole("button", { name: "Open V1" })).toHaveAttribute("aria-pressed", "true"));
     expect(within(drawer).getByLabelText("Variant Name")).toBeInTheDocument();
     expect(within(drawer).getByLabelText("Variant Description")).toBeInTheDocument();
     expect(within(drawer).getByLabelText("SKU / Reference")).toBeInTheDocument();
@@ -844,7 +860,8 @@ describe("component library manager UI", () => {
     expect(addComponentModalSource).not.toContain("top-[77px] z-10 flex");
     expect(addComponentModalSource).toContain("h-[49px] min-h-[49px] shrink-0");
     expect(addComponentModalSource).toContain("min-h-[176px]");
-    expect(addComponentModalSource).toContain("h-[99px] grid-cols-[99px_minmax(0,1fr)]");
+    expect(addComponentModalSource).toContain("h-[99px] grid-cols-[83px_minmax(0,1fr)]");
+    expect(addComponentModalSource).toContain('sizes="83px"');
     expect(addComponentModalSource).toContain("pt-[6px]");
   });
 
@@ -901,8 +918,9 @@ describe("component library manager UI", () => {
     expect(unitOptions.querySelector('[data-combobox-option-meaning="Piece"]')).toHaveTextContent("Piece");
 
     fireEvent.click(within(dialog).getByRole("button", { name: "Open variants panel" }));
-    fireEvent.click(within(dialog).getByRole("button", { name: "Open V1" }));
     const drawer = within(dialog).getByRole("dialog", { name: "Manage variants" });
+    clickDrawerAddVariant(drawer);
+    await waitFor(() => expect(within(drawer).getByRole("button", { name: "Open V1" })).toHaveAttribute("aria-pressed", "true"));
     fireEvent.change(within(drawer).getByRole("combobox", { name: "Variant unit" }), {
       target: { value: "box" },
     });
