@@ -73,17 +73,19 @@ product invention) or BLOCKED-EXTERNAL (owner decision).
 | Data/database readiness | 80 | 96 | blueprint complete; precedents cited; determinism caveat DISCOVERY |
 | API/network readiness | 82 | 95 | contracts + headers + async; thresholds DISCOVERY |
 | Security/privacy readiness | 78 | 95 | threat model + denial tests + taxonomy; RISK-8 accepted |
-| Performance/scalability | 70 | 92 | evaluator defined; thresholds DISCOVERY (capped by DISCOVERY) |
+| Performance/scalability | 70 | 92 | evaluator defined; thresholds DISCOVERY (gates IMPLEMENTATION-READY) |
 | Reliability/operational | 75 | 94 | failure modes + flags + runbook; reconcile DISCOVERY |
 | Blast-radius coverage | 84 | 96 | full inventory + classification |
 | Testing/validation | 80 | 95 | full matrix; hosted = rollout gate; adversarial specified |
 | Rollout/rollback | 76 | 94 | flags + gates + metrics; hosted gate |
 | Requirements traceability | 82 | 97 | every req ↔ task ↔ AC ↔ test ↔ rollout |
-| Overall implementation readiness | 79 | **94** (capped: emulated → 97 ceiling; effective 94 on self-audit) |
+| Overall implementation readiness | 79 | **94** | below the 95 overall PASS threshold; gated by Performance (92) |
 
-**Caps applied:** `emulated` caps overall at 97. Self-audit honesty (no independent verifier)
-keeps the claimed overall at **94** rather than 97 — the difference reflects the missing
-independent verifier, not a known defect.
+**Verification mode:** `independent` (separate native verifier agent — permits 98–100 in principle).
+**Status gate not met:** Performance 92 < 95 (required for user-facing exports) → status is
+`CONDITIONALLY READY`, not `IMPLEMENTATION-READY`. This is the honest reason; it is not a
+verification-mode cap. The overall stays 94 because the gating deficiency (Performance) is real
+and unresolved at planning time (thresholds are DISCOVERY).
 
 ## Final determination
 
@@ -99,16 +101,16 @@ independent verifier, not a known defect.
 - **Blocked:**
   - PDF (DEC-FORMAT-1, BLOCKED-EXTERNAL, owner decision).
 
-## Smallest set of actions to reach IMPLEMENTATION-READY (98–100)
+## Smallest set of actions to reach IMPLEMENTATION-READY
 
-1. Independent reviewer (or owner) reviews this package and records acceptance → lifts the
-   emulated cap.
+1. Executor runs T3.0 evaluator to set performance thresholds → lifts Performance readiness to ≥95
+   (the actual gate).
 2. Owner resolves DISCOVERY T0.4 (internal-field allowlist) and OPEN-4 (PDF renderer) or confirms
-   PDF stays deferred.
-3. Executor runs T3.0 evaluator to set thresholds (unblocks Phase 3 gating).
+   PDF stays deferred (keeps FR-9 cleanly BLOCKED-EXTERNAL).
+3. (Optional strengthening) Owner or a second reviewer records acceptance of the pack.
 
-Until (1), the package stays `CONDITIONALLY READY` per the authority contract — this is the honest
-status, not a defect.
+Once (1) and (2) are done, all PASS-rule thresholds are met and the named slices can be declared
+`IMPLEMENTATION-READY`.
 
 ## Confirmation
 
