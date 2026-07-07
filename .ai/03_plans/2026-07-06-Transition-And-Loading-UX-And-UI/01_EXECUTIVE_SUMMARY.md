@@ -1,10 +1,12 @@
 # Executive Summary
 
 **Plan:** Transition and Loading UX/UI — App-Wide Audit, Measurement Strategy, and AI-Agent Rules
-**Status:** `CONDITIONALLY READY` (rule-authoring + measurement-architecture phases are `IMPLEMENTATION-READY`; UX remediation phases carry owner decisions and need real-asset proof)
+**Status:** `CONDITIONALLY READY` (Phases 0, 1.5, and 4 are `IMPLEMENTATION-READY`; UX/mount/perf phases carry owner decisions and need real-asset proof)
 **Plan profile:** `exhaustive`
 **Verification mode:** `emulated`
-**Date:** 2026-07-06 (Asia/Manila)
+**Created:** 2026-07-06 · **Improved:** 2026-07-07 (Asia/Manila)
+
+> **2026-07-07 improvement pass:** deepened evidence via 3 parallel lanes (route-cache contracts, credential/attack-surface taxonomy, Cloudflare free-tier cost model). **Surfaced 3 correctness bugs (ARCH-07a/b/c)** now sequenced into a new **Phase 1.5** before UX work. **Refined PERF-02 to default to Cloudflare Web Analytics (free, reports LCP/INP/CLS)** instead of a custom beacon. Added React-Compiler posture (not configured), per-route cache contracts, full state + a11y proof matrices, proof-contract rows, and a known-red validation ledger.
 
 ---
 
@@ -39,10 +41,12 @@ This is explicitly **not** an implementation pass. No application code, tests, m
 | Reference, don't duplicate, numeric budgets in `27-*.md` | Proposed | Single source of truth for LCP/INP/bundle numbers. |
 | Make `EstimateSheet{Tree,Content}` non-blocking with a skeleton fallback | Proposed (Phase 2) | Highest-leverage mount fix; skeleton already exists. |
 | Close loading/error gaps on token-bearing + authenticated dynamic routes | Proposed (Phase 1) | `/invite/[token]`, `/workshop/publisher`, estimates list, etc. |
+| **Fix ARCH-07a/b/c revalidation correctness bugs (stale `/workshop/components` path; `/workshop/proposals`+`/workshop/publisher` zero server revalidation)** | **Proposed (Phase 1.5, IMPLEMENTATION-READY, release-blocking)** | Route-cache audit found stale data on hard refresh/new tab; release-blocking per Improve directive. |
 | Migrate share-surface `fetch`-in-effect to TanStack Query | Proposed (Phase 2) | Enables cache + dedupe + SSR bridge. |
-| Add production RUM (web-vitals beacon) | Proposed, **owner-gated** | Needs a sink decision (Cloudflare Workers Observability custom metric vs. GA4 events vs. paid APM). Free-tier constraint. |
+| **Production RUM via Cloudflare Web Analytics (Tier-1) first** | Proposed, **owner-gated** (Tier 1 vs Tier 2) | Refined 2026-07-07: Web Analytics is free, cookie-free, reports LCP/INP/CLS, no Worker code. Custom Worker→Workers Logs beacon is Tier-2 fallback. Paid APM rejected (free-tier). |
 | Enable Cache Components + `unstable_instant` | Proposed, **owner-gated, future** | Cross-cutting, changes every uncached-data boundary. Not Phase 1. |
 | Add `viewport` export + LCP-image `preload` discipline to agent rules | Proposed | Found gap: no `viewport` anywhere; LCP-image preload is documented Next.js guidance. |
+| **Keep React Compiler OFF; manual memoization** | Proposed (Phase 4 rule) | Verified not configured; adoption is a separate cross-cutting plan with rules-of-React audit. |
 
 ## Readiness scores (initial → final; see `17_FINAL_READINESS_REVIEW.md`)
 

@@ -48,22 +48,28 @@ Each row is a complete evaluator: baseline → target → command → fixture �
 5. If regression > threshold, stop and fix or document `ACCEPTED RISK` with owner approval (`27-*.md` Regression Policy).
 6. For bundle impact: run `ANALYZE=true bun run build` + budget script.
 
-## 3. Production RUM / Core Web Vitals design (PERF-02, owner-gated)
+## 3. Production RUM / Core Web Vitals design (PERF-02, owner-gated — refined 2026-07-07)
 
 **Gap:** `WebVitalsProbe` is dev-only (`NEXT_PUBLIC_PERF_TRACE`), `console.log` only. No prod CWV signal.
 
-**Proposed (free-tier-first), pending owner sink decision (OPEN-PERF-01):**
-- Client beacon emitting LCP/INP/CLS/TTFB/FCP via `next/web-vitals` (`useReportWebVitals`) — already imported by `WebVitalsProbe`; extend to prod with a runtime gate + sampling.
-- Sink options:
-  - **(a) Cloudflare Workers Observability custom metric** via a new/internal beacon route (e.g. extend `/api/internal/client-error` or add `/api/internal/web-vitals`) — free-tier-compatible, PII-safe (no URLs beyond route path, no user ids), idle-deferred beacon. Recommended default.
-  - **(b) GA4 custom events** — already have GA4 on landing; extend to workshop; free; less analytical depth for CWV.
-  - **(c) Paid APM (Sentry/OTel/Datadog)** — out of free-tier posture unless owner approves.
-- Redaction: beacon payload = `{ metric, value, id, routePath, rating, deviceType }`. **No** user id, email, project id, estimate cost, token, query string beyond route path. CSP must allow the beacon endpoint.
-- Sampling: 100% for INP (low volume); sample LCP/CLS/TTFB at ~10% to stay in free-tier Workers limits.
-- Idle-deferred: beacon via `sendBeacon` on `pagehide`/idle, never blocking.
-- Dashboard: Workers Observability custom query or a simple `metrics/`-aggregating script. Owner decides.
+**Default recommendation (refined after deeper Cloudflare research — see `23_CLOUDFLARE_COST_AND_RESOURCE_BUDGET.md`):**
 
-**Implementation readiness:** design is implementation-ready; **sink selection is owner-gated** (OPEN-PERF-01).
+- **Tier 1 (default, recommended): Cloudflare Web Analytics built-in beacon.** Free, cookie-free, no consent, already reports **LCP/INP/CLS**, unsampled ingestion, 6-month dashboard. Adds only the `beacon.min.js` snippet (auto-injected on proxied sites). Satisfies PERF-02 with **zero Worker code, zero log quota, zero DB, zero paid add-on**.
+- **Tier 2 (only if custom dimensions needed): flag-free Worker emitting one structured JSON `console.log` per beacon into Workers Logs** (free sink, 200,000 events/day, 3-day retention; `head_sampling_rate` tunable). JSON auto-indexed + Query Builder. Keep `nodejs_compat` OFF; mirror `/api/internal/client-error` safety (same-origin + Fetch-Metadata, `MAX_BODY_BYTES`, whitelist+clamp, query/fragment strip, `no-store`, anonymous 204) AND use a **durable** rate limiter (`security_rate_limit_events`), not the per-isolate `Map` (SEC-09).
+- **Tier 3 (rejected under free-tier posture): paid APM** (Sentry/OTel/Datadog) — only if owner explicitly approves a paid add-on.
+
+**Redaction (Tier 2):** payload = `{ metric, value, id, rating, routePath, deviceType }`. **No** user id, email, project id, estimate cost, token, query string (strip query + fragment). CSP `connect-src` allows same-origin beacon only. Idle-deferred via `sendBeacon` on `pagehide`. Sampling: 100% INP; ~10% LCP/CLS/TTFB to stay under Workers Logs 200k/day free cap.
+
+**Why this changed from the original pack:** original proposed a custom Worker beacon to "Workers Observability custom metric." Research confirmed (a) Cloudflare Web Analytics already provides free CWV with no Worker code, and (b) Workers Logs (not a "custom metric" emitter) is the free queryable-structured-log sink with a 200k/day cap. Tier 1 is strictly cheaper/lower-risk; Tier 2 is the custom-dimension fallback.
+
+**Implementation readiness:** design is implementation-ready; **owner confirms Tier 1 vs Tier 2 (OPEN-PERF-01)**. Tier 1 unblocks with minimal risk.
+
+### 3.1 Free-tier caps that bound the RUM decision (cite `23_...md`)
+- Workers requests/day: 100,000 (Free).
+- Workers Logs events/day: 200,000 (Free), 3-day retention; `head_sampling_rate` is the lever.
+- D1 rows written/day: 100,000 → **wrong store for CWV** (reject).
+- Queues ops/day: 10,000 (~3.3k beacons), 24h retention → **wrong store** (reject).
+- Web Analytics: free, unsampled ingestion, 10-site soft cap → **right default**.
 
 ## 4. Reliability
 

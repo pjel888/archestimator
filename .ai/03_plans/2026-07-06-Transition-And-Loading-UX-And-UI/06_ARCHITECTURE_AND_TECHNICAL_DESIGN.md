@@ -105,6 +105,34 @@ Future (owner-gated, ARCH-05): Cache Components → `"use cache"` + `cacheLife`/
 - No `any`; exhaustive discriminated unions.
 - Decomposition targets for large components (the 3000-LOC files are debt; agent rule discourages growth).
 
+### React Compiler posture (verified 2026-07-07)
+
+- **React Compiler is NOT configured.** Grep of `next.config.ts` + `package.json` for `react-compiler`/`babel-plugin-react-compiler`/`reactCompiler` returns nothing. The only hit is a stale comment in `src/components/workshop/dashboard/FavoritesTree.tsx`.
+- **Decision:** keep manual memoization (existing `useMemo`/`useCallback`/`useDeferredValue`/`useTransition` discipline) and do **not** adopt React Compiler as part of this plan. Rationale: adopting the compiler is a cross-cutting build-config change with its own validation surface (eslint-plugin-react-compiler, "rules of React" compliance audit of the 252 client files); it is out of scope for a loading/transition/mount plan and would expand blast radius.
+- **Agent rule (Phase 4) must state:** "Do not rely on React Compiler auto-memoization. Justify each `useMemo`/`useCallback` with a real render-cost or referential-stability reason (memoized child, expensive calc, subscription, verified hot path). Clean up effects. No stale closures or dependency omissions." If a future phase adopts the compiler, that is a separate plan pack with a full rules-of-React audit.
+
+## 8A. Route boundary & cache contracts (NEW — see `20_ROUTE_BOUNDARY_AND_CACHE_CONTRACTS.md`)
+
+`20_...md` is the authoritative per-route contract (rendering model, server-owned data, client-crossing DTO, dynamic trigger, cache finalization, revalidation mechanism, loading/error boundary) for every affected route. This section summarizes the load-bearing decisions and the **correctness gaps** the route-cache audit found:
+
+- **Global revalidation:** `revalidatePath` is the **only** ISR primitive (~50 sites); **zero** `revalidateTag`/`cacheTag`/`cacheLife`/`use cache` (Cache Components off). Client uses `router.refresh()` (~38 sites) + `queryClient.invalidateQueries` (~45 sites).
+- **Segment config:** only `/` (`force-static`) and `/share/[token]` (`force-dynamic`) export `dynamic`; all `/workshop/*` are dynamic by default (read cookies/headers). Only `runtime="nodejs"` on API routes; Server Actions import `node:crypto` → pin Node runtime transitively.
+- **Proxy cache headers (`request-proxy.ts:21`):** marketing `s-maxage=31536000`; `/share`+protected+redirects `private, no-store`. **Only CDN-cache directive in the repo.**
+- **Correctness gaps (new, P1, Phase 1.5):** ARCH-07a (stale `/workshop/components` path), ARCH-07b (`/workshop/proposals` no server revalidation), ARCH-07c (`/workshop/publisher` no server revalidation) — stale data on hard refresh/new tab.
+- **Perf gap (P2):** ARCH-06 `/workshop` dashboard double-fetch (server `revalidatePath` + client `router.refresh()` both fire).
+
+## 8B. Cache/freshness decision tree (for the agent rule)
+
+```
+Is the data server-owned and shown on navigation?
+├─ YES → Server Component reads it; on mutation, the Server Action calls revalidatePath(<exact route>).
+│         (Do NOT rely on client invalidateQueries alone — hard refresh/new tab shows stale data. ARCH-07 lesson.)
+└─ NO → Is it client-side server-state with optimistic mutations?
+        ├─ YES → TanStack Query; invalidateQueries after server confirmation; optional HydrationBoundary for SSR bridge.
+        └─ NO → URL state (shareable) | Zustand (colocated UI) | local useState (isolated).
+```
+**Hard rule from this audit:** every Server Action that mutates data shown on a route MUST call `revalidatePath` with the **exact current route path** (no stale paths). This is now a Phase-4 agent-rule clause and a Phase-1.5 correctness fix.
+
 ## 9. Reliability boundaries
 
 - Every route subtree → error boundary (UX-02).

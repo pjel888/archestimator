@@ -259,10 +259,89 @@ Source-strength legend applies to every requirement's `Source` field.
 
 ---
 
-## Open decisions (OPEN)
+## Additional requirements added by the improvement pass (2026-07-07)
 
-- **OPEN-PERF-01:** RUM/CWV sink choice (Cloudflare Workers Observability custom metric vs. GA4 events vs. paid APM). Owner: Philip. Blocks PERF-02 implementation.
-- **OPEN-ARCH-01:** Adopt Cache Components + `unstable_instant` now or later. Owner: Philip. Blocks ARCH-05 implementation at scale.
-- **OPEN-PERF-02:** Tighten CI bundle budget to strict + per-route numbers. Owner: Philip. Blocks PERF-03.
-- **OPEN-UX-01:** Global overlay threshold (ms) before showing on skeleton routes. Owner: Philip + design. Blocks UX-03.
-- **OPEN-REL-01:** Whether token routes need real HTTP 404 (compliance) vs. soft-404 noindex (current). Owner: Philip. Blocks REL-01 remediation scope.
+These come from deeper evidence (route-cache lane + credential lane + CF cost lane). They are **correctness/release-relevant**, not polish, and are sequenced into Phase 1 before broad UX work per the Improve directive's "release-blocking hardening before broad UX" rule.
+
+### ARCH-06 — Eliminate `/workshop` dashboard double-fetch
+- **Statement.** After a mutation the dashboard must use exactly one revalidation path (either server `revalidatePath("/workshop")` OR client `router.refresh()`), not both, to avoid a double fetch.
+- **Source.** `repo evidence` (`group-actions.ts:90`, `actions.ts:81`, `account-actions.ts:93`, `projects/actions.ts:861` + `WorkshopHomebaseClient` `router.refresh()`).
+- **Priority.** P2 (perf).
+- **Acceptance criteria.** AC-ARCH-06a: post-mutation network trace shows one RSC fetch, not two (PC-18).
+- **Validation.** extend `route-transition-performance.spec.ts`.
+- **Status.** Planned (Phase 2).
+
+### ARCH-07 — Fix route revalidation gaps (correctness)
+Three sub-findings (all P1 correctness):
+
+#### ARCH-07a — Stale `revalidatePath("/workshop/components")` no-op
+- **Statement.** `component-library/actions.ts:309` and `ai/package-builder/apply.ts:1896` call `revalidatePath("/workshop/components")` — **no such route** (real route is `/workshop/library/components`). These are no-ops; component edits don't server-invalidate the components route (currently masked by client `invalidateQueries`).
+- **Source.** `repo evidence` (route-cache lane).
+- **Priority.** **P1 (correctness).**
+- **Acceptance criteria.** AC-ARCH-07a: grep returns zero `/workshop/components"` revalidatePath calls; correct `/workshop/library/components` is used (PC-11).
+- **Status.** Planned (Phase 1).
+
+#### ARCH-07b — `/workshop/proposals` has zero server-side revalidation
+- **Statement.** No `revalidatePath("/workshop/proposals")` exists anywhere; relies 100% on client `invalidateQueries`. A Server Action mutating recipient proposals → hard refresh/new tab shows stale data.
+- **Source.** `repo evidence`.
+- **Priority.** **P1 (correctness).**
+- **Acceptance criteria.** AC-ARCH-07b: relevant Server Actions call `revalidatePath("/workshop/proposals")` (PC-12).
+- **Status.** Planned (Phase 1).
+
+#### ARCH-07c — `/workshop/publisher` has zero server-side revalidation
+- **Statement.** Same as ARCH-07b for `/workshop/publisher` — client-only invalidation; stale on hard refresh/new tab.
+- **Source.** `repo evidence`.
+- **Priority.** **P1 (correctness).**
+- **Acceptance criteria.** AC-ARCH-07c: relevant Server Actions call `revalidatePath("/workshop/publisher")` (PC-13).
+- **Status.** Planned (Phase 1).
+
+### SEC-09 — RUM beacon must mirror `/api/internal/client-error` safety AND use a durable rate limiter
+- **Statement.** The PERF-02 beacon (if Tier-2 custom Worker is chosen) must use same-origin + Fetch-Metadata gate, hard byte cap, whitelist+clamp, `no-store`, anonymous 204, query/fragment strip, and a **durable** rate limiter (D1 `security_rate_limit_events`), NOT the per-isolate in-memory `Map` the existing `client-error` uses (a known cross-isolate weakness).
+- **Source.** `repo evidence` (`client-error/route.ts:6-7,40-55` per-isolate Map).
+- **Priority.** P1 (security, if Tier-2 chosen).
+- **Acceptance criteria.** AC-SEC-09a: beacon passes denial/redaction/rate-limit tests (PC-16); no per-isolate limiter.
+- **Status.** Planned (Phase 0 design + PERF-02 impl).
+
+### SEC-10 — Loading/transition UX must not regress `/share`+`/invite` `no-store` cache posture
+- **Statement.** Any loading/error/skeleton change on `/share/[token]` or `/invite/[token]` must keep the proxy-enforced `private, no-store` cache headers; the agent rule (Phase 4) must forbid adding caching to token-bearing routes.
+- **Source.** `repo evidence` (`request-proxy.ts:21,165`) + `official docs` (streaming.md HTTP contract).
+- **Priority.** P1.
+- **Acceptance criteria.** AC-SEC-10a: no cache header change on token routes; agent rule states the prohibition.
+- **Status.** Planned (Phase 1/4).
+
+### PERF-02 (refined) — Production RUM via Cloudflare Web Analytics (Tier 1) first
+- **Statement.** *Updated 2026-07-07 from deeper CF research:* the default RUM sink is **Cloudflare Web Analytics** (free, cookie-free, reports LCP/INP/CLS, no Worker code). The custom Worker→Workers Logs beacon (original proposal) is now **Tier 2**, only if custom dimensions are needed. Paid APM rejected under free-tier posture. See `23_CLOUDFLARE_COST_AND_RESOURCE_BUDGET.md`.
+- **Source.** `official docs` (Cloudflare Web Analytics, Workers Logs — cited URLs).
+- **Priority.** P1 (planning) / **owner-gated** (Tier 1 vs Tier 2).
+- **Acceptance criteria.** AC-PERF-02a: Tier-1 `beacon.min.js` snippet added (or Tier-2 beacon built); AC-PERF-02b: CWV visible in Web Analytics dashboard (Tier 1) or Workers Logs query (Tier 2).
+- **Status.** Planned (owner confirms Tier 1 vs Tier 2).
+
+---
+
+## Open decisions (OPEN) — refined with owner / trigger / implementation impact
+
+| ID | Decision | Owner | Deadline / trigger | Effect if unresolved | Source |
+|---|---|---|---|---|---|
+| OPEN-PERF-01 | RUM sink: **Web Analytics Tier-1 (default)** vs Tier-2 custom Worker beacon vs paid APM | Philip | Before PERF-02 implementation | Blocks PERF-02 impl; Tier-1 recommended (free, lowest risk) | `23_...md` |
+| OPEN-ARCH-01 | Adopt Cache Components + `unstable_instant` now/later | Philip | Trigger: post-launch stability review | Blocks ARCH-05/F-INSTANT | `06_...md`, instant.md |
+| OPEN-PERF-02 | Tighten CI bundle budget to strict + per-route numbers | Philip | Trigger: after Phase-0 baselines stable | Blocks PERF-03 strict mode | `09_...md` |
+| OPEN-UX-01 | Global overlay threshold (ms) on skeleton routes | Philip + design | Before Phase-2 P2-T5 | Blocks UX-03 implementation | `05_...md` |
+| OPEN-REL-01 | Token routes: real HTTP 404 vs soft-404 noindex | Philip | Before public crawl/indexing concerns | Blocks REL-01 remediation scope | streaming.md |
+
+**Note:** ARCH-06, ARCH-07a/b/c, SEC-09, SEC-10 are **not** open decisions — they are internally resolvable fixes with clear evidence and are sequenced into Phase 1/2.
+
+## Source-strength summary (per requirement category)
+
+| Category | Source-strength pattern |
+|---|---|
+| UX-01..05 | `brief` + `repo evidence` + `official docs` (loading.md/streaming.md) |
+| A11Y-01..03 | `repo evidence` + WCAG |
+| ARCH-01..05 | `repo evidence` (canonical-map, source) + `official docs` + `brief` |
+| **ARCH-06..07** | `repo evidence` (route-cache lane, file:line) — **highest strength** |
+| PERF-01..05 | `official docs` (performance-goal) + `repo evidence` + `brief` |
+| REL-01..02 | `official docs` + `derived` |
+| SEC-01..08 | `repo evidence` + `derived` |
+| **SEC-09..10** | `repo evidence` (credential/attack-surface lane) |
+| TEST/DOC | `brief` + directive |
+
+No requirement is presented as a direct source fact when it is inferred; `derived` is labeled explicitly.

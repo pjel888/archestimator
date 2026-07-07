@@ -79,3 +79,68 @@ Rules:
 ## 7. User-facing documentation implications
 
 None direct (no user docs system today). The agent rule (DOC-01) becomes the internal source of truth; `.ai/01_roadmap/05-ux-ui-polish-readiness.md` and `20-ux-ui-excellence-scorecard.md` should be cross-referenced, not rewritten.
+
+---
+
+## 8. Full state matrix (mandatory per Improve directive; without it UX readiness caps at 84)
+
+Every user-facing surface × every state. ✓ = present today; ✗ = gap; △ = partial.
+
+| Surface | Loading (route) | Loading (section) | Loading (inline) | Empty | Success | Partial-success | Error (route) | Error (global) | Not-found | Auth-denied | Disabled | Offline/degraded | Conflict/stale | Destructive-confirm | Progress (long op) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `/` landing | n/a (static) | n/a | n/a | n/a | ✓ | n/a | ✗ (global only) | ✓ | root ✓ | n/a | n/a | ✗ | n/a | n/a | n/a |
+| `/share/[token]` | ✓ | △ (comments fetch-in-effect) | △ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | password gate ✓ | ✓ | ✗ (REL-02) | ✗ | n/a | △ (export) |
+| `/invite/[token]` | **✗ (UX-01)** | n/a | n/a | n/a | ✓ | n/a | **✗ (UX-02)** | ✓ | terminal-state (ok) | n/a | ✓ | ✗ | n/a | n/a | n/a |
+| `/workshop` dashboard | ✓ | n/a | ✓ | ✓ | ✓ | ✗ | **✗ (UX-02)** | ✓ | root ✓ | ✓ gate | ✓ | ✗ | △ (ARCH-06 double-fetch) | ✓ | △ |
+| `/workshop/projects` | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | **✗ (UX-02)** | ✓ | root ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | △ |
+| `/workshop/projects/[id]` | ✓ + layout Suspense | ✓ | ✓ | ✓ | ✓ | ✗ | **✗ (UX-02)** | ✓ | root ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | △ |
+| `…/activity` | △ (hand-rolled UX-04) | n/a | ✓ | ✓ | ✓ | ✗ | **✗ (UX-02)** | ✓ | root ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | n/a |
+| `…/estimates` | **✗ (UX-01)** in-page Suspense | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | root ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | △ |
+| `…/estimates/[nodeId]` | ✓ + Suspense | ✓ | ✓ (ARCH-02 mount gap) | ✓ | ✓ | ✗ | ✓ | ✓ | root ✓ | ✓ | ✓ | ✗ | ✓ (optimistic) | ✓ | △ |
+| `/workshop/library/*` | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | root ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | n/a |
+| `/workshop/settings/*` | ✓ (shared) | n/a | ✓ | ✓ | ✓ | ✗ | **✗ (UX-02)** | ✓ | root ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | n/a |
+| `/workshop/proposals` | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | **✗ (UX-02)** + **ARCH-07b stale** | ✓ | root ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | n/a |
+| `/workshop/publisher` | **✗ (UX-01)** + **ARCH-07c stale** | ✓ (nested Suspense) | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | root ✓ | ✓ | ✓ | ✗ | ✓ | ✓ (publish) | ✓ (publish) |
+
+**Gap summary:** offline/degraded is ✗ app-wide (REL-02 perpetual-skeleton escape needed); partial-success ✗ app-wide (acceptable for closed beta — document); route error.tsx missing on 6 workshop subtrees (UX-02); UX-01 gaps on 3 routes; ARCH-07 stale on proposals/publisher (correctness, Phase 1.5).
+
+## 9. Action-level accessibility proof matrix (mandatory per Improve directive)
+
+For each interactive action touched by this plan: keyboard path, focus target/restoration, accessible name/live-region, proof type.
+
+| Action | Keyboard path | Focus target / restoration | Accessible name + live-region | Proof type |
+|---|---|---|---|---|
+| Navigate to a route (loading shows) | Tab/Enter on Link → new route | focus → new route primary heading (or restore) | `aria-live="polite"` on loading UI + `aria-label="Loading …"` | PC-01/02 (e2e skeleton) + PC-06 (DOM a11y) |
+| `RouteLoadingOverlay` during transition | n/a (passive) | `aria-hidden` toggled on shell; must not trap focus (A11Y-02) | `output role="status" aria-live="polite" aria-label="Loading page"` | PC-07 (keyboard/focus e2e) — browser-only |
+| Estimate row inline edit | Tab to cell → Enter → type → Enter/Escape | focus restored to cell after commit/rollback | pending state announced (useTransition); toast on error | PC-08 (CRUD latency) + existing estimate-cell tests |
+| Open estimate sheet (skeleton→content) | click/Enter on estimate link | focus → sheet primary region | skeleton `aria-busy`/`aria-label` | PC-08 (shell-streaming) |
+| Share password unlock | form fields → submit | focus → first field on error; → content on success | `aria-live` error; success announcement | shared-link-receiver spec |
+| Invite accept | form submit (POST) | focus → `/workshop` on success; → error on wrong-account | terminal-state announcements | invite spec (new) |
+| Settings save | form submit → toast | focus → trigger; toast announced | toast `role="status"` | existing settings tests |
+| Open/close modal (project/library) | Esc closes; focus trap; restore trigger | focus → first focusable; restore on close | dialog `aria-modal` + labelledby | existing modal tests |
+| Publisher publish/unpublish | confirm dialog → progress | focus → progress region; → result | progress `role="status"`; result live-region | publisher spec |
+
+**WCAG 2.2 AA alignment:** keyboard operable (2.1), visible focus (2.4.7), semantic HTML + landmarks (1.3.1, 1.3.6 target where practical), contrast (1.4.3 — Skeleton/Spinner neutrals satisfy), reduced-motion (2.3.3), status messages (4.1.3), target size (2.5.8 — verify interactive controls ≥24×24px). Browser proof reserved for focus/routing (A11Y-02) per AGENTS.md proportional-verification.
+
+## 10. Dense/large-data + responsive/touch constraints (mandatory)
+
+- **Estimate sheet:** large tree (virtualize >500 nodes per `27-*.md`); row editing keystrokes local (bible §4.3). Mount optimization ARCH-02.
+- **Component library (1000+ items):** `useDeferredValue` search; virtualize. Lazy via `dynamic`.
+- **Responsive:** skeletons must mirror bento at narrow widths (no horizontal overflow — activity audit pattern). Touch targets ≥24px.
+- **Explicit non-goals:** no decorative redesign; no marketing-page drift; workflow software only.
+
+## 11. Visual QA gate table (when browser proof is required)
+
+Per AGENTS.md proportional verification, browser/visual QA is required only when static/DOM tests cannot prove the claim. For this plan:
+
+| Risk | Needs browser proof? | Why |
+|---|---|---|
+| Skeleton CLS (dimension match) | Yes (EV-09/shell-streaming + CLS capture) | reflow under real streaming |
+| Overlay focus (A11Y-02) | Yes (PC-07) | real keyboard/focus during transition |
+| `ssr:false` estimate hydration (ARCH-02) | Yes (PC-08 CRUD-latency) | real interaction after dynamic load |
+| Skeleton `role/aria` | No (PC-06 DOM) | static DOM assertion suffices |
+| `viewport` export | No (PC-05 grep) | static |
+| Reduced-motion | No (CSS audit) + optional emulate | static suffices |
+| Loading labels/copy | No (DOM text) | static |
+
+This keeps browser proof proportional — proving only browser-only claims, per AGENTS.md.

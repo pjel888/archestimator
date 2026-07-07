@@ -68,6 +68,9 @@
 | L6 | Next.js 16 framework research (local docs) | lead, read-only | Done | `19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md` |
 | L7 | Adversarial reviewer | emulated pass | Done | `19_RESEARCH...md`, `17_FINAL_READINESS_REVIEW.md` |
 | L8 | Final verifier | emulated pass | Done | `17_FINAL_READINESS_REVIEW.md` |
+| **L9** | **Route boundary/cache/revalidation contracts (improvement pass)** | **native `Explore` subagent** | **Done** | **`20_ROUTE_BOUNDARY_AND_CACHE_CONTRACTS.md`** — found ARCH-06/07 gaps |
+| **L10** | **Credential-material taxonomy + attack-surface (improvement pass)** | **native `Explore` subagent** | **Done** | **`21_ATTACK_SURFACE_AND_CREDENTIAL_MATERIAL.md`** — raw-vs-hash verified; SEC-09/10 |
+| **L11** | **Cloudflare free-tier cost research (improvement pass)** | **native general-purpose subagent (web)** | **Done** | **`23_CLOUDFLARE_COST_AND_RESOURCE_BUDGET.md`** — refined PERF-02 to Web Analytics Tier-1 |
 
 ---
 

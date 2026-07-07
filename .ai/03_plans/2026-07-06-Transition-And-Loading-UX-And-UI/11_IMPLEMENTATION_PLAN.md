@@ -2,7 +2,9 @@
 
 **Authoritative execution guide for the future implementation AI.** This plan is `planning-only` until an owner approves a phase. Each phase is a **durable-goal contract** (per `Multi-Agent-Execution-Directive.md` §1/§4A and `ultragoal`-style discipline): completion requires the named evidence + a requirement-by-requirement audit, not merely "code changed."
 
-Phase order: **Phase 4 (Rules)** and **Phase 0 (Baselines)** are independently startable and `IMPLEMENTATION-READY`. Phases 1 → 2 → 3 follow dependencies. Future Cache Components is owner-gated and separate.
+Phase order: **Phase 4 (Rules)** and **Phase 0 (Baselines)** are independently startable and `IMPLEMENTATION-READY`. **Phase 1.5 (correctness fixes — release-blocking per Improve directive)** must precede broad Phase 1 UX work. Then 1 → 2 → 3. Future Cache Components is owner-gated and separate.
+
+> **New in this improvement pass (2026-07-07):** deepened evidence surfaced **three correctness bugs** (ARCH-07a/b/c: stale/missing `revalidatePath`) that are sequenced into a new **Phase 1.5** *before* Phase 1 UX work, per the Improve directive's rule "release-blocking hardening before broad UX/refactor." Also added: ARCH-06 (double-fetch), SEC-09/10, and a refined PERF-02 defaulting to **Cloudflare Web Analytics (Tier-1)** instead of a custom beacon (see `23_CLOUDFLARE_COST_AND_RESOURCE_BUDGET.md`). Every task now references a Proof Contract ID (PC-*) from `22_PROOF_CONTRACTS_AND_KNOWN_RED_LEDGER.md`.
 
 > **Execution boundary:** This document is an *implementation-readiness* guide produced by a planning-only pass. Starting source/test/migration edits from this pack requires a separate owner-approved execution scope (per the shared planning suite). The `IMPLEMENTATION-READY` label below means the *planning* for that phase is complete and unblocked — not that execution is auto-authorized.
 
@@ -82,9 +84,29 @@ Phase order: **Phase 4 (Rules)** and **Phase 0 (Baselines)** are independently s
 - **QA gate:** baselines reproducible (re-run yields same median ± flake).
 
 ### P0 Tasks
-- **P0-T1** Run each `perf:*` / e2e evaluator; record `metrics/<ev-id>-baseline.<md|json>` with date+commit. Complexity: Medium.
-- **P0-T2** Run `ANALYZE=true bun run build` + `scripts/check-performance-budgets.mjs`; record per-route first-load JS baseline. Complexity: Small.
-- **P0-T3** Author PERF-02 RUM design doc (sink options, schema, redaction, sampling, CSP, rate-limit). Complexity: Medium. **Owner decision required before implementation.**
+- **P0-T1 (PC-15)** Run each `perf:*` / e2e evaluator; record `metrics/<ev-id>-baseline.<md|json>` with date+commit. Complexity: Medium.
+- **P0-T2 (PC-15)** Run `ANALYZE=true bun run build` + `scripts/check-performance-budgets.mjs`; record per-route first-load JS baseline. Complexity: Small.
+- **P0-T3 (PC-16)** Author PERF-02 RUM design doc. **Default recommendation (2026-07-07): Cloudflare Web Analytics Tier-1** (`beacon.min.js` snippet; free; reports LCP/INP/CLS; no Worker code). Tier-2 (custom Worker→Workers Logs beacon) only if custom dimensions needed. Paid APM rejected (free-tier posture). See `23_CLOUDFLARE_COST_AND_RESOURCE_BUDGET.md`. Complexity: Medium. **Owner confirms Tier 1 vs Tier 2 (OPEN-PERF-01).**
+
+---
+
+## Phase 1.5 — Route Revalidation Correctness Fixes (IMPLEMENTATION-READY; release-blocking)
+
+**Durable-goal contract:**
+- **Goal ID:** P15-REV
+- **Objective:** Fix three server-side revalidation gaps discovered by the route-cache audit (ARCH-07a/b/c). These are **correctness bugs**, not polish: stale data on hard refresh / new tab after Server-Action mutations.
+- **Requirements:** ARCH-07a, ARCH-07b, ARCH-07c.
+- **Prereqs:** none (independent of Phase 4/0). May run in parallel with Phase 4.
+- **Required evidence:** grep proofs (PC-11/12/13) show correct paths; targeted e2e confirms no stale data on refresh after mutation; `git diff --check`.
+- **Stop condition:** all three PC-11/12/13 green.
+- **QA gate:** `rg` proofs + targeted e2e (proposals/publisher/components refresh-after-mutation). Per `27-*.md`, run `NODE_OPTIONS=--max-old-space-size=8192 bun run type-check` (default-heap type-check is known-red — see `22_...md` ledger).
+
+### P1.5 Tasks
+- **P1.5-T1 (ARCH-07a, PC-11):** In `src/lib/component-library/actions.ts:309` and `src/lib/ai/package-builder/apply.ts:1896`, replace `revalidatePath("/workshop/components")` → `revalidatePath("/workshop/library/components")`. Grep proof: `rg 'revalidatePath\("/workshop/components"\)' src/lib` returns 0. Complexity: Small.
+- **P1.5-T2 (ARCH-07b, PC-12):** Add `revalidatePath("/workshop/proposals")` to the Server Action(s) that mutate recipient-proposal-affecting data (audit which actions touch proposals data; at minimum the proposal/publication action paths). Grep proof: `rg 'revalidatePath\("/workshop/proposals"\)' src/lib` returns ≥1. **DISCOVERY-REQUIRED sub-step:** confirm which Server Actions actually mutate data shown on `/workshop/proposals` (read `listRecipientProposals` consumers) so the revalidation is added in the right place, not blanket-added. Complexity: Small-Medium.
+- **P1.5-T3 (ARCH-07c, PC-13):** Same as P1.5-T2 for `/workshop/publisher` — add `revalidatePath("/workshop/publisher")` to actions mutating publications-roster data (audit `readWorkspacePublicationsRoster` consumers; e.g. publication publish/unpublish/recipient changes in `src/lib/publication/actions.ts`). Complexity: Small-Medium.
+
+**Why this is its own phase before Phase 1 UX:** the Improve directive explicitly states that release-blocking data/correctness hardening must be sequenced before broad UX/refactor phases or marked as an explicit gate. These three are small, isolated, and unblock trust in the routes that Phase 1/2 then improve cosmetically.
 
 ---
 
@@ -100,13 +122,13 @@ Phase order: **Phase 4 (Rules)** and **Phase 0 (Baselines)** are independently s
 - **QA gate:** Playwright specs; type-check; lint; design-system.
 
 ### P1 Tasks
-- **P1-T1** `/invite/[token]`: add `loading.tsx` (skeleton) + `error.tsx`; ensure `notFound()` called before first `await`. (UX-01, REL-01) Complexity: Small.
-- **P1-T2** `/workshop/publisher/loading.tsx` (skeleton). (UX-01) Small.
-- **P1-T3** `/workshop/projects/[projectId]/estimates/loading.tsx` (skeleton matching the in-page Suspense). (UX-01) Small.
-- **P1-T4** Add `error.tsx` to workshop subtrees missing one: `/workshop`, `/workshop/projects`, `/workshop/projects/[projectId]`, `/workshop/proposals`, `/workshop/settings`, `/workshop/onboarding`. (UX-02) Small-Medium.
-- **P1-T5** Migrate `workshop/projects/[projectId]/activity/loading.tsx` hand-rolled divs → `Skeleton` (or documented exception). (UX-04) Small.
-- **P1-T6** Add `export const viewport` to root layout. (UX-05) Small.
-- **P1-T7** Audit loading UIs for `role/aria-live/aria-label` + reduced-motion; fix gaps. (A11Y-01/03) Small.
+- **P1-T1 (PC-01)** `/invite/[token]`: add `loading.tsx` (skeleton) + `error.tsx`; ensure `notFound()` called before first `await`. (UX-01, REL-01) Complexity: Small.
+- **P1-T2 (PC-02)** `/workshop/publisher/loading.tsx` (skeleton). (UX-01) Small.
+- **P1-T3 (PC-02)** `/workshop/projects/[projectId]/estimates/loading.tsx` (skeleton matching the in-page Suspense). (UX-01) Small.
+- **P1-T4 (PC-03)** Add `error.tsx` to workshop subtrees missing one: `/workshop`, `/workshop/projects`, `/workshop/projects/[projectId]`, `/workshop/proposals`, `/workshop/settings`, `/workshop/onboarding`. (UX-02, SEC-10 keep no-store) Small-Medium.
+- **P1-T5 (PC-04)** Migrate `workshop/projects/[projectId]/activity/loading.tsx` hand-rolled divs → `Skeleton` (or documented exception). (UX-04) Small.
+- **P1-T6 (PC-05)** Add `export const viewport` to root layout. (UX-05) Small.
+- **P1-T7 (PC-06)** Audit loading UIs for `role/aria-live/aria-label` + reduced-motion; fix gaps. (A11Y-01/03) Small.
 
 ---
 
@@ -122,11 +144,12 @@ Phase order: **Phase 4 (Rules)** and **Phase 0 (Baselines)** are independently s
 - **QA gate:** Playwright shell-streaming + CRUD-latency + share-receiver specs; bundle analyzer; type-check; vitest perf.
 
 ### P2 Tasks
-- **P2-T1 (DISCOVERY-REQUIRED first)** Verify `EstimateSheetTree` (react-complex-tree) hydrates correctly under `dynamic({ ssr:false, loading })`. Scope: read `EstimateSheetTree.tsx` + react-complex-tree init; small spike. Stop condition: confirm drag-drop + selection still work client-only, or document the boundary that requires SSR.
-- **P2-T2** `EstimateWorkspaceClient.tsx:27,30`: add `loading: () => <EstimateSheetRouteSkeleton/>`; apply `ssr:false` to tree pane if P2-T1 confirms; keep content path explicit. (ARCH-02) Complexity: Medium-Large.
-- **P2-T3** Migrate `SharePageComments.tsx` + `SharedLinkActivityFeed.tsx` to TanStack Query (`useQuery` or `useSuspenseQuery` + `HydrationBoundary` if SSR-bridged). Remove fetch-in-effect. (ARCH-03) Medium.
-- **P2-T4** Remove hand-rolled focus-refetch in `proposals-page-client.tsx:79`; replace with documented revalidation (e.g., re-enable `refetchOnWindowFocus` for that query key, or manual invalidate on visibility). (ARCH-03) Small.
-- **P2-T5** Overlay suppression: suppress `RouteLoadingOverlay` on routes with a `loading.tsx`, with a debounced fallback threshold (OPEN-UX-01). (UX-03) Small-Medium. **Owner threshold decision.**
+- **P2-T1 (DISCOVERY-REQUIRED first, PC-08)** Verify `EstimateSheetTree` (react-complex-tree) hydrates correctly under `dynamic({ ssr:false, loading })`. Scope: read `EstimateSheetTree.tsx` + react-complex-tree init; small spike. Stop condition: confirm drag-drop + selection still work client-only, or document the boundary that requires SSR.
+- **P2-T2 (PC-08)** `EstimateWorkspaceClient.tsx:27,30`: add `loading: () => <EstimateSheetRouteSkeleton/>`; apply `ssr:false` to tree pane if P2-T1 confirms; keep content path explicit. (ARCH-02) Complexity: Medium-Large.
+- **P2-T3 (PC-09)** Migrate `SharePageComments.tsx` + `SharedLinkActivityFeed.tsx` to TanStack Query (`useQuery` or `useSuspenseQuery` + `HydrationBoundary` if SSR-bridged). Remove fetch-in-effect. (ARCH-03, SEC-10 keep no-store) Medium.
+- **P2-T4 (PC-09)** Remove hand-rolled focus-refetch in `proposals-page-client.tsx:79`; replace with documented revalidation (e.g., re-enable `refetchOnWindowFocus` for that query key, or manual invalidate on visibility). (ARCH-03) Small.
+- **P2-T5 (PC-10)** Overlay suppression: suppress `RouteLoadingOverlay` on routes with a `loading.tsx`, with a debounced fallback threshold (OPEN-UX-01). (UX-03) Small-Medium. **Owner threshold decision.**
+- **P2-T6 (PC-18, ARCH-06)** Eliminate `/workshop` dashboard double-fetch: pick one revalidation path (server `revalidatePath("/workshop")` OR client `router.refresh()`), document the choice, remove the other. Complexity: Small-Medium.
 
 ---
 
@@ -159,10 +182,25 @@ Phase order: **Phase 4 (Rules)** and **Phase 0 (Baselines)** are independently s
 
 ## Parallelization classification
 
-- **Parallel-safe:** P4-T3, P0-T1/T2 (independent captures), P1-T1..T7 (per-route), P3-T3.
-- **Sequential (dependency):** P4-T1 → P4-T2; P0-T1 → P3-T2; P2-T1(discovery) → P2-T2.
+- **Parallel-safe:** P4-T3, P0-T1/T2 (independent captures), **P1.5-T1/T2/T3** (distinct action files), P1-T1..T7 (per-route), P3-T3, P2-T6.
+- **Sequential (dependency):** P4-T1 → P4-T2; P0-T1 → P3-T2; P2-T1(discovery) → P2-T2; **P1.5 → P1** (correctness before polish, per Improve directive).
 - **Sequential (shared-file risk):** P4-T2 (AGENTS.md) — single owner, re-read before edit.
-- **Not worth delegating:** P1-T6 (one-line viewport), P4-T2 (one-line pointer).
+- **Not worth delegating:** P1-T6 (one-line viewport), P4-T2 (one-line pointer), P1.5-T1 (rename path).
+
+## Dependency graph (updated 2026-07-07)
+
+```mermaid
+flowchart LR
+  P4[Phase 4: Rules READY] --> P1[Phase 1: Loading/error gaps]
+  P0[Phase 0: Baselines + RUM design READY] --> P2[Phase 2: Mount + share + overlay]
+  P15[Phase 1.5: revalidation correctness fixes READY] --> P1
+  P15 --> P2
+  P4 --> P2
+  P1 --> P2
+  P0 --> P3[Phase 3: Perf coverage + budgets]
+  P2 --> P3
+  P4 -.owner-gated.-> F[(Future: Cache Components<br/>+ unstable_instant)]
+```
 
 ## Risks / rollback (per phase)
 
