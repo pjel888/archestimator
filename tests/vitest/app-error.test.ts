@@ -44,6 +44,24 @@ describe("AppError", () => {
     });
   });
 
+  it("preserves generic error codes and nested causes for server log diagnosis", () => {
+    const nestedCause = Object.assign(new Error("connect ECONNREFUSED 127.0.0.1:58222"), {
+      code: "ECONNREFUSED",
+    });
+    const fetchFailure = new TypeError("fetch failed");
+    Object.defineProperty(fetchFailure, "cause", { value: nestedCause });
+
+    expect(serializeErrorCauseForLog(fetchFailure)).toEqual({
+      name: "TypeError",
+      message: "fetch failed",
+      cause: {
+        name: "Error",
+        message: "connect ECONNREFUSED 127.0.0.1:58222",
+        code: "ECONNREFUSED",
+      },
+    });
+  });
+
   it("exposes the approved public kinds and concrete classes", () => {
     expect(appErrorKinds).toEqual([
       "auth",

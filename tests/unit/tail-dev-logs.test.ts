@@ -92,4 +92,64 @@ describe("tail-dev-logs helpers", () => {
     expect(findLatestErrorRecord(records)?.record_id).toBe("3");
     expect(buildLatestErrorSummary(records)).toContain("InternalError INTERNAL_ERROR from saveProject at /workshop");
   });
+
+  test("classifies Next request connection resets as likely local shutdown artifacts", () => {
+    const records = parseNdjsonLines([
+      JSON.stringify({
+        record_id: "shutdown",
+        level: "ERROR",
+        event: "next_request_error",
+        message: "Next request failed",
+        error: {
+          class: "InternalError",
+          code: "INTERNAL_ERROR",
+          cause: {
+            name: "TypeError",
+            message: "fetch failed",
+            cause: {
+              name: "Error",
+              message: "read ECONNRESET",
+              code: "ECONNRESET",
+            },
+          },
+        },
+        context: {
+          route: "/workshop/projects/[projectId]/estimates/[nodeId]",
+          route_type: "render",
+          render_source: "react-server-components-payload",
+        },
+      }),
+    ]).records;
+
+    const summary = buildLatestErrorSummary(records);
+
+    expect(summary).toContain("Likely classification: local dev shutdown/restart network abort.");
+    expect(summary).toContain("restart dev server and reproduce while it stays running");
+    expect(summary).not.toContain("open the source location in the top frame");
+  });
+
+  test("keeps generic guidance for fetch failures without nested shutdown evidence", () => {
+    const records = parseNdjsonLines([
+      JSON.stringify({
+        record_id: "fetch-failed",
+        level: "ERROR",
+        event: "next_request_error",
+        message: "Next request failed",
+        error: {
+          class: "InternalError",
+          code: "INTERNAL_ERROR",
+          cause: {
+            name: "TypeError",
+            message: "fetch failed",
+          },
+        },
+        context: { route: "/workshop/projects/[projectId]/estimates/[nodeId]" },
+      }),
+    ]).records;
+
+    const summary = buildLatestErrorSummary(records);
+
+    expect(summary).not.toContain("local dev shutdown/restart network abort");
+    expect(summary).toContain("Likely next step: inspect the route or segment");
+  });
 });

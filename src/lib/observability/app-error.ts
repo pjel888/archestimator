@@ -172,10 +172,18 @@ export function serializeErrorCauseForLog(cause: unknown, depth = 0): Serialized
     };
   }
   if (cause instanceof Error) {
-    return {
+    const diagnosticError = cause as Error & { cause?: unknown; code?: unknown };
+    const serialized: SerializedCause = {
       name: cause.name,
       message: cause.message,
     };
+    if (typeof diagnosticError.code === "string" || typeof diagnosticError.code === "number") {
+      serialized.code = String(diagnosticError.code);
+    }
+    if (diagnosticError.cause !== undefined) {
+      serialized.cause = serializeErrorCauseForLog(diagnosticError.cause, depth + 1);
+    }
+    return serialized;
   }
   if (typeof cause === "string") return { name: "NonError", message: cause };
   if (cause === null) return { name: "Null", message: "null" };
