@@ -24,8 +24,9 @@ P1 (should before broad launch), P2 (nice-to-have/hardening).
 | REQ-CSP-01 | SEC | P1 | CSP hardening roadmap (nonce pipeline, enforce on workshop/auth) | repo evidence (SEC-07) |
 | REQ-DOCS-01 | DOC | P0 | Single current authz matrix artifact (this pack) | brief |
 | REQ-DOCS-02 | DOC | P1 | Stale June audit marked superseded | brief |
-| REQ-DEFENSE-01 | SEC | P2 | Authz enforced at action boundary consistently (defense-in-depth) | repo evidence (SEC-05) |
-| REQ-DO-01 | OPS | P1 | WebSocket upgrade DoS mitigation for CollaborationRoom | repo evidence (SEC-04) |
+| REQ-DEFENSE-01 | SEC | P1 | Authz enforced at action boundary consistently (defense-in-depth; SEC-05/11) | repo evidence |
+| REQ-DO-01 | OPS | P0 | WebSocket upgrade DoS mitigation for CollaborationRoom | repo evidence (SEC-04) |
+| REQ-DOC-03 | DOC | P2 | R2 signed-URL invariant + origin-source reconciliation (SEC-09/10) | repo evidence (audit correction) |
 | REQ-SECRET-01 | SEC | P0 | No raw credentials stored; rotation invalidates sessions | repo evidence (verified strong) |
 | REQ-RELEASE-01 | OPS | P0 | Release gate checklist before first external user | brief |
 
@@ -38,12 +39,17 @@ P1 (should before broad launch), P2 (nice-to-have/hardening).
   no gap analysis is possible.
 - **Source:** brief + repo evidence.
 - **Priority:** P0.
-- **Acceptance:** Doc 03 Sections B + D enumerate all 33 route files + ~90 actions with
-  file:line and verdicts; no row has an empty AuthZ cell without a flagged gap ID.
-- **Validation:** static review of Doc 03 against `find src/app/api -name route.ts` and
-  `rg -l '"use server"' src/`.
+- **Acceptance:** Doc 03 Section B/H enumerate all 33 route files with file:line and
+  verdicts (✅ proven); Server Actions are inventoried at the **domain + authz-pattern**
+  level in Section D, NOT as per-export file:line rows (there are 30 `"use server"`
+  modules across 15 subdirs exporting ~162 functions — see Doc 03 §I honest scope note).
+- **Validation:** static review of Doc 03 against `find src/app -name route.ts` (33) and
+  `rg -l '"use server"' src/` (30 modules).
 - **Affected:** this pack only.
-- **Status:** ✅ met by this pack.
+- **Status:** ⚠️ **PARTIAL** — routes fully proven; actions covered at domain-pattern
+  level (gate per domain identified + tested), but per-export file:line verdicts are out
+  of scope for this refresh (separate deliverable). Corrected from earlier "✅ proven"
+  during the Improve-Plan-Prompt audit (Doc 20 ADV-07).
 
 ## REQ-TENANT-01 — Workspace isolation
 - **Statement:** Every authenticated read/write is scoped by a session-derived
@@ -147,11 +153,22 @@ P1 (should before broad launch), P2 (nice-to-have/hardening).
 - **Status:** ❌ doc task (P1). Note: the June README already has a 2026-06-18 status
   guardrail; this refresh adds the specific supersession pointer.
 
-## REQ-DEFENSE-01 — Action-boundary authz consistency (SEC-05)
-- **Statement:** Audit Server Actions that enforce authz only at the repository layer
-  (e.g. `loadRecipientProposals`) and add an action-layer `requireAuth` for
-  defense-in-depth + refactor-safety.
-- **Status:** ❌ gap (LOW–MED).
+## REQ-DEFENSE-01 — Action-boundary authz consistency (SEC-05/11)
+- **Statement:** Audit Server Actions that enforce authz only at the repository/caller
+  layer rather than at the action boundary. Confirmed instances:
+  (a) `loadRecipientProposals` (`src/lib/recipient-proposals/actions.ts:8`) — repo-layer
+  `getCurrentUserContext`; (b) `maybeTriggerSharedLinkActivityDigest`
+  (`src/lib/publication/actions.ts:1968`) — caller-authorized (comment/decision routes).
+  Add action-layer guards or document+contract-test the dependency.
+- **Status:** ❌ gap (LOW–MED). SEC-11 added during audit (Doc 20 ADV-08).
+
+## REQ-DOC-03 — R2 signed-URL invariant + origin-source reconciliation (SEC-09/10, NEW)
+- **Statement:** (a) Document the `signedReadUrlFactory` invariant in `r2-storage-provider.ts`
+  (app-authz must run before minting any presigned URL). (b) Document the two origin
+  sources (request-url vs `ARCHESTIMATOR_ALLOWED_APP_ORIGINS` env) so multi-origin
+  deployments don't drift. **Do NOT remove** the env var (actively consumed in 4 sites).
+- **Source:** retracted SEC-08 (Doc 20 ADV-01) — the earlier "dead config" claim was false.
+- **Status:** ❌ gap (LOW, P2).
 
 ## REQ-DO-01 — WebSocket upgrade DoS mitigation (SEC-04)
 - **Statement:** `CollaborationRoom` upgrade either rate-limits unauthenticated socket
