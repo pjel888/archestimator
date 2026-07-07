@@ -93,7 +93,7 @@
 
 - The repo has many in-flight 2026-07-07 plan packs and modified files. The
   implementation slice should declare file ownership in
-  `00_COORDINATION_LEDGER.md` (per Multi-Agent Execution Directive §6) and
+  `LOOP_LEDGER.md` (per Multi-Agent Execution Directive §6) and
   re-read files before each edit.
 - `worker.ts`, `wrangler.jsonc`, and `src/lib/observability/*` are the highest
   contention risk; serialize edits there.

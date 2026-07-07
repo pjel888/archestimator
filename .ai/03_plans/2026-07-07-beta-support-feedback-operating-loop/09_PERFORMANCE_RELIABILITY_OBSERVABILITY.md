@@ -2,7 +2,7 @@
 
 ## Performance posture
 
-This is a **low-traffic, beta-scale** feature. Free-tier Cloudflare limits apply (do not enable paid add-ons without owner approval — `AGENTS.md`). The loop must stay well within D1 row-read/write daily budgets and the Worker CPU budget.
+This is a **low-traffic, beta-scale** feature. Per `AGENTS.md` "Current cost posture", the project stays on free-tier / bundled Cloudflare limits and must not enable paid add-ons (D1 paid plan, R2 paid tier, Workers Smart Placement paid, etc.) without owner approval. **Specific free-tier limits are NOT sourced from `wrangler.jsonc` or a provider readback in this planning pass** (no `cf:pricing` snapshot was run); they are `ASSUMPTION` based on the documented cost posture. The relevant assumed limits driving the "daily, not hourly" sweep decision (DEC-03) are the Workers Free plan (~100k requests/day, 10ms CPU/request) and D1 Free (~5M rows read/day, 100k rows written/day, 5GB storage) — **NOT VERIFIED against current Cloudflare docs here**; the implementer/operator should confirm via `bun run cf:pricing` (`scripts/generate-cloudflare-pricing-snapshot.ts`) or the Cloudflare dashboard before relying on exact numbers. At beta volume (<100 feedback rows/month) these limits are not a real constraint regardless of the exact figures; the daily sweep is conservative.
 
 ## Performance evaluator contract
 
