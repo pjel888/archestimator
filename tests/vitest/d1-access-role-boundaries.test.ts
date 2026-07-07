@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   canAccessEstimateInD1,
   canAccessProjectInD1,
+  canAccessWholeProjectInD1,
   canEditEstimateInD1,
   canEditProjectInD1,
   isWorkspaceEditorInD1,
@@ -128,6 +129,24 @@ describe("D1 access role boundaries", () => {
     await expect(canEditProjectInD1(estimateOnlyEditorProbe.db, "project-1", user)).resolves.toBe(false);
   });
 
+  it("distinguishes estimate-only project visibility from whole-project access", async () => {
+    const estimateOnlyProbe = createAuthzRoleDatabase({
+      allowWhen: ({ sql, values }) =>
+        sql.includes("FROM estimate_sheet_members sheet_member") &&
+        sql.includes("sheet_member.project_id = project.id") &&
+        values[4] === user.userId,
+    });
+    const wholeProjectProbe = createAuthzRoleDatabase({
+      allowWhen: ({ sql }) => sql.includes("FROM estimate_sheet_members sheet_member"),
+    });
+
+    await expect(canAccessProjectInD1(estimateOnlyProbe.db, "project-1", user)).resolves.toBe(true);
+    await expect(canAccessWholeProjectInD1(wholeProjectProbe.db, "project-1", user)).resolves.toBe(false);
+
+    expect(wholeProjectProbe.queries[0]?.sql).not.toContain("estimate_sheet_members");
+    expect(wholeProjectProbe.queries[0]?.values).toEqual(["project-1", "user-1", "user-1", "user-1"]);
+  });
+
   it("allows estimate editors only through scoped estimate edit authority", async () => {
     const estimateEditorProbe = createAuthzRoleDatabase({
       allowWhen: ({ sql, values }) =>
@@ -165,6 +184,7 @@ describe("D1 access role boundaries", () => {
     const db = createThrowingDatabase();
 
     await expect(canAccessProjectInD1(db, "project-1", user)).resolves.toBe(false);
+    await expect(canAccessWholeProjectInD1(db, "project-1", user)).resolves.toBe(false);
     await expect(canEditProjectInD1(db, "project-1", user)).resolves.toBe(false);
     await expect(canAccessEstimateInD1(db, "estimate-1", user)).resolves.toBe(false);
     await expect(canEditEstimateInD1(db, "estimate-1", user)).resolves.toBe(false);
