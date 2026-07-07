@@ -8,17 +8,19 @@
 
 ## Plan status
 
-`CONDITIONALLY READY`
+`CONDITIONALLY READY` (improvement pass complete; emulated synthesis cap applies)
 
 | Slice | Phase | Status | Blocked by |
 |---|---|---|---|
-| Acknowledgement + payload-preserving fallback + operator notify | P0 | `IMPLEMENTATION-READY` | none (email env proof = `OPEN-MON-01` for the notify *value*, but the slice is build-ready) |
+| Acknowledgement + payload-preserving fallback + operator notify | P0 | `IMPLEMENTATION-READY` | pick URL-length strategy in P0-T2 at impl |
 | SLA columns + daily breach sweep + queue pagination + a11y | P1 | `IMPLEMENTATION-READY` | `OPEN-SLA-01` (owner-delegated defaults recorded — can proceed) |
 | Reporter follow-up email | P2 | `IMPLEMENTATION-READY` | none |
 | Retention TTL + DSAR reachability | P3 | `CONDITIONALLY READY` | `OPEN-RET-01` / `OPEN-DEC-004` |
 | Readiness proof | P4 | `CONDITIONALLY READY` | `OPEN-MON-01` (hosted inbox + alert delivery) |
 
-**Verification mode:** `emulated` (single-session planner; 4 independent read-only `Explore` lanes; emulated verifier). Caps overall readiness at 97 → package is `CONDITIONALLY READY` until a human/independent reviewer signs off.
+**Verification mode:** evidence-gathering `independent` (4 read-only `Explore` lanes + 1 verifier lane + 1 adversarial lane, all separate agent outputs); synthesis/re-scoring `emulated` (single-session planner). Per the suite authority contract, the high-blast-radius package is capped at `CONDITIONALLY READY` until a human/independent reviewer signs off on the final package. See `17_FINAL_READINESS_REVIEW.md` for the baseline→final scorecard and evidence-class table.
+
+**Improvement pass (2nd suite):** corrected 4 codebase inaccuracies, fixed all 6 P0 + 11 P1 adversarial findings, added 2 mandated docs (`20` route contracts, `22` attack-surface/access-path), rebuilt `16` (11-column traceability) + `21` DB-02 (real `RetentionRule`) + `12` (proof-contract schema + corrected test paths). Overall readiness ~84 → ~92.
 
 ## Start here
 
@@ -109,7 +111,9 @@ Do not archive automatically. Archive (or move to `000-Follow Ups/`) only after 
 | `17_FINAL_READINESS_REVIEW.md` | Scores + verifier findings |
 | `18_STACK_CONTRACT_AND_PRODUCTION_STANDARDS.md` | Cross-cutting stack decisions |
 | `19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md` | Research, skills, QA evidence |
-| `21_DATABASE_CHANGE_BLUEPRINTS.md` | Migration 0039 + retention + DSAR |
+| `20_ROUTE_BOUNDARY_AND_CACHE_CONTRACTS.md` | Per-route App Router boundary/cache contracts + CWV posture |
+| `21_DATABASE_CHANGE_BLUEPRINTS.md` | Migration 0039 + retention (real `RetentionRule`) + DSAR |
+| `22_ATTACK_SURFACE_AND_ACCESS_PATHS.md` | Attack-surface inventory + access-path matrix |
 
 ## Stale-plan revalidation checklist
 Before implementing, re-verify:

@@ -2,8 +2,17 @@
 
 **Date:** 2026-07-07
 **Profile:** `exhaustive`
-**Status:** **`CONDITIONALLY READY`** (`verification_mode: emulated`; overall 96/100)
-**Mode:** planning-only — no application code changed by this task.
+**Status:** **`CONDITIONALLY READY`** (`verification_mode: emulated`; overall **96/100**; 2 independent advisory subagent passes run, all P0/P1/P2 findings resolved)
+**Mode:** planning-only — no application code changed by this task or the improvement task.
+
+> **Revision 2 (Improve-Plan cycle).** Two independent subagent lanes
+> (adversarial review + final verification) audited this pack against the actual
+> codebase and `package.json`. They found 2× P0 (wrong test runner; wrangler
+> sampling landmine), 8× P1 (ALS-into-Server-Actions unverified; instrumentation
+> token leak; cf-ray runbook; streaming/SSE; inbound-id persistence; missing
+> matrix columns; missing proof-contract + attack-surface tables; manual-vs-auto
+> rollback), and 4× P2. **All resolved.** See `17_…` §17.1 and `19_…`
+> §19.10–19.12 for the evidence.
 
 ## What this is
 
@@ -67,11 +76,13 @@ Phase 0 ─┬─> Phase 1 ─┬─> Phase 2 ─┬─> Phase 4 ─> Phase 5
 ## Stale-plan revalidation checklist (before implementing)
 
 - [ ] `wrangler.jsonc` still has the bindings listed in `03_…` §3.15.
+- [ ] **`wrangler.jsonc` observability block still has 3 sampling keys + `traces.enabled: true`** (the P0-2 starting state — T-7.1 must flip all 3). Re-read lines 83-96.
 - [ ] `worker.ts` still has the unguarded `fetch`/`scheduled`/`queue` (`03_…` §3.2).
 - [ ] `src/lib/perf/server-timing.ts` still dev-only + no header (`03_…` §3.4).
 - [ ] `src/lib/observability/route-error.ts:readTraceId` still prefers perf-trace (`03_…` §3.3).
 - [ ] `src/lib/compliance/retention-core.ts` still unbounded (`03_…` §3.10).
 - [ ] `src/lib/cloudflare/collaboration-room.ts` still re-encodes + no log (`03_…` §3.9).
+- [ ] **`package.json` test scripts unchanged**: `test` = `bun test tests/unit`, `test:dom` = `vitest run`. New tests are vitest → use `test:dom`. (P0-1 guard.)
 - [ ] No paid add-on enabled since this plan was written (re-check `wrangler.jsonc` + dashboard).
 - [ ] Re-confirm free-tier ceilings (re-read `19_…` sources) in case Cloudflare changed limits.
 
@@ -81,6 +92,7 @@ Phase 0 ─┬─> Phase 1 ─┬─> Phase 2 ─┬─> Phase 4 ─> Phase 5
 - Read this plan folder's `03_…` and `11_…` fully.
 - Declare file ownership in `LOOP_LEDGER.md` (per Multi-Agent Execution Directive §6).
 - `bun run type-check` baseline (know the starting green/red state).
+- **`bun run test:dom --run` baseline** to confirm vitest layer is green before adding new files.
 
 ## Files explicitly off-limits (for this plan's scope)
 

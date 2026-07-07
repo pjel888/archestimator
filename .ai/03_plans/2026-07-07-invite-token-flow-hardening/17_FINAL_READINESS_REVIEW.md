@@ -1,32 +1,32 @@
 # Final Readiness Review
 
-**verification_mode:** `emulated` — separated specialist passes by the lead agent; no native independent verifier lane was dispatched in this session. Per the Suite Authority Contract, `emulated` caps overall readiness at **97** and, for a high-blast-radius exhaustive package (auth/invite/shared-link), caps status at **`CONDITIONALLY READY`** until an independent reviewer or the owner signs off.
+**verification_mode:** `emulated` — separated specialist passes by the lead agent; no native independent verifier lane was dispatched in this session. Per the Suite Authority Contract, `emulated` caps overall readiness at **97** and, for a high-blast-radius exhaustive package (auth/invite/shared-link), caps status at **`CONDITIONALLY READY`** until an independent reviewer or the owner signs off. **Note (post-Improve):** the binding constraint on overall readiness is *not* the emulated cap (97) — it is the Data category cap (89, D1 SQLite version NOT VERIFIED) and the Performance category (94, PC-17 not yet landed). Lifting the emulated cap alone would not raise overall above 94 until those two resolve at implementation.
 
-## 1. Per-document scorecard
+## 1. Per-document scorecard (after Improve-pass cycle 3)
 
 | Doc | Score | Category driver | Exact reason below 100 |
 |---|---|---|---|
 | 00_AGENT_COORDINATION | 96 | Process | emulated verification (no native independent verifier) |
-| 01_EXECUTIVE_SUMMARY | 96 | Clarity | 4 owner decisions open (OPEN-SEC-01, OPEN-SEC-02, OPEN-REL-01, OPEN-REL-02) |
+| 01_EXECUTIVE_SUMMARY | 96 | Clarity | 4 owner decisions open (OPEN-SEC-01, OPEN-SEC-02, OPEN-REL-01, OPEN-REL-02); readiness narrative updated to honest 93 |
 | 02_FEATURE_BRIEF_AND_SCOPE | 97 | Scope | — |
-| 03_SOURCE_AND_CODEBASE_AUDIT | 97 | Evidence | file:line evidence throughout; 3 DISCOVERY sub-steps pending |
-| 04_REQUIREMENTS_SPECIFICATION | 96 | Requirements | OPEN-SEC-01/02 gated requirements (SEC-05, SEC-11) |
-| 05_UX_UI_ACCESSIBILITY_PLAN | 93 | UX | revoke UI placement DISCOVERY (P3-T4); DESIGN.md alpha |
-| 06_ARCHITECTURE_AND_TECHNICAL_DESIGN | 96 | Architecture | DEC-01 env-toggle finalization at impl |
-| 07_DATA_DATABASE_API_NETWORK_PLAN | 96 | Data | D1 DROP COLUMN version DISCOVERY (RISK-04) |
-| 08_SECURITY_PRIVACY_THREAT_MODEL | 95 | Security | emulated verification cap; residual risks documented |
-| 09_PERFORMANCE_RELIABILITY_OBSERVABILITY | 95 | Perf | hosted-proof production gap (preview only) |
-| 10_BLAST_RADIUS_AND_DEPENDENCIES | 96 | Blast radius | concurrent-agent collision risk on actions.ts (RISK-12) |
-| 11_IMPLEMENTATION_PLAN | 96 | Impl | 4 DISCOVERY-REQUIRED sub-steps; 2 owner-gated phases |
-| 12_TEST_AND_VALIDATION_STRATEGY | 95 | Testing | no invite e2e Playwright spec (manual preview proof) |
-| 13_ROLLOUT_ROLLBACK_AND_OPERATIONS | 94 | Rollout | 24h 403 monitoring is the real P1 gate (not provable in planning) |
-| 14_RISK_REGISTER | 96 | Risk | RISK-01 (over-blocking) only fully resolved post-monitoring |
-| 15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES | 96 | Decisions | 4 owner decisions open |
-| 16_REQUIREMENTS_TRACEABILITY_MATRIX | 96 | Traceability | — |
+| 03_SOURCE_AND_CODEBASE_AUDIT | 97 | Evidence | file:line evidence throughout; direct-grant line range corrected; 0007 CHECK lines fixed |
+| 04_REQUIREMENTS_SPECIFICATION | 96 | Requirements | SEC-12..15 added as full entries; SEC-05 rescoped; SEC-10 rescoped; OPEN-SEC-01/02 gated items isolated |
+| 05_UX_UI_ACCESSIBILITY_PLAN | 92 | UX | revoke UI is a new subsection (larger than first estimated); alpha DESIGN.md deferred to owner |
+| 06_ARCHITECTURE_AND_TECHNICAL_DESIGN | 95 | Architecture | **Route-specific boundary/cache contract added (§6.5)** — closes the Improve hard gate; DEC-01 env-toggle finalizes at impl |
+| 07_DATA_DATABASE_API_NETWORK_PLAN | 92 | Data | D1 DROP COLUMN version NOT VERIFIED (RISK-04) — caps category at 89; resolves at impl |
+| 08_SECURITY_PRIVACY_THREAT_MODEL | 96 | Security | SEC-16 (Server-Action direct-POST) + SEC-17 (sign-out internal-origin note) added; SEC-05/10 reframed |
+| 09_PERFORMANCE_RELIABILITY_OBSERVABILITY | 94 | Perf | PERF-01 query-count assertion is a NEW test (PC-17, P6) — honest downgrade from "assertion exists"; hosted-proof production gap (preview only) |
+| 10_BLAST_RADIUS_AND_DEPENDENCIES | 96 | Blast radius | direct-grant line range corrected; concurrent-agent risk noted |
+| 11_IMPLEMENTATION_PLAN | 95 | Impl | P1-T2 + P3-T4 + P4-T1 converted from DISCOVERY to concrete (source-resolved); Phase 5 owner-gated; P3-T4 larger (Medium-Large) |
+| 12_TEST_AND_VALIDATION_STRATEGY | 95 | Testing | **Proof-contract ledger (PC-01..18) in mandated 10-column format** — closes the Improve format gate; no invite e2e Playwright spec (PC-14 manual) |
+| 13_ROLLOUT_ROLLBACK_AND_OPERATIONS | 94 | Rollout | 24h 403 monitoring is the real P1 gate (not provable in planning); Data rollback gated on D1 version |
+| 14_RISK_REGISTER | 96 | Risk | RISK-02 + RISK-07 resolved-at-planning; RISK-04 NOT VERIFIED (caps Data); RISK-01 only fully resolved post-monitoring |
+| 15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES | 96 | Decisions | 4 owner decisions open; DEC-05 corrected (2x not 3x); DEC-07 rescoped; ASSUMP-04/05/06 resolved |
+| 16_REQUIREMENTS_TRACEABILITY_MATRIX | 96 | Traceability | SEC-05/10/15 rows corrected; SEC-08 → non-regression |
 | 18_STACK_CONTRACT_AND_PRODUCTION_STANDARDS | 96 | Stack | — |
-| 19_RESEARCH_REVIEW_AND_QA_EVIDENCE | 95 | QA | adversarial matrix is static-review + unit; no browser proof |
+| 19_RESEARCH_REVIEW_AND_QA_EVIDENCE | 95 | QA | adversarial matrix static-review + unit; no browser proof; AQ-04 sign-out note added |
 | 20_ATTACK_SURFACE_AND_CREDENTIAL_MATERIAL | 97 | Security | — |
-| 21_DATABASE_CHANGE_BLUEPRINTS | 96 | Data | DROP COLUMN version DISCOVERY |
+| 21_DATABASE_CHANGE_BLUEPRINTS | 92 | Data | DROP COLUMN version NOT VERIFIED; auth_trigger blueprint normalized to 0039 |
 
 ## 2. Category scores (after Improve-pass cycle 3 — honest re-score)
 
@@ -117,42 +117,58 @@ Re-scored after the Improve-pass source re-verification and the P1/P2 fixes. Sco
 
 ## 6. Adversarial-review findings + resolutions
 
-| Finding (cycle 1 + 2) | Resolution |
+| Finding (cycle 1 + 2 + 3) | Resolution |
 |---|---|
 | continue route has no origin check | SEC-02 / DEC-02 / P1-T2 |
 | sign-out cookie attrs missing | SEC-04 / DEC-05 / P1-T4 |
-| direct-grant can downgrade | SEC-10 / DEC-07 / P4-T1 |
+| direct-grant can downgrade | SEC-10 / DEC-07 / P4-T1 (**rescoped to call sites only after source re-verify**) |
 | `auth_trigger` dead enum | SEC-11 / DEC-08 / OPEN-SEC-01 |
-| rate limits fail-open on disabled flag | SEC-05 / DEC-04 / P2-T1 / OPEN-SEC-02 |
+| rate limits fail-open on disabled flag | SEC-05 / DEC-04 / P2-T1 / OPEN-SEC-02 (**rescoped to continue-route-only after source re-verify**) |
 | pepper reused for realtime | SEC-09 / DEC-06 / OPEN-REL-02 |
 | revoke needs IDOR guard | SEC-15 / P3-T3 denial test |
 | revoke needs audit metadata | DEC-09 / migration 0038 |
+| **(cycle 3) migration number self-contradiction in 21/README/P5-T2** | **normalized: 0038 revoke, 0039 auth_trigger** |
+| **(cycle 3) missing route-specific App Router boundary/cache contract** | **added 06 §6.5** |
+| **(cycle 3) test matrix not in mandated proof-contract format** | **replaced with PC-01..18 ledger (12 §2)** |
+| **(cycle 3) P1-T2/P3-T4/P4-T1 DISCOVERY sub-steps resolvable from source** | **converted to concrete tasks (Continue `<a>`→`<form>`; revoke subsection; direct-grant call-site guard)** |
+| **(cycle 3) D1 SQLite version unverified → Data cap-89** | **recorded NOT VERIFIED; honest re-score to 89** |
+| **(cycle 3) SEC-05 framing stale (accept/page already short-circuit)** | **rescoped to continue-only** |
+| **(cycle 3) SEC-15 not a full requirement in 04** | **SEC-12..15 added as full entries** |
+| **(cycle 3) inflated category scores (95 overall unsupported)** | **honest re-score to 93; PASS conditions corrected** |
+| **(cycle 3) DEC-05 "3x" session-cookie claim wrong** | **corrected to 2x (set-cookie-forwarding is OAuth-state, different family)** |
+| **(cycle 3) AQ-04 sign-out internal-origin not noted** | **SEC-17 threat row added** |
+| **(cycle 3) Server-Action direct-POST threat missing for revoke** | **SEC-16 threat row added** |
 
 No unresolved P0/P1 findings.
 
-## 7. Residual gaps (honest)
+## 7. Residual gaps (honest, post-Improve)
 
 | Gap | Severity | Owner | Path to close |
 |---|---|---|---|
-| 4 DISCOVERY-REQUIRED sub-steps (P1-T2, P3-T4, P4-T1, P3-T1) | Low | impl | bounded read-only characterization at phase start |
+| D1 SQLite version NOT VERIFIED (DROP COLUMN rollback) | **Low (caps Data at 89)** | impl | `wrangler d1 execute archestimator-proof-db --command "SELECT sqlite_version();"` at P3-T1; fix-forward fallback always available |
+| PERF-01 query-count assertion not yet a test (PC-17 lands at P6) | Low (caps Perf at 94) | impl | add the assertion in P6-T1 |
+| P3-T4 revoke UI is a new subsection (larger than first estimated) | Low | impl | Medium-Large task; PC-15 + manual keyboard proof |
 | OPEN-SEC-01 (`auth_trigger`) | Low | owner | P5-T2 — recommend remove |
-| OPEN-SEC-02 (fail-closed semantics) | Low-Medium | owner | P2-T1 confirmation |
+| OPEN-SEC-02 (continue fail-closed semantics) | Low-Medium | owner | P2-T1 confirmation |
 | OPEN-REL-01 (email queue/bounce) | Low | owner | future work (DEC-10) |
 | OPEN-REL-02 (realtime key rotation) | Low-Medium | owner | P5-T1 confirmation |
-| No invite e2e Playwright spec | Low | impl/future | FR-03 manual proof; future spec |
+| No invite e2e Playwright spec | Low | impl/future | PC-14 manual proof; future spec |
 | CSP Report-Only on `/invite` | Low | sibling plan | SEC-01 is primary control |
-| emulated verification | Medium (cap) | reviewer/owner | independent review or owner sign-off lifts to IMPLEMENTATION-READY |
+| emulated verification | Medium (cap at 97, not binding) | reviewer/owner | independent review or owner sign-off |
 
 ## 8. Critique-and-revision cycles (this planning pass)
 
 - **Cycle 1 (after initial draft):** Cross-document consistency, traceability, shadow-path completeness, credential-material taxonomy. Closed 4 gaps (SEC-02, SEC-04, SEC-10, SEC-11).
-- **Cycle 2 (adversarial + final verifier):** UltraQA-style adversarial pass; closed 3 residual gaps (SEC-05, SEC-09, revoke audit metadata DEC-09). Confirmed no P0/P1 remain.
+- **Cycle 2 (adversarial + final verifier):** UltraQA-style adversarial pass; closed 3 residual gaps (SEC-05, SEC-09, revoke audit metadata DEC-09).
+- **Cycle 3 (Improve-pass, source re-verification):** Native adversarial `Explore` lane + targeted source re-checks. Closed 11 gaps (migration numbers, route contract, proof-contract format, 3 DISCOVERY→concrete conversions, D1-version NOT-VERIFIED honesty, SEC-05 rescope, SEC-12..15 entries, score honesty, DEC-05 correction, SEC-16/17 threat rows). Two planning defects of substance were caught and fixed: the SEC-10 "shared helper" framing would have broken `updateProjectCollaboratorRole`; the 95-overall score was unsupported under the Improve directive's category caps.
 
 ## 9. Smallest set of actions to reach `IMPLEMENTATION-READY` for the whole pack
 
-1. Independent reviewer (or owner) signs off on the pack → lifts the `emulated` cap.
-2. Owner resolves OPEN-SEC-01 (`auth_trigger`: remove recommended) and OPEN-SEC-02 (fail-closed semantics confirm).
-3. Owner resolves OPEN-REL-02 (realtime key rotation confirm) — or explicitly defers Phase 5.
-4. (Optional) Owner resolves OPEN-REL-01 (email queue: defer confirmed).
+1. **Independent reviewer (or owner) signs off** on the pack → lifts the `emulated` cap (97).
+2. **Resolve the D1 SQLite version** at P3-T1 (one read-only query) → lifts Data from 89 to ≥95.
+3. **Land PC-17** (the query-count assertion) at P6 → lifts Performance from 94 to ≥95.
+4. **Owner resolves OPEN-SEC-01** (`auth_trigger`: remove recommended) and **OPEN-SEC-02** (continue fail-closed confirm).
+5. **Owner resolves OPEN-REL-02** (realtime key rotation confirm) — or explicitly defers Phase 5.
+6. (Optional) Owner resolves OPEN-REL-01 (email queue: defer confirmed).
 
-Once (1) + (2) land, Phases 1-4 are unconditionally implementation-ready; Phase 5 remains owner-gated on (3).
+Once (1)+(2)+(3)+(4) land, Phases 1-4 are unconditionally implementation-ready; Phase 5 remains owner-gated on (5). Without (2)+(3), overall is bounded at 94 even with an independent verifier.

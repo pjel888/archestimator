@@ -40,8 +40,8 @@ Stable current truth (verify against git/source before relying on a detail):
   definitions stay checked.
 - GitHub security PR/comment loop (2026-07-07 local): live GitHub inventory
   found 26 open PRs for `pjel888/archestimator`, no open issues, 19 unresolved
-  non-outdated review threads across PRs 107, 109, 114, 115, 118, 120, 121,
-  and 123 after PR108 was pushed/resolved and new PR120/121/123 threads
+  non-outdated review threads across PRs 107, 108, 109, 114, 115, 118, 121,
+  122, and 123 after PR120 was pushed/resolved and new PR108/PR122 threads
   appeared.
   Hosted alert readbacks are unavailable rather than clean: code scanning
   returned 403 disabled, Dependabot alerts returned 403 disabled plus an
@@ -99,9 +99,19 @@ Stable current truth (verify against git/source before relying on a detail):
   `getCurrentWorkspaceProject`. PR108 focused/adjacent tests passed 10 files /
   61 tests, typecheck passed, targeted ESLint exited 0 with only pre-existing
   unused-symbol warnings, scoped `git diff --check` passed, and GraphQL readback
-  resolved all active PR108 threads. The latest refresh surfaced new active
-  threads on PR120 project-card/favorited estimate filtering, PR121 privacy
-  request intake rate/body handling, and PR123 homebase favorite filtering.
+  resolved the then-active PR108 route thread. A later refresh surfaced a new
+  active PR108 thread on preserving sheet-editor access for estimate mutations;
+  re-triage the mutation path before resolving. PR120 branch
+  `codex/fix-restricted-estimate-sheet-metadata-leak` was updated on GitHub to
+  head `87fa003d7`: project-card estimate sheets and favorited estimate sheets
+  now share one batched estimate-access id set before payload shaping. Focused
+  authz/performance/static-contract tests passed 5 files / 24 tests,
+  high-memory typecheck passed, targeted ESLint exited 0 with only pre-existing
+  unused-symbol warnings, scoped `git diff --check` passed, and GraphQL
+  resolved both PR120 threads after they became outdated on the pushed diff.
+  The latest refresh also surfaced active threads on PR121 privacy request
+  intake rate/body handling, PR122 public-share password expiry, and PR123
+  homebase favorite filtering.
   Local fixes for PR109/PR110
   canonicalized padded share
   tokens before password-cookie checks, trimmed share API route tokens, and

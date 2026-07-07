@@ -10,7 +10,10 @@ Append-only coordination log for the plan pack. Each lane logs STARTED, conflict
 | Explore-B (backend/data) | COMPLETE | STARTED → loop 80% built (D1 tables `0001`, Server Actions, review queue, auth); no email wired to feedback; no zod; `requireCurrentUserContext` reusable; next migration `0039`. No file writes. |
 | Explore-C (monitoring/observability) | COMPLETE | STARTED → 3 crons (AGENTS.md stale says 2); `sendUploadOperationalAlert` = alert template; `sendEmail` circuit-breaker ready; in-process sweep viable. No file writes. |
 | Explore-D (plans/state/personas/privacy) | COMPLETE | STARTED → no retention row for feedback; no SLA (persona open question); monitoring operator-attested only; SUPPORT-001/002/OPS-002 gaps; privacy basis = consent + legitimate interest. No file writes. |
-| Lead planner (synthesis) | COMPLETE | STARTED → wrote 21 plan docs + README + this ledger; 27 reqs, 0 untraced; 2 critique cycles; emulated verifier; status `CONDITIONALLY READY`. Only this plan folder modified; PROMPT.md preserved. |
+| Lead planner (synthesis — Creating pass) | COMPLETE | STARTED → wrote 21 plan docs + README + this ledger; 27 reqs, 0 untraced; 2 critique cycles; status `CONDITIONALLY READY`. |
+| **Explore-Verifier (Improvement pass, independent)** | COMPLETE | STARTED → verified 17 codebase claims + Next.js 16 Cache Components posture against local docs. Found 4 inaccuracies (SUPPORT_EMAIL/MAX_* not exported; gate location; mailto location; worker.ts comment/routing). Separate agent output. No file writes. |
+| **Explore-Adversarial (Improvement pass, independent)** | COMPLETE | STARTED → audited all 24 docs against Improve-Plan-Prompt completion gates. Found 6 P0 + 11 P1 + 8 P2 defects (retention rule shape invented; missing route contract / attack-surface / access-path / 11-state matrix / a11y proof matrix / proof-contract schema; wrong test paths; fabricated migrate cmd; false webhook-timeout claim; readiness inflation). Separate agent output. No file writes. |
+| **Lead planner (Improvement pass synthesis)** | COMPLETE | STARTED → fixed all P0/P1; added docs `20` + `22`; rebuilt `16`/`21` DB-02/`12`/`05`; corrected `03`/`08`/`09`/`11`; re-scored `17` (~84→~92). Only this plan folder modified; PROMPT.md preserved. `verification_mode`: evidence independent, synthesis emulated. |
 
 ## Conflicts / first-writer-wins
 

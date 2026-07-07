@@ -67,7 +67,14 @@ See `12_TEST_AND_VALIDATION_STRATEGY.md` — 15 scenarios (QA-01..QA-15) coverin
 
 ## Independent final verifier evidence
 
-`verification_mode: emulated`. The verifier pass (search criteria + findings + resolution) is recorded in `17`. True independent verification was not available in this session; a human or separate-agent review is recommended to lift the cap. The 4 `Explore` subagents that gathered source evidence were independent of each other (separate outputs), but the synthesis was single-agent.
+`verification_mode: emulated` (synthesis). The **evidence-gathering** was `independent`: two separate `Explore` subagent lanes (Verifier + Adversarial, distinct agent IDs, distinct outputs) ran against the Creating-pass package before re-scoring. Their findings drove the Improvement pass. See `17_FINAL_READINESS_REVIEW.md` for the full resolution table, baseline→final scorecard, and evidence-class table. True end-to-end independence (separate synthesizer) was not available in this session; a human or separate-agent review of the *final* package is recommended to lift the emulated cap.
+
+### Improvement-pass evidence added (2026-07-07)
+
+- **Local Next.js 16 docs consulted:** `node_modules/next/dist/docs/01-app/02-guides/caching-without-cache-components.md:11,97-99` (fetch not cached by default; force-dynamic ≡ no-store), `node_modules/next/dist/docs/01-app/02-guides/migrating-to-cache-components.md:15,32-44` (cacheComponents replaces old configs; without the flag, previous model holds). Next.js version: **16.2.10**. `next.config.ts:92-106` confirmed Cache Components NOT enabled.
+- **Codebase claims re-verified:** 17/17 items checked; 13 VERIFIED, 4 corrected (SUPPORT_EMAIL/MAX_*/MIN_* module-private not exported; `canReviewBetaFeedback` lives in `beta-feedback-review.ts:28-30` not the page; static mailto in `page.tsx:21` not the action; worker.ts comment text + `0 3`/`15 3` routing via `runCloudflareScheduledUploadJobs` not switch arms).
+- **Retention registry located (was DISCOVERY-REQUIRED, now resolved):** `src/lib/compliance/retention-core.ts` — `RetentionClassName` union (`:28-42`), `RetentionRule` type (`:44-50`), `DEFAULT_RETENTION_RULES` (`:79-143`), `runRetentionPassInD1` (`:180`). Closed union → adding feedback is a source edit, not an additive insert.
+- **Adversarial finding count:** 6 P0 + 11 P1 + 8 P2 → all P0/P1 resolved in this pass (resolution table in `17`).
 
 ## Explicit validation gaps
 

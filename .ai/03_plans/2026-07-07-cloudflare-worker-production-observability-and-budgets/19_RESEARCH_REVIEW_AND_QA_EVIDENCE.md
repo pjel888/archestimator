@@ -148,3 +148,79 @@ At planning time, the known ad-hoc `console.*` sites (from `03_…` §3.13):
 
 The full `rg "console\.(log|warn|error|info|debug)" src/` artifact will be
 attached here at implementation closeout (T-9.1).
+
+## 19.10 Final verification matrix (independent subagent, post-revision)
+
+Requirement-by-requirement audit of the brief's 9 deliverables + 3 constraints +
+stop condition, re-run after the P0/P1/P2 fixes. Verdict legend:
+✅ Proven · ❌ Contradicted · ⚠️ Incomplete · ◑ Weak · ⬜ Missing · NA.
+
+| Brief item | Where covered | Verdict | Evidence |
+|---|---|---|---|
+| 1. request IDs | FR-01; T-1.1/1.2/1.3/2.1/2.2; P-01/02/04 | ✅ Proven | `worker.ts:60-95` has no id (confirmed); plan defines gen/validate/ALS/echo + isolation |
+| 2. job IDs | FR-02; T-2.3/4.1/4.2; P-05 | ✅ Proven | `cronRunId` (worker.ts:111), `idempotencyKey` (upload-job-queue.ts:21,138) confirmed; plan adds `batchId` |
+| 3. error taxonomy | FR-05; T-3.1/3.2/3.3; P-03/08 | ✅ Proven | AppError hierarchy in app-error.ts; `with-action-errors.ts:53-57` gap confirmed + fixed |
+| 4. CPU/duration/subrequest/memory budgets | REL-01; 09 §9.1 | ✅ Proven | 15-row budget table with all 5 fields; ceilings cited from official docs |
+| 5. log sampling | OBS-02; T-7.1 | ✅ Proven | **P0-2 fixed**: all 3 wrangler keys addressed; shared-quota Mar 2026 cited |
+| 6. privacy redaction | SEC-01/02/03; T-9.1/3.3/8.1/8.3; P-13/14/15 | ✅ Proven | **P1-2 fixed**: instrumentation path redaction; inbound-id isolation (P1-5) |
+| 7. dashboard/alert expectations | OBS-03; 13 §13.5 | ✅ Proven | copy-paste queries; **P1-3 fixed**: x-request-id lookup; honest free-tier alerting gap |
+| 8. evidence scripts | SEC-02; 09 §9.5; cf:* scripts | ✅ Proven | R2 receipts, cf:provider-proof, hosted-verify scripts exist in package.json |
+| 9. free-tier-safe monitoring | DEC-03/09; 13 §13.5 | ✅ Proven | AE (100k/day free) + GraphQL self-poll; no paid add-on |
+| C1. no paid observability assumed | DEC-09 | ✅ Proven | none recommended |
+| C2. no production claim from local logs | 12 §12.6; 13 §13.7 | ✅ Proven | evidence-class separation maintained (§19.11) |
+| C3. sensitive payloads out of logs/evidence | SEC-01/02/03; 08 | ✅ Proven | allowlists + redaction + isolation |
+| STOP: executor can implement | Phases 1-10; matrix | ✅ Proven | every budget has enforcement; every req traced to task+proof |
+
+**All 9 deliverables + 3 constraints + stop condition: PROVEN.** No ❌/⬜ remains.
+
+## 19.11 Evidence-class table (suite-required)
+
+Distinguishes local-static / local-automated / browser-manual / provider-backed / hosted-production / inferred.
+
+| Major claim | Evidence class | Justification |
+|---|---|---|
+| worker.ts has no try/catch / id / header echo | **local-static** (file read) | confirmed worker.ts:60-129 |
+| AppError taxonomy + redact.ts coverage | **local-static** | confirmed app-error.ts, redact.ts |
+| Retention unbounded; 7 rules; error-only log | **local-static** | confirmed retention-core.ts:180-268 |
+| DO re-encodes bytes (:108); O(N) fan-out; no logging | **local-static** | confirmed collaboration-room.ts:108 |
+| Budget vars never enforced (only echoed) | **local-static** | confirmed wrangler.jsonc:98-104 + grep |
+| `with-action-errors.ts` logs without requestId | **local-static** | confirmed with-action-errors.ts:53-57 |
+| wrangler has 3 sampling keys; traces currently ON | **local-static** | confirmed wrangler.jsonc:83-96 |
+| `test` script = bun-native; `test:dom` = vitest | **local-static** | confirmed package.json + vitest.config.ts |
+| request-id helper works (gen/validate/ALS) | **local-automated** (planned P-01) | not yet run |
+| worker dispatch try/catch + header echo | **local-automated** (planned P-04) | not yet run |
+| streaming mid-stream throw handled | **local-automated** (planned P-06) | not yet run |
+| retention `budget_reached` guard fires | **local-automated** (planned P-09) | not yet run |
+| DO broadcast cap truncates | **local-automated** (planned P-10) | not yet run |
+| metrics allowlist rejects PII dims | **local-automated** (planned P-11) | not yet run |
+| SA ALS propagation works | **local-automated** (planned P-03) | **riskiest** — not yet run; gated |
+| instrumentation path redaction | **local-automated** (planned P-13) | not yet run |
+| inbound id NOT persisted to D1 | **local-automated** (planned P-15) | not yet run |
+| `x-request-id` on production 200/308/500 | **hosted-production** (manual curl) | deferred — 13_… |
+| Workers Logs find-by-id / error-rate-by-route | **provider-backed** (dashboard) | manual — 12_… §12.6 |
+| AE dataset readback | **provider-backed** | manual |
+| `exceededCpu` on proposal export | **provider-backed** (operational watch) | residual RISK-07 |
+| free-tier ceilings (10ms CPU, 50 subreq, 128MB, 100k D1, 200k logs, 100k AE) | **inferred** (from cited CF docs, Jul 2026 window) | 19.1 RQ-2; stale-checklist flags re-confirm |
+| ALS visible in Server Actions (ASSUMP-01) | **inferred / unverified** | **gated by P-03**; fallback documented |
+| native CF alerting weak on Free | **inferred** (docs + community) | RQ-6; RISK-15 |
+
+## 19.12 Items handed back to authoring (from independent verifier)
+
+| Item | Class | Severity | Status after revision |
+|---|---|---|---|
+| Test commands (12_… §12.2) | ❌ Contradicted | HIGH | ✅ fixed (P0-1) |
+| Server-Action ALS propagation (ASSUMP-01) | ◑ Weak | MED-HIGH | ✅ promoted to gating P-03 (P1-1) |
+| `Buffer.byteLength` in Worker (ASSUMP-07) | ◑ Weak | LOW | acceptable — gated by T-6.1 |
+| Free-tier ceiling recency | ◑ Weak (inferred) | LOW | acceptable — stale-checklist |
+| top-level sampling key duplicate | ⚠️ Incomplete | LOW → was P0 | ✅ fixed (P0-2) |
+
+No item remains ❌ Contradicted or ⬜ Missing.
+
+## 19.13 Cycle count
+
+- Original authoring: 3 emulated critique-and-revision cycles (within 6-cap).
+- This improvement task: 1 independent-adversarial + 1 independent-verification
+  pass + 1 revision pass = 3 more meaningful cycles. **Total: 6 cycles** (at the
+  suite cap). Remaining residuals are genuinely external (OPEN-01..05) or
+  hosted-proof-deferred, not internally resolvable.
+
