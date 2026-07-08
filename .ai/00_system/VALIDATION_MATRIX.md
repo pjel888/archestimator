@@ -36,9 +36,58 @@ bypasses.
 For debugging handoffs or "what do the logs say?" work, run
 `bun run ops:agent-debug-snapshot`. It produces a redacted local debugging
 readiness report across `logs/dev.ndjson`, the latest error recurrence key,
-prior matching debugging ledger records, incident-table readiness, alert scenario
-readiness, hosted proof env gates, hosted proof artifact readiness, and the error-handling static gate without exposing raw log messages,
-stacks, request ids, webhook URLs, or token values.
+prior matching debugging ledger records with latest-match status/fix/validation
+summary, incident-table readiness, alert scenario readiness, latest local error
+freshness/origin, `localLogs.latestRuntimeError` when synthetic test records are
+newer, hosted proof env gates, hosted proof route-smoke readiness,
+hosted proof artifact readiness with failed check labels and `nextAction` proof commands, production observability runbook
+buckets (`observabilityRunbook.readOnlyReady`,
+`observabilityRunbook.gatedExternalReady`, `observabilityRunbook.blocked`), and
+support monitoring readiness with `supportMonitoring.summary` and structured
+`supportMonitoring.requirements` diagnostics without owner-label values,
+machine-readable `readinessGates.local.failures` /
+`readinessGates.production.failures`, and the error-handling static gate without
+exposing raw log messages, stacks, request ids, webhook URLs, or token values.
+The snapshot exits successfully by default even when hosted proof is incomplete
+so agents can use it as a diagnostic report. Use
+`AGENT_DEBUG_SNAPSHOT_STRICT=1 bun run ops:agent-debug-snapshot` for a
+fail-closed local debugging gate, and
+`AGENT_DEBUG_SNAPSHOT_REQUIRE_PRODUCTION=1 bun run ops:agent-debug-snapshot` for
+launch checks that must fail until production evidence and support monitoring are
+ready. When either strict mode fails, inspect the relevant `readinessGates`
+failure list; each item names the failed readiness key plus the next command and
+action to run.
+Cloudflare release readiness also consumes these artifacts: `bun run cf:release-gates`
+reports `observabilitySupportProofReady` from the generated
+agent-debug snapshot, hosted observability proof-route smoke, hosted
+observability proof, and support-monitoring readiness artifacts, and
+`productionCutoverReady` must stay false while that scope is red. Use
+`CLOUDFLARE_RELEASE_REQUIRE_PRODUCTION=1 bun run cf:release-gates` when the
+command should exit nonzero on a red production
+cutover rather than only failing on the local release report.
+If the latest local error is marked stale, reproduce or collect a fresh record
+before treating it as current root-cause evidence.
+If the latest local error is marked test-origin, rerun the relevant test with a
+temp `ARCHESTIMATOR_DEV_LOG_PATH` or reproduce in dev before treating it as an
+app-runtime bug.
+When `localLogs.latestRuntimeError` is present, use it only as the newest
+runtime-origin diagnostic pointer behind test-origin noise; stale runtime records
+still need a fresh repro or fresh log record before code changes.
+Test-origin classification may use nearby same-route stack evidence, including
+bracketed Next.js dynamic route paths; query strings and fragments remain unsafe.
+If the snapshot reports `debuggingLedger.latestErrorMatchSummary.hasMatches`,
+review `debuggingLedger.latestErrorMatchSummary.latest` before changing code;
+for previously fixed or mitigated fingerprints, rerun the recorded validation
+before opening a new fix branch.
+If the latest local error is test-origin and `localLogs.latestRuntimeError` is
+present, check `debuggingLedger.latestRuntimeErrorMatchSummary` and
+`debuggingLedger.recentRuntimeMatches` before chasing that runtime candidate.
+Preserve `debuggingLedger.latestRuntimeErrorRecurrenceKey` if the runtime
+candidate becomes the active investigation.
+`bun run logs:debug` and `bun run logs:explain <record_id>` use the same
+classification idea for local dev shutdown artifacts and test-origin records,
+so read their "Likely classification" line before following source-route
+guidance.
 
 When a fix or mitigation creates reusable debugging knowledge, append a
 sanitized recurrence record with `bun run ops:debug-ledger -- ...`; use
@@ -47,17 +96,37 @@ citing the recurrence ledger as launch or incident evidence, run
 `bun run ops:debug-ledger -- --check`.
 
 For production observability readiness, run `bun run ops:observability-drill`
-first. It is read-only: it joins hosted proof env preflight, hosted artifact
-validation, and the next Workers Logs / alert proof commands without querying
-Cloudflare, sending webhooks, or mutating D1 incidents.
+first. It is read-only: it joins hosted proof env preflight, the latest hosted
+proof route-smoke artifact, hosted artifact validation with per-requirement
+failed checks, and the next Workers Logs / alert proof commands without querying
+Cloudflare, sending webhooks, or mutating D1 incidents. It reads
+`.ai/99_scratch/observability-proof-route-smoke-current.json` by default; set
+`OBSERVABILITY_PROOF_ROUTE_REPORT_FILE` to inspect a different route-smoke
+artifact. Use its
+`executionPlan.readOnlyReady`, `executionPlan.gatedExternalReady`, and
+`executionPlan.blocked` groups to separate safe local checks from intentional
+hosted route smoke, Cloudflare-tail, or synthetic-alert commands.
 Run `bun run ops:check-alert-scenarios -- --catalog-only` to validate the local
 S-01 through S-07 alert scenario contract. Run `bun run ops:check-alert-scenarios`
 as the local proof-producer gate; it fails closed if any provider-backed launch
 scenario lacks an implemented proof producer. Hosted delivery evidence is checked
 separately by `bun run ops:check-observability`, which rejects missing, stale,
 unredacted, partial, or wrong-producer hosted proof artifacts.
+Before first-user support/monitoring readiness claims, run
+`bun run launch:check-support-monitoring` with the incident-readiness artifact,
+production observability proof artifact, owner labels, and explicit
+inbox/feedback/alert confirmation flags; inspect its `summary` and
+`requirements` fields when it fails. `ops:agent-debug-snapshot` mirrors that
+gate as `supportMonitoring`, `supportMonitoring.summary`,
+`supportMonitoring.requirements`, and `readiness.supportMonitoringReady` without
+copying owner-label values.
 Workers Logs proof collection should use the secret-gated hosted marker route
 when possible:
+`bun run ops:check-observability-route` should pass first. It sends one
+unauthenticated POST and expects `401` from
+`https://archestimator.com/__cloudflare/observability-proof`; `404` means the
+deployed Worker is stale or the route is not wired, and `200` is an auth-bypass
+blocker.
 `WORKERS_LOGS_PROOF_URL=https://archestimator.com/__cloudflare/observability-proof WORKERS_LOGS_PROOF_SECRET=<cron_secret> bun run ops:collect-workers-logs-proof`.
 The collector also supports the legacy known-request mode with
 `WORKERS_LOGS_PROOF_REQUEST_ID` and `WORKERS_LOGS_PROOF_ROUTE`.
@@ -85,6 +154,8 @@ Launch readiness probes (read-only, no provider mutation):
 
 ```bash
 bun run ops:agent-debug-snapshot
+AGENT_DEBUG_SNAPSHOT_STRICT=1 bun run ops:agent-debug-snapshot
+AGENT_DEBUG_SNAPSHOT_REQUIRE_PRODUCTION=1 bun run ops:agent-debug-snapshot
 bun run ops:debug-ledger -- --check
 bun run ops:observability-drill
 bun run ops:check-alert-scenarios -- --catalog-only

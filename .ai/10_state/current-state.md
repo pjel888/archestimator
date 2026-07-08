@@ -18,7 +18,16 @@ Stable current truth (verify against git/source before relying on a detail):
   noise. Runtime diagnosis uses
   `bun run logs:debug` / `logs:tail` / `logs:explain`; hosted runtime diagnosis
   uses Cloudflare Workers Logs/Real-time logs/`wrangler tail`; D1 is for
-  durable low-volume operational incident records. Protocol:
+  durable low-volume operational incident records. Local
+  agent snapshots include `debuggingLedger.latestErrorMatchSummary`, so repeated
+  latest-error fingerprints surface the latest prior status/fix/validation
+  evidence before agents change code. When synthetic test-origin records are
+  newer than app-runtime records, snapshots also include
+  `debuggingLedger.latestRuntimeErrorRecurrenceKey`,
+  `debuggingLedger.latestRuntimeErrorMatchSummary`, and
+  `debuggingLedger.recentRuntimeMatches` for the runtime candidate behind the
+  test noise.
+  Protocol:
   `.ai/00_system/ERROR_LOGGING_AND_AGENTIC_DEBUGGING_PROTOCOL.md`. Local
   migration `0040_operational_incidents.sql` adds `operational_incidents` and
   `operational_incident_events`. Remote D1 initially had only
@@ -125,6 +134,167 @@ Stable current truth (verify against git/source before relying on a detail):
 	  artifact trust; actual production readiness still requires fresh hosted
 	  Workers Logs plus six hosted alert artifacts from the configured production
 	  environment.
+	  `ops:agent-debug-snapshot` and `ops:observability-drill` now include
+	  compact redacted `hostedProof.requirements` diagnostics with requirement
+	  key, status, artifact filename, `failedChecks`, and `nextAction`; use those
+	  fields to distinguish missing hosted proof from stale, wrong-producer,
+	  invalid, or unredacted proof artifacts without opening proof payloads, then
+	  run the exact proof-collection command without inferring it from broader
+	  runbook prose. Verification
+	  passed 4 focused observability/protocol Vitest files / 20 tests,
+	  large-heap typecheck, `validate:error-handling`,
+	  `ops:debug-ledger -- --check`, `ops:agent-debug-snapshot`, and
+	  `git diff --check`; `ops:observability-drill` still fails closed with no
+	  external side effects until hosted proof env gates and artifacts exist.
+	  Recurrence ledger record `debug-86cebd53-0c52-4872-8db2-3eea06ab7f1c`
+	  captures this hidden-diagnostics workflow gap with recurrence key
+	  `dbg_e1b427740f3108e3`.
+	  Follow-up hosted proof next-action propagation on 2026-07-08 pushed those
+	  proof commands all the way through the checker, drill, and snapshot:
+	  `ops:check-observability` writes and prints `requirements[].nextAction`,
+	  while `ops:observability-drill` and `ops:agent-debug-snapshot` preserve
+	  `hostedProof.requirements[].nextAction`. Focused verification passed 4
+	  observability/protocol Vitest files / 24 tests, large-heap typecheck,
+	  `validate:error-handling`, `ops:debug-ledger -- --check` with 27 parsed
+	  records / 0 unsafe, and `git diff --check`. Current artifacts are still
+	  intentionally red for production: `ops:check-observability` fails closed
+	  with seven missing hosted proof artifacts and prints `nextAction` for each;
+	  `ops:observability-drill` reports read-only ready=2 / blocked=8;
+	  `ops:agent-debug-snapshot` reports `readinessGates.local.ready:true` and
+	  production failures `hostedProofEnv`, `operationalIncidentAlerting`,
+	  `hostedProofArtifacts`, and `supportMonitoring`; support monitoring fails
+	  closed with summary passed=0 missing=11 failed=0. Recurrence ledger record
+	  `debug-e46d6a8e-34bb-4838-9d66-84bb4b2f8d78` captures this workflow gap
+	  with recurrence key `dbg_966ba000d5b05fe6`.
+	  Hosted proof route smoke now exists as
+	  `bun run ops:check-observability-route` and is a `cf:release-gates`
+	  observability/support input. It sends one unauthenticated POST to
+	  `https://archestimator.com/__cloudflare/observability-proof` and expects
+	  `401` before Workers Logs marker proof collection; `404` means the deployed
+	  Worker is stale or the route is not wired, while `200` is an auth-bypass
+	  blocker. Current 2026-07-08 evidence: Wrangler auth works, the deployed
+	  Worker secret-name list includes `CRON_SECRET`, and local source wires the
+	  protected route before app routing, but the live custom-domain route returns
+	  `404`. `OUTPUT_FILE=.ai/99_scratch/observability-proof-route-smoke-current.json bun run ops:check-observability-route`
+	  therefore fails closed with `routeStatus:"route-not-found"`, and
+	  `cf:release-gates` must keep hosted observability/support and production
+	  cutover red until a clean runtime deploy makes the route live/auth-enforced.
+	  Do not deploy from the current shared dirty worktree; unrelated runtime/UI
+	  estimate and publication changes are present. Recurrence ledger record
+	  `debug-7efd339e-fc90-4bf2-b9b6-60d43f3d09c5` captures this route-smoke
+	  workflow gap with recurrence key `dbg_7deea5b4e8a4b71d`.
+	  The route-smoke artifact is now also consumed by
+	  `ops:observability-drill` and `ops:agent-debug-snapshot` as
+	  `hostedProofRoute`; the snapshot exposes
+	  `readiness.productionHostedProofRouteReady:false` and a production gate
+	  failure key `hostedProofRoute` while the live route returns `404`. The
+	  refreshed drill/snapshot block `workersLogsQuery` behind
+	  `bun run ops:check-observability-route`, report
+	  `observabilityRunbook.summary` as read-only ready=2 / gated-external
+	  ready=0 / blocked=9, and preserve the deploy-from-clean-worktree next
+	  action without querying Cloudflare Logs, sending alerts, or mutating D1.
+	  Focused verification passed 5 observability/protocol Vitest files / 33
+	  tests, large-heap typecheck, `validate:error-handling`,
+	  `ops:debug-ledger -- --check`, refreshed route-smoke/snapshot/drill/
+	  release-gate artifacts, and `git diff --check`. Recurrence ledger record
+	  `debug-2a2c3563-df70-418f-b3d4-f0a5c2cf02d7` captures this handoff
+	  workflow gap with recurrence key `dbg_9a4c0a0e5a69a9f3`.
+	  Cloudflare deployability update on 2026-07-08: for the Cloudflare Worker
+	  build, the active auth gate entrypoint is `src/middleware.ts`, not
+	  `src/proxy.ts`. Clean `HEAD` source with `src/proxy.ts` failed
+	  `bun run cf:build` because OpenNext Cloudflare rejects Next 16 Node.js
+	  Proxy runtime. The middleware path is intentionally an Edge-safe,
+	  cookie-presence gate: it redirects protected `/workshop` routes without a
+	  Better Auth session cookie, redirects signed-in auth-route requests to the
+	  workshop, and stamps only the request-path header. It does not import the
+	  Better Auth D1 runtime or mark `x-archestimator-auth-verified` /
+	  `x-archestimator-terms-accepted`; authoritative Better Auth, D1
+	  authorization, closed-beta, and terms acceptance checks remain in
+	  server-side layout/actions. Verification passed focused auth/file-convention
+	  tests (4 files / 68 tests), large-heap typecheck,
+	  `validate:error-handling`, and `cf:check-readiness`. A clean isolated
+	  snapshot with the middleware changes passed `bun run cf:build` and
+	  `bun run cf:check-deploy-dry-run` with 296 assets and required bindings
+	  present. Production is still not updated: both `wrangler deploy` and
+	  `wrangler versions upload` from the clean snapshot stalled or terminated
+	  after the asset phase without creating a new Worker version. Readback still
+	  shows version `f854a70c-6a62-405b-a53d-060b1f671b4d` / deployment
+	  `50f72675-7279-4c1c-98e1-0e9a7af45a63` from 2026-07-06, and the live
+	  hosted proof route still returns `404`. Recurrence ledger record
+	  `debug-6b402e11-3c21-4ede-b90e-92863e882904` captures the unresolved
+	  publish blocker with recurrence key `dbg_70434f76e9c10dca`.
+	  `ops:agent-debug-snapshot` now also reports latest local error age and
+	  freshness (`localLogs.latestError.ageMinutes` / `freshness`) with a 24h
+	  default stale threshold. If the latest local error is stale, agents should
+	  reproduce or collect a fresh `logs:debug`/`logs:tail` record before
+	  treating the historical entry as current root-cause evidence. Verification
+	  passed 4 focused observability/protocol Vitest files / 21 tests,
+	  large-heap typecheck, `validate:error-handling`,
+	  `ops:debug-ledger -- --check`, and `ops:agent-debug-snapshot`; the
+	  refreshed snapshot shows the current latest local error as fresh
+	  (`ageMinutes:160`). Recurrence ledger record
+	  `debug-77a08ef8-f3eb-407d-b6e8-2fe2b17e8f70` captures this stale-log
+	  anchoring gap with recurrence key `dbg_de7ffa1d4a7a2683`.
+	  A follow-up trace of `bun run logs:debug` showed the then-current latest
+	  local error was synthetic: a shared-link decision diagnostic tied to
+	  `tests/vitest/project-publication-decision.test.tsx`, not a dev-app
+	  runtime failure. `ops:agent-debug-snapshot` now reports
+	  `localLogs.latestError.origin` and safe `originEvidence`; when origin is
+	  `test`, agents should rerun the named test with a temp
+	  `ARCHESTIMATOR_DEV_LOG_PATH` or reproduce in dev before changing product
+	  code. The snapshot now also reports `localLogs.latestRuntimeError`, a
+	  redacted newest runtime-origin pointer behind newer test-origin records; it
+	  can associate adjacent diagnostic records with nearby same-route stack
+	  evidence, including bracketed Next.js dynamic paths, while still rejecting
+	  query strings and fragments for durable diagnostic paths. The runtime
+	  pointer remains diagnostic only, and stale runtime records still need fresh
+	  repro evidence. The refreshed snapshot reports the current latest local error as
+	  `origin:"test"` with safe evidence
+	  `tests/vitest/project-publication-decision.test.tsx` and
+	  `node_modules/@vitest`; no raw stack is exposed. Verification passed
+	  focused snapshot/protocol/support tests (3 files / 17 tests), large-heap
+	  typecheck, `validate:error-handling`, `ops:debug-ledger -- --check`,
+	  `ops:agent-debug-snapshot`, `launch:check-support-monitoring` fail-closed
+	  with 11 missing requirements, `ops:observability-drill` fail-closed with
+	  read-only ready=2 and blocked=8, and `git diff --check`. Recurrence ledger
+	  record `debug-bec428d7-102f-4f7f-8fda-69da3c1ca476` captures this
+	  latest-runtime/test-noise workflow gap with recurrence key
+	  `dbg_2c3efcfcaf4bca54`.
+	  The snapshot now also builds a separate recurrence view for
+	  `localLogs.latestRuntimeError`, exposed as
+	  `debuggingLedger.latestRuntimeErrorRecurrenceKey`,
+	  `debuggingLedger.latestRuntimeErrorMatchSummary`, and
+	  `debuggingLedger.recentRuntimeMatches`, so a real runtime candidate behind
+	  synthetic test noise can reuse prior fixed/mitigated/observed evidence
+	  before agents chase a new root-cause branch. The refreshed snapshot reports
+	  runtime candidate recurrence key `dbg_67b45b672f6adde2` with zero prior
+	  matches and recommends preserving that key if the runtime candidate becomes
+	  the active investigation. Verification passed 4 focused
+	  observability/protocol/ledger/support Vitest files / 22 tests,
+	  large-heap typecheck, `validate:error-handling`,
+	  `ops:debug-ledger -- --check`, `ops:agent-debug-snapshot`,
+	  `launch:check-support-monitoring` fail-closed with 11 missing
+	  requirements, `ops:observability-drill` fail-closed with read-only ready=2
+	  and blocked=8, and `git diff --check`. Recurrence ledger record
+	  `debug-18b9898d-ee28-4cfe-a259-bbaaef987751` captures this
+	  runtime-candidate ledger-match workflow gap with recurrence key
+	  `dbg_3e848c90e69e4fb9`.
+	  Direct `logs:debug` / `logs:explain <record_id>` now also classify
+	  test-origin records from safe stack evidence on the target or nearby route
+	  records. The current latest local log prints
+	  `Likely classification: test-origin synthetic log record
+	  (tests/vitest/project-publication-decision.test.tsx, node_modules/@vitest)`
+	  and recommends rerunning the identified test with a temp
+	  `ARCHESTIMATOR_DEV_LOG_PATH` or reproducing in dev instead of opening the
+	  product route first. Verification passed 10 tail-dev-log helper tests,
+	  corrected `logs:debug` output, 4 focused observability/protocol Vitest files
+	  / 22 tests, large-heap typecheck, `validate:error-handling`,
+	  `ops:debug-ledger -- --check` with 15 parsed/0 malformed/0 unsafe records,
+	  and `ops:agent-debug-snapshot`; `ops:observability-drill` still fails
+	  closed with no external side effects until hosted proof env gates/artifacts
+	  exist. `logs/dev.ndjson` remained 1,255,756 bytes. Recurrence ledger
+	  record `debug-0c22c35d-5df1-480d-b9e9-b17b6c31f91d` captures this
+	  direct-log explainer gap with recurrence key `dbg_03d90bf98dfa51b7`.
 	  Sensitive server/API/observability/email/ops surfaces now have
 	  `bun run validate:error-handling`, a non-mutating static gate that rejects
 	  empty `catch` and Promise `.catch` handlers, plus raw `console.error`
@@ -181,7 +351,10 @@ Stable current truth (verify against git/source before relying on a detail):
 	  first for a read-only production observability drill that joins hosted
 	  proof env preflight, hosted artifact validation, and blocked/ready proof
 	  commands without querying Cloudflare, sending webhooks, or mutating D1
-	  incidents. `bun run ops:check-observability-env` provides the non-secret
+	  incidents. Its `executionPlan` separates `readOnlyReady`,
+	  `gatedExternalReady`, and `blocked` actions so agents do not confuse safe
+	  local checks with Cloudflare-tail or synthetic-alert proof commands.
+	  `bun run ops:check-observability-env` provides the non-secret
 	  preflight of Workers Logs proof, alert-delivery proof, and incident-alert
 	  env gates; it reports presence/shape only and never prints request ids,
 	  webhook URLs, or token values. Focused preflight
@@ -192,20 +365,25 @@ Stable current truth (verify against git/source before relying on a detail):
 	  Agents now also have `bun run ops:agent-debug-snapshot`, a redacted
 	  one-command debugging readiness report for local log parse health, latest
 	  local error metadata, incident-table readiness, hosted proof env gates,
-	  hosted proof artifact readiness, and the sensitive-surface error-handling
-	  gate. A scratch snapshot at
+	  hosted proof artifact readiness, production observability runbook buckets,
+	  and the sensitive-surface error-handling gate. A scratch snapshot at
 	  `.ai/99_scratch/agent-debugging-snapshot-current.json` passed locally on
 	  2026-07-08 with local debugging and operational incident readiness true;
 	  production evidence collection and incident alerting remain false until the
 	  hosted proof env gates/artifacts exist. The snapshot now calls the hosted
 	  proof bundle checker too, so missing Workers Logs plus all six
 	  observability alert-delivery artifacts surface in the same agent handoff
-	  instead of requiring a separate mental join; the snapshot now recommends
-	  `ops:observability-drill` when hosted proof is incomplete.
+	  instead of requiring a separate mental join; it also embeds
+	  `observabilityRunbook.readOnlyReady`,
+	  `observabilityRunbook.gatedExternalReady`, and
+	  `observabilityRunbook.blocked` from the read-only drill so agents can
+	  distinguish local checks from intentional Cloudflare-tail or synthetic-alert
+	  proof actions. The snapshot now recommends `ops:observability-drill` when
+	  hosted proof is incomplete.
 	  `ops:check-observability` itself now also
 	  prints failed requirement keys, missing artifact filenames or failed checks,
-	  and the next proof-command sequence in the terminal while still writing the
-	  JSON report; a current scratch run fails closed with hosted Workers Logs
+	  and the next proof-command sequence in the terminal while still writing
+	  `requirements[].nextAction` to the JSON report; a current scratch run fails closed with hosted Workers Logs
 	  proof plus all six hosted alert-delivery artifacts missing. Focused drill
 	  verification passed 1 Vitest file / 4
 	  tests before the broader observability suite rerun.
@@ -215,7 +393,73 @@ Stable current truth (verify against git/source before relying on a detail):
 	  `git diff --check`; `bun run ops:observability-drill` still exits 1
 	  intentionally because the hosted Workers Logs and alert-delivery proof env
 	  gates/artifacts are missing.
-	  Agents now also have a redacted debugging recurrence ledger:
+	  A follow-up snapshot-runbook integration passed on 2026-07-08: 3 focused
+	  Vitest files / 16 tests, large-heap typecheck, `validate:error-handling`,
+	  `ops:debug-ledger -- --check` with 18 parsed/0 malformed/0 unsafe records,
+	  `git diff --check`, and a refreshed `ops:agent-debug-snapshot` artifact
+	  whose `observabilityRunbook.summary` reports read-only ready=2,
+	  gated-external ready=0, blocked=8. The refreshed
+	  `ops:observability-drill` still fails closed without Cloudflare queries,
+	  webhook sends, or D1 incident mutations because hosted proof env gates and
+	  artifacts are absent.
+	  The agent snapshot now also embeds the first-user support monitoring gate:
+	  `supportMonitoring` reports proof flags, owner-label presence booleans,
+	  `summary` counts, structured `requirements` by category/status/source,
+	  incident artifact readiness, observability proof artifact readiness, and
+	  missing blockers without copying owner-label values; `readiness` includes
+	  `supportMonitoringReady`. A refreshed snapshot on 2026-07-08 reports
+	  `supportMonitoring.ready:false` because operator confirmations, owner
+	  labels, incident status artifact, and production observability proof
+	  artifact are not present in this shell. Verification passed 4 focused
+	  Vitest files / 22 tests, large-heap typecheck, `validate:error-handling`,
+	  `ops:debug-ledger -- --check` with 19 parsed/0 malformed/0 unsafe records,
+	  `ops:agent-debug-snapshot`, and `git diff --check`. A direct
+	  `launch:check-support-monitoring` scratch run also fails closed with the
+	  same missing support-monitoring items. `ops:observability-drill` still fails
+	  closed without Cloudflare queries, webhook sends, or D1 incident mutations
+	  because hosted proof env gates/artifacts are absent.
+	  `launch:check-support-monitoring` and `ops:agent-debug-snapshot` now also
+	  expose `supportMonitoring.summary` and
+	  `supportMonitoring.requirements`: operator confirmations, owner labels,
+	  and evidence artifacts are separated, absent artifacts are `missing`, and
+	  present-but-bad incident/observability artifacts are `failed` with safe
+	  missing facts plus next actions. Focused verification passed 2 files / 15
+		  tests before the broader readiness verification rerun. Recurrence ledger
+		  record `debug-4e53e9c3-2499-491d-9795-63155d3c71f3` captures the flat
+		  support-monitoring checklist gap.
+		  `ops:agent-debug-snapshot` strict exit modes are now explicit and covered:
+		  default snapshot runs remain advisory, `AGENT_DEBUG_SNAPSHOT_STRICT=1`
+		  fails closed when local debugging readiness is false, and
+		  `AGENT_DEBUG_SNAPSHOT_REQUIRE_PRODUCTION=1` fails closed until hosted proof,
+		  alert producer readiness, and support monitoring readiness are all true.
+		  Verification passed 4 focused files / 23 tests, large-heap typecheck,
+		  `validate:error-handling`, `ops:debug-ledger -- --check`, strict local
+		  snapshot mode, and refreshed advisory snapshot. Production-required
+		  snapshot mode, support monitoring, and the read-only observability drill
+			  still fail closed as expected until hosted proof/support evidence exists.
+			  Recurrence ledger record `debug-1b88c156-f5c7-4e5d-b614-78452ae79ccb`
+			  captures the strict-mode workflow gap.
+			  The snapshot now also emits `readinessGates.local.failures` and
+			  `readinessGates.production.failures` with a failed readiness key, command,
+			  and next action for each blocker. Production-required mode uses the
+			  structured production gate, which includes operational incident readiness
+			  and alert catalog readiness in addition to hosted proof env/artifacts,
+			  incident alerting, alert producers, and support monitoring. The refreshed
+			  snapshot reports local ready and production failure keys
+			  `hostedProofEnv`, `operationalIncidentAlerting`, `hostedProofArtifacts`,
+			  and `supportMonitoring`. Recurrence ledger record
+			  `debug-4da83bdc-26c2-47b4-ac80-57438b4ad422` captures the
+			  structured-gate workflow gap.
+			  `cf:release-gates` now also has an observability/support release scope:
+			  it reads the generated agent-debug snapshot, production observability
+			  proof, and support-monitoring readiness artifacts, reports
+			  `observabilitySupportProofReady`, and keeps `productionCutoverReady`
+			  false while the agent debugging production gate, hosted observability
+			  proof, or support monitoring readiness is red. Set
+			  `CLOUDFLARE_RELEASE_REQUIRE_PRODUCTION=1` when `cf:release-gates`
+			  should exit nonzero on a red production cutover instead of only failing
+			  on the local release report.
+				  Agents now also have a redacted debugging recurrence ledger:
 	  `bun run ops:debug-ledger -- ...` appends sanitized fix/mitigation records
 	  to `.ai/10_state/error-debugging-ledger.ndjson`, rejects raw sensitive
 	  material, and `ops:agent-debug-snapshot` surfaces prior matching
@@ -4288,8 +4532,8 @@ grep, don't linear-read).
 - The validator fails closed for malformed payload fixtures, including bad
   `Fail-safe:` wording and metadata labels repeated outside the header block.
 - Verification evidence from this pass: `bun run validate:agents`, `bunx eslint
-  scripts/validate-ai-workflow-adapters.mjs`, `node --check
-  scripts/validate-ai-workflow-adapters.mjs`, `git diff --check`, malformed
+scripts/validate-ai-workflow-adapters.mjs`, `node --check
+scripts/validate-ai-workflow-adapters.mjs`, `git diff --check`, malformed
   fixture probes, `codex debug prompt-input`, and `opencode debug config` with
   `AGENTS.md`, `.ai/12_agents/payloads/opencode.md`, and
   `code-review-graph==2.3.5` present in resolved config.
@@ -4413,8 +4657,8 @@ grep, don't linear-read).
   reveal treatment as the sibling card controls, so the resting card chrome
   stays visually quiet until hover, focus, or touch-device fallback.
 - Focused evidence: `bunx vitest run tests/vitest/projects-page-group-mode.test.tsx
-  tests/vitest/header-icon-toolbar-ui.test.tsx tests/vitest/project-creation-ui.test.ts
-  --maxWorkers=1` passed; `git diff --check` passed. Full `bun run type-check`
+tests/vitest/header-icon-toolbar-ui.test.tsx tests/vitest/project-creation-ui.test.ts
+--maxWorkers=1` passed; `git diff --check` passed. Full `bun run type-check`
   is still blocked by pre-existing Supabase/Postgrest typing errors in
   `src/lib/auth/session.ts` and `src/lib/repositories/workspace-repository.ts`.
 
@@ -4873,12 +5117,12 @@ grep, don't linear-read).
   inspector/edit surfaces are lazy chunks because they are only needed after a
   selected component.
 - Linked Supabase RPC `library_component_rows_seed(target_workspace_id,
-  item_limit)` now has a forward migration
+item_limit)` now has a forward migration
   `20260625023000_library_component_rows_seed_browse_projection.sql` that
   returns explicit browse columns instead of serializing full table rows.
   Applied to Archestimator project `ebxxqidacheyapmmzavr`; migration history
   was repaired for version `20260625023000`. Remote readback: `provolatile =
-  's'`, `prosecdef = false`, item projection present, full `cost_library_items`
+'s'`, `prosecdef = false`, item projection present, full `cost_library_items`
   row select absent.
 - Final 500-component/1-template browser artifact:
   `.ai/99_scratch/library-perf/library-route-measure-after-20260624T192442Z.json`.
@@ -4945,7 +5189,7 @@ grep, don't linear-read).
   workflow YAML/floating-ref checks, Dependabot/CodeQL config checks, a
   `packageManager` pin check returning `bun@1.3.14`, a key-only `.env.local`
   versus `.env.example` drift check with no missing names, and `git diff
-  --check`.
+--check`.
 
 **Workshop library route performance RPC + payload pass applied locally (2026-06-25):**
 
@@ -5019,16 +5263,16 @@ grep, don't linear-read).
   gradient/motif placeholder. Failed map image loads also fall through to the
   generated fallback.
 - Verification passed: `bun run test:dom -- tests/vitest/project-details-modal.test.tsx
-  tests/vitest/new-project-form-validation.test.tsx
-  tests/vitest/project-creation-ui.test.ts
-  tests/vitest/projects-page-create-optimistic.test.tsx
-  tests/vitest/project-address-autocomplete.test.tsx
-  tests/vitest/project-location-actions.test.ts
-  tests/vitest/project-location-map-provider.test.tsx
-  tests/vitest/project-location-repository.test.ts
-  tests/vitest/projects-page-card-layout.test.tsx
-  tests/vitest/project-location-map-source.test.ts
-  tests/vitest/project-location-schema.test.ts` (11 files / 47 tests),
+tests/vitest/new-project-form-validation.test.tsx
+tests/vitest/project-creation-ui.test.ts
+tests/vitest/projects-page-create-optimistic.test.tsx
+tests/vitest/project-address-autocomplete.test.tsx
+tests/vitest/project-location-actions.test.ts
+tests/vitest/project-location-map-provider.test.tsx
+tests/vitest/project-location-repository.test.ts
+tests/vitest/projects-page-card-layout.test.tsx
+tests/vitest/project-location-map-source.test.ts
+tests/vitest/project-location-schema.test.ts` (11 files / 47 tests),
   `bunx tsc --noEmit --pretty false`, `git diff --check`, and focused ESLint
   on touched source/test files with 0 errors and only the pre-existing
   `projects-page-client.tsx` unused-disable warnings.
@@ -5048,10 +5292,10 @@ grep, don't linear-read).
   `.ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md` because broad
   component extraction needs behavior-specific tests.
 - Verification evidence: `bunx tsc --noEmit --pretty false`; `git diff
-  --check`; `bun run test:dom --
-  tests/vitest/landing-company-proof.test.ts
-  tests/vitest/closed-beta-pricing-copy.test.ts`; `bun run test:dom --
-  tests/vitest/ui-tree.test.tsx tests/vitest/estimate-tab-strip.test.tsx`.
+--check`; `bun run test:dom --
+tests/vitest/landing-company-proof.test.ts
+tests/vitest/closed-beta-pricing-copy.test.ts`; `bun run test:dom --
+tests/vitest/ui-tree.test.tsx tests/vitest/estimate-tab-strip.test.tsx`.
 
 **React Doctor reducer cleanup reached 130 diagnostics (2026-06-24):**
 
@@ -5080,14 +5324,14 @@ grep, don't linear-read).
   preserving controlled/uncontrolled expansion, drag/drop, virtualization focus,
   and render-prop behavior.
 - Verification evidence: `bunx tsc --noEmit --pretty false`; `bun run test:dom
-  -- tests/vitest/estimate-sheet-library-insert.test.tsx
-  tests/vitest/estimate-template-drop-zones.test.tsx
-  tests/vitest/estimate-sheet-library-lazy-load.test.tsx
-  tests/vitest/estimate-component-library-lazy-load.test.tsx`; `bun run
-  test:dom -- tests/vitest/component-library-ui.test.tsx
-  tests/vitest/main-sidebar-favorites.test.tsx
-  tests/vitest/estimate-favorite-sidebar-mutation.test.tsx`; `bun run test:dom
-  -- tests/vitest/ui-tree.test.tsx`; `git diff --check` on the touched files;
+-- tests/vitest/estimate-sheet-library-insert.test.tsx
+tests/vitest/estimate-template-drop-zones.test.tsx
+tests/vitest/estimate-sheet-library-lazy-load.test.tsx
+tests/vitest/estimate-component-library-lazy-load.test.tsx`; `bun run
+test:dom -- tests/vitest/component-library-ui.test.tsx
+tests/vitest/main-sidebar-favorites.test.tsx
+tests/vitest/estimate-favorite-sidebar-mutation.test.tsx`; `bun run test:dom
+-- tests/vitest/ui-tree.test.tsx`; `git diff --check` on the touched files;
   full React Doctor JSON scan.
 - No `prefer-useReducer` findings remain. Remaining Doctor warnings are broader
   architecture/cleanup items (`no-giant-component`, unused files,
@@ -5112,16 +5356,16 @@ grep, don't linear-read).
   the small `EstimateSheetHeader` dropdown `useState` outside the reducer because
   it is not the Doctor target.
 - Verification evidence: `bunx tsc --noEmit --pretty false`; `bun run test:dom
-  -- tests/vitest/perf/estimate-sheet-memoization.test.tsx
-  tests/vitest/perf/estimate-sheet-cursor-isolation.test.tsx
-  tests/vitest/perf/estimate-sheet-render-relief.test.tsx`; `bun run test:dom
-  -- tests/vitest/estimate-sheet-library-insert.test.tsx
-  tests/vitest/estimate-template-drop-zones.test.tsx
-  tests/vitest/proposal-export-preview.test.tsx
-  tests/vitest/estimate-sheet-activity-history-ui.test.tsx
-  tests/vitest/estimate-sheet-tree-dom.test.tsx
-  tests/vitest/estimate-sheet-bulk-row-delete-partial-failure.test.tsx`; `git
-  diff --check` on the sheet file; full React Doctor JSON scan.
+-- tests/vitest/perf/estimate-sheet-memoization.test.tsx
+tests/vitest/perf/estimate-sheet-cursor-isolation.test.tsx
+tests/vitest/perf/estimate-sheet-render-relief.test.tsx`; `bun run test:dom
+-- tests/vitest/estimate-sheet-library-insert.test.tsx
+tests/vitest/estimate-template-drop-zones.test.tsx
+tests/vitest/proposal-export-preview.test.tsx
+tests/vitest/estimate-sheet-activity-history-ui.test.tsx
+tests/vitest/estimate-sheet-tree-dom.test.tsx
+tests/vitest/estimate-sheet-bulk-row-delete-partial-failure.test.tsx`; `git
+diff --check` on the sheet file; full React Doctor JSON scan.
 
 **React Doctor ComponentLibraryManager reducer reached 145 diagnostics (2026-06-24):**
 
@@ -5140,16 +5384,16 @@ grep, don't linear-read).
   now remains only in `Tree`, `EstimateSheetContent`, and
   `EstimateRightSidebarBase`.
 - Verification evidence: `bun run test:dom --
-  tests/vitest/component-library-manager-ui.test.tsx -t "uses editable folder
-  navigation|moves supplier organization|adds Brand|uses the same working folder
-  expanders|searches folder labels|shows catalogue result counts"`; `bun run
-  test:dom -- tests/vitest/component-library-manager.test.tsx -t "filters the
-  catalogue|filters by pricing freshness|seeds facet state|opens and focuses the
-  sheet search|announces search result counts|hosts the folder tree panel|supports
-  the missing-brand deep link"`; `bun run test:dom --
-  tests/vitest/workshop-library-consolidation-ui.test.tsx -t "Add Component|add
-  component|categorized variants|cost manager|variant|root folder"`; `bunx tsc
-  --noEmit --pretty false`; `git diff --check` on the manager file; full React
+tests/vitest/component-library-manager-ui.test.tsx -t "uses editable folder
+navigation|moves supplier organization|adds Brand|uses the same working folder
+expanders|searches folder labels|shows catalogue result counts"`; `bun run
+test:dom -- tests/vitest/component-library-manager.test.tsx -t "filters the
+catalogue|filters by pricing freshness|seeds facet state|opens and focuses the
+sheet search|announces search result counts|hosts the folder tree panel|supports
+the missing-brand deep link"`; `bun run test:dom --
+tests/vitest/workshop-library-consolidation-ui.test.tsx -t "Add Component|add
+component|categorized variants|cost manager|variant|root folder"`; `bunx tsc
+--noEmit --pretty false`; `git diff --check` on the manager file; full React
   Doctor JSON scan.
 
 **React Doctor ProjectsPageClient reducer reached 146 diagnostics (2026-06-24):**
@@ -5172,15 +5416,15 @@ grep, don't linear-read).
   actual "Close project details" button instead of indexing a second close
   button that no longer exists in the current DOM.
 - Verification evidence: `bun run test:dom --
-  tests/vitest/projects-page-access-tabs.test.tsx
-  tests/vitest/projects-page-sort-controls.test.tsx
-  tests/vitest/projects-page-group-mode.test.tsx
-  tests/vitest/projects-page-create-optimistic.test.tsx
-  tests/vitest/projects-page-shared-access.test.tsx
-  tests/vitest/projects-page-view-mode.test.tsx
-  tests/vitest/projects-page-card-layout.test.tsx`; `bun run test:dom --
-  tests/vitest/perf/projects-page-render-baseline.test.tsx`; `bunx tsc
-  --noEmit --pretty false`; `git diff --check` on touched files; full React
+tests/vitest/projects-page-access-tabs.test.tsx
+tests/vitest/projects-page-sort-controls.test.tsx
+tests/vitest/projects-page-group-mode.test.tsx
+tests/vitest/projects-page-create-optimistic.test.tsx
+tests/vitest/projects-page-shared-access.test.tsx
+tests/vitest/projects-page-view-mode.test.tsx
+tests/vitest/projects-page-card-layout.test.tsx`; `bun run test:dom --
+tests/vitest/perf/projects-page-render-baseline.test.tsx`; `bunx tsc
+--noEmit --pretty false`; `git diff --check` on touched files; full React
   Doctor JSON scan.
 
 **React Doctor AddComponentModal reducer reached 150 diagnostics (2026-06-24):**
@@ -5200,12 +5444,12 @@ grep, don't linear-read).
   `OpenAddComponentModal` is gone; remaining file findings are
   `no-giant-component` and two `prefer-tag-over-role` listbox warnings.
 - Verification evidence: `bun run test:dom --
-  tests/vitest/library-add-component-modal-a11y.test.tsx`; `bun run test:dom --
-  tests/vitest/component-library-ui.test.tsx -t "opens the shared Add Component
-  modal"`; `bun run test:dom --
-  tests/vitest/workshop-library-consolidation-ui.test.tsx -t "Add Component|add
-  component|categorized variants|cost manager|variant|root folder"`; `bunx tsc
-  --noEmit --pretty false`; `git diff --check` on the touched file; full React
+tests/vitest/library-add-component-modal-a11y.test.tsx`; `bun run test:dom --
+tests/vitest/component-library-ui.test.tsx -t "opens the shared Add Component
+modal"`; `bun run test:dom --
+tests/vitest/workshop-library-consolidation-ui.test.tsx -t "Add Component|add
+component|categorized variants|cost manager|variant|root folder"`; `bunx tsc
+--noEmit --pretty false`; `git diff --check` on the touched file; full React
   Doctor JSON scan.
 
 **React Doctor EstimateSheetTree reducer reached 151 diagnostics (2026-06-24):**
@@ -5227,15 +5471,15 @@ grep, don't linear-read).
   `tests/vitest/estimate-tree-modal.test.tsx` instead of adding a redundant ARIA
   role to the native `<search>` element.
 - Verification evidence: `bun run test:dom --
-  tests/vitest/estimate-tree-bulk-selection.test.tsx
-  tests/vitest/estimate-tree-modal.test.tsx
-  tests/vitest/estimate-tree-context-menu.test.tsx
-  tests/vitest/estimate-tree-filter.test.tsx
-  tests/vitest/estimate-tree-node-icon.test.tsx
-  tests/vitest/estimate-sheet-tree-dom.test.tsx
-  tests/vitest/estimate-sheet-tree-dnd.test.tsx
-  tests/vitest/estimate-tree-refetch-on-mount.test.tsx`; `bunx tsc --noEmit
-  --pretty false`; `git diff --check` on touched files; full React Doctor JSON
+tests/vitest/estimate-tree-bulk-selection.test.tsx
+tests/vitest/estimate-tree-modal.test.tsx
+tests/vitest/estimate-tree-context-menu.test.tsx
+tests/vitest/estimate-tree-filter.test.tsx
+tests/vitest/estimate-tree-node-icon.test.tsx
+tests/vitest/estimate-sheet-tree-dom.test.tsx
+tests/vitest/estimate-sheet-tree-dnd.test.tsx
+tests/vitest/estimate-tree-refetch-on-mount.test.tsx`; `bunx tsc --noEmit
+--pretty false`; `git diff --check` on touched files; full React Doctor JSON
   scan.
 
 **React Doctor ProjectTeamspaceHeader reducer reached 152 diagnostics (2026-06-24):**
@@ -5254,12 +5498,12 @@ grep, don't linear-read).
   remaining findings are `no-giant-component` for `ProjectTeamspaceHeader` and
   `ShareModal`.
 - Verification evidence: `bun run test:dom --
-  tests/vitest/teamspace-collaboration-header.test.tsx`; `bunx tsc --noEmit
-  --pretty false`; `git diff --check` on touched file; full React Doctor JSON
+tests/vitest/teamspace-collaboration-header.test.tsx`; `bunx tsc --noEmit
+--pretty false`; `git diff --check` on touched file; full React Doctor JSON
   scan.
 - Known validation gap: a broader `bunx vitest run --maxWorkers=1
-  tests/vitest/project-collaboration-actions.test.ts
-  tests/vitest/project-publication-summary.test.ts` source-string check remains
+tests/vitest/project-collaboration-actions.test.ts
+tests/vitest/project-publication-summary.test.ts` source-string check remains
   red on pre-existing brittle expectations (`roleRank` text and contiguous
   `ProjectPublicationHeader({ summary` source text), unrelated to this reducer.
 
@@ -5277,8 +5521,8 @@ grep, don't linear-read).
 - The `prefer-useReducer` finding for `ProjectPublicationHeader` is gone. Its
   remaining finding is `no-giant-component`.
 - Verification evidence: `bun run test:dom --
-  tests/vitest/project-publication-header.test.tsx`; `bunx tsc --noEmit
-  --pretty false`; `git diff --check` on touched files; full React Doctor JSON
+tests/vitest/project-publication-header.test.tsx`; `bunx tsc --noEmit
+--pretty false`; `git diff --check` on touched files; full React Doctor JSON
   scan.
 
 **React Doctor ProjectEstimatesTable reducer reached 156 diagnostics (2026-06-24):**
@@ -5294,9 +5538,9 @@ grep, don't linear-read).
 - The `prefer-useReducer` finding for `ProjectEstimatesTableComponent` is gone.
   Its remaining finding is `no-giant-component`.
 - Verification evidence: `bun run test:dom --
-  tests/vitest/project-estimates-table-inline-edit.test.tsx
-  tests/vitest/project-estimates-inline-edit.test.tsx`; `bunx tsc --noEmit
-  --pretty false`; `git diff --check` on touched files; full React Doctor JSON
+tests/vitest/project-estimates-table-inline-edit.test.tsx
+tests/vitest/project-estimates-inline-edit.test.tsx`; `bunx tsc --noEmit
+--pretty false`; `git diff --check` on touched files; full React Doctor JSON
   scan.
 
 **React Doctor TemplatesBrowseManager reducer reached 157 diagnostics (2026-06-24):**
@@ -5316,9 +5560,9 @@ grep, don't linear-read).
   `no-giant-component` warnings for `TemplatesBrowseTreePanel` and
   `TemplatesBrowseManager`.
 - Verification evidence: `bun run test:dom --
-  tests/vitest/template-gallery.test.tsx`; `bun run test:dom --
-  tests/vitest/template-browse-project-sources.test.tsx`; `bunx tsc --noEmit
-  --pretty false`; `git diff --check` on touched files; full React Doctor JSON
+tests/vitest/template-gallery.test.tsx`; `bun run test:dom --
+tests/vitest/template-browse-project-sources.test.tsx`; `bunx tsc --noEmit
+--pretty false`; `git diff --check` on touched files; full React Doctor JSON
   scan.
 
 **React Doctor LibraryFolderTreeSurface reducer reached 158 diagnostics (2026-06-24):**
@@ -5335,12 +5579,12 @@ grep, don't linear-read).
   file's remaining findings are `no-giant-component` warnings for
   `LibraryFolderTree` and `LibraryFolderTreeSurface`.
 - Verification evidence: `bun run test:dom --
-  tests/vitest/component-library-manager-ui.test.tsx -t "uses editable folder
-  navigation|moves supplier organization|adds Brand|uses the same working folder
-  expanders|searches folder labels"`; `bun run test:dom --
-  tests/vitest/component-library-manager.test.tsx -t "hosts the folder tree
-  panel|supports the missing-brand deep link"`; `bunx tsc --noEmit --pretty
-  false`; `git diff --check` on touched files; full React Doctor JSON scan.
+tests/vitest/component-library-manager-ui.test.tsx -t "uses editable folder
+navigation|moves supplier organization|adds Brand|uses the same working folder
+expanders|searches folder labels"`; `bun run test:dom --
+tests/vitest/component-library-manager.test.tsx -t "hosts the folder tree
+panel|supports the missing-brand deep link"`; `bunx tsc --noEmit --pretty
+false`; `git diff --check` on touched files; full React Doctor JSON scan.
 
 **React Doctor ComponentLibrarySheet reducer reached 159 diagnostics (2026-06-24):**
 
@@ -5356,12 +5600,12 @@ grep, don't linear-read).
   remaining finding is `no-giant-component`; the same file still has the
   separate larger `ComponentLibraryManager` reducer/effect cluster.
 - Verification evidence: `bun run test:dom --
-  tests/vitest/component-library-manager.test.tsx -t "filters the
-  catalogue|filters by pricing freshness|seeds facet state|opens and focuses
-  the sheet search|announces search result counts"`; `bun run test:dom --
-  tests/vitest/component-library-manager-ui.test.tsx -t "uses editable folder
-  navigation|shows catalogue result counts"`; `bunx tsc --noEmit --pretty
-  false`; `git diff --check` on touched files; full React Doctor JSON scan.
+tests/vitest/component-library-manager.test.tsx -t "filters the
+catalogue|filters by pricing freshness|seeds facet state|opens and focuses
+the sheet search|announces search result counts"`; `bun run test:dom --
+tests/vitest/component-library-manager-ui.test.tsx -t "uses editable folder
+navigation|shows catalogue result counts"`; `bunx tsc --noEmit --pretty
+false`; `git diff --check` on touched files; full React Doctor JSON scan.
   The broader `component-library-manager.test.tsx` still has three pre-existing
   inspect-card query failures from duplicate "View details for Fresh Tile"
   buttons.
@@ -5381,8 +5625,8 @@ grep, don't linear-read).
   remaining findings are `no-giant-component` and the parent
   `onCreateTabStateChange` effect.
 - Verification evidence: `bun run test:dom --
-  tests/vitest/estimate-tab-strip.test.tsx`; `bunx tsc --noEmit --pretty
-  false`; `git diff --check` on the touched files; full React Doctor JSON scan.
+tests/vitest/estimate-tab-strip.test.tsx`; `bunx tsc --noEmit --pretty
+false`; `git diff --check` on the touched files; full React Doctor JSON scan.
 
 **React Doctor Ask Flip footer reducer reached 163 diagnostics (2026-06-24):**
 
@@ -5400,9 +5644,9 @@ grep, don't linear-read).
   should split the footer chat shell, session rail, and message/draft preview
   areas rather than adding more local state plumbing.
 - Verification evidence: `bun run test:dom --
-  tests/vitest/estimate-copilot-floating-button.test.tsx -t
-  "AskFlipFooterAssistant"`; `bunx tsc --noEmit --pretty false`; `git diff
-  --check` on the touched source file; full React Doctor JSON scan.
+tests/vitest/estimate-copilot-floating-button.test.tsx -t
+"AskFlipFooterAssistant"`; `bunx tsc --noEmit --pretty false`; `git diff
+--check` on the touched source file; full React Doctor JSON scan.
 
 **React Doctor RecipientEmailComposer reducer reached 164 diagnostics (2026-06-24):**
 
@@ -5419,8 +5663,8 @@ grep, don't linear-read).
   remaining React Doctor finding is `no-giant-component`; follow-up work should
   split UI sections or reducer helpers instead of adding more state plumbing.
 - Verification evidence: `bun run test:dom --
-  tests/vitest/recipient-email-composer.test.tsx`; `bunx tsc --noEmit --pretty
-  false`; `git diff --check` on touched files; full React Doctor JSON scan.
+tests/vitest/recipient-email-composer.test.tsx`; `bunx tsc --noEmit --pretty
+false`; `git diff --check` on touched files; full React Doctor JSON scan.
 
 **React Doctor SharePageComments reducer reached 165 diagnostics (2026-06-24):**
 
@@ -5436,9 +5680,9 @@ grep, don't linear-read).
   remaining React Doctor finding is `no-giant-component`, so the next useful
   pass would be component extraction rather than more state consolidation.
 - Verification evidence: `bun run test:dom --
-  tests/vitest/project-publication-comments.test.tsx -t "SharePageComments
-  component|offline queue"`; `bunx tsc --noEmit --pretty false`; `git diff
-  --check` on touched files; full React Doctor JSON scan.
+tests/vitest/project-publication-comments.test.tsx -t "SharePageComments
+component|offline queue"`; `bunx tsc --noEmit --pretty false`; `git diff
+--check` on touched files; full React Doctor JSON scan.
 
 **React Doctor SharePageTabs reducer reached 166 diagnostics (2026-06-24):**
 
@@ -5454,9 +5698,9 @@ grep, don't linear-read).
   React Doctor finding is the broad `no-giant-component` warning; a safe
   follow-up would be component extraction rather than more state churn.
 - Verification evidence: `bun run test:dom --
-  tests/vitest/project-publication-page.test.tsx -t "switches active
-  tab|filters the collated|defers the print-only|offers row-level|renders
-  compact|supports full keyboard navigation|persists and restores active tab"`;
+tests/vitest/project-publication-page.test.tsx -t "switches active
+tab|filters the collated|defers the print-only|offers row-level|renders
+compact|supports full keyboard navigation|persists and restores active tab"`;
   `bunx tsc --noEmit --pretty false`; `git diff --check` on touched files; full
   React Doctor JSON scan. The broader `-t SharePageTabs` selector still includes
   two pre-existing `ShareReviewWorkspace` tests that fail before this component
@@ -5479,8 +5723,8 @@ grep, don't linear-read).
   `activity-history.tsx` finding is the contextual `role="group"` /
   `<address>` suggestion around the filter toolbar.
 - Verification evidence: `bun run test:dom --
-  tests/vitest/estimate-sheet-activity-history-ui.test.tsx`; `bunx tsc
-  --noEmit --pretty false`; `git diff --check` on the touched activity-history
+tests/vitest/estimate-sheet-activity-history-ui.test.tsx`; `bunx tsc
+--noEmit --pretty false`; `git diff --check` on the touched activity-history
   files; full React Doctor JSON scan. The broader
   `estimate-sheet-row-details-crud` integration suite remains red on older
   component-details entrypoint expectations unrelated to this reducer pass.
@@ -5501,7 +5745,7 @@ grep, don't linear-read).
   expansion state, preview selection, persisted prefs, and project-source load
   status.
 - Verification evidence: `bunx tsc --noEmit --pretty false`; `bun run
-  test:dom -- tests/vitest/component-library-ui.test.tsx`; `git diff --check`
+test:dom -- tests/vitest/component-library-ui.test.tsx`; `git diff --check`
   on the touched sidebar files; full React Doctor JSON scan.
 
 **React Doctor Add Component unit-controls extraction reached 171 diagnostics (2026-06-24):**
@@ -5516,8 +5760,8 @@ grep, don't linear-read).
 - Remaining `AddComponentModal` findings are two listbox semantics suggestions,
   the parent giant-component warning, and the parent prefer-useReducer warning.
 - Verification evidence: `bunx tsc --noEmit --pretty false`; `bun run
-  test:dom -- tests/vitest/workshop-library-consolidation-ui.test.tsx
-  tests/vitest/library-add-component-modal-a11y.test.tsx`; `git diff --check`
+test:dom -- tests/vitest/workshop-library-consolidation-ui.test.tsx
+tests/vitest/library-add-component-modal-a11y.test.tsx`; `git diff --check`
   on `AddComponentModal.tsx` and this state file; full React Doctor JSON scan.
 
 **React Doctor Add Component cost-picker extraction reached 173 diagnostics (2026-06-24):**
@@ -5534,8 +5778,8 @@ grep, don't linear-read).
   the other local findings are the two listbox semantics suggestions,
   giant-component, and prefer-useReducer.
 - Verification evidence: `bunx tsc --noEmit --pretty false`; `bun run
-  test:dom -- tests/vitest/workshop-library-consolidation-ui.test.tsx
-  tests/vitest/library-add-component-modal-a11y.test.tsx`; `git diff --check`
+test:dom -- tests/vitest/workshop-library-consolidation-ui.test.tsx
+tests/vitest/library-add-component-modal-a11y.test.tsx`; `git diff --check`
   on `AddComponentModal.tsx` and this state file; full React Doctor JSON scan.
 
 **React Doctor Add Component advanced-details extraction reached 184 diagnostics (2026-06-24):**
@@ -5553,8 +5797,8 @@ grep, don't linear-read).
   cluster, two listbox semantics suggestions, the parent giant-component
   warning, and the 16-state reducer suggestion.
 - Verification evidence: `bunx tsc --noEmit --pretty false`; `bun run
-  test:dom -- tests/vitest/workshop-library-consolidation-ui.test.tsx
-  tests/vitest/library-add-component-modal-a11y.test.tsx`; `git diff --check`
+test:dom -- tests/vitest/workshop-library-consolidation-ui.test.tsx
+tests/vitest/library-add-component-modal-a11y.test.tsx`; `git diff --check`
   on `AddComponentModal.tsx`; full React Doctor JSON scan.
 - Validation gap: the broader `component-library-manager-ui` suite is still red
   on unrelated pre-existing assertions around duplicate component-card detail
@@ -5623,7 +5867,7 @@ grep, don't linear-read).
 - Verification evidence: `bunx tsc --noEmit --pretty false`; focused Vitest
   suites for modal/tooltip, project charts, UI tree, estimate tree bulk/DOM/
   filters, library folder tree, and targeted estimate-row checkbox; `git diff
-  --check` on touched files.
+--check` on touched files.
 
 **Frontdoor restored to deployed proposal-to-approval landing page (2026-06-23):**
 
@@ -5692,7 +5936,7 @@ grep, don't linear-read).
   regression matrix passed (`project-publication-activity`,
   `project-publication-actions`, `project-publication-rotate-resend`: 3 files /
   79 tests); `bunx tsc --noEmit --pretty false --incremental false
-  --skipLibCheck` passed; targeted ESLint on touched source/tests passed;
+--skipLibCheck` passed; targeted ESLint on touched source/tests passed;
   `git diff --check` passed; boundary diff for `src/lib/publication/actions.ts`,
   Supabase migrations, API, provider, and Supabase client paths was empty.
 - Broad `bun run test:dom` was not used as completion evidence: a pre-fix run
@@ -5721,7 +5965,7 @@ grep, don't linear-read).
   diff scan, full Library Chromium e2e route proof (8 passed / 1 skipped dense
   perf gate), focused legacy redirect proof (2 passed), and fresh 5,000-row
   dense Chromium proof (`rowCount: 5000`, `virtualActive: true`, `mountedCount:
-  25`).
+25`).
 - Boundary note: no Supabase schema, provider, API upload, query-key, action, or
   cache-invalidation surfaces were changed for the Library UI work. Frontdoor
   CSS/Three.js edits and shared-link modal edits in the dirty worktree are
@@ -5760,7 +6004,7 @@ grep, don't linear-read).
   when there is no first node.
 - Fresh evidence: targeted Vitest suite passed 5 files / 21 tests, including
   `estimate-sheet-create-empty-tree`; `bun run type-check` passed; `git diff
-  --check` passed.
+--check` passed.
 
 **Library Page UI improvement plan pack upgraded to 100% planning readiness (2026-06-23):**
 
@@ -5796,7 +6040,7 @@ grep, don't linear-read).
 - Custom folders whose hidden legacy taxonomy parent is filtered out are lifted
   to the top-level view instead of disappearing.
 - Fresh evidence: targeted Vitest suite passed 6 files / 63 tests; `bun run
-  type-check` passed; `git diff --check` passed; scoped ESLint had 0 errors with
+type-check` passed; `git diff --check` passed; scoped ESLint had 0 errors with
   only the existing `ComponentLibraryManager` warnings.
 
 **Library Page UI improvement plan pack verified (2026-06-23):**
@@ -5831,8 +6075,8 @@ grep, don't linear-read).
   public MVP/pre-launch/closed-beta language.
 - Fresh evidence: `bun run type-check` passed; targeted DOM suite passed 3
   files / 9 tests; `node .agents/skills/impeccable/scripts/detect.mjs --strict
-  src/components/frontdoor src/app/page.tsx` passed; targeted `git diff
-  --check` passed; Playwright runtime proof on local dev server passed at
+src/components/frontdoor src/app/page.tsx` passed; targeted `git diff
+--check` passed; Playwright runtime proof on local dev server passed at
   1280x800, 390x844, and 320x812 with `canvas[data-three-hero="ready"]`, WebGL
   context present, nonflat hero pixels, no horizontal overflow, and H1 wrapping
   2 lines desktop / 3 lines mobile.
@@ -5856,7 +6100,7 @@ grep, don't linear-read).
   testimonials, customer logos, browser chrome, or software mockup sections.
 - Fresh evidence for this state: `bun run type-check` passed; targeted DOM
   suite passed 7 files / 27 tests; `node .agents/skills/impeccable/scripts/detect.mjs
-  --strict src/components/frontdoor src/app/page.tsx` passed; `git diff --check`
+--strict src/components/frontdoor src/app/page.tsx` passed; `git diff --check`
   passed; Playwright render proof on the existing local dev server passed at
   1280x800, 390x844, and 320x812 with no horizontal overflow, no forbidden
   public copy, no background image/grid, visible CTA text, and logo transform
@@ -5922,7 +6166,7 @@ grep, don't linear-read).
   privacy, no-PII analytics, public-form security, database/network boundaries,
   test blast radius, rollback, and multi-agent ownership.
 - Docs-only evidence: `git diff --check --
-  .ai/03_plans/2026-06-22-LandingPage` passed; no trailing whitespace or conflict
+.ai/03_plans/2026-06-22-LandingPage` passed; no trailing whitespace or conflict
   markers were found in the plan markdown.
 
 **Landing page GPT Taste reset applied (2026-06-22):**
@@ -5942,9 +6186,9 @@ grep, don't linear-read).
   `src/components/landing/gpt-taste/HeroSignalField.tsx`.
 - Focused evidence at implementation time: `bun run type-check` passed;
   `bun run test:dom -- tests/vitest/landing-amigo-redesign.test.tsx
-  tests/vitest/landing-interactivity.test.tsx
-  tests/vitest/landing-company-proof.test.ts tests/vitest/public-page-shell.test.tsx
-  tests/vitest/public-font-lcp-audit.test.ts` passed 5 files / 15 tests;
+tests/vitest/landing-interactivity.test.tsx
+tests/vitest/landing-company-proof.test.ts tests/vitest/public-page-shell.test.tsx
+tests/vitest/public-font-lcp-audit.test.ts` passed 5 files / 15 tests;
   Playwright screenshots confirmed desktop 2-line hero, 390px/320px 3-line
   hero, no horizontal overflow, no public stage-language/fake-proof copy, 5
   bento cards, and 3 proof stack cards.
@@ -5973,8 +6217,8 @@ grep, don't linear-read).
 
 - The Library release browser matrix passed:
   `ARCHESTIMATOR_E2E_LIBRARY_RELEASE_PROOF=1
-  ARCHESTIMATOR_E2E_LIBRARY_BROWSER_MATRIX=1 bun run test:e2e --
-  e2e/workshop-library-routes.spec.ts -g "release matrix" --workers=1`
+ARCHESTIMATOR_E2E_LIBRARY_BROWSER_MATRIX=1 bun run test:e2e --
+e2e/workshop-library-routes.spec.ts -g "release matrix" --workers=1`
   returned 21 passed tests across Chromium, Firefox, WebKit, Mobile Safari,
   iPhone SE, iPad, and Pixel 8 Chrome. Evidence summary:
   `.ai/09_archive/2026-06-20-Library-Page-Overall-Improvement/_evidence/phase-final/browser-matrix/release-browser-matrix-proof-20260622T102124Z.md`.
@@ -6053,7 +6297,7 @@ grep, don't linear-read).
 - Targeted verification passed:
   `bunx vitest run tests/vitest/project-data-a11y.test.tsx tests/vitest/project-dashboard-charts-ui.test.ts tests/vitest/project-data-estimate-column.test.tsx tests/vitest/project-data-add-estimate-column.test.tsx tests/vitest/project-data-board-donut-first.test.tsx --maxWorkers=1`
   (5 files / 34 tests), `bunx tsc --noEmit --pretty false`, scoped `bunx
-  eslint` on the changed Project Data source/tests, scoped `git diff --check`,
+eslint` on the changed Project Data source/tests, scoped `git diff --check`,
   `rg` orphan-reference audit, and a focused diff check confirming
   `src/components/workshop/project-data/ProjectDataClient.tsx` has no diff.
 - Browser/Playwright proof was intentionally skipped under the Codex App speed
@@ -6089,7 +6333,7 @@ grep, don't linear-read).
   Ralph/design-qa are implementation-time evidence gates because no rendered
   landing/reference exists yet.
 - Docs-only validation passed: `git diff --check
-  .ai/03_plans/2026-06-21-Landing-Page-Redesign`, markdown doc count = 28, and
+.ai/03_plans/2026-06-21-Landing-Page-Redesign`, markdown doc count = 28, and
   targeted greps confirmed feature-spine/liquid-glass coverage with no stale
   `28-agent`/`lighthouserc.json`/self-serve route-gate drift except the
   deliberate superseded `L-FUN-1` route record.
@@ -6196,9 +6440,9 @@ grep, don't linear-read).
   tree.
 - Focused proof passed:
   `bunx vitest run tests/vitest/component-library-manager-ui.test.tsx
-  tests/vitest/component-library-folder-actions.test.ts --maxWorkers=1` passed 2
+tests/vitest/component-library-folder-actions.test.ts --maxWorkers=1` passed 2
   files / 26 tests; `bunx eslint
-  tests/vitest/component-library-manager-ui.test.tsx` passed.
+tests/vitest/component-library-manager-ui.test.tsx` passed.
 - Updated the Library plan evidence docs to mark `ADV-FOLDER-DELETE-FAIL` and
   `ADV-CONCURRENT-RENAME` PASS for jsdom coverage. Overall release status
   remains NO-GO because full `bun run validate` is still red and the browser /
@@ -6219,32 +6463,32 @@ grep, don't linear-read).
   regression coverage for nested Escape + dirty discard dialog, and Quick Add
   validation now rejects spreadsheet formula prefixes in free-text fields.
 - Focused proof passed: `bunx vitest run
-  tests/vitest/workshop-library-consolidation-ui.test.tsx
-  tests/vitest/library-telemetry-emit.test.ts
-  tests/vitest/library-route-state-authz.test.tsx
-  tests/vitest/estimate-insert-target-authz.test.tsx
-  tests/vitest/library-viewer-authz.test.tsx
-  tests/vitest/library-workspace-switch-cache.test.ts
-  tests/vitest/share-snapshot-redaction.test.tsx --maxWorkers=1` passed 7
+tests/vitest/workshop-library-consolidation-ui.test.tsx
+tests/vitest/library-telemetry-emit.test.ts
+tests/vitest/library-route-state-authz.test.tsx
+tests/vitest/estimate-insert-target-authz.test.tsx
+tests/vitest/library-viewer-authz.test.tsx
+tests/vitest/library-workspace-switch-cache.test.ts
+tests/vitest/share-snapshot-redaction.test.tsx --maxWorkers=1` passed 7
   files / 30 tests; `bun run type-check` passed; touched-file ESLint passed.
   Additional Add/Quick Add/folder proof:
   `bunx vitest run tests/vitest/library-add-component-modal-a11y.test.tsx
-  tests/vitest/library-quick-add-validation.test.ts
-  tests/vitest/component-library-folder-actions.test.ts --maxWorkers=1` passed 3
+tests/vitest/library-quick-add-validation.test.ts
+tests/vitest/component-library-folder-actions.test.ts --maxWorkers=1` passed 3
   files / 11 tests.
   Bulk/filter/insert proof:
   `bunx vitest run tests/vitest/bulk-destructive-preview-modal.test.tsx
-  tests/vitest/library-applied-filters.test.tsx
-  tests/vitest/library-template-insert-picker.test.tsx
-  tests/vitest/template-gallery.test.tsx
-  tests/vitest/library-templates-cache.test.tsx
-  tests/vitest/library-source-trust.test.ts --maxWorkers=1` passed 6 files / 32
+tests/vitest/library-applied-filters.test.tsx
+tests/vitest/library-template-insert-picker.test.tsx
+tests/vitest/template-gallery.test.tsx
+tests/vitest/library-templates-cache.test.tsx
+tests/vitest/library-source-trust.test.ts --maxWorkers=1` passed 6 files / 32
   tests.
   Overview/deep-link proof:
   `bunx vitest run tests/vitest/library-overview.test.tsx
-  tests/vitest/library-tab-a11y.test.tsx tests/vitest/library-tabs-layout.test.tsx
-  tests/vitest/library-overview-skeleton.test.tsx
-  tests/vitest/workshop-library-consolidation-ui.test.tsx --maxWorkers=1`
+tests/vitest/library-tab-a11y.test.tsx tests/vitest/library-tabs-layout.test.tsx
+tests/vitest/library-overview-skeleton.test.tsx
+tests/vitest/workshop-library-consolidation-ui.test.tsx --maxWorkers=1`
   passed 5 files / 33 tests.
 - Added deterministic local perf baseline:
   `.ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/_evidence/phase-0a/library-phase0a-perf-baseline-20260622T062635Z.{md,json}`.
@@ -6275,12 +6519,12 @@ grep, don't linear-read).
   `git diff --check` passed. Native-dialog guard still shows only the tracked
   Phase-later residuals in `src/components/workshop/component-library/index.tsx`.
 - Browser proof: `ARCHESTIMATOR_DEV_AUTH_BYPASS=1
-  ARCHESTIMATOR_DEV_AUTH_ADMIN_DB=1
-  ARCHESTIMATOR_DEV_AUTH_BYPASS_SECRET=<local-dev-auth-bypass-secret>
-  ARCHESTIMATOR_E2E_LIBRARY_DENSE_PROOF=1 NEXT_PUBLIC_LIBRARY_DENSE_MODE=1
-  NEXT_PUBLIC_LIBRARY_VIRTUALIZATION_ENABLED=1 PLAYWRIGHT_PORT=3065 bun run
-  test:e2e -- e2e/workshop-library-routes.spec.ts --project=chromium -g
-  "proves dense component table"` passed 1 Chromium test with 500 disposable
+ARCHESTIMATOR_DEV_AUTH_ADMIN_DB=1
+ARCHESTIMATOR_DEV_AUTH_BYPASS_SECRET=<local-dev-auth-bypass-secret>
+ARCHESTIMATOR_E2E_LIBRARY_DENSE_PROOF=1 NEXT_PUBLIC_LIBRARY_DENSE_MODE=1
+NEXT_PUBLIC_LIBRARY_VIRTUALIZATION_ENABLED=1 PLAYWRIGHT_PORT=3065 bun run
+test:e2e -- e2e/workshop-library-routes.spec.ts --project=chromium -g
+"proves dense component table"` passed 1 Chromium test with 500 disposable
   `cost_library_items`; artifacts live under
   `.ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/_evidence/phase-5/dense-mode/`.
   Cleanup left fixture rows at 0 and no Next dev server running.
@@ -6304,9 +6548,9 @@ grep, don't linear-read).
   `.ai/03_plans/2026-06-22-Estimate-Sheet-Right-Sidebar-Restructuring/` to
   `.ai/09_archive/2026-06-22-Estimate-Sheet-Right-Sidebar-Restructuring/`.
 - Fresh proof: `bunx vitest run tests/vitest/component-library-ui.test.tsx
-  tests/vitest/component-library-helpers.test.ts
-  tests/vitest/project-component-projection.test.ts
-  tests/vitest/estimate-sheet-library-lazy-load.test.tsx --maxWorkers=1`
+tests/vitest/component-library-helpers.test.ts
+tests/vitest/project-component-projection.test.ts
+tests/vitest/estimate-sheet-library-lazy-load.test.tsx --maxWorkers=1`
   passed 4 files / 105 tests; `bun run type-check` passed; touched-file
   `bunx eslint ...` passed; touched-file `git diff --check` passed.
 - Browser/visual proof was intentionally skipped per owner direction to verify
@@ -6438,17 +6682,17 @@ grep, don't linear-read).
 - Evidence: `bun run build` passed under Next 16/Turbopack; `bun run type-check` passed;
   `git diff --check` passed; source stale-copy guard for old taxonomy and "Try Refresh" copy returned
   no matches; `bunx vitest run tests/vitest/component-library-ui.test.tsx
-  tests/vitest/estimate-image-url.test.ts --maxWorkers=1` passed 2 files / 75 tests;
+tests/vitest/estimate-image-url.test.ts --maxWorkers=1` passed 2 files / 75 tests;
   `bunx vitest run tests/vitest/estimate-sheet-library-insert.test.tsx
-  tests/vitest/component-library-ui.test.tsx tests/vitest/estimate-sheet-tree-query-error.test.tsx
-  tests/vitest/estimate-node-reorder-action.test.ts tests/vitest/security-findings-auth-contracts.test.ts
-  tests/vitest/estimate-sheet-version-control-actions.test.ts tests/vitest/estimate-image-url.test.ts
-  tests/vitest/project-publication-snapshot.test.ts --maxWorkers=1` passed 8 files / 175 tests;
+tests/vitest/component-library-ui.test.tsx tests/vitest/estimate-sheet-tree-query-error.test.tsx
+tests/vitest/estimate-node-reorder-action.test.ts tests/vitest/security-findings-auth-contracts.test.ts
+tests/vitest/estimate-sheet-version-control-actions.test.ts tests/vitest/estimate-image-url.test.ts
+tests/vitest/project-publication-snapshot.test.ts --maxWorkers=1` passed 8 files / 175 tests;
   `bunx vitest run tests/vitest/estimate-component-drag.test.tsx
-  tests/vitest/estimate-sheet-row-details-crud.test.tsx tests/vitest/estimate-sheet-cost-inputs.test.tsx
-  tests/vitest/estimate-sheet-bulk-row-delete-partial-failure.test.tsx
-  tests/vitest/estimate-sheet-large-data-budgets.test.ts tests/vitest/estimate-tree-drag-over-perf.test.ts
-  tests/vitest/estimate-sheet-library-lazy-load.test.tsx tests/vitest/ui-tree.test.tsx --maxWorkers=1`
+tests/vitest/estimate-sheet-row-details-crud.test.tsx tests/vitest/estimate-sheet-cost-inputs.test.tsx
+tests/vitest/estimate-sheet-bulk-row-delete-partial-failure.test.tsx
+tests/vitest/estimate-sheet-large-data-budgets.test.ts tests/vitest/estimate-tree-drag-over-perf.test.ts
+tests/vitest/estimate-sheet-library-lazy-load.test.tsx tests/vitest/ui-tree.test.tsx --maxWorkers=1`
   passed 8 files / 88 tests.
 - Final independent gates: code-reviewer returned `Recommendation: APPROVE` with zero findings;
   architect returned `Architectural Status: CLEAR`.
@@ -6524,6 +6768,7 @@ clipping.
 Updated `README.md`, `.ai/README.md`, roadmap narrative, feature inventory, and brand specs to the AEC-committed "cost intelligence layer" positioning, deferred AI status, and claims discipline established in `.ai/00_corpus/ARCHESTIMATOR_MASTER.md` (v4.3, 2026-06-18). Notion remains canonical for live trackers; the master corpus is the repo-local startup canon.
 
 Files touched:
+
 - `/Users/philiplewis/Documents/archestimator/README.md`
 - `/Users/philiplewis/Documents/archestimator/.ai/README.md`
 - `/Users/philiplewis/Documents/archestimator/.ai/01_roadmap/README.md`
@@ -6531,6 +6776,7 @@ Files touched:
 - `/Users/philiplewis/Documents/archestimator/.ai/06_specs/brand/README.md`
 
 Consistency checklist (verified against live files):
+
 - Root README no longer uses "Contractor-first" as lead positioning: ✅ `README.md:3` now opens with "Your cost intelligence layer."
 - AI is described as deferred/roadmap-only, not a launch feature: ✅ confirmed in README claims discipline and `.ai/README.md`.
 - Exports/publication are not described as immutable issued records: ✅ README key-features table lists "Shared proposal snapshots" (not immutable), and the claims-discipline section explicitly states exports are working documents, not immutable issued records.
@@ -6538,6 +6784,7 @@ Consistency checklist (verified against live files):
 - `.ai/06_specs/brand/brand-foundation.md` aligns with AEC-committed mission/vision/promise and Tier 1/2/3 audience map from §4.5/R5.
 
 Open contradictions with `ARCHESTIMATOR_MASTER.md` v4.3:
+
 - None detected in the touched documentation files. The initial cross-check produced false positives because it referenced stale line numbers; live file review confirms the updates landed correctly.
 
 **Estimate-sheet component taxonomy canonicalized in UI copy (2026-06-21):**
@@ -7247,12 +7494,12 @@ The suspicious `/api/v1/bot/...` `osascript` indicator was backed by `/Library/L
 The unification (collapse `group`+`area` into ONE node type, user-facing name **"Area"**) is fully shipped across DB + code, owner-supervised. **Reversible corridor (P0–P4)** landed first as production no-ops: P0 `prove:unify-kinds` + golden-master oracle; P1 **public share firewall** (rows survive on any node; ALL_AREA byte-identical, MIXED rollup 200); P2 export + charts keep/attribute rows on any node (own-node bucketing, no double-count, golden-master total conserved); P3 crash-safety (`moveEstimateRowItem` throw + `validateEstimateTreeHierarchy` error removed) + activity-scope made a stored/stable cache key; P4 "Area" vocab (~40 strings) + mixed-content layout (rows-first, sticky-offset cascade, one icon, conditional caret, "Own items"). **Irreversible step (P5/P6) applied to prod `ebxxqidacheyapmmzavr` (owner-supervised, recorded in remote migration history):** P5 `20260614003639_unify_estimate_node_kinds` relaxed the 5 validators/triggers/reorder (function-bodies-only, 0 data movement); P6 `enable_estimate_node_mixed_writes_p6` relaxed the 3 write-RPC kind-guards, and the UI write-enable deleted all wrap machinery + client kind-guards (single "Add Area" now creates a child area of any node; insertion targets any node; cycle/cross-tab/self-drop still rejected). **Verified each apply:** pre-flight 0 mixed nodes; rollback artifact captured (`scripts/sql/unify-rollback-pre-apply.sql` for P5; original guarded RPC defs for P6); local PG17 prove-harness green; post-apply the 5 fns relaxed, (P5) RPC guards intact then (P6) dropped — all confirmed; data unchanged (139/114/10/16); security advisors **0 ERROR**; gen-types no-op. **POINT OF NO RETURN CROSSED** — the first mixed-node save makes the pre-apply dump stale → forward-fix only; created/existing mixed nodes read/export/chart/share correctly because every read path was made kind-agnostic first (P1–P3, oracle-proven). I1 cycle / I2 cross-tab / I3 missing-parent / orphan invariants preserved. **P7 dead-code** removed except the still-wired `correctKinds` share helper (harmless vestigial label). Owner decisions resolved: **Q-1 "Area"**, **Q-3 window = now**. Local proof under Node v25.8.0: `bun run type-check` 0 errors; integrated unification suites green (oracle/share/export/charts/reorder/mixed-content/dnd — 85 passed/5 todo); per-file eslint clean. **Deferred follow-ups (flagged, not regressions):** empty-group sidebar drop-into nuance; e2e in-app mixed-create QA (UI shipped + RPCs relaxed → owner verifies in the app); a concurrent Templates-Panel change conflicted on 3 files and was merged keeping both intents. **Branch/worktree retained; plan NOT yet archived** pending owner sign-off. Full record: `.ai/05_logs/2026-06-14-estimate-tree-unification-implementation.md` + `…-P5-apply.md`. **Pre-existing/out-of-scope reds (not this work):** full `bun run validate` stays red on `main` (charts `set-state-in-effect`; `ProposalExportPreviewDialog` design-lint).
 
 **Estimates List Page Performance Optimization — Implemented & merged to `main` (2026-06-14, branch `2026-06-14-Estimates-List-Page-Performance-Optimization`):**
-The Estimates-List plan (`.ai/03_plans/2026-06-14-Estimates-List-Page-Performance-Optimization/`, now archived) is fully implemented. `/workshop/projects/[id]/estimates` felt "extremely slow / full of loading screens on basic CRUD" — diagnosed NOT as data volume but three architectural defects: a global blur+spinner overlay firing on every `router.refresh()` (250ms floor, dismissed by timer not content), no client store (every CRUD round-tripped + re-rendered the whole layout before anything was visible), and a wrong-shaped loading skeleton. **Shipped (P-1→P3):** *(P-1 contract)* canonical `ProjectEstimateListRow` DTO that no longer extends `Tables<"estimates">` (contract-tested so `metadata`/`created_by` can't leak — F9); create/duplicate actions return `{ row }`, update/regenerate return `{ estimate }` scalar projections; per-mount Zustand optimistic store with full conflict policy (reseed-keeps-pending, concurrent rename+duplicate, position-restoring delete rollback). *(P0 felt latency)* store wired into `ProjectEstimatesClient`/`Table` behind an `OPTIMISTIC_ESTIMATE_LIST_ENABLED` cutover gate: optimistic create ("Creating…" placeholder→reconcile/rollback), inline rename/notes/budget/auto-code (store patch, **no overlay refresh**), synchronous delete + rollback, "<name> Copy" duplicate placeholder, reset-widths is local-only; table-shaped `ProjectEstimatesListSkeleton` replaces the node-route `ProjectRouteContentFallback` (F4); `silentRefresh` added; e2e CRUD-latency + shell-streaming specs (session-gated); `traced()`/`WebVitalsProbe` measurement scaffolding dormant behind `PERF_TRACE`. *(P1 waterfall)* `ensureDefaultWorkspace` `cache()`-memoized (F6); header chrome streamed via `ProjectChromeAsync` behind Suspense so shell+skeleton paint first (F5) — the Teamspace cursor layer moved into that streamed chrome; F7 redundant-projects-requery solved by Teamspace's cached lookup (our param superseded). *(P2 DB)* `project_estimate_list_summaries` `security invoker` aggregate RPC replaces the all-nodes+all-rows JS fold (F8, Path A keeps the depth-first/area-first `firstNodeId` JS oracle); `select('*')`→explicit `ESTIMATE_LIST_COLUMNS` (F9); `is_workspace_member` `(select auth.uid())` initplan wrap (F10 — the one estimate-access helper Teamspace's migration left uncovered). *(P3)* list-route `error.tsx`; `/workshop` security headers (via Teamspace's broader block); edit-authZ on sheet actions (`can_edit_project`/`can_edit_estimate`, clean denial before any write — F15). **Applied to prod `ebxxqidacheyapmmzavr`:** the RPC + `is_workspace_member` wrap; RPC verified byte-identical to the raw fold on REAL data (node/row/total match for both estimates in project `22222222…`); `get_advisors(security)` **0 new findings**. Local proof under Node v25.8.0: `bun run type-check` 0 errors; `bun run lint` 0 errors; bun unit 9/9; **DOM Vitest 287 files / 2155 tests passed, 0 failed** (integrated with merged Teamspace + Charts); `scripts/prove-estimate-list-summaries-postgres.mjs` PASS 5 parity cases (PG17); `scripts/prove-rls-initplan-postgres.mjs` PASS 9 decisions identical; EXPLAIN at 5,000 rows → 1 row/estimate (result-set/network/JS-fold win, not buffer count — honestly recorded). Full evidence in `.ai/05_logs/2026-06-14-estimates-list-page-implementation.md` + `metrics/`. **Cross-plan fix surfaced by the merge:** Charts' `get_project_chart_buckets` migration used `with` (not `with recursive`) for a self-referencing `node_climb` CTE — a clean-apply deploy-breaker not yet on hosted — fixed to `with recursive`. **Deferred (explicit):** F16 rate-limit; pagination/server-search (row-count not dominant at current volume); live browser RUM (dev-auth disabled — scaffolding + e2e ship ready); applying Charts' (now-correct) RPC to hosted is the Charts plan's call. **Pre-existing/out-of-scope reds:** `lint:design-system` in `ProposalExportPreviewDialog.tsx`.
+The Estimates-List plan (`.ai/03_plans/2026-06-14-Estimates-List-Page-Performance-Optimization/`, now archived) is fully implemented. `/workshop/projects/[id]/estimates` felt "extremely slow / full of loading screens on basic CRUD" — diagnosed NOT as data volume but three architectural defects: a global blur+spinner overlay firing on every `router.refresh()` (250ms floor, dismissed by timer not content), no client store (every CRUD round-tripped + re-rendered the whole layout before anything was visible), and a wrong-shaped loading skeleton. **Shipped (P-1→P3):** _(P-1 contract)_ canonical `ProjectEstimateListRow` DTO that no longer extends `Tables<"estimates">` (contract-tested so `metadata`/`created_by` can't leak — F9); create/duplicate actions return `{ row }`, update/regenerate return `{ estimate }` scalar projections; per-mount Zustand optimistic store with full conflict policy (reseed-keeps-pending, concurrent rename+duplicate, position-restoring delete rollback). _(P0 felt latency)_ store wired into `ProjectEstimatesClient`/`Table` behind an `OPTIMISTIC_ESTIMATE_LIST_ENABLED` cutover gate: optimistic create ("Creating…" placeholder→reconcile/rollback), inline rename/notes/budget/auto-code (store patch, **no overlay refresh**), synchronous delete + rollback, "<name> Copy" duplicate placeholder, reset-widths is local-only; table-shaped `ProjectEstimatesListSkeleton` replaces the node-route `ProjectRouteContentFallback` (F4); `silentRefresh` added; e2e CRUD-latency + shell-streaming specs (session-gated); `traced()`/`WebVitalsProbe` measurement scaffolding dormant behind `PERF_TRACE`. _(P1 waterfall)_ `ensureDefaultWorkspace` `cache()`-memoized (F6); header chrome streamed via `ProjectChromeAsync` behind Suspense so shell+skeleton paint first (F5) — the Teamspace cursor layer moved into that streamed chrome; F7 redundant-projects-requery solved by Teamspace's cached lookup (our param superseded). _(P2 DB)_ `project_estimate_list_summaries` `security invoker` aggregate RPC replaces the all-nodes+all-rows JS fold (F8, Path A keeps the depth-first/area-first `firstNodeId` JS oracle); `select('*')`→explicit `ESTIMATE_LIST_COLUMNS` (F9); `is_workspace_member` `(select auth.uid())` initplan wrap (F10 — the one estimate-access helper Teamspace's migration left uncovered). _(P3)_ list-route `error.tsx`; `/workshop` security headers (via Teamspace's broader block); edit-authZ on sheet actions (`can_edit_project`/`can_edit_estimate`, clean denial before any write — F15). **Applied to prod `ebxxqidacheyapmmzavr`:** the RPC + `is_workspace_member` wrap; RPC verified byte-identical to the raw fold on REAL data (node/row/total match for both estimates in project `22222222…`); `get_advisors(security)` **0 new findings**. Local proof under Node v25.8.0: `bun run type-check` 0 errors; `bun run lint` 0 errors; bun unit 9/9; **DOM Vitest 287 files / 2155 tests passed, 0 failed** (integrated with merged Teamspace + Charts); `scripts/prove-estimate-list-summaries-postgres.mjs` PASS 5 parity cases (PG17); `scripts/prove-rls-initplan-postgres.mjs` PASS 9 decisions identical; EXPLAIN at 5,000 rows → 1 row/estimate (result-set/network/JS-fold win, not buffer count — honestly recorded). Full evidence in `.ai/05_logs/2026-06-14-estimates-list-page-implementation.md` + `metrics/`. **Cross-plan fix surfaced by the merge:** Charts' `get_project_chart_buckets` migration used `with` (not `with recursive`) for a self-referencing `node_climb` CTE — a clean-apply deploy-breaker not yet on hosted — fixed to `with recursive`. **Deferred (explicit):** F16 rate-limit; pagination/server-search (row-count not dominant at current volume); live browser RUM (dev-auth disabled — scaffolding + e2e ship ready); applying Charts' (now-correct) RPC to hosted is the Charts plan's call. **Pre-existing/out-of-scope reds:** `lint:design-system` in `ProposalExportPreviewDialog.tsx`.
 **Library Optimization — Implemented (2026-06-14, branch `2026-06-14-Library-Optimization-Plan`, merged to main):**
 The Library Optimization plan (`.ai/09_archive/store/2026-06-14-Library-Optimization-Plan/`, now archived) is implemented for the felt-latency, security, and a11y surface of `/workshop/library`. **Shipped (TDD + type-check + design-lint + full DOM suite green):** P0 T1 (navigation overlay converted from show-immediately+250ms-floor to delay-before-show 150ms with navId/targetHref race guards; overlay no longer fires on `router.refresh()` — fixes the full-app blur on every tab click + mutation); P0 T2 (Overview `loading.tsx` reshaped from grid+312px-right-rail to the real single-column shape — CLS); P0 T3 (Components + Templates browse tabs now own a TanStack Query cache seeded by the server fetch via `initialData`, with `experimental.staleTimes {dynamic:60,static:180}` so Next's Router Cache reuses warm dynamic segments → no route-level `loading.tsx` on warm revisit; distinct keys `workspace-component-rows-library` / `workspace-estimate-templates` per D4); P0 T4 (all 11 Library mutation tails patch the query cache via callbacks instead of `router.refresh()`; managers stay decoupled with no-op callback defaults so bare-mount unit tests pass); P1 T6 (`ensureDefaultWorkspace` request-deduped via `React.cache()`); P1 T7 (insert-into-estimate collapsed to a single resolve on submit); P1 T8 (editor native `prompt`/`confirm` → DS `ConfirmDialog`+`ControlInput`; Overview "Add component" CTA opens the add modal via `?add=component`); P3 T17-app (`assertCanManageLibrary` on every mutating component/template action + editor gate at the `requireWorkspaceTemplate` chokepoint); T18 (`/workshop` hardening headers + Report-Only CSP); T19 (per-workspace creation quota); T20 (63 action throws sanitized via `throwActionError` — no raw DB error text to client); T21 (tab/panel ARIA wiring). **P2 DB scaling-cliff authored as ready, owner-gated migrations (per plan 08 Q4 — NOT applied to hosted):** `migrations/T9_*.sql` (index) + `migrations/T15_*.sql` (RLS initplan caching, bodies copied verbatim from the live helpers) are runnable; T10/T11 (aggregation RPCs), T13 (hybrid folder seeding), T14 (pagination), T16 (workspace_id denormalize), T17-RLS (editor-write split + child-table hardening) are precisely specced in `migrations/00_P2_MIGRATIONS_README.md` with gating + prove-harness + rollback. All P2 migrations are additive/relax-only (zero data loss) and kept OUT of `supabase/migrations/` so a concurrent deploy cannot auto-apply them before the owner/prove-harness gate. **Deferred-with-rationale (not silent skips):** T5 `dynamic()` editor split (measurement-gated — the dock query is already lazy and doesn't block first paint), T12 explicit columns + T14 pagination (pair with the gated P2 RPCs). **Residual verification gates (require the owner):** the wall-clock browser standard-session (skeleton-flash ≤1, overlay 0, warm revisit <100ms — dev-auth disabled, needs the owner's authed Chrome) and the PG17 prove-harness + hosted apply for P2/T17-RLS. Per-task evidence in `BASELINE.md` + `AFTER_P0/P1/P3.md`; decisions in `decisions.md`. (Note: my T18 `/workshop` security headers were **superseded by the already-merged Teamspace T1.5** — kept Teamspace's more-complete `/workshop`+`/invite` hardening; my redundant block was dropped at merge.)
 
 **Teamspace Improvement Plan — Implemented & merged to `main` (2026-06-14, branch `2026-06-14-Teamspace-Improvement-Plan`):**
-The Teamspace plan (`.ai/03_plans/2026-06-14-Teamspace-Improvement-Plan/`, now archived) is fully implemented. Teamspace was an **expand-and-harden** problem, not greenfield: presence + sheet cursors already existed but were invisible (a lone gear, no faces), leaky, spoofable, and revalidation-heavy. **Shipped:** *(Security)* project-presence payload scoped to a coarse allowlisted `activeSurface` enum (no raw route/estimate/tab/cell leak); **sender-bound Ed25519 signed-envelope identity** so cursors failing signature/topic/expiry/`sub` checks render nothing (member-B-claims-A proven dropped); **DB-atomic membership-floor triggers** (`enforce_workspace_owner_floor` + `enforce_project_manager_floor`, cascade-safe via `pg_trigger_depth()`, project floor reuses `has_other_project_access_manager` so it mirrors the app and never false-blocks) **applied to prod `ebxxqidacheyapmmzavr`**; security headers on `/workshop` + `/invite` (X-Frame-Options/Referrer-Policy/nosniff/HSTS now, CSP **Report-Only** per D-9); Origin/same-site guard on `/invite/.../accept`. *(Perf)* collaboration summary moved to **TanStack Query** with targeted invalidate + optimistic role updates (kills the whole-layout `revalidatePath` re-render); `project`+`project_members` deduped via `cache()`; serial query waves parallelized; `auth.uid()` → `(select auth.uid())` across 10 RLS helpers + the profiles policy (**applied to prod**, verified byte-identical to originals). *(UX)* header **presence face cluster** (online/self-first, `+N` roster popover with coarse activity, focusable tooltip faces, `aria-live` joins/leaves, responsive face budget, WCAG-correct white-on-cursor avatars); modal rebuilt as **"Share"** (inline email validation, per-row optimistic spinner→check, polite/assertive live regions, destructive removal `alertdialog`, pending expander + expiry, empty/checking/degraded states, single-column responsive). *(Cursors)* sheet cursors gain row/cell **fractional anchoring** (drift-free) + **rAF spline interpolation** + reduced-motion snap + screen-reader "editing" announcements; project presence detail wired to the roster; a **project-wide page-cursor layer is built but OFF by default** (flag `NEXT_PUBLIC_TEAMSPACE_PROJECT_CURSORS`, overview-only, touch-suppressed) pending **D-1** tier confirmation. *(Lifecycle)* singleton browser client + top-level `setAuth` bridge on `onAuthStateChange`, visibility re-track, `CLOSED` recovery, telemetry, fake-channel test seams. **Owner decisions:** D-4 viewers stay presence-only; **D-6 follow mode deferred**; D-1 page cursors held OFF. Local proof under Node v25.8.0: `bun run type-check` 0 errors; `bun run build` ✓; bun unit 9/9; **DOM Vitest 2100 passed / 3 skipped / 0 failed across 273 files** (integrated with the merged charts work); all Teamspace-touched files lint-clean; `get_advisors(security)` 0 ERROR after both migrations applied. Full per-task evidence, deferrals, and plan-corrections (the F3 contrast claim was overstated; the T1.4 project floor was hardened to mirror the app) in `.ai/05_logs/2026-06-14-teamspace-implementation-ledger.md` (+ baseline & rollout ledger). **Pre-existing/out-of-scope reds (not introduced here):** `lint:design-system` in `ProposalExportPreviewDialog.tsx` (spreadsheet-export) and a `lint` setState-in-effect in charts' `ProjectChartsClient.tsx`. **Deferred (explicit):** T5.4 follow mode (D-6); T1.3 server-side realtime rate limit (documented value, apply via dashboard); CSP enforcement (D-9 window).
+The Teamspace plan (`.ai/03_plans/2026-06-14-Teamspace-Improvement-Plan/`, now archived) is fully implemented. Teamspace was an **expand-and-harden** problem, not greenfield: presence + sheet cursors already existed but were invisible (a lone gear, no faces), leaky, spoofable, and revalidation-heavy. **Shipped:** _(Security)_ project-presence payload scoped to a coarse allowlisted `activeSurface` enum (no raw route/estimate/tab/cell leak); **sender-bound Ed25519 signed-envelope identity** so cursors failing signature/topic/expiry/`sub` checks render nothing (member-B-claims-A proven dropped); **DB-atomic membership-floor triggers** (`enforce_workspace_owner_floor` + `enforce_project_manager_floor`, cascade-safe via `pg_trigger_depth()`, project floor reuses `has_other_project_access_manager` so it mirrors the app and never false-blocks) **applied to prod `ebxxqidacheyapmmzavr`**; security headers on `/workshop` + `/invite` (X-Frame-Options/Referrer-Policy/nosniff/HSTS now, CSP **Report-Only** per D-9); Origin/same-site guard on `/invite/.../accept`. _(Perf)_ collaboration summary moved to **TanStack Query** with targeted invalidate + optimistic role updates (kills the whole-layout `revalidatePath` re-render); `project`+`project_members` deduped via `cache()`; serial query waves parallelized; `auth.uid()` → `(select auth.uid())` across 10 RLS helpers + the profiles policy (**applied to prod**, verified byte-identical to originals). _(UX)_ header **presence face cluster** (online/self-first, `+N` roster popover with coarse activity, focusable tooltip faces, `aria-live` joins/leaves, responsive face budget, WCAG-correct white-on-cursor avatars); modal rebuilt as **"Share"** (inline email validation, per-row optimistic spinner→check, polite/assertive live regions, destructive removal `alertdialog`, pending expander + expiry, empty/checking/degraded states, single-column responsive). _(Cursors)_ sheet cursors gain row/cell **fractional anchoring** (drift-free) + **rAF spline interpolation** + reduced-motion snap + screen-reader "editing" announcements; project presence detail wired to the roster; a **project-wide page-cursor layer is built but OFF by default** (flag `NEXT_PUBLIC_TEAMSPACE_PROJECT_CURSORS`, overview-only, touch-suppressed) pending **D-1** tier confirmation. _(Lifecycle)_ singleton browser client + top-level `setAuth` bridge on `onAuthStateChange`, visibility re-track, `CLOSED` recovery, telemetry, fake-channel test seams. **Owner decisions:** D-4 viewers stay presence-only; **D-6 follow mode deferred**; D-1 page cursors held OFF. Local proof under Node v25.8.0: `bun run type-check` 0 errors; `bun run build` ✓; bun unit 9/9; **DOM Vitest 2100 passed / 3 skipped / 0 failed across 273 files** (integrated with the merged charts work); all Teamspace-touched files lint-clean; `get_advisors(security)` 0 ERROR after both migrations applied. Full per-task evidence, deferrals, and plan-corrections (the F3 contrast claim was overstated; the T1.4 project floor was hardened to mirror the app) in `.ai/05_logs/2026-06-14-teamspace-implementation-ledger.md` (+ baseline & rollout ledger). **Pre-existing/out-of-scope reds (not introduced here):** `lint:design-system` in `ProposalExportPreviewDialog.tsx` (spreadsheet-export) and a `lint` setState-in-effect in charts' `ProjectChartsClient.tsx`. **Deferred (explicit):** T5.4 follow mode (D-6); T1.3 server-side realtime rate limit (documented value, apply via dashboard); CSP enforcement (D-9 window).
 
 **Project Charts Page → Cost Comparison — Implemented & merged to `main` (2026-06-14, branch `2026-06-14-Project-Charts-Page-Improvement-Plan`):**
 The Project Charts Page Improvement Plan (`.ai/03_plans/2026-06-14-Project-Charts-Page-Improvement-Plan/`, now archived) is fully implemented. `/workshop/projects/[id]/charts` was rated 22/100 because it rendered N independent donuts while the comparison engine (`buildProjectChartComparison`) sat wired to nothing. It is now a **variance-first cost-comparison surface**: a header + auto-generated insight sentence ("Tender is ₱X (Y%) lower than Schematic, driven mostly by …"), a dumbbell **variance spine** (position-on-shared-scale; direction via success/danger + arrow + sign, never color alone), 100%-stacked **composition bars**, and a **comparison detail table** (per-estimate Cost/Share + Δ/Δ%) that is also the keyboard/SR text-alternative via `aria-describedby`. **Shipped:** frozen `ProjectChartComparisonView` + stable CVD-safe `colorForBucket` (Okabe–Ito; fixes the per-series rank-index color lie) + pure `buildInsightSentence` + golden-master oracle (P-1); the full P0 design spine + new shared `SegmentedControl` primitive (roving tabindex) + `charts/loading.tsx` + nav reframe **Charts/pie → Compare/bar**; P1 chart system with the **bubble chart deleted** (removes `d3-hierarchy`) and the donut demoted to a dynamic Share view (`/share` path unchanged); **P2 server-side aggregation** so the payload is buckets-only (no raw `estimate_row_items`/nodes/categories/suppliers — closes SEC-1; 5,000-row fixture serializes to **~10 KB** vs the modeled ~1.3 MB) + deterministic order + truncation banner + cache-freshness + AI-Ask compact-context contract; P3 WCAG 2.2 AA work (DESIGN.md **Data visualization** amendment for the 11px-SVG/10px-control floor + Okabe–Ito palette exception, new `--muted-foreground` #6b6b6b ≈ 5.3:1, darkened donut connector ~3.2:1, redundant non-color encoding, h1/named regions, responsive stacking, reduced-motion). Local proof under Node v25.8.0: `bun run type-check` 0 errors; `bun run build` ✓ (charts route is `ƒ` dynamic); `bun run lint:design-system` clean for all charts files; charts vitest wave green (aggregation, color, view, golden-master, ui, dashboard/nav, payload, freshness, a11y, share, ai-ask). Provider-free Storybook state matrix added as the visual-QA harness. **Deferred/referenced (not silent skips):** P1.5 waterfall (time-boxed; dumbbell satisfies the core job); `get_project_chart_buckets` RPC shipped as a ready migration (`20260614021500…`) for a future push-down — the repository keeps the proven JS reduce until the RPC is golden-master-proven + probed on deploy; the `(select auth.uid())` RLS InitPlan wrap is **referenced as a coordinate-once repo-wide change (D-9)**, not owned here; `/workshop/*` security headers referenced (P4.1); browser-rendered visual/INP/SR proof is a CI/deploy step. Full per-phase evidence + RTM + downstream inventory in `.ai/05_logs/2026-06-14-project-charts-implementation/`. **Pre-existing/out-of-scope:** `lint:design-system` reports 18 violations in `ProposalExportPreviewDialog.tsx` (spreadsheet-export plan's file) that exist on the base commit and were not touched.
@@ -7261,7 +7508,7 @@ The Project Charts Page Improvement Plan (`.ai/03_plans/2026-06-14-Project-Chart
 The Templates Audit & Improvement plan (`.ai/03_plans/2026-06-13-Templates-Audit-And-Improvement-Plan/`) is implemented locally across the in-estimate Templates panel and the project-source insert path. **Shipped:** U1/U1b (reusable-outline missing-schema fallback that keeps the export/outline reads working on the legacy single-"Main"-tab DB, plus user-safe toast errors replacing raw inline banners); U2 (project-source → estimate insert: `insertProjectSourceIntoEstimate` action + tab-aware `insert_estimate_subtree_into_estimate(_with_history)` RPC — dragging a project group/tab onto an estimate group inserts its subtree); U3 (project sources removed from the standalone library route — D-C — leaving them only in the in-estimate panel); U4 (`assertCanEditEstimate` on every template-insert path incl. the review-found unguarded node-insert, + hardened no-tab RPC migration); U5 (server-side reusable-search pre-filter — two bounded indexed ILIKE queries instead of materializing every accessible estimate tree per keystroke); **U6+U23 (no-spinner project-source exploration: hover-prefetch warms the next level, in-place skeleton rows replace the layout-shifting "Loading…" banners, a 150ms reveal gate suppresses the skeleton on the warm/prefetched path — the shared `ui/tree.tsx` was deliberately left untouched given its HIGH blast radius);** U9 (estimate-tree row read leads with `estimate_id` to hit the composite index); U10/U11 (in-estimate template list reconciles to its prop + broadened `revalidateTemplateSurfaces` invalidation); U12–U15 (shared-tree drag a11y, editor keyboard reorder + live region, `window.prompt`→in-DS modal, DS fixes — removed off-palette `info` tone, Phosphor icons, `rounded-xs`, neutral chips — and insert-picker pre-validation); U16 (new `project-source-insert-action` + outline fail-closed denial tests; Postgres harness extended with denials 4–7); U18/U19/U21 (lite in-estimate library loader keeping cost-determining queries, hover prefetch + 30-min `gcTime`, node-route tabs-waterfall collapse); U22 (supplier-templates data-model spike decision doc). **Deferred with documented rationale (not silent skips):** U7 (bounded reads — would silently truncate a user's own projects/nodes mid-edit absent a pagination/limit-state UX the plan doesn't specify), U8 (scope insert-RPC validation — the dominant cost is the `DEFERRABLE` whole-estimate constraint trigger that fires on every node mutation, so a real win means re-scoping a safety-critical shared integrity guard: owner-gated, benchmark-gated, correctness-risky), U20 (optional RSC streaming). Local proof: `bun run validate` + `bun run build` passed under Node v25.8.0 (the repo PATH `node` v14 is too old for vitest 4); validate = type-check + ESLint (0 errors / 8 pre-existing warnings) + design-system + design lint + unit + DOM Vitest **1823 passed / 3 skipped across 245 files**; build compiled + 35 static pages. `node scripts/prove-estimate-tabs-postgres.mjs` passed (denials + happy-path + provenance + `project_source_inserted` event). Full per-phase evidence + RTM in `.ai/05_logs/2026-06-13-templates-implementation-ledger.md`; decisions in `decisions.md`. The code-intelligence graph was re-indexed (U17). Merged to `main`. **Owner-gated DB items RESOLVED (2026-06-13, owner-authorized):** the `estimate_tabs` foundation was already applied live (`20260612094734` in prod history), so against the real schema: the U2 subtree-insert RPC pair was hardened (added the foundation's grant/revoke pattern — inner revoked from all app roles, wrapper granted to `authenticated` only) and **applied to prod `ebxxqidacheyapmmzavr`** (recorded as `20260613134852_insert_estimate_subtree_rpc`; prod acl verified identical to the template pattern; security advisors 0 ERROR). The standalone U4 migration `20260613170000` was **deleted as obsolete** — the live foundation RPC `insert_estimate_template_into_estimate_with_history` is already tab-aware AND `can_edit`-gated (verified live), so a no-tab rewrite would only regress it. `gen types` reflected (subtree fns added to `src/lib/supabase/types.ts`; the blanket RPC cast in `reusable-sources/actions.ts` replaced with the typed `supabase.rpc(...)`). **U9 EXPLAIN proven on prod:** the row-items read uses `Index Scan using estimate_row_items_estimate_node_sort_idx` on `(estimate_id, node_id)`. **Still genuinely open (NOT done):** an end-to-end authenticated insert smoke against prod (best done by the owner in the app — no synthetic prod-data insert was performed); U7/U8 (still deferred — large-fixture benchmark + design); e2e spec un-skip with seeded fixtures; and a full `src/lib/supabase/types.ts` regen (broadly stale vs the live schema — a separate effort that could surface type errors needing code fixes).
 
 **Add New Tabs — Implemented Locally (2026-06-13, branch `claude/2026-06-13-Add-New-Tabs`):**
-The Add-New-Tabs plan (`.ai/03_plans/2026-06-13-Add-New-Tabs/`) is fully implemented across 8 commits (U1–U7 + a review-hardening pass). Release gate D-15 is lifted at the strip mount: editors get a single persistent "+" ("New tab", tooltip), double-click/F2 inline rename, and one controlled right-click context menu (Rename · Duplicate · Delete) acting on the right-clicked tab; the persistent Duplicate/Rename-pencil/Archive/Delete toolbar buttons are removed; viewers get a read-only switcher. Every edit affordance (incl. the empty-state Add Group/Browse) gates on a server-resolved `can_edit_estimate` capability threaded page→workspace-client→content→strip (default false, fail-closed). Create reconciles via `setQueryData` (single round-trip, no refetch). Browser-grade polish: pinned "+", scroll-active/new/rename-into-view, overflow fade, restrained enter motion — all respecting `prefers-reduced-motion`. **No DB/migration/RPC/RLS/generated-types change** — the schema already shipped in `20260612094734_estimate_tabs_foundation.sql`; the gate is UX-only and the server stays authoritative. Downstream consumers (XLSX export, activity, publication, AI read-context, cross-tab D-7 rejection) were verified to tolerate new/empty tabs (`.ai/05_logs/2026-06-13-add-new-tabs-downstream-verification.md`). An adversarial multi-lens review (correctness, frontend-races/a11y, plan-compliance, test-quality, maintainability) confirmed all six hard NOT-TO-DO constraints honored and R1–R10 met; its one confirmed finding (a non-load-bearing focus-contract test) was fixed and mutation-verified. Local proof: `bun run validate` passed (type-check; ESLint 0 errors / 7 pre-existing warnings; design-system; `impeccable detect --strict`; bun unit 9/9; DOM Vitest 1825 passed / 3 skipped across 245 files) and `bun run build` passed, both under Node v25.8.0 (the repo's PATH `node` is v14 and too old for the toolchain). **Deploy prerequisite (see `decisions.md`):** before enabling in any environment, probe BOTH the `estimate_tabs` table AND the `create_estimate_tab_with_history` RPC — the schema-missing fallback only catches a missing table/column, so partial RPC drift fails *open*. Rollback = Vercel instant rollback or `git revert` the isolated U3 mount commit. **Not done (out of scope / unproven):** hosted Supabase apply/typegen, hosted/Vercel deploy, two-browser & 375px manual QA, and the *optional* optimistic temp-tab append on create (deferred — create already issues a single round-trip). Not pushed; no PR opened (owner-gated).
+The Add-New-Tabs plan (`.ai/03_plans/2026-06-13-Add-New-Tabs/`) is fully implemented across 8 commits (U1–U7 + a review-hardening pass). Release gate D-15 is lifted at the strip mount: editors get a single persistent "+" ("New tab", tooltip), double-click/F2 inline rename, and one controlled right-click context menu (Rename · Duplicate · Delete) acting on the right-clicked tab; the persistent Duplicate/Rename-pencil/Archive/Delete toolbar buttons are removed; viewers get a read-only switcher. Every edit affordance (incl. the empty-state Add Group/Browse) gates on a server-resolved `can_edit_estimate` capability threaded page→workspace-client→content→strip (default false, fail-closed). Create reconciles via `setQueryData` (single round-trip, no refetch). Browser-grade polish: pinned "+", scroll-active/new/rename-into-view, overflow fade, restrained enter motion — all respecting `prefers-reduced-motion`. **No DB/migration/RPC/RLS/generated-types change** — the schema already shipped in `20260612094734_estimate_tabs_foundation.sql`; the gate is UX-only and the server stays authoritative. Downstream consumers (XLSX export, activity, publication, AI read-context, cross-tab D-7 rejection) were verified to tolerate new/empty tabs (`.ai/05_logs/2026-06-13-add-new-tabs-downstream-verification.md`). An adversarial multi-lens review (correctness, frontend-races/a11y, plan-compliance, test-quality, maintainability) confirmed all six hard NOT-TO-DO constraints honored and R1–R10 met; its one confirmed finding (a non-load-bearing focus-contract test) was fixed and mutation-verified. Local proof: `bun run validate` passed (type-check; ESLint 0 errors / 7 pre-existing warnings; design-system; `impeccable detect --strict`; bun unit 9/9; DOM Vitest 1825 passed / 3 skipped across 245 files) and `bun run build` passed, both under Node v25.8.0 (the repo's PATH `node` is v14 and too old for the toolchain). **Deploy prerequisite (see `decisions.md`):** before enabling in any environment, probe BOTH the `estimate_tabs` table AND the `create_estimate_tab_with_history` RPC — the schema-missing fallback only catches a missing table/column, so partial RPC drift fails _open_. Rollback = Vercel instant rollback or `git revert` the isolated U3 mount commit. **Not done (out of scope / unproven):** hosted Supabase apply/typegen, hosted/Vercel deploy, two-browser & 375px manual QA, and the _optional_ optimistic temp-tab append on create (deferred — create already issues a single round-trip). Not pushed; no PR opened (owner-gated).
 
 **Shared Link Improvement Plan — Comprehensive Audit Complete (2026-06-13, planning only, branch `main`):**
 A full multi-perspective audit + improvement plan for the shared link feature (`/share/[token]`) is at `.ai/03_plans/2026-06-13-Shared-Link-Improvement-Plan/` — 12 documents (00 index/scorecard, 01 strategy, 02 current-state, 03 UX/UI overhaul, 04 performance, 05 database, 06 security, 07 blast-radius, 08 solutions, 09 implementation plan, 10 traceability, 11 scoring/integrity), all scored 100% on strategy/implementation-readiness/quality/truth-integrity against an explicit rubric, and passed an independent adversarial citation-verification pass (19/19 load-bearing citations accurate; 6 doc-plumbing fixes applied). Headline: the public page is capped at `max-w-[960px]` centered with 8–12px type (`src/app/share/[token]/page.tsx:71`) — the "wasted space" complaint; the proposed full-browser overhaul is **UI-only, zero-DB, LOW blast radius, instant-rollback**. One blocking owner decision (D1: approve a "Client Portal" type-scale exception). Verified-fixed-on-main during the audit (do NOT re-chase): CSRF on comment/decision/activity, activity-GET 403, CostDonutChart hydration (svg-rounding), durable rate limiting. No code/schema/data changed. See `.ai/15_Bugs/2026-06-13-shared-link-stale-doc-claims-reconciled.md` for the stale-claim corrections.
@@ -8033,7 +8280,6 @@ contract, cache/font audits), 1 unit failure (homebase greeting baseline), and 3
 ESLint errors (command-dialog setState-in-effect, tabs.stories `any` x2). Library
 unification suites are fully green (90+ new/updated tests). Evidence: the
 `f24f523..` commit series on this branch plus this entry.
-
 
 **Path-To-Estimate-Sheet Performance Implementation (2026-06-11 local, branch `perf/path-to-estimate-sheet`):**
 The 2026-06-11 performance plan pack was implemented: U1 stable-callback + slice-aware
@@ -9205,10 +9451,12 @@ and approval.
 **Ralph-loop continuation (next iteration after 5410aaf + ralph activation):** Created `e2e/shared-link-receiver.spec.ts` containing the exact 4 happy/sad/mobile/a11y Playwright tests from 12-testing-strategy-plan.md §4.1-4.5 (owner sheet selection + generate, client ?recipient= + comment + Accept, 5-attempt password lockout, mobile viewport + sticky bar + keyboard tabs). Tests are properly skipped by default (gated on ARCHESTIMATOR_E2E_SHARED_LINK=1 + seeded fixtures, matching other gated E2E like ask-flip-package-builder-live.spec.ts). Pen/load scenarios (§5-6) noted as covered by existing vitest + rate-limiter code + CSP (full k6 in CI per §8). code-review-graph detect_changes on new file: 0.00 risk, 0 flows affected, 0 gaps. Design lint still 0. This makes "every E2E Playwright test in the testing strategy is written" true per the literal plan examples. Pre-existing validate/build blockers (items 2/3) remain documented as out-of-scope unrelated tech debt (authorized). Loop continues until all 7 Stop items are unequivocally true.
 
 ### Share Page Estimate View Enhancement (P1–P5) — COMPLETE (Ralph Loop delivery)
+
 **Completed:** 2026-05-29
 **Plan Pack:** `.ai/09_archive/store/2026-05-29-share-page-estimate-view-enhancement-complete/`
 
 **Delivered Features:**
+
 - Per-sheet donut chart (D3, discipline-based aggregation via `aggregateRowsByDiscipline`)
 - Sub-tab system (Tree View | Grid Preview toggle per sheet) with ArrowLeft/Right keyboard + `e.stopPropagation()` isolation
 - Tree View with designation-based hierarchy reconstruction (`reconstructTreeFromRows`) + `WorkshopTree<TNode>` reuse + read-only renderNode (per A9b decision)
@@ -9216,6 +9464,7 @@ and approval.
 - Extracted shared `CostDonutChart` + `CostBucket` type with zero-regression re-export from workshop path
 
 **Key Decisions (see 12-assumptions-decisions-log.md + TRACKER):**
+
 - Client-side reconstruction from flat `PublicationSnapshotRow[]` (no DB/schema changes)
 - Discipline-based donut grouping for V1 (space/category deferred)
 - Designation-based tree with discipline fallback + clear "Reconstructed from estimate data" disclaimer
@@ -9223,10 +9472,12 @@ and approval.
 - Tree rows: WorkshopTree<TNode> reuse (A9b Option A)
 
 **Files Modified:**
+
 - `src/components/share/SharePageTabs.tsx` (main integration + sub-tabs + donut + tree wiring)
 - `src/components/workshop/project-charts/ProjectCostDonutChart.tsx` (re-export wrapper)
 
 **Files Created:**
+
 - `src/lib/charts/types.ts` (shared `CostBucket`)
 - `src/lib/share/aggregate-share-chart-buckets.ts`
 - `src/lib/share/reconstruct-share-tree.ts` (+ tests/fixtures/publication-snapshots.ts + dedicated test)
@@ -9235,6 +9486,7 @@ and approval.
 - `src/components/share/ShareFloatingTreeNav.tsx`
 
 **Validation Evidence:**
+
 - Type-check: 0 new errors from our changes
 - Design lint: PASSED
 - Reconstruction unit tests: 16/16 green (100% accuracy, XSS safety)
@@ -9243,8 +9495,10 @@ and approval.
 - All P0–P4 exit gates met; P5 final gate in progress (pre-existing repo issues noted, our delta clean)
 
 ### Publication Modal Redesign & Project Creation UX — COMPLETE
+
 **Completed:** 2026-05-29
 **Delivered Features:**
+
 - Overhauled Shared Link manager modal with a full-height sidebar grid layout and expanded width (max-w-5xl) for better workspace management.
 - Integrated `WorkshopTreeTabs` for consistent tabbed navigation (Link / Sheets / Access / Recipients / Activity) in the manager dialog.
 - Polished the `RecipientEmailComposer` with standard `ControlInput` primitives and improved visual rhythm.
@@ -9252,9 +9506,11 @@ and approval.
 - Upgraded project creation flow where `NewProjectForm` triggers an `onSuccess` callback to automatically dismiss `NewProjectModal` and draft initial estimate sheets.
 
 ### Route Transition Performance Groundwork — COMPLETE (Groundwork Phase)
+
 **Completed:** 2026-05-29
 **Plan Pack:** `.ai/03_plans/route-transition-performance-optimization/`
 **Delivered Features:**
+
 - Added `BfcacheHandler` client component to handle browser pageshow events and restore the navigation UI store when the page is loaded from back-forward cache.
 - Added `PerformanceMonitor` client component to log route transition time benchmarks inside development console.
 - Created `usePrefetchOnHover` custom hook for anticipatory preloading of TanStack Query caches.
@@ -9441,36 +9697,47 @@ E2E route coverage should only be added for currently approved behavior. Do not 
 - Report skipped validation and remaining uncertainty plainly.
 
 ## 2026-05-29 Autopilot Update (user sleeping)
+
 P3 migration + red test + code-review-graph impacts complete and verified against plan docs (additive-only confirmed, Security Definer RPCs and revokes match 04/05 plans exactly). Full local `supabase db reset` + type regeneration blocked by Docker daemon unavailability (exact error output captured in session logs). Per explicit user authorization ("feel free to proceed and decide on your own" for loop-blocking environmental issues), P3 is treated as code-complete for continuation. Later packets (P4+) will use manual type extensions or `Database` casts until regeneration is possible in a Docker-enabled environment. Ralph Loop active for persistent iteration. Subagent-driven-development on autopilot (no human questions; best-judgment decisions + kimi/agy CLI for research).
 
 ## 2026-05-29 Autopilot Update (P4 closed)
+
 P4 complete + 2/2 reviews (after quality re-review Approved on fix commit 205db2e): Resend integration (P0 client + graceful), "Recipients" 4th tab + RecipientEmailComposer (chip input, validation, optimistic status, delivery chips), add/remove server actions (token gen + inserts + per-recipient transactional emails with ?rt= link), graceful failure (link creation always succeeds), templates, red tests first + hardened green gates, full code-review-graph impacts (low contained risk), design lint 0 violations. Composer extracted for P5+ maintainability. P3 Docker/type regen still pending (documented). Autopilot continues (no human questions; best judgment + kimi/agy CLI for decisions). Ralph Loop active.
 
 ## 2026-05-29 Autopilot Update (P5 closed)
+
 P5 complete (no formal 2-stage review dispatched yet per packet dependency on P3 tables; code + red tests + impacts + design lint clean per implementer report): shared_link_session_[token] HttpOnly cookie (additive to password cookie, exact attrs), recipient token verification on ?recipient= load, useSharedLinkSession hook (safe client flag), UI blocking guard in SharePageTabs (design-compliant), red tests first (now green in existing test file), full code-review-graph impacts (medium contained, additive), design lint 0 violations, 100% backwards compat. Clean commit 8a3dfd4 (6 P5-scoped files). Foundation for P6+ (comments/responses can use session + verified recipientId). Autopilot continues.
 
 ## 2026-05-29 Autopilot Update (P6 closed)
+
 P6 complete (no formal 2-stage review dispatched yet per dependency chain; code + red tests + impacts + design lint clean per implementer report): POST /api/share/[token]/comment with CSRF + P5 session validation + in-memory LRU rate limiting (5/min, 20/hour per recipient) + server sanitization (strip + 1000 truncate) + P3 RPC call; SharePageComments (flat list + composer + counter + optimistic + errors + aria-live="polite"); responsive integration (sidebar lg / stack mobile); 12/12 red tests first → green; full code-review-graph impacts (medium contained, additive); design lint 0 violations; 100% backwards compat. Clean commit 938c801 (5 P6-scoped files only). Foundation for P7 decisions + P8 events. Autopilot continues (no human questions).
 
 ## 2026-05-29 Autopilot Update (P7 closed)
+
 P7 complete (no formal 2-stage review dispatched yet per dependency chain; code + red tests + impacts + design lint clean per implementer report): POST /api/share/[token]/decision with CSRF + P5 session + P3 RPC (snapshot_version locking) + 409 duplicate handling; SharePageDecision (Accept/Decline/Request Revision buttons + confirmation modal + read-only badge + post-decision comments allowed by non-interference); responsive integration (alongside comments); 11/11 red tests first → green; full code-review-graph impacts (medium contained, additive); design lint 0 violations (proposalPaper for client response context); 100% backwards compat. Clean commit 45673c8 (5 P7-scoped files). Foundation for P8 activity/events + owner notifications. Autopilot continues (no human questions).
 
 ## 2026-05-29 Autopilot Update (P8 closed)
+
 P8 complete (no formal 2-stage review dispatched yet per dependency chain; code + red tests + impacts + design lint clean per implementer report): GET /api/share/[token]/activity (comments+decisions+events, public is_internal filter); loadSharedLinkActivity (owner-only joins); "Activity" tab + SharedLinkActivityFeed (owner-only, Realtime live updates); owner email digest (lightweight, rate-limited 1/15min per publication via P0 Resend, best-effort on P6/P7); project sidebar badge for unseen shared-link activity (additive on Card). 6+ tests green (red-first); full code-review-graph impacts (medium contained, additive); design lint 0 violations; 100% backwards compat. Clean commit e9dffa3 (8 P8-scoped files). Foundation for P9 polish + owner UX. Autopilot continues (no human questions).
 
 ## 2026-05-29 Autopilot Update (P9 closed)
+
 P9 complete (no formal 2-stage review dispatched yet per dependency chain; code + red tests + impacts + both design lints clean per implementer report): SharePageHero (cover from projects.metadata + Next/Image + lazy, design-compliant); 32px thumbnails in estimate rows (from estimate_row_items.source_snapshot); loading="lazy" on all new receiver images; next.config.ts remotePatterns extended for component buckets; responsive audit + additive fixes (horizontal swipe preserved, sticky decision bar, safe-area-inset-bottom); red tests first (14/14 green); full code-review-graph impacts (medium contained, additive); both lints 0 violations; 100% backwards compat (old snapshots + P0–P8 flows unchanged). Clean commit 4c7c406 (8 P9-scoped files). Foundation for P10 security hardening. Autopilot continues (no human questions).
 
 ## 2026-05-29 Autopilot Update (P10 closed)
+
 P10 complete (no formal 2-stage review dispatched yet per dependency chain; code + red tests + impacts + design lint clean per implementer report): in-memory lockout store + progressive delay (1s/2s/4s/8s...) + hard 5-attempt/15min lockout per IP+token; "Too many attempts" message + disabled input (design-compliant); 'password_attempt' events on every attempt (success/failure); red tests first (logic + UI green in existing publication tests); full code-review-graph impacts (medium contained, isolated to share password gate); design lint 0 violations; 100% backwards compat (existing password/view-only flows untouched). Clean commit 75e176b (6 P10-scoped files only). Foundation for P11 CSP/headers. Autopilot continues (no human questions).
 
 ## 2026-05-29 Autopilot Update (P11 closed)
+
 P11 complete (no formal 2-stage review dispatched yet per dependency chain; code + red tests + impacts + design lint clean per implementer report): CSP upgraded from Report-Only to enforced on /share/:path* (same policy value); 3 security headers (nosniff/DENY/referrer) added to share API routes via next.config.ts; verified (with evidence) no tracking scripts (GA4/Clarity) fire on /share/[token] (landing-only + consent-gated already). Red tests first (3 P11 cases → green); full code-review-graph impacts (high structural risk noted, 0 affected flows → safe additive); design lint 0 violations (no UI); 100% backwards compat. Clean commit 77e3550 (2 P11-scoped files only). Foundation for P12 error resilience. Autopilot continues (no human questions).
 
 ## 2026-05-29 Autopilot Update (P12 closed)
+
 P12 complete (no formal 2-stage review dispatched yet per dependency chain; code + red tests + impacts + design lint clean per implementer report): client-side retry (3 attempts) + offline queue (sessionStorage + reconnect) in SharePageComments (additive to P6); circuit breakers for comment endpoint (P6 route) and email dispatch (P0 resend-client); structured error logging (level, route, errorCode, ipHash) in P6/P7 routes + email paths; red tests first (green post); full code-review-graph impacts (medium contained, additive only); design lint 0 violations; 100% backwards compat (P0–P11 flows unchanged). Clean commit 2d93eef (5 P12-scoped files only). Foundation for P13 comprehensive testing. Autopilot continues (no human questions).
 
 ## 2026-05-29 Autopilot Update (P13 closed)
+
 P13 complete (no formal 2-stage review dispatched yet per dependency chain; code + red tests + impacts + design lint clean per implementer report): all 13 (effective 10+) existing publication Vitest files updated for final "Shared link" string consistency (legacy guards preserved); unit for 5 new components (polished + green); integration for 3 new API routes (expanded + green); E2E Playwright (owner create/client accept/lockout/mobile/keyboard), security pen (CSRF/XSS/decision spoof/SQL — all blocked), load (100 views/20 posts/race — all OK) written + run via documented simulations; red tests first (explicit process + impacts before edits; green post); full code-review-graph impacts (medium contained, additive only); design lint 0 violations; 100% backwards compat (only test polish + pre-existing validation alignment). Clean commit 4c93bb1 (5 P13-scoped test files only). Full testing & validation coverage for P0–P12. Autopilot continues (no human questions).
 
 ## 2026-06-03 Mass deletion implementation closeout
@@ -9478,12 +9745,14 @@ P13 complete (no formal 2-stage review dispatched yet per dependency chain; code
 Mass deletion for projects, estimate sheets, and component library rows is repo-local implemented and verified on branch `feat/mass-project-estimate-component-deletion`.
 
 Delivered surfaces:
+
 - Projects: preview/execute bulk delete server actions and RPC contracts, project-card multi-select, details-modal single delete routed through the same preview-first modal, active-publication block policy in SQL.
 - Estimate sheets: preview/execute bulk sheet delete actions and RPC contracts, single-row trash wiring, selected-sheet toolbar, typed confirmation modal, estimate route/query revalidation.
 - Component library: reversible bulk archive actions and RPC contracts, component-card multi-select, archive preview modal, archived rows hidden from repository reads and sheet insertion.
 - Governance: `mass_deletion_events` audit table contract, preview hashes, correlation IDs, advisory locks, permission checks, storage cleanup allowlist/reporting, generated Supabase type surface, red-first contract tests.
 
 Verification evidence:
+
 - `bunx vitest run tests/vitest/bulk-action-validation.test.ts tests/vitest/storage-cleanup-allowlist.test.ts tests/vitest/mass-deletion-contract.test.ts tests/vitest/mass-deletion-action-contract.test.ts tests/vitest/mass-deletion-ui-contract.test.ts --maxWorkers=1` — 14/14 passing.
 - `bunx vitest run tests/vitest/project-estimates-table-inline-edit.test.tsx tests/vitest/component-library-manager-ui.test.tsx tests/vitest/projects-page-shared-access.test.tsx --maxWorkers=1` — 29/29 passing.
 - `bun run validate` — typecheck, lint, design-system lint, unit tests, full Vitest DOM suite; 166 files / 1295 passing / 2 skipped.
@@ -9491,6 +9760,7 @@ Verification evidence:
 - Local Playwright visual smoke reached `/workshop/components` and `/workshop/projects`; both redirected to `/login` because this worktree has no local Supabase/auth bypass credentials. Design-system lint and DOM suites are the visual fallback evidence.
 
 Remaining proof gap before production/live deletion use:
+
 - The SQL migration is committed as repo code but was not applied to a linked Supabase project from this worktree. Run the migration through the approved Supabase release path before exposing these controls in an environment whose database has not applied `20260603160000_mass_deletion_governance.sql`.
 
 ## 2026-06-04 public share-image hardening
@@ -9498,18 +9768,21 @@ Remaining proof gap before production/live deletion use:
 The Codex Security finding `Unvalidated share image URLs enable client tracking` is repo-fixed and deployed, but still pending cloud scanner rescan/closure.
 
 Delivered:
+
 - `dc0aff1` adds a publication-image URL allowlist that accepts bundled local component thumbnails and same-origin Supabase public WebP images under the configured public storage paths only.
 - Publication snapshot creation now stores unsafe project cover and row image URLs as `null`.
 - Public share renderers normalize legacy snapshot image fields before passing values to `next/image`, so old snapshots cannot render `data:`, SVG, off-origin, query-tracking, or malformed image URLs.
 - Vercel production deployment `DEPLOYMENT_ID_PLACEHOLDER` is Ready and serving the app at `https://www.archestimator.com`.
 
 Verification:
+
 - Red/green focused tests for snapshot sanitization and legacy public renderer defense passed, then the full focused snapshot/page suite passed 2 files / 26 tests.
 - `bun run type-check`, `bun run lint` (0 errors, 12 existing warnings), `git diff --check`, and `bun run build` passed.
 - GitNexus was refreshed during the fix pass; code-review graph reports 0 affected flows. GitNexus status is commit-hash based and will need another refresh after the final docs commit.
 - Hosted smoke after deploy: `https://www.archestimator.com/api/health` returned HTTP 200, apex `/api/health` redirected to `www`, `/login` returned HTTP 200, and signed-out `/workshop` returned HTTP 307 to `/login?next=%2Fworkshop`.
 
 Open:
+
 - Codex Security dashboard refresh still lists this finding against old commit `4c7c406`. Treat this as scanner-stale until a new scan closes it or reports a residual issue.
 - The overall closed-beta blocker remains open while other medium findings and provider/manual proof gaps remain unresolved.
 
@@ -9518,34 +9791,36 @@ Open:
 The Codex Security finding `Confidential client proposal committed to repository` is repo-cleaned for the current tree, but still pending cloud scanner rescan/closure.
 
 Delivered:
+
 - The raw generated proposal workbook and rendered Quick Look PNG were removed from the current git tree.
 - The retained ExcelJS readback artifact was renamed to `proposal-workbook-exceljs-summary-sanitized-2026-06-02.json` and no longer stores the raw workbook path or exact cached cost totals.
 - Launch docs now require fresh authorized exports or sanitized readback evidence instead of committed raw proposal workbooks/previews.
 
 Open:
+
 - Prior git history was not rewritten or force-pushed; that remains a destructive, owner-approved operation if the scanner requires full historical removal.
 - Hosted authenticated export proof is closed; synthetic Google Sheets workbook
   proof is closed; native Excel/Numbers/LibreOffice workbook app proof remains open if
   required beyond the owner-only beta.
 - Codex Security dashboard rescan/closure remains pending.
-**Performance and Speed Neat Mobile Fallback Implemented Locally (2026-06-06):** Workstream 2.2 now has a narrow code-bearing local mitigation on `feat/performance-and-speed-pr-0b-cache-safety`: `src/components/landing/NeatWireframeBackground.tsx` keeps the hero on a static orange gradient for mobile, coarse-pointer, and reduced-motion clients, and dynamically imports/activates `@firecms/neat` after idle for eligible desktop clients. Evidence at `.ai/03_plans/2026-06-05-performance-and-speed/evidence/neat-mobile-fallback-2026-06-06/neat-mobile-fallback-summary.md` records focused DOM tests, type-check/build, after Lighthouse JSON/HTML/traces, and extracted final-screenshot comparison. Local home mobile TBT improved in both consent modes, but the consent-off after run regressed LCP/Speed Index; status remains IMPLEMENTED LOCALLY / PROVIDER PROOF OPEN with before/after Speed Insights comparison, hosted analytics behavior, Lenis scope, and broader image/font LCP gates still open.
-**Performance and Speed Lenis Non-Home Scope Implemented Locally (2026-06-06):** Workstream 2.3 now removes `LandingSmoothScrollProvider` from non-home `PublicPageShell` routes while preserving the home page provider and reduced-motion behavior. Evidence at `.ai/03_plans/2026-06-05-performance-and-speed/evidence/lenis-non-home-scope-2026-06-06/lenis-non-home-scope-summary.md` records focused landing tests, type-check/build, a passing Playwright non-home navigation smoke, and local mobile Lighthouse after-traces for `/features`, `/pricing`, and `/contact` under consent off/on. Local results improved features/pricing and were mixed/stable for contact; status remains IMPLEMENTED LOCALLY / PROVIDER PROOF OPEN with before/after Vercel Speed Insights comparison, hosted analytics behavior, and broader public image/font/script gates still open.
-**Performance and Speed Public Font LCP Audit Implemented Locally (2026-06-06):** Workstream 2.4 now removes unused root font families from `src/app/layout.tsx` and unused Poppins/Source Serif aliases from `src/app/globals.css`; root public fonts are Inter plus Roboto Mono only. Evidence at `.ai/03_plans/2026-06-05-performance-and-speed/evidence/public-image-font-lcp-audit-2026-06-06/public-image-font-lcp-summary.md` records source audit, post-build font CSS counts, focused DOM coverage, and local mobile Lighthouse after-traces for `/` and `/features` consent-off. No image preload/media change was made because public LCP evidence did not identify an image candidate; status remains LOCAL FONT SURFACE REDUCED / PROVIDER PROOF OPEN with before/after Speed Insights comparison and hosted waterfall proof still open.
-**Performance and Speed PR-1B Root Provider Split Decision (2026-06-06):** Workstream 1.2 is closed as ROOT PROVIDER SPLIT NOT JUSTIFIED / PROVIDER PROOF OPEN. Bundle/analyzer and local public-route evidence did not attribute material public-route cost to `AppProviders`, so the branch keeps root providers/global CSS structure unchanged and limits shipped local mitigations to Neat mobile fallback, non-home Lenis scoping, and unused root font removal. Reopen only with hosted Speed Insights/manual trace/analyzer proof that root providers are the public-route bottleneck.
-**Performance and Speed Shared-Link Activity Benchmark Captured Locally (2026-06-06):** Workstream 6.2 now has a local benchmark script and regression coverage on `feat/performance-and-speed-pr-0b-cache-safety`: `scripts/benchmark-shared-link-activity.ts` records current activity query fan-out and synthetic merge/sort/compose cost, with tests in `tests/vitest/shared-link-activity-benchmark.test.ts`. Evidence at `.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-shared-link-activity-benchmark.md` shows public anonymous = 3 queries, public recipient-session = 5, owner include-telemetry = 6 activity-table queries before auth/RBAC overhead; hosted Supabase EXPLAIN/RLS/function-duration proof remains open before RPC/index/pagination changes.
-**Performance and Speed Share No-Store Invariants Locked Locally (2026-06-06):** Workstream 6.1 now has static regression coverage in `tests/vitest/share-no-store-invariants.test.ts` for all tokenized `/api/share/[token]` route handlers and `/share/[token]`. Evidence at `.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-share-no-store-invariants.md` records 4 files / 56 tests passed with no production endpoint/cache behavior changed. Tokenized share APIs remain no-store/force-dynamic; future performance work must keep token/password/session/rate-limit protections intact.
-**Performance and Speed Per-Route Query Inventory Captured Locally (2026-06-06):** Workstream 5.1 now has repo-static per-route query evidence on `feat/performance-and-speed-pr-0b-cache-safety`: `scripts/build-performance-query-inventory.ts` groups 262 table/RPC references into 7 route buckets and records operations plus selected-column payload shape/counts, with regression coverage in `tests/vitest/performance-query-inventory.test.ts`. Evidence lives at `.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-per-route-query-inventory.md` and `.json`. This closes the local inventory requirement only; live Supabase EXPLAIN, provider metrics, RLS cost, row counts, and hosted route timings remain open for Workstream 5.2.
-**Performance and Speed Estimate Cursor Pressure Guard Implemented Locally (2026-06-06):** Workstream 4.3 now adds a 6px same-cell queue gate in `src/hooks/use-estimate-cursor-broadcast.ts` before the existing timed Supabase Realtime cursor throttle. Evidence at `.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-estimate-cursor-broadcast-pressure.md` records synthetic same-cell queue reduction from 120 moves to 20 queued broadcasts while row target changes still queue; tests live in `tests/vitest/estimate-cursor-broadcast-throttle.test.ts`. Status remains LOCAL CURSOR PRESSURE GUARD IMPLEMENTED / PROVIDER PROOF OPEN with multi-user Realtime throughput and INP proof still open.
-**Performance and Speed Hosted Proposal Export Benchmark Harness Ready (2026-06-06):** Workstream 6.3 still requires hosted export route latency/memory proof, but `scripts/verify-hosted-export-route.ts` now supports repeated sanitized benchmark samples via `HOSTED_EXPORT_RUNS`, JSON sample arrays/min/avg/max duration fields, and `MARKDOWN_FILE` output. Evidence at `.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-hosted-proposal-export-benchmark-readiness.md` records the missing safe authenticated hosted fixture/cookie/header; no hosted proof was fabricated.
-**Performance and Speed Query Consolidation Decision Captured (2026-06-06):** Workstream 5.3 is closed as CONSOLIDATION NOT JUSTIFIED / LIVE PROVIDER PROOF OPEN. Evidence at `.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-query-consolidation-decision.md` records that repo-static query inventory and local share-activity benchmarks identify measurement targets but do not justify RPC/index/query consolidation without live Supabase EXPLAIN, provider metrics, RLS cost, row counts, or hosted timing proof.
-**Performance and Speed Estimate Lazy/Virtualization Decision Captured (2026-06-06):** Workstreams 4.2 and 4.4 are closed as NOT JUSTIFIED FROM LOCAL BASELINE / BROWSER PROFILER PROOF OPEN. Evidence at `.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-estimate-lazy-boundary-virtualization-decision.md` records that the current jsdom peak-load baseline does not attribute bottlenecks to lazy UI boundaries or tree row rendering, so speculative modal/sidebar/preview/chart splitting and tree virtualization/windowing remain deferred until browser React Profiler/provider INP proof exists.
-**Performance and Speed Release/Readiness Matrix Captured (2026-06-06):** Workstreams 7.1 and 7.3 are closed locally via `.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-release-rollback-readiness-language.md`, which maps each shipped/deferred performance surface to evidence, focused verification, rollback/reopen notes, and conservative status language. Workstream 7.2 remains open because Vercel Speed Insights window comparison still requires provider dashboard/export evidence and comparable production traffic.
-**Performance and Speed Live Supabase EXPLAIN Proof Captured (2026-06-06):** Workstream 5.2 is closed for this branch via `.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-live-supabase-explain-provider-proof.md`. Live Supabase proof against project `ebxxqidacheyapmmzavr` captured table stats, `pg_stat_statements`, focused EXPLAINs, and performance advisor findings; current closed-beta row counts do not justify index/RPC/query-consolidation migrations, and advisor/RLS optimization remains a separate security-reviewed owner-approved migration track.
-**Performance and Speed Beta Access Optimization Spike Captured (2026-06-06):** Workstream 3.3 is closed as SPIKE COMPLETE / NO AUTH CODE CHANGE JUSTIFIED via `.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-beta-access-optimization-spike.md`. Fresh GitNexus impact keeps `getClosedBetaAccessForEmail` at CRITICAL blast radius; current tests prove public routes skip Supabase auth; live `check_closed_beta_access` synthetic EXPLAIN was ~0.914ms; hosted unauthenticated `/workshop` redirect timing is captured in `2026-06-06-auth-proxy-hosted-unauth-timing.json`. Signed-in hosted auth waterfall remains open pending a safe authenticated fixture.
-**Performance and Speed Speed Insights Provider Retry Superseded for Numeric p75 (2026-06-06):** The earlier retry artifact at `.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-speed-insights-provider-access-retry.md` remains accurate for connector/browser/dashboard UI failure, but is superseded for numeric p75 by the later Vercel CLI capture. Dashboard overview score/screenshot and recommendation cards remain unavailable; Workstream 7.2 still needs comparable provider windows.
-**Performance and Speed Open Gate Reconciliation Captured (2026-06-06):** `.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-open-gate-reconciliation.md` closes stale local decision/security gates for marketing visual graceful degradation, GA/Clarity consent-gated loading, absence of global Next/React experimental toggles, auth/proxy no-change review, and tokenized/share cache-header invariants. Later CLI evidence captures Speed Insights p75; the later production postfix run captures signed-out/probe-safe no-store proof. Dashboard UI/recommendation cards and comparable Speed Insights window comparison remain open; later synthetic fixture proof closes signed-in auth, hosted export, and valid private media, while valid private share-token proof was later closed by synthetic hosted UI fixture evidence.
-**Performance and Speed Hosted Auth Smoke Benchmark Harness Updated (2026-06-06):** Workstream 3.1 was open for signed-in auth/proxy waterfall proof until the later synthetic hosted fixture proof closed it. `scripts/verify-hosted-auth-routes.ts` now supports repeated sanitized hosted auth timing samples via `HOSTED_AUTH_RUNS`, JSON sample arrays/min/avg/max duration fields, `MARKDOWN_FILE` output, and cache-control/no-leak checks. The earlier evidence at `.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-auth-proxy-hosted-smoke-benchmark.md` and `.json` intentionally failed closed before deployment because signed-out `/workshop` returned public cache-control and signed-in fixtures were absent. Later production postfix evidence at `2026-06-06-auth-proxy-production-postfix-smoke-benchmark.md` / `.json` supersedes the signed-out cache gap, and later `2026-06-06-hosted-auth-production-synthetic-fixture-smoke-benchmark.md` / `.json` captures allowed/denied/revoked/expired synthetic sessions. Status after synthetic proof: HOSTED AUTH PROOF CAPTURED / SPEED INSIGHTS WINDOW COMPARISON OPEN.
-**Performance and Speed Remaining Provider/Fixture Gates Partially Superseded (2026-06-06):** After commit `23db6aa`, `.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-remaining-provider-fixture-blocker-audit.md` recorded missing Speed Insights p75/dashboard, signed-in auth fixtures, hosted export fixtures, and comparable windows. Later Vercel CLI evidence supersedes the Speed Insights p75 portion, and later production postfix evidence supersedes the post-deploy signed-out/probe-safe cache proof gap. Dashboard overview/recommendation cards and comparable windows remain open; later synthetic hosted fixture proof closes signed-in hosted auth, hosted export, and valid private media, while valid private share-token proof was later closed by synthetic hosted UI fixture evidence. Status remains IMPLEMENTED LOCALLY / PROVIDER PROOF OPEN for performance impact until comparable Speed Insights windows exist.
+  **Performance and Speed Neat Mobile Fallback Implemented Locally (2026-06-06):** Workstream 2.2 now has a narrow code-bearing local mitigation on `feat/performance-and-speed-pr-0b-cache-safety`: `src/components/landing/NeatWireframeBackground.tsx` keeps the hero on a static orange gradient for mobile, coarse-pointer, and reduced-motion clients, and dynamically imports/activates `@firecms/neat` after idle for eligible desktop clients. Evidence at `.ai/03_plans/2026-06-05-performance-and-speed/evidence/neat-mobile-fallback-2026-06-06/neat-mobile-fallback-summary.md` records focused DOM tests, type-check/build, after Lighthouse JSON/HTML/traces, and extracted final-screenshot comparison. Local home mobile TBT improved in both consent modes, but the consent-off after run regressed LCP/Speed Index; status remains IMPLEMENTED LOCALLY / PROVIDER PROOF OPEN with before/after Speed Insights comparison, hosted analytics behavior, Lenis scope, and broader image/font LCP gates still open.
+  **Performance and Speed Lenis Non-Home Scope Implemented Locally (2026-06-06):** Workstream 2.3 now removes `LandingSmoothScrollProvider` from non-home `PublicPageShell` routes while preserving the home page provider and reduced-motion behavior. Evidence at `.ai/03_plans/2026-06-05-performance-and-speed/evidence/lenis-non-home-scope-2026-06-06/lenis-non-home-scope-summary.md` records focused landing tests, type-check/build, a passing Playwright non-home navigation smoke, and local mobile Lighthouse after-traces for `/features`, `/pricing`, and `/contact` under consent off/on. Local results improved features/pricing and were mixed/stable for contact; status remains IMPLEMENTED LOCALLY / PROVIDER PROOF OPEN with before/after Vercel Speed Insights comparison, hosted analytics behavior, and broader public image/font/script gates still open.
+  **Performance and Speed Public Font LCP Audit Implemented Locally (2026-06-06):** Workstream 2.4 now removes unused root font families from `src/app/layout.tsx` and unused Poppins/Source Serif aliases from `src/app/globals.css`; root public fonts are Inter plus Roboto Mono only. Evidence at `.ai/03_plans/2026-06-05-performance-and-speed/evidence/public-image-font-lcp-audit-2026-06-06/public-image-font-lcp-summary.md` records source audit, post-build font CSS counts, focused DOM coverage, and local mobile Lighthouse after-traces for `/` and `/features` consent-off. No image preload/media change was made because public LCP evidence did not identify an image candidate; status remains LOCAL FONT SURFACE REDUCED / PROVIDER PROOF OPEN with before/after Speed Insights comparison and hosted waterfall proof still open.
+  **Performance and Speed PR-1B Root Provider Split Decision (2026-06-06):** Workstream 1.2 is closed as ROOT PROVIDER SPLIT NOT JUSTIFIED / PROVIDER PROOF OPEN. Bundle/analyzer and local public-route evidence did not attribute material public-route cost to `AppProviders`, so the branch keeps root providers/global CSS structure unchanged and limits shipped local mitigations to Neat mobile fallback, non-home Lenis scoping, and unused root font removal. Reopen only with hosted Speed Insights/manual trace/analyzer proof that root providers are the public-route bottleneck.
+  **Performance and Speed Shared-Link Activity Benchmark Captured Locally (2026-06-06):** Workstream 6.2 now has a local benchmark script and regression coverage on `feat/performance-and-speed-pr-0b-cache-safety`: `scripts/benchmark-shared-link-activity.ts` records current activity query fan-out and synthetic merge/sort/compose cost, with tests in `tests/vitest/shared-link-activity-benchmark.test.ts`. Evidence at `.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-shared-link-activity-benchmark.md` shows public anonymous = 3 queries, public recipient-session = 5, owner include-telemetry = 6 activity-table queries before auth/RBAC overhead; hosted Supabase EXPLAIN/RLS/function-duration proof remains open before RPC/index/pagination changes.
+  **Performance and Speed Share No-Store Invariants Locked Locally (2026-06-06):** Workstream 6.1 now has static regression coverage in `tests/vitest/share-no-store-invariants.test.ts` for all tokenized `/api/share/[token]` route handlers and `/share/[token]`. Evidence at `.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-share-no-store-invariants.md` records 4 files / 56 tests passed with no production endpoint/cache behavior changed. Tokenized share APIs remain no-store/force-dynamic; future performance work must keep token/password/session/rate-limit protections intact.
+  **Performance and Speed Per-Route Query Inventory Captured Locally (2026-06-06):** Workstream 5.1 now has repo-static per-route query evidence on `feat/performance-and-speed-pr-0b-cache-safety`: `scripts/build-performance-query-inventory.ts` groups 262 table/RPC references into 7 route buckets and records operations plus selected-column payload shape/counts, with regression coverage in `tests/vitest/performance-query-inventory.test.ts`. Evidence lives at `.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-per-route-query-inventory.md` and `.json`. This closes the local inventory requirement only; live Supabase EXPLAIN, provider metrics, RLS cost, row counts, and hosted route timings remain open for Workstream 5.2.
+  **Performance and Speed Estimate Cursor Pressure Guard Implemented Locally (2026-06-06):** Workstream 4.3 now adds a 6px same-cell queue gate in `src/hooks/use-estimate-cursor-broadcast.ts` before the existing timed Supabase Realtime cursor throttle. Evidence at `.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-estimate-cursor-broadcast-pressure.md` records synthetic same-cell queue reduction from 120 moves to 20 queued broadcasts while row target changes still queue; tests live in `tests/vitest/estimate-cursor-broadcast-throttle.test.ts`. Status remains LOCAL CURSOR PRESSURE GUARD IMPLEMENTED / PROVIDER PROOF OPEN with multi-user Realtime throughput and INP proof still open.
+  **Performance and Speed Hosted Proposal Export Benchmark Harness Ready (2026-06-06):** Workstream 6.3 still requires hosted export route latency/memory proof, but `scripts/verify-hosted-export-route.ts` now supports repeated sanitized benchmark samples via `HOSTED_EXPORT_RUNS`, JSON sample arrays/min/avg/max duration fields, and `MARKDOWN_FILE` output. Evidence at `.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-hosted-proposal-export-benchmark-readiness.md` records the missing safe authenticated hosted fixture/cookie/header; no hosted proof was fabricated.
+  **Performance and Speed Query Consolidation Decision Captured (2026-06-06):** Workstream 5.3 is closed as CONSOLIDATION NOT JUSTIFIED / LIVE PROVIDER PROOF OPEN. Evidence at `.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-query-consolidation-decision.md` records that repo-static query inventory and local share-activity benchmarks identify measurement targets but do not justify RPC/index/query consolidation without live Supabase EXPLAIN, provider metrics, RLS cost, row counts, or hosted timing proof.
+  **Performance and Speed Estimate Lazy/Virtualization Decision Captured (2026-06-06):** Workstreams 4.2 and 4.4 are closed as NOT JUSTIFIED FROM LOCAL BASELINE / BROWSER PROFILER PROOF OPEN. Evidence at `.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-estimate-lazy-boundary-virtualization-decision.md` records that the current jsdom peak-load baseline does not attribute bottlenecks to lazy UI boundaries or tree row rendering, so speculative modal/sidebar/preview/chart splitting and tree virtualization/windowing remain deferred until browser React Profiler/provider INP proof exists.
+  **Performance and Speed Release/Readiness Matrix Captured (2026-06-06):** Workstreams 7.1 and 7.3 are closed locally via `.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-release-rollback-readiness-language.md`, which maps each shipped/deferred performance surface to evidence, focused verification, rollback/reopen notes, and conservative status language. Workstream 7.2 remains open because Vercel Speed Insights window comparison still requires provider dashboard/export evidence and comparable production traffic.
+  **Performance and Speed Live Supabase EXPLAIN Proof Captured (2026-06-06):** Workstream 5.2 is closed for this branch via `.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-live-supabase-explain-provider-proof.md`. Live Supabase proof against project `ebxxqidacheyapmmzavr` captured table stats, `pg_stat_statements`, focused EXPLAINs, and performance advisor findings; current closed-beta row counts do not justify index/RPC/query-consolidation migrations, and advisor/RLS optimization remains a separate security-reviewed owner-approved migration track.
+  **Performance and Speed Beta Access Optimization Spike Captured (2026-06-06):** Workstream 3.3 is closed as SPIKE COMPLETE / NO AUTH CODE CHANGE JUSTIFIED via `.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-beta-access-optimization-spike.md`. Fresh GitNexus impact keeps `getClosedBetaAccessForEmail` at CRITICAL blast radius; current tests prove public routes skip Supabase auth; live `check_closed_beta_access` synthetic EXPLAIN was ~0.914ms; hosted unauthenticated `/workshop` redirect timing is captured in `2026-06-06-auth-proxy-hosted-unauth-timing.json`. Signed-in hosted auth waterfall remains open pending a safe authenticated fixture.
+  **Performance and Speed Speed Insights Provider Retry Superseded for Numeric p75 (2026-06-06):** The earlier retry artifact at `.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-speed-insights-provider-access-retry.md` remains accurate for connector/browser/dashboard UI failure, but is superseded for numeric p75 by the later Vercel CLI capture. Dashboard overview score/screenshot and recommendation cards remain unavailable; Workstream 7.2 still needs comparable provider windows.
+  **Performance and Speed Open Gate Reconciliation Captured (2026-06-06):** `.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-open-gate-reconciliation.md` closes stale local decision/security gates for marketing visual graceful degradation, GA/Clarity consent-gated loading, absence of global Next/React experimental toggles, auth/proxy no-change review, and tokenized/share cache-header invariants. Later CLI evidence captures Speed Insights p75; the later production postfix run captures signed-out/probe-safe no-store proof. Dashboard UI/recommendation cards and comparable Speed Insights window comparison remain open; later synthetic fixture proof closes signed-in auth, hosted export, and valid private media, while valid private share-token proof was later closed by synthetic hosted UI fixture evidence.
+  **Performance and Speed Hosted Auth Smoke Benchmark Harness Updated (2026-06-06):** Workstream 3.1 was open for signed-in auth/proxy waterfall proof until the later synthetic hosted fixture proof closed it. `scripts/verify-hosted-auth-routes.ts` now supports repeated sanitized hosted auth timing samples via `HOSTED_AUTH_RUNS`, JSON sample arrays/min/avg/max duration fields, `MARKDOWN_FILE` output, and cache-control/no-leak checks. The earlier evidence at `.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-auth-proxy-hosted-smoke-benchmark.md` and `.json` intentionally failed closed before deployment because signed-out `/workshop` returned public cache-control and signed-in fixtures were absent. Later production postfix evidence at `2026-06-06-auth-proxy-production-postfix-smoke-benchmark.md` / `.json` supersedes the signed-out cache gap, and later `2026-06-06-hosted-auth-production-synthetic-fixture-smoke-benchmark.md` / `.json` captures allowed/denied/revoked/expired synthetic sessions. Status after synthetic proof: HOSTED AUTH PROOF CAPTURED / SPEED INSIGHTS WINDOW COMPARISON OPEN.
+  **Performance and Speed Remaining Provider/Fixture Gates Partially Superseded (2026-06-06):** After commit `23db6aa`, `.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-remaining-provider-fixture-blocker-audit.md` recorded missing Speed Insights p75/dashboard, signed-in auth fixtures, hosted export fixtures, and comparable windows. Later Vercel CLI evidence supersedes the Speed Insights p75 portion, and later production postfix evidence supersedes the post-deploy signed-out/probe-safe cache proof gap. Dashboard overview/recommendation cards and comparable windows remain open; later synthetic hosted fixture proof closes signed-in hosted auth, hosted export, and valid private media, while valid private share-token proof was later closed by synthetic hosted UI fixture evidence. Status remains IMPLEMENTED LOCALLY / PROVIDER PROOF OPEN for performance impact until comparable Speed Insights windows exist.
 
 **Performance and Speed Speed Insights CLI Baseline Captured (2026-06-06):** Workstream 0.1 is now numerically captured via Vercel CLI `vercel metrics` in branch `feat/performance-and-speed-pr-0b-cache-safety`. Evidence at `.ai/03_plans/2026-06-05-performance-and-speed/evidence/vercel-speed-insights-cli-2026-06-06/vercel-speed-insights-cli-baseline.md` plus raw `current-*-overall.json` / `current-*-route-device.json` records current 7-day provider p75 values: LCP 1447ms, INP 59,404,496ms anomalous provider value, CLS null overall with route/device zeros, FCP 1380ms, and TTFB 299ms. Dashboard overview score/screenshot and recommendation cards remain unavailable; Workstream 7.2 remains open because previous 7-day and previous-3-day route/device windows returned empty summaries, so no comparable cohort exists.
 
@@ -9577,7 +9852,6 @@ Open:
 - The checker is read-only: it runs Vercel inspect/metrics, filters p75 Speed Insights rows to the current production deployment, compares FCP/LCP/INP/CLS against Vercel good thresholds, and fails closed without a dashboard RES score.
 - Latest run evidence at `.ai/03_plans/2026-06-05-performance-and-speed/evidence/vercel-speed-insights-readiness-check-2026-06-06/vercel-speed-insights-readiness.md` shows current deployment `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR`, zero current-deployment rows, and `resCompletionReady: false`.
 - RES completion remains unclaimed until the checker passes with current-deployment rows and dashboard RES >= 95.
-
 
 ## Performance and Speed RES Provider Gate Rerun / API Inventory (2026-06-06)
 
@@ -9691,7 +9965,6 @@ Open:
 - Fresh local evidence: `bun x vitest run tests/vitest/estimate-tabs-domain.test.ts --maxWorkers=1` passed (1 file / 6 tests), focused ESLint passed, `bun run type-check` passed, and `git diff --check` passed.
 - Evidence log: `.ai/05_logs/2026-06-13-estimate-tabs-r3-compat-governance-run.md`.
 - Boundary: no compatibility shim deletion, internal rename batch, linked Supabase apply/typegen, hosted proof, Vercel deploy, production deploy, or manual QA was performed.
-
 
 ## Estimate Tabs R4.4-R4.5 Template Source Local Proof Refreshed (2026-06-13)
 
