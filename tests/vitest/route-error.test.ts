@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { AuthPermissionDeniedError } from "@/lib/observability/app-error";
 import type { AppLogger, LogRecord } from "@/lib/observability/logger";
+import { REQUEST_ID_HEADER, withRequestIdContext } from "@/lib/observability/request-id";
 import { errorResponse } from "@/lib/observability/route-error";
 
 function createTestLogger() {
@@ -55,5 +56,25 @@ describe("errorResponse", () => {
       },
     });
     expect(JSON.stringify(records[0])).not.toContain("password leaked");
+  });
+
+  it("uses the current request id context when no explicit trace id is supplied", async () => {
+    const { logger, records } = createTestLogger();
+    const response = await withRequestIdContext(
+      {
+        echoId: "client.req-123456",
+        internalId: "req_00000000-0000-4000-8000-000000000000",
+        source: "inbound",
+      },
+      async () => errorResponse(new AuthPermissionDeniedError(), { logger }),
+    );
+
+    expect(response.headers.get(REQUEST_ID_HEADER)).toBe("req_00000000-0000-4000-8000-000000000000");
+    expect(await response.json()).toMatchObject({
+      trace_id: "req_00000000-0000-4000-8000-000000000000",
+    });
+    expect(records[0]).toMatchObject({
+      request_id: "req_00000000-0000-4000-8000-000000000000",
+    });
   });
 });

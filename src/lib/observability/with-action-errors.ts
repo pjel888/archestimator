@@ -1,6 +1,7 @@
 import { actionFailure, actionOk } from "./action-result";
 import { normalizeAppError } from "./app-error";
 import { logAppError, type AppLogger } from "./logger";
+import { getCurrentRequestId } from "./request-id";
 import type { ActionFailure, ActionResult } from "./types";
 
 type WithActionErrorsOptions = {
@@ -54,6 +55,7 @@ export function withActionErrors<Args extends unknown[], T>(
         logger: options.logger,
         event: "action_error",
         action: actionName,
+        requestId: getCurrentRequestId() ?? undefined,
       });
       const failure = actionFailure(appError);
       if (options.failureMode === "passthrough-message") {
@@ -78,6 +80,7 @@ export function withActionErrorLogging<Args extends unknown[], T>(
         logger: options.logger,
         event: "action_error",
         action: actionName,
+        requestId: getCurrentRequestId() ?? undefined,
       });
       throw error;
     }

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { routeCloudflareProtectedProofRequest } from "@/lib/cloudflare/protected-proof-routes";
 
@@ -37,5 +37,25 @@ describe("Cloudflare protected proof route dispatcher", () => {
 
     expect(response?.status).toBe(503);
     expect(body.error).toBe("CRON_SECRET is not configured.");
+  });
+
+  it("dispatches protected observability-proof requests", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    const response = await routeCloudflareProtectedProofRequest(
+      new Request("https://archestimator.test/__cloudflare/observability-proof", {
+        method: "POST",
+        headers: {
+          authorization: "Bearer proof-secret",
+          "x-observability-proof-id": "proof_12345678",
+        },
+      }),
+      { CRON_SECRET: "proof-secret" },
+    );
+    const body = await response?.json();
+
+    expect(response?.status).toBe(200);
+    expect(body.mode).toBe("cloudflare-observability-proof");
+    expect(log).toHaveBeenCalledTimes(1);
+    log.mockRestore();
   });
 });

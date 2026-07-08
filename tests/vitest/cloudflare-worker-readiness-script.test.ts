@@ -93,17 +93,17 @@ const COMPLETE_WRANGLER = JSON.stringify({
   triggers: { crons: ["0 3 * * *", "15 3 * * *"] },
   observability: {
     enabled: true,
-    head_sampling_rate: 0.1,
+    head_sampling_rate: 1,
     logs: {
       enabled: true,
-      head_sampling_rate: 0.1,
+      head_sampling_rate: 1,
       invocation_logs: true,
       persist: true,
     },
     traces: {
-      enabled: true,
-      head_sampling_rate: 0.05,
-      persist: true,
+      enabled: false,
+      head_sampling_rate: 0,
+      persist: false,
     },
   },
   vars: {
@@ -125,6 +125,48 @@ const COMPLETE_PACKAGE_JSON = JSON.stringify({
     "cf:check-readiness": "bun run scripts/check-cloudflare-worker-readiness.ts",
   },
 });
+
+const COMPLETE_WORKER_SOURCE = `
+import { routeCloudflareProtectedProofRequest } from "./src/lib/cloudflare/protected-proof-routes";
+async function fetch(request, env) {
+  const proofResponse = await routeCloudflareProtectedProofRequest(request, env);
+  if (proofResponse) return responseWithRequestId(proofResponse, requestId);
+}
+`;
+
+const COMPLETE_PROTECTED_PROOF_ROUTES_SOURCE = `
+const OBSERVABILITY_PROOF_PATH = "/__cloudflare/observability-proof";
+async function route(request, env) {
+  const { routeCloudflareObservabilityProofRequest } = await import("./observability-proof-router");
+  return routeCloudflareObservabilityProofRequest(request, env);
+}
+`;
+
+const COMPLETE_OBSERVABILITY_PROOF_ROUTER_SOURCE = `
+const secret = env.CRON_SECRET?.trim();
+return request.headers.get("authorization") === \`Bearer \${secret}\` ? "authorized" : "unauthorized";
+return jsonResponse({ error: "Unauthorized." }, 401);
+console.log(JSON.stringify({ event: "workers_logs_proof_marker", request_id, context: { proof_id } }));
+`;
+
+const COMPLETE_WORKER_ROUTE_OPTIMIZATIONS_SOURCE = `
+if (canonical.keepProofRoutes && url.pathname.startsWith("/__cloudflare/")) {
+  return null;
+}
+`;
+
+function completeReadinessInput() {
+  return {
+    envExampleText: COMPLETE_ENV_EXAMPLE,
+    devVarsExampleText: COMPLETE_DEV_VARS_EXAMPLE,
+    wranglerConfigText: COMPLETE_WRANGLER,
+    packageJsonText: COMPLETE_PACKAGE_JSON,
+    workerSourceText: COMPLETE_WORKER_SOURCE,
+    protectedProofRoutesSourceText: COMPLETE_PROTECTED_PROOF_ROUTES_SOURCE,
+    observabilityProofRouterSourceText: COMPLETE_OBSERVABILITY_PROOF_ROUTER_SOURCE,
+    workerRouteOptimizationsSourceText: COMPLETE_WORKER_ROUTE_OPTIMIZATIONS_SOURCE,
+  };
+}
 
 function completeSecretTranscript() {
   return [
@@ -179,10 +221,7 @@ describe("Cloudflare Worker readiness checker", () => {
 
   it("passes manifest readiness while keeping deployment evidence separate", () => {
     const result = checkCloudflareWorkerReadiness({
-      envExampleText: COMPLETE_ENV_EXAMPLE,
-      devVarsExampleText: COMPLETE_DEV_VARS_EXAMPLE,
-      wranglerConfigText: COMPLETE_WRANGLER,
-      packageJsonText: COMPLETE_PACKAGE_JSON,
+      ...completeReadinessInput(),
       localDevVarsText: `
         PUBLICATION_TOKEN_ENCRYPTION_SECRET=local-proof-only
         PUBLICATION_TOKEN_HASH_SECRET=local-proof-only
@@ -202,6 +241,7 @@ describe("Cloudflare Worker readiness checker", () => {
 
     expect(result.manifestReady).toBe(true);
     expect(result.wranglerObservability.ready).toBe(true);
+    expect(result.workerProofRoutes.ready).toBe(true);
     expect(result.localPreviewReady).toBe(true);
     expect(result.providerSecretList.checked).toBe(false);
     expect(result.deploymentSecretsReady).toBe(false);
@@ -211,6 +251,7 @@ describe("Cloudflare Worker readiness checker", () => {
 
   it("fails closed when Worker manifests drift", () => {
     const result = checkCloudflareWorkerReadiness({
+      ...completeReadinessInput(),
       envExampleText: COMPLETE_ENV_EXAMPLE.replace("NEXT_PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN=\n", ""),
       devVarsExampleText: COMPLETE_DEV_VARS_EXAMPLE.replace("PUBLICATION_TOKEN_HASH_SECRET=\n", ""),
       wranglerConfigText: JSON.stringify({
@@ -219,10 +260,15 @@ describe("Cloudflare Worker readiness checker", () => {
         triggers: { crons: ["0 3 * * *"] },
         observability: {
           enabled: true,
-          head_sampling_rate: 1,
+          head_sampling_rate: 0.1,
           logs: {
             enabled: true,
-            head_sampling_rate: 1,
+            head_sampling_rate: 0.1,
+          },
+          traces: {
+            enabled: true,
+            head_sampling_rate: 0.05,
+            persist: true,
           },
         },
       }),
@@ -242,19 +288,32 @@ describe("Cloudflare Worker readiness checker", () => {
     expect(result.wranglerVars.missing).toContain("ARCH_UPLOAD_HOSTED_MEMORY_MB");
     expect(result.wranglerCustomDomains.missing).toEqual(["archestimator.com", "www.archestimator.com"]);
     expect(result.wranglerCrons.missing).toContain("15 3 * * *");
-    expect(result.wranglerObservability.missing).toContain("observability.head_sampling_rate<=0.1");
-    expect(result.wranglerObservability.missing).toContain("observability.logs.head_sampling_rate<=0.1");
+    expect(result.wranglerObservability.missing).toContain("observability.head_sampling_rate=1");
+    expect(result.wranglerObservability.missing).toContain("observability.logs.head_sampling_rate=1");
     expect(result.wranglerObservability.missing).toContain("observability.logs.invocation_logs");
-    expect(result.wranglerObservability.missing).toContain("observability.traces.enabled");
+    expect(result.wranglerObservability.missing).toContain("observability.traces.enabled=false");
+    expect(result.wranglerObservability.missing).toContain("observability.traces.head_sampling_rate=0");
+    expect(result.wranglerObservability.missing).toContain("observability.traces.persist=false");
     expect(result.packageScripts.missing).toContain("cf:check-readiness");
+  });
+
+  it("fails readiness when the observability proof route source contract drifts", () => {
+    const result = checkCloudflareWorkerReadiness({
+      ...completeReadinessInput(),
+      protectedProofRoutesSourceText: COMPLETE_PROTECTED_PROOF_ROUTES_SOURCE.replace(
+        '"/__cloudflare/observability-proof"',
+        '"/__cloudflare/provider-proof"',
+      ),
+    });
+
+    expect(result.manifestReady).toBe(false);
+    expect(result.workerProofRoutes.ready).toBe(false);
+    expect(result.workerProofRoutes.missing).toContain("protected-proof-routes.observability-proof-path-dispatched");
   });
 
   it("checks provider secret-list evidence only when a sanitized transcript is supplied", () => {
     const result = checkCloudflareWorkerReadiness({
-      envExampleText: COMPLETE_ENV_EXAMPLE,
-      devVarsExampleText: COMPLETE_DEV_VARS_EXAMPLE,
-      wranglerConfigText: COMPLETE_WRANGLER,
-      packageJsonText: COMPLETE_PACKAGE_JSON,
+      ...completeReadinessInput(),
       providerSecretListText: completeSecretTranscript(),
       providerSecretListSource: "sanitized-wrangler-secret-list.txt",
     });
@@ -270,20 +329,22 @@ describe("Cloudflare Worker readiness checker", () => {
       devVarsExampleText: readFileSync(".dev.vars.example", "utf8"),
       wranglerConfigText: readFileSync("wrangler.jsonc", "utf8"),
       packageJsonText: readFileSync("package.json", "utf8"),
+      workerSourceText: readFileSync("worker.ts", "utf8"),
+      protectedProofRoutesSourceText: readFileSync("src/lib/cloudflare/protected-proof-routes.ts", "utf8"),
+      observabilityProofRouterSourceText: readFileSync("src/lib/cloudflare/observability-proof-router.ts", "utf8"),
+      workerRouteOptimizationsSourceText: readFileSync("src/lib/cloudflare/worker-route-optimizations.ts", "utf8"),
     });
 
     expect(result.manifestReady).toBe(true);
     expect(result.wranglerCustomDomains.ready).toBe(true);
     expect(result.wranglerObservability.ready).toBe(true);
+    expect(result.workerProofRoutes.ready).toBe(true);
     expect(result.deploymentReady).toBe(false);
   });
 
   it("writes markdown without leaking local secret values", () => {
     const result = checkCloudflareWorkerReadiness({
-      envExampleText: COMPLETE_ENV_EXAMPLE,
-      devVarsExampleText: COMPLETE_DEV_VARS_EXAMPLE,
-      wranglerConfigText: COMPLETE_WRANGLER,
-      packageJsonText: COMPLETE_PACKAGE_JSON,
+      ...completeReadinessInput(),
       localDevVarsText: `
         PUBLICATION_TOKEN_ENCRYPTION_SECRET=secret-encryption-value
         PUBLICATION_TOKEN_HASH_SECRET=secret-hash-value
@@ -306,6 +367,7 @@ describe("Cloudflare Worker readiness checker", () => {
       writeMarkdown(result, file);
       const markdown = readFileSync(file, "utf8");
       expect(markdown).toContain("Local preview secrets");
+      expect(markdown).toContain("Worker proof route source contracts");
       expect(markdown).not.toContain("secret-encryption-value");
       expect(markdown).not.toContain("secret-hash-value");
       expect(markdown).not.toContain("secret-cookie-value");

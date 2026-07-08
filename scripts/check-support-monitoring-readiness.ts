@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 type ProofFlagName =
@@ -18,6 +18,18 @@ export type SupportMonitoringReadinessResult = {
   alertOwner: string | null;
   first24HourReviewOwner: string | null;
   first72HourReviewOwner: string | null;
+  incidentStatus: {
+    source: string | null;
+    present: boolean;
+    operationalIncidentsReady: boolean;
+    staleIncidentIds: string[];
+  };
+  observabilityProof: {
+    source: string | null;
+    present: boolean;
+    productionObservabilityReady: boolean;
+    failedRequirementKeys: string[];
+  };
   missing: string[];
   supportMonitoringReady: boolean;
   note: string;
@@ -49,6 +61,126 @@ export function sanitizeOwnerLabel(value: string | undefined) {
   return trimmed;
 }
 
+type IncidentStatusArtifact = {
+  readiness?: {
+    operationalIncidentsReady?: boolean;
+    incidentTablesReady?: boolean;
+    noStaleIncidents?: boolean;
+  };
+  staleIncidents?: Array<{ id?: unknown }>;
+};
+
+type ObservabilityProofArtifact = {
+  productionObservabilityReady?: boolean;
+  failedRequirementKeys?: unknown[];
+  requirements?: Array<{ key?: unknown; status?: unknown }>;
+};
+
+function readIncidentStatusArtifact(path: string | undefined) {
+  if (!path) {
+    return {
+      source: null,
+      present: false,
+      operationalIncidentsReady: false,
+      staleIncidentIds: [] as string[],
+      missing: ["operational incident status artifact"],
+    };
+  }
+  if (!existsSync(path)) {
+    return {
+      source: path,
+      present: false,
+      operationalIncidentsReady: false,
+      staleIncidentIds: [] as string[],
+      missing: ["operational incident status artifact readable"],
+    };
+  }
+
+  try {
+    const artifact = JSON.parse(readFileSync(path, "utf8")) as IncidentStatusArtifact;
+    const staleIncidentIds = (artifact.staleIncidents ?? [])
+      .map((row) => typeof row.id === "string" ? row.id : null)
+      .filter((value): value is string => Boolean(value));
+    const operationalIncidentsReady = artifact.readiness?.operationalIncidentsReady === true
+      && artifact.readiness.incidentTablesReady === true
+      && artifact.readiness.noStaleIncidents === true
+      && staleIncidentIds.length === 0;
+
+    return {
+      source: path,
+      present: true,
+      operationalIncidentsReady,
+      staleIncidentIds,
+      missing: [
+        artifact.readiness?.incidentTablesReady !== true ? "operational incident tables ready" : null,
+        ...staleIncidentIds.map((id) => `stale_incident:${id}`),
+      ].filter((value): value is string => Boolean(value)),
+    };
+  } catch {
+    return {
+      source: path,
+      present: false,
+      operationalIncidentsReady: false,
+      staleIncidentIds: [] as string[],
+      missing: ["operational incident status artifact valid JSON"],
+    };
+  }
+}
+
+function readObservabilityProofArtifact(path: string | undefined) {
+  if (!path) {
+    return {
+      source: null,
+      present: false,
+      productionObservabilityReady: false,
+      failedRequirementKeys: [] as string[],
+      missing: ["production observability proof artifact"],
+    };
+  }
+  if (!existsSync(path)) {
+    return {
+      source: path,
+      present: false,
+      productionObservabilityReady: false,
+      failedRequirementKeys: [] as string[],
+      missing: ["production observability proof artifact readable"],
+    };
+  }
+
+  try {
+    const artifact = JSON.parse(readFileSync(path, "utf8")) as ObservabilityProofArtifact;
+    const failedRequirementKeys = artifact.failedRequirementKeys
+      ?.filter((value): value is string => typeof value === "string")
+      ?? (artifact.requirements ?? [])
+        .filter((row) => row.status !== "passed")
+        .map((row) => typeof row.key === "string" ? row.key : null)
+        .filter((value): value is string => Boolean(value));
+    const productionObservabilityReady = artifact.productionObservabilityReady === true
+      && failedRequirementKeys.length === 0;
+
+    return {
+      source: path,
+      present: true,
+      productionObservabilityReady,
+      failedRequirementKeys,
+      missing: productionObservabilityReady
+        ? []
+        : [
+          "production observability proof ready",
+          ...failedRequirementKeys.map((key) => `observability_proof:${key}`),
+        ],
+    };
+  } catch {
+    return {
+      source: path,
+      present: false,
+      productionObservabilityReady: false,
+      failedRequirementKeys: [] as string[],
+      missing: ["production observability proof artifact valid JSON"],
+    };
+  }
+}
+
 export function checkSupportMonitoringReadiness(env: Record<string, string | undefined> = process.env) {
   const proofFlags = Object.fromEntries(
     PROOF_FLAGS.map((name) => [name, parseProofFlag(env[name])]),
@@ -58,6 +190,12 @@ export function checkSupportMonitoringReadiness(env: Record<string, string | und
   const alertOwner = sanitizeOwnerLabel(env.SUPPORT_MONITORING_ALERT_OWNER);
   const first24HourReviewOwner = sanitizeOwnerLabel(env.SUPPORT_MONITORING_FIRST_24H_OWNER);
   const first72HourReviewOwner = sanitizeOwnerLabel(env.SUPPORT_MONITORING_FIRST_72H_OWNER);
+  const incidentStatus = readIncidentStatusArtifact(
+    env.SUPPORT_MONITORING_INCIDENT_STATUS_FILE ?? env.OPERATIONAL_INCIDENTS_STATUS_FILE,
+  );
+  const observabilityProof = readObservabilityProofArtifact(
+    env.SUPPORT_MONITORING_OBSERVABILITY_PROOF_FILE ?? env.PRODUCTION_OBSERVABILITY_PROOF_FILE,
+  );
 
   const missing = [
     !proofFlags.SUPPORT_MONITORING_INBOX_CONFIRMED ? "support inbox monitoring confirmed" : null,
@@ -69,6 +207,8 @@ export function checkSupportMonitoringReadiness(env: Record<string, string | und
     !alertOwner ? "alert owner label" : null,
     !first24HourReviewOwner ? "first 24-hour review owner label" : null,
     !first72HourReviewOwner ? "first 72-hour review owner label" : null,
+    ...incidentStatus.missing,
+    ...observabilityProof.missing,
   ].filter((value): value is string => Boolean(value));
 
   return {
@@ -79,9 +219,21 @@ export function checkSupportMonitoringReadiness(env: Record<string, string | und
     alertOwner,
     first24HourReviewOwner,
     first72HourReviewOwner,
+    incidentStatus: {
+      source: incidentStatus.source,
+      present: incidentStatus.present,
+      operationalIncidentsReady: incidentStatus.operationalIncidentsReady,
+      staleIncidentIds: incidentStatus.staleIncidentIds,
+    },
+    observabilityProof: {
+      source: observabilityProof.source,
+      present: observabilityProof.present,
+      productionObservabilityReady: observabilityProof.productionObservabilityReady,
+      failedRequirementKeys: observabilityProof.failedRequirementKeys,
+    },
     missing,
     supportMonitoringReady: missing.length === 0,
-    note: "Sanitized support monitoring readiness check. It records operator-confirmed proof flags and owner labels only; it does not verify inbox access, alert dashboards, linked feedback rows, hosted auth, or incident delivery by itself.",
+    note: "Sanitized support monitoring readiness check. It records operator-confirmed proof flags and owner labels, consumes read-only operational incident and production observability proof artifacts, and fails closed when hosted evidence is missing. It does not verify inbox access, alert dashboards, linked feedback rows, hosted auth, or incident delivery by itself.",
   } satisfies SupportMonitoringReadinessResult;
 }
 

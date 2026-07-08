@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -15,6 +15,11 @@ function readRecords() {
     .split("\n")
     .filter(Boolean)
     .map((line) => JSON.parse(line));
+}
+
+function readDefaultDevLogSize() {
+  const defaultLogPath = join(process.cwd(), "logs", "dev.ndjson");
+  return existsSync(defaultLogPath) ? statSync(defaultLogPath).size : null;
 }
 
 describe("dev NDJSON logger", () => {
@@ -57,6 +62,35 @@ describe("dev NDJSON logger", () => {
       context: { route: "/workshop" },
     });
     expect(records[1].record_id).toEqual(expect.stringContaining("-pid"));
+  });
+
+  it("does not write to the default dev log during tests without an explicit path", () => {
+    delete process.env.ARCHESTIMATOR_DEV_LOG_PATH;
+    process.env.NODE_ENV = "test";
+    const beforeSize = readDefaultDevLogSize();
+
+    emitLogRecord({
+      level: "error",
+      event: "test_noise_probe",
+      message: "Synthetic test error should stay out of the default dev log",
+    });
+
+    expect(readDefaultDevLogSize()).toBe(beforeSize);
+  });
+
+  it("still writes during tests when a dev log path is explicit", () => {
+    process.env.NODE_ENV = "test";
+
+    emitLogRecord({
+      level: "error",
+      event: "explicit_test_log_path_probe",
+      message: "Synthetic test error should use the explicit dev log path",
+    });
+
+    expect(readRecords().at(-1)).toMatchObject({
+      event: "explicit_test_log_path_probe",
+      level: "ERROR",
+    });
   });
 
   it("redacts log record fields before writing", () => {

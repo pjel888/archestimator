@@ -129,14 +129,14 @@ const REQUIRED_CUSTOM_DOMAIN_ROUTES = ["archestimator.com", "www.archestimator.c
 const REQUIRED_CRON_TRIGGERS = ["0 3 * * *", "15 3 * * *"] as const;
 const REQUIRED_OBSERVABILITY_SETTINGS = [
   "observability.enabled",
-  "observability.head_sampling_rate<=0.1",
+  "observability.head_sampling_rate=1",
   "observability.logs.enabled",
-  "observability.logs.head_sampling_rate<=0.1",
+  "observability.logs.head_sampling_rate=1",
   "observability.logs.invocation_logs",
   "observability.logs.persist",
-  "observability.traces.enabled",
-  "observability.traces.head_sampling_rate<=0.05",
-  "observability.traces.persist",
+  "observability.traces.enabled=false",
+  "observability.traces.head_sampling_rate=0",
+  "observability.traces.persist=false",
 ] as const;
 const REQUIRED_PACKAGE_SCRIPTS = [
   "cf:build",
@@ -145,6 +145,13 @@ const REQUIRED_PACKAGE_SCRIPTS = [
   "cf:typegen",
   "cf:verify-preview-routes",
   "cf:check-readiness",
+] as const;
+const REQUIRED_WORKER_PROOF_ROUTE_CONTRACTS = [
+  "worker.protected-proof-router-called-before-app",
+  "protected-proof-routes.observability-proof-path-dispatched",
+  "observability-proof-route.cron-secret-bearer-auth",
+  "observability-proof-route.structured-marker-log",
+  "worker-route-optimizations.worker-dev-preserves-cloudflare-proof-routes",
 ] as const;
 
 type GroupResult = {
@@ -177,6 +184,10 @@ export type CloudflareWorkerReadinessResult = {
     devVarsExample: string;
     wranglerConfig: string;
     packageJson: string;
+    workerSource: string;
+    protectedProofRoutesSource: string;
+    observabilityProofRouterSource: string;
+    workerRouteOptimizationsSource: string;
   };
   envExample: GroupResult;
   devVarsExample: GroupResult;
@@ -186,6 +197,7 @@ export type CloudflareWorkerReadinessResult = {
   wranglerCrons: GroupResult;
   wranglerObservability: GroupResult;
   packageScripts: GroupResult;
+  workerProofRoutes: GroupResult;
   localDevVars: LocalDevVarsResult;
   providerSecretList: ProviderSecretListResult;
   manifestReady: boolean;
@@ -205,6 +217,10 @@ type CheckInputs = {
   devVarsExampleText: string;
   wranglerConfigText: string;
   packageJsonText: string;
+  workerSourceText?: string | null;
+  protectedProofRoutesSourceText?: string | null;
+  observabilityProofRouterSourceText?: string | null;
+  workerRouteOptimizationsSourceText?: string | null;
   sources?: Partial<CloudflareWorkerReadinessResult["sources"]>;
   localDevVarsText?: string | null;
   localDevVarsSource?: string | null;
@@ -349,8 +365,8 @@ function extractWranglerCrons(input: string) {
   return [...(parsed.triggers?.crons ?? [])].sort();
 }
 
-function samplingRateAtMost(value: unknown, max: number) {
-  return typeof value === "number" && Number.isFinite(value) && value > 0 && value <= max;
+function samplingRateEquals(value: unknown, expected: number) {
+  return typeof value === "number" && Number.isFinite(value) && value === expected;
 }
 
 function extractWranglerObservabilitySettings(input: string) {
@@ -373,26 +389,80 @@ function extractWranglerObservabilitySettings(input: string) {
   }>(input);
   const settings: string[] = [];
   if (parsed.observability?.enabled === true) settings.push("observability.enabled");
-  if (samplingRateAtMost(parsed.observability?.head_sampling_rate, 0.1)) {
-    settings.push("observability.head_sampling_rate<=0.1");
+  if (samplingRateEquals(parsed.observability?.head_sampling_rate, 1)) {
+    settings.push("observability.head_sampling_rate=1");
   }
   if (parsed.observability?.logs?.enabled === true) settings.push("observability.logs.enabled");
-  if (samplingRateAtMost(parsed.observability?.logs?.head_sampling_rate, 0.1)) {
-    settings.push("observability.logs.head_sampling_rate<=0.1");
+  if (samplingRateEquals(parsed.observability?.logs?.head_sampling_rate, 1)) {
+    settings.push("observability.logs.head_sampling_rate=1");
   }
   if (parsed.observability?.logs?.invocation_logs === true) settings.push("observability.logs.invocation_logs");
   if (parsed.observability?.logs?.persist === true) settings.push("observability.logs.persist");
-  if (parsed.observability?.traces?.enabled === true) settings.push("observability.traces.enabled");
-  if (samplingRateAtMost(parsed.observability?.traces?.head_sampling_rate, 0.05)) {
-    settings.push("observability.traces.head_sampling_rate<=0.05");
+  if (parsed.observability?.traces?.enabled === false) settings.push("observability.traces.enabled=false");
+  if (samplingRateEquals(parsed.observability?.traces?.head_sampling_rate, 0)) {
+    settings.push("observability.traces.head_sampling_rate=0");
   }
-  if (parsed.observability?.traces?.persist === true) settings.push("observability.traces.persist");
+  if (parsed.observability?.traces?.persist === false) settings.push("observability.traces.persist=false");
   return settings.sort();
 }
 
 function extractPackageScriptNames(input: string) {
   const parsed = JSON.parse(input) as { scripts?: Record<string, string> };
   return Object.keys(parsed.scripts ?? {}).sort();
+}
+
+function extractWorkerProofRouteContracts(input: {
+  workerSourceText?: string | null;
+  protectedProofRoutesSourceText?: string | null;
+  observabilityProofRouterSourceText?: string | null;
+  workerRouteOptimizationsSourceText?: string | null;
+}) {
+  const present: string[] = [];
+  const workerSource = input.workerSourceText ?? "";
+  const protectedProofRoutesSource = input.protectedProofRoutesSourceText ?? "";
+  const observabilityProofRouterSource = input.observabilityProofRouterSourceText ?? "";
+  const workerRouteOptimizationsSource = input.workerRouteOptimizationsSourceText ?? "";
+
+  if (
+    workerSource.includes("routeCloudflareProtectedProofRequest")
+    && workerSource.includes("const proofResponse = await routeCloudflareProtectedProofRequest(request, env)")
+    && workerSource.includes("if (proofResponse) return responseWithRequestId(proofResponse, requestId)")
+  ) {
+    present.push("worker.protected-proof-router-called-before-app");
+  }
+
+  if (
+    protectedProofRoutesSource.includes('"/__cloudflare/observability-proof"')
+    && protectedProofRoutesSource.includes("routeCloudflareObservabilityProofRequest")
+  ) {
+    present.push("protected-proof-routes.observability-proof-path-dispatched");
+  }
+
+  if (
+    observabilityProofRouterSource.includes("CRON_SECRET")
+    && observabilityProofRouterSource.includes("Bearer ${secret}")
+    && observabilityProofRouterSource.includes("Unauthorized.")
+  ) {
+    present.push("observability-proof-route.cron-secret-bearer-auth");
+  }
+
+  if (
+    observabilityProofRouterSource.includes("workers_logs_proof_marker")
+    && observabilityProofRouterSource.includes("request_id")
+    && observabilityProofRouterSource.includes("proof_id")
+  ) {
+    present.push("observability-proof-route.structured-marker-log");
+  }
+
+  if (
+    workerRouteOptimizationsSource.includes("canonical.keepProofRoutes")
+    && workerRouteOptimizationsSource.includes('url.pathname.startsWith("/__cloudflare/")')
+    && workerRouteOptimizationsSource.includes("return null")
+  ) {
+    present.push("worker-route-optimizations.worker-dev-preserves-cloudflare-proof-routes");
+  }
+
+  return present.sort();
 }
 
 function evaluateLocalDevVars(input: string | null | undefined, source: string | null | undefined): LocalDevVarsResult {
@@ -456,6 +526,15 @@ export function checkCloudflareWorkerReadiness(inputs: CheckInputs): CloudflareW
     extractWranglerObservabilitySettings(inputs.wranglerConfigText),
   );
   const packageScripts = evaluateGroup(REQUIRED_PACKAGE_SCRIPTS, extractPackageScriptNames(inputs.packageJsonText));
+  const workerProofRoutes = evaluateGroup(
+    REQUIRED_WORKER_PROOF_ROUTE_CONTRACTS,
+    extractWorkerProofRouteContracts({
+      workerSourceText: inputs.workerSourceText,
+      protectedProofRoutesSourceText: inputs.protectedProofRoutesSourceText,
+      observabilityProofRouterSourceText: inputs.observabilityProofRouterSourceText,
+      workerRouteOptimizationsSourceText: inputs.workerRouteOptimizationsSourceText,
+    }),
+  );
   const localDevVars = evaluateLocalDevVars(inputs.localDevVarsText, inputs.localDevVarsSource);
   const providerSecretList = evaluateProviderSecretList(inputs.providerSecretListText, inputs.providerSecretListSource);
   const manifestReady = envExample.ready
@@ -465,7 +544,8 @@ export function checkCloudflareWorkerReadiness(inputs: CheckInputs): CloudflareW
     && wranglerCustomDomains.ready
     && wranglerCrons.ready
     && wranglerObservability.ready
-    && packageScripts.ready;
+    && packageScripts.ready
+    && workerProofRoutes.ready;
 
   return {
     generatedAt: new Date().toISOString(),
@@ -475,6 +555,10 @@ export function checkCloudflareWorkerReadiness(inputs: CheckInputs): CloudflareW
       devVarsExample: inputs.sources?.devVarsExample ?? ".dev.vars.example",
       wranglerConfig: inputs.sources?.wranglerConfig ?? "wrangler.jsonc",
       packageJson: inputs.sources?.packageJson ?? "package.json",
+      workerSource: inputs.sources?.workerSource ?? "worker.ts",
+      protectedProofRoutesSource: inputs.sources?.protectedProofRoutesSource ?? "src/lib/cloudflare/protected-proof-routes.ts",
+      observabilityProofRouterSource: inputs.sources?.observabilityProofRouterSource ?? "src/lib/cloudflare/observability-proof-router.ts",
+      workerRouteOptimizationsSource: inputs.sources?.workerRouteOptimizationsSource ?? "src/lib/cloudflare/worker-route-optimizations.ts",
     },
     envExample,
     devVarsExample,
@@ -484,13 +568,14 @@ export function checkCloudflareWorkerReadiness(inputs: CheckInputs): CloudflareW
     wranglerCrons,
     wranglerObservability,
     packageScripts,
+    workerProofRoutes,
     localDevVars,
     providerSecretList,
     manifestReady,
     localPreviewReady: localDevVars.ready,
     deploymentSecretsReady: providerSecretList.ready,
     deploymentReady: manifestReady && providerSecretList.ready,
-    note: "Cloudflare Worker readiness checks manifest/env-name alignment and optional sanitized secret-list transcripts only. It never prints secret values, does not create Cloudflare resources, does not prove paid-plan status, hosted deployment, custom-domain routing, R2 bucket existence, Images processing, cron execution, analytics receipt, database migration, nameserver changes, rollback, or provider cancellation.",
+    note: "Cloudflare Worker readiness checks manifest/env-name alignment, proof-route source contracts, and optional sanitized secret-list transcripts only. It never prints secret values, does not create Cloudflare resources, does not prove paid-plan status, hosted deployment, custom-domain routing, R2 bucket existence, Images processing, cron execution, analytics receipt, database migration, nameserver changes, rollback, or provider cancellation.",
   };
 }
 
@@ -525,6 +610,7 @@ export function writeMarkdown(result: CloudflareWorkerReadinessResult, markdownF
     ["Wrangler crons", result.wranglerCrons],
     ["Wrangler observability", result.wranglerObservability],
     ["Package scripts", result.packageScripts],
+    ["Worker proof route source contracts", result.workerProofRoutes],
     ["Local preview secrets", result.localDevVars.previewSecrets],
     ["Local preview controls", result.localDevVars.previewControls],
     ["Provider secret names", result.providerSecretList.deployedWorkerSecrets],
@@ -558,6 +644,13 @@ async function main() {
   const devVarsExamplePath = readEnv("CLOUDFLARE_DEV_VARS_EXAMPLE_FILE") ?? ".dev.vars.example";
   const wranglerConfigPath = readEnv("CLOUDFLARE_WRANGLER_CONFIG_FILE") ?? "wrangler.jsonc";
   const packageJsonPath = readEnv("CLOUDFLARE_PACKAGE_JSON_FILE") ?? "package.json";
+  const workerSourcePath = readEnv("CLOUDFLARE_WORKER_SOURCE_FILE") ?? "worker.ts";
+  const protectedProofRoutesSourcePath = readEnv("CLOUDFLARE_PROTECTED_PROOF_ROUTES_SOURCE_FILE")
+    ?? "src/lib/cloudflare/protected-proof-routes.ts";
+  const observabilityProofRouterSourcePath = readEnv("CLOUDFLARE_OBSERVABILITY_PROOF_ROUTER_SOURCE_FILE")
+    ?? "src/lib/cloudflare/observability-proof-router.ts";
+  const workerRouteOptimizationsSourcePath = readEnv("CLOUDFLARE_WORKER_ROUTE_OPTIMIZATIONS_SOURCE_FILE")
+    ?? "src/lib/cloudflare/worker-route-optimizations.ts";
   const localDevVarsPath = readEnv("CLOUDFLARE_LOCAL_DEV_VARS_FILE") ?? ".dev.vars";
   const providerSecretList = readProviderSecretList();
 
@@ -566,6 +659,10 @@ async function main() {
     devVarsExampleText: readFileSync(devVarsExamplePath, "utf8"),
     wranglerConfigText: readFileSync(wranglerConfigPath, "utf8"),
     packageJsonText: readFileSync(packageJsonPath, "utf8"),
+    workerSourceText: readFileSync(workerSourcePath, "utf8"),
+    protectedProofRoutesSourceText: readFileSync(protectedProofRoutesSourcePath, "utf8"),
+    observabilityProofRouterSourceText: readFileSync(observabilityProofRouterSourcePath, "utf8"),
+    workerRouteOptimizationsSourceText: readFileSync(workerRouteOptimizationsSourcePath, "utf8"),
     localDevVarsText: readOptionalFile(localDevVarsPath),
     localDevVarsSource: existsSync(localDevVarsPath) ? localDevVarsPath : null,
     providerSecretListText: providerSecretList.text,
@@ -575,6 +672,10 @@ async function main() {
       devVarsExample: devVarsExamplePath,
       wranglerConfig: wranglerConfigPath,
       packageJson: packageJsonPath,
+      workerSource: workerSourcePath,
+      protectedProofRoutesSource: protectedProofRoutesSourcePath,
+      observabilityProofRouterSource: observabilityProofRouterSourcePath,
+      workerRouteOptimizationsSource: workerRouteOptimizationsSourcePath,
     },
   });
 

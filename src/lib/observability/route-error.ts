@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentPerfTraceSnapshot } from "@/lib/perf/server-timing";
+import { getCurrentRequestId, REQUEST_ID_HEADER } from "./request-id";
 import { normalizeAppError } from "./app-error";
 import { logAppError, type AppLogger } from "./logger";
 
@@ -30,7 +31,7 @@ function makeTraceId() {
 }
 
 function readTraceId(override?: string) {
-  return override ?? getCurrentPerfTraceSnapshot()?.requestId ?? makeTraceId();
+  return override ?? getCurrentRequestId() ?? getCurrentPerfTraceSnapshot()?.requestId ?? makeTraceId();
 }
 
 export function errorResponse(error: unknown, options: ErrorResponseOptions = {}) {
@@ -49,7 +50,10 @@ export function errorResponse(error: unknown, options: ErrorResponseOptions = {}
       trace_id: traceId,
       error: appError.toClientJSON(),
     },
-    { status: appError.statusCode },
+    {
+      status: appError.statusCode,
+      headers: { [REQUEST_ID_HEADER]: traceId },
+    },
   );
 }
 
@@ -80,6 +84,7 @@ export function problemDetailsResponse(error: unknown, options: ProblemDetailsOp
   const headers: Record<string, string> = {
     "Content-Type": "application/problem+json",
     "Cache-Control": "no-store, private",
+    [REQUEST_ID_HEADER]: requestId,
   };
   if (options.retryAfter !== undefined) {
     headers["Retry-After"] = String(options.retryAfter);

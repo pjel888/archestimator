@@ -56,7 +56,9 @@ function readMaxBytes() {
 
 function shouldWriteDevLog() {
   if (process.env.ARCHESTIMATOR_DEV_LOG_DISABLED === "1") return false;
-  return process.env.NODE_ENV !== "production" || Boolean(process.env.ARCHESTIMATOR_DEV_LOG_PATH);
+  const hasExplicitPath = Boolean(process.env.ARCHESTIMATOR_DEV_LOG_PATH?.trim());
+  if (process.env.NODE_ENV === "test") return hasExplicitPath;
+  return process.env.NODE_ENV !== "production" || hasExplicitPath;
 }
 
 function workerId() {

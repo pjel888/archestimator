@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { InternalError, ValidationError } from "@/lib/observability/app-error";
 import type { AppLogger, LogRecord } from "@/lib/observability/logger";
+import { withRequestIdContext } from "@/lib/observability/request-id";
 import { withActionErrorLogging, withActionErrors } from "@/lib/observability/with-action-errors";
 
 function createTestLogger() {
@@ -74,6 +75,27 @@ describe("withActionErrors", () => {
       error: {
         code: "VALIDATION_FAILED",
       },
+    });
+  });
+
+  it("adds the current request id to server action error logs", async () => {
+    const { logger, records } = createTestLogger();
+    const action = withActionErrors("saveEstimate", async () => {
+      throw new ValidationError("Enter a project name.");
+    }, { logger });
+
+    await withRequestIdContext(
+      {
+        echoId: "client.req-123456",
+        internalId: "req_00000000-0000-4000-8000-000000000002",
+        source: "inbound",
+      },
+      async () => action(),
+    );
+
+    expect(records[0]).toMatchObject({
+      action: "saveEstimate",
+      request_id: "req_00000000-0000-4000-8000-000000000002",
     });
   });
 });
