@@ -78,6 +78,64 @@ Plan:
 - Add browser proof for active editor in a 5,000-row table.
 - If the proof fails, isolate the express editor in a portal or pinned detail surface so virtualization can remain active.
 
+## Component Editing UX (Add / Edit / Inline)
+
+The estimate sheet has **three component editing surfaces** (see doc 22 for the full interop spec). Each has distinct UX requirements.
+
+### AddComponentModal — Create Mode (Library Master)
+
+- Triggered from `ComponentLibraryManager` (no `editingItem`). Creates a new library component via `createCostLibraryComponent`.
+- Duplicate-name warning is **informational only** (debounced 300ms after Name blur); does not gate submission. Two components with identical names are valid (UUID-based identity).
+- Variants: `variantSortOrder` derived from array position on create.
+- Thumbnail uploads route to `/api/component-library/images`.
+
+### AddComponentModal — Edit Mode (Row Projection)
+
+- Triggered from the estimate sheet row (`editingItem` set, `imageUploadProjectId` set).
+- Duplicate-name warning is **suppressed** (`isEditing` gate).
+- Saves call `onComponentUpdated` → `updateRowItem` → `updateEstimateRowItem`. No direct Server Action from the modal.
+- For library-linked rows: edits are row overrides; `linkState` flips to `linked-overridden`; library master is NOT mutated.
+- For project-level rows: edits fan out to matching instances (server SQL join + client tree patch).
+- Thumbnail uploads route to `/api/projects/images` (because `imageUploadProjectId` is passed by the estimate mount).
+- Image URL normalization: existing raw storage paths are brokered through `/api/projects/images` first, then `/api/component-library/images` as fallback.
+
+### EditComponentDrawer — Library Master Edit
+
+- Triggered from the component library workspace (NOT the estimate sheet).
+- Writes through `updateCostLibraryComponent` + `upsertCostLibraryComponentPriceOption` — mutates the library master.
+- This is a **completely different code path** from AddComponentModal edit mode and must not be conflated.
+
+### Inline Editing (Row Table Cells)
+
+- **Library-linked rows**: render a read-only material card (`EstimateMaterialCardContent`); inline scalar edits (quantity, contingency, adjustment) are row overrides.
+- **Project-level rows**: render the express inline editor (name/desc/brand/supplier/unit/unitCost fields); commits through `commitExpressFields` → `updateRowItem` with fan-out.
+- **Inline variant pill**: library replacement (`replaceEstimateRowItemWithLibrary`) for linked rows; row update (`updateEstimateRowItem`) for project rows.
+- **Inline blank-row insertion**: emits an express component template; legacy blank rows are upgraded to express on first inline edit.
+
+### Component Editing Accessibility Requirements
+
+- The AddComponentModal must trap focus while open and restore focus to the triggering element on close.
+- Variant selection (pill, modal dropdown) must be keyboard-operable.
+- Thumbnail upload must announce progress/success/failure to assistive tech.
+- The duplicate-name warning must be announced as informational, not as a blocking error (it does not prevent save).
+- Read-only material cards (library rows) must have correct `aria-label` / accessible name.
+- Express inline editors must preserve focus across draft-then-commit (typing → blur commit).
+- Fan-out must not move focus away from the actively edited row.
+
+### Component Editing UX Acceptance Tests
+
+- Open AddComponentModal in create mode, fill required fields, submit → component appears in library.
+- Open AddComponentModal in edit mode from an estimate row → modal shows existing data; save updates row only.
+- Create two library components with identical names → second allowed after acknowledging duplicate warning.
+- Edit a library-linked row → `linkState` becomes `linked-overridden`; library master unchanged.
+- Edit a project-level row → matching instances fan out; focus stays on edited row.
+- Select a variant from the inline pill on a library row → library replacement fires.
+- Select a variant from the inline pill on a project row → row update fires with fan-out.
+- Upload a thumbnail in edit mode → routes to `/api/projects/images`.
+- Insert a blank row and inline-edit → express component created; legacy row upgraded.
+- Promote a project row to library → library component created; source row linkage updated.
+- Detach a library-linked row → `linkState` becomes `detached`; row becomes project-level.
+
 ## Accessibility Requirements
 
 - All virtualized rows must retain correct accessible names and interactive controls.

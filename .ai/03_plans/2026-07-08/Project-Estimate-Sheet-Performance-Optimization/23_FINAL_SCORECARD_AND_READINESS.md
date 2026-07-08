@@ -10,28 +10,32 @@
 |---|---|---|---|
 | 00 | `00_AGENT_COORDINATION.md` | Agent coordination and lane discipline | Active |
 | 01 | `01_EXECUTIVE_SUMMARY.md` | Decision summary and top priorities | Active |
-| 02 | `02_FEATURE_BRIEF_AND_SCOPE.md` | Goals, non-goals, users, scale targets | Active — needs component-interop update |
+| 02 | `02_FEATURE_BRIEF_AND_SCOPE.md` | Goals, non-goals, users, scale targets | Active — updated for component-interop |
 | 03 | `03_SOURCE_AND_CODEBASE_AUDIT.md` | Current code audit with exact file references | Active |
-| 04 | `04_REQUIREMENTS_SPECIFICATION.md` | Functional, performance, reliability, data, test requirements | Active — needs component-interop REQs |
-| 05 | `05_UX_UI_ACCESSIBILITY_PLAN.md` | Interaction, a11y, perceived performance | Active |
+| 04 | `04_REQUIREMENTS_SPECIFICATION.md` | Functional, performance, reliability, data, test requirements | Active — includes REQ-CI-01 through REQ-CI-16 |
+| 05 | `05_UX_UI_ACCESSIBILITY_PLAN.md` | Interaction, a11y, perceived performance, component editing UX | Active — updated pass 2 |
 | 06 | `06_ARCHITECTURE_AND_TECHNICAL_DESIGN.md` | Normalized graph target, alternatives, ADR | Active |
 | 07 | `07_DATA_DATABASE_API_NETWORK_PLAN.md` | D1, query keys, route, network | Active |
 | 08 | `08_SECURITY_PRIVACY_THREAT_MODEL.md` | Auth, data exposure, proof redaction | Active |
 | 09 | `09_PERFORMANCE_RELIABILITY_OBSERVABILITY.md` | Budgets, telemetry, reliability | Active |
 | 10 | `10_BLAST_RADIUS_AND_DEPENDENCIES.md` | Affected modules, dependency posture | Active |
-| 11 | `11_IMPLEMENTATION_PLAN.md` | 6-phase, 20+ unit staged plan | Active — needs component-interop units |
-| 12 | `12_TEST_AND_VALIDATION_STRATEGY.md` | Test matrix, commands, fixtures | Active |
+| 11 | `11_IMPLEMENTATION_PLAN.md` | 6-phase, 20+ unit staged plan | Active |
+| 12 | `12_TEST_AND_VALIDATION_STRATEGY.md` | Test matrix, commands, fixtures, component-interop test matrix | Active — updated pass 2 |
 | 13 | `13_ROLLOUT_ROLLBACK_AND_OPERATIONS.md` | Flags, deploy, monitoring, rollback | Active |
-| 14 | `14_RISK_REGISTER.md` | 15 risks with severity/probability/mitigation | Active |
+| 14 | `14_RISK_REGISTER.md` | 21 risks with severity/probability/mitigation (15 perf + 6 component-interop/CRUD) | Active — updated pass 2 |
 | 15 | `15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md` | ADR-style decisions, rejected paths | Active |
 | 16 | `16_REQUIREMENTS_TRACEABILITY_MATRIX.md` | REQ-to-unit-to-evidence map | Active |
-| 17 | `17_FINAL_READINESS_REVIEW.md` | Readiness verdict and go/no-go | Active — needs component-interop update |
+| 17 | `17_FINAL_READINESS_REVIEW.md` | Readiness verdict, go/no-go, component-interop gates | Active — updated pass 2 |
 | 18 | `18_STACK_CONTRACT_AND_PRODUCTION_STANDARDS.md` | Official docs, stack constraints | Active |
 | 19 | `19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md` | Subagent, GitNexus, research evidence | Active |
 | 20 | `20_PERFORMANCE_EVALUATOR_SPEC.md` | Evaluator contract, metric artifacts | Active |
 | 21 | `21_EXECUTION_HANDOFF.md` | Ready-to-run implementation handoff | Active |
-| 22 | `22_COMPONENT_INTEROPERABILITY_SPEC.md` | Component type interop spec (NEW) | Active — created this improvement pass |
-| 23 | `23_FINAL_SCORECARD_AND_READINESS.md` | Scored audit and readiness (NEW) | Active — this document |
+| 22 | `22_COMPONENT_INTEROPERABILITY_SPEC.md` | Component type interop: identity, three edit surfaces, variants | Active — corrected + enriched pass 2 |
+| 23 | `23_FINAL_SCORECARD_AND_READINESS.md` | Scored audit and readiness | Active — this document |
+| 24 | `24_DOMAIN_MODEL_AND_DATA_FLOW.md` | **NEW** Comprehensive domain model + rendering/data layer map + hot-path cost map | Active — created pass 2 |
+| 25 | `25_CRUD_SURFACE_AND_MUTATION_MAP.md` | **NEW** Complete CRUD contract + mutation flow + authz | Active — created pass 2 |
+| 26 | `26_TEMPLATE_COMPOSITION_AND_INSERTION.md` | **NEW** Template entity model + insertion flows + DnD bridge | Active — created pass 2 |
+| 27 | `27_DRAG_AND_DROP_AND_CROSS_PANEL_ARCHITECTURE.md` | **NEW** DnD system + three-panel layout + window-event bridge | Active — created pass 2 |
 
 ## Scored Audit (Pre-Improvement Baseline)
 
@@ -84,7 +88,37 @@ Each document scored against 11 Improve-Plan-Prompt quality dimensions. Caps app
 | 23 (NEW) | — | N/A | This scorecard |
 
 **Post-improvement weighted average**: ~85/100  
-**Improvement delta**: +5 points
+**Improvement delta**: +5 points (pass 1)
+
+### Pass 2 Improvements (comprehensive domain coverage)
+
+Pass 2 was driven by a full four-lane parallel code audit (rendering layer, component-library/modals, data layer, tests) that grounded every claim in current source file:line references and surfaced previously undocumented moving parts.
+
+**Inaccuracies corrected in doc 22:**
+- Documented the **third edit surface** (`EditComponentDrawer`) that the prior version conflated with AddComponentModal edit mode. They write to different tables and must not be confused.
+- Corrected the variant-pill action name: it is `replaceEstimateRowItemWithLibrary` (not `replaceEstimateRowFromLibraryItem`).
+- Documented the `linkState` lifecycle (`unlinked → linked-clean → linked-overridden → detached`) and the server-side flip to `linked-overridden` on library-linked row edit.
+- Documented two-layer fan-out (server SQL join is already efficient; client tree-walk is the GAP-06 risk).
+- Added GAP-07 (restore-deleted throws on D1) and GAP-08 (variant-order stability).
+- Added REQ-CI-12 through REQ-CI-16.
+
+**New documents created (docs 24-27) close these previously-open gaps:**
+- **Domain model** (doc 24): entity model, component identity resolution, rendering layer architecture, data layer architecture, template composition, DnD architecture, collaboration model, hot-path cost map, known limitations.
+- **CRUD surface** (doc 25): every Server Action, RPC, optimistic/rollback behavior, authz gate, conflict handling — the complete write contract.
+- **Template composition** (doc 26): template entity model, three insertion entry points, optimistic flow with stale-snapshot guard, server-side copy semantics, cross-panel DnD bridge.
+- **DnD architecture** (doc 27): drag MIME types, Zustand side-channel, drop zones, edge auto-scroll, window-event cross-panel bridge, collaboration overlay isolation.
+
+**Pass 2 score impact**: docs 24-27 add domain-completeness coverage that was missing. The plan now documents all moving parts the user explicitly asked to understand: branches, row items, component types, templates, CRUD, and their interoperation.
+
+| Doc | Before pass 2 | After pass 2 | Key Improvements |
+|---|---|---|---|
+| 22 | 88 | 92 | Corrected edit-surface conflation; corrected action names; added linkState lifecycle; two-layer fan-out; GAP-07/08; REQ-CI-12..16 |
+| 24 (NEW) | — | 90 | Comprehensive domain model + rendering/data layer map + hot-path cost map |
+| 25 (NEW) | — | 90 | Complete CRUD contract + mutation flow + authz + conflict handling |
+| 26 (NEW) | — | 88 | Template entity model + insertion flows + DnD bridge |
+| 27 (NEW) | — | 86 | DnD system + three-panel layout + window-event bridge |
+
+**Post-pass-2 weighted average**: ~88/100
 
 ## Remaining Gaps Preventing 100
 
@@ -110,7 +144,7 @@ Phase 0 produces evidence artifacts without changing app code. The evaluator con
 **Status**: `CONDITIONALLY READY`
 
 The component-interoperability work exists in source code (`AddComponentModal.tsx`, `use-estimate-row-handlers.ts`, `use-estimate-row-mutations.ts`). 3 test files pass (63 tests). Remaining conditions:
-- Browser proof missing for CI-QA-01 through CI-QA-14 scenarios (doc 22).
+- Browser proof missing for CI-QA-01 through CI-QA-17 scenarios (doc 22).
 - Scale verification missing for fan-out behavior at stress tier.
 - Implementation is functionally correct at small scale per vitest evidence; needs real-browser and scale proof.
 
@@ -131,17 +165,21 @@ Requires: hosted D1 proof, browser stress proof at 5,000 rows, component-interop
 
 ## Improvement Delta Summary
 
-| Dimension | Before | After |
-|---|---|---|
-| Component type coverage | None | Full spec with identity contract, surface matrix, decision matrix |
-| Variant handling | None | Full spec with persistence, routing, QA scenarios |
-| Fan-out performance | Not addressed | O(1) graph index planned in architecture |
-| Browser proof plan | Not specified | 14 QA scenarios across both component types |
-| Implementation scope | Performance only | Performance + component interop verification |
-| Risk coverage | 15 performance risks | 18 risks (including component interop) |
-| Readiness labels | Mixed (READY/CONDITIONALLY READY/NOT READY) | Canonical (IMPLEMENTATION-READY/CONDITIONALLY READY/NOT READY) |
-| Number of documents | 21 | 23 |
-| Plan score | ~80/100 | ~85/100 |
+| Dimension | Before pass 1 | After pass 1 | After pass 2 |
+|---|---|---|---|
+| Component type coverage | None | Full spec with identity contract, surface matrix | Corrected (3 edit surfaces, linkState lifecycle, two-layer fan-out) |
+| Variant handling | None | Full spec with persistence, routing | Enriched (variantSortOrder semantics, GAP-08) |
+| Fan-out performance | Not addressed | O(1) graph index planned | Clarified: server SQL join already efficient; client tree-walk is the risk |
+| CRUD surface coverage | Implied | Implied | **Full contract** (doc 25) — every action, RPC, rollback, authz |
+| Template composition | Not covered | Not covered | **Full spec** (doc 26) — entity model, insertion flows, DnD bridge |
+| DnD architecture | Not covered | Not covered | **Full spec** (doc 27) — MIME types, side-channel, window-event bridge |
+| Domain model | Fragmented | Fragmented | **Comprehensive reference** (doc 24) — all moving parts |
+| Browser proof plan | Not specified | 14 QA scenarios | 17 QA scenarios (added detach, promote, restore-limitation) |
+| Implementation scope | Performance only | Performance + component interop | Performance + component interop + full domain documentation |
+| Risk coverage | 15 performance risks | 18 risks | 21 risks (15 perf + 6 component-interop/CRUD: R16-R21) |
+| Readiness labels | Mixed | Canonical | Canonical |
+| Number of documents | 21 | 23 | 27 |
+| Plan score | ~80/100 | ~85/100 | ~88/100 |
 
 ## Verification Command
 

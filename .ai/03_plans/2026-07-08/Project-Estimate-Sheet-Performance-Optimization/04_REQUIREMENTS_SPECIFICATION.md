@@ -96,3 +96,55 @@ REQ-DOC02: Any skipped validation must document why it was skipped and what resi
 
 REQ-DOC03: Final readiness claims must distinguish local jsdom proof, local browser proof, local D1 proof, and hosted provider proof.
 
+## Component Interoperability Requirements (see doc 22)
+
+REQ-CI-01: AddComponentModal must support both create (library master) and edit (row/project projection) modes.
+
+REQ-CI-02: Edit mode must suppress duplicate-name warnings for both component types.
+
+REQ-CI-03: Existing image URLs must normalize through image broker routes (project route tried first in edit mode, library route as fallback).
+
+REQ-CI-04: Edit-mode image uploads must use correct endpoint (`/api/projects/images` for estimate mount, `/api/component-library/images` for library create).
+
+REQ-CI-05: Variant selection must persist through edit-mode save into row source snapshot.
+
+REQ-CI-06: Project-level row updates must fan out to matching instances at both server (SQL join) and client (optimistic tree patch) layers.
+
+REQ-CI-07: Variant pill must route to correct action (`replaceEstimateRowItemWithLibrary` for library-linked rows, `updateEstimateRowItem` for project rows).
+
+REQ-CI-08: Source snapshot text normalization must tolerate null-ish values.
+
+REQ-CI-09: Component type identity (library vs project) must be explicitly checked before mutations.
+
+REQ-CI-10: Client fan-out must not become O(N) at stress scale (requires `componentInstanceNodeIds` graph index).
+
+REQ-CI-11: Add/Edit/Inline surfaces must behave correctly for both component types at stress scale.
+
+REQ-CI-12: AddComponentModal create (library master via `createCostLibraryComponent`) and AddComponentModal edit (row projection via `updateEstimateRowItem`) must write to different tables and not be conflated.
+
+REQ-CI-13: EditComponentDrawer (library master editing via `updateCostLibraryComponent`) is a distinct surface from AddComponentModal edit mode and must not be confused with it.
+
+REQ-CI-14: Library-linked row edits must flip `linkState` to `linked-overridden` without mutating the library master.
+
+REQ-CI-15: Restore-deleted row/node paths must be documented as unavailable on D1 (throw on call) — delete UX must be clear about irreversibility.
+
+REQ-CI-16: Promote-to-library (`promoteEstimateRowToLibraryComponent`) must produce a library component and update the source row's linkage.
+
+## CRUD And Data Integrity Requirements (see docs 25, 26)
+
+REQ-CRUD-01: Every write Server Action must pass through `assertCanEditEstimate` / `assertCanEditProject` and rate limiting before mutating data.
+
+REQ-CRUD-02: Optimistic mutations must roll back only affected entities when server confirmation fails (entity inverse patches, not whole-tree replacement).
+
+REQ-CRUD-03: `row_revision` must remain the monotonic conflict guard; stale revisions must be rejected.
+
+REQ-CRUD-04: Template insertion must use the stale-snapshot guard (reconcile only if revision matches) to avoid clobbering in-flight edits.
+
+REQ-CRUD-05: Bulk row delete must be all-or-nothing and capped at ≤100 rows.
+
+REQ-CRUD-06: Realtime broadcasts must accept only current payloads scoped to active estimate/tab, reject stale/future/wrong-scope, and apply only newer revisions.
+
+REQ-CRUD-07: Node creation must resolve optimistic `optimistic-area-*` ids to server ids asynchronously; reorders/renames targeting optimistic ids must await the create promise.
+
+REQ-CRUD-08: The P6 single-node model must hold: any node may parent any node (no area/group gate) for both estimates and template insertion.
+

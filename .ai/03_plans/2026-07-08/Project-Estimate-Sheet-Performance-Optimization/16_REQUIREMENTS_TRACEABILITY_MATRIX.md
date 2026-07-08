@@ -45,3 +45,37 @@
 | REQ-DOC02 skipped validation notes | all phases | final phase report |
 | REQ-DOC03 proof class distinction | U6.1, U6.2 | readiness review |
 
+## Component Interoperability (see doc 22)
+
+| Requirement | Plan Units | Evidence Required |
+|---|---|---|
+| REQ-CI-01 modal create+edit modes | Phase 0.5 | browser interop spec (CI-QA-01..03) |
+| REQ-CI-02 edit suppresses duplicate warning | Phase 0.5 | vitest (existing) + browser proof |
+| REQ-CI-03 image URL normalization | Phase 0.5 | vitest (existing) + browser proof (CI-QA-11) |
+| REQ-CI-04 edit-mode image endpoint routing | Phase 0.5 | browser proof (CI-QA-05, CI-QA-08) |
+| REQ-CI-05 variant persistence | Phase 0.5 | vitest (existing) + browser proof (CI-QA-09) |
+| REQ-CI-06 project fan-out (server + client) | Phase 0.5, U2.1, U3.1 | browser proof (CI-QA-06, CI-QA-14) + graph index proof |
+| REQ-CI-07 variant pill routing | Phase 0.5 | browser proof (CI-QA-04, CI-QA-10) |
+| REQ-CI-08 source snapshot null tolerance | Phase 0.5 | vitest (existing) |
+| REQ-CI-09 explicit type check before mutation | Phase 0.5 | code review + unit test |
+| REQ-CI-10 client fan-out O(1) at scale | U2.1, U3.1 | graph index parity test + stress proof (CI-QA-16) |
+| REQ-CI-11 surfaces correct at stress | Phase 0.5, U4.x | browser stress proof (CI-QA-14..16) |
+| REQ-CI-12 create vs edit write to different tables | Phase 0.5 | code review + integration test |
+| REQ-CI-13 EditComponentDrawer distinct surface | Phase 0.5 | code review |
+| REQ-CI-14 linkState flip on library edit | Phase 0.5 | integration test (CI-QA-03) |
+| REQ-CI-15 restore-deleted D1 limitation documented | docs 22, 25 | delete UX review + doc audit |
+| REQ-CI-16 promote updates linkage | Phase 0.5 | integration test (CI-QA-13) |
+
+## CRUD And Data Integrity (see docs 25, 26)
+
+| Requirement | Plan Units | Evidence Required |
+|---|---|---|
+| REQ-CRUD-01 authz gate on every write | all write phases | authz tests (existing 17) |
+| REQ-CRUD-02 entity-scoped rollback | U5.1, U5.3 | mutation failure/concurrency tests |
+| REQ-CRUD-03 row_revision conflict guard | all row phases | conflict tests (existing) |
+| REQ-CRUD-04 template stale-snapshot guard | Phase 0.5 | template insert tests (existing) |
+| REQ-CRUD-05 bulk delete all-or-nothing ≤100 | Phase 0.5 | bulk delete tests (existing) |
+| REQ-CRUD-06 realtime broadcast contract | Phase 0.5 | broadcast tests (existing 4) |
+| REQ-CRUD-07 optimistic node id resolution | Phase 0.5 | tree tests (existing) |
+| REQ-CRUD-08 P6 single-node model | all node phases | P6 tests (existing) |
+

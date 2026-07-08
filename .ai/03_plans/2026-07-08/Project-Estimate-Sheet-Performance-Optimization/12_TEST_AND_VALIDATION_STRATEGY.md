@@ -32,6 +32,37 @@ bunx vitest run \
 | Provider proof | `scripts/generate-estimate-sheet-d1-performance-proof.ts` | Local SQLite/D1-compatible proof. |
 | Hosted proof | `scripts/verify-estimate-sheet-hosted-d1-performance-proof.ts` | Gated hosted proof and cleanup. |
 
+## Component Interoperability Test Matrix (see doc 22)
+
+The component-interop implementation is covered by existing vitest suites today; browser proof is the gap. See doc 22 QA matrix for the full CI-QA-01 through CI-QA-17 scenarios.
+
+### Existing Local Coverage (vitest, jsdom)
+
+| Suite | Tests | Covers |
+|---|---|---|
+| `estimate-sheet-library-insert.test.tsx` | 38 | library insert, variant persistence, express init, template insert, move/rollback, project-component fan-out, detach, promote |
+| `library-add-component-modal-a11y.test.tsx` | 21 | AddComponentModal OpenDesign field contract, duplicate suppression, catalogue storage |
+| `workshop-library-consolidation-ui.test.tsx` | 13 | Add Component modal submit with categorized variants, folder tree, versioned components |
+| `estimate-image-url.test.ts` | 2 | image URL normalization / sanitization |
+| `estimate-sheet-actions-authz.test.ts` | 17 | every estimate action auth-gated |
+| `estimate-sheet-version-control-actions.test.ts` | 33 | history, conflict, stale library source blocking, restore (throws), detach authz |
+
+### New Browser Proof Required (Phase 0.5)
+
+| Proposed Path | Scenarios | Required Behaviors |
+|---|---|---|
+| `e2e/estimate-sheet-component-interop.spec.ts` | CI-QA-01..17 (doc 22) | Create/edit/inline for both component types; variant persistence; fan-out; thumbnail routing; detach; promote; restore limitation |
+
+### New Unit/Integration Gaps to Close
+
+| Layer | Proposed Path | Required Behaviors |
+|---|---|---|
+| Unit | `tests/vitest/estimate-component-fan-out.test.ts` | `patchProjectComponentInstanceRowsInTree` finds all matching instances by identity; rollback restores all; O(N) today, O(1) target |
+| Unit | `tests/vitest/estimate-link-state-transitions.test.ts` | `linkState` flips to `linked-overridden` on library-linked edit; `detached` on detach; master unchanged |
+| Unit | `tests/vitest/estimate-component-identity.test.ts` | `getProjectComponentIdentity` resolves correctly across all 4 priority buckets |
+| Integration | `tests/vitest/estimate-three-edit-surfaces.test.ts` | AddComponentModal create → `cost_library_items`; edit → `estimate_row_items`; EditComponentDrawer → `cost_library_items` master; no cross-contamination |
+| Scale | `tests/vitest/perf/estimate-sheet-fan-out-budget.test.tsx` | Project-component edit at 2,500/5,000 rows; fan-out p95 ≤ 75ms (pre/post graph index) |
+
 ## Fixture Distribution
 
 Rows:

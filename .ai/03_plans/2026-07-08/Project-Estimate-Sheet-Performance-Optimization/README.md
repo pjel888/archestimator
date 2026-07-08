@@ -2,7 +2,9 @@
 
 Status: **CONDITIONALLY READY** — Phase 0 and Phase 0.5 verification may begin; optimization coding requires Phase 0 evidence.
 
-Created: 2026-07-08 | Last improved: 2026-07-08
+Created: 2026-07-08 | Last improved: 2026-07-08 (second improvement pass — comprehensive domain-model + CRUD + template + DnD coverage)
+
+Scope: planning only. No source, test, migration, provider, or runtime implementation changes are authorized by this pack except Phase 0 measurement artifacts.
 
 Scope: planning only. No source, test, migration, provider, or runtime implementation changes are authorized by this pack except Phase 0 measurement artifacts.
 
@@ -57,8 +59,12 @@ The current sheet is partly performant, not fully scalable by proof. Component i
 | 19 | `19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md` | Subagent, GitNexus, research, critique evidence |
 | 20 | `20_PERFORMANCE_EVALUATOR_SPEC.md` | Evaluator contract, metric artifacts |
 | 21 | `21_EXECUTION_HANDOFF.md` | Ready-to-run implementation handoff |
-| 22 | `22_COMPONENT_INTEROPERABILITY_SPEC.md` | **NEW** Component type interop: identity contract, surface matrix, variants, QA matrix |
-| 23 | `23_FINAL_SCORECARD_AND_READINESS.md` | **NEW** Full scored audit against Improve-Plan-Prompt methodology |
+| 22 | `22_COMPONENT_INTEROPERABILITY_SPEC.md` | Component type interop: identity contract, three edit surfaces, surface matrix, variants, QA matrix |
+| 23 | `23_FINAL_SCORECARD_AND_READINESS.md` | Full scored audit against Improve-Plan-Prompt methodology |
+| 24 | `24_DOMAIN_MODEL_AND_DATA_FLOW.md` | **NEW** Comprehensive "understand everything" reference: entity model, rendering layer, data layer, hot-path cost map |
+| 25 | `25_CRUD_SURFACE_AND_MUTATION_MAP.md` | **NEW** Complete CRUD contract: every Server Action, RPC, optimistic/rollback behavior, authz gate |
+| 26 | `26_TEMPLATE_COMPOSITION_AND_INSERTION.md` | **NEW** Template entity model, three insertion entry points, optimistic flow, server-side copy semantics, DnD bridge |
+| 27 | `27_DRAG_AND_DROP_AND_CROSS_PANEL_ARCHITECTURE.md` | **NEW** DnD system, three-panel layout, window-event bridge, collaboration overlay isolation |
 | — | `LOOP_LEDGER.md` | Durable planning loop ledger |
 | — | `evidence/` | Phase evidence artifacts |
 
@@ -71,15 +77,25 @@ Before any optimization code is written, Phase 0 must produce:
 - A baseline decision memo that ranks bottlenecks by measured impact.
 
 Before Phase 0.5 completion, browser verification must pass for:
-- Component interop scenarios CI-QA-01 through CI-QA-14 (see doc 22).
+- Component interop scenarios CI-QA-01 through CI-QA-17 (see doc 22).
 - Add Component Modal, Edit Component Modal, Inline editing for both component types.
 - Variant selection, persistence, and fan-out.
 
 ## Scorecard
 
-Pre-improvement: ~80/100 | Post-improvement: ~85/100 | Target: 95+ (requires browser proof + independent verifier)
+Pre-improvement: ~80/100 | Post-pass-1: ~85/100 | Post-pass-2: ~88/100 | Target: 95+ (requires browser proof + independent verifier)
 
 See `23_FINAL_SCORECARD_AND_READINESS.md` for full scored audit.
+
+## What This Pack Covers (pass 2 summary)
+
+Pass 2 added comprehensive domain documentation so a reader can understand **every moving part** of the estimate sheet:
+
+- **Doc 24 (Domain Model)**: entity model, component identity resolution, rendering layer (3-panel → branch virtualizer → row virtualizer → cells), data layer (Server Actions → D1 client → repository → React Query → mutations), template composition, DnD architecture, collaboration model, hot-path cost map, known limitations.
+- **Doc 25 (CRUD Surface)**: every Create/Read/Update/Delete operation with its Server Action, RPC, history event, optimistic/rollback behavior, and authz gate — plus the full row mutation flow and conflict handling.
+- **Doc 26 (Template Composition)**: template entity model, three insertion entry points, optimistic flow with stale-snapshot guard, server-side copy semantics, cross-panel DnD bridge.
+- **Doc 27 (DnD Architecture)**: drag MIME types, Zustand side-channel store, drop zones, edge auto-scroll, window-event cross-panel bridge, collaboration overlay isolation.
+- **Doc 22 (Component Interop)**: corrected to document the **three** edit surfaces (AddComponentModal create, AddComponentModal edit, EditComponentDrawer), the `linkState` lifecycle, two-layer fan-out, and the restore-deleted D1 limitation.
 
 ## Related Plans
 
