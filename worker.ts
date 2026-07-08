@@ -3,6 +3,15 @@ import {
   runCloudflareScheduledUploadJobs,
 } from "./src/lib/cloudflare/scheduled-upload-jobs";
 import { runRetentionPassInD1, type RetentionD1DatabaseLike } from "./src/lib/compliance/retention-core";
+import { normalizePathForLog } from "./src/lib/observability/safe-path";
+import { redactMessage } from "./src/lib/observability/redact";
+import {
+  getCurrentRequestId,
+  resolveRequestId,
+  responseWithRequestId,
+  withRequestIdContext,
+  type ResolvedRequestId,
+} from "./src/lib/observability/request-id";
 import {
   type CloudflareUploadJobQueueBatchLike,
   type CloudflareUploadJobQueueEnv,
@@ -57,41 +66,99 @@ type OpenNextWorker = {
 
 const openNextWorker = generatedOpenNextWorker as OpenNextWorker;
 
+function safeWorkerErrorMessage(error: unknown) {
+  if (error instanceof Error) return redactMessage(error.message).value;
+  return "Unhandled Worker fetch error.";
+}
+
+function logWorkerFetchError(error: unknown, request: Request, requestId: ResolvedRequestId) {
+  console.error(
+    JSON.stringify({
+      timestamp: new Date().toISOString(),
+      level: "error",
+      event: "worker_fetch_error",
+      message: "Unhandled Worker fetch error",
+      request_id: requestId.internalId,
+      error: {
+        message: safeWorkerErrorMessage(error),
+        name: error instanceof Error ? error.name : "UnknownError",
+      },
+      context: {
+        method: request.method,
+        path: normalizePathForLog(request.url),
+        request_id_source: requestId.source,
+      },
+    }),
+  );
+}
+
+function workerErrorResponse(requestId: ResolvedRequestId) {
+  return responseWithRequestId(
+    new Response(
+      JSON.stringify({
+        ok: false,
+        trace_id: getCurrentRequestId() ?? requestId.internalId,
+        error: {
+          kind: "internal",
+          code: "INTERNAL_ERROR",
+          message: "Something went wrong. Try again in a moment.",
+        },
+      }),
+      {
+        status: 500,
+        headers: {
+          "content-type": "application/json; charset=utf-8",
+          "cache-control": "no-store, private",
+        },
+      },
+    ),
+    requestId,
+  );
+}
+
 export default {
   async fetch(request: Request, env: CloudflareWorkerEnv, ctx: ExecutionContextLike) {
-    const canonicalHostRedirect = routeCanonicalHostRedirect(request);
-    if (canonicalHostRedirect) return canonicalHostRedirect;
+    const requestId = resolveRequestId(request.headers);
+    return withRequestIdContext(requestId, async () => {
+      try {
+        const canonicalHostRedirect = routeCanonicalHostRedirect(request);
+        if (canonicalHostRedirect) return responseWithRequestId(canonicalHostRedirect, requestId);
 
-    const authStateMismatchRetry = routeAuthStateMismatchRetry(request);
-    if (authStateMismatchRetry) return authStateMismatchRetry;
+        const authStateMismatchRetry = routeAuthStateMismatchRetry(request);
+        if (authStateMismatchRetry) return responseWithRequestId(authStateMismatchRetry, requestId);
 
-    const authCallbackStateMismatchRetry = routeAuthCallbackStateMismatchRetry(request);
-    if (authCallbackStateMismatchRetry) return authCallbackStateMismatchRetry;
+        const authCallbackStateMismatchRetry = routeAuthCallbackStateMismatchRetry(request);
+        if (authCallbackStateMismatchRetry) return responseWithRequestId(authCallbackStateMismatchRetry, requestId);
 
-    const authStateResetLoginCompletion = routeAuthStateResetLoginCompletion(request);
-    if (authStateResetLoginCompletion) return authStateResetLoginCompletion;
+        const authStateResetLoginCompletion = routeAuthStateResetLoginCompletion(request);
+        if (authStateResetLoginCompletion) return responseWithRequestId(authStateResetLoginCompletion, requestId);
 
-    const fastHealthResponse = routeCloudflareFastHealthRequest(request);
-    if (fastHealthResponse) return fastHealthResponse;
+        const fastHealthResponse = routeCloudflareFastHealthRequest(request);
+        if (fastHealthResponse) return responseWithRequestId(fastHealthResponse, requestId);
 
-    const malformedShareTokenResponse = routeMalformedShareTokenRequest(request);
-    if (malformedShareTokenResponse) return malformedShareTokenResponse;
+        const malformedShareTokenResponse = routeMalformedShareTokenRequest(request);
+        if (malformedShareTokenResponse) return responseWithRequestId(malformedShareTokenResponse, requestId);
 
-    const proofResponse = await routeCloudflareProtectedProofRequest(request, env);
-    if (proofResponse) return proofResponse;
+        const proofResponse = await routeCloudflareProtectedProofRequest(request, env);
+        if (proofResponse) return responseWithRequestId(proofResponse, requestId);
 
-    const collaborationRoomResponse = await routeCollaborationRoomRequest(request, env);
-    if (collaborationRoomResponse) return collaborationRoomResponse;
+        const collaborationRoomResponse = await routeCollaborationRoomRequest(request, env);
+        if (collaborationRoomResponse) return responseWithRequestId(collaborationRoomResponse, requestId);
 
-    const cachedPublicPageResponse = await routeStaticPublicPageThroughCache(
-      request,
-      ctx,
-      (publicPageRequest) => openNextWorker.fetch(publicPageRequest, env, ctx),
-    );
-    if (cachedPublicPageResponse) return cachedPublicPageResponse;
+        const cachedPublicPageResponse = await routeStaticPublicPageThroughCache(
+          request,
+          ctx,
+          (publicPageRequest) => openNextWorker.fetch(publicPageRequest, env, ctx),
+        );
+        if (cachedPublicPageResponse) return responseWithRequestId(cachedPublicPageResponse, requestId);
 
-    const response = await openNextWorker.fetch(request, env, ctx);
-    return normalizeAuthStateMismatchRedirectResponse(response, request);
+        const response = await openNextWorker.fetch(request, env, ctx);
+        return responseWithRequestId(normalizeAuthStateMismatchRedirectResponse(response, request), requestId);
+      } catch (error) {
+        logWorkerFetchError(error, request, requestId);
+        return workerErrorResponse(requestId);
+      }
+    });
   },
 
   scheduled(controller: ScheduledControllerLike, env: CloudflareWorkerEnv, ctx: ExecutionContextLike) {
