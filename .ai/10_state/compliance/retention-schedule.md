@@ -28,10 +28,12 @@ These TTLs reflect common SaaS industry practice and the principle of data minim
 | `estimate_sheet_events` | 365 | purged | Edit history for estimate sheets. 1 year. | If estimate becomes a contract, longer may be required — counsel to advise. |
 | `privacy_requests_completed` | 2555 (~7y) | purged | DSAR requests themselves are compliance evidence. | Default 7y per common enterprise policy; NPC may require different. |
 | `privacy_requests_rejected` | 365 | purged | Rejected requests are evidence of triage decisions. 1 year. | Counsel to advise on the rejection-appeal window. |
-| `logs_worker_observability` | 30 | purged | Cloudflare Workers Observability logs. Default platform TTL. | Platform-managed; this row records that platform retention is acceptable. |
+| `logs_worker_observability` | 3 | platform-managed | Cloudflare Workers Logs on Workers Free. Current platform TTL is 3 days / 200k written events per day; longer retention/export needs Workers Paid + Logpush/Tail Workers or another approved destination. | Not a D1 deletion rule; first-24h incident review must capture evidence before the short RCA window closes. |
 | `logs_email_delivery` | 90 | purged | Email delivery logs (Cloudflare Email). 90 days covers support investigations. | Counsel to advise on retention for transactional email. |
 | `uploads_orphaned` | 30 | purged | Orphaned uploads (no associated record). 30 days is grace period. | Aligns with upload-cleanup cron (`0 3 * * *`). |
 | `sessions_expired` | 30 | purged | Expired Better Auth sessions. 30 days. | Platform-managed; this row records acceptance. |
+| `operational_incidents` | 2555 (~7y) | purged | Durable sev1/sev2/sev3 incident lifecycle records and RCA evidence. | D1 table added by migration `0040`; final TTL remains counsel-gated under OPEN-DEC-004. |
+| `operational_incident_events` | 2555 (~7y) | purged | Incident declaration/status/escalation/note/closure history. | D1 table added by migration `0040`; keep redacted and low-volume. |
 
 ## Class-action matrix
 

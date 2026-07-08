@@ -426,9 +426,10 @@ review, so do not treat the values below as locked tokens of record yet. Highlig
   cells (`.dashboard-glass-warm` + `--grad-hero-*`) over a whisper-quiet
   `--grad-canvas-wash`; dense data stays plain white for legibility; ≤4 simultaneous
   backdrop-blur panels. Reduced-transparency / no-backdrop fallbacks degrade.
-- **Sidebar wash (shipped, reversible):** `.sidebar-glass` uses the same
-  `--grad-canvas-wash` treatment as the dashboard so the rail no longer reads as a white slab;
-  square 48×48 logo slab. Pending the owner's live review.
+- **Sidebar wash (shipped, reversible):** `.sidebar-glass` uses an opaque-leaning
+  cool-white `--sidebar-glass-wash` over the dashboard canvas: still lightly frosted, but solid
+  enough that project cards do not show through the expanded rail. It remains blur-free for
+  performance; square 48×48 logo slab.
 
 ## Data visualization
 

@@ -10,6 +10,212 @@ only those entries. Do NOT read all ~2,500 lines on every task — that is the
 single biggest source of slow agent startup.
 
 Stable current truth (verify against git/source before relying on a detail):
+- Error logging and incident evidence (2026-07-08 local): Archestimator should
+  not store raw application error logs in D1 as the standard logging path.
+  Local/dev diagnosis uses structured `logs/dev.ndjson`; default test runs do
+  not write to that file unless `ARCHESTIMATOR_DEV_LOG_PATH` is explicit, so
+  synthetic Vitest errors should not become agent snapshot "latest error"
+  noise. Runtime diagnosis uses
+  `bun run logs:debug` / `logs:tail` / `logs:explain`; hosted runtime diagnosis
+  uses Cloudflare Workers Logs/Real-time logs/`wrangler tail`; D1 is for
+  durable low-volume operational incident records. Protocol:
+  `.ai/00_system/ERROR_LOGGING_AND_AGENTIC_DEBUGGING_PROTOCOL.md`. Local
+  migration `0040_operational_incidents.sql` adds `operational_incidents` and
+  `operational_incident_events`. Remote D1 initially had only
+  `publication_digest_log` for `%error%/%incident%/%alert%/%log%` table names
+  and stopped at migration `0032`; after preflight, `bunx wrangler d1
+  migrations apply ARCH_DB --remote` applied `0033` through `0040` on
+  2026-07-08. Remote readback confirms the incident tables exist and
+  `projects.status` exists with zero null statuses. Local D1 also has `0040`
+  applied.
+  Worker fetch, route error helpers, problem details, server-action error
+  logging, and Next request instrumentation now share an internal request-id
+  context; validated inbound `x-request-id` values may be echoed but do not
+  become the internal durable id. `wrangler.jsonc` is tuned for closed-beta
+  persisted Workers Logs at full sampling with traces disabled to preserve the
+  shared log quota. Incident operations now have `bun run ops:incident`
+	  (redacted dry-run/write for declare/note/status/close) and
+	  `bun run ops:check-incidents` (local/remote table + stale incident verifier).
+	  On 2026-07-08, local and remote `ops:check-incidents` both passed with
+	  incident tables ready and zero stale/open incidents. Final focused evidence
+	  also passed: incident/protocol/request-id Vitest suite (7 files / 25 tests),
+	  project-page nearby Vitest suite (2 files / 47 tests), `bun run type-check`,
+	  and `git diff --check`. `bun run logs:debug` currently surfaces a historical
+	  `/workshop/projects` client `ReferenceError` for `ContextActionMenuContent`;
+	  the current source no longer references that symbol, and the typecheck plus
+	  project-page tests pass. Hosted observability readiness now has
+	  `bun run ops:check-observability`, which fails closed until fresh redacted
+	  Workers Logs query, uptime alert, error-rate alert, and incident-escalation
+	  alert artifacts exist; `launch:check-support-monitoring` consumes that
+	  artifact via `SUPPORT_MONITORING_OBSERVABILITY_PROOF_FILE`. Focused
+	  Workers Logs proof collection has `bun run ops:collect-workers-logs-proof`;
+	  in the preferred mode it tails `--search <proof id>`, triggers the protected
+	  `/__cloudflare/observability-proof` Worker marker route with
+	  `WORKERS_LOGS_PROOF_URL` + `WORKERS_LOGS_PROOF_SECRET`, and writes
+	  counts/hashes instead of raw tail records. The legacy known-request mode
+	  using `WORKERS_LOGS_PROOF_REQUEST_ID` + `WORKERS_LOGS_PROOF_ROUTE` remains
+	  available for already-observed failures. Focused marker-route verification
+	  on 2026-07-08 passed: typecheck, 10 Vitest files / 41 tests,
+	  `validate:error-handling`, `ops:debug-ledger -- --check`,
+	  `ops:agent-debug-snapshot`, and `git diff --check`; the read-only
+	  `ops:observability-drill` still fails closed in this shell because hosted
+	  proof env gates and artifacts are absent. `cf:check-readiness` now also
+	  checks a non-secret `workerProofRoutes` source-contract group so the proof
+	  route cannot be accidentally unwired while manifest readiness still passes;
+	  a 2026-07-08 run passed with `workerProofRoutes.ready:true` and
+	  `deploymentReady:false` only because provider secret-list evidence was not
+	  supplied. Follow-up verification passed 7 focused Vitest files / 43 tests,
+	  typecheck, `validate:error-handling`, `cf:check-readiness`,
+	  `ops:debug-ledger -- --check`, `ops:agent-debug-snapshot`, and
+	  `git diff --check`; recurrence ledger record
+	  `debug-80d04275-c81b-49e1-84cd-eb1921af1958` captures the source-contract
+	  gap. Alert-delivery proof has
+	  `bun run ops:verify-observability-alert -- --scenario <uptime|error-rate|incident-escalation>`,
+	  which sends one synthetic redacted webhook payload only with explicit hosted
+	  proof env gates and writes the matching alert artifact shape. Focused
+	  observability/incident/request-id verification passed on 2026-07-08:
+	  10 Vitest files / 41 tests, `bun run type-check`, and `git diff --check`.
+	  A no-env alert-proof smoke wrote
+	  `.ai/99_scratch/uptime-alert-delivery-proof-skipped.json`, exited 1, and
+	  confirmed `skipped:true` / `delivered:false` without sending.
+	  Sensitive server/API/observability/email/ops surfaces now have
+	  `bun run validate:error-handling`, a non-mutating static gate that rejects
+	  empty `catch` and Promise `.catch` handlers, plus raw `console.error`
+	  bypasses in covered runtime user/operator paths (API, public share server
+	  page, email, account-audit, retention, component-library action-error,
+	  upload operations dashboard, upload operational telemetry); use
+	  `bun run ops:check-error-handling` when an evidence artifact should be
+	  written. On 2026-07-08 the artifact-writing gate passed with 53 scanned
+	  files and zero violations, writing
+	  `.ai/03_plans/2026-07-08-agentic-error-observability-hardening/evidence/error-handling-contract-check.json`.
+	  A later 2026-07-08 expansion converted public share deferred telemetry,
+	  component-library action errors, account-security audit failures, retention
+	  pass failures, and upload operations dashboard failures to structured
+	  logging; `ops:agent-debug-snapshot` now reports 64 scanned files and zero
+	  error-handling violations.
+	  Final guardrail evidence passed: 11 Vitest files / 45 tests,
+	  `bun run type-check`, `bun run ops:check-incidents`, and
+	  `git diff --check`.
+	  Operational incident alerting now has a shared sanitizer/delivery helper in
+	  `src/lib/observability/operational-alerts.ts`; successful non-dry-run remote
+	  `ops:incident` mutations include redacted `alertDelivery` evidence when
+	  `OPERATIONAL_INCIDENT_ALERTS_ENABLED=1` plus webhook URL/token are set, and
+	  `OPERATIONAL_INCIDENT_ALERTS_REQUIRED=1` makes missing alert delivery fail
+	  closed. The `incident-escalation` proof scenario now uses the same
+	  operational incident alert payload sanitizer. Focused alert verification
+	  passed on 2026-07-08: 4 Vitest files / 19 tests and
+	  `bun run ops:check-error-handling`.
+	  Final incident-alert verification passed on 2026-07-08: 12 Vitest files /
+	  50 tests, `bun run type-check`, `bun run ops:check-error-handling`,
+	  `bun run ops:check-incidents`, and `git diff --check`. A no-env
+	  `incident-escalation` proof smoke wrote
+	  `.ai/99_scratch/incident-escalation-alert-delivery-proof-skipped.json`,
+	  exited 1 as expected, and preserved the operational incident payload shape
+	  with `delivery.payloadPathSafe:true` without sending.
+	  Upload operational alert delivery now emits `operational_alert_sent` and
+	  `operational_alert_failed` self-health log records with redacted
+	  reason/status metadata; `validate:error-handling` and
+	  `ops:check-error-handling` include `src/lib/uploads/operational-telemetry.ts`
+	  and passed with 55 scanned files.
+	  Final alert self-health evidence passed on 2026-07-08: 13 Vitest files /
+	  56 tests, `bun run type-check`, `bun run ops:check-error-handling`,
+	  `bun run ops:check-incidents`, and `git diff --check`.
+	  The error-handling contract now also supports read-only validation via
+	  `--no-write`; `bun run validate:error-handling` passed without writing, the
+	  artifact-writing mode passed to `/tmp/archestimator-error-handling-contract-check.json`,
+	  and the full observability matrix passed 13 Vitest files / 58 tests.
+	  Current hosted proof remains intentionally fail-closed: this shell has no
+	  Cloudflare token/account id, Workers Logs proof request id/route, or alert
+	  webhook proof env gates. A fresh scratch `ops:check-observability` report
+	  on 2026-07-08 found all four hosted artifacts missing: Workers Logs query,
+	  uptime alert delivery, error-rate alert delivery, and incident-escalation
+	  alert delivery. Agents can now run `bun run ops:observability-drill`
+	  first for a read-only production observability drill that joins hosted
+	  proof env preflight, hosted artifact validation, and blocked/ready proof
+	  commands without querying Cloudflare, sending webhooks, or mutating D1
+	  incidents. `bun run ops:check-observability-env` provides the non-secret
+	  preflight of Workers Logs proof, alert-delivery proof, and incident-alert
+	  env gates; it reports presence/shape only and never prints request ids,
+	  webhook URLs, or token values. Focused preflight
+	  tests passed on 2026-07-08 (3 Vitest files / 12 tests), and a scratch
+	  preflight artifact at
+	  `.ai/99_scratch/observability-proof-env-preflight-current.json` failed
+	  closed with the expected missing hosted proof and incident-alert gates.
+	  Agents now also have `bun run ops:agent-debug-snapshot`, a redacted
+	  one-command debugging readiness report for local log parse health, latest
+	  local error metadata, incident-table readiness, hosted proof env gates,
+	  hosted proof artifact readiness, and the sensitive-surface error-handling
+	  gate. A scratch snapshot at
+	  `.ai/99_scratch/agent-debugging-snapshot-current.json` passed locally on
+	  2026-07-08 with local debugging and operational incident readiness true;
+	  production evidence collection and incident alerting remain false until the
+	  hosted proof env gates/artifacts exist. The snapshot now calls the hosted
+	  proof bundle checker too, so missing Workers Logs, uptime, error-rate, and
+	  incident-escalation artifacts surface in the same agent handoff instead of
+	  requiring a separate mental join; the snapshot now recommends
+	  `ops:observability-drill` when hosted proof is incomplete.
+	  `ops:check-observability` itself now also
+	  prints failed requirement keys, missing artifact filenames or failed checks,
+	  and the next proof-command sequence in the terminal while still writing the
+	  JSON report; a current scratch run fails closed with all four hosted proof
+	  artifacts missing. Focused drill verification passed 1 Vitest file / 4
+	  tests before the broader observability suite rerun.
+	  A refreshed local check after the drill wiring passed the broader focused
+	  observability/debugging suite (6 Vitest files / 26 tests),
+	  `bun run type-check`, `bun run validate:error-handling`, and
+	  `git diff --check`; `bun run ops:observability-drill` still exits 1
+	  intentionally because the hosted Workers Logs and alert-delivery proof env
+	  gates/artifacts are missing.
+	  Agents now also have a redacted debugging recurrence ledger:
+	  `bun run ops:debug-ledger -- ...` appends sanitized fix/mitigation records
+	  to `.ai/10_state/error-debugging-ledger.ndjson`, rejects raw sensitive
+	  material, and `ops:agent-debug-snapshot` surfaces prior matching
+	  `debuggingLedger.recentMatches` for the latest local error fingerprint.
+	  Seed ledger record `debug-estimate-row-status-type-import-2026-07-08`
+	  captures the local TypeScript missing-import fix. Focused verification
+	  passed: debugging ledger + snapshot tests (2 files / 9 tests), broader
+	  observability/debugging suite (7 files / 30 tests), `bun run type-check`,
+	  `bun run validate:error-handling`, `bun run ops:debug-ledger -- --check`,
+	  and `git diff --check`.
+	  Runtime API/email raw-console guardrail follow-up on 2026-07-08 converted
+	  existing API/email `console.error` bypasses to `logAppError`/`emitLogRecord`
+	  and updated share-route tests to assert shared logger records. Focused
+	  verification passed: 7 Vitest files / 88 tests, large-heap typecheck, and
+	  `bun run validate:error-handling`. Debugging recurrence ledger record
+	  `debug-1ea830da-b2fc-4d5e-a68c-f2ceaa2d0b65` now captures the guardrail
+	  lesson with recurrence key `dbg_cdd281b543fc6351`. Post-doc checks passed:
+	  `bun run ops:debug-ledger -- --check`,
+	  `OUTPUT_FILE=.ai/99_scratch/agent-debugging-snapshot-current.json bun run ops:agent-debug-snapshot`,
+	  and `git diff --check`; the expected fail-closed
+	  `ops:observability-drill` still reports missing hosted Workers Logs and
+	  alert-delivery proof gates/artifacts.
+	  Runtime user/operator raw-console guardrail expansion on 2026-07-08
+	  converted public share server-page deferred telemetry, component-library
+	  action errors, account-security audit failures, retention pass failures,
+	  and upload operations dashboard failures to structured `logAppError` or
+	  `emitLogRecord` calls. `validate:error-handling` now rejects raw
+	  `console.error` in those surfaces as well as API/email code. Focused
+	  verification passed: 7 Vitest files / 78 tests, large-heap typecheck,
+	  `bun run validate:error-handling`, and
+	  `OUTPUT_FILE=.ai/99_scratch/agent-debugging-snapshot-current.json bun run ops:agent-debug-snapshot`
+	  with 64 scanned files and zero error-handling violations.
+	  A broad `bun run validate` attempt first exposed two React Compiler lint
+	  errors in `src/components/workshop/EstimateSheetContent.tsx`; those are now
+	  fixed by moving the latest-width ref write into an effect and gating account
+	  preference saves on a loaded snapshot. Targeted ESLint and estimate-sheet
+	  tests passed. A second `bun run validate` reached `lint:design-system` and
+	  then failed on existing app/landing/workshop design-rule violations; the
+	  error-handling validation gate itself still passes. `bun run validate` now
+	  runs `validate:error-handling` immediately after typecheck and ESLint, before
+	  design-system/visual-design gates, so unrelated UI policy failures cannot
+	  hide silent error-swallowing regressions.
+	  Root error fallbacks were also tightened on 2026-07-08:
+	  `src/app/global-error.tsx` and `src/app/not-found.tsx` now use compact app
+	  typography/radius classes and focused regression tests assert zero
+	  design-system violations for those files. `bun run test:dom
+	  tests/vitest/global-error.test.tsx tests/vitest/not-found.test.tsx` passed
+	  2 files / 6 tests, targeted ESLint passed, and a filtered full
+	  design-system run found no remaining root error-surface violations.
 - Shared-worktree branch policy (2026-07-07 local): Codex AGENTS instructions
   and planning/execution prompts now forbid automatic branch or worktree
   creation as a default implementation safety measure. Agents must assume

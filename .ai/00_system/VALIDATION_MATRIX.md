@@ -35,8 +35,8 @@ bypasses.
 
 For debugging handoffs or "what do the logs say?" work, run
 `bun run ops:agent-debug-snapshot`. It produces a redacted local debugging
-readiness report across `logs/dev.ndjson`, prior matching debugging ledger
-records, incident-table readiness, hosted proof env gates, hosted proof artifact
+readiness report across `logs/dev.ndjson`, the latest error recurrence key,
+prior matching debugging ledger records, incident-table readiness, hosted proof env gates, hosted proof artifact
 readiness, and the error-handling static gate without exposing raw log messages,
 stacks, request ids, webhook URLs, or token values.
 
@@ -55,6 +55,11 @@ when possible:
 `WORKERS_LOGS_PROOF_URL=https://archestimator.com/__cloudflare/observability-proof WORKERS_LOGS_PROOF_SECRET=<cron_secret> bun run ops:collect-workers-logs-proof`.
 The collector also supports the legacy known-request mode with
 `WORKERS_LOGS_PROOF_REQUEST_ID` and `WORKERS_LOGS_PROOF_ROUTE`.
+Cloudflare Worker readiness (`bun run cf:check-readiness`) includes a
+non-secret source contract that the protected proof router runs before app
+routing, `/__cloudflare/observability-proof` is dispatched, the route uses
+`CRON_SECRET` bearer auth, the marker log remains structured, and worker.dev
+proof routes are not canonical-host redirected.
 
 Storybook validation remains a review surface, not a production gate:
 
