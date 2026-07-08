@@ -22,7 +22,7 @@ description: "Use when the user wants to rename, extract, split, move, or restru
 4. Plan update order: interfaces → implementations → callers → tests
 ```
 
-> If "Index is stale", run `bun run graph:reindex` only when its safe-runner guard passes. If it fails closed because `.gitnexus/run.cjs` is absent or registry-resolving, skip refresh and use existing MCP/code-review-graph context.
+> If "Index is stale" → run `node .gitnexus/run.cjs analyze` in terminal.
 
 ## Checklists
 

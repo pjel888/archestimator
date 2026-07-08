@@ -22,7 +22,7 @@ description: "Use when the user is debugging a bug, tracing an error, or asking 
 4. cypher({statement: "MATCH path..."})                 → Custom traces if needed
 ```
 
-> If "Index is stale", run `bun run graph:reindex` only when its safe-runner guard passes. If it fails closed because `.gitnexus/run.cjs` is absent or registry-resolving, skip refresh and use existing MCP/code-review-graph context.
+> If "Index is stale" → run `node .gitnexus/run.cjs analyze` in terminal.
 
 ## Checklist
 
