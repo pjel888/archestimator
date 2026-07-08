@@ -216,6 +216,8 @@ function nextSteps(report: AgentDebuggingSnapshotReport) {
     steps.push("Run `bun run ops:debug-ledger -- --check` and remove malformed or unsafe debugging ledger records before using recurrence evidence.");
   } else if (report.debuggingLedger.matchingLatestErrorCount > 0) {
     steps.push("Review `debuggingLedger.recentMatches` before changing code; this error fingerprint has prior redacted fix evidence.");
+  } else if (report.debuggingLedger.latestErrorRecurrenceKey) {
+    steps.push("After the root cause is proven, append a redacted `ops:debug-ledger` record using `debuggingLedger.latestErrorRecurrenceKey` so future agents recognize this fingerprint.");
   }
   return steps;
 }

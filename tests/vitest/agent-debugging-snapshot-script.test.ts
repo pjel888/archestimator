@@ -15,6 +15,7 @@ import type { OperationalIncidentsReadinessReport } from "@/../scripts/check-ope
 import type { ProductionObservabilityProofReport } from "@/../scripts/check-production-observability-proof";
 import {
   appendDebuggingSessionLedgerRecord,
+  buildDebuggingRecurrenceKey,
   buildDebuggingSessionLedgerRecord,
 } from "@/../scripts/record-debugging-session";
 
@@ -164,8 +165,16 @@ describe("agent debugging snapshot script", () => {
       expect(report.readiness.productionEvidenceCollectionReady).toBe(false);
       expect(report.readiness.productionHostedProofReady).toBe(false);
       expect(report.hostedProof.failedRequirementKeys).toContain("workersLogsQuery");
+      expect(report.debuggingLedger.latestErrorRecurrenceKey).toBe(buildDebuggingRecurrenceKey({
+        environment: "local",
+        route: null,
+        event: "route_error",
+        errorClass: "Error",
+        errorCode: "INTERNAL_ERROR",
+      }));
       expect(report.recommendedNextSteps).toContain("Run `bun run logs:debug` or `bun run logs:explain <record_id>` for the latest local error record before changing code.");
       expect(report.recommendedNextSteps).toContain("Run `bun run ops:observability-drill` and collect missing hosted proof artifacts for: workersLogsQuery, uptimeAlertDelivery, errorRateAlertDelivery, incidentEscalationDelivery.");
+      expect(report.recommendedNextSteps).toContain("After the root cause is proven, append a redacted `ops:debug-ledger` record using `debuggingLedger.latestErrorRecurrenceKey` so future agents recognize this fingerprint.");
       expect(JSON.stringify(report)).not.toMatch(/provider-secret|client@example\.com|privateFunction|token=secret/i);
     } finally {
       rmSync(dir, { recursive: true, force: true });
@@ -312,6 +321,13 @@ describe("agent debugging snapshot script", () => {
       });
 
       expect(report.debuggingLedger.matchingLatestErrorCount).toBe(1);
+      expect(report.debuggingLedger.latestErrorRecurrenceKey).toBe(buildDebuggingRecurrenceKey({
+        environment: "local",
+        route: "/workshop/projects",
+        event: "client_error",
+        errorClass: "ReferenceError",
+        errorCode: "CONTEXT_MENU_CONTENT",
+      }));
       expect(report.debuggingLedger.recentMatches[0]).toMatchObject({
         id: "debug-recurring-context-menu",
         status: "fixed",

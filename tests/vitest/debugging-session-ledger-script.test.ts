@@ -124,6 +124,7 @@ describe("debugging session ledger", () => {
         parsedRecords: 1,
         malformedLines: 0,
         unsafeRecords: 0,
+        latestErrorRecurrenceKey: record.recurrenceKey,
         matchingLatestErrorCount: 1,
       });
       expect(snapshot.recentMatches[0]).toMatchObject({

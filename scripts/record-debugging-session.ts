@@ -53,6 +53,7 @@ export type DebuggingSessionLedgerSnapshot = {
   parsedRecords: number;
   malformedLines: number;
   unsafeRecords: number;
+  latestErrorRecurrenceKey: string | null;
   matchingLatestErrorCount: number;
   recentMatches: Array<Pick<
     DebuggingSessionLedgerRecord,
@@ -294,6 +295,7 @@ export function buildDebuggingSessionLedgerSnapshot(options: {
     parsedRecords: records.length,
     malformedLines,
     unsafeRecords,
+    latestErrorRecurrenceKey: recurrenceKey,
     matchingLatestErrorCount: matches.length,
     recentMatches: matches
       .slice(-MAX_RECENT_MATCHES)

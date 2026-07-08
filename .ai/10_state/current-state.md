@@ -171,6 +171,15 @@ Stable current truth (verify against git/source before relying on a detail):
 	  to `.ai/10_state/error-debugging-ledger.ndjson`, rejects raw sensitive
 	  material, and `ops:agent-debug-snapshot` surfaces prior matching
 	  `debuggingLedger.recentMatches` for the latest local error fingerprint.
+	  The snapshot now also exposes `debuggingLedger.latestErrorRecurrenceKey`
+	  even when no prior match exists, and recommends using that key in the
+	  eventual `ops:debug-ledger -- --recurrence-key ...` record after the root
+	  cause is proven. Focused fingerprint verification passed on 2026-07-08:
+	  3 Vitest files / 12 tests, `ops:agent-debug-snapshot`,
+	  `validate:error-handling`, `ops:debug-ledger -- --check`, typecheck, and
+	  `git diff --check`; `logs/dev.ndjson` remained 1,255,756 bytes. Ledger
+	  record `debug-61dacd7a-a27a-449d-a128-cbd686eef8d0` captures the fixed
+	  snapshot-fingerprint workflow gap.
 	  Seed ledger record `debug-estimate-row-status-type-import-2026-07-08`
 	  captures the local TypeScript missing-import fix. Focused verification
 	  passed: debugging ledger + snapshot tests (2 files / 9 tests), broader
