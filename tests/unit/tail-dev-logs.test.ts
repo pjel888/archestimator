@@ -128,6 +128,73 @@ describe("tail-dev-logs helpers", () => {
     expect(summary).not.toContain("open the source location in the top frame");
   });
 
+  test("classifies route errors from Vitest as test-origin diagnostics", () => {
+    const records = parseNdjsonLines([
+      JSON.stringify({
+        record_id: "route-test",
+        timestamp: "2026-07-08T00:00:00.000Z",
+        level: "ERROR",
+        event: "route_error",
+        message: "Something went wrong. Try again in a moment.",
+        error: {
+          class: "InternalError",
+          code: "INTERNAL_ERROR",
+          stack: [
+            "InternalError: Something went wrong.",
+            "    at Module.POST (/repo/src/app/api/share/[token]/decision/route.ts:368:7)",
+            "    at /repo/tests/vitest/project-publication-decision.test.tsx:500:19",
+            "    at /repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20",
+          ],
+        },
+        context: { route: "/api/share/[token]/decision", route_handler: "POST /api/share/[token]/decision" },
+      }),
+    ]).records;
+
+    const summary = buildLatestErrorSummary(records);
+
+    expect(summary).toContain("Likely classification: test-origin synthetic log record (tests/vitest/project-publication-decision.test.tsx, node_modules/@vitest).");
+    expect(summary).toContain("rerun the identified test with a temp ARCHESTIMATOR_DEV_LOG_PATH");
+    expect(summary).not.toContain("Likely next step: open the source location in the top frame");
+  });
+
+  test("classifies adjacent route diagnostics using nearby test-origin stack evidence", () => {
+    const records = parseNdjsonLines([
+      JSON.stringify({
+        record_id: "route-error",
+        timestamp: "2026-07-08T00:00:00.000Z",
+        level: "ERROR",
+        event: "route_error",
+        message: "Something went wrong. Try again in a moment.",
+        error: {
+          class: "InternalError",
+          code: "INTERNAL_ERROR",
+          stack: [
+            "InternalError: Something went wrong.",
+            "    at Module.POST (/repo/src/app/api/share/[token]/decision/route.ts:368:7)",
+            "    at /repo/tests/vitest/project-publication-decision.test.tsx:500:19",
+            "    at /repo/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20",
+          ],
+        },
+        context: { route: "/api/share/[token]/decision", route_handler: "POST /api/share/[token]/decision" },
+      }),
+      JSON.stringify({
+        record_id: "route-diagnostic",
+        timestamp: "2026-07-08T00:00:00.001Z",
+        level: "ERROR",
+        event: "shared_link_decision_route_event",
+        message: "Shared-link decision route diagnostic.",
+        context: { route: "/api/share/[token]/decision", error_code: "SUBMIT_FAILED", status: 500 },
+      }),
+    ]).records;
+
+    const summary = buildLatestErrorSummary(records);
+
+    expect(summary).toContain("Record: route-diagnostic");
+    expect(summary).toContain("Likely classification: test-origin synthetic log record (tests/vitest/project-publication-decision.test.tsx, node_modules/@vitest).");
+    expect(summary).toContain("rerun the identified test with a temp ARCHESTIMATOR_DEV_LOG_PATH");
+    expect(summary).not.toContain("Likely next step: inspect the route or segment for /api/share/[token]/decision");
+  });
+
   test("keeps generic guidance for fetch failures without nested shutdown evidence", () => {
     const records = parseNdjsonLines([
       JSON.stringify({

@@ -64,6 +64,25 @@ describe("support monitoring readiness checker", () => {
     const result = checkSupportMonitoringReadiness({});
 
     expect(result.supportMonitoringReady).toBe(false);
+    expect(result.summary).toEqual({ passed: 0, missing: 11, failed: 0 });
+    expect(result.requirements.map((requirement) => ({
+      key: requirement.key,
+      category: requirement.category,
+      status: requirement.status,
+      source: requirement.source,
+    }))).toEqual([
+      { key: "supportInboxMonitoring", category: "operator-confirmation", status: "missing", source: null },
+      { key: "feedbackReview", category: "operator-confirmation", status: "missing", source: null },
+      { key: "uptimeAlertDelivery", category: "operator-confirmation", status: "missing", source: null },
+      { key: "errorAlertDelivery", category: "operator-confirmation", status: "missing", source: null },
+      { key: "incidentEscalationPath", category: "operator-confirmation", status: "missing", source: null },
+      { key: "supportOwnerLabel", category: "owner-label", status: "missing", source: null },
+      { key: "alertOwnerLabel", category: "owner-label", status: "missing", source: null },
+      { key: "first24HourReviewOwnerLabel", category: "owner-label", status: "missing", source: null },
+      { key: "first72HourReviewOwnerLabel", category: "owner-label", status: "missing", source: null },
+      { key: "operationalIncidentStatusArtifact", category: "evidence-artifact", status: "missing", source: null },
+      { key: "productionObservabilityProofArtifact", category: "evidence-artifact", status: "missing", source: null },
+    ]);
     expect(result.missing).toEqual([
       "support inbox monitoring confirmed",
       "feedback table review confirmed",
@@ -96,6 +115,8 @@ describe("support monitoring readiness checker", () => {
     });
 
     expect(result.supportMonitoringReady).toBe(true);
+    expect(result.summary).toEqual({ passed: 11, missing: 0, failed: 0 });
+    expect(result.requirements.every((requirement) => requirement.status === "passed")).toBe(true);
     expect(result.missing).toEqual([]);
     expect(result.supportOwner).toBe("Philip / Support");
     expect(result.alertOwner).toBe("Philip / Alerts");
@@ -129,6 +150,13 @@ describe("support monitoring readiness checker", () => {
     });
 
     expect(result.supportMonitoringReady).toBe(false);
+    expect(result.summary).toEqual({ passed: 10, missing: 0, failed: 1 });
+    expect(result.requirements.find((requirement) => requirement.key === "operationalIncidentStatusArtifact")).toMatchObject({
+      category: "evidence-artifact",
+      status: "failed",
+      missing: ["operational incidents ready", "no stale operational incidents", "stale_incident:incident-stale"],
+      source: staleArtifact,
+    });
     expect(result.missing).toContain("stale_incident:incident-stale");
     expect(result.incidentStatus.staleIncidentIds).toEqual(["incident-stale"]);
   });
@@ -157,6 +185,13 @@ describe("support monitoring readiness checker", () => {
     });
 
     expect(result.supportMonitoringReady).toBe(false);
+    expect(result.summary).toEqual({ passed: 10, missing: 0, failed: 1 });
+    expect(result.requirements.find((requirement) => requirement.key === "productionObservabilityProofArtifact")).toMatchObject({
+      category: "evidence-artifact",
+      status: "failed",
+      missing: ["production observability proof ready", "observability_proof:errorRateAlertDelivery"],
+      source: partialObservabilityProof,
+    });
     expect(result.missing).toContain("observability_proof:errorRateAlertDelivery");
     expect(result.observabilityProof.failedRequirementKeys).toEqual(["errorRateAlertDelivery"]);
   });

@@ -18,7 +18,8 @@ function artifact(value: Record<string, unknown>) {
   return {
     path: "/tmp/deploy-evidence.json",
     present: true,
-    generatedAt: typeof value.generatedAt === "string" ? value.generatedAt : null,
+    generatedAt:
+      typeof value.generatedAt === "string" ? value.generatedAt : null,
     value,
     parseError: null,
   };
@@ -40,7 +41,13 @@ function gitState(overrides: Partial<CurrentGitState> = {}): CurrentGitState {
     commit: "abcdef1234567890abcdef1234567890abcdef12",
     committedAt: "2026-07-03T00:00:00.000Z",
     subject: "current source",
-    statusPaths: ["src", "worker.ts", "package.json", "bun.lock", "wrangler.jsonc"],
+    statusPaths: [
+      "src",
+      "worker.ts",
+      "package.json",
+      "bun.lock",
+      "wrangler.jsonc",
+    ],
     dirtyRuntimeSourcePaths: [],
     workingTreeCleanForRuntimeSourcePaths: true,
     errors: [],
@@ -77,28 +84,34 @@ function deployEvidence(overrides: Record<string, unknown> = {}) {
 }
 
 function runLatestDeploySourceSmokeCli(env: NodeJS.ProcessEnv) {
-  return spawnSync("bun", ["run", "scripts/check-cloudflare-latest-deploy-source-smoke.ts"], {
-    cwd: process.cwd(),
-    env: { ...process.env, ...env },
-    encoding: "utf8",
-    timeout: 30_000,
-  });
+  return spawnSync(
+    "bun",
+    ["run", "scripts/check-cloudflare-latest-deploy-source-smoke.ts"],
+    {
+      cwd: process.cwd(),
+      env: { ...process.env, ...env },
+      encoding: "utf8",
+      timeout: 30_000,
+    },
+  );
 }
 
 describe("latest deploy source smoke script", () => {
   it("keeps the default runtime status paths aligned with deploy-relevant source", () => {
-    expect(DEFAULT_RUNTIME_SOURCE_STATUS_PATHS).toEqual(expect.arrayContaining([
-      "src",
-      "worker.ts",
-      "package.json",
-      "bun.lock",
-      "wrangler.jsonc",
-      "cloudflare-env.d.ts",
-      "next.config.ts",
-      "open-next.config.ts",
-      "src/proxy.ts",
-    ]));
-    expect(DEFAULT_RUNTIME_SOURCE_STATUS_PATHS).not.toContain("middleware.ts");
+    expect(DEFAULT_RUNTIME_SOURCE_STATUS_PATHS).toEqual(
+      expect.arrayContaining([
+        "src",
+        "worker.ts",
+        "package.json",
+        "bun.lock",
+        "wrangler.jsonc",
+        "cloudflare-env.d.ts",
+        "next.config.ts",
+        "open-next.config.ts",
+        "src/middleware.ts",
+      ]),
+    );
+    expect(DEFAULT_RUNTIME_SOURCE_STATUS_PATHS).not.toContain("src/proxy.ts");
   });
 
   it("marks a current deploy/source smoke ready only when source commit and post-deploy smoke match", () => {
@@ -132,9 +145,15 @@ describe("latest deploy source smoke script", () => {
     });
 
     expect(report.readiness.latestDeploySourceSmokeReady).toBe(false);
-    expect(report.blockers).toContain("Deploy evidence does not record the deployed git source commit.");
-    expect(report.blockers).toContain("Deployment timestamp is older than the current git commit timestamp.");
-    expect(renderMarkdown(report)).toContain("Deploy evidence does not record the deployed git source commit.");
+    expect(report.blockers).toContain(
+      "Deploy evidence does not record the deployed git source commit.",
+    );
+    expect(report.blockers).toContain(
+      "Deployment timestamp is older than the current git commit timestamp.",
+    );
+    expect(renderMarkdown(report)).toContain(
+      "Deploy evidence does not record the deployed git source commit.",
+    );
   });
 
   it("does not show production-version proof as passing when deployedAt is missing", () => {
@@ -152,8 +171,12 @@ describe("latest deploy source smoke script", () => {
     });
 
     expect(report.readiness.latestDeploySourceSmokeReady).toBe(false);
-    expect(report.blockers).toContain("Deploy evidence does not prove a 100% production Worker version with deployment time.");
-    expect(renderMarkdown(report)).toContain("| 100% production Worker version with deployment time recorded | OPEN |");
+    expect(report.blockers).toContain(
+      "Deploy evidence does not prove a 100% production Worker version with deployment time.",
+    );
+    expect(renderMarkdown(report)).toContain(
+      "| 100% production Worker version with deployment time recorded | OPEN |",
+    );
   });
 
   it("keeps otherwise green deploy evidence open when the deployed source commit differs from HEAD", () => {
@@ -168,10 +191,16 @@ describe("latest deploy source smoke script", () => {
     });
 
     expect(report.readiness.latestDeploySourceSmokeReady).toBe(false);
-    expect(report.deployment.deployedSourceCommit).toBe("1111111111111111111111111111111111111111");
+    expect(report.deployment.deployedSourceCommit).toBe(
+      "1111111111111111111111111111111111111111",
+    );
     expect(report.deployment.sourceCommitMatchesCurrentGit).toBe(false);
-    expect(report.blockers).toContain("Deployed git source commit does not match current HEAD.");
-    expect(report.blockers).not.toContain("Deploy evidence does not record the deployed git source commit.");
+    expect(report.blockers).toContain(
+      "Deployed git source commit does not match current HEAD.",
+    );
+    expect(report.blockers).not.toContain(
+      "Deploy evidence does not record the deployed git source commit.",
+    );
   });
 
   it("does not claim deployed-source readiness with dirty runtime source paths", () => {
@@ -184,13 +213,16 @@ describe("latest deploy source smoke script", () => {
     });
 
     expect(report.readiness.latestDeploySourceSmokeReady).toBe(false);
-    expect(report.blockers).toContain("Runtime source paths have uncommitted changes and cannot be claimed deployed.");
+    expect(report.blockers).toContain(
+      "Runtime source paths have uncommitted changes and cannot be claimed deployed.",
+    );
   });
 
   it("does not treat proof-tooling-only package scripts as runtime source changes", () => {
     const basePackageJson = JSON.stringify({
       scripts: {
-        "cf:provider-exit-pack": "bun run scripts/generate-cloudflare-provider-exit-pack.ts",
+        "cf:provider-exit-pack":
+          "bun run scripts/generate-cloudflare-provider-exit-pack.ts",
         build: "next build",
       },
       dependencies: {
@@ -199,9 +231,12 @@ describe("latest deploy source smoke script", () => {
     });
     const nextPackageJson = JSON.stringify({
       scripts: {
-        "cf:provider-exit-pack": "bun run scripts/generate-cloudflare-provider-exit-pack.ts",
-        "cf:check-latest-deploy-source-smoke": "bun run scripts/check-cloudflare-latest-deploy-source-smoke.ts",
-        "cf:latest-deploy-source-smoke-template": "WRITE_DEPLOY_SOURCE_SMOKE_TEMPLATE=1 bun run scripts/check-cloudflare-latest-deploy-source-smoke.ts",
+        "cf:provider-exit-pack":
+          "bun run scripts/generate-cloudflare-provider-exit-pack.ts",
+        "cf:check-latest-deploy-source-smoke":
+          "bun run scripts/check-cloudflare-latest-deploy-source-smoke.ts",
+        "cf:latest-deploy-source-smoke-template":
+          "WRITE_DEPLOY_SOURCE_SMOKE_TEMPLATE=1 bun run scripts/check-cloudflare-latest-deploy-source-smoke.ts",
         build: "next build",
       },
       dependencies: {
@@ -209,15 +244,27 @@ describe("latest deploy source smoke script", () => {
       },
     });
 
-    expect(packageJsonChangeTouchesRuntime(basePackageJson, nextPackageJson)).toBe(false);
-    expect(filterRuntimeDirtyStatusEntries([" M package.json"], { packageJsonTouchesRuntime: false })).toEqual([]);
-    expect(filterRuntimeDirtyStatusEntries(["M package.json"], { packageJsonTouchesRuntime: false })).toEqual([]);
+    expect(
+      packageJsonChangeTouchesRuntime(basePackageJson, nextPackageJson),
+    ).toBe(false);
+    expect(
+      filterRuntimeDirtyStatusEntries([" M package.json"], {
+        packageJsonTouchesRuntime: false,
+      }),
+    ).toEqual([]);
+    expect(
+      filterRuntimeDirtyStatusEntries(["M package.json"], {
+        packageJsonTouchesRuntime: false,
+      }),
+    ).toEqual([]);
   });
 
   it("keeps bun.lock dirty even when package.json only has proof-tooling script changes", () => {
-    expect(filterRuntimeDirtyStatusEntries([" M package.json", " M bun.lock"], {
-      packageJsonTouchesRuntime: false,
-    })).toEqual([" M bun.lock"]);
+    expect(
+      filterRuntimeDirtyStatusEntries([" M package.json", " M bun.lock"], {
+        packageJsonTouchesRuntime: false,
+      }),
+    ).toEqual([" M bun.lock"]);
   });
 
   it("keeps package.json dirty when runtime package fields change", () => {
@@ -238,10 +285,14 @@ describe("latest deploy source smoke script", () => {
       },
     });
 
-    expect(packageJsonChangeTouchesRuntime(basePackageJson, nextPackageJson)).toBe(true);
-    expect(filterRuntimeDirtyStatusEntries([" M package.json"], { packageJsonTouchesRuntime: true })).toEqual([
-      " M package.json",
-    ]);
+    expect(
+      packageJsonChangeTouchesRuntime(basePackageJson, nextPackageJson),
+    ).toBe(true);
+    expect(
+      filterRuntimeDirtyStatusEntries([" M package.json"], {
+        packageJsonTouchesRuntime: true,
+      }),
+    ).toEqual([" M package.json"]);
   });
 
   it("keeps package.json dirty when non-proof scripts change", () => {
@@ -256,7 +307,9 @@ describe("latest deploy source smoke script", () => {
       },
     });
 
-    expect(packageJsonChangeTouchesRuntime(basePackageJson, nextPackageJson)).toBe(true);
+    expect(
+      packageJsonChangeTouchesRuntime(basePackageJson, nextPackageJson),
+    ).toBe(true);
   });
 
   it("reports malformed deploy evidence as an explicit blocker", () => {
@@ -272,12 +325,18 @@ describe("latest deploy source smoke script", () => {
       generatedAt: null,
       parseError: "Unexpected token '<' while parsing JSON",
     });
-    expect(report.blockers).toContain("Deploy evidence artifact could not be parsed as JSON.");
-    expect(renderMarkdown(report)).toContain("Deploy evidence parse error | Unexpected token '<' while parsing JSON");
+    expect(report.blockers).toContain(
+      "Deploy evidence artifact could not be parsed as JSON.",
+    );
+    expect(renderMarkdown(report)).toContain(
+      "Deploy evidence parse error | Unexpected token '<' while parsing JSON",
+    );
   });
 
   it("keeps default report generation non-fatal but fails strict readiness mode on blockers", () => {
-    const dir = mkdtempSync(join(tmpdir(), "latest-deploy-source-smoke-strict-"));
+    const dir = mkdtempSync(
+      join(tmpdir(), "latest-deploy-source-smoke-strict-"),
+    );
     const deployEvidenceFile = join(dir, "malformed-deploy-evidence.json");
     const defaultOutputFile = join(dir, "default.json");
     const defaultMarkdownFile = join(dir, "default.md");
@@ -300,7 +359,10 @@ describe("latest deploy source smoke script", () => {
 
     expect(defaultRun.status).toBe(0);
     expect(defaultRun.stderr).toBe("");
-    expect(JSON.parse(readFileSync(defaultOutputFile, "utf8")).readiness.latestDeploySourceSmokeReady).toBe(false);
+    expect(
+      JSON.parse(readFileSync(defaultOutputFile, "utf8")).readiness
+        .latestDeploySourceSmokeReady,
+    ).toBe(false);
 
     const strictRun = runLatestDeploySourceSmokeCli({
       ...baseEnv,
@@ -311,8 +373,9 @@ describe("latest deploy source smoke script", () => {
 
     expect(strictRun.status).toBe(1);
     expect(strictRun.stderr).toBe("");
-    expect(JSON.parse(readFileSync(strictOutputFile, "utf8")).blockers)
-      .toContain("Deploy evidence artifact could not be parsed as JSON.");
+    expect(
+      JSON.parse(readFileSync(strictOutputFile, "utf8")).blockers,
+    ).toContain("Deploy evidence artifact could not be parsed as JSON.");
     expect(strictRun.stdout).toContain('"strictReadinessExit": true');
     expect(strictRun.stdout).toContain('"exitCode": 1');
   });
@@ -335,8 +398,12 @@ describe("latest deploy source smoke script", () => {
     });
 
     expect(report.readiness.latestDeploySourceSmokeReady).toBe(false);
-    expect(report.blockers).toContain("Deploy evidence does not include a passing hosted route smoke.");
-    expect(report.blockers).toContain("Deploy evidence does not include passing release gates after the deploy.");
+    expect(report.blockers).toContain(
+      "Deploy evidence does not include a passing hosted route smoke.",
+    );
+    expect(report.blockers).toContain(
+      "Deploy evidence does not include passing release gates after the deploy.",
+    );
   });
 
   it("builds a sanitized deploy-source template without making it readiness proof", () => {
@@ -345,8 +412,12 @@ describe("latest deploy source smoke script", () => {
       currentGit: gitState(),
     });
 
-    expect(template.mode).toBe("cloudflare-latest-deploy-source-smoke-template");
-    expect(template.source.gitCommit).toBe("abcdef1234567890abcdef1234567890abcdef12");
+    expect(template.mode).toBe(
+      "cloudflare-latest-deploy-source-smoke-template",
+    );
+    expect(template.source.gitCommit).toBe(
+      "abcdef1234567890abcdef1234567890abcdef12",
+    );
     expect(template.productionVersion.id).toBeNull();
     expect(template.hostedRouteProof.hostedRouteProofReady).toBe(false);
     expect(template.releaseGates.productionCutoverReady).toBe(false);
@@ -360,8 +431,14 @@ describe("latest deploy source smoke script", () => {
 
     expect(report.readiness.latestDeploySourceSmokeReady).toBe(false);
     expect(report.deployment.sourceCommitMatchesCurrentGit).toBe(true);
-    expect(report.blockers).toContain("Deploy evidence does not prove a 100% production Worker version with deployment time.");
-    expect(report.blockers).toContain("Deploy evidence does not include a passing hosted route smoke.");
-    expect(report.blockers).toContain("Deploy evidence does not include passing release gates after the deploy.");
+    expect(report.blockers).toContain(
+      "Deploy evidence does not prove a 100% production Worker version with deployment time.",
+    );
+    expect(report.blockers).toContain(
+      "Deploy evidence does not include a passing hosted route smoke.",
+    );
+    expect(report.blockers).toContain(
+      "Deploy evidence does not include passing release gates after the deploy.",
+    );
   });
 });

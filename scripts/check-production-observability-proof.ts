@@ -3,13 +3,15 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 
-const DEFAULT_EVIDENCE_DIR = ".ai/03_plans/2026-07-07-observability-alert-proof-and-log-retention/evidence";
+const DEFAULT_EVIDENCE_DIR =
+  ".ai/03_plans/2026-07-07-observability-alert-proof-and-log-retention/evidence";
 const DEFAULT_OUTPUT = `${DEFAULT_EVIDENCE_DIR}/production-observability-proof-check.json`;
 const DEFAULT_MAX_AGE_HOURS = 72;
 const WORKER_NAME = "archestimator-proof";
 const EXPECTED_PRODUCER_VERSION = 1;
 const WORKERS_LOGS_PROOF_PRODUCER = "scripts/collect-workers-logs-proof.ts";
-const ALERT_DELIVERY_PROOF_PRODUCER = "scripts/verify-observability-alert-delivery.ts";
+const ALERT_DELIVERY_PROOF_PRODUCER =
+  "scripts/verify-observability-alert-delivery.ts";
 
 type RequirementKey =
   | "workersLogsQuery"
@@ -33,6 +35,7 @@ type Requirement = {
   label: string;
   candidates: string[];
   note: string;
+  nextAction: string;
   validate: (artifact: unknown, context: ValidationContext) => ProofCheck[];
 };
 
@@ -44,6 +47,7 @@ type RequirementResult = {
   checks: ProofCheck[];
   failedChecks: string[];
   note: string;
+  nextAction: string;
 };
 
 export type ProductionObservabilityProofReport = {
@@ -123,19 +127,35 @@ function parsePositiveNumber(value: string | undefined, fallback: number) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
-export function readObservabilityProofMaxAgeHours(env: Record<string, string | undefined> = process.env) {
-  return parsePositiveNumber(env.OBSERVABILITY_PROOF_MAX_AGE_HOURS, DEFAULT_MAX_AGE_HOURS);
+export function readObservabilityProofMaxAgeHours(
+  env: Record<string, string | undefined> = process.env,
+) {
+  return parsePositiveNumber(
+    env.OBSERVABILITY_PROOF_MAX_AGE_HOURS,
+    DEFAULT_MAX_AGE_HOURS,
+  );
 }
 
-function artifactFreshnessChecks(artifact: unknown, context: ValidationContext) {
+function artifactFreshnessChecks(
+  artifact: unknown,
+  context: ValidationContext,
+) {
   const generatedAt = stringValue(artifact, ["generatedAt"]);
   const generatedAtMs = generatedAt ? Date.parse(generatedAt) : NaN;
   const ageHours = Number.isFinite(generatedAtMs)
     ? Math.floor((context.now.getTime() - generatedAtMs) / 3_600_000)
     : null;
   return [
-    check("artifact-generated-at-iso", typeof generatedAt === "string" && Number.isFinite(generatedAtMs), generatedAt ?? ""),
-    check("artifact-not-from-future", ageHours !== null && ageHours >= 0, String(ageHours ?? "")),
+    check(
+      "artifact-generated-at-iso",
+      typeof generatedAt === "string" && Number.isFinite(generatedAtMs),
+      generatedAt ?? "",
+    ),
+    check(
+      "artifact-not-from-future",
+      ageHours !== null && ageHours >= 0,
+      String(ageHours ?? ""),
+    ),
     check(
       "artifact-within-max-age",
       ageHours !== null && ageHours <= context.maxAgeHours,
@@ -160,32 +180,80 @@ function artifactProducerChecks(artifact: unknown, expectedScript: string) {
 function sensitiveStringScan(artifact: unknown) {
   const text = JSON.stringify(artifact);
   if (/Bearer\s+[A-Za-z0-9._~+/=-]{12,}/i.test(text)) return false;
-  if (/(cf_clearance|better-auth\.session|session_token|password-reset|invite_token)=/i.test(text)) return false;
-  if (/https?:\/\/[^\s"']+[?&](token|code|state|password|secret)=/i.test(text)) return false;
+  if (
+    /(cf_clearance|better-auth\.session|session_token|password-reset|invite_token)=/i.test(
+      text,
+    )
+  )
+    return false;
+  if (/https?:\/\/[^\s"']+[?&](token|code|state|password|secret)=/i.test(text))
+    return false;
   return true;
 }
 
 function sourceIsHostedLogs(value: string | null) {
-  return value === "workers-logs" || value === "real-time-logs" || value === "wrangler-tail";
+  return (
+    value === "workers-logs" ||
+    value === "real-time-logs" ||
+    value === "wrangler-tail"
+  );
 }
 
-function validateWorkersLogsQuery(artifact: unknown, context: ValidationContext): ProofCheck[] {
+function validateWorkersLogsQuery(
+  artifact: unknown,
+  context: ValidationContext,
+): ProofCheck[] {
   const matchedEvents = numberValue(artifact, ["query", "matchedEvents"]);
   return [
     ...artifactFreshnessChecks(artifact, context),
     ...artifactProducerChecks(artifact, WORKERS_LOGS_PROOF_PRODUCER),
-    check("workers-logs-mode", stringValue(artifact, ["mode"]) === "workers-logs-query-proof"),
-    check("workers-logs-boundary", stringValue(artifact, ["proofBoundary"]) === "hosted-workers-logs-query"),
+    check(
+      "workers-logs-mode",
+      stringValue(artifact, ["mode"]) === "workers-logs-query-proof",
+    ),
+    check(
+      "workers-logs-boundary",
+      stringValue(artifact, ["proofBoundary"]) === "hosted-workers-logs-query",
+    ),
     check("workers-logs-passed", booleanValue(artifact, ["passed"]) === true),
-    check("workers-logs-source-hosted", sourceIsHostedLogs(stringValue(artifact, ["source"]))),
-    check("workers-logs-environment-production", stringValue(artifact, ["query", "environment"]) === "production"),
-    check("workers-logs-worker-name", stringValue(artifact, ["query", "worker"]) === WORKER_NAME),
-    check("workers-logs-matched-events", typeof matchedEvents === "number" && matchedEvents > 0, String(matchedEvents ?? "")),
-    check("workers-logs-internal-request-id-observed", booleanValue(artifact, ["evidence", "internalRequestIdObserved"]) === true),
-    check("workers-logs-route-observed", booleanValue(artifact, ["evidence", "routeObserved"]) === true),
-    check("workers-logs-worker-outcome-observed", booleanValue(artifact, ["evidence", "workerOutcomeObserved"]) === true),
-    check("workers-logs-error-message-redacted", booleanValue(artifact, ["evidence", "errorMessageRedacted"]) === true),
-    check("workers-logs-no-raw-secrets", booleanValue(artifact, ["evidence", "noRawSecrets"]) === true),
+    check(
+      "workers-logs-source-hosted",
+      sourceIsHostedLogs(stringValue(artifact, ["source"])),
+    ),
+    check(
+      "workers-logs-environment-production",
+      stringValue(artifact, ["query", "environment"]) === "production",
+    ),
+    check(
+      "workers-logs-worker-name",
+      stringValue(artifact, ["query", "worker"]) === WORKER_NAME,
+    ),
+    check(
+      "workers-logs-matched-events",
+      typeof matchedEvents === "number" && matchedEvents > 0,
+      String(matchedEvents ?? ""),
+    ),
+    check(
+      "workers-logs-internal-request-id-observed",
+      booleanValue(artifact, ["evidence", "internalRequestIdObserved"]) ===
+        true,
+    ),
+    check(
+      "workers-logs-route-observed",
+      booleanValue(artifact, ["evidence", "routeObserved"]) === true,
+    ),
+    check(
+      "workers-logs-worker-outcome-observed",
+      booleanValue(artifact, ["evidence", "workerOutcomeObserved"]) === true,
+    ),
+    check(
+      "workers-logs-error-message-redacted",
+      booleanValue(artifact, ["evidence", "errorMessageRedacted"]) === true,
+    ),
+    check(
+      "workers-logs-no-raw-secrets",
+      booleanValue(artifact, ["evidence", "noRawSecrets"]) === true,
+    ),
     check("workers-logs-artifact-secret-scan", sensitiveStringScan(artifact)),
   ];
 }
@@ -199,20 +267,65 @@ function validateAlertDeliveryScenario(expectedScenario: string) {
   return (artifact: unknown, context: ValidationContext): ProofCheck[] => [
     ...artifactFreshnessChecks(artifact, context),
     ...artifactProducerChecks(artifact, ALERT_DELIVERY_PROOF_PRODUCER),
-    check("alert-mode", stringValue(artifact, ["mode"]) === "observability-alert-delivery-proof"),
-    check("alert-boundary", stringValue(artifact, ["proofBoundary"]) === "hosted-alert-delivery-observation"),
-    check("alert-scenario", stringValue(artifact, ["scenario"]) === expectedScenario),
+    check(
+      "alert-mode",
+      stringValue(artifact, ["mode"]) === "observability-alert-delivery-proof",
+    ),
+    check(
+      "alert-boundary",
+      stringValue(artifact, ["proofBoundary"]) ===
+        "hosted-alert-delivery-observation",
+    ),
+    check(
+      "alert-scenario",
+      stringValue(artifact, ["scenario"]) === expectedScenario,
+    ),
     check("alert-passed", booleanValue(artifact, ["passed"]) === true),
-    check("alert-environment-production", stringValue(artifact, ["environment"]) === "production"),
-    check("alert-delivered", booleanValue(artifact, ["delivery", "delivered"]) === true),
-    check("alert-observed-at-iso", Number.isFinite(Date.parse(stringValue(artifact, ["delivery", "observedAt"]) ?? ""))),
-    check("alert-channel-present", Boolean(stringValue(artifact, ["delivery", "channel"]))),
-    check("alert-status-2xx-if-present", deliveryStatusCodeOk(artifact), String(numberValue(artifact, ["delivery", "statusCode"]) ?? "")),
-    check("alert-recipient-redacted", booleanValue(artifact, ["delivery", "recipientRedacted"]) === true),
-    check("alert-secret-redacted", booleanValue(artifact, ["delivery", "secretRedacted"]) === true),
-    check("alert-payload-path-safe", booleanValue(artifact, ["delivery", "payloadPathSafe"]) === true),
+    check(
+      "alert-environment-production",
+      stringValue(artifact, ["environment"]) === "production",
+    ),
+    check(
+      "alert-delivered",
+      booleanValue(artifact, ["delivery", "delivered"]) === true,
+    ),
+    check(
+      "alert-observed-at-iso",
+      Number.isFinite(
+        Date.parse(stringValue(artifact, ["delivery", "observedAt"]) ?? ""),
+      ),
+    ),
+    check(
+      "alert-channel-present",
+      Boolean(stringValue(artifact, ["delivery", "channel"])),
+    ),
+    check(
+      "alert-status-2xx-if-present",
+      deliveryStatusCodeOk(artifact),
+      String(numberValue(artifact, ["delivery", "statusCode"]) ?? ""),
+    ),
+    check(
+      "alert-recipient-redacted",
+      booleanValue(artifact, ["delivery", "recipientRedacted"]) === true,
+    ),
+    check(
+      "alert-secret-redacted",
+      booleanValue(artifact, ["delivery", "secretRedacted"]) === true,
+    ),
+    check(
+      "alert-payload-path-safe",
+      booleanValue(artifact, ["delivery", "payloadPathSafe"]) === true,
+    ),
     check("alert-artifact-secret-scan", sensitiveStringScan(artifact)),
   ];
+}
+
+function workersLogsNextAction() {
+  return "Run `bun run ops:check-observability-env`; after hosted proof env gates pass, run `WORKERS_LOGS_PROOF_URL=<https_observability_proof_url> WORKERS_LOGS_PROOF_SECRET=<cron_secret> bun run ops:collect-workers-logs-proof`, then rerun `bun run ops:check-observability`.";
+}
+
+function alertDeliveryNextAction(scenario: string) {
+  return `Run \`bun run ops:check-observability-env\`; after alert-delivery env gates pass, run \`bun run ops:verify-observability-alert -- --scenario ${scenario}\`, then rerun \`bun run ops:check-observability\`.`;
 }
 
 const REQUIREMENTS: Requirement[] = [
@@ -221,6 +334,7 @@ const REQUIREMENTS: Requirement[] = [
     label: "Hosted Workers Logs query proof",
     candidates: ["workers-logs-query-proof.json"],
     note: "Requires hosted Workers Logs, Real-time Logs, or wrangler tail evidence with an internal request id, route, worker outcome, and redacted error message.",
+    nextAction: workersLogsNextAction(),
     validate: validateWorkersLogsQuery,
   },
   {
@@ -228,6 +342,7 @@ const REQUIREMENTS: Requirement[] = [
     label: "Hosted uptime alert delivery proof",
     candidates: ["uptime-alert-delivery-proof.json"],
     note: "Requires observed hosted delivery for the uptime scenario without raw recipients, secrets, tokens, or sensitive URLs.",
+    nextAction: alertDeliveryNextAction("uptime"),
     validate: validateAlertDeliveryScenario("uptime"),
   },
   {
@@ -235,6 +350,7 @@ const REQUIREMENTS: Requirement[] = [
     label: "Hosted error-rate alert delivery proof",
     candidates: ["error-rate-alert-delivery-proof.json"],
     note: "Requires observed hosted delivery for the error-rate scenario without raw recipients, secrets, tokens, or sensitive URLs.",
+    nextAction: alertDeliveryNextAction("error-rate"),
     validate: validateAlertDeliveryScenario("error-rate"),
   },
   {
@@ -242,6 +358,7 @@ const REQUIREMENTS: Requirement[] = [
     label: "Hosted Queue DLQ alert delivery proof",
     candidates: ["queue-dlq-alert-delivery-proof.json"],
     note: "Requires observed hosted delivery for the queue-dlq scenario without raw recipients, secrets, tokens, or sensitive URLs.",
+    nextAction: alertDeliveryNextAction("queue-dlq"),
     validate: validateAlertDeliveryScenario("queue-dlq"),
   },
   {
@@ -249,6 +366,7 @@ const REQUIREMENTS: Requirement[] = [
     label: "Hosted cron-failure alert delivery proof",
     candidates: ["cron-failure-alert-delivery-proof.json"],
     note: "Requires observed hosted delivery for the cron-failure scenario without raw recipients, secrets, tokens, or sensitive URLs.",
+    nextAction: alertDeliveryNextAction("cron-failure"),
     validate: validateAlertDeliveryScenario("cron-failure"),
   },
   {
@@ -256,6 +374,7 @@ const REQUIREMENTS: Requirement[] = [
     label: "Hosted incident-escalation alert delivery proof",
     candidates: ["incident-escalation-alert-delivery-proof.json"],
     note: "Requires observed hosted delivery for incident escalation after a real or intentional drill incident.",
+    nextAction: alertDeliveryNextAction("incident-escalation"),
     validate: validateAlertDeliveryScenario("incident-escalation"),
   },
   {
@@ -263,12 +382,19 @@ const REQUIREMENTS: Requirement[] = [
     label: "Hosted retention-failure alert delivery proof",
     candidates: ["retention-failure-alert-delivery-proof.json"],
     note: "Requires observed hosted delivery for the retention-failure scenario without raw recipients, secrets, tokens, or sensitive URLs.",
+    nextAction: alertDeliveryNextAction("retention-failure"),
     validate: validateAlertDeliveryScenario("retention-failure"),
   },
 ];
 
-function loadArtifact(evidenceDir: string, candidates: readonly string[], override?: string) {
-  const paths = override ? [override] : candidates.map((candidate) => join(evidenceDir, candidate));
+function loadArtifact(
+  evidenceDir: string,
+  candidates: readonly string[],
+  override?: string,
+) {
+  const paths = override
+    ? [override]
+    : candidates.map((candidate) => join(evidenceDir, candidate));
   for (const path of paths) {
     if (!existsSync(path)) continue;
     try {
@@ -307,8 +433,11 @@ function evaluateRequirement(
       status: "missing",
       artifact: null,
       checks: [],
-      failedChecks: requirement.candidates.map((candidate) => `missing:${candidate}`),
+      failedChecks: requirement.candidates.map(
+        (candidate) => `missing:${candidate}`,
+      ),
       note: requirement.note,
+      nextAction: requirement.nextAction,
     };
   }
 
@@ -321,11 +450,14 @@ function evaluateRequirement(
       checks: [check("artifact-json-parseable", false)],
       failedChecks: ["artifact-json-parseable"],
       note: requirement.note,
+      nextAction: requirement.nextAction,
     };
   }
 
   const checks = requirement.validate(loaded.artifact, context);
-  const failedChecks = checks.filter((item) => !item.passed).map((item) => item.label);
+  const failedChecks = checks
+    .filter((item) => !item.passed)
+    .map((item) => item.label);
   return {
     key: requirement.key,
     label: requirement.label,
@@ -334,45 +466,68 @@ function evaluateRequirement(
     checks,
     failedChecks,
     note: requirement.note,
+    nextAction: requirement.nextAction,
   };
 }
 
-function fileOverridesFromEnv(env: Record<string, string | undefined> = process.env): Partial<Record<RequirementKey, string>> {
+function fileOverridesFromEnv(
+  env: Record<string, string | undefined> = process.env,
+): Partial<Record<RequirementKey, string>> {
   return {
     workersLogsQuery: env.OBSERVABILITY_WORKERS_LOGS_PROOF_FILE,
     uptimeAlertDelivery: env.OBSERVABILITY_UPTIME_ALERT_PROOF_FILE,
     errorRateAlertDelivery: env.OBSERVABILITY_ERROR_RATE_ALERT_PROOF_FILE,
     queueDlqAlertDelivery: env.OBSERVABILITY_QUEUE_DLQ_ALERT_PROOF_FILE,
     cronFailureAlertDelivery: env.OBSERVABILITY_CRON_FAILURE_ALERT_PROOF_FILE,
-    incidentEscalationDelivery: env.OBSERVABILITY_INCIDENT_ESCALATION_PROOF_FILE,
-    retentionFailureAlertDelivery: env.OBSERVABILITY_RETENTION_FAILURE_ALERT_PROOF_FILE,
+    incidentEscalationDelivery:
+      env.OBSERVABILITY_INCIDENT_ESCALATION_PROOF_FILE,
+    retentionFailureAlertDelivery:
+      env.OBSERVABILITY_RETENTION_FAILURE_ALERT_PROOF_FILE,
   };
 }
 
-function outputPathFromEnv(env: Record<string, string | undefined> = process.env) {
-  return env.OUTPUT_FILE || env.OBSERVABILITY_PROOF_OUTPUT_FILE || DEFAULT_OUTPUT;
+function outputPathFromEnv(
+  env: Record<string, string | undefined> = process.env,
+) {
+  return (
+    env.OUTPUT_FILE || env.OBSERVABILITY_PROOF_OUTPUT_FILE || DEFAULT_OUTPUT
+  );
 }
 
 export function checkProductionObservabilityProof(
   options: CheckProductionObservabilityProofOptions = {},
 ): ProductionObservabilityProofReport {
-  const evidenceDir = resolve(options.evidenceDir || process.env.OBSERVABILITY_PROOF_EVIDENCE_DIR || DEFAULT_EVIDENCE_DIR);
+  const evidenceDir = resolve(
+    options.evidenceDir ||
+      process.env.OBSERVABILITY_PROOF_EVIDENCE_DIR ||
+      DEFAULT_EVIDENCE_DIR,
+  );
   const context = {
     now: options.now ?? new Date(),
     maxAgeHours: options.maxAgeHours ?? readObservabilityProofMaxAgeHours(),
   };
-  const requirements = REQUIREMENTS.map((requirement) => evaluateRequirement(
-    requirement,
-    evidenceDir,
-    context,
-    options.fileOverrides?.[requirement.key],
-  ));
+  const requirements = REQUIREMENTS.map((requirement) =>
+    evaluateRequirement(
+      requirement,
+      evidenceDir,
+      context,
+      options.fileOverrides?.[requirement.key],
+    ),
+  );
   const totals = {
     required: requirements.length,
-    passed: requirements.filter((requirement) => requirement.status === "passed").length,
-    failed: requirements.filter((requirement) => requirement.status === "failed").length,
-    missing: requirements.filter((requirement) => requirement.status === "missing").length,
-    invalid: requirements.filter((requirement) => requirement.status === "invalid").length,
+    passed: requirements.filter(
+      (requirement) => requirement.status === "passed",
+    ).length,
+    failed: requirements.filter(
+      (requirement) => requirement.status === "failed",
+    ).length,
+    missing: requirements.filter(
+      (requirement) => requirement.status === "missing",
+    ).length,
+    invalid: requirements.filter(
+      (requirement) => requirement.status === "invalid",
+    ).length,
   };
   const passed = totals.passed === totals.required;
 
@@ -413,11 +568,18 @@ export function formatProductionObservabilityProofSummary(
   ];
   if (report.passed) return lines;
 
-  lines.push(`Failed requirements: ${report.failedRequirementKeys.join(", ") || "none"}`);
-  for (const requirement of report.requirements.filter((item) => item.status !== "passed")) {
+  lines.push(
+    `Failed requirements: ${report.failedRequirementKeys.join(", ") || "none"}`,
+  );
+  for (const requirement of report.requirements.filter(
+    (item) => item.status !== "passed",
+  )) {
     const artifact = requirement.artifact ?? "missing";
-    const failedChecks = requirement.failedChecks.join(", ") || requirement.status;
-    lines.push(`- ${requirement.key}: ${requirement.status}; artifact=${artifact}; failedChecks=${failedChecks}`);
+    const failedChecks =
+      requirement.failedChecks.join(", ") || requirement.status;
+    lines.push(
+      `- ${requirement.key}: ${requirement.status}; artifact=${artifact}; failedChecks=${failedChecks}; nextAction=${requirement.nextAction}`,
+    );
   }
   lines.push(
     "Next: run `bun run ops:check-observability-env`, collect hosted Workers Logs proof with `bun run ops:collect-workers-logs-proof`, run alert probes with `bun run ops:verify-observability-alert -- --scenario <uptime|error-rate|queue-dlq|cron-failure|incident-escalation|retention-failure>`, then rerun `bun run ops:check-observability`.",
@@ -431,7 +593,9 @@ async function main() {
     fileOverrides: fileOverridesFromEnv(),
   });
   const output = writeProductionObservabilityProofReport(report);
-  console.log(formatProductionObservabilityProofSummary(report, output).join("\n"));
+  console.log(
+    formatProductionObservabilityProofSummary(report, output).join("\n"),
+  );
   if (!report.passed) process.exitCode = 1;
 }
 

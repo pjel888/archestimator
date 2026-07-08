@@ -1,9 +1,20 @@
 #!/usr/bin/env bun
 
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { basename, dirname, extname, resolve, sep } from "node:path";
 
-import { extractRpcNames, type CloudflareMigrationInventory, type ProviderDependency } from "./generate-cloudflare-migration-inventory";
+import {
+  extractRpcNames,
+  type CloudflareMigrationInventory,
+  type ProviderDependency,
+} from "./generate-cloudflare-migration-inventory";
 
 type Artifact<T> = {
   source: string | null;
@@ -11,7 +22,13 @@ type Artifact<T> = {
   value: T | null;
 };
 
-type AccessSurface = "api-route" | "page-route" | "server-action" | "repository" | "worker" | "source";
+type AccessSurface =
+  | "api-route"
+  | "page-route"
+  | "server-action"
+  | "repository"
+  | "worker"
+  | "source";
 
 type AccessMatrixRow = {
   id: string;
@@ -25,7 +42,12 @@ type AccessMatrixRow = {
   positiveTestRefs: string[];
   denialTestRefs: string[];
   crossWorkspaceDenialTestRefs: string[];
-  status: "covered" | "missing-d1-check" | "missing-positive-test" | "missing-denial-test" | "missing-cross-workspace-denial";
+  status:
+    | "covered"
+    | "missing-d1-check"
+    | "missing-positive-test"
+    | "missing-denial-test"
+    | "missing-cross-workspace-denial";
   notes: string[];
 };
 
@@ -63,7 +85,16 @@ const DEFAULT_FILES = {
   inventory: `${PLAN_ROOT}/2026-06-30-cloudflare-migration-inventory.json`,
 } as const;
 
-const SOURCE_EXTENSIONS = new Set([".cjs", ".cts", ".js", ".jsx", ".mjs", ".mts", ".ts", ".tsx"]);
+const SOURCE_EXTENSIONS = new Set([
+  ".cjs",
+  ".cts",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".mts",
+  ".ts",
+  ".tsx",
+]);
 const TEST_EXTENSIONS = new Set([".ts", ".tsx"]);
 
 const AUTHZ_RPC_PATTERN =
@@ -81,7 +112,8 @@ const CROSS_WORKSPACE_PATTERN =
 const TENANT_SCOPE_PATTERN =
   /\b(?:workspace|workspaces|project|projects|estimate|estimates|library|libraries|collaboration|collaborations|publication|publications|upload|uploads|attachment|attachments|proposal|proposals|invite|invites)\b/i;
 
-const GENERATED_OR_NON_ACCESS_SOURCE_PATTERN = /(?:^|\/)(?:src\/lib\/supabase\/types\.ts|cloudflare-env\.d\.ts)$/;
+const GENERATED_OR_NON_ACCESS_SOURCE_PATTERN =
+  /(?:^|\/)(?:src\/lib\/supabase\/types\.ts|cloudflare-env\.d\.ts)$/;
 
 const AUTHZ_TABLE_QUERY_PATTERN =
   /\.from\(\s*["'](?:workspace_members|project_members|estimate_sheet_members|workspace_account_settings|workspaces|projects|upload_sessions|upload_assets)["']\s*\)/i;
@@ -149,7 +181,9 @@ function normalizeRepoPath(path: string) {
 function toRepoRelativePath(path: string) {
   const normalized = normalizeRepoPath(path);
   const cwd = normalizeRepoPath(process.cwd());
-  return normalized.startsWith(`${cwd}/`) ? normalized.slice(cwd.length + 1) : normalized;
+  return normalized.startsWith(`${cwd}/`)
+    ? normalized.slice(cwd.length + 1)
+    : normalized;
 }
 
 function isSourceFile(path: string) {
@@ -160,7 +194,10 @@ function isTestFile(path: string) {
   return TEST_EXTENSIONS.has(extname(path));
 }
 
-function listFilesRecursively(path: string, includeFile: (path: string) => boolean) {
+function listFilesRecursively(
+  path: string,
+  includeFile: (path: string) => boolean,
+) {
   if (!existsSync(path)) return [];
   const stats = statSync(path);
   if (stats.isFile()) return includeFile(path) ? [normalizeRepoPath(path)] : [];
@@ -204,7 +241,7 @@ function slug(value: string) {
 }
 
 function normalizeTextForMatching(input: string) {
-  return input.replaceAll("'", "\"").toLowerCase();
+  return input.replaceAll("'", '"').toLowerCase();
 }
 
 function routeTokens(route: string | null) {
@@ -219,7 +256,12 @@ function sourceTokens(file: string) {
   const base = basename(file).replace(/\.(?:test\.)?[cm]?[tj]sx?$/, "");
   return [
     base,
-    ...file.split("/").filter((part) => part.length >= 5 && !part.includes(".") && !part.startsWith("[")),
+    ...file
+      .split("/")
+      .filter(
+        (part) =>
+          part.length >= 5 && !part.includes(".") && !part.startsWith("["),
+      ),
   ];
 }
 
@@ -227,12 +269,21 @@ function isAuthzRelevantRpcName(name: string) {
   return AUTHZ_RPC_PATTERN.test(name);
 }
 
-function isAuthzRelevantSource(file: string, text: string, rpcNames: string[], dependencies: string[]) {
+function isAuthzRelevantSource(
+  file: string,
+  text: string,
+  rpcNames: string[],
+  dependencies: string[],
+) {
   if (GENERATED_OR_NON_ACCESS_SOURCE_PATTERN.test(file)) return false;
   if (rpcNames.some(isAuthzRelevantRpcName)) return true;
   if (dependencies.includes("supabase-rpc")) return true;
   if (AUTHZ_TABLE_QUERY_PATTERN.test(text)) return true;
-  if (AUTHZ_RLS_SOURCE_PATTERN.test(text) && /\b(?:policy|policies|supabase|postgres|migration)\b/i.test(text)) return true;
+  if (
+    AUTHZ_RLS_SOURCE_PATTERN.test(text) &&
+    /\b(?:policy|policies|supabase|postgres|migration)\b/i.test(text)
+  )
+    return true;
   return false;
 }
 
@@ -240,99 +291,180 @@ function classifySurface(file: string): AccessSurface {
   if (file === "worker.ts" || file.startsWith("src/worker")) return "worker";
   if (file.includes("/route.ts")) return "api-route";
   if (file.includes("/page.tsx")) return "page-route";
-  if (file.endsWith("/actions.ts") || file.endsWith("-actions.ts")) return "server-action";
-  if (file.includes("/repositories/") || file.includes("repository")) return "repository";
+  if (file.endsWith("/actions.ts") || file.endsWith("-actions.ts"))
+    return "server-action";
+  if (file.includes("/repositories/") || file.includes("repository"))
+    return "repository";
   return "source";
 }
 
-function classifyDomain(file: string, rpcNames: string[], route: string | null) {
+function classifyDomain(
+  file: string,
+  rpcNames: string[],
+  route: string | null,
+) {
   const haystack = `${file} ${route ?? ""} ${rpcNames.join(" ")}`.toLowerCase();
   if (/closed_beta|allowlist|beta/.test(haystack)) return "closed beta access";
-  if (/upload|image|attachment|asset|scan/.test(haystack)) return "uploads and media";
-  if (/publication|share|proposal|recipient|unsubscribe/.test(haystack)) return "publication and proposals";
+  if (/upload|image|attachment|asset|scan/.test(haystack))
+    return "uploads and media";
+  if (/publication|share|proposal|recipient|unsubscribe/.test(haystack))
+    return "publication and proposals";
   if (/collaboration|invite/.test(haystack)) return "collaboration invitations";
-  if (/library|component|template|brand|folder/.test(haystack)) return "component library";
+  if (/library|component|template|brand|folder/.test(haystack))
+    return "component library";
   if (/estimate|sheet|node|row|tab/.test(haystack)) return "estimate editing";
   if (/project/.test(haystack)) return "projects";
   if (/workspace|homebase/.test(haystack)) return "workspace";
-  if (/ai_package|package-builder|ai/.test(haystack)) return "AI package builder";
+  if (/ai_package|package-builder|ai/.test(haystack))
+    return "AI package builder";
   return "workspace data";
 }
 
-function requiredD1ChecksFor(file: string, rpcNames: string[], domain: string, sourceText: string) {
-  const haystack = `${file} ${rpcNames.join(" ")} ${domain} ${sourceText.slice(0, 4000)}`.toLowerCase();
+function requiredD1ChecksFor(
+  file: string,
+  rpcNames: string[],
+  domain: string,
+  sourceText: string,
+) {
+  const haystack =
+    `${file} ${rpcNames.join(" ")} ${domain} ${sourceText.slice(0, 4000)}`.toLowerCase();
   const checks = new Set<string>();
 
   if (/can_edit_project|project.*edit|location|activity/.test(haystack)) {
-    checks.add("D1 project edit guard using server-derived user and project membership");
+    checks.add(
+      "D1 project edit guard using server-derived user and project membership",
+    );
   }
-  if (/can_access_project|project.*access|publication|proposal/.test(haystack)) {
-    checks.add("D1 project access guard using server-derived user, membership, or publication recipient");
+  if (
+    /can_access_project|project.*access|publication|proposal/.test(haystack)
+  ) {
+    checks.add(
+      "D1 project access guard using server-derived user, membership, or publication recipient",
+    );
   }
-  if (/can_edit_estimate|estimate.*edit|_with_history|row_item|estimate_node|estimate_tab|bulk_delete_estimate/.test(haystack)) {
+  if (
+    /can_edit_estimate|estimate.*edit|_with_history|row_item|estimate_node|estimate_tab|bulk_delete_estimate/.test(
+      haystack,
+    )
+  ) {
     checks.add("D1 estimate edit guard before mutations and history writes");
   }
-  if (/can_access_estimate|estimate.*access|proposal\.xlsx|user-preferences/.test(haystack)) {
-    checks.add("D1 estimate access guard before reads, exports, and preferences");
+  if (
+    /can_access_estimate|estimate.*access|proposal\.xlsx|user-preferences/.test(
+      haystack,
+    )
+  ) {
+    checks.add(
+      "D1 estimate access guard before reads, exports, and preferences",
+    );
   }
   if (/is_workspace_editor|library|component|template|folder/.test(haystack)) {
     checks.add("D1 workspace editor guard for library and template writes");
   }
-  if (/is_workspace_member|workspace_homebase|workspace_projects|library_overview|library_templates|library_component/.test(haystack)) {
+  if (
+    /is_workspace_member|workspace_homebase|workspace_projects|library_overview|library_templates|library_component/.test(
+      haystack,
+    )
+  ) {
     checks.add("D1 workspace member guard for read models");
   }
-  if (/collaboration|invite|accept_collaboration|resolve_collaboration/.test(haystack)) {
+  if (
+    /collaboration|invite|accept_collaboration|resolve_collaboration/.test(
+      haystack,
+    )
+  ) {
     checks.add("D1 invitation token and project collaboration guard");
   }
-  if (/publication|share|proposal|recipient|increment_project_publication/.test(haystack)) {
-    checks.add("D1 publication owner/recipient guard with token-bound recipient checks");
+  if (
+    /publication|share|proposal|recipient|increment_project_publication/.test(
+      haystack,
+    )
+  ) {
+    checks.add(
+      "D1 publication owner/recipient guard with token-bound recipient checks",
+    );
   }
-  if (/upload|image|attachment|asset|scan|validate_estimate_row_image_asset/.test(haystack)) {
+  if (
+    /upload|image|attachment|asset|scan|validate_estimate_row_image_asset/.test(
+      haystack,
+    )
+  ) {
     checks.add("D1 upload ownership guard plus R2 object-key validation");
   }
   if (/closed_beta|allowlist|beta/.test(haystack)) {
     checks.add("D1 beta allowlist/platform-admin guard");
   }
-  if (/ai_package|package-builder|create_project_estimate_package/.test(haystack)) {
-    checks.add("D1 AI package Apply guard with explicit confirmation and workspace ownership");
+  if (
+    /ai_package|package-builder|create_project_estimate_package/.test(haystack)
+  ) {
+    checks.add(
+      "D1 AI package Apply guard with explicit confirmation and workspace ownership",
+    );
   }
-  if (/preview_bulk|execute_bulk|delete_|restore_|archive_|reorder_|move_|replace_|update_|create_|insert_/.test(haystack)) {
+  if (
+    /preview_bulk|execute_bulk|delete_|restore_|archive_|reorder_|move_|replace_|update_|create_|insert_/.test(
+      haystack,
+    )
+  ) {
     checks.add("D1 mutation guard with transaction and rollback proof");
   }
   if (checks.size === 0 && rpcNames.length > 0) {
-    checks.add("D1 app-layer guard matching the current Supabase RPC/RLS ownership rule");
+    checks.add(
+      "D1 app-layer guard matching the current Supabase RPC/RLS ownership rule",
+    );
   }
 
   return [...checks].sort();
 }
 
-function providerSignals(dependencies: string[], rpcNames: string[], sourceText: string) {
+function providerSignals(
+  dependencies: string[],
+  rpcNames: string[],
+  sourceText: string,
+) {
   const signals = new Set<string>();
   for (const dependency of dependencies) signals.add(dependency);
   for (const name of rpcNames) signals.add(`supabase.rpc:${name}`);
-  if (/\.from\(\s*["']workspace_members["']\s*\)/i.test(sourceText)) signals.add("source:workspace_members lookup");
-  if (AUTHZ_RLS_SOURCE_PATTERN.test(sourceText)) signals.add("source:RLS/auth reference");
+  if (/\.from\(\s*["']workspace_members["']\s*\)/i.test(sourceText))
+    signals.add("source:workspace_members lookup");
+  if (AUTHZ_RLS_SOURCE_PATTERN.test(sourceText))
+    signals.add("source:RLS/auth reference");
   return [...signals].sort();
 }
 
-function testMatchesRow(testText: string, row: Pick<AccessMatrixRow, "file" | "route" | "rpcNames" | "domain">) {
+function testMatchesRow(
+  testText: string,
+  row: Pick<AccessMatrixRow, "file" | "route" | "rpcNames" | "domain">,
+) {
   const normalized = normalizeTextForMatching(testText);
   const exactRpcMatch = row.rpcNames.some((name) => {
-    const rpcPattern = new RegExp(`["']${escapeRegExp(name.toLowerCase())}["']|\\b${escapeRegExp(name.toLowerCase())}\\b`);
+    const rpcPattern = new RegExp(
+      `["']${escapeRegExp(name.toLowerCase())}["']|\\b${escapeRegExp(name.toLowerCase())}\\b`,
+    );
     return rpcPattern.test(normalized);
   });
   if (exactRpcMatch) return true;
 
-  const fileNeedles = [row.file.toLowerCase(), basename(row.file).toLowerCase()];
+  const fileNeedles = [
+    row.file.toLowerCase(),
+    basename(row.file).toLowerCase(),
+  ];
   if (fileNeedles.some((needle) => normalized.includes(needle))) return true;
 
   const aliasNeedles = TEST_EVIDENCE_ALIASES_BY_FILE[row.file] ?? [];
-  if (aliasNeedles.some((needle) => normalized.includes(needle.toLowerCase()))) return true;
+  if (aliasNeedles.some((needle) => normalized.includes(needle.toLowerCase())))
+    return true;
 
-  const tokens = uniqueSorted([...routeTokens(row.route), ...sourceTokens(row.file), ...row.domain.split(/\s+/)])
+  const tokens = uniqueSorted([
+    ...routeTokens(row.route),
+    ...sourceTokens(row.file),
+    ...row.domain.split(/\s+/),
+  ])
     .map((token) => token.toLowerCase())
     .filter((token) => token.length >= 6);
-  const tokenMatches = tokens.filter((token) => normalized.includes(token)).length;
+  const tokenMatches = tokens.filter((token) =>
+    normalized.includes(token),
+  ).length;
   return tokenMatches >= 2;
 }
 
@@ -360,7 +492,9 @@ function classifyTestRefs(
 }
 
 function isTenantScoped(row: AccessMatrixRow) {
-  return TENANT_SCOPE_PATTERN.test(`${row.file} ${row.route ?? ""} ${row.domain} ${row.rpcNames.join(" ")}`);
+  return TENANT_SCOPE_PATTERN.test(
+    `${row.file} ${row.route ?? ""} ${row.domain} ${row.rpcNames.join(" ")}`,
+  );
 }
 
 function requiresCrossWorkspaceDenial(row: AccessMatrixRow) {
@@ -374,18 +508,43 @@ function rowStatus(row: AccessMatrixRow): AccessMatrixRow["status"] {
   if (row.requiredD1Checks.length === 0) return "missing-d1-check";
   if (row.positiveTestRefs.length === 0) return "missing-positive-test";
   if (row.denialTestRefs.length === 0) return "missing-denial-test";
-  if (requiresCrossWorkspaceDenial(row) && row.crossWorkspaceDenialTestRefs.length === 0) return "missing-cross-workspace-denial";
+  if (
+    requiresCrossWorkspaceDenial(row) &&
+    row.crossWorkspaceDenialTestRefs.length === 0
+  )
+    return "missing-cross-workspace-denial";
   return "covered";
 }
 
 function buildRows(inputs: AccessMatrixInputs) {
   const inventoryRows = inputs.inventory.value?.providerCoupling ?? [];
-  const appRouteByFile = new Map((inputs.inventory.value?.appRoutes ?? []).map((route) => [route.file, route.route]));
-  const rowsByFile = new Map<string, { file: string; route: string | null; dependencies: string[]; rpcNames: string[] }>();
+  const appRouteByFile = new Map(
+    (inputs.inventory.value?.appRoutes ?? []).map((route) => [
+      route.file,
+      route.route,
+    ]),
+  );
+  const rowsByFile = new Map<
+    string,
+    {
+      file: string;
+      route: string | null;
+      dependencies: string[];
+      rpcNames: string[];
+    }
+  >();
 
   for (const row of inventoryRows) {
     const sourceText = inputs.sourceFileTextByPath[row.file] ?? "";
-    if (!isAuthzRelevantSource(row.file, sourceText, row.rpcNames ?? [], row.dependencies ?? [])) continue;
+    if (
+      !isAuthzRelevantSource(
+        row.file,
+        sourceText,
+        row.rpcNames ?? [],
+        row.dependencies ?? [],
+      )
+    )
+      continue;
     rowsByFile.set(row.file, {
       file: row.file,
       route: row.route ?? appRouteByFile.get(row.file) ?? null,
@@ -394,7 +553,9 @@ function buildRows(inputs: AccessMatrixInputs) {
     });
   }
 
-  for (const [file, sourceText] of Object.entries(inputs.sourceFileTextByPath)) {
+  for (const [file, sourceText] of Object.entries(
+    inputs.sourceFileTextByPath,
+  )) {
     if (rowsByFile.has(file)) continue;
     const rpcNames = extractRpcNames(sourceText);
     if (!isAuthzRelevantSource(file, sourceText, rpcNames, [])) continue;
@@ -409,8 +570,17 @@ function buildRows(inputs: AccessMatrixInputs) {
   return [...rowsByFile.values()]
     .map((candidate) => {
       const sourceText = inputs.sourceFileTextByPath[candidate.file] ?? "";
-      const domain = classifyDomain(candidate.file, candidate.rpcNames, candidate.route);
-      const requiredD1Checks = requiredD1ChecksFor(candidate.file, candidate.rpcNames, domain, sourceText);
+      const domain = classifyDomain(
+        candidate.file,
+        candidate.rpcNames,
+        candidate.route,
+      );
+      const requiredD1Checks = requiredD1ChecksFor(
+        candidate.file,
+        candidate.rpcNames,
+        domain,
+        sourceText,
+      );
       const tests = classifyTestRefs(
         {
           file: candidate.file,
@@ -427,7 +597,11 @@ function buildRows(inputs: AccessMatrixInputs) {
         route: candidate.route,
         domain,
         rpcNames: uniqueSorted(candidate.rpcNames),
-        currentProviderSignals: providerSignals(candidate.dependencies, candidate.rpcNames, sourceText),
+        currentProviderSignals: providerSignals(
+          candidate.dependencies,
+          candidate.rpcNames,
+          sourceText,
+        ),
         requiredD1Checks,
         ...tests,
         status: "covered",
@@ -439,7 +613,11 @@ function buildRows(inputs: AccessMatrixInputs) {
       row.status = rowStatus(row);
       return row;
     })
-    .filter((row) => row.currentProviderSignals.length > 0 || row.requiredD1Checks.length > 0)
+    .filter(
+      (row) =>
+        row.currentProviderSignals.length > 0 ||
+        row.requiredD1Checks.length > 0,
+    )
     .sort((a, b) => a.file.localeCompare(b.file) || a.id.localeCompare(b.id));
 }
 
@@ -447,30 +625,68 @@ function buildBlockers(rows: AccessMatrixRow[], inventoryPresent: boolean) {
   const blockers: string[] = [];
   const crossWorkspaceRows = rows.filter(requiresCrossWorkspaceDenial);
   const missingD1 = rows.filter((row) => row.requiredD1Checks.length === 0);
-  const missingPositive = rows.filter((row) => row.positiveTestRefs.length === 0);
+  const missingPositive = rows.filter(
+    (row) => row.positiveTestRefs.length === 0,
+  );
   const missingDenial = rows.filter((row) => row.denialTestRefs.length === 0);
-  const missingCross = crossWorkspaceRows.filter((row) => row.crossWorkspaceDenialTestRefs.length === 0);
+  const missingCross = crossWorkspaceRows.filter(
+    (row) => row.crossWorkspaceDenialTestRefs.length === 0,
+  );
 
-  if (!inventoryPresent) blockers.push("Cloudflare migration inventory artifact is missing; regenerate cf:inventory before trusting the matrix.");
-  if (rows.length === 0) blockers.push("No authorization-relevant Supabase/RLS access paths were discovered.");
-  if (missingD1.length > 0) blockers.push(`${missingD1.length} access paths do not have an inferred D1 app-layer guard.`);
-  if (missingPositive.length > 0) blockers.push(`${missingPositive.length} access paths lack a matching positive test reference.`);
-  if (missingDenial.length > 0) blockers.push(`${missingDenial.length} access paths lack a matching denial/fail-closed test reference.`);
-  if (missingCross.length > 0) blockers.push(`${missingCross.length} tenant-scoped access paths lack a matching cross-workspace denial reference.`);
+  if (!inventoryPresent)
+    blockers.push(
+      "Cloudflare migration inventory artifact is missing; regenerate cf:inventory before trusting the matrix.",
+    );
+  if (rows.length === 0)
+    blockers.push(
+      "No authorization-relevant Supabase/RLS access paths were discovered.",
+    );
+  if (missingD1.length > 0)
+    blockers.push(
+      `${missingD1.length} access paths do not have an inferred D1 app-layer guard.`,
+    );
+  if (missingPositive.length > 0)
+    blockers.push(
+      `${missingPositive.length} access paths lack a matching positive test reference.`,
+    );
+  if (missingDenial.length > 0)
+    blockers.push(
+      `${missingDenial.length} access paths lack a matching denial/fail-closed test reference.`,
+    );
+  if (missingCross.length > 0)
+    blockers.push(
+      `${missingCross.length} tenant-scoped access paths lack a matching cross-workspace denial reference.`,
+    );
 
   return blockers;
 }
 
-export function buildCloudflareD1AuthzAccessMatrix(inputs: AccessMatrixInputs): CloudflareD1AuthzAccessMatrixReport {
+export function buildCloudflareD1AuthzAccessMatrix(
+  inputs: AccessMatrixInputs,
+): CloudflareD1AuthzAccessMatrixReport {
   const rows = buildRows(inputs);
   const crossWorkspaceRows = rows.filter(requiresCrossWorkspaceDenial);
-  const positiveTestCount = rows.filter((row) => row.positiveTestRefs.length > 0).length;
-  const denialTestCount = rows.filter((row) => row.denialTestRefs.length > 0).length;
-  const crossWorkspaceDenialTestCount = rows.filter((row) => row.crossWorkspaceDenialTestRefs.length > 0).length;
-  const allProtectedAccessPathsCovered = rows.length > 0 && rows.every((row) => row.requiredD1Checks.length > 0);
-  const routeActionCoverageReady = rows.length > 0 && rows.every((row) => row.positiveTestRefs.length > 0 && row.denialTestRefs.length > 0);
-  const crossWorkspaceDenialsReady = rows.length > 0
-    && crossWorkspaceRows.every((row) => row.crossWorkspaceDenialTestRefs.length > 0);
+  const positiveTestCount = rows.filter(
+    (row) => row.positiveTestRefs.length > 0,
+  ).length;
+  const denialTestCount = rows.filter(
+    (row) => row.denialTestRefs.length > 0,
+  ).length;
+  const crossWorkspaceDenialTestCount = rows.filter(
+    (row) => row.crossWorkspaceDenialTestRefs.length > 0,
+  ).length;
+  const allProtectedAccessPathsCovered =
+    rows.length > 0 && rows.every((row) => row.requiredD1Checks.length > 0);
+  const routeActionCoverageReady =
+    rows.length > 0 &&
+    rows.every(
+      (row) => row.positiveTestRefs.length > 0 && row.denialTestRefs.length > 0,
+    );
+  const crossWorkspaceDenialsReady =
+    rows.length > 0 &&
+    crossWorkspaceRows.every(
+      (row) => row.crossWorkspaceDenialTestRefs.length > 0,
+    );
 
   return {
     generatedAt: inputs.generatedAt ?? new Date().toISOString(),
@@ -489,39 +705,50 @@ export function buildCloudflareD1AuthzAccessMatrix(inputs: AccessMatrixInputs): 
     routeActionCoverageReady,
     rows,
     blockers: buildBlockers(rows, inputs.inventory.present),
-    note:
-      "Local D1 app-layer authorization migration matrix only. It reads repository source, Vitest files, and sanitized inventory artifacts; it does not read env files, print secret values, call provider APIs, create D1 databases, mutate Cloudflare/Supabase, change DNS, deploy Workers, or make Supabase removable.",
+    note: "Local D1 app-layer authorization migration matrix only. It reads repository source, Vitest files, and sanitized inventory artifacts; it does not read env files, print secret values, call provider APIs, create D1 databases, mutate Cloudflare/Supabase, change DNS, deploy Workers, or make Supabase removable.",
   };
 }
 
-function writeOutput(outputFile: string, report: CloudflareD1AuthzAccessMatrixReport) {
+function writeOutput(
+  outputFile: string,
+  report: CloudflareD1AuthzAccessMatrixReport,
+) {
   const outputPath = resolve(outputFile);
   mkdirSync(dirname(outputPath), { recursive: true });
   writeFileSync(outputPath, `${JSON.stringify(report, null, 2)}\n`);
 }
 
 function markdownRows(rows: string[][]) {
-  return rows.map((row) => `| ${row.map((cell) => cell.replaceAll("|", "\\|")).join(" | ")} |`);
+  return rows.map(
+    (row) =>
+      `| ${row.map((cell) => cell.replaceAll("|", "\\|")).join(" | ")} |`,
+  );
 }
 
-export function writeMarkdown(report: CloudflareD1AuthzAccessMatrixReport, markdownFile: string) {
+export function writeMarkdown(
+  report: CloudflareD1AuthzAccessMatrixReport,
+  markdownFile: string,
+) {
   const outputPath = resolve(markdownFile);
   mkdirSync(dirname(outputPath), { recursive: true });
-  const rowPreview = report.rows.slice(0, 80).map((row) => [
-    row.status,
-    row.surface,
-    `\`${row.file}\``,
-    row.route ?? "",
-    row.domain,
-    row.rpcNames.map((name) => `\`${name}\``).join(", "),
-    row.requiredD1Checks.join("<br>"),
-    String(row.positiveTestRefs.length),
-    String(row.denialTestRefs.length),
-    String(row.crossWorkspaceDenialTestRefs.length),
-  ]);
-  const blockerLines = report.blockers.length > 0
-    ? report.blockers.map((blocker) => `- ${blocker}`)
-    : ["- (none)"];
+  const rowPreview = report.rows
+    .slice(0, 80)
+    .map((row) => [
+      row.status,
+      row.surface,
+      `\`${row.file}\``,
+      row.route ?? "",
+      row.domain,
+      row.rpcNames.map((name) => `\`${name}\``).join(", "),
+      row.requiredD1Checks.join("<br>"),
+      String(row.positiveTestRefs.length),
+      String(row.denialTestRefs.length),
+      String(row.crossWorkspaceDenialTestRefs.length),
+    ]);
+  const blockerLines =
+    report.blockers.length > 0
+      ? report.blockers.map((blocker) => `- ${blocker}`)
+      : ["- (none)"];
   const lines = [
     "# Cloudflare D1 App-Layer Authorization Access Matrix",
     "",
@@ -558,12 +785,25 @@ export function writeMarkdown(report: CloudflareD1AuthzAccessMatrixReport, markd
 }
 
 function collectRepoInputs(): AccessMatrixInputs {
-  const sourceRoots = ["src/app", "src/lib", "src/components", "src/hooks", "src/proxy.ts", "worker.ts"]
+  const sourceRoots = [
+    "src/app",
+    "src/lib",
+    "src/components",
+    "src/hooks",
+    "src/middleware.ts",
+    "worker.ts",
+  ]
     .map((path) => resolve(path))
     .filter(existsSync);
-  const testRoots = ["tests/vitest"].map((path) => resolve(path)).filter(existsSync);
-  const sourceFiles = sourceRoots.flatMap((root) => listFilesRecursively(root, isSourceFile)).map(toRepoRelativePath);
-  const testFiles = testRoots.flatMap((root) => listFilesRecursively(root, isTestFile)).map(toRepoRelativePath);
+  const testRoots = ["tests/vitest"]
+    .map((path) => resolve(path))
+    .filter(existsSync);
+  const sourceFiles = sourceRoots
+    .flatMap((root) => listFilesRecursively(root, isSourceFile))
+    .map(toRepoRelativePath);
+  const testFiles = testRoots
+    .flatMap((root) => listFilesRecursively(root, isTestFile))
+    .map(toRepoRelativePath);
 
   return {
     inventory: readArtifact<Partial<CloudflareMigrationInventory>>(

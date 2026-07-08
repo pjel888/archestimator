@@ -1,6 +1,13 @@
 #!/usr/bin/env bun
 
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, extname, resolve, sep } from "node:path";
 
 type AppRouteKind = "page" | "route-handler" | "metadata-route";
@@ -12,7 +19,13 @@ type ProviderDependency =
   | "resend-email"
   | "vercel-runtime"
   | "cloudflare-local-proof";
-type ScriptFamily = "cloudflare" | "launch" | "proof" | "performance" | "provider-readiness" | "other";
+type ScriptFamily =
+  | "cloudflare"
+  | "launch"
+  | "proof"
+  | "performance"
+  | "provider-readiness"
+  | "other";
 
 export type AppRouteInventoryRow = {
   route: string;
@@ -89,26 +102,48 @@ type InventoryInputs = {
 
 const PLAN_ROOT = ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence";
 
-const SOURCE_EXTENSIONS = new Set([".cjs", ".cts", ".js", ".jsx", ".mjs", ".mts", ".ts", ".tsx"]);
+const SOURCE_EXTENSIONS = new Set([
+  ".cjs",
+  ".cts",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".mts",
+  ".ts",
+  ".tsx",
+]);
 const SQL_EXTENSIONS = new Set([".sql"]);
 
-const PROVIDER_RULES: Array<{ dependency: ProviderDependency; pattern: RegExp }> = [
+const PROVIDER_RULES: Array<{
+  dependency: ProviderDependency;
+  pattern: RegExp;
+}> = [
   {
     dependency: "supabase-client",
-    pattern: /@supabase\/(?:supabase-js|ssr)|createServerClient|createBrowserClient|createClient<|createClient\(/,
+    pattern:
+      /@supabase\/(?:supabase-js|ssr)|createServerClient|createBrowserClient|createClient<|createClient\(/,
   },
   { dependency: "supabase-rpc", pattern: /\.rpc(?:<[^>]+>)?\s*\(/ },
   { dependency: "supabase-storage", pattern: /\.storage\.|storage\.from\(/ },
   {
     dependency: "supabase-realtime",
-    pattern: /\.channel\s*\(|RealtimeChannel|supabase\.auth\.onAuthStateChange|\bSupabase Realtime\b/i,
+    pattern:
+      /\.channel\s*\(|RealtimeChannel|supabase\.auth\.onAuthStateChange|\bSupabase Realtime\b/i,
   },
   {
     dependency: "resend-email",
-    pattern: /from\s+["']resend["']|@resend|new\s+Resend\(|@\/lib\/email\/resend|\bRESEND_[A-Z0-9_]*\b/,
+    pattern:
+      /from\s+["']resend["']|@resend|new\s+Resend\(|@\/lib\/email\/resend|\bRESEND_[A-Z0-9_]*\b/,
   },
-  { dependency: "vercel-runtime", pattern: /@vercel\/|VERCEL_|vercel\.json|Vercel/i },
-  { dependency: "cloudflare-local-proof", pattern: /Cloudflare|R2Bucket|ImagesBinding|ExecutionContext|ARCH_UPLOADS_R2/ },
+  {
+    dependency: "vercel-runtime",
+    pattern: /@vercel\/|VERCEL_|vercel\.json|Vercel/i,
+  },
+  {
+    dependency: "cloudflare-local-proof",
+    pattern:
+      /Cloudflare|R2Bucket|ImagesBinding|ExecutionContext|ARCH_UPLOADS_R2/,
+  },
 ];
 
 function readEnv(name: string) {
@@ -123,7 +158,9 @@ function normalizeRepoPath(path: string) {
 function toRepoRelativePath(path: string) {
   const normalized = normalizeRepoPath(path);
   const cwd = normalizeRepoPath(process.cwd());
-  return normalized.startsWith(`${cwd}/`) ? normalized.slice(cwd.length + 1) : normalized;
+  return normalized.startsWith(`${cwd}/`)
+    ? normalized.slice(cwd.length + 1)
+    : normalized;
 }
 
 function isSourceFile(path: string) {
@@ -134,7 +171,10 @@ function isSqlFile(path: string) {
   return SQL_EXTENSIONS.has(extname(path));
 }
 
-function listFilesRecursively(path: string, includeFile: (path: string) => boolean) {
+function listFilesRecursively(
+  path: string,
+  includeFile: (path: string) => boolean,
+) {
   if (!existsSync(path)) return [];
   const stats = statSync(path);
   if (stats.isFile()) return includeFile(path) ? [normalizeRepoPath(path)] : [];
@@ -171,7 +211,9 @@ function routePathFromSegments(segments: string[]) {
   return publicSegments.length === 0 ? "/" : `/${publicSegments.join("/")}`;
 }
 
-export function appRouteFromFile(file: string): Omit<AppRouteInventoryRow, "providerDependencies"> | null {
+export function appRouteFromFile(
+  file: string,
+): Omit<AppRouteInventoryRow, "providerDependencies"> | null {
   const normalized = normalizeRepoPath(file);
   const marker = "src/app/";
   const appIndex = normalized.indexOf(marker);
@@ -232,8 +274,7 @@ export function extractRpcNames(input: string) {
 }
 
 function classifyProviderDependencies(input: string) {
-  return PROVIDER_RULES
-    .filter((rule) => rule.pattern.test(input))
+  return PROVIDER_RULES.filter((rule) => rule.pattern.test(input))
     .map((rule) => rule.dependency)
     .sort();
 }
@@ -242,20 +283,30 @@ function routeByFile(appRoutes: AppRouteInventoryRow[]) {
   return new Map(appRoutes.map((route) => [route.file, route.route]));
 }
 
-export function classifyPackageScript(name: string, command: string): ScriptFamily {
+export function classifyPackageScript(
+  name: string,
+  command: string,
+): ScriptFamily {
   if (name.startsWith("cf:")) return "cloudflare";
   if (name.startsWith("perf:")) return "performance";
   if (name.startsWith("prove:")) return "proof";
-  if (name.startsWith("launch:check-supabase") || name.startsWith("launch:check-vercel") || name.startsWith("launch:check-resend")) {
+  if (
+    name.startsWith("launch:check-supabase") ||
+    name.startsWith("launch:check-vercel") ||
+    name.startsWith("launch:check-resend")
+  ) {
     return "provider-readiness";
   }
   if (name.startsWith("launch:")) return "launch";
-  if (/\b(supabase|vercel|resend)\b/i.test(command)) return "provider-readiness";
+  if (/\b(supabase|vercel|resend)\b/i.test(command))
+    return "provider-readiness";
   return "other";
 }
 
 function extractPackageScripts(packageJsonText: string): PackageScriptRow[] {
-  const parsed = JSON.parse(packageJsonText) as { scripts?: Record<string, string> };
+  const parsed = JSON.parse(packageJsonText) as {
+    scripts?: Record<string, string>;
+  };
   return Object.entries(parsed.scripts ?? {})
     .map(([name, command]) => ({
       name,
@@ -265,7 +316,10 @@ function extractPackageScripts(packageJsonText: string): PackageScriptRow[] {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-function countSqlMatches(sqlFileTextByPath: Record<string, string> | undefined, pattern: RegExp) {
+function countSqlMatches(
+  sqlFileTextByPath: Record<string, string> | undefined,
+  pattern: RegExp,
+) {
   if (!sqlFileTextByPath) return 0;
   let count = 0;
   for (const text of Object.values(sqlFileTextByPath)) {
@@ -274,20 +328,33 @@ function countSqlMatches(sqlFileTextByPath: Record<string, string> | undefined, 
   return count;
 }
 
-function countFilesUnder(sqlFileTextByPath: Record<string, string> | undefined, root: string) {
+function countFilesUnder(
+  sqlFileTextByPath: Record<string, string> | undefined,
+  root: string,
+) {
   if (!sqlFileTextByPath) return 0;
-  return Object.keys(sqlFileTextByPath).filter((file) => file.startsWith(root)).length;
+  return Object.keys(sqlFileTextByPath).filter((file) => file.startsWith(root))
+    .length;
 }
 
-export function buildCloudflareMigrationInventory(inputs: InventoryInputs): CloudflareMigrationInventory {
+export function buildCloudflareMigrationInventory(
+  inputs: InventoryInputs,
+): CloudflareMigrationInventory {
   const appRoutes = inputs.appFiles
     .map(appRouteFromFile)
-    .filter((route): route is Omit<AppRouteInventoryRow, "providerDependencies"> => Boolean(route))
+    .filter(
+      (route): route is Omit<AppRouteInventoryRow, "providerDependencies"> =>
+        Boolean(route),
+    )
     .map((route) => ({
       ...route,
-      providerDependencies: classifyProviderDependencies(inputs.sourceFileTextByPath[route.file] ?? ""),
+      providerDependencies: classifyProviderDependencies(
+        inputs.sourceFileTextByPath[route.file] ?? "",
+      ),
     }))
-    .sort((a, b) => a.route.localeCompare(b.route) || a.file.localeCompare(b.file));
+    .sort(
+      (a, b) => a.route.localeCompare(b.route) || a.file.localeCompare(b.file),
+    );
 
   const routeLookup = routeByFile(appRoutes);
   const providerCoupling = Object.entries(inputs.sourceFileTextByPath)
@@ -309,12 +376,21 @@ export function buildCloudflareMigrationInventory(inputs: InventoryInputs): Clou
     }
   }
   const rpcCalls = [...rpcCallerFiles.entries()]
-    .map(([name, callerFiles]) => ({ name, callerFiles: [...callerFiles].sort() }))
+    .map(([name, callerFiles]) => ({
+      name,
+      callerFiles: [...callerFiles].sort(),
+    }))
     .sort((a, b) => a.name.localeCompare(b.name));
   const packageScripts = extractPackageScripts(inputs.packageJsonText);
   const sqlInventory: SqlInventory = {
-    appliedMigrationFiles: countFilesUnder(inputs.sqlFileTextByPath, "supabase/migrations/"),
-    pendingReviewFiles: countFilesUnder(inputs.sqlFileTextByPath, "supabase/migrations-pending-review/"),
+    appliedMigrationFiles: countFilesUnder(
+      inputs.sqlFileTextByPath,
+      "supabase/migrations/",
+    ),
+    pendingReviewFiles: countFilesUnder(
+      inputs.sqlFileTextByPath,
+      "supabase/migrations-pending-review/",
+    ),
     functionDeclarationMatches: countSqlMatches(
       inputs.sqlFileTextByPath,
       /create\s+(?:or\s+replace\s+)?function\s+public\.|create\s+function\s+public\./gi,
@@ -330,22 +406,38 @@ export function buildCloudflareMigrationInventory(inputs: InventoryInputs): Clou
     mode: "cloudflare-migration-inventory",
     sources: {
       appRoot: inputs.sources?.appRoot ?? "src/app",
-      sourceRoots: inputs.sources?.sourceRoots ?? ["src/app", "src/lib", "src/components", "src/hooks", "src/proxy"],
+      sourceRoots: inputs.sources?.sourceRoots ?? [
+        "src/app",
+        "src/lib",
+        "src/components",
+        "src/hooks",
+        "src/proxy",
+      ],
       packageJson: inputs.sources?.packageJson ?? "package.json",
       scriptRoot: inputs.sources?.scriptRoot ?? "scripts",
-      sqlRoots: inputs.sources?.sqlRoots ?? ["supabase/migrations", "supabase/migrations-pending-review"],
+      sqlRoots: inputs.sources?.sqlRoots ?? [
+        "supabase/migrations",
+        "supabase/migrations-pending-review",
+      ],
     },
     counts: {
       appRoutes: appRoutes.length,
       pageRoutes: appRoutes.filter((route) => route.kind === "page").length,
-      routeHandlers: appRoutes.filter((route) => route.kind === "route-handler").length,
-      metadataRoutes: appRoutes.filter((route) => route.kind === "metadata-route").length,
+      routeHandlers: appRoutes.filter((route) => route.kind === "route-handler")
+        .length,
+      metadataRoutes: appRoutes.filter(
+        (route) => route.kind === "metadata-route",
+      ).length,
       providerCoupledFiles: providerCoupling.length,
       distinctRpcNames: rpcCalls.length,
       packageScripts: packageScripts.length,
       scriptFiles: inputs.scriptFiles.length,
-      cloudflareScripts: packageScripts.filter((script) => script.family === "cloudflare").length,
-      providerReadinessScripts: packageScripts.filter((script) => script.family === "provider-readiness").length,
+      cloudflareScripts: packageScripts.filter(
+        (script) => script.family === "cloudflare",
+      ).length,
+      providerReadinessScripts: packageScripts.filter(
+        (script) => script.family === "provider-readiness",
+      ).length,
     },
     appRoutes,
     providerCoupling,
@@ -356,7 +448,10 @@ export function buildCloudflareMigrationInventory(inputs: InventoryInputs): Clou
   };
 }
 
-function writeOutput(outputFile: string, inventory: CloudflareMigrationInventory) {
+function writeOutput(
+  outputFile: string,
+  inventory: CloudflareMigrationInventory,
+) {
   const outputPath = resolve(outputFile);
   mkdirSync(dirname(outputPath), { recursive: true });
   writeFileSync(outputPath, `${JSON.stringify(inventory, null, 2)}\n`);
@@ -366,23 +461,35 @@ function markdownRows(rows: string[][]) {
   return rows.map((row) => `| ${row.join(" | ")} |`);
 }
 
-export function writeMarkdown(inventory: CloudflareMigrationInventory, markdownFile: string) {
+export function writeMarkdown(
+  inventory: CloudflareMigrationInventory,
+  markdownFile: string,
+) {
   const outputPath = resolve(markdownFile);
   mkdirSync(dirname(outputPath), { recursive: true });
-  const topProviderRows = inventory.providerCoupling.slice(0, 40).map((row) => [
-    `\`${row.file}\``,
-    row.route ?? "",
-    row.dependencies.join(", "),
-    row.rpcNames.length === 0 ? "" : row.rpcNames.join(", "),
-  ]);
+  const topProviderRows = inventory.providerCoupling
+    .slice(0, 40)
+    .map((row) => [
+      `\`${row.file}\``,
+      row.route ?? "",
+      row.dependencies.join(", "),
+      row.rpcNames.length === 0 ? "" : row.rpcNames.join(", "),
+    ]);
   const rpcRows = inventory.rpcCalls.slice(0, 80).map((row) => [
     `\`${row.name}\``,
     String(row.callerFiles.length),
-    row.callerFiles.slice(0, 4).map((file) => `\`${file}\``).join("<br>"),
+    row.callerFiles
+      .slice(0, 4)
+      .map((file) => `\`${file}\``)
+      .join("<br>"),
   ]);
   const scriptRows = inventory.packageScripts
     .filter((script) => script.family !== "other")
-    .map((script) => [`\`${script.name}\``, script.family, `\`${script.command.replaceAll("|", "\\|")}\``]);
+    .map((script) => [
+      `\`${script.name}\``,
+      script.family,
+      `\`${script.command.replaceAll("|", "\\|")}\``,
+    ]);
   const lines = [
     "# Cloudflare Migration Inventory",
     "",
@@ -436,14 +543,31 @@ export function writeMarkdown(inventory: CloudflareMigrationInventory, markdownF
 }
 
 function collectRepoInputs(): InventoryInputs {
-  const appFiles = listFilesRecursively(resolve("src/app"), isSourceFile).map(toRepoRelativePath);
-  const sourceRoots = ["src/app", "src/lib", "src/components", "src/hooks", "src/proxy", "src/proxy.ts"]
+  const appFiles = listFilesRecursively(resolve("src/app"), isSourceFile).map(
+    toRepoRelativePath,
+  );
+  const sourceRoots = [
+    "src/app",
+    "src/lib",
+    "src/components",
+    "src/hooks",
+    "src/middleware.ts",
+  ]
     .map((path) => resolve(path))
     .filter(existsSync);
-  const sourceFiles = sourceRoots.flatMap((root) => listFilesRecursively(root, isSourceFile)).map(toRepoRelativePath);
-  const scriptFiles = listFilesRecursively(resolve("scripts"), isSourceFile).map(toRepoRelativePath);
-  const sqlRoots = ["supabase/migrations", "supabase/migrations-pending-review"].map((path) => resolve(path)).filter(existsSync);
-  const sqlFiles = sqlRoots.flatMap((root) => listFilesRecursively(root, isSqlFile)).map(toRepoRelativePath);
+  const sourceFiles = sourceRoots
+    .flatMap((root) => listFilesRecursively(root, isSourceFile))
+    .map(toRepoRelativePath);
+  const scriptFiles = listFilesRecursively(
+    resolve("scripts"),
+    isSourceFile,
+  ).map(toRepoRelativePath);
+  const sqlRoots = ["supabase/migrations", "supabase/migrations-pending-review"]
+    .map((path) => resolve(path))
+    .filter(existsSync);
+  const sqlFiles = sqlRoots
+    .flatMap((root) => listFilesRecursively(root, isSqlFile))
+    .map(toRepoRelativePath);
 
   return {
     appFiles,
@@ -463,8 +587,12 @@ function collectRepoInputs(): InventoryInputs {
 
 async function main() {
   const inventory = buildCloudflareMigrationInventory(collectRepoInputs());
-  const outputFile = readEnv("OUTPUT_FILE") ?? `${PLAN_ROOT}/2026-06-30-cloudflare-migration-inventory.json`;
-  const markdownFile = readEnv("MARKDOWN_FILE") ?? `${PLAN_ROOT}/2026-06-30-cloudflare-migration-inventory.md`;
+  const outputFile =
+    readEnv("OUTPUT_FILE") ??
+    `${PLAN_ROOT}/2026-06-30-cloudflare-migration-inventory.json`;
+  const markdownFile =
+    readEnv("MARKDOWN_FILE") ??
+    `${PLAN_ROOT}/2026-06-30-cloudflare-migration-inventory.md`;
   writeOutput(outputFile, inventory);
   writeMarkdown(inventory, markdownFile);
   console.log(JSON.stringify(inventory, null, 2));

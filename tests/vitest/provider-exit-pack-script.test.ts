@@ -17,7 +17,8 @@ function artifact(value: Record<string, unknown>) {
   return {
     path: "/tmp/evidence.json",
     present: true,
-    generatedAt: typeof value.generatedAt === "string" ? value.generatedAt : null,
+    generatedAt:
+      typeof value.generatedAt === "string" ? value.generatedAt : null,
     value,
     parseError: null,
   };
@@ -43,7 +44,9 @@ function malformedArtifact(path = "/tmp/malformed-evidence.json") {
   };
 }
 
-function greenAppRuntimeArtifacts(operatorRecord = missingArtifact("/tmp/provider-exit-operator-record.json")) {
+function greenAppRuntimeArtifacts(
+  operatorRecord = missingArtifact("/tmp/provider-exit-operator-record.json"),
+) {
   return {
     releaseGates: artifact({
       generatedAt: "2026-07-03T00:00:00.000Z",
@@ -65,8 +68,14 @@ function greenAppRuntimeArtifacts(operatorRecord = missingArtifact("/tmp/provide
       passed: true,
       cleanupPassed: true,
       authResult: {
-        cases: ["signedOut", "allowed", "denied", "revoked", "expired", "malformed"]
-          .map((name) => ({ name })),
+        cases: [
+          "signedOut",
+          "allowed",
+          "denied",
+          "revoked",
+          "expired",
+          "malformed",
+        ].map((name) => ({ name })),
       },
     }),
     latestDeploySourceSmoke: artifact({
@@ -88,16 +97,20 @@ function completeOperatorRecord() {
       acceptedBy: "owner",
       evidenceSource: "sanitized export decision record stored outside repo",
       rollbackDecision: "legacy providers will not be relied on for rollback",
-      backupLocationDescription: "external secure storage; no raw path or secret recorded",
+      backupLocationDescription:
+        "external secure storage; no raw path or secret recorded",
     },
     resendStatus: {
       status: "recorded",
       accountPlanStatus: "free account retained for audit-only access",
-      accountEvidenceSource: "sanitized account status record stored outside repo",
+      accountEvidenceSource:
+        "sanitized account status record stored outside repo",
       apiKeyStatus: "all app runtime keys revoked",
-      apiKeyEvidenceSource: "sanitized API-key status record stored outside repo",
+      apiKeyEvidenceSource:
+        "sanitized API-key status record stored outside repo",
       sendingDomainStatus: "no active sending-domain dependency remains",
-      domainEvidenceSource: "sanitized provider console screenshot stored outside repo",
+      domainEvidenceSource:
+        "sanitized provider console screenshot stored outside repo",
     },
     obsoleteSecretRotation: {
       status: "recorded",
@@ -111,7 +124,8 @@ function completeOperatorRecord() {
       runAt: "2026-07-03T00:00:00.000Z",
       cloudflareSmokePassed: true,
       commands: ["bun run cf:release-gates", "bun run cf:check-email"],
-      evidenceSource: "sanitized post-exit smoke transcript stored outside repo",
+      evidenceSource:
+        "sanitized post-exit smoke transcript stored outside repo",
     },
     nonOwnerGoogleProof: {
       status: "recorded",
@@ -130,45 +144,60 @@ function completeOperatorRecord() {
 }
 
 function runProviderExitPackCli(env: NodeJS.ProcessEnv) {
-  return spawnSync("bun", ["run", "scripts/generate-cloudflare-provider-exit-pack.ts"], {
-    cwd: process.cwd(),
-    env: { ...process.env, ...env },
-    encoding: "utf8",
-    timeout: 30_000,
-  });
+  return spawnSync(
+    "bun",
+    ["run", "scripts/generate-cloudflare-provider-exit-pack.ts"],
+    {
+      cwd: process.cwd(),
+      env: { ...process.env, ...env },
+      encoding: "utf8",
+      timeout: 30_000,
+    },
+  );
 }
 
 describe("provider exit pack script", () => {
   it("keeps the default runtime scan aligned with deploy-relevant config files", () => {
-    expect(DEFAULT_PROVIDER_EXIT_SCAN_PATHS).toEqual(expect.arrayContaining([
-      "src",
-      "worker.ts",
-      "package.json",
-      "bun.lock",
-      "wrangler.jsonc",
-      "cloudflare-env.d.ts",
-      "next.config.ts",
-      "open-next.config.ts",
-      "src/proxy.ts",
-    ]));
-    expect(DEFAULT_PROVIDER_EXIT_SCAN_PATHS).not.toContain("middleware.ts");
+    expect(DEFAULT_PROVIDER_EXIT_SCAN_PATHS).toEqual(
+      expect.arrayContaining([
+        "src",
+        "worker.ts",
+        "package.json",
+        "bun.lock",
+        "wrangler.jsonc",
+        "cloudflare-env.d.ts",
+        "next.config.ts",
+        "open-next.config.ts",
+        "src/middleware.ts",
+      ]),
+    );
+    expect(DEFAULT_PROVIDER_EXIT_SCAN_PATHS).not.toContain("src/proxy.ts");
   });
 
   it("classifies legacy-provider references from a real filesystem scan", () => {
     const dir = mkdtempSync(join(tmpdir(), "provider-exit-scan-"));
     const ignoredDir = join(dir, "node_modules", "legacy-provider");
     mkdirSync(ignoredDir, { recursive: true });
-    writeFileSync(join(dir, "runtime.ts"), [
-      "import { createClient } from \"@supabase/supabase-js\";",
-      "import { Resend } from \"resend\";",
-      "const provider = process.env.VERCEL_ENV;",
-      "// resend invite action label only",
-    ].join("\n"));
-    writeFileSync(join(dir, "metadata.json"), JSON.stringify({
-      note: "resend invite label only",
-    }));
-    writeFileSync(join(dir, "notes.md"), "import { Resend } from \"resend\";");
-    writeFileSync(join(ignoredDir, "runtime.ts"), "import { createClient } from \"@supabase/supabase-js\";");
+    writeFileSync(
+      join(dir, "runtime.ts"),
+      [
+        'import { createClient } from "@supabase/supabase-js";',
+        'import { Resend } from "resend";',
+        "const provider = process.env.VERCEL_ENV;",
+        "// resend invite action label only",
+      ].join("\n"),
+    );
+    writeFileSync(
+      join(dir, "metadata.json"),
+      JSON.stringify({
+        note: "resend invite label only",
+      }),
+    );
+    writeFileSync(join(dir, "notes.md"), 'import { Resend } from "resend";');
+    writeFileSync(
+      join(ignoredDir, "runtime.ts"),
+      'import { createClient } from "@supabase/supabase-js";',
+    );
 
     const scan = scanLegacyProviderReferences([dir]);
     const blockers = scan.blockers.map((item) => ({
@@ -185,15 +214,22 @@ describe("provider exit pack script", () => {
     }));
 
     expect(scan.scannedPaths).toEqual([dir]);
-    expect(blockers).toEqual(expect.arrayContaining([
-      expect.objectContaining({ provider: "supabase", line: 1 }),
-      expect.objectContaining({ provider: "resend", line: 2 }),
-      expect.objectContaining({ provider: "vercel", line: 3 }),
-    ]));
-    expect(informational).toEqual(expect.arrayContaining([
-      expect.objectContaining({ provider: "resend", line: 4 }),
-      expect.objectContaining({ provider: "resend", snippet: expect.stringContaining("resend invite label only") }),
-    ]));
+    expect(blockers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ provider: "supabase", line: 1 }),
+        expect.objectContaining({ provider: "resend", line: 2 }),
+        expect.objectContaining({ provider: "vercel", line: 3 }),
+      ]),
+    );
+    expect(informational).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ provider: "resend", line: 4 }),
+        expect.objectContaining({
+          provider: "resend",
+          snippet: expect.stringContaining("resend invite label only"),
+        }),
+      ]),
+    );
     expect(scan.blockerCount).toBe(3);
     expect(scan.informationalCount).toBe(2);
     expect(JSON.stringify(scan)).not.toContain("notes.md");
@@ -203,10 +239,13 @@ describe("provider exit pack script", () => {
   it("scans bun.lock as deploy-relevant text for legacy-provider package markers", () => {
     const dir = mkdtempSync(join(tmpdir(), "provider-exit-lockfile-"));
     const lockFile = join(dir, "bun.lock");
-    writeFileSync(lockFile, [
-      "    \"resend\": [\"resend@6.5.1\", \"\", {}, \"sha512-redacted\"],",
-      "    \"unrelated\": [\"unrelated@1.0.0\", \"\", {}, \"sha512-redacted\"],",
-    ].join("\n"));
+    writeFileSync(
+      lockFile,
+      [
+        '    "resend": ["resend@6.5.1", "", {}, "sha512-redacted"],',
+        '    "unrelated": ["unrelated@1.0.0", "", {}, "sha512-redacted"],',
+      ].join("\n"),
+    );
 
     const scan = scanLegacyProviderReferences([lockFile]);
 
@@ -229,13 +268,15 @@ describe("provider exit pack script", () => {
         blockerCount: 0,
         informationalCount: 1,
         blockers: [],
-        informational: [{
-          provider: "resend",
-          severity: "informational",
-          file: "src/lib/project-invites/actions.ts",
-          line: 10,
-          snippet: "export async function resendProjectInviteEmail() {}",
-        }],
+        informational: [
+          {
+            provider: "resend",
+            severity: "informational",
+            file: "src/lib/project-invites/actions.ts",
+            line: 10,
+            snippet: "export async function resendProjectInviteEmail() {}",
+          },
+        ],
       },
       artifacts: greenAppRuntimeArtifacts(),
     });
@@ -245,24 +286,41 @@ describe("provider exit pack script", () => {
     expect(report.blockers).toHaveLength(6);
     expect(report.operatorRecordDiagnostics.present).toBe(false);
     expect(report.operatorRecordDiagnostics.diagnostics).toHaveLength(6);
-    expect(report.operatorRecordDiagnostics.diagnostics.every((item) => (
-      item.ready === false && item.missingFields.includes("operator record file")
-    ))).toBe(true);
-    expect(report.gates
-      .filter((gate) => gate.evidence === "sanitized provider-exit operator record required")
-      .map((gate) => gate.key))
-      .toEqual([
-        "exports-or-retention-decision-recorded",
-        "resend-account-status-recorded",
-        "obsolete-secret-rotation-recorded",
-        "post-exit-smoke-recorded",
-        "non-owner-google-proof-recorded",
-        "recipient-mailbox-proof-or-deferral-recorded",
-      ]);
-    expect(report.blockers).toContainEqual(expect.stringContaining("Provider exports or accepted-retention"));
-    expect(report.blockers).toContainEqual(expect.stringContaining("No real non-owner Google account journey evidence or accepted deferral"));
+    expect(
+      report.operatorRecordDiagnostics.diagnostics.every(
+        (item) =>
+          item.ready === false &&
+          item.missingFields.includes("operator record file"),
+      ),
+    ).toBe(true);
+    expect(
+      report.gates
+        .filter(
+          (gate) =>
+            gate.evidence ===
+            "sanitized provider-exit operator record required",
+        )
+        .map((gate) => gate.key),
+    ).toEqual([
+      "exports-or-retention-decision-recorded",
+      "resend-account-status-recorded",
+      "obsolete-secret-rotation-recorded",
+      "post-exit-smoke-recorded",
+      "non-owner-google-proof-recorded",
+      "recipient-mailbox-proof-or-deferral-recorded",
+    ]);
+    expect(report.blockers).toContainEqual(
+      expect.stringContaining("Provider exports or accepted-retention"),
+    );
+    expect(report.blockers).toContainEqual(
+      expect.stringContaining(
+        "No real non-owner Google account journey evidence or accepted deferral",
+      ),
+    );
     expect(renderMarkdown(report)).toContain("Provider exit ready: **OPEN**");
-    expect(renderMarkdown(report)).toContain("Real non-owner Google proof or accepted deferral recorded");
+    expect(renderMarkdown(report)).toContain(
+      "Real non-owner Google proof or accepted deferral recorded",
+    );
     expect(renderMarkdown(report)).toContain("## Operator Record Diagnostics");
   });
 
@@ -278,8 +336,12 @@ describe("provider exit pack script", () => {
       },
     });
 
-    expect(report.gates.find((gate) => gate.key === "provider-resources-readable")?.evidence)
-      .toBe(".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-provider-resource-readback.json");
+    expect(
+      report.gates.find((gate) => gate.key === "provider-resources-readable")
+        ?.evidence,
+    ).toBe(
+      ".ai/03_plans/2026-06-29-Cloudflare-Migration-Codex/evidence/2026-07-01-cloudflare-provider-resource-readback.json",
+    );
   });
 
   it("keeps default pack generation non-fatal but fails strict readiness mode on provider-exit blockers", () => {
@@ -304,7 +366,10 @@ describe("provider exit pack script", () => {
 
     expect(defaultRun.status).toBe(0);
     expect(defaultRun.stderr).toBe("");
-    expect(JSON.parse(readFileSync(defaultOutputFile, "utf8")).readiness.providerExitReady).toBe(false);
+    expect(
+      JSON.parse(readFileSync(defaultOutputFile, "utf8")).readiness
+        .providerExitReady,
+    ).toBe(false);
 
     const strictRun = runProviderExitPackCli({
       ...baseEnv,
@@ -315,7 +380,10 @@ describe("provider exit pack script", () => {
 
     expect(strictRun.status).toBe(1);
     expect(strictRun.stderr).toBe("");
-    expect(JSON.parse(readFileSync(strictOutputFile, "utf8")).readiness.providerExitReady).toBe(false);
+    expect(
+      JSON.parse(readFileSync(strictOutputFile, "utf8")).readiness
+        .providerExitReady,
+    ).toBe(false);
     expect(strictRun.stdout).toContain('"strictReadinessExit": true');
     expect(strictRun.stdout).toContain('"exitCode": 1');
   });
@@ -326,7 +394,7 @@ describe("provider exit pack script", () => {
       severity: "blocker",
       file: "src/lib/email/legacy.ts",
       line: 1,
-      snippet: "import { Resend } from \"resend\";",
+      snippet: 'import { Resend } from "resend";',
     };
     const report = buildProviderExitPackReport({
       scan: {
@@ -340,7 +408,11 @@ describe("provider exit pack script", () => {
     });
 
     expect(report.readiness.appRuntimeExitPrerequisitesReady).toBe(false);
-    expect(report.gates.find((gate) => gate.key === "no-active-legacy-provider-runtime")?.ready).toBe(false);
+    expect(
+      report.gates.find(
+        (gate) => gate.key === "no-active-legacy-provider-runtime",
+      )?.ready,
+    ).toBe(false);
     expect(renderMarkdown(report)).toContain("src/lib/email/legacy.ts:1");
   });
 
@@ -349,7 +421,9 @@ describe("provider exit pack script", () => {
     artifacts.latestDeploySourceSmoke = artifact({
       generatedAt: "2026-07-03T00:00:00.000Z",
       readiness: { latestDeploySourceSmokeReady: false },
-      blockers: ["Deploy evidence does not record the deployed git source commit."],
+      blockers: [
+        "Deploy evidence does not record the deployed git source commit.",
+      ],
     });
 
     const report = buildProviderExitPackReport({
@@ -366,13 +440,21 @@ describe("provider exit pack script", () => {
 
     expect(report.readiness.appRuntimeExitPrerequisitesReady).toBe(false);
     expect(report.readiness.providerExitReady).toBe(false);
-    expect(report.gates.find((gate) => gate.key === "latest-deploy-source-smoke-ready")?.ready).toBe(false);
-    expect(report.blockers).toContainEqual(expect.stringContaining("Latest deploy source smoke ready"));
+    expect(
+      report.gates.find(
+        (gate) => gate.key === "latest-deploy-source-smoke-ready",
+      )?.ready,
+    ).toBe(false);
+    expect(report.blockers).toContainEqual(
+      expect.stringContaining("Latest deploy source smoke ready"),
+    );
   });
 
   it("keeps app runtime exit prerequisites open when latest deploy/source smoke JSON is malformed", () => {
     const artifacts = greenAppRuntimeArtifacts();
-    artifacts.latestDeploySourceSmoke = malformedArtifact("/tmp/latest-deploy-source-smoke.json");
+    artifacts.latestDeploySourceSmoke = malformedArtifact(
+      "/tmp/latest-deploy-source-smoke.json",
+    );
 
     const report = buildProviderExitPackReport({
       generatedAt: "2026-07-03T00:00:00.000Z",
@@ -392,8 +474,13 @@ describe("provider exit pack script", () => {
       generatedAt: null,
       parseError: "Unexpected token '<' while parsing JSON",
     });
-    expect(report.gates.find((gate) => gate.key === "latest-deploy-source-smoke-ready")?.blocker)
-      .toBe("Latest deployed-source smoke proof is missing, malformed, stale, or blocked.");
+    expect(
+      report.gates.find(
+        (gate) => gate.key === "latest-deploy-source-smoke-ready",
+      )?.blocker,
+    ).toBe(
+      "Latest deployed-source smoke proof is missing, malformed, stale, or blocked.",
+    );
   });
 
   it("reports malformed operator records without treating parse failures as sanitized evidence", () => {
@@ -406,7 +493,9 @@ describe("provider exit pack script", () => {
         blockers: [],
         informational: [],
       },
-      artifacts: greenAppRuntimeArtifacts(malformedArtifact("/tmp/provider-exit-operator-record.json")),
+      artifacts: greenAppRuntimeArtifacts(
+        malformedArtifact("/tmp/provider-exit-operator-record.json"),
+      ),
     });
 
     expect(report.readiness.providerExitReady).toBe(false);
@@ -416,13 +505,24 @@ describe("provider exit pack script", () => {
       parseError: "Unexpected token '<' while parsing JSON",
     });
     expect(report.operatorRecordDiagnostics.present).toBe(true);
-    expect(report.operatorRecordDiagnostics.diagnostics.every((item) => (
-      item.ready === false && item.missingFields.includes("operator record JSON parse error")
-    ))).toBe(true);
-    expect(report.gates.find((gate) => gate.key === "exports-or-retention-decision-recorded")?.evidence)
-      .toBe("sanitized provider-exit operator record required");
-    expect(renderMarkdown(report)).toContain("operator record JSON parse error");
-    expect(JSON.stringify(report)).not.toContain("private-operator-record-sentinel");
+    expect(
+      report.operatorRecordDiagnostics.diagnostics.every(
+        (item) =>
+          item.ready === false &&
+          item.missingFields.includes("operator record JSON parse error"),
+      ),
+    ).toBe(true);
+    expect(
+      report.gates.find(
+        (gate) => gate.key === "exports-or-retention-decision-recorded",
+      )?.evidence,
+    ).toBe("sanitized provider-exit operator record required");
+    expect(renderMarkdown(report)).toContain(
+      "operator record JSON parse error",
+    );
+    expect(JSON.stringify(report)).not.toContain(
+      "private-operator-record-sentinel",
+    );
   });
 
   it("marks provider exit ready when sanitized operator evidence closes the external gates", () => {
@@ -441,23 +541,34 @@ describe("provider exit pack script", () => {
     expect(report.readiness.appRuntimeExitPrerequisitesReady).toBe(true);
     expect(report.readiness.providerExitReady).toBe(true);
     expect(report.blockers).toEqual([]);
-    expect(report.gates.find((gate) => gate.key === "post-exit-smoke-recorded")?.evidence).toBe("/tmp/evidence.json");
-    expect(report.operatorRecordDiagnostics.diagnostics.every((item) => item.ready)).toBe(true);
+    expect(
+      report.gates.find((gate) => gate.key === "post-exit-smoke-recorded")
+        ?.evidence,
+    ).toBe("/tmp/evidence.json");
+    expect(
+      report.operatorRecordDiagnostics.diagnostics.every((item) => item.ready),
+    ).toBe(true);
 
     const serializedReport = JSON.stringify(report);
     const markdown = renderMarkdown(report);
-    expect(serializedReport).not.toContain("private-sentinel-operator-record-value");
+    expect(serializedReport).not.toContain(
+      "private-sentinel-operator-record-value",
+    );
     expect(markdown).not.toContain("private-sentinel-operator-record-value");
     expect(markdown).not.toContain("external secure storage");
   });
 
   it("marks accepted non-owner Google deferral ready only with acceptedBy and deferralRationale", () => {
     const operatorRecord = completeOperatorRecord();
-    const value = operatorRecord.value as Record<string, Record<string, unknown>>;
+    const value = operatorRecord.value as Record<
+      string,
+      Record<string, unknown>
+    >;
     value.nonOwnerGoogleProof = {
       status: "accepted-deferral",
       acceptedBy: "owner",
-      deferralRationale: "owner accepted separate non-owner Google proof as a post-launch follow-up",
+      deferralRationale:
+        "owner accepted separate non-owner Google proof as a post-launch follow-up",
     };
 
     const report = buildProviderExitPackReport({
@@ -472,13 +583,18 @@ describe("provider exit pack script", () => {
       artifacts: greenAppRuntimeArtifacts(operatorRecord),
     });
 
-    const gate = report.gates.find((item) => item.key === "non-owner-google-proof-recorded");
-    const diagnostic = report.operatorRecordDiagnostics.diagnostics
-      .find((item) => item.gateKey === "non-owner-google-proof-recorded");
+    const gate = report.gates.find(
+      (item) => item.key === "non-owner-google-proof-recorded",
+    );
+    const diagnostic = report.operatorRecordDiagnostics.diagnostics.find(
+      (item) => item.gateKey === "non-owner-google-proof-recorded",
+    );
 
     expect(report.readiness.providerExitReady).toBe(true);
     expect(gate?.ready).toBe(true);
-    expect(gate?.label).toBe("Real non-owner Google proof or accepted deferral recorded");
+    expect(gate?.label).toBe(
+      "Real non-owner Google proof or accepted deferral recorded",
+    );
     expect(diagnostic).toMatchObject({
       ready: true,
       status: "accepted-deferral",
@@ -489,7 +605,10 @@ describe("provider exit pack script", () => {
 
   it("keeps recipient mailbox deferral open when acceptance metadata is missing", () => {
     const operatorRecord = completeOperatorRecord();
-    const value = operatorRecord.value as Record<string, Record<string, unknown>>;
+    const value = operatorRecord.value as Record<
+      string,
+      Record<string, unknown>
+    >;
     value.recipientMailboxProofOrDeferral = {
       status: "accepted-deferral",
       acceptedBy: "",
@@ -508,9 +627,12 @@ describe("provider exit pack script", () => {
       artifacts: greenAppRuntimeArtifacts(operatorRecord),
     });
 
-    const gate = report.gates.find((item) => item.key === "recipient-mailbox-proof-or-deferral-recorded");
-    const diagnostic = report.operatorRecordDiagnostics.diagnostics
-      .find((item) => item.gateKey === "recipient-mailbox-proof-or-deferral-recorded");
+    const gate = report.gates.find(
+      (item) => item.key === "recipient-mailbox-proof-or-deferral-recorded",
+    );
+    const diagnostic = report.operatorRecordDiagnostics.diagnostics.find(
+      (item) => item.gateKey === "recipient-mailbox-proof-or-deferral-recorded",
+    );
 
     expect(report.readiness.providerExitReady).toBe(false);
     expect(gate?.ready).toBe(false);
@@ -535,26 +657,32 @@ describe("provider exit pack script", () => {
         blockers: [],
         informational: [],
       },
-      artifacts: greenAppRuntimeArtifacts(artifact({
-        generatedAt: "2026-07-03T00:00:00.000Z",
-        finalExportsOrRetentionDecision: {
-          status: "recorded",
-          decision: "exported",
-          acceptedBy: "private-owner-name-sentinel",
-          rollbackDecision: "private rollback note sentinel",
-        },
-        resendStatus: {
-          status: "recorded",
-        },
-      })),
+      artifacts: greenAppRuntimeArtifacts(
+        artifact({
+          generatedAt: "2026-07-03T00:00:00.000Z",
+          finalExportsOrRetentionDecision: {
+            status: "recorded",
+            decision: "exported",
+            acceptedBy: "private-owner-name-sentinel",
+            rollbackDecision: "private rollback note sentinel",
+          },
+          resendStatus: {
+            status: "recorded",
+          },
+        }),
+      ),
     });
 
-    const exportsDiagnostic = report.operatorRecordDiagnostics.diagnostics
-      .find((item) => item.gateKey === "exports-or-retention-decision-recorded");
-    const resendDiagnostic = report.operatorRecordDiagnostics.diagnostics
-      .find((item) => item.gateKey === "resend-account-status-recorded");
-    const nonOwnerDiagnostic = report.operatorRecordDiagnostics.diagnostics
-      .find((item) => item.gateKey === "non-owner-google-proof-recorded");
+    const exportsDiagnostic = report.operatorRecordDiagnostics.diagnostics.find(
+      (item) => item.gateKey === "exports-or-retention-decision-recorded",
+    );
+    const resendDiagnostic = report.operatorRecordDiagnostics.diagnostics.find(
+      (item) => item.gateKey === "resend-account-status-recorded",
+    );
+    const nonOwnerDiagnostic =
+      report.operatorRecordDiagnostics.diagnostics.find(
+        (item) => item.gateKey === "non-owner-google-proof-recorded",
+      );
 
     expect(report.readiness.providerExitReady).toBe(false);
     expect(exportsDiagnostic?.missingFields).toEqual([
@@ -577,8 +705,12 @@ describe("provider exit pack script", () => {
     ]);
 
     const markdown = renderMarkdown(report);
-    expect(markdown).toContain("finalExportsOrRetentionDecision.backupLocationDescription");
-    expect(markdown).toContain("nonOwnerGoogleProof.status=recorded\\|accepted-deferral");
+    expect(markdown).toContain(
+      "finalExportsOrRetentionDecision.backupLocationDescription",
+    );
+    expect(markdown).toContain(
+      "nonOwnerGoogleProof.status=recorded\\|accepted-deferral",
+    );
     expect(JSON.stringify(report)).not.toContain("private-owner-name-sentinel");
     expect(markdown).not.toContain("private rollback note sentinel");
   });
@@ -593,26 +725,31 @@ describe("provider exit pack script", () => {
         blockers: [],
         informational: [],
       },
-      artifacts: greenAppRuntimeArtifacts(artifact({
-        generatedAt: "2026-07-03T00:00:00.000Z",
-        finalExportsOrRetentionDecision: {
-          status: "private-status-sentinel",
-          decision: "accepted-loss",
-          acceptedBy: "owner",
-          evidenceSource: "sanitized evidence pointer",
-          rollbackDecision: "owner accepts no legacy rollback",
-        },
-      })),
+      artifacts: greenAppRuntimeArtifacts(
+        artifact({
+          generatedAt: "2026-07-03T00:00:00.000Z",
+          finalExportsOrRetentionDecision: {
+            status: "private-status-sentinel",
+            decision: "accepted-loss",
+            acceptedBy: "owner",
+            evidenceSource: "sanitized evidence pointer",
+            rollbackDecision: "owner accepts no legacy rollback",
+          },
+        }),
+      ),
     });
 
-    const diagnostic = report.operatorRecordDiagnostics.diagnostics
-      .find((item) => item.gateKey === "exports-or-retention-decision-recorded");
+    const diagnostic = report.operatorRecordDiagnostics.diagnostics.find(
+      (item) => item.gateKey === "exports-or-retention-decision-recorded",
+    );
     const serializedReport = JSON.stringify(report);
     const markdown = renderMarkdown(report);
 
     expect(report.readiness.providerExitReady).toBe(false);
     expect(diagnostic?.status).toBe("invalid-or-unsupported");
-    expect(diagnostic?.missingFields).toContain("finalExportsOrRetentionDecision.status=recorded");
+    expect(diagnostic?.missingFields).toContain(
+      "finalExportsOrRetentionDecision.status=recorded",
+    );
     expect(serializedReport).not.toContain("private-status-sentinel");
     expect(markdown).not.toContain("private-status-sentinel");
   });
@@ -625,7 +762,9 @@ describe("provider exit pack script", () => {
     expect(serializedTemplate).toContain("finalExportsOrRetentionDecision");
     expect(serializedTemplate).toContain("evidenceSource");
     expect(serializedTemplate).toContain("secretValuesNotRecorded");
-    expect(serializedTemplate).not.toContain("private-sentinel-operator-record-value");
+    expect(serializedTemplate).not.toContain(
+      "private-sentinel-operator-record-value",
+    );
 
     const report = buildProviderExitPackReport({
       generatedAt: "2026-07-03T00:00:00.000Z",
@@ -642,12 +781,17 @@ describe("provider exit pack script", () => {
     expect(report.readiness.appRuntimeExitPrerequisitesReady).toBe(true);
     expect(report.readiness.providerExitReady).toBe(false);
     expect(report.operatorRecordDiagnostics.present).toBe(true);
-    expect(report.operatorRecordDiagnostics.diagnostics.every((item) => !item.ready)).toBe(true);
+    expect(
+      report.operatorRecordDiagnostics.diagnostics.every((item) => !item.ready),
+    ).toBe(true);
   });
 
   it("does not close external provider gates with booleans but no sanitized evidence-source pointers", () => {
     const operatorRecord = completeOperatorRecord();
-    const value = operatorRecord.value as Record<string, Record<string, unknown>>;
+    const value = operatorRecord.value as Record<
+      string,
+      Record<string, unknown>
+    >;
     delete value.finalExportsOrRetentionDecision.evidenceSource;
     delete value.resendStatus.accountEvidenceSource;
     delete value.resendStatus.apiKeyEvidenceSource;
@@ -667,24 +811,38 @@ describe("provider exit pack script", () => {
       artifacts: greenAppRuntimeArtifacts(operatorRecord),
     });
 
-    const diagnostics = new Map(report.operatorRecordDiagnostics.diagnostics
-      .map((item) => [item.gateKey, item.missingFields]));
+    const diagnostics = new Map(
+      report.operatorRecordDiagnostics.diagnostics.map((item) => [
+        item.gateKey,
+        item.missingFields,
+      ]),
+    );
 
     expect(report.readiness.appRuntimeExitPrerequisitesReady).toBe(true);
     expect(report.readiness.providerExitReady).toBe(false);
-    expect(diagnostics.get("exports-or-retention-decision-recorded")).toContain("finalExportsOrRetentionDecision.evidenceSource");
+    expect(diagnostics.get("exports-or-retention-decision-recorded")).toContain(
+      "finalExportsOrRetentionDecision.evidenceSource",
+    );
     expect(diagnostics.get("resend-account-status-recorded")).toEqual([
       "resendStatus.accountEvidenceSource",
       "resendStatus.apiKeyEvidenceSource",
     ]);
-    expect(diagnostics.get("obsolete-secret-rotation-recorded")).toContain("obsoleteSecretRotation.evidenceSource");
-    expect(diagnostics.get("post-exit-smoke-recorded")).toContain("postExitSmoke.evidenceSource");
-    expect(diagnostics.get("recipient-mailbox-proof-or-deferral-recorded")).toContain("recipientMailboxProofOrDeferral.evidenceSource");
+    expect(diagnostics.get("obsolete-secret-rotation-recorded")).toContain(
+      "obsoleteSecretRotation.evidenceSource",
+    );
+    expect(diagnostics.get("post-exit-smoke-recorded")).toContain(
+      "postExitSmoke.evidenceSource",
+    );
+    expect(
+      diagnostics.get("recipient-mailbox-proof-or-deferral-recorded"),
+    ).toContain("recipientMailboxProofOrDeferral.evidenceSource");
   });
 
   it("does not close obsolete secret rotation when the operator record admits secret values were recorded", () => {
     const operatorRecord = completeOperatorRecord();
-    (operatorRecord.value?.obsoleteSecretRotation as Record<string, unknown>).secretValuesNotRecorded = false;
+    (
+      operatorRecord.value?.obsoleteSecretRotation as Record<string, unknown>
+    ).secretValuesNotRecorded = false;
 
     const report = buildProviderExitPackReport({
       scan: {
@@ -698,7 +856,13 @@ describe("provider exit pack script", () => {
     });
 
     expect(report.readiness.providerExitReady).toBe(false);
-    expect(report.gates.find((gate) => gate.key === "obsolete-secret-rotation-recorded")?.ready).toBe(false);
-    expect(report.blockers).toContainEqual(expect.stringContaining("Obsolete provider secret removal"));
+    expect(
+      report.gates.find(
+        (gate) => gate.key === "obsolete-secret-rotation-recorded",
+      )?.ready,
+    ).toBe(false);
+    expect(report.blockers).toContainEqual(
+      expect.stringContaining("Obsolete provider secret removal"),
+    );
   });
 });

@@ -17,6 +17,31 @@ type DebuggingStatus = (typeof STATUSES)[number];
 type DebuggingSeverity = (typeof SEVERITIES)[number];
 type DebuggingSource = (typeof SOURCES)[number];
 
+export type DebuggingSessionLedgerMatch = Pick<
+  DebuggingSessionLedgerRecord,
+  | "id"
+  | "generatedAt"
+  | "environment"
+  | "status"
+  | "severity"
+  | "source"
+  | "recurrenceKey"
+  | "route"
+  | "event"
+  | "errorClass"
+  | "errorCode"
+  | "rootCause"
+  | "fixSummary"
+  | "validation"
+>;
+
+export type DebuggingSessionLedgerMatchSummary = {
+  hasMatches: boolean;
+  total: number;
+  statusCounts: Partial<Record<DebuggingStatus, number>>;
+  latest: DebuggingSessionLedgerMatch | null;
+};
+
 export type DebuggingSessionLedgerRecord = {
   id: string;
   generatedAt: string;
@@ -55,23 +80,8 @@ export type DebuggingSessionLedgerSnapshot = {
   unsafeRecords: number;
   latestErrorRecurrenceKey: string | null;
   matchingLatestErrorCount: number;
-  recentMatches: Array<Pick<
-    DebuggingSessionLedgerRecord,
-    | "id"
-    | "generatedAt"
-    | "environment"
-    | "status"
-    | "severity"
-    | "source"
-    | "recurrenceKey"
-    | "route"
-    | "event"
-    | "errorClass"
-    | "errorCode"
-    | "rootCause"
-    | "fixSummary"
-    | "validation"
-  >>;
+  latestErrorMatchSummary: DebuggingSessionLedgerMatchSummary;
+  recentMatches: DebuggingSessionLedgerMatch[];
 };
 
 type BuildRecordInput = {
@@ -288,6 +298,29 @@ export function buildDebuggingSessionLedgerSnapshot(options: {
     errorCode: options.latestError.errorCode,
   }) : null;
   const matches = recurrenceKey ? records.filter((record) => record.recurrenceKey === recurrenceKey) : [];
+  const statusCounts = matches.reduce<Partial<Record<DebuggingStatus, number>>>((counts, record) => {
+    counts[record.status] = (counts[record.status] ?? 0) + 1;
+    return counts;
+  }, {});
+  const recentMatches = matches
+    .slice(-MAX_RECENT_MATCHES)
+    .reverse()
+    .map((record) => ({
+      id: record.id,
+      generatedAt: record.generatedAt,
+      environment: record.environment,
+      status: record.status,
+      severity: record.severity,
+      source: record.source,
+      recurrenceKey: record.recurrenceKey,
+      route: record.route,
+      event: record.event,
+      errorClass: record.errorClass,
+      errorCode: record.errorCode,
+      rootCause: record.rootCause,
+      fixSummary: record.fixSummary,
+      validation: record.validation,
+    }));
 
   return {
     path: displayPath(ledgerPath),
@@ -297,25 +330,13 @@ export function buildDebuggingSessionLedgerSnapshot(options: {
     unsafeRecords,
     latestErrorRecurrenceKey: recurrenceKey,
     matchingLatestErrorCount: matches.length,
-    recentMatches: matches
-      .slice(-MAX_RECENT_MATCHES)
-      .reverse()
-      .map((record) => ({
-        id: record.id,
-        generatedAt: record.generatedAt,
-        environment: record.environment,
-        status: record.status,
-        severity: record.severity,
-        source: record.source,
-        recurrenceKey: record.recurrenceKey,
-        route: record.route,
-        event: record.event,
-        errorClass: record.errorClass,
-        errorCode: record.errorCode,
-        rootCause: record.rootCause,
-        fixSummary: record.fixSummary,
-        validation: record.validation,
-      })),
+    latestErrorMatchSummary: {
+      hasMatches: matches.length > 0,
+      total: matches.length,
+      statusCounts,
+      latest: recentMatches[0] ?? null,
+    },
+    recentMatches,
   };
 }
 

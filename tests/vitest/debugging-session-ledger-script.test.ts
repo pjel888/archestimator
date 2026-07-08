@@ -132,6 +132,18 @@ describe("debugging session ledger", () => {
         status: "mitigated",
         fixSummary: "Kept the local draft visible during offline mutation failure.",
       });
+      expect(snapshot.latestErrorMatchSummary).toMatchObject({
+        hasMatches: true,
+        total: 1,
+        statusCounts: {
+          mitigated: 1,
+        },
+        latest: {
+          id: "debug-2",
+          status: "mitigated",
+          fixSummary: "Kept the local draft visible during offline mutation failure.",
+        },
+      });
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

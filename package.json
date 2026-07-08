@@ -76,6 +76,7 @@
     "ops:check-incidents": "bun run scripts/check-operational-incidents.ts",
     "ops:check-observability": "bun run scripts/check-production-observability-proof.ts",
     "ops:check-observability-env": "bun run scripts/check-observability-proof-env.ts",
+    "ops:check-observability-route": "bun run scripts/check-observability-proof-route.ts",
     "ops:observability-drill": "bun run scripts/run-observability-proof-drill.ts",
     "ops:check-alert-scenarios": "bun run scripts/check-alert-scenario-readiness.ts",
     "ops:agent-debug-snapshot": "bun run scripts/check-agent-debugging-snapshot.ts",

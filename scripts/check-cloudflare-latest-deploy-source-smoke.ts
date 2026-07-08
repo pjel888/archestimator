@@ -113,7 +113,7 @@ export const DEFAULT_RUNTIME_SOURCE_STATUS_PATHS = [
   "cloudflare-env.d.ts",
   "next.config.ts",
   "open-next.config.ts",
-  "src/proxy.ts",
+  "src/middleware.ts",
 ];
 
 const PROOF_ONLY_PACKAGE_SCRIPT_KEYS = [
@@ -142,9 +142,17 @@ function normalizeParseError(error: unknown) {
   return normalized.length > 0 ? normalized.slice(0, 240) : "JSON parse failed";
 }
 
-export function readJsonArtifact<T extends Record<string, unknown>>(path: string): Artifact<T> {
+export function readJsonArtifact<T extends Record<string, unknown>>(
+  path: string,
+): Artifact<T> {
   if (!existsSync(path)) {
-    return { path, present: false, generatedAt: null, value: null, parseError: null };
+    return {
+      path,
+      present: false,
+      generatedAt: null,
+      value: null,
+      parseError: null,
+    };
   }
 
   try {
@@ -152,7 +160,8 @@ export function readJsonArtifact<T extends Record<string, unknown>>(path: string
     return {
       path,
       present: true,
-      generatedAt: typeof value.generatedAt === "string" ? value.generatedAt : null,
+      generatedAt:
+        typeof value.generatedAt === "string" ? value.generatedAt : null,
       value,
       parseError: null,
     };
@@ -191,12 +200,16 @@ function stringAt(value: unknown, path: Array<string | number>) {
 
 function numberAt(value: unknown, path: Array<string | number>) {
   const candidate = getPath(value, path);
-  return typeof candidate === "number" && Number.isFinite(candidate) ? candidate : null;
+  return typeof candidate === "number" && Number.isFinite(candidate)
+    ? candidate
+    : null;
 }
 
 function stringArrayAt(value: unknown, path: Array<string | number>) {
   const candidate = getPath(value, path);
-  return Array.isArray(candidate) ? candidate.filter((item): item is string => typeof item === "string") : [];
+  return Array.isArray(candidate)
+    ? candidate.filter((item): item is string => typeof item === "string")
+    : [];
 }
 
 function boolAt(value: unknown, path: Array<string | number>) {
@@ -230,8 +243,15 @@ function stableValue(value: unknown): unknown {
 }
 
 function withoutProofOnlyPackageScripts(packageJson: Record<string, unknown>) {
-  const next = JSON.parse(JSON.stringify(packageJson)) as Record<string, unknown>;
-  if (next.scripts && typeof next.scripts === "object" && !Array.isArray(next.scripts)) {
+  const next = JSON.parse(JSON.stringify(packageJson)) as Record<
+    string,
+    unknown
+  >;
+  if (
+    next.scripts &&
+    typeof next.scripts === "object" &&
+    !Array.isArray(next.scripts)
+  ) {
     const scripts = next.scripts as Record<string, unknown>;
     for (const key of PROOF_ONLY_PACKAGE_SCRIPT_KEYS) {
       delete scripts[key];
@@ -240,7 +260,10 @@ function withoutProofOnlyPackageScripts(packageJson: Record<string, unknown>) {
   return next;
 }
 
-export function packageJsonChangeTouchesRuntime(basePackageJson: string, nextPackageJson: string) {
+export function packageJsonChangeTouchesRuntime(
+  basePackageJson: string,
+  nextPackageJson: string,
+) {
   let base: Record<string, unknown>;
   let next: Record<string, unknown>;
   try {
@@ -250,8 +273,10 @@ export function packageJsonChangeTouchesRuntime(basePackageJson: string, nextPac
     return true;
   }
 
-  return JSON.stringify(stableValue(withoutProofOnlyPackageScripts(base)))
-    !== JSON.stringify(stableValue(withoutProofOnlyPackageScripts(next)));
+  return (
+    JSON.stringify(stableValue(withoutProofOnlyPackageScripts(base))) !==
+    JSON.stringify(stableValue(withoutProofOnlyPackageScripts(next)))
+  );
 }
 
 function porcelainPath(entry: string) {
@@ -264,7 +289,9 @@ function porcelainPath(entry: string) {
     path = entry.replace(/^[ MADRCU?!]{1,2}\s+/, "").trim();
   }
   const renameSeparator = " -> ";
-  return path.includes(renameSeparator) ? path.slice(path.lastIndexOf(renameSeparator) + renameSeparator.length) : path;
+  return path.includes(renameSeparator)
+    ? path.slice(path.lastIndexOf(renameSeparator) + renameSeparator.length)
+    : path;
 }
 
 export function filterRuntimeDirtyStatusEntries(
@@ -273,7 +300,8 @@ export function filterRuntimeDirtyStatusEntries(
 ) {
   const packageJsonTouchesRuntime = options.packageJsonTouchesRuntime ?? true;
   return entries.filter((entry) => {
-    if (porcelainPath(entry) === "package.json" && !packageJsonTouchesRuntime) return false;
+    if (porcelainPath(entry) === "package.json" && !packageJsonTouchesRuntime)
+      return false;
     return true;
   });
 }
@@ -282,7 +310,10 @@ function currentPackageJsonChangeTouchesRuntime() {
   const headPackageJson = runGit(["show", "HEAD:package.json"]);
   if (!headPackageJson.ok) return true;
   try {
-    return packageJsonChangeTouchesRuntime(headPackageJson.stdout, readFileSync("package.json", "utf8"));
+    return packageJsonChangeTouchesRuntime(
+      headPackageJson.stdout,
+      readFileSync("package.json", "utf8"),
+    );
   } catch {
     return true;
   }
@@ -295,7 +326,9 @@ export function readCurrentGitState(
   const commitResult = runGit(["rev-parse", "HEAD"]);
   const commit = commitResult.ok ? commitResult.stdout : null;
   if (!commitResult.ok) {
-    errors.push(`git rev-parse HEAD failed: ${commitResult.stderr || commitResult.error?.message || "unknown error"}`);
+    errors.push(
+      `git rev-parse HEAD failed: ${commitResult.stderr || commitResult.error?.message || "unknown error"}`,
+    );
   }
 
   const showResult = runGit(["show", "-s", "--format=%cI%n%s", "HEAD"]);
@@ -306,24 +339,38 @@ export function readCurrentGitState(
     committedAt = dateLine?.trim() || null;
     subject = subjectLines.join("\n").trim() || null;
   } else {
-    errors.push(`git show HEAD failed: ${showResult.stderr || showResult.error?.message || "unknown error"}`);
+    errors.push(
+      `git show HEAD failed: ${showResult.stderr || showResult.error?.message || "unknown error"}`,
+    );
   }
 
-  const statusResult = runGit(["status", "--porcelain=v1", "--", ...statusPaths]);
+  const statusResult = runGit([
+    "status",
+    "--porcelain=v1",
+    "--",
+    ...statusPaths,
+  ]);
   const rawDirtyRuntimeSourcePaths = statusResult.ok
     ? statusResult.stdout
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter(Boolean)
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean)
     : [];
-  const packageJsonTouchesRuntime = rawDirtyRuntimeSourcePaths.some((entry) => porcelainPath(entry) === "package.json")
+  const packageJsonTouchesRuntime = rawDirtyRuntimeSourcePaths.some(
+    (entry) => porcelainPath(entry) === "package.json",
+  )
     ? currentPackageJsonChangeTouchesRuntime()
     : true;
-  const dirtyRuntimeSourcePaths = filterRuntimeDirtyStatusEntries(rawDirtyRuntimeSourcePaths, {
-    packageJsonTouchesRuntime,
-  });
+  const dirtyRuntimeSourcePaths = filterRuntimeDirtyStatusEntries(
+    rawDirtyRuntimeSourcePaths,
+    {
+      packageJsonTouchesRuntime,
+    },
+  );
   if (!statusResult.ok) {
-    errors.push(`git status failed: ${statusResult.stderr || statusResult.error?.message || "unknown error"}`);
+    errors.push(
+      `git status failed: ${statusResult.stderr || statusResult.error?.message || "unknown error"}`,
+    );
   }
 
   return {
@@ -333,7 +380,8 @@ export function readCurrentGitState(
     subject,
     statusPaths,
     dirtyRuntimeSourcePaths,
-    workingTreeCleanForRuntimeSourcePaths: dirtyRuntimeSourcePaths.length === 0 && statusResult.ok,
+    workingTreeCleanForRuntimeSourcePaths:
+      dirtyRuntimeSourcePaths.length === 0 && statusResult.ok,
     errors,
   };
 }
@@ -363,7 +411,10 @@ function commitsMatch(left: string | null, right: string | null) {
   const normalizedLeft = left.trim().toLowerCase();
   const normalizedRight = right.trim().toLowerCase();
   if (normalizedLeft.length < 7 || normalizedRight.length < 7) return false;
-  return normalizedLeft.startsWith(normalizedRight) || normalizedRight.startsWith(normalizedLeft);
+  return (
+    normalizedLeft.startsWith(normalizedRight) ||
+    normalizedRight.startsWith(normalizedLeft)
+  );
 }
 
 function dateIsNotOlderThan(left: string | null, right: string | null) {
@@ -375,26 +426,38 @@ function dateIsNotOlderThan(left: string | null, right: string | null) {
 }
 
 function hostedRouteProofReady(value: unknown) {
-  return boolAt(value, ["hostedRouteProof", "passed"])
-    && boolAt(value, ["hostedRouteProof", "routeContractReady"])
-    && boolAt(value, ["hostedRouteProof", "hostedRouteProofReady"])
-    && stringArrayAt(value, ["hostedRouteProof", "blockers"]).length === 0;
+  return (
+    boolAt(value, ["hostedRouteProof", "passed"]) &&
+    boolAt(value, ["hostedRouteProof", "routeContractReady"]) &&
+    boolAt(value, ["hostedRouteProof", "hostedRouteProofReady"]) &&
+    stringArrayAt(value, ["hostedRouteProof", "blockers"]).length === 0
+  );
 }
 
 function releaseGatesReady(value: unknown) {
-  return boolAt(value, ["releaseGates", "productionCutoverReady"])
-    && stringArrayAt(value, ["releaseGates", "blockers"]).length === 0;
+  return (
+    boolAt(value, ["releaseGates", "productionCutoverReady"]) &&
+    stringArrayAt(value, ["releaseGates", "blockers"]).length === 0
+  );
 }
 
-export function buildLatestDeploySourceSmokeReport(params: {
-  generatedAt?: string;
-  deployEvidence?: Artifact;
-  currentGit?: CurrentGitState;
-} = {}): LatestDeploySourceSmokeReport {
+export function buildLatestDeploySourceSmokeReport(
+  params: {
+    generatedAt?: string;
+    deployEvidence?: Artifact;
+    currentGit?: CurrentGitState;
+  } = {},
+): LatestDeploySourceSmokeReport {
   const generatedAt = params.generatedAt ?? new Date().toISOString();
-  const deployEvidence = params.deployEvidence ?? readJsonArtifact(readEnv("DEPLOY_SOURCE_SMOKE_DEPLOY_EVIDENCE_FILE") ?? DEFAULT_DEPLOY_EVIDENCE_FILE);
+  const deployEvidence =
+    params.deployEvidence ??
+    readJsonArtifact(
+      readEnv("DEPLOY_SOURCE_SMOKE_DEPLOY_EVIDENCE_FILE") ??
+        DEFAULT_DEPLOY_EVIDENCE_FILE,
+    );
   const currentGit = params.currentGit ?? readCurrentGitState();
-  const deployArtifactUsable = deployEvidence.present && deployEvidence.parseError === null;
+  const deployArtifactUsable =
+    deployEvidence.present && deployEvidence.parseError === null;
   const deployValue = deployEvidence.value;
   const deployCommit = deployedSourceCommit(deployValue);
   const deployedAt = firstStringAt(deployValue, [
@@ -402,13 +465,21 @@ export function buildLatestDeploySourceSmokeReport(params: {
     ["deployment", "deployedAt"],
     ["deployedAt"],
   ]);
-  const sourceCommitMatchesCurrentGit = commitsMatch(deployCommit, currentGit.commit);
-  const deployedAtIsNotOlderThanCurrentCommit = dateIsNotOlderThan(deployedAt, currentGit.committedAt);
-  const deploymentReady = deployArtifactUsable
-    && numberAt(deployValue, ["productionVersion", "trafficPercent"]) === 100
-    && stringAt(deployValue, ["productionVersion", "id"]) !== null
-    && deployedAt !== null;
-  const hostedRoutesReady = deployArtifactUsable && hostedRouteProofReady(deployValue);
+  const sourceCommitMatchesCurrentGit = commitsMatch(
+    deployCommit,
+    currentGit.commit,
+  );
+  const deployedAtIsNotOlderThanCurrentCommit = dateIsNotOlderThan(
+    deployedAt,
+    currentGit.committedAt,
+  );
+  const deploymentReady =
+    deployArtifactUsable &&
+    numberAt(deployValue, ["productionVersion", "trafficPercent"]) === 100 &&
+    stringAt(deployValue, ["productionVersion", "id"]) !== null &&
+    deployedAt !== null;
+  const hostedRoutesReady =
+    deployArtifactUsable && hostedRouteProofReady(deployValue);
   const releaseReady = deployArtifactUsable && releaseGatesReady(deployValue);
 
   const blockers: string[] = [];
@@ -422,25 +493,41 @@ export function buildLatestDeploySourceSmokeReport(params: {
     blockers.push("Current git commit metadata could not be read.");
   }
   if (!currentGit.workingTreeCleanForRuntimeSourcePaths) {
-    blockers.push("Runtime source paths have uncommitted changes and cannot be claimed deployed.");
+    blockers.push(
+      "Runtime source paths have uncommitted changes and cannot be claimed deployed.",
+    );
   }
   if (!deploymentReady) {
-    blockers.push("Deploy evidence does not prove a 100% production Worker version with deployment time.");
+    blockers.push(
+      "Deploy evidence does not prove a 100% production Worker version with deployment time.",
+    );
   }
   if (!deployCommit) {
-    blockers.push("Deploy evidence does not record the deployed git source commit.");
+    blockers.push(
+      "Deploy evidence does not record the deployed git source commit.",
+    );
   }
   if (deployCommit && !sourceCommitMatchesCurrentGit) {
     blockers.push("Deployed git source commit does not match current HEAD.");
   }
-  if (deployedAt && currentGit.committedAt && !deployedAtIsNotOlderThanCurrentCommit) {
-    blockers.push("Deployment timestamp is older than the current git commit timestamp.");
+  if (
+    deployedAt &&
+    currentGit.committedAt &&
+    !deployedAtIsNotOlderThanCurrentCommit
+  ) {
+    blockers.push(
+      "Deployment timestamp is older than the current git commit timestamp.",
+    );
   }
   if (!hostedRoutesReady) {
-    blockers.push("Deploy evidence does not include a passing hosted route smoke.");
+    blockers.push(
+      "Deploy evidence does not include a passing hosted route smoke.",
+    );
   }
   if (!releaseReady) {
-    blockers.push("Deploy evidence does not include passing release gates after the deploy.");
+    blockers.push(
+      "Deploy evidence does not include passing release gates after the deploy.",
+    );
   }
 
   return {
@@ -461,8 +548,14 @@ export function buildLatestDeploySourceSmokeReport(params: {
     deployment: {
       worker: stringAt(deployValue, ["worker"]),
       productionVersionId: stringAt(deployValue, ["productionVersion", "id"]),
-      productionVersionNumber: numberAt(deployValue, ["productionVersion", "number"]),
-      trafficPercent: numberAt(deployValue, ["productionVersion", "trafficPercent"]),
+      productionVersionNumber: numberAt(deployValue, [
+        "productionVersion",
+        "number",
+      ]),
+      trafficPercent: numberAt(deployValue, [
+        "productionVersion",
+        "trafficPercent",
+      ]),
       deployedAt,
       deployedSourceCommit: deployCommit,
       sourceCommitMatchesCurrentGit,
@@ -480,17 +573,20 @@ export function buildLatestDeploySourceSmokeReport(params: {
   };
 }
 
-export function buildDeploySourceSmokeTemplate(params: {
-  generatedAt?: string;
-  currentGit?: CurrentGitState;
-} = {}): DeploySourceSmokeTemplate {
+export function buildDeploySourceSmokeTemplate(
+  params: {
+    generatedAt?: string;
+    currentGit?: CurrentGitState;
+  } = {},
+): DeploySourceSmokeTemplate {
   const currentGit = params.currentGit ?? readCurrentGitState();
 
   return {
     generatedAt: params.generatedAt ?? new Date().toISOString(),
     mode: "cloudflare-latest-deploy-source-smoke-template",
     boundary: {
-      purpose: "Starter artifact for sanitized post-deploy source and smoke evidence. Fill it only after deploying or promoting the current source and rerunning hosted-route and release-gate checks.",
+      purpose:
+        "Starter artifact for sanitized post-deploy source and smoke evidence. Fill it only after deploying or promoting the current source and rerunning hosted-route and release-gate checks.",
       forbiddenMaterials: [
         "raw cookies",
         "session tokens",
@@ -516,7 +612,8 @@ export function buildDeploySourceSmokeTemplate(params: {
       committedAt: currentGit.committedAt,
       subject: currentGit.subject,
       runtimeSourceStatusPaths: currentGit.statusPaths,
-      workingTreeCleanForRuntimeSourcePaths: currentGit.workingTreeCleanForRuntimeSourcePaths,
+      workingTreeCleanForRuntimeSourcePaths:
+        currentGit.workingTreeCleanForRuntimeSourcePaths,
       dirtyRuntimeSourcePaths: currentGit.dirtyRuntimeSourcePaths,
     },
     worker: null,
@@ -531,12 +628,16 @@ export function buildDeploySourceSmokeTemplate(params: {
       passed: false,
       routeContractReady: false,
       hostedRouteProofReady: false,
-      blockers: ["Replace this template section with sanitized post-deploy hosted-route proof."],
+      blockers: [
+        "Replace this template section with sanitized post-deploy hosted-route proof.",
+      ],
     },
     releaseGates: {
       command: "bun run cf:release-gates",
       productionCutoverReady: false,
-      blockers: ["Replace this template section with sanitized post-deploy release-gate proof."],
+      blockers: [
+        "Replace this template section with sanitized post-deploy release-gate proof.",
+      ],
     },
     operatorInstructions: [
       "Commit or otherwise settle deploy-relevant local source changes before deployment.",
@@ -569,7 +670,9 @@ export function renderMarkdown(report: LatestDeploySourceSmokeReport) {
     ? report.blockers.map((item) => `- ${item}`).join("\n")
     : "- none";
   const dirtyRows = report.currentGit.dirtyRuntimeSourcePaths.length
-    ? report.currentGit.dirtyRuntimeSourcePaths.map((item) => `- \`${tableCell(item)}\``).join("\n")
+    ? report.currentGit.dirtyRuntimeSourcePaths
+        .map((item) => `- \`${tableCell(item)}\``)
+        .join("\n")
     : "- none";
 
   return `# Cloudflare Latest Deploy Source Smoke
@@ -638,31 +741,47 @@ function writeMarkdown(path: string, report: LatestDeploySourceSmokeReport) {
 async function main() {
   const outputFile = readEnv("OUTPUT_FILE") ?? DEFAULT_OUTPUT_FILE;
   const markdownFile = readEnv("MARKDOWN_FILE") ?? DEFAULT_MARKDOWN_FILE;
-  const templateFile = readEnv("DEPLOY_SOURCE_SMOKE_TEMPLATE_FILE") ?? DEFAULT_TEMPLATE_FILE;
+  const templateFile =
+    readEnv("DEPLOY_SOURCE_SMOKE_TEMPLATE_FILE") ?? DEFAULT_TEMPLATE_FILE;
   const report = buildLatestDeploySourceSmokeReport();
-  const shouldWriteTemplate = readEnv("WRITE_DEPLOY_SOURCE_SMOKE_TEMPLATE") === "1";
-  const strictReadinessExit = envFlag("STRICT_READINESS_EXIT") || envFlag("FAIL_ON_BLOCKERS");
+  const shouldWriteTemplate =
+    readEnv("WRITE_DEPLOY_SOURCE_SMOKE_TEMPLATE") === "1";
+  const strictReadinessExit =
+    envFlag("STRICT_READINESS_EXIT") || envFlag("FAIL_ON_BLOCKERS");
 
   writeJson(outputFile, report);
   writeMarkdown(markdownFile, report);
   if (shouldWriteTemplate) {
-    writeJson(templateFile, buildDeploySourceSmokeTemplate({
-      generatedAt: report.generatedAt,
-      currentGit: report.currentGit,
-    }));
+    writeJson(
+      templateFile,
+      buildDeploySourceSmokeTemplate({
+        generatedAt: report.generatedAt,
+        currentGit: report.currentGit,
+      }),
+    );
   }
 
-  console.log(JSON.stringify({
-    generatedAt: report.generatedAt,
-    mode: report.mode,
-    latestDeploySourceSmokeReady: report.readiness.latestDeploySourceSmokeReady,
-    blockerCount: report.blockers.length,
-    outputFile,
-    markdownFile,
-    templateFile: shouldWriteTemplate ? templateFile : null,
-    strictReadinessExit,
-    exitCode: strictReadinessExit && !report.readiness.latestDeploySourceSmokeReady ? 1 : 0,
-  }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        generatedAt: report.generatedAt,
+        mode: report.mode,
+        latestDeploySourceSmokeReady:
+          report.readiness.latestDeploySourceSmokeReady,
+        blockerCount: report.blockers.length,
+        outputFile,
+        markdownFile,
+        templateFile: shouldWriteTemplate ? templateFile : null,
+        strictReadinessExit,
+        exitCode:
+          strictReadinessExit && !report.readiness.latestDeploySourceSmokeReady
+            ? 1
+            : 0,
+      },
+      null,
+      2,
+    ),
+  );
 
   if (strictReadinessExit && !report.readiness.latestDeploySourceSmokeReady) {
     process.exitCode = 1;

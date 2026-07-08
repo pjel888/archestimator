@@ -3,7 +3,13 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
-type GateScope = "planning" | "local-runtime" | "data-auth-realtime" | "provider" | "cost-performance";
+type GateScope =
+  | "planning"
+  | "local-runtime"
+  | "data-auth-realtime"
+  | "provider"
+  | "cost-performance"
+  | "observability-support";
 
 type Gate = {
   key: string;
@@ -192,6 +198,87 @@ type ProviderReadinessReport = {
   productionCutoverReady?: boolean;
 };
 
+type AgentDebuggingSnapshotGateFailure = {
+  key?: string;
+  readinessKey?: string;
+  command?: string;
+  nextAction?: string;
+};
+
+type AgentDebuggingSnapshotReport = {
+  localLogs?: {
+    exists?: boolean;
+    parsedRecords?: number;
+    malformedLines?: number;
+    latestError?: {
+      origin?: string;
+      freshness?: string;
+    } | null;
+    latestRuntimeError?: unknown;
+  };
+  errorHandling?: {
+    passed?: boolean;
+    violationCount?: number;
+  };
+  readiness?: {
+    localDebuggingReady?: boolean;
+    operationalIncidentsReady?: boolean;
+    alertScenarioCatalogReady?: boolean;
+    productionAlertScenarioProducerReady?: boolean;
+    productionEvidenceCollectionReady?: boolean;
+    productionIncidentAlertingReady?: boolean;
+    productionHostedProofReady?: boolean;
+    supportMonitoringReady?: boolean;
+  };
+  readinessGates?: {
+    local?: {
+      ready?: boolean;
+      failures?: AgentDebuggingSnapshotGateFailure[];
+    };
+    production?: {
+      ready?: boolean;
+      failures?: AgentDebuggingSnapshotGateFailure[];
+    };
+  };
+};
+
+type ProductionObservabilityProofReport = {
+  productionObservabilityReady?: boolean;
+  totals?: {
+    required?: number;
+    passed?: number;
+    failed?: number;
+    missing?: number;
+    invalid?: number;
+  };
+  failedRequirementKeys?: string[];
+};
+
+type ObservabilityProofRouteSmokeReport = {
+  routeStatus?: string;
+  routeReachable?: boolean;
+  authorizationEnforced?: boolean;
+  readyForWorkersLogsProof?: boolean;
+  nextAction?: string;
+  http?: {
+    status?: number | null;
+  };
+};
+
+type SupportMonitoringReadinessReport = {
+  supportMonitoringReady?: boolean;
+  summary?: {
+    passed?: number;
+    missing?: number;
+    failed?: number;
+  };
+  requirements?: Array<{
+    key?: string;
+    status?: string;
+  }>;
+  missing?: string[];
+};
+
 export type ReleaseGateInputs = {
   generatedAt?: string;
   inventory: Artifact<InventoryReport>;
@@ -207,6 +294,10 @@ export type ReleaseGateInputs = {
   costPerformanceWorkbook: Artifact<CostPerformanceWorkbook>;
   d1AuthRealtimeReadiness: Artifact<D1AuthRealtimeReadinessReport>;
   providerReadiness: Artifact<ProviderReadinessReport>;
+  agentDebugSnapshot: Artifact<AgentDebuggingSnapshotReport>;
+  observabilityProofRoute: Artifact<ObservabilityProofRouteSmokeReport>;
+  productionObservability: Artifact<ProductionObservabilityProofReport>;
+  supportMonitoring: Artifact<SupportMonitoringReadinessReport>;
 };
 
 export type CloudflareReleaseGateReport = {
@@ -221,6 +312,7 @@ export type CloudflareReleaseGateReport = {
     providerProofReady: boolean;
     costPerformanceProofReady: boolean;
     dataAuthRealtimeProofReady: boolean;
+    observabilitySupportProofReady: boolean;
     localReleaseGateReportReady: boolean;
     productionCutoverReady: boolean;
   };
@@ -244,11 +336,22 @@ const DEFAULT_FILES = {
   costPerformanceWorkbook: `${PLAN_ROOT}/2026-07-01-cloudflare-cost-performance-workbook.json`,
   d1AuthRealtimeReadiness: `${PLAN_ROOT}/2026-07-01-cloudflare-d1-auth-realtime-readiness.json`,
   providerReadiness: `${PLAN_ROOT}/2026-07-01-cloudflare-provider-readiness.json`,
+  agentDebugSnapshot: ".ai/99_scratch/agent-debugging-snapshot-current.json",
+  observabilityProofRoute:
+    ".ai/99_scratch/observability-proof-route-smoke-current.json",
+  productionObservability:
+    ".ai/99_scratch/production-observability-proof-check-current.json",
+  supportMonitoring: ".ai/99_scratch/support-monitoring-readiness-current.json",
 } as const;
 
 function readEnv(name: string) {
   const value = process.env[name];
   return value?.trim() || undefined;
+}
+
+function envEnabled(env: Record<string, string | undefined>, name: string) {
+  const value = env[name]?.trim().toLowerCase();
+  return value === "1" || value === "true" || value === "yes";
 }
 
 function readArtifact<T>(source: string | undefined): Artifact<T> {
@@ -269,7 +372,9 @@ function boolLabel(value: unknown) {
 }
 
 function numberLabel(value: unknown) {
-  return typeof value === "number" && Number.isFinite(value) ? String(value) : "(missing)";
+  return typeof value === "number" && Number.isFinite(value)
+    ? String(value)
+    : "(missing)";
 }
 
 function gate(
@@ -292,7 +397,12 @@ function gate(
   };
 }
 
-function artifactMissingGate(key: string, label: string, scope: GateScope, source: string | null): Gate {
+function artifactMissingGate(
+  key: string,
+  label: string,
+  scope: GateScope,
+  source: string | null,
+): Gate {
   return gate(
     key,
     label,
@@ -304,7 +414,26 @@ function artifactMissingGate(key: string, label: string, scope: GateScope, sourc
   );
 }
 
-function providerResourceReadbackBlocker(report: ProviderResourceReadbackReport | null | undefined) {
+function releaseArtifactMissingGate(
+  key: string,
+  label: string,
+  scope: GateScope,
+  source: string | null,
+): Gate {
+  return gate(
+    key,
+    label,
+    scope,
+    false,
+    `source=${source ?? "(none)"}, present=no`,
+    "Required release evidence artifact is missing.",
+    source,
+  );
+}
+
+function providerResourceReadbackBlocker(
+  report: ProviderResourceReadbackReport | null | undefined,
+) {
   const detail = report?.blockers?.find((blocker) => blocker.trim());
   return detail
     ? `Read-only Wrangler resource readback is incomplete: ${detail}`
@@ -312,82 +441,179 @@ function providerResourceReadbackBlocker(report: ProviderResourceReadbackReport 
 }
 
 function requiredRouteProbeSummary(report: WorkerPreviewRouteReport | null) {
-  const required = (report?.results ?? []).filter((result) => result.required === true);
+  const required = (report?.results ?? []).filter(
+    (result) => result.required === true,
+  );
   const failed = required.filter((result) => result.passed !== true);
   return {
     requiredCount: required.length,
     failedKeys: failed.map((result) => result.key ?? "(unknown)"),
-    ready: report?.passed === true && required.length > 0 && failed.length === 0,
+    ready:
+      report?.passed === true && required.length > 0 && failed.length === 0,
   };
+}
+
+function failureKeyList(
+  failures: AgentDebuggingSnapshotGateFailure[] | undefined,
+) {
+  const keys = (failures ?? [])
+    .map((failure) => failure.key)
+    .filter((key): key is string => Boolean(key));
+  return keys.length > 0 ? keys.join(", ") : "(none)";
+}
+
+function agentSnapshotProductionReady(
+  report: AgentDebuggingSnapshotReport | null | undefined,
+) {
+  if (report?.readinessGates?.production?.ready === true) return true;
+  const readiness = report?.readiness;
+  if (!readiness) return false;
+  return (
+    readiness.operationalIncidentsReady === true &&
+    readiness.alertScenarioCatalogReady === true &&
+    readiness.productionAlertScenarioProducerReady === true &&
+    readiness.productionEvidenceCollectionReady === true &&
+    readiness.productionIncidentAlertingReady === true &&
+    readiness.productionHostedProofReady === true &&
+    readiness.supportMonitoringReady === true
+  );
+}
+
+function agentSnapshotProductionBlocker(
+  report: AgentDebuggingSnapshotReport | null | undefined,
+) {
+  const failures = report?.readinessGates?.production?.failures ?? [];
+  const keys = failureKeyList(failures);
+  if (keys !== "(none)") {
+    return `Agent debugging production gate is red: ${keys}. Run \`AGENT_DEBUG_SNAPSHOT_REQUIRE_PRODUCTION=1 OUTPUT_FILE=.ai/99_scratch/agent-debugging-snapshot-current.json bun run ops:agent-debug-snapshot\` and resolve the reported readinessGates.production failures.`;
+  }
+  return "Agent debugging production gate is incomplete. Generate a fresh agent debugging snapshot and resolve production evidence, incident alerting, hosted proof, and support monitoring blockers.";
+}
+
+function observabilityFailedKeys(
+  report: ProductionObservabilityProofReport | null | undefined,
+) {
+  const keys = report?.failedRequirementKeys ?? [];
+  return keys.length > 0 ? keys.join(", ") : "(none)";
+}
+
+function supportMonitoringFailedKeys(
+  report: SupportMonitoringReadinessReport | null | undefined,
+) {
+  const requirementKeys = (report?.requirements ?? [])
+    .filter((requirement) => requirement.status !== "passed")
+    .map((requirement) => requirement.key)
+    .filter((key): key is string => Boolean(key));
+  const missing = report?.missing ?? [];
+  const keys = requirementKeys.length > 0 ? requirementKeys : missing;
+  return keys.length > 0 ? keys.join(", ") : "(none)";
 }
 
 function buildGates(inputs: ReleaseGateInputs) {
   const gates: Gate[] = [];
 
   if (!inputs.inventory.present) {
-    gates.push(artifactMissingGate("inventory-refresh", "Migration inventory refreshed", "planning", inputs.inventory.source));
+    gates.push(
+      artifactMissingGate(
+        "inventory-refresh",
+        "Migration inventory refreshed",
+        "planning",
+        inputs.inventory.source,
+      ),
+    );
   } else {
     const counts = inputs.inventory.value?.counts;
     const sql = inputs.inventory.value?.sqlInventory;
-    gates.push(gate(
-      "inventory-refresh",
-      "Migration inventory refreshed",
-      "planning",
-      Boolean(counts?.appRoutes && counts.providerCoupledFiles && counts.distinctRpcNames && sql?.appliedMigrationFiles),
-      `routes=${numberLabel(counts?.appRoutes)}, providerCoupledFiles=${numberLabel(counts?.providerCoupledFiles)}, rpcNames=${numberLabel(counts?.distinctRpcNames)}, sqlMigrations=${numberLabel(sql?.appliedMigrationFiles)}`,
-      "Repeatable route/provider/RPC/SQL migration inventory is incomplete.",
-      inputs.inventory.source,
-    ));
+    gates.push(
+      gate(
+        "inventory-refresh",
+        "Migration inventory refreshed",
+        "planning",
+        Boolean(
+          counts?.appRoutes &&
+          counts.providerCoupledFiles &&
+          counts.distinctRpcNames &&
+          sql?.appliedMigrationFiles,
+        ),
+        `routes=${numberLabel(counts?.appRoutes)}, providerCoupledFiles=${numberLabel(counts?.providerCoupledFiles)}, rpcNames=${numberLabel(counts?.distinctRpcNames)}, sqlMigrations=${numberLabel(sql?.appliedMigrationFiles)}`,
+        "Repeatable route/provider/RPC/SQL migration inventory is incomplete.",
+        inputs.inventory.source,
+      ),
+    );
   }
 
   if (!inputs.pricingSnapshot.present) {
-    gates.push(artifactMissingGate("official-pricing-refresh", "Official Cloudflare pricing refreshed", "planning", inputs.pricingSnapshot.source));
+    gates.push(
+      artifactMissingGate(
+        "official-pricing-refresh",
+        "Official Cloudflare pricing refreshed",
+        "planning",
+        inputs.pricingSnapshot.source,
+      ),
+    );
   } else {
     const readiness = inputs.pricingSnapshot.value?.readiness;
-    gates.push(gate(
-      "official-pricing-refresh",
-      "Official Cloudflare pricing refreshed",
-      "planning",
-      readiness?.officialCloudflarePricingRefreshed === true
-        && (readiness.requiredProductsMissing ?? []).length === 0
-        && readiness.invalidSourceUrlCount === 0,
-      `pricingRefreshed=${boolLabel(readiness?.officialCloudflarePricingRefreshed)}, missingProducts=${readiness?.requiredProductsMissing?.length ?? "(missing)"}, invalidSourceUrls=${numberLabel(readiness?.invalidSourceUrlCount)}`,
-      "Official Cloudflare pricing snapshot is missing required product coverage or has invalid sources.",
-      inputs.pricingSnapshot.source,
-    ));
+    gates.push(
+      gate(
+        "official-pricing-refresh",
+        "Official Cloudflare pricing refreshed",
+        "planning",
+        readiness?.officialCloudflarePricingRefreshed === true &&
+          (readiness.requiredProductsMissing ?? []).length === 0 &&
+          readiness.invalidSourceUrlCount === 0,
+        `pricingRefreshed=${boolLabel(readiness?.officialCloudflarePricingRefreshed)}, missingProducts=${readiness?.requiredProductsMissing?.length ?? "(missing)"}, invalidSourceUrls=${numberLabel(readiness?.invalidSourceUrlCount)}`,
+        "Official Cloudflare pricing snapshot is missing required product coverage or has invalid sources.",
+        inputs.pricingSnapshot.source,
+      ),
+    );
   }
 
   if (!inputs.costPerformanceWorkbook.present) {
-    gates.push(artifactMissingGate("local-workbook-scaffold", "Local cost/performance workbook scaffold generated", "planning", inputs.costPerformanceWorkbook.source));
+    gates.push(
+      artifactMissingGate(
+        "local-workbook-scaffold",
+        "Local cost/performance workbook scaffold generated",
+        "planning",
+        inputs.costPerformanceWorkbook.source,
+      ),
+    );
   } else {
     const readiness = inputs.costPerformanceWorkbook.value?.readiness;
-    gates.push(gate(
-      "local-workbook-scaffold",
-      "Local cost/performance workbook scaffold generated",
-      "planning",
-      readiness?.cloudflarePricingRefreshed === true && readiness.localPreviewPerformanceCaptured === true,
-      `pricingRefreshed=${boolLabel(readiness?.cloudflarePricingRefreshed)}, localPreviewPerformanceCaptured=${boolLabel(readiness?.localPreviewPerformanceCaptured)}`,
-      "Local workbook scaffold does not yet have pricing plus local preview performance evidence.",
-      inputs.costPerformanceWorkbook.source,
-    ));
+    gates.push(
+      gate(
+        "local-workbook-scaffold",
+        "Local cost/performance workbook scaffold generated",
+        "planning",
+        readiness?.cloudflarePricingRefreshed === true &&
+          readiness.localPreviewPerformanceCaptured === true,
+        `pricingRefreshed=${boolLabel(readiness?.cloudflarePricingRefreshed)}, localPreviewPerformanceCaptured=${boolLabel(readiness?.localPreviewPerformanceCaptured)}`,
+        "Local workbook scaffold does not yet have pricing plus local preview performance evidence.",
+        inputs.costPerformanceWorkbook.source,
+      ),
+    );
   }
 
   if (!inputs.d1AuthRealtimeReadiness.present) {
-    gates.push(artifactMissingGate(
-      "d1-auth-realtime-local-report",
-      "D1/Auth/Realtime local redesign readiness report generated",
-      "data-auth-realtime",
-      inputs.d1AuthRealtimeReadiness.source,
-    ));
-    gates.push(artifactMissingGate(
-      "d1-auth-realtime-production-proof",
-      "D1/Auth/Realtime production proof ready",
-      "data-auth-realtime",
-      inputs.d1AuthRealtimeReadiness.source,
-    ));
+    gates.push(
+      artifactMissingGate(
+        "d1-auth-realtime-local-report",
+        "D1/Auth/Realtime local redesign readiness report generated",
+        "data-auth-realtime",
+        inputs.d1AuthRealtimeReadiness.source,
+      ),
+    );
+    gates.push(
+      artifactMissingGate(
+        "d1-auth-realtime-production-proof",
+        "D1/Auth/Realtime production proof ready",
+        "data-auth-realtime",
+        inputs.d1AuthRealtimeReadiness.source,
+      ),
+    );
   } else {
     const readiness = inputs.d1AuthRealtimeReadiness.value?.readiness;
-    const inventorySummary = inputs.d1AuthRealtimeReadiness.value?.inventorySummary;
+    const inventorySummary =
+      inputs.d1AuthRealtimeReadiness.value?.inventorySummary;
     gates.push(
       gate(
         "d1-auth-realtime-local-report",
@@ -411,133 +637,214 @@ function buildGates(inputs: ReleaseGateInputs) {
   }
 
   if (!inputs.workerReadiness.present) {
-    gates.push(artifactMissingGate("worker-manifest-local-readiness", "Worker manifest and local preview controls ready", "local-runtime", inputs.workerReadiness.source));
+    gates.push(
+      artifactMissingGate(
+        "worker-manifest-local-readiness",
+        "Worker manifest and local preview controls ready",
+        "local-runtime",
+        inputs.workerReadiness.source,
+      ),
+    );
   } else {
     const value = inputs.workerReadiness.value;
-    gates.push(gate(
-      "worker-manifest-local-readiness",
-      "Worker manifest and local preview controls ready",
-      "local-runtime",
-      value?.manifestReady === true && value.localPreviewReady === true,
-      `manifestReady=${boolLabel(value?.manifestReady)}, localPreviewReady=${boolLabel(value?.localPreviewReady)}`,
-      "Worker manifest, local preview controls, or required env/binding declarations are incomplete.",
-      inputs.workerReadiness.source,
-    ));
+    gates.push(
+      gate(
+        "worker-manifest-local-readiness",
+        "Worker manifest and local preview controls ready",
+        "local-runtime",
+        value?.manifestReady === true && value.localPreviewReady === true,
+        `manifestReady=${boolLabel(value?.manifestReady)}, localPreviewReady=${boolLabel(value?.localPreviewReady)}`,
+        "Worker manifest, local preview controls, or required env/binding declarations are incomplete.",
+        inputs.workerReadiness.source,
+      ),
+    );
   }
 
   if (!inputs.workerPreviewRoutes.present) {
-    gates.push(artifactMissingGate("worker-preview-route-probe", "Local Worker route probe passed", "local-runtime", inputs.workerPreviewRoutes.source));
+    gates.push(
+      artifactMissingGate(
+        "worker-preview-route-probe",
+        "Local Worker route probe passed",
+        "local-runtime",
+        inputs.workerPreviewRoutes.source,
+      ),
+    );
   } else {
     const summary = requiredRouteProbeSummary(inputs.workerPreviewRoutes.value);
-    gates.push(gate(
-      "worker-preview-route-probe",
-      "Local Worker route probe passed",
-      "local-runtime",
-      summary.ready,
-      `reportPassed=${boolLabel(inputs.workerPreviewRoutes.value?.passed)}, requiredRoutes=${summary.requiredCount}, failedRequired=${summary.failedKeys.length === 0 ? "(none)" : summary.failedKeys.join(", ")}`,
-      "Local Worker preview route probe has required failures or no required route samples.",
-      inputs.workerPreviewRoutes.source,
-    ));
+    gates.push(
+      gate(
+        "worker-preview-route-probe",
+        "Local Worker route probe passed",
+        "local-runtime",
+        summary.ready,
+        `reportPassed=${boolLabel(inputs.workerPreviewRoutes.value?.passed)}, requiredRoutes=${summary.requiredCount}, failedRequired=${summary.failedKeys.length === 0 ? "(none)" : summary.failedKeys.join(", ")}`,
+        "Local Worker preview route probe has required failures or no required route samples.",
+        inputs.workerPreviewRoutes.source,
+      ),
+    );
   }
 
   if (!inputs.hostedRoutes.present) {
-    gates.push(artifactMissingGate("hosted-worker-route-proof", "Hosted Worker route matrix proof captured", "provider", inputs.hostedRoutes.source));
+    gates.push(
+      artifactMissingGate(
+        "hosted-worker-route-proof",
+        "Hosted Worker route matrix proof captured",
+        "provider",
+        inputs.hostedRoutes.source,
+      ),
+    );
   } else {
     const summary = requiredRouteProbeSummary(inputs.hostedRoutes.value);
     const value = inputs.hostedRoutes.value;
-    gates.push(gate(
-      "hosted-worker-route-proof",
-      "Hosted Worker route matrix proof captured",
-      "provider",
-      value?.providerBacked === true
-        && value.configured === true
-        && value.routeContractReady === true
-        && value.hostedRouteProofReady === true
-        && value.passed === true
-        && summary.ready,
-      `configured=${boolLabel(value?.configured)}, providerBacked=${boolLabel(value?.providerBacked)}, routeContractReady=${boolLabel(value?.routeContractReady)}, hostedRouteProofReady=${boolLabel(value?.hostedRouteProofReady)}, requiredRoutes=${summary.requiredCount}, failedRequired=${summary.failedKeys.length === 0 ? "(none)" : summary.failedKeys.join(", ")}`,
-      "Hosted HTTPS Cloudflare Worker route matrix proof is missing or has required failures.",
-      inputs.hostedRoutes.source,
-    ));
+    gates.push(
+      gate(
+        "hosted-worker-route-proof",
+        "Hosted Worker route matrix proof captured",
+        "provider",
+        value?.providerBacked === true &&
+          value.configured === true &&
+          value.routeContractReady === true &&
+          value.hostedRouteProofReady === true &&
+          value.passed === true &&
+          summary.ready,
+        `configured=${boolLabel(value?.configured)}, providerBacked=${boolLabel(value?.providerBacked)}, routeContractReady=${boolLabel(value?.routeContractReady)}, hostedRouteProofReady=${boolLabel(value?.hostedRouteProofReady)}, requiredRoutes=${summary.requiredCount}, failedRequired=${summary.failedKeys.length === 0 ? "(none)" : summary.failedKeys.join(", ")}`,
+        "Hosted HTTPS Cloudflare Worker route matrix proof is missing or has required failures.",
+        inputs.hostedRoutes.source,
+      ),
+    );
   }
 
   if (!inputs.platformToolchain.present) {
-    gates.push(artifactMissingGate("platform-toolchain-snapshot", "Cloudflare platform toolchain snapshot ready", "local-runtime", inputs.platformToolchain.source));
+    gates.push(
+      artifactMissingGate(
+        "platform-toolchain-snapshot",
+        "Cloudflare platform toolchain snapshot ready",
+        "local-runtime",
+        inputs.platformToolchain.source,
+      ),
+    );
   } else {
     const value = inputs.platformToolchain.value;
-    gates.push(gate(
-      "platform-toolchain-snapshot",
-      "Cloudflare platform toolchain snapshot ready",
-      "local-runtime",
-      value?.readiness?.localToolchainSnapshotReady === true,
-      `localToolchainSnapshotReady=${boolLabel(value?.readiness?.localToolchainSnapshotReady)}, observabilityConfigured=${boolLabel(value?.wranglerConfig?.observabilityConfigured)}, allBindingsTyped=${boolLabel(value?.generatedTypes?.allConfiguredBindingsTyped)}`,
-      "Wrangler/OpenNext/schema/typegen/observability local toolchain proof is incomplete.",
-      inputs.platformToolchain.source,
-    ));
+    gates.push(
+      gate(
+        "platform-toolchain-snapshot",
+        "Cloudflare platform toolchain snapshot ready",
+        "local-runtime",
+        value?.readiness?.localToolchainSnapshotReady === true,
+        `localToolchainSnapshotReady=${boolLabel(value?.readiness?.localToolchainSnapshotReady)}, observabilityConfigured=${boolLabel(value?.wranglerConfig?.observabilityConfigured)}, allBindingsTyped=${boolLabel(value?.generatedTypes?.allConfiguredBindingsTyped)}`,
+        "Wrangler/OpenNext/schema/typegen/observability local toolchain proof is incomplete.",
+        inputs.platformToolchain.source,
+      ),
+    );
   }
 
   if (!inputs.wranglerAuth.present) {
-    gates.push(artifactMissingGate("provider-wrangler-auth", "Wrangler/API auth readback ready", "provider", inputs.wranglerAuth.source));
+    gates.push(
+      artifactMissingGate(
+        "provider-wrangler-auth",
+        "Wrangler/API auth readback ready",
+        "provider",
+        inputs.wranglerAuth.source,
+      ),
+    );
   } else {
     const readiness = inputs.wranglerAuth.value?.readiness;
-    gates.push(gate(
-      "provider-wrangler-auth",
-      "Wrangler/API auth readback ready",
-      "provider",
-      readiness?.wranglerApiAuthenticated === true && readiness.providerReadbackReady === true,
-      `cliAvailable=${boolLabel(readiness?.wranglerCliAvailable)}, authCheckCompleted=${boolLabel(readiness?.wranglerAuthCheckCompleted)}, wranglerApiAuthenticated=${boolLabel(readiness?.wranglerApiAuthenticated)}, providerReadbackReady=${boolLabel(readiness?.providerReadbackReady)}`,
-      "Wrangler/API authentication has not been proven; run `wrangler login` or configure a scoped token outside the repo, then rerun the auth check.",
-      inputs.wranglerAuth.source,
-    ));
+    gates.push(
+      gate(
+        "provider-wrangler-auth",
+        "Wrangler/API auth readback ready",
+        "provider",
+        readiness?.wranglerApiAuthenticated === true &&
+          readiness.providerReadbackReady === true,
+        `cliAvailable=${boolLabel(readiness?.wranglerCliAvailable)}, authCheckCompleted=${boolLabel(readiness?.wranglerAuthCheckCompleted)}, wranglerApiAuthenticated=${boolLabel(readiness?.wranglerApiAuthenticated)}, providerReadbackReady=${boolLabel(readiness?.providerReadbackReady)}`,
+        "Wrangler/API authentication has not been proven; run `wrangler login` or configure a scoped token outside the repo, then rerun the auth check.",
+        inputs.wranglerAuth.source,
+      ),
+    );
   }
 
   if (!inputs.providerResources.present) {
-    gates.push(artifactMissingGate("provider-resource-readback", "Provider resource readback ready", "provider", inputs.providerResources.source));
+    gates.push(
+      artifactMissingGate(
+        "provider-resource-readback",
+        "Provider resource readback ready",
+        "provider",
+        inputs.providerResources.source,
+      ),
+    );
   } else {
     const readiness = inputs.providerResources.value?.readiness;
-    gates.push(gate(
-      "provider-resource-readback",
-      "Provider resource readback ready",
-      "provider",
-      readiness?.providerResourceReadbackReady === true,
-      `wranglerAuthenticated=${boolLabel(readiness?.wranglerAuthenticated)}, readbackAttempted=${boolLabel(readiness?.providerReadbackAttempted)}, workerDeployment=${boolLabel(readiness?.workerDeploymentReadbackReady)}, d1=${boolLabel(readiness?.d1DatabaseReadbackReady)}, r2=${boolLabel(readiness?.r2BucketReadbackReady)}, queues=${boolLabel(readiness?.queuesReadbackReady)}, secrets=${boolLabel(readiness?.workerSecretNameReadbackReady)}`,
-      providerResourceReadbackBlocker(inputs.providerResources.value),
-      inputs.providerResources.source,
-    ));
+    gates.push(
+      gate(
+        "provider-resource-readback",
+        "Provider resource readback ready",
+        "provider",
+        readiness?.providerResourceReadbackReady === true,
+        `wranglerAuthenticated=${boolLabel(readiness?.wranglerAuthenticated)}, readbackAttempted=${boolLabel(readiness?.providerReadbackAttempted)}, workerDeployment=${boolLabel(readiness?.workerDeploymentReadbackReady)}, d1=${boolLabel(readiness?.d1DatabaseReadbackReady)}, r2=${boolLabel(readiness?.r2BucketReadbackReady)}, queues=${boolLabel(readiness?.queuesReadbackReady)}, secrets=${boolLabel(readiness?.workerSecretNameReadbackReady)}`,
+        providerResourceReadbackBlocker(inputs.providerResources.value),
+        inputs.providerResources.source,
+      ),
+    );
   }
 
   if (!inputs.deployDryRun.present) {
-    gates.push(artifactMissingGate("wrangler-deploy-dry-run", "Wrangler deploy dry-run ready", "local-runtime", inputs.deployDryRun.source));
+    gates.push(
+      artifactMissingGate(
+        "wrangler-deploy-dry-run",
+        "Wrangler deploy dry-run ready",
+        "local-runtime",
+        inputs.deployDryRun.source,
+      ),
+    );
   } else {
     const value = inputs.deployDryRun.value;
-    gates.push(gate(
-      "wrangler-deploy-dry-run",
-      "Wrangler deploy dry-run ready",
-      "local-runtime",
-      value?.readiness?.localWranglerDryRunReady === true && (value.dryRun?.warnings ?? []).length === 0,
-      `localWranglerDryRunReady=${boolLabel(value?.readiness?.localWranglerDryRunReady)}, exitCode=${numberLabel(value?.dryRun?.exitCode)}, noUploadMarkerSeen=${boolLabel(value?.dryRun?.noUploadMarkerSeen)}, warnings=${value?.dryRun?.warnings?.length ?? "(missing)"}, requiredBindingsReady=${boolLabel(value?.dryRun?.requiredBindingsReady)}`,
-      "Wrangler dry-run is missing, failed, emitted warnings, or lacks required binding evidence.",
-      inputs.deployDryRun.source,
-    ));
+    gates.push(
+      gate(
+        "wrangler-deploy-dry-run",
+        "Wrangler deploy dry-run ready",
+        "local-runtime",
+        value?.readiness?.localWranglerDryRunReady === true &&
+          (value.dryRun?.warnings ?? []).length === 0,
+        `localWranglerDryRunReady=${boolLabel(value?.readiness?.localWranglerDryRunReady)}, exitCode=${numberLabel(value?.dryRun?.exitCode)}, noUploadMarkerSeen=${boolLabel(value?.dryRun?.noUploadMarkerSeen)}, warnings=${value?.dryRun?.warnings?.length ?? "(missing)"}, requiredBindingsReady=${boolLabel(value?.dryRun?.requiredBindingsReady)}`,
+        "Wrangler dry-run is missing, failed, emitted warnings, or lacks required binding evidence.",
+        inputs.deployDryRun.source,
+      ),
+    );
   }
 
   if (!inputs.queuesCronProof.present) {
-    gates.push(artifactMissingGate("queues-cron-local-proof", "Queues/Cron local retry and DLQ proof ready", "local-runtime", inputs.queuesCronProof.source));
+    gates.push(
+      artifactMissingGate(
+        "queues-cron-local-proof",
+        "Queues/Cron local retry and DLQ proof ready",
+        "local-runtime",
+        inputs.queuesCronProof.source,
+      ),
+    );
   } else {
     const readiness = inputs.queuesCronProof.value?.readiness;
-    gates.push(gate(
-      "queues-cron-local-proof",
-      "Queues/Cron local retry and DLQ proof ready",
-      "local-runtime",
-      readiness?.localQueuesCronProofReady === true,
-      `queueConfig=${boolLabel(readiness?.localQueueConfigReady)}, workerQueueHandler=${boolLabel(readiness?.workerQueueHandlerReady)}, producer=${boolLabel(readiness?.localQueueProducerReady)}, ack=${boolLabel(readiness?.localConsumerAckReady)}, retry=${boolLabel(readiness?.localRetryReady)}, dlq=${boolLabel(readiness?.localDeadLetterDecisionReady)}, duplicate=${boolLabel(readiness?.localDuplicateDeliveryReady)}, poison=${boolLabel(readiness?.localPoisonMessageReady)}, providerBacked=${boolLabel(readiness?.providerBacked)}, productionJobsMessaging=${boolLabel(readiness?.productionJobsMessagingReady)}`,
-      "Local Queues/Cron retry, duplicate, poison-message, and dead-letter decision proof is incomplete.",
-      inputs.queuesCronProof.source,
-    ));
+    gates.push(
+      gate(
+        "queues-cron-local-proof",
+        "Queues/Cron local retry and DLQ proof ready",
+        "local-runtime",
+        readiness?.localQueuesCronProofReady === true,
+        `queueConfig=${boolLabel(readiness?.localQueueConfigReady)}, workerQueueHandler=${boolLabel(readiness?.workerQueueHandlerReady)}, producer=${boolLabel(readiness?.localQueueProducerReady)}, ack=${boolLabel(readiness?.localConsumerAckReady)}, retry=${boolLabel(readiness?.localRetryReady)}, dlq=${boolLabel(readiness?.localDeadLetterDecisionReady)}, duplicate=${boolLabel(readiness?.localDuplicateDeliveryReady)}, poison=${boolLabel(readiness?.localPoisonMessageReady)}, providerBacked=${boolLabel(readiness?.providerBacked)}, productionJobsMessaging=${boolLabel(readiness?.productionJobsMessagingReady)}`,
+        "Local Queues/Cron retry, duplicate, poison-message, and dead-letter decision proof is incomplete.",
+        inputs.queuesCronProof.source,
+      ),
+    );
   }
 
   if (!inputs.providerReadiness.present) {
-    gates.push(artifactMissingGate("provider-dashboard-inventory", "Provider dashboard inventory captured", "provider", inputs.providerReadiness.source));
+    gates.push(
+      artifactMissingGate(
+        "provider-dashboard-inventory",
+        "Provider dashboard inventory captured",
+        "provider",
+        inputs.providerReadiness.source,
+      ),
+    );
   } else {
     const value = inputs.providerReadiness.value;
     gates.push(
@@ -554,9 +861,10 @@ function buildGates(inputs: ReleaseGateInputs) {
         "provider-workers-deployment",
         "Hosted Worker deployment and custom domain provider-proven",
         "provider",
-        value?.workersDeploymentReady === true
-          && inputs.workerReadiness.value?.deploymentReady === true
-          && inputs.wranglerAuth.value?.readiness?.wranglerApiAuthenticated === true,
+        value?.workersDeploymentReady === true &&
+          inputs.workerReadiness.value?.deploymentReady === true &&
+          inputs.wranglerAuth.value?.readiness?.wranglerApiAuthenticated ===
+            true,
         `workersDeploymentReady=${boolLabel(value?.workersDeploymentReady)}, workerDeploymentSecretsReady=${boolLabel(inputs.workerReadiness.value?.deploymentSecretsReady)}, workerDeploymentReady=${boolLabel(inputs.workerReadiness.value?.deploymentReady)}, wranglerApiAuthenticated=${boolLabel(inputs.wranglerAuth.value?.readiness?.wranglerApiAuthenticated)}`,
         "Workers Paid/API auth/secrets/hosted Worker/custom-domain proof is incomplete.",
         inputs.providerReadiness.source,
@@ -592,10 +900,38 @@ function buildGates(inputs: ReleaseGateInputs) {
   }
 
   if (!inputs.costPerformanceWorkbook.present) {
-    gates.push(artifactMissingGate("current-provider-costs", "Current provider cost inputs captured", "cost-performance", inputs.costPerformanceWorkbook.source));
-    gates.push(artifactMissingGate("cloudflare-usage-costs", "Cloudflare usage cost inputs captured", "cost-performance", inputs.costPerformanceWorkbook.source));
-    gates.push(artifactMissingGate("hosted-performance-proof", "Hosted Cloudflare performance proof captured", "cost-performance", inputs.costPerformanceWorkbook.source));
-    gates.push(artifactMissingGate("production-cost-decision", "Production cost decision ready", "cost-performance", inputs.costPerformanceWorkbook.source));
+    gates.push(
+      artifactMissingGate(
+        "current-provider-costs",
+        "Current provider cost inputs captured",
+        "cost-performance",
+        inputs.costPerformanceWorkbook.source,
+      ),
+    );
+    gates.push(
+      artifactMissingGate(
+        "cloudflare-usage-costs",
+        "Cloudflare usage cost inputs captured",
+        "cost-performance",
+        inputs.costPerformanceWorkbook.source,
+      ),
+    );
+    gates.push(
+      artifactMissingGate(
+        "hosted-performance-proof",
+        "Hosted Cloudflare performance proof captured",
+        "cost-performance",
+        inputs.costPerformanceWorkbook.source,
+      ),
+    );
+    gates.push(
+      artifactMissingGate(
+        "production-cost-decision",
+        "Production cost decision ready",
+        "cost-performance",
+        inputs.costPerformanceWorkbook.source,
+      ),
+    );
   } else {
     const readiness = inputs.costPerformanceWorkbook.value?.readiness;
     gates.push(
@@ -638,6 +974,127 @@ function buildGates(inputs: ReleaseGateInputs) {
     );
   }
 
+  if (!inputs.agentDebugSnapshot.present) {
+    gates.push(
+      releaseArtifactMissingGate(
+        "agent-debug-local-readiness",
+        "Agent debugging local snapshot ready",
+        "observability-support",
+        inputs.agentDebugSnapshot.source,
+      ),
+    );
+    gates.push(
+      releaseArtifactMissingGate(
+        "agent-debug-production-readiness",
+        "Agent debugging production gate ready",
+        "observability-support",
+        inputs.agentDebugSnapshot.source,
+      ),
+    );
+  } else {
+    const value = inputs.agentDebugSnapshot.value;
+    const localReady =
+      value?.readinessGates?.local?.ready === true ||
+      value?.readiness?.localDebuggingReady === true;
+    const productionReady = agentSnapshotProductionReady(value);
+    gates.push(
+      gate(
+        "agent-debug-local-readiness",
+        "Agent debugging local snapshot ready",
+        "observability-support",
+        localReady,
+        `localReady=${boolLabel(value?.readinessGates?.local?.ready ?? value?.readiness?.localDebuggingReady)}, logExists=${boolLabel(value?.localLogs?.exists)}, parsedRecords=${numberLabel(value?.localLogs?.parsedRecords)}, malformedLines=${numberLabel(value?.localLogs?.malformedLines)}, latestOrigin=${value?.localLogs?.latestError?.origin ?? "(missing)"}, latestFreshness=${value?.localLogs?.latestError?.freshness ?? "(missing)"}, errorHandlingPassed=${boolLabel(value?.errorHandling?.passed)}, errorHandlingViolations=${numberLabel(value?.errorHandling?.violationCount)}`,
+        "Agent debugging local snapshot is missing log parse, latest-error, or static error-handling readiness evidence.",
+        inputs.agentDebugSnapshot.source,
+      ),
+      gate(
+        "agent-debug-production-readiness",
+        "Agent debugging production gate ready",
+        "observability-support",
+        productionReady,
+        `productionReady=${boolLabel(value?.readinessGates?.production?.ready)}, failures=${failureKeyList(value?.readinessGates?.production?.failures)}, operationalIncidents=${boolLabel(value?.readiness?.operationalIncidentsReady)}, alertCatalog=${boolLabel(value?.readiness?.alertScenarioCatalogReady)}, alertProducer=${boolLabel(value?.readiness?.productionAlertScenarioProducerReady)}, hostedProofEnv=${boolLabel(value?.readiness?.productionEvidenceCollectionReady)}, incidentAlerting=${boolLabel(value?.readiness?.productionIncidentAlertingReady)}, hostedProof=${boolLabel(value?.readiness?.productionHostedProofReady)}, supportMonitoring=${boolLabel(value?.readiness?.supportMonitoringReady)}`,
+        agentSnapshotProductionBlocker(value),
+        inputs.agentDebugSnapshot.source,
+      ),
+    );
+  }
+
+  if (!inputs.productionObservability.present) {
+    gates.push(
+      releaseArtifactMissingGate(
+        "hosted-observability-proof",
+        "Hosted observability proof bundle ready",
+        "observability-support",
+        inputs.productionObservability.source,
+      ),
+    );
+  } else {
+    const value = inputs.productionObservability.value;
+    const failedKeys = value?.failedRequirementKeys ?? [];
+    gates.push(
+      gate(
+        "hosted-observability-proof",
+        "Hosted observability proof bundle ready",
+        "observability-support",
+        value?.productionObservabilityReady === true && failedKeys.length === 0,
+        `productionObservabilityReady=${boolLabel(value?.productionObservabilityReady)}, required=${numberLabel(value?.totals?.required)}, passed=${numberLabel(value?.totals?.passed)}, failed=${numberLabel(value?.totals?.failed)}, missing=${numberLabel(value?.totals?.missing)}, invalid=${numberLabel(value?.totals?.invalid)}, failedRequirements=${observabilityFailedKeys(value)}`,
+        `Hosted observability proof is incomplete: ${observabilityFailedKeys(value)}. Run \`bun run ops:observability-drill\`, then collect Workers Logs and alert-delivery proof artifacts before rerunning \`bun run ops:check-observability\`.`,
+        inputs.productionObservability.source,
+      ),
+    );
+  }
+
+  if (!inputs.observabilityProofRoute.present) {
+    gates.push(
+      releaseArtifactMissingGate(
+        "hosted-observability-proof-route",
+        "Hosted observability proof route ready",
+        "observability-support",
+        inputs.observabilityProofRoute.source,
+      ),
+    );
+  } else {
+    const value = inputs.observabilityProofRoute.value;
+    gates.push(
+      gate(
+        "hosted-observability-proof-route",
+        "Hosted observability proof route ready",
+        "observability-support",
+        value?.readyForWorkersLogsProof === true &&
+          value.routeReachable === true &&
+          value.authorizationEnforced === true,
+        `routeStatus=${value?.routeStatus ?? "(missing)"}, httpStatus=${numberLabel(value?.http?.status)}, routeReachable=${boolLabel(value?.routeReachable)}, authorizationEnforced=${boolLabel(value?.authorizationEnforced)}, readyForWorkersLogsProof=${boolLabel(value?.readyForWorkersLogsProof)}`,
+        value?.nextAction ??
+          "Run `OUTPUT_FILE=.ai/99_scratch/observability-proof-route-smoke-current.json bun run ops:check-observability-route` and resolve the hosted proof-route blocker.",
+        inputs.observabilityProofRoute.source,
+      ),
+    );
+  }
+
+  if (!inputs.supportMonitoring.present) {
+    gates.push(
+      releaseArtifactMissingGate(
+        "support-monitoring-readiness",
+        "Support monitoring readiness ready",
+        "observability-support",
+        inputs.supportMonitoring.source,
+      ),
+    );
+  } else {
+    const value = inputs.supportMonitoring.value;
+    gates.push(
+      gate(
+        "support-monitoring-readiness",
+        "Support monitoring readiness ready",
+        "observability-support",
+        value?.supportMonitoringReady === true,
+        `supportMonitoringReady=${boolLabel(value?.supportMonitoringReady)}, passed=${numberLabel(value?.summary?.passed)}, missing=${numberLabel(value?.summary?.missing)}, failed=${numberLabel(value?.summary?.failed)}, openRequirements=${supportMonitoringFailedKeys(value)}`,
+        `Support monitoring readiness is incomplete: ${supportMonitoringFailedKeys(value)}. Run \`OUTPUT_FILE=.ai/99_scratch/support-monitoring-readiness-current.json bun run launch:check-support-monitoring\` with the required support owners, confirmations, incident status, and observability proof artifacts.`,
+        inputs.supportMonitoring.source,
+      ),
+    );
+  }
+
   return gates;
 }
 
@@ -653,13 +1110,20 @@ export function buildCloudflareReleaseGateReport(
   const planningInputsReady = allScopesReady(gates, ["planning"]);
   const localRuntimeProofReady = allScopesReady(gates, ["local-runtime"]);
   const providerDashboardInventoryReady =
-    gates.find((item) => item.key === "provider-dashboard-inventory")?.ready === true;
+    gates.find((item) => item.key === "provider-dashboard-inventory")?.ready ===
+    true;
   const providerProofReady = allScopesReady(gates, ["provider"]);
   const costPerformanceProofReady = allScopesReady(gates, ["cost-performance"]);
-  const dataAuthRealtimeProofReady = allScopesReady(gates, ["data-auth-realtime"]);
-  const localReleaseGateReportReady = planningInputsReady
-    && localRuntimeProofReady
-    && providerDashboardInventoryReady;
+  const dataAuthRealtimeProofReady = allScopesReady(gates, [
+    "data-auth-realtime",
+  ]);
+  const observabilitySupportProofReady = allScopesReady(gates, [
+    "observability-support",
+  ]);
+  const localReleaseGateReportReady =
+    planningInputsReady &&
+    localRuntimeProofReady &&
+    providerDashboardInventoryReady;
 
   return {
     generatedAt: inputs.generatedAt ?? new Date().toISOString(),
@@ -678,6 +1142,10 @@ export function buildCloudflareReleaseGateReport(
       costPerformanceWorkbook: inputs.costPerformanceWorkbook.source,
       d1AuthRealtimeReadiness: inputs.d1AuthRealtimeReadiness.source,
       providerReadiness: inputs.providerReadiness.source,
+      agentDebugSnapshot: inputs.agentDebugSnapshot.source,
+      observabilityProofRoute: inputs.observabilityProofRoute.source,
+      productionObservability: inputs.productionObservability.source,
+      supportMonitoring: inputs.supportMonitoring.source,
     },
     gates,
     readiness: {
@@ -687,16 +1155,34 @@ export function buildCloudflareReleaseGateReport(
       providerProofReady,
       costPerformanceProofReady,
       dataAuthRealtimeProofReady,
+      observabilitySupportProofReady,
       localReleaseGateReportReady,
-      productionCutoverReady: localReleaseGateReportReady
-        && providerProofReady
-        && costPerformanceProofReady
-        && dataAuthRealtimeProofReady,
+      productionCutoverReady:
+        localReleaseGateReportReady &&
+        providerProofReady &&
+        costPerformanceProofReady &&
+        dataAuthRealtimeProofReady &&
+        observabilitySupportProofReady,
     },
-    blockers: gates.filter((item) => !item.ready && item.blocker).map((item) => `${item.label}: ${item.blocker}`),
-    note:
-      "Aggregates existing local/sanitized Cloudflare migration evidence only. It does not call Cloudflare APIs, read env files, print secrets, deploy Workers, change DNS, purchase plans, cancel subscriptions, delete resources, or mutate external providers.",
+    blockers: gates
+      .filter((item) => !item.ready && item.blocker)
+      .map((item) => `${item.label}: ${item.blocker}`),
+    note: "Aggregates existing local/sanitized Cloudflare migration evidence only. It does not call Cloudflare APIs, read env files, print secrets, deploy Workers, change DNS, purchase plans, cancel subscriptions, delete resources, or mutate external providers.",
   };
+}
+
+export function cloudflareReleaseGateExitCode(
+  report: CloudflareReleaseGateReport,
+  env: Record<string, string | undefined> = process.env,
+) {
+  if (!report.readiness.localReleaseGateReportReady) return 1;
+  if (
+    envEnabled(env, "CLOUDFLARE_RELEASE_REQUIRE_PRODUCTION") &&
+    !report.readiness.productionCutoverReady
+  ) {
+    return 1;
+  }
+  return 0;
 }
 
 function writeOutput(outputFile: string, report: CloudflareReleaseGateReport) {
@@ -706,10 +1192,16 @@ function writeOutput(outputFile: string, report: CloudflareReleaseGateReport) {
 }
 
 function markdownRows(rows: string[][]) {
-  return rows.map((row) => `| ${row.map((cell) => cell.replaceAll("|", "\\|")).join(" | ")} |`);
+  return rows.map(
+    (row) =>
+      `| ${row.map((cell) => cell.replaceAll("|", "\\|")).join(" | ")} |`,
+  );
 }
 
-export function writeMarkdown(report: CloudflareReleaseGateReport, markdownFile: string) {
+export function writeMarkdown(
+  report: CloudflareReleaseGateReport,
+  markdownFile: string,
+) {
   const outputPath = resolve(markdownFile);
   mkdirSync(dirname(outputPath), { recursive: true });
   const gateRows = report.gates.map((item) => [
@@ -719,9 +1211,10 @@ export function writeMarkdown(report: CloudflareReleaseGateReport, markdownFile:
     item.evidence,
     item.blocker ?? "",
   ]);
-  const blockerLines = report.blockers.length > 0
-    ? report.blockers.map((blocker) => `- ${blocker}`)
-    : ["- (none)"];
+  const blockerLines =
+    report.blockers.length > 0
+      ? report.blockers.map((blocker) => `- ${blocker}`)
+      : ["- (none)"];
   const lines = [
     "# Cloudflare Release Gates",
     "",
@@ -739,6 +1232,7 @@ export function writeMarkdown(report: CloudflareReleaseGateReport, markdownFile:
     `| Provider proof ready | ${report.readiness.providerProofReady ? "yes" : "no"} |`,
     `| Cost/performance proof ready | ${report.readiness.costPerformanceProofReady ? "yes" : "no"} |`,
     `| D1/Auth/Realtime proof ready | ${report.readiness.dataAuthRealtimeProofReady ? "yes" : "no"} |`,
+    `| Observability/support proof ready | ${report.readiness.observabilitySupportProofReady ? "yes" : "no"} |`,
     `| Local release-gate report ready | ${report.readiness.localReleaseGateReportReady ? "yes" : "no"} |`,
     `| Production cutover ready | ${report.readiness.productionCutoverReady ? "yes" : "no"} |`,
     "",
@@ -758,54 +1252,88 @@ export function writeMarkdown(report: CloudflareReleaseGateReport, markdownFile:
 
 function readInputs(): ReleaseGateInputs {
   return {
-    inventory: readArtifact<InventoryReport>(readEnv("CLOUDFLARE_RELEASE_INVENTORY_FILE") ?? DEFAULT_FILES.inventory),
+    inventory: readArtifact<InventoryReport>(
+      readEnv("CLOUDFLARE_RELEASE_INVENTORY_FILE") ?? DEFAULT_FILES.inventory,
+    ),
     workerPreviewRoutes: readArtifact<WorkerPreviewRouteReport>(
-      readEnv("CLOUDFLARE_RELEASE_WORKER_PREVIEW_FILE") ?? DEFAULT_FILES.workerPreviewRoutes,
+      readEnv("CLOUDFLARE_RELEASE_WORKER_PREVIEW_FILE") ??
+        DEFAULT_FILES.workerPreviewRoutes,
     ),
     hostedRoutes: readArtifact<HostedRouteProofReport>(
-      readEnv("CLOUDFLARE_RELEASE_HOSTED_ROUTES_FILE") ?? DEFAULT_FILES.hostedRoutes,
+      readEnv("CLOUDFLARE_RELEASE_HOSTED_ROUTES_FILE") ??
+        DEFAULT_FILES.hostedRoutes,
     ),
     workerReadiness: readArtifact<WorkerReadinessReport>(
-      readEnv("CLOUDFLARE_RELEASE_WORKER_READINESS_FILE") ?? DEFAULT_FILES.workerReadiness,
+      readEnv("CLOUDFLARE_RELEASE_WORKER_READINESS_FILE") ??
+        DEFAULT_FILES.workerReadiness,
     ),
     platformToolchain: readArtifact<PlatformToolchainReport>(
-      readEnv("CLOUDFLARE_RELEASE_TOOLCHAIN_FILE") ?? DEFAULT_FILES.platformToolchain,
+      readEnv("CLOUDFLARE_RELEASE_TOOLCHAIN_FILE") ??
+        DEFAULT_FILES.platformToolchain,
     ),
     wranglerAuth: readArtifact<WranglerAuthReport>(
-      readEnv("CLOUDFLARE_RELEASE_WRANGLER_AUTH_FILE") ?? DEFAULT_FILES.wranglerAuth,
+      readEnv("CLOUDFLARE_RELEASE_WRANGLER_AUTH_FILE") ??
+        DEFAULT_FILES.wranglerAuth,
     ),
     providerResources: readArtifact<ProviderResourceReadbackReport>(
-      readEnv("CLOUDFLARE_RELEASE_PROVIDER_RESOURCES_FILE") ?? DEFAULT_FILES.providerResources,
+      readEnv("CLOUDFLARE_RELEASE_PROVIDER_RESOURCES_FILE") ??
+        DEFAULT_FILES.providerResources,
     ),
     deployDryRun: readArtifact<DeployDryRunReport>(
       readEnv("CLOUDFLARE_RELEASE_DRY_RUN_FILE") ?? DEFAULT_FILES.deployDryRun,
     ),
     queuesCronProof: readArtifact<QueuesCronProofReport>(
-      readEnv("CLOUDFLARE_RELEASE_QUEUES_CRON_FILE") ?? DEFAULT_FILES.queuesCronProof,
+      readEnv("CLOUDFLARE_RELEASE_QUEUES_CRON_FILE") ??
+        DEFAULT_FILES.queuesCronProof,
     ),
     pricingSnapshot: readArtifact<PricingSnapshotReport>(
-      readEnv("CLOUDFLARE_RELEASE_PRICING_FILE") ?? DEFAULT_FILES.pricingSnapshot,
+      readEnv("CLOUDFLARE_RELEASE_PRICING_FILE") ??
+        DEFAULT_FILES.pricingSnapshot,
     ),
     costPerformanceWorkbook: readArtifact<CostPerformanceWorkbook>(
-      readEnv("CLOUDFLARE_RELEASE_WORKBOOK_FILE") ?? DEFAULT_FILES.costPerformanceWorkbook,
+      readEnv("CLOUDFLARE_RELEASE_WORKBOOK_FILE") ??
+        DEFAULT_FILES.costPerformanceWorkbook,
     ),
     d1AuthRealtimeReadiness: readArtifact<D1AuthRealtimeReadinessReport>(
-      readEnv("CLOUDFLARE_RELEASE_D1_AUTH_REALTIME_FILE") ?? DEFAULT_FILES.d1AuthRealtimeReadiness,
+      readEnv("CLOUDFLARE_RELEASE_D1_AUTH_REALTIME_FILE") ??
+        DEFAULT_FILES.d1AuthRealtimeReadiness,
     ),
     providerReadiness: readArtifact<ProviderReadinessReport>(
-      readEnv("CLOUDFLARE_RELEASE_PROVIDER_FILE") ?? DEFAULT_FILES.providerReadiness,
+      readEnv("CLOUDFLARE_RELEASE_PROVIDER_FILE") ??
+        DEFAULT_FILES.providerReadiness,
+    ),
+    agentDebugSnapshot: readArtifact<AgentDebuggingSnapshotReport>(
+      readEnv("CLOUDFLARE_RELEASE_AGENT_DEBUG_SNAPSHOT_FILE") ??
+        DEFAULT_FILES.agentDebugSnapshot,
+    ),
+    observabilityProofRoute: readArtifact<ObservabilityProofRouteSmokeReport>(
+      readEnv("CLOUDFLARE_RELEASE_OBSERVABILITY_PROOF_ROUTE_FILE") ??
+        DEFAULT_FILES.observabilityProofRoute,
+    ),
+    productionObservability: readArtifact<ProductionObservabilityProofReport>(
+      readEnv("CLOUDFLARE_RELEASE_OBSERVABILITY_PROOF_FILE") ??
+        DEFAULT_FILES.productionObservability,
+    ),
+    supportMonitoring: readArtifact<SupportMonitoringReadinessReport>(
+      readEnv("CLOUDFLARE_RELEASE_SUPPORT_MONITORING_FILE") ??
+        DEFAULT_FILES.supportMonitoring,
     ),
   };
 }
 
 async function main() {
   const report = buildCloudflareReleaseGateReport(readInputs());
-  const outputFile = readEnv("OUTPUT_FILE") ?? `${PLAN_ROOT}/2026-07-01-cloudflare-release-gates.json`;
-  const markdownFile = readEnv("MARKDOWN_FILE") ?? `${PLAN_ROOT}/2026-07-01-cloudflare-release-gates.md`;
+  const outputFile =
+    readEnv("OUTPUT_FILE") ??
+    `${PLAN_ROOT}/2026-07-01-cloudflare-release-gates.json`;
+  const markdownFile =
+    readEnv("MARKDOWN_FILE") ??
+    `${PLAN_ROOT}/2026-07-01-cloudflare-release-gates.md`;
   writeOutput(outputFile, report);
   writeMarkdown(report, markdownFile);
   console.log(JSON.stringify(report, null, 2));
-  if (!report.readiness.localReleaseGateReportReady) process.exitCode = 1;
+  const exitCode = cloudflareReleaseGateExitCode(report, process.env);
+  if (exitCode !== 0) process.exitCode = exitCode;
 }
 
 if (import.meta.main) {

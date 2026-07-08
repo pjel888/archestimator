@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildCloudflareReleaseGateReport,
+  cloudflareReleaseGateExitCode,
   type ReleaseGateInputs,
   writeMarkdown,
 } from "../../scripts/check-cloudflare-release-gates";
@@ -187,6 +188,150 @@ const PROVIDER = {
   productionCutoverReady: false,
 };
 
+const AGENT_DEBUG_BLOCKED = {
+  localLogs: {
+    exists: true,
+    parsedRecords: 42,
+    malformedLines: 0,
+    latestError: {
+      origin: "runtime",
+      freshness: "fresh",
+    },
+  },
+  errorHandling: {
+    passed: true,
+    violationCount: 0,
+  },
+  readiness: {
+    localDebuggingReady: true,
+    operationalIncidentsReady: true,
+    alertScenarioCatalogReady: true,
+    productionAlertScenarioProducerReady: true,
+    productionEvidenceCollectionReady: false,
+    productionIncidentAlertingReady: false,
+    productionHostedProofReady: false,
+    supportMonitoringReady: false,
+  },
+  readinessGates: {
+    local: {
+      ready: true,
+      failures: [],
+    },
+    production: {
+      ready: false,
+      failures: [
+        { key: "hostedProofEnv" },
+        { key: "operationalIncidentAlerting" },
+        { key: "hostedProofArtifacts" },
+        { key: "supportMonitoring" },
+      ],
+    },
+  },
+};
+
+const AGENT_DEBUG_READY = {
+  ...AGENT_DEBUG_BLOCKED,
+  readiness: {
+    localDebuggingReady: true,
+    operationalIncidentsReady: true,
+    alertScenarioCatalogReady: true,
+    productionAlertScenarioProducerReady: true,
+    productionEvidenceCollectionReady: true,
+    productionIncidentAlertingReady: true,
+    productionHostedProofReady: true,
+    supportMonitoringReady: true,
+  },
+  readinessGates: {
+    local: {
+      ready: true,
+      failures: [],
+    },
+    production: {
+      ready: true,
+      failures: [],
+    },
+  },
+};
+
+const PRODUCTION_OBSERVABILITY_BLOCKED = {
+  productionObservabilityReady: false,
+  totals: {
+    required: 7,
+    passed: 0,
+    failed: 0,
+    missing: 7,
+    invalid: 0,
+  },
+  failedRequirementKeys: ["workersLogsQuery", "errorRateAlertDelivery"],
+};
+
+const PRODUCTION_OBSERVABILITY_READY = {
+  productionObservabilityReady: true,
+  totals: {
+    required: 7,
+    passed: 7,
+    failed: 0,
+    missing: 0,
+    invalid: 0,
+  },
+  failedRequirementKeys: [],
+};
+
+const OBSERVABILITY_PROOF_ROUTE_BLOCKED = {
+  routeStatus: "route-not-found",
+  routeReachable: false,
+  authorizationEnforced: false,
+  readyForWorkersLogsProof: false,
+  nextAction:
+    "Deploy the current Worker source from a clean runtime worktree so `/__cloudflare/observability-proof` is live, then rerun `bun run ops:check-observability-route`.",
+  http: {
+    status: 404,
+  },
+};
+
+const OBSERVABILITY_PROOF_ROUTE_READY = {
+  routeStatus: "auth-enforced",
+  routeReachable: true,
+  authorizationEnforced: true,
+  readyForWorkersLogsProof: true,
+  nextAction:
+    "Set WORKERS_LOGS_PROOF_URL to this route, set WORKERS_LOGS_PROOF_SECRET from the production CRON_SECRET, then run `bun run ops:collect-workers-logs-proof`.",
+  http: {
+    status: 401,
+  },
+};
+
+const SUPPORT_MONITORING_BLOCKED = {
+  supportMonitoringReady: false,
+  summary: {
+    passed: 0,
+    missing: 11,
+    failed: 0,
+  },
+  requirements: [
+    { key: "supportInboxMonitoring", status: "missing" },
+    { key: "productionObservabilityProofArtifact", status: "missing" },
+  ],
+  missing: [
+    "support inbox monitoring confirmed",
+    "production observability proof artifact",
+  ],
+};
+
+const SUPPORT_MONITORING_READY = {
+  supportMonitoringReady: true,
+  summary: {
+    passed: 11,
+    missing: 0,
+    failed: 0,
+  },
+  requirements: [
+    { key: "supportInboxMonitoring", status: "passed" },
+    { key: "productionObservabilityProofArtifact", status: "passed" },
+  ],
+  missing: [],
+};
+
 function currentLocalInputs(): ReleaseGateInputs {
   return {
     generatedAt: "2026-06-30T00:00:00.000Z",
@@ -203,7 +348,134 @@ function currentLocalInputs(): ReleaseGateInputs {
     costPerformanceWorkbook: source(WORKBOOK, "workbook.json"),
     d1AuthRealtimeReadiness: source(D1_AUTH_REALTIME, "d1-auth-realtime.json"),
     providerReadiness: source(PROVIDER, "provider.json"),
+    agentDebugSnapshot: source(
+      AGENT_DEBUG_BLOCKED,
+      "agent-debugging-snapshot.json",
+    ),
+    productionObservability: source(
+      PRODUCTION_OBSERVABILITY_BLOCKED,
+      "production-observability.json",
+    ),
+    observabilityProofRoute: source(
+      OBSERVABILITY_PROOF_ROUTE_BLOCKED,
+      "observability-proof-route.json",
+    ),
+    supportMonitoring: source(
+      SUPPORT_MONITORING_BLOCKED,
+      "support-monitoring.json",
+    ),
   };
+}
+
+function productionReadyInputs(): ReleaseGateInputs {
+  const inputs = currentLocalInputs();
+  inputs.workerReadiness = source({
+    ...WORKER_READINESS,
+    deploymentSecretsReady: true,
+    deploymentReady: true,
+    providerSecretList: { checked: true, ready: true },
+  });
+  inputs.hostedRoutes = source(
+    {
+      configured: true,
+      providerBacked: true,
+      routeContractReady: true,
+      hostedRouteProofReady: true,
+      passed: true,
+      results: [
+        { key: "health", required: true, passed: true },
+        { key: "home", required: true, passed: true },
+      ],
+    },
+    "hosted-routes.json",
+  );
+  inputs.wranglerAuth = source({
+    readiness: {
+      wranglerCliAvailable: true,
+      wranglerAuthCheckCompleted: true,
+      wranglerApiAuthenticated: true,
+      providerReadbackReady: true,
+      productionDeployReady: false,
+    },
+  });
+  inputs.providerResources = source(
+    {
+      readiness: {
+        wranglerAuthenticated: true,
+        providerReadbackAttempted: true,
+        workerDeploymentReadbackReady: true,
+        d1DatabaseReadbackReady: true,
+        r2BucketReadbackReady: true,
+        queuesReadbackReady: true,
+        workerSecretNameReadbackReady: true,
+        providerResourceReadbackReady: true,
+      },
+    },
+    "provider-resources.json",
+  );
+  inputs.providerReadiness = source({
+    dashboardInventoryReady: true,
+    workersDeploymentReady: true,
+    storageMediaReady: true,
+    jobsReady: true,
+    analyticsReady: true,
+    productionCutoverReady: true,
+  });
+  inputs.costPerformanceWorkbook = source({
+    readiness: {
+      currentProviderCostsReady: true,
+      cloudflarePricingRefreshed: true,
+      cloudflareUsageCostsReady: true,
+      localPreviewPerformanceCaptured: true,
+      hostedCredentialFreePerformanceCaptured: true,
+      productionRuntimePerformanceReady: true,
+      strictHostedClientP95Ready: false,
+      aggregateHostedPerformanceReady: true,
+      hostedPerformanceReady: false,
+      productionCostDecisionReady: true,
+    },
+  });
+  inputs.d1AuthRealtimeReadiness = source({
+    readiness: {
+      databaseInventoryReady: true,
+      d1BindingReady: true,
+      authReplacementReady: true,
+      appLayerAuthzSpecReady: true,
+      localRpcTransactionMechanicsReady: true,
+      localBetaFeedbackD1SliceReady: true,
+      localCollaborationInvitationD1SliceReady: true,
+      localClosedBetaD1SliceReady: true,
+      localComponentLibraryD1SliceReady: true,
+      localEstimateHistoryD1SliceReady: true,
+      rpcRewritePlanReady: true,
+      realtimeReplacementReady: true,
+      restoreProofReady: true,
+      performanceProofReady: true,
+      localRedesignReadinessReportReady: true,
+      productionD1AuthRealtimeReady: true,
+    },
+    inventorySummary: {
+      distinctRpcNames: 80,
+      rlsPolicyStorageAuthMatches: 684,
+    },
+  });
+  inputs.agentDebugSnapshot = source(
+    AGENT_DEBUG_READY,
+    "agent-debugging-snapshot.json",
+  );
+  inputs.productionObservability = source(
+    PRODUCTION_OBSERVABILITY_READY,
+    "production-observability.json",
+  );
+  inputs.observabilityProofRoute = source(
+    OBSERVABILITY_PROOF_ROUTE_READY,
+    "observability-proof-route.json",
+  );
+  inputs.supportMonitoring = source(
+    SUPPORT_MONITORING_READY,
+    "support-monitoring.json",
+  );
+  return inputs;
 }
 
 describe("Cloudflare release gate aggregator", () => {
@@ -217,36 +489,45 @@ describe("Cloudflare release gate aggregator", () => {
     expect(report.readiness.providerProofReady).toBe(false);
     expect(report.readiness.costPerformanceProofReady).toBe(false);
     expect(report.readiness.dataAuthRealtimeProofReady).toBe(false);
+    expect(report.readiness.observabilitySupportProofReady).toBe(false);
     expect(report.readiness.productionCutoverReady).toBe(false);
     expect(report.blockers).toEqual(
       expect.arrayContaining([
-        expect.stringContaining("Hosted Worker deployment and custom domain provider-proven"),
+        expect.stringContaining(
+          "Hosted Worker deployment and custom domain provider-proven",
+        ),
         expect.stringContaining("Hosted Worker route matrix proof captured"),
         expect.stringContaining("Wrangler/API auth readback ready"),
         expect.stringContaining("Provider resource readback ready"),
         expect.stringContaining("D1/Auth/Realtime production proof ready"),
         expect.stringContaining("Production cost decision ready"),
+        expect.stringContaining("Agent debugging production gate ready"),
+        expect.stringContaining("Hosted observability proof bundle ready"),
+        expect.stringContaining("Support monitoring readiness ready"),
       ]),
     );
   });
 
   it("carries detailed provider resource blockers into the release summary", () => {
     const inputs = currentLocalInputs();
-    inputs.providerResources = source({
-      readiness: {
-        wranglerAuthenticated: true,
-        providerReadbackAttempted: true,
-        workerDeploymentReadbackReady: true,
-        d1DatabaseReadbackReady: true,
-        r2BucketReadbackReady: true,
-        queuesReadbackReady: true,
-        workerSecretNameReadbackReady: false,
-        providerResourceReadbackReady: false,
+    inputs.providerResources = source(
+      {
+        readiness: {
+          wranglerAuthenticated: true,
+          providerReadbackAttempted: true,
+          workerDeploymentReadbackReady: true,
+          d1DatabaseReadbackReady: true,
+          r2BucketReadbackReady: true,
+          queuesReadbackReady: true,
+          workerSecretNameReadbackReady: false,
+          providerResourceReadbackReady: false,
+        },
+        blockers: [
+          "Worker secret name list: missing expected names BETTER_AUTH_GOOGLE_CLIENT_ID, BETTER_AUTH_GOOGLE_CLIENT_SECRET.",
+        ],
       },
-      blockers: [
-        "Worker secret name list: missing expected names BETTER_AUTH_GOOGLE_CLIENT_ID, BETTER_AUTH_GOOGLE_CLIENT_SECRET.",
-      ],
-    }, "provider-resources.json");
+      "provider-resources.json",
+    );
 
     const report = buildCloudflareReleaseGateReport(inputs);
 
@@ -265,17 +546,20 @@ describe("Cloudflare release gate aggregator", () => {
       deploymentReady: true,
       providerSecretList: { checked: true, ready: true },
     });
-    completeInputs.hostedRoutes = source({
-      configured: true,
-      providerBacked: true,
-      routeContractReady: true,
-      hostedRouteProofReady: true,
-      passed: true,
-      results: [
-        { key: "health", required: true, passed: true },
-        { key: "home", required: true, passed: true },
-      ],
-    }, "hosted-routes.json");
+    completeInputs.hostedRoutes = source(
+      {
+        configured: true,
+        providerBacked: true,
+        routeContractReady: true,
+        hostedRouteProofReady: true,
+        passed: true,
+        results: [
+          { key: "health", required: true, passed: true },
+          { key: "home", required: true, passed: true },
+        ],
+      },
+      "hosted-routes.json",
+    );
     completeInputs.wranglerAuth = source({
       readiness: {
         wranglerCliAvailable: true,
@@ -285,18 +569,21 @@ describe("Cloudflare release gate aggregator", () => {
         productionDeployReady: false,
       },
     });
-    completeInputs.providerResources = source({
-      readiness: {
-        wranglerAuthenticated: true,
-        providerReadbackAttempted: true,
-        workerDeploymentReadbackReady: true,
-        d1DatabaseReadbackReady: true,
-        r2BucketReadbackReady: true,
-        queuesReadbackReady: true,
-        workerSecretNameReadbackReady: true,
-        providerResourceReadbackReady: true,
+    completeInputs.providerResources = source(
+      {
+        readiness: {
+          wranglerAuthenticated: true,
+          providerReadbackAttempted: true,
+          workerDeploymentReadbackReady: true,
+          d1DatabaseReadbackReady: true,
+          r2BucketReadbackReady: true,
+          queuesReadbackReady: true,
+          workerSecretNameReadbackReady: true,
+          providerResourceReadbackReady: true,
+        },
       },
-    }, "provider-resources.json");
+      "provider-resources.json",
+    );
     completeInputs.providerReadiness = source({
       dashboardInventoryReady: true,
       workersDeploymentReady: true,
@@ -343,20 +630,110 @@ describe("Cloudflare release gate aggregator", () => {
         rlsPolicyStorageAuthMatches: 684,
       },
     });
+    completeInputs.agentDebugSnapshot = source(
+      AGENT_DEBUG_READY,
+      "agent-debugging-snapshot.json",
+    );
+    completeInputs.productionObservability = source(
+      PRODUCTION_OBSERVABILITY_READY,
+      "production-observability.json",
+    );
+    completeInputs.observabilityProofRoute = source(
+      OBSERVABILITY_PROOF_ROUTE_READY,
+      "observability-proof-route.json",
+    );
+    completeInputs.supportMonitoring = source(
+      SUPPORT_MONITORING_READY,
+      "support-monitoring.json",
+    );
 
     const report = buildCloudflareReleaseGateReport(completeInputs);
 
     expect(report.readiness.providerProofReady).toBe(true);
     expect(report.readiness.costPerformanceProofReady).toBe(true);
     expect(report.readiness.dataAuthRealtimeProofReady).toBe(true);
+    expect(report.readiness.observabilitySupportProofReady).toBe(true);
     expect(report.readiness.productionCutoverReady).toBe(true);
-    expect(report.gates.find((gate) => gate.key === "hosted-performance-proof")?.evidence).toContain(
-      "strictHostedClientP95Ready=no",
-    );
-    expect(report.gates.find((gate) => gate.key === "d1-auth-realtime-production-proof")?.evidence).toContain(
-      "estimateHistorySlice=yes",
-    );
+    expect(
+      report.gates.find((gate) => gate.key === "hosted-performance-proof")
+        ?.evidence,
+    ).toContain("strictHostedClientP95Ready=no");
+    expect(
+      report.gates.find(
+        (gate) => gate.key === "d1-auth-realtime-production-proof",
+      )?.evidence,
+    ).toContain("estimateHistorySlice=yes");
     expect(report.blockers).toEqual([]);
+  });
+
+  it("keeps production cutover closed when the agent debugging production gate is red", () => {
+    const inputs = productionReadyInputs();
+    inputs.agentDebugSnapshot = source(
+      AGENT_DEBUG_BLOCKED,
+      "agent-debugging-snapshot.json",
+    );
+
+    const report = buildCloudflareReleaseGateReport(inputs);
+
+    expect(report.readiness.providerProofReady).toBe(true);
+    expect(report.readiness.costPerformanceProofReady).toBe(true);
+    expect(report.readiness.dataAuthRealtimeProofReady).toBe(true);
+    expect(report.readiness.observabilitySupportProofReady).toBe(false);
+    expect(report.readiness.productionCutoverReady).toBe(false);
+    expect(
+      report.gates.find(
+        (gate) => gate.key === "agent-debug-production-readiness",
+      ),
+    ).toMatchObject({
+      ready: false,
+      blocker: expect.stringContaining(
+        "hostedProofEnv, operationalIncidentAlerting, hostedProofArtifacts, supportMonitoring",
+      ),
+    });
+  });
+
+  it("keeps production cutover closed when the hosted observability proof route is stale", () => {
+    const inputs = productionReadyInputs();
+    inputs.observabilityProofRoute = source(
+      OBSERVABILITY_PROOF_ROUTE_BLOCKED,
+      "observability-proof-route.json",
+    );
+
+    const report = buildCloudflareReleaseGateReport(inputs);
+
+    expect(report.readiness.observabilitySupportProofReady).toBe(false);
+    expect(report.readiness.productionCutoverReady).toBe(false);
+    expect(
+      report.gates.find(
+        (gate) => gate.key === "hosted-observability-proof-route",
+      ),
+    ).toMatchObject({
+      ready: false,
+      evidence: expect.stringContaining("routeStatus=route-not-found"),
+      blocker: expect.stringContaining("Deploy the current Worker source"),
+    });
+  });
+
+  it("keeps production cutover advisory by default but fails closed when production is required", () => {
+    const report = buildCloudflareReleaseGateReport(currentLocalInputs());
+
+    expect(report.readiness.localReleaseGateReportReady).toBe(true);
+    expect(report.readiness.productionCutoverReady).toBe(false);
+    expect(cloudflareReleaseGateExitCode(report, {})).toBe(0);
+    expect(
+      cloudflareReleaseGateExitCode(report, {
+        CLOUDFLARE_RELEASE_REQUIRE_PRODUCTION: "1",
+      }),
+    ).toBe(1);
+  });
+
+  it("exits nonzero when local release-gate evidence is not ready", () => {
+    const inputs = currentLocalInputs();
+    inputs.deployDryRun = missing("dry-run-missing.json");
+    const report = buildCloudflareReleaseGateReport(inputs);
+
+    expect(report.readiness.localReleaseGateReportReady).toBe(false);
+    expect(cloudflareReleaseGateExitCode(report, {})).toBe(1);
   });
 
   it("keeps production cutover closed when runtime is ready but production cost decision is not", () => {
@@ -367,17 +744,20 @@ describe("Cloudflare release gate aggregator", () => {
       deploymentReady: true,
       providerSecretList: { checked: true, ready: true },
     });
-    inputs.hostedRoutes = source({
-      configured: true,
-      providerBacked: true,
-      routeContractReady: true,
-      hostedRouteProofReady: true,
-      passed: true,
-      results: [
-        { key: "health", required: true, passed: true },
-        { key: "home", required: true, passed: true },
-      ],
-    }, "hosted-routes.json");
+    inputs.hostedRoutes = source(
+      {
+        configured: true,
+        providerBacked: true,
+        routeContractReady: true,
+        hostedRouteProofReady: true,
+        passed: true,
+        results: [
+          { key: "health", required: true, passed: true },
+          { key: "home", required: true, passed: true },
+        ],
+      },
+      "hosted-routes.json",
+    );
     inputs.wranglerAuth = source({
       readiness: {
         wranglerCliAvailable: true,
@@ -387,18 +767,21 @@ describe("Cloudflare release gate aggregator", () => {
         productionDeployReady: false,
       },
     });
-    inputs.providerResources = source({
-      readiness: {
-        wranglerAuthenticated: true,
-        providerReadbackAttempted: true,
-        workerDeploymentReadbackReady: true,
-        d1DatabaseReadbackReady: true,
-        r2BucketReadbackReady: true,
-        queuesReadbackReady: true,
-        workerSecretNameReadbackReady: true,
-        providerResourceReadbackReady: true,
+    inputs.providerResources = source(
+      {
+        readiness: {
+          wranglerAuthenticated: true,
+          providerReadbackAttempted: true,
+          workerDeploymentReadbackReady: true,
+          d1DatabaseReadbackReady: true,
+          r2BucketReadbackReady: true,
+          queuesReadbackReady: true,
+          workerSecretNameReadbackReady: true,
+          providerResourceReadbackReady: true,
+        },
       },
-    }, "provider-resources.json");
+      "provider-resources.json",
+    );
     inputs.providerReadiness = source({
       dashboardInventoryReady: true,
       workersDeploymentReady: true,
@@ -407,20 +790,23 @@ describe("Cloudflare release gate aggregator", () => {
       analyticsReady: true,
       productionCutoverReady: true,
     });
-    inputs.costPerformanceWorkbook = source({
-      readiness: {
-        currentProviderCostsReady: true,
-        cloudflarePricingRefreshed: true,
-        cloudflareUsageCostsReady: false,
-        localPreviewPerformanceCaptured: true,
-        hostedCredentialFreePerformanceCaptured: true,
-        productionRuntimePerformanceReady: true,
-        strictHostedClientP95Ready: false,
-        aggregateHostedPerformanceReady: true,
-        hostedPerformanceReady: false,
-        productionCostDecisionReady: false,
+    inputs.costPerformanceWorkbook = source(
+      {
+        readiness: {
+          currentProviderCostsReady: true,
+          cloudflarePricingRefreshed: true,
+          cloudflareUsageCostsReady: false,
+          localPreviewPerformanceCaptured: true,
+          hostedCredentialFreePerformanceCaptured: true,
+          productionRuntimePerformanceReady: true,
+          strictHostedClientP95Ready: false,
+          aggregateHostedPerformanceReady: true,
+          hostedPerformanceReady: false,
+          productionCostDecisionReady: false,
+        },
       },
-    }, "workbook.json");
+      "workbook.json",
+    );
     inputs.d1AuthRealtimeReadiness = source({
       readiness: {
         databaseInventoryReady: true,
@@ -441,12 +827,29 @@ describe("Cloudflare release gate aggregator", () => {
         productionD1AuthRealtimeReady: true,
       },
     });
+    inputs.agentDebugSnapshot = source(
+      AGENT_DEBUG_READY,
+      "agent-debugging-snapshot.json",
+    );
+    inputs.productionObservability = source(
+      PRODUCTION_OBSERVABILITY_READY,
+      "production-observability.json",
+    );
+    inputs.observabilityProofRoute = source(
+      OBSERVABILITY_PROOF_ROUTE_READY,
+      "observability-proof-route.json",
+    );
+    inputs.supportMonitoring = source(
+      SUPPORT_MONITORING_READY,
+      "support-monitoring.json",
+    );
 
     const report = buildCloudflareReleaseGateReport(inputs);
 
     expect(report.readiness.providerProofReady).toBe(true);
     expect(report.readiness.dataAuthRealtimeProofReady).toBe(true);
     expect(report.readiness.costPerformanceProofReady).toBe(false);
+    expect(report.readiness.observabilitySupportProofReady).toBe(true);
     expect(report.readiness.productionCutoverReady).toBe(false);
     expect(report.blockers).toEqual(
       expect.arrayContaining([
@@ -464,7 +867,9 @@ describe("Cloudflare release gate aggregator", () => {
 
     expect(report.readiness.localRuntimeProofReady).toBe(false);
     expect(report.readiness.localReleaseGateReportReady).toBe(false);
-    expect(report.gates.find((gate) => gate.key === "wrangler-deploy-dry-run")).toMatchObject({
+    expect(
+      report.gates.find((gate) => gate.key === "wrangler-deploy-dry-run"),
+    ).toMatchObject({
       ready: false,
       blocker: "Required Cloudflare migration evidence artifact is missing.",
     });

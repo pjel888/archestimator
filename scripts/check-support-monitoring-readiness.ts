@@ -10,6 +10,36 @@ type ProofFlagName =
   | "SUPPORT_MONITORING_ERROR_ALERT_CONFIRMED"
   | "SUPPORT_MONITORING_INCIDENT_ESCALATION_CONFIRMED";
 
+export type SupportMonitoringRequirementKey =
+  | "supportInboxMonitoring"
+  | "feedbackReview"
+  | "uptimeAlertDelivery"
+  | "errorAlertDelivery"
+  | "incidentEscalationPath"
+  | "supportOwnerLabel"
+  | "alertOwnerLabel"
+  | "first24HourReviewOwnerLabel"
+  | "first72HourReviewOwnerLabel"
+  | "operationalIncidentStatusArtifact"
+  | "productionObservabilityProofArtifact";
+
+export type SupportMonitoringRequirementCategory =
+  | "operator-confirmation"
+  | "owner-label"
+  | "evidence-artifact";
+
+export type SupportMonitoringRequirementStatus = "passed" | "missing" | "failed";
+
+export type SupportMonitoringRequirement = {
+  key: SupportMonitoringRequirementKey;
+  category: SupportMonitoringRequirementCategory;
+  status: SupportMonitoringRequirementStatus;
+  label: string;
+  missing: string[];
+  source: string | null;
+  nextAction: string;
+};
+
 export type SupportMonitoringReadinessResult = {
   generatedAt: string;
   mode: "support-monitoring-readiness";
@@ -30,6 +60,8 @@ export type SupportMonitoringReadinessResult = {
     productionObservabilityReady: boolean;
     failedRequirementKeys: string[];
   };
+  summary: Record<SupportMonitoringRequirementStatus, number>;
+  requirements: SupportMonitoringRequirement[];
   missing: string[];
   supportMonitoringReady: boolean;
   note: string;
@@ -70,13 +102,29 @@ type IncidentStatusArtifact = {
   staleIncidents?: Array<{ id?: unknown }>;
 };
 
+type IncidentStatusResult = {
+  source: string | null;
+  present: boolean;
+  operationalIncidentsReady: boolean;
+  staleIncidentIds: string[];
+  missing: string[];
+};
+
 type ObservabilityProofArtifact = {
   productionObservabilityReady?: boolean;
   failedRequirementKeys?: unknown[];
   requirements?: Array<{ key?: unknown; status?: unknown }>;
 };
 
-function readIncidentStatusArtifact(path: string | undefined) {
+type ObservabilityProofResult = {
+  source: string | null;
+  present: boolean;
+  productionObservabilityReady: boolean;
+  failedRequirementKeys: string[];
+  missing: string[];
+};
+
+function readIncidentStatusArtifact(path: string | undefined): IncidentStatusResult {
   if (!path) {
     return {
       source: null,
@@ -112,7 +160,9 @@ function readIncidentStatusArtifact(path: string | undefined) {
       operationalIncidentsReady,
       staleIncidentIds,
       missing: [
+        artifact.readiness?.operationalIncidentsReady !== true ? "operational incidents ready" : null,
         artifact.readiness?.incidentTablesReady !== true ? "operational incident tables ready" : null,
+        artifact.readiness?.noStaleIncidents !== true ? "no stale operational incidents" : null,
         ...staleIncidentIds.map((id) => `stale_incident:${id}`),
       ].filter((value): value is string => Boolean(value)),
     };
@@ -127,7 +177,7 @@ function readIncidentStatusArtifact(path: string | undefined) {
   }
 }
 
-function readObservabilityProofArtifact(path: string | undefined) {
+function readObservabilityProofArtifact(path: string | undefined): ObservabilityProofResult {
   if (!path) {
     return {
       source: null,
@@ -181,6 +231,88 @@ function readObservabilityProofArtifact(path: string | undefined) {
   }
 }
 
+function operatorRequirement(
+  key: SupportMonitoringRequirementKey,
+  label: string,
+  passed: boolean,
+  missingLabel: string,
+  nextAction: string,
+): SupportMonitoringRequirement {
+  return {
+    key,
+    category: "operator-confirmation",
+    status: passed ? "passed" : "missing",
+    label,
+    missing: passed ? [] : [missingLabel],
+    source: null,
+    nextAction,
+  };
+}
+
+function ownerRequirement(
+  key: SupportMonitoringRequirementKey,
+  label: string,
+  present: boolean,
+  missingLabel: string,
+  nextAction: string,
+): SupportMonitoringRequirement {
+  return {
+    key,
+    category: "owner-label",
+    status: present ? "passed" : "missing",
+    label,
+    missing: present ? [] : [missingLabel],
+    source: null,
+    nextAction,
+  };
+}
+
+function incidentArtifactRequirement(
+  incidentStatus: IncidentStatusResult,
+): SupportMonitoringRequirement {
+  return {
+    key: "operationalIncidentStatusArtifact",
+    category: "evidence-artifact",
+    status: incidentStatus.operationalIncidentsReady
+      ? "passed"
+      : incidentStatus.present
+        ? "failed"
+        : "missing",
+    label: "Operational incident status artifact",
+    missing: incidentStatus.missing,
+    source: incidentStatus.source,
+    nextAction: "Run `bun run ops:check-incidents` and pass its JSON artifact as SUPPORT_MONITORING_INCIDENT_STATUS_FILE.",
+  };
+}
+
+function observabilityArtifactRequirement(
+  observabilityProof: ObservabilityProofResult,
+): SupportMonitoringRequirement {
+  return {
+    key: "productionObservabilityProofArtifact",
+    category: "evidence-artifact",
+    status: observabilityProof.productionObservabilityReady
+      ? "passed"
+      : observabilityProof.present
+        ? "failed"
+        : "missing",
+    label: "Production observability proof artifact",
+    missing: observabilityProof.missing,
+    source: observabilityProof.source,
+    nextAction: "Run `bun run ops:check-observability` and pass its JSON artifact as SUPPORT_MONITORING_OBSERVABILITY_PROOF_FILE.",
+  };
+}
+
+function summarizeRequirements(requirements: SupportMonitoringRequirement[]) {
+  return requirements.reduce<Record<SupportMonitoringRequirementStatus, number>>(
+    (totals, requirement) => {
+      totals[requirement.status] += 1;
+      return totals;
+    },
+    { passed: 0, missing: 0, failed: 0 },
+  );
+}
+
 export function checkSupportMonitoringReadiness(env: Record<string, string | undefined> = process.env) {
   const proofFlags = Object.fromEntries(
     PROOF_FLAGS.map((name) => [name, parseProofFlag(env[name])]),
@@ -197,19 +329,76 @@ export function checkSupportMonitoringReadiness(env: Record<string, string | und
     env.SUPPORT_MONITORING_OBSERVABILITY_PROOF_FILE ?? env.PRODUCTION_OBSERVABILITY_PROOF_FILE,
   );
 
-  const missing = [
-    !proofFlags.SUPPORT_MONITORING_INBOX_CONFIRMED ? "support inbox monitoring confirmed" : null,
-    !proofFlags.SUPPORT_MONITORING_FEEDBACK_REVIEW_CONFIRMED ? "feedback table review confirmed" : null,
-    !proofFlags.SUPPORT_MONITORING_UPTIME_ALERT_CONFIRMED ? "uptime alert delivery confirmed" : null,
-    !proofFlags.SUPPORT_MONITORING_ERROR_ALERT_CONFIRMED ? "error alert delivery confirmed" : null,
-    !proofFlags.SUPPORT_MONITORING_INCIDENT_ESCALATION_CONFIRMED ? "incident escalation path confirmed" : null,
-    !supportOwner ? "support owner label" : null,
-    !alertOwner ? "alert owner label" : null,
-    !first24HourReviewOwner ? "first 24-hour review owner label" : null,
-    !first72HourReviewOwner ? "first 72-hour review owner label" : null,
-    ...incidentStatus.missing,
-    ...observabilityProof.missing,
-  ].filter((value): value is string => Boolean(value));
+  const requirements: SupportMonitoringRequirement[] = [
+    operatorRequirement(
+      "supportInboxMonitoring",
+      "Support inbox monitoring",
+      proofFlags.SUPPORT_MONITORING_INBOX_CONFIRMED,
+      "support inbox monitoring confirmed",
+      "Set SUPPORT_MONITORING_INBOX_CONFIRMED=true after the monitored support inbox is confirmed.",
+    ),
+    operatorRequirement(
+      "feedbackReview",
+      "Feedback table review",
+      proofFlags.SUPPORT_MONITORING_FEEDBACK_REVIEW_CONFIRMED,
+      "feedback table review confirmed",
+      "Set SUPPORT_MONITORING_FEEDBACK_REVIEW_CONFIRMED=true after the feedback review queue is confirmed.",
+    ),
+    operatorRequirement(
+      "uptimeAlertDelivery",
+      "Uptime alert delivery",
+      proofFlags.SUPPORT_MONITORING_UPTIME_ALERT_CONFIRMED,
+      "uptime alert delivery confirmed",
+      "Set SUPPORT_MONITORING_UPTIME_ALERT_CONFIRMED=true after hosted uptime alert delivery is confirmed.",
+    ),
+    operatorRequirement(
+      "errorAlertDelivery",
+      "Error alert delivery",
+      proofFlags.SUPPORT_MONITORING_ERROR_ALERT_CONFIRMED,
+      "error alert delivery confirmed",
+      "Set SUPPORT_MONITORING_ERROR_ALERT_CONFIRMED=true after hosted error alert delivery is confirmed.",
+    ),
+    operatorRequirement(
+      "incidentEscalationPath",
+      "Incident escalation path",
+      proofFlags.SUPPORT_MONITORING_INCIDENT_ESCALATION_CONFIRMED,
+      "incident escalation path confirmed",
+      "Set SUPPORT_MONITORING_INCIDENT_ESCALATION_CONFIRMED=true after incident escalation ownership is confirmed.",
+    ),
+    ownerRequirement(
+      "supportOwnerLabel",
+      "Support owner label",
+      Boolean(supportOwner),
+      "support owner label",
+      "Set SUPPORT_MONITORING_SUPPORT_OWNER to a short sanitized owner label.",
+    ),
+    ownerRequirement(
+      "alertOwnerLabel",
+      "Alert owner label",
+      Boolean(alertOwner),
+      "alert owner label",
+      "Set SUPPORT_MONITORING_ALERT_OWNER to a short sanitized owner label.",
+    ),
+    ownerRequirement(
+      "first24HourReviewOwnerLabel",
+      "First 24-hour review owner label",
+      Boolean(first24HourReviewOwner),
+      "first 24-hour review owner label",
+      "Set SUPPORT_MONITORING_FIRST_24H_OWNER to a short sanitized owner label.",
+    ),
+    ownerRequirement(
+      "first72HourReviewOwnerLabel",
+      "First 72-hour review owner label",
+      Boolean(first72HourReviewOwner),
+      "first 72-hour review owner label",
+      "Set SUPPORT_MONITORING_FIRST_72H_OWNER to a short sanitized owner label.",
+    ),
+    incidentArtifactRequirement(incidentStatus),
+    observabilityArtifactRequirement(observabilityProof),
+  ];
+  const summary = summarizeRequirements(requirements);
+  const missing = requirements.flatMap((requirement) => requirement.missing);
+  const supportMonitoringReady = requirements.every((requirement) => requirement.status === "passed");
 
   return {
     generatedAt: new Date().toISOString(),
@@ -231,9 +420,11 @@ export function checkSupportMonitoringReadiness(env: Record<string, string | und
       productionObservabilityReady: observabilityProof.productionObservabilityReady,
       failedRequirementKeys: observabilityProof.failedRequirementKeys,
     },
+    summary,
+    requirements,
     missing,
-    supportMonitoringReady: missing.length === 0,
-    note: "Sanitized support monitoring readiness check. It records operator-confirmed proof flags and owner labels, consumes read-only operational incident and production observability proof artifacts, and fails closed when hosted evidence is missing. It does not verify inbox access, alert dashboards, linked feedback rows, hosted auth, or incident delivery by itself.",
+    supportMonitoringReady,
+    note: "Sanitized support monitoring readiness check. It records operator-confirmed proof flags and owner labels, consumes read-only operational incident and production observability proof artifacts, emits structured requirement diagnostics, and fails closed when hosted evidence is missing. It does not verify inbox access, alert dashboards, linked feedback rows, hosted auth, or incident delivery by itself.",
   } satisfies SupportMonitoringReadinessResult;
 }
 

@@ -1,6 +1,13 @@
 #!/usr/bin/env bun
 
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, extname, join, relative, resolve } from "node:path";
 
 type Artifact<T extends Record<string, unknown> = Record<string, unknown>> = {
@@ -44,11 +51,14 @@ export type ProviderExitPackReport = {
   generatedAt: string;
   mode: "cloudflare-provider-exit-pack";
   sources: Record<string, string>;
-  artifacts: Record<string, {
-    present: boolean;
-    generatedAt: string | null;
-    parseError: string | null;
-  }>;
+  artifacts: Record<
+    string,
+    {
+      present: boolean;
+      generatedAt: string | null;
+      parseError: string | null;
+    }
+  >;
   legacyProviderScan: {
     scannedPaths: string[];
     blockerCount: number;
@@ -86,9 +96,19 @@ export const DEFAULT_PROVIDER_EXIT_SCAN_PATHS = [
   "cloudflare-env.d.ts",
   "next.config.ts",
   "open-next.config.ts",
-  "src/proxy.ts",
+  "src/middleware.ts",
 ];
-const TEXT_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".json", ".jsonc", ".lock"]);
+const TEXT_EXTENSIONS = new Set([
+  ".ts",
+  ".tsx",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".cjs",
+  ".json",
+  ".jsonc",
+  ".lock",
+]);
 
 const ARTIFACT_PATHS = {
   releaseGates: `${EVIDENCE_ROOT}/2026-07-01-cloudflare-release-gates.json`,
@@ -113,11 +133,17 @@ function envFlag(name: string) {
 }
 
 function operatorRecordArtifactPath() {
-  return readEnv("PROVIDER_EXIT_OPERATOR_RECORD_FILE") ?? ARTIFACT_PATHS.operatorRecord;
+  return (
+    readEnv("PROVIDER_EXIT_OPERATOR_RECORD_FILE") ??
+    ARTIFACT_PATHS.operatorRecord
+  );
 }
 
 function operatorRecordTemplatePath() {
-  return readEnv("OPERATOR_RECORD_TEMPLATE_FILE") ?? DEFAULT_OPERATOR_RECORD_TEMPLATE_FILE;
+  return (
+    readEnv("OPERATOR_RECORD_TEMPLATE_FILE") ??
+    DEFAULT_OPERATOR_RECORD_TEMPLATE_FILE
+  );
 }
 
 function normalizeParseError(error: unknown) {
@@ -126,9 +152,17 @@ function normalizeParseError(error: unknown) {
   return normalized.length > 0 ? normalized.slice(0, 240) : "JSON parse failed";
 }
 
-export function readJsonArtifact<T extends Record<string, unknown>>(path: string): Artifact<T> {
+export function readJsonArtifact<T extends Record<string, unknown>>(
+  path: string,
+): Artifact<T> {
   if (!existsSync(path)) {
-    return { path, present: false, generatedAt: null, value: null, parseError: null };
+    return {
+      path,
+      present: false,
+      generatedAt: null,
+      value: null,
+      parseError: null,
+    };
   }
 
   try {
@@ -136,7 +170,8 @@ export function readJsonArtifact<T extends Record<string, unknown>>(path: string
     return {
       path,
       present: true,
-      generatedAt: typeof value.generatedAt === "string" ? value.generatedAt : null,
+      generatedAt:
+        typeof value.generatedAt === "string" ? value.generatedAt : null,
       value,
       parseError: null,
     };
@@ -182,26 +217,45 @@ function stringAt(value: unknown, path: Array<string | number>) {
 
 function stringArrayAt(value: unknown, path: Array<string | number>) {
   const candidate = getPath(value, path);
-  return Array.isArray(candidate) ? candidate.filter((item): item is string => typeof item === "string") : [];
+  return Array.isArray(candidate)
+    ? candidate.filter((item): item is string => typeof item === "string")
+    : [];
 }
 
-function hasNonEmptyStringArrayAt(value: unknown, path: Array<string | number>) {
+function hasNonEmptyStringArrayAt(
+  value: unknown,
+  path: Array<string | number>,
+) {
   return stringArrayAt(value, path).some((item) => item.trim().length > 0);
 }
 
-function sectionStatus(record: ProviderExitOperatorRecord | null, sectionName: string) {
+function sectionStatus(
+  record: ProviderExitOperatorRecord | null,
+  sectionName: string,
+) {
   return stringAt(record, [sectionName, "status"]);
 }
 
-function diagnosticSectionStatus(record: ProviderExitOperatorRecord | null, sectionName: string) {
+function diagnosticSectionStatus(
+  record: ProviderExitOperatorRecord | null,
+  sectionName: string,
+) {
   const status = sectionStatus(record, sectionName);
-  if (status === null || status === "missing" || status === "recorded" || status === "accepted-deferral") {
+  if (
+    status === null ||
+    status === "missing" ||
+    status === "recorded" ||
+    status === "accepted-deferral"
+  ) {
     return status;
   }
   return "invalid-or-unsupported";
 }
 
-function acceptedDeferralReady(record: ProviderExitOperatorRecord | null, sectionName: string) {
+function acceptedDeferralReady(
+  record: ProviderExitOperatorRecord | null,
+  sectionName: string,
+) {
   return (
     sectionStatus(record, sectionName) === "accepted-deferral" &&
     stringAt(record, [sectionName, "acceptedBy"]) !== null &&
@@ -209,29 +263,53 @@ function acceptedDeferralReady(record: ProviderExitOperatorRecord | null, sectio
   );
 }
 
-function finalExportsOrRetentionReady(record: ProviderExitOperatorRecord | null) {
+function finalExportsOrRetentionReady(
+  record: ProviderExitOperatorRecord | null,
+) {
   if (sectionStatus(record, "finalExportsOrRetentionDecision") !== "recorded") {
     return false;
   }
 
-  const decision = stringAt(record, ["finalExportsOrRetentionDecision", "decision"]);
-  if (!decision || !["exported", "accepted-retention", "accepted-loss"].includes(decision)) {
+  const decision = stringAt(record, [
+    "finalExportsOrRetentionDecision",
+    "decision",
+  ]);
+  if (
+    !decision ||
+    !["exported", "accepted-retention", "accepted-loss"].includes(decision)
+  ) {
     return false;
   }
 
-  if (stringAt(record, ["finalExportsOrRetentionDecision", "acceptedBy"]) === null) {
+  if (
+    stringAt(record, ["finalExportsOrRetentionDecision", "acceptedBy"]) === null
+  ) {
     return false;
   }
 
-  if (stringAt(record, ["finalExportsOrRetentionDecision", "evidenceSource"]) === null) {
+  if (
+    stringAt(record, ["finalExportsOrRetentionDecision", "evidenceSource"]) ===
+    null
+  ) {
     return false;
   }
 
-  if (stringAt(record, ["finalExportsOrRetentionDecision", "rollbackDecision"]) === null) {
+  if (
+    stringAt(record, [
+      "finalExportsOrRetentionDecision",
+      "rollbackDecision",
+    ]) === null
+  ) {
     return false;
   }
 
-  if (decision === "exported" && stringAt(record, ["finalExportsOrRetentionDecision", "backupLocationDescription"]) === null) {
+  if (
+    decision === "exported" &&
+    stringAt(record, [
+      "finalExportsOrRetentionDecision",
+      "backupLocationDescription",
+    ]) === null
+  ) {
     return false;
   }
 
@@ -250,11 +328,19 @@ function resendAccountStatusReady(record: ProviderExitOperatorRecord | null) {
   );
 }
 
-function obsoleteSecretRotationReady(record: ProviderExitOperatorRecord | null) {
+function obsoleteSecretRotationReady(
+  record: ProviderExitOperatorRecord | null,
+) {
   return (
     sectionStatus(record, "obsoleteSecretRotation") === "recorded" &&
-    boolAt(record, ["obsoleteSecretRotation", "cloudflareSecretNamesReviewed"]) &&
-    boolAt(record, ["obsoleteSecretRotation", "obsoleteProviderSecretsRemovedOrRotated"]) &&
+    boolAt(record, [
+      "obsoleteSecretRotation",
+      "cloudflareSecretNamesReviewed",
+    ]) &&
+    boolAt(record, [
+      "obsoleteSecretRotation",
+      "obsoleteProviderSecretsRemovedOrRotated",
+    ]) &&
     boolAt(record, ["obsoleteSecretRotation", "secretValuesNotRecorded"]) &&
     stringAt(record, ["obsoleteSecretRotation", "evidenceSource"]) !== null
   );
@@ -290,14 +376,27 @@ function recipientMailboxProofReady(record: ProviderExitOperatorRecord | null) {
 
   return (
     sectionStatus(record, "recipientMailboxProofOrDeferral") === "recorded" &&
-    boolAt(record, ["recipientMailboxProofOrDeferral", "mailboxReceiptObserved"]) &&
-    boolAt(record, ["recipientMailboxProofOrDeferral", "recipientScopedActionObserved"]) &&
-    boolAt(record, ["recipientMailboxProofOrDeferral", "noPrivateEmailContentRecorded"]) &&
-    stringAt(record, ["recipientMailboxProofOrDeferral", "evidenceSource"]) !== null
+    boolAt(record, [
+      "recipientMailboxProofOrDeferral",
+      "mailboxReceiptObserved",
+    ]) &&
+    boolAt(record, [
+      "recipientMailboxProofOrDeferral",
+      "recipientScopedActionObserved",
+    ]) &&
+    boolAt(record, [
+      "recipientMailboxProofOrDeferral",
+      "noPrivateEmailContentRecorded",
+    ]) &&
+    stringAt(record, ["recipientMailboxProofOrDeferral", "evidenceSource"]) !==
+      null
   );
 }
 
-function missingRecordDiagnostic(gateKey: string, section: string): OperatorRecordDiagnostic {
+function missingRecordDiagnostic(
+  gateKey: string,
+  section: string,
+): OperatorRecordDiagnostic {
   return {
     gateKey,
     section,
@@ -308,7 +407,10 @@ function missingRecordDiagnostic(gateKey: string, section: string): OperatorReco
   };
 }
 
-function malformedRecordDiagnostic(gateKey: string, section: string): OperatorRecordDiagnostic {
+function malformedRecordDiagnostic(
+  gateKey: string,
+  section: string,
+): OperatorRecordDiagnostic {
   return {
     gateKey,
     section,
@@ -319,17 +421,31 @@ function malformedRecordDiagnostic(gateKey: string, section: string): OperatorRe
   };
 }
 
-function missingString(record: ProviderExitOperatorRecord | null, section: string, field: string) {
+function missingString(
+  record: ProviderExitOperatorRecord | null,
+  section: string,
+  field: string,
+) {
   return stringAt(record, [section, field]) === null;
 }
 
-function addMissingString(missingFields: string[], record: ProviderExitOperatorRecord | null, section: string, field: string) {
+function addMissingString(
+  missingFields: string[],
+  record: ProviderExitOperatorRecord | null,
+  section: string,
+  field: string,
+) {
   if (missingString(record, section, field)) {
     missingFields.push(`${section}.${field}`);
   }
 }
 
-function addMissingTrue(missingFields: string[], record: ProviderExitOperatorRecord | null, section: string, field: string) {
+function addMissingTrue(
+  missingFields: string[],
+  record: ProviderExitOperatorRecord | null,
+  section: string,
+  field: string,
+) {
   if (!boolAt(record, [section, field])) {
     missingFields.push(`${section}.${field}=true`);
   }
@@ -363,10 +479,16 @@ function operatorDiagnostic(
   };
 }
 
-function finalExportsOrRetentionDiagnostic(record: ProviderExitOperatorRecord | null, present: boolean) {
+function finalExportsOrRetentionDiagnostic(
+  record: ProviderExitOperatorRecord | null,
+  present: boolean,
+) {
   const section = "finalExportsOrRetentionDecision";
   if (!present || !record) {
-    return missingRecordDiagnostic("exports-or-retention-decision-recorded", section);
+    return missingRecordDiagnostic(
+      "exports-or-retention-decision-recorded",
+      section,
+    );
   }
 
   const missingFields: string[] = [];
@@ -375,8 +497,13 @@ function finalExportsOrRetentionDiagnostic(record: ProviderExitOperatorRecord | 
   }
 
   const decision = stringAt(record, [section, "decision"]);
-  if (!decision || !["exported", "accepted-retention", "accepted-loss"].includes(decision)) {
-    missingFields.push(`${section}.decision(exported|accepted-retention|accepted-loss)`);
+  if (
+    !decision ||
+    !["exported", "accepted-retention", "accepted-loss"].includes(decision)
+  ) {
+    missingFields.push(
+      `${section}.decision(exported|accepted-retention|accepted-loss)`,
+    );
   }
 
   addMissingString(missingFields, record, section, "acceptedBy");
@@ -384,13 +511,26 @@ function finalExportsOrRetentionDiagnostic(record: ProviderExitOperatorRecord | 
   addMissingString(missingFields, record, section, "rollbackDecision");
 
   if (decision === "exported") {
-    addMissingString(missingFields, record, section, "backupLocationDescription");
+    addMissingString(
+      missingFields,
+      record,
+      section,
+      "backupLocationDescription",
+    );
   }
 
-  return operatorDiagnostic("exports-or-retention-decision-recorded", section, record, missingFields);
+  return operatorDiagnostic(
+    "exports-or-retention-decision-recorded",
+    section,
+    record,
+    missingFields,
+  );
 }
 
-function resendAccountStatusDiagnostic(record: ProviderExitOperatorRecord | null, present: boolean) {
+function resendAccountStatusDiagnostic(
+  record: ProviderExitOperatorRecord | null,
+  present: boolean,
+) {
   const section = "resendStatus";
   if (!present || !record) {
     return missingRecordDiagnostic("resend-account-status-recorded", section);
@@ -407,28 +547,57 @@ function resendAccountStatusDiagnostic(record: ProviderExitOperatorRecord | null
   addMissingString(missingFields, record, section, "sendingDomainStatus");
   addMissingString(missingFields, record, section, "domainEvidenceSource");
 
-  return operatorDiagnostic("resend-account-status-recorded", section, record, missingFields);
+  return operatorDiagnostic(
+    "resend-account-status-recorded",
+    section,
+    record,
+    missingFields,
+  );
 }
 
-function obsoleteSecretRotationDiagnostic(record: ProviderExitOperatorRecord | null, present: boolean) {
+function obsoleteSecretRotationDiagnostic(
+  record: ProviderExitOperatorRecord | null,
+  present: boolean,
+) {
   const section = "obsoleteSecretRotation";
   if (!present || !record) {
-    return missingRecordDiagnostic("obsolete-secret-rotation-recorded", section);
+    return missingRecordDiagnostic(
+      "obsolete-secret-rotation-recorded",
+      section,
+    );
   }
 
   const missingFields: string[] = [];
   if (sectionStatus(record, section) !== "recorded") {
     missingFields.push(`${section}.status=recorded`);
   }
-  addMissingTrue(missingFields, record, section, "cloudflareSecretNamesReviewed");
-  addMissingTrue(missingFields, record, section, "obsoleteProviderSecretsRemovedOrRotated");
+  addMissingTrue(
+    missingFields,
+    record,
+    section,
+    "cloudflareSecretNamesReviewed",
+  );
+  addMissingTrue(
+    missingFields,
+    record,
+    section,
+    "obsoleteProviderSecretsRemovedOrRotated",
+  );
   addMissingTrue(missingFields, record, section, "secretValuesNotRecorded");
   addMissingString(missingFields, record, section, "evidenceSource");
 
-  return operatorDiagnostic("obsolete-secret-rotation-recorded", section, record, missingFields);
+  return operatorDiagnostic(
+    "obsolete-secret-rotation-recorded",
+    section,
+    record,
+    missingFields,
+  );
 }
 
-function postExitSmokeDiagnostic(record: ProviderExitOperatorRecord | null, present: boolean) {
+function postExitSmokeDiagnostic(
+  record: ProviderExitOperatorRecord | null,
+  present: boolean,
+) {
   const section = "postExitSmoke";
   if (!present || !record) {
     return missingRecordDiagnostic("post-exit-smoke-recorded", section);
@@ -443,10 +612,18 @@ function postExitSmokeDiagnostic(record: ProviderExitOperatorRecord | null, pres
   addMissingNonEmptyStringArray(missingFields, record, section, "commands");
   addMissingString(missingFields, record, section, "evidenceSource");
 
-  return operatorDiagnostic("post-exit-smoke-recorded", section, record, missingFields);
+  return operatorDiagnostic(
+    "post-exit-smoke-recorded",
+    section,
+    record,
+    missingFields,
+  );
 }
 
-function acceptedDeferralMissingFields(record: ProviderExitOperatorRecord | null, section: string) {
+function acceptedDeferralMissingFields(
+  record: ProviderExitOperatorRecord | null,
+  section: string,
+) {
   const missingFields: string[] = [];
   if (sectionStatus(record, section) !== "accepted-deferral") {
     missingFields.push(`${section}.status=accepted-deferral`);
@@ -456,7 +633,10 @@ function acceptedDeferralMissingFields(record: ProviderExitOperatorRecord | null
   return missingFields;
 }
 
-function nonOwnerGoogleProofDiagnostic(record: ProviderExitOperatorRecord | null, present: boolean) {
+function nonOwnerGoogleProofDiagnostic(
+  record: ProviderExitOperatorRecord | null,
+  present: boolean,
+) {
   const section = "nonOwnerGoogleProof";
   if (!present || !record) {
     return missingRecordDiagnostic("non-owner-google-proof-recorded", section);
@@ -478,15 +658,31 @@ function nonOwnerGoogleProofDiagnostic(record: ProviderExitOperatorRecord | null
   }
   addMissingString(missingFields, record, section, "policyOutcome");
   addMissingString(missingFields, record, section, "evidenceSource");
-  addMissingTrue(missingFields, record, section, "noCredentialsOrCookiesRecorded");
+  addMissingTrue(
+    missingFields,
+    record,
+    section,
+    "noCredentialsOrCookiesRecorded",
+  );
 
-  return operatorDiagnostic("non-owner-google-proof-recorded", section, record, missingFields);
+  return operatorDiagnostic(
+    "non-owner-google-proof-recorded",
+    section,
+    record,
+    missingFields,
+  );
 }
 
-function recipientMailboxProofDiagnostic(record: ProviderExitOperatorRecord | null, present: boolean) {
+function recipientMailboxProofDiagnostic(
+  record: ProviderExitOperatorRecord | null,
+  present: boolean,
+) {
   const section = "recipientMailboxProofOrDeferral";
   if (!present || !record) {
-    return missingRecordDiagnostic("recipient-mailbox-proof-or-deferral-recorded", section);
+    return missingRecordDiagnostic(
+      "recipient-mailbox-proof-or-deferral-recorded",
+      section,
+    );
   }
 
   if (sectionStatus(record, section) === "accepted-deferral") {
@@ -504,11 +700,26 @@ function recipientMailboxProofDiagnostic(record: ProviderExitOperatorRecord | nu
     missingFields.push(`${section}.status=recorded|accepted-deferral`);
   }
   addMissingTrue(missingFields, record, section, "mailboxReceiptObserved");
-  addMissingTrue(missingFields, record, section, "recipientScopedActionObserved");
-  addMissingTrue(missingFields, record, section, "noPrivateEmailContentRecorded");
+  addMissingTrue(
+    missingFields,
+    record,
+    section,
+    "recipientScopedActionObserved",
+  );
+  addMissingTrue(
+    missingFields,
+    record,
+    section,
+    "noPrivateEmailContentRecorded",
+  );
   addMissingString(missingFields, record, section, "evidenceSource");
 
-  return operatorDiagnostic("recipient-mailbox-proof-or-deferral-recorded", section, record, missingFields);
+  return operatorDiagnostic(
+    "recipient-mailbox-proof-or-deferral-recorded",
+    section,
+    record,
+    missingFields,
+  );
 }
 
 export function buildOperatorRecordDiagnostics(params: {
@@ -519,12 +730,18 @@ export function buildOperatorRecordDiagnostics(params: {
 }) {
   const { record, path, present, parseError = null } = params;
   const diagnosticSections = [
-    ["exports-or-retention-decision-recorded", "finalExportsOrRetentionDecision"],
+    [
+      "exports-or-retention-decision-recorded",
+      "finalExportsOrRetentionDecision",
+    ],
     ["resend-account-status-recorded", "resendStatus"],
     ["obsolete-secret-rotation-recorded", "obsoleteSecretRotation"],
     ["post-exit-smoke-recorded", "postExitSmoke"],
     ["non-owner-google-proof-recorded", "nonOwnerGoogleProof"],
-    ["recipient-mailbox-proof-or-deferral-recorded", "recipientMailboxProofOrDeferral"],
+    [
+      "recipient-mailbox-proof-or-deferral-recorded",
+      "recipientMailboxProofOrDeferral",
+    ],
   ] as const;
 
   if (parseError) {
@@ -533,7 +750,9 @@ export function buildOperatorRecordDiagnostics(params: {
       present,
       parseError,
       templatePath: operatorRecordTemplatePath(),
-      diagnostics: diagnosticSections.map(([gateKey, section]) => malformedRecordDiagnostic(gateKey, section)),
+      diagnostics: diagnosticSections.map(([gateKey, section]) =>
+        malformedRecordDiagnostic(gateKey, section),
+      ),
     };
   }
 
@@ -553,11 +772,14 @@ export function buildOperatorRecordDiagnostics(params: {
   };
 }
 
-export function buildOperatorRecordTemplate(generatedAt = new Date().toISOString()): ProviderExitOperatorRecord {
+export function buildOperatorRecordTemplate(
+  generatedAt = new Date().toISOString(),
+): ProviderExitOperatorRecord {
   return {
     generatedAt,
     mode: "cloudflare-provider-exit-operator-record",
-    boundary: "Sanitized operator record only. Do not record secrets, tokens, cookies, raw mailbox content, provider screenshots with private values, private backup paths, or credential material.",
+    boundary:
+      "Sanitized operator record only. Do not record secrets, tokens, cookies, raw mailbox content, provider screenshots with private values, private backup paths, or credential material.",
     finalExportsOrRetentionDecision: {
       status: "missing",
       decision: "",
@@ -621,7 +843,8 @@ function listFiles(path: string): string[] {
 
   const files: string[] = [];
   for (const entry of readdirSync(path)) {
-    if (entry === "node_modules" || entry === ".next" || entry === ".open-next") continue;
+    if (entry === "node_modules" || entry === ".next" || entry === ".open-next")
+      continue;
     files.push(...listFiles(join(path, entry)));
   }
   return files;
@@ -632,39 +855,81 @@ function normalizeSnippet(line: string) {
 }
 
 function isLockfilePath(file: string) {
-  return file === "bun.lock" || file.endsWith("/bun.lock") || extname(file) === ".lock";
+  return (
+    file === "bun.lock" ||
+    file.endsWith("/bun.lock") ||
+    extname(file) === ".lock"
+  );
 }
 
 function hasResendLockfilePackageMarker(file: string, line: string) {
-  return isLockfilePath(file) && /["']resend["']\s*:\s*\[\s*["']resend@/i.test(line);
+  return (
+    isLockfilePath(file) && /["']resend["']\s*:\s*\[\s*["']resend@/i.test(line)
+  );
 }
 
-function classifySourceLine(file: string, lineNumber: number, line: string): LegacyProviderReference[] {
+function classifySourceLine(
+  file: string,
+  lineNumber: number,
+  line: string,
+): LegacyProviderReference[] {
   const references: LegacyProviderReference[] = [];
   const snippet = normalizeSnippet(line);
   const lower = line.toLowerCase();
 
-  if (/@supabase|from\s+["'][^"']*supabase|import\s+.*["'][^"']*supabase|supabase_/i.test(line)) {
-    references.push({ provider: "supabase", severity: "blocker", file, line: lineNumber, snippet });
+  if (
+    /@supabase|from\s+["'][^"']*supabase|import\s+.*["'][^"']*supabase|supabase_/i.test(
+      line,
+    )
+  ) {
+    references.push({
+      provider: "supabase",
+      severity: "blocker",
+      file,
+      line: lineNumber,
+      snippet,
+    });
   }
 
   if (/@vercel|process\.env\.vercel|vercel_/i.test(line)) {
-    references.push({ provider: "vercel", severity: "blocker", file, line: lineNumber, snippet });
+    references.push({
+      provider: "vercel",
+      severity: "blocker",
+      file,
+      line: lineNumber,
+      snippet,
+    });
   }
 
   if (
-    /from\s+["']resend["']|new\s+Resend\s*\(|RESEND_API_KEY|process\.env\.RESEND/i.test(line)
-    || hasResendLockfilePackageMarker(file, line)
+    /from\s+["']resend["']|new\s+Resend\s*\(|RESEND_API_KEY|process\.env\.RESEND/i.test(
+      line,
+    ) ||
+    hasResendLockfilePackageMarker(file, line)
   ) {
-    references.push({ provider: "resend", severity: "blocker", file, line: lineNumber, snippet });
+    references.push({
+      provider: "resend",
+      severity: "blocker",
+      file,
+      line: lineNumber,
+      snippet,
+    });
   } else if (lower.includes("resend")) {
-    references.push({ provider: "resend", severity: "informational", file, line: lineNumber, snippet });
+    references.push({
+      provider: "resend",
+      severity: "informational",
+      file,
+      line: lineNumber,
+      snippet,
+    });
   }
 
   return references;
 }
 
-export function scanLegacyProviderReferences(paths = DEFAULT_PROVIDER_EXIT_SCAN_PATHS): ProviderExitPackReport["legacyProviderScan"] {
+export function scanLegacyProviderReferences(
+  paths = DEFAULT_PROVIDER_EXIT_SCAN_PATHS,
+): ProviderExitPackReport["legacyProviderScan"] {
   const scannedPaths = paths.filter((path) => existsSync(path));
   const references: LegacyProviderReference[] = [];
 
@@ -678,8 +943,12 @@ export function scanLegacyProviderReferences(paths = DEFAULT_PROVIDER_EXIT_SCAN_
     }
   }
 
-  const blockers = references.filter((reference) => reference.severity === "blocker");
-  const informational = references.filter((reference) => reference.severity === "informational");
+  const blockers = references.filter(
+    (reference) => reference.severity === "blocker",
+  );
+  const informational = references.filter(
+    (reference) => reference.severity === "informational",
+  );
 
   return {
     scannedPaths,
@@ -691,10 +960,16 @@ export function scanLegacyProviderReferences(paths = DEFAULT_PROVIDER_EXIT_SCAN_
 }
 
 function artifactSummary(artifacts: Record<string, Artifact>) {
-  return Object.fromEntries(Object.entries(artifacts).map(([key, artifact]) => [
-    key,
-    { present: artifact.present, generatedAt: artifact.generatedAt, parseError: artifact.parseError },
-  ]));
+  return Object.fromEntries(
+    Object.entries(artifacts).map(([key, artifact]) => [
+      key,
+      {
+        present: artifact.present,
+        generatedAt: artifact.generatedAt,
+        parseError: artifact.parseError,
+      },
+    ]),
+  );
 }
 
 function gate(
@@ -707,11 +982,13 @@ function gate(
   return { key, label, ready, evidence, blocker: ready ? null : blocker };
 }
 
-export function buildProviderExitPackReport(params: {
-  generatedAt?: string;
-  scan?: ProviderExitPackReport["legacyProviderScan"];
-  artifacts?: Record<string, Artifact>;
-} = {}): ProviderExitPackReport {
+export function buildProviderExitPackReport(
+  params: {
+    generatedAt?: string;
+    scan?: ProviderExitPackReport["legacyProviderScan"];
+    artifacts?: Record<string, Artifact>;
+  } = {},
+): ProviderExitPackReport {
   const generatedAt = params.generatedAt ?? new Date().toISOString();
   const artifacts = {
     ...(params.artifacts ?? {
@@ -719,47 +996,81 @@ export function buildProviderExitPackReport(params: {
       providerResources: readJsonArtifact(ARTIFACT_PATHS.providerResources),
       emailReadiness: readJsonArtifact(ARTIFACT_PATHS.emailReadiness),
       hostedAuthMatrix: readJsonArtifact(ARTIFACT_PATHS.hostedAuthMatrix),
-      latestDeploySourceSmoke: readJsonArtifact(ARTIFACT_PATHS.latestDeploySourceSmoke),
+      latestDeploySourceSmoke: readJsonArtifact(
+        ARTIFACT_PATHS.latestDeploySourceSmoke,
+      ),
     }),
   };
   artifacts.operatorRecord ??= readJsonArtifact(operatorRecordArtifactPath());
   const scan = params.scan ?? scanLegacyProviderReferences();
 
-  const releaseGateReady = artifacts.releaseGates.present
-    && artifacts.releaseGates.parseError === null
-    && boolAt(artifacts.releaseGates.value, ["readiness", "productionCutoverReady"])
-    && stringArrayAt(artifacts.releaseGates.value, ["blockers"]).length === 0;
-  const providerResourcesReady = artifacts.providerResources.present
-    && artifacts.providerResources.parseError === null
-    && boolAt(artifacts.providerResources.value, ["readiness", "providerResourceReadbackReady"])
-    && stringArrayAt(artifacts.providerResources.value, ["blockers"]).length === 0;
-  const cloudflareEmailReady = artifacts.emailReadiness.present
-    && artifacts.emailReadiness.parseError === null
-    && boolAt(artifacts.emailReadiness.value, ["productionEmailReady"])
-    && stringArrayAt(artifacts.emailReadiness.value, ["blockers"]).length === 0;
-  const authMatrixCases = getPath(artifacts.hostedAuthMatrix.value, ["authResult", "cases"]);
+  const releaseGateReady =
+    artifacts.releaseGates.present &&
+    artifacts.releaseGates.parseError === null &&
+    boolAt(artifacts.releaseGates.value, [
+      "readiness",
+      "productionCutoverReady",
+    ]) &&
+    stringArrayAt(artifacts.releaseGates.value, ["blockers"]).length === 0;
+  const providerResourcesReady =
+    artifacts.providerResources.present &&
+    artifacts.providerResources.parseError === null &&
+    boolAt(artifacts.providerResources.value, [
+      "readiness",
+      "providerResourceReadbackReady",
+    ]) &&
+    stringArrayAt(artifacts.providerResources.value, ["blockers"]).length === 0;
+  const cloudflareEmailReady =
+    artifacts.emailReadiness.present &&
+    artifacts.emailReadiness.parseError === null &&
+    boolAt(artifacts.emailReadiness.value, ["productionEmailReady"]) &&
+    stringArrayAt(artifacts.emailReadiness.value, ["blockers"]).length === 0;
+  const authMatrixCases = getPath(artifacts.hostedAuthMatrix.value, [
+    "authResult",
+    "cases",
+  ]);
   const authCaseNames = Array.isArray(authMatrixCases)
     ? authMatrixCases
-      .map((item) => item && typeof item === "object" ? (item as Record<string, unknown>).name : null)
-      .filter((name): name is string => typeof name === "string")
+        .map((item) =>
+          item && typeof item === "object"
+            ? (item as Record<string, unknown>).name
+            : null,
+        )
+        .filter((name): name is string => typeof name === "string")
     : [];
-  const requiredAuthCases = ["signedOut", "allowed", "denied", "revoked", "expired", "malformed"];
-  const hostedAuthMatrixReady = artifacts.hostedAuthMatrix.present
-    && artifacts.hostedAuthMatrix.parseError === null
-    && boolAt(artifacts.hostedAuthMatrix.value, ["passed"])
-    && boolAt(artifacts.hostedAuthMatrix.value, ["cleanupPassed"])
-    && requiredAuthCases.every((name) => authCaseNames.includes(name));
-  const latestDeploySourceSmokeReady = artifacts.latestDeploySourceSmoke.present
-    && artifacts.latestDeploySourceSmoke.parseError === null
-    && boolAt(artifacts.latestDeploySourceSmoke.value, ["readiness", "latestDeploySourceSmokeReady"])
-    && stringArrayAt(artifacts.latestDeploySourceSmoke.value, ["blockers"]).length === 0;
+  const requiredAuthCases = [
+    "signedOut",
+    "allowed",
+    "denied",
+    "revoked",
+    "expired",
+    "malformed",
+  ];
+  const hostedAuthMatrixReady =
+    artifacts.hostedAuthMatrix.present &&
+    artifacts.hostedAuthMatrix.parseError === null &&
+    boolAt(artifacts.hostedAuthMatrix.value, ["passed"]) &&
+    boolAt(artifacts.hostedAuthMatrix.value, ["cleanupPassed"]) &&
+    requiredAuthCases.every((name) => authCaseNames.includes(name));
+  const latestDeploySourceSmokeReady =
+    artifacts.latestDeploySourceSmoke.present &&
+    artifacts.latestDeploySourceSmoke.parseError === null &&
+    boolAt(artifacts.latestDeploySourceSmoke.value, [
+      "readiness",
+      "latestDeploySourceSmokeReady",
+    ]) &&
+    stringArrayAt(artifacts.latestDeploySourceSmoke.value, ["blockers"])
+      .length === 0;
   const noActiveLegacyProviderRuntime = scan.blockerCount === 0;
-  const operatorRecord = artifacts.operatorRecord.parseError === null
-    ? artifacts.operatorRecord.value as ProviderExitOperatorRecord | null
-    : null;
-  const operatorEvidence = artifacts.operatorRecord.present && artifacts.operatorRecord.parseError === null
-    ? artifacts.operatorRecord.path
-    : "sanitized provider-exit operator record required";
+  const operatorRecord =
+    artifacts.operatorRecord.parseError === null
+      ? (artifacts.operatorRecord.value as ProviderExitOperatorRecord | null)
+      : null;
+  const operatorEvidence =
+    artifacts.operatorRecord.present &&
+    artifacts.operatorRecord.parseError === null
+      ? artifacts.operatorRecord.path
+      : "sanitized provider-exit operator record required";
   const operatorRecordDiagnostics = buildOperatorRecordDiagnostics({
     record: operatorRecord,
     path: artifacts.operatorRecord.path,
@@ -907,11 +1218,16 @@ function tableCell(value: string) {
 
 export function renderMarkdown(report: ProviderExitPackReport) {
   const gateRows = report.gates
-    .map((item) => `| ${item.label} | ${checkMark(item.ready)} | ${item.evidence ?? ""} | ${item.blocker ?? ""} |`)
+    .map(
+      (item) =>
+        `| ${item.label} | ${checkMark(item.ready)} | ${item.evidence ?? ""} | ${item.blocker ?? ""} |`,
+    )
     .join("\n");
   const diagnosticRows = report.operatorRecordDiagnostics.diagnostics
     .map((item) => {
-      const missingFields = item.missingFields.length ? item.missingFields.join(", ") : "none";
+      const missingFields = item.missingFields.length
+        ? item.missingFields.join(", ")
+        : "none";
       const status = item.status ?? "missing";
       const acceptedDeferral = item.acceptedDeferral ? "yes" : "no";
       return `| ${tableCell(item.gateKey)} | ${checkMark(item.ready)} | ${tableCell(item.section)} | ${tableCell(status)} | ${acceptedDeferral} | ${tableCell(missingFields)} |`;
@@ -919,12 +1235,20 @@ export function renderMarkdown(report: ProviderExitPackReport) {
     .join("\n");
   const blockerRows = report.legacyProviderScan.blockers.length
     ? report.legacyProviderScan.blockers
-      .map((item) => `| ${item.provider} | ${item.file}:${item.line} | ${item.snippet.replace(/\|/g, "\\|")} |`)
-      .join("\n")
+        .map(
+          (item) =>
+            `| ${item.provider} | ${item.file}:${item.line} | ${item.snippet.replace(/\|/g, "\\|")} |`,
+        )
+        .join("\n")
     : "| none | n/a | n/a |";
-  const informationalRows = report.legacyProviderScan.informational.slice(0, 20)
-    .map((item) => `| ${item.provider} | ${item.file}:${item.line} | ${item.snippet.replace(/\|/g, "\\|")} |`)
-    .join("\n") || "| none | n/a | n/a |";
+  const informationalRows =
+    report.legacyProviderScan.informational
+      .slice(0, 20)
+      .map(
+        (item) =>
+          `| ${item.provider} | ${item.file}:${item.line} | ${item.snippet.replace(/\|/g, "\\|")} |`,
+      )
+      .join("\n") || "| none | n/a | n/a |";
 
   return `# Cloudflare Provider Exit Pack
 
@@ -1004,13 +1328,17 @@ async function main() {
 
   if (envFlag("WRITE_OPERATOR_RECORD_TEMPLATE")) {
     operatorRecordTemplateFile = operatorRecordTemplatePath();
-    writeJson(operatorRecordTemplateFile, buildOperatorRecordTemplate(report.generatedAt));
+    writeJson(
+      operatorRecordTemplateFile,
+      buildOperatorRecordTemplate(report.generatedAt),
+    );
   }
 
   const summary: Record<string, unknown> = {
     generatedAt: report.generatedAt,
     mode: report.mode,
-    appRuntimeExitPrerequisitesReady: report.readiness.appRuntimeExitPrerequisitesReady,
+    appRuntimeExitPrerequisitesReady:
+      report.readiness.appRuntimeExitPrerequisitesReady,
     providerExitReady: report.readiness.providerExitReady,
     blockerCount: report.blockers.length,
     activeLegacyProviderRuntimeBlockers: report.legacyProviderScan.blockerCount,
@@ -1022,9 +1350,11 @@ async function main() {
     summary.operatorRecordTemplateFile = operatorRecordTemplateFile;
   }
 
-  const strictReadinessExit = envFlag("STRICT_READINESS_EXIT") || envFlag("FAIL_ON_BLOCKERS");
+  const strictReadinessExit =
+    envFlag("STRICT_READINESS_EXIT") || envFlag("FAIL_ON_BLOCKERS");
   summary.strictReadinessExit = strictReadinessExit;
-  summary.exitCode = strictReadinessExit && !report.readiness.providerExitReady ? 1 : 0;
+  summary.exitCode =
+    strictReadinessExit && !report.readiness.providerExitReady ? 1 : 0;
 
   console.log(JSON.stringify(summary, null, 2));
 
