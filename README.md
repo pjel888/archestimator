@@ -27,25 +27,31 @@ Primary market is the Philippines and Southeast Asia, where these teams still ru
 
 | Layer | Technology |
 |-------|-----------|
-| Framework | Next.js 16.2.6 (App Router, RSC) |
-| UI | React 19.2.6 |
-| Runtime | Bun (package manager, test runner, lockfile) |
-| Language | TypeScript (strict, ES2017 target) |
+| Framework | Next.js 16.2.10 (App Router, RSC) |
+| UI | React 19.2.7 |
+| Runtime | Bun 1.3.14 (package manager, test runner, lockfile) |
+| Language | TypeScript 6.0.3 (strict) |
 | Styling | Tailwind CSS v4 (CSS-first config, no tailwind.config.ts) |
 | Deploy | OpenNext for Cloudflare Workers (`@opennextjs/cloudflare` ^1.20.1), Wrangler ^4.105.0, Worker `archestimator-proof`, custom domain `archestimator.com` |
-| Database | Cloudflare D1 (`ARCH_DB`, database `archestimator-proof-db`, 29 migrations in `./migrations/`) |
+| Database | Cloudflare D1 (`ARCH_DB`, database `archestimator-proof-db`, 40 migrations in `./migrations/`) |
 | Storage | Cloudflare R2 (`ARCH_UPLOADS_R2`, bucket `archestimator-proof-uploads`) |
 | Realtime | Cloudflare Durable Objects (`COLLAB_ROOMS`, class `CollaborationRoom`, SQLite-backed) |
-| Background jobs | Cloudflare Queues (`UPLOAD_JOBS_QUEUE` + DLQ) + Cron (`0 3 * * *`, `15 3 * * *`) |
-| Auth | Better Auth 1.6.22 (Google OAuth + magic link, D1-backed, mounted at `/api/auth/[...all]`) |
+| Background jobs | Cloudflare Queues (`UPLOAD_JOBS_QUEUE` + DLQ, max 3 retries) + Cron (`0 3 * * *`, `15 3 * * *`, `30 3 * * *`) |
+| Auth | Better Auth 1.6.23 (Google OAuth + magic link, D1-backed, mounted at `/api/auth/[...all]`) |
 | Email | Cloudflare Email Service (`EMAIL` binding, replaces Resend) |
 | Images | Cloudflare Images (`IMAGES` binding) |
 | State | TanStack Query 5, Zustand 5 |
+| Tables | TanStack Table 8 |
+| Virtualization | TanStack Virtual 3 |
 | Charts | D3 7 |
 | Tree UI | React Complex Tree 2 |
+| Animation | GSAP 3 + @gsap/react |
+| Dropdowns | Radix UI (Context Menu, Dropdown Menu) |
+| Export | ExcelJS 4 |
 | Icons | Phosphor Icons, Lucide (shadcn) |
-| Testing | Bun test, Vitest + jsdom, Playwright E2E |
+| Testing | Bun test, Vitest 4 + jsdom, Playwright E2E |
 | Linting | ESLint 9 (flat config), custom design-system linter, tsc |
+| Component library | Storybook 10.4 (60+ UI components, 85+ stories, review surface only) |
 
 > **Migration status:** Cloudflare migration is complete. `package.json` contains zero `@supabase/*` packages. Legacy Supabase migrations in `./supabase/migrations/` (182 files) are retained only as migration archaeology — do not run or extend them. Supabase project `ebxxqidacheyapmmzavr` is historical provider-exit evidence only.
 
@@ -67,6 +73,8 @@ Local Cloudflare bindings are defined in `wrangler.jsonc`. Apply new D1 migratio
 
 ## Commands
 
+### Development
+
 ```bash
 bun run type-check       # tsc --noEmit
 bun run lint             # ESLint
@@ -75,10 +83,10 @@ bun run test             # Bun unit tests (tests/unit/)
 bun run test:dom         # Vitest DOM tests (tests/vitest/)
 bun run test:e2e         # Playwright E2E (Chromium)
 bun run build            # Next.js production build
-bun run validate         # Full gate: type-check + lint + design-system + unit + dom
+bun run validate         # Full gate: type-check + lint + error-handling + design-system + design + unit + dom
 ```
 
-Cloudflare / Worker / D1 operations (50+ `cf:*` scripts in `package.json`):
+### Cloudflare / Worker / D1 operations
 
 ```bash
 bun run cf:build                           # opennextjs-cloudflare build
@@ -96,6 +104,61 @@ bun run cf:d1-restore-rehearsal            # D1 restore dry-run (cheaper recover
 bun run cf:provider-exit-pack              # legacy provider-exit evidence pack
 bun run cf:release-gates                   # release-gate suite
 bun run cf:inventory                       # Cloudflare migration inventory
+```
+
+### Operations & observability
+
+```bash
+bun run ops:incident                       # Declare/note/status/close operational incidents
+bun run ops:check-incidents                # Local + remote incident table readiness
+bun run ops:check-observability            # Production observability proof gate
+bun run ops:observability-drill            # Joined env/artifact/drill overview
+bun run ops:check-alert-scenarios          # Alert scenario S-01 through S-07 readiness
+bun run ops:agent-debug-snapshot           # Agent debugging readiness snapshot
+bun run ops:debug-ledger                   # Record debugging session results
+bun run ops:check-error-handling           # Error handling contract check (write artifact)
+bun run ops:collect-workers-logs-proof     # Workers Logs proof collection
+bun run ops:verify-observability-alert     # Alert delivery proof for a scenario
+```
+
+### Logging
+
+```bash
+bun run logs:debug                        # Explain latest error from dev log
+bun run logs:tail -- --error --last 20    # Tail recent errors
+bun run logs:explain <record_id>          # Explain a specific log record
+```
+
+### Performance
+
+```bash
+bun run perf:measure-routes                # Route transition timing
+bun run perf:check-routes                  # Route transition readiness
+bun run perf:dashboard-query-count         # Workshop dashboard query audit
+bun run perf:seed-fixture                  # Seed performance test data
+bun run perf:library-baseline              # Library performance baseline
+bun run perf:profile-peak-load             # Peak load profiling
+bun run perf:collect-live-evidence         # Live DB performance evidence
+```
+
+### Launch readiness
+
+```bash
+bun run launch:verify-hosted-auth          # Hosted auth route verification
+bun run launch:verify-hosted-export        # Hosted export route verification
+bun run launch:verify-hosted-sensitive-routes  # Fail-closed sensitive route check
+bun run launch:check-support-dns           # Support email DNS verification
+bun run launch:check-support-monitoring    # Support monitoring readiness
+bun run launch:check-legal-owner           # Legal/owner readiness
+bun run launch:check-observability         # Observability gate (alias)
+bun run launch:check-alert-scenarios       # Alert scenarios gate (alias)
+```
+
+### Storybook
+
+```bash
+bun run storybook                          # Start Storybook on port 6006
+bun run storybook:validate                 # Component coverage + boundary + build check
 ```
 
 Full pre-push validation:
@@ -187,11 +250,13 @@ src/
 │   ├── ab-testing/                # A/B experiment framework
 │   ├── landing/                   # Landing auth state, consent
 │   ├── email/                     # Cloudflare Email client (cloudflare-email-client.ts, transactional-email-client.ts)
+│   ├── observability/             # Alert scenarios (S-01 through S-07), request-id propagation
 │   ├── workshop/                  # Workshop-level actions
 │   └── ui/                        # cn() helper, design tokens
-└── stores/                        # Zustand stores
-    ├── estimate-ui-store.ts       # Per-estimate selection, expansion
-    └── navigation-ui-store.ts     # Route-loading overlay state
+├── stores/                        # Zustand stores
+│   ├── estimate-ui-store.ts       # Per-estimate selection, expansion
+│   └── navigation-ui-store.ts     # Route-loading overlay state
+└── scripts/                       # 80+ ops/verification scripts (cf:*, ops:*, logs:*, perf:*, launch:*, etc.)
 ```
 
 ## Architecture
@@ -203,12 +268,13 @@ Archestimator follows a server-actions-first architecture with optimistic local-
 3. **Zustand** stores high-frequency UI state (selections, expansions, loading overlays)
 4. **Cloudflare Durable Objects** (`COLLAB_ROOMS`) broadcast cursor positions and user presence via WebSocket
 5. **App-layer authorization** enforces access on every data path. D1 has no Postgres RLS, so authorization is enforced in repositories, Server Actions, and the Better Auth route gate (`src/lib/auth/request-proxy.ts` exported via `src/middleware.ts`) — fail-closed by default
+6. **Request-id propagation** threads a durable internal request-id through Worker fetch, route helpers, problem details, server-action error logging, and Next request instrumentation
 
 The app shell uses `WorkshopPageShell` and `PublicPageShell` React components rather than nested Next.js layouts (only `/workshop/projects/[projectId]` has a dedicated `layout.tsx` for the project sidebar + header).
 
 ## Database schema
 
-Tables spread across 29 D1 migrations in `./migrations/` (latest `0029_estimate_actions_d1_support.sql`), with app-layer authorization enforced on all data access (no RLS — D1 is not Postgres). 50+ RPC-style queries are scoped via repository helpers under `src/lib/repositories/`.
+Tables spread across 40 D1 migrations in `./migrations/` (latest `0040_operational_incidents.sql`), with app-layer authorization enforced on all data access (no RLS — D1 is not Postgres). 50+ RPC-style queries are scoped via repository helpers under `src/lib/repositories/`.
 
 **Core hierarchy:** workspaces → projects → estimates → estimate_nodes (group/area tree) → estimate_row_items
 
@@ -222,7 +288,22 @@ Tables spread across 29 D1 migrations in `./migrations/` (latest `0029_estimate_
 
 **Versioning:** estimate_sheet_versions (named snapshots), cost_library_item_versions, cost_library_item_price_history, cost_library_item_state_history.
 
+**Incidents:** operational_incidents, operational_incident_events (durable incident lifecycle with HTTPS webhook alerting).
+
+**Security:** security_rate_limit_events (DB-durable persistent rate limiting across publication, AI, invite-entry, and export paths).
+
 Legacy Supabase schema (40+ tables, 182 migration files, 50+ RPC functions, RLS) is preserved as migration archaeology in `./supabase/migrations/` and is no longer authoritative.
+
+## Observability & operations
+
+Archestimator has production observability infrastructure:
+
+- **Structured logging:** `logs/dev.ndjson` for local/dev diagnosis; Cloudflare Workers Logs (persisted, full sampling) for hosted runtime
+- **Debugging:** `bun run ops:agent-debug-snapshot` for agent-readable readiness; `bun run ops:debug-ledger` for redacted recurrence records
+- **Incidents:** D1-backed `operational_incidents` table with lifecycle management via `bun run ops:incident`; optional webhook alerting when `OPERATIONAL_INCIDENT_ALERTS_ENABLED=1`
+- **Alert scenarios:** S-01 through S-07 (uptime, error-rate, queue-DLQ, cron-failure, incident-escalation, retention-failure) with local proof producers and hosted delivery verification
+- **Workers Logs:** `wrangler.jsonc` enables persisted Workers Logs at full sampling with traces disabled to preserve shared log quota
+- **Error handling:** `validate:error-handling` static gate enforces no swallowed errors in server/API/observability/email/ops surfaces
 
 ## Key features
 
@@ -232,12 +313,16 @@ Legacy Supabase schema (40+ tables, 182 migration files, 50+ RPC functions, RLS)
 | Reusable cost component library (brands, suppliers, variants, pricing, images, attachments) | Live |
 | Inline sheet editing with optimistic local-state mutations | Live |
 | Estimate templates | Live |
+| Tabbed estimate sheets (CRUD, tab-aware export) | Live |
 | Project comparison charts (D3 donut + bubble, grouped by space/category/supplier) | Live |
 | Shared proposal snapshots (publication links with comments, decisions, password protection) | Live |
 | Collaboration invitations (email invite, role-based access, Realtime cursors) | Live |
 | Activity + Node Activity + row version history | Live |
 | Excel proposal export (.xlsx workbook from estimate tree) | Live |
-| Proposal snapshots / issued export policy | Partial / planned |
+| Persistent rate limiting (DB-durable, not Redis-backed) | Live |
+| Operational incident lifecycle (declare/note/status/close, webhook alerts) | Live |
+| Agentic debugging ledger & error handling contract | Live |
+| Proposal snapshots / issued export policy | Planned |
 | Archiving and trash | Planned |
 | Proposal open tracking | Planned |
 | Beta onboarding flow | Planned |
@@ -276,9 +361,9 @@ Components grow from `src/components/ui/` shared primitives first — Button, Ba
 
 ## Testing
 
-**Vitest (jsdom):** 115 test files under `tests/vitest/`. Covers route handlers, server actions, RPC contracts, React components (RTL), schema migrations, security contracts, and AI audit trails.
+**Vitest (jsdom):** 115+ test files under `tests/vitest/`. Covers route handlers, server actions, RPC contracts, React components (RTL), schema migrations, security contracts, observability/incident infrastructure, and AI audit trails.
 
-**Bun test (unit):** 2 files under `tests/unit/`. Red-first migration guard + UI baseline regression that asserts exact source text presence/absence.
+**Bun test (unit):** Tests under `tests/unit/`. Red-first migration guard + UI baseline regression that asserts exact source text presence/absence.
 
 **Playwright E2E:** 7 spec files under `e2e/`. Landing page audit, auth smoke, tree DnD, AI package builder live, invite entry, teamspace collaboration, shared link receiver. Mutating E2E specs are gated behind environment flags and require D1/Worker-parity local bindings (`bun run cf:preview`) or operator-scoped service credentials.
 
@@ -304,15 +389,32 @@ Agents must read:
 
 1. `AGENTS.md` — entry point
 2. `DESIGN.md` — design philosophy
-3. `.ai/10_state/current-state.md` — current project state
+3. `.ai/10_state/current-state.md` — current project state (append-only history; read FAST PATH block at top, then `rg` for specific areas)
 4. `.ai/10_state/decisions.md` — architecture decisions
-5. `.ai/06_specs/` — feature specifications
+5. `.ai/00_system/AGENT_OPERATING_PROTOCOL.md` — loop activation, stop conditions, proportional validation
+6. `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md` — agent-framework, payload, multi-agent work
+7. `.ai/06_specs/` — feature specifications
+8. `.ai/01_roadmap/README.md` — launch readiness dashboard and roadmap
 
-GitNexus: ~9,400 symbols, ~17,400 relationships, 300 execution flows indexed.
+GitNexus: 22,921 symbols, 55,116 relationships, 300 execution flows indexed.
 
 ## Local data
 
 Tracked seed data in `data/local/seed.json`. Runtime edits written to `data/local/runtime.json` (git-ignored). Delete `runtime.json` to reset from seed. Set `ARCHESTIMATOR_DATA_PATH` to point at an alternative JSON file.
+
+Local structured log at `logs/dev.ndjson` (git-ignored). Default `NODE_ENV=test` runs do not write to this file unless `ARCHESTIMATOR_DEV_LOG_PATH` is explicit.
+
+## Current status
+
+**Pre-launch MVP** on Cloudflare Worker `archestimator-proof` at `archestimator.com`. All infra is Cloudflare-native (D1, R2, Durable Objects, Queues, Email, Images). Supabase/Vercel are fully exited. Implementation is active on `main`; the broad MVP launch goal is frozen — remaining launch work is external/provider/manual proof collection (hosted auth smoke, migration parity, DNS, legal review, backup verification, browser E2E).
+
+**Launch layers:**
+- Layer 0: Internal implementation (active)
+- Layer 1: Controlled design-partner beta (conditional — owner defaults decided)
+- Layer 2: Enterprise-grade MVP (planned)
+- Layer 3: Public/paid production (no-go)
+
+Codebase: ~498 source files, ~218 test files, ~51 app routes, ~17 API routes, 80+ ops scripts. Development active on `main` branch with shared-worktree coordination across multiple AI agents.
 
 ## Patch
 
