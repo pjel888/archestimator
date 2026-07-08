@@ -36,8 +36,8 @@ bypasses.
 For debugging handoffs or "what do the logs say?" work, run
 `bun run ops:agent-debug-snapshot`. It produces a redacted local debugging
 readiness report across `logs/dev.ndjson`, the latest error recurrence key,
-prior matching debugging ledger records, incident-table readiness, hosted proof env gates, hosted proof artifact
-readiness, and the error-handling static gate without exposing raw log messages,
+prior matching debugging ledger records, incident-table readiness, alert scenario
+readiness, hosted proof env gates, hosted proof artifact readiness, and the error-handling static gate without exposing raw log messages,
 stacks, request ids, webhook URLs, or token values.
 
 When a fix or mitigation creates reusable debugging knowledge, append a
@@ -50,6 +50,12 @@ For production observability readiness, run `bun run ops:observability-drill`
 first. It is read-only: it joins hosted proof env preflight, hosted artifact
 validation, and the next Workers Logs / alert proof commands without querying
 Cloudflare, sending webhooks, or mutating D1 incidents.
+Run `bun run ops:check-alert-scenarios -- --catalog-only` to validate the local
+S-01 through S-07 alert scenario contract. Run `bun run ops:check-alert-scenarios`
+as the local proof-producer gate; it fails closed if any provider-backed launch
+scenario lacks an implemented proof producer. Hosted delivery evidence is checked
+separately by `bun run ops:check-observability`, which rejects missing, stale,
+unredacted, partial, or wrong-producer hosted proof artifacts.
 Workers Logs proof collection should use the secret-gated hosted marker route
 when possible:
 `WORKERS_LOGS_PROOF_URL=https://archestimator.com/__cloudflare/observability-proof WORKERS_LOGS_PROOF_SECRET=<cron_secret> bun run ops:collect-workers-logs-proof`.
@@ -81,6 +87,7 @@ Launch readiness probes (read-only, no provider mutation):
 bun run ops:agent-debug-snapshot
 bun run ops:debug-ledger -- --check
 bun run ops:observability-drill
+bun run ops:check-alert-scenarios -- --catalog-only
 bun run ops:check-observability-env
 bun run launch:verify-hosted-auth
 bun run launch:verify-hosted-export

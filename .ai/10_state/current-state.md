@@ -45,8 +45,9 @@ Stable current truth (verify against git/source before relying on a detail):
 	  the current source no longer references that symbol, and the typecheck plus
 	  project-page tests pass. Hosted observability readiness now has
 	  `bun run ops:check-observability`, which fails closed until fresh redacted
-	  Workers Logs query, uptime alert, error-rate alert, and incident-escalation
-	  alert artifacts exist; `launch:check-support-monitoring` consumes that
+	  Workers Logs query plus uptime, error-rate, Queue DLQ, cron-failure,
+	  incident-escalation, and retention-failure alert artifacts exist;
+	  `launch:check-support-monitoring` consumes that
 	  artifact via `SUPPORT_MONITORING_OBSERVABILITY_PROOF_FILE`. Focused
 	  Workers Logs proof collection has `bun run ops:collect-workers-logs-proof`;
 	  in the preferred mode it tails `--search <proof id>`, triggers the protected
@@ -70,7 +71,7 @@ Stable current truth (verify against git/source before relying on a detail):
 	  `git diff --check`; recurrence ledger record
 	  `debug-80d04275-c81b-49e1-84cd-eb1921af1958` captures the source-contract
 	  gap. Alert-delivery proof has
-	  `bun run ops:verify-observability-alert -- --scenario <uptime|error-rate|incident-escalation>`,
+	  `bun run ops:verify-observability-alert -- --scenario <uptime|error-rate|queue-dlq|cron-failure|incident-escalation|retention-failure>`,
 	  which sends one synthetic redacted webhook payload only with explicit hosted
 	  proof env gates and writes the matching alert artifact shape. Focused
 	  observability/incident/request-id verification passed on 2026-07-08:
@@ -78,6 +79,52 @@ Stable current truth (verify against git/source before relying on a detail):
 	  A no-env alert-proof smoke wrote
 	  `.ai/99_scratch/uptime-alert-delivery-proof-skipped.json`, exited 1, and
 	  confirmed `skipped:true` / `delivered:false` without sending.
+	  Alert scenario ownership/poller readiness now has
+	  `src/lib/observability/alert-scenarios.ts` and
+	  `bun run ops:check-alert-scenarios`: `--catalog-only` proves the local
+	  S-01 through S-07 contract, while the default gate verifies the local
+	  proof producers are implemented. Hosted artifacts are still proven by
+	  `bun run ops:check-observability`. `ops:agent-debug-snapshot` now includes
+	  alert scenario catalog readiness, production alert producer readiness, proof
+	  totals, and launch blockers in the same redacted handoff. Recurrence
+	  ledger record `debug-e6e84d6d-c1e9-40fe-a48f-9e22004ff016` captures the
+	  fixed agent-checkable alert scenario contract gap.
+	  Follow-up proof-producer coverage on 2026-07-08 implemented the S-04 Queue
+	  DLQ, S-05 cron-failure, and S-07 retention-failure paths through the shared
+	  `ops:verify-observability-alert` runner. `ops:check-observability` and
+	  `ops:observability-drill` now require Workers Logs plus all six hosted
+	  observability alert-delivery artifacts, while `ops:check-alert-scenarios`
+	  passes locally with 7 implemented proofs and 0 planned proofs. Focused
+	  alert/observability/snapshot/support tests passed 7 files / 35 tests;
+	  large-heap typecheck, `validate:error-handling`, `ops:debug-ledger -- --check`,
+	  and `git diff --check` passed. Recurrence ledger record
+	  `debug-1fa57b3c-4031-415b-96f8-af6632b85790` captures this producer-coverage
+	  gap with recurrence key `dbg_8b38691d2d1781c8`.
+	  The snapshot/checker field names now separate local producer readiness from
+	  hosted production proof: `productionAlertProducerReady` and
+	  `productionAlertScenarioProducerReady` are local producer gates, while
+	  `productionHostedProofReady` remains the hosted artifact gate. Verification
+	  passed the focused 2-file semantic test pair, the broader 7-file alert
+	  observability suite, large-heap typecheck, `validate:error-handling`, and
+	  `ops:debug-ledger -- --check`. Recurrence ledger record
+	  `debug-7f92c221-8bf8-4f7a-9b8d-1310a678e3a1` captures this naming gap with
+	  recurrence key `dbg_be4fa13f545e2d90`.
+	  Hosted observability proof artifacts are now producer-pinned: Workers Logs
+	  artifacts must identify `scripts/collect-workers-logs-proof.ts` version 1,
+	  alert-delivery artifacts must identify
+	  `scripts/verify-observability-alert-delivery.ts` version 1, and
+	  `ops:check-observability` rejects otherwise-valid artifacts with wrong or
+	  missing producer metadata. Verification passed focused proof tests
+	  (3 files / 18 tests), expanded observability/protocol tests (6 files / 30
+	  tests), large-heap typecheck, `validate:error-handling`,
+	  `ops:debug-ledger -- --check`, `ops:agent-debug-snapshot`, and
+	  `git diff --check`. `ops:check-observability` still fails closed with seven
+	  missing hosted artifacts in this shell, as expected. Recurrence ledger record
+	  `debug-2fdb9188-755c-412b-b1c1-4232149bb01c` captures the artifact-producer
+	  pinning gap with recurrence key `dbg_31a6cd99b5b1965d`. This guards local
+	  artifact trust; actual production readiness still requires fresh hosted
+	  Workers Logs plus six hosted alert artifacts from the configured production
+	  environment.
 	  Sensitive server/API/observability/email/ops surfaces now have
 	  `bun run validate:error-handling`, a non-mutating static gate that rejects
 	  empty `catch` and Promise `.catch` handlers, plus raw `console.error`
@@ -91,7 +138,7 @@ Stable current truth (verify against git/source before relying on a detail):
 	  A later 2026-07-08 expansion converted public share deferred telemetry,
 	  component-library action errors, account-security audit failures, retention
 	  pass failures, and upload operations dashboard failures to structured
-	  logging; `ops:agent-debug-snapshot` now reports 64 scanned files and zero
+	  logging; `ops:agent-debug-snapshot` now reports 65 scanned files and zero
 	  error-handling violations.
 	  Final guardrail evidence passed: 11 Vitest files / 45 tests,
 	  `bun run type-check`, `bun run ops:check-incidents`, and
@@ -127,9 +174,10 @@ Stable current truth (verify against git/source before relying on a detail):
 	  Current hosted proof remains intentionally fail-closed: this shell has no
 	  Cloudflare token/account id, Workers Logs proof request id/route, or alert
 	  webhook proof env gates. A fresh scratch `ops:check-observability` report
-	  on 2026-07-08 found all four hosted artifacts missing: Workers Logs query,
-	  uptime alert delivery, error-rate alert delivery, and incident-escalation
-	  alert delivery. Agents can now run `bun run ops:observability-drill`
+	  on 2026-07-08 found hosted artifacts missing: Workers Logs query plus
+	  uptime, error-rate, Queue DLQ, cron-failure, incident-escalation, and
+	  retention-failure alert delivery. Agents can now run
+	  `bun run ops:observability-drill`
 	  first for a read-only production observability drill that joins hosted
 	  proof env preflight, hosted artifact validation, and blocked/ready proof
 	  commands without querying Cloudflare, sending webhooks, or mutating D1
@@ -150,15 +198,16 @@ Stable current truth (verify against git/source before relying on a detail):
 	  2026-07-08 with local debugging and operational incident readiness true;
 	  production evidence collection and incident alerting remain false until the
 	  hosted proof env gates/artifacts exist. The snapshot now calls the hosted
-	  proof bundle checker too, so missing Workers Logs, uptime, error-rate, and
-	  incident-escalation artifacts surface in the same agent handoff instead of
-	  requiring a separate mental join; the snapshot now recommends
+	  proof bundle checker too, so missing Workers Logs plus all six
+	  observability alert-delivery artifacts surface in the same agent handoff
+	  instead of requiring a separate mental join; the snapshot now recommends
 	  `ops:observability-drill` when hosted proof is incomplete.
 	  `ops:check-observability` itself now also
 	  prints failed requirement keys, missing artifact filenames or failed checks,
 	  and the next proof-command sequence in the terminal while still writing the
-	  JSON report; a current scratch run fails closed with all four hosted proof
-	  artifacts missing. Focused drill verification passed 1 Vitest file / 4
+	  JSON report; a current scratch run fails closed with hosted Workers Logs
+	  proof plus all six hosted alert-delivery artifacts missing. Focused drill
+	  verification passed 1 Vitest file / 4
 	  tests before the broader observability suite rerun.
 	  A refreshed local check after the drill wiring passed the broader focused
 	  observability/debugging suite (6 Vitest files / 26 tests),
@@ -207,7 +256,7 @@ Stable current truth (verify against git/source before relying on a detail):
 	  verification passed: 7 Vitest files / 78 tests, large-heap typecheck,
 	  `bun run validate:error-handling`, and
 	  `OUTPUT_FILE=.ai/99_scratch/agent-debugging-snapshot-current.json bun run ops:agent-debug-snapshot`
-	  with 64 scanned files and zero error-handling violations.
+	  with 65 scanned files and zero error-handling violations.
 	  A broad `bun run validate` attempt first exposed two React Compiler lint
 	  errors in `src/components/workshop/EstimateSheetContent.tsx`; those are now
 	  fixed by moving the latest-width ref write into an effect and gating account
