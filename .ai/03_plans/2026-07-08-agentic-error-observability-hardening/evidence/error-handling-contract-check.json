@@ -1,0 +1,21 @@
+{
+  "generatedAt": "2026-07-08T04:15:36.325Z",
+  "mode": "error-handling-contract-check",
+  "scannedTargets": [
+    "worker.ts",
+    "src/app/api",
+    "src/lib/observability",
+    "src/lib/email",
+    "src/lib/uploads/operational-telemetry.ts",
+    "scripts/record-operational-incident.ts",
+    "scripts/check-operational-incidents.ts",
+    "scripts/check-production-observability-proof.ts",
+    "scripts/collect-workers-logs-proof.ts",
+    "scripts/verify-observability-alert-delivery.ts"
+  ],
+  "scannedFiles": 55,
+  "violations": [],
+  "failedChecks": [],
+  "passed": true,
+  "note": "Scans sensitive server, observability, email, and operations surfaces for empty catch blocks or empty Promise.catch handlers. It is a static guardrail for agentic debugging; runtime logging and hosted observability still require their own proof."
+}
