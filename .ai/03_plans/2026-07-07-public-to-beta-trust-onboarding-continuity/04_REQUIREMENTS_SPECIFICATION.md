@@ -87,7 +87,7 @@ Stable IDs. Categories: FR (functional), UX, A11Y, ARCH, SEC, REL, OPS, TEST, DO
 **Statement:** Submitting `ClosedBetaGate` calls a server action (`requestBetaAccess`) that: validates honeypot, rate-limits by email+IP-hash, records an audit row, and returns a receipt state ("Thanks — we'll reach out") to the client; the silent mailto POST is removed.
 **Rationale:** G7 + security — silent mailto has no audit trail, no rate limit, no receipt. DEC-CONT-02.
 **Acceptance criteria:**
-- AC-FR-08a: `requestBetaAccess` server action exists, requires honeypot empty, enforces a per-email + per-IP-hash rate limit (D1 `security_rate_limit_events` or `closed_beta_allowlist_audit_events`).
+- AC-FR-08a: `requestBetaAccess` server action exists, requires honeypot empty, enforces a per-email + per-IP-hash rate limit (D1 `security_rate_limit_events`, cols `scope`+`key_hash`) and writes an audit row to `account_security_events` (event_type `beta_access_requested`, `ip_hash` as `hmac-sha256:`+hex via `AUTH_AUDIT_HASH_PEPPER` — see `21` A).
 - AC-FR-08b: On success it inserts an audit row (status `requested`) and the UI shows a receipt; on rate-limit it shows a throttled message; on honeypot trip it fails closed silently.
 - AC-FR-08c: Tests cover happy, honeypot, rate-limit, and duplicate-request paths.
 **Validation:** server-action unit tests.

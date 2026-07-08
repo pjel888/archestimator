@@ -141,14 +141,17 @@ Every task below names exact repo-relative paths and symbols (no "likely"). Wher
 **Task IDs:** T-3.2a (action), T-3.2b (store), T-3.2c (ClosedBetaGate wiring).
 **Req IDs:** FR-CONT-08, SEC-CONT-01, SEC-CONT-03.
 **New file:** `src/lib/landing/beta-request-actions.ts` (`"use server"`).
-**Public contract:** `requestBetaAccess(input: { email: string; name?: string; company?: string; company_url: string }): Promise<{ ok: boolean; reason?: 'invalid'|'rate_limited'|'honeypot' }>`.
-**Behavior:** validate (email format, length caps ≤320/name ≤120/company ≤120, honeypot empty); resolve IP-hash (HMAC+pepper, reuse `src/lib/collaboration/invite-entry.ts` pepper-resolver pattern or a generic `src/lib/auth/ip-hash.ts`); check rate-limit (per email 3/hr + per IP-hash 10/hr via `security_rate_limit_events`); insert audit row (`closed_beta_allowlist_audit_events`, event_type `beta_access_requested`, metadata_json `{name,company,source:'closed_beta_gate'}`); return `ok:true`. On honeypot trip → return `ok:true` silently (fail-closed). On rate-limit → return `reason:'rate_limited'`. On invalid → `reason:'invalid'`.
-**Store reuse:** `src/lib/auth/closed-beta-d1-store.ts` (add `recordBetaAccessRequestInD1`) + existing rate-limit helper pattern.
-**ClosedBetaGate wiring:** change `<form action="/contact" method="post">` → `<form action={requestBetaAccess}>`; render receipt state on `ok:true` (or redirect-with-state for no-JS).
-**Tests:** `tests/vitest/beta-request-intake.test.ts` — happy, honeypot, rate-limit, duplicate (uniform receipt), invalid, oversized.
-**Denial/uniformity:** success/duplicate/already-on-allowlist all return uniform client receipt (SEC-CONT-03).
-**Security:** server action = direct POST endpoint; self-validates; no auth required (public); no PII beyond email+name+company; IP only as hash.
-**Data:** 3 D1 statements; no migration (see `21`).
+**Public contract (DECIDED transport, DEC-CONT-08):** `requestBetaAccess(prevState, formData): Promise<{ ok: boolean; reason?: 'invalid' }>`. Returns a DTO `{ok:true}` uniformly for success/duplicate/rate-limited/honeypot (SEC-CONT-03); `{ok:false, reason:'invalid'}` only for clear input-validation failures. **No-JS path:** the action also calls `redirect("/signup?beta=submitted")` when invoked as a plain POST (detected via `headers()` content-type / absence of the `useActionState` envelope) so the static receipt fallback renders. Client path (JS): `ClosedBetaGate` consumes the DTO via `useActionState` and renders the receipt in-place.
+**Behavior:** validate (email format, length caps ≤320/name ≤120/company ≤120, honeypot empty); resolve:
+  - rate-limit keys via `hashRateLimitKey('beta_request_email'|'beta_request_ip', [normalizedEmail|ipHash])` (reuse `src/lib/collaboration/invite-entry.ts:102`, base64url, pepper `ARCHESTIMATOR_INVITE_RATE_LIMIT_HASH_PEPPER`);
+  - audit IP-hash via `hashAccountSecurityValue(ip)` → `hmac-sha256:`+hex, pepper **`AUTH_AUDIT_HASH_PEPPER`** (`src/lib/auth/account-audit.ts:46`).
+check rate-limit (email 3/window + IP 10/window, `windowSeconds=3600`, fixed-window+TTL) via **`recordSecurityRateLimitEventInD1`** + count-by-window (`security_rate_limit_events`, cols `scope`+`key_hash`); insert audit row in **`account_security_events`** (event_type `beta_access_requested`, `user_id=NULL`, `ip_hash`=the hex hash) via **`recordAccountSecurityEventInD1`**; return `ok:true`. On honeypot trip → return `ok:true` silently (fail-closed, no audit). On rate-limit → return `ok:true` (uniform). On invalid → `reason:'invalid'`.
+**Store reuse:** `src/lib/auth/account-audit.ts` (`recordAccountSecurityEventInD1` + `hashAccountSecurityValue`) + `src/lib/collaboration/invite-entry.ts` (`recordSecurityRateLimitEventInD1` + `hashRateLimitKey`). **Do not write a new IP-hash helper; do not reuse the invite base64url hash for `account_security_events.ip_hash`** (would fail the CHECK — see `21` A.3).
+**ClosedBetaGate wiring:** `ClosedBetaGate` becomes `"use client"`; replace `<form action="/contact" method="post">` with `<form action={requestBetaAccess}>` consumed via `useActionState`; on `ok:true` render the receipt region (focus → receipt heading, `aria-live`); on `reason:'invalid'` render inline error.
+**Tests:** `tests/vitest/beta-request-intake.test.ts` — happy, honeypot, rate-limit, duplicate (uniform receipt), invalid, oversized, **and an ip_hash-format assertion** (`/^hmac-sha256:[0-9a-f]+$/` — denial test for the `account_security_events` CHECK).
+**Denial/uniformity:** success/duplicate/already-on-allowlist/rate-limited all return uniform client receipt (SEC-CONT-03).
+**Security:** server action = direct POST endpoint; self-validates; no auth required (public); no PII beyond email+name+company; IP only as CHECK-compliant hash.
+**Data:** ≤5 D1 statements; no migration (see `21` A).
 **Cache:** `no-store`.
 **Complexity:** Medium.
 **Status:** pending.
@@ -165,11 +168,11 @@ Every task below names exact repo-relative paths and symbols (no "likely"). Wher
 ### WP-4.1 — Welcome-email trigger + idempotency
 **Task IDs:** T-4.1a (trigger), T-4.1b (idempotency), T-4.1c (template).
 **Req IDs:** FR-CONT-09.
-**New file (preferred):** `src/lib/auth/welcome-email.ts` — `maybeSendWelcomeEmail({ userId, email, displayName })`.
-**Trigger site (pick ONE — recommendation):** `src/lib/auth/account-actions.ts` `completeOnboarding` (after workspace resolve + `onboarding_completed` event) OR first `ensureDefaultWorkspace` success in `src/app/workshop/page.tsx`. Do NOT wire both.
-**Idempotency:** `SELECT 1 FROM account_security_events WHERE user_id=? AND event_type='welcome_email_sent' LIMIT 1`; skip if present; INSERT after successful send.
+**New file:** `src/lib/auth/welcome-email.ts` — `maybeSendWelcomeEmail({ userId, email, displayName })`.
+**Trigger site (DECIDED, DEC-CONT-09):** **`src/lib/auth/account-actions.ts` `completeOnboarding`** — after workspace resolve + the `onboarding_completed` security event, before the redirect. **Do NOT also wire `workshop/page.tsx`/`ensureDefaultWorkspace`.** Single seam, clear auth context.
+**Idempotency:** `SELECT 1 FROM account_security_events WHERE user_id=? AND event_type='welcome_email_sent' LIMIT 1`; skip if present; INSERT after successful send (via `recordAccountSecurityEventInD1`; ip_hash per `21` A.3 if available, else NULL).
 **Template:** inline (consistent with existing inline templates); subject "Welcome to Archestimator"; plain + HTML; **no tokens** — only a plain `/workshop` link; beta-stage honest copy.
-**Failure:** `sendCloudflareEmail` error / `EMAIL_NOT_CONFIGURED` / delivery disabled → log + skip (REL-CONT-01); do not block entry.
+**Failure:** `sendCloudflareEmail` error / `EMAIL_NOT_CONFIGURED` / delivery disabled → log + skip (REL-CONT-01); do not block `completeOnboarding`.
 **Tests:** `tests/vitest/welcome-email.test.ts` — sends once (idempotency: fire twice → one send), skips when delivery disabled, does not block on failure, contains no token.
 **Complexity:** Medium.
 **Status:** pending; BLOCKED-EXTERNAL on OPEN-CONT-04.

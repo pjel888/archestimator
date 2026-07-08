@@ -50,7 +50,7 @@ The continuity path is **low-performance-risk**: mostly static public pages and 
 - **Dashboard CTA:** data already server-fetched; if `projectCount` fetch fails, existing dashboard error boundary handles it (CTA simply doesn't render — acceptable degradation).
 
 ## 6. Observability
-- **`requestBetaAccess`:** structured log (email redacted to prefix/suffix, IP-hash, result). Audit row (`closed_beta_allowlist_audit_events`). Reuse existing log redaction rules.
+- **`requestBetaAccess`:** structured log (email redacted to prefix/suffix, IP-hash, result). Audit row in `account_security_events` (per `21` A.1). Reuse existing log redaction rules.
 - **Welcome email:** security event (`welcome_email_sent`), structured log on success/failure/skip.
 - **No new dashboard/alert** required for closed beta (proportionality). Phase 4 failures observable via logs + security events. If email failure rate exceeds circuit-breaker threshold, the existing breaker trips.
 - **Metrics sink:** none added (closed-beta scale doesn't justify it); record this as an intentional skip.
@@ -63,3 +63,19 @@ The continuity path is **low-performance-risk**: mostly static public pages and 
 ## 8. Known gaps
 - **Production RUM** is owned by the sibling `production-rum-and-cwv-telemetry` pack; this pack requires "no regression" via local Playwright only and records hosted RUM as an external dependency.
 - **`/og/default.png`** missing asset (G11) — Phase 2 can add it (improves sharing), but OG image generation is out of scope (no dynamic OG route needed for closed beta).
+
+## 9. Cloudflare Email Service cost / eligibility budget (Phase 4)
+
+Per Improve-Plan-Prompt §9 (cost/resource budget for metered email). Phase 4 (welcome email) is the only metered-service addition in this plan.
+
+| Field | Value | Source/proof |
+|---|---|---|
+| Resource | Cloudflare Email Service (`EMAIL` binding) | `wrangler.jsonc`; `cloudflare-email-client.ts` |
+| Cost class | **NOT VERIFIED at planning time** — Cloudflare Email Service send limits/eligibility (daily/hourly caps, allowed recipient domains, verified-sender requirements) must be confirmed by the owner against the current plan/entitlement before enabling. | owner must verify (OPEN-CONT-04) |
+| Volume estimate | 1 send per new enabled user (idempotent). Closed-beta scale: tens to low hundreds of sends total. No batch/digest volume from this plan. | derived from closed-beta stage |
+| Failure mode if over-quota / not-eligible | `sendCloudflareEmail` returns an error → circuit breaker (`transactional-email-client.ts`) trips after >50% failure in 5-min window → welcome send skipped gracefully (REL-CONT-01); workshop entry unaffected. | repo evidence |
+| Eligibility gate | `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED=true` + valid `CLOUDFLARE_EMAIL_FROM` (verified sender) required before any send. Default `.env.example` ships disabled. | `.env.example`; `07` §7 |
+| Cost risk | Low at closed-beta volume, but **unverified** — do not claim "free" or "within limits" without owner confirmation of the entitlement. | labeled NOT VERIFIED |
+| Rollout gate | Email deliverability proof (real inbox, non-spam) at L3 before claiming the welcome email "works." | `13` §1 |
+
+**Honest gap:** the plan does not cite exact Cloudflare Email send limits because (a) they depend on the account entitlement the owner must confirm, and (b) the Improve-Plan audit correctly flagged the prior draft for omitting this budget entirely. This section records the budget *structure* and marks the exact-limit claim `NOT VERIFIED` rather than inventing a number.

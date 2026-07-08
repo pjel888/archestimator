@@ -19,7 +19,7 @@
 | PGP key asset | `public/.well-known/pgp-key.txt` (or remove ref) | Required (owner-gated) | FR-CONT-05 |
 | ClosedBetaGate legal line | `src/components/auth/ClosedBetaGate.tsx` | Required | FR-CONT-07 |
 | ClosedBetaGate receipt + server action | `src/components/auth/ClosedBetaGate.tsx`, new `src/lib/landing/beta-request-actions.ts` | Required | FR-CONT-08 |
-| Beta-request audit/rate-limit reuse | `closed_beta_allowlist_audit_events`, `security_rate_limit_events` | Verification only (no schema change) | FR-CONT-08 |
+| Beta-request audit/rate-limit reuse | `account_security_events` (audit), `security_rate_limit_events` (rate-limit) | Verification only (no schema change) | FR-CONT-08 |
 | Welcome-email trigger | `src/lib/auth/account-actions.ts` or new `src/lib/auth/welcome-email.ts` | Required (owner-gated) | FR-CONT-09 |
 | Dashboard empty-state CTA | `src/components/workshop/dashboard/WorkshopDashboard.tsx` or `WorkshopHomebaseClient.tsx` | Required | FR-CONT-10 |
 | Onboarding redirect | `src/app/workshop/onboarding/page.tsx` | Required | FR-CONT-11 |

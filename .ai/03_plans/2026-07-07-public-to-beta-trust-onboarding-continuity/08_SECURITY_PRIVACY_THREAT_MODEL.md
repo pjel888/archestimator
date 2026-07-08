@@ -17,15 +17,20 @@ Continuity-path security: the public surface up to and including the beta-reques
 - **Invited collaborator:** has a collaboration invite token.
 - **Abuser:** attempts enumeration, spam, prompt-injection (n/a — no AI surface here), rate-limit evasion.
 
-## 4. Attack surface inventory (delta)
+## 4. Attack surface inventory (mandated 8-column form, per Improve-Plan-Prompt §7)
 
-| Surface | New? | Risk | Control |
-|---|---|---|---|
-| `requestBetaAccess` server action | **Yes** | spam/flood, enumeration via receipt, PII harvest, direct POST bypass | honeypot, email+IP rate-limit, uniform receipt, input caps, audit row, no PII beyond email+name+company |
-| Footer `mailto:` links | No (existing) | email harvesting (acceptable; public address) | none needed |
-| Welcome email | **Yes** (trigger) | token leakage in email, double-send, delivery-info leak | no tokens in email (plain `/workshop` link only), idempotency marker, no per-recipient failure detail to client |
-| `/cookies` page | **Yes** (static) | none (static content) | `force-static` |
-| Dashboard empty-state CTA | **Yes** (UI) | none (auth-gated) | behind existing workshop auth |
+`Entry point | Actor | Authn/authz and ownership check | Input validation | Output DTO | Cache/header behavior | Rate/abuse posture | Required tests`
+
+| Entry point | Actor | Authn/authz + ownership check | Input validation | Output DTO | Cache/header behavior | Rate/abuse posture | Required tests |
+|---|---|---|---|---|---|---|---|
+| `requestBetaAccess` Server Action (`src/lib/landing/beta-request-actions.ts`) | anonymous public | **none** (public intake — no auth required); ownership n/a (creates no owned resource) | email regex + ≤320; name≤120; company≤120; honeypot `company_url` must be empty; normalized email | `{ ok: boolean; reason?: 'invalid' }` — uniform `ok:true` for success/dup/rate-limited/honeypot (SEC-CONT-03); **no allowlist-membership leak** | `Cache-Control: no-store` (mutation) | email 3/window + IP 10/window (`windowSeconds=3600`), fixed-window+TTL via `security_rate_limit_events`; honeypot fail-closed; IP stored only as CHECK-compliant `hmac-sha256:`+hex hash | `beta-request-intake.test.ts`: happy/honeypot/rate-limit/dup(uniform)/invalid/oversized + ip_hash-format denial |
+| Welcome-email trigger (`src/lib/auth/welcome-email.ts`, fired from `completeOnboarding`) | authenticated user (self) | keyed by `user_id` from auth context; idempotency check on `account_security_events` | none (no user input; uses identity fields) | none (fire-and-monitor; no client DTO) | n/a (server-side side-effect) | once-only via idempotency row; circuit breaker in `transactional-email-client.ts` (5-min/10-min) | `welcome-email.test.ts`: once-only/skip-disabled/no-block-on-fail/no-token |
+| Footer `mailto:support@archestimator.com` links | anonymous public | n/a (static public address) | n/a | n/a | static | email-harvesting risk accepted (public address by design) | none (existing) |
+| `/cookies` page (`src/app/cookies/page.tsx`) | anonymous public | n/a (static) | n/a | HTML | `force-static` + marketing cache headers (must extend `public-static-route-contract.test.ts`) | n/a (static) | `cookies-page.test.tsx`: render + single-h1 + main landmark |
+| Dashboard first-project CTA (`WorkshopDashboard`/`WorkshopHomebaseClient`) | authenticated, terms-accepted, closed-beta-allowed | existing workshop auth (`proxy` + `workshop/layout.tsx` + `session.ts`) | n/a (derived from `projectCount`) | n/a (navigates) | workshop `private,no-cache,no-store` | n/a | `first-project-empty-state.test.tsx`: present@0/absent@≥1 + focusable |
+| `/workshop/onboarding` redirect | authenticated | existing workshop auth | n/a | redirect (`/workshop/projects` or `/workshop`) | `private,no-cache,no-store` | n/a | `workshop-onboarding-redirect.test.ts`: both branches |
+
+**DTO minimization:** `requestBetaAccess` returns only `{ok, reason?}` — never echoes PII, never reveals allowlist state. The welcome email contains no credential/token (only a plain `/workshop` link). No other entry point returns user data beyond what existing surfaces already return.
 
 ## 5. `requestBetaAccess` threat analysis (the one genuinely new security surface)
 
@@ -55,7 +60,7 @@ See `20_ATTACK_SURFACE_AND_CREDENTIAL_MATERIAL.md` for the full matrix. Continui
 **No raw tokens, hashes, encrypted secrets, or session material are newly exposed.** The welcome email deliberately contains only a plain `/workshop` link — no tokens, no magic-link reuse.
 
 ## 7. Privacy / data minimization
-- `requestBetaAccess` collects email + optional name/company. **Purpose:** beta access triage. **Retention:** per `closed_beta_allowlist_audit_events` posture. **No new PII category.**
+- `requestBetaAccess` collects email + optional name/company. **Purpose:** beta access triage. **Retention:** audit row in `account_security_events`, per its retention posture. **No new PII category.**
 - IP stored only as HMAC-hash (reuse `invite-entry.ts` pepper pattern) — not raw IP.
 - Terms-acceptance store already does **not** store raw IP/UA (per `0002` design) — unchanged.
 - Welcome email recipient = the user's own email (Better Auth identity); no third-party disclosure.

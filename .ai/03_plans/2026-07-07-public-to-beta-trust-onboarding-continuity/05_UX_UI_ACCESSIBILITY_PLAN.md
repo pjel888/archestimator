@@ -31,15 +31,29 @@ Scope: the user-visible continuity path only. Per the `PROMPT.md` constraint, th
 1. Auth succeeds → `getBetterAuthCurrentUserContext` → allowlist `revoked` → redirect `/access-required?status=revoked`.
 2. `/access-required` → "Use another account" (`/login`) or "Request access" (`mailto:support`).
 
-## 2. Screen and component states
+## 2. State matrix (11-state, per Improve-Plan-Prompt §3)
+
+Mandatory UX states for each user-facing surface: loading, empty, success, partial-success, error, conflict, permission-denied, offline, retry, timeout, cancellation. `—` = not applicable for a static/derived surface (reason given).
+
+| Surface | loading | empty | success | partial-success | error | conflict | permission-denied | offline | retry | timeout | cancellation |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| ClosedBetaGate form (`/signup`) | submitting: button disabled + "Sending…" + `aria-busy` (no skeleton — tiny form) | — (form is the empty state) | receipt replaces form ("Thanks — we'll reach out") + focus→receipt heading | — (intake is atomic: stored or not) | inline validation error (`reason:'invalid'`); server-error friendly message | — (no optimistic write to reconcile) | — (public; no authz gate here) | submit disabled if `navigator.onLine=false`; restore on reconnect | uniform receipt on duplicate/resubmit (SEC-CONT-03) | n/a (action is fast; if slow, button stays "Sending…" — no explicit timeout UI needed at closed-beta scale) | n/a (no long async to cancel) |
+| CookieConsentBanner | — (static on load) | — | choice applied, banner hides | — | — | — | — | banner still works (essential only, no network) | — | — | — |
+| Dashboard first-project CTA (`/workshop`) | skeleton via existing homebase loader | **0 projects → CTA shown** (this IS the empty state) | n/a (navigates to `/workshop/projects`) | — | if projectCount fetch fails → existing dashboard error boundary; CTA just doesn't render | — | if closed-beta revoked → redirect to `/access-required` (existing) | existing offline workshop behavior | — | — | — |
+| Footer links (all public) | — | — | navigation | — | broken link → 404 page (ADV-16 guards) | — | — | links work offline only if cached | — | — | — |
+| `/cookies`, `/terms`, `/privacy` (static) | RSC static (no load state) | — | render | — | — | — | — | cached static works offline | — | — | — |
+
+**Notes on partial-success / offline / timeout / cancellation:** these states matter most for the one mutation (`requestBetaAccess`). Partial-success is impossible (the audit insert either succeeds or throws — no half-state); offline is handled by disabling submit + restoring on reconnect (progressive-enhancement `<form action>` will simply fail to reach the server and the browser shows its native error, which the Client wrapper can override with a friendlier message); timeout/cancellation are not material at closed-beta scale (no long-running async). Recorded honestly rather than invented.
+
+## 2a. Screen and component states (detail)
 
 ### ClosedBetaGate (`src/components/auth/ClosedBetaGate.tsx`)
 - **Default:** H1 "Start free", copy, email form, honeypot, "Request access" button, "Already invited? Sign in →" link. **(NEW) legal line + links.**
-- **Submitting:** button disabled, "Sending...".
-- **Success (receipt):** replace form with "Thanks — we'll reach out at the email you provided." + "Back to home" link. (NEW)
-- **Validation error:** inline error for invalid/empty email.
-- **Rate-limited:** "You've already requested access recently. We'll be in touch." (uniform, non-enumerable). (NEW)
-- **Honeypot trip:** fail closed silently (appear to succeed, do not store). (NEW)
+- **Submitting:** button disabled, "Sending…", `aria-busy="true"` on the form.
+- **Success (receipt):** replace form with "Thanks — we'll reach out at the email you provided." + "Back to home" link; focus → receipt heading; `aria-live="polite"` announces. (NEW, DEC-CONT-08 transport)
+- **Validation error:** inline error for invalid/empty email (`reason:'invalid'`); `aria-invalid` on the field; `aria-live="assertive"`.
+- **Rate-limited / duplicate / already-on-allowlist:** uniform receipt (SEC-CONT-03) — client cannot distinguish.
+- **Honeypot trip:** fail closed silently (appear to succeed, do not store).
 
 ### CookieConsentBanner (`src/components/landing/CookieConsentBanner.tsx`)
 - **Default:** banner with "Essential only" + "Accept analytics". **(NEW) "Cookie policy" link → `/cookies`.**
@@ -52,17 +66,19 @@ Scope: the user-visible continuity path only. Per the `PROMPT.md` constraint, th
 ### Footer (NEW unified, FR-CONT-03)
 - All public footers: Privacy, Terms, Trust, Security, Contact links. Consistent order + accessible names.
 
-## 3. Accessibility behavior
+## 3. Action-level accessibility proof matrix (per Improve-Plan-Prompt §3)
 
-| Element | Keyboard | Focus | Screen reader | Contrast | Reduced motion |
-|---|---|---|---|---|---|
-| Footer links | `<a>`, Tab order | visible focus ring | discernible accessible name (Privacy/Terms/...) | AA | n/a |
-| ClosedBetaGate form | Tab through fields→button; Enter submits | visible focus; focus stays in card on success (receipt replaces form, focus moved to receipt heading) | fields labeled (`htmlFor`), button named, live-region for receipt/error | AA | n/a |
-| Cookie banner | Tab to buttons; Enter/Space activates | visible focus; focus trap optional but Esc dismisses to "Essential only" | `role="dialog"` or `region`, labeled | AA | n/a |
-| Dashboard empty CTA | Tab to CTA; Enter activates | visible focus | named "Create your first project" | AA | entrance transition respects `prefers-reduced-motion` |
-| Legal pages (`/cookies` etc.) | standard | — | single `<h1>`, heading order, `<main>` landmark | AA | n/a |
+Per action: keyboard path, focus target/restoration, accessible name + live-region behavior, and proof type binding to a concrete test in `12`.
 
-**Focus restoration:** ClosedBetaGate success moves focus to the receipt region (not left on the removed button). Cookie banner return focus to trigger on dismiss.
+| Action | Keyboard path | Focus target / restoration | Accessible name / live-region | Proof type (test in `12`) |
+|---|---|---|---|---|
+| Submit `ClosedBetaGate` form | Tab to email field → Tab to "Request access" → Enter submits | on success: focus moves to the receipt `<h2>` (ref + `useEffect`); on error: focus stays on field, `aria-invalid` set | button `aria-label="Request access"`; receipt announced via `aria-live="polite"` region; errors via `aria-live="assertive"` | RTL keyboard test: render, type, Enter, assert receipt heading focused + live-region text |
+| Choose cookie consent | Tab to "Essential only"/"Accept analytics" → Enter/Space | focus remains on the activated button; banner hides | buttons labeled; region `aria-label="Cookie consent"` | RTL keyboard test (existing `landing-consent.test.tsx` extended) |
+| Click footer trust link | Tab through link group in source order → Enter navigates | visible focus ring on each `<a>` | each `<a>` has discernible text (Privacy/Terms/...) | RTL: assert each link focusable + accessible name (A11Y-CONT-01) |
+| Click dashboard first-project CTA | Tab to CTA → Enter | visible focus; navigates to `/workshop/projects` | `aria-label="Create your first project"` | RTL: assert focusable + named; click → href (FR-CONT-10) |
+| Navigate legal pages | standard Tab | — | single `<h1>` per page, `<main>` landmark | structural RTL/axe (A11Y-CONT-03) |
+
+**Focus restoration guarantee:** ClosedBetaGate success moves focus to the receipt region (not left on the removed submit button) — this is the one non-trivial focus-management requirement and is bound to a concrete RTL assertion above. Cookie banner keeps focus on the chosen button (no restoration needed).
 
 ## 4. Responsive behavior
 - Footer link group: wraps gracefully on mobile (375px) — flex-wrap, no horizontal overflow (existing `landing-audit.spec.ts` already asserts no mobile overflow; new footer must preserve it).

@@ -34,7 +34,7 @@ Consolidates the cross-cutting production decisions for the in-scope stack layer
 - Email: `EMAIL` binding via `sendCloudflareEmail`; delivery OFF by default → graceful skip (REL-CONT-01).
 
 ## Cloudflare D1
-- No migration for the recommended path (reuse `closed_beta_allowlist_audit_events`, `security_rate_limit_events`, `account_security_events` with new `event_type` values).
+- No migration for the recommended path (reuse `account_security_events` for `beta_access_requested` + `welcome_email_sent` audit/idempotency, and `security_rate_limit_events` for rate-limiting — see `21` A/B; `closed_beta_allowlist_audit_events` is for existing-allowlist-entry events only, not intake).
 - App-layer authorization: `requestBetaAccess` is public (no auth), but input-validated + rate-limited + audited.
 - Repository boundary: reuse `closed-beta-d1-store.ts` pattern for the audit insert.
 - Fallback column-add (migration `0040_*`) only if Phase-4 idempotency query proves inefficient (see `21`).

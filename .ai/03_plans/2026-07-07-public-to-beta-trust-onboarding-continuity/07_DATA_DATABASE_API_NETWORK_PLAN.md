@@ -8,32 +8,37 @@ This continuity path is **mostly frontend + copy + one server action + one email
 
 **No D1 schema change is required for the core path** (FR-CONT-01..07, 10, 11). Phase 3/4 reuse existing tables. See `21_DATABASE_CHANGE_BLUEPRINTS.md` for the full blueprint (most phases = "no migration").
 
-## 2. Existing tables reused (no schema change)
+## 2. Existing tables reused (no schema change) + access-path matrix
 
-| Table | Migration | Used by phase | Purpose |
-|---|---|---|---|
-| `closed_beta_allowed_emails` | `0001` | (reference) | allowlist grant (existing) |
-| `closed_beta_allowlist_audit_events` | `0001` | Phase 3 | `beta_access_requested` audit row (NEW event_type on existing table) |
-| `security_rate_limit_events` | (existing) | Phase 3 | rate-limit `requestBetaAccess` by email+IP-hash |
-| `account_security_events` | `0004` | Phase 4 | `welcome_email_sent` idempotency marker (NEW event_type) |
-| `user_onboarding_profiles` | `0005` | Phase 4 (fallback) | nullable `welcome_email_sent_at` column (only if Phase-4 query proves inefficient) |
-| `legal_terms_acceptances` | `0002` | (reference) | terms gate (existing, unchanged) |
+Access-path matrix (mandated by the planning directive §6): `Source | Chosen API/repository/binding | Runtime role | Authorization check | Latest schema/policy posture | Proof source | Fallback`.
 
-**Better Auth core tables** (`user`/`session`/`account`/`verification`) — managed by Better Auth's migrator, NOT in `migrations/`, **not touched**.
+| Source | Chosen API/repository/binding | Runtime role | Authorization check | Latest schema/policy posture | Proof source | Fallback |
+|---|---|---|---|---|---|---|
+| `closed_beta_allowed_emails` (`0001`) | `src/lib/auth/closed-beta-d1-store.ts` `getClosedBetaAccessFromD1` | anonymous→grant resolution | **none at intake** (public); grant enforced post-auth in `session.ts` | `normalized_email UNIQUE`, `status` ∈ invited/active/revoked | `0001` + `closed-beta-access.ts` | n/a (existing, untouched) |
+| `security_rate_limit_events` (`0006`) | **`recordSecurityRateLimitEventInD1`** (`src/lib/collaboration/invite-entry.ts:142`) + paired count-by-window | rate-limit (public, anonymous) | none (public abuse throttle) | cols `scope`,`key_hash`,`occurred_at`,`expires_at`; indexes `(scope,key_hash,occurred_at)`, `(expires_at)`; fixed-window+TTL model | `0006:123-157` + `invite-entry.ts:102-165` | drop the throttle (uniform receipt still holds) |
+| `account_security_events` (`0004`) | `recordAccountSecurityEventInD1` (`src/lib/auth/account-audit.ts`) — **the `beta_access_requested` AND `welcome_email_sent` audit/idempotency rows** | audit + idempotency (public→anonymous; authenticated for welcome) | welcome row keyed by `user_id` (auth context); beta-request row `user_id=NULL` | `ip_hash`/`user_agent_hash` hard CHECK `sha256:`/`hmac-sha256:`+hex; `metadata_json` JSON | `0004:2-29` + `account-audit.ts:46-75` | skip audit (intake still succeeds; lose trail) |
+| `user_onboarding_profiles` (`0005`) | (Phase-4 fallback only) | idempotency fallback | auth context | `user_id` PK | `0005` | use `account_security_events` (preferred) |
+| `legal_terms_acceptances` (`0002`) | existing terms store | gate | auth context + content hash | unchanged | `0002` | n/a (untouched) |
+| Better Auth core (`user`/`session`/`account`/`verification`) | Better Auth migrator | identity | Better Auth session | camelCase, outside `migrations/` | Better Auth migrator | n/a (untouched) |
+
+**Better Auth core tables** — managed by Better Auth's migrator, NOT in `migrations/`, **not touched**.
+
+**No chosen path is blocked by current schema.** (The earlier `scope_key` sketch was a defect, now corrected — see `21` A.2.)
 
 ## 3. `requestBetaAccess` data contract (Phase 3)
 
 **Inputs:** `email: string`, `name?: string`, `company?: string`, honeypot `company_url: string` (must be empty).
-**Server-side resolution:** IP-hash (HMAC + pepper, reuse `invite-entry.ts` pattern), user-agent hash (optional).
-**Validation:** email format + length cap (≤320 chars), name/company length caps, honeypot must be empty.
-**Rate limit:** per `email` (e.g., 3/hour) + per `IP-hash` (e.g., 10/hour); reuse `security_rate_limit_events` insertion/check pattern.
-**Write:** `INSERT INTO closed_beta_allowlist_audit_events (..., event_type='beta_access_requested', metadata_json={name,company,source})`. **No PII beyond email + optional name/company in metadata.** IP-hash stored in the rate-limit table, not the audit row.
-**Return:** `{ ok: true }` on success, `{ ok: false, reason: 'rate_limited'|'invalid'|'honeypot' }`. **Uniform receipt** for duplicate/rate-limited/already-on-allowlist to avoid enumeration (SEC-CONT-03): the client always shows "Thanks — we'll reach out" except for clear validation errors.
-**Idempotency:** not strictly required (duplicate requests are acceptable + rate-limited), but the receipt is uniform.
+**Server-side resolution:**
+- **Rate-limit key** (`security_rate_limit_events.key_hash`, no format CHECK): `hashRateLimitKey('beta_request_email'|'beta_request_ip', [normalizedEmail | ipHash])` — base64url, pepper `ARCHESTIMATOR_INVITE_RATE_LIMIT_HASH_PEPPER` (reuse `invite-entry.ts:102`).
+- **Audit IP-hash** (`account_security_events.ip_hash`, hard CHECK): `hashAccountSecurityValue(ip)` → `hmac-sha256:`+**hex**, pepper **`AUTH_AUDIT_HASH_PEPPER`** (`account-audit.ts:46-51`). **Two distinct peppers, two distinct formats — do not mix** (see `21` A.3).
+**Validation:** email format + length cap (≤320), name≤120, company≤120, honeypot empty.
+**Rate limit:** per email 3/window + per IP 10/window, `windowSeconds=3600`, fixed-window+TTL via `recordSecurityRateLimitEventInD1` + count-by-window (`security_rate_limit_events`).
+**Audit write:** `INSERT INTO account_security_events (event_type='beta_access_requested', user_id=NULL, ip_hash=hashAccountSecurityValue(ip), user_agent_hash=..., metadata_json={name,company,source})`. **No PII beyond email+name+company.** Raw IP never stored (only the CHECK-compliant hash).
+**Return:** `{ ok: true }` on success, `{ ok: false, reason: 'invalid' }` for clear validation failures. **Uniform receipt** (`ok:true`) for duplicate/rate-limited/already-on-allowlist/honeypot-trip to avoid enumeration (SEC-CONT-03). See `06` §5 for the success transport decision.
+**Idempotency:** not required (duplicates acceptable + rate-limited + uniform receipt).
 
 ### Query/count expectations (Phase 3)
-- `requestBetaAccess`: 1 rate-limit check SELECT + 1 rate-limit INSERT + 1 audit INSERT = **3 D1 statements** per call.
-- Cardinality: at closed-beta scale (tens to low hundreds of requests), trivial. Even at 1000x, the rate-limit query is keyed by email/IP-hash (indexed) — no scan risk.
+- `requestBetaAccess`: 2 rate-limit checks (email + IP) + 2 rate-limit inserts (on pass) + 1 audit insert = **≤5 D1 statements** (the two scopes can be checked in parallel). Indexed point lookups; no scan at any plausible volume.
 
 ## 4. Welcome-email idempotency (Phase 4)
 
@@ -61,7 +66,7 @@ This continuity path is **mostly frontend + copy + one server action + one email
 - **No `cf:typegen` run required.**
 
 ## 9. Data retention / deletion / audit
-- `beta_access_requested` audit rows: retained per existing `closed_beta_allowlist_audit_events` retention posture.
+- `beta_access_requested` audit rows: written to **`account_security_events`** (per `21` A.1 decision), retained per the existing `account_security_events` retention posture.
 - `welcome_email_sent` event rows: retained per `account_security_events` posture (no raw IP/UA in terms-acceptance; security events do store ip_hash/ua_hash per existing schema — acceptable).
 - **Privacy/DSAR:** both fit the existing privacy-request/erasure workflows (sibling pack owns those); no new PII category introduced beyond email (already covered).
 

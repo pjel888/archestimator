@@ -10,13 +10,14 @@
 
 **Suite label mapping:** `READY`↔`IMPLEMENTATION-READY`, `READY WITH EXTERNAL DECISIONS`↔`CONDITIONALLY READY`, `NO-GO`/`NOT-READY`↔`NOT READY`.
 
-The **design** is implementation-ready: every requirement traces to exact current-state file paths, symbols, and acceptance criteria, and every implementation task names exact repo-relative target paths and symbols (no approximate placement). The package is held at `CONDITIONALLY READY` rather than `IMPLEMENTATION-READY` because:
+The **design** is implementation-ready **for the non-owner-gated slices**: every requirement traces to exact current-state file paths, symbols, and acceptance criteria; every implementation task names exact repo-relative target paths/symbols; the DB contracts are verified against the live schema (`0001`/`0004`/`0006`); and the two previously-undecided contracts (`requestBetaAccess` success transport, welcome-email trigger site) are now decided (DEC-CONT-08/09). The package is held at `CONDITIONALLY READY` rather than `IMPLEMENTATION-READY` because:
 
-1. **`verification_mode: emulated`** — no native independent reviewer was available in this session; all review passes were separated passes by the same lead agent. Per the suite authority contract this caps overall readiness at 97 for high-blast-radius planning and caps package status at `CONDITIONALLY READY` unless a real independent reviewer or explicit owner acceptance later approves the final package.
+1. **`verification_mode: emulated`** — no native independent reviewer was available; all review passes were separated passes by the same lead agent. Per the suite authority contract this caps overall readiness at 97 for high-blast-radius planning and caps package status at `CONDITIONALLY READY` unless a real independent reviewer or explicit owner acceptance later approves the final package.
 2. **Genuinely external decisions remain** (see Blocked decisions table): canonical CTA/intent posture, footer link set, cookie-policy page, welcome-email copy, and production-domain confirmation. These are `owner-delegated planning decisions` with recommended options, but they change user-facing copy and cannot be silently finalized by a planning task.
-3. **Email delivery is OFF by default** in env (`ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED=false`, `CLOUDFLARE_EMAIL_FROM=` empty) — the welcome/onboarding email slice depends on owner-confirmed delivery configuration plus provider deliverability proof that is out of scope for a planning-only task.
+3. **Email delivery is OFF by default** in env (`ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED=false`, `CLOUDFLARE_EMAIL_FROM=` empty) — the welcome/onboarding email slice depends on owner-confirmed delivery configuration plus provider deliverability proof; Cloudflare Email Service send limits are `NOT VERIFIED` (`09` §9).
+4. **Several category scores remain <95** after honest re-scoring in the Improve-Plan cycle (Data 93, Security 92, Performance 90, Testing 94) because dynamic test execution, `requestBetaAccess` latency measurement, hosted RUM, and the admin-queue render-as-text objective AC belong to implementation, not planning. See `17` for the baseline-vs-final scorecard and `22` for the verification matrix.
 
-When the named slices are accepted and `verification_mode` is upgraded by an independent reviewer or owner, the package can move to `IMPLEMENTATION-READY` for those slices.
+When the named slices are accepted, email delivery is configured/verified, and `verification_mode` is upgraded by an independent reviewer or owner, the package can move to `IMPLEMENTATION-READY` for those slices.
 
 ## What this pack delivers (the planning outcome)
 
@@ -30,6 +31,7 @@ This pack turns the fragmented public→beta→auth→onboarding path into **one
 - **Adversarial QA matrix** (`19` §5).
 - **Performance evaluator contract** for the landing→auth transition (`09`, `19` §6).
 - **Rollout/rollback and operations gates** (`13`).
+- **Improve-Plan-cycle artifacts** (added in the audit pass): traceability matrix with source-strength + gap/decision (`16`); 11-state UX matrix + action-level a11y proof matrix (`05`); route-by-route App Router boundary/cache contract (`06` §7); access-path matrix (`07` §2); 8-column attack-surface inventory (`08` §4); proof-contract rows + known-red ledger (`12`); verified DB blueprints (`21`); email cost/eligibility budget (`09` §9); final verification matrix + evidence-class table (`22`); decided contracts DEC-CONT-08/09 (`15`).
 
 ## Implementation start document
 

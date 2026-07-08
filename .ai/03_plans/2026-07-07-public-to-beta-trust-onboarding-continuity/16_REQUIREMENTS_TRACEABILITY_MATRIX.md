@@ -1,42 +1,49 @@
 # 16 — Requirements Traceability Matrix
 
-Every requirement traces end-to-end. `Status:` all `pending` (this is a plan, not an implementation) unless `blocked-external` or `deferred`.
+Every requirement traces end-to-end with the mandated columns (per Improve-Plan-Prompt §2): `Source ID | Requirement | Source evidence | Source strength | Plan section | Work item | Acceptance criteria | Test/proof | Risk | Status | Gap/decision`.
 
-| Requirement ID | Source | User outcome | Implementation phase | Task IDs | Code areas | Acceptance criteria | Test coverage | Rollout check | Status |
-|---|---|---|---|---|---|---|---|---|---|
-| FR-CONT-01 | brief ("beta CTA") + repo | canonical CTA vocabulary | Phase 0 | T-0.1 | `06` §3; `contact-mailto.ts`; `landing-content.ts` | AC-FR-01a/b | doc review | L1 review | pending |
-| FR-CONT-02 | brief + G1 | CTA drift locked | Phase 0 | T-0.2 | new test `landing-cta-continuity.test.tsx` | AC-FR-02a/b | that test | L1 | blocked-external (OPEN-CONT-01) |
-| FR-CONT-03 | brief ("terms/privacy/support links") + G2 | unified footer | Phase 1 | T-1.1a/b/c | 3 footer components | AC-FR-03a/b | `public-trust-link-continuity.test.tsx` | L1 + L2 footer smoke | blocked-external (OPEN-CONT-02) |
-| FR-CONT-04 | G3 | legal pages have metadata | Phase 2 | T-2.1a/b | `terms/page.tsx`,`privacy/page.tsx` | AC-FR-04a/b/c | `legal-page-metadata.test.ts` | L1 | pending |
-| FR-CONT-05 | G4 | `/security` sitemap; PGP resolved | Phase 2 | T-2.3a/b | `sitemap.ts`; `public/.well-known/` | AC-FR-05a/b | sitemap + file test | L1 | pending (PGP owner-gated) |
-| FR-CONT-06 | G5 | cookie policy page | Phase 2 | T-2.2a/b/c | new `cookies/page.tsx`; banner; sitemap; robots | AC-FR-06a/b/c | `cookies-page.test.tsx` | L1 + L2 | blocked-external (OPEN-CONT-03) |
-| FR-CONT-07 | brief ("expectation-setting copy") + G6 | legal pre-link on gate | Phase 3 | T-3.1 | `ClosedBetaGate.tsx` | AC-FR-07a/b/c | `closed-beta-gate-legal-line.test.tsx` | L1 | blocked-external (OPEN-CONT-06) |
-| FR-CONT-08 | G7 + security | beta-request receipt + audit | Phase 3 | T-3.2a/b/c | new `beta-request-actions.ts`; `closed-beta-d1-store.ts`; `ClosedBetaGate.tsx` | AC-FR-08a/b/c | `beta-request-intake.test.ts` | L1 + L2 receipt smoke | pending |
-| FR-CONT-09 | G8 | welcome email | Phase 4 | T-4.1a/b/c | new `welcome-email.ts`; `account-actions.ts` | AC-FR-09a/b/c | `welcome-email.test.ts` | L3 deliverability | blocked-external (OPEN-CONT-04) |
-| FR-CONT-10 | brief ("first workflow handoff") + G9 | dashboard first-project CTA | Phase 5 | T-5.1 | `WorkshopDashboard.tsx`/`WorkshopHomebaseClient.tsx` | AC-FR-10a/b/c | `first-project-empty-state.test.tsx` | L1 + L2 | pending |
-| FR-CONT-11 | G9 | onboarding redirect target | Phase 5 | T-5.2 | `workshop/onboarding/page.tsx` | AC-FR-11a/b | `workshop-onboarding-redirect.test.ts` | L1 | pending |
-| FR-CONT-12 | G12 | production domain confirmed | Phase 0 | T-0.3 | `seo-metadata.ts` | marker cleared | owner confirmation | L3 | blocked-external (OPEN-CONT-05) |
-| UX-CONT-01 | brief ("reduce first-session confusion") | coherent post-auth landing | Phase 6 | T-6.1 | continuity test | 3 branches asserted | `continuity-contract.test.tsx` | L1 | pending |
-| A11Y-CONT-01 | a11y gate | footer links a11y | Phase 1 | T-1.1* | footer components | focusable + named | RTL/axe | L1 | pending |
-| A11Y-CONT-02 | a11y gate | banner + gate a11y | Phase 2/3 | T-2.2/T-3.1 | banner, gate | keyboard + names | RTL keyboard | L1 | pending |
-| A11Y-CONT-03 | a11y gate | legal pages structure | Phase 2 | T-2.2 | legal pages | single h1, main | structural test | L1 | pending |
-| ARCH-CONT-01 | arch gate | no arch change for core | — | — | (verification) | `21` confirms | static review | L1 | pending |
-| ARCH-CONT-02 | arch gate | trust ordering preserved | Phase 6 | T-6.1 | proxy/layout/session (verification) | ordering unchanged | continuity test + static | L1 | pending |
-| SEC-CONT-01 | security gate | `requestBetaAccess` hardened | Phase 3 | T-3.2* | action + store | honeypot/limit/audit | `beta-request-intake.test.ts` | L1 | pending |
-| SEC-CONT-02 | security gate | no new credential exposure | Phase 4 | T-4.1* | welcome email | no tokens | `welcome-email.test.ts` | L1 | pending |
-| SEC-CONT-03 | security gate | non-enumerable receipt | Phase 3 | T-3.2* | action | uniform receipt | `beta-request-intake.test.ts` | L1 | pending |
-| REL-CONT-01 | reliability gate | email failure non-blocking | Phase 4 | T-4.1* | trigger | entry succeeds on fail | `welcome-email.test.ts` | L1 | pending |
-| OPS-CONT-01 | ops gate | rollout gates defined | Phase 6 | T-6.3 | `13` | gates documented | review | L2/L3 | pending |
-| TEST-CONT-01 | brief ("tests") | continuity contract test | Phase 6 | T-6.1 | new test | full path | that test | L1 | pending |
-| TEST-CONT-02 | brief ("tests") | per-req coverage | — | — | matrix | no untraced req | matrix audit | L1 | pending |
-| DOC-CONT-01 | brief ("map") | contract documented | Phase 0 | T-0.1 | `06`/comments | docs exist | review | L1 | pending |
-| DOC-CONT-02 | brief ("protect trust") | no overclaims | — | — | copy | overclaim tests green | existing tests | L1 | pending |
+**Source strength vocabulary:** `brief` (from PROMPT.md), `repo evidence` (verified against current source), `derived` (inferred from repo behavior/structure to satisfy a brief intent), `assumption` (unverified), `owner-delegated` (planning decision made under owner-delegated authority). Inferred requirements are labeled `derived` so they are not presented as direct source facts.
+
+**Status:** all `pending` (this is a plan) unless `blocked-external` or `deferred`.
+
+| Requirement ID | Source evidence | Source strength | Plan section / Work item | Acceptance criteria | Test/proof | Risk | Status | Gap/decision |
+|---|---|---|---|---|---|---|---|---|
+| FR-CONT-01 | PROMPT.md "beta CTA" + repo `landing-content.ts`/`contact-mailto.ts` | brief + repo evidence | `06` §3 / T-0.1 | AC-FR-01a/b | doc review + `rg "intent="` cross-check | drift | pending | OPEN-CONT-01 (recommended option recorded) |
+| FR-CONT-02 | brief + G1 (divergent CTAs in `landing-v3` vs `landing-new`/`LandingCTAs`) | repo evidence | `11` WP-0.2 / T-0.2 | AC-FR-02a/b | `landing-cta-continuity.test.tsx` | drift | blocked-external | OPEN-CONT-01 |
+| FR-CONT-03 | PROMPT.md "terms/privacy/support links" + G2 (inconsistent footers) | brief + repo evidence | `11` WP-1.1 / T-1.1a-c | AC-FR-03a/b | `public-trust-link-continuity.test.tsx` | a11y/contrast (RISK-02) | blocked-external | OPEN-CONT-02 (footer set) |
+| FR-CONT-04 | G3 (`/terms`,`/privacy` have no metadata export) | repo evidence | `11` WP-2.1 / T-2.1a,b | AC-FR-04a-c | `legal-page-metadata.test.ts` | none | pending | none |
+| FR-CONT-05 | G4 (`/security` not in sitemap; PGP key referenced but absent) | repo evidence | `11` WP-2.3 / T-2.3a,b | AC-FR-05a/b | sitemap + file test | RISK-10 (PGP liability) | pending (T-2.3b owner-gated) | OPEN: PGP publication |
+| FR-CONT-06 | G5 (consent banner exists, no policy page) | repo evidence | `11` WP-2.2 / T-2.2a-c | AC-FR-06a-c | `cookies-page.test.tsx` | none | blocked-external | OPEN-CONT-03 |
+| FR-CONT-07 | PROMPT.md "expectation-setting copy" + G6 (gate has no legal link) | brief + repo evidence | `11` WP-3.1 / T-3.1 | AC-FR-07a-c | `closed-beta-gate-legal-line.test.tsx` | none | blocked-external | OPEN-CONT-06 |
+| FR-CONT-08 | G7 (mailto is silent) + security gap | repo evidence + derived | `11` WP-3.2 / T-3.2a-c; `07` §3; `21` A | AC-FR-08a-c | `beta-request-intake.test.ts` (+ ip_hash-format denial) | RISK-03/04 (abuse/enumeration) | pending | none (transport DEC-CONT-08) |
+| FR-CONT-09 | G8 (no welcome email; delivery OFF) | repo evidence | `11` WP-4.1 / T-4.1a-c; `07` §4; `21` B | AC-FR-09a-c | `welcome-email.test.ts` | RISK-05/06 (double-fire/delivery) | blocked-external | OPEN-CONT-04 + delivery config |
+| FR-CONT-10 | PROMPT.md "first workflow handoff" + G9 | brief + repo evidence | `11` WP-5.1 / T-5.1 | AC-FR-10a-c | `first-project-empty-state.test.tsx` | RISK-09 | pending | none |
+| FR-CONT-11 | G9 (onboarding redirect→settings, not workflow) | repo evidence | `11` WP-5.2 / T-5.2 | AC-FR-11a/b | `workshop-onboarding-redirect.test.ts` | RISK-09 | pending | none |
+| FR-CONT-12 | G12 (`LANDING_SITE_ORIGIN` gated) | repo evidence | `11` WP-0.3 / T-0.3 | marker cleared | owner confirmation | RISK-15 | blocked-external | OPEN-CONT-05 |
+| UX-CONT-01 | coherent post-auth landing (`/workshop`/`/workshop/pending-invite`/`/workshop/terms`) | **derived** (repo behavior; brief does not name these branches) | `11` WP-6.1 / T-6.1 | 3 branches asserted | `continuity-contract.test.tsx` | none | pending | labeled derived (not a brief-level fact) |
+| A11Y-CONT-01 | a11y gate (WCAG AA) | derived | `05` §3 / T-1.1* | focusable + named | RTL a11y | RISK-02 | pending | none |
+| A11Y-CONT-02 | a11y gate | derived | `05` §2a/§3 / T-2.2,T-3.1 | keyboard + names + live-region | RTL keyboard | none | pending | none |
+| A11Y-CONT-03 | a11y gate | derived | `05` §3 / T-2.2 | single h1 + main landmark | structural RTL/axe | none | pending | none |
+| ARCH-CONT-01 | no arch change for core | derived (from `21` no-migration finding) | `21` summary | `21` confirms + static review | static review (see note) | none | pending | AC's "static review" half is not an objective gate — reclassified as evidence in `22` verification matrix |
+| ARCH-CONT-02 | trust ordering preserved (proxy→layout→session) | repo evidence + derived | `06` §1 / T-6.1 | ordering unchanged (objective: continuity test asserts the 3 post-auth branches) | `continuity-contract.test.tsx` | none | pending | "static review" removed from AC; replaced with objective test |
+| SEC-CONT-01 | `requestBetaAccess` hardened | derived (security gate) | `08` §5 / T-3.2* | honeypot/limit/audit + ip_hash-format | `beta-request-intake.test.ts` | RISK-03/04 | pending | none |
+| SEC-CONT-02 | no new credential exposure | derived | `20` / T-4.1* | no tokens in email | `welcome-email.test.ts` | none | pending | none |
+| SEC-CONT-03 | non-enumerable receipt | derived (security gate) | `08` §5 / T-3.2* | uniform receipt | `beta-request-intake.test.ts` (dup + already-on-allowlist) | RISK-04 | pending | none |
+| REL-CONT-01 | email failure non-blocking | derived (reliability gate) | `11` WP-4.1 / T-4.1* | entry succeeds on send fail | `welcome-email.test.ts` | RISK-06 | pending | none |
+| OPS-CONT-01 | rollout gates defined | derived (ops gate) | `13` / T-6.3 | gates documented | review + L2 smoke | none | pending | none |
+| TEST-CONT-01 | continuity contract test | derived | `11` WP-6.1 / T-6.1 | full path | `continuity-contract.test.tsx` | none | pending | none |
+| TEST-CONT-02 | per-req coverage | derived | `12` §2 | no untraced req | matrix audit (`22`) | none | pending | none |
+| DOC-CONT-01 | contract documented | brief ("map") | `06` §3 / T-0.1 | docs exist | review | none | pending | none |
+| DOC-CONT-02 | no overclaims | brief ("protect trust") + repo (`claims-ledger`) | brief + repo evidence | overclaim tests green | `landing-company-proof.test.ts`,`trust-page-overclaims.test.ts` | RISK-07 | pending | none |
 
 ## Performance-sensitive requirements (additional perf trace)
 
-| Req | Baseline | Target | Measurement | Regression threshold | Rollback trigger |
+| Requirement | Baseline | Target | Measurement | Regression threshold | Rollback trigger |
 |---|---|---|---|---|---|
-| PERF-CONT | `/` LCP/TTFB, `/login` TTFB, `/workshop` bounce redirect count (local Playwright baseline) | ≤ budgets in `09` §2; no new redirect hop | Playwright `landing-audit.spec.ts` (extend) | +15% LCP/TTFB or +1 redirect hop | revert Phase 5 / investigate |
-| ARCH-CONT-01 | n/a (no arch change) | no perf delta | static | n/a | n/a |
+| PERF-CONT | `/` LCP/TTFB, `/login` TTFB, `/workshop` bounce redirect count (local Playwright baseline) | ≤ budgets in `09` §2; no new redirect hop | Playwright `landing-audit.spec.ts` (extend) + redirect-count | +15% LCP/TTFB or +1 redirect hop | revert Phase 5 / investigate |
+| `requestBetaAccess` latency | none (new surface) | p50 <300ms (≤5 D1 statements) | unit test (mocked D1) + hosted smoke at L2 | p95 >600ms at L2 → investigate | revert Phase 3 (mailto fallback is a no-op — see `13` §3 note) |
 
-No requirement is untraced. Every implementation task maps back to ≥1 requirement (see `11`). Every requirement maps to acceptance + test + rollout check.
+No requirement is untraced. Every implementation task maps back to ≥1 requirement. Every requirement maps to acceptance + test + rollout + (now) source-strength + gap/decision.
+
+## Note on objective-AC cleanup
+During the Improve-Plan cycle, two ACs that relied on "static review" (ARCH-CONT-01, ARCH-CONT-02) were re-examined. ARCH-CONT-02's AC is now objective (the continuity test asserts the 3 post-auth branches). ARCH-CONT-01's "static review" is retained as *supporting evidence* in the verification matrix (`22`), not as the sole acceptance gate — its real proof is `21`'s no-migration finding + the unchanged proxy/layout/session files.

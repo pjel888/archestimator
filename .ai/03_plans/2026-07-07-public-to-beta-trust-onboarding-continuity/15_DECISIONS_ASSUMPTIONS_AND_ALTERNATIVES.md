@@ -43,6 +43,23 @@
 **Problem:** where the cookie policy lives.
 **Options:** embed in `/privacy` only (rejected — consent banner has no direct policy link) vs **standalone `/cookies` linked from the banner** (recommended; OPEN-CONT-03).
 
+### DEC-CONT-08 — `requestBetaAccess` success transport: `useActionState` + DTO + no-JS redirect (added in Improve-Plan cycle)
+**Problem:** the baseline left the Server Action success transport undecided across three docs (return-a-DTO vs `redirect()`-with-searchParam vs RSC re-render) — a direct violation of Improve-Plan-Prompt §7 ("must state whether success returns a DTO, calls `redirect()`, ...").
+**Options:**
+- A) `redirect("/signup?beta=submitted")` only (no-JS friendly) — **rejected**: forces `/signup` dynamic or needs a separate receipt route; breaks the `force-static` contract test; focus management is non-deterministic.
+- B) Pure RSC re-render from the action's return value — **rejected**: App Router Server Actions don't natively re-render the calling RSC with a return value without a client wrapper; not idiomatic.
+- C) **Client `ClosedBetaGate` (`"use client"`) consuming `useActionState`, action returns `{ok, reason?}` DTO; no-JS path falls back to `redirect()`.** **Recommended/DECIDED.**
+**Implications:** C preserves `force-static` on `/signup` (Client Component is a static island), gives deterministic focus management (ref + `useEffect` → receipt heading, `aria-live`), and is the idiomatic React 19 primitive. The one justified `"use client"` boundary. Tiny bundle delta (Google/MagicLink buttons already Client).
+**Conditions that would change it:** if a future design requires the receipt to be a shareable URL, switch to (A) with a dedicated `/signup/thanks` route.
+
+### DEC-CONT-09 — Welcome-email trigger site: `completeOnboarding` only (added in Improve-Plan cycle)
+**Problem:** baseline said "pick ONE — recommendation `completeOnboarding`" but never decided, leaving a double-fire risk (RISK-CONT-13).
+**Options:**
+- A) `workshop/page.tsx`/`ensureDefaultWorkspace` success — **rejected**: fires for every workshop entry including users who skip onboarding and invited collaborators landing in an inviter's workspace; would double-fire and mis-target.
+- B) **`src/lib/auth/account-actions.ts` `completeOnboarding`** (after workspace resolve + `onboarding_completed` event, before redirect) — **Recommended/DECIDED.**
+**Implications:** B is the single, explicit "first intentional onboarding completion" seam with a clear auth context (`user_id`, `email`, `displayName`). Idempotency (check `account_security_events` for `welcome_email_sent` before send, insert after) is the backstop.
+**Conditions that would change it:** if onboarding is made optional/skippable for a user class that should still receive a welcome, add a second explicit trigger site (not `ensureDefaultWorkspace`) with its own idempotency key.
+
 ## Alternatives evaluated (load-bearing only)
 - **Self-serve signup now:** rejected (owner hasn't enabled `L-FUN-2`; closed-beta grant model stays — `02` non-goals).
 - **New `/support` or `/help` route:** deferred (support is email-only for closed beta; not needed for continuity).
