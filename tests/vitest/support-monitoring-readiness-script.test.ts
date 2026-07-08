@@ -35,7 +35,10 @@ function validObservabilityProofFile() {
       { key: "workersLogsQuery", status: "passed" },
       { key: "uptimeAlertDelivery", status: "passed" },
       { key: "errorRateAlertDelivery", status: "passed" },
+      { key: "queueDlqAlertDelivery", status: "passed" },
+      { key: "cronFailureAlertDelivery", status: "passed" },
       { key: "incidentEscalationDelivery", status: "passed" },
+      { key: "retentionFailureAlertDelivery", status: "passed" },
     ],
   });
 }

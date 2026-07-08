@@ -7,11 +7,17 @@ const DEFAULT_EVIDENCE_DIR = ".ai/03_plans/2026-07-07-observability-alert-proof-
 const DEFAULT_OUTPUT = `${DEFAULT_EVIDENCE_DIR}/production-observability-proof-check.json`;
 const DEFAULT_MAX_AGE_HOURS = 72;
 const WORKER_NAME = "archestimator-proof";
+const EXPECTED_PRODUCER_VERSION = 1;
+const WORKERS_LOGS_PROOF_PRODUCER = "scripts/collect-workers-logs-proof.ts";
+const ALERT_DELIVERY_PROOF_PRODUCER = "scripts/verify-observability-alert-delivery.ts";
 
 type RequirementKey =
   | "workersLogsQuery"
   | "uptimeAlertDelivery"
   | "errorRateAlertDelivery"
+  | "queueDlqAlertDelivery"
+  | "cronFailureAlertDelivery"
+  | "retentionFailureAlertDelivery"
   | "incidentEscalationDelivery";
 
 type RequirementStatus = "passed" | "failed" | "missing" | "invalid";
@@ -138,6 +144,19 @@ function artifactFreshnessChecks(artifact: unknown, context: ValidationContext) 
   ];
 }
 
+function artifactProducerChecks(artifact: unknown, expectedScript: string) {
+  const script = stringValue(artifact, ["producer", "script"]);
+  const version = numberValue(artifact, ["producer", "version"]);
+  return [
+    check("artifact-producer-script", script === expectedScript, script ?? ""),
+    check(
+      "artifact-producer-version",
+      version === EXPECTED_PRODUCER_VERSION,
+      version === null ? "" : `${version}`,
+    ),
+  ];
+}
+
 function sensitiveStringScan(artifact: unknown) {
   const text = JSON.stringify(artifact);
   if (/Bearer\s+[A-Za-z0-9._~+/=-]{12,}/i.test(text)) return false;
@@ -154,6 +173,7 @@ function validateWorkersLogsQuery(artifact: unknown, context: ValidationContext)
   const matchedEvents = numberValue(artifact, ["query", "matchedEvents"]);
   return [
     ...artifactFreshnessChecks(artifact, context),
+    ...artifactProducerChecks(artifact, WORKERS_LOGS_PROOF_PRODUCER),
     check("workers-logs-mode", stringValue(artifact, ["mode"]) === "workers-logs-query-proof"),
     check("workers-logs-boundary", stringValue(artifact, ["proofBoundary"]) === "hosted-workers-logs-query"),
     check("workers-logs-passed", booleanValue(artifact, ["passed"]) === true),
@@ -178,6 +198,7 @@ function deliveryStatusCodeOk(artifact: unknown) {
 function validateAlertDeliveryScenario(expectedScenario: string) {
   return (artifact: unknown, context: ValidationContext): ProofCheck[] => [
     ...artifactFreshnessChecks(artifact, context),
+    ...artifactProducerChecks(artifact, ALERT_DELIVERY_PROOF_PRODUCER),
     check("alert-mode", stringValue(artifact, ["mode"]) === "observability-alert-delivery-proof"),
     check("alert-boundary", stringValue(artifact, ["proofBoundary"]) === "hosted-alert-delivery-observation"),
     check("alert-scenario", stringValue(artifact, ["scenario"]) === expectedScenario),
@@ -217,11 +238,32 @@ const REQUIREMENTS: Requirement[] = [
     validate: validateAlertDeliveryScenario("error-rate"),
   },
   {
+    key: "queueDlqAlertDelivery",
+    label: "Hosted Queue DLQ alert delivery proof",
+    candidates: ["queue-dlq-alert-delivery-proof.json"],
+    note: "Requires observed hosted delivery for the queue-dlq scenario without raw recipients, secrets, tokens, or sensitive URLs.",
+    validate: validateAlertDeliveryScenario("queue-dlq"),
+  },
+  {
+    key: "cronFailureAlertDelivery",
+    label: "Hosted cron-failure alert delivery proof",
+    candidates: ["cron-failure-alert-delivery-proof.json"],
+    note: "Requires observed hosted delivery for the cron-failure scenario without raw recipients, secrets, tokens, or sensitive URLs.",
+    validate: validateAlertDeliveryScenario("cron-failure"),
+  },
+  {
     key: "incidentEscalationDelivery",
     label: "Hosted incident-escalation alert delivery proof",
     candidates: ["incident-escalation-alert-delivery-proof.json"],
     note: "Requires observed hosted delivery for incident escalation after a real or intentional drill incident.",
     validate: validateAlertDeliveryScenario("incident-escalation"),
+  },
+  {
+    key: "retentionFailureAlertDelivery",
+    label: "Hosted retention-failure alert delivery proof",
+    candidates: ["retention-failure-alert-delivery-proof.json"],
+    note: "Requires observed hosted delivery for the retention-failure scenario without raw recipients, secrets, tokens, or sensitive URLs.",
+    validate: validateAlertDeliveryScenario("retention-failure"),
   },
 ];
 
@@ -300,7 +342,10 @@ function fileOverridesFromEnv(env: Record<string, string | undefined> = process.
     workersLogsQuery: env.OBSERVABILITY_WORKERS_LOGS_PROOF_FILE,
     uptimeAlertDelivery: env.OBSERVABILITY_UPTIME_ALERT_PROOF_FILE,
     errorRateAlertDelivery: env.OBSERVABILITY_ERROR_RATE_ALERT_PROOF_FILE,
+    queueDlqAlertDelivery: env.OBSERVABILITY_QUEUE_DLQ_ALERT_PROOF_FILE,
+    cronFailureAlertDelivery: env.OBSERVABILITY_CRON_FAILURE_ALERT_PROOF_FILE,
     incidentEscalationDelivery: env.OBSERVABILITY_INCIDENT_ESCALATION_PROOF_FILE,
+    retentionFailureAlertDelivery: env.OBSERVABILITY_RETENTION_FAILURE_ALERT_PROOF_FILE,
   };
 }
 
@@ -375,7 +420,7 @@ export function formatProductionObservabilityProofSummary(
     lines.push(`- ${requirement.key}: ${requirement.status}; artifact=${artifact}; failedChecks=${failedChecks}`);
   }
   lines.push(
-    "Next: run `bun run ops:check-observability-env`, collect hosted Workers Logs proof with `bun run ops:collect-workers-logs-proof`, run alert probes with `bun run ops:verify-observability-alert -- --scenario <uptime|error-rate|incident-escalation>`, then rerun `bun run ops:check-observability`.",
+    "Next: run `bun run ops:check-observability-env`, collect hosted Workers Logs proof with `bun run ops:collect-workers-logs-proof`, run alert probes with `bun run ops:verify-observability-alert -- --scenario <uptime|error-rate|queue-dlq|cron-failure|incident-escalation|retention-failure>`, then rerun `bun run ops:check-observability`.",
   );
   return lines;
 }

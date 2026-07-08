@@ -9,6 +9,10 @@ const DEFAULT_OUTPUT_FILE =
   ".ai/03_plans/2026-07-07-observability-alert-proof-and-log-retention/evidence/workers-logs-query-proof.json";
 const DEFAULT_WORKER = "archestimator-proof";
 const DEFAULT_DURATION_SECONDS = 60;
+const WORKERS_LOGS_PROOF_PRODUCER = {
+  script: "scripts/collect-workers-logs-proof.ts",
+  version: 1,
+} as const;
 
 type CommandResult = {
   attempted: boolean;
@@ -31,6 +35,7 @@ type TriggerResult = {
 
 export type WorkersLogsProofArtifact = {
   generatedAt: string;
+  producer: typeof WORKERS_LOGS_PROOF_PRODUCER;
   mode: "workers-logs-query-proof";
   proofBoundary: "hosted-workers-logs-query";
   passed: boolean;
@@ -182,6 +187,7 @@ export function buildWorkersLogsProofArtifact(input: BuildWorkersLogsProofInput)
 
   return {
     generatedAt: now.toISOString(),
+    producer: WORKERS_LOGS_PROOF_PRODUCER,
     mode: "workers-logs-query-proof",
     proofBoundary: "hosted-workers-logs-query",
     passed,

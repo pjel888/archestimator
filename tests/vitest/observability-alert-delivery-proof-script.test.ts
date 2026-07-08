@@ -9,6 +9,11 @@ import {
   writeObservabilityAlertDeliveryProofReport,
 } from "@/../scripts/verify-observability-alert-delivery";
 
+const ALERT_DELIVERY_PROOF_PRODUCER = {
+  script: "scripts/verify-observability-alert-delivery.ts",
+  version: 1,
+};
+
 function configureAlertEnv() {
   vi.stubEnv("OBSERVABILITY_ALERT_DELIVERY_PROOF", "1");
   vi.stubEnv("OBSERVABILITY_ALERT_DELIVERY_HOSTED_OBSERVED", "1");
@@ -73,6 +78,7 @@ describe("observability alert delivery proof script", () => {
     });
 
     expect(report.passed).toBe(true);
+    expect(report.producer).toEqual(ALERT_DELIVERY_PROOF_PRODUCER);
     expect(report.proofBoundary).toBe("hosted-alert-delivery-observation");
     expect(report.scenario).toBe("incident-escalation");
     expect(report.delivery).toMatchObject({
@@ -100,6 +106,70 @@ describe("observability alert delivery proof script", () => {
     expect(JSON.stringify(report)).not.toContain("secret-token");
     expect(JSON.stringify(report)).not.toContain("alerts.example.test/observability");
     expect(JSON.stringify(report)).not.toMatch(/storage_path|file_name|component-attachments\/|private\/|Bearer secret-token|invite_token/i);
+  });
+
+  it("supports Queue DLQ, cron-failure, and retention-failure synthetic alert probes", async () => {
+    configureAlertEnv();
+    const observedScenarios: string[] = [];
+    const observedBodies: Record<string, unknown>[] = [];
+    const fetchMock = vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
+      const headers = new Headers(init?.headers);
+      observedScenarios.push(headers.get("x-archestimator-alert-scenario") ?? "");
+      observedBodies.push(JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>);
+      return new Response(null, { status: 204 });
+    }) as unknown as typeof fetch;
+
+    const reports = await Promise.all([
+      runObservabilityAlertDeliveryProof({
+        scenario: "queue-dlq",
+        generatedAt: "2026-07-08T00:00:00.000Z",
+        fetchImpl: fetchMock,
+      }),
+      runObservabilityAlertDeliveryProof({
+        scenario: "cron-failure",
+        generatedAt: "2026-07-08T00:00:00.000Z",
+        fetchImpl: fetchMock,
+      }),
+      runObservabilityAlertDeliveryProof({
+        scenario: "retention-failure",
+        generatedAt: "2026-07-08T00:00:00.000Z",
+        fetchImpl: fetchMock,
+      }),
+    ]);
+
+    expect(reports.every((report) => report.passed)).toBe(true);
+    expect(reports.every((report) => (
+      report.producer.script === ALERT_DELIVERY_PROOF_PRODUCER.script
+        && report.producer.version === ALERT_DELIVERY_PROOF_PRODUCER.version
+    ))).toBe(true);
+    expect(observedScenarios).toEqual(["queue-dlq", "cron-failure", "retention-failure"]);
+    expect(observedBodies).toEqual([
+      expect.objectContaining({
+        source: "archestimator-observability",
+        scenario: "queue-dlq",
+        severity: "critical",
+        status: "blocked",
+        event: "queue_dlq_alert_probe",
+        sample: true,
+      }),
+      expect.objectContaining({
+        source: "archestimator-observability",
+        scenario: "cron-failure",
+        severity: "critical",
+        status: "blocked",
+        event: "cron_failure_alert_probe",
+        sample: true,
+      }),
+      expect.objectContaining({
+        source: "archestimator-observability",
+        scenario: "retention-failure",
+        severity: "warning",
+        status: "attention",
+        event: "retention_failure_alert_probe",
+        sample: true,
+      }),
+    ]);
+    expect(JSON.stringify(reports)).not.toMatch(/secret-token|alerts\.example\.test\/observability|storage_path|file_name/i);
   });
 
   it("fails closed on webhook rejection while preserving sanitized evidence", async () => {
@@ -140,6 +210,7 @@ describe("observability alert delivery proof script", () => {
       const saved = readFileSync(output, "utf8");
 
       expect(JSON.parse(saved)).toEqual(report);
+      expect(JSON.parse(saved).producer).toEqual(ALERT_DELIVERY_PROOF_PRODUCER);
       expect(saved).not.toContain("Bearer ");
       expect(saved).not.toMatch(/secret-token|alerts\.example\.test\/observability/i);
     } finally {

@@ -9,6 +9,7 @@ import {
   buildLocalLogSnapshot,
   writeAgentDebuggingSnapshotReport,
 } from "@/../scripts/check-agent-debugging-snapshot";
+import type { AlertScenarioReadinessReport } from "@/../scripts/check-alert-scenario-readiness";
 import type { ErrorHandlingContractReport } from "@/../scripts/check-error-handling-contract";
 import type { ObservabilityProofEnvReport } from "@/../scripts/check-observability-proof-env";
 import type { OperationalIncidentsReadinessReport } from "@/../scripts/check-operational-incidents";
@@ -83,10 +84,10 @@ const MISSING_PRODUCTION_PROOF: ProductionObservabilityProofReport = {
   passed: false,
   productionObservabilityReady: false,
   totals: {
-    required: 4,
+    required: 7,
     passed: 0,
     failed: 0,
-    missing: 4,
+    missing: 7,
     invalid: 0,
   },
   requirements: [],
@@ -94,7 +95,10 @@ const MISSING_PRODUCTION_PROOF: ProductionObservabilityProofReport = {
     "workersLogsQuery",
     "uptimeAlertDelivery",
     "errorRateAlertDelivery",
+    "queueDlqAlertDelivery",
+    "cronFailureAlertDelivery",
     "incidentEscalationDelivery",
+    "retentionFailureAlertDelivery",
   ],
   note: "test",
 };
@@ -104,13 +108,33 @@ const READY_PRODUCTION_PROOF: ProductionObservabilityProofReport = {
   passed: true,
   productionObservabilityReady: true,
   totals: {
-    required: 4,
-    passed: 4,
+    required: 7,
+    passed: 7,
     failed: 0,
     missing: 0,
     invalid: 0,
   },
   failedRequirementKeys: [],
+};
+
+const READY_ALERT_SCENARIOS: AlertScenarioReadinessReport = {
+  generatedAt: "2026-07-08T00:00:00.000Z",
+  mode: "alert-scenario-readiness",
+  proofBoundary: "local-alert-scenario-contract",
+  catalogReady: true,
+  productionAlertProducerReady: true,
+  expectedScenarioIds: ["S-01", "S-02", "S-03", "S-04", "S-05", "S-06", "S-07"],
+  totals: {
+    scenarios: 7,
+    implementedProofs: 7,
+    plannedProofs: 0,
+    providerBackedLaunchRequired: 7,
+    launchBlockers: 0,
+  },
+  scenarios: [],
+  missing: [],
+  launchBlockers: [],
+  note: "test",
 };
 
 function tempLog(content: string) {
@@ -162,9 +186,12 @@ describe("agent debugging snapshot script", () => {
         taintedFieldCount: 2,
       });
       expect(report.readiness.localDebuggingReady).toBe(true);
+      expect(report.readiness.alertScenarioCatalogReady).toBe(true);
+      expect(report.readiness.productionAlertScenarioProducerReady).toBe(true);
       expect(report.readiness.productionEvidenceCollectionReady).toBe(false);
       expect(report.readiness.productionHostedProofReady).toBe(false);
       expect(report.hostedProof.failedRequirementKeys).toContain("workersLogsQuery");
+      expect(report.alertScenarios.launchBlockers).toEqual([]);
       expect(report.debuggingLedger.latestErrorRecurrenceKey).toBe(buildDebuggingRecurrenceKey({
         environment: "local",
         route: null,
@@ -173,7 +200,7 @@ describe("agent debugging snapshot script", () => {
         errorCode: "INTERNAL_ERROR",
       }));
       expect(report.recommendedNextSteps).toContain("Run `bun run logs:debug` or `bun run logs:explain <record_id>` for the latest local error record before changing code.");
-      expect(report.recommendedNextSteps).toContain("Run `bun run ops:observability-drill` and collect missing hosted proof artifacts for: workersLogsQuery, uptimeAlertDelivery, errorRateAlertDelivery, incidentEscalationDelivery.");
+      expect(report.recommendedNextSteps).toContain("Run `bun run ops:observability-drill` and collect missing hosted proof artifacts for: workersLogsQuery, uptimeAlertDelivery, errorRateAlertDelivery, queueDlqAlertDelivery, cronFailureAlertDelivery, incidentEscalationDelivery, retentionFailureAlertDelivery.");
       expect(report.recommendedNextSteps).toContain("After the root cause is proven, append a redacted `ops:debug-ledger` record using `debuggingLedger.latestErrorRecurrenceKey` so future agents recognize this fingerprint.");
       expect(JSON.stringify(report)).not.toMatch(/provider-secret|client@example\.com|privateFunction|token=secret/i);
     } finally {
@@ -357,13 +384,17 @@ describe("agent debugging snapshot script", () => {
           advisory: [],
         },
         productionObservabilityReport: READY_PRODUCTION_PROOF,
+        alertScenarioReport: READY_ALERT_SCENARIOS,
       });
 
       expect(report.hostedProof.productionObservabilityReady).toBe(true);
+      expect(report.alertScenarios.productionAlertProducerReady).toBe(true);
       expect(report.readiness.productionEvidenceCollectionReady).toBe(true);
       expect(report.readiness.productionIncidentAlertingReady).toBe(true);
+      expect(report.readiness.productionAlertScenarioProducerReady).toBe(true);
       expect(report.readiness.productionHostedProofReady).toBe(true);
       expect(report.recommendedNextSteps).not.toContain("Run `bun run ops:check-observability` and collect missing hosted proof artifacts for: unknown.");
+      expect(report.recommendedNextSteps.some((step) => step.includes("ops:check-alert-scenarios"))).toBe(false);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

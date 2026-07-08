@@ -80,10 +80,10 @@ const MISSING_PRODUCTION_PROOF: ProductionObservabilityProofReport = {
   passed: false,
   productionObservabilityReady: false,
   totals: {
-    required: 4,
+    required: 7,
     passed: 0,
     failed: 0,
-    missing: 4,
+    missing: 7,
     invalid: 0,
   },
   requirements: [
@@ -115,6 +115,24 @@ const MISSING_PRODUCTION_PROOF: ProductionObservabilityProofReport = {
       note: "test",
     },
     {
+      key: "queueDlqAlertDelivery",
+      label: "Hosted Queue DLQ alert delivery proof",
+      status: "missing",
+      artifact: null,
+      checks: [],
+      failedChecks: ["missing:queue-dlq-alert-delivery-proof.json"],
+      note: "test",
+    },
+    {
+      key: "cronFailureAlertDelivery",
+      label: "Hosted cron-failure alert delivery proof",
+      status: "missing",
+      artifact: null,
+      checks: [],
+      failedChecks: ["missing:cron-failure-alert-delivery-proof.json"],
+      note: "test",
+    },
+    {
       key: "incidentEscalationDelivery",
       label: "Hosted incident-escalation alert delivery proof",
       status: "missing",
@@ -123,12 +141,24 @@ const MISSING_PRODUCTION_PROOF: ProductionObservabilityProofReport = {
       failedChecks: ["missing:incident-escalation-alert-delivery-proof.json"],
       note: "test",
     },
+    {
+      key: "retentionFailureAlertDelivery",
+      label: "Hosted retention-failure alert delivery proof",
+      status: "missing",
+      artifact: null,
+      checks: [],
+      failedChecks: ["missing:retention-failure-alert-delivery-proof.json"],
+      note: "test",
+    },
   ],
   failedRequirementKeys: [
     "workersLogsQuery",
     "uptimeAlertDelivery",
     "errorRateAlertDelivery",
+    "queueDlqAlertDelivery",
+    "cronFailureAlertDelivery",
     "incidentEscalationDelivery",
+    "retentionFailureAlertDelivery",
   ],
   note: "test",
 };
@@ -138,8 +168,8 @@ const READY_PRODUCTION_PROOF: ProductionObservabilityProofReport = {
   passed: true,
   productionObservabilityReady: true,
   totals: {
-    required: 4,
-    passed: 4,
+    required: 7,
+    passed: 7,
     failed: 0,
     missing: 0,
     invalid: 0,
@@ -200,6 +230,14 @@ describe("observability proof drill", () => {
       status: "ready-to-run",
       command: "bun run ops:verify-observability-alert -- --scenario incident-escalation",
     });
+    expect(report.actions.find((action) => action.key === "queueDlqAlertDelivery")).toMatchObject({
+      status: "ready-to-run",
+      command: "bun run ops:verify-observability-alert -- --scenario queue-dlq",
+    });
+    expect(report.actions.find((action) => action.key === "retentionFailureAlertDelivery")).toMatchObject({
+      status: "ready-to-run",
+      command: "bun run ops:verify-observability-alert -- --scenario retention-failure",
+    });
   });
 
   it("passes only when env gates and hosted proof artifacts are ready", () => {
@@ -214,7 +252,7 @@ describe("observability proof drill", () => {
       "Observability proof drill passed",
       "Read-only: no Cloudflare query, webhook send, or incident mutation was performed.",
       "Env readiness: hostedProofCollectionReady=true; operationalIncidentAlertsReady=true",
-      "Hosted proof: passed=4/4; failed=none",
+      "Hosted proof: passed=7/7; failed=none",
     ]);
   });
 

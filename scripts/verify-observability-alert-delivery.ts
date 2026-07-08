@@ -14,7 +14,18 @@ const EVIDENCE_DIR = ".ai/03_plans/2026-07-07-observability-alert-proof-and-log-
 const PROOF_FLAG = "OBSERVABILITY_ALERT_DELIVERY_PROOF";
 const HOSTED_OBSERVED_FLAG = "OBSERVABILITY_ALERT_DELIVERY_HOSTED_OBSERVED";
 const ENV_FILE_VAR = "OBSERVABILITY_ALERT_DELIVERY_PROOF_ENV_FILE";
-const SCENARIOS = ["uptime", "error-rate", "incident-escalation"] as const;
+const ALERT_DELIVERY_PROOF_PRODUCER = {
+  script: "scripts/verify-observability-alert-delivery.ts",
+  version: 1,
+} as const;
+const SCENARIOS = [
+  "uptime",
+  "error-rate",
+  "queue-dlq",
+  "cron-failure",
+  "incident-escalation",
+  "retention-failure",
+] as const;
 const PROOF_ENV_FILE_NAMES = new Set([
   PROOF_FLAG,
   HOSTED_OBSERVED_FLAG,
@@ -25,6 +36,7 @@ const PROOF_ENV_FILE_NAMES = new Set([
 ]);
 
 type ObservabilityAlertScenario = (typeof SCENARIOS)[number];
+type SyntheticObservabilityAlertScenario = Exclude<ObservabilityAlertScenario, "incident-escalation">;
 
 type EnvFileResult = {
   requested: boolean;
@@ -43,7 +55,7 @@ type ProofCheck = {
 type SyntheticObservabilityAlertPayload = {
   schemaVersion: "v1";
   source: "archestimator-observability";
-  scenario: ObservabilityAlertScenario;
+  scenario: SyntheticObservabilityAlertScenario;
   severity: "warning" | "critical";
   status: "attention" | "blocked";
   event: string;
@@ -54,6 +66,7 @@ type AlertDeliveryPayload = SyntheticObservabilityAlertPayload | OperationalInci
 
 export type ObservabilityAlertDeliveryProofReport = {
   generatedAt: string;
+  producer: typeof ALERT_DELIVERY_PROOF_PRODUCER;
   mode: "observability-alert-delivery-proof";
   proofBoundary:
     | "hosted-alert-delivery-observation"
@@ -180,6 +193,21 @@ function hostedObservationConfirmed() {
   return readEnv(HOSTED_OBSERVED_FLAG) === "1";
 }
 
+function syntheticAlertMetadata(scenario: SyntheticObservabilityAlertScenario) {
+  switch (scenario) {
+    case "queue-dlq":
+      return { severity: "critical" as const, status: "blocked" as const, event: "queue_dlq_alert_probe" };
+    case "cron-failure":
+      return { severity: "critical" as const, status: "blocked" as const, event: "cron_failure_alert_probe" };
+    case "retention-failure":
+      return { severity: "warning" as const, status: "attention" as const, event: "retention_failure_alert_probe" };
+    case "error-rate":
+      return { severity: "warning" as const, status: "attention" as const, event: "error_rate_alert_probe" };
+    case "uptime":
+      return { severity: "warning" as const, status: "attention" as const, event: "uptime_alert_probe" };
+  }
+}
+
 function buildPayload(scenario: ObservabilityAlertScenario, generatedAt?: string): AlertDeliveryPayload {
   if (scenario === "incident-escalation") {
     return buildOperationalIncidentAlertPayload({
@@ -199,13 +227,14 @@ function buildPayload(scenario: ObservabilityAlertScenario, generatedAt?: string
     });
   }
 
+  const metadata = syntheticAlertMetadata(scenario);
   return {
     schemaVersion: "v1",
     source: "archestimator-observability",
     scenario,
-    severity: "warning",
-    status: "attention",
-    event: `${scenario.replace(/-/g, "_")}_alert_probe`,
+    severity: metadata.severity,
+    status: metadata.status,
+    event: metadata.event,
     sample: true,
   };
 }
@@ -278,6 +307,7 @@ function makeReport(input: {
 
   return {
     generatedAt: input.generatedAt ?? new Date().toISOString(),
+    producer: ALERT_DELIVERY_PROOF_PRODUCER,
     mode: "observability-alert-delivery-proof",
     proofBoundary: passed
       ? "hosted-alert-delivery-observation"
@@ -295,7 +325,7 @@ function makeReport(input: {
     failedChecks: input.error ? [...failedChecks, "alert-delivery-request-execution"] : failedChecks,
     envFile: input.envFile,
     errorSummary: input.error ? errorSummary(input.error) : undefined,
-    note: "This proof sends one synthetic observability alert through the configured HTTPS webhook only when explicit proof and hosted-observation gates are set. The report never records bearer tokens, raw webhook URLs, raw recipient addresses, cookies, private URLs, invite/share/password-reset tokens, customer data, storage paths, filenames, or payload bodies. It does not prove the external poller cadence, Cloudflare dashboard alert policies, or inbox ownership by itself.",
+    note: "This proof sends one synthetic observability alert through the configured HTTPS webhook only when explicit proof and hosted-observation gates are set. The report never records bearer tokens, raw webhook URLs, raw recipient addresses, cookies, private URLs, invite/share/password-reset tokens, customer data, storage paths, filenames, or payload bodies. It does not prove the external poller cadence, Cloudflare dashboard alert policies, Queue DLQ depth polling, cron execution, retention-job execution, or inbox ownership by itself.",
   };
 }
 

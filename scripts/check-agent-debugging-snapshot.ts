@@ -4,6 +4,10 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, relative, resolve, sep } from "node:path";
 
 import {
+  checkAlertScenarioReadiness,
+  type AlertScenarioReadinessReport,
+} from "./check-alert-scenario-readiness";
+import {
   buildErrorHandlingContractReport,
   type ErrorHandlingContractReport,
 } from "./check-error-handling-contract";
@@ -73,10 +77,18 @@ export type AgentDebuggingSnapshotReport = {
     totals: ProductionObservabilityProofReport["totals"];
     failedRequirementKeys: ProductionObservabilityProofReport["failedRequirementKeys"];
   };
+  alertScenarios: {
+    catalogReady: boolean;
+    productionAlertProducerReady: boolean;
+    totals: AlertScenarioReadinessReport["totals"];
+    launchBlockers: string[];
+  };
   debuggingLedger: DebuggingSessionLedgerSnapshot;
   readiness: {
     localDebuggingReady: boolean;
     operationalIncidentsReady: boolean;
+    alertScenarioCatalogReady: boolean;
+    productionAlertScenarioProducerReady: boolean;
     productionEvidenceCollectionReady: boolean;
     productionIncidentAlertingReady: boolean;
     productionHostedProofReady: boolean;
@@ -92,6 +104,7 @@ type BuildOptions = {
   incidentReport?: OperationalIncidentsReadinessReport;
   hostedProofEnvReport?: ObservabilityProofEnvReport;
   productionObservabilityReport?: ProductionObservabilityProofReport;
+  alertScenarioReport?: AlertScenarioReadinessReport;
   debuggingLedger?: DebuggingSessionLedgerSnapshot;
   debuggingLedgerPath?: string;
 };
@@ -212,6 +225,12 @@ function nextSteps(report: AgentDebuggingSnapshotReport) {
     const failed = report.hostedProof.failedRequirementKeys.join(", ") || "unknown";
     steps.push(`Run \`bun run ops:observability-drill\` and collect missing hosted proof artifacts for: ${failed}.`);
   }
+  if (!report.alertScenarios.catalogReady) {
+    steps.push("Run `bun run ops:check-alert-scenarios -- --catalog-only` and fix missing alert owner/channel/latency/proof fields.");
+  } else if (!report.alertScenarios.productionAlertProducerReady) {
+    const blockers = report.alertScenarios.launchBlockers.join(", ") || "unknown";
+    steps.push(`Run \`bun run ops:check-alert-scenarios\` and close alert scenario launch blockers: ${blockers}.`);
+  }
   if (report.debuggingLedger.malformedLines > 0 || report.debuggingLedger.unsafeRecords > 0) {
     steps.push("Run `bun run ops:debug-ledger -- --check` and remove malformed or unsafe debugging ledger records before using recurrence evidence.");
   } else if (report.debuggingLedger.matchingLatestErrorCount > 0) {
@@ -228,6 +247,7 @@ export function buildAgentDebuggingSnapshotReport(options: BuildOptions = {}): A
   const incidentReport = options.incidentReport ?? buildOperationalIncidentsReadinessReport();
   const hostedProofEnvReport = options.hostedProofEnvReport ?? buildObservabilityProofEnvReport();
   const productionObservabilityReport = options.productionObservabilityReport ?? checkProductionObservabilityProof();
+  const alertScenarioReport = options.alertScenarioReport ?? checkAlertScenarioReadiness();
   const debuggingLedger = options.debuggingLedger ?? buildDebuggingSessionLedgerSnapshot({
     ledgerPath: options.debuggingLedgerPath,
     latestError: localLogs.latestError
@@ -272,16 +292,24 @@ export function buildAgentDebuggingSnapshotReport(options: BuildOptions = {}): A
       totals: productionObservabilityReport.totals,
       failedRequirementKeys: productionObservabilityReport.failedRequirementKeys,
     },
+    alertScenarios: {
+      catalogReady: alertScenarioReport.catalogReady,
+      productionAlertProducerReady: alertScenarioReport.productionAlertProducerReady,
+      totals: alertScenarioReport.totals,
+      launchBlockers: alertScenarioReport.launchBlockers,
+    },
     debuggingLedger,
     readiness: {
       localDebuggingReady,
       operationalIncidentsReady: incidentReport.readiness.operationalIncidentsReady,
+      alertScenarioCatalogReady: alertScenarioReport.catalogReady,
+      productionAlertScenarioProducerReady: alertScenarioReport.productionAlertProducerReady,
       productionEvidenceCollectionReady: hostedProofEnvReport.hostedProofCollectionReady,
       productionIncidentAlertingReady: hostedProofEnvReport.operationalIncidentAlertsReady,
       productionHostedProofReady: productionObservabilityReport.productionObservabilityReady,
     },
     recommendedNextSteps: [],
-    note: "Read-only agent debugging snapshot. It summarizes local log shape, static error-handling hygiene, D1 incident readiness, hosted proof env readiness, hosted proof artifact readiness, and prior redacted debugging ledger matches without printing raw log records, stack traces, request bodies, webhook URLs, or token values.",
+    note: "Read-only agent debugging snapshot. It summarizes local log shape, static error-handling hygiene, D1 incident readiness, alert scenario readiness, hosted proof env readiness, hosted proof artifact readiness, and prior redacted debugging ledger matches without printing raw log records, stack traces, request bodies, webhook URLs, or token values.",
   };
   return {
     ...report,
@@ -317,6 +345,7 @@ function main() {
     && (
       !report.readiness.productionEvidenceCollectionReady
       || !report.readiness.productionIncidentAlertingReady
+      || !report.readiness.productionAlertScenarioProducerReady
       || !report.readiness.productionHostedProofReady
     )
   ) {

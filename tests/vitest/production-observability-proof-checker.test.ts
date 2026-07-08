@@ -12,6 +12,24 @@ import {
 
 const NOW = new Date("2026-07-08T12:00:00.000Z");
 const GENERATED_AT = "2026-07-08T10:00:00.000Z";
+const WORKERS_LOGS_PROOF_PRODUCER = {
+  script: "scripts/collect-workers-logs-proof.ts",
+  version: 1,
+};
+const ALERT_DELIVERY_PROOF_PRODUCER = {
+  script: "scripts/verify-observability-alert-delivery.ts",
+  version: 1,
+};
+const ALERT_SCENARIOS = [
+  "uptime",
+  "error-rate",
+  "queue-dlq",
+  "cron-failure",
+  "incident-escalation",
+  "retention-failure",
+] as const;
+
+type AlertScenario = (typeof ALERT_SCENARIOS)[number];
 
 function writeJson(dir: string, name: string, value: unknown) {
   writeFileSync(join(dir, name), `${JSON.stringify(value, null, 2)}\n`);
@@ -26,6 +44,7 @@ function tempEvidenceDir() {
 function workersLogsArtifact(overrides: Record<string, unknown> = {}) {
   return {
     generatedAt: GENERATED_AT,
+    producer: WORKERS_LOGS_PROOF_PRODUCER,
     mode: "workers-logs-query-proof",
     proofBoundary: "hosted-workers-logs-query",
     passed: true,
@@ -48,9 +67,10 @@ function workersLogsArtifact(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function alertArtifact(scenario: "uptime" | "error-rate" | "incident-escalation", overrides: Record<string, unknown> = {}) {
+function alertArtifact(scenario: AlertScenario, overrides: Record<string, unknown> = {}) {
   return {
     generatedAt: GENERATED_AT,
+    producer: ALERT_DELIVERY_PROOF_PRODUCER,
     mode: "observability-alert-delivery-proof",
     proofBoundary: "hosted-alert-delivery-observation",
     scenario,
@@ -72,7 +92,10 @@ function writeValidBundle(dir: string) {
   writeJson(dir, "workers-logs-query-proof.json", workersLogsArtifact());
   writeJson(dir, "uptime-alert-delivery-proof.json", alertArtifact("uptime"));
   writeJson(dir, "error-rate-alert-delivery-proof.json", alertArtifact("error-rate"));
+  writeJson(dir, "queue-dlq-alert-delivery-proof.json", alertArtifact("queue-dlq"));
+  writeJson(dir, "cron-failure-alert-delivery-proof.json", alertArtifact("cron-failure"));
   writeJson(dir, "incident-escalation-alert-delivery-proof.json", alertArtifact("incident-escalation"));
+  writeJson(dir, "retention-failure-alert-delivery-proof.json", alertArtifact("retention-failure"));
 }
 
 describe("production observability proof checker", () => {
@@ -84,22 +107,28 @@ describe("production observability proof checker", () => {
     });
 
     expect(report.productionObservabilityReady).toBe(false);
-    expect(report.totals).toMatchObject({ required: 4, passed: 0, missing: 4 });
+    expect(report.totals).toMatchObject({ required: 7, passed: 0, missing: 7 });
     expect(report.failedRequirementKeys).toEqual([
       "workersLogsQuery",
       "uptimeAlertDelivery",
       "errorRateAlertDelivery",
+      "queueDlqAlertDelivery",
+      "cronFailureAlertDelivery",
       "incidentEscalationDelivery",
+      "retentionFailureAlertDelivery",
     ]);
 
     expect(formatProductionObservabilityProofSummary(report, "/tmp/proof.json")).toEqual([
       "Production observability proof check failed; output=/tmp/proof.json",
-      "Failed requirements: workersLogsQuery, uptimeAlertDelivery, errorRateAlertDelivery, incidentEscalationDelivery",
+      "Failed requirements: workersLogsQuery, uptimeAlertDelivery, errorRateAlertDelivery, queueDlqAlertDelivery, cronFailureAlertDelivery, incidentEscalationDelivery, retentionFailureAlertDelivery",
       "- workersLogsQuery: missing; artifact=missing; failedChecks=missing:workers-logs-query-proof.json",
       "- uptimeAlertDelivery: missing; artifact=missing; failedChecks=missing:uptime-alert-delivery-proof.json",
       "- errorRateAlertDelivery: missing; artifact=missing; failedChecks=missing:error-rate-alert-delivery-proof.json",
+      "- queueDlqAlertDelivery: missing; artifact=missing; failedChecks=missing:queue-dlq-alert-delivery-proof.json",
+      "- cronFailureAlertDelivery: missing; artifact=missing; failedChecks=missing:cron-failure-alert-delivery-proof.json",
       "- incidentEscalationDelivery: missing; artifact=missing; failedChecks=missing:incident-escalation-alert-delivery-proof.json",
-      "Next: run `bun run ops:check-observability-env`, collect hosted Workers Logs proof with `bun run ops:collect-workers-logs-proof`, run alert probes with `bun run ops:verify-observability-alert -- --scenario <uptime|error-rate|incident-escalation>`, then rerun `bun run ops:check-observability`.",
+      "- retentionFailureAlertDelivery: missing; artifact=missing; failedChecks=missing:retention-failure-alert-delivery-proof.json",
+      "Next: run `bun run ops:check-observability-env`, collect hosted Workers Logs proof with `bun run ops:collect-workers-logs-proof`, run alert probes with `bun run ops:verify-observability-alert -- --scenario <uptime|error-rate|queue-dlq|cron-failure|incident-escalation|retention-failure>`, then rerun `bun run ops:check-observability`.",
     ]);
   });
 
@@ -141,6 +170,37 @@ describe("production observability proof checker", () => {
         && line.includes("workers-logs-query-proof.json")
         && line.includes("artifact-within-max-age")
     ))).toBe(true);
+  });
+
+  it("rejects otherwise valid artifacts without the expected proof producer metadata", () => {
+    const evidenceDir = tempEvidenceDir();
+    writeValidBundle(evidenceDir);
+    writeJson(evidenceDir, "workers-logs-query-proof.json", workersLogsArtifact({
+      producer: {
+        script: "scripts/manual-fixture.ts",
+        version: 1,
+      },
+    }));
+    writeJson(evidenceDir, "uptime-alert-delivery-proof.json", alertArtifact("uptime", {
+      producer: {
+        script: "scripts/verify-observability-alert-delivery.ts",
+        version: 2,
+      },
+    }));
+
+    const report = checkProductionObservabilityProof({
+      evidenceDir,
+      now: NOW,
+    });
+
+    expect(report.productionObservabilityReady).toBe(false);
+    expect(report.failedRequirementKeys).toEqual(["workersLogsQuery", "uptimeAlertDelivery"]);
+    expect(
+      report.requirements.find((requirement) => requirement.key === "workersLogsQuery")?.failedChecks,
+    ).toContain("artifact-producer-script");
+    expect(
+      report.requirements.find((requirement) => requirement.key === "uptimeAlertDelivery")?.failedChecks,
+    ).toContain("artifact-producer-version");
   });
 
   it("rejects artifacts that leak bearer-style secrets", () => {

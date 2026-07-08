@@ -14,6 +14,14 @@ import {
 } from "./check-production-observability-proof";
 
 type RequirementKey = ProductionObservabilityProofReport["failedRequirementKeys"][number];
+type AlertDeliveryRequirementKey = Exclude<RequirementKey, "workersLogsQuery">;
+type ObservabilityAlertScenario =
+  | "uptime"
+  | "error-rate"
+  | "queue-dlq"
+  | "cron-failure"
+  | "incident-escalation"
+  | "retention-failure";
 
 type DrillActionStatus = "passed" | "ready-to-run" | "blocked";
 
@@ -114,8 +122,8 @@ function workersLogsAction(
 }
 
 function alertDeliveryAction(
-  key: "uptimeAlertDelivery" | "errorRateAlertDelivery" | "incidentEscalationDelivery",
-  scenario: "uptime" | "error-rate" | "incident-escalation",
+  key: AlertDeliveryRequirementKey,
+  scenario: ObservabilityAlertScenario,
   envReport: ObservabilityProofEnvReport,
   productionReport: ProductionObservabilityProofReport,
 ): DrillAction {
@@ -186,7 +194,10 @@ export function buildObservabilityProofDrillReport(options: BuildOptions = {}): 
     workersLogsAction(envReport, productionReport),
     alertDeliveryAction("uptimeAlertDelivery", "uptime", envReport, productionReport),
     alertDeliveryAction("errorRateAlertDelivery", "error-rate", envReport, productionReport),
+    alertDeliveryAction("queueDlqAlertDelivery", "queue-dlq", envReport, productionReport),
+    alertDeliveryAction("cronFailureAlertDelivery", "cron-failure", envReport, productionReport),
     alertDeliveryAction("incidentEscalationDelivery", "incident-escalation", envReport, productionReport),
+    alertDeliveryAction("retentionFailureAlertDelivery", "retention-failure", envReport, productionReport),
     operationalIncidentAlertingAction(envReport),
     productionProofCheckAction(productionReport),
   ];

@@ -6,6 +6,10 @@ import {
 } from "@/../scripts/collect-workers-logs-proof";
 
 const NOW = new Date("2026-07-08T12:00:00.000Z");
+const WORKERS_LOGS_PROOF_PRODUCER = {
+  script: "scripts/collect-workers-logs-proof.ts",
+  version: 1,
+};
 
 describe("Workers Logs proof collector", () => {
   it("parses wrangler tail JSON lines after prelude text", () => {
@@ -45,6 +49,7 @@ prefix {"outcome":"error","logs":[{"message":["request req_local-456 /api/health
     });
 
     expect(artifact.passed).toBe(true);
+    expect(artifact.producer).toEqual(WORKERS_LOGS_PROOF_PRODUCER);
     expect(artifact.query.matchedEvents).toBe(1);
     expect(artifact.evidence.matchedRecordHashes).toHaveLength(1);
     expect(JSON.stringify(artifact)).not.toContain("https://archestimator.com/workshop/projects");
@@ -92,6 +97,7 @@ prefix {"outcome":"error","logs":[{"message":["request req_local-456 /api/health
     });
 
     expect(artifact.passed).toBe(true);
+    expect(artifact.producer).toEqual(WORKERS_LOGS_PROOF_PRODUCER);
     expect(artifact.query.requestId).toBeNull();
     expect(artifact.query.proofId).toBe("proof_12345678");
     expect(artifact.evidence.internalRequestIdObserved).toBe(true);
