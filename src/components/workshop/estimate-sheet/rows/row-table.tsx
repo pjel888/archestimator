@@ -35,7 +35,7 @@ import {
   type EstimateRowItemDragPayload,
 } from "./constants";
 import { EstimateRowColumnResizeHandle } from "./column-resize-handle";
-import { EstimateMaterialCell, MoneyInput, type ExpressInsertDraftState } from "./cells";
+import { EstimateMaterialCell, MoneyInput, type ExpressInsertDraftState, type MaterialVariantOption } from "./cells";
 import { focusEstimateCellByRowId, handleEstimateCellKeyDown } from "./cells-model";
 import { isExpressComponentRow } from "@/lib/estimates/express-components";
 import { formatQuantityUnitLabel } from "@/lib/estimates/format-quantity-unit-label";
@@ -62,6 +62,14 @@ const ESTIMATE_LOWER_RIGHT_META_CLASS = "absolute top-18 right-1 max-w-[calc(100
 const ESTIMATE_QUANTITY_BREAKDOWN_INPUT_CLASS =
   "h-[10px] w-7 border-0 !bg-transparent p-0 !text-[8px] font-medium leading-[10px] tabular-nums text-ink shadow-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 
+function getVariantImageUrl(option: MaterialVariantOption, fallbackImageUrl?: string) {
+  const thumbnailPath = option.thumbnailPath?.trim();
+  if (thumbnailPath && /^(https?:|data:|blob:|\/)/.test(thumbnailPath)) return thumbnailPath;
+  const imagePath = option.imagePath?.trim();
+  if (imagePath && /^(https?:|data:|blob:|\/)/.test(imagePath)) return imagePath;
+  return fallbackImageUrl;
+}
+
 export type EstimateRowItemsTableProps = {
   canEditEstimate?: boolean;
   items: EstimateRowItem[];
@@ -78,6 +86,7 @@ export type EstimateRowItemsTableProps = {
   onUpdateRowItem: (rowItemId: string, values: Partial<EditableRowValue>) => void;
   onMarkRowDirty: (rowItemId: string) => void;
   onOpenRowDetails: (rowItemId: string, opener: HTMLElement, tab?: RowDetailTab) => void;
+  onOpenComponentEditor?: (rowItemId: string, opener: HTMLElement) => void;
   onClearRowComponent: (rowItemId: string) => void;
   onRequestProjectSpecific: (rowItemId: string) => void;
   onPromoteRowToLibrary: (rowItemId: string) => void;
@@ -132,6 +141,7 @@ function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTableProps, ne
     prev.onUpdateRowItem !== next.onUpdateRowItem ||
     prev.onMarkRowDirty !== next.onMarkRowDirty ||
     prev.onOpenRowDetails !== next.onOpenRowDetails ||
+    prev.onOpenComponentEditor !== next.onOpenComponentEditor ||
     prev.onClearRowComponent !== next.onClearRowComponent ||
     prev.onRequestProjectSpecific !== next.onRequestProjectSpecific ||
     prev.onPromoteRowToLibrary !== next.onPromoteRowToLibrary ||
@@ -267,6 +277,7 @@ type EstimateRowItemTableRowProps = {
   onUpdateRowItem: (rowItemId: string, values: Partial<EditableRowValue>) => void;
   onMarkRowDirty: (rowItemId: string) => void;
   onOpenRowDetails: (rowItemId: string, opener: HTMLElement, tab?: RowDetailTab) => void;
+  onOpenComponentEditor?: (rowItemId: string, opener: HTMLElement) => void;
   onClearRowComponent: (rowItemId: string) => void;
   onRequestProjectSpecific: (rowItemId: string) => void;
   onPromoteRowToLibrary: (rowItemId: string) => void;
@@ -308,6 +319,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   onUpdateRowItem,
   onMarkRowDirty,
   onOpenRowDetails,
+  onOpenComponentEditor,
   onClearRowComponent,
   onRequestProjectSpecific,
   onPromoteRowToLibrary,
@@ -554,6 +566,51 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
     commitQuantityFields(patch);
   }
 
+  function selectMaterialVariant(priceOption: MaterialVariantOption) {
+    const nextImageUrl = getVariantImageUrl(priceOption, computedItem.imageUrl) ?? "";
+    if (computedItem.source === "project" || !computedItem.sourceLibraryItemId) {
+      onUpdateRowItem(computedItem.id, {
+        description: priceOption.variantDescription ?? computedItem.description,
+        unit: priceOption.unit || computedItem.unit,
+        unitCost: String(priceOption.unitCost),
+        imageUrl: nextImageUrl,
+        sku: priceOption.sku ?? computedItem.sku ?? null,
+        sourceUrl: priceOption.sourceUrl ?? computedItem.sourceUrl ?? "",
+        pricingDate: priceOption.pricingDate ?? computedItem.pricingDate ?? null,
+        pricingSource: priceOption.pricingSource ?? computedItem.pricingSource ?? null,
+        confidence: priceOption.confidence ?? computedItem.confidence ?? null,
+        priceOptionId: priceOption.id,
+        priceOptionLabel: priceOption.label,
+        priceOptions: computedItem.priceOptions,
+      });
+      return;
+    }
+
+    onReplaceRowItem(computedItem.id, {
+      ...computedItem,
+      description: priceOption.variantDescription ?? computedItem.description,
+      unit: priceOption.unit || computedItem.unit,
+      itemCost: priceOption.unitCost,
+      price: priceOption.unitCost,
+      imageUrl: nextImageUrl,
+      sku: priceOption.sku ?? computedItem.sku,
+      sourceUrl: priceOption.sourceUrl ?? computedItem.sourceUrl,
+      pricingDate: priceOption.pricingDate ?? computedItem.pricingDate,
+      pricingSource: priceOption.pricingSource ?? computedItem.pricingSource,
+      confidence: priceOption.confidence ?? computedItem.confidence,
+      priceOptionId: priceOption.id,
+      priceOptionLabel: priceOption.label,
+      quantity: computedItem.quantity,
+      quantityBase: computedItem.quantityBase,
+      quantityContingencyAmount: computedItem.quantityContingencyAmount,
+      contingencyPercentage: computedItem.contingencyPercentage,
+      contingencyValue: computedItem.contingencyValue,
+      adjustmentPercentage: computedItem.adjustmentPercentage,
+      adjustmentValue: computedItem.adjustmentValue,
+      miscCost: computedItem.miscCost,
+    });
+  }
+
 
   return (
     <tr
@@ -664,7 +721,8 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
           onMoveComponent={onMoveRowComponent}
           onOpenReplacePicker={onOpenReplaceComponentPicker ? (opener) => onOpenReplaceComponentPicker(computedItem.id, opener) : undefined}
           onOpenMovePicker={onOpenMoveComponentPicker ? (opener) => onOpenMoveComponentPicker(computedItem.id, opener) : undefined}
-          onOpenComponentDetails={(opener) => onOpenRowDetails(computedItem.id, opener, "component")}
+          onOpenComponentEditor={onOpenComponentEditor ? (opener) => onOpenComponentEditor(computedItem.id, opener) : undefined}
+          onSelectVariant={selectMaterialVariant}
           expressDraftState={expressDraftState}
           onRetryExpressDraft={() => onRetryExpressDraft(computedItem.id)}
           onDeleteExpressDraft={() => onDeleteExpressDraft(computedItem.id)}
@@ -956,6 +1014,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   onUpdateRowItem,
   onMarkRowDirty,
   onOpenRowDetails,
+  onOpenComponentEditor,
   onClearRowComponent,
   onRequestProjectSpecific,
   onPromoteRowToLibrary,
@@ -1228,6 +1287,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
                 onUpdateRowItem={onUpdateRowItem}
                 onMarkRowDirty={onMarkRowDirty}
                 onOpenRowDetails={onOpenRowDetails}
+                onOpenComponentEditor={onOpenComponentEditor}
                 onClearRowComponent={onClearRowComponent}
                 onRequestProjectSpecific={onRequestProjectSpecific}
                 onPromoteRowToLibrary={onPromoteRowToLibrary}

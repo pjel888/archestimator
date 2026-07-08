@@ -19,6 +19,22 @@ export type EstimateRowItemPatch = {
   sourceSnapshot?: Json | null;
   imageUrl?: string | null;
   sourceUrl?: string | null;
+  category?: string;
+  categoryNodeId?: string | null;
+  brandId?: string | null;
+  supplierId?: string | null;
+  sku?: string | null;
+  pricingSource?: string | null;
+  pricingDate?: string | null;
+  confidence?: string | null;
+  priceOptionId?: string | null;
+  priceOptionLabel?: string | null;
+  priceOptions?: EstimateRowItem["priceOptions"];
+  lifecycleState?: EstimateRowItem["lifecycleState"] | null;
+  lifecycleStateChangedAt?: string | null;
+  componentVersionId?: string | null;
+  componentVersionNumber?: number | null;
+  notes?: string | null;
   metadata?: EstimateRowItem["metadata"];
   source?: EstimateRowItem["source"];
   sourceLibraryItemId?: string | null;
@@ -55,11 +71,18 @@ export function findEstimateRowItemInTree(tree: EstimateTreeNode[], rowId: strin
   return null;
 }
 
-function readSnapshotString(value: Json | null | undefined, key: "brand" | "imageUrl" | "sourceUrl") {
+function readSnapshotString(value: Json | null | undefined, key: string) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
   const candidate = (value as Record<string, unknown>)[key];
   if (candidate === null) return null;
   return typeof candidate === "string" ? candidate : undefined;
+}
+
+function readSnapshotNumber(value: Json | null | undefined, key: string) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const candidate = (value as Record<string, unknown>)[key];
+  if (candidate === null) return null;
+  return typeof candidate === "number" && Number.isFinite(candidate) ? candidate : undefined;
 }
 
 export function estimateRowMutationResultToPatch(result: EstimateRowMutationResultPatchInput): EstimateRowItemPatch {
@@ -79,6 +102,21 @@ export function estimateRowMutationResultToPatch(result: EstimateRowMutationResu
     sourceSnapshot: result.sourceSnapshot,
     imageUrl: readSnapshotString(result.sourceSnapshot, "imageUrl"),
     sourceUrl: readSnapshotString(result.sourceSnapshot, "sourceUrl"),
+    category: readSnapshotString(result.sourceSnapshot, "category") ?? undefined,
+    categoryNodeId: readSnapshotString(result.sourceSnapshot, "categoryNodeId"),
+    brandId: readSnapshotString(result.sourceSnapshot, "brandId"),
+    supplierId: readSnapshotString(result.sourceSnapshot, "supplierId"),
+    sku: readSnapshotString(result.sourceSnapshot, "sku"),
+    pricingSource: readSnapshotString(result.sourceSnapshot, "pricingSource"),
+    pricingDate: readSnapshotString(result.sourceSnapshot, "pricingDate"),
+    confidence: readSnapshotString(result.sourceSnapshot, "confidence"),
+    priceOptionId: readSnapshotString(result.sourceSnapshot, "priceOptionId"),
+    priceOptionLabel: readSnapshotString(result.sourceSnapshot, "priceOptionLabel") ?? undefined,
+    lifecycleState: readSnapshotString(result.sourceSnapshot, "lifecycleState") as EstimateRowItem["lifecycleState"] | null | undefined,
+    lifecycleStateChangedAt: readSnapshotString(result.sourceSnapshot, "sourceUpdatedAt"),
+    componentVersionId: readSnapshotString(result.sourceSnapshot, "componentVersionId"),
+    notes: readSnapshotString(result.sourceSnapshot, "notes"),
+    componentVersionNumber: readSnapshotNumber(result.sourceSnapshot, "componentVersionNumber") ?? undefined,
     metadata: result.metadata as EstimateRowItem["metadata"],
     linkState: result.linkState,
     rowRevision: result.rowRevision,
@@ -123,6 +161,22 @@ export function applyEstimateRowItemPatch(item: EstimateRowItem, patch: Estimate
     ...(patch.sourceSnapshot !== undefined ? { sourceSnapshot: patch.sourceSnapshot } : {}),
     ...(patch.imageUrl !== undefined ? { imageUrl: patch.imageUrl ?? undefined } : {}),
     ...(patch.sourceUrl !== undefined ? { sourceUrl: patch.sourceUrl ?? undefined } : {}),
+    category: patch.category ?? item.category,
+    ...(patch.categoryNodeId !== undefined ? { categoryNodeId: patch.categoryNodeId ?? undefined } : {}),
+    ...(patch.brandId !== undefined ? { brandId: patch.brandId ?? undefined } : {}),
+    ...(patch.supplierId !== undefined ? { supplierId: patch.supplierId ?? undefined } : {}),
+    ...(patch.sku !== undefined ? { sku: patch.sku ?? undefined } : {}),
+    ...(patch.pricingSource !== undefined ? { pricingSource: patch.pricingSource ?? item.pricingSource } : {}),
+    ...(patch.pricingDate !== undefined ? { pricingDate: patch.pricingDate ?? item.pricingDate } : {}),
+    ...(patch.confidence !== undefined ? { confidence: patch.confidence ?? undefined } : {}),
+    ...(patch.priceOptionId !== undefined ? { priceOptionId: patch.priceOptionId } : {}),
+    ...(patch.priceOptionLabel !== undefined ? { priceOptionLabel: patch.priceOptionLabel ?? undefined } : {}),
+    ...(patch.priceOptions !== undefined ? { priceOptions: patch.priceOptions } : {}),
+    ...(patch.lifecycleState !== undefined ? { lifecycleState: patch.lifecycleState ?? undefined } : {}),
+    ...(patch.lifecycleStateChangedAt !== undefined ? { lifecycleStateChangedAt: patch.lifecycleStateChangedAt ?? undefined } : {}),
+    ...(patch.componentVersionId !== undefined ? { componentVersionId: patch.componentVersionId ?? undefined } : {}),
+    ...(patch.componentVersionNumber !== undefined ? { componentVersionNumber: patch.componentVersionNumber ?? undefined } : {}),
+    ...(patch.notes !== undefined ? { notes: patch.notes ?? undefined } : {}),
     ...(patch.metadata !== undefined ? { metadata: patch.metadata } : {}),
     source: patch.source ?? item.source,
     sourceLibraryItemId: patch.sourceLibraryItemId !== undefined ? patch.sourceLibraryItemId : item.sourceLibraryItemId,
@@ -168,6 +222,22 @@ const SHARED_PROJECT_COMPONENT_PATCH_KEYS: Array<keyof EstimateRowItemPatch> = [
   "sourceSnapshot",
   "imageUrl",
   "sourceUrl",
+  "category",
+  "categoryNodeId",
+  "brandId",
+  "supplierId",
+  "sku",
+  "pricingSource",
+  "pricingDate",
+  "confidence",
+  "priceOptionId",
+  "priceOptionLabel",
+  "priceOptions",
+  "lifecycleState",
+  "lifecycleStateChangedAt",
+  "componentVersionId",
+  "componentVersionNumber",
+  "notes",
 ];
 
 function hasOwnPatchField(patch: EstimateRowItemPatch, key: keyof EstimateRowItemPatch) {
@@ -264,6 +334,22 @@ function previousPatchForRow(item: EstimateRowItem, patch: EstimateRowItemPatch)
       imageUrl: readSnapshotString(itemJson.sourceSnapshot, "imageUrl"),
       sourceUrl: readSnapshotString(itemJson.sourceSnapshot, "sourceUrl"),
     } : {}),
+    ...(hasOwnPatchField(patch, "category") ? { category: item.category } : {}),
+    ...(hasOwnPatchField(patch, "categoryNodeId") ? { categoryNodeId: item.categoryNodeId ?? null } : {}),
+    ...(hasOwnPatchField(patch, "brandId") ? { brandId: item.brandId ?? null } : {}),
+    ...(hasOwnPatchField(patch, "supplierId") ? { supplierId: item.supplierId ?? null } : {}),
+    ...(hasOwnPatchField(patch, "sku") ? { sku: item.sku ?? null } : {}),
+    ...(hasOwnPatchField(patch, "pricingSource") ? { pricingSource: item.pricingSource } : {}),
+    ...(hasOwnPatchField(patch, "pricingDate") ? { pricingDate: item.pricingDate } : {}),
+    ...(hasOwnPatchField(patch, "confidence") ? { confidence: item.confidence ?? null } : {}),
+    ...(hasOwnPatchField(patch, "priceOptionId") ? { priceOptionId: item.priceOptionId ?? null } : {}),
+    ...(hasOwnPatchField(patch, "priceOptionLabel") ? { priceOptionLabel: item.priceOptionLabel ?? null } : {}),
+    ...(hasOwnPatchField(patch, "priceOptions") ? { priceOptions: item.priceOptions } : {}),
+    ...(hasOwnPatchField(patch, "lifecycleState") ? { lifecycleState: item.lifecycleState ?? null } : {}),
+    ...(hasOwnPatchField(patch, "lifecycleStateChangedAt") ? { lifecycleStateChangedAt: item.lifecycleStateChangedAt ?? null } : {}),
+    ...(hasOwnPatchField(patch, "componentVersionId") ? { componentVersionId: item.componentVersionId ?? null } : {}),
+    ...(hasOwnPatchField(patch, "componentVersionNumber") ? { componentVersionNumber: item.componentVersionNumber ?? null } : {}),
+    ...(hasOwnPatchField(patch, "notes") ? { notes: item.notes ?? null } : {}),
     ...(hasOwnPatchField(patch, "metadata") ? { metadata: itemJson.metadata ?? {} } : {}),
   };
 }

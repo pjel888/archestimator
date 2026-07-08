@@ -191,71 +191,57 @@ describe("estimate sheet row details and CRUD entry points", () => {
     });
   });
 
-  it("opens project-specific component-card details on the Component tab with row information", async () => {
+  it("opens project-specific component-card editing in the shared component modal", async () => {
     const user = userEvent.setup();
     renderPersistedEstimateSheet([projectSpecificRow]);
 
     const componentCard = screen.getByLabelText("Custom Built-in Cabinet replaceable estimate component");
-    await user.click(within(componentCard).getByRole("button", { name: "Open component details for Custom Built-in Cabinet" }));
+    await user.click(within(componentCard).getByRole("button", { name: "Edit component Custom Built-in Cabinet" }));
 
-    const dialog = await screen.findByRole("dialog", { name: "Row item details" });
-    expect(within(dialog).getByRole("tab", { name: "Component" })).toHaveAttribute("aria-selected", "true");
-    expect(within(dialog).getByText("Current component")).toBeInTheDocument();
-    expect(within(dialog).getAllByText("Custom Built-in Cabinet").length).toBeGreaterThan(0);
-    expect(within(dialog).getAllByText("Local millwork shop").length).toBeGreaterThan(0);
-    expect(within(dialog).getAllByText("Project Component").length).toBeGreaterThan(0);
-    expect(within(dialog).getAllByText("This component keeps the current row values and no longer follows library updates.").length).toBeGreaterThan(0);
-    expect(within(dialog).getByText("2 lm")).toBeInTheDocument();
-    expect(within(dialog).getAllByText("₱ 3,400.00").length).toBeGreaterThan(0);
-    expect(within(dialog).getByText("CAB-01")).toBeInTheDocument();
+    const dialog = await screen.findByRole("dialog", { name: "Edit Component" });
+    expect(within(dialog).getByLabelText("Name")).toHaveValue("Custom Built-in Cabinet");
+    expect(within(dialog).getByLabelText("Description")).toHaveValue("Detached cabinet snapshot");
+    expect(within(dialog).getByLabelText("Supplier")).toHaveValue("Local millwork shop");
+    expect(screen.queryByRole("dialog", { name: "Row item details" })).not.toBeInTheDocument();
   });
 
-  it("opens empty express component-card details without crashing and shows empty row info", async () => {
+  it("opens empty express component-card editing without crashing", async () => {
     const user = userEvent.setup();
     renderPersistedEstimateSheet([emptyExpressRow]);
 
     const componentCard = screen.getByLabelText("Project Component replaceable estimate component");
-    await user.click(within(componentCard).getByRole("button", { name: "Open component details for Project Component" }));
+    await user.click(within(componentCard).getByRole("button", { name: "Edit component Project Component" }));
 
-    const dialog = await screen.findByRole("dialog", { name: "Row item details" });
-    expect(within(dialog).getByRole("tab", { name: "Component" })).toHaveAttribute("aria-selected", "true");
-    expect(within(dialog).getByText("1")).toBeInTheDocument();
-    expect(within(dialog).getByText("Current component")).toBeInTheDocument();
-    expect(within(dialog).getAllByText("Project Component").length).toBeGreaterThan(0);
-    expect(within(dialog).getAllByText(/authored directly in the estimate row/i).length).toBeGreaterThan(0);
-    expect(within(dialog).getByText("No image yet")).toBeInTheDocument();
-    expect(within(dialog).queryByText("Manual component")).not.toBeInTheDocument();
-    expect(within(dialog).queryByText("Express component")).not.toBeInTheDocument();
-    expect(within(dialog).getAllByText("₱ 0.00").length).toBeGreaterThan(0);
-    expect(within(dialog).getAllByText("—").length).toBeGreaterThan(0);
+    const dialog = await screen.findByRole("dialog", { name: "Edit Component" });
+    expect(within(dialog).getByLabelText("Name")).toHaveValue("");
+    expect(within(dialog).getByLabelText("Unit cost")).toHaveValue("0.00");
+    expect(screen.queryByRole("dialog", { name: "Row item details" })).not.toBeInTheDocument();
   });
 
-  it("opens source-less row details as a Project Component", async () => {
+  it("keeps row details scoped to row tabs for source-less project rows", async () => {
     const user = userEvent.setup();
     renderPersistedEstimateSheet([sourceLessProjectRow]);
 
-    const componentCard = screen.getByLabelText("Owner-Supplied Pendant replaceable estimate component");
-    await user.click(within(componentCard).getByRole("button", { name: "Open component details for Owner-Supplied Pendant" }));
+    await user.click(screen.getByRole("button", { name: "Open row details for Owner-Supplied Pendant" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Row item details" });
-    expect(within(dialog).getByRole("tab", { name: "Component" })).toHaveAttribute("aria-selected", "true");
+    expect(within(dialog).queryByRole("tab", { name: "Component" })).not.toBeInTheDocument();
+    expect(within(dialog).getByRole("tab", { name: "Details" })).toHaveAttribute("aria-selected", "true");
     expect(within(dialog).getAllByText("Project Component").length).toBeGreaterThan(0);
-    expect(within(dialog).getAllByText("This row is not linked to a library component.").length).toBeGreaterThan(0);
     expect(within(dialog).queryByText("Manual component")).not.toBeInTheDocument();
     expect(within(dialog).queryByText("Manual estimate row")).not.toBeInTheDocument();
   });
 
-  it("opens source-changed row details as a Library Component", async () => {
+  it("keeps row details scoped to row tabs for source-changed library rows", async () => {
     const user = userEvent.setup();
     renderPersistedEstimateSheet([sourceChangedLibraryRow]);
 
-    const componentCard = screen.getByLabelText("Library Faucet replaceable estimate component");
-    await user.click(within(componentCard).getByRole("button", { name: "Open component details for Library Faucet" }));
+    await user.click(screen.getByRole("button", { name: "Open row details for Library Faucet" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Row item details" });
-    expect(within(dialog).getByRole("tab", { name: "Component" })).toHaveAttribute("aria-selected", "true");
+    expect(within(dialog).queryByRole("tab", { name: "Component" })).not.toBeInTheDocument();
+    expect(within(dialog).getByRole("tab", { name: "Details" })).toHaveAttribute("aria-selected", "true");
     expect(within(dialog).getAllByText("Library Component").length).toBeGreaterThan(0);
-    expect(within(dialog).getAllByText("The source library component changed after this row was added. Review before replacing or detaching it.").length).toBeGreaterThan(0);
     expect(within(dialog).queryByText("Library source changed")).not.toBeInTheDocument();
   });
 

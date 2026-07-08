@@ -50,6 +50,7 @@ export type EstimateSheetBranchProps = {
   onUpdateRowItem: (rowItemId: string, values: Partial<EditableRowValue>) => void;
   onMarkRowDirty: (rowItemId: string) => void;
   onOpenRowDetails: (rowItemId: string, opener: HTMLElement, tab?: RowDetailTab) => void;
+  onOpenComponentEditor?: (rowItemId: string, opener: HTMLElement) => void;
   onClearRowComponent: (rowItemId: string) => void;
   onRequestProjectSpecific: (rowItemId: string) => void;
   onPromoteRowToLibrary: (rowItemId: string) => void;
@@ -89,6 +90,7 @@ export type SheetMutationHandlers = Pick<
   | "onUpdateRowItem"
   | "onMarkRowDirty"
   | "onOpenRowDetails"
+  | "onOpenComponentEditor"
   | "onClearRowComponent"
   | "onRequestProjectSpecific"
   | "onPromoteRowToLibrary"
@@ -150,6 +152,7 @@ function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps, next: 
     prev.onUpdateRowItem !== next.onUpdateRowItem ||
     prev.onMarkRowDirty !== next.onMarkRowDirty ||
     prev.onOpenRowDetails !== next.onOpenRowDetails ||
+    prev.onOpenComponentEditor !== next.onOpenComponentEditor ||
     prev.onClearRowComponent !== next.onClearRowComponent ||
     prev.onRequestProjectSpecific !== next.onRequestProjectSpecific ||
     prev.onPromoteRowToLibrary !== next.onPromoteRowToLibrary ||
@@ -187,7 +190,7 @@ function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps, next: 
 }
 
 // react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
-function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRUMB_PATH, canEditEstimate = true, editableRows, setEditableRows, brandOptions, supplierOptions, projectId, estimateId, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onPromoteRowToLibrary, promotingRowId, rowMutationStatuses, onMoveRowComponent, onMoveRowItem, onOpenMoveRowItemDialog, onOpenReplaceComponentPicker, onOpenMoveComponentPicker, expressInsertDraftStates, onRetryExpressDraft, onDeleteExpressDraft, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, columnResize, nodeTotals, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
+function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRUMB_PATH, canEditEstimate = true, editableRows, setEditableRows, brandOptions, supplierOptions, projectId, estimateId, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onOpenComponentEditor, onClearRowComponent, onRequestProjectSpecific, onPromoteRowToLibrary, promotingRowId, rowMutationStatuses, onMoveRowComponent, onMoveRowItem, onOpenMoveRowItemDialog, onOpenReplaceComponentPicker, onOpenMoveComponentPicker, expressInsertDraftStates, onRetryExpressDraft, onDeleteExpressDraft, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, columnResize, nodeTotals, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
   reportEstimateSheetBranchRender(node.id);
   const { collapsedNodeIds, setCollapsedNodeIds, searchActive = false } = useEstimateSheetExpansion();
   // Only the root (depth 0) drives edge auto-scroll for the whole sheet; it
@@ -435,6 +438,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
               onUpdateRowItem={onUpdateRowItem}
               onMarkRowDirty={onMarkRowDirty}
               onOpenRowDetails={onOpenRowDetails}
+              onOpenComponentEditor={onOpenComponentEditor}
               onClearRowComponent={onClearRowComponent}
               onRequestProjectSpecific={onRequestProjectSpecific}
               onPromoteRowToLibrary={onPromoteRowToLibrary}
@@ -494,6 +498,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = EMPTY_BREADCRU
                 onUpdateRowItem={onUpdateRowItem}
                 onMarkRowDirty={onMarkRowDirty}
                 onOpenRowDetails={onOpenRowDetails}
+                onOpenComponentEditor={onOpenComponentEditor}
                 onClearRowComponent={onClearRowComponent}
                 onRequestProjectSpecific={onRequestProjectSpecific}
                 onPromoteRowToLibrary={onPromoteRowToLibrary}

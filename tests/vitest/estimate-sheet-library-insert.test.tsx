@@ -715,6 +715,143 @@ describe("estimate sheet library insertion persistence", () => {
     expect(actionMocks.replaceEstimateRowItemWithLibrary).not.toHaveBeenCalled();
   });
 
+  it("shows the project row variant under the thumbnail and persists variant menu selections through row update", async () => {
+    const user = userEvent.setup();
+    const variantPriceOptions: NonNullable<EstimateRowItem["priceOptions"]> = [
+      {
+        id: "variant-standard",
+        label: "Variant 1",
+        unit: "lm",
+        unitCost: 100,
+        miscCost: 0,
+        currency: "PHP",
+        isActive: true,
+        isDefault: true,
+      },
+      {
+        id: "variant-premium",
+        label: "Premium",
+        variantDescription: "Premium cabinet finish",
+        sku: "CAB-PREMIUM",
+        unit: "lm",
+        unitCost: 175,
+        miscCost: 0,
+        currency: "PHP",
+        pricingSource: "Variant schedule",
+        pricingDate: "2026-07-08",
+        confidence: "confirmed",
+        thumbnailPath: "https://example.com/cabinet-premium.webp",
+        isActive: true,
+        isDefault: false,
+      },
+    ];
+    const variantNodes: EstimateTreeNode[] = [{
+      ...nodesWithRow[0],
+      estimateRowItems: [{
+        ...nodesWithRow[0].estimateRowItems![0],
+        priceOptionId: "variant-standard",
+        priceOptionLabel: "Variant 1",
+        priceOptions: variantPriceOptions,
+      }],
+    }];
+
+    renderPersistedEstimateSheet(variantNodes);
+
+    const componentCell = screen.getByLabelText("Kitchen Cabinet replaceable estimate component");
+    expect(within(componentCell).getByText("Base cabinet")).toBeInTheDocument();
+    const trigger = within(componentCell).getByRole("button", { name: "Change variant for Kitchen Cabinet" });
+    expect(trigger).toHaveTextContent("Variant 1");
+
+    await user.click(trigger);
+    await user.click(await screen.findByRole("menuitem", { name: "Premium" }));
+
+    await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(1));
+    expect(actionMocks.replaceEstimateRowItemWithLibrary).not.toHaveBeenCalled();
+    expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledWith(expect.objectContaining({
+      rowId: cabinetRowId,
+      description: "Premium cabinet finish",
+      unitCost: 175,
+      unit: "lm",
+      sourceSnapshot: expect.objectContaining({
+        imageUrl: "https://example.com/cabinet-premium.webp",
+        sku: "CAB-PREMIUM",
+        priceOptionId: "variant-premium",
+        priceOptionLabel: "Premium",
+        pricingSource: "Variant schedule",
+        pricingDate: "2026-07-08",
+        confidence: "confirmed",
+      }),
+    }));
+  });
+
+  it("keeps linked library variant menu selections on the library replacement path", async () => {
+    const user = userEvent.setup();
+    const variantPriceOptions: NonNullable<EstimateRowItem["priceOptions"]> = [
+      {
+        id: "variant-standard",
+        label: "Variant 1",
+        unit: "lm",
+        unitCost: 100,
+        miscCost: 0,
+        currency: "PHP",
+        isActive: true,
+        isDefault: true,
+      },
+      {
+        id: "variant-premium",
+        label: "Premium",
+        variantDescription: "Premium cabinet finish",
+        sku: "CAB-PREMIUM",
+        unit: "lm",
+        unitCost: 175,
+        miscCost: 0,
+        currency: "PHP",
+        pricingSource: "Variant schedule",
+        pricingDate: "2026-07-08",
+        confidence: "confirmed",
+        thumbnailPath: "https://example.com/cabinet-premium.webp",
+        isActive: true,
+        isDefault: false,
+      },
+    ];
+    const linkedVariantNodes: EstimateTreeNode[] = [{
+      ...nodesWithLinkedRow[0],
+      estimateRowItems: [{
+        ...nodesWithLinkedRow[0].estimateRowItems![0],
+        priceOptionId: "variant-standard",
+        priceOptionLabel: "Variant 1",
+        priceOptions: variantPriceOptions,
+      }],
+    }];
+
+    renderPersistedEstimateSheet(linkedVariantNodes);
+
+    const componentCell = screen.getByLabelText("Kitchen Cabinet replaceable estimate component");
+    const trigger = within(componentCell).getByRole("button", { name: "Change variant for Kitchen Cabinet" });
+
+    await user.click(trigger);
+    await user.click(await screen.findByRole("menuitem", { name: "Premium" }));
+
+    await waitFor(() => expect(actionMocks.replaceEstimateRowItemWithLibrary).toHaveBeenCalledTimes(1));
+    expect(actionMocks.updateEstimateRowItem).not.toHaveBeenCalled();
+    const input = actionMocks.replaceEstimateRowItemWithLibrary.mock.calls[0][0];
+    expect(input.rowId).toBe(cabinetRowId);
+    expect(input.libraryItem).toMatchObject({
+      priceOptionId: "variant-premium",
+      priceOptionLabel: "Premium",
+      description: "Premium cabinet finish",
+      itemCost: 175,
+      unit: "lm",
+      quantity: 2,
+      miscCost: 10,
+      sku: "CAB-PREMIUM",
+      imageUrl: "https://example.com/cabinet-premium.webp",
+      pricingSource: "Variant schedule",
+      pricingDate: "2026-07-08",
+      confidence: "confirmed",
+    });
+  });
+
   it("still renders and persists an editable express row when the legacy flag is disabled", async () => {
     process.env.NEXT_PUBLIC_EXPRESS_COMPONENTS_ENABLED = "false";
     const user = userEvent.setup();
@@ -804,12 +941,11 @@ describe("estimate sheet library insertion persistence", () => {
 
     const kitchenSection = screen.getByLabelText("Kitchen");
     expect(await within(kitchenSection).findByLabelText("Project Component replaceable estimate component")).toBeInTheDocument();
-    await user.click(within(kitchenSection).getByRole("button", { name: "Open component details for Project Component" }));
+    await user.click(within(kitchenSection).getByRole("button", { name: "Edit component Project Component" }));
 
-    const dialog = await screen.findByRole("dialog", { name: "Row item details" });
-    expect(within(dialog).getAllByText("Project Component").length).toBeGreaterThan(0);
-    expect(within(dialog).getAllByText(/authored directly in the estimate row/i).length).toBeGreaterThan(0);
-    expect(within(dialog).getByText("No image yet")).toBeInTheDocument();
+    const dialog = await screen.findByRole("dialog", { name: "Edit Component" });
+    expect(within(dialog).getByLabelText("Name")).toHaveValue("");
+    expect(within(dialog).getByLabelText("Unit cost")).toHaveValue("0.00");
     expect(within(dialog).queryByText("Manual component")).not.toBeInTheDocument();
   });
 
@@ -1329,17 +1465,17 @@ describe("estimate sheet library insertion persistence", () => {
     expect(within(kitchenSection).getAllByRole("button", { name: "Make Kitchen Cabinet a Project Component" })).toHaveLength(1);
   });
 
-  it("shows exact library sync state in row component details", async () => {
+  it("shows exact library sync state in row details", async () => {
     const user = userEvent.setup();
     renderPersistedEstimateSheet(nodesWithOverriddenLinkedRow);
 
     const kitchenSection = screen.getByLabelText("Kitchen");
-    await user.click(within(kitchenSection).getByRole("button", { name: "Open component details for Kitchen Cabinet" }));
+    await user.click(within(kitchenSection).getByRole("button", { name: "Open row details for Kitchen Cabinet" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Row item details" });
     expect(within(dialog).getAllByText("Library Component").length).toBeGreaterThan(0);
-    expect(within(dialog).getAllByText("This row is linked to the library, but one or more estimate values have project-level overrides.").length).toBeGreaterThan(0);
-    expect(within(dialog).getByText("Source library id")).toBeInTheDocument();
+    expect(within(dialog).queryByRole("tab", { name: "Component" })).not.toBeInTheDocument();
+    expect(within(dialog).getByRole("tab", { name: "Details" })).toHaveAttribute("aria-selected", "true");
   });
 
   it("rolls back a failed quantity save without rendering spreadsheet save pills", async () => {

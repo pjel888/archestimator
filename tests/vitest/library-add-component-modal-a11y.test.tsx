@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { useState, type ComponentProps } from "react";
 
 import { AddComponentModal } from "@/components/workshop/component-library-manager/AddComponentModal";
@@ -98,6 +98,26 @@ function renderAddModal(overrides: Partial<ComponentProps<typeof AddComponentMod
   return props;
 }
 
+function makeEditingItem(overrides: Partial<EstimateRowItem> = {}): EstimateRowItem {
+  return {
+    ...duplicateRows[0],
+    id: "estimate-row-editing",
+    material: "Pergo Flooring 9",
+    name: "Pergo Flooring 9",
+    description: "Existing flooring component",
+    supplier: "Ace Hardware",
+    brand: "Pergo",
+    category: "Flooring",
+    unit: "unit",
+    itemCost: 2500,
+    price: 2500,
+    quantity: 5,
+    subTotal: 12500,
+    totalItemCosts: 12500,
+    ...overrides,
+  };
+}
+
 function StatefulAddModalHarness({ modalProps }: { modalProps: ComponentProps<typeof AddComponentModal> }) {
   const [open, setOpen] = useState(modalProps.open);
 
@@ -130,6 +150,10 @@ function renderStatefulAddModal(overrides: Partial<ComponentProps<typeof AddComp
 
 async function getAddDialog() {
   return screen.findByRole("dialog", { name: "Add Component" }, { timeout: 10_000 });
+}
+
+async function getEditDialog() {
+  return screen.findByRole("dialog", { name: "Edit Component" }, { timeout: 10_000 });
 }
 
 async function createCatalogueOption(
@@ -577,6 +601,128 @@ describe("AddComponentModal OpenDesign field contract", () => {
     await screen.findByText('A component named "Door Hinge" already exists.');
     fireEvent.click(within(form).getByRole("button", { name: "Create anyway" }));
     expect(screen.queryByText(/already exists/)).not.toBeInTheDocument();
+  });
+
+  it("does not show add-mode duplicate warnings while editing a component", async () => {
+    renderAddModal({
+      editingItem: makeEditingItem(),
+      libraryItems: [
+        {
+          ...makeEditingItem(),
+          id: "different-component-same-identity",
+        },
+      ],
+      onComponentUpdated: vi.fn(),
+    });
+    const dialog = await getEditDialog();
+    const form = within(dialog).getByRole("form", { name: "Quick add component" });
+    const name = within(form).getByLabelText("Name");
+
+    fireEvent.blur(name);
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 350));
+    });
+
+    expect(screen.queryByText(/already exists/)).not.toBeInTheDocument();
+    expect(within(form).queryByRole("button", { name: "Create anyway" })).not.toBeInTheDocument();
+  });
+
+  it("brokers existing component-library storage thumbnails in edit mode", async () => {
+    const imagePath = "11111111-1111-4111-8111-111111111111/user-1/component-images/pergo-thumb.webp";
+    renderAddModal({
+      editingItem: makeEditingItem({ imageUrl: imagePath }),
+      onComponentUpdated: vi.fn(),
+    });
+    const dialog = await getEditDialog();
+
+    const image = within(dialog).getByAltText("Component thumbnail preview") as HTMLImageElement;
+    const renderedSrc = decodeURIComponent(image.getAttribute("src") ?? "");
+    expect(renderedSrc).toContain("/api/component-library/images?path=");
+    expect(renderedSrc).toContain(imagePath);
+  });
+
+  it("brokers existing project image storage thumbnails in edit mode", async () => {
+    const imagePath = [
+      "11111111-1111-4111-8111-111111111111",
+      "user-1",
+      "project-images",
+      "22222222-2222-4222-8222-222222222222",
+      "estimate-row-images",
+      "33333333-3333-4333-8333-333333333333",
+      "pergo-thumb.webp",
+    ].join("/");
+    renderAddModal({
+      editingItem: makeEditingItem({ imageUrl: imagePath }),
+      onComponentUpdated: vi.fn(),
+    });
+    const dialog = await getEditDialog();
+
+    const image = within(dialog).getByAltText("Component thumbnail preview") as HTMLImageElement;
+    const renderedSrc = decodeURIComponent(image.getAttribute("src") ?? "");
+    expect(renderedSrc).toContain("/api/projects/images?path=");
+    expect(renderedSrc).toContain(imagePath);
+  });
+
+  it("saves edited components with a brokered thumbnail URL", async () => {
+    const imagePath = "11111111-1111-4111-8111-111111111111/user-1/component-images/pergo-thumb.webp";
+    const onComponentUpdated = vi.fn();
+    renderAddModal({
+      editingItem: makeEditingItem({ imageUrl: imagePath }),
+      onComponentUpdated,
+    });
+    const dialog = await getEditDialog();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save Component" }));
+
+    await waitFor(() => expect(onComponentUpdated).toHaveBeenCalledTimes(1));
+    expect(actionMocks.createCostLibraryComponent).not.toHaveBeenCalled();
+    const updatedItem = onComponentUpdated.mock.calls[0][0] as EstimateRowItem;
+    const imageUrl = decodeURIComponent(updatedItem.imageUrl ?? "");
+    expect(imageUrl).toContain("/api/component-library/images?path=");
+    expect(imageUrl).toContain(imagePath);
+  });
+
+  it("uploads edit-mode thumbnails through the project image route when a project id is provided", async () => {
+    const projectImageProjectId = "22222222-2222-4222-8222-222222222222";
+    const thumbnailUrl = "/api/projects/images?path=workspace-1/user-1/project-images/22222222-2222-4222-8222-222222222222/pergo-thumb.webp";
+    const onComponentUpdated = vi.fn();
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+      bucket: "project-images",
+      path: "workspace-1/user-1/project-images/22222222-2222-4222-8222-222222222222/pergo.webp",
+      thumbnailPath: "workspace-1/user-1/project-images/22222222-2222-4222-8222-222222222222/pergo-thumb.webp",
+      url: "/api/projects/images?path=workspace-1/user-1/project-images/22222222-2222-4222-8222-222222222222/pergo.webp",
+      thumbnailUrl,
+      originalBytes: 16,
+      optimizedBytes: 12,
+      contentType: "image/webp",
+    }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    renderAddModal({
+      editingItem: makeEditingItem(),
+      imageUploadProjectId: projectImageProjectId,
+      onComponentUpdated,
+    });
+    const dialog = await getEditDialog();
+
+    const file = new File(["fake-image-bytes"], "pergo.png", { type: "image/png" });
+    fireEvent.change(within(dialog).getByLabelText("Upload thumbnail"), {
+      target: { files: [file] },
+    });
+
+    await screen.findByText(/Stored WebP thumbnail/);
+    expect(fetchMock).toHaveBeenCalledWith("/api/projects/images", expect.objectContaining({ method: "POST" }));
+    const formData = fetchMock.mock.calls[0][1]?.body as FormData;
+    expect(formData.get("projectId")).toBe(projectImageProjectId);
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save Component" }));
+
+    await waitFor(() => expect(onComponentUpdated).toHaveBeenCalledTimes(1));
+    const updatedItem = onComponentUpdated.mock.calls[0][0] as EstimateRowItem;
+    expect(updatedItem.imageUrl).toBe(thumbnailUrl);
+    expect(updatedItem.priceOptions?.[0]?.thumbnailPath).toBe(thumbnailUrl);
   });
 
   it("normalizes duplicate identity whitespace and supports brand-only matches", async () => {

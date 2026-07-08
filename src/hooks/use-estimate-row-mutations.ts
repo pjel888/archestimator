@@ -211,6 +211,8 @@ type UpdateEstimateRowInput = SharedMutationInput & {
   supplier?: string;
   unit?: string;
   unitCost?: number;
+  categoryNodeId?: string | null;
+  supplierId?: string | null;
   quantity?: number;
   quantityBase?: number | null;
   quantityContingencyAmount?: number | null;
@@ -219,6 +221,7 @@ type UpdateEstimateRowInput = SharedMutationInput & {
   miscCost?: number;
   sourceSnapshot?: Json | null;
   metadata?: EstimateRowItem["metadata"];
+  priceOptions?: EstimateRowItem["priceOptions"];
   mutationId?: string;
   expectedRowRevision?: number;
   rollback?: () => void;
@@ -248,10 +251,20 @@ function readSnapshotRecord(value: Json | null | undefined): Record<string, unkn
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
-function snapshotStringPatch(value: Json | null | undefined, key: "brand" | "imageUrl" | "sourceUrl") {
+function snapshotStringPatch(value: Json | null | undefined, key: string) {
   const candidate = readSnapshotRecord(value)[key];
   if (candidate === null) return null;
   return typeof candidate === "string" ? candidate : undefined;
+}
+
+function snapshotNumberPatch(value: Json | null | undefined, key: string) {
+  const candidate = readSnapshotRecord(value)[key];
+  if (candidate === null) return null;
+  return typeof candidate === "number" && Number.isFinite(candidate) ? candidate : undefined;
+}
+
+function snapshotLifecycleStatePatch(value: Json | null | undefined) {
+  return snapshotStringPatch(value, "lifecycleState") as EstimateRowItem["lifecycleState"] | null | undefined;
 }
 
 function toOptimisticRowPatch(input: UpdateEstimateRowInput): EstimateRowItemPatch {
@@ -261,6 +274,8 @@ function toOptimisticRowPatch(input: UpdateEstimateRowInput): EstimateRowItemPat
     ...(input.supplier !== undefined ? { supplier: input.supplier } : {}),
     ...(input.unit !== undefined ? { unit: input.unit } : {}),
     ...(input.unitCost !== undefined ? { itemCost: input.unitCost } : {}),
+    ...(input.categoryNodeId !== undefined ? { categoryNodeId: input.categoryNodeId } : {}),
+    ...(input.supplierId !== undefined ? { supplierId: input.supplierId } : {}),
     ...(input.quantity !== undefined ? { quantity: input.quantity } : {}),
     ...(input.quantityBase !== undefined ? { quantityBase: input.quantityBase } : {}),
     ...(input.quantityContingencyAmount !== undefined ? { quantityContingencyAmount: input.quantityContingencyAmount } : {}),
@@ -272,8 +287,24 @@ function toOptimisticRowPatch(input: UpdateEstimateRowInput): EstimateRowItemPat
       brand: snapshotStringPatch(input.sourceSnapshot, "brand"),
       imageUrl: snapshotStringPatch(input.sourceSnapshot, "imageUrl"),
       sourceUrl: snapshotStringPatch(input.sourceSnapshot, "sourceUrl"),
+      category: snapshotStringPatch(input.sourceSnapshot, "category") ?? undefined,
+      categoryNodeId: snapshotStringPatch(input.sourceSnapshot, "categoryNodeId"),
+      brandId: snapshotStringPatch(input.sourceSnapshot, "brandId"),
+      supplierId: snapshotStringPatch(input.sourceSnapshot, "supplierId"),
+      sku: snapshotStringPatch(input.sourceSnapshot, "sku"),
+      pricingSource: snapshotStringPatch(input.sourceSnapshot, "pricingSource"),
+      pricingDate: snapshotStringPatch(input.sourceSnapshot, "pricingDate"),
+      confidence: snapshotStringPatch(input.sourceSnapshot, "confidence"),
+      priceOptionId: snapshotStringPatch(input.sourceSnapshot, "priceOptionId"),
+      priceOptionLabel: snapshotStringPatch(input.sourceSnapshot, "priceOptionLabel") ?? undefined,
+      lifecycleState: snapshotLifecycleStatePatch(input.sourceSnapshot),
+      lifecycleStateChangedAt: snapshotStringPatch(input.sourceSnapshot, "sourceUpdatedAt"),
+      componentVersionId: snapshotStringPatch(input.sourceSnapshot, "componentVersionId"),
+      componentVersionNumber: snapshotNumberPatch(input.sourceSnapshot, "componentVersionNumber") ?? undefined,
+      notes: snapshotStringPatch(input.sourceSnapshot, "notes"),
     } : {}),
     ...(input.metadata !== undefined ? { metadata: input.metadata as EstimateRowItem["metadata"] } : {}),
+    ...(input.priceOptions !== undefined ? { priceOptions: input.priceOptions } : {}),
   };
 }
 
@@ -296,8 +327,24 @@ function toServerRowPatch(result: UpdateEstimateRowItemResult, input: UpdateEsti
       brand: snapshotStringPatch(result.sourceSnapshot, "brand"),
       imageUrl: snapshotStringPatch(result.sourceSnapshot, "imageUrl"),
       sourceUrl: snapshotStringPatch(result.sourceSnapshot, "sourceUrl"),
+      category: snapshotStringPatch(result.sourceSnapshot, "category") ?? undefined,
+      categoryNodeId: snapshotStringPatch(result.sourceSnapshot, "categoryNodeId"),
+      brandId: snapshotStringPatch(result.sourceSnapshot, "brandId"),
+      supplierId: snapshotStringPatch(result.sourceSnapshot, "supplierId"),
+      sku: snapshotStringPatch(result.sourceSnapshot, "sku"),
+      pricingSource: snapshotStringPatch(result.sourceSnapshot, "pricingSource"),
+      pricingDate: snapshotStringPatch(result.sourceSnapshot, "pricingDate"),
+      confidence: snapshotStringPatch(result.sourceSnapshot, "confidence"),
+      priceOptionId: snapshotStringPatch(result.sourceSnapshot, "priceOptionId"),
+      priceOptionLabel: snapshotStringPatch(result.sourceSnapshot, "priceOptionLabel") ?? undefined,
+      lifecycleState: snapshotLifecycleStatePatch(result.sourceSnapshot),
+      lifecycleStateChangedAt: snapshotStringPatch(result.sourceSnapshot, "sourceUpdatedAt"),
+      componentVersionId: snapshotStringPatch(result.sourceSnapshot, "componentVersionId"),
+      componentVersionNumber: snapshotNumberPatch(result.sourceSnapshot, "componentVersionNumber") ?? undefined,
+      notes: snapshotStringPatch(result.sourceSnapshot, "notes"),
     } : {}),
     ...(input.metadata !== undefined ? { metadata: result.metadata as EstimateRowItem["metadata"] } : {}),
+    ...(input.priceOptions !== undefined ? { priceOptions: input.priceOptions } : {}),
   };
 }
 

@@ -73,6 +73,10 @@ function canonicalImageAssetDescriptor(overrides: Record<string, unknown> = {}) 
   };
 }
 
+function uploadedEstimateRowImageUrl(path: string) {
+  return `/api/projects/images?path=${encodeURIComponent(path)}`;
+}
+
 const requireAuth = vi.hoisted(() => vi.fn());
 const requireCurrentUserContext = vi.hoisted(() => vi.fn());
 const fromSpy = vi.hoisted(() => vi.fn());
@@ -80,6 +84,7 @@ const rpcSpy = vi.hoisted(() => vi.fn());
 const createEstimateActionsD1Client = vi.hoisted(() => vi.fn());
 const clearEstimateRouteContextProcessCache = vi.hoisted(() => vi.fn());
 const getCurrentWorkspaceProject = vi.hoisted(() => vi.fn());
+const getCurrentWorkspaceProjectForEstimate = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/auth/session", () => ({
   requireAuth,
@@ -103,6 +108,7 @@ vi.mock("@/lib/repositories/workspace-repository", () => ({
   getCurrentWorkspaceProject,
   getEstimateTabs: vi.fn(async () => []),
   getEstimateTabTree: vi.fn(async () => []),
+  getCurrentWorkspaceProjectForEstimate,
   getProjectEstimateTreeByEstimate: vi.fn(async () => ({ tree: [] })),
 }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -152,6 +158,7 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
     createEstimateActionsD1Client.mockReset();
     clearEstimateRouteContextProcessCache.mockReset();
     getCurrentWorkspaceProject.mockReset();
+    getCurrentWorkspaceProjectForEstimate.mockReset();
     requireAuth.mockResolvedValue(undefined);
     requireCurrentUserContext.mockResolvedValue({
       userId: "11111111-1111-4111-8111-111111111111",
@@ -159,6 +166,10 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
       profile: { id: "11111111-1111-4111-8111-111111111111", default_workspace_id: "ws-1", role: "viewer" },
     });
     getCurrentWorkspaceProject.mockResolvedValue({
+      workspace: { id: "ws-1", name: "WS", createdBy: "u1" },
+      project: { id: PROJECT_ID, workspaceId: "ws-1", name: "Proj", currencyCode: "PHP", metadata: {} },
+    });
+    getCurrentWorkspaceProjectForEstimate.mockResolvedValue({
       workspace: { id: "ws-1", name: "WS", createdBy: "u1" },
       project: { id: PROJECT_ID, workspaceId: "ws-1", name: "Proj", currencyCode: "PHP", metadata: {} },
     });
@@ -477,7 +488,11 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
   });
 
   it("updateEstimateRowItem canonicalizes uploaded reference image asset descriptors before writing source snapshots", async () => {
-    const canonicalDescriptor = canonicalImageAssetDescriptor();
+    const canonicalDescriptor = canonicalImageAssetDescriptor({
+      path: `11111111-1111-4111-8111-111111111111/11111111-1111-4111-8111-111111111111/project-images/${PROJECT_ID}/estimate-row-images/${ESTIMATE_ID}/reference.webp`,
+      thumbnailPath: `11111111-1111-4111-8111-111111111111/11111111-1111-4111-8111-111111111111/project-images/${PROJECT_ID}/estimate-row-images/${ESTIMATE_ID}/reference-thumb.webp`,
+    });
+    const imageUrl = uploadedEstimateRowImageUrl(String(canonicalDescriptor.thumbnailPath));
     fromSpy.mockImplementation((table: string) => {
       if (table === "workspaces") return chain({ id: "ws-1", name: "WS", created_by: "u1" });
       if (table === "projects") return chain({ id: PROJECT_ID, workspace_id: "ws-1", name: "Proj", currency_code: "PHP", metadata: {} });
@@ -503,7 +518,7 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
           data: canonicalRow({
             sourceSnapshot: {
               category: "Cabinetry",
-              imageUrl: "/component-thumbnails/reference.webp",
+              imageUrl,
               imageAsset: canonicalDescriptor,
             },
           }),
@@ -518,7 +533,7 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
       estimateId: ESTIMATE_ID,
       rowId: ROW_ID,
       sourceSnapshot: {
-        imageUrl: "/component-thumbnails/reference.webp",
+        imageUrl,
         imageAsset: {
           ...canonicalDescriptor,
           path: "workspace-evil/user-evil/tampered.webp",
@@ -536,7 +551,7 @@ describe("estimate sheet actions edit authorization (F15 / P3-3)", () => {
     const updateCall = rpcSpy.mock.calls.find(([fn]) => fn === "update_estimate_row_item_with_history") as [string, { row_patch: Record<string, unknown> }] | undefined;
     expect(updateCall?.[1].row_patch.sourceSnapshot).toEqual({
       category: "Cabinetry",
-      imageUrl: "/component-thumbnails/reference.webp",
+      imageUrl,
       imageAsset: canonicalDescriptor,
     });
   });

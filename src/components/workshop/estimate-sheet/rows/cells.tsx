@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useId, useReducer, useRef, useState, type CSSProperties, type DragEvent, type InputHTMLAttributes, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
-import { ArrowsClockwise, ArrowsOutCardinal, Cube, DotsSixVertical, DotsThreeVertical, ImageSquare, StackPlus, Trash, UploadSimple } from "@phosphor-icons/react/dist/ssr";
+import { ArrowsClockwise, ArrowsOutCardinal, CaretDown, Cube, DotsSixVertical, DotsThreeVertical, ImageSquare, StackPlus, Trash, UploadSimple } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
 import { CreatableCombobox, type CreatableComboboxChange, type CreatableComboboxOption } from "@/components/ui/creatable-combobox";
+import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { Modal } from "@/components/ui/modal";
 import {
   getComponentCatalogueComboboxValue,
@@ -219,6 +220,8 @@ function getComponentSourceRailClass(source: ComponentSourceTone) {
   }
 }
 
+export type MaterialVariantOption = NonNullable<EstimateRowItem["priceOptions"]>[number];
+
 function EstimateMaterialCardFrame({
   image,
   name,
@@ -239,22 +242,24 @@ function EstimateMaterialCardFrame({
   unit: ReactNode;
 }) {
   return (
-    <div className="relative grid h-full min-h-0 grid-rows-[minmax(0,1fr)_auto] gap-1.5 pr-[124px]">
-      <div className="flex min-h-0 items-start gap-2">
-        {image}
+    <div className="relative flex h-full min-h-0 pr-[124px]">
+      <div className="flex min-h-0 flex-1 items-start gap-2">
+        <div className="flex w-14 shrink-0 flex-col gap-1">
+          {image}
+          {variant}
+        </div>
         <div className="flex min-w-0 flex-1 flex-col pt-0.5">
           <div className={MATERIAL_TEXT_RESERVE_CLASS}>
             {name}
             <div className="mt-0.5 flex min-w-0 flex-col gap-0.5">
               {brand}
               {supplier}
-              {variant}
+            </div>
+            <div className="mt-1 min-w-0">
+              {description}
             </div>
           </div>
         </div>
-      </div>
-      <div className="min-w-0">
-        {description}
       </div>
       <div className={MATERIAL_PRICE_RAIL_CLASS}>{cost}</div>
       <div className={MATERIAL_UNIT_SLOT_CLASS} data-estimate-material-unit-slot="true">
@@ -264,9 +269,91 @@ function EstimateMaterialCardFrame({
   );
 }
 
-function EstimateMaterialCardContent({ item }: { item: EstimateMaterialCardItem }) {
+function getMaterialVariantLabel(item: EstimateMaterialCardItem) {
+  return item.priceOptionLabel?.trim() || item.priceOptions?.find((option) => option.isDefault && option.isActive)?.label?.trim() || "Variant 1";
+}
+
+function getMaterialVariantOptions(item: EstimateMaterialCardItem): MaterialVariantOption[] {
+  const options = (item.priceOptions ?? []).filter((option) => option.isActive);
+  if (options.length > 0) return options;
+  return [{
+    id: item.priceOptionId ?? "current-variant",
+    label: getMaterialVariantLabel(item),
+    unit: item.unit,
+    unitCost: item.itemCost,
+    miscCost: 0,
+    currency: "PHP",
+    isActive: true,
+    isDefault: true,
+  }];
+}
+
+function MaterialVariantPill({
+  item,
+  canEditEstimate,
+  onSelectVariant,
+}: {
+  item: EstimateMaterialCardItem;
+  canEditEstimate: boolean;
+  onSelectVariant?: (option: MaterialVariantOption) => void;
+}) {
+  const variantLabel = getMaterialVariantLabel(item);
+  const hasSelectableVariants = (item.priceOptions ?? []).some((option) => option.isActive);
+  const variantOptions = getMaterialVariantOptions(item);
+  const activeOptionId = item.priceOptionId ?? variantOptions.find((option) => option.label === variantLabel)?.id ?? variantOptions[0]?.id;
+  const pillClass =
+    "inline-flex h-4 w-14 min-w-0 items-center justify-center gap-0.5 rounded-full border border-hairline bg-white px-1 text-[8px] font-medium leading-none text-secondary shadow-[0_1px_1px_rgba(15,23,42,0.03)] transition hover:border-secondary/20 hover:bg-surfaceMuted hover:text-ink";
+
+  if (!canEditEstimate || !onSelectVariant) {
+    return (
+      <span className={pillClass} title={`Variant: ${variantLabel}`}>
+        <span className="truncate">{variantLabel}</span>
+      </span>
+    );
+  }
+
+  return (
+    <DropdownMenu
+      align="start"
+      side="bottom"
+      className="min-w-32"
+      trigger={(
+        <button
+          type="button"
+          className={pillClass}
+          aria-label={`Change variant for ${item.material}`}
+          title={`Variant: ${variantLabel}`}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <span className="truncate">{variantLabel}</span>
+          <CaretDown size={8} weight="bold" className="shrink-0 text-tertiary" aria-hidden="true" />
+        </button>
+      )}
+    >
+      {variantOptions.map((option) => (
+        <DropdownMenu.Item
+          key={option.id}
+          id={option.id}
+          label={option.label || "Variant"}
+          selected={option.id === activeOptionId}
+          disabled={!hasSelectableVariants}
+          onClick={() => onSelectVariant(option)}
+        />
+      ))}
+    </DropdownMenu>
+  );
+}
+
+function EstimateMaterialCardContent({
+  item,
+  canEditEstimate,
+  onSelectVariant,
+}: {
+  item: EstimateMaterialCardItem;
+  canEditEstimate: boolean;
+  onSelectVariant?: (option: MaterialVariantOption) => void;
+}) {
   const brand = item.brand?.trim();
-  const variantLabel = item.priceOptionLabel?.trim();
   return (
     <EstimateMaterialCardFrame
       image={(
@@ -285,13 +372,7 @@ function EstimateMaterialCardContent({ item }: { item: EstimateMaterialCardItem 
         </p>
       ) : null}
       supplier={<p className="truncate text-[10px] font-normal leading-3 text-tertiary">{item.supplier}</p>}
-      variant={variantLabel ? (
-        <p className="truncate text-[9px] font-normal leading-[11px] text-tertiary" title={`Variant: ${variantLabel}`}>
-          <span className="text-secondary/70">Variant</span>
-          <span className="mx-1 text-secondary/40">·</span>
-          {variantLabel}
-        </p>
-      ) : null}
+      variant={<MaterialVariantPill item={item} canEditEstimate={canEditEstimate} onSelectVariant={onSelectVariant} />}
       cost={<p className="whitespace-nowrap text-[10px] font-medium leading-3 tabular-nums text-ink">{pesoFormatter.format(item.itemCost).replace("₱", "₱ ")}</p>}
       description={(
         <p className="truncate text-[10px] leading-4 text-secondary/60 transition-opacity group-hover:text-secondary" title={item.description}>
@@ -357,6 +438,7 @@ function ExpressMaterialImageEditor({
   onCommitImageUrl: (nextImageUrl: string, imageAsset?: EstimateRowImageAssetDescriptor | null) => void;
 }) {
   const imageInputId = useId();
+  const imageFileInputRef = useRef<HTMLInputElement | null>(null);
   const [imageModal, dispatchImageModal] = useReducer(estimateImageModalReducer, INITIAL_ESTIMATE_IMAGE_MODAL_STATE);
   const selectedImagePreviewRef = useRef("");
   const imageUploadAbortRef = useRef<AbortController | null>(null);
@@ -400,6 +482,11 @@ function ExpressMaterialImageEditor({
     imageUploadAbortRef.current?.abort();
     imageUploadAbortRef.current = null;
     dispatchImageModal({ type: "upload:cancelled" });
+  }
+
+  function openImageFilePicker() {
+    if (imageModalBusy) return;
+    imageFileInputRef.current?.click();
   }
 
   const startImageUpload = useCallback(async (file: File) => {
@@ -575,6 +662,7 @@ function ExpressMaterialImageEditor({
           </div>
           <input
             id={imageInputId}
+            ref={imageFileInputRef}
             type="file"
             accept="image/jpeg,image/png,image/webp,image/avif"
             className="sr-only"
@@ -585,16 +673,18 @@ function ExpressMaterialImageEditor({
               event.currentTarget.value = "";
             }}
           />
-          <label
-            htmlFor={imageInputId}
-            className={cn(
-              "inline-flex h-9 w-full cursor-pointer items-center justify-center gap-2 rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium text-ink transition hover:bg-surfaceMuted focus-within:ring-2 focus-within:ring-focus",
-              imageModalBusy && "pointer-events-none opacity-60",
-            )}
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="h-9 w-full min-w-0"
+            aria-label={selectedImage ? `Upload image, selected ${selectedImage.name}` : "Upload image"}
+            disabled={imageModalBusy}
+            onClick={openImageFilePicker}
           >
             <UploadSimple size={13} weight="regular" aria-hidden="true" />
             {selectedImage ? selectedImage.name : "Upload image"}
-          </label>
+          </Button>
           <div className="space-y-1">
             <label htmlFor={`${imageInputId}-url`} className="block text-[10px] font-medium leading-4 text-secondary">
               Or paste an image URL
@@ -916,7 +1006,8 @@ export function EstimateMaterialCell({
   onMoveComponent,
   onOpenReplacePicker,
   onOpenMovePicker,
-  onOpenComponentDetails,
+  onOpenComponentEditor,
+  onSelectVariant,
   expressDraftState,
   onRetryExpressDraft,
   onDeleteExpressDraft,
@@ -943,7 +1034,8 @@ export function EstimateMaterialCell({
   onMoveComponent: (sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => void;
   onOpenReplacePicker?: (opener: HTMLElement) => void;
   onOpenMovePicker?: (opener: HTMLElement) => void;
-  onOpenComponentDetails: (opener: HTMLElement) => void;
+  onOpenComponentEditor?: (opener: HTMLElement) => void;
+  onSelectVariant?: (option: MaterialVariantOption) => void;
   expressDraftState?: ExpressInsertDraftState;
   onRetryExpressDraft: () => void;
   onDeleteExpressDraft: () => void;
@@ -1106,21 +1198,23 @@ export function EstimateMaterialCell({
             </Button>
           </ActionTooltip>
         ) : null}
-        <ActionTooltip label="Component details">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="size-5 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink active:bg-surfaceMuted"
-            aria-label={`Open component details for ${componentLabel}`}
-            onClick={(event: MouseEvent<HTMLButtonElement>) => {
-              event.stopPropagation();
-              onOpenComponentDetails(event.currentTarget);
-            }}
-          >
-            <DotsThreeVertical size={11} weight="regular" aria-hidden="true" />
-          </Button>
-        </ActionTooltip>
+        {canEditEstimate && onOpenComponentEditor ? (
+          <ActionTooltip label="Edit component">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="size-5 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink active:bg-surfaceMuted"
+              aria-label={`Edit component ${componentLabel}`}
+              onClick={(event: MouseEvent<HTMLButtonElement>) => {
+                event.stopPropagation();
+                onOpenComponentEditor(event.currentTarget);
+              }}
+            >
+              <DotsThreeVertical size={11} weight="regular" aria-hidden="true" />
+            </Button>
+          </ActionTooltip>
+        ) : null}
         {canEditEstimate ? (
           <ActionTooltip label="Drag component">
             <Button
@@ -1156,7 +1250,7 @@ export function EstimateMaterialCell({
           onDeleteDraft={onDeleteExpressDraft}
         />
       ) : (
-        <EstimateMaterialCardContent item={item} />
+        <EstimateMaterialCardContent item={item} canEditEstimate={canEditEstimate} onSelectVariant={onSelectVariant} />
       )}
     </div>
   );

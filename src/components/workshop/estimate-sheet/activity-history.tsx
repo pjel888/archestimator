@@ -1027,7 +1027,6 @@ function EventList({
 
 const ROW_DETAIL_TABS: readonly WorkshopTreeTabItem<RowDetailTab>[] = [
   { id: "details", label: "Details" },
-  { id: "component", label: "Component" },
   { id: "activity", label: "Activity" },
 ];
 
@@ -1089,26 +1088,6 @@ function getRowDetailComponentStatus(item: EstimateRowItem | null | undefined, i
             label: "Project Component",
             description: "This row is not linked to a library component.",
           };
-  }
-}
-
-function getRowDetailPricingSourceLabel(item: EstimateRowItem | null | undefined, componentSourceLabel: string) {
-  const value = item?.pricingSource?.trim();
-  if (!value) return value;
-
-  switch (value.toLowerCase()) {
-    case "express component":
-    case "manual component":
-    case "manual estimate row":
-    case "project-specific component":
-      return componentSourceLabel;
-    case "library component":
-    case "synced library component":
-    case "customized library component":
-    case "library source changed":
-      return "Library Component";
-    default:
-      return value;
   }
 }
 
@@ -1382,31 +1361,6 @@ export function RowDetailsModal({
                   <RowDetailField label="Total" value={formatPeso(lineTotal)} />
                   <RowDetailField label="Unit" value={item?.unit} />
                   <RowDetailField label="Row revision" value={item?.rowRevision ?? 1} />
-                </div>
-              ) : null}
-              {tab === "component" ? (
-                <div className="grid gap-3">
-                  <div className="border border-hairline bg-white p-3">
-                    <p className="text-[12px] font-medium text-ink">Current component</p>
-                    <p className="mt-1 text-[10px] leading-4 text-tertiary">
-                      {componentStatus.description}
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-x-4 border border-hairline bg-white px-3 max-sm:grid-cols-1">
-                    <RowDetailField label="Component source" value={componentStatus.label} />
-                    <RowDetailField label="Library sync" value={componentStatus.description} />
-                    <RowDetailField label="Source library id" value={item?.sourceLibraryItemId} />
-                    <RowDetailField label="Component version" value={item?.componentVersionNumber ? `V${item.componentVersionNumber}` : item?.componentVersionId} />
-                    <RowDetailField label="Price option" value={item?.priceOptionLabel ?? item?.priceOptionId} />
-                    <RowDetailField label="Lifecycle" value={item?.lifecycleState} />
-                    <RowDetailField label="Discipline" value={item?.discipline} />
-                    <RowDetailField label="Designation" value={item?.designation} />
-                    <RowDetailField label="Pricing source" value={getRowDetailPricingSourceLabel(item, componentStatus.label)} />
-                    <RowDetailField label="Pricing date" value={item?.pricingDate} />
-                    <RowDetailField label="Brand" value={item?.brand} />
-                    <RowDetailField label="SKU / reference" value={item?.sku} />
-                    <RowDetailField label="Tags" value={item?.tags?.join(", ")} />
-                  </div>
                 </div>
               ) : null}
               {tab === "activity" ? (

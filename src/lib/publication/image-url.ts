@@ -2,6 +2,43 @@ const LOCAL_COMPONENT_THUMBNAIL_PATTERN =
   /^\/component-thumbnails\/[A-Za-z0-9._-]+\.(?:avif|jpe?g|png|webp)$/i;
 const LOCAL_BROKERED_IMAGE_ROUTE_PATTERN =
   /^\/api\/(?:projects|component-library)\/images\?path=[A-Za-z0-9._~!$&'()*+,;=:@/%-]+$/i;
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function hasOnlyPathParam(url: URL) {
+  const params = Array.from(url.searchParams.entries());
+  return params.length === 1 && params[0]?.[0] === "path";
+}
+
+function isSafeComponentLibraryImagePath(path: string) {
+  if (!path || path.includes("..") || path.includes("\\")) return false;
+  if (!/\.(?:avif|jpe?g|png|webp)$/i.test(path)) return false;
+  return !(
+    path === "project-images"
+    || path.startsWith("project-images/")
+    || path.includes("/project-images/")
+  );
+}
+
+function isSafeProjectEstimateRowImagePath(path: string) {
+  if (!path || path.includes("..") || path.includes("//") || path.includes("\\")) return false;
+  if (!path.endsWith(".webp")) return false;
+
+  const segments = path.split("/");
+  if (segments.length !== 7) return false;
+  const [workspaceId, ownerUserId, marker, projectId, estimateRowMarker, estimateId, fileName] = segments;
+  return Boolean(
+    workspaceId
+      && ownerUserId
+      && marker === "project-images"
+      && estimateRowMarker === "estimate-row-images"
+      && fileName
+      && UUID_PATTERN.test(workspaceId)
+      && UUID_PATTERN.test(projectId ?? "")
+      && UUID_PATTERN.test(estimateId ?? "")
+      && /^[A-Za-z0-9][A-Za-z0-9._-]*\.webp$/i.test(fileName),
+  );
+}
 
 export function normalizePublicationImageUrl(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -15,17 +52,15 @@ export function normalizePublicationImageUrl(value: unknown): string | null {
 
   if (LOCAL_BROKERED_IMAGE_ROUTE_PATTERN.test(rawUrl)) {
     const imageUrl = new URL(rawUrl, "https://archestimator.local");
-    const params = Array.from(imageUrl.searchParams.entries());
-    if (params.length !== 1 || params[0]?.[0] !== "path") return null;
-    const path = params[0]?.[1] ?? "";
-    if (imageUrl.pathname.includes("/project-images/")) return null;
-    if (
-      path === "project-images"
-      || path.startsWith("project-images/")
-      || path.includes("/project-images/")
-    ) return null;
-    if (!path || path.includes("..") || path.includes("\\")) return null;
-    if (!/\.(?:avif|jpe?g|png|webp)$/i.test(path)) return null;
+    if (!hasOnlyPathParam(imageUrl)) return null;
+    const path = imageUrl.searchParams.get("path") ?? "";
+    if (imageUrl.pathname === "/api/projects/images") {
+      if (!isSafeProjectEstimateRowImagePath(path)) return null;
+    } else if (imageUrl.pathname === "/api/component-library/images") {
+      if (!isSafeComponentLibraryImagePath(path)) return null;
+    } else {
+      return null;
+    }
     return `${imageUrl.pathname}?${imageUrl.searchParams.toString()}`;
   }
 

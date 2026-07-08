@@ -540,6 +540,105 @@ describe("EstimateActionsD1Client reorder history", () => {
     });
   });
 
+  it("merges shared project component image patches without dropping snapshot identity", async () => {
+    const database = new FakeD1Database();
+    database.rowItems = new Map<string, FakeRowItem>([
+      ["row-1", {
+        id: "row-1",
+        estimate_id: ESTIMATE_ID,
+        node_id: NODE_ID,
+        material: "Pergo Flooring",
+        description: "Original flooring",
+        supplier: "Ace Hardware",
+        unit: "sqm",
+        quantity: 2,
+        quantity_base: null,
+        quantity_contingency_amount: null,
+        unit_cost: 100,
+        contingency_percentage: 0,
+        adjustment_percentage: 0,
+        misc_cost: 0,
+        source_snapshot_json: JSON.stringify({
+          sourceType: "project_component",
+          sourceComponentId: "project-component-1",
+          sourceEstimateRowId: "row-1",
+          brand: "Pergo",
+        }),
+        metadata_json: JSON.stringify({}),
+        link_state: "unlinked",
+        source_library_item_id: null,
+        sort_order: 1000,
+        row_revision: 1,
+        created_at: "2026-07-06T00:00:00.000Z",
+        updated_at: "2026-07-06T00:00:00.000Z",
+      }],
+      ["row-2", {
+        id: "row-2",
+        estimate_id: ESTIMATE_ID,
+        node_id: NODE_ID,
+        material: "Pergo Flooring",
+        description: "Second instance",
+        supplier: "Ace Hardware",
+        unit: "sqm",
+        quantity: 5,
+        quantity_base: null,
+        quantity_contingency_amount: null,
+        unit_cost: 100,
+        contingency_percentage: 0,
+        adjustment_percentage: 0,
+        misc_cost: 0,
+        source_snapshot_json: JSON.stringify({
+          sourceType: "project_component",
+          sourceComponentId: "project-component-1",
+          sourceEstimateRowId: "row-1",
+          brand: "Pergo",
+        }),
+        metadata_json: JSON.stringify({}),
+        link_state: "unlinked",
+        source_library_item_id: null,
+        sort_order: 2000,
+        row_revision: 3,
+        created_at: "2026-07-06T00:00:00.000Z",
+        updated_at: "2026-07-06T00:00:00.000Z",
+      }],
+    ]);
+    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
+
+    const result = await client.call("update_estimate_row_item_with_history", {
+      target_project_id: PROJECT_ID,
+      target_estimate_id: ESTIMATE_ID,
+      target_row_id: "row-1",
+      expected_row_revision: 1,
+      row_patch: {
+        sourceSnapshot: {
+          imageUrl: "https://assets.example.test/pergo.webp",
+        },
+      },
+      acting_user_id: USER_ID,
+      correlation_id: "row-update-correlation-image",
+    });
+
+    expect(result.error).toBeNull();
+    expect(readJsonRecord(database.rowItems.get("row-1")?.source_snapshot_json)).toMatchObject({
+      sourceType: "project_component",
+      sourceComponentId: "project-component-1",
+      sourceEstimateRowId: "row-1",
+      brand: "Pergo",
+      imageUrl: "https://assets.example.test/pergo.webp",
+    });
+    expect(readJsonRecord(database.rowItems.get("row-2")?.source_snapshot_json)).toMatchObject({
+      sourceType: "project_component",
+      sourceComponentId: "project-component-1",
+      sourceEstimateRowId: "row-1",
+      brand: "Pergo",
+      imageUrl: "https://assets.example.test/pergo.webp",
+    });
+    expect(database.historyEvents[0]).toMatchObject({
+      event_type: "row_updated",
+      payload: { rowId: "row-1", propagatedRowIds: ["row-2"] },
+    });
+  });
+
   it("rejects self-parenting and descendant cycles before writing reorder history", async () => {
     const database = new FakeD1Database();
     database.nodes = new Map<string, FakeNodeRow>([

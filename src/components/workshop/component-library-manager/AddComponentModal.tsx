@@ -40,6 +40,7 @@ import {
   getUnitDisplayLabel,
   unitUsesContentConversion,
 } from "@/lib/component-library/unit-options";
+import { normalizeEstimateRowImageUrl } from "@/lib/estimates/image-url";
 import type { EstimateRowItem } from "@/lib/estimates/types";
 import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
 import type { Json } from "@/lib/types/json";
@@ -149,8 +150,11 @@ type AddComponentModalProps = {
   selectedFolderId: string | null;
   selectedSupplierId?: string | null;
   selectedBrandId?: string | null;
+  editingItem?: EstimateRowItem | null;
+  imageUploadProjectId?: string | null;
   onOpenChange: (open: boolean) => void;
   onComponentCreated: (item: EstimateRowItem) => void;
+  onComponentUpdated?: (item: EstimateRowItem) => void | Promise<void>;
   onCreateFolder?: CreateLibraryFolderHandler;
   onRenameFolder?: (folderId: string, currentName: string) => void;
   onDeleteFolder?: (folderId: string, currentName: string) => void;
@@ -437,17 +441,111 @@ function makeVariantDraft(index: number, overrides: Partial<VariantDraft> = {}):
   };
 }
 
+type ExistingPriceOption = NonNullable<EstimateRowItem["priceOptions"]>[number];
+
+function getSelectedEditingPriceOptionId(editingItem: EstimateRowItem) {
+  const selectedId = editingItem.priceOptionId?.trim();
+  if (selectedId && editingItem.priceOptions?.some((option) => option.id === selectedId)) return selectedId;
+  const defaultId = editingItem.priceOptions?.find((option) => option.isDefault && option.isActive)?.id;
+  return defaultId ?? editingItem.priceOptions?.find((option) => option.isActive)?.id ?? editingItem.priceOptions?.[0]?.id ?? null;
+}
+
+function compareExistingPriceOptions(left: ExistingPriceOption, right: ExistingPriceOption) {
+  const leftSort = typeof left.variantSortOrder === "number" ? left.variantSortOrder : Number.MAX_SAFE_INTEGER;
+  const rightSort = typeof right.variantSortOrder === "number" ? right.variantSortOrder : Number.MAX_SAFE_INTEGER;
+  if (leftSort !== rightSort) return leftSort - rightSort;
+  return left.label.localeCompare(right.label);
+}
+
+function toExistingVariantAttachmentDraft(attachment: NonNullable<ExistingPriceOption["attachments"]>[number]): VariantAttachmentDraft {
+  return {
+    id: attachment.id,
+    bucket: attachment.bucket,
+    path: attachment.path,
+    fileName: attachment.fileName,
+    contentType: attachment.contentType,
+    sizeBytes: attachment.sizeBytes,
+    scanStatus: null,
+  };
+}
+
+function toVariantDraftFromPriceOption(
+  option: ExistingPriceOption,
+  index: number,
+  input: { editingItem: EstimateRowItem; selectedPriceOptionId: string | null },
+) {
+  const isSelected = input.selectedPriceOptionId ? option.id === input.selectedPriceOptionId : option.isDefault;
+  const imageSource = option.thumbnailPath ?? option.imagePath ?? (isSelected ? input.editingItem.imageUrl : null);
+  return makeVariantDraft(index + 1, {
+    id: option.id,
+    label: option.label || (index === 0 ? DEFAULT_VARIANT_LABEL : `V${index + 1}`),
+    description: option.variantDescription ?? (isSelected ? input.editingItem.description : ""),
+    sku: option.sku ?? "",
+    unitCost: formatAccountingMoney(String(option.unitCost)),
+    unit: option.unit || input.editingItem.unit || "unit",
+    packageQuantity: option.packageQuantity === null || option.packageQuantity === undefined ? "" : String(option.packageQuantity),
+    packageUnit: option.packageUnit ?? "",
+    isDefault: Boolean(isSelected),
+    image: toExistingVariantImageDraft(imageSource),
+    attachments: option.attachments?.map(toExistingVariantAttachmentDraft) ?? [],
+  });
+}
+
 function getInitialDraft({
   selectedSupplierId,
   selectedBrandId,
   suppliers,
   brands,
+  editingItem,
 }: {
   selectedSupplierId?: string | null;
   selectedBrandId?: string | null;
   suppliers: ComponentLibrarySupplierOption[];
   brands: ComponentLibraryBrand[];
+  editingItem?: EstimateRowItem | null;
 }): ComponentDraft {
+  if (editingItem) {
+    const selectedPriceOptionId = getSelectedEditingPriceOptionId(editingItem);
+    const priceOptionDrafts = (editingItem.priceOptions ?? [])
+      .filter((option) => option.isActive !== false)
+      .slice()
+      .sort(compareExistingPriceOptions)
+      .map((option, index) => toVariantDraftFromPriceOption(option, index, { editingItem, selectedPriceOptionId }));
+    const variants = priceOptionDrafts.length > 0
+      ? priceOptionDrafts.map((variant, index) => ({
+          ...variant,
+          isDefault: selectedPriceOptionId ? variant.id === selectedPriceOptionId : variant.isDefault || index === 0,
+        }))
+      : [
+          makeVariantDraft(1, {
+            label: editingItem.priceOptionLabel || DEFAULT_VARIANT_LABEL,
+            description: editingItem.description,
+            sku: editingItem.sku ?? "",
+            unitCost: formatAccountingMoney(String(editingItem.itemCost)),
+            unit: editingItem.unit || "unit",
+            image: toExistingVariantImageDraft(editingItem.imageUrl),
+          }),
+        ];
+    return {
+      name: editingItem.name?.trim() || editingItem.material,
+      category: editingItem.category,
+      categoryNodeId: editingItem.categoryNodeId ?? "",
+      supplierId: editingItem.supplierId ?? "",
+      supplierName: editingItem.supplier,
+      brand: editingItem.brand ?? "",
+      brandId: editingItem.brandId ?? "",
+      thumbnailPath: editingItem.imageUrl ?? "",
+      lifecycleState: editingItem.lifecycleState ?? "available",
+      effectiveAt: editingItem.lifecycleStateChangedAt?.slice(0, 10) || editingItem.pricingDate?.slice(0, 10) || today(),
+      changeReason: "Component updated from estimate sheet.",
+      sharedImageForAllVariants: false,
+      sharedImage: null,
+      variants: variants.some((variant) => variant.isDefault)
+        ? variants
+        : variants.map((variant, index) => ({ ...variant, isDefault: index === 0 })),
+    };
+  }
+
   const supplier = selectedSupplierId ? suppliers.find((entry) => entry.id === selectedSupplierId) : undefined;
   const brand = selectedBrandId ? brands.find((entry) => entry.id === selectedBrandId) : undefined;
   return {
@@ -466,6 +564,49 @@ function getInitialDraft({
     sharedImage: null,
     variants: [],
   };
+}
+
+function toExistingVariantImageDraft(imageUrl: string | null | undefined): VariantImageDraft | null {
+  const resolvedUrl = resolveExistingComponentImageUrl(imageUrl);
+  if (!resolvedUrl) return null;
+  return {
+    bucket: "",
+    path: "",
+    thumbnailPath: resolvedUrl,
+    thumbnailStoragePath: "",
+    url: resolvedUrl,
+    thumbnailUrl: resolvedUrl,
+  };
+}
+
+function createBrokeredExistingImageUrl(route: "/api/projects/images" | "/api/component-library/images", path: string) {
+  const search = new URLSearchParams({ path });
+  return normalizeEstimateRowImageUrl(`${route}?${search.toString()}`);
+}
+
+function resolveExistingComponentImageUrl(imageUrl: string | null | undefined) {
+  const rawUrl = imageUrl?.trim() ?? "";
+  if (!rawUrl) return "";
+  if (/^(?:https?:|blob:|data:image\/)/i.test(rawUrl)) return rawUrl;
+  if (rawUrl.startsWith("/") && !rawUrl.startsWith("//")) {
+    return normalizeEstimateRowImageUrl(rawUrl) ?? rawUrl;
+  }
+
+  return (
+    createBrokeredExistingImageUrl("/api/projects/images", rawUrl)
+    ?? createBrokeredExistingImageUrl("/api/component-library/images", rawUrl)
+    ?? ""
+  );
+}
+
+function shouldBypassNextImageOptimization(src: string, previewSrc: string) {
+  return Boolean(
+    previewSrc
+      || src.startsWith("http")
+      || src.startsWith("blob:")
+      || src.startsWith("data:")
+      || src.startsWith("/api/"),
+  );
 }
 
 async function resizeImageForUpload(file: File): Promise<File> {
@@ -491,10 +632,12 @@ async function resizeImageForUpload(file: File): Promise<File> {
   }
 }
 
-async function uploadComponentImage(file: File): Promise<UploadedComponentImage> {
+async function uploadComponentImage(file: File, target: { projectId?: string | null } = {}): Promise<UploadedComponentImage> {
   const formData = new FormData();
   formData.set("file", file);
-  const response = await fetch("/api/component-library/images", {
+  const projectId = target.projectId?.trim() ?? "";
+  if (projectId) formData.set("projectId", projectId);
+  const response = await fetch(projectId ? "/api/projects/images" : "/api/component-library/images", {
     method: "POST",
     body: formData,
   });
@@ -509,7 +652,8 @@ async function uploadComponentImage(file: File): Promise<UploadedComponentImage>
 async function removeComponentImageUpload(image: VariantImageDraft | null | undefined) {
   const paths = getImageStoragePaths(image);
   if (paths.length === 0) return;
-  await fetch("/api/component-library/images", {
+  const route = image?.bucket === "project-images" ? "/api/projects/images" : "/api/component-library/images";
+  await fetch(route, {
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ paths }),
@@ -553,7 +697,7 @@ function collectDraftAttachments(draft: ComponentDraft) {
 
 export function AddComponentModal(props: AddComponentModalProps) {
   if (!props.open) return null;
-  return <OpenAddComponentModal key={getCatalogueOptionsStorageKey(props.catalogueOptionsStorageScope)} {...props} />;
+  return <OpenAddComponentModal key={`${getCatalogueOptionsStorageKey(props.catalogueOptionsStorageScope)}:${props.editingItem?.id ?? "new"}`} {...props} />;
 }
 
 function OpenAddComponentModal({
@@ -563,18 +707,23 @@ function OpenAddComponentModal({
   libraryItems,
   selectedSupplierId,
   selectedBrandId,
+  editingItem,
+  imageUploadProjectId,
   onOpenChange,
   onComponentCreated,
+  onComponentUpdated,
   catalogueOptionsStorageScope,
 }: AddComponentModalProps) {
+  const isEditing = Boolean(editingItem);
   const [draft, setDraft] = useState(() => getInitialDraft({
     selectedSupplierId,
     selectedBrandId,
     suppliers,
     brands,
+    editingItem,
   }));
   const [activeTab, setActiveTab] = useState<AddComponentModalTab>("component");
-  const [activeVariantId, setActiveVariantId] = useState(() => draft.variants[0]?.id ?? "");
+  const [activeVariantId, setActiveVariantId] = useState(() => draft.variants.find((variant) => variant.isDefault)?.id ?? draft.variants[0]?.id ?? "");
   const [variantDrawerOpen, setVariantDrawerOpen] = useState(false);
   const [variantDrawerView, setVariantDrawerView] = useState<VariantDrawerView>("manager");
   const [variantPreviewUrls, setVariantPreviewUrls] = useState<Record<string, string>>({});
@@ -655,6 +804,7 @@ function OpenAddComponentModal({
     const bySupplier = new Map<string, { item: EstimateRowItem; order: number }>();
     const byBrand = new Map<string, { item: EstimateRowItem; order: number }>();
     libraryItems.forEach((item, order) => {
+      if (editingItem && item.id === editingItem.id) return;
       const name = normalizeDuplicateIdentityValue(item.name ?? item.material);
       const category = normalizeDuplicateIdentityValue(item.category);
       if (!name || !category) return;
@@ -664,7 +814,7 @@ function OpenAddComponentModal({
       if (brand) setDuplicateIdentityIndexEntry(byBrand, duplicateIdentityKey(name, category, brand), item, order);
     });
     return { bySupplier, byBrand };
-  }, [libraryItems]);
+  }, [editingItem, libraryItems]);
   const quickAddValidation = useMemo(() => validateQuickAddComponentInput({
     name: draft.name,
     category: draft.category,
@@ -683,7 +833,7 @@ function OpenAddComponentModal({
     selectedSupplier?.name,
   ]);
   const possibleDuplicate = useMemo(() => {
-    if (!duplicateCheckReady || duplicateAcknowledged) return null;
+    if (isEditing || !duplicateCheckReady || duplicateAcknowledged) return null;
     const name = normalizeDuplicateIdentityValue(draft.name);
     const category = normalizeDuplicateIdentityValue(draft.category);
     const supplier = normalizeDuplicateIdentityValue(selectedSupplier?.name ?? draft.supplierName);
@@ -701,6 +851,7 @@ function OpenAddComponentModal({
     draft.category,
     draft.name,
     draft.supplierName,
+    isEditing,
     selectedBrand?.name,
     selectedSupplier?.name,
   ]);
@@ -1036,7 +1187,7 @@ function OpenAddComponentModal({
     try {
       const uploadFile = await resizeImageForUpload(file).catch(() => file);
       setImageUpload({ state: "uploading", message: "Uploading image..." });
-      const uploadedImage = await uploadComponentImage(uploadFile);
+      const uploadedImage = await uploadComponentImage(uploadFile, { projectId: imageUploadProjectId });
       if (!isUsableUploadResponse(uploadedImage)) throw new Error("Image upload response was incomplete.");
       const imageDraft = toVariantImageDraft(uploadedImage);
       if (draft.sharedImageForAllVariants) {
@@ -1250,23 +1401,118 @@ function OpenAddComponentModal({
     };
   }
 
+  function buildEditedItem(): EstimateRowItem {
+    const currentItem = editingItem;
+    const variant = defaultVariant ?? draft.variants[0] ?? makeVariantDraft(1);
+    const variantImage = getVariantImage(draft, variant);
+    const existingPriceOptionsById = new Map((currentItem?.priceOptions ?? []).map((option) => [option.id, option]));
+    const editedPriceOptions = draft.variants.map((entry, index): ExistingPriceOption => {
+      const existingOption = existingPriceOptionsById.get(entry.id);
+      const image = getVariantImage(draft, entry);
+      const unitCost = parseMoney(entry.unitCost);
+      return {
+        id: entry.id,
+        label: entry.label,
+        sku: entry.sku || null,
+        variantDescription: entry.description,
+        variantSortOrder: index + 1,
+        unit: entry.unit || variant.unit || currentItem?.unit || "unit",
+        unitCost: Number.isFinite(unitCost) ? unitCost : existingOption?.unitCost ?? currentItem?.itemCost ?? 0,
+        miscCost: existingOption?.miscCost ?? 0,
+        currency: existingOption?.currency ?? "PHP",
+        pricingSource: existingOption?.pricingSource ?? null,
+        pricingDate: existingOption?.pricingDate ?? (draft.effectiveAt || today()),
+        confidence: existingOption?.confidence ?? null,
+        sourceUrl: existingOption?.sourceUrl ?? null,
+        notes: existingOption?.notes ?? null,
+        supplierId: draft.supplierId || existingOption?.supplierId || null,
+        activeCostEntryId: existingOption?.activeCostEntryId ?? null,
+        costEntries: existingOption?.costEntries,
+        packageQuantity: unitUsesContentConversion(entry.unit) ? readOptionalPositiveNumber(entry.packageQuantity) : null,
+        packageUnit: unitUsesContentConversion(entry.unit) ? entry.packageUnit || null : null,
+        imageBucket: image?.bucket || existingOption?.imageBucket || null,
+        imagePath: image?.path || existingOption?.imagePath || null,
+        thumbnailPath: image?.thumbnailUrl || image?.thumbnailPath || existingOption?.thumbnailPath || null,
+        imageMetadata: buildImageMetadata(image),
+        attachments: entry.attachments.map((attachment) => ({
+          id: attachment.id,
+          bucket: attachment.bucket,
+          path: attachment.path,
+          fileName: attachment.fileName,
+          contentType: attachment.contentType,
+          sizeBytes: attachment.sizeBytes,
+          kind: getAttachmentKind(attachment.contentType),
+        })),
+        variantMetadata: existingOption?.variantMetadata ?? {},
+        isActive: true,
+        isDefault: entry.id === variant.id,
+        createdAt: existingOption?.createdAt,
+        updatedAt: existingOption?.updatedAt,
+      };
+    });
+    const itemCost = parseMoney(variant.unitCost);
+    const resolvedItemCost = Number.isFinite(itemCost) ? itemCost : currentItem?.itemCost ?? 0;
+    const quantity = currentItem?.quantity ?? 1;
+    const subTotal = resolvedItemCost * quantity;
+    const miscCost = currentItem?.miscCost ?? 0;
+    const contingencyPercentage = currentItem?.contingencyPercentage ?? 0;
+    const contingencyValue = (subTotal * contingencyPercentage) / 100;
+    const adjustmentPercentage = currentItem?.adjustmentPercentage ?? 0;
+    const adjustmentValue = (subTotal * adjustmentPercentage) / 100;
+    return {
+      ...(currentItem ?? buildOptimisticItem({})),
+      material: draft.name.trim(),
+      name: draft.name.trim(),
+      description: variant.description,
+      supplier: selectedSupplier?.name ?? draft.supplierName,
+      supplierId: draft.supplierId || undefined,
+      unit: variant.unit || "unit",
+      itemCost: resolvedItemCost,
+      price: resolvedItemCost,
+      subTotal,
+      contingencyValue,
+      adjustmentValue,
+      miscCost,
+      totalItemCosts: subTotal + contingencyValue + adjustmentValue + miscCost,
+      imageUrl: variantImage?.thumbnailUrl || variantImage?.thumbnailPath || draft.thumbnailPath || undefined,
+      category: draft.category.trim(),
+      categoryNodeId: draft.categoryNodeId || undefined,
+      brand: (selectedBrand?.name ?? draft.brand) || undefined,
+      brandId: draft.brandId || undefined,
+      sku: variant.sku || undefined,
+      priceOptionId: variant.id,
+      priceOptionLabel: variant.label,
+      priceOptions: editedPriceOptions,
+      lifecycleState: draft.lifecycleState,
+      lifecycleStateChangedAt: draft.effectiveAt,
+      notes: draft.changeReason,
+      updatedAt: new Date().toISOString(),
+      pricingSource: (selectedSupplier?.name ?? draft.supplierName) || currentItem?.pricingSource || "Project Component",
+      pricingDate: draft.effectiveAt || today(),
+    };
+  }
+
   function submit() {
     setSubmitAttempted(true);
     if (imageBusy || attachmentBusy) {
-      setError("Wait for uploads to finish before adding this component.");
+      setError(`Wait for uploads to finish before ${isEditing ? "saving" : "adding"} this component.`);
       return;
     }
     if (validation.length > 0 || isPending) {
       setError("");
       return;
     }
-    const payload = buildComponentPayload();
+    const payload = isEditing ? null : buildComponentPayload();
 
     startTransition(async () => {
       setError("");
       try {
-        const result = await createCostLibraryComponent(payload);
-        onComponentCreated(buildOptimisticItem(result));
+        if (isEditing) {
+          await onComponentUpdated?.(buildEditedItem());
+        } else if (payload) {
+          const result = await createCostLibraryComponent(payload);
+          onComponentCreated(buildOptimisticItem(result));
+        }
         dirtyRef.current = false;
         onOpenChange(false);
       } catch (saveError) {
@@ -1277,7 +1523,7 @@ function OpenAddComponentModal({
 
   const showValidationErrors = submitAttempted && validation.length > 0;
   const visibleValidationErrors: Partial<typeof quickAddValidation.errors> = showValidationErrors ? quickAddValidation.errors : {};
-  const componentStatus = error || (showValidationErrors ? "Complete the required fields before adding this component." : "Ready to add component.");
+  const componentStatus = error || (showValidationErrors ? `Complete the required fields before ${isEditing ? "saving" : "adding"} this component.` : `Ready to ${isEditing ? "save" : "add"} component.`);
   const unitLabel = getUnitDisplayLabel(activeVariant?.unit ?? "") || activeVariant?.unit || "unit";
   const showActiveVariantEquivalency = activeVariant ? unitUsesContentConversion(activeVariant.unit) : false;
   const showMainCostSection = !(variantDrawerOpen && variantDrawerView === "variant");
@@ -1286,9 +1532,9 @@ function OpenAddComponentModal({
     <>
       <Modal
         open={open}
-        title="Add Component"
+        title={isEditing ? "Edit Component" : "Add Component"}
         onOpenChange={requestClose}
-        closeLabel="Close add component modal"
+        closeLabel={isEditing ? "Close edit component modal" : "Close add component modal"}
         closeOnOverlayClick={false}
         closeOnEscape={false}
         blurBackdrop
@@ -1309,7 +1555,7 @@ function OpenAddComponentModal({
         )}
       >
         <div className="relative isolate flex h-[min(940px,calc(100dvh-16px))] w-full max-w-full flex-col overflow-visible text-[10px] text-secondary">
-          <div className="relative z-20 flex h-8 shrink-0 items-stretch gap-2 border-b border-[#e7e9ec] px-2" role="tablist" aria-label="Add component sections">
+          <div className="relative z-20 flex h-8 shrink-0 items-stretch gap-2 border-b border-[#e7e9ec] px-2" role="tablist" aria-label={isEditing ? "Edit component sections" : "Add component sections"}>
             {ADD_COMPONENT_MODAL_TABS.map((tab) => (
               <button
                 key={tab.id}
@@ -1358,7 +1604,7 @@ function OpenAddComponentModal({
                         fill
                         sizes="260px"
                         className="object-cover"
-                        unoptimized={Boolean(activePreviewUrl || activeImageSrc.startsWith("http"))}
+                        unoptimized={shouldBypassNextImageOptimization(activeImageSrc, activePreviewUrl)}
                       />
                     ) : (
                       <div className="grid justify-items-center gap-1 px-4 text-center text-tertiary">
@@ -1631,7 +1877,7 @@ function OpenAddComponentModal({
               disabled={isPending || imageBusy || attachmentBusy}
               className="h-8 px-2 text-[10px] font-medium text-white transition hover:brightness-[0.94] disabled:cursor-not-allowed disabled:opacity-55 rounded-[3px] border border-[#c63804] bg-[#F24405] shadow-[0_1px_0_rgba(255,255,255,0.22)_inset,0_10px_18px_-14px_rgba(198,56,4,0.78)]"
             >
-              {isPending ? "Adding..." : imageBusy || attachmentBusy ? "Uploading..." : "Add Component"}
+              {isPending ? (isEditing ? "Saving..." : "Adding...") : imageBusy || attachmentBusy ? "Uploading..." : isEditing ? "Save Component" : "Add Component"}
             </button>
           </footer>
 
@@ -1794,7 +2040,7 @@ function OpenAddComponentModal({
                           fill
                           sizes="83px"
                           className="object-cover"
-                          unoptimized={Boolean(activePreviewUrl || activeImageSrc.startsWith("http"))}
+                          unoptimized={shouldBypassNextImageOptimization(activeImageSrc, activePreviewUrl)}
                         />
                       ) : (
                         <ImageSquare size={22} weight="regular" aria-hidden="true" className="text-tertiary" />

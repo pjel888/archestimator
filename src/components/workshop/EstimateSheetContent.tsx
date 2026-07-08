@@ -59,6 +59,10 @@ const EstimateRightSidebar = dynamic(
     loading: () => <ComponentLibrarySidebarFallback isError={false} />,
   },
 );
+const AddComponentModal = dynamic(
+  () => import("./component-library-manager/AddComponentModal").then((mod) => mod.AddComponentModal),
+  { ssr: false },
+);
 const ESTIMATE_LIBRARY_DEFAULT_WIDTH_CLASS = "w-[560px]";
 const ESTIMATE_CURSOR_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ESTIMATE_LIBRARY_POST_PAINT_DELAY_MS = 800;
@@ -1108,6 +1112,7 @@ export function EstimateSheetContent({
   } = contentState;
   const [sourcesDrawerOpen, setSourcesDrawerOpen] = useState(false);
   const [rowMoveDialog, setRowMoveDialog] = useState<RowMoveDialogState | null>(null);
+  const [componentEditor, setComponentEditor] = useState<{ rowItemId: string; opener: HTMLElement | null } | null>(null);
   const setEditableRows = useStableCallback((value: SetStateAction<Record<string, EditableRowValue>>) => {
     dispatchContentState(estimateSheetContentFieldAction("editableRows", value));
   });
@@ -1588,7 +1593,7 @@ export function EstimateSheetContent({
     () => estimateTree.reduce((total, node) => total + (estimateNodeTotals.get(node.id) ?? 0), 0),
     [estimateNodeTotals, estimateTree],
   );
-  const shouldBuildFlattenedRows = Boolean(inspector || rowDetails || projectSpecificRowId || rowComponentPicker?.mode === "move");
+  const shouldBuildFlattenedRows = Boolean(inspector || rowDetails || componentEditor || projectSpecificRowId || rowComponentPicker?.mode === "move");
   const currentRows = useMemo(
     () => (shouldBuildFlattenedRows ? flattenEstimateRows(estimateTree, editableRows) : EMPTY_FLATTENED_ESTIMATE_ROWS),
     [editableRows, estimateTree, shouldBuildFlattenedRows],
@@ -1635,6 +1640,17 @@ export function EstimateSheetContent({
   );
   const rowComponentPickerSourceLabel =
     rowComponentPickerSourceItem?.material || rowComponentPickerSourceItem?.name || "Selected component";
+  const componentEditorRow = useMemo(
+    () => (componentEditor ? currentRows.find((row) => row.item.id === componentEditor.rowItemId) ?? null : null),
+    [componentEditor, currentRows],
+  );
+  const componentEditorLibraryItems = useMemo(
+    () => [
+      ...(resolvedLibraryItems ?? EMPTY_ESTIMATE_ROW_ITEMS),
+      ...currentRows.map((row) => row.item),
+    ],
+    [currentRows, resolvedLibraryItems],
+  );
   const normalizedRowComponentPickerQuery = rowComponentPickerQuery.trim().toLocaleLowerCase();
   const rowComponentReplaceOptions = useMemo(() => {
     if (rowComponentPicker?.mode !== "replace") return EMPTY_ESTIMATE_ROW_ITEMS;
@@ -1713,6 +1729,40 @@ export function EstimateSheetContent({
     setRowComponentPicker({ mode: "move", rowItemId, opener });
     setRowComponentPickerQuery("");
   }, [setRowComponentPicker, setRowComponentPickerQuery]);
+  const openComponentEditor = useCallback((rowItemId: string, opener: HTMLElement) => {
+    setComponentEditor({ rowItemId, opener });
+  }, []);
+  const closeComponentEditor = useCallback(() => {
+    const opener = componentEditor?.opener;
+    setComponentEditor(null);
+    window.requestAnimationFrame(() => opener?.focus());
+  }, [componentEditor?.opener]);
+  const updateComponentFromEditor = useStableCallback((item: EstimateRowItem) => {
+    updateRowItem(item.id, {
+      name: item.material,
+      description: item.description,
+      brand: item.brand ?? "",
+      supplier: item.supplier,
+      unit: item.unit,
+      unitCost: String(item.itemCost),
+      imageUrl: item.imageUrl ?? "",
+      sourceUrl: item.sourceUrl ?? "",
+      category: item.category,
+      categoryNodeId: item.categoryNodeId ?? null,
+      brandId: item.brandId ?? null,
+      supplierId: item.supplierId ?? null,
+      sku: item.sku ?? null,
+      priceOptionId: item.priceOptionId ?? null,
+      priceOptionLabel: item.priceOptionLabel ?? null,
+      priceOptions: item.priceOptions,
+      pricingDate: item.pricingDate ?? null,
+      pricingSource: item.pricingSource ?? null,
+      confidence: item.confidence ?? null,
+      lifecycleState: item.lifecycleState ?? null,
+      lifecycleStateChangedAt: item.lifecycleStateChangedAt ?? null,
+      notes: item.notes ?? null,
+    });
+  });
   const closeRowComponentPicker = useCallback(() => {
     const opener = rowComponentPicker?.opener;
     setRowComponentPicker(null);
@@ -2294,6 +2344,25 @@ export function EstimateSheetContent({
           onClose={closeRowDetails}
         />
       ) : null}
+      {componentEditor && componentEditorRow ? (
+        <AddComponentModal
+          open
+          editingItem={componentEditorRow.item}
+          folders={libraryFolders ?? lazyLibrary?.libraryFolders ?? []}
+          categoryTree={libraryCategoryTree ?? lazyLibrary?.categoryTree ?? []}
+          suppliers={librarySuppliers ?? lazyLibrary?.suppliers ?? []}
+          brands={libraryBrands ?? lazyLibrary?.brands ?? []}
+          libraryItems={componentEditorLibraryItems}
+          selectedFolderId={null}
+          imageUploadProjectId={projectId ?? null}
+          onOpenChange={(open) => {
+            if (!open) closeComponentEditor();
+          }}
+          onComponentCreated={() => undefined}
+          onComponentUpdated={updateComponentFromEditor}
+          catalogueOptionsStorageScope={projectId ?? estimateId ?? "estimate-component-editor"}
+        />
+      ) : null}
       {rowComponentPicker ? (
         <Modal
           open
@@ -2703,6 +2772,7 @@ export function EstimateSheetContent({
                       onUpdateRowItem={updateRowItem}
                       onMarkRowDirty={markRowDirty}
                       onOpenRowDetails={openRowDetails}
+                      onOpenComponentEditor={openComponentEditor}
                       onClearRowComponent={clearRowComponent}
                       onRequestProjectSpecific={requestProjectSpecific}
                       onPromoteRowToLibrary={promoteRowToLibrary}

@@ -101,6 +101,20 @@ export type EditableRowValue = {
   imageUrl: string;
   imageAsset?: EstimateRowImageAssetDescriptor | null;
   sourceUrl: string;
+  category?: string;
+  categoryNodeId?: string | null;
+  brandId?: string | null;
+  supplierId?: string | null;
+  sku?: string | null;
+  priceOptionId?: string | null;
+  priceOptionLabel?: string | null;
+  priceOptions?: EstimateRowItem["priceOptions"];
+  pricingDate?: string | null;
+  pricingSource?: string | null;
+  confidence?: string | null;
+  lifecycleState?: EstimateRowItem["lifecycleState"] | null;
+  lifecycleStateChangedAt?: string | null;
+  notes?: string | null;
 };
 
 function parseEditableNumber(value: string) {

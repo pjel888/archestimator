@@ -708,7 +708,7 @@ describe("estimate sheet cost inputs", () => {
     expect(rowDragIcon).toHaveClass("cursor-grab", "active:cursor-grabbing");
     expect(within(materialCell).getByLabelText("Component actions for Hardwood Oak Flooring")).toBeInTheDocument();
     expect(within(materialCell).getByRole("button", { name: "Delete component Hardwood Oak Flooring" })).toBeInTheDocument();
-    expect(within(materialCell).getByRole("button", { name: "Open component details for Hardwood Oak Flooring" })).toBeInTheDocument();
+    expect(within(materialCell).getByRole("button", { name: "Edit component Hardwood Oak Flooring" })).toBeInTheDocument();
     expect(within(materialCell).getByRole("button", { name: "Drag component Hardwood Oak Flooring" })).toHaveAttribute("draggable", "true");
 
     const quantityInput = screen.getByLabelText("Hardwood Oak Flooring quantity");
@@ -759,17 +759,16 @@ describe("estimate sheet cost inputs", () => {
     expect(screen.getByRole("tooltip")).toHaveTextContent("Delete row. Undo after saving can restore it.");
   });
 
-  it("opens the row component tab from the in-card component action", async () => {
+  it("opens the edit component modal from the in-card component action", async () => {
     const user = userEvent.setup();
     renderEstimateSheet("living-area", { canEditEstimate: true });
 
     const materialCell = screen.getByLabelText("Hardwood Oak Flooring replaceable estimate component");
-    await user.click(within(materialCell).getByRole("button", { name: "Open component details for Hardwood Oak Flooring" }));
+    await user.click(within(materialCell).getByRole("button", { name: "Edit component Hardwood Oak Flooring" }));
 
-    const dialog = screen.getByRole("dialog", { name: "Row item details" });
-    expect(dialog).toBeInTheDocument();
-    expect(within(dialog).getByRole("tab", { name: "Component" })).toHaveAttribute("aria-selected", "true");
-    expect(within(dialog).getByText("Current component")).toBeInTheDocument();
+    const dialog = await screen.findByRole("dialog", { name: "Edit Component" });
+    expect(within(dialog).getByLabelText("Name")).toHaveValue("Hardwood Oak Flooring");
+    expect(screen.queryByRole("dialog", { name: "Row item details" })).not.toBeInTheDocument();
   });
 
   it("deletes only the component from the card action while keeping the row item editable", async () => {

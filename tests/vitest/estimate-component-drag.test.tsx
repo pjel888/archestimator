@@ -53,7 +53,7 @@ function renderCell(overrides: Partial<Parameters<typeof EstimateMaterialCell>[0
       onRequestProjectSpecific={() => {}}
       onPromoteToLibrary={onPromoteToLibrary}
       onMoveComponent={() => {}}
-      onOpenComponentDetails={() => {}}
+      onOpenComponentEditor={() => {}}
       onRetryExpressDraft={() => {}}
       onDeleteExpressDraft={() => {}}
       {...overrides}
@@ -180,15 +180,15 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
     const { container, item } = renderCell();
 
     const slot = getMaterialUnitSlot(container);
-    expect(slot).toHaveClass("w-16", "justify-end", "text-right", "!text-[10px]");
+    expect(slot).toHaveClass("absolute", "right-0", "top-[calc(50%+22px)]", "w-[112px]", "justify-end", "text-right", "!text-[10px]");
     expect(slot).toHaveTextContent(`/${item.unit}`);
 
     const label = slot.querySelector("[data-estimate-material-unit-label='true']");
-    expect(label).toHaveClass("relative", "items-center", "justify-end", "text-right", "!text-[10px]");
+    expect(label).toHaveClass("flex", "min-w-0", "max-w-full", "items-center", "justify-end", "text-right", "!text-[10px]");
     expect(label).toHaveAttribute("title", `per ${item.unit}`);
-    expect(label?.querySelector("[data-estimate-material-unit-slash='true']")).toHaveClass("absolute", "-top-2", "right-0");
+    expect(label?.querySelector("[data-estimate-material-unit-slash='true']")).toHaveClass("block", "shrink-0");
     expect(label?.querySelector("[data-estimate-material-unit-slash='true']")).toHaveTextContent("/");
-    expect(label?.querySelector("[data-estimate-material-unit-value='true']")).toHaveClass("max-w-full", "truncate");
+    expect(label?.querySelector("[data-estimate-material-unit-value='true']")).toHaveClass("min-w-0", "truncate");
   });
 
   it("keeps editable component units at the same 10px size as row quantity units", () => {
@@ -219,8 +219,8 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
     const unitInput = screen.getByRole("combobox", { name: "Unit" });
     expect(unitInput).toHaveClass("w-full", "!text-[10px]");
     const unitLabel = unitInput.closest("[data-estimate-material-unit-label='true']");
-    expect(unitLabel).toHaveClass("relative", "items-center", "justify-end");
-    expect(unitLabel?.querySelector("[data-estimate-material-unit-slash='true']")).toHaveClass("absolute", "-top-2", "right-0");
+    expect(unitLabel).toHaveClass("flex", "items-center", "justify-end");
+    expect(unitLabel?.querySelector("[data-estimate-material-unit-slash='true']")).toHaveClass("block", "shrink-0");
   });
 
   it("shows a promote action for express components", () => {
@@ -430,6 +430,44 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:reference-preview");
   });
 
+  it("opens the native file picker from the visible upload button", async () => {
+    const item = {
+      ...estimateLibraryItems[0],
+      id: "express-row-1",
+      imageUrl: "",
+      sourceLibraryItemId: null,
+      linkState: "unlinked" as const,
+      metadata: withExpressComponentMetadata({}, { id: "express-1" }),
+    };
+    const inputClickSpy = vi.spyOn(HTMLInputElement.prototype, "click").mockImplementation(() => {});
+    try {
+      renderCell({
+        item,
+        editableRow: {
+          name: "Project Component",
+          description: item.description,
+          supplier: item.supplier,
+          unit: item.unit,
+          unitCost: String(item.itemCost),
+          quantity: String(item.quantity),
+          contingencyMode: "contingency",
+          contingencyPercentage: String(item.contingencyPercentage ?? 0),
+          miscCost: String(item.miscCost),
+          imageUrl: "",
+          sourceUrl: item.sourceUrl ?? "",
+        },
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: "Add reference image for Project Component" }));
+      const dialog = screen.getByRole("dialog", { name: "Reference image" });
+      fireEvent.click(within(dialog).getByRole("button", { name: "Upload image" }));
+
+      expect(inputClickSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      inputClickSpy.mockRestore();
+    }
+  });
+
   it("keeps the background reference image upload running when Escape is pressed", async () => {
     vi.stubGlobal("URL", {
       ...URL,
@@ -589,7 +627,7 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
       onRequestProjectSpecific: vi.fn(),
       onPromoteToLibrary: vi.fn(),
       onMoveComponent: vi.fn(),
-      onOpenComponentDetails: vi.fn(),
+      onOpenComponentEditor: vi.fn(),
       onRetryExpressDraft: vi.fn(),
       onDeleteExpressDraft: vi.fn(),
     } satisfies Parameters<typeof EstimateMaterialCell>[0];
@@ -840,7 +878,7 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
       { name: `Replace component ${item.material}`, tooltip: "Replace component" },
       { name: `Move component ${item.material}`, tooltip: "Move component" },
       { name: `Delete component ${item.material}`, tooltip: "Delete component" },
-      { name: `Open component details for ${item.material}`, tooltip: "Component details" },
+      { name: `Edit component ${item.material}`, tooltip: "Edit component" },
       { name: `Drag component ${item.material}`, tooltip: "Drag component" },
     ];
 
@@ -913,7 +951,7 @@ describe("EstimateMaterialCell component drag safety (Req 4 / D4)", () => {
     });
 
     const slot = getMaterialUnitSlot(container);
-    expect(slot).toHaveClass("w-16", "justify-end", "text-right");
+    expect(slot).toHaveClass("absolute", "right-0", "top-[calc(50%+22px)]", "w-[112px]", "justify-end", "text-right");
 
     const unitInput = screen.getByLabelText("Unit");
     expect(slot).toContainElement(unitInput);

@@ -11,6 +11,7 @@ import { applyEstimateRowItemPatch, estimateRowMutationResultToPatch, patchEstim
 import { isExpressComponentRow, readEstimateRowMetadata, withExpressComponentMetadata } from "@/lib/estimates/express-components";
 import { recordExpressComponentEvent } from "@/lib/estimates/express-components-telemetry";
 import { getLibraryCommitTrustGate, type LibraryCommitTrustGateResult } from "@/components/workshop/library/source-trust-model";
+import type { Json } from "@/lib/types/json";
 
 import { findEstimateNode, type EstimateRowItem, type EstimateTreeNode } from "../estimate-tree-data";
 import {
@@ -150,6 +151,12 @@ function editableRowsEqual(a: EditableRowValue, b: EditableRowValue) {
 
 function isOfflineRowMutationFailure(status: EstimateRowMutationStatus | undefined) {
   return status?.phase === "failed" && /offline/i.test(status.message ?? status.label);
+}
+
+function nullableTrimmedText(value: string | null | undefined) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed || null;
 }
 
 function shouldPreserveLocalEditableRow(input: {
@@ -535,13 +542,71 @@ export function useEstimateRowHandlers({
     if (expressFieldNames.length > 0) {
       recordExpressComponentEvent("save_requested", { projectId, estimateId, rowId: rowItemId, fieldNames: expressFieldNames });
     }
-    const sourceSnapshotPatch = values.brand !== undefined || values.imageUrl !== undefined || values.sourceUrl !== undefined || values.imageAsset !== undefined
+    const sourceSnapshotPatch = values.name !== undefined
+      || values.description !== undefined
+      || values.supplier !== undefined
+      || values.unit !== undefined
+      || values.unitCost !== undefined
+      || values.brand !== undefined
+      || values.imageUrl !== undefined
+      || values.sourceUrl !== undefined
+      || values.imageAsset !== undefined
+      || values.category !== undefined
+      || values.categoryNodeId !== undefined
+      || values.brandId !== undefined
+      || values.supplierId !== undefined
+      || values.sku !== undefined
+      || values.priceOptionId !== undefined
+      || values.priceOptionLabel !== undefined
+      || values.pricingDate !== undefined
+      || values.pricingSource !== undefined
+      || values.confidence !== undefined
+      || values.lifecycleState !== undefined
+      || values.lifecycleStateChangedAt !== undefined
+      || values.notes !== undefined
       ? {
-          ...(values.brand !== undefined ? { brand: values.brand.trim() || null } : {}),
-          ...(values.imageUrl !== undefined ? { imageUrl: values.imageUrl.trim() || null } : {}),
+          ...(values.name !== undefined ? { material: nullableTrimmedText(values.name) } : {}),
+          ...(values.description !== undefined ? { description: nullableTrimmedText(values.description) } : {}),
+          ...(values.supplier !== undefined ? { supplier: nullableTrimmedText(values.supplier) } : {}),
+          ...(values.unit !== undefined ? { unit: nullableTrimmedText(values.unit) } : {}),
+          ...(values.unitCost !== undefined ? { unit_cost: parseNonNegativeEditableNumber(values.unitCost) } : {}),
+          ...(values.brand !== undefined ? { brand: nullableTrimmedText(values.brand) } : {}),
+          ...(values.imageUrl !== undefined ? { imageUrl: nullableTrimmedText(values.imageUrl) } : {}),
           ...(values.imageAsset !== undefined ? { imageAsset: values.imageAsset ?? null } : {}),
-          ...(values.sourceUrl !== undefined ? { sourceUrl: values.sourceUrl.trim() || null } : {}),
+          ...(values.sourceUrl !== undefined ? { sourceUrl: nullableTrimmedText(values.sourceUrl) } : {}),
+          ...(values.category !== undefined ? { category: nullableTrimmedText(values.category) } : {}),
+          ...(values.categoryNodeId !== undefined ? { categoryNodeId: values.categoryNodeId ?? null } : {}),
+          ...(values.brandId !== undefined ? { brandId: values.brandId ?? null } : {}),
+          ...(values.supplierId !== undefined ? { supplierId: values.supplierId ?? null } : {}),
+          ...(values.sku !== undefined ? { sku: nullableTrimmedText(values.sku) } : {}),
+          ...(values.priceOptionId !== undefined ? { priceOptionId: nullableTrimmedText(values.priceOptionId) } : {}),
+          ...(values.priceOptionLabel !== undefined ? { priceOptionLabel: nullableTrimmedText(values.priceOptionLabel) } : {}),
+          ...(values.pricingDate !== undefined ? { pricingDate: nullableTrimmedText(values.pricingDate) } : {}),
+          ...(values.pricingSource !== undefined ? { pricingSource: nullableTrimmedText(values.pricingSource) } : {}),
+          ...(values.confidence !== undefined ? { confidence: nullableTrimmedText(values.confidence) } : {}),
+          ...(values.lifecycleState !== undefined ? { lifecycleState: values.lifecycleState ?? null } : {}),
+          ...(values.lifecycleStateChangedAt !== undefined ? { sourceUpdatedAt: values.lifecycleStateChangedAt ?? null } : {}),
+          ...(values.notes !== undefined ? { notes: values.notes ?? null } : {}),
         }
+      : undefined;
+    const shouldPatchMetadata = Boolean(currentRowItem && (
+      values.categoryNodeId !== undefined
+      || values.brandId !== undefined
+      || values.supplierId !== undefined
+      || values.priceOptionId !== undefined
+      || values.lifecycleState !== undefined
+      || values.lifecycleStateChangedAt !== undefined
+    ));
+    const metadataPatch = shouldPatchMetadata && currentRowItem
+      ? ({
+          ...readEstimateRowMetadata(currentRowItem.metadata),
+          ...(values.categoryNodeId !== undefined ? { categoryNodeId: values.categoryNodeId ?? null } : {}),
+          ...(values.brandId !== undefined ? { brandId: values.brandId ?? null } : {}),
+          ...(values.supplierId !== undefined ? { supplierId: values.supplierId ?? null } : {}),
+          ...(values.priceOptionId !== undefined ? { priceOptionId: values.priceOptionId ?? null } : {}),
+          ...(values.lifecycleState !== undefined ? { lifecycleState: values.lifecycleState ?? null } : {}),
+          ...(values.lifecycleStateChangedAt !== undefined ? { lifecycleStateChangedAt: values.lifecycleStateChangedAt ?? null } : {}),
+        } satisfies Record<string, Json | undefined>)
       : undefined;
     const shouldPromoteLegacyBlankToExpress = Boolean(currentRowItem && isBlankEstimateRowItem(currentRowItem));
     const nextAmounts = currentRowItem ? getEditableRowAmounts(currentRowItem, nextEditableRow) : null;
@@ -561,7 +626,10 @@ export function useEstimateRowHandlers({
       ...(values.supplier !== undefined ? { supplier: values.supplier } : {}),
       ...(values.unit !== undefined ? { unit: values.unit } : {}),
       ...(values.unitCost !== undefined ? { unitCost: parseNonNegativeEditableNumber(values.unitCost) } : {}),
+      ...(values.categoryNodeId !== undefined ? { categoryNodeId: values.categoryNodeId } : {}),
+      ...(values.supplierId !== undefined ? { supplierId: values.supplierId } : {}),
       ...(sourceSnapshotPatch !== undefined ? { sourceSnapshot: sourceSnapshotPatch } : {}),
+      ...(metadataPatch !== undefined ? { metadata: metadataPatch } : {}),
       ...(shouldPatchQuantity && nextAmounts ? {
         quantity: nextAmounts.quantity,
         quantityBase: nextAmounts.quantityBase,
@@ -580,6 +648,7 @@ export function useEstimateRowHandlers({
       } : {}),
       onSuccess: (result) => {
         const serverPatch = estimateRowMutationResultToPatch(result);
+        if (values.priceOptions !== undefined) serverPatch.priceOptions = values.priceOptions;
         let patchedTree = estimateTree;
         setEstimateTree((current) => {
           patchedTree = patchProjectComponentInstanceRowsInTree(current, result.rowId, serverPatch);

@@ -191,6 +191,8 @@ type UpdateEstimateRowItemInput = {
   supplier?: string;
   unit?: string;
   unitCost?: number;
+  categoryNodeId?: string | null;
+  supplierId?: string | null;
   quantity?: number;
   quantityBase?: number | null;
   quantityContingencyAmount?: number | null;
@@ -3381,7 +3383,7 @@ export async function updateEstimateSheetAdjustment({
   return readEstimateSheetAdjustmentRpcResult(adjustmentResult);
 }
 
-export async function updateEstimateRowItem({ projectId, estimateId, rowId, material, description, supplier, unit, unitCost, quantity, quantityBase, quantityContingencyAmount, contingencyPercentage, adjustmentPercentage, miscCost, sourceSnapshot, metadata, mutationId, expectedRowRevision }: UpdateEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
+export async function updateEstimateRowItem({ projectId, estimateId, rowId, material, description, supplier, unit, unitCost, categoryNodeId, supplierId, quantity, quantityBase, quantityContingencyAmount, contingencyPercentage, adjustmentPercentage, miscCost, sourceSnapshot, metadata, mutationId, expectedRowRevision }: UpdateEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
   const { project, dataStore, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
   const currentUser = await requireCurrentUserContext();
   let sourceSnapshotPatch: Json | null | undefined;
@@ -3415,6 +3417,8 @@ export async function updateEstimateRowItem({ projectId, estimateId, rowId, mate
     ...(supplier !== undefined ? { supplier } : {}),
     ...(unit !== undefined ? { unit } : {}),
     ...(unitCost !== undefined ? { unitCost } : {}),
+    ...(categoryNodeId !== undefined ? { categoryNodeId } : {}),
+    ...(supplierId !== undefined ? { supplierId } : {}),
     ...(quantity !== undefined ? { quantity } : {}),
     ...(quantityBase !== undefined ? { quantityBase } : {}),
     ...(quantityContingencyAmount !== undefined ? { quantityContingencyAmount } : {}),

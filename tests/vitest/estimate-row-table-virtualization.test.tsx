@@ -111,7 +111,7 @@ describe("estimate row table virtualization", () => {
 
     expect(screen.getByRole("button", { name: `Open row details for ${rowLabel}` })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: `Open row activity for ${rowLabel}` })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: `Open component details for ${rowLabel}` })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: `Edit component ${rowLabel}` })).not.toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: `${rowLabel} quantity` })).toBeDisabled();
     expect(screen.getByRole("textbox", { name: `${rowLabel} contingency percentage` })).toBeDisabled();
     expect(screen.getByRole("textbox", { name: `${rowLabel} adjustment percentage` })).toBeDisabled();

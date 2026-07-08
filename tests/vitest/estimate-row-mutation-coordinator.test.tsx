@@ -554,6 +554,53 @@ describe("estimate row mutation coordinator", () => {
     });
   });
 
+  it("patches every mounted project component instance after editing the shared thumbnail", async () => {
+    const queryClient = makeQueryClient();
+    queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), [{
+      ...nodesWithRow[0],
+      estimateRowItems: [projectedCabinetRow, secondProjectedCabinetRow, sinkRow],
+    }]);
+    queryClient.setQueryData(workspaceComponentLibraryLiteQueryKey(workspaceId, projectId), makeLibraryData([projectedCabinetComponentWithTwoInstances]));
+    const update = deferred<ReturnType<typeof makeCanonicalReplaceResult>>();
+    actionMocks.updateEstimateRowItem.mockReturnValueOnce(update.promise);
+
+    const { result } = renderHook(
+      () => useEstimateRowMutations(estimateId, undefined, workspaceId, projectId),
+      { wrapper: makeWrapper(queryClient) },
+    );
+
+    act(() => {
+      result.current.updateRow({
+        projectId,
+        estimateId,
+        rowId: cabinetRowId,
+        sourceSnapshot: { imageUrl: "https://assets.example.test/shared-cabinet.webp" },
+      });
+    });
+
+    await waitFor(() => expect(findCachedRow(queryClient, cabinetRowId)?.imageUrl).toBe("https://assets.example.test/shared-cabinet.webp"));
+    expect(findCachedRow(queryClient, secondCabinetRowId)?.imageUrl).toBe("https://assets.example.test/shared-cabinet.webp");
+    expect(getCachedLibraryItems(queryClient)[0]).toMatchObject({
+      id: cabinetComponentId,
+      imageUrl: "https://assets.example.test/shared-cabinet.webp",
+    });
+
+    await act(async () => {
+      update.resolve(makeCanonicalReplaceResult(cabinetRowId, {
+        ...projectedCabinetRow,
+        sourceSnapshot: { imageUrl: "https://assets.example.test/confirmed-cabinet.webp" },
+      }, 8));
+      await update.promise;
+    });
+
+    await waitFor(() => expect(findCachedRow(queryClient, cabinetRowId)?.imageUrl).toBe("https://assets.example.test/confirmed-cabinet.webp"));
+    expect(findCachedRow(queryClient, secondCabinetRowId)?.imageUrl).toBe("https://assets.example.test/confirmed-cabinet.webp");
+    expect(getCachedLibraryItems(queryClient)[0]).toMatchObject({
+      id: cabinetComponentId,
+      imageUrl: "https://assets.example.test/confirmed-cabinet.webp",
+    });
+  });
+
   it("rolls back the mounted Project tab component projection when a row name update fails", async () => {
     const queryClient = makeQueryClient();
     queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), [{

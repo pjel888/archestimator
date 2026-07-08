@@ -12,7 +12,7 @@ export type EstimateActivityScope =
   | { mode: "sheet" }
   | { mode: "node"; nodeId: string; includeDescendants: boolean };
 
-export type RowDetailTab = "details" | "component" | "activity";
+export type RowDetailTab = "details" | "activity";
 
 export type RowDetailsState = {
   rowId: string;
@@ -58,7 +58,7 @@ export type ActivityScopeTreeItem = {
   row: FlattenedEstimateRow | null;
 };
 
-export type EstimateMaterialCardItem = Pick<EstimateRowItem, "material" | "brand" | "supplier" | "itemCost" | "description" | "unit" | "imageUrl" | "category" | "priceOptionLabel">;
+export type EstimateMaterialCardItem = Pick<EstimateRowItem, "material" | "brand" | "supplier" | "itemCost" | "description" | "unit" | "imageUrl" | "category" | "priceOptionId" | "priceOptionLabel" | "priceOptions">;
 
 export const pesoFormatter = new Intl.NumberFormat("en-PH", {
   style: "currency",

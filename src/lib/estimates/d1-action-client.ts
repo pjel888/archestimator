@@ -1617,6 +1617,18 @@ function mergeSharedSourceSnapshotIntoRow(row: EstimateRowItemRow, sourceSnapsho
   };
 }
 
+function mergeSourceSnapshotPatchIntoRow(row: EstimateRowItemRow, rowPatch: Record<string, unknown>) {
+  if (!Object.prototype.hasOwnProperty.call(rowPatch, "sourceSnapshot")) return rowPatch;
+  if (rowPatch.sourceSnapshot === null) return rowPatch;
+  return {
+    ...rowPatch,
+    sourceSnapshot: {
+      ...readJsonRecord(rowSourceSnapshot(row)),
+      ...readJsonRecord(rowPatch.sourceSnapshot),
+    },
+  };
+}
+
 async function propagateProjectComponentRowPatch(database: D1DatabaseLike, input: {
   projectId: string;
   sourceRow: EstimateRowItemRow;
@@ -1709,7 +1721,8 @@ async function patchRowItem(database: D1DatabaseLike, args: Record<string, unkno
   if (!row) throw new Error("Estimate row item not found in the current project.");
   const expected = args.expected_row_revision === null || args.expected_row_revision === undefined ? readNumber(row.row_revision, 1) : readNumber(args.expected_row_revision);
   if (readNumber(row.row_revision, 1) !== expected) throw new Error("Estimate row revision conflict.");
-  const columns = updateValuesForRowPatch(rowPatch);
+  const effectiveRowPatch = mergeSourceSnapshotPatchIntoRow(row, rowPatch);
+  const columns = updateValuesForRowPatch(effectiveRowPatch);
   if (columns.length === 0) return rowItemHistoryResult(row);
   const nextRevision = readNumber(row.row_revision, 1) + 1;
   const assignments = columns.map(([column]) => `${column} = ?`);
@@ -1720,7 +1733,7 @@ async function patchRowItem(database: D1DatabaseLike, args: Record<string, unkno
   const updated = await readRowById(database, estimateId, rowId);
   if (!updated) throw new Error("Estimate row item was not found after update.");
   const propagation = eventType === "row_updated"
-    ? await propagateProjectComponentRowPatch(database, { projectId, sourceRow: row, rowPatch })
+    ? await propagateProjectComponentRowPatch(database, { projectId, sourceRow: row, rowPatch: effectiveRowPatch })
     : { rowIds: [] as string[], totalDelta: 0 };
   const eventId = await insertHistoryEvent(database, {
     projectId,
