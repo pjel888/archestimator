@@ -1,6 +1,6 @@
 # Validation Matrix
 
-**Last updated:** 2026-06-10
+**Last updated:** 2026-07-08
 
 ## Proportional code-change gate
 
@@ -16,14 +16,45 @@ bun run build
 git diff --check
 ```
 
-`bun run validate` covers:
+`bun run validate` covers, in order:
 
 - TypeScript type-check
 - ESLint
+- `bun run validate:error-handling`, a non-mutating static guard against empty `catch` blocks and empty Promise `.catch` handlers in sensitive server/API/observability/email/ops surfaces, plus raw `console.error` bypasses in covered runtime user/operator paths
 - app/workshop design-system lint, enforcing the non-landing SF Pro scale, regular/medium weights, xs radius, zero tracking, reference color tokens, and regular icon weights
 - `bun run lint:design` design quality audit using the repo-pinned local Impeccable detector
 - Bun unit tests
 - Vitest DOM/helper tests
+
+When a stored evidence artifact is needed for observability or release readiness,
+run `bun run ops:check-error-handling`; it writes the JSON report. Normal
+validation uses `validate:error-handling` so routine checks do not mutate the
+worktree. The error-handling gate runs before visual/design gates so unrelated
+UI policy failures cannot hide silent error-swallowing or raw runtime logging
+bypasses.
+
+For debugging handoffs or "what do the logs say?" work, run
+`bun run ops:agent-debug-snapshot`. It produces a redacted local debugging
+readiness report across `logs/dev.ndjson`, prior matching debugging ledger
+records, incident-table readiness, hosted proof env gates, hosted proof artifact
+readiness, and the error-handling static gate without exposing raw log messages,
+stacks, request ids, webhook URLs, or token values.
+
+When a fix or mitigation creates reusable debugging knowledge, append a
+sanitized recurrence record with `bun run ops:debug-ledger -- ...`; use
+`--dry-run --json` first when wording may contain sensitive material. Before
+citing the recurrence ledger as launch or incident evidence, run
+`bun run ops:debug-ledger -- --check`.
+
+For production observability readiness, run `bun run ops:observability-drill`
+first. It is read-only: it joins hosted proof env preflight, hosted artifact
+validation, and the next Workers Logs / alert proof commands without querying
+Cloudflare, sending webhooks, or mutating D1 incidents.
+Workers Logs proof collection should use the secret-gated hosted marker route
+when possible:
+`WORKERS_LOGS_PROOF_URL=https://archestimator.com/__cloudflare/observability-proof WORKERS_LOGS_PROOF_SECRET=<cron_secret> bun run ops:collect-workers-logs-proof`.
+The collector also supports the legacy known-request mode with
+`WORKERS_LOGS_PROOF_REQUEST_ID` and `WORKERS_LOGS_PROOF_ROUTE`.
 
 Storybook validation remains a review surface, not a production gate:
 
@@ -42,6 +73,10 @@ bun run prove:notification-rls
 Launch readiness probes (read-only, no provider mutation):
 
 ```bash
+bun run ops:agent-debug-snapshot
+bun run ops:debug-ledger -- --check
+bun run ops:observability-drill
+bun run ops:check-observability-env
 bun run launch:verify-hosted-auth
 bun run launch:verify-hosted-export
 bun run launch:verify-hosted-sensitive-routes
@@ -49,6 +84,7 @@ bun run launch:supabase-readiness
 bun run launch:check-supabase-backup
 bun run launch:check-supabase-migrations
 bun run launch:check-support-dns
+bun run launch:check-observability
 bun run launch:check-support-monitoring
 bun run launch:check-vercel-env
 bun run launch:check-vercel-health
