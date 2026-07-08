@@ -172,27 +172,28 @@ Stable current truth (verify against git/source before relying on a detail):
 	  `https://archestimator.com/__cloudflare/observability-proof` and expects
 	  `401` before Workers Logs marker proof collection; `404` means the deployed
 	  Worker is stale or the route is not wired, while `200` is an auth-bypass
-	  blocker. Current 2026-07-08 evidence: Wrangler auth works, the deployed
-	  Worker secret-name list includes `CRON_SECRET`, and local source wires the
-	  protected route before app routing, but the live custom-domain route returns
-	  `404`. `OUTPUT_FILE=.ai/99_scratch/observability-proof-route-smoke-current.json bun run ops:check-observability-route`
-	  therefore fails closed with `routeStatus:"route-not-found"`, and
-	  `cf:release-gates` must keep hosted observability/support and production
-	  cutover red until a clean runtime deploy makes the route live/auth-enforced.
-	  Do not deploy from the current shared dirty worktree; unrelated runtime/UI
-	  estimate and publication changes are present. Recurrence ledger record
-	  `debug-7efd339e-fc90-4bf2-b9b6-60d43f3d09c5` captures this route-smoke
-	  workflow gap with recurrence key `dbg_7deea5b4e8a4b71d`.
+	  blocker. Current 2026-07-08 evidence: Worker version
+	  `ce6c5471-f18e-47df-b8c4-f6604dc8d810` is deployed at 100% in deployment
+	  `d2977376-71a7-426f-8f03-69a6b4fa8082`, and
+	  `OUTPUT_FILE=.ai/99_scratch/observability-proof-route-smoke-current.json bun run ops:check-observability-route`
+	  passes with `routeStatus:"auth-enforced"`, HTTP `401`,
+	  `routeReachable:true`, and `readyForWorkersLogsProof:true`. A manual GET
+	  to that URL returns Next's 404 because the protected proof route is a
+	  POST-only marker endpoint. Recurrence ledger record
+	  `debug-7efd339e-fc90-4bf2-b9b6-60d43f3d09c5` captures the route-smoke
+	  workflow gap, and `debug-30164ffa-b134-41eb-812e-5f73ce184bc2` records the
+	  production deploy/route-smoke fix.
 	  The route-smoke artifact is now also consumed by
 	  `ops:observability-drill` and `ops:agent-debug-snapshot` as
-	  `hostedProofRoute`; the snapshot exposes
-	  `readiness.productionHostedProofRouteReady:false` and a production gate
-	  failure key `hostedProofRoute` while the live route returns `404`. The
-	  refreshed drill/snapshot block `workersLogsQuery` behind
-	  `bun run ops:check-observability-route`, report
-	  `observabilityRunbook.summary` as read-only ready=2 / gated-external
-	  ready=0 / blocked=9, and preserve the deploy-from-clean-worktree next
-	  action without querying Cloudflare Logs, sending alerts, or mutating D1.
+	  `hostedProofRoute`; the snapshot now exposes
+	  `readiness.productionHostedProofRouteReady:true` while hosted proof env and
+	  artifact gates remain red. The refreshed drill/snapshot report
+	  `observabilityRunbook.summary` as passed=1 / read-only ready=2 /
+	  gated-external ready=0 / blocked=8, and `workersLogsQuery` is now blocked
+	  by missing `WORKERS_LOGS_PROOF_URL` + `WORKERS_LOGS_PROOF_SECRET` (or the
+	  legacy request-id/route pair), not by route deployment. The drill still
+	  performs no Cloudflare Logs query, webhook send, or D1 mutation while those
+	  gates are absent.
 	  Focused verification passed 5 observability/protocol Vitest files / 33
 	  tests, large-heap typecheck, `validate:error-handling`,
 	  `ops:debug-ledger -- --check`, refreshed route-smoke/snapshot/drill/
@@ -215,14 +216,18 @@ Stable current truth (verify against git/source before relying on a detail):
 	  `validate:error-handling`, and `cf:check-readiness`. A clean isolated
 	  snapshot with the middleware changes passed `bun run cf:build` and
 	  `bun run cf:check-deploy-dry-run` with 296 assets and required bindings
-	  present. Production is still not updated: both `wrangler deploy` and
-	  `wrangler versions upload` from the clean snapshot stalled or terminated
-	  after the asset phase without creating a new Worker version. Readback still
-	  shows version `f854a70c-6a62-405b-a53d-060b1f671b4d` / deployment
-	  `50f72675-7279-4c1c-98e1-0e9a7af45a63` from 2026-07-06, and the live
-	  hosted proof route still returns `404`. Recurrence ledger record
-	  `debug-6b402e11-3c21-4ede-b90e-92863e882904` captures the unresolved
-	  publish blocker with recurrence key `dbg_70434f76e9c10dca`.
+	  present. The apparent publish blocker matched prior Cloudflare evidence:
+	  the OpenNext Worker upload can spend several minutes silent after the asset
+	  phase. Retrying with Node 24 + Wrangler 4.108 and waiting through the quiet
+	  phase created version `ce6c5471-f18e-47df-b8c4-f6604dc8d810` after
+	  597.74 seconds. `wrangler versions view` confirmed production binding
+	  parity, including `ARCH_DB` id `9bdb29bb-687e-4f51-ae81-7659c426ea5f`.
+	  `wrangler versions deploy ce6c5471-f18e-47df-b8c4-f6604dc8d810@100 --name archestimator-proof --yes`
+	  promoted deployment `d2977376-71a7-426f-8f03-69a6b4fa8082`. Recurrence
+	  ledger record `debug-6b402e11-3c21-4ede-b90e-92863e882904` captures the
+	  earlier investigating state, and `debug-30164ffa-b134-41eb-812e-5f73ce184bc2`
+	  records the fixed long-silent-upload resolution with recurrence key
+	  `dbg_70434f76e9c10dca`.
 	  `ops:agent-debug-snapshot` now also reports latest local error age and
 	  freshness (`localLogs.latestError.ageMinutes` / `freshness`) with a 24h
 	  default stale threshold. If the latest local error is stale, agents should
