@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import GlobalError from "@/app/global-error";
+import { collectFileViolations } from "@/../scripts/enforce-app-design-system.mjs";
 
 describe("global-error", () => {
   beforeEach(() => {
@@ -19,6 +20,12 @@ describe("global-error", () => {
 
     expect(source).toContain("<html");
     expect(source).toContain("<body");
+  });
+
+  it("keeps the fallback UI inside the compact app design contract", () => {
+    const source = readFileSync("src/app/global-error.tsx", "utf8");
+
+    expect(collectFileViolations("src/app/global-error.tsx", source)).toEqual([]);
   });
 
   it("renders safe fallback copy and focuses the recovery action", async () => {

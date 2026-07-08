@@ -6,6 +6,7 @@ import {
   ValidationError,
 } from "@/lib/observability/app-error";
 import type { AppLogger, LogRecord } from "@/lib/observability/logger";
+import { REQUEST_ID_HEADER, withRequestIdContext } from "@/lib/observability/request-id";
 import { problemDetailsResponse } from "@/lib/observability/route-error";
 
 function createTestLogger() {
@@ -117,5 +118,24 @@ describe("problemDetailsResponse", () => {
 
     const body = (await response.json()) as { detail?: string };
     expect(body.detail).toBe("Custom message");
+  });
+
+  it("uses the current request id context for body, header, and log records", async () => {
+    const { logger, records } = createTestLogger();
+    const response = await withRequestIdContext(
+      {
+        echoId: "client.req-123456",
+        internalId: "req_00000000-0000-4000-8000-000000000001",
+        source: "inbound",
+      },
+      async () => problemDetailsResponse(new ValidationError("Invalid input"), { logger }),
+    );
+
+    expect(response.headers.get(REQUEST_ID_HEADER)).toBe("req_00000000-0000-4000-8000-000000000001");
+    const body = await response.json() as { requestId?: string };
+    expect(body.requestId).toBe("req_00000000-0000-4000-8000-000000000001");
+    expect(records[0]).toMatchObject({
+      request_id: "req_00000000-0000-4000-8000-000000000001",
+    });
   });
 });

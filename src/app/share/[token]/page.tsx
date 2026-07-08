@@ -26,6 +26,7 @@ import {
   verifyPublicationAccessCookieValue,
   verifySharedLinkSessionCookieValue,
 } from "@/lib/publication/security";
+import { logAppError } from "@/lib/observability/logger";
 import type { ProjectPublicationSnapshot } from "@/lib/publication/types";
 import "../print.css";
 
@@ -176,7 +177,14 @@ export default async function SharePage({ params, searchParams }: SharePageProps
             request: passwordGateEventRequest,
           });
         } catch (error) {
-          console.error("[share] deferred password-gate analytics write failed", error);
+          logAppError(error, {
+            event: "shared_link_deferred_analytics_error",
+            action: "password_gate_analytics",
+            context: {
+              route: "/share/[token]",
+              access_stage: "password_gate_viewed",
+            },
+          });
         }
       });
       return <ProjectPublicationPasswordGate token={token} />;
@@ -243,7 +251,13 @@ export default async function SharePage({ params, searchParams }: SharePageProps
       const eventRateLimit = await checkProjectPublicationEventRateLimit({ token, request: publicationEventRequest });
       if (!eventRateLimit.allowed) return;
     } catch (error) {
-      console.error("[share] deferred open-event rate-limit check failed", error);
+      logAppError(error, {
+        event: "shared_link_deferred_analytics_error",
+        action: "open_event_rate_limit",
+        context: {
+          route: "/share/[token]",
+        },
+      });
       return;
     }
 
@@ -257,7 +271,14 @@ export default async function SharePage({ params, searchParams }: SharePageProps
         recipientId: recipientIdForOpenEvent,
       });
     } catch (error) {
-      console.error("[share] deferred page-visit analytics write failed", error);
+      logAppError(error, {
+        event: "shared_link_deferred_analytics_error",
+        action: "page_visit_analytics",
+        context: {
+          route: "/share/[token]",
+          recipient_known: Boolean(recipientIdForOpenEvent),
+        },
+      });
     }
 
     try {
@@ -269,7 +290,14 @@ export default async function SharePage({ params, searchParams }: SharePageProps
         recipientId: recipientIdForOpenEvent,
       });
     } catch (error) {
-      console.error("[share] deferred open-event write failed", error);
+      logAppError(error, {
+        event: "shared_link_deferred_analytics_error",
+        action: "open_event_write",
+        context: {
+          route: "/share/[token]",
+          recipient_known: Boolean(recipientIdForOpenEvent),
+        },
+      });
     }
   });
 

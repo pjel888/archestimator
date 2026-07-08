@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
-import { estimateLibraryItems, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
+import { estimateLibraryItems, type EstimateRowItem, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { INSERT_ESTIMATE_TEMPLATE_EVENT } from "@/components/workshop/component-library/templates";
 import { REQUEST_ESTIMATE_ROW_ITEM_MOVE_EVENT } from "@/components/workshop/estimate-sheet/events";
 import { ADD_LIBRARY_ITEM_EVENT, LIBRARY_ITEM_DRAG_MIME_TYPE } from "@/components/workshop/estimate-sheet/rows/constants";
@@ -214,6 +214,65 @@ const nodesWithThreeRows: EstimateTreeNode[] = [
         pricingDate: "2026-05-22",
       },
     ],
+  },
+];
+
+const projectedComponentId = "project-component-cabinet";
+const sharedProjectComponentMetadata = withExpressComponentMetadata({
+  projectComponentProjection: {
+    componentId: projectedComponentId,
+    projectId,
+    projectName: "Modern Bungalow",
+    estimateId,
+    estimateName: "Main Estimate",
+    nodeId: targetNodeId,
+    nodeName: "Kitchen",
+    sourceRowId: cabinetRowId,
+    instanceRowIds: [cabinetRowId, vanityRowId],
+    instanceCount: 2,
+    classification: "express",
+  },
+}, {
+  id: projectedComponentId,
+  componentId: projectedComponentId,
+  componentName: "Kitchen Cabinet",
+  sourceLabel: "Project Component",
+});
+const nodesWithProjectedComponentInstances: EstimateTreeNode[] = [
+  {
+    id: targetNodeId,
+    name: "Kitchen",
+    kind: "area",
+    total: "PHP 0.00",
+    estimateRowItems: [
+      {
+        ...nodesWithRow[0].estimateRowItems![0],
+        id: cabinetRowId,
+        source: "project",
+        quantity: 2,
+        metadata: sharedProjectComponentMetadata,
+      },
+      {
+        ...nodesWithRow[0].estimateRowItems![0],
+        id: vanityRowId,
+        source: "project",
+        quantity: 5,
+        subTotal: 500,
+        totalItemCosts: 510,
+        rowRevision: 3,
+        metadata: sharedProjectComponentMetadata,
+      },
+    ],
+    children: [],
+  },
+];
+const nodesWithRenamedProjectedComponentInstances: EstimateTreeNode[] = [
+  {
+    ...nodesWithProjectedComponentInstances[0],
+    estimateRowItems: nodesWithProjectedComponentInstances[0].estimateRowItems!.map((item) => ({
+      ...item,
+      material: "Shared Cabinet",
+    })),
   },
 ];
 
@@ -1337,6 +1396,60 @@ describe("estimate sheet library insertion persistence", () => {
 
     await waitFor(() => expect(quantityInput.value).toBe("7"));
     expect(toastViewport()).not.toHaveTextContent("Saved.");
+  });
+
+  it("syncs visible project component instances after editing one shared component field", async () => {
+    const save = deferred<Awaited<ReturnType<typeof actionMocks.updateEstimateRowItem>>>();
+    actionMocks.updateEstimateRowItem.mockReturnValueOnce(save.promise);
+    actionMocks.fetchEstimateTree.mockResolvedValue(nodesWithRenamedProjectedComponentInstances);
+    renderPersistedEstimateSheet(nodesWithProjectedComponentInstances);
+
+    const kitchenSection = screen.getByLabelText("Kitchen");
+    const nameInputs = await within(kitchenSection).findAllByLabelText("Component name") as HTMLInputElement[];
+    expect(nameInputs).toHaveLength(2);
+    expect(nameInputs[0]).toHaveValue("Kitchen Cabinet");
+    expect(nameInputs[1]).toHaveValue("Kitchen Cabinet");
+
+    fireEvent.focus(nameInputs[0]);
+    fireEvent.change(nameInputs[0], { target: { value: "Shared Cabinet" } });
+    expect(nameInputs[0]).toHaveValue("Shared Cabinet");
+    fireEvent.blur(nameInputs[0]);
+
+    await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(1));
+    expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledWith(expect.objectContaining({
+      projectId,
+      estimateId,
+      rowId: cabinetRowId,
+      material: "Shared Cabinet",
+      mutationId: expect.any(String),
+    }));
+
+    await act(async () => {
+      save.resolve({
+        rowId: cabinetRowId,
+        nodeId: targetNodeId,
+        material: "Shared Cabinet",
+        description: "Base cabinet",
+        supplier: "Local supplier",
+        unit: "lm",
+        itemCost: 100,
+        quantity: 2,
+        contingencyPercentage: 0,
+        contingencyValue: 0,
+        miscCost: 10,
+        sourceSnapshot: null,
+        metadata: sharedProjectComponentMetadata,
+        linkState: "unlinked",
+        rowRevision: 8,
+      });
+      await save.promise;
+    });
+
+    expect(nameInputs[0]).toHaveValue("Shared Cabinet");
+    await waitFor(() => {
+      const syncedInputs = within(kitchenSection).getAllByLabelText("Component name") as HTMLInputElement[];
+      expect(syncedInputs[1]).toHaveValue("Shared Cabinet");
+    });
   });
 
   it("keeps row save failures visible without a routine saving notification", async () => {

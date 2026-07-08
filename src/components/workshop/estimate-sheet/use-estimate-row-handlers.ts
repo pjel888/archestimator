@@ -3,11 +3,11 @@
 import { useEffect, useRef, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 import { flushSync } from "react-dom";
 
-import type { useEstimateRowMutations, EstimateRowMutationStatusMap, EstimateSaveState } from "@/hooks/use-estimate-row-mutations";
+import type { useEstimateRowMutations, EstimateRowMutationStatus, EstimateRowMutationStatusMap, EstimateSaveState } from "@/hooks/use-estimate-row-mutations";
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import { recordLibraryEvent } from "@/lib/component-library/library-telemetry";
 import { applyEstimateRowItemMoveResultToTree, moveEstimateRowItemInTree } from "@/lib/estimates/estimate-row-tree-move";
-import { applyEstimateRowItemPatch, estimateRowMutationResultToPatch, patchEstimateRowItemInTree } from "@/lib/estimates/estimate-row-tree-patch";
+import { applyEstimateRowItemPatch, estimateRowMutationResultToPatch, patchEstimateRowItemInTree, patchProjectComponentInstanceRowsInTree } from "@/lib/estimates/estimate-row-tree-patch";
 import { isExpressComponentRow, readEstimateRowMetadata, withExpressComponentMetadata } from "@/lib/estimates/express-components";
 import { recordExpressComponentEvent } from "@/lib/estimates/express-components-telemetry";
 import { getLibraryCommitTrustGate, type LibraryCommitTrustGateResult } from "@/components/workshop/library/source-trust-model";
@@ -146,6 +146,50 @@ const EDITABLE_ROW_FIELDS: Array<keyof EditableRowValue> = [
 
 function editableRowsEqual(a: EditableRowValue, b: EditableRowValue) {
   return EDITABLE_ROW_FIELDS.every((field) => a[field] === b[field]);
+}
+
+function isOfflineRowMutationFailure(status: EstimateRowMutationStatus | undefined) {
+  return status?.phase === "failed" && /offline/i.test(status.message ?? status.label);
+}
+
+function shouldPreserveLocalEditableRow(input: {
+  rowId: string;
+  currentRow: EditableRowValue;
+  baselineRow?: EditableRowValue;
+  syncedRow: EditableRowValue | undefined;
+  status: EstimateRowMutationStatus | undefined;
+  activeExpressRowId: string;
+}) {
+  if (!input.syncedRow || editableRowsEqual(input.currentRow, input.syncedRow)) return false;
+  if (input.activeExpressRowId === input.rowId) return true;
+  if (input.status?.phase === "pending") return true;
+  if (isOfflineRowMutationFailure(input.status)) return true;
+  return Boolean(input.baselineRow && !editableRowsEqual(input.currentRow, input.baselineRow));
+}
+
+function mergeSyncedEditableRows(
+  currentRows: Record<string, EditableRowValue>,
+  nextRows: Record<string, EditableRowValue>,
+  rowMutationStatuses: EstimateRowMutationStatusMap,
+  activeExpressRowId: string,
+  baselineRows?: Record<string, EditableRowValue>,
+) {
+  let mergedRows = nextRows;
+  for (const [rowId, currentRow] of Object.entries(currentRows)) {
+    const syncedRow = nextRows[rowId];
+    const status = rowMutationStatuses[rowId];
+    if (!shouldPreserveLocalEditableRow({
+      rowId,
+      currentRow,
+      baselineRow: baselineRows?.[rowId],
+      syncedRow,
+      status,
+      activeExpressRowId,
+    })) continue;
+    if (mergedRows === nextRows) mergedRows = { ...nextRows };
+    mergedRows[rowId] = currentRow;
+  }
+  return mergedRows;
 }
 
 export function findEstimateRowItem(nodes: EstimateTreeNode[], rowItemId: string): EstimateRowItem | null {
@@ -419,27 +463,7 @@ export function useEstimateRowHandlers({
       const nextRows = collectEditableRows(estimateTree);
       const activeExpressRowId = getActiveExpressEditorRowId();
       setEditableRows((currentRows) => {
-        let mergedRows = nextRows;
-        for (const [rowId, currentRow] of Object.entries(currentRows)) {
-          const syncedRow = nextRows[rowId];
-          if (!syncedRow || editableRowsEqual(currentRow, syncedRow)) continue;
-          const status = rowMutationStatuses[rowId];
-          const failedServerSave = status?.phase === "failed" && !/offline/i.test(status.message ?? status.label);
-          if (failedServerSave) continue;
-          if (mergedRows === nextRows) mergedRows = { ...nextRows };
-          mergedRows[rowId] = currentRow;
-        }
-        for (const [rowId, status] of Object.entries(rowMutationStatuses)) {
-          const offlineFailure = status.phase === "failed" && /offline/i.test(status.message ?? status.label);
-          if (!offlineFailure || !currentRows[rowId]) continue;
-          if (mergedRows === nextRows) mergedRows = { ...nextRows };
-          mergedRows[rowId] = currentRows[rowId];
-        }
-        if (activeExpressRowId && currentRows[activeExpressRowId]) {
-          if (mergedRows === nextRows) mergedRows = { ...nextRows };
-          mergedRows[activeExpressRowId] = currentRows[activeExpressRowId];
-        }
-        return mergedRows;
+        return mergeSyncedEditableRows(currentRows, nextRows, rowMutationStatuses, activeExpressRowId);
       });
     });
   }, [estimateTree, rowMutationStatuses, saveState, setEditableRows, skipEditableRowsSyncRef]);
@@ -554,6 +578,26 @@ export function useEstimateRowHandlers({
           createdAt: new Date().toISOString(),
         }),
       } : {}),
+      onSuccess: (result) => {
+        const serverPatch = estimateRowMutationResultToPatch(result);
+        let patchedTree = estimateTree;
+        setEstimateTree((current) => {
+          patchedTree = patchProjectComponentInstanceRowsInTree(current, result.rowId, serverPatch);
+          return patchedTree;
+        });
+        const nextRows = collectEditableRows(patchedTree);
+        const activeExpressRowId = getActiveExpressEditorRowId();
+        setEditableRows((currentRows) => mergeSyncedEditableRows(currentRows, nextRows, rowMutationStatuses, activeExpressRowId, previousRows));
+      },
+      onError: (error) => {
+        if (/offline/i.test(error.message)) return;
+        setEditableRows((currentRows) => {
+          const currentRow = currentRows[rowItemId];
+          const previousRow = previousRows[rowItemId];
+          if (!currentRow || !previousRow || !editableRowsEqual(currentRow, nextEditableRow)) return currentRows;
+          return { ...currentRows, [rowItemId]: previousRow };
+        });
+      },
       rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
     });
   });

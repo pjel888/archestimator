@@ -44,13 +44,15 @@ export type ExpressInsertDraftState = "creating" | "failed";
 type ComponentSourceTone = "library" | "express" | "project" | "manual";
 
 const MATERIAL_UNIT_SLOT_CLASS =
-  "flex w-16 shrink-0 items-center justify-end whitespace-nowrap text-right !text-[10px] font-medium leading-3 text-tertiary";
+  "absolute right-0 top-[calc(50%+22px)] flex w-[112px] justify-end whitespace-nowrap text-right !text-[10px] font-medium leading-3 text-tertiary";
 const MATERIAL_COST_SLOT_CLASS = "w-[112px] shrink-0";
-const MATERIAL_TEXT_RESERVE_CLASS = "min-w-0 pr-[136px]";
+const MATERIAL_TEXT_RESERVE_CLASS = "min-w-0 pr-16";
+const MATERIAL_PRICE_RAIL_CLASS =
+  "absolute right-0 top-1/2 flex w-[112px] -translate-y-1/2 justify-end";
 const MATERIAL_UNIT_LABEL_CLASS =
-  "relative flex min-w-0 max-w-full items-center justify-end text-right !text-[10px] font-medium leading-3";
-const MATERIAL_UNIT_SLASH_CLASS = "absolute -top-2 right-0 block h-2 leading-[8px] text-tertiary";
-const MATERIAL_UNIT_VALUE_CLASS = "block max-w-full truncate";
+  "flex min-w-0 max-w-full items-center justify-end gap-0.5 text-right !text-[10px] font-medium leading-3";
+const MATERIAL_UNIT_SLASH_CLASS = "block shrink-0 leading-3 text-tertiary";
+const MATERIAL_UNIT_VALUE_CLASS = "block min-w-0 truncate";
 const ESTIMATE_IMAGE_UPLOAD_MAX_BYTES = 12 * 1024 * 1024;
 const ESTIMATE_IMAGE_UPLOAD_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
 const EMPTY_CATALOGUE_COMBOBOX_OPTIONS: CreatableComboboxOption[] = [];
@@ -222,6 +224,7 @@ function EstimateMaterialCardFrame({
   name,
   brand,
   supplier,
+  variant,
   cost,
   description,
   unit,
@@ -230,37 +233,40 @@ function EstimateMaterialCardFrame({
   name: ReactNode;
   brand: ReactNode;
   supplier: ReactNode;
+  variant?: ReactNode;
   cost: ReactNode;
   description: ReactNode;
   unit: ReactNode;
 }) {
   return (
-    <>
-      <div className="flex gap-2">
+    <div className="relative grid h-full min-h-0 grid-rows-[minmax(0,1fr)_auto] gap-1.5 pr-[124px]">
+      <div className="flex min-h-0 items-start gap-2">
         {image}
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col pt-0.5">
           <div className={MATERIAL_TEXT_RESERVE_CLASS}>
             {name}
-            {brand}
-            {supplier}
-          </div>
-          <div className="flex flex-1 items-start justify-end">
-            {cost}
+            <div className="mt-0.5 flex min-w-0 flex-col gap-0.5">
+              {brand}
+              {supplier}
+              {variant}
+            </div>
           </div>
         </div>
       </div>
-      <div className="flex items-start justify-between gap-2">
+      <div className="min-w-0">
         {description}
-        <div className={MATERIAL_UNIT_SLOT_CLASS} data-estimate-material-unit-slot="true">
-          {unit}
-        </div>
       </div>
-    </>
+      <div className={MATERIAL_PRICE_RAIL_CLASS}>{cost}</div>
+      <div className={MATERIAL_UNIT_SLOT_CLASS} data-estimate-material-unit-slot="true">
+        {unit}
+      </div>
+    </div>
   );
 }
 
 function EstimateMaterialCardContent({ item }: { item: EstimateMaterialCardItem }) {
   const brand = item.brand?.trim();
+  const variantLabel = item.priceOptionLabel?.trim();
   return (
     <EstimateMaterialCardFrame
       image={(
@@ -278,8 +284,15 @@ function EstimateMaterialCardContent({ item }: { item: EstimateMaterialCardItem 
           </span>
         </p>
       ) : null}
-      supplier={<p className="truncate text-[10px] font-normal leading-4 text-tertiary">{item.supplier}</p>}
-      cost={<p className="whitespace-nowrap text-[9px] font-medium leading-4 tabular-nums text-ink">{pesoFormatter.format(item.itemCost).replace("₱", "₱ ")}</p>}
+      supplier={<p className="truncate text-[10px] font-normal leading-3 text-tertiary">{item.supplier}</p>}
+      variant={variantLabel ? (
+        <p className="truncate text-[9px] font-normal leading-[11px] text-tertiary" title={`Variant: ${variantLabel}`}>
+          <span className="text-secondary/70">Variant</span>
+          <span className="mx-1 text-secondary/40">·</span>
+          {variantLabel}
+        </p>
+      ) : null}
+      cost={<p className="whitespace-nowrap text-[10px] font-medium leading-3 tabular-nums text-ink">{pesoFormatter.format(item.itemCost).replace("₱", "₱ ")}</p>}
       description={(
         <p className="truncate text-[10px] leading-4 text-secondary/60 transition-opacity group-hover:text-secondary" title={item.description}>
           {item.description}
@@ -1190,7 +1203,7 @@ export function MoneyInput({
       onChange={(event) => onChange(event.target.value)}
       aria-label={ariaLabel}
       align={align}
-      className="!text-[10px] font-medium leading-3 tabular-nums text-ink"
+      className="border-0 !bg-transparent p-0 !text-[10px] font-medium leading-3 tabular-nums text-ink shadow-none focus-visible:ring-0"
       {...cellProps}
     />
   );

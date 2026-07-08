@@ -1,5 +1,7 @@
 import type { Instrumentation } from "next";
 
+import { normalizePathForLog } from "@/lib/observability/safe-path";
+
 function isEdgeRuntime() {
   return process.env.NEXT_RUNTIME === "edge";
 }
@@ -18,7 +20,7 @@ export const onRequestError: Instrumentation.onRequestError = async (error, requ
         message: error instanceof Error ? error.message : "Unhandled Next.js request error.",
         context: {
           method: request.method,
-          path: request.path,
+          path: normalizePathForLog(request.path),
           route_path: context.routePath,
           route_type: context.routeType,
           router_kind: context.routerKind,
@@ -30,11 +32,13 @@ export const onRequestError: Instrumentation.onRequestError = async (error, requ
   }
 
   const { logAppError } = await import("@/lib/observability/logger");
+  const { getCurrentRequestId } = await import("@/lib/observability/request-id");
   logAppError(error, {
     event: "next_request_error",
+    requestId: getCurrentRequestId() ?? undefined,
     context: {
       method: request.method,
-      path: request.path,
+      path: normalizePathForLog(request.path),
       route: context.routePath,
       route_handler: context.routeType === "route" ? `${request.method} ${context.routePath}` : undefined,
       route_path: context.routePath,

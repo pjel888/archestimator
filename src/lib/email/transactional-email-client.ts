@@ -7,6 +7,7 @@
  */
 
 import { sendCloudflareEmail } from "@/lib/email/cloudflare-email-client";
+import { emitLogRecord } from "@/lib/observability/logger";
 
 export type SendEmailInput = {
   to: string | string[];
@@ -95,33 +96,35 @@ function isEmailCircuitOpen(now: number) {
   return false;
 }
 
+function logEmailDispatchGuardrail(input: SendEmailInput, code: "CIRCUIT_OPEN" | "EMAIL_NOT_CONFIGURED", context: Record<string, unknown> = {}) {
+  emitLogRecord({
+    level: "error",
+    event: "transactional_email_dispatch_error",
+    message: "Transactional email dispatch failed before provider send.",
+    action: "send_transactional_email",
+    context: {
+      route: "email/transactional-email-client",
+      error_code: code,
+      subject_length: input.subject.length,
+      ...context,
+    },
+  });
+}
+
 export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult> {
   const now = Date.now();
   recordEmailAttempt(now);
 
   if (isEmailCircuitOpen(now)) {
     const errMsg = "Email dispatch temporarily paused due to high failure rate (circuit open).";
-    console.error({
-      level: "error",
-      route: "email/transactional-email-client",
-      errorCode: "CIRCUIT_OPEN",
-      ipHash: "n/a",
-      ts: new Date().toISOString(),
-      subject: input.subject.slice(0, 60),
-    });
+    logEmailDispatchGuardrail(input, "CIRCUIT_OPEN");
     return { ok: false, error: errMsg, code: "CIRCUIT_OPEN" };
   }
 
   const config = readEmailDeliveryConfig();
   if (!config.configured) {
     if (isTestEnv) return { ok: true, mocked: true };
-    console.error({
-      level: "error",
-      route: "email/transactional-email-client",
-      errorCode: "EMAIL_NOT_CONFIGURED",
-      ipHash: "n/a",
-      ts: new Date().toISOString(),
-      subject: input.subject.slice(0, 60),
+    logEmailDispatchGuardrail(input, "EMAIL_NOT_CONFIGURED", {
       missing: {
         emailDeliveryEnabled: !config.enabled,
         cloudflareFrom: !config.cloudflareFrom,

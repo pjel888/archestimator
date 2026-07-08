@@ -39,7 +39,16 @@ function schedulePasswordSuccessAnalytics({ token, request }: { token: string; r
         passwordSuccess: true,
         request,
       });
-    } catch {}
+    } catch (error) {
+      logAppError(error, {
+        event: "deferred_analytics_error",
+        context: {
+          route: "/api/share/[token]/password",
+          route_handler: "POST /api/share/[token]/password",
+          deferred_operation: "record_password_success_analytics",
+        },
+      });
+    }
   });
 }
 
@@ -96,13 +105,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     await clearProjectPublicationPasswordFailures({ token, request });
   } catch (error) {
     logAppError(error, {
-      event: "route_error",
+      event: "shared_link_password_failure_clear_error",
+      action: "clear_project_publication_password_failures",
       context: {
         route: "/api/share/[token]/password",
         route_handler: "POST /api/share/[token]/password",
       },
     });
-    console.error("[share] failed to clear password failure lockout state after successful unlock", error);
     return Response.json({ error: "Unable to unlock publication." }, { status: 500, headers: noStoreHeaders });
   }
   schedulePasswordSuccessAnalytics({ token, request });

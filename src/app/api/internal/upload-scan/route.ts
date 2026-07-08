@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
+import { logAppError } from "@/lib/observability/logger";
 import { createConfiguredUploadScannerProvider } from "@/lib/uploads/clamd-scanner";
 import { createRuntimeUploadStorageProvider } from "@/lib/uploads/runtime-storage-provider";
 import {
@@ -110,7 +111,14 @@ async function handleUploadScanJob(request: Request) {
 
     return jsonOk(result);
   } catch (error) {
-    console.error("Upload scan job failed", error);
+    logAppError(error, {
+      event: "upload_scan_job_error",
+      action: "run_upload_scan_job",
+      context: {
+        route: "/api/internal/upload-scan",
+        route_handler: `${request.method} /api/internal/upload-scan`,
+      },
+    });
     return jsonError("Upload scan job failed.", 500);
   }
 }

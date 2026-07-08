@@ -29,6 +29,7 @@ import {
   type PackageBuilderApplyRequest,
   type PackageBuilderDraft,
 } from "@/lib/ai/package-builder/schemas";
+import { logAppError } from "@/lib/observability/logger";
 
 type PackageBuilderDependencies = {
   getUserContext: () => Promise<AiRequestUserContext | null>;
@@ -146,8 +147,16 @@ async function recordMemorySignalBestEffort(
 ) {
   try {
     await deps.recordMemory(input);
-  } catch {
-    // Memory is a ranking hint only; feedback and Apply outcomes remain authoritative.
+  } catch (error) {
+    logAppError(error, {
+      event: "best_effort_memory_signal_error",
+      context: {
+        route: "/api/ai/package-builder",
+        route_handler: "POST /api/ai/package-builder",
+        deferred_operation: "record_package_builder_memory_signal",
+        signal: input.signal,
+      },
+    });
   }
 }
 
@@ -338,7 +347,14 @@ export async function handlePackageBuilderRequest(request: Request, dependencies
     }
     return NextResponse.json({ mode: "apply", result });
   } catch (error) {
-    console.error("AI package Apply failed", error);
+    logAppError(error, {
+      event: "ai_package_apply_error",
+      action: "apply_ai_package",
+      context: {
+        route: "/api/ai/package-builder",
+        route_handler: "POST /api/ai/package-builder",
+      },
+    });
     return jsonError("Package Apply failed.", 400);
   }
 }

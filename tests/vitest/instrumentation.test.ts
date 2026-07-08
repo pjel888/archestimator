@@ -68,4 +68,26 @@ describe("Next instrumentation local error logging", () => {
     expect(consoleError).toHaveBeenCalledTimes(1);
     expect(String(consoleError.mock.calls[0]?.[0])).toContain("next_request_error");
   });
+
+  it("redacts tokenized edge runtime paths before console logging", async () => {
+    process.env.NEXT_RUNTIME = "edge";
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { onRequestError } = await loadInstrumentation();
+
+    await onRequestError(new Error("edge boom"), {
+      path: "/api/share/raw-share-token/session?recipient=raw-recipient-token",
+      method: "GET",
+      headers: {},
+    }, {
+      routerKind: "App Router",
+      routePath: "/api/share/[token]/session",
+      routeType: "route",
+      revalidateReason: undefined,
+    });
+
+    const record = JSON.parse(String(consoleError.mock.calls[0]?.[0]));
+    expect(record.context.path).toBe("/api/share/[REDACTED_TOKEN]/session?[REDACTED_QUERY]");
+    expect(JSON.stringify(record)).not.toContain("raw-share-token");
+    expect(JSON.stringify(record)).not.toContain("raw-recipient-token");
+  });
 });

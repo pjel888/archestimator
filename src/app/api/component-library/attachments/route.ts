@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { requireCurrentUserContext, type CurrentUserContext } from "@/lib/auth/session";
 import { isWorkspaceEditorInD1 } from "@/lib/authz/d1-access";
 import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
+import { logAppError } from "@/lib/observability/logger";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import { reserveUploadAdmission } from "@/lib/uploads/admission-control";
 import { createRuntimeUploadStorageProvider } from "@/lib/uploads/runtime-storage-provider";
@@ -193,7 +194,13 @@ async function canManageLibrary(db: D1DatabaseLike, workspaceId: string, current
   try {
     return await isWorkspaceEditorInD1(db, workspaceId, currentUser);
   } catch (error) {
-    console.error("Component attachment D1 authorization failed", error);
+    logAppError(error, {
+      event: "component_attachment_authorization_error",
+      action: "authorize_component_attachment_management",
+      context: {
+        route: "/api/component-library/attachments",
+      },
+    });
     return false;
   }
 }
@@ -239,7 +246,13 @@ async function readAttachmentDownloadRecord(
       [attachmentId, workspaceId],
     );
   } catch (error) {
-    console.error("Component attachment lookup failed", error);
+    logAppError(error, {
+      event: "component_attachment_lookup_error",
+      action: "read_component_attachment_download_record",
+      context: {
+        route: "/api/component-library/attachments",
+      },
+    });
     return { attachment: null, lookupFailed: true };
   }
 
@@ -270,7 +283,13 @@ async function readCleanUploadAsset(db: D1DatabaseLike, attachment: AttachmentDo
       [attachment.workspace_id, COMPONENT_ATTACHMENT_BUCKET, attachment.storage_path],
     );
   } catch (error) {
-    console.error("Component attachment upload asset lookup failed", error);
+    logAppError(error, {
+      event: "component_attachment_upload_asset_lookup_error",
+      action: "read_component_attachment_upload_asset",
+      context: {
+        route: "/api/component-library/attachments",
+      },
+    });
     return { uploadAsset: null, lookupFailed: true };
   }
 
@@ -337,7 +356,13 @@ async function recordAttachmentDownloadIssued(
       )
       .run();
   } catch (error) {
-    console.error("Component attachment download audit failed", error);
+    logAppError(error, {
+      event: "component_attachment_download_audit_error",
+      action: "record_component_attachment_download_issued",
+      context: {
+        route: "/api/component-library/attachments",
+      },
+    });
     return false;
   }
   return true;
@@ -485,7 +510,15 @@ export async function POST(request: Request) {
         sizeBytes: file.size,
       });
     } catch (error) {
-      console.error("Component attachment upload failed", error);
+      logAppError(error, {
+        event: "component_attachment_upload_error",
+        action: "upload_component_attachment",
+        context: {
+          route: "/api/component-library/attachments",
+          content_type: magicMime,
+          size_bytes: file.size,
+        },
+      });
       if (uploadedPath) {
         const storageProvider = await createRuntimeUploadStorageProvider().catch(() => null);
         await storageProvider?.removeObjects(COMPONENT_ATTACHMENT_BUCKET, [uploadedPath]).catch(() => undefined);
@@ -513,7 +546,14 @@ export async function DELETE(request: Request) {
   try {
     attachmentRows = await readAttachmentRowsForDelete(metadataDb, workspace.id, paths);
   } catch (error) {
-    console.error("Component attachment cleanup review lookup failed", error);
+    logAppError(error, {
+      event: "component_attachment_cleanup_review_lookup_error",
+      action: "read_component_attachment_rows_for_delete",
+      context: {
+        route: "/api/component-library/attachments",
+        requested_path_count: paths.length,
+      },
+    });
     return jsonError("Could not verify attachment review state.", 500);
   }
 

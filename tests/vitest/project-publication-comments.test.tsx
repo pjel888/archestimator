@@ -961,28 +961,36 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
         const req = makeRequest({ body: "log test" }, { cookie: validSessionCookie(), "x-archestimator-csrf": "csrf", "cf-connecting-ip": "203.0.113.50" });
         await POST(req, params());
 
-        // After impl: at least one log with required fields
+        // Shared app logger emits JSON records; the route diagnostic keeps the legacy
+        // low-cardinality fields under context without calling console.error directly.
         const logged = consoleSpy.mock.calls.find((call) => {
           const [entry] = call;
+          const record = typeof entry === "string" ? JSON.parse(entry) as Record<string, unknown> : entry;
+          const context = record && typeof record === "object" && "context" in record
+            ? (record.context as Record<string, unknown>)
+            : null;
           return Boolean(
-            entry &&
-              typeof entry === "object" &&
-              "level" in entry &&
-              "route" in entry &&
-              "errorCode" in entry &&
-              "ipHash" in entry,
+            record &&
+              typeof record === "object" &&
+              record.event === "shared_link_comment_route_event" &&
+              context &&
+              "route" in context &&
+              "error_code" in context &&
+              "ip_hash" in context,
           );
         });
         expect(logged).toBeTruthy();
-        const entry = logged?.[0] as {
+        const record = JSON.parse(String(logged?.[0])) as {
           level: string;
-          route: string;
-          ipHash: string;
+          context: {
+            route: string;
+            ip_hash: string;
+          };
         };
-        expect(entry.level).toMatch(/error|warn/);
-        expect(entry.route).toMatch(/comment|decision|resend/);
-        expect(entry.ipHash).toBeTruthy();
-        expect(entry.ipHash).not.toMatch(/203\.0\.113/); // hashed, no raw IP
+        expect(record.level).toMatch(/error|warn/);
+        expect(record.context.route).toMatch(/comment|decision|resend/);
+        expect(record.context.ip_hash).toBeTruthy();
+        expect(record.context.ip_hash).not.toMatch(/203\.0\.113/); // hashed, no raw IP
 
         consoleSpy.mockRestore();
       });

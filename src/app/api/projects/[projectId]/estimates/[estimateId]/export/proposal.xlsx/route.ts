@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { buildProposalExportModel, defaultProposalExportSettings } from "@/lib/proposal-export/build-proposal-export-model";
 import { buildUniqueWorksheetNames } from "@/lib/proposal-export/worksheet-name";
 import { getCurrentUserContext } from "@/lib/auth/session";
-import { logAppError } from "@/lib/observability/logger";
+import { emitLogRecord, logAppError } from "@/lib/observability/logger";
 import { checkProposalExportRateLimit } from "@/lib/publication/public-repository";
 import { getEstimateTabs, getEstimateTabTree, getEstimateTreesForTabs, getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
 import type { EstimateSheetAdjustment, EstimateTabSummary, EstimateTreeNode } from "@/lib/estimates/types";
@@ -196,9 +196,21 @@ function logProposalExport(entry: {
   outcome: "success" | "error";
   message?: string;
 }) {
-  const payload = { level: entry.outcome === "error" ? "error" : "info", route: "proposal_export", ts: new Date().toISOString(), ...entry };
-  if (entry.outcome === "error") console.error(payload);
-  else console.info(payload);
+  const level = entry.outcome === "error" ? "error" : "info";
+  emitLogRecord({
+    level,
+    event: "proposal_export_route_event",
+    message: entry.message ?? (entry.outcome === "error" ? "Proposal export failed." : "Proposal export completed."),
+    action: "export_proposal_workbook",
+    context: {
+      route: "/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx",
+      estimate_id: entry.estimateId,
+      tab_count: entry.tabCount,
+      row_count: entry.rowCount,
+      duration_ms: entry.durationMs,
+      outcome: entry.outcome,
+    },
+  });
 }
 
 function countTree(nodes: EstimateTreeNode[]) {

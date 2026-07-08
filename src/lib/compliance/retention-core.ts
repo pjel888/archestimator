@@ -1,3 +1,5 @@
+import { emitLogRecord } from "@/lib/observability/logger";
+
 export type RetentionD1Value = string | number | boolean | null | ArrayBuffer;
 
 export type RetentionD1Result<T = Record<string, unknown>> = {
@@ -39,7 +41,9 @@ export type RetentionClassName =
   | "logs_worker_observability"
   | "logs_email_delivery"
   | "uploads_orphaned"
-  | "sessions_expired";
+  | "sessions_expired"
+  | "operational_incidents"
+  | "operational_incident_events";
 
 export type RetentionRule = {
   className: RetentionClassName;
@@ -247,10 +251,15 @@ export async function runRetentionPassInD1(
         notes: null,
       });
     } catch (error) {
-      console.error({
-        retention_pass_failed: true,
-        class_name: rule.className,
-        error_name: error instanceof Error ? error.name : "unknown",
+      emitLogRecord({
+        level: "error",
+        event: "retention_pass_failed",
+        message: "Retention rule pass failed",
+        context: {
+          class_name: rule.className,
+          action: rule.action,
+          error_name: error instanceof Error ? error.name : "unknown",
+        },
       });
       results.push({
         className: rule.className,

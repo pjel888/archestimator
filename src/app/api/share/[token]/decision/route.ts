@@ -17,7 +17,7 @@ import {
   hashPublicTelemetryValue,
 } from "@/lib/publication/public-repository";
 import { sanitizeSharedLinkRecipientText } from "@/lib/share/sanitize-recipient-text";
-import { logAppError } from "@/lib/observability/logger";
+import { emitLogRecord, logAppError } from "@/lib/observability/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +35,18 @@ function getIpHash(request: Request): string {
 }
 
 function logStructured(level: "error" | "warn", route: string, errorCode: string, ipHash: string, extra?: Record<string, unknown>) {
-  console.error({ level, route, errorCode, ipHash, ts: new Date().toISOString(), ...extra });
+  emitLogRecord({
+    level,
+    event: "shared_link_decision_route_event",
+    message: "Shared-link decision route diagnostic.",
+    action: "handle_shared_link_decision",
+    context: {
+      route,
+      error_code: errorCode,
+      ip_hash: ipHash,
+      ...extra,
+    },
+  });
 }
 
 const allowedDecisions = ["accepted", "declined", "revision_requested"] as const;
@@ -73,10 +84,15 @@ function scheduleOwnerDigest(publicationId: string, token: string, kind: "commen
       const { maybeTriggerSharedLinkActivityDigest } = await import("@/lib/publication/actions");
       await maybeTriggerSharedLinkActivityDigest(publicationId, token, kind);
     } catch (error) {
-      console.error("[share] deferred owner digest failed", {
-        error: readErrorMessage(error, "digest-send-failed"),
-        kind,
-        publicationId,
+      logAppError(error, {
+        event: "shared_link_owner_digest_error",
+        action: "maybe_trigger_shared_link_activity_digest",
+        context: {
+          route: "/api/share/[token]/decision",
+          route_handler: "POST /api/share/[token]/decision",
+          digest_kind: kind,
+          publication_id: publicationId,
+        },
       });
     }
   };
@@ -359,7 +375,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
         },
       });
     }
-    logStructured("error", "/api/share/[token]/decision", "SUBMIT_FAILED", ipHash, { status, msg: msg.slice(0, 120) });
+    logStructured("error", "/api/share/[token]/decision", "SUBMIT_FAILED", ipHash, { status });
     // SEC-15 (AC-SEC-15): never echo a raw RPC/DB error to the public client. The detailed
     // message is logged server-side (above). Only exact app-authored failure strings can affect
     // public status; provider/RPC text must never be classified with broad word regexes.

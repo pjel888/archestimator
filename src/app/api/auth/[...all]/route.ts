@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createCloudflareBetterAuthNextHandlersForRequest } from "@/lib/auth/cloudflare-better-auth-runtime";
+import { logAppError } from "@/lib/observability/logger";
 import { normalizeBetterAuthOAuthStateCookieHeader } from "@/lib/auth/set-cookie-forwarding";
 
 export const runtime = "nodejs";
@@ -49,7 +50,14 @@ async function handleBetterAuthRoute(request: Request, method: BetterAuthMethod)
     if (handlers instanceof Response) return handlers;
     return withAuthNoStore(await handlers[method](routedRequest));
   } catch (error) {
-    console.error("Cloudflare Better Auth route failed", error);
+    logAppError(error, {
+      event: "better_auth_route_error",
+      action: "handle_better_auth_route",
+      context: {
+        route: "/api/auth/[...all]",
+        route_handler: `${method} /api/auth/[...all]`,
+      },
+    });
     return jsonError("Better Auth route failed.", 500);
   }
 }

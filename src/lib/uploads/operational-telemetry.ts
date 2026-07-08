@@ -1,6 +1,7 @@
 import type { UploadCleanupJobResult } from "./cleanup-job";
 import type { UploadSurface } from "./policy";
 import type { UploadScanJobResult, UploadScanResultStatus } from "./scan-job";
+import { emitLogRecord, logAppError, type LogRecord } from "@/lib/observability/logger";
 
 export type UploadOperationalTelemetryEventName =
   | "upload_cleanup_run_completed"
@@ -83,6 +84,7 @@ export type UploadOperationalAlertDeliveryResult =
   | { delivered: false; skipped: false; statusCode: number; reason: "webhook_rejected" };
 
 type UploadOperationalAlertFetch = (url: string, init: RequestInit) => Promise<Response>;
+type UploadOperationalAlertDeliveryLogRecord = Omit<LogRecord, "timestamp">;
 
 function readAlertEnv(name: string) {
   return process.env[name]?.trim() || "";
@@ -182,6 +184,54 @@ export async function sendUploadOperationalAlert(
   return { delivered: true, statusCode: response.status };
 }
 
+export function buildUploadOperationalAlertDeliveryLogRecord(
+  record: UploadOperationalTelemetryRecord,
+  result: UploadOperationalAlertDeliveryResult,
+): UploadOperationalAlertDeliveryLogRecord | null {
+  if (result.delivered) {
+    return {
+      level: "info",
+      event: "operational_alert_sent",
+      message: "Upload operational alert delivered.",
+      context: {
+        alert_source: "upload-operations",
+        telemetry_event: record.event,
+        telemetry_source: record.source,
+        severity: record.severity,
+        status: record.status,
+        status_code: result.statusCode,
+      },
+    };
+  }
+
+  if (result.skipped && (result.reason === "disabled" || result.reason === "not_alert")) {
+    return null;
+  }
+
+  return {
+    level: result.skipped ? "warn" : "error",
+    event: "operational_alert_failed",
+    message: "Upload operational alert delivery failed.",
+    context: {
+      alert_source: "upload-operations",
+      telemetry_event: record.event,
+      telemetry_source: record.source,
+      severity: record.severity,
+      status: record.status,
+      reason: result.reason,
+      status_code: "statusCode" in result ? result.statusCode : null,
+    },
+  };
+}
+
+function logUploadOperationalAlertDelivery(
+  record: UploadOperationalTelemetryRecord,
+  result: UploadOperationalAlertDeliveryResult,
+) {
+  const logRecord = buildUploadOperationalAlertDeliveryLogRecord(record, result);
+  if (logRecord) emitLogRecord(logRecord);
+}
+
 export function setUploadOperationalTelemetrySink(next: UploadOperationalTelemetrySink | null) {
   sink = next;
 }
@@ -189,17 +239,38 @@ export function setUploadOperationalTelemetrySink(next: UploadOperationalTelemet
 function reportUploadOperationalTelemetry(record: UploadOperationalTelemetryRecord) {
   if (sink) {
     try {
-      void Promise.resolve(sink(record)).catch(() => {
-        // Telemetry must not change upload behavior.
+      void Promise.resolve(sink(record)).catch((error) => {
+        logAppError(error, {
+          event: "operational_telemetry_sink_error",
+          context: {
+            telemetry_source: record.source,
+            telemetry_event: record.event,
+          },
+        });
       });
-    } catch {
-      // Telemetry must not change upload behavior.
+    } catch (error) {
+      logAppError(error, {
+        event: "operational_telemetry_sink_error",
+        context: {
+          telemetry_source: record.source,
+          telemetry_event: record.event,
+        },
+      });
     }
   }
 
-  void sendUploadOperationalAlert(record).catch(() => {
-    // Alert delivery must not change upload behavior.
-  });
+  void sendUploadOperationalAlert(record)
+    .then((result) => logUploadOperationalAlertDelivery(record, result))
+    .catch((error) => {
+      logAppError(error, {
+        event: "operational_alert_failed",
+        context: {
+          alert_source: "upload-operations",
+          telemetry_source: record.source,
+          telemetry_event: record.event,
+        },
+      });
+    });
 }
 
 function highestCleanupSeverity(result: UploadCleanupJobResult): "info" | "warning" | "critical" {

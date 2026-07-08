@@ -1,21 +1,27 @@
 const QUANTITY_UNIT_UNCHANGED = new Set([
   "cm",
   "cu m",
+  "cu ft",
+  "cu in",
+  "cu yd",
   "cu.m",
   "cu.m.",
   "cum",
   "ea",
+  "fl oz",
   "ft",
   "ft2",
   "ft3",
   "ft²",
   "ft³",
   "g",
+  "gal",
   "hr",
   "hrs",
   "in",
   "kg",
   "km",
+  "l",
   "lb",
   "lbs",
   "lf",
@@ -26,18 +32,28 @@ const QUANTITY_UNIT_UNCHANGED = new Set([
   "m²",
   "m³",
   "mm",
+  "ml",
+  "oz",
   "pc",
   "pcs",
+  "pt",
+  "qt",
   "rm",
   "sf",
+  "sq cm",
   "sq ft",
+  "sq in",
   "sq m",
+  "sq yd",
   "sq.ft",
   "sq.ft.",
   "sq.m",
   "sq.m.",
   "sqft",
   "sqm",
+  "t",
+  "ton",
+  "tonne",
   "yd",
 ]);
 
@@ -71,6 +87,7 @@ export function formatQuantityUnitLabel(quantity: number, unit: string) {
   if (Math.abs(quantity) === 1) return trimmedUnit;
 
   const lowerUnit = trimmedUnit.toLowerCase();
+  if (lowerUnit.includes("/")) return trimmedUnit;
   if (QUANTITY_UNIT_UNCHANGED.has(lowerUnit)) return trimmedUnit;
 
   return trimmedUnit.replace(/[A-Za-z]+$/, (word) => pluralizeQuantityUnitWord(word));

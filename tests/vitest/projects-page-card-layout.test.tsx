@@ -166,7 +166,10 @@ describe("Projects page card layout", () => {
     expect(titleBlock).not.toHaveClass("p-2");
     expect(titleBlock).not.toHaveClass("pt-2");
     expect(titleBlock).not.toHaveClass("pr-2");
-    expect(within(titleBlock as HTMLElement).getByText("Quezon City, Metro Manila, Philippines")).toBeInTheDocument();
+    const locationText = within(titleBlock as HTMLElement).getByText("Quezon City, Metro Manila, Philippines");
+    expect(locationText).toHaveClass("line-clamp-2");
+    expect(locationText).not.toHaveClass("truncate");
+    expect(titleBlock?.querySelector("[data-project-card-status-slot]")).toBeNull();
     expect(within(titleBlock as HTMLElement).queryByRole("button", { name: "Open actions for Lewis Residence" })).toBeNull();
 
     const thumbnail = card.querySelector("[data-project-card-thumbnail]");
@@ -210,9 +213,18 @@ describe("Projects page card layout", () => {
     expect(metaStack).not.toBeNull();
     expect(metaStack).not.toHaveClass("pb-3");
     expect(metaStack).not.toHaveClass("pb-2");
+    const statusRow = card.querySelector("[data-project-card-status-row]");
+    expect(statusRow).not.toBeNull();
+    expect(statusRow).toHaveClass("justify-end");
+    expect(within(statusRow as HTMLElement).getByText("Ongoing")).toBeInTheDocument();
 
     const dateBand = card.querySelector("[data-project-card-date-band]");
     expect(dateBand).not.toBeNull();
+    expect(
+      Array.from((metaStack as HTMLElement).children).indexOf(statusRow as Element),
+    ).toBeLessThan(
+      Array.from((metaStack as HTMLElement).children).indexOf(dateBand as Element),
+    );
     expect(dateBand).toHaveClass("grid");
     expect(dateBand).toHaveClass("grid-cols-2");
     expect(dateBand).toHaveClass("gap-1");

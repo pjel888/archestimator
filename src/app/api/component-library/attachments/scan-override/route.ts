@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
+import { logAppError } from "@/lib/observability/logger";
 import {
   approveUploadScanOverride,
   canApproveUploadScanOverride,
@@ -31,7 +32,14 @@ export async function POST(request: Request) {
 
     return NextResponse.json(approval);
   } catch (error) {
-    console.error("Upload scan override approval failed", error);
+    logAppError(error, {
+      event: "upload_scan_override_approval_error",
+      action: "approve_upload_scan_override",
+      context: {
+        route: "/api/component-library/attachments/scan-override",
+        route_handler: "POST /api/component-library/attachments/scan-override",
+      },
+    });
     return jsonError("Scan override could not be approved.", 409);
   }
 }

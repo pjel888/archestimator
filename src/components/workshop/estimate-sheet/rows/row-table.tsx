@@ -57,10 +57,10 @@ import {
 
 const ESTIMATE_PRIMARY_NUMERIC_CLASS = "!text-[10px] font-medium leading-3 tabular-nums text-ink";
 const ESTIMATE_PRIMARY_NUMERIC_INPUT_CLASS =
-  "h-5 border-0 bg-transparent p-0 !text-[10px] font-medium leading-3 tabular-nums text-ink shadow-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+  "h-5 border-0 !bg-transparent p-0 !text-[10px] font-medium leading-3 tabular-nums text-ink shadow-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 const ESTIMATE_LOWER_RIGHT_META_CLASS = "absolute top-18 right-1 max-w-[calc(100%-8px)] truncate text-right !text-[10px] font-medium leading-3 tabular-nums text-tertiary";
 const ESTIMATE_QUANTITY_BREAKDOWN_INPUT_CLASS =
-  "h-[10px] w-7 border-0 bg-transparent p-0 !text-[8px] font-medium leading-[10px] tabular-nums text-ink shadow-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+  "h-[10px] w-7 border-0 !bg-transparent p-0 !text-[8px] font-medium leading-[10px] tabular-nums text-ink shadow-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 
 export type EstimateRowItemsTableProps = {
   canEditEstimate?: boolean;
@@ -391,8 +391,10 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   const quantityHasContingency = computedItem.quantityContingencyAmount !== null && computedItem.quantityContingencyAmount !== 0;
   const quantityBreakdownVisible = quantityHasContingency && (quantityCellHovered || quantityBreakdownFocused);
   const quantityDisplayValue = quantityInputDraft ?? (quantityInputFocused ? computedItem.editableQuantityInput : formatCompactNumber(computedItem.quantity));
-  const quantityUnitLabel = formatQuantityUnitLabel(computedItem.quantity, computedItem.unit);
-  const rowContingencyQuantityUnitLabel = formatQuantityUnitLabel(rowContingencyQuantity, computedItem.unit);
+  const activeQuantityUnit = isInlineEditableComponentRow ? computedItem.editableUnit : computedItem.unit;
+  const quantityDisplayUnit = activeQuantityUnit.trim() || computedItem.unit.trim() || "unit";
+  const quantityUnitLabel = formatQuantityUnitLabel(computedItem.quantity, quantityDisplayUnit);
+  const rowContingencyQuantityUnitLabel = formatQuantityUnitLabel(rowContingencyQuantity, quantityDisplayUnit);
   const [rowDropEdge, setRowDropEdge] = useState<"before" | "after" | null>(null);
   const rowMutationPending = rowMutationStatus?.phase === "pending";
 
@@ -720,7 +722,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
           data-estimate-cell-index={0}
           aria-label={`${computedItemLabel} quantity`}
           align="center"
-          className={ESTIMATE_PRIMARY_NUMERIC_CLASS}
+          className={ESTIMATE_PRIMARY_NUMERIC_INPUT_CLASS}
         />
         {quantityBreakdownVisible ? (
           <dl

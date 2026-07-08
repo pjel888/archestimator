@@ -1196,7 +1196,6 @@ export function EstimateSheetContent({
   const committedEstimateColumnWidths = useEstimateColumnWidthsStore((state) =>
     estimateId ? state.widthsByEstimateId[estimateId] ?? state.lastUsedWidths : EMPTY_ESTIMATE_COLUMN_WIDTHS,
   );
-  committedEstimateColumnWidthsRef.current = committedEstimateColumnWidths;
   const hydrateEstimateColumnWidths = useEstimateColumnWidthsStore((state) => state.hydrateEstimateColumnWidths);
   const commitEstimateColumnWidths = useEstimateColumnWidthsStore((state) => state.commitEstimateColumnWidths);
   const resetEstimateColumnWidths = useEstimateColumnWidthsStore((state) => state.resetEstimateColumnWidths);
@@ -1226,8 +1225,11 @@ export function EstimateSheetContent({
   }, [estimateColumnResizeEnabled, estimateId, hydrateEstimateColumnWidths]);
 
   useEffect(() => {
+    committedEstimateColumnWidthsRef.current = committedEstimateColumnWidths;
+  }, [committedEstimateColumnWidths]);
+
+  useEffect(() => {
     if (!estimateColumnResizeEnabled || !estimateId || process.env.NODE_ENV === "test") return undefined;
-    setAccountColumnWidthsLoadedEstimateId(null);
     accountColumnWidthsSnapshotRef.current = null;
     accountColumnWidthsDirtyRef.current = false;
     let cancelled = false;
@@ -1262,6 +1264,7 @@ export function EstimateSheetContent({
   useEffect(() => {
     if (!estimateColumnResizeEnabled || !estimateId || process.env.NODE_ENV === "test") return undefined;
     if (accountColumnWidthsLoadedEstimateId !== estimateId) return undefined;
+    if (accountColumnWidthsSnapshotRef.current === null) return undefined;
     const snapshot = JSON.stringify(committedEstimateColumnWidths);
     if (accountColumnWidthsSnapshotRef.current === snapshot) return undefined;
     accountColumnWidthsSnapshotRef.current = snapshot;

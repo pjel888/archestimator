@@ -153,17 +153,17 @@
   --sidebar-glass-wash:
     linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.22) 0%,
-      rgba(255, 255, 255, 0.08) 34%,
+      rgba(255, 255, 255, 0.4) 0%,
+      rgba(255, 255, 255, 0.22) 34%,
       transparent 64%
     ),
     linear-gradient(
       180deg,
-      rgba(248, 250, 251, 0.46) 0%,
-      rgba(238, 240, 241, 0.36) 54%,
-      rgba(221, 224, 226, 0.3) 100%
+      rgba(250, 252, 252, 0.96) 0%,
+      rgba(242, 245, 246, 0.93) 54%,
+      rgba(231, 235, 237, 0.9) 100%
     );
-  --sidebar-glass-wash-fallback: #edf0f1;
+  --sidebar-glass-wash-fallback: #fafbfb;
   --workshop-shell-chrome-bg: rgba(248, 250, 252, 0.48);
   --workshop-shell-chrome-bg-fallback: #e6e7e7;
   --glass-shadow-hover:
@@ -603,8 +603,8 @@ body:has(.dashboard-transparent-shell) {
    expand/collapse free from full-height backdrop rasterization. Children fake
    glass with plain translucent fills only. */
 .sidebar-glass {
-  /* Translucent dashboard-matched rail: keeps the same quiet wash, but with an
-     alpha base so the page below softly shows through the fixed glass wash. */
+  /* Opaque-leaning dashboard-matched rail: keeps the quiet frosted wash, but
+     leaves just enough alpha for the page below to softly tint the fixed panel. */
   background: var(--sidebar-glass-wash);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;

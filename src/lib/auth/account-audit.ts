@@ -10,6 +10,7 @@ import {
   recordAccountSecurityEventInCloudflareD1,
   type AccountSecurityAuditRow,
 } from "@/lib/auth/account-audit-d1-store";
+import { emitLogRecord } from "@/lib/observability/logger";
 
 type AccountSecurityAuditInput = {
   eventType: AccountSecurityEventType | (string & {});
@@ -81,18 +82,16 @@ export async function recordAccountSecurityEvent(input: AccountSecurityAuditInpu
   try {
     await recordAccountSecurityEventInCloudflareD1(buildAccountSecurityAuditRow(input));
   } catch (error) {
-    // RISK-016 (Security & Compliance Program): the historical implementation
-    // swallowed every failure silently. That masked DB/provider outages and
-    // disabled our ability to detect audit-pipeline regressions. We now emit a
-    // single opaque structured log line. The underlying error message is never
-    // logged because account-security audit writes happen inside auth flows and
-    // can carry provider/DB detail that must not leak into user-adjacent logs.
-    // ponytail: structured console.error — no new dependency on a logger.
-    console.error({
-      audit_write_failed: true,
-      event_type: input.eventType,
-      // Stable, redacted fields only. No error.message, no stack, no raw error.
-      error_name: error instanceof Error ? error.name : "unknown",
+    // Keep this opaque: auth audit failures can carry provider/DB detail.
+    emitLogRecord({
+      level: "error",
+      event: "account_security_audit_write_failed",
+      message: "Account security audit write failed",
+      context: {
+        event_type: input.eventType,
+        // Stable, redacted fields only. No error.message, no stack, no raw error.
+        error_name: error instanceof Error ? error.name : "unknown",
+      },
     });
   }
 }

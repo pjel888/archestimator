@@ -41,6 +41,15 @@ import { Button } from "@/components/ui/button";
 import type { ActionMenuGroup } from "@/components/ui/action-menu";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import {
+  ShadcnDropdownMenu,
+  ShadcnDropdownMenuContent,
+  ShadcnDropdownMenuItem,
+  ShadcnDropdownMenuSub,
+  ShadcnDropdownMenuSubContent,
+  ShadcnDropdownMenuSubTrigger,
+  ShadcnDropdownMenuTrigger,
+} from "@/components/ui/shadcn-dropdown-menu";
+import {
   DropdownSelect,
   type DropdownSelectOption,
 } from "@/components/ui/dropdown-select";
@@ -293,7 +302,6 @@ const PROJECT_STATUS_TAB_IDS = [
   "all",
   ...PROJECT_STATUS_VALUES,
 ] as const satisfies readonly ProjectStatusTab[];
-const projectStatusCountFormatter = new Intl.NumberFormat("en-US");
 
 function getProjectStatusTabId(tab: ProjectStatusTab) {
   return `${PROJECT_STATUS_TAB_ID_BASE}-tab-${tab}`;
@@ -1336,33 +1344,38 @@ const ProjectCardRow = memo(function ProjectCardRow({
   const projectActionsMenu = useMemo<ReactNode>(() => {
     if (item.accessKind !== "owned") return undefined;
     return (
-      <DropdownMenu
-        align="end"
-        trigger={
+      <ShadcnDropdownMenu>
+        <ShadcnDropdownMenuTrigger asChild>
           <ProjectCardDetailsControl
             className="workshop-project-card-control size-6 border-hairline relative z-20 text-ink"
             disabled={Boolean(setupNavigationDisabled)}
             projectName={item.project.name}
             ariaLabel={`Open actions for ${item.project.name}`}
           />
-        }
-      >
-        <DropdownMenu.Item
-          label="Edit project"
-          onClick={() => onExpand(item.project)}
-        />
-        <DropdownMenu.Group label="Change status">
-          {PROJECT_STATUS_VALUES.map((status) => (
-            <DropdownMenu.Item
-              key={status}
-              label={PROJECT_STATUS_LABELS[status]}
-              selected={projectStatus === status}
-              disabled={statusBusy || projectStatus === status}
-              onClick={() => onChangeProjectStatus(item.project.id, status)}
-            />
-          ))}
-        </DropdownMenu.Group>
-      </DropdownMenu>
+        </ShadcnDropdownMenuTrigger>
+        <ShadcnDropdownMenuContent align="end" className="min-w-36">
+          <ShadcnDropdownMenuItem onSelect={() => onExpand(item.project)}>
+            Edit project
+          </ShadcnDropdownMenuItem>
+          <ShadcnDropdownMenuSub>
+            <ShadcnDropdownMenuSubTrigger disabled={statusBusy}>
+              Change status
+            </ShadcnDropdownMenuSubTrigger>
+            <ShadcnDropdownMenuSubContent className="min-w-32">
+              {PROJECT_STATUS_VALUES.map((status) => (
+                <ShadcnDropdownMenuItem
+                  key={status}
+                  selected={projectStatus === status}
+                  disabled={statusBusy || projectStatus === status}
+                  onSelect={() => onChangeProjectStatus(item.project.id, status)}
+                >
+                  {PROJECT_STATUS_LABELS[status]}
+                </ShadcnDropdownMenuItem>
+              ))}
+            </ShadcnDropdownMenuSubContent>
+          </ShadcnDropdownMenuSub>
+        </ShadcnDropdownMenuContent>
+      </ShadcnDropdownMenu>
     );
   }, [
     item.accessKind,
@@ -1794,26 +1807,13 @@ export function ProjectsPageClient({
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const normalizedSearchQuery = searchQuery.trim();
   const normalizedDeferredSearchQuery = deferredSearchQuery.trim();
-  const projectStatusCounts = useMemo(() => {
-    const counts: Record<ProjectStatusTab, number> = {
-      all: ownedProjectItems.length,
-      ongoing: 0,
-      completed: 0,
-      archived: 0,
-    };
-    for (const item of ownedProjectItems) {
-      counts[normalizeProjectStatus(item.project.status)] += 1;
-    }
-    return counts;
-  }, [ownedProjectItems]);
   const projectStatusTabs = useMemo<TabItem[]>(
     () =>
       PROJECT_STATUS_TAB_IDS.map((id) => ({
         id,
         label: getProjectStatusTabLabel(id),
-        badge: projectStatusCountFormatter.format(projectStatusCounts[id]),
       })),
-    [projectStatusCounts],
+    [],
   );
   const statusFilteredProjectItems = useMemo(
     () =>

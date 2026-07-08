@@ -5,6 +5,7 @@ import {
   resolveProjectPublicationAccessByToken,
   resolveProjectPublicationSnapshotByToken,
 } from "@/lib/publication/public-repository";
+import { logAppError } from "@/lib/observability/logger";
 import { errorResponse } from "@/lib/observability/route-error";
 import { hasPublicationAccessCookie } from "@/lib/publication/security";
 import { sharedLinkUnavailableErrorBody } from "@/lib/publication/share-copy";
@@ -69,7 +70,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
           metadata: {},
         });
       } catch (error) {
-        console.error("[publication] Failed to record public snapshot open event", error);
+        logAppError(error, {
+          event: "shared_link_open_event_record_error",
+          action: "record_project_publication_open_event",
+          context: {
+            route: "/api/share/[token]",
+            route_handler: "GET /api/share/[token]",
+          },
+        });
       }
     });
 

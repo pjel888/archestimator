@@ -1,3 +1,5 @@
+import { emitLogRecord } from "@/lib/observability/logger";
+
 export type SendEmailInput = {
   to: string | string[];
   subject: string;
@@ -160,13 +162,18 @@ export async function sendCloudflareEmail(
     };
   } catch (error) {
     const { message, code } = describeCloudflareEmailError(error);
-    console.error({
+    const errorCode = code ?? "CLOUDFLARE_EMAIL_SEND_ERROR";
+    emitLogRecord({
       level: "error",
-      route: "email/cloudflare-email-client",
-      errorCode: code ?? "CLOUDFLARE_EMAIL_SEND_ERROR",
-      ts: new Date().toISOString(),
-      subject: input.subject.slice(0, 60),
+      event: "cloudflare_email_send_error",
+      message: "Cloudflare Email Service send failed.",
+      action: "send_cloudflare_email",
+      context: {
+        route: "email/cloudflare-email-client",
+        error_code: errorCode,
+        subject_length: input.subject.length,
+      },
     });
-    return { ok: false, error: message, code };
+    return { ok: false, error: message, code: errorCode };
   }
 }

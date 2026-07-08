@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
+import { logAppError } from "@/lib/observability/logger";
 import {
   buildUploadCleanupOperationalSnapshot,
   planUploadStorageCleanup,
@@ -131,7 +132,14 @@ async function handleUploadCleanupJob(request: Request) {
 
     return jsonOk(summarizeUploadCleanupJobResult(result));
   } catch (error) {
-    console.error("Upload cleanup job failed", error);
+    logAppError(error, {
+      event: "upload_cleanup_job_error",
+      action: "run_upload_cleanup_job",
+      context: {
+        route: "/api/internal/upload-cleanup",
+        route_handler: `${request.method} /api/internal/upload-cleanup`,
+      },
+    });
     return jsonError("Upload cleanup job failed.", 500);
   }
 }

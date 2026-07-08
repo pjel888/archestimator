@@ -117,7 +117,9 @@ describe("estimate sheet center atomic mutation contracts", () => {
     expect(rowTable).toContain("function getPercentageInputWidth(value: string)");
     expect(rowTable).toContain("style={{ width: getPercentageInputWidth(editableAdjustmentColumnPercentage) }}");
     expect(rowTable).toContain('import { formatQuantityUnitLabel } from "@/lib/estimates/format-quantity-unit-label";');
-    expect(rowTable).toContain("const quantityUnitLabel = formatQuantityUnitLabel(computedItem.quantity, computedItem.unit);");
+    expect(rowTable).toContain("const activeQuantityUnit = isInlineEditableComponentRow ? computedItem.editableUnit : computedItem.unit;");
+    expect(rowTable).toContain('const quantityDisplayUnit = activeQuantityUnit.trim() || computedItem.unit.trim() || "unit";');
+    expect(rowTable).toContain("const quantityUnitLabel = formatQuantityUnitLabel(computedItem.quantity, quantityDisplayUnit);");
     expect(rowTable).toContain('className="relative grid h-full w-full min-w-0 place-items-center"');
     expect(rowTable).toContain("className={ESTIMATE_LOWER_RIGHT_META_CLASS}>{quantityUnitLabel}</p>");
     expect(rowTable).toContain("rowContingencyQuantity !== 0 ? (");
@@ -131,8 +133,9 @@ describe("estimate sheet center atomic mutation contracts", () => {
     expect(rowTable).not.toContain("w-10 text-right");
     expect(rowTable).not.toContain("flex min-w-0 flex-col items-center justify-center gap-0.5");
     expect(rowCells).toContain("const MATERIAL_UNIT_SLOT_CLASS =");
+    expect(rowCells).toContain("top-[calc(50%+22px)]");
     expect(rowCells).toContain("!text-[10px] font-medium leading-3 text-tertiary");
-    expect(rowCells).toContain('className="!text-[10px] font-medium leading-3 tabular-nums text-ink"');
+    expect(rowCells).toContain("border-0 !bg-transparent p-0 !text-[10px] font-medium leading-3 tabular-nums text-ink");
   });
 
   it("keeps quantity contingency breakdown as corner metadata with a centered total", () => {

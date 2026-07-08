@@ -2,6 +2,7 @@ import "server-only";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d1";
+import { logAppError } from "@/lib/observability/logger";
 import {
   buildUploadRetentionCutoffs,
   DEFAULT_UPLOAD_RETENTION_POLICY,
@@ -369,7 +370,13 @@ export async function readUploadOperationsDashboardSnapshot(
       }),
     };
   } catch (error) {
-    console.error("Upload operations dashboard metrics failed", error);
+    logAppError(error, {
+      event: "upload_operations_dashboard_metrics_error",
+      action: "load_upload_operations_dashboard",
+      context: {
+        route: "/workshop/uploads/operations",
+      },
+    });
     return {
       authorized: true,
       error: "Upload operations dashboard metrics could not be loaded.",

@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  buildUploadOperationalAlertDeliveryLogRecord,
   buildUploadOperationalAlertPayload,
+  reportUploadAdmissionRejected,
   sendUploadOperationalAlert,
   shouldSendUploadOperationalAlert,
   type UploadOperationalTelemetryRecord,
@@ -22,6 +24,7 @@ const warningRecord: UploadOperationalTelemetryRecord = {
 
 afterEach(() => {
   vi.unstubAllEnvs();
+  vi.restoreAllMocks();
 });
 
 describe("upload operational alert delivery", () => {
@@ -139,5 +142,71 @@ describe("upload operational alert delivery", () => {
       backpressureReason: "active_workspace",
     });
     expect(JSON.stringify(body)).not.toContain("secret-token");
+  });
+
+  it("builds structured self-health logs for alert delivery outcomes", () => {
+    expect(buildUploadOperationalAlertDeliveryLogRecord(warningRecord, {
+      delivered: false,
+      skipped: true,
+      reason: "disabled",
+    })).toBeNull();
+
+    expect(buildUploadOperationalAlertDeliveryLogRecord(warningRecord, {
+      delivered: false,
+      skipped: true,
+      reason: "missing_token",
+    })).toMatchObject({
+      level: "warn",
+      event: "operational_alert_failed",
+      context: {
+        alert_source: "upload-operations",
+        reason: "missing_token",
+      },
+    });
+
+    expect(buildUploadOperationalAlertDeliveryLogRecord(warningRecord, {
+      delivered: false,
+      skipped: false,
+      statusCode: 503,
+      reason: "webhook_rejected",
+    })).toMatchObject({
+      level: "error",
+      event: "operational_alert_failed",
+      context: {
+        status_code: 503,
+      },
+    });
+
+    expect(buildUploadOperationalAlertDeliveryLogRecord(warningRecord, {
+      delivered: true,
+      statusCode: 202,
+    })).toMatchObject({
+      level: "info",
+      event: "operational_alert_sent",
+      context: {
+        status_code: 202,
+      },
+    });
+  });
+
+  it("logs failed fire-and-forget alert delivery without changing upload behavior", async () => {
+    vi.stubEnv("ARCHESTIMATOR_DEV_LOG_DISABLED", "1");
+    vi.stubEnv("UPLOAD_OPERATIONS_ALERTS_ENABLED", "1");
+    vi.stubEnv("UPLOAD_OPERATIONS_ALERT_WEBHOOK_URL", "https://alerts.example.test/upload");
+    vi.stubEnv("UPLOAD_OPERATIONS_ALERT_WEBHOOK_TOKEN", "secret-token");
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 503 })));
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    reportUploadAdmissionRejected({
+      surface: "component-attachment",
+      workspaceId: "workspace-1",
+      quotaClass: "active_workspace",
+      retryAfterSeconds: 10,
+    });
+
+    await vi.waitFor(() => {
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("\"event\":\"operational_alert_failed\""));
+    });
+    expect(errorSpy.mock.calls.map(([line]) => String(line)).join("\n")).not.toContain("secret-token");
   });
 });

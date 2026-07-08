@@ -782,7 +782,21 @@ describe("Project group toolbar and flag actions", () => {
         name: "Group actions for Pipeline",
       }),
     );
-    const neutralColorItem = screen.getByRole("menuitem", {
+    expect(
+      screen.getAllByRole("menuitem").map((item) =>
+        item.textContent?.replace(/\s+/g, " ").trim(),
+      ),
+    ).toEqual(["Color", "Delete group"]);
+    const colorSubmenuTrigger = screen.getByRole("menuitem", {
+      name: "Color",
+    });
+    expect(colorSubmenuTrigger).toHaveAttribute("aria-haspopup", "menu");
+    expect(
+      screen.queryByRole("menuitem", { name: "Neutral grey" }),
+    ).not.toBeInTheDocument();
+    colorSubmenuTrigger.focus();
+    fireEvent.keyDown(colorSubmenuTrigger, { key: "ArrowRight" });
+    const neutralColorItem = await screen.findByRole("menuitem", {
       name: "Neutral grey",
     });
     const neutralSwatch = neutralColorItem.querySelector(
@@ -800,10 +814,12 @@ describe("Project group toolbar and flag actions", () => {
       hexToRgb(resolveAccent("teal").ruleColor),
     );
     await user.click(neutralColorItem);
-    expect(mocks.recolorProjectGroup).toHaveBeenCalledWith({
-      groupId: "g1",
-      accentId: null,
-    });
+    await waitFor(() =>
+      expect(mocks.recolorProjectGroup).toHaveBeenCalledWith({
+        groupId: "g1",
+        accentId: null,
+      }),
+    );
 
     await user.click(
       within(pipeline).getByRole("button", {
@@ -844,12 +860,17 @@ describe("Project group toolbar and flag actions", () => {
         name: "Group actions for Pipeline",
       }),
     );
-    await user.click(screen.getByRole("menuitem", { name: "Slate" }));
+    const colorSubmenuTrigger = screen.getByRole("menuitem", { name: "Color" });
+    colorSubmenuTrigger.focus();
+    fireEvent.keyDown(colorSubmenuTrigger, { key: "ArrowRight" });
+    await user.click(await screen.findByRole("menuitem", { name: "Slate" }));
 
-    expect(mocks.recolorProjectGroup).toHaveBeenCalledWith({
-      groupId: "g1",
-      accentId: "slate",
-    });
+    await waitFor(() =>
+      expect(mocks.recolorProjectGroup).toHaveBeenCalledWith({
+        groupId: "g1",
+        accentId: "slate",
+      }),
+    );
     expect(
       (
         screen

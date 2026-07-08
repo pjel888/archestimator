@@ -7,6 +7,7 @@ import {
 } from "@/lib/compliance/privacy-request-repository";
 import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d1";
 import { hashAccountSecurityValue } from "@/lib/auth/account-audit";
+import { logAppError } from "@/lib/observability/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -390,10 +391,14 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     // Opaque — never leak DB/provider details to anonymous intake callers.
-    console.error({
-      privacy_request_intake_failed: true,
-      request_kind: parsed.requestKind,
-      error_name: error instanceof Error ? error.name : "unknown",
+    logAppError(error, {
+      event: "privacy_request_intake_error",
+      action: "create_privacy_request",
+      context: {
+        route: "/api/compliance/privacy-requests",
+        route_handler: "POST /api/compliance/privacy-requests",
+        request_kind: parsed.requestKind,
+      },
     });
     return jsonError("Could not record privacy request. Please try again or email support.", 500);
   }

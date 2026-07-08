@@ -3,6 +3,7 @@
 import {
   CaretDown,
   CaretRight,
+  Check,
   DotsSixVertical,
   DotsThreeVertical,
 } from "@phosphor-icons/react/dist/ssr";
@@ -15,13 +16,29 @@ import {
   type ReactNode,
 } from "react";
 
-import {
-  ContextActionMenuContent,
-  type ActionMenuGroup,
-} from "@/components/ui/action-menu";
+import { type ActionMenuItem, type ActionMenuGroup } from "@/components/ui/action-menu";
 import { Button } from "@/components/ui/button";
-import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
-import { DropdownMenu } from "@/components/ui/dropdown-menu";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import {
+  ShadcnDropdownMenu,
+  ShadcnDropdownMenuContent,
+  ShadcnDropdownMenuItem,
+  ShadcnDropdownMenuSeparator,
+  ShadcnDropdownMenuSub,
+  ShadcnDropdownMenuSubContent,
+  ShadcnDropdownMenuSubTrigger,
+  ShadcnDropdownMenuTrigger,
+} from "@/components/ui/shadcn-dropdown-menu";
 import { cn } from "@/lib/ui/cn";
 import { getGroupFlagColors } from "@/lib/workshop/group-accent";
 
@@ -159,7 +176,7 @@ export function ProjectGroupFlag({
   const groupFlagLabel = isGroupMode ? (
     <div
       className={cn(
-        "flex h-8 items-center gap-1.5 border-x border-b p-1 text-[9px] font-medium leading-3 tracking-normal",
+        "flex h-8 items-center gap-1.5 rounded-b-xs border-x border-b p-1 text-[9px] font-medium leading-3 tracking-normal",
         hasActionMenu ? "cursor-context-menu" : undefined,
       )}
       data-project-group-label
@@ -225,9 +242,8 @@ export function ProjectGroupFlag({
         )}
       </h3>
       {hasActionMenu ? (
-        <DropdownMenu
-          align="end"
-          trigger={
+        <ShadcnDropdownMenu>
+          <ShadcnDropdownMenuTrigger asChild>
             <Button
               type="button"
               variant="plain"
@@ -238,16 +254,17 @@ export function ProjectGroupFlag({
             >
               <DotsThreeVertical size={12} weight="regular" aria-hidden="true" />
             </Button>
-          }
-        >
-          {renderDropdownActionGroups(headerActionGroups ?? [])}
-        </DropdownMenu>
+          </ShadcnDropdownMenuTrigger>
+          <ShadcnDropdownMenuContent align="end" sideOffset={4} className="min-w-36">
+            {renderDropdownActionGroups(headerActionGroups ?? [])}
+          </ShadcnDropdownMenuContent>
+        </ShadcnDropdownMenu>
       ) : null}
     </div>
   ) : (
     <h3
       className={cn(
-        "flex h-8 items-center gap-1.5 border-x border-b p-1 text-[9px] font-medium leading-3 tracking-normal",
+        "flex h-8 items-center gap-1.5 rounded-b-xs border-x border-b p-1 text-[9px] font-medium leading-3 tracking-normal",
         textClass,
       )}
       data-project-group-label
@@ -276,7 +293,7 @@ export function ProjectGroupFlag({
           <ContextMenu>
             <ContextMenuTrigger asChild>{groupFlagLabel}</ContextMenuTrigger>
             <ContextMenuContent alignOffset={4} data-project-group-context-menu="true">
-              <ContextActionMenuContent groups={headerActionGroups ?? []} />
+              {renderContextActionGroups(headerActionGroups ?? [])}
             </ContextMenuContent>
           </ContextMenu>
         ) : (
@@ -289,33 +306,109 @@ export function ProjectGroupFlag({
 
 function renderDropdownActionGroups(groups: ActionMenuGroup[]) {
   const nodes: ReactNode[] = [];
+  const visibleGroups = groups.filter((group) => group.items.length > 0);
+  const directItems = visibleGroups.flatMap((group) => (group.label ? [] : group.items));
+  const labeledGroups = visibleGroups.filter((group) => group.label);
 
-  for (const group of groups) {
-    if (group.items.length === 0) continue;
-    const items = group.items.map((item) => (
-      <DropdownMenu.Item
-        key={item.id}
-        id={item.id}
-        label={item.label}
-        icon={item.icon}
-        shortcut={item.shortcut}
-        destructive={item.tone === "destructive"}
-        disabled={item.disabled}
-        selected={item.selected}
-        onClick={item.onSelect}
-      />
-    ));
-
-    if (group.label) {
-      nodes.push(
-        <DropdownMenu.Group key={group.id} id={group.id} label={group.label}>
-          {items}
-        </DropdownMenu.Group>,
-      );
-    } else {
-      nodes.push(...items);
+  for (const group of labeledGroups) {
+    if (nodes.length > 0) {
+      nodes.push(<ShadcnDropdownMenuSeparator key={`${group.id}-separator`} />);
     }
+    nodes.push(
+      <ShadcnDropdownMenuSub key={group.id}>
+        <ShadcnDropdownMenuSubTrigger>{group.label}</ShadcnDropdownMenuSubTrigger>
+        <ShadcnDropdownMenuSubContent className="min-w-36">
+          {group.items.map((item) => renderDropdownActionItem(item))}
+        </ShadcnDropdownMenuSubContent>
+      </ShadcnDropdownMenuSub>,
+    );
+  }
+
+  if (directItems.length > 0 && nodes.length > 0) {
+    nodes.push(<ShadcnDropdownMenuSeparator key="direct-items-separator" />);
+  }
+  for (const item of directItems) {
+    nodes.push(renderDropdownActionItem(item));
   }
 
   return nodes;
+}
+
+function renderDropdownActionItem(item: ActionMenuItem) {
+  return (
+    <ShadcnDropdownMenuItem
+      key={item.id}
+      icon={item.icon}
+      shortcut={item.shortcut}
+      variant={item.tone === "destructive" ? "destructive" : "default"}
+      disabled={item.disabled}
+      title={item.disabled ? item.disabledReason : undefined}
+      selected={item.selected}
+      onSelect={() => {
+        if (!item.disabled) item.onSelect();
+      }}
+    >
+      {item.label}
+    </ShadcnDropdownMenuItem>
+  );
+}
+
+function renderContextActionGroups(groups: ActionMenuGroup[]) {
+  const nodes: ReactNode[] = [];
+  const visibleGroups = groups.filter((group) => group.items.length > 0);
+  const directItems = visibleGroups.flatMap((group) => (group.label ? [] : group.items));
+  const labeledGroups = visibleGroups.filter((group) => group.label);
+
+  for (const group of labeledGroups) {
+    if (nodes.length > 0) {
+      nodes.push(<ContextMenuSeparator key={`${group.id}-separator`} />);
+    }
+    nodes.push(
+      <ContextMenuSub key={group.id}>
+        <ContextMenuSubTrigger>{group.label}</ContextMenuSubTrigger>
+        <ContextMenuSubContent className="min-w-36">
+          {group.items.map((item) => renderContextActionItem(item))}
+        </ContextMenuSubContent>
+      </ContextMenuSub>,
+    );
+  }
+
+  if (directItems.length > 0 && nodes.length > 0) {
+    nodes.push(<ContextMenuSeparator key="direct-items-separator" />);
+  }
+  for (const item of directItems) {
+    nodes.push(renderContextActionItem(item));
+  }
+
+  return nodes;
+}
+
+function renderContextActionItem(item: ActionMenuItem) {
+  return (
+    <ContextMenuItem
+      key={item.id}
+      variant={item.tone === "destructive" ? "destructive" : "default"}
+      disabled={item.disabled}
+      title={item.disabled ? item.disabledReason : undefined}
+      onSelect={() => {
+        if (!item.disabled) item.onSelect();
+      }}
+    >
+      {item.icon ? (
+        <span className="flex size-3 shrink-0 items-center justify-center" aria-hidden="true">
+          {item.icon}
+        </span>
+      ) : null}
+      <span className="min-w-0 flex-1 truncate">{item.label}</span>
+      {item.shortcut ? <ContextMenuShortcut>{item.shortcut}</ContextMenuShortcut> : null}
+      {item.selected ? (
+        <span
+          className="ml-auto flex size-3 shrink-0 items-center justify-center"
+          data-action-menu-item-check="true"
+        >
+          <Check aria-hidden="true" weight="regular" />
+        </span>
+      ) : null}
+    </ContextMenuItem>
+  );
 }

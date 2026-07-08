@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { requireCurrentUserContext, type CurrentUserContext } from "@/lib/auth/session";
 import { isWorkspaceEditorInD1 } from "@/lib/authz/d1-access";
 import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
+import { logAppError } from "@/lib/observability/logger";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import { reserveUploadAdmission } from "@/lib/uploads/admission-control";
 import {
@@ -148,7 +149,13 @@ async function canManageLibrary(workspaceId: string, currentUser: CurrentUserCon
   try {
     return await isWorkspaceEditorInD1(db, workspaceId, currentUser);
   } catch (error) {
-    console.error("Component image D1 authorization failed", error);
+    logAppError(error, {
+      event: "component_image_authorization_error",
+      action: "authorize_component_image_management",
+      context: {
+        route: "/api/component-library/images",
+      },
+    });
     return false;
   }
 }

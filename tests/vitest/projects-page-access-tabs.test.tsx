@@ -192,10 +192,13 @@ describe("ProjectsPageClient owned-project surface", () => {
     );
 
     const tabs = screen.getByRole("tablist", { name: "Project status tabs" });
-    expect(within(tabs).getByRole("tab", { name: /All Projects/i })).toHaveTextContent("2");
-    expect(within(tabs).getByRole("tab", { name: /Ongoing/i })).toHaveTextContent("1");
-    expect(within(tabs).getByRole("tab", { name: /Completed/i })).toHaveTextContent("1");
-    expect(within(tabs).getByRole("tab", { name: /Archived/i })).toHaveTextContent("0");
+    expect(within(tabs).getByRole("tab", { name: "All Projects" })).toHaveTextContent("All Projects");
+    expect(within(tabs).getByRole("tab", { name: "Ongoing" })).toHaveTextContent("Ongoing");
+    expect(within(tabs).getByRole("tab", { name: "Completed" })).toHaveTextContent("Completed");
+    expect(within(tabs).getByRole("tab", { name: "Archived" })).toHaveTextContent("Archived");
+    expect(within(tabs).queryByText("0")).not.toBeInTheDocument();
+    expect(within(tabs).queryByText("1")).not.toBeInTheDocument();
+    expect(within(tabs).queryByText("2")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("tablist", { name: "Project access tabs" }),
     ).not.toBeInTheDocument();
@@ -253,7 +256,11 @@ describe("ProjectsPageClient owned-project surface", () => {
     await user.click(screen.getByRole("button", { name: "Open actions for Owned Residence" }));
 
     expect(await screen.findByRole("menuitem", { name: "Edit project" })).toBeInTheDocument();
-    await user.click(screen.getByRole("menuitem", { name: "Completed" }));
+    const changeStatusItem = screen.getByRole("menuitem", { name: "Change status" });
+    changeStatusItem.focus();
+    fireEvent.keyDown(changeStatusItem, { key: "ArrowRight" });
+
+    await user.click(await screen.findByRole("menuitem", { name: "Completed" }));
 
     expect(mocks.updateProjectStatus).toHaveBeenCalledWith({
       projectId: "00000000-0000-4000-8000-000000000001",

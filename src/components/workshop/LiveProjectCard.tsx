@@ -437,6 +437,14 @@ function LiveProjectCardImpl({
             </span>
           </p>
         ) : null}
+        {statusChips.length > 0 ? (
+          <div
+            data-project-card-status-row=""
+            className="flex min-w-0 justify-end"
+          >
+            <ProjectCardStatusSlot statusChips={statusChips} />
+          </div>
+        ) : null}
         {showSecondaryMeta && !isPendingInvite ? (
           <div
             data-project-card-date-band=""
@@ -804,7 +812,6 @@ function LiveProjectCardImpl({
               projectName={project.name}
               viewMode={viewMode}
             />
-            <ProjectCardStatusSlot statusChips={statusChips} />
           </div>
 
           {showMeta ? renderTileMeta() : null}

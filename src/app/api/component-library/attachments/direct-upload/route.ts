@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d1";
 import { isUuid } from "@/lib/ids";
+import { logAppError } from "@/lib/observability/logger";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import { reserveUploadAdmission } from "@/lib/uploads/admission-control";
 import {
@@ -347,7 +348,15 @@ async function finalizeSignedUpload(workspaceId: string, userId: string, body: R
   }
 
   const storageProvider = await createRuntimeUploadStorageProvider().catch((error) => {
-    console.error("Cloudflare R2 upload storage is not configured", error);
+    logAppError(error, {
+      event: "component_attachment_direct_upload_storage_error",
+      action: "create_runtime_upload_storage_provider",
+      context: {
+        route: "/api/component-library/attachments/direct-upload",
+        route_handler: "POST /api/component-library/attachments/direct-upload",
+        upload_mode: "finalize",
+      },
+    });
     return null;
   });
   if (!storageProvider) return jsonError("Cloudflare R2 upload storage is not configured.", 503);
@@ -442,7 +451,15 @@ async function uploadToCloudflareR2(request: Request, workspaceId: string, userI
   }
 
   const storageProvider = await createRuntimeUploadStorageProvider().catch((error) => {
-    console.error("Cloudflare R2 upload storage is not configured", error);
+    logAppError(error, {
+      event: "component_attachment_direct_upload_storage_error",
+      action: "create_runtime_upload_storage_provider",
+      context: {
+        route: "/api/component-library/attachments/direct-upload",
+        route_handler: "POST /api/component-library/attachments/direct-upload",
+        upload_mode: "signed_single_part",
+      },
+    });
     return null;
   });
   if (!storageProvider) return jsonError("Cloudflare R2 upload storage is not configured.", 503);

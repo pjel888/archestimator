@@ -22,5 +22,9 @@ describe("formatQuantityUnitLabel", () => {
     expect(formatQuantityUnitLabel(12, "pc")).toBe("pc");
     expect(formatQuantityUnitLabel(12, "lf")).toBe("lf");
     expect(formatQuantityUnitLabel(12, "cu.m.")).toBe("cu.m.");
+    expect(formatQuantityUnitLabel(12, "L")).toBe("L");
+    expect(formatQuantityUnitLabel(12, "gal")).toBe("gal");
+    expect(formatQuantityUnitLabel(12, "sq yd")).toBe("sq yd");
+    expect(formatQuantityUnitLabel(12, "sqm/box")).toBe("sqm/box");
   });
 });

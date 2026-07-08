@@ -1,5 +1,6 @@
 import { after, NextResponse } from "next/server";
 
+import { logAppError } from "@/lib/observability/logger";
 import {
   checkSharedLinkSessionStartRateLimit,
   recordProjectPublicationAnalyticsEvent,
@@ -126,7 +127,16 @@ async function createRecipientSessionResponse({
         recipientId: verified.recipientId,
         request,
       });
-    } catch {}
+    } catch (error) {
+      logAppError(error, {
+        event: "deferred_analytics_error",
+        context: {
+          route: "/api/share/[token]/session",
+          route_handler: "GET|POST /api/share/[token]/session",
+          deferred_operation: "record_recipient_session_started",
+        },
+      });
+    }
   });
 
   return response;
