@@ -75,7 +75,7 @@ P1 (should before broad launch), P2 (nice-to-have/hardening).
 - **Validation:** extend `invite-accept-origin.test.ts` to assert denial on stripped
   headers (currently asserts `true`).
 - **Affected:** `src/lib/collaboration/invite-origin.ts:39`; test.
-- **Status:** ❌ gap (SEC-01, HIGH). Remediation task in Doc 11.
+- **Status:** ❌ gap (SEC-01, MED defense-in-depth — severity unified across all docs per Doc 20 ADV-09). Remediation task in Doc 11.
 
 ## REQ-RATE-01 — Durable rate limiting on public surfaces
 - **Statement:** Every auth-sensitive public surface (publication password, session,

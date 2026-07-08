@@ -37,7 +37,7 @@ execute to reach launch-ready authorization posture.
 |---|---|
 | API route handlers | `src/app/api/**/*.ts` (33 files) |
 | Non-API route handlers | `src/app/auth/callback/route.ts`, `src/app/invite/[token]/{accept,continue,sign-out}/route.ts`, `src/app/workshop/pending-invite/route.ts` |
-| Server Actions | every `"use server"` module under `src/lib/**` and `src/app/**` (~90 actions, 12 domains) |
+| Server Actions | every `"use server"` module under `src/lib/**` and `src/app/**` (30 modules, 15 subdirs, ~162 exports — inventoried at domain + authz-pattern level; see Doc 03 §I) |
 | Public share / publication | `src/app/share/[token]/**`, `src/app/api/share/[token]/**` (8 routes + page), `src/lib/publication/**` |
 | Auth boundary | Better Auth mount `src/app/api/auth/[...all]/route.ts`, `src/lib/auth/**`, `src/proxy.ts` → `src/lib/auth/request-proxy.ts`, `worker.ts`, `src/lib/cloudflare/worker-route-optimizations.ts` |
 | D1 app-authz layer | `src/lib/authz/d1-access.ts`, repository scoping in `src/lib/repositories/workspace-repository.ts`, `src/lib/estimates/d1-action-client.ts` |

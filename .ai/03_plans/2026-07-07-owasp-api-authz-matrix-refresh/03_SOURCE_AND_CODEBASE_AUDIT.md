@@ -161,7 +161,7 @@ remapped to opaque public IDs (`est_…`, `row_…`) via `createPublicationSnaps
 
 ## D. Server Action decision table (grouped by domain)
 
-Full per-action detail is voluminous (~90 actions); this table groups by domain and
+Full per-action detail is voluminous (30 `"use server"` modules, ~162 exports); this table groups by domain and
 records the **authz gate pattern** and any flag. Individual action file:line references
 are in the exploration evidence and consolidated in `11_IMPLEMENTATION_PLAN.md` task
 list where remediation is needed.

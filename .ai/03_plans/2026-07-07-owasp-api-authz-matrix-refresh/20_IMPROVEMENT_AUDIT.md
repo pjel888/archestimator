@@ -97,4 +97,35 @@ Repairs applied in the docs that follow (edits to 01, 03, 04, 06, 08, 11, 12, 14
 
 ## Phase 5 — Before/after score comparison + final readiness
 
-(Filled in Doc 17 revision and §Final below.)
+| Category | Pre-audit (pass 1) | Post-audit (pass 2) | Delta |
+|---|---|---|---|
+| Requirements completeness | 95 | 88 | −7 |
+| Architecture readiness | 96 | 90 | −6 |
+| API/network readiness | 95 | 88 | −7 |
+| Security/privacy readiness | 94 | 86 | −8 |
+| Testing/validation readiness | 94 | 88 | −6 |
+| Requirements traceability | 96 | 92 | −4 |
+| Blast-radius coverage | 96 | 94 | −2 |
+| **Overall** | **93** | **88** | **−5** |
+
+**Final status: `CONDITIONALLY READY`** (unchanged label, better-grounded reasons: open
+P0 gaps SEC-01/03/04 + owner-gated decisions, not artifact-malformation).
+
+**Final verification:** a separated Explore verifier lane confirmed all 11 repairs PROVEN,
+no P0/P1 remaining, two P2 cosmetic items found and fixed (stale "12 domains/~90 actions"
+in Doc 02/03; stray "HIGH" in Doc 04). `verification_mode: emulated` retained (one adversarial
+lane + one verifier lane, both native Explore subagents — genuine separation for *finding*
+and *verification*, but neither is a human/external reviewer, so the emulated cap applies).
+
+## Final deliverable summary (per Improve-Plan-Prompt §FINAL DELIVERABLE)
+
+- **Planning folder reviewed:** `.ai/03_plans/2026-07-07-owasp-api-authz-matrix-refresh/`
+- **Document inventory:** README + 00–20 + PROMPT.md (23 docs).
+- **Source hierarchy:** PROMPT.md > current `main` source > local Next.js docs > this pack > June audit (stale) > model memory.
+- **Initial scorecard:** Doc 20 Phase 2 (overall 82 pre-repair).
+- **Major findings:** SEC-08 fabricated (retracted); 3 mandated artifacts missing (added); REQ-MATRIX-01 overstated (corrected); SEC-01 severity contradicted (unified); maybeTrigger exception missed (added SEC-11); sub-scores inflated (recalibrated).
+- **Documents revised:** 01, 02, 03, 04, 06, 08, 10, 11, 12, 14, 16, 17, 18, README.
+- **Documents created:** 20 (improvement audit).
+- **Documents consolidated/obsolete:** none (SEC-08 retracted in place, not deleted, so the retraction is auditable).
+- **Contradictions resolved:** SEC-01 severity; SEC-08 live-vs-retracted; REQ-MATRIX-01 proven-vs-partial; publication blanket claim; "12 domains" count.
+- **Final readiness status:** `CONDITIONALLY READY`, overall 88, verification_mode emulated.
