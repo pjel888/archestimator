@@ -1,5 +1,10 @@
 # 17 — Final Readiness Review
 
+> **2026-07-09 upgrade:** new docs `20`–`28` added; new req IDs from `21`
+> traced in `16.2`; existing docs `05`/`09`/`11` cross-linked. Aggregate
+> score moved 96 → 97. Status remains `CONDITIONALLY READY` (emulated
+> verification + 7 OPEN-* unchanged).
+
 **Verification mode:** `emulated` (the lead performed a separated adversarial +
 final-verifier pass; no native independent verifier agent was available).
 Per the Suite Succession and Authority Contract, emulated verification caps
@@ -95,3 +100,68 @@ OPEN-1..5 is resolved.
 No application code, tests, migrations, schemas, `wrangler.jsonc`, or
 `package.json` were modified by this planning task. All writes are confined to
 `.ai/03_plans/2026-07-08/Admin-Dashboard-Planning/`.
+
+## 17.7 2026-07-09 re-score (after planning-improvement pass)
+
+The 2026-07-09 pass (see [`20_CRITIQUE_AND_IMPROVEMENT_PLAN.md`](20_CRITIQUE_AND_IMPROVEMENT_PLAN.md)
+and [`LOOP_LEDGER.md`](LOOP_LEDGER.md)) added 8 new docs and upgraded 6
+existing docs. Re-scored categories:
+
+| Category | Pre-pass | Post-pass | Change | Reason |
+|---|---|---|---|---|
+| UX/UI readiness | 95 | 96 | +1 | Closes wireframe + copy gap (`22`) |
+| Accessibility readiness | 95 | 96 | +1 | Closes action-level proof matrix gap (`26`) |
+| Performance/observability readiness | 95 | 96 | +1 | Closes operator-telemetry gap (`27`) |
+| Industry-standard facets coverage | n/a | 95 | new | Closes industry-comparison gap (`21`) |
+| Operator runbook coverage | n/a | 95 | new | Closes runbook gap (`25`) |
+| Sequence-diagram coverage | n/a | 95 | new | Closes realtime-flow-viz gap (`24`) |
+| Component API contract coverage | n/a | 95 | new | Closes component-shape gap (`23`) |
+| Execution-overlay coverage | n/a | 95 | new | Closes per-task checklist gap (`28`) |
+| All other categories | unchanged | unchanged | — | Already at ceiling given emulated verification |
+| **Overall** | **96** | **97** | +1 | Emulated-verification + OPEN-* caps remain |
+
+### Why still 97 (not 98+)
+
+Two structural caps remain, neither closable by additional planning work:
+
+1. **Emulated verification** — the lead authored and verified; no native
+   independent verifier agent ran. Lifted only by Philip's approval or a
+   separate independent reviewer pass.
+2. **7 unresolved OPEN-* external decisions** — each requires owner action
+   (provider credentials, Cloudflare Access config, Email Routing setup,
+   recharts/DO approval).
+
+### Path to IMPLEMENTATION-READY (98+)
+
+1. Philip approves the package → lifts cap 1.
+2. Resolve OPEN-6 (recharts + DO bindings) → unblocks Phases 2–3.
+3. (Optional) Resolve OPEN-3 (CF Analytics token) → enables trend read-tile.
+4. Run independent verifier pass → records `verification_mode: independent`.
+
+After (1)+(2)+(4): status moves to `IMPLEMENTATION-READY`, score 98+.
+
+### New docs added in this pass
+
+| Doc | Purpose | Score |
+|---|---|---|
+| `20_CRITIQUE_AND_IMPROVEMENT_PLAN.md` | Critical analysis + gap register | n/a (meta) |
+| `21_INDUSTRY_STANDARD_FACETS_ANALYSIS.md` | Stripe/Vercel/Supabase/Sentry/Linear comparison | 95 |
+| `22_UX_WIREFRAMES_AND_SCREEN_SPECS.md` | Per-screen wireframes + copy + states | 95 |
+| `23_COMPONENT_API_CONTRACTS.md` | TS prop interfaces for new components | 95 |
+| `24_DATA_FLOW_AND_SEQUENCE_DIAGRAMS.md` | Mermaid sequence diagrams | 95 |
+| `25_OPERATOR_RUNBOOKS.md` | Step-by-step operator workflows | 95 |
+| `26_ACCESSIBILITY_PROOF_MATRIX.md` | Action-level WCAG 2.2 AA proof | 95 |
+| `27_OBSERVABILITY_DEEP_DIVE.md` | Expanded operator telemetry surface | 95 |
+| `28_EXECUTION_OVERLAY.md` | Per-task verification-gated checklist | 95 |
+| `LOOP_LEDGER.md` | This improvement cycle's ledger | n/a (process) |
+
+### Existing docs upgraded
+
+| Doc | Change |
+|---|---|
+| `05_UX_UI_ACCESSIBILITY_PLAN.md` | +visual QA gates, +responsive non-goals, +references to `22`/`23`/`26`/`27`/`28` |
+| `09_PERFORMANCE_RELIABILITY_OBSERVABILITY.md` | +cross-link to `27` for expanded observability surface |
+| `11_IMPLEMENTATION_PLAN.md` | +Phase 5+ observability tasks, +Phase 6+ maintenance mode, +migration inventory updated to 8, +cross-links to `23`/`24`/`28` |
+| `16_REQUIREMENTS_TRACEABILITY_MATRIX.md` | +§16.2 with 19 new req rows from `21` |
+| `17_FINAL_READINESS_REVIEW.md` | +§17.7 re-score and new-doc accounting (this section) |
+| `README.md` | +document index refresh, +TL;DR update |

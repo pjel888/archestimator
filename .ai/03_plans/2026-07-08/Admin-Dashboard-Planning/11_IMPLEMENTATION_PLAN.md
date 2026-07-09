@@ -8,6 +8,15 @@ S/M/L/XL. Parallelization: `PARALLEL-SAFE` / `SEQUENTIAL-DEP` / `SHARED-FILE`.
 > (shared worktree). Confirm `git status --short --branch`. Match existing code
 > style (Phosphor icons, inline copy, `QueryResult<T>`, `force-dynamic` routes).
 
+> **2026-07-09 upgrade:** per-task acceptance scenarios + verification commands
+> now live in [`28_EXECUTION_OVERLAY.md`](28_EXECUTION_OVERLAY.md). Realtime
+> flow sequence diagrams live in
+> [`24_DATA_FLOW_AND_SEQUENCE_DIAGRAMS.md`](24_DATA_FLOW_AND_SEQUENCE_DIAGRAMS.md).
+> Component TS prop interfaces live in
+> [`23_COMPONENT_API_CONTRACTS.md`](23_COMPONENT_API_CONTRACTS.md). This doc
+> remains the **authoritative** plan; `28` is a checkpoint overlay, not a
+> replacement.
+
 ## Phase 0 — Foundation: allowlist + env + master flag
 
 **Objective:** single source of truth for admin access; kill switch.
@@ -280,3 +289,44 @@ Only after OPEN-4 resolved:
   in `15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md`.
 - No `BLOCKED-ARCHITECTURE` or `BLOCKED-EVIDENCE` tasks remain; all P0 paths
   have exact target paths/symbols.
+
+## Phase 5+ observability expansion (added 2026-07-09)
+
+Per [`27_OBSERVABILITY_DEEP_DIVE.md`](27_OBSERVABILITY_DEEP_DIVE.md), Phase 5
+gains these additional tasks (all PARALLEL-SAFE after Phase 1):
+
+- **T-5.5** `cron_run_events` migration (`0045`) + reader + AdminCronHealth component (FR-OBS-03).
+- **T-5.6** `client_error_events` migration (`0046`) + reader + AdminClientErrors (FR-OBS-05).
+- **T-5.7** `web_vital_events` migration (`0047`) + reader + AdminWebVitals (FR-OBS-06).
+- **T-5.8** `ops_run_events` migration (`0048`) + reader + AdminBackupStatus (FR-OBS-10).
+- **T-5.9** Queue/DLQ viewer (FR-OBS-04; OPEN-8 deferred — CLI CTA fallback).
+- **T-5.10** Free-tier consumption gauge (FR-OBS-07; gated by OPEN-3).
+- **T-5.11** Uptime strip (FR-OBS-01).
+- **T-5.12** Data residency static tile (FR-OBS-11).
+- **T-5.13** Mass-op audit viewer tab (FR-AUDIT-03).
+- **T-5.14** CSV export actions (FR-USERS-04, FR-AUDIT-04).
+- **T-5.15** DSAR queue viewer tab (FR-OPS-01).
+- **T-5.16** Onboarding funnel tile (FR-OVERVIEW-06).
+- **T-5.17** Closed-beta funnel tile (FR-OVERVIEW-07).
+- **T-5.18** Session-health tile (FR-USERS-03).
+
+## Phase 6+ maintenance mode (added 2026-07-09)
+
+- **T-6.6** Add `admin_maintenance_mode` flag to feature_flags seed (`0042`).
+- **T-6.7** `proxy.ts` honors the flag (503 for `/workshop/*` mutations).
+- **T-6.8** `AdminMaintenanceModeToggle.tsx` with confirmation dialog.
+
+## Migration inventory updated (added 2026-07-09)
+
+Per `27`, the plan now uses 8 migrations instead of 4:
+
+- `0041` support conversations/messages (original)
+- `0042` feature_flags (original; seed extended for `admin_maintenance_mode`)
+- `0043` admin_audit_events (original)
+- `0044` admin_metric_cache (original)
+- `0045` cron_run_events (new)
+- `0046` client_error_events (new)
+- `0047` web_vital_events (new)
+- `0048` ops_run_events (new)
+
+Migration `0048` is the highest number; future plans start at `0049`.

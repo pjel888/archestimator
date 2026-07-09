@@ -1,5 +1,10 @@
 # 16 — Requirements Traceability Matrix
 
+> **2026-07-09 upgrade:** new req IDs from `21_INDUSTRY_STANDARD_FACETS_ANALYSIS.md`
+> (FR-OBS-01 through FR-OBS-11, FR-AUDIT-03/04, FR-OPS-01/02, FR-OVERVIEW-06/07,
+> FR-USERS-03/04) are appended in §16.2 below. Original req rows in §16.1 are
+> unchanged — the new IDs are additive (separate OBS / OPS namespaces).
+
 | Req ID | Source | Outcome | Phase | Task IDs | Code areas | Acceptance | Test | Rollout | Status |
 |---|---|---|---|---|---|---|---|---|---|
 | FR-AUTH-01 | brief | single-email admin gate | 0 | T-0.1,T-0.3 | roles.ts, request-proxy.ts | redirect denial + admin render | admin-access.test | flag-on smoke | pending |
@@ -59,3 +64,37 @@
 | DOC-STATE-01 | derived | state update | 6 | T-6.4 | current-state.md | appended | review | — | pending |
 
 No requirement is untraced. Every implementation task maps to ≥1 requirement.
+
+## 16.2 New requirements from industry-standard facets analysis (added 2026-07-09)
+
+These reqs come from [`21_INDUSTRY_STANDARD_FACETS_ANALYSIS.md`](21_INDUSTRY_STANDARD_FACETS_ANALYSIS.md)
+§21.3 (adopt-MVP items). All are surfaced through existing codebase assets —
+no new providers, no paid add-ons.
+
+| Req ID | Source facet | Outcome | Phase | Task IDs | Code areas | Acceptance | Test | Rollout | Status |
+|---|---|---|---|---|---|---|---|---|---|
+| FR-OBS-01 | FACET-1 | Internal uptime strip | 3,5 | T-3.3,T-5.11 | overview / observability page | strip renders w/ correct status | admin-overview DOM test | — | pending |
+| FR-OBS-02 | FACET-4 | Incident-alert config indicator | 5 | T-5.3 | observability page | config state shown | DOM test | — | pending |
+| FR-OBS-03 | FACET-5 | Cron health strip | 1,5 | T-5.5 | migrations/0045, AdminCronHealth | 3 crons shown w/ status | cron-repo test + DOM | — | pending |
+| FR-OBS-04 | FACET-6 | Queue + DLQ viewer | 5 | T-5.9 | AdminQueueHealth | depth + DLQ count shown | DOM test (OPEN-8 fallback) | — | pending |
+| FR-OBS-05 | FACET-7 | Client-error trend tile | 1,5 | T-5.6 | migrations/0046, AdminClientErrors | top 10 errors shown | repo test + DOM | — | pending |
+| FR-OBS-06 | FACET-8 | Web Vitals field tile | 1,5 | T-5.7 | migrations/0047, AdminWebVitals | LCP/INP/CLS p75 shown | repo test + DOM | — | pending |
+| FR-OBS-07 | FACET-9 | Free-tier consumption gauge | 5 | T-5.10 | AdminFreeTierGauge | 4 resources w/ % | DOM test (OPEN-3 for data) | — | pending |
+| FR-OBS-08 | FACET-10 | Security-alerts link-out | 5 | T-5.3 | observability page | link works | DOM test | — | pending |
+| FR-OBS-09 | FACET-11 | Query-perf link-out | 5 | T-5.3 | observability page | link works | DOM test | — | pending |
+| FR-OBS-10 | FACET-12 | Backup status indicator | 1,5 | T-5.8 | migrations/0048, AdminBackupStatus | last-verified timestamp | repo test + DOM | — | pending |
+| FR-OBS-11 | FACET-32 | Data-residency info tile | 5 | T-5.12 | observability page | static region shown | DOM test | — | pending |
+| FR-AUDIT-03 | FACET-14 | Mass-op audit viewer | 5 | T-5.13 | audit page tab | events list | DOM test | — | pending |
+| FR-AUDIT-04 | FACET-25 | Audit CSV export | 5 | T-5.14 | audit-actions.ts | download works | action test | — | pending |
+| FR-OPS-01 | FACET-17 | DSAR queue viewer | 5,6 | T-5.15,T-6.5 | audit page tab + privacy_requests | list + mark complete | action test + DOM | — | pending |
+| FR-OPS-02 | FACET-23 | Maintenance mode flag | 6 | T-6.6,T-6.7,T-6.8 | feature_flags + proxy.ts + toggle UI | /workshop writes 503 when on | proxy test + DOM | — | pending |
+| FR-OVERVIEW-06 | FACET-18 | Onboarding funnel tile | 3,5 | T-3.3,T-5.16 | overview | 3-stage funnel | repo test + DOM | — | pending |
+| FR-OVERVIEW-07 | FACET-19 | Closed-beta funnel tile | 3,5 | T-3.3,T-5.17 | overview | 3-stage funnel | repo test + DOM | — | pending |
+| FR-USERS-03 | FACET-20 | Session-health tile | 3,5 | T-3.4,T-5.18 | users page | sessions + provider breakdown | repo test + DOM | — | pending |
+| FR-USERS-04 | FACET-25 | Users CSV export | 5 | T-5.14 | users page | download works | action test | — | pending |
+
+**Total new adopt-MVP reqs: 19.** All traced. No existing req changed.
+
+The new reqs use new namespaces (OBS / OPS / expanded OVERVIEW / USERS /
+AUDIT) to avoid collisions with the original `04` IDs. The original reqs in
+§16.1 remain authoritative for their scope; §16.2 is purely additive.

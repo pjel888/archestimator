@@ -1,10 +1,11 @@
 # Admin Dashboard — Implementation Plan Pack
 
 **Plan folder:** `.ai/03_plans/2026-07-08/Admin-Dashboard-Planning/`
-**Created:** 2026-07-08 (Asia/Manila)
+**Created:** 2026-07-08 (Asia/Manila); **Improved:** 2026-07-09 (planning-improvement pass)
 **Plan profile:** `exhaustive`
 **Plan status:** **`CONDITIONALLY READY`** (see `17_FINAL_READINESS_REVIEW.md`)
 **Verification mode:** `emulated` — caps overall readiness at 97; needs owner or independent reviewer approval to lift.
+**Score:** 96 → **97** after the 2026-07-09 improvement pass (see `20_CRITIQUE_AND_IMPROVEMENT_PLAN.md` and `LOOP_LEDGER.md`).
 
 ---
 
@@ -151,21 +152,34 @@ each OPEN-1..5 is resolved or explicitly dropped.
 | `02_FEATURE_BRIEF_AND_SCOPE.md` | Brief, interpreted outcome, in/out scope, success/failure metrics |
 | `03_SOURCE_AND_CODEBASE_AUDIT.md` | Full codebase evidence (auth, analytics, schema, UI, docs, gaps) |
 | `04_REQUIREMENTS_SPECIFICATION.md` | Stable-ID requirements + shadow-path matrix |
-| `05_UX_UI_ACCESSIBILITY_PLAN.md` | IA, journeys, states, components, a11y, Tailwind impact |
+| `05_UX_UI_ACCESSIBILITY_PLAN.md` | IA, journeys, states, components, a11y, Tailwind impact (high-level) |
 | `06_ARCHITECTURE_AND_TECHNICAL_DESIGN.md` | Current/target arch, boundaries, data flow, decisions |
-| `07_DATA_DATABASE_API_NETWORK_PLAN.md` | Migration blueprints, API contracts, access-path matrix |
+| `07_DATA_DATABASE_API_NETWORK_PLAN.md` | Migration blueprints (0041–0048), API contracts, access-path matrix |
 | `08_SECURITY_PRIVACY_THREAT_MODEL.md` | Trust boundaries, STRIDE, credential taxonomy |
-| `09_PERFORMANCE_RELIABILITY_OBSERVABILITY.md` | Budgets, evaluator, cardinality, rollout gates |
+| `09_PERFORMANCE_RELIABILITY_OBSERVABILITY.md` | Budgets, evaluator, cardinality, rollout gates (perf authority) |
 | `10_BLAST_RADIUS_AND_DEPENDENCIES.md` | Impact matrix, dependencies, compatibility |
-| `11_IMPLEMENTATION_PLAN.md` | Phased tasks (exact paths/symbols), durable-goal ledger |
+| `11_IMPLEMENTATION_PLAN.md` | Phased tasks (exact paths/symbols), durable-goal ledger (**authoritative**) |
 | `12_TEST_AND_VALIDATION_STRATEGY.md` | Test matrix, adversarial QA, validation gaps |
 | `13_ROLLOUT_ROLLBACK_AND_OPERATIONS.md` | Flag rings, rollback, runbook summary |
 | `14_RISK_REGISTER.md` | Risks with prevention/mitigation/contingency |
 | `15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md` | Decisions, assumptions, OPEN-1..7 |
-| `16_REQUIREMENTS_TRACEABILITY_MATRIX.md` | Full requirement→task→test mapping |
-| `17_FINAL_READINESS_REVIEW.md` | Scores, verifier findings, status |
+| `16_REQUIREMENTS_TRACEABILITY_MATRIX.md` | Full requirement→task→test mapping (incl. §16.2 new reqs from `21`) |
+| `17_FINAL_READINESS_REVIEW.md` | Scores, verifier findings, status (incl. §17.7 re-score) |
 | `18_STACK_CONTRACT_AND_PRODUCTION_STANDARDS.md` | Cross-cutting stack decisions, env vars |
 | `19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md` | Research Q1–Q7, cycle summaries, evidence gaps |
+| `20_CRITIQUE_AND_IMPROVEMENT_PLAN.md` | **2026-07-09** critical analysis + gap register |
+| `21_INDUSTRY_STANDARD_FACETS_ANALYSIS.md` | **2026-07-09** Stripe/Vercel/Supabase/Sentry/Linear comparison + 40 facets |
+| `22_UX_WIREFRAMES_AND_SCREEN_SPECS.md` | **2026-07-09** per-screen wireframes + concrete copy + state matrix |
+| `23_COMPONENT_API_CONTRACTS.md` | **2026-07-09** TS prop interfaces for every new admin component |
+| `24_DATA_FLOW_AND_SEQUENCE_DIAGRAMS.md` | **2026-07-09** mermaid sequence diagrams for realtime + mutation flows |
+| `25_OPERATOR_RUNBOOKS.md` | **2026-07-09** step-by-step workflows (locked out, incident, DSAR, etc.) |
+| `26_ACCESSIBILITY_PROOF_MATRIX.md` | **2026-07-09** action-level WCAG 2.2 AA proof per surface |
+| `27_OBSERVABILITY_DEEP_DIVE.md` | **2026-07-09** expanded operator telemetry surface + 4 new migrations |
+| `28_EXECUTION_OVERLAY.md` | **2026-07-09** per-task verification-gated execution checklist |
+| `LOOP_LEDGER.md` | **2026-07-09** this improvement cycle's ledger |
+
+**Reading order for an implementer:** README → `01` → `11` (authoritative plan)
+→ `28` (execution overlay) → per-task supporting docs as referenced.
 
 ## Key findings (TL;DR for the owner)
 

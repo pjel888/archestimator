@@ -1,5 +1,15 @@
 # 09 — Performance, Reliability, and Observability
 
+> **2026-07-09 upgrade:** the **operator-telemetry surface** (cron health,
+> queue DLQ, client errors, web vitals, free-tier consumption, backup
+> status, on-call config indicator, maintenance mode, data residency,
+> DSAR queue, mass-op audit, onboarding funnel, closed-beta funnel,
+> session-health, CSV exports) now lives in
+> [`27_OBSERVABILITY_DEEP_DIVE.md`](27_OBSERVABILITY_DEEP_DIVE.md).
+> This doc remains the authority for **performance budgets, reliability
+> failure modes, logging, and rollout gates**. The observability section
+> (§9.5 below) summarizes and points at `27` for the expanded surface.
+
 ## 9.1 Performance budgets
 
 | Metric | Target | Scope | Rationale |
@@ -56,6 +66,13 @@ All within D1 free-tier comfort at solo-dev scale.
 
 ## 9.5 Observability
 
+> **2026-07-09:** see [`27_OBSERVABILITY_DEEP_DIVE.md`](27_OBSERVABILITY_DEEP_DIVE.md)
+> for the full operator-telemetry surface — 19 new adopt-MVP reqs covering
+> uptime strip, cron health, queue DLQ, client errors, web vitals,
+> free-tier consumption, backup status, data residency, maintenance mode,
+> DSAR queue, mass-op audit viewer, onboarding funnel, closed-beta funnel,
+> session-health tile, and CSV exports. All free-tier, no paid add-ons.
+
 - **Structured logging:** reuse `emitLogRecord` / `logAppError` for all admin
   errors (`event: 'admin_*'`, `action`, `request_id`).
 - **Metrics:** Analytics Engine data point per presence-alarm (optional);
@@ -66,7 +83,7 @@ All within D1 free-tier comfort at solo-dev scale.
   Workers Observability for raw logs.
 - **Alerts:** none required for MVP (operator watches the overview). P2: email
   alert on `operational_incidents` sev1 via existing `EMAIL` binding.
-- **Runbooks:** `DOC-RUNBOOK-01`.
+- **Runbooks:** `DOC-RUNBOOK-01`; concrete step-by-step workflows in `25`.
 
 ## 9.6 Rollout performance gates
 

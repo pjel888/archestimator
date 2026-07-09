@@ -4,6 +4,14 @@ DESIGN.md is **alpha-stage**; this plan reuses existing tokens + primitives and
 defers final visual polish to Philip. No heavyweight design workflow invoked
 (proportional verification policy).
 
+> **2026-07-09 upgrade:** concrete text wireframes, copy, and state specs
+> now live in [`22_UX_WIREFRAMES_AND_SCREEN_SPECS.md`](22_UX_WIREFRAMES_AND_SCREEN_SPECS.md).
+> Component TS prop interfaces live in [`23_COMPONENT_API_CONTRACTS.md`](23_COMPONENT_API_CONTRACTS.md).
+> Action-level WCAG 2.2 AA proof matrix lives in
+> [`26_ACCESSIBILITY_PROOF_MATRIX.md`](26_ACCESSIBILITY_PROOF_MATRIX.md).
+> This doc remains the **high-level** UX/a11y overview; defer to those
+> three for per-surface detail.
+
 ## 5.1 Information architecture
 
 ```
@@ -136,3 +144,40 @@ tests + type/LSP. **Browser proof (Playwright) is opt-in** and recommended only
 for: (a) the support inbox realtime flow (J3), (b) the responsive sidebar
 collapse at < 640 px, and (c) keyboard focus trap in the user-detail drawer.
 Routine tile/table rendering needs only DOM tests.
+
+## 5.10 Visual QA gates (added 2026-07-09)
+
+Per the repo's proportional verification policy and the wireframe fidelity
+disclaimer in `22.1`, browser-based visual QA gates are triggered only when
+a claim cannot be proven by static review or DOM tests. Concrete trigger
+list:
+
+| Claim | Why browser proof | Trigger surface |
+|---|---|---|
+| Responsive sidebar collapse (≥1024 / 640–1023 / <640) | Layout claim DOM can't prove | `AdminShell.tsx` after Phase 3 |
+| User detail drawer focus trap + restoration | Browser-only focus behavior | `AdminUserDrawer.tsx` after Phase 3 |
+| Support inbox WS reconnect UI state | Browser-only WS lifecycle | `AdminSupportInbox.tsx` after Phase 4 |
+| Mobile composer keyboard interaction | Touch + soft-keyboard behavior | `AdminSupportComposer.tsx` after Phase 4 |
+| Maintenance mode toggle confirmation dialog focus | Modal focus management | `AdminMaintenanceModeToggle.tsx` after Phase 5 |
+
+When triggered, use the `visual-qa` skill: capture reference + actual
+screenshots, run the bundled pixel-diff script, and get the dual read-only
+verifier verdict. Non-triggered surfaces stick to DOM tests + type/LSP.
+
+## 5.11 Responsive non-goals (added 2026-07-09)
+
+- **Non-goal:** pixel-perfect parity across all viewports. Operator surface
+  only needs to be *usable* on a phone, not optimized.
+- **Non-goal:** touch gestures beyond standard tap/scroll.
+- **Non-goal:** offline support beyond what the browser cache provides.
+- **Non-goal:** PWA installability (admin is a frequent-use URL, not an app).
+- **Non-goal:** tablet-optimized layout (iPad/etc.) — desktop and phone
+  cover the operator's actual use.
+
+## 5.12 References (added 2026-07-09)
+
+- `22_UX_WIREFRAMES_AND_SCREEN_SPECS.md` — per-screen wireframes + concrete copy + state matrix
+- `23_COMPONENT_API_CONTRACTS.md` — TS prop interfaces for every new admin component
+- `26_ACCESSIBILITY_PROOF_MATRIX.md` — action-level WCAG 2.2 AA proof per surface
+- `27_OBSERVABILITY_DEEP_DIVE.md` — observability surfaces that affect UX layout
+- `28_EXECUTION_OVERLAY.md` — per-task acceptance scenarios for UX tasks
