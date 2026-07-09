@@ -1,0 +1,89 @@
+=== Git history of middleware/proxy files ===
+5558c5fa4 refactor(middleware): replace deprecated src/proxy.ts with Next.js middleware entrypoint
+555c6e28c refactor(proxy): Inline proxy handler and matcher config in src/proxy.ts
+293d5eefc refactor(proxy): Adopt Next.js proxy entrypoint and remove deprecated middleware.ts
+247df1256 feat(cloudflare): replace Vercel proxy with Cloudflare middleware and better-auth integration
+
+=== src/proxy.ts log ===
+5558c5fa4 refactor(middleware): replace deprecated src/proxy.ts with Next.js middleware entrypoint
+555c6e28c refactor(proxy): Inline proxy handler and matcher config in src/proxy.ts
+293d5eefc refactor(proxy): Adopt Next.js proxy entrypoint and remove deprecated middleware.ts
+247df1256 feat(cloudflare): replace Vercel proxy with Cloudflare middleware and better-auth integration
+eb7a8674a feat(auth): add terms-gate middleware with protected-route enforcement and cookie-based status
+4a4d530b8 chore(repo): rebrand closed-beta surfaces to public access
+3a5152488 fix(shared-link): enforce no-store cache on /share routes in next.config and proxy
+4eecf05b0 Capture provider p75 and harden hosted proof gates
+a062e56aa Harden closed beta security gates
+7e4b59c8a Close Codex security attack paths before beta exposure
+b2a0a0317 Fail closed in proxy when hosted auth env is absent
+7a5bb7426 Enforce closed beta access before workshop entry
+00b28eee2 chore: archive build/test evidence, config sync, and CV replacement
+a03e9abb9 feat(perf): add route transition loading states, hover prefetch, lazy loading, and middleware optimizations
+6e0334241 Require account-owned auth setup
+9807638f6 fix(auth): gate local dev auth bypass
+10e833c3b Add Supabase auth and workspace bootstrap
+
+=== Timeline (added/deleted) ===
+--- proxy.ts added ---
+293d5eefc refactor(proxy): Adopt Next.js proxy entrypoint and remove deprecated middleware.ts
+10e833c3b Add Supabase auth and workspace bootstrap
+--- proxy.ts deleted ---
+5558c5fa4 refactor(middleware): replace deprecated src/proxy.ts with Next.js middleware entrypoint
+247df1256 feat(cloudflare): replace Vercel proxy with Cloudflare middleware and better-auth integration
+
+=== Full commit message for Jul 8 revert (5558c5fa4) ===
+5558c5fa42b22f0fd6b0f18184c0767b152f20f9
+Philip Lewis <philipjonlewis@gmail.com>
+Wed Jul 8 18:52:24 2026 +0800
+
+refactor(middleware): replace deprecated src/proxy.ts with Next.js middleware entrypoint
+
+Context:
+The OpenNext Cloudflare runtime uses src/middleware.ts as the Edge
+middleware entrypoint; the legacy src/proxy.ts convention is no
+longer honored and needs to be retired.
+
+Changes:
+- Delete src/proxy.ts and introduce src/middleware.ts as the canonical
+  Edge middleware entrypoint.
+- Simplify request-proxy session gating to delegate session/auth
+  verification to the server layout using Better Auth cookies.
+- Update auth-proxy and proxy-file-convention tests to import from
+  @/middleware and assert the new delegation behavior.
+
+Impact:
+The application now follows the current Next.js/Cloudflare middleware
+convention; deploy and source-smoke scripts no longer reference the
+removed proxy file.
+
+
+=== Diff stat for 5558c5fa4 ===
+commit 5558c5fa42b22f0fd6b0f18184c0767b152f20f9
+Author: Philip Lewis <philipjonlewis@gmail.com>
+Date:   Wed Jul 8 18:52:24 2026 +0800
+
+    refactor(middleware): replace deprecated src/proxy.ts with Next.js middleware entrypoint
+    
+    Context:
+    The OpenNext Cloudflare runtime uses src/middleware.ts as the Edge
+    middleware entrypoint; the legacy src/proxy.ts convention is no
+    longer honored and needs to be retired.
+    
+    Changes:
+    - Delete src/proxy.ts and introduce src/middleware.ts as the canonical
+      Edge middleware entrypoint.
+    - Simplify request-proxy session gating to delegate session/auth
+      verification to the server layout using Better Auth cookies.
+    - Update auth-proxy and proxy-file-convention tests to import from
+      @/middleware and assert the new delegation behavior.
+    
+    Impact:
+    The application now follows the current Next.js/Cloudflare middleware
+    convention; deploy and source-smoke scripts no longer reference the
+    removed proxy file.
+
+ src/lib/auth/request-proxy.ts              | 173 +++++----
+ src/{proxy.ts => middleware.ts}            |   2 +-
+ tests/vitest/auth-proxy.test.ts            | 581 +++++++++++++++++++----------
+ tests/vitest/proxy-file-convention.test.ts |  23 +-
+ 4 files changed, 502 insertions(+), 277 deletions(-)

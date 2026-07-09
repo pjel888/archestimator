@@ -1,0 +1,57 @@
+=== OpenNext Cloudflare 1.20.1 source: middleware.js ===
+Path: node_modules/@opennextjs/cloudflare/dist/cli/build/utils/middleware.js
+
+import path from "node:path";
+import { loadFunctionsConfigManifest, loadMiddlewareManifest } from "@opennextjs/aws/adapters/config/util.js";
+/**
+ * Returns whether the project is using a Node.js middleware.
+ *
+ * @param options
+ * @returns Whether the project is using a Node.js middleware
+ */
+export function useNodeMiddleware(options) {
+    const buildOutputDotNextDir = path.join(options.appBuildOutputPath, ".next");
+    // Look for the edge middleware
+    const middlewareManifest = loadMiddlewareManifest(buildOutputDotNextDir);
+    const edgeMiddleware = middlewareManifest.middleware["/"];
+    if (edgeMiddleware) {
+        // The app uses an edge middleware
+        return false;
+    }
+    // Look for the node middleware
+    const functionsConfigManifest = loadFunctionsConfigManifest(buildOutputDotNextDir);
+    return Boolean(functionsConfigManifest?.functions["/_middleware"]);
+}
+
+=== Type definitions ===
+import * as buildHelper from "@opennextjs/aws/build/helper.js";
+/**
+ * Returns whether the project is using a Node.js middleware.
+ *
+ * @param options
+ * @returns Whether the project is using a Node.js middleware
+ */
+export declare function useNodeMiddleware(options: buildHelper.BuildOptions): boolean;
+
+=== Search for proxy equivalents ===
+(rg useNodeProxy|useProxy in dist)
+(no results — confirms no proxy equivalent)
+
+=== Files referencing middleware in OpenNext dist ===
+node_modules/@opennextjs/cloudflare/dist/cli/templates/worker.js
+node_modules/@opennextjs/cloudflare/dist/cli/templates/init.js
+node_modules/@opennextjs/cloudflare/dist/cli/build/bundle-server.js
+node_modules/@opennextjs/cloudflare/dist/cli/build/patches/plugins/next-server.js
+node_modules/@opennextjs/cloudflare/dist/cli/build/build.js
+node_modules/@opennextjs/cloudflare/dist/cli/build/utils/middleware.d.ts
+node_modules/@opennextjs/cloudflare/dist/cli/build/utils/middleware.js
+node_modules/@opennextjs/cloudflare/dist/cli/build/utils/ensure-cf-config.js
+node_modules/@opennextjs/cloudflare/dist/cli/build/open-next/createServerBundle.js
+node_modules/@opennextjs/cloudflare/dist/api/overrides/asset-resolver/index.js
+node_modules/@opennextjs/cloudflare/dist/api/overrides/asset-resolver/index.d.ts
+node_modules/@opennextjs/cloudflare/dist/api/durable-objects/queue.js
+node_modules/@opennextjs/cloudflare/dist/api/config.js
+
+=== Package version ===
+  "name": "@opennextjs/cloudflare",
+  "version": "1.20.1",
