@@ -1,0 +1,13 @@
+# 14 — Risk Register
+
+| ID | Description | Trigger | Prob | Impact | Severity | Affected areas | Detection | Prevention/Mitigation | Contingency | Owner | Residual | Status |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| RISK-1 | Double-wrapped chrome (sidebar rendered twice) | Nested layouts (`library`, `projects/[projectId]`) still render `WorkshopPageShell` after parent shell added | Med | High (visual break, duplicate landmarks) | High | layout, nested layouts | DOM assertion: count `[data-workshop-page-shell-root]` | Task 1.5 explicitly reconciles nested layouts | revert the nested-layout edit | impl | low | open (mitigated in plan) |
+| RISK-2 | **Auth/terms gate regression — pre-render exposure** (CORRECTED, was understated) | Phase 2 originally proposed deferring gate reads; the gate is the **sole prod verifier** (verified `request-proxy.ts:195,227-248`, `protected-route-gate.ts:26-39`) | Low (after fix) | **Critical** (unauth/ terms-pending content exposure) | Critical | `workshop/layout.tsx`, security | SEC-1 denial tests + static gate (every `redirect()` precedes JSX) | **Phase 2 rewritten: gate stays synchronous-first; NO Suspense-defer; chrome renders only AFTER gate passes** (see `08` SEC-T1/T2) | revert | impl | low (with fix) | open |
+| RISK-3 | Visual/interaction parity drift after shell extraction | Title bar / actions / footer placement changes | Med | Med | Med | UI | manual nav matrix + a11y | mirror existing layout classes; preserve `data-*` attributes | revert Phase 1 | impl | med | open |
+| RISK-4 | Misattributing dev-vs-prod perf | Observing in `bun run dev` (no prefetch) | High (likely) | Low (wrong conclusion) | Low | measurement | Phase 0 measures BOTH and labels build mode | PERF-1 contract mandates prod-build measurement | re-measure in prod | impl | low | open |
+| RISK-5 | `WorkshopPageShell` has many consumers; refactor touches many files | Phase 1 scope | Med | Med | Med | many pages | `rg` for `WorkshopPageShell` imports before editing | full import audit in Task 1.3 | land incrementally per page | impl | low | open |
+| RISK-6 | Concurrent-agent file collision | Shared worktree | Med | Med | Med | touched files | fresh `git status` + re-read before edit; ledger | file-scope ownership | coordinate/re-read | impl | low | open |
+| RISK-7 | Phase 4 `cacheComponents` changes cache semantics for private/auth data | Enabling cache components | Low | High | High | all dynamic/private routes | build instant-nav checks + no-store audit | Phase 4 is optional + owner-gated; require private-response no-store proof | do not enable without separate plan | owner | — | deferred |
+
+No data/provider/migration/deploy risks (out of scope).
