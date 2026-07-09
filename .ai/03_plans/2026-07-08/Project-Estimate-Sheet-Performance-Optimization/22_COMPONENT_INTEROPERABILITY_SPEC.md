@@ -273,6 +273,34 @@ The component-interoperability work adds these data flows to the estimate sheet:
 - Local vitest evidence exists for CI-QA-01 through CI-QA-05c (component-library + estimate-sheet-library-insert suites).
 - GAP-07 (restore throws on D1) must be reflected in delete UX and documentation.
 
+## CI-QA ↔ Test Mapping (Pass-3 addition)
+
+Every CI-QA scenario must map to at least one named test (vitest or browser). The vitest column lists the existing test that proves the scenario at jsdom tier; the browser column lists the future `e2e/estimate-sheet-component-interop.spec.ts` scenario. "GAP" means no direct named test exists today and must be backfilled in U0.5.3 (see doc 16 Pass-3 takeaway).
+
+| CI-QA ID | Scenario | Existing vitest (file:test name) | Browser scenario (Phase 0.5) |
+|---|---|---|---|
+| CI-QA-01 | Create two library components with identical names | `library-add-component-modal-a11y.test.tsx` (duplicate-name warning test, 1 of 21) | `e2e/estimate-sheet-component-interop.spec.ts:01-duplicate-name-create` |
+| CI-QA-02 | Insert library component into estimate sheet | `estimate-sheet-library-insert.test.tsx` (insert test, 1 of 38) | `:02-insert-library-row` |
+| CI-QA-03 | Edit library-linked row in AddComponentModal (edit mode) | `estimate-sheet-library-insert.test.tsx` (edit test) + new `estimate-link-state-transitions.test.ts` | `:03-edit-library-row-linkstate` |
+| CI-QA-04 | Inline variant pill on library-linked row → `replaceEstimateRowItemWithLibrary` | `estimate-sheet-library-insert.test.tsx` (variant pill test) | `:04-inline-variant-pill-library` |
+| CI-QA-05 | Edit library-linked row thumbnail → `/api/projects/images` | **GAP** — new `estimate-three-edit-surfaces.test.ts` (U0.5.3) | `:05-edit-thumbnail-library-row` |
+| CI-QA-05b | EditComponentDrawer mutates library master | **GAP** — new `estimate-three-edit-surfaces.test.ts` | `:05b-edit-component-drawer-library-master` |
+| CI-QA-05c | Detach library-linked row | `estimate-sheet-version-control-actions.test.ts` (detach test) | `:05c-detach-library-row` |
+| CI-QA-06 | Edit project component → server + client fan-out | `estimate-sheet-library-insert.test.tsx` (project fan-out subset) | `:06-edit-project-component-fanout` |
+| CI-QA-07 | Identical project-component name (no duplicate warning) | `library-add-component-modal-a11y.test.tsx` (isEditing suppression) | `:07-identical-name-project` |
+| CI-QA-08 | Project component thumbnail fan-out | **GAP** — new `estimate-three-edit-surfaces.test.ts` | `:08-thumbnail-fanout-project` |
+| CI-QA-09 | Project component variant persistence | `estimate-sheet-library-insert.test.tsx` (variant persistence subset) | `:09-variant-persistence-project` |
+| CI-QA-10 | Inline variant pill on project row → row update + fan-out | `estimate-sheet-library-insert.test.tsx` (project variant pill) | `:10-inline-variant-pill-project` |
+| CI-QA-11 | Open edit mode for row with raw storage image path | `estimate-image-url.test.ts` (2 tests) | `:11-image-url-normalization` |
+| CI-QA-12 | Insert blank row + inline edit → express component | `estimate-sheet-library-insert.test.tsx` (express init test) | `:12-blank-row-express-init` |
+| CI-QA-13 | Promote project component to library | **GAP** — new integration test (U0.5.3) | `:13-promote-to-library` |
+| CI-QA-14 | Edit project component in 5,000-row estimate | (none — needs browser + graph index) | `:14-stress-fanout-5000-rows` |
+| CI-QA-15 | Open edit modal at stress fixture | (none — needs browser) | `:15-stress-modal-open` |
+| CI-QA-16 | Inline scalar edit on project component at scale | (none — needs browser + graph index) | `:16-stress-inline-edit` |
+| CI-QA-17 | Delete + restore-throws | `estimate-sheet-version-control-actions.test.ts` (restore-throws test) | `:17-delete-restore-limitation` |
+
+**Coverage status**: 11 of 17 scenarios have direct named vitest tests today. 6 scenarios (CI-QA-05, 05b, 08, 13, 14, 15, 16) need either new vitest tests (U0.5.3) or new browser scenarios (U0.5.1/.2). This is the traceability gap Phase 0.5 closes.
+
 ## Source Documents
 
 - `src/components/workshop/component-library-manager/AddComponentModal.tsx` (primary surface — create + edit modes)

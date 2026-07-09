@@ -101,3 +101,28 @@ Confidence: medium for exact later implementation sequencing, pending measuremen
 Confidence: not established for component-interop or performance at production scale (requires browser + hosted proof).
 
 Scope risk: broad, because the estimate sheet is central and spans route, data, state, render, mutation, component interop, templates, DnD, collaboration, tests, and provider proof.
+
+## Blind Spots And Known Unknowns (Pass-3 addition)
+
+Honest enumeration of things this plan does NOT yet know. Each item lists the signal that would resolve it.
+
+| ID | Blind spot | Why it matters | Resolution signal |
+|---|---|---|---|
+| BS-01 | Real Chrome behavior of the virtualized estimate sheet at 5,000 rows. jsdom cannot reproduce layout, paint, or main-thread long tasks. | The entire performance case rests on a measurement that does not yet exist. | Phase 0 browser spec (U0.3) artifact in `evidence/estimate-sheet-browser-profile.json`. |
+| BS-02 | Real D1 query plans + `rows_read` for the bound database at stress tier. | Index decisions and free-tier cost decisions require this. | Phase 0 D1 proof (U0.4) artifact with `EXPLAIN QUERY PLAN` for every dominant query shape. |
+| BS-03 | Client bundle weight growth after graph store is added. | Adding Zustand-backed graph store, selectors, and entity-patch log may push First Load JS over the budget. | Phase 2 bundle-size artifact; `bun run build` analyzer output. |
+| BS-04 | Better Auth session-expiration behavior during long editing sessions. | If sessions expire mid-edit, every server action returns 401 and optimistic rollback cascades (R28). | Targeted integration test: simulate expired session during pending mutation. |
+| BS-05 | Durable Object (`COLLAB_ROOMS`) behavior under disconnect/reconnect, slow consumer, and backpressure. | Doc 24 mentions DO but does not specify the protocol. Doc 27 mentions cursor isolation tests but only for 1-3 cursors. | Stress collab scenario in Phase 0.5 or Phase 4: 5+ concurrent cursors + reconnect mid-edit. |
+| BS-06 | RSC payload size at 1,500 nodes + 5,000 rows. | The route serializes nested tree to the client; payload size affects TTFB and First Load. | Phase 0 route benchmark artifact captures payload size; if >500KB, escalate. |
+| BS-07 | Mobile / tablet behavior of the three-panel layout. | The plan is desktop-first; AGENTS.md targets Philippines/SEA market where mobile-only users are common. | Phase 4 mobile-responsive proof (decision OPEN-07 below). |
+| BS-08 | WCAG 2.2 AA conformance for virtualized rows + DnD + collaboration overlays. | Retrofit is expensive if discovered late (R30). | Doc 29 a11y proof matrix validated BEFORE Phase 4 exits. |
+| BS-09 | Cloudflare free-tier headroom at projected MVP usage. | AGENTS.md mandates free-tier posture; projected concurrent users × actions/day may approach D1 rows-read/day or Workers requests/day cap. | Doc 09 (Pass-3) free-tier budget table + projection. |
+| BS-10 | Real-world fixture realism. The fixture tiers (small/medium/large/stress/limit) are uniform distributions. Real estimates have uneven branch shapes, long-tail attachments, deep nesting, mixed row kinds. | A test that passes on uniform fixtures may fail on real data shapes. | U0.1 fixture generator must include at least one "realistic-shape" fixture modeled on actual estimate samples (sanitized). |
+
+## Open Decision Requiring Product Input (Pass-3 addition)
+
+| ID | Decision needed | Default if unresolved |
+|---|---|---|
+| OPEN-07 | Mobile/tablet: is the estimate sheet expected to be editable on tablet (≥1024px), view-only on mobile (<768px), or fully editable on mobile? | Default for MVP: tablet-editable, mobile-view-only-with-truncation-UX. Plan must declare this before Phase 4. |
+
+This does not block Phase 0. It affects Phase 4 render boundary scope.

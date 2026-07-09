@@ -61,10 +61,16 @@ Rejected: Big-bang visual/interaction redesign. Reason: not requested and would 
 
 ## Open Product Decisions
 
-- Should search cover only loaded branches, or should it search the full estimate including unloaded subtrees?
-- Should move-position selection support exact arbitrary row placement in huge areas, or only top/bottom/near-visible-row/search-target placement?
-- Is 5,000 loaded rows the intended steady-state cap, or should the product target 10,000+ rows with server-side row windows?
-- Should proposal preview always use full data even when the interactive sheet is truncated?
+Each open decision is bounded with owner, trigger, and implementation impact so it can be resolved without blocking Phase 0 baseline work. None of these block Phase 0; all of them affect later architecture scope.
 
-These do not block Phase 0 baseline. They do affect later architecture scope.
+| ID | Decision | Owner | Trigger / Deadline | Implementation impact if unresolved |
+|---|---|---|---|---|
+| OPEN-01 | Should search cover only loaded branches, or full estimate including unloaded subtrees? | Product (Philip) | Phase 2 graph store design (selector `selectSearchMatches`) | If "loaded-only": Phase 2 ships behind `NEXT_PUBLIC_ESTIMATE_SELECTOR_SEARCH_ENABLED`. If "global": adds a new server action, a `search_estimate` RPC, a server-access predicate, and a Phase 7 server-assisted search track. Architecture, security review, and D1 cost budget differ materially. |
+| OPEN-02 | Should move-position selection support exact arbitrary row placement in huge areas, or only top/bottom/near-visible/search-target placement? | Product (Philip) | Phase 3.3 facet/move indexes | If "arbitrary": `selectMovePositionOptions` must accept a numeric row index or label search and resolve it to a row id at granularity ≤ 1 row. If "semantic only": the searchable Combobox pattern in doc 05 is sufficient. UI work and accessibility pattern (combobox vs slider) differ. |
+| OPEN-03 | Is 5,000 loaded rows the steady-state cap, or should the product target 10,000+ rows with server-side row windows? | Product (Philip) with Eng input | Phase 4 render boundary migration | If 5k cap stays: current `ESTIMATE_SHEET_TREE_LOAD_LIMITS` caps plus truncation UX are sufficient. If 10k+: Phase 4 must add cursor-paginated server row windows (`estimateQueryKeys.rowWindow`), server-side sort/filter, and a new DTO shape; non-trivial scope addition. |
+| OPEN-04 | Should proposal preview always use full data even when the interactive sheet is truncated? | Product (Philip) | Phase 4.2 / export work | If yes: proposal preview/export must call a non-truncated server read path and document that materialization is outside the keystroke hot path. If no: proposal preview must surface the same truncation UX as the sheet. |
+| OPEN-05 | Library-master edit from estimate sheet (GAP-02 in doc 22) — should users be able to edit the library master directly from a library-linked row? | Product (Philip) | Post-Phase 0.5, after MVP | If yes: new "Edit master" entry point in AddComponentModal edit mode that routes to `updateCostLibraryComponent`; new authz scope; new write-amplification budget. If no (current default): doc 22 stands. |
+| OPEN-06 | Inline component addition UX (GAP-04) — should there be an explicit "Convert to Project Component" or "Link to Library Component" affordance? | Product (Philip) | Post-MVP UX polish | If yes: new modal entry points; new optimistic flow; new tests. If no: current multi-step flow (insert blank → inline edit → optional promote) stands. |
+
+These do not block Phase 0 baseline. They affect later architecture scope.
 

@@ -47,35 +47,41 @@
 
 ## Component Interoperability (see doc 22)
 
-| Requirement | Plan Units | Evidence Required |
-|---|---|---|
-| REQ-CI-01 modal create+edit modes | Phase 0.5 | browser interop spec (CI-QA-01..03) |
-| REQ-CI-02 edit suppresses duplicate warning | Phase 0.5 | vitest (existing) + browser proof |
-| REQ-CI-03 image URL normalization | Phase 0.5 | vitest (existing) + browser proof (CI-QA-11) |
-| REQ-CI-04 edit-mode image endpoint routing | Phase 0.5 | browser proof (CI-QA-05, CI-QA-08) |
-| REQ-CI-05 variant persistence | Phase 0.5 | vitest (existing) + browser proof (CI-QA-09) |
-| REQ-CI-06 project fan-out (server + client) | Phase 0.5, U2.1, U3.1 | browser proof (CI-QA-06, CI-QA-14) + graph index proof |
-| REQ-CI-07 variant pill routing | Phase 0.5 | browser proof (CI-QA-04, CI-QA-10) |
-| REQ-CI-08 source snapshot null tolerance | Phase 0.5 | vitest (existing) |
-| REQ-CI-09 explicit type check before mutation | Phase 0.5 | code review + unit test |
-| REQ-CI-10 client fan-out O(1) at scale | U2.1, U3.1 | graph index parity test + stress proof (CI-QA-16) |
-| REQ-CI-11 surfaces correct at stress | Phase 0.5, U4.x | browser stress proof (CI-QA-14..16) |
-| REQ-CI-12 create vs edit write to different tables | Phase 0.5 | code review + integration test |
-| REQ-CI-13 EditComponentDrawer distinct surface | Phase 0.5 | code review |
-| REQ-CI-14 linkState flip on library edit | Phase 0.5 | integration test (CI-QA-03) |
-| REQ-CI-15 restore-deleted D1 limitation documented | docs 22, 25 | delete UX review + doc audit |
-| REQ-CI-16 promote updates linkage | Phase 0.5 | integration test (CI-QA-13) |
+Pass-3 update: every REQ-CI-* now maps to a named vitest test file (existing) or to a CI-QA scenario in the new browser spec. "Phase 0.5" entries below are scoped by CI-QA ID; see doc 22 § QA Matrix for the scenario-to-test mapping.
+
+| Requirement | Existing vitest file (test count) | Browser scenario (Phase 0.5) | Plan Units | Evidence Required |
+|---|---|---|---|---|
+| REQ-CI-01 modal create+edit modes | `library-add-component-modal-a11y.test.tsx` (21), `workshop-library-consolidation-ui.test.tsx` (13) | CI-QA-01, CI-QA-03 | U0.5.1 | browser proof (CI-QA-01..03) |
+| REQ-CI-02 edit suppresses duplicate warning | `library-add-component-modal-a11y.test.tsx` (covers `isEditing` gate) | CI-QA-03 | U0.5.1 | vitest (existing) + browser proof |
+| REQ-CI-03 image URL normalization | `estimate-image-url.test.ts` (2) | CI-QA-11 | U0.5.1 | vitest (existing) + browser proof |
+| REQ-CI-04 edit-mode image endpoint routing | (none yet — covered indirectly by `estimate-image-url.test.ts`) | CI-QA-05, CI-QA-08 | U0.5.1 + U0.5.3 | browser proof (CI-QA-05, CI-QA-08) + new `estimate-three-edit-surfaces.test.ts` |
+| REQ-CI-05 variant persistence | `estimate-sheet-library-insert.test.tsx` (subset) | CI-QA-09 | U0.5.1 | vitest (existing) + browser proof |
+| REQ-CI-06 project fan-out (server + client) | `estimate-sheet-library-insert.test.tsx` (subset) | CI-QA-06, CI-QA-14 | U2.1, U3.1, U0.5.2 | browser proof (CI-QA-06, CI-QA-14) + graph index proof + new `estimate-component-fan-out.test.ts` |
+| REQ-CI-07 variant pill routing | `estimate-sheet-library-insert.test.tsx` (subset) | CI-QA-04, CI-QA-10 | U0.5.1 | browser proof (CI-QA-04, CI-QA-10) |
+| REQ-CI-08 source snapshot null tolerance | (none — code review) | — | U0.5.3 | vitest (existing implicit) + new `estimate-link-state-transitions.test.ts` |
+| REQ-CI-09 explicit type check before mutation | `estimate-sheet-actions-authz.test.ts` (17) | — | U0.5.3 | code review + unit test |
+| REQ-CI-10 client fan-out O(1) at scale | (none — needs graph index) | CI-QA-14, CI-QA-16 | U2.1, U3.1 | graph index parity test + stress proof (CI-QA-14, CI-QA-16) |
+| REQ-CI-11 surfaces correct at stress | (none — needs browser) | CI-QA-14..16 | U0.5.2, U4.x | browser stress proof |
+| REQ-CI-12 create vs edit write to different tables | (none — needs new integration test) | — | U0.5.3 | new `estimate-three-edit-surfaces.test.ts` |
+| REQ-CI-13 EditComponentDrawer distinct surface | (none — code review) | — | U0.5.3 | code review |
+| REQ-CI-14 linkState flip on library edit | `estimate-sheet-version-control-actions.test.ts` (subset) | CI-QA-03 | U0.5.3 | new `estimate-link-state-transitions.test.ts` + CI-QA-03 |
+| REQ-CI-15 restore-deleted D1 limitation documented | docs 22, 25 | CI-QA-17 | U0.5.1 | delete UX review + doc audit + CI-QA-17 |
+| REQ-CI-16 promote updates linkage | (none — needs integration test) | CI-QA-13 | U0.5.3 | new integration test + CI-QA-13 |
+
+Pass-3 takeaway: REQ-CI-04, REQ-CI-08, REQ-CI-12, REQ-CI-13, REQ-CI-14, REQ-CI-16 have NO direct named vitest test today. They are covered indirectly by adjacent suites but must be backfilled in U0.5.3 with explicit test names. This is the traceability gap that Phase 0.5 closes.
 
 ## CRUD And Data Integrity (see docs 25, 26)
 
-| Requirement | Plan Units | Evidence Required |
-|---|---|---|
-| REQ-CRUD-01 authz gate on every write | all write phases | authz tests (existing 17) |
-| REQ-CRUD-02 entity-scoped rollback | U5.1, U5.3 | mutation failure/concurrency tests |
-| REQ-CRUD-03 row_revision conflict guard | all row phases | conflict tests (existing) |
-| REQ-CRUD-04 template stale-snapshot guard | Phase 0.5 | template insert tests (existing) |
-| REQ-CRUD-05 bulk delete all-or-nothing ≤100 | Phase 0.5 | bulk delete tests (existing) |
-| REQ-CRUD-06 realtime broadcast contract | Phase 0.5 | broadcast tests (existing 4) |
-| REQ-CRUD-07 optimistic node id resolution | Phase 0.5 | tree tests (existing) |
-| REQ-CRUD-08 P6 single-node model | all node phases | P6 tests (existing) |
+| Requirement | Existing vitest file (test count) | Plan Units | Evidence Required |
+|---|---|---|---|
+| REQ-CRUD-01 authz gate on every write | `estimate-sheet-actions-authz.test.ts` (17) | all write phases | authz tests (existing 17) |
+| REQ-CRUD-02 entity-scoped rollback | (none — needs U5.1) | U5.1, U5.3 | new mutation failure/concurrency tests |
+| REQ-CRUD-03 row_revision conflict guard | `estimate-sheet-version-control-actions.test.ts` (subset), `estimate-sheet-library-insert.test.tsx` (subset) | all row phases | conflict tests (existing) |
+| REQ-CRUD-04 template stale-snapshot guard | `estimate-sheet-library-insert.test.tsx` (subset) | Phase 0.5 | template insert tests (existing) |
+| REQ-CRUD-05 bulk delete all-or-nothing ≤100 | (none located — needs targeted test) | Phase 0.5 | new bulk delete tests |
+| REQ-CRUD-06 realtime broadcast contract | (none located — needs targeted test) | Phase 0.5 | new broadcast tests |
+| REQ-CRUD-07 optimistic node id resolution | `estimate-sheet-tree-dnd.tsx` (subset) | Phase 0.5 | tree tests (existing) |
+| REQ-CRUD-08 P6 single-node model | `estimate-template-drop-zones.test.tsx` ("direct insert INTO a row-owning area (P6)") | all node phases | P6 tests (existing) |
+
+Pass-3 takeaway: REQ-CRUD-05 and REQ-CRUD-06 need explicit named tests. The plan asserts "existing" coverage but the traceability to specific test names must be confirmed during U0.5.3.
 

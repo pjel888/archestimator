@@ -165,3 +165,56 @@ The estimate sheet has **three component editing surfaces** (see doc 22 for the 
 - Resize columns while rows are virtualized.
 - Trigger remote cursor updates during typing.
 
+## Accessibility Proof Matrix (Pass-3 addition)
+
+Full WCAG 2.2 AA criteria mapping, action-level proof matrix, state matrix, mobile/responsive plan, and reduced-motion plan live in **doc 29 (`29_ACCESSIBILITY_PROOF_MATRIX.md`)**. Doc 05 captures the intent; doc 29 is the binding proof contract.
+
+Key WCAG 2.2 AA criteria most relevant to the estimate sheet (full list in doc 29):
+
+- **1.3.1 Info and Relationships** — virtualized row tables use `<table>` + `<th scope>`; tree uses `role="tree"` + `role="treeitem"` + `aria-level`.
+- **1.4.3 Contrast Minimum** — all in-app text meets 4.5:1 per DESIGN.md tokens.
+- **1.4.10 Reflow** — content reflows at 320 CSS px without 2D scroll.
+- **1.4.11 Non-text Contrast** — drop zone borders, focus indicators, branch carets meet 3:1.
+- **2.1.1 Keyboard** — every action in doc 29 Action Matrix has a documented keyboard path. DnD has cut/paste keyboard equivalents.
+- **2.4.7 Focus Visible** — focus ring visible on every interactive element.
+- **2.5.1 Pointer Gestures** — DnD has keyboard alternatives.
+- **2.5.2 Pointer Cancellation** — drag can be cancelled with Escape before drop.
+- **2.5.3 Label in Name** — visible labels match accessible names.
+- **3.3.1 Error Identification** — validation errors include row + field + reason.
+- **3.3.3 Error Suggestion** — errors suggest corrections.
+- **4.1.2 Name, Role, Value** — modal `role=dialog`, treeitem `role=treeitem`, etc.
+- **4.1.3 Status Messages** — live region announcements per doc 29 State Matrix use `aria-live="polite"` or `"assertive"` appropriately.
+
+## Mobile / Responsive Plan (Pass-3 addition)
+
+The estimate sheet is a three-panel desktop-first workspace. Mobile/tablet scope is declared by OPEN-07 in doc 17; the default until resolved is:
+
+| Breakpoint | Behavior |
+|---|---|
+| Desktop (≥1280px CSS) | Three-panel layout: tree / sheet / sidebar. All actions available. |
+| Tablet landscape (1024-1279px) | Three-panel, narrower sidebar (collapsible). All actions available. |
+| Tablet portrait (768-1023px) | Two-panel: tree + sidebar collapse to drawers. All actions available. |
+| Mobile (≤767px) | View-only. Single panel: sheet only. Read-only navigation, scroll, expand/collapse. Edit CTA hidden with "Open on desktop to edit" message. |
+
+Full proof plan in doc 29. Phase 4 must run responsive proof at each breakpoint.
+
+## Reduced Motion (Pass-3 addition)
+
+Respect `prefers-reduced-motion: reduce`:
+
+- Disable collaboration cursor animations.
+- Disable drag edge auto-scroll ramp.
+- Disable toast/skeleton transitions.
+
+Test: render sheet with `prefers-reduced-motion: reduce` and assert no rAF animation loops run.
+
+## UX Acceptance Tests (Pass-3 expanded)
+
+Added to the existing list:
+
+- Navigate the entire sheet using only keyboard (Tab/Arrow/Enter/Escape).
+- Open every modal/overlay via keyboard and close via Escape without focus loss.
+- Run screen reader (VoiceOver or NVDA) through primary user flow; capture transcript.
+- Render at 320 CSS px width without 2D scroll (mobile reflow).
+- Toggle `prefers-reduced-motion: reduce` and confirm animations stop.
+

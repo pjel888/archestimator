@@ -2,11 +2,11 @@
 
 Status: **CONDITIONALLY READY** — Phase 0 and Phase 0.5 verification may begin; optimization coding requires Phase 0 evidence.
 
-Created: 2026-07-08 | Last improved: 2026-07-08 (second improvement pass — comprehensive domain-model + CRUD + template + DnD coverage)
+Created: 2026-07-08 | Last improved: 2026-07-09 (third improvement pass — inventory/source-map, WCAG 2.2 AA proof matrix, budgets, pre-mortem, hosted-proof runbook, traceability tightening).
 
 Scope: planning only. No source, test, migration, provider, or runtime implementation changes are authorized by this pack except Phase 0 measurement artifacts.
 
-Scope: planning only. No source, test, migration, provider, or runtime implementation changes are authorized by this pack except Phase 0 measurement artifacts.
+Verification mode: `emulated` (same-agent, multi-lane). Per Improve-Plan-Prompt Suite Succession, this caps the package at 97 and the behavior-bearing status at `CONDITIONALLY READY` until a real independent reviewer or browser/hosted proof is produced.
 
 ## Mission
 
@@ -41,30 +41,32 @@ The current sheet is partly performant, not fully scalable by proof. Component i
 | 01 | `01_EXECUTIVE_SUMMARY.md` | Decision summary, readiness, top priorities |
 | 02 | `02_FEATURE_BRIEF_AND_SCOPE.md` | Goals, non-goals, users, scenarios, scale targets — includes component interop |
 | 03 | `03_SOURCE_AND_CODEBASE_AUDIT.md` | Current code findings with exact files |
-| 04 | `04_REQUIREMENTS_SPECIFICATION.md` | Functional, performance, reliability, test requirements — includes REQ-CI-01 through CI-11 |
-| 05 | `05_UX_UI_ACCESSIBILITY_PLAN.md` | Interaction, a11y, perceived performance |
+| 04 | `04_REQUIREMENTS_SPECIFICATION.md` | Functional, performance, reliability, test requirements — includes REQ-CI-01 through CI-16 and REQ-CRUD-01 through CRUD-08 |
+| 05 | `05_UX_UI_ACCESSIBILITY_PLAN.md` | Interaction, a11y, perceived performance, mobile/responsive, reduced motion |
 | 06 | `06_ARCHITECTURE_AND_TECHNICAL_DESIGN.md` | Normalized graph target, alternatives, ADR — includes componentInstanceNodeIds |
 | 07 | `07_DATA_DATABASE_API_NETWORK_PLAN.md` | D1, query keys, route, network design |
 | 08 | `08_SECURITY_PRIVACY_THREAT_MODEL.md` | Auth, data exposure, proof redaction, abuse risks |
-| 09 | `09_PERFORMANCE_RELIABILITY_OBSERVABILITY.md` | Budgets, telemetry, reliability gates |
+| 09 | `09_PERFORMANCE_RELIABILITY_OBSERVABILITY.md` | Budgets, telemetry, reliability gates, Cloudflare free-tier budget, bundle/RSC budget, throttling |
 | 10 | `10_BLAST_RADIUS_AND_DEPENDENCIES.md` | Affected modules, dependency posture |
-| 11 | `11_IMPLEMENTATION_PLAN.md` | 7-phase staged execution units — includes Phase 0.5 component-interop verification |
+| 11 | `11_IMPLEMENTATION_PLAN.md` | 7-phase staged execution units, phase exit criteria, Phase 0.5 component-interop verification |
 | 12 | `12_TEST_AND_VALIDATION_STRATEGY.md` | Test matrix, commands, fixtures, evidence artifacts |
-| 13 | `13_ROLLOUT_ROLLBACK_AND_OPERATIONS.md` | Rollout, rollback, feature flags, operational proof |
-| 14 | `14_RISK_REGISTER.md` | 18 risks with severity, mitigations, owners |
-| 15 | `15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md` | ADR-style decisions and rejected paths |
-| 16 | `16_REQUIREMENTS_TRACEABILITY_MATRIX.md` | REQ-to-unit-to-evidence map |
-| 17 | `17_FINAL_READINESS_REVIEW.md` | Readiness verdict, go/no-go — includes component-interop gates |
+| 13 | `13_ROLLOUT_ROLLBACK_AND_OPERATIONS.md` | Rollout, rollback, feature flags, hosted-proof runbook, operator checklist |
+| 14 | `14_RISK_REGISTER.md` | 30 risks with severity, mitigations, owners (15 perf + 6 component-interop/CRUD + 9 pre-mortem) |
+| 15 | `15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md` | ADR-style decisions, rejected paths, open-decisions table with owner/deadline/impact |
+| 16 | `16_REQUIREMENTS_TRACEABILITY_MATRIX.md` | REQ-to-unit-to-named-test map |
+| 17 | `17_FINAL_READINESS_REVIEW.md` | Readiness verdict, go/no-go, blind spots, OPEN-07 mobile scope |
 | 18 | `18_STACK_CONTRACT_AND_PRODUCTION_STANDARDS.md` | Official docs, stack constraints |
 | 19 | `19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md` | Subagent, GitNexus, research, critique evidence |
 | 20 | `20_PERFORMANCE_EVALUATOR_SPEC.md` | Evaluator contract, metric artifacts |
 | 21 | `21_EXECUTION_HANDOFF.md` | Ready-to-run implementation handoff |
-| 22 | `22_COMPONENT_INTEROPERABILITY_SPEC.md` | Component type interop: identity contract, three edit surfaces, surface matrix, variants, QA matrix |
+| 22 | `22_COMPONENT_INTEROPERABILITY_SPEC.md` | Component type interop: identity contract, three edit surfaces, surface matrix, variants, QA matrix, CI-QA ↔ test mapping |
 | 23 | `23_FINAL_SCORECARD_AND_READINESS.md` | Full scored audit against Improve-Plan-Prompt methodology |
-| 24 | `24_DOMAIN_MODEL_AND_DATA_FLOW.md` | **NEW** Comprehensive "understand everything" reference: entity model, rendering layer, data layer, hot-path cost map |
-| 25 | `25_CRUD_SURFACE_AND_MUTATION_MAP.md` | **NEW** Complete CRUD contract: every Server Action, RPC, optimistic/rollback behavior, authz gate |
-| 26 | `26_TEMPLATE_COMPOSITION_AND_INSERTION.md` | **NEW** Template entity model, three insertion entry points, optimistic flow, server-side copy semantics, DnD bridge |
-| 27 | `27_DRAG_AND_DROP_AND_CROSS_PANEL_ARCHITECTURE.md` | **NEW** DnD system, three-panel layout, window-event bridge, collaboration overlay isolation |
+| 24 | `24_DOMAIN_MODEL_AND_DATA_FLOW.md` | Comprehensive "understand everything" reference: entity model, rendering layer, data layer, hot-path cost map |
+| 25 | `25_CRUD_SURFACE_AND_MUTATION_MAP.md` | Complete CRUD contract: every Server Action, RPC, optimistic/rollback behavior, authz gate |
+| 26 | `26_TEMPLATE_COMPOSITION_AND_INSERTION.md` | Template entity model, three insertion entry points, optimistic flow, server-side copy semantics, DnD bridge |
+| 27 | `27_DRAG_AND_DROP_AND_CROSS_PANEL_ARCHITECTURE.md` | DnD system, three-panel layout, window-event bridge, collaboration overlay isolation |
+| 28 | `28_INVENTORY_SOURCE_MAP.md` | **NEW (Pass-3)** Document inventory, source hierarchy, requirements/decision/assumption registers, evidence map, missing-source list |
+| 29 | `29_ACCESSIBILITY_PROOF_MATRIX.md` | **NEW (Pass-3)** WCAG 2.2 AA criteria-to-test mapping, state matrix, action-level proof matrix, mobile/responsive plan, reduced motion |
 | — | `LOOP_LEDGER.md` | Durable planning loop ledger |
 | — | `evidence/` | Phase evidence artifacts |
 
@@ -83,9 +85,25 @@ Before Phase 0.5 completion, browser verification must pass for:
 
 ## Scorecard
 
-Pre-improvement: ~80/100 | Post-pass-1: ~85/100 | Post-pass-2: ~88/100 | Target: 95+ (requires browser proof + independent verifier)
+Pre-improvement: ~80/100 | Post-pass-1: ~85/100 | Post-pass-2: ~88/100 | Post-pass-3: ~91/100 | Target: 95+ (requires real independent reviewer + browser/hosted proof — out of planning scope)
 
 See `23_FINAL_SCORECARD_AND_READINESS.md` for full scored audit.
+
+## What This Pack Covers (pass 3 summary)
+
+Pass 3 (2026-07-09) closed industry-standard gaps surfaced in pass-2 review:
+
+- **Doc 28 (Inventory & Source Map)**: Improve-Plan-Prompt Phase-1 requirement — document inventory, source hierarchy, requirements map, decision map, assumption register, evidence map, missing-source list. All file:line refs verified against current worktree.
+- **Doc 29 (Accessibility Proof Matrix)**: WCAG 2.2 AA criteria-to-test mapping for the worksheet surface; state matrix (loading/empty/success/error/conflict/permission/offline/timeout/cancel/truncation/session-expired); action-level proof matrix (keyboard path/focus/aria-live); mobile/responsive plan; reduced-motion plan. Lifts the UX cap from 84.
+- **Doc 09 expansion**: Cloudflare free-tier budget table (with verify-before-rely caveats and source URLs); client bundle + RSC payload budget; device/network throttling plan.
+- **Doc 11 expansion**: Phase exit criteria (binary observable per phase); formalized Phase 0.5 with units U0.5.1/.2/.3; R22 conditional gate (Phase 2 only if client computation is top-3 bottleneck); R23 property test (1,000+ iterations); R25 concurrent-edit + rollback interaction test.
+- **Doc 13 expansion**: Hosted-proof runbook (Phase A seed / B measure / C cleanup / D verify, with fail-closed assertion); rollback rehearsal per phase; operator monitoring checklist.
+- **Doc 14 expansion**: 9 pre-mortem scenarios (R22-R30) — Phase 0 memo gate, totals drift, hosted cleanup, rollback/broadcast race, template stress, Chrome version flake, session expiry, selector order stability, a11y retrofit.
+- **Doc 15 expansion**: Open decisions converted from bullets to owner/deadline/impact table (OPEN-01..06).
+- **Doc 16 expansion**: Every REQ-CI-* maps to a named vitest test file or browser scenario; pass-3 takeaway lists the 6 missing tests for U0.5.3 backfill.
+- **Doc 17 expansion**: Blind-spots section (BS-01..10) — real Chrome behavior, D1 query plans, bundle weight, session expiry, DO backpressure, RSC payload, mobile, WCAG retrofit risk, free-tier headroom, fixture realism. OPEN-07 mobile/tablet scope decision.
+- **Doc 22 expansion**: CI-QA ↔ test name mapping table; coverage status 11/17 explicit.
+- **README**: removed duplicate "Scope" line; declared verification mode; refreshed index.
 
 ## What This Pack Covers (pass 2 summary)
 

@@ -2,7 +2,42 @@
 
 ## Verification Mode
 
-`verification_mode: emulated` — same-agent improvement pass with separated review phases. Readiness cap: 97 for plan quality, `CONDITIONALLY READY` for behavior-bearing packages without independent verifier or browser proof.
+`verification_mode: emulated` — same-agent multi-pass improvement with separated review phases. Pass-3 added: source verification of file:line refs (all accurate), inventory/source-map, WCAG 2.2 AA proof matrix, budgets, pre-mortem, hosted-proof runbook, traceability tightening. Readiness cap: 94 for plan quality (emulated verification + no browser/hosted proof), `CONDITIONALLY READY` for behavior-bearing packages without independent verifier.
+
+## Pass-3 Honest Scorecard (2026-07-09)
+
+Pass-3 closes the industry-standard gaps surfaced in pass-2 review. Every dimension that prevented 90+ has been addressed at the planning level; the remaining cap is structural (no real browser/hosted proof) and cannot be lifted by more planning.
+
+| Doc | Pass-2 | Pass-3 | Reason for change |
+|---|---|---|---|
+| README | 88 | 92 | Duplicate "Scope" line removed; index refreshed; verification mode declared; status accurate |
+| 05 UX/a11y | 80 | 88 | Added WCAG 2.2 AA criteria references, mobile/responsive plan, reduced motion, expanded acceptance tests. Full matrix in doc 29 |
+| 09 Perf/reliability | 83 | 90 | Added Cloudflare free-tier budget, bundle/RSC budget, device throttling plan. Closes BS-03, BS-06, BS-09 |
+| 11 Implementation | 85 | 92 | Added phase exit criteria, formalized Phase 0.5 with units U0.5.1/.2/.3, R22-conditional Phase 2 gate, R23 property test, R25 concurrent edit |
+| 13 Rollout/ops | 76 | 90 | Added hosted-proof runbook (Phase A/B/C/D + fail-closed), rollback rehearsal, operator monitoring checklist |
+| 14 Risk register | 84 | 90 | Added 9 pre-mortem scenarios R22-R30; covers Phase 0 memo gate, totals drift, hosted cleanup, rollback/broadcast race, template stress, Chrome flake, session expiry, selector order, a11y retrofit |
+| 15 Decisions | 75 | 92 | Open decisions converted to owner/deadline/impact table; OPEN-01..06 explicitly listed |
+| 16 Traceability | 85 | 92 | Every REQ-CI-* maps to a named vitest file or browser scenario; pass-3 takeaway lists the 6 missing tests for U0.5.3 backfill |
+| 17 Readiness | 85 | 90 | Added blind-spots section (BS-01..10), OPEN-07 mobile scope decision |
+| 22 Component interop | 92 | 95 | Added CI-QA ↔ test mapping table; coverage status 11/17 explicit |
+| 28 Inventory (NEW) | — | 92 | Phase-1 requirement from Improve-Plan-Prompt; closes the inventory/source-hierarchy/assumption-register/evidence-map/missing-source gap |
+| 29 A11y proof matrix (NEW) | — | 90 | Closes the WCAG 2.2 AA cap; UX readiness no longer capped at 84 |
+| 24 Domain model | 90 | 92 | File:line refs verified accurate |
+| 25 CRUD surface | 90 | 92 | File:line refs verified accurate |
+
+**Pass-3 weighted average**: ~91/100 (up from ~88 in pass 2).
+
+The remaining gap to 94 (the emulated-verification ceiling) is:
+- No browser proof (Phase 0 not yet run)
+- No hosted proof (env gates not yet available)
+- No independent reviewer
+
+Hitting 95+ requires:
+- A real second reviewer (not the same agent)
+- AND Phase 0 browser + D1 artifacts
+- AND Phase 0.5 component-interop browser proof
+
+None of these can be lifted by additional planning. The plan is now structurally implementation-ready for Phase 0; the path to 95+ is execution, not more documentation.
 
 ## Plan Pack Inventory
 
@@ -11,31 +46,33 @@
 | 00 | `00_AGENT_COORDINATION.md` | Agent coordination and lane discipline | Active |
 | 01 | `01_EXECUTIVE_SUMMARY.md` | Decision summary and top priorities | Active |
 | 02 | `02_FEATURE_BRIEF_AND_SCOPE.md` | Goals, non-goals, users, scale targets | Active — updated for component-interop |
-| 03 | `03_SOURCE_AND_CODEBASE_AUDIT.md` | Current code audit with exact file references | Active |
-| 04 | `04_REQUIREMENTS_SPECIFICATION.md` | Functional, performance, reliability, data, test requirements | Active — includes REQ-CI-01 through REQ-CI-16 |
-| 05 | `05_UX_UI_ACCESSIBILITY_PLAN.md` | Interaction, a11y, perceived performance, component editing UX | Active — updated pass 2 |
+| 03 | `03_SOURCE_AND_CODEBASE_AUDIT.md` | Current code audit with exact file references | Active — verified accurate Pass-3 |
+| 04 | `04_REQUIREMENTS_SPECIFICATION.md` | Functional, performance, reliability, data, test requirements | Active — includes REQ-CI-01 through REQ-CI-16 and REQ-CRUD-01 through REQ-CRUD-08 |
+| 05 | `05_UX_UI_ACCESSIBILITY_PLAN.md` | Interaction, a11y, perceived performance, mobile, reduced motion | Active — updated Pass-3 |
 | 06 | `06_ARCHITECTURE_AND_TECHNICAL_DESIGN.md` | Normalized graph target, alternatives, ADR | Active |
 | 07 | `07_DATA_DATABASE_API_NETWORK_PLAN.md` | D1, query keys, route, network | Active |
 | 08 | `08_SECURITY_PRIVACY_THREAT_MODEL.md` | Auth, data exposure, proof redaction | Active |
-| 09 | `09_PERFORMANCE_RELIABILITY_OBSERVABILITY.md` | Budgets, telemetry, reliability | Active |
+| 09 | `09_PERFORMANCE_RELIABILITY_OBSERVABILITY.md` | Budgets, telemetry, reliability, Cloudflare free-tier, bundle, throttling | Active — updated Pass-3 |
 | 10 | `10_BLAST_RADIUS_AND_DEPENDENCIES.md` | Affected modules, dependency posture | Active |
-| 11 | `11_IMPLEMENTATION_PLAN.md` | 6-phase, 20+ unit staged plan | Active |
+| 11 | `11_IMPLEMENTATION_PLAN.md` | 6-phase, 20+ unit staged plan + exit criteria + Phase 0.5 | Active — updated Pass-3 |
 | 12 | `12_TEST_AND_VALIDATION_STRATEGY.md` | Test matrix, commands, fixtures, component-interop test matrix | Active — updated pass 2 |
-| 13 | `13_ROLLOUT_ROLLBACK_AND_OPERATIONS.md` | Flags, deploy, monitoring, rollback | Active |
-| 14 | `14_RISK_REGISTER.md` | 21 risks with severity/probability/mitigation (15 perf + 6 component-interop/CRUD) | Active — updated pass 2 |
-| 15 | `15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md` | ADR-style decisions, rejected paths | Active |
-| 16 | `16_REQUIREMENTS_TRACEABILITY_MATRIX.md` | REQ-to-unit-to-evidence map | Active |
-| 17 | `17_FINAL_READINESS_REVIEW.md` | Readiness verdict, go/no-go, component-interop gates | Active — updated pass 2 |
+| 13 | `13_ROLLOUT_ROLLBACK_AND_OPERATIONS.md` | Flags, deploy, monitoring, rollback, hosted-proof runbook | Active — updated Pass-3 |
+| 14 | `14_RISK_REGISTER.md` | 30 risks (15 perf + 6 interop/CRUD + 9 pre-mortem) | Active — updated Pass-3 |
+| 15 | `15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md` | ADR-style decisions, rejected paths, open-decisions table | Active — updated Pass-3 |
+| 16 | `16_REQUIREMENTS_TRACEABILITY_MATRIX.md` | REQ-to-named-test map | Active — updated Pass-3 |
+| 17 | `17_FINAL_READINESS_REVIEW.md` | Readiness verdict, go/no-go, blind spots, OPEN-07 | Active — updated Pass-3 |
 | 18 | `18_STACK_CONTRACT_AND_PRODUCTION_STANDARDS.md` | Official docs, stack constraints | Active |
 | 19 | `19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md` | Subagent, GitNexus, research evidence | Active |
 | 20 | `20_PERFORMANCE_EVALUATOR_SPEC.md` | Evaluator contract, metric artifacts | Active |
 | 21 | `21_EXECUTION_HANDOFF.md` | Ready-to-run implementation handoff | Active |
-| 22 | `22_COMPONENT_INTEROPERABILITY_SPEC.md` | Component type interop: identity, three edit surfaces, variants | Active — corrected + enriched pass 2 |
-| 23 | `23_FINAL_SCORECARD_AND_READINESS.md` | Scored audit and readiness | Active — this document |
-| 24 | `24_DOMAIN_MODEL_AND_DATA_FLOW.md` | **NEW** Comprehensive domain model + rendering/data layer map + hot-path cost map | Active — created pass 2 |
-| 25 | `25_CRUD_SURFACE_AND_MUTATION_MAP.md` | **NEW** Complete CRUD contract + mutation flow + authz | Active — created pass 2 |
-| 26 | `26_TEMPLATE_COMPOSITION_AND_INSERTION.md` | **NEW** Template entity model + insertion flows + DnD bridge | Active — created pass 2 |
-| 27 | `27_DRAG_AND_DROP_AND_CROSS_PANEL_ARCHITECTURE.md` | **NEW** DnD system + three-panel layout + window-event bridge | Active — created pass 2 |
+| 22 | `22_COMPONENT_INTEROPERABILITY_SPEC.md` | Component type interop: identity, three edit surfaces, variants, CI-QA ↔ test | Active — updated Pass-3 |
+| 23 | `23_FINAL_SCORECARD_AND_READINESS.md` | Scored audit and readiness | Active — this document, Pass-3 refreshed |
+| 24 | `24_DOMAIN_MODEL_AND_DATA_FLOW.md` | Comprehensive domain model + rendering/data layer map + hot-path cost map | Active — verified accurate Pass-3 |
+| 25 | `25_CRUD_SURFACE_AND_MUTATION_MAP.md` | Complete CRUD contract + mutation flow + authz | Active — verified accurate Pass-3 |
+| 26 | `26_TEMPLATE_COMPOSITION_AND_INSERTION.md` | Template entity model + insertion flows + DnD bridge | Active — created pass 2 |
+| 27 | `27_DRAG_AND_DROP_AND_CROSS_PANEL_ARCHITECTURE.md` | DnD system + three-panel layout + window-event bridge | Active — created pass 2 |
+| 28 | `28_INVENTORY_SOURCE_MAP.md` | **NEW Pass-3** Document inventory, source hierarchy, registers | Active — created Pass-3 |
+| 29 | `29_ACCESSIBILITY_PROOF_MATRIX.md` | **NEW Pass-3** WCAG 2.2 AA criteria mapping + state matrix + action-level proof | Active — created Pass-3 |
 
 ## Scored Audit (Pre-Improvement Baseline)
 

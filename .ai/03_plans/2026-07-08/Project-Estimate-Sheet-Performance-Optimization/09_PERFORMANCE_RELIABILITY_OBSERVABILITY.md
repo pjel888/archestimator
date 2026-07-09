@@ -88,3 +88,64 @@ Every optimization phase must produce:
 - Explanation for any budget exception.
 - Rollback path.
 
+## Cloudflare Free-Tier Budget (Pass-3 addition)
+
+AGENTS.md mandates staying on free-tier/bundled Cloudflare limits. Numbers below are baseline free-tier caps as commonly published by Cloudflare (verify current numbers at https://developers.cloudflare.com/workers/platform/limits/ and https://developers.cloudflare.com/d1/platform/limits/ before relying on them). Each row estimates per-action consumption for the estimate sheet and the projected MVP headroom.
+
+The MVP projection assumes: 10 design-partner users × 50 actions/day = 500 actions/day; 5,000 rows × 1.5 D1 reads/action avg = ~7,500 D1 rows read/day from edit activity; route opens ~50/day × 5,000 rows read avg = ~250,000 rows read/day from routes. Both are well under free-tier caps but the D1 row-read projection needs Phase 0 confirmation.
+
+| Resource | Free-tier cap (verify before rely) | Per-action estimate (estimate sheet) | Projected MVP/day | Headroom | Trigger for paid upgrade |
+|---|---|---|---|---|---|
+| Workers requests/day | 100,000 | 1 request/user action | ~500 | >99% | Sustained >60% for 7 days |
+| Workers CPU time/request | 10ms (free) / 30s (paid) | <5ms typical | <5ms | High | p95 >8ms |
+| Workers subrequests/request | 50 | <6 (route + subtree) | <6 | High | >25 |
+| D1 rows read/day | 5,000,000 | Route: ~5,000; edit: ~50 | ~260,000 | ~95% | Sustained >50% for 7 days |
+| D1 rows written/day | 100,000 | Edit: ~3; insert: ~10 | ~3,000 | ~97% | Sustained >50% for 7 days |
+| D1 storage | 5 GB | ~500 bytes/row × 5,000 rows + overhead = ~3 MB/estimate | <1 GB | >80% | Sustained >50% |
+| Durable Objects requests/day | 1,000,000 (paid) — free tier allows limited DO usage | Per collab session: ~100 | ~5,000 | Plenty | Sustained >40% |
+| Queues operations/month | 100,000 | Per upload: ~5 | <500 | Plenty | — |
+| R2 storage | 10 GB | Per upload: ~1 MB | <1 GB | >90% | — |
+| R2 Class A operations/month | 1,000,000 | Per upload: ~5 | <500 | Plenty | — |
+| R2 Class B operations/month | 10,000,000 | Per image load: ~1 | ~5,000 | Plenty | — |
+| Cloudflare Images | 100,000 transformations/month (paid $5) — free tier: limited stored images | Per upload: 1 transformation | <100 | Plenty | — |
+| Cloudflare Email | Free tier: limited | Per invite/share: 1 email | <50 | Plenty | — |
+| Workers Logs | Free tier: 200k logs/day; paid: extended retention | Per route/action: ~10 logs | ~5,000 | Plenty | — |
+
+**Action items**:
+- Verify all numbers against https://developers.cloudflare.com/workers/platform/limits/, https://developers.cloudflare.com/d1/platform/limits/, https://developers.cloudflare.com/durable-objects/platform/limits/, https://developers.cloudflare.com/r2/platform/limits/, https://developers.cloudflare.com/queues/platform/limits/, https://developers.cloudflare.com/email-routing/ before Phase 6 hosted proof.
+- Phase 0 D1 proof must capture actual rows_read/route to confirm the 5,000-row-read/route estimate.
+- Add D1 rows-read/day telemetry to doc 13 operator checklist.
+- If any projection crosses 50% headroom, escalate to owner before exceeding free-tier.
+
+## Client Bundle And RSC Payload Budget (Pass-3 addition)
+
+Industry standard: declare a First Load JS budget for the estimate sheet route and track it as a regression gate. Numbers below are baseline targets; Phase 0 route benchmark should capture current actual and Phase 2 should add the graph store cost.
+
+| Budget | Target | Why | Measurement |
+|---|---|---|---|
+| First Load JS (estimate route) | ≤ 350 KB gzipped | Mobile/tablet friendly; web.dev LCP target | `bun run build` + bundle analyzer (e.g., `@next/bundle-analyzer`); capture in Phase 0 |
+| First Load JS (landing route) | ≤ 200 KB gzipped | Landing is public-facing | Same |
+| RSC payload size (stress fixture) | ≤ 500 KB | Avoid TTFB regression | Phase 0 route benchmark artifact |
+| Per-keystroke JS work | ≤ 16 ms | REQ-P01 | Existing jsdom keystroke budget |
+| Client graph store memory | ≤ 20 MB at 5,000 rows | Avoid mobile memory pressure | Phase 2 memory profile |
+
+**Bundle regression gate**: add a `bun run perf:bundle-audit` script (or use existing `bun run build` analyzer) that fails CI if First Load JS for the estimate route exceeds budget by >5%. Pin the budget in repo config so it's not silently exceeded.
+
+**Action items**:
+- Confirm whether `@next/bundle-analyzer` or equivalent is installed; if not, this is a Phase 0 dependency (one-line install).
+- Add bundle size artifact to Phase 0 evidence.
+- Track First Load JS trend across phases in `evidence/bundle-trend.json`.
+
+## Device And Network Throttling (Pass-3 addition)
+
+Performance claims must be measured under realistic conditions, not just dev hardware.
+
+| Profile | When | Why |
+|---|---|---|
+| Desktop, no throttling | Development baseline | Fastest possible; reveals structural issues |
+| Desktop, "Slow 3G" (400kbps/400ms RTT) | Phase 0 route benchmark | Web.dev standard for LCP/INP claims |
+| Mobile emulation (Pixel 5 / iPhone 12), CPU 4x slowdown | Phase 0 + Phase 4 | Mobile user is in scope (OPEN-07) |
+| Tablet emulation (iPad), no throttling | Phase 4 responsive proof | Tablet-editable scope |
+
+Add throttled measurements to U0.3 browser spec. Document that lab data is a proxy for field data; field data requires production deployment.
+
