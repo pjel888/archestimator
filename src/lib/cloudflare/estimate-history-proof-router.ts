@@ -278,6 +278,7 @@ function createCurrentUserContext(input: {
 }): CurrentUserContext {
   const now = nowIso();
   const profile: CurrentUserProfile = {
+    account_status: "active",
     avatar_url: input.avatarUrl ?? null,
     created_at: now,
     default_workspace_id: input.defaultWorkspaceId,

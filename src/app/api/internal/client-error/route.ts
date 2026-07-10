@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import { NextResponse } from "next/server";
 
+import { recordClientErrorEvent } from "@/lib/admin/observability-repository";
 import { consoleAppLogger } from "@/lib/observability/logger";
 import { redactForLog } from "@/lib/observability/redact";
 
@@ -145,6 +146,17 @@ export async function POST(request: Request) {
     context: redacted.value,
     tainted_fields: redacted.taintedFields.map((field) => `context.${field}`),
   });
+
+  // Best-effort persist to D1 for admin observability. Failures are logged
+  // inside recordClientErrorEvent but do not block the response.
+  await recordClientErrorEvent({
+    userId: null,
+    route: String(payload.route ?? "").slice(0, 500),
+    errorClass: String(payload.name ?? "unknown").slice(0, 200),
+    messageRedacted: String(payload.message ?? "").slice(0, 1000),
+    stackHash: payload.digest ? String(payload.digest).slice(0, 128) : null,
+    userAgent: request.headers.get("user-agent"),
+  }).catch(() => undefined);
 
   return noStoreJson({ ok: true }, 202);
 }

@@ -5,6 +5,7 @@ import {
 import { runRetentionPassInD1, type RetentionD1DatabaseLike } from "./src/lib/compliance/retention-core";
 import { normalizePathForLog } from "./src/lib/observability/safe-path";
 import { redactMessage } from "./src/lib/observability/redact";
+import { recordCronRunEvent } from "./src/lib/admin/observability-repository";
 import {
   getCurrentRequestId,
   resolveRequestId,
@@ -180,6 +181,9 @@ export default {
   },
 
   scheduled(controller: ScheduledControllerLike, env: CloudflareWorkerEnv, ctx: ExecutionContextLike) {
+    const startedAt = new Date().toISOString();
+    const cronName = controller.cron;
+
     ctx.waitUntil(
       runCloudflareScheduledUploadJobs({
         cron: controller.cron,
@@ -187,6 +191,25 @@ export default {
         fetcher: (request) => openNextWorker.fetch(request, env, ctx),
       }).then((summary) => {
         console.log("Cloudflare scheduled upload jobs completed", JSON.stringify(summary));
+        // Record the cron run event for admin observability.
+        recordCronRunEvent({
+          cronName: `upload-jobs:${cronName}`,
+          startedAt,
+          finishedAt: new Date().toISOString(),
+          status: "ok",
+          summaryJson: JSON.stringify(summary),
+          errorClass: null,
+        }).catch(() => undefined);
+      }).catch((error) => {
+        console.error("Cloudflare scheduled upload jobs failed", error);
+        recordCronRunEvent({
+          cronName: `upload-jobs:${cronName}`,
+          startedAt,
+          finishedAt: new Date().toISOString(),
+          status: "error",
+          summaryJson: null,
+          errorClass: error instanceof Error ? error.name : "unknown",
+        }).catch(() => undefined);
       }),
     );
     // ponytail: P1.8 retention pass — dispatch on the "30 3 * * *" cron only.
@@ -195,6 +218,24 @@ export default {
       ctx.waitUntil(
         runRetentionPassInD1(env.ARCH_DB, undefined, { cronRunId: crypto.randomUUID() }).then((results) => {
           console.log("Retention pass completed", JSON.stringify(results));
+          recordCronRunEvent({
+            cronName: `retention-pass:${cronName}`,
+            startedAt,
+            finishedAt: new Date().toISOString(),
+            status: "ok",
+            summaryJson: JSON.stringify(results),
+            errorClass: null,
+          }).catch(() => undefined);
+        }).catch((error) => {
+          console.error("Retention pass failed", error);
+          recordCronRunEvent({
+            cronName: `retention-pass:${cronName}`,
+            startedAt,
+            finishedAt: new Date().toISOString(),
+            status: "error",
+            summaryJson: null,
+            errorClass: error instanceof Error ? error.name : "unknown",
+          }).catch(() => undefined);
         }),
       );
     }
