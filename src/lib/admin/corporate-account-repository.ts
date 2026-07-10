@@ -70,6 +70,44 @@ function now(): string {
 
 // --- Queries ---
 
+export type CorporateAccountWithCountRow = CorporateAccountRow & {
+  member_count: number;
+  workspace_count: number;
+};
+
+/**
+ * Lists corporate accounts with member and workspace counts in a single
+ * query (avoids N+1). Uses LEFT JOIN + GROUP BY for efficiency.
+ */
+export async function listCorporateAccountsWithCounts(): Promise<
+  CorporateAccountResult<CorporateAccountWithCountRow[]>
+> {
+  try {
+    const db = await getCloudflareD1Database();
+    if (!db) return { data: [], error: "Cloudflare D1 is not available." };
+
+    const result = await db
+      .prepare<CorporateAccountWithCountRow>(
+        `SELECT a.id, a.name, a.description, a.status, a.created_by,
+                a.created_at, a.updated_at,
+                COUNT(DISTINCT m.user_id) AS member_count,
+                COUNT(DISTINCT w.id) AS workspace_count
+         FROM corporate_accounts a
+         LEFT JOIN corporate_account_members m ON m.corporate_account_id = a.id
+         LEFT JOIN workspaces w ON w.corporate_account_id = a.id
+         WHERE a.status != 'archived'
+         GROUP BY a.id
+         ORDER BY a.created_at DESC`,
+      )
+      .all<CorporateAccountWithCountRow>();
+
+    return { data: result.results ?? [], error: null };
+  } catch (error) {
+    logFailure(error, "corporate_accounts_list_with_counts_failed");
+    return { data: [], error: "Corporate accounts could not be read." };
+  }
+}
+
 export async function listCorporateAccounts(): Promise<CorporateAccountResult<CorporateAccountRow[]>> {
   try {
     const db = await getCloudflareD1Database();

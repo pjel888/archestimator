@@ -202,10 +202,27 @@ export async function canAccessSupportConversationInD1({
 
 export async function listSupportMessages(
   conversationId: string,
-  dbOverride?: D1DatabaseLike,
+  optionsOrDbOverride?: D1DatabaseLike | { limit?: number; dbOverride?: D1DatabaseLike },
 ): Promise<SupportQueryResult<SupportMessageRow[]>> {
+  // Support both the old positional signature (dbOverride) and the new options
+  // object signature for backward compatibility.
+  const isOptionsObject = (
+    value: unknown,
+  ): value is { limit?: number; dbOverride?: D1DatabaseLike } =>
+    typeof value === "object" &&
+    value !== null &&
+    !("prepare" in value) &&
+    ("limit" in value || "dbOverride" in value);
+
+  const limit = isOptionsObject(optionsOrDbOverride) ? (optionsOrDbOverride.limit ?? 200) : 200;
+  const dbOverride = isOptionsObject(optionsOrDbOverride)
+    ? optionsOrDbOverride.dbOverride
+    : (optionsOrDbOverride as D1DatabaseLike | undefined);
+
   try {
     const db = await resolveSupportDb(dbOverride);
+    // Cap messages to prevent unbounded fetches on long threads. The most
+    // recent `limit` messages are returned (ordered chronologically).
     const rows = await db
       .prepare<SupportMessageRow>(
         `
@@ -213,12 +230,14 @@ export async function listSupportMessages(
                  email_message_id, client_message_id, send_status, created_at
           FROM support_messages
           WHERE conversation_id = ?
-          ORDER BY created_at ASC
+          ORDER BY created_at DESC
+          LIMIT ?
         `,
       )
-      .bind(conversationId)
+      .bind(conversationId, limit)
       .all<SupportMessageRow>();
-    return { data: rows.results ?? [], error: null };
+    // Reverse to chronological order for display.
+    return { data: (rows.results ?? []).reverse(), error: null };
   } catch {
     return { data: [], error: "Support messages could not be read." };
   }
