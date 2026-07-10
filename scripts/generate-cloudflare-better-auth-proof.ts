@@ -203,7 +203,7 @@ const RUNTIME_FILE = "src/lib/auth/cloudflare-better-auth-runtime.ts";
 const NEXT_ROUTE_HANDLER_PATH = "src/app/api/auth/[...all]/route.ts";
 const DEFAULT_SCHEMA_SQL_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-better-auth-d1-schema.sql`;
 const DEFAULT_PROVIDER_PROOF_FILE = `${PLAN_ROOT}/2026-06-30-cloudflare-better-auth-provider-proof.json`;
-const EXPECTED_SCHEMA_TABLES = ["account", "session", "user", "verification"] as const;
+const EXPECTED_SCHEMA_TABLES = ["account", "rateLimit", "session", "user", "verification"] as const;
 const EXPECTED_SCHEMA_INDEXES = ["account_userId_idx", "session_userId_idx", "verification_identifier_idx"] as const;
 const LEGACY_SUPABASE_AUTH_GATE_FILES = [
   "src/lib/auth/request-proxy.ts",

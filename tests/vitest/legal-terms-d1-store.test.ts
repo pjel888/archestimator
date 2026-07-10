@@ -109,7 +109,9 @@ describe("Cloudflare D1 legal Terms acceptance store", () => {
     const acceptanceSource = readFileSync("src/lib/legal/terms-acceptance.ts", "utf8");
     const recordSource = readFileSync("src/lib/legal/terms-acceptance-record.ts", "utf8");
 
-    expect(cookieSource).toContain("BETTER_AUTH_SECRET");
+    // SEC-13: dedicated terms-gate secret only (no BETTER_AUTH_SECRET fallback).
+    expect(cookieSource).toContain("ARCHESTIMATOR_TERMS_GATE_SECRET");
+    expect(cookieSource).not.toMatch(/process\.env\.BETTER_AUTH_SECRET/);
     expect(cookieSource).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
     expect(acceptanceSource).not.toMatch(/createSupabase|SUPABASE_SERVICE_ROLE_KEY|@\/lib\/supabase/);
     expect(recordSource).not.toContain("@/lib/supabase/types");

@@ -10,10 +10,9 @@ type TermsGateCookiePayload = {
 };
 
 function getTermsGateSecret() {
-  return process.env.ARCHESTIMATOR_TERMS_GATE_SECRET?.trim()
-    || process.env.BETTER_AUTH_SECRET?.trim()
-    || process.env.PUBLICATION_ACCESS_COOKIE_SECRET?.trim()
-    || null;
+  // SEC-13 / DEC-8: dedicated secret only — no session-secret or publication-secret fallback.
+  const secret = process.env.ARCHESTIMATOR_TERMS_GATE_SECRET?.trim() || null;
+  return secret && secret.length >= 32 ? secret : null;
 }
 
 function base64UrlEncodeBytes(bytes: Uint8Array) {

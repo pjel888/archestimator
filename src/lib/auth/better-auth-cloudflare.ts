@@ -12,14 +12,35 @@ type BetterAuthConfig = {
   trustedOrigins?: string[] | ((request?: Request) => Promise<(string | null | undefined)[]> | (string | null | undefined)[]);
   database: CloudflareD1DatabaseOption;
   socialProviders?: Record<string, unknown>;
+  account?: {
+    accountLinking?: {
+      enabled?: boolean;
+      disableImplicitLinking?: boolean;
+      trustedProviders?: string[];
+      requireLocalEmailVerified?: boolean;
+      allowDifferentEmails?: boolean;
+    };
+  };
+  // SEC-11: Better Auth 1.6.23 stores session.token raw in D1 (no session-hash config).
+  // Compensating controls: cookieCache disabled (every request hits D1), 7d TTL, least-privilege D1 bindings.
   session: {
+    expiresIn?: number;
     cookieCache: {
       enabled: false;
     };
   };
+  rateLimit?: {
+    enabled: boolean;
+    window: number;
+    max: number;
+    storage: "database" | "memory" | "secondary-storage";
+  };
   advanced?: {
-    backgroundTasks: {
+    backgroundTasks?: {
       handler: (promise: Promise<unknown>) => void;
+    };
+    ipAddress?: {
+      ipAddressHeaders?: string[];
     };
   };
   plugins: unknown[];
@@ -164,18 +185,43 @@ function createCloudflareBetterAuthOptions(options: CreateCloudflareBetterAuthOp
     trustedOrigins: options.trustedOrigins,
     database: options.d1Database,
     socialProviders: options.socialProviders,
+    // SEC-14 / DEC-7: block implicit OAuth↔magic-link account merge (ATO). Explicit link only.
+    account: {
+      accountLinking: {
+        enabled: true,
+        disableImplicitLinking: true,
+        trustedProviders: ["google"],
+        requireLocalEmailVerified: true,
+        allowDifferentEmails: false,
+      },
+    },
+    // SEC-11 compensating controls (DEC-6b): no BA session-token hash config in 1.6.23.
     session: {
+      expiresIn: 60 * 60 * 24 * 7,
       cookieCache: {
         enabled: false,
       },
     },
-    advanced: options.waitUntil
-      ? {
-          backgroundTasks: {
-            handler: options.waitUntil,
-          },
-        }
-      : undefined,
+    // SEC-5: durable D1-backed rate limits (not isolate memory on Workers).
+    rateLimit: {
+      enabled: true,
+      window: 60,
+      max: 60,
+      storage: "database",
+    },
+    advanced: {
+      ...(options.waitUntil
+        ? {
+            backgroundTasks: {
+              handler: options.waitUntil,
+            },
+          }
+        : {}),
+      // Prefer Cloudflare edge IP only — client-spoofable X-Forwarded-For / X-Real-IP omitted.
+      ipAddress: {
+        ipAddressHeaders: ["cf-connecting-ip"],
+      },
+    },
     plugins: [
       ...(options.enableNextCookies === false ? [] : [runtime.nextCookies()]),
       ...(options.plugins ?? []),
@@ -216,6 +262,14 @@ export async function createCloudflareBetterAuthMagicLinkPlugin(options?: {
   ]);
 
   return magicLink({
+    // SEC-1: hash verification tokens at rest (defaultKeyHasher); verify path re-hashes automatically.
+    storeToken: "hashed",
+    // SEC-5: explicit expiry + per-path rate limit (matches/improves proof fixture).
+    expiresIn: 300,
+    rateLimit: {
+      window: 60,
+      max: 10,
+    },
     sendMagicLink: async ({ email, url }: SendBetterAuthMagicLinkEmailInput) => {
       if (options?.sendMagicLinkEmail) {
         await options.sendMagicLinkEmail({ email, url });
