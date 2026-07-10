@@ -84,8 +84,10 @@ Archestimator treats loop engineering as the product-development control system
 for non-trivial work. A loop states the goal, splits work into bounded lanes when
 useful, runs or delegates the lanes, observes evidence, persists state outside
 chat when the work creates durable truth, decides the next action, and stops only
-on a proven pass, explicit blocker, owner decision, approval-gated action, or
-iteration cap.
+on a proven pass, explicit cancel, a true authorization boundary after every
+safe in-scope action, or a technical impasse after materially distinct recovery
+paths are exhausted. Iteration budgets trigger replanning, not completion or a
+routine owner handoff.
 
 The repo-local loop spine is:
 
@@ -129,8 +131,9 @@ quality controls to the framework:
   to cleanup made necessary by that edit. Adapters must not use a task as cover
   for unrelated comment churn, formatting churn, or opportunistic refactors.
 - **Goal proof:** convert work into acceptance criteria and a validation gate,
-  then stop only when evidence proves the full requested outcome or a recorded
-  blocker/approval gate prevents further safe progress.
+  then stop only when evidence proves the full requested outcome, a true
+  authorization boundary prevents the outer outcome after all safe work, or an
+  evidenced technical impasse has no remaining recovery/evidence path.
 
 Do not vendor an external `CLAUDE.md`, Cursor rule, or skill as a parallel
 authority for this repo. Tool-specific copies may exist only as thin adapters
@@ -184,8 +187,9 @@ Proof-boundary labels (use precisely; never call a local check provider/browser 
 the surface to the claim: code → focused tests/type/lint/build-when-justified; minor cosmetic UI
 edits → static review, focused type/LSP/lint, or nearby component/unit checks when adequate; UI
 interaction/routing/auth/data/responsive-layout/a11y/complex-composition claims → targeted
-browser/manual/Playwright proof; Supabase/Postgres → migration status + SQL/RPC/RLS proof +
-generated types; provider claims → provider evidence; docs-only → path checks + `git diff --check`.
+browser/manual/Playwright proof; Cloudflare D1/R2/DO/Queue/Email/Images → active migration/
+binding/repository/emulator proof plus hosted provider evidence only when claimed;
+provider claims → provider evidence; docs-only → path checks + `git diff --check`.
 
 ## Agent Receipt
 
@@ -200,7 +204,7 @@ non_goals=<explicitly out of scope>
 writes=<allowed write folders or none>
 validation=<commands/checks/manual proof required>
 proof_boundary=<local-only|provider-proven|browser-proven|manual-proof-pending|not-verified>
-stop_condition=<done/blocker/owner-decision/destructive-approval>
+stop_condition=<achieved|auth-blocked|tech-blocked|cancelled>
 orchestrator=<lead agent/tool owning scope, routing, integration, final claim>
 loop_phase=<none|plan|execute|review|qa|cleanup|complete>
 lead_lane=<agent/tool lane and model/effort tier>
@@ -254,7 +258,8 @@ usually enough. Add deeper checks when they materially affect correctness:
   declare defaults and constraints, but they do not override the lead or the
   canonical framework protocol.
 - Missing model/effort/routing metadata is not permission to improvise. Use the
-  safest lower-scope lane or fail closed with a short blocker.
+  safest compatible lower-scope lane, deterministic local fallback, or lead
+  execution; mark `TECH_BLOCKED` only when no safe recovery path remains.
 
 When a lane is ambiguous, choose the fail-closed status and document the
 decision instead of silently activating the lane.
@@ -326,23 +331,22 @@ Use `local-only`, `provider-proven`, `browser-proven`, `manual-proof-pending`, a
 ## Provider, GitHub, Notion, And Secrets
 
 Provider, GitHub settings, Notion mutation, branch protection, paid add-ons,
-and destructive external actions are approval-gated unless Philip explicitly
-authorized the exact action in the active task and the action is not paid.
+production deploys, and destructive external actions require exact current
+authority unless covered by the repository's standing Cloudflare mandate.
 
-Exception: Archestimator Supabase/Postgres database work in project
-`ebxxqidacheyapmmzavr` has standing pre-launch MVP authorization. Agents may run
-scoped SQL, create/apply migrations, change schema/RLS/grants/RPCs/functions,
-repair database mistakes forward, seed or adjust test data, and regenerate
-types without asking for per-change approval. Because there are no external
-users yet, the preferred posture is fast iteration with proportional validation,
-not exhaustive regression by default.
+That mandate authorizes work only inside resources bound in `wrangler.jsonc`:
+Worker `archestimator-proof`, D1 `ARCH_DB`, R2 `ARCH_UPLOADS_R2`, Durable Object
+`COLLAB_ROOMS`, Queue `UPLOAD_JOBS_QUEUE`, Email `EMAIL`, and Images `IMAGES`.
+Agents may create/edit/apply active D1 migrations in `./migrations/`, run scoped
+SQL, change authorized schema/index/query/trigger/seed-test behavior, manage the
+bound provider integrations, and repair mistakes forward without per-change
+approval, using proportional validation and free-tier/bundled limits.
 
-This exception does not authorize unrelated provider projects, archestimator
-resources, secrets exposure, paid add-ons, hosting production deploys,
-GitHub/Notion mutations, or irreversible destructive data loss without explicit
-fresh instruction and a recovery plan. It supersedes older default owner-gated
-database wording unless a newer, narrower decision explicitly reintroduces a
-gate for a specific database action.
+This does not authorize historical Supabase project `ebxxqidacheyapmmzavr`, the
+unrelated `archestimator` provider project, other accounts/projects, unbound
+resources, secret exposure, paid add-ons, production deploys not requested, or
+irreversible destructive data loss without authorized recovery. It supersedes
+older active Supabase/Postgres mutation authority.
 
 Secrets must not be printed, committed, copied into `.ai`, pasted into run
 logs, or placed in prompt templates. Evidence files may record variable names,

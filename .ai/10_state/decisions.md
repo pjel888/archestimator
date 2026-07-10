@@ -1260,3 +1260,43 @@ enforcement remain blocked behind the implementation-time hosted/provider
 proof gates. Do not claim production-ready, provider-ready, browser-ready, or
 zero-risk status from this owner-acceptance decision; those require the
 evidence gates in `06_VALIDATION_QA_AND_ROLLOUT_PLAN.md` to actually pass.
+
+---
+
+## 2026-07-10 — Evidence, not reviewer identity or owner acceptance, determines readiness
+
+**Decision:** The frontier planning suite supersedes procedural readiness caps
+and owner-acceptance lifts. Verification provenance remains required as
+`independent`, `same-agent-separated`, or `deterministic-only`, but it does not
+cap a score or manufacture readiness. Readiness follows field-level current
+evidence, traceability, closed internal decisions, and applicable gates.
+
+**Effect on historical decisions:** The 2026-07-05 rate-limit decision remains
+historical evidence that Philip authorized the named first-slice scope. Its
+same-agent score cap and owner-acceptance mechanism are retired and must not be
+copied into new or repaired plan packs. Owner input may authorize an otherwise
+forbidden action or change product intent; it cannot waive failed/stale evidence
+or turn an incomplete package into a ready one.
+
+**Directive:** Resolve ordinary plan/execution choices autonomously through
+`DEC-AUTO-*`. Isolate only true authorization boundaries as `AUTH-*`; keep
+implementation, release, lifecycle, and terminal status separate; rerun stale
+evidence regardless of reviewer identity.
+
+---
+
+## 2026-07-10 — Cloudflare bindings supersede historical Supabase mutation authority
+
+**Decision:** The active provider mutation boundary is the set of Archestimator
+Cloudflare resources bound in `wrangler.jsonc`, as defined by repository
+`AGENTS.md`. Supabase project `ebxxqidacheyapmmzavr` is historical provider-exit
+evidence only and must not be mutated.
+
+**Supersedes:** The active authority portions of the 2026-06-13 standing
+Supabase/Postgres autonomy decision. Historical facts and validation receipts
+remain historical evidence; they do not grant current provider authority.
+
+**Directive:** Apply active D1 migrations only from `./migrations/`; keep legacy
+`./supabase/migrations/` as archaeology; never mutate unrelated provider projects,
+unbound Cloudflare resources, paid add-ons, or external production actions
+outside current authority.

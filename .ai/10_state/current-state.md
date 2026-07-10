@@ -10,6 +10,36 @@ only those entries. Do NOT read all ~2,500 lines on every task — that is the
 single biggest source of slow agent startup.
 
 Stable current truth (verify against git/source before relying on a detail):
+- Development memory safety (2026-07-10): the fatal Next 16.2.10 dev OOM was
+  traced to idle Turbopack filesystem-cache persistence/compaction after the
+  estimate route compiled; that work happened outside Next's request-finally
+  restart check. `bun run dev` now uses Webpack with a 2 GiB V8 ceiling and an
+  executable Node 22.12+/24.x preflight. `bun run dev:turbo` remains an explicit
+  opt-in with filesystem caching disabled, a 1.5 GiB Turbopack target, and the
+  same V8/runtime bounds. The shared instrumentation module loads Node-only
+  logging during `register()` and awaits concurrent registration without
+  pulling `node:fs`/`node:crypto` into Edge compilation. `bun run type-check`
+  uses the same runtime preflight and a measured 4 GiB heap budget. Proof: the
+  cache-disabled Turbo sweep survived 13.5 minutes and three clean warm cycles
+  across 25 routes (incident route 200), with 93 memory samples, zero
+  persistence/compaction/restart events, no Turbopack cache directory, and a
+  165 MiB `.next`; the Node 24 default-Webpack cold incident-route smoke also
+  returned 200, and the focused 20-test suite, lint, error-handling gate, and
+  Node 24 typecheck passed. Re-evaluate Turbopack as the default only after the
+  upstream retention/eviction repairs ship in a stable Next release and the
+  same stress proof passes.
+- Frontier planning/execution suite (2026-07-10):
+  `.ai/08_prompts/000_Planning Prompts/` now uses one shared kernel, a versioned
+  `plan-pack.json` schema, 10 stable applicability gates, five concise stage
+  prompts, and 30 semantic regression scenarios. Runtime authority is recomputed
+  as `current_run_scope`; plans cannot grant actions. Ordinary decisions use
+  `DEC-AUTO-*`; only true boundaries use `AUTH-*`; implementation, release,
+  lifecycle, evidence, and terminal states remain separate. Validate the suite
+  with `bun run validate:planning-prompts` and any pack with
+  `bun run validate:plan-pack -- <planning-folder>`. Same-agent provenance does
+  not cap readiness or require owner acceptance. Active provider authority is
+  the Cloudflare resources bound in `wrangler.jsonc`; historical Supabase project
+  `ebxxqidacheyapmmzavr` remains read-only archaeology.
 - Error logging and incident evidence (2026-07-08 local): Archestimator should
   not store raw application error logs in D1 as the standard logging path.
   Local/dev diagnosis uses structured `logs/dev.ndjson`; default test runs do
@@ -857,6 +887,24 @@ Stable current truth (verify against git/source before relying on a detail):
   active refetch, then passed; adjacent lazy-library and insert suites passed,
   typecheck passed, `git diff --check` passed, and GitNexus detect stayed on the
   expected sidebar/library affected flow.
+- Next 16 proxy convention revert — `middleware.ts` is canonical (2026-07-08):
+  the 2026-07-07 "Next 16 proxy convention repair" entry immediately below is
+  SUPERSEDED. The rename to `src/proxy.ts` broke the OpenNext Cloudflare 1.20.1
+  runtime, which only honors `src/middleware.ts` as the Edge middleware
+  entrypoint — `useNodeMiddleware()` at
+  `node_modules/@opennextjs/cloudflare/dist/cli/build/utils/middleware.js` reads
+  only `_middleware` manifest entries and has no `proxy` equivalent. Philip
+  reverted in commit `5558c5fa4` ("refactor(middleware): replace deprecated
+  src/proxy.ts with Next.js middleware entrypoint", 2026-07-08), restoring
+  `src/middleware.ts` as the active entrypoint (it re-exports `proxy` from
+  `src/lib/auth/request-proxy.ts`) and adding
+  `tests/vitest/proxy-file-convention.test.ts` as a regression lock-in. The
+  `bun dev` "middleware is deprecated, use proxy instead" warning is benign and
+  intentionally tolerated until upstream OpenNext Cloudflare adds `proxy.ts`
+  support. In-source comment in `src/middleware.ts` documents the constraint.
+  Full ADR, evidence, and phased plan (Phase 1 doc actions complete; Phases 2-4
+  blocked on upstream `@opennextjs/cloudflare` release):
+  `.ai/09_archive/store/2026-07-10-middleware-to-proxy-migration/`.
 - Next 16 proxy convention repair (2026-07-07 local): the startup warning about
   deprecated `middleware` was caused by `src/middleware.ts` remaining as the
   active file convention while `src/proxy/index.ts` was only an import
@@ -3505,6 +3553,13 @@ To go deeper: `rg -n "<feature/keyword>" .ai/10_state/current-state.md` and
 read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
+
+**Workshop Pages chrome ownership (2026-07-10 — plan pack in progress):**
+
+- Root cause of workshop skeleton flash was **not** nested `/workshop/*` URLs. Nesting is kept (DEC-01 recommendation; owner ack still pending as a product residual). Flattening to `/proposals` would lose shared-layout SPA transitions.
+- Persistent chrome now mounts once in `src/app/workshop/layout.tsx` via layout-owned `WorkshopShell` (sidebar, glass backdrop, footer shell, WebVitalsProbe). Pages/nested layouts own `WorkshopRouteHeader` + canvas wash; `loading.tsx` files are content-only.
+- Auth/terms gate in `workshop/layout.tsx` remains the **sole production verifier** and stays synchronous-first before any `WorkshopShell`/content (SEC intentional blocking — not a perf bug). See `.ai/03_plans/2026-07-09/Workshop-Pages/`.
+- Residual gates (do not archive pack yet): DEC-01 owner ack; production-build `authenticatedWorkshopTransition` e2e numbers (auth fixture / `PLAYWRIGHT_STORAGE_STATE`); Phase 4 `cacheComponents` remains optional owner-gated.
 
 **Google OAuth server-action state-cookie forwarding hotfix deployed (2026-07-01 12:16 UTC evidence):**
 

@@ -40,3 +40,6 @@ enabled = false
 [tui]
 # omx:managed-status-line
 status_line = ["model-with-reasoning", "git-branch", "context-remaining", "total-input-tokens", "total-output-tokens", "five-hour-limit", "weekly-limit"]
+
+[sandbox_workspace_write]
+network_access = true
