@@ -120,7 +120,7 @@ Execution guide for the implementation AI. Dependency-aware phases with exact pa
 | ID | Decision | Owner | Trigger | Impact if unresolved |
 |---|---|---|---|---|
 | OPEN-1 | `sidebarStatus.projectsBadgeCount` data-flow: client store vs layout fetch | impl lead | Phase 1 (WP-1.3) | Minor — pick client store as default |
-| DEC-01 | Keep nested `/workshop/*` URLs | Philip (owner) | before/during Phase 1 | None technically; product ack |
+| DEC-01 | Keep nested `/workshop/*` URLs | Philip (owner) | before/during Phase 1 | **RESOLVED 2026-07-10 — acked Option 1 (keep nested)** |
 | DEC-04 | Phase 4 cacheComponents | Philip (owner) | optional | None on Phases 1–3 |
 
 ## Parallelization

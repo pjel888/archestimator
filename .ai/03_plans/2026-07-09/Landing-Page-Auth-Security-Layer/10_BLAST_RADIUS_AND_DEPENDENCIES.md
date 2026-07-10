@@ -55,9 +55,12 @@
 
 ## Compatibility with active work
 
-- Shared worktree: other packs (`2026-07-08/*`, `2026-07-09/middleware-to-proxy-migration`,
-  `2026-07-09/Workshop-Pages`) may touch adjacent files. Phase 1's file
+- Shared worktree: other packs (`2026-07-08/*`, `2026-07-09/Workshop-Pages`)
+  may touch adjacent files. (The `middleware-to-proxy-migration` pack was archived
+  2026-07-10 — see `.ai/09_archive/store/2026-07-10-middleware-to-proxy-migration/`.) Phase 1's file
   (`better-auth-cloudflare.ts`) is auth-specific; low overlap risk. Phase 2 repo
   files could overlap with estimate/perf work — declare file ownership before editing.
-- The `2026-07-09/middleware-to-proxy-migration` pack relates to `request-proxy.ts`
-  (phase 4 nonce work would touch the same file) — coordinate if both are active.
+- The middleware-to-proxy-migration pack (archived 2026-07-10 to
+  `.ai/09_archive/store/2026-07-10-middleware-to-proxy-migration/`) relates to
+  `request-proxy.ts` (phase 4 nonce work would touch the same file) — coordinate
+  only if that pack is re-activated (re-moved to `.ai/03_plans/`).

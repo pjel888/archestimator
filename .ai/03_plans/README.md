@@ -85,6 +85,11 @@ These plan packs were moved out of `.ai/03_plans/` into `.ai/09_archive/` on 202
 
 Archived closeout / superseded plans:
 
+- `.ai/09_archive/store/2026-07-10-frontier-planning-prompt-autonomy/` -
+  completed frontier planning-prompt autonomy upgrade. Contains the canonical
+  implementation plan, loop ledger, deterministic manifest, 28-test validation
+  receipt, three-trial semantic evaluation, independent no-P0/P1 review, and
+  archive integrity proof.
 - `.ai/09_archive/store/2026-06-13-loop-engineering-mandate-and-research/` —
   implemented docs/governance plan pack that upgraded the
   agent/product-development mandate from prompt-by-prompt work toward

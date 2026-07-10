@@ -37,7 +37,7 @@ Produce an implementation-ready plan that (a) answers the routing-shape question
 
 ## Plan status and start document
 
-- **Status:** `CONDITIONALLY READY` (emulated verification on a behavior-bearing package → capped per Improve-Plan-Prompt:77-85). Phases 1–3 are fully specified and executable; `IMPLEMENTATION-READY` requires (1) a real independent verifier OR owner acceptance, (2) DEC-01 owner ack, (3) Phase 0 baseline.
+- **Status:** `CONDITIONALLY READY` (emulated verification on a behavior-bearing package → capped per Improve-Plan-Prompt:77-85). Phases 1–3 are fully specified and executable; `IMPLEMENTATION-READY` requires (1) a real independent verifier OR owner acceptance, (2) ~~DEC-01 owner ack~~ **RESOLVED 2026-07-10 — Philip acked Option 1 (keep nested)**, (3) Phase 0 baseline.
 - **Implementation start document:** `11_IMPLEMENTATION_PLAN.md`.
 - **Phase order:** Phase 0 (verify baseline) → Phase 1 (shell split + migrate pages + reconcile nested + tests) → Phase 2 (gate-doc comment) → Phase 3 (content skeletons) → Phase 4 (optional cacheComponents).
 
@@ -56,7 +56,7 @@ Phase 0 (baseline measurement)
 
 | Decision | Owner | Status | Notes |
 |---|---|---|---|
-| Keep `/workshop/*` nested URLs vs flatten (DEC-01) | Philip | **Recommended: keep nested.** Needs ack. | Doc-backed; flattening loses shared-layout reuse + SPA transitions (`15_DECISIONS…md`). |
+| Keep `/workshop/*` nested URLs vs flatten (DEC-01) | Philip | **RESOLVED 2026-07-10 — acked Option 1 (keep nested).** | Doc-backed; flattening loses shared-layout reuse + SPA transitions (`15_DECISIONS…md`). |
 | `sidebarStatus` data-flow: client store vs layout fetch (OPEN-1) | impl lead | Default: client store | Minor; reuses existing nav store. |
 | Enable `cacheComponents` + `unstable_instant` (DEC-04) | Philip | Phase 4 optional, owner-gated | Build-time instant-nav validation; separate change. |
 | Upgrade to `IMPLEMENTATION-READY` | Philip / verifier | Needs independent verifier OR owner acceptance | Emulated cap on behavior-bearing package. |

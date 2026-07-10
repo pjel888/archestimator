@@ -10,7 +10,7 @@ This package is behavior-bearing (restructures an **auth/terms gate** — SEC-1 
 
 **What blocks `IMPLEMENTATION-READY`:**
 1. Emulated verification (cap rule) — needs a real independent verifier lane OR explicit owner acceptance.
-2. DEC-01 (keep nested URLs) is owner-delegated — needs Philip's ack (product/URL decision).
+2. ~~DEC-01 (keep nested URLs)~~ **RESOLVED 2026-07-10** — Philip acked Option 1 (keep nested).
 3. Phase 0 baseline numbers not yet measured (intentional DISCOVERY step).
 
 ## Revised scorecard (honest re-score after fixes)
@@ -29,11 +29,11 @@ This package is behavior-bearing (restructures an **auth/terms gate** — SEC-1 
 | Testing/QA | **74** | **93** | breaking tests inventoried + planned (P1-3); proof-contract rows (16); e2e harness reused |
 | Rollout/Governance | 82 | 93 | go/no-go checklist + rollback + no-flag rationale (13) |
 | Requirements Traceability | — | 95 | matrix created (16) |
-| **Overall** | **~78** | **~93** | `CONDITIONALLY READY` (emulated cap + DEC-01 ack + Phase 0 pending) |
+| **Overall** | **~78** | **~93** | `CONDITIONALLY READY` (emulated cap + ~~DEC-01 ack~~ RESOLVED 2026-07-10 + Phase 0 pending) |
 
 ## Why not 95+/IMPLEMENTATION-READY (exact reasons)
 1. **Emulated verification** → cap at 97 AND behavior-bearing → status cap `CONDITIONALLY READY` ( Improve-Prompt:77-85). Only a real independent verifier or owner acceptance lifts this.
-2. **DEC-01 owner ack pending** (product/URL decision — not a planning defect).
+2. ~~DEC-01 owner ack pending~~ **RESOLVED 2026-07-10** — Philip acked Option 1 (product/URL decision — no longer a residual gate).
 3. **Phase 0 baseline unmeasured** (intentional DISCOVERY-REQUIRED; not a defect).
 4. **No production RUM for CWV** (P2-1) — fix is structurally correct but real-world CWV win unmeasurable in prod; lab proof is the declared evaluator.
 5. Scores are ceiling-capped by item 1 regardless of doc quality.
@@ -75,6 +75,6 @@ This package is behavior-bearing (restructures an **auth/terms gate** — SEC-1 
 
 ## Smallest actions to reach `IMPLEMENTATION-READY` (98–100)
 1. Dispatch a real independent verifier lane (fresh agent, read-only) to confirm the completion gates — OR Philip explicitly accepts the package.
-2. Philip acks DEC-01.
+2. ~~Philip acks DEC-01~~ **DONE 2026-07-10** — acked Option 1 (keep nested).
 3. Run Phase 0 baseline + record numbers.
 4. (Optional follow-up) wire prod RUM for CWV to close P2-1.

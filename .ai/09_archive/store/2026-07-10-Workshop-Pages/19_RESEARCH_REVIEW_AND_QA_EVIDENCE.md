@@ -54,5 +54,5 @@ See `09_PERFORMANCE_RELIABILITY_OBSERVABILITY.md` PERF-1.
 
 ## Explicit validation gaps
 - No live prod/perf measurement yet (Phase 0 produces the baseline).
-- DEC-01 is owner-delegated (needs Philip's ack) — not a planning defect, but flagged.
+- ~~DEC-01 is owner-delegated (needs Philip's ack)~~ **RESOLVED 2026-07-10 — Philip acked Option 1 (keep nested).** No longer a gap.
 - Phase 4 (`cacheComponents`) is unevaluated by choice (owner-gated).

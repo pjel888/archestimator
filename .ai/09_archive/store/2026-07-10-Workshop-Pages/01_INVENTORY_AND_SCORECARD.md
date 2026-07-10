@@ -36,7 +36,7 @@
 
 | Category | Baseline score | Cap reason |
 |---|---|---|
-| Strategy & Product Value | 92 | DEC-01 owner-ack pending |
+| Strategy & Product Value | 92 | DEC-01 owner-ack pending *(RESOLVED 2026-07-10 — Philip acked keep-nested)* |
 | Requirements Quality | 82 | missing proof rows (P1-2) |
 | React/Next.js Technical Readiness | 78 | core reconciliation undecided (P0-3/P0-4); no route cache contract |
 | Architecture & Code Quality | 80 | child→layout slot contract unresolved |

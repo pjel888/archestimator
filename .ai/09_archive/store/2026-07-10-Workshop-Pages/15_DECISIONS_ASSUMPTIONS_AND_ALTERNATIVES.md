@@ -13,7 +13,7 @@
 - **Recommended option:** 1.
 - **Reason:** doc-cited evidence shows nesting is a benefit, and the real root cause (RC-1/RC-2) is orthogonal to URL shape.
 - **Conditions that would change this:** if product wants flat URLs for marketing/SEO reasons specifically → then route groups `(workshop)` are the right tool, evaluated as a *separate* product decision.
-- **Status:** **owner-delegated decision** — needs Philip's ack (it's a product/URL question), but the technical recommendation is unambiguous.
+- **Status:** **RESOLVED 2026-07-10** — Philip acked Option 1 (keep nested `/workshop/*` URLs; fix chrome ownership separately via Phase 1 `WorkshopShell`). Ack recorded in this pack's `00_COORDINATION_LEDGER.md` and `LOOP_LEDGER.md` (I-5).
 
 ## DEC-02 — Move persistent chrome into `workshop/layout.tsx` via a new `WorkshopShell`
 - **Problem:** Chrome remounts per page (RC-1).
@@ -28,8 +28,9 @@
 - **Rejected alternatives:** (A) "render shell first, gate later" — rejected, exposes content; (B) "Suspense-wrap gate reads" — rejected, same exposure.
 - **Status:** resolved (this cycle).
 
-## DEC-04 — `cacheComponents` is Phase 4 (optional, owner-gated)
+## DEC-04 — `cacheComponents` is Phase 4 (optional, owner-gated) — DEFERRED 2026-07-10
 - **Reason:** larger change with build-validation requirements; not needed to fix the user's problem.
+- **Status:** **DEFERRED 2026-07-10** — formally classified out-of-scope for this pack's archive criterion. The shell-stability fix (Phases 1–3) is complete and proven; `cacheComponents` remains a separate future optimization with its own build-validation gate. Not a blocker for archive.
 
 ## Assumptions
 - ASSUMP-01: single-user-per-workspace (cache staleness tolerance) — consistent with `next.config.ts:99-101`.

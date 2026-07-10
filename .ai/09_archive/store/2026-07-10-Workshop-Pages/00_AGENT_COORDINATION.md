@@ -43,4 +43,4 @@
 ## Source authority decisions
 - **Next.js behavior claims:** governed by local installed docs `node_modules/next/dist/docs/` (exact 16.2.10 install), supplemented by official `nextjs.org`. These overrule memory for version-sensitive behavior.
 - **Current architecture:** governed by current source (re-read immediately before writing).
-- **URL-shape decision:** product/intent question → recommended with rationale, flagged for owner sign-off (`DEC-01`).
+- **URL-shape decision:** product/intent question → recommended with rationale, **owner-acked 2026-07-10** (`DEC-01` Option 1 — keep nested).
