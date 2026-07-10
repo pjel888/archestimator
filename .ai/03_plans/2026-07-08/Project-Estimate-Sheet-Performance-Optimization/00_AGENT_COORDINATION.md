@@ -18,7 +18,7 @@ Execution authority order:
 - Never revert or overwrite existing unrelated changes.
 - Report unexpected owned-path changes to the lead and integrate them deliberately.
 - Only the lead edits `README.md`, `IMPLEMENTATION_PLAN.md`, `plan-pack.json`, `LOOP_LEDGER.md`, `package.json`, and the final evidence index.
-- Browser and D1 evidence paths are unique per run/source/input hash; agents do not overwrite each other's receipts.
+- Producers write unique immutable paths under `evidence/runtime/runs/<unit>/<run-key>/`; the 14 stable names are index-owned current projections. Agents never write projections or overwrite run artifacts.
 
 ## Worker Packet
 
@@ -27,7 +27,7 @@ Every dispatch includes:
 - goal/run ID and exact unit ID;
 - role (`explore`, `executor`, `test-engineer`, `verifier`, `architect`, or `critic`);
 - owned paths and forbidden shared paths;
-- baseline HEAD plus owned-scope status/diff hashes;
+- pre-UNIT-001 planning-admission HEAD/status/diff receipt when applicable, plus current application and producer content fingerprints. `UNIT-001` verifies the planning receipt before its first edit, then the typed/reference helpers must match current dual output; later packets receive the predecessor output digest rather than the historical planning hash;
 - dependencies and activation predicate;
 - commands, evidence path, exit/failure/cleanup/resume conditions;
 - lease start, expiry, and release state.
@@ -36,9 +36,8 @@ Workers stay within the packet. Scope expansion, shared-file conflict, missing a
 
 ## Safe Parallel Layers
 
-- After `UNIT-001`, `UNIT-002` (browser/UX/interop) and `UNIT-003` (local D1/query proof) may run in parallel because their write scopes and evidence files are disjoint.
-- After `UNIT-004`, `UNIT-005` (route/D1) and `UNIT-006` (client graph) may run in parallel when both are activated and their owned paths remain disjoint.
-- `UNIT-007`, `UNIT-008`, `UNIT-009`, `UNIT-010`, and `UNIT-011` follow the dependency edges in the canonical DAG.
+- No maker units run in parallel. `UNIT-001` creates the complete shared evaluator/E2E/D1/decision/hosted/release producer surface and all package entries before measuring; Units 002-004 execute that frozen cohort without producer edits. Activated Units 005-009 may add only packet-owned product regression tests and must record application and producer before/after deltas; every admission matches both predecessor outputs. Units 010-011 change neither scope and share the final dual identity.
+- Maker/checker roles remain separate within each unit, and read-only reviewers may work concurrently only against one frozen candidate. `UNIT-005` through `UNIT-011` also stay serialized because source ownership and shared `.next`/`.open-next` outputs feed source/build evidence hashes.
 
 ## Maker/Checker Separation
 

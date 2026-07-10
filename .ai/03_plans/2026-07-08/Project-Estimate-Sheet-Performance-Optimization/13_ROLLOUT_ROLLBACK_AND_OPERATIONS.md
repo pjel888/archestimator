@@ -31,7 +31,9 @@ The shared resolver is `src/lib/estimates/estimate-performance-modes.server.ts`:
 5. `on`: collect the final integrated local proof.
 6. Run direct remote D1 proof against the bound resource with Wrangler. This plan does not add a route or deploy the application to production.
 
-`bun run perf:estimate:modes -- --unit=<unit> --target=<mode-key> --phases=off,shadow,on,rollback` is the only per-unit mode producer. It records the server-returned mode snapshot for every phase and fails when a target or predecessor mode differs from the deterministic decision mapping. `UNIT-010` runs `--matrix=all-activated` to cover individual modes, pairwise activated combinations, all activated modes `on`, and all modes `off` after rollback.
+`bun run perf:estimate:modes -- --unit=<unit> --target=<mode-key> --phases=off,shadow,on,rollback --final-state=on --fixture-role=mode` is the only single-target mode producer. It records the server-returned snapshot and process outcome for every phase and fails when a target or predecessor mode differs from the deterministic decision mapping. `UNIT-010` uses `--matrix=all-activated --final-state=all-activated --fixture-role=mode` to cover individual modes, pairwise activated combinations, all activated modes `on`, all modes `off` after rollback, then one fresh final all-activated preview.
+
+For every phase, the producer atomically replaces the run-scoped mode-`0600` `runtime.env`, validates its owner/hash and exact allowlist, appends/fsyncs the role/phase/ordinal/PID/snapshot/port process entry before readiness, and starts a fresh OpenNext preview with Wrangler `--env-file <run>/runtime.env`. It stops/drains the exact process, records one exit-code/signal outcome, proves the port closed, and fsyncs that outcome before the next launch. After rollback it starts the explicit final state and leaves only that verified preview active for the later browser/check step. The allowlist is the Better Auth provider/secret/base/trusted-origin set plus exactly the five mode keys above; `ARCH_DB` remains the binding. Raw secrets never enter commands, logs, manifests, or evidence.
 
 ## Rollback Contract
 
@@ -53,8 +55,8 @@ Hosted proof stays inside the D1 `ARCH_DB` binding named in `wrangler.jsonc` and
 
 1. Run `bun run cf:check-wrangler-auth` and `bun run cf:check-provider-resources` without printing credentials.
 2. Confirm the `ARCH_DB` binding and database ID match `wrangler.jsonc` exactly.
-3. Refuse when any unresolved manifest exists under `.ai/99_scratch/estimate-sheet-d1-proof/runs/`, then atomically lease a cryptographically unique run UUID.
-4. Generate synthetic exact keys for `profiles`, `workspaces`, `workspace_members`, `projects`, `project_members`, `estimates`, `estimate_sheet_access_settings`, `estimate_sheet_members`, `estimate_tabs`, `estimate_nodes`, and `estimate_row_items` in the UUID directory.
+3. Scan `.ai/99_scratch/estimate-sheet-d1-proof/runs/`; list every unresolved run by redacted UUID/hash and refuse a new seed while any exists. Empty UUID directories lacking `cleanup.json` may be removed and parent-fsynced because the contract forbids seed dispatch before that file; a nonempty unknown directory fails closed.
+4. Starting at durable `.ai/`, create each missing `99_scratch`, `estimate-sheet-d1-proof`, `runs`, and UUID directory separately, fsync the child, and fsync its parent before descending. Generate exact keys for the eleven tables. `cleanup.json` is the single lease and exact-ID journal: temp-write, file-fsync, rename in `CLEANUP_PREPARED`, and fsync the UUID directory before any seed. There is no second lease-file rename to orphan.
 5. Project the run's reads/writes against the current Cloudflare free-tier limits; abort before seeding if the run would cross the pack's 50% safety threshold.
 
 ### Seed And Measure
@@ -66,10 +68,11 @@ Hosted proof stays inside the D1 `ARCH_DB` binding named in `wrangler.jsonc` and
 
 ### Cleanup In `finally`
 
-1. Delete exact recorded keys in row -> node -> tab -> sheet access -> sheet member -> estimate -> project member -> project -> workspace member -> workspace -> profile order in one generated SQL transaction.
-2. Compare deleted count to seeded count independently for all eleven tables.
-3. Query every exact ID/key set and require zero remaining matches.
-4. Delete the raw cleanup manifest only after all eleven zero-count checks pass.
+1. Before dispatch, atomically replace/fsync `cleanup.json` and its parent directory in state `DELETE_DISPATCHED`; it retains exact keys, seeded counts, input/source hashes, and the prior state.
+2. Delete exact recorded keys in row -> node -> tab -> sheet access -> sheet member -> estimate -> project member -> project -> workspace member -> workspace -> profile order in one generated SQL transaction. Persist/fsync `DELETE_ACKED` plus per-table deleted counts only when the Wrangler response is observed.
+3. Query every exact ID/key set and require zero remaining matches. An acknowledged uninterrupted attempt also requires deleted count to equal seeded count independently for all eleven tables.
+4. If deletion committed but its response/process was lost, `--cleanup-only --run-id=<uuid>` may use that fsynced manifest plus exact zero to classify cleanup `RECOVERED_ALREADY_ABSENT`; write `estimate-sheet-hosted-cleanup-recovery.v1` to the ignored UUID root, invalidate the interrupted producer/release artifact, and release that lease. If IDs remain, reissue the named run's exact idempotent transaction and recheck. Recovery never writes/projects `hosted-d1-proof.json` or turns the failed run into `PASS`.
+5. Persist/fsync `CLEANUP_VERIFIED` and the redacted receipt before deleting the raw manifest. Unlink and fsync the parent directory only after an uninterrupted valid receipt or explicit invalidation of the failed producer.
 
 Hosted proof is a no-deploy script contract. Each stage uses `bunx wrangler d1 execute ARCH_DB --remote --file <uuid-root>/<stage>.sql --json`; SQL files and IDs are generated internally from the UUID/profile, and no caller-supplied SQL, database, URL, or credential enters the report. Wrangler JSON metadata plus separate `EXPLAIN QUERY PLAN` results provide hosted provider evidence. No Worker route, bearer secret, request body, CSRF surface, or rate-limited endpoint is introduced.
 
@@ -79,7 +82,7 @@ Cleanup does not depend on a metadata-prefix predicate. Active schema uses `meta
 
 - Any timeout, command failure, count mismatch, or remaining ID makes hosted proof `FAIL`.
 - Do not start another seed while a cleanup manifest is unresolved.
-- Re-run cleanup by exact IDs with `--cleanup-only --manifest-root=.ai/99_scratch/estimate-sheet-d1-proof/runs`; the command fails when zero or multiple unresolved manifests exist. If a runtime/provider failure needs operator tracking, use the redacted incident/debug path from `AGENTS.md`.
+- Re-run cleanup by exact IDs with `--cleanup-only --run-id=<uuid> --manifest-root=.ai/99_scratch/estimate-sheet-d1-proof/runs --receipt-output=<uuid-root>/hosted-cleanup-recovery.json`. Omission/unknown UUID fails without mutation; multiple unresolved runs are handled one explicitly named run at a time. Tests cover every root mkdir/fsync plus crash after seed before `DELETE_DISPATCHED`, response loss, and crash before receipt. If a runtime/provider failure needs operator tracking, use the redacted incident/debug path from `AGENTS.md`.
 - Evidence stores run UUID, counts, hashes, and safe plan summaries only. It never stores cookies, bearer values, proof secrets, raw customer-shaped IDs, or sensitive URLs.
 
 ## Monitoring And Release Evaluation
@@ -97,3 +100,9 @@ Required signals for the proof/release evaluation:
 - Error-handling gate result and any skipped proof with residual risk.
 
 Alert/replan thresholds are the hard budgets in `IMPLEMENTATION_PLAN.md`; there are no undocumented exceptions. Production support/monitoring and deployment readiness require their own hosted evidence and are not claimed by this plan-only revision.
+
+## Cleanup And Evidence Commit
+
+For local-run units, each complete browser/D1/mode artifact finalizes before cleanup and therefore contains no final cleanup claim. Prepare seeds distinct `mode`, `browser`, and/or `d1` ID namespaces from one logical checkpoint; each mutating child records pre/post state and may not reuse another command's namespace. A `local-preview` cleanup persists/fsyncs `CLEANUP_PREPARED`, stops traffic, terminates/drains every live journaled preview, requires an exit/signal plus closed-port outcome for every launched process, and persists `PREVIEWS_STOPPED`; only then may it delete every role namespace and prove role/table zero counts. A `local-d1` cleanup has no process/port fields. Response-loss exact-zero recovery writes an invalidating `RECOVERED_ALREADY_ABSENT` receipt and cannot request `VERIFIED`. Uninterrupted cleanup writes/fsyncs the matching receipt and marks `CLEANUP_VERIFIED`/`awaiting_index`. Indexing recursively reopens the envelope, all `{role,schemaId,immutablePath,sha256}` children, command/test/mode receipts, and cleanup receipt, then stores their ordered `dependencySources[]`; deletion or mutation before commit fails. Failure retains the lease; index failure retains the cleaned run without reseeding.
+
+Producers write once under immutable `evidence/runtime/runs/<unit>/<run-key>/`; 13 fixed evidence names are current projections, while `evidence-index.json` is a current registry projected from a no-overwrite immutable snapshot. The registry lists only the 13 evidence projections; its own immutable path/hash lives in the journal and `plan-pack.json`. Starting from durable `evidence/`, every missing directory is child-fsynced then parent-fsynced. The exclusive transition journal stores immutable source hashes, every evidence/registry projection target, created directories, and `oldProjection:{exists,sha256,bytesBase64}`. Before the `plan-pack.json` commit point, recovery restores old bytes or unlinks a formerly absent projection and parent-fsyncs it, then prunes only journal-created empty directories deepest-first. After commit it recopies only verified immutable bytes and rebuilds manifest projection records, never inventing immutable bytes. First-transition tests fault every mkdir/fsync/temp/rename boundary. An unresolved journal blocks all work except `perf:estimate:index -- --recover`.

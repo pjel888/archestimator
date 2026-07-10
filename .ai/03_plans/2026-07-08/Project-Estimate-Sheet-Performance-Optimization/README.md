@@ -1,6 +1,6 @@
 # Project Estimate Sheet Performance Optimization
 
-Status tuple during frozen independent review: `package_status=NOT_READY`, `implementation_status=NOT_STARTED`, `release_status=NOT_EVALUATED`, `plan_lifecycle=ACTIVE`, `terminal_status=ACTIVE`.
+Status tuple: `package_status=IMPLEMENTATION_READY`, `implementation_status=NOT_STARTED`, `release_status=NOT_EVALUATED`, `plan_lifecycle=ACTIVE`, `terminal_status=ACTIVE`.
 
 Current run: planning only. Future package ceiling: local implementation plus scoped hosted proof against the Cloudflare resources bound in `wrangler.jsonc`. This pack does not authorize or perform a production deploy.
 
@@ -8,13 +8,13 @@ Canonical execution artifact: [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md)
 
 Machine-readable contract: [`plan-pack.json`](plan-pack.json)
 
-Candidate next unit: `UNIT-001`, which locks current behavior, repairs stale contract tests, creates deterministic fixtures, and implements the strict evaluator contract before any optimization code. It becomes the exact executable next unit only after `AC-012` receives clean architect and critic receipts.
+Exact next unit: `UNIT-001`, which locks current behavior, repairs stale contract tests, creates deterministic fixtures, and implements the strict evaluator contract before any optimization code. `AC-012` has clean same-hash architect and critic receipts.
 
 ## Mission
 
 Prove and then remove the dominant route, derivation, render, and mutation bottlenecks while preserving all estimate-sheet behavior at the supported ceiling of 1,500 nodes and 5,000 loaded rows.
 
-The only open planning gate is the frozen independent review. When it passes, the manifest changes atomically to `IMPLEMENTATION_READY`; product implementation and runtime performance evidence remain incomplete and are produced by `UNIT-001` through `UNIT-011`.
+No planning gate remains open. Product implementation and runtime performance evidence remain incomplete and are produced by `UNIT-001` through `UNIT-011`.
 
 ## Authority Order
 

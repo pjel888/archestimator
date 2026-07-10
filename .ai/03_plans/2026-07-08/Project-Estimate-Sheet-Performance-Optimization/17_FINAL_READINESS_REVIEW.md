@@ -4,12 +4,12 @@
 
 | Axis | Status | Meaning |
 |---|---|---|
-| Plan package | `NOT_READY` | The unit packets are prepared; the frozen independent architect/critic gate is still open. |
+| Plan package | `IMPLEMENTATION_READY` | Validators and same-hash independent architect/critic review are clean. |
 | Implementation | `NOT_STARTED` | No product source optimization from this plan has been executed. |
 | Release | `NOT_EVALUATED` | Local/browser/D1/hosted runtime proof must be produced by the implementation units. |
-| Lifecycle / terminal | `ACTIVE` / `ACTIVE` | `UNIT-001` is the candidate next unit but is not executable until `AC-012=PASS`. |
+| Lifecycle / terminal | `ACTIVE` / `ACTIVE` | `UNIT-001` is the exact executable next unit. |
 
-This temporary verdict is about status truth during review, not current product performance. Browser and hosted proof are runtime acceptance evidence owned by later units; they do not cap planning readiness after the independent gate closes.
+This verdict is about planning readiness, not current product performance. Browser and hosted proof are runtime acceptance evidence owned by later units; they do not cap planning readiness.
 
 ## Readiness Basis
 
@@ -21,15 +21,17 @@ This temporary verdict is about status truth during review, not current product 
 - The interop contract has 19 unique IDs, not 17.
 - Deployment rollback uses server-resolved, deployment-scoped modes; no `NEXT_PUBLIC_*` live-toggle claim remains.
 - Hosted cleanup uses unique exact IDs and per-table reconciliation against the active D1 schema.
+- The frozen v2 planning fingerprint is pre-edit admission only; runtime evidence uses separate application/producer digests, immutable run artifacts, and index-owned current projections.
+- Fixture, cleanup, attempt, integration, hosted-recovery, decision, supersession, release, and index outputs have executable non-cyclic schemas and fail-closed eligibility rules.
 - Current test inventory includes bulk-delete partial failure, row-update broadcast, and tree DnD coverage; stale missing-test claims are corrected.
 
 ## Exact Handoff
 
-After `AC-012=PASS` and the manifest publishes `next_unit=UNIT-001`, start that unit in `IMPLEMENTATION_PLAN.md`.
+`AC-012=PASS` and the manifest publishes `next_unit=UNIT-001`; start that unit in `IMPLEMENTATION_PLAN.md`.
 
-Its stop condition is deterministic fixtures, strict evaluator validation, current characterization coverage, repaired stale contract tests, and green focused type/test checks. It is test/evaluator work only; it does not change product behavior.
+Its first command verifies the frozen plan admission before any edit. It then bootstraps the complete frozen evaluator/tool/E2E surface, creates the server-only mode resolver without changing default product behavior, proves reference/typed current dual-fingerprint equality, and produces deterministic linked fixture/jsdom evidence under immutable paths.
 
-`UNIT-002` and `UNIT-003` then run in parallel. No route/index/graph optimization starts until their evidence feeds the `UNIT-004` bottleneck decision.
+`UNIT-002` then `UNIT-003` execute the toolchain frozen by `UNIT-001` serially; neither may edit producer/package inputs. Their evidence and the UNIT-001 jsdom evidence share one application/producer cohort and feed the `UNIT-004` decision. No route/index/graph optimization starts until that immutable decision is indexed.
 
 ## Runtime Evidence Still Required
 
@@ -56,8 +58,9 @@ No local-only check may be reported as hosted/provider or production proof.
 | Session/auth state changes during long edits. | Current denial/integration scenario fails. | `UNIT-009` |
 | Collaboration revisions race optimistic rollback. | Concurrent event sequence produces stale overwrite. | `UNIT-009` |
 | Hosted cleanup is incomplete. | Any per-table count mismatch or remaining exact ID. | `UNIT-011`; fail closed before another seed |
+| Evidence lineage is stale or ambiguous. | Either digest breaks the predecessor chain, producer digest changes inside Units 001-004 or outside an activated unit's owned product-test paths, Units 010-011 differ, an immutable run collides, or a current projection lacks an indexed immutable source. | Reopen earliest owning unit; index writer fails closed |
 | Real estimates exceed supported ceiling. | Sanitized first-user telemetry exceeds 1,500/5,000. | New planning decision; not silent scope expansion |
 
 ## Final Planning Acceptance
 
-The plan is ready when fresh validation passes and the independent architect/critic re-review reports no unresolved P0/P1 plan defect. Runtime tests remain planned until implementation begins.
+The plan is implementation-ready: fresh validation passed and independent architect/critic review of one exact candidate reported no unresolved P0/P1 plan defect. Runtime tests remain planned until implementation begins.

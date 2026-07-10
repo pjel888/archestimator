@@ -43,7 +43,7 @@ T05: Client graph stale state displays data after permission revocation.
 - Mitigation: mutation/query failure paths clear privileged state; edit capability remains fail-closed; active session refresh handled separately.
 
 T06: Hosted proof cleanup failure leaves seeded identity, membership, or estimate test data.
-- Mitigation: direct remote proof uses a unique UUID lease plus exact keys for eleven tables; cleanup reconciles every table, verifies zero remaining exact keys, and blocks a new run while any manifest is unresolved.
+- Mitigation: beginning at durable `.ai/`, remote proof creates/fsyncs every missing scratch/root/runs/UUID directory and its parent. One exact-key `cleanup.json` is both lease and `CLEANUP_PREPARED` journal for eleven tables and is durable before seed, eliminating a second-file orphan window. Cleanup reconciles every table and exact key. Explicit `--run-id` recovery handles multiple unresolved manifests deterministically and writes only a non-indexable hosted cleanup-recovery receipt; it cannot create canonical hosted proof or promote interrupted evidence.
 
 T07: Index migration worsens write amplification and creates free-tier cost risk.
 - Mitigation: compare rows read/write and durations before/after; avoid speculative indexes.
@@ -55,7 +55,7 @@ T08: Logs record raw row details or sensitive user inputs.
 
 - Evidence files may contain counts, durations, query names, sanitized fixture dimensions, and redacted hashes.
 - Evidence files must not contain raw secrets, auth cookies, bearer tokens, invite/share/password-reset tokens, private object keys, full sensitive URLs, or real customer row descriptions.
-- Local raw Better Auth secret/cookie material exists only in an ignored mode-`0600` UUID run directory and is destroyed after cleanup.
+- Local raw Better Auth secret/cookie material exists only in an ignored mode-`0600` UUID run directory. The exact-key `runtime.env` is owner/hash validated, passed only to the OpenNext/Wrangler child process, and never copied into `.dev.vars`, commands, logs, manifests, or evidence. Cleanup stops/drains and awaits preview exit before deletion, then destroys credentials before a local unit may transition to `VERIFIED`.
 - Hosted proof commands must not print or copy Wrangler credential values.
 
 ## Security Validation
@@ -65,5 +65,5 @@ Required before implementation ships:
 - Unauthorized subtree fetch denial test.
 - Cross-workspace row mutation denial test remains green.
 - D1 proof output redaction test.
-- Hosted binding/database mismatch, unresolved-lease, redaction, and eleven-table cleanup fail-closed tests.
+- Hosted binding/database mismatch, unresolved/multiple-lease, redaction, every pre-seed directory-child/parent fsync, single-journal lease, crash-after-seed/before-`DELETE_DISPATCHED`, eleven-table cleanup, explicit-run response-loss recovery, cleanup-only/canonical-output separation, and crash-before-receipt fail-closed tests.
 - Existing authz tests touched by estimate actions remain green.

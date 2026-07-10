@@ -51,7 +51,7 @@ Machine-readable artifact hashes and `SRC-*` links live in `plan-pack.json`. `IM
 | Current Cloudflare D1 official guidance | `CURRENT` at planning time | Metrics/index/free-tier method; recheck before hosted proof |
 | 2026-06-26 route benchmark | `STALE` | Scenario design only |
 | Generic old `estimate_rows` D1 fixture | `STALE` for estimate-sheet proof | Cannot pass current D1 gates |
-| Runtime artifacts under `evidence/runtime/` | `PLANNED` | Created by `UNIT-001` through `UNIT-011` |
+| Immutable runtime artifacts under `evidence/runtime/runs/` plus 13 stable evidence projections and one current registry | `PLANNED` | Producers create no-overwrite run artifacts; only the evidence index writer replaces projections/registry, whose self-hash remains external, during `UNIT-001` through `UNIT-011` |
 
 ## Resolved Assumptions
 

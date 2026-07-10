@@ -18,6 +18,9 @@
 | Scalar-edit derived-state CPU p95 / full-tree recomputes | <= 25 ms / 0 |
 | Scalar-mutation whole-tree snapshots | 0 |
 | Project-component client fan-out at 1,000 matches | <= 75 ms p95 |
+| Ancestor-chain lookup at the limit fixture | <= 5 ms p95 |
+| Component identity lookup at exactly 1,000 matches | <= 5 ms p95 |
+| Second/later independently owned complete tree bytes | 0 |
 | Cold direct target estimate route median | <= 3,500 ms |
 | Warm/hover target estimate route median | <= 500 ms |
 | Sheet content visible after warm navigation | <= 1,000 ms |
@@ -31,7 +34,7 @@
 
 ## Legacy Phase 0 Baseline Artifacts
 
-The list below is retained as naming history. The canonical 13-output inventory is in `IMPLEMENTATION_PLAN.md`.
+The list below is retained as naming history. In the 14-name stable inventory in `IMPLEMENTATION_PLAN.md`, the first 13 are index-owned current projections of immutable `evidence/runtime/runs/...` artifacts and the last is the current registry projected from an immutable snapshot. None is a direct producer destination.
 
 Required files:
 - `evidence/estimate-route-benchmark.json`
@@ -47,6 +50,7 @@ Required files:
 Add or extend:
 - React Profiler wrappers around tree, sheet content, branch list, and row table in test-only/perf mode.
 - Existing render probes for row/table/branch/total recompute counts.
+- Test-only graph activation probes for deepest-path ancestor lookup, 1,000-match identity lookup, and independently owned complete-tree byte census.
 - Route transition benchmark for exact target estimate URL.
 - Browser performance marks:
   - route start

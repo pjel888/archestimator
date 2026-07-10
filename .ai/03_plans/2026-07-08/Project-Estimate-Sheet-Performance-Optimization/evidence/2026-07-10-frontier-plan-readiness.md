@@ -6,9 +6,10 @@ This artifact proves the planning claim that the pack is executable without inve
 
 ## Baseline
 
-- Git HEAD before target-folder edits: `a9ba86c0ffa39a9dcb91625861edde9603d7869c`
+- Initial Git HEAD before target-folder edits: `a9ba86c0ffa39a9dcb91625861edde9603d7869c` (historical planning-start provenance only).
 - Target-folder status/diff before edits: empty; SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`
 - Shared worktree: dirty outside the target folder; no unrelated file was reverted.
+- Current frozen source snapshot uses `estimate-sheet-source-fingerprint.v2` from hashed helper `evidence/source-fingerprint-v1.mjs` (SHA-256 `55b0e4a94f773d97b80fa49a29fe2d77189e081de47b28aa0cc4bdab17b787ea`). Git HEAD is `ff2e9d5270682592988491d8b5a357f10ca476d4`; the 1,992-path planning-admission list SHA-256 is `2d9369c98196b5cf0db6d18be1384ea9efc9fb29dd9fccaca01c60147df44bcd`; scoped status SHA-256 is `aa236eb687e6544e50e31c68079afe03a5371f8f4dd91f70d3360f8941c97c01`; scoped diff/untracked-record SHA-256 is `0d1784a5d31703310e1b10bc513b7b456c6c0661659555313d5756b6b33e5f41`. Its application fingerprint covers 1,168 actual filesystem files with path-list SHA-256 `1ded6def9474a5f1d3970cce4c74dd3ccb113b10c895a606bf2b395d0d418ca3` and content SHA-256 `e894c54357a98feaf7b24c6d56375f9a51a3054f08f0e005efba515a64af3d8b`; its producer fingerprint covers 836 files with path-list SHA-256 `61c52ca48c207accb9b67a40fba82862bec136156bd54ab47c30c78f231a91db` and content SHA-256 `ee39a77923f606079d7473425a8b9abb13603fc08aba61bf519b4aa5bcef73d6`. The helper strips inherited `GIT_*` controls, fixes locale/config/diff semantics, separately hashes Git admission state, and hashes actual application/producer filesystem contents and executable modes; the package application projection excludes scripts. The plan folder is outside every source scope.
 - Baseline plan validation: failed because `plan-pack.json` was absent.
 - Baseline independent architect verdict: `NOT_READY`.
 - Baseline independent critic verdict: `NOT_READY`.
@@ -53,7 +54,7 @@ Official limits and API behavior must be rechecked in the implementation run bef
 | Competing execution guides | Added sole canonical `IMPLEMENTATION_PLAN.md`; docs 11/21 are superseded for execution. |
 | Owner decisions `OPEN-01..07` | Replaced with reversible `DEC-AUTO-*` records and evidence-based reopen triggers. |
 | Contradictory phase gates | Replaced by one `UNIT-001..011` DAG and ready slice. |
-| Unstable Phase 0 artifact lists | Replaced by one 14-path canonical runtime evidence inventory including the atomic evidence index. |
+| Unstable Phase 0 artifact lists | Replaced by immutable no-overwrite run artifacts plus 13 index-owned current evidence projections and one current registry whose own immutable hash is stored externally. |
 | Non-runnable unit prose | Every canonical unit now has ownership, paths, symbols/behavior, commands, evidence, exit, failure, cleanup, and resume state. |
 | Interop count 17 | Reconciled 19 unique IDs and seven direct-test gaps. |
 | Stale test inventory | Corrected bulk-delete, broadcast, and tree-DnD test paths; stale contract tests assigned to `UNIT-001`. |
@@ -66,29 +67,50 @@ Official limits and API behavior must be rechecked in the implementation run bef
 | Undeployable hosted proof route | Removed the route. `UNIT-011` uses direct `wrangler d1 execute ARCH_DB --remote` with binding/database preflight and no deploy. |
 | Unsafe hosted metadata cleanup | Replaced with a run UUID lease, exact eleven-table keys, dependency-order deletion, per-table reconciliation, zero-count verification, and unambiguous cleanup-only recovery. |
 | Implicit optimized-path proof | Added fresh build plus explicit `off,shadow,on,rollback` producer/check commands for every active unit and the integrated mode matrix. |
-| Incomplete runtime traceability | Added durable package/unit/evidence/requirement/criterion/test/scenario IDs and a lock-protected atomic evidence-index/status transition command. |
+| Incomplete runtime traceability | Added durable package/unit/evidence/requirement/criterion/test/scenario IDs and a lock-protected journaled evidence-index/status transition command with `plan-pack.json` as the commit point. |
+| Undefined graph activation operands | Defined exact units, deterministic limit-fixture collectors, 3+30 sampling, <=5 ms lookup thresholds, zero duplicate-byte threshold, raw `UNIT-001` producer output, and mechanical fail calculation. |
+| `UNIT-001` indexed absent durable files | Added one exact immutable dual-output producer, constructible fixture/report payload linkage, schema/hash checks, fsync ordering, then projection/index ordering. |
+| Unsafe build/source parallelism | Serialized every maker unit. `UNIT-001` bootstraps the shared producer/package-command surface before measurement; Units 001-004 freeze one cohort; Units 005-009 carry continuous application/producer lineage; Units 010-011 share the final pair. |
+| Cleanup and evidence journals were not power-loss/response-loss closed | Added durable-ancestor directory-chain fsync, absent-old-projection restoration, stop/drain-before-delete, explicit cleanup states, uncertain-commit exact-zero recovery with producer invalidation, complete projection-record recovery plus existing immutable-byte verification, and first-transition boundary fault tests. |
+| Source fingerprint was prose-only, environment-sensitive, and omitted build inputs | Added executable `estimate-sheet-source-fingerprint.v2`, deterministic Git environment/config semantics, actual filesystem application/producer scopes including `public/`, package projection, mode/content records, and exact nested manifest verification. |
+| Runtime report shape admitted hybrid or incomplete canonical evidence | Added strict complete-report variants, non-indexable attempt records, explicit fixture/cleanup/hosted-recovery schemas, route-D1/full-local integration envelopes, and negative forbidden-field/fingerprint/linkage tests. |
+| Hosted manifest could be undiscoverable or ambiguous after the first seed | Made one `cleanup.json` both lease and exact-ID journal, durable from the known `.ai/` ancestor before seed; explicit UUID cleanup recovery handles multiple unresolved runs and never writes canonical proof. |
+| Journal wording overclaimed artifact-byte reconstruction | Producers now write immutable run artifacts; mutable paths are projections only. Pre-commit recovery restores bytes or true absence, while post-commit recovery rebuilds projection records and verifies existing immutable bytes. |
+| Fixed output names contradicted append-only evidence | Defined immutable source paths, collision rejection, current-pointer allocation, 13 index-owned evidence projections plus a non-self-hashing current registry, preserved history, and exact `auto:<role>` command semantics. |
+| Fingerprint lifecycle self-invalidated its own baseline | Limited plan admission to pre-edit UNIT-001, froze Units 001-004 after shared bootstrap, and defined dual-digest predecessor admissions plus owned active-unit deltas and final UNIT-010/011 equality. |
+| Preview lifecycle ended before optimized browser proof and cleanup covered only one process | Required rollback/all-off evidence followed by one sole active final preview, and journaled every intermediate/final preview in ordered `previewProcesses[]` for drain/exit/closed-port cleanup. |
+| Child evidence could disappear or mutate after envelope validation | Restricted durable child references and added recursive dependency-byte revalidation plus persisted `dependencySources[]` at index commit and recovery. |
+| Exit-status-only gates were not durable same-run proof | Added command receipts and an allowlisted gate wrapper with exact argv/output/build hashes, dual-fingerprint equality, same-run validation, and explicit consumer dependencies. |
+| Mutating measurement children could share fixture state | Allocated isolated `mode`, `browser`, and `d1` namespaces from one logical pre-state, with role-bound mutation/command identity and complete cleanup reconciliation. |
+| UNIT-002 browser producer and checker collided on one immutable role | Split the producer to `auto:browser` and the checker receipt to `auto:browser-check`; the index requires both without overwriting either. |
+| UNIT-002 had no baseline preview producer | Added an explicit nonblocking, process-journaled all-five-modes-off server launch whose active descriptor is consumed by Playwright and terminated only by cleanup. |
+| Three auto-output producers did not identify their per-unit current pointer | Added exact `--unit` selectors to UNIT-004 decision and UNIT-011 hosted/release commands, with missing/ambiguous selector refusal tests. |
+| UNIT-009's mutating Playwright receipt lacked fixture-state provenance | Added a discriminated fixture-mutation block to fixture-bound test receipts and required mutation-proof/index revalidation against the prepared namespace and command journal. |
+| Validation strategy UNIT-003 commands bypassed canonical receipts/checker joins | Replaced the excerpt with the exact validate/test/D1/check/cleanup/index sequence and removed or gate-wrapped standalone evidence shortcuts. |
 | Orphan a11y behaviors | Removed invented partial-fan-out/offline/cancellable-write/session-modal contracts; keyboard move uses the semantic move decision. |
 | Same-agent/browser readiness caps | Removed; provenance is metadata and runtime proof controls implementation/release status instead. |
 
 ## Planning Acceptance Evidence
 
-`AC-001` through `AC-011` are currently proven planning criteria. `AC-012` remains `FAIL` until both frozen independent reviews are clean. Runtime tests remain `PLANNED` in the manifest.
+`AC-001` through `AC-012` are proven planning criteria. `TEST-001` and `TEST-007` pass; runtime tests `TEST-002` through `TEST-006` remain `PLANNED` in the manifest.
 
-Expected final evidence sequence:
+Completed readiness evidence sequence:
 
 1. Planning prompt suite validation passes.
 2. Plan-pack validation passes with current hashes.
 3. Adversarial copies fail for missing manifest, stale artifact hash, orphan link, DAG cycle, and inconsistent status/next-unit cases.
 4. `git diff --check` passes for the target folder.
 5. Marker/path/source scans find no unresolved owner decision, stale active execution authority, missing referenced path, or P0/P1 contradiction.
-6. Fresh independent architect and critic reviews return no unresolved P0/P1 finding.
+6. Independent architect and critic reviews of the same exact pre-promotion candidate returned `CLEAN`; a separate fingerprint verifier also returned `CLEAN`.
 
 ## Final Verification Receipt
 
-Frozen-review candidate prepared. Baseline architect and critic verdicts were `NOT_READY`; their findings drove the canonical decision/risk/command/evaluator/hosted-cleanup repairs. The refreshed architect and critic receipts remain pending. Until both report zero unresolved P0/P1 findings, `AC-012=FAIL`, `TEST-007=PLANNED`, every unit remains `PLANNED`, `package_status=NOT_READY`, `next_unit=null`, and no ready slice is advertised.
+Five semantic review candidates were rejected. The first three drove the canonical decision/risk/command/evaluator/Better-Auth/env/traceability/cleanup repairs. The fourth exposed the prose-only fingerprint, missing build inputs, universal hybrid report shape, hosted directory-durability gap, and projection-recovery overclaim. The fifth exposed environment-sensitive Git identity, a self-invalidating baseline lifecycle, illegal UNIT-005 hybrid evidence, impossible local exit timing, incomplete/cyclic fixture and cleanup schemas, first-transition absence recovery, ambiguous hosted cleanup, and fixed-path/immutable-evidence contradictions. Its repair pass added the deterministic v2 dual fingerprint, full UNIT-001 shared-tool bootstrap, continuous dual-digest lineage, explicit complete/attempt/fixture/cleanup/integration/recovery schemas, immutable runs with indexed projections, and durable exact-run cleanup. A final pre-freeze audit then closed multi-preview cleanup, optimized final-state proof, recursive child dependency durability, command-receipt ordering, role-isolated fixture namespaces, and the UNIT-002 browser/checker output collision; those repairs are recorded in `LOOP_LEDGER.md`.
+
+Two later exact-review attempts were invalidated without verdict when concurrent shared-worktree edits changed the scoped/application fingerprints; no concurrent source was reverted or excluded. After a five-reading quiet window, the accepted pre-promotion candidate had plan-pack SHA-256 `6c6c2d4ad6c4dd20495a7206f7c21b2280e975d60d8c0bea6caf4851bc2aa734`, internal manifest SHA-256 `e2afb002d3348148884fc673fcc9dde0f6f14ea3e050ee20573564f1a3969512`, canonical-plan SHA-256 `21f67b6d3918781562637c6acdba5ed32996688126f97a18eb271aabf46ee7da`, and helper SHA-256 `55b0e4a94f773d97b80fa49a29fe2d77189e081de47b28aa0cc4bdab17b787ea`. Clean and hostile fingerprint runs were byte-identical (stdout SHA-256 `c0d6a36b163f476b8a4f0d46a3e4e590601db2cc1e5430f51dc37681212d41ff`), both validators and diff hygiene passed, and independent architect, critic, and fingerprint reviews returned `CLEAN`. The authoritative promotion therefore sets `AC-012=PASS`, `TEST-007=PASS`, all units `READY`, `package_status=IMPLEMENTATION_READY`, `next_unit=UNIT-001`, and publishes dependency-closed `SLICE-001`.
 
 ## Validation Gap
 
 Browser automation was intentionally skipped for this planning-only run because it would prove runtime behavior, not whether the plan packets are executable. Browser proof is mandatory in `UNIT-002` and `UNIT-010`.
 
-Supermemory was unavailable because `SUPERMEMORY_SERVER_BIN` was not configured. Current source plus canonical `.ai` documents remained the authority; no memory claim was used as evidence.
+Supermemory health passed during this repair. Its targeted search returned no relevant plan-pack memory, so current source plus canonical `.ai` documents remain the authority and no Supermemory result is used as readiness evidence.
