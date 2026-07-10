@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "versions": {
+    "0.0.3": {
+      "darwin-arm64": "5a5932a9d9aa72239f61e6824b8f16d074c5752c9ee54f8ce366ea6b642e9395",
+      "darwin-x64": "b72da8fc9221e78b40ea180532b588e32f88a6c5452fc8131d37434cf07d516c",
+      "linux-arm64": "167f595afdb6fba3f6ef12e23b31aa99d177684b188376072d4b46f60d3b4d8e",
+      "linux-x64": "4036486514bd3511099e8f8642e1c56ecc58550c5e194442e88a5438992c0957"
+    }
+  }
+}
