@@ -1,5 +1,7 @@
 # 11 - Implementation Plan
 
+> Superseded for execution on 2026-07-10. This phase-oriented draft is retained as design history. Follow `IMPLEMENTATION_PLAN.md` and `plan-pack.json`; their `UNIT-*` DAG, evidence inventory, and status tuple are authoritative.
+
 This is a future implementation plan. Do not execute it as part of this planning pack.
 
 ## Phase Exit Criteria (Pass-3 addition)
@@ -9,7 +11,7 @@ Every phase has a binary exit signal. A phase is not "done" until its exit signa
 | Phase | Exit signal (binary, observable) | Owner | Blocking downstream phase? |
 |---|---|---|---|
 | Phase 0 | All five evidence artifacts (route benchmark, DOM census, browser spec, D1 proof, decision memo) exist in `evidence/` AND decision memo ranks top-3 bottlenecks. | Eng lead | Blocks Phase 1+ optimization. Does NOT block Phase 0.5. |
-| Phase 0.5 | Browser spec `e2e/estimate-sheet-component-interop.spec.ts` runs green for all 17 CI-QA scenarios (doc 22) at small + medium fixture tiers. | Eng lead | Blocks production scale claim. Does NOT block Phase 1+ perf work. |
+| Phase 0.5 | Browser spec `e2e/estimate-sheet-component-interop.spec.ts` runs green for all 19 CI-QA IDs (doc 22) at small + medium fixture tiers. | Eng lead | Historical gate; canonical dependencies are in `IMPLEMENTATION_PLAN.md`. |
 | Phase 1 | Route fast path implemented and proven against D1 artifact; subtree deduplication test green; no authz denial-test regression. | Eng lead | Blocks Phase 2 only if Phase 0 memo ranks D1/route in top-3. |
 | Phase 2 | Graph model + selector parity tests green for all fixtures; feature flag off-by-default; nested facade unchanged. | Eng lead | Blocks Phase 3. |
 | Phase 3 | Incremental totals property test ≥1,000 iterations green; deferred search/transition green at stress fixture; facet/move option indexes wired. | Eng lead | Blocks Phase 4. |
@@ -72,7 +74,7 @@ Units:
 U0.5.1 - Create `e2e/estimate-sheet-component-interop.spec.ts`.
 - Files likely: `e2e/estimate-sheet-component-interop.spec.ts`
 - Acceptance:
-  - Implements all 17 CI-QA scenarios from doc 22 (CI-QA-01 through CI-QA-17).
+  - Implements all 19 CI-QA IDs from doc 22 (`01`, `02`, `03`, `04`, `05`, `05b`, `05c`, and `06` through `17`).
   - Authenticated harness available; can run locally with `ARCHESTIMATOR_E2E_MUTATING_DND=1`.
   - Each scenario asserts the expected-result column from doc 22 verbatim.
 
@@ -87,7 +89,7 @@ U0.5.3 - CI-QA ↔ vitest coverage backfill.
 - Acceptance:
   - Every REQ-CI-* (doc 04, doc 22) maps to at least one named vitest test or one browser scenario. See traceability matrix in doc 16 (Pass-3 update).
 
-Stop condition for Phase 0.5: all 17 CI-QA scenarios green at small + medium tier; CI-QA-14..17 green at stress tier.
+Historical stop condition for Phase 0.5: all 19 CI-QA IDs green at small + medium tier; CI-QA-14..17 green at stress tier. The canonical stop contract is `UNIT-002` plus `UNIT-010`.
 
 ## Phase 1 - Route And D1 Read Path
 
@@ -172,7 +174,7 @@ U3.3 - Facet and move option indexes.
 - Acceptance:
   - Facet options derive from graph indexes.
   - Move area picker and position picker remain usable with thousands of options/rows.
-  - Decision OPEN-02 resolved before this unit ships.
+  - Follow canonical `DEC-AUTO-003` semantic move placement.
 
 ## Phase 4 - Render Boundary Migration
 
@@ -237,4 +239,3 @@ U6.3 - Rollout decision.
   - Feature flags documented.
   - Rollback path tested.
   - Readiness doc updated.
-

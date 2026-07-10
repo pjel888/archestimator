@@ -1,5 +1,7 @@
 # 21 - Execution Handoff
 
+> Superseded for execution on 2026-07-10. The exact first unit is `UNIT-001` in `IMPLEMENTATION_PLAN.md`; the manifest-backed DAG replaces the tentative files and PR sequence below.
+
 ## First Implementation PR Recommendation
 
 Build Phase 0 evidence only.
@@ -60,4 +62,3 @@ Because this repo discourages automatic branch/worktree changes:
 4. Re-read files immediately before edits.
 5. Run focused checks.
 6. Report changed files and evidence.
-

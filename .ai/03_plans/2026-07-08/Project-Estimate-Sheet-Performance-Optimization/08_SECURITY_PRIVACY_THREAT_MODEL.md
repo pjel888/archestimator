@@ -43,7 +43,7 @@ T05: Client graph stale state displays data after permission revocation.
 - Mitigation: mutation/query failure paths clear privileged state; edit capability remains fail-closed; active session refresh handled separately.
 
 T06: Hosted proof cleanup failure leaves seeded test data.
-- Mitigation: hosted proof fails closed when seeded count does not equal cleaned count; use isolated fixture prefix/metadata.
+- Mitigation: hosted proof uses a unique run UUID plus exact per-table ID arrays; cleanup reconciles every table and verifies zero remaining exact IDs.
 
 T07: Index migration worsens write amplification and creates free-tier cost risk.
 - Mitigation: compare rows read/write and durations before/after; avoid speculative indexes.
@@ -66,4 +66,3 @@ Required before implementation ships:
 - D1 proof output redaction test.
 - Hosted proof cleanup fail-closed test.
 - Existing authz tests touched by estimate actions remain green.
-

@@ -1,5 +1,7 @@
 # 16 - Requirements Traceability Matrix
 
+> This is the legacy alias/test narrative. Stable normalized IDs, reciprocal sources, criteria, evidence, and `UNIT-*` links are authoritative in `IMPLEMENTATION_PLAN.md` and `plan-pack.json`.
+
 | Requirement | Plan Units | Evidence Required |
 |---|---|---|
 | REQ-F01 route skeleton and no fallback flicker | U0.3, U1.1 | route benchmark, browser spec |
@@ -78,10 +80,9 @@ Pass-3 takeaway: REQ-CI-04, REQ-CI-08, REQ-CI-12, REQ-CI-13, REQ-CI-14, REQ-CI-1
 | REQ-CRUD-02 entity-scoped rollback | (none — needs U5.1) | U5.1, U5.3 | new mutation failure/concurrency tests |
 | REQ-CRUD-03 row_revision conflict guard | `estimate-sheet-version-control-actions.test.ts` (subset), `estimate-sheet-library-insert.test.tsx` (subset) | all row phases | conflict tests (existing) |
 | REQ-CRUD-04 template stale-snapshot guard | `estimate-sheet-library-insert.test.tsx` (subset) | Phase 0.5 | template insert tests (existing) |
-| REQ-CRUD-05 bulk delete all-or-nothing ≤100 | (none located — needs targeted test) | Phase 0.5 | new bulk delete tests |
-| REQ-CRUD-06 realtime broadcast contract | (none located — needs targeted test) | Phase 0.5 | new broadcast tests |
-| REQ-CRUD-07 optimistic node id resolution | `estimate-sheet-tree-dnd.tsx` (subset) | Phase 0.5 | tree tests (existing) |
+| REQ-CRUD-05 bulk delete all-or-nothing <=100 | `estimate-sheet-bulk-row-delete-partial-failure.test.tsx` | Canonical `UNIT-001` characterization + `UNIT-009` mutation proof | existing test plus D1 atomicity proof |
+| REQ-CRUD-06 realtime broadcast contract | `estimate-row-update-broadcast.test.ts` | Canonical `UNIT-001` characterization + `UNIT-009` concurrency proof | existing test plus concurrent revision proof |
+| REQ-CRUD-07 optimistic node id resolution | `estimate-sheet-tree-dnd.test.tsx` (subset) | Canonical `UNIT-001` characterization + `UNIT-009` mutation proof | existing tree tests plus optimistic-id sequencing proof |
 | REQ-CRUD-08 P6 single-node model | `estimate-template-drop-zones.test.tsx` ("direct insert INTO a row-owning area (P6)") | all node phases | P6 tests (existing) |
 
 Pass-3 takeaway: REQ-CRUD-05 and REQ-CRUD-06 need explicit named tests. The plan asserts "existing" coverage but the traceability to specific test names must be confirmed during U0.5.3.
-

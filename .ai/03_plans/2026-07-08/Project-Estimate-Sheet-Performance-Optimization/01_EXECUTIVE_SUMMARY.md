@@ -4,7 +4,7 @@
 
 The current project estimate sheet has meaningful performance work already in place, but it is not yet proven ready for thousands of nodes and rows under mission-critical MVP expectations.
 
-The safest next step is not another blind optimization pass. It is Phase 0 measurement, followed by a staged migration from nested-tree-first state to a normalized, selector-backed client graph while preserving current UX and route contracts.
+The safest next step is canonical `UNIT-001`: lock current behavior, repair stale contract tests, create deterministic fixtures, and build the evaluator. Measurement then activates or supersedes each optimization branch; a normalized graph is not unconditional.
 
 ## Current Strengths
 
@@ -64,9 +64,8 @@ P2:
 
 ## Readiness
 
-Phase 0 baseline: ready to execute.
+Plan package: `IMPLEMENTATION_READY`; exact next unit `UNIT-001`.
 
-Optimization implementation: conditionally ready after Phase 0 creates evidence and confirms bottleneck ranking.
+Implementation: `NOT_STARTED`; the ready DAG uses measured activation predicates and supersession receipts.
 
-Production scale claim: not ready until browser, D1, and hosted proof artifacts exist.
-
+Release: `NOT_EVALUATED`; browser, D1, and hosted proof are runtime evidence, not plan-readiness caps.

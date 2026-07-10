@@ -89,15 +89,62 @@ Improvements applied:
 - Two new docs: 28 (inventory/source-map) + 29 (a11y proof matrix).
 - Eleven existing docs upgraded in-place: README, 05, 09, 11, 13, 14, 15, 16, 17, 22, 23.
 - Pass-3 weighted score: ~91/100 (up from ~88).
-- Verification mode: `emulated`. Cap at 94 for emulated verification + no browser/hosted proof. Hitting 95+ requires execution (Phase 0 artifacts) + independent reviewer, not more planning.
+- Historical verification note: this score cap was superseded by the 2026-07-10 frontier planning contract. Reviewer provenance is metadata, while implementation/browser/hosted proof belongs to runtime status rather than plan-readiness status.
 
 Stop condition met:
 - All industry-standard facets from Improve-Plan-Prompt covered or marked "Not applicable" with reason.
 - Every dimension that prevented 90+ at planning level addressed.
-- Remaining gaps (browser proof, hosted proof, independent reviewer) cannot be closed by additional documentation.
+- Browser and hosted proof remain runtime implementation evidence; they do not cap whether an exact plan can be implementation-ready.
 - Ponytail discipline: 2 new docs (not 7) — only real implementation-blocking gaps closed; no bloat.
 
 Verification of pass-3 work:
 - `git diff --check` (to be run in lead lane).
 - File inventory: 30 docs + README + LOOP_LEDGER + evidence folder.
 - Internal cross-refs verified (every new doc referenced from README + at least one sibling doc).
+
+## Loop 6 - Frontier Implementation-Readiness Repair (2026-07-10)
+
+Run ID: `019f4a04-dc75-7222-8bd2-020b35b1e415`
+
+Goal: convert this mission-critical pack from narrative/conditional guidance into one manifest-backed, dependency-closed execution contract without editing application source.
+
+Current run scope: `PLAN_ONLY`.
+
+Baseline before target-folder edits:
+
+- Git HEAD: `a9ba86c0ffa39a9dcb91625861edde9603d7869c`
+- Target-folder scoped status SHA-256: `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` (empty)
+- Target-folder scoped diff SHA-256: `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` (empty)
+- Shared worktree: dirty outside this pack; unrelated changes were preserved.
+
+Runtime/workflow provenance:
+
+- Native durable goal: active for this exact plan-pack objective.
+- `ultrawork`: three bounded read-only lanes ran in parallel: current-source exploration, architect audit, and adversarial critic/test audit.
+- `autoresearch`: official web.dev/Chrome, Cloudflare D1, Playwright, and installed Next.js guidance were checked and converted into evaluator/rollout decisions.
+- `autopilot`: intent was already explicit, so the clarification phase was satisfied from the user goal; planning, architect review, critic review, QA, and final validation are recorded here.
+- `ultraqa`: plan-pack validator plus mutation/adversarial validator scenarios are the final QA surface; browser automation is deferred because this run changes planning artifacts only.
+- Compound Engineering: documentation review criteria were applied through the independent audits.
+- Existing `.omx/ultragoal` state belongs to an unrelated stale run and was not overwritten. This ledger is the task-local durable state.
+- Supermemory was unavailable because `SUPERMEMORY_SERVER_BIN` was not configured; canonical source and `.ai` records remained authoritative.
+
+Baseline audit results:
+
+- `bun run validate:plan-pack -- <pack>` failed because `plan-pack.json` did not exist.
+- Independent architect and critic both returned `NOT_READY` with P0/P1 findings.
+- Main failures: no manifest/canonical artifact, contradictory phase gates/artifact lists, seven owner decisions, non-runnable units, 19 interop IDs miscounted as 17, stale test inventory, incomplete evaluator provenance/statistics, build-frozen rollback flags, and unsafe hosted cleanup.
+
+Repairs in progress/completed:
+
+- Added `IMPLEMENTATION_PLAN.md` as the sole canonical execution artifact.
+- Normalized all 66 accepted legacy obligations and mapped them to exact `UNIT-001..011` packets.
+- Replaced ordinary open decisions with `DEC-AUTO-*` defaults and evidence-based reopen triggers.
+- Reconciled current source/test facts, graph index naming, 19 interop IDs, performance method, deployment modes, and D1 exact-ID cleanup.
+- Reclassified numbered phase/handoff docs as supporting/superseded where appropriate.
+- Added planning evidence and manifest validation as the final frozen-state gate.
+
+Exact next DAG node after plan completion: `UNIT-001`.
+
+Active leases: none. Only the lead writes the target pack during this repair; review agents are read-only.
+
+Invalidation rule: any canonical artifact, planning-suite, validator, current source map, or unit-owned path change invalidates dependent hashes and requires a fresh validator/reviewer pass.

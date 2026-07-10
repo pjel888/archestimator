@@ -15,9 +15,9 @@
 | R11 | Proposal preview/history accidentally move heavy materialization into hot path. | Medium | Medium | Keep materialization behind explicit open actions; profile separately. |
 | R12 | Performance proof artifacts contain sensitive data. | Critical | Low | Sanitized fixtures; redaction tests; no raw env output. |
 | R13 | Over-limit truncation creates false totals. | High | Medium | Preserve truncation UX; disable unsafe moves; export full-data path documented separately. |
-| R14 | D1 hosted proof leaves seeded records. | Medium | Low | Cleanup count assertion; isolated fixture prefix; fail closed. |
+| R14 | D1 hosted proof leaves seeded records. | Medium | Low | Unique run UUID, exact per-table ID manifest, dependency-order cleanup, per-table count reconciliation, and zero-ID verification; fail closed. |
 | R15 | Too much architecture before proof. | Medium | Medium | Phase 0 baseline gate; no optimization coding before evidence. |
-| R16 | Client-side project-component fan-out (`patchProjectComponentInstanceRowsInTree`) is O(N) tree-walk and blocks at stress scale (5,000 rows). | Medium → High | High | Add `componentInstanceRowIdsByIdentity` graph index (doc 06, GAP-06); server fan-out is already efficient (SQL join). |
+| R16 | Client-side project-component fan-out (`patchProjectComponentInstanceRowsInTree`) is O(N), while server fan-out uses JSON identity filtering plus per-match batched updates. | Medium to high | High | Measure both paths in `UNIT-003`; add `componentInstanceRowIdsByIdentity` for client lookup and optimize the server only when its budget fails. |
 | R17 | Restore-deleted row/node paths throw unconditionally on D1 — delete is irreversible. | Medium | High (impact) | Document as known MVP limitation (GAP-07); delete UX must confirm irreversibility; do not expose restore affordances that throw. |
 | R18 | Edit-surface conflation: AddComponentModal create (writes `cost_library_items`), AddComponentModal edit (writes row projection), and EditComponentDrawer (writes library master) are three distinct paths to different tables. Confusing them causes cross-table data corruption. | High | Low | Doc 22 surfaces them explicitly; REQ-CI-12/13; integration tests assert correct target table per surface. |
 | R19 | `linkState` lifecycle drift: library-linked rows edited in estimate sheet must flip to `linked-overridden` without mutating the library master. Silent library-master mutation is data corruption. | High | Low | REQ-CI-14; server enforces flip at `actions.ts:3430`; integration test CI-QA-03 verifies master unchanged. |
@@ -41,4 +41,3 @@ The highest-risk technical decision is introducing a normalized graph store. The
 - Comparing every selector against current helpers.
 - Moving one hot path at a time.
 - Keeping feature flag rollback.
-

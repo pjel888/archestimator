@@ -143,8 +143,8 @@ Remote cursors (`useEstimateCursorCollaboration`) render overlays **without re-r
 | `estimate-sheet-render-relief.test.tsx` | 6 | selection isolation |
 | `estimate-sheet-cursor-isolation.test.tsx` | 3 | collaboration overlay isolation |
 
-**Gap**: no browser proof for DnD flows (all jsdom). DnD is particularly hard to prove in jsdom because it doesn't simulate real pointer events faithfully.
+**Gap**: no browser proof for DnD flows (all jsdom). Canonical `UNIT-002` owns pointer/keyboard browser proof and `UNIT-010` reruns it after activated changes.
 
 ## Verification
 
-- `verification_mode`: emulated (same-agent, grounded in source audit of `drop-zones.tsx`, `use-drag-edge-autoscroll.ts`, `branch.tsx`, `row-table.tsx`, `cells.tsx`, `EstimateSheetTree.tsx`, `EstimateSheetContent.tsx`, `estimate-workshop-drag.ts`).
+- Planning provenance: source-grounded audit of `drop-zones.tsx`, `use-drag-edge-autoscroll.ts`, `branch.tsx`, `row-table.tsx`, `cells.tsx`, `EstimateSheetTree.tsx`, `EstimateSheetContent.tsx`, and `estimate-workshop-drag.ts`.

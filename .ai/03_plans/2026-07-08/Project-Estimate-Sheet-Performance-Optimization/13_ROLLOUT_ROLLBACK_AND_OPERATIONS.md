@@ -1,153 +1,90 @@
 # 13 - Rollout, Rollback, And Operations
 
-## Rollout Strategy
+`IMPLEMENTATION_PLAN.md` is the canonical execution authority. This document expands the operational contracts for `UNIT-005` through `UNIT-011`.
 
-Use staged feature flags:
+## Rollout Modes
 
-- `NEXT_PUBLIC_ESTIMATE_GRAPH_STORE_ENABLED`
-- `NEXT_PUBLIC_ESTIMATE_INCREMENTAL_TOTALS_ENABLED`
-- `NEXT_PUBLIC_ESTIMATE_SELECTOR_SEARCH_ENABLED`
-- `NEXT_PUBLIC_ESTIMATE_SUBTREE_DEDUP_ENABLED`
-- `NEXT_PUBLIC_ESTIMATE_ENTITY_PATCH_MUTATIONS_ENABLED`
+Every evidence-activated optimized path uses a server-resolved deployment mode:
 
-Default:
-- Off in first implementation PR unless the PR is proof-only.
-- Enable in development/staging-like environments first.
-- Enable one phase at a time.
+- `off`: current implementation is authoritative.
+- `shadow`: execute/compare the optimized read or selector, record parity and cost, but return the current result.
+- `on`: optimized path is authoritative; current path remains a rollback oracle during the plan lifecycle.
 
-## Rollback Strategy
+Planned mode names:
 
-Each phase must retain a fallback:
+- `ESTIMATE_ROUTE_FAST_PATH_MODE`
+- `ESTIMATE_GRAPH_MODE`
+- `ESTIMATE_INCREMENTAL_DERIVATION_MODE`
+- `ESTIMATE_ENTITY_PATCH_MODE`
 
-- Route fast path: fall back to existing route resolver.
-- New D1 indexes: additive indexes can remain, but query path can fall back; destructive removal is not part of rollback.
-- Graph store: fall back to nested `EstimateTreeNode[]`.
-- Incremental totals: fall back to recursive `computeNodeTotals`.
-- Selector search: fall back to current subtree filters.
-- Entity patch mutations: fall back to current nested optimistic patch/refetch recovery.
+The route resolves these server-only values and passes a typed mode snapshot to the client. They are deployment-scoped configuration, not live per-estimate flags. `NEXT_PUBLIC_*` values are not used for kill-switch claims because installed Next.js guidance says public values are inlined/frozen at build time.
 
-## Operations
+## Rollout Sequence
 
-Local operations:
-- Store artifacts under this pack's `evidence/` folder.
-- Keep provider secrets out of artifacts.
-- Use structured local logs only to investigate failures.
+1. `off`: capture the pre-change baseline on the current implementation.
+2. `shadow`: prove parity on deterministic fixtures and record cost without changing returned data.
+3. `on` in local/staging-like proof: run focused tests and browser/D1 budgets.
+4. `off`: rehearse rollback through a configuration change and redeploy/restart; prove current behavior and data are unchanged.
+5. `on`: collect the final integrated local proof.
+6. Run hosted D1 proof against the bound resource. This plan does not deploy the application to production.
 
-Hosted operations:
-- Hosted D1 proof requires explicit env gates.
-- Hosted proof must seed sanitized fixture data, run measured reads/writes, then clean up.
-- Hosted proof fails if cleanup count mismatches seed count.
-- Hosted proof output is redacted.
+## Rollback Contract
 
-## Release Gates
+- Route fast path falls back to `resolveEstimateTabRouteContext`'s current path.
+- Additive proven indexes may remain; query selection returns to the prior statement shape.
+- Graph selectors fall back to the nested-tree oracle.
+- Incremental totals/selectors fall back to recursive current helpers.
+- Entity inverse patches fall back to the current mutation/refetch recovery path.
+- Rollback must not change persisted entity shape or discard confirmed writes.
+- A rollback rehearsal passes only when post-rollback functional output matches the pre-change fixture and measured budgets return within the recorded tolerance. The evidence path is the owning unit's canonical JSON, not a separate ambiguous artifact family.
 
-Do not enable graph-backed implementation for users until:
-- Existing estimate focused tests pass.
-- New large-fixture DOM tests pass.
-- Browser performance spec passes.
-- D1 query proof passes.
-- React Doctor passes after React changes.
-- No severe local error logs are introduced during smoke testing.
-- Rollback flags are documented and tested.
+## Hosted Proof Data Contract
 
-## Monitoring
+Hosted proof stays inside the D1 `ARCH_DB` binding named in `wrangler.jsonc` and under free-tier/bundled limits.
 
-Recommended metrics:
-- Route context duration.
-- Route context query count.
-- D1 rows read per route/subtree query.
-- Subtree fetch count and dedupe hit rate.
-- Graph entity count.
-- Mounted row/branch count.
-- Edit duration.
-- Search/filter transition duration.
-- Long task count during sheet interactions.
-- Mutation rollback count.
-- Feature flag state.
+### Preflight
 
-## Incident Response
+1. Confirm secret/proof env gates without printing values.
+2. Confirm the Worker and D1 binding match `wrangler.jsonc`.
+3. Generate a cryptographically unique run UUID.
+4. Generate synthetic IDs for `estimates`, `estimate_tabs`, `estimate_nodes`, and `estimate_row_items` and store the exact arrays in an ignored temporary cleanup manifest.
+5. Project the run's reads/writes against the current Cloudflare free-tier limits; abort before seeding if the run would cross the pack's 50% safety threshold.
 
-If performance regresses after rollout:
+### Seed And Measure
 
-1. Disable the newest feature flag.
-2. Capture route/browser/D1 artifact for regression case.
-3. Check local/hosted logs for route/action failures.
-4. Compare rows read and mounted DOM counts against baseline.
-5. Re-enable only after a targeted fix and evidence update.
+1. Seed only synthetic names, costs, suppliers, components, and image markers.
+2. Record seeded counts per table, not a single aggregate count.
+3. Measure route, tab tree, subtree, row update, move, bulk delete, and project-component fan-out shapes.
+4. Capture normalized SQL hash, query/statement count, available D1 duration/rows metrics, and `EXPLAIN QUERY PLAN` without raw IDs or credentials.
 
-## Hosted Proof Runbook (Pass-3 addition)
+### Cleanup In `finally`
 
-Concrete operational runbook for hosted D1 proof. Closes R24 mitigation (cleanup failure leaves seeded rows).
+1. Delete the exact recorded IDs in row -> node -> tab -> estimate order using the strongest supported transaction/batch boundary.
+2. Compare deleted count to seeded count independently for every table.
+3. Query every exact ID set and require zero remaining matches.
+4. Delete the raw cleanup manifest only after all four zero-count checks pass.
 
-### Pre-conditions
+Cleanup does not depend on a metadata-prefix predicate. Active schema uses `metadata_json` for rows/nodes and `metadata` for tabs/estimates, so a shared predicate would be invalid. A date-static prefix is also forbidden because concurrent runs could collide.
 
-- All env gates set: `CLOUDFLARE_D1_PROOF_ENABLED=1`, scoped `CLOUDFLARE_D1_PROOF_TOKEN`, `ARCH_DB` binding available.
-- Hosted proof endpoint is secret-gated and rejects unauthenticated requests (REQ-R03).
-- Working on the bound Cloudflare account/project only (per AGENTS.md cost posture).
+### Fail-Closed Recovery
 
-### Phase A — Seed
+- Any timeout, command failure, count mismatch, or remaining ID makes hosted proof `FAIL`.
+- Do not start another seed while a cleanup manifest is unresolved.
+- Re-run cleanup by exact IDs; if a runtime/provider failure needs operator tracking, use the redacted incident/debug path from `AGENTS.md`.
+- Evidence stores run UUID, counts, hashes, and safe plan summaries only. It never stores cookies, bearer values, proof secrets, raw customer-shaped IDs, or sensitive URLs.
 
-1. Generate deterministic stress fixture locally (`perf:seed-fixture` style).
-2. Sanitize fixture: replace any real customer-shaped data with synthetic IDs, costs, suppliers.
-3. Tag every seeded row with `metadata.proof_fixture_prefix = 'estimate-sheet-perf-2026-07-09'` (date-stable, unique to this proof run).
-4. Insert seeded rows via the hosted proof endpoint with `OP=seed`, capturing `seeded_count` to a local JSON.
+## Monitoring And Release Evaluation
 
-### Phase B — Measure
+Required signals for the proof/release evaluation:
 
-1. Run the proof body (route/subtree/row-update/move/bulk-delete query shapes).
-2. Capture per-query `EXPLAIN QUERY PLAN`, `rows_read`, `rows_written`, duration, index used.
-3. Redact: hash all IDs, strip raw cookies/tokens/URLs, replace project names with `project-<n>`.
-4. Write redacted JSON + Markdown to `evidence/hosted-estimate-sheet-d1-proof.{json,md}`.
+- Route context duration, query/statement count, and rows read.
+- Tab/subtree query count versus requested depth.
+- Mounted branch/row counts.
+- Event Timing, Long Animation Frame/long-task, edit, scroll, and search metrics.
+- Graph entity/index counts and retained memory delta.
+- Mutation rollback, revision-conflict, stale-broadcast, and fan-out counts.
+- Current deployment mode snapshot.
+- D1 daily read/write/storage projection against the current official free-tier limits.
+- Error-handling gate result and any skipped proof with residual risk.
 
-### Phase C — Cleanup (mandatory, even if Phase B fails)
-
-1. Run cleanup pass: `DELETE FROM estimate_row_items WHERE metadata_json LIKE '%proof_fixture_prefix%"estimate-sheet-perf-2026-07-09"%';`
-2. Same for `estimate_nodes`, `estimate_tabs`, `estimates` (in dependency order: rows → nodes → tabs → estimates).
-3. Capture `cleaned_count` per table.
-4. **Fail-closed assertion**: for each table, `cleaned_count === seeded_count` must hold. If any mismatch:
-   - Mark proof as FAILED in evidence.
-   - Do not commit evidence artifacts.
-   - Trigger ops incident (`ops:incident --dry-run` first).
-   - Manual reconciliation required before retry.
-
-### Phase D — Verify
-
-1. Sanity query: `SELECT COUNT(*) FROM estimate_row_items WHERE metadata_json LIKE '%proof_fixture_prefix%"estimate-sheet-perf-2026-07-09"%';` → must return 0.
-2. If non-zero, escalation per Phase C fail-closed.
-
-### Out-of-band safeguards
-
-- Use a dedicated fixture prefix per proof run (date-stamped). Never reuse a prefix across days.
-- Cleanup runs even if Phase B aborts. Wrap Phase B in try/finally semantics.
-- Hosted proof endpoint enforces proof mode timeout (recommended 5 min). On timeout, run cleanup.
-- All hosted proof output is redacted. No raw env var values, bearer tokens, or cookies in artifacts.
-- Hosted proof cost: estimate ~10k D1 rows written + ~50k rows read for stress tier. Confirm against doc 09 free-tier budget table before running.
-
-### Rollback rehearsal (Pass-3 addition)
-
-Each phase must publish a rollback rehearsal result before broad rollout. The rehearsal is:
-
-1. With feature flag OFF, capture baseline metric (e.g., route median, edit p95).
-2. Enable feature flag ON for a single test estimate (not all).
-3. Capture metric.
-4. Disable feature flag.
-5. Capture metric. Must match baseline within tolerance.
-6. If metric does not return to baseline, the flag is not safe to roll out broadly.
-
-Rehearsal evidence goes in `evidence/rollback-rehearsal-<phase>.json`.
-
-## Operator Monitoring Checklist (Pass-3 addition)
-
-Daily / weekly operator checks during staged rollout:
-
-- [ ] D1 rows read/day is below 50% of free-tier cap (per doc 09 budget).
-- [ ] D1 rows written/day is below 50% of free-tier cap.
-- [ ] D1 storage is below 50% of free-tier cap.
-- [ ] Workers requests/day is below 60% of free-tier cap.
-- [ ] No new severe local error logs (`logs:tail -- --error --last 20`).
-- [ ] No operational incidents open (`ops:check-incidents`).
-- [ ] Feature flag state matches expected rollout stage.
-- [ ] Last 24h rollback rehearsal (if stage changed) is in evidence.
-
-If any check fails, pause rollout, investigate, and document residual risk.
-
+Alert/replan thresholds are the hard budgets in `IMPLEMENTATION_PLAN.md`; there are no undocumented exceptions. Production support/monitoring and deployment readiness require their own hosted evidence and are not claimed by this plan-only revision.

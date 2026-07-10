@@ -163,7 +163,7 @@ This is the most critical interop behavior. Fan-out exists at **two layers**:
 
 **Status**: Client-side project-component fan-out walks the tree to find matching instances (`patchProjectComponentInstanceRowsInTree`). At 5,000-row stress scale, this is O(N) per mutation. Server-side fan-out is a single SQL join (already efficient).
 **Severity**: Medium → High at stress scale.
-**Action**: Add `componentInstanceNodeIds: Record<string, string[]>` index to the normalized graph store (Performance Plan Phase 2) for O(1) client fan-out lookup. Server-side fan-out is already efficient and does not need this index.
+**Action**: Add `componentInstanceRowIdsByIdentity: Record<string, string[]>` to the normalized graph store for O(matching rows) client fan-out lookup. The server path must be measured separately; its current JSON identity filtering plus per-match batched updates is not assumed O(1).
 
 ### GAP-07: Restore-Deleted Paths Throw on D1
 
@@ -227,7 +227,7 @@ The component-interoperability work adds these data flows to the estimate sheet:
 5. **Thumbnail upload**: Async fetch, not on main thread hot path.
 6. **Promote to library**: async Server Action; row linkage update.
 
-**Primary scale risk**: client-side fan-out tree-walk (GAP-06). The normalized graph store (Performance Plan Phase 2) must include `componentInstanceNodeIds: Record<string, string[]>` mapping project-component identity → list of row ids. Server-side fan-out is a single SQL join and does not need the index.
+**Primary scale risk**: client-side fan-out tree-walk (GAP-06). The normalized graph store must include `componentInstanceRowIdsByIdentity: Record<string, string[]>` mapping project-component identity to row IDs. The server path uses JSON identity filtering and per-match batched updates; `UNIT-003` measures its lookup and statement counts before any optimization claim.
 
 ## QA Matrix
 
@@ -262,15 +262,14 @@ The component-interoperability work adds these data flows to the estimate sheet:
 |---|---|---|
 | CI-QA-14 | Edit project component in 5,000-row estimate | Server fan-out (SQL join) completes efficiently; client fan-out (tree-walk) p95 <= 75 ms |
 | CI-QA-15 | Open edit modal for library-linked row in stress fixture | Modal opens with row data; no performance regression |
-| CI-QA-16 | Inline scalar edit on project component at scale | Edit responsive; server fan-out O(1) SQL; client fan-out O(1) via graph index (post-Phase 2) |
+| CI-QA-16 | Inline scalar edit on project component at scale | Edit responsive; server fan-out statement/match counts stay within the measured budget; client lookup uses the graph identity index when activated |
 | CI-QA-17 | Delete a row then attempt restore | Restore throws on D1 (documented limitation); delete UX must confirm irreversibility |
 
 ## Verification
 
-- `verification_mode`: emulated (same-agent improvement pass grounded in full source audit).
-- Readiness caps apply per Improve-Plan-Prompt Suite Succession contract.
-- Browser proof required for CI-QA-06 through CI-QA-16 before MVP readiness.
-- Local vitest evidence exists for CI-QA-01 through CI-QA-05c (component-library + estimate-sheet-library-insert suites).
+- Planning provenance: source audit plus independent architect and critic review; reviewer identity is metadata, not a readiness cap.
+- Browser proof is required for all 19 IDs before the implementation can claim full interop readiness.
+- Existing vitest coverage is partial. The mapping below is authoritative about direct gaps.
 - GAP-07 (restore throws on D1) must be reflected in delete UX and documentation.
 
 ## CI-QA ↔ Test Mapping (Pass-3 addition)
@@ -299,7 +298,7 @@ Every CI-QA scenario must map to at least one named test (vitest or browser). Th
 | CI-QA-16 | Inline scalar edit on project component at scale | (none — needs browser + graph index) | `:16-stress-inline-edit` |
 | CI-QA-17 | Delete + restore-throws | `estimate-sheet-version-control-actions.test.ts` (restore-throws test) | `:17-delete-restore-limitation` |
 
-**Coverage status**: 11 of 17 scenarios have direct named vitest tests today. 6 scenarios (CI-QA-05, 05b, 08, 13, 14, 15, 16) need either new vitest tests (U0.5.3) or new browser scenarios (U0.5.1/.2). This is the traceability gap Phase 0.5 closes.
+**Coverage status**: the table defines 19 unique IDs. Twelve have at least partial named vitest coverage; seven (`CI-QA-05`, `05b`, `08`, `13`, `14`, `15`, `16`) have no direct named test. All 19 require the browser scenarios owned by canonical `UNIT-002`; stress cases are re-run by `UNIT-010`.
 
 ## Source Documents
 

@@ -152,9 +152,9 @@ These mutate the library master, distinct from row projections.
 | Bulk delete capped at ≤100 rows | Low | Acceptable for MVP; UI should batch or warn above 100. |
 | Optimistic node create race | Low | Handled via `pendingNodeCreatesRef` / `resolveServerNodeId`; tested. |
 | `collectEditableRows` in every mutation snapshot | Medium (perf) | O(N) per mutation; addressed by normalized graph (doc 06 Phase 5). |
-| Server fan-out is efficient (SQL join) but client fan-out is O(N) tree-walk | Medium → High at scale | GAP-06; addressed by graph `componentInstanceNodeIds` index. |
+| Server fan-out uses JSON identity filtering plus per-match batched updates, while client fan-out is an O(N) tree-walk | Medium to high at scale | Measure both paths in `UNIT-003`; address client lookup with `componentInstanceRowIdsByIdentity` when activated. |
 
 ## Verification
 
-- `verification_mode`: emulated (same-agent, grounded in full source audit of `actions.ts`, `d1-action-client.ts`, `use-estimate-row-mutations.ts`, `use-estimate-row-handlers.ts`).
+- Planning provenance: source-grounded audit of `actions.ts`, `d1-action-client.ts`, `use-estimate-row-mutations.ts`, and `use-estimate-row-handlers.ts`.
 - Test coverage: `estimate-sheet-actions-authz.test.ts` (17 tests — every action auth-gated), `estimate-sheet-library-insert.test.tsx` (38 tests — insert/variant/express/template/move/rollback), `estimate-sheet-version-control-actions.test.ts` (33 tests — history/conflict/restore), `estimate-sheet-center-atomic-contracts.test.ts` (8 tests — single atomic mutation paths).

@@ -28,7 +28,7 @@ REQ-F12: Existing permissions and edit-capability behavior must remain fail-clos
 
 ## Performance Requirements
 
-REQ-P01: Browser INP for sheet interactions must target <= 200 ms p75 field-equivalent and stricter lab budgets where feasible.
+REQ-P01: Field INP for sheet interactions must target <= 200 ms p75. Lab Event Timing measurements are diagnostic proxies and must not be labeled field-equivalent.
 
 REQ-P02: Any single main-thread task during key sheet interactions must stay below 50 ms p95 in lab traces, or have an explicit yielding/transition strategy.
 
@@ -116,7 +116,7 @@ REQ-CI-08: Source snapshot text normalization must tolerate null-ish values.
 
 REQ-CI-09: Component type identity (library vs project) must be explicitly checked before mutations.
 
-REQ-CI-10: Client fan-out must not become O(N) at stress scale (requires `componentInstanceNodeIds` graph index).
+REQ-CI-10: Client fan-out must not become O(N) at stress scale (requires the `componentInstanceRowIdsByIdentity` graph index).
 
 REQ-CI-11: Add/Edit/Inline surfaces must behave correctly for both component types at stress scale.
 
@@ -147,4 +147,3 @@ REQ-CRUD-06: Realtime broadcasts must accept only current payloads scoped to act
 REQ-CRUD-07: Node creation must resolve optimistic `optimistic-area-*` ids to server ids asynchronously; reorders/renames targeting optimistic ids must await the create promise.
 
 REQ-CRUD-08: The P6 single-node model must hold: any node may parent any node (no area/group gate) for both estimates and template insertion.
-

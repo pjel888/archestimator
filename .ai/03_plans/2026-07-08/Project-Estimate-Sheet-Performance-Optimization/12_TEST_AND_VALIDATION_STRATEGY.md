@@ -34,7 +34,7 @@ bunx vitest run \
 
 ## Component Interoperability Test Matrix (see doc 22)
 
-The component-interop implementation is covered by existing vitest suites today; browser proof is the gap. See doc 22 QA matrix for the full CI-QA-01 through CI-QA-17 scenarios.
+Component interop has partial vitest coverage; seven of the 19 named IDs have no direct named test, and none has the required browser proof. See doc 22 for the reconciled list.
 
 ### Existing Local Coverage (vitest, jsdom)
 
@@ -51,7 +51,7 @@ The component-interop implementation is covered by existing vitest suites today;
 
 | Proposed Path | Scenarios | Required Behaviors |
 |---|---|---|
-| `e2e/estimate-sheet-component-interop.spec.ts` | CI-QA-01..17 (doc 22) | Create/edit/inline for both component types; variant persistence; fan-out; thumbnail routing; detach; promote; restore limitation |
+| `e2e/estimate-sheet-component-interop.spec.ts` | All 19 IDs in doc 22 | Create/edit/inline for both component types; variant persistence; fan-out; thumbnail routing; detach; promote; restore limitation |
 
 ### New Unit/Integration Gaps to Close
 
@@ -153,4 +153,3 @@ git diff --check
 - A local D1/SQLite proof proves local query shape and planner behavior only.
 - A hosted D1 proof is required for production/provider claims.
 - No one check substitutes for another evidence class.
-

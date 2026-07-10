@@ -79,7 +79,7 @@ type EstimateGraphState = {
 
 Project-component fan-out (doc 22) operates at two layers; only the client layer needs the graph index:
 
-- **Server layer**: `propagateProjectComponentRowPatch` (`d1-action-client.ts:1632`) is a single SQL join over `estimate_row_items` matched by `getProjectComponentIdentity`. This is already O(matching rows) and does not need a graph index.
+- **Server layer**: `propagateProjectComponentRowPatch` (`d1-action-client.ts:1632`) uses JSON identity filtering plus per-match batched updates. `UNIT-003` measures lookup and statement counts; no O(1) claim is made before that evidence.
 - **Client layer**: `patchProjectComponentInstanceRowsInTree` (`estimate-row-tree-patch.ts:275`) currently walks the cached tree (O(N)). The `componentInstanceRowIdsByIdentity` index makes this O(matching rows) by direct lookup. The index must be maintained on every row insert/delete/move/promote via `componentIdentityByRowId`.
 
 ## Selector Contracts
@@ -197,4 +197,3 @@ Rationale:
 - Enables parity testing.
 - Allows rollback by feature flag.
 - Aligns with React/TanStack guidance to optimize measured expensive selectors rather than blanket memoization.
-

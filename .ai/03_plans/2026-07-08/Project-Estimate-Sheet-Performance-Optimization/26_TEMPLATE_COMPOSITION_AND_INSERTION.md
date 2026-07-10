@@ -154,9 +154,9 @@ Distinct from templates but use a parallel flow: `PROJECT_SOURCE_DRAG_MIME_TYPE`
 | `template-browse-project-sources.tsx` | 2 | project sources browser |
 | `templates-tree-performance.test.ts` | 8 | project-source perf helpers |
 
-**Gap**: no browser proof for template insertion into the estimate sheet (all jsdom). CI-QA template scenarios should be added to the Phase 0.5 browser scope.
+**Gap**: no browser proof for template insertion into the estimate sheet (all jsdom). Canonical `UNIT-002` owns the browser scenario and `UNIT-010` reruns it in integrated proof.
 
 ## Verification
 
-- `verification_mode`: emulated (same-agent, grounded in source audit of `use-estimate-template-insertion.ts`, `template-insertion-model.ts`, `actions.ts`, `d1-action-client.ts`).
+- Planning provenance: source-grounded audit of `use-estimate-template-insertion.ts`, `template-insertion-model.ts`, `actions.ts`, and `d1-action-client.ts`.
 - The optimistic insertion flow and stale-snapshot guard are verified by `estimate-sheet-library-insert.test.tsx`.

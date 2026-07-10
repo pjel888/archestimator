@@ -187,7 +187,7 @@ Key WCAG 2.2 AA criteria most relevant to the estimate sheet (full list in doc 2
 
 ## Mobile / Responsive Plan (Pass-3 addition)
 
-The estimate sheet is a three-panel desktop-first workspace. Mobile/tablet scope is declared by OPEN-07 in doc 17; the default until resolved is:
+The estimate sheet is a three-panel desktop-first workspace. Canonical `DEC-AUTO-008` fixes the MVP mobile/tablet scope:
 
 | Breakpoint | Behavior |
 |---|---|
@@ -217,4 +217,3 @@ Added to the existing list:
 - Run screen reader (VoiceOver or NVDA) through primary user flow; capture transcript.
 - Render at 320 CSS px width without 2D scroll (mobile reflow).
 - Toggle `prefers-reduced-motion: reduce` and confirm animations stop.
-

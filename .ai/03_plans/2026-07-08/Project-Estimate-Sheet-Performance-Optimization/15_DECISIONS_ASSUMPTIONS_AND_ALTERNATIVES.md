@@ -1,76 +1,106 @@
 # 15 - Decisions, Assumptions, And Alternatives
 
-## Decisions
+The stable decision records are `DEC-AUTO-*`. No ordinary product or architecture choice remains owner-gated. `IMPLEMENTATION_PLAN.md` contains the canonical affected-unit mapping.
 
-### DEC-001 - Baseline Before Optimization
+## Active Decisions
 
-Decision: Phase 0 must create browser, D1, route, and DOM baselines before optimization code.
+### DEC-AUTO-001 - Measure Before Optimizing
 
-Rationale: The current sheet has multiple plausible bottlenecks. Guessing would risk optimizing the wrong layer.
+Decision: build deterministic fixtures and collect browser/D1/route/DOM evidence before any route, index, graph, derived-state, render, or mutation optimization.
 
-Rejected: Start by refactoring `EstimateSheetContent` immediately. Reason: it may improve code shape but does not prove the primary bottleneck.
+Rejected: refactor `EstimateSheetContent` immediately. Reason: it may improve code shape without addressing the measured bottleneck.
 
-### DEC-002 - Normalized Graph As Target State
+### DEC-AUTO-002 - Loaded-Entity Search For MVP
 
-Decision: Use a staged normalized graph read model as the target architecture.
+Decision: search, facets, group, and sort operate on loaded entities and explicitly expose incomplete/truncated state.
 
-Rationale: Current hot paths scale with nested tree size. A graph enables O(affected ancestors) edits and visible-window rendering.
+Reopen trigger: first-user evidence or a failed requirement proves global server search is necessary.
 
-Rejected: Add broad `useMemo`/`memo` wrappers around existing nested tree. Reason: memoization does not remove whole-tree derivation.
+### DEC-AUTO-003 - Semantic Move Placement
 
-### DEC-003 - TanStack Query Remains Transport Cache
+Decision: large-area moves offer top, bottom, before/after a visible row, or before/after a searched target. They do not render a 5,000-option picker.
 
-Decision: Keep TanStack Query for server-state payloads and freshness. Do not make it the interactive graph mutation store.
+Rejected: an arbitrary-position dropdown. Reason: it is unusable and inaccessible at the supported ceiling.
 
-Rationale: Query caching, invalidation, and structural sharing remain useful, but hot editing needs local entity-level selectors and inverse patches.
+### DEC-AUTO-004 - Supported Scale Ceiling
 
-Rejected: Store every per-cell edit directly in query cache. Reason: query cache invalidation is too coarse for high-frequency editing.
+Decision: 1,500 nodes / 5,000 loaded rows is the MVP ceiling. Larger payloads are server-windowed or truncated rather than silently loaded.
 
-### DEC-004 - No New Dependencies
+Reopen trigger: sanitized telemetry shows first-user estimates exceed the ceiling.
 
-Decision: Use existing TanStack Virtual, TanStack Query, Zustand, Vitest, Playwright, and D1 proof patterns.
+### DEC-AUTO-005 - Complete Proposal Materialization
 
-Rationale: The current stack already has the required tools.
+Decision: proposal preview/export reads a complete server snapshot outside the interactive edit cache and records its own cost.
 
-Rejected: Add a new grid/data-table engine. Reason: too disruptive and unnecessary before current primitives are proven insufficient.
+Rejected: export from the possibly truncated client cache. Reason: it can silently omit data.
 
-### DEC-005 - D1 Indexes Must Be Proven
+### DEC-AUTO-006 - Preserve Component Edit Boundaries
 
-Decision: Candidate indexes require query-plan and row-read proof before migration.
+Decision: library-master editing stays in the library drawer/workspace; estimate-row editing updates a projection. No new master-edit entry point is added to the sheet for MVP.
 
-Rationale: Cloudflare D1/SQLite performance depends on exact query shape and index prefix use.
+### DEC-AUTO-007 - Preserve Promote/Detach Flow
 
-Rejected: Add broad composite indexes immediately. Reason: write cost and free-tier posture matter.
+Decision: no new convert/link control is added. Current promote and detach flows remain authoritative.
 
-### DEC-006 - Preserve UX First
+### DEC-AUTO-008 - Tablet Edit, Mobile View
 
-Decision: Keep current UI behavior and component boundaries initially.
+Decision: layouts >=1024 px remain editable. Smaller mobile layouts are view-only with explicit truncation/read-only state.
 
-Rationale: Estimate sheet is mission-critical. Staged internals reduce regression risk.
+Reopen trigger: measured first-user demand justifies a mobile authoring interaction design.
 
-Rejected: Big-bang visual/interaction redesign. Reason: not requested and would hide performance regression sources.
+### DEC-AUTO-009 - Graph Is Evidence-Activated
 
-## Assumptions
+Decision: a normalized graph is a ready optimization branch, not an unconditional rewrite. `UNIT-004` activates it when derivation, memory, render, or fan-out evidence warrants it. Otherwise the unit writes a supersession receipt.
 
-- The target MVP scale is at least current caps: 1,500 nodes and 5,000 loaded rows.
-- The active estimate route remains protected/authenticated.
-- Cloudflare D1 remains the active database provider.
-- Users value edit responsiveness and correctness over immediate global search across unloaded subtrees.
-- Feature flags are acceptable for staged rollout.
-- Existing route/profile scripts can be extended rather than replaced.
+Rejected: broad memoization as the only scale strategy. Reason: it does not remove full-tree derivation or snapshot costs.
 
-## Open Product Decisions
+### DEC-AUTO-010 - State Ownership
 
-Each open decision is bounded with owner, trigger, and implementation impact so it can be resolved without blocking Phase 0 baseline work. None of these block Phase 0; all of them affect later architecture scope.
+Decision: TanStack Query remains the transport/freshness cache. If activated, Zustand owns the interactive normalized graph and entity-level selectors.
 
-| ID | Decision | Owner | Trigger / Deadline | Implementation impact if unresolved |
-|---|---|---|---|---|
-| OPEN-01 | Should search cover only loaded branches, or full estimate including unloaded subtrees? | Product (Philip) | Phase 2 graph store design (selector `selectSearchMatches`) | If "loaded-only": Phase 2 ships behind `NEXT_PUBLIC_ESTIMATE_SELECTOR_SEARCH_ENABLED`. If "global": adds a new server action, a `search_estimate` RPC, a server-access predicate, and a Phase 7 server-assisted search track. Architecture, security review, and D1 cost budget differ materially. |
-| OPEN-02 | Should move-position selection support exact arbitrary row placement in huge areas, or only top/bottom/near-visible/search-target placement? | Product (Philip) | Phase 3.3 facet/move indexes | If "arbitrary": `selectMovePositionOptions` must accept a numeric row index or label search and resolve it to a row id at granularity ≤ 1 row. If "semantic only": the searchable Combobox pattern in doc 05 is sufficient. UI work and accessibility pattern (combobox vs slider) differ. |
-| OPEN-03 | Is 5,000 loaded rows the steady-state cap, or should the product target 10,000+ rows with server-side row windows? | Product (Philip) with Eng input | Phase 4 render boundary migration | If 5k cap stays: current `ESTIMATE_SHEET_TREE_LOAD_LIMITS` caps plus truncation UX are sufficient. If 10k+: Phase 4 must add cursor-paginated server row windows (`estimateQueryKeys.rowWindow`), server-side sort/filter, and a new DTO shape; non-trivial scope addition. |
-| OPEN-04 | Should proposal preview always use full data even when the interactive sheet is truncated? | Product (Philip) | Phase 4.2 / export work | If yes: proposal preview/export must call a non-truncated server read path and document that materialization is outside the keystroke hot path. If no: proposal preview must surface the same truncation UX as the sheet. |
-| OPEN-05 | Library-master edit from estimate sheet (GAP-02 in doc 22) — should users be able to edit the library master directly from a library-linked row? | Product (Philip) | Post-Phase 0.5, after MVP | If yes: new "Edit master" entry point in AddComponentModal edit mode that routes to `updateCostLibraryComponent`; new authz scope; new write-amplification budget. If no (current default): doc 22 stands. |
-| OPEN-06 | Inline component addition UX (GAP-04) — should there be an explicit "Convert to Project Component" or "Link to Library Component" affordance? | Product (Philip) | Post-MVP UX polish | If yes: new modal entry points; new optimistic flow; new tests. If no: current multi-step flow (insert blank → inline edit → optional promote) stands. |
+Rejected: high-frequency cell edits directly in query cache. Reason: invalidation and rollback remain too coarse.
 
-These do not block Phase 0 baseline. They affect later architecture scope.
+### DEC-AUTO-011 - No New Dependency
 
+Decision: use the installed Next, React, TanStack Query/Virtual, Zustand, Vitest, Playwright, and Cloudflare/D1 tools. The existing bundle analyzer in `next.config.ts` is sufficient.
+
+### DEC-AUTO-012 - Proven D1 Changes Only
+
+Decision: active D1 migrations under `migrations/` are allowed only when `UNIT-003` captures the exact query plan and the candidate index improves the measured shape.
+
+Rejected: speculative composite indexes and any new `supabase/migrations/` change.
+
+### DEC-AUTO-013 - One Fan-Out Index Name
+
+Decision: the normalized graph field is `componentInstanceRowIdsByIdentity` because it maps component identity to row IDs.
+
+### DEC-AUTO-014 - Deployment-Scoped Rollback Modes
+
+Decision: optimized paths use server-resolved `off|shadow|on` deployment modes passed through route props. No `NEXT_PUBLIC_*` value is presented as a live per-estimate kill switch.
+
+Rejected: enable one estimate and toggle off without a build/deploy. Reason: public environment values are inlined and frozen by Next.js.
+
+### DEC-AUTO-015 - Exact-ID Hosted Cleanup
+
+Decision: each hosted proof run generates a UUID and exact per-table ID arrays, deletes those IDs in dependency order, and reconciles each table independently.
+
+Rejected: date-static metadata-prefix cleanup. Reason: same-day collisions and heterogeneous `metadata`/`metadata_json` columns make it unsafe.
+
+## Validated Assumptions
+
+- Cloudflare D1 is the active provider and active migrations live in `migrations/`.
+- The protected estimate route must retain current fail-closed D1 access checks.
+- Current load limits are 1,500 nodes and 5,000 rows.
+- The installed stack already contains the required test, browser, virtualizer, state, and bundle-analysis tools.
+- Historical June route/provider artifacts are stale for current pass/fail claims.
+
+## Active Measurement Hypotheses
+
+These are not decisions or owner gates. Each is resolved by `UNIT-002`/`UNIT-003` and the deterministic `UNIT-004` decision receipt:
+
+- Route/D1 reads may dominate cold and warm navigation.
+- Full-tree edit derivation may dominate at the supported ceiling.
+- Virtualization may bound DOM while leaving derivation and comparator scans unbounded.
+- Client and server project-component fan-out may exceed the edit budget.
+
+An unproven hypothesis cannot authorize source changes; a failed budget can.

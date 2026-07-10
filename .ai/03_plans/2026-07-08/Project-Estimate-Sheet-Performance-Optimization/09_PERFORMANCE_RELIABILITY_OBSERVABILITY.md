@@ -1,5 +1,7 @@
 # 09 - Performance, Reliability, And Observability
 
+> Supporting budget context. `IMPLEMENTATION_PLAN.md` and `20_PERFORMANCE_EVALUATOR_SPEC.md` are authoritative for metric methods, thresholds, sample counts, and artifact names.
+
 ## Performance Budgets
 
 | Metric | Budget |
@@ -10,19 +12,21 @@
 | jsdom keystroke worst case | <= 50 ms |
 | Browser edit p95 | <= 75 ms |
 | Browser scroll p95 frame gap | <= 50 ms |
-| Browser INP-style interaction p75 | <= 200 ms |
+| Lab Event Timing interaction p75 (diagnostic proxy, not field INP) | <= 200 ms |
 | Cold direct target estimate route median | <= 3,500 ms |
 | Warm/hover target estimate route median | <= 500 ms |
 | Sheet content visible after warm navigation | <= 1,000 ms |
 | Parent fallback during target estimate transition | 0 runs |
 | Sheet skeleton episodes | <= 1 per run |
-| Route-context planned D1 queries | <= 4 target, documented exceptions allowed |
+| Route-context planned D1 queries | <= 4; any threshold change requires a new evidence-backed decision |
 | Tab-tree planned D1 queries | <= 3 target |
 | Row update planned D1 queries | <= 3 target |
 | Hosted D1 read p95 per proof surface | <= 600 ms |
 | Hosted D1 mutation p95 per proof surface | <= 500 ms |
 
-## Phase 0 Baseline Artifacts
+## Legacy Phase 0 Baseline Artifacts
+
+The list below is retained as naming history. The canonical 13-output inventory is in `IMPLEMENTATION_PLAN.md`.
 
 Required files:
 - `evidence/estimate-route-benchmark.json`
@@ -62,8 +66,8 @@ Add or extend:
 
 - Perf tests remain serial with `--maxWorkers=1` where render-count semantics matter.
 - Minimum N=5 for smoke stability.
-- Minimum N=10 for formal flake-rate evidence.
-- File-level flake budget: <= 2% over 10 runs.
+- Ten repetitions are smoke evidence only.
+- A <=2% observed failure-rate claim requires at least 100 independent repetitions.
 - Do not mask flakes with sleeps or retries.
 - Fix root causes: shared state, timers, uncontrolled network, fixture mutation, layout races.
 
@@ -132,7 +136,7 @@ Industry standard: declare a First Load JS budget for the estimate sheet route a
 **Bundle regression gate**: add a `bun run perf:bundle-audit` script (or use existing `bun run build` analyzer) that fails CI if First Load JS for the estimate route exceeds budget by >5%. Pin the budget in repo config so it's not silently exceeded.
 
 **Action items**:
-- Confirm whether `@next/bundle-analyzer` or equivalent is installed; if not, this is a Phase 0 dependency (one-line install).
+- Use the existing bundle analyzer configuration in `next.config.ts`; add no dependency.
 - Add bundle size artifact to Phase 0 evidence.
 - Track First Load JS trend across phases in `evidence/bundle-trend.json`.
 
@@ -144,8 +148,7 @@ Performance claims must be measured under realistic conditions, not just dev har
 |---|---|---|
 | Desktop, no throttling | Development baseline | Fastest possible; reveals structural issues |
 | Desktop, "Slow 3G" (400kbps/400ms RTT) | Phase 0 route benchmark | Web.dev standard for LCP/INP claims |
-| Mobile emulation (Pixel 5 / iPhone 12), CPU 4x slowdown | Phase 0 + Phase 4 | Mobile user is in scope (OPEN-07) |
+| Mobile emulation (Pixel 5 / iPhone 12), CPU 4x slowdown | Canonical `UNIT-002` + `UNIT-008` | Proves `DEC-AUTO-008` view-only mobile behavior |
 | Tablet emulation (iPad), no throttling | Phase 4 responsive proof | Tablet-editable scope |
 
 Add throttled measurements to U0.3 browser spec. Document that lab data is a proxy for field data; field data requires production deployment.
-

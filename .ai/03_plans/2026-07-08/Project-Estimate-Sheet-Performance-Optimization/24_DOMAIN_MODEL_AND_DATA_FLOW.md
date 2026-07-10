@@ -301,6 +301,6 @@ These are the O(N) / recursive operations that scale with loaded tree size. The 
 
 ## Verification
 
-- `verification_mode`: emulated (same-agent, grounded in full source audit).
+- Planning provenance: source-grounded audit; reviewer identity does not cap readiness.
 - All file:line references were verified against the current worktree.
 - This document should be re-validated when the rendering or data layer is refactored.

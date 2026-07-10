@@ -58,7 +58,7 @@ The sheet uses two component types that share the same editing surfaces (AddComp
 - No new paid Cloudflare services.
 - No replacement of D1, TanStack Query, Zustand, React, or Next.js.
 - No migration back to Supabase.
-- No implementation in this plan pack (except Phase 0 measurement artifacts).
+- This planning run edits no application source. A later implementation session follows the exact `UNIT-001..011` packets; the pack itself does not grant authority.
 - No destructive provider operations.
 - No branch or worktree creation.
 

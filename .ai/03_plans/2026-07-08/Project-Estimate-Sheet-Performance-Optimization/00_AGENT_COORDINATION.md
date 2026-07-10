@@ -1,73 +1,57 @@
 # 00 - Agent Coordination
 
-## Mode
+## Leadership And Authority
 
-Planning-only, multi-lane audit. No implementation changes.
+The lead owns scope, integration, the canonical pack, validation, and the final claim. Workers receive one bounded `UNIT-*` packet from `IMPLEMENTATION_PLAN.md` and do not re-plan globally.
 
-## Active Constraints
+Execution authority order:
 
-- Do not edit source, tests, migrations, provider resources, environment files, or runtime config as part of this pack.
-- Write only inside this plan folder.
-- Stay on the current branch and worktree.
-- Treat existing user/human changes as unrelated unless directly required for this pack.
-- Use official docs for current framework guidance.
-- Use direct source reads as authoritative over GitNexus because GitNexus reported the repo index as four commits behind HEAD.
+1. `AGENTS.md`
+2. `plan-pack.json`
+3. `IMPLEMENTATION_PLAN.md`
+4. Supporting numbered documents
 
-## Skill Application
+## Shared-Worktree Rules
 
-Skill-to-plan mapping:
+- Stay on the current branch/worktree.
+- Re-run `git status --short -- <owned paths>` immediately before editing.
+- Never revert or overwrite existing unrelated changes.
+- Report unexpected owned-path changes to the lead and integrate them deliberately.
+- Only the lead edits `README.md`, `IMPLEMENTATION_PLAN.md`, `plan-pack.json`, `LOOP_LEDGER.md`, `package.json`, and the final evidence index.
+- Browser and D1 evidence paths are unique per run/source/input hash; agents do not overwrite each other's receipts.
 
-- `react-doctor`: requires any future React changes to run `bun run doctor -- --verbose`; also informs the giant-component and hook-dependency risk analysis.
-- `vercel:react-best-practices`: anchors Client/Server boundary, state ownership, memoization, and accessibility expectations.
-- `ponytail`: keeps the plan focused on measured bottlenecks, deletion/reuse, and avoiding new abstractions without payoff.
-- `Refactor Safely`: requires staged migration, blast-radius analysis, parity tests, and no broad refactor without evidence.
-- `performance-goal` and `ce-optimize`: require a real evaluator and before/after metric contract before optimization.
-- `gitnexus`: supplies graph/context evidence, but direct reads are authoritative for exact current state.
-- `ultraqa`: supplies adversarial scenario matrix and proof-before-claim posture.
-- `ultragoal` and `ultrawork`: supply durable ledger and independent lane discipline.
-- `autopilot`, `plan`, and `ralplan`: supply planning loop, consensus structure, and readiness verdict.
-- `autoresearch` and `autoresearch-goal`: supply source-backed research validation.
-- `ce-plan` and `ce-strategy`: supply implementation-ready plan structure and decision-record framing.
-- `dispatching-parallel-agents` and `subagent-driven-development`: supply bounded agent lanes and integration discipline.
-- `ralph`: retained as execution-loop fallback for a later implementation phase; not activated for coding in this planning turn.
+## Worker Packet
 
-## Multi-Agent Evidence
+Every dispatch includes:
 
-| Lane | Role | Output Used |
-|---|---|---|
-| Repository exploration | `explore` | Current route, query cache, repository, subtree, render, and virtualization map. |
-| Official-doc research | `researcher` | Current React, Next.js, TanStack, Cloudflare D1, SQLite, and web.dev guidance. |
-| Architecture | `architect` | Normalized graph target and phased migration strategy. |
-| Test strategy | `test-engineer` | Existing coverage map, missing Chrome/D1 proof, fixture tiers, and budgets. |
+- goal/run ID and exact unit ID;
+- role (`explore`, `executor`, `test-engineer`, `verifier`, `architect`, or `critic`);
+- owned paths and forbidden shared paths;
+- baseline HEAD plus owned-scope status/diff hashes;
+- dependencies and activation predicate;
+- commands, evidence path, exit/failure/cleanup/resume conditions;
+- lease start, expiry, and release state.
 
-## Coordination Rules For Future Implementation
+Workers stay within the packet. Scope expansion, shared-file conflict, missing authority, or technical impasse is escalated to the lead.
 
-- A lead agent owns integration, test selection, and final claims.
-- Implementation lanes may split only by disjoint write scope:
-  - D1/query proof and indexes.
-  - Browser/performance evaluator.
-  - Normalized graph read model.
-  - Incremental totals and selector migration.
-  - Mutation rollback/entity patch migration.
-  - UI/interaction affordances.
-- No lane may rewrite the entire estimate sheet in one pass.
-- Every lane must add or update its own focused tests before changing behavior.
-- Every lane must report changed files, evidence commands, and residual risk.
+## Safe Parallel Layers
 
-## Required Review Passes
+- After `UNIT-001`, `UNIT-002` (browser/UX/interop) and `UNIT-003` (local D1/query proof) may run in parallel because their write scopes and evidence files are disjoint.
+- After `UNIT-004`, `UNIT-005` (route/D1) and `UNIT-006` (client graph) may run in parallel when both are activated and their owned paths remain disjoint.
+- `UNIT-007`, `UNIT-008`, `UNIT-009`, `UNIT-010`, and `UNIT-011` follow the dependency edges in the canonical DAG.
 
-Before implementation begins:
-- Product scope review: confirm the sheet workflows that matter for MVP.
-- Architecture review: confirm normalized graph/store boundary.
-- Performance review: confirm Phase 0 baseline and metric budgets.
-- QA review: confirm adversarial scenario matrix.
-- Security/data review: confirm D1 proof redaction and authorization gates.
+## Maker/Checker Separation
 
-Before implementation ships:
-- Maker/checker split for code and tests.
-- React Doctor after React changes.
-- Targeted vitest + browser performance proof.
-- D1 query-plan proof.
-- `git diff --check`.
-- Plan evidence updated.
+An independent checker grades a unit when practical. Reviewer identity is recorded as provenance and does not impose an arbitrary readiness cap. The checker verifies:
 
+- source/input hashes match the evidence;
+- owned paths stayed within scope;
+- tests/metrics use the exact packet contract;
+- failures were not hidden by retries, skips, or stale artifacts;
+- cleanup and resume state are complete.
+
+## Durable State
+
+`LOOP_LEDGER.md` is the task-local durable ledger. It records leases, current unit, baseline hashes, evidence fingerprints, invalidations, failures, recovery, and final reviewer receipts.
+
+The existing `.omx/ultragoal` runtime state belongs to an unrelated stale goal and must not be overwritten. Native goal/run `019f4a04-dc75-7222-8bd2-020b35b1e415` owns this planning repair.

@@ -4,7 +4,7 @@
 
 Improve-Plan-Prompt requires every user-facing plan to include:
 
-- A state matrix (loading, empty, success, partial success, error, conflict, permission denied, offline, retry, timeout, cancellation).
+- A state matrix limited to states already required by the estimate-sheet contract. This plan does not invent offline queues, partial fan-out, cancellable writes, or a new session modal.
 - An action-level accessibility proof matrix (keyboard path, focus target/restoration, accessible name/live-region, proof type).
 - WCAG 2.2 AA criteria-to-test mapping for the user-facing surface.
 
@@ -31,17 +31,12 @@ Every persistent sheet state must have a documented user experience. "Persistent
 | Empty (no estimates) | New project, no estimates | Empty state with "Create estimate" CTA | "No estimates yet. Press Create estimate." | CTA reachable by Tab + Enter | New vitest: empty-state-renders |
 | Empty (no rows in node) | Area with 0 rows | "Add row" affordance | "No rows in this area." | Add row reachable | New vitest |
 | Success (mutation) | Server confirms | Inline state refresh; no toast spam | Silent (state change is its own signal) | — | U5.1 |
-| Partial success (fan-out partial) | Some siblings updated, others failed | Warning indicator on failed rows | "Updated N rows. M rows failed." (assertive) | Retry available | New: partial-fanout-recovery test |
 | Error (mutation rollback) | Server rejects, optimistic rolled back | Inline error indicator on touched row | "Edit failed. Reverted." (assertive) | Retry / dismiss | U5.1 entity-scoped rollback test |
 | Error (route load) | Route failed to load | Error boundary with retry | "Failed to load estimate. Press retry." | Retry reachable | Existing error boundary test |
 | Conflict (row_revision mismatch) | Stale revision rejected | Conflict indicator | "Another user edited this row. Refresh to see their changes." (assertive) | Refresh / overwrite | U5.3 conflict test |
 | Permission denied | canEditEstimate = false | Read-only mode; edit affordances hidden | Silent (mode is its own signal) | Read-only navigation | Existing authz tests (17) |
-| Offline | Network unreachable | Pending indicator persists; draft preserved | "Offline. Edits will retry when connected." (polite) | Edit continues locally | R28 offline test |
-| Retry (auto) | Background retry | Subtle spinner | Silent | — | U5.1 |
 | Timeout | Long-running action | Inline timeout indicator | "Action taking longer than expected." (polite) | Cancel available | New: timeout test |
-| Cancellation | User cancels mutation | State reverts | "Cancelled." (polite) | Focus restored to trigger | New: cancel test |
 | Truncation (over-limit) | Route payload capped | Truncation banner with count | "Showing first 1,500 nodes and 5,000 rows. Some content not loaded." (assertive) | Acknowledge button | REQ-F11 + over-limit fixture test |
-| Session expired | Better Auth 401 | Modal: "Your session has expired." | "Session expired." (assertive) | Re-authenticate | R28 + new session-expired test |
 
 ## Action-Level Accessibility Proof Matrix
 
@@ -83,7 +78,7 @@ WCAG 2.2 AA success criteria most relevant to the estimate sheet. Each row maps 
 | 1.3.1 Info and Relationships (A) | Programmatic relationships (table headers, list semantics) | Row tables use `<table>` + `<th scope>`; tree uses `role="tree"` + `role="treeitem"` + `aria-level` | DOM audit |
 | 1.3.2 Meaningful Sequence (A) | DOM order matches visual order | Virtualized row DOM order matches logical sort order even when windows are off-screen | U0.3 browser spec: scroll + read DOM order |
 | 1.4.3 Contrast Minimum (AA) | Text contrast ≥ 4.5:1 (normal) / 3:1 (large) | All in-app text meets 4.5:1 against background per DESIGN.md tokens | Automated contrast audit |
-| 1.4.10 Reflow (AA) | Content reflows at 320 CSS px without 2D scroll | Sheet scrolls vertically; horizontal scroll disabled or only within row tables at narrow widths | Mobile proof (OPEN-07 default) |
+| 1.4.10 Reflow (AA) | Content reflows at 320 CSS px without incoherent overlap | View-only mobile state follows `DEC-AUTO-008`; any row-table horizontal overflow is explicit and contained | Mobile proof |
 | 1.4.11 Non-text Contrast (AA) | UI component boundaries ≥ 3:1 | Drop zone borders, focus indicators, branch expand carets all meet 3:1 | Manual + automated |
 | 1.4.13 Content on Hover or Focus (AA) | Hoverable, dismissible, persistent hover content | Tooltip on truncated cell names is hoverable + dismissible | Manual audit |
 
@@ -95,7 +90,7 @@ WCAG 2.2 AA success criteria most relevant to the estimate sheet. Each row maps 
 | 2.1.2 No Keyboard Trap (A) | Focus can leave any component via keyboard | Modal close + tab cycles correctly; CommandPalette Escape works | Manual audit |
 | 2.4.3 Focus Order (A) | Focusable elements receive focus in meaningful order | Tab order matches visual order in sheet, tree, modal | Manual keyboard walkthrough |
 | 2.4.7 Focus Visible (AA) | Visible focus indicator on all focusable elements | Focus ring visible on every interactive element; never removed via `outline: none` without replacement | Manual + automated |
-| 2.5.1 Pointer Gestures (A) | Multipoint / path-based gestures have keyboard alternatives | DnD has cut/paste keyboard equivalent (Action Matrix) | Manual |
+| 2.5.1 Pointer Gestures (A) | Pointer move has a keyboard alternative | The semantic move command from `DEC-AUTO-003` supports top/bottom/before/after selection without drag gestures | Browser keyboard test + manual review |
 | 2.5.2 Pointer Cancellation (A) | Down-event trigger; up-event cancellation | Drag can be cancelled with Escape before drop | Manual |
 | 2.5.3 Label in Name (A) | Visible label matches accessible name | "Save" button has accessible name "Save"; no icon-only buttons without aria-label | Manual + automated |
 
@@ -117,7 +112,7 @@ WCAG 2.2 AA success criteria most relevant to the estimate sheet. Each row maps 
 
 ## Mobile / Responsive Plan
 
-OPEN-07 (doc 17) declares the mobile/tablet scope default for MVP: tablet-editable, mobile-view-only-with-truncation. This section makes that explicit.
+`DEC-AUTO-008` declares the MVP scope: tablet editable at >=1024 px, smaller mobile layouts view-only with explicit truncation/read-only state.
 
 | Breakpoint | Behavior |
 |---|---|
@@ -128,7 +123,7 @@ OPEN-07 (doc 17) declares the mobile/tablet scope default for MVP: tablet-editab
 
 Test: Phase 4 responsive proof at each breakpoint. Assert no 2D scroll at 320px (WCAG 1.4.10).
 
-If OPEN-07 resolves differently, update this table and add/remove proof scenarios.
+If future first-user evidence reverses `DEC-AUTO-008`, create a new decision and update the linked proof scenarios.
 
 ## Reduced Motion
 
@@ -149,6 +144,6 @@ Test: render sheet with `prefers-reduced-motion: reduce` and assert no rAF anima
 
 ## Verification
 
-- `verification_mode`: emulated (same-agent Pass-3 audit).
+- Planning provenance: source audit; canonical readiness uses independent architect and critic receipts.
 - WCAG 2.2 references: verify against https://www.w3.org/TR/WCAG22/ before implementation; criteria IDs and levels are stable but advisory techniques update.
 - This document must be validated against Phase 4 render boundary implementation BEFORE Phase 4 exits (R30).
