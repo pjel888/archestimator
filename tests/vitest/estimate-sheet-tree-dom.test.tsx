@@ -336,7 +336,7 @@ describe("estimate sheet tree DOM integration", () => {
     expect(treeNodeButton("ground-floor")).toHaveAttribute("data-tree-drop-position", "inside");
   });
 
-  it("keeps row-body drags from starting an estimate tree reorder", () => {
+  it("starts estimate tree reorder drags only from the grip", () => {
     renderTree();
 
     const phaseTwo = treeNodeButton("phase-two");
@@ -351,6 +351,14 @@ describe("estimate sheet tree DOM integration", () => {
     fireDropAt(projectScope, rowDataTransfer, 0);
 
     expect(actionMocks.reorderEstimateTreeNodes).not.toHaveBeenCalled();
+
+    const handleDataTransfer = mockDataTransfer();
+    fireEvent.dragStart(treeDragHandle("phase-two"), { dataTransfer: handleDataTransfer });
+
+    expect(handleDataTransfer.setData).toHaveBeenCalledWith(
+      "application/x-archestimator-estimate-tree-item",
+      "phase-two",
+    );
   });
 
   it("keeps the drag handle visible with a reason while tree search disables reorder", async () => {
@@ -406,7 +414,7 @@ describe("estimate sheet tree DOM integration", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
-  it("keeps invalid internal estimate-tree drops silent", () => {
+  it("shows invalid styling and status for blocked internal estimate-tree drops", () => {
     renderTree();
 
     const projectScope = treeNodeButton("project-scope");
@@ -418,10 +426,10 @@ describe("estimate sheet tree DOM integration", () => {
     fireEvent.dragOver(kitchen, { clientY: 0, dataTransfer });
 
     expect(projectScope).toHaveAttribute("aria-grabbed", "true");
-    expect(kitchen).not.toHaveAttribute("data-tree-drop-state");
-    expect(kitchen).not.toHaveAttribute("data-tree-drop-position");
-    expect(kitchen).not.toHaveAttribute("data-tree-drop-reason");
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(kitchen).toHaveAttribute("data-tree-drop-state", "invalid");
+    expect(kitchen).toHaveAttribute("data-tree-drop-position", "inside");
+    expect(kitchen).toHaveAttribute("data-tree-drop-reason", "Cannot move a node inside its own descendant.");
+    expect(screen.getByRole("status")).toHaveTextContent("Cannot move a node inside its own descendant.");
   });
 
   it("accepts sidebar template drags on group rows and hands the insert to the sheet", () => {

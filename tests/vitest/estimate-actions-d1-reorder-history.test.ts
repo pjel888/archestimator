@@ -28,6 +28,8 @@ type FakeNodeRow = {
   estimate_id: string;
   estimate_tab_id?: string | null;
   parent_id: string | null;
+  kind?: string;
+  name?: string;
   sort_order: number;
 };
 
@@ -41,6 +43,7 @@ type FakeHistoryEvent = {
   correlation_id: string;
   actor_user_id: string | null;
   changed_fields: unknown;
+  old_snapshot: unknown;
   payload: unknown;
 };
 
@@ -154,6 +157,32 @@ class FakeD1Statement<T = Record<string, unknown>> {
       return existing ? ({ id: existing.id, payload: JSON.stringify(existing.payload) } as R) : null;
     }
 
+    if (this.sql.includes("SELECT *") && this.sql.includes("FROM estimate_sheet_events")) {
+      const eventId = String(this.values[0] ?? "");
+      const estimateId = String(this.values[1] ?? "");
+      const projectId = String(this.values[2] ?? "");
+      const existing = this.database.historyEvents.find(
+        (event) => event.id === eventId && event.estimate_id === estimateId && event.project_id === projectId,
+      );
+      return existing
+        ? ({
+            ...existing,
+            old_snapshot: JSON.stringify(existing.old_snapshot),
+            payload: JSON.stringify(existing.payload),
+          } as R)
+        : null;
+    }
+
+    if (this.sql.includes("SELECT estimate.id, estimate.project_id, project.workspace_id")) {
+      const estimateId = String(this.values[0] ?? "");
+      const expectedProjectId = this.values.length > 1 ? String(this.values[1] ?? "") : null;
+      const estimate = this.database.estimates.get(estimateId);
+      const project = estimate ? this.database.projects.get(estimate.project_id) : null;
+      return estimate && project && (!expectedProjectId || estimate.project_id === expectedProjectId)
+        ? ({ id: estimate.id, project_id: estimate.project_id, workspace_id: project.workspace_id } as R)
+        : null;
+    }
+
     if (this.sql.includes("SELECT id, workspace_id") && this.sql.includes("FROM projects")) {
       const projectId = String(this.values[0] ?? "");
       const project = this.database.projects.get(projectId);
@@ -186,11 +215,23 @@ class FakeD1Statement<T = Record<string, unknown>> {
         .map((row) => ({ ...row })) as R[];
       return { results, success: true };
     }
-    if (this.sql.includes("FROM estimate_nodes") && this.sql.includes("WHERE estimate_id = ?")) {
+    if (this.sql.includes("FROM estimate_nodes") && (this.sql.includes("WHERE estimate_id = ?") || this.sql.includes("node.estimate_id = ?"))) {
       const estimateId = String(this.values[0] ?? "");
+      const selectedIds = this.sql.includes("id IN (") ? new Set(this.values.slice(1).map(String)) : null;
       const results = [...this.database.nodes.values()]
-        .filter((node) => node.estimate_id === estimateId)
+        .filter((node) => node.estimate_id === estimateId && (!selectedIds || selectedIds.has(node.id)))
+        .sort((left, right) => /ORDER BY\s+(?:node\.)?sort_order ASC,\s*(?:node\.)?id ASC/.test(this.sql)
+          ? left.sort_order - right.sort_order || left.id.localeCompare(right.id)
+          : 0)
         .map((node) => ({ ...node })) as R[];
+      return { results, success: true };
+    }
+    if (this.sql.includes("FROM estimate_row_items") && this.sql.includes("node_id IN (")) {
+      const estimateId = String(this.values[0] ?? "");
+      const nodeIds = new Set(this.values.slice(1).map(String));
+      const results = [...this.database.rowItems.values()]
+        .filter((row) => row.estimate_id === estimateId && nodeIds.has(String(row.node_id ?? "")))
+        .map((row) => ({ ...row })) as R[];
       return { results, success: true };
     }
     return { results: [], success: true };
@@ -214,7 +255,7 @@ class FakeD1Statement<T = Record<string, unknown>> {
         actorUserId,
         changedFields,
         ,
-        ,
+        oldSnapshot,
         ,
         payload,
       ] = this.values;
@@ -228,8 +269,47 @@ class FakeD1Statement<T = Record<string, unknown>> {
         correlation_id: String(correlationId),
         actor_user_id: actorUserId === null ? null : String(actorUserId),
         changed_fields: parseJsonValue(changedFields),
+        old_snapshot: parseJsonValue(oldSnapshot),
         payload: parseJsonValue(payload),
       });
+      return { success: true, meta: { changes: 1 } };
+    }
+
+    if (this.sql.startsWith("DELETE FROM estimate_row_items")) {
+      const estimateId = String(this.values[0] ?? "");
+      const nodeIds = new Set(this.values.slice(1).map(String));
+      for (const [rowId, row] of this.database.rowItems) {
+        if (row.estimate_id === estimateId && nodeIds.has(String(row.node_id ?? ""))) this.database.rowItems.delete(rowId);
+      }
+      return { success: true, meta: { changes: 1 } };
+    }
+
+    if (this.sql.startsWith("DELETE FROM estimate_nodes")) {
+      const estimateId = String(this.values[0] ?? "");
+      const nodeIds = new Set(this.values.slice(1).map(String));
+      for (const [nodeId, node] of this.database.nodes) {
+        if (node.estimate_id === estimateId && nodeIds.has(nodeId)) this.database.nodes.delete(nodeId);
+      }
+      return { success: true, meta: { changes: 1 } };
+    }
+
+    if (this.sql.startsWith("INSERT INTO estimate_nodes")) {
+      const columns = this.sql.slice(this.sql.indexOf("(") + 1, this.sql.indexOf(")")).split(",").map((column) => column.trim());
+      const record = Object.fromEntries(columns.map((column, index) => [column, this.values[index]]));
+      this.database.nodes.set(String(record.id), {
+        id: String(record.id),
+        estimate_id: String(record.estimate_id),
+        estimate_tab_id: record.estimate_tab_id === null ? null : String(record.estimate_tab_id),
+        parent_id: record.parent_id === null ? null : String(record.parent_id),
+        sort_order: Number(record.sort_order),
+      });
+      return { success: true, meta: { changes: 1 } };
+    }
+
+    if (this.sql.startsWith("INSERT INTO estimate_row_items")) {
+      const columns = this.sql.slice(this.sql.indexOf("(") + 1, this.sql.indexOf(")")).split(",").map((column) => column.trim());
+      const record = Object.fromEntries(columns.map((column, index) => [column, this.values[index]]));
+      this.database.rowItems.set(String(record.id), record);
       return { success: true, meta: { changes: 1 } };
     }
 
@@ -311,6 +391,171 @@ describe("EstimateActionsD1Client reorder history", () => {
       changed_fields: ["parent_id", "sort_order"],
       payload: { updates },
     });
+  });
+
+  it.each([
+    ["missing", {}],
+    ["empty", { target_project_id: "" }],
+    ["unknown", { target_project_id: OTHER_PROJECT_ID }],
+  ])("rejects %s target_project_id before mutating reordered nodes", async (_label, projectScope) => {
+    const database = new FakeD1Database();
+    const before = { ...database.nodes.get(NODE_ID) };
+    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
+
+    const result = await client.call("reorder_estimate_nodes_with_history", {
+      ...projectScope,
+      target_estimate_id: ESTIMATE_ID,
+      move_updates: [{ id: NODE_ID, parent_id: null, sort_order: 20 }],
+      acting_user_id: USER_ID,
+      correlation_id: `reorder-preflight-${_label}`,
+    });
+
+    expect(result.data).toBeNull();
+    expect(result.error?.message).toBe("Estimate history event workspace could not be resolved.");
+    expect(database.nodes.get(NODE_ID)).toEqual(before);
+    expect(database.batchStatements).toEqual([]);
+    expect(database.historyEvents).toEqual([]);
+  });
+
+  it.each([
+    ["an unknown updated node", [{ id: "missing-node", parent_id: null, sort_order: 10 }], "Estimate tree update node not found in the current estimate."],
+    ["an unknown parent", [{ id: NODE_ID, parent_id: "missing-parent", sort_order: 10 }], "Estimate tree update parent not found in the current estimate."],
+  ])("rejects %s before mutating D1", async (_label, moveUpdates, expectedMessage) => {
+    const database = new FakeD1Database();
+    const before = [...database.nodes.entries()];
+    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
+
+    const result = await client.call("reorder_estimate_nodes_with_history", {
+      target_project_id: PROJECT_ID,
+      target_estimate_id: ESTIMATE_ID,
+      move_updates: moveUpdates,
+      acting_user_id: USER_ID,
+      correlation_id: `reorder-invalid-${_label}`,
+    });
+
+    expect(result.data).toBeNull();
+    expect(result.error?.message).toBe(expectedMessage);
+    expect([...database.nodes.entries()]).toEqual(before);
+    expect(database.batchStatements).toEqual([]);
+    expect(database.historyEvents).toEqual([]);
+  });
+
+  it("rejects node ids that belong to another estimate before mutating D1", async () => {
+    const database = new FakeD1Database();
+    database.estimates.set("other-estimate", { id: "other-estimate", project_id: PROJECT_ID });
+    database.nodes.set("other-node", {
+      id: "other-node",
+      estimate_id: "other-estimate",
+      parent_id: null,
+      sort_order: 10,
+    });
+    const before = [...database.nodes.entries()];
+    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
+
+    const result = await client.call("reorder_estimate_nodes_with_history", {
+      target_project_id: PROJECT_ID,
+      target_estimate_id: ESTIMATE_ID,
+      move_updates: [{ id: "other-node", parent_id: null, sort_order: 20 }],
+      acting_user_id: USER_ID,
+      correlation_id: "reorder-cross-estimate",
+    });
+
+    expect(result.data).toBeNull();
+    expect(result.error?.message).toBe("Estimate tree update node not found in the current estimate.");
+    expect([...database.nodes.entries()]).toEqual(before);
+    expect(database.batchStatements).toEqual([]);
+  });
+
+  it("reads reordered siblings through the D1 query path by sort order then id", async () => {
+    const database = new FakeD1Database();
+    database.nodes = new Map<string, FakeNodeRow>([
+      ["node-c", { id: "node-c", estimate_id: ESTIMATE_ID, parent_id: null, sort_order: 30 }],
+      ["node-b", { id: "node-b", estimate_id: ESTIMATE_ID, parent_id: null, sort_order: 20 }],
+      ["node-a", { id: "node-a", estimate_id: ESTIMATE_ID, parent_id: null, sort_order: 10 }],
+    ]);
+    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
+
+    const reorder = await client.call("reorder_estimate_nodes_with_history", {
+      target_project_id: PROJECT_ID,
+      target_estimate_id: ESTIMATE_ID,
+      // DEC-AUTO-008: the planner dense-renumbers sibling slots. Equal slots
+      // remain deterministic on read via the id tiebreaker; they are not rejected.
+      move_updates: [
+        { id: "node-c", parent_id: null, sort_order: 10 },
+        { id: "node-b", parent_id: null, sort_order: 10 },
+        { id: "node-a", parent_id: null, sort_order: 20 },
+      ],
+      acting_user_id: USER_ID,
+      correlation_id: "reorder-readback",
+    });
+    const readback = await client
+      .from("estimate_nodes")
+      .select("*")
+      .eq("estimate_id", ESTIMATE_ID)
+      .order("sort_order", { ascending: true })
+      .order("id", { ascending: true });
+
+    expect(reorder.error).toBeNull();
+    expect(readback.error).toBeNull();
+    expect((readback.data as FakeNodeRow[] | null)?.map((node) => node.id)).toEqual(["node-b", "node-c", "node-a"]);
+  });
+
+  it("restores a deleted node subtree and its rows from D1 history snapshots", async () => {
+    const database = new FakeD1Database();
+    database.nodes = new Map<string, FakeNodeRow>([
+      ["ground-floor", { id: "ground-floor", estimate_id: ESTIMATE_ID, estimate_tab_id: "tab-a", parent_id: null, sort_order: 10 }],
+      ["kitchen", { id: "kitchen", estimate_id: ESTIMATE_ID, estimate_tab_id: "tab-a", parent_id: "ground-floor", sort_order: 20 }],
+    ]);
+    database.rowItems.set("row-1", {
+      id: "row-1",
+      estimate_id: ESTIMATE_ID,
+      node_id: "kitchen",
+      material: "Cabinet",
+      quantity: 1,
+      unit_cost: 100,
+      misc_cost: 0,
+      contingency_percentage: 0,
+      adjustment_percentage: 0,
+      sort_order: 10,
+      row_revision: 1,
+    });
+    const client = new EstimateActionsD1Client(database, createCurrentUserContext());
+
+    const deletion = await client.call<{ eventId: string }>("delete_estimate_node_with_history", {
+      target_project_id: PROJECT_ID,
+      target_estimate_id: ESTIMATE_ID,
+      target_node_id: "ground-floor",
+      acting_user_id: USER_ID,
+      correlation_id: "delete-for-restore",
+    });
+    const restore = await client.call("restore_deleted_estimate_nodes_with_history", {
+      target_project_id: PROJECT_ID,
+      target_estimate_id: ESTIMATE_ID,
+      source_delete_event_id: deletion.data?.eventId,
+      target_node_ids: ["ground-floor"],
+      acting_user_id: USER_ID,
+      correlation_id: "restore-deleted-tree",
+    });
+
+    expect(deletion.error).toBeNull();
+    expect(database.historyEvents[0]?.old_snapshot).toMatchObject({
+      nodes: [
+        expect.objectContaining({ id: "ground-floor", estimate_id: ESTIMATE_ID }),
+        expect.objectContaining({ id: "kitchen", estimate_id: ESTIMATE_ID }),
+      ],
+      rows: [expect.objectContaining({ id: "row-1", node_id: "kitchen" })],
+    });
+    expect(restore.error).toBeNull();
+    expect(restore.data).toMatchObject({
+      sourceEventId: deletion.data?.eventId,
+      restoredNodeIds: ["ground-floor", "kitchen"],
+      restoredRootNodeIds: ["ground-floor"],
+      restoredNodeCount: 2,
+      restoredRowIds: ["row-1"],
+      restoredRowCount: 1,
+    });
+    expect([...database.nodes.keys()]).toEqual(["ground-floor", "kitchen"]);
+    expect(database.rowItems.has("row-1")).toBe(true);
   });
 
   it("propagates project component field edits to sibling row instances", async () => {

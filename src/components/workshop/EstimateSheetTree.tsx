@@ -28,7 +28,6 @@ import {
   deleteEstimateNode,
   deleteEstimateNodesBulk,
   renameEstimateNode,
-  reorderEstimateTreeNodes,
   restoreDeletedEstimateNodes,
 } from "@/lib/estimates/actions";
 import { WORKSHOP_TREE_VIRTUALIZATION } from "@/lib/workshop/virtualization-flags";
@@ -43,12 +42,7 @@ import { useEstimateWorkspaceExpansion, useEstimateWorkspaceSelection, useEstima
 import { cn } from "@/lib/ui/cn";
 import { estimateSurfaceClass } from "./estimate-surface-class";
 import { useEstimateSurfaceVariant } from "./estimate-surface-variant";
-import {
-  evaluateEstimateTreeDrop,
-  getEstimateTreeContentSignature,
-  mergeEstimateTreeStructureWithCachedNodes,
-  validateEstimateTreeDrop,
-} from "@/lib/estimates/estimate-tree-reorder";
+import { validateEstimateTreeDrop } from "@/lib/estimates/estimate-tree-reorder";
 import {
   beginEstimateTreeSubtreeLoad,
   completeEstimateTreeSubtreeLoad,
@@ -97,6 +91,10 @@ import {
   buildEstimateTreeMoveOptions,
   type EstimateTreeMoveSelection,
 } from "./estimate-tree/estimate-tree-node-options";
+import {
+  useEstimateTreeReorder,
+  type EstimateTreeReorderStatus,
+} from "./estimate-tree/use-estimate-tree-reorder";
 
 type EstimateSheetTreeProps = {
   projectId: string;
@@ -114,12 +112,6 @@ type EstimateSheetTreeProps = {
 const ESTIMATE_TREE_LEFT_EXTENSION_WIDTH = 104;
 const ESTIMATE_TREE_TABS = [{ id: "sheets", label: "Estimate Tree" }] as const;
 const VIEW_ONLY_ESTIMATE_REASON = "View-only estimate.";
-
-type ReorderStatus =
-  | { state: "idle" }
-  | { state: "saving"; message: string }
-  | { state: "saved"; message: string }
-  | { state: "error"; message: string };
 
 // Same icon scale as the right-sidebar trees: every tree panel renders row
 // icons at the shared TREE_ROW_ICON_SIZE so no panel reads "bigger". One
@@ -280,7 +272,7 @@ function scrollRenderedTreeRowIntoView(nodeId: string) {
 }
 
 type EstimateSheetTreeState = {
-  reorderStatus: ReorderStatus;
+  reorderStatus: EstimateTreeReorderStatus;
   editingNodeId: string | null;
   editingNodeName: string;
   editingNodeError: string | null;
@@ -299,7 +291,7 @@ type EstimateSheetTreeState = {
 };
 
 type EstimateSheetTreeAction =
-  | { type: "reorderStatusChanged"; reorderStatus: ReorderStatus }
+  | { type: "reorderStatusChanged"; reorderStatus: EstimateTreeReorderStatus }
   | { type: "editingNodeIdChanged"; editingNodeId: StateUpdater<string | null> }
   | { type: "editingNodeNameChanged"; editingNodeName: string }
   | { type: "editingNodeErrorChanged"; editingNodeError: string | null }
@@ -468,7 +460,6 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     getTreeRevision: getLocalTreeRevision,
     prepareOptimisticUpdate: prepareAreaTreeOptimisticUpdate,
   } = activeTabId ? tabTreeQuery : legacyTreeQuery;
-  const pendingReordersRef = useRef(0);
   const suppressPrimaryActionUntilRef = useRef(0);
   const renameCommitInFlightRef = useRef(false);
   // Optimistic node ids resolve to server ids here; mutations fired before the
@@ -482,13 +473,6 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   const renameInputRef = useRef<HTMLInputElement | null>(null);
   const suppressContextMenuCloseAutoFocusRef = useRef(false);
   const ignoreRenameBlurDuringContextMenuCloseRef = useRef(false);
-  const lastAcceptedPropSignatureRef = useRef<string>(null!);
-  if (lastAcceptedPropSignatureRef.current === null) lastAcceptedPropSignatureRef.current = getEstimateTreeContentSignature(nodes);
-  const lastObservedPropSignatureRef = useRef<string>(null!);
-  if (lastObservedPropSignatureRef.current === null) lastObservedPropSignatureRef.current = getEstimateTreeContentSignature(nodes);
-  const lastObservedPropNodesRef = useRef(nodes);
-  const stalePropSignatureToIgnoreRef = useRef<string | null>(null);
-  const pendingPropNodesRef = useRef<EstimateTreeNode[] | null>(null);
   const [treeState, dispatchTreeState] = useReducer(
     estimateSheetTreeReducer,
     undefined,
@@ -515,7 +499,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   const [subtreeHydrationState, setSubtreeHydrationState] = useState<EstimateTreeHydrationState>({});
   const subtreeHydrationStateRef = useRef<EstimateTreeHydrationState>({});
   const subtreeHydrationRequestCounterRef = useRef(0);
-  const setReorderStatus = (reorderStatus: ReorderStatus) =>
+  const setReorderStatus = (reorderStatus: EstimateTreeReorderStatus) =>
     dispatchTreeState({ type: "reorderStatusChanged", reorderStatus });
   const setEditingNodeId = (editingNodeId: StateUpdater<string | null>) =>
     dispatchTreeState({ type: "editingNodeIdChanged", editingNodeId });
@@ -609,7 +593,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     };
   }, [treeSelectionNodes]);
 
-  const reportReorderStatus = useEffectEvent((status: ReorderStatus) => {
+  const reportReorderStatus = useEffectEvent((status: EstimateTreeReorderStatus) => {
     if (status.state === "error") {
       toast({
         id: "estimate-tree-mutation",
@@ -638,48 +622,29 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     return selectedNode ? selectedNode.id : null;
   }, [activeSelectedNodeId, treeViewNodes]);
 
-  const syncLocalNodesFromProps = useCallback((incomingNodes: EstimateTreeNode[]) => {
-    const incomingSignature = getEstimateTreeContentSignature(incomingNodes);
-    setLocalNodes((currentNodes) => {
-      if (stalePropSignatureToIgnoreRef.current === incomingSignature) {
-        stalePropSignatureToIgnoreRef.current = null;
-        return currentNodes;
-      }
-
-      const currentSignature = getEstimateTreeContentSignature(currentNodes);
-      if (currentSignature === incomingSignature) {
-        lastAcceptedPropSignatureRef.current = incomingSignature;
-        return currentNodes;
-      }
-
-      lastAcceptedPropSignatureRef.current = incomingSignature;
-      stalePropSignatureToIgnoreRef.current = null;
-      return incomingNodes;
-    });
-  }, [setLocalNodes]);
-
-  const finishPendingReorder = useCallback(() => {
-    pendingReordersRef.current = Math.max(0, pendingReordersRef.current - 1);
-    if (pendingReordersRef.current > 0 || !pendingPropNodesRef.current) return;
-
-    const pendingPropNodes = pendingPropNodesRef.current;
-    pendingPropNodesRef.current = null;
-    syncLocalNodesFromProps(pendingPropNodes);
-  }, [syncLocalNodesFromProps]);
-
-  useEffect(() => {
-    const incomingSignature = getEstimateTreeContentSignature(nodes);
-    if (nodes === lastObservedPropNodesRef.current && incomingSignature === lastObservedPropSignatureRef.current) return;
-    lastObservedPropNodesRef.current = nodes;
-    lastObservedPropSignatureRef.current = incomingSignature;
-
-    if (pendingReordersRef.current > 0) {
-      pendingPropNodesRef.current = nodes;
-      return;
-    }
-    // react-doctor-disable-next-line react-doctor/no-pass-data-to-parent -- Local tree reconciliation from incoming props; no parent callback or upward data handoff occurs.
-    syncLocalNodesFromProps(nodes);
-  }, [nodes, syncLocalNodesFromProps]);
+  const isTreeMutationSaving = reorderStatus.state === "saving" || deletePending || bulkDeletePending;
+  const canReorderNow = !isTreeMutationSaving;
+  const suppressPrimaryActionAfterDrag = useCallback(() => {
+    suppressPrimaryActionUntilRef.current = Date.now() + 500;
+  }, []);
+  const { handleTreeDrop } = useEstimateTreeReorder({
+    projectId,
+    estimateId,
+    activeTabId,
+    nodes,
+    localNodes,
+    canEditEstimate,
+    canReorderNow,
+    editingNodeId,
+    treeSearchActive,
+    setLocalNodes,
+    restoreLocalNodes,
+    getLocalTreeRevision,
+    prepareOptimisticUpdate: prepareAreaTreeOptimisticUpdate,
+    setReorderStatus,
+    isOptimisticNodeId: isOptimisticEstimateNodeId,
+    suppressPrimaryActionAfterDrag,
+  });
 
   useEffect(() => {
     if (!editingNodeId) {
@@ -802,8 +767,6 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   const clearBulkSelection = useCallback(() => {
     setBulkSelectedNodeIds(new Set());
   }, []);
-  const isTreeMutationSaving = reorderStatus.state === "saving" || deletePending || bulkDeletePending;
-  const canReorderNow = !isTreeMutationSaving;
   const treeMutationStatusMessage = reorderStatus.state === "saving" || reorderStatus.state === "saved"
     ? reorderStatus.message
     : "";
@@ -864,88 +827,6 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     return result.ok || result.code === "no-op";
   }, [canEditEstimate, canReorderNow, editingNodeId, localNodes, treeSearchActive]);
 
-  const suppressPrimaryActionAfterDrag = useCallback(() => {
-    suppressPrimaryActionUntilRef.current = Date.now() + 500;
-  }, []);
-
-  const handleTreeDrop = useCallback((draggedId: string, targetId: string, position: TreeDropPosition) => {
-    suppressPrimaryActionAfterDrag();
-    if (!canEditEstimate || !canReorderNow || editingNodeId || treeSearchActive) return;
-    if (isOptimisticEstimateNodeId(draggedId) || isOptimisticEstimateNodeId(targetId)) return;
-
-    const target = { targetNodeId: targetId, position };
-    const result = evaluateEstimateTreeDrop({
-      nodes: localNodes,
-      draggedNodeIds: [draggedId],
-      target,
-    });
-    if (!result.ok) return;
-
-    pendingReordersRef.current += 1;
-    setReorderStatus({ state: "saving", message: "Saving tree order" });
-
-    void (async () => {
-      let previousNodes = localNodes;
-      let optimisticRevision: number | null = null;
-      try {
-        previousNodes = await prepareAreaTreeOptimisticUpdate();
-        const freshResult = evaluateEstimateTreeDrop({
-          nodes: previousNodes,
-          draggedNodeIds: [draggedId],
-          target,
-        });
-        if (!freshResult.ok) {
-          setReorderStatus({ state: "error", message: freshResult.message });
-          return;
-        }
-        const touchesPendingCreate = freshResult.plan.updates.some(
-          (update) => isOptimisticEstimateNodeId(update.id) || (update.parentId ? isOptimisticEstimateNodeId(update.parentId) : false),
-        );
-        if (touchesPendingCreate) {
-          setReorderStatus({ state: "error", message: "A nearby node is still being created. Try the move again in a moment." });
-          return;
-        }
-
-        stalePropSignatureToIgnoreRef.current = lastAcceptedPropSignatureRef.current;
-        setLocalNodes(freshResult.plan.nextNodes);
-        optimisticRevision = getLocalTreeRevision();
-        const confirmed = await reorderEstimateTreeNodes(projectId, estimateId, { updates: freshResult.plan.updates, targetTabId: activeTabId });
-        if (getLocalTreeRevision() === optimisticRevision) {
-          setLocalNodes((currentNodes) =>
-            mergeEstimateTreeStructureWithCachedNodes({
-              structureNodes: confirmed.tree,
-              cachedNodes: currentNodes,
-            }),
-          );
-        }
-        setReorderStatus({ state: "saved", message: "Tree order saved" });
-      } catch (error) {
-        if (optimisticRevision === null) {
-          setLocalNodes(previousNodes);
-        } else {
-          restoreLocalNodes(previousNodes, optimisticRevision);
-        }
-        setReorderStatus({ state: "error", message: error instanceof Error ? error.message : "Could not save tree order." });
-      } finally {
-        finishPendingReorder();
-      }
-    })();
-  }, [
-    activeTabId,
-    canEditEstimate,
-    canReorderNow,
-    editingNodeId,
-    estimateId,
-    finishPendingReorder,
-    getLocalTreeRevision,
-    localNodes,
-    prepareAreaTreeOptimisticUpdate,
-    projectId,
-    restoreLocalNodes,
-    setLocalNodes,
-    suppressPrimaryActionAfterDrag,
-    treeSearchActive,
-  ]);
 
   // P6 single-node model: a template, library item, or project source dropped "inside" any
   // node row inserts directly as a child of that node — every node can take
@@ -1989,7 +1870,12 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
         <div className="relative flex min-h-0 flex-1 flex-col">
           {treeMutationStatusMessage ? (
             <output
-              className="sr-only"
+              className={cn(
+                "mx-2 mb-1 inline-flex min-h-4 w-fit items-center rounded-xs px-1.5 text-[9px] font-medium leading-4",
+                reorderStatus.state === "saved"
+                  ? "bg-successSoft text-success"
+                  : "bg-surfaceMuted text-tertiary",
+              )}
               aria-live="polite"
               aria-atomic="true"
               data-estimate-tree-mutation-status
@@ -2032,7 +1918,6 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
                         canDrag={handleTreeCanDrag}
                         getDragDisabledReason={getTreeDragDisabledReason}
                         canDrop={handleTreeCanDrop}
-                        invalidDropFeedback="silent"
                         onDrop={handleTreeDrop}
                         externalDrop={treeExternalDrop}
                         onNodeDragStart={suppressPrimaryActionAfterDrag}

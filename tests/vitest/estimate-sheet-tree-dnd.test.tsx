@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, createEvent, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -315,6 +315,32 @@ function mockDataTransfer(types: string[] = []) {
   };
 }
 
+function setDropRect(element: HTMLElement) {
+  element.getBoundingClientRect = () => ({
+    x: 0,
+    y: 0,
+    top: 0,
+    left: 0,
+    right: 180,
+    bottom: 30,
+    width: 180,
+    height: 30,
+    toJSON: () => ({}),
+  });
+}
+
+function fireDragOverAt(element: HTMLElement, dataTransfer: ReturnType<typeof mockDataTransfer>, clientY: number) {
+  const event = createEvent.dragOver(element, { dataTransfer });
+  Object.defineProperty(event, "clientY", { value: clientY });
+  fireEvent(element, event);
+}
+
+function fireDropAt(element: HTMLElement, dataTransfer: ReturnType<typeof mockDataTransfer>, clientY: number) {
+  const event = createEvent.drop(element, { dataTransfer });
+  Object.defineProperty(event, "clientY", { value: clientY });
+  fireEvent(element, event);
+}
+
 /**
  * Drops `sourceId` onto the middle of `targetId`. With jsdom's zero-height
  * rects, the tree resolves the midpoint band: "inside" for groups,
@@ -484,6 +510,75 @@ describe("estimate sheet tree drag/drop", () => {
     expect(routerMock.refresh).not.toHaveBeenCalled();
   });
 
+  it("reorders a non-root branch before its sibling from explicit row geometry without detaching descendants", async () => {
+    const pending = deferred<{ tree: EstimateTreeNode[] }>();
+    actionMocks.reorderEstimateTreeNodes.mockReturnValue(pending.promise);
+    renderTree();
+
+    const dataTransfer = mockDataTransfer();
+    const groundFloor = treeNodeRow("ground-floor");
+    setDropRect(groundFloor);
+
+    fireEvent.dragStart(treeNodeDragHandle("site-works"), { dataTransfer });
+    fireDragOverAt(groundFloor, dataTransfer, 1);
+    expect(groundFloor).toHaveAttribute("data-tree-drop-position", "before");
+    fireDropAt(groundFloor, dataTransfer, 1);
+
+    await waitFor(() => expect(actionMocks.reorderEstimateTreeNodes).toHaveBeenCalledTimes(1));
+    expect(renderedIds()).toEqual(["project-scope", "site-works", "front-yard", "ground-floor", "kitchen", "living"]);
+    expect(treeNodeRow("site-works")).toHaveAttribute("aria-level", "2");
+    expect(treeNodeRow("front-yard")).toHaveAttribute("aria-level", "3");
+    expect(actionMocks.reorderEstimateTreeNodes).toHaveBeenCalledWith("project-1", "estimate-1", {
+      updates: expect.arrayContaining([
+        { id: "site-works", parentId: "project-scope", sortOrder: 10 },
+        { id: "ground-floor", parentId: "project-scope", sortOrder: 20 },
+      ]),
+    });
+
+    const [root] = fixtureTree();
+    const [groundFloorNode, siteWorksNode] = root?.children ?? [];
+    if (!root || !groundFloorNode || !siteWorksNode) throw new Error("Invalid branch reorder fixture.");
+    await act(async () => {
+      pending.resolve({ tree: [{ ...root, children: [siteWorksNode, groundFloorNode] }] });
+      await pending.promise;
+    });
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Tree order saved"));
+    expect(renderedIds()).toEqual(["project-scope", "site-works", "front-yard", "ground-floor", "kitchen", "living"]);
+  });
+
+  it("rolls back a failed non-empty branch move with descendants, selection, and expansion intact", async () => {
+    const pending = deferred<{ tree: EstimateTreeNode[] }>();
+    actionMocks.reorderEstimateTreeNodes.mockReturnValue(pending.promise);
+    const initialTree = fixtureTree();
+    const { queryClient } = renderTree(initialTree, "front-yard");
+
+    expect(treeNodeRow("ground-floor")).toHaveAttribute("aria-expanded", "true");
+    expect(treeNodeRow("site-works")).toHaveAttribute("aria-expanded", "true");
+    expect(treeNodeRow("front-yard")).toHaveAttribute("aria-current", "page");
+
+    await act(async () => {
+      await dropOnto("site-works", "ground-floor");
+    });
+
+    await waitFor(() => expect(actionMocks.reorderEstimateTreeNodes).toHaveBeenCalledTimes(1));
+    expect(treeNodeRow("site-works")).toHaveAttribute("aria-level", "3");
+    expect(treeNodeRow("front-yard")).toHaveAttribute("aria-level", "4");
+    expect(treeNodeRow("front-yard")).toHaveAttribute("aria-current", "page");
+
+    await act(async () => {
+      pending.reject(new Error("Branch move failed."));
+      await pending.promise.catch(() => undefined);
+    });
+
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Branch move failed."));
+    expect(renderedIds()).toEqual(["project-scope", "ground-floor", "kitchen", "living", "site-works", "front-yard"]);
+    expect(treeNodeRow("ground-floor")).toHaveAttribute("aria-expanded", "true");
+    expect(treeNodeRow("site-works")).toHaveAttribute("aria-expanded", "true");
+    expect(treeNodeRow("front-yard")).toHaveAttribute("aria-level", "3");
+    expect(treeNodeRow("front-yard")).toHaveAttribute("aria-current", "page");
+    expect(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"))).toEqual(initialTree);
+  });
+
   it("persists Group Node nesting under another Group Node through the same drop path", async () => {
     actionMocks.reorderEstimateTreeNodes.mockResolvedValue({ tree: confirmedGroupReparentTree() });
     const { queryClient } = renderTree();
@@ -604,6 +699,34 @@ describe("estimate sheet tree drag/drop", () => {
     await waitFor(() =>
       expect(renderedIds()).toEqual(["project-scope", "ground-floor", "kitchen", "living", "server-area-1", "site-works", "front-yard"]),
     );
+  });
+
+  it("explains why a newly created optimistic node cannot be reordered while its create is saving", async () => {
+    const pending = deferred<{ nodeId: string; name: string; kind: "area"; parentId: string }>();
+    actionMocks.createEstimateNode.mockReturnValue(pending.promise);
+    renderTree(fixtureTree(), "ground-floor");
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Add Branch" }));
+    });
+    const optimisticRow = document.querySelector<HTMLElement>('[data-tree-row^="optimistic-area-"]');
+    if (!optimisticRow) throw new Error("Missing optimistic area row.");
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Cancel rename New Area" }));
+    });
+
+    const optimisticId = optimisticRow.getAttribute("data-tree-row");
+    if (!optimisticId) throw new Error("Missing optimistic area id.");
+    const handle = treeNodeDragHandle(optimisticId);
+    expect(handle).toHaveAttribute("draggable", "false");
+    expect(handle).toHaveAttribute("aria-disabled", "true");
+    expect(handle).toHaveAttribute("data-tree-drag-disabled-reason", "Finish the current tree save before dragging nodes.");
+    expect(handle).toHaveAccessibleName("Drag New Area unavailable: Finish the current tree save before dragging nodes.");
+
+    await act(async () => {
+      pending.reject(new Error("Characterization cleanup."));
+      await pending.promise.catch(() => undefined);
+    });
   });
 
   it("does not call persistence for no-op drops", async () => {

@@ -970,6 +970,33 @@ describe("estimate tree context menu", () => {
     expect(routerMock.refresh).not.toHaveBeenCalled();
   });
 
+  it("keeps the confirmed deletion and fallback selection when Undo restore fails", async () => {
+    const user = userEvent.setup();
+    const deletedTree = deleteKitchenTree();
+    actionMocks.deleteEstimateNode.mockResolvedValue({
+      eventId: "delete-event-1",
+      tree: deletedTree,
+      deletedNodeIds: ["kitchen"],
+      fallbackNodeId: "living",
+    });
+    actionMocks.restoreDeletedEstimateNodes.mockRejectedValue(new Error("Restore provider unavailable."));
+    const { queryClient } = renderTree();
+    await chooseMenuItem("kitchen", "Delete");
+
+    fireEvent.click(within(screen.getByRole("dialog", { name: "Delete Kitchen" })).getByRole("button", { name: "Delete" }));
+
+    await waitFor(() => expect(treeNodeButton("living")).toHaveAttribute("aria-current", "page"));
+    await user.click(await screen.findByRole("button", { name: "Undo" }));
+
+    await waitFor(() => expect(actionMocks.restoreDeletedEstimateNodes).toHaveBeenCalledTimes(1));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't restore the deleted Areas. Try again.");
+    expect(document.querySelector('[data-tree-row="kitchen"]')).not.toBeInTheDocument();
+    expect(treeNodeButton("living")).toHaveAttribute("aria-current", "page");
+    expect(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"))).toEqual(deletedTree);
+    expect(replacedPaths().at(-1)).toBe("/workshop/projects/project-1/estimates/living");
+    expect(routerMock.refresh).not.toHaveBeenCalled();
+  });
+
   it("repairs delete routing from the current pathname when server props are stale", async () => {
     routeParamsMock.nodeId = "living";
     actionMocks.deleteEstimateNode.mockResolvedValue({ eventId: "delete-event-1", tree: deleteLivingTree(), deletedNodeIds: ["living"], fallbackNodeId: "kitchen" });

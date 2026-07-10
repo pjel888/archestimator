@@ -937,6 +937,7 @@ const ESTIMATE_EDIT_ACTIONS = new Set([
   "reorder_estimate_nodes_with_history",
   "reorder_estimate_tabs_with_history",
   "replace_estimate_row_item_with_history",
+  "restore_deleted_estimate_nodes_with_history",
   "unlink_estimate_row_item_from_library_with_history",
   "update_estimate_details_with_history",
   "update_estimate_row_item_with_history",
@@ -1345,6 +1346,8 @@ async function renameEstimateNode(database: D1DatabaseLike, args: Record<string,
 async function reorderEstimateNodes(database: D1DatabaseLike, args: Record<string, unknown>) {
   const projectId = String(args.target_project_id ?? "");
   const estimateId = String(args.target_estimate_id ?? "");
+  const project = await readProjectContext(database, projectId);
+  if (!project?.workspace_id) throw new Error("Estimate history event workspace could not be resolved.");
   const updates = Array.isArray(args.move_updates) ? args.move_updates as Array<Record<string, unknown>> : [];
   const moveUpdates = updates.map((update) => ({
     id: String(update.id ?? ""),
@@ -1386,6 +1389,7 @@ async function reorderEstimateNodes(database: D1DatabaseLike, args: Record<strin
   await insertHistoryEvent(database, {
     projectId,
     estimateId,
+    workspaceId: project.workspace_id,
     eventType: "estimate_nodes_reordered",
     actorUserId: String(args.acting_user_id ?? "") || null,
     correlationId: String(args.correlation_id ?? randomUUID()),
@@ -1423,6 +1427,9 @@ async function deleteEstimateNodes(database: D1DatabaseLike, args: Record<string
     ? args.target_node_ids.filter((id): id is string => typeof id === "string")
     : [String(args.target_node_id ?? "")].filter(Boolean);
   const deletedNodeIds = await collectDescendantNodeIds(database, estimateId, rootIds);
+  const deletedNodes = deletedNodeIds.length
+    ? await all<EstimateNodeRow>(database, `SELECT * FROM estimate_nodes WHERE estimate_id = ? AND id IN (${placeholders(deletedNodeIds)})`, [estimateId, ...deletedNodeIds])
+    : [];
   const deletedRows = deletedNodeIds.length
     ? await all<EstimateRowItemRow>(database, `SELECT * FROM estimate_row_items WHERE estimate_id = ? AND node_id IN (${placeholders(deletedNodeIds)})`, [estimateId, ...deletedNodeIds])
     : [];
@@ -1438,10 +1445,104 @@ async function deleteEstimateNodes(database: D1DatabaseLike, args: Record<string
     eventType: rootIds.length > 1 ? "estimate_nodes_deleted" : "estimate_node_deleted",
     actorUserId: String(args.acting_user_id ?? "") || null,
     correlationId: String(args.correlation_id ?? randomUUID()),
-    oldSnapshot: { nodeIds: deletedNodeIds, rows: deletedRows.map(serializeRowItem) },
+    oldSnapshot: {
+      nodeIds: deletedNodeIds,
+      nodes: deletedNodes.map(serializeNodeRow),
+      rows: deletedRows.map(serializeRowItem),
+    },
     payload: { deletedNodeIds, fallbackNodeId: fallback?.id ?? null },
   });
   return { eventId, deletedNodeIds, fallbackNodeId: fallback?.id ?? null, payload: { deletedNodeIds, fallbackNodeId: fallback?.id ?? null } };
+}
+
+async function restoreDeletedEstimateNodes(database: D1DatabaseLike, args: Record<string, unknown>) {
+  const projectId = String(args.target_project_id ?? "");
+  const estimateId = String(args.target_estimate_id ?? "");
+  const sourceEventId = String(args.source_delete_event_id ?? "");
+  const project = await readProjectContext(database, projectId);
+  if (!project?.workspace_id) throw new Error("Estimate history event workspace could not be resolved.");
+  const sourceEvent = await first<EstimateEventRow>(
+    database,
+    `
+      SELECT *
+      FROM estimate_sheet_events
+      WHERE id = ?
+        AND estimate_id = ?
+        AND project_id = ?
+      LIMIT 1
+    `,
+    [sourceEventId, estimateId, projectId],
+  );
+  if (!sourceEvent || !["estimate_node_deleted", "estimate_nodes_deleted"].includes(sourceEvent.event_type)) {
+    throw new Error("Deleted node history snapshot was not found in the current estimate.");
+  }
+
+  const snapshot = readJsonRecord(sourceEvent.old_snapshot);
+  const snapshotNodes = Array.isArray(snapshot.nodes)
+    ? snapshot.nodes.map(readJsonRecord).filter((node) => typeof node.id === "string" && node.estimate_id === estimateId)
+    : [];
+  const snapshotRows = Array.isArray(snapshot.rows)
+    ? snapshot.rows.map(readJsonRecord).filter((row) => typeof row.id === "string" && row.estimate_id === estimateId)
+    : [];
+  if (snapshotNodes.length === 0) throw new Error("Deleted node history snapshot does not contain restorable nodes.");
+
+  const snapshotNodeIds = new Set(snapshotNodes.map((node) => String(node.id)));
+  const requestedRootIds = Array.isArray(args.target_node_ids)
+    ? args.target_node_ids.filter((id): id is string => typeof id === "string" && snapshotNodeIds.has(id))
+    : [];
+  const restoredRootNodeIds = requestedRootIds.length > 0
+    ? requestedRootIds
+    : snapshotNodes
+        .filter((node) => typeof node.parent_id !== "string" || !snapshotNodeIds.has(node.parent_id))
+        .map((node) => String(node.id));
+  const restoredNodeIdSet = new Set<string>();
+  const nodesById = new Map(snapshotNodes.map((node) => [String(node.id), node]));
+  const nodesToRestore: Record<string, unknown>[] = [];
+  const pendingIds = [...restoredRootNodeIds];
+  while (pendingIds.length > 0) {
+    const nodeId = pendingIds.shift();
+    if (!nodeId || restoredNodeIdSet.has(nodeId)) continue;
+    const node = nodesById.get(nodeId);
+    if (!node) continue;
+    restoredNodeIdSet.add(nodeId);
+    nodesToRestore.push(node);
+    for (const child of snapshotNodes) {
+      if (child.parent_id === nodeId) pendingIds.push(String(child.id));
+    }
+  }
+  const rowsToRestore = snapshotRows.filter((row) => restoredNodeIdSet.has(String(row.node_id ?? "")));
+  for (const node of nodesToRestore) await insertRecord(database, "estimate_nodes", node);
+  for (const row of rowsToRestore) await insertRecord(database, "estimate_row_items", row);
+
+  const restoredNodeIds = nodesToRestore.map((node) => String(node.id));
+  const restoredRowIds = rowsToRestore.map((row) => String(row.id));
+  const eventId = await insertHistoryEvent(database, {
+    projectId,
+    estimateId,
+    workspaceId: project.workspace_id,
+    estimateNodeId: restoredRootNodeIds[0] ?? null,
+    eventType: "estimate_nodes_restored",
+    actorUserId: String(args.acting_user_id ?? "") || null,
+    correlationId: String(args.correlation_id ?? randomUUID()),
+    newSnapshot: { nodes: nodesToRestore, rows: rowsToRestore },
+    payload: {
+      sourceEventId,
+      restoredNodeIds,
+      restoredRootNodeIds,
+      restoredNodeCount: restoredNodeIds.length,
+      restoredRowIds,
+      restoredRowCount: restoredRowIds.length,
+    },
+  });
+  return {
+    eventId,
+    sourceEventId,
+    restoredNodeIds,
+    restoredRootNodeIds,
+    restoredNodeCount: restoredNodeIds.length,
+    restoredRowIds,
+    restoredRowCount: restoredRowIds.length,
+  };
 }
 
 async function insertRowItem(database: D1DatabaseLike, args: Record<string, unknown>) {
@@ -2221,8 +2322,6 @@ async function callEstimateAction<T>(
   if (name === "restore_deleted_estimate_rows_with_history") {
     throw new Error("Deleted row restore requires a Cloudflare D1 history snapshot and is not available for this event.");
   }
-  if (name === "restore_deleted_estimate_nodes_with_history") {
-    throw new Error("Deleted node restore requires a Cloudflare D1 history snapshot and is not available for this event.");
-  }
+  if (name === "restore_deleted_estimate_nodes_with_history") return await restoreDeletedEstimateNodes(database, args) as T;
   throw new Error(`Unsupported Cloudflare D1 estimate action: ${name}`);
 }
