@@ -11,6 +11,7 @@ import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d
 export type AppRole = AppPlatformRole;
 
 export type CurrentUserProfile = {
+  account_status: string;
   avatar_url: string | null;
   created_at: string;
   default_workspace_id: string | null;
@@ -22,6 +23,7 @@ export type CurrentUserProfile = {
 };
 
 type ProfileD1Row = {
+  account_status: string | null;
   avatar_url: string | null;
   created_at: string;
   default_workspace_id: string | null;
@@ -37,6 +39,7 @@ export { isAppPlatformRole as isAppRole };
 function toCurrentUserProfile(row: ProfileD1Row | null): CurrentUserProfile | null {
   if (!row) return null;
   return {
+    account_status: row.account_status ?? "active",
     avatar_url: row.avatar_url,
     created_at: row.created_at,
     default_workspace_id: row.default_workspace_id,
@@ -58,7 +61,7 @@ export async function getProfileByEmailFromD1(
   const row = await db
     .prepare<ProfileD1Row>(
       `
-        SELECT id, email, display_name, role, default_workspace_id, avatar_url, created_at, updated_at
+        SELECT id, email, display_name, role, account_status, default_workspace_id, avatar_url, created_at, updated_at
         FROM profiles
         WHERE email = ?
         LIMIT 1

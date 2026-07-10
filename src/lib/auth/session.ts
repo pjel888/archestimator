@@ -39,6 +39,7 @@ function createSyntheticBetterAuthProfile({
 }): CurrentUserProfile {
   const now = new Date().toISOString();
   return {
+    account_status: "active",
     avatar_url: avatarUrl,
     created_at: now,
     default_workspace_id: null,
@@ -75,6 +76,14 @@ async function getBetterAuthCurrentUserContext(): Promise<CurrentUserContext | n
     getProfileByEmailFromCloudflareD1(identity.email),
   );
   const resolvedProfile = profile ?? createSyntheticBetterAuthProfile(identity);
+
+  // Enforce account_status: banned/suspended users are blocked from the app.
+  if (resolvedProfile.account_status === "banned") {
+    redirect("/access-required?reason=banned");
+  }
+  if (resolvedProfile.account_status === "suspended") {
+    redirect("/access-required?reason=suspended");
+  }
 
   return {
     userId: resolvedProfile.id,
