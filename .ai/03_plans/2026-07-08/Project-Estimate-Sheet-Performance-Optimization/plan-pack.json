@@ -93,7 +93,7 @@
       "id": "ART-013",
       "role": "supporting-source",
       "path": "12_TEST_AND_VALIDATION_STRATEGY.md",
-      "sha256": "c31177d8f0126054972c5a609dfbcf02007b79d6f1c17a01024a397666f796fb"
+      "sha256": "9521f2431832aa0c26f4dcc1ca81420ea8217062807e7ad18c70a8029b5c77b3"
     },
     {
       "id": "ART-014",
@@ -117,7 +117,7 @@
       "id": "ART-017",
       "role": "supporting-source",
       "path": "16_REQUIREMENTS_TRACEABILITY_MATRIX.md",
-      "sha256": "f14c4f499278cbefd65eb3335f350782284ca501afb8a4438c8272e3cb344eea"
+      "sha256": "c53841a4bd804bfff928373030d2a818707259343d1a91654f0f36e6fa520940"
     },
     {
       "id": "ART-018",
@@ -147,7 +147,7 @@
       "id": "ART-022",
       "role": "superseded-draft",
       "path": "21_EXECUTION_HANDOFF.md",
-      "sha256": "f6910c94fe8cc952a25c1f666d0bcb578001e2aed5710d0104bafd043a6d9414"
+      "sha256": "8a1c97ee3bbf2c5953229c64f1e4d6adbf68b5fc9a4202a681efe224e3cd538a"
     },
     {
       "id": "ART-023",
@@ -201,7 +201,7 @@
       "id": "ART-031",
       "role": "canonical-execution",
       "path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "224793dbfb7aa3fb1b58b5229caf07fba91cdd3908fffa4cda09c4656d9de15d"
+      "sha256": "3b540d360bc8c695dc6e74787ed3c84f7d784db0dfdc6673cf7226b1cf37f119"
     },
     {
       "id": "ART-032",
@@ -3617,7 +3617,7 @@
       "id": "EVID-002",
       "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "224793dbfb7aa3fb1b58b5229caf07fba91cdd3908fffa4cda09c4656d9de15d",
+      "sha256": "3b540d360bc8c695dc6e74787ed3c84f7d784db0dfdc6673cf7226b1cf37f119",
       "claim_ids": [
         "UNIT-001",
         "UNIT-004",
@@ -3630,7 +3630,7 @@
       "id": "EVID-003",
       "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "224793dbfb7aa3fb1b58b5229caf07fba91cdd3908fffa4cda09c4656d9de15d",
+      "sha256": "3b540d360bc8c695dc6e74787ed3c84f7d784db0dfdc6673cf7226b1cf37f119",
       "claim_ids": [
         "UNIT-002",
         "TEST-003"
@@ -3642,7 +3642,7 @@
       "id": "EVID-004",
       "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "224793dbfb7aa3fb1b58b5229caf07fba91cdd3908fffa4cda09c4656d9de15d",
+      "sha256": "3b540d360bc8c695dc6e74787ed3c84f7d784db0dfdc6673cf7226b1cf37f119",
       "claim_ids": [
         "UNIT-003",
         "TEST-004"
@@ -3654,7 +3654,7 @@
       "id": "EVID-005",
       "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "224793dbfb7aa3fb1b58b5229caf07fba91cdd3908fffa4cda09c4656d9de15d",
+      "sha256": "3b540d360bc8c695dc6e74787ed3c84f7d784db0dfdc6673cf7226b1cf37f119",
       "claim_ids": [
         "UNIT-005"
       ],
@@ -3665,7 +3665,7 @@
       "id": "EVID-006",
       "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "224793dbfb7aa3fb1b58b5229caf07fba91cdd3908fffa4cda09c4656d9de15d",
+      "sha256": "3b540d360bc8c695dc6e74787ed3c84f7d784db0dfdc6673cf7226b1cf37f119",
       "claim_ids": [
         "UNIT-006"
       ],
@@ -3676,7 +3676,7 @@
       "id": "EVID-007",
       "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "224793dbfb7aa3fb1b58b5229caf07fba91cdd3908fffa4cda09c4656d9de15d",
+      "sha256": "3b540d360bc8c695dc6e74787ed3c84f7d784db0dfdc6673cf7226b1cf37f119",
       "claim_ids": [
         "UNIT-007"
       ],
@@ -3687,7 +3687,7 @@
       "id": "EVID-008",
       "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "224793dbfb7aa3fb1b58b5229caf07fba91cdd3908fffa4cda09c4656d9de15d",
+      "sha256": "3b540d360bc8c695dc6e74787ed3c84f7d784db0dfdc6673cf7226b1cf37f119",
       "claim_ids": [
         "UNIT-008"
       ],
@@ -3698,7 +3698,7 @@
       "id": "EVID-009",
       "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "224793dbfb7aa3fb1b58b5229caf07fba91cdd3908fffa4cda09c4656d9de15d",
+      "sha256": "3b540d360bc8c695dc6e74787ed3c84f7d784db0dfdc6673cf7226b1cf37f119",
       "claim_ids": [
         "UNIT-009"
       ],
@@ -3709,7 +3709,7 @@
       "id": "EVID-010",
       "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "224793dbfb7aa3fb1b58b5229caf07fba91cdd3908fffa4cda09c4656d9de15d",
+      "sha256": "3b540d360bc8c695dc6e74787ed3c84f7d784db0dfdc6673cf7226b1cf37f119",
       "claim_ids": [
         "UNIT-010",
         "TEST-005"
@@ -3721,7 +3721,7 @@
       "id": "EVID-011",
       "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "224793dbfb7aa3fb1b58b5229caf07fba91cdd3908fffa4cda09c4656d9de15d",
+      "sha256": "3b540d360bc8c695dc6e74787ed3c84f7d784db0dfdc6673cf7226b1cf37f119",
       "claim_ids": [
         "UNIT-011",
         "TEST-006"
@@ -3738,6 +3738,6 @@
     "unit-owned-shared-worktree-diff-change"
   ],
   "next_unit": "UNIT-001",
-  "updated_at": "2026-07-10T05:30:00.000Z",
-  "manifest_sha256": "d2ec97b03d910d6b93735668fa8889b3ac8fe00884e94b61099bfab464ad6e9a"
+  "updated_at": "2026-07-10T03:56:01.498Z",
+  "manifest_sha256": "89039f1ada6a265d1acd42b33756d0e81b1706b0374e2bb45b0d52ee7c15285d"
 }

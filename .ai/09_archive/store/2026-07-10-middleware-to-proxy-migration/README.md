@@ -3,7 +3,7 @@
 **Date:** 2026-07-09 (Asia/Manila)
 **Profile:** exhaustive (auth-adjacent + Cloudflare provider + app-authorization)
 **Scope:** `planning-only` — no permanent changes authorized; experiments are reversible
-**Status:** **CONDITIONALLY READY** (blocker: upstream OpenNext Cloudflare support for `proxy.ts`)
+**Status:** **ARCHIVED 2026-07-10** — Phase 1 (owner-delegable doc actions) complete; DEC-001 (do not rename `src/middleware.ts`) is locked in source and regression test. Phases 2-4 remain blocked upstream on `@opennextjs/cloudflare` adding `proxy.ts` support. Re-activate by moving this folder back to `.ai/03_plans/` if the upstream blocker clears.
 **Verification mode:** `emulated` (single-agent planning; independent reviewer recommended before any implementation)
 
 ---

@@ -42,7 +42,7 @@
 | REQ-T05 browser e2e perf | U0.3 | Playwright artifact |
 | REQ-T06 D1 query budget | U0.4 | proof JSON/MD |
 | REQ-T07 existing perf suite | all phases | existing focused suite |
-| REQ-T08 React Doctor | React phases | `bun run doctor -- --verbose` |
+| REQ-T08 React Doctor | React phases | `bun run doctor` |
 | REQ-DOC01 evidence update | all phases | evidence docs |
 | REQ-DOC02 skipped validation notes | all phases | final phase report |
 | REQ-DOC03 proof class distinction | U6.1, U6.2 | readiness review |

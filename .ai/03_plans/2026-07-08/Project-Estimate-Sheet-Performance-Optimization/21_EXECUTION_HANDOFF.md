@@ -36,7 +36,7 @@ Do not touch:
 - New fixture and DOM perf tests pass.
 - Browser spec can run locally and writes artifact.
 - D1 proof script can run locally and writes redacted artifact.
-- `bun run doctor -- --verbose` is not required unless React code changes; if test components change React paths, run it.
+- `bun run doctor` is required after React source changes, not for evaluator-only work.
 - `git diff --check` passes.
 
 ## Second PR Recommendation

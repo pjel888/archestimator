@@ -268,7 +268,7 @@ UNIT-001
   3. Add characterization tests for `updateEditableRowValue`, `computeNodeTotals`, branch/row mounted counts, project-component fan-out, bulk-delete atomicity, broadcast revision filtering, optimistic ID resolution, P6 parent rules, and the 19 interop scenarios.
   4. Implement schema validation and strict budget evaluation. Do not start a dev server or browser in this unit.
 - Commands:
-  - `bun run test:unit -- tests/vitest/estimate-node-route-context-rpc-contract.test.ts tests/vitest/estimate-route-server-concurrency.test.ts tests/vitest/estimate-sheet-bulk-row-delete-partial-failure.test.tsx tests/vitest/estimate-row-update-broadcast.test.ts tests/vitest/estimate-sheet-tree-dnd.test.tsx tests/vitest/estimate-sheet-performance-contract.test.ts`
+  - `bun run test:dom -- tests/vitest/estimate-node-route-context-rpc-contract.test.ts tests/vitest/estimate-route-server-concurrency.test.ts tests/vitest/estimate-sheet-bulk-row-delete-partial-failure.test.tsx tests/vitest/estimate-row-update-broadcast.test.ts tests/vitest/estimate-sheet-tree-dnd.test.tsx tests/vitest/estimate-sheet-performance-contract.test.ts`
   - `bun run type-check`
   - `bun run validate:error-handling` if evaluator code writes logs or operator output.
 - Evidence: `evidence/runtime/fixture-manifest.json`, `evidence/runtime/jsdom-baseline.json`.
@@ -300,8 +300,8 @@ UNIT-001
 - Exact query surfaces: route context, selected tab tree, lazy subtree at depths 1/5/10, row update, move, bulk delete at 100, project-component fan-out at 1/100/1000 matches, and auth denial for wrong tenant/estimate/tab/node.
 - Data contract: active `migrations/` only. Each run generates a UUID and exact ID arrays per table. Cleanup deletes exact IDs inside one D1 batch/transaction in dependency order, verifies zero remaining IDs per table, and compares seeded/cleaned counts per table. It does not query `metadata_json` across heterogeneous tables.
 - Commands:
-  - `bun run cf:d1:migrate:local`
-  - `bun run test:unit -- tests/vitest/estimate-sheet-d1-performance.test.ts tests/vitest/workspace-repository-estimate-scoped-access.test.ts`
+  - `bunx wrangler d1 migrations apply ARCH_DB --local`
+  - `bun run test:dom -- tests/vitest/estimate-sheet-d1-performance.test.ts tests/vitest/workspace-repository-estimate-scoped-access.test.ts`
   - `bun run perf:estimate:d1 -- --local --profile=limit`
   - `bun run perf:estimate:check -- --evidence-class=local-d1`
 - Evidence: `evidence/runtime/d1-local-baseline.json`.
@@ -316,7 +316,7 @@ UNIT-001
 - Owned scope: `scripts/write-estimate-sheet-bottleneck-decision.ts`, its unit test, and `evidence/runtime/bottleneck-decision.json`.
 - Decision algorithm: rank route/D1, full-tree derivation, render/DOM, and mutation/fan-out by failed budget count, normalized overage, and affected scenarios. Activate a branch when any hard threshold fails or when it is in the top three by normalized overage. Equal scores use route/data before client architecture because that reduces payload/work upstream.
 - Commands:
-  - `bun run test:unit -- tests/vitest/estimate-sheet-bottleneck-decision.test.ts`
+  - `bun run test:dom -- tests/vitest/estimate-sheet-bottleneck-decision.test.ts`
   - `bun run perf:estimate:decide`
 - Evidence: `evidence/runtime/bottleneck-decision.json` with inputs, hashes, ranking, activated units, and supersession reasons.
 - Exit: each of `UNIT-005` through `UNIT-009` is deterministically `activate` or `supersede`; no human choice remains.
@@ -334,7 +334,7 @@ UNIT-001
 - Rollback: server-resolved `ESTIMATE_ROUTE_FAST_PATH_MODE=off|shadow|on`; `shadow` compares identities/counts but returns the legacy result. The route passes the resolved mode to client telemetry. This is deployment-scoped, not a live per-estimate toggle.
 - Commands:
   - targeted route/repository tests named by `UNIT-001`
-  - `bun run cf:d1:migrate:local`
+  - `bunx wrangler d1 migrations apply ARCH_DB --local`
   - `bun run perf:estimate:d1 -- --local --profile=limit`
   - `bun run perf:estimate:check -- --unit=UNIT-005`
   - `bun run type-check`
@@ -353,10 +353,10 @@ UNIT-001
 - Contract: recursive current helpers remain a test oracle; hydrate once per tree revision; preserve stable IDs/order/tab/completeness; no second steady-state full tree in the graph store; selectors return current ordering.
 - Rollback: `ESTIMATE_GRAPH_MODE=off|shadow|on`, resolved on the server and passed through route props. `shadow` compares selectors and returns nested-tree results.
 - Commands:
-  - `bun run test:unit -- tests/vitest/estimate-graph-parity.test.ts tests/vitest/estimate-graph-property.test.ts`
+  - `bun run test:dom -- tests/vitest/estimate-graph-parity.test.ts tests/vitest/estimate-graph-property.test.ts`
   - property suite with >=1,000 generated operation sequences
   - focused estimate regression suite
-  - `bun run doctor -- --verbose`
+  - `bun run doctor`
   - `bun run type-check`
 - Evidence: `evidence/runtime/unit-006-graph.json` with parity, property, memory, and index-maintenance results.
 - Exit: zero parity mismatches, stable order, direct component fan-out lookup, and memory budget pass.
@@ -410,11 +410,11 @@ UNIT-001
 - Owned scope: tests/evidence only plus minimal regression fixes within the unit that introduced them. Shared plan/evidence index remains lead-owned.
 - Required proof: all focused estimate suites, all 19 interop scenarios, local D1 budgets, browser budgets, bundle/RSC/memory, auth denial, error handling, React Doctor, typecheck, and build when route/client boundaries changed.
 - Commands:
-  - `bun run test:unit -- <focused list emitted by UNIT-001>`
+  - `bun run test:dom -- <focused list emitted by UNIT-001>`
   - `bun run test:e2e -- e2e/estimate-sheet-performance.spec.ts e2e/estimate-sheet-component-interop.spec.ts --workers=1 --retries=0`
   - `bun run perf:estimate:check -- --all-local`
   - `bun run validate:error-handling`
-  - `bun run doctor -- --verbose`
+  - `bun run doctor`
   - `bun run type-check`
   - `bun run build` when a route/RSC boundary changed
 - Evidence: `evidence/runtime/integrated-local-proof.json` with before/after deltas and every skip.

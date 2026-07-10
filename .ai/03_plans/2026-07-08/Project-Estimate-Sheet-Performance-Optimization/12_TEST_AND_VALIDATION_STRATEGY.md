@@ -137,7 +137,7 @@ OUTPUT_FILE=.ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimizat
 After React implementation changes:
 
 ```bash
-bun run doctor -- --verbose
+bun run doctor
 ```
 
 Final local source hygiene:

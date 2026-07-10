@@ -33,7 +33,10 @@ Produce a comprehensive, evidence-based plan pack for resolving the Next.js 16.2
 | 1 | EXECUTE | Sisyphus | Wrote 18 plan files + 2 evidence captures | `ls .` |
 | 1 | VERIFY | Sisyphus (emulated) | All cross-references resolve; all source citations verified | `19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md` |
 | 1 | RECORD | Sisyphus | Loop ledger updated; notepad captured in `/tmp/ulw-*` | This file |
-| 1 | DECIDE | **Owner** | **PENDING** — owner review required before any implementation | — |
+| 1 | DECIDE | **Owner** | Owner authorized Phase 1 doc actions on 2026-07-10 | This file |
+| 2 | EXECUTE | Sisyphus | Phase 1 doc actions landed 2026-07-10: in-source comment in `src/middleware.ts`, superseding entry in `.ai/10_state/current-state.md` | `git show HEAD -- src/middleware.ts .ai/10_state/current-state.md` (post-commit) |
+| 2 | VERIFY | Sisyphus | `tests/vitest/proxy-file-convention.test.ts` 1/1 PASS; `tests/vitest/auth-proxy.test.ts` 35/35 PASS; `git diff --check` clean | Test runner output |
+| 2 | DECIDE | Owner | Pack archived to `.ai/09_archive/store/2026-07-10-middleware-to-proxy-migration/` on 2026-07-10. Phases 2-4 remain blocked on upstream OpenNext Cloudflare `proxy.ts` support — re-activate (move back) if upstream ships. | This folder's new location |
 
 ## Adversarial review (pending)
 
