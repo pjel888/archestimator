@@ -7,14 +7,19 @@ import { isPlatformAdmin } from "@/lib/auth/roles";
 import { getCurrentUserContext } from "@/lib/auth/session";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
-  const currentUser = await getCurrentUserContext();
+  // Fetch user context and feature flag in parallel — they are independent.
+  const [currentUser, dashboardEnabled] = await Promise.all([
+    getCurrentUserContext(),
+    isAdminDashboardEnabled(),
+  ]);
+
   if (!currentUser) redirect("/login?next=/admin");
 
   if (!isPlatformAdmin({ role: currentUser.role, email: currentUser.email })) {
     redirect("/access-required");
   }
 
-  if (!(await isAdminDashboardEnabled())) {
+  if (!dashboardEnabled) {
     redirect("/workshop");
   }
 

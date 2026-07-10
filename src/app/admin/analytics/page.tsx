@@ -6,7 +6,10 @@ import { Card } from "@/components/ui/card";
 
 const cfAnalyticsToken = process.env.NEXT_PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN;
 const clarityProjectId = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID;
-const ga4MeasurementId = process.env.NEXT_PUBLIC_GA4_MEASUREMENT_ID;
+// Check both NEXT_PUBLIC_GA_MEASUREMENT_ID (the canonical name used in
+// .env.example and ab-testing) and the legacy NEXT_PUBLIC_GA4_MEASUREMENT_ID.
+const ga4MeasurementId =
+  process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? process.env.NEXT_PUBLIC_GA4_MEASUREMENT_ID;
 
 const tiles = [
   {

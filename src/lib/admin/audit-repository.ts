@@ -151,12 +151,13 @@ export async function listAuditEvents(
       `,
     );
 
-    const countRow = action
-      ? await countStatement.bind(action).first<CountRow>()
-      : await countStatement.first<CountRow>();
-    const rows = action
-      ? await rowsStatement.bind(action, limit, offset).all<AdminAuditEvent>()
-      : await rowsStatement.bind(limit, offset).all<AdminAuditEvent>();
+    // Run count and page-rows in parallel — they are independent queries.
+    const [countRow, rows] = await Promise.all([
+      action ? countStatement.bind(action).first<CountRow>() : countStatement.first<CountRow>(),
+      action
+        ? rowsStatement.bind(action, limit, offset).all<AdminAuditEvent>()
+        : rowsStatement.bind(limit, offset).all<AdminAuditEvent>(),
+    ]);
 
     return {
       data: rows.results ?? [],

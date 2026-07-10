@@ -69,8 +69,14 @@ async function loadFeatureFlagMap(): Promise<Map<string, AdminFeatureFlag>> {
 
   const db = await getCloudflareD1Database();
   if (!db) {
-    featureFlagCache = { expiresAt: now + FEATURE_FLAG_CACHE_TTL_MS, flags: new Map() };
-    return featureFlagCache.flags;
+    // D1 unavailable: do NOT cache an empty map. An empty map would cause
+    // isFeatureFlagEnabled to return false for ALL flags — including
+    // admin_dashboard_enabled, which gates the entire admin surface. That
+    // would lock operators out during a transient D1 outage. Instead, return
+    // the last-known-good cache if it exists (even if stale), or an empty
+    // map without caching it (so the next request retries immediately).
+    if (featureFlagCache) return featureFlagCache.flags;
+    return new Map();
   }
 
   const flags = new Map((await readFeatureFlagsFromD1(db)).map((flag) => [flag.key, flag]));

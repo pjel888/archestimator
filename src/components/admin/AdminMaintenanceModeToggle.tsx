@@ -31,7 +31,7 @@ export function AdminMaintenanceModeToggle({ flag }: { flag: AdminFeatureFlag | 
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
           <p className="text-[11px] font-medium leading-4 text-ink">Maintenance mode</p>
-          <p className="text-[9px] leading-4 text-tertiary">Readable `admin_maintenance_mode` flag. Workshop mutation enforcement remains documented as a follow-up.</p>
+          <p className="text-[9px] leading-4 text-tertiary">Readable <code className="font-mono">admin_maintenance_mode</code> flag. Workshop mutation enforcement remains documented as a follow-up.</p>
         </div>
         <Switch checked={enabled} onChange={handleToggle} disabled={isPending || !flag} aria-label="Toggle maintenance mode" />
       </div>

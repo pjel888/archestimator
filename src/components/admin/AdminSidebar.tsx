@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Buildings,
   ChartLine,
   ClipboardText,
   Flag,
   Gauge,
   Headset,
+  Megaphone,
   Pulse,
   SidebarSimple,
   Users,
@@ -20,7 +22,9 @@ import { cn } from "@/lib/ui/cn";
 export const ADMIN_NAV_ITEMS = [
   { href: "/admin", label: "Overview", icon: Gauge },
   { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/accounts", label: "Accounts", icon: Buildings },
   { href: "/admin/support", label: "Support", icon: Headset },
+  { href: "/admin/notifications", label: "Notifications", icon: Megaphone },
   { href: "/admin/flags", label: "Flags", icon: Flag },
   { href: "/admin/audit", label: "Audit", icon: ClipboardText },
   { href: "/admin/observability", label: "Observability", icon: Pulse },

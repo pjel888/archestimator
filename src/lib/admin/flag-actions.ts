@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { writeAdminAuditEvent } from "@/lib/admin/audit";
-import { updateFeatureFlagInD1, type AdminFeatureFlag } from "@/lib/admin/feature-flags";
+import { getFeatureFlag, updateFeatureFlagInD1, type AdminFeatureFlag } from "@/lib/admin/feature-flags";
 import { requireAdminContext } from "@/lib/admin/require-admin";
 import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
 
@@ -25,6 +25,9 @@ export async function setFeatureFlag(input: { key: string; enabled: boolean }): 
   const db = await getCloudflareD1Database();
   if (!db) return { ok: false, error: "d1_unavailable" };
 
+  // Capture the prior value before mutation for audit trail completeness.
+  const priorFlag = await getFeatureFlag(key);
+
   const flag = await updateFeatureFlagInD1(db, {
     key,
     enabled: input.enabled,
@@ -38,7 +41,7 @@ export async function setFeatureFlag(input: { key: string; enabled: boolean }): 
     action: "feature_flag.updated",
     targetType: "feature_flag",
     targetId: key,
-    summary: { enabled: input.enabled },
+    summary: { enabled: input.enabled, previousEnabled: priorFlag?.enabled ?? null },
   });
   revalidatePath("/admin/flags");
   return { ok: true, flag };

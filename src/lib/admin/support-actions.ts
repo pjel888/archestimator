@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { writeAdminAuditEvent } from "@/lib/admin/audit";
 import { requireAdminContext } from "@/lib/admin/require-admin";
 import { getCurrentUserContext } from "@/lib/auth/session";
-import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
+import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d1";
 import { sendEmail } from "@/lib/email/transactional-email-client";
 import {
   createSupportConversation,
@@ -51,6 +51,61 @@ async function writeSupportAudit(input: {
   });
 }
 
+/**
+ * Re-attempts email delivery for a previously-failed support reply.
+ * This is called when sendSupportReply is invoked with a clientMessageId
+ * that already exists with send_status="send_failed". Instead of permanently
+ * blocking, we retry the email send so the operator can recover.
+ */
+async function retrySupportReplyEmail(input: {
+  admin: { userId: string; email: string | null };
+  conversation: SupportConversationRow;
+  existingMessage: SupportMessageRow;
+  db: D1DatabaseLike;
+}): Promise<SupportActionResult<{ message: SupportMessageRow; conversation: SupportConversationRow }>> {
+  const { admin, conversation, existingMessage, db } = input;
+  let finalMessage = existingMessage;
+
+  if (conversation.requester_email) {
+    const result = await sendEmail({
+      to: conversation.requester_email,
+      subject: conversation.subject ? `Re: ${conversation.subject}` : "Archestimator support reply",
+      text: existingMessage.body_text,
+    });
+    if (!result.ok) {
+      await writeSupportAudit({
+        actorUserId: admin.userId,
+        actorEmail: admin.email ?? "unknown",
+        action: "support.reply_send_failed",
+        targetId: conversation.id,
+        summary: { messageId: finalMessage.id, code: result.code ?? "unknown", retry: true },
+      });
+      revalidatePath("/admin/support");
+      return { ok: false, error: "email_send_failed", message: finalMessage };
+    }
+    finalMessage = (await markSupportMessageSendStatusInD1(db, {
+      messageId: existingMessage.id,
+      sendStatus: "sent",
+      emailMessageId: result.messageId ?? null,
+    })) ?? existingMessage;
+  } else {
+    finalMessage = (await markSupportMessageSendStatusInD1(db, {
+      messageId: existingMessage.id,
+      sendStatus: "sent",
+    })) ?? existingMessage;
+  }
+
+  await writeSupportAudit({
+    actorUserId: admin.userId,
+    actorEmail: admin.email ?? "unknown",
+    action: "support.reply_sent",
+    targetId: conversation.id,
+    summary: { messageId: finalMessage.id, emailDelivered: Boolean(conversation.requester_email), retry: true },
+  });
+  revalidatePath("/admin/support");
+  return { ok: true, data: { message: finalMessage, conversation } };
+}
+
 export async function sendSupportReply(input: {
   conversationId: string;
   body: string;
@@ -76,8 +131,11 @@ export async function sendSupportReply(input: {
   });
 
   if (!inserted.inserted) {
+    // Message already exists (duplicate clientMessageId). If it previously
+    // failed to send, re-attempt the email send instead of permanently
+    // blocking the operator. If it was already sent successfully, return it.
     if (inserted.message.send_status === "send_failed") {
-      return { ok: false, error: "email_send_failed", message: inserted.message };
+      return retrySupportReplyEmail({ admin, conversation, existingMessage: inserted.message, db });
     }
     return { ok: true, data: { message: inserted.message, conversation } };
   }
@@ -176,6 +234,6 @@ export async function startConversation(input: {
     targetId: result.data.conversation.id,
     summary: { source: "support_widget" },
   });
-  revalidatePath("/admin/support");
+  revalidatePath("/workshop/feedback");
   return { ok: true, data: result.data };
 }
