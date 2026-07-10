@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { UploadScanOverridePanel } from "@/components/workshop/UploadScanOverridePanel";
-import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
+import { WorkshopRouteHeader } from "@/components/workshop/WorkshopRouteHeader";
 import { AdminStatusSelect } from "@/app/workshop/settings/_components/AdminStatusSelect";
 import {
   isUploadScanOverrideReviewStatus,
@@ -30,7 +30,7 @@ export default async function UploadScanOverridesPage({
   const queue = await readUploadScanOverrideReviewQueue(params.status);
 
   return (
-    <WorkshopPageShell
+    <WorkshopRouteHeader
       title="Scan overrides"
       eyebrow="Settings"
       description="Review failed or unsupported component attachment scans before approving a temporary audited override."
@@ -40,6 +40,7 @@ export default async function UploadScanOverridesPage({
       ]}
       contentClassName="overflow-y-auto p-2"
     >
+
       <div className="max-w-6xl space-y-3">
         {!queue.authorized ? (
           <section className="border border-hairline bg-white p-2">
@@ -75,6 +76,6 @@ export default async function UploadScanOverridesPage({
           </>
         )}
       </div>
-    </WorkshopPageShell>
+    </WorkshopRouteHeader>
   );
 }

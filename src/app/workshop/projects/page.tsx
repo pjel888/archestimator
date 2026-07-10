@@ -2,7 +2,8 @@ import { Suspense } from "react";
 
 import { ProjectsListSkeleton } from "@/components/workshop/ProjectsListSkeleton";
 import { ProjectsPageClient } from "@/components/workshop/projects-page-client";
-import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
+import { WorkshopCanvasWash } from "@/components/workshop/WorkshopCanvasWash";
+import { WorkshopRouteHeader } from "@/components/workshop/WorkshopRouteHeader";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { traced, withPerfTraceRequest } from "@/lib/perf/server-timing";
 import { ensureDefaultWorkspace, listCurrentWorkspaceProjects } from "@/lib/repositories/workspace-repository";
@@ -13,7 +14,7 @@ import { ensureDefaultWorkspace, listCurrentWorkspaceProjects } from "@/lib/repo
 // fetch. The fallback reuses the exact `loading.tsx` skeleton, so there is no double-flash.
 async function ProjectsData() {
   return withPerfTraceRequest("workshop.projects.data", async () => {
-    // Source the favorites scope identically to WorkshopPageShell (D2): the server +
+    // Source the favorites scope identically to WorkshopShell (D2): the server +
     // client must build the same sidebar query key. Both helpers are React-cached, so
     // calling them here does not duplicate the work the shell already performed.
     const [{ projects, favoriteProjectIds, projectGroups }, currentUser, { workspace }] = await Promise.all([
@@ -41,17 +42,18 @@ async function ProjectsData() {
 
 export default function ProjectsPage() {
   return (
-    <WorkshopPageShell
+    <WorkshopRouteHeader
       title="Projects"
       eyebrow="Workspace"
       showEyebrow={false}
       breadcrumbs={["Projects"]}
-      canvasClassName="projects-canvas-wash"
       contentClassName=""
     >
+      <WorkshopCanvasWash className="projects-canvas-wash" />
+
       <Suspense fallback={<ProjectsListSkeleton />}>
         <ProjectsData />
       </Suspense>
-    </WorkshopPageShell>
+    </WorkshopRouteHeader>
   );
 }

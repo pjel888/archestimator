@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ProfileSettingsFields } from "@/components/workshop/AccountSettingsFormFields";
-import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
+import { WorkshopRouteHeader } from "@/components/workshop/WorkshopRouteHeader";
 import {
   getAccountSetupState,
   updateProfileSettings,
@@ -14,7 +14,7 @@ export default async function ProfileSettingsPage({
   const [params, state] = await Promise.all([searchParams, getAccountSetupState()]);
 
   return (
-    <WorkshopPageShell
+    <WorkshopRouteHeader
       title="Profile settings"
       eyebrow="Settings"
       description="Update the profile-owned fields collected during sign-up."
@@ -24,6 +24,7 @@ export default async function ProfileSettingsPage({
       ]}
       contentClassName="overflow-y-auto p-2"
     >
+
       <form action={updateProfileSettings} className="max-w-3xl space-y-3">
         {params.saved ? (
           <div className="rounded-xs border border-accent/25 bg-accentSoft p-2 text-[10px] leading-4 text-ink">
@@ -46,6 +47,6 @@ export default async function ProfileSettingsPage({
           </Button>
         </div>
       </form>
-    </WorkshopPageShell>
+    </WorkshopRouteHeader>
   );
 }

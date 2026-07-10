@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
+import { WorkshopRouteHeader } from "@/components/workshop/WorkshopRouteHeader";
 import { AdminStatusSelect } from "@/app/workshop/settings/_components/AdminStatusSelect";
 import { BETA_FEEDBACK_STATUSES, isBetaFeedbackStatus, type BetaFeedbackStatus } from "@/lib/workshop/beta-feedback";
 import { updateBetaFeedbackReviewStatus } from "@/lib/workshop/beta-feedback-review-actions";
@@ -46,7 +46,7 @@ export default async function BetaFeedbackReviewPage({
   const notice = feedbackNotice(params.error, params.saved);
 
   return (
-    <WorkshopPageShell
+    <WorkshopRouteHeader
       title="Feedback review"
       eyebrow="Settings"
       description="Review authenticated feedback and keep triage status current."
@@ -56,6 +56,7 @@ export default async function BetaFeedbackReviewPage({
       ]}
       contentClassName="overflow-y-auto p-2"
     >
+
       <div className="max-w-5xl space-y-3">
         {notice ? (
           <div
@@ -157,6 +158,6 @@ export default async function BetaFeedbackReviewPage({
           </>
         )}
       </div>
-    </WorkshopPageShell>
+    </WorkshopRouteHeader>
   );
 }

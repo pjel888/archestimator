@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { WorkspaceSettingsFields } from "@/components/workshop/AccountSettingsFormFields";
-import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
+import { WorkshopRouteHeader } from "@/components/workshop/WorkshopRouteHeader";
 import {
   getAccountSetupState,
   updateWorkspaceSettings,
@@ -15,7 +15,7 @@ export default async function WorkspaceSettingsPage({
   const disabled = !state.canManageWorkspace;
 
   return (
-    <WorkshopPageShell
+    <WorkshopRouteHeader
       title="Workspace settings"
       eyebrow="Settings"
       description="Update workspace-owned account fields. Owners and admins can edit these settings."
@@ -25,6 +25,7 @@ export default async function WorkspaceSettingsPage({
       ]}
       contentClassName="overflow-y-auto p-2"
     >
+
       <form action={updateWorkspaceSettings} className="max-w-3xl space-y-3">
         {state.workspaceId ? (
           <input type="hidden" name="workspace_id" value={state.workspaceId} />
@@ -64,6 +65,6 @@ export default async function WorkspaceSettingsPage({
           </div>
         ) : null}
       </form>
-    </WorkshopPageShell>
+    </WorkshopRouteHeader>
   );
 }

@@ -1,4 +1,3 @@
-import { StaticWorkshopLoadingShell } from "@/components/workshop/StaticWorkshopLoadingShell";
 import { Skeleton } from "@/components/ui/skeleton";
 
 /**
@@ -124,8 +123,7 @@ function LedgerColumnSkeleton({ rows }: { rows: number }) {
 
 export default function Loading() {
   return (
-    <StaticWorkshopLoadingShell title="Workshop" showEyebrow={false} hideTitle contentClassName="overflow-hidden">
-      <div className="dashboard-canvas-wash h-full min-h-0 overflow-y-auto" aria-label="Workshop dashboard loading">
+      <div className="dashboard-canvas-wash h-full min-h-0 overflow-y-auto p-2" aria-label="Workshop dashboard loading">
         <div className="dashboard-root w-full p-2">
           {/* Masthead — greeting strip */}
           <div className="dashboard-masthead dashboard-masthead--solo">
@@ -210,6 +208,5 @@ export default function Loading() {
           </div>
         </div>
       </div>
-    </StaticWorkshopLoadingShell>
   );
 }

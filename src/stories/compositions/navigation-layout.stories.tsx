@@ -28,7 +28,7 @@ export const AppShellStates: Story = {
       />
       <WorkshopShellPreview />
       <StorySection title="Migration boundary">
-        <Note>WorkshopPageShell is not imported or replaced. Future route migration needs separate owner approval and graph impact.</Note>
+        <Note>WorkshopShell / WorkshopRouteHeader own production workshop chrome; this story is review-only.</Note>
       </StorySection>
     </>
   ),

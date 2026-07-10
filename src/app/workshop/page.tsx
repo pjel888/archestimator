@@ -1,8 +1,10 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
+import { WorkshopCanvasWash } from "@/components/workshop/WorkshopCanvasWash";
 import { WorkshopHeaderGreeting } from "@/components/workshop/WorkshopHeaderGreeting";
+import { WorkshopRouteHeader } from "@/components/workshop/WorkshopRouteHeader";
+import { WorkshopSidebarStatusSync } from "@/components/workshop/WorkshopSidebarStatusSync";
 import {
   WorkshopHomebaseClient,
   type WorkshopRemovedProjectBannerState,
@@ -115,16 +117,16 @@ export default async function WorkshopPage({ searchParams }: WorkshopPageProps) 
   const favoritesScope = { workspaceId: workspace.id, userId: currentUser.userId };
 
   return (
-    <WorkshopPageShell
+    <WorkshopRouteHeader
       title="Workshop"
       showEyebrow={false}
       hideTitle
       titleSlot={<WorkshopHeaderGreeting displayName={currentUser.displayName} />}
       breadcrumbs={["Workshop"]}
-      canvasClassName="dashboard-transparent-shell"
       contentClassName="overflow-hidden"
-      sidebarStatus={{ projectsBadgeCount: homebase.receivedPendingInviteCount }}
     >
+      <WorkshopCanvasWash className="dashboard-transparent-shell" />
+      <WorkshopSidebarStatusSync status={{ projectsBadgeCount: homebase.receivedPendingInviteCount }} />
       <WorkshopHomebaseClient
         homebase={homebase}
         inviteBanner={inviteBanner}
@@ -138,6 +140,6 @@ export default async function WorkshopPage({ searchParams }: WorkshopPageProps) 
           librarySpotlight={librarySpotlight}
         />
       </WorkshopHomebaseClient>
-    </WorkshopPageShell>
+    </WorkshopRouteHeader>
   );
 }

@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
+import { WorkshopRouteHeader } from "@/components/workshop/WorkshopRouteHeader";
 import { AdminStatusSelect } from "@/app/workshop/settings/_components/AdminStatusSelect";
 import {
   createClosedBetaAllowlistEntry,
@@ -54,7 +54,7 @@ export default async function BetaUsersPage({
   const notice = betaUserNotice(params);
 
   return (
-    <WorkshopPageShell
+    <WorkshopRouteHeader
       title="Users"
       eyebrow="Settings"
       description="Manage the email allowlist without exposing it to regular members."
@@ -64,6 +64,7 @@ export default async function BetaUsersPage({
       ]}
       contentClassName="overflow-y-auto p-2"
     >
+
       <div className="max-w-6xl space-y-3">
         {notice ? (
           <div
@@ -213,6 +214,6 @@ export default async function BetaUsersPage({
           </>
         )}
       </div>
-    </WorkshopPageShell>
+    </WorkshopRouteHeader>
   );
 }

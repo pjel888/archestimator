@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { UploadOperationsDashboardPanel } from "@/components/workshop/UploadOperationsDashboardPanel";
-import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
+import { WorkshopRouteHeader } from "@/components/workshop/WorkshopRouteHeader";
 import { AdminStatusSelect } from "@/app/workshop/settings/_components/AdminStatusSelect";
 import { readUploadOperationsDashboardSnapshot } from "@/lib/uploads/operations-dashboard";
 
@@ -32,7 +32,7 @@ export default async function UploadOperationsPage({
   const dashboard = await readUploadOperationsDashboardSnapshot({ windowHours });
 
   return (
-    <WorkshopPageShell
+    <WorkshopRouteHeader
       title="Upload operations"
       eyebrow="Settings"
       description="Review upload throughput, scan queue health, cleanup backlog, and operational event counters."
@@ -42,6 +42,7 @@ export default async function UploadOperationsPage({
       ]}
       contentClassName="overflow-y-auto p-2"
     >
+
       <div className="max-w-6xl space-y-3">
         {!dashboard.authorized ? (
           <section className="border border-hairline bg-white p-2">
@@ -85,6 +86,6 @@ export default async function UploadOperationsPage({
           </>
         )}
       </div>
-    </WorkshopPageShell>
+    </WorkshopRouteHeader>
   );
 }

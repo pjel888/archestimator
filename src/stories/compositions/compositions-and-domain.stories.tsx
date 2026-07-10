@@ -32,7 +32,7 @@ export const AppShellSidebarAndTabs: Story = {
       <StoryHeader
         eyebrow="P1 navigation and layout"
         title="App shell, sidebar, and compact workspace block"
-        description="Static shell composition for review only. It does not replace WorkshopPageShell or any route UI."
+        description="Static shell composition for review only. It does not replace WorkshopShell or any route UI."
       />
       <WorkshopShellPreview />
     </>

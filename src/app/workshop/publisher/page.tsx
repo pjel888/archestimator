@@ -2,7 +2,8 @@ import { Suspense } from "react";
 
 import { PublisherRosterClient } from "@/components/workshop/publisher/PublisherRosterClient";
 import { PublisherRosterSkeleton } from "@/components/workshop/publisher/PublisherRosterSkeleton";
-import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
+import { WorkshopCanvasWash } from "@/components/workshop/WorkshopCanvasWash";
+import { WorkshopRouteHeader } from "@/components/workshop/WorkshopRouteHeader";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { parseRosterFilters } from "@/lib/publisher/roster-filter";
 import { readWorkspacePublicationsRoster } from "@/lib/publisher/roster-repository";
@@ -35,17 +36,18 @@ async function PublisherData({ searchParams }: PublisherPageProps) {
 
 export default function PublisherPage({ searchParams }: PublisherPageProps) {
   return (
-    <WorkshopPageShell
+    <WorkshopRouteHeader
       title="Publisher"
       eyebrow="Workspace"
       showEyebrow={false}
       breadcrumbs={["Publisher"]}
-      canvasClassName="publisher-canvas-wash"
       contentClassName=""
     >
+      <WorkshopCanvasWash className="publisher-canvas-wash" />
+
       <Suspense fallback={<PublisherRosterSkeleton />}>
         <PublisherData searchParams={searchParams} />
       </Suspense>
-    </WorkshopPageShell>
+    </WorkshopRouteHeader>
   );
 }

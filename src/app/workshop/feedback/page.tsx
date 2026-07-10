@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { BetaFeedbackForm } from "@/components/workshop/BetaFeedbackForm";
-import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
+import { WorkshopRouteHeader } from "@/components/workshop/WorkshopRouteHeader";
 
 function feedbackErrorMessage(error?: string) {
   if (error === "message_too_short") return "Add at least 10 characters so the feedback is actionable.";
@@ -21,13 +21,14 @@ export default async function WorkshopFeedbackPage({
   const fallbackMailto = "mailto:support@archestimator.com?subject=Archestimator%20feedback";
 
   return (
-    <WorkshopPageShell
+    <WorkshopRouteHeader
       title="Feedback"
       eyebrow="Support"
       description="Report workflow blockers, confusing screens, export issues, and missing estimating details."
       breadcrumbs={[{ label: "Workshop", href: "/workshop" }, "Feedback"]}
       contentClassName="overflow-y-auto p-2"
     >
+
       <div className="space-y-3">
         {params.saved ? (
           <output className="rounded-xs border border-accent/25 bg-accentSoft p-2 text-[10px] leading-4 text-ink">
@@ -51,6 +52,6 @@ export default async function WorkshopFeedbackPage({
 
         <BetaFeedbackForm />
       </div>
-    </WorkshopPageShell>
+    </WorkshopRouteHeader>
   );
 }

@@ -2616,6 +2616,25 @@ input[type="number"] {
   --workshop-page-canvas-wash-fallback: var(--grad-publisher-canvas-wash-fallback);
 }
 
+/* Workshop Pages: SSR wash markers inside layout-owned shell (WorkshopCanvasWash).
+   Copy CSS variables onto the shell root so WorkshopGlassBackdrop inherits without client sync. */
+[data-workshop-page-shell-root]:has(.projects-canvas-wash) {
+  --workshop-page-canvas-wash: var(--grad-projects-canvas-wash);
+  --workshop-page-canvas-wash-fallback: var(--grad-projects-canvas-wash-fallback);
+}
+[data-workshop-page-shell-root]:has(.library-canvas-wash) {
+  --workshop-page-canvas-wash: var(--grad-library-canvas-wash);
+  --workshop-page-canvas-wash-fallback: var(--grad-library-canvas-wash-fallback);
+}
+[data-workshop-page-shell-root]:has(.publisher-canvas-wash) {
+  --workshop-page-canvas-wash: var(--grad-publisher-canvas-wash);
+  --workshop-page-canvas-wash-fallback: var(--grad-publisher-canvas-wash-fallback);
+}
+[data-workshop-page-shell-root]:has(.dashboard-transparent-shell) {
+  --workshop-page-canvas-wash: transparent;
+  --workshop-page-canvas-wash-fallback: transparent;
+}
+
 .workshop-collection-chrome {
   background: transparent;
   border-color: rgba(30, 35, 50, 0.045);

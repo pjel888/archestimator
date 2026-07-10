@@ -1,4 +1,4 @@
-import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
+import { WorkshopRouteHeader } from "@/components/workshop/WorkshopRouteHeader";
 import { WorkshopSettingsModal } from "@/components/workshop/WorkshopSettingsModal";
 import { WorkshopSettingsModalContent } from "@/components/workshop/WorkshopSettingsModalContent";
 import { isPlatformAdminRole } from "@/lib/auth/roles";
@@ -9,12 +9,13 @@ export default async function WorkshopSettingsPage() {
   const canManagePlatform = isPlatformAdminRole(context.role);
 
   return (
-    <WorkshopPageShell
+    <WorkshopRouteHeader
       title="Settings"
       eyebrow="Workshop"
       breadcrumbs={["Settings"]}
       contentClassName="p-2"
     >
+
       <div className="h-full" aria-hidden="true" />
       <WorkshopSettingsModal
         initialOpen
@@ -24,6 +25,6 @@ export default async function WorkshopSettingsPage() {
       >
         <WorkshopSettingsModalContent canManagePlatform={canManagePlatform} />
       </WorkshopSettingsModal>
-    </WorkshopPageShell>
+    </WorkshopRouteHeader>
   );
 }

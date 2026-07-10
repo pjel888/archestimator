@@ -3,21 +3,22 @@ import type { ReactNode } from "react";
 import { LibraryTabPanel } from "@/components/workshop/library/LibraryTabPanel";
 import { LibraryTabsLayoutClient } from "@/components/workshop/library/LibraryTabsLayoutClient";
 import { LibraryTitleBarClient } from "@/components/workshop/library/LibraryTitleBarClient";
-import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
+import { WorkshopCanvasWash } from "@/components/workshop/WorkshopCanvasWash";
+import { WorkshopRouteHeader } from "@/components/workshop/WorkshopRouteHeader";
 
 export default function LibraryLayout({ children }: { children: ReactNode }) {
   return (
-    <WorkshopPageShell
+    <WorkshopRouteHeader
       title="Library"
       eyebrow="Library"
       showEyebrow={false}
       breadcrumbs={["Library"]}
-      canvasClassName="library-canvas-wash"
       contentClassName=""
       titleSlot={<LibraryTitleBarClient />}
       subHeader={<LibraryTabsLayoutClient />}
     >
+      <WorkshopCanvasWash className="library-canvas-wash" />
       <LibraryTabPanel>{children}</LibraryTabPanel>
-    </WorkshopPageShell>
+    </WorkshopRouteHeader>
   );
 }

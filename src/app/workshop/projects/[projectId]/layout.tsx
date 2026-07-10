@@ -4,8 +4,10 @@ import { ProjectChromeAsync, ProjectHeaderChromeSkeleton } from "@/components/wo
 import { ProjectEstimateMetadataStrip } from "@/components/workshop/ProjectEstimateMetadataStrip";
 import { ProjectMiniSidebar } from "@/components/workshop/ProjectMiniSidebar";
 import { ProjectRouteContentFallback } from "@/components/workshop/ProjectRouteContentFallback";
+import { ProjectTotalFooterOverlay } from "@/components/workshop/ProjectTotalHeader";
 import { WorkshopBreadcrumbs } from "@/components/workshop/WorkshopBreadcrumbs";
-import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
+import { WorkshopRouteHeader } from "@/components/workshop/WorkshopRouteHeader";
+import { WorkshopShellFooterSlot } from "@/components/workshop/WorkshopShellFooterSlot";
 import { sampleProjects } from "@/components/workshop/workshop-sample-projects";
 import { traced, withPerfTraceRequest } from "@/lib/perf/server-timing";
 import { getCurrentWorkspaceProject } from "@/lib/repositories/workspace-repository";
@@ -50,7 +52,7 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
   const { projectId } = await params;
 
   return (
-    <WorkshopPageShell
+    <WorkshopRouteHeader
       title="Project"
       eyebrow="Projects"
       breadcrumbs={[
@@ -81,6 +83,9 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
           </div>
         </div>
       </div>
-    </WorkshopPageShell>
+      <WorkshopShellFooterSlot>
+        <ProjectTotalFooterOverlay projectId={projectId} />
+      </WorkshopShellFooterSlot>
+    </WorkshopRouteHeader>
   );
 }

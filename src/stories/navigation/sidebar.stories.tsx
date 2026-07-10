@@ -36,7 +36,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Story-only sidebar navigation preview for compact product shell review. It does not replace WorkshopPageShell.",
+          "Story-only sidebar navigation preview for compact product shell review. It does not replace WorkshopShell.",
       },
     },
   },
