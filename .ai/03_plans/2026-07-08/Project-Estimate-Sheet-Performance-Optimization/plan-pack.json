@@ -13,18 +13,18 @@
   "baseline": {
     "contract_version": "estimate-sheet-source-fingerprint.v2",
     "generated_metadata_exclusion_rule": "untracked-impeccable-metadata-exclusions.v1",
-    "head": "1ef93b73577a1b3632a03f8478a9d494ab50303b",
+    "head": "736d07a0e95576f519b669e4506ee9214e67a203",
     "path_count": 2021,
     "path_list_sha256": "64db44d5872889a9389cc99c83e403ae3ee6263ac995362ea9a03e0990cb218c",
-    "scoped_status_sha256": "7a71ecdd5f21e7fe2dc4b72927869f9613c1fd6762153fc0b8c03c6365ca5110",
-    "scoped_diff_sha256": "ecd2c4be5354399079d103b493ddec24e05ea7046e97b963a51f4e78674e294f",
+    "scoped_status_sha256": "2c0d5c7834fd448d12eba4e566b0ace5fd28edee1c546c057d9e0c6b897e4ada",
+    "scoped_diff_sha256": "f767bd5808a8190fadbebbae00c0a88ced6cf33b6e06c30dd8b9ab69d24b181e",
     "application": {
       "contract_version": "estimate-sheet-application-fingerprint.v1",
       "generated_metadata_exclusion_rule": "untracked-impeccable-metadata-exclusions.v1",
       "package_projection_rule": "package-json-without-scripts.v1",
       "path_count": 1194,
       "path_list_sha256": "5cd62a81d3a9a38a50b68b550002126178c630f348d3165d4e6b0fbc5ea24b0d",
-      "content_sha256": "f0a643da9a657b729f4c0a4cfe65ed35f015f59d0ac82fab4d7e1445a79fd865"
+      "content_sha256": "40c9540c9a09fe7933894f1df0f0f8e70c5230f5f3f497e997901b86cf227e0c"
     },
     "producer": {
       "contract_version": "estimate-sheet-producer-fingerprint.v1",
@@ -3865,7 +3865,7 @@
         "DEC-AUTO-014",
         "DEC-AUTO-015"
       ],
-      "source_revision": "1ef93b73577a1b3632a03f8478a9d494ab50303b+status-7a71ecdd5f21e7fe2dc4b72927869f961+app-f0a643da9a657b729f4c0a4cfe65ed35+producer-7a72d311538f402d448d1ae6a96a192fe+frontier-plan-readiness",
+      "source_revision": "736d07a0e95576f519b669e4506ee9214e67a203+status-2c0d5c7834fd448d12eba4e566b0ace5f+app-40c9540c9a09fe7933894f1df0f0f8e7+producer-7a72d311538f402d448d1ae6a96a192fe+frontier-plan-readiness",
       "valid_until": null
     },
     {
@@ -4030,5 +4030,5 @@
   ],
   "next_unit": null,
   "updated_at": "2026-07-10T13:50:41.879Z",
-  "manifest_sha256": "9eefcc7d59ea7b892ad7b9d23bb69150373dad9de496b7a06c746ed14ef3302a"
+  "manifest_sha256": "1568cb24cf499899a39c1ad81479e759582cc79dfe394398d4d56f206c510de0"
 }

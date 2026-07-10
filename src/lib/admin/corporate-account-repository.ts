@@ -403,13 +403,34 @@ export async function updateCorporateAccountMemberRole(input: {
   }
 }
 
+export type LinkWorkspaceResult = {
+  ok: boolean;
+  previousAccountId: string | null;
+};
+
+/**
+ * Links a workspace to a corporate account. If the workspace was already linked
+ * to a DIFFERENT account, this is treated as a move — the previous account ID
+ * is returned so the caller can audit the transition. The previous account
+ * loses its claim silently (the workspace is moved, not shared).
+ */
 export async function linkWorkspaceToCorporateAccount(
   workspaceId: string,
   accountId: string,
-): Promise<CorporateAccountResult<{ ok: boolean }>> {
+): Promise<CorporateAccountResult<LinkWorkspaceResult>> {
   try {
     const db = await getCloudflareD1Database();
-    if (!db) return { data: { ok: false }, error: "Cloudflare D1 is not available." };
+    if (!db) return { data: { ok: false, previousAccountId: null }, error: "Cloudflare D1 is not available." };
+
+    // Check if the workspace is already linked to a different account.
+    const existing = await db
+      .prepare<{ corporate_account_id: string | null }>(
+        `SELECT corporate_account_id FROM workspaces WHERE id = ?`,
+      )
+      .bind(workspaceId)
+      .first<{ { corporate_account_id: string | null } }>();
+
+    const previousAccountId = existing?.corporate_account_id ?? null;
 
     await db
       .prepare(
@@ -418,10 +439,38 @@ export async function linkWorkspaceToCorporateAccount(
       .bind(accountId, now(), workspaceId)
       .run();
 
-    return { data: { ok: true }, error: null };
+    return { data: { ok: true, previousAccountId }, error: null };
   } catch (error) {
     logFailure(error, "workspace_link_failed");
-    return { data: { ok: false }, error: "Could not link workspace." };
+    return { data: { ok: false, previousAccountId: null }, error: "Could not link workspace." };
+  }
+}
+
+/**
+ * Updates a corporate account's status (active/suspended/archived).
+ */
+export async function updateCorporateAccountStatus(
+  accountId: string,
+  status: string,
+): Promise<CorporateAccountResult<{ ok: boolean }>> {
+  if (!["active", "suspended", "archived"].includes(status)) {
+    return { data: { ok: false }, error: "Invalid status." };
+  }
+  try {
+    const db = await getCloudflareD1Database();
+    if (!db) return { data: { ok: false }, error: "Cloudflare D1 is not available." };
+
+    await db
+      .prepare(
+        `UPDATE corporate_accounts SET status = ?, updated_at = ? WHERE id = ?`,
+      )
+      .bind(status, now(), accountId)
+      .run();
+
+    return { data: { ok: true }, error: null };
+  } catch (error) {
+    logFailure(error, "corporate_account_status_update_failed");
+    return { data: { ok: false }, error: "Could not update account status." };
   }
 }
 
