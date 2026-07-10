@@ -54,6 +54,15 @@ Stable current truth (verify against git/source before relying on a detail):
   contract. Use `bun run supermemory:search -- "<query>"` before broad,
   non-trivial, or recovery work and `bun run supermemory:add -- "<sanitized>"`
   when durable truth changes; `.ai` and current source remain authoritative.
+- Shared coding-agent skills refresh (2026-07-10 local): installed 31 skill
+  directories from `obra/superpowers`, `leonxlnx/taste-skill`, and
+  `emilkowalski/skills` into the recognized Codex, Cursor, Claude,
+  CommandCode, Vibe, GitHub, OpenCode, and `.agents` skill roots. Existing
+  destination directories were preserved instead of overwritten. Validation:
+  all target roots have the expected `SKILL.md` files; `git diff --check` and
+  `bun run validate:agents` passed. Note: repo `.codex/skills` is local-only
+  because `.codex/*` is ignored, but Codex also has user-level copies in
+  `~/.codex/skills`.
 - Development memory safety and fast default (2026-07-10): `bun dev` now
   explicitly runs Next 16.2.10 with Turbopack; `dev:turbo` remains a compatible
   equivalent. The prior idle filesystem-cache persistence/compaction OOM stays
@@ -82,6 +91,19 @@ Stable current truth (verify against git/source before relying on a detail):
   not cap readiness or require owner acceptance. Active provider authority is
   the Cloudflare resources bound in `wrangler.jsonc`; historical Supabase project
   `ebxxqidacheyapmmzavr` remains read-only archaeology.
+- Beta readiness planning suite (2026-07-10): seven plan packs under
+  `.ai/03_plans/2026-07-10/` turn the current Beta-readiness audit into one
+  umbrella program plus Release Integrity, Hosted D1 Recovery, First-User
+  Activation, Estimate Intelligence, Calculation Parity, and Beta Operating
+  execution surfaces. The umbrella registry assigns all 20 `BETA-P0/P1` items
+  exactly once and coordinates provisional migration leases `0050..0053` with
+  collision/reissue rules. Estimate Intelligence and Calculation Parity are
+  `IMPLEMENTATION_READY`; the other five packs are `CONDITIONALLY_READY`; every
+  pack remains `NOT_STARTED`. All seven pack validators, the planning-prompt
+  suite, cross-pack reference/risk/ownership checks, and an independent checker
+  pass. Hosted/provider, GitHub, counsel, owner-approval, and implementation
+  evidence remain explicit future boundaries; no migration or external action
+  was performed while producing the plans.
 - Error logging and incident evidence (2026-07-08 local): Archestimator should
   not store raw application error logs in D1 as the standard logging path.
   Local/dev diagnosis uses structured `logs/dev.ndjson`; default test runs do

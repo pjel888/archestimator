@@ -93,7 +93,6 @@ const nextConfig: NextConfig = {
     : {}),
   experimental: {
     optimizePackageImports: ["@phosphor-icons/react"],
-    webpackMemoryOptimizations: true,
     // Next 16.2 can retain cache state and exhaust V8 during persistence.
     turbopackFileSystemCacheForDev: false,
     ...(process.env.NODE_ENV === "development"

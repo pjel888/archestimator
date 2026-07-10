@@ -14,12 +14,13 @@ const nextConfigSource = readFileSync("next.config.ts", "utf8");
 const redactionSource = readFileSync("src/lib/observability/redact.ts", "utf8");
 
 describe("development runtime memory safety", () => {
-  it("uses bounded Webpack by default and keeps hardened Turbopack opt-in", () => {
+  it("uses bounded Turbopack by default with persistent caching disabled", () => {
     expect(packageJson.scripts?.dev).toContain("--max-old-space-size=2048");
-    expect(packageJson.scripts?.dev).toContain("next dev --webpack");
+    expect(packageJson.scripts?.dev).toContain("next dev --turbopack");
+    expect(packageJson.scripts?.dev).not.toContain("--webpack");
     expect(packageJson.scripts?.["dev:turbo"]).toContain("--max-old-space-size=2048");
     expect(packageJson.scripts?.["dev:turbo"]).toContain("next dev --turbopack");
-    expect(nextConfigSource).toContain("webpackMemoryOptimizations: true");
+    expect(nextConfigSource).not.toContain("webpackMemoryOptimizations");
     expect(nextConfigSource).toContain("turbopackFileSystemCacheForDev: false");
     expect(nextConfigSource).toContain("turbopackMemoryLimit: 1536 * 1024 * 1024");
   });
