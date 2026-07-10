@@ -1893,7 +1893,7 @@ async function applyComponentCreateDraft({
   };
 
   revalidatePath("/workshop/library");
-  revalidatePath("/workshop/components");
+  revalidatePath("/workshop/library/components");
 
   return result;
 }

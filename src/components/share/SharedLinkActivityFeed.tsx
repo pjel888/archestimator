@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useReducer, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { EnsureQueryClient } from "@/components/share/ensure-query-client";
 import { Button } from "@/components/ui/button";
 import { loadSharedLinkActivity, type ActivityItem } from "@/lib/publication/actions"; // server action callable from client
 
@@ -101,7 +103,7 @@ function activityFeedReducer(state: ActivityFeedState, action: ActivityFeedActio
   }
 }
 
-export default function SharedLinkActivityFeed({
+function SharedLinkActivityFeedInner({
   publicationToken,
   loadActivity,
   feedLabel = "Shared link activity",
@@ -177,20 +179,81 @@ export default function SharedLinkActivityFeed({
     }
   }, [publicationToken, loadActivity, isOwner, onActivitySeen]);
 
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      void load();
-    }, 0);
-    return () => window.clearTimeout(timeoutId);
-  }, [load]);
+  // Initial page via TanStack Query (cache + focus refetch). Pagination still uses `load(cursor)`.
+  const activityQuery = useQuery({
+    queryKey: ["share-activity", publicationToken ?? "none", isOwner, Boolean(loadActivity)] as const,
+    enabled: Boolean(loadActivity) || Boolean(publicationToken),
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+    queryFn: async () => {
+      if (loadActivity) return loadActivity(null);
+      if (!publicationToken) throw new Error("Publication token is required.");
+      if (isOwner) {
+        const res = await loadSharedLinkActivity(publicationToken, { limit: 50 });
+        return {
+          activities: res.activities as ActivityItem[],
+          hasMore: res.hasMore,
+          nextCursor: res.nextCursor ?? null,
+        } satisfies ActivityFeedLoadResult;
+      }
+      const url = new URL(`/api/share/${encodeURIComponent(publicationToken)}/activity`, window.location.origin);
+      const res = await fetch(url.pathname + url.search, {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-store" },
+      });
+      const json = (await res.json()) as { activities?: ActivityItem[]; hasMore?: boolean; nextCursor?: string };
+      return {
+        activities: json.activities || [],
+        hasMore: Boolean(json.hasMore),
+        nextCursor: json.nextCursor ?? null,
+      } satisfies ActivityFeedLoadResult;
+    },
+  });
 
-  // Refresh on window focus / tab visible — no always-on interval, no background load
+  useEffect(() => {
+    if (activityQuery.isFetching && activities.length === 0) {
+      dispatchFeed({ type: "load:start" });
+      return;
+    }
+    if (activityQuery.isError) {
+      dispatchFeed({
+        type: "load:error",
+        message: activityQuery.error instanceof Error ? activityQuery.error.message : "Failed to load activity",
+      });
+      return;
+    }
+    if (!activityQuery.data) return;
+    const nextActivities = activityQuery.data.activities;
+    const newNewest = nextActivities[0]?.id ?? null;
+    const showNewActivityNotice =
+      newestIdRef.current !== null && newNewest !== null && newNewest !== newestIdRef.current;
+    newestIdRef.current = newNewest;
+    dispatchFeed({
+      type: "load:success",
+      activities: nextActivities,
+      hasMore: activityQuery.data.hasMore,
+      nextCursor: activityQuery.data.nextCursor ?? null,
+      showNewActivityNotice,
+      partial: Boolean(activityQuery.data.partial),
+      unavailableSources: activityQuery.data.unavailableSources ?? [],
+    });
+    onActivitySeen?.();
+  }, [
+    activities.length,
+    activityQuery.data,
+    activityQuery.error,
+    activityQuery.isError,
+    activityQuery.isFetching,
+    onActivitySeen,
+  ]);
+
+  // AC-MOD-08: explicit focus/visibility refetch (jsdom + product behavior).
   useEffect(() => {
     const handleFocus = () => {
-      if (!loadingRef.current) void load();
+      if (!loadingRef.current) void activityQuery.refetch();
     };
     const handleVisibility = () => {
-      if (document.visibilityState === "visible" && !loadingRef.current) void load();
+      if (document.visibilityState === "visible" && !loadingRef.current) void activityQuery.refetch();
     };
     window.addEventListener("focus", handleFocus);
     document.addEventListener("visibilitychange", handleVisibility);
@@ -198,7 +261,8 @@ export default function SharedLinkActivityFeed({
       window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [load]);
+  }, [activityQuery]);
+
 
   if (loading) {
     return (
@@ -223,7 +287,7 @@ export default function SharedLinkActivityFeed({
     <section data-testid="activity-feed" className="rounded-xs text-[10px] text-ink" aria-label={feedLabel}>
       <div className="mb-2 flex items-center justify-between text-[9px] text-secondary">
         <span>Activity</span>
-        <Button type="button" variant="ghost" size="sm" onClick={() => { dispatchFeed({ type: "notice:clear" }); load(); }} className="h-5 px-1.5 py-0 text-[9px]">Refresh</Button>
+        <Button type="button" variant="ghost" size="sm" onClick={() => { dispatchFeed({ type: "notice:clear" }); void activityQuery.refetch(); }} className="h-5 px-1.5 py-0 text-[9px]">Refresh</Button>
       </div>
       <div aria-live="polite" className="sr-only">
         {newActivityNotice ? "New shared link activity loaded." : ""}
@@ -285,5 +349,14 @@ export default function SharedLinkActivityFeed({
       ) : null}
       <p className="mt-2 text-[9px] text-secondary">{footerLabel}</p>
     </section>
+  );
+}
+
+
+export default function SharedLinkActivityFeed(props: SharedLinkActivityFeedProps) {
+  return (
+    <EnsureQueryClient>
+      <SharedLinkActivityFeedInner {...props} />
+    </EnsureQueryClient>
   );
 }

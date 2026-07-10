@@ -737,6 +737,11 @@ function normalizeSelectedEstimateIds(estimateIds: string[] | undefined) {
 
 function revalidatePublicationRoutes(projectId: string, ...clientLinkPaths: Array<string | null | undefined>) {
   revalidatePath(`/workshop/projects/${projectId}`);
+  // Publisher roster + workshop dashboard published strip (server path only — no client router.refresh).
+  revalidatePath("/workshop/publisher");
+  revalidatePath("/workshop");
+  // Recipient proposals inbox reflects publication/recipient mutations.
+  revalidatePath("/workshop/proposals");
   for (const clientLinkPath of clientLinkPaths) {
     if (clientLinkPath) revalidatePath(clientLinkPath);
   }

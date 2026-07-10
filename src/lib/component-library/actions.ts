@@ -306,7 +306,7 @@ export type ExecuteBulkArchiveLibraryComponentsInput = BulkArchiveLibraryCompone
 
 function revalidateLibraryRoutes() {
   revalidatePath("/workshop/library");
-  revalidatePath("/workshop/components");
+  revalidatePath("/workshop/library/components");
 }
 
 function getMassDeletionCorrelationId(correlationId: string | undefined) {

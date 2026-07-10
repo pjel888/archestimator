@@ -1,10 +1,16 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { AuthStateMismatchRecoveryScript } from "@/components/auth/AuthStateMismatchRecoveryScript";
 import { LiquidGlassReady } from "@/components/system/LiquidGlassReady";
 import { LandingStructuredData } from "@/components/landing/structured-data";
 import { LANDING_SITE_ORIGIN } from "@/lib/landing/seo-metadata";
 import { AppProviders } from "./providers";
 import "./globals.css";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#ffffff",
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(LANDING_SITE_ORIGIN), // L-SEO-1 placeholder origin until domain confirmed

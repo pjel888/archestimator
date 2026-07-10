@@ -68,3 +68,14 @@ Where the owner granted standing authority for planning (this is a planning-only
 - **Add Lighthouse CI** → deferred (no Chrome-in-CI today; owner decision; Playwright Performance-Timeline covers most).
 - **Self-host fonts via next/font** → opportunity, lower priority (CSS fonts work; not blocking).
 - **Add Sentry/OTel** → rejected as default (paid; free-tier RUM first).
+
+
+## Owner decisions resolved in implementation (2026-07-10)
+
+| ID | Resolution |
+|---|---|
+| OPEN-PERF-01 | Tier-1 Cloudflare Web Analytics |
+| OPEN-ARCH-01 | DEFER Cache Components / `unstable_instant` |
+| OPEN-PERF-02 | Keep CI budget advisory |
+| OPEN-UX-01 | 150ms overlay delay; suppress on skeleton routes |
+| OPEN-REL-01 | Keep soft-404 / noindex for token routes |

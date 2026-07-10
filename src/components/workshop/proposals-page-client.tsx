@@ -47,7 +47,6 @@ function readRefreshErrorLabel(error: "unauthorized" | "unknown") {
 export function ProposalsPageClient({ initialResult, userEmail }: ProposalsPageClientProps) {
   const queryKey = useMemo(() => ["recipient-proposals", userEmail] as const, [userEmail]);
   const retryButtonRef = useRef<HTMLButtonElement | null>(null);
-  const focusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const focusRetryAfterFailureRef = useRef(false);
   const refreshInFlightRef = useRef(false);
 
@@ -57,7 +56,7 @@ export function ProposalsPageClient({ initialResult, userEmail }: ProposalsPageC
     initialData: initialResult.ok ? initialResult : undefined,
     enabled: initialResult.ok,
     staleTime: 30_000,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
     retry: false,
   });
 
@@ -76,27 +75,6 @@ export function ProposalsPageClient({ initialResult, userEmail }: ProposalsPageC
     [query],
   );
 
-  useEffect(() => {
-    const scheduleFocusRefresh = () => {
-      if (document.visibilityState === "hidden") return;
-      if (query.isFetching) return;
-      if (focusTimerRef.current) return;
-
-      focusTimerRef.current = setTimeout(() => {
-        focusTimerRef.current = null;
-        void refresh();
-      }, 150);
-    };
-
-    window.addEventListener("focus", scheduleFocusRefresh);
-    document.addEventListener("visibilitychange", scheduleFocusRefresh);
-
-    return () => {
-      window.removeEventListener("focus", scheduleFocusRefresh);
-      document.removeEventListener("visibilitychange", scheduleFocusRefresh);
-      if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
-    };
-  }, [query.isFetching, refresh]);
 
   const currentError = readQueryErrorCode(query.error) ?? (!query.data && !initialResult.ok ? initialResult.error : null);
 

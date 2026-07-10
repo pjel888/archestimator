@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ArrowSquareOut, LinkBreak, LinkSimple, Prohibit } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -50,7 +49,6 @@ export function PublishedProjectQuickActions({
   clientLinkPath,
   canManagePublication,
 }: PublishedProjectQuickActionsProps) {
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
@@ -88,7 +86,7 @@ export function PublishedProjectQuickActions({
           }
           setFeedback({ text: result.message || `Turned off shared link for ${projectName}.`, tone: "success" });
         }
-        router.refresh();
+        // Server Actions revalidate `/workshop` via revalidatePublicationRoutes (ARCH-06: one path).
       } catch (error) {
         setFeedback({
           text: error instanceof Error ? error.message : `Shared link action failed for ${projectName}.`,

@@ -36,6 +36,7 @@ when the task is genuinely non-trivial, ambiguous, or high-risk.
 
 ## Core rules
 
+- Loading/mount/streaming/perf decisions: `.ai/00_system/PERFORMANCE_LOADING_AND_MOUNT_PROTOCOL.md` (reference `.ai/01_roadmap/27-performance-budget-and-regression-gates.md` for numeric budgets).
 - Do not create separate tool-specific knowledge silos.
 - Keep durable decisions, plans, specs, prompts, skills, and agent instructions inside `.ai/`.
 - Do not store secrets in the repository or `.ai`.

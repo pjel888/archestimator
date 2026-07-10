@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -604,8 +605,9 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
     });
 
     it("offline queue flush uses the same shared CSRF helper instead of a hardcoded token", () => {
-      expect(SharePageComments.toString()).toContain("createPublicationCsrfHeaders");
-      expect(SharePageComments.toString()).not.toContain(["client", "post"].join("-"));
+      const commentsSource = readFileSync("src/components/share/SharePageComments.tsx", "utf8");
+      expect(commentsSource).toContain("createPublicationCsrfHeaders");
+      expect(commentsSource).not.toContain(["client", "post"].join("-"));
     });
 
     it("renders flat chronological list + composer textarea + character counter (1000)", () => {

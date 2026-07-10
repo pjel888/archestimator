@@ -10,6 +10,11 @@ only those entries. Do NOT read all ~2,500 lines on every task — that is the
 single biggest source of slow agent startup.
 
 Stable current truth (verify against git/source before relying on a detail):
+- Transition/Loading UX (2026-07-10): implemented + archived to
+  `.ai/09_archive/store/2026-07-10-Transition-And-Loading-UX-And-UI-complete/`.
+  Protocol: `.ai/00_system/PERFORMANCE_LOADING_AND_MOUNT_PROTOCOL.md`.
+  RUM Tier-1 via `CloudflareWebAnalytics` in `AppProviders`. Overlay suppress on
+  skeleton routes; ARCH-07 revalidation fixes; share comments/activity on TanStack Query.
 - Admin Dashboard (2026-07-10): Phases 0–6 implemented — `/admin` shell
   (Overview/Users/Support/Flags/Audit/Observability/Analytics), migrations
   `0042`–`0049`, GlobalPresence + SupportInbox DOs (token before acceptWebSocket),

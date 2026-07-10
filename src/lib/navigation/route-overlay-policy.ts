@@ -1,5 +1,9 @@
-const ESTIMATE_SHEET_ROUTE_PATTERN =
-  /^\/workshop\/projects\/[^/?#]+\/estimates\/[^/?#]+\/?$/;
+/**
+ * Routes that own a segment `loading.tsx` skeleton. Suppress the global spinner
+ * overlay on these targets so users see the skeleton instead of double feedback.
+ * Threshold for non-suppressed routes remains SHOW_DELAY_MS=150 in navigation-ui-store.
+ */
+const SKELETON_ROUTE_PREFIXES = ["/workshop", "/share/", "/invite/"] as const;
 
 function getPathname(href: string): string | null {
   try {
@@ -14,5 +18,9 @@ export function shouldSuppressGlobalRouteOverlay(
 ): boolean {
   if (!targetHref) return false;
   const pathname = getPathname(targetHref);
-  return pathname !== null && ESTIMATE_SHEET_ROUTE_PATTERN.test(pathname);
+  if (!pathname) return false;
+  return SKELETON_ROUTE_PREFIXES.some((prefix) => {
+    if (prefix.endsWith("/")) return pathname.startsWith(prefix);
+    return pathname === prefix || pathname.startsWith(`${prefix}/`);
+  });
 }

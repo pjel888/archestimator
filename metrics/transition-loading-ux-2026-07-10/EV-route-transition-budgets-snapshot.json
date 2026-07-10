@@ -1,0 +1,32 @@
+{
+  "publicRoute": {
+    "navigationDurationMs": 15000,
+    "resourceCount": 250,
+    "scriptCount": 120,
+    "nextAssetCount": 160
+  },
+  "protectedRedirect": {
+    "navigationDurationMs": 15000,
+    "overlayCount": 0
+  },
+  "slow3gPublicRoute": {
+    "navigationDurationMs": 30000
+  },
+  "slow3gPublicRouteTransition": {
+    "medianTransitionMs": 30000,
+    "overlayVisibilityRateMax": 1
+  },
+  "publicRouteTransition": {
+    "medianTransitionMs": 15000,
+    "overlayVisibilityRateMax": 1
+  },
+  "bfcache": {
+    "backForwardRestoreMs": 1500,
+    "overlayCount": 0
+  },
+  "authenticatedWorkshopTransition": {
+    "transitionMs": 10000,
+    "prefetchRscRequestMin": 1,
+    "overlayCount": 0
+  }
+}

@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useCallback, useEffect, useReducer } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { EnsureQueryClient } from "@/components/share/ensure-query-client";
 import { useSharedLinkSession } from "@/hooks/use-shared-link-session";
 import { Button } from "@/components/ui/button";
 import { createPublicationCsrfHeaders } from "@/lib/publication/client-csrf";
@@ -205,7 +207,7 @@ function mapLoadedComment(comment: LoadedComment): Comment {
 }
 
 // react-doctor-disable-next-line react-doctor/no-giant-component -- Structural split tracked in .ai/03_plans/2026-06-23-react-doctor-warning-cleanup.md; broad refactor needs behavior tests.
-export default function SharePageComments({ token, viewToken, reviewTarget }: SharePageCommentsProps) {
+function SharePageCommentsInner({ token, viewToken, reviewTarget }: SharePageCommentsProps) {
   const { isValid } = useSharedLinkSession();
   const activeReviewTarget = normalizeShareReviewTarget(reviewTarget);
   const [commentsState, dispatchCommentsState] = useReducer(sharePageCommentsReducer, INITIAL_SHARE_PAGE_COMMENTS_STATE);
@@ -282,42 +284,49 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
     } catch {}
   }, [DRAFT_KEY, draft]);
 
-  const loadComments = useCallback(async (signal?: AbortSignal) => {
-    if (!isValid) return;
-    dispatchCommentsState({ type: "commentsLoadStarted" });
-
-    try {
+  const commentsQuery = useQuery({
+    queryKey: ["share-comments", token] as const,
+    enabled: isValid,
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+    queryFn: async ({ signal }) => {
       const res = await fetch(`/api/share/${encodeURIComponent(token)}/comment`, {
         method: "GET",
         headers: { Accept: "application/json" },
         signal,
+        cache: "no-store",
       });
-      if (res.status === 401 || res.status === 404) return;
+      if (res.status === 401 || res.status === 404) return [] as Comment[];
       if (!res.ok) throw new Error("Could not load discussion.");
-
       const json = (await res.json().catch(() => ({}))) as { comments?: LoadedComment[] };
       const loadedComments = Array.isArray(json.comments) ? json.comments : [];
-      dispatchCommentsState({ type: "commentsLoaded", comments: loadedComments.map(mapLoadedComment) });
-    } catch (error: unknown) {
-      if (!signal?.aborted) {
-        dispatchCommentsState({ type: "commentsLoadFailed", error: readErrorMessage(error) || "Could not load discussion." });
-      }
-    } finally {
-      if (!signal?.aborted) dispatchCommentsState({ type: "commentsLoadSettled" });
-    }
-  }, [dispatchCommentsState, isValid, token]);
+      return loadedComments.map(mapLoadedComment);
+    },
+  });
+
+  const loadComments = useCallback(async () => {
+    await commentsQuery.refetch();
+  }, [commentsQuery]);
 
   useEffect(() => {
     if (!isValid) return;
-    const controller = new AbortController();
-    const timeout = window.setTimeout(() => {
-      void loadComments(controller.signal);
-    }, 0);
-    return () => {
-      window.clearTimeout(timeout);
-      controller.abort();
-    };
-  }, [isValid, loadComments]);
+    if (commentsQuery.isFetching) {
+      dispatchCommentsState({ type: "commentsLoadStarted" });
+      return;
+    }
+    if (commentsQuery.isError) {
+      dispatchCommentsState({
+        type: "commentsLoadFailed",
+        error: readErrorMessage(commentsQuery.error) || "Could not load discussion.",
+      });
+      dispatchCommentsState({ type: "commentsLoadSettled" });
+      return;
+    }
+    if (commentsQuery.data) {
+      dispatchCommentsState({ type: "commentsLoaded", comments: commentsQuery.data });
+      dispatchCommentsState({ type: "commentsLoadSettled" });
+    }
+  }, [commentsQuery.data, commentsQuery.error, commentsQuery.isError, commentsQuery.isFetching, isValid]);
 
   const flushQueue = useCallback(async () => {
     const q = loadQueue();
@@ -636,5 +645,14 @@ export default function SharePageComments({ token, viewToken, reviewTarget }: Sh
         <p className="mt-1 text-[11px] leading-[15px] tracking-normal text-secondary">Comments are sent to the project team. Max 1000 characters.</p>
       </div>
     </section>
+  );
+}
+
+
+export default function SharePageComments(props: SharePageCommentsProps) {
+  return (
+    <EnsureQueryClient>
+      <SharePageCommentsInner {...props} />
+    </EnsureQueryClient>
   );
 }

@@ -24,11 +24,42 @@ import type { EstimateRowItem, EstimateTreeNode } from "./estimate-tree-data";
 
 const EMPTY_ESTIMATE_TABS: EstimateTabSummary[] = [];
 
-const EstimateSheetTree = dynamic(() =>
-  import("./EstimateSheetTree").then((module) => module.EstimateSheetTree),
+function EstimateTreeDynamicFallback() {
+  return (
+    <aside
+      role="status"
+      aria-label="Loading estimate tree"
+      aria-busy="true"
+      className="hidden w-[376px] shrink-0 p-2 lg:block"
+      data-skeleton="estimate-tree-dynamic"
+    >
+      <span className="sr-only">Loading estimate tree</span>
+    </aside>
+  );
+}
+
+function EstimateContentDynamicFallback() {
+  return (
+    <div
+      role="status"
+      aria-label="Loading estimate sheet"
+      aria-busy="true"
+      className="flex min-h-0 min-w-0 flex-1 flex-col p-2"
+      data-skeleton="estimate-content-dynamic"
+    >
+      <span className="sr-only">Loading estimate sheet</span>
+    </div>
+  );
+}
+
+// Tree is client-only (window/DnD); content keeps SSR for first paint of sheet chrome.
+const EstimateSheetTree = dynamic(
+  () => import("./EstimateSheetTree").then((module) => module.EstimateSheetTree),
+  { ssr: false, loading: () => <EstimateTreeDynamicFallback /> },
 );
-const EstimateSheetContent = dynamic(() =>
-  import("./EstimateSheetContent").then((module) => module.EstimateSheetContent),
+const EstimateSheetContent = dynamic(
+  () => import("./EstimateSheetContent").then((module) => module.EstimateSheetContent),
+  { loading: () => <EstimateContentDynamicFallback /> },
 );
 
 type EstimateWorkspaceClientProps = {

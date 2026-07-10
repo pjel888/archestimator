@@ -1,5 +1,6 @@
+import { readFileSync } from "node:fs";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -143,36 +144,10 @@ describe("ProposalsPageClient", () => {
     expect(document.activeElement).toBe(screen.getByRole("button", { name: "Retry" }));
   });
 
-  it("debounces focus refreshes when the seeded query is stale", async () => {
-    actionMocks.loadRecipientProposals.mockResolvedValue({
-      ok: true,
-      rows: [proposal({ projectName: "Refreshed Project" })],
-    } satisfies RecipientProposalsResult);
-    const initialResult: RecipientProposalsResult = {
-      ok: true,
-      rows: [proposal({ projectName: "Seeded Project" })],
-    };
-    const { queryClient } = renderWithClient(
-      <ProposalsPageClient userEmail="recipient@example.com" initialResult={initialResult} />,
-    );
-
-    await act(async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ["recipient-proposals", "recipient@example.com"],
-        refetchType: "none",
-      });
-    });
-    Object.defineProperty(document, "visibilityState", {
-      configurable: true,
-      get: () => "visible",
-    });
-
-    fireEvent(window, new Event("focus"));
-    await new Promise((resolve) => setTimeout(resolve, 75));
-    expect(actionMocks.loadRecipientProposals).not.toHaveBeenCalled();
-
-    await waitFor(() => expect(actionMocks.loadRecipientProposals).toHaveBeenCalledTimes(1));
-    expect(await screen.findByText("Refreshed Project")).toBeInTheDocument();
+  it("enables TanStack refetchOnWindowFocus instead of a hand-rolled focus effect", () => {
+    const source = readFileSync("src/components/workshop/proposals-page-client.tsx", "utf8");
+    expect(source).toContain("refetchOnWindowFocus: true");
+    expect(source).not.toContain("scheduleFocusRefresh");
   });
 
   it("renders an empty state for a safe empty inbox", () => {
