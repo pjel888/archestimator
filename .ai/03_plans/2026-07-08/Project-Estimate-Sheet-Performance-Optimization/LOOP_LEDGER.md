@@ -148,3 +148,24 @@ Exact next DAG node after plan completion: `UNIT-001`.
 Active leases: none. Only the lead writes the target pack during this repair; review agents are read-only.
 
 Invalidation rule: any canonical artifact, planning-suite, validator, current source map, or unit-owned path change invalidates dependent hashes and requires a fresh validator/reviewer pass.
+
+### First frozen-review repair ledger
+
+The first frozen candidate (`plan-pack.json` SHA-256 `dfcfa2d14b8d6a5fffab4bd49ed0afe5dd8ef450af17ec8d754e0fa07ca0824c`; canonical SHA-256 `d156d6d0db06a5e642835c54995658f8522375f72e096fa883e081b88bc524d1`) failed independent review. The critic reported one P0 and eight P1 findings; the architect reported seven P1 findings. Overlapping findings were normalized below.
+
+| Finding | Repair disposition |
+|---|---|
+| Hosted proof required an undeployed new route | Replaced with direct `wrangler d1 execute ARCH_DB --remote --file ... --json`; no route, secret, request body, or deploy. |
+| Local browser/D1 auth fixture was not reproducible | Added UUID run roots, per-unit leases, port allocation, one shared `--persist-to` state, freshly compiled five-table Better Auth DDL, signed storage state, current allowlist/legal acceptance, membership/route seeds, validation, and exact cleanup. |
+| Optimized paths could remain silently off | Added five explicit server-only mode keys and mandatory `off,shadow,on,rollback` proof for each active unit plus the integrated matrix. |
+| `UNIT-006` activation was qualitative/contradictory | Replaced both occurrences with the same exact metric-ID Boolean expression. |
+| Source-changing proof could use a stale build | Added `perf:estimate:prepare`, run validation, fresh `cf:build`, mode producer, source/build-matching checker, atomic index, and cleanup to every active source-changing unit. |
+| Rollback ignored old clients/in-flight writes and mutation shadow side effects | Added mixed-client restart/reload semantics, late-read discard, idempotent revision-guarded write reconciliation, and pure-clone shadow calculation with exactly one legacy write/reservation. |
+| Hosted tenant fixture/cleanup was incomplete | Added an exact eleven-table inventory, reverse dependency cleanup, per-table count reconciliation, UUID cleanup leases, and ambiguity refusal. |
+| Runtime evidence lacked durable trace/status mechanics | Added package/unit/evidence/requirement/criterion/test/scenario IDs, source/build hashes, `evidence/runtime/evidence-index.json`, and one exclusive atomic index writer. |
+| `AC-003` contradicted `next_unit=null` | Reworded it as the current exact candidate and the atomic post-review transition to executable `UNIT-001`. |
+| Release artifact had no producer | Added a feature release evaluator that joins integrated local proof, hosted D1 proof, and explicit general release-gate output paths. |
+| Normalized traceability/test semantics were incomplete | Replaced doc 16 with the 66-row source/decision/unit/criterion/test/gate/evidence/status join and defined `TEST-001..007`. |
+| Positive evidence overclaimed the open independent-review gate | Removed `AC-012`, `TEST-007`, and the failed verification/cleanup gates from `EVID-001`; `EVID-012` now records their provisional failed disposition until the final atomic flip. |
+
+Current disposition remains `NOT_READY`: `AC-012=FAIL`, `TEST-007=PLANNED`, all units `PLANNED`, `next_unit=null`, and no ready slice. A new candidate is frozen only after all hashes and validators pass; only clean architect and critic reviews of that exact candidate can change this status.

@@ -2,7 +2,9 @@
 
 Planning evidence:
 
-- `2026-07-10-frontier-plan-readiness.md`: source/research/audit/validator/reviewer evidence for the `IMPLEMENTATION_READY` plan claim.
+- `2026-07-10-frontier-plan-readiness.md`: source/research/audit/validator evidence plus the open independent-review gate for the future `IMPLEMENTATION_READY` plan claim.
+- `EVID-001` in `plan-pack.json` proves the positive planning checks already completed; it deliberately excludes `AC-012`, `TEST-007`, `GATE-VERIFY-001`, and `GATE-CLEAN-001` until the frozen independent reviews are clean.
+- `EVID-012` points to `LOOP_LEDGER.md` and records the current failed/provisional disposition of those four review-readiness claims. The final atomic readiness transition moves their current proof links to the refreshed planning receipt; history remains in the append-only ledger.
 
 Canonical runtime evidence is created later under `evidence/runtime/` by `UNIT-001` through `UNIT-011`:
 
@@ -19,6 +21,7 @@ Canonical runtime evidence is created later under `evidence/runtime/` by `UNIT-0
 11. `integrated-local-proof.json`
 12. `hosted-d1-proof.json`
 13. `release-evaluation.md`
+14. `evidence-index.json`
 
 Runtime files do not exist during this planning-only revision. Their absence means implementation is `NOT_STARTED`, not that the plan is unready.
 

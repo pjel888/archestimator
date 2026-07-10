@@ -11,8 +11,13 @@
 | jsdom keystroke average | <= 16 ms |
 | jsdom keystroke worst case | <= 50 ms |
 | Browser edit p95 | <= 75 ms |
+| Browser search/facet p95 | <= 100 ms |
 | Browser scroll p95 frame gap | <= 50 ms |
 | Lab Event Timing interaction p75 (diagnostic proxy, not field INP) | <= 200 ms |
+| LoAF/long-task maximum / over-50-ms count | <= 50 ms / 0 |
+| Scalar-edit derived-state CPU p95 / full-tree recomputes | <= 25 ms / 0 |
+| Scalar-mutation whole-tree snapshots | 0 |
+| Project-component client fan-out at 1,000 matches | <= 75 ms p95 |
 | Cold direct target estimate route median | <= 3,500 ms |
 | Warm/hover target estimate route median | <= 500 ms |
 | Sheet content visible after warm navigation | <= 1,000 ms |
@@ -78,7 +83,7 @@ Local:
 - Use benchmark artifacts for local proof.
 
 Hosted:
-- Use Workers logs or hosted proof endpoint for provider claims.
+- Use direct Wrangler remote-D1 metrics/query-plan evidence for provider claims; this pack adds no proof endpoint or deploy.
 - Use `bun run ops:check-observability-env` before hosted observability proof if that surface is touched later.
 - Do not claim production readiness from local checks alone.
 
@@ -89,7 +94,7 @@ Every optimization phase must produce:
 - After metrics.
 - Delta table.
 - Pass/fail against budget.
-- Explanation for any budget exception.
+- Failure diagnosis for any missed budget; no strategy or prose exception can turn it green.
 - Rollback path.
 
 ## Cloudflare Free-Tier Budget (Pass-3 addition)
@@ -146,9 +151,8 @@ Performance claims must be measured under realistic conditions, not just dev har
 
 | Profile | When | Why |
 |---|---|---|
-| Desktop, no throttling | Development baseline | Fastest possible; reveals structural issues |
-| Desktop, "Slow 3G" (400kbps/400ms RTT) | Phase 0 route benchmark | Web.dev standard for LCP/INP claims |
-| Mobile emulation (Pixel 5 / iPhone 12), CPU 4x slowdown | Canonical `UNIT-002` + `UNIT-008` | Proves `DEC-AUTO-008` view-only mobile behavior |
-| Tablet emulation (iPad), no throttling | Phase 4 responsive proof | Tablet-editable scope |
+| Built OpenNext desktop, 1440x900/DPR 1, CPU 4x, 20 ms added latency, 10 Mbps down/5 Mbps up | Canonical budget profile for `UNIT-002`, `UNIT-008`, `UNIT-010` | Reproducible local browser budget |
+| Mobile 390x844/DPR 1 | Functional/a11y only | Proves `DEC-AUTO-008` view-only mobile behavior; does not substitute for the budget profile |
+| Tablet 1024x768/DPR 1 | Functional/a11y only | Proves tablet-editable scope |
 
-Add throttled measurements to U0.3 browser spec. Document that lab data is a proxy for field data; field data requires production deployment.
+The exact server, auth, cache, worker, retry, warmup, browser, and throttling protocol is mandatory in `IMPLEMENTATION_PLAN.md` and doc 20. Lab data is a proxy for field data; field data requires production deployment.

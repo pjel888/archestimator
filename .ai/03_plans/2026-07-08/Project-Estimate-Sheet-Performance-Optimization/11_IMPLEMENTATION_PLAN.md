@@ -50,13 +50,14 @@ U0.3 - Add browser estimate sheet performance spec.
 
 U0.4 - Add estimate-specific D1 performance proof.
 - Files likely:
-  - `scripts/generate-estimate-sheet-d1-performance-proof.ts`
+  - `scripts/measure-estimate-sheet-d1.ts`
+  - `scripts/verify-estimate-sheet-hosted-d1-performance-proof.ts`
   - `tests/vitest/estimate-sheet-d1-performance-proof-script.test.ts`
-  - optional `src/lib/cloudflare/estimate-sheet-performance-proof-router.ts`
 - Acceptance:
   - Captures query plan and rows read for dominant SQL shapes.
   - Redacts proof output.
   - Produces markdown and JSON artifacts.
+  - Hosted proof uses direct `wrangler d1 execute ARCH_DB --remote` and adds no application route or deploy.
 
 U0.5 - Baseline decision memo.
 - Files likely: update this plan pack or successor evidence doc.

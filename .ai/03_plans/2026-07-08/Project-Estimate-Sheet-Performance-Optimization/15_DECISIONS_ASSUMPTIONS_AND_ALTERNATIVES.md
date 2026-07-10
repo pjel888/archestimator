@@ -50,7 +50,7 @@ Reopen trigger: measured first-user demand justifies a mobile authoring interact
 
 ### DEC-AUTO-009 - Graph Is Evidence-Activated
 
-Decision: a normalized graph is a ready optimization branch, not an unconditional rewrite. `UNIT-004` activates it when derivation, memory, render, or fan-out evidence warrants it. Otherwise the unit writes a supersession receipt.
+Decision: a normalized graph is a ready optimization branch, not an unconditional rewrite. `UNIT-004` activates it only when `UNIT-007.activate OR M-MUTATE-CLIENT-FANOUT-P95.fail OR M-GRAPH-ANCESTOR-LOOKUP-P95.fail OR M-GRAPH-COMPONENT-LOOKUP-P95.fail OR M-GRAPH-DUPLICATE-BYTES.fail`. Otherwise the unit writes a supersession receipt.
 
 Rejected: broad memoization as the only scale strategy. Reason: it does not remove full-tree derivation or snapshot costs.
 
@@ -76,13 +76,13 @@ Decision: the normalized graph field is `componentInstanceRowIdsByIdentity` beca
 
 ### DEC-AUTO-014 - Deployment-Scoped Rollback Modes
 
-Decision: optimized paths use server-resolved `off|shadow|on` deployment modes passed through route props. No `NEXT_PUBLIC_*` value is presented as a live per-estimate kill switch.
+Decision: route, graph, incremental derivation, render boundary, and entity-patch paths use versioned server-resolved `off|shadow|on` deployment modes passed through route props. Each active unit proves explicit `off,shadow,on,rollback` phases, including an old client and in-flight read/write during restart. No `NEXT_PUBLIC_*` value is presented as a live per-estimate kill switch.
 
 Rejected: enable one estimate and toggle off without a build/deploy. Reason: public environment values are inlined and frozen by Next.js.
 
 ### DEC-AUTO-015 - Exact-ID Hosted Cleanup
 
-Decision: each hosted proof run generates a UUID and exact per-table ID arrays, deletes those IDs in dependency order, and reconciles each table independently.
+Decision: each hosted proof run uses a no-deploy Wrangler remote-D1 script, generates a UUID plus exact keys for the synthetic profile/membership/estimate hierarchy, deletes those keys in dependency order, and reconciles all eleven tables independently.
 
 Rejected: date-static metadata-prefix cleanup. Reason: same-day collisions and heterogeneous `metadata`/`metadata_json` columns make it unsafe.
 

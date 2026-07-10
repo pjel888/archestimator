@@ -1,3 +1,5 @@
+import { requireCurrentUserContext } from "@/lib/auth/session";
+import { canAccessProjectInD1 } from "@/lib/authz/d1-access";
 import { getCloudflareD1Database, type D1DatabaseLike, type D1Value } from "@/lib/cloudflare/d1";
 import { computeEstimateRowLineTotal } from "@/lib/estimates/estimate-row-total";
 import { selectFirstEstimateNodeIds, type EstimateFirstNodeSourceRow } from "@/lib/estimates/tree-hierarchy";
@@ -56,6 +58,16 @@ function normalizeProjectEstimateSheetLimit(limit: number | undefined): number |
   return normalized > 0 ? normalized : null;
 }
 
+
+async function assertCanAccessProjectEstimateSheets(projectId: string, db: D1DatabaseLike) {
+  const user = await requireCurrentUserContext();
+  const allowed = await canAccessProjectInD1(db, projectId, user);
+  if (!allowed) {
+    throw new Error("Unauthorized project estimate sheet access.");
+  }
+  return user;
+}
+
 async function requireProjectEstimateSheetsD1Database(): Promise<D1DatabaseLike> {
   const db = await getCloudflareD1Database();
   if (!db) throw new Error("Cloudflare D1 binding ARCH_DB is unavailable for project estimate sheets.");
@@ -78,6 +90,7 @@ export async function listProjectEstimateSheetsForProject(
   options: ListProjectEstimateSheetsForProjectOptions = {},
 ): Promise<ProjectEstimateSheetSummary[]> {
   const db = await requireProjectEstimateSheetsD1Database();
+  await assertCanAccessProjectEstimateSheets(projectId, db);
   const safeLimit = normalizeProjectEstimateSheetLimit(options.limit);
   const values: D1Value[] = [projectId];
   let sql = `
@@ -103,6 +116,7 @@ export async function listProjectEstimateSheetsForProject(
 
 export async function countProjectEstimateSheetsForProject(projectId: string): Promise<number> {
   const db = await requireProjectEstimateSheetsD1Database();
+  await assertCanAccessProjectEstimateSheets(projectId, db);
   const row = await db
     .prepare<{ count: number | string | null }>("SELECT COUNT(*) AS count FROM estimates WHERE project_id = ?")
     .bind(projectId)
@@ -120,6 +134,7 @@ export async function listRecentProjectEstimateSheets(
     Math.max(1, Number.isFinite(limit) ? Math.trunc(limit) : RECENT_ESTIMATE_SHEET_DEFAULT_LIMIT),
   );
   const db = await requireProjectEstimateSheetsD1Database();
+  await assertCanAccessProjectEstimateSheets(projectId, db);
   const { results: estimateRows = [] } = await db
     .prepare<RecentProjectEstimateSheetD1Row>(`
       SELECT id, project_id, name, sheet_code, project_budget, updated_at

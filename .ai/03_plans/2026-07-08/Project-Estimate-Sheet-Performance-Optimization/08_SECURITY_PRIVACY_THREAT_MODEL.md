@@ -23,7 +23,7 @@ Performance optimization must not weaken data isolation. The estimate sheet cont
 - Client graph state is untrusted.
 - TanStack Query cache is untrusted.
 - Server Actions and D1 repository enforce authorization.
-- Hosted proof endpoints must require secret-gated access and must emit redacted data only.
+- Hosted proof uses the operator's existing Wrangler identity against the exact bound `ARCH_DB`; this pack adds no endpoint, application secret, request body, or browser access surface.
 
 ## Threats
 
@@ -42,8 +42,8 @@ T04: Search endpoint, if added later, leaks unloaded rows across access boundary
 T05: Client graph stale state displays data after permission revocation.
 - Mitigation: mutation/query failure paths clear privileged state; edit capability remains fail-closed; active session refresh handled separately.
 
-T06: Hosted proof cleanup failure leaves seeded test data.
-- Mitigation: hosted proof uses a unique run UUID plus exact per-table ID arrays; cleanup reconciles every table and verifies zero remaining exact IDs.
+T06: Hosted proof cleanup failure leaves seeded identity, membership, or estimate test data.
+- Mitigation: direct remote proof uses a unique UUID lease plus exact keys for eleven tables; cleanup reconciles every table, verifies zero remaining exact keys, and blocks a new run while any manifest is unresolved.
 
 T07: Index migration worsens write amplification and creates free-tier cost risk.
 - Mitigation: compare rows read/write and durations before/after; avoid speculative indexes.
@@ -55,7 +55,8 @@ T08: Logs record raw row details or sensitive user inputs.
 
 - Evidence files may contain counts, durations, query names, sanitized fixture dimensions, and redacted hashes.
 - Evidence files must not contain raw secrets, auth cookies, bearer tokens, invite/share/password-reset tokens, private object keys, full sensitive URLs, or real customer row descriptions.
-- Hosted proof commands must not print env var values.
+- Local raw Better Auth secret/cookie material exists only in an ignored mode-`0600` UUID run directory and is destroyed after cleanup.
+- Hosted proof commands must not print or copy Wrangler credential values.
 
 ## Security Validation
 
@@ -64,5 +65,5 @@ Required before implementation ships:
 - Unauthorized subtree fetch denial test.
 - Cross-workspace row mutation denial test remains green.
 - D1 proof output redaction test.
-- Hosted proof cleanup fail-closed test.
+- Hosted binding/database mismatch, unresolved-lease, redaction, and eleven-table cleanup fail-closed tests.
 - Existing authz tests touched by estimate actions remain green.

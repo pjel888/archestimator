@@ -53,7 +53,7 @@ Official limits and API behavior must be rechecked in the implementation run bef
 | Competing execution guides | Added sole canonical `IMPLEMENTATION_PLAN.md`; docs 11/21 are superseded for execution. |
 | Owner decisions `OPEN-01..07` | Replaced with reversible `DEC-AUTO-*` records and evidence-based reopen triggers. |
 | Contradictory phase gates | Replaced by one `UNIT-001..011` DAG and ready slice. |
-| Unstable Phase 0 artifact lists | Replaced by one 13-path canonical runtime evidence inventory. |
+| Unstable Phase 0 artifact lists | Replaced by one 14-path canonical runtime evidence inventory including the atomic evidence index. |
 | Non-runnable unit prose | Every canonical unit now has ownership, paths, symbols/behavior, commands, evidence, exit, failure, cleanup, and resume state. |
 | Interop count 17 | Reconciled 19 unique IDs and seven direct-test gaps. |
 | Stale test inventory | Corrected bulk-delete, broadcast, and tree-DnD test paths; stale contract tests assigned to `UNIT-001`. |
@@ -61,14 +61,18 @@ Official limits and API behavior must be rechecked in the implementation run bef
 | Unsupported O(1) server fan-out claim | Replaced with measured JSON-filter/batched-write contract. |
 | Incomplete evaluator | Added fixtures, auth/server provenance, raw samples, percentile method, Event Timing/LoAF, query metrics, strict fail semantics, and deterministic decision output. |
 | Invalid <=2%/10-run flake claim | Ten runs are smoke only; <=2% observed failure rate requires at least 100 repetitions. |
-| Build-frozen live rollback flags | Replaced with deployment-scoped server `off|shadow|on` modes; no per-estimate instant-toggle claim. |
-| Unsafe hosted metadata cleanup | Replaced with run UUID, exact per-table IDs, dependency-order deletion, per-table reconciliation, and zero-count verification. |
+| Build-frozen live rollback flags | Replaced with five deployment-scoped server `off|shadow|on` modes plus explicit old-client/in-flight rollback proof; no per-estimate instant-toggle claim. |
+| Non-reproducible local auth/state | Added per-unit UUID roots, shared `--persist-to` state across migration/seed/server/proof, generated Better Auth state, leased ports, validation, and exact cleanup commands. |
+| Undeployable hosted proof route | Removed the route. `UNIT-011` uses direct `wrangler d1 execute ARCH_DB --remote` with binding/database preflight and no deploy. |
+| Unsafe hosted metadata cleanup | Replaced with a run UUID lease, exact eleven-table keys, dependency-order deletion, per-table reconciliation, zero-count verification, and unambiguous cleanup-only recovery. |
+| Implicit optimized-path proof | Added fresh build plus explicit `off,shadow,on,rollback` producer/check commands for every active unit and the integrated mode matrix. |
+| Incomplete runtime traceability | Added durable package/unit/evidence/requirement/criterion/test/scenario IDs and a lock-protected atomic evidence-index/status transition command. |
 | Orphan a11y behaviors | Removed invented partial-fan-out/offline/cancellable-write/session-modal contracts; keyboard move uses the semantic move decision. |
 | Same-agent/browser readiness caps | Removed; provenance is metadata and runtime proof controls implementation/release status instead. |
 
 ## Planning Acceptance Evidence
 
-`AC-001` through `AC-012` in `IMPLEMENTATION_PLAN.md` are plan-readiness criteria only. Runtime tests remain `PLANNED` in the manifest.
+`AC-001` through `AC-011` are currently proven planning criteria. `AC-012` remains `FAIL` until both frozen independent reviews are clean. Runtime tests remain `PLANNED` in the manifest.
 
 Expected final evidence sequence:
 
@@ -81,7 +85,7 @@ Expected final evidence sequence:
 
 ## Final Verification Receipt
 
-Pending the frozen-state validation and independent re-review. This section must be updated before `plan-pack.json` hashes are finalized.
+Frozen-review candidate prepared. Baseline architect and critic verdicts were `NOT_READY`; their findings drove the canonical decision/risk/command/evaluator/hosted-cleanup repairs. The refreshed architect and critic receipts remain pending. Until both report zero unresolved P0/P1 findings, `AC-012=FAIL`, `TEST-007=PLANNED`, every unit remains `PLANNED`, `package_status=NOT_READY`, `next_unit=null`, and no ready slice is advertised.
 
 ## Validation Gap
 

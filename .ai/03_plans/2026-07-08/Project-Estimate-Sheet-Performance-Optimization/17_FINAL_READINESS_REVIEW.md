@@ -4,12 +4,12 @@
 
 | Axis | Status | Meaning |
 |---|---|---|
-| Plan package | `IMPLEMENTATION_READY` | One canonical artifact, manifest-backed traceability, resolved decisions, dependency-closed ready units, and an exact next unit exist. |
+| Plan package | `NOT_READY` | The unit packets are prepared; the frozen independent architect/critic gate is still open. |
 | Implementation | `NOT_STARTED` | No product source optimization from this plan has been executed. |
 | Release | `NOT_EVALUATED` | Local/browser/D1/hosted runtime proof must be produced by the implementation units. |
-| Lifecycle / terminal | `ACTIVE` / `ACTIVE` | `UNIT-001` is the next unit. |
+| Lifecycle / terminal | `ACTIVE` / `ACTIVE` | `UNIT-001` is the candidate next unit but is not executable until `AC-012=PASS`. |
 
-This verdict is about plan executability, not current product performance. Browser and hosted proof are runtime acceptance evidence owned by later units; they do not cap planning readiness.
+This temporary verdict is about status truth during review, not current product performance. Browser and hosted proof are runtime acceptance evidence owned by later units; they do not cap planning readiness after the independent gate closes.
 
 ## Readiness Basis
 
@@ -25,7 +25,7 @@ This verdict is about plan executability, not current product performance. Brows
 
 ## Exact Handoff
 
-Start `UNIT-001` in `IMPLEMENTATION_PLAN.md`.
+After `AC-012=PASS` and the manifest publishes `next_unit=UNIT-001`, start that unit in `IMPLEMENTATION_PLAN.md`.
 
 Its stop condition is deterministic fixtures, strict evaluator validation, current characterization coverage, repaired stale contract tests, and green focused type/test checks. It is test/evaluator work only; it does not change product behavior.
 
@@ -49,7 +49,7 @@ No local-only check may be reported as hosted/provider or production proof.
 | Risk | Trigger | Owner unit |
 |---|---|---|
 | Current test timing noise masks regressions. | Unwrapped-`act` warnings or inconsistent raw samples. | `UNIT-001`, `UNIT-002` |
-| Route/D1 is the primary bottleneck. | Route/query thresholds fail or rank top three. | `UNIT-005` |
+| Route/D1 is the primary bottleneck. | The explicit `UNIT-005` route/D1 predicate fails; ranking cannot activate a passing branch. | `UNIT-004`, `UNIT-005` |
 | Graph complexity adds cost without benefit. | Graph branch is not activated or memory/parity fails. | `UNIT-004`, `UNIT-006` |
 | Server component fan-out exceeds scale budget. | Match/statement counts fail at 100/1000. | `UNIT-003`, `UNIT-009` |
 | Express editing disables row virtualization at scale. | Mounted-row or scroll threshold fails with editor open. | `UNIT-008` |

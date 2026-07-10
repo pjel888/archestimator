@@ -187,3 +187,59 @@ PLAYWRIGHT_PORT=3030 npx playwright test e2e/route-transition-performance.spec.t
 ### Residual — CLEARED
 None for archive. Numeric baseline proven against the declared evaluator. Pack archive gate (DEC-01 ack + prod e2e numbers) now fully satisfied.
 
+---
+
+## I-8 — 2026-07-10 Phase 4 cacheComponents SPIKE (DEC-AUTO-1: DEFERRED)
+
+**Trigger:** Owner reactivated Phase 4 (DEC-04) after archive. Lead ran WP-4.1 spike per plan contract.
+
+### Authority & scope
+- `current_run_scope`: `IMPLEMENT_LOCAL` (config flag is reversible; no external/provider/deploy).
+- Kernel §5 autonomous decision protocol applied; DEC-AUTO-1 recorded below.
+
+### Spike procedure (faithful to WP-4.1)
+1. Read authoritative mechanics from installed Next 16.2.10 docs (`node_modules/next/dist/docs/.../cacheComponents.md` + `migrating-to-cache-components.md`).
+2. Baseline `tsc --noEmit` → GREEN.
+3. Set `cacheComponents: true` (top-level — promoted from `experimental.` in 16.0.0) in `next.config.ts`.
+4. `tsc --noEmit` → GREEN (config is not a type change).
+5. `bun run build` → **FAILED — Turbopack build failed with 45 errors.**
+
+### Spike evidence (build output)
+```
+Route segment config "dynamic" is not compatible with `nextConfig.cacheComponents`. Please remove it.
+Route segment config "runtime" is not compatible with `nextConfig.cacheComponents`. Please remove it.
+Error: Turbopack build failed with 45 errors
+```
+Affected files (45 conflicts across ~30 files — both `dynamic` and `runtime` exports in same file count separately):
+- `force-static` exports: about, new, /, trust, pricing, terms, contact, privacy, security, features, signup (11 marketing pages — migration says "remove + add `use cache` for data access")
+- `force-dynamic` exports: all /api/share/* routes, /api/auth/[...all], /api/health, /api/projects/images, /api/projects/[projectId]/activity, /api/compliance/privacy-requests, internal proof routes, /share/[token] page (22 routes — migration says "just remove")
+- `runtime = "nodejs"` exports: auth handler, uploads, exports, component-library attachments/images, internal proof routes (11 routes — migration says Node.js is the default so removal should be safe, BUT OpenNext/Cloudflare Workers compat unvalidated)
+
+### Security-model conflict (DEC-03, load-bearing)
+Migration doc (line 460): *"With Cache Components, accessing `cookies()`/`headers()`/`searchParams` outside a `<Suspense>` boundary surfaces the **blocking-route insight**."*
+
+The workshop auth gate at `src/app/workshop/layout.tsx:28` reads `await headers()` at the **top level of the layout** (the SOLE production auth+terms verifier, synchronous-first per SEC-T1/T2).
+
+DEC-03 (this pack's `15_DECISIONS…md`) explicitly classified Suspense-wrapping/deferring the gate as **SEC-T1/T2 unsafe** — it would stream workshop content to unauthenticated/terms-pending users. The build did not reach this error (it failed earlier on the 45 route-segment-config conflicts), but the migration doc confirms the gate would be the next blocker after those exports are removed.
+
+### `<Activity>` navigation-state preservation (the plan's goal)
+Available automatically when cacheComponents is enabled (Next 16 uses React `<Activity>` in `"hidden"` mode for back-nav state preservation). This was the plan's Phase 4 objective. **Not reachable without first clearing the 45-conflict + auth-gate barriers.**
+
+### DEC-AUTO-1 — DEFER cacheComponents
+- **Decision:** `cacheComponents` stays OFF. Phase 4 (DEC-04) remains deferred.
+- **Options considered:**
+  - A. Full migration now: remove 45 exports, restructure auth gate (violates DEC-03), migrate force-static pages to `use cache`, validate OpenNext/Cloudflare compat for removed `runtime` exports, audit `<Activity>` UI-state side effects (dropdowns/dialogs/forms). Multi-day effort, conflicts security model.
+  - B. Defer with spike evidence (chosen).
+- **Rejected alternative:** A — violates DEC-03 SEC-T1/T2; out of proportion to the "validate build; audit" scope of WP-4.1.
+- **Confidence:** high (authoritative doc evidence + empirical build failure).
+- **Affected IDs:** DEC-04 (remains deferred); WP-4.1 (spike complete — outcome: defer).
+- **Rollback/revision trigger:** A dedicated plan pack that (a) designs an auth-gate pattern compatible with cacheComponents without weakening SEC-T1/T2, (b) sequences the 45-export migration, (c) validates OpenNext/Cloudflare Workers compat, (d) audits `<Activity>` UI-state side effects. Then re-evaluate.
+
+### Coordination incident (shared worktree)
+During the spike, commit `79ddb0a89` (2026-07-10 11:58 +0800, author Philip, message "chore(tooling): pin Node 22, harden dev scripts...") swept the lead's unstaged `cacheComponents: true` working-tree change into the commit without documenting it. HEAD briefly contained the build-breaking flag. Lead removed the flag from the working tree (2-line `DEFERRED` comment + flag deletion, `git diff --stat`: 2 insertions / 3 deletions on `next.config.ts`); fix left uncommitted for owner review per shared-worktree rule (no commit/push without explicit authority). tsc GREEN post-fix.
+
+### Residual
+- **Phase 4 cacheComponents:** DEFERRED (DEC-AUTO-1). Flag OFF.
+- **Working tree:** `next.config.ts` has uncommitted fix (remove flag + DEFERRED comment) for owner to commit.
+- **No regression** to Phases 1–3 (shell-stability fix proven in I-7; cacheComponents was always orthogonal per the plan's own dependency graph).
+

@@ -64,8 +64,8 @@ P2:
 
 ## Readiness
 
-Plan package: `IMPLEMENTATION_READY`; exact next unit `UNIT-001`.
+Plan package during frozen independent review: `NOT_READY`; candidate next unit `UNIT-001` is published only after `AC-012=PASS`.
 
-Implementation: `NOT_STARTED`; the ready DAG uses measured activation predicates and supersession receipts.
+Implementation: `NOT_STARTED`; the planned DAG uses measured activation predicates and supersession receipts and becomes ready only after `AC-012=PASS`.
 
 Release: `NOT_EVALUATED`; browser, D1, and hosted proof are runtime evidence, not plan-readiness caps.

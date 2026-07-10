@@ -26,11 +26,15 @@ bunx vitest run \
 | DOM perf | `tests/vitest/perf/estimate-sheet-large-virtualization.test.tsx` | 1k/2.5k/5k logical rows mount bounded windows. |
 | DOM perf | `tests/vitest/perf/estimate-sheet-large-edit-budget.test.tsx` | Keystroke p95/worst, focus, sibling render count. |
 | Route contract | `tests/vitest/estimate-sheet-route-large-data-contract.test.ts` | Route uses load limits and truncation UI remains capped. |
-| D1 local proof | `tests/vitest/estimate-sheet-d1-query-budget.test.ts` | SQL shape, query count, plan, row-read budget. |
+| D1 local proof | `tests/vitest/estimate-sheet-d1-performance.test.ts` | SQL shape, query count, plan, row-read budget. |
 | Browser | `e2e/estimate-sheet-performance.spec.ts` | Route, scroll, edit, search, expand, move, cursor metrics. |
-| Browser | `e2e/estimate-sheet-virtualization-regression.spec.ts` | Flag-on/off DOM counts, focus, DnD, resize. |
-| Provider proof | `scripts/generate-estimate-sheet-d1-performance-proof.ts` | Local SQLite/D1-compatible proof. |
-| Hosted proof | `scripts/verify-estimate-sheet-hosted-d1-performance-proof.ts` | Gated hosted proof and cleanup. |
+| Browser | `e2e/estimate-sheet-component-interop.spec.ts` | All 19 interop IDs plus focus, DnD, resize, and responsive contracts. |
+| Provider proof | `scripts/measure-estimate-sheet-d1.ts` | Local D1-compatible query and cleanup proof. |
+| Run lifecycle | `tests/vitest/estimate-performance-run-lifecycle.test.ts` | UUID root and route IDs, per-unit lease, shared `--persist-to`, freshly compiled Better Auth DDL with exact `user`/`session`/`account`/`verification`/`rateLimit` table set, allowlist/current legal acceptance/signed session/profile/membership validation, port allocation, and exact cleanup. |
+| Mode/rollback | `tests/vitest/estimate-performance-modes.test.ts` | Five server-only modes, explicit off/shadow/on/rollback phases, mixed-client/in-flight semantics, single-write mutation shadow. |
+| Evidence index | `tests/vitest/estimate-performance-evidence-index.test.ts` | Durable trace IDs, source/build hashes, reciprocal links, atomic verified/superseded transition. |
+| Hosted proof | `scripts/verify-estimate-sheet-hosted-d1-performance-proof.ts` | Direct remote `ARCH_DB` SQL proof, eleven-table exact cleanup, and no-deploy boundary. |
+| Release evaluator | `scripts/write-estimate-sheet-release-evaluation.ts` | Joins integrated local, hosted D1, and global release-gate inputs into the declared release artifact. |
 
 ## Component Interoperability Test Matrix (see doc 22)
 
@@ -112,26 +116,31 @@ Shape:
 
 ## Validation Commands
 
-Phase-specific commands:
+Canonical unit commands supersede the older phase commands. The principal runnable commands are:
 
 ```bash
-bunx vitest run tests/vitest/perf/estimate-sheet-large-virtualization.test.tsx tests/vitest/perf/estimate-sheet-large-edit-budget.test.tsx --maxWorkers=1
+bun run test:dom -- tests/vitest/perf/estimate-sheet-large-virtualization.test.tsx tests/vitest/perf/estimate-sheet-large-edit-budget.test.tsx
 ```
 
 ```bash
-bun run test:e2e -- e2e/estimate-sheet-performance.spec.ts --project=chromium
+bun run perf:estimate:prepare -- --unit=UNIT-002 --profile=limit --port=auto
+bun run perf:estimate:validate-run -- --unit=UNIT-002
+bun run cf:build
+ESTIMATE_PERF_UNIT=UNIT-002 bun run test:e2e -- --config=playwright.estimate-performance.config.ts e2e/estimate-sheet-performance.spec.ts e2e/estimate-sheet-component-interop.spec.ts --workers=1 --retries=0
 ```
 
 ```bash
-INCLUDE_AUTHENTICATED=1 SCENARIO_FILTER="target estimate" RUNS=5 OUTPUT_FILE=.ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/evidence/estimate-route-benchmark.json bun run perf:measure-routes
+bun run perf:estimate:measure -- --profile=limit --evidence-class=local-browser
 ```
 
 ```bash
-ROUTE_TRANSITION_BENCHMARK_FILE=.ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/evidence/estimate-route-benchmark.json ROUTE_TRANSITION_REQUIRE_HERO=1 OUTPUT_FILE=.ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/evidence/estimate-route-readiness.json bun run perf:check-routes
+bun run perf:estimate:check -- --evidence-class=local-browser
 ```
 
 ```bash
-OUTPUT_FILE=.ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/evidence/estimate-sheet-d1-performance-proof.json MARKDOWN_FILE=.ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/evidence/estimate-sheet-d1-performance-proof.md bun run scripts/generate-estimate-sheet-d1-performance-proof.ts
+bun run perf:estimate:prepare -- --unit=UNIT-003 --profile=limit --port=auto
+bun run perf:estimate:d1 -- --unit=UNIT-003 --local --profile=limit
+bun run perf:estimate:cleanup -- --unit=UNIT-003
 ```
 
 After React implementation changes:
@@ -152,4 +161,5 @@ git diff --check
 - A local browser test proves Chrome interaction behavior only.
 - A local D1/SQLite proof proves local query shape and planner behavior only.
 - A hosted D1 proof is required for production/provider claims.
+- Hosted D1 proof is direct Wrangler SQL/provider evidence; it does not prove a deployed application route.
 - No one check substitutes for another evidence class.

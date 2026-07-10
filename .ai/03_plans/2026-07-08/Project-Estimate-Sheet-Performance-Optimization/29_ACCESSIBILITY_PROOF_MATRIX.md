@@ -137,7 +137,7 @@ Test: render sheet with `prefers-reduced-motion: reduce` and assert no rAF anima
 
 ## Validation Plan
 
-- **Automated**: axe-core run against estimate sheet route in Phase 0.5 browser spec. Zero critical violations.
+- **Automated**: installed Playwright role/name/state, focus-order, keyboard-operation, `aria-rowindex`/`aria-setsize`/`aria-posinset`, live-region, and reduced-motion assertions in `e2e/estimate-sheet-performance.spec.ts` and `e2e/estimate-sheet-component-interop.spec.ts`. No unapproved dependency is added.
 - **Manual keyboard walkthrough**: documented script covering every action in Action Matrix. Captured as video/transcript artifact in Phase 0.5 evidence.
 - **Screen reader walkthrough**: VoiceOver (macOS) + NVDA (Windows) pass over primary user flow. Captured as transcript artifact.
 - **WCAG criteria audit**: each criterion in this matrix checked off with proof artifact path.

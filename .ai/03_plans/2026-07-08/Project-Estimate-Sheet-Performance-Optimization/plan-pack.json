@@ -5,7 +5,7 @@
   "profile": "high-blast-radius",
   "package_action_ceiling": "EXTERNAL_ACTIONS",
   "last_observed_run_scope": "PLAN_ONLY",
-  "package_status": "IMPLEMENTATION_READY",
+  "package_status": "NOT_READY",
   "implementation_status": "NOT_STARTED",
   "release_status": "NOT_EVALUATED",
   "plan_lifecycle": "ACTIVE",
@@ -27,7 +27,7 @@
       "id": "ART-002",
       "role": "supporting-source",
       "path": "01_EXECUTIVE_SUMMARY.md",
-      "sha256": "babc5c8f96ede6c52a29d92dad8f018aed338a09e000e085cdedaf398bb7f305"
+      "sha256": "52800b3397d97bcbd04035667340ab265bf231a034d6c381ab18cbd62de79844"
     },
     {
       "id": "ART-003",
@@ -69,13 +69,13 @@
       "id": "ART-009",
       "role": "supporting-source",
       "path": "08_SECURITY_PRIVACY_THREAT_MODEL.md",
-      "sha256": "85f4f14dabdcdaf00cc3180924b717ebc5c3d700a51dd5ece0fe960bd1a823ce"
+      "sha256": "c4c9da0bb67d1a6f95417d69cd4545eaa1401c8555a77677ee8fdc6426acce5d"
     },
     {
       "id": "ART-010",
       "role": "supporting-source",
       "path": "09_PERFORMANCE_RELIABILITY_OBSERVABILITY.md",
-      "sha256": "ded8bb01dbad6f42ad29ca387fe8a2cde6126c6de01847df58b701cd232e473e"
+      "sha256": "df6cd3e2497affee9bfe625fd96268eb1997fba4f1f5f989a0b92119d4946bc1"
     },
     {
       "id": "ART-011",
@@ -87,43 +87,43 @@
       "id": "ART-012",
       "role": "superseded-draft",
       "path": "11_IMPLEMENTATION_PLAN.md",
-      "sha256": "ac094a0e1efba80ec76a4c1fee4b1ddf44794a4279caaa4c1b81de27caaa795c"
+      "sha256": "a2a7cfa71032614db1ecc31d954779c5b85308322fba8f686089a55e85fe6cfd"
     },
     {
       "id": "ART-013",
       "role": "supporting-source",
       "path": "12_TEST_AND_VALIDATION_STRATEGY.md",
-      "sha256": "9521f2431832aa0c26f4dcc1ca81420ea8217062807e7ad18c70a8029b5c77b3"
+      "sha256": "39c00c126f2f09c18e2b697572b3be23100692003e86f1c45df5abc5a254d0ac"
     },
     {
       "id": "ART-014",
       "role": "supporting-source",
       "path": "13_ROLLOUT_ROLLBACK_AND_OPERATIONS.md",
-      "sha256": "ebbafd0f8b823bc031ada6a4afb344839e9d1dac70dc08acda1fafcbc355e0b4"
+      "sha256": "80489041dbba2d14deb84350b070290ffced1590534272fc05f63ee10a5ddde9"
     },
     {
       "id": "ART-015",
       "role": "supporting-source",
       "path": "14_RISK_REGISTER.md",
-      "sha256": "7599d296b384d8c6a1a69b3a6f729b5b608a028da556c1be2551e96d43f4634d"
+      "sha256": "8f8c6c0c0891bcb18561527430692a50f0c8eba09239d6e1f8ca219f688b9864"
     },
     {
       "id": "ART-016",
       "role": "supporting-source",
       "path": "15_DECISIONS_ASSUMPTIONS_AND_ALTERNATIVES.md",
-      "sha256": "b6d2d2746d8035ca0d0f96ce0ff5242447400b1991bd061eda05e13348b8cd61"
+      "sha256": "18b9dff7c6c3509238eb6ada2dc8beabd8767e4a0d73751b67c3dd79d8c254f4"
     },
     {
       "id": "ART-017",
       "role": "supporting-source",
       "path": "16_REQUIREMENTS_TRACEABILITY_MATRIX.md",
-      "sha256": "c53841a4bd804bfff928373030d2a818707259343d1a91654f0f36e6fa520940"
+      "sha256": "b18ecffb394a894e482042cffdd22964ecfac09f196efe704cf8b0406e52f092"
     },
     {
       "id": "ART-018",
       "role": "readiness-review",
       "path": "17_FINAL_READINESS_REVIEW.md",
-      "sha256": "9e8d3c67cccb24e9a6baf449670dbe386df595ce9ff79b03a9346081b40f771d"
+      "sha256": "8b8a84c1458d31bb7297066ad54c260bcad7e20afef5063d491c4c03096b7deb"
     },
     {
       "id": "ART-019",
@@ -141,7 +141,7 @@
       "id": "ART-021",
       "role": "supporting-source",
       "path": "20_PERFORMANCE_EVALUATOR_SPEC.md",
-      "sha256": "b7a073079590ff47f37554dd075d8b15fe5b492cb1892f1915174b3d6a3cc9d6"
+      "sha256": "777460bfee47c65c9bfc92add45a2a374157e2d56ad7ac273057bfb532d168c9"
     },
     {
       "id": "ART-022",
@@ -159,7 +159,7 @@
       "id": "ART-024",
       "role": "supporting-source",
       "path": "23_FINAL_SCORECARD_AND_READINESS.md",
-      "sha256": "d6da1c63d225af1232c7726ff2108b097f73ece6f8dd1f7bb5924572070609ef"
+      "sha256": "f826a687a930dac7c0b382e5868fefb972aec132329aed4af8ee56c6f3586122"
     },
     {
       "id": "ART-025",
@@ -195,37 +195,37 @@
       "id": "ART-030",
       "role": "supporting-source",
       "path": "29_ACCESSIBILITY_PROOF_MATRIX.md",
-      "sha256": "19b01c666a293716899a15ef631b6e5de9a2a38968d663262a202285f283bc6a"
+      "sha256": "fdadbb4a6cc3ba4d3e9ea3e38aeb5b1ea637cbb8e06b957a7f78f2f588d260ef"
     },
     {
       "id": "ART-031",
       "role": "canonical-execution",
       "path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "3b540d360bc8c695dc6e74787ed3c84f7d784db0dfdc6673cf7226b1cf37f119"
+      "sha256": "eb285e835b6ee58b1f54cf18834694dd96c93aa6eeec6ec14f28f951c891f401"
     },
     {
       "id": "ART-032",
       "role": "loop-ledger",
       "path": "LOOP_LEDGER.md",
-      "sha256": "b0122fd546e0494de0e6445c9dadd02ef43bb03560c7e62c366974c71a145bc1"
+      "sha256": "9249dbe7bfd9a67dc619da144a995b1ca9127c839987c9c98f05e4b34db2f162"
     },
     {
       "id": "ART-033",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "e9cf9e4057481a5468d2d9375d78fc0a19405e1d9c9492f1b9fc3b0ec22eaeec"
+      "sha256": "a822aa5e216c7deda832b540d501a591588fa34bd0c8e15a3a4be7ea366e0b4d"
     },
     {
       "id": "ART-034",
       "role": "evidence",
       "path": "evidence/2026-07-10-frontier-plan-readiness.md",
-      "sha256": "fbf45d1ea318b4c006021a2ba3c31358c116d05a8c59546bebc1f6091fa28bd6"
+      "sha256": "a90b040e814b880a7e50c862fbfed8758ae10c5a51022e8d6263b25ef85995ca"
     },
     {
       "id": "ART-035",
       "role": "evidence-index",
       "path": "evidence/README.md",
-      "sha256": "21500fe347099a8e46f58cadd87ea89b665f6348cce1f0d136a60c039d79ea98"
+      "sha256": "94b990ea185ac82599f8fdaed7ae1fcd9fad4123892b45cccc95d525c5ccb438"
     }
   ],
   "sources": [
@@ -674,8 +674,7 @@
         "UNIT-001",
         "UNIT-003",
         "UNIT-005",
-        "UNIT-009",
-        "UNIT-011"
+        "UNIT-009"
       ],
       "criterion_ids": [
         "AC-001",
@@ -1497,8 +1496,7 @@
         "UNIT-001",
         "UNIT-003",
         "UNIT-005",
-        "UNIT-009",
-        "UNIT-011"
+        "UNIT-009"
       ],
       "criterion_ids": [
         "AC-001",
@@ -1886,8 +1884,7 @@
       ],
       "unit_ids": [
         "UNIT-001",
-        "UNIT-009",
-        "UNIT-011"
+        "UNIT-009"
       ],
       "criterion_ids": [
         "AC-001",
@@ -2612,7 +2609,7 @@
     },
     {
       "id": "AC-012",
-      "status": "PASS",
+      "status": "FAIL",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "requirement_ids": [
         "REQ-001",
@@ -2683,11 +2680,10 @@
         "SEC-001"
       ],
       "test_ids": [
-        "TEST-001",
         "TEST-007"
       ],
       "evidence_ids": [
-        "EVID-001"
+        "EVID-012"
       ],
       "authorization_boundary_id": null
     }
@@ -2708,8 +2704,7 @@
         "AC-008",
         "AC-009",
         "AC-010",
-        "AC-011",
-        "AC-012"
+        "AC-011"
       ],
       "evidence_ids": [
         "EVID-001"
@@ -2742,7 +2737,9 @@
         "AC-011"
       ],
       "evidence_ids": [
-        "EVID-003"
+        "EVID-003",
+        "EVID-008",
+        "EVID-010"
       ]
     },
     {
@@ -2756,7 +2753,8 @@
         "AC-011"
       ],
       "evidence_ids": [
-        "EVID-004"
+        "EVID-004",
+        "EVID-005"
       ]
     },
     {
@@ -2775,6 +2773,11 @@
         "AC-011"
       ],
       "evidence_ids": [
+        "EVID-005",
+        "EVID-006",
+        "EVID-007",
+        "EVID-008",
+        "EVID-009",
         "EVID-010"
       ]
     },
@@ -2795,13 +2798,13 @@
     },
     {
       "id": "TEST-007",
-      "status": "PASS",
+      "status": "PLANNED",
       "artifact_path": "evidence/2026-07-10-frontier-plan-readiness.md",
       "criterion_ids": [
         "AC-012"
       ],
       "evidence_ids": [
-        "EVID-001"
+        "EVID-012"
       ]
     }
   ],
@@ -2879,7 +2882,7 @@
     },
     {
       "id": "GATE-VERIFY-001",
-      "status": "PASS",
+      "status": "FAIL",
       "artifact_path": "evidence/2026-07-10-frontier-plan-readiness.md",
       "criterion_ids": [
         "AC-001",
@@ -2889,7 +2892,7 @@
         "AC-012"
       ],
       "evidence_ids": [
-        "EVID-001"
+        "EVID-012"
       ],
       "authorization_boundary_id": null
     },
@@ -2923,7 +2926,7 @@
     },
     {
       "id": "GATE-CLEAN-001",
-      "status": "PASS",
+      "status": "FAIL",
       "artifact_path": "evidence/2026-07-10-frontier-plan-readiness.md",
       "criterion_ids": [
         "AC-002",
@@ -2933,7 +2936,7 @@
         "AC-012"
       ],
       "evidence_ids": [
-        "EVID-001"
+        "EVID-012"
       ],
       "authorization_boundary_id": null
     }
@@ -2941,7 +2944,7 @@
   "units": [
     {
       "id": "UNIT-001",
-      "status": "READY",
+      "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [],
       "requirement_ids": [
@@ -2996,7 +2999,7 @@
     },
     {
       "id": "UNIT-002",
-      "status": "READY",
+      "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-001"
@@ -3045,7 +3048,7 @@
     },
     {
       "id": "UNIT-003",
-      "status": "READY",
+      "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-001"
@@ -3077,7 +3080,7 @@
     },
     {
       "id": "UNIT-004",
-      "status": "READY",
+      "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-002",
@@ -3098,7 +3101,7 @@
     },
     {
       "id": "UNIT-005",
-      "status": "READY",
+      "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-004"
@@ -3131,7 +3134,7 @@
     },
     {
       "id": "UNIT-006",
-      "status": "READY",
+      "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-004"
@@ -3164,7 +3167,7 @@
     },
     {
       "id": "UNIT-007",
-      "status": "READY",
+      "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-006"
@@ -3193,7 +3196,7 @@
     },
     {
       "id": "UNIT-008",
-      "status": "READY",
+      "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-007"
@@ -3224,7 +3227,7 @@
     },
     {
       "id": "UNIT-009",
-      "status": "READY",
+      "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-007"
@@ -3279,7 +3282,7 @@
     },
     {
       "id": "UNIT-010",
-      "status": "READY",
+      "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-005",
@@ -3323,25 +3326,22 @@
     },
     {
       "id": "UNIT-011",
-      "status": "READY",
+      "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-010"
       ],
       "requirement_ids": [
-        "REQ-012",
         "REQ-018",
         "PERF-008",
         "PERF-009",
-        "OPS-003",
         "OPS-004",
         "OPS-005",
         "OPS-006",
         "OPS-007",
         "OPS-008",
         "DATA-001",
-        "DATA-002",
-        "SEC-001"
+        "DATA-002"
       ],
       "risk_ids": [
         "RISK-003",
@@ -3480,30 +3480,13 @@
     }
   ],
   "authorization_boundaries": [],
-  "ready_slices": [
-    {
-      "id": "SLICE-001",
-      "unit_ids": [
-        "UNIT-001",
-        "UNIT-002",
-        "UNIT-003",
-        "UNIT-004",
-        "UNIT-005",
-        "UNIT-006",
-        "UNIT-007",
-        "UNIT-008",
-        "UNIT-009",
-        "UNIT-010",
-        "UNIT-011"
-      ]
-    }
-  ],
+  "ready_slices": [],
   "evidence_index": [
     {
       "id": "EVID-001",
       "status": "PASS",
       "artifact_path": "evidence/2026-07-10-frontier-plan-readiness.md",
-      "sha256": "fbf45d1ea318b4c006021a2ba3c31358c116d05a8c59546bebc1f6091fa28bd6",
+      "sha256": "a90b040e814b880a7e50c862fbfed8758ae10c5a51022e8d6263b25ef85995ca",
       "claim_ids": [
         "REQ-001",
         "REQ-002",
@@ -3582,18 +3565,14 @@
         "AC-009",
         "AC-010",
         "AC-011",
-        "AC-012",
         "GATE-UX-001",
         "GATE-NEXT-001",
         "GATE-CONTRACT-001",
         "GATE-DATA-001",
         "GATE-SEC-001",
-        "GATE-VERIFY-001",
         "GATE-PERF-001",
         "GATE-OPS-001",
-        "GATE-CLEAN-001",
         "TEST-001",
-        "TEST-007",
         "DEC-AUTO-001",
         "DEC-AUTO-002",
         "DEC-AUTO-003",
@@ -3616,8 +3595,8 @@
     {
       "id": "EVID-002",
       "status": "PLANNED",
-      "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "3b540d360bc8c695dc6e74787ed3c84f7d784db0dfdc6673cf7226b1cf37f119",
+      "artifact_path": "evidence/README.md",
+      "sha256": "94b990ea185ac82599f8fdaed7ae1fcd9fad4123892b45cccc95d525c5ccb438",
       "claim_ids": [
         "UNIT-001",
         "UNIT-004",
@@ -3629,8 +3608,8 @@
     {
       "id": "EVID-003",
       "status": "PLANNED",
-      "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "3b540d360bc8c695dc6e74787ed3c84f7d784db0dfdc6673cf7226b1cf37f119",
+      "artifact_path": "evidence/README.md",
+      "sha256": "94b990ea185ac82599f8fdaed7ae1fcd9fad4123892b45cccc95d525c5ccb438",
       "claim_ids": [
         "UNIT-002",
         "TEST-003"
@@ -3641,8 +3620,8 @@
     {
       "id": "EVID-004",
       "status": "PLANNED",
-      "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "3b540d360bc8c695dc6e74787ed3c84f7d784db0dfdc6673cf7226b1cf37f119",
+      "artifact_path": "evidence/README.md",
+      "sha256": "94b990ea185ac82599f8fdaed7ae1fcd9fad4123892b45cccc95d525c5ccb438",
       "claim_ids": [
         "UNIT-003",
         "TEST-004"
@@ -3653,10 +3632,12 @@
     {
       "id": "EVID-005",
       "status": "PLANNED",
-      "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "3b540d360bc8c695dc6e74787ed3c84f7d784db0dfdc6673cf7226b1cf37f119",
+      "artifact_path": "evidence/README.md",
+      "sha256": "94b990ea185ac82599f8fdaed7ae1fcd9fad4123892b45cccc95d525c5ccb438",
       "claim_ids": [
-        "UNIT-005"
+        "UNIT-005",
+        "TEST-004",
+        "TEST-005"
       ],
       "source_revision": "planned:UNIT-005",
       "valid_until": null
@@ -3664,10 +3645,11 @@
     {
       "id": "EVID-006",
       "status": "PLANNED",
-      "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "3b540d360bc8c695dc6e74787ed3c84f7d784db0dfdc6673cf7226b1cf37f119",
+      "artifact_path": "evidence/README.md",
+      "sha256": "94b990ea185ac82599f8fdaed7ae1fcd9fad4123892b45cccc95d525c5ccb438",
       "claim_ids": [
-        "UNIT-006"
+        "UNIT-006",
+        "TEST-005"
       ],
       "source_revision": "planned:UNIT-006",
       "valid_until": null
@@ -3675,10 +3657,11 @@
     {
       "id": "EVID-007",
       "status": "PLANNED",
-      "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "3b540d360bc8c695dc6e74787ed3c84f7d784db0dfdc6673cf7226b1cf37f119",
+      "artifact_path": "evidence/README.md",
+      "sha256": "94b990ea185ac82599f8fdaed7ae1fcd9fad4123892b45cccc95d525c5ccb438",
       "claim_ids": [
-        "UNIT-007"
+        "UNIT-007",
+        "TEST-005"
       ],
       "source_revision": "planned:UNIT-007",
       "valid_until": null
@@ -3686,10 +3669,12 @@
     {
       "id": "EVID-008",
       "status": "PLANNED",
-      "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "3b540d360bc8c695dc6e74787ed3c84f7d784db0dfdc6673cf7226b1cf37f119",
+      "artifact_path": "evidence/README.md",
+      "sha256": "94b990ea185ac82599f8fdaed7ae1fcd9fad4123892b45cccc95d525c5ccb438",
       "claim_ids": [
-        "UNIT-008"
+        "UNIT-008",
+        "TEST-003",
+        "TEST-005"
       ],
       "source_revision": "planned:UNIT-008",
       "valid_until": null
@@ -3697,10 +3682,11 @@
     {
       "id": "EVID-009",
       "status": "PLANNED",
-      "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "3b540d360bc8c695dc6e74787ed3c84f7d784db0dfdc6673cf7226b1cf37f119",
+      "artifact_path": "evidence/README.md",
+      "sha256": "94b990ea185ac82599f8fdaed7ae1fcd9fad4123892b45cccc95d525c5ccb438",
       "claim_ids": [
-        "UNIT-009"
+        "UNIT-009",
+        "TEST-005"
       ],
       "source_revision": "planned:UNIT-009",
       "valid_until": null
@@ -3708,11 +3694,12 @@
     {
       "id": "EVID-010",
       "status": "PLANNED",
-      "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "3b540d360bc8c695dc6e74787ed3c84f7d784db0dfdc6673cf7226b1cf37f119",
+      "artifact_path": "evidence/README.md",
+      "sha256": "94b990ea185ac82599f8fdaed7ae1fcd9fad4123892b45cccc95d525c5ccb438",
       "claim_ids": [
         "UNIT-010",
-        "TEST-005"
+        "TEST-005",
+        "TEST-003"
       ],
       "source_revision": "planned:UNIT-010",
       "valid_until": null
@@ -3720,13 +3707,27 @@
     {
       "id": "EVID-011",
       "status": "PLANNED",
-      "artifact_path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "3b540d360bc8c695dc6e74787ed3c84f7d784db0dfdc6673cf7226b1cf37f119",
+      "artifact_path": "evidence/README.md",
+      "sha256": "94b990ea185ac82599f8fdaed7ae1fcd9fad4123892b45cccc95d525c5ccb438",
       "claim_ids": [
         "UNIT-011",
         "TEST-006"
       ],
       "source_revision": "planned:UNIT-011",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-012",
+      "status": "FAIL",
+      "artifact_path": "LOOP_LEDGER.md",
+      "sha256": "9249dbe7bfd9a67dc619da144a995b1ca9127c839987c9c98f05e4b34db2f162",
+      "claim_ids": [
+        "AC-012",
+        "TEST-007",
+        "GATE-VERIFY-001",
+        "GATE-CLEAN-001"
+      ],
+      "source_revision": "provisional:independent-review-findings",
       "valid_until": null
     }
   ],
@@ -3737,7 +3738,7 @@
     "active-d1-migration-or-binding-change",
     "unit-owned-shared-worktree-diff-change"
   ],
-  "next_unit": "UNIT-001",
-  "updated_at": "2026-07-10T03:56:01.498Z",
-  "manifest_sha256": "89039f1ada6a265d1acd42b33756d0e81b1706b0374e2bb45b0d52ee7c15285d"
+  "next_unit": null,
+  "updated_at": "2026-07-10T04:47:07.155Z",
+  "manifest_sha256": "e9edee871d4ec8fe8ff0e78dda5727d8c8147af81e00688f702aa9838de5c41f"
 }

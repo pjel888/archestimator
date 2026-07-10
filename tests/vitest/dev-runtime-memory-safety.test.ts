@@ -25,7 +25,7 @@ describe("development runtime memory safety", () => {
   });
 
   it("enforces supported Node LTS release lines before development", () => {
-    expect(packageJson.engines?.node).toBe("^22.12.0 || ^24.0.0");
+    expect(packageJson.engines?.node).toBe("^22.12.0 || ^24.0.0 || ^26.0.0");
     expect(readFileSync(".nvmrc", "utf8").trim()).toBe("24");
     expect(packageJson.scripts?.predev).toBe("node scripts/check-node-version.mjs");
     expect(packageJson.scripts?.["predev:turbo"]).toBe("node scripts/check-node-version.mjs");
@@ -34,7 +34,12 @@ describe("development runtime memory safety", () => {
     expect(isSupportedNodeVersion("22.11.0")).toBe(false);
     expect(isSupportedNodeVersion("22.12.0")).toBe(true);
     expect(isSupportedNodeVersion("24.14.0")).toBe(true);
-    expect(isSupportedNodeVersion("26.0.0")).toBe(false);
+    // Odd (non-LTS) majors are never supported.
+    expect(isSupportedNodeVersion("23.0.0")).toBe(false);
+    expect(isSupportedNodeVersion("25.0.0")).toBe(false);
+    // Even majors >= 24 are LTS release lines and supported (24, 26, 28, ...).
+    expect(isSupportedNodeVersion("26.0.0")).toBe(true);
+    expect(isSupportedNodeVersion("28.0.0")).toBe(true);
   });
 
   it("isolates Node-only observability from the shared instrumentation bundle", () => {

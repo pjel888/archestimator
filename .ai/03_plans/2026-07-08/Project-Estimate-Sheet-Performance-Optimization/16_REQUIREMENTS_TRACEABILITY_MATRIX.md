@@ -1,88 +1,90 @@
-# 16 - Requirements Traceability Matrix
+# 16 - Normalized Requirements Traceability Matrix
 
-> This is the legacy alias/test narrative. Stable normalized IDs, reciprocal sources, criteria, evidence, and `UNIT-*` links are authoritative in `IMPLEMENTATION_PLAN.md` and `plan-pack.json`.
+`IMPLEMENTATION_PLAN.md` owns behavior and `plan-pack.json` owns reciprocal machine links. This ledger is the human-readable normalized join required for execution. Legacy aliases remain only in the canonical requirement ledger. Runtime status is `PLANNED` until the named producer/checker writes a valid artifact and `perf:estimate:index` atomically transitions the owning unit.
 
-| Requirement | Plan Units | Evidence Required |
-|---|---|---|
-| REQ-F01 route skeleton and no fallback flicker | U0.3, U1.1 | route benchmark, browser spec |
-| REQ-F02 support 5,000 rows / 1,500 nodes | U0.1, U0.2, U4.1, U4.2 | DOM census, browser proof |
-| REQ-F03 row edit updates without full recompute | U2.1, U2.2, U3.1 | selector/totals tests, render probes |
-| REQ-F04 responsive search/filter/group | U3.2 | browser profile, long-task evidence |
-| REQ-F05 stable expand/collapse | U1.3, U4.1 | browser virtualization regression |
-| REQ-F06 dedupe subtree loading | U1.3 | network-call count test |
-| REQ-F07 scalable row moves | U3.3, U5.1 | DOM/browser move scenario |
-| REQ-F08 entity rollback | U5.1, U5.3 | mutation failure/concurrency tests |
-| REQ-F09 cursor isolation | U0.2, U5.3 | existing cursor isolation plus large fixture |
-| REQ-F10 materialization outside hot path | U3.1, U4.2 | render probe tests |
-| REQ-F11 over-limit UX | U0.1, U0.2 | over-limit fixture test |
-| REQ-F12 fail-closed permissions | U1.1, U0.4 | authz tests, D1 proof denial |
-| REQ-P01 INP target | U0.3 | browser INP-style metrics |
-| REQ-P02 long-task budget | U0.3, U3.2 | Chrome trace/PerformanceObserver artifact |
-| REQ-P03 mounted row budget | U0.2, U4.2 | DOM markers |
-| REQ-P04 mounted branch budget | U0.2, U4.1 | DOM markers |
-| REQ-P05 edit p95 | U0.3, U3.1 | browser profile |
-| REQ-P06 scroll p95 | U0.3, U4.2 | browser profile |
-| REQ-P07 route medians | U0.3, U1.1 | route benchmark/readiness |
-| REQ-P08 D1 query count | U0.4, U1.1 | D1 query proof |
-| REQ-P09 D1 rows read | U0.4, U1.2 | D1 query proof |
-| REQ-P10 memory duplication | U2.1, U4.2 | browser memory/profile note |
-| REQ-R01 deterministic tests | U0.1 | fixture test |
-| REQ-R02 no sleep-masked flakes | U0.2, U0.3 | review plus flake evidence |
-| REQ-R03 unauthorized fail-closed | U1.1, U0.4 | denial tests |
-| REQ-R04 hosted cleanup fail-closed | U0.4, U6.2 | hosted proof test |
-| REQ-R05 feature flag rollback | U2.3, U6.3 | flag tests/runbook |
-| REQ-D01 proven indexes | U0.4, U1.2 | EXPLAIN and rows_read |
-| REQ-D02 redacted proof data | U0.4, U6.2 | redaction tests |
-| REQ-D03 exhaustive query keys | U1.3, U2.3 | query key tests/review |
-| REQ-D04 graph preserves structure | U2.1, U2.2 | selector parity tests |
-| REQ-T01 fixtures | U0.1 | fixture unit tests |
-| REQ-T02 selector parity | U2.2 | selector tests |
-| REQ-T03 large DOM virtualization | U0.2 | DOM tests |
-| REQ-T04 large edit budgets | U0.2, U3.1 | perf tests |
-| REQ-T05 browser e2e perf | U0.3 | Playwright artifact |
-| REQ-T06 D1 query budget | U0.4 | proof JSON/MD |
-| REQ-T07 existing perf suite | all phases | existing focused suite |
-| REQ-T08 React Doctor | React phases | `bun run doctor` |
-| REQ-DOC01 evidence update | all phases | evidence docs |
-| REQ-DOC02 skipped validation notes | all phases | final phase report |
-| REQ-DOC03 proof class distinction | U6.1, U6.2 | readiness review |
+## Stable Test Semantics
 
-## Component Interoperability (see doc 22)
+| Test | Procedure |
+|---|---|
+| `TEST-001` | Planning prompt, manifest, DAG, path/command, reciprocal-link, adversarial mutation, and diff-hygiene validation for `AC-001..011`; excludes `AC-012`. |
+| `TEST-002` | Deterministic fixture/characterization and bottleneck-decision proof. |
+| `TEST-003` | Isolated production-build browser, UX, performance, and all 19 `CI-QA-*` scenarios. |
+| `TEST-004` | Active-schema local D1, authorization denial, atomicity, plan, and exact-cleanup proof. |
+| `TEST-005` | Per-unit and integrated `off,shadow,on,rollback` mode matrices with fresh build/source hashes. |
+| `TEST-006` | Direct remote `ARCH_DB` provider proof, eleven-table cleanup, and feature release evaluation. |
+| `TEST-007` | Frozen-hash independent architect plus critic review with zero unresolved P0/P1 findings. |
 
-Pass-3 update: every REQ-CI-* now maps to a named vitest test file (existing) or to a CI-QA scenario in the new browser spec. "Phase 0.5" entries below are scoped by CI-QA ID; see doc 22 § QA Matrix for the scenario-to-test mapping.
+## Requirement Ledger
 
-| Requirement | Existing vitest file (test count) | Browser scenario (Phase 0.5) | Plan Units | Evidence Required |
-|---|---|---|---|---|
-| REQ-CI-01 modal create+edit modes | `library-add-component-modal-a11y.test.tsx` (21), `workshop-library-consolidation-ui.test.tsx` (13) | CI-QA-01, CI-QA-03 | U0.5.1 | browser proof (CI-QA-01..03) |
-| REQ-CI-02 edit suppresses duplicate warning | `library-add-component-modal-a11y.test.tsx` (covers `isEditing` gate) | CI-QA-03 | U0.5.1 | vitest (existing) + browser proof |
-| REQ-CI-03 image URL normalization | `estimate-image-url.test.ts` (2) | CI-QA-11 | U0.5.1 | vitest (existing) + browser proof |
-| REQ-CI-04 edit-mode image endpoint routing | (none yet — covered indirectly by `estimate-image-url.test.ts`) | CI-QA-05, CI-QA-08 | U0.5.1 + U0.5.3 | browser proof (CI-QA-05, CI-QA-08) + new `estimate-three-edit-surfaces.test.ts` |
-| REQ-CI-05 variant persistence | `estimate-sheet-library-insert.test.tsx` (subset) | CI-QA-09 | U0.5.1 | vitest (existing) + browser proof |
-| REQ-CI-06 project fan-out (server + client) | `estimate-sheet-library-insert.test.tsx` (subset) | CI-QA-06, CI-QA-14 | U2.1, U3.1, U0.5.2 | browser proof (CI-QA-06, CI-QA-14) + graph index proof + new `estimate-component-fan-out.test.ts` |
-| REQ-CI-07 variant pill routing | `estimate-sheet-library-insert.test.tsx` (subset) | CI-QA-04, CI-QA-10 | U0.5.1 | browser proof (CI-QA-04, CI-QA-10) |
-| REQ-CI-08 source snapshot null tolerance | (none — code review) | — | U0.5.3 | vitest (existing implicit) + new `estimate-link-state-transitions.test.ts` |
-| REQ-CI-09 explicit type check before mutation | `estimate-sheet-actions-authz.test.ts` (17) | — | U0.5.3 | code review + unit test |
-| REQ-CI-10 client fan-out O(1) at scale | (none — needs graph index) | CI-QA-14, CI-QA-16 | U2.1, U3.1 | graph index parity test + stress proof (CI-QA-14, CI-QA-16) |
-| REQ-CI-11 surfaces correct at stress | (none — needs browser) | CI-QA-14..16 | U0.5.2, U4.x | browser stress proof |
-| REQ-CI-12 create vs edit write to different tables | (none — needs new integration test) | — | U0.5.3 | new `estimate-three-edit-surfaces.test.ts` |
-| REQ-CI-13 EditComponentDrawer distinct surface | (none — code review) | — | U0.5.3 | code review |
-| REQ-CI-14 linkState flip on library edit | `estimate-sheet-version-control-actions.test.ts` (subset) | CI-QA-03 | U0.5.3 | new `estimate-link-state-transitions.test.ts` + CI-QA-03 |
-| REQ-CI-15 restore-deleted D1 limitation documented | docs 22, 25 | CI-QA-17 | U0.5.1 | delete UX review + doc audit + CI-QA-17 |
-| REQ-CI-16 promote updates linkage | (none — needs integration test) | CI-QA-13 | U0.5.3 | new integration test + CI-QA-13 |
+| Requirement | Sources | Decisions | Units | Criteria | Test / gate | Evidence IDs / class | Runtime |
+|---|---|---|---|---|---|---|---|
+| `REQ-001` | `SRC-001`, `SRC-002` | `DEC-AUTO-001`, `DEC-AUTO-014` | `UNIT-002`, `UNIT-005`, `UNIT-010` | `AC-001`, `AC-004`, `AC-006`, `AC-009`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-005` / `GATE-UX-001`, `GATE-CONTRACT-001` | `EVID-003`, `EVID-005`, `EVID-010` / jsdom/local-browser | `PLANNED` |
+| `REQ-002` | `SRC-001`, `SRC-002` | `DEC-AUTO-004`, `DEC-AUTO-008`, `DEC-AUTO-014` | `UNIT-001`, `UNIT-002`, `UNIT-008`, `UNIT-010` | `AC-001`, `AC-004`, `AC-006`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-005` / `GATE-UX-001`, `GATE-CONTRACT-001` | `EVID-002`, `EVID-003`, `EVID-008`, `EVID-010` / jsdom/local-browser | `PLANNED` |
+| `REQ-003` | `SRC-001`, `SRC-002` | `DEC-AUTO-009`, `DEC-AUTO-010`, `DEC-AUTO-014` | `UNIT-006`, `UNIT-007`, `UNIT-009`, `UNIT-010` | `AC-001`, `AC-004`, `AC-006`, `AC-009`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-005` / `GATE-UX-001`, `GATE-CONTRACT-001` | `EVID-006`, `EVID-007`, `EVID-009`, `EVID-010` / jsdom/local-browser | `PLANNED` |
+| `REQ-004` | `SRC-001`, `SRC-002` | `DEC-AUTO-002`, `DEC-AUTO-009`, `DEC-AUTO-010`, `DEC-AUTO-014` | `UNIT-006`, `UNIT-007`, `UNIT-010` | `AC-001`, `AC-004`, `AC-005`, `AC-006`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-005` / `GATE-UX-001`, `GATE-CONTRACT-001` | `EVID-006`, `EVID-007`, `EVID-010` / jsdom/local-browser | `PLANNED` |
+| `REQ-005` | `SRC-001`, `SRC-002` | `DEC-AUTO-003`, `DEC-AUTO-008`, `DEC-AUTO-014` | `UNIT-002`, `UNIT-008`, `UNIT-010` | `AC-001`, `AC-004`, `AC-006`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-005` / `GATE-UX-001`, `GATE-CONTRACT-001` | `EVID-003`, `EVID-008`, `EVID-010` / jsdom/local-browser | `PLANNED` |
+| `REQ-006` | `SRC-001`, `SRC-002` | `DEC-AUTO-001`, `DEC-AUTO-012`, `DEC-AUTO-014` | `UNIT-003`, `UNIT-005`, `UNIT-010` | `AC-001`, `AC-004`, `AC-006`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-005` / `GATE-UX-001`, `GATE-CONTRACT-001` | `EVID-004`, `EVID-005`, `EVID-010` / jsdom/local-browser | `PLANNED` |
+| `REQ-007` | `SRC-001`, `SRC-002` | `DEC-AUTO-003`, `DEC-AUTO-009`, `DEC-AUTO-014` | `UNIT-002`, `UNIT-007`, `UNIT-009`, `UNIT-010` | `AC-001`, `AC-004`, `AC-005`, `AC-006`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-005` / `GATE-UX-001`, `GATE-CONTRACT-001` | `EVID-003`, `EVID-007`, `EVID-009`, `EVID-010` / jsdom/local-browser | `PLANNED` |
+| `REQ-008` | `SRC-001`, `SRC-002` | `DEC-AUTO-010`, `DEC-AUTO-014` | `UNIT-001`, `UNIT-009`, `UNIT-010` | `AC-001`, `AC-004`, `AC-006`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-005` / `GATE-UX-001`, `GATE-CONTRACT-001` | `EVID-002`, `EVID-009`, `EVID-010` / jsdom/local-browser | `PLANNED` |
+| `REQ-009` | `SRC-001`, `SRC-002` | `DEC-AUTO-010`, `DEC-AUTO-014` | `UNIT-002`, `UNIT-009`, `UNIT-010` | `AC-001`, `AC-004`, `AC-006`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-005` / `GATE-UX-001`, `GATE-CONTRACT-001` | `EVID-003`, `EVID-009`, `EVID-010` / jsdom/local-browser | `PLANNED` |
+| `REQ-010` | `SRC-001`, `SRC-002` | `DEC-AUTO-005` | `UNIT-001`, `UNIT-010` | `AC-001`, `AC-004`, `AC-005`, `AC-006`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-004`, `TEST-005` / `GATE-CONTRACT-001`, `GATE-PERF-001` | `EVID-002`, `EVID-010` / jsdom/local-browser/local-d1 | `PLANNED` |
+| `REQ-011` | `SRC-001`, `SRC-002` | `DEC-AUTO-002`, `DEC-AUTO-004` | `UNIT-001`, `UNIT-002`, `UNIT-010` | `AC-001`, `AC-004`, `AC-005`, `AC-006`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-004`, `TEST-005` / `GATE-CONTRACT-001`, `GATE-PERF-001` | `EVID-002`, `EVID-003`, `EVID-010` / jsdom/local-browser/local-d1 | `PLANNED` |
+| `REQ-012` | `SRC-001`, `SRC-002` | `DEC-AUTO-014` | `UNIT-001`, `UNIT-003`, `UNIT-005`, `UNIT-009` | `AC-001`, `AC-004`, `AC-006`, `AC-011`, `AC-012` | `TEST-004`, `TEST-005` / `GATE-SEC-001`, `GATE-DATA-001` | `EVID-002`, `EVID-004`, `EVID-005`, `EVID-009` / local-d1/local-browser | `PLANNED` |
+| `REQ-013` | `SRC-001`, `SRC-002` | `DEC-AUTO-001`, `DEC-AUTO-004` | `UNIT-001` | `AC-001`, `AC-003`, `AC-004`, `AC-006`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-004`, `TEST-005` / `GATE-CONTRACT-001`, `GATE-PERF-001` | `EVID-002` / jsdom/local-browser/local-d1 | `PLANNED` |
+| `REQ-014` | `SRC-001`, `SRC-002` | `DEC-AUTO-009`, `DEC-AUTO-010` | `UNIT-006` | `AC-001`, `AC-003`, `AC-004`, `AC-006`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-004`, `TEST-005` / `GATE-CONTRACT-001`, `GATE-PERF-001` | `EVID-006` / jsdom/local-browser/local-d1 | `PLANNED` |
+| `REQ-015` | `SRC-001`, `SRC-002` | `DEC-AUTO-008`, `DEC-AUTO-014` | `UNIT-001`, `UNIT-008` | `AC-001`, `AC-003`, `AC-004`, `AC-006`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-004`, `TEST-005` / `GATE-CONTRACT-001`, `GATE-PERF-001` | `EVID-002`, `EVID-008` / jsdom/local-browser/local-d1 | `PLANNED` |
+| `REQ-016` | `SRC-001`, `SRC-002` | `DEC-AUTO-001`, `DEC-AUTO-009` | `UNIT-001`, `UNIT-007` | `AC-001`, `AC-003`, `AC-004`, `AC-006`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-004`, `TEST-005` / `GATE-CONTRACT-001`, `GATE-PERF-001` | `EVID-002`, `EVID-007` / jsdom/local-browser/local-d1 | `PLANNED` |
+| `REQ-017` | `SRC-001`, `SRC-002` | `DEC-AUTO-001` | `UNIT-002` | `AC-001`, `AC-003`, `AC-004`, `AC-006`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-004`, `TEST-005` / `GATE-CONTRACT-001`, `GATE-PERF-001` | `EVID-003` / jsdom/local-browser/local-d1 | `PLANNED` |
+| `REQ-018` | `SRC-001`, `SRC-002` | `DEC-AUTO-001`, `DEC-AUTO-012`, `DEC-AUTO-015` | `UNIT-003`, `UNIT-005`, `UNIT-011` | `AC-001`, `AC-003`, `AC-004`, `AC-006`, `AC-008`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-004`, `TEST-005` / `GATE-CONTRACT-001`, `GATE-PERF-001` | `EVID-004`, `EVID-005`, `EVID-011` / jsdom/local-browser/local-d1 | `PLANNED` |
+| `REQ-019` | `SRC-001`, `SRC-002` | `DEC-AUTO-001` | `UNIT-001`, `UNIT-005`, `UNIT-006`, `UNIT-007`, `UNIT-008`, `UNIT-009`, `UNIT-010` | `AC-001`, `AC-003`, `AC-004`, `AC-006`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-004`, `TEST-005` / `GATE-CONTRACT-001`, `GATE-PERF-001` | `EVID-002`, `EVID-005`, `EVID-006`, `EVID-007`, `EVID-008`, `EVID-009`, `EVID-010` / jsdom/local-browser/local-d1 | `PLANNED` |
+| `REQ-020` | `SRC-001`, `SRC-002` | `DEC-AUTO-011` | `UNIT-006`, `UNIT-007`, `UNIT-008`, `UNIT-009`, `UNIT-010` | `AC-001`, `AC-003`, `AC-004`, `AC-006`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-005` / `GATE-UX-001`, `GATE-CONTRACT-001` | `EVID-006`, `EVID-007`, `EVID-008`, `EVID-009`, `EVID-010` / jsdom/local-browser | `PLANNED` |
+| `REQ-021` | `SRC-001`, `SRC-002` | `DEC-AUTO-006` | `UNIT-001`, `UNIT-002`, `UNIT-009` | `AC-001`, `AC-004`, `AC-006`, `AC-010`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-005` / `GATE-UX-001`, `GATE-CONTRACT-001` | `EVID-002`, `EVID-003`, `EVID-009` / jsdom/local-browser | `PLANNED` |
+| `REQ-022` | `SRC-001`, `SRC-002` | `DEC-AUTO-006` | `UNIT-001`, `UNIT-002` | `AC-001`, `AC-004`, `AC-006`, `AC-010`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-005` / `GATE-UX-001`, `GATE-CONTRACT-001` | `EVID-002`, `EVID-003` / jsdom/local-browser | `PLANNED` |
+| `REQ-023` | `SRC-001`, `SRC-002` | `DEC-AUTO-006` | `UNIT-001`, `UNIT-002` | `AC-001`, `AC-004`, `AC-006`, `AC-010`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-005` / `GATE-UX-001`, `GATE-CONTRACT-001` | `EVID-002`, `EVID-003` / jsdom/local-browser | `PLANNED` |
+| `REQ-024` | `SRC-001`, `SRC-002` | `DEC-AUTO-006` | `UNIT-001`, `UNIT-002` | `AC-001`, `AC-004`, `AC-006`, `AC-010`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-005` / `GATE-UX-001`, `GATE-CONTRACT-001` | `EVID-002`, `EVID-003` / jsdom/local-browser | `PLANNED` |
+| `REQ-025` | `SRC-001`, `SRC-002` | `DEC-AUTO-006` | `UNIT-001`, `UNIT-002`, `UNIT-009` | `AC-001`, `AC-004`, `AC-006`, `AC-010`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-005` / `GATE-UX-001`, `GATE-CONTRACT-001` | `EVID-002`, `EVID-003`, `EVID-009` / jsdom/local-browser | `PLANNED` |
+| `REQ-026` | `SRC-001`, `SRC-002` | `DEC-AUTO-009`, `DEC-AUTO-010`, `DEC-AUTO-013` | `UNIT-003`, `UNIT-006`, `UNIT-009`, `UNIT-010` | `AC-001`, `AC-004`, `AC-006`, `AC-010`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-005` / `GATE-UX-001`, `GATE-CONTRACT-001` | `EVID-004`, `EVID-006`, `EVID-009`, `EVID-010` / jsdom/local-browser | `PLANNED` |
+| `REQ-027` | `SRC-001`, `SRC-002` | `DEC-AUTO-006` | `UNIT-001`, `UNIT-002`, `UNIT-009` | `AC-001`, `AC-004`, `AC-006`, `AC-010`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-005` / `GATE-UX-001`, `GATE-CONTRACT-001` | `EVID-002`, `EVID-003`, `EVID-009` / jsdom/local-browser | `PLANNED` |
+| `REQ-028` | `SRC-001`, `SRC-002` | `DEC-AUTO-006` | `UNIT-001`, `UNIT-009` | `AC-001`, `AC-004`, `AC-006`, `AC-010`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-005` / `GATE-UX-001`, `GATE-CONTRACT-001` | `EVID-002`, `EVID-009` / jsdom/local-browser | `PLANNED` |
+| `REQ-029` | `SRC-001`, `SRC-002` | `DEC-AUTO-006` | `UNIT-001`, `UNIT-009` | `AC-001`, `AC-004`, `AC-006`, `AC-010`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-005` / `GATE-UX-001`, `GATE-CONTRACT-001` | `EVID-002`, `EVID-009` / jsdom/local-browser | `PLANNED` |
+| `REQ-030` | `SRC-001`, `SRC-002` | `DEC-AUTO-009`, `DEC-AUTO-010`, `DEC-AUTO-013` | `UNIT-001`, `UNIT-006`, `UNIT-009` | `AC-001`, `AC-004`, `AC-005`, `AC-006`, `AC-010`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-005` / `GATE-UX-001`, `GATE-CONTRACT-001` | `EVID-002`, `EVID-006`, `EVID-009` / jsdom/local-browser | `PLANNED` |
+| `REQ-031` | `SRC-001`, `SRC-002` | `DEC-AUTO-006`, `DEC-AUTO-008` | `UNIT-002`, `UNIT-009`, `UNIT-010` | `AC-001`, `AC-004`, `AC-005`, `AC-006`, `AC-010`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-005` / `GATE-UX-001`, `GATE-CONTRACT-001` | `EVID-003`, `EVID-009`, `EVID-010` / jsdom/local-browser | `PLANNED` |
+| `REQ-032` | `SRC-001`, `SRC-002` | `DEC-AUTO-006` | `UNIT-001`, `UNIT-002`, `UNIT-009` | `AC-001`, `AC-004`, `AC-005`, `AC-006`, `AC-010`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-005` / `GATE-UX-001`, `GATE-CONTRACT-001` | `EVID-002`, `EVID-003`, `EVID-009` / jsdom/local-browser | `PLANNED` |
+| `REQ-033` | `SRC-001`, `SRC-002` | `DEC-AUTO-006` | `UNIT-001`, `UNIT-002` | `AC-001`, `AC-004`, `AC-005`, `AC-006`, `AC-010`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-005` / `GATE-UX-001`, `GATE-CONTRACT-001` | `EVID-002`, `EVID-003` / jsdom/local-browser | `PLANNED` |
+| `REQ-034` | `SRC-001`, `SRC-002` | `DEC-AUTO-006`, `DEC-AUTO-007` | `UNIT-001`, `UNIT-002`, `UNIT-009` | `AC-001`, `AC-004`, `AC-005`, `AC-006`, `AC-010`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-005` / `GATE-UX-001`, `GATE-CONTRACT-001` | `EVID-002`, `EVID-003`, `EVID-009` / jsdom/local-browser | `PLANNED` |
+| `REQ-035` | `SRC-001`, `SRC-002` | `DEC-AUTO-006` | `UNIT-001`, `UNIT-002`, `UNIT-009` | `AC-001`, `AC-004`, `AC-005`, `AC-006`, `AC-010`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-005` / `GATE-UX-001`, `GATE-CONTRACT-001` | `EVID-002`, `EVID-003`, `EVID-009` / jsdom/local-browser | `PLANNED` |
+| `REQ-036` | `SRC-001`, `SRC-002` | `DEC-AUTO-007` | `UNIT-001`, `UNIT-002`, `UNIT-009` | `AC-001`, `AC-004`, `AC-005`, `AC-006`, `AC-010`, `AC-011`, `AC-012` | `TEST-002`, `TEST-003`, `TEST-005` / `GATE-UX-001`, `GATE-CONTRACT-001` | `EVID-002`, `EVID-003`, `EVID-009` / jsdom/local-browser | `PLANNED` |
+| `PERF-001` | `SRC-001`, `SRC-002` | `DEC-AUTO-001` | `UNIT-002`, `UNIT-010` | `AC-001`, `AC-004`, `AC-005`, `AC-006`, `AC-007`, `AC-011`, `AC-012` | `TEST-003`, `TEST-004`, `TEST-005`, `TEST-006` / `GATE-PERF-001` | `EVID-003`, `EVID-010` / local-browser/local-d1/hosted-d1 | `PLANNED` |
+| `PERF-002` | `SRC-001`, `SRC-002` | `DEC-AUTO-001` | `UNIT-002`, `UNIT-007`, `UNIT-008`, `UNIT-009`, `UNIT-010` | `AC-001`, `AC-004`, `AC-006`, `AC-007`, `AC-011`, `AC-012` | `TEST-003`, `TEST-004`, `TEST-005`, `TEST-006` / `GATE-PERF-001` | `EVID-003`, `EVID-007`, `EVID-008`, `EVID-009`, `EVID-010` / local-browser/local-d1/hosted-d1 | `PLANNED` |
+| `PERF-003` | `SRC-001`, `SRC-002` | `DEC-AUTO-004`, `DEC-AUTO-014` | `UNIT-001`, `UNIT-002`, `UNIT-008` | `AC-001`, `AC-004`, `AC-006`, `AC-007`, `AC-011`, `AC-012` | `TEST-003`, `TEST-004`, `TEST-005`, `TEST-006` / `GATE-PERF-001` | `EVID-002`, `EVID-003`, `EVID-008` / local-browser/local-d1/hosted-d1 | `PLANNED` |
+| `PERF-004` | `SRC-001`, `SRC-002` | `DEC-AUTO-004`, `DEC-AUTO-014` | `UNIT-001`, `UNIT-002`, `UNIT-008` | `AC-001`, `AC-004`, `AC-006`, `AC-007`, `AC-011`, `AC-012` | `TEST-003`, `TEST-004`, `TEST-005`, `TEST-006` / `GATE-PERF-001` | `EVID-002`, `EVID-003`, `EVID-008` / local-browser/local-d1/hosted-d1 | `PLANNED` |
+| `PERF-005` | `SRC-001`, `SRC-002` | `DEC-AUTO-001`, `DEC-AUTO-009`, `DEC-AUTO-014` | `UNIT-002`, `UNIT-007`, `UNIT-009`, `UNIT-010` | `AC-001`, `AC-004`, `AC-006`, `AC-007`, `AC-011`, `AC-012` | `TEST-003`, `TEST-004`, `TEST-005`, `TEST-006` / `GATE-PERF-001` | `EVID-003`, `EVID-007`, `EVID-009`, `EVID-010` / local-browser/local-d1/hosted-d1 | `PLANNED` |
+| `PERF-006` | `SRC-001`, `SRC-002` | `DEC-AUTO-001`, `DEC-AUTO-014` | `UNIT-002`, `UNIT-008`, `UNIT-010` | `AC-001`, `AC-004`, `AC-006`, `AC-007`, `AC-011`, `AC-012` | `TEST-003`, `TEST-004`, `TEST-005`, `TEST-006` / `GATE-PERF-001` | `EVID-003`, `EVID-008`, `EVID-010` / local-browser/local-d1/hosted-d1 | `PLANNED` |
+| `PERF-007` | `SRC-001`, `SRC-002` | `DEC-AUTO-001`, `DEC-AUTO-014` | `UNIT-002`, `UNIT-005`, `UNIT-010` | `AC-001`, `AC-004`, `AC-006`, `AC-007`, `AC-011`, `AC-012` | `TEST-003`, `TEST-004`, `TEST-005`, `TEST-006` / `GATE-PERF-001` | `EVID-003`, `EVID-005`, `EVID-010` / local-browser/local-d1/hosted-d1 | `PLANNED` |
+| `PERF-008` | `SRC-001`, `SRC-002` | `DEC-AUTO-001`, `DEC-AUTO-012` | `UNIT-003`, `UNIT-005`, `UNIT-011` | `AC-001`, `AC-004`, `AC-006`, `AC-007`, `AC-008`, `AC-011`, `AC-012` | `TEST-003`, `TEST-004`, `TEST-005`, `TEST-006` / `GATE-PERF-001` | `EVID-004`, `EVID-005`, `EVID-011` / local-browser/local-d1/hosted-d1 | `PLANNED` |
+| `PERF-009` | `SRC-001`, `SRC-002` | `DEC-AUTO-001`, `DEC-AUTO-012`, `DEC-AUTO-015` | `UNIT-003`, `UNIT-005`, `UNIT-011` | `AC-001`, `AC-004`, `AC-006`, `AC-007`, `AC-008`, `AC-011`, `AC-012` | `TEST-003`, `TEST-004`, `TEST-005`, `TEST-006` / `GATE-PERF-001` | `EVID-004`, `EVID-005`, `EVID-011` / local-browser/local-d1/hosted-d1 | `PLANNED` |
+| `PERF-010` | `SRC-001`, `SRC-002` | `DEC-AUTO-009`, `DEC-AUTO-010` | `UNIT-002`, `UNIT-006`, `UNIT-010` | `AC-001`, `AC-004`, `AC-005`, `AC-006`, `AC-007`, `AC-011`, `AC-012` | `TEST-003`, `TEST-004`, `TEST-005`, `TEST-006` / `GATE-PERF-001` | `EVID-003`, `EVID-006`, `EVID-010` / local-browser/local-d1/hosted-d1 | `PLANNED` |
+| `OPS-001` | `SRC-001`, `SRC-002` | `DEC-AUTO-001` | `UNIT-001`, `UNIT-002`, `UNIT-003` | `AC-001`, `AC-003`, `AC-004`, `AC-006`, `AC-007`, `AC-011`, `AC-012` | `TEST-001`, `TEST-002`, `TEST-005`, `TEST-006` / `GATE-CONTRACT-001`, `GATE-OPS-001` | `EVID-002`, `EVID-003`, `EVID-004` / plan/jsdom/local-browser/hosted-d1 | `PLANNED` |
+| `OPS-002` | `SRC-001`, `SRC-002` | `DEC-AUTO-001` | `UNIT-001`, `UNIT-002` | `AC-001`, `AC-003`, `AC-004`, `AC-006`, `AC-007`, `AC-011`, `AC-012` | `TEST-001`, `TEST-002`, `TEST-005`, `TEST-006` / `GATE-CONTRACT-001`, `GATE-OPS-001` | `EVID-002`, `EVID-003` / plan/jsdom/local-browser/hosted-d1 | `PLANNED` |
+| `OPS-003` | `SRC-001`, `SRC-002` | `DEC-AUTO-014` | `UNIT-001`, `UNIT-003`, `UNIT-005`, `UNIT-009` | `AC-001`, `AC-004`, `AC-006`, `AC-008`, `AC-011`, `AC-012` | `TEST-004`, `TEST-005` / `GATE-SEC-001`, `GATE-DATA-001` | `EVID-002`, `EVID-004`, `EVID-005`, `EVID-009` / local-d1/local-browser | `PLANNED` |
+| `OPS-004` | `SRC-001`, `SRC-002` | `DEC-AUTO-015` | `UNIT-003`, `UNIT-011` | `AC-001`, `AC-004`, `AC-006`, `AC-008`, `AC-011`, `AC-012` | `TEST-004`, `TEST-006` / `GATE-DATA-001`, `GATE-OPS-001` | `EVID-004`, `EVID-011` / local-d1/hosted-d1 | `PLANNED` |
+| `OPS-005` | `SRC-001`, `SRC-002` | `DEC-AUTO-014` | `UNIT-005`, `UNIT-006`, `UNIT-007`, `UNIT-008`, `UNIT-009`, `UNIT-010`, `UNIT-011` | `AC-001`, `AC-004`, `AC-005`, `AC-006`, `AC-009`, `AC-011`, `AC-012` | `TEST-001`, `TEST-002`, `TEST-005`, `TEST-006` / `GATE-CONTRACT-001`, `GATE-OPS-001` | `EVID-005`, `EVID-006`, `EVID-007`, `EVID-008`, `EVID-009`, `EVID-010`, `EVID-011` / plan/jsdom/local-browser/hosted-d1 | `PLANNED` |
+| `OPS-006` | `SRC-001`, `SRC-002` | `DEC-AUTO-001` | `UNIT-001`, `UNIT-002`, `UNIT-003`, `UNIT-004`, `UNIT-005`, `UNIT-006`, `UNIT-007`, `UNIT-008`, `UNIT-009`, `UNIT-010`, `UNIT-011` | `AC-001`, `AC-002`, `AC-004`, `AC-006`, `AC-007`, `AC-011`, `AC-012` | `TEST-001`, `TEST-002`, `TEST-005`, `TEST-006` / `GATE-CONTRACT-001`, `GATE-OPS-001` | `EVID-002`, `EVID-003`, `EVID-004`, `EVID-005`, `EVID-006`, `EVID-007`, `EVID-008`, `EVID-009`, `EVID-010`, `EVID-011` / plan/jsdom/local-browser/hosted-d1 | `PLANNED` |
+| `OPS-007` | `SRC-001`, `SRC-002` | `DEC-AUTO-001` | `UNIT-001`, `UNIT-002`, `UNIT-003`, `UNIT-004`, `UNIT-005`, `UNIT-006`, `UNIT-007`, `UNIT-008`, `UNIT-009`, `UNIT-010`, `UNIT-011` | `AC-001`, `AC-002`, `AC-004`, `AC-006`, `AC-007`, `AC-011`, `AC-012` | `TEST-001`, `TEST-002`, `TEST-005`, `TEST-006` / `GATE-CONTRACT-001`, `GATE-OPS-001` | `EVID-002`, `EVID-003`, `EVID-004`, `EVID-005`, `EVID-006`, `EVID-007`, `EVID-008`, `EVID-009`, `EVID-010`, `EVID-011` / plan/jsdom/local-browser/hosted-d1 | `PLANNED` |
+| `OPS-008` | `SRC-001`, `SRC-002` | `DEC-AUTO-001`, `DEC-AUTO-015` | `UNIT-001`, `UNIT-002`, `UNIT-003`, `UNIT-004`, `UNIT-005`, `UNIT-006`, `UNIT-007`, `UNIT-008`, `UNIT-009`, `UNIT-010`, `UNIT-011` | `AC-001`, `AC-002`, `AC-004`, `AC-006`, `AC-007`, `AC-011`, `AC-012` | `TEST-001`, `TEST-002`, `TEST-005`, `TEST-006` / `GATE-CONTRACT-001`, `GATE-OPS-001` | `EVID-002`, `EVID-003`, `EVID-004`, `EVID-005`, `EVID-006`, `EVID-007`, `EVID-008`, `EVID-009`, `EVID-010`, `EVID-011` / plan/jsdom/local-browser/hosted-d1 | `PLANNED` |
+| `DATA-001` | `SRC-001`, `SRC-002` | `DEC-AUTO-012` | `UNIT-003`, `UNIT-005`, `UNIT-011` | `AC-001`, `AC-004`, `AC-006`, `AC-008`, `AC-011`, `AC-012` | `TEST-004`, `TEST-006` / `GATE-DATA-001`, `GATE-OPS-001` | `EVID-004`, `EVID-005`, `EVID-011` / local-d1/hosted-d1 | `PLANNED` |
+| `DATA-002` | `SRC-001`, `SRC-002` | `DEC-AUTO-015` | `UNIT-003`, `UNIT-011` | `AC-001`, `AC-004`, `AC-006`, `AC-008`, `AC-011`, `AC-012` | `TEST-004`, `TEST-006` / `GATE-DATA-001`, `GATE-OPS-001` | `EVID-004`, `EVID-011` / local-d1/hosted-d1 | `PLANNED` |
+| `DATA-003` | `SRC-001`, `SRC-002` | `DEC-AUTO-010` | `UNIT-001`, `UNIT-005`, `UNIT-009` | `AC-001`, `AC-004`, `AC-006`, `AC-011`, `AC-012` | `TEST-002`, `TEST-004`, `TEST-005` / `GATE-DATA-001`, `GATE-CONTRACT-001` | `EVID-002`, `EVID-005`, `EVID-009` / jsdom/local-d1/local-browser | `PLANNED` |
+| `DATA-004` | `SRC-001`, `SRC-002` | `DEC-AUTO-009`, `DEC-AUTO-010` | `UNIT-006` | `AC-001`, `AC-004`, `AC-006`, `AC-011`, `AC-012` | `TEST-002`, `TEST-004`, `TEST-005` / `GATE-DATA-001`, `GATE-CONTRACT-001` | `EVID-006` / jsdom/local-d1/local-browser | `PLANNED` |
+| `DATA-005` | `SRC-001`, `SRC-002` | `DEC-AUTO-010`, `DEC-AUTO-014` | `UNIT-001`, `UNIT-009` | `AC-001`, `AC-004`, `AC-006`, `AC-011`, `AC-012` | `TEST-002`, `TEST-004`, `TEST-005` / `GATE-DATA-001`, `GATE-CONTRACT-001` | `EVID-002`, `EVID-009` / jsdom/local-d1/local-browser | `PLANNED` |
+| `DATA-006` | `SRC-001`, `SRC-002` | `DEC-AUTO-010`, `DEC-AUTO-014` | `UNIT-001`, `UNIT-009` | `AC-001`, `AC-004`, `AC-006`, `AC-011`, `AC-012` | `TEST-002`, `TEST-004`, `TEST-005` / `GATE-DATA-001`, `GATE-CONTRACT-001` | `EVID-002`, `EVID-009` / jsdom/local-d1/local-browser | `PLANNED` |
+| `DATA-007` | `SRC-001`, `SRC-002` | `DEC-AUTO-010`, `DEC-AUTO-014` | `UNIT-001`, `UNIT-009` | `AC-001`, `AC-004`, `AC-006`, `AC-011`, `AC-012` | `TEST-002`, `TEST-004`, `TEST-005` / `GATE-DATA-001`, `GATE-CONTRACT-001` | `EVID-002`, `EVID-009` / jsdom/local-d1/local-browser | `PLANNED` |
+| `DATA-008` | `SRC-001`, `SRC-002` | `DEC-AUTO-010`, `DEC-AUTO-014` | `UNIT-001`, `UNIT-003`, `UNIT-009` | `AC-001`, `AC-004`, `AC-006`, `AC-008`, `AC-011`, `AC-012` | `TEST-002`, `TEST-004`, `TEST-005` / `GATE-DATA-001`, `GATE-CONTRACT-001` | `EVID-002`, `EVID-004`, `EVID-009` / jsdom/local-d1/local-browser | `PLANNED` |
+| `DATA-009` | `SRC-001`, `SRC-002` | `DEC-AUTO-010`, `DEC-AUTO-014` | `UNIT-001`, `UNIT-009` | `AC-001`, `AC-004`, `AC-006`, `AC-011`, `AC-012` | `TEST-002`, `TEST-004`, `TEST-005` / `GATE-DATA-001`, `GATE-CONTRACT-001` | `EVID-002`, `EVID-009` / jsdom/local-d1/local-browser | `PLANNED` |
+| `DATA-010` | `SRC-001`, `SRC-002` | `DEC-AUTO-010`, `DEC-AUTO-014` | `UNIT-001`, `UNIT-009` | `AC-001`, `AC-004`, `AC-006`, `AC-011`, `AC-012` | `TEST-002`, `TEST-004`, `TEST-005` / `GATE-DATA-001`, `GATE-CONTRACT-001` | `EVID-002`, `EVID-009` / jsdom/local-d1/local-browser | `PLANNED` |
+| `DATA-011` | `SRC-001`, `SRC-002` | `DEC-AUTO-009` | `UNIT-001`, `UNIT-006`, `UNIT-009` | `AC-001`, `AC-004`, `AC-006`, `AC-011`, `AC-012` | `TEST-002`, `TEST-004`, `TEST-005` / `GATE-DATA-001`, `GATE-CONTRACT-001` | `EVID-002`, `EVID-006`, `EVID-009` / jsdom/local-d1/local-browser | `PLANNED` |
+| `SEC-001` | `SRC-001`, `SRC-002` | `DEC-AUTO-014` | `UNIT-001`, `UNIT-009` | `AC-001`, `AC-004`, `AC-006`, `AC-008`, `AC-011`, `AC-012` | `TEST-004`, `TEST-005` / `GATE-SEC-001`, `GATE-DATA-001` | `EVID-002`, `EVID-009` / local-d1/local-browser | `PLANNED` |
 
-Pass-3 takeaway: REQ-CI-04, REQ-CI-08, REQ-CI-12, REQ-CI-13, REQ-CI-14, REQ-CI-16 have NO direct named vitest test today. They are covered indirectly by adjacent suites but must be backfilled in U0.5.3 with explicit test names. This is the traceability gap that Phase 0.5 closes.
+## Transition Rule
 
-## CRUD And Data Integrity (see docs 25, 26)
-
-| Requirement | Existing vitest file (test count) | Plan Units | Evidence Required |
-|---|---|---|---|
-| REQ-CRUD-01 authz gate on every write | `estimate-sheet-actions-authz.test.ts` (17) | all write phases | authz tests (existing 17) |
-| REQ-CRUD-02 entity-scoped rollback | (none — needs U5.1) | U5.1, U5.3 | new mutation failure/concurrency tests |
-| REQ-CRUD-03 row_revision conflict guard | `estimate-sheet-version-control-actions.test.ts` (subset), `estimate-sheet-library-insert.test.tsx` (subset) | all row phases | conflict tests (existing) |
-| REQ-CRUD-04 template stale-snapshot guard | `estimate-sheet-library-insert.test.tsx` (subset) | Phase 0.5 | template insert tests (existing) |
-| REQ-CRUD-05 bulk delete all-or-nothing <=100 | `estimate-sheet-bulk-row-delete-partial-failure.test.tsx` | Canonical `UNIT-001` characterization + `UNIT-009` mutation proof | existing test plus D1 atomicity proof |
-| REQ-CRUD-06 realtime broadcast contract | `estimate-row-update-broadcast.test.ts` | Canonical `UNIT-001` characterization + `UNIT-009` concurrency proof | existing test plus concurrent revision proof |
-| REQ-CRUD-07 optimistic node id resolution | `estimate-sheet-tree-dnd.test.tsx` (subset) | Canonical `UNIT-001` characterization + `UNIT-009` mutation proof | existing tree tests plus optimistic-id sequencing proof |
-| REQ-CRUD-08 P6 single-node model | `estimate-template-drop-zones.test.tsx` ("direct insert INTO a row-owning area (P6)") | all node phases | P6 tests (existing) |
-
-Pass-3 takeaway: REQ-CRUD-05 and REQ-CRUD-06 need explicit named tests. The plan asserts "existing" coverage but the traceability to specific test names must be confirmed during U0.5.3.
+A requirement remains `PLANNED` when any owning active unit lacks a current verified evidence link. It becomes runtime `PASS` only when every required active unit is `VERIFIED` or decision-backed `SUPERSEDED`, every listed hard gate is green, and the evidence index contains matching source/build/input hashes. `SKIPPED` requires a reason and residual risk and cannot satisfy a hard budget. No prose edit changes runtime status.
