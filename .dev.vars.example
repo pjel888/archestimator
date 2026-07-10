@@ -7,6 +7,10 @@ UPLOAD_JOBS_ENABLED=0
 CLOUDFLARE_UPLOAD_JOBS_DRY_RUN=1
 CLOUDFLARE_UPLOAD_JOBS_ORIGIN=https://archestimator.internal
 
+# Platform admin dashboard allowlist + kill-switch for local Worker preview.
+PLATFORM_ADMIN_EMAILS=philipjonlewis@gmail.com
+ADMIN_DASHBOARD_ENABLED=0
+
 # Better Auth D1 preview runtime. Never commit a real secret value.
 ARCHESTIMATOR_AUTH_PROVIDER=better-auth
 BETTER_AUTH_URL=http://localhost:3000

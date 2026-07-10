@@ -27,6 +27,45 @@ export function isPlatformAdminRole(value: unknown): value is PlatformAdminRole 
   return value === "ceo" || value === "admin";
 }
 
+export const PLATFORM_ADMIN_EMAILS_ENV = "PLATFORM_ADMIN_EMAILS";
+const DEFAULT_PLATFORM_ADMIN_EMAILS = "philipjonlewis@gmail.com";
+
+function readPlatformAdminEmails(env: NodeJS.ProcessEnv = process.env): string[] {
+  const raw = env[PLATFORM_ADMIN_EMAILS_ENV];
+  if (typeof raw === "string" && raw.trim().length > 0) {
+    return raw
+      .split(",")
+      .map((email) => email.trim().toLowerCase())
+      .filter((email) => email.length > 0);
+  }
+
+  // Production fail-closed: email allowlist must be explicit. Role-based admin
+  // (`ceo`/`admin`) still works via isPlatformAdminRole. Dev/test keep the
+  // solo-operator default for local dogfooding.
+  if (env.NODE_ENV === "production") return [];
+
+  return DEFAULT_PLATFORM_ADMIN_EMAILS
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter((email) => email.length > 0);
+}
+
+export function isPlatformAdminEmail(
+  email: string | null | undefined,
+  env: NodeJS.ProcessEnv = process.env,
+): boolean {
+  if (typeof email !== "string" || email.trim().length === 0) return false;
+  const normalized = email.trim().toLowerCase();
+  return readPlatformAdminEmails(env).includes(normalized);
+}
+
+export function isPlatformAdmin(context: {
+  role: unknown;
+  email: string | null | undefined;
+}): boolean {
+  return isPlatformAdminRole(context.role) || isPlatformAdminEmail(context.email);
+}
+
 export function isWorkspaceAccountRole(value: unknown): value is WorkspaceAccountRole {
   return typeof value === "string" && WORKSPACE_ACCOUNT_ROLES.includes(value as WorkspaceAccountRole);
 }

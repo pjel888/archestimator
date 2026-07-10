@@ -10,6 +10,15 @@ only those entries. Do NOT read all ~2,500 lines on every task — that is the
 single biggest source of slow agent startup.
 
 Stable current truth (verify against git/source before relying on a detail):
+- Admin Dashboard (2026-07-10): Phases 0–6 implemented — `/admin` shell
+  (Overview/Users/Support/Flags/Audit/Observability/Analytics), migrations
+  `0042`–`0049`, GlobalPresence + SupportInbox DOs (token before acceptWebSocket),
+  isPlatformAdminEmail/isPlatformAdmin with production fail-closed email allowlist,
+  D1 feature flags + env kill-switch, support/audit/observability surfaces.
+  DEC-AUTO deferred: GA4/Clarity/CF Analytics pulls, CF Access OTP, email-to-ticket
+  (link-out/degrade). Local proof: type-check + admin/DO vitests; HTTP 200 with
+  dev-auth bypass; unauthenticated `/admin` → `/login?next=/admin`. Archived:
+  `.ai/09_archive/store/2026-07-10-Admin-Dashboard-complete/`.
 - Landing-Page-Auth-Security-Layer (2026-07-10): Implemented Better Auth hardening —
   magic-link `storeToken:"hashed"` + `expiresIn:300` + plugin rateLimit 10/60; top-level
   D1-backed `rateLimit` (`storage:"database"`, window/max 60) with migration

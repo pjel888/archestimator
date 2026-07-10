@@ -15,15 +15,19 @@
  */
 
 import { getCurrentUserContext } from "@/lib/auth/session";
+import { isPlatformAdmin } from "@/lib/auth/roles";
 import { canAccessEstimateInD1, canAccessProjectInD1 } from "@/lib/authz/d1-access";
 import { getCloudflareD1Database } from "@/lib/cloudflare/d1";
 import { issueRealtimeIdentityEnvelope } from "@/lib/collaboration/realtime-identity-server";
 import type { RealtimeIdentityEnvelope } from "@/lib/collaboration/realtime-identity";
 import { issueRealtimeRoomToken, readRealtimeRoomTokenSecret } from "@/lib/collaboration/realtime-room-token";
 import { getCurrentUserTermsAcceptanceStatus } from "@/lib/legal/terms-acceptance";
+import { canAccessSupportConversationInD1 } from "@/lib/repositories/support-conversations-repository";
 
 /** Topic must be `project:<uuid>` or `estimate:<uuid>` (36-char uuid form). */
 const TOPIC_PATTERN = /^(project|estimate):([0-9a-f-]{36})$/;
+const GLOBAL_PRESENCE_TOPIC = "global-presence";
+const SUPPORT_CONVERSATION_TOPIC_PATTERN = /^[a-zA-Z0-9:_-]{3,200}$/;
 
 export type IssueRealtimeIdentityResult = {
   envelope: RealtimeIdentityEnvelope;
@@ -35,6 +39,11 @@ export type IssueRealtimeIdentityResult = {
   userId: string;
   /** Escaped by React at render sites; used only as a best-effort collaboration label. */
   displayName: string | null;
+};
+
+export type IssueRealtimeRoomTokenResult = {
+  roomToken: string;
+  userId: string;
 };
 
 /**
@@ -90,4 +99,69 @@ export async function issueRealtimeIdentity({
   });
 
   return { envelope, publicKey, roomToken, userId: user.userId, displayName: user.displayName ?? null };
+}
+
+async function issueRoomTokenForUser({
+  topic,
+  userId,
+}: {
+  topic: string;
+  userId: string;
+}): Promise<IssueRealtimeRoomTokenResult | null> {
+  const roomTokenSecret = readRealtimeRoomTokenSecret();
+  if (!roomTokenSecret) return null;
+
+  const roomToken = await issueRealtimeRoomToken({
+    secret: roomTokenSecret,
+    sub: userId,
+    topic,
+  });
+
+  return { roomToken, userId };
+}
+
+export async function issueGlobalPresenceRealtimeToken(): Promise<IssueRealtimeRoomTokenResult | null> {
+  const user = await getCurrentUserContext();
+  if (!user || !isPlatformAdmin(user)) return null;
+  const acceptanceStatus = await getCurrentUserTermsAcceptanceStatus(user.userId);
+  if (acceptanceStatus.requiresAcceptance) return null;
+
+  return issueRoomTokenForUser({
+    topic: GLOBAL_PRESENCE_TOPIC,
+    userId: user.userId,
+  });
+}
+
+export async function issueSupportInboxRealtimeToken({
+  conversationId,
+}: {
+  conversationId: string;
+}): Promise<IssueRealtimeRoomTokenResult | null> {
+  const normalizedConversationId = typeof conversationId === "string" ? conversationId.trim() : "";
+  if (!SUPPORT_CONVERSATION_TOPIC_PATTERN.test(normalizedConversationId)) return null;
+
+  const user = await getCurrentUserContext();
+  if (!user) return null;
+  const acceptanceStatus = await getCurrentUserTermsAcceptanceStatus(user.userId);
+  if (acceptanceStatus.requiresAcceptance) return null;
+
+  if (!isPlatformAdmin(user)) {
+    const database = await getCloudflareD1Database();
+    if (!database) return null;
+    try {
+      const allowed = await canAccessSupportConversationInD1({
+        conversationId: normalizedConversationId,
+        database,
+        userId: user.userId,
+      });
+      if (!allowed) return null;
+    } catch {
+      return null;
+    }
+  }
+
+  return issueRoomTokenForUser({
+    topic: normalizedConversationId,
+    userId: user.userId,
+  });
 }

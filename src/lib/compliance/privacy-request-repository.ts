@@ -2,6 +2,10 @@ import "server-only";
 
 import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d1";
 import { hashAccountSecurityValue } from "@/lib/auth/account-audit";
+import {
+  eraseSupportDataForPrivacyRequest,
+  listSupportDataForPrivacyRequest,
+} from "@/lib/repositories/support-conversations-repository";
 
 export const PRIVACY_REQUEST_KINDS = [
   "access",
@@ -213,4 +217,12 @@ export async function listPrivacyRequests(
   const bound = options.status ? stmt.bind(options.status) : stmt;
   const result = await bound.all<Record<string, unknown>>();
   return (result.results ?? []) as unknown as PrivacyRequestRow[];
+}
+
+export async function exportPrivacyRequestSupportData(requesterUserId: string, dbOverride?: D1DatabaseLike) {
+  return listSupportDataForPrivacyRequest(requesterUserId, dbOverride);
+}
+
+export async function erasePrivacyRequestSupportData(requesterUserId: string, dbOverride?: D1DatabaseLike) {
+  return eraseSupportDataForPrivacyRequest(requesterUserId, dbOverride);
 }

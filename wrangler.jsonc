@@ -47,6 +47,14 @@
       {
         "name": "COLLAB_ROOMS",
         "class_name": "CollaborationRoom"
+      },
+      {
+        "name": "GLOBAL_PRESENCE",
+        "class_name": "GlobalPresence"
+      },
+      {
+        "name": "SUPPORT_INBOX",
+        "class_name": "SupportInbox"
       }
     ]
   },
@@ -54,6 +62,10 @@
     {
       "tag": "v1",
       "new_sqlite_classes": ["CollaborationRoom"]
+    },
+    {
+      "tag": "v2-admin-dashboard",
+      "new_sqlite_classes": ["GlobalPresence", "SupportInbox"]
     }
   ],
   "triggers": {

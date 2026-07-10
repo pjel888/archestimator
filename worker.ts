@@ -22,6 +22,14 @@ import {
   routeCollaborationRoomRequest,
 } from "./src/lib/cloudflare/collaboration-room-router";
 import {
+  type CloudflareGlobalPresenceEnv,
+  routeGlobalPresenceRequest,
+} from "./src/lib/cloudflare/global-presence-router";
+import {
+  type CloudflareSupportInboxEnv,
+  routeSupportInboxRequest,
+} from "./src/lib/cloudflare/support-inbox-router";
+import {
   type CloudflareProtectedProofEnv,
   routeCloudflareProtectedProofRequest,
 } from "./src/lib/cloudflare/protected-proof-routes";
@@ -42,11 +50,15 @@ import generatedOpenNextWorker from "./.open-next/worker.js";
 // Preserve OpenNext-generated Durable Object exports while wrapping the fetch handler.
 export { BucketCachePurge, DOQueueHandler, DOShardedTagCache } from "./.open-next/worker.js";
 export { CollaborationRoom } from "./src/lib/cloudflare/collaboration-room";
+export { GlobalPresence } from "./src/lib/cloudflare/global-presence";
+export { SupportInbox } from "./src/lib/cloudflare/support-inbox";
 
 type CloudflareWorkerEnv = Record<string, unknown>
   & CloudflareScheduledUploadJobEnv
   & CloudflareUploadJobQueueEnv
   & CloudflareCollaborationRoomEnv
+  & CloudflareGlobalPresenceEnv
+  & CloudflareSupportInboxEnv
   & CloudflareProtectedProofEnv
   & {
     ARCH_DB?: RetentionD1DatabaseLike;
@@ -144,6 +156,12 @@ export default {
 
         const collaborationRoomResponse = await routeCollaborationRoomRequest(request, env);
         if (collaborationRoomResponse) return responseWithRequestId(collaborationRoomResponse, requestId);
+
+        const globalPresenceResponse = await routeGlobalPresenceRequest(request, env);
+        if (globalPresenceResponse) return responseWithRequestId(globalPresenceResponse, requestId);
+
+        const supportInboxResponse = await routeSupportInboxRequest(request, env);
+        if (supportInboxResponse) return responseWithRequestId(supportInboxResponse, requestId);
 
         const cachedPublicPageResponse = await routeStaticPublicPageThroughCache(
           request,

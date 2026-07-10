@@ -16,7 +16,7 @@ import {
 } from "@/lib/auth/redirects";
 import { shouldBypassTermsAcceptanceGate } from "@/lib/legal/terms-gate";
 
-const PROTECTED_PREFIXES = ["/workshop"];
+const PROTECTED_PREFIXES = ["/workshop", "/admin"];
 const AUTH_ROUTES = [LOGIN_PATH];
 const PUBLIC_ROUTE_PREFIXES = [
   "/about",

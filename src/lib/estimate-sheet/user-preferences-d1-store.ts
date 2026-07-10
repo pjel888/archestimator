@@ -1,5 +1,6 @@
 import "server-only";
 
+import { isPlatformAdminEmail } from "@/lib/auth/roles";
 import type { CurrentUserContext } from "@/lib/auth/session";
 import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d1";
 import {
@@ -24,7 +25,7 @@ function nowIso() {
 }
 
 function isPlatformAdmin(user: CurrentUserContext) {
-  return user.role === "ceo" || user.role === "admin" || user.email.toLowerCase() === "philipjonlewis@gmail.com";
+  return user.role === "ceo" || user.role === "admin" || isPlatformAdminEmail(user.email);
 }
 
 function parseColumnWidthsJson(value: string | null | undefined): EstimateColumnWidths {
