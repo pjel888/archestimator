@@ -1,0 +1,74 @@
+---
+description: "Shared-worktree discipline: multi-agent safety, no auto-branch, file ownership, conflict detection. Always loaded."
+alwaysApply: true
+---
+
+# Shared-Worktree Safety (Non-Negotiable)
+
+Archestimator is a **shared live worktree** with multiple AI agents and humans working concurrently. This rule prevents coordination disasters.
+
+## Before Every Significant Edit
+
+1. **Recheck worktree state**: `git status --short --branch`
+2. **Re-read affected files** immediately before editing (cached reads from minutes ago are stale)
+3. **Confirm file ownership** — check if another agent is editing the same file via `.ai/03_plans/<pack>/00_COORDINATION_LEDGER.md` or recent git log
+4. **Preserve unfamiliar changes** — never revert/edit/delete files you didn't create
+5. **Keep edits narrowly scoped** — no drive-by refactors, no formatting churn, no unrelated cleanup
+
+## NEVER Do These Without Explicit Human Request
+
+These are coordination hazards in a shared worktree:
+
+- Auto-create Git branches
+- Auto-switch/checkout branches
+- Auto-rename or delete branches
+- Auto-push to remote
+- Create Git worktrees
+- `git reset --hard`
+- `git clean -fd`
+- Force-push
+- Unapproved history rewriting
+- Commit/merge/PR/deploy without explicit authorization for that action
+- Delete unfamiliar files (might be another agent's in-progress work)
+- Revert another agent's work
+
+**Default branch is `main`. Stay on the current checkout.** Use file-scope ownership + fresh status checks + small diffs for collision avoidance, not branch isolation.
+
+## File-Ownership Declaration (For Multi-File Work)
+
+Before editing a file, record the path + edit-intent in:
+- `.ai/03_plans/<pack>/00_COORDINATION_LEDGER.md`, or
+- `.ai/05_logs/<date>-<topic>.md`, or
+- The active plan-pack run-log
+
+Re-check the ledger immediately before applying the edit. Cross-pack references are read-only.
+
+## Periodic Re-Check During Long Edit Sequences
+
+If you read a file, deliberate for more than a few minutes, then edit → **re-read immediately before the edit** to detect concurrent changes.
+
+## Conflict Detection On Save
+
+After every edit:
+- `git diff --check` (whitespace/conflict markers)
+- Review the focused diff — verify it matches intent
+- Confirm no other agent's edit was overwritten
+
+## Stale-Context Recovery
+
+If resuming after a long pause:
+1. Re-read every file you intend to edit
+2. `git status --short --branch` + check coordination ledger
+3. Cached reads from before the pause are not authoritative
+
+## When You See Unfamiliar Changes In `git status`
+
+DO NOT revert, stage, or commit them. Roll back only your own edits if retry is needed. If something looks broken, ask in the ledger or ask the user — never silently "fix" another agent's work.
+
+## Commit / Push / PR Authorization
+
+Commits, pushes, PRs, deploys, and external-production actions require **explicit authorization for that exact action**. Standing Cloudflare-resource authorization covers D1/R2/DO/Queue/Email/Images mutations inside `wrangler.jsonc` bindings — it does NOT cover Git remote operations, PR creation, or production deploys.
+
+## Why This Exists
+
+Multiple agents have overwritten each other's work, force-pushed broken states, and reverted in-progress feature branches in this repo's history. These rules are scar tissue. Follow them.

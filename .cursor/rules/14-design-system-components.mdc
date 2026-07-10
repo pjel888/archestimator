@@ -1,0 +1,96 @@
+---
+description: "Archestimator design system. SF Pro, 12px max font, xs radius, neutral palette, Phosphor/Lucide. Enforced by linter."
+globs:
+  - "src/components/**"
+  - "src/app/globals.css"
+  - "src/app/**/page.tsx"
+  - "src/app/**/layout.tsx"
+  - "DESIGN.md"
+  - "scripts/enforce-app-design-system.mjs"
+---
+
+# Archestimator Design System
+
+The app enforces a strict design system via `scripts/enforce-app-design-system.mjs` (run as part of `bun run validate`).
+
+## Tokens
+
+- **Font**: SF Pro, regular/medium weights only
+- **Font size**: 12px maximum in the app (landing pages are exempt)
+- **Border radius**: xs-only (3px)
+- **Letter spacing**: zero
+- **Palette**: Neutral (`#292929` / `#5D5D5D` / `#7F7F7F`), custom surface/ink tokens defined in `src/app/globals.css`
+- **Icons**: Phosphor Icons (regular weight outline), Lucide (shadcn)
+
+## Component Strategy
+
+Components grow from `src/components/ui/` shared primitives first:
+- Button, Badge, Card, Modal, Toast, SearchInput, etc.
+
+Features **must reuse** these rather than creating one-off markup.
+
+## Workshop vs Landing
+
+- **Workshop** (authenticated app): strict 12px max, xs radius, neutral palette enforced
+- **Landing pages** (`src/components/landing/` — 32 section components): exempt from in-app size constraint, can use larger typography for marketing
+
+## DESIGN.md Is Alpha-Stage
+
+`DESIGN.md` is **alpha-stage guidance, not law**. Defer to Philip on design decisions. Don't block or revert work on design-system grounds while the visual language is still being developed.
+
+## Storybook
+
+Storybook 10.4 is installed as a **review surface only** — 60+ UI components, 85+ stories. It is NOT a production route. Run `bun run storybook` (port 6006) for review; `bun run storybook:validate` for coverage + boundary + build check.
+
+Don't use Storybook as evidence of production behavior. It's a component review tool.
+
+## Tailwind v4 (CSS-First)
+
+Tailwind CSS v4 uses **CSS-first config** — no `tailwind.config.ts`. Tokens defined in `src/app/globals.css` via `@theme`. Don't add a JS config file.
+
+## Commands
+
+```bash
+bun run lint:design-system      # custom design-system enforcement
+bun run lint:design             # Impeccable design quality audit (repo-pinned local detector)
+bun run storybook               # start Storybook review surface
+bun run storybook:validate      # component coverage + boundary + build
+```
+
+## Forbidden
+
+- Font sizes > 12px in workshop UI (use design tokens; landing is exempt)
+- Border radius > 3px (xs only) in workshop UI
+- Non-zero letter-spacing
+- Non-SF Pro fonts (without explicit design decision)
+- Bold/semibold weights beyond what tokens define (regular/medium only)
+- Filled/heavy icon weights (use regular outline)
+- One-off markup when a `src/components/ui/` primitive exists
+- Adding a `tailwind.config.ts` (Tailwind v4 is CSS-first)
+
+## UI Verification (Proportional)
+
+- **Minor cosmetic** (spacing, copy, color, icon, class tweaks): static review + focused type/LSP/lint is enough
+- **Interaction, routing, auth/data state, responsive, a11y**: browser/Playwright proof required
+- **Complex composition, CJK text, layout shift**: visual-qa skill with pixel-diff
+
+State the specific browser-only claim being proven before reaching for Playwright. Faster path wins (Codex App speed guardrail).
+
+## Impeccable / visual-qa
+
+Use Impeccable and visual-qa tooling for:
+
+- High-risk UI polish
+- Design audits
+- Explicit visual-review tasks
+
+Routine UI fixes can lean on `DESIGN.md` and existing component patterns without loading a full design workflow or browser automation.
+
+## Before Adding New Components
+
+1. Check `src/components/ui/` for existing primitive
+2. Check `src/components/workshop/` for existing workshop pattern (44+ components)
+3. Check Storybook for reviewed variants
+4. Only create new if no fit exists AND the new component will be reused
+
+Avoid premature componentization. Inline single-use markup.

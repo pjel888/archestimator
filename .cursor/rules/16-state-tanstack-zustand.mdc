@@ -1,0 +1,106 @@
+---
+description: "TanStack Query + Zustand state patterns. Optimistic mutations, query keys, high-frequency UI state."
+globs:
+  - "src/hooks/**"
+  - "src/stores/**"
+  - "src/app/providers.tsx"
+---
+
+# State Management — TanStack Query + Zustand (Archestimator)
+
+Split by frequency and origin: **server state** → TanStack Query. **high-frequency UI state** → Zustand.
+
+## TanStack Query (Server State)
+
+- `staleTime: 30s` default for server state
+- Query keys namespace by resource + scope: `['estimates', workspaceId, projectId]`, `['library', workspaceId, folderId]`
+- Optimistic mutations with rollback on error
+- Invalidate related query keys, not all
+- `providers.tsx` configures the QueryClient
+
+### Existing Hooks (Read First)
+
+- `src/hooks/use-estimate-query.ts` — estimates with optimistic updates
+- `src/hooks/use-estimate-row-mutations.ts` — row CRUD with optimistic updates
+- `src/hooks/use-estimate-cursor-broadcast.ts` — realtime cursor collaboration
+- `src/hooks/use-estimate-workspace-state.ts` — Zustand selection/expansion
+- `src/hooks/use-navigation-router.ts` — route-loading overlay
+- `src/hooks/use-prefetch-on-hover.ts` — link prefetch
+- `src/hooks/use-project-presence.ts` — realtime user presence
+- `src/hooks/use-shared-link-session.ts` — share link session state
+
+Match these patterns before adding new hooks.
+
+## Zustand (High-Frequency UI State)
+
+Existing stores:
+
+- `src/stores/estimate-ui-store.ts` — per-estimate selection, expansion
+- `src/stores/navigation-ui-store.ts` — route-loading overlay state
+
+Use Zustand for:
+
+- High-frequency updates (cursor position, selection, drag state)
+- Transient UI state that doesn't need cache/invalidation
+- State shared across deeply-nested components without prop drilling
+
+Do NOT use Zustand for:
+
+- Server data (use TanStack Query)
+- Persistent state across reloads (use URL state or localStorage explicitly)
+- State that can be derived during render (compute instead)
+
+## Server/Client Data Boundary
+
+Server Components fetch initial data and pass as props. Client Components use TanStack Query for subsequent fetches/mutations. Don't duplicate server data in Zustand — derive or refetch.
+
+## Optimistic Mutation Pattern
+
+```ts
+// Pseudocode — see use-estimate-row-mutations.ts for the real pattern
+mutationFn: async (newRow) => {
+  await serverAction(newRow);  // throws on error
+},
+onMutate: async (newRow) => {
+  await queryClient.cancelQueries({ queryKey });
+  const previous = queryClient.getQueryData(queryKey);
+  queryClient.setQueryData(queryKey, applyOptimistic(newRow));
+  return { previous };
+},
+onError: (err, newRow, context) => {
+  queryClient.setQueryData(queryKey, context.previous);  // rollback
+},
+onSettled: () => {
+  queryClient.invalidateQueries({ queryKey });
+},
+```
+
+## Realtime (Durable Objects)
+
+- `use-estimate-cursor-broadcast` connects to `COLLAB_ROOMS` DO via WebSocket
+- `use-project-presence` tracks workspace/project members
+- State sync via DO broadcast, not TanStack Query
+
+## Forbidden
+
+- `useEffect` for data fetching — use Server Component or Server Action
+- Duplicating server state in Zustand
+- `useState` for cross-component state (lift to Zustand or use context)
+- Context for high-frequency updates (perf)
+- Stale closures — use `useCallback` / `useMemo` only when measurably needed
+- Memoization without a render-cost/referential-stability reason
+- Effects for render derivation — use effects for synchronization with cleanup only
+
+## Hydration Safety
+
+Guard against hydration mismatches:
+
+- No unstable render inputs (`Date.now()`, `Math.random()`, `crypto.randomUUID()` in render)
+- Server/client timestamp divergence
+- Conditional rendering based on client-only APIs
+
+## Prefetch Discipline
+
+- `use-prefetch-on-hover` for likely-next navigations
+- Server Component prefetch for critical path data
+- Don't prefetch everything — wastes bandwidth + D1 row reads

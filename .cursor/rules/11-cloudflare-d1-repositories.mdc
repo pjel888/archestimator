@@ -1,0 +1,108 @@
+---
+description: "Cloudflare D1 repository patterns. App-layer authz (no RLS), RPC-style queries, migrations, SQL discipline."
+globs:
+  - "src/lib/repositories/**"
+  - "migrations/**"
+  - "src/lib/db/**"
+  - "**/cloudflare-env.d.ts"
+---
+
+# Cloudflare D1 Repository Patterns (Archestimator)
+
+D1 is **not Postgres**. There is no RLS. App-layer authorization is enforced in repositories, Server Actions, and the Better Auth route gate.
+
+## Non-Negotiable: Repository Boundary
+
+All D1 access goes through `src/lib/repositories/` helpers. The pattern:
+
+```
+Server Action / Route Handler
+        ↓ auth + authz check
+Repository helper (src/lib/repositories/*)
+        ↓ parameterized SQL
+   D1 binding (env.ARCH_DB)
+```
+
+Never call `env.ARCH_DB.prepare()` or `.bind()` from a Server Action, Route Handler, or component. Always go through a repository helper.
+
+## Authorization Model
+
+Every repository function that reads or writes must take an authorization context:
+
+- `workspaceId` + authenticated `userId` from Better Auth session
+- Resource ownership check (workspace membership + role)
+- Fail-closed by default — deny if any check is missing or ambiguous
+
+Existing patterns live in `src/lib/repositories/*.ts` — read them before adding new ones.
+
+## SQL Discipline
+
+- **Parameterized queries only.** Never string-interpolate user input.
+- Use `prepare()` + `.bind()` with `?` placeholders.
+- D1 supports a subset of SQLite — no stored procedures, no advanced window functions, limited JSON ops.
+- Watch D1 batch limits (currently 1000 statements per batch for free tier).
+- Use `RETURNING *` for single-statement read-after-write when possible.
+
+## Migrations
+
+- Active migrations live in `./migrations/` (numbered `0001_...` through `0040_...sql`).
+- **Never edit an applied migration** — always add a new numbered file.
+- Forward-fix mistakes with a new migration, not by editing old ones.
+- Apply locally: `wrangler d1 migrations apply ARCH_DB --local`
+- Apply to production-bound DB: Philip's standing authorization covers this for `ARCH_DB` only.
+
+## Schema Conventions (Existing)
+
+Core hierarchy: `workspaces -> projects -> estimates -> estimate_nodes (group/area tree) -> estimate_row_items`
+
+Component library: `cost_library_items -> price_options -> variant_cost_entries -> variant_attachments`, with `component_category_nodes`, `component_suppliers`, `component_brands`, `library_folders`.
+
+Collaboration: `project_members`, `estimate_sheet_access_settings`, `estimate_sheet_members`, `collaboration_invitations` (hashed tokens).
+
+Publication: `project_publications` (hashed tokens, optional passwords), `shared_link_recipients`, `shared_link_comments`, `shared_link_responses`, `shared_link_events`.
+
+Audit: `estimate_sheet_events`, `account_security_events`, `ai_action_runs`, `ai_tool_calls`, `ai_data_access_events`, `collaboration_audit_events`.
+
+Versioning: `estimate_sheet_versions`, `cost_library_item_versions`, `cost_library_item_price_history`, `cost_library_item_state_history`.
+
+Incidents: `operational_incident`, `operational_incident_events`.
+
+Security: `security_rate_limit_events` (DB-durable persistent rate limiting).
+
+Read the actual migrations for current shape — don't rely on memory.
+
+## Credential Material Taxonomy
+
+For columns touching auth/tokens/invites/shares:
+
+- **Raw bearer tokens** (URL-carried, single-use): stored as SHA-256 hash, recovered only at acceptance time
+- **Password hashes**: bcrypt/argon2
+- **Session cookies**: Better Auth managed
+- **OAuth state**: ephemeral, single-use
+- **Magic links**: time-bounded, single-use
+
+Never collapse raw tokens, hashes, encrypted tokens, session cookies into one generic "token" concept. A stored hash is not a substitute for a raw bearer value at runtime.
+
+## D1 Performance Discipline
+
+- Watch query count — D1 charges per row read.
+- Use indexes (defined in migrations) for hot paths.
+- N+1 queries are a bug — batch when possible.
+- Use `bun run perf:dashboard-query-count` to audit workshop dashboard queries.
+- Use `bun run cf:d1-runtime-proof` for runtime performance proof.
+
+## Cloudflare Bindings
+
+Active bindings (from `wrangler.jsonc`):
+- D1 `ARCH_DB` (`archestimator-proof-db`)
+- R2 `ARCH_UPLOADS_R2` (`archestimator-proof-uploads`)
+- Durable Object `COLLAB_ROOMS` (class `CollaborationRoom`, SQLite-backed)
+- Queue `UPLOAD_JOBS_QUEUE` (+ DLQ, max 3 retries)
+- Cloudflare Images `IMAGES`
+- Cloudflare Email `EMAIL`
+
+Two cron triggers: `0 3 * * *`, `15 3 * * *`, `30 3 * * *`.
+
+## Historical Only
+
+`./supabase/migrations/` (182 files) is migration archaeology. Do not run, apply, or extend. Supabase project `ebxxqidacheyapmmzavr` is provider-exit evidence only.

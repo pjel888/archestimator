@@ -1,0 +1,130 @@
+---
+description: "Cloudflare Workers, OpenNext, wrangler.jsonc, bindings, Durable Objects, Queues, Email, Images."
+globs:
+  - "wrangler.jsonc"
+  - "open-next.config.*"
+  - "cloudflare-env.d.ts"
+  - "src/lib/cloudflare/**"
+  - "src/lib/collaboration/**"
+  - "scripts/cf-*"
+  - "src/lib/email/**"
+---
+
+# Cloudflare Workers Bindings (Archestimator)
+
+Archestimator is **Cloudflare-first**. Don't default to hybrid recommendations. Plan runtime work around Workers/OpenNext, D1, Better Auth, R2, Queues/Cron, Durable Objects/WebSockets, KV-only-safe-cache, Email, WAF/rate-limiting/DDoS, Turnstile where in scope, Web Analytics, Workers Observability.
+
+## Active Bindings (from `wrangler.jsonc`)
+
+| Binding | Type | Name |
+|---|---|---|
+| `ARCH_DB` | D1 database | `archestimator-proof-db` (id `9bdb29bb-687e-4f51-ae81-7659c426ea5f`) |
+| `ARCH_UPLOADS_R2` | R2 bucket | `archestimator-proof-uploads` |
+| `COLLAB_ROOMS` | Durable Object | class `CollaborationRoom` (SQLite-backed) |
+| `UPLOAD_JOBS_QUEUE` | Queue | `archestimator-upload-jobs` + DLQ (max 3 retries) |
+| `IMAGES` | Cloudflare Images | (binding) |
+| `EMAIL` | Cloudflare Email | (binding) |
+
+Worker name: `archestimator-proof`. Custom domain: `archestimator.com`.
+
+Cron triggers: `0 3 * * *`, `15 3 * * *`, `30 3 * * *`.
+
+## Worker Env Types
+
+Generated types from `wrangler.jsonc` via `bun run cf:typegen`. Output: `cloudflare-env.d.ts`. **Regenerate after every binding change.** Never hand-edit `cloudflare-env.d.ts`.
+
+## Commands
+
+```bash
+bun run cf:typegen                    # regenerate cloudflare-env.d.ts
+bun run cf:build                      # opennextjs-cloudflare build
+bun run cf:preview                    # build + wrangler preview (local bindings)
+bun run cf:deploy                     # build + wrangler deploy to archestimator-proof
+bun run cf:check-readiness            # Worker readiness gate
+bun run cf:check-provider             # Cloudflare provider readiness
+bun run cf:check-email                # Cloudflare Email readiness
+bun run cf:check-dns-delegation       # archestimator.com DNS gate
+bun run cf:queues-cron-proof          # Queue + cron proof
+bun run cf:better-auth-proof          # Better Auth on D1 proof
+bun run cf:d1-runtime-proof           # D1 runtime performance proof
+bun run cf:d1-restore-rehearsal       # D1 restore dry-run
+bun run cf:provider-exit-pack         # legacy provider-exit evidence
+bun run cf:release-gates              # release-gate suite
+bun run cf:inventory                  # Cloudflare migration inventory
+```
+
+## Local D1
+
+Apply migrations to local preview DB:
+```bash
+wrangler d1 migrations apply ARCH_DB --local
+```
+
+## Durable Objects (`COLLAB_ROOMS`)
+
+Class `CollaborationRoom`. SQLite-backed (Durable Object storage). Broadcasts:
+
+- Cursor positions (estimate sheet editor)
+- User presence (project dashboard)
+- Sheet-level mutations (realtime sync)
+
+WebSocket connection per room. State persisted in DO storage. See `src/lib/collaboration/` and `src/hooks/use-estimate-cursor-broadcast.ts`, `src/hooks/use-project-presence.ts`.
+
+## Queues (`UPLOAD_JOBS_QUEUE`)
+
+Background jobs for: PDF/XLS upload processing, image processing, async export. Consumer: defined in Worker. DLQ for failed jobs (max 3 retries).
+
+## Cloudflare Email (`EMAIL`)
+
+Transactional email (replaces Resend). See `src/lib/email/cloudflare-email-client.ts`, `src/lib/email/transactional-email-client.ts`. Used for: magic links, invite delivery, publication notifications.
+
+## Cloudflare Images (`IMAGES`)
+
+Component library images, project cover images. See `src/app/api/component-library/images/`, `src/app/api/projects/images/`. Stored via Images binding; fallback to R2 for variants/attachments.
+
+## Cost Posture
+
+Stay on **free-tier / bundled** Cloudflare limits. Do NOT enable paid add-ons without explicit owner approval:
+- D1 paid plan
+- R2 paid tier
+- Workers Smart Placement paid
+- Workers Analytics paid
+- Dedicated egress
+
+Rely on daily D1 backups + `bun run cf:d1-restore-rehearsal` for the cheaper recovery path.
+
+## Standing Authorization Scope
+
+Philip grants standing authorization for changes inside `wrangler.jsonc` bindings: D1 `ARCH_DB`, R2 `ARCH_UPLOADS_R2`, DO `COLLAB_ROOMS`, Queue `UPLOAD_JOBS_QUEUE`, Email `EMAIL`, Images `IMAGES`.
+
+**Out of scope (never touch):**
+- Historical Supabase project `ebxxqidacheyapmmzavr`
+- The unrelated `archestimator` Cloudflare provider project
+- Other Cloudflare accounts
+- Other Cloudflare Workers/projects outside `wrangler.jsonc` bindings
+
+## Workers Logs (Production Observability)
+
+`wrangler.jsonc` enables **persisted Workers Logs at full sampling** with traces disabled to preserve shared log quota. For hosted debugging, use Cloudflare Workers Logs / Real-time logs or `wrangler tail` as production evidence. Local logs (`logs/dev.ndjson`) are NOT hosted proof.
+
+## Cache Components + KV
+
+Workers KV can be used as a safe cache layer when:
+
+- Cache key includes privacy scope (workspace/user where relevant)
+- TTL bounded
+- Read-your-own-writes handled via cache tag invalidation
+
+Don't use KV as primary store. Use D1 for primary, KV for cache.
+
+## OpenNext Adapter
+
+`@opennextjs/cloudflare` ^1.20.1 is the active adapter. Build: `bun run cf:build` runs `opennextjs-cloudflare build`. Output deploys to Worker. Read `open-next.config.*` before changing adapter behavior.
+
+## Forbidden
+
+- Mutating Cloudflare resources outside `wrangler.jsonc` bindings
+- Enabling paid add-ons without explicit owner approval
+- Hardcoding binding names that diverge from `wrangler.jsonc`
+- Editing `cloudflare-env.d.ts` manually (regenerate via `cf:typegen`)
+- Defaulting to hybrid recommendations (this is Cloudflare-first)

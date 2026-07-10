@@ -1,0 +1,82 @@
+---
+description: "Archestimator project brain: stack, mission, .ai/ folder, authority hierarchy. Always loaded."
+alwaysApply: true
+---
+
+# Archestimator Project Brain
+
+You are working on **Archestimator** — a construction cost estimating platform (cost proposal workspace for AEC teams). Mission: "From cost proposal to client approval." Primary market: Philippines + Southeast Asia.
+
+## Authority Hierarchy (when sources conflict)
+
+1. **User intent** (explicit current request, task brief, attached files) → product goal
+2. **Repo reality** (`AGENTS.md`, `.ai/`, current source, tests, migrations, `package.json`, configs, `wrangler.jsonc`) → implementation truth
+3. **Installed framework docs** (`node_modules/next/dist/docs/`, Cloudflare docs via MCP/context7) → version-sensitive behavior
+4. **Local installed skills** (`.cursor/skills/`, `.opencode/skills/`) → workflows
+5. **Older plans, archived notes, model memory** → low authority; never overrule current repo reality
+
+When intent and reality conflict, record the conflict and resolve explicitly. Never let a stale brief override current code/provider facts.
+
+## The `.ai/` Folder Is The Project Brain
+
+`.ai/` is shared operational intelligence for every AI agent (Claude, Codex, OpenCode, Cursor, CommandCode, Antigravity, Kimi, DeepSeek). Read for speed, don't preload.
+
+**Always read (small):**
+- `AGENTS.md` (repo root) — entry point
+- `.ai/10_state/current-state.md` — FAST PATH block at top only (it's a ~2,500-line append-only log; `rg` it for your task area instead of linear reading)
+
+**Pull on demand:**
+- `.ai/00_system/AGENT_OPERATING_PROTOCOL.md` — loop rules, validation matrix
+- `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md` — agent/payload/proof contracts
+- `.ai/10_state/decisions.md` — `rg` for the specific decision, don't read whole
+- `.ai/06_specs/` — feature specifications
+- `.ai/01_roadmap/README.md` — launch readiness dashboard
+- `DESIGN.md` — design system (alpha-stage guidance, defer to Philip)
+
+## Active Stack (verify from source files, not memory)
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 16.2.10 (App Router, RSC, Cache Components) |
+| UI | React 19.2.7 |
+| Runtime | Bun 1.3.14 (package manager, test runner, lockfile) |
+| Language | TypeScript 6.0.3 (strict) |
+| Styling | Tailwind CSS v4 (CSS-first config, no `tailwind.config.ts`) |
+| Deploy | OpenNext for Cloudflare (`@opennextjs/cloudflare` ^1.20.1), Wrangler ^4.105.0, Worker `archestimator-proof`, custom domain `archestimator.com` |
+| Database | Cloudflare D1 (`ARCH_DB`, database `archestimator-proof-db`, 40 migrations in `./migrations/`) |
+| Storage | Cloudflare R2 (`ARCH_UPLOADS_R2`, bucket `archestimator-proof-uploads`) |
+| Realtime | Cloudflare Durable Objects (`COLLAB_ROOMS`, class `CollaborationRoom`, SQLite-backed) |
+| Background | Cloudflare Queues (`UPLOAD_JOBS_QUEUE` + DLQ) + Cron (`0 3 * * *`, `15 3 * * *`, `30 3 * * *`) |
+| Auth | Better Auth 1.6.23 (Google OAuth + magic link, D1-backed, mounted at `/api/auth/[...all]`) |
+| Email | Cloudflare Email Service (`EMAIL` binding, replaces Resend) |
+| Images | Cloudflare Images (`IMAGES` binding) |
+| State | TanStack Query 5, Zustand 5 |
+| Tables | TanStack Table 8, TanStack Virtual 3 |
+| Charts | D3 7 |
+| Tree UI | React Complex Tree 2 |
+| Animation | GSAP 3 |
+| Dropdowns | Radix UI |
+| Export | ExcelJS 4 |
+| Icons | Phosphor Icons (regular weight outline), Lucide (shadcn) |
+| Testing | Bun test, Vitest 4 + jsdom, Playwright E2E |
+| Linting | ESLint 9 flat config, custom design-system linter, tsc |
+
+## What's Historical Only (do not mutate, do not extend)
+
+- Legacy Supabase migrations in `./supabase/migrations/` (182 files) — migration archaeology only
+- Supabase project `ebxxqidacheyapmmzavr` — provider-exit evidence only
+- The unrelated `archestimator` Cloudflare provider project — out of scope
+- Other Cloudflare accounts/projects outside `wrangler.jsonc` bindings
+- AI features (Ask Flip, AI Package Builder) — **deferred**, hidden unless env-flagged
+
+## Standing Cloudflare Authorization
+
+Philip grants standing authorization for Archestimator Cloudflare D1/R2/Durable Object/Queue/Email/Images changes **inside the resources bound in `wrangler.jsonc`** without per-change approval. Stay on free-tier/bundled limits. Do not enable paid add-ons without explicit approval. Use `./migrations/` for D1 schema changes. This supersedes older Supabase owner-gated wording.
+
+## Pre-Launch MVP Stage
+
+Prepare for first users. Prioritize: auth, estimating workflows, cost library, proposal package, collaboration/publication proof, provider evidence, fast iteration. No external users yet — move fast, fix mistakes forward, validate proportionally.
+
+## Critical: Read `AGENTS.md` And `.ai/` Before Acting
+
+For anything beyond trivial edits, read `AGENTS.md` (repo root) and the FAST PATH block of `.ai/10_state/current-state.md` before planning. Pull narrower `.ai` docs as the task demands. Skipping this = working from stale memory.

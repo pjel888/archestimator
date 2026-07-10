@@ -1,0 +1,135 @@
+---
+description: "Publication/share security. Hashed tokens, password protection, P10 lockout, recipient scope, snapshot integrity."
+globs:
+  - "src/lib/publication/**"
+  - "src/app/share/**"
+  - "src/app/invite/**"
+  - "src/app/api/share/**"
+  - "src/components/share/**"
+---
+
+# Publication + Share Security (Archestimator)
+
+Publication = sharing an estimate snapshot with external recipients via a hashed-token URL. This is a sensitive surface — auth bypass or token leakage is a P0.
+
+## Token Storage (Non-Negotiable)
+
+- **Publication tokens**: SHA-256 hash stored in `project_publications.token_hash`. Raw token only at URL issuance — never stored.
+- **Invite tokens**: SHA-256 hash stored in `collaboration_invitations.token_hash`. Same rule.
+- **Passwords (optional)**: bcrypt/argon2 in `project_publications.password_hash`. Never client-visible.
+- **Recipient scope**: `shared_link_recipients` table links publication to allowed emails.
+
+Never collapse raw tokens, hashes, encrypted tokens, session cookies into one "token" concept.
+
+## URL Flow
+
+```
+/share/[token]/     → lookup by SHA-256(token)
+                    → check expiry
+                    → check password (if set)
+                    → check recipient scope (if limited)
+                    → render snapshot
+```
+
+Raw token in URL is the bearer value. Server hashes it for lookup. If a publication requires a raw bearer value at runtime (e.g., for a privileged action), a stored hash is NOT a substitute.
+
+## Acceptance Flow (Invites)
+
+```
+/invite/[token]/            → lookup by SHA-256(token)
+                            → require authenticated session
+                            → check workspace membership not already present
+                            → accept → invalidate token → redirect to workshop
+/invite/[token]/continue/   → post-accept continuation
+/invite/[token]/sign-out/   → allow user to switch accounts
+```
+
+Read `src/lib/collaboration/invites/` and `src/app/invite/[token]/` for the actual patterns.
+
+## Rate Limiting (P10 Lockout)
+
+`security_rate_limit_events` provides DB-durable persistent rate limiting on:
+
+- Publication password attempts (P10 lockout threshold)
+- Invite entry attempts
+- Share endpoint attempts
+- Export attempts
+
+App-layer enforcement. After threshold, lock out for a cooldown. Record every attempt in `shared_link_events` and `account_security_events`.
+
+## Snapshot Integrity
+
+Publications reference a snapshot of the estimate at publication time:
+
+- `project_publications.snapshot_*` columns capture the published state
+- Mutations to the original estimate do NOT change the published snapshot
+- Re-publish creates a new snapshot (new token, new recipient list)
+
+**Claims discipline**: Exports are working documents, NOT immutable issued records. The immutable/issued-record policy is a future decision. Don't pretend a publication is a legal/purchase record.
+
+## Publication Event Audit
+
+Every publication interaction writes to `shared_link_events`:
+
+- View
+- Comment
+- Decision (approve/reject)
+- Password attempt (success/failure)
+- Recipient add/remove
+
+Use the existing event helpers; don't write raw INSERTs.
+
+## Comments + Decisions
+
+- `shared_link_comments`: threaded comments on snapshot nodes
+- `shared_link_responses`: per-node decision state (approved/rejected/pending)
+- `shared_link_recipients`: who received the publication
+
+Comments/decisions are scoped to the publication, not the underlying estimate. They don't mutate the source.
+
+## Export From Publication
+
+- `src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/` — ExcelJS workbook builder
+- Exports from estimate tree (not publication snapshot, unless explicitly snapshot-scoped)
+- Rate-limited via `security_rate_limit_events`
+
+## Forbidden
+
+- Storing raw tokens in D1 (always SHA-256 hash)
+- Logging raw tokens, hashes, or passwords
+- Passing tokens via client props (URL-only bearer)
+- Trusting client-supplied `publicationId` without ownership check
+- Skipping rate limiting on publication endpoints
+- Long-lived publications without expiry review path
+- Reading the snapshot from the live estimate (mutates underneath you)
+- Skipping `shared_link_events` audit writes
+- Allowing publications to mutate the source estimate
+
+## Adversarial Scenarios (Test These)
+
+When touching publication/share code, consider:
+
+- Token enumeration (sequential guesses, timing attacks)
+- Token leak via referrer, browser history, analytics
+- Password brute force (mitigated by P10 lockout)
+- Recipient scope bypass (logged-in-as-different-user)
+- Snapshot/estimate bleed (mutation leak)
+- CSRF on accept/comment endpoints
+- Open redirect on `/invite/[token]/continue/`
+- Path traversal in snapshot reconstruction
+- Replay after revocation (token must be single-use or time-bounded)
+
+## Public Share Page Discipline
+
+`/share/[token]/` is a PublicPageShell — no auth required by default. Must:
+
+- Render snapshot only (no live data)
+- Rate-limit password attempts
+- Not leak recipient emails, comment authors, or internal IDs in client bundle
+- Not allow navigation to other publications
+- Handle expired/revoked tokens with a generic error (no enumeration signal)
+- Optional password gate before rendering
+
+## Client Components
+
+`src/components/share/` contains the shared link viewer components. Match the existing patterns. Don't add new client-side data fetching — use Server Components for initial render.

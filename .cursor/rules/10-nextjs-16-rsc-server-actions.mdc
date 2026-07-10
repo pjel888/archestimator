@@ -1,0 +1,82 @@
+---
+description: "Next.js 16 App Router RSC + Server Actions patterns for Archestimator. Cache Components, server/client boundaries, route discipline."
+globs:
+  - "src/app/**/*.{ts,tsx}"
+  - "src/lib/**/actions.ts"
+  - "src/lib/**/actions/*.ts"
+  - "src/middleware.ts"
+  - "src/app/api/**/route.ts"
+---
+
+# Next.js 16 RSC + Server Actions (Archestimator)
+
+This is **Next.js 16** with Cache Components — not Next 14/15. Read `node_modules/next/dist/docs/` before claiming framework behavior.
+
+## Server / Client Boundary
+
+- **Default to Server Components.** Add `"use client"` only when the file uses state, effects, refs, browser APIs, or event handlers.
+- `"use client"` directive goes on **line 1**, before any imports.
+- Never import a Client Component from inside a `"use server"` action file.
+- Never re-export server-only code through a client module — the bundler will silently include it.
+- Keep server-only data (D1 rows, secrets, privileged objects) out of client bundles.
+
+## Cache Components (Next.js 16+)
+
+Don't carry over Next 14/15 cache assumptions. When Cache Components is enabled:
+
+- Identify which routes are static vs dynamic vs partial.
+- Name the `use cache` boundaries explicitly.
+- Name the `cacheLife` / `cacheTag` primitives in use.
+- Prove token-bearing, private-tenant, auth, share-session, upload, AI, and security/error responses still default to **no-store**.
+- Read `node_modules/next/dist/docs/` migration guides before changing cache directives.
+
+## Server Actions Are POST Endpoints
+
+Every Server Action must validate:
+
+1. **Auth** — Better Auth session via `src/lib/auth/`
+2. **Authorization** — workspace/project/estimate membership + role
+3. **Ownership** — resource belongs to the authenticated user/workspace
+4. **Input** — schema-validated (Zod or repo schema)
+5. **Idempotency** — safe to retry, no accidental duplicate writes
+6. **Return shape** — typed DTO, never leak internal errors
+
+Server Actions that set cookies, mutate headers, call `redirect()`, or bridge to public/auth surfaces: define the exact success transport AND the no-JS/progressive-enhancement behavior. Unit tests are not enough for browser-only claims — require browser proof for cookie persistence, redirects, focus, routing, session establishment.
+
+## Route Discipline
+
+- Define route ownership: loading.tsx, error.tsx, not-found.tsx, metadata, streaming, Suspense, navigation.
+- Define data-fetching owner: Server Component, repository/data layer, Server Action, Route Handler, TanStack Query, or other existing pattern.
+- Define cache owner, cache key, privacy dimensions, staleness tolerance, invalidation primitive, read-your-own-writes behavior.
+- URL state: if pagination is transient, name the client state owner, loader/API boundary, DTO, authz, reset behavior. Don't call a cursor or query param shareable unless reload/share/back-forward reproduces the same visible state.
+
+## TanStack Query Integration
+
+- 30s staleTime default for server state.
+- Optimistic mutations with rollback on error.
+- Query keys namespace by resource + scope (workspace, project, estimate).
+- Mutations invalidate related query keys, not all.
+
+## Repository Boundary (Non-Negotiable)
+
+All D1 access goes through `src/lib/repositories/` helpers. Server Actions and Route Handlers call repository functions; they never construct raw SQL or call D1 `.prepare()` / `.bind()` directly. See `11-cloudflare-d1-repositories.mdc`.
+
+## Forbidden
+
+- Effects for render derivation (use effects for synchronization with cleanup only).
+- Memoization without a real render-cost or referential-stability reason.
+- Hydration mismatches from unstable render inputs or server/client divergence.
+- `cookies()`, `headers()`, `draftMode()` inside a Cache Component without dynamic marking.
+- `async` in Client Components (no async client render).
+- `useEffect` for data fetching when a Server Component or Server Action can do it.
+
+## Routing Conventions
+
+- Workshop app chrome is layout-owned: `workshop/layout.tsx` renders `WorkshopShell` after the auth/terms gate; pages/nested layouts render `WorkshopRouteHeader` + content. Public marketing uses `PublicPageShell`.
+- Nested workshop layouts: `library/layout.tsx` and `projects/[projectId]/layout.tsx` own subtree headers/sidebars (not a second full shell).
+- Public surfaces: `/share/[token]/`, `/invite/[token]/`, `/login/`, `/about/`, `/features/`, `/pricing/`, `/contact/`.
+- Auth: Better Auth handler at `/api/auth/[...all]` (NOT the legacy `/auth/callback/`).
+
+## When To Read Next.js Docs
+
+Before changing: cache directives, `generateMetadata`, `generateStaticParams`, route handlers, middleware, image/font optimization, build config, OpenNext Cloudflare adapter behavior → read `node_modules/next/dist/docs/` for the installed version.

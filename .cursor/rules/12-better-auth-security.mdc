@@ -1,0 +1,108 @@
+---
+description: "Better Auth 1.6 patterns on D1. OAuth, magic link, session, invite tokens, share tokens, rate limiting."
+globs:
+  - "src/lib/auth/**"
+  - "src/middleware.ts"
+  - "src/app/api/auth/**"
+  - "src/lib/collaboration/invites/**"
+  - "src/lib/publication/**"
+---
+
+# Better Auth + Auth Security (Archestimator)
+
+Better Auth 1.6.23 is wired against D1. Mounted at `/api/auth/[...all]`. Google OAuth + magic link. **D1-backed, not Postgres.**
+
+## Auth Architecture
+
+- **Better Auth handler**: `src/app/api/auth/[...all]/route.ts`
+- **Route gate proxy**: `src/lib/auth/request-proxy.ts` — exported via `src/middleware.ts`
+- **D1 stores**: `account-actions`, `account-settings`, `account-audit` (see `src/lib/auth/*-d1-store.ts`)
+- **Closed beta**: `src/lib/auth/closed-beta-d1-store.ts`
+- **Dev auth**: `src/lib/auth/dev-auth.ts`
+
+## Authorization Layers (Defense In Depth)
+
+D1 has no RLS. Authorization enforced at:
+
+1. **Better Auth route gate** (`src/lib/auth/request-proxy.ts`) — first-line route protection
+2. **Repository helpers** — every read/write takes authz context (see `11-cloudflare-d1-repositories.mdc`)
+3. **Server Actions** — re-validate session + ownership before every mutation
+4. **Rate limiting** — DB-durable via `security_rate_limit_events` table
+
+Fail-closed by default. If any check is missing or ambiguous, deny.
+
+## Credential Material Handling
+
+Distinct materials with distinct visibility rules — never collapse:
+
+| Material | Storage | Visibility | Use |
+|---|---|---|---|
+| Raw bearer token (invite, share) | SHA-256 hash in D1; raw only at issuance/acceptance | URL-carried, single-use | One-time acceptance flow |
+| Password hash (publication) | bcrypt/argon2 in D1 | Never client-visible | Publication password unlock |
+| Session cookie | Better Auth managed | Client cookie, httpOnly, Secure | Persistent session |
+| OAuth state | Ephemeral | Short-lived | CSRF protection during OAuth |
+| Magic link token | Hashed in D1 + TTL | URL-carried | Time-bounded login |
+| Password reset / unlock | Hashed in D1 + TTL | URL-carried | Recovery flow |
+
+**Rule**: If a public route requires a raw bearer value, a stored hash is NOT a substitute. If a Server Action must recover raw material, it must authorize first and keep recovery server-only.
+
+## Invite + Share Token Flow
+
+- `collaboration_invitations` table: hashed tokens, expiry, role, workspace/project scope
+- `project_publications` table: hashed tokens, optional password hashes, recipient list
+- Acceptance path: `/invite/[token]/` (auth required) -> accept -> invalidate token
+- Public share path: `/share/[token]/` (no auth required) -> optional password gate -> render snapshot
+
+Read `src/lib/collaboration/invites/` and `src/lib/publication/` for the actual patterns.
+
+## Rate Limiting (DB-Durable)
+
+`security_rate_limit_events` table provides persistent rate limiting across:
+
+- Publication / share endpoints (P10 lockout threshold)
+- AI surfaces (when enabled)
+- Invite entry paths
+- Export paths
+
+App-layer enforcement, not Cloudflare WAF. Read `src/lib/observability/` and existing rate-limit helpers before adding new ones.
+
+## Server Action Auth Checklist
+
+Every Server Action that mutates:
+
+- [ ] Better Auth session via `src/lib/auth/`
+- [ ] Workspace membership check
+- [ ] Role check (owner/admin/editor/viewer)
+- [ ] Resource ownership check
+- [ ] Input schema validation (Zod or repo schema)
+- [ ] Rate limit check (if on a sensitive surface)
+- [ ] Idempotency safe (retry doesn't duplicate)
+- [ ] Audit event written (where applicable)
+
+## Forbidden
+
+- Storing raw tokens in D1 (always hash first)
+- Logging raw tokens, hashes, cookies, or session IDs
+- Passing auth context through client props — re-derive on server
+- Trusting client-supplied `userId` or `workspaceId`
+- Skipping authz because "the UI hides it"
+- `as any` to bypass session typing — fix the types
+- Long-lived tokens without explicit expiry + revocation path
+
+## Audit Trail
+
+Auth/permission/account events write to:
+
+- `account_security_events` — auth actions, password changes, OAuth links
+- `collaboration_audit_events` — workspace/invite/share mutations
+- `estimate_sheet_events` — estimate mutation history
+
+Use the existing audit helpers; don't write raw INSERTs.
+
+## Closed Beta (If Active)
+
+`src/lib/auth/closed-beta-d1-store.ts` gates registration behind an allow-list. Check `closedBeta` field on auth flows. Disabled by default unless env-flagged.
+
+## Dev Auth
+
+`src/lib/auth/dev-auth.ts` provides dev-only shortcuts. **Never import in production code paths.** Gated by `NODE_ENV === "development"`.
