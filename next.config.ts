@@ -67,7 +67,10 @@ const localImagePatterns: ImageLocalPattern[] = [
   { pathname: "/landing/**", search: "" },
 ];
 
+// ponytail: Phase 4 WP-4.1 SPIKE — cacheComponents enabled for build validation.
+// Revert via `git checkout next.config.ts` if the spike fails (see DEC-AUTO-1 in notepad).
 const nextConfig: NextConfig = {
+  cacheComponents: true,
   allowedDevOrigins: ["127.0.0.1"],
   compiler: {
     defineServer: {
@@ -91,6 +94,12 @@ const nextConfig: NextConfig = {
     : {}),
   experimental: {
     optimizePackageImports: ["@phosphor-icons/react"],
+    webpackMemoryOptimizations: true,
+    // Next 16.2 can retain cache state and exhaust V8 during persistence.
+    turbopackFileSystemCacheForDev: false,
+    ...(process.env.NODE_ENV === "development"
+      ? { turbopackMemoryLimit: 1536 * 1024 * 1024 }
+      : {}),
     // Library Optimization Plan P0 T3: let the client Router Cache reuse a
     // recently-rendered dynamic segment on Link / back-forward navigation so a
     // warm tab revisit does NOT re-suspend the server segment and re-fire its
