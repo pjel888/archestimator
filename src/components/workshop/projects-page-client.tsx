@@ -1697,6 +1697,10 @@ export function ProjectsPageClient({
   const [draggingProjectCardId, setDraggingProjectCardId] = useState<
     string | null
   >(null);
+  // Keep the active drag id in a ref so dragover can resolve the source even
+  // before the deferred React state commit (custom MIME getData is blank mid-drag).
+  const draggingProjectCardIdRef = useRef<string | null>(null);
+  const projectCardDragUiFrameRef = useRef<number | null>(null);
   const [projectCardDropTarget, setProjectCardDropTarget] =
     useState<ProjectCardDropTarget | null>(null);
 
@@ -2481,15 +2485,29 @@ export function ProjectsPageClient({
     event.dataTransfer.effectAllowed = "move";
     event.dataTransfer.setData("text/plain", projectId);
     event.dataTransfer.setData(PROJECT_CARD_DRAG_MIME_TYPE, projectId);
-    setDraggingProjectCardId(projectId);
+    // Publish the drag id synchronously for dragover, but defer React UI state.
+    // A setState commit inside dragstart mutates drop-section DOM and cancels
+    // native HTML5 drag in Chromium (~tens of ms after dragstart).
+    draggingProjectCardIdRef.current = projectId;
     setProjectCardDropTarget(null);
     setGroupDropTarget(null);
+    if (projectCardDragUiFrameRef.current !== null) {
+      window.cancelAnimationFrame(projectCardDragUiFrameRef.current);
+      projectCardDragUiFrameRef.current = null;
+    }
+    projectCardDragUiFrameRef.current = window.requestAnimationFrame(() => {
+      projectCardDragUiFrameRef.current = null;
+      setDraggingProjectCardId(projectId);
+    });
   }
 
   function readDraggedProjectCardId(event: DragEvent<HTMLElement>) {
     return (
+      draggingProjectCardIdRef.current ||
       draggingProjectCardId ||
-      event.dataTransfer.getData(PROJECT_CARD_DRAG_MIME_TYPE)
+      event.dataTransfer.getData(PROJECT_CARD_DRAG_MIME_TYPE) ||
+      event.dataTransfer.getData("text/plain") ||
+      null
     );
   }
 
@@ -2566,6 +2584,11 @@ export function ProjectsPageClient({
     event: DragEvent<HTMLElement>,
   ) {
     const projectId = readDraggedProjectCardId(event);
+    draggingProjectCardIdRef.current = null;
+    if (projectCardDragUiFrameRef.current !== null) {
+      window.cancelAnimationFrame(projectCardDragUiFrameRef.current);
+      projectCardDragUiFrameRef.current = null;
+    }
     setDraggingProjectCardId(null);
     setProjectCardDropTarget(null);
     if (!projectId || !canDropProjectCardAtGroupEnd(projectId, groupKey)) return;
@@ -2613,6 +2636,11 @@ export function ProjectsPageClient({
   ) {
     const projectId = readDraggedProjectCardId(event);
     const position = getProjectGroupDropPosition(event);
+    draggingProjectCardIdRef.current = null;
+    if (projectCardDragUiFrameRef.current !== null) {
+      window.cancelAnimationFrame(projectCardDragUiFrameRef.current);
+      projectCardDragUiFrameRef.current = null;
+    }
     setDraggingProjectCardId(null);
     setProjectCardDropTarget(null);
     if (
@@ -2647,6 +2675,11 @@ export function ProjectsPageClient({
   }
 
   function handleProjectCardDragEnd() {
+    draggingProjectCardIdRef.current = null;
+    if (projectCardDragUiFrameRef.current !== null) {
+      window.cancelAnimationFrame(projectCardDragUiFrameRef.current);
+      projectCardDragUiFrameRef.current = null;
+    }
     setDraggingProjectCardId(null);
     setProjectCardDropTarget(null);
   }

@@ -1663,10 +1663,11 @@ input[type="number"] {
   transform-origin: 50% 55%;
 }
 
+/* Lift feedback must NOT use transform on the drag source. Chromium cancels
+   HTML5 drag when the source's geometry changes as :active clears mid-dragstart. */
 .workshop-project-card-glass[data-project-card-draggable]:has(
     [data-project-card-drag-handle]:active
   ) {
-  transform: translateY(-3px) scale(1.012) rotate(0.35deg);
   border-color: color-mix(
     in srgb,
     var(--ink) 18%,
@@ -1701,7 +1702,6 @@ input[type="number"] {
 
 [data-project-card-drag-handle] {
   transition:
-    transform 160ms var(--ease-out),
     border-color 160ms var(--ease-out),
     background-color 160ms var(--ease-out),
     box-shadow 160ms var(--ease-out),
@@ -1710,12 +1710,10 @@ input[type="number"] {
 
 [data-project-card-drag-handle]:hover,
 [data-project-card-drag-handle]:focus-visible {
-  transform: translateY(-1px);
   color: var(--ink);
 }
 
 [data-project-card-drag-handle]:active {
-  transform: translateY(-1px) scale(0.96);
   border-color: color-mix(in srgb, var(--ink) 18%, rgba(30, 35, 50, 0.12));
   background: color-mix(in srgb, var(--ink) 5%, rgba(255, 255, 255, 0.82));
 }
@@ -2025,11 +2023,13 @@ input[type="number"] {
 
   .workshop-project-card-glass[data-project-card-draggable]:has(
       [data-project-card-drag-handle]:active
-    ),
-  [data-project-card-drag-handle]:hover,
-  [data-project-card-drag-handle]:focus-visible,
-  [data-project-card-drag-handle]:active {
-    transform: none;
+    ) {
+    box-shadow:
+      0 22px 42px rgba(16, 22, 34, 0.18),
+      0 8px 18px rgba(16, 22, 34, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.86),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.42),
+      var(--glass-inset-hi);
   }
 
   .project-group-card-drop-skeleton--insertion {

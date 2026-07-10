@@ -1,4 +1,5 @@
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -157,6 +158,15 @@ function dispatchProjectGroupDragEvent(
     Object.defineProperty(event, "clientY", { value: options.clientY });
   }
   fireEvent(element, event);
+}
+
+/** Project-card drag UI state is deferred one animation frame so Chromium does not cancel native DnD. */
+async function flushDeferredProjectCardDragUi() {
+  await act(async () => {
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve());
+    });
+  });
 }
 
 function project(o: Partial<ProjectRow> = {}): ProjectRow {
@@ -1017,6 +1027,7 @@ describe("ProjectsPageClient group assignment", () => {
     const dataTransfer = mockDataTransfer();
 
     dispatchProjectGroupDragEvent(handle, "dragstart", { dataTransfer });
+    await flushDeferredProjectCardDragUi();
     dispatchProjectGroupDragEvent(pipeline, "dragover", { dataTransfer });
     expect(pipeline).toHaveAttribute("data-project-card-drop-active", "");
     expect(
@@ -1052,6 +1063,7 @@ describe("ProjectsPageClient group assignment", () => {
     });
     const dataTransfer = mockDataTransfer();
     dispatchProjectGroupDragEvent(handle, "dragstart", { dataTransfer });
+    await flushDeferredProjectCardDragUi();
 
     const ungrouped = screen.getByLabelText("Ungrouped") as HTMLElement;
     expect(ungrouped).toHaveAttribute("data-project-group-virtual", "");
@@ -1098,6 +1110,7 @@ describe("ProjectsPageClient group assignment", () => {
 
     const dataTransfer = mockDataTransfer();
     dispatchProjectGroupDragEvent(handle, "dragstart", { dataTransfer });
+    await flushDeferredProjectCardDragUi();
     dispatchProjectGroupDragEvent(secondSlot, "dragover", {
       dataTransfer,
       clientY: 88,
