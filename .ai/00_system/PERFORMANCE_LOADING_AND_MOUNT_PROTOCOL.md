@@ -117,5 +117,5 @@ Never show skeleton + global overlay together for the same navigation.
 ## 16. Measurement handoff
 
 - Evaluators / budgets: `.ai/01_roadmap/27-performance-budget-and-regression-gates.md`.
-- Plan-pack evaluators EV-01..10: `.ai/03_plans/2026-07-06/2026-07-06-Transition-And-Loading-UX-And-UI/09_PERFORMANCE_RELIABILITY_OBSERVABILITY.md` (or archived copy).
+- Plan-pack evaluators EV-01..10: `.ai/09_archive/store/2026-07-10-Transition-And-Loading-UX-And-UI-complete/09_PERFORMANCE_RELIABILITY_OBSERVABILITY.md`.
 - Scripts: `bun run test:e2e:perf`, `node scripts/check-performance-budgets.mjs`, `perf:*` package scripts.
