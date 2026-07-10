@@ -67,10 +67,9 @@ const localImagePatterns: ImageLocalPattern[] = [
   { pathname: "/landing/**", search: "" },
 ];
 
-// ponytail: Phase 4 WP-4.1 SPIKE — cacheComponents enabled for build validation.
-// Revert via `git checkout next.config.ts` if the spike fails (see DEC-AUTO-1 in notepad).
+// cacheComponents: DEFERRED 2026-07-10 — build fails (45 route-segment-config conflicts) +
+// conflicts with DEC-03 auth-gate (SEC-T1/T2). Spike evidence: perf-baseline.md I-8.
 const nextConfig: NextConfig = {
-  cacheComponents: true,
   allowedDevOrigins: ["127.0.0.1"],
   compiler: {
     defineServer: {

@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "bun@1.3.14",
   "engines": {
-    "node": "^22.12.0 || ^24.0.0"
+    "node": "^22.12.0 || ^24.0.0 || ^26.0.0"
   },
   "scripts": {
     "predev": "node scripts/check-node-version.mjs",
@@ -68,7 +68,11 @@
     "validate:agents": "node scripts/validate-ai-workflow-adapters.mjs",
     "validate:plan-pack": "node scripts/validate-plan-pack.mjs",
     "validate:planning-prompts": "node scripts/validate-planning-prompt-suite.mjs",
+    "supermemory:configure": "node scripts/configure-supermemory-server.mjs --install-launch-agent",
+    "supermemory:ensure": "node scripts/ensure-supermemory-server.mjs",
     "supermemory:start": "node scripts/start-verified-supermemory-server.mjs",
+    "supermemory:search": "node scripts/supermemory-memory.mjs search",
+    "supermemory:add": "node scripts/supermemory-memory.mjs add",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "storybook:check-boundary": "node scripts/check-storybook-boundary.mjs",
