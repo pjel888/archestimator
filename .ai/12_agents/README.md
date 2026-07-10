@@ -23,12 +23,14 @@ before claiming completion. Adapter-specific skills, prompt files, or rules may
 reference these guardrails, but they must point back to `.ai/00_system` rather
 than fork a second behavioral contract.
 
+<!-- supermemory-bootstrap: required -->
 All agents and harnesses also inherit the shared Supermemory workflow from
-`.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`: check `http://localhost:6767/`,
-start `bun run supermemory:start` when it is down and local process startup
-is available, search relevant memory before meaningful work, and update memory
-at closeout when durable project truth changes. Supermemory is advisory memory,
-not authority; `.ai`, current source, tests, and provider evidence win.
+`.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`: run `bun run supermemory:ensure`
+before meaningful work, search relevant memory before broad/non-trivial/recovery
+work, and add one sanitized durable update at closeout when project truth
+changes. A harness that cannot start local processes must receive a healthy
+check from its orchestrator or fail closed. Supermemory is advisory memory, not
+authority; `.ai`, current source, tests, and provider evidence win.
 
 The loop activation criteria (trivial vs non-trivial), the named loop shape, stop
 conditions, and bounds are canonical in `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`

@@ -10,11 +10,12 @@ extra terminal-agent lane is Antigravity CLI (`agy`) when it is explicitly
 scoped.
 
 If Gemini is ever reapproved for a specific task, it inherits the same
-Supermemory workflow as every other agent: check `http://localhost:6767/`, start
-`bun run supermemory:start` if it is down and local process startup is
-available, search memory before meaningful work, and update it at closeout when
-durable project truth changes. Supermemory is advisory; `.ai`, current source,
-tests, and provider evidence remain authoritative.
+<!-- supermemory-bootstrap: required -->
+Supermemory workflow as every other agent: run `bun run supermemory:ensure`
+before meaningful work, search relevant memory before broad/non-trivial work,
+and add one sanitized durable update at closeout when project truth changes.
+Supermemory is advisory; `.ai`, current source, tests, and provider evidence
+remain authoritative.
 
 Tool-specific graph/MCP guidance is intentionally omitted: Gemini is a deprecated,
 fail-closed lane. If Gemini is ever reapproved for a specific task, it follows the

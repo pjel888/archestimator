@@ -21,13 +21,13 @@ Read for speed: `AGENTS.md` plus the FAST PATH block at the top of
 `.ai/10_state/current-state.md`; pull deeper `.ai` docs by task/risk and use
 `rg` for `current-state.md`/`decisions.md` instead of preloading long histories.
 
+<!-- supermemory-bootstrap: required -->
 Codex also inherits the shared Supermemory workflow in
 `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md` and
-`.ai/12_agents/payloads/codex.md`: check `http://localhost:6767/`, start
-`bun run supermemory:start` if it is down and local process startup is
-available, search memory before meaningful work, and update it at closeout when
-durable project truth changes. Supermemory is advisory; `.ai`, current source,
-tests, and provider evidence remain authoritative.
+`.ai/12_agents/payloads/codex.md`: run `bun run supermemory:ensure` before
+meaningful work, search relevant memory before broad/non-trivial work, and add a
+sanitized durable update at closeout when project truth changes. Supermemory is
+advisory; `.ai`, current source, tests, and provider evidence remain authoritative.
 
 For non-trivial work, follow the bounded loop-engineering default in `AGENTS.md`
 and `.ai/00_system/AGENT_OPERATING_PROTOCOL.md` ("Loop activation criteria and

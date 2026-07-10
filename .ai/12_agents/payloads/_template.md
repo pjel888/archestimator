@@ -39,14 +39,16 @@ release, provider, UI, or framework work, pull the relevant `.ai/00_system`,
 
 ## Supermemory Workflow
 
+<!-- supermemory-bootstrap: required -->
+
 When this payload is approved or assigned for a task, follow the shared
 Supermemory local memory contract in
-`.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`: check `http://localhost:6767/`,
-start `bun run supermemory:start` if it is down and local
-process startup is available, search relevant memory before meaningful work,
-and update memory at closeout when durable project truth changes. Supermemory is
-advisory until verified against current `.ai`, source, tests, logs, or provider
-evidence. Never store secrets and never commit `.supermemory/`.
+`.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`: run `bun run supermemory:ensure`
+before meaningful work, search relevant memory before broad/non-trivial/recovery
+work, and add one sanitized durable update at closeout when project truth
+changes. Supermemory is advisory until verified against current `.ai`, source,
+tests, logs, or provider evidence. Never store secrets and never commit
+`.supermemory/`.
 
 ## Repo-Safety Commands
 

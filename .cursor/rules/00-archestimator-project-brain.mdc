@@ -79,4 +79,10 @@ Prepare for first users. Prioritize: auth, estimating workflows, cost library, p
 
 ## Critical: Read `AGENTS.md` And `.ai/` Before Acting
 
+<!-- supermemory-bootstrap: required -->
+Every Cursor agent session must run `bun run supermemory:ensure` before meaningful
+work, search relevant memory before broad or recovery work, and add one sanitized
+durable update when project truth changes. Repair bootstrap failures or fail
+closed; Supermemory augments `.ai` and never overrides current source.
+
 For anything beyond trivial edits, read `AGENTS.md` (repo root) and the FAST PATH block of `.ai/10_state/current-state.md` before planning. Pull narrower `.ai` docs as the task demands. Skipping this = working from stale memory.

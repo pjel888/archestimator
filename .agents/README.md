@@ -14,11 +14,12 @@ Canonical rules live in:
 If a skill here conflicts with `.ai/00_system` or `.ai/12_agents`, the `.ai`
 source wins. Do not store secrets or durable project decisions in this folder.
 
+<!-- supermemory-bootstrap: required -->
 Skills and compatibility adapters inherit the shared Supermemory workflow from
-`.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`: check `http://localhost:6767/`,
-start the local server when needed, search memory before meaningful work, and
-update it at closeout when durable project truth changes. Supermemory is
-advisory; `.ai` and current source remain authoritative.
+`.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`: run `bun run supermemory:ensure`
+before meaningful work, search relevant memory before broad/non-trivial work,
+and add a sanitized durable update at closeout when project truth changes.
+Supermemory is advisory; `.ai` and current source remain authoritative.
 
 `shadcn/improve` is installed globally for this machine. Do not add a duplicate
 repo-local `.agents/skills/improve/` copy unless the global skill cannot be made

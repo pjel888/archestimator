@@ -33,9 +33,10 @@ Start with `AGENTS.md` and the FAST PATH block at the top of
 
 ## Supermemory Workflow
 
-Check `http://localhost:6767/` before meaningful OpenCode work. If it is down
-and local process startup is available, run `bun run supermemory:start` and
-retry. Use the configured OpenCode Supermemory plugin, MCP,
+<!-- supermemory-bootstrap: required -->
+
+Run `bun run supermemory:ensure` before meaningful OpenCode work. Use the
+configured OpenCode Supermemory plugin, MCP,
 SDK, or local API reference to search relevant memory before broad/non-trivial
 work, then update memory at closeout when durable project truth changes.
 Retrieved memories are advisory until verified against current `.ai`, source,

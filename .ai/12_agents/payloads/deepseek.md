@@ -27,9 +27,10 @@ relevant plan/test/source files for the bug.
 
 ## Supermemory Workflow
 
-Check `http://localhost:6767/` before meaningful DeepSeek work. If it is down
-and local process startup is available, run `bun run supermemory:start` and
-retry. Use the configured Supermemory plugin, MCP, SDK, or
+<!-- supermemory-bootstrap: required -->
+
+Run `bun run supermemory:ensure` before meaningful DeepSeek work. Use the
+configured Supermemory plugin, MCP, SDK, or
 local API reference to search relevant debugging/review memory before
 broad/non-trivial work, then update memory at closeout when durable project
 truth changes. Retrieved memories are advisory until verified against current

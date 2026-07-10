@@ -26,11 +26,12 @@ task-specific `.ai/00_system`, state, decision, source, or proof docs.
 
 ## Supermemory Workflow
 
+<!-- supermemory-bootstrap: required -->
+
 Gemini remains fail-closed. If Philip explicitly reapproves Gemini for a
-specific task, it inherits the shared Supermemory contract: check
-`http://localhost:6767/`, start `bun run supermemory:start` if it is down and
-local process startup is available, search relevant
-memory before meaningful work, and update memory at closeout when durable
+specific task, it inherits the shared Supermemory contract: run
+`bun run supermemory:ensure` before meaningful work, search relevant memory,
+and add one sanitized durable update at closeout when
 project truth changes. Retrieved memories are advisory until verified against
 current `.ai`, source, tests, or provider evidence. Never store secrets and
 never commit `.supermemory/`.

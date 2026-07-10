@@ -7,9 +7,10 @@ and `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`.
 Do not add Claude-specific project memory here. Durable project truth belongs
 in `.ai`.
 
+<!-- supermemory-bootstrap: required -->
 Claude Code inherits the shared Supermemory workflow from
 `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md` and
-`.ai/12_agents/payloads/claude.md`: check `http://localhost:6767/`, start the
-local server when needed, search memory before meaningful work, and update it
-at closeout when durable project truth changes. Supermemory is advisory; `.ai`
-and current source remain authoritative.
+`.ai/12_agents/payloads/claude.md`: run `bun run supermemory:ensure` before
+meaningful work, search relevant memory before broad/non-trivial work, and add a
+sanitized durable update at closeout when project truth changes. Supermemory is
+advisory; `.ai` and current source remain authoritative.
