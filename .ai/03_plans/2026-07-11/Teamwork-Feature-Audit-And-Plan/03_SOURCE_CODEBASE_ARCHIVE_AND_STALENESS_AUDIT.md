@@ -32,7 +32,7 @@
 ### Authorization and privacy
 
 - Sheet-only access can authorize a project shell and then list all estimate metadata.
-- Direct sheet owner/admin can be reported as a manager while sheet actions deny them for lacking project-manager authority.
+- Direct sheet owner/admin is reported as manager-capable in the collaboration summary (`workspace-repository.ts:2886`) and shown invite/restrict controls in the UI (`PublisherProjectMembersPanel.tsx:336,357,407`), but the action gate `assertEstimateAccessManager` (`actions.ts:288-318`) first calls `assertProjectAccessManager` (`:218-252`) which computes rank from workspace+project membership only (`readProjectActorRank:172-216`, never reads `estimate_sheet_members`). The action fails closed (throws `"Only project owners and admins can manage access."` at `:244`), so this is a dead-control/confusing-UX defect, not a privilege escalation.
 - Copy/resend can authorize at project scope rather than the invitation's exact estimate scope.
 - Generic role/remove paths perform no actor-over-target rank comparison anywhere in `actions.ts`; only last-manager preservation guards exist (`updateProjectCollaboratorRole:1317-1324`, `removeProjectCollaborator:1401-1404`). An admin can remove or demote an owner or peer admin subject only to the manager floor.
 - Re-inviting an existing member overwrites the stored role outside the explicit role-change path, in two places: pending-invite collision updates role on re-send (`upsertInvitation:421-440`) and `upsertProjectMemberInD1` uses `ON CONFLICT DO UPDATE SET role = excluded.role` with no dominance check (`inviteProjectCollaborator:971-973`).
@@ -46,14 +46,21 @@
 - Token reissue, sheet restriction, direct grant, and invitation acceptance cross multiple statements without one encompassing transaction.
 - Restricting a sheet can silently upsert the actor as owner before changing inheritance.
 
+### Data integrity (runtime capability)
+
+- The active `D1DatabaseLike` (`src/lib/cloudflare/d1.ts:20-24`) exposes only `prepare` and an optional `batch`; there is no transaction/BEGIN/COMMIT API. A D1 `batch` is the closest atomic unit but is not a true transaction, so cross-table invariants cannot rely on a single encompassing transaction and must be expressed as constraints/indexes/triggers plus transaction-scoped command functions.
+- The post-auth invitation bridge (`src/app/workshop/pending-invite/route.ts:70`) grants membership on a GET through the signed `PENDING_INVITE_COOKIE`; only the primary `/invite/[token]/accept` route correctly requires a same-origin POST.
+
 ### Realtime
 
-- An authorized client can send arbitrary event names/payloads and self-reported display labels.
-- Viewer restrictions are browser behavior, not server capability enforcement.
-- Unauthenticated sockets have no short authorization deadline.
-- The client treats socket-open as subscribed before receiving an authorization acknowledgement.
-- A five-minute room token expires without a complete refresh/re-authentication loop.
-- Project presence is not a mounted production fact; row-update broadcast has no production receiver.
+- An authorized client can send arbitrary event names/payloads (format check only at `collaboration-room.ts:53-55`, payloads forwarded untouched at `:134-138`) and self-reported display labels (stored verbatim at `use-estimate-cursor-broadcast.ts:241-242`; the DO itself is label-agnostic).
+- Viewer restrictions are browser behavior, not server capability enforcement; the identity envelope `role` is hardcoded `"member"` (`realtime-identity-actions.ts:92`) and never inspected by the DO or any receiver.
+- Unauthenticated sockets have no short authorization deadline and are never evicted; they only passively cannot broadcast until they send `authorize`.
+- The client treats socket-open as subscribed before receiving an authorization acknowledgement (`collaboration-room-client.ts:87-90`; the `authorized` server message at `:158-160` is a no-op). Outbound sends are separately gated on `envelopeRef` (`use-estimate-cursor-broadcast.ts:316`).
+- A five-minute room token expires without a complete refresh/re-authentication loop; there is no reconnect logic in the cursor hook (contrast `use-project-presence.ts:270-278` which does have `scheduleResubscribe`).
+- No revocation path closes a socket or denies frames when membership is removed; revocation currently depends entirely on token TTL expiry.
+- The realtime signing secret falls back through four secrets ending in the invite pepper (`realtime-room-token.ts:4-9`), so a dedicated production realtime key is optional rather than required.
+- Project presence is not a mounted production fact; `GlobalPresence` is admin-restricted and unmounted; project cursors are mounted but feature-flagged off.
 
 ## Known-Red Test Baseline
 
@@ -158,6 +165,10 @@ scoped_diff_sha256=d1174d75ebed8ad48ad49caedf4ad04d0b2abdeb64bba696dd9813875662e
 ```
 
 The scoped status includes concurrent edits to both overlap packs, the planning-prompt suite, and current state. After those writes became stable, the independent verifier recomputed the exact ordered 48-path baseline: 3,320 status bytes, 392,568 tracked-diff bytes, and zero untracked files. The re-audit found five Activity and eight Publisher artifact-hash mismatches, so this pack records both overlap manifests as stale rather than claiming a PASS. Any implementation-time mismatch requires another ledger observation, targeted re-audit, and baseline refresh. Do not silently change pathspecs.
+
+### Migration set scope note
+
+The pathspec lists the four collaboration-relevant migrations (`0007`, `0008`, `0013`, `0030`) individually. The active set now contains 52 SQL files (latest `0052_corporate_accounts.sql`); `AGENTS.md` still states "40 SQL files, latest `0040_operational_incidents.sql`" and Better Auth `1.6.22`, while `package.json` pins `better-auth@1.6.23` and `next@16.2.10` — these are repo-doc staleness items, not Teamwork defects. A re-read of all 52 migrations confirmed migrations `0031`-`0052` add no last-manager floor, no unique-pending-invite invariant, and no negative per-user ACL, so the absent-invariant claims above hold against the full active set. `UNIT-003` must re-list `migrations/` at execution time before allocating the next number.
 
 ## Stale Triggers
 

@@ -51,3 +51,52 @@ Layer 2 — Admin UI (depends on UNIT-002/003)
 **Goal:** Sidebar entry + user-detail corporate-membership section.
 **Paths:** `src/components/admin/AdminSidebar.tsx` (modified), `src/app/admin/users/[userId]/page.tsx` (modified).
 **Test:** Browser + type-check.
+
+---
+
+## Improvement-Stage Fix Units (from adversarial review)
+
+## UNIT-007: Server-side workspace re-parent guard + audit (REQ-010, DEC-AUTO-007)
+
+**Goal:** `linkWorkspaceToCorporateAccount` detects when the workspace is already
+linked to a different account and records an audit of the old account before
+the move.
+**Paths:** `src/lib/admin/corporate-account-repository.ts` (modified),
+`src/lib/admin/corporate-account-actions.ts` (modified).
+**Test:** type-check.
+
+## UNIT-008: Client-side router.refresh() after mutations (REQ-011, DEC-AUTO-008)
+
+**Goal:** All three client components call `router.refresh()` after a successful
+server action so the server-rendered lists update.
+**Paths:** `src/components/admin/AdminCreateAccountForm.tsx` (modified),
+`src/components/admin/AdminAccountMembers.tsx` (modified),
+`src/components/admin/AdminAccountWorkspaces.tsx` (modified).
+**Test:** browser.
+
+## UNIT-009: Suspend/archive/restore corporate account (REQ-008)
+
+**Goal:** Add `updateCorporateAccountStatus` repository function,
+`updateCorporateAccountStatusAction` server action, and UI controls on the
+account detail page.
+**Paths:** `src/lib/admin/corporate-account-repository.ts` (modified),
+`src/lib/admin/corporate-account-actions.ts` (modified),
+`src/app/admin/accounts/[accountId]/page.tsx` (modified),
+new `AdminAccountStatusControls.tsx` component.
+**Test:** type-check + browser.
+
+## UNIT-010: Efficient member-count GROUP BY query (REQ-012, DEC-AUTO-009)
+
+**Goal:** Replace the N+1 per-account member-count loop with a single
+`listCorporateAccountsWithCounts()` function using `LEFT JOIN ... GROUP BY`.
+**Paths:** `src/lib/admin/corporate-account-repository.ts` (modified),
+`src/app/admin/accounts/page.tsx` (modified),
+`src/components/admin/AdminAccountsList.tsx` (modified).
+**Test:** type-check.
+
+## UNIT-011: Last-owner guard (REQ-009)
+
+**Goal:** `removeCorporateAccountMember` and `updateCorporateAccountMemberRole`
+reject if the user is the last owner.
+**Paths:** `src/lib/admin/corporate-account-repository.ts` (modified).
+**Test:** type-check.

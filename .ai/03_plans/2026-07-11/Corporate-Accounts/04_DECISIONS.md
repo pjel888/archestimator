@@ -51,3 +51,28 @@
 **Decision:** Team leaders can view all members and workspaces in their account. They cannot add/remove members or link/unlink workspaces (that's owner-only). They also cannot delete the account.
 
 **Why:** The user's use case is "assigning email addresses under team leaders" — a team leader needs to see who's on their team but shouldn't have full admin powers. This matches typical enterprise hierarchies where team leads have visibility but not org-management authority.
+
+## DEC-AUTO-007: Workspace re-parenting is a move with audit, not a silent overwrite
+
+**Question:** When a workspace is already linked to account A and an admin links it to account B, should the action be blocked or treated as a move?
+
+**Decision:** Treat as an explicit move — the link succeeds, but the audit records BOTH the old account (unlinked) and the new account (linked). The client dropdown pre-filters already-linked workspaces, but the server enforces the audit invariant.
+
+**Why:** Blocking would force the admin to unlink first, then link — two actions for a common operation (moving a workspace between accounts). Moving with audit is safer and more usable. The audit trail captures the transition.
+
+## DEC-AUTO-008: Client refresh via router.refresh() after mutations
+
+**Question:** How should client components refresh server-rendered data after a mutation?
+
+**Decision:** Use `useRouter().refresh()` from `next/navigation` in the client component after each successful server action call.
+
+**Why:** Server actions with `revalidatePath` invalidate the cache but don't automatically trigger a client-side re-fetch of the RSC payload unless the component uses `<form action={...}>`. Since our forms use `startTransition` + manual action calls, `router.refresh()` is the correct way to trigger a re-fetch.
+
+## DEC-AUTO-009: Member-count via GROUP BY, not N+1
+
+**Question:** How to efficiently show member counts on the accounts list?
+
+**Decision:** Add a `listCorporateAccountsWithCounts()` repository function that uses a single `LEFT JOIN ... GROUP BY` to include `member_count` per account, replacing the N+1 per-account loop.
+
+**Why:** N+1 queries on D1 are costly (each is a round-trip). A single aggregated query is cheaper and scales to any number of accounts.
+

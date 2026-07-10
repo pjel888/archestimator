@@ -13,7 +13,7 @@
   "baseline": {
     "contract_version": "estimate-sheet-source-fingerprint.v2",
     "generated_metadata_exclusion_rule": "untracked-impeccable-metadata-exclusions.v1",
-    "head": "e373bc865b978e237deb1d92011c96b0a3639fb4",
+    "head": "b83deac090c766128fd252a64de807fcc3bb6d6f",
     "path_count": 2021,
     "path_list_sha256": "64db44d5872889a9389cc99c83e403ae3ee6263ac995362ea9a03e0990cb218c",
     "scoped_status_sha256": "cd61fff7718ea1564430343d83df0cbe2ddbc387fc64fa34639b08f6b1246ee9",
@@ -3865,7 +3865,7 @@
         "DEC-AUTO-014",
         "DEC-AUTO-015"
       ],
-      "source_revision": "e373bc865b978e237deb1d92011c96b0a3639fb4+status-cd61fff7718ea1564430343d83df0cbe+app-53291311cfcbfe4480d6104a37f84c42+producer-7a72d311538f402d448d1ae6a96a192fe+frontier-plan-readiness",
+      "source_revision": "b83deac090c766128fd252a64de807fcc3bb6d6f+status-cd61fff7718ea1564430343d83df0cbe+app-53291311cfcbfe4480d6104a37f84c42+producer-7a72d311538f402d448d1ae6a96a192fe+frontier-plan-readiness",
       "valid_until": null
     },
     {
@@ -4017,7 +4017,7 @@
         "GATE-VERIFY-001",
         "GATE-CLEAN-001"
       ],
-      "source_revision": "review-binding:v1:3079031918cbf7ac3f308af6713582bb182abb7ec410e98e5448bb0b60c395a6",
+      "source_revision": "review-binding:v1:42dc19ad37f90931d522ffffb9bae5ebddb2c9bb0c4633b9b0378b43abee0508",
       "valid_until": null
     }
   ],
@@ -4030,5 +4030,5 @@
   ],
   "next_unit": null,
   "updated_at": "2026-07-10T13:50:41.879Z",
-  "manifest_sha256": "ec5df5bcdeb80a4d38ea4d0b02be4b78dba45a3d5bfa8453c04f3b01beacd046"
+  "manifest_sha256": "ed5ebd79f04291159939cb48ef13b057376ce5ebe1d34506ede591fceb7cc396"
 }
