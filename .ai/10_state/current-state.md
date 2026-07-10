@@ -31,6 +31,15 @@ Stable current truth (verify against git/source before relying on a detail):
   (link-out/degrade). Local proof: type-check + admin/DO vitests; HTTP 200 with
   dev-auth bypass; unauthenticated `/admin` → `/login?next=/admin`. Archived:
   `.ai/09_archive/store/2026-07-10-Admin-Dashboard-complete/`.
+  A later live-worktree re-audit found the searched users query binding values
+  out of SQL placeholder order and focused users/flag tests red. Migration 0051
+  and the Users UI now expose audited account-status actions, but affected-row
+  proof plus suspended/banned session enforcement/revocation remain incomplete;
+  do not treat the current Admin surface as regression-clean Beta operating proof.
+  A concurrent migration `0052_corporate_accounts.sql` and related admin account,
+  member, and workspace-linking source are present, but are outside this dated
+  nine-pack planning suite; the separate Corporate plan folder has no validated
+  manifest or readiness credit here.
 - Landing-Page-Auth-Security-Layer (2026-07-10): Implemented Better Auth hardening —
   magic-link `storeToken:"hashed"` + `expiresIn:300` + plugin rateLimit 10/60; top-level
   D1-backed `rateLimit` (`storage:"database"`, window/max 60) with migration
@@ -82,28 +91,52 @@ Stable current truth (verify against git/source before relying on a detail):
 - Frontier planning/execution suite (2026-07-10):
   `.ai/08_prompts/000_Planning Prompts/` now uses one shared kernel, a versioned
   `plan-pack.json` schema, 10 stable applicability gates, five concise stage
-  prompts, and 30 semantic regression scenarios. Runtime authority is recomputed
-  as `current_run_scope`; plans cannot grant actions. Ordinary decisions use
-  `DEC-AUTO-*`; only true boundaries use `AUTH-*`; implementation, release,
-  lifecycle, evidence, and terminal states remain separate. Validate the suite
-  with `bun run validate:planning-prompts` and any pack with
+  prompts, and 31 semantic regression scenarios. Physical document count is
+  adaptive rather than capped: independently gated domains split when ownership,
+  evidence, invalidation, review, or retrieval boundaries differ, while every
+  split remains substantive, cross-linked, manifest-registered, and subordinate
+  to one canonical execution artifact. `PLAN-PACK-SCOPED-BASELINE-v1` binds the
+  ordered relevant pathspec scope, tracked diff, and untracked file contents.
+  Runtime authority is recomputed as `current_run_scope`; plans cannot grant
+  actions. Ordinary decisions use `DEC-AUTO-*`; only true boundaries use
+  `AUTH-*`; implementation, release, lifecycle, evidence, and terminal states
+  remain separate. Validate the suite with `bun run validate:planning-prompts`
+  and any pack with
   `bun run validate:plan-pack -- <planning-folder>`. Same-agent provenance does
   not cap readiness or require owner acceptance. Active provider authority is
   the Cloudflare resources bound in `wrangler.jsonc`; historical Supabase project
   `ebxxqidacheyapmmzavr` remains read-only archaeology.
-- Beta readiness planning suite (2026-07-10): seven plan packs under
-  `.ai/03_plans/2026-07-10/` turn the current Beta-readiness audit into one
-  umbrella program plus Release Integrity, Hosted D1 Recovery, First-User
-  Activation, Estimate Intelligence, Calculation Parity, and Beta Operating
-  execution surfaces. The umbrella registry assigns all 20 `BETA-P0/P1` items
-  exactly once and coordinates provisional migration leases `0050..0053` with
-  collision/reissue rules. Estimate Intelligence and Calculation Parity are
-  `IMPLEMENTATION_READY`; the other five packs are `CONDITIONALLY_READY`; every
-  pack remains `NOT_STARTED`. All seven pack validators, the planning-prompt
-  suite, cross-pack reference/risk/ownership checks, and an independent checker
-  pass. Hosted/provider, GitHub, counsel, owner-approval, and implementation
-  evidence remain explicit future boundaries; no migration or external action
-  was performed while producing the plans.
+- Beta readiness planning suite (2026-07-10): nine high-blast plan packs under
+  `.ai/03_plans/2026-07-10/` now contain 134 registered artifacts across one
+  umbrella Program plus Activity History, Beta Operating, Calculation Parity,
+  Estimate Intelligence, First-User Activation, Hosted D1 Recovery, Publisher,
+  and Release Integrity owner surfaces. Activity and Publisher began as
+  domain-separated audit packs; the other seven began as six registered
+  documents plus `plan-pack.json`, with multiple independently reviewable
+  domains compressed into omnibus files. The earlier schema allowed adaptive
+  counts; the revised prompt suite makes semantic split triggers explicit and
+  normative, and applies them consistently without padding or a fixed
+  file-count target. The Program
+  assigns all 20 `BETA-P0/P1` items exactly once. ACTIVE Generation 4 binds the
+  observed `0052_corporate_accounts.sql` tail and provisional, UNCLAIMED owner
+  leases `0053..0057` (Publisher, Activation, Estimate, Calculation, Activity);
+  Generation 3 was superseded after the concurrent `0052` source collision.
+  The `2026-07-11/Corporate-Accounts` folder is deliberately out of the nine-pack
+  registry and cannot add a backlog row or readiness credit: a release candidate
+  must carry a validated Corporate receipt when it includes that source, or an
+  exact content-addressed exclusion disposition. Activation alone is
+  `IMPLEMENTATION_READY`; the
+  other eight packs are `CONDITIONALLY_READY`; all nine remain `NOT_STARTED`.
+  All nine native validators, the 31-scenario prompt suite, canonical migration
+  receipt, cross-pack ownership/traceability checker, 28/28 durable validator
+  contract tests (26 negative cases plus two positive controls) pass. A
+  one-time final scratch audit also rejected 15 single-pack and 13 cross-pack
+  hostile fixtures; its result receipt is recorded in the Program ledger.
+  Independent semantic, architecture/provenance, and verification reviews found
+  no remaining blocking planning defect after the Generation 4 refreeze.
+  Hosted/provider,
+  GitHub, counsel, owner-approval, and implementation evidence remain explicit
+  future boundaries; no migration, product, or external action was performed.
 - Error logging and incident evidence (2026-07-08 local): Archestimator should
   not store raw application error logs in D1 as the standard logging path.
   Local/dev diagnosis uses structured `logs/dev.ndjson`; default test runs do

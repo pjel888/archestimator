@@ -43,8 +43,10 @@ produces the requested result safely and verifiably.
    authority/freshness, with purpose, supersession, conflicts, and relevance.
 3. Identify the canonical entrypoint and execution guide. If multiple guides
    compete, record the conflict and choose/repair one authority.
-4. Determine whether the current focused/standard/high-blast-radius shape is
-   proportionate. Do not expand to a legacy document count by default.
+4. Re-evaluate the current focused/standard/high-blast-radius shape using the
+   normative adaptive artifact rule in `Plan-Pack-Schema.md`. Record each
+   justified split/merge as a semantic repair and preserve one canonical
+   execution authority.
 5. Fingerprint the plan manifest and baseline repository state so later edits
    invalidate stale review evidence.
 6. Preserve an immutable baseline inventory and produce a semantic diff of
@@ -92,7 +94,9 @@ Repair in dependency order:
 8. **Rollout/recovery** - repair flags/exposure, monitoring, rollback/fix-forward,
    data repair, support, and post-release proof.
 9. **Information architecture** - consolidate duplicated rules, resolve addenda
-   in place, remove obsolete documents/content, and repair cross-links.
+   in place, remove obsolete documents/content, split substantively overloaded
+   domain artifacts, register every artifact in the manifest, and repair
+   cross-links. Never use file count itself as an improvement signal.
 
 Do not merely annotate a defect. Fix every internally resolvable `FAIL` inside
 the planning scope. When evidence is discoverable, retrieve it or create a

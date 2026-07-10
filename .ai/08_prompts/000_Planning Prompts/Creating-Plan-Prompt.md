@@ -166,8 +166,11 @@ entrypoint, not a table of contents. It must show:
 - durable ledger/resume pointer;
 - archive policy from the current canonical plans README.
 
-Cross-link instead of duplicating long policy. Split a domain document only
-when its risk/size or independent review value justifies the extra file.
+Cross-link instead of duplicating long policy. Apply the normative adaptive
+artifact-shape rule in `Plan-Pack-Schema.md`: during creation, use the discovered
+risk/ownership/evidence boundaries to choose substantive files, register every
+artifact, and preserve one canonical execution authority. Never target a legacy
+file count or add placeholders for numeric parity.
 
 ## Phase 7: Critique, Repair, And Final Verification
 

@@ -48,6 +48,15 @@ applicable gates, stage, and schema, then sends only the goal capsule, owned IDs
 exact source context, constraints, dependencies, and required evidence for that
 lane. Retrieve supporting context just in time.
 
+## Adaptive Artifact Shape
+
+Plan packs have no fixed file-count ceiling. Use the selected depth profile and
+applicable gates: keep a focused concern compact, but split substantive
+independently reviewable data, threat, failure, evidence, rollout, or final-audit
+domains when their ownership, freshness, invalidation, or retrieval boundaries
+differ. Cross-link and register every artifact, keep one canonical execution
+artifact, and never create files merely to match another pack's count.
+
 ## Research Basis
 
 The primary-source review is recorded in

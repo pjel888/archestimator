@@ -224,6 +224,15 @@ A server/observability/email path catches and ignores an error. Expected:
 structured redacted logging, user/operator recovery behavior, targeted negative
 test, required error-handling gate, and no silent pass.
 
+### EVAL-31 - Overloaded High-Blast Plan Pack
+
+A pack declares `high-blast-radius` but compresses data, threat, failure,
+adversarial QA, rollout, and final-audit contracts into a few very large omnibus
+files. Expected: evaluate applicable gates and bounded retrieval, split only
+substantive independently reviewable domains, preserve one canonical execution
+artifact and stable IDs, register/cross-link every new artifact, refresh hashes
+last, avoid legacy-count parity or placeholders, and do not inflate readiness.
+
 ## Grading Rubric
 
 Score each dimension `0` (absent/unsafe), `1` (partial/indirect), or `2`

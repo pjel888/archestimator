@@ -86,6 +86,12 @@ units by default. One integrator owns each shared artifact. Cap concurrency at
 the smallest useful number and abort a parallel tactic after conflicts, broad
 scope drift, or test interference.
 
+For plan-pack authoring, a risk-justified domain split may give distinct review
+lanes bounded artifact ownership, but the lead still integrates the manifest,
+stable IDs, cross-links, status tuple, canonical execution pointer, and final
+hashes. More artifacts do not imply more independent writers, and more writers
+do not justify duplicate authority.
+
 ## 4. Worker Packet
 
 Every lane receives a bounded packet:

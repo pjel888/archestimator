@@ -15,6 +15,12 @@ adaptive; every applicable logical field is mandatory.
 
 Choose the lightest profile that covers the risk. Do not omit a logical field
 because the pack is compact, and do not create empty files to satisfy a count.
+Adaptive file count has no fixed minimum or maximum. For `standard` and
+`high-blast-radius` packs, split an omnibus artifact when independently gated
+domains have different owners, evidence lifecycles, invalidation triggers,
+reviewers, or bounded-retrieval needs. Keep it combined when a split would only
+repeat context. Every split must be substantive, cross-linked, registered in
+`plan-pack.json`, and subordinate to one canonical execution artifact.
 
 ## 2. Canonical Manifest
 
@@ -29,6 +35,34 @@ bytes. This canonicalization is mandatory for every writer/validator.
 The example below is the exact executable focused fixture at
 `tests/fixtures/planning-prompt-suite/valid-plan-pack/plan-pack.json`. It uses
 one allowed value per enum; the state-machine sections below list all alternatives.
+
+### 2.1 Scoped baseline fingerprint
+
+Every non-fixture pack must record an ordered, duplicate-free list of literal
+repo-relative pathspecs in its source audit and compute `baseline` with
+`PLAN-PACK-SCOPED-BASELINE-v1`. Reject absolute paths, traversal, pathspec magic,
+symlinks, and non-regular untracked files. Do not silently widen or narrow the
+recorded scope while refreshing hashes.
+
+1. Set `head` to `git rev-parse HEAD`.
+2. Compute `scoped_status_sha256` from the exact raw bytes emitted by
+   `git status --porcelain=v1 -z --untracked-files=all -- <pathspecs>`.
+3. Compute the tracked stream from
+   `git diff --binary --no-ext-diff --no-textconv HEAD -- <pathspecs>`. This
+   binds staged and unstaged changes relative to `head`.
+4. Enumerate matching untracked regular files with
+   `git ls-files --others --exclude-standard -z -- <pathspecs>`, sort their
+   repo-relative UTF-8 paths by raw byte order, and append one record per file:
+   `UNTRACKED\0<path>\0<size-decimal>\0<file-sha256>\0`.
+5. Compute `scoped_diff_sha256` over the byte stream
+   `TRACKED\0<tracked-stream>\0PLAN-PACK-UNTRACKED-v1\0<untracked-records>`.
+
+The untracked records bind file names and contents without embedding source in
+the manifest. A verifier must recompute both digests from the recorded pathspecs
+before implementation or status elevation. Any mismatch is source drift: append
+a ledger observation, re-audit the affected claims, then refresh the baseline.
+An empty SHA-256 value is valid only when it is the actual result of the specified
+stream; zero-filled placeholders are never a frozen baseline.
 
 <!-- BEGIN VALID PLAN-PACK EXAMPLE -->
 ```json
