@@ -1,0 +1,179 @@
+{
+  "schema_version": "1.0",
+  "suite_version": "2026-07-10",
+  "package_id": "PLAN-2026-07-10-validator-fixture",
+  "profile": "focused",
+  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "last_observed_run_scope": "IMPLEMENT_LOCAL",
+  "package_status": "IMPLEMENTATION_READY",
+  "implementation_status": "COMPLETE",
+  "release_status": "READY",
+  "plan_lifecycle": "ARCHIVED",
+  "terminal_status": "ACHIEVED",
+  "baseline": {
+    "head": null,
+    "scoped_status_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "scoped_diff_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "canonical_execution_artifact": "IMPLEMENTATION_PLAN.md",
+  "artifacts": [
+    {
+      "id": "ART-001",
+      "role": "entrypoint",
+      "path": "README.md",
+      "sha256": "c2b516b2eff910dc9a85dbc08f0ed3d2d758ac625f571cd0f6f81c50906dda66"
+    },
+    {
+      "id": "ART-002",
+      "role": "canonical-execution",
+      "path": "IMPLEMENTATION_PLAN.md",
+      "sha256": "53d7c0f2ad371983382716c2d4684542173f511ff1ba6cce6dfe4e7361672ec7"
+    },
+    {
+      "id": "ART-003",
+      "role": "evidence",
+      "path": "evidence/check.txt",
+      "sha256": "e40a27a5ea8e1fdd3b754dbb42c96c1ba2f054b821771d6f023fa59a1313ec06"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-001",
+      "status": "CURRENT",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "REQ-001",
+        "SEC-001"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "status": "ACCEPTED",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "SEC-001",
+      "status": "ACCEPTED",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "source_ids": [
+        "SRC-001"
+      ],
+      "unit_ids": [
+        "UNIT-001"
+      ],
+      "criterion_ids": [
+        "AC-001"
+      ]
+    }
+  ],
+  "assumptions": [],
+  "risks": [],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "status": "PASS",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "requirement_ids": [
+        "REQ-001",
+        "SEC-001"
+      ],
+      "test_ids": [
+        "TEST-001"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "tests": [
+    {
+      "id": "TEST-001",
+      "status": "PASS",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "criterion_ids": [
+        "AC-001"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ]
+    }
+  ],
+  "gates": [
+    {
+      "id": "GATE-VERIFY-001",
+      "status": "PASS",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "criterion_ids": [
+        "AC-001"
+      ],
+      "evidence_ids": [
+        "EVID-001"
+      ],
+      "authorization_boundary_id": null
+    }
+  ],
+  "units": [
+    {
+      "id": "UNIT-001",
+      "status": "VERIFIED",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "depends_on": [],
+      "requirement_ids": [
+        "REQ-001",
+        "SEC-001"
+      ],
+      "risk_ids": [],
+      "evidence_ids": [
+        "EVID-001"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-AUTO-001",
+      "status": "ACTIVE",
+      "artifact_path": "IMPLEMENTATION_PLAN.md",
+      "affected_ids": [
+        "REQ-001"
+      ]
+    }
+  ],
+  "authorization_boundaries": [],
+  "ready_slices": [],
+  "evidence_index": [
+    {
+      "id": "EVID-001",
+      "status": "PASS",
+      "artifact_path": "evidence/check.txt",
+      "sha256": "e40a27a5ea8e1fdd3b754dbb42c96c1ba2f054b821771d6f023fa59a1313ec06",
+      "claim_ids": [
+        "REQ-001",
+        "SEC-001",
+        "UNIT-001",
+        "AC-001",
+        "TEST-001",
+        "GATE-VERIFY-001"
+      ],
+      "source_revision": "fixture-v1",
+      "valid_until": null
+    }
+  ],
+  "stale_triggers": [
+    "source-or-config-hash-change"
+  ],
+  "next_unit": null,
+  "updated_at": "2026-07-10T00:00:00.000Z",
+  "manifest_sha256": "e9351c9a6b6e23180bb68484563137cf09575f0ec78c7f35a15b281251a0df0f"
+}
