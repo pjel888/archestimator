@@ -5,12 +5,12 @@
 | Test | Criterion | Evidence and expected signal |
 | --- | --- | --- |
 | `TEST-001` | `AC-001` | Focused readiness/release fixtures: local-only, provider-false, stale, contradictory, missing check, revision mismatch are red; local mechanics remains independently green. |
-| `TEST-002` | `AC-002` | Dry-run/preflight never calls Cloudflare and refuses unsafe identities, unencrypted/unrestricted temp storage, bad modes, reused key aliases, or canonical ingress; hosted lifecycle shows unique disposable resources and exact cleanup under `AUTH-001`. |
+| `TEST-002` | `AC-002` | Dry-run/preflight never calls Cloudflare and refuses unsafe identities, exhausted Free database count, source/target over 500 MB, account storage over 5 GB after creation, import over 5 GB, paid/non-Free plan, unencrypted/unrestricted temp storage, bad modes, reused key aliases, or canonical ingress; hosted lifecycle shows unique disposable resources and exact cleanup under `AUTH-001`. |
 | `TEST-003` | `AC-003` | Fixture and hosted integrity suite catches migration/schema/count/checksum/FK/orphan/integer defects; clean target is green. |
-| `TEST-004` | `AC-004` | Worker is absent/unrouted during import and offline invalidation; after temporary operator-only ingress, restored read, controlled write/rollback, protected/public denial, and workspace-isolation matrix passes. |
+| `TEST-004` | `AC-004` | Worker is absent during import and offline invalidation; the unique `workers.dev` Worker has `routes=[]`, no custom domain, and only the disposable D1 binding; it rejects wrong method/path/content type, configured-run-ID mismatch, missing/invalid/expired signature, reused nonce, over-limit body with and without `Content-Length`, attempt/success overflow, and direct application bypass before dispatch; then restored read, controlled write/rollback, protected/public denial, workspace isolation, Worker deletion, and exact-URL absence pass. |
 | `TEST-005` | `AC-005` | Pre-recovery session canary is invalidated offline before ingress, fails after ingress, and fresh disposable authentication succeeds; outputs contain no tokens. |
-| `TEST-006` | `AC-006` | Artifact schema/freshness/revision/RTO/RPO/cleanup fixtures pass and release consumer rejects every incomplete case. |
-| `TEST-007` | `AC-007` | Hosted pre/post inventory, `0700/0600` and encrypted-filesystem preflight, per-run encryption/key destruction, bounded plaintext window, free-tier confirmation, and independent plaintext/ciphertext/key/route/Worker/D1 absence checks pass. |
+| `TEST-006` | `AC-006` | `D1-RECOVERY-RECEIPT-v1` schema/identity/freshness/revision/result/RTO/RPO/check/cleanup fixtures pass; strict release and Beta Operating consumers reject every incomplete, stale, mismatched, failed, or dirty-cleanup case without rerunning recovery. |
+| `TEST-007` | `AC-007` | Hosted pre/post inventory records current database count/limit, account storage, source/export/import size, 500 MB target fit, 5 GB account fit, 5 GB import ceiling, `0700/0600` and encrypted-filesystem preflight, export key destruction, proof-secret/key-alias and nonce/attempt-state destruction, bounded plaintext window, and independent plaintext/ciphertext/key/secret/route/Worker/D1 absence checks. |
 
 ## Gates
 
@@ -24,40 +24,31 @@ Requires live Cloudflare identity/plan/backend preflight, isolated disposable so
 
 ## Adversarial Cases
 
-- Source and target IDs resolve to the same database.
-- Default binding silently selects `ARCH_DB`.
-- Export blocks staging longer than the approved window or exceeds import limits.
-- Export contains virtual tables, precision-sensitive integers, raw session tokens, or unexpected schema.
-- Temp directory/file modes are permissive, filesystem encryption is not proven,
-  plaintext survives the bounded window, encryption key is reused/logged, or
-  delete succeeds without file/object/key absence readback.
-- Import succeeds but migration ledger, trigger/index, row digest, FK, or orphan check differs.
-- Same-workspace access passes while foreign-workspace denial fails.
-- A revoked session becomes valid again after restore.
-- Worker preview/custom ingress becomes reachable before offline restored-session
-  invalidation, or canonical domain routing is attached at any point.
-- Controlled write persists after rollback/cleanup.
-- Runner crashes after create/import/deploy and cleanup partially fails.
-- Evidence is current but targets another account/database/app revision.
-- Time Travel limits are copied into claimed RTO/RPO without observed measurement.
+`PROVIDER_REHEARSAL_TEST_PLAN.md` is the detailed setup, denial, concurrency,
+failure-injection, evidence, and cleanup matrix. At minimum the final checker
+must challenge source/target collision, `ARCH_DB` defaulting, every Free limit,
+unsafe export/key/plaintext lifecycle, migration/data drift, foreign-workspace
+access, restored-session resurrection, pre-invalidation ingress, route/binding/
+run-ID confusion, HMAC/replay/body/rate races, controlled-write residue, phase
+crash cleanup, wrong receipt identity/revision, and inferred rather than measured
+RTO/RPO. A provider success response cannot override a failed check or readback.
 
 ## Rollout
 
-1. Land regression-first predicate repair and versioned evidence schema.
-2. Land dry-run orchestration and temp-D1 integrity/authz/session probes.
-3. Make release truth consume the new artifact but remain red.
-4. Review the exact `AUTH-001` packet; discover current provider constraints and export window.
-5. Execute one staging-source-to-disposable-target rehearsal.
-6. Destroy and independently verify cleanup before marking the provider artifact complete.
-7. Schedule the next evidence expiry/rehearsal without enabling paid retention.
+`RUNBOOK_ROLLBACK_CLEANUP_AND_INCIDENT.md` owns the detailed checkpoints and
+go/no-go contract. The fixed sequence remains fail-closed predicates and schema,
+dry-run/integrity/auth/session mechanics, red strict consumers, exact `AUTH-001`
+review, one source-to-disposable-target rehearsal, independent cleanup, then an
+expiry/rerun decision without paid retention.
 
 ## Rollback And Incident Path
 
-- Before any hosted command, capture current resource inventory and a fresh source bookmark/export metadata.
-- If source availability degrades during export, abort and follow the operating incident contract; do not continue import merely to complete evidence.
-- If the disposable target is corrupt, retain only redacted diagnostics, destroy it, and keep release red.
-- If a write hits the bound database or cleanup fails, escalate as a data-integrity/security incident and stop all release activity.
-- Production Time Travel remains a separately authorized incident operation; this rehearsal does not grant or exercise it.
+The full rollback, cleanup, and incident contract is in
+`RUNBOOK_ROLLBACK_CLEANUP_AND_INCIDENT.md`. Safety invariants remain: capture
+inventory before mutation, abort on source impact, destroy a corrupt disposable
+target after bounded redacted diagnosis, treat bound-database writes or cleanup
+failure as data/security incidents, and never infer Time Travel authority from
+this rehearsal.
 
 ## Completion Audit
 
@@ -71,9 +62,16 @@ Requires live Cloudflare identity/plan/backend preflight, isolated disposable so
 - [ ] Export temp modes, encrypted filesystem, per-run key lifecycle, bounded
   plaintext window, and independent plaintext/ciphertext/key deletion are proven.
 - [ ] Restored sessions were invalidated before any disposable Worker ingress was
-  reachable; the temporary operator-only ingress and canonical-route absence are proven.
+  reachable; the unique `workers.dev` endpoint, configured run ID, `routes=[]`,
+  disposable-only binding, deletion, exact-URL absence, and canonical-route absence are proven.
+- [ ] The final receipt contains the Program `BETA-P1-10` explicit N/A scan and independent verifier result.
+- [ ] Proof requests are method/path/body bound, expire within five minutes,
+  reject nonce replay and rate/usage overflow before application dispatch, and
+  emit only redacted denial/correlation evidence.
 - [ ] Disposable Worker, D1, export objects/files, variables, and credentials are absent after cleanup.
 - [ ] Distinct verifier confirms the artifact and cleanup.
-- [ ] Release truth consumes the artifact and enforces freshness.
+- [ ] `D1-RECOVERY-RECEIPT-v1` contains the frozen identity, revision, result,
+  timing, check, session, cleanup, and validity fields; release truth and Beta
+  Operating consume it strictly without rerunning recovery.
 
 Stop only after the hosted evidence and cleanup are both green. An imported SQL file without application/authz/session proof is a failure.

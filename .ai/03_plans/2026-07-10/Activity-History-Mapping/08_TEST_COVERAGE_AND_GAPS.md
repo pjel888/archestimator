@@ -58,6 +58,13 @@ This document maps every test covering activity history behavior and identifies 
 - Calls RPC, checks `old_snapshot` shape.
 - **Does NOT test** collision, BFS subtree, inferred roots, batch oversize.
 
+**Required focused row-restore proof:** UNIT-002 adds
+`tests/vitest/estimate-actions-d1-row-restore-history.test.ts`, exercising direct
+D1 success/readback, injected atomic write failure, row-ID collision,
+malformed/missing `old_snapshot`, cross-workspace denial, explicit batch cap, and
+idempotent replay. This production contract is not delegated to the tests-only
+UNIT-005 lane.
+
 ### F. Other node-restore tests (DIFFERENT entrypoint)
 
 **Files:** `tests/vitest/estimate-tree-bulk-selection.test.tsx`, `tests/vitest/estimate-tree-context-menu.test.tsx`

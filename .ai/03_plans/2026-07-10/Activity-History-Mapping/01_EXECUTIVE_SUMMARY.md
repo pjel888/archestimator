@@ -8,7 +8,7 @@ The feature is **not currently MVP-ready** because of the naming split: most eve
 
 ## Current Strengths
 
-1. **Rich append-only event log.** `estimate_sheet_events` (`migrations/0025:8-51`) stores 19 columns including `changed_fields`, `old_snapshot`, `new_snapshot`, `payload`, `row_context`, `total_delta`, and a unique `correlation_id` for idempotency. Four purpose-built indexes serve project/workspace/estimate-scoped reads.
+1. **Rich append-only event log.** `estimate_sheet_events` (`migrations/0025_reusable_source_insert_support.sql:8-51`) stores 19 columns including `changed_fields`, `old_snapshot`, `new_snapshot`, `payload`, `row_context`, `total_delta`, and a unique `correlation_id` for idempotency. Four purpose-built indexes serve project/workspace/estimate-scoped reads.
 
 2. **Multi-source unified feed.** The project activity page (`project-activity-feed-repository.ts:1091`) merges six distinct source tables (estimate events, publications, shared-link comments, shared-link responses, shared-link events, collaboration audit events) into a single timeline with filtered/unfiltered counts, cursor pagination, and graceful per-source degradation.
 
@@ -16,7 +16,10 @@ The feature is **not currently MVP-ready** because of the naming split: most eve
 
 4. **Hardened shared-link system.** Token-based (not Better Auth) guest access with HMAC-hashed tokens, AES-GCM encrypted storage, scrypt password hashing, per-credential-version cookie invalidation, CSRF double-submit, rate limiting, snapshot-version optimistic locking (409 on stale), and owner digest emails.
 
-5. **Working restore from history.** Both row restore (`restoreDeletedRowsMutation`) and node restore (`restoreDeletedEstimateNodes` via direct callback in `EstimateSheetContent`) are fully wired from button → handler → server action → D1, with old_snapshot reconstruction and collision guards.
+5. **Partially wired restore from history.** Node restore (`restoreDeletedEstimateNodes`
+via the direct callback in `EstimateSheetContent`) reaches D1 with snapshot
+reconstruction and collision guards. Row restore has a UI/server path, but its D1
+dispatch still throws and is not a working durable restore.
 
 6. **Comprehensive idempotency.** `prepareHistoryEventInsert` (`d1-action-client.ts:437-505`) uses a unique index on `(estimate_id, correlation_id)` to make history writes replay-safe. A proof router (`estimate-history-proof-router.ts`) exercises idempotency, cross-workspace denial, and transaction rollback.
 
@@ -73,23 +76,34 @@ The UI restore guard (`RESTORABLE_ROW_DELETE_EVENT_TYPES = {"row_deleted", "rows
 - Verify and align AI package-builder event-type spellings. (`UNIT-003`)
 
 **P1 (should fix for MVP):**
-- Implement or remove the D1 row-restore stub. (`UNIT-002`)
+- Implement durable D1 row restore from persisted `old_snapshot`; removing the
+  dispatch/UI path is not an accepted substitute. (`UNIT-002`)
 - Standardize idempotency and INSERT-shape across all write paths. (`UNIT-004`)
 - Fill critical test gaps for restore paths and error branches. (`UNIT-005`)
-- Add missing composer/filter entries for `estimate_nodes_restored`, `row_component_moved`, `rows_moved`, `sheet_adjustment_updated`. (`UNIT-006`)
+- Add missing composer, dictionary, and filter entries for `nodes_restored`,
+  `row_component_moved`, `rows_moved`, and `sheet_adjustment_updated` as part of
+  the first normalization unit. (`UNIT-001`)
 
 **P2 (post-MVP improvement):**
-- Owner reply to client comments on shared links. (`UNIT-007`)
-- Comment edit/delete and decision retraction. (`UNIT-007`)
-- Compute `signature_intent_hash` on decision submit. (`UNIT-007`)
-- Consolidate dual project-activity repositories. (`UNIT-006`)
-- Remove or wire the unused `Timeline` UI primitive. (`UNIT-006`)
-- Remove the stub `AdminAuditTable`. (`UNIT-006`)
+- Publisher-owned reply, comment mutation, decision reset, and signature-intent
+  work remains deferred to `Publisher-And-Shared-Pages`; this pack consumes its
+  append-only event receipt. (`REQ-008`; `UNIT-007` is superseded.)
+- Consolidating the dual project-activity repositories remains outside the
+  current READY slice and requires a separately scoped future unit.
+- Removing or wiring the unused `Timeline` UI primitive remains a separately
+  scoped UX cleanup, not Activity `UNIT-006` work.
+- `AdminAuditTable` is an Admin-owned surface outside this pack; any cleanup is
+  deferred to a separately owned Admin plan.
 
 ## Readiness
 
-**Package status:** `NOT_READY` — the audit is complete and the naming split is verified at source level, but units are `PLANNED` (not yet `READY`). The implementation DAG is defined and executable from `UNIT-001` once the first unit is promoted to `READY`.
+**Package status:** `CONDITIONALLY_READY` — `UNIT-001` through `UNIT-006`,
+`UNIT-009`, `UNIT-010`, and `UNIT-012` form the dependency-closed READY slice.
+`UNIT-011` remains `PLANNED` until the Program issues the current migration
+generation receipt; downstream integrated verification `UNIT-008` remains
+`PLANNED`. `UNIT-007` is `SUPERSEDED` by Publisher ownership.
 
 **Implementation status:** `NOT_STARTED` — no application source has been changed by this planning run.
 
-**Release status:** `NOT_EVALUATED` — hosted/provider proof for shared-link activity changes is runtime evidence produced by `UNIT-008`, not a plan-readiness cap.
+**Release status:** `NOT_EVALUATED` — hosted/provider proof is runtime evidence,
+not a plan-readiness cap.

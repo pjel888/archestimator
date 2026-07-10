@@ -5,15 +5,15 @@
   "profile": "high-blast-radius",
   "package_action_ceiling": "IMPLEMENT_LOCAL",
   "last_observed_run_scope": "PLAN_ONLY",
-  "package_status": "IMPLEMENTATION_READY",
+  "package_status": "CONDITIONALLY_READY",
   "implementation_status": "NOT_STARTED",
   "release_status": "NOT_EVALUATED",
   "plan_lifecycle": "ACTIVE",
   "terminal_status": "ACTIVE",
   "baseline": {
-    "head": "081a0757a9d7f34e75342a18e353f3014403de1e",
-    "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "scoped_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    "head": "e373bc865b978e237deb1d92011c96b0a3639fb4",
+    "scoped_status_sha256": "32ab186503e591ed55166e492d900487088e6370ea03ffbca75fa52660378f56",
+    "scoped_diff_sha256": "bd80a006b2a30dfba2880c0ec1e4881b399b100200a1849e3130e1ed26144edf"
   },
   "canonical_execution_artifact": "IMPLEMENTATION_PLAN.md",
   "artifacts": [
@@ -21,37 +21,85 @@
       "id": "ART-001",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "3a37de3f91a1a620f8b662802c0ad4906fb93fd2488f8a0ae50c50326d86dc17"
+      "sha256": "19ce6e292ae4b76f2d680790d7a60cf706394598bd5acf624835d43bcc366683"
     },
     {
       "id": "ART-002",
       "role": "audit",
       "path": "SOURCE_AND_CODEBASE_AUDIT.md",
-      "sha256": "b046509f5bcddafd42c2957eb18332d3cbf552e29575910ab1b0bc30881107be"
+      "sha256": "b984c5cbfef4b3eec3d8eedc2c0818d40e7d5969e33ff9af22fff84766964514"
     },
     {
       "id": "ART-003",
       "role": "requirements",
       "path": "REQUIREMENTS_AND_DECISIONS.md",
-      "sha256": "d21da2dbbb3aa50fb346fa9f47497a14b3c54b2755b359d8d952aa3bc28fd12c"
+      "sha256": "470be36feef8c9ebeac0ecf39b40bbb607b7aaafaaafd086b920957beadc3eb8"
     },
     {
       "id": "ART-004",
       "role": "canonical-execution",
       "path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "b860b4a2521c941798e69720f627fe3d1c312e44e71ff349c36f2a2fb0e89da1"
+      "sha256": "49a3e2d8570aee8ddbecfebf4c03977dceb25edfff8672ef791bc9a4e635bf2f"
     },
     {
       "id": "ART-005",
       "role": "verification-rollout",
       "path": "VERIFICATION_ROLLOUT_AND_FINAL_AUDIT.md",
-      "sha256": "b1bc677a0d83835db0494683e75b54165eccc9d67282393e13fb0d52de7c7895"
+      "sha256": "54f47de517e2fdc5316fd904b276201158ffd5fccedba6b72e765dac361db3db"
     },
     {
       "id": "ART-006",
       "role": "ledger",
       "path": "LOOP_LEDGER.md",
-      "sha256": "730167c73eafbb904a759c1ad49601717351b1ad40c6d60f4e06f3b3bdc8b546"
+      "sha256": "a392dff92af73e3883c84f1105c89bf2d844cd99fae8782de7e31012f6901fde"
+    },
+    {
+      "id": "ART-007",
+      "role": "domain-model",
+      "path": "CALCULATION_DOMAIN_INVARIANTS_AND_ROUNDING.md",
+      "sha256": "5c2d5949a06e13c3795e51ef3a94f2b4aef4d059751e9836add633e602703185"
+    },
+    {
+      "id": "ART-008",
+      "role": "ux-accessibility",
+      "path": "SURFACE_PARITY_UX_AND_ACCESSIBILITY.md",
+      "sha256": "d8f575e2b787118b02bddcd77a9d89f4dfb5a5a332d92690724168c0d3ac518a"
+    },
+    {
+      "id": "ART-009",
+      "role": "data-compatibility",
+      "path": "PUBLICATION_SNAPSHOT_DATA_AND_COMPATIBILITY.md",
+      "sha256": "3d6d8ef70831e4bf46522859a4de594e9657f95d784b77549869dc8421bb2c58"
+    },
+    {
+      "id": "ART-010",
+      "role": "artifact-browser-proof",
+      "path": "EXPORT_XLSX_PRINT_AND_BROWSER_PROOF.md",
+      "sha256": "51f90fe40e1d1c6d95cb22830ecb97b4897ca42c836cbba54281701003efa1c6"
+    },
+    {
+      "id": "ART-011",
+      "role": "security-model",
+      "path": "SECURITY_PRIVACY_AND_PUBLIC_ALLOWLIST.md",
+      "sha256": "52b584559022d0ffe81ee42ab89b5c604cb54f57a87ee229157ad513b22970be"
+    },
+    {
+      "id": "ART-012",
+      "role": "adversarial-qa",
+      "path": "GOLDEN_ORACLE_AND_ADVERSARIAL_QA.md",
+      "sha256": "97e0ee2e2cf751af8fe3edd7c1b12ac58c31cb0cf499098f14bf6f7455905c3e"
+    },
+    {
+      "id": "ART-013",
+      "role": "performance-observability",
+      "path": "PERFORMANCE_RELIABILITY_AND_OBSERVABILITY.md",
+      "sha256": "a61638886294bd6d49ee2d435b74f758a54cb2c770805c3c46729ec80de53dfa"
+    },
+    {
+      "id": "ART-014",
+      "role": "rollout-final-audit",
+      "path": "ROLLOUT_FIX_FORWARD_AND_COMPLETION_GATE.md",
+      "sha256": "5d81bdded7dcc1e12affa60a9e4a504a27c60f6cc0acadd1dfda417708ad0965"
     }
   ],
   "sources": [
@@ -882,7 +930,7 @@
     },
     {
       "id": "UNIT-003",
-      "status": "READY",
+      "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-002"
@@ -903,7 +951,7 @@
     },
     {
       "id": "UNIT-004",
-      "status": "READY",
+      "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-003"
@@ -926,7 +974,7 @@
     },
     {
       "id": "UNIT-005",
-      "status": "READY",
+      "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-004"
@@ -951,7 +999,7 @@
     },
     {
       "id": "UNIT-006",
-      "status": "READY",
+      "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-005"
@@ -974,7 +1022,7 @@
     },
     {
       "id": "UNIT-007",
-      "status": "READY",
+      "status": "PLANNED",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-006"
@@ -1088,12 +1136,7 @@
       "id": "SLICE-001",
       "unit_ids": [
         "UNIT-001",
-        "UNIT-002",
-        "UNIT-003",
-        "UNIT-004",
-        "UNIT-005",
-        "UNIT-006",
-        "UNIT-007"
+        "UNIT-002"
       ]
     }
   ],
@@ -1102,7 +1145,7 @@
       "id": "EVID-001",
       "status": "COLLECTED",
       "artifact_path": "SOURCE_AND_CODEBASE_AUDIT.md",
-      "sha256": "b046509f5bcddafd42c2957eb18332d3cbf552e29575910ab1b0bc30881107be",
+      "sha256": "b984c5cbfef4b3eec3d8eedc2c0818d40e7d5969e33ff9af22fff84766964514",
       "claim_ids": [
         "SRC-001",
         "SRC-002",
@@ -1120,14 +1163,14 @@
         "REQ-005",
         "OPS-001"
       ],
-      "source_revision": "081a0757a9d7f34e75342a18e353f3014403de1e",
+      "source_revision": "e373bc865b978e237deb1d92011c96b0a3639fb4",
       "valid_until": null
     },
     {
       "id": "EVID-002",
       "status": "PLANNED",
       "artifact_path": "VERIFICATION_ROLLOUT_AND_FINAL_AUDIT.md",
-      "sha256": "b1bc677a0d83835db0494683e75b54165eccc9d67282393e13fb0d52de7c7895",
+      "sha256": "54f47de517e2fdc5316fd904b276201158ffd5fccedba6b72e765dac361db3db",
       "claim_ids": [
         "UNIT-001",
         "UNIT-002",
@@ -1167,18 +1210,19 @@
         "GATE-004",
         "GATE-005"
       ],
-      "source_revision": "081a0757a9d7f34e75342a18e353f3014403de1e",
+      "source_revision": "e373bc865b978e237deb1d92011c96b0a3639fb4",
       "valid_until": null
     }
   ],
   "stale_triggers": [
     "estimate-row-total-or-canonical-base-contract-change",
+    "beta-migration-lease-generation-or-tail-hash-change",
     "publication-snapshot-or-publisher-identity-contract-change",
     "share-reconstruction-or-publication-view-model-change",
     "xlsx-export-or-print-layout-contract-change",
     "currency-rounding-adjustment-or-contingency-policy-change"
   ],
   "next_unit": "UNIT-001",
-  "updated_at": "2026-07-10T00:20:00.000Z",
-  "manifest_sha256": "f997f155f1fd71cc13d73772bde252289d336f4f773a8f83edec1e69a4a5a0a0"
+  "updated_at": "2026-07-10T18:58:56.000Z",
+  "manifest_sha256": "113704b82865ba2a8445be216a9f80cc399b3007644493504bd7e455046e382f"
 }

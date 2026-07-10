@@ -1,5 +1,10 @@
 # Requirements And Decisions
 
+This file remains the stable-ID requirement, criterion, decision, risk, and
+authorization index. The independently reviewable ownership, receipt,
+maintainability, evidence, lease, and release contracts are cross-linked from
+the `README.md` artifact map and do not create competing IDs.
+
 ## Requirements
 
 ### REQ-001 - exact-once ownership registry
@@ -12,17 +17,18 @@ Acceptance: `AC-001`; unit: `UNIT-001`.
 
 ### OPS-001 - dependency and phase gates
 
-The program records current manifest hashes, readiness tuples, leases, and
-handoffs for every owner pack. Downstream integration cannot start until the
+The program records current manifest/artifact/diff hashes, readiness tuples,
+leases, and integration receipts for every owner pack. Downstream integration cannot start until the
 named upstream receipt is current and validator-clean.
 
 Acceptance: `AC-002`; units: `UNIT-001`, `UNIT-003`.
 
-### OPS-002 - serialized Publisher and Activity circle-back
+### OPS-002 - serialized Publisher and Activity integration
 
-The exact delta packets in `SOURCE_AND_CODEBASE_AUDIT.md` are issued only after
-the existing agents freeze their packs. The program does not edit or overwrite
-their active plans and does not infer implementation from planning status.
+The exact delta packets in `SOURCE_AND_CODEBASE_AUDIT.md` are issued only from
+stable validator-clean receipts whose manifest, artifact-set, scoped-diff, and
+contract hashes recheck. The program does not overwrite either pack and does not
+infer implementation from planning status.
 
 Acceptance: `AC-003`; unit: `UNIT-002`.
 
@@ -40,7 +46,13 @@ Acceptance: `AC-004`; units: `UNIT-003`, `UNIT-004`.
 The release truth packet must bind each backlog item and release criterion to a
 fresh receipt at the correct local, browser, hosted, provider, operator, or
 external-authority surface. Missing, stale, skipped-without-rationale, or
-wrong-surface proof is a no-go signal.
+wrong-surface proof is a no-go signal. The Release chain must preserve its
+`UNIT-007` read-only receipt, Release `AUTH-001`/`UNIT-008` GitHub receipt,
+Release `AUTH-002`/`UNIT-009` isolated-staging receipt, and Release
+`AUTH-003`/`UNIT-010` production-or-no-release receipt independently. Program
+`AUTH-002` is a fifth, separately scoped consumer boundary that can resolve only
+from the current `LIMITED-COHORT-LEGAL-DECISION-RECEIPT-v1` produced by Beta
+Operating `AUTH-003`/`UNIT-009`.
 
 Acceptance: `AC-005`; units: `UNIT-004`, `UNIT-005`.
 
@@ -48,15 +60,21 @@ Acceptance: `AC-005`; units: `UNIT-004`, `UNIT-005`.
 
 Local workflow files and successful local commands cannot prove protected
 branch/ruleset configuration, required checks, secret/dependency scanning, or
-passed-SHA deploy enforcement. Authorized hosted mutation/readback is required.
+passed-SHA deploy enforcement. Program `AUTH-001` can be resolved only by the
+matching Release `AUTH-001`/`UNIT-008` authorized mutation/readback receipt.
+Release staging, production, or the Operating legal/cohort receipt cannot
+substitute.
 
 Acceptance: `AC-006`; unit: `UNIT-005`; boundary: `AUTH-001`.
 
-### OPS-004 - limited-cohort legal approval
+### OPS-004 - limited-cohort legal decision receipt consumption
 
 External Beta cannot be declared go until the intended limited-cohort Terms and
-Privacy Notice have an explicit owner/legal approval record. Wider/public/paid
-launch remains outside this program and requires qualified counsel review.
+Privacy Notice have the explicit owner/legal decision record produced only by
+Beta Operating `AUTH-003`/`UNIT-009`. Program validates and consumes that receipt;
+it neither requests nor records the approval. Wider/public/paid launch remains
+outside this program and requires the separately recorded qualified-counsel
+scope in the same receipt.
 
 Acceptance: `AC-007`; unit: `UNIT-005`; boundary: `AUTH-002`.
 
@@ -65,12 +83,12 @@ Acceptance: `AC-007`; unit: `UNIT-005`; boundary: `AUTH-002`.
 | ID | Status now | Observable completion signal | Proof surface |
 |---|---|---|---|
 | `AC-001` | FAIL | Registry contains all 20 IDs once; automated duplicate/missing check returns zero | local program audit |
-| `AC-002` | FAIL | Every dependency has a current manifest hash, tuple, lease owner, and handoff timestamp | owner-pack receipts |
-| `AC-003` | FAIL | Publisher/Activity deltas are acknowledged after freeze with no overlapping file ownership | ledgers and validator receipts |
-| `AC-004` | FAIL | Each pack reports a bounded extraction decision and regression ownership; no standalone refactor lane | owner-pack final audits |
-| `AC-005` | FAIL | All release rows have fresh matching-surface receipts and no open P0 defect | release truth artifact |
+| `AC-002` | FAIL | Every dependency has current manifest/artifact/diff hashes, tuple, lease owner, receipt timestamp, plus one valid durable 0053..0057 migration generation receipt | owner-pack and migration receipts |
+| `AC-003` | FAIL | Publisher/Activity incorporated-delta receipts name exact delta IDs and validate with stable scoped hashes and no overlapping file ownership | integration and validator receipts |
+| `AC-004` | FAIL | All nine packs occur exactly once in the BETA-P1-10 matrix and provide a current bounded extraction receipt or explicit justified N/A | owner-pack final audits and Program matrix audit |
+| `AC-005` | FAIL | All release rows have fresh matching-surface receipts, including distinct Release `UNIT-007/008/009/010` receipts, and no open P0 defect | release truth artifact |
 | `AC-006` | BOUNDARY | Authorized GitHub readback proves required hosted controls and passed-SHA enforcement | GitHub hosted receipt |
-| `AC-007` | BOUNDARY | Explicit limited-cohort legal approval is recorded; wider launch remains blocked | owner/legal decision record |
+| `AC-007` | BOUNDARY | Current Beta Operating `LIMITED-COHORT-LEGAL-DECISION-RECEIPT-v1` validates for the exact cohort/document versions; wider launch remains separately bounded | Operating decision receipt |
 
 ## Autonomous decisions
 
@@ -82,9 +100,9 @@ large shared-file integrator diff and preserves accountable ownership.
 
 ### DEC-AUTO-002 - preserve existing Publisher and Activity packs
 
-Their current plans are read-only dependencies while active. Delta packets are
-serialized after freeze because both packs already name the routes/components
-the Beta audit needs.
+Their plans remain separately owned. Delta packets are serialized through
+content-addressed integration receipts because both packs already name the
+routes/components the Beta audit needs.
 
 ### DEC-AUTO-003 - separate activation production from dashboard presentation
 
@@ -100,8 +118,14 @@ that decisions and tests exist but creates no cross-domain abstraction.
 ### DEC-AUTO-005 - final release remains blocked
 
 The program can complete local coordination while `release_status=BOUNDARY`.
-GitHub hosted controls and legal approval are real authorization boundaries,
-not missing autonomous engineering work.
+Four independently scoped external receipts may still block the final decision:
+Program `AUTH-001` satisfied by Release `AUTH-001`/`UNIT-008` GitHub readback;
+Release `AUTH-002`/`UNIT-009` isolated staging; Release `AUTH-003`/`UNIT-010`
+production or fail-closed no-release; and Program `AUTH-002` strict consumption
+of the Beta Operating `AUTH-003`/`UNIT-009` cohort/legal decision receipt.
+Same-numbered records in different packs are not interchangeable, Program does
+not reproduce an upstream decision, and none is missing autonomous engineering
+work.
 
 ## Authorization boundaries
 
@@ -114,24 +138,29 @@ run green, requested control matrix prepared, no secrets in evidence. Resolution
 receipt: redacted API/UI readback with repository, rule identifiers, required
 check names, passed commit SHA, and timestamp.
 
-### AUTH-002 - limited-cohort legal approval
+### AUTH-002 - limited-cohort legal decision-receipt consumer
 
-Active. Required authority: product owner for limited-cohort approval and
-qualified counsel where policy requires. Preconditions: intended cohort, Terms,
-Privacy Notice, telemetry definitions, retention, and support contact frozen.
-Resolution receipt: versioned document identifiers, approval scope/date/actor,
-and explicit statement that wider/public/paid launch remains unapproved.
+Active receipt-consumer boundary. The only required upstream authority and
+producer are Beta Operating `AUTH-003`/`UNIT-009`; Program has no independent
+product-owner or counsel approval action. Preconditions: a current
+`LIMITED-COHORT-LEGAL-DECISION-RECEIPT-v1` binds the intended cohort, Terms,
+Privacy Notice, telemetry, retention, support owner/window, incident-policy
+digest, approval scope/date/actor, producer manifest, candidate SHA, and expiry.
+Resolution: strict Program validation accepts that immutable receipt for the
+exact release candidate and confirms the wider/public/paid counsel scope remains
+separate. Missing, stale, mismatched, malformed, or wrong-producer evidence keeps
+the boundary active; Program never recreates or broadens the decision.
 
 ## Risk register
 
 | ID | Risk | Mitigation | Trigger/owner |
 |---|---|---|---|
 | `RISK-001` | Duplicate or orphan backlog ownership | Exact-once registry check and one primary owner | any registry change / program lead |
-| `RISK-002` | Concurrent agents overwrite Publisher/Activity plans | Freeze receipt, file lease, serialized delta | manifest hash drift / program lead |
+| `RISK-002` | Concurrent edits overwrite Publisher/Activity plans | Stable manifest/diff receipt, file lease, serialized delta | receipt hash drift / program lead |
 | `RISK-003` | Planning status is mistaken for implementation proof | Tuple and evidence-surface checks | any NOT_STARTED pack / verifier |
 | `RISK-004` | Stale receipts produce a false go | Hash/freshness invalidation and fail-closed release row | source/config drift / verifier |
 | `RISK-005` | Cross-pack extraction becomes unrelated refactoring | Per-domain evidence and no standalone implementation lane | scope growth / architect |
-| `RISK-006` | Unauthorized hosted/legal action is implied | Active AUTH records and blocked final unit | release decision / owner |
+| `RISK-006` | GitHub, staging, production, or legal authority is implied, duplicated, or substituted across packs | Pack-qualified Program `AUTH-001`, Release `AUTH-001/002/003`, Operating `AUTH-003`, Program `AUTH-002` strict receipt consumption, distinct receipts, and blocked final unit | release decision / owner |
 
 ## Rejected alternatives
 

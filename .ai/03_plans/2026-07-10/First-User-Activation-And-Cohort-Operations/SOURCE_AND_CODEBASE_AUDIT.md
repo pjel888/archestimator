@@ -1,8 +1,41 @@
 # Source And Codebase Audit
 
+## Scoped Baseline Fingerprint
+
+Apply `PLAN-PACK-SCOPED-BASELINE-v1` from `Plan-Pack-Schema.md` to these ordered
+literal repo-relative pathspecs:
+
+1. `migrations`
+2. `src/app/workshop/projects`
+3. `src/components/workshop/projects-page-client.tsx`
+4. `src/components/workshop/project-grid-layout.ts`
+5. `src/components/workshop/NewProjectForm.tsx`
+6. `src/components/workshop/NewProjectFormSections.tsx`
+7. `src/components/workshop/ProjectDetailsModal.tsx`
+8. `src/components/workshop/workshop-sample-projects.ts`
+9. `src/lib/projects`
+10. `src/lib/estimates`
+11. `src/lib/admin`
+12. `src/app/admin`
+13. `src/lib/repositories/support-conversations-repository.ts`
+14. `src/lib/auth`
+15. `src/lib/collaboration/invitation-d1-store.ts`
+16. `src/components/workshop/estimate-sheet/use-estimate-proposal-preview.ts`
+17. `tests/vitest`
+18. `wrangler.jsonc`
+
+Future-only paths such as `src/app/api/activation` and `src/lib/onboarding` are
+named exactly in the implementation plan but are not source-baseline pathspecs
+until they exist. Their creation is captured by the implementation diff and the
+next manifest freeze.
+
+The fingerprint binds the current zero-state, project/estimate producer, Admin
+consumer boundary, support/auth inputs, tests, and migration tail, including
+matching untracked files. It is planning provenance only.
+
 ## Baseline and method
 
-Observed baseline: `081a0757a9d7f34e75342a18e353f3014403de1e` in a shared,
+Observed baseline: `e373bc865b978e237deb1d92011c96b0a3639fb4` in a shared,
 dirty worktree. Source and line anchors must be re-read before editing. The
 installed Next.js 16 guidance was consulted at:
 
@@ -19,6 +52,18 @@ Manifest source `SRC-001` denotes the combined Beta-audit, installed Next.js,
 and current repository baseline summarized below. It is planning evidence only
 and is stale on any listed source, schema, auth, or dependency change.
 
+Freshness re-audit at this revision confirmed the zero-state anchors below remain
+exact. Concurrent Projects changes include project-card drag/deferred/drop
+cleanup and extraction of status-tab grid classes into
+`project-grid-layout.ts`. The extracted helper changes only status-tab/card-grid
+presentation; it does not add or invalidate the audited true-zero branch,
+activation ledger, producer, or cohort repository. Concurrent Admin gate and
+landing auth-hint changes likewise add none of those activation surfaces. The
+current `requireAdminContext`/API helper surface still supplies a reusable
+platform-admin boundary; exact line anchors are re-read rather than leased. A
+prior focused empty/group characterization passed 40/40; this final source read
+is provenance inspection, not fresh runtime proof.
+
 ## Audit source
 
 The Beta audit defines the gap at
@@ -32,19 +77,20 @@ sequence at `:317-321`, and acceptance at `:323-329`. Its backlog assigns
 | Surface | Current implementation | Gap | Target owner/path |
 |---|---|---|---|
 | Projects route | `src/app/workshop/projects/page.tsx:15-39` loads owned projects and renders one client | no activation/progress/template seed | server loads activation seed only when owned project count is zero |
-| Empty detection | `projects-page-client.tsx:1955-1964` only search/status | All + zero projects falls through | add `hasTrueZeroState` before filtered-empty branches |
-| Empty rendering | `projects-page-client.tsx:3272-3342,3430` | blank collection | render `FirstProjectZeroState` with three actions |
+| Empty detection | `projects-page-client.tsx:1947-1956` only search/status | All + zero projects falls through | add `hasTrueZeroState` before filtered-empty branches |
+| Empty rendering | `projects-page-client.tsx:3264-3335` branches only for search/status empties | All + zero reaches an empty collection map | render `FirstProjectZeroState` with three actions |
+| Status-tab/card grid layout | `project-grid-layout.ts:40-53` supplies responsive presentation classes consumed by the Projects client | presentation-only; no activation state or action | preserve the helper boundary while extracting zero-state UI |
 | Blank creation | `NewProjectForm.tsx:263-338` | good creation/default estimate, no activation result | preserve flow; record path and committed milestones |
-| Project write | `src/lib/projects/actions.ts:781-837` authenticates, inserts D1, revalidates | no activation event; create-role denial not explicit here | shared server helper enforces owner/admin/member and records post-commit event |
+| Project write | `src/lib/projects/actions.ts:781-837` authenticates, inserts D1, revalidates | no activation intent; create-role denial not explicit here | shared server helper enforces owner/admin/member and commits a canonical activation outbox intent in the same D1 transaction |
 | Estimate draft | `src/lib/estimates/actions.ts:2338-2367` checks edit access and returns canonical row | no onboarding orchestration | compose in activation action; do not fork estimate creation |
 | Template insertion | `src/lib/estimates/actions.ts:3145-3177` enforces current project/edit access | UI assumes an existing estimate/parent | activation orchestrator creates target, then uses this canonical insert path |
 | Sample data | `workshop-sample-projects.ts` and `sampleEstimateTree` are display/demo fixtures | not a user-owned persisted first-value result | versioned safe payload persisted into a clearly labeled user-owned project |
 | Project details | `ProjectDetailsModal.tsx:342-539` edits ordinary fields | no project type/floor area source | typed metadata fields and validation; avoid schema-wide parallel model |
 | Account onboarding | `migrations/0005_account_settings.sql:1-37` | account completion is not product activation | separate activation progress/event tables |
 | Support | `migrations/0042_support_conversations.sql:4-41` and repository | real status exists | join only status/last-message time; never message bodies |
-| Admin auth | `src/lib/admin/require-admin.ts:8-24` | reusable gate exists | `listBetaActivationCohort` is server-only and requires admin context |
+| Admin auth | `src/lib/admin/require-admin.ts` | reusable page/API gates exist; concurrent same-origin/no-store helpers do not authorize cohort reads | `listBetaActivationCohort` is server-only and requires admin context |
 | Admin data | `src/lib/admin/users-repository.ts:60-157` has bounded pagination/signup query | no activation stages | add separate activation cohort repository; presentation remains external |
-| Admin UI | `src/app/admin/page.tsx:12-25,40-43,62,80-87`; users page `:4-16` | placeholder | out of scope; consumed by `Beta-Operating-Contract` |
+| Admin UI | `src/app/admin/page.tsx:21-43,58-120`; users page `:4-16` | Signups, incidents, and health probes are repository-backed; Active Teams remains unavailable and activation stages are absent | presentation remains out of scope and is consumed by `Beta-Operating-Contract` |
 
 ## Target domain contract
 
@@ -66,7 +112,7 @@ creates a second project for the same submitted attempt.
 - Blank: existing `NewProjectForm` behavior stays available without extra steps.
 - Import: not rendered as available. No coming-soon control implies support.
 
-### D1 model in `migrations/0051_beta_activation_events.sql`
+### D1 model in `migrations/0054_beta_activation_events.sql`
 
 `beta_activation_progress`:
 
@@ -104,9 +150,40 @@ creates a second project for the same submitted attempt.
 - no email, invite/share/session token, IP, user-agent, referrer, free-text
   support content, raw error, client-provided identity, or arbitrary metadata.
 
+`beta_activation_outbox`:
+
+- the server-derived domain mutation ID, workspace/user/resource chain,
+  milestone, source, canonical dedupe key, allowlisted payload, `pending |
+  processing | delivered | dead` state, attempts, `next_attempt_at`, lease token/
+  expiry, stable redacted error code, and timestamps;
+- unique `(workspace_id, dedupe_key)` plus indexes on
+  `(state, next_attempt_at)` and `(lease_expires_at)`;
+- the authoritative domain mutation and outbox row commit in one D1 batch or
+  owner-domain transaction. The reconciler atomically writes event/progress and
+  marks delivered; no successful domain mutation relies on an in-memory retry.
+
+`beta_activation_retention_holds`:
+
+- composite subject key `(user_id, workspace_id)`, allowlisted reason code,
+  `starts_at`, `expires_at`, server-derived `created_by`, and timestamps;
+- server-only writes behind platform-admin authorization, no free-text reason,
+  and indexes for active-hold checks;
+- activation-table membership deletes use `ON DELETE RESTRICT` so privacy or
+  membership deletion must run the checked activation lifecycle first. An active
+  hold returns an explicit restricted result and records
+  `skipped_legal_hold`; it can never silently erase or partially delete rows.
+
 The migration is additive and backward compatible. Down migration is not used
-on D1; rollback disables writers/readers and fixes forward. Account privacy
-export/erase handlers must include both tables before rollout.
+on D1; rollback disables writers/readers and fixes forward. The ledger is
+essential authenticated product state, not optional provider analytics, so an
+analytics-cookie withdrawal stops provider telemetry but does not delete or
+disable checklist progress. `beta_activation_events` expire after 180 days;
+delivered outbox rows expire after 30 days; unresolved/dead rows remain for at
+most 180 days and require repair status; progress remains while membership is
+active. Privacy/account/membership erasure deletes outbox, events, and progress
+atomically when no active hold exists. Export includes shaped progress/events
+and excludes internal lease/error/hold-reason details. `retention-core.ts` and
+privacy export/erase adapters must implement these exact rules before rollout.
 
 ### Milestone vocabulary
 
@@ -122,7 +199,12 @@ the ledger. Progress advances to the maximum known stage, never regresses. A
 duplicate tenant-scoped server-derived dedupe key is success-without-second-write.
 The same client nonce in two workspaces produces independent keys. Producers
 derive user, workspace, project, and estimate identity server-side after the
-domain commit and validate the complete membership/project/estimate chain.
+domain mutation and validate the complete membership/project/estimate chain.
+The domain mutation and outbox intent share one transaction; bounded workers
+reconcile the intent after commit. Retry delays are 1 minute, 5 minutes,
+15 minutes, 1 hour, then 6 hours through attempt 10. Expired leases are
+reclaimable; attempt 10 becomes visible `dead` state and requires an idempotent
+repair command rather than silent drop.
 
 ### Checklist derivation
 
@@ -133,9 +215,9 @@ domain commit and validate the complete membership/project/estimate chain.
 | Add component/template | committed row/template activity | library panel |
 | Set quantity | authoritative row quantity > 0 | first incomplete row |
 | Verify source/date/confidence | row provenance fields present | Estimate Intelligence target when available |
-| Review estimate health | `health_reviewed` producer contract | unavailable/degraded state until owner pack lands |
+| Review estimate health | `health_reviewed` producer contract | unavailable/degraded until the owner-pack receipt validates |
 | Preview/export | successful export response plus `export_completed` | export preview |
-| Publish | `publication_created` producer contract | unavailable/degraded state until Publisher lands |
+| Publish | `publication_created` producer contract | unavailable/degraded until the Publisher receipt validates |
 
 The UI never fabricates completion from clicks. It reads authoritative domain
 facts/events. Completion collapses the checklist; the Getting Started route in
@@ -174,11 +256,20 @@ automatic reminders or messages; Beta Operations decides and records outreach.
 ## Integration ownership
 
 - This pack implements `recordActivationMilestone` and consumer/query behavior.
-- Estimate Intelligence owns calls for `health_reviewed` and may supply
-  provenance completion facts through the typed contract.
-- Publisher owns `publication_created`, `recipient_opened`,
-  `recipient_engaged`, and `recipient_decided` calls after its active plan
-  freezes. Activity rows are not reused as activation analytics.
+- This pack publishes `ACTIVATION-PRODUCER-CONTRACT-v1` plus deterministic
+  fixtures. The Estimate and Publisher integrations require
+  `ACT-RECEIPT-ESTIMATE-HEALTH-v1` and `ACT-RECEIPT-PUBLISHER-v1`; each receipt
+  binds the owner-pack manifest hash,
+  contract version, producer path/test IDs, transactional-outbox guarantee,
+  retry/dead-letter semantics, and fixture result.
+- `Beta-Operating-Contract` emits reciprocal
+  `ACT-RECEIPT-COHORT-CONSUMER-v1`, binding the cohort DTO/query version,
+  retention basis, Admin consumer paths/tests, unavailable behavior, and its
+  manifest hash.
+- `Beta-Readiness-Program` `UNIT-003` records and validates these receipts. A
+  missing receipt keeps the corresponding integration/release row unavailable;
+  it does not block implementation or verification of this pack's contract.
+- Activity rows are not reused as activation analytics.
 - Release Integrity owns the cross-browser/golden-path proof that traverses all
   milestones. Missing external producers surface as `not_available`, not a
   falsely completed checklist item.

@@ -1,6 +1,32 @@
-# 03 — Source And Codebase Audit
+# 03 - Source And Codebase Audit
 
-<!-- Audit baseline: git HEAD 081a0757a on 2026-07-10. All file:line references
+## Scoped Baseline Fingerprint
+
+Apply `PLAN-PACK-SCOPED-BASELINE-v1` from `Plan-Pack-Schema.md` to these ordered
+literal repo-relative pathspecs:
+
+1. `migrations`
+2. `src/lib/publication`
+3. `src/lib/publisher`
+4. `src/lib/proposal-export`
+5. `src/app/api/share`
+6. `src/app/workshop/publisher`
+7. `src/app/workshop/proposals`
+8. `src/components/share`
+9. `src/components/workshop/publication`
+10. `src/components/workshop/publisher`
+11. `src/components/workshop/proposals-page`
+12. `src/components/workshop/proposals-page-client.tsx`
+13. `src/components/workshop/estimate-sheet/proposal-preview-model.ts`
+14. `tests/vitest`
+15. `e2e/shared-link-receiver.spec.ts`
+16. `wrangler.jsonc`
+
+The fingerprint binds current publication/share/proposal source and the active
+migration tail, including matching untracked files. It remains planning
+provenance, not implementation, browser, provider, or release proof.
+
+<!-- Audit baseline: git HEAD e373bc865b978e237deb1d92011c96b0a3639fb4 on 2026-07-10. All file:line references
 are against this commit. This audit is read-only evidence; it does not modify
 source. -->
 
@@ -106,8 +132,8 @@ by a deep server-side publication engine and a D1 schema.
 
 | File | Role |
 |---|---|
-| `src/app/workshop/proposals/page.tsx` | RSC entry |
-| `src/app/workshop/proposals/proposals-data.tsx` | Auth + data fetch |
+| `src/app/workshop/proposals/page.tsx` | RSC shell; imports `ProposalsData` at line 6 and renders the route shell/Suspense boundary at lines 8-24 |
+| `src/app/workshop/proposals/proposals-data.tsx` | Extracted async data boundary; lines 6-13 resolve auth before the repository query |
 | `src/lib/repositories/recipient-proposals-repository.ts` | Inbox query (LIMIT 50) |
 | `src/lib/recipient-proposals/actions.ts` | Server action wrapper |
 | `src/components/workshop/proposals-page-client.tsx` | Client orchestrator |
@@ -313,7 +339,7 @@ POST /api/share/[token]/comment
 | UX-SHR-20 | **"Approve" requires signer name but Decline/Revision don't** — asymmetric for audit trail. | Medium | `decision/route.ts:306-310` |
 | UX-SHR-21 | **No real-time updates.** Comments refresh only on window focus (30s staleTime). No polling, no SSE. | Medium | `SharePageComments.tsx:287-291` |
 | UX-SHR-22 | **Session validity not reactive.** Cookie expiry mid-session not detected until 401. | Low | `use-shared-link-session.ts:21-22` |
-| UX-SHR-23 | **No download PDF button** — only browser Print→Save as PDF path. `download_attempt_blocked` event declared but unused. | Medium | `events/route.ts:14`, `print.css` |
+| UX-SHR-23 | **No visible Print / Save as PDF control** — only the implicit browser print path exists. `download_attempt_blocked` is declared but unused; no server-generated PDF download exists. | Medium | `events/route.ts:14`, `print.css` |
 | UX-SHR-24 | **Cost donut hardcodes PHP/USD symbols.** Other currencies render as "EUR 1.2M" with space. | Low | `CostDonutChart.tsx` |
 
 ### G.3 UX/UI gaps — Recipient proposals inbox
@@ -366,8 +392,10 @@ POST /api/share/[token]/comment
 ## H. Known-Red Baseline
 
 No known-red tests or pre-existing failures were found in the publisher/publication
-test surface. The existing test `tests/vitest/recipient-proposals-route-gate.test.ts`
-passes and guards auth-before-list ordering. No TODO/FIXME/HACK comments exist in
+test surface. On the current source revision,
+`bun run test:dom -- tests/vitest/recipient-proposals-route-gate.test.ts` passes
+3/3 tests and guards the extracted `ProposalsData` auth-before-list ordering,
+including the direct source contract. No TODO/FIXME/HACK comments exist in
 `src/components/workshop/publisher` or `src/lib/publisher`; the codebase uses
 acceptance-criteria tags (AC-MOD-xx, SEC-xx, OPT-n) in comments instead.
 

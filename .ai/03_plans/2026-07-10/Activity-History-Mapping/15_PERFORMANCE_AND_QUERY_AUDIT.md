@@ -1,10 +1,13 @@
 # 15 - Performance And Query Audit (GATE-PERF-01)
 
-This document audits the performance characteristics of all activity-history read and write paths, with index-coverage analysis and scale-risk assessment.
+Manifest source: `SRC-010`. Requirement: `REQ-012`. Criterion: `AC-021`.
+Execution: `UNIT-011`. Proof: `TEST-018`.
+
+Audit scope: activity-history read/write paths, index coverage, and scale risk.
 
 ## Index Inventory (Ground Truth)
 
-The complete index set on `estimate_sheet_events` (`migrations/0025:41-51`):
+The complete index set on `estimate_sheet_events` (`migrations/0025_reusable_source_insert_support.sql:41-51`):
 
 | Index | Columns | Purpose |
 |---|---|---|
@@ -127,8 +130,15 @@ The complete index set on `estimate_sheet_events` (`migrations/0025:41-51`):
 
 **Priority:** P1 (scale-dependent — not blocking for first users with small data, but will degrade as data grows).
 
+**Execution status:** PLANNED pending a durable current Program migration-generation
+receipt allocating `migrations/0057_activity_history_indexes.sql` to this owner
+manifest. Immediately before editing, validate the receipt's migration-tail,
+owner-manifest, exact path, unclaimed status, allocation, and receipt digests.
+Any missing/stale/consumed/mismatched receipt blocks the unit and requires Program
+reissue; this pack does not self-allocate a replacement number.
+
 **Scope:**
-1. Add composite indexes on `(estimate_id, target_row_id, ...)` and `(estimate_id, estimate_node_id, ...)`.
+1. Add composite indexes on `(estimate_id, target_row_id, ...)` and `(estimate_id, estimate_node_id, ...)` in `migrations/0057_activity_history_indexes.sql`.
 2. Make `includeCounts` opt-in after first page load.
 3. Cap `readProjectPublications` with LIMIT.
 4. Add `useVirtualizer` to activity timeline lists (dependency already installed).

@@ -4,12 +4,14 @@
 
 This is the sole canonical implementation artifact. Revalidate current source,
 git status, migration tail, active leases, and installed Next.js documentation
-before editing. Preserve unrelated user/agent changes. Use TDD or an explicit
+before editing. Preserve unrelated concurrent changes. Use TDD or an explicit
 characterization-red-first sequence for every behavior unit.
 
-All units are `READY` in `SLICE-001`. Readiness means the packet is complete and
-dependency-closed in the advertised slice; execution still obeys `depends_on`,
-file leases, and fresh-source checks. `UNIT-001` is the only next unit.
+The package is `CONDITIONALLY_READY`. `SLICE-001` contains only dependency-closed
+`UNIT-001` and `UNIT-003`; `UNIT-001` is the exact next unit. `UNIT-002` is
+`PLANNED` until it consumes a current migration generation receipt, and
+`UNIT-004` through `UNIT-008` remain `PLANNED` behind migration, Publisher,
+Activity, or prior-unit dependencies.
 
 ## Capability Census
 
@@ -29,17 +31,25 @@ number allocation, evidence receipts, and final status transitions.
 
 | Lease | Scope | Owner | Release condition |
 |---|---|---|---|
-| LEASE-EST-MIGRATION | Umbrella-provisional `0052_estimate_intelligence_inputs.sql`, after Publisher `0050` and Activation `0051`, only if all three leases and the source tail are still current | UNIT-002 data executor | Migration filename fixed and committed to ledger |
+| LEASE-EST-MIGRATION | Program allocation `0055_estimate_intelligence_inputs.sql` inside the current durable aggregate 0053..0057 generation receipt | UNIT-002 data executor | Receipt consumed, migration created, and next generation reissued by Program |
 | LEASE-EST-DOMAIN | `src/lib/estimate-health/**` | UNIT-003 domain executor | Contract tests green |
 | LEASE-EST-PROJECT | project database types/actions/forms and project-data repository DTO | UNIT-002/004 shared integrator | Repository contract integrated |
 | LEASE-EST-ROUTE | project-data URL state and UI components | UNIT-005/007 UX executor | DOM tests green |
 | LEASE-EST-ACTIVITY | Any current event adapter/shared Activity-owned source | UNIT-006 shared-contract integrator | Activity owner idle; compatibility tests green |
 | LEASE-EST-EVIDENCE | `.ai/99_scratch/estimate-intelligence-*` receipts | UNIT-008 verifier | Receipts summarized and temp files cleaned |
 
-Immediately before editing, re-scan `migrations/` plus the Publisher, Activation,
-and umbrella ledgers. If `0052` or either earlier provisional lease changed, stop
-and have the program lead reissue every later slot; record the actual name before
-editing imports/tests. Do not rename another agent's migration.
+The Program maintains the durable
+`.ai/03_plans/2026-07-10/Beta-Readiness-Program/MIGRATION_LEASE_GENERATION.json` with monotonic
+`generation`, sorted migration-tail digest, all five owner-manifest digests,
+0053..0057 allocation rows, allocation digest, and canonical receipt digest.
+Immediately before any migration edit, UNIT-002 verifies those fields and the
+unclaimed `0055` path, then appends the generation and receipt hash to this
+ledger. Any tail, owner-manifest, allocation, filename, or digest mismatch makes
+the receipt stale and prohibits the edit. An expected slot creation consumes
+that slot and makes the old generation stale for all remaining slots; Program
+must emit the next generation with consumed paths/hashes immutable and every
+unconsumed slot reissued. Unexpected collision or rename follows the same
+rescan/reissue rule. Never rename another owner's migration.
 
 ## DAG
 
@@ -65,6 +75,8 @@ Integration checkpoints:
 
 ## UNIT-001 - Freeze Domain Contracts And Red Baselines
 
+Status: `READY`.
+
 Unit ID and goal: `UNIT-001`; characterize current behavior and add failing
 contracts for typed inputs, policy resolution, health rules, drill-through, and
 revision reconciliation.
@@ -80,14 +92,17 @@ History source edits.
 
 Exact paths and current symbols:
 
-- extend `tests/vitest/fixtures/project-charts-golden-master-fixture.ts` only if
-  existing consumers can remain stable; otherwise add
-  `tests/vitest/fixtures/estimate-health-golden-fixture.ts`;
+- add `tests/vitest/fixtures/estimate-health-golden-fixture.ts` and leave
+  `tests/vitest/fixtures/project-charts-golden-master-fixture.ts` unchanged;
 - add `tests/vitest/estimate-health-rules.test.ts`;
 - add `tests/vitest/estimate-price-policy.test.ts`;
 - add `tests/vitest/project-data-health-repository.test.ts`;
 - add `tests/vitest/project-data-health-route-state.test.ts`;
 - add `tests/vitest/estimate-revision-intelligence.test.ts`;
+- add `tests/vitest/estimate-row-provenance-producers.test.ts` as the complete
+  runtime/non-product writer registry;
+- add `tests/vitest/estimate-revision-fact-producers.test.ts` for forward row,
+  adjustment, template/subtree, and AI package facts;
 - characterize `ProjectRow`, `ProjectDataRouteSummary`,
   `getComponentPricingFreshness`, `buildProjectChartSeries`, and current event
   shapes without changing implementation.
@@ -129,6 +144,9 @@ resume at UNIT-002 and UNIT-003 after CP-1.
 
 ## UNIT-002 - Add Typed Project Inputs And Price Policy Schema
 
+Status: `PLANNED`; blocked until a current Program migration generation receipt
+allocates and validates `0055`.
+
 Unit ID and goal: `UNIT-002`; add additive D1 schema, typed project contracts,
 validated create/edit actions, policy persistence, and durable estimate-row
 provenance origin.
@@ -144,7 +162,7 @@ Non-goals: Health evaluation or cockpit UI.
 Exact paths and symbols:
 
 - umbrella-provisional migration
-  `migrations/0052_estimate_intelligence_inputs.sql` under lease and mandatory
+  `migrations/0055_estimate_intelligence_inputs.sql` under lease and mandatory
   current-tail/ledger rescan;
 - `src/lib/types/database.ts` `ProjectRow`;
 - `src/lib/projects/actions.ts` `createProjectRecord` and update action;
@@ -154,8 +172,29 @@ Exact paths and symbols:
 - `src/lib/repositories/component-library-repository.ts`
   `normalizeComponentLibraryItem` provenance-origin producer;
 - `src/lib/estimates/actions.ts` `getSourceSnapshot` and row-insert mapping,
-  plus the internal source-snapshot sanitizer/type;
-- `estimate_row_items.pricing_provenance_origin` row/select types;
+  `insertEstimateRowItemFromLibrary`, `duplicateEstimateSheet`,
+  `duplicateEstimateTab`, `restoreDeletedEstimateNodes`, and the explicit
+  unavailable `restoreDeletedEstimateRows` branch;
+- `src/lib/estimates/d1-action-client.ts` `insertRowItem`,
+  `duplicateEstimateTab`, `restoreDeletedEstimateNodes`, and `copyTemplateNodes`;
+- `src/lib/component-library/actions.ts` `templateRowItemInsertStatement` and
+  `copiedTemplateRowInsertValues`, plus
+  `src/lib/component-library/template-editor-actions.ts`
+  `templateRowItemInsertStatement`;
+- `src/lib/reusable-sources/actions.ts:copyProjectSourceSubtreeInD1`;
+- `src/lib/ai/package-builder/apply.ts` `buildLibrarySourceSnapshot`,
+  `buildRowInsert`, `buildTemplateRowCopyInsert`, `buildRowReplacementPayload`,
+  `toEstimateRowInsertPayload`, `insertEstimateRowRecord`,
+  `insertEstimateRowInD1`, `insertEstimateTemplateIntoEstimateInD1`, and
+  `applyCreatePackageProjectDraftInD1`;
+- `src/lib/cloudflare/estimate-history-proof-router.ts` synthetic proof writers;
+- `scripts/generate-cloudflare-d1-estimate-history-proof.ts`,
+  `scripts/explain-estimate-list-summaries.mjs`,
+  `scripts/verify-cloudflare-hosted-collaboration-ui-proof.ts`,
+  `tests/vitest/estimate-actions-d1-reorder-history.test.ts`, and
+  `tests/vitest/ai-package-builder-apply.test.ts` seed writers;
+- `estimate_row_items.pricing_provenance_origin` and
+  `estimate_template_row_items.pricing_provenance_origin` row/select types;
 - `NewProjectForm.tsx` and `ProjectDetailsModal.tsx` only for validated fields;
 - migration/repository/action tests.
 
@@ -168,18 +207,22 @@ Approach and invariants:
 
 1. Acquire migration and shared-file leases.
 2. Re-scan migrations and D1 helpers.
-3. Add nullable project columns, the policy table/indexes/checks, and a nullable
-   checked provenance-origin column for legacy-compatible estimate rows.
+3. Add nullable project columns, the policy table/indexes/checks, nullable
+   checked provenance-origin columns for estimate and template rows, and the
+   forward revision-fact sidecar used by UNIT-006.
 4. Preserve all existing project reads through explicit column-list updates.
 5. Validate finite non-negative numeric values and ISO dates at server boundary.
 6. Enforce current workspace/project authorization for reads/writes.
 7. Make policy writes idempotent with revision increment and updated timestamp.
 8. Compute `recorded | inherited_snapshot | synthesized_fallback | missing` at
-   the component/row producer before source/date fallback; persist the marker in
-   the estimate row and internal snapshot on every new insert.
-9. Treat legacy null origin as `missing`; never infer origin from plausible
+   creation before source/date fallback; copy/restore the exact stored marker;
+   carry it through every inventoried template, reusable-source, and AI payload.
+9. Make the producer-registry fixture fail for an unclassified new SQL writer.
+   Synthetic proof/seed writers set an explicit synthetic origin or deliberate
+   legacy-null fixture and never satisfy product-path coverage.
+10. Treat legacy null origin as `missing`; never infer origin from plausible
    stored source/date, and keep public snapshot sanitization unchanged.
-10. Do not backfill guessed project facts or origin; policy absence resolves to
+11. Do not backfill guessed project facts or origin; policy absence resolves to
     90/180.
 
 Expected postconditions: Existing projects read with null inputs; new/edit flows
@@ -200,6 +243,8 @@ fixture-backed migration experiment; record the revised decision.
 Checkpoint/resume: Record actual migration filename/hash and schema readback.
 
 ## UNIT-003 - Implement Canonical Health And Freshness Domain
+
+Status: `READY`; dependency-closed with `UNIT-001` only.
 
 Unit ID and goal: `UNIT-003`; implement pure policy resolution, normalization,
 health rules, grading, budget precedence, and cost-driver primitives.
@@ -247,6 +292,8 @@ Failure response: If current library classification conflicts, preserve current
 Checkpoint/resume: Public domain exports and fixture snapshot hash.
 
 ## UNIT-004 - Build Authorized Repository DTO And Query Budget
+
+Status: `PLANNED`; depends on migration-receipt-gated `UNIT-002` and `UNIT-003`.
 
 Unit ID and goal: `UNIT-004`; fetch bounded normalized facts and return health,
 risk, driver, budget, policy, and pagination DTOs from the project Data repository.
@@ -299,6 +346,8 @@ Checkpoint/resume: DTO version, query count, payload bytes, and cache key record
 
 ## UNIT-005 - Add Stable Drill-Through State And Risk UX
 
+Status: `PLANNED`.
+
 Unit ID and goal: `UNIT-005`; implement validated URL state, KPI/risk selection,
 exact row drill-through, and all non-revision UX states.
 
@@ -343,43 +392,54 @@ Checkpoint/resume: Route schema version and DOM fixture snapshots.
 
 ## UNIT-006 - Add Revision Intelligence Adapter And Capability
 
-Unit ID and goal: `UNIT-006`; decompose current-versus-baseline change using a
-compatibility adapter over current/normalized Activity History evidence.
+Status: `PLANNED`; requires `UNIT-004`, the migration receipt/sidecar, and an
+Activity compatibility receipt before shared event-path edits.
+
+Unit ID and goal: `UNIT-006`; produce complete forward revision facts and
+decompose current-versus-baseline change through a compatibility adapter over
+the Activity event boundary.
 
 User/system outcome: Users can explain why an estimate changed without manually
 comparing every row.
 
 Linked IDs: REQ-003, REQ-004; DEC-AUTO-006, DEC-AUTO-008; RISK-005.
 
-Non-goals: Event production/restoration changes or Activity pack edits.
+Non-goals: Activity vocabulary redesign, unsupported row-restore enablement,
+historical fact guessing, named-version snapshots, or Activity pack edits.
 
 Exact paths:
 
 - new `src/lib/estimate-health/revision-intelligence.ts`;
 - new `src/lib/estimate-health/activity-delta-adapter.ts`;
-- existing event reads in `src/lib/estimates/actions.ts`,
-  `src/lib/estimates/d1-action-client.ts`, and Activity pack audit for read-only
-  mapping;
+- `src/lib/estimates/actions.ts` and
+  `src/lib/estimates/d1-action-client.ts` forward row, sheet-adjustment,
+  template/subtree, copy, delete, and restore event producers;
+- `src/lib/ai/package-builder/apply.ts` row/template/project-package producers;
+- new `tests/vitest/estimate-revision-fact-producers.test.ts`;
+- Activity pack audit/contracts for vocabulary-compatible mapping only;
 - new `EstimateRevisionComparison.tsx`;
 - focused revision tests.
 
-Dependencies: UNIT-004. Before any shared source edit, confirm the Activity
-History agent has finished and acquire LEASE-EST-ACTIVITY. Default implementation
-adds adapters without changing Activity-owned files.
+Dependencies: UNIT-004. Before any shared source edit, validate the current
+Activity compatibility receipt, recheck its manifest/diff/contract hashes, and
+acquire LEASE-EST-ACTIVITY. Default implementation adds adapters without changing
+Activity-owned files.
 
 Owned scope and role: Shared-contract integrator owns adapters; UX executor owns
 the new component.
 
-Approach: Accept an explicit same-estimate baseline event ID and capture a stable
-current event high-water mark with the current persisted row snapshot. Normalize
-and dedupe events from `(baseline_order, current_order]`, ordered by
-`occurred_at` then stable event ID; reconstruct the baseline backward from
-complete `before` facts and tombstones. Classify quantity/rate/adjustment/misc/
-scope contributions, sum with canonical money rounding from the output-parity
-contract when available, and expose an `unclassified` residual only for complete
-unknown changes. Cross-estimate events, missing range entries, partial facts,
-late/out-of-order evidence, deleted rows without tombstones, or high-water drift
-return unavailable. Do not add named-version UI, snapshots, compare, or restore.
+Approach: Every forward row insert/update/replace/move/delete/restore, sheet
+adjustment, template/subtree copy, and AI package mutation writes its event and
+complete normalized facts atomically and idempotently. Facts have stable ordinals
+and canonical before/after quantity, rate, adjustment, misc, scope/node, and
+tombstone values; bulk writes chunk only between complete events. Accept an
+explicit same-estimate baseline, capture the current `(occurred_at,event_id)`
+high-water, page facts by event then ordinal, verify event completeness and
+estimate identity, and recheck the high-water. Classify deltas with canonical
+money rounding and expose `unclassified` only for a complete unknown change. Any
+legacy event without facts, gap, partial fact, duplicate/late fact, absent
+tombstone, cross-estimate boundary, or high-water drift returns typed
+`unavailable`; never partially explain or backfill it.
 
 Expected postconditions: RED-EST-003 turns green and current Activity History
 tests remain unchanged.
@@ -393,6 +453,8 @@ fixtures, update only the adapter, and reopen CP-3 if repository facts changed.
 Checkpoint/resume: Adapter compatibility matrix and normalized event fixture hash.
 
 ## UNIT-007 - Integrate Cockpit And Extract Touched Capabilities
+
+Status: `PLANNED`; depends on UNIT-005 and Activity/migration-gated UNIT-006.
 
 Unit ID and goal: `UNIT-007`; compose health, risk, drivers, budget, and revision
 capabilities into the Data route while reducing touched-component concentration.
@@ -434,6 +496,8 @@ claim if any.
 
 ## UNIT-008 - Verify, Roll Out Locally, Audit, And Clean Up
 
+Status: `PLANNED`.
+
 Unit ID and goal: `UNIT-008`; run proportional broad proof, inspect diff/blast
 radius, close risks, prepare staged rollout/fix-forward, and perform final audit.
 
@@ -444,8 +508,11 @@ Linked IDs: PERF-001, REQ-004, OPS-001; all risks.
 
 Non-goals: Hosted D1 migration or production deployment.
 
-Exact scope: All changed source/tests/migration, this pack ledger/manifest, and
-temporary evidence paths. Do not edit neighboring packs.
+Exact scope: All changed source/tests/migration, this pack ledger/manifest,
+`scripts/benchmark-estimate-health.ts`,
+`tests/vitest/estimate-health-benchmark.test.ts`,
+`tests/vitest/project-data-health-query-budget.test.ts`, and temporary evidence
+paths. Do not edit neighboring packs.
 
 Dependencies: UNIT-007.
 
@@ -464,6 +531,20 @@ Approach:
 6. Execute the final traceability matrix and close/mitigate every risk.
 7. Remove temp D1/evidence/browser resources and release leases.
 8. Refresh source/evidence hashes and statuses only from actual receipts.
+9. After `ACTIVATION-PRODUCER-CONTRACT-v1` and its deterministic fixtures are
+   frozen, emit `ACT-RECEIPT-ESTIMATE-HEALTH-v1`. Bind this pack manifest,
+   Activation contract version/hash, the authoritative `health_reviewed` producer
+   path and tests, same-transaction activation outbox guarantee, safe logging, and
+   explicit unavailable behavior. Program `UNIT-003` rejects a missing, stale,
+   mismatched, non-transactional, or unsafe receipt; no health milestone is
+   fabricated while the contract is unavailable.
+10. Emit `BETA-P1-10-ESTIMATE-RECEIPT-v1` with the caller map for
+    `ProjectDataClient`, `CostComparisonBoard`, health, and revision capabilities;
+    pre-change characterization commands/results; the explicit bounded
+    extract-or-retain decision; exact changed files and hashes; focused and
+    regression test results; current pack/source/diff hashes; and an independent
+    verifier identity/result. Program rejects a missing, stale, incomplete, or
+    maker-only receipt.
 
 Expected postconditions: AC-001 through AC-014 and GATE-001 through GATE-005 pass;
 all units become VERIFIED; implementation can move to COMPLETE while release
@@ -471,7 +552,9 @@ remains separately evaluated.
 
 Proof: TEST-007, TEST-009, TEST-010 and the commands in the verification artifact.
 Expected signal: zero failures, clean migration replay, budgets within threshold,
-clean diff, no stale receipts or resources. Final receipt
+clean diff, no stale receipts or resources, and validator-clean
+`ACT-RECEIPT-ESTIMATE-HEALTH-v1` plus
+`BETA-P1-10-ESTIMATE-RECEIPT-v1`. Final receipt
 `.ai/99_scratch/estimate-intelligence-final-audit.md`.
 
 Failure response: Reopen the earliest causal unit. Do not mark the package

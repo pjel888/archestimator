@@ -1,16 +1,48 @@
 # 03 - Source And Codebase Audit
 
-This document is the complete, file:line-grounded inventory of every source artifact that constitutes the activity history feature. It was produced by parallel read-only audit agents over the current `main` branch source tree.
+File:line-grounded inventory of the source artifacts that constitute activity
+history.
+
+## Scoped Baseline Fingerprint
+
+Apply `PLAN-PACK-SCOPED-BASELINE-v1` from `Plan-Pack-Schema.md` to these ordered
+literal repo-relative pathspecs:
+
+1. `migrations`
+2. `src/lib/activity`
+3. `src/lib/estimates`
+4. `src/lib/repositories/project-activity-repository.ts`
+5. `src/lib/repositories/project-activity-feed-repository.ts`
+6. `src/lib/publisher`
+7. `src/lib/publication`
+8. `src/lib/cloudflare/estimate-history-proof-router.ts`
+9. `src/lib/reusable-sources`
+10. `src/lib/ai/package-builder`
+11. `src/lib/compliance`
+12. `src/app/api/projects`
+13. `src/app/api/share`
+14. `src/app/workshop/projects`
+15. `src/components/workshop/estimate-sheet`
+16. `src/components/workshop/project-activity`
+17. `src/components/workshop/publisher`
+18. `src/components/share`
+19. `src/stores/estimate-ui-store.ts`
+20. `worker.ts`
+21. `tests/vitest`
+
+The fingerprint binds the current source/migration worktree, including matching
+untracked files. It is provenance only; it does not promote any implementation,
+browser, hosted, or authorization claim.
 
 ## Audit Method
 
-Four parallel exploration agents independently mapped:
+The audit mapped four surfaces:
 1. The data layer (migrations, repositories, server actions, API routes).
 2. The UI/component layer (React components, hooks, panels, modals).
 3. The shared-link/client-collaboration surface (routes, auth, comments, approvals).
 4. The mutation surface (every `*_with_history` action, event types, INSERT sites).
 
-Findings were cross-referenced and critical claims (especially the naming split) were verified by direct source reads.
+Direct source reads verified the critical claims, especially the naming split.
 
 ## 1. D1 Migrations
 
@@ -49,6 +81,9 @@ Findings were cross-referenced and critical claims (especially the naming split)
 - **File:** `migrations/0034_data_retention_events.sql`
 - `estimate_sheet_events` is an enumerated retention class.
 - Enforcement code: `src/lib/compliance/retention-core.ts:38,121-127`.
+- Cron entrypoint: `worker.ts:182-208` invokes `runRetentionPassInD1`; privacy
+  export/erasure consumers live in
+  `src/lib/compliance/privacy-request-repository.ts:222-229`.
 
 ### 1f. Estimate data tables (source of truth, not event-sourced)
 - `estimate_row_items`, `estimate_nodes`, `estimate_tabs`, `estimates` — created in `migrations/0015_publication_admin_sidecars.sql` and later migrations. These hold canonical state; events are an audit trail alongside them.
@@ -74,8 +109,8 @@ Findings were cross-referenced and critical claims (especially the naming split)
 - `PublisherActivitySource` — same 6 sources.
 - `readPublisherWorkspaceActivity` (line 246) — mirrors project feed at workspace scope.
 
-### 2d. Legacy Supabase read path — `src/lib/estimates/actions.ts`
-- `fetchEstimateSheetVersionControl` (line 2029-2173) — uses `dataStore.from("estimate_sheet_events")` PostgREST client. **Still imported by the UI component `activity-history.tsx`.**
+### 2d. D1-backed estimate-history read path — `src/lib/estimates/actions.ts`
+- `fetchEstimateSheetVersionControl` (line 2029-2173) constructs `createEstimateActionsD1Client` and reads through the active D1 substrate. It is imported by `activity-history.tsx`; this is not a Supabase/PostgREST path.
 - `normalizeHistoryEvent` (951-971) — sets `eventType: row.event_type` **verbatim, no rename**.
 - Types: `EstimateSheetHistoryEvent` (430), `EstimateSheetHistoryCursor` (406).
 - Dormant-version filtering: `isDormantNamedVersionEventType` (992), filtered at 997, 1008.
@@ -198,7 +233,7 @@ getDeletedHistoryRestoreAction (activity-history.tsx:551)
 | Estimate Sheet Version Control | `.ai/09_archive/store/2026-05-29-estimate-sheet-version-control-complete/` | COMPLETED |
 | Shared Link Overhaul V2 | `.ai/09_archive/store/2026-05-29-project-shared-link-overhaul-complete/` | COMPLETED |
 | Public Share Activity Minimization | `.ai/03_plans/2026-07-07/2026-07-07-public-share-activity-minimization/` | CONDITIONALLY READY |
-| Publisher-And-Shared-Pages | `.ai/03_plans/2026-07-10/Publisher-And-Shared-Pages/` | EMPTY scaffold |
+| Publisher-And-Shared-Pages | `.ai/03_plans/2026-07-10/Publisher-And-Shared-Pages/` | Active implementation plan; owns public comment/decision mutations and Publisher/shared-page UI |
 
 ## 11. Active Constraints
 
@@ -206,3 +241,15 @@ getDeletedHistoryRestoreAction (activity-history.tsx:551)
 - **`decisions.md:900`:** "Estimate activity history is one sheet-level modal, not separate slideovers."
 - **V1 expansion roadmap:** Undo/redo is an explicit non-goal; the event log is audit history, not a reversible command stack.
 - **Production telemetry default-off:** `isProjectPublicationAccessTelemetryEnabled` returns false unless both `ARCHESTIMATOR_ACCESS_TELEMETRY_ENABLED` and `ARCHESTIMATOR_ACCESS_TELEMETRY_PRODUCTION_READY` are `"true"`.
+
+## 12. 2026-07-10 Freshness Recheck
+
+- Current HEAD `e373bc865b978e237deb1d92011c96b0a3639fb4` recheck confirmed
+  no Activity-owned source path changed since the prior audit and the D1 action
+  client remains the estimate-history
+  read/write substrate; the earlier Supabase label was stale and is superseded.
+- Publisher now exclusively owns public comment/decision mutation routes,
+  publication actions/repository changes, and shared-page interaction UI.
+- This pack owns activity vocabulary, immutable event facts, activity readers,
+  restore behavior, activity presentation, isolation, retention integration, and
+  evidence. Cross-pack integration requires a validated manifest/hash receipt.

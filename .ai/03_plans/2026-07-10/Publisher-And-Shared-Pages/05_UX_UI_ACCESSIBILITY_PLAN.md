@@ -1,7 +1,7 @@
 # 05 — UX/UI Accessibility Plan
 
-This document covers the user experience, visual design, and accessibility
-strategy for the redesigned Publisher and Shared Link surfaces.
+Scope: user experience, visual design, and accessibility for the Publisher and
+Shared Link surfaces.
 
 ## Design Principles
 
@@ -137,7 +137,7 @@ Step 4: Success + send
 │  ✅ Your link is ready!          4/4  │
 │  ───────────────────────────────────  │
 │  https://archestimator.com/share/...  │  ← Selectable URL
-│  [📋 Copy] [📱 QR Code] [👁 Preview]  │
+│  [Copy] [Share link] [Preview]         │
 │  ───────────────────────────────────  │
 │  Send to clients:                     │
 │  [email1@...] [email2@...] [+ Add]   │
@@ -159,9 +159,8 @@ On viewports under 768px, the wizard renders as a **full-screen bottom sheet**:
 - Content fills the viewport between the indicator and a sticky Cancel/Next footer.
 - The success step stacks affordances vertically: Copy link (full-width), Preview
   (full-width), Send invitations (if email configured, full-width), Done (full-width).
-- The QR code is **hidden on mobile** (REQ-013) — replaced by a "Share link" button
-  using the native Web Share API (`navigator.share`) if available, with Copy as
-  fallback. A QR code is useless when you're already holding the phone.
+- "Share link" uses the native Web Share API (`navigator.share`) when available.
+  Selectable URL text and Copy remain visible on every device. No QR is rendered.
 
 ### Wizard accessibility (REQ-011)
 
@@ -237,7 +236,7 @@ Beyond the basic focus-trap/Escape/return pattern:
 | Row actions | Button on every row | Row-click/hover to select; "Ask about this item" in a detail panel |
 | Cost donut | Hardcoded PHP/USD | Locale-aware `Intl.NumberFormat` |
 | Comments | Flat, time-only, nested scroll | Dates, author badges, page scroll |
-| Print/PDF | Hidden (user must know Ctrl+P) | Visible "Download PDF" button |
+| Print/PDF | Hidden (user must know Ctrl+P) | Visible "Print / Save as PDF" button |
 | View toggle labels | "Scope outline" / "Line item table" | "Summary" / "Details" |
 
 ### Mobile bottom nav improvements
@@ -251,12 +250,23 @@ Beyond the basic focus-trap/Escape/return pattern:
 - All existing a11y patterns (roving tabindex, ARIA tablist, `aria-live` regions)
   are preserved — the current components are already a11y-rigorous.
 - Sticky decision bar must not trap focus or obscure content.
-- "Download PDF" button has `aria-label` describing the action.
+- "Print / Save as PDF" button has an `aria-label` that truthfully describes
+  opening the browser print dialog.
 - Dynamic header status uses `role="status"` with `aria-live="polite"`.
 - Password toggle button has `aria-label="Show password"` / `aria-label="Hide password"`.
 - Comment author distinction uses visual badge + `aria-label`.
-- QR code has accessible name and `role="img"`.
+- Native Share and Copy use labeled buttons with explicit success/failure feedback.
 - All new interactive elements: minimum 44px touch targets, visible focus.
+
+### Activity accessibility handoff
+
+`Publisher-And-Shared-Pages` exclusively owns accessibility changes to
+`SharePageComments`, `SharePageDecision`, and their public comment/decision
+interaction surfaces. `Activity-History-Mapping` may supply append-only event
+contracts and audit findings, but it does not edit these components. Before
+Publisher final integration, consume the Activity incorporated-delta handoff and
+carry every applicable finding into the Publisher receipt with changed paths,
+exact tests, and an independent verifier result.
 
 ## Component Reuse Strategy
 
@@ -272,7 +282,7 @@ Reuse from `src/components/ui/`:
 
 New components needed:
 - `ShareWizard` (the guided publish flow)
-- `ShareLinkDisplay` (URL + copy + QR)
+- `ShareLinkDisplay` (URL + Copy + progressive native Web Share)
 - `ClientPreviewBanner` (preview-mode indicator)
 - `StickyDecisionBar` (desktop floating CTA)
 - `ProposalStatusBadge` (dynamic header status)
@@ -282,9 +292,9 @@ New components needed:
 
 ## DESIGN.md Alignment
 
-`DESIGN.md` is alpha-stage — defer to Philip on visual decisions. This plan
+`DESIGN.md` is alpha-stage guidance. This plan
 specifies structural/behavioral UX changes (hierarchy, flow, terminology,
 accessibility) that are implementation-ready regardless of the evolving visual
 language. Visual specifics (colors, spacing, typography) follow the existing
-component patterns and `DESIGN.md` guidance where it exists, and are subject to
-Philip's design direction during implementation.
+component patterns and `DESIGN.md` guidance where it exists. Structural behavior,
+security, and accessibility contracts remain the acceptance authority.

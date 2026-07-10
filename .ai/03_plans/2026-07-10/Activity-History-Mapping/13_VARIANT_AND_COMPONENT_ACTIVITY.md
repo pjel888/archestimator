@@ -1,8 +1,10 @@
 # 13 - Variant And Component Activity Recording
 
-> **This document addresses the explicit concern from project memory: "also that the variants should be accommodated as well."**
+Manifest source: `SRC-008`. Requirement: `REQ-010`. Criteria: `AC-018`,
+`AC-019`. Execution: `UNIT-009`. Proof: `TEST-016`.
 
-This is a deep audit of how component variants interact with activity history. It reveals significant gaps where variant/component operations are NOT properly recorded, making the activity log an incomplete record of what happened to components.
+Variant and component operations are not recorded consistently, leaving gaps in
+the activity record.
 
 ## Architecture: Where Variant Identity Lives
 
@@ -118,8 +120,9 @@ Replacing, unlinking, or moving a project component does NOT fan out. The asymme
 ### UNIT-009 (new) — Variant and component activity completeness
 
 **P0 items:**
-1. Surface `propagatedRowIds` in the audit card UI (GAP 4).
-2. Add per-propagated-row events OR a "propagation summary" display (GAP 3).
+1. Surface affected rows and the propagated count in the audit card UI (GAP 4).
+2. Record one bounded propagation event with typed before/after facts; chunk
+   oversized fan-out under the same correlation ID (DEC-AUTO-008).
 3. Wire AddComponentModal/EditComponentModal `onComponentUpdated` to produce estimate activity events for linked rows (GAP 7).
 
 **P1 items:**

@@ -12,11 +12,18 @@ Prove that a recent hosted Archestimator D1 export can be restored into an isola
 | Implementation | `NOT_STARTED` |
 | Release | `BOUNDARY` |
 | Lifecycle | `ACTIVE` |
-| Action ceiling | `IMPLEMENT_LOCAL` |
+| Action ceiling | `EXTERNAL_ACTIONS` |
 | Next unit | `UNIT-001` |
 | Canonical execution artifact | `IMPLEMENTATION_PLAN.md` |
 
 The local gate/schema/orchestration slice is executable. Creating and destroying a disposable hosted D1 database and Worker, exporting hosted data, and running a controlled hosted write require the explicit packet in `AUTH-001` because the standing repository mandate covers only resources already bound in `wrangler.jsonc`.
+
+The `high-blast-radius` profile is proportionate because this pack crosses
+provider mutation, encrypted data/export lifecycle, schema and application
+integrity, bearer-equivalent sessions, temporary ingress security, measured
+recovery performance, incident response, and destructive cleanup. The domain
+artifacts below support independent review; they do not create another execution
+plan or provider authority.
 
 ## Scope
 
@@ -37,8 +44,8 @@ The local gate/schema/orchestration slice is executable. Creating and destroying
 
 ## Dependencies And Ownership
 
-- `Beta-Operating-Contract` owns incident severity, operator/support roster, auth residual-risk decision, and production communication.
-- `Release-Integrity-And-Golden-Path` consumes the current recovery artifact and enforces its freshness.
+- `Beta-Operating-Contract` owns incident severity, operator/support roster, auth residual-risk decision, and production communication; it consumes `D1-RECOVERY-RECEIPT-v1` and never reruns recovery.
+- `Release-Integrity-And-Golden-Path` consumes `D1-RECOVERY-RECEIPT-v1` and enforces its schema, identity, revision, freshness, result, and cleanup state.
 - `Activity-History-Mapping` owns user-facing history/restore semantics, not disaster recovery.
 - This pack exclusively owns changes to the D1 restore evidence producer, restore-readiness predicates, hosted recovery orchestration, integrity/authz probes, and recovery runbook.
 
@@ -50,12 +57,26 @@ Units 001 through 005 are the local ready slice. `UNIT-006` is blocked by `AUTH-
 
 ## Artifact Map
 
-- `SOURCE_AND_CODEBASE_AUDIT.md`: current false-positive and provider constraints.
-- `REQUIREMENTS_AND_DECISIONS.md`: requirements, decisions, risks, and exact authorization packet.
-- `IMPLEMENTATION_PLAN.md`: executable recovery units and resource boundaries.
-- `VERIFICATION_ROLLOUT_AND_FINAL_AUDIT.md`: integrity/authz matrix, rehearsal, rollback, and completion gate.
-- `LOOP_LEDGER.md`: append-only run state.
-- `plan-pack.json`: machine-readable readiness and traceability.
+Core authority:
+
+- `plan-pack.json`: machine-readable status, stable IDs, paths, hashes, DAG, and evidence index.
+- `README.md`: execution entrypoint and restart packet.
+- `SOURCE_AND_CODEBASE_AUDIT.md`: current false-positive, source evidence, official constraints, and freshness.
+- `REQUIREMENTS_AND_DECISIONS.md`: human-readable requirement, criterion, decision, risk, and authorization planning baseline; live record state remains solely in `plan-pack.json`.
+- `IMPLEMENTATION_PLAN.md`: sole canonical execution artifact with unit packets and resource boundaries.
+- `VERIFICATION_ROLLOUT_AND_FINAL_AUDIT.md`: human-readable test/gate planning baseline and completion audit; live status remains solely in `plan-pack.json`.
+- `LOOP_LEDGER.md`: append-only run, supersession, and resume state.
+
+Independent review surfaces:
+
+- `PROVIDER_CAPABILITY_AND_CONSTRAINTS.md`: official capability/limit interpretation, identity, and provider failure model.
+- `RECOVERY_ARTIFACT_SCHEMA_AND_DATA_INTEGRITY.md`: receipt fields, integrity layers, data/secret lifecycle, and strict consumers.
+- `RESTORE_ORCHESTRATION_AND_DISPOSABLE_INGRESS_THREAT_MODEL.md`: phase order, resource leases, signed ingress, denials, and crash cleanup.
+- `SESSION_AUTHZ_AND_APPLICATION_INTEGRITY_PROOF.md`: offline session invalidation, actor/resource matrix, app proof, and controlled write.
+- `RTO_RPO_PERFORMANCE_AND_FAILURE_MODEL.md`: measured timing definitions, evaluators, thresholds, and recovery responses.
+- `PROVIDER_REHEARSAL_TEST_PLAN.md`: applicability plus local, dry-run, provider, cleanup, and failure-response scenarios.
+- `RUNBOOK_ROLLBACK_CLEANUP_AND_INCIDENT.md`: preflight, checkpoints, rollback/fix-forward, absence inventory, and handback.
+- `AUTHORIZATION_PACKET_AND_FINAL_AUDIT.md`: exact external boundary, denials, requirement audit, and distinct-verifier contract.
 
 ## Restart Packet
 

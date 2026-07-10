@@ -1,12 +1,43 @@
 # Source And Codebase Audit
 
+## Scoped Baseline Fingerprint
+
+Apply `PLAN-PACK-SCOPED-BASELINE-v1` from `Plan-Pack-Schema.md` to these ordered
+literal repo-relative pathspecs:
+
+1. `migrations`
+2. `src/lib/types/database.ts`
+3. `src/lib/estimates`
+4. `src/lib/repositories/component-library-repository.ts`
+5. `src/lib/repositories/project-data-repository.ts`
+6. `src/lib/repositories/project-charts-repository.ts`
+7. `src/lib/project-charts`
+8. `src/lib/component-library`
+9. `src/lib/reusable-sources`
+10. `src/lib/ai/package-builder`
+11. `src/lib/projects`
+12. `src/lib/workshop/project-data-route-state.ts`
+13. `src/components/workshop/project-data`
+14. `src/components/workshop/library`
+15. `src/components/workshop/estimate-sheet`
+16. `tests/vitest`
+17. `wrangler.jsonc`
+
+The fingerprint binds current estimate-intelligence producers, consumers,
+fixtures, and the active migration tail, including matching untracked files. It
+does not make planned provenance or revision fixtures current proof.
+
 ## Audit Boundary
 
-This audit is grounded at git revision
-`081a0757a9d7f34e75342a18e353f3014403de1e` and current uncommitted source as
-observed on 2026-07-10. It covers estimate analytics, project analytical inputs,
-component price governance, activity-history integration, and their tests. It
-does not treat hosted/provider state as proven.
+This audit was rechecked at git revision
+`e373bc865b978e237deb1d92011c96b0a3639fb4` plus current uncommitted planning
+changes on 2026-07-10. No estimate-intelligence source, test, migration,
+configuration, cited Beta-audit input, or Activity integration source relevant to
+this pack changed from the original
+`081a0757a9d7f34e75342a18e353f3014403de1e` inspection through this HEAD; the
+later proposals-list extraction and project-card drag changes are outside this
+ledger. This provenance recheck is not implementation proof and does not treat
+hosted/provider state as proven.
 
 ## Source Ledger
 
@@ -72,6 +103,29 @@ These facts make a broad "add provenance" project stale, but they also expose a
 truth gap: a plausible fallback label/date must not satisfy provenance or
 freshness. The implementation must preserve display compatibility, replace only
 duplicated policy ownership, and retain evidence origin explicitly.
+
+### Complete estimate-row producer inventory
+
+The active runtime write/copy/restore surface is broader than the current
+library action and must be treated as one schema contract:
+
+| Producer class | Current path/symbol | Required provenance behavior |
+|---|---|---|
+| Library row insert | `src/lib/estimates/actions.ts:insertEstimateRowItemFromLibrary`; `src/lib/estimates/d1-action-client.ts:insertRowItem` | Determine origin before fallback and persist it |
+| Estimate sheet copy | `src/lib/estimates/actions.ts:duplicateEstimateSheet` | Copy the exact stored marker |
+| Tab copy | `src/lib/estimates/actions.ts:duplicateEstimateTab`; `src/lib/estimates/d1-action-client.ts:duplicateEstimateTab` | Copy the exact stored marker |
+| Deleted subtree restore | `src/lib/estimates/actions.ts:restoreDeletedEstimateNodes`; `src/lib/estimates/d1-action-client.ts:restoreDeletedEstimateNodes` | Restore the snapshotted marker exactly |
+| Deleted row restore | `src/lib/estimates/actions.ts:restoreDeletedEstimateRows`; unsupported D1 branch in `d1-action-client.ts` | Stay unavailable until a complete snapshot exists; never invent origin |
+| Template source/write/copy | both `templateRowItemInsertStatement` implementations in `src/lib/component-library/actions.ts` and `template-editor-actions.ts`, `copiedTemplateRowInsertValues`, and `src/lib/estimates/d1-action-client.ts:copyTemplateNodes` | Store marker on template rows and preserve it into estimate rows |
+| Reusable project source copy | `src/lib/reusable-sources/actions.ts:copyProjectSourceSubtreeInD1` | Preserve exact source marker |
+| AI row/template/package paths | `src/lib/ai/package-builder/apply.ts:buildLibrarySourceSnapshot`, `buildRowInsert`, `buildTemplateRowCopyInsert`, `buildRowReplacementPayload`, `toEstimateRowInsertPayload`, `insertEstimateRowRecord`, `insertEstimateRowInD1`, `insertEstimateTemplateIntoEstimateInD1`, and `applyCreatePackageProjectDraftInD1` | Determine or inherit origin once and carry it through SQL/payload replacement |
+| Operational proof writer | `src/lib/cloudflare/estimate-history-proof-router.ts` | Declare known synthetic origin or deliberate legacy-null fixture; never count as product-path proof |
+| Direct scripts/tests | `scripts/generate-cloudflare-d1-estimate-history-proof.ts`, `scripts/explain-estimate-list-summaries.mjs`, `scripts/verify-cloudflare-hosted-collaboration-ui-proof.ts`, `tests/vitest/estimate-actions-d1-reorder-history.test.ts`, and `tests/vitest/ai-package-builder-apply.test.ts` | Declare synthetic origin or deliberate legacy-null fixture |
+
+`tests/vitest/estimate-row-provenance-producers.test.ts` will be the completeness
+fixture. A source scan in that planned test will make any new `estimate_row_items` writer fail
+until its product or non-product classification and expected marker behavior are
+added.
 
 ## Current Data Model
 
@@ -141,6 +195,8 @@ untrusted shapes rather than spread optional-value interpretation into the UI.
 | RED-EST-005 | Freshness policy is fixed and duplicated | 90/180 constants in UI and 90-day overview query | D1 policy owner plus shared evaluator |
 | RED-EST-006 | Large analytics components concentrate changes | `CostComparisonBoard.tsx` combines route-level composition and presentation | Extract bounded health, risk, driver, and comparison capabilities |
 | RED-EST-007 | Health query cost has no explicit budget | Existing chart path caps rows at 5,000 but health has no evaluator | One bounded fact query plus measured 5k/50k fixtures |
+| RED-EST-008 | Provenance can be dropped by copy, restore, template, reusable-source, and AI paths | Producer inventory above | Nullable row/template marker plus producer-completeness fixture |
+| RED-EST-009 | Existing events do not guarantee complete before/after facts for adjustment, template, package, and bulk row changes | Current event payloads are heterogeneous | Forward-only append-only revision-fact sidecar; legacy incomplete ranges unavailable |
 
 These are expected pre-implementation failures and must remain distinguishable
 from regressions introduced by execution.
@@ -202,13 +258,31 @@ is display-only and never counts as provenance, freshness, or verified
 confidence.
 
 Origin is producer-owned durable data, not a post-load inference. The
-umbrella-provisional `0052_estimate_intelligence_inputs.sql` adds nullable
-`estimate_row_items.pricing_provenance_origin` with the closed enum above; new
-library/component insert paths compute the origin before applying compatibility
-fallbacks and persist it in both the row column and internal source snapshot.
+Program-generation allocation `0055_estimate_intelligence_inputs.sql` adds nullable
+`pricing_provenance_origin` columns to `estimate_row_items` and
+`estimate_template_row_items` with the closed enum above; every inventoried
+producer computes or preserves the origin before applying compatibility
+fallbacks and persists it in the row plus internal source snapshot.
 Legacy rows with no marker remain `missing` for evidence even when their stored
 source/date look plausible. Repository reads never infer `recorded` from those
 normalized display values, and public publication sanitization remains unchanged.
+
+### Forward revision facts
+
+The current event payloads do not form a complete historical accounting ledger:
+sheet-adjustment updates omit the prior value, template and package events mostly
+record counts/IDs, and unsupported row restoration has no safe full snapshot.
+Migration `0055` therefore adds append-only `estimate_revision_facts` keyed to
+`estimate_sheet_events`. Each forward row, adjustment, template/subtree, and AI
+package mutation writes stable ordinal facts with canonical before/after money
+inputs, scope/node/tombstone references, and a completeness/schema marker in the
+same atomic unit as its event.
+
+Readers capture and recheck a same-estimate `(occurred_at,event_id)` high-water
+and order facts by event then ordinal. Any event without a complete fact set,
+including historical events created before this contract, makes the requested
+range unavailable with a stable reason. There is no heuristic backfill and no
+partial named cause.
 
 Rule IDs are data contracts. Copy is presentation. Rules must never embed UI
 phrasing or raw customer data into logs.

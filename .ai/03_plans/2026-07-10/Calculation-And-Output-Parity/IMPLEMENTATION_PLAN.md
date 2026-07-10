@@ -8,15 +8,18 @@ Next.js 16 docs. Preserve concurrent changes. Begin with the cross-surface red
 fixture; do not refactor formulas before expected values and membership are
 hand-authored.
 
-All units are `READY` in dependency-closed `SLICE-001`; execute strictly in DAG
-order. `UNIT-001` is the exact next node.
+The package is `CONDITIONALLY_READY`. Dependency-closed `SLICE-001` contains
+only `UNIT-001` and `UNIT-002`; execute `UNIT-001` first. `UNIT-003` is `PLANNED`
+until it consumes the Program migration generation receipt for `0056`, and
+`UNIT-004` through `UNIT-007` remain `PLANNED` behind migration, Publisher, and
+prior-unit dependencies.
 
 ## Capability Census
 
-| Capability | Use | Fallback |
+| Capability | Use | Continuity |
 |---|---|---|
 | Targeted repository inspection and caller search | Consumer map and duplicate formula detection | Required |
-| Executor with one shared-file integrator | Calculation and adapter edits | Lead executes directly if agent unavailable |
+| Executor with one shared-file integrator | Calculation and adapter edits | Lead retains the lane when no child slot exists |
 | Test engineer | Hand-authored oracle and workbook artifact assertions | Lead writes red tests before source |
 | Vitest/Bun/ExcelJS/ZIP XML helpers already in repo | Unit, DOM, workbook generation/readback | No new dependency |
 | Targeted Playwright print-media proof | Browser-only print contract | Criterion remains failing if unavailable |
@@ -29,13 +32,26 @@ order. `UNIT-001` is the exact next node.
 | LEASE-PAR-ORACLE | Golden fixture, oracle snapshot, expected values | UNIT-001 test engineer | Acquire first; release after fixture hash frozen |
 | LEASE-PAR-CALC | `estimate-row-total.ts` and calculation adapters | UNIT-002 calculation integrator | Release after compatibility tests |
 | LEASE-PAR-CHART | editable-row and chart aggregation adapters | UNIT-003 integrator | Release after chart/editor golden pass |
-| LEASE-PAR-PUBLICATION | `publication/snapshot.ts`, share reconstruction/types/tests | UNIT-004 publication integrator | Acquire only after Publisher writer completion and diff review |
-| LEASE-PAR-EXPORT | proposal export types/model/settings/workbook/preview/tests | UNIT-005 export integrator | Acquire only after Publisher writer completion and diff review |
-| LEASE-PAR-PRINT | share print package/CSS/browser fixture | UNIT-006 UI integrator | Acquire after Publisher completion; release after browser proof |
+| LEASE-PAR-MIGRATION | Program allocation `0056_estimate_calculation_input_constraints.sql` in the current durable 0053..0057 generation receipt | UNIT-003 integrator | Receipt consumed, migration created, next generation reissued |
+| LEASE-PAR-PUBLICATION | `publication/snapshot.ts`, share reconstruction/types/tests | UNIT-004 publication integrator | Consume validator-clean Publisher manifest/diff/contract receipt |
+| LEASE-PAR-EXPORT | proposal export types/model/settings/workbook/preview/tests | UNIT-005 export integrator | Consume validator-clean Publisher manifest/diff/contract receipt |
+| LEASE-PAR-PRINT | share print package/CSS/browser fixture | UNIT-006 UI integrator | Consume Publisher integration receipt; release after browser proof |
 | LEASE-PAR-EVIDENCE | temp workbook, browser server/port, proof paths | UNIT-007 verifier | Cleanup before release |
 
-Shared-file wait is not an owner question. The lead polls current agent/worktree
-state, completes independent units, and integrates when the writer is finished.
+The durable Program receipt
+`.ai/03_plans/2026-07-10/Beta-Readiness-Program/MIGRATION_LEASE_GENERATION.json`
+contains a monotonic generation, sorted migration-tail digest, Publisher/
+Activation/Estimate/Calculation/Activity manifest digests, 0053..0057 allocation rows, allocation digest, and
+canonical receipt digest. UNIT-003 records and validates its generation/hash
+immediately before editing. Any tail, manifest, allocation, filename, or digest
+mismatch prohibits the edit. Slot consumption or collision makes that generation
+stale for every remaining owner; Program rescans and emits the next generation,
+preserving consumed paths/hashes and reissuing all unconsumed slots.
+
+Shared-file integration is receipt-driven, not based on transient process state.
+Publisher supplies a validator-clean manifest hash, scoped diff hash, changed-file
+inventory, and exported contract versions. Calculation rejects a stale or
+overlapping receipt and records the accepted receipt before a shared edit.
 
 ## DAG
 
@@ -59,6 +75,8 @@ Checkpoints:
 
 ## UNIT-001 - Freeze Cross-Surface Golden Fixture And Red Oracle
 
+Status: `READY`.
+
 Unit goal: Build the hand-authored fixture, expected cost-parts/bases/totals, and
 executable red cases spanning every surface.
 
@@ -76,8 +94,10 @@ Exact paths and symbols:
 - implement the unimplemented O3 proposal model and O4b chart-series cases in
   `tests/vitest/estimate-unification-oracle.test.ts`;
 - implement the documented contingency divergence as an explicit failing case;
-- add `tests/vitest/calculation-output-parity.test.ts` if a separate consumer
-  matrix keeps the original oracle focused;
+- create `tests/vitest/calculation-output-parity.test.ts` for the Data-page
+  summary, invalid-input refusal, workbook, and print expected-record matrix;
+  keep O3, O4b, and O-DIV-1 in
+  `tests/vitest/estimate-unification-oracle.test.ts`;
 - add expected workbook/print records without calling production calculators.
 
 Dependencies: None. Acquire LEASE-PAR-ORACLE.
@@ -114,6 +134,8 @@ Checkpoint: Fixture bytes/hash, expected bases/totals, and red test names.
 
 ## UNIT-002 - Implement Canonical Cost Parts, Bases, Rounding, And Currency
 
+Status: `READY`; depends only on UNIT-001.
+
 Unit goal: Evolve the existing oracle and add compatibility adapters.
 
 Outcome: One pure module owns row cost parts, inclusion, aggregates, adjustments,
@@ -126,15 +148,18 @@ Non-goals: Consumer UI/public/export migration.
 
 Exact paths:
 
-- `src/lib/estimates/estimate-row-total.ts`;
-- optional adjacent `src/lib/estimates/currency-money.ts` only if it contains
-  independently tested currency/minor-unit primitives and the oracle remains the
-  calculation owner;
-- `src/lib/proposal-export/settings.ts` only for shared adjustment/charge adapters
-  after export lease is available; until then keep adapter in calculation domain;
-- new server-boundary validation shared by row mutations and export/publication
-  entry points, with typed `invalid_calculation_input` and `amount_out_of_range`;
-- focused calculation tests.
+- `src/lib/estimates/estimate-row-total.ts` owns cost parts, currency scale,
+  minor-unit primitives, and the exported `validateEstimateCalculationInput`;
+- `src/lib/estimates/actions.ts` applies that validator at
+  `insertEstimateRowItemFromLibrary`, `updateEstimateRowItem`,
+  `replaceEstimateRowItemWithLibrary`, and `updateEstimateSheetAdjustment`;
+- `tests/vitest/estimate-row-total.test.ts` and new
+  `tests/vitest/estimate-calculation-input-validation.test.ts` own the pure and
+  server-boundary fixtures.
+
+This unit does not create `src/lib/estimates/currency-money.ts` and does not edit
+`src/lib/proposal-export/settings.ts`. Publication and export adapters remain
+owned by `UNIT-004` and `UNIT-005` after their leases are valid.
 
 Dependencies: UNIT-001.
 
@@ -168,6 +193,9 @@ Checkpoint: Canonical API/types/version and compatibility matrix.
 
 ## UNIT-003 - Migrate Editor And Project Data/Charts
 
+Status: `PLANNED`; blocked until the current Program generation receipt allocates
+and validates `0056`.
+
 Unit goal: Replace editable and chart row formulas with canonical adapters and
 prove save/reload/chart parity for the working basis.
 
@@ -187,10 +215,15 @@ Exact paths/symbols:
   SQL at the current `total_cost` subquery;
 - `src/lib/repositories/project-data-repository.ts`
   `getProjectDataRouteSummary` consumption of `totalCostByEstimateId`;
-- `project-charts-repository.ts` fact mapping if needed;
+- `src/lib/repositories/project-charts-repository.ts:getProjectChartsData`
+  updates its D1 row-fact mapping to the canonical input/basis contract; this is
+  an explicit edit, not a conditional follow-up;
 - program-provisional
-  `migrations/0053_estimate_calculation_input_constraints.sql`, after a
-  read-only invalid-row scan and current migration-lease rescan;
+  `migrations/0056_estimate_calculation_input_constraints.sql`, after a
+  read-only invalid-row scan and generation-receipt validation;
+- `tests/vitest/estimate-calculation-input-constraints-migration.test.ts`;
+- `tests/vitest/project-data-calculation-parity.test.ts`;
+- `tests/vitest/project-data-calculation-query-budget.test.ts`;
 - row mutation/action validators that can write `estimate_row_items`;
 - existing estimate/chart/project-data tests and golden masters.
 
@@ -223,6 +256,9 @@ Checkpoint: Consumer map marks editor/chart migrated; duplicate scan output.
 
 ## UNIT-004 - Migrate Versioned Publication Snapshot And Share
 
+Status: `PLANNED`; depends on migration-gated UNIT-003 and a current Publisher
+integration receipt.
+
 Unit goal: Add public-safe calculation basis/scope/version and make snapshot/share
 totals match proposal-included direct cost while preserving legacy reads.
 
@@ -239,11 +275,15 @@ Exact paths:
 - `src/lib/publication/types.ts` safe additive fields/schema version;
 - `src/lib/publication/snapshot.ts` builder and sanitizer;
 - `src/lib/share/reconstruct-share-tree.ts` aggregation adapter;
-- shared-page summary/tab components only if labels/basis need rendering;
+- `src/components/share/SharePageSummaryCard.tsx` renders the stored public-safe
+  calculation-basis label beside the canonical included total;
+- `src/components/share/SharePageTabs.tsx` carries the same basis label into the
+  summary/tab switch without introducing a second calculation path;
 - publication/share security and snapshot tests.
 
-Dependencies: UNIT-003 and Publisher writer completion. Re-read Publisher diff,
-acquire LEASE-PAR-PUBLICATION, and preserve its identity/UX changes.
+Dependencies: UNIT-003 and a validator-clean Publisher integration receipt.
+Verify its manifest/diff/contract hashes, acquire LEASE-PAR-PUBLICATION, and
+preserve its identity/UX changes.
 
 Owned scope and role: Publication integrator is sole writer for shared files.
 
@@ -272,6 +312,8 @@ Checkpoint: Snapshot schema/version, legacy matrix, Publisher diff/hash, lease r
 
 ## UNIT-005 - Migrate Preview, Export Model, Native XLSX, And Currency Formats
 
+Status: `PLANNED`; depends on UNIT-004 and the Publisher integration receipt.
+
 Unit goal: Make proposal preview/model/workbook consume canonical proposal bases
 and prove actual XLSX serialization/readback.
 
@@ -290,8 +332,8 @@ Exact paths:
 - export API route and preview model/hook adapters;
 - proposal model/preview/workbook/route/benchmark tests.
 
-Dependencies: UNIT-004 and Publisher writer completion. Acquire
-LEASE-PAR-EXPORT after diff review.
+Dependencies: UNIT-004 and a still-current Publisher integration receipt.
+Acquire LEASE-PAR-EXPORT after receipt validation.
 
 Owned scope and role: One export integrator owns model/workbook/preview contract.
 
@@ -322,6 +364,8 @@ failing until both modes pass.
 Checkpoint: Workbook artifact hash, canonical cell map, benchmark receipt, lease release.
 
 ## UNIT-006 - Integrate Unsaved/Save-Reload/Print And Extract Capabilities
+
+Status: `PLANNED`.
 
 Unit goal: Complete the user-visible lifecycle and targeted capability extraction.
 
@@ -366,12 +410,15 @@ Proof: TEST-006 and TEST-009 plus targeted Playwright print media. Evidence
 `.ai/99_scratch/calculation-parity-unit-006.md`.
 
 Failure response: If print browser proof fails, inspect DOM/media and fix source;
-do not accept DOM-only proof. If concurrent Publisher edits reappear, release
-lease, wait, re-read, and reintegrate.
+do not accept DOM-only proof. If Publisher receipt drift or overlapping edits
+appear, release the lease, invalidate the receipt, and resume from a fresh
+validator-clean receipt.
 
 Checkpoint: Browser command/result, printed row/total digest, component ownership map.
 
 ## UNIT-007 - Final Verification, Rollout Contract, Audit, And Cleanup
+
+Status: `PLANNED`.
 
 Unit goal: Run complete proof, close risks, inspect artifacts/security/blast
 radius, prepare staged rollout/fix-forward, and clean resources.
@@ -382,8 +429,12 @@ Linked IDs: SEC-001, PERF-001, REQ-005, OPS-001; all risks.
 
 Non-goals: Deploy or hosted/provider mutation.
 
-Exact scope: All changed calculation/publication/share/export/tests, this pack
-ledger/manifest, generated temp workbook and targeted browser resources.
+Exact scope: All changed calculation/publication/share/export/tests,
+`scripts/benchmark-calculation-output-parity.ts`, existing
+`scripts/benchmark-proposal-workbook.ts`,
+`tests/vitest/calculation-output-parity-benchmark.test.ts`, existing
+`tests/vitest/proposal-workbook-benchmark.test.ts`, this pack ledger/manifest,
+generated temp workbook, and targeted browser resources.
 
 Dependencies: UNIT-006.
 
@@ -397,10 +448,13 @@ Approach:
 3. Inspect actual XLSX hash/XML/readback and print-media receipt.
 4. Search for duplicate formulas, PHP-only formats, ambiguous total labels, unsafe
    snapshot fields, stale adapters, and unrelated Publisher changes.
-5. Execute final traceability and risk audit.
-6. Stop servers/browser, delete temp workbooks/fixtures, release leases, and
+5. Emit the BETA-P1-10 contribution receipt with the touched caller map,
+   pre-extraction characterization tests, bounded extraction decision, changed
+   files, and verifier result in the final audit artifact.
+6. Execute final traceability and risk audit.
+7. Stop servers/browser, delete temp workbooks/fixtures, release leases, and
    digest scratch proof.
-7. Refresh manifest evidence/status/hash only from actual receipts.
+8. Refresh manifest evidence/status/hash only from actual receipts.
 
 Expected postconditions: AC-001 through AC-015 and all manifest gates pass; all
 units VERIFIED; implementation may be COMPLETE while release is evaluated

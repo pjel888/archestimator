@@ -1,6 +1,6 @@
 # Calculation And Output Parity - Plan Pack
 
-Status tuple: `package_status=IMPLEMENTATION_READY`,
+Status tuple: `package_status=CONDITIONALLY_READY`,
 `implementation_status=NOT_STARTED`, `release_status=NOT_EVALUATED`,
 `plan_lifecycle=ACTIVE`, `terminal_status=ACTIVE`.
 
@@ -88,18 +88,19 @@ the working estimate.
   builders, or workbook builders after the canonical adapter exists.
 - Existing data remains readable. Snapshot schema changes are additive and
   versioned; legacy snapshots retain a safe compatibility path.
-- Shared publication/export files are serialized. The executing lead must wait
-  until the Publisher/Shared Pages writer has finished, re-read its diff, and
-  acquire the relevant lease before UNIT-004 or UNIT-005 edits.
+- Shared publication/export files are serialized. UNIT-004/005 require a
+  validator-clean Publisher integration receipt containing the target manifest
+  hash, scoped diff hash, exported contract versions, and changed-file inventory
+  before a shared-file lease can be consumed.
 - Browser automation is required only for the real print-media claim; unit/DOM/
   workbook readback remains the default for all other claims.
 
 ## Proof Boundary And Stop Condition
 
-Planning stops when the pack validates, all choices are closed, all units are
-`READY` in a dependency-closed slice, hashes are current, and `UNIT-001` is the
-exact next node. No calculation, workbook, print, browser, or release result is
-claimed by the plan itself.
+Planning stops when the pack validates semantically, every advertised ready unit
+is dependency-closed, and `UNIT-001` is the exact next node. The package remains
+`CONDITIONALLY_READY`; downstream migration/Publisher units are `PLANNED`. No
+calculation, workbook, print, browser, or release result is claimed by the plan.
 
 Implementation stops only when all cross-surface fixture assertions pass, the
 known contingency/snapshot divergence is removed or explicitly represented by a
@@ -114,20 +115,33 @@ the final audit finds one calculation owner with no silent compatibility gap.
 | `plan-pack.json` | Machine state and reciprocal traceability; intentionally excluded from its own artifact list |
 | `README.md` | Goal, basis contract, scope, stop condition, handoff |
 | `SOURCE_AND_CODEBASE_AUDIT.md` | Current formula owners, red baseline, consumer map, contradictions |
-| `REQUIREMENTS_AND_DECISIONS.md` | Invariants, acceptance, decisions, state model, risks |
+| `REQUIREMENTS_AND_DECISIONS.md` | Stable requirements, criteria, decisions, risks, and domain-artifact index |
 | `IMPLEMENTATION_PLAN.md` | Canonical DAG, ownership/leases, unit packets, restart checkpoints |
-| `VERIFICATION_ROLLOUT_AND_FINAL_AUDIT.md` | Applicability, tests, commands/signals, rollout/fix-forward, final audit |
+| `VERIFICATION_ROLLOUT_AND_FINAL_AUDIT.md` | Stable applicability/test/gate records, commands/signals, and review indexes |
 | `LOOP_LEDGER.md` | Append-only state, evidence fingerprints, dependency wait, resume and cleanup |
+| `CALCULATION_DOMAIN_INVARIANTS_AND_ROUNDING.md` | Named bases, numeric domain, cost-part order, rounding, currency, refusal |
+| `SURFACE_PARITY_UX_AND_ACCESSIBILITY.md` | Cross-surface journey, states, semantics, focus, responsive and browser boundary |
+| `PUBLICATION_SNAPSHOT_DATA_AND_COMPATIBILITY.md` | Immutable public snapshot, safe additive versioning, legacy/unknown reads |
+| `EXPORT_XLSX_PRINT_AND_BROWSER_PROOF.md` | Frozen export model, native XLSX, print lifecycle, browser-only proof |
+| `SECURITY_PRIVACY_AND_PUBLIC_ALLOWLIST.md` | Actor/action matrix, public allowlist, denial, redaction, workbook text safety |
+| `GOLDEN_ORACLE_AND_ADVERSARIAL_QA.md` | Independent fixture, negative matrix, receipts, maker/checker handback |
+| `PERFORMANCE_RELIABILITY_AND_OBSERVABILITY.md` | Measured budgets, reliability, structured signals, cleanup and triage |
+| `ROLLOUT_FIX_FORWARD_AND_COMPLETION_GATE.md` | Staged adoption, fix-forward, release boundary, independent completion gate |
+
+The eight added artifacts are substantive high-blast review surfaces, not new
+execution or evidence authorities. They cross-link stable IDs retained in the
+manifest and omnibus registers.
 
 ## Handoff
 
 - Completed units: none.
-- Ready slice: `SLICE-001`, containing `UNIT-001` through `UNIT-007` and all
-  transitive dependencies.
+- Ready slice: `SLICE-001`, containing only dependency-closed `UNIT-001` and
+  `UNIT-002`.
 - Exact next unit: `UNIT-001`.
 - Critical path: `UNIT-001 -> UNIT-002 -> UNIT-003 -> UNIT-004 -> UNIT-005 -> UNIT-006 -> UNIT-007`.
-- Shared-file serialization: before UNIT-004/005, confirm the
-  `Publisher-And-Shared-Pages` agent has finished, inspect its actual diff, and
-  acquire publication/export leases. Do not overwrite concurrent changes.
+- `UNIT-003` remains `PLANNED` until a current Program migration generation
+  receipt allocates `0056`; `UNIT-004` through `UNIT-007` remain `PLANNED` behind
+  that unit and Publisher integration receipts. Do not overwrite concurrent
+  changes.
 - Resume command:
   `bun run validate:plan-pack -- .ai/03_plans/2026-07-10/Calculation-And-Output-Parity`.

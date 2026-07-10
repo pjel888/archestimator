@@ -1,6 +1,6 @@
 # Estimate Intelligence And Price Governance - Plan Pack
 
-Status tuple: `package_status=IMPLEMENTATION_READY`,
+Status tuple: `package_status=CONDITIONALLY_READY`,
 `implementation_status=NOT_STARTED`, `release_status=NOT_EVALUATED`,
 `plan_lifecycle=ACTIVE`, `terminal_status=ACTIVE`.
 
@@ -106,20 +106,34 @@ rule, filter, requirement, temporary resource, or stale evidence receipt.
 | `plan-pack.json` | Machine-readable state and traceability; intentionally not listed as its own artifact |
 | `README.md` | Goal capsule, boundaries, stop condition, handoff |
 | `SOURCE_AND_CODEBASE_AUDIT.md` | Current source, data/control flow, contradictions, red baseline |
-| `REQUIREMENTS_AND_DECISIONS.md` | Requirements, invariants, state model, decisions, risks, traceability |
+| `REQUIREMENTS_AND_DECISIONS.md` | Stable requirements, criteria, decisions, risks, traceability, and artifact index |
 | `IMPLEMENTATION_PLAN.md` | Canonical DAG, leases, executable units, checkpoints |
-| `VERIFICATION_ROLLOUT_AND_FINAL_AUDIT.md` | Applicability gates, tests, evidence, rollout/fix-forward, completion audit |
+| `VERIFICATION_ROLLOUT_AND_FINAL_AUDIT.md` | Stable applicability/test/gate records, evidence commands, and review indexes |
 | `LOOP_LEDGER.md` | Append-only run state, resume packet, cleanup and invalidation log |
+| `HEALTH_DOMAIN_RULES_AND_ISSUE_TAXONOMY.md` | Health result, stable rules, provenance/policy precedence, deterministic grade |
+| `PRICE_POLICY_DATA_AND_MIGRATION_PLAN.md` | Typed D1 inputs, policy/origin/facts, five-owner lease, replay and fix-forward |
+| `REPOSITORY_DTO_AUTHORIZATION_AND_QUERY_CONTRACTS.md` | RSC/DTO boundary, authorization, query, cache, pagination and errors |
+| `COCKPIT_UX_DRILL_THROUGH_AND_ACCESSIBILITY.md` | User journey, states, URL round trip, focus, semantics and reflow |
+| `ACTIVITY_REVISION_INTEGRATION_CONTRACT.md` | Activity receipt, atomic forward facts, high-water reconstruction and denial |
+| `PERFORMANCE_RELIABILITY_AND_OBSERVABILITY.md` | Measured budgets, truncation/retry reliability, structured signals and triage |
+| `TEST_AND_ADVERSARIAL_QA.md` | Fixture families, negative matrix, red-first receipts and maker/checker handback |
+| `ROLLOUT_FIX_FORWARD_AND_COMPLETION_GATE.md` | Staged adoption, cross-pack receipts, fix-forward, release boundary and completion gate |
+
+The added artifacts split independently reviewable high-blast risks. They are
+supporting context only; they add no execution or evidence authority.
 
 ## Handoff
 
 - Completed units: none.
-- Ready slice: `SLICE-001`, containing `UNIT-001` through `UNIT-008` and all
-  transitive dependencies.
+- Ready slice: `SLICE-001`, containing only dependency-closed `UNIT-001` and
+  `UNIT-003`. `UNIT-002` is migration-receipt dependent; `UNIT-004` through
+  `UNIT-008` remain `PLANNED` behind migration, Activity, Publisher, or prior-unit
+  dependencies.
 - Exact next unit: `UNIT-001`.
 - Critical path: `UNIT-001 -> UNIT-003 -> UNIT-004 -> UNIT-005 -> UNIT-007 -> UNIT-008`.
-- Parallel lane after `UNIT-001`: `UNIT-002` and `UNIT-003` may proceed under
-  disjoint migration/repository versus pure-domain leases.
+- Parallel lane after `UNIT-001`: only pure-domain `UNIT-003` is independently
+  ready. `UNIT-002` may start only after consuming a current Program migration
+  generation receipt for `0055`.
 - External pack dependency: `UNIT-006` reads Activity History contracts but may
   not edit that pack or its owned normalization files without an explicit lease.
 - Resume command:

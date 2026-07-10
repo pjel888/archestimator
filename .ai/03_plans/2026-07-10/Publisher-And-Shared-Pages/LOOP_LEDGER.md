@@ -22,8 +22,8 @@ that a fresh codebase AI can implement end to end, covering:
    surfaces, data flow, security, UX gaps).
 2. Redesigned UX with guided publish wizard, prominent CTAs, plain-language
    terminology, mobile support.
-3. Technical hardening (body-size limits, circuit breakers, status codes,
-   pagination, reentrance, dead code).
+3. Technical hardening (bounded body streams, durable admission control, status
+   codes, pagination, reentrance, provider readiness, dead code removal).
 4. Data optimization (FK constraints, GROUP BY roster query).
 5. Full requirements traceability, execution DAG, test strategy, risk register.
 
@@ -37,30 +37,31 @@ tests, migrations, or config are modified.
 
 ## Task DAG Status
 
-| Unit | Status | Layer | Owner | Notes |
-|---|---|---|---|---|
-| UNIT-001 body-size limits | PLANNED | 0 | — | |
-| UNIT-002 status codes | PLANNED | 0 | — | |
-| UNIT-003 circuit breaker | PLANNED | 0 | — | |
-| UNIT-004 comment pagination | PLANNED | 1 | — | |
-| UNIT-005 snapshot reentrance | PLANNED | 0 | — | |
-| UNIT-006 startup secrets | PLANNED | 0 | — | |
-| UNIT-007 dead code removal | PLANNED | 0 | — | |
-| UNIT-008 FK migration | PLANNED | 1 | — | |
-| UNIT-009 roster optimization | PLANNED | 1 | — | depends on UNIT-008 |
-| UNIT-010 terminology | PLANNED | 2 | — | gate for L2/L3 |
-| UNIT-011 ShareWizard | PLANNED | 2 | — | depends on UNIT-010 |
-| UNIT-012 roster cards | PLANNED | 2 | — | depends on UNIT-010 |
-| UNIT-013 dashboard CTA | PLANNED | 2 | — | depends on UNIT-011 |
-| UNIT-014 preview mode | PLANNED | 2 | — | depends on UNIT-011 |
-| UNIT-015 header+branding | PLANNED | 3 | — | depends on UNIT-010 |
-| UNIT-016 sticky CTA+banner | PLANNED | 3 | — | depends on UNIT-010 |
-| UNIT-017 row-action redesign | PLANNED | 3 | — | depends on UNIT-010 |
-| UNIT-018 comments improvements | PLANNED | 3 | — | depends on UNIT-004 |
-| UNIT-019 print+currency | PLANNED | 3 | — | depends on UNIT-010 |
-| UNIT-020 password gate | PLANNED | 3 | — | depends on UNIT-010 |
-| UNIT-021 inbox fixes | PLANNED | 4 | — | |
-| UNIT-022 integration | PLANNED | 5 | — | depends on all |
+| Unit | Status | Layer | Notes |
+|---|---|---|---|
+| UNIT-001 bounded bodies | READY | 0 | Exact resume point |
+| UNIT-002 status codes | READY | 0 | Serialized route lane |
+| UNIT-003 durable limiter | READY | 0 | D1 authority; local shedding best effort |
+| UNIT-004 comment pagination | READY | 1 | |
+| UNIT-005 snapshot reentrance | READY | 0 | |
+| UNIT-006 runtime readiness | READY | 0 | Explicit provider gate |
+| UNIT-007 dead surface removal | READY | 0 | Route and event type removed now |
+| UNIT-008 fail-closed FK migration | READY | 1 | No orphan deletion |
+| UNIT-009 roster optimization | READY | 1 | depends on UNIT-008 |
+| UNIT-010 terminology | READY | 2 | gate for dependent UX units |
+| UNIT-011 ShareWizard | READY | 2 | depends on UNIT-010; no new dependency |
+| UNIT-012 roster cards | READY | 2 | depends on UNIT-010/011 |
+| UNIT-013 dashboard CTA | READY | 2 | depends on UNIT-011 |
+| UNIT-014 manager preview route | READY | 2 | depends on UNIT-011; no preview credential |
+| UNIT-015 header+branding | READY | 3 | depends on UNIT-010 |
+| UNIT-016 sticky CTA+banner | READY | 3 | depends on UNIT-010 |
+| UNIT-017 row-action redesign | READY | 3 | depends on UNIT-010 |
+| UNIT-018 comments improvements | READY | 3 | depends on UNIT-004 |
+| UNIT-019 print+currency | READY | 3 | depends on UNIT-010 |
+| UNIT-020 password gate | READY | 3 | depends on UNIT-010 |
+| UNIT-021 inbox fixes | READY | 4 | fail-closed integrity preserved |
+| UNIT-023 mobile/JS/signer | READY | 4 | depends on UNIT-010/017 |
+| UNIT-022 integration | READY | 5 | depends on all other units |
 
 ## Lane Leases
 
@@ -70,14 +71,15 @@ No active leases. Planning stage is read-only; no file/resource contention.
 
 | Decision | Status | Affected IDs |
 |---|---|---|
-| DEC-AUTO-001 preview cookie mechanism | ACTIVE | REQ-003 |
+| DEC-AUTO-001 authenticated manager preview route | ACTIVE | REQ-003 |
 | DEC-AUTO-002 disable submit in preview | ACTIVE | REQ-003 |
-| DEC-AUTO-003 QR code via qrcode package | ACTIVE | REQ-002 |
+| DEC-AUTO-003 URL + Copy + native Web Share, no dependency | ACTIVE | REQ-002 |
 | DEC-AUTO-004 cards on mobile + table on desktop | ACTIVE | REQ-005 |
 | DEC-AUTO-005 sidebar label "Share" | ACTIVE | REQ-004 |
 | DEC-AUTO-006 cursor-based comment pagination | ACTIVE | SEC-004 |
 | DEC-AUTO-007 row-click selects review target | ACTIVE | UX-005 |
 | DEC-AUTO-008 remove dead events route | ACTIVE | SEC-007 |
+| DEC-AUTO-009 preview route has no credential precedence | ACTIVE | SEC-008 |
 
 ## Evidence Receipts
 
@@ -144,10 +146,23 @@ No active leases. Planning stage is read-only; no file/resource contention.
 
 ## Next Action
 
-The improve stage is complete. The plan pack validates with
-`bun run validate:plan-pack`. All P0 and P1 defects from the adversarial review
-have been repaired. The pack is ready for the `Create-Implementation-Prompt` /
-`Executing-Plan-Prompt` stage when Philip is ready to build.
+The pack is implementation-ready with all 23 units in dependency-closed
+`SLICE-001`. The exact next unit is `UNIT-001`. Execution remains bounded by the
+current run scope and action ceiling.
+
+### Entry 3 — 2026-07-10: Implementation-readiness repair
+- **Scope:** `PLAN_ONLY`; only Publisher plan-pack artifacts changed.
+- **Repairs:** Stream-enforced body limits; durable D1 admission authority;
+  explicit provider/runtime secret readiness; immediate dead route/type removal;
+  fail-closed explicit-column migration with parity/failure injection; no QR or
+  dependency; authenticated manager preview route with RBAC on every read;
+  recipient repository remains fail-closed; shared-file execution serialized.
+- **Traceability:** Canonical TEST IDs and four canonical RISK IDs mirror the
+  manifest; descriptive scenario labels use `SCENARIO-*`.
+- **Readiness:** 23 units `READY`, `SLICE-001` dependency-closed,
+  `next_unit=UNIT-001`; criteria/tests/gates remain unearned.
+- **Hash handling:** Artifact and manifest hashes deliberately not refreshed in
+  this repair pass.
 
 ## Stop Condition (planning stage)
 
@@ -157,3 +172,138 @@ Planning stage is complete when:
 - All requirements traced, all decisions closed, all units executable.
 - Statuses truthfully reflect `PLAN_ONLY` scope (planning complete, implementation
   not started).
+
+### Entry 4 - 2026-07-10: Conditional-readiness and integration-contract repair
+
+- **Supersedes readiness only:** Earlier entries claiming 23 READY units are
+  historical. The current tuple is `CONDITIONALLY_READY/NOT_STARTED`; only
+  `UNIT-001`, `UNIT-002`, `UNIT-003`, `UNIT-006`, and `UNIT-010` are READY in
+  dependency-closed `SLICE-001`, with `next_unit=UNIT-001`. The other 18 units
+  are PLANNED because they overlap, depend on, or finalize Program
+  `PUB-DELTA-01..04` work.
+- **Dependency truth:** Execution-group labels are workstreams, not barriers.
+  Only explicit unit/manifest `depends_on` edges are dependencies. Four paths
+  tie for longest chain: `010->011->{012|013|014}->022` and
+  `010->017->023->022`.
+- **Migration boundary:** `UNIT-008` must validate the durable Program
+  `MIGRATION_LEASE_GENERATION.json` generation, current migration tail,
+  Publisher manifest, exact unclaimed 0050 path/status, allocation hashes, and
+  receipt hash immediately before editing. Drift or collision blocks and
+  requires Program reissue.
+- **Cross-pack receipts:** Final `UNIT-022` consumes all four Publisher deltas,
+  preserves Publisher ownership of public comment/decision accessibility,
+  emits `ACT-RECEIPT-PUBLISHER-v1` after the Activation contract freezes, and
+  emits the REQUIRED `BETA-P1-10` receipt anchored to `UNIT-003` and
+  `tests/vitest/project-publication-decision.test.tsx`.
+- **Truth repairs:** Reconciled recipient/performance test paths and renamed the
+  browser-print control to "Print / Save as PDF" so `window.print()` is not
+  represented as a downloaded artifact.
+- **Source freshness:** Re-audited at
+  `e373bc865b978e237deb1d92011c96b0a3639fb4`. The extracted proposals shell is
+  at `page.tsx:6,8-24`; `proposals-data.tsx:6-13` preserves auth-before-list;
+  `bun run test:dom -- tests/vitest/recipient-proposals-route-gate.test.ts`
+  passed 3/3 tests.
+- **Validation:** The pack validator reports only deliberately stale artifact,
+  evidence, and manifest hashes pending the orchestrator's final hash refresh;
+  it reports no structural, reference, status, slice-closure, or semantic issue.
+
+## 2026-07-10 - Migration lease collision supersession
+
+- A concurrent workspace writer created `migrations/0050_admin_query_indexes.sql`.
+  This invalidates every earlier Publisher 0050 lease statement without changing
+  its historical record.
+- The current owner allocation is `migrations/0051_publication_foreign_keys.sql`
+  inside the Program's 0051..0055 generation. `UNIT-008` must validate the new
+  tail, owner manifest, allocation digest, and aggregate receipt before writing.
+- No migration or application source was edited by this planning repair.
+
+## 2026-07-11T01:03:00+08:00 - Expanded-pack scoped baseline confirmation
+
+- Three consecutive exact recorded-scope reads matched at status SHA-256
+  `a30eacf3be2bcb7c9c78696f956d18fefe6e3250744053f734ffe65427200b33`
+  and diff SHA-256
+  `da33dd8e387cb4cfe2080d5cad1ec7f9404ccab413fdf42af63966b9a952a0c1`.
+- HEAD remains `e373bc865b978e237deb1d92011c96b0a3639fb4`; this confirmation changes
+  no allocation, readiness, or implementation state.
+
+## 2026-07-10 - Generation-3 scoped baseline freeze
+
+- Three consecutive exact-scope reads matched after the 0051 tail re-audit.
+  Final scoped status SHA-256 is
+  `a30eacf3be2bcb7c9c78696f956d18fefe6e3250744053f734ffe65427200b33`;
+  final scoped diff SHA-256 is
+  `da33dd8e387cb4cfe2080d5cad1ec7f9404ccab413fdf42af63966b9a952a0c1`.
+- HEAD remains `e373bc865b978e237deb1d92011c96b0a3639fb4`; this supersedes prior
+  scoped hashes without claiming the 0052 allocation.
+
+## 2026-07-10 - Scoped source-baseline freeze
+
+- Froze `PLAN-PACK-SCOPED-BASELINE-v1` at HEAD
+  `e373bc865b978e237deb1d92011c96b0a3639fb4` using the ordered literal pathspec
+  set in `03_SOURCE_AND_CODEBASE_AUDIT.md`.
+- Scoped status SHA-256:
+  `3c98ba41c19ca9bf7f9f6e14e55cc93cf02c51bb0e6532cbd79496d770ab4eb6`.
+  Scoped diff SHA-256:
+  `70197c9f98c0a0fd538eee9bc76d10ae5442633dea4cad7524e8e739bd819a24`.
+- These fingerprints bind relevant tracked changes and untracked file contents.
+  No product, migration, provider, browser, GitHub, or production action occurred.
+
+## 2026-07-10 - Generation-3 migration-tail supersession
+
+- A concurrent workspace writer claimed live
+  `migrations/0051_profiles_account_status.sql`; the prior Publisher 0051
+  allocation is therefore historical and cannot be written.
+- Publisher's current provisional allocation is
+  `migrations/0052_publication_foreign_keys.sql` in Program generation 3. The
+  slot remains `UNCLAIMED`; `UNIT-008` must validate the generation receipt,
+  live tail, owner manifest, and allocation digest immediately before writing.
+- No migration or application source was edited by this planning repair.
+
+## 2026-07-10T17:28:33.000Z - Deterministic public-surface unit repair
+
+- Froze comment shedding in the route-local helper branch, cursor UX to a
+  `Load more` control, provider-secret checks to named bindings/readers, and
+  terminology work to a literal source/test/evidence allowlist.
+- Copy/icon verification is explicitly static/DOM-only under the repository
+  browser guardrail. Prior hashes are stale pending final refreeze; no product,
+  test, provider, browser, or migration action occurred.
+
+## 2026-07-10T17:33:08.000Z - Settled-scope baseline observation
+
+- Four reads over 17 seconds matched at HEAD
+  `e373bc865b978e237deb1d92011c96b0a3639fb4`, scoped status SHA-256
+  `a30eacf3be2bcb7c9c78696f956d18fefe6e3250744053f734ffe65427200b33`,
+  and scoped diff SHA-256
+  `da33dd8e387cb4cfe2080d5cad1ec7f9404ccab413fdf42af63966b9a952a0c1`.
+- This actual UTC observation supersedes prior provisional/future-dated freeze
+  statements. No product, test, provider, browser, or migration action occurred.
+
+## 2026-07-10T17:36:57.000Z - Local proof-boundary correction
+
+- `UNIT-004` now claims only automated/DOM proof. `UNIT-006` runs a deterministic
+  missing-secret local readiness command and leaves hosted binding presence
+  `NOT_EVALUATED` for Release `UNIT-007` and production proof.
+- The settled source baseline is unchanged; only plan hashes require refresh.
+
+## 2026-07-10T18:33:45.000Z - Generation-4 migration-tail supersession
+
+- Concurrent `migrations/0052_corporate_accounts.sql` occupies the number that
+  generation 3 had provisionally assigned to Publisher; Publisher did not
+  claim or create that file.
+- The Program reissues Publisher's still-`UNCLAIMED` path as
+  `migrations/0053_publication_foreign_keys.sql` in generation 4. `UNIT-008`
+  must validate the exact live tail, owner manifests, allocation, and receipt
+  immediately before any write.
+- Historical allocation entries remain historical. No migration, product,
+  provider, browser, GitHub, or production action occurred in this repair.
+
+## 2026-07-10T18:57:45.000Z - Generation-4 settled-scope baseline observation
+
+- Three exact-scope reads from `2026-07-10T18:57:29Z` through
+  `2026-07-10T18:57:45Z` matched at HEAD
+  `e373bc865b978e237deb1d92011c96b0a3639fb4`, scoped status SHA-256
+  `32ab186503e591ed55166e492d900487088e6370ea03ffbca75fa52660378f56`,
+  and scoped diff SHA-256
+  `bd80a006b2a30dfba2880c0ec1e4881b399b100200a1849e3130e1ed26144edf`.
+- The observed migration tail invalidated only the old lease; readiness and
+  implementation state remain unchanged.

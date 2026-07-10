@@ -1,8 +1,10 @@
-# Activity History Mapping — Comprehensive Audit And Plan Pack
+# Activity History Mapping
 
-Status tuple: `package_status=NOT_READY`, `implementation_status=NOT_STARTED`, `release_status=NOT_EVALUATED`, `plan_lifecycle=ACTIVE`, `terminal_status=ACTIVE`.
+Status tuple: `package_status=CONDITIONALLY_READY`, `implementation_status=NOT_STARTED`, `release_status=NOT_EVALUATED`, `plan_lifecycle=ACTIVE`, `terminal_status=ACTIVE`.
 
-This is a **high-blast-radius** audit-and-plan pack for the activity history feature, which is a core MVP surface. It maps every code path, data table, UI component, event type, shared-link interaction, and test that constitutes "activity history" across the entire Archestimator codebase, then converts the audit findings into a prioritized implementation plan.
+This **high-blast-radius** audit-and-plan pack maps the activity-history code,
+data, UI, event, shared-link, and test surfaces, then converts the findings into
+a prioritized implementation plan.
 
 This pack is planning-only: it edits no application source, tests, migrations, config, or provider state. Implementation follows the `UNIT-*` DAG in `11_IMPLEMENTATION_PLAN.md`.
 
@@ -14,7 +16,7 @@ Machine-readable contract: [`plan-pack.json`](plan-pack.json)
 
 Activity history is one of Archestimator's main MVP features. It must record, display, and (where applicable) restore every meaningful change an estimator makes to an estimate — from a single row-item field edit, to area/group creation and deletion, to tab lifecycle events, to template and project-source inserts — and it must also capture and display everything a client does when they open a shared proposal link: viewing, commenting, approving, declining, and requesting revisions.
 
-This pack answers three questions with evidence:
+Evidence answers three questions:
 
 1. **What activity history facilities exist today?** — a complete, file:line-grounded map of every table, repository, write path, read path, UI surface, event type, and shared-link interaction.
 2. **What is broken, incomplete, or missing?** — a prioritized gap analysis, including a critical event-type naming split that silently breaks filtering and copy rendering for most events.
@@ -54,7 +56,6 @@ This is documented in full in [`04_EVENT_TAXONOMY_AND_NAMING_AUDIT.md`](04_EVENT
 - No new paid Cloudflare services.
 - No replacement of D1, TanStack Query, Zustand, React, or Next.js.
 - No migration back to Supabase.
-- This planning run edits no application source. Implementation follows the exact `UNIT-*` packets in a later session.
 - No branch or worktree creation.
 
 ## Profile
@@ -65,16 +66,28 @@ This is documented in full in [`04_EVENT_TAXONOMY_AND_NAMING_AUDIT.md`](04_EVENT
 
 ```text
 UNIT-001 (event-type naming fix — data + composer + filters)
-  -> UNIT-002 (bulk-delete restore fix)
-  -> UNIT-003 (shared-link event-type alignment)
-  -> UNIT-004 (idempotency and INSERT-shape consistency)
-  -> UNIT-005 (gap test coverage — restore paths, error branches)
-  -> UNIT-006 (UI hardening — copy, filters, restore gating)
-  -> UNIT-007 (shared-link activity improvements — comments/decisions/replies)
-  -> UNIT-008 (integration and hosted proof evaluation)
+  ├──> UNIT-002 (bulk-delete restore fix)
+  ├──> UNIT-003 (AI package-builder event-type alignment)
+  └──> UNIT-004 (idempotency and INSERT-shape consistency)
+
+UNIT-001 + UNIT-002 ──> UNIT-005 (tests-only gap coverage)
+UNIT-001 + UNIT-004 + VERIFIED UNIT-005 ──> UNIT-006 (dead-filter/regression hardening)
+UNIT-001 + UNIT-004 ──> UNIT-009 (variant/component propagation facts)
+UNIT-006 ──> UNIT-010 (Activity-owned surface accessibility)
+UNIT-004 ──> UNIT-011 (0057 indexes; PLANNED pending Program receipt)
+UNIT-004 ──> UNIT-012 (tenant isolation, lifecycle, durable writes)
+
+UNIT-003 + UNIT-005 + UNIT-006 + UNIT-009 + UNIT-010 + UNIT-011 + UNIT-012
+  ──> UNIT-008 (integrated verification; PLANNED while UNIT-011 is blocked)
 ```
 
-`UNIT-001` is the critical-path first unit because it fixes the naming split that makes most activity events invisible to users.
+`UNIT-001` is the exact next unit. `SLICE-001` is dependency-closed and contains
+the currently executable READY units. It excludes `UNIT-011`, which remains
+PLANNED until the Beta program issues a current durable migration-generation
+receipt for `migrations/0057_activity_history_indexes.sql`, and excludes downstream
+`UNIT-008`. `UNIT-007` is superseded because Publisher owns public comment/decision
+mutation and UI. Activity consumes that surface through an append-only event
+contract and never deletes audit history.
 
 ## Pack Index
 
@@ -93,7 +106,6 @@ UNIT-001 (event-type naming fix — data + composer + filters)
 | `08_TEST_COVERAGE_AND_GAPS.md` | Test inventory and coverage gap analysis |
 | `09_REQUIREMENTS_AND_TRACEABILITY.md` | Requirements derived from audit findings |
 | `10_DECISIONS_RISKS_AND_AUTH_BOUNDARIES.md` | Resolved decisions, risk register, authorization boundaries |
-| `11_IMPLEMENTATION_PLAN.md` | Sole canonical implementation plan and unit packets |
 | `12_COORDINATION_AND_MULTI_AGENT.md` | Shared-worktree rules, file ownership, conflict avoidance |
 | `13_VARIANT_AND_COMPONENT_ACTIVITY.md` | Deep audit of variant/component activity recording gaps (memory concern) |
 | `14_ACCESSIBILITY_AUDIT.md` | GATE-UX-01 accessibility audit of all activity surfaces |
@@ -110,6 +122,10 @@ The pack is complete only when both commands pass on the frozen final artifact s
 bun run validate:planning-prompts
 bun run validate:plan-pack -- .ai/03_plans/2026-07-10/Activity-History-Mapping
 ```
+
+Planning readiness does not prove implementation or hosted release. Every
+applicable unmet criterion and the integrated verification gate remain `FAIL`
+until their named tests and evidence receipts pass.
 
 ## Concurrent Agent Safety
 

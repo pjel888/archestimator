@@ -36,39 +36,56 @@ completion; every incomplete item has a recovery target. Unit `UNIT-004`, test
 
 ### DATA-001 - durable idempotent activation ledger
 
-Additive D1 tables store minimal progress and allowlisted milestone events.
-Events advance progress monotonically after domain commit, dedupe replays, and
-participate in privacy export/erase and fix-forward recovery.
+Additive D1 tables store minimal progress, allowlisted milestone events, durable
+transactional outbox intents, and server-only retention holds. Events advance
+progress monotonically, dedupe replays, survive process failure between domain
+commit and delivery, and participate in exact retention, legal-hold, privacy
+export/erase, and fix-forward recovery.
 
 `AC-004`: migration constraints/indexes and composite tenant FKs on both
 progress and event tables pass;
 duplicate/out-of-order events preserve one ledger row per tenant-scoped,
 server-derived dedupe key and maximum progress; the same nonce across two
 workspaces does not collide; mismatched membership/project/estimate chains and
-disallowed metadata are rejected. Unit `UNIT-001`, test `TEST-001`.
+disallowed metadata are rejected; crash/retry/expired-lease/concurrent-worker
+fixtures deliver exactly one event; 180-day event, 30-day delivered-outbox, and
+180-day unresolved/dead rules execute; export/erase is atomic and an active hold
+fails closed with `skipped_legal_hold`. Unit `UNIT-001`, test `TEST-001`.
 
 ### SEC-001 - tenant, role, and privacy boundaries
 
 Every action derives identity server-side, checks workspace/project/template
 access, denies viewers from creation, and returns shaped errors. Cohort reads are
 server-only and platform-admin-gated. No credential or unbounded personal data
-enters events/logs/query output.
+enters events/logs/query output. Corporate-account membership, role, or workspace
+linkage is descriptive organization metadata only for this contract: it cannot
+replace `workspace_members`, satisfy platform-admin authorization, or change the
+tenant identity `(user_id, workspace_id)` used by progress, dedupe, and cohort
+queries.
 
-`AC-005`: unauthenticated, viewer, cross-workspace, mismatched composite
+`AC-005`: unauthenticated, viewer, corporate-only owner/team-leader/member/viewer,
+corporate-linked-but-not-workspace-member, cross-workspace, mismatched composite
 resource chain, forged identity/dedupe key, public recipient, and non-admin
 cohort requests fail before unauthorized reads/writes.
 Units `UNIT-001`, `UNIT-003`, `UNIT-006`; test `TEST-005`.
 
 ### REQ-002 - first-value and external milestone contract
 
-The typed producer accepts the audit sequence, stable dedupe/source fields, and
+`ACTIVATION-PRODUCER-CONTRACT-v1` accepts the audit sequence, stable dedupe/source fields, and
 server-resolved resource identity. Local producers cover project/area/row/total/
-export. Estimate Intelligence and Publisher consume the same contract for their
-owned milestones without this pack editing their active files.
+export through transactional outbox intent. Estimate Intelligence and Publisher
+consume the same frozen contract for their owned milestones without this pack
+editing their files; Beta Operating consumes the frozen cohort DTO/query. The
+program integration contract records reciprocal receipts without turning an
+internal owner acknowledgement into an implementation prerequisite.
 
 `AC-006`: contract tests reject unknown/regressive identity shapes and accept
-late/idempotent events; owner-accepted consumer fixtures cover health and
-publication/recipient milestones. Unit `UNIT-005`, test `TEST-006`.
+late/idempotent events; deterministic fixtures cover health, publication/
+recipient, and cohort-consumer shapes; `ACTIVATION-PRODUCER-CONTRACT-v1` and receipt schemas
+`ACT-RECEIPT-ESTIMATE-HEALTH-v1`, `ACT-RECEIPT-PUBLISHER-v1`, and
+`ACT-RECEIPT-COHORT-CONSUMER-v1` validate locally. Receipt presence is checked by
+program `UNIT-003`, not by an owner-approval blocker here. Unit `UNIT-005`, test
+`TEST-006`.
 
 ### PERF-001 - bounded cohort and progress reads
 
@@ -122,11 +139,12 @@ consuming the contract.
 
 ### DEC-AUTO-006 - additive migration and fix-forward
 
-Use `0051_beta_activation_events.sql`, subject to pre-edit collision check. A
-collision stops the lane and requires a program-led atomic reissue of every
-affected Activation/Estimate/Calculation slot and pack reference before source
-edits. D1 rollback disables writers/readers and fixes forward; no destructive
-down script.
+Use `0054_beta_activation_events.sql` only after the durable Program generation,
+migration-tail, owner-manifest, allocation, allocation-set, and receipt digests
+recheck. A missing, stale, consumed, or collided allocation stops the lane and
+requires a Program-led atomic reissue of every affected unconsumed Publisher,
+Activation, Estimate, Calculation, and Activity slot before source edits. D1
+rollback disables writers/readers and fixes forward; no destructive down script.
 
 ### DEC-AUTO-007 - honest integration states
 
@@ -134,18 +152,48 @@ Health and Publisher milestones appear as unavailable until their owner-pack
 producer is present. Activation does not fabricate completion or modify active
 Publisher/Estimate plan files.
 
+### DEC-AUTO-008 - make milestone delivery durable at the domain commit
+
+Every producer writes an activation outbox intent in the same D1 batch or
+owner-domain transaction as its authoritative mutation. A bounded reconciler
+claims expiring leases, commits event/progress/delivered state atomically, retries
+at 1m/5m/15m/1h/6h through attempt 10, and then exposes `dead` for idempotent
+operator repair. Rejected: post-response in-memory retry, because a process crash
+can permanently lose a successful milestone.
+
+### DEC-AUTO-009 - freeze activation-specific consent and retention
+
+Activation progress is essential authenticated product state, not optional
+provider analytics. Analytics consent withdrawal stops provider emission but
+does not fabricate deletion of functional progress. Events retain 180 days,
+delivered outbox rows 30 days, unresolved/dead rows at most 180 days, and progress
+while membership is active. Privacy/account/membership erasure is atomic unless
+an active server-only hold records `skipped_legal_hold`; export omits internal
+lease/error/hold-reason fields. Rejected: policy-only declarations with no purge,
+hold, export, or erasure implementation owner.
+
+### DEC-AUTO-010 - program receipts replace internal acceptance gates
+
+This pack freezes `ACTIVATION-PRODUCER-CONTRACT-v1`, producer-receipt and
+cohort-consumer receipt schemas, plus fixtures. The
+program's `UNIT-003` records versioned reciprocal receipts from Estimate,
+Publisher, and Beta Operating. Missing receipts preserve `not_available` and
+block integration/release truth only; they do not make Activation source work
+non-executable. Rejected: making implementation executability depend on internal
+reviewer availability.
+
 ## Risks
 
 | ID | Risk | Mitigation | Trigger |
 |---|---|---|---|
 | `RISK-001` | partial sample/template setup leaves orphan project | idempotency key, setup state, resume/delete action, compensation test | any downstream mutation failure |
-| `RISK-002` | event writes drift from domain commits | post-commit producer helper, idempotent retry, contract tests | milestone without authoritative row |
+| `RISK-002` | event delivery is lost or drifts from a committed domain mutation | same-transaction outbox intent, expiring leases, bounded retry/dead repair, atomic event/progress delivery, crash/concurrency tests | pending age, dead row, or milestone without authoritative row |
 | `RISK-003` | sample is mistaken for customer estimate | immutable sample version metadata and visible Demo label | label missing on any route/export |
 | `RISK-004` | cohort query exposes sensitive data | allowlisted row DTO, admin gate, denial tests, no raw metadata/content | schema/consumer change |
 | `RISK-005` | giant Projects client grows further | extract zero state/checklist islands; characterize existing empties | direct inline feature growth |
-| `RISK-006` | migration collides in concurrent worktree | stop before edit; program lead atomically reissues every affected later slot and affected packs revalidate all references | new `0051` appears |
-| `RISK-007` | cross-pack producer files conflict | publish typed contract; owners wire after freeze; program receipts | owner pack still active |
-| `RISK-008` | abandonment thresholds are treated as telemetry policy | constants are query defaults; Beta Operations owns outreach/policy | dashboard/retention decision |
+| `RISK-006` | migration collides in concurrent worktree | stop before edit; program lead atomically reissues every affected later slot and affected packs revalidate all references | new `0054` appears |
+| `RISK-007` | cross-pack producer files conflict or internal acceptance blocks execution | publish immutable fixtures; program `UNIT-003` records reciprocal receipts after owner implementation; missing receipt stays unavailable | owner pack still active or manifest/contract hash drift |
+| `RISK-008` | abandonment thresholds are treated as telemetry policy | constants are query defaults; Beta Operations owns outreach policy, while Activation owns its table lifecycle | dashboard/outreach policy change |
 
 ## Rejected alternatives
 

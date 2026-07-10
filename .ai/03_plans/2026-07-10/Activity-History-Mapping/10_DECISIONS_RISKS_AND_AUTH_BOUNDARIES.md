@@ -49,7 +49,7 @@ Rollback/revision trigger: If normalization is incomplete, restore buttons won't
 Responsible role: Lead architect.
 ```
 
-### DEC-AUTO-003: D1 row restore — implement vs remove
+### DEC-AUTO-003: Implement durable D1 row restore
 
 ```text
 Question: Should restore_deleted_estimate_rows_with_history be implemented or removed?
@@ -59,17 +59,22 @@ Options:
   A. Implement D1 row restore from old_snapshot (mirroring node restore).
   B. Remove the stub and reconcile the UI to use the existing optimistic/in-memory restore path only.
   C. Keep the stub with a clear "not implemented" error message.
-Decision: B — remove the stub and document the current restore path. If the optimistic path proves insufficient, implement D1 row restore as a new unit.
+Decision: A — implement D1 row restore from the event `old_snapshot`, mirroring
+the node-restore transaction and authorization model.
 Why this option:
-  - The existing row-restore mutation (`restoreDeletedRowsMutation`) already works for the toast-undo path.
-  - Implementing D1 row restore is significant work (old_snapshot reconstruction, collision guards, batch limits) for unclear current value.
-  - The throw is misleading — it suggests the feature is partially built when it isn't.
+  - The Activity History modal already advertises restore as a user outcome.
+  - A toast-only in-memory path cannot recover after navigation or reload.
+  - The stored snapshot is the durable fact required for deterministic recovery.
 Rejected alternatives:
-  A: Significant implementation effort for unclear MVP value. Node restore covers the harder case (subtree reconstruction).
-  C: A misleading stub is worse than an honest removal.
-Confidence: Medium. If users report that row restore from the Activity History modal (not just toast undo) is needed, escalate to implementation.
-Consequences: The UI row-restore button in the Activity History modal may need to use the same path as the toast undo, or be hidden if no restore path exists for the event type.
-Rollback/revision trigger: User feedback or QA finding that row restore from history is needed.
+  B: Removing the path contradicts the existing restore affordance and loses
+  post-navigation recovery.
+  C: Keeping a throwing dispatch entry is not an honest executable contract.
+Confidence: High after current route/UI/source characterization.
+Consequences: UNIT-002 owns authorization, row-ID collision refusal, batch cap,
+atomic insert plus history receipt, idempotent replay, and malformed/missing
+snapshot denial tests. Failure returns a typed non-destructive error.
+Rollback/revision trigger: If legacy snapshots cannot be reconstructed, those
+events remain visibly unrestorable; the durable path is not replaced by guessed data.
 Responsible role: Lead architect.
 ```
 
@@ -88,42 +93,59 @@ Confidence: High.
 Responsible role: Lead architect.
 ```
 
-### DEC-AUTO-005: Shared-link interaction improvements are P2
+### DEC-AUTO-005: Publisher owns public interaction mutation
 
 ```text
-Question: When should owner-reply, comment-edit/delete, and decision-reset be implemented?
+Question: Which pack owns owner-reply, comment edit/delete, and decision reset?
 Affected IDs: REQ-008, UNIT-007
 Evidence and freshness: See 07_SHARED_LINK_AND_CLIENT_COLLABORATION.md §8 (2026-07-10)
 Options:
   A. Include in MVP (P0/P1).
   B. Defer to post-MVP (P2).
-Decision: B — defer to post-MVP.
-Why this option: The current comment/decision system is complete and hardened for the core MVP flow (client views, comments, decides). Owner-reply, edit/delete, and decision-reset are enhancements that add complexity (threading, mutation semantics, audit trail for edits). MVP users can work without them.
-Confidence: Medium. If beta users specifically request these, escalate.
-Responsible role: Lead architect.
+Decision: Publisher-And-Shared-Pages exclusively owns the public routes,
+publication repository/actions, and shared-page UI. Activity consumes the
+resulting immutable event contract only; REQ-008 is deferred here and UNIT-007
+is superseded.
+Why this option: It eliminates overlapping writers. Any future edit/delete/reset
+is represented as an append-only tombstone/reset event; historical decision rows
+are never destructively deleted to make the UI look reset.
+Confidence: High.
+Responsible role: Publisher integrator for mutation; Activity integrator for read/composition.
 ```
+
+### DEC-AUTO-008: One bounded propagation event, complete revision facts
+
+Project-component fan-out records one source event containing a bounded list of
+authorized affected row IDs and typed before/after facts. Oversized fan-out is
+chunked under one correlation ID. This preserves audit and revision truth without
+an unbounded event-per-row explosion. The UI shows the count and authorized rows.
+
+### DEC-AUTO-009: Compliance work is executable, export remains deferred
+
+Actor fallback, workspace isolation, retention integration, and durable event
+write/reconciliation are first-user requirements owned by UNIT-012. Audit-log
+CSV/JSON/PDF export is useful but remains a separately traceable deferred
+requirement and cannot block this implementation slice.
 
 ## Risk Register
 
 | ID | Status | Risk | Impact | Likelihood | Mitigation |
 |---|---|---|---|---|---|
 | RISK-001 | OPEN | Normalization map becomes stale when new event types are added without updating it | Medium — new events render as generic fallback | Medium — requires developer discipline | Add a contract test that asserts every event type in the write layer has a mapping entry |
-| RISK-002 | OPEN | The legacy Supabase read path (`fetchEstimateSheetVersionControl` via `dataStore`) and the D1 path diverge | High — events recorded via D1 but read via Supabase would be invisible | Low — likely both point at D1 after migration | UNIT-004 verifies the dataStore binding |
+| RISK-002 | CLOSED | The history read path was mislabeled as legacy Supabase | High | Resolved by current source recheck | `fetchEstimateSheetVersionControl` constructs the D1 action client; retain a regression source check |
 | RISK-003 | OPEN | Concurrent agents editing `d1-action-client.ts` and `activity-composer.ts` simultaneously | Medium — merge conflicts | Medium — both are high-traffic files | File-scope ownership in UNIT packets; serialize shared-contract edits |
 | RISK-004 | MITIGATED | Named-version revival without approved slice | High — violates VALIDATION_MATRIX constraint | Low — DEC-AUTO-004 explicitly keeps the prohibition | Documented; filter remains in place |
-| RISK-005 | OPEN | Dual project-activity repositories create maintenance burden | Low — both work, just divergent | High — already divergent | P2 consolidation in UNIT-006 |
+| RISK-005 | OPEN | Dual project-activity repositories create maintenance burden | Low — both work, just divergent | High — already divergent | `UNIT-008` tracks `REQ-017`/`AC-026` as deferred and rejects undeclared consolidation edits; no current READY implementation unit owns it |
 | RISK-006 | OPEN | Hardcoded actor email→name mapping in project-activity-repository.ts:156 | Low — cosmetic | Low — only affects one user | Noted for cleanup |
 | RISK-007 | OPEN | Bulk-delete row restore is broken and users may expect it | Medium — data loss perception | Medium — bulk delete is a common operation | UNIT-002 fixes this; P0 priority |
+| RISK-008 | OPEN | A domain mutation can commit while a separate history insert fails | High — silent audit gaps | Medium | UNIT-012 uses same-D1 batch/outbox semantics plus reconciliation and crash-window tests |
+| RISK-009 | OPEN | A missing workspace predicate can expose activity across tenants | Critical | Low | Mandatory workspace-scoped repository APIs and cross-workspace denial tests in UNIT-012 |
 
 ## Authorization Boundaries
 
 This pack is planning-only. No `AUTH-*` boundaries are needed for the planning stage. All implementation is local (`IMPLEMENT_LOCAL`).
 
-### Future AUTH (for UNIT-008 hosted proof)
-
-If `UNIT-008` requires hosted D1 proof or provider mutations, it will need:
-- Standing Cloudflare-resource authorization (granted in `AGENTS.md` for bound resources).
-- Hosted proof artifacts for shared-link activity changes.
-- No production deploy without explicit owner approval.
-
-These are runtime evidence requirements, not planning-stage gates.
+UNIT-008 may collect local and authorized bound-resource proof under the standing
+Cloudflare mandate. Production deployment is outside this package action ceiling
+and is handed to `Release-Integrity-And-Golden-Path`; it is not an internal owner
+question and does not block local implementation completion.

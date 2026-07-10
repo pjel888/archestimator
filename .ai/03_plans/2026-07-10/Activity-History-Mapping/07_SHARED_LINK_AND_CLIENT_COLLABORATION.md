@@ -1,6 +1,7 @@
 # 07 - Shared Link And Client Collaboration
 
-This document maps the complete shared-link/client-collaboration surface — from link creation through client viewing, commenting, approving, and all the activity recording that supports it.
+Scope: shared-link creation, client viewing, comments, decisions, and the
+supporting activity records.
 
 ## Architecture Overview
 
@@ -152,6 +153,19 @@ All routes: `force-dynamic`, `Cache-Control: no-store`, durable D1-backed rate l
 - `EstimateHeaderActions.tsx`, `ProjectChromeAsync.tsx`, `PublishedProjectQuickActions.tsx`, `PublisherRosterClient.tsx`, `usePublisherDrawer.ts`, `ProposalRow.tsx` / `ProposalsList.tsx`.
 
 ## 8. Identified Gaps
+
+**Ownership boundary:** these mutation/UI gaps belong to
+`Publisher-And-Shared-Pages`. This Activity pack does not edit the public routes,
+publication actions/repository, or shared-page components. Its only contract is
+to consume immutable, workspace-authorized events. Comment edit/delete or a
+decision reset must append a tombstone/reset event; it must not erase the
+historical decision/comment fact.
+
+The same boundary applies to public comment/decision accessibility: Publisher
+owns `SharePageComments` and the public decision components, and its incorporated-
+delta receipt must carry the applicable accessibility changes, tests, and verifier
+result. Activity `UNIT-010` owns only ActivityHistoryModal, ProjectActivityClient,
+and SharedLinkActivityFeed accessibility.
 
 ### P1 — No owner reply to client comments
 Comments have `is_internal` and `author_type: owner|recipient` fields, and `shared_link_comments` allows owner-authored rows (recipient_id null), but no route/action lets a manager post an inline reply visible on `/share/[token]`. Owner-authored comments seem writable only via direct DB. `loadSharedLinkPublicComments` returns `is_internal=0` regardless of author.

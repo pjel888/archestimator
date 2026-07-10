@@ -38,62 +38,24 @@
 All criteria initially `FAIL`. Passing a narrower total or workbook test cannot
 advance the package until the cross-surface fixture and security/print gates pass.
 
-## Calculation Invariants
+## Domain And State Contract Index
 
-1. Every numeric input is finite. Missing optional values may use an explicitly
-   documented default; supplied invalid numbers are never coerced to zero.
-2. `quantity`, material/labor unit cost, and `misc_cost` are non-negative.
-   Negative discounts use adjustment percentage, not misc.
-3. Quantity is normalized to six decimals. When `quantity_base` is present, a
-   signed `quantity_contingency_amount` is valid only when
-   `round6(max(0, base + amount)) === round6(quantity)`; mismatch is
-   `invalid_calculation_input`. Without base mode, quantity is authoritative.
-4. Legacy `contingency_percentage` acts as row adjustment only when quantity-base
-   mode is absent. Row/sheet adjustment is in `[-100, 1000]`; proposal
-   contingency and VAT are in `[0, 100]`.
-5. Material, labor, adjustment, and misc are separately rounded to minor units,
-   then summed. Every conversion, product, and addition is a safe integer.
-6. Overflow returns `amount_out_of_range` and blocks proposal/export/share; no
-   clamping, Infinity, lossy string conversion, or partial output is permitted.
-7. A negative adjustment is a discount and rounds symmetrically.
-8. Working basis includes active rows independent of proposal scope.
-9. Proposal basis includes only explicit `included`; legacy missing scope maps to
-   included for compatibility.
-10. Archived tabs/nodes/rows never enter active totals.
-11. Sheet adjustment applies once after included direct row totals.
-12. Proposal contingency/VAT apply in the order defined by existing export
-    settings and each step rounds from its immediate base.
-13. Currency conversion is forbidden. Mixed currency is not one total.
-14. Every aggregate is the sum of canonical minor-unit values, not independently
-    recomputed floating-point formulas.
-15. Formula cells include canonical cached results; formula-free cells use the
-    same values.
-16. Public snapshots expose totals and safe scope only, never rates or internal
-    provenance.
-17. A legacy stored row total remains authoritative for a legacy snapshot read;
-    migration-by-read must not reinterpret issued historical content.
-18. Server actions/repositories reject new invalid writes. The D1 constraint
-    migration runs only after a read-only legacy scan is clean; invalid legacy
-    rows block migration/output and are reported for explicit repair, never
-    silently mutated.
+The high-blast review contracts are split by independent risk while this file
+retains stable requirements, criteria, decisions, and risks:
 
-## State Matrix
+- `CALCULATION_DOMAIN_INVARIANTS_AND_ROUNDING.md` owns the closed numeric domain,
+  named bases, cost-part order, rounding, overflow, and compatibility review.
+- `SURFACE_PARITY_UX_AND_ACCESSIBILITY.md` owns editable/persisted/public/export/
+  print state and accessibility review.
+- `PUBLICATION_SNAPSHOT_DATA_AND_COMPATIBILITY.md` owns immutable snapshot and
+  legacy/unknown-version behavior.
+- `EXPORT_XLSX_PRINT_AND_BROWSER_PROOF.md` owns workbook and print lifecycle.
+- `SECURITY_PRIVACY_AND_PUBLIC_ALLOWLIST.md` owns public-data and workbook-text
+  denial review.
 
-| State | Expected behavior |
-|---|---|
-| Empty estimate | Zero in all applicable bases; no phantom rows |
-| Unsaved editable changes | Screen and preview use materialized edit state; persisted/public outputs remain last saved until explicit publish/export action contract says otherwise |
-| Saving/saved/reload | Optimistic and persisted totals converge; reload reproduces exact minor units |
-| Failed save | Persisted/share/export totals remain prior saved state; UI exposes failure |
-| Included row | Present in working and proposal bases |
-| Excluded/by-owner row | Present in working review and exclusion display; absent from proposal included/final totals |
-| Archived tab/node | Absent from active and publication totals |
-| Legacy snapshot | Render stored safe row totals and legacy basis marker; do not add inferred rates |
-| Unknown snapshot version | Safe failure/compatibility state; no guessed total semantics |
-| Mixed currency | Per-currency totals only; no conversion or combined amount |
-| Formula mode on/off | Same cached/scalar value and formatting |
-| Print before/after | Package mounts synchronously for print and unmounts after; totals unchanged |
-| Generation failure | Structured error, no corrupt/partial download presented as success |
+These supporting artifacts add no stable record or execution authority. If they
+conflict, this file's stable records, `plan-pack.json`, and the canonical unit
+packets control in that order.
 
 ## Autonomous Decisions
 
@@ -286,17 +248,19 @@ failing with exact repro command; it is not waived.
 
 Responsible role: verifier.
 
-### DEC-AUTO-008 - Serialize shared publication/export files after Publisher
+### DEC-AUTO-008 - Serialize shared publication/export files through receipts
 
 Question: How does parity work coexist with concurrent Publisher implementation?
 
 Affected IDs: REQ-003, REQ-004, UX-001, REQ-005.
 
-Options: parallel overlapping edits; block the whole pack; execute calculation
-core first, then wait/re-read/lease shared files for integration.
+Options: parallel overlapping edits; block the whole pack; execute the independent
+calculation core first, then consume migration and Publisher integration receipts
+before the affected files.
 
-Decision: Execute UNIT-001 through UNIT-003 locally, then serialize UNIT-004/005
-shared edits after Publisher writer completion.
+Decision: Execute dependency-closed UNIT-001/002, start UNIT-003 only after a
+current `0056` generation receipt, and serialize UNIT-004/005 only after a
+validator-clean Publisher manifest/diff/contract receipt.
 
 Why: It preserves throughput without overwriting identity/UX work.
 
@@ -320,7 +284,7 @@ Responsible role: lead integrator.
 | RISK-002 | OPEN | Scope change hides or bills excluded rows incorrectly | UNIT-001, UNIT-004, UNIT-005 | Separate bases and exact row membership assertions |
 | RISK-003 | OPEN | Snapshot changes leak rates/internal provenance or rewrite legacy meaning | UNIT-004, UNIT-007 | Additive safe fields, sanitization/legacy adversarial tests |
 | RISK-004 | OPEN | Workbook formulas/cached results/format disagree | UNIT-005, UNIT-007 | Artifact XML/readback and formula-on/off proof |
-| RISK-005 | OPEN | Shared Publisher edits conflict or are overwritten | UNIT-004, UNIT-005, UNIT-006 | Wait/re-read/lease/integrate; one shared-file writer |
+| RISK-005 | OPEN | Shared Publisher receipt drifts or overlapping edits overwrite contracts | UNIT-004, UNIT-005, UNIT-006 | Revalidate manifest/diff/contract hashes, reject stale receipt, consume one shared-file lease |
 | RISK-006 | OPEN | Canonical adapter slows large estimates/workbooks | UNIT-003, UNIT-005, UNIT-007 | 5k/10k benchmark, 50k refusal/bounded reasoning |
 | RISK-007 | OPEN | Capability extraction expands into unrelated proposal redesign | UNIT-006, UNIT-007 | File/requirement audit and Publisher ownership check |
 

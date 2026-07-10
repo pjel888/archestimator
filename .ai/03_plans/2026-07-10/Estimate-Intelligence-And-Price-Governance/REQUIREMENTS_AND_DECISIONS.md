@@ -6,9 +6,9 @@
 |---|---|---|---|---|---|
 | REQ-001 | BETA-P1-01 | A canonical health engine and repository DTO expose deterministic estimate health, completeness, budget state, and exact issue references | SRC-001, SRC-002, SRC-004 | UNIT-001, UNIT-003, UNIT-004, UNIT-007 | AC-001, AC-002 |
 | REQ-002 | BETA-P1-02 | Every KPI, risk, and applicable chart can open the exact estimate/row set that produced it through stable URL state | SRC-001, SRC-002, SRC-004 | UNIT-001, UNIT-004, UNIT-005, UNIT-007 | AC-003, AC-004 |
-| REQ-003 | BETA-P1-03 | Revision comparison uses an explicit same-estimate Activity event boundary and deterministic as-of reconstruction to explain total change through quantity, rate, adjustment, misc, and scope deltas with traceable event references | SRC-001, SRC-003 | UNIT-001, UNIT-006, UNIT-007 | AC-005, AC-006 |
+| REQ-003 | BETA-P1-03 | Revision comparison uses an explicit same-estimate Activity event boundary plus complete forward-only revision facts to explain quantity, rate, adjustment, misc, and scope deltas with traceable event references; legacy incomplete ranges are unavailable | SRC-001, SRC-003 | UNIT-001, UNIT-006, UNIT-007 | AC-005, AC-006 |
 | DATA-001 | BETA-P1-01/03 | Projects persist typed analytical inputs with additive migration, validation, authorization, compatibility, and no invented backfill values | SRC-001 | UNIT-001, UNIT-002, UNIT-004 | AC-007, AC-008 |
-| DATA-002 | BETA-P1-08 | Estimate-row producers durably preserve truthful provenance origin before display fallback, and workspace/category freshness policies drive library and estimate health from one evaluator while retaining 90/180 fallback | SRC-002 | UNIT-001, UNIT-002, UNIT-003, UNIT-004 | AC-009, AC-010 |
+| DATA-002 | BETA-P1-08 | Every runtime estimate-row insert/copy/restore/AI producer durably preserves truthful provenance origin before display fallback, and workspace/category freshness policies drive library and estimate health from one evaluator while retaining 90/180 fallback | SRC-002 | UNIT-001, UNIT-002, UNIT-003, UNIT-004 | AC-009, AC-010 |
 | UX-001 | BETA-P1-01/02/03 | The Data surface presents usable loading, empty, healthy, warning, error, truncated, mixed-currency, unavailable, keyboard, screen-reader, mobile, and recovery states | SRC-001, SRC-004 | UNIT-005, UNIT-007 | AC-011 |
 | PERF-001 | BETA-P1-01/02 | Health and drill-through stay bounded at Beta-scale cardinality with measured query/payload/render budgets and fail-closed truncation | SRC-001, SRC-004 | UNIT-004, UNIT-005, UNIT-008 | AC-012 |
 | REQ-004 | Program-owned BETA-P1-10 contribution | Touched analytics capabilities are extracted behind typed boundaries without changing unrelated chart behavior, and this pack emits one receipt to the umbrella evidence gate | SRC-001, SRC-003, SRC-004 | UNIT-006, UNIT-007, UNIT-008 | AC-013 |
@@ -22,11 +22,11 @@
 | AC-002 | Empty, healthy, warning, and error estimates are distinguishable; each issue references only authorized estimate/row IDs | TEST-001, TEST-004 | unit and repository receipt |
 | AC-003 | A drill-through URL round-trips rule, estimate, row, category, supplier, and revision selection without invalid values entering the DTO | TEST-005 | unit/DOM receipt |
 | AC-004 | Selecting a KPI/risk opens the exact fixture rows; clearing the filter restores the prior comparison state | TEST-005 | DOM receipt |
-| AC-005 | An explicit same-estimate baseline event and captured current high-water mark reconstruct deterministically; deltas reconcile exactly to current total minus baseline total with zero residual or an explicit `unclassified` residual | TEST-006 | unit receipt |
-| AC-006 | Missing/partial/late/out-of-order events, cross-estimate boundaries, absent before-state, or an unstable current high-water mark degrade to unavailable and never fabricate a cause or named version | TEST-006 | unit/repository receipt |
+| AC-005 | Every forward row insert/update/replace/move/delete/restore, sheet adjustment, template/subtree copy, and AI package mutation writes an event plus complete normalized revision facts atomically; a same-estimate baseline and captured current high-water reconstruct deterministically and reconcile to current total with zero residual or explicit `unclassified` residual | TEST-006 | producer/unit receipt |
+| AC-006 | Any legacy event without complete facts, missing before/after/tombstone data, ordinal/event gap, late fact, duplicate ID, cross-estimate boundary, or high-water drift returns typed `unavailable` and never fabricates a cause or named version | TEST-006 | unit/repository receipt |
 | AC-007 | Clean local D1 apply, existing-project read, new-project write, edit, and migration replay preserve nullable typed fields and authorization | TEST-002 | local D1 receipt |
 | AC-008 | Effective budget is estimate override, else project target, else missing; basis date and source are visible in the DTO | TEST-002, TEST-004 | repository receipt |
-| AC-009 | New library/component inserts persist their pre-fallback provenance origin exactly; legacy rows without an origin marker remain missing, while workspace/category policy resolution rejects invalid thresholds and preserves 90/180 fallback | TEST-003 | producer/local D1 receipt |
+| AC-009 | Library inserts, estimate/tab/template/reusable-source copies, deleted-subtree restores, AI row/template/package inserts and replacements, and supported row restores persist or preserve the exact pre-fallback provenance origin; unsupported row restore remains unavailable, legacy null remains missing, and non-product proof/seed writers are explicitly synthetic or legacy-null fixtures | TEST-003 | producer/local D1 receipt |
 | AC-010 | Library overview, source-trust chips, and estimate health classify the same price date and durable provenance origin under the same effective policy | TEST-003, TEST-004 | cross-consumer contract receipt |
 | AC-011 | All named UX states, focus behavior, semantic labels, live announcements, reflow, and keyboard drill-through pass focused DOM tests; browser proof is limited to real route/focus/reflow claims | TEST-005, TEST-008 | DOM/browser receipt |
 | AC-012 | At 5,000 evaluated rows, D1 fact reads stay within the recorded query budget, payload remains bounded, and pure evaluation stays within the committed benchmark; 50,000-row reasoning proves deterministic truncation/pagination | TEST-007 | benchmark/query receipt |
@@ -37,50 +37,25 @@ All criteria begin `FAIL` because implementation has not started. Their linked
 tests and evidence producers are fully specified in
 `VERIFICATION_ROLLOUT_AND_FINAL_AUDIT.md`.
 
-## Domain Invariants
+## Domain, Data, Integration, And State Index
 
-1. Health evaluates only rows the authorized repository returned.
-2. Rule IDs and filter values are stable contracts; display copy may change.
-3. Missing evidence never becomes a healthy signal.
-4. Provenance origin is captured and persisted before display fallback; reads
-   never infer `recorded` from normalized source/date. Invalid dates and
-   `missing` or `synthesized_fallback` provenance origins are
-   `provenance-missing`, never fresh or verified. Display fallback values cannot
-   upgrade evidence origin.
-5. Category policy overrides workspace default; workspace default overrides the
-   code fallback; fallback is 90 stale and 180 very stale days.
-6. Policy revision is included in the DTO and cache key.
-7. Estimate budget overrides project target budget. Neither is currency-converted.
-8. Mixed-currency estimates are not aggregated into a comparable monetary KPI.
-9. Revision deltas must reconcile, or expose the residual as unclassified.
-10. Activity History owns event vocabulary and restoration. This pack owns the
-    read adapter and analytical decomposition only.
-11. UI never recalculates server-owned health counts or severity.
-12. Health logs contain rule IDs, counts, duration, truncation, and request ID,
-    not project names, row descriptions, raw prices, or actor identifiers.
-13. Revision intelligence never revives named-version snapshots, compare, or
-    version restore. A baseline is an explicit persisted Activity event boundary.
-14. Revision range order is `(occurred_at, event_id)` within one workspace and
-    estimate; reconstruction uses `(baseline, current_high_water]` only. Missing
-    before/after facts, duplicate IDs, late events, or a changed high-water mark
-    produce `unavailable`, not inferred history.
+The stable requirements, criteria, decisions, and risks remain in this file.
+Their high-blast review contracts are split by independently testable boundary:
 
-## User And System State Matrix
+- `HEALTH_DOMAIN_RULES_AND_ISSUE_TAXONOMY.md` owns health rules, grade, origin,
+  policy, and deterministic issue identity.
+- `PRICE_POLICY_DATA_AND_MIGRATION_PLAN.md` owns typed D1 inputs, policy rows,
+  provenance/fact producers, migration lease, replay, and fix-forward.
+- `REPOSITORY_DTO_AUTHORIZATION_AND_QUERY_CONTRACTS.md` owns server/client DTO,
+  authorization, query, cache, pagination, and failure behavior.
+- `COCKPIT_UX_DRILL_THROUGH_AND_ACCESSIBILITY.md` owns the user/system state
+  matrix, route journey, semantics, focus, and responsive behavior.
+- `ACTIVITY_REVISION_INTEGRATION_CONTRACT.md` owns the Activity receipt boundary,
+  atomic forward facts, high-water reconstruction, and typed unavailable states.
 
-| State | Expected behavior | Recovery/action |
-|---|---|---|
-| No estimates | Empty cockpit, no warning grade | Create/open estimate |
-| Estimate with zero rows | `empty`, budget may be shown separately | Add area/component/template |
-| Healthy | Green/passive summary with last evaluated policy revision | Continue to export/share |
-| Warnings | Prioritized warning KPI and exact row drill-through | Open affected rows |
-| Errors | Strong error state; sharing warning integration remains outside this pack | Correct affected rows |
-| Missing typed project inputs | Explicit incomplete inputs, not zeros | Edit project analytics fields |
-| Mixed currency | Per-estimate health only; comparison deltas disabled | Select same-currency estimates |
-| Truncated | Summary marked incomplete; row drill-through paginates | Narrow scope or load next page |
-| Revision evidence unavailable | Current health remains usable; revision explanation says unavailable | Refresh or inspect Activity History |
-| D1/repository failure | Structured route error; no cached healthy fallback | Retry with request ID |
-| Stale client data | Query invalidation refreshes policy revision and health | Retry/refresh |
-| Unauthorized | Existing not-found/denial behavior; no IDs or counts leak | Request appropriate access |
+These supporting artifacts create no new stable record or execution authority.
+If they conflict, this file's stable records, `plan-pack.json`, and the canonical
+unit packets control in that order.
 
 ## Autonomous Decisions
 
@@ -231,25 +206,25 @@ History pack?
 
 Affected IDs: REQ-003, REQ-004.
 
-Options: duplicate event taxonomy; wait for the entire neighboring pack; consume
-existing events through a compatibility adapter and revalidate after its changes.
+Options: duplicate the event taxonomy; block unrelated health work on the entire
+neighboring pack; or consume the Activity boundary through an adapter and extend
+forward producers only after a content-addressed compatibility receipt validates.
 
-Decision: Own a read-only analytical adapter in this pack, serialize any shared
-event-type files, and re-run characterization after Activity History integration.
-The user selects a prior normalized event boundary for the same estimate; the
-repository captures the current persisted rows plus an event high-water mark,
-then reads the deterministic range `(baseline_order, current_order]`, ordered by
-`occurred_at` then stable event ID. It reconstructs the baseline by applying
-complete normalized `before` facts backward from current state. No selection,
-cross-estimate events, incomplete tombstones/before facts, duplicate/late events,
-or a high-water change during the read returns `unavailable`. This is analytical
-readback only and does not create, restore, or imply named versions.
+Decision: Own the analytical adapter and forward revision-fact sidecar in this
+pack. Before shared event-path edits, validate the Activity manifest/diff/contract
+receipt and acquire its named lease; do not edit Activity-owned files by default.
+The user selects a prior same-estimate event boundary. The repository captures
+the current `(occurred_at,event_id)` high-water, reads complete facts by event and
+ordinal, and rechecks the high-water. A legacy event without complete facts,
+cross-estimate boundary, ordinal gap, incomplete tombstone/before state,
+duplicate or late fact, or changed high-water returns typed `unavailable`. The
+adapter does not create, restore, or imply named versions.
 
-Why: It avoids duplicate vocabulary while keeping this unit independently
-implementable against current events.
+Why: It reuses Activity vocabulary without making transient process state or
+legacy partial events a source of truth.
 
-Rejected alternatives: duplication creates drift; a hard wait blocks unrelated
-health work and is unnecessary.
+Rejected alternatives: duplication creates drift; whole-pack blocking stalls
+independent health work.
 
 Confidence: medium-high.
 
@@ -257,8 +232,8 @@ Consequences: Unknown but complete event shapes may yield an explicit
 `unclassified` residual; incomplete or unstable reconstruction yields
 `unavailable`, never invented causes.
 
-Rollback/revision trigger: Rebase the adapter if Activity History publishes a
-canonical typed delta API before UNIT-006 begins.
+Rollback/revision trigger: Revalidate and revise the adapter if the Activity
+contract hash changes before UNIT-006 begins.
 
 Responsible role: shared-contract integrator.
 
@@ -318,7 +293,7 @@ Responsible role: code-simplifier after functional implementation.
 | ID | Status | Risk | Units | Mitigation and trigger |
 |---|---|---|---|---|
 | RISK-001 | OPEN | Health formulas drift from totals or library policy | UNIT-001, UNIT-003, UNIT-004 | Cross-consumer golden fixtures; stop on any classification mismatch |
-| RISK-002 | OPEN | Provisional `0052` migration slot conflicts with concurrent work | UNIT-002 | Re-scan the current tail and all owner ledgers immediately before write; reissue every affected slot on collision |
+| RISK-002 | OPEN | `0055` generation receipt becomes stale through collision, consumption, tail drift, or owner-manifest drift | UNIT-002 | Validate generation/tail/owner/allocation/receipt hashes immediately before write; prohibit edit and require Program reissue on mismatch |
 | RISK-003 | OPEN | New fields create false certainty from null/default backfills | UNIT-002, UNIT-004 | Nullable columns, explicit missing states, no synthetic values |
 | RISK-004 | OPEN | Health queries scan too many rows or leak unauthorized IDs | UNIT-004, UNIT-005 | Authorized project predicate, query budget, pagination, payload audit |
 | RISK-005 | OPEN | Activity History changes invalidate revision decomposition | UNIT-006, UNIT-008 | Compatibility adapter, shared-file lease, post-integration replay |

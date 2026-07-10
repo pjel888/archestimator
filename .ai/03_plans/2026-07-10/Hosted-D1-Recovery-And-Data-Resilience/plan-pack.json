@@ -3,7 +3,7 @@
   "suite_version": "2026-07-10",
   "package_id": "PLAN-2026-07-10-hosted-d1-recovery-and-data-resilience",
   "profile": "high-blast-radius",
-  "package_action_ceiling": "IMPLEMENT_LOCAL",
+  "package_action_ceiling": "EXTERNAL_ACTIONS",
   "last_observed_run_scope": "PLAN_ONLY",
   "package_status": "CONDITIONALLY_READY",
   "implementation_status": "NOT_STARTED",
@@ -11,9 +11,9 @@
   "plan_lifecycle": "ACTIVE",
   "terminal_status": "ACTIVE",
   "baseline": {
-    "head": "081a0757a",
-    "scoped_status_sha256": "775e74e2f060137fa7989174ef3635365cca23d1d180809ca5a06ae220cbb330",
-    "scoped_diff_sha256": "10c1c6628c3cfbe3d009cc38f7599bf229561d64babd2c54ffbac0e79af32f29"
+    "head": "e373bc865b978e237deb1d92011c96b0a3639fb4",
+    "scoped_status_sha256": "3fc3e0fdf6d68605d17b9f6393005a2e19189eb01e1cd62d7f5da5450204c644",
+    "scoped_diff_sha256": "da5d4a76ec01a7bcc079879c25e257d684f83bde333c95ac61c12a6d8f49b858"
   },
   "canonical_execution_artifact": "IMPLEMENTATION_PLAN.md",
   "artifacts": [
@@ -21,37 +21,85 @@
       "id": "ART-001",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "3af519a682d2cbfada492eceb9440c1628be051f610968484385f3445f5f9c76"
+      "sha256": "26ce05844f7f9428b76b443f9b7698e74f12411a026c04fe08fb45d9a18ca171"
     },
     {
       "id": "ART-002",
       "role": "source-ledger",
       "path": "SOURCE_AND_CODEBASE_AUDIT.md",
-      "sha256": "bbbf8cb9f25ed4478e8b9e99a4393da610bd83fcef2283a9eb84dca9de151e53"
+      "sha256": "9688a5a33d3867d98974c3de1b00cbcc53931808f01dfe091540c085a0ff8a24"
     },
     {
       "id": "ART-003",
       "role": "requirements",
       "path": "REQUIREMENTS_AND_DECISIONS.md",
-      "sha256": "1f5ddca7e56d6d5f995c61468f7186e2493db46c38814d02d8dd1b641ea32448"
+      "sha256": "6de6438ff534e0a4947fa62e274cb916496e4845ca68d8c467a3f1ff036a8eb3"
     },
     {
       "id": "ART-004",
       "role": "canonical-execution",
       "path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "63dea3e9eba4bad52606e54e763be71eb30e7dfc85b17741f34c457f5718cfc3"
+      "sha256": "79cf3f1c228579efa193829cdfe9d20d4f760d10128d70a09b6ab3540dd64454"
     },
     {
       "id": "ART-005",
       "role": "verification",
       "path": "VERIFICATION_ROLLOUT_AND_FINAL_AUDIT.md",
-      "sha256": "5ed1c3bf2ca223fdb65d99a046f1192f87e08fa66ced33d8ab7b9c7e287647f2"
+      "sha256": "c5a395d7c908b2903b17c21d9d3f205a5ed47d62a5e84add2694d9010446bdb7"
     },
     {
       "id": "ART-006",
       "role": "ledger",
       "path": "LOOP_LEDGER.md",
-      "sha256": "b3a950c8aacf6d524047bab356fbb3caf3986fed2f45d72848d8897d39a7c08f"
+      "sha256": "e73e5c4055b17f6c1bde9a92b140664fb59ce197670d8b45b2e06b6e14549a81"
+    },
+    {
+      "id": "ART-007",
+      "role": "provider-constraints",
+      "path": "PROVIDER_CAPABILITY_AND_CONSTRAINTS.md",
+      "sha256": "19847477d97d427fb94954ad15760a73af9bdfe8e6fcc0349ff8f8927cf923c1"
+    },
+    {
+      "id": "ART-008",
+      "role": "data-integrity",
+      "path": "RECOVERY_ARTIFACT_SCHEMA_AND_DATA_INTEGRITY.md",
+      "sha256": "7e3384b36c726f15da38981394548344feca52bac57ebceb75623856e923708e"
+    },
+    {
+      "id": "ART-009",
+      "role": "security-threat-model",
+      "path": "RESTORE_ORCHESTRATION_AND_DISPOSABLE_INGRESS_THREAT_MODEL.md",
+      "sha256": "42f6e8f67958d890aac10e463ebb3b90d9350b199422b89b6d87e9623e0e081b"
+    },
+    {
+      "id": "ART-010",
+      "role": "application-integrity",
+      "path": "SESSION_AUTHZ_AND_APPLICATION_INTEGRITY_PROOF.md",
+      "sha256": "e3164f655331bc0fd0f4c42665bbd8aac4c323c98eee1de807560669a2ec1079"
+    },
+    {
+      "id": "ART-011",
+      "role": "performance-reliability",
+      "path": "RTO_RPO_PERFORMANCE_AND_FAILURE_MODEL.md",
+      "sha256": "797bf6ab1cff64ccfbdc764d646fca860842600dc0863e210aea421afb8f187b"
+    },
+    {
+      "id": "ART-012",
+      "role": "adversarial-qa",
+      "path": "PROVIDER_REHEARSAL_TEST_PLAN.md",
+      "sha256": "3faf6139bf5e2944649b5aed357cbb4f8f98db46dc01a2fdbcb8302a402ce3c2"
+    },
+    {
+      "id": "ART-013",
+      "role": "rollout-operations",
+      "path": "RUNBOOK_ROLLBACK_CLEANUP_AND_INCIDENT.md",
+      "sha256": "ebe636604bcafc3affa41599acec992fa0618739a98825a7e1a3922a72c9ac52"
+    },
+    {
+      "id": "ART-014",
+      "role": "final-audit",
+      "path": "AUTHORIZATION_PACKET_AND_FINAL_AUDIT.md",
+      "sha256": "bb1be1dc53850fe6e8b546e6259bf098e3cd6e3eb3a614135219e4cd4aa1bdd3"
     }
   ],
   "sources": [
@@ -702,6 +750,17 @@
         "UNIT-005",
         "UNIT-006"
       ]
+    },
+    {
+      "id": "DEC-AUTO-007",
+      "status": "ACTIVE",
+      "artifact_path": "REQUIREMENTS_AND_DECISIONS.md",
+      "affected_ids": [
+        "REQ-004",
+        "AC-004",
+        "UNIT-004",
+        "AUTH-001"
+      ]
     }
   ],
   "authorization_boundaries": [
@@ -736,7 +795,7 @@
       "id": "EVID-001",
       "status": "COLLECTED",
       "artifact_path": "SOURCE_AND_CODEBASE_AUDIT.md",
-      "sha256": "bbbf8cb9f25ed4478e8b9e99a4393da610bd83fcef2283a9eb84dca9de151e53",
+      "sha256": "9688a5a33d3867d98974c3de1b00cbcc53931808f01dfe091540c085a0ff8a24",
       "claim_ids": [
         "REQ-001",
         "REQ-002",
@@ -752,14 +811,14 @@
         "UNIT-005",
         "UNIT-006"
       ],
-      "source_revision": "081a0757a",
+      "source_revision": "e373bc865b978e237deb1d92011c96b0a3639fb4",
       "valid_until": null
     },
     {
       "id": "EVID-002",
       "status": "PLANNED",
       "artifact_path": "VERIFICATION_ROLLOUT_AND_FINAL_AUDIT.md",
-      "sha256": "5ed1c3bf2ca223fdb65d99a046f1192f87e08fa66ced33d8ab7b9c7e287647f2",
+      "sha256": "c5a395d7c908b2903b17c21d9d3f205a5ed47d62a5e84add2694d9010446bdb7",
       "claim_ids": [
         "AC-001",
         "AC-002",
@@ -778,7 +837,7 @@
         "GATE-001",
         "GATE-002"
       ],
-      "source_revision": "081a0757a",
+      "source_revision": "e373bc865b978e237deb1d92011c96b0a3639fb4",
       "valid_until": null
     }
   ],
@@ -791,6 +850,6 @@
     "recovery-artifact-expiry-or-failed-cleanup"
   ],
   "next_unit": "UNIT-001",
-  "updated_at": "2026-07-10T11:33:39.000Z",
-  "manifest_sha256": "3a6bbae4f77a916675a9efded02553a6ac03623aeafdb9c99efa12b088830306"
+  "updated_at": "2026-07-10T18:58:56.000Z",
+  "manifest_sha256": "f5e1f32bb6cdbfa249543879cb5231adde5c9ceabaa4806e964bf39cf025fdf1"
 }

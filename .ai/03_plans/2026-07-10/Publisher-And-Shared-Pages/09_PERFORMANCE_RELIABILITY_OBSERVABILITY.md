@@ -34,7 +34,7 @@ The evaluator:
    row-scan approach at each scale point.
 4. Reports query time, rows shipped, and aggregation method.
 
-**Location:** `tests/perf/publisher-roster-evaluator.test.ts` (or `.ts` script).
+**Location:** `tests/vitest/perf/publisher-roster-evaluator.test.ts`.
 
 ## Performance Optimizations (In Scope)
 
@@ -81,13 +81,14 @@ SQL LIMIT/OFFSET for the publication scan, JS-side enrichment for derived fields
   emails — failures don't block the response.
 - **Optimistic concurrency:** Comment/decision writes carry
   `expectedSnapshotVersion`; rotation/resend carry `expected_encrypted_token`.
-- **Circuit breaker:** Comment POST opens under error flood.
+- **Best-effort local shedding:** Comment POST may shed within one isolate under error flood.
 - **Bot filtering:** Open count excludes bots.
 
 ### New reliability mechanisms (in scope)
 
-- **Circuit breaker on decision POST** (SEC-003): parity with comment.
-- **Startup secret validation** (SEC-006): fail fast on misconfiguration.
+- **Durable decision admission** (SEC-003): D1-backed limiter is authoritative.
+- **Runtime/provider secret readiness** (SEC-006): explicit pre-release gate plus
+  request-time fail-closed readers.
 - **All-or-nothing fix** (UX-012): recipient proposals repository skips bad rows
   instead of failing the entire inbox.
 

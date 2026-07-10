@@ -1,0 +1,278 @@
+{
+  "schema_version": "1.0.0",
+  "generation": 4,
+  "generation_status": "ACTIVE",
+  "supersedes_generation": 3,
+  "observed_at": "2026-07-10T18:59:20.000Z",
+  "source_revision": "e373bc865b978e237deb1d92011c96b0a3639fb4",
+  "canonicalization": "recursive-key-sort,array-order-preserved,json-no-whitespace,omit-current-digest-field",
+  "migration_tail": {
+    "latest_path": "migrations/0052_corporate_accounts.sql",
+    "entries": [
+      {
+        "path": "migrations/0001_closed_beta_feedback.sql",
+        "sha256": "1af2ffe7fbe88f8005a2f4c48c31741347fe65957f35da2f3fdc7cf500a5abfd"
+      },
+      {
+        "path": "migrations/0002_legal_terms_acceptance.sql",
+        "sha256": "02ca29d8272cf33f31149080c5bc73db806ffd0644e5c2abf8bcb8753e836752"
+      },
+      {
+        "path": "migrations/0003_profiles.sql",
+        "sha256": "c61ec141a7e27b1d88f3a8da59054afa50bb902a8aee091ae64907b2f9bb1408"
+      },
+      {
+        "path": "migrations/0004_account_security_events.sql",
+        "sha256": "2f996f607d114cf35f7440c8ff9c99e06648e66889f41935ec9995eb4d4f7a49"
+      },
+      {
+        "path": "migrations/0005_account_settings.sql",
+        "sha256": "00c15d96c39d065a89e267d301fbf55c121986150de101c11de0ce2a0cbecf4d"
+      },
+      {
+        "path": "migrations/0006_ai_audit_rate_limits.sql",
+        "sha256": "938f65f6df41c7feaea6c810d5d07e795095a4767148fbdc9fbebf87ed571204"
+      },
+      {
+        "path": "migrations/0007_collaboration_invitations.sql",
+        "sha256": "ce9ac771d59669d861f37ccbb84f65095c64de668f4a1348fb563ea381e25da5"
+      },
+      {
+        "path": "migrations/0008_estimate_sheet_user_preferences.sql",
+        "sha256": "90d56926faa9df1139e0697cb7fcfe6ed6fceea340dbee5020f11c0f40394022"
+      },
+      {
+        "path": "migrations/0009_notifications.sql",
+        "sha256": "01da3f193e5ffdfae87d97795721c727d14cab49991fc77c8e99d6bb57b12a8f"
+      },
+      {
+        "path": "migrations/0010_upload_metadata.sql",
+        "sha256": "9e359d7b2f8c4757f46d27fb5aa27f8199c9844b9efb71a13c887c5f7d456210"
+      },
+      {
+        "path": "migrations/0011_component_library_preferences_telemetry.sql",
+        "sha256": "30cdbc1231477d95534afc06444c5995dc67b855e55bc7851bffdd7555ad1c3f"
+      },
+      {
+        "path": "migrations/0012_project_audit_sidecars.sql",
+        "sha256": "01acb9e556acb6eb6a6c8078cda01578fa586ccaa0c4b3ab1738454125a76f22"
+      },
+      {
+        "path": "migrations/0013_collaboration_management_sidecars.sql",
+        "sha256": "4059108a7ecf1c312ae668c83e155e60c1afa381c2561dc4024f24c5dee18363"
+      },
+      {
+        "path": "migrations/0014_publication_shared_links.sql",
+        "sha256": "60403c2404db70fe52f05509f36c8adbfbcb1281174f5e59497c1c36cc7d4ab1"
+      },
+      {
+        "path": "migrations/0015_publication_admin_sidecars.sql",
+        "sha256": "7d83cb5ab4b602710e7125405f273121760944f81fd31a5a614e3c7d08e34c73"
+      },
+      {
+        "path": "migrations/0016_project_locations.sql",
+        "sha256": "cde25c4b7fefa9d780384e2cd5661b79b32955bb853382e171053deba4f582d2"
+      },
+      {
+        "path": "migrations/0017_estimate_sheet_summary_fields.sql",
+        "sha256": "be62daad9b9073d314d8b49b18a4da625ecce360bb3bd875b8a72565d57fb40f"
+      },
+      {
+        "path": "migrations/0018_estimate_favorites.sql",
+        "sha256": "2bab2df93f2d9ca3bcac06003398e8ba7a36ebad286d9353af5a8087d8132200"
+      },
+      {
+        "path": "migrations/0019_ai_package_builder_memory.sql",
+        "sha256": "5fa70808709953fb9800411dee82d20620a4e17e183c5d57bac326d5f181cb93"
+      },
+      {
+        "path": "migrations/0020_project_groups.sql",
+        "sha256": "256ec076c8d582c4b139b988d3482a298de6de45a25ac4803259f3500337ae87"
+      },
+      {
+        "path": "migrations/0021_estimate_row_projection_fields.sql",
+        "sha256": "0894512487fe3d5c1a8a88d15eb6178ac6e612fd6743a5670fab7e9fedf0db1d"
+      },
+      {
+        "path": "migrations/0022_component_attachment_metadata.sql",
+        "sha256": "e4291199d957cd31d28766dd30c98a044b04c191c9816020bba5f9cefd335249"
+      },
+      {
+        "path": "migrations/0023_mass_deletion_events.sql",
+        "sha256": "53ce8b684f822f61adce94234d35262445be9054fcba7520f40227f4160d9e6d"
+      },
+      {
+        "path": "migrations/0024_estimate_templates.sql",
+        "sha256": "cc96e2f86c601a12d8b2e6d4eed2b0955ed30738756ce208d4f7faabd652a66d"
+      },
+      {
+        "path": "migrations/0025_reusable_source_insert_support.sql",
+        "sha256": "b8eca3ac0c5750d3b9451834e1e7e2890319405e7d3a4a832aa0ce12dc522113"
+      },
+      {
+        "path": "migrations/0026_component_promotion_support.sql",
+        "sha256": "3c1f6208b9d41bffc7b7908deff4a0ef8f7982dffc7fb926a9127279e5206fde"
+      },
+      {
+        "path": "migrations/0027_ai_package_apply_commands.sql",
+        "sha256": "a7c9e2fc24d2398da6a2046044fb48f27faf6da3c364158cf0b933d3ef99a05e"
+      },
+      {
+        "path": "migrations/0028_component_library_action_support.sql",
+        "sha256": "0211ac74cf5dd8ce672c634cf73a57dd074dc0ec26554ee152d32961419e8927"
+      },
+      {
+        "path": "migrations/0029_estimate_actions_d1_support.sql",
+        "sha256": "42cae25f6adf93b7cb2201daad25daf114c4fc297f5e40a6cb62b652de594416"
+      },
+      {
+        "path": "migrations/0030_workspace_owner_membership_backfill.sql",
+        "sha256": "f39a43acbf222e6c0674011f997d3f7e3ce8fed803351be68e44f2d00191072d"
+      },
+      {
+        "path": "migrations/0031_performance_indexes_additive.sql",
+        "sha256": "42dce341355a4cd27c1deae4742130f925184c6913a91ce0b5004b0ac4f14891"
+      },
+      {
+        "path": "migrations/0032_project_group_membership_positions.sql",
+        "sha256": "048efd51308125caf9665595df206b2dc9214c7fd00896043090ed7b9a96ce74"
+      },
+      {
+        "path": "migrations/0033_privacy_request_register.sql",
+        "sha256": "d65a4537cdf43e33c159b1ab9c22804c19d630b777b6b746a9d20f9410cea386"
+      },
+      {
+        "path": "migrations/0034_data_retention_events.sql",
+        "sha256": "596d11963be8a0d1f59d5045f77a0975e48aa3082073f0e0df650eafe476f53b"
+      },
+      {
+        "path": "migrations/0035_account_security_events_hmac_checks.sql",
+        "sha256": "84d03357a6c860eb34643b1802b5f753ad97c8834c2077a5356e95fa95666b54"
+      },
+      {
+        "path": "migrations/0036_cost_library_component_drafts.sql",
+        "sha256": "f4d50ad289c61f73d6d475ac762c9d47dfaba605340c195a12af6abf656d6af0"
+      },
+      {
+        "path": "migrations/0037_remove_preloaded_component_categories.sql",
+        "sha256": "f44b9ecd256708c2d3fe43119210cc4c6228666bd241d977004ece691736b16d"
+      },
+      {
+        "path": "migrations/0038_component_draft_resource_limits.sql",
+        "sha256": "1e94bce015779e470d5b9bea13ef498baf9967c0c1629a5ab3db040951c26119"
+      },
+      {
+        "path": "migrations/0039_project_status.sql",
+        "sha256": "de08c0c2e493161e4b7ec6a6d62b7fe7ef58a3c1a7f00c1afc894afcfced8aa3"
+      },
+      {
+        "path": "migrations/0040_operational_incidents.sql",
+        "sha256": "4ff018e86ea90308445151704598f6b30f832296b547cf16d9c9d5f41bb92b26"
+      },
+      {
+        "path": "migrations/0041_better_auth_rate_limit.sql",
+        "sha256": "293ad76b64e83f182ee6fe93d2482edbe2aefea9f1d22e5697c7e8ee1ebd8874"
+      },
+      {
+        "path": "migrations/0042_support_conversations.sql",
+        "sha256": "b59df2120b0f02bf21a4dc793eef663c6784c45b413a95284781e268b3f2cfbb"
+      },
+      {
+        "path": "migrations/0043_feature_flags.sql",
+        "sha256": "922054ba9614c0746c7cc9d0feef0a52d3f17cb32222eb123b7a0a612d90ff6f"
+      },
+      {
+        "path": "migrations/0044_admin_audit_events.sql",
+        "sha256": "cac40612a739ff2cbf2a18b86d8d31734dadb9742864f690401c29161f31e215"
+      },
+      {
+        "path": "migrations/0045_admin_metric_cache.sql",
+        "sha256": "f057996d68c96467fa721b79ba073bc54364273812b6213bec441f5dfe0dd21b"
+      },
+      {
+        "path": "migrations/0046_cron_run_events.sql",
+        "sha256": "58ba1f3e1c6c61692a7363f4d1e49b7bb8447d6d68a8378fa8bd200d2aed1b59"
+      },
+      {
+        "path": "migrations/0047_client_error_events.sql",
+        "sha256": "61a0e5d6c65f5f760c47dc8e727f76177f90850634186ee3e67da5d0edd5ba5f"
+      },
+      {
+        "path": "migrations/0048_web_vital_events.sql",
+        "sha256": "c258897e0be220647ef76528fe6775711d832e09ec15116c90e088fdb7852557"
+      },
+      {
+        "path": "migrations/0049_ops_run_events.sql",
+        "sha256": "3d0792f622967ea216bc4be6fe2c3a44b9ec8621f4ba88074c5096dba1daddcc"
+      },
+      {
+        "path": "migrations/0050_admin_query_indexes.sql",
+        "sha256": "313a8a30eda6f87969a5994b658d8845db2a415939c2b12b4631201fdb69071d"
+      },
+      {
+        "path": "migrations/0051_profiles_account_status.sql",
+        "sha256": "5256cc287e3898245d66907ef0ae0972f23696d92a017eb0f8350bf6a556dc85"
+      },
+      {
+        "path": "migrations/0052_corporate_accounts.sql",
+        "sha256": "d8c619d280b74bbc4306b0c82608f3f723e84ceff8717880a8e54f4f9b415c3e"
+      }
+    ],
+    "digest_algorithm": "sha256(canonical-json(sorted path/file-sha256 entries))",
+    "sha256": "515788533a5a047f9e5dd2bbc216a533e5355eb738e55258d21578902b66f919"
+  },
+  "allocations": [
+    {
+      "number": "0053",
+      "owner_package_id": "PLAN-2026-07-10-publisher-and-shared-pages",
+      "owner_manifest_path": ".ai/03_plans/2026-07-10/Publisher-And-Shared-Pages/plan-pack.json",
+      "owner_manifest_file_sha256": "1ce4884395d606e5e130d972cffd9cc0a21a880a3a7b811d42ff5bf154975617",
+      "owner_manifest_self_sha256": "e125172e82eea9d708d4ecf3272bf43d28acc8da198a7fbb822af1738e78c3d4",
+      "planned_path": "migrations/0053_publication_foreign_keys.sql",
+      "status": "UNCLAIMED",
+      "allocation_sha256": "f4b93230edc04e86348fde628bbed0f62a930071f0e15128d200fbca03512ccd"
+    },
+    {
+      "number": "0054",
+      "owner_package_id": "PLAN-2026-07-10-first-user-activation-and-cohort-operations",
+      "owner_manifest_path": ".ai/03_plans/2026-07-10/First-User-Activation-And-Cohort-Operations/plan-pack.json",
+      "owner_manifest_file_sha256": "cb87d41c24954824c3f089500788cc4ecd475a625a3b31126667029f9993ea55",
+      "owner_manifest_self_sha256": "296b7bc11343b57769889d03fb8c5dc28c318fb04151463d60d6cd3d1e226944",
+      "planned_path": "migrations/0054_beta_activation_events.sql",
+      "status": "UNCLAIMED",
+      "allocation_sha256": "aa878b7ded9a2a1c424732360a36bdea831851ef9e5d42f34e11a5847dd939e4"
+    },
+    {
+      "number": "0055",
+      "owner_package_id": "PLAN-2026-07-10-estimate-intelligence-and-price-governance",
+      "owner_manifest_path": ".ai/03_plans/2026-07-10/Estimate-Intelligence-And-Price-Governance/plan-pack.json",
+      "owner_manifest_file_sha256": "d001998c09e67715006f24a662c53992ac55816121a6329d3abd541004357ad5",
+      "owner_manifest_self_sha256": "5e871f1046e86fd588cf00c75c4973160db5164607e85f84d7385245f35cc963",
+      "planned_path": "migrations/0055_estimate_intelligence_inputs.sql",
+      "status": "UNCLAIMED",
+      "allocation_sha256": "395b8d63a989c5e5333842186b5cde6ee0dbcdfa3f166982aedc51f700d569a6"
+    },
+    {
+      "number": "0056",
+      "owner_package_id": "PLAN-2026-07-10-calculation-and-output-parity",
+      "owner_manifest_path": ".ai/03_plans/2026-07-10/Calculation-And-Output-Parity/plan-pack.json",
+      "owner_manifest_file_sha256": "c3e15077e141cc103412dc186b3df7ddee5f845dedeaebb8909e07d61654297c",
+      "owner_manifest_self_sha256": "113704b82865ba2a8445be216a9f80cc399b3007644493504bd7e455046e382f",
+      "planned_path": "migrations/0056_estimate_calculation_input_constraints.sql",
+      "status": "UNCLAIMED",
+      "allocation_sha256": "0dd582ce2c7543bc04b7d14d60e7e584b40d6743d91f1b6f35cf9d101e983066"
+    },
+    {
+      "number": "0057",
+      "owner_package_id": "PLAN-2026-07-10-activity-history-mapping",
+      "owner_manifest_path": ".ai/03_plans/2026-07-10/Activity-History-Mapping/plan-pack.json",
+      "owner_manifest_file_sha256": "4d8813d772afea34023794bcd85e13d41e8d870676502c78c367b09fae6d312f",
+      "owner_manifest_self_sha256": "f63ab0caa42c7377b172c34cb88eeb6ea1038ea8086d9e33d2153008f89df467",
+      "planned_path": "migrations/0057_activity_history_indexes.sql",
+      "status": "UNCLAIMED",
+      "allocation_sha256": "66e01d76c3ae219eb24fb00e3b2f9f42dc4fc5c872215fc856b6ed57cc7ed6be"
+    }
+  ],
+  "allocation_set_sha256": "966f33b016140ebe08fb47cd8a09de0e72d14951444378faffd2ab18139a1ed7",
+  "receipt_sha256": "ab2a94a7bdc0de9f832ff09e1985b69a6c52f9988842a45868b3e90cce4e01ce"
+}

@@ -9,20 +9,21 @@ UNIT-001 D1 schema + repository + privacy lifecycle [READY]
   -> UNIT-002 true zero state + access states [READY]
   -> UNIT-003 sample/template/blank orchestration [READY]
   -> UNIT-004 checklist + Getting Started reopen path [READY]
-  -> UNIT-005 milestone producers + external contract [PLANNED]
-  -> UNIT-006 cohort query + abandonment/support derivation [PLANNED]
-  -> UNIT-007 integrated verification + rollout packet [BLOCKED]
+  -> UNIT-005 milestone producers + program receipt contract [READY]
+  -> UNIT-006 cohort query + abandonment/support derivation [READY]
+  -> UNIT-007 integrated verification + rollout packet [READY]
 ```
 
-Critical path is the full sequence. `SLICE-001` includes `UNIT-001..004` and all
-transitive dependencies. `UNIT-005` waits for frozen Estimate/Publisher contract
-inputs; `UNIT-007` also waits for consumer acceptance. `UNIT-001` is next.
+Critical path is the full sequence. `SLICE-001` includes `UNIT-001..007` and all
+transitive dependencies. External owner implementation is represented by
+versioned program receipts and `not_available` states, not an internal approval
+blocker. Every unit is executable; exactly `UNIT-001` is next.
 
 ## Ownership and leases
 
 | Lane | Owned paths | Must not edit concurrently |
 |---|---|---|
-| data/executor | `migrations/0051_beta_activation_events.sql`, `src/lib/onboarding/**`, privacy lifecycle adapters, repository tests | other migrations or Publisher/Estimate owner files |
+| data/executor | `migrations/0054_beta_activation_events.sql`, `src/lib/onboarding/**`, activation retention/outbox seams, privacy lifecycle adapters, repository tests | other migrations or Publisher/Estimate owner files |
 | activation UI/executor | `FirstProjectZeroState.tsx`, `FirstEstimateChecklist.tsx`, Getting Started route, scoped projects page/client seams | unrelated project grid/card behavior |
 | orchestration/executor | activation actions, scoped `NewProjectForm`/project metadata seams | Publisher/Estimate integration files before freeze |
 | cohort/executor | `src/lib/admin/activation-cohort-repository.ts` and tests | `src/app/admin/**` presentation |
@@ -37,39 +38,72 @@ Status: `READY`. Requirements: `DATA-001`, `SEC-001`.
 
 Exact paths:
 
-- new `migrations/0051_beta_activation_events.sql`;
+- new `migrations/0054_beta_activation_events.sql`;
 - new `src/lib/onboarding/activation-types.ts`;
 - new `src/lib/onboarding/activation-repository.ts`;
+- new `src/lib/onboarding/activation-outbox.ts`;
+- new `src/lib/onboarding/activation-retention.ts`;
+- `src/lib/compliance/retention-core.ts` activation rule registration;
 - `src/lib/compliance/privacy-request-repository.ts` export/erase adapters;
+- `worker.ts` bounded activation reconciliation/retention scheduled seam, serialized
+  with the current scheduled-upload owner;
 - new `tests/vitest/beta-activation-migration.test.ts`;
 - new `tests/vitest/beta-activation-repository.test.ts`;
-- focused privacy export/erase tests.
+- new `tests/vitest/beta-activation-outbox.test.ts`;
+- new `tests/vitest/beta-activation-retention.test.ts`;
+- new `tests/vitest/beta-activation-privacy.test.ts`.
 
 Steps:
 
-1. Verify `0051` is free. If occupied, stop before source edits and ask the
-   program lead to atomically reissue every affected Activation/Estimate/
-   Calculation slot; resume only after every affected pack reference validates.
-2. Write additive tables, checks, composite tenant FKs on both progress and
-   event rows, the tenant-scoped unique dedupe constraint, and indexes from
-   `SOURCE_AND_CODEBASE_AUDIT.md`.
+1. Validate the durable Program artifact at
+   `.ai/03_plans/2026-07-10/Beta-Readiness-Program/MIGRATION_LEASE_GENERATION.json`
+   immediately before any
+   migration edit: schema/generation, current sorted migration-tail digest, this
+   owner package ID and manifest digest, the `0054_beta_activation_events.sql`
+   unclaimed allocation, allocation digest, and canonical receipt digest must all
+   recheck. If it is missing, stale, consumed, collided, or mismatched, stop before
+   source edits and have the Program preserve consumed facts and atomically reissue
+   every affected unconsumed allocation; resume only after all references validate.
+2. Write additive progress, event, outbox, and retention-hold tables; checks;
+   composite tenant FKs; tenant-scoped unique dedupe constraints; explicit
+   membership-delete restriction; and every index from the source audit.
 3. Implement `recordActivationMilestone`, `getActivationProgress`,
-   `setActivationPath`, `setChecklistVisibility`, and typed row mappers.
-4. Derive identity from `CurrentUserContext`; never accept user/workspace from
+   `enqueueActivationMilestone`, `reconcileActivationOutbox`,
+   `repairDeadActivationIntent`, `setActivationPath`,
+   `setChecklistVisibility`, `purgeExpiredActivationData`, retention/hold
+   functions, and typed row mappers. `activation-retention.ts` owns the purge
+   query and hold check; `retention-core.ts` registers its schedule; `worker.ts`
+   invokes it through the bounded scheduled seam.
+4. Derive the authenticated user from `CurrentUserContext`, then query the
+   complete `workspace_members -> project -> estimate` chain; never treat the
+   platform or corporate role in that context as a workspace role, never infer
+   access from `workspaces.corporate_account_id`, and never accept identity from
    the client. Validate milestone/source/metadata allowlists at runtime.
-5. Derive the canonical dedupe key from authorized post-commit domain facts and
-   use insert-or-ignore on `(workspace_id, dedupe_key)`, then monotonic progress
-   update. A same-tenant duplicate is success; an identical client nonce in a
-   different tenant cannot collide. A later-stage event cannot be overwritten by
-   an earlier stage.
-6. Add export/erase coverage and structured redacted failure logs.
+5. Require the domain mutation and canonical outbox intent to share one D1 batch
+   or owner-domain transaction. Claim bounded expiring leases, then atomically
+   insert-or-ignore event, advance monotonic progress, and mark delivered. Retry
+   at 1m/5m/15m/1h/6h through attempt 10; expose `dead` and an idempotent repair
+   command after the cap. Scheduled and request-opportunistic reconcilers use the
+   same lease contract.
+6. Register and execute event 180-day, delivered-outbox 30-day, and
+   unresolved/dead 180-day purge rules; retain progress while membership is
+   active; implement platform-admin
+   retention holds and `skipped_legal_hold`; make privacy/account/membership
+   erasure an all-or-nothing outbox/event/progress batch; export only shaped
+   progress/events. Analytics consent withdrawal does not erase essential
+   activation state and never emits provider telemetry from this repository.
+7. Add structured redacted failure logs and bounded retention/outbox metrics.
 
 Failure cases: unavailable D1, duplicate/out-of-order event, missing resource,
 cross-workspace or direct-SQL mismatched membership/project/estimate resource chain,
-cross-tenant dedupe collision attempt, deleted project, invalid JSON, concurrent milestones,
-privacy erase with events. Expected signal: migration/repository/privacy tests
-pass and query plan shows named indexes. Rollback: disable activation reads/
-writes, preserve tables, fix forward.
+corporate-only role/link authorization attempts, cross-tenant dedupe collision
+attempt, deleted project, invalid JSON, crash after
+domain/outbox commit, crash after lease claim, expired lease, concurrent workers,
+attempt-10 dead row, idempotent repair, each retention boundary, consent
+withdrawal, privacy erase with events/outbox, and active/expired legal hold.
+Expected signal: migration/repository/outbox/retention/privacy tests pass and
+query plans show named indexes. Rollback: disable activation reads/writes and
+scheduled claims, preserve tables, fix forward.
 
 ## UNIT-002 - true zero state and access states
 
@@ -114,8 +148,8 @@ Exact paths:
 - `src/components/workshop/NewProjectForm.tsx:263-365` blank result seam;
 - `src/components/workshop/ProjectDetailsModal.tsx` typed type/floor-area fields;
 - new `src/lib/projects/project-activation-metadata.ts`;
-- existing `src/lib/estimates/actions.ts:2338-2367,3145-3177` reused unchanged
-  unless the owner lease explicitly permits a narrow helper extraction;
+- existing `src/lib/estimates/actions.ts:2338-2367,3145-3177` reused unchanged;
+  this unit does not extract or relocate those helpers;
 - new `tests/vitest/activation-path-actions.test.ts`;
 - strengthen `project-creation-ui`, `projects-page-create-optimistic`, and
   `new-project-form-validation` tests.
@@ -125,12 +159,15 @@ Steps:
 1. Add `startActivationProject({path, templateId?, idempotencyKey, fields})` as
    one authenticated action and validate the complete untrusted input.
 2. Enforce workspace creation role `owner|admin|member`; reject viewer and
-   cross-workspace template before any write.
-3. Blank composes the existing create/default-estimate path and records path,
-   `project_created`, and `workspace_ready` after commits.
+   cross-workspace template before any write. A corporate membership, corporate
+   role, or corporate-to-workspace link without canonical `workspace_members`
+   authority is denied before resource lookup or mutation.
+3. Blank composes the existing create/default-estimate path and writes path,
+   `project_created`, and `workspace_ready` outbox intents in the same D1
+   transaction as their authoritative mutations.
 4. Template creates the target/default estimate, verifies source template access,
-   inserts through the canonical action, records milestones, and routes to the
-   authoritative returned estimate/node.
+   inserts through the canonical action, commits milestone outbox intents with
+   the owning mutations, and routes to the authoritative returned estimate/node.
 5. Guided sample uses versioned safe data to persist area, priced row, positive
    total, provenance, and sample metadata. Every rendered/exported sample title
    remains visibly labeled.
@@ -152,10 +189,13 @@ Exact paths:
 - new `src/components/workshop/FirstEstimateChecklist.tsx`;
 - new `src/app/workshop/getting-started/page.tsx`;
 - `src/components/workshop/WorkshopSettingsModalContentView.tsx:65-93`;
-- scoped project/estimate route composition seam selected after current-owner
-  read, without embedding the checklist inside `EstimateSheetContent`;
+- `src/app/workshop/projects/[projectId]/layout.tsx:ProjectLayout` composes the
+  checklist above project and estimate route children without embedding it in
+  `EstimateSheetContent`;
 - new `tests/vitest/first-estimate-checklist.test.tsx`;
-- new `tests/vitest/getting-started-route.test.ts`.
+- new `tests/vitest/getting-started-route.test.ts`;
+- new `e2e/first-user-activation.spec.ts`, owned by the `UNIT-004` test lane for
+  the routed persistence, focus-return, and 320px reflow contract.
 
 Steps:
 
@@ -176,45 +216,67 @@ events, dismiss/reopen, completed, deleted project, and unavailable integrations
 
 ## UNIT-005 - milestone producers and external contract
 
-Status: `PLANNED`. Dependency: `UNIT-004`. Requirement: `REQ-002`.
+Status: `READY`. Dependency: `UNIT-004`. Requirement: `REQ-002`.
 
 Exact paths owned here:
 
 - `src/lib/onboarding/activation-types.ts` and `activation-repository.ts`;
 - new `src/lib/onboarding/activation-producer-contract.ts`;
-- narrow local producer seams in invitation acceptance, project/estimate
-  actions, and `use-estimate-proposal-preview.ts` only after file leases;
+- `src/lib/collaboration/invitation-d1-store.ts:acceptInvitationInD1` records
+  `invite_accepted` in the same D1 statement batch as invitation acceptance;
+- `src/lib/projects/actions.ts:createProjectRecord` records the project and
+  workspace-ready intents in the same D1 transaction selected by `UNIT-003`;
+- `src/lib/estimates/actions.ts:createEstimateWithDefaultTab`,
+  `createEstimateSheetDraft`, `createEstimateNode`,
+  `insertEstimateRowItemFromLibrary`, `updateEstimateRowItem`, and
+  `updateEstimateSheetAdjustment` own estimate/area/row/positive-total intents;
+- `src/components/workshop/estimate-sheet/use-estimate-proposal-preview.ts:downloadProposalExport`
+  calls new
+  `src/app/api/activation/proposal-export-completed/route.ts` only after a
+  successful XLSX response has been converted to a Blob and handed to the
+  download trigger; the route re-authorizes the project/estimate and writes the
+  idempotent export intent because export has no domain-write transaction;
 - new `tests/vitest/activation-event-producer-contract.test.ts`.
 
-External owner integration packets, not activation write leases:
+Frozen integration contract and receipt schemas, not activation write leases:
 
-- `Estimate-Intelligence-And-Price-Governance`: call
-  `recordActivationMilestone` for `health_reviewed` after authoritative review;
-- `Publisher-And-Shared-Pages`: call for `publication_created`,
-  `recipient_opened`, `recipient_engaged`, `recipient_decided` after its active
-  agent freezes and its own authz/event commits succeed;
+- `ACTIVATION-PRODUCER-CONTRACT-v1`: Activation publishes the stage vocabulary,
+  identity/resource rules, dedupe format, outbox guarantee, shaped result, safe
+  errors, and deterministic provider fixtures consumed by every producer;
+
+- `ACT-RECEIPT-ESTIMATE-HEALTH-v1`: Estimate Intelligence binds its manifest,
+  `health_reviewed` producer path/tests, and same-transaction outbox guarantee;
+- `ACT-RECEIPT-PUBLISHER-v1`: Publisher binds its manifest,
+  `publication_created`, `recipient_opened`, `recipient_engaged`, and
+  `recipient_decided` paths/tests plus the same guarantee;
+- `ACT-RECEIPT-COHORT-CONSUMER-v1`: Beta Operating binds its manifest, cohort
+  DTO/query version, Admin consumer paths/tests, retention basis, and explicit
+  unavailable behavior;
 - `Activity-History-Mapping`: consume no activation rows and do not repurpose
   activity history as funnel data.
 
 Steps:
 
-1. Publish the versioned TypeScript contract, stage ordering, source allowlist,
+1. Publish `ACTIVATION-PRODUCER-CONTRACT-v1` as the versioned TypeScript
+   contract, with stage ordering, source allowlist,
    resource requirements, dedupe format, shaped result, and safe error behavior.
-2. Wire local producers only after successful commits. Export completes only
-   after a successful response/blob save path; a dialog open/click is insufficient.
-3. Make activation event failure observable and retryable without rolling back
-   the successful domain write or duplicating it.
-4. Supply consumer fixtures and circle-back packet to external owners. Missing
-   producers stay visible as unavailable. This unit cannot advance to verified
-   until the Estimate and Publisher owners accept the versioned fixtures; their
-   absence does not block `SLICE-001` local schema/UI work.
+2. Wire each local authoritative mutation and outbox intent in one transaction.
+   The read-only export exception uses the exact post-Blob acknowledgement route
+   above with server re-authorization and tenant-scoped idempotency; a dialog
+   open, click, failed response, or failed Blob conversion is insufficient.
+3. Use Unit 001 reconciliation for observable retry/dead repair without rolling
+   back or duplicating the successful domain write.
+4. Publish immutable provider/consumer fixtures and all named receipt schemas to
+   `Beta-Readiness-Program` `UNIT-003`. Missing external receipts keep only their
+   integration/release rows `not_available`; no internal acknowledgement is
+   required to implement or verify this unit.
 
 Expected signal: contract tests prove every vocabulary value, identity rule,
 replay, late event, safe logging, and consumer fixture.
 
 ## UNIT-006 - cohort query and abandonment/support derivation
 
-Status: `PLANNED`. Dependency: `UNIT-005`. Requirements: `SEC-001`, `PERF-001`,
+Status: `READY`. Dependency: `UNIT-005`. Requirements: `SEC-001`, `PERF-001`,
 `OPS-001`.
 
 Exact paths:
@@ -235,43 +297,90 @@ Steps:
    stalled state, support state, and created-at ranges.
 3. Derive thresholds with an injected clock and one bounded SQL query/CTE; avoid
    per-user reads. Explain/query-plan the 10k fixture.
-4. Require platform admin before repository invocation. Add direct non-admin,
-   unauthenticated, forged cursor/filter, oversize limit, and empty D1 tests.
-5. Publish the DTO/query contract to `Beta-Operating-Contract`; do not edit
-   `src/app/admin/**` presentation.
+4. Require platform admin before repository invocation. Corporate account
+   `owner`/`team_leader`/`member`/`viewer` roles never satisfy that gate. Add
+   direct corporate-only, non-admin, unauthenticated, forged cursor/filter,
+   oversize limit, and empty D1 tests.
+5. Publish the frozen DTO/query fixture and
+   `ACT-RECEIPT-COHORT-CONSUMER-v1` schema to Beta Operating and program
+   `UNIT-003`; do not edit `src/app/admin/**` presentation.
 
 Expected signal: deterministic boundary states, privacy snapshot, query plan,
 pagination, denial, and support join tests pass.
 
 ## UNIT-007 - integration, independent verification, rollout packet
 
-Status: `BLOCKED`. Dependency: `UNIT-006`. Requirement: `OPS-001`.
+Status: `READY`. Dependency: `UNIT-006`. Requirement: `OPS-001`.
 
-Owner: verifier distinct from makers. Exact paths: tests/evidence and activation
-pack status only, unless a failing test returns a bounded repair to the owning
-unit.
+Owner: verifier distinct from makers. Product source is read-only. The verifier
+may write only this pack's `plan-pack.json`, this pack's `LOOP_LEDGER.md`, and:
+
+- `.ai/99_scratch/activation/unit-007-final-verification.md`;
+- `.ai/99_scratch/activation/ACT-RECEIPT-ESTIMATE-HEALTH-v1.json`;
+- `.ai/99_scratch/activation/ACT-RECEIPT-PUBLISHER-v1.json`;
+- `.ai/99_scratch/activation/ACT-RECEIPT-COHORT-CONSUMER-v1.json`;
+- `.ai/99_scratch/activation/BETA-P1-10-MAINTAINABILITY-RECEIPT-v1.json`.
 
 Steps:
 
-1. Run targeted migration/repository/UI/action/access/contract/cohort tests.
-2. Run typecheck, lint/error-handling checks, migration validation, and scoped
-   diff checks.
-3. Run one routed browser case only for the browser-only claim: zero state ->
+1. Run `ARCHESTIMATOR_DEV_LOG_PATH="$(mktemp -d)/activation.ndjson" bunx vitest
+   run tests/vitest/beta-activation-migration.test.ts
+   tests/vitest/beta-activation-repository.test.ts
+   tests/vitest/beta-activation-outbox.test.ts
+   tests/vitest/beta-activation-retention.test.ts
+   tests/vitest/beta-activation-privacy.test.ts
+   tests/vitest/first-project-zero-state.test.tsx
+   tests/vitest/activation-path-actions.test.ts
+   tests/vitest/project-creation-ui.test.ts
+   tests/vitest/projects-page-create-optimistic.test.tsx
+   tests/vitest/new-project-form-validation.test.tsx
+   tests/vitest/first-estimate-checklist.test.tsx
+   tests/vitest/getting-started-route.test.ts
+   tests/vitest/activation-event-producer-contract.test.ts
+   tests/vitest/admin-activation-cohort-repository.test.ts
+   tests/vitest/admin-activation-cohort-access.test.ts`.
+2. Run `bun run type-check`, `bun run lint`, `bun run validate:error-handling`,
+   `bunx wrangler d1 migrations apply ARCH_DB --local --persist-to
+   .ai/99_scratch/activation/unit-007-d1`, `bun run validate:plan-pack --
+   .ai/03_plans/2026-07-10/First-User-Activation-And-Cohort-Operations`, and
+   `git diff --check`.
+3. Run `bunx playwright test
+   e2e/first-user-activation.spec.ts --project=chromium` only for the
+   browser-specific claim: zero state ->
    guided sample -> persisted non-zero estimate -> refresh -> checklist reopen,
    plus 320px focus/reflow. Release Integrity owns the full golden path/matrix.
-4. Re-run with a viewer and non-admin cohort attempt; inspect structured logs for
-   redaction and use a temp dev log path for logger tests.
-5. Produce rollout/rollback/freshness receipts and update manifest/ledger.
+4. Treat `tests/vitest/first-project-zero-state.test.tsx` as viewer proof and
+   `tests/vitest/admin-activation-cohort-access.test.ts` as non-admin proof.
+   `tests/vitest/beta-activation-outbox.test.ts`,
+   `tests/vitest/beta-activation-privacy.test.ts`, and
+   `tests/vitest/admin-activation-cohort-access.test.ts` assert log/receipt
+   redaction against the explicit temporary log path from step 1.
+5. Treat `tests/vitest/activation-event-producer-contract.test.ts` as the three
+   reciprocal schema/fixture proof, write the five exact outputs above, and
+   update only the two pack status files. Report missing
+   external receipt instances to program `UNIT-003` without changing this pack's
+   implementation status.
+6. Emit the Program `BETA-P1-10` REQUIRED receipt with the projects-page caller
+   map, pre-change zero-state/checklist characterization, extraction/retention
+   decision for the bounded islands, changed files, regression owner, exact
+   `TEST-002`/`TEST-004` plus the named
+   `first-project-zero-state.test.tsx`, `project-creation-ui.test.ts`, and
+   `projects-page-create-optimistic.test.tsx` commands, and independent verifier
+   result.
 
-Pass: all local units verified, consumer contract packets accepted by their
-owners, and the Beta Operating consumer has accepted the cohort query. Release
-remains `NOT_EVALUATED` until the program combines external producer, hosted,
-policy, and golden-path proof.
+Pass: all local units and receipt schemas/fixtures are verified with no internal
+approval dependency. Release remains `NOT_EVALUATED` until program `UNIT-003`
+records current external producer and Beta Operating consumer receipt instances
+and combines hosted, policy, and golden-path proof.
+
+Any missing test file, command result, receipt field, or output keeps `UNIT-007`
+non-PASS and returns only a bounded source repair to its owning unit.
 
 ## Restart packet
 
 At interruption record exact unit, source hashes, migration lease, last green/
-red commands, D1 fixture state, open risk, owner handoffs, and first next command.
+red commands, D1/outbox/retention fixture state, open risk, program receipt state,
+and first next command.
 On resume run `supermemory:ensure`, re-read AGENTS FAST PATH, ledger, current
 migration sequence, and changed shared files. Replan from the earliest stale
 dependency; never continue a partial setup against assumed state.

@@ -33,8 +33,8 @@ shared proposal." The manager cannot even preview what the recipient will see.
   "Share" / "New shared link" CTA
 - Replace the buried-tab publish flow with a guided publish wizard or step flow
   (select sheets → set access → generate link → send/invite → done)
-- Prominent share-link display (selectable URL, copy button, QR code option)
-- "Preview as client" mode to see the recipient experience
+- Prominent share-link display (selectable URL, Copy, native Web Share when supported)
+- Authenticated manager preview route with RBAC on every read and no preview credential
 - Mobile-responsive publisher (remove the 768px hard block)
 - Plain-language terminology throughout (rename "Publisher" → "Share" or
   "Client Links" in nav; replace jargon)
@@ -50,23 +50,23 @@ shared proposal." The manager cannot even preview what the recipient will see.
 - Improve terminology ("Scope outline" → plain language)
 - Add expiry visibility, sender branding, cover image fallback
 - Improve comments (threading/dates/author distinction)
-- Add a real "Download PDF" or "Print proposal" button (not just browser print)
+- Add a visible "Print / Save as PDF" control that invokes the browser print path
 - Fix currency formatting for non-PHP/USD
 - Improve mobile experience (tree nav, scroll-spy, safe areas)
 
 ### Recipient Proposals Inbox — improvements
 - Fix dead-end for expired/revoked proposals (show state, provide "contact sender")
-- Fix all-or-nothing failure model (skip bad rows)
+- Preserve fail-closed recipient integrity; add recovery copy for legitimate states
 - Clarify the inbox is recipient-only
 
 ### Technical hardening (preserving the existing security model)
-- Add explicit body-size limits on public POST routes
+- Add bounded stream reads on public POST routes without trusting `Content-Length`
 - Fix 401-vs-423 status code inconsistencies
-- Add circuit breaker to decision POST (parity with comment POST)
+- Preserve the durable D1 decision limiter as cross-isolate authority
 - Add comment pagination (beyond 200 cap)
 - Fix module-global mutable state in snapshot sanitization
-- Wire up or remove the dead `events/route.ts` and `download_attempt_blocked`
-- Add startup validation for publication secrets
+- Remove the dead `events/route.ts` and `download_attempt_blocked` contract
+- Add explicit runtime/provider publication-secret readiness checks
 
 ## Non-Goals
 
@@ -76,7 +76,7 @@ shared proposal." The manager cannot even preview what the recipient will see.
   `events/route.ts` cleanup is in scope, but full real-time is a separate future
   effort. Comments use window-focus refetch.
 - **Not adding server-generated PDF rendering** (e.g., Puppeteer/Rendertron on
-  Workers). The "Download PDF" improvement uses the browser print path with a
+  Workers). The "Print / Save as PDF" improvement uses the browser print path with a
   better UI affordance, not a server PDF engine (Workers runtime constraint).
 - **Not adding e-signature / legal-grade signing.** The signer-name + hash model
   stays; formal e-sign is a future capability.
@@ -107,16 +107,16 @@ shared proposal." The manager cannot even preview what the recipient will see.
   The public surface must not leak internal UUIDs, raw IPs, or error details.
 - **Accessibility:** All redesigned surfaces must meet WCAG 2.1 AA (keyboard,
   screen reader, contrast, focus management, touch targets).
-- **`DESIGN.md` is alpha-stage** — defer to Philip on design decisions; don't
-  block on design-system grounds while visual language is developing.
+- **`DESIGN.md` is alpha-stage guidance**; do not block work on visual-system
+  preferences while the language is developing.
 - **Existing UI primitives:** Reuse `src/components/ui/` where practical.
 
 ## Success Criteria
 
 1. A first-time manager can publish a project and get a share link in under 60
    seconds without external documentation, following an obvious guided flow.
-2. A manager can preview exactly what the recipient will see (interactive, not
-   read-only anonymous).
+2. A manager can preview the recipient rendering through the protected read-only
+   manager route without creating recipient authority.
 3. A recipient opening a shared link immediately understands: what the proposal
    is, who sent it, what they're being asked to do, and how to respond.
 4. The decision/action CTA is visible without scrolling to the bottom.
@@ -124,8 +124,8 @@ shared proposal." The manager cannot even preview what the recipient will see.
 6. No regression in security posture (all existing authz/crypto/rate-limit tests
    pass; new hardening tests added).
 7. All terminology is plain-language and consistent across surfaces.
-8. No dead code (`events/route.ts` either wired or removed; `PublisherDisabledEmptyState`
-   wired or removed; `download_attempt_blocked` emitted or removed).
+8. No dead code (`events/route.ts`, `PublisherDisabledEmptyState`, and
+   `download_attempt_blocked` are removed from the live contract).
 
 ## Proof Boundary
 
@@ -135,5 +135,5 @@ shared proposal." The manager cannot even preview what the recipient will see.
   core of this feature). Playwright or manual browser verification for the
   redesigned flows.
 - **Hosted/provider proof:** Hosted D1 schema changes, Cloudflare Email delivery,
-  production rate-limit/circuit-breaker behavior remain release boundaries.
+  and production durable-limiter behavior remain release boundaries.
   Local proof does not claim hosted readiness.

@@ -52,7 +52,9 @@ The node-restore path was traced end-to-end and verified as FULLY WIRED:
 
 ## Source Freshness
 
-All source references are current as of `main` branch HEAD `081a0757a` on 2026-07-10.
+All source references are current as of `main` branch HEAD
+`e373bc865b978e237deb1d92011c96b0a3639fb4` on 2026-07-10. A scoped re-audit
+confirmed no Activity-owned source path changed since the prior baseline.
 
 ## Existing Documentation Cross-Reference
 

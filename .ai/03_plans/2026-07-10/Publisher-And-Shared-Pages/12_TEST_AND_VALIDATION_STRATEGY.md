@@ -1,185 +1,155 @@
-# 12 — Test And Validation Strategy
+# 12 - Test And Validation Strategy
 
-## Proof Strategy
+## Truth Boundary
 
-Every requirement maps to a falsifiable acceptance criterion with a named
-evidence class. The strategy uses the narrowest proof that covers the claim.
+All canonical `TEST-*` records remain `PLANNED`, every unimplemented criterion
+remains `FAIL`, and `GATE-001` through `GATE-003` remain `FAIL`. This plan is
+implementation-ready, not implemented. Descriptive scenarios use
+`SCENARIO-*`; they are not alternate test IDs.
 
-| Claim type | Evidence class | When to use |
+## Canonical Test Reciprocity
+
+The table below is the human-readable mirror of `plan-pack.json`. Criterion IDs
+are exact and must not be remapped without updating both manifest directions.
+
+| Canonical test | Exact criteria | Focused proof |
 |---|---|---|
-| Security/rate-limit/authz | Automated test (Vitest) | All SEC-* requirements |
-| Data/query correctness | Automated test + local D1 | DATA-*, PERF-* |
-| Component behavior | Automated test (jsdom/RTL) | State logic, rendering conditions |
-| UX/interaction/layout | Browser proof (Playwright/manual) | All UX-* and REQ-* with interaction |
-| Terminology/copy | Static review (grep) | REQ-004 |
-| Performance | Local D1 evaluator | PERF-* |
+| TEST-001 | AC-001 | Share entry points |
+| TEST-002 | AC-002, AC-003 | Wizard progression and success |
+| TEST-003 | AC-004, AC-005, AC-006 | URL, Copy, native Web Share fallback |
+| TEST-004 | AC-007, AC-008 | Authenticated manager preview and banner |
+| TEST-005 | AC-011, AC-012, AC-013 | Responsive roster |
+| TEST-006 | AC-014, AC-015 | Roster pagination |
+| TEST-007 | AC-016, AC-017, AC-052 | Search and debounce |
+| TEST-008 | AC-020 | Dynamic proposal status |
+| TEST-009 | AC-024, AC-025 | Row selection without per-row buttons |
+| TEST-010 | AC-026, AC-027, AC-028 | Comment date, author, page scroll |
+| TEST-011 | AC-029, AC-030 | Print control and print CSS |
+| TEST-012 | AC-031 | Expiry visibility |
+| TEST-013 | AC-032 | Cover fallback |
+| TEST-014 | AC-034, AC-035 | Password reveal and recovery hint |
+| TEST-015 | AC-036 | Currency formatting |
+| TEST-016 | AC-037, AC-039 | Expired/revoked and empty inbox copy |
+| TEST-017 | AC-038 | Malformed recipient row fails closed, no partial list |
+| TEST-018 | AC-040 | Bounded JSON route bodies |
+| TEST-019 | AC-040 | Misleading/chunked/encoded body cases |
+| TEST-020 | AC-040 | Bounded unsubscribe form body and AC-088 scenario in TEST-039 |
+| TEST-021 | AC-041 | Comment GET locked status |
+| TEST-022 | AC-041 | Decision GET locked status |
+| TEST-023 | AC-042 | Durable decision limiter before mutation |
+| TEST-024 | AC-043 | Server cursor and page cap |
+| TEST-025 | AC-044 | Client load-more cursor append |
+| TEST-026 | AC-045 | Concurrent snapshot reentrance |
+| TEST-027 | AC-046 | Provider readiness plus request-time secret denial |
+| TEST-028 | AC-047 | Events route and consumer absence |
+| TEST-029 | AC-047 | Dead event union/CHECK absence |
+| TEST-030 | AC-048 | FK schema upgrade and parity |
+| TEST-031 | AC-049 | Project cascade |
+| TEST-032 | AC-049 | Workspace cascade and recipient SET NULL |
+| TEST-033 | AC-048 | Orphan/mid-copy failure rollback and digest parity |
+| TEST-034 | AC-050 | SQL aggregation |
+| TEST-035 | AC-053 | 10-publication evaluator |
+| TEST-036 | AC-053 | 50-publication evaluator |
+| TEST-037 | AC-053 | 100-publication evaluator |
+| TEST-039 | AC-009, AC-010, AC-018, AC-019, AC-021, AC-022, AC-023, AC-033, AC-051, AC-055, AC-056, AC-057, AC-058, AC-059, AC-060, AC-061, AC-062, AC-063, AC-064, AC-065, AC-066, AC-067, AC-068, AC-069, AC-070, AC-071, AC-072, AC-073, AC-074, AC-075, AC-076, AC-077, AC-078, AC-079, AC-080, AC-081, AC-082, AC-083, AC-084, AC-085, AC-086, AC-087, AC-088 | Integration contract matrix below |
 
-## Test Inventory
+## Focused Files And Commands
 
-### Security tests (SEC-*)
-
-| Test ID | Requirement | Scenario | Expected signal |
-|---|---|---|---|
-| TEST-SEC-001 | SEC-001 | POST comment with 100KB body | 413 |
-| TEST-SEC-002 | SEC-001 | POST password with 10KB body | 413 |
-| TEST-SEC-003 | SEC-001 | POST decision with 10KB body | 413 |
-| TEST-SEC-004 | SEC-002 | GET comments, password required, no cookie | 423 (not 401) |
-| TEST-SEC-005 | SEC-002 | GET decision, password required, no cookie | 423 (not 401) |
-| TEST-SEC-006 | SEC-003 | 5 consecutive 500s on decision POST | 503 + Retry-After: 120 |
-| TEST-SEC-007 | SEC-004 | Comment list > 50 items | Returns cursor + hasMore |
-| TEST-SEC-008 | SEC-004 | Fetch page 2 via cursor | Returns next set |
-| TEST-SEC-009 | SEC-005 | Two concurrent snapshot sanitizations | No ID corruption |
-| TEST-SEC-010 | SEC-006 | Missing production secret at module init | Throws (not deferred) |
-| TEST-SEC-011 | SEC-007 | Grep for events route consumers | Zero (removed) |
-| TEST-SEC-012 | SEC-007 | Grep for `download_attempt_blocked` emitters | Zero (removed) or wired |
-
-### Data tests (DATA-*)
-
-| Test ID | Requirement | Scenario | Expected signal |
-|---|---|---|---|
-| TEST-DATA-001 | DATA-001 | Migration 0050 applies cleanly | No error |
-| TEST-DATA-002 | DATA-001 | Delete project → cascade deletes publications | Rows gone |
-| TEST-DATA-003 | DATA-001 | Delete workspace → cascade to publications | Rows gone |
-| TEST-DATA-004 | DATA-001 | Orphaned rows before migration | Identified + cleaned |
-| TEST-DATA-005 | DATA-002 | Roster GROUP BY returns counts | ≤100 rows (not 1000) |
-| TEST-DATA-006 | DATA-002 | Roster at 100 pubs | Wall time < 350ms |
-
-### Component tests (UX/REQ)
-
-| Test ID | Requirement | Scenario | Expected signal |
-|---|---|---|---|
-| TEST-UX-001 | REQ-001 | Click "Share" → wizard opens | Wizard visible |
-| TEST-UX-002 | REQ-001 | Complete wizard → link generated | Success step visible |
-| TEST-UX-003 | REQ-002 | Link displayed as selectable text | URL is selectable |
-| TEST-UX-004 | REQ-003 | Click "Preview as client" → preview mode | Preview banner visible |
-| TEST-UX-005 | REQ-005 | Publisher on 375px screen | Card layout renders |
-| TEST-UX-006 | REQ-006 | 30 publications → pagination visible | Prev/next controls |
-| TEST-UX-007 | REQ-007 | Type in search rapidly | One re-render per 300ms |
-| TEST-UX-008 | UX-002 | Submit decision → header updates | Status badge changes |
-| TEST-UX-009 | UX-005 | Click estimate row → review target set | Row highlighted, no button-per-row |
-| TEST-UX-010 | UX-006 | Comment list renders dates | Date visible |
-| TEST-UX-011 | UX-007 | Click "Download PDF" → print dialog | window.print called |
-| TEST-UX-012 | UX-008 | Publication with expiry → recipient sees it | Expiry in summary |
-| TEST-UX-013 | UX-009 | No cover image → placeholder | Non-null placeholder |
-| TEST-UX-014 | UX-010 | Password gate has reveal toggle | Toggle works |
-| TEST-UX-015 | UX-011 | Currency EUR → correct format | "€" or "EUR" consistent |
-| TEST-UX-016 | UX-012 | Expired proposal in inbox | State + contact sender |
-| TEST-UX-017 | UX-012 | One bad row in inbox | Other rows still render |
-
-### Performance evaluator (PERF-*)
-
-| Test ID | Requirement | Scenario | Expected signal |
-|---|---|---|---|
-| TEST-PERF-001 | PERF-002 | Roster query at 10 pubs | < 100ms |
-| TEST-PERF-002 | PERF-002 | Roster query at 50 pubs | < 200ms |
-| TEST-PERF-003 | PERF-002 | Roster query at 100 pubs | < 350ms |
-
-## Adversarial QA Scenarios
-
-| Scenario ID | Attack/failure | Assertion |
-|---|---|---|
-| QA-01 | Oversized POST body on every public route | 413 on all |
-| QA-02 | CSRF token missing on comment POST | 403 |
-| QA-03 | Expired token access | 404 |
-| QA-04 | Revoked token access | 404 |
-| QA-05 | Preview cookie forgery | Rejected |
-| QA-06 | Preview mode comment submit | Disabled / intercepted |
-| QA-07 | Duplicate decision | 409 |
-| QA-08 | Stale snapshot comment | 409 |
-| QA-09 | Non-recipient comment (no session) | 401 |
-| QA-10 | Concurrent snapshot sanitization | No corruption |
-| QA-11 | 5 consecutive decision 500s | 503 circuit open |
-| QA-12 | Password brute force (6 attempts) | 429 + delay |
-| QA-13 | Search spam (rapid typing) | Debounced (1 re-render/300ms) |
-| QA-14 | Mobile publisher (375px) | Functional, no "needs width" |
-| QA-15 | Comment cursor exhausts | hasMore: false at end |
-
-## Test File Locations
-
-```
-tests/vitest/
-  publisher-wizard.test.tsx              (wizard flow)
-  publisher-roster-cards.test.tsx        (card layout + pagination)
-  publisher-search-debounce.test.tsx     (debounce)
-  share-page-header-status.test.tsx      (dynamic header)
-  share-page-sticky-decision.test.tsx    (sticky CTA)
-  share-page-row-actions.test.tsx        (row-click select)
-  share-page-comments-dates.test.tsx     (comment dates + authors)
-  share-page-print-button.test.tsx       (print button)
-  share-page-currency.test.tsx           (currency formatting)
-  share-page-preview-mode.test.tsx       (preview cookie)
-  recipient-inbox-dead-end.test.tsx      (expired/revoked + skip bad rows)
-  publication-body-size.test.ts          (SEC-001)
-  publication-status-codes.test.ts       (SEC-002)
-  publication-circuit-breaker.test.ts    (SEC-003)
-  publication-comment-pagination.test.ts (SEC-004)
-  publication-snapshot-reentrance.test.ts(SEC-005)
-  publication-startup-secrets.test.ts    (SEC-006)
-  publication-dead-code.test.ts          (SEC-007)
-
-tests/vitest/perf/
-  publisher-roster-evaluator.test.ts     (PERF-002)
-```
-
-### Existing tests to update (not new — these break when terminology/flow changes)
-
-The following existing tests assert UI strings and route behavior the plan changes.
-They must be updated as part of the relevant unit (UNIT-010 for terminology,
-UNIT-011 for wizard flow, UNIT-018 for comment pagination):
-
-- `e2e/shared-link-receiver.spec.ts` — asserts `"Generate shared link"`,
-  `"Accept Estimates"`, `"Post comment"` buttons; update to new labels.
-- `tests/vitest/share/share-page-decision-bar-copy-contract.test.tsx` — decision
-  copy contract; update if decision verbs change (UX-004).
-- `tests/vitest/share/share-page-get-routes-contract.test.ts` — route contract;
-  update if response shapes change (SEC-004 pagination adds optional fields).
-- `tests/vitest/recipient-proposals-route-gate.test.ts` — auth-before-list; must
-  still pass after UNIT-021 changes.
-
-Each unit that changes a user-facing string or API contract must grep for existing
-test references to that string/contract and update them in the same diff.
-
-## Verification Commands
+### Security and data
 
 ```bash
-# Type check
+bun test tests/vitest/publication-body-size.test.ts
+bun test tests/vitest/share/share-page-get-routes-contract.test.ts
+bun test tests/vitest/project-publication-decision.test.tsx
+bun test tests/vitest/publication-comment-pagination.test.ts
+bun test tests/vitest/publication-snapshot-reentrance.test.ts
+bun test tests/vitest/publication-runtime-readiness.test.ts
+bun test tests/vitest/publication-dead-code.test.ts
+bun test tests/vitest/publication-fk-migration.test.ts
+bun test tests/vitest/perf/publisher-roster-evaluator.test.ts
+```
+
+### Publisher, share, preview, and recipient
+
+```bash
+bun test tests/vitest/publisher-wizard.test.tsx
+bun test tests/vitest/publisher-roster-cards.test.tsx
+bun test tests/vitest/publisher-search-debounce.test.tsx
+bun test tests/vitest/publisher-manager-preview-route.test.tsx
+bun test tests/vitest/share-page-header-status.test.tsx
+bun test tests/vitest/share-page-sticky-decision.test.tsx
+bun test tests/vitest/share-page-row-actions.test.tsx
+bun test tests/vitest/share-page-comments-dates.test.tsx
+bun test tests/vitest/share-page-print-button.test.tsx
+bun test tests/vitest/share-page-currency.test.tsx
+bun test tests/vitest/recipient-inbox-dead-end.test.tsx
+bun test tests/vitest/recipient-proposals-route-gate.test.ts
+```
+
+Existing route/interaction contracts updated in the same owning unit:
+
+```bash
+bun test tests/vitest/share/share-page-decision-bar-copy-contract.test.tsx
+bun test tests/vitest/share/share-page-get-routes-contract.test.ts
+bun test tests/vitest/project-publication-decision.test.tsx
+```
+
+### Integration and static gates
+
+```bash
 bun run type-check
-
-# Lint
 bun run lint
-
-# Focused tests (publication + share + publisher)
-bun test tests/vitest/publication-*.test.ts
-bun test tests/vitest/share-*.test.ts
-bun test tests/vitest/publisher-*.test.ts
-
-# Full suite (shared logic / release work)
+bun run validate:error-handling
 bun run validate
-
-# Plan pack validation
+git diff --check
 bun run validate:plan-pack -- .ai/03_plans/2026-07-10/Publisher-And-Shared-Pages
 ```
 
-## Existing Tests To Preserve
+## Adversarial Scenario Matrix
 
-- `tests/vitest/recipient-proposals-route-gate.test.ts` — auth-before-list ordering.
-  Must still pass after inbox repository changes.
-- Any existing publication/security tests — run before and after changes.
+| Scenario | Canonical test | Assertion |
+|---|---|---|
+| SCENARIO-S01 | TEST-018 | Each JSON POST rejects actual bytes above its route limit with 413 |
+| SCENARIO-S02 | TEST-019 | Absent, invalid, and understated length headers plus chunked bodies cannot bypass |
+| SCENARIO-S03 | TEST-019 | Unsupported compression is 415; no parse or mutation occurs |
+| SCENARIO-S04 | TEST-020 | Unsubscribe enforces 1 KiB before form parsing |
+| SCENARIO-S05 | TEST-023 | Durable D1 denial happens before decision mutation |
+| SCENARIO-S06 | TEST-023 | Separate module/isolate instances do not imply shared global state |
+| SCENARIO-S07 | TEST-027 | Missing provider bindings fail explicit readiness and request-time readers |
+| SCENARIO-S08 | TEST-028, TEST-029 | Events route and dead type have zero live consumers |
+| SCENARIO-D01 | TEST-030 | Explicit-column rebuild preserves counts, digests, indexes, triggers, constraints |
+| SCENARIO-D02 | TEST-033 | One orphan on every FK edge aborts with source unchanged |
+| SCENARIO-D03 | TEST-033 | Mid-copy failure leaves no partial rebuild |
+| SCENARIO-D04 | TEST-031, TEST-032 | Cascades and nullable-recipient SET NULL match contract |
+| SCENARIO-P01 | TEST-004, TEST-039 | Unauthenticated/non-manager/wrong-workspace/revoked role sees no snapshot |
+| SCENARIO-P02 | TEST-004, TEST-039 | Public token or recipient cookie alone grants no manager preview authority |
+| SCENARIO-P03 | TEST-004, TEST-039 | Every refresh reruns RBAC; preview mutations remain unavailable |
+| SCENARIO-R01 | TEST-017 | Malformed row returns typed unavailable and no partial IDs/titles |
+| SCENARIO-R02 | TEST-016, TEST-039 | Legitimate expired/revoked/email mismatch states show recovery guidance |
+| SCENARIO-U01 | TEST-003, TEST-039 | Native Web Share is progressive; Copy remains universal; no QR exists |
+| SCENARIO-U02 | TEST-009, TEST-039 | Row keyboard model has one tab stop and preserves nested controls |
+| SCENARIO-U03 | TEST-039 | JS-disabled recipient view retains header, summary, and estimate data |
+| SCENARIO-U04 | TEST-039 | Sticky controls do not cover content and have named regions |
 
-## Browser Proof Plan
+## Browser-Only Proof
 
-For UX requirements, browser verification (Playwright or manual) covers:
+Browser automation is not a default gate. Run targeted browser proof only for
+claims that unit/DOM/static checks cannot prove:
 
-1. **Publisher wizard flow:** Open publisher → click Share → complete wizard →
-   verify link generated and copyable.
-2. **Preview mode:** Click Preview → verify share page renders with preview banner.
-3. **Mobile publisher:** Resize to 375px → verify card layout, copy link works.
-4. **Shared link decision:** Open share link → verify sticky CTA, submit decision,
-   verify header updates.
-5. **Estimate table:** Click row → verify review target, verify no button-per-row.
-6. **Comments:** Verify dates, author badges, page scroll (not nested).
-7. **Download PDF:** Click button → verify print dialog opens.
-8. **Currency:** Verify non-PHP currency formats correctly.
+1. Wizard/card responsive composition at 375, 768, and 1440 px.
+2. Manager preview navigation, persistent banner, and disabled mutations.
+3. Sticky decision behavior during real scroll.
+4. Roving row keyboard behavior in the rendered table.
+5. JS-disabled server-rendered proposal content.
+6. Chrome and Safari print layout.
 
-Browser proof is **opt-in evidence** per AGENTS.md — only for claims that static/
-DOM tests cannot prove (real interaction, layout, responsive behavior).
+Do not claim screen-reader or hosted-production proof from DOM tests. A manual AT
+check may be recorded separately if performed; it is not pre-credited here.
+
+## Gate Exit Conditions
+
+- `GATE-001`: TEST-018 through TEST-029 plus mapped TEST-039 security scenarios pass.
+- `GATE-002`: TEST-030 through TEST-037 plus mapped TEST-039 data scenario passes.
+- `GATE-003`: TEST-001 through TEST-017 and mapped TEST-039 UX scenarios pass.
+
+Until then all three gate statuses remain `FAIL`.

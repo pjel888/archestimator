@@ -11,24 +11,26 @@ that shows where a Beta user stopped.
 
 Status tuple:
 
-`package_status=CONDITIONALLY_READY`,
+`package_status=IMPLEMENTATION_READY`,
 `implementation_status=NOT_STARTED`, `release_status=NOT_EVALUATED`,
 `plan_lifecycle=ACTIVE`, `terminal_status=ACTIVE`.
 
-`UNIT-001..004` are `READY` in dependency-closed `SLICE-001`. `UNIT-005/006`
-remain `PLANNED` until the external producer/query contracts are frozen, and
-`UNIT-007` is `BLOCKED` until those consumers accept the contract. The next
-executable unit is `UNIT-001`.
+`UNIT-001..007` are `READY` in dependency-closed `SLICE-001`; no internal owner
+approval or external producer implementation blocks this pack's executable work.
+The next executable unit is exactly `UNIT-001`. Missing cross-pack integrations
+remain explicit `not_available` release inputs until the program records their
+versioned receipts.
 
 ## Current state
 
-- `src/components/workshop/projects-page-client.tsx:1955-1964` defines empty
+- `src/components/workshop/projects-page-client.tsx:1947-1956` defines empty
   state only for search or non-All status filters.
-- `src/components/workshop/projects-page-client.tsx:3272-3342` renders those two
-  recovery states, while `:3430` maps an empty All-tab collection to nothing.
+- `src/components/workshop/projects-page-client.tsx:3264-3335` renders those two
+  recovery states, while `:3422` maps an empty All-tab collection to nothing.
 - `src/components/workshop/NewProjectForm.tsx:263-338` creates a project and
   default estimate, but no first-value path follows.
-- `src/app/admin/page.tsx:12-25,40-43,62,80-87` is placeholder presentation.
+- `src/app/admin/page.tsx:21-43,58-120` renders repository-backed signups,
+  incidents, and health probes, but has no activation stage/cohort view.
 - `migrations/0005_account_settings.sql:1-37` records account onboarding only;
   it is not a product activation ledger.
 - `migrations/0042_support_conversations.sql:4-41` provides a real support state
@@ -58,8 +60,10 @@ user-agent, free text, or raw event metadata.
 ## Non-goals and ownership boundaries
 
 - no operator dashboard cards, charts, tables, or presentation;
-- no telemetry consent/retention policy, bot governance, external analytics, or
-  release decision; `Beta-Operating-Contract` owns those surfaces;
+- no general telemetry/provider consent policy, bot governance, external
+  analytics, or release decision; `Beta-Operating-Contract` owns those surfaces,
+  while this pack owns the activation tables' exact functional basis,
+  retention, legal-hold, privacy export, and erasure behavior;
 - no Estimate Health implementation; `Estimate-Intelligence-And-Price-Governance`
   owns it and emits `health_reviewed` through this pack's contract;
 - no Publisher implementation; `Publisher-And-Shared-Pages` emits publication
@@ -78,9 +82,12 @@ final acceptance of the cohort contract.
 Implementation is complete only when all units are verified, the migration and
 deny-path tests pass, a new eligible user can create/reopen a persisted
 first-value journey, sample data remains visibly labeled, cohort rows are
-privacy-minimized, and external milestone consumers pass the typed contract.
-Release remains unevaluated until the umbrella and operating/release packs
-assemble hosted, policy, and cohort evidence.
+privacy-minimized, the transactional outbox survives crash/retry/concurrency
+cases, and the typed producer/cohort fixtures plus reciprocal receipt schemas
+pass locally. External producer and operator-consumer receipt presence is a
+`Beta-Readiness-Program` `UNIT-003` integration/release gate, not an Activation
+implementation blocker. Release remains unevaluated until the umbrella and
+operating/release packs assemble hosted, policy, receipt, and cohort evidence.
 
 ## Artifact map
 
@@ -91,15 +98,23 @@ assemble hosted, policy, and cohort evidence.
 | `REQUIREMENTS_AND_DECISIONS.md` | Requirements, acceptance, decisions, risks |
 | `IMPLEMENTATION_PLAN.md` | Sole canonical execution artifact, units, DAG, leases |
 | `VERIFICATION_ROLLOUT_AND_FINAL_AUDIT.md` | Test matrix, gates, rollout/rollback, final audit |
+| `ZERO_STATE_PATHS_UX_AND_ACCESSIBILITY.md` | True-zero/checklist state, interaction, and accessibility review |
+| `ACTIVATION_LEDGER_DATA_LIFECYCLE_AND_IDEMPOTENCY.md` | D1 integrity, outbox state machine, retention, and fix-forward review |
+| `MILESTONE_OUTBOX_AND_CROSS_PACK_RECEIPTS.md` | Producer contract, receipt schema, ownership, and freshness review |
+| `COHORT_QUERY_ABANDONMENT_AND_SUPPORT_MODEL.md` | Bounded cohort DTO/query, stoppage derivation, and support join review |
+| `SECURITY_PRIVACY_RETENTION_AND_ACTOR_MATRIX.md` | Actor/resource denials, credential taxonomy, privacy lifecycle, and logging review |
+| `PERFORMANCE_RELIABILITY_AND_OBSERVABILITY.md` | Cardinality evaluators, failure behavior, and redacted signals |
+| `TEST_AND_ADVERSARIAL_QA.md` | Proof-first fixtures, negative paths, isolation, and checker plan |
+| `ROLLOUT_FIX_FORWARD_AND_COMPLETION_GATE.md` | Staged enablement, stop/fix-forward rules, independent completion gate |
 | `LOOP_LEDGER.md` | Append-only execution and resume state |
 | `plan-pack.json` | Machine manifest; deliberately excluded from artifacts |
 
 ## Resume packet
 
-Start at `IMPLEMENTATION_PLAN.md` `UNIT-001`. Confirm migration number `0051`
-is still free, re-read all exact paths, run the existing project creation tests,
-then implement the schema/repository contract before UI work. If `0051` was
-claimed after this plan was written, stop before source edits. The program lead
-must atomically reissue every affected Activation/Estimate/Calculation slot in
-the umbrella; each affected pack updates its own references and revalidates
-before any migration writer resumes.
+Start at `IMPLEMENTATION_PLAN.md` `UNIT-001`. Validate the durable Program
+`MIGRATION_LEASE_GENERATION.json` generation, migration-tail, owner-manifest,
+`0054` allocation, allocation, and receipt digests; re-read all exact paths and
+run the existing project creation tests before schema work. A stale, consumed,
+missing, or collided allocation blocks source edits. The Program preserves
+consumed facts and atomically reissues every affected unconsumed slot; each owner
+revalidates before any migration writer resumes.

@@ -5,15 +5,15 @@
   "profile": "high-blast-radius",
   "package_action_ceiling": "IMPLEMENT_LOCAL",
   "last_observed_run_scope": "PLAN_ONLY",
-  "package_status": "CONDITIONALLY_READY",
+  "package_status": "IMPLEMENTATION_READY",
   "implementation_status": "NOT_STARTED",
   "release_status": "NOT_EVALUATED",
   "plan_lifecycle": "ACTIVE",
   "terminal_status": "ACTIVE",
   "baseline": {
-    "head": "081a0757a9d7f34e75342a18e353f3014403de1e",
-    "scoped_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "scoped_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    "head": "e373bc865b978e237deb1d92011c96b0a3639fb4",
+    "scoped_status_sha256": "2427c707a9e6d89a8d52fd037d841ffdc6bfa3a6f45702da96242a572db9ead2",
+    "scoped_diff_sha256": "c2af5971303d62018cf37fabf27fcc89792d3ec5dd87dfe25e5a948364690892"
   },
   "canonical_execution_artifact": "IMPLEMENTATION_PLAN.md",
   "artifacts": [
@@ -21,37 +21,85 @@
       "id": "ART-001",
       "role": "entrypoint",
       "path": "README.md",
-      "sha256": "40e40f05e78e6c7dbaf14f09b5b3f38209e7b0888565e80a4c0299f6b32c4018"
+      "sha256": "aae247b2331840acfe936091b2c1b2193a4e7cce344b4138b5bb9d8f7a239ef0"
     },
     {
       "id": "ART-002",
       "role": "audit",
       "path": "SOURCE_AND_CODEBASE_AUDIT.md",
-      "sha256": "27d898146cf85cc55f80de33a05d82d7b00172dab8f8dc44c6c1604fade92dfc"
+      "sha256": "7f03d9718e47aede0e9dfe8b5a1fe78a6fa6fd2324a98eba33addbf104897799"
     },
     {
       "id": "ART-003",
       "role": "requirements",
       "path": "REQUIREMENTS_AND_DECISIONS.md",
-      "sha256": "4f27a59db991e9a4d88701842fde2303d8bbc857ab9ff20953cff7e21aede11c"
+      "sha256": "62016ba50856036adcff5a07bb5cb7bed42115d8c9f45849c783d28c4e37cf03"
     },
     {
       "id": "ART-004",
       "role": "canonical-execution",
       "path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "e74b02b2c7e485fb58ef9dc13d273b995ed0e5e97d4c4e24c951944e6bde503a"
+      "sha256": "2d03346d10e9fb7189c2378bbb9d3bed81ef458872f1e25369096cf953890188"
     },
     {
       "id": "ART-005",
       "role": "verification-rollout",
       "path": "VERIFICATION_ROLLOUT_AND_FINAL_AUDIT.md",
-      "sha256": "a6cc856d513949ff09df67a247e8bc2464ccbba06f04e16be0ff231d66ceac34"
+      "sha256": "91b6626988b33d534ecdd7d993097246dc3217ad390a6e183437f26d28d0b6e6"
     },
     {
       "id": "ART-006",
       "role": "ledger",
       "path": "LOOP_LEDGER.md",
-      "sha256": "f7901cea2293df5090893a5b6bb46e2767e73bc03b1c3746393df7a25d00f414"
+      "sha256": "ea3444e023fd882710b3a2444561c08f50b2f5bf7159bf5c3f4a151305e4380f"
+    },
+    {
+      "id": "ART-007",
+      "role": "ux-accessibility",
+      "path": "ZERO_STATE_PATHS_UX_AND_ACCESSIBILITY.md",
+      "sha256": "f648a3d46bbbc71393a208a5c510281a324922a43e0ab8561135c2202cb9f57f"
+    },
+    {
+      "id": "ART-008",
+      "role": "data-lifecycle",
+      "path": "ACTIVATION_LEDGER_DATA_LIFECYCLE_AND_IDEMPOTENCY.md",
+      "sha256": "9c51d6eecc52dd1b3b492a62dde1cbe4fa51a2cdf035decd693835c8ddba9bc1"
+    },
+    {
+      "id": "ART-009",
+      "role": "cross-pack-contract",
+      "path": "MILESTONE_OUTBOX_AND_CROSS_PACK_RECEIPTS.md",
+      "sha256": "c7c1f3342450320d5d5a5aac60e1b379078e30bf4948526b4d384f64d8692abd"
+    },
+    {
+      "id": "ART-010",
+      "role": "cohort-operations",
+      "path": "COHORT_QUERY_ABANDONMENT_AND_SUPPORT_MODEL.md",
+      "sha256": "2ae3b84447cca6c24739ea4ef967ea54a916cccb530535c1c3f9ca0ae614c3cc"
+    },
+    {
+      "id": "ART-011",
+      "role": "security-privacy",
+      "path": "SECURITY_PRIVACY_RETENTION_AND_ACTOR_MATRIX.md",
+      "sha256": "650a1755d3d15a1b2d7a980b0b71161a73191faa5ea42ba788ab236dbe94bbf8"
+    },
+    {
+      "id": "ART-012",
+      "role": "performance-reliability",
+      "path": "PERFORMANCE_RELIABILITY_AND_OBSERVABILITY.md",
+      "sha256": "83e0f33a59fa5566d2556dc1cd8390a56b782d67eefe256bfd96589650cc39ab"
+    },
+    {
+      "id": "ART-013",
+      "role": "adversarial-qa",
+      "path": "TEST_AND_ADVERSARIAL_QA.md",
+      "sha256": "0e78b599efd79cf4ba28b56f6ae47904ad49b9a7cf9cb7bf6255d0c28afab338"
+    },
+    {
+      "id": "ART-014",
+      "role": "rollout-final-audit",
+      "path": "ROLLOUT_FIX_FORWARD_AND_COMPLETION_GATE.md",
+      "sha256": "929271d5e0a485f6daa9a6a2cae35e5d6935be976997659d51b0774aeb32298b"
     }
   ],
   "sources": [
@@ -301,7 +349,7 @@
         "TEST-002"
       ],
       "evidence_ids": [
-        "EVID-001"
+        "EVID-002"
       ],
       "authorization_boundary_id": null
     },
@@ -316,7 +364,7 @@
         "TEST-003"
       ],
       "evidence_ids": [
-        "EVID-001"
+        "EVID-002"
       ],
       "authorization_boundary_id": null
     },
@@ -331,7 +379,7 @@
         "TEST-004"
       ],
       "evidence_ids": [
-        "EVID-001"
+        "EVID-002"
       ],
       "authorization_boundary_id": null
     },
@@ -346,7 +394,7 @@
         "TEST-001"
       ],
       "evidence_ids": [
-        "EVID-001"
+        "EVID-002"
       ],
       "authorization_boundary_id": null
     },
@@ -361,7 +409,7 @@
         "TEST-005"
       ],
       "evidence_ids": [
-        "EVID-001"
+        "EVID-002"
       ],
       "authorization_boundary_id": null
     },
@@ -376,7 +424,7 @@
         "TEST-006"
       ],
       "evidence_ids": [
-        "EVID-001"
+        "EVID-002"
       ],
       "authorization_boundary_id": null
     },
@@ -391,7 +439,7 @@
         "TEST-007"
       ],
       "evidence_ids": [
-        "EVID-001"
+        "EVID-002"
       ],
       "authorization_boundary_id": null
     },
@@ -406,7 +454,7 @@
         "TEST-008"
       ],
       "evidence_ids": [
-        "EVID-001"
+        "EVID-002"
       ],
       "authorization_boundary_id": null
     }
@@ -420,7 +468,7 @@
         "AC-004"
       ],
       "evidence_ids": [
-        "EVID-001"
+        "EVID-002"
       ]
     },
     {
@@ -431,7 +479,7 @@
         "AC-001"
       ],
       "evidence_ids": [
-        "EVID-001"
+        "EVID-002"
       ]
     },
     {
@@ -442,7 +490,7 @@
         "AC-002"
       ],
       "evidence_ids": [
-        "EVID-001"
+        "EVID-002"
       ]
     },
     {
@@ -453,7 +501,7 @@
         "AC-003"
       ],
       "evidence_ids": [
-        "EVID-001"
+        "EVID-002"
       ]
     },
     {
@@ -464,7 +512,7 @@
         "AC-005"
       ],
       "evidence_ids": [
-        "EVID-001"
+        "EVID-002"
       ]
     },
     {
@@ -475,7 +523,7 @@
         "AC-006"
       ],
       "evidence_ids": [
-        "EVID-001"
+        "EVID-002"
       ]
     },
     {
@@ -486,7 +534,7 @@
         "AC-007"
       ],
       "evidence_ids": [
-        "EVID-001"
+        "EVID-002"
       ]
     },
     {
@@ -497,7 +545,7 @@
         "AC-008"
       ],
       "evidence_ids": [
-        "EVID-001"
+        "EVID-002"
       ]
     }
   ],
@@ -511,7 +559,7 @@
         "AC-003"
       ],
       "evidence_ids": [
-        "EVID-001"
+        "EVID-002"
       ],
       "authorization_boundary_id": null
     },
@@ -524,7 +572,7 @@
         "AC-007"
       ],
       "evidence_ids": [
-        "EVID-001"
+        "EVID-002"
       ],
       "authorization_boundary_id": null
     },
@@ -537,7 +585,7 @@
         "AC-005"
       ],
       "evidence_ids": [
-        "EVID-001"
+        "EVID-002"
       ],
       "authorization_boundary_id": null
     },
@@ -549,7 +597,7 @@
         "AC-006"
       ],
       "evidence_ids": [
-        "EVID-001"
+        "EVID-002"
       ],
       "authorization_boundary_id": null
     },
@@ -561,7 +609,7 @@
         "AC-007"
       ],
       "evidence_ids": [
-        "EVID-001"
+        "EVID-002"
       ],
       "authorization_boundary_id": null
     },
@@ -573,7 +621,7 @@
         "AC-008"
       ],
       "evidence_ids": [
-        "EVID-001"
+        "EVID-002"
       ],
       "authorization_boundary_id": null
     },
@@ -592,7 +640,7 @@
         "AC-008"
       ],
       "evidence_ids": [
-        "EVID-001"
+        "EVID-002"
       ],
       "authorization_boundary_id": null
     }
@@ -672,7 +720,7 @@
     },
     {
       "id": "UNIT-005",
-      "status": "PLANNED",
+      "status": "READY",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-004"
@@ -690,7 +738,7 @@
     },
     {
       "id": "UNIT-006",
-      "status": "PLANNED",
+      "status": "READY",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-005"
@@ -710,7 +758,7 @@
     },
     {
       "id": "UNIT-007",
-      "status": "BLOCKED",
+      "status": "READY",
       "artifact_path": "IMPLEMENTATION_PLAN.md",
       "depends_on": [
         "UNIT-006"
@@ -792,6 +840,40 @@
         "REQ-002",
         "UNIT-005"
       ]
+    },
+    {
+      "id": "DEC-AUTO-008",
+      "status": "ACTIVE",
+      "artifact_path": "REQUIREMENTS_AND_DECISIONS.md",
+      "affected_ids": [
+        "DATA-001",
+        "REQ-002",
+        "UNIT-001",
+        "UNIT-003",
+        "UNIT-005"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-009",
+      "status": "ACTIVE",
+      "artifact_path": "REQUIREMENTS_AND_DECISIONS.md",
+      "affected_ids": [
+        "DATA-001",
+        "SEC-001",
+        "UNIT-001"
+      ]
+    },
+    {
+      "id": "DEC-AUTO-010",
+      "status": "ACTIVE",
+      "artifact_path": "REQUIREMENTS_AND_DECISIONS.md",
+      "affected_ids": [
+        "REQ-002",
+        "OPS-001",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007"
+      ]
     }
   ],
   "authorization_boundaries": [],
@@ -802,7 +884,10 @@
         "UNIT-001",
         "UNIT-002",
         "UNIT-003",
-        "UNIT-004"
+        "UNIT-004",
+        "UNIT-005",
+        "UNIT-006",
+        "UNIT-007"
       ]
     }
   ],
@@ -811,7 +896,7 @@
       "id": "EVID-001",
       "status": "COLLECTED",
       "artifact_path": "SOURCE_AND_CODEBASE_AUDIT.md",
-      "sha256": "27d898146cf85cc55f80de33a05d82d7b00172dab8f8dc44c6c1604fade92dfc",
+      "sha256": "7f03d9718e47aede0e9dfe8b5a1fe78a6fa6fd2324a98eba33addbf104897799",
       "claim_ids": [
         "UX-001",
         "REQ-001",
@@ -827,7 +912,17 @@
         "UNIT-004",
         "UNIT-005",
         "UNIT-006",
-        "UNIT-007",
+        "UNIT-007"
+      ],
+      "source_revision": "e373bc865b978e237deb1d92011c96b0a3639fb4",
+      "valid_until": null
+    },
+    {
+      "id": "EVID-002",
+      "status": "PLANNED",
+      "artifact_path": "VERIFICATION_ROLLOUT_AND_FINAL_AUDIT.md",
+      "sha256": "91b6626988b33d534ecdd7d993097246dc3217ad390a6e183437f26d28d0b6e6",
+      "claim_ids": [
         "AC-001",
         "AC-002",
         "AC-003",
@@ -852,7 +947,7 @@
         "GATE-OPS-001",
         "GATE-VERIFY-001"
       ],
-      "source_revision": "081a0757a9d7f34e75342a18e353f3014403de1e",
+      "source_revision": "e373bc865b978e237deb1d92011c96b0a3639fb4",
       "valid_until": null
     }
   ],
@@ -863,6 +958,6 @@
     "consumer-pack-manifest-or-threshold-policy-change"
   ],
   "next_unit": "UNIT-001",
-  "updated_at": "2026-07-10T00:10:00.000Z",
-  "manifest_sha256": "ec11e261469d364a78c84263c45ce39b38dc1143a58772a4c0dbafddf381513f"
+  "updated_at": "2026-07-10T18:58:56.000Z",
+  "manifest_sha256": "296b7bc11343b57769889d03fb8c5dc28c318fb04151463d60d6cd3d1e226944"
 }

@@ -146,7 +146,7 @@ All three are safe against duplicates because of the unique index. The read-then
 
 ## 5. Data Retention
 
-- `estimate_sheet_events` is a retention class (`migrations/0034`).
+- `estimate_sheet_events` is a retention class (`migrations/0034_data_retention_events.sql`).
 - Purge logic: `src/lib/compliance/retention-core.ts:38,121-127` — SELECT/DELETE by `created_at`.
 - Schedule status: described as "a counsel-reviewed draft until OPEN-DEC-004 is signed off" (0034 header). Retention is coded but not necessarily active.
 

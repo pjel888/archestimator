@@ -1,144 +1,94 @@
-# 10 — Blast Radius And Dependencies
+# 10 - Blast Radius And Dependencies
 
-## Blast Radius Assessment
+## Classification
 
-This plan touches **user-facing surfaces** (Publisher roster, Shared link page,
-sidebar, dashboard) and **server-side hardening** (API routes, data layer). It is
-classified **high-blast-radius** because it changes broad user-facing contracts
-(terminology, navigation, publish flow) and touches auth-adjacent security
-hardening.
+`high-blast-radius`: the pack changes manager publishing, public recipient
+rendering, auth-adjacent routes, recipient repository behavior, and seven D1
+tables. Five unaffected units are ready and 18 affected, downstream, or
+final-integration units remain planned pending Program deltas and named
+cross-pack receipts. Execution is single-writer across shared files. The ready
+slice is dependency closure, not a parallel-write schedule.
 
-### Affected surfaces
+## Affected Surfaces
 
-| Surface | Change type | Blast radius | Risk |
-|---|---|---|---|
-| Publisher roster page | UX redesign (cards, wizard, pagination) | High (primary manager surface) | Medium — new components, existing actions |
-| Publisher drawer | Modified (terminology, retains function) | Medium | Low — additive changes |
-| Shared link page | UX improvements (header, CTA, comments, print) | High (primary client surface) | Medium — component modifications |
-| Sidebar nav | Label/icon change | High (global nav) | Low — one line change |
-| Dashboard | Add unpublished share CTA | Medium | Low — additive |
-| API routes (share) | Hardening (body-size, status codes, circuit breaker) | Medium | Medium — security-adjacent |
-| D1 schema | FK constraints (migration 0050) | Medium | Medium — requires orphan cleanup |
-| Roster repository | Query optimization (GROUP BY) | Medium | Low — same data, faster |
-
-### NOT affected (explicitly preserved)
-
-- Token/password/cookie crypto (`security.ts` core functions)
-- CSRF/origin/rate-limit architecture
-- Publication snapshot builder logic (only sanitization reentrance fix)
-- Better Auth session model
-- Email delivery pipeline (Cloudflare Email)
-- D1 schema structure (only FK additions, no new tables)
-
-## Dependency Map
-
-### Upstream dependencies (what this plan depends on)
-
-| Dependency | Type | Status |
+| Surface | Change | Principal risk |
 |---|---|---|
-| Existing publication server actions | Code | Stable (`actions.ts`) |
-| Existing publication security module | Code | Stable (`security.ts`) |
-| Existing D1 schema (0014) | Migration | Applied and stable |
-| `src/components/ui/` primitives | Code | Stable (Drawer, Dialog, Tabs, Button, etc.) |
-| TanStack Query | Library | Stable (existing pattern) |
-| Tailwind v4 design tokens | Config | Stable |
-| `react-qrcode` or equivalent | Library | **New dependency** — evaluate (see DEC-AUTO-003) |
+| Publisher roster/wizard | Guided Share flow, cards, paging, device-native sharing | Entry and accessibility regression |
+| Manager preview | New protected `/workshop/publisher/preview/[projectId]` route | RBAC or metadata leak |
+| Public share page | Status, sticky actions, comments, rows, print, mobile tree | Recipient workflow regression |
+| Public API routes | Stream body limits, 423 consistency, durable limiter, pagination | Fail-closed order regression |
+| Recipient inbox | Recovery copy with existing fail-closed repository | Partial metadata exposure |
+| D1 publication tables | Explicit-column FK rebuild and dead CHECK cleanup | Data/schema loss |
+| Navigation/dashboard | Share terminology and entry CTAs | Global label inconsistency |
 
-### Downstream dependents (what depends on this plan's outputs)
+## Preserved Contracts
 
-| Dependent | Impact |
+- Existing share token/password/CSRF/origin/session security remains in place.
+- Existing D1-backed decision rate limiting is the cross-isolate authority.
+- Public `/share/[token]` remains the recipient route. Manager preview is a
+  separate Better Auth and project-RBAC route.
+- Recipient proposal normalization stays all-or-nothing.
+- Migration 0014 remains immutable.
+- No QR, dependency, `package.json`, or lockfile change is in scope.
+- No hosted mutation or production deploy occurs in the observed `PLAN_ONLY` run.
+
+## Source Dependencies
+
+| Dependency | Contract |
 |---|---|
-| Dashboard published links | Terminology change flows through (label updates) |
-| Project header (`ProjectChromeAsync`) | Deep-link target may change (wizard vs drawer) |
-| Recipient proposals inbox | Terminology alignment (label updates) |
-| Route revalidation fan-out | Preserved (existing `revalidatePublicationRoutes`) |
+| Publication actions and snapshot builder | Reuse after signature re-read |
+| `assertProjectPublicationManager` and Better Auth context | Required on every preview render |
+| `checkSharedLinkDecisionRateLimit` | Durable decision admission authority |
+| `RecipientEmailComposer` | Reuse; do not duplicate email flow |
+| `ProjectPublicationView` | Reuse presentation with explicit read-only preview mode |
+| UI primitives in `src/components/ui/` | Existing accessible dialog/drawer controls |
+| Clipboard and Web Share APIs | Progressive platform features; Copy fallback |
+| D1 schema from migrations 0014-0052 | Exact preflight source for migration 0053 |
 
-## File Ownership Map (for concurrent-agent coordination)
+## File Ownership And Serialization
 
-### Files this plan modifies (write boundary)
+Before each unit: refresh `git status`, re-read every target, and establish one
+writer. Shared files are never assigned to concurrent implementation units.
 
-**Publisher components (new + modified):**
-- `src/components/workshop/publisher/PublisherRosterClient.tsx` (modified)
-- `src/components/workshop/publisher/PublisherRosterRow.tsx` (modified or replaced by card)
-- `src/components/workshop/publisher/PublisherDrawer.tsx` (modified — terminology)
-- `src/components/workshop/publisher/PublisherEmptyState.tsx` (modified — remove dead code)
-- `src/components/workshop/publisher/ShareWizard.tsx` (NEW)
-- `src/components/workshop/publisher/ShareLinkDisplay.tsx` (NEW)
-- `src/components/workshop/publisher/PublisherRosterCard.tsx` (NEW)
-- `src/components/workshop/publisher/PublisherPagination.tsx` (NEW)
+| Serialized lane | Units | Shared paths |
+|---|---|---|
+| Public route security | UNIT-001, UNIT-002, UNIT-003, UNIT-004, UNIT-006, UNIT-007 | `src/app/api/share/[token]/**`, publication security/repository modules |
+| Snapshot/data | UNIT-005, UNIT-008, UNIT-009 | snapshot module, migration 0053, roster repository |
+| Publisher manager UX | UNIT-010, UNIT-011, UNIT-012, UNIT-013, UNIT-014 | sidebar, dashboard, publisher roster/wizard, protected preview page |
+| Recipient share UX | UNIT-015, UNIT-016, UNIT-017, UNIT-018, UNIT-019, UNIT-020, UNIT-023 | `ProjectPublicationView`, share components, public share page |
+| Recipient inbox | UNIT-021 | recipient repository, proposal row/empty state, route-gate test |
+| Integration | UNIT-022 | read-only validation first; any fix returns to owning lane |
 
-**Share page components (modified):**
-- `src/components/share/SharePageProposalHeader.tsx` (modified)
-- `src/components/share/SharePageSummaryCard.tsx` (modified)
-- `src/components/share/SharePageHero.tsx` (modified)
-- `src/components/share/SharePageSessionBanner.tsx` (modified)
-- `src/components/share/SharePageTabs.tsx` (modified)
-- `src/components/share/SharePageComments.tsx` (modified)
-- `src/components/share/SharePageDecision.tsx` (modified)
-- `src/components/share/ProjectPublicationPasswordForm.tsx` (modified)
-- `src/components/share/StickyDecisionBar.tsx` (NEW)
-- `src/components/share/SharePrintButton.tsx` (NEW)
-- `src/components/charts/CostDonutChart.tsx` (modified — currency)
+Independent read-only source inspection or test analysis may run concurrently.
+Implementation writes, migrations, and integration fixes are serialized.
 
-**Navigation + dashboard (modified):**
-- `src/components/sidebar/MainSidebar.tsx` (modified — label/icon)
-- `src/components/workshop/dashboard/WorkshopDashboard.tsx` (modified)
-- `src/components/workshop/ProjectChromeAsync.tsx` (modified — wizard link)
+## Cross-Pack Contracts
 
-**Server-side (modified + new):**
-- `src/lib/publication/actions.ts` (modified — add `createClientPreviewSession`)
-- `src/lib/publication/security.ts` (modified — startup validation, preview cookie)
-- `src/lib/publication/snapshot.ts` (modified — reentrance fix)
-- `src/lib/publication/circuit-breaker.ts` (NEW)
-- `src/lib/publication/public-repository.ts` (modified — comment pagination, body-size helper)
-- `src/lib/publisher/roster-repository.ts` (modified — GROUP BY optimization)
-- `src/app/api/share/[token]/comment/route.ts` (modified — 423, circuit breaker, body-size, pagination)
-- `src/app/api/share/[token]/decision/route.ts` (modified — 423, circuit breaker, body-size)
-- `src/app/api/share/[token]/password/route.ts` (modified — body-size)
-- `src/app/api/share/[token]/session/route.ts` (modified — body-size)
-- `src/app/api/share/[token]/route.ts` (modified — body-size if applicable)
-- `src/app/api/share/[token]/events/route.ts` (removed or wired)
-- `src/lib/repositories/recipient-proposals-repository.ts` (modified — skip bad rows)
+The Activity/History work may consume publication event contracts but must not
+reintroduce the removed public events route or `download_attempt_blocked`. Any
+shared component or event-type source change is coordinated through a fresh
+source re-read and a single owning implementation unit. This Publisher pack does
+not edit another plan pack or current-state history.
 
-**Migration:**
-- `migrations/0050_publication_foreign_keys.sql` (NEW)
+Publisher exclusively owns `SharePageComments`, public decision UI/mutations,
+and their accessibility changes. Activity supplies append-only event contracts
+and an incorporated-delta accessibility handoff only; Publisher records the
+applicable findings, changed paths, exact tests, and verifier result in its final
+receipt. Program `PUB-DELTA-01..04` must be incorporated through a current
+content-addressed receipt before any overlapping or final unit becomes ready.
 
-### Files owned by other concurrent efforts (coordinate carefully)
+## Dependency Closure
 
-- `src/app/workshop/publisher/page.tsx` — **UNIT-011 owns** the specific change:
-  forward `?wizard=`/`?step=` query params to `PublisherRosterClient`. No other
-  changes to this file. Re-read immediately before editing.
-- `src/app/share/[token]/page.tsx` — **UNIT-014 owns** the specific change: read
-  the preview cookie alongside the session cookie, pass `previewMode` flag to
-  `<ProjectPublicationView>`. No other changes to this file. Re-read immediately.
-- `src/app/workshop/proposals/proposals-data.tsx` — currently being modified by
-  another effort (see git status). **UNIT-021 does NOT touch this file** — it
-  modifies the repository and client components only.
-- `tests/vitest/recipient-proposals-route-gate.test.ts` — currently being modified.
-  UNIT-021 must preserve this test's behavior (auth-before-list ordering).
-- `next.config.ts` — currently being modified. This plan does NOT touch it.
-- `package.json` — currently being modified. If the QR dependency (`qrcode`) is
-  added (DEC-AUTO-003), coordinate the `package.json` write with other agents.
+`SLICE-001` contains only `UNIT-001`, `UNIT-002`, `UNIT-003`, `UNIT-006`, and
+`UNIT-010`; all have no unit dependencies, so the slice is dependency-closed.
+`next_unit=UNIT-001`. The other 18 units are `PLANNED`; their explicit future
+edges remain: UNIT-009 waits for UNIT-008; UNIT-011 waits for UNIT-010; UNIT-012
+waits for UNIT-010 and UNIT-011; UNIT-013/014 wait for UNIT-011; UNIT-018 waits
+for UNIT-004; UNIT-023 waits for UNIT-010/017; UNIT-022 waits for all other units.
+Workstream labels in `IMPLEMENTATION_PLAN.md` add no dependency edge.
 
-### Coordination protocol
+## Stop Conditions
 
-1. **Before editing any file**, re-read it immediately (concurrent agents may have changed it).
-2. **Claim file-scope ownership** in the LOOP_LEDGER before starting a unit.
-3. **Small diffs** — each unit produces a focused change.
-4. **No auto-branching** — stay on the current branch.
-5. **Serialize shared-file writes** — `MainSidebar.tsx`, `WorkshopDashboard.tsx`, and
-   `page.tsx` files are shared; one integrator owns each.
-
-## Compatibility Constraints
-
-- **URL paths unchanged:** `/workshop/publisher` and `/share/[token]` keep their
-  routes. Only labels and components change.
-- **Server action signatures unchanged:** Existing actions keep their parameter
-  types. New actions are additive.
-- **D1 schema backward-compatible:** FK constraints are additive. The migration
-  can be rolled back by dropping constraints.
-- **Cookie names preserved:** Existing `ae_publication_access_*` and
-  `shared_link_session_*` cookies keep their names and format. The preview cookie
-  is new and additive.
-- **API response shapes preserved:** Existing JSON responses keep their shape.
-  Comment pagination adds optional cursor fields (backward-compatible).
+Stop the active unit on an unexpected shared-file diff, source signature drift,
+authorization ambiguity, migration parity failure, or any need for a new package.
+Replan before widening scope.

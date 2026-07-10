@@ -1,12 +1,41 @@
 # Source And Codebase Audit
 
+## Scoped Baseline Fingerprint
+
+Apply `PLAN-PACK-SCOPED-BASELINE-v1` from `Plan-Pack-Schema.md` to these ordered
+literal repo-relative pathspecs:
+
+1. `migrations`
+2. `src/lib/types/database.ts`
+3. `src/lib/estimates/estimate-row-total.ts`
+4. `src/lib/repositories/project-data-repository.ts`
+5. `src/lib/repositories/workspace-repository.ts`
+6. `src/lib/project-charts`
+7. `src/lib/repositories/project-charts-repository.ts`
+8. `src/lib/publication`
+9. `src/lib/proposal-export`
+10. `src/components/workshop/estimate-sheet`
+11. `src/components/workshop/project-data`
+12. `src/components/workshop/proposal-export-preview-utils.ts`
+13. `src/app/api/projects`
+14. `tests/vitest`
+15. `wrangler.jsonc`
+
+The fingerprint binds the calculation, output, repository, and migration source
+observed by this pack, including matching untracked files. It is not parity,
+browser, hosted, or migration-execution evidence.
+
 ## Audit Boundary
 
-Grounded at git revision
-`081a0757a9d7f34e75342a18e353f3014403de1e` plus current uncommitted source on
-2026-07-10. This audit maps calculation and output consumers. Hosted behavior,
-third-party spreadsheet rendering, and production release are not inferred from
-local source.
+Re-audited at git revision
+`e373bc865b978e237deb1d92011c96b0a3639fb4` plus current uncommitted planning
+changes on 2026-07-10. No calculation/publication/export source, test, migration,
+configuration, or cited Beta-audit input relevant to this pack changed from the
+original `081a0757a9d7f34e75342a18e353f3014403de1e` inspection through this HEAD;
+the later proposals-list extraction and project-card drag changes are outside
+this ledger. This provenance recheck is not implementation proof. Hosted
+behavior, third-party spreadsheet rendering, and production release are not
+inferred from local source.
 
 ## Source Ledger
 
@@ -197,7 +226,7 @@ The pack adds no decimal library.
 - Formula cells carry a cached value equal to the canonical model and workbook
   recalculation metadata. Formula-free mode carries the same scalar.
 - New writes pass the same closed validator at every server action/repository
-  boundary. A program-leased `0053_estimate_calculation_input_constraints.sql`
+  boundary. A program-leased `0056_estimate_calculation_input_constraints.sql`
   rebuild adds D1 checks for representable non-negative quantity/rates/misc and
   bounded percentages after a read-only legacy scan. Legacy invalid rows are
   reported and fail closed; the migration does not silently repair or delete them.
@@ -228,9 +257,10 @@ The Publisher/Shared Pages plan owns proposal identity, review flow, recipient
 UX, and may concurrently edit snapshot/share/export surfaces. This pack owns only
 calculation, row-scope, currency, and output parity. Before any shared edit:
 
-1. wait for that writer to finish;
-2. read its actual diff and manifest/ledger status;
-3. acquire a file lease;
+1. validate a current Publisher integration receipt containing manifest,
+   artifact-set, scoped-diff, changed-file, and contract-version hashes;
+2. re-read the target paths and confirm the receipt still matches;
+3. acquire the named file lease;
 4. preserve identity/UX changes;
-5. integrate parity through the smallest typed seam; and
+5. integrate parity through the smallest typed boundary; and
 6. run both packs' relevant tests.

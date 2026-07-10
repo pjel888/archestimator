@@ -1,126 +1,86 @@
-# 13 — Rollout, Rollback, And Operations
+# 13 - Rollout, Rollback, And Operations
 
-## Release Scope
+## Authority And Status
 
-This plan is **local implementation + browser-proven UX**. The following are
-explicit release boundaries:
+This pack is `CONDITIONALLY_READY` with `implementation_status=NOT_STARTED` and
+`release_status=NOT_EVALUATED`. Last observed scope remains `PLAN_ONLY`; the
+action ceiling is `IMPLEMENT_LOCAL`. No command in this document is evidence that
+it has run.
 
-| Scope | Status | Boundary reason |
+The Archestimator resources bound in `wrangler.jsonc`, including D1 `ARCH_DB`,
+have standing repository authorization. This `PLAN_ONLY` run performs no hosted
+mutation. Implementation may create local code, tests, and migration 0053. The
+release run separately evaluates hosted migration, provider proof, and production
+deployment; `wrangler deploy` is outside this pack.
+
+## Local Delivery Sequence
+
+1. Execute only the five-unit dependency-closed `SLICE-001` from exact
+   `next_unit=UNIT-001`, one implementation unit at a time under the
+   serialization contract.
+2. Run each unit's focused test before moving to a dependent unit.
+3. Incorporate and validate Program `PUB-DELTA-01..04`; only then promote the
+   affected units whose updated packets and dependencies validate.
+4. Immediately before editing migration 0053, validate the durable Program
+   migration-generation receipt for generation, current tail, Publisher owner
+   manifest, unclaimed exact allocation/path, allocation hashes, and receipt
+   hash. Drift or collision blocks and requires Program reissue.
+5. For migration 0053, produce preflight/postflight count, row-digest, FK, index,
+   trigger, and constraint reports on disposable/local D1 only.
+6. After all dependencies and delta/Activation/Activity preconditions verify,
+   UNIT-022 runs the exact validation matrix, emits the cross-pack receipts, and
+   runs only the targeted browser-only proofs.
+7. Change criterion, test, gate, implementation, and release statuses only from
+   fresh evidence in the scope that produced it.
+
+## Migration Rollout Contract
+
+Before any hosted apply:
+
+- local clean upgrade and per-edge orphan failure injection pass;
+- mid-copy rollback leaves source digests unchanged;
+- reverse rebuild succeeds on a disposable database;
+- `bun run cf:d1-restore-rehearsal` supplies current restore evidence;
+- hosted preflight reports zero orphan/FK findings without deleting rows;
+- the migration is reviewed against the exact bound D1 database.
+
+Any preflight mismatch is a stop condition. Do not delete orphaned rows, use
+`INSERT OR IGNORE`, or proceed with a partial table set.
+
+## Rollback Matrix
+
+| Surface | Trigger | Rollback |
 |---|---|---|
-| Local implementation | In scope | All code changes, tests, local verification |
-| Browser verification | In scope | Playwright/manual for UX claims |
-| Local D1 migration | In scope | Apply migration 0050 to local D1 |
-| Hosted D1 migration | **AUTH boundary** | Requires hosted D1 access |
-| Production deploy | **AUTH boundary** | Requires deploy authorization |
-| Hosted email delivery | **Not changed** | Existing Cloudflare Email pipeline |
+| Bounded body reader | Valid requests reject or mutation order changes | Revert the helper and route integration as one reviewed unit; retain focused regression fixture |
+| Durable limiter integration | Legitimate decisions denied or limiter skipped | Restore prior durable call contract; do not replace with isolate-only state |
+| Manager preview | Any auth bypass, metadata leak, or public-route regression | Remove the protected preview route and entry links; no credential cleanup is needed |
+| Wizard/roster/share UX | Critical workflow or accessibility regression | Revert owning UI unit while retaining server hardening |
+| Recipient inbox | Partial metadata or integrity regression | Restore the known fail-closed repository path immediately |
+| Migration 0053 before release | Local parity or failure-injection mismatch | Do not apply; fix forward in migration/test plan |
+| Migration 0053 after hosted apply | Confirmed schema/data regression | Tested reverse table rebuild or approved D1 restore; never `DROP CONSTRAINT` |
+| Production release | Release gates or hosted smoke fail | Use the established Cloudflare version rollback process in the release run |
 
-No `wrangler deploy` or hosted mutation is performed by this plan.
+## Operational Proof Boundaries
 
-## Rollout Strategy
+Local tests can prove code and local D1 behavior. They cannot prove hosted D1,
+Cloudflare secret bindings, Workers runtime, production logs, alert delivery, or
+deployment health. Those remain `release_status=NOT_EVALUATED` until a release
+run collects the corresponding hosted artifacts.
 
-### Phase 1: Security hardening (no UX change)
-- SEC-001 through SEC-007: body-size limits, status codes, circuit breaker,
-  comment pagination, snapshot reentrance, startup secrets, dead code removal.
-- These are backward-compatible server-side changes with automated tests.
-- **Risk:** Low. All changes are additive hardening.
-- **Verification:** Full publication/share test suite passes.
+## Local Verification
 
-### Phase 2: Data optimization
-- DATA-001: FK constraints (migration 0050).
-- DATA-002/perf: GROUP BY roster query optimization.
-- **Risk:** Medium (migration). Requires orphan cleanup first.
-- **Verification:** Local D1 migration applies; roster evaluator passes.
+```bash
+bun run type-check
+bun run lint
+bun run validate:error-handling
+bun run validate
+git diff --check
+bun run validate:plan-pack -- .ai/03_plans/2026-07-10/Publisher-And-Shared-Pages
+```
 
-### Phase 3: Publisher UX redesign
-- REQ-001 through REQ-008, UX-PUB-* : wizard, cards, pagination, terminology,
-  dashboard CTA.
-- **Risk:** Medium (primary manager surface). Existing drawer retained for
-  advanced management.
-- **Verification:** Browser proof of wizard flow, card layout, mobile.
+## Stop Conditions
 
-### Phase 4: Shared link UX improvements
-- UX-001 through UX-012: header, CTA, comments, print, currency, etc.
-- **Risk:** Medium (primary client surface). Component modifications.
-- **Verification:** Browser proof of all recipient-side improvements.
-
-### Phase 5: Recipient inbox fixes
-- UX-012: dead-end fix, all-or-nothing fix.
-- **Risk:** Low.
-- **Verification:** Unit + browser proof.
-
-### Phase 6: Integration + full verification
-- Run full `bun run validate` suite.
-- Browser sweep of all surfaces.
-- Plan pack validation.
-
-## Rollback Plan
-
-### Code rollback
-- All changes are on the current branch. Git revert to pre-plan commit.
-- No feature flags needed (changes are component-level, not behind a gate).
-- **Exception:** The sidebar label change ("Publisher" → "Share") is a one-line
-  revert if terminology causes confusion.
-
-### Data rollback (migration 0050)
-- FK constraints are additive. Rollback: `ALTER TABLE ... DROP CONSTRAINT ...`.
-- The orphan cleanup (deleting orphaned rows) is irreversible but only affects
-  rows that reference non-existent projects/workspaces (already meaningless).
-- **Rollback SQL:**
-  ```sql
-  ALTER TABLE project_publications DROP CONSTRAINT fk_publications_workspace;
-  ALTER TABLE project_publications DROP CONSTRAINT fk_publications_project;
-  -- ... etc for each constraint
-  ```
-
-### Dependency rollback (qrcode)
-- If the `qrcode` package causes issues: remove import, remove component, drop
-  dependency from `package.json`. The QR code feature is optional (URL + copy is
-  the primary path).
-
-## Compatibility Window
-
-- **No breaking API changes.** All existing API response shapes are preserved.
-  Comment pagination adds optional fields (`hasMore`, `nextCursor`) — old clients
-  ignoring them still work.
-- **No breaking cookie changes.** Existing cookies keep their names/format. The
-  preview cookie is new and additive.
-- **No breaking URL changes.** `/workshop/publisher` and `/share/[token]` routes
-  are unchanged. Query params (`?wizard=`, `?preview=`) are additive.
-
-## Operations
-
-### Monitoring (existing, preserved)
-- Structured logging on all publication routes (IP-hashed).
-- Audit events for publish/rotate/revoke/recipient mutations.
-- Rate-limit events in `security_rate_limit_events`.
-- Publication events in `project_publication_events`.
-
-### New monitoring (in scope)
-- Preview-mode event (`preview_started`) for adoption tracking — uses existing
-  event infrastructure.
-
-### Support
-- No new support runbooks needed. The existing share/publication support model
-  (token rotation, password reset, recipient re-invite) is unchanged.
-- Terminology changes may require updating in-app help text and documentation —
-  handle during implementation.
-
-### Incident path
-- If a publish mutation fails: the wizard's error banner shows the message;
-  the manager can retry. The existing `runPublicationUpdate` error handling is
-  preserved.
-- If the share page fails to render: the existing `error.tsx` boundary catches it.
-- If a rate limit is hit: the existing 429 + `Retry-After` response is preserved.
-
-## Post-Release Proof (when hosted deploy is authorized)
-
-These are **not** performed by this plan but are documented for the eventual
-release:
-
-1. Apply migration 0050 to hosted D1 (`wrangler d1 migrations apply`).
-2. Verify hosted share page renders for a test publication.
-3. Verify hosted publish wizard generates a working link.
-4. Verify hosted email invitation sends and the recipient link works.
-5. Monitor rate-limit events for the first 24 hours.
-
-These steps require explicit hosted/deploy authorization beyond this plan's scope.
+Stop and replan on a concurrent shared-file edit, schema/digest mismatch,
+authorization uncertainty, unredacted diagnostic evidence, failing mapped test,
+or any request to exceed `IMPLEMENT_LOCAL`. Do not reinterpret a blocked release
+boundary as an implementation pass.

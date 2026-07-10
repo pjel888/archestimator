@@ -1,51 +1,59 @@
 # IMPLEMENTATION_PLAN.md — Canonical Execution Artifact
 
 This is the sole canonical implementation plan. Every `UNIT-*` is an execution
-unit packet runnable from bounded context. Units follow a dependency DAG; each
-layer must complete before dependents start.
+unit packet runnable from bounded context. Units follow the dependency DAG in
+`plan-pack.json`. The workstreams below are presentation and file-ownership
+groups, not implicit dependency barriers; only explicit `depends_on` edges in
+this document and the manifest establish execution dependencies.
 
 ## Status
 
-`implementation_status=NOT_STARTED`, `package_status=NOT_READY` (no ready slice
-until UNIT-001 is VERIFIED). First unit: UNIT-001.
+`implementation_status=NOT_STARTED`, `package_status=CONDITIONALLY_READY`.
+The dependency-closed `SLICE-001` contains five unaffected `READY` units:
+`UNIT-001`, `UNIT-002`, `UNIT-003`, `UNIT-006`, and `UNIT-010`. The other 18
+units are `PLANNED` because their current contracts overlap, depend on, or
+finalize work affected by Program `PUB-DELTA-01..04`; `UNIT-008` also requires a
+current durable migration-generation receipt. The exact resume point is
+`UNIT-001`. Criteria and gates remain `FAIL` until implementation evidence is
+collected. Last observed scope is `PLAN_ONLY`; action ceiling is `IMPLEMENT_LOCAL`.
 
 ## Execution DAG
 
 ```text
-Layer 0 — Security hardening (parallel-safe, disjoint files)
-  UNIT-001 body-size limits (SEC-001)
-  UNIT-002 status-code consistency (SEC-002)
-  UNIT-003 circuit breaker extraction + decision parity (SEC-003)
-  UNIT-005 snapshot reentrance fix (SEC-005)
-  UNIT-006 startup secret validation (SEC-006)
-  UNIT-007 dead code removal (SEC-007)
+Workstream A — Security hardening (serialized across shared route/repository files)
+  UNIT-001 body-size limits (SEC-001) [READY]
+  UNIT-002 status-code consistency (SEC-002) [READY]
+  UNIT-003 durable decision rate-limit authority (SEC-003) [READY]
+  UNIT-005 snapshot reentrance fix (SEC-005) [PLANNED: delta overlap]
+  UNIT-006 runtime/provider secret readiness (SEC-006) [READY]
+  UNIT-007 dead code removal (SEC-007) [PLANNED: funnel telemetry overlap]
 
-Layer 1 — Data (sequential, migration owns D1)
-  UNIT-004 comment pagination (SEC-004) [depends on nothing in L0]
-  UNIT-008 FK migration + orphan cleanup (DATA-001) [depends on nothing]
-  UNIT-009 roster GROUP BY optimization (DATA-002, PERF-002) [depends on UNIT-008]
+Workstream B — Data
+  UNIT-004 comment pagination (SEC-004) [PLANNED: recipient/comment delta overlap]
+  UNIT-008 fail-closed FK migration (DATA-001) [PLANNED: delta + migration receipt]
+  UNIT-009 roster GROUP BY optimization (DATA-002, PERF-002) [PLANNED; depends on UNIT-008]
 
-Layer 2 — Publisher UX (depends on L0/L1 for hardening, but UX is UI-only)
-  UNIT-010 terminology + sidebar label (REQ-004)
-  UNIT-011 ShareWizard (REQ-001, REQ-002) [depends on UNIT-010]
-  UNIT-012 publisher roster cards + pagination (REQ-005, REQ-006, REQ-007)
-  UNIT-013 dashboard publish CTA (REQ-008)
-  UNIT-014 preview-as-client (REQ-003) [depends on UNIT-011]
+Workstream C — Publisher UX
+  UNIT-010 terminology + sidebar label (REQ-004) [READY]
+  UNIT-011 ShareWizard (REQ-001, REQ-002) [PLANNED; depends on UNIT-010]
+  UNIT-012 publisher roster cards + pagination (REQ-005, REQ-006, REQ-007) [PLANNED; depends on UNIT-010 and UNIT-011]
+  UNIT-013 dashboard publish CTA (REQ-008) [PLANNED; depends on UNIT-011]
+  UNIT-014 preview-as-client (REQ-003) [PLANNED; depends on UNIT-011]
 
-Layer 3 — Shared link UX (depends on L0 hardening)
-  UNIT-015 share page header + status + branding (UX-002, UX-009)
-  UNIT-016 sticky decision bar + session banner fix (UX-001, UX-003)
-  UNIT-017 estimate table row-action redesign (UX-005)
-  UNIT-018 comments improvements (UX-006) [depends on UNIT-004]
-  UNIT-019 print button + currency + misc share fixes (UX-007, UX-008, UX-010, UX-011)
-  UNIT-020 password gate improvements (UX-010)
+Workstream D — Shared link UX
+  UNIT-015 share page header + status + branding (UX-002, UX-009) [PLANNED; depends on UNIT-010]
+  UNIT-016 sticky decision bar + session banner fix (UX-001, UX-003) [PLANNED; depends on UNIT-010]
+  UNIT-017 estimate table row-action redesign (UX-005) [PLANNED; depends on UNIT-010]
+  UNIT-018 comments improvements (UX-006) [PLANNED; depends on UNIT-004]
+  UNIT-019 print button + currency + misc share fixes (UX-007, UX-008, UX-010, UX-011) [PLANNED; depends on UNIT-010]
+  UNIT-020 password gate improvements (UX-010) [PLANNED; depends on UNIT-010]
 
-Layer 4 — Recipient inbox + share-page extras
-  UNIT-021 inbox dead-end + skip-bad-rows + email-mismatch (UX-012)
-  UNIT-023 mobile tree nav + JS-disabled fallback + signer-name (UX-013, UX-016, UX-019)
+Workstream E — Recipient inbox + share-page extras
+  UNIT-021 inbox dead-end + fail-closed integrity + email-mismatch (UX-012) [PLANNED]
+  UNIT-023 mobile tree nav + JS-disabled fallback + signer-name (UX-013, UX-016, UX-019) [PLANNED; depends on UNIT-010 and UNIT-017]
 
-Layer 5 — Integration
-  UNIT-022 full integration verification + browser sweep
+Workstream F — Integration
+  UNIT-022 full integration verification + receipts [PLANNED; depends on all other units]
 ```
 
 ## Critical Path
@@ -56,17 +64,22 @@ UNIT-008 (migration) → UNIT-009 (query optimization)
 UNIT-018 (comments) depends on UNIT-004 (pagination)
 ```
 
-The longest chain is: UNIT-010 → UNIT-011 → UNIT-014 → UNIT-022.
+The tied longest chains are `UNIT-010 → UNIT-011 → UNIT-012 → UNIT-022`,
+`UNIT-010 → UNIT-011 → UNIT-013 → UNIT-022`,
+`UNIT-010 → UNIT-011 → UNIT-014 → UNIT-022`, and
+`UNIT-010 → UNIT-017 → UNIT-023 → UNIT-022`. These chains describe
+explicit manifest edges only; workstream membership adds no edge.
 
 ## Unit Packets
 
 ---
 
-### UNIT-001: Body-size limits on public POST routes
+### UNIT-001: Bounded request bodies on public POST routes
 
-**Goal:** Add explicit `Content-Length` caps to all public POST routes.
+**Goal:** Enforce route-specific limits on bytes actually read, independent of
+`Content-Length`.
 **Linked requirements:** SEC-001, AC-040
-**Non-goals:** Changing route logic beyond the early body-size check.
+**Non-goals:** Changing authorization or mutation semantics after successful parse.
 **Exact paths and current symbols:**
 - `src/app/api/share/[token]/password/route.ts` — POST handler
 - `src/app/api/share/[token]/comment/route.ts` — POST handler
@@ -74,18 +87,23 @@ The longest chain is: UNIT-010 → UNIT-011 → UNIT-014 → UNIT-022.
 - `src/app/api/share/[token]/session/route.ts` — POST handler
 - `src/app/api/share/[token]/unsubscribe/route.ts` — POST handler (form-data)
 **Dependencies:** None.
-**Owned scope:** The five route files above + a shared helper.
+**Owned scope:** The five route files above + `src/lib/http/read-bounded-body.ts`.
 **Approach:**
-1. Create `src/lib/publication/body-size-limit.ts` with `assertBodySize(request, maxBytes)`
-   that reads `Content-Length` and returns `null` or a `413` Response.
-2. Call it at the top of each POST handler before `request.json()`.
-3. Limits: password 256, comment 2048, decision 4096, session 256.
-**Expected postconditions:** Oversized POST bodies return 413 before parsing.
-**Test/proof:** `tests/vitest/publication-body-size.test.ts` — send oversized body
-to each route, assert 413.
+1. Create a typed streaming reader that counts actual bytes, cancels immediately
+   above the limit, and returns bytes only after a bounded read.
+2. Reject unsupported non-identity `Content-Encoding` with 415.
+3. Decode JSON/form data from the returned bytes; never call `request.json()` or
+   `request.formData()` first.
+4. Limits: password 256 B, session 256 B, comment 2 KiB, decision 4 KiB,
+   unsubscribe 1 KiB.
+**Expected postconditions:** Oversized requests return 413 even when the length
+header is absent, invalid, truthful, or understated; chunked bodies cannot bypass.
+**Test/proof:** `bun test tests/vitest/publication-body-size.test.ts` covers every
+route, exact/over boundaries, misleading headers, chunked streams, encoding, and
+early cancellation.
 **Evidence class:** automated test.
-**Failure response:** If `Content-Length` header is absent (chunked encoding), fall
-back to reading the body with a size cap in the stream reader.
+**Failure response:** Any reader/decoder ambiguity fails closed with a typed 400,
+413, or 415 and no mutation call.
 **Checkpoint/resume:** This unit is self-contained; no intermediate checkpoint.
 
 ---
@@ -102,18 +120,29 @@ both GETs when password required and no cookie.
 
 ---
 
-### UNIT-003: Circuit breaker extraction + decision parity
+### UNIT-003: Durable decision admission authority
 
-**Goal:** Extract the in-memory circuit breaker from `comment/route.ts` into a
-shared module; apply to `decision/route.ts` POST.
+**Goal:** Make the existing D1-backed decision rate limiter the explicit
+cross-isolate authority and remove any claim that module state is global.
 **Linked requirements:** SEC-003, AC-042
-**Exact paths:** `comment/route.ts:26-74` (extract), `decision/route.ts` (apply).
+**Exact paths:** `src/app/api/share/[token]/decision/route.ts`,
+`src/lib/publication/public-repository.ts` (`checkSharedLinkDecisionRateLimit`),
+`src/app/api/share/[token]/comment/route.ts`,
+`tests/vitest/project-publication-decision.test.tsx`, and
+`tests/vitest/publication-comment-isolate-shedding.test.ts`.
 **Approach:**
-1. Create `src/lib/publication/circuit-breaker.ts` with `createPublicationCircuitBreaker(name, config)`.
-2. Move the module-level mutable state + threshold logic into the factory.
-3. Import and use in both comment and decision POST handlers.
-**Test/proof:** `tests/vitest/publication-circuit-breaker.test.ts` — simulate 5
-consecutive 500s on both routes, assert 503 + Retry-After.
+1. Preserve the durable limiter call before decision mutation and normalize its
+   status and retry metadata.
+2. Retain comment shedding in `comment/route.ts`; consolidate the current local
+   counters/pruning/open-state functions behind the route-local
+   `bestEffortIsolateFailureShedding` helper. Do not extract a shared module.
+   Document and test that isolate lifecycle resets this optional shedding state.
+3. Do not add a process-global singleton or claim cross-isolate parity from it.
+**Test/proof:** `bunx vitest run tests/vitest/project-publication-decision.test.tsx
+tests/vitest/publication-comment-isolate-shedding.test.ts` proves durable denial
+happens before mutation and two isolated route modules do not share optional
+local state. Persist the redacted receipt at
+`.ai/99_scratch/publisher/unit-003-admission.json`.
 **Evidence class:** automated test.
 
 ---
@@ -123,16 +152,25 @@ consecutive 500s on both routes, assert 503 + Retry-After.
 **Goal:** Replace the 200-cap on `loadSharedLinkPublicComments` with cursor pagination.
 **Linked requirements:** SEC-004, AC-043, AC-044
 **Exact paths:** `src/lib/publication/public-repository.ts:868`,
-`src/app/api/share/[token]/comment/route.ts` GET, `src/components/share/SharePageComments.tsx`.
+`src/app/api/share/[token]/comment/route.ts:GET`,
+`src/components/share/SharePageComments.tsx:SharePageCommentsInner,SharePageComments`,
+and `src/lib/publication/activity-helpers.ts:encodeSharedLinkActivityCursor,
+parseSharedLinkActivityCursor,decodeSharedLinkActivityCursor,
+isBeforeSharedLinkActivityCursor,sharedLinkActivityCursorFilter`.
 **Approach:**
 1. Add `loadSharedLinkPublicComments(publicationId, {cursor, limit})` returning
    `{comments, hasMore, nextCursor}`.
-2. Reuse the cursor crypto from `activity-helpers.ts`.
+2. Reuse the five named cursor helpers from `activity-helpers.ts` unchanged.
 3. Update the comment GET route to accept `?cursor=` and return pagination fields.
-4. Update `SharePageComments` to fetch more via cursor ("Load more" or infinite scroll).
+4. Update `SharePageComments` with a `Load more` button that preserves the
+   current list and disables while loading. Do not implement infinite scroll.
 **Dependencies:** None (but UNIT-018 comments UX depends on this).
-**Test/proof:** `tests/vitest/publication-comment-pagination.test.ts`.
-**Evidence class:** automated test + browser proof.
+**Test/proof:** `bunx vitest run tests/vitest/publication-comment-pagination.test.ts
+tests/vitest/project-publication-comments.test.tsx
+tests/vitest/project-publication-public-repository.test.ts`; persist the receipt
+at `.ai/99_scratch/publisher/unit-004-comment-pagination.md`.
+**Evidence class:** automated test + DOM test. The `Load more` interaction is
+covered by `project-publication-comments.test.tsx`; no browser proof is claimed.
 
 ---
 
@@ -152,71 +190,89 @@ concurrent sanitization calls, verify no ID corruption.
 
 ---
 
-### UNIT-006: Startup secret validation
+### UNIT-006: Runtime and provider secret readiness
 
-**Goal:** Validate publication secrets at module init in production.
+**Goal:** Fail release readiness when required Worker secret bindings are absent,
+while retaining request-time fail-closed readers.
 **Linked requirements:** SEC-006, AC-046
-**Exact paths:** `src/lib/publication/security.ts:100-112`.
-**Approach:** Add a module-level guard that checks
-`PUBLICATION_TOKEN_HASH_SECRET` and `PUBLICATION_TOKEN_ENCRYPTION_SECRET` at import
-time when `NODE_ENV === 'production'`. Throw if missing. Dev keeps fallback.
-**Test/proof:** `tests/vitest/publication-startup-secrets.test.ts` — verify import
-throws in production env without secrets.
+**Exact paths/symbols:**
+- `scripts/check-cloudflare-worker-readiness.ts:DEPLOYED_WORKER_SECRET_NAMES,checkCloudflareWorkerReadiness`;
+- `src/lib/publication/security.ts:readPublicationTokenEncryptionSecret,readPublicationTokenHashSecret,readPublicationAccessCookieSecret`;
+- `tests/vitest/cloudflare-worker-readiness-script.test.ts`;
+- `tests/vitest/project-publication-security.test.ts`;
+- new `tests/vitest/publication-runtime-readiness.test.ts`.
+**Approach:** Extend `bun run cf:check-readiness` for
+`PUBLICATION_TOKEN_ENCRYPTION_SECRET`, `PUBLICATION_TOKEN_HASH_SECRET`, and
+`PUBLICATION_ACCESS_COOKIE_SECRET`. Missing provider-secret names keep
+`deploymentSecretsReady` and `deploymentReady` false; each request-time reader
+throws in production when its binding/fallback is absent. Do not use a
+module-import `process.env` guard as Worker startup proof.
+**Test/proof:** run `bunx vitest run
+tests/vitest/cloudflare-worker-readiness-script.test.ts
+tests/vitest/project-publication-security.test.ts
+tests/vitest/publication-runtime-readiness.test.ts`, then
+`env -u CLOUDFLARE_WORKER_SECRET_LIST_FILE
+-u CLOUDFLARE_WORKER_SECRET_LIST_TEXT
+OUTPUT_FILE=.ai/99_scratch/publisher/unit-006-worker-readiness.json
+MARKDOWN_FILE=.ai/99_scratch/publisher/unit-006-runtime-readiness.md bun run
+cf:check-readiness`; assert `deploymentSecretsReady=false` and
+`deploymentReady=false`. Hosted binding presence remains `NOT_EVALUATED` and is
+owned by Release `UNIT-007` plus production proof.
 **Evidence class:** automated test.
 
 ---
 
-### UNIT-007: Dead code removal (events route scope only)
+### UNIT-007: Dead route and event-contract removal
 
-**Goal:** Remove `events/route.ts` (it has no consumer — confirmed dead). Remove
-`PublisherDisabledEmptyState` (dead component, never imported). Leave
-`download_attempt_blocked` enum in place for now — UNIT-019 (Layer 3) decides
-whether to wire or remove it after the Download PDF button is implemented.
-**Linked requirements:** SEC-007, AC-047 (partial — events route + disabled state)
+**Goal:** Remove the unconsumed events API, dead event type, and dead disabled state.
+**Linked requirements:** SEC-007, AC-047
 **Exact paths:** `src/app/api/share/[token]/events/route.ts` (remove),
-`src/components/workshop/publisher/PublisherEmptyState.tsx:9-20` (remove `PublisherDisabledEmptyState`).
-**DO NOT remove:** `download_attempt_blocked` from `public-repository.ts:28`,
-`d1-store.ts:93`, or the migration CHECK — UNIT-019 owns that decision.
+`src/components/workshop/publisher/PublisherEmptyState.tsx`,
+`src/lib/publication/public-repository.ts`, `src/lib/publication/d1-store.ts`.
 **Approach:**
 1. Grep for any consumer of the `events` route (`rg "api/share.*events" src/`).
    Confirm zero consumers. Remove the route file.
 2. Grep for `PublisherDisabledEmptyState` imports. Confirm zero. Remove the export.
-3. Grep for `download_attempt_blocked` emitters — if none, leave the enum in place
-   (UNIT-019 will decide).
-**Test/proof:** `tests/vitest/publication-dead-code.test.ts` — grep assertions
-for removed routes/components; verify `download_attempt_blocked` still compiles.
+3. Remove `download_attempt_blocked` from both TypeScript event unions. UNIT-008
+   removes it from the rebuilt current CHECK; migration 0014 remains immutable.
+**Test/proof:** `bun test tests/vitest/publication-dead-code.test.ts` plus
+`rg -n 'download_attempt_blocked|api/share.*events' src tests` returns only the
+intentional zero-consumer assertion.
 **Evidence class:** static review.
 
 ---
 
 ### UNIT-008: FK migration via SQLite table-rebuild pattern
 
-**Goal:** Add foreign-key constraints to the 7 publication tables using the SQLite
-table-rebuild pattern (CREATE with FKs → INSERT SELECT → DROP → RENAME → recreate
-indexes). SQLite/D1 does NOT support `ALTER TABLE ADD CONSTRAINT`.
+**Status:** `PLANNED` until `PUB-DELTA-01..04` data impacts are incorporated and
+the durable Program migration-generation artifact validates.
+**Goal:** Add foreign keys to seven publication tables with a fail-closed,
+transactional, explicit-column SQLite rebuild.
 **Linked requirements:** DATA-001, AC-048, AC-049
-**Exact paths:** `migrations/0050_publication_foreign_keys.sql` (NEW).
+**Exact paths:** `migrations/0053_publication_foreign_keys.sql` (NEW).
+**Immediate precondition:** Immediately before the first migration edit, read
+`.ai/03_plans/2026-07-10/Beta-Readiness-Program/MIGRATION_LEASE_GENERATION.json`
+and validate its canonical receipt hash, monotonic generation, current sorted
+migration-tail digest, Publisher owner package ID and manifest file/self hashes,
+and the `0053_publication_foreign_keys.sql` allocation's exact path, `unclaimed`
+status, allocation digest, allocation-set digest, and receipt digest. Any stale
+generation, tail/manifest drift, claimed slot, path mismatch, digest mismatch,
+or newly colliding migration blocks the edit; preserve consumed facts and have
+the Program reissue a new generation before retrying.
 **Approach:**
-1. Pre-migration: query for orphaned rows (`SELECT COUNT(*) FROM
-   project_publications WHERE project_id NOT IN (SELECT id FROM projects)`). If
-   any, delete them.
-2. For each of the 7 tables (`project_publications`, `shared_link_recipients`,
-   `shared_link_comments`, `shared_link_responses`, `shared_link_events`,
-   `project_publication_events`, `publication_digest_log`):
-   a. CREATE TABLE `<name>__0050` with all original columns + `REFERENCES` FKs.
-   b. INSERT INTO `<name>__0050` SELECT * FROM `<name>`.
-   c. DROP TABLE `<name>`.
-   d. ALTER TABLE `<name>__0050` RENAME TO `<name>`.
-   e. Recreate all original indexes (indexes don't survive rename).
-3. Follow the pattern established in `migrations/0040_operational_incidents.sql:42-103`.
-4. Apply to local D1.
+1. Follow the exact table order, column lists, FK actions, and CHECK change in
+   `07_DATA_DATABASE_API_NETWORK_PLAN.md`; `SELECT *` is forbidden.
+2. Preflight counts, canonical row SHA-256 digests, FK findings, indexes, and
+   triggers. Abort on any orphan; never delete, filter, or repair it.
+3. Rebuild and verify all seven tables in one transaction with FK enforcement on.
+4. Postflight asserts counts/digests plus FK/index/trigger/CHECK/default/nullability
+   parity before the transaction is accepted.
+5. Prove clean upgrade, per-edge orphan failure, mid-copy failure rollback,
+   cascade/SET NULL behavior, and reverse rebuild on disposable local D1.
 **Dependencies:** None.
-**Test/proof:** `tests/vitest/publication-fk-migration.test.ts` — apply migration,
-delete a project, verify cascade deletes publication + child rows.
+**Test/proof:** `bun test tests/vitest/publication-fk-migration.test.ts`.
 **Evidence class:** local D1 proof.
-**Risk:** 7 table rebuilds temporarily double storage. Fine for expected row
-counts. The copy is data-preserving — if the FK causes issues, a reverse rebuild
-removes it.
+**Rollback:** Tested reverse rebuild or D1 restore evidence; never `DROP CONSTRAINT`.
 
 ---
 
@@ -229,9 +285,15 @@ removes it.
 1. Rewrite `readRecipientCountsByPublicationId` to use `GROUP BY publication_id`.
 2. Rewrite `readLatestCommentAtByPublicationId` and `readLatestResponseAtByPublicationId`
    to use `MAX(created_at) ... GROUP BY`.
-3. Create `tests/perf/publisher-roster-evaluator.test.ts` seeding 10/50/100 pubs.
+3. Create `tests/vitest/perf/publisher-roster-evaluator.test.ts` seeding 10/50/100 pubs.
 **Dependencies:** UNIT-008 (migration should be applied first for clean schema).
-**Test/proof:** Performance evaluator + existing roster tests pass.
+**Test/proof:** run `bunx vitest run
+tests/vitest/perf/publisher-roster-evaluator.test.ts
+tests/vitest/publisher-roster-d1-repository.test.ts
+tests/vitest/publisher-roster-repository.test.ts
+tests/vitest/publisher-roster-filter.test.ts
+tests/vitest/publisher-roster-client.test.tsx`; persist the query-plan/budget
+receipt at `.ai/99_scratch/publisher/unit-009-roster-performance.json`.
 **Evidence class:** local D1 evaluator.
 
 ---
@@ -240,18 +302,39 @@ removes it.
 
 **Goal:** Rename sidebar "Publisher" → "Share"; update all user-facing jargon.
 **Linked requirements:** REQ-004, AC-009, AC-010
-**Exact paths:** `src/components/sidebar/MainSidebar.tsx:59`,
-all publisher/share components with jargon labels.
+**Exact user-facing source inventory:**
+- `src/components/sidebar/MainSidebar.tsx:MainSidebar`;
+- `src/components/workshop/ProjectChromeAsync.tsx:ProjectPublisherHeaderActions`;
+- `src/app/workshop/publisher/page.tsx:PublisherPage`;
+- `src/app/workshop/publisher/error.tsx:Error`;
+- `src/components/workshop/publisher/PublisherActivityFeed.tsx:PublisherActivityFeed`;
+- `src/components/workshop/publisher/PublisherRosterSkeleton.tsx:PublisherRosterSkeleton`;
+- `src/components/workshop/publisher/PublisherDrawer.tsx:PublisherDrawer`;
+- `src/components/workshop/publisher/PublisherEmptyState.tsx:PublisherDisabledEmptyState,PublisherNoRowsEmptyState`;
+- `src/components/workshop/publisher/PublisherRosterRow.tsx:PublisherRosterRow`;
+- `src/components/workshop/publisher/PublisherRosterClient.tsx:PublisherRosterClient`;
+- `src/components/share/SharePageTabs.tsx:SharePageTabs`.
 **Approach:**
-1. Change sidebar label + icon.
-2. Grep for jargon terms ("Publisher", "Publication", "Scope outline", "Sheet scope")
-   in user-facing strings (button labels, headings, breadcrumbs).
-3. Replace with plain-language equivalents per the terminology mapping in `05_UX_UI_ACCESSIBILITY_PLAN.md`.
-4. Keep internal code identifiers (variable names, file names) unchanged — only
-   user-facing strings change.
+1. Change sidebar/page `Publisher` to `Share` and `NewspaperClipping` to
+   `ShareNetwork`.
+2. Change manager-facing `Publication` to `Shared link` and roster `Sheet scope`
+   to `Estimates`.
+3. Change receiver toggles `Scope outline` to `Summary` and `Line item table` to
+   `Details`.
+4. Keep internal identifiers, types, and file names unchanged; only user-facing
+   strings and the sidebar icon change.
 **Dependencies:** None (but all UX units depend on this for consistency).
-**Test/proof:** Static grep audit + browser proof of labels.
-**Evidence class:** static review + browser.
+**Test/proof:** run `bunx vitest run tests/vitest/publisher-terminology.test.ts
+tests/vitest/main-sidebar-proposals-item.test.tsx
+tests/vitest/publisher-roster-client.test.tsx
+tests/vitest/publisher-activity-feed.test.tsx
+tests/vitest/publisher-drawer.test.tsx
+tests/vitest/project-publication-page.test.tsx`. The new terminology test parses
+the exact source allowlist above and the DOM tests assert rendered text and
+accessible names. Persist the reviewed mapping at
+`.ai/99_scratch/publisher/unit-010-terminology.md`.
+**Evidence class:** static-literal + DOM test. This copy/icon-only unit does not
+require browser automation under the repository verification guardrail.
 
 ---
 
@@ -271,8 +354,8 @@ REQ-013, REQ-014, REQ-016, AC-001 through AC-006, AC-055 through AC-068
    Success step — do NOT invent a new `RecipientQuickAdd`. The composer already
    handles email chips, send/resend/remove, and `readSharedLinkEmailDeliveryReadiness`
    degradation.
-4. Create `ShareLinkDisplay` (selectable URL + copy button + QR on desktop only per
-   REQ-013; Web Share API on mobile).
+4. Create `ShareLinkDisplay` with selectable URL, labeled Copy, and progressive
+   native Web Share. Do not add QR code or a package dependency.
 5. Wire wizard open via URL `?wizard=<projectId>&step=<n>`. Modify `page.tsx` to
    forward these params to `PublisherRosterClient`.
 6. Wire "Share" buttons (consistent verb per REQ-016) on roster cards + dashboard.
@@ -284,8 +367,8 @@ REQ-013, REQ-014, REQ-016, AC-001 through AC-006, AC-055 through AC-068
 10. The wizard handles BOTH first-publish AND republish (REQ-014: "Update link"
     opens the wizard pre-filled, not the buried drawer tab).
 **Dependencies:** UNIT-010 (terminology).
-**Test/proof:** `tests/vitest/publisher-wizard.test.tsx` + browser proof (incl.
-375px mobile, keyboard-only, screen reader).
+**Test/proof:** `bun test tests/vitest/publisher-wizard.test.tsx`; targeted browser
+proof is reserved for responsive focus movement and native Web Share fallback.
 **Evidence class:** browser-proven (interaction flow + a11y + mobile).
 
 ---
@@ -328,31 +411,28 @@ manageable projects, each with a "Share" button deep-linking to `?wizard=<id>`.
 
 ---
 
-### UNIT-014: Preview-as-client mode
+### UNIT-014: Authenticated manager preview route
 
-**Goal:** Manager can preview the interactive recipient experience.
+**Goal:** Manager previews recipient rendering without a new bearer credential.
 **Linked requirements:** REQ-003, SEC-008, AC-007, AC-008, AC-085, AC-086, AC-087
-**Exact paths:** `src/lib/publication/actions.ts` (new `createClientPreviewSession`),
-`src/lib/publication/security.ts` (preview cookie helpers),
-`src/app/share/[token]/page.tsx` (read preview cookie — UNIT-014 OWNS this change),
-`SharePageSessionBanner.tsx` or new `ClientPreviewBanner.tsx` (preview-mode banner),
-`SharePageDecision.tsx` + `SharePageComments.tsx` (disabled actions in preview mode).
+**Exact paths:** `src/app/workshop/publisher/preview/[projectId]/page.tsx` (NEW),
+the existing project-manager authorization helper and publication snapshot loader,
+`ProjectPublicationView` (explicit preview mode), and `ClientPreviewBanner.tsx`.
 **Approach:**
-1. Add `createClientPreviewSession(projectId)` server action (manager RBAC via
-   `assertProjectPublicationManager`).
-2. Add preview cookie (`ae_publication_preview_*`, HMAC-signed, 1h TTL, HttpOnly,
-   SameSite=Lax, Secure in prod).
-3. **UNIT-014 owns the `src/app/share/[token]/page.tsx` change**: read the preview
-   cookie alongside the existing session cookie, pass `previewMode` flag to
-   `<ProjectPublicationView>`.
-4. **Preview-cookie precedence (SEC-008):** if a valid `shared_link_session_*`
-   recipient cookie exists, the real session wins — preview mode does NOT activate
-   (AC-085/AC-086). Preview only activates when no valid recipient session exists.
-5. "Exit preview" clears the preview cookie (AC-087).
-6. In preview mode: render preview banner + disable submit buttons (DEC-AUTO-002).
-7. Add "Preview as client" button in wizard success step + publisher card.
+1. Resolve current Better Auth context and run `assertProjectPublicationManager`
+   for route `projectId` on every render, before loading snapshot data.
+2. Server-load the current sanitized snapshot and reuse the recipient presentation
+   with `previewMode="manager-read-only"`.
+3. Omit/disable comment and decision mutations, show the persistent banner, and
+   navigate back normally on exit.
+4. Do not create/read a preview cookie, query token, recipient invitation, or
+   public share credential. Public `/share/[token]` behavior remains independent.
+5. Add the preview link to wizard success and roster card actions.
 **Dependencies:** UNIT-011 (wizard).
-**Test/proof:** `tests/vitest/share-page-preview-mode.test.tsx` + browser proof.
+**Test/proof:** `bun test tests/vitest/publisher-manager-preview-route.test.tsx`
+covers unauthenticated, non-manager, wrong-workspace, revoked-role, route mismatch,
+and public-token/recipient-cookie-only denial; targeted browser proof covers the
+preview banner and disabled controls.
 **Evidence class:** automated test + browser.
 
 ---
@@ -435,27 +515,24 @@ arrow through rows, Enter to select).
 
 ---
 
-### UNIT-019: Print button + currency + collated-row-load-more + download_attempt_blocked decision
+### UNIT-019: Print / Save as PDF button + currency + collated-row load-more
 
-**Goal:** Visible Download PDF button; currency fix; expiry; collated-row "show more";
-resolve the `download_attempt_blocked` enum (wire or remove).
+**Goal:** Visible Print / Save as PDF button; currency fix; expiry; collated-row
+"show more".
 **Linked requirements:** UX-007, UX-008, UX-011, UX-014, SEC-007, AC-029, AC-030,
 AC-031, AC-036, AC-071, AC-072
 **Exact paths:** `SharePrintButton.tsx` (NEW), `CostDonutChart.tsx` (fix hardcoded
 symbol map at `:142`, not the `Intl.NumberFormat` at `:119`),
 `SharePageSummaryCard.tsx`, `print.css`, `SharePageTabs.tsx` (COLLATED_ROW_LIMIT area).
 **Approach:**
-1. `SharePrintButton`: visible button that calls `window.print()`.
+1. `SharePrintButton`: visible "Print / Save as PDF" button that calls
+   `window.print()`; it must not claim to download a server-generated artifact.
 2. `CostDonutChart`: replace the hardcoded `currencyCode === "PHP" ? "₱" : ...` at
    line 142 with `new Intl.NumberFormat("en-PH", { style: "currency", currency: currencyCode })`.
 3. Summary card: show expiry (consolidate with UNIT-015).
 4. Collated table: replace the "Showing first 250" dead-end with a "Show more" /
    "Load all" control (AC-071/AC-072).
-5. **`download_attempt_blocked` resolution:** If the Download PDF button should emit
-   telemetry (e.g., tracking print attempts), wire the enum. Otherwise, remove it
-   from `public-repository.ts:28`, `d1-store.ts:93`, and `events/route.ts:14` (the
-   route was removed by UNIT-007). The migration CHECK constraint stays (harmless).
-   This is the final remove-or-wire decision deferred from UNIT-007.
+5. Emit no print telemetry; UNIT-007/008 already remove the dead event contract.
 **Dependencies:** UNIT-010.
 **Test/proof:** Component test (currency) + browser proof (print + load-more).
 **Evidence class:** automated test (currency) + browser (print + load-more).
@@ -476,15 +553,16 @@ symbol map at `:142`, not the `Intl.NumberFormat` at `:119`),
 
 ### UNIT-021: Recipient inbox fixes
 
-**Goal:** Fix dead-end for expired/revoked; skip bad rows; clarify empty state; fix
-email-mismatch dead-end.
+**Goal:** Fix legitimate expired/revoked/email-mismatch dead ends while preserving
+fail-closed repository integrity.
 **Linked requirements:** UX-012, AC-037, AC-038, AC-039, AC-069
 **Exact paths:** `src/lib/repositories/recipient-proposals-repository.ts`,
 `src/components/workshop/proposals-page/ProposalRow.tsx`,
 `ProposalsEmptyState.tsx`.
 **Approach:**
-1. Repository: skip rows that fail normalization instead of failing the entire list
-   (AC-038). Change the all-or-nothing model to filter-and-continue.
+1. Repository: keep the all-or-nothing security boundary. Any malformed,
+   unnormalizable, unauthorized, or inconsistent row returns typed unavailable
+   with no partial list or metadata (AC-038).
 2. ProposalRow: show state label + "contact sender" guidance for expired/revoked
    (AC-037). The disabled "Review" button gets a tooltip/aria-label explaining why.
 3. Empty state: clarify "This inbox shows proposals sent to your email" (AC-039).
@@ -493,7 +571,9 @@ email-mismatch dead-end.
    invitation" or "ask the sender to invite {your-email}" — not just the raw error.
 5. **Preserve** the existing route-gate test (`recipient-proposals-route-gate.test.ts`).
 **Dependencies:** None.
-**Test/proof:** `tests/vitest/recipient-inbox-dead-end.test.ts` + route-gate test passes.
+**Test/proof:** `bun test tests/vitest/recipient-inbox-dead-end.test.tsx` and
+`bun test tests/vitest/recipient-proposals-route-gate.test.ts`; the malformed-row
+case asserts typed unavailable and no partial IDs/titles.
 **Evidence class:** automated test + browser.
 
 ---
@@ -508,9 +588,8 @@ decision signer-name consistency (UX-016).
 `src/app/api/share/[token]/decision/route.ts` (signer-name for declined),
 `SharePageDecision.tsx` + `SharePageDecisionConfirmDialog.tsx` (signer-name UI).
 **Approach:**
-1. Mobile tree nav (AC-070): below 1024px, provide a collapsible section accordion
-   or dropdown so recipients can navigate between estimate sections (not just a flat
-   tree with no jump nav).
+1. Mobile tree nav (AC-070): below 1024px, provide a collapsible section navigator
+   so recipients can jump between estimate sections instead of traversing a flat tree.
 2. JS-disabled (AC-081/AC-082): ensure the RSC payload includes estimate data (not
    empty client-component shells). The server component already has the snapshot;
    render the estimate table server-side. Comments/decisions show a message directing
@@ -525,43 +604,68 @@ tree context).
 
 ---
 
-### UNIT-022: Full integration verification + browser sweep
+### UNIT-022: Full integration verification
 
-**Goal:** Verify all units work together; full test suite; browser sweep.
+**Status:** `PLANNED`. It cannot become `READY` while any Program delta or
+cross-pack receipt precondition below is absent, stale, or mismatched.
+**Goal:** Verify all units work together and collect only evidence needed for the
+mapped acceptance claims.
 **Linked requirements:** All.
+**Preconditions:**
+1. A current content-addressed Publisher incorporated-delta receipt proves
+   `PUB-DELTA-01`, `PUB-DELTA-02`, `PUB-DELTA-03`, and `PUB-DELTA-04` were
+   serialized into this pack, names their exact requirement/unit/test ownership,
+   and rechecks manifest, artifact-set, scoped-diff, contract-version, validator,
+   and canonical receipt hashes. Missing or stale delta evidence keeps this unit
+   `PLANNED`.
+2. Consume the Activity incorporated-delta handoff for public comment/decision
+   accessibility. Publisher remains the exclusive UI/mutation owner; Activity
+   supplies only applicable findings and append-only event contracts. Record the
+   changed Publisher paths, exact tests, and independent verifier result.
+3. The frozen `ACTIVATION-PRODUCER-CONTRACT-v1` version and content hash are
+   available. A missing or mismatched contract yields a safe `not_available`
+   integration state rather than fabricated activation progress.
 **Approach:**
-1. Run `bun run type-check`, `bun run lint`.
-2. Run all publication/share/publisher tests.
-3. Run `bun run validate` (full suite).
-4. Browser sweep: publisher wizard flow, share page, preview mode, mobile.
-5. Run `bun run validate:plan-pack`.
+1. Run every exact focused command listed in
+   `12_TEST_AND_VALIDATION_STRATEGY.md`, then `bun run type-check`, `bun run lint`,
+   `bun run validate:error-handling`, and `git diff --check`.
+2. Run `bun run validate` because the work touches shared auth/data/UI contracts.
+3. Run only the targeted browser cases for claims not provable statically or in
+   DOM/unit tests: responsive wizard/card composition, manager preview interaction,
+   sticky decision behavior, row keyboard navigation, JS-disabled recipient
+   fallback, and print output.
+4. Run `bun run validate:plan-pack -- .ai/03_plans/2026-07-10/Publisher-And-Shared-Pages`.
+5. Emit `ACT-RECEIPT-PUBLISHER-v1` only after the Activation contract is frozen.
+   Bind the Publisher manifest hash; Activation contract version/hash;
+   `publication_created`, `recipient_opened`, `recipient_engaged`, and
+   `recipient_decided` producer paths and exact tests; the same-transaction
+   activation-outbox guarantee; retry/dead-letter semantics; deterministic
+   fixture results; and safe unavailable behavior. Missing/stale/mismatched
+   producer evidence reports `not_available`, emits no fabricated milestone,
+   and blocks Program integration/release.
+6. Emit the `BETA-P1-10` **REQUIRED** maintainability receipt. It must include a
+   caller map, pre-change characterization, extraction-versus-retention decision,
+   changed files, regression owner, exact focused tests, and independent verifier
+   result. The durable admission anchor is `UNIT-003` and
+   `tests/vitest/project-publication-decision.test.tsx`; the receipt must name
+   the exact bounded extraction or justified retention decision for that path,
+   not a nonexistent circuit-breaker test.
 **Dependencies:** All units.
 **Test/proof:** Full suite + browser sweep.
 **Evidence class:** automated test + browser.
 
 ---
 
-## Parallelism Guide
+## Execution Serialization
 
-**Layer 0 (UNIT-001 through UNIT-007):** All disjoint files. Can run in parallel
-with file-scope ownership. Serialize any shared file (e.g., if two units touch
-`public-repository.ts`).
+The manifest slice is dependency-closed, not a license for concurrent writes.
+Execute one unit at a time by default. Before every unit, refresh `git status`,
+re-read its exact paths, and acquire exclusive ownership for every file it may
+touch. Only independent read-only discovery or test analysis may run in parallel.
 
-**Layer 1 (UNIT-008, UNIT-009):** Migration must complete before query optimization.
-UNIT-004 (comment pagination) can run in parallel with Layer 1.
-
-**Layer 2 (Publisher UX):** UNIT-010 (terminology) is the gate. UNIT-011 (wizard)
-and UNIT-012 (cards) can run in parallel after UNIT-010. UNIT-013 depends on
-UNIT-011. UNIT-014 depends on UNIT-011.
-
-**Layer 3 (Share UX):** All can run in parallel after UNIT-010. UNIT-018 depends
-on UNIT-004.
-
-**Safe parallel sets:**
-- Set A: UNIT-001, UNIT-002, UNIT-003, UNIT-005, UNIT-006, UNIT-007 (Layer 0, disjoint)
-- Set B: UNIT-010, UNIT-008 (terminology + migration, disjoint)
-- Set C: UNIT-011, UNIT-012, UNIT-015, UNIT-016, UNIT-017, UNIT-019, UNIT-020, UNIT-021 (after UNIT-010, disjoint component scopes)
-
-**Serialize:**
-- Any unit touching `MainSidebar.tsx`, `WorkshopDashboard.tsx`, `page.tsx` files,
-  `package.json` (shared files — one integrator each).
+Shared route/repository files (`public-repository.ts`, share route handlers,
+`ProjectPublicationView`, `SharePageTabs.tsx`, `SharePageComments.tsx`, publisher
+roster components, workshop/share `page.tsx` files, migrations, and manifest/docs)
+are always serialized. No implementation unit edits `package.json` or the lockfile.
+UNIT-022 begins only after every dependency is verified and the workspace is
+re-read for concurrent changes.

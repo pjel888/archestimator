@@ -19,23 +19,26 @@ next-step guidance. The current buried-tab flow is replaced.
   copy/send/preview actions.
 - **Evidence class:** browser-proven (Playwright/manual interaction proof).
 
-### REQ-002: Prominent share-link display with copy and QR
+### REQ-002: Prominent share-link display and device-native transfer
 **Source:** UX-PUB-06
 **Outcome:** The generated `/share/<token>` URL is displayed as selectable text
-with a prominent copy button and optional QR code, not just a hidden icon action.
+with a prominent copy button and native Web Share when supported. No QR feature,
+QR renderer, or new package is introduced.
 **Acceptance criteria:**
 - AC-004: The share URL is rendered as selectable text after generation.
 - AC-005: Copy button has visible success feedback (not just aria-live).
-- AC-006: A QR code option is available for mobile-to-desktop link transfer.
+- AC-006: The link can be transferred with native Web Share on supported devices,
+  with selectable text and Copy as the universal fallback.
 - **Evidence class:** browser-proven.
 
 ### REQ-003: "Preview as client" mode
 **Source:** UX-PUB-07
-**Outcome:** A manager can preview the interactive recipient experience
-(comments, decisions enabled) without needing to send themselves an email link.
+**Outcome:** A manager can preview the recipient rendering through a dedicated,
+currently authenticated manager route without minting a recipient or preview
+bearer credential. Recipient mutations are disabled in preview.
 **Acceptance criteria:**
-- AC-007: A "Preview as client" button renders the `/share/<token>` page with a
-  simulated recipient session (read-only or interactive preview mode).
+- AC-007: A "Preview as client" button opens the authenticated manager preview
+  route after project-manager RBAC is checked.
 - AC-008: Preview mode is visually distinct from the live recipient view (banner
   indicating "Preview mode").
 - **Evidence class:** browser-proven.
@@ -119,7 +122,7 @@ email delivery is not configured.
 - **Evidence class:** browser-proven.
 
 ### REQ-011: Wizard accessibility — focus, keyboard, announcements
-**Source:** GATE-UX-01, WCAG 2.1 AA (4.1.3 Status Messages, 2.4.3 Focus Order)
+**Source:** accessibility audit, WCAG 2.1 AA (4.1.3 Status Messages, 2.4.3 Focus Order)
 **Outcome:** The wizard is fully accessible: focus trap, step-change announcements,
 keyboard navigation, and focus management between steps.
 **Acceptance criteria:**
@@ -142,16 +145,14 @@ keyboard navigation, and focus management between steps.
   vertically on mobile.
 - **Evidence class:** browser-proven (375px viewport test).
 
-### REQ-013: QR code conditional on device
-**Source:** DEC-AUTO-003 (QR is for mobile-to-desktop transfer)
-**Outcome:** The QR code is shown only when it makes sense — on desktop, for
-scanning with a phone. On mobile, the QR is hidden and replaced by native share
-(Web Share API) and copy.
+### REQ-013: Device-appropriate link transfer
+**Source:** DEC-AUTO-003
+**Outcome:** The same dependency-free link controls work across devices. Native
+Web Share is progressive enhancement; selectable text and Copy always remain.
 **Acceptance criteria:**
-- AC-064: On desktop viewports, the QR code is shown as a "scan to open on another
-  device" option.
-- AC-065: On mobile viewports, the QR is hidden; a "Share link" button uses the
-  native Web Share API if available, with Copy as fallback.
+- AC-064: Desktop exposes selectable URL text and Copy without rendering a QR code.
+- AC-065: On devices with Web Share support, a "Share link" control calls the
+  native API; unsupported or rejected calls leave Copy available.
 - **Evidence class:** browser-proven (responsive).
 
 ### REQ-014: Republish path uses wizard, not buried drawer tab
@@ -209,8 +210,7 @@ your review" before, "Approved"/"Changes requested"/"Declined" after.
 ### UX-003: Prominent decision CTA
 **Source:** UX-SHR-03
 **Outcome:** The decision/action CTA (Approve/Request changes/Decline) is visible
-without scrolling to the bottom — via a sticky bar, floating button, or top-level
-placement.
+through a desktop sticky decision bar and the persistent mobile Respond anchor.
 **Acceptance criteria:**
 - AC-021: The decision CTA is reachable from above the fold or via a persistent
   UI element on desktop.
@@ -219,17 +219,18 @@ placement.
 
 ### UX-004: Consistent decision language
 **Source:** UX-SHR-04
-**Outcome:** Button labels and recorded-decision labels use consistent verbs.
-Either both say "Approve/Accepted" or both say "Approve/Approved" — not mixed.
+**Outcome:** Button and recorded-decision labels use the frozen mappings:
+"Approve"/"Approved", "Request changes"/"Changes requested", and
+"Decline"/"Declined".
 **Acceptance criteria:**
 - AC-023: Button label → badge label mapping is obvious and consistent.
 - **Evidence class:** static review + browser-proven.
 
 ### UX-005: Reduce estimate table visual noise
 **Source:** UX-SHR-05
-**Outcome:** The per-row "Ask about item" button is redesigned — moved to a
-row-click/row-select interaction, a hover action, or a less repetitive pattern.
-250 rows should not render 250 buttons.
+**Outcome:** Replace the per-row "Ask about item" button with row selection, a
+roving-tabindex keyboard model, and a selected-row indicator. A 250-row table
+does not render 250 action buttons.
 **Acceptance criteria:**
 - AC-024: The estimate table does not render a visible action button on every row
   by default.
@@ -248,14 +249,14 @@ future addition.
 - AC-028: Comment list does not use a fixed-height nested scroll container.
 - **Evidence class:** browser-proven.
 
-### UX-007: Download/Print proposal button
+### UX-007: Print / Save as PDF proposal button
 **Source:** UX-SHR-23, NEW-01
-**Outcome:** A visible "Download PDF" / "Print proposal" button triggers the
-browser print path with clear labeling (not just relying on the user knowing to
-Ctrl+P). The existing `print.css` and print-package rendering are preserved and
-improved.
+**Outcome:** A visible "Print / Save as PDF" button triggers the browser print
+path with clear labeling (not just relying on the user knowing to Ctrl+P). It
+does not claim to download a server-generated PDF artifact. The existing
+`print.css` and print-package rendering are preserved and improved.
 **Acceptance criteria:**
-- AC-029: A "Download PDF" or "Print proposal" button is visible on the share page.
+- AC-029: A "Print / Save as PDF" button is visible on the share page.
 - AC-030: Clicking it triggers `window.print()` or equivalent with the print
   package rendered.
 - **Evidence class:** browser-proven.
@@ -297,12 +298,14 @@ locale-aware formatting for any currency code, not just PHP/USD.
 ### UX-012: Recipient inbox dead-end fix
 **Source:** UX-PROP-01, UX-PROP-02, UX-PROP-03, UX-PROP-04
 **Outcome:** Expired/revoked proposals in the inbox show their state with a
-"contact sender" path. The all-or-nothing failure model skips bad rows. The
+"contact sender" path. Repository integrity remains fail-closed: a malformed or
+unauthorized row produces a typed unavailable result and no partial list. The
 empty state explains the inbox is recipient-only. The email-mismatch dead-end
 (`not-a-recipient`) provides a recovery path.
 **Acceptance criteria:**
 - AC-037: Expired/revoked proposals show state + "contact sender" guidance.
-- AC-038: A single bad row does not blank the entire inbox.
+- AC-038: A malformed, unnormalizable, or unauthorized row returns the typed
+  unavailable state and exposes no partial recipient metadata.
 - AC-039: Empty state clarifies the inbox is for received proposals.
 - AC-069: The `not-a-recipient` error (signed-in email ≠ invited email) shows
   guidance: "Open the link from your email invitation" or "ask the sender to
@@ -355,7 +358,7 @@ decline) capture a signer name; revision_requested is advisory and does not.
 - **Evidence class:** automated test (decision route) + browser-proven.
 
 ### UX-017: Row-click keyboard model (no tab trap)
-**Source:** UX-005, GATE-UX-01 (keyboard accessibility)
+**Source:** UX-005, accessibility audit (keyboard accessibility)
 **Outcome:** The row-click select pattern (UNIT-017) does not create a keyboard
 tab trap. Instead of making every row `tabIndex=0` (250 tab stops), use a roving-
 tabindex model: one tab stop per table, arrow keys to move between rows, Enter to
@@ -366,7 +369,7 @@ select.
 - **Evidence class:** browser-proven (keyboard-only test).
 
 ### UX-018: Sticky decision bar — accessibility and non-occlusion
-**Source:** UX-003, GATE-UX-01
+**Source:** UX-003, accessibility audit
 **Outcome:** The sticky decision bar is discoverable by screen readers and does not
 obscure content at the bottom of the page.
 **Acceptance criteria:**
@@ -409,14 +412,16 @@ action, not a concatenated string of all publications' states.
 
 ## SEC — Security/Privacy Requirements
 
-### SEC-001: Explicit body-size limits on public POST routes
+### SEC-001: Stream-enforced body-size limits on public POST routes
 **Source:** FN-03
-**Outcome:** All public POST routes (`password`, `comment`, `decision`, `session`,
-`unsubscribe`, `events`-if-kept) enforce an explicit `Content-Length` cap before
-parsing.
+**Outcome:** All retained public POST routes (`password`, `comment`, `decision`,
+`session`, `unsubscribe`) use a shared bounded stream reader before parsing. The
+reader never trusts `Content-Length`; it rejects unsupported content encodings
+and stops reading as soon as the route-specific byte limit is exceeded.
 **Acceptance criteria:**
-- AC-040: Each public POST route rejects bodies exceeding a defined limit with 413,
-  including the `unsubscribe` form-data route.
+- AC-040: Each retained public POST route rejects oversized bodies with 413 for
+  absent, invalid, understated, or truthful `Content-Length`, including chunked
+  requests and the explicitly limited unsubscribe form-data route.
 - **Evidence class:** automated test (route handler test).
 
 ### SEC-002: Status-code consistency for password-required
@@ -428,12 +433,15 @@ is required and the access cookie is absent.
   other routes).
 - **Evidence class:** automated test.
 
-### SEC-003: Circuit breaker on decision POST
+### SEC-003: Durable decision overload authority
 **Source:** FN-05
-**Outcome:** The decision POST route has the same in-memory circuit breaker as
-comment POST (4 consecutive 5xx or >50% over 4 samples → 503 for 2min).
+**Outcome:** The existing D1-backed decision rate limiter remains the authoritative
+cross-isolate admission control. Optional isolate-local failure shedding may reduce
+load in one isolate, but is best effort and never claimed as global protection.
 **Acceptance criteria:**
-- AC-042: Decision POST opens circuit breaker under the same conditions as comment.
+- AC-042: Decision POST consults the durable limiter before mutation, returns its
+  denial status and retry metadata consistently, and tests prove isolate-local
+  state is not treated as cross-isolate authority.
 - **Evidence class:** automated test.
 
 ### SEC-004: Comment pagination
@@ -454,46 +462,39 @@ data corruption.
 - AC-045: No module-level mutable state in snapshot sanitization.
 - **Evidence class:** static review + unit test (concurrent sanitization).
 
-### SEC-006: Startup validation for publication secrets
+### SEC-006: Runtime/provider readiness for publication secrets
 **Source:** FN-11
-**Outcome:** Publication token/password secrets are validated at module init
-(production throws if missing), not deferred to first request.
+**Outcome:** `bun run cf:check-readiness` and the provider secret readiness path
+verify required publication secret bindings before a Worker release. Request-time
+secret readers remain fail-closed for runtime defense; no module-import
+`process.env` assertion is used as a Worker startup guarantee.
 **Acceptance criteria:**
-- AC-046: Missing production secrets cause a startup error, not a request-time error.
-- **Evidence class:** automated test (module init in production env).
+- AC-046: Missing or invalid required bindings fail the explicit release readiness
+  command, while request-time readers still reject absent bindings.
+- **Evidence class:** automated readiness-script test + request-time unit test.
 
 ### SEC-007: Dead code cleanup — events route and download_attempt_blocked
 **Source:** FN-01, FN-02, G.5
-**Outcome:** The `events/route.ts` is either wired to a real consumer (client
-telemetry) or removed. The `download_attempt_blocked` event type is either
-emitted by the new "Download PDF" button or removed from the enum.
-**Note:** The `download_attempt_blocked` enum value exists in **three** places:
-`public-repository.ts:28` (`ProjectPublicationEventType`), `d1-store.ts:93`
-(`PublicationEventType`), and `migrations/0014:44` (the `event_type` CHECK
-constraint). Removing the code enum requires updating all three. The migration
-CHECK constraint cannot be altered without a table rebuild (same pattern as
-DATA-001) — but leaving the CHECK in place while removing the code enum is safe
-(the DB allows a value the code no longer produces). The decision to remove vs
-wire is deferred to UNIT-019 (Download PDF button) which runs in Layer 3, AFTER
-UNIT-007 (Layer 0). To avoid a layer race, UNIT-007 leaves the enum in place and
-UNIT-019 makes the final remove-or-wire decision.
+**Outcome:** Remove the unconsumed `events/route.ts`, remove
+`download_attempt_blocked` from both TypeScript event unions, and remove it from
+the rebuilt `shared_link_events` CHECK in migration 0053. The print control does
+not create client telemetry.
 **Acceptance criteria:**
 - AC-047: No unused API routes or dead event types remain in the publication surface.
 - **Evidence class:** static review (grep for consumers).
 
-### SEC-008: Preview-cookie precedence over recipient session
-**Source:** DEC-AUTO-002, FN (manager-who-is-also-recipient edge case)
-**Outcome:** If a manager who is ALSO a recipient has both a preview cookie and a
-real recipient session cookie, the real session takes precedence. Preview mode
-only activates when there is no valid real recipient session. This prevents a
-legitimate recipient from having their comment/decision ability silently disabled
-by clicking "Preview."
+### SEC-008: Authenticated manager preview isolation
+**Source:** DEC-AUTO-001, DEC-AUTO-002, DEC-AUTO-009
+**Outcome:** Preview lives under `/workshop/publisher/preview/[projectId]`, uses the
+current Better Auth manager session, and rechecks project-manager RBAC on every
+read. It never reads or writes recipient-session or preview bearer cookies.
 **Acceptance criteria:**
-- AC-085: When a valid `shared_link_session_*` cookie exists, preview mode does not
-  activate (real session wins).
-- AC-086: Preview mode activates only when no valid recipient session exists.
-- AC-087: The preview cookie is cleared when the manager exits preview mode
-  (explicit "Exit preview" action).
+- AC-085: An unauthenticated, wrong-workspace, or non-manager request cannot read
+  preview data even if it possesses a public share or recipient-session cookie.
+- AC-086: Every preview render resolves the current user and reruns
+  `assertProjectPublicationManager` before loading the publication snapshot.
+- AC-087: Exiting preview navigates back to the manager surface; no preview
+  credential exists to clear, persist, or compete with a recipient session.
 - **Evidence class:** automated test + browser-proven.
 
 ### SEC-009: Unsubscribe surface explicitly scoped
@@ -513,9 +514,9 @@ the unsubscribe surface is in scope — only the body-size hardening.
 
 ### DATA-001: Foreign key constraints on publication tables
 **Source:** FN-09
-**Outcome:** Add `REFERENCES` foreign keys with `ON DELETE CASCADE` to the
-publication/shared-link tables where the parent is `project_publications` or
-`projects`/`workspaces`. This prevents orphaned rows.
+**Outcome:** Rebuild publication/shared-link tables with explicit columns and
+`REFERENCES ... ON DELETE CASCADE`. The migration fails closed on any orphan and
+never deletes or silently repairs source rows.
 **Acceptance criteria:**
 - AC-048: Migration adds FK constraints; existing data passes constraint check.
 - AC-049: Deleting a project cascades to its publications and shared-link rows.

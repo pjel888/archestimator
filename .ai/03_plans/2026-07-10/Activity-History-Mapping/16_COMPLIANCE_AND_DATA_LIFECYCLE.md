@@ -1,11 +1,12 @@
 # 16 - Compliance, Data Lifecycle, And Operational Gaps
 
-> **This document addresses facets identified by best-practice research that the original plan pack did not cover. These are cross-cutting concerns that affect the data model, acceptance criteria, and operational readiness.**
+Scope: actor lifecycle, privacy obligations, tenant isolation, durable delivery,
+retention, and operational readiness.
 
 ## 1. Actor Identity Lifecycle (CRITICAL)
 
 ### Current state
-`actor_user_id` is a **loose TEXT column with no foreign key** (`migrations/0025:19`). This is actually the **correct immutable-snapshot design** — the log row is frozen at event time, not a live reference that would break if the user is deleted. But this deliberate design choice is undocumented.
+`actor_user_id` is a **loose TEXT column with no foreign key** (`migrations/0025_reusable_source_insert_support.sql:19`). This is actually the **correct immutable-snapshot design** — the log row is frozen at event time, not a live reference that would break if the user is deleted. But this deliberate design choice is undocumented.
 
 ### Gap
 The plan pack never discusses what happens to the log when an actor is deleted, anonymized, or merges accounts.
@@ -21,7 +22,8 @@ The codebase already redacts emails to hashes for the client feed (`activity-sec
 
 ### Required addition
 - **Document** the loose-TEXT `actor_user_id` as a deliberate immutable-snapshot choice (DEC-AUTO-006).
-- **Add AC-018:** "After an actor's profile is deleted, all historical events still render with a non-null, non-PII actor label."
+- **AC-022:** after an actor profile is deleted or anonymized, historical events
+  still render with a non-null, non-PII actor label and retain legal-hold state.
 - **Cross-reference** the privacy/erasure workflow pack at `.ai/03_plans/2026-07-07/2026-07-07-privacy-request-operations-and-erasure-workflow/`.
 
 ## 2. Philippine DPA / NPC Compliance (CRITICAL)
@@ -83,8 +85,9 @@ The log is "append-only" and idempotent, but never addresses tamper-evidence or 
 Several write paths (`reusable-sources`, `apply.ts`, `express-promotion`) insert the event row **outside** the atomic mutation batch. If the second insert fails, the mutation succeeds but history is silently lost. The unique `correlation_id` index catches duplicates but not **missing** writes.
 
 ### Required additions
-- **Add RISK-008:** "Non-atomic event writes can drop history on partial failure with no alert."
-- **Add AC-019:** "A metric or periodic reconciliation counts expected-vs-actual history rows for a sample of mutations, alerting on drop via the ops-webhook path."
+- **RISK-008:** non-atomic event writes can drop history on partial failure.
+- **AC-024:** same-D1 batch/outbox plus reconciliation prevents or repairs the
+  crash window, with idempotent retry and a redacted operator receipt.
 - The existing `publication_digest_log` (logs delivery attempts) is a good precedent — generalize that pattern to history writes.
 
 ## 7. Notification Allowlist (HIGH)
@@ -131,10 +134,19 @@ Record as conscious decision: "Activity modal and project feed are desktop-first
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| REQ-010 | Requirement (DEFERRED) | P2 | Activity log export (CSV/JSON/PDF) |
+| REQ-016 | Requirement (DEFERRED) | P2 | Activity log export (CSV/JSON/PDF) |
 | DEC-AUTO-006 | Decision | — | Document loose-TEXT actor_user_id as deliberate immutable-snapshot |
 | DEC-AUTO-007 | Decision | — | Reject Merkle chaining for MVP; record R2-snapshot alternative |
 | RISK-008 | Risk | OPEN | Non-atomic event writes can silently drop history |
-| AC-018 | Criterion | — | Deleted actor events still render with non-null fallback label |
-| AC-019 | Criterion | — | Event-drop detection metric exists and alerts |
-| AC-020 | Criterion | — | Multi-tenant isolation contract test passes |
+| AC-022 | Criterion | — | Deleted actor events and retention/legal-hold fixtures remain safe and useful |
+| AC-023 | Criterion | — | Multi-tenant isolation contract test passes |
+| AC-024 | Criterion | — | Durable event delivery and reconciliation pass crash/retry tests |
+
+## Integrated Execution Ownership
+
+`UNIT-012` owns executable actor-lifecycle, retention, workspace-isolation, and
+durable-delivery work at the existing activity repository/action boundaries and
+`src/lib/compliance/retention-core.ts`. It must define TTL, legal hold,
+anonymization/purge, export/erasure interaction, scheduled reconciliation,
+backoff, retry, and cleanup tests. `REQ-016` export remains deferred and has no
+implementation-ready claim in this slice.

@@ -1,7 +1,7 @@
 # 06 — Architecture And Technical Design
 
-This document specifies the component, server-client boundary, state management,
-and integration architecture for the redesigned Publisher and Shared Link surfaces.
+Scope: component boundaries, server/client ownership, state management, and
+integration architecture for Publisher and Shared Link surfaces.
 
 ## Architecture Principles
 
@@ -62,7 +62,7 @@ src/app/share/[token]/page.tsx (RSC, existing)
        │    │    ├─ <SharePageComments> (FIX — dates, author badges, page scroll)
        │    │    └─ <SharePageDecision> (FIX — sticky CTA)
        │    └─ <StickyDecisionBar> (NEW — desktop floating CTA)
-       └─ <SharePrintButton> (NEW — visible Download PDF button)
+       └─ <SharePrintButton> (NEW — visible Print / Save as PDF button)
 ```
 
 ## Server-Client Boundary
@@ -86,46 +86,25 @@ send/resend/remove, delivery-readiness degradation) — it does NOT invent a new
 
 ### Wizard URL state — page.tsx ownership
 
-The wizard opens via `?wizard=<projectId>&step=<n>` URL params. This requires
-`src/app/workshop/publisher/page.tsx` to forward the wizard params to
-`PublisherRosterClient` (or the client reads `useSearchParams()` directly). This
-file is currently listed under "coordinate" in blast-radius. UNIT-011 owns this
-specific `page.tsx` change (forwarding the `wizard`/`step` params). This is the
-only modification to `page.tsx` — no data-fetching changes.
+The wizard opens via `?wizard=<projectId>&step=<n>` URL params.
+`src/app/workshop/publisher/page.tsx` forwards both params to
+`PublisherRosterClient`. UNIT-011 owns this isolated `page.tsx` change; data
+fetching remains unchanged.
 
-### Preview as client — new server action
+### Preview as client - protected manager route
 
 ```text
-createClientPreviewSession(projectId)
-  → assertProjectPublicationManager(projectId) [RBAC]
-  → resolve latest publication for project
-  → decrypt token → /share/<token>
-  → set a preview-mode marker cookie (distinct from real recipient session)
-  → return { clientLinkPath, previewToken }
+/workshop/publisher/preview/[projectId]
+  -> resolve current Better Auth context
+  -> assertProjectPublicationManager(projectId) [RBAC on every render]
+  -> resolve latest publication and sanitized snapshot server-side
+  -> render ProjectPublicationView in manager-read-only preview mode
 ```
 
-The preview marker cookie is a signed cookie that the share page reads to render
-a "Preview mode" banner and enable comment/decision UI in a non-persistent mode.
-Preview-mode actions are **not persisted** (no real comments/decisions are written).
-
-**Preview-cookie precedence (SEC-008):** If a valid `shared_link_session_*`
-recipient cookie exists, the real session takes precedence — preview mode does
-NOT activate. This prevents a manager who is also a recipient from having their
-real comment/decision ability disabled. Preview mode activates only when no valid
-recipient session exists. The preview cookie is cleared via an explicit "Exit
-preview" action.
-
-**Share page modification (UNIT-014 owns):** `src/app/share/[token]/page.tsx`
-must read the preview cookie alongside the existing session cookie and pass a
-`previewMode` flag to `<ProjectPublicationView>`. This is a read-only addition
-(cookie read + prop pass); no data-fetching changes. UNIT-014 owns this specific
-`page.tsx` change.
-
-**Alternative (DEC-AUTO-001):** Instead of a preview cookie, open `/share/<token>`
-with a query param `?preview=1` that the share page reads. Simpler, but the share
-page's server component would need to conditionally enable recipient features
-based on this param — which blurs the security boundary. The cookie approach is
-cleaner because it's manager-auth-gated and doesn't expose a public URL pattern.
+The route creates no preview cookie, query token, recipient invitation, or public
+share credential. Comment and decision mutations are omitted or disabled. Exit
+is ordinary navigation back to the manager surface. Public `/share/[token]`
+continues to evaluate only its existing recipient authorization.
 
 ### Shared link — API route changes (hardening only)
 
@@ -133,11 +112,12 @@ cleaner because it's manager-auth-gated and doesn't expose a public URL pattern.
 |---|---|---|
 | `comment/route.ts` GET | Return 423 not 401 for password-required | SEC-002 |
 | `decision/route.ts` GET | Return 423 not 401 for password-required | SEC-002 |
-| `decision/route.ts` POST | Add circuit breaker (parity with comment) | SEC-003 |
-| All public POST routes | Add explicit Content-Length cap (413) | SEC-001 |
+| `decision/route.ts` POST | Preserve durable D1 limiter as admission authority | SEC-003 |
+| All retained public POST routes | Bounded stream read before parsing (413/415) | SEC-001 |
 | `comment/route.ts` GET | Add cursor pagination | SEC-004 |
 
-No new API routes. The `events/route.ts` is either wired or removed (SEC-007).
+The public `events/route.ts` is removed. The only new route is the authenticated
+manager preview page under `/workshop` (SEC-007/SEC-008).
 
 ## State Management
 
@@ -178,8 +158,8 @@ User clicks "Share a project" or "Share project" on a draft card
     → on success: query.refetch() + router.refresh()
   → Step 4: Success
     → ShareLinkDisplay shows /share/<token>
-    → RecipientQuickAdd: addSharedLinkRecipients(...)
-    → ClientPreviewLink: createClientPreviewSession(...) → opens /share/<token>?preview
+    → RecipientEmailComposer: addSharedLinkRecipients(...)
+    → Preview link opens /workshop/publisher/preview/<projectId>
   → Done: wizard closes, roster refreshes
 ```
 

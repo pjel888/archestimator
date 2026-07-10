@@ -1,6 +1,11 @@
 # 14 - Accessibility Audit (GATE-UX-01)
 
-This document audits accessibility across all activity-history UI surfaces against GATE-UX-01 standards: keyboard order/shortcuts, focus entry/return, semantic names/roles/states, screen-reader announcements, contrast, zoom/reflow, motion, touch target, and mobile/responsive behavior.
+Manifest source: `SRC-009`. Requirement: `REQ-011`. Criterion: `AC-020`.
+Execution: `UNIT-010`. Proof: `TEST-017`.
+
+Audit scope: keyboard order and shortcuts, focus entry/return, semantic
+names/roles/states, screen-reader announcements, contrast, zoom/reflow, motion,
+touch targets, and responsive behavior across activity-history UI surfaces.
 
 ## Surface 1: Activity History Modal
 
@@ -31,6 +36,9 @@ This document audits accessibility across all activity-history UI surfaces again
 | **P2** | Sub-10px font sizes (text-[8px], text-[9px]) | 738, 655, 773 | Minimum 10px for body text per zoom/reflow. |
 
 ## Surface 2: Row Details Modal
+
+**Ownership:** Audit observation only for this pack revision. It is not in the
+named UNIT-010 write lease and needs a separately assigned owner before editing.
 
 **File:** `src/components/workshop/estimate-sheet/activity-history.tsx` (1202-1388)
 
@@ -91,6 +99,9 @@ This document audits accessibility across all activity-history UI surfaces again
 
 ## Surface 5: Share Page Comments
 
+**Ownership:** Audit observation only. `Publisher-And-Shared-Pages` exclusively
+owns this component and carries any fix plus proof in its incorporated-delta receipt.
+
 **File:** `src/components/share/SharePageComments.tsx`
 
 ### Implemented
@@ -109,6 +120,9 @@ This document audits accessibility across all activity-history UI surfaces again
 | **P2** | No `aria-label` per comment `<li>` | 572-585 | Add per-comment label for SR skim-ability. |
 
 ## Surface 6: Share Page Decision
+
+**Ownership:** Audit observation only. `Publisher-And-Shared-Pages` exclusively
+owns public decision UI and carries any fix plus proof in its incorporated-delta receipt.
 
 **Files:** `src/components/share/SharePageDecision.tsx` + `SharePageDecisionConfirmDialog.tsx`
 
@@ -144,13 +158,17 @@ This document audits accessibility across all activity-history UI surfaces again
 
 ## UNIT-010 (new): Accessibility Hardening For Activity Surfaces
 
-**Priority:** P1 for activity surfaces 1-3 (workshop-facing), P2 for surfaces 4-6 (client-facing, already stronger).
+**Priority:** P1 for Activity-owned surfaces 1 and 3, plus the Activity-owned
+shared feed in surface 4. Surfaces 5-6 are Publisher handoff observations and are
+not in UNIT-010's write scope.
 
 **Scope:**
 1. Add explicit focus management to `useNativeModalDialog` for P0.
 2. Add roving tabindex + ArrowUp/Down to scope tree for P1.
-3. Pass `idBase` to TabStrip in RowDetailsModal.
-4. Add `role="columnheader"`/`role="row"` to project activity ledger (or use real `<table>`).
-5. Add `role="status"` to shared-link partial-activity banner.
-6. Remove wrapper `aria-live` from comments `<ul>`.
-7. Upgrade contrast and minimum font sizes.
+3. Add `role="columnheader"`/`role="row"` to project activity ledger (or use real `<table>`).
+4. Add `role="status"` to shared-link partial-activity banner.
+5. Upgrade contrast and minimum font sizes within those three owned surfaces.
+
+The RowDetailsModal observation remains documented but outside the named UNIT-010
+write lease. The comments and decision observations transfer to Publisher; its
+delta/receipt is the proof boundary and Activity must not duplicate those edits.

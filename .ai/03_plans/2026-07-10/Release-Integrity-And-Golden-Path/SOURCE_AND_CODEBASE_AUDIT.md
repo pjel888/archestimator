@@ -2,7 +2,7 @@
 
 ## Evidence Rules
 
-Source inspection is authoritative for implementation reality; hosted controls and deployments require hosted evidence. The planning audit is a structured source, not execution proof. Every observation below was collected on 2026-07-10 from commit `081a0757a` in a dirty shared worktree and must be refreshed when a stale trigger fires.
+Source inspection is authoritative for implementation reality; hosted controls and deployments require hosted evidence. The planning audit is a structured source, not execution proof. The original observations were collected on 2026-07-10 from commit `081a0757a` and rechecked during this improvement run in a dirty shared worktree. `plan-pack.json.baseline.head` is the immutable refresh point; any later HEAD or stale trigger requires another scoped check.
 
 ## Source Ledger
 
@@ -14,17 +14,22 @@ Source inspection is authoritative for implementation reality; hosted controls a
 | `SRC-004` | `playwright.config.ts:63`; `e2e/shared-link-receiver.spec.ts:8`; `e2e/estimates-crud-latency.spec.ts:36`; `e2e/*.spec.ts` | Current source observation | Browser coverage is shallow and environment-gated; no deterministic 20-step golden path exists. |
 | `SRC-005` | `scripts/check-cloudflare-release-gates.ts`; `scripts/check-route-transition-readiness.ts`; `scripts/check-support-monitoring-readiness.ts`; `scripts/check-production-observability-proof.ts` | Current source observation | Release evidence collectors exist but do not form a single canonical manifest for the exact deploy SHA. |
 | `SRC-006` | `tests/vitest/ci-workflow-pinning.test.ts`; `tests/vitest/cloudflare-release-gates-script.test.ts`; `tests/vitest/route-transition-readiness-script.test.ts` | Current test observation | Useful contract tests exist and must be extended rather than bypassed. |
+| `SRC-007` | `AGENTS.md`; all nine `.ai/03_plans/2026-07-10/*/plan-pack.json` manifests | Current authority and dependency observation | Bound Cloudflare data-resource authority is distinct from GitHub, out-of-scope staging, and production-deploy authority; cross-pack integration uses validated receipts. |
+| `SRC-008` | `migrations/0052_corporate_accounts.sql`; `src/lib/admin/corporate-account-{actions,repository}.ts`; `.ai/03_plans/2026-07-11/Corporate-Accounts/` | Concurrent candidate-dependency observation | Corporate source is present but its separate plan folder has no manifest and contradictory role assumptions. It is outside the nine-pack registry and may enter a candidate only with a validated receipt; otherwise release truth records exact exclusion. |
 
 ## Explicit Assumptions
 
-- `ASSUMP-001`: workflow source can be repaired locally, while GitHub rulesets,
-  required-check activation, environment protection, and retention remain live
-  discovery/authorization work under `AUTH-001`; the plan does not assume those
-  hosted controls currently exist.
+- `ASSUMP-001`: workflow source can be repaired locally and GitHub state can be
+  discovered read-only; GitHub ruleset, required-check, environment, retention,
+  secret, and scheduled-workflow mutations remain under `AUTH-001`. The plan does
+  not assume those controls exist, and unavailable readback is `UNKNOWN`.
 - `ASSUMP-002`: an isolated staging surface can run namespaced deterministic
-  seed/cleanup and the hosted browser/smoke matrix without touching production;
-  if live discovery cannot prove that surface and cleanup boundary, the hosted
-  unit stays blocked rather than falling back to local evidence.
+  seed/cleanup and the hosted browser matrix without touching production. The
+  plan does not assume that surface exists; resource mutation or execution stays
+  under `AUTH-002`, and absence blocks the unit instead of falling back locally.
+- `ASSUMP-003`: production deployment is a distinct externally visible action
+  under `AUTH-003`; standing authority for Cloudflare resources bound in
+  `wrangler.jsonc` does not silently authorize a Worker release or smoke against users.
 
 ## Official Reference Constraints
 
@@ -42,8 +47,12 @@ Accessed 2026-07-10; these sources define vendor capabilities, not Archestimator
 2. `next.config.ts` permits build-time TypeScript errors. This is tolerable only when a separate typecheck cannot be bypassed.
 3. The Playwright inventory covers auth, latency, shell streaming, landing, route transitions, a fixture-gated shared link, library smoke, and route error boundaries. It does not prove access request through recipient decision and owner follow-up.
 4. The shared-link spec requires manually supplied publication and recipient secrets. That is not deterministic CI setup.
-5. Existing release scripts aggregate substantial local and hosted evidence, but README facts and migration counts drift independently. Current migrations extend through `migrations/0049_ops_run_events.sql`, while README text remains older.
+5. Existing release scripts aggregate substantial local and hosted evidence, but README facts and migration counts drift independently. The current workspace migration tail is the concurrent untracked `migrations/0052_corporate_accounts.sql`; release truth must inventory the exact settled workspace rather than rely on older README counts or a superseded migration-generation receipt.
 6. Local `bun run validate` and pack validation can prove repository readiness only. They cannot prove a GitHub ruleset, deployment environment, hosted smoke, or artifact retention is active.
+7. Concurrent landing work adds a private no-store display hint for session-aware
+   CTA copy while preserving protected-route authorization. This changes the
+   golden-path entry state and candidate input set, but its source/tests are not
+   browser, staging, GitHub, or deployment proof.
 
 ## Target State
 
@@ -54,25 +63,57 @@ Accessed 2026-07-10; these sources define vendor capabilities, not Archestimator
 - The critical merge path is Chromium desktop; release proof adds WebKit mobile review/share; the broader matrix is scheduled.
 - Failure artifacts include traces, screenshots, console/network summaries, test results, build logs, and the redacted seed/cleanup report.
 - `release-readiness.json` and its Markdown rendering list source SHA, migration, flags, routes, test inventory, active CI, scans, smoke, recovery, operating-contract evidence, blockers, timestamps, and decision.
+- Cross-pack inputs are versioned manifest/handoff receipts, never agent-status or conversation dependencies.
+- Read-only hosted discovery, GitHub mutation, isolated staging execution, and production deployment have separate packets and results.
+
+## Official Release-Control Constraints
+
+Accessed 2026-07-10; these sources define provider behavior, not current hosted proof.
+
+- Cloudflare [Versions and Deployments](https://developers.cloudflare.com/workers/versions-and-deployments/) makes a version upload distinct from a deployment. Candidate identity therefore covers every upload input, not only `.open-next`, and promotion records the returned Worker version ID from the exact verified CI workspace.
+- Cloudflare [rollbacks](https://developers.cloudflare.com/workers/versions-and-deployments/rollbacks/) create a new deployment with 100% traffic to an eligible retained version. They do not roll back D1, R2, KV, Durable Object, or other resource state; incompatible bindings or migrations can make a code rollback unavailable, so data/schema recovery remains separate.
+- OpenNext's [Cloudflare CLI](https://opennext.js.org/cloudflare/cli) `upload` command consumes an existing build while performing adapter-owned cache population and deployment-mapping work before `wrangler versions upload`. Direct Wrangler upload is not equivalent unless an installed-version contract proves those phases are unnecessary.
+- GitHub's [secret-scanning REST API](https://docs.github.com/en/rest/secret-scanning/secret-scanning) supports `hide_secret=true`; discovery must use it, paginate, and sanitize responses before stdout, logs, or persistence.
+- GitHub's [required-check troubleshooting](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks) and [ruleset rule reference](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets) require check-name/source-app precision. A check must have completed successfully in the repository within the preceding seven days before it is eligible to be required.
 
 ## Drift And Contradictions
 
 | Contradiction | Resolution |
 | --- | --- |
 | README says CI is active; repository has disabled workflows. | Source layout wins. Update README only after hosted evidence, and render volatile facts from the manifest. |
-| A workflow file can exist without being required. | Hosted ruleset/API evidence is required separately under `AUTH-001`. |
+| A workflow file can exist without being required. | Local source is `AC-001`; authorized GitHub before/after readback is separate `AC-009`. |
 | A green local Playwright run can differ from Cloudflare parity. | Release evidence must identify URL, deploy SHA, fixture ID, browser, and hosted route checks. |
 | Existing route smokes can pass while the product journey fails. | The golden path owns one cross-domain transaction with deterministic setup and teardown. |
 | A plan or archived proof can look current. | Every evidence record carries producer version, commit, environment, collection time, and freshness rule. |
 
 ## Baseline And Freshness
 
-Before implementation, record hashes for:
+Before implementation, recompute `PLAN-PACK-SCOPED-BASELINE-v1` over these
+ordered literal pathspecs:
 
-```bash
-git status --short -- .github README.md next.config.ts package.json playwright.config.ts e2e scripts tests
-git diff --binary -- .github README.md next.config.ts package.json playwright.config.ts e2e scripts tests | shasum -a 256
-```
+1. `.github`
+2. `README.md`
+3. `next.config.ts`
+4. `package.json`
+5. `bun.lock`
+6. `wrangler.jsonc`
+7. `open-next.config.ts`
+8. `playwright.config.ts`
+9. `e2e`
+10. `scripts`
+11. `tests`
+12. `migrations`
+13. `src/app/page.tsx`
+14. `src/app/api/landing`
+15. `src/components/landing`
+16. `src/components/landing-v3`
+17. `src/lib/landing`
+18. `src/lib/auth`
+19. `src/lib/publication`
+
+The fingerprint includes matching untracked files and remains repository
+provenance only; GitHub, Cloudflare, browser, deployment, and production claims
+still require their own evidence.
 
 Stale triggers: any change to the audit, workflow definitions, `package.json` validation/build commands, Playwright config or golden spec, release-gate scripts, migration directory, bound Cloudflare configuration, feature flags, auth/publication behavior, evidence schema, or external GitHub/Cloudflare control state.
 
@@ -80,4 +121,5 @@ Stale triggers: any change to the audit, workflow definitions, `package.json` va
 
 - `EVID-001`: this source audit, valid until a stale trigger fires.
 - `EVID-002`: planned verification/rollout evidence, invalid until commands run.
-- GitHub rulesets, required checks, workflow history, artifact retention, deployment environments, and production smoke must be collected from GitHub/Cloudflare. Repository configuration alone cannot satisfy those claims.
+- GitHub rulesets, required checks, workflow history, artifact retention, deployment environments, staging execution, and production smoke must be collected from GitHub/Cloudflare. Repository configuration alone cannot satisfy those claims.
+- Read-only hosted discovery may establish `UNKNOWN`/observed facts without mutation authority. Only `AUTH-001`, `AUTH-002`, or `AUTH-003` permits the matching mutation/execution packet; none implies the others.
