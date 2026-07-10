@@ -78,10 +78,11 @@ export function readPersistentServerConfig(home = homedir()) {
 
 export function buildServerEnvironment(processEnvironment = process.env, home = homedir()) {
   const savedProviderEnv = readAllowedEnvFile(providerConfigPath(home), PROVIDER_KEYS);
-  return {
-    ...savedProviderEnv,
-    ...processEnvironment,
-  };
+  const environment = { ...processEnvironment };
+  for (const [name, value] of Object.entries(savedProviderEnv)) {
+    if (!environment[name]?.trim()) environment[name] = value;
+  }
+  return environment;
 }
 
 export function hasProviderConfig(environment) {

@@ -1,4 +1,4 @@
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -392,7 +392,7 @@ describe("verified Supermemory server launcher", () => {
     expect(first.status).toBe(0);
     expect(second.status).toBe(0);
     const configPath = join(homeDir, ".supermemory", "archestimator-server.env");
-    expect(readFileSync(configPath, "utf8")).toContain(`SUPERMEMORY_SERVER_BIN='${serverPath}'`);
+    expect(readFileSync(configPath, "utf8")).toContain(`SUPERMEMORY_SERVER_BIN='${realpathSync(serverPath)}'`);
     expect(readFileSync(configPath, "utf8")).toContain(`SUPERMEMORY_SERVER_SHA256='${hash}'`);
     expect(statSync(configPath).mode & 0o777).toBe(0o600);
     const zshenv = readFileSync(join(homeDir, ".zshenv"), "utf8");

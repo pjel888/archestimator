@@ -1,56 +1,25 @@
 #!/usr/bin/env node
 
 import { spawn } from "node:child_process";
-import { createHash } from "node:crypto";
-import { closeSync, createReadStream, existsSync, openSync, statSync } from "node:fs";
+import { closeSync, openSync } from "node:fs";
 import { access, constants } from "node:fs/promises";
-import { homedir } from "node:os";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
+
+import {
+  buildServerEnvironment,
+  hasProviderConfig,
+  readPersistentServerConfig,
+  sha256,
+} from "./lib/supermemory-config.mjs";
 
 const DEFAULT_PORT = "6767";
 const DEFAULT_LOG_PATH = "/tmp/supermemory-local.log";
 const DEFAULT_STARTUP_TIMEOUT_MS = 5000;
-const SAVED_ENV_PATH = join(homedir(), ".supermemory", "env");
-const PROVIDER_CONFIGS = [
-  ["OPENAI_API_KEY"],
-  ["ANTHROPIC_API_KEY"],
-  ["GEMINI_API_KEY"],
-  ["GROQ_API_KEY"],
-  ["WORKERS_AI_API_KEY", "CLOUDFLARE_ACCOUNT_ID"],
-  ["GOOGLE_VERTEX_PROJECT_ID", "GOOGLE_VERTEX_LOCATION"],
-];
 
 function fail(message) {
   process.stderr.write(`supermemory:start: ${message}\n`);
   process.exit(1);
-}
-
-async function sha256(filePath) {
-  const hash = createHash("sha256");
-  await new Promise((resolvePromise, reject) => {
-    const stream = createReadStream(filePath);
-    stream.on("data", (chunk) => hash.update(chunk));
-    stream.on("error", reject);
-    stream.on("end", resolvePromise);
-  });
-  return hash.digest("hex");
-}
-
-function hasEnv(name) {
-  return Boolean(process.env[name]?.trim());
-}
-
-function hasProviderConfig() {
-  return PROVIDER_CONFIGS.some((requiredNames) => requiredNames.every(hasEnv));
-}
-
-function hasSavedSupermemoryEnv() {
-  try {
-    return existsSync(SAVED_ENV_PATH) && statSync(SAVED_ENV_PATH).size > 0;
-  } catch {
-    return false;
-  }
 }
 
 function readPositiveIntegerEnv(name, fallback) {
@@ -97,15 +66,24 @@ async function assertChildBecomesHealthy(child, healthUrl, timeoutMs) {
   throw new Error(`health check ${healthUrl} did not pass within ${timeoutMs}ms${lastHealthError ? `: ${lastHealthError}` : ""}`);
 }
 
-const configuredBin = process.env.SUPERMEMORY_SERVER_BIN;
-const expectedHash = process.env.SUPERMEMORY_SERVER_SHA256?.trim().toLowerCase();
+const processConfiguredBin = process.env.SUPERMEMORY_SERVER_BIN?.trim();
+const processExpectedHash = process.env.SUPERMEMORY_SERVER_SHA256?.trim().toLowerCase();
+
+if (Boolean(processConfiguredBin) !== Boolean(processExpectedHash)) {
+  fail("SUPERMEMORY_SERVER_BIN and SUPERMEMORY_SERVER_SHA256 must be set together.");
+}
+
+const persistentConfig = processConfiguredBin ? {} : readPersistentServerConfig();
+const configuredBin = processConfiguredBin || persistentConfig.SUPERMEMORY_SERVER_BIN?.trim();
+const expectedHash = processExpectedHash
+  || persistentConfig.SUPERMEMORY_SERVER_SHA256?.trim().toLowerCase();
 
 if (!configuredBin) {
-  fail("SUPERMEMORY_SERVER_BIN must point to a local supermemory-server binary.");
+  fail("verified server config is missing; run bun run supermemory:configure.");
 }
 
 if (!expectedHash || !/^[a-f0-9]{64}$/.test(expectedHash)) {
-  fail("SUPERMEMORY_SERVER_SHA256 must be the expected SHA-256 for that binary.");
+  fail("verified server checksum is missing or invalid; run bun run supermemory:configure.");
 }
 
 const serverBin = resolve(configuredBin);
@@ -121,9 +99,10 @@ if (actualHash !== expectedHash) {
   fail(`checksum mismatch for ${serverBin}: expected ${expectedHash}, got ${actualHash}.`);
 }
 
-if (!hasProviderConfig() && !hasSavedSupermemoryEnv()) {
+const childEnv = buildServerEnvironment();
+if (!hasProviderConfig(childEnv)) {
   fail(
-    "non-interactive startup requires an LLM provider env var or existing ~/.supermemory/env. "
+    "non-interactive startup requires an LLM provider env var or existing ~/.supermemory/env with a supported value. "
       + "Run supermemory-server interactively once, or set one of OPENAI_API_KEY, ANTHROPIC_API_KEY, "
       + "GEMINI_API_KEY, GROQ_API_KEY, WORKERS_AI_API_KEY+CLOUDFLARE_ACCOUNT_ID, "
       + "or GOOGLE_VERTEX_PROJECT_ID+GOOGLE_VERTEX_LOCATION.",
@@ -142,7 +121,7 @@ try {
   child = spawn(serverBin, [], {
     detached: true,
     env: {
-      ...process.env,
+      ...childEnv,
       PORT: port,
       SUPERMEMORY_PORT: port,
     },
