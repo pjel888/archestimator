@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-03T22:31:31.761Z",
+  "generatedAt": "2026-07-10T01:56:04.265Z",
   "mode": "cloudflare-email-readiness",
   "targetDomain": "archestimator.com",
   "workerName": "archestimator-proof",
@@ -72,6 +72,7 @@
       "ARCHESTIMATOR_EMAIL_PROVIDER",
       "ARCHESTIMATOR_IMAGE_PROCESSING_PROVIDER",
       "ARCHESTIMATOR_UPLOAD_STORAGE_PROVIDER",
+      "AUTH_AUDIT_HASH_PEPPER",
       "BETTER_AUTH_GOOGLE_CLIENT_ID",
       "BETTER_AUTH_GOOGLE_CLIENT_SECRET",
       "BETTER_AUTH_SECRET",
@@ -125,7 +126,7 @@
     "discoveredTargetDomains": [
       "archestimator.com"
     ],
-    "sanitizedOutput": " ⛅️ wrangler 4.105.0\n────────────────────\n┌───────────────────┬───────────────────┬─────────┬──────────────────────────────────┐\n│ zone              │ name              │ enabled │ tag                              │\n├───────────────────┼───────────────────┼─────────┼──────────────────────────────────┤\n│ archestimator.com │ archestimator.com │ yes     │ 894a8c44c8f94473a2b105821a69a9f0 │\n└───────────────────┴───────────────────┴─────────┴──────────────────────────────────┘\n▲ [WARNING] 🚧 `wrangler email sending list` is an open beta command. Please report any issues to https://github.com/cloudflare/workers-sdk/issues/new/choose"
+    "sanitizedOutput": " ⛅️ wrangler 4.105.0 (update available 4.110.0)\n───────────────────────────────────────────────\n┌───────────────────┬───────────────────┬─────────┬──────────────────────────────────┐\n│ zone              │ name              │ enabled │ tag                              │\n├───────────────────┼───────────────────┼─────────┼──────────────────────────────────┤\n│ archestimator.com │ archestimator.com │ yes     │ 894a8c44c8f94473a2b105821a69a9f0 │\n└───────────────────┴───────────────────┴─────────┴──────────────────────────────────┘\n▲ [WARNING] 🚧 `wrangler email sending list` is an open beta command. Please report any issues to https://github.com/cloudflare/workers-sdk/issues/new/choose"
   },
   "productionEmailReady": true,
   "blockers": [],

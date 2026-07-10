@@ -1,6 +1,6 @@
 # Cloudflare Email Readiness
 
-Generated: 2026-07-03T22:31:31.761Z
+Generated: 2026-07-10T01:56:04.265Z
 
 Readiness check records secret names only, never secret values. Cloudflare docs require a send_email Worker binding plus an onboarded sending domain on Cloudflare DNS before production email can be claimed.
 
@@ -27,8 +27,8 @@ Readiness check records secret names only, never secret values. Cloudflare docs 
 ## Cloudflare Evidence
 
 ```text
- ⛅️ wrangler 4.105.0
-────────────────────
+ ⛅️ wrangler 4.105.0 (update available 4.110.0)
+───────────────────────────────────────────────
 ┌───────────────────┬───────────────────┬─────────┬──────────────────────────────────┐
 │ zone              │ name              │ enabled │ tag                              │
 ├───────────────────┼───────────────────┼─────────┼──────────────────────────────────┤
