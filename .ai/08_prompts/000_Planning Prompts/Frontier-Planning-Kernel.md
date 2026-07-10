@@ -159,8 +159,12 @@ tools. Route:
 
 Probe runtime availability. Named workflows such as OMX, Compound Engineering,
 Autopilot, Ultragoal, Ultrawork, Autoresearch, UltraQA, browser agents, provider
-CLIs, memory, or graph tools are optional execution surfaces, not evidence. If
-unavailable, use the nearest native capability and record the substitution.
+CLIs, optional memory integrations, or graph tools are optional execution
+surfaces, not evidence. If unavailable, use the nearest native capability and
+record the substitution. A project-level contract may explicitly promote a
+capability to a required, machine-checked bootstrap invariant; when it does,
+repair that capability or fail closed instead of silently applying the optional
+fallback. Archestimator's Supermemory contract is such an invariant.
 
 Prefer direct work for tightly coupled scope. Parallelize independent lanes.
 Use durable goal execution for long/resumable work, evaluator-gated research

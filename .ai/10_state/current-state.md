@@ -10,6 +10,29 @@ only those entries. Do NOT read all ~2,500 lines on every task — that is the
 single biggest source of slow agent startup.
 
 Stable current truth (verify against git/source before relying on a detail):
+- Landing-Page-Auth-Security-Layer (2026-07-10): Implemented Better Auth hardening —
+  magic-link `storeToken:"hashed"` + `expiresIn:300` + plugin rateLimit 10/60; top-level
+  D1-backed `rateLimit` (`storage:"database"`, window/max 60) with migration
+  `0041_better_auth_rate_limit.sql` (applied local); `accountLinking.disableImplicitLinking:true`
+  for Google; terms-gate requires dedicated `ARCHESTIMATOR_TERMS_GATE_SECRET` (≥32, no
+  BETTER_AUTH_SECRET fallback); estimate-sheets repo + `loadRecipientProposals` fail-closed;
+  SEC-11 session.token remains raw in BA 1.6.23 with compensating controls (cookieCache off,
+  7d TTL); CSP enforcement deferred (Report-Only). Hosted hashed-token readback + live
+  magic-link e2e remain residual deploy gates. Pack archived under
+  `.ai/09_archive/store/2026-07-10-Landing-Page-Auth-Security-Layer-complete/`.
+- Supermemory always-on agent bootstrap (2026-07-10 local): every coding-agent
+  session must run `bun run supermemory:ensure` before meaningful work. The
+  command re-verifies the native `supermemory-server` against the repo-pinned
+  checksum, repairs `~/.supermemory/archestimator-server.env`, safely loads only
+  allowlisted provider settings, serializes concurrent starts, and fails unless
+  health passes. `bun run supermemory:configure` installs the user LaunchAgent
+  `com.archestimator.supermemory`; its normal interval recovered a stopped
+  listener from PID 92847 to PID 94799 with stable HTTP 200. Server and ensure
+  logs live under `~/.supermemory/` at mode 600. All active/deprecated agent
+  entry surfaces require the ensure command, and `validate:agents` enforces the
+  contract. Use `bun run supermemory:search -- "<query>"` before broad,
+  non-trivial, or recovery work and `bun run supermemory:add -- "<sanitized>"`
+  when durable truth changes; `.ai` and current source remain authoritative.
 - Development memory safety (2026-07-10): the fatal Next 16.2.10 dev OOM was
   traced to idle Turbopack filesystem-cache persistence/compaction after the
   estimate route compiled; that work happened outside Next's request-finally

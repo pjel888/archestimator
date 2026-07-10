@@ -1,5 +1,44 @@
 # Decisions
 
+## 2026-07-10 — Verified Supermemory is a coding-agent bootstrap invariant
+
+**Decision:** Every Archestimator coding-agent session must run
+`bun run supermemory:ensure` before meaningful work. Supermemory availability is
+not an optional adapter enhancement: the repo bootstrap re-verifies the native
+server, repairs persistent machine configuration, starts it when needed, and
+fails closed unless the local health endpoint passes. An agent without local
+process capability must inherit a fresh healthy check from its orchestrator or
+report a blocking memory gap.
+
+**Machine configuration:** `bun run supermemory:configure` verifies the installed
+native server version against `scripts/supermemory-server-checksums.json`, writes
+the path/hash to the user-only
+`~/.supermemory/archestimator-server.env`, adds an idempotent `~/.zshenv` block,
+and installs the `com.archestimator.supermemory` macOS LaunchAgent with RunAtLoad
+and a 60-second interval. The npm installer wrapper is never the executed trust
+target. Native server and ensure logs are stored under `~/.supermemory/` with
+mode 600 because the native startup banner includes the local API key.
+
+**Usage contract:** Agents search before broad, non-trivial, recovery, review,
+or handoff work and add one concise sanitized memory when durable project truth
+changes. `bun run supermemory:search` and `bun run supermemory:add` provide the
+common authenticated local API path when a tool-specific plugin is unavailable.
+Retrieved memory remains advisory until reconciled with `.ai`, source, tests,
+logs, or provider evidence.
+
+**Safety and recovery:** Provider settings are parsed from
+`~/.supermemory/env` through an allowlist and are never sourced as executable
+shell. Startup verifies SHA-256 before execution, ignores stale inherited server
+path/hash values after a configure repair, allows a 15-second cold boot, and
+uses a stale-recoverable single-flight lock to prevent concurrent detached
+starts. Local API commands refuse non-loopback endpoints, require a mode-600 API
+key file, do not echo the bearer, and reject common secret-like write content.
+
+**Directive:** Do not replace `supermemory:ensure` with the low-level
+`supermemory:start`, the npm wrapper, registry execution, or an unverified
+second-stage download. A native server version change requires an explicit
+repo checksum-registry update and fresh configure/start/recovery proof.
+
 ## 2026-06-14 — Supabase advisor hardening uses scoped fixes, not blind grant revokes
 
 **Decision:** Apply the deterministic Supabase advisor fixes immediately and

@@ -25,6 +25,8 @@ deltas, but they must not expand the default startup chain.
 
 ## Supermemory Local Memory Contract
 
+<!-- supermemory-bootstrap: required -->
+
 Supermemory local at `http://localhost:6767` is the shared cross-agent memory
 layer for Codex, Claude Code, OpenCode, CommandCode, Antigravity, Kimi,
 DeepSeek, Hermes if approved, Gemini if reapproved, Ollama-backed embedding
@@ -32,51 +34,69 @@ pipelines, Cursor, and future harnesses when their integration is configured.
 It augments `.ai`; it never replaces current source, tests, `.ai`, provider
 evidence, or the lead orchestrator's final verification.
 
-At the start of meaningful work, each agent or adapter should:
+At the start of meaningful work, each coding agent or its orchestrator must:
 
-1. Check availability:
-
-   ```sh
-   SUPERMEMORY_HEALTH_URL="${SUPERMEMORY_HEALTH_URL:-http://localhost:${SUPERMEMORY_PORT:-6767}/}"
-   curl -fsS "$SUPERMEMORY_HEALTH_URL" >/dev/null
-   ```
-
-2. If the check fails and the harness can start local processes, start the
-   verified local server, then retry until the check passes:
+1. Run the idempotent bootstrap before repo inspection, planning, or edits:
 
    ```sh
-   bun run supermemory:start
+   bun run supermemory:ensure
    ```
 
-   The launcher requires `SUPERMEMORY_SERVER_BIN` to point at an executable
-   `supermemory-server` binary and `SUPERMEMORY_SERVER_SHA256` to match it. Do
-   not use `npm exec`, `npx`, `bunx`, `pnpm dlx`, the npm wrapper installer, or
-   any command that can install or run an unpinned registry package or
-   unverified second-stage server download.
+   `supermemory:ensure` re-verifies the installed native server against the
+   repo-pinned checksum, repairs the persistent path/hash config, starts the
+   verified server when needed, and fails unless bounded loopback identity,
+   `/v3/health`, and listener-process attestation all pass.
+   `bun run supermemory:configure` is the machine setup/repair command; it also
+   installs the `com.archestimator.supermemory` macOS LaunchAgent. The low-level
+   `bun run supermemory:start` command is not the normal agent entrypoint.
 
-   If the harness cannot start it or the command fails, continue with an
-   explicit `not-verified` memory gap instead of blocking safe local work.
+2. Treat a failed bootstrap as a repair obligation, not a silent optional gap.
+   A harness that cannot start local processes must receive a fresh successful
+   check from its orchestrator before delegation; otherwise it fails closed with
+   an explicit memory-unavailable blocker. Validate the full contract with:
+
+   ```sh
+   bun run supermemory:ensure
+   ```
+
+   The configurator persists `SUPERMEMORY_SERVER_BIN` and
+   `SUPERMEMORY_SERVER_SHA256` in a user-only file and shell startup block, but
+   executes only the checksum-verified native binary. Provider settings are
+   parsed from `~/.supermemory/env` through an allowlist; that file is never
+   sourced as executable shell input. Do not use `npm exec`, `npx`, `bunx`,
+   `pnpm dlx`, the npm wrapper installer, or any unverified second-stage server.
 
 3. Before broad, non-trivial, recovery, review, or handoff work, search
    Supermemory for relevant repo/task memory using the configured harness
    plugin, MCP server, SDK, or the local API reference at
    `http://localhost:6767/v4/reference`. Treat retrieved memory as advisory and
    stale until reconciled with current source, `.ai`, tests, logs, or provider
-   evidence.
+   evidence. Every shell-capable harness has the same fallback:
 
-4. At closeout, add or update one concise memory when durable project truth
+   ```sh
+   bun run supermemory:search -- "<repo and task query>"
+   ```
+
+4. At closeout, add or update one concise sanitized memory when durable project truth
    changes: date, repo, task/result, decision, changed files/docs, validation
    evidence, proof boundary, and follow-up. Keep ephemeral chat out of durable
-   memory.
+   memory. Shell-capable harnesses can write text directly or from a reviewed
+   file; the CLI rejects common secret-like content:
+
+   ```sh
+   bun run supermemory:add -- "<sanitized durable memory>"
+   bun run supermemory:add -- --file <reviewed-memory-file>
+   ```
 
 5. Never store secrets, env values, API keys, auth secrets, customer data,
    provider tokens, cookies, or raw local session details in Supermemory. Keep
    `.supermemory/` local-only and ignored; never commit its keys, runtime data,
    models, or vector store.
 
-Trivial one-off work can limit this to the availability check and a reported
-gap if Supermemory is down. When project reality changes, update both the
-canonical `.ai` home and Supermemory; `.ai` remains the repo source of truth.
+Trivial one-off work can limit this to the availability check, but a failed
+check still requires repair or an explicit fail-closed blocker. When project
+reality changes, update both the canonical `.ai` home and Supermemory; `.ai`
+remains the repo source of truth.
 
 ## Loop Engineering Contract
 

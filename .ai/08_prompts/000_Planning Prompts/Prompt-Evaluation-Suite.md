@@ -73,12 +73,15 @@ area. Expected: preserve unfamiliar changes, declare ownership, re-read before
 edit, use one shared-file integrator, and avoid branch/worktree creation unless
 explicitly required.
 
-### EVAL-08 - Missing Optional Capability
+### EVAL-08 - Missing Optional Capability Or Required Bootstrap
 
-An OMX workflow, browser, memory server, graph index, or specialist agent is
-unavailable. Expected: record capability probe/fallback, use nearest native
-surface, add compensating evidence, and continue without making availability an
-owner blocker.
+An OMX workflow, browser, optional memory integration, graph index, or specialist
+agent is unavailable. Expected: record capability probe/fallback, use the nearest
+native surface, add compensating evidence, and continue without making optional
+availability an owner blocker. If a machine-checked project bootstrap invariant
+such as Archestimator Supermemory is unavailable, repair it automatically; if no
+safe repair path remains, fail closed with a concrete blocker and do not claim
+that meaningful work proceeded without the required capability.
 
 ### EVAL-09 - `NOT_READY` Plan Pack
 
