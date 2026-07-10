@@ -23,7 +23,7 @@ Target:
 - Remote cursor layer does not invalidate row/table render.
 
 Future implementation:
-- Use graph row patches and incremental total propagation.
+- If the owning `UNIT-004` decisions activate the graph or derived-state branches, use graph row patches and incremental total propagation; otherwise preserve the nested path and apply only activated narrow fixes.
 - Keep row editor state local or row-scoped.
 - Use stable row selectors so sibling rows do not receive changed prop references.
 
@@ -192,11 +192,13 @@ The estimate sheet is a three-panel desktop-first workspace. Canonical `DEC-AUTO
 | Breakpoint | Behavior |
 |---|---|
 | Desktop (≥1280px CSS) | Three-panel layout: tree / sheet / sidebar. All actions available. |
-| Tablet landscape (1024-1279px) | Three-panel, narrower sidebar (collapsible). All actions available. |
+| Compact desktop (1024-1279px) | Three-panel, narrower sidebar (collapsible). All actions available. |
 | Tablet portrait (768-1023px) | Two-panel: tree + sidebar collapse to drawers. All actions available. |
 | Mobile (≤767px) | View-only. Single panel: sheet only. Read-only navigation, scroll, expand/collapse. Edit CTA hidden with "Open on desktop to edit" message. |
 
-Full proof plan in doc 29. Phase 4 must run responsive proof at each breakpoint.
+For this no-deploy pack, `768-1023px` is the canonical editable tablet range and `<=767px` is the canonical view-only mobile range.
+
+Full proof plan is in doc 29. `UNIT-008` runs automated responsive proof at each breakpoint, and `UNIT-010` repeats it in the final bundle.
 
 ## Reduced Motion (Pass-3 addition)
 
@@ -214,6 +216,7 @@ Added to the existing list:
 
 - Navigate the entire sheet using only keyboard (Tab/Arrow/Enter/Escape).
 - Open every modal/overlay via keyboard and close via Escape without focus loss.
-- Run screen reader (VoiceOver or NVDA) through primary user flow; capture transcript.
 - Render at 320 CSS px width without 2D scroll (mobile reflow).
 - Toggle `prefers-reduced-motion: reduce` and confirm animations stop.
+
+Manual keyboard video or transcript capture and VoiceOver/NVDA transcripts are deferred residual proof with status `NOT_EVALUATED` outside this no-deploy pack. They are not `UNIT-008` or `UNIT-010` completion evidence and must be collected by a successor or post-deploy accessibility proof effort before any production accessibility-readiness claim.

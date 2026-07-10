@@ -1,0 +1,7 @@
+{
+  "artifactId": "ART-042",
+  "evidenceId": "EVID-004",
+  "projection": "d1-local-baseline.json",
+  "schema": "estimate-sheet-evidence-projection-placeholder.v1",
+  "status": "STALE"
+}

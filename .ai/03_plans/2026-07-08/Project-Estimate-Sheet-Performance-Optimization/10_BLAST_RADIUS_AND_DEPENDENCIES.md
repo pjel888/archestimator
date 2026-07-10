@@ -6,6 +6,8 @@
 
 Files:
 - `src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx`
+- `src/lib/estimates/estimate-performance-modes.ts`
+- `src/lib/estimates/estimate-performance-modes.server.ts`
 - `src/lib/repositories/workspace-repository.ts`
 - `src/lib/estimates/actions.ts`
 - `src/lib/estimates/subtree-actions.ts`
@@ -15,11 +17,13 @@ Risks:
 - Route not-found/selected-node behavior regression.
 - D1 query regression.
 - RSC payload shape changes.
+- A server-resolved mode value fails to reach the client or leaks secret configuration.
 
 ### Client State
 
 Files:
 - `src/components/workshop/EstimateWorkspaceClient.tsx`
+- `src/components/workshop/estimate-performance-mode-context.tsx`
 - `src/components/workshop/EstimateSheetTree.tsx`
 - `src/components/workshop/EstimateSheetContent.tsx`
 - `src/hooks/use-estimate-query.ts`
@@ -30,6 +34,7 @@ Risks:
 - Lost selection/active tab.
 - Stale tree after mutation.
 - Extra refetch churn.
+- Mode context diverges from the one route-resolved five-key snapshot.
 
 ### Rows And Derived Models
 
@@ -75,6 +80,14 @@ Risks:
 - Flaky perf assertions.
 - Browser proof too slow for routine development.
 - Provider proof leaks data if redaction is weak.
+- A source-changing `UNIT-002` functional repair absorbs an undeclared worktree change or reuses stale baseline/browser evidence.
+- A browser child uses the wrong unit scope, a stale mode snapshot, a different run, a reused fixture namespace, or a preview other than the mode runner's sole active final preview.
+
+Controls:
+- `UNIT-001` owns the inert, all-off route-to-client mode bridge plus its route/context tests; optimized behavior remains disabled.
+- `UNIT-002` is the sole pre-decision source-changing exception. Its immutable refreeze receipt binds the prior `UNIT-001` index, exact closed source/test allowlist, focused test receipt, and before/after application and producer hashes before a complete replacement `UNIT-001` cohort.
+- Local browser reports use fixed unit-bound scopes: `baseline` (`UNIT-002`), `route` (`UNIT-005`), `derived-state` (`UNIT-007`), `render-a11y` (`UNIT-008`), `mutations` (`UNIT-009`), and `full-local` (`UNIT-010`).
+- Activated browser children consume the exclusive active descriptor for the same run's sole final preview; wrong scope, snapshot, run, or namespace reuse fails closed.
 
 ## Dependencies
 
@@ -101,4 +114,3 @@ Dependency posture:
 GitNexus reported a usable code graph for `archestimator`, but the index was four commits behind HEAD. This pack therefore uses graph evidence only as navigation and blast-radius support. Direct source reads are the final evidence for exact current state.
 
 code-review-graph reported no registered repositories in this session. That is not a blocker because direct source inspection and GitNexus were available.
-

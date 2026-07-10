@@ -27,7 +27,7 @@ Every dispatch includes:
 - goal/run ID and exact unit ID;
 - role (`explore`, `executor`, `test-engineer`, `verifier`, `architect`, or `critic`);
 - owned paths and forbidden shared paths;
-- pre-UNIT-001 planning-admission HEAD/status/diff receipt when applicable, plus current application and producer content fingerprints. `UNIT-001` verifies the planning receipt before its first edit, then the typed/reference helpers must match current dual output; later packets receive the predecessor output digest rather than the historical planning hash;
+- pre-UNIT-001 planning-admission HEAD/status/diff receipt when applicable, plus current application and producer content fingerprints. `UNIT-001` runs the frozen `ART-037` recorder before its first edit; the recorder verifies both planning-helper hashes and the manifest baseline, and prepare/index preserve its output as an immutable dependency. The planning helpers remain read-only while the typed/reference outputs must match current dual output. A UNIT-002 repair packet additionally receives the immutable UNIT-001 index hash, exact source/test allowlist, ignored refreeze admission path, and required focused receipt role; later packets receive the predecessor output digest rather than the historical planning hash;
 - dependencies and activation predicate;
 - commands, evidence path, exit/failure/cleanup/resume conditions;
 - lease start, expiry, and release state.
@@ -36,7 +36,7 @@ Workers stay within the packet. Scope expansion, shared-file conflict, missing a
 
 ## Safe Parallel Layers
 
-- No maker units run in parallel. `UNIT-001` creates the complete shared evaluator/E2E/D1/decision/hosted/release producer surface and all package entries before measuring; Units 002-004 execute that frozen cohort without producer edits. Activated Units 005-009 may add only packet-owned product regression tests and must record application and producer before/after deltas; every admission matches both predecessor outputs. Units 010-011 change neither scope and share the final dual identity.
+- No maker units run in parallel. `UNIT-001` creates the complete shared evaluator/E2E/D1/decision/hosted/release producer surface, refreeze contract, inert default-off mode bridge, and all package entries before measuring. UNIT-002 is the sole pre-decision source/test exception: each repair must be admitted against the current immutable UNIT-001 entry with an exact closed allowlist, finalized into `estimate-sheet-refreeze-receipt.v1`, and followed by a complete replacement UNIT-001 producer/test/index sequence plus fresh browser prepare. Units 003-004 execute that final cohort without producer edits. Activated Units 005-009 may add only packet-owned product regression tests and must record application and producer before/after deltas; every admission matches both predecessor outputs. Units 010-011 change neither scope and share the final dual identity.
 - Maker/checker roles remain separate within each unit, and read-only reviewers may work concurrently only against one frozen candidate. `UNIT-005` through `UNIT-011` also stay serialized because source ownership and shared `.next`/`.open-next` outputs feed source/build evidence hashes.
 
 ## Maker/Checker Separation

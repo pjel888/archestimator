@@ -2,25 +2,27 @@
 
 ## Purpose
 
-This document is the comprehensive "understand everything" reference for the Project Estimate Sheet — the main MVP surface. It maps every moving part: the entity model, the rendering layer, the data layer, the component identity model, the CRUD surface, the drag-and-drop architecture, the collaboration model, and how a template is composed into rows. It is grounded in a full source audit (file:line references throughout).
+This document is the comprehensive "understand everything" reference for the Project Estimate Sheet — the main MVP surface. It maps every moving part: the entity model, the rendering layer, the data layer, the component identity model, the CRUD surface, the drag-and-drop architecture, the collaboration model, and how a template is composed into rows. It is grounded in a full source audit.
 
 This is a planning/reference document. It does not authorize code changes.
 
+Source-anchor policy: paths and symbol names are the durable anchors in this document. Any numeric line locator that remains is an audit-time snapshot only and must be re-resolved against the worktree before implementation.
+
 ## Entity Model (D1)
 
-The estimate sheet is built on these core D1 tables (schema archaeology: base tables originate in Supabase migrations; D1 migrations alter/extend them; see doc 03 for index details).
+The estimate sheet is built on these core D1 tables. Active schema authority is `migrations/`; files under `supabase/migrations/` are retained only as provider-exit archaeology and are not an implementation source.
 
 | Entity | Table | Source migration | Role |
 |---|---|---|---|
 | Project | `projects` | core schema | Top-level owner of estimates |
 | Estimate | `estimates` | core schema; `migrations/0029_estimate_actions_d1_support.sql` adds `notes`, `currency_code`, `metadata` | One estimate sheet (a priced document for a project) |
-| Estimate Tab | `estimate_tabs` | `supabase/migrations/20260612094734_estimate_tabs_foundation.sql`; `migrations/0029_*` adds `metadata`, `created_by` | A tab within an estimate (multi-tab support; default tab always exists) |
-| Estimate Node (Area/Group) | `estimate_nodes` | `supabase/migrations/20260518090000_archestimator_core_schema.sql:82`; `migrations/0025_*` adds `metadata_json` | A branch in the tree. `kind` is `"group"` or `"area"`. P6 model: **any node may parent any node** (single-node model, no area/group gate). |
-| Estimate Row Item | `estimate_row_items` | `supabase/migrations/20260518090000_archestimator_core_schema.sql:96`; `migrations/0021_*` adds projection fields | A single priced line item under a node |
+| Estimate Tab | `estimate_tabs` | `migrations/0015_publication_admin_sidecars.sql`; `migrations/0029_estimate_actions_d1_support.sql` adds `metadata`, `created_by` | A tab within an estimate (multi-tab support; default tab always exists) |
+| Estimate Node (Area/Group) | `estimate_nodes` | `migrations/0015_publication_admin_sidecars.sql`; `migrations/0025_reusable_source_insert_support.sql` adds `metadata_json` | A branch in the tree. `kind` is `"group"` or `"area"`. P6 model: **any node may parent any node** (single-node model, no area/group gate). |
+| Estimate Row Item | `estimate_row_items` | `migrations/0015_publication_admin_sidecars.sql`; `migrations/0021_estimate_row_projection_fields.sql` adds projection fields | A single priced line item under a node |
 | Estimate Sheet Adjustment | `estimate_sheet_adjustments` | `migrations/0029_*:14` | Estimate-level adjustment mode (PK `estimate_id, mode`) |
 | Estimate Sheet Event (history) | `estimate_sheet_events` | `migrations/0025_*:8` | Activity/version-control event log with `correlation_id` unique index |
 | Cost Library Item | `cost_library_items` | component-library schema | A library master component (the "Library Level Component" source) |
-| Cost Library Price Option (variant) | `cost_library_item_price_options` | `supabase/migrations/20260523120957_component_library_item_versioning.sql:40`; variants in `20260524120322_*` | A variant/price option of a library component |
+| Cost Library Price Option (variant) | `cost_library_item_price_options` | `migrations/0026_component_promotion_support.sql` | A variant/price option of a library component |
 | Component Category Node | `component_category_nodes` | `migrations/0026_component_promotion_support.sql:1` | Category taxonomy for components |
 | Estimate Template | `estimate_templates` | `migrations/0024_estimate_templates.sql:1` | A reusable template tree |
 | Estimate Template Node | `estimate_template_nodes` | `migrations/0024_*:18` (`kind group\|area`, self-parent CHECK) | A branch in a template |
@@ -78,14 +80,14 @@ Route (Server Component, Suspense)
     └─ <EstimateSheetRouteSkeleton/> (Suspense fallback)
   │
   ▼
-EstimateWorkspaceClient.tsx  [3-panel shell; all children dynamic()]
+EstimateWorkspaceClient.tsx  [3-panel shell]
   ├─ useEstimateTabsQuery         (server tabs query)
   ├─ useEstimateEditCapabilityQuery (fail-closed edit gate)
   ├─ useEstimateActiveTab         (localStorage-backed tab store)
   └─ <EstimateSurfaceVariantProvider> ("glass" vs "paper")
        │
        ├─ <EstimateSheetTree>          [LEFT panel — area tree]
-       │    src/components/workshop/EstimateSheetTree.tsx (2186 lines)
+       │    src/components/workshop/EstimateSheetTree.tsx
        │    ├─ <Tree> (shared UI, virtualized, WORKSHOP_TREE_VIRTUALIZATION minRows:150)
        │    ├─ inline rename, context menu, drag reorder
        │    ├─ lazy subtree hydration
@@ -95,7 +97,7 @@ EstimateWorkspaceClient.tsx  [3-panel shell; all children dynamic()]
        │         INSERT_ESTIMATE_TEMPLATE_EVENT
        │         INSERT_PROJECT_SOURCE_EVENT
        │
-       ├─ <EstimateSheetContent>       [MIDDLE panel — the sheet; ~2923 lines]
+       ├─ <EstimateSheetContent>       [MIDDLE panel — the sheet]
        │    src/components/workshop/EstimateSheetContent.tsx
        │    ├─ useReducer(estimateSheetContentReducer) — all sheet UI state
        │    │    State: editableRows, collapsedNodeIdsByScope, bulkSelectedRowIds,
@@ -112,7 +114,7 @@ EstimateWorkspaceClient.tsx  [3-panel shell; all children dynamic()]
        │    │    ├─ flattenVisibleBranches (DFS, honors collapse + search)
        │    │    ├─ useVirtualizer (estimateSize 192px, overscan 5, minSections 80)
        │    │    └─ <EstimateSheetBranch renderChildBranches=false>  (one per visible branch)
-       │    │         src/components/workshop/estimate-sheet/rows/branch.tsx (549 lines)
+       │    │         src/components/workshop/estimate-sheet/rows/branch.tsx
        │    │         ├─ memo(areEstimateSheetBranchPropsEqual) — the render-relief guard
        │    │         ├─ header (caret, name, total) + breadcrumb band
        │    │         ├─ <EstimateRowItemsTable>  (this node's rows)
@@ -120,13 +122,13 @@ EstimateWorkspaceClient.tsx  [3-panel shell; all children dynamic()]
        │    │         └─ recursive children (only when NOT virtualized)
        │    │
        │    │         <EstimateRowItemsTable>  [row virtualizer]
-       │    │          src/components/workshop/estimate-sheet/rows/row-table.tsx (1323 lines)
+       │    │          src/components/workshop/estimate-sheet/rows/row-table.tsx
        │    │          ├─ memo(areEstimateRowItemsTablePropsEqual) — per-item state check
        │    │          ├─ useVirtualizer (estimateSize 96px, overscan 6, minRows 75)
        │    │          ├─ DISABLED when express editor active (reason: variable height)
        │    │          ├─ scrollMargin compensation for nested scroll containers
        │    │          └─ <EstimateRowItemTableRow> (memo) → <EstimateMaterialCell>
-       │    │               src/components/workshop/estimate-sheet/rows/cells.tsx (~1300 lines)
+       │    │               src/components/workshop/estimate-sheet/rows/cells.tsx
        │    │               ├─ read-only material card (library rows) OR express editor (project rows)
        │    │               ├─ inline fields: name/desc/brand/supplier/unit/unitCost
        │    │               ├─ image upload modal → /api/estimate-row-images
@@ -140,17 +142,19 @@ EstimateWorkspaceClient.tsx  [3-panel shell; all children dynamic()]
             (lazy; does not block first paint)
 ```
 
+The tree is client-only dynamic; the center content uses its existing dynamic boundary with default SSR behavior, and the right sidebar is dynamically loaded from the content surface. The same active tree enters the left and center panes. Both panes subscribe to the active TanStack query and build their own projections, so pane-level work must be measured separately in `UNIT-001` and constrained through `UNIT-006`–`UNIT-008`. The memoized right sidebar still receives the full mutable tree; a tree identity change therefore wakes that boundary even when the component-library view itself did not change.
+
 ### The critical render-relief invariant
 
-`displayedSheetNode` (EstimateSheetContent line 1492) composes search → facet → reorder. **Each step returns the same node reference when inactive.** When nothing is filtered, `displayedSheetNode === selectedNode`, so the virtualized branch list and recursive branch tree receive referentially-stable props → the `EstimateSheetBranch` and `EstimateRowItemsTable` memo guards hold → a keystroke in one area does not re-render sibling areas. This invariant is load-bearing for performance.
+`displayedSheetNode` in `EstimateSheetContent` composes search → facet → reorder. **Each step returns the same node reference when inactive.** When nothing is filtered, `displayedSheetNode === selectedNode`, so the virtualized branch list and recursive branch tree receive referentially-stable props → the `EstimateSheetBranch` and `EstimateRowItemsTable` memo guards hold → a keystroke in one area does not re-render sibling areas. This invariant is load-bearing for performance.
 
 ## Data Layer Architecture
 
 ```
 Server Actions ("use server")
-  src/lib/estimates/actions.ts (3734 lines)
+  src/lib/estimates/actions.ts
     ├─ auth gate: assertCanEditEstimate / assertCanEditProject + rate limiting
-    ├─ dataStore.call(<rpc_name>, args)
+    ├─ dataStore.call(<compatibility_action_name>, args)
     └─ reads: fetchEstimateTree, fetchEstimateTabs, fetchEstimateEditCapability,
               fetchEstimateTabTree, fetchEstimateSheetVersionControl, ...
        writes: create/update/delete for estimate, tab, node, row;
@@ -158,10 +162,12 @@ Server Actions ("use server")
   │
   ▼
 D1 Action Client ("server only")
-  src/lib/estimates/d1-action-client.ts (2327 lines at the 2026-07-10 refresh)
-    ├─ callEstimateAction (RPC dispatcher, name→handler map)
-    ├─ EstimateActionD1Query (Supabase-style query builder over raw D1 SQL)
+  src/lib/estimates/d1-action-client.ts
+    ├─ callEstimateAction (D1 compatibility-action dispatcher, name→handler map)
+    ├─ EstimateActionD1Query (D1 compatibility query wrapper over raw SQL)
     ├─ patchRowItem → propagateProjectComponentRowPatch (SERVER fan-out)
+    │    └─ one JSON-identity-filter SELECT, then one revisioned UPDATE statement
+    │       per matching sibling, executed through a D1 batch
     └─ restoreDeletedEstimateNodes: implemented; restoreDeletedEstimateRows: still throws on D1 (GAP-07)
   │
   ▼
@@ -169,6 +175,8 @@ Workspace Repository (D1 reads)
   src/lib/repositories/workspace-repository.ts
     ├─ readEstimateNodes (filter estimate_id + tab + ids + parents; ORDER BY sort_order, id)
     ├─ readEstimateRows (filter estimate_id + node_id IS NOT NULL; ORDER BY sort_order, id)
+    │    └─ when node ids are supplied, emits one placeholder per id in one IN clause;
+    │       the 1,500-node load ceiling therefore needs bind-ceiling proof or chunking
     ├─ getEstimateTabTree → getEstimateTabTreeForResolvedEstimate (nodes then rows, LIMIT+1 guards)
     ├─ getEstimateNodeSubtree (BFS frontier expansion)
     ├─ getEstimateTreesForTabs (batched all-tab load)
@@ -184,12 +192,13 @@ React Query Hooks (transport cache)
       ["estimate", estimateId, "edit-capability"]           (edit gate)
       ["estimate", estimateId, "tab", tabId, "area-tree"]   (tab tree)
       ["estimate", estimateId, "area-tree"]                 (legacy/whole)
-      + sibling ["...", "revision"] keys bumped on optimistic patches
+      + sibling ["...", "revision"] keys bumped only through the query-hook tree helpers;
+        direct mutation-layer setQueryData writes currently bypass that increment
     Config: initialData seeded, refetchOnMount:false, staleTime 5min
   │
   ▼
 Row Mutations (optimistic + server)
-  src/hooks/use-estimate-row-mutations.ts (1365 lines)
+  src/hooks/use-estimate-row-mutations.ts
     ├─ updateMutation.onMutate: cancelQueries → snapshot → patchProjectComponentInstanceRowsInTree (CLIENT fan-out)
     ├─ onSuccess: setQueryData(server patch) → invalidateQueries (active only if fan-out touched others)
     ├─ onError: restoreEstimateRowPatchesInTree (unless offline)
@@ -201,26 +210,26 @@ Row Mutations (optimistic + server)
 A **template** is a reusable, persisted tree (`estimate_templates` + `estimate_template_nodes` + `estimate_template_row_items`). It is composed into a live estimate through three insertion entry points, all in `src/components/workshop/estimate-sheet/use-estimate-template-insertion.ts`:
 
 ```
-1. insertTemplateIntoParent (line 67)
+1. insertTemplateIntoParent
      └─ insertEstimateTemplateIntoEstimate (whole template)
-          └─ RPC insert_estimate_template_into_estimate_with_history
+          └─ D1 compatibility action insert_estimate_template_into_estimate_with_history
 
-2. insertTemplatesIntoParent (line 116)  [N>1 templates, single round-trip]
+2. insertTemplatesIntoParent  [N>1 templates, single round-trip]
      └─ insertEstimateTemplatesIntoEstimate (SEQUENTIAL — INS-1: avoids concurrent-insert tree-read race)
-          └─ RPC insert_estimate_template_into_estimate_with_history (per template)
+          └─ D1 compatibility action insert_estimate_template_into_estimate_with_history (per template)
 
-3. insertTemplateNodeIntoParent (line 183)  [one node + its subtree]
+3. insertTemplateNodeIntoParent  [one node + its subtree]
      └─ insertEstimateTemplateNodeIntoEstimate
-          └─ RPC insert_estimate_template_node_into_estimate_with_history
+          └─ D1 compatibility action insert_estimate_template_node_into_estimate_with_history
 ```
 
 **Optimistic flow** (all three): snapshot previousTree/previousRows + rollbackRevision → `cloneTemplateNodesForEstimate` (deep clone with new UUIDs, totals reset to "PHP 0.00") → `setEstimateTree(appendTemplateNodesToParent(...))` → fire server action → on success reconcile **only if** `getEstimateTreeRevision() === nextRevision` (stale-snapshot guard) → on error `restoreEstimateState`.
 
-**Server-side** (`copyTemplateNodes`, `d1-action-client.ts:1887`): reads template nodes + row items, optionally scoped to a subtree (`collectTemplateDescendantNodeIds`), maps old→new node ids, inserts `estimate_nodes` (resolving `estimate_tab_id` from parent) + `estimate_row_items`, writes a history event (`template_inserted` / `template_node_subtree_inserted`), returns `inserted_root_node_ids`.
+**Server-side** (`copyTemplateNodes` in `d1-action-client.ts`): reads template nodes + row items, optionally scoped to a subtree (`collectTemplateDescendantNodeIds`), maps old→new node ids, inserts `estimate_nodes` (resolving `estimate_tab_id` from parent) + `estimate_row_items`, writes a history event (`template_inserted` / `template_node_subtree_inserted`), returns `inserted_root_node_ids`.
 
-**Template drops arrive** via the `INSERT_ESTIMATE_TEMPLATE_EVENT` window event (line 259), bridging the left-panel tree DnD to the middle sheet without direct component coupling.
+**Template drops arrive** via the `INSERT_ESTIMATE_TEMPLATE_EVENT` window event, bridging the left-panel tree DnD to the middle sheet without direct component coupling.
 
-The **optimistic model** lives at `src/components/workshop/estimate-sheet/template-insertion-model.ts` (73 lines): `cloneLibraryItemForEstimate`, `cloneTemplateNodesForEstimate`, `appendTemplateNodesToParent`.
+The **optimistic model** lives at `src/components/workshop/estimate-sheet/template-insertion-model.ts`: `cloneLibraryItemForEstimate`, `cloneTemplateNodesForEstimate`, `appendTemplateNodesToParent`.
 
 See doc 26 for the full template composition spec.
 
@@ -280,10 +289,12 @@ These are the O(N) / recursive operations that scale with loaded tree size. The 
 | `filterEstimateSheetNode` (search) | `EstimateSheetContent.tsx:382` | O(N) recursive | search query change (returns same ref when empty) |
 | `filterEstimateSheetNodeByFacets` | `EstimateSheetContent.tsx:484` | O(N) recursive | facet change (returns same ref when none) |
 | `collectSheetFacetOptions` | `EstimateSheetContent.tsx:445` | O(N) subtree | memoized |
-| `collectRowMoveNodeOptions` | `EstimateSheetContent.tsx:602` | O(N) full tree | memoized; Move dialog |
+| `collectRowMoveNodeOptions` | `EstimateSheetContent.tsx` | O(N) full tree | memoized by tree identity, but currently derived even while the Move dialog is closed |
 | `patchProjectComponentInstanceRowsInTree` | `estimate-row-tree-patch.ts:275` | O(N) tree-walk | every project-component row update (client fan-out) |
 | `findEstimateRowItem` | `use-estimate-row-handlers.ts:202` | O(N) | many handlers |
 | `collectEditableRows` in mutations | `use-estimate-row-handlers.ts` | O(N) | per-mutation snapshot |
+| Left/center active-tree projections | `EstimateWorkspaceClient.tsx`, `EstimateSheetTree.tsx`, `EstimateSheetContent.tsx` | duplicated pane-level derivation | both panes observe the active query and build projections from the same tree |
+| Component-library sidebar boundary | `EstimateSheetContent.tsx`, `EstimateRightSidebar` | full-tree identity dependency | the memoized sidebar wakes whenever the tree object changes |
 
 **Main scaling concern**: a single keystroke re-runs `computeNodeTotals` (whole tree) and re-creates the totals map, even though memoization contains the downstream re-render. The parent re-render + total recompute is O(N) per keystroke.
 
@@ -292,15 +303,22 @@ These are the O(N) / recursive operations that scale with loaded tree size. The 
 | Limitation | Evidence | Impact |
 |---|---|---|
 | Route fast path is a null stub | `workspace-repository.ts:3985` returns null | Route always misses intended D1 fast path |
-| Row restore still throws on D1 while node restore is implemented | `d1-action-client.ts:1458, 2322-2325` | Current row Undo can only fail; `UNIT-009` must implement D1 row restore and preserve node-restore coverage |
+| Row restore still throws on D1 while node restore is implemented | `d1-action-client.ts:1458, 2322-2325` | Current row Undo can only fail; mandatory `UNIT-002` repair implements D1 row restore and preserves node restore before browser collection; `UNIT-009` later stress-proves both under revision/concurrency paths |
 | Group/sort doesn't add group-header rows | `EstimateSheetContent.tsx:677` comment | Category/supplier group modes flatten buckets; no visual group headers |
 | No 1000+ row rendered stress test | tests max at 500 rows; 1500/5000 only as constants | Scale claims unproven |
 | No browser proof for sheet interactions | no Playwright spec for the sheet route | All deep behaviors jsdom-only |
 | Client fan-out is O(N) tree-walk | `patchProjectComponentInstanceRowsInTree` | Stress-scale risk (GAP-06) |
-| Giant components | EstimateSheetContent (2922 lines), EstimateSheetTree reduced to 1257 lines by the concurrent tree extraction, cells (1304), row-table (1322); other large workshop surfaces remain | Structural splitting remains evidence-driven; the concurrent tree plan owns the active tree extraction |
+| Direct mutation cache writes bypass the query-hook tree revision increment | `use-estimate-row-mutations.ts` calls `queryClient.setQueryData`; revision increments live in `use-estimate-query.ts` helpers | Characterize in `UNIT-001`; preserve/reconcile revision ownership in `UNIT-006` and mutation/restore work in `UNIT-009` |
+| The 1,500-node load path can emit one `node_id IN (...)` statement with one bind per node | `readEstimateRows` receives all limited node ids | Characterize the shape in `UNIT-001`, prove the D1 bind ceiling without product edits in `UNIT-003`, and let `UNIT-005` chunk or otherwise bound the query if activated |
+| Move-target options derive while the dialog is closed | `collectRowMoveNodeOptions(estimateTree)` depends only on tree identity | Characterize in `UNIT-001`; gate or index the work in `UNIT-007` |
+| Right-sidebar memo wakes on tree identity | `EstimateRightSidebar` receives the full tree | Measure in `UNIT-001`; narrow the dependency in `UNIT-007` if activated |
+| Left and center panes each build active-tree projections | both panes observe the active query | Establish per-pane cost in `UNIT-001`; normalize and split selectors in `UNIT-006`–`UNIT-008` |
+| Large workshop surfaces remain | `EstimateSheetContent`, `EstimateSheetTree`, cells, and row-table | Structural splitting remains evidence-driven; the concurrent tree plan owns the active tree extraction |
+
+The server fan-out path is a separate scale boundary: it selects matching project-component rows through JSON identity expressions, materializes the matches, then constructs one revisioned update statement per sibling for `runBatch`. `UNIT-001` characterizes the current shape; `UNIT-003` measures match-count and batch cost; `UNIT-006`–`UNIT-009` must preserve fan-out, cache, and restore behavior while changing client structure.
 
 ## Verification
 
 - Planning provenance: source-grounded audit; reviewer identity does not cap readiness.
-- All file:line references were verified against the current worktree.
+- Paths and symbols were revalidated for this refresh; numeric line locators are non-authoritative snapshots and are not claimed current.
 - This document should be re-validated when the rendering or data layer is refactored.

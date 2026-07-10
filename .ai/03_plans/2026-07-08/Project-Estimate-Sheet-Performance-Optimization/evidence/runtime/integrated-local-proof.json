@@ -1,0 +1,7 @@
+{
+  "artifactId": "ART-049",
+  "evidenceId": "EVID-010",
+  "projection": "integrated-local-proof.json",
+  "schema": "estimate-sheet-evidence-projection-placeholder.v1",
+  "status": "STALE"
+}

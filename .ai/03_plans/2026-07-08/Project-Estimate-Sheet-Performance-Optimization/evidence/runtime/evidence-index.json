@@ -1,0 +1,6 @@
+{
+  "artifactId": "ART-052",
+  "projection": "evidence-index.json",
+  "schema": "estimate-sheet-evidence-registry-placeholder.v1",
+  "status": "STALE"
+}

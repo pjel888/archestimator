@@ -45,7 +45,7 @@ The sheet uses two component types that share the same editing surfaces (AddComp
 - Duplicate-name suppression must be active in create mode only (not edit mode).
 - Image URL normalization through broker routes.
 - Source snapshot text normalization must tolerate null-ish values.
-- Fan-out performance at scale (target: O(1) graph index, not O(N) tree-walk).
+- Fan-out performance measured at scale; when `UNIT-004` activates the graph branch, use direct identity indexes so updates visit matching rows rather than walking the full tree.
 
 ### Out of Scope
 - Library-master edit mode from estimate sheet (separate product decision).
@@ -92,12 +92,13 @@ Logical fixture tiers:
 
 | Tier | Shape | Purpose |
 |---|---|---|
-| Small | 5 areas x 10 rows = 50 rows | Current fast regression smoke. |
-| Medium | 10 areas x 20 rows = 200 rows | Existing rough jsdom baseline tier. |
-| Large | 10 areas x 50 rows = 500 rows | Current upper jsdom baseline tier. |
-| Stress | 50 areas x 50 rows = 2,500 rows | Main MVP scale proving ground. |
-| Limit | 100 areas x 50 rows = 5,000 rows | Current production row cap. |
+| Small | 50 rows | Fast correctness and keyboard regression smoke. |
+| Medium | 500 rows | Ordinary interactive editing baseline. |
+| Large | 1,000 rows | Derived totals and subtree mutation checks. |
+| Stress | 2,500 rows | Main MVP scale proving ground. |
+| Limit | 5,000 rows | Current production row cap. |
 | Over-limit | 1,501 nodes or 5,001 rows | Truncation and load-limit proof. |
+| Realistic-skew | 5,000 rows | Mixed shallow/deep areas, uneven fan-out, and long-tail row distribution. |
 
 ## Scope Boundaries
 

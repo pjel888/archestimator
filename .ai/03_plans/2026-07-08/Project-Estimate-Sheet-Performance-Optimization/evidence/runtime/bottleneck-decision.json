@@ -1,0 +1,7 @@
+{
+  "artifactId": "ART-043",
+  "evidenceId": "EVID-013",
+  "projection": "bottleneck-decision.json",
+  "schema": "estimate-sheet-evidence-projection-placeholder.v1",
+  "status": "STALE"
+}

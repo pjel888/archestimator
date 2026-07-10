@@ -27,7 +27,7 @@ Every persistent sheet state must have a documented user experience. "Persistent
 | Loading (initial route) | Cold direct navigation | `EstimateSheetRouteSkeleton` | "Loading estimate sheet." (polite) | None (focus in URL bar) | U0.3 browser spec: skeleton visible ≤ 1 episode per run |
 | Loading (warm transition) | Hover-prefetch then click | Skeleton if hover prefetch incomplete | "Loading." (polite, single) | Tab navigation works | U0.3: parent fallback episodes = 0 |
 | Loading (subtree expansion) | User expands a collapsed node | Inline placeholder rows; spinner in node header | "Loading children." (polite) | Focus stays on expand toggle | U0.3 + existing cursor-isolation test pattern |
-| Loading (mutation in flight) | Optimistic mutation pending | Subtle pending indicator on touched row(s) | No announcement (too chatty) | Edit continues; Cancel available | U5.1 entity patch test |
+| Loading (mutation in flight) | Optimistic mutation pending | Subtle pending indicator on touched row(s) | No announcement (too chatty) | Editing and navigation continue where safe; no write-cancel action is invented | U5.1 entity patch test |
 | Empty (no estimates) | New project, no estimates | Empty state with "Create estimate" CTA | "No estimates yet. Press Create estimate." | CTA reachable by Tab + Enter | New vitest: empty-state-renders |
 | Empty (no rows in node) | Area with 0 rows | "Add row" affordance | "No rows in this area." | Add row reachable | New vitest |
 | Success (mutation) | Server confirms | Inline state refresh; no toast spam | Silent (state change is its own signal) | — | U5.1 |
@@ -35,7 +35,6 @@ Every persistent sheet state must have a documented user experience. "Persistent
 | Error (route load) | Route failed to load | Error boundary with retry | "Failed to load estimate. Press retry." | Retry reachable | Existing error boundary test |
 | Conflict (row_revision mismatch) | Stale revision rejected | Conflict indicator | "Another user edited this row. Refresh to see their changes." (assertive) | Refresh / overwrite | U5.3 conflict test |
 | Permission denied | canEditEstimate = false | Read-only mode; edit affordances hidden | Silent (mode is its own signal) | Read-only navigation | Existing authz tests (17) |
-| Timeout | Long-running action | Inline timeout indicator | "Action taking longer than expected." (polite) | Cancel available | New: timeout test |
 | Truncation (over-limit) | Route payload capped | Truncation banner with count | "Showing first 1,500 nodes and 5,000 rows. Some content not loaded." (assertive) | Acknowledge button | REQ-F11 + over-limit fixture test |
 
 ## Action-Level Accessibility Proof Matrix
@@ -69,6 +68,8 @@ Every primary user action must have an explicit keyboard path, focus behavior, a
 ## WCAG 2.2 AA Criteria Mapping
 
 WCAG 2.2 AA success criteria most relevant to the estimate sheet. Each row maps to a concrete observable pass condition and proof method. Verify current criteria text at https://www.w3.org/TR/WCAG22/ before implementation.
+
+Proof cells labeled `Manual` describe residual successor or post-deploy validation. In this no-deploy pack they remain `NOT_EVALUATED`; only the automated evidence declared for `UNIT-008` and `UNIT-010` can satisfy those units.
 
 ### Principle 1: Perceivable
 
@@ -112,16 +113,16 @@ WCAG 2.2 AA success criteria most relevant to the estimate sheet. Each row maps 
 
 ## Mobile / Responsive Plan
 
-`DEC-AUTO-008` declares the MVP scope: tablet editable at >=1024 px, smaller mobile layouts view-only with explicit truncation/read-only state.
+`DEC-AUTO-008` declares the MVP scope used by this pack: tablet remains editable through `768-1023px`, while mobile layouts at `<=767px` are view-only with explicit truncation/read-only state.
 
 | Breakpoint | Behavior |
 |---|---|
 | Desktop (≥1280px CSS) | Three-panel layout: tree / sheet / sidebar. All actions available. |
-| Tablet landscape (1024-1279px) | Three-panel layout, narrower sidebar (collapsible). All actions available. |
+| Compact desktop (1024-1279px) | Three-panel layout, narrower sidebar (collapsible). All actions available. |
 | Tablet portrait (768-1023px) | Two-panel: tree collapses to drawer; sheet full-width; sidebar collapses to drawer. All actions available via drawer toggles. |
 | Mobile (≤767px) | View-only. Single panel: sheet only, no inline editing. Truncation banner prominent. Read-only navigation, branch expand/collapse, scroll. Edit CTA hidden with "Open on desktop to edit" message. |
 
-Test: Phase 4 responsive proof at each breakpoint. Assert no 2D scroll at 320px (WCAG 1.4.10).
+Test: `UNIT-008` automated responsive proof at each breakpoint, repeated in `UNIT-010`. Assert no 2D scroll at 320px (WCAG 1.4.10).
 
 If future first-user evidence reverses `DEC-AUTO-008`, create a new decision and update the linked proof scenarios.
 
@@ -138,12 +139,11 @@ Test: render sheet with `prefers-reduced-motion: reduce` and assert no rAF anima
 ## Validation Plan
 
 - **Automated**: installed Playwright role/name/state, focus-order, keyboard-operation, `aria-rowindex`/`aria-setsize`/`aria-posinset`, live-region, and reduced-motion assertions in `e2e/estimate-sheet-performance.spec.ts` and `e2e/estimate-sheet-component-interop.spec.ts`. No unapproved dependency is added.
-- **Manual keyboard walkthrough**: documented script covering every action in Action Matrix. Captured as video/transcript artifact in Phase 0.5 evidence.
-- **Screen reader walkthrough**: VoiceOver (macOS) + NVDA (Windows) pass over primary user flow. Captured as transcript artifact.
+- **Deferred residual (`NOT_EVALUATED`)**: manual keyboard video/transcript and VoiceOver/NVDA transcripts are outside this no-deploy pack. They are not accepted as `UNIT-008` or `UNIT-010` completion evidence and require a successor or post-deploy accessibility proof effort before any production accessibility-readiness claim.
 - **WCAG criteria audit**: each criterion in this matrix checked off with proof artifact path.
 
 ## Verification
 
-- Planning provenance: source audit; canonical readiness uses independent architect and critic receipts.
+- Planning provenance: source audit; canonical readiness uses orchestrator-separated architect, critic, and fingerprint-verifier procedural attestations for the recorder's exact same candidate.
 - WCAG 2.2 references: verify against https://www.w3.org/TR/WCAG22/ before implementation; criteria IDs and levels are stable but advisory techniques update.
-- This document must be validated against Phase 4 render boundary implementation BEFORE Phase 4 exits (R30).
+- This document must be validated against the `UNIT-008` render-boundary implementation before `UNIT-008` exits, with automated proof repeated by `UNIT-010`; deferred manual and assistive-technology artifacts remain `NOT_EVALUATED` residual proof.

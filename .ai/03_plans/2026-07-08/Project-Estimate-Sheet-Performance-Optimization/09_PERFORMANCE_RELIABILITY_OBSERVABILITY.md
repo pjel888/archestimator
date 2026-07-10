@@ -18,6 +18,7 @@
 | Scalar-edit derived-state CPU p95 / full-tree recomputes | <= 25 ms / 0 |
 | Scalar-mutation whole-tree snapshots | 0 |
 | Project-component client fan-out at 1,000 matches | <= 75 ms p95 |
+| Limit-tree row-load bind shape | Exactly 1,500 node IDs stay within the proven D1 bind ceiling or use deterministic bounded chunks with recorded statement count |
 | Ancestor-chain lookup at the limit fixture | <= 5 ms p95 |
 | Component identity lookup at exactly 1,000 matches | <= 5 ms p95 |
 | Second/later independently owned complete tree bytes | 0 |
@@ -155,8 +156,8 @@ Performance claims must be measured under realistic conditions, not just dev har
 
 | Profile | When | Why |
 |---|---|---|
-| Built OpenNext desktop, 1440x900/DPR 1, CPU 4x, 20 ms added latency, 10 Mbps down/5 Mbps up | Canonical budget profile for `UNIT-002`, `UNIT-008`, `UNIT-010` | Reproducible local browser budget |
+| Built OpenNext desktop, 1440x900/DPR 1, CPU 4x, 20 ms added latency, 10 Mbps down/5 Mbps up | Canonical scoped browser budget profile for `UNIT-002`, `UNIT-005`, `UNIT-007`, `UNIT-008`, `UNIT-009`, and `UNIT-010` | Reproducible baseline, activated-branch reproof, and final integration budgets |
 | Mobile 390x844/DPR 1 | Functional/a11y only | Proves `DEC-AUTO-008` view-only mobile behavior; does not substitute for the budget profile |
-| Tablet 1024x768/DPR 1 | Functional/a11y only | Proves tablet-editable scope |
+| Tablet 1023x768/DPR 1 | Functional/a11y only | Proves the accepted editable 768-1023 px tablet band |
 
 The exact server, auth, cache, worker, retry, warmup, browser, and throttling protocol is mandatory in `IMPLEMENTATION_PLAN.md` and doc 20. Lab data is a proxy for field data; field data requires production deployment.

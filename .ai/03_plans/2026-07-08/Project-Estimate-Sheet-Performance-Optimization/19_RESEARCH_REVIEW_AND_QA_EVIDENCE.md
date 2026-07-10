@@ -57,10 +57,10 @@ Key findings:
 ### Architecture Lane
 
 Key findings:
-- The root bottleneck is state shape, not just render count.
-- Recommended target is normalized graph state with incremental selectors.
-- Staged migration should keep nested facade first.
-- Mutation rollback should become entity-level inverse patch logs.
+- Source review identifies state shape as a candidate bottleneck beyond render count; `UNIT-002` and `UNIT-003` provide the measurements needed to prove or reject it.
+- Normalized graph state with incremental selectors is the prepared `UNIT-006` branch, activated or superseded mechanically by `UNIT-004`.
+- If activated, graph migration keeps a nested facade first; otherwise nested state remains authoritative.
+- Entity-level inverse patch logs are a separate evidence-activated `UNIT-009` branch, not an assumed consequence of graph adoption.
 
 ### Test-Engineering Lane
 
@@ -88,13 +88,13 @@ Key findings:
 
 ## Critique Cycle 1
 
-Critique: The normalized graph plan could become a large refactor that delays MVP.
+Critique: The normalized graph plan could become a large refactor that delays MVP or begin before evidence requires it.
 
 Response:
-- Phase 0 is proof-only.
-- Graph begins as read model/facade.
-- Existing recursive helpers remain fallback.
-- No implementation proceeds without measured bottleneck ranking.
+- `UNIT-001` through `UNIT-003` establish fixtures, parity coverage, and benchmark evidence first.
+- `UNIT-004` records deterministic activation or supersession decisions for each optional branch.
+- The graph-backed facade begins only if `UNIT-006` is activated; recursive helpers remain fallback until its parity and benchmark gates pass.
+- If the branch is superseded, no graph migration or graph rollback path is introduced.
 
 ## Critique Cycle 2
 
@@ -110,4 +110,3 @@ Response:
 - code-review-graph was unavailable for this repo in-session.
 - GitNexus was slightly stale, so source reads took precedence.
 - No live browser/hosted provider proof was run during planning.
-

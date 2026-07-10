@@ -9,13 +9,32 @@ import {
   readFileSync,
   readlinkSync,
 } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const CONTRACT_VERSION = "estimate-sheet-source-fingerprint.v2";
 const APPLICATION_CONTRACT_VERSION = "estimate-sheet-application-fingerprint.v1";
 const PRODUCER_CONTRACT_VERSION = "estimate-sheet-producer-fingerprint.v1";
 const PACKAGE_PROJECTION_RULE = "package-json-without-scripts.v1";
+const GENERATED_METADATA_EXCLUSION_RULE =
+  "untracked-impeccable-metadata-exclusions.v1";
+const GENERATED_METADATA_FILENAMES = new Set([
+  "config.local.json",
+  "hook.cache.json",
+  "hook.pending.json",
+]);
+const COMMAND_BEARING_LOCAL_CONFIG_KEY = /^(?:core\.worktree|include\.path|includeif\..+\.path|filter\..+\.(?:clean|smudge|process)|diff\..+\.(?:command|textconv))$/u;
+const SYSTEM_GIT_PATH = "/usr/bin/git";
+const SYSTEM_PATH = "/usr/bin:/bin";
+const STARTUP_INJECTION_ENV = [
+  "NODE_OPTIONS",
+  "NODE_PATH",
+  "BUN_OPTIONS",
+  "LD_PRELOAD",
+  "LD_LIBRARY_PATH",
+  "DYLD_INSERT_LIBRARIES",
+  "DYLD_LIBRARY_PATH",
+];
 
 const APPLICATION_PATHS = [
   ".npmrc",
@@ -57,6 +76,33 @@ const PRODUCER_PATHS = [
 ];
 
 const SOURCE_PATHS = [...new Set([...APPLICATION_PATHS, ...PRODUCER_PATHS])];
+
+function assertTrustedRuntime() {
+  const injectedEnvironment = STARTUP_INJECTION_ENV.filter(
+    (key) => typeof process.env[key] === "string" && process.env[key].length > 0,
+  );
+  if (process.execArgv.length > 0 || injectedEnvironment.length > 0) {
+    const controls = [
+      ...(process.execArgv.length > 0 ? ["execArgv"] : []),
+      ...injectedEnvironment,
+    ];
+    throw new Error(
+      `runtime startup controls are not permitted: ${controls.join(", ")}`,
+    );
+  }
+
+  const gitStat = lstatSync(SYSTEM_GIT_PATH);
+  if (
+    !gitStat.isFile() ||
+    gitStat.uid !== 0 ||
+    (gitStat.mode & 0o022) !== 0
+  ) {
+    throw new Error("trusted system Git is unavailable");
+  }
+}
+
+assertTrustedRuntime();
+
 const packRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const deterministicGitArgs = [
   "--no-pager",
@@ -84,9 +130,7 @@ const deterministicGitArgs = [
   "-c", "diff.submodule=short",
 ];
 const deterministicGitEnv = {
-  ...Object.fromEntries(
-    Object.entries(process.env).filter(([key]) => !key.startsWith("GIT_")),
-  ),
+  PATH: SYSTEM_PATH,
   LC_ALL: "C",
   LANG: "C",
   TZ: "UTC",
@@ -102,7 +146,7 @@ const deterministicGitEnv = {
 };
 
 function rawGit(cwd, args) {
-  return execFileSync("git", [...deterministicGitArgs, ...args], {
+  return execFileSync(SYSTEM_GIT_PATH, [...deterministicGitArgs, ...args], {
     cwd,
     encoding: "buffer",
     env: deterministicGitEnv,
@@ -113,10 +157,65 @@ function rawGit(cwd, args) {
 const repoRoot = rawGit(packRoot, ["rev-parse", "--show-toplevel"])
   .toString("utf8")
   .trim();
+const packRelativeToRepo = relative(repoRoot, packRoot);
+const packIsInsideRepo = packRelativeToRepo.length > 0
+  && packRelativeToRepo !== ".."
+  && !packRelativeToRepo.startsWith(`..${resolve("/")}`)
+  && !packRelativeToRepo.startsWith("../")
+  && !packRelativeToRepo.startsWith("..\\");
+const expectedRepoRoot = resolve(packRoot, "../../../..");
+if (repoRoot !== expectedRepoRoot && !packIsInsideRepo) {
+  throw new Error("Git resolved an unexpected repository root");
+}
 
 function git(args) {
   return rawGit(repoRoot, args);
 }
+
+function assertSafeRepositoryMetadata() {
+  const unsafeKeys = [];
+  const worktreeConfigPath = rawGit(repoRoot, [
+    "rev-parse",
+    "--path-format=absolute",
+    "--git-path",
+    "config.worktree",
+  ]).toString("utf8").trim();
+  const scopes = ["--local"];
+  if (existsSync(worktreeConfigPath)) scopes.push("--worktree");
+  for (const scope of scopes) {
+    const keys = splitNul(rawGit(repoRoot, [
+      "config",
+      scope,
+      "--null",
+      "--name-only",
+      "--list",
+      "--no-includes",
+    ]));
+    for (const key of keys) {
+      const normalized = key.toLowerCase();
+      if (COMMAND_BEARING_LOCAL_CONFIG_KEY.test(normalized)) {
+        unsafeKeys.push(`${scope}:${normalized}`);
+      }
+    }
+  }
+  if (unsafeKeys.length > 0) {
+    throw new Error(
+      `Command-bearing repository Git config is not permitted: ${unsafeKeys.join(", ")}`,
+    );
+  }
+
+  const infoAttributesPath = rawGit(repoRoot, [
+    "rev-parse",
+    "--path-format=absolute",
+    "--git-path",
+    "info/attributes",
+  ]).toString("utf8").trim();
+  if (existsSync(infoAttributesPath) && readFileSync(infoAttributesPath).length > 0) {
+    throw new Error("Nonempty repository-local info/attributes is not permitted");
+  }
+}
+
+assertSafeRepositoryMetadata();
 
 function sha256(bytes) {
   return createHash("sha256").update(bytes).digest("hex");
@@ -147,16 +246,44 @@ function bytewisePathSort(left, right) {
   return Buffer.compare(Buffer.from(left, "utf8"), Buffer.from(right, "utf8"));
 }
 
-function candidatePaths(paths) {
-  return [...new Set(splitNul(git([
+function isGeneratedMetadataPath(path) {
+  const segments = path.split("/");
+  return segments.length >= 2
+    && segments.at(-2) === ".impeccable"
+    && GENERATED_METADATA_FILENAMES.has(segments.at(-1));
+}
+
+function trackedPaths(paths) {
+  return splitNul(git([
     "ls-files",
     "-z",
     "--cached",
+    "--",
+    ...paths,
+  ])).sort(bytewisePathSort);
+}
+
+function assertNoTrackedGeneratedMetadata(paths) {
+  const matches = paths.filter(isGeneratedMetadataPath);
+  if (matches.length > 0) {
+    throw new Error(
+      `Generated metadata exclusion matched tracked source paths: ${matches.join(", ")}`,
+    );
+  }
+}
+
+function candidatePaths(paths) {
+  const tracked = trackedPaths(paths);
+  assertNoTrackedGeneratedMetadata(tracked);
+  const untracked = splitNul(git([
+    "ls-files",
+    "-z",
     "--others",
     "--exclude-per-directory=.gitignore",
     "--",
     ...paths,
-  ])))].sort(bytewisePathSort);
+  ])).filter((path) => !isGeneratedMetadataPath(path));
+  return [...new Set([...tracked, ...untracked])].sort(bytewisePathSort);
 }
 
 function stableJson(value) {
@@ -221,7 +348,11 @@ function currentMode(path) {
 }
 
 function buildContentFingerprint(contractVersion, paths, projectPackageScripts) {
-  const candidates = filesystemCandidates(paths);
+  const tracked = trackedPaths(paths);
+  assertNoTrackedGeneratedMetadata(tracked);
+  const candidates = filesystemCandidates(paths).filter(
+    (path) => !isGeneratedMetadataPath(path),
+  );
   const pathListBytes = Buffer.concat(
     candidates.map((path) => Buffer.concat([Buffer.from(path, "utf8"), Buffer.from([0])])),
   );
@@ -233,6 +364,7 @@ function buildContentFingerprint(contractVersion, paths, projectPackageScripts) 
   }));
   return {
     contract_version: contractVersion,
+    generated_metadata_exclusion_rule: GENERATED_METADATA_EXCLUSION_RULE,
     package_projection_rule: projectPackageScripts ? PACKAGE_PROJECTION_RULE : "full-package-json.v1",
     path_count: candidates.length,
     path_list_sha256: sha256(pathListBytes),
@@ -283,7 +415,7 @@ const untrackedPaths = splitNul(git([
   "--exclude-per-directory=.gitignore",
   "--",
   ...SOURCE_PATHS,
-])).sort(bytewisePathSort);
+])).filter((path) => !isGeneratedMetadataPath(path)).sort(bytewisePathSort);
 const untrackedRecords = Buffer.concat(untrackedPaths.map((path) => {
   const stat = lstatSync(resolve(repoRoot, path));
   const mode = (stat.mode & 0o777).toString(8).padStart(6, "0");
@@ -295,6 +427,7 @@ const untrackedRecords = Buffer.concat(untrackedPaths.map((path) => {
 
 const fingerprint = {
   contract_version: CONTRACT_VERSION,
+  generated_metadata_exclusion_rule: GENERATED_METADATA_EXCLUSION_RULE,
   head: git(["rev-parse", "HEAD"]).toString("utf8").trim(),
   path_count: candidates.length,
   path_list_sha256: sha256(pathListBytes),
@@ -322,6 +455,7 @@ if (process.argv.includes("--verify")) {
   const mismatches = [];
   compareFields("", expected, fingerprint, [
     "contract_version",
+    "generated_metadata_exclusion_rule",
     "head",
     "path_count",
     "path_list_sha256",
@@ -330,6 +464,7 @@ if (process.argv.includes("--verify")) {
   ], mismatches);
   compareFields("application.", expected?.application, fingerprint.application, [
     "contract_version",
+    "generated_metadata_exclusion_rule",
     "package_projection_rule",
     "path_count",
     "path_list_sha256",
@@ -337,6 +472,7 @@ if (process.argv.includes("--verify")) {
   ], mismatches);
   compareFields("producer.", expected?.producer, fingerprint.producer, [
     "contract_version",
+    "generated_metadata_exclusion_rule",
     "package_projection_rule",
     "path_count",
     "path_list_sha256",

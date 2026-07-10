@@ -2,7 +2,7 @@
 
 ## Audit Method
 
-Direct source reads, `rg`, GitNexus context, and read-only subagents were used. Direct source reads are authoritative because the graph index reported a small HEAD lag.
+Direct source reads, `rg`, GitNexus context, and read-only subagents were used. Direct source reads are authoritative because the graph index reported a small HEAD lag. Paths and symbol names are the durable anchors in this supporting audit; numeric line anchors in related supporting documents describe a planning snapshot and must be re-resolved before implementation.
 
 ## Route Bootstrap
 
@@ -20,10 +20,11 @@ Findings:
 - The component library dataset is intentionally lazy-loaded and does not block first paint.
 - `EstimateWorkspaceClient` passes the same `nodes` payload to both `EstimateSheetTree` and `EstimateSheetContent`.
 - `EstimateWorkspaceClient` dynamically imports both heavy panes, but once loaded they receive the whole nested tree payload.
+- Both panes subscribe to the active TanStack tree query and build their own projections: the left pane builds filtered/UI/selection tree models, while the center pane builds selected-sheet, totals, facet, and row models.
 
 Performance implication:
 - Suspense and lazy loading help first-load UX, but the serialized RSC/client payload can still be large at the current caps.
-- The same nested data shape fans out into two large client panes.
+- The same nested data shape fans out into two large client panes, so one tree identity change can wake both projection pipelines even when structural sharing prevents unrelated row DOM from rerendering.
 
 ## Repository Query Shape
 
@@ -44,12 +45,14 @@ Findings:
 - `readEstimateNodes` filters by `estimate_id`, optional `estimate_tab_id`, optional `id IN`, and optional `parent_id IN`, then orders by `sort_order ASC, id ASC`.
 - `readEstimateRows` filters by `estimate_id`, `node_id IS NOT NULL`, optional `node_id IN`, then orders by `sort_order ASC, id ASC`.
 - `readEstimateTabTreePayloadForResolvedTabId` loads nodes first, limits to cap, then loads rows for the limited node ids.
+- The dominant tab-tree path passes every limited node id to one `node_id IN (...)` row query. At the 1,500-node ceiling that is one statement with up to 1,500 node-id binds, plus the estimate/limit binds.
 - `getEstimateTreesForTabs` batches all-tab export tree loading rather than fanning out per tab.
 - `readEstimateNodeRouteContextD1FastPath` currently returns `null`.
 
 Performance implication:
 - Route fast path is not active.
 - Current row reads can benefit from a composite index matching `estimate_id + node_id + sort_order + id`.
+- Index selection cannot repair a provider bind ceiling. `UNIT-001` must characterize the exact statement/bind shape, `UNIT-003` must prove the D1 ceiling without product edits, and `UNIT-005` must chunk or replace the query if the limit profile exceeds it.
 - The repository already has subtree primitives; the client state model is the larger missing piece.
 
 ## Current D1 Index Coverage
@@ -80,17 +83,19 @@ Files:
 
 Findings:
 - Query keys currently include:
-  - `["estimate", estimateId, "detail"]`
-  - `["estimate", estimateId, "tree"]`
-  - `["estimate", estimateId, "tab-tree", tabId]`
+  - `["estimate", estimateId]`
+  - `["estimate", estimateId, "area-tree"]`
+  - `["estimate", estimateId, "tab", tabId, "area-tree"]`
   - `["estimate", estimateId, "tabs"]`
   - `["estimate", estimateId, "edit-capability"]`
 - Tree queries use `initialData`, `refetchOnMount: false`, and `staleTime: 5 * 60_000`.
 - Mutations use a mixture of `setQueryData` and `invalidateQueries`, often targeting whole tree keys.
+- The tree hooks increment their sibling revision key only through the hook-owned `setTree`/`restore` helpers. Direct `queryClient.setQueryData` writes in row mutations change the tree without incrementing that revision.
 
 Performance implication:
 - Transport caching is already thoughtful.
 - Query keys are not yet dimensioned for partial subtrees, page/cursor state, filters, or completeness windows.
+- The current revision is not a complete cache-mutation clock, so a revision-guarded whole-tree reconciliation or rollback cannot assume it observed every optimistic/server cache write. `UNIT-001` owns the concurrency characterization; `UNIT-009` owns mutation/rollback repair, with graph-store integration in `UNIT-006` when activated.
 - Future normalized graph state should treat TanStack Query as transport cache, not as the primary interactive store.
 
 ## Client State And Derived Data
@@ -120,11 +125,29 @@ Findings:
 - Flattened rows are guarded behind `shouldBuildFlattenedRows`, which is good, but once enabled it traverses the whole tree.
 - Search/filter/group create render-only tree copies when active.
 - Facet options traverse the selected subtree.
-- Row move node options traverse the full tree.
+- Row move node options traverse the full tree whenever the tree identity changes, including while the move dialog is closed.
 - Row move position options can map every row in the target node into select options.
+- `EstimateRightSidebar` is memoized, but the center pane passes the full `estimateTree` as `nodes`; a committed/optimistic tree identity change wakes the sidebar's large derivation block.
 
 Performance implication:
 - The main bottleneck is not only DOM rendering. It is repeated O(N) derivation and nested structural cloning.
+- `UNIT-001` should count these derivations before optimization. On-demand move option construction belongs to `UNIT-007`; selector/graph isolation across both panes and the sidebar belongs to `UNIT-006`-`UNIT-008` when activated.
+
+## D1 Project-Component Fan-Out
+
+Files:
+- `src/lib/estimates/d1-action-client.ts`
+- `src/lib/estimates/estimate-row-tree-patch.ts`
+
+Findings:
+- Server fan-out resolves project-component identity from JSON fields in `source_snapshot_json` and `metadata_json`, selects matching project rows, and emits one revisioned update statement per matched sibling through a D1 batch.
+- It is not a constant-time typed-column join and is not presumed O(1); JSON filtering, rows read, match count, statement count, batch size, and duration require `UNIT-003` proof.
+- Client fan-out still walks the cached nested tree and rollback can apply repeated tree walks across all inverse patches.
+
+Ownership:
+- `UNIT-001` locks behavior and adds deterministic match-count/rollback characterization.
+- `UNIT-003` measures the active D1 JSON-filter plus per-match batch path.
+- `UNIT-006` and `UNIT-009` own the graph lookup and mutation/rollback changes only when their activation predicates pass.
 
 ## Rendering And Virtualization
 
@@ -195,4 +218,3 @@ Findings:
 Conclusion:
 - The repo has enough scaffolding to build a serious evaluator quickly.
 - Current evidence does not yet prove thousands-row production readiness.
-

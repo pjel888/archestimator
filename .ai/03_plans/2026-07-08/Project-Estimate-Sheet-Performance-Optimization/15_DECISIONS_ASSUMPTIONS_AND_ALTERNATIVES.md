@@ -44,13 +44,13 @@ Decision: no new convert/link control is added. Current promote and detach flows
 
 ### DEC-AUTO-008 - Tablet Edit, Mobile View
 
-Decision: layouts >=1024 px remain editable. Smaller mobile layouts are view-only with explicit truncation/read-only state.
+Decision: tablet layouts at 768-1023 px remain editable through the existing drawer/collapsed-panel composition. Mobile layouts at <=767 px are view-only with explicit truncation/read-only state.
 
 Reopen trigger: measured first-user demand justifies a mobile authoring interaction design.
 
 ### DEC-AUTO-009 - Graph Is Evidence-Activated
 
-Decision: a normalized graph is a ready optimization branch, not an unconditional rewrite. `UNIT-004` activates it only when `UNIT-007.activate OR M-MUTATE-CLIENT-FANOUT-P95.fail OR M-GRAPH-ANCESTOR-LOOKUP-P95.fail OR M-GRAPH-COMPONENT-LOOKUP-P95.fail OR M-GRAPH-DUPLICATE-BYTES.fail`. The three graph operands are durable `UNIT-001` jsdom outputs with the exact limit-fixture sampling, <=5 ms lookup thresholds, and zero duplicate-byte threshold defined in `IMPLEMENTATION_PLAN.md` and doc 20; missing or unclassifiable values fail closed. Otherwise the unit writes a supersession receipt.
+Decision: a normalized graph is a ready optimization branch, not an unconditional rewrite. `UNIT-004` activates it only when `UNIT-007.activate OR M-MUTATE-CLIENT-FANOUT-P95.fail OR M-MUTATE-CLIENT-FANOUT-NONMATCH-INSPECTIONS.fail OR M-GRAPH-ANCESTOR-LOOKUP-P95.fail OR M-GRAPH-COMPONENT-LOOKUP-P95.fail OR M-GRAPH-DUPLICATE-BYTES.fail`. The three graph operands plus both client-fan-out operands are durable `UNIT-001` outputs with the exact limit-fixture sampling and fail rules defined in `IMPLEMENTATION_PLAN.md` and doc 20; missing or unclassifiable values fail closed. Otherwise the unit writes a supersession receipt.
 
 Rejected: broad memoization as the only scale strategy. Reason: it does not remove full-tree derivation or snapshot costs.
 

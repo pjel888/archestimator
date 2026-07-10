@@ -1,0 +1,7 @@
+{
+  "artifactId": "ART-047",
+  "evidenceId": "EVID-008",
+  "projection": "unit-008-render-a11y.json",
+  "schema": "estimate-sheet-evidence-projection-placeholder.v1",
+  "status": "STALE"
+}

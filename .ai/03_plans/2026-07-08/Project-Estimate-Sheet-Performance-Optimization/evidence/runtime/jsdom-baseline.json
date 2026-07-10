@@ -1,0 +1,7 @@
+{
+  "artifactId": "ART-040",
+  "evidenceId": "EVID-002",
+  "projection": "jsdom-baseline.json",
+  "schema": "estimate-sheet-evidence-projection-placeholder.v1",
+  "status": "STALE"
+}

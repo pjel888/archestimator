@@ -1,0 +1,7 @@
+{
+  "artifactId": "ART-046",
+  "evidenceId": "EVID-007",
+  "projection": "unit-007-derived-state.json",
+  "schema": "estimate-sheet-evidence-projection-placeholder.v1",
+  "status": "STALE"
+}

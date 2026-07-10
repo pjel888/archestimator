@@ -2,19 +2,19 @@
 
 Status tuple: `package_status=NOT_READY`, `implementation_status=NOT_STARTED`, `release_status=NOT_EVALUATED`, `plan_lifecycle=ACTIVE`, `terminal_status=ACTIVE`.
 
-Current run: implementation re-admission after shared-worktree coordination. The Estimate Sheet Tree lane is complete, archived, and has released its leases; a five-reading quiet window plus its exact 192-test suite, typecheck, and diff hygiene passed. No implementation unit is admitted until the refreshed source candidate is independently re-reviewed. Future package ceiling: local implementation plus scoped hosted proof against the Cloudflare resources bound in `wrangler.jsonc`. This pack does not authorize or perform a production deploy.
+Current run: implementation re-admission after shared-worktree coordination. The Estimate Sheet Tree lane is complete, archived, and has released its leases. Later unrelated workshop, proposals, dev-server, landing, admin, support, and migration-index work changed the broad admission fingerprint without changing the estimate-sheet behavior premises. Concurrent application writes invalidated multiple replacement quiet-window candidates before artifact freeze. A later consistency audit also required a frozen read-only planning reference plus a write-once admission recorder whose receipt becomes an immutable UNIT-001 dependency. No implementation unit is admitted until the broad source scope becomes quiet and the final refreshed candidate passes validators and the orchestrator-separated procedural review lanes. Future package ceiling: local implementation plus scoped hosted proof against the Cloudflare resources bound in `wrangler.jsonc`. This pack does not authorize or perform a production deploy.
 
 Canonical execution artifact: [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md)
 
 Machine-readable contract: [`plan-pack.json`](plan-pack.json)
 
-Candidate next unit after re-admission: `UNIT-001`, which locks current behavior, repairs stale contract tests, creates deterministic fixtures, and implements the strict evaluator contract before any optimization code. `AC-012` requires new same-hash architect and critic receipts for the refreshed candidate.
+Candidate next unit after re-admission: `UNIT-001`, which locks current behavior, repairs stale contract tests, creates deterministic fixtures, implements the strict evaluator/refreeze contract, and wires one inert all-off server-resolved mode snapshot through the route and client before any optimization code. `AC-012` requires new same-hash architect, critic, and fingerprint-verifier receipts for the refreshed deterministic candidate.
 
 ## Mission
 
 Prove and then remove the dominant route, derivation, render, and mutation bottlenecks while preserving all estimate-sheet behavior at the supported ceiling of 1,500 nodes and 5,000 loaded rows.
 
-The same-hash review gate is temporarily open. Product implementation and runtime performance evidence remain incomplete and are produced by `UNIT-001` through `UNIT-011` after re-admission.
+The same-hash review gate is closed until a fresh candidate is reviewed. Product implementation and runtime performance evidence remain incomplete and are produced by `UNIT-001` through `UNIT-011` after re-admission.
 
 ## Authority Order
 
@@ -30,24 +30,27 @@ Docs `11_IMPLEMENTATION_PLAN.md` and `21_EXECUTION_HANDOFF.md` are superseded as
 - The route uses Suspense and capped tree loading, but its D1 fast path is still a null stub.
 - Nested tree derivations, mutation snapshots, and client project-component fan-out still have full-tree work in hot paths.
 - Virtualization bounds DOM work but does not bound all derivation work, and row virtualization is disabled during express editing.
-- D1 node restore is now implemented, but D1 row restore still throws while the activity UI exposes row Undo; `UNIT-009` owns that provider/UI contract repair.
+- D1 node restore is now implemented, but D1 row restore still throws while the activity UI exposes row Undo. The existing positive server-action test mocks the D1 client and is not implementation proof. `UNIT-001` first adds a direct negative D1 characterization; `UNIT-002` replaces it with direct native-snapshot/subset/denial proof, same-correlation and fresh-correlation source-event replay, historical snapshot compatibility, bulk-event alias normalization, the mandatory provider/UI repair, and an immutable replacement-`UNIT-001` refreeze receipt before browser collection; `UNIT-009` preserves it under concurrency proof.
 - Existing jsdom performance coverage reaches 500 rows, not the 5,000-row ceiling.
 - Current direct tests exist for bulk-delete partial failure, realtime broadcast filtering, and tree DnD; older missing-test claims were stale.
 - Historical route and generic D1 artifacts do not prove the current Cloudflare/D1 estimate path.
+- Direct mutation-hook query-cache writes do not currently share the tree-revision increment path, so revision-guarded rollback needs explicit concurrent-write characterization and repair.
+- Limit-tree row loading can place 1,500 node IDs into one D1 `IN (...)` statement; the evaluator must prove the bind ceiling before `UNIT-005` chooses one statement or deterministic chunks.
+- Move-target options are derived while the dialog is closed, and component-library/sidebar memoization still wakes on whole-tree identity changes; both are measured `UNIT-007` inputs.
 
 ## Execution Shape
 
 ```text
-UNIT-001 evaluator/fixtures/characterization
-  -> UNIT-002 local browser and 19 interop scenarios
+UNIT-001 evaluator/fixtures/characterization/default-off mode bridge
+  -> UNIT-002 receipt-gated D1 row-restore repair, immutable refreeze receipt, complete replacement UNIT-001 cohort, baseline browser and 19 interop scenarios
   -> UNIT-003 local D1/query proof
   -> UNIT-004 deterministic bottleneck decision
-  -> UNIT-005..009 evidence-activated optimizations or supersession receipts
-  -> UNIT-010 integrated local proof
+  -> UNIT-005 route browser/D1, UNIT-006 graph, UNIT-007 derived-state browser, UNIT-008 render-a11y browser, and UNIT-009 mutation browser proof or supersession receipts
+  -> UNIT-010 full-local browser and integrated local proof
   -> UNIT-011 scoped hosted D1 proof and release evaluation
 ```
 
-The browser, hosted, and implementation evidence is deliberately deferred to those execution units. It is not a condition for declaring the plan itself implementation-ready.
+`UNIT-002` consumes the baseline launcher's sole journaled all-off active preview. Activated `UNIT-005`, `UNIT-007`, `UNIT-008`, `UNIT-009`, and `UNIT-010` browser children consume the mode runner's sole active final `on|all-activated` preview. Every browser-owning unit emits a complete scoped browser report plus fixture-bound test receipt, and Playwright never starts an implicit server. The browser, hosted, and implementation evidence is deliberately deferred to those execution units. It is not a condition for declaring the plan itself implementation-ready. Field INP and manual VoiceOver/NVDA proof cannot be produced by this no-deploy pack and remain explicitly `NOT_EVALUATED`; local Event Timing and automated accessibility checks are not mislabeled as those residual proofs.
 
 ## Pack Index
 
@@ -76,6 +79,7 @@ The browser, hosted, and implementation evidence is deliberately deferred to tho
 | `18_STACK_CONTRACT_AND_PRODUCTION_STANDARDS.md` | Stack/source contract |
 | `19_RESEARCH_REVIEW_AND_QA_EVIDENCE.md` | Research history |
 | `20_PERFORMANCE_EVALUATOR_SPEC.md` | Strict evaluator contract aligned with the canonical plan |
+| `30_RUNTIME_EVIDENCE_AND_MANIFEST_TRANSITIONS.md` | Closed runtime projection, transition, block, recovery, and closeout contract |
 | `21_EXECUTION_HANDOFF.md` | Superseded first-PR draft |
 | `22_COMPONENT_INTEROPERABILITY_SPEC.md` | Correct 19-scenario interop contract |
 | `23_FINAL_SCORECARD_AND_READINESS.md` | Historical scorecard with current manifest status note |
@@ -97,4 +101,4 @@ bun run validate:planning-prompts
 bun run validate:plan-pack -- .ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization
 ```
 
-Browser automation is intentionally not part of plan-readiness validation. It is required by `UNIT-002` and `UNIT-010` to prove the later runtime claims.
+Browser automation is intentionally excluded from plan-readiness validation. Runtime browser proof is required by `UNIT-002` and every browser-owning optimization unit: `UNIT-005` (`route`), `UNIT-007` (`derived-state`), `UNIT-008` (`render-a11y`), `UNIT-009` (`mutations`), and `UNIT-010` (`full-local`). `UNIT-006` remains graph/unit proof without a browser child. `UNIT-002` consumes the baseline launcher's sole journaled all-off active preview; the activated optimization units consume the mode runner's sole active final `on|all-activated` preview. Playwright never starts an implicit server.

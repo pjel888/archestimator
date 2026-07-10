@@ -1,0 +1,7 @@
+{
+  "artifactId": "ART-044",
+  "evidenceId": "EVID-005",
+  "projection": "unit-005-route-d1.json",
+  "schema": "estimate-sheet-evidence-projection-placeholder.v1",
+  "status": "STALE"
+}

@@ -12,9 +12,9 @@ The current architecture is nested-tree first. Virtualization reduces mounted DO
 - Optimistic patching and rollback.
 - Prop comparison across branches.
 
-The scalable target is normalized graph state plus selector-driven views.
+Normalized graph state plus selector-driven views is a prepared conditional branch: `UNIT-004` activates `UNIT-006` only when measured predicates require it and otherwise records a supersession receipt.
 
-## Target Architecture
+## Conditional Graph Architecture (`UNIT-006` If Activated)
 
 ### Layers
 
@@ -29,7 +29,7 @@ The scalable target is normalized graph state plus selector-driven views.
    - Query keys encode exact server-state dimensions.
    - Holds payload snapshots and background refresh state.
 
-3. Interactive graph store
+3. Conditional interactive graph store
    - Zustand or sibling store module.
    - Owns active estimate graph, dirty edits, UI-scoped graph metadata, mutation logs.
    - Does not own server authorization truth.
@@ -144,13 +144,15 @@ Target:
 
 ## Compatibility Strategy
 
-Phase 1 keeps a nested facade so current components continue rendering.
+This strategy applies only if `UNIT-006` is activated. If it is superseded, nested state remains authoritative and no graph migration occurs.
 
-Phase 2 migrates totals/selectors behind the facade.
+When `UNIT-006` is activated, its first stage keeps a nested facade so current components continue rendering.
 
-Phase 3 points virtualized branch/row renderers at selectors.
+`UNIT-007`, when activated, migrates totals and selectors behind the facade.
 
-Phase 4 removes recursive hot-path fallbacks after parity and browser proof.
+`UNIT-008`, when activated, points virtualized branch and row renderers at stable selectors.
+
+Recursive hot-path fallbacks are removed only after the activated branches pass parity and browser proof.
 
 ## Alternatives
 
@@ -164,7 +166,7 @@ Cons:
 - Does not remove O(N) totals, flattening, filtering, and patching.
 - Risk of memoization complexity hiding structural cost.
 
-Verdict: rejected as final architecture, allowed only for narrow measured fixes.
+Verdict: retain this architecture when `UNIT-006` is superseded and allow only the narrow fixes activated by measurement.
 
 ### Alternative B - Normalize Rows Only
 
@@ -175,7 +177,7 @@ Pros:
 Cons:
 - Tree expansion, branch rendering, search, and subtree merge still pay nested costs.
 
-Verdict: possible intermediate implementation but not final target.
+Verdict: not an independently selected target in this pack; rows-only changes require an owning evidence-activated unit.
 
 ### Alternative C - Full Graph Rewrite
 
@@ -185,14 +187,14 @@ Pros:
 Cons:
 - Too risky for MVP if done as one big rewrite.
 
-Verdict: reject big-bang rewrite; adopt staged graph-backed facade.
+Verdict: reject big-bang rewrite; retain the staged graph-backed facade as the prepared `UNIT-006` branch when measurement activates it, otherwise retain the nested implementation.
 
 ## Architecture Decision
 
-Use staged normalized graph adoption behind the existing component and route contracts.
+Prepare staged normalized graph adoption behind the existing component and route contracts, but execute it only when `UNIT-004` activates `UNIT-006`; a supersession receipt is the correct outcome otherwise.
 
 Rationale:
-- Removes the actual scale bottleneck.
+- When activated, removes the measured scale bottleneck.
 - Preserves current UX.
 - Enables parity testing.
 - Allows rollback by feature flag.

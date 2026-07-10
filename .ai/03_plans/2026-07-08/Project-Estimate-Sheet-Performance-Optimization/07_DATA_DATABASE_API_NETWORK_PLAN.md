@@ -17,6 +17,11 @@ Dominant route/tab tree reads:
   - optional `AND node_id IN (...)`
   - `ORDER BY sort_order ASC, id ASC`
 
+Current ceiling risk:
+- `readEstimateTabTreePayloadForResolvedTabId` passes the complete limited node-id list into one `readEstimateRows` call.
+- At the supported 1,500-node ceiling, the resulting `node_id IN (...)` shape can carry up to 1,500 node-id binds in one statement, plus the estimate and optional limit binds.
+- `UNIT-001` must freeze the exact statement and bind-count fixtures. `UNIT-003` must prove the active D1 bind ceiling without product edits; if the current shape exceeds it, `UNIT-005` implements deterministic chunking/replacement with row-deduplication and limit semantics preserved.
+
 ## Index Candidate Hypotheses
 
 Do not apply these until proof confirms:
@@ -30,6 +35,7 @@ Do not apply these until proof confirms:
 
 For each candidate query:
 - Capture SQL shape.
+- Capture bind count and compare it with the active D1 ceiling for small, limit, and over-limit fixtures.
 - Capture current `EXPLAIN QUERY PLAN`.
 - Capture current `rows_read`, `rows_written`, and p95 duration.
 - Apply index in temporary/local proof database.
@@ -75,6 +81,11 @@ Rules:
 - Query data remains JSON-compatible to preserve TanStack structural sharing.
 - Client graph state is derived from query payloads but not conflated with transport freshness.
 
+Current revision gap:
+- `useEstimateAreaTreeQuery` and `useEstimateTabTreeQuery` increment the sibling revision key only through their `setTree` and `restore` helpers.
+- Row mutation paths also write the same query data directly with `queryClient.setQueryData`; those writes do not advance the sibling revision.
+- `UNIT-001` must characterize concurrent optimistic/server writes and stale rollback/reconciliation. `UNIT-009` must make every accepted cache mutation participate in one monotonic client revision contract; `UNIT-006` may move that contract into the normalized graph store when activated.
+
 ## Network Plan
 
 Initial route:
@@ -92,6 +103,7 @@ Mutations:
 - Optimistic update graph immediately.
 - Server action confirms and returns revision/affected data.
 - Invalidate narrow subtree/window keys, not full estimate unless necessary.
+- Project-component server fan-out currently filters identity through `json_extract` over `source_snapshot_json`/`metadata_json`, then creates one revisioned update statement per matching sibling and sends those statements as a D1 batch. `UNIT-003` measures JSON-filter rows read, match count, statement count, batch size, and duration; the path is not presumed O(1).
 
 Search:
 - Phase 1 loaded-tree search only.
@@ -105,10 +117,16 @@ Do not weaken authorization:
 - Edit capability remains UX gating, not authority.
 - D1 repository authorization checks remain source of truth.
 
+## Client Projection Boundaries
+
+- `EstimateWorkspaceClient` seeds the same nested tree into the left tree and center sheet. Both panes subscribe to the active query and build separate projections.
+- The center pane also passes the full mutable tree to the memoized component-library sidebar, so a tree identity change can wake its large derivation block.
+- Full-tree move-target options are currently derived even when the move dialog is closed.
+- `UNIT-001` owns render/derivation counters for these boundaries. Selector/graph isolation belongs to `UNIT-006`-`UNIT-008`; on-demand move-option derivation belongs to `UNIT-007` when activated.
+
 ## Provider Constraints
 
 - Stay inside `wrangler.jsonc` Cloudflare resources only.
 - No paid Cloudflare add-ons without owner approval.
-- No mutation of historical Supabase resources.
+- Active schema authority is `migrations/`. `supabase/migrations/` is provider-exit archaeology only: do not execute, extend, or cite it as the current schema contract.
 - Hosted D1 proof is allowed only with explicit env gates and sanitized output.
-

@@ -6,21 +6,23 @@ This document specifies how the two component types — **Project Level Componen
 
 This is a planning document. It does not authorize code changes.
 
+Source-anchor policy: paths and symbol names below are the durable current anchors. Numeric line references retained in this supporting document are planning-snapshot locators only; an executor must re-resolve the symbol in the current worktree and may not treat an old line number as current proof.
+
 ## Component Type Identity Contract
 
 ### Library Level Component
 
 - **Identity**: `sourceLibraryItemId` (non-null) + `componentVersionId`/`componentVersionNumber` library version snapshot, persisted inside the row's `source_snapshot` JSON (D1 column `source_snapshot_json`).
-- **Creation (master)**: `AddComponentModal` in create mode, mounted from `ComponentLibraryManager.tsx:2871` (no `editingItem`, no `imageUploadProjectId`). Save calls the `createCostLibraryComponent` Server Action (`src/lib/component-library/actions.ts:1242`).
-- **Creation (estimate instance)**: a library item is inserted into an estimate via `insertEstimateRowItemFromLibrary` (`actions.ts:3288`, RPC `insert_estimate_row_item_with_history`). The row carries `sourceLibraryItemId` and the variant projection from the selected price option.
-- **Row reference**: `sourceLibraryItemId` on the estimate row. Mutations must NOT silently mutate the library master — instead, an edited library-linked row flips `linkState` to `"linked-overridden"` (`actions.ts:3430`).
-- **Variant source**: `cost_library_item_price_options` table (defined in `supabase/migrations/20260523120957_component_library_item_versioning.sql:40`, columns for label/unit/unit_cost/pricing plus variant columns from `20260524120322_component_library_variants.sql`). Linked rows select a variant from library options.
+- **Creation (master)**: `AddComponentModal` in create mode, mounted by `ComponentLibraryManager` without `editingItem` or `imageUploadProjectId`. Save calls the `createCostLibraryComponent` Server Action.
+- **Creation (estimate instance)**: a library item is inserted into an estimate via `insertEstimateRowItemFromLibrary`, which dispatches the D1 compatibility action `insert_estimate_row_item_with_history`. The row carries `sourceLibraryItemId` and the variant projection from the selected price option.
+- **Row reference**: `sourceLibraryItemId` on the estimate row. Mutations must NOT silently mutate the library master; `updateEstimateRowItem` flips an edited library-linked row to `linkState: "linked-overridden"`.
+- **Variant source**: active D1 table `cost_library_item_price_options`, created by `migrations/0026_component_promotion_support.sql` and extended by later active migrations. Linked rows select a variant from library options. Legacy `supabase/migrations/` files are archaeology, not the active schema contract.
 - **Thumbnail source**: component-library image API route (`/api/component-library/images`). Create-mode uploads in AddComponentModal go here.
 - **Edit behavior in estimate sheet**: row overrides only. Library-master editing is a separate surface (`EditComponentDrawer`, see "Three Edit Surfaces" below).
 
 ### Project Level Component
 
-- **Identity**: UUID-based identity resolved by `getProjectComponentIdentity` (`src/lib/estimates/express-components.ts:215`), NOT a typed column. Resolved in priority order:
+- **Identity**: UUID-based identity resolved by `getProjectComponentIdentity` in `src/lib/estimates/express-components.ts`, NOT a typed column. Resolved in priority order:
   1. `source_snapshot.sourceType` is a project-component source type → `sourceComponentId` ?? `sourceEstimateRowId`.
   2. `metadata.projectComponentProjection.componentId` (where `classification` is `"express"` or `"detached-library"`).
   3. `metadata.expressComponent.componentId` ?? `expressComponent.id`.
@@ -47,9 +49,9 @@ The estimate sheet and component library have **three distinct editing surfaces*
 
 | Surface | File | Mode | Target | Server Action / Mutation | Mutates library master? |
 |---|---|---|---|---|---|
-| **AddComponentModal (create)** | `component-library-manager/AddComponentModal.tsx` | create (no `editingItem`) | New library component | `createCostLibraryComponent` (`component-library/actions.ts:1242`) | **Yes** — inserts `cost_library_items` |
-| **AddComponentModal (edit)** | same file, edit mode (`editingItem` set) | edit | Estimate row component (library-linked OR project-level) | none directly; calls `onComponentUpdated` → `updateRowItem` → `updateEstimateRowItem` (`estimates/actions.ts:3386`) | **No** — row projection only; flips `linkState` to `linked-overridden` if library-linked |
-| **EditComponentDrawer** | `library/EditComponentDrawer.tsx` | edit | Library master component (inspector) | `updateCostLibraryComponent` + `upsertCostLibraryComponentPriceOption` (`component-library/actions.ts:1437`, `:1507`) | **Yes** — mutates library master |
+| **AddComponentModal (create)** | `component-library-manager/AddComponentModal.tsx` | create (no `editingItem`) | New library component | `createCostLibraryComponent` | **Yes** — inserts `cost_library_items` |
+| **AddComponentModal (edit)** | same file, edit mode (`editingItem` set) | edit | Estimate row component (library-linked OR project-level) | none directly; calls `onComponentUpdated` → `updateRowItem` → `updateEstimateRowItem` | **No** — row projection only; flips `linkState` to `linked-overridden` if library-linked |
+| **EditComponentDrawer** | `library/EditComponentDrawer.tsx` | edit | Library master component (inspector) | `updateCostLibraryComponent` + `upsertCostLibraryComponentPriceOption` | **Yes** — mutates library master |
 
 Key distinctions:
 - The AddComponentModal edit path and the EditComponentDrawer are **completely different code paths** that write to **different tables**. They must not be confused.
@@ -70,7 +72,9 @@ Key distinctions:
 | **Promote to library** | N/A. | `promoteRowToLibrary` → `promoteEstimateRowToLibraryComponent`/`promoteExpressRowToLibraryComponent` (`express-promotion-actions.ts`). Converts row into library component. |
 | **Detach from library** | `detachEstimateRowItemFromLibrary` (`actions.ts:3466`, RPC `unlink_estimate_row_item_from_library_with_history`). Sets `linkState: "detached"`. | N/A. |
 
-## Implemented Behavior (verified from source)
+## Source Behavior Snapshot
+
+The behaviors below were source-audited for planning. Resolve the named symbol again before implementation; the parenthetical line numbers are not current-source guarantees.
 
 ### Edit Mode Initialization (`AddComponentModal.tsx`)
 
@@ -104,21 +108,23 @@ Key distinctions:
 
 ### Row Update Patch (EstimateSheetContent → mutations)
 
-- `updateComponentFromEditor` (`EstimateSheetContent.tsx:1740-1765`) flattens the edited `EstimateRowItem` back into `EditableRowValue` fields (note: `item.material` → `name` remapping at line 1742) and forwards `priceOptions`, `priceOptionId`, `priceOptionLabel`, `categoryNodeId`, `brandId`, `supplierId`, `sku`, pricing metadata, lifecycle fields into `updateRowItem`.
+- `updateComponentFromEditor` in `EstimateSheetContent.tsx` flattens the edited `EstimateRowItem` back into `EditableRowValue` fields, including the `item.material` to `name` remapping, and forwards variant, taxonomy, pricing, and lifecycle fields into `updateRowItem`.
 - It does **not** forward `sourceLibraryItemId`, `componentVersionNumber`, or `history` — those are preserved by the optimistic tree patcher (`patchEstimateRowItemInTree` merges, not replaces).
-- Updates flow through `updateRowItem` (`use-estimate-row-handlers.ts:674`) → `commitRowItemUpdate` (line 516) → `enqueueRowUpdate` → `updateEstimateRowItem` Server Action.
+- Updates flow through `updateRowItem` → `commitRowItemUpdate` in `use-estimate-row-handlers.ts` → the row mutation queue → `updateEstimateRowItem` Server Action.
 
-## Project-Component Fan-Out (verified from source)
+## Project-Component Fan-Out
 
 This is the most critical interop behavior. Fan-out exists at **two layers**:
 
 ### Server-side fan-out
-- **Function**: `propagateProjectComponentRowPatch` (`src/lib/estimates/d1-action-client.ts:1632`).
-- **Trigger**: `patchRowItem` with `eventType === "row_updated"` (line 1735).
-- **Identity resolution**: `getProjectComponentIdentity(metadata, fallbackRowId, sourceSnapshot)` (`express-components.ts:215`).
-- **Sibling match SQL** (lines 1644–1665): joins `estimate_row_items` to `estimates` on the same `project_id`, excludes the source row, matches the component identity via `COALESCE` over `json_extract` of `source_snapshot_json` and `metadata_json` buckets.
-- **Patched fields**: only shared keys — `SHARED_PROJECT_COMPONENT_ROW_PATCH_KEYS` (line 1541) and `SHARED_PROJECT_COMPONENT_SOURCE_SNAPSHOT_KEYS` (line 1554, includes `priceOptionId`, `priceOptionLabel`, `priceOptionUpdatedAt`).
+- **Function**: `propagateProjectComponentRowPatch` in `src/lib/estimates/d1-action-client.ts`.
+- **Trigger**: `patchRowItem` when `eventType === "row_updated"`.
+- **Identity resolution**: `getProjectComponentIdentity(metadata, fallbackRowId, sourceSnapshot)`.
+- **Sibling match SQL**: joins `estimate_row_items` to `estimates` for project scope, excludes the source row, and matches identity through `COALESCE` over `json_extract` values in `source_snapshot_json` and `metadata_json`.
+- **Write shape**: the JSON-filter query materializes matching siblings; the client then creates one revisioned `UPDATE` statement per match and sends those statements through `runBatch`.
+- **Patched fields**: only the shared keys declared by `SHARED_PROJECT_COMPONENT_ROW_PATCH_KEYS` and `SHARED_PROJECT_COMPONENT_SOURCE_SNAPSHOT_KEYS`.
 - Each sibling's `row_revision` is incremented; `totalDelta` from `unitCost` changes is accumulated.
+- **Current cost**: JSON identity filtering plus O(matches) update statement construction/batching. It is measured by `UNIT-003` and is not presumed O(1).
 
 ### Client-side (optimistic) fan-out
 - **Function**: `patchProjectComponentInstanceRowsInTree` (`src/lib/estimates/estimate-row-tree-patch.ts:275`).
@@ -145,7 +151,7 @@ This is the most critical interop behavior. Fan-out exists at **two layers**:
 
 **Status**: Local vitest evidence exists (`estimate-sheet-library-insert.test.tsx`, `library-add-component-modal-a11y.test.tsx`, `workshop-library-consolidation-ui.test.tsx`) but no browser proof for the estimate sheet route's component interop flows. The only browser proof of the component library surface is `workshop-library-demo-smoke.spec.ts` (search/trust/tree screenshot), which does NOT exercise sheet↔library interop.
 **Severity**: High for MVP readiness claims.
-**Action**: Add to Phase 0 baseline measurement scope; create `e2e/estimate-sheet-component-interop.spec.ts`.
+**Action**: `UNIT-001` creates `e2e/estimate-sheet-component-interop.spec.ts` and the inert/default-off server-resolved mode bridge. After `UNIT-002`'s mandatory repair is admitted, completed, and refrozen into the current `UNIT-001` cohort, `UNIT-002` executes the all-19 browser baseline against that cohort and records the returned all-off snapshot.
 
 ### GAP-04: Inline Component Addition Through Row Item
 
@@ -161,15 +167,15 @@ This is the most critical interop behavior. Fan-out exists at **two layers**:
 
 ### GAP-06: Fan-Out Verification at Scale
 
-**Status**: Client-side project-component fan-out walks the tree to find matching instances (`patchProjectComponentInstanceRowsInTree`). At 5,000-row stress scale, this is O(N) per mutation. Server-side fan-out is a single SQL join (already efficient).
+**Status**: Client-side project-component fan-out walks the tree to find matching instances (`patchProjectComponentInstanceRowsInTree`). At 5,000-row stress scale, this is O(N) per mutation. Server-side fan-out uses JSON identity filtering plus one revisioned update statement per matched sibling in a D1 batch; its provider cost is unproven.
 **Severity**: Medium → High at stress scale.
-**Action**: Add `componentInstanceRowIdsByIdentity: Record<string, string[]>` to the normalized graph store for O(matching rows) client fan-out lookup. The server path must be measured separately; its current JSON identity filtering plus per-match batched updates is not assumed O(1).
+**Action**: Measure the client and server paths in `UNIT-001` through `UNIT-003`. If `UNIT-004` activates the graph branch, `UNIT-006` adds `componentInstanceRowIdsByIdentity: Record<string, string[]>` to the normalized graph store for O(matching rows) client fan-out lookup. The server path remains separate; its current JSON identity filtering plus per-match batched updates is not assumed O(1).
 
 ### GAP-07: Row Restore Still Throws on D1
 
-**Status**: `restoreDeletedEstimateNodes` is implemented in the D1 client (`d1-action-client.ts:1458, 2325`), while `restoreDeletedEstimateRows` still throws (`:2322-2324`). `EstimateSheetContent` nevertheless supplies the row restore callback to the activity UI, so a displayed row Undo can only fail on D1.
+**Status**: `restoreDeletedEstimateNodes` is implemented and dispatched in the D1 client, while the `restore_deleted_estimate_rows_with_history` dispatch branch still throws. `EstimateSheetContent` nevertheless supplies the row restore callback to the activity UI, so a displayed row Undo can only fail on D1.
 **Severity**: High. The active UI and active provider disagree about whether row deletion is reversible.
-**Action**: `UNIT-001` locks the mixed baseline, `UNIT-002` characterizes the user-visible path, and `UNIT-009` implements D1 row restore from the persisted delete snapshot while retaining node-restore coverage. Undo must never be exposed without a working provider path.
+**Action**: `UNIT-001` locks the mixed baseline with the existing mocked positive server-action test plus a direct negative D1 characterization. Before browser collection, `UNIT-002` is the sole pre-decision producer-edit exception and must admit the exact mandatory row-restore allowlist: `src/lib/estimates/d1-action-client.ts`, `src/lib/estimates/actions.ts`, and `tests/vitest/estimate-sheet-version-control-actions.test.ts`. It implements row restore from scoped native D1 snake-case single and `{rows:[...]}` bulk snapshots, accepts historical camel-case snapshots as compatibility input, normalizes `rows_deleted` to the public `rows_bulk_deleted` activity contract, and replaces the negative characterization with direct `EstimateActionsD1Client` proof for first-call subset selection, denial paths, parent/collision checks, authoritative revisions, atomic rows plus one `row_restored` event, same-correlation replay, and source-event idempotency under a fresh correlation/different row list without stale resurrection, while preserving the existing mocked server-action and node-restore coverage. A valid immutable refreeze receipt must join predecessor/output application and producer hashes, actual changed paths, and the focused test receipt before the complete `UNIT-001` cohort is rerun and re-indexed. Any additional changed path fails this exception closed; an unrelated functional repair must match one exact source/test pair in the canonical closed map or return the pack to `NOT_READY`. `UNIT-009` later preserves both restore paths under revision/concurrency proof. Undo must never be exposed without a working provider path.
 
 ### GAP-08: Variant-Order Stability for Library Components
 
@@ -187,7 +193,7 @@ This is the most critical interop behavior. Fan-out exists at **two layers**:
 | Identity resolution | `sourceLibraryItemId` | `getProjectComponentIdentity` (JSON buckets) |
 | Row update action | `updateEstimateRowItem` (row-scoped, flips linkState) | `updateEstimateRowItem` (row-scoped + server fan-out) |
 | Client optimistic fan-out | None (row-scoped) | `patchProjectComponentInstanceRowsInTree` (O(N) tree-walk) |
-| Server fan-out | None | `propagateProjectComponentRowPatch` (SQL join) |
+| Server fan-out | None | `propagateProjectComponentRowPatch` (JSON identity filter + per-match revisioned updates batched through D1) |
 | Variant pill action | `replaceEstimateRowItemWithLibrary` | `updateEstimateRowItem` |
 | Thumbnail upload endpoint (edit mode) | `/api/projects/images` (estimate mount) | `/api/projects/images` |
 | Thumbnail upload endpoint (create mode) | `/api/component-library/images` | N/A (no create path) |
@@ -221,13 +227,13 @@ This is the most critical interop behavior. Fan-out exists at **two layers**:
 The component-interoperability work adds these data flows to the estimate sheet:
 
 1. **Edit modal open**: O(1) for target row + O(V) for variant drafts.
-2. **Edit modal save**: O(V) for variant serialization + client fan-out (currently O(N) tree-walk via `patchProjectComponentInstanceRowsInTree`, target: O(1) graph index) + server fan-out (single SQL join — already efficient).
+2. **Edit modal save**: O(V) for variant serialization + client fan-out (currently O(N) tree-walk via `patchProjectComponentInstanceRowsInTree`, evidence-activated target: O(matching rows) graph lookup) + server fan-out (JSON identity filter plus O(matches) batched update statements, measured in `UNIT-003`).
 3. **Inline scalar edit**: Same as existing edit hot path + client/server fan-out for project-level.
 4. **Inline variant pill**: O(1) dispatch + mutation cost (library replacement or row update).
 5. **Thumbnail upload**: Async fetch, not on main thread hot path.
 6. **Promote to library**: async Server Action; row linkage update.
 
-**Primary scale risk**: client-side fan-out tree-walk (GAP-06). The normalized graph store must include `componentInstanceRowIdsByIdentity: Record<string, string[]>` mapping project-component identity to row IDs. The server path uses JSON identity filtering and per-match batched updates; `UNIT-003` measures its lookup and statement counts before any optimization claim.
+**Primary scale risk**: client-side fan-out tree-walk (GAP-06). If `UNIT-004` activates `UNIT-006`, the normalized graph store includes `componentInstanceRowIdsByIdentity: Record<string, string[]>` mapping project-component identity to row IDs. The server path uses JSON identity filtering and per-match batched updates; `UNIT-003` measures its lookup and statement counts before any optimization claim.
 
 ## QA Matrix
 
@@ -260,29 +266,29 @@ The component-interoperability work adds these data flows to the estimate sheet:
 
 | ID | Scenario | Expected Result |
 |---|---|---|
-| CI-QA-14 | Edit project component in 5,000-row estimate | Server fan-out (SQL join) completes efficiently; client fan-out (tree-walk) p95 <= 75 ms |
+| CI-QA-14 | Edit project component in 5,000-row estimate | Server JSON-filter/match/update counts stay within the `UNIT-003` budget; client fan-out p95 <= 75 ms and uses the graph identity index when activated |
 | CI-QA-15 | Open edit modal for library-linked row in stress fixture | Modal opens with row data; no performance regression |
 | CI-QA-16 | Inline scalar edit on project component at scale | Edit responsive; server fan-out statement/match counts stay within the measured budget; client lookup uses the graph identity index when activated |
 | CI-QA-17 | Delete a row then activate Undo | The row is restored from D1 history with an authoritative revision and one restore event; node-restore coverage remains green |
 
 ## Verification
 
-- Planning provenance: source audit plus independent architect and critic review; reviewer identity is metadata, not a readiness cap.
-- Browser proof is required for all 19 IDs before the implementation can claim full interop readiness.
+- Planning provenance: source audit plus orchestrator-separated architect, critic, and fingerprint-verifier procedural attestations for the recorder's exact same candidate; model or vendor identity is metadata, and the three distinct reviewer IDs and roles remain admission requirements without claiming authenticated principals.
+- Full interop readiness requires the `UNIT-002` all-19 baseline, packet-defined targeted browser children for `UNIT-005`, `UNIT-007`, `UNIT-008`, and `UNIT-009`, and the `UNIT-010` integrated all-19 browser child.
 - Existing vitest coverage is partial. The mapping below is authoritative about direct gaps.
-- GAP-07 (row restore throws while node restore works) must be closed before delete Undo can be claimed functional.
+- GAP-07 must be closed through `UNIT-002`'s exact allowlist and receipt-gated `UNIT-001` refreeze before the `UNIT-002` browser baseline or any downstream browser child can count as current proof.
 
 ## CI-QA ↔ Test Mapping (Pass-3 addition)
 
-Every CI-QA scenario must map to at least one named test (vitest or browser). The vitest column lists the existing test that proves the scenario at jsdom tier; the browser column lists the future `e2e/estimate-sheet-component-interop.spec.ts` scenario. "GAP" means no direct named test exists today and must be backfilled in U0.5.3 (see doc 16 Pass-3 takeaway).
+Every CI-QA scenario must map to at least one named test. The vitest column identifies jsdom proof and the browser column identifies the `UNIT-002` baseline scenario. Every browser run consumes the server-resolved snapshot. Later `UNIT-005`, `UNIT-007`, `UNIT-008`, and `UNIT-009` runs are packet-scoped immutable children of their existing parent evidence IDs; `UNIT-010` is the integrated all-19 child. "GAP" means `UNIT-001` must backfill the named test before baseline collection.
 
-| CI-QA ID | Scenario | Existing vitest (file:test name) | Browser scenario (Phase 0.5) |
+| CI-QA ID | Scenario | Existing vitest (file:test name) | Baseline browser scenario (`UNIT-002`; targeted child reruns use fixed `browserScope`) |
 |---|---|---|---|
 | CI-QA-01 | Create two library components with identical names | `library-add-component-modal-a11y.test.tsx` (duplicate-name warning test, 1 of 21) | `e2e/estimate-sheet-component-interop.spec.ts:01-duplicate-name-create` |
 | CI-QA-02 | Insert library component into estimate sheet | `estimate-sheet-library-insert.test.tsx` (insert test, 1 of 38) | `:02-insert-library-row` |
 | CI-QA-03 | Edit library-linked row in AddComponentModal (edit mode) | `estimate-sheet-library-insert.test.tsx` (edit test) + new `estimate-link-state-transitions.test.ts` | `:03-edit-library-row-linkstate` |
 | CI-QA-04 | Inline variant pill on library-linked row → `replaceEstimateRowItemWithLibrary` | `estimate-sheet-library-insert.test.tsx` (variant pill test) | `:04-inline-variant-pill-library` |
-| CI-QA-05 | Edit library-linked row thumbnail → `/api/projects/images` | **GAP** — new `estimate-three-edit-surfaces.test.ts` (U0.5.3) | `:05-edit-thumbnail-library-row` |
+| CI-QA-05 | Edit library-linked row thumbnail → `/api/projects/images` | **GAP** — new `estimate-three-edit-surfaces.test.ts` (`UNIT-001`) | `:05-edit-thumbnail-library-row` |
 | CI-QA-05b | EditComponentDrawer mutates library master | **GAP** — new `estimate-three-edit-surfaces.test.ts` | `:05b-edit-component-drawer-library-master` |
 | CI-QA-05c | Detach library-linked row | `estimate-sheet-version-control-actions.test.ts` (detach test) | `:05c-detach-library-row` |
 | CI-QA-06 | Edit project component → server + client fan-out | `estimate-sheet-library-insert.test.tsx` (project fan-out subset) | `:06-edit-project-component-fanout` |
@@ -292,13 +298,13 @@ Every CI-QA scenario must map to at least one named test (vitest or browser). Th
 | CI-QA-10 | Inline variant pill on project row → row update + fan-out | `estimate-sheet-library-insert.test.tsx` (project variant pill) | `:10-inline-variant-pill-project` |
 | CI-QA-11 | Open edit mode for row with raw storage image path | `estimate-image-url.test.ts` (2 tests) | `:11-image-url-normalization` |
 | CI-QA-12 | Insert blank row + inline edit → express component | `estimate-sheet-library-insert.test.tsx` (express init test) | `:12-blank-row-express-init` |
-| CI-QA-13 | Promote project component to library | **GAP** — new integration test (U0.5.3) | `:13-promote-to-library` |
+| CI-QA-13 | Promote project component to library | `express-promotion-action.test.ts` strengthened in `UNIT-001` to assert source-row linkage | `:13-promote-to-library` |
 | CI-QA-14 | Edit project component in 5,000-row estimate | (none — needs browser + graph index) | `:14-stress-fanout-5000-rows` |
 | CI-QA-15 | Open edit modal at stress fixture | (none — needs browser) | `:15-stress-modal-open` |
 | CI-QA-16 | Inline scalar edit on project component at scale | (none — needs browser + graph index) | `:16-stress-inline-edit` |
-| CI-QA-17 | Delete + D1 row restore | `estimate-sheet-version-control-actions.test.ts` (action contract only; active D1 regression needed) | `:17-delete-row-restore` |
+| CI-QA-17 | Delete + D1 row restore | `estimate-sheet-version-control-actions.test.ts` (existing mocked server-action wiring; `UNIT-001` adds the direct D1 rejection characterization; `UNIT-002` replaces it with receipt-gated native/historical snapshot, subset/denial, same-correlation, and fresh-correlation source-event idempotency proof plus node-restore regression inside the exact allowlist, followed by a complete `UNIT-001` refreeze before browser collection) | `:17-delete-row-restore` |
 
-**Coverage status**: the table defines 19 unique IDs. Twelve have at least partial named vitest coverage; seven (`CI-QA-05`, `05b`, `08`, `13`, `14`, `15`, `16`) have no direct named test. All 19 require the browser scenarios owned by canonical `UNIT-002`; stress cases are re-run by `UNIT-010`.
+**Coverage status**: the table defines 19 unique IDs. Thirteen have at least partial named vitest coverage. Three (`CI-QA-05`, `05b`, `08`) require the `UNIT-001` three-surface backfill, while `CI-QA-14`, `15`, and `16` require browser-scale proof. `UNIT-001` creates and runs the missing direct interop cohort, including component fan-out and its 5,000-row budget test, before baseline collection; `UNIT-009` reruns those fan-out tests under entity-patch mode and `UNIT-010` reruns them in integrated proof. `UNIT-002` owns the immutable all-19 `browserScope=baseline` run. `EVID-005`, `EVID-007`, `EVID-008`, and `EVID-009` each require immutable browser-report and fixture-bound E2E-receipt children with their matching fixed scope (`route`, `derived-state`, `render-a11y`, `mutations`) and packet-defined metrics. `EVID-010` requires the `full-local` integrated child and reruns all 19 scenarios. These are child dependencies of the existing stable evidence IDs, not new stable evidence IDs.
 
 ## Source Documents
 
@@ -308,7 +314,7 @@ Every CI-QA scenario must map to at least one named test (vitest or browser). Th
 - `src/components/workshop/estimate-sheet/use-estimate-row-handlers.ts` (row mutation dispatch)
 - `src/hooks/use-estimate-row-mutations.ts` (optimistic/server patching + client fan-out)
 - `src/lib/estimates/actions.ts` (`updateEstimateRowItem`, `replaceEstimateRowItemWithLibrary`, `detachEstimateRowItemFromLibrary`, `insertEstimateRowItemFromLibrary`)
-- `src/lib/estimates/d1-action-client.ts` (`propagateProjectComponentRowPatch` server fan-out; restore stubs that throw)
+- `src/lib/estimates/d1-action-client.ts` (`propagateProjectComponentRowPatch` server fan-out; implemented node restore; throwing row-restore dispatch branch)
 - `src/lib/estimates/express-components.ts` (`getProjectComponentIdentity`)
 - `src/lib/estimates/estimate-row-tree-patch.ts` (`patchProjectComponentInstanceRowsInTree` client fan-out)
 - `src/lib/estimates/express-promotion-actions.ts` (promote flows)

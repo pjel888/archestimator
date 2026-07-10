@@ -1,0 +1,7 @@
+{
+  "artifactId": "ART-039",
+  "evidenceId": "EVID-002",
+  "projection": "fixture-manifest.json",
+  "schema": "estimate-sheet-evidence-projection-placeholder.v1",
+  "status": "STALE"
+}

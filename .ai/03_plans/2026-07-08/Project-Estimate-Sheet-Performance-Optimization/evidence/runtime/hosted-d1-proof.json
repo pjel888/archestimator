@@ -1,0 +1,7 @@
+{
+  "artifactId": "ART-050",
+  "evidenceId": "EVID-011",
+  "projection": "hosted-d1-proof.json",
+  "schema": "estimate-sheet-evidence-projection-placeholder.v1",
+  "status": "STALE"
+}

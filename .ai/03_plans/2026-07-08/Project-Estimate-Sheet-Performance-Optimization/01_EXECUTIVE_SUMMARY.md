@@ -26,9 +26,9 @@ The safest next step is canonical `UNIT-001`: lock current behavior, repair stal
 5. There is no estimate-sheet-specific D1 query-plan and `rows_read`/`rows_written` proof.
 6. Current virtualization limits DOM mounting but does not eliminate render-time and mutation-time O(N) work.
 
-## Recommended Target
+## Evidence-Activated Target
 
-Create a normalized active-estimate graph behind adapters:
+If `UNIT-004` activates `UNIT-006`, create a normalized active-estimate graph behind adapters. The prepared conditional graph shape is:
 
 - `nodesById`
 - `rowsById`
@@ -41,24 +41,25 @@ Create a normalized active-estimate graph behind adapters:
 - `dirtyRowsById`
 - `mutationLogByOperationId`
 
-Keep TanStack Query as the server-state transport cache. Use a Zustand or sibling store for interactive graph state and selectors. Preserve the nested tree facade at first, then retire recursive fallbacks only after parity tests prove selector equivalence.
+When activated, keep TanStack Query as the server-state transport cache. Use a Zustand or sibling store for interactive graph state and selectors. Preserve the nested tree facade at first, then retire recursive fallbacks only after parity tests prove selector equivalence.
+
+If `UNIT-004` supersedes `UNIT-006`, the current nested model remains authoritative and only the narrower branches activated by measurement are implemented. A supersession receipt is a valid completed outcome; graph adoption is not predetermined.
 
 ## Top Priorities
 
 P0:
-- Build Phase 0 evaluator and baseline artifacts.
+- Build the `UNIT-001` evaluator and baseline artifacts, then collect `UNIT-002`/`UNIT-003` measurements.
 - Implement proof-only D1 query plan scaffolding before adding indexes.
 - Restore/implement route fast path only after the query plan proves the exact SQL shape.
 - Add large-fixture DOM/browser proof.
 
 P1:
-- Introduce normalized graph read model behind current components.
-- Replace recursive totals with incremental delta propagation.
-- Move filter/search/group selectors behind deferred transitions and measured budgets.
-- Coalesce subtree expansion requests and merge subtree payloads into graph state.
+- If `UNIT-006` is activated, introduce the normalized graph read model behind current components.
+- Apply incremental totals, deferred selector, subtree-coalescing, and graph-merge work only when `UNIT-004` activates the owning implementation units.
+- Otherwise, record the required supersession receipts and preserve the current behavior.
 
 P2:
-- Convert optimistic mutation rollback from whole-tree replacement to entity inverse patches.
+- If `UNIT-009` is activated, convert optimistic mutation rollback from whole-tree replacement to entity inverse patches.
 - Move expensive dropdown/move/facet option lists to searchable or virtualized controls.
 - Add hosted D1 proof and production observability artifacts before scale claims.
 

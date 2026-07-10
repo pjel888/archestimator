@@ -14,7 +14,7 @@ REQ-F05: Expanding/collapsing branches must preserve scroll position, focus, and
 
 REQ-F06: Lazy subtree loading must deduplicate duplicate requests for the same subtree and must merge results without duplicating nodes or rows.
 
-REQ-F07: Row moves must work across loaded areas while keeping target-area and target-position selection usable at scale.
+REQ-F07: Row moves must work across loaded areas while keeping target-area and target-position selection usable at scale; move-target option derivation must be demand-driven rather than running while the dialog is closed.
 
 REQ-F08: Optimistic insert/update/delete/move operations must roll back only affected entities when server confirmation fails.
 
@@ -46,7 +46,7 @@ REQ-P08: Route-context D1 query count must be bounded and documented.
 
 REQ-P09: D1 row reads for dominant estimate route/tree queries must be proven with `rows_read` and `EXPLAIN QUERY PLAN`.
 
-REQ-P10: Memory usage must avoid duplicate full nested tree copies during steady-state editing.
+REQ-P10: Memory and derived-work usage must avoid duplicate full nested tree copies or duplicate full-tree projection work across the left tree, center sheet, and right sidebar during steady-state editing.
 
 ## Reliability Requirements
 
@@ -68,13 +68,13 @@ REQ-D02: New D1 proof data must be sanitized and must not include customer data,
 
 REQ-D03: Query keys must include every dimension that changes fetched data.
 
-REQ-D04: Client graph state must preserve stable IDs, `sortOrder`, parent/child relationships, tab membership, and subtree completeness flags.
+REQ-D04: When the graph branch activates, client graph state must preserve stable IDs, `sortOrder`, parent/child relationships, tab membership, and subtree completeness flags. When the decision supersedes UNIT-006, this requirement is explicitly `DEFERRED`; no graph state is introduced, and the base recursive-tree proof remains the applicable behavior contract.
 
 ## Testing Requirements
 
 REQ-T01: Add deterministic fixture generator for small, medium, large, stress, limit, and over-limit shapes.
 
-REQ-T02: Add selector parity tests comparing normalized selectors against current recursive helpers.
+REQ-T02: When UNIT-006 activates, add selector parity tests comparing normalized selectors against current recursive helpers. A superseded UNIT-006 records the immutable decision/supersession receipts and preserves the recursive-tree baseline without claiming graph-selector parity.
 
 REQ-T03: Add large DOM virtualization tests for branch and row windows.
 
@@ -108,7 +108,7 @@ REQ-CI-04: Edit-mode image uploads must use correct endpoint (`/api/projects/ima
 
 REQ-CI-05: Variant selection must persist through edit-mode save into row source snapshot.
 
-REQ-CI-06: Project-level row updates must fan out to matching instances at both server (SQL join) and client (optimistic tree patch) layers.
+REQ-CI-06: Project-level row updates must fan out to matching instances at both server (JSON identity filtering followed by per-match revisioned updates in a D1 batch) and client (optimistic tree patch) layers.
 
 REQ-CI-07: Variant pill must route to correct action (`replaceEstimateRowItemWithLibrary` for library-linked rows, `updateEstimateRowItem` for project rows).
 
@@ -136,7 +136,7 @@ REQ-CRUD-01: Every write Server Action must pass through `assertCanEditEstimate`
 
 REQ-CRUD-02: Optimistic mutations must roll back only affected entities when server confirmation fails (entity inverse patches, not whole-tree replacement).
 
-REQ-CRUD-03: `row_revision` must remain the monotonic conflict guard; stale revisions must be rejected.
+REQ-CRUD-03: `row_revision` must remain the monotonic server conflict guard; stale revisions must be rejected. Every accepted client tree-cache write must also advance the client tree revision used by reconciliation/rollback guards, including direct query-cache writes.
 
 REQ-CRUD-04: Template insertion must use the stale-snapshot guard (reconcile only if revision matches) to avoid clobbering in-flight edits.
 
@@ -147,3 +147,15 @@ REQ-CRUD-06: Realtime broadcasts must accept only current payloads scoped to act
 REQ-CRUD-07: Node creation must resolve optimistic `optimistic-area-*` ids to server ids asynchronously; reorders/renames targeting optimistic ids must await the create promise.
 
 REQ-CRUD-08: The P6 single-node model must hold: any node may parent any node (no area/group gate) for both estimates and template insertion.
+
+## Current-Source Elaboration And Unit Ownership
+
+This table clarifies existing requirements; it does not add or override normalized canonical IDs in `IMPLEMENTATION_PLAN.md` or `plan-pack.json`.
+
+| Current source finding | Existing requirement coverage | Execution ownership |
+|---|---|---|
+| Direct row-mutation `setQueryData` writes bypass the tree hook's revision increment | `REQ-F08`, `REQ-CRUD-02`, `REQ-CRUD-03` | Characterize in `UNIT-001`; repair mutation/reconciliation semantics in `UNIT-009`, integrating graph revisions in `UNIT-006` if activated |
+| The 1,500-node route ceiling can feed one `node_id IN (...)` statement | `REQ-P08`, `REQ-P09`, `REQ-D01`, `REQ-T06` | Freeze statement/bind fixtures in `UNIT-001`; prove the ceiling without modifying product code in `UNIT-003`; chunk or replace the query without row duplication/omission in `UNIT-005` if the measured ceiling activates that repair |
+| Move-node options derive while the dialog is closed | `REQ-F07`, `REQ-P02` | Count in `UNIT-001`; gate/on-demand derive in `UNIT-007` if activated |
+| Full-tree identity wakes the memoized component-library sidebar | `REQ-F03`, `REQ-P02`, `REQ-P10` | Count in `UNIT-001`; isolate selectors/props in `UNIT-007` if activated |
+| Left and center panes subscribe to the same nested tree and build separate projections | `REQ-F03`, `REQ-P10`, `REQ-T02`, `REQ-T04` | Characterize in `UNIT-001`; normalize/select in `UNIT-006`-`UNIT-008` if activated |
