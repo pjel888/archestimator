@@ -4,6 +4,11 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, join, relative } from "node:path";
 
+import {
+  hasRequiredSupermemoryBootstrap,
+  SUPERMEMORY_BOOTSTRAP_COMMAND,
+} from "./lib/supermemory-guidance.mjs";
+
 const repoRoot = process.cwd();
 const failures = [];
 const warnings = [];
@@ -392,6 +397,63 @@ function checkAgentPayloadContracts() {
   }
 }
 
+function checkSupermemoryBootstrapContract() {
+  const requiredSurfaces = [
+    "AGENTS.md",
+    "CODEX.md",
+    "CLAUDE.md",
+    "GEMINI.md",
+    ".codex/README.md",
+    ".claude/README.md",
+    ".agents/README.md",
+    ".commandcode/README.md",
+    ".cursor/rules/00-archestimator-project-brain.mdc",
+    ".ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md",
+    ".ai/12_agents/README.md",
+    ".ai/12_agents/payloads/README.md",
+    ...[
+      "_template",
+      "antigravity",
+      "claude",
+      "codex",
+      "commandcode",
+      "deepseek",
+      "gemini",
+      "hermes",
+      "kimi",
+      "ollama",
+      "opencode",
+    ].map((name) => `.ai/12_agents/payloads/${name}.md`),
+  ];
+
+  for (const file of requiredSurfaces) {
+    if (!repoExists(file)) {
+      fail(`Missing Supermemory agent entry surface: ${file}.`);
+    } else if (!hasRequiredSupermemoryBootstrap(readRepoText(file))) {
+      fail(`${file} must carry the required Supermemory bootstrap marker and non-negated ${SUPERMEMORY_BOOTSTRAP_COMMAND} command.`);
+    }
+  }
+
+  let packageJson;
+  try {
+    packageJson = JSON.parse(readRepoText("package.json"));
+  } catch (error) {
+    fail(`package.json is not valid JSON: ${error.message}`);
+    return;
+  }
+  for (const [name, command] of Object.entries({
+    "supermemory:configure": "node scripts/configure-supermemory-server.mjs --install-launch-agent",
+    "supermemory:ensure": "node scripts/ensure-supermemory-server.mjs",
+    "supermemory:start": "node scripts/start-verified-supermemory-server.mjs",
+    "supermemory:search": "node scripts/supermemory-memory.mjs search",
+    "supermemory:add": "node scripts/supermemory-memory.mjs add",
+  })) {
+    if (packageJson.scripts?.[name] !== command) {
+      fail(`package.json script ${name} must be ${command}.`);
+    }
+  }
+}
+
 function checkOpenCodeConfig() {
   if (repoExists(".opencode.json")) {
     fail("Legacy .opencode.json exists; use documented root opencode.json instead.");
@@ -602,6 +664,7 @@ checkOpenCodeConfig();
 checkCodexConfig();
 checkCodexAgentRoles();
 checkAgentPayloadContracts();
+checkSupermemoryBootstrapContract();
 checkActiveGuidanceReferences();
 checkGitignoreAdapterHygiene();
 checkNoTrackedLocalState();

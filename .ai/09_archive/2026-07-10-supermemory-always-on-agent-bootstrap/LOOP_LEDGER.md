@@ -64,6 +64,42 @@ whenever Archestimator is opened or a coding agent begins meaningful work.
 - Result: red baseline accepted; implementation is in progress.
 - Next decision: implement the runtime boundary and rerun the focused suite.
 
+### Iteration 2
+
+- Hypothesis: persistent verified config plus a LaunchAgent is sufficient for
+  clean-shell and restart recovery.
+- Action: implemented configure/ensure, adapter enforcement, and machine setup;
+  then stopped the live native listener to exercise recovery.
+- Evidence: clean-shell ensure passed, but the forced `kickstart -k` proof found
+  a concurrent detached-start race; the native startup banner also revealed the
+  local API key is written to the server log.
+- Result: hypothesis required hardening; no completion claim made.
+- Next decision: serialize ensure, move logs to mode-600 user storage, widen the
+  cold-start window, and test the normal scheduled LaunchAgent path.
+
+### Iteration 3
+
+- Hypothesis: single-flight ensure plus user-only logs and the normal LaunchAgent
+  interval provides stable always-on recovery.
+- Action: added concurrency/cold-start/log-mode regressions, discarded stale
+  inherited server vars after configure, added shared search/add commands, and
+  reran recovery without force-killing the supervisor.
+- Evidence:
+  - 2 focused Vitest files / 17 tests passed.
+  - Focused ESLint, `bun run type-check`, and `bun run validate:agents` passed.
+  - Codex and OpenCode resolvers exited 0 with the expected instruction chain.
+  - An `env -i` login shell loaded persistent config and ensure returned ready.
+  - Scheduled LaunchAgent recovery replaced stopped PID 92847 with PID 94799;
+    five consecutive HTTP 200 checks passed and both logs are mode 600.
+  - Authenticated CLI search found two relevant pre-existing documents without
+    exposing the bearer.
+  - Sanitized document `G1Qtbu94hScwB1YFdFbvz4` was queued through
+    `supermemory:add` and returned by a subsequent semantic search.
+- Result: runtime, adapter, and memory round-trip acceptance criteria passed;
+  final diff review remains.
+- Next decision: stop only if independent review and scoped whitespace/status
+  checks remain clean.
+
 ## Stop Condition
 
 Stop only after the full acceptance criteria pass with fresh local evidence, or

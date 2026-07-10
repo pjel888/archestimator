@@ -99,7 +99,9 @@ function installMacLaunchAgent(home) {
   const launchAgentDir = join(home, "Library", "LaunchAgents");
   const launchAgentPath = join(launchAgentDir, `${LAUNCH_AGENT_LABEL}.plist`);
   const ensurePath = join(REPO_ROOT, "scripts", "ensure-supermemory-server.mjs");
-  const logPath = "/tmp/archestimator-supermemory-ensure.log";
+  const logPath = join(supermemoryHome(home), "ensure.log");
+  if (!existsSync(logPath)) writeFileAtomic(logPath, "", 0o600);
+  chmodSync(logPath, 0o600);
   const plist = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -140,7 +142,7 @@ function installMacLaunchAgent(home) {
   }
   const kickstart = spawnSync(
     "/bin/launchctl",
-    ["kickstart", "-k", `${domain}/${LAUNCH_AGENT_LABEL}`],
+    ["kickstart", `${domain}/${LAUNCH_AGENT_LABEL}`],
     { encoding: "utf8" },
   );
   if (kickstart.status !== 0) {

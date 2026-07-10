@@ -1,21 +1,27 @@
 #!/usr/bin/env node
 
 import { spawn } from "node:child_process";
-import { closeSync, openSync } from "node:fs";
+import { chmodSync, closeSync, mkdirSync, openSync } from "node:fs";
 import { access, constants } from "node:fs/promises";
-import { resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 
 import {
   buildServerEnvironment,
   hasProviderConfig,
+  parseLoopbackHttpUrl,
+  parsePort,
   readPersistentServerConfig,
   sha256,
+  supermemoryHome,
+  inspectServerProcess,
+  verifySupermemoryHealth,
+  writeRuntimeState,
 } from "./lib/supermemory-config.mjs";
 
 const DEFAULT_PORT = "6767";
-const DEFAULT_LOG_PATH = "/tmp/supermemory-local.log";
-const DEFAULT_STARTUP_TIMEOUT_MS = 5000;
+const DEFAULT_LOG_PATH = join(supermemoryHome(), "server.log");
+const DEFAULT_STARTUP_TIMEOUT_MS = 15000;
 
 function fail(message) {
   process.stderr.write(`supermemory:start: ${message}\n`);
@@ -48,16 +54,9 @@ async function assertChildBecomesHealthy(child, healthUrl, timeoutMs) {
   while (Date.now() < deadline) {
     if (earlyExit) throw new Error(`server exited before health check passed (${earlyExit})`);
 
-    try {
-      const response = await fetch(healthUrl);
-      if (response.ok) {
-        await response.arrayBuffer();
-        return;
-      }
-      lastHealthError = `HTTP ${response.status}`;
-    } catch (error) {
-      lastHealthError = error instanceof Error ? error.message : String(error);
-    }
+    const requestTimeoutMs = Math.max(1, Math.min(1000, deadline - Date.now()));
+    if (await verifySupermemoryHealth(healthUrl, requestTimeoutMs)) return;
+    lastHealthError = "identity or health check did not pass";
 
     await sleep(100);
   }
@@ -109,12 +108,27 @@ if (!hasProviderConfig(childEnv)) {
   );
 }
 
-const port = process.env.SUPERMEMORY_PORT?.trim() || DEFAULT_PORT;
-const healthUrl = process.env.SUPERMEMORY_HEALTH_URL?.trim() || `http://localhost:${port}/`;
+const portText = process.env.SUPERMEMORY_PORT?.trim() || DEFAULT_PORT;
+let port;
+let healthUrl;
+try {
+  port = parsePort(portText);
+  healthUrl = parseLoopbackHttpUrl(
+    process.env.SUPERMEMORY_HEALTH_URL?.trim() || `http://localhost:${port}/`,
+    "SUPERMEMORY_HEALTH_URL",
+  ).href;
+  if (Number.parseInt(new URL(healthUrl).port || "80", 10) !== port) {
+    throw new Error("SUPERMEMORY_HEALTH_URL port must match SUPERMEMORY_PORT.");
+  }
+} catch (error) {
+  fail(error instanceof Error ? error.message : String(error));
+}
 const startupTimeoutMs = readPositiveIntegerEnv("SUPERMEMORY_STARTUP_TIMEOUT_MS", DEFAULT_STARTUP_TIMEOUT_MS);
 const logPath = process.env.SUPERMEMORY_LOG_PATH || DEFAULT_LOG_PATH;
-const out = openSync(logPath, "a");
-const err = openSync(logPath, "a");
+mkdirSync(dirname(logPath), { recursive: true, mode: 0o700 });
+const out = openSync(logPath, "a", 0o600);
+const err = openSync(logPath, "a", 0o600);
+chmodSync(logPath, 0o600);
 let child = null;
 
 try {
@@ -128,6 +142,17 @@ try {
     stdio: ["ignore", out, err],
   });
   await assertChildBecomesHealthy(child, healthUrl, startupTimeoutMs);
+  const attestation = inspectServerProcess({ bin: serverBin, expectedHash, pid: child.pid, port });
+  if (!attestation.ok) {
+    throw new Error(`healthy listener is not owned by the checksum-verified server process: ${attestation.reason}`);
+  }
+  writeRuntimeState({
+    bin: serverBin,
+    pid: child.pid,
+    port,
+    sha256: expectedHash,
+    startedAt: new Date().toISOString(),
+  });
   child.unref();
   process.stdout.write(`supermemory:start: started ${serverBin} on port ${port}; health ${healthUrl}; log ${logPath}; pid ${child.pid}\n`);
 } catch (error) {

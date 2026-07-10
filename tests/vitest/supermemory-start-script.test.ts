@@ -1,10 +1,15 @@
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 
 import { afterEach, describe, expect, it } from "vitest";
+
+import {
+  hasRequiredSupermemoryBootstrap,
+  SUPERMEMORY_BOOTSTRAP_MARKER,
+} from "../../scripts/lib/supermemory-guidance.mjs";
 
 const scriptPath = "scripts/start-verified-supermemory-server.mjs";
 const configureScriptPath = "scripts/configure-supermemory-server.mjs";
@@ -25,7 +30,11 @@ function createFakeServer(tempDir: string) {
   const serverPath = join(tempDir, "supermemory-server");
   const content = `#!/usr/bin/env node
 const { writeFileSync } = require("node:fs");
+const { appendFileSync } = require("node:fs");
 const { createServer } = require("node:http");
+if (process.env.FAKE_SERVER_START_COUNT_OUT) {
+  appendFileSync(process.env.FAKE_SERVER_START_COUNT_OUT, "start\\n");
+}
 writeFileSync(process.env.FAKE_SERVER_ENV_OUT, JSON.stringify({
   PORT: process.env.PORT,
   SUPERMEMORY_PORT: process.env.SUPERMEMORY_PORT,
@@ -34,16 +43,23 @@ writeFileSync(process.env.FAKE_SERVER_ENV_OUT, JSON.stringify({
     : {}),
 }));
 if (process.env.FAKE_SERVER_EXIT_IMMEDIATELY === "1") process.exit(42);
-const server = createServer((_request, response) => {
+const server = createServer((request, response) => {
+  if (process.env.FAKE_SERVER_HANG_HEALTH === "1") return;
   response.statusCode = 200;
-  response.end("ok");
+  if (request.url === "/v3/health") {
+    response.setHeader("content-type", "application/json");
+    response.end(JSON.stringify({ status: "ok" }));
+    return;
+  }
+  response.setHeader("content-type", "text/html; charset=UTF-8");
+  response.end(process.env.FAKE_SERVER_PAGE_BODY || "<!doctype html><title>supermemory · local</title>");
 });
-server.listen(Number(process.env.PORT), () => {
+setTimeout(() => server.listen(Number(process.env.PORT), () => {
   const exitAfterMs = Number.parseInt(process.env.FAKE_SERVER_EXIT_AFTER_MS || "250", 10);
   if (exitAfterMs > 0) {
     setTimeout(() => server.close(() => process.exit(0)), exitAfterMs);
   }
-});
+}), Number.parseInt(process.env.FAKE_SERVER_LISTEN_DELAY_MS || "0", 10));
 `;
   writeFileSync(serverPath, content);
   chmodSync(serverPath, 0o755);
@@ -67,6 +83,10 @@ function runStartScript({
     "CLOUDFLARE_ACCOUNT_ID",
     "FAKE_SERVER_EXIT_AFTER_MS",
     "FAKE_SERVER_EXIT_IMMEDIATELY",
+    "FAKE_SERVER_HANG_HEALTH",
+    "FAKE_SERVER_LISTEN_DELAY_MS",
+    "FAKE_SERVER_PAGE_BODY",
+    "FAKE_SERVER_START_COUNT_OUT",
     "FAKE_SERVER_CAPTURE_PROVIDER",
     "FAKE_SERVER_ENV_OUT",
     "GEMINI_API_KEY",
@@ -76,6 +96,7 @@ function runStartScript({
     "OPENAI_API_KEY",
     "PORT",
     "SUPERMEMORY_HEALTH_URL",
+    "SUPERMEMORY_ENSURE_LOCK_TIMEOUT_MS",
     "SUPERMEMORY_LOG_PATH",
     "SUPERMEMORY_PORT",
     "SUPERMEMORY_SERVER_BIN",
@@ -149,37 +170,48 @@ function readJsonWhenWritten(path: string) {
   return JSON.parse(readFileSync(path, "utf8")) as Record<string, string>;
 }
 
+function runScriptAsync(script: string, env: NodeJS.ProcessEnv) {
+  return new Promise<{ status: number | null; stderr: string; stdout: string }>((resolvePromise) => {
+    const child = spawn(process.execPath, [script], {
+      cwd: process.cwd(),
+      env,
+    });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+    });
+    child.on("close", (status) => resolvePromise({ status, stderr, stdout }));
+  });
+}
+
 afterEach(() => {
   for (const dir of tempDirs.splice(0)) {
+    const statePath = join(dir, "home", ".supermemory", "archestimator-server-state.json");
+    if (existsSync(statePath)) {
+      try {
+        const state = JSON.parse(readFileSync(statePath, "utf8")) as { pid?: number };
+        if (state.pid) process.kill(state.pid, "SIGTERM");
+      } catch {
+        // The focused test server may already have exited.
+      }
+    }
     rmSync(dir, { force: true, recursive: true });
   }
 });
 
 describe("verified Supermemory server launcher", () => {
   it("ignores generic PORT and keeps the documented 6767 default", () => {
-    const tempDir = createTempDir();
-    const homeDir = join(tempDir, "home");
-    const envOut = join(tempDir, "server-env.json");
-    mkdirSync(homeDir);
-    const { serverPath, hash } = createFakeServer(tempDir);
+    const launcher = readFileSync(scriptPath, "utf8");
 
-    const result = runStartScript({
-      env: {
-        FAKE_SERVER_ENV_OUT: envOut,
-        FAKE_SERVER_EXIT_AFTER_MS: "250",
-        OPENAI_API_KEY: "sk-test",
-        PORT: "3000",
-        SUPERMEMORY_LOG_PATH: join(tempDir, "supermemory.log"),
-        SUPERMEMORY_STARTUP_TIMEOUT_MS: "2000",
-      },
-      homeDir,
-      serverPath,
-      hash,
-    });
-
-    expect(result.status).toBe(0);
-    expect(result.stdout).toContain("on port 6767");
-    expect(readJsonWhenWritten(envOut)).toEqual({ PORT: "6767", SUPERMEMORY_PORT: "6767" });
+    expect(launcher).toContain('const DEFAULT_PORT = "6767";');
+    expect(launcher).toContain("process.env.SUPERMEMORY_PORT?.trim() || DEFAULT_PORT");
+    expect(launcher).not.toContain("process.env.PORT?.trim()");
   });
 
   it("honors SUPERMEMORY_PORT when the fixed local URL is intentionally overridden", () => {
@@ -192,7 +224,7 @@ describe("verified Supermemory server launcher", () => {
     const result = runStartScript({
       env: {
         FAKE_SERVER_ENV_OUT: envOut,
-        FAKE_SERVER_EXIT_AFTER_MS: "250",
+        FAKE_SERVER_EXIT_AFTER_MS: "3000",
         OPENAI_API_KEY: "sk-test",
         PORT: "3000",
         SUPERMEMORY_LOG_PATH: join(tempDir, "supermemory.log"),
@@ -204,10 +236,18 @@ describe("verified Supermemory server launcher", () => {
       hash,
     });
 
-    expect(result.status).toBe(0);
+    expect(result.status, result.stderr).toBe(0);
     expect(result.stdout).toContain("on port 7878");
     expect(result.stdout).toContain("health http://localhost:7878/");
     expect(readJsonWhenWritten(envOut)).toEqual({ PORT: "7878", SUPERMEMORY_PORT: "7878" });
+    expect(statSync(join(tempDir, "supermemory.log")).mode & 0o777).toBe(0o600);
+    const statePath = join(homeDir, ".supermemory", "archestimator-server-state.json");
+    expect(JSON.parse(readFileSync(statePath, "utf8"))).toMatchObject({
+      bin: realpathSync(serverPath),
+      port: 7878,
+      sha256: hash,
+    });
+    expect(statSync(statePath).mode & 0o777).toBe(0o600);
   });
 
   it("fails before detaching when first-boot provider config is missing", () => {
@@ -246,7 +286,7 @@ describe("verified Supermemory server launcher", () => {
     const result = runStartScript({
       env: {
         FAKE_SERVER_ENV_OUT: envOut,
-        FAKE_SERVER_EXIT_AFTER_MS: "250",
+        FAKE_SERVER_EXIT_AFTER_MS: "3000",
         OPENAI_API_KEY: undefined,
         SUPERMEMORY_LOG_PATH: join(tempDir, "supermemory.log"),
         SUPERMEMORY_PORT: "7879",
@@ -272,7 +312,7 @@ describe("verified Supermemory server launcher", () => {
     const env = {
       ...process.env,
       FAKE_SERVER_ENV_OUT: envOut,
-      FAKE_SERVER_EXIT_AFTER_MS: "250",
+      FAKE_SERVER_EXIT_AFTER_MS: "3000",
       HOME: homeDir,
       OPENAI_API_KEY: "sk-test",
       SUPERMEMORY_LOG_PATH: join(tempDir, "supermemory.log"),
@@ -312,7 +352,7 @@ describe("verified Supermemory server launcher", () => {
       env: {
         FAKE_SERVER_CAPTURE_PROVIDER: "1",
         FAKE_SERVER_ENV_OUT: envOut,
-        FAKE_SERVER_EXIT_AFTER_MS: "250",
+        FAKE_SERVER_EXIT_AFTER_MS: "3000",
         OPENAI_API_KEY: undefined,
         SUPERMEMORY_LOG_PATH: join(tempDir, "supermemory.log"),
         SUPERMEMORY_PORT: "7882",
@@ -358,12 +398,111 @@ describe("verified Supermemory server launcher", () => {
     expect(readJsonWhenWritten(envOut)).toEqual({ PORT: "7880", SUPERMEMORY_PORT: "7880" });
   });
 
-  it("documents the parameterized health check URL", () => {
+  it("rejects an unrelated 2xx listener instead of treating the port as Supermemory", () => {
+    const tempDir = createTempDir();
+    const homeDir = join(tempDir, "home");
+    const envOut = join(tempDir, "server-env.json");
+    mkdirSync(homeDir);
+    const { serverPath, hash } = createFakeServer(tempDir);
+
+    const result = runStartScript({
+      env: {
+        FAKE_SERVER_ENV_OUT: envOut,
+        FAKE_SERVER_EXIT_AFTER_MS: "0",
+        FAKE_SERVER_PAGE_BODY: "ok",
+        OPENAI_API_KEY: "sk-test",
+        SUPERMEMORY_LOG_PATH: join(tempDir, "supermemory.log"),
+        SUPERMEMORY_PORT: "7891",
+        SUPERMEMORY_STARTUP_TIMEOUT_MS: "400",
+      },
+      homeDir,
+      serverPath,
+      hash,
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("identity or health check did not pass");
+  });
+
+  it("bounds a health endpoint that accepts connections but never responds", () => {
+    const tempDir = createTempDir();
+    const homeDir = join(tempDir, "home");
+    const envOut = join(tempDir, "server-env.json");
+    mkdirSync(homeDir);
+    const { serverPath, hash } = createFakeServer(tempDir);
+    const startedAt = Date.now();
+
+    const result = runStartScript({
+      env: {
+        FAKE_SERVER_ENV_OUT: envOut,
+        FAKE_SERVER_EXIT_AFTER_MS: "0",
+        FAKE_SERVER_HANG_HEALTH: "1",
+        OPENAI_API_KEY: "sk-test",
+        SUPERMEMORY_LOG_PATH: join(tempDir, "supermemory.log"),
+        SUPERMEMORY_PORT: "7892",
+        SUPERMEMORY_STARTUP_TIMEOUT_MS: "350",
+      },
+      homeDir,
+      serverPath,
+      hash,
+    });
+
+    expect(result.status).toBe(1);
+    expect(Date.now() - startedAt).toBeLessThan(2500);
+  });
+
+  it("rejects a non-loopback health URL before starting a server", () => {
+    const tempDir = createTempDir();
+    const homeDir = join(tempDir, "home");
+    mkdirSync(homeDir);
+    const { serverPath, hash } = createFakeServer(tempDir);
+
+    const result = runStartScript({
+      env: {
+        FAKE_SERVER_ENV_OUT: join(tempDir, "server-env.json"),
+        OPENAI_API_KEY: "sk-test",
+        SUPERMEMORY_HEALTH_URL: "https://example.com/",
+      },
+      homeDir,
+      serverPath,
+      hash,
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("must be a loopback HTTP endpoint");
+  });
+
+  it("allows a cold native boot longer than five seconds by default", () => {
+    const tempDir = createTempDir();
+    const homeDir = join(tempDir, "home");
+    const envOut = join(tempDir, "server-env.json");
+    mkdirSync(homeDir);
+    const { serverPath, hash } = createFakeServer(tempDir);
+
+    const result = runStartScript({
+      env: {
+        FAKE_SERVER_ENV_OUT: envOut,
+        FAKE_SERVER_EXIT_AFTER_MS: "3000",
+        FAKE_SERVER_LISTEN_DELAY_MS: "5200",
+        OPENAI_API_KEY: "sk-test",
+        SUPERMEMORY_LOG_PATH: join(tempDir, "supermemory.log"),
+        SUPERMEMORY_PORT: "7884",
+      },
+      homeDir,
+      serverPath,
+      hash,
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("on port 7884");
+  });
+
+  it("documents the attested ensure command instead of a raw HTTP-only probe", () => {
     const protocol = readFileSync(".ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md", "utf8");
 
-    expect(protocol).toContain('SUPERMEMORY_HEALTH_URL="${SUPERMEMORY_HEALTH_URL:-http://localhost:${SUPERMEMORY_PORT:-6767}/}"');
-    expect(protocol).toContain('curl -fsS "$SUPERMEMORY_HEALTH_URL" >/dev/null');
-    expect(protocol).not.toContain("wait for the `http://localhost:6767/` check");
+    expect(protocol).toContain("bounded loopback identity");
+    expect(protocol).toContain("listener-process attestation");
+    expect(protocol).not.toContain('curl -fsS "$SUPERMEMORY_HEALTH_URL"');
   });
 
   it("configures a pinned binary and persistent shell exports idempotently", () => {
@@ -398,6 +537,13 @@ describe("verified Supermemory server launcher", () => {
     const zshenv = readFileSync(join(homeDir, ".zshenv"), "utf8");
     expect(zshenv.match(/>>> archestimator-supermemory >>>/g)).toHaveLength(1);
     expect(zshenv).toContain(".supermemory/archestimator-server.env");
+  });
+
+  it("does not force-kill an in-flight LaunchAgent ensure during configuration", () => {
+    const configureScript = readFileSync(configureScriptPath, "utf8");
+
+    expect(configureScript).toContain('["kickstart", `${domain}/${LAUNCH_AGENT_LABEL}`]');
+    expect(configureScript).not.toContain('["kickstart", "-k"');
   });
 
   it("rejects an installed binary that does not match the pinned checksum", () => {
@@ -437,7 +583,7 @@ describe("verified Supermemory server launcher", () => {
       env: {
         ...process.env,
         FAKE_SERVER_ENV_OUT: envOut,
-        FAKE_SERVER_EXIT_AFTER_MS: "250",
+        FAKE_SERVER_EXIT_AFTER_MS: "1000",
         HOME: homeDir,
         OPENAI_API_KEY: "",
         SUPERMEMORY_CHECKSUMS_FILE: checksumsPath,
@@ -449,9 +595,73 @@ describe("verified Supermemory server launcher", () => {
       },
     });
 
-    expect(result.status).toBe(0);
+    const startupLogPath = join(tempDir, "supermemory.log");
+    const startupLog = existsSync(startupLogPath) ? readFileSync(startupLogPath, "utf8") : "";
+    expect(result.status, `${result.stderr}\n${startupLog}`).toBe(0);
     expect(result.stdout).toContain("supermemory:ensure: ready");
     expect(readJsonWhenWritten(envOut)).toEqual({ PORT: "7883", SUPERMEMORY_PORT: "7883" });
+  });
+
+  it("serializes concurrent ensure calls into one native server start", async () => {
+    const tempDir = createTempDir();
+    const homeDir = join(tempDir, "home");
+    const envOut = join(tempDir, "server-env.json");
+    const startsOut = join(tempDir, "starts.txt");
+    mkdirSync(homeDir);
+    const { checksumsPath } = createInstalledServer(homeDir);
+    writeFileSync(join(homeDir, ".supermemory", "env"), "OPENAI_API_KEY=stored-provider-key\n");
+    const env = {
+      ...process.env,
+      FAKE_SERVER_ENV_OUT: envOut,
+      FAKE_SERVER_EXIT_AFTER_MS: "1000",
+      FAKE_SERVER_LISTEN_DELAY_MS: "500",
+      FAKE_SERVER_START_COUNT_OUT: startsOut,
+      HOME: homeDir,
+      OPENAI_API_KEY: "",
+      SUPERMEMORY_CHECKSUMS_FILE: checksumsPath,
+      SUPERMEMORY_CONFIGURE_SKIP_LAUNCH_AGENT: "1",
+      SUPERMEMORY_HEALTH_URL: "http://localhost:7885/",
+      SUPERMEMORY_LOG_PATH: join(tempDir, "supermemory.log"),
+      SUPERMEMORY_PORT: "7885",
+      SUPERMEMORY_STARTUP_TIMEOUT_MS: "3000",
+    };
+    delete env.SUPERMEMORY_SERVER_BIN;
+    delete env.SUPERMEMORY_SERVER_SHA256;
+
+    const results = await Promise.all([
+      runScriptAsync(ensureScriptPath, env),
+      runScriptAsync(ensureScriptPath, env),
+    ]);
+
+    expect(results.map((result) => result.status)).toEqual([0, 0]);
+    expect(readFileSync(startsOut, "utf8").trim().split("\n")).toHaveLength(1);
+  });
+
+  it("never displaces a live ensure lock even when its timestamp is old", () => {
+    const tempDir = createTempDir();
+    const homeDir = join(tempDir, "home");
+    const lockDir = join(homeDir, ".supermemory", "ensure.lock");
+    const ownerPath = join(lockDir, "owner.json");
+    mkdirSync(lockDir, { recursive: true });
+    writeFileSync(ownerPath, JSON.stringify({ pid: process.pid, token: "live-owner" }), { mode: 0o600 });
+    const old = new Date(Date.now() - 120_000);
+    utimesSync(lockDir, old, old);
+
+    const result = spawnSync(process.execPath, [ensureScriptPath], {
+      cwd: process.cwd(),
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        HOME: homeDir,
+        SUPERMEMORY_ENSURE_LOCK_TIMEOUT_MS: "250",
+        SUPERMEMORY_HEALTH_URL: "http://localhost:7893/",
+        SUPERMEMORY_PORT: "7893",
+      },
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("timed out waiting for the single-flight lock");
+    expect(JSON.parse(readFileSync(ownerPath, "utf8"))).toEqual({ pid: process.pid, token: "live-owner" });
   });
 
   it("requires the ensure command across every active agent entry surface", () => {
@@ -459,12 +669,15 @@ describe("verified Supermemory server launcher", () => {
       "AGENTS.md",
       "CODEX.md",
       "CLAUDE.md",
+      "GEMINI.md",
       ".codex/README.md",
       ".claude/README.md",
       ".agents/README.md",
       ".commandcode/README.md",
+      ".cursor/rules/00-archestimator-project-brain.mdc",
       ".ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md",
       ".ai/12_agents/README.md",
+      ".ai/12_agents/payloads/README.md",
       ...[
         "_template",
         "antigravity",
@@ -481,7 +694,21 @@ describe("verified Supermemory server launcher", () => {
     ];
 
     for (const surface of surfaces) {
-      expect(readFileSync(surface, "utf8"), surface).toContain("bun run supermemory:ensure");
+      expect(hasRequiredSupermemoryBootstrap(readFileSync(surface, "utf8")), surface).toBe(true);
     }
+  });
+
+  it("rejects missing or explicitly negated bootstrap guidance", () => {
+    expect(hasRequiredSupermemoryBootstrap("Run bun run supermemory:ensure before work.")).toBe(false);
+    expect(
+      hasRequiredSupermemoryBootstrap(
+        `${SUPERMEMORY_BOOTSTRAP_MARKER}\nDo not run bun run supermemory:ensure before work.`,
+      ),
+    ).toBe(false);
+    expect(
+      hasRequiredSupermemoryBootstrap(
+        `${SUPERMEMORY_BOOTSTRAP_MARKER}\nRun bun run supermemory:ensure before work.`,
+      ),
+    ).toBe(true);
   });
 });
