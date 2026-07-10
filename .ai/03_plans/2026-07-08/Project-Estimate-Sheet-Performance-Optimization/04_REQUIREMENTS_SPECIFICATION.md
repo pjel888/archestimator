@@ -126,7 +126,7 @@ REQ-CI-13: EditComponentDrawer (library master editing via `updateCostLibraryCom
 
 REQ-CI-14: Library-linked row edits must flip `linkState` to `linked-overridden` without mutating the library master.
 
-REQ-CI-15: Restore-deleted row/node paths must be documented as unavailable on D1 (throw on call) — delete UX must be clear about irreversibility.
+REQ-CI-15: D1 node restore must remain operational, D1 row restore must be implemented from persisted delete history, and delete UX must never offer an Undo action that can only fail.
 
 REQ-CI-16: Promote-to-library (`promoteEstimateRowToLibraryComponent`) must produce a library component and update the source row's linkage.
 

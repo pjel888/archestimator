@@ -82,7 +82,7 @@ U0.5.1 - Create `e2e/estimate-sheet-component-interop.spec.ts`.
 U0.5.2 - CI-QA scale scenarios at stress tier.
 - Files likely: same spec, gated scenarios.
 - Acceptance:
-  - CI-QA-14 (5,000-row fan-out), CI-QA-15 (modal open at stress), CI-QA-16 (inline edit at stress), CI-QA-17 (delete-restore limitation) all run.
+  - CI-QA-14 (5,000-row fan-out), CI-QA-15 (modal open at stress), CI-QA-16 (inline edit at stress), CI-QA-17 (D1 row restore plus node-restore regression) all run.
   - Captures p95 timings for fan-out + inline edit.
 
 U0.5.3 - CI-QA ↔ vitest coverage backfill.

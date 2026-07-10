@@ -9,7 +9,7 @@ This artifact proves the planning claim that the pack is executable without inve
 - Initial Git HEAD before target-folder edits: `a9ba86c0ffa39a9dcb91625861edde9603d7869c` (historical planning-start provenance only).
 - Target-folder status/diff before edits: empty; SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`
 - Shared worktree: dirty outside the target folder; no unrelated file was reverted.
-- Current frozen source snapshot uses `estimate-sheet-source-fingerprint.v2` from hashed helper `evidence/source-fingerprint-v1.mjs` (SHA-256 `55b0e4a94f773d97b80fa49a29fe2d77189e081de47b28aa0cc4bdab17b787ea`). Git HEAD is `ff2e9d5270682592988491d8b5a357f10ca476d4`; the 1,992-path planning-admission list SHA-256 is `2d9369c98196b5cf0db6d18be1384ea9efc9fb29dd9fccaca01c60147df44bcd`; scoped status SHA-256 is `aa236eb687e6544e50e31c68079afe03a5371f8f4dd91f70d3360f8941c97c01`; scoped diff/untracked-record SHA-256 is `0d1784a5d31703310e1b10bc513b7b456c6c0661659555313d5756b6b33e5f41`. Its application fingerprint covers 1,168 actual filesystem files with path-list SHA-256 `1ded6def9474a5f1d3970cce4c74dd3ccb113b10c895a606bf2b395d0d418ca3` and content SHA-256 `e894c54357a98feaf7b24c6d56375f9a51a3054f08f0e005efba515a64af3d8b`; its producer fingerprint covers 836 files with path-list SHA-256 `61c52ca48c207accb9b67a40fba82862bec136156bd54ab47c30c78f231a91db` and content SHA-256 `ee39a77923f606079d7473425a8b9abb13603fc08aba61bf519b4aa5bcef73d6`. The helper strips inherited `GIT_*` controls, fixes locale/config/diff semantics, separately hashes Git admission state, and hashes actual application/producer filesystem contents and executable modes; the package application projection excludes scripts. The plan folder is outside every source scope.
+- Current re-admission source snapshot uses `estimate-sheet-source-fingerprint.v2` from hashed helper `evidence/source-fingerprint-v1.mjs` (SHA-256 `55b0e4a94f773d97b80fa49a29fe2d77189e081de47b28aa0cc4bdab17b787ea`). Git HEAD is `081a0757a9d7f34e75342a18e353f3014403de1e`; the 1,997-path planning-admission list SHA-256 is `8d15b41d4bb5434685064eb6ae250d4c80de520cd469576e1405e1e9d57b3aa9`; scoped status SHA-256 is `e50b78d85091a2d5757ac0662be48b57584d9f0cce1e890439edaa3701dad79b`; scoped diff/untracked-record SHA-256 is `ed825bd793c211fdb248653718edf88f1218dc274a5ea921843bcf966cc34494`. Its application fingerprint covers 1,173 actual filesystem files with path-list SHA-256 `6e367b36f4cf00f40ae7c952324243222816c516c1600082a241c67df51e4903` and content SHA-256 `a02622ea6a6b82eb8791ded4cc7b449541f80285689d84b61d61868b1eb4e14c`; its producer fingerprint covers 836 files with path-list SHA-256 `61c52ca48c207accb9b67a40fba82862bec136156bd54ab47c30c78f231a91db` and content SHA-256 `7ae18e3b8583f0df8e39cd8276c8d70cb4d8e5cd2cc14f1608f486d5eb5384c3`. Five byte-identical readings from 2026-07-10 17:45:02 through 17:46:07 +08:00 established the quiet window after the Estimate Sheet Tree lease release, and the exact 192-test tree suite, typecheck, scoped diff hygiene, and post-test fingerprint all passed. The helper strips inherited `GIT_*` controls, fixes locale/config/diff semantics, separately hashes Git admission state, and hashes actual application/producer filesystem contents and executable modes; the package application projection excludes scripts. The plan folder is outside every source scope.
 - Baseline plan validation: failed because `plan-pack.json` was absent.
 - Baseline independent architect verdict: `NOT_READY`.
 - Baseline independent critic verdict: `NOT_READY`.
@@ -23,9 +23,10 @@ Read-only exploration refreshed the route, client, repository, mutation, virtual
 3. Express editing disables row virtualization.
 4. Client project-component fan-out is O(N); server fan-out uses JSON identity filtering plus per-match batched writes and is not assumed O(1).
 5. Existing direct tests cover bulk-delete partial failure, broadcast filtering, and tree DnD.
-6. Two focused contract tests contain stale expectations and are the first repair/classification work in `UNIT-001`.
+6. Three focused contract tests contain stale expectations for the current Better Auth five-table DDL, route fast-path authorization, and protected workshop layout; they are the first repair/classification work in `UNIT-001`.
 7. Existing jsdom scale evidence reaches 500 rows, not the 5,000-row supported ceiling.
 8. Historical route/generic D1 artifacts are stale for current Cloudflare/D1 pass claims.
+9. The concurrent tree plan now provides D1 node restore and released its leases after 192 focused tests; D1 row restore still throws while row Undo is exposed, so `UNIT-009` owns the remaining provider/UI contract repair.
 
 The detailed file/symbol map is in `IMPLEMENTATION_PLAN.md` and `28_INVENTORY_SOURCE_MAP.md`.
 
@@ -92,22 +93,22 @@ Official limits and API behavior must be rechecked in the implementation run bef
 
 ## Planning Acceptance Evidence
 
-`AC-001` through `AC-012` are proven planning criteria. `TEST-001` and `TEST-007` pass; runtime tests `TEST-002` through `TEST-006` remain `PLANNED` in the manifest.
+The re-admission candidate proves `AC-001` through `AC-011` and `TEST-001`. `AC-012`, `TEST-007`, `GATE-VERIFY-001`, `GATE-CLEAN-001`, and `EVID-012` remain failed or stale until independent architect and critic reviews accept the same exact candidate hashes. Runtime tests `TEST-002` through `TEST-006` remain `PLANNED` in the manifest.
 
-Completed readiness evidence sequence:
+Pre-promotion readiness sequence:
 
 1. Planning prompt suite validation passes.
 2. Plan-pack validation passes with current hashes.
 3. Adversarial copies fail for missing manifest, stale artifact hash, orphan link, DAG cycle, and inconsistent status/next-unit cases.
 4. `git diff --check` passes for the target folder.
 5. Marker/path/source scans find no unresolved owner decision, stale active execution authority, missing referenced path, or P0/P1 contradiction.
-6. Independent architect and critic reviews of the same exact pre-promotion candidate returned `CLEAN`; a separate fingerprint verifier also returned `CLEAN`.
+6. Independent architect and critic reviews must return `CLEAN` for the same exact pre-promotion candidate; a separate fingerprint verifier must also return `CLEAN`.
 
 ## Final Verification Receipt
 
 Five semantic review candidates were rejected. The first three drove the canonical decision/risk/command/evaluator/Better-Auth/env/traceability/cleanup repairs. The fourth exposed the prose-only fingerprint, missing build inputs, universal hybrid report shape, hosted directory-durability gap, and projection-recovery overclaim. The fifth exposed environment-sensitive Git identity, a self-invalidating baseline lifecycle, illegal UNIT-005 hybrid evidence, impossible local exit timing, incomplete/cyclic fixture and cleanup schemas, first-transition absence recovery, ambiguous hosted cleanup, and fixed-path/immutable-evidence contradictions. Its repair pass added the deterministic v2 dual fingerprint, full UNIT-001 shared-tool bootstrap, continuous dual-digest lineage, explicit complete/attempt/fixture/cleanup/integration/recovery schemas, immutable runs with indexed projections, and durable exact-run cleanup. A final pre-freeze audit then closed multi-preview cleanup, optimized final-state proof, recursive child dependency durability, command-receipt ordering, role-isolated fixture namespaces, and the UNIT-002 browser/checker output collision; those repairs are recorded in `LOOP_LEDGER.md`.
 
-Two later exact-review attempts were invalidated without verdict when concurrent shared-worktree edits changed the scoped/application fingerprints; no concurrent source was reverted or excluded. After a five-reading quiet window, the accepted pre-promotion candidate had plan-pack SHA-256 `6c6c2d4ad6c4dd20495a7206f7c21b2280e975d60d8c0bea6caf4851bc2aa734`, internal manifest SHA-256 `e2afb002d3348148884fc673fcc9dde0f6f14ea3e050ee20573564f1a3969512`, canonical-plan SHA-256 `21f67b6d3918781562637c6acdba5ed32996688126f97a18eb271aabf46ee7da`, and helper SHA-256 `55b0e4a94f773d97b80fa49a29fe2d77189e081de47b28aa0cc4bdab17b787ea`. Clean and hostile fingerprint runs were byte-identical (stdout SHA-256 `c0d6a36b163f476b8a4f0d46a3e4e590601db2cc1e5430f51dc37681212d41ff`), both validators and diff hygiene passed, and independent architect, critic, and fingerprint reviews returned `CLEAN`. The authoritative promotion therefore sets `AC-012=PASS`, `TEST-007=PASS`, all units `READY`, `package_status=IMPLEMENTATION_READY`, `next_unit=UNIT-001`, and publishes dependency-closed `SLICE-001`.
+Two historical exact-review attempts were invalidated without verdict when concurrent shared-worktree edits changed the scoped/application fingerprints; no concurrent source was reverted or excluded. A later candidate was promoted after clean same-hash reviews, but the Estimate Sheet Tree implementation subsequently invalidated that source baseline and withdrew admission. The current re-admission candidate is intentionally `NOT_READY` until its exact plan-pack, internal manifest, canonical-plan, helper, and clean/hostile fingerprint hashes are frozen below and accepted by fresh architect, critic, and fingerprint reviews. Only then may the mechanical authoritative transition set `AC-012=PASS`, `TEST-007=PASS`, all units `READY`, `package_status=IMPLEMENTATION_READY`, `next_unit=UNIT-001`, and publish dependency-closed `SLICE-001`.
 
 ## Validation Gap
 

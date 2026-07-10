@@ -61,8 +61,8 @@ Every primary user action must have an explicit keyboard path, focus behavior, a
 | Activate express editor | Tab to material cell, Enter/F2 | First express field | On commit/blur: cell | Cell aria-label | "Editing." (polite) | R06 browser proof |
 | Promote row to library | Context menu → Enter | Confirmation dialog | Dialog | role="alertdialog" | "Promote to library?" (polite) | CI-QA-13 |
 | Detach library-linked row | Context menu → Enter | Row | Row | Menu item aria-label | "Detached from library." (assertive) | CI-QA-05c |
-| Delete row | Context menu → Enter, confirm | Next row | Next row | role="alertdialog" | "Delete this row? This cannot be undone." (assertive, since restore is unsupported on D1 — GAP-07) | CI-QA-17 |
-| Bulk delete | Select rows, toolbar → confirm | First remaining row | First remaining row | role="alertdialog" with count | "Delete N rows? This cannot be undone." (assertive) | REQ-CRUD-05 |
+| Delete row | Context menu → Enter, confirm | Next row | Restored row after Undo | role="alertdialog" | "Row deleted. Undo available." after success; restore failure is assertive and never reported as success | CI-QA-17 |
+| Bulk delete | Select rows, toolbar → confirm | First remaining row | First restored row after Undo | role="alertdialog" with count | "N rows deleted. Undo available." only when the provider restore path is live | REQ-CRUD-05 |
 | Trigger cursor broadcast | N/A (automatic) | — | — | — | Silent | Existing cursor-isolation tests |
 | Receive cursor broadcast | N/A (automatic) | — | — | Overlay aria-hidden=true (decorative) | Silent | Existing cursor-isolation tests |
 

@@ -165,11 +165,11 @@ This is the most critical interop behavior. Fan-out exists at **two layers**:
 **Severity**: Medium → High at stress scale.
 **Action**: Add `componentInstanceRowIdsByIdentity: Record<string, string[]>` to the normalized graph store for O(matching rows) client fan-out lookup. The server path must be measured separately; its current JSON identity filtering plus per-match batched updates is not assumed O(1).
 
-### GAP-07: Restore-Deleted Paths Throw on D1
+### GAP-07: Row Restore Still Throws on D1
 
-**Status**: `restoreDeletedEstimateRows` (`d1-action-client.ts:2222`) and `restoreDeletedEstimateNodes` (`:2224`) throw unconditionally on D1 — restore is a known unimplemented path against the D1 history store.
-**Severity**: Medium. Delete works, but undo/restore is not available on the active substrate.
-**Action**: Document as a known MVP limitation; "soft delete + confirm" UX must be clear because restore is unavailable.
+**Status**: `restoreDeletedEstimateNodes` is implemented in the D1 client (`d1-action-client.ts:1458, 2325`), while `restoreDeletedEstimateRows` still throws (`:2322-2324`). `EstimateSheetContent` nevertheless supplies the row restore callback to the activity UI, so a displayed row Undo can only fail on D1.
+**Severity**: High. The active UI and active provider disagree about whether row deletion is reversible.
+**Action**: `UNIT-001` locks the mixed baseline, `UNIT-002` characterizes the user-visible path, and `UNIT-009` implements D1 row restore from the persisted delete snapshot while retaining node-restore coverage. Undo must never be exposed without a working provider path.
 
 ### GAP-08: Variant-Order Stability for Library Components
 
@@ -213,7 +213,7 @@ This is the most critical interop behavior. Fan-out exists at **two layers**:
 | REQ-CI-12 | this plan | AddComponentModal create (library master) and AddComponentModal edit (row projection) must write to different tables and not be conflated |
 | REQ-CI-13 | this plan | EditComponentDrawer (library master editing) is a distinct surface from AddComponentModal edit mode |
 | REQ-CI-14 | this plan | Library-linked row edits must flip `linkState` to `linked-overridden` without mutating the library master |
-| REQ-CI-15 | this plan | Restore-deleted row/node paths must be documented as unavailable on D1 (throw on call) — delete UX must be clear about irreversibility |
+| REQ-CI-15 | this plan | D1 node restore remains operational, D1 row restore is implemented from persisted delete history, and delete Undo never points at a guaranteed failure |
 | REQ-CI-16 | this plan | Promote-to-library (`promoteEstimateRowToLibraryComponent`) must produce a library component and update the source row's linkage |
 
 ## Performance Path
@@ -263,14 +263,14 @@ The component-interoperability work adds these data flows to the estimate sheet:
 | CI-QA-14 | Edit project component in 5,000-row estimate | Server fan-out (SQL join) completes efficiently; client fan-out (tree-walk) p95 <= 75 ms |
 | CI-QA-15 | Open edit modal for library-linked row in stress fixture | Modal opens with row data; no performance regression |
 | CI-QA-16 | Inline scalar edit on project component at scale | Edit responsive; server fan-out statement/match counts stay within the measured budget; client lookup uses the graph identity index when activated |
-| CI-QA-17 | Delete a row then attempt restore | Restore throws on D1 (documented limitation); delete UX must confirm irreversibility |
+| CI-QA-17 | Delete a row then activate Undo | The row is restored from D1 history with an authoritative revision and one restore event; node-restore coverage remains green |
 
 ## Verification
 
 - Planning provenance: source audit plus independent architect and critic review; reviewer identity is metadata, not a readiness cap.
 - Browser proof is required for all 19 IDs before the implementation can claim full interop readiness.
 - Existing vitest coverage is partial. The mapping below is authoritative about direct gaps.
-- GAP-07 (restore throws on D1) must be reflected in delete UX and documentation.
+- GAP-07 (row restore throws while node restore works) must be closed before delete Undo can be claimed functional.
 
 ## CI-QA ↔ Test Mapping (Pass-3 addition)
 
@@ -296,7 +296,7 @@ Every CI-QA scenario must map to at least one named test (vitest or browser). Th
 | CI-QA-14 | Edit project component in 5,000-row estimate | (none — needs browser + graph index) | `:14-stress-fanout-5000-rows` |
 | CI-QA-15 | Open edit modal at stress fixture | (none — needs browser) | `:15-stress-modal-open` |
 | CI-QA-16 | Inline scalar edit on project component at scale | (none — needs browser + graph index) | `:16-stress-inline-edit` |
-| CI-QA-17 | Delete + restore-throws | `estimate-sheet-version-control-actions.test.ts` (restore-throws test) | `:17-delete-restore-limitation` |
+| CI-QA-17 | Delete + D1 row restore | `estimate-sheet-version-control-actions.test.ts` (action contract only; active D1 regression needed) | `:17-delete-row-restore` |
 
 **Coverage status**: the table defines 19 unique IDs. Twelve have at least partial named vitest coverage; seven (`CI-QA-05`, `05b`, `08`, `13`, `14`, `15`, `16`) have no direct named test. All 19 require the browser scenarios owned by canonical `UNIT-002`; stress cases are re-run by `UNIT-010`.
 

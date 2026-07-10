@@ -270,3 +270,39 @@ Concurrent application work invalidated two exact-review attempts by changing th
 The exact pre-promotion candidate was plan-pack SHA-256 `6c6c2d4ad6c4dd20495a7206f7c21b2280e975d60d8c0bea6caf4851bc2aa734`, internal manifest SHA-256 `e2afb002d3348148884fc673fcc9dde0f6f14ea3e050ee20573564f1a3969512`, canonical-plan SHA-256 `21f67b6d3918781562637c6acdba5ed32996688126f97a18eb271aabf46ee7da`, and helper SHA-256 `55b0e4a94f773d97b80fa49a29fe2d77189e081de47b28aa0cc4bdab17b787ea`. Clean and hostile helper verification exited zero with byte-identical 1,245-byte stdout SHA-256 `c0d6a36b163f476b8a4f0d46a3e4e590601db2cc1e5430f51dc37681212d41ff` and empty stderr. Plan-pack validation, planning-prompt validation, target-folder `git diff --check`, the static 11-unit command-DAG scan, and five adversarial manifest mutations passed. Independent architect and critic reviews of those exact hashes returned `CLEAN`; a separate fingerprint verifier also returned `CLEAN`.
 
 The package is promoted to `IMPLEMENTATION_READY` with implementation `NOT_STARTED`, release `NOT_EVALUATED`, all units `READY`, dependency-closed `SLICE-001`, and exact `next_unit=UNIT-001`. Browser, build, D1, hosted-provider, deployment, and application-runtime proof remain owned by the implementation units and were not executed in this planning run.
+
+## Loop 7 - Implementation Recovery And Shared-Worktree Coordination (2026-07-10)
+
+- Evaluator-contract review found and repaired three P1 execution contradictions before re-admission: baseline `overall=FAIL` is distinct from evidence `VERIFIED` through explicit `record-only` policy; artifact-only cleanup is a validated `NOT_APPLICABLE` state rather than a bypass; and `estimate-sheet-release-evaluation.v1` has deterministic Markdown bytes with strict parse/hash/re-render equality. UNIT-001 must encode these exact contracts and negative tests.
+
+Run ID: `019f4ac9-1723-7562-a1f2-949829709039`
+
+Status: active; `UNIT-001` admission intentionally withdrawn.
+
+Coordination facts:
+
+- Cursor/Grok owns the active Estimate Sheet Tree lease recorded in `.ai/09_archive/store/2026-07-10-Estimate-Sheet-Tree-complete/LOOP_LEDGER.md` for `EstimateSheetTree.tsx`, `estimate-tree/*`, and focused tree tests.
+- A read-only watcher observed core tree source stability from 16:54:46 through 17:00:44, but tree-test writes continued through 17:06:33 and the D1/history lane wrote through 17:27:24; PH-6 remained partial, PH-7 pending, and four extracted hooks remained untracked. The earlier PID `61632` attribution was incorrect because that PID is this lead session, not the concurrent Cursor/Grok lane; coordination therefore relies on the lease ledger plus file/hash quiet windows rather than PID lifetime.
+- This lane will not edit the leased tree scope or freeze a whole-worktree fingerprint until PH-7 is done, the lease is removed, and a fresh quiet window passes.
+- Disjoint proposal-route type ownership was repaired by moving `ProposalsData` out of the Next.js page module; its targeted route test, focused ESLint, typecheck, and diff hygiene passed before later tree writes resumed.
+- At 17:34-17:35, the exact PH-7 focused command passed with 11 files / 192 tests, `bun run type-check` passed, and `git diff --check` passed without editing the leased scope. Focused ESLint exited zero with four warnings: one pre-existing unused `estimateIds` binding in `d1-action-client.ts` and three unused test bindings in `estimate-sheet-tree-dom.test.tsx`. These results are coordination evidence only and become stale after any later owned-file write; they do not release the active lease or authorize fingerprint freeze.
+
+Source-truth correction:
+
+- The concurrent tree lane implemented `restore_deleted_estimate_nodes_with_history` in the active D1 client.
+- `restore_deleted_estimate_rows_with_history` still throws in the D1 dispatcher while `EstimateSheetContent` supplies the row Undo callback.
+- `REQ-035`, `UNIT-009`, the interop/a11y matrices, and supporting CRUD/data-flow docs now require working D1 row restore while preserving node-restore coverage. This is a provider/UI contract repair, not a `UNIT-001` behavior change.
+
+Readiness transition:
+
+- The old baseline and `EVID-012` same-hash reviews are stale.
+- `plan-pack.json` is temporarily `NOT_READY`: sources stale, requirements proposed, planning criteria/gates failed pending refresh, prior passing tests/evidence stale, units planned, no ready slice, and `next_unit=null`.
+- The plan validator passes in this deliberately unpromoted state after refreshing plan-artifact hashes. Promotion requires a stable new source fingerprint, planning validation, hostile/clean fingerprint equality, a quiet window, and fresh exact-hash architect plus critic reviews.
+
+Re-admission evidence after Cursor/Grok handoff:
+
+- Commit `081a0757a9d7f34e75342a18e353f3014403de1e` archived the Estimate Sheet Tree plan as complete and explicitly released all file leases.
+- Five full fingerprint readings from 17:45:02 through 17:46:07 +08:00 were byte-identical (`e184d1d52c7d375b76e56420a76eea2c1b8d3a0cb2d7113da17c04e22b339893`).
+- The exact released-tree suite passed with 11 files / 192 tests; `bun run type-check` and scoped `git diff --check` passed. Focused ESLint had zero errors and four unused-variable warnings. The post-test fingerprint was byte-identical.
+- The refreshed source identity is HEAD `081a0757a9d7f34e75342a18e353f3014403de1e`, scoped diff `ed825bd793c211fdb248653718edf88f1218dc274a5ea921843bcf966cc34494`, application content `a02622ea6a6b82eb8791ded4cc7b449541f80285689d84b61d61868b1eb4e14c`, and producer content `7ae18e3b8583f0df8e39cd8276c8d70cb4d8e5cd2cc14f1608f486d5eb5384c3`.
+- The pre-promotion manifest remains `NOT_READY`: `AC-012`, `TEST-007`, verification/cleanup gates, and `EVID-012` stay failed or stale until same-hash reviews are clean.

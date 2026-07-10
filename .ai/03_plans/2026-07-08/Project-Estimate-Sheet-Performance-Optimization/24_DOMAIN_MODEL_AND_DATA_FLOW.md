@@ -158,11 +158,11 @@ Server Actions ("use server")
   │
   ▼
 D1 Action Client ("server only")
-  src/lib/estimates/d1-action-client.ts (2229 lines)
-    ├─ callEstimateAction (RPC dispatcher, name→handler map at line 2128)
+  src/lib/estimates/d1-action-client.ts (2327 lines at the 2026-07-10 refresh)
+    ├─ callEstimateAction (RPC dispatcher, name→handler map)
     ├─ EstimateActionD1Query (Supabase-style query builder over raw D1 SQL)
     ├─ patchRowItem → propagateProjectComponentRowPatch (SERVER fan-out)
-    └─ restoreDeletedEstimateRows / restoreDeletedEstimateNodes: THROW on D1 (GAP-07)
+    └─ restoreDeletedEstimateNodes: implemented; restoreDeletedEstimateRows: still throws on D1 (GAP-07)
   │
   ▼
 Workspace Repository (D1 reads)
@@ -292,12 +292,12 @@ These are the O(N) / recursive operations that scale with loaded tree size. The 
 | Limitation | Evidence | Impact |
 |---|---|---|
 | Route fast path is a null stub | `workspace-repository.ts:3985` returns null | Route always misses intended D1 fast path |
-| Restore-deleted throws on D1 | `d1-action-client.ts:2222, 2224` | Delete is irreversible; UX must confirm |
+| Row restore still throws on D1 while node restore is implemented | `d1-action-client.ts:1458, 2322-2325` | Current row Undo can only fail; `UNIT-009` must implement D1 row restore and preserve node-restore coverage |
 | Group/sort doesn't add group-header rows | `EstimateSheetContent.tsx:677` comment | Category/supplier group modes flatten buckets; no visual group headers |
 | No 1000+ row rendered stress test | tests max at 500 rows; 1500/5000 only as constants | Scale claims unproven |
 | No browser proof for sheet interactions | no Playwright spec for the sheet route | All deep behaviors jsdom-only |
 | Client fan-out is O(N) tree-walk | `patchProjectComponentInstanceRowsInTree` | Stress-scale risk (GAP-06) |
-| Giant components | EstimateSheetContent (2923 lines), EstimateSheetTree (2186), ComponentLibraryManager (2960), AddComponentModal (2340), cells (1300), row-table (1323) | Structural split tracked in `.ai/09_archive/2026-06-23-react-doctor-warning-cleanup.md` (stale path in comments) |
+| Giant components | EstimateSheetContent (2922 lines), EstimateSheetTree reduced to 1257 lines by the concurrent tree extraction, cells (1304), row-table (1322); other large workshop surfaces remain | Structural splitting remains evidence-driven; the concurrent tree plan owns the active tree extraction |
 
 ## Verification
 

@@ -55,7 +55,7 @@ The P6 single-node model: **any node may parent any node** (no area/group gate).
 | Delete (single) | `deleteEstimateNode` (`:3010`) | `delete_estimate_node_with_history` | yes | |
 | Delete (bulk) | `deleteEstimateNodesBulk` (`:3048`) | — | yes | multi-root; `dedupeSelectedRoots` |
 | Reorder | `reorderEstimateTreeNodes` (`:2207`) | `reorder_estimate_nodes_with_history` | yes | validated by `validateProjectedEstimateTreeReorder` |
-| **Restore** | `restoreDeletedEstimateNodes` (`:3703`) | — | — | **THROWS on D1** (`d1-action-client.ts:2224`) — known limitation |
+| **Restore** | `restoreDeletedEstimateNodes` | `restore_deleted_estimate_nodes_with_history` | yes | Implemented in D1 by `restoreDeletedEstimateNodes` (`d1-action-client.ts:1458`) and dispatched at `:2325` |
 
 **Optimistic-create dance** (left panel): new nodes get `optimistic-area-...` ids (`EstimateSheetTree.tsx:175`), resolved to server ids asynchronously via `pendingNodeCreatesRef` / `resolveServerNodeId` (lines 812-819). Reorders/renames targeting optimistic ids await the create promise.
 
@@ -74,7 +74,7 @@ This is the core estimate-sheet write surface.
 | Delete (bulk) | `deleteEstimateRowItemsBulk` (`:3634`) | `delete_estimate_row_items_bulk_with_history` | yes | ≤100 rows; all-or-nothing |
 | Move component | `moveEstimateRowComponentWithHistory` (`:3509`) | `move_estimate_row_component_with_history` | yes | swaps two rows' components |
 | Move row (reorder/reparent) | `moveEstimateRowItemWithHistory` (`:3562`) | `move_estimate_row_item_with_history` | yes | reorder/reparent rows |
-| **Restore** | `restoreDeletedEstimateRows` (`:3676`) | — | — | **THROWS on D1** (`d1-action-client.ts:2222`) — known limitation |
+| **Restore** | `restoreDeletedEstimateRows` | `restore_deleted_estimate_rows_with_history` | planned | Still throws in the D1 dispatcher (`d1-action-client.ts:2322-2324`) even though the UI offers Undo; `UNIT-009` owns the repair |
 | Promote to library | `promoteEstimateRowToLibraryComponent` / `promoteExpressRowToLibraryComponent` (`express-promotion-actions.ts:241, :518`) | `promote_express_component` | — | converts row into library component; updates source row linkage |
 
 ## Row Mutation Flow (client → server)
@@ -148,7 +148,7 @@ These mutate the library master, distinct from row projections.
 
 | Gap | Severity | Notes |
 |---|---|---|
-| Restore-deleted throws on D1 (rows + nodes) | Medium | Delete is irreversible; UX must confirm. Documented as GAP-07 in doc 22. |
+| Row restore throws on D1 while row delete offers Undo | High | The affordance is false on the active substrate. Implement D1 row restore in `UNIT-009`; keep the now-working node restore covered. Documented as GAP-07 in doc 22. |
 | Bulk delete capped at ≤100 rows | Low | Acceptable for MVP; UI should batch or warn above 100. |
 | Optimistic node create race | Low | Handled via `pendingNodeCreatesRef` / `resolveServerNodeId`; tested. |
 | `collectEditableRows` in every mutation snapshot | Medium (perf) | O(N) per mutation; addressed by normalized graph (doc 06 Phase 5). |

@@ -1,20 +1,20 @@
 # Project Estimate Sheet Performance Optimization
 
-Status tuple: `package_status=IMPLEMENTATION_READY`, `implementation_status=NOT_STARTED`, `release_status=NOT_EVALUATED`, `plan_lifecycle=ACTIVE`, `terminal_status=ACTIVE`.
+Status tuple: `package_status=NOT_READY`, `implementation_status=NOT_STARTED`, `release_status=NOT_EVALUATED`, `plan_lifecycle=ACTIVE`, `terminal_status=ACTIVE`.
 
-Current run: planning only. Future package ceiling: local implementation plus scoped hosted proof against the Cloudflare resources bound in `wrangler.jsonc`. This pack does not authorize or perform a production deploy.
+Current run: implementation re-admission after shared-worktree coordination. The Estimate Sheet Tree lane is complete, archived, and has released its leases; a five-reading quiet window plus its exact 192-test suite, typecheck, and diff hygiene passed. No implementation unit is admitted until the refreshed source candidate is independently re-reviewed. Future package ceiling: local implementation plus scoped hosted proof against the Cloudflare resources bound in `wrangler.jsonc`. This pack does not authorize or perform a production deploy.
 
 Canonical execution artifact: [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md)
 
 Machine-readable contract: [`plan-pack.json`](plan-pack.json)
 
-Exact next unit: `UNIT-001`, which locks current behavior, repairs stale contract tests, creates deterministic fixtures, and implements the strict evaluator contract before any optimization code. `AC-012` has clean same-hash architect and critic receipts.
+Candidate next unit after re-admission: `UNIT-001`, which locks current behavior, repairs stale contract tests, creates deterministic fixtures, and implements the strict evaluator contract before any optimization code. `AC-012` requires new same-hash architect and critic receipts for the refreshed candidate.
 
 ## Mission
 
 Prove and then remove the dominant route, derivation, render, and mutation bottlenecks while preserving all estimate-sheet behavior at the supported ceiling of 1,500 nodes and 5,000 loaded rows.
 
-No planning gate remains open. Product implementation and runtime performance evidence remain incomplete and are produced by `UNIT-001` through `UNIT-011`.
+The same-hash review gate is temporarily open. Product implementation and runtime performance evidence remain incomplete and are produced by `UNIT-001` through `UNIT-011` after re-admission.
 
 ## Authority Order
 
@@ -30,6 +30,7 @@ Docs `11_IMPLEMENTATION_PLAN.md` and `21_EXECUTION_HANDOFF.md` are superseded as
 - The route uses Suspense and capped tree loading, but its D1 fast path is still a null stub.
 - Nested tree derivations, mutation snapshots, and client project-component fan-out still have full-tree work in hot paths.
 - Virtualization bounds DOM work but does not bound all derivation work, and row virtualization is disabled during express editing.
+- D1 node restore is now implemented, but D1 row restore still throws while the activity UI exposes row Undo; `UNIT-009` owns that provider/UI contract repair.
 - Existing jsdom performance coverage reaches 500 rows, not the 5,000-row ceiling.
 - Current direct tests exist for bulk-delete partial failure, realtime broadcast filtering, and tree DnD; older missing-test claims were stale.
 - Historical route and generic D1 artifacts do not prove the current Cloudflare/D1 estimate path.

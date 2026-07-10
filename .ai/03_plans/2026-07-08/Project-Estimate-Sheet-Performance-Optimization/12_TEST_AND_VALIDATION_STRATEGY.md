@@ -40,7 +40,7 @@ bunx vitest run \
 | Proof envelopes | `tests/vitest/estimate-sheet-performance-contract.test.ts` | Route-D1/full-local integration and graph/derived-state/render-a11y/mutation unit-proof envelopes accept only required `{role,schemaId,immutablePath,sha256}` children with one run/fingerprint pair; reject missing, failed, duplicate, scope-substituted, cross-run, cross-fingerprint, dirty-checkpoint, absent/mismatched test-receipt mutation blocks, undeclared mutation, reused namespace, and missing/failed command children; require complete browser reports for render-a11y/full-local only. |
 | Evidence index | `tests/vitest/estimate-performance-evidence-index.test.ts` | Producer cannot target a current projection; immutable paths never overwrite; 13 evidence projections and the registry equal immutable sources; `dependencySources` recursively reopen/hash every child and cleanup receipt; delete/mutate-between-check/index fails; registry has no self-entry/hash and its external hash is journal/manifest verified; history, absent-state recovery, and every mkdir/fsync/rename/unlink/commit boundary are fault-tested. |
 | Hosted proof | `scripts/verify-estimate-sheet-hosted-d1-performance-proof.ts` | Direct remote `ARCH_DB` SQL proof; directory creation/fsync from durable `.ai/`; one `cleanup.json` lease/journal before seed; explicit-run recovery with multiple unresolved manifests; separate non-indexable hosted cleanup-recovery schema; crash/response-loss invalidation; and no canonical proof output from cleanup-only. |
-| Release evaluator | `scripts/write-estimate-sheet-release-evaluation.ts` | Joins integrated local, hosted D1, and global release-gate inputs into the declared release artifact. |
+| Release evaluator | `scripts/write-estimate-sheet-release-evaluation.ts` | Joins integrated local, hosted D1, and global release-gate inputs into deterministic UTF-8/LF `estimate-sheet-release-evaluation.v1` Markdown; strict parsing, payload-hash verification, canonical re-render byte equality, and unchanged projection are tested. |
 
 ## Component Interoperability Test Matrix (see doc 22)
 
@@ -61,7 +61,7 @@ Component interop has partial vitest coverage; seven of the 19 named IDs have no
 
 | Proposed Path | Scenarios | Required Behaviors |
 |---|---|---|
-| `e2e/estimate-sheet-component-interop.spec.ts` | All 19 IDs in doc 22 | Create/edit/inline for both component types; variant persistence; fan-out; thumbnail routing; detach; promote; restore limitation |
+| `e2e/estimate-sheet-component-interop.spec.ts` | All 19 IDs in doc 22 | Create/edit/inline for both component types; variant persistence; fan-out; thumbnail routing; detach; promote; D1 row restore plus node-restore regression |
 
 ### New Unit/Integration Gaps to Close
 
@@ -126,13 +126,13 @@ Canonical unit commands supersede the older phase commands. The exact UNIT-001 t
 
 ```bash
 node .ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/evidence/source-fingerprint-v1.mjs --verify
-bun run perf:estimate:prepare -- --unit=UNIT-001 --profile=limit --artifact-only
+bun run perf:estimate:prepare -- --unit=UNIT-001 --profile=limit --artifact-only --cleanup-not-applicable
 bun run perf:estimate:gate -- --unit=UNIT-001 --role=fingerprint-reference --output=auto:fingerprint-reference -- bun run perf:estimate:fingerprint -- --compare-reference=.ai/03_plans/2026-07-08/Project-Estimate-Sheet-Performance-Optimization/evidence/source-fingerprint-v1.mjs
 ESTIMATE_PERF_UNIT=UNIT-001 ESTIMATE_PERF_TEST_OUTPUT_ROLE=dom-tests bun run test:dom -- tests/vitest/estimate-node-route-context-rpc-contract.test.ts tests/vitest/estimate-route-server-concurrency.test.ts tests/vitest/cloudflare-better-auth-proof-script.test.ts tests/vitest/estimate-sheet-source-fingerprint.test.ts tests/vitest/estimate-sheet-performance-fixtures.test.ts tests/vitest/estimate-sheet-bulk-row-delete-partial-failure.test.tsx tests/vitest/estimate-row-update-broadcast.test.ts tests/vitest/estimate-sheet-tree-dnd.test.tsx tests/vitest/estimate-sheet-performance-contract.test.ts tests/vitest/estimate-performance-run-lifecycle.test.ts tests/vitest/estimate-performance-modes.test.ts tests/vitest/estimate-performance-evidence-index.test.ts tests/vitest/estimate-sheet-d1-performance.test.ts tests/vitest/estimate-sheet-bottleneck-decision.test.ts tests/vitest/estimate-sheet-hosted-d1-performance-proof-script.test.ts tests/vitest/estimate-sheet-release-evaluation.test.ts
 bun run perf:estimate:gate -- --unit=UNIT-001 --role=typecheck --output=auto:typecheck -- bun run type-check
 bun run perf:estimate:gate -- --unit=UNIT-001 --role=error-handling --output=auto:error-handling -- bun run validate:error-handling
-bun run perf:estimate:measure -- --unit=UNIT-001 --profile=limit --evidence-class=jsdom --tests=auto:dom-tests --gates=auto:fingerprint-reference,auto:typecheck,auto:error-handling --fixture-output=auto:fixture --output=auto:jsdom --no-build --no-browser --no-local-run
-bun run perf:estimate:index -- --unit=UNIT-001 --evidence=auto:fixture --project=evidence/runtime/fixture-manifest.json --also=auto:jsdom --also-project=evidence/runtime/jsdom-baseline.json --status=VERIFIED --no-run-cleanup=not-applicable
+bun run perf:estimate:measure -- --unit=UNIT-001 --profile=limit --evidence-class=jsdom --budget-policy=record-only --tests=auto:dom-tests --gates=auto:fingerprint-reference,auto:typecheck,auto:error-handling --fixture-output=auto:fixture --output=auto:jsdom --no-build --no-browser --no-local-run
+bun run perf:estimate:index -- --unit=UNIT-001 --evidence=auto:fixture --project=evidence/runtime/fixture-manifest.json --also=auto:jsdom --also-project=evidence/runtime/jsdom-baseline.json --status=VERIFIED --cleanup-not-applicable
 ```
 
 ```bash
@@ -144,7 +144,7 @@ ESTIMATE_PERF_UNIT=UNIT-002 ESTIMATE_PERF_FIXTURE_ROLE=browser ESTIMATE_PERF_TES
 ```
 
 ```bash
-bun run perf:estimate:gate -- --unit=UNIT-002 --role=browser-check --output=auto:browser-check -- bun run perf:estimate:check -- --unit=UNIT-002 --evidence=auto:browser --evidence-class=local-browser --tests=auto:e2e-tests --gates=auto:opennext-build --source-build-match=required
+bun run perf:estimate:gate -- --unit=UNIT-002 --role=browser-check --output=auto:browser-check -- bun run perf:estimate:check -- --unit=UNIT-002 --evidence=auto:browser --evidence-class=local-browser --budget-policy=record-only --tests=auto:e2e-tests --gates=auto:opennext-build --source-build-match=required
 ```
 
 ```bash
@@ -157,7 +157,7 @@ bun run perf:estimate:prepare -- --unit=UNIT-003 --profile=limit --port=auto
 bun run perf:estimate:validate-run -- --unit=UNIT-003
 ESTIMATE_PERF_UNIT=UNIT-003 ESTIMATE_PERF_TEST_OUTPUT_ROLE=dom-tests bun run test:dom -- tests/vitest/estimate-sheet-d1-performance.test.ts tests/vitest/workspace-repository-estimate-scoped-access.test.ts
 bun run perf:estimate:d1 -- --unit=UNIT-003 --local --profile=limit --fixture-role=d1 --tests=auto:dom-tests --output=auto:d1
-bun run perf:estimate:gate -- --unit=UNIT-003 --role=d1-check --output=auto:d1-check -- bun run perf:estimate:check -- --unit=UNIT-003 --evidence=auto:d1 --evidence-class=local-d1
+bun run perf:estimate:gate -- --unit=UNIT-003 --role=d1-check --output=auto:d1-check -- bun run perf:estimate:check -- --unit=UNIT-003 --evidence=auto:d1 --evidence-class=local-d1 --budget-policy=record-only
 bun run perf:estimate:cleanup -- --unit=UNIT-003
 bun run perf:estimate:index -- --unit=UNIT-003 --evidence=auto:d1 --project=evidence/runtime/d1-local-baseline.json --status=VERIFIED --gate=auto:d1-check --cleanup-receipt=auto:cleanup
 ```
@@ -181,7 +181,8 @@ git diff --check
 - A local D1/SQLite proof proves local query shape and planner behavior only.
 - A hosted D1 proof is required for production/provider claims.
 - Hosted D1 proof is direct Wrangler SQL/provider evidence; it does not prove a deployed application route.
-- A local runtime unit is not `VERIFIED` until exact cleanup has passed and the journaled evidence transition commits; a producer/checker pass before cleanup is insufficient.
+- A required-cleanup runtime unit is not `VERIFIED` until exact cleanup has passed and the journaled evidence transition commits; a producer/checker pass before cleanup is insufficient. Artifact-only `NOT_APPLICABLE` is accepted only after prepare and index both prove that every cleanup-owned resource and mutation declaration is empty.
+- Baseline `overall=FAIL` is valid measured evidence when `--budget-policy=record-only` proves collection integrity; `VERIFIED` describes evidence lifecycle, while `UNIT-004` consumes the preserved failures. Every post-baseline optimization/integration/release checker enforces `overall=PASS`.
 - A recovered uncertain delete may prove cleanup and release a lease, but it invalidates the interrupted producer; hosted proof and release status require a fresh uninterrupted run.
 - Producers write immutable run paths; 13 stable names are current evidence projections and the fourteenth is the current registry. None is source evidence, and the registry's own hash is external rather than cyclic.
 - Every projected envelope keeps durable child references; the index recursively revalidates those bytes plus cleanup and stores ordered `dependencySources[]` in registry history.
