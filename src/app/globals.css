@@ -2652,6 +2652,8 @@ input[type="number"] {
 }
 
 .workshop-collection-tabs-chrome [role="tablist"] {
+  display: grid !important;
+  width: 100%;
   border-bottom-width: 0;
 }
 

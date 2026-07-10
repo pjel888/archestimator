@@ -117,6 +117,7 @@ import type { NewProjectOptimisticSnapshot } from "./NewProjectForm";
 import {
   getProjectDateFlagLayoutClassName,
   getProjectGridClassName,
+  getProjectStatusTabsLayoutClassName,
 } from "./project-grid-layout";
 import { createProjectClientOptions } from "./project-client-options";
 import {
@@ -315,16 +316,6 @@ function getProjectStatusTabLabel(tab: ProjectStatusTab) {
   return tab === "all" ? "All Projects" : PROJECT_STATUS_LABELS[tab];
 }
 
-function getProjectStatusTabsLayoutClassName(viewMode: ProjectCardViewMode) {
-  if (viewMode === "list" || viewMode === "small") {
-    return "[&_[role=tablist]]:grid [&_[role=tablist]]:grid-cols-[repeat(auto-fill,minmax(132px,1fr))]";
-  }
-  if (viewMode === "medium") {
-    return "[&_[role=tablist]]:grid [&_[role=tablist]]:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]";
-  }
-  return "[&_[role=tablist]]:grid [&_[role=tablist]]:grid-cols-[repeat(auto-fill,minmax(248px,1fr))]";
-}
-
 function ProjectStatusTabs({
   activeTab,
   tabs,
@@ -344,12 +335,13 @@ function ProjectStatusTabs({
       variant="underline"
       ariaLabel="Project status tabs"
       idBase={PROJECT_STATUS_TAB_ID_BASE}
+      data-project-view-mode={viewMode}
       className={cn(
-        "bg-transparent px-2 [&_[role=tablist]]:h-[41px] [&_[role=tablist]]:overflow-visible [&_[role=tablist]]:border-0",
+        "bg-transparent px-2 [&_[role=tablist]]:h-[41px] [&_[role=tablist]]:border-0",
         getProjectStatusTabsLayoutClassName(viewMode),
       )}
       getTabButtonProps={() => ({
-        className: "h-full !min-h-[41px] w-full justify-start px-2.5",
+        className: "h-full !min-h-[41px] min-w-0 w-full max-w-full justify-start px-2.5",
       })}
     />
   );

@@ -35,3 +35,19 @@ export function getProjectGridClassName(viewMode: ProjectCardViewMode) {
 export function getProjectDateFlagLayoutClassName(viewMode: ProjectCardViewMode) {
   return viewMode === "list" ? getProjectGridClassName("small") : getProjectGridClassName(viewMode);
 }
+
+
+/**
+ * Status-tab tablist layout: same auto-fill tracks + gap as `getProjectGridClassName()`
+ * so the active orange underline aligns with the project card / group-flag column.
+ * Important grid overrides the Tabs primitive flex tablist on the Projects page only.
+ */
+export function getProjectStatusTabsLayoutClassName(viewMode: ProjectCardViewMode) {
+  if (viewMode === "list" || viewMode === "small") {
+    return "[&_[role=tablist]]:!grid [&_[role=tablist]]:grid-cols-[repeat(auto-fill,minmax(132px,1fr))] [&_[role=tablist]]:gap-2 [&_[role=tablist]]:w-full [&_[role=tablist]]:overflow-x-hidden";
+  }
+  if (viewMode === "medium") {
+    return "[&_[role=tablist]]:!grid [&_[role=tablist]]:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] [&_[role=tablist]]:gap-3 [&_[role=tablist]]:w-full [&_[role=tablist]]:overflow-x-hidden";
+  }
+  return "[&_[role=tablist]]:!grid [&_[role=tablist]]:grid-cols-[repeat(auto-fill,minmax(248px,1fr))] [&_[role=tablist]]:gap-3 [&_[role=tablist]]:w-full [&_[role=tablist]]:overflow-x-hidden";
+}
