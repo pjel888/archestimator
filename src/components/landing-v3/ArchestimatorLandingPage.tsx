@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import type { ReactNode } from "react";
@@ -19,6 +21,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
 import { stringifyJsonLd } from "@/lib/landing/json-ld";
+import { useLandingAuthHint } from "@/lib/landing/use-landing-auth-hint";
 import { cn } from "@/lib/ui/cn";
 import { AnimatedMetricValue } from "./AnimatedMetricValue";
 import { HeroEstimateWorkspaceMockup } from "./HeroEstimateWorkspaceMockup";
@@ -42,6 +45,11 @@ import styles from "./landing-v3.module.css";
 
 type LandingPageProps = {
   isLoggedIn: boolean;
+};
+
+type LandingPageRootProps = {
+  /** Test/override only. Production leaves this unset so the client auth hint runs. */
+  isLoggedIn?: boolean;
 };
 
 type HeroMetricCardProps = {
@@ -668,7 +676,9 @@ function LandingFooter({ isLoggedIn }: LandingPageProps) {
   );
 }
 
-export function ArchestimatorLandingPage({ isLoggedIn }: LandingPageProps) {
+export function ArchestimatorLandingPage({ isLoggedIn: isLoggedInProp }: LandingPageRootProps = {}) {
+  const isLoggedIn = useLandingAuthHint(isLoggedInProp);
+
   return (
     <div className={styles.root} data-landing-v3-root>
       <LandingNav isLoggedIn={isLoggedIn} />

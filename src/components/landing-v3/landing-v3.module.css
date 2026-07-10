@@ -769,13 +769,17 @@
     0 0 0 2px rgb(242 68 5 / 0.1);
 }
 
+.heroActualEstimateMockupViewport[data-hero-animation-phase="faucet-inserted"]
+  :global([data-estimate-row-id="hero-estimate-row-kitchen-faucet"]),
 .heroActualEstimateMockupViewport[data-hero-animation-phase="ceramic-inserted"]
   :global([data-estimate-row-id="hero-estimate-row-kitchen-floor-finish"]),
 .heroActualEstimateMockupViewport[data-hero-animation-phase="fauxwood-replaced"]
   :global([data-estimate-row-id="hero-estimate-row-kitchen-floor-finish"]) {
-  animation: heroMockupRowPulse 2900ms ease-out 1;
+  animation: heroMockupRowPulse 2200ms ease-out 1;
 }
 
+.heroActualEstimateMockupViewport[data-hero-animation-phase="faucet-inserted"]
+  :global(input[aria-label="Single-lever kitchen faucet quantity"]),
 .heroActualEstimateMockupViewport[data-hero-animation-phase="ceramic-inserted"]
   :global(input[aria-label="600x600 ceramic tiles quantity"]),
 .heroActualEstimateMockupViewport[data-hero-animation-phase="fauxwood-replaced"]
@@ -804,8 +808,8 @@
   color: #f24405;
   transform: translate(-12%, -8%);
   transition:
-    inset-inline-start 3200ms cubic-bezier(0.2, 0.86, 0.2, 1),
-    inset-block-start 3200ms cubic-bezier(0.2, 0.86, 0.2, 1),
+    inset-inline-start 1800ms cubic-bezier(0.2, 0.86, 0.2, 1),
+    inset-block-start 1800ms cubic-bezier(0.2, 0.86, 0.2, 1),
     transform 360ms ease;
   filter:
     drop-shadow(0 0.7rem 1.1rem rgb(38 44 58 / 0.3))
@@ -837,8 +841,8 @@
     inset 0 1px 0 rgb(255 255 255 / 0.82);
   transform: translate(0.95rem, 0.72rem) scale(0.98);
   transition:
-    inset-inline-start 3200ms cubic-bezier(0.2, 0.86, 0.2, 1),
-    inset-block-start 3200ms cubic-bezier(0.2, 0.86, 0.2, 1),
+    inset-inline-start 1800ms cubic-bezier(0.2, 0.86, 0.2, 1),
+    inset-block-start 1800ms cubic-bezier(0.2, 0.86, 0.2, 1),
     opacity 480ms ease,
     transform 480ms ease;
 }

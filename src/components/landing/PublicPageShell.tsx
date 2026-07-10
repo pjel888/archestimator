@@ -13,7 +13,7 @@ interface PublicPageShellProps {
 
 export function PublicPageShell({
   children,
-  isLoggedIn = false,
+  isLoggedIn,
   isHomePage = false,
 }: PublicPageShellProps) {
   return (

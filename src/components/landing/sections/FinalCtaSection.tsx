@@ -10,7 +10,7 @@ export interface FinalCtaSectionProps {
   isLoggedIn?: boolean;
 }
 
-export function FinalCtaSection({ isLoggedIn = false }: FinalCtaSectionProps) {
+export function FinalCtaSection({ isLoggedIn }: FinalCtaSectionProps) {
   return (
     <section
       aria-label="Get started"

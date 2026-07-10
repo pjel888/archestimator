@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import type { EstimateTabSummary } from "@/lib/estimates/types";
@@ -10,9 +11,10 @@ import {
   useEstimateWorkshopDragState,
 } from "@/components/workshop/estimate-workshop-drag";
 import type { EstimateRowItem, EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
+import { estimateQueryKeys } from "@/hooks/use-estimate-query";
 import styles from "./landing-v3.module.css";
 
-type HeroAnimationPhase =
+export type HeroAnimationPhase =
   | "ready"
   | "hover-faucet"
   | "drag-faucet"
@@ -24,7 +26,7 @@ type HeroAnimationPhase =
   | "drag-fauxwood"
   | "fauxwood-replaced";
 
-const HERO_PHASES: HeroAnimationPhase[] = [
+export const HERO_ANIMATION_PHASES: HeroAnimationPhase[] = [
   "ready",
   "hover-faucet",
   "drag-faucet",
@@ -37,13 +39,56 @@ const HERO_PHASES: HeroAnimationPhase[] = [
   "fauxwood-replaced",
 ];
 
-const DRAG_PHASES = new Set<HeroAnimationPhase>(["drag-faucet", "drag-ceramic", "drag-fauxwood"]);
+const HERO_DRAG_PHASES = new Set<HeroAnimationPhase>(["drag-faucet", "drag-ceramic", "drag-fauxwood"]);
 
-const HERO_WORKSPACE_ID = "hero-sanitized-workspace";
-const HERO_PROJECT_ID = "hero-sanitized-project";
-const HERO_ESTIMATE_ID = "hero-sanitized-estimate";
-const HERO_TAB_ID = "hero-sanitized-tab-page-001";
-const KITCHEN_NODE_ID = "hero-node-kitchen";
+export const HERO_WORKSPACE_ID = "hero-sanitized-workspace";
+export const HERO_PROJECT_ID = "hero-sanitized-project";
+export const HERO_ESTIMATE_ID = "hero-sanitized-estimate";
+export const HERO_TAB_ID = "hero-sanitized-tab-page-001";
+export const HERO_KITCHEN_NODE_ID = "hero-node-kitchen";
+export const HERO_FAUCET_ROW_ID = "hero-estimate-row-kitchen-faucet";
+export const HERO_FLOOR_FINISH_ROW_ID = "hero-estimate-row-kitchen-floor-finish";
+
+/** Must stay below drag-phase durations so the faux mouse lands before insert. */
+export const HERO_CURSOR_TRANSITION_MS = 1800;
+
+const HERO_PHASE_DURATION_MS: Record<HeroAnimationPhase, number> = {
+  ready: 1000,
+  "hover-faucet": 1200,
+  "drag-faucet": 2400,
+  "faucet-inserted": 2200,
+  "hover-ceramic": 1200,
+  "drag-ceramic": 2400,
+  "ceramic-inserted": 2200,
+  "hover-fauxwood": 1200,
+  "drag-fauxwood": 2400,
+  "fauxwood-replaced": 2400,
+};
+
+export function getHeroPhaseDurationMs(phase: HeroAnimationPhase): number {
+  return HERO_PHASE_DURATION_MS[phase];
+}
+
+export function getHeroPhaseAtIndex(index: number): HeroAnimationPhase {
+  const normalized = ((index % HERO_ANIMATION_PHASES.length) + HERO_ANIMATION_PHASES.length) % HERO_ANIMATION_PHASES.length;
+  return HERO_ANIMATION_PHASES[normalized] ?? "ready";
+}
+
+export function advanceHeroPhaseIndex(index: number): number {
+  return (index + 1) % HERO_ANIMATION_PHASES.length;
+}
+
+export function msUntilHeroPhase(target: HeroAnimationPhase, fromIndex = 0): number {
+  let elapsed = 0;
+  let index = fromIndex;
+  for (let step = 0; step < HERO_ANIMATION_PHASES.length; step += 1) {
+    const phase = getHeroPhaseAtIndex(index);
+    if (phase === target) return elapsed;
+    elapsed += getHeroPhaseDurationMs(phase);
+    index = advanceHeroPhaseIndex(index);
+  }
+  return elapsed;
+}
 
 const heroEstimateTabs: EstimateTabSummary[] = [
   {
@@ -114,36 +159,84 @@ const fauxWoodTileItem = createRow({
 
 const heroLibraryItems = [faucetItem, ceramicTileItem, fauxWoodTileItem];
 
+export function getHeroKitchenRows(phase: HeroAnimationPhase): EstimateRowItem[] {
+  const rows: EstimateRowItem[] = [];
+  if (
+    phase === "faucet-inserted" ||
+    phase === "hover-ceramic" ||
+    phase === "drag-ceramic" ||
+    phase === "ceramic-inserted" ||
+    phase === "hover-fauxwood" ||
+    phase === "drag-fauxwood" ||
+    phase === "fauxwood-replaced"
+  ) {
+    rows.push({ ...faucetItem, id: HERO_FAUCET_ROW_ID, quantity: 1 });
+  }
+  if (phase === "ceramic-inserted" || phase === "hover-fauxwood" || phase === "drag-fauxwood") {
+    rows.push({ ...ceramicTileItem, id: HERO_FLOOR_FINISH_ROW_ID, quantity: 24 });
+  }
+  if (phase === "fauxwood-replaced") {
+    rows.push({ ...fauxWoodTileItem, id: HERO_FLOOR_FINISH_ROW_ID, quantity: 24 });
+  }
+  return rows;
+}
+
+export function findHeroKitchenRowsInTree(nodes: EstimateTreeNode[] | undefined): EstimateRowItem[] {
+  if (!nodes) return [];
+  const visit = (node: EstimateTreeNode): EstimateRowItem[] | null => {
+    if (node.id === HERO_KITCHEN_NODE_ID) return node.estimateRowItems ?? [];
+    for (const child of node.children ?? []) {
+      const found = visit(child);
+      if (found) return found;
+    }
+    return null;
+  };
+  for (const node of nodes) {
+    const found = visit(node);
+    if (found) return found;
+  }
+  return [];
+}
+
 export function HeroEstimateWorkspaceMockup() {
+  const queryClient = useQueryClient();
   const [phaseIndex, setPhaseIndex] = useState(0);
-  const phase = HERO_PHASES[phaseIndex] ?? "ready";
+  const phase = getHeroPhaseAtIndex(phaseIndex);
   const dragGhost = getDragGhost(phase);
   const nodes = useMemo(() => createHeroEstimateTree(phase), [phase]);
   const estimateTabs = useMemo(() => {
-    const rowCount = countHeroKitchenRows(phase);
+    const kitchenRows = getHeroKitchenRows(phase);
     return [
       {
         ...heroEstimateTabs[0],
-        rowCount,
-        totalCost: getKitchenRowsTotal(getKitchenRows(phase)),
+        rowCount: kitchenRows.length,
+        totalCost: getKitchenRowsTotal(kitchenRows),
       },
     ];
   }, [phase]);
 
   useEffect(() => {
-    const timer = window.setInterval(() => {
-      setPhaseIndex((current) => (current + 1) % HERO_PHASES.length);
-    }, 2400);
-    return () => window.clearInterval(timer);
-  }, []);
+    const timer = window.setTimeout(() => {
+      setPhaseIndex((current) => advanceHeroPhaseIndex(current));
+    }, getHeroPhaseDurationMs(phase));
+    return () => window.clearTimeout(timer);
+  }, [phase, phaseIndex]);
 
   useEffect(() => {
-    if (DRAG_PHASES.has(phase)) {
+    if (HERO_DRAG_PHASES.has(phase)) {
       useEstimateWorkshopDragState.setState({ activeDrag: { kind: "library-item" } });
       return;
     }
     endEstimateWorkshopDrag();
   }, [phase]);
+
+  // EstimateSheetContent/Tree freeze `nodes` into TanStack `initialData` on mount.
+  // Re-publish the phase tree into the same query keys the sheet reads so drop
+  // phases actually create visible kitchen rows (and ready clears them).
+  useEffect(() => {
+    queryClient.setQueryData(estimateQueryKeys.tabTree(HERO_ESTIMATE_ID, HERO_TAB_ID), nodes);
+    queryClient.setQueryData(estimateQueryKeys.areaTree(HERO_ESTIMATE_ID), nodes);
+  }, [nodes, queryClient]);
 
   useEffect(() => () => endEstimateWorkshopDrag(), []);
 
@@ -155,7 +248,7 @@ export function HeroEstimateWorkspaceMockup() {
           workspaceId={HERO_WORKSPACE_ID}
           estimateId={HERO_ESTIMATE_ID}
           projectName="Lot 24A"
-          selectedNodeId={KITCHEN_NODE_ID}
+          selectedNodeId={HERO_KITCHEN_NODE_ID}
           nodes={nodes}
           estimateTabs={estimateTabs}
           activeTabId={HERO_TAB_ID}
@@ -191,7 +284,7 @@ export function HeroEstimateWorkspaceMockup() {
 }
 
 function createHeroEstimateTree(phase: HeroAnimationPhase): EstimateTreeNode[] {
-  const kitchenRows = getKitchenRows(phase);
+  const kitchenRows = getHeroKitchenRows(phase);
   const kitchenTotal = formatHeroPeso(getKitchenRowsTotal(kitchenRows));
 
   return [
@@ -209,7 +302,7 @@ function createHeroEstimateTree(phase: HeroAnimationPhase): EstimateTreeNode[] {
           children: [
             createArea("hero-node-living-room", "Living Room", "PHP 0"),
             {
-              id: KITCHEN_NODE_ID,
+              id: HERO_KITCHEN_NODE_ID,
               name: "Kitchen",
               kind: "area",
               total: kitchenTotal,
@@ -233,24 +326,6 @@ function createHeroEstimateTree(phase: HeroAnimationPhase): EstimateTreeNode[] {
       ],
     },
   ];
-}
-
-function getKitchenRows(phase: HeroAnimationPhase): EstimateRowItem[] {
-  const rows: EstimateRowItem[] = [];
-  if (phase === "faucet-inserted" || phase === "hover-ceramic" || phase === "drag-ceramic" || phase === "ceramic-inserted" || phase === "hover-fauxwood" || phase === "drag-fauxwood" || phase === "fauxwood-replaced") {
-    rows.push({ ...faucetItem, id: "hero-estimate-row-kitchen-faucet", quantity: 1 });
-  }
-  if (phase === "ceramic-inserted" || phase === "hover-fauxwood" || phase === "drag-fauxwood") {
-    rows.push({ ...ceramicTileItem, id: "hero-estimate-row-kitchen-floor-finish", quantity: 24 });
-  }
-  if (phase === "fauxwood-replaced") {
-    rows.push({ ...fauxWoodTileItem, id: "hero-estimate-row-kitchen-floor-finish", quantity: 24 });
-  }
-  return rows;
-}
-
-function countHeroKitchenRows(phase: HeroAnimationPhase) {
-  return getKitchenRows(phase).length;
 }
 
 function getKitchenRowsTotal(rows: EstimateRowItem[]) {

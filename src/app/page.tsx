@@ -19,7 +19,7 @@ export default function LandingPage() {
   return (
     <PublicPageShell isHomePage={true}>
       <ABExperimentProvider experimentId="hero-cta-copy" variant="A">
-        <ArchestimatorLandingPage isLoggedIn={false} />
+        <ArchestimatorLandingPage />
       </ABExperimentProvider>
     </PublicPageShell>
   );

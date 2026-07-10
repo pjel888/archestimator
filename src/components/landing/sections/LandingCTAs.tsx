@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { cn } from "@/lib/ui/cn";
+import { useLandingAuthHint } from "@/lib/landing/use-landing-auth-hint";
 
 /**
  * Canonical public CTA pair for the marketing shell.
@@ -22,12 +25,13 @@ export interface LandingCTAsProps {
 }
 
 export function LandingCTAs({
-  isLoggedIn = false,
+  isLoggedIn: isLoggedInProp,
   layout = "row",
   className,
   secondary = true,
   location = "hero",
 }: LandingCTAsProps) {
+  const isLoggedIn = useLandingAuthHint(isLoggedInProp);
   const primaryHref = isLoggedIn ? "/workshop" : START_HREF;
   const primaryLabel = isLoggedIn ? "Open workspace" : "Start with an estimate";
   return (

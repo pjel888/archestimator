@@ -6,6 +6,7 @@ import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { trackConversion } from "@/lib/ab-testing/experiment-tracker";
 
 import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
+import { useLandingAuthHint } from "@/lib/landing/use-landing-auth-hint";
 
 import { loginHref, workshopHref } from "./constants";
 
@@ -43,7 +44,14 @@ function subscribeToLandingFooterOverlap(onStoreChange: () => void) {
   };
 }
 
-export function LandingHeader({ isLoggedIn, isHomePage = false }: { isLoggedIn: boolean; isHomePage?: boolean }) {
+export function LandingHeader({
+  isLoggedIn: isLoggedInProp,
+  isHomePage = false,
+}: {
+  isLoggedIn?: boolean;
+  isHomePage?: boolean;
+}) {
+  const isLoggedIn = useLandingAuthHint(isLoggedInProp);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isOverFooter = useSyncExternalStore(subscribeToLandingFooterOverlap, readIsOverLandingFooter, () => false);
   // Test annotations for static regex scans:
