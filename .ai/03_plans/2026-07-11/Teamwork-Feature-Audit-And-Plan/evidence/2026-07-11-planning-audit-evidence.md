@@ -113,3 +113,16 @@ Current source and focused tests override stale graph omissions.
 ## Planning Verdict
 
 The source audit, decisions, split local/hosted DAG, risk controls, proof stages, and stop conditions are sufficient for a conditionally ready package. The dependency-closed independent local slice may execute; Activity/Publisher integration units wait for owner-refreshed manifests, and hosted version/deployment plus DO proof remain behind `AUTH-001`. All product acceptance criteria remain unproven until their planned evidence is collected.
+
+## Improve-Stage Precision Pass (2026-07-11)
+
+A second improve-stage audit re-verified every substantive source claim against the same HEAD (`e373bc865`) using four parallel read-only lanes. Results:
+
+- **HEAD unchanged** from the frozen baseline; the scoped fingerprint remains valid.
+- **Overlap packs unchanged:** Activity still fails on the exact five artifact hashes recorded (`README.md`, `11_IMPLEMENTATION_PLAN.md`, `12_COORDINATION_AND_MULTI_AGENT.md`, `LOOP_LEDGER.md`, `15_PERFORMANCE_AND_QUERY_AUDIT.md`); Publisher still fails on the exact eight recorded. No commits to either pack since `4c7684f8a` (2026-07-10 21:02), predating this plan. The `UNIT-009`/`UNIT-014` blockers are still accurately described.
+- **All confirmed defects stayed confirmed** (sheet-metadata leak, manager-policy dead-control, target-dominance absence, re-invite role overwrite, missing D1 invariants, non-atomic acceptance, literal-vs-code conflict string, event allow-all, no capability enforcement, no revocation path, client no-ack, no reconnect/refresh, key fallback chain, pending invites unrendered, project actions dead at runtime).
+- **Precision repairs applied** (no conclusion changed): exact file:line anchors added to `03`/`04`/`05`/`06`/`07`/`09`; `ceo` platform role added; target-dominance wording corrected from "inconsistent" to "uniformly absent"; display-label gap relocated from DO to client hook; auth-ready split into send-gated vs subscribe-ungated.
+- **Three newly stated facts** (all implied before, now explicit with evidence): (1) D1 exposes no transaction API, only `batch` (`src/lib/cloudflare/d1.ts:20-24`); (2) `/workshop/pending-invite/route.ts:70` accepts membership on a GET via the signed cookie bridge; (3) the realtime signing secret falls back through four secrets ending in the invite pepper (`realtime-room-token.ts:4-9`).
+- **Repo-doc staleness noted (not Teamwork defects):** `AGENTS.md` states 40 migrations/latest `0040` (actual: 52/latest `0052_corporate_accounts`) and Better Auth `1.6.22` (actual `1.6.23`); `package.json` pins `next@16.2.10`. None affects the plan's substantive claims; `UNIT-003` re-lists migrations at execution time.
+
+No plan conclusion, decision, unit, acceptance criterion, risk, or status-tuple field changed during the improve pass.

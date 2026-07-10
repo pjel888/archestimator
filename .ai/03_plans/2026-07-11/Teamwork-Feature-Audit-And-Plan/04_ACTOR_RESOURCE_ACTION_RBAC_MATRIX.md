@@ -6,7 +6,7 @@ Authorization is a function of `{actor, resource, action, context}`. Role string
 
 ### Effective authority order
 
-1. Platform `admin` receives full internal Teamwork authority, but public-recipient authority remains token/session scoped.
+1. Platform `admin` and platform `ceo` both receive full internal Teamwork authority (`isPlatformAdminRole` is true for both at `src/lib/auth/roles.ts:26-28`), but public-recipient authority remains token/session scoped.
 2. Workspace authority applies to descendant projects and estimates while inheritance is enabled.
 3. Project authority applies to descendant estimates while inheritance is enabled.
 4. Direct estimate authority always applies to that estimate.
@@ -68,13 +68,15 @@ Legend: `Y` allowed, `N` denied, `S` allowed only for the directly managed restr
 
 ## Target-Dominance Rules
 
+Current state: `actions.ts` performs no actor-over-target rank comparison anywhere; only last-manager preservation guards exist (`updateProjectCollaboratorRole:1317-1324`, `removeProjectCollaborator:1401-1404`, `removeEstimateSheetCollaborator:1479-1483`). `assertAssignableRole` (`:115-118`) only forbids assigning a role above the actor — it does not constrain the target's current rank. The target contract is:
+
 - An actor may assign only roles strictly below their own effective management rank.
 - Generic admin flows cannot assign, demote, remove, or replace an owner.
 - An admin cannot mutate an equal-ranked admin through generic role/remove controls.
 - Self-demotion and self-removal use explicit, separate flows and may not violate the manager floor.
 - Ownership transfer is outside this slice and cannot be approximated by inviting/updating `owner`.
 - Every target profile must exist before a membership is created.
-- Adding/inviting an existing member is idempotent; it never silently lowers an existing role.
+- Adding/inviting an existing member is idempotent; it never silently lowers an existing role. (Today `upsertInvitation:421-440` updates role on pending collision and `upsertProjectMemberInD1` uses `ON CONFLICT DO UPDATE SET role = excluded.role` at `inviteProjectCollaborator:971-973` — both bypass the explicit role-change path.)
 - A role change is an explicit mutation with before/after values and target-dominance checks.
 - UI role menus are generated from the same assignable-role capability, not a hard-coded four-role array.
 
@@ -117,9 +119,9 @@ The implementation may use a richer internal shape, but stable `reason` and `sou
 
 ## Required Denial Proof
 
-- A sheet-only viewer cannot enumerate another estimate.
+- A sheet-only viewer cannot enumerate another estimate. Today `listProjectEstimateSheetsForProject` (`project-estimate-sheets-repository.ts:88-115`), `countProjectEstimateSheetsForProject` (`:117-126`), and `listRecentProjectEstimateSheets` (`:128-202`) return all estimates by `WHERE project_id = ?` with no per-sheet membership filter, because the gate `assertCanAccessProjectEstimateSheets` (`:62-69`) only calls `canAccessProjectInD1`, whose sheet-member branch (`d1-access.ts:125-131`) admits any sheet-only actor.
 - A project viewer cannot read manager emails or pending invites.
-- A direct sheet admin can manage that restricted sheet without project membership.
+- A direct sheet admin can manage that restricted sheet without project membership. Today this is broken in the opposite direction: the summary reports the sheet admin as manager-capable, but `assertEstimateAccessManager` (`actions.ts:288-318`) delegates to `assertProjectAccessManager` (`:218-252`) which ignores `estimate_sheet_members`, so the action fails closed.
 - A project admin cannot manage a restricted sheet without a direct sheet-manager grant.
 - An admin cannot demote/remove owner or equal-ranked admin.
 - A viewer cannot issue or use a cursor/content-event capability.

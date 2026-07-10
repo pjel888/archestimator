@@ -46,7 +46,7 @@ Rules:
 
 ## Consent and Authentication
 
-- No membership mutation occurs on GET.
+- No membership mutation occurs on GET. Today this is violated by the post-auth bridge: `src/app/workshop/pending-invite/route.ts:70` exports a `GET` handler that calls `acceptPendingInviteBridge` -> `acceptInvitationTokenForUser`, granting membership through the signed `PENDING_INVITE_COOKIE` without an explicit confirmation POST. The primary `/invite/[token]/accept` route correctly requires a same-origin POST (`accept/route.ts:73,87`) and its GET only redirects (`:77-81`); `UNIT-005` must make the bridge require an explicit confirmation POST as well.
 - The invite GET may render a bounded bearer preview, but link scanners can only record non-security-critical open telemetry.
 - Signed-out recipients authenticate, then return to a confirmation page through the signed pending-invite bridge.
 - The bridge carries intent only. The user must submit an explicit same-origin POST to accept.

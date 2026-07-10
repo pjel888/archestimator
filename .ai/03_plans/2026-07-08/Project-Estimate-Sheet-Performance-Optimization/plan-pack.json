@@ -13,18 +13,18 @@
   "baseline": {
     "contract_version": "estimate-sheet-source-fingerprint.v2",
     "generated_metadata_exclusion_rule": "untracked-impeccable-metadata-exclusions.v1",
-    "head": "b83deac090c766128fd252a64de807fcc3bb6d6f",
+    "head": "1ef93b73577a1b3632a03f8478a9d494ab50303b",
     "path_count": 2021,
     "path_list_sha256": "64db44d5872889a9389cc99c83e403ae3ee6263ac995362ea9a03e0990cb218c",
-    "scoped_status_sha256": "cd61fff7718ea1564430343d83df0cbe2ddbc387fc64fa34639b08f6b1246ee9",
-    "scoped_diff_sha256": "53a8e816b266085669abf3972a51547585332f516e1b12320d7275916ee38bfb",
+    "scoped_status_sha256": "7a71ecdd5f21e7fe2dc4b72927869f9613c1fd6762153fc0b8c03c6365ca5110",
+    "scoped_diff_sha256": "ecd2c4be5354399079d103b493ddec24e05ea7046e97b963a51f4e78674e294f",
     "application": {
       "contract_version": "estimate-sheet-application-fingerprint.v1",
       "generated_metadata_exclusion_rule": "untracked-impeccable-metadata-exclusions.v1",
       "package_projection_rule": "package-json-without-scripts.v1",
       "path_count": 1194,
       "path_list_sha256": "5cd62a81d3a9a38a50b68b550002126178c630f348d3165d4e6b0fbc5ea24b0d",
-      "content_sha256": "53291311cfcbfe4480d6104a37f84c42ffa68ad6b63d1034fa080d4ef1de1562"
+      "content_sha256": "f0a643da9a657b729f4c0a4cfe65ed35f015f59d0ac82fab4d7e1445a79fd865"
     },
     "producer": {
       "contract_version": "estimate-sheet-producer-fingerprint.v1",
@@ -3865,7 +3865,7 @@
         "DEC-AUTO-014",
         "DEC-AUTO-015"
       ],
-      "source_revision": "b83deac090c766128fd252a64de807fcc3bb6d6f+status-cd61fff7718ea1564430343d83df0cbe+app-53291311cfcbfe4480d6104a37f84c42+producer-7a72d311538f402d448d1ae6a96a192fe+frontier-plan-readiness",
+      "source_revision": "1ef93b73577a1b3632a03f8478a9d494ab50303b+status-7a71ecdd5f21e7fe2dc4b72927869f961+app-f0a643da9a657b729f4c0a4cfe65ed35+producer-7a72d311538f402d448d1ae6a96a192fe+frontier-plan-readiness",
       "valid_until": null
     },
     {
@@ -4017,7 +4017,7 @@
         "GATE-VERIFY-001",
         "GATE-CLEAN-001"
       ],
-      "source_revision": "review-binding:v1:42dc19ad37f90931d522ffffb9bae5ebddb2c9bb0c4633b9b0378b43abee0508",
+      "source_revision": "review-binding:v1:857a1398b7c9ba68624b099b14a5e23751b58681d7c92d0d2b9c99e431cde339",
       "valid_until": null
     }
   ],
@@ -4030,5 +4030,5 @@
   ],
   "next_unit": null,
   "updated_at": "2026-07-10T13:50:41.879Z",
-  "manifest_sha256": "ed5ebd79f04291159939cb48ef13b057376ce5ebe1d34506ede591fceb7cc396"
+  "manifest_sha256": "9eefcc7d59ea7b892ad7b9d23bb69150373dad9de496b7a06c746ed14ef3302a"
 }

@@ -314,6 +314,37 @@ export async function addCorporateAccountMember(input: {
   }
 }
 
+/**
+ * Checks if the given user is the last owner of the account.
+ * Returns true if removing them would leave the account with zero owners.
+ */
+async function isLastOwner(
+  db: import("@/lib/cloudflare/d1").D1DatabaseLike,
+  accountId: string,
+  userId: string,
+): Promise<boolean> {
+  const row = await db
+    .prepare<{ count: number }>(
+      `SELECT COUNT(*) AS count FROM corporate_account_members
+       WHERE corporate_account_id = ? AND role = 'owner'`,
+    )
+    .bind(accountId)
+    .first<{ count: number }>();
+
+  const ownerCount = row?.count ?? 0;
+  if (ownerCount <= 1) {
+    // Check if this user is an owner.
+    const member = await db
+      .prepare<{ role: string }>(
+        `SELECT role FROM corporate_account_members WHERE corporate_account_id = ? AND user_id = ?`,
+      )
+      .bind(accountId, userId)
+      .first<{ role: string }>();
+    return member?.role === "owner";
+  }
+  return false;
+}
+
 export async function removeCorporateAccountMember(
   accountId: string,
   userId: string,
@@ -321,6 +352,11 @@ export async function removeCorporateAccountMember(
   try {
     const db = await getCloudflareD1Database();
     if (!db) return { data: { ok: false }, error: "Cloudflare D1 is not available." };
+
+    // Last-owner guard: cannot remove the last owner.
+    if (await isLastOwner(db, accountId, userId)) {
+      return { data: { ok: false }, error: "Cannot remove the last owner of the account." };
+    }
 
     await db
       .prepare(
@@ -347,6 +383,11 @@ export async function updateCorporateAccountMemberRole(input: {
   try {
     const db = await getCloudflareD1Database();
     if (!db) return { data: { ok: false }, error: "Cloudflare D1 is not available." };
+
+    // Last-owner guard: cannot demote the last owner to a non-owner role.
+    if (input.role !== "owner" && (await isLastOwner(db, input.accountId, input.userId))) {
+      return { data: { ok: false }, error: "Cannot demote the last owner of the account." };
+    }
 
     await db
       .prepare(

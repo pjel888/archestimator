@@ -37,16 +37,16 @@
 | duplicate pending invites | select then insert/update | active unique scope key/upsert | concurrent create test |
 | invitation replay | token/lifecycle split | atomic consume/grant/fact | replay and failure injection |
 | wrong-account disclosure | bearer preview/email copy | generic mismatch; bounded preview | route/DOM tests |
-| GET mutation/CSRF | pending bridge can accept on GET | explicit same-origin POST only | route method/origin tests |
+| GET mutation/CSRF | `/workshop/pending-invite` GET accepts via signed cookie (`route.ts:70`) | explicit same-origin POST only on both accept paths | route method/origin tests |
 | token leakage | raw URL/email path | hash at rest; redact logs/artifacts/referrers | log scan and denial tests |
-| invite-driven downgrade | existing-profile upsert | add/invite/change separation; monotonic invite | role regression tests |
+| invite-driven downgrade | `upsertInvitation` role update on collision + `ON CONFLICT DO UPDATE` on re-invite | add/invite/change separation; monotonic invite | role regression tests |
 | restricted-sheet manager bypass | project-only reissue auth | exact invitation-scope capability | action tests |
-| forged realtime identity | wire display label/userId | token subject binding and trusted roster | DO + client tests |
-| viewer cursor/event publish | token lacks capability | signed capability claim + DO event matrix | forged viewer test |
-| arbitrary event/payload | relay allow-all | event registry/schema/size/rate validation | fuzz/property tests |
-| unauthorized socket exhaustion | accept before auth/no cap | auth timeout, caps, token buckets | abuse/load tests |
-| stale membership access | five-minute token | membership version/refresh/revocation budget | hosted removal test |
-| key reuse | secret fallbacks | dedicated versioned realtime keys | env/config gate |
+| forged realtime identity | self-reported `displayName` stored verbatim in cursor hook (`use-estimate-cursor-broadcast.ts:241-242`) | token subject binding and trusted roster resolution in the renderer | DO + client tests |
+| viewer cursor/event publish | DO performs no capability check; envelope role hardcoded `"member"` and ignored | signed capability claim encoded in token + DO event matrix | forged viewer test |
+| arbitrary event/payload | DO format-checks event name only, forwards payload untouched (`collaboration-room.ts:53-55,130-138`) | event registry/schema/size/rate validation | fuzz/property tests |
+| unauthorized socket exhaustion | no auth deadline, no eviction of unauthorized sockets | auth timeout, caps, token buckets | abuse/load tests |
+| stale membership access | 300s token TTL is the only revocation path; no socket close on removal | membership version/refresh/revocation budget | hosted removal test |
+| key reuse | four-secret fallback chain ending in invite pepper (`realtime-room-token.ts:4-9`) | dedicated versioned realtime keys, fail-closed in production | env/config gate |
 | sensitive telemetry | raw UUID topics/arbitrary metadata | hashing and allowlisted fields | static/error-handling gate |
 | public/internal authority mix | Publisher access presentation | explicit type/repository/route separation | cross-boundary denial tests |
 

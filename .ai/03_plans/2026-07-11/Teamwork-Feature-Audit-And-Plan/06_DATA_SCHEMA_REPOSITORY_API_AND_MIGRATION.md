@@ -62,7 +62,7 @@ append lifecycle fact
 commit
 ```
 
-D1 batch/transaction semantics must be verified against current official Cloudflare documentation during implementation. A batch that excludes the membership statement is not sufficient. If the runtime cannot express the required transaction safely, redesign the command around a single SQL transaction endpoint or fail the unit; do not approximate atomicity.
+D1 batch/transaction semantics must be verified against current official Cloudflare documentation during implementation. Confirmed current state: the active `D1DatabaseLike` (`src/lib/cloudflare/d1.ts:20-24`) exposes only `prepare` and an optional `batch`; there is no transaction/BEGIN/COMMIT API, and a D1 `batch` is not a true transaction. A batch that excludes the membership statement is not sufficient — the current `acceptInvitationInD1` (`invitation-d1-store.ts:453-583`) performs the membership grant at `:506-508` outside the trailing `runStatements` batch at `:513-573`. `UNIT-003` must move the membership grant inside the atomic boundary and express cross-table invariants as constraints/indexes/triggers, since the runtime offers no encompassing transaction. If the runtime cannot express the required atomicity safely, redesign the command around a single SQL statement or fail the unit; do not approximate atomicity.
 
 Email delivery uses an outbox-style intent persisted with invitation creation. Queue delivery may be adopted only using the already-bound queue and only if the resulting retry/idempotency behavior is simpler than the current synchronous path.
 
@@ -112,9 +112,9 @@ Every command returns a stable discriminated result. Expected denials/conflicts 
 
 ## Optimistic Concurrency Contract
 
-Concurrent editors still rely on estimate-row revision control even though CRDT/OT is out of scope. The active D1 path currently throws literal `Estimate row revision conflict.`, while the client recognizes only `estimate_sheet_row_revision_conflict`.
+Concurrent editors still rely on estimate-row revision control even though CRDT/OT is out of scope. The active estimate-action path throws the literal `"Estimate row revision conflict."` at `src/lib/estimates/d1-action-client.ts:1906, 1961, 1989, 2020`, while the stable code constant is `estimate_sheet_row_revision_conflict` (`src/lib/estimates/row-revision-conflict.ts:1`). The recognizers (`isEstimateRowRevisionConflict` at `row-revision-conflict.ts:12-21` and `readMutationErrorCode` at `src/hooks/use-estimate-row-mutations.ts:87-95`) match only on the code string or its substring, so the literal is uncaught and surfaces as a generic `mutation_error`. A separate path (`src/lib/ai/package-builder/apply.ts:1325, 1437`) already throws the correct code, but there is no shared normalization layer between the two paths.
 
-`UNIT-001`/`UNIT-004` must normalize the D1 error to the stable code and prove:
+`UNIT-001`/`UNIT-004` must normalize the D1 error to the stable code (prefer one shared helper used by both the server throw sites and the client/server recognizers) and prove:
 
 - stale writes are rejected;
 - the client shows stable conflict copy;
