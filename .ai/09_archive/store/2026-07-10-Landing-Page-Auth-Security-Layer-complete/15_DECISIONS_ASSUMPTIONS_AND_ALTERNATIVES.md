@@ -103,3 +103,21 @@
 | Dual-path magic-link verify | Complexity + downgrade path; deploy-window suffices for closed beta |
 | Commit BA DDL as migration | Drift/conflict risk; BA owns its schema |
 | Rely on Cloudflare WAF rate-limit alone (no BA rate-limit) | WAF is coarse (IP-based); BA per-identifier limit is finer — but BA limiter must be D1/KV-backed on Workers (RISK-4) |
+
+
+---
+
+## DEC-AUTO-RFU-RESOLVED-2026-07-10 (implementation lead)
+
+Resolved during IMPLEMENT_LOCAL without owner wait (fail-closed defaults):
+
+| ID | Resolution | Rationale |
+|---|---|---|
+| RFU-1 / DEC-6 | **(b) compensating controls** | BA 1.6.23 has no session-token hash config; custom override rejected as high blast radius. |
+| RFU-2 / DEC-7 | **disableImplicitLinking: true** | Default can merge Google onto verified magic-link users; block implicit ATO merge. |
+| RFU-3 | **rateLimit.storage: database** + migration 0041 | Memory is per-isolate on Workers; D1-backed durable limits required. |
+| RFU-4 / DEC-9 | **platform URL redaction + 5-min TTL** | Workers Logs heuristically redacts token-like URL substrings; accept residual heuristic risk. |
+| DEC-3 / FR-1 | **deploy-window guidance** | No dual-path verify downgrade. |
+| DEC-8 / SEC-13 | **dedicated ARCHESTIMATOR_TERMS_GATE_SECRET only** | Fail closed if missing/short. |
+| SEC-6 / Phase 4 | **defer enforced CSP** | Report-Only retained through launch; residual XSS risk accepted for closed beta. |
+| ASSUMP-4 | **closed-beta intentional** | Non-blocking; keep allowlist gate. |

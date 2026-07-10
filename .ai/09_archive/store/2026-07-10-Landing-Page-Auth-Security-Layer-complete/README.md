@@ -7,7 +7,7 @@ intentionally-public pages — is by authenticating through Google OAuth or the
 magic-link email flow. Every attack vector must be covered.
 **Plan profile:** `exhaustive` (auth/security/data-integrity, public surfaces,
 closed-beta, launch readiness — all explicit exhaustive triggers).
-**Suite status:** `CONDITIONALLY READY` — v2 added SEC-11 (session token at rest,
+**Suite status:** `IMPLEMENTED` (2026-07-10) — archived; hosted deploy proof residual — v2 added SEC-11 (session token at rest,
 P1) and RFU-gated items (SEC-5/12/13/14). Phases 1, 2, 4 are implementation-ready;
 phases 1.5, 3 are gated on Phase 0.5 (DISCOVERY-REQUIRED) resolving RFU-1/2/3/4.
 `verification_mode: emulated` (see `17_FINAL_READINESS_REVIEW.md`).

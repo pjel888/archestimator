@@ -91,3 +91,55 @@ and a final COMPLETE marker. Never edit another lane's entry.
 | Owner confirm closed-beta posture (ASSUMP-4) | Owner | Not blocking |
 | Phase 4 CSP timing decision | Owner | Not blocking (defer ok) |
 | Independent review of phases 1+1.5 | Owner/ reviewer | Recommended before prod rollout |
+
+---
+
+## 2026-07-10 — Full plan-pack implementation (lead implementer)
+
+### Lead coordinator (implementer)
+- **STARTED** — Autonomous IMPLEMENT_LOCAL execution of Landing-Page-Auth-Security-Layer.
+  Supermemory ensure blocked by sandbox EPERM on `~/.supermemory` (recorded; continued with `.ai` authority).
+  `plan-pack.json` absent (pre-schema pack); executed from `11_IMPLEMENTATION_PLAN.md` + requirements.
+
+### Phase 0.5 RFU resolutions (DEC-AUTO)
+- **RFU-1 / DEC-6 → (b) compensating controls:** Better Auth 1.6.23 has no session-token hash config;
+  `internal-adapter.mjs` stores `token: generateId(32)` raw. Implemented: `cookieCache.enabled:false`,
+  explicit `session.expiresIn: 7d`, least-privilege D1 bindings (standing), residual risk accepted.
+- **RFU-2 / DEC-7 → disableImplicitLinking:** BA default can implicitly link trusted providers when
+  local email is verified. Set `account.accountLinking.disableImplicitLinking: true`,
+  `trustedProviders: ["google"]`, `requireLocalEmailVerified: true`, `allowDifferentEmails: false`.
+- **RFU-3 / SEC-5:** BA rate-limit defaults to memory unless `storage:"database"` (or secondaryStorage).
+  Set `rateLimit: { enabled:true, window:60, max:60, storage:"database" }` + migration
+  `0041_better_auth_rate_limit.sql` + proof schema update. IP header: `cf-connecting-ip` only.
+- **RFU-4 / DEC-9:** Cloudflare Tail/Workers Logs heuristically redacts URL hex/base64 ID substrings
+  (token-like). Documented as mitigated by platform redaction + 5-min TTL; no app URL logging of verify links.
+- **DEC-3 / FR-1:** Deploy-window guidance (not dual-path verify) for in-flight plaintext magic links.
+- **DEC-8 / SEC-13:** Removed `BETTER_AUTH_SECRET` / publication fallbacks from terms-gate cookie;
+  require `ARCHESTIMATOR_TERMS_GATE_SECRET` ≥32 chars.
+- **ASSUMP-4:** Closed-beta allowlist treated as intentional (non-blocking).
+- **Phase 4 / SEC-6:** DEFERRED — keep Report-Only CSP through launch; residual XSS risk recorded.
+- **SEC-8 / SEC-9:** Remain P3 deferred per pack.
+
+### Implementation COMPLETE markers
+- Phase 1 (SEC-1): `storeToken:"hashed"` production + proof; expiresIn 300; magic-link rateLimit 10/60.
+- Phase 1.5 (SEC-11): DEC-6b compensating controls documented in config.
+- Phase 2 (SEC-3/4): `loadRecipientProposals` action auth; estimate-sheets repo `canAccessProjectInD1`;
+  charts/activity/location/data already via `getCurrentWorkspaceProject` / `listProjectEstimates` (audited);
+  recipient-proposals repo already fail-closed; estimate-repository is in-memory adapter; estimate-schema-compat is pure normalize helpers (Option B / N/A).
+- Phase 3 (SEC-5/7/12/13/14): rate limits + accountLinking + terms secret + schema contract (DEC-5b + 0041 rateLimit only) + log redaction decision.
+- Phase 4 (SEC-6): deferred with residual risk.
+- Phase 5 (SEC-2/10/ARCH-1): contract harness in `tests/vitest/landing-auth-security-layer-contracts.test.ts`;
+  sign-out path confirmed to call BA `/api/auth/sign-out` which deletes D1 session rows.
+
+### Security review
+- Independent `ce-security-reviewer` lane: high finding (rateLimit table missing) → FIXED via 0041 + proof schema.
+- Medium (spoofable IP headers) → FIXED (cf-connecting-ip only).
+- Low (test lock for disableImplicitLinking) → FIXED.
+- AgentShield scan on `src/lib/auth`: Grade A, 0 findings (config-oriented scanner; no secrets in diffs).
+
+### Hosted proof (Phase 1.5 / 5.5)
+- **BLOCKED-EXTERNAL / residual:** Hosted D1 hashed-token readback + live magic-link e2e +
+  `cf:release-gates` production flags require deploy/env. Local contracts + type-check + focused Vitest prove code posture.
+  Recorded as residual operational gate, not an open owner decision.
+
+### COMPLETE — ready to archive after verification evidence recorded.
