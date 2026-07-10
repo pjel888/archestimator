@@ -428,7 +428,7 @@ export async function linkWorkspaceToCorporateAccount(
         `SELECT corporate_account_id FROM workspaces WHERE id = ?`,
       )
       .bind(workspaceId)
-      .first<{ { corporate_account_id: string | null } }>();
+      .first<{ corporate_account_id: string | null }>();
 
     const previousAccountId = existing?.corporate_account_id ?? null;
 
