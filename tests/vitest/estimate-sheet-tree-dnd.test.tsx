@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EstimateSheetTree } from "@/components/workshop/EstimateSheetTree";
 import type { EstimateRowItem, EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
+import { ESTIMATE_TREE_DRAG_MIME_TYPE } from "@/components/workshop/estimate-sheet/drag-types";
 import { ADD_LIBRARY_ITEM_EVENT, LIBRARY_ITEM_DRAG_MIME_TYPE } from "@/components/workshop/estimate-sheet/rows/constants";
 import { resetEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 import { estimateQueryKeys } from "@/hooks/use-estimate-query";
@@ -662,7 +663,9 @@ describe("estimate sheet tree drag/drop", () => {
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Saving tree order"));
 
     // Single "Add Area"; ground-floor (a group) is selected → an area child.
-    fireEvent.click(screen.getByRole("button", { name: "Add Branch" }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Add Branch" }));
+    });
     expect(document.querySelector('[data-tree-row^="optimistic-area-"]')).not.toBeNull();
     expect(screen.getByLabelText("Rename New Area")).toHaveValue("New Area");
 
@@ -722,6 +725,32 @@ describe("estimate sheet tree drag/drop", () => {
     expect(handle).toHaveAttribute("aria-disabled", "true");
     expect(handle).toHaveAttribute("data-tree-drag-disabled-reason", "Finish the current tree save before dragging nodes.");
     expect(handle).toHaveAccessibleName("Drag New Area unavailable: Finish the current tree save before dragging nodes.");
+
+    await act(async () => {
+      pending.reject(new Error("Characterization cleanup."));
+      await pending.promise.catch(() => undefined);
+    });
+  });
+
+  it("blocks a persisted node dropped onto an optimistic target with a reachable reason", async () => {
+    const pending = deferred<{ nodeId: string; name: string; kind: "area"; parentId: string }>();
+    actionMocks.createEstimateNode.mockReturnValue(pending.promise);
+    renderTree(fixtureTree(), "ground-floor");
+
+    fireEvent.click(screen.getByRole("button", { name: "Add Branch" }));
+    const optimisticRow = document.querySelector<HTMLElement>('[data-tree-row^="optimistic-area-"]');
+    if (!optimisticRow) throw new Error("Missing optimistic area row.");
+
+    const dataTransfer = mockDataTransfer([ESTIMATE_TREE_DRAG_MIME_TYPE]);
+    dataTransfer.setData(ESTIMATE_TREE_DRAG_MIME_TYPE, "kitchen");
+    fireEvent.dragOver(optimisticRow, { dataTransfer });
+
+    expect(optimisticRow).toHaveAttribute("data-tree-drop-state", "invalid");
+    expect(optimisticRow).toHaveAttribute("data-tree-drop-reason", "Drop is not allowed here.");
+    expect(document.querySelector("[data-tree-drop-status]")).toHaveTextContent("Drop is not allowed here.");
+
+    fireEvent.drop(optimisticRow, { dataTransfer });
+    expect(actionMocks.reorderEstimateTreeNodes).not.toHaveBeenCalled();
 
     await act(async () => {
       pending.reject(new Error("Characterization cleanup."));

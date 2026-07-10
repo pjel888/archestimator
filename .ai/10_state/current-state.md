@@ -10,6 +10,13 @@ only those entries. Do NOT read all ~2,500 lines on every task — that is the
 single biggest source of slow agent startup.
 
 Stable current truth (verify against git/source before relying on a detail):
+- Estimate Sheet Tree (2026-07-10): implemented + archived to
+  `.ai/09_archive/store/2026-07-10-Estimate-Sheet-Tree-complete/`.
+  PH-0..PH-7 complete: reorder `target_project_id` hotfix, sortOrder merge,
+  projected-tree validation, atomic D1 reorder/delete/restore batches, Move dialog
+  placement parity, handle-only drag, inventory tests, hook extraction.
+  Proof: focused Vitest 11 files / 192 tests + type-check. Hosted D1 and
+  authenticated browser remain release boundaries.
 - Transition/Loading UX (2026-07-10): implemented + archived to
   `.ai/09_archive/store/2026-07-10-Transition-And-Loading-UX-And-UI-complete/`.
   Protocol: `.ai/00_system/PERFORMANCE_LOADING_AND_MOUNT_PROTOCOL.md`.
@@ -47,24 +54,22 @@ Stable current truth (verify against git/source before relying on a detail):
   contract. Use `bun run supermemory:search -- "<query>"` before broad,
   non-trivial, or recovery work and `bun run supermemory:add -- "<sanitized>"`
   when durable truth changes; `.ai` and current source remain authoritative.
-- Development memory safety (2026-07-10): the fatal Next 16.2.10 dev OOM was
-  traced to idle Turbopack filesystem-cache persistence/compaction after the
-  estimate route compiled; that work happened outside Next's request-finally
-  restart check. `bun run dev` now uses Webpack with a 2 GiB V8 ceiling and an
-  executable Node 22.12+/24.x preflight. `bun run dev:turbo` remains an explicit
-  opt-in with filesystem caching disabled, a 1.5 GiB Turbopack target, and the
-  same V8/runtime bounds. The shared instrumentation module loads Node-only
-  logging during `register()` and awaits concurrent registration without
-  pulling `node:fs`/`node:crypto` into Edge compilation. `bun run type-check`
-  uses the same runtime preflight and a measured 4 GiB heap budget. Proof: the
-  cache-disabled Turbo sweep survived 13.5 minutes and three clean warm cycles
-  across 25 routes (incident route 200), with 93 memory samples, zero
-  persistence/compaction/restart events, no Turbopack cache directory, and a
-  165 MiB `.next`; the Node 24 default-Webpack cold incident-route smoke also
-  returned 200, and the focused 20-test suite, lint, error-handling gate, and
-  Node 24 typecheck passed. Re-evaluate Turbopack as the default only after the
-  upstream retention/eviction repairs ship in a stable Next release and the
-  same stress proof passes.
+- Development memory safety and fast default (2026-07-10): `bun dev` now
+  explicitly runs Next 16.2.10 with Turbopack; `dev:turbo` remains a compatible
+  equivalent. The prior idle filesystem-cache persistence/compaction OOM stays
+  mitigated by disabling `turbopackFileSystemCacheForDev`, setting Turbopack's
+  internal target to 1.5 GiB, bounding V8 at 2 GiB, enforcing the supported Node
+  preflight, and keeping Node-only instrumentation out of Edge compilation.
+  The irrelevant `webpackMemoryOptimizations` experiment was removed. Fresh
+  direct `bun dev` proofs reached ready in 474-524 ms. A separate authenticated
+  route sweep compiled public and workshop surfaces, then completed five warm
+  cycles across 11 routes with zero 5xx responses; cycle averages were 101-215
+  ms and maxima 272-469 ms. After the sweep `.next/dev` was 231 MiB, the
+  Turbopack filesystem-cache directory remained absent, and idle Next server
+  RSS fell to 18 MiB. The earlier cache-disabled Turbo stress proof also
+  survived 13.5 minutes and three clean warm cycles across 25 routes with 93
+  memory samples and zero persistence/compaction/restart events. The
+  `type-check` script retains its measured 4 GiB heap budget.
 - Frontier planning/execution suite (2026-07-10):
   `.ai/08_prompts/000_Planning Prompts/` now uses one shared kernel, a versioned
   `plan-pack.json` schema, 10 stable applicability gates, five concise stage

@@ -43,6 +43,28 @@ function node(input: Partial<EstimateTreeNode> & Pick<EstimateTreeNode, "id" | "
   };
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((promiseResolve) => {
+    resolve = promiseResolve;
+  });
+  return { promise, resolve };
+}
+
+function mockDataTransfer() {
+  const transferStore = new Map<string, string>();
+  return {
+    types: [] as string[],
+    dropEffect: "move",
+    effectAllowed: "all",
+    getData: vi.fn((key: string) => transferStore.get(key) ?? ""),
+    setData: vi.fn((key: string, value: string) => {
+      transferStore.set(key, value);
+    }),
+    setDragImage: vi.fn(),
+  };
+}
+
 function renderTree(nodes: EstimateTreeNode[]) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -118,5 +140,45 @@ describe("estimate tree lazy branch hydration", () => {
       requestId: expect.stringContaining("estimate-1:legacy:partial-root:"),
     }));
     expect(await screen.findByText("Loaded child")).toBeInTheDocument();
+  });
+
+  it("currently allows an inside drop while a partial branch is still loading", async () => {
+    const pendingLoad = deferred<ReturnType<typeof buildEstimateTreeSubtreePayload>>();
+    const partialRoot = node({
+      id: "partial-root",
+      name: "Partial root",
+      childrenLoaded: false,
+    });
+    const mover = node({ id: "mover", name: "Mover" });
+    subtreeClientMocks.loadEstimateNodeSubtree.mockReturnValue(pendingLoad.promise);
+    actionMocks.reorderEstimateTreeNodes.mockResolvedValue({
+      tree: [{ ...partialRoot, children: [mover] }],
+    });
+    renderTree([partialRoot, mover]);
+
+    const partialRow = document.querySelector<HTMLElement>("[data-tree-row='partial-root']");
+    const moverHandle = document.querySelector<HTMLElement>("[data-tree-drag-handle='mover']");
+    if (!partialRow || !moverHandle) throw new Error("Lazy-drop fixture rows not found.");
+    fireEvent.click(partialRow.querySelector<HTMLElement>("button[aria-label='Collapse']")!);
+    fireEvent.click(partialRow.querySelector<HTMLElement>("button[aria-label='Expand']")!);
+    expect(await screen.findByText("Loading...")).toBeInTheDocument();
+
+    const dataTransfer = mockDataTransfer();
+    fireEvent.dragStart(moverHandle, { dataTransfer });
+    fireEvent.dragOver(partialRow, { dataTransfer });
+    expect(partialRow).toHaveAttribute("data-tree-drop-state", "valid");
+    expect(partialRow).toHaveAttribute("data-tree-drop-position", "inside");
+    fireEvent.drop(partialRow, { dataTransfer });
+
+    await waitFor(() => expect(actionMocks.reorderEstimateTreeNodes).toHaveBeenCalledWith(
+      "project-1",
+      "estimate-1",
+      {
+        updates: expect.arrayContaining([
+          { id: "mover", parentId: "partial-root", sortOrder: 10 },
+        ]),
+        targetTabId: undefined,
+      },
+    ));
   });
 });

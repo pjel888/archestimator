@@ -20,7 +20,7 @@ The planning scope is **IA and start-flow design only**. It does not implement. 
 
 ### Non-goals
 - Re-litigating the activation ladder, durable onboarding milestones, sample-data policy, or analytics SDK — those are owned by the sibling plan `2026-07-07-first-user-activation-empty-workspace`. This plan defers to it and only adds the route/CTA/IA layer that sibling does not cover holistically.
-- Re-planning the in-editor estimate tree mechanics — owned by `2026-07-06-Estimate-Sheet-Tree`.
+- Re-planning the in-editor estimate tree mechanics — owned by `.ai/09_archive/store/2026-07-10-Estimate-Sheet-Tree-complete`.
 - Changing D1 schema, auth, provider config, or migrations as part of *this* planning task.
 
 ### Required codebase analysis (completed)

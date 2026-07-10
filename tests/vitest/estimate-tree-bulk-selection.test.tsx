@@ -239,6 +239,49 @@ describe("estimate tree bulk selection", () => {
     await waitFor(() => expect(treeNode("living")).toBeInTheDocument());
   });
 
+  it("keeps bulk-deleted nodes removed and reports an error when Undo restore fails", async () => {
+    const user = userEvent.setup();
+    const confirmedTree: EstimateTreeNode[] = [
+      {
+        id: "project-scope",
+        name: "Project Scope",
+        kind: "group",
+        total: "₱0.00",
+        children: [
+          {
+            id: "ground-floor",
+            name: "Ground Floor",
+            kind: "group",
+            total: "₱0.00",
+            children: [
+              { id: "kitchen", name: "Kitchen", kind: "area", total: "₱0.00", estimateRowItems: [], children: [] },
+            ],
+          },
+        ],
+      },
+    ];
+    actionMocks.deleteEstimateNodesBulk.mockResolvedValue({
+      eventId: "bulk-delete-event-1",
+      tree: confirmedTree,
+      deletedNodeIds: ["living"],
+      fallbackNodeId: "kitchen",
+    });
+    actionMocks.restoreDeletedEstimateNodes.mockRejectedValue(new Error("Restore provider unavailable."));
+    renderTree(fixtureTree(), "kitchen", { activeTabId: "tab-2", initialTabId: "tab-2" });
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "Select Living Area" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete selected" }));
+    fireEvent.click(within(screen.getByRole("dialog", { name: "Delete 1 selected Area" })).getByRole("button", { name: "Delete" }));
+    await waitFor(() => expect(document.querySelector('[data-tree-row="living"]')).not.toBeInTheDocument());
+
+    await user.click(await screen.findByRole("button", { name: "Undo" }));
+
+    await waitFor(() => expect(actionMocks.restoreDeletedEstimateNodes).toHaveBeenCalledTimes(1));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't restore the deleted Areas. Try again.");
+    expect(document.querySelector('[data-tree-row="living"]')).not.toBeInTheDocument();
+    expect(screen.queryByText("1 Area restored.")).not.toBeInTheDocument();
+  });
+
   it("bulk delete deduplicates parent and child selections before calling the server", async () => {
     actionMocks.deleteEstimateNodesBulk.mockResolvedValue({
       eventId: "bulk-delete-event-1",

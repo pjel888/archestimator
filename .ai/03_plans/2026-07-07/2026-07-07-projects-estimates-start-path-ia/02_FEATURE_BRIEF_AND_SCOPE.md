@@ -34,7 +34,7 @@ Authoritative feature brief = the contiguous brief text above the planning direc
 | Item | Owner / reason |
 |---|---|
 | Activation ladder, durable onboarding milestones, sample/demo data, welcome panel, analytics SDK choice | `2026-07-07-first-user-activation-empty-workspace` (CONDITIONALLY READY, readiness 95). This plan defers to it. |
-| In-editor estimate tree mechanics, reorder persistence, reorder RPC bug | `2026-07-06-Estimate-Sheet-Tree` (has a live reorder blocker: `reorderEstimateTreeNodes` omits `target_project_id`). |
+| In-editor estimate tree mechanics, reorder persistence, reorder RPC bug | `.ai/09_archive/store/2026-07-10-Estimate-Sheet-Tree-complete` (has a live reorder blocker: `reorderEstimateTreeNodes` omits `target_project_id`). |
 | Library page UX / templates authoring UI | `2026-06-20-Library-Page-Overall-Improvement` (stub) + library routes. |
 | Public→beta trust onboarding (pre-auth) | `2026-07-07-public-to-beta-trust-onboarding-continuity`. |
 | Proposal package workflow (downstream of estimates) | `2026-07-07-client-ready-proposal-package-workflow`. |

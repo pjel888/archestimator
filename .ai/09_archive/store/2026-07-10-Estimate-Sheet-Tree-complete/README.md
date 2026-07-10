@@ -1,6 +1,6 @@
 # Estimate Sheet Tree Plan Package
 
-Status: CONDITIONALLY READY. Phase 0 (workspace resolution hotfix) is IMPLEMENTATION-READY for the one-line payload fix, but its evidence is now split into action-wrapper payload tests and real D1 history/provider proof. Phases 1-6 remain CONDITIONALLY READY pending the RED/characterization tests in `11_TEST_STRATEGY_AND_QA_MATRIX.md`.
+Status: IMPLEMENTED + ARCHIVE_READY (2026-07-10). All phases PH-0..PH-7 complete with local automated + FakeD1 proof. Hosted D1 and authenticated browser proof remain release boundaries. See `LOOP_LEDGER.md` final closeout.
 
 This package plans a focused repair of `src/components/workshop/EstimateSheetTree.tsx`, the shared `Tree` behavior it relies on, and the D1 reorder persistence boundary. The target outcome is reliable branch reordering plus a clearer, keyboard-equivalent, accessible interaction model that preserves the existing context-menu, rename, create, delete, bulk delete, restore, search/filter, lazy-load, active-tab, and external-drop states.
 

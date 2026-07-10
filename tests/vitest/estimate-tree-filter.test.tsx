@@ -248,4 +248,15 @@ describe("D3 — Estimate tree structured filter", () => {
     const filterBtn = screen.getByRole("button", { name: "Filter tree" });
     expect(filterBtn).toHaveAttribute("aria-pressed", "true");
   });
+
+  it("shows no-match copy instead of the true-empty state when search filters out a non-empty tree", () => {
+    renderTree();
+
+    fireEvent.click(screen.getByRole("button", { name: "Show tree search" }));
+    fireEvent.change(screen.getByPlaceholderText("Search Tree"), { target: { value: "No matching area" } });
+
+    expect(screen.queryByText("No areas yet")).not.toBeInTheDocument();
+    expect(screen.getByText("No areas match")).toBeInTheDocument();
+    expect(screen.getByText("Try another search or clear the active filters.")).toBeInTheDocument();
+  });
 });

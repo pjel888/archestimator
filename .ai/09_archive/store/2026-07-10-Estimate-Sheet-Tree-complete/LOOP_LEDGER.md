@@ -52,3 +52,49 @@ Baseline: `main` ahead of origin by 2; concurrent Performance Optimization pack 
 
 - 2026-07-10T07:25Z — audit complete; DEC-AUTO resolved; remaining work scheduled.
 - 2026-07-10T07:27Z — PH-0/PH-2 focused suite: 3 files / 64 tests passed.
+
+
+## Final closeout (2026-07-10)
+
+| Phase | Status | Evidence |
+| --- | --- | --- |
+| PH-0 | DONE | `target_project_id` in reorder payload; action + D1 history tests |
+| PH-1 | DONE | Branch DOM/rollback + inventory gap tests added; 192 focused tests green |
+| PH-2 | DONE | Confirmed `sortOrder` merge |
+| PH-3 | DONE | Projected validation; atomic reorder/delete/restore batches; project-estimate bind; packed restore inserts; D1 history 19/19 |
+| PH-4 | DONE | Move dialog before/inside/after/root |
+| PH-5 | DONE | Handle-only drag + invalid drop message feedback + visible save status |
+| PH-6 | DONE | Extracted reorder/crud/rename/hydration/external-drop hooks + Move dialog/options; skipped EstimateTreePanel (DEC-AUTO prop-dump) |
+| PH-7 | DONE | Focused suite 11 files / 192 tests; type-check; git diff --check |
+
+### Additional DEC-AUTO
+
+| ID | Decision |
+| --- | --- |
+| DEC-AUTO-011 | Accept delete snapshot-then-batch race as residual concurrent LWW (RISK-6); D1 batch cannot wrap app-level read+write interactively |
+| DEC-AUTO-012 | Keep `canEditEstimate` default `true` for test ergonomics; production callers pass explicit prop; server authz remains authoritative |
+| DEC-AUTO-013 | Skip EstimateTreePanel extraction; hooks/dialog/options deliver the maintainability goal without a prop-heavy panel boundary |
+| DEC-AUTO-014 | Pack restore INSERTs (chunk 40) + fail-closed if statements > 1000 to respect D1 batch limits |
+
+### Status tuple
+
+- implementation_status: COMPLETE
+- release_status: BOUNDARY (no hosted D1 / authenticated browser proof in this run; local automated + D1 fake-provider proof only)
+- plan_lifecycle: ARCHIVE_READY
+- terminal_status: ACHIEVED
+
+### Verification commands
+
+```bash
+bunx vitest run tests/vitest/estimate-tree-reorder.test.ts tests/vitest/estimate-sheet-tree-dnd.test.tsx tests/vitest/estimate-sheet-tree-dom.test.tsx tests/vitest/estimate-tree-context-menu.test.tsx tests/vitest/estimate-tree-bulk-selection.test.tsx tests/vitest/estimate-tree-filter.test.tsx tests/vitest/estimate-tree-lazy-hydration-ui.test.tsx tests/vitest/estimate-node-reorder-action.test.ts tests/vitest/estimate-actions-d1-reorder-history.test.ts tests/vitest/ui-tree.test.tsx tests/vitest/estimate-tree-drag-over-perf.test.ts --maxWorkers=1
+# => 11 files / 192 tests passed
+NODE_OPTIONS=--max-old-space-size=8192 bun run type-check  # exit 0
+git diff --check  # exit 0 on pack-scoped files
+```
+
+Browser/manual: blocked — local `:3000` unreachable from this session (`login:000`). DOM/Vitest covers interaction claims; geometry browser proof intentionally skipped (DEC-AUTO-005).
+Hosted D1: not run; local FakeD1 adapter proof only.
+
+### Lease release
+
+All Estimate Sheet Tree file leases released on archive closeout 2026-07-10. Concurrent Performance Optimization pack may resume fingerprint freeze after quiet window.

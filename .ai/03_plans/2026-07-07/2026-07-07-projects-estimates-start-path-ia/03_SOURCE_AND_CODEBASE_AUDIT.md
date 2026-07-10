@@ -185,7 +185,7 @@ All paths are repo-relative. Evidence is from current `main` source. No files we
 ## F. Sibling-plan overlap (de-conflicted)
 
 - `2026-07-07-first-user-activation-empty-workspace` (CONDITIONALLY READY, 95): activation ladder, milestones, sample-data, welcome panel, analytics SDK. **Defer to it.** Names: `NewProjectForm.tsx`, `LibraryHubCard.tsx`, `empty-state.tsx`, `auth-onboarding-guard.test.ts`, `estimate-empty-tab-state.test.tsx`.
-- `2026-07-06-Estimate-Sheet-Tree` (CONDITIONALLY READY): in-editor tree + live reorder blocker (`reorderEstimateTreeNodes` omits `target_project_id`). Not this plan's scope.
+- `.ai/09_archive/store/2026-07-10-Estimate-Sheet-Tree-complete` (CONDITIONALLY READY): in-editor tree + live reorder blocker (`reorderEstimateTreeNodes` omits `target_project_id`). Not this plan's scope.
 - `2026-06-03-react-joyride-onboarding-implementation-plan`: **superseded**, do not execute.
 
 ## G. Key gaps inventory (carried to requirements)

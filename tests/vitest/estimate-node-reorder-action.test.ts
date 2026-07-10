@@ -169,6 +169,43 @@ describe("reorderEstimateTreeNodes server action", () => {
     expect(nextNavigationMocks.redirect).not.toHaveBeenCalled();
   });
 
+  it("refreshes the active tab tree after a sparse branch reparent", async () => {
+    const tabTree = [{ id: "tab-root", name: "Tab Root", kind: "group", total: "₱0.00", children: [] }];
+    const supabase = makeSupabase({
+      nodes: [
+        { id: "tab-root", kind: "group", estimate_id: "estimate-1", estimate_tab_id: "tab-a", parent_id: null },
+        { id: "ground-floor", kind: "group", estimate_id: "estimate-1", estimate_tab_id: "tab-a", parent_id: "tab-root" },
+        { id: "site-works", kind: "group", estimate_id: "estimate-1", estimate_tab_id: "tab-a", parent_id: "tab-root" },
+        { id: "kitchen", kind: "area", estimate_id: "estimate-1", estimate_tab_id: "tab-a", parent_id: "ground-floor" },
+      ],
+    });
+    mockEstimateActionsDataStore(supabase);
+    repositoryMocks.getEstimateTabTree.mockResolvedValue({
+      project: { id: "project-1" },
+      estimate: { id: "estimate-1" },
+      tree: tabTree,
+    });
+    const { reorderEstimateTreeNodes } = await import("@/lib/estimates/actions");
+
+    const result = await reorderEstimateTreeNodes("project-1", "estimate-1", {
+      updates: [
+        { id: "kitchen", parentId: "site-works", sortOrder: 10 },
+        { id: "ground-floor", parentId: "tab-root", sortOrder: 20 },
+      ],
+      targetTabId: "tab-a",
+    });
+
+    expect(supabase.rpc).toHaveBeenCalledWith("reorder_estimate_nodes_with_history", expect.objectContaining({
+      move_updates: [
+        { id: "kitchen", parent_id: "site-works", sort_order: 10 },
+        { id: "ground-floor", parent_id: "tab-root", sort_order: 20 },
+      ],
+    }));
+    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith("project-1", "estimate-1", "tab-a");
+    expect(repositoryMocks.getProjectEstimateTreeByEstimate).not.toHaveBeenCalled();
+    expect(result.tree).toEqual(tabTree);
+  });
+
   it("calls the action client with the receiver when nesting one Group Node under another", async () => {
     const estimateQuery = queryResult({ data: { id: "estimate-1", project_id: "project-1" }, error: null });
     const nodeQuery = queryResult({

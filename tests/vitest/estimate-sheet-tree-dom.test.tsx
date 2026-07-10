@@ -6,8 +6,12 @@ import { EstimateSheetTree } from "@/components/workshop/EstimateSheetTree";
 import {
   ESTIMATE_TEMPLATE_DRAG_MIME_TYPE,
   INSERT_ESTIMATE_TEMPLATE_EVENT,
+  INSERT_PROJECT_SOURCE_EVENT,
+  PROJECT_SOURCE_DRAG_MIME_TYPE,
 } from "@/components/workshop/component-library/templates";
 import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
+import { REQUEST_ESTIMATE_ROW_ITEM_MOVE_EVENT } from "@/components/workshop/estimate-sheet/events";
+import { ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE } from "@/components/workshop/estimate-sheet/rows/constants";
 import { resetEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 
 const routerMock = vi.hoisted(() => ({
@@ -162,9 +166,10 @@ function fireDropAt(element: HTMLElement, dataTransfer: ReturnType<typeof mockDa
   fireEvent(element, event);
 }
 
-function mockDataTransfer() {
+function mockDataTransfer(types: string[] = []) {
   const transferStore = new Map<string, string>();
   return {
+    types,
     dropEffect: "move",
     effectAllowed: "all",
     getData: vi.fn((key: string) => transferStore.get(key) ?? ""),
@@ -500,6 +505,72 @@ describe("estimate sheet tree DOM integration", () => {
       ]);
     } finally {
       window.removeEventListener(INSERT_ESTIMATE_TEMPLATE_EVENT, recordInsert);
+    }
+  });
+
+  it("routes project-source drops inside the target row without invoking tree reorder", () => {
+    renderTree();
+    const onInsertProjectSource = vi.fn();
+    window.addEventListener(INSERT_PROJECT_SOURCE_EVENT, onInsertProjectSource as EventListener);
+    const dataTransfer = mockDataTransfer([PROJECT_SOURCE_DRAG_MIME_TYPE]);
+    dataTransfer.setData(PROJECT_SOURCE_DRAG_MIME_TYPE, JSON.stringify({
+      kind: "project-node",
+      projectId: "source-project",
+      estimateId: "source-estimate",
+      tabId: "source-tab",
+      nodeId: "source-node",
+    }));
+
+    try {
+      const kitchen = treeNodeButton("kitchen");
+      setTopDropRect(kitchen);
+      fireDragOverAt(kitchen, dataTransfer, 0);
+      expect(kitchen).toHaveAttribute("data-tree-drop-position", "inside");
+      fireDropAt(kitchen, dataTransfer, 0);
+
+      expect(onInsertProjectSource).toHaveBeenCalledTimes(1);
+      expect((onInsertProjectSource.mock.calls[0]?.[0] as CustomEvent).detail).toEqual({
+        targetParentNodeId: "kitchen",
+        source: {
+          projectId: "source-project",
+          estimateId: "source-estimate",
+          tabId: "source-tab",
+          nodeId: "source-node",
+        },
+      });
+      expect(actionMocks.reorderEstimateTreeNodes).not.toHaveBeenCalled();
+    } finally {
+      window.removeEventListener(INSERT_PROJECT_SOURCE_EVENT, onInsertProjectSource as EventListener);
+    }
+  });
+
+  it("routes estimate-row-item drops inside the target row without invoking tree reorder", () => {
+    renderTree();
+    const onMoveRow = vi.fn();
+    window.addEventListener(REQUEST_ESTIMATE_ROW_ITEM_MOVE_EVENT, onMoveRow as EventListener);
+    const dataTransfer = mockDataTransfer([ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE]);
+    dataTransfer.setData(ESTIMATE_ROW_ITEM_DRAG_MIME_TYPE, JSON.stringify({
+      rowItemId: "row-1",
+      sourceNodeId: "ground-floor",
+    }));
+
+    try {
+      const kitchen = treeNodeButton("kitchen");
+      setTopDropRect(kitchen);
+      fireDragOverAt(kitchen, dataTransfer, 0);
+      expect(kitchen).toHaveAttribute("data-tree-drop-position", "inside");
+      fireDropAt(kitchen, dataTransfer, 0);
+
+      expect(onMoveRow).toHaveBeenCalledTimes(1);
+      expect((onMoveRow.mock.calls[0]?.[0] as CustomEvent).detail).toEqual({
+        rowItemId: "row-1",
+        targetNodeId: "kitchen",
+        targetIndex: 0,
+        targetPlacement: "end",
+      });
+      expect(actionMocks.reorderEstimateTreeNodes).not.toHaveBeenCalled();
+    } finally {
+      window.removeEventListener(REQUEST_ESTIMATE_ROW_ITEM_MOVE_EVENT, onMoveRow as EventListener);
     }
   });
 

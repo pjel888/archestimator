@@ -1,3 +1,4 @@
+- `.ai/09_archive/store/2026-07-10-Estimate-Sheet-Tree-complete/` — implemented estimate tree reorder hotfix, Move dialog parity, handle-only drag, D1 atomic restore/reorder history, and hook extraction. Local Vitest 192 + type-check green; hosted D1/authenticated browser remain release boundaries.
 # Plans
 
 This folder contains historical and future implementation plans.

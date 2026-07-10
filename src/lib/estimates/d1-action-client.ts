@@ -434,7 +434,7 @@ async function readEstimateContext(database: D1DatabaseLike, estimateId: string,
   );
 }
 
-async function insertHistoryEvent(database: D1DatabaseLike, input: HistoryEventInput) {
+async function prepareHistoryEventInsert(database: D1DatabaseLike, input: HistoryEventInput) {
   const existing = await first<{ id: string; payload: string }>(
     database,
     `
@@ -446,61 +446,68 @@ async function insertHistoryEvent(database: D1DatabaseLike, input: HistoryEventI
     `,
     [input.estimateId, input.correlationId],
   );
-  if (existing) return existing.id;
+  if (existing) return { eventId: existing.id, statement: null };
 
   const project = input.workspaceId ? null : await readProjectContext(database, input.projectId);
   const workspaceId = input.workspaceId ?? project?.workspace_id;
   if (!workspaceId) throw new Error("Estimate history event workspace could not be resolved.");
   const eventId = randomUUID();
-  await run(
-    database,
-    `
-      INSERT INTO estimate_sheet_events (
-        id,
-        estimate_id,
-        workspace_id,
-        project_id,
-        estimate_node_id,
-        estimate_tab_id,
-        target_row_id,
-        event_type,
-        event_source,
-        correlation_id,
-        actor_user_id,
-        changed_fields,
-        row_context,
-        old_snapshot,
-        new_snapshot,
-        payload,
-        metadata,
-        total_delta,
-        created_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `,
-    [
-      eventId,
-      input.estimateId,
-      workspaceId,
-      input.projectId,
-      input.estimateNodeId ?? null,
-      input.estimateTabId ?? null,
-      input.targetRowId ?? null,
-      input.eventType,
-      "server_action",
-      input.correlationId,
-      input.actorUserId ?? null,
-      JSON.stringify(input.changedFields ?? []),
-      JSON.stringify(input.rowContext ?? {}),
-      input.oldSnapshot === undefined ? null : JSON.stringify(input.oldSnapshot),
-      input.newSnapshot === undefined ? null : JSON.stringify(input.newSnapshot),
-      JSON.stringify(input.payload ?? {}),
-      JSON.stringify(input.metadata ?? {}),
-      input.totalDelta ?? null,
-      nowIso(),
-    ],
-  );
-  return eventId;
+  return {
+    eventId,
+    statement: {
+      sql: `
+        INSERT INTO estimate_sheet_events (
+          id,
+          estimate_id,
+          workspace_id,
+          project_id,
+          estimate_node_id,
+          estimate_tab_id,
+          target_row_id,
+          event_type,
+          event_source,
+          correlation_id,
+          actor_user_id,
+          changed_fields,
+          row_context,
+          old_snapshot,
+          new_snapshot,
+          payload,
+          metadata,
+          total_delta,
+          created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+      values: [
+        eventId,
+        input.estimateId,
+        workspaceId,
+        input.projectId,
+        input.estimateNodeId ?? null,
+        input.estimateTabId ?? null,
+        input.targetRowId ?? null,
+        input.eventType,
+        "server_action",
+        input.correlationId,
+        input.actorUserId ?? null,
+        JSON.stringify(input.changedFields ?? []),
+        JSON.stringify(input.rowContext ?? {}),
+        input.oldSnapshot === undefined ? null : JSON.stringify(input.oldSnapshot),
+        input.newSnapshot === undefined ? null : JSON.stringify(input.newSnapshot),
+        JSON.stringify(input.payload ?? {}),
+        JSON.stringify(input.metadata ?? {}),
+        input.totalDelta ?? null,
+        nowIso(),
+      ],
+    },
+  };
+}
+
+async function insertHistoryEvent(database: D1DatabaseLike, input: HistoryEventInput) {
+  const prepared = await prepareHistoryEventInsert(database, input);
+  if (prepared.statement) await run(database, prepared.statement.sql, prepared.statement.values);
+  return prepared.eventId;
 }
 
 async function readExistingHistoryEvent(database: D1DatabaseLike, estimateId: string, correlationId: string) {
@@ -612,14 +619,44 @@ function insertColumnsForTable(table: string, payload: Record<string, unknown>) 
   return Object.keys(payload).filter((key) => allowed.has(key));
 }
 
-async function insertRecord(database: D1DatabaseLike, table: string, payload: Record<string, unknown>) {
+/** Cloudflare D1 rejects batches larger than 1000 statements. */
+const D1_MAX_BATCH_STATEMENTS = 1000;
+/** Pack restore inserts so large subtrees stay under the D1 batch limit. */
+const D1_RESTORE_INSERT_CHUNK_SIZE = 40;
+
+function buildInsertRecordStatement(table: string, payload: Record<string, unknown>) {
   const record = assignInsertDefaults(table, payload);
   const columns = insertColumnsForTable(table, record);
-  await run(
-    database,
-    `INSERT INTO ${table} (${columns.map(quoteColumn).join(", ")}) VALUES (${placeholders(columns)})`,
-    columns.map((column) => record[column]),
-  );
+  return {
+    record,
+    sql: `INSERT INTO ${table} (${columns.map(quoteColumn).join(", ")}) VALUES (${placeholders(columns)})`,
+    values: columns.map((column) => record[column]),
+  };
+}
+
+function buildPackedInsertStatements(
+  table: string,
+  payloads: Record<string, unknown>[],
+  chunkSize = D1_RESTORE_INSERT_CHUNK_SIZE,
+) {
+  if (payloads.length === 0) return [] as Array<{ sql: string; values: unknown[] }>;
+  const records = payloads.map((payload) => assignInsertDefaults(table, payload));
+  const columns = insertColumnsForTable(table, records[0]!);
+  const statements: Array<{ sql: string; values: unknown[] }> = [];
+  for (let index = 0; index < records.length; index += chunkSize) {
+    const chunk = records.slice(index, index + chunkSize);
+    const valueGroups = chunk.map(() => `(${placeholders(columns)})`).join(", ");
+    statements.push({
+      sql: `INSERT INTO ${table} (${columns.map(quoteColumn).join(", ")}) VALUES ${valueGroups}`,
+      values: chunk.flatMap((record) => columns.map((column) => record[column])),
+    });
+  }
+  return statements;
+}
+
+async function insertRecord(database: D1DatabaseLike, table: string, payload: Record<string, unknown>) {
+  const { record, sql, values } = buildInsertRecordStatement(table, payload);
+  await run(database, sql, values);
   return record;
 }
 
@@ -1348,6 +1385,8 @@ async function reorderEstimateNodes(database: D1DatabaseLike, args: Record<strin
   const estimateId = String(args.target_estimate_id ?? "");
   const project = await readProjectContext(database, projectId);
   if (!project?.workspace_id) throw new Error("Estimate history event workspace could not be resolved.");
+  const estimate = await readEstimateContext(database, estimateId, projectId);
+  if (!estimate) throw new Error("Estimate not found in the current project.");
   const updates = Array.isArray(args.move_updates) ? args.move_updates as Array<Record<string, unknown>> : [];
   const moveUpdates = updates.map((update) => ({
     id: String(update.id ?? ""),
@@ -1382,11 +1421,7 @@ async function reorderEstimateNodes(database: D1DatabaseLike, args: Record<strin
   });
   if (!projectedTreeValidation.ok) throw new Error(projectedTreeValidation.message);
 
-  await runBatch(database, moveUpdates.map((update) => ({
-    sql: "UPDATE estimate_nodes SET parent_id = ?, sort_order = ?, updated_at = ? WHERE id = ? AND estimate_id = ?",
-    values: [update.parent_id, update.sort_order, nowIso(), update.id, estimateId],
-  })));
-  await insertHistoryEvent(database, {
+  const history = await prepareHistoryEventInsert(database, {
     projectId,
     estimateId,
     workspaceId: project.workspace_id,
@@ -1396,6 +1431,12 @@ async function reorderEstimateNodes(database: D1DatabaseLike, args: Record<strin
     changedFields: ["parent_id", "sort_order"],
     payload: { updates: moveUpdates },
   });
+  const statements: Array<{ sql: string; values?: unknown[] }> = moveUpdates.map((update) => ({
+    sql: "UPDATE estimate_nodes SET parent_id = ?, sort_order = ?, updated_at = ? WHERE id = ? AND estimate_id = ?",
+    values: [update.parent_id, update.sort_order, nowIso(), update.id, estimateId],
+  }));
+  if (history.statement) statements.push(history.statement);
+  await runBatch(database, statements);
   return { updatedNodeCount: moveUpdates.length };
 }
 
@@ -1433,14 +1474,21 @@ async function deleteEstimateNodes(database: D1DatabaseLike, args: Record<string
   const deletedRows = deletedNodeIds.length
     ? await all<EstimateRowItemRow>(database, `SELECT * FROM estimate_row_items WHERE estimate_id = ? AND node_id IN (${placeholders(deletedNodeIds)})`, [estimateId, ...deletedNodeIds])
     : [];
-  if (deletedNodeIds.length > 0) {
-    await run(database, `DELETE FROM estimate_row_items WHERE estimate_id = ? AND node_id IN (${placeholders(deletedNodeIds)})`, [estimateId, ...deletedNodeIds]);
-    await run(database, `DELETE FROM estimate_nodes WHERE estimate_id = ? AND id IN (${placeholders(deletedNodeIds)})`, [estimateId, ...deletedNodeIds]);
-  }
-  const fallback = await first<{ id: string }>(database, "SELECT id FROM estimate_nodes WHERE estimate_id = ? ORDER BY sort_order ASC LIMIT 1", [estimateId]);
-  const eventId = await insertHistoryEvent(database, {
+  const project = await readProjectContext(database, projectId);
+  if (!project?.workspace_id) throw new Error("Estimate history event workspace could not be resolved.");
+  const estimate = await readEstimateContext(database, estimateId, projectId);
+  if (!estimate) throw new Error("Estimate not found in the current project.");
+  const remainingNodes = await all<Pick<EstimateNodeRow, "id" | "sort_order">>(
+    database,
+    "SELECT id, sort_order FROM estimate_nodes WHERE estimate_id = ? ORDER BY sort_order ASC, id ASC",
+    [estimateId],
+  );
+  const deletedNodeIdSet = new Set(deletedNodeIds);
+  const fallbackNodeId = remainingNodes.find((node) => !deletedNodeIdSet.has(node.id))?.id ?? null;
+  const history = await prepareHistoryEventInsert(database, {
     projectId,
     estimateId,
+    workspaceId: project.workspace_id,
     estimateNodeId: rootIds[0] ?? null,
     eventType: rootIds.length > 1 ? "estimate_nodes_deleted" : "estimate_node_deleted",
     actorUserId: String(args.acting_user_id ?? "") || null,
@@ -1450,9 +1498,18 @@ async function deleteEstimateNodes(database: D1DatabaseLike, args: Record<string
       nodes: deletedNodes.map(serializeNodeRow),
       rows: deletedRows.map(serializeRowItem),
     },
-    payload: { deletedNodeIds, fallbackNodeId: fallback?.id ?? null },
+    payload: { deletedNodeIds, fallbackNodeId },
   });
-  return { eventId, deletedNodeIds, fallbackNodeId: fallback?.id ?? null, payload: { deletedNodeIds, fallbackNodeId: fallback?.id ?? null } };
+  const statements: Array<{ sql: string; values?: unknown[] }> = [];
+  if (deletedNodeIds.length > 0) {
+    statements.push(
+      { sql: `DELETE FROM estimate_row_items WHERE estimate_id = ? AND node_id IN (${placeholders(deletedNodeIds)})`, values: [estimateId, ...deletedNodeIds] },
+      { sql: `DELETE FROM estimate_nodes WHERE estimate_id = ? AND id IN (${placeholders(deletedNodeIds)})`, values: [estimateId, ...deletedNodeIds] },
+    );
+  }
+  if (history.statement) statements.push(history.statement);
+  await runBatch(database, statements);
+  return { eventId: history.eventId, deletedNodeIds, fallbackNodeId, payload: { deletedNodeIds, fallbackNodeId } };
 }
 
 async function restoreDeletedEstimateNodes(database: D1DatabaseLike, args: Record<string, unknown>) {
@@ -1461,6 +1518,8 @@ async function restoreDeletedEstimateNodes(database: D1DatabaseLike, args: Recor
   const sourceEventId = String(args.source_delete_event_id ?? "");
   const project = await readProjectContext(database, projectId);
   if (!project?.workspace_id) throw new Error("Estimate history event workspace could not be resolved.");
+  const estimate = await readEstimateContext(database, estimateId, projectId);
+  if (!estimate) throw new Error("Estimate not found in the current project.");
   const sourceEvent = await first<EstimateEventRow>(
     database,
     `
@@ -1511,12 +1570,26 @@ async function restoreDeletedEstimateNodes(database: D1DatabaseLike, args: Recor
     }
   }
   const rowsToRestore = snapshotRows.filter((row) => restoredNodeIdSet.has(String(row.node_id ?? "")));
-  for (const node of nodesToRestore) await insertRecord(database, "estimate_nodes", node);
-  for (const row of rowsToRestore) await insertRecord(database, "estimate_row_items", row);
-
   const restoredNodeIds = nodesToRestore.map((node) => String(node.id));
   const restoredRowIds = rowsToRestore.map((row) => String(row.id));
-  const eventId = await insertHistoryEvent(database, {
+  const collidingNodes = restoredNodeIds.length > 0
+    ? await all<{ id: string }>(
+        database,
+        `SELECT id FROM estimate_nodes WHERE estimate_id = ? AND id IN (${placeholders(restoredNodeIds)})`,
+        [estimateId, ...restoredNodeIds],
+      )
+    : [];
+  if (collidingNodes.length > 0) throw new Error("One or more estimate nodes to restore already exist.");
+  const collidingRows = restoredRowIds.length > 0
+    ? await all<{ id: string }>(
+        database,
+        `SELECT id FROM estimate_row_items WHERE estimate_id = ? AND id IN (${placeholders(restoredRowIds)})`,
+        [estimateId, ...restoredRowIds],
+      )
+    : [];
+  if (collidingRows.length > 0) throw new Error("One or more estimate rows to restore already exist.");
+
+  const history = await prepareHistoryEventInsert(database, {
     projectId,
     estimateId,
     workspaceId: project.workspace_id,
@@ -1534,8 +1607,17 @@ async function restoreDeletedEstimateNodes(database: D1DatabaseLike, args: Recor
       restoredRowCount: restoredRowIds.length,
     },
   });
+  const statements: Array<{ sql: string; values?: unknown[] }> = [
+    ...buildPackedInsertStatements("estimate_nodes", nodesToRestore),
+    ...buildPackedInsertStatements("estimate_row_items", rowsToRestore),
+  ];
+  if (history.statement) statements.push(history.statement);
+  if (statements.length > D1_MAX_BATCH_STATEMENTS) {
+    throw new Error("Deleted subtree is too large to restore in one D1 batch.");
+  }
+  await runBatch(database, statements);
   return {
-    eventId,
+    eventId: history.eventId,
     sourceEventId,
     restoredNodeIds,
     restoredRootNodeIds,
