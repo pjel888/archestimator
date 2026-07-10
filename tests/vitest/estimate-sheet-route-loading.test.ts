@@ -15,6 +15,7 @@ describe("estimate sheet route loading shell", () => {
     expect(projectEstimateNodeLoading).not.toContain("ProjectEstimatesListSkeleton");
     expect(projectEstimateNodeLoading).not.toContain("ProjectRouteContentFallback");
     expect(projectEstimateNodeLoading).not.toContain("WorkshopPageShell");
+    expect(projectEstimateNodeLoading).not.toContain("WorkshopShell");
     expect(projectEstimateNodeLoading).not.toContain("@/lib/auth");
     expect(projectEstimateNodeLoading).not.toContain("@/lib/repositories");
     expect(projectEstimateNodeLoading).not.toContain("next/headers");

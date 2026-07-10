@@ -71,7 +71,7 @@ describe("workshop notification entry", () => {
 
   it("mounts notifications under the app query provider and workshop actions slot", () => {
     const providersSource = readFileSync("src/app/providers.tsx", "utf8");
-    const shellSource = readFileSync("src/components/workshop/WorkshopPageShell.tsx", "utf8");
+    const shellSource = readFileSync("src/components/workshop/WorkshopRouteHeader.tsx", "utf8");
 
     expect(providersSource).toContain("NotificationProvider");
     expect(providersSource).toContain("<NotificationProvider>");

@@ -14,7 +14,10 @@ export const projectTotalHeader = readFileSync("src/components/workshop/ProjectT
 export const projectTotalEvents = readFileSync("src/components/workshop/project-total-events.ts", "utf8");
 export const projectMiniSidebar = readFileSync("src/components/workshop/ProjectMiniSidebar.tsx", "utf8");
 export const workshopTitleHeader = readFileSync("src/components/workshop/WorkshopTitleHeader.tsx", "utf8");
-export const workshopPageShell = readFileSync("src/components/workshop/WorkshopPageShell.tsx", "utf8");
+export const workshopShell = readFileSync("src/components/workshop/WorkshopShell.tsx", "utf8");
+export const workshopRouteHeader = readFileSync("src/components/workshop/WorkshopRouteHeader.tsx", "utf8");
+export const workshopLayout = readFileSync("src/app/workshop/layout.tsx", "utf8");
+
 export const workshopBreadcrumbs = readFileSync("src/components/workshop/WorkshopBreadcrumbs.tsx", "utf8");
 export const estimateCenterColumnBoundary = readFileSync("src/components/workshop/EstimateCenterColumnBoundary.tsx", "utf8");
 export const estimateCenterColumnBoundaryVars = readFileSync("src/components/workshop/estimate-center-column-boundary-vars.ts", "utf8");

@@ -61,7 +61,8 @@ describe("recipient proposals route gate", () => {
 
     expect(source).toContain("requireCurrentUserContext()");
     expect(source).toContain("listRecipientProposals()");
-    expect(source).toContain('WorkshopPageShell\n      title="Proposals"');
+    expect(source).toContain("WorkshopRouteHeader");
+    expect(source).toContain('title="Proposals"');
     expect(source).not.toMatch(/service_role|SUPABASE_SERVICE_ROLE_KEY|encrypted_token|token_hash/i);
   });
 });

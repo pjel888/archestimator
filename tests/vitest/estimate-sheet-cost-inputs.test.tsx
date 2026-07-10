@@ -11,7 +11,8 @@ import { ADD_LIBRARY_ITEM_EVENT, LIBRARY_ITEM_DRAG_MIME_TYPE } from "@/component
 // alongside the sheet so the relocated buttons are reachable here.
 import { EstimateHeaderActions } from "@/components/workshop/EstimateHeaderActions";
 import { ProjectEstimateMetadataPublisher } from "@/components/workshop/ProjectEstimateMetadataStrip";
-import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
+import { WorkshopRouteHeader } from "@/components/workshop/WorkshopRouteHeader";
+import { WorkshopShell } from "@/components/workshop/WorkshopShell";
 import { WorkshopTitleHeader } from "@/components/workshop/WorkshopTitleHeader";
 import { estimateLibraryItems, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { resetEstimateWorkspaceState, useEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
@@ -118,7 +119,8 @@ afterEach(() => {
 describe("estimate shell chrome", () => {
   it("renders breadcrumbs in the upper-left project header", async () => {
     renderWithQueryClient(
-      await WorkshopPageShell({
+    await WorkshopShell({
+      children: await WorkshopRouteHeader({
         title: "Modern Bungalow",
         eyebrow: "Project",
         breadcrumbs: ["Workshop", "Projects", "Modern Bungalow"],
@@ -127,7 +129,8 @@ describe("estimate shell chrome", () => {
         <div>Estimate workspace</div>
         ),
       }),
-    );
+    }),
+  );
 
     const breadcrumbs = screen.getByLabelText("Project breadcrumbs");
     expect(within(breadcrumbs).getByText("Workshop")).toBeInTheDocument();

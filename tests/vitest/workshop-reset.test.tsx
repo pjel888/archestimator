@@ -5,7 +5,8 @@ import type { ReactNode } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { WorkshopHomebaseClient } from "@/components/workshop/WorkshopHomebaseClient";
-import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
+import { WorkshopRouteHeader } from "@/components/workshop/WorkshopRouteHeader";
+import { WorkshopShell } from "@/components/workshop/WorkshopShell";
 import { WorkshopDashboard } from "@/components/workshop/dashboard/WorkshopDashboard";
 
 const mocks = vi.hoisted(() => ({
@@ -214,16 +215,18 @@ function renderWorkshopDashboard({
 describe("workshop sidebar shell", () => {
   test("renders the workshop shell with an overlay sidebar and blank canvas", async () => {
     renderWithQueryClient(
-      await WorkshopPageShell({
-        title: "Workshop",
-        eyebrow: "Workspace",
-        showEyebrow: false,
-        breadcrumbs: ["Workshop"],
-        contentClassName: "",
+      await WorkshopShell({
         sidebarStatus: { projectsBadgeCount: 3 },
-        children: (
-          <div className="h-full bg-white" aria-label="Workshop empty canvas" />
-        ),
+        children: await WorkshopRouteHeader({
+          title: "Workshop",
+          eyebrow: "Workspace",
+          showEyebrow: false,
+          breadcrumbs: ["Workshop"],
+          contentClassName: "",
+          children: (
+            <div className="h-full bg-white" aria-label="Workshop empty canvas" />
+          ),
+        }),
       }),
     );
 
@@ -262,15 +265,17 @@ describe("workshop sidebar shell", () => {
 
   test("keeps project-aligned chrome padding symmetrical", async () => {
     const { container } = renderWithQueryClient(
-      await WorkshopPageShell({
-        title: "Lewis Residence",
-        eyebrow: "Workshop",
-        breadcrumbs: ["Workshop", "Projects", "Lewis Residence"],
-        alignChromeToProjectSidebar: true,
-        contentClassName: "",
-        children: (
-          <div className="h-full bg-white" aria-label="Project canvas" />
-        ),
+      await WorkshopShell({
+        children: await WorkshopRouteHeader({
+          title: "Lewis Residence",
+          eyebrow: "Workshop",
+          breadcrumbs: ["Workshop", "Projects", "Lewis Residence"],
+          alignChromeToProjectSidebar: true,
+          contentClassName: "",
+          children: (
+            <div className="h-full bg-white" aria-label="Project canvas" />
+          ),
+        }),
       }),
     );
 

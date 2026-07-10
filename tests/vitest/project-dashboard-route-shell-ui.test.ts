@@ -6,7 +6,9 @@ import {
   projectEstimatesPage,
   estimateWorkspaceClient,
   projectEstimatesLoading,
-  workshopPageShell,
+  workshopShell,
+  workshopRouteHeader,
+  workshopLayout,
   globalsCss,
   projectDashboardLayout,
   projectDashboardLoading,
@@ -43,39 +45,44 @@ describe("project dashboard route shell UI governance", () => {
     );
     expect(projectEstimatesPage).not.toContain("ProjectRouteContentFallback");
     expect(projectEstimatesPage).not.toContain("WorkshopPageShell");
+    expect(projectEstimatesPage).not.toContain('from "@/components/workshop/WorkshopShell"');
+    expect(projectDashboardLayout).toContain("WorkshopRouteHeader");
   });
 
   it("locks page-level scrolling only while the workshop shell is mounted", () => {
-    expect(workshopPageShell).toContain("data-workshop-page-shell-root");
-    expect(workshopPageShell).toContain("h-[100dvh] overflow-hidden");
-    expect(workshopPageShell).toContain("const sidePanelWidthCssVariables = await getSidePanelWidthCssVariables();");
-    expect(workshopPageShell).toContain("<AuthenticatedMainSidebar status={sidebarStatus} />");
-    expect(workshopPageShell).toContain("<WorkshopSettingsEntry location={settingsModalLocation} />");
-    expect(workshopPageShell).toContain("<Suspense fallback={<WorkshopShellContentFallback />}>");
-    expect(workshopPageShell).toContain("function WorkshopShellContentFallback()");
-    expect(workshopPageShell).not.toContain("Modern Bungalow");
+    expect(workshopShell).toContain("data-workshop-page-shell-root");
+    expect(workshopShell).toContain("h-[100dvh] overflow-hidden");
+    expect(workshopShell).toContain("const sidePanelWidthCssVariables = await getSidePanelWidthCssVariables();");
+    expect(workshopShell).toContain("<AuthenticatedMainSidebar status={sidebarStatus} />");
+    expect(workshopRouteHeader).toContain("<WorkshopSettingsEntry location={settingsModalLocation} />");
+    expect(workshopShell).not.toContain("WorkshopContentSkeleton");
+    expect(workshopShell).toContain("{children}");
+    expect(workshopShell).not.toContain("Modern Bungalow");
     expect(globalsCss).toContain("body:has([data-workshop-page-shell-root])");
     expect(globalsCss).toContain("overflow: hidden");
     expect(globalsCss).not.toContain("body {\\n  overflow: hidden;");
   });
 
   it("keeps shell auth and workspace bootstrap out of the content streaming path", () => {
-    const shellFunctionStart = workshopPageShell.indexOf("export async function WorkshopPageShell");
-    const shellReturnStart = workshopPageShell.indexOf("return (", shellFunctionStart);
-    const shellPreamble = workshopPageShell.slice(shellFunctionStart, shellReturnStart);
+    const shellFunctionStart = workshopShell.indexOf("export async function WorkshopShell");
+    const shellReturnStart = workshopShell.indexOf("return (", shellFunctionStart);
+    const shellPreamble = workshopShell.slice(shellFunctionStart, shellReturnStart);
 
     expect(shellPreamble).not.toContain("getCurrentUserContext()");
     expect(shellPreamble).not.toContain("ensureDefaultWorkspace()");
-    expect(workshopPageShell).toContain("async function AuthenticatedMainSidebar");
-    expect(workshopPageShell).toContain("async function WorkshopSettingsEntry");
-    expect(workshopPageShell).toContain("<Suspense fallback={<MainSidebarShellFallback status={sidebarStatus} />}>");
-    expect(workshopPageShell).toContain("<Suspense fallback={<WorkshopSettingsEntryFallback location={settingsModalLocation} />}>");
+    expect(workshopShell).toContain("async function AuthenticatedMainSidebar");
+    expect(workshopRouteHeader).toContain("async function WorkshopSettingsEntry");
+    expect(workshopShell).toContain("<Suspense fallback={<MainSidebarShellFallback status={sidebarStatus} />}>");
+    expect(workshopRouteHeader).toContain("<Suspense fallback={<WorkshopSettingsEntryFallback location={settingsModalLocation} />}>");
+    // Gate stays synchronous-first in layout before WorkshopShell mounts.
+    expect(workshopLayout).toContain("isProtectedRouteGateSatisfied");
+    expect(workshopLayout.indexOf("isProtectedRouteGateSatisfied")).toBeLessThan(workshopLayout.indexOf("<WorkshopShell"));
   });
 
   it("gets the active header budget from the selected estimate sheet metadata", () => {
     expect(projectDashboardLayout).not.toContain("readProjectBudget");
     expect(projectDashboardLayout).toContain("projectId={projectId}");
-    expect(workshopPageShell).toContain("<ProjectTotalFooterOverlay projectId={projectId} />");
+    expect(projectDashboardLayout).toContain("<ProjectTotalFooterOverlay projectId={projectId} />");
     expect(projectTotalHeader).toContain("function ProjectTotalFooterOverlay");
     expect(projectTotalHeader).toContain("<ProjectTotalHeader projectId={projectId} />");
     expect(projectTotalHeader).toContain("usePathname");
@@ -136,8 +143,8 @@ describe("project dashboard route shell UI governance", () => {
     expect(projectDashboardClient).toContain("dashboard-glass");
     expect(projectDashboardClient).not.toContain("ProjectActionTile");
     expect(projectDashboardClient).not.toContain("workshop-project-card-glass");
-    expect(workshopPageShell).not.toContain("workshop-shell-glass-chrome--top relative flex h-14 shrink-0 items-center justify-between border");
-    expect(workshopPageShell).not.toContain("workshop-shell-glass-chrome--bottom relative flex min-h-12 shrink-0 items-center justify-between gap-2 overflow-visible border");
+    expect(workshopRouteHeader).not.toContain("workshop-shell-glass-chrome--top relative flex h-14 shrink-0 items-center justify-between border");
+    expect(workshopShell).not.toContain("workshop-shell-glass-chrome--bottom relative flex min-h-12 shrink-0 items-center justify-between gap-2 overflow-visible border");
   });
 
   it("uses the same empty command-surface shell for dashboard loading and suspense fallback", () => {

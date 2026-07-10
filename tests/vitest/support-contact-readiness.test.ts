@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 const contactPage = readFileSync("src/app/contact/page.tsx", "utf8");
 const contactForm = readFileSync("src/components/landing/ContactForm.tsx", "utf8");
 const contactMailto = readFileSync("src/components/landing/contact-mailto.ts", "utf8");
-const workshopShell = readFileSync("src/components/workshop/WorkshopPageShell.tsx", "utf8");
+const workshopShell = readFileSync("src/components/workshop/WorkshopRouteHeader.tsx", "utf8");
 const workshopSettingsModalContent = readFileSync("src/components/workshop/WorkshopSettingsModalContentView.tsx", "utf8");
 const betaFeedbackPage = readFileSync("src/app/workshop/feedback/page.tsx", "utf8");
 const betaFeedbackAction = readFileSync("src/lib/workshop/beta-feedback-actions.ts", "utf8");

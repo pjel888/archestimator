@@ -19,7 +19,8 @@ describe("workshop dashboard baseline", () => {
 
     // Page reuses the cached homebase + favorites + library repositories and keeps
     // the pending-invite bridge. No parallel data layer.
-    expect(source).toContain("WorkshopPageShell");
+    expect(source).toContain("WorkshopRouteHeader");
+    expect(source).not.toContain("WorkshopPageShell");
     expect(source).toContain("WorkshopHomebaseClient");
     expect(source).toContain("getWorkshopHomebaseData");
     expect(source).toContain("listMainSidebarFavoriteProjects");
@@ -126,13 +127,10 @@ describe("workshop dashboard baseline", () => {
   });
 
   test("workshop shells share one glass footprint: same content offset, mesh backdrop, no flat canvas", async () => {
-    const pageShell = await Bun.file("src/components/workshop/WorkshopPageShell.tsx").text();
-    const loadingShell = await Bun.file("src/components/workshop/StaticWorkshopLoadingShell.tsx").text();
-    for (const shell of [pageShell, loadingShell]) {
-      expect(shell).toContain("lg:pl-[var(--sidebar-content-offset)]");
-      expect(shell).not.toContain("lg:pl-[64px]");
-      expect(shell).toContain("<WorkshopGlassBackdrop />");
-      expect(shell).not.toContain("bg-canvas");
-    }
+    const pageShell = await Bun.file("src/components/workshop/WorkshopShell.tsx").text();
+    expect(pageShell).toContain("lg:pl-[var(--sidebar-content-offset)]");
+    expect(pageShell).not.toContain("lg:pl-[64px]");
+    expect(pageShell).toContain("<WorkshopGlassBackdrop />");
+    expect(pageShell).not.toContain("bg-canvas");
   });
 });

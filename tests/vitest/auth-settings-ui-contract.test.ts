@@ -65,7 +65,7 @@ describe("auth onboarding and settings route contracts", () => {
 
   it("moves settings out of the sidebar and into the workshop header modal", () => {
     const sidebarSource = read("src/components/sidebar/MainSidebar.tsx");
-    const shellSource = read("src/components/workshop/WorkshopPageShell.tsx");
+    const shellSource = read("src/components/workshop/WorkshopRouteHeader.tsx");
 
     expect(sidebarSource).not.toMatch(/href:\s*["']\/workshop\/settings["']/);
     expect(shellSource).toContain("WorkshopSettingsModal");
