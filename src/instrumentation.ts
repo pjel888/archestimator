@@ -2,17 +2,20 @@ import type { Instrumentation } from "next";
 
 import { normalizePathForLog } from "@/lib/observability/safe-path";
 
-function isEdgeRuntime() {
-  return process.env.NEXT_RUNTIME === "edge";
-}
+let logNodeRequestError: Instrumentation.onRequestError | undefined;
+let nodeRegistration: Promise<void> | undefined;
 
-export function register() {
-  // Sentry/provider registration is intentionally deferred. The local dev logger is
-  // loaded lazily in onRequestError so edge/proxy runtimes never import node:fs.
+export async function register() {
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    nodeRegistration ??= import("./instrumentation.node").then((nodeInstrumentation) => {
+      logNodeRequestError = nodeInstrumentation.logNodeRequestError;
+    });
+    await nodeRegistration;
+  }
 }
 
 export const onRequestError: Instrumentation.onRequestError = async (error, request, context) => {
-  if (isEdgeRuntime()) {
+  if (process.env.NEXT_RUNTIME === "edge") {
     console.error(
       JSON.stringify({
         event: "next_request_error",
@@ -31,21 +34,29 @@ export const onRequestError: Instrumentation.onRequestError = async (error, requ
     return;
   }
 
-  const { logAppError } = await import("@/lib/observability/logger");
-  const { getCurrentRequestId } = await import("@/lib/observability/request-id");
-  logAppError(error, {
-    event: "next_request_error",
-    requestId: getCurrentRequestId() ?? undefined,
-    context: {
-      method: request.method,
-      path: normalizePathForLog(request.path),
-      route: context.routePath,
-      route_handler: context.routeType === "route" ? `${request.method} ${context.routePath}` : undefined,
-      route_path: context.routePath,
-      route_type: context.routeType,
-      router_kind: context.routerKind,
-      render_source: context.renderSource,
-      revalidate_reason: context.revalidateReason,
-    },
-  });
+  if (process.env.NEXT_RUNTIME === "nodejs" && !logNodeRequestError && nodeRegistration) {
+    await nodeRegistration;
+  }
+
+  if (logNodeRequestError) {
+    await logNodeRequestError(error, request, context);
+    return;
+  }
+
+  console.error(
+    JSON.stringify({
+      event: "next_request_error",
+      level: "error",
+      message: "Unhandled Next.js request error.",
+      context: {
+        method: request.method,
+        path: normalizePathForLog(request.path),
+        route_path: context.routePath,
+        route_type: context.routeType,
+        router_kind: context.routerKind,
+        runtime: "nodejs",
+        logger_ready: false,
+      },
+    }),
+  );
 };

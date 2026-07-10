@@ -29,7 +29,9 @@ describe("Next instrumentation local error logging", () => {
   });
 
   it("logs App Router request errors to the local observability logger", async () => {
-    const { onRequestError } = await loadInstrumentation();
+    process.env.NEXT_RUNTIME = "nodejs";
+    const { onRequestError, register } = await loadInstrumentation();
+    await register();
     const error = new Error("database password leaked");
 
     await onRequestError(error, { path: "/api/test", method: "POST", headers: {} }, {
@@ -52,10 +54,30 @@ describe("Next instrumentation local error logging", () => {
     });
   });
 
+  it("waits for concurrent Node registration before logging request errors", async () => {
+    process.env.NEXT_RUNTIME = "nodejs";
+    const { onRequestError, register } = await loadInstrumentation();
+    const registration = register();
+    const error = new Error("concurrent registration");
+
+    await onRequestError(error, { path: "/api/test", method: "GET", headers: {} }, {
+      routerKind: "App Router",
+      routePath: "/api/test",
+      routeType: "route",
+      revalidateReason: undefined,
+    });
+    await registration;
+
+    expect(loggerMock.logAppError).toHaveBeenCalledWith(error, expect.objectContaining({
+      event: "next_request_error",
+    }));
+  });
+
   it("does not import the node file logger for edge runtime request errors", async () => {
     process.env.NEXT_RUNTIME = "edge";
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
-    const { onRequestError } = await loadInstrumentation();
+    const { onRequestError, register } = await loadInstrumentation();
+    await register();
 
     await onRequestError(new Error("edge boom"), { path: "/proxy", method: "GET", headers: {} }, {
       routerKind: "App Router",
@@ -72,7 +94,8 @@ describe("Next instrumentation local error logging", () => {
   it("redacts tokenized edge runtime paths before console logging", async () => {
     process.env.NEXT_RUNTIME = "edge";
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
-    const { onRequestError } = await loadInstrumentation();
+    const { onRequestError, register } = await loadInstrumentation();
+    await register();
 
     await onRequestError(new Error("edge boom"), {
       path: "/api/share/raw-share-token/session?recipient=raw-recipient-token",
