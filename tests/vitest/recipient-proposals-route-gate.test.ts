@@ -36,7 +36,7 @@ beforeEach(() => {
 
 describe("recipient proposals route gate", () => {
   it("requires the current user before loading recipient proposals", async () => {
-    const { ProposalsData } = await import("@/app/workshop/proposals/page");
+    const { ProposalsData } = await import("@/app/workshop/proposals/proposals-data");
 
     await ProposalsData();
 
@@ -48,7 +48,7 @@ describe("recipient proposals route gate", () => {
       mocks.callOrder.push("auth");
       throw new Error("NEXT_REDIRECT:/login");
     });
-    const { ProposalsData } = await import("@/app/workshop/proposals/page");
+    const { ProposalsData } = await import("@/app/workshop/proposals/proposals-data");
 
     await expect(ProposalsData()).rejects.toThrow("NEXT_REDIRECT:/login");
 
@@ -57,12 +57,14 @@ describe("recipient proposals route gate", () => {
   });
 
   it("keeps the page source on the server auth/repository path only", () => {
-    const source = readFileSync("src/app/workshop/proposals/page.tsx", "utf8");
+    const pageSource = readFileSync("src/app/workshop/proposals/page.tsx", "utf8");
+    const dataSource = readFileSync("src/app/workshop/proposals/proposals-data.tsx", "utf8");
 
-    expect(source).toContain("requireCurrentUserContext()");
-    expect(source).toContain("listRecipientProposals()");
-    expect(source).toContain("WorkshopRouteHeader");
-    expect(source).toContain('title="Proposals"');
-    expect(source).not.toMatch(/service_role|SUPABASE_SERVICE_ROLE_KEY|encrypted_token|token_hash/i);
+    expect(pageSource).toContain("ProposalsData");
+    expect(pageSource).toContain("WorkshopRouteHeader");
+    expect(pageSource).toContain('title="Proposals"');
+    expect(dataSource).toContain("requireCurrentUserContext()");
+    expect(dataSource).toContain("listRecipientProposals()");
+    expect(`${pageSource}\n${dataSource}`).not.toMatch(/service_role|SUPABASE_SERVICE_ROLE_KEY|encrypted_token|token_hash/i);
   });
 });
