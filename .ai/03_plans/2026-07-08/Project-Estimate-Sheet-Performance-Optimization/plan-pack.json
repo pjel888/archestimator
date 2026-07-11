@@ -352,9 +352,9 @@
   ],
   "runtime_evidence": {
     "contract_version": "estimate-sheet-runtime-manifest-state.v1",
-    "transition_sequence": 3,
+    "transition_sequence": 4,
     "latest_unit_id": "UNIT-001",
-    "latest_run_id": "9b21f9c2-eba7-43d4-ab83-a0f7975b2b3e",
+    "latest_run_id": "c017a99a-dff0-4896-8997-d60774c2193f",
     "registry": {
       "artifact_id": "ART-052",
       "projection_path": "evidence/runtime/evidence-index.json",
@@ -480,7 +480,7 @@
         "sha256": "34e4ec3521506b4e04ffef366d35a96e226ec6893f792d147ab1b22466282ba7"
       }
     ],
-    "latest_run_manifest_sha256": "70f19f66843d4f40223bacce80a10d679f54825df9c9d9db6f09acf49d684df3"
+    "latest_run_manifest_sha256": "ff15d889db44a68ecfc9c216613da6a78c9a5b289402b2b6f57a9c4758fc32c8"
   },
   "sources": [
     {
@@ -4047,6 +4047,6 @@
     "unit-owned-shared-worktree-diff-change"
   ],
   "next_unit": "UNIT-001",
-  "updated_at": "2026-07-11T19:30:12.250Z",
-  "manifest_sha256": "86dec61f8652c0d6008d525418e2a93fd685c811949fa6c8313135510272e958"
+  "updated_at": "2026-07-11T19:32:29.435Z",
+  "manifest_sha256": "1bd2f9f7ce1f51d696c5b9c4431ad90768e3e6b98d9964b30635fd2ff3e16aa5"
 }
