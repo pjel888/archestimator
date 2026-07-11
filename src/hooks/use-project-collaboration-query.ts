@@ -1,9 +1,16 @@
 "use client";
 
-import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
 
 import { fetchProjectCollaborationSummary } from "@/lib/collaboration/summary-actions";
-import type { CollaborationRole, ProjectCollaborationSummary } from "@/lib/collaboration/types";
+import type {
+  CollaborationRole,
+  ProjectCollaborationSummary,
+} from "@/lib/collaboration/types";
 
 /**
  * TanStack Query wrapper for the project collaboration summary.
@@ -17,7 +24,9 @@ function projectCollaborationQueryKey(projectId: string | null | undefined) {
   return ["project-collaboration", projectId ?? "none"] as const;
 }
 
-export function useProjectCollaborationQuery(initialSummary: ProjectCollaborationSummary | null) {
+export function useProjectCollaborationQuery(
+  initialSummary: ProjectCollaborationSummary | null,
+) {
   const projectId = initialSummary?.projectId ?? null;
 
   return useQuery({
@@ -32,8 +41,13 @@ export function useProjectCollaborationQuery(initialSummary: ProjectCollaboratio
 }
 
 /** Invalidate exactly the collaboration query for a project. */
-export function invalidateProjectCollaboration(queryClient: QueryClient, projectId: string) {
-  return queryClient.invalidateQueries({ queryKey: projectCollaborationQueryKey(projectId) });
+export function invalidateProjectCollaboration(
+  queryClient: QueryClient,
+  projectId: string,
+) {
+  return queryClient.invalidateQueries({
+    queryKey: projectCollaborationQueryKey(projectId),
+  });
 }
 
 /**
@@ -57,6 +71,49 @@ export function optimisticallySetCollaboratorRole(
         ),
       };
     },
+  );
+}
+
+/**
+ * Overlays the authorized project-channel presence state onto the already
+ * scoped collaboration summary. The server snapshot remains the authority for
+ * membership and metadata; this only changes the transient `online` fields.
+ */
+export function withProjectCollaborationPresence(
+  summary: ProjectCollaborationSummary,
+  onlineUserIds: ReadonlySet<string>,
+): ProjectCollaborationSummary {
+  let changed = false;
+  const applyPresence = <T extends { id: string; online: boolean }>(
+    member: T,
+  ) => {
+    const online = onlineUserIds.has(member.id);
+    if (member.online === online) return member;
+    changed = true;
+    return { ...member, online };
+  };
+
+  const collaborators = summary.collaborators.map(applyPresence);
+  const estimateSheets = summary.estimateSheets.map((sheet) => {
+    const members = sheet.members.map(applyPresence);
+    return members === sheet.members ? sheet : { ...sheet, members };
+  });
+
+  return changed ? { ...summary, collaborators, estimateSheets } : summary;
+}
+
+/** Update the shared query so all authorized Teamwork consumers render the same presence overlay. */
+export function overlayProjectCollaborationPresence(
+  queryClient: QueryClient,
+  projectId: string,
+  onlineUserIds: ReadonlySet<string>,
+) {
+  queryClient.setQueryData<ProjectCollaborationSummary | null>(
+    projectCollaborationQueryKey(projectId),
+    (current) =>
+      current
+        ? withProjectCollaborationPresence(current, onlineUserIds)
+        : current,
   );
 }
 

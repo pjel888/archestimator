@@ -54,6 +54,15 @@ const accountSettings = [
   },
   {
     category: "Account",
+    description: "Read organization members and linked workspaces when you are an owner or team leader.",
+    href: "/workshop/settings/organization",
+    icon: <UsersThree size={15} weight="regular" aria-hidden="true" />,
+    id: "organization",
+    notes: ["Organization access", "Account members", "Linked workspaces"],
+    title: "Organization",
+  },
+  {
+    category: "Account",
     description: "End this browser session and return to login.",
     icon: <SignOut size={15} weight="regular" aria-hidden="true" />,
     id: "sign-out",

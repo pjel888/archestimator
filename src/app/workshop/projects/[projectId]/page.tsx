@@ -41,6 +41,16 @@ export default async function ProjectDashboardPage({ params }: ProjectDashboardP
   const sampleProject = sampleProjects.find((item) => item.id === projectId);
 
   if (!project && !sampleProject) {
+    // A direct estimate-sheet grant does not authorize the whole-project
+    // dashboard. Route that collaborator to an estimate that the repository
+    // has already scoped to their effective access instead of loading project
+    // activity, client data, or other whole-project metadata.
+    if (isUuid(projectId)) {
+      const [directEstimateSheet] = await listRecentProjectEstimateSheets(projectId, 1);
+      if (directEstimateSheet) {
+        redirect(`/workshop/projects/${projectId}/estimates/${directEstimateSheet.id}`);
+      }
+    }
     if (isUuid(projectId)) redirect(`/workshop?removedProject=${encodeURIComponent(projectId)}`);
     notFound();
   }

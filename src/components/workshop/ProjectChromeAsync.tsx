@@ -37,9 +37,12 @@ function getPublisherProjectHref(projectId: string, tab?: PublisherDrawerTabId) 
   return `/workshop/publisher?${params.toString()}`;
 }
 
+function getProjectTeamAccessHref(projectId: string) {
+  return `/workshop/projects/${encodeURIComponent(projectId)}/team`;
+}
+
 function ProjectPublisherHeaderActions({ projectId, publicationSummary }: ProjectPublisherHeaderActionsProps) {
   const publicationHref = getPublisherProjectHref(projectId);
-  const accessHref = getPublisherProjectHref(projectId, "access");
   const hasPublishedLink = publicationSummary?.status === "published";
   const canOpenPublisherDrawer = Boolean(
     publicationSummary?.canManagePublication ||
@@ -68,18 +71,23 @@ function ProjectPublisherHeaderActions({ projectId, publicationSummary }: Projec
           />
         ) : null}
       </Link>
-      <Link
-        href={accessHref}
-        prefetch={false}
-        className={PROJECT_HEADER_ACTION_BUTTON_CLASS}
-        aria-label="Open project access in Publisher"
-        title="Open project access in Publisher"
-        data-workshop-layout="project-teamspace-header"
-        data-publisher-project-link="access"
-      >
-        <UsersThree size={PROJECT_HEADER_ACTION_ICON_SIZE} weight="regular" aria-hidden="true" />
-      </Link>
     </span>
+  );
+}
+
+function ProjectTeamAccessHeaderAction({ projectId }: { projectId: string }) {
+  return (
+    <Link
+      href={getProjectTeamAccessHref(projectId)}
+      prefetch={false}
+      className={PROJECT_HEADER_ACTION_BUTTON_CLASS}
+      aria-label="Open project team access"
+      title="Open project team access"
+      data-workshop-layout="project-teamspace-header"
+      data-project-team-access-link="true"
+    >
+      <UsersThree size={PROJECT_HEADER_ACTION_ICON_SIZE} weight="regular" aria-hidden="true" />
+    </Link>
   );
 }
 
@@ -120,6 +128,7 @@ export async function ProjectChromeAsync({ projectId, liveProject }: ProjectChro
   return (
     <div className="flex items-center gap-1">
       <ProjectPublisherHeaderActions projectId={projectId} publicationSummary={publicationSummary} />
+      {resolvedLiveProject ? <ProjectTeamAccessHeaderAction projectId={projectId} /> : null}
       {/* Req 1 / D2: the estimate page's "Activity" + "Preview Excel Export"
           triggers, relocated here beside Share. A client component that renders
           nothing until an estimate page mounts and registers into the shared
