@@ -106,7 +106,9 @@ Every lane receives a bounded packet:
 - dependencies/preconditions and interfaces assumed;
 - required deliverable and structured evidence fields;
 - `test_requirement`, `test_trigger`, `test_rationale`, and only the selected commands/procedures and
-  expected signals;
+  expected signals. Under the User Test Authorization Gate, `TARGETED`/`BROADER`
+  record a `TEST_PROPOSAL` only; workers do not run tests unless the user has
+  authorized `TEST_TASK` for this task;
 - failure/retry/cleanup/rollback/resume requirements;
 - stop condition and instruction not to replan the global task or spawn further
   orchestration unless explicitly authorized.
