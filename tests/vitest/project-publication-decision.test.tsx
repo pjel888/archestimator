@@ -711,6 +711,7 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       renderSharePageDecision(<SharePageDecision token="t1" viewToken="view-token" />);
       await user.click(screen.getByRole("button", { name: /decline/i }));
       await waitFor(() => expect(screen.getByRole("button", { name: /^Confirm$/i })).toBeInTheDocument());
+      await user.type(screen.getByLabelText(/your name/i), "Maria Recipient");
       const noteInput = screen.queryByPlaceholderText(/note|reason|comment/i);
       if (noteInput) await user.type(noteInput, "Pricing too high");
       const confirmBtn = screen.getByRole("button", { name: /^Confirm$/i });

@@ -443,23 +443,24 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
     });
 
     expect(result).toEqual({
-      clientLinkPath: "/share/old-token",
-      message: "Shared page updated.",
+      clientLinkPath: "/share/new-token",
+      message: "New shared page issued.",
       ok: true,
     });
-    const publicationWrites = state.publicationUpdates.filter((update) => update.table === "project_publications");
-    expect(publicationWrites).toHaveLength(1);
-    expect(publicationWrites[0]).toMatchObject({
-      filters: { id: PUBLICATION_ID },
-      table: "project_publications",
-    });
-    expect(publicationWrites[0]?.payload).toMatchObject({
-      expires_at: null,
-      password_hash: null,
-      selected_estimate_ids: [ESTIMATE_ID],
-      snapshot_json: state.snapshot,
-      snapshot_version: 3,
-    });
+    expect(state.publicationUpdates).toEqual([]);
+    expect(state.rpcCalls).toEqual([
+      expect.objectContaining({
+        functionName: "replace_project_publication",
+        args: expect.objectContaining({
+          p_encrypted_token: "encrypted-new-token",
+          p_expires_at: null,
+          p_password_hash: null,
+          p_selected_estimate_ids: [ESTIMATE_ID],
+          p_snapshot_json: state.snapshot,
+          target_project_id: PROJECT_ID,
+        }),
+      }),
+    ]);
     expect(state.auditEvents).toEqual([
       expect.objectContaining({
         event_type: "publisher_publication_republished",
@@ -469,12 +470,16 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
           expires_at_changed: true,
           password_cleared: true,
           project_id: PROJECT_ID,
-          publication_id: PUBLICATION_ID,
+          publication_id: 3,
           selected_estimate_count: 1,
         }),
       }),
     ]);
-    expect(state.revalidatedPaths).toEqual([`/workshop/projects/${PROJECT_ID}`, "/share/old-token"]);
+    expect(state.revalidatedPaths).toEqual(expect.arrayContaining([
+      `/workshop/projects/${PROJECT_ID}`,
+      "/share/old-token",
+      "/share/new-token",
+    ]));
   });
 
   it("asserts behavioral return contracts for rotate success and stale-token conflict", async () => {
@@ -500,11 +505,11 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
         }),
       },
     ]);
-    expect(successHarness.state.revalidatedPaths).toEqual([
+    expect(successHarness.state.revalidatedPaths).toEqual(expect.arrayContaining([
       `/workshop/projects/${PROJECT_ID}`,
       "/share/old-token",
       "/share/new-token",
-    ]);
+    ]));
     expect(successHarness.state.auditEvents).toEqual([
       expect.objectContaining({
         event_type: "publisher_publication_rotated",
@@ -879,7 +884,7 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
     const comments = readFileSync("src/components/share/SharePageComments.tsx", "utf8");
     const decision = readFileSync("src/components/share/SharePageDecision.tsx", "utf8");
     expect(banner).toContain("hasValidRecipientSession");
-    expect(banner).toContain("Sign in as a recipient to comment and respond to this proposal.");
+    expect(banner).toContain("Use your personalized link to comment and respond.");
     expect(banner).toContain("text-[12px]"); // client-portal type scale (T1: /share label floor is 12px)
     expect(comments).toContain("useSharedLinkSession");
     expect(decision).toContain("useSharedLinkSession");

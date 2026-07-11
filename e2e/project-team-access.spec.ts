@@ -1,27 +1,28 @@
 import { expect, test } from "@playwright/test";
 
-const bypassSecret = process.env.ARCHESTIMATOR_DEV_AUTH_BYPASS_SECRET?.trim() ?? "";
+import {
+  getProtectedRouteE2eAuth,
+  installLocalDevAuthBypass,
+  isLocalDevAuthBypassReady,
+  isProtectedRouteE2eAuthReady,
+} from "./support/local-dev-auth";
+
 const projectId = process.env.ARCHESTIMATOR_E2E_TEAM_PROJECT_ID?.trim() ?? "";
-const devAuthEnabled = process.env.ARCHESTIMATOR_DEV_AUTH_BYPASS === "1" && bypassSecret.length >= 32;
-const teamRouteEnabled = devAuthEnabled && Boolean(projectId);
+const auth = getProtectedRouteE2eAuth();
+const teamRouteEnabled = isProtectedRouteE2eAuthReady(auth) && Boolean(projectId);
 
 test.describe("project Team access route", () => {
   test.skip(
     !teamRouteEnabled,
-    "Requires valid dev auth plus ARCHESTIMATOR_E2E_TEAM_PROJECT_ID for an accessible seeded project.",
+    "Requires PLAYWRIGHT_STORAGE_STATE or ready local dev auth plus ARCHESTIMATOR_E2E_TEAM_PROJECT_ID.",
   );
 
   test.beforeEach(async ({ page }) => {
-    await page.context().addCookies([
-      {
-        name: "archestimator-dev-auth-bypass",
-        value: bypassSecret,
-        domain: "127.0.0.1",
-        path: "/",
-        httpOnly: false,
-        sameSite: "Lax",
-      },
-    ]);
+    test.skip(
+      !isLocalDevAuthBypassReady(auth),
+      "Local dev auth bypass is not ready for the configured D1 identity.",
+    );
+    await installLocalDevAuthBypass(page.context(), auth);
   });
 
   test("navigates an authenticated project user to the scoped Team access surface", async ({

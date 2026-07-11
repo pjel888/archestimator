@@ -69,6 +69,19 @@ describe("project collaboration management actions", () => {
     expect(actions).toMatch(/try \{[\s\S]*?await sendCloudflareInviteEmail\(\{[\s\S]*?\}\);\n  \} catch \(error\) \{[\s\S]*?return \{[\s\S]*?Invitation created\. Share the invite link manually\.[\s\S]*?\};\n  \}\n\n  await recordCollaborationInvitationDelivery\(\{/);
   });
 
+  it("records a durable, redacted activity event when invite delivery fails", () => {
+    expect(actions).toContain('"collaboration_invite_email_delivery_failed"');
+    expect(actions).toMatch(/eventType: "collaboration_invite_email_delivery_failed"[\s\S]*?metadata: \{[\s\S]*?delivery_method: "email"/);
+    expect(actions).toMatch(/async function resendProjectInviteEmail[\s\S]*?eventType: "invite_email_attempted"[\s\S]*?catch \(error\) \{[\s\S]*?recordInviteEmailDeliveryFailure\(\{/);
+    expect(actions).not.toMatch(/eventType: "collaboration_invite_email_delivery_failed"[\s\S]{0,400}error: error\.message/);
+  });
+
+  it("batches active-token replacement with the durable delivery intent", () => {
+    expect(actions).toContain('throw new Error("Invitation delivery intent requires transactional D1 support.")');
+    expect(actions).toContain("await context.db.batch(statements)");
+    expect(actions).toContain("'collaboration_invite_token_issued'");
+  });
+
   it("returns honest invite messages when app-owned invite links are disabled", () => {
     expect(actions).toContain("readProjectInviteDeliveryReadiness");
     expect(actions).toContain("Teamspace invite delivery is disabled until project invite entry and token settings are configured.");
@@ -189,7 +202,9 @@ describe("project collaboration management actions", () => {
     expect(teamworkMembersPanel).toContain("Estimate access");
     expect(teamworkMembersPanel).toContain("Access mode for");
     expect(teamworkMembersPanel).toContain("Invite to");
-    expect(publisherMembersPanel).toContain("ProjectMembersAccessPanel as PublisherProjectMembersPanel");
+    expect(publisherMembersPanel).toContain("@/components/workshop/teamwork/ProjectMembersAccessPanel");
+    expect(publisherMembersPanel).toContain("export function PublisherProjectMembersPanel");
+    expect(publisherMembersPanel).toContain("<ProjectMembersAccessPanel {...props} />");
     expect(publisherMembersPanel).not.toContain("@/lib/collaboration/actions");
   });
 });

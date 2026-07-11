@@ -73,7 +73,7 @@ describe("project publication security helpers (Shared Link V2)", () => {
   it("requires same-origin public POSTs and a matching CSRF header/cookie pair", () => {
     const token = createPublicPostCsrfToken({ randomBytes: () => Buffer.alloc(16, 5) });
     const cookieName = createPublicationAccessCookieName("public-token");
-    const sameOriginRequest = new Request("https://archestimator.test/api/share/public-token/events", {
+    const sameOriginRequest = new Request("https://archestimator.test/api/share/public-token/password", {
       method: "POST",
       headers: {
         origin: "https://archestimator.test",
@@ -81,14 +81,14 @@ describe("project publication security helpers (Shared Link V2)", () => {
         "x-archestimator-csrf": token,
       },
     });
-    const noOriginRequest = new Request("https://archestimator.test/api/share/public-token/events", {
+    const noOriginRequest = new Request("https://archestimator.test/api/share/public-token/password", {
       method: "POST",
       headers: {
         cookie: `ae_publication_csrf=${token}`,
         "x-archestimator-csrf": token,
       },
     });
-    const crossOriginRequest = new Request("https://archestimator.test/api/share/public-token/events", {
+    const crossOriginRequest = new Request("https://archestimator.test/api/share/public-token/password", {
       method: "POST",
       headers: {
         origin: "https://evil.example",
@@ -96,21 +96,21 @@ describe("project publication security helpers (Shared Link V2)", () => {
         "x-archestimator-csrf": token,
       },
     });
-    const missingCookieRequest = new Request("https://archestimator.test/api/share/public-token/events", {
+    const missingCookieRequest = new Request("https://archestimator.test/api/share/public-token/password", {
       method: "POST",
       headers: {
         origin: "https://archestimator.test",
         "x-archestimator-csrf": token,
       },
     });
-    const missingHeaderRequest = new Request("https://archestimator.test/api/share/public-token/events", {
+    const missingHeaderRequest = new Request("https://archestimator.test/api/share/public-token/password", {
       method: "POST",
       headers: {
         origin: "https://archestimator.test",
         cookie: `ae_publication_csrf=${token}`,
       },
     });
-    const mismatchRequest = new Request("https://archestimator.test/api/share/public-token/events", {
+    const mismatchRequest = new Request("https://archestimator.test/api/share/public-token/password", {
       method: "POST",
       headers: {
         origin: "https://archestimator.test",

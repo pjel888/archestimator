@@ -42,8 +42,8 @@ describe("PublisherActivityFeed", () => {
       limit: 50,
       projectId: "11111111-1111-4111-8111-111111111111",
     });
-    expect(screen.getByRole("feed", { name: "Publisher project activity feed" })).toBeInTheDocument();
+    expect(screen.getByRole("feed", { name: "Shared link project activity feed" })).toBeInTheDocument();
     expect(screen.getByText(/Partial activity: estimate_sheet_events unavailable\./)).toBeInTheDocument();
-    expect(screen.getByText("Publisher activity refreshes when you reopen this tab. Use Refresh for the latest.")).toBeInTheDocument();
+    expect(screen.getByText("Shared link activity refreshes when you reopen this tab. Use Refresh for the latest.")).toBeInTheDocument();
   });
 });

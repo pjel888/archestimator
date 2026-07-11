@@ -886,8 +886,8 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
 
       render(<SharePageTabs estimates={[filterEstimate]} currencyCode="PHP" token="client-token-filter" />);
 
-      await user.click(screen.getByRole("tab", { name: "Line item table" }));
-      expect(screen.getAllByText("Line item table").length).toBeGreaterThan(0);
+      await user.click(screen.getByRole("tab", { name: "Details" }));
+      expect(screen.getAllByText("Details").length).toBeGreaterThan(0);
       expect(screen.getAllByText("Qty 2 · cu.m").length).toBeGreaterThan(0);
       const search = screen.getByRole("searchbox", { name: "Filter estimate rows" });
       await user.type(search, "oak");
@@ -901,7 +901,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       expect(screen.getByText('No rows match "zzz"')).toBeInTheDocument();
     });
 
-    it("caps rendered collated rows and invites filtering for large estimate tables", async () => {
+    it("loads additional collated rows on demand and preserves filtering", async () => {
       const SharePageTabs = (await import("@/components/share/SharePageTabs")).default;
       const user = userEvent.setup();
       const largeEstimate: PublicationSnapshotEstimate = {
@@ -916,18 +916,20 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
 
       render(<SharePageTabs estimates={[largeEstimate]} currencyCode="PHP" token="client-token-large-grid" />);
 
-      await user.click(screen.getByRole("tab", { name: "Line item table" }));
+      await user.click(screen.getByRole("tab", { name: "Details" }));
 
       expect(within(screen.getByRole("tabpanel")).getByText("Large item 250")).toBeInTheDocument();
       expect(within(screen.getByRole("tabpanel")).queryByText("Large item 251")).not.toBeInTheDocument();
-      expect(screen.getByText(/Showing first 250 of 260 line items/i)).toBeInTheDocument();
+      expect(screen.getByText(/Showing 250 of 260 line items/i)).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Show more" }));
+      expect(within(screen.getByRole("tabpanel")).getByText("Large item 251")).toBeInTheDocument();
 
       await user.type(screen.getByRole("searchbox", { name: "Filter estimate rows" }), "Large item 251");
       expect(within(screen.getByRole("tabpanel")).getByText("Large item 251")).toBeInTheDocument();
-      expect(screen.queryByText(/Showing first 250/)).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Show more" })).not.toBeInTheDocument();
     });
 
-    it("offers row-level review actions in the collated view and emits the selected target", async () => {
+    it("selects collated rows by click or roving keyboard focus and emits the selected target", async () => {
       const SharePageTabs = (await import("@/components/share/SharePageTabs")).default;
       const user = userEvent.setup();
       const onReviewTargetChange = vi.fn();
@@ -941,8 +943,9 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
         />,
       );
 
-      await user.click(screen.getByRole("tab", { name: "Line item table" }));
-      await user.click(screen.getByRole("button", { name: /ask about item: concrete works/i }));
+      await user.click(screen.getByRole("tab", { name: "Details" }));
+      const concreteRow = screen.getByRole("row", { name: /concrete works/i });
+      await user.click(concreteRow);
 
       expect(onReviewTargetChange).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -953,7 +956,10 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
           secondaryLabel: "Main Estimate",
         }),
       );
-      expect(screen.getByRole("button", { name: /ask about item: concrete works/i })).toHaveAttribute("aria-pressed", "true");
+      expect(concreteRow).toHaveAttribute("data-review-target-selected", "true");
+      concreteRow.focus();
+      await user.keyboard("{Enter}");
+      expect(onReviewTargetChange).toHaveBeenCalledTimes(2);
     });
 
     it("threads the selected collated-row target through workspace comments and clears back to proposal scope", async () => {
@@ -1001,8 +1007,8 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
         />,
       );
 
-      await user.click(screen.getByRole("tab", { name: "Line item table" }));
-      await user.click(screen.getByRole("button", { name: /ask about item: concrete works/i }));
+      await user.click(screen.getByRole("tab", { name: "Details" }));
+      await user.click(screen.getByRole("row", { name: /concrete works/i }));
       expect(screen.getAllByText("Applies to Concrete works").length).toBeGreaterThan(0);
 
       await user.type(screen.getByPlaceholderText(/add a comment/i), "Please revise this item.");
@@ -1060,8 +1066,8 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
         />,
       );
 
-      await user.click(screen.getByRole("tab", { name: "Line item table" }));
-      await user.click(screen.getByRole("button", { name: /ask about item: concrete works/i }));
+      await user.click(screen.getByRole("tab", { name: "Details" }));
+      await user.click(screen.getByRole("row", { name: /concrete works/i }));
       await user.click(screen.getByRole("button", { name: /request changes/i }));
       expect(await screen.findByRole("dialog", { name: /request changes/i })).toBeInTheDocument();
       await user.click(screen.getByRole("button", { name: /^Confirm$/i }));
@@ -1159,9 +1165,9 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       expect(within(nestedTablist).getByRole("tab", { name: "Base" })).toHaveAttribute("aria-selected", "true");
       expect(screen.getAllByText("Base Area").length).toBeGreaterThan(0);
       expect(within(screen.getByRole("tabpanel")).queryByText("Renovation millwork")).not.toBeInTheDocument();
-      await user.click(screen.getByRole("tab", { name: "Line item table" }));
+      await user.click(screen.getByRole("tab", { name: "Details" }));
       expect(within(screen.getByRole("tabpanel")).getByText("Concrete works")).toBeInTheDocument();
-      await user.click(screen.getByRole("tab", { name: "Scope outline" }));
+      await user.click(screen.getByRole("tab", { name: "Summary" }));
 
       await user.click(within(nestedTablist).getByRole("tab", { name: "Renovation" }));
 
@@ -1464,7 +1470,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
           token="p9-token"
         />
       );
-      await userEvent.click(screen.getByRole("tab", { name: /line item table/i }));
+      await userEvent.click(screen.getByRole("tab", { name: /details/i }));
 
       // 32px thumbnail present for row with imageUrl
       const thumbs = container.querySelectorAll('img[width="32"], img[height="32"], img[width="32px"]');
@@ -1509,7 +1515,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       const { container } = render(
         <SharePageTabs estimates={[unsafeEstimate]} currencyCode="PHP" token="unsafe-image-token" />,
       );
-      await userEvent.click(screen.getByRole("tab", { name: /line item table/i }));
+      await userEvent.click(screen.getByRole("tab", { name: /details/i }));
 
       expect(container.querySelector('img[src*="tracker.example"]')).toBeNull();
       expect(container.querySelector('img[src^="data:"]')).toBeNull();

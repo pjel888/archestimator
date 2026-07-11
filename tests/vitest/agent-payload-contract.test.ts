@@ -36,11 +36,26 @@ describe("agent payload fast-start contracts", () => {
 
     const payloadReadme = read(".ai/12_agents/payloads/README.md");
     const payloadTemplate = read(".ai/12_agents/payloads/_template.md");
+    const currentState = read(".ai/10_state/current-state.md");
+    const startMarker = "<!-- FAST PATH:START -->";
+    const endMarker = "<!-- FAST PATH:END -->";
+    const start = currentState.indexOf(startMarker);
+    const end = currentState.indexOf(endMarker);
+    const fastPath = currentState.slice(start, end + endMarker.length);
 
     expect(payloadReadme).not.toContain("Required shared files");
     expect(payloadReadme).toContain("preloading the full history files");
     expect(payloadTemplate).toContain("do not linear-read the full history logs");
     expect(payloadTemplate).not.toContain("For broad, risky, release, provider, or framework work, also read");
+    expect(currentState.split(startMarker)).toHaveLength(2);
+    expect(currentState.split(endMarker)).toHaveLength(2);
+    expect(start).toBeGreaterThanOrEqual(0);
+    expect(end).toBeGreaterThan(start);
+    expect(fastPath.split(/\r?\n/).length).toBeLessThanOrEqual(150);
+    expect(Buffer.byteLength(fastPath, "utf8")).toBeLessThanOrEqual(16 * 1024);
+    expect(fastPath).toContain("Cloudflare/D1 is active");
+    expect(fastPath).toContain("historical provider-exit evidence");
+    expect(fastPath).toContain("must not be mutated or extended");
   });
 
   it("keeps dated plan packs scoped to high-blast-radius or explicitly exhaustive work", () => {
@@ -157,8 +172,24 @@ describe("agent payload fast-start contracts", () => {
     expect(codexConfig).toContain("Skills load from the installed Codex skill roots shown in session context");
     expect(codexConfig).not.toContain("Skills load from .codex/skills");
     expect(codexConfig).toContain("native-agent TOMLs are role prompts, not skills");
+    expect(codexConfig).not.toMatch(/^model_(?:context_window|auto_compact_token_limit)\s*=/m);
+    expect(codexConfig).toMatch(/^max_depth = 1$/m);
     expect(codexHooks.hooks).toEqual({});
     expect(claudeSettings.hooks).toEqual({});
+  });
+
+  it("rejects every non-current hardcoded GPT-5 model generation in adapter guidance", () => {
+    const validator = read("scripts/validate-ai-workflow-adapters.mjs");
+    const modelPattern = /\bgpt-5\.\d+(?:-[a-z0-9][a-z0-9.-]*)?\b/giu;
+
+    expect("gpt-5.5 gpt-5.4-mini gpt-5.3-codex-spark".match(modelPattern)).toEqual([
+      "gpt-5.5",
+      "gpt-5.4-mini",
+      "gpt-5.3-codex-spark",
+    ]);
+    expect(validator).toContain("supportedCodexAgentModels.has(model)");
+    expect(validator).toContain("matchAll(/\\bgpt-5\\.\\d+");
+    expect(validator).not.toContain("(?:3|4)");
   });
 
   it("keeps local runtime state untracked and ignored", () => {

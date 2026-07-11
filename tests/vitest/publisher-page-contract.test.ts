@@ -20,7 +20,7 @@ describe("Publisher page contract", () => {
     expect(source).toContain("navigator.clipboard.writeText");
     expect(source).toContain("router.replace");
     expect(source).not.toContain("router.push");
-    expect(source).toContain("Publication manager roster");
+    expect(source).toContain("Shared link manager roster");
     expect(source).toContain("PublisherDrawer");
   });
 
@@ -105,18 +105,19 @@ describe("Publisher page contract", () => {
     const source = readFileSync("src/app/workshop/publisher/error.tsx", "utf8");
 
     expect(source).toContain("WorkshopRouteErrorState");
-    expect(source).toContain('routeLabel="Publisher"');
+    expect(source).toContain('routeLabel="Share"');
   });
 
-  it("consolidates project header publication and access entry points into Publisher links", () => {
+  it("keeps publication in Publisher while routing project access to Teamwork", () => {
     const source = readFileSync("src/components/workshop/ProjectChromeAsync.tsx", "utf8");
 
     expect(source).toContain("getPublisherProjectHref(projectId)");
     expect(source).toContain("new URLSearchParams({ project: projectId, drawer: projectId })");
-    expect(source).toContain('getPublisherProjectHref(projectId, "access")');
+    expect(source).toContain("getProjectTeamAccessHref(projectId)");
+    expect(source).toContain('data-project-team-access-link="true"');
     expect(source).toContain('params.set("tab", tab)');
     expect(source).toContain('data-publisher-project-link="publication"');
-    expect(source).toContain('data-publisher-project-link="access"');
+    expect(source).not.toContain('data-publisher-project-link="access"');
     expect(source).toContain('data-workshop-layout="project-publication-header"');
     expect(source).toContain('data-workshop-layout="project-teamspace-header"');
     expect(source).not.toContain("isPublisherEnabled()");

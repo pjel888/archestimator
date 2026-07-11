@@ -287,12 +287,14 @@ describe("republishProjectPublication — resolved selected_estimate_ids (MOD-SH
     });
 
     expect(result.ok).toBe(true);
-    // republish issues exactly one update (the publication row).
-    expect(captured.updates).toHaveLength(1);
-    const updated = captured.updates[0] as { selected_estimate_ids: string[] };
+    // A reissue creates a new immutable publication through the replacement procedure.
+    expect(captured.updates).toHaveLength(0);
+    expect(captured.rpcs).toHaveLength(1);
+    expect(captured.rpcs[0]?.functionName).toBe("replace_project_publication");
+    const updated = captured.rpcs[0]?.args as { p_selected_estimate_ids: string[] };
     // Non-vacuous: requested [A, deleted]; only A resolves in the snapshot → stored set is [A].
-    expect(updated.selected_estimate_ids).toEqual([EST_A]);
-    expect(updated.selected_estimate_ids).not.toContain(EST_DELETED);
+    expect(updated.p_selected_estimate_ids).toEqual([EST_A]);
+    expect(updated.p_selected_estimate_ids).not.toContain(EST_DELETED);
   });
 
   it("rejects republishing into a zero-estimate snapshot and writes nothing", async () => {

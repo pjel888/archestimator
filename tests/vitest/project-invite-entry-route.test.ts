@@ -59,15 +59,16 @@ describe("/invite/[token] route contract", () => {
     expect(signOutRoute).toContain("better-auth.session_token");
     expect(route).toContain("Sign out and continue");
     expect(route).toContain("Signed in as");
-    expect(route).toContain("Invited email");
     expect(route).toContain("wrong-account");
-    expect(route).toContain("Open project");
+    expect(route).toContain("account that received this invite");
+    expect(route).not.toContain("Invited email");
+    expect(route).not.toContain("inviter_email");
+    expect(route).not.toContain("Open project");
   });
 
-  it("renders terminal invite states with sender/contact recovery copy", () => {
+  it("renders terminal invite states with generic contact recovery copy", () => {
     expect(route).toContain("Ask the sender for a new invite.");
-    expect(route).toContain("inviter_email");
-    expect(route).toContain("Contact the sender at");
+    expect(route).not.toContain("Contact the sender at");
     expect(route).toContain('href="/contact"');
     expect(route).toContain("Contact Archestimator");
   });

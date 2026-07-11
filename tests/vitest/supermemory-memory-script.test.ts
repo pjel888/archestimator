@@ -90,12 +90,21 @@ describe("Supermemory memory CLI", () => {
   });
 
   it("writes sanitized Archestimator memories and rejects secret-like content", async () => {
-    const requests: Array<{ body: unknown; url?: string }> = [];
+    const requests: Array<{ body?: unknown; method?: string; url?: string }> = [];
     const server = createServer(async (request, response) => {
-      requests.push({ body: JSON.parse(await readBody(request)), url: request.url });
-      response.statusCode = 201;
+      const body = request.method === "GET" ? undefined : JSON.parse(await readBody(request));
+      requests.push({ body, method: request.method, url: request.url });
       response.setHeader("content-type", "application/json");
-      response.end(JSON.stringify({ id: "doc-2", status: "queued" }));
+      if (request.method === "POST" && request.url === "/v3/documents") {
+        response.statusCode = 201;
+        response.end(JSON.stringify({ id: "doc-2", status: "queued" }));
+        return;
+      }
+      if (request.method === "GET" && request.url === "/v3/documents/doc-2") {
+        response.end(JSON.stringify({ id: "doc-2", status: "done" }));
+        return;
+      }
+      response.end(JSON.stringify({ results: [{ documentId: "doc-2", score: 1 }], total: 1 }));
     });
     await new Promise<void>((resolvePromise) => server.listen(0, "127.0.0.1", resolvePromise));
     const address = server.address();
@@ -106,6 +115,8 @@ describe("Supermemory memory CLI", () => {
     const env = {
       SUPERMEMORY_API_KEY_FILE: keyPath,
       SUPERMEMORY_API_URL: `http://127.0.0.1:${address.port}`,
+      SUPERMEMORY_INDEX_POLL_MS: "5",
+      SUPERMEMORY_INDEX_TIMEOUT_MS: "1000",
     };
 
     const accepted = await runMemoryScript(
@@ -117,6 +128,7 @@ describe("Supermemory memory CLI", () => {
     server.close();
 
     expect(accepted.status).toBe(0);
+    expect(JSON.parse(accepted.stdout)).toMatchObject({ id: "doc-2", indexedStatus: "done", searchable: true });
     expect(rejected.status).toBe(1);
     expect(rejectedSearch.status).toBe(1);
     expect(rejected.stderr).toContain("secret-like content");
@@ -129,9 +141,56 @@ describe("Supermemory memory CLI", () => {
           metadata: { repo: "archestimator", source: "coding-agent" },
           taskType: "memory",
         },
+        method: "POST",
         url: "/v3/documents",
       },
+      { body: undefined, method: "GET", url: "/v3/documents/doc-2" },
+      {
+        body: {
+          includeFullDocs: true,
+          limit: 10,
+          q: "2026-07-10 repo archestimator verified bootstrap passed",
+        },
+        method: "POST",
+        url: "/v3/search",
+      },
     ]);
+  });
+
+  it("fails closeout when indexing fails without a searchable memory", async () => {
+    const server = createServer(async (request, response) => {
+      response.setHeader("content-type", "application/json");
+      if (request.method === "POST" && request.url === "/v3/documents") {
+        await readBody(request);
+        response.statusCode = 201;
+        response.end(JSON.stringify({ id: "doc-failed", status: "queued" }));
+        return;
+      }
+      if (request.method === "GET") {
+        response.end(JSON.stringify({ id: "doc-failed", status: "failed" }));
+        return;
+      }
+      await readBody(request);
+      response.end(JSON.stringify({ results: [], total: 0 }));
+    });
+    await new Promise<void>((resolvePromise) => server.listen(0, "127.0.0.1", resolvePromise));
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("Missing fake API address");
+    const tempDir = createTempDir();
+    const keyPath = join(tempDir, "api-key");
+    writeFileSync(keyPath, "test-bearer-value\n", { mode: 0o600 });
+
+    const result = await runMemoryScript(["add", "sanitized durable result"], {
+      SUPERMEMORY_API_KEY_FILE: keyPath,
+      SUPERMEMORY_API_URL: `http://127.0.0.1:${address.port}`,
+      SUPERMEMORY_INDEX_POLL_MS: "5",
+      SUPERMEMORY_INDEX_TIMEOUT_MS: "1000",
+    });
+    server.close();
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("failed during indexing and was not found by search");
+    expect(result.stdout).toBe("");
   });
 
   it("rejects redirects before query or memory content can leave the configured endpoint", async () => {

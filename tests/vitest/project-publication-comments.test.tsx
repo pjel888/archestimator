@@ -678,6 +678,45 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
       ).toHaveLength(1);
     });
 
+    it("loads older comment pages without replacing the visible discussion", async () => {
+      mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
+      const user = userEvent.setup();
+      // @ts-expect-error fetch mock
+      global.fetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            comments: [{ id: "newer", content: "Newest note", authorName: "Client", authorType: "recipient", createdAt: "2026-06-03T01:00:00.000Z" }],
+            hasMore: true,
+            nextCursor: "older-page",
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            comments: [{ id: "older", content: "Older note", authorName: "Client", authorType: "recipient", createdAt: "2026-06-03T00:00:00.000Z" }],
+            hasMore: false,
+            nextCursor: null,
+          }),
+        });
+
+      render(<SharePageComments token="t1" viewToken="view-token" />);
+
+      expect(await screen.findByText("Newest note")).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Load more comments" }));
+
+      expect(await screen.findByText("Older note")).toBeInTheDocument();
+      expect(screen.getByText("Newest note")).toBeInTheDocument();
+      expect(vi.mocked(global.fetch)).toHaveBeenLastCalledWith(
+        "/api/share/t1/comment?cursor=older-page",
+        expect.objectContaining({ method: "GET" }),
+      );
+      expect(screen.queryByRole("button", { name: /load more comments/i })).not.toBeInTheDocument();
+    });
+
     it("posts selected line-item context and labels the composer plus submitted comment", async () => {
       mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
       const user = userEvent.setup();

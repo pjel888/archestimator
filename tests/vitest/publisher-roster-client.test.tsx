@@ -270,19 +270,36 @@ describe("PublisherRosterClient", () => {
   it("renders the six primary roster columns and compact row data", () => {
     renderPublisherRosterClient();
 
-    const table = screen.getByRole("table", { name: "Publication manager roster" });
+    const table = screen.getByRole("table", { name: "Shared link manager roster" });
     expect(within(table).getAllByRole("columnheader").map((header) => header.textContent)).toEqual([
-      "Publication",
+      "Shared link",
       "Status",
       "Recipients",
       "Latest activity",
-      "Sheet scope",
+      "Estimates",
       "Actions",
     ]);
     expect(within(table).getByRole("rowheader", { name: /Lewis Residence/i })).toBeInTheDocument();
     expect(within(table).getByText("2 recipients")).toBeInTheDocument();
     expect(within(table).getByText("2 sheets")).toBeInTheDocument();
     expect(within(table).getByText("Link unavailable")).toBeInTheDocument();
+  });
+
+  it("uses statically generated desktop view classes for card and table toggles", () => {
+    renderPublisherRosterClient();
+
+    const tableView = screen.getByRole("table", { name: "Shared link manager roster" }).closest("div.rounded-xs");
+    const cardView = screen.getAllByText("Lewis Residence")
+      .map((element) => element.closest("div.grid-cols-2"))
+      .find((element) => element?.className.includes("xl:grid-cols-3"));
+
+    expect(cardView).toHaveClass("min-[768px]:grid");
+    expect(tableView).toHaveClass("min-[768px]:hidden");
+
+    fireEvent.click(screen.getByRole("button", { name: "Table" }));
+
+    expect(cardView).toHaveClass("min-[768px]:hidden");
+    expect(tableView).toHaveClass("min-[768px]:flex");
   });
 
   it("keeps project filter options independent of the current paginated row slice", () => {
@@ -366,7 +383,7 @@ describe("PublisherRosterClient", () => {
   it("opens the Publisher detail drawer without changing roster URL filters", async () => {
     renderPublisherRosterClient();
 
-    fireEvent.click(screen.getByRole("button", { name: "Manage publication for Lewis Residence" }));
+    fireEvent.click(screen.getByRole("button", { name: "Manage shared link for Lewis Residence" }));
 
     expect(await screen.findByRole("dialog", { name: "Lewis Residence" })).toBeInTheDocument();
     await waitFor(() => {
@@ -382,7 +399,7 @@ describe("PublisherRosterClient", () => {
   it("returns focus to the Manage trigger after the manual drawer closes", async () => {
     renderPublisherRosterClient();
 
-    const manageButton = screen.getByRole("button", { name: "Manage publication for Lewis Residence" });
+    const manageButton = screen.getByRole("button", { name: "Manage shared link for Lewis Residence" });
     manageButton.focus();
     fireEvent.click(manageButton);
     expect(await screen.findByRole("dialog", { name: "Lewis Residence" })).toBeInTheDocument();
@@ -394,10 +411,10 @@ describe("PublisherRosterClient", () => {
     });
   });
 
-  it("saves Publisher drawer sheet scope through the existing republish action and refreshes the roster", async () => {
+  it("saves shared link estimate scope through the existing republish action and refreshes the roster", async () => {
     renderPublisherRosterClient();
 
-    fireEvent.click(screen.getByRole("button", { name: "Manage publication for Lewis Residence" }));
+    fireEvent.click(screen.getByRole("button", { name: "Manage shared link for Lewis Residence" }));
     expect(await screen.findByRole("dialog", { name: "Lewis Residence" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: "Sheets" }));
     fireEvent.click(await screen.findByRole("checkbox", { name: /Upgrade/ }));

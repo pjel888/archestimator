@@ -6,6 +6,7 @@ import {
   symlinkSync,
   writeFileSync,
 } from "node:fs";
+import { createHash } from "node:crypto";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
@@ -16,6 +17,27 @@ const root = process.cwd();
 const fixture = join(root, "tests/fixtures/planning-prompt-suite/valid-plan-pack");
 const promptSuite = join(root, ".ai/08_prompts/000_Planning Prompts");
 const tempRoots: string[] = [];
+const existingFocusedTestPath = "tests/vitest/account-membership-d1.test.ts";
+const existingFocusedTestHash = createHash("sha256")
+  .update(readFileSync(join(root, existingFocusedTestPath)))
+  .digest("hex");
+const secondExistingFocusedTestPath = "tests/vitest/activity-composer.test.ts";
+const secondExistingFocusedTestHash = createHash("sha256")
+  .update(readFileSync(join(root, secondExistingFocusedTestPath)))
+  .digest("hex");
+const baselineHead = spawnSync("git", ["rev-parse", "HEAD"], {
+  cwd: root,
+  encoding: "utf8",
+}).stdout.trim();
+
+function existingFocusedTestFields() {
+  return {
+    execution_mode: "EXISTING_READ_ONLY",
+    existing_test_path: existingFocusedTestPath,
+    test_command: `bunx vitest run ${existingFocusedTestPath} --maxWorkers=1`,
+    existing_test_sha256: existingFocusedTestHash,
+  };
+}
 
 function runValidator(folder: string, args: string[] = []) {
   return spawnSync(process.execPath, ["scripts/validate-plan-pack.mjs", ...args, folder], {
@@ -61,7 +83,7 @@ describe("frontier planning prompt contracts", () => {
   it("accepts the canonical semantic plan-pack fixture", () => {
     const result = runValidator(fixture);
 
-    expect(result.status).toBe(0);
+    expect(result.status, result.stderr).toBe(0);
     expect(result.stdout).toContain("plan-pack validation passed");
   });
 
@@ -99,7 +121,7 @@ describe("frontier planning prompt contracts", () => {
     const result = runValidator(folder);
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("test_trigger expected NONE, EXPLICIT_TEST_TASK, or MVP_CRITICAL_INVARIANT");
+    expect(result.stderr).toContain("test_trigger expected NONE, EXPLICIT_TEST_TASK, MVP_CRITICAL_INVARIANT, or CHEAPEST_DECISIVE_EXISTING_TEST");
     expect(result.stderr).toContain("test_rationale must be a non-empty string");
   });
 
@@ -131,6 +153,326 @@ describe("frontier planning prompt contracts", () => {
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("TEST_TASK requires test_trigger EXPLICIT_TEST_TASK");
+  });
+
+  it("rejects the explicit-test trigger outside TEST_TASK", () => {
+    const folder = copyFixture();
+    mutateManifest(folder, (manifest) => {
+      const criteria = manifest.criteria as Array<Record<string, unknown>>;
+      criteria[0].test_requirement = "TARGETED";
+      criteria[0].test_trigger = "EXPLICIT_TEST_TASK";
+      criteria[0].test_rationale = "The user explicitly requested a testing deliverable, so TARGETED is intentionally invalid.";
+    });
+
+    const result = runValidator(folder);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("EXPLICIT_TEST_TASK requires test_requirement TEST_TASK");
+    expect(result.stderr).toContain("TARGETED requires test_trigger MVP_CRITICAL_INVARIANT or CHEAPEST_DECISIVE_EXISTING_TEST");
+  });
+
+  it("rejects BROADER without an integrated critical trigger", () => {
+    const folder = copyFixture();
+    mutateManifest(folder, (manifest) => {
+      const criteria = manifest.criteria as Array<Record<string, unknown>>;
+      criteria[0].test_requirement = "BROADER";
+      criteria[0].test_trigger = "EXPLICIT_TEST_TASK";
+      criteria[0].test_rationale = "Targeted evidence is insufficient because the integrated boundary needs a broad suite.";
+    });
+
+    const result = runValidator(folder);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("BROADER requires test_trigger MVP_CRITICAL_INVARIANT");
+  });
+
+  it("allows one existing focused test when it is the cheapest decisive proof", () => {
+    const folder = copyFixture();
+    mutateManifest(folder, (manifest) => {
+      const criteria = manifest.criteria as Array<Record<string, unknown>>;
+      criteria[0].test_requirement = "TARGETED";
+      criteria[0].test_trigger = "CHEAPEST_DECISIVE_EXISTING_TEST";
+      criteria[0].test_rationale = "The existing focused validator test is the cheapest decisive proof of this parser behavior.";
+      criteria[0].test_ids = ["TEST-001"];
+      (manifest.baseline as Record<string, unknown>).head = baselineHead;
+      manifest.tests = [{
+        id: "TEST-001",
+        status: "PASS",
+        artifact_path: "IMPLEMENTATION_PLAN.md",
+        criterion_ids: ["AC-001"],
+        evidence_ids: ["EVID-001"],
+        ...existingFocusedTestFields(),
+      }];
+      const evidence = manifest.evidence_index as Array<Record<string, unknown>>;
+      (evidence[0].claim_ids as string[]).push("TEST-001");
+    });
+
+    const writeResult = runValidator(folder, ["--write"]);
+    const result = runValidator(folder);
+
+    expect(writeResult.status).toBe(0);
+    expect(result.status).toBe(0);
+  });
+
+  it("rejects a vague critical-invariant rationale", () => {
+    const folder = copyFixture();
+    mutateManifest(folder, (manifest) => {
+      const criteria = manifest.criteria as Array<Record<string, unknown>>;
+      criteria[0].test_requirement = "TARGETED";
+      criteria[0].test_trigger = "MVP_CRITICAL_INVARIANT";
+      criteria[0].test_rationale = "Run focused tests for general confidence.";
+      criteria[0].test_ids = ["TEST-001"];
+      manifest.tests = [{
+        id: "TEST-001",
+        status: "PASS",
+        artifact_path: "IMPLEMENTATION_PLAN.md",
+        criterion_ids: ["AC-001"],
+        evidence_ids: ["EVID-001"],
+      }];
+      const evidence = manifest.evidence_index as Array<Record<string, unknown>>;
+      (evidence[0].claim_ids as string[]).push("TEST-001");
+    });
+
+    const result = runValidator(folder);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("MVP_CRITICAL_INVARIANT rationale must name the critical invariant and explain why cheaper evidence is insufficient");
+  });
+
+  it("requires exactly one test for the existing-test exception", () => {
+    const folder = copyFixture();
+    mutateManifest(folder, (manifest) => {
+      const criteria = manifest.criteria as Array<Record<string, unknown>>;
+      criteria[0].test_requirement = "TARGETED";
+      criteria[0].test_trigger = "CHEAPEST_DECISIVE_EXISTING_TEST";
+      criteria[0].test_rationale = "The existing focused validator test is the cheapest decisive proof of this parser behavior.";
+      criteria[0].test_ids = ["TEST-001", "TEST-002"];
+      (manifest.baseline as Record<string, unknown>).head = baselineHead;
+      manifest.tests = ["TEST-001", "TEST-002"].map((id) => ({
+        id,
+        status: "PASS",
+        artifact_path: "IMPLEMENTATION_PLAN.md",
+        criterion_ids: ["AC-001"],
+        evidence_ids: ["EVID-001"],
+        ...existingFocusedTestFields(),
+      }));
+      const evidence = manifest.evidence_index as Array<Record<string, unknown>>;
+      (evidence[0].claim_ids as string[]).push("TEST-001", "TEST-002");
+    });
+
+    const result = runValidator(folder);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("CHEAPEST_DECISIVE_EXISTING_TEST requires exactly one test_id");
+  });
+
+  it("rejects distinct existing-test exceptions across one plan pack", () => {
+    const folder = copyFixture();
+    mutateManifest(folder, (manifest) => {
+      const criteria = manifest.criteria as Array<Record<string, unknown>>;
+      criteria[0].test_requirement = "TARGETED";
+      criteria[0].test_trigger = "CHEAPEST_DECISIVE_EXISTING_TEST";
+      criteria[0].test_rationale = "The first existing focused test is the cheapest decisive proof for this criterion.";
+      criteria[0].test_ids = ["TEST-001"];
+      criteria.push({
+        ...criteria[0],
+        id: "AC-002",
+        test_rationale: "The second existing focused test is the cheapest decisive proof for this other criterion.",
+        test_ids: ["TEST-002"],
+      });
+      for (const requirement of manifest.requirements as Array<Record<string, unknown>>) {
+        (requirement.criterion_ids as string[]).push("AC-002");
+      }
+      const gates = manifest.gates as Array<Record<string, unknown>>;
+      (gates[0].criterion_ids as string[]).push("AC-002");
+      (manifest.baseline as Record<string, unknown>).head = baselineHead;
+      manifest.tests = [
+        {
+          id: "TEST-001",
+          status: "PASS",
+          artifact_path: "IMPLEMENTATION_PLAN.md",
+          criterion_ids: ["AC-001"],
+          evidence_ids: ["EVID-001"],
+          ...existingFocusedTestFields(),
+        },
+        {
+          id: "TEST-002",
+          status: "PASS",
+          artifact_path: "IMPLEMENTATION_PLAN.md",
+          criterion_ids: ["AC-002"],
+          evidence_ids: ["EVID-001"],
+          execution_mode: "EXISTING_READ_ONLY",
+          existing_test_path: secondExistingFocusedTestPath,
+          test_command: `bunx vitest run ${secondExistingFocusedTestPath} --maxWorkers=1`,
+          existing_test_sha256: secondExistingFocusedTestHash,
+        },
+      ];
+      const evidence = manifest.evidence_index as Array<Record<string, unknown>>;
+      (evidence[0].claim_ids as string[]).push("AC-002", "TEST-001", "TEST-002");
+    });
+
+    const result = runValidator(folder);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      "CHEAPEST_DECISIVE_EXISTING_TEST permits exactly one shared test_id and existing_test_path per plan pack",
+    );
+  });
+
+  it("rejects a fabricated existing-test record without baseline-bound identity", () => {
+    const folder = copyFixture();
+    mutateManifest(folder, (manifest) => {
+      const criteria = manifest.criteria as Array<Record<string, unknown>>;
+      criteria[0].test_requirement = "TARGETED";
+      criteria[0].test_trigger = "CHEAPEST_DECISIVE_EXISTING_TEST";
+      criteria[0].test_rationale = "The claimed existing test is the cheapest decisive proof, but its identity is fabricated.";
+      criteria[0].test_ids = ["TEST-001"];
+      manifest.tests = [{
+        id: "TEST-001",
+        status: "PASS",
+        artifact_path: "IMPLEMENTATION_PLAN.md",
+        criterion_ids: ["AC-001"],
+        evidence_ids: ["EVID-001"],
+      }];
+      const evidence = manifest.evidence_index as Array<Record<string, unknown>>;
+      (evidence[0].claim_ids as string[]).push("TEST-001");
+    });
+
+    const result = runValidator(folder);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("execution_mode must be EXISTING_READ_ONLY");
+    expect(result.stderr).toContain("existing_test_path must be a non-empty string");
+    expect(result.stderr).toContain("requires an exact Git commit in baseline.head");
+  });
+
+  it("rejects shell composition in the one-existing-test command", () => {
+    const folder = copyFixture();
+    mutateManifest(folder, (manifest) => {
+      const criteria = manifest.criteria as Array<Record<string, unknown>>;
+      criteria[0].test_requirement = "TARGETED";
+      criteria[0].test_trigger = "CHEAPEST_DECISIVE_EXISTING_TEST";
+      criteria[0].test_rationale = "The existing focused test is the cheapest decisive proof, but the command smuggles a broad suite.";
+      criteria[0].test_ids = ["TEST-001"];
+      (manifest.baseline as Record<string, unknown>).head = baselineHead;
+      manifest.tests = [{
+        id: "TEST-001",
+        status: "PASS",
+        artifact_path: "IMPLEMENTATION_PLAN.md",
+        criterion_ids: ["AC-001"],
+        evidence_ids: ["EVID-001"],
+        ...existingFocusedTestFields(),
+        test_command: `bunx vitest run ${existingFocusedTestPath} --maxWorkers=1 && bun test`,
+      }];
+      const evidence = manifest.evidence_index as Array<Record<string, unknown>>;
+      (evidence[0].claim_ids as string[]).push("TEST-001");
+    });
+
+    const result = runValidator(folder);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("one direct command without shell composition");
+  });
+
+  it("rejects shell-active existing-test selectors", () => {
+    for (const unsafePath of [
+      "tests/vitest/account-membership-d1*.test.ts",
+      "tests/vitest/$FOCUSED_TEST.test.ts",
+      "tests/vitest/account-membership-d1?.test.ts",
+      "tests/vitest/account-membership-d1[0].test.ts",
+      "tests/vitest/account-membership-d1{a,b}.test.ts",
+    ]) {
+      const folder = copyFixture();
+      mutateManifest(folder, (manifest) => {
+        const criteria = manifest.criteria as Array<Record<string, unknown>>;
+        criteria[0].test_requirement = "TARGETED";
+        criteria[0].test_trigger = "CHEAPEST_DECISIVE_EXISTING_TEST";
+        criteria[0].test_rationale = "The existing focused test is claimed as cheapest decisive proof, but its selector is shell-active.";
+        criteria[0].test_ids = ["TEST-001"];
+        (manifest.baseline as Record<string, unknown>).head = baselineHead;
+        manifest.tests = [{
+          id: "TEST-001",
+          status: "PASS",
+          artifact_path: "IMPLEMENTATION_PLAN.md",
+          criterion_ids: ["AC-001"],
+          evidence_ids: ["EVID-001"],
+          ...existingFocusedTestFields(),
+          existing_test_path: unsafePath,
+          test_command: `bunx vitest run ${unsafePath} --maxWorkers=1`,
+        }];
+        const evidence = manifest.evidence_index as Array<Record<string, unknown>>;
+        (evidence[0].claim_ids as string[]).push("TEST-001");
+      });
+
+      const result = runValidator(folder);
+
+      expect(result.status, unsafePath).toBe(1);
+      expect(result.stderr, unsafePath).toContain("existing_test_path must be a shell-inert repository-relative path");
+      expect(result.stderr, unsafePath).toContain("test_command must be one direct command without shell composition");
+    }
+  });
+
+  it("rejects mutating, excluding, false-pass, and scope-changing existing-test flags", () => {
+    const unsafeFlags = [
+      "--update",
+      `--exclude=${existingFocusedTestPath}`,
+      "--passWithNoTests",
+      "--watch",
+      "--config=vitest.config.ts",
+      "--setupFiles=tests/setup.ts",
+      "--shard=1/2",
+      "--project=unit",
+      "--maxWorkers=2",
+      "--minWorkers=1",
+      "--no-color",
+      "--no-warnings",
+      "--test-concurrency=1",
+    ];
+
+    for (const unsafeFlag of unsafeFlags) {
+      const folder = copyFixture();
+      mutateManifest(folder, (manifest) => {
+        const criteria = manifest.criteria as Array<Record<string, unknown>>;
+        criteria[0].test_requirement = "TARGETED";
+        criteria[0].test_trigger = "CHEAPEST_DECISIVE_EXISTING_TEST";
+        criteria[0].test_rationale = "The existing focused test is the cheapest decisive proof, but this option violates read-only execution.";
+        criteria[0].test_ids = ["TEST-001"];
+        (manifest.baseline as Record<string, unknown>).head = baselineHead;
+        manifest.tests = [{
+          id: "TEST-001",
+          status: "PASS",
+          artifact_path: "IMPLEMENTATION_PLAN.md",
+          criterion_ids: ["AC-001"],
+          evidence_ids: ["EVID-001"],
+          ...existingFocusedTestFields(),
+          test_command: `bunx vitest run ${existingFocusedTestPath} ${unsafeFlag}`,
+        }];
+        const evidence = manifest.evidence_index as Array<Record<string, unknown>>;
+        (evidence[0].claim_ids as string[]).push("TEST-001");
+      });
+
+      const result = runValidator(folder);
+
+      expect(result.status, unsafeFlag).toBe(1);
+      expect(result.stderr, unsafeFlag).toContain(
+        "test_command options after existing_test_path must be read-only and runner-allowlisted",
+      );
+    }
+  });
+
+  it("rejects the existing-test trigger outside TARGETED", () => {
+    const folder = copyFixture();
+    mutateManifest(folder, (manifest) => {
+      const criteria = manifest.criteria as Array<Record<string, unknown>>;
+      criteria[0].test_requirement = "BROADER";
+      criteria[0].test_trigger = "CHEAPEST_DECISIVE_EXISTING_TEST";
+      criteria[0].test_rationale = "The existing focused test is the cheapest decisive proof, but this mapping is intentionally invalid.";
+    });
+
+    const result = runValidator(folder);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("CHEAPEST_DECISIVE_EXISTING_TEST requires test_requirement TARGETED");
   });
 
   it("rejects an observed run scope above the package action ceiling", () => {
@@ -257,6 +599,125 @@ describe("frontier planning prompt contracts", () => {
     expect(result.stderr).toContain("COMPLETE requires package_status IMPLEMENTATION_READY");
   });
 
+  it("allows auxiliary closeout failures without blocking completed implementation", () => {
+    const folder = copyFixture();
+    mutateManifest(folder, (manifest) => {
+      manifest.release_status = "NOT_EVALUATED";
+      const sources = manifest.sources as Array<Record<string, unknown>>;
+      sources.push({
+        id: "SRC-002",
+        status: "STALE",
+        artifact_path: "IMPLEMENTATION_PLAN.md",
+        affected_ids: ["OPS-001"],
+      });
+      const requirements = manifest.requirements as Array<Record<string, unknown>>;
+      requirements.push({
+        id: "OPS-001",
+        status: "BLOCKED",
+        completion_role: "AUXILIARY",
+        artifact_path: "IMPLEMENTATION_PLAN.md",
+        source_ids: ["SRC-002"],
+        unit_ids: ["UNIT-002"],
+        criterion_ids: ["AC-002"],
+      });
+      const criteria = manifest.criteria as Array<Record<string, unknown>>;
+      criteria.push({
+        id: "AC-002",
+        status: "FAIL",
+        artifact_path: "IMPLEMENTATION_PLAN.md",
+        test_requirement: "NOT_REQUIRED",
+        test_trigger: "NONE",
+        test_rationale: "A failed auxiliary memory sync is recorded directly and does not require a product test.",
+        requirement_ids: ["OPS-001"],
+        test_ids: [],
+        evidence_ids: ["EVID-002"],
+        authorization_boundary_id: null,
+      });
+      const gates = manifest.gates as Array<Record<string, unknown>>;
+      gates.push({
+        id: "GATE-AUX-001",
+        status: "FAIL",
+        artifact_path: "IMPLEMENTATION_PLAN.md",
+        criterion_ids: ["AC-002"],
+        evidence_ids: ["EVID-002"],
+        authorization_boundary_id: null,
+      });
+      const units = manifest.units as Array<Record<string, unknown>>;
+      units.push({
+        id: "UNIT-002",
+        status: "BLOCKED",
+        artifact_path: "IMPLEMENTATION_PLAN.md",
+        depends_on: ["UNIT-001"],
+        requirement_ids: ["OPS-001"],
+        risk_ids: [],
+        evidence_ids: ["EVID-002"],
+      });
+      const evidence = manifest.evidence_index as Array<Record<string, unknown>>;
+      evidence.push({
+        id: "EVID-002",
+        status: "FAIL",
+        artifact_path: "evidence/check.txt",
+        sha256: evidence[0].sha256,
+        claim_ids: ["OPS-001", "UNIT-002", "AC-002", "GATE-AUX-001"],
+        source_revision: "fixture-v1",
+        valid_until: null,
+      });
+    });
+
+    const result = runValidator(folder, ["--write"]);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("plan-pack validation passed");
+
+    mutateManifest(folder, (manifest) => {
+      manifest.release_status = "READY";
+    });
+    const releaseResult = runValidator(folder);
+    expect(releaseResult.status).toBe(1);
+    expect(releaseResult.stderr).toContain("release_status: READY conflicts with AC-002=FAIL");
+  });
+
+  it("allows TECH_BLOCKED for a blocked core unit without rewriting an accepted requirement", () => {
+    const folder = copyFixture();
+    mutateManifest(folder, (manifest) => {
+      manifest.package_status = "NOT_READY";
+      manifest.implementation_status = "INCOMPLETE";
+      manifest.release_status = "NOT_READY";
+      manifest.plan_lifecycle = "N/A";
+      manifest.terminal_status = "TECH_BLOCKED";
+      const units = manifest.units as Array<Record<string, unknown>>;
+      units[0].status = "BLOCKED";
+    });
+
+    const result = runValidator(folder, ["--write"]);
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.stdout).toContain("plan-pack validation passed");
+  });
+
+  it("rejects TECH_BLOCKED when only auxiliary work is blocked", () => {
+    const folder = copyFixture();
+    mutateManifest(folder, (manifest) => {
+      manifest.package_status = "NOT_READY";
+      manifest.implementation_status = "INCOMPLETE";
+      manifest.release_status = "NOT_READY";
+      manifest.plan_lifecycle = "N/A";
+      manifest.terminal_status = "TECH_BLOCKED";
+      const requirements = manifest.requirements as Array<Record<string, unknown>>;
+      requirements[0].completion_role = "AUXILIARY";
+      requirements[0].status = "BLOCKED";
+      requirements[1].completion_role = "AUXILIARY";
+      requirements[1].status = "DEFERRED";
+      const units = manifest.units as Array<Record<string, unknown>>;
+      units[0].status = "BLOCKED";
+    });
+
+    const result = runValidator(folder);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("auxiliary-only failures cannot block implementation");
+  });
+
   it("rejects implementation-ready requirements backed only by stale sources", () => {
     const folder = copyFixture();
     mutateManifest(folder, (manifest) => {
@@ -269,6 +730,88 @@ describe("frontier planning prompt contracts", () => {
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("REQ-001 requires at least one CURRENT source");
     expect(result.stderr).toContain("SEC-001 requires at least one CURRENT source");
+  });
+
+  it("reports malformed link arrays without throwing", () => {
+    const folder = copyFixture();
+    mutateManifest(folder, (manifest) => {
+      const criteria = manifest.criteria as Array<Record<string, unknown>>;
+      criteria[0].requirement_ids = "REQ-001";
+    });
+
+    const result = runValidator(folder);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("requirement_ids must be an array");
+    expect(result.stderr).not.toContain("TypeError");
+  });
+
+  it("rejects unknown completion roles", () => {
+    const folder = copyFixture();
+    mutateManifest(folder, (manifest) => {
+      const requirements = manifest.requirements as Array<Record<string, unknown>>;
+      requirements[0].completion_role = "OPTIONAL";
+    });
+
+    const result = runValidator(folder);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("completion_role expected CORE or AUXILIARY");
+  });
+
+  it("treats a risk linked to a core criterion as core even when its unit is auxiliary", () => {
+    const folder = copyFixture();
+    mutateManifest(folder, (manifest) => {
+      manifest.release_status = "NOT_EVALUATED";
+      const sources = manifest.sources as Array<Record<string, unknown>>;
+      (sources[0].affected_ids as string[]).push("OPS-001");
+      const requirements = manifest.requirements as Array<Record<string, unknown>>;
+      requirements.push({
+        id: "OPS-001",
+        status: "BLOCKED",
+        completion_role: "AUXILIARY",
+        artifact_path: "IMPLEMENTATION_PLAN.md",
+        source_ids: ["SRC-001"],
+        unit_ids: ["UNIT-002"],
+        criterion_ids: ["AC-002"],
+      });
+      const criteria = manifest.criteria as Array<Record<string, unknown>>;
+      criteria.push({
+        id: "AC-002",
+        status: "FAIL",
+        artifact_path: "IMPLEMENTATION_PLAN.md",
+        test_requirement: "NOT_REQUIRED",
+        test_trigger: "NONE",
+        test_rationale: "Auxiliary capability evidence remains visible without affecting implementation completion.",
+        requirement_ids: ["OPS-001"],
+        test_ids: [],
+        evidence_ids: ["EVID-001"],
+        authorization_boundary_id: null,
+      });
+      const units = manifest.units as Array<Record<string, unknown>>;
+      units.push({
+        id: "UNIT-002",
+        status: "BLOCKED",
+        artifact_path: "IMPLEMENTATION_PLAN.md",
+        depends_on: ["UNIT-001"],
+        requirement_ids: ["OPS-001"],
+        risk_ids: ["RISK-001"],
+        evidence_ids: ["EVID-001"],
+      });
+      const risks = manifest.risks as Array<Record<string, unknown>>;
+      risks.push({
+        id: "RISK-001",
+        status: "OPEN",
+        artifact_path: "IMPLEMENTATION_PLAN.md",
+        unit_ids: ["UNIT-002"],
+        criterion_ids: ["AC-001"],
+      });
+    });
+
+    const result = runValidator(folder);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("ACHIEVED conflicts with RISK-001=OPEN");
   });
 
   it("rejects boundary states backed only by resolved authorization records", () => {

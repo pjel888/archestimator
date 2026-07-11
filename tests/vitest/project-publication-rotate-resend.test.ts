@@ -361,6 +361,7 @@ describe("AC-MOD-10 republishProjectPublication writes expires_at conditionally"
     latestPasswordHash?: string | null;
   }) {
     const recorded: RecordedQuery[] = [];
+    const recordedRpc: RecordedRpc[] = [];
 
     vi.doMock("@/lib/auth/session", () => ({
       requireAuth: vi.fn().mockResolvedValue(undefined),
@@ -389,6 +390,7 @@ describe("AC-MOD-10 republishProjectPublication writes expires_at conditionally"
       createPublicationAdminD1Client: vi.fn(() =>
         makeAdminClient({
           recorded,
+          recordedRpc,
           resolveResult: (query) => {
             if (query.table === "projects") {
               return {
@@ -441,89 +443,72 @@ describe("AC-MOD-10 republishProjectPublication writes expires_at conditionally"
       (query) => query.table === "project_publications" && query.operation === "update",
     );
 
-    return { result, recorded, updates };
+    return { result, recorded, recordedRpc, updates };
   }
 
-  it("writes expires_at when expiresAt is a string (sets a new expiry on the same row)", async () => {
-    const { result, updates } = await setupRepublish({
+  it("writes expires_at when expiresAt is a string into the new immutable issuance", async () => {
+    const { result, updates, recordedRpc } = await setupRepublish({
       republishArgs: { projectId: PROJECT_ID, expiresAt: "2027-12-31T23:59:59.000Z" },
     });
 
     expect(result.ok).toBe(true);
-    expect(updates).toHaveLength(1);
-    const update = updates[0];
-    expect(findFilter(update, "id")?.value).toBe(PUBLICATION_ID);
-    const payload = update.payload as Record<string, unknown>;
-    expect(payload).toHaveProperty("expires_at");
-    expect(payload.expires_at).toBe("2027-12-31T23:59:59.000Z");
+    expect(updates).toHaveLength(0);
+    expect(recordedRpc).toEqual([expect.objectContaining({
+      functionName: "replace_project_publication",
+      args: expect.objectContaining({ p_expires_at: "2027-12-31T23:59:59.000Z" }),
+    })]);
   });
 
-  it("clears expires_at when expiresAt is null (reactivation in place)", async () => {
-    const { result, updates } = await setupRepublish({
+  it("clears expires_at when expiresAt is null on the new issuance", async () => {
+    const { result, updates, recordedRpc } = await setupRepublish({
       republishArgs: { projectId: PROJECT_ID, expiresAt: null },
     });
 
     expect(result.ok).toBe(true);
-    expect(updates).toHaveLength(1);
-    const payload = updates[0].payload as Record<string, unknown>;
-    expect(payload).toHaveProperty("expires_at");
-    expect(payload.expires_at).toBeNull();
+    expect(updates).toHaveLength(0);
+    expect(recordedRpc[0]?.args.p_expires_at).toBeNull();
   });
 
-  it("leaves expires_at untouched when expiresAt is undefined (key absent from payload)", async () => {
-    const { result, updates } = await setupRepublish({
+  it("carries the existing expiry forward when expiresAt is undefined", async () => {
+    const { result, updates, recordedRpc } = await setupRepublish({
       republishArgs: { projectId: PROJECT_ID },
     });
 
     expect(result.ok).toBe(true);
-    expect(updates).toHaveLength(1);
-    const payload = updates[0].payload as Record<string, unknown>;
-    // No expires_at key at all → the stored column is left exactly as-is.
-    expect(Object.prototype.hasOwnProperty.call(payload, "expires_at")).toBe(false);
+    expect(updates).toHaveLength(0);
+    expect(recordedRpc[0]?.args.p_expires_at).toBe("2026-01-01T00:00:00.000Z");
   });
 
-  it("reactivation (expiresAt: null) updates the SAME row, mints no new token, and preserves password_hash (MOD-EXP-02)", async () => {
-    const { result, recorded, updates } = await setupRepublish({
+  it("reactivation (expiresAt: null) mints a new issuance and preserves password_hash", async () => {
+    const { result, recorded, recordedRpc, updates } = await setupRepublish({
       republishArgs: { projectId: PROJECT_ID, expiresAt: null },
       latestPasswordHash: "protected-link-hash",
     });
 
     expect(result.ok).toBe(true);
-    // Same row in place — never an INSERT of a new publication row (which would mint a new token).
     const publicationInserts = recorded.filter(
       (query) => query.table === "project_publications" && query.operation === "insert",
     );
     expect(publicationInserts).toHaveLength(0);
-
-    expect(updates).toHaveLength(1);
-    const update = updates[0];
-    expect(findFilter(update, "id")?.value).toBe(PUBLICATION_ID);
-
-    const payload = update.payload as Record<string, unknown>;
-    // No fresh token is written on republish/reactivate.
-    expect(payload).not.toHaveProperty("token_hash");
-    expect(payload).not.toHaveProperty("encrypted_token");
-    // Password preserved: passwordUpdate is {} so password_hash is NOT in the payload and stays as stored.
-    // (Non-vacuous: this asserts republish does NOT null the hash on the protected-link reactivate path.)
-    expect(Object.prototype.hasOwnProperty.call(payload, "password_hash")).toBe(false);
-    // Expiry cleared so the link is live again.
-    expect(payload.expires_at).toBeNull();
-    // The same /share/<token> resolves: clientLinkPath uses the existing encrypted_token.
-    expect(result.clientLinkPath).toBe("/share/existing-token");
+    expect(updates).toHaveLength(0);
+    expect(recordedRpc[0]).toMatchObject({
+      functionName: "replace_project_publication",
+      args: expect.objectContaining({
+        p_expires_at: null,
+        p_password_hash: "protected-link-hash",
+      }),
+    });
+    expect(result.clientLinkPath).not.toBe("/share/existing-token");
   });
 
   it("a reactivate that also clears the password DOES null password_hash (guards the non-vacuous preserve test)", async () => {
-    const { updates } = await setupRepublish({
+    const { updates, recordedRpc } = await setupRepublish({
       republishArgs: { projectId: PROJECT_ID, expiresAt: null, clearPassword: true },
       latestPasswordHash: "protected-link-hash",
     });
 
-    expect(updates).toHaveLength(1);
-    const payload = updates[0].payload as Record<string, unknown>;
-    // When the caller explicitly clears, password_hash IS present and null — proving the
-    // preserve assertion above is meaningful (the key is only absent on the non-clear path).
-    expect(Object.prototype.hasOwnProperty.call(payload, "password_hash")).toBe(true);
-    expect(payload.password_hash).toBeNull();
+    expect(updates).toHaveLength(0);
+    expect(recordedRpc[0]?.args.p_password_hash).toBeNull();
   });
 });
 

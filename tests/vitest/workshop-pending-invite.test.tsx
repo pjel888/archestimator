@@ -122,12 +122,12 @@ describe("workshop pending invite bridge", () => {
     expect(screen.getByRole("link", { name: "Open project" })).toHaveAttribute("href", "/workshop/projects/project-1");
   });
 
-  it("keeps wrong-account bridge state retryable and includes invited email when available", () => {
+  it("keeps wrong-account bridge state retryable without exposing the invited email", () => {
     expect(pendingInviteResolver).toContain("getCurrentUserContext");
     expect(pendingInviteResolver).toContain("acceptInvitationTokenForUser");
     expect(pendingInviteResolver).not.toContain("supabase.auth");
     expect(pendingInviteResolver).toContain('if (state === "wrong_account")');
-    expect(pendingInviteResolver).toContain("invited_email");
+    expect(pendingInviteResolver).not.toContain("invitedEmail");
     expect(pendingInviteRoute).toContain('banner.kind !== "wrong-account"');
   });
 
@@ -141,19 +141,19 @@ describe("workshop pending invite bridge", () => {
     expect(pendingInviteActions).not.toContain("invitation_token_hash");
   });
 
-  it("renders wrong-account recovery with the invited email and a sign-out path", () => {
+  it("renders generic wrong-account recovery with a sign-out path", () => {
     renderHomebase(
       <WorkshopHomebaseClient
         homebase={emptyHomebase}
         favoriteProjects={[]}
         librarySpotlight={null}
         favoritesScope={FAVORITES_SCOPE}
-        inviteBanner={{ kind: "wrong-account", invitedEmail: "teammate@example.com" }}
+        inviteBanner={{ kind: "wrong-account" }}
       />,
     );
 
     expect(screen.getByRole("region", { name: "Invite unavailable" })).toBeInTheDocument();
-    expect(screen.getByText(/teammate@example.com/)).toBeInTheDocument();
+    expect(screen.getByText("Sign out, then continue with the account that received this invite.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Sign out and continue" })).toBeInTheDocument();
   });
 

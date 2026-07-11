@@ -302,7 +302,7 @@ describe("Publisher roster repository composer", () => {
 });
 
 describe("Publisher roster server repository contract", () => {
-  it("stays on Cloudflare D1 and keeps Phase 1 scans capped", () => {
+  it("stays on Cloudflare D1 and keeps Phase 1 scans bounded", () => {
     const source = readFileSync("src/lib/publisher/roster-repository.ts", "utf8");
 
     expect(source).toContain("getCloudflareD1Database");
@@ -314,7 +314,10 @@ describe("Publisher roster server repository contract", () => {
     expect(source).toContain(`PUBLISHER_ROSTER_PUBLICATION_SCAN_LIMIT = ${PUBLISHER_ROSTER_PUBLICATION_SCAN_LIMIT}`);
     expect(source).toContain(`PUBLISHER_ROSTER_CHILD_SCAN_LIMIT = ${PUBLISHER_ROSTER_CHILD_SCAN_LIMIT}`);
     expect(source).toContain("LIMIT ?");
-    expect(source.match(/PUBLISHER_ROSTER_CHILD_SCAN_LIMIT/g)?.length ?? 0).toBeGreaterThanOrEqual(5);
+    expect(source.match(/PUBLISHER_ROSTER_CHILD_SCAN_LIMIT/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
+    expect(source).toContain("COUNT(*) AS recipient_count");
+    expect(source.match(/MAX\(created_at\) AS latest_created_at/g)?.length ?? 0).toBe(2);
+    expect(source.match(/GROUP BY publication_id/g)?.length ?? 0).toBe(3);
     expect(source).toContain("WHERE workspace_id = ? AND project_id IN");
     expect(source).toContain("workspace.id !== workspaceId || currentUser.userId !== userId");
   });

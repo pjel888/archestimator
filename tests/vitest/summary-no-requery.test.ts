@@ -4,10 +4,9 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 // F7 (redundant projects re-query) is solved by reusing the request-cached
-// getCurrentWorkspaceProject inside the collaboration + publication summaries
-// (Teamspace T2.2 / F-P8 superseded the Estimates-List P1-3 resolved-project
-// param). React cache() dedupe is per-request, so this is asserted as a source
-// contract; the per-request round-trip reduction is captured at runtime.
+// project row inside the collaboration + publication summaries. The
+// collaboration path cannot call getCurrentWorkspaceProject because direct
+// sheet managers must remain eligible for its estimate-scoped summary.
 const source = readFileSync(
   path.resolve(__dirname, "../../src/lib/repositories/workspace-repository.ts"),
   "utf8",
@@ -20,9 +19,10 @@ function summaryBody(fnSignature: string) {
 }
 
 describe("collaboration/publication summaries reuse the cached project (F7)", () => {
-  it("collaboration summary uses the cached project lookup, not a raw projects re-query", () => {
+  it("collaboration summary reuses the project row without whole-project authorization", () => {
     const body = summaryBody("export async function getProjectCollaborationSummary(projectId: string)");
-    expect(body).toContain("await getCurrentWorkspaceProject(projectId)");
+    expect(body).toContain("getCachedWorkspaceProjectRow(projectId)");
+    expect(body).not.toContain("getCurrentWorkspaceProject(projectId)");
     expect(body).not.toContain('.from("projects")');
   });
 
@@ -33,6 +33,7 @@ describe("collaboration/publication summaries reuse the cached project (F7)", ()
   });
 
   it("dedupes project_members across both summaries via a request-cached helper", () => {
+    expect(source).toContain("const getCachedWorkspaceProjectRow = cache(");
     expect(source).toContain("const getCachedProjectMembers = cache(");
   });
 });

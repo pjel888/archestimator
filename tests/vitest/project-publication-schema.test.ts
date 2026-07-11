@@ -49,8 +49,7 @@ describe("project client publication schema (Shared Link V2)", () => {
     expect(d1PublicationMigration).toContain("encrypted_token TEXT NOT NULL");
     expect(d1PublicationMigration).toContain("snapshot_json TEXT NOT NULL CHECK (json_valid(snapshot_json))");
     expect(d1PublicationMigration).toContain("CREATE TABLE IF NOT EXISTS project_publication_events");
-    expect(d1PublicationMigration).toContain("event_type IN ('open', 'password_success', 'password_failure', 'download_attempt_blocked', 'password_attempt')");
-    expect(d1Store).toContain('export type PublicationEventType = "open" | "password_success" | "password_failure" | "download_attempt_blocked" | "password_attempt";');
+    expect(d1Store).toContain('export type PublicationEventType = "open" | "password_success" | "password_failure" | "password_attempt";');
     expect(d1Store).toContain("snapshot_json: JsonValue");
     expect(d1Store).toContain("INSERT INTO project_publication_events");
   });

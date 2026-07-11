@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { encodeSharedLinkActivityCursor } from "@/lib/publication/activity-helpers";
 
 const mocks = vi.hoisted(() => ({
   assertSameOriginPublicPost: vi.fn(),
   createSharedLinkSessionCookieName: vi.fn(),
   hasPublicationAccessCookie: vi.fn(),
+  readPublicationTokenEncryptionSecret: vi.fn(() => "test-publication-encryption-secret"),
   readPublicationViewSnapshotVersion: vi.fn(),
   verifySharedLinkSessionCookieValue: vi.fn(),
   checkSharedLinkCommentReadRateLimit: vi.fn(),
@@ -21,6 +23,7 @@ vi.mock("@/lib/publication/security", () => ({
   assertSameOriginPublicPost: mocks.assertSameOriginPublicPost,
   createSharedLinkSessionCookieName: mocks.createSharedLinkSessionCookieName,
   hasPublicationAccessCookie: mocks.hasPublicationAccessCookie,
+  readPublicationTokenEncryptionSecret: mocks.readPublicationTokenEncryptionSecret,
   readPublicationViewSnapshotVersion: mocks.readPublicationViewSnapshotVersion,
   verifySharedLinkSessionCookieValue: mocks.verifySharedLinkSessionCookieValue,
 }));
@@ -72,15 +75,17 @@ describe("share page comment and decision GET route contracts", () => {
       snapshotVersion: 1,
       credentialVersion: "open",
     });
-    mocks.loadSharedLinkPublicComments.mockResolvedValue([
-      {
+    mocks.loadSharedLinkPublicComments.mockResolvedValue({
+      comments: [{
         id: "comment-1",
         content: "Can we confirm the tile allowance?",
         createdAt: "2026-06-03T00:00:00.000Z",
         authorName: "Client",
         authorType: "recipient",
-      },
-    ]);
+      }],
+      hasMore: true,
+      nextCursor: "next-comment-page",
+    });
     mocks.loadSharedLinkRecipientDecision.mockResolvedValue({
       type: "accepted",
       note: "Looks good.",
@@ -100,12 +105,45 @@ describe("share page comment and decision GET route contracts", () => {
     );
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({ comments: expect.any(Array) });
+    await expect(response.json()).resolves.toMatchObject({ comments: expect.any(Array), hasMore: true, nextCursor: "next-comment-page" });
     expect(response.headers.get("cache-control")).toMatch(/no-store|private|max-age/i);
     expect(mocks.checkSharedLinkCommentReadRateLimit).toHaveBeenCalledWith({
       publicationId: "pub-1",
       recipientId: "recip-123",
     });
+    expect(mocks.loadSharedLinkPublicComments).toHaveBeenCalledWith({ publicationId: "pub-1", cursor: null, limit: 50 });
+  });
+
+  it("accepts an encrypted comment cursor and forwards its decoded value", async () => {
+    const GET = expectGetHandler(commentRoute);
+    const cursor = encodeSharedLinkActivityCursor({ created_at: "2026-06-03T00:00:00.000Z", id: "comment-1" });
+
+    const response = await GET(
+      new Request(`http://localhost/api/share/client-pub-token-123/comment?cursor=${encodeURIComponent(cursor)}`, {
+        headers: { cookie: recipientSessionCookie() },
+      }),
+      params(),
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.loadSharedLinkPublicComments).toHaveBeenCalledWith({
+      publicationId: "pub-1",
+      cursor: { createdAt: "2026-06-03T00:00:00.000Z", id: "comment-1" },
+      limit: 50,
+    });
+  });
+
+  it("rejects invalid comment cursors before loading comment history", async () => {
+    const GET = expectGetHandler(commentRoute);
+    const response = await GET(
+      new Request("http://localhost/api/share/client-pub-token-123/comment?cursor=not-a-cursor", {
+        headers: { cookie: recipientSessionCookie() },
+      }),
+      params(),
+    );
+
+    expect(response.status).toBe(400);
+    expect(mocks.loadSharedLinkPublicComments).not.toHaveBeenCalled();
   });
 
   it("comment route rejects missing recipient session before loading comment history", async () => {
@@ -154,7 +192,7 @@ describe("share page comment and decision GET route contracts", () => {
       params(),
     );
 
-    expect(response.status).toBe(401);
+    expect(response.status).toBe(423);
     await expect(response.json()).resolves.toEqual({ error: "password_required" });
     expect(mocks.checkSharedLinkCommentReadRateLimit).not.toHaveBeenCalled();
     expect(mocks.loadSharedLinkPublicComments).not.toHaveBeenCalled();

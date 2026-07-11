@@ -8,7 +8,6 @@ const shareApiRoutes = [
   "src/app/api/share/[token]/activity/route.ts",
   "src/app/api/share/[token]/comment/route.ts",
   "src/app/api/share/[token]/decision/route.ts",
-  "src/app/api/share/[token]/events/route.ts",
   "src/app/api/share/[token]/password/route.ts",
   "src/app/api/share/[token]/session/route.ts",
   "src/app/api/share/[token]/unsubscribe/route.ts",

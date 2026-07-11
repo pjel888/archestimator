@@ -19,6 +19,9 @@ const rowId = "22222222-2222-4222-8222-222222222222";
 function publicationWriteContext(overrides: Record<string, unknown> = {}) {
   return {
     id: "publication-1",
+    workspace_id: "workspace-id",
+    project_id: "project-id",
+    published_by: "owner-id",
     activity_target_labels_json: {
       estimateLabels: { [estimateA]: "Main Estimate", [estimateB]: "Alternate Estimate" },
       rowLabels: { [rowId]: "Concrete works" },
@@ -76,8 +79,10 @@ function createMockPublicationStore(overrides: Record<string, unknown> = {}) {
     insertPublicationEvent: vi.fn().mockResolvedValue(undefined),
     insertRateLimitEvent: vi.fn().mockResolvedValue(undefined),
     insertSharedLinkEvent: vi.fn().mockResolvedValue(undefined),
+    listPublicActivityComments: vi.fn().mockResolvedValue([]),
     listPublicComments: vi.fn().mockResolvedValue([]),
     markRecipientOpened: vi.fn().mockResolvedValue(undefined),
+    markRecipientOpenedWithActivation: vi.fn().mockResolvedValue(undefined),
     markRecipientUnsubscribed: vi.fn().mockResolvedValue(null),
     submitClientResponse: vi.fn().mockResolvedValue("response-id"),
     ...overrides,
@@ -87,6 +92,7 @@ function createMockPublicationStore(overrides: Record<string, unknown> = {}) {
 async function importRepositoryWithStore(store = createMockPublicationStore()) {
   vi.resetModules();
   vi.stubEnv("PUBLICATION_TOKEN_HASH_SECRET", "publication-token-hash-secret");
+  vi.stubEnv("PUBLICATION_TOKEN_ENCRYPTION_SECRET", "publication-token-encryption-secret");
 
   const createPublicationD1Store = vi.fn(() => store);
   vi.doMock("@/lib/publication/d1-store", () => ({
@@ -145,6 +151,71 @@ describe("project publication public repository (Cloudflare D1 context)", () => 
 
     expect(access).toEqual(expect.objectContaining({ publicationId: "publication-1", status: "published", passwordRequired: false }));
     expect(store.getPublicationAccessByTokenHash).toHaveBeenCalledTimes(1);
+  });
+
+  it("pages public comments newest-first in D1 while returning chronological comments with the oldest cursor", async () => {
+    const store = createMockPublicationStore({
+      listPublicActivityComments: vi.fn().mockResolvedValue([
+        {
+          id: "comment-newest",
+          created_at: "2026-06-03T02:00:00.000Z",
+          body: "Newest",
+          author_name: "Client",
+          recipient_id: "recipient-1",
+          estimate_id: null,
+          row_id: null,
+          target_kind: "proposal",
+          target_label: null,
+          target_secondary_label: null,
+          snapshot_version_at_comment: 1,
+          is_internal: false,
+          author_email: "client@example.com",
+        },
+        {
+          id: "comment-older",
+          created_at: "2026-06-03T01:00:00.000Z",
+          body: "Older",
+          author_name: "Client",
+          recipient_id: "recipient-1",
+          estimate_id: null,
+          row_id: null,
+          target_kind: "proposal",
+          target_label: null,
+          target_secondary_label: null,
+          snapshot_version_at_comment: 1,
+          is_internal: false,
+          author_email: "client@example.com",
+        },
+        {
+          id: "comment-next-page",
+          created_at: "2026-06-03T00:00:00.000Z",
+          body: "Next page",
+          author_name: "Client",
+          recipient_id: "recipient-1",
+          estimate_id: null,
+          row_id: null,
+          target_kind: "proposal",
+          target_label: null,
+          target_secondary_label: null,
+          snapshot_version_at_comment: 1,
+          is_internal: false,
+          author_email: "client@example.com",
+        },
+      ]),
+    });
+    const { repository } = await importRepositoryWithStore(store);
+
+    const page = await repository.loadSharedLinkPublicComments({ publicationId: "publication-1", limit: 2 });
+
+    expect(store.listPublicActivityComments).toHaveBeenCalledWith({ publicationId: "publication-1", cursor: null, limit: 3 });
+    expect(page.comments.map((comment) => comment.id)).toEqual(["comment-older", "comment-newest"]);
+    expect(page.hasMore).toBe(true);
+    expect(page.nextCursor).toEqual(expect.any(String));
+    const { decodeSharedLinkActivityCursor } = await import("@/lib/publication/activity-helpers");
+    expect(decodeSharedLinkActivityCursor(page.nextCursor)).toEqual({
+      createdAt: "2026-06-03T01:00:00.000Z",
+      id: "comment-older",
+    });
   });
 
   it("fails malformed publication tokens before creating a D1 store", async () => {
@@ -294,7 +365,13 @@ describe("project publication public repository (Cloudflare D1 context)", () => 
     ).rejects.toThrow("Decision already submitted.");
 
     expect(store.submitClientResponse).toHaveBeenCalledWith(
-      expect.objectContaining({ decision: "accepted", expectedSnapshotVersion: 3 }),
+      expect.objectContaining({
+        decision: "accepted",
+        expectedSnapshotVersion: 3,
+        projectId: "project-id",
+        publishedBy: "owner-id",
+        workspaceId: "workspace-id",
+      }),
     );
   });
 

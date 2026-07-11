@@ -31,6 +31,7 @@ vi.mock("@/lib/admin/corporate-account-repository", () => repositoryMocks);
 
 const ACCOUNT_ID = "11111111-1111-4111-8111-111111111111";
 const USER_ID = "22222222-2222-4222-8222-222222222222";
+const DEV_PROFILE_ID = "usr_dev_philip_0001";
 const WORKSPACE_ID = "33333333-3333-4333-8333-333333333333";
 
 beforeEach(() => {
@@ -186,6 +187,31 @@ describe("corporate account actions", () => {
       }),
     );
     expect(cacheMocks.revalidatePath).toHaveBeenCalledTimes(2);
+  });
+
+  it("accepts stable non-UUID profile IDs used by Better Auth and local fixtures", async () => {
+    const { updateMemberRoleAction } =
+      await import("@/lib/admin/corporate-account-actions");
+
+    await expect(
+      updateMemberRoleAction({
+        accountId: ACCOUNT_ID,
+        userId: DEV_PROFILE_ID,
+        role: "team_leader",
+      }),
+    ).resolves.toEqual({ ok: true });
+
+    expect(repositoryMocks.updateCorporateAccountMemberRole).toHaveBeenCalledWith({
+      accountId: ACCOUNT_ID,
+      userId: DEV_PROFILE_ID,
+      role: "team_leader",
+    });
+    expect(auditMocks.writeAdminAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "corporate_account.member_role_updated",
+        summary: { userId: DEV_PROFILE_ID, role: "team_leader" },
+      }),
+    );
   });
 
   it("delegates workspace linking to the repository's atomic audit mutation without a duplicate audit", async () => {

@@ -44,12 +44,6 @@ describe("Codex publication and public-surface hardening contracts", () => {
         downstream: "checkSharedLinkDecisionRateLimit",
       },
       {
-        path: "src/app/api/share/[token]/events/route.ts",
-        marker: "export async function POST",
-        guard: "assertSameOriginPublicPost(request)",
-        downstream: "checkProjectPublicationEventRateLimit",
-      },
-      {
         path: "src/app/api/share/[token]/unsubscribe/route.ts",
         marker: "export async function POST",
         guard: "assertSameOriginPublicFormPost(request, csrfToken)",

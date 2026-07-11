@@ -86,13 +86,13 @@ class FakeD1Database {
       ];
     }
     if (sql.includes("FROM shared_link_recipients")) {
-      return [{ publication_id: "publication-1" }, { publication_id: "publication-1" }];
+      return [{ publication_id: "publication-1", recipient_count: 2 }];
     }
     if (sql.includes("FROM shared_link_comments")) {
-      return [{ publication_id: "publication-1", created_at: "2026-06-22T00:00:00.000Z" }];
+      return [{ publication_id: "publication-1", latest_created_at: "2026-06-22T00:00:00.000Z" }];
     }
     if (sql.includes("FROM shared_link_responses")) {
-      return [{ publication_id: "publication-1", created_at: "2026-06-23T00:00:00.000Z" }];
+      return [{ publication_id: "publication-1", latest_created_at: "2026-06-23T00:00:00.000Z" }];
     }
     if (sql.includes("FROM estimates")) {
       return [{ id: "estimate-1", project_id: "project-1", updated_at: "2026-06-24T00:00:00.000Z" }];
@@ -164,6 +164,19 @@ describe("Publisher roster D1 repository", () => {
     expect(database.prepared[0]?.sql).toContain("FROM project_publications");
     expect(database.prepared[0]?.sql).toContain("WHERE workspace_id = ? AND project_id IN (?)");
     expect(database.prepared[0]?.values).toEqual(["workspace-1", "project-1", 100]);
+    const recipientStatement = database.prepared.find((statement) => statement.sql.includes("shared_link_recipients"));
+    const commentStatement = database.prepared.find((statement) => statement.sql.includes("shared_link_comments"));
+    const responseStatement = database.prepared.find((statement) => statement.sql.includes("shared_link_responses"));
+
+    expect(recipientStatement?.sql).toContain("COUNT(*) AS recipient_count");
+    expect(recipientStatement?.sql).toContain("GROUP BY publication_id");
+    expect(recipientStatement?.values).toEqual(["publication-1"]);
+    expect(commentStatement?.sql).toContain("MAX(created_at) AS latest_created_at");
+    expect(commentStatement?.sql).toContain("GROUP BY publication_id");
+    expect(commentStatement?.values).toEqual(["publication-1"]);
+    expect(responseStatement?.sql).toContain("MAX(created_at) AS latest_created_at");
+    expect(responseStatement?.sql).toContain("GROUP BY publication_id");
+    expect(responseStatement?.values).toEqual(["publication-1"]);
     expect(database.prepared.map((statement) => statement.sql).join("\n")).not.toContain("supabase");
   });
 });

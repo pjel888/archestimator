@@ -58,4 +58,17 @@ describe("Cloudflare protected proof route dispatcher", () => {
     expect(log).toHaveBeenCalledTimes(1);
     log.mockRestore();
   });
+
+  it("dispatches collaboration invitation proof requests through the Worker boundary", async () => {
+    const response = await routeCloudflareProtectedProofRequest(
+      new Request("https://archestimator.test/__cloudflare/collaboration-invitation-proof", {
+        method: "POST",
+      }),
+      {},
+    );
+    const body = await response?.json();
+
+    expect(response?.status).toBe(503);
+    expect(body).toEqual({ error: "CRON_SECRET is not configured." });
+  });
 });

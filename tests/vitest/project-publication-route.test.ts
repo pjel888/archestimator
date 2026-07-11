@@ -6,8 +6,8 @@ const mocks = vi.hoisted(() => ({
   recordProjectPublicationEvent: vi.fn(),
   recordProjectPublicationAnalyticsEvent: vi.fn(),
   verifyProjectPublicationPasswordByToken: vi.fn(),
-  checkProjectPublicationEventRateLimit: vi.fn(),
   checkProjectPublicationPasswordRateLimit: vi.fn(),
+  checkProjectPublicationEventRateLimit: vi.fn(),
   checkProjectPublicationSnapshotRateLimit: vi.fn(),
   clearProjectPublicationPasswordFailures: vi.fn(),
   recordProjectPublicationPasswordFailure: vi.fn(),
@@ -34,7 +34,6 @@ vi.mock("next/server", async (importOriginal) => {
 });
 
 import { GET } from "@/app/api/share/[token]/route";
-import { POST } from "@/app/api/share/[token]/events/route";
 import { POST as POST_PASSWORD } from "@/app/api/share/[token]/password/route";
 import { createPublicationAccessCookie } from "@/lib/publication/security";
 import { sharedLinkUnavailableErrorBody } from "@/lib/publication/share-copy";
@@ -181,10 +180,7 @@ describe("shared link publication route handlers (Shared Link V2 audit)", () => 
 
     await expect(Promise.resolve(nextServerMocks.afterCallbacks[0]?.())).resolves.toBeUndefined();
     expect(mocks.recordProjectPublicationEvent).toHaveBeenCalledTimes(1);
-    expect(consoleSpy).toHaveBeenCalledWith(
-      "[publication] Failed to record public snapshot open event",
-      expect.any(Error),
-    );
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('"event":"shared_link_open_event_record_error"'));
 
     consoleSpy.mockRestore();
   });
@@ -330,156 +326,6 @@ describe("shared link publication route handlers (Shared Link V2 audit)", () => 
     expect(mocks.resolveProjectPublicationSnapshotByToken).not.toHaveBeenCalled();
   });
 
-  it("records public events only after same-origin CSRF verification", async () => {
-    const response = await POST(
-      new Request("https://archestimator.test/api/share/client-token/events", {
-        method: "POST",
-        headers: {
-          origin: "https://archestimator.test",
-          cookie: "ae_publication_csrf=csrf-token",
-          "x-archestimator-csrf": "csrf-token",
-        },
-        body: JSON.stringify({ eventType: "open" }),
-      }),
-      params(),
-    );
-
-    expect(response.status).toBe(204);
-    expect(mocks.recordProjectPublicationEvent).toHaveBeenCalledWith({
-      token: "client-token",
-      eventType: "open",
-      request: expect.any(Request),
-      metadata: {},
-    });
-  });
-
-  it("records only allowlisted bounded public event metadata", async () => {
-    const response = await POST(
-      new Request("https://archestimator.test/api/share/client-token/events", {
-        method: "POST",
-        headers: {
-          origin: "https://archestimator.test",
-          cookie: "ae_publication_csrf=csrf-token",
-          "x-archestimator-csrf": "csrf-token",
-        },
-        body: JSON.stringify({
-          eventType: "download_attempt_blocked",
-          metadata: {
-            reason: "password_required",
-            source: "share_page",
-            success: false,
-          },
-        }),
-      }),
-      params(),
-    );
-
-    expect(response.status).toBe(204);
-    expect(mocks.recordProjectPublicationEvent).toHaveBeenCalledWith({
-      token: "client-token",
-      eventType: "download_attempt_blocked",
-      request: expect.any(Request),
-      metadata: {
-        reason: "password_required",
-        source: "share_page",
-        success: false,
-      },
-    });
-  });
-
-  it("rejects arbitrary nested public event metadata before rate limiting", async () => {
-    const response = await POST(
-      new Request("https://archestimator.test/api/share/client-token/events", {
-        method: "POST",
-        headers: {
-          origin: "https://archestimator.test",
-          cookie: "ae_publication_csrf=csrf-token",
-          "x-archestimator-csrf": "csrf-token",
-        },
-        body: JSON.stringify({
-          eventType: "open",
-          metadata: {
-            source: "share_page",
-            nested: { debug: "raw client object" },
-          },
-        }),
-      }),
-      params(),
-    );
-
-    expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ error: "Publication event metadata is invalid." });
-    expect(mocks.checkProjectPublicationEventRateLimit).not.toHaveBeenCalled();
-    expect(mocks.recordProjectPublicationEvent).not.toHaveBeenCalled();
-  });
-
-  it("rejects oversized public event metadata before rate limiting", async () => {
-    const response = await POST(
-      new Request("https://archestimator.test/api/share/client-token/events", {
-        method: "POST",
-        headers: {
-          origin: "https://archestimator.test",
-          cookie: "ae_publication_csrf=csrf-token",
-          "x-archestimator-csrf": "csrf-token",
-        },
-        body: JSON.stringify({
-          eventType: "open",
-          metadata: { source: "x".repeat(161) },
-        }),
-      }),
-      params(),
-    );
-
-    expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ error: "Publication event metadata is invalid." });
-    expect(mocks.checkProjectPublicationEventRateLimit).not.toHaveBeenCalled();
-    expect(mocks.recordProjectPublicationEvent).not.toHaveBeenCalled();
-  });
-
-  it("rate limits public event writes before recording the event", async () => {
-    mocks.checkProjectPublicationEventRateLimit.mockResolvedValueOnce({
-      allowed: false,
-      message: "Too many attempts. Please wait 60 seconds.",
-      retryAfter: 60,
-    });
-
-    const response = await POST(
-      new Request("https://archestimator.test/api/share/client-token/events", {
-        method: "POST",
-        headers: {
-          origin: "https://archestimator.test",
-          cookie: "ae_publication_csrf=csrf-token",
-          "x-archestimator-csrf": "csrf-token",
-        },
-        body: JSON.stringify({ eventType: "open" }),
-      }),
-      params(),
-    );
-
-    expect(response.status).toBe(429);
-    expect(response.headers.get("retry-after")).toBe("60");
-    expect(await response.json()).toEqual({ error: "Too many attempts. Please wait 60 seconds." });
-    expect(mocks.recordProjectPublicationEvent).not.toHaveBeenCalled();
-  });
-
-  it("blocks cross-origin public event writes", async () => {
-    const response = await POST(
-      new Request("https://archestimator.test/api/share/client-token/events", {
-        method: "POST",
-        headers: {
-          origin: "https://evil.example",
-          cookie: "ae_publication_csrf=csrf-token",
-          "x-archestimator-csrf": "csrf-token",
-        },
-        body: JSON.stringify({ eventType: "open" }),
-      }),
-      params(),
-    );
-
-    expect(response.status).toBe(403);
-    expect(mocks.recordProjectPublicationEvent).not.toHaveBeenCalled();
-  });
-
   it("verifies publication passwords with same-origin CSRF before setting the access cookie", async () => {
     mocks.verifyProjectPublicationPasswordByToken.mockResolvedValueOnce({
       publicationId: "publication-1",
@@ -567,10 +413,7 @@ describe("shared link publication route handlers (Shared Link V2 audit)", () => 
     });
     expect(nextServerMocks.after).not.toHaveBeenCalled();
     expect(mocks.recordProjectPublicationAnalyticsEvent).not.toHaveBeenCalled();
-    expect(consoleSpy).toHaveBeenCalledWith(
-      "[share] failed to clear password failure lockout state after successful unlock",
-      expect.any(Error),
-    );
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('"event":"shared_link_password_failure_clear_error"'));
     consoleSpy.mockRestore();
   });
 

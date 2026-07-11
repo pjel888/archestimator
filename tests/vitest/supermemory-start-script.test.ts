@@ -10,6 +10,7 @@ import {
   hasRequiredSupermemoryBootstrap,
   SUPERMEMORY_BOOTSTRAP_MARKER,
 } from "../../scripts/lib/supermemory-guidance.mjs";
+import { buildServerEnvironment } from "../../scripts/lib/supermemory-config.mjs";
 
 const scriptPath = "scripts/start-verified-supermemory-server.mjs";
 const configureScriptPath = "scripts/configure-supermemory-server.mjs";
@@ -17,7 +18,7 @@ const ensureScriptPath = "scripts/ensure-supermemory-server.mjs";
 const tempDirs: string[] = [];
 
 function createTempDir() {
-  const dir = mkdtempSync(join(tmpdir(), "archestimator-supermemory-start-"));
+  const dir = mkdtempSync(join(realpathSync(tmpdir()), "arch-sm-"));
   tempDirs.push(dir);
   return dir;
 }
@@ -29,9 +30,9 @@ function sha256(content: string) {
 function createFakeServer(tempDir: string) {
   const serverPath = join(tempDir, "supermemory-server");
   const content = `#!/usr/bin/env node
-const { writeFileSync } = require("node:fs");
-const { appendFileSync } = require("node:fs");
+const { appendFileSync, realpathSync, writeFileSync } = require("node:fs");
 const { createServer } = require("node:http");
+process.title = realpathSync(process.argv[1]);
 if (process.env.FAKE_SERVER_START_COUNT_OUT) {
   appendFileSync(process.env.FAKE_SERVER_START_COUNT_OUT, "start\\n");
 }
@@ -369,6 +370,39 @@ describe("verified Supermemory server launcher", () => {
       PORT: "7882",
       SUPERMEMORY_PORT: "7882",
     });
+    expect(existsSync(join(process.cwd(), "should-not-run"))).toBe(false);
+  });
+
+  it("preserves supported OpenAI-compatible model settings without evaluating env content", () => {
+    const tempDir = createTempDir();
+    const homeDir = join(tempDir, "home");
+    const savedEnvDir = join(homeDir, ".supermemory");
+    mkdirSync(savedEnvDir, { recursive: true });
+    writeFileSync(
+      join(savedEnvDir, "env"),
+      [
+        "OPENAI_API_KEY=stored-provider-key",
+        "OPENAI_BASE_URL=http://localhost:11434/v1",
+        "OPENAI_MODEL=local-frontier-model",
+        "OPENAI_FAST_MODEL=local-fast-model",
+        "OPENAI_TEXT_MODEL=local-text-model",
+        "SUPERMEMORY_DISABLE_TELEMETRY=1",
+        "UNRELATED_COMMAND=$(touch should-not-run)",
+        "",
+      ].join("\n"),
+    );
+
+    const environment = buildServerEnvironment({}, homeDir);
+
+    expect(environment).toMatchObject({
+      OPENAI_API_KEY: "stored-provider-key",
+      OPENAI_BASE_URL: "http://localhost:11434/v1",
+      OPENAI_MODEL: "local-frontier-model",
+      OPENAI_FAST_MODEL: "local-fast-model",
+      OPENAI_TEXT_MODEL: "local-text-model",
+      SUPERMEMORY_DISABLE_TELEMETRY: "1",
+    });
+    expect(environment).not.toHaveProperty("UNRELATED_COMMAND");
     expect(existsSync(join(process.cwd(), "should-not-run"))).toBe(false);
   });
 

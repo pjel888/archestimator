@@ -73,4 +73,36 @@ describe("SharePageSummaryCard (AC-UX-12 trust card)", () => {
     expect(screen.getByText("Line item")).toBeInTheDocument();
     expect(screen.queryByText("Prepared for")).not.toBeInTheDocument();
   });
+
+  it("shows the active link expiry when the public access resolver provides one", () => {
+    render(<SharePageSummaryCard snapshot={snapshot} expiresAt="2026-06-15T00:00:00.000Z" />);
+
+    expect(screen.getByText("Available until")).toBeInTheDocument();
+    expect(screen.getByText("June 15, 2026")).toBeInTheDocument();
+  });
+
+  it("renders immutable issue identity and selected-sheet scope from an issued snapshot", () => {
+    render(<SharePageSummaryCard snapshot={{
+      ...snapshot,
+      issuance: {
+        assumptions: [],
+        exclusions: [],
+        issueNumber: 7,
+        issuedAt: "2026-06-01T00:00:00.000Z",
+        selectedEstimateIds: ["estimate-1", "estimate-2"],
+        senderName: "Owner One",
+        supersedes: { issueNumber: 6, version: 6 },
+        validThrough: "2026-06-30T00:00:00.000Z",
+        version: 7,
+      },
+    }} />);
+
+    expect(screen.getByText("Issue")).toBeInTheDocument();
+    expect(screen.getByText("#7 · v7")).toBeInTheDocument();
+    expect(screen.getByText("Issued on")).toBeInTheDocument();
+    expect(screen.getByText("Scope")).toBeInTheDocument();
+    expect(screen.getByText("2 sheets")).toBeInTheDocument();
+    expect(screen.getByText("Available until")).toBeInTheDocument();
+    expect(screen.getByText("June 30, 2026")).toBeInTheDocument();
+  });
 });

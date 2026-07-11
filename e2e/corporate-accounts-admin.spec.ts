@@ -1,28 +1,29 @@
 import { expect, test } from "@playwright/test";
 
-const bypassSecret = process.env.ARCHESTIMATOR_DEV_AUTH_BYPASS_SECRET?.trim() ?? "";
+import {
+  getProtectedRouteE2eAuth,
+  installLocalDevAuthBypass,
+  isLocalDevAuthBypassReady,
+  isProtectedRouteE2eAuthReady,
+} from "./support/local-dev-auth";
+
 const workspaceId = process.env.ARCHESTIMATOR_E2E_CORPORATE_WORKSPACE_ID?.trim() ?? "";
-const devAuthEnabled = process.env.ARCHESTIMATOR_DEV_AUTH_BYPASS === "1" && bypassSecret.length >= 32;
-const corporateJourneyEnabled = devAuthEnabled && Boolean(workspaceId);
+const auth = getProtectedRouteE2eAuth();
+const corporateJourneyEnabled = isProtectedRouteE2eAuthReady(auth) && Boolean(workspaceId);
 
 test.describe("corporate accounts admin journey", () => {
   test.skip(
     !corporateJourneyEnabled,
-    "Requires valid dev auth plus ARCHESTIMATOR_E2E_CORPORATE_WORKSPACE_ID for a seeded local workspace.",
+    "Requires PLAYWRIGHT_STORAGE_STATE or ready local dev auth plus ARCHESTIMATOR_E2E_CORPORATE_WORKSPACE_ID.",
   );
   test.describe.configure({ mode: "serial", retries: 0 });
 
   test.beforeEach(async ({ page }) => {
-    await page.context().addCookies([
-      {
-        name: "archestimator-dev-auth-bypass",
-        value: bypassSecret,
-        domain: "127.0.0.1",
-        path: "/",
-        httpOnly: false,
-        sameSite: "Lax",
-      },
-    ]);
+    test.skip(
+      !isLocalDevAuthBypassReady(auth),
+      "Local dev auth bypass is not ready for the configured D1 identity.",
+    );
+    await installLocalDevAuthBypass(page.context(), auth);
   });
 
   test("creates, links, unlinks, archives, and restores a local corporate account", async ({
