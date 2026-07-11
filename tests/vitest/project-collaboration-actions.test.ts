@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const actions = readFileSync("src/lib/collaboration/actions.ts", "utf8");
+const teamworkMembersPanel = readFileSync("src/components/workshop/teamwork/ProjectMembersAccessPanel.tsx", "utf8");
 const publisherMembersPanel = readFileSync("src/components/workshop/publisher/PublisherProjectMembersPanel.tsx", "utf8");
 
 describe("project collaboration management actions", () => {
@@ -179,14 +180,16 @@ describe("project collaboration management actions", () => {
     expect(estimateManager).toContain("Only estimate owners and admins can manage this estimate.");
   });
 
-  it("wires Publisher access panel to sheet invite and per-estimate access controls", () => {
-    expect(publisherMembersPanel).toContain("inviteEstimateSheetCollaborator");
-    expect(publisherMembersPanel).toContain("setEstimateSheetAccessMode");
-    expect(publisherMembersPanel).toContain("removeEstimateSheetCollaborator");
-    expect(publisherMembersPanel).toContain("previewEstimateSheetCollaboratorRemoval");
-    expect(publisherMembersPanel).toContain("Project members");
-    expect(publisherMembersPanel).toContain("Estimate access");
-    expect(publisherMembersPanel).toContain("Access mode for");
-    expect(publisherMembersPanel).toContain("Invite to");
+  it("keeps sheet invite and per-estimate access controls under Teamwork ownership", () => {
+    expect(teamworkMembersPanel).toContain("inviteEstimateSheetCollaborator");
+    expect(teamworkMembersPanel).toContain("setEstimateSheetAccessMode");
+    expect(teamworkMembersPanel).toContain("removeEstimateSheetCollaborator");
+    expect(teamworkMembersPanel).toContain("previewEstimateSheetCollaboratorRemoval");
+    expect(teamworkMembersPanel).toContain("Project members");
+    expect(teamworkMembersPanel).toContain("Estimate access");
+    expect(teamworkMembersPanel).toContain("Access mode for");
+    expect(teamworkMembersPanel).toContain("Invite to");
+    expect(publisherMembersPanel).toContain("ProjectMembersAccessPanel as PublisherProjectMembersPanel");
+    expect(publisherMembersPanel).not.toContain("@/lib/collaboration/actions");
   });
 });
