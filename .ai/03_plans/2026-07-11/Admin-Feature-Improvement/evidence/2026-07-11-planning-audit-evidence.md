@@ -1,5 +1,15 @@
 # Planning Audit Evidence — 2026-07-11
 
+## Improve-Stage Targeted Test Refresh
+
+Command:
+
+`bun x vitest run tests/vitest/admin-users-repository.test.ts tests/vitest/admin-feature-flags.test.ts tests/vitest/admin-flag-actions.test.ts tests/vitest/activity-plan-ownership.test.ts tests/vitest/notifications-actions.test.ts tests/vitest/notification-schema.test.ts --maxWorkers=1`
+
+Observed 2026-07-11 Asia/Manila: 6 files, 24 tests, 21 passed, exactly 3 failed. The failures are the classified UNIT-001 baseline: searched-user placeholder/bind order, stale exact flag-audit expectation, and Activity ownership test reading the archived plan's former live path. Notification action/schema suites passed. Any different failure invalidates this classification; these failures are planning evidence, not completion proof.
+
+Improve-stage validation after semantic repairs: `validate:plan-pack` PASS, planning prompt suite PASS, JSON parse PASS, target-folder no-index whitespace check PASS, and trailing-whitespace scan PASS. Final results remain subject to the exact baseline/self-hash refreeze after maker-separated verification.
+
 ## Scope
 
 Planning-only audit for `.ai/03_plans/2026-07-11/Admin-Feature-Improvement`.
