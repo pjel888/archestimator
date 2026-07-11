@@ -76,7 +76,11 @@ Keep upload and notification payload, retry, backpressure, and DLQ ownership iso
 
 ### DEC-AUTO-019: Approval Separation Is Policy-Driven and Deterministic
 
-Compose, review, and publish are separate capabilities. While exactly one eligible operator exists, a recorded `single_operator_mode` permits explicit self-review only with fresh auth, reach/risk summary, and a 60-second cancellable grace window. When two or more eligible reviewers exist, mandatory notices and campaigns above the configured wide-audience threshold require a different reviewer; lower-risk campaigns may retain policy-configured self-review. Rejected: implicit approval or runtime executor choice.
+Compose, review, and publish are separate capabilities. `wide_audience_threshold = min(1000, max(100, ceil(0.10 * currently eligible canonical users)))`; mandatory notices are always wide-risk regardless of count. While exactly one eligible reviewer exists, recorded `single_operator_mode` permits explicit self-review with fresh auth, reach/risk summary, and a 60-second cancellable grace window; wide-risk campaigns additionally require a second typed confirmation of the frozen count/hash. When two or more eligible reviewers exist, every production campaign requires a different reviewer. The formula may change only through a new decision backed by observed scale/incident evidence and regression tests. Rejected: implicit approval, ambiguous lower-risk exceptions, or runtime executor choice.
+
+### DEC-AUTO-020: Intervention Safety Does Not Depend on Notice Delivery
+
+Suspend, ban, revoke-one, revoke-all, and reactivate proceed when their account/session safety preconditions pass even if no external notice channel is proven. `notice_delivery_unavailable` always creates a mandatory case escalation and visible retry state; in-app-only delivery never counts as informing an inaccessible user. Rejected: blocking urgent protection on optional email or falsely reporting notice success.
 
 ## Decision Record Metadata
 
@@ -88,7 +92,7 @@ All decisions are owned by the implementation lead and checked by the independen
 | 004-009 | inbox schema/repository/action and synchronous broadcast defects; control plane vs drafts-in-inbox, sync vs async, Cron vs alarms, snapshot vs enrollment occurrences, materialized vs delivered, tombstone vs delete | high | additive compatibility and recoverable evidence; rollback disables new authoring/consumers and never deletes history |
 | 010-012 | broad role checks, provider boundaries, dependency inventory | high | exact capabilities, isolated optional providers, no dependency by default; reopen on version/provider proof |
 | 013-014 | user request for a comprehensive scheduled manager plus recurrence/template/preference/digest audit gaps | high | all are required; rollback disables authoring/delivery while preserving versions, occurrences, and choices |
-| 015-019 | installed Better Auth/Next architecture, placeholder-route inventory, workshop ownership, upload-specific Queue, current single-operator reality | medium-high | plugin-free, delete-unused, link-not-duplicate, dedicated queue, deterministic approval policy; reverse only through stated falsifiers and focused regression proof |
+| 015-020 | installed Better Auth/Next architecture, placeholder-route inventory, workshop ownership, upload-specific Queue, current single-operator reality, intervention/notice failure boundary | medium-high | plugin-free, delete-unused, link-not-duplicate, dedicated queue, deterministic approval and notice-escalation policy; reverse only through stated falsifiers and focused regression proof |
 
 ## Assumptions
 

@@ -4,7 +4,7 @@ Status: PLANNED
 
 Claims: UNIT-001, AC-001, TEST-001
 Proof class: repository/D1 plus source/manifest inventory
-Preconditions: dependency/gate/authorization receipts PASS or applicable BOUNDARY acknowledged; bun run supermemory:ensure; fresh scoped baseline; exact file and migration/resource lease where applicable.
+Preconditions: bun run supermemory:ensure; fresh scoped baseline; target-plan file ownership; read-only migration-generation inventory with no Admin allocation or migration/resource lease acquisition.
 Planned command: bun x vitest run tests/vitest/admin-users-repository.test.ts tests/vitest/admin-feature-flags.test.ts tests/vitest/admin-flag-actions.test.ts tests/vitest/activity-plan-ownership.test.ts tests/vitest/notifications-actions.test.ts tests/vitest/notification-schema.test.ts
 Expected signal: exactly the three classified reds, no fourth/unclassified failure, and current producer/migration observations recorded; UNIT-002 owns green repair.
 Execution fingerprint fields: source/config/provider revisions; manifest and scoped status/diff hashes; environment; exact changed paths; command/exit/output artifact; timestamp/validity; failure/recovery observations.

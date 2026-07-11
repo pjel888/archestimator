@@ -28,7 +28,7 @@ Before every unit:
 - add characterization tests for fake audit data, account affected-row behavior, admin notification UUID/readability, schema-bound validation, and non-atomic publish residue;
 - inventory Better Auth users missing profiles and profiles missing Better Auth users without mutating data;
 - verify active Corporate, Teamwork, Activity, Beta Operating, and observability manifests and record consumer revisions;
-- reserve migration numbers through the shared lease only after the active migration list is fresh.
+- record the current migration generation, allocations, availability, and collisions without reserving a number; the first D1-writing unit acquires its allocation immediately before work.
 
 **Pass:** the exact combined characterization suite has exactly the three classified reds and no fourth/unclassified failure; archived Activity plus source-drift, Corporate/Teamwork in-progress, Beta, and migration-generation receipts are current enough to state their exact downstream blocks. Known-red classification is the intended evidence for this characterization unit; UNIT-002 owns making all three green. This unit does not promote cross-pack/D1 dependents or claim an Admin migration allocation.
 
@@ -175,7 +175,7 @@ Before every unit:
 
 ## Dependency-Closed Ready Slice
 
-The immediately executable ready slice is `UNIT-001`, which freezes current overlap contracts, test failures, migration lease, and file ownership. `UNIT-002` through `UNIT-016` are planned and become ready in DAG order only after their dependencies and named receipt gates pass. `UNIT-017` through `UNIT-019` additionally require source-matched hosted/release evidence; UNIT-017 cannot provision the new Queue/DLQ until `AUTH-005` is resolved.
+The immediately executable ready slice is `UNIT-001`, which freezes current overlap contracts, test failures, migration-generation availability/collisions, and file ownership without acquiring an Admin migration allocation. The first D1-writing unit acquires that allocation immediately before work. `UNIT-002` through `UNIT-016` are planned and become ready in DAG order only after their dependencies and named receipt gates pass. `UNIT-017` through `UNIT-019` additionally require source-matched hosted/release evidence; UNIT-017 cannot provision the new Queue/DLQ until `AUTH-005` is resolved.
 
 ## Compact Execution Unit Packets
 

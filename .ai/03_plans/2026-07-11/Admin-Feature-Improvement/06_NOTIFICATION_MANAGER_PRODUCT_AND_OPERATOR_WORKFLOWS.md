@@ -49,7 +49,7 @@ Campaign state describes operator intent; run state describes execution. Run sta
 9. Observe durable run/job progress.
 10. Inspect sent history and engagement; cancel, retract, retry, reconcile, or supersede as allowed.
 
-Compose, review, and publish are separate capabilities. Under DEC-AUTO-019, exactly one eligible operator may explicitly self-review only in recorded single-operator mode with fresh auth, a reach/risk summary, and a 60-second cancellable grace window. With two or more eligible reviewers, mandatory or wide campaigns require a different reviewer. The UI never self-labels an unreviewed draft as approved.
+Compose, review, and publish are separate capabilities. Under DEC-AUTO-019, wide means `min(1000, max(100, ceil(10% of currently eligible canonical users)))`, and mandatory notices are always wide-risk. Exactly one eligible reviewer may explicitly self-review only in recorded single-operator mode with fresh auth, reach/risk summary, 60-second cancellable grace, and a second frozen-count/hash confirmation for wide-risk campaigns. With two or more eligible reviewers, every production campaign requires a different reviewer. The UI never self-labels an unreviewed draft as approved.
 
 ## Audience Rules
 
