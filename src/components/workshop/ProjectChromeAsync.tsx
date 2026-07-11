@@ -57,8 +57,8 @@ function ProjectPublisherHeaderActions({ projectId, publicationSummary }: Projec
         href={publicationHref}
         prefetch={false}
         className={PROJECT_HEADER_ACTION_BUTTON_CLASS}
-        aria-label="Open shared link in Publisher"
-        title="Open shared link in Publisher"
+        aria-label="Open shared link"
+        title="Open shared link"
         data-workshop-layout="project-publication-header"
         data-publisher-project-link="publication"
       >

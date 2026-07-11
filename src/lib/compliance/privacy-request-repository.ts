@@ -3,6 +3,7 @@ import "server-only";
 import { getCloudflareD1Database, type D1DatabaseLike } from "@/lib/cloudflare/d1";
 import { hashAccountSecurityValue } from "@/lib/auth/account-audit";
 import { anonymizeActivityActor, type ActivityOutboxDatabase } from "@/lib/activity/activity-outbox";
+import { eraseActivationPrivacyData, exportActivationPrivacyData } from "@/lib/onboarding/activation-retention";
 import {
   eraseSupportDataForPrivacyRequest,
   listSupportDataForPrivacyRequest,
@@ -259,6 +260,26 @@ export async function erasePrivacyRequestActivityData(
   if (!db) return 0;
   return anonymizeActivityActor(db as unknown as ActivityOutboxDatabase, {
     actorUserId: input.requesterUserId,
+    workspaceId: input.workspaceId,
+  });
+}
+
+export async function exportPrivacyRequestActivationData(
+  input: { requesterUserId: string; workspaceId: string },
+  dbOverride?: D1DatabaseLike,
+) {
+  return exportActivationPrivacyData(dbOverride ?? await getCloudflareD1Database(), {
+    userId: input.requesterUserId,
+    workspaceId: input.workspaceId,
+  });
+}
+
+export async function erasePrivacyRequestActivationData(
+  input: { requesterUserId: string; workspaceId: string },
+  dbOverride?: D1DatabaseLike,
+) {
+  return eraseActivationPrivacyData(dbOverride ?? await getCloudflareD1Database(), {
+    userId: input.requesterUserId,
     workspaceId: input.workspaceId,
   });
 }

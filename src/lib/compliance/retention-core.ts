@@ -43,7 +43,10 @@ export type RetentionClassName =
   | "uploads_orphaned"
   | "sessions_expired"
   | "operational_incidents"
-  | "operational_incident_events";
+  | "operational_incident_events"
+  | "beta_activation_events"
+  | "beta_activation_outbox_delivered"
+  | "beta_activation_outbox_unresolved";
 
 export type RetentionRule = {
   className: RetentionClassName;
@@ -145,6 +148,57 @@ export const DEFAULT_RETENTION_RULES: readonly RetentionRule[] = [
            WHERE hold.event_id = event.id
              AND hold.released_at IS NULL
          )`,
+  },
+  {
+    className: "beta_activation_events",
+    ttlDays: 180,
+    action: "purged",
+    selectSql: `SELECT event.id
+      FROM beta_activation_events event
+      WHERE event.created_at < ?1
+        AND NOT EXISTS (
+          SELECT 1 FROM beta_activation_retention_holds hold
+          WHERE hold.user_id = event.user_id
+            AND hold.workspace_id = event.workspace_id
+            AND hold.starts_at <= datetime('now')
+            AND hold.expires_at > datetime('now')
+        )
+      LIMIT 500`,
+    applySql: "DELETE FROM beta_activation_events WHERE id IN (SELECT value FROM json_each(?1))",
+  },
+  {
+    className: "beta_activation_outbox_delivered",
+    ttlDays: 30,
+    action: "purged",
+    selectSql: `SELECT outbox.id
+      FROM beta_activation_outbox outbox
+      WHERE outbox.state = 'delivered' AND outbox.delivered_at < ?1
+        AND NOT EXISTS (
+          SELECT 1 FROM beta_activation_retention_holds hold
+          WHERE hold.user_id = outbox.user_id
+            AND hold.workspace_id = outbox.workspace_id
+            AND hold.starts_at <= datetime('now')
+            AND hold.expires_at > datetime('now')
+        )
+      LIMIT 500`,
+    applySql: "DELETE FROM beta_activation_outbox WHERE id IN (SELECT value FROM json_each(?1))",
+  },
+  {
+    className: "beta_activation_outbox_unresolved",
+    ttlDays: 180,
+    action: "purged",
+    selectSql: `SELECT outbox.id
+      FROM beta_activation_outbox outbox
+      WHERE outbox.state != 'delivered' AND outbox.created_at < ?1
+        AND NOT EXISTS (
+          SELECT 1 FROM beta_activation_retention_holds hold
+          WHERE hold.user_id = outbox.user_id
+            AND hold.workspace_id = outbox.workspace_id
+            AND hold.starts_at <= datetime('now')
+            AND hold.expires_at > datetime('now')
+        )
+      LIMIT 500`,
+    applySql: "DELETE FROM beta_activation_outbox WHERE id IN (SELECT value FROM json_each(?1))",
   },
   {
     className: "privacy_requests_completed",

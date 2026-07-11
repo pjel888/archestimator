@@ -4,7 +4,7 @@ import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRe
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Books, FileText, Folder, NewspaperClipping, Presentation, SidebarSimple, SquaresFour, Star } from "@phosphor-icons/react/dist/ssr";
+import { Books, FileText, Folder, Presentation, ShareNetwork, SidebarSimple, SquaresFour, Star } from "@phosphor-icons/react/dist/ssr";
 import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 
 import { cn } from "@/lib/ui/cn";
@@ -56,7 +56,7 @@ const sidebarNavItems: Array<SidebarNavItem & { icon: PhosphorIcon }> = [
   { id: "projects", href: "/workshop/projects", label: "Projects", icon: Folder, shortcut: "⌘2" },
   { id: "library", href: "/workshop/library", label: "Library", icon: Books, shortcut: "⌘3" },
   { id: "proposals", href: "/workshop/proposals", label: "Proposals", icon: Presentation, shortcut: "⌘4" },
-  { id: "publisher", href: "/workshop/publisher", label: "Publisher", icon: NewspaperClipping, shortcut: "⌘5" },
+  { id: "publisher", href: "/workshop/publisher", label: "Share", icon: ShareNetwork, shortcut: "⌘5" },
 ];
 
 const sidebarPrefetchRoutes = sidebarNavItems.map((item) => ({ pathname: item.href }));

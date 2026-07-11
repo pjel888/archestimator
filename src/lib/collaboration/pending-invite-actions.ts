@@ -75,10 +75,7 @@ export async function acceptPendingInvitationById(formData: FormData) {
   }
 
   if (state === "wrong_account") {
-    const invitedEmail = typeof result.invited_email === "string" ? result.invited_email : "";
-    const params = new URLSearchParams({ invite: "wrong-account" });
-    if (invitedEmail) params.set("email", invitedEmail);
-    redirect(`/workshop?${params.toString()}`);
+    redirect("/workshop?invite=wrong-account");
   }
 
   if (state === "expired") redirect(unavailableInvitePath("expired"));

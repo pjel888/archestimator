@@ -139,7 +139,7 @@ function getChartDims(compact: boolean): ChartDims {
 
 function formatCompactMoney(value: number, currencyCode: string): string {
   const abs = Math.abs(value);
-  const prefix = currencyCode === "PHP" ? "₱" : currencyCode === "USD" ? "$" : `${currencyCode} `;
+  const prefix = new Intl.NumberFormat("en-PH", { style: "currency", currency: currencyCode, currencyDisplay: "narrowSymbol", maximumFractionDigits: 0 }).formatToParts(0).filter((part) => part.type === "currency").map((part) => part.value).join("") || `${currencyCode} `;
   if (abs >= 1_000_000) return `${prefix}${(value / 1_000_000).toFixed(1)}M`;
   if (abs >= 10_000) return `${prefix}${Math.round(value / 1000)}k`;
   // Fixed locale (matches the codebase's en-PH convention) so server and client

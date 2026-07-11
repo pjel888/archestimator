@@ -2645,7 +2645,7 @@ export const getCurrentWorkspaceProject = cache(async function getCurrentWorkspa
 
   const database = await traced("workspace-project.d1-client", () => requireWorkspaceRepositoryD1Database());
   const contextPromise = traced("workspace-project.current-user", () => requireCurrentUserContext());
-  const projectPromise = readProjectForWorkspaceContext(database, projectId);
+  const projectPromise = getCachedWorkspaceProjectRow(projectId);
   const [context, projectRow] = await Promise.all([contextPromise, projectPromise]);
   if (!projectRow) return readDefaultWorkspaceProjectContext();
 
@@ -2665,7 +2665,7 @@ export const getCurrentWorkspaceProjectForEstimate = cache(async function getCur
 
   const database = await traced("workspace-estimate-project.d1-client", () => requireWorkspaceRepositoryD1Database());
   const contextPromise = traced("workspace-estimate-project.current-user", () => requireCurrentUserContext());
-  const projectPromise = readProjectForWorkspaceContext(database, projectId);
+  const projectPromise = getCachedWorkspaceProjectRow(projectId);
   const [context, projectRow] = await Promise.all([contextPromise, projectPromise]);
   if (!projectRow) return readDefaultWorkspaceProjectContext();
 
@@ -2699,6 +2699,13 @@ async function readProjectForWorkspaceContext(database: D1DatabaseLike, projectI
   return project ? normalizeProjectRow(project) : null;
 }
 
+// The whole-project and estimate-scoped authorization paths need the same row,
+// but must apply different access predicates after reading it.
+const getCachedWorkspaceProjectRow = cache(async function getCachedWorkspaceProjectRow(projectId: string) {
+  const database = await requireWorkspaceRepositoryD1Database();
+  return readProjectForWorkspaceContext(database, projectId);
+});
+
 async function readWorkspaceProjectContext(database: D1DatabaseLike, projectRow: ProjectRow) {
   const projectWorkspace = await readWorkspaceById(database, projectRow.workspace_id);
   if (projectWorkspace) return { workspace: projectWorkspace, project: projectRow };
@@ -2711,7 +2718,7 @@ async function readWorkspaceProjectContext(database: D1DatabaseLike, projectRow:
 // The collaboration summary AND the publication summary both read this table in
 // the same project-layout render; wrapping in React `cache()` collapses the two
 // fetches into one round-trip per request, the same pattern as
-// `getCurrentWorkspaceProject`.
+// `getCachedWorkspaceProjectRow`.
 const getCachedProjectMembers = cache(async function getCachedProjectMembers(projectId: string) {
   const database = await requireWorkspaceRepositoryD1Database();
   return readOptionalProjectMembers(database, projectId);
@@ -2722,8 +2729,9 @@ export async function getProjectCollaborationSummary(projectId: string): Promise
   const { profile } = await ensureDefaultWorkspace();
   if (!isUuid(projectId)) return null;
 
-  const database = await requireWorkspaceRepositoryD1Database();
-  const project = await readProjectForWorkspaceContext(database, projectId);
+  const databasePromise = requireWorkspaceRepositoryD1Database();
+  const projectPromise = getCachedWorkspaceProjectRow(projectId);
+  const [database, project] = await Promise.all([databasePromise, projectPromise]);
   if (!project) return null;
 
   // A direct restricted-sheet manager cannot open the broader project surface,

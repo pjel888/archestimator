@@ -19,6 +19,8 @@ export type CorporateActionResult =
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
+// Better Auth and local dev fixtures may use stable non-UUID profile IDs.
+const PROFILE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/u;
 
 export async function createCorporateAccountAction(input: {
   name: string;
@@ -57,7 +59,7 @@ export async function assignUserToCorporateAccountAction(input: {
   jobTitle?: string;
 }): Promise<CorporateActionResult> {
   const admin = await requireAdminContext();
-  if (!UUID_PATTERN.test(input.accountId) || !UUID_PATTERN.test(input.userId)) {
+  if (!UUID_PATTERN.test(input.accountId) || !PROFILE_ID_PATTERN.test(input.userId)) {
     return { ok: false, error: "Invalid ID." };
   }
   if (!isValidRole(input.role)) return { ok: false, error: "Invalid role." };
@@ -84,7 +86,7 @@ export async function removeUserFromCorporateAccountAction(input: {
   userId: string;
 }): Promise<CorporateActionResult> {
   const admin = await requireAdminContext();
-  if (!UUID_PATTERN.test(input.accountId) || !UUID_PATTERN.test(input.userId)) {
+  if (!UUID_PATTERN.test(input.accountId) || !PROFILE_ID_PATTERN.test(input.userId)) {
     return { ok: false, error: "Invalid ID." };
   }
 
@@ -114,7 +116,7 @@ export async function updateMemberRoleAction(input: {
   role: string;
 }): Promise<CorporateActionResult> {
   const admin = await requireAdminContext();
-  if (!UUID_PATTERN.test(input.accountId) || !UUID_PATTERN.test(input.userId)) {
+  if (!UUID_PATTERN.test(input.accountId) || !PROFILE_ID_PATTERN.test(input.userId)) {
     return { ok: false, error: "Invalid ID." };
   }
   if (!isValidRole(input.role)) return { ok: false, error: "Invalid role." };

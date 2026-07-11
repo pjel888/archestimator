@@ -85,6 +85,29 @@ function PublishedProjectLinks({
   );
 }
 
+function UnpublishedProjectLinks({ projects }: { projects: WorkshopProjectSummary[] }) {
+  const unpublishedProjects = projects
+    .filter((project) => project.canManagePublication && project.publicationSummary?.status !== "published")
+    .slice(0, 4);
+
+  if (unpublishedProjects.length === 0) return null;
+
+  return (
+    <ul className="dashboard-published-list" aria-label="Projects ready to share">
+      {unpublishedProjects.map((project) => (
+        <li key={project.id} className="dashboard-published-list-item">
+          <div className="dashboard-published-row">
+            <span className="min-w-0 flex-1 truncate text-[10px] text-ink" title={project.name}>{project.name}</span>
+            <Link href={`/workshop/publisher?wizard=${encodeURIComponent(project.id)}`} className="text-[10px] font-medium text-ink underline underline-offset-2">
+              Share
+            </Link>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function RecentlyAddedComponents({
   components,
 }: {
@@ -206,6 +229,7 @@ export function WorkshopDashboard({
                   </span>
                 </div>
                 <PublishedProjectLinks projects={homebase.projects} />
+                <UnpublishedProjectLinks projects={homebase.projects} />
               </div>
             </div>
 

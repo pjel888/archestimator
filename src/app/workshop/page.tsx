@@ -67,7 +67,7 @@ function readInviteBannerFromSearchParams(params: Record<string, string | string
     };
   }
   if (invite === "wrong-account") {
-    return { kind: "wrong-account", invitedEmail: readParam(params, "email") };
+    return { kind: "wrong-account" };
   }
   if (invite === "unavailable") {
     const reason = readParam(params, "reason");

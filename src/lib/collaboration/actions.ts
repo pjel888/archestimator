@@ -659,25 +659,28 @@ async function issueInviteEntryLink({
     .first<InviteTokenAuditRow>();
   if (!invitation) throw new Error("Invitation is unavailable.");
 
+  const tokenId = createId();
+  const statements = [];
   if (revokeExisting) {
-    await context.db
-      .prepare(
-        `
-          UPDATE collaboration_invitation_tokens
-          SET revoked_at = ?,
-              revoked_by = ?
-          WHERE invitation_id = ?
-            AND used_at IS NULL
-            AND revoked_at IS NULL
-        `,
-      )
-      .bind(timestamp, context.currentUserId, invitationId)
-      .run();
+    statements.push(
+      context.db
+        .prepare(
+          `
+            UPDATE collaboration_invitation_tokens
+            SET revoked_at = ?,
+                revoked_by = ?
+            WHERE invitation_id = ?
+              AND used_at IS NULL
+              AND revoked_at IS NULL
+          `,
+        )
+        .bind(timestamp, context.currentUserId, invitationId),
+    );
   }
 
-  const tokenId = createId();
-  await context.db
-    .prepare(
+  statements.push(
+    context.db
+      .prepare(
       `
         INSERT INTO collaboration_invitation_tokens (
           id,
@@ -701,11 +704,10 @@ async function issueInviteEntryLink({
       context.currentUserId,
       timestamp,
       expiresAt,
-    )
-    .run();
+    ),
 
-  await context.db
-    .prepare(
+    context.db
+      .prepare(
       `
         INSERT INTO collaboration_audit_events (
           id,
@@ -728,8 +730,11 @@ async function issueInviteEntryLink({
       context.currentUserId,
       JSON.stringify({ delivery_method: deliveryMethod }),
       timestamp,
-    )
-    .run();
+    ),
+  );
+
+  if (!context.db.batch) throw new Error("Invitation delivery intent requires transactional D1 support.");
+  await context.db.batch(statements);
 
   const invitePath = `/invite/${encodeURIComponent(inviteToken.rawToken)}`;
   const origin = await resolveInviteOrigin();
@@ -836,6 +841,7 @@ async function recordCollaborationInvitationDelivery({
 }
 
 type CollaborationAuditEventType =
+  | "collaboration_invite_email_delivery_failed"
   | "invite_email_attempted"
   | "member_added"
   | "role_changed"
@@ -888,6 +894,59 @@ function prepareCollaborationAuditEvent({
 
 async function recordCollaborationAuditEvent(args: Parameters<typeof prepareCollaborationAuditEvent>[0]) {
   await prepareCollaborationAuditEvent(args).run();
+}
+
+async function recordInviteEmailDeliveryFailure({
+  context,
+  error,
+  estimateId = null,
+  invitationId,
+  scope,
+}: {
+  context: ProjectAccessContext;
+  error: unknown;
+  estimateId?: string | null;
+  invitationId: string;
+  scope: "estimate" | "project";
+}) {
+  const errorName = error instanceof Error ? error.name : "unknown";
+
+  try {
+    await recordCollaborationAuditEvent({
+      context,
+      estimateId,
+      eventType: "collaboration_invite_email_delivery_failed",
+      invitationId,
+      metadata: {
+        delivery_method: "email",
+        error_name: errorName,
+        scope,
+      },
+    });
+  } catch (activityError) {
+    emitLogRecord({
+      level: "warn",
+      event: "collaboration_invite_email_delivery_failure_activity_write_failed",
+      message: "Collaboration invite email failure activity could not be recorded.",
+      context: {
+        activity_error_name: activityError instanceof Error ? activityError.name : "unknown",
+        project_id: context.project.id,
+        scope,
+      },
+    });
+  }
+
+  emitLogRecord({
+    level: "warn",
+    event: "collaboration_invite_email_delivery_failed",
+    message: "Collaboration invite email could not be delivered.",
+    context: {
+      error_name: errorName,
+      ...(estimateId ? { estimate_id: estimateId } : {}),
+      project_id: context.project.id,
+      scope,
+    },
+  });
 }
 
 async function readProfileContactById(db: D1DatabaseLike, userId: string) {
@@ -1091,15 +1150,11 @@ export async function inviteProjectCollaborator({
       scope: "project",
     });
   } catch (error) {
-    emitLogRecord({
-      level: "warn",
-      event: "collaboration_invite_email_delivery_failed",
-      message: "Collaboration invite email could not be delivered.",
-      context: {
-        error_name: error instanceof Error ? error.name : "unknown",
-        project_id: context.project.id,
-        scope: "project",
-      },
+    await recordInviteEmailDeliveryFailure({
+      context,
+      error,
+      invitationId: invitation.id,
+      scope: "project",
     });
     revalidateCollaborationRoutes(context.project.id);
     return {
@@ -1194,16 +1249,12 @@ export async function inviteEstimateSheetCollaborator({
       scope: "estimate",
     });
   } catch (error) {
-    emitLogRecord({
-      level: "warn",
-      event: "collaboration_invite_email_delivery_failed",
-      message: "Collaboration invite email could not be delivered.",
-      context: {
-        error_name: error instanceof Error ? error.name : "unknown",
-        estimate_id: context.estimate.id,
-        project_id: context.project.id,
-        scope: "estimate",
-      },
+    await recordInviteEmailDeliveryFailure({
+      context,
+      error,
+      estimateId: context.estimate.id,
+      invitationId: invitation.id,
+      scope: "estimate",
     });
     revalidateCollaborationRoutes(context.project.id);
     return {
@@ -1326,14 +1377,37 @@ export async function resendProjectInviteEmail({
     deliveryMethod: "email",
   });
   const scope = invitation.scope === "estimate" ? "estimate" : "project";
-  await sendCloudflareInviteEmail({
-    email: invitation.email,
-    inviteEntryUrl: inviteLink.inviteEntryUrl,
-    projectName: context.project.name,
-    projectId: context.project.id,
-    role: toCollaborationRole(invitation.role),
-    scope,
+  await recordCollaborationAuditEvent({
+    context,
+    estimateId: invitation.estimate_id,
+    eventType: "invite_email_attempted",
+    invitationId,
+    metadata: { delivery_method: "email", scope },
   });
+  try {
+    await sendCloudflareInviteEmail({
+      email: invitation.email,
+      inviteEntryUrl: inviteLink.inviteEntryUrl,
+      projectName: context.project.name,
+      projectId: context.project.id,
+      role: toCollaborationRole(invitation.role),
+      scope,
+    });
+  } catch (error) {
+    await recordInviteEmailDeliveryFailure({
+      context,
+      error,
+      estimateId: invitation.estimate_id,
+      invitationId,
+      scope,
+    });
+    revalidateCollaborationRoutes(context.project.id);
+    return {
+      ok: false,
+      message: "Invite email could not be resent. Copy the invite link to share it manually.",
+      invitePath: inviteLink.invitePath,
+    };
+  }
   await recordCollaborationInvitationDelivery({
     context,
     deliveryMethod: "email",

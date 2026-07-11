@@ -28,7 +28,6 @@ function createWorkshopRedirect(request: NextRequest, banner: WorkshopInviteBann
     url.searchParams.set("targetLabel", banner.targetLabel);
   } else if (banner.kind === "wrong-account") {
     url.searchParams.set("invite", "wrong-account");
-    if (banner.invitedEmail) url.searchParams.set("email", banner.invitedEmail);
   } else if (banner.kind === "unavailable") {
     url.searchParams.set("invite", "unavailable");
     url.searchParams.set("reason", banner.reason);

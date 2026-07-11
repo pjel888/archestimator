@@ -179,6 +179,7 @@ async function seedFixture(db: D1DatabaseLike, runId: string) {
   const future = nowIso(7 * 24 * 60 * 60 * 1000);
   const workspaceId = proofId("workspace", runId);
   const projectId = proofId("project", runId);
+  const wrongProjectId = proofId("project-wrong", runId);
   const byIdProjectId = proofId("project-by-id", runId);
   const managerId = proofId("manager", runId);
   const inviteeId = proofId("invitee", runId);
@@ -211,12 +212,13 @@ async function seedFixture(db: D1DatabaseLike, runId: string) {
     );
     await runStatement(
       db,
-      "INSERT INTO workspace_members (workspace_id, user_id, role, created_at, updated_at) VALUES (?, ?, 'member', ?, ?)",
-      [workspaceId, id, now, now],
+      "INSERT INTO workspace_members (workspace_id, user_id, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+      [workspaceId, id, "member", now, now],
     );
   }
   for (const [id, name] of [
     [projectId, proofId("project", runId)],
+    [wrongProjectId, proofId("project-wrong", runId)],
     [byIdProjectId, proofId("project-by-id", runId)],
   ]) {
     await runStatement(
@@ -226,14 +228,14 @@ async function seedFixture(db: D1DatabaseLike, runId: string) {
     );
     await runStatement(
       db,
-      "INSERT INTO project_members (project_id, workspace_id, user_id, role, added_by, created_at, updated_at) VALUES (?, ?, ?, 'owner', NULL, ?, ?)",
+      "INSERT INTO project_members (project_id, workspace_id, user_id, role, added_by, created_at, updated_at) VALUES (?, ?, ?, 'editor', NULL, ?, ?)",
       [id, workspaceId, managerId, now, now],
     );
   }
 
   for (const [id, project, email, role, state, revokedAt] of [
     [activeInvitationId, projectId, inviteeEmail, "editor", "pending", null],
-    [wrongInvitationId, projectId, inviteeEmail, "viewer", "pending", null],
+    [wrongInvitationId, wrongProjectId, inviteeEmail, "viewer", "pending", null],
     [revokedInvitationId, projectId, inviteeEmail, "viewer", "revoked", now],
     [byIdInvitationId, byIdProjectId, inviteeEmail, "editor", "pending", null],
   ]) {
@@ -255,6 +257,7 @@ async function seedFixture(db: D1DatabaseLike, runId: string) {
     [proofId("token-row-active", runId), activeInvitationId, activeTokenHash, null],
     [proofId("token-row-wrong", runId), wrongInvitationId, wrongTokenHash, null],
     [proofId("token-row-revoked", runId), revokedInvitationId, revokedTokenHash, now],
+    [proofId("token-row-by-id", runId), byIdInvitationId, proofId("token-by-id", runId), null],
   ]) {
     await runStatement(
       db,
@@ -280,6 +283,7 @@ async function seedFixture(db: D1DatabaseLike, runId: string) {
     otherEmail,
     otherId,
     projectId,
+    wrongProjectId,
     revokedTokenHash,
     wrongTokenHash,
   };
@@ -356,7 +360,7 @@ async function runHostedCollaborationInvitationProof(db: D1DatabaseLike) {
     const wrongMembershipRows = await countRows(
       db,
       "SELECT COUNT(*) AS count FROM project_members WHERE project_id = ? AND user_id = ?",
-      [fixture.projectId, fixture.otherId],
+      [fixture.wrongProjectId, fixture.otherId],
     );
     const acceptedAuditRows = await countRows(
       db,

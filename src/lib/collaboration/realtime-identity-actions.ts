@@ -37,6 +37,31 @@ import { canAccessSupportConversationInD1 } from "@/lib/repositories/support-con
 const TOPIC_PATTERN = /^(project|estimate):([0-9a-f-]{36})$/;
 const GLOBAL_PRESENCE_TOPIC = "global-presence";
 const SUPPORT_CONVERSATION_TOPIC_PATTERN = /^[a-zA-Z0-9:_-]{3,200}$/;
+const REALTIME_RUNTIME_SECRET_NAMES = [
+  "REALTIME_ROOM_TOKEN_SECRET",
+  "REALTIME_IDENTITY_SIGNING_KEY",
+] as const;
+
+type CloudflareRealtimeContext = {
+  env?: Record<string, unknown>;
+};
+
+/** OpenNext keeps Worker secrets on the request context, not process.env. */
+async function readRealtimeRuntimeEnv(): Promise<NodeJS.ProcessEnv> {
+  const runtimeEnv = { ...process.env };
+  try {
+    const { getCloudflareContext } = await import("@opennextjs/cloudflare");
+    const context = await getCloudflareContext({ async: true }) as unknown as CloudflareRealtimeContext;
+    for (const name of REALTIME_RUNTIME_SECRET_NAMES) {
+      const value = context.env?.[name];
+      if (typeof value === "string" && value.trim()) runtimeEnv[name] = value.trim();
+    }
+  } catch {
+    // Local/test callers continue with process.env; production callers fail
+    // closed below when a required realtime secret is unavailable.
+  }
+  return runtimeEnv;
+}
 
 function capabilitiesForCollaborationRole(role: ProjectEstimateCollaborationRole): RealtimeRoomCapability[] {
   const capabilities: RealtimeRoomCapability[] = ["presence:read", "presence:write"];
@@ -92,19 +117,21 @@ export async function issueRealtimeIdentity({
   if (!database) return null;
 
   try {
+    const runtimeEnv = await readRealtimeRuntimeEnv();
     const access = await readCollaborationTopicAccessInD1(database, {
       kind: topicKind as "project" | "estimate",
       resourceId: objectId,
     }, user);
     if (!access?.role) return null;
 
-    const roomTokenSecret = readCollaborationRoomTokenSecret();
+    const roomTokenSecret = readCollaborationRoomTokenSecret(runtimeEnv);
     if (!roomTokenSecret) return null;
 
     const { envelope, publicKey } = await issueRealtimeIdentityEnvelope({
       sub: user.userId,
       topic: normalizedTopic,
       role: access.role,
+      env: runtimeEnv,
     });
     const roomToken = await issueRealtimeRoomToken({
       capabilities: capabilitiesForCollaborationRole(access.role),
@@ -122,11 +149,13 @@ export async function issueRealtimeIdentity({
 async function issueRoomTokenForUser({
   topic,
   userId,
+  env,
 }: {
   topic: string;
   userId: string;
+  env: NodeJS.ProcessEnv;
 }): Promise<IssueRealtimeRoomTokenResult | null> {
-  const roomTokenSecret = readRealtimeRoomTokenSecret();
+  const roomTokenSecret = readRealtimeRoomTokenSecret(env);
   if (!roomTokenSecret) return null;
 
   const roomToken = await issueRealtimeRoomToken({
@@ -143,10 +172,12 @@ export async function issueGlobalPresenceRealtimeToken(): Promise<IssueRealtimeR
   if (!user || !isPlatformAdmin(user)) return null;
   const acceptanceStatus = await getCurrentUserTermsAcceptanceStatus(user.userId);
   if (acceptanceStatus.requiresAcceptance) return null;
+  const runtimeEnv = await readRealtimeRuntimeEnv();
 
   return issueRoomTokenForUser({
     topic: GLOBAL_PRESENCE_TOPIC,
     userId: user.userId,
+    env: runtimeEnv,
   });
 }
 
@@ -162,6 +193,7 @@ export async function issueSupportInboxRealtimeToken({
   if (!user) return null;
   const acceptanceStatus = await getCurrentUserTermsAcceptanceStatus(user.userId);
   if (acceptanceStatus.requiresAcceptance) return null;
+  const runtimeEnv = await readRealtimeRuntimeEnv();
 
   if (!isPlatformAdmin(user)) {
     const database = await getCloudflareD1Database();
@@ -181,5 +213,6 @@ export async function issueSupportInboxRealtimeToken({
   return issueRoomTokenForUser({
     topic: normalizedConversationId,
     userId: user.userId,
+    env: runtimeEnv,
   });
 }

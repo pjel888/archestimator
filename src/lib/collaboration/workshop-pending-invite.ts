@@ -16,7 +16,7 @@ export type WorkshopInviteBannerState =
       targetHref: string;
       targetLabel: string;
     }
-  | { kind: "wrong-account"; invitedEmail: string | null }
+  | { kind: "wrong-account" }
   | { kind: "unavailable"; reason: "expired" | "revoked" | "invalid" | "already-used" | "error" };
 
 function mapUnavailableReason(state: string): WorkshopInviteBannerState {
@@ -48,10 +48,8 @@ export async function acceptPendingInviteBridge(
     const state = typeof result.state === "string" ? result.state : "invalid";
     const projectId = typeof result.project_id === "string" ? result.project_id : null;
     const estimateId = typeof result.estimate_id === "string" ? result.estimate_id : null;
-    const invitedEmail = typeof result.invited_email === "string" ? result.invited_email : null;
-
     if (state === "wrong_account") {
-      return { kind: "wrong-account", invitedEmail };
+      return { kind: "wrong-account" };
     }
     if (state === "accepted" || state === "already_member") {
       const targetHref = estimateId && projectId

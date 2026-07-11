@@ -4,11 +4,12 @@ import {
   verifyRealtimeRoomToken,
   type RealtimeRoomTokenClaims,
 } from "@/lib/collaboration/realtime-room-token";
+import { COLLABORATION_CAPACITY_CONTRACT } from "@/lib/collaboration/capacity-contract";
 
-const MAX_MESSAGE_BYTES = 4096;
+const MAX_MESSAGE_BYTES = COLLABORATION_CAPACITY_CONTRACT.maxMessageBytes;
 const MAX_EVENT_NAME_LENGTH = 80;
-const MAX_ROOM_CONNECTIONS = 100;
-const MAX_INBOUND_FRAMES_PER_SECOND = 30;
+const MAX_ROOM_CONNECTIONS = COLLABORATION_CAPACITY_CONTRACT.maxRoomConnections;
+const MAX_INBOUND_FRAMES_PER_SECOND = COLLABORATION_CAPACITY_CONTRACT.maxInboundFramesPerSecondPerConnection;
 const MAX_CURSOR_COORDINATE_PX = 1_000_000;
 const INBOUND_FRAME_WINDOW_MS = 1_000;
 const COLLABORATION_ROOM_PATH_PREFIX = "/__cloudflare/collaboration-room/";

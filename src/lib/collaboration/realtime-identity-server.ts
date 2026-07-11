@@ -51,7 +51,7 @@ type SigningKeyBundle = {
   kid: string;
 };
 
-let cachedBundle: SigningKeyBundle | null = null;
+let cachedBundle: { cacheKey: string; bundle: SigningKeyBundle } | null = null;
 
 /** The 32-byte raw Ed25519 public key (from JWK `x`) for a private KeyObject. */
 function rawPublicKeyFromPrivate(privateKey: KeyObject): Uint8Array {
@@ -84,15 +84,21 @@ export function deriveRealtimeSigningKey(env: NodeJS.ProcessEnv = process.env): 
   return { privateKey, publicKeyRawBase64Url, kid };
 }
 
+function signingKeyCacheKey(env: NodeJS.ProcessEnv) {
+  const explicit = env[SIGNING_KEY_ENV]?.trim();
+  return explicit ? `explicit:${explicit}` : `ephemeral:${env.NODE_ENV ?? "development"}`;
+}
+
 /**
  * Load (and cache) the Ed25519 signing key bundle. Idempotent; the imported
  * keys live in module scope for the lifetime of the process.
  */
-export async function getRealtimeSigningKey(): Promise<SigningKeyBundle> {
-  if (!cachedBundle) {
-    cachedBundle = deriveRealtimeSigningKey();
+export async function getRealtimeSigningKey(env: NodeJS.ProcessEnv = process.env): Promise<SigningKeyBundle> {
+  const cacheKey = signingKeyCacheKey(env);
+  if (!cachedBundle || cachedBundle.cacheKey !== cacheKey) {
+    cachedBundle = { cacheKey, bundle: deriveRealtimeSigningKey(env) };
   }
-  return cachedBundle;
+  return cachedBundle.bundle;
 }
 
 export type IssueRealtimeIdentityArgs = {
@@ -106,6 +112,8 @@ export type IssueRealtimeIdentityArgs = {
   ttlSeconds?: number;
   /** Override for the current time (unix ms). Defaults to Date.now(). */
   nowMs?: number;
+  /** Request-scoped runtime environment (Cloudflare secrets are not process.env). */
+  env?: NodeJS.ProcessEnv;
 };
 
 export type IssuedRealtimeIdentity = {
@@ -128,8 +136,9 @@ export async function issueRealtimeIdentityEnvelope({
   role,
   ttlSeconds = 300,
   nowMs = Date.now(),
+  env = process.env,
 }: IssueRealtimeIdentityArgs): Promise<IssuedRealtimeIdentity> {
-  const { privateKey, publicKeyRawBase64Url, kid } = await getRealtimeSigningKey();
+  const { privateKey, publicKeyRawBase64Url, kid } = await getRealtimeSigningKey(env);
 
   const iat = Math.floor(nowMs / 1000);
   const exp = iat + Math.max(1, Math.floor(ttlSeconds));

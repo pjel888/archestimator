@@ -269,7 +269,6 @@ function InviteResolutionBanner({
   }
 
   if (inviteBanner.kind === "wrong-account") {
-    const invitedEmail = inviteBanner.invitedEmail ?? "the invited email";
     return (
       <section
         className="flex min-h-10 items-center justify-between gap-3 border border-hairline bg-surfaceMuted px-3 py-2"
@@ -278,7 +277,7 @@ function InviteResolutionBanner({
         <div className="min-w-0">
           <p className="text-[11px] font-medium leading-4 text-ink">Invite not applied</p>
           <p className="text-[9px] leading-4 text-tertiary">
-            Sign out and continue with {invitedEmail} to accept this invite.
+            Sign out, then continue with the account that received this invite.
           </p>
         </div>
         <form action={signOutForPendingInvite}>
