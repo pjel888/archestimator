@@ -24,6 +24,11 @@ const agentPayloadRequiredFields = [
 ];
 const agentPayloadStatuses = new Set(["approved", "conditional", "deprecated", "unapproved", "non-agent"]);
 const failClosedStatuses = new Set(["deprecated", "unapproved", "non-agent"]);
+const supportedCodexAgentModels = new Set([
+  "gpt-5.6",
+  "gpt-5.4-mini",
+  "gpt-5.3-codex-spark",
+]);
 
 function rel(path) {
   return relative(repoRoot, path) || ".";
@@ -559,6 +564,9 @@ function checkCodexConfig() {
   if (!config.includes("child_agents_md = true")) {
     fail(".codex/config.toml should keep child_agents_md enabled.");
   }
+  if (!/^model = "gpt-5\.6"$/mu.test(config)) {
+    fail(".codex/config.toml must pin the current frontier default model gpt-5.6.");
+  }
 }
 
 function checkCodexAgentRoles() {
@@ -575,8 +583,8 @@ function checkCodexAgentRoles() {
       if (typeof data.developer_instructions !== "string" || !data.developer_instructions.trim()) {
         warn(`${rel(file)} has no non-empty developer_instructions field.`);
       }
-      if (data.model === "gpt-5.5") {
-        fail(`${rel(file)} uses stale frontier model gpt-5.5; use gpt-5.6 or the role's existing specialist/fast-lane model.`);
+      if (!supportedCodexAgentModels.has(data.model)) {
+        fail(`${rel(file)} uses unsupported model ${JSON.stringify(data.model)}; use the current frontier or approved specialist/fast-lane model.`);
       }
       const resolvedModel = data.developer_instructions?.match(/^- resolved_model:\s*(\S+)\s*$/m)?.[1];
       if (resolvedModel && resolvedModel !== data.model) {
@@ -600,6 +608,7 @@ function checkActiveGuidancePolicyDrift() {
     ".commandcode/README.md",
     ".ai/00_system/AGENT_OPERATING_PROTOCOL.md",
     ".ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md",
+    ".ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md",
     ".ai/00_system/VALIDATION_MATRIX.md",
     ".ai/08_prompts/000_Planning Prompts",
     ".ai/08_prompts/templates/codebase-ai-loop-task.md",

@@ -66,6 +66,11 @@ const TEST_REQUIREMENTS = new Set([
   "BROADER",
   "TEST_TASK",
 ]);
+const TEST_TRIGGERS = new Set([
+  "NONE",
+  "EXPLICIT_TEST_TASK",
+  "MVP_CRITICAL_INVARIANT",
+]);
 
 const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
 const REQUIREMENT_ID_PATTERN = /^(?:REQ|UX|SEC|DATA|PERF|OPS)-\d+$/u;
@@ -753,8 +758,35 @@ export async function validatePlanPack(packPath, { write = false, now = Date.now
   for (const criterion of criteria.values()) {
     const requirementIds = expectStringArray(criterion, "requirement_ids", `criteria: ${criterion.id}`, errors, { minimum: 1, pattern: REQUIREMENT_ID_PATTERN });
     const testRequirement = criterion.test_requirement;
+    const testTrigger = criterion.test_trigger;
+    const testRationale = usesConditionalTestGate
+      ? expectNonEmptyString(criterion, "test_rationale", `criteria: ${criterion.id}`, errors)
+      : null;
     if (usesConditionalTestGate && !TEST_REQUIREMENTS.has(testRequirement)) {
       errors.push(`criteria: ${criterion.id}.test_requirement expected NOT_REQUIRED, TARGETED, BROADER, or TEST_TASK`);
+    }
+    if (usesConditionalTestGate && !TEST_TRIGGERS.has(testTrigger)) {
+      errors.push(`criteria: ${criterion.id}.test_trigger expected NONE, EXPLICIT_TEST_TASK, or MVP_CRITICAL_INVARIANT`);
+    }
+    if (usesConditionalTestGate && testRationale && testRationale.trim().length < 20) {
+      errors.push(`criteria: ${criterion.id}.test_rationale must explain the selected evidence path`);
+    }
+    if (usesConditionalTestGate && testRequirement === "NOT_REQUIRED" && testTrigger !== "NONE") {
+      errors.push(`criteria: ${criterion.id} NOT_REQUIRED must use test_trigger NONE`);
+    }
+    if (usesConditionalTestGate && testRequirement !== "NOT_REQUIRED" && testTrigger === "NONE") {
+      errors.push(`criteria: ${criterion.id} ${testRequirement} requires an explicit test trigger`);
+    }
+    if (usesConditionalTestGate && testRequirement === "TEST_TASK" && testTrigger !== "EXPLICIT_TEST_TASK") {
+      errors.push(`criteria: ${criterion.id} TEST_TASK requires test_trigger EXPLICIT_TEST_TASK`);
+    }
+    if (
+      usesConditionalTestGate &&
+      testRequirement === "BROADER" &&
+      testRationale &&
+      !(/targeted/i.test(testRationale) && /insufficient|cannot|does not|not enough/i.test(testRationale))
+    ) {
+      errors.push(`criteria: ${criterion.id} BROADER must explain why targeted evidence is insufficient`);
     }
     const requiresTests = usesConditionalTestGate
       ? criterion.status !== "N/A" && testRequirement !== "NOT_REQUIRED"

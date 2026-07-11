@@ -61,19 +61,19 @@
       "id": "ART-006",
       "role": "supporting",
       "path": "05_USER_360_IDENTITY_ACTIVITY_AND_LIFECYCLE.md",
-      "sha256": "0f9ed93208a6fe2b58b69ae6e872c5b05fd4528223e9735f9afcb1efb024dae9"
+      "sha256": "a9cbdbea0c3f98f6f4d443d00c160172802f62cc4e90265d71e4eef71902601d"
     },
     {
       "id": "ART-007",
       "role": "supporting",
       "path": "06_NOTIFICATION_MANAGER_PRODUCT_AND_OPERATOR_WORKFLOWS.md",
-      "sha256": "208c855af5cb3f80678f19923297f9fd90bc4e2dfd584e169ebb29b401ff73f5"
+      "sha256": "a0a7bc258f4e151cd522396d511fb64053e580dbd06f6ae3431705882dbbc10e"
     },
     {
       "id": "ART-008",
       "role": "supporting",
       "path": "07_NOTIFICATION_DATA_DISPATCH_AND_SCHEDULING.md",
-      "sha256": "e7140fbb52bef537827b1b92347e0c0b0f375257d2ec8d143596d585e5c5ba88"
+      "sha256": "fc3a6dfd6ea94d810f9f3b4ba6fd42562d4497fc7d0a32f99ae1eca45f817b4b"
     },
     {
       "id": "ART-009",
@@ -103,7 +103,7 @@
       "id": "ART-013",
       "role": "supporting",
       "path": "12_ROLLOUT_ROLLBACK_RUNBOOKS_AND_RELEASE_BOUNDARIES.md",
-      "sha256": "d0c249d17d624a38424b8e0fa48fefb50bfc513dd0ac07b4a0d7cdb5a65c47ec"
+      "sha256": "cf7edae313ff3cabf1c0605f1171c95e81902031190fc04e3d05c1461a19056c"
     },
     {
       "id": "ART-014",
@@ -115,7 +115,7 @@
       "id": "ART-015",
       "role": "supporting",
       "path": "14_DECISIONS_ASSUMPTIONS_RISKS_AND_AUTH_BOUNDARIES.md",
-      "sha256": "226e77557bc3d1349c0dc4158aff4cd5fe39ceeffb99821db16ffbfed6610c3b"
+      "sha256": "fc19e9b49d02fc4d20bb15d11c3d60b2b459e067629c08328b3fe954f24b5765"
     },
     {
       "id": "ART-016",
@@ -133,31 +133,31 @@
       "id": "ART-018",
       "role": "canonical-execution",
       "path": "IMPLEMENTATION_PLAN.md",
-      "sha256": "85d95b8a95fa80169b7eecfb9fda0a2cc8cf7159283c5cdc45b5c2f0aa6f588a"
+      "sha256": "b3bac1af745af0b8be06c7e72e711d125c79782d6f7058ad945b22dcb67b873b"
     },
     {
       "id": "ART-019",
       "role": "supporting",
       "path": "LOOP_LEDGER.md",
-      "sha256": "d321e612f49b69744100d01e4e774fad5a18a79d7f00e700981d4490ce538092"
+      "sha256": "7b2cd576d4cc71ab5f58a537145becc6784ae6432250407e39c3e00860ca0e4a"
     },
     {
       "id": "ART-020",
       "role": "evidence",
       "path": "evidence/2026-07-11-planning-audit-evidence.md",
-      "sha256": "15623a415a4658a0f5c13a222b9b806e49d3ecbfb252731c47d92d775ea34a7f"
+      "sha256": "d5083541228f441464c31bbc25bfb40dd173be0a4178353f613e9de867c09175"
     },
     {
       "id": "ART-021",
       "role": "evidence",
       "path": "evidence/UNIT-001-receipt.md",
-      "sha256": "6a1ccf98a02f0133233aad983590fb6f56777e4ac5ecb069d27fe99ed8b01800"
+      "sha256": "eb9559a00fa99c27e3a01808a743e63aa17c8890ed5874eacc57a2ff52fb418c"
     },
     {
       "id": "ART-022",
       "role": "evidence",
       "path": "evidence/UNIT-002-receipt.md",
-      "sha256": "56a0b05cf6787b6e5dd0cbd3a22f3f7d0955400e3b8d40158f31cc7e4df3eb09"
+      "sha256": "a2f047be27b59feacef9209f08488337340715143a2b74a2d2e3e706c8b5a935"
     },
     {
       "id": "ART-023",
@@ -2801,7 +2801,7 @@
       "id": "EVID-001",
       "status": "PASS",
       "artifact_path": "evidence/2026-07-11-planning-audit-evidence.md",
-      "sha256": "15623a415a4658a0f5c13a222b9b806e49d3ecbfb252731c47d92d775ea34a7f",
+      "sha256": "d5083541228f441464c31bbc25bfb40dd173be0a4178353f613e9de867c09175",
       "claim_ids": [
         "SRC-001",
         "SRC-002",
@@ -2881,7 +2881,7 @@
       "id": "EVID-002",
       "status": "PLANNED",
       "artifact_path": "evidence/UNIT-001-receipt.md",
-      "sha256": "6a1ccf98a02f0133233aad983590fb6f56777e4ac5ecb069d27fe99ed8b01800",
+      "sha256": "eb9559a00fa99c27e3a01808a743e63aa17c8890ed5874eacc57a2ff52fb418c",
       "claim_ids": [
         "UNIT-001",
         "AC-001",
@@ -2895,7 +2895,7 @@
       "id": "EVID-003",
       "status": "PLANNED",
       "artifact_path": "evidence/UNIT-002-receipt.md",
-      "sha256": "56a0b05cf6787b6e5dd0cbd3a22f3f7d0955400e3b8d40158f31cc7e4df3eb09",
+      "sha256": "a2f047be27b59feacef9209f08488337340715143a2b74a2d2e3e706c8b5a935",
       "claim_ids": [
         "UNIT-002",
         "AC-002",
@@ -3143,5 +3143,5 @@
     }
   ],
   "next_unit": "UNIT-001",
-  "manifest_sha256": "5d3f32bb53d2c5704a3d4fa53c123c56efc7ffff65437dfebb7ee78c94e45603"
+  "manifest_sha256": "86ec503030cb468fd145becfe99af62a4aa788d9dd2fdbfac2ab612dbef6b9c3"
 }

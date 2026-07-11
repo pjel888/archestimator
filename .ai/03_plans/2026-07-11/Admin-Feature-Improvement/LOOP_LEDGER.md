@@ -60,3 +60,11 @@ Append-only. Later lanes add entries; do not rewrite prior observations.
 - Verified product scope: immutable sent history, versioned templates, one-time and recurring schedules, future-user audience reconciliation, preferences, quiet hours, digests, durable dispatch, retries, metrics, cancellation, retraction, replacement, and recovery.
 - Verified execution scope: deterministic reviewer policy, fresh-auth and intervention-notice decisions, cost/provider boundary separation, DAG ordering, unit receipts, overlap blocks, and status honesty.
 - Mechanical stop condition remains: two identical exact scoped-baseline snapshots, refreshed artifact/evidence/manifest hashes, current plan-pack and planning-suite validators, and whitespace/path checks.
+
+## 2026-07-11 — PLAN-009 — FINAL FREEZE EVIDENCE
+
+- Frozen baseline: HEAD `d73d2bcb979d6d2a88f31ae0db64fb8047dbf965`; scoped status `65d9450f7d19f768ff9a5bb00c42622b19fa9290ce746b7136740360d9416383`; scoped diff `c123bd495e1ac32a0e6f6dead5b768c58d5fac493584379c057f9803c0883cd9`. Two consecutive snapshots were byte-identical.
+- Fresh focused characterization: 6 files, 24 tests, 21 passed, exactly 3 classified failures; `UNIT-001` treats that exact known-red set as the current baseline and `UNIT-002` owns all three repairs.
+- Fresh gates before this ledger append: `validate:plan-pack` passed; `validate:planning-prompts` passed with 10 documents, 10 gates, 33 scenarios, 2,629 lines, and a valid semantic fixture; staged and unstaged `git diff --check` passed; trailing-whitespace scan returned no findings.
+- Final status remains `CONDITIONALLY_READY`: only `UNIT-001` is the dependency-closed implementation entry; downstream units remain planned or boundary-blocked until their named producer, migration, authorization, hosted, and release receipts pass.
+- No application source, migration, provider resource, deployment, browser, or hosted state was changed by this planning lane.
